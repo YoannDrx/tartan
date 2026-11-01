@@ -311,6 +311,34 @@ describe("invitations", () => {
     }
   });
 
+  it("refuse un athlète sans date de naissance, sinon un enfant consentirait seul", async () => {
+    const { link } = await createInvitation(a.owner.userId, a.organizationId, {
+      kind: "group_link",
+      role: "athlete",
+      groupIds: [a.groupId],
+    });
+    const token = link.split("/i/")[1] as string;
+    const child = await makeUser("Enfant");
+    await prisma.profile.update({ where: { id: child.userId }, data: { birthDate: null } });
+    const input = { firstName: "Enfant", lastName: "Test", consents: { terms: true, health: true, video: true } };
+    await expect(acceptInvitation(child, token, { ...input, birthDate: null })).rejects.toMatchObject({ status: 400 });
+    await expect(acceptInvitation(child, token, { ...input, birthDate: "2020-01-01" })).rejects.toMatchObject({
+      status: 400,
+    });
+  });
+
+  it("garde la date connue au lieu de l'effacer, et demande un parent si elle révèle un mineur", async () => {
+    const { link } = await createInvitation(a.owner.userId, a.organizationId, {
+      kind: "group_link",
+      role: "athlete",
+      groupIds: [a.groupId],
+    });
+    const token = link.split("/i/")[1] as string;
+    const child = await makeUser("Noa", { birthDate: "2020-01-01" });
+    const input = { firstName: "Noa", lastName: "Test", consents: { terms: true, health: true, video: true } };
+    await expect(acceptInvitation(child, token, { ...input, birthDate: null })).rejects.toMatchObject({ status: 400 });
+  });
+
   it("consomme un lien nominatif une seule fois et vérifie le destinataire", async () => {
     const user = await makeUser("Chloé");
     const { link } = await createInvitation(a.owner.userId, a.organizationId, {
@@ -789,6 +817,43 @@ describe("vidéos", () => {
     await expect(
       addComment(a.hugo.userId, a.organizationId, { entityType: "video", entityId: id, body: "Coucou" }),
     ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("un adjoint ne lit pas les vidéos d'un autre groupe en passant l'identifiant", async () => {
+    const id = await makeVideo(false);
+    const otherGroup = await prisma.group.create({ data: { organizationId: a.organizationId, name: "Autre groupe" } });
+    const assistant = await addStaff(a.organizationId, "Adjoint", "assistant", [otherGroup.id]);
+    const videos = await listVideos(assistant.userId, a.organizationId, { athleteId: a.lea.athleteId });
+    expect(videos.map((v) => v.id)).not.toContain(id);
+  });
+
+  it("un accord vidéo retiré coupe la lecture et le partage côté coach, pas côté athlète", async () => {
+    const id = await makeVideo(true);
+    await prisma.video.update({ where: { id }, data: { muxPlaybackId: null } });
+    await setConsent(a.lea.userId, "video", false, a.lea.athleteId);
+    const seen = await getVideo(a.owner.userId, a.organizationId, id);
+    expect(seen.consentRevoked).toBe(true);
+    expect(seen.mp4Url).toBeNull();
+    await expect(shareVideo(a.owner.userId, a.organizationId, id, { withAthlete: true })).rejects.toMatchObject({
+      code: "consent_required",
+    });
+    const own = await getVideo(a.lea.userId, a.organizationId, id);
+    expect(own.consentRevoked).toBe(false);
+    await setConsent(a.lea.userId, "video", true, a.lea.athleteId);
+  });
+
+  it("la feuille de barres sans filtre montre la dernière séance, et la meilleure barre de toutes", async () => {
+    const hugo = a.hugo.athleteId;
+    const base = { organizationId: a.organizationId, athleteId: hugo };
+    await prisma.jumpAttempt.createMany({
+      data: [
+        { ...base, barHeightCm: 180, attemptNo: 1, result: "O", createdAt: new Date("2026-10-01T10:00:00Z") },
+        { ...base, barHeightCm: 170, attemptNo: 1, result: "X", createdAt: new Date("2026-10-20T10:00:00Z") },
+      ],
+    });
+    const sheet = await getBarSheet(a.owner.userId, a.organizationId, { athleteId: hugo });
+    expect(sheet.rows.map((r) => r.heightCm)).toEqual([170]);
+    expect(sheet.bestCm).toBe(180);
   });
 
   it("le webhook met à jour statut, fréquence et durée", async () => {

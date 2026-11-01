@@ -84,7 +84,10 @@ export const getBillingOverview = async (userId: string, organizationId: string)
   const access = await requireOrgMember(userId, organizationId, "viewTracking");
   if (!isStaff(access.role)) throw forbidden();
   const [org, subscription, limits, usage] = await Promise.all([
-    prisma.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { plan: true, stripeCustomerId: true } }),
+    prisma.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { plan: true, stripeCustomerId: true },
+    }),
     prisma.subscription.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } }),
     limitsOf(organizationId),
     usageOf(organizationId),
@@ -124,7 +127,9 @@ export const createCheckout = async (
     await prisma.organization.update({ where: { id: organizationId }, data: { stripeCustomerId: customerId } });
   }
   // Un seul essai par espace : résilier puis reprendre ne le redonne pas.
-  const alreadyPaid = await prisma.subscription.count({ where: { organizationId, provider: { in: ["stripe", "revenuecat"] } } });
+  const alreadyPaid = await prisma.subscription.count({
+    where: { organizationId, provider: { in: ["stripe", "revenuecat"] } },
+  });
   const appUrl = env().NEXT_PUBLIC_APP_URL;
   const session = await client.checkout.sessions.create({
     mode: "subscription",
@@ -158,7 +163,10 @@ export const createCheckout = async (
 
 export const createPortal = async (userId: string, organizationId: string): Promise<{ url: string }> => {
   await requireOrgMember(userId, organizationId, "manageSubscription");
-  const org = await prisma.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { stripeCustomerId: true } });
+  const org = await prisma.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: { stripeCustomerId: true },
+  });
   if (!billingEnabled() || !org.stripeCustomerId) throw notFound();
   const session = await stripe().billingPortal.sessions.create({
     customer: org.stripeCustomerId,
@@ -187,7 +195,11 @@ export const applySubscription = async (input: {
   });
   const effective = planForSubscription(input.plan, input.status);
   const paidSince =
-    input.status === "active" && isPaidPlan(effective) ? (existing?.paidSince ?? now) : input.status === "canceled" ? null : (existing?.paidSince ?? null);
+    input.status === "active" && isPaidPlan(effective)
+      ? (existing?.paidSince ?? now)
+      : input.status === "canceled"
+        ? null
+        : (existing?.paidSince ?? null);
   const data = {
     planKey: effective,
     status: input.status,
@@ -201,7 +213,11 @@ export const applySubscription = async (input: {
   else await prisma.subscription.create({ data: { ...data, organizationId: input.organizationId } });
   await prisma.organization.update({ where: { id: input.organizationId }, data: { plan: effective } });
   await syncEntitlements(input.organizationId, effective);
-  await audit({ organizationId: input.organizationId, action: `plan_${effective}_${input.status}`, entity: "subscription" });
+  await audit({
+    organizationId: input.organizationId,
+    action: `plan_${effective}_${input.status}`,
+    entity: "subscription",
+  });
   log.info("subscription_applied", { organizationId: input.organizationId, status: input.status });
 };
 
@@ -271,14 +287,24 @@ export const handleRevenueCatEvent = async (event: RevenueCatEvent): Promise<voi
   if (!org) return;
   const plan = planForProduct(event.product_id);
   const periodEnd = event.expiration_at_ms ? new Date(event.expiration_at_ms) : null;
-  const base = { organizationId, provider: "revenuecat" as const, providerRef: event.app_user_id, currentPeriodEnd: periodEnd };
+  const base = {
+    organizationId,
+    provider: "revenuecat" as const,
+    providerRef: event.app_user_id,
+    currentPeriodEnd: periodEnd,
+  };
   switch (event.type) {
     case "INITIAL_PURCHASE":
     case "RENEWAL":
     case "PRODUCT_CHANGE":
     case "UNCANCELLATION":
       if (plan) {
-        await applySubscription({ ...base, plan, status: event.period_type === "TRIAL" ? "trialing" : "active", cancelAt: null });
+        await applySubscription({
+          ...base,
+          plan,
+          status: event.period_type === "TRIAL" ? "trialing" : "active",
+          cancelAt: null,
+        });
       }
       break;
     case "CANCELLATION":
@@ -320,7 +346,9 @@ const applyReward = async (rewardId: string): Promise<boolean> => {
 };
 
 // Tâche planifiée : qualifie les filleuls payants depuis 30 jours, écarte les abus, applique les mois offerts.
-export const processReferrals = async (now: Date = new Date()): Promise<{ qualified: number; applied: number; rejected: number }> => {
+export const processReferrals = async (
+  now: Date = new Date(),
+): Promise<{ qualified: number; applied: number; rejected: number }> => {
   const referrals = await prisma.referral.findMany({
     where: { status: { in: ["signed_up", "trialing"] }, referredOrgId: { not: null } },
     include: { code: true },
@@ -346,8 +374,14 @@ export const processReferrals = async (now: Date = new Date()): Promise<{ qualif
       where: { id: referral.referredOrgId as string },
       select: { stripeCustomerId: true },
     });
-    const beneficiaryOrg = await prisma.organization.findFirst({ where: { ownerId: beneficiary }, select: { stripeCustomerId: true } });
-    const [a, b] = await Promise.all([paymentFingerprint(referredOrg.stripeCustomerId), paymentFingerprint(beneficiaryOrg?.stripeCustomerId ?? null)]);
+    const beneficiaryOrg = await prisma.organization.findFirst({
+      where: { ownerId: beneficiary },
+      select: { stripeCustomerId: true },
+    });
+    const [a, b] = await Promise.all([
+      paymentFingerprint(referredOrg.stripeCustomerId),
+      paymentFingerprint(beneficiaryOrg?.stripeCustomerId ?? null),
+    ]);
     if (a && a === b) {
       await prisma.referral.update({ where: { id: referral.id }, data: { status: "rejected" } });
       await audit({ action: "referral_rejected_same_payment", entity: "referral", entityId: referral.id });
@@ -355,15 +389,25 @@ export const processReferrals = async (now: Date = new Date()): Promise<{ qualif
       continue;
     }
     const yearAgo = new Date(now.getTime() - 365 * 86400 * 1000);
-    const received = await prisma.referralReward.count({ where: { beneficiaryId: beneficiary, createdAt: { gte: yearAgo } } });
+    const received = await prisma.referralReward.count({
+      where: { beneficiaryId: beneficiary, createdAt: { gte: yearAgo } },
+    });
     await prisma.referral.update({ where: { id: referral.id }, data: { status: "qualified", qualifiedAt: now } });
-    const beneficiaries = received < MAX_REWARDS_PER_YEAR ? [beneficiary, referral.referredUserId] : [referral.referredUserId];
+    const beneficiaries =
+      received < MAX_REWARDS_PER_YEAR ? [beneficiary, referral.referredUserId] : [referral.referredUserId];
     await prisma.referralReward.createMany({
-      data: beneficiaries.map((beneficiaryId) => ({ referralId: referral.id, beneficiaryId, kind: "free_month" as const })),
+      data: beneficiaries.map((beneficiaryId) => ({
+        referralId: referral.id,
+        beneficiaryId,
+        kind: "free_month" as const,
+      })),
     });
     qualified += 1;
   }
-  const pending = await prisma.referralReward.findMany({ where: { appliedAt: null }, select: { id: true, referralId: true } });
+  const pending = await prisma.referralReward.findMany({
+    where: { appliedAt: null },
+    select: { id: true, referralId: true },
+  });
   let applied = 0;
   for (const reward of pending) {
     if (await applyReward(reward.id)) {
@@ -392,15 +436,22 @@ const referrerBeneficiary = async (ownerType: "user" | "organization", ownerId: 
 
 // Conservation vidéo des offres limitées. Le coach en est prévenu sur la page des tarifs.
 export const purgeExpiredVideos = async (now: Date = new Date()): Promise<number> => {
-  const orgs = await prisma.organization.findMany({ where: { plan: { in: ["discovery", "coach"] } }, select: { id: true, plan: true } });
+  const orgs = await prisma.organization.findMany({
+    where: { plan: { in: ["discovery", "coach"] } },
+    select: { id: true, plan: true },
+  });
   let purged = 0;
   for (const org of orgs) {
     const days = PLANS[org.plan].limits.videoRetentionDays;
     if (days === null) continue;
     const before = new Date(now.getTime() - days * 86400 * 1000);
-    const videos = await prisma.video.findMany({ where: { organizationId: org.id, createdAt: { lt: before } }, select: { id: true, muxAssetId: true } });
+    const videos = await prisma.video.findMany({
+      where: { organizationId: org.id, createdAt: { lt: before } },
+      select: { id: true, muxAssetId: true },
+    });
     for (const video of videos) {
-      if (video.muxAssetId && videoEnabled()) await deleteAsset(video.muxAssetId).catch(() => log.warn("mux_asset_delete_failed"));
+      if (video.muxAssetId && videoEnabled())
+        await deleteAsset(video.muxAssetId).catch(() => log.warn("mux_asset_delete_failed"));
       await prisma.video.delete({ where: { id: video.id } });
       purged += 1;
     }

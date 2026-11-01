@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { createCoachSpace, expectAccessible, expectNoHorizontalScroll, uniqueEmail } from "./helpers";
+import { signUp, createCoachSpace, expectAccessible, expectNoHorizontalScroll, uniqueEmail } from "./helpers";
 
 const today = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris" }).format(new Date());
 
@@ -36,12 +36,7 @@ const joinAsAthlete = async (browser: Browser, link: string, firstName: string, 
   const page = await context.newPage();
   await page.goto(link);
   await expect(page.getByRole("heading", { name: /t'invite à rejoindre Hauteur Élite/ })).toBeVisible();
-  const email = uniqueEmail(firstName.toLowerCase());
-  await page.getByRole("button", { name: "Utiliser un mot de passe" }).click();
-  await page.getByRole("button", { name: /Pas encore de compte/ }).click();
-  await page.getByLabel("Adresse e-mail").fill(email);
-  await page.getByLabel("Mot de passe").fill("mot-de-passe-de-test-e2e");
-  await page.getByRole("button", { name: "Créer mon compte", exact: true }).click();
+  await signUp(page, uniqueEmail(firstName.toLowerCase()), new URL(link).pathname);
   await page.getByLabel("Prénom").fill(firstName);
   await page.getByLabel("Nom", { exact: true }).fill("Test");
   await page.getByLabel("Date de naissance").fill("2004-05-12");

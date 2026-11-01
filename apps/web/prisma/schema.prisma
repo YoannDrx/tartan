@@ -71,7 +71,8 @@ model Account {
 }
 
 model Verification {
-  id         String   @id @default(uuid()) @db.Uuid
+  // Texte : Better Auth y écrit aussi des verrous dont l'identifiant n'est pas un UUID.
+  id         String   @id @default(uuid())
   identifier String
   value      String
   expiresAt  DateTime @map("expires_at")

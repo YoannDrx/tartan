@@ -48,6 +48,10 @@ export const AcceptForm = ({
           setFormError(m.invite.termsRequired);
           return;
         }
+        if (isAthlete && !values.birthDate) {
+          setFormError(m.invite.birthRequired);
+          return;
+        }
         execute({
           token,
           firstName: values.firstName,

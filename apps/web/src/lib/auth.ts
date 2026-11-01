@@ -6,7 +6,7 @@ import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins";
 import { randomUUID } from "node:crypto";
 import { createElement } from "react";
-import { MagicLinkEmail, ResetPasswordEmail } from "@email/auth";
+import { MagicLinkEmail, VerifyEmail, ResetPasswordEmail } from "@email/auth";
 import { appleClientSecret } from "./apple";
 import { env } from "./env";
 import { sendEmail } from "./mail";
@@ -65,8 +65,22 @@ export const auth = betterAuth({
     // Un même e-mail = un seul compte, quelles que soient les méthodes (§ 7.1).
     accountLinking: { enabled: true, trustedProviders: ["google", "apple", "email-password"] },
   },
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendEmail({
+        to: user.email,
+        subject: "Confirme ton adresse pour Tartan",
+        react: createElement(VerifyEmail, { url }),
+      });
+    },
+  },
   emailAndPassword: {
     enabled: true,
+    // Une adresse non prouvée n'ouvre aucun droit : ni session, ni espace du pilote.
+    requireEmailVerification: true,
     minPasswordLength: 10,
     sendResetPassword: async ({ user, url }) => {
       await sendEmail({

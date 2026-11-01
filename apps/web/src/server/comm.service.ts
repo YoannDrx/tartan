@@ -10,6 +10,7 @@ import { isStaff } from "@tartan/domain";
 import type { z } from "zod";
 import { forbidden, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { audit, coachGroupIds, requireGroupInScope, requireOrgMember, visibleAthleteIds, type Access } from "./access";
 import { firstNameOf, namesFor } from "./me.service";
 import { notify } from "./notify.service";
@@ -153,6 +154,7 @@ export const listComments = async (
 };
 
 export const addComment = async (userId: string, organizationId: string, input: CommentInput) => {
+  await enforceRateLimit(`comment:${userId}`, 120, 3600);
   const access = await requireOrgMember(userId, organizationId);
   if (access.role === "guardian") throw forbidden();
   const thread = await resolveThread(access, input.entityType, input.entityId);
@@ -191,6 +193,7 @@ export const blockedUserIds = async (userId: string): Promise<string[]> => {
 
 export const blockUser = async (userId: string, blockedId: string) => {
   if (userId === blockedId) throw forbidden();
+  await enforceRateLimit(`block:${userId}`, 30, 3600);
   await prisma.userBlock.upsert({
     where: { blockerId_blockedId: { blockerId: userId, blockedId } },
     create: { blockerId: userId, blockedId },
@@ -204,6 +207,7 @@ export const reportContent = async (
   organizationId: string,
   input: z.infer<typeof reportContentInput>,
 ) => {
+  await enforceRateLimit(`report:${userId}`, 30, 3600);
   await requireOrgMember(userId, organizationId);
   await prisma.contentReport.create({
     data: {

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ageAt, formatHeight } from "@tartan/domain";
 import { formatDayMonth, m, strengthTestLabel } from "@tartan/i18n";
-import { BarSheet, bestClearedCm } from "@/components/bar-sheet";
+import { BarSheet } from "@/components/bar-sheet";
 import { Mark, Rows, Sheet, SheetSection } from "@/components/sheet";
 import { Chip, PageHeader } from "@/components/states";
 import { StatusIcon } from "@/components/status-cell";
@@ -45,7 +45,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
   const past = file.history.filter((h) => h.status !== "skipped");
   const score = past.reduce((n, h) => n + (h.status === "done" ? 1 : h.status === "partial" ? 0.5 : 0), 0);
   const rate = past.length ? Math.round((score / past.length) * 100) : null;
-  const best = bestClearedCm(sheet.rows);
+  const best = sheet.bestCm;
   return (
     <div className="flex flex-col gap-4">
       <PageHeader

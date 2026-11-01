@@ -9,6 +9,15 @@ export const MagicLinkEmail = ({ url }: { url: string }) => (
   </Layout>
 );
 
+export const VerifyEmail = ({ url }: { url: string }) => (
+  <Layout preview="Confirme ton adresse pour Tartan">
+    <Title>Confirme ton adresse</Title>
+    <Paragraph>Un clic suffit pour activer ton compte Tartan.</Paragraph>
+    <PrimaryLink href={url}>Confirmer mon adresse</PrimaryLink>
+    <Paragraph muted>Tu n'as rien demandé ? Ignore ce message, le compte restera inactif.</Paragraph>
+  </Layout>
+);
+
 export const ResetPasswordEmail = ({ url }: { url: string }) => (
   <Layout preview="Réinitialise ton mot de passe Tartan">
     <Title>Nouveau mot de passe</Title>

@@ -113,6 +113,8 @@ export const fr = {
     sendMagicLink: "Recevoir un lien de connexion",
     magicLinkSent: "Lien envoyé. Ouvre ton e-mail sur ce téléphone pour te connecter.",
     passwordLabel: "Mot de passe",
+    verifySent: "Compte créé. Ouvre le lien reçu par e-mail pour l'activer, puis reviens ici.",
+    verifyFirst: "Confirme d'abord ton adresse : le lien vient de repartir par e-mail.",
     forgotPassword: "Mot de passe oublié",
     forgotLead: "Indique ton adresse : tu recevras un lien pour en choisir un nouveau.",
     resetSend: "Recevoir le lien",
@@ -156,6 +158,7 @@ export const fr = {
     createSessionDetail: "Une fois, pour tout le groupe.",
   },
   invite: {
+    birthRequired: "Indique ta date de naissance.",
     title: (coach: string, group: string) => `${coach} t'invite à rejoindre ${group}`,
     titleCoach: (owner: string, org: string) => `${owner} t'invite à coacher dans ${org}`,
     expired: "Cette invitation a expiré. Demande un nouveau lien à ton coach.",
@@ -387,7 +390,8 @@ export const fr = {
     loadHint: "Durée × effort déclaré, quand l'athlète a donné son accord.",
     loadTrend: (pct: number) => `${pct > 0 ? "+" : ""}${pct} % par rapport à la semaine d'avant`,
     weekOf: (date: string) => `Semaine du ${date}`,
-    loadSessions: (done: number, total: number) => `${done} séance${done > 1 ? "s" : ""} faite${done > 1 ? "s" : ""} sur ${total}`,
+    loadSessions: (done: number, total: number) =>
+      `${done} séance${done > 1 ? "s" : ""} faite${done > 1 ? "s" : ""} sur ${total}`,
     loadValue: (load: number) => `${load} UA`,
     title: "Athlètes",
     new: "Préparer une fiche",
@@ -432,6 +436,7 @@ export const fr = {
     capture: "Filmer",
     import: "Importer",
     slowHint: "Filme en ralenti (120 ou 240 i/s) pour une analyse nette.",
+    consentRevoked: "Lecture indisponible : l'athlète a retiré son accord pour les vidéos.",
     fpsLow: "Filmée à basse fréquence : le ralenti sera saccadé.",
     uploading: "En attente d'envoi",
     processing: "Encodage en cours",
@@ -534,7 +539,8 @@ export const fr = {
     exportData: "Télécharger mes données",
     exportDetail: "Un fichier avec ton profil, tes séances, tes tests et tes commentaires.",
     calendar: "Agenda",
-    calendarDetail: "Ajoute ce lien secret à ton agenda pour y voir tes séances. Il ne contient aucune donnée de santé.",
+    calendarDetail:
+      "Ajoute ce lien secret à ton agenda pour y voir tes séances. Il ne contient aucune donnée de santé.",
     leaveSpace: "Quitter cet espace",
     leaveDetail: (name: string) => `Tu ne verras plus les séances de ${name}. Ta fiche dans cet espace sera supprimée.`,
     leaveConfirm: (name: string) => `Quitter ${name}`,
@@ -559,6 +565,7 @@ export const fr = {
     pricingTitle: "Un prix simple, payé par le coach.",
     interval: "Rythme de paiement",
     startFree: "Commencer gratuitement",
+    contactUs: "Nous écrire",
     taxNote: "Prix en euros. TVA non applicable, article 293 B du Code général des impôts.",
     plans: { pilot: "Pilote", discovery: "Découverte", coach: "Coach", club: "Club" },
     planLead: {

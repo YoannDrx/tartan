@@ -55,11 +55,19 @@ export const athleteWeeklyStats = async (
       },
     }),
     prisma.strengthTest.findMany({ where: { athleteId } }),
-    prisma.jumpAttempt.findMany({ where: { athleteId, createdAt: { gte: toDbDate(firstWeek) } }, select: { createdAt: true } }),
+    prisma.jumpAttempt.findMany({
+      where: { athleteId, createdAt: { gte: toDbDate(firstWeek) } },
+      select: { createdAt: true },
+    }),
     consentForAthletes([athleteId]),
   ]);
   const health = consent.get(athleteId)?.health ?? false;
-  const tests: StrengthTest[] = testRows.map((t) => ({ exerciseKey: t.exerciseKey, value: Number(t.value), kind: t.kind, date: fromDbDate(t.date) }));
+  const tests: StrengthTest[] = testRows.map((t) => ({
+    exerciseKey: t.exerciseKey,
+    value: Number(t.value),
+    kind: t.kind,
+    date: fromDbDate(t.date),
+  }));
   const series = Array.from({ length: weeks }, (_, i) => addDays(firstWeek, i * 7));
   const stats = new Map<string, WeekStat>(
     series.map((weekStart) => [weekStart, { weekStart, load: null, sessions: 0, done: 0, ...emptyVolumes() }]),
@@ -109,7 +117,10 @@ export const exportTrackingCsv = async (
   const visible = await visibleAthleteIds(access);
   const athleteIds = query.athleteId ? visible.filter((id) => id === query.athleteId) : visible;
   const logs = await prisma.sessionLog.findMany({
-    where: { athleteId: { in: athleteIds }, session: { organizationId, date: { gte: toDbDate(query.from), lte: toDbDate(query.to) } } },
+    where: {
+      athleteId: { in: athleteIds },
+      session: { organizationId, date: { gte: toDbDate(query.from), lte: toDbDate(query.to) } },
+    },
     orderBy: [{ session: { date: "asc" } }],
     select: {
       athleteId: true,

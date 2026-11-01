@@ -46,4 +46,31 @@ describe("authentification", () => {
     );
     expect(res.status).toBe(400);
   });
+
+  it("n'ouvre aucune session tant que l'adresse n'est pas prouvée", async () => {
+    const email = `non-verifie-${Date.now()}@e2e.tartan.test`;
+    const password = "mot-de-passe-solide";
+    const signUp = await auth.handler(req("/sign-up/email", { email, password, name: "Tiers" }));
+    expect(signUp.status).toBe(200);
+    expect(((await signUp.json()) as { token: string | null }).token).toBeNull();
+    expect(outbox.some((mail) => mail.to === email)).toBe(true);
+    const signIn = await auth.handler(req("/sign-in/email", { email, password }));
+    expect(signIn.status).toBe(403);
+  });
+
+  it("le lien magique du vrai titulaire efface le mot de passe posé sans preuve", async () => {
+    const email = `titulaire-${Date.now()}@e2e.tartan.test`;
+    const password = "mot-de-passe-du-tiers";
+    await auth.handler(req("/sign-up/email", { email, password, name: "Tiers" }));
+    await auth.handler(req("/sign-in/magic-link", { email, callbackURL: "/accueil" }));
+    const mail = [...outbox].reverse().find((m) => m.to === email && m.html.includes("magic-link"));
+    const link = mail?.html.match(/href="([^"]+magic-link[^"]+)"/)?.[1]?.replaceAll("&amp;", "&");
+    expect(link).toBeTruthy();
+    await auth.handler(new Request(link as string, { headers: { origin: "http://localhost:3000" } }));
+    const user = await prisma.user.findUniqueOrThrow({ where: { email }, include: { accounts: true } });
+    expect(user.emailVerified).toBe(true);
+    expect(user.accounts.filter((a) => a.providerId === "credential")).toEqual([]);
+    const signIn = await auth.handler(req("/sign-in/email", { email, password }));
+    expect(signIn.status).not.toBe(200);
+  });
 });

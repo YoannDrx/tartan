@@ -5,8 +5,9 @@ import { isStaff } from "@tartan/domain";
 import { getActor, type Actor } from "@/lib/session";
 import { AppError, unauthorized } from "@/lib/errors";
 import { listSpaces } from "@/server/me.service";
+import { SPACE_COOKIE } from "./space-cookie";
 
-export const SPACE_COOKIE = "tartan_space";
+export { SPACE_COOKIE };
 
 export type SpaceContext = {
   actor: Actor;

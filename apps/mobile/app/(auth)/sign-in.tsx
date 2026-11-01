@@ -90,14 +90,20 @@ export default function SignIn() {
       return;
     }
     if (result.error) {
-      const known = result.error.status === 401 || result.error.status === 403;
       setFormError(
         result.error.status === 429
           ? m.errors.rateLimited
-          : known
-            ? m.auth.invalidCredentials
-            : (result.error.message ?? m.common.genericError),
+          : result.error.status === 403
+            ? m.auth.verifyFirst
+            : result.error.status === 401
+              ? m.auth.invalidCredentials
+              : (result.error.message ?? m.common.genericError),
       );
+      return;
+    }
+    // Compte créé : la session n'existe qu'une fois l'adresse confirmée par e-mail.
+    if (creating) {
+      setFormError(m.auth.verifySent);
       return;
     }
     await refresh();

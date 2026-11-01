@@ -12,7 +12,9 @@ import { attributeReferral } from "./referral.service";
 
 // Les adresses de la liste sont celles du pilote : tout gratuit. Les autres démarrent en Découverte.
 const initialPlan = (email: string): PlanKey => {
-  const listed = env().COACH_SIGNUP_EMAILS.split(",").map((e) => e.trim().toLowerCase());
+  const listed = env()
+    .COACH_SIGNUP_EMAILS.split(",")
+    .map((e) => e.trim().toLowerCase());
   return listed.includes(email.trim().toLowerCase()) ? "pilot" : "discovery";
 };
 

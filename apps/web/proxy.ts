@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { SPACE_COOKIE } from "@/features/shell/space-cookie";
 
 const buildCsp = (nonce: string): string =>
   [
@@ -13,7 +14,7 @@ const buildCsp = (nonce: string): string =>
     "img-src 'self' data: blob: https://image.mux.com https://i.ytimg.com https://*.public.blob.vercel-storage.com",
     "font-src 'self'",
     "media-src 'self' blob: https://stream.mux.com https://*.mux.com",
-    "connect-src 'self' https://*.mux.com https://storage.googleapis.com https://vitals.vercel-insights.com",
+    "connect-src 'self' https://*.mux.com https://storage.googleapis.com https://vitals.vercel-insights.com https://*.ingest.de.sentry.io",
     "frame-src https://www.youtube-nocookie.com",
     "worker-src 'self' blob:",
     "manifest-src 'self'",
@@ -27,6 +28,24 @@ const isSitePath = (pathname: string): boolean =>
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
+  if (host === "www.tartan.coach") {
+    return NextResponse.redirect(new URL(`${pathname}${request.nextUrl.search}`, "https://tartan.coach"), 308);
+  }
+  // Lien de notification : il ouvre le bon espace. Le serveur revérifie l'appartenance à chaque lecture.
+  const space = request.nextUrl.searchParams.get("espace");
+  if (space) {
+    const clean = request.nextUrl.clone();
+    clean.searchParams.delete("espace");
+    const response = NextResponse.redirect(clean);
+    response.cookies.set(SPACE_COOKIE, space, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+    return response;
+  }
   // app.tartan.coach ouvre directement l'application ; tartan.coach reste le site.
   if (host.startsWith("app.") && pathname === "/") {
     return NextResponse.redirect(new URL("/accueil", request.url));
@@ -46,5 +65,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [{ source: "/((?!api|_next/static|_next/image|.well-known|favicon|icon|apple-touch|manifest|sw.js|brand).*)" }],
+  matcher: [
+    { source: "/((?!api|_next/static|_next/image|.well-known|favicon|icon|apple-touch|manifest|sw.js|brand).*)" },
+  ],
 };

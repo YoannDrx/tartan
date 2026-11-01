@@ -30,6 +30,12 @@ const post = async ({ organizationId, sessionId, input }: Pending): Promise<Resp
     body: JSON.stringify(input),
   });
 
+// Session expirée, trop de requêtes, serveur en panne : la validation attend, elle n'est jamais perdue.
+const isRetryable = (status: number): boolean => status === 401 || status === 408 || status === 429 || status >= 500;
+
+const remember = (pending: Pending) =>
+  write([...read().filter((p) => p.input.clientId !== pending.input.clientId), pending]);
+
 export type SendResult = { state: "sent" } | { state: "queued" } | { state: "error"; message: string };
 
 // Réseau médiocre au stade : on garde la validation et on la rejoue au retour de la connexion.
@@ -37,10 +43,14 @@ export const sendValidation = async (pending: Pending): Promise<SendResult> => {
   try {
     const res = await post(pending);
     if (res.ok) return { state: "sent" };
+    if (isRetryable(res.status)) {
+      remember(pending);
+      return res.status === 401 ? { state: "error", message: m.errors.unauthorized } : { state: "queued" };
+    }
     const body = (await res.json().catch(() => null)) as { message?: string } | null;
     return { state: "error", message: body?.message ?? m.common.genericError };
   } catch {
-    write([...read().filter((p) => p.input.clientId !== pending.input.clientId), pending]);
+    remember(pending);
     return { state: "queued" };
   }
 };
@@ -52,8 +62,8 @@ export const flushValidations = async (): Promise<number> => {
   for (const item of items) {
     try {
       const res = await post(item);
-      if (res.ok || res.status < 500) sent += 1;
-      else remaining.push(item);
+      if (isRetryable(res.status)) remaining.push(item);
+      else sent += 1;
     } catch {
       remaining.push(item);
     }

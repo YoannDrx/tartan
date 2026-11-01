@@ -50,13 +50,21 @@ export const updateMember = async (
       })),
     });
   });
-  await audit({ organizationId, actorId: userId, action: "member_updated", entity: "member", entityId: input.memberId });
+  await audit({
+    organizationId,
+    actorId: userId,
+    action: "member_updated",
+    entity: "member",
+    entityId: input.memberId,
+  });
 };
 
 export const removeCoach = async (userId: string, organizationId: string, memberId: string) => {
   await requireOrgMember(userId, organizationId, "manageOrganization");
   if (memberId === userId) throw invalid("Tu ne peux pas te retirer de ton propre espace.");
-  const member = await prisma.organizationMember.findUnique({ where: { organizationId_userId: { organizationId, userId: memberId } } });
+  const member = await prisma.organizationMember.findUnique({
+    where: { organizationId_userId: { organizationId, userId: memberId } },
+  });
   if (!member) throw notFound();
   if (member.role === "owner" || member.role === "athlete" || member.role === "guardian") throw forbidden();
   await prisma.$transaction([

@@ -32,7 +32,7 @@ Niveau de preuve de chaque constat :
 | Playwright sur build de production | 21 réussis, 7 ignorés |
 | Preuve de concept vidéo web, en développement | réussie |
 
-**Limite de ces chiffres :** le parcours complet coach et athlète (5 tests) est ignoré sur le profil téléphone. Il n'est donc jamais vérifié là où les athlètes l'utiliseront. Aucun test ne couvre le paiement réel.
+**Limite de ces chiffres :** le parcours complet simule déjà l'athlète sur téléphone, mais le coach seulement sur ordinateur. Rien ne vérifie le coach au bord de la piste, ni un vrai navigateur iPhone. Aucun test ne couvre le paiement réel.
 
 ## 2. Production et services
 
@@ -226,7 +226,7 @@ Légende du responsable : **C** moi, **T** toi, **F** ton frère.
 | Repli e-mail si aucune notification n'est possible | C | M | Athlète sans push prévenu par e-mail |
 | Regroupement des séances publiées d'un coup, alerte « 2 manquées » | C | M | Une seule notification pour une semaine publiée |
 | Manifeste : icône adaptable, captures, raccourcis | C | S | Installation propre sur Android |
-| Parcours complet Playwright sur profil téléphone, y compris les 5 tests ignorés | C | M | 0 parcours critique ignoré |
+| Parcours coach terrain sur profil téléphone (appel, relance, import vidéo), moteur WebKit compris | C | M | Parcours vert sur Chromium et WebKit mobiles |
 | Essai sur vrai iPhone et vrai Android d'entrée de gamme : ralenti, envoi, push | T, F, C | M | Compte rendu d'essai, § 5 et § 6 tranchés |
 | Signalement de vidéo et traitement des signalements | C | M | Signalement visible et traité |
 | Combler la V1 : logo, disciplines, envoi de vidéo coach avec progression | C | M | Écarts du § 5 fermés ou reportés |

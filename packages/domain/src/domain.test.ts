@@ -453,7 +453,10 @@ describe("étirement vidéo", () => {
     const size = 8 + payload.reduce((sum, p) => sum + p.length, 0);
     const out = new Uint8Array(size);
     new DataView(out.buffer).setUint32(0, size);
-    out.set([...type].map((c) => c.charCodeAt(0)), 4);
+    out.set(
+      [...type].map((c) => c.charCodeAt(0)),
+      4,
+    );
     let pos = 8;
     for (const p of payload) {
       out.set(p, pos);

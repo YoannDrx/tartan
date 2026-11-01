@@ -19,7 +19,7 @@ import { consentForAthletes } from "./consent.service";
 import { firstNameOf, namesFor } from "./me.service";
 import { notify } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
-import { deliveredFps, formatHeight, toRealMs } from "@tartan/domain";
+import { bestClearedHeight, deliveredFps, formatHeight, latestSitting, toRealMs } from "@tartan/domain";
 
 const VIDEO_SELECT = {
   id: true,
@@ -38,23 +38,27 @@ const VIDEO_SELECT = {
   _count: { select: { annotations: true } },
 } as const;
 
-const summarize = async (v: {
-  id: string;
-  athleteId: string;
-  status: VideoSummary["status"];
-  muxPlaybackId: string | null;
-  fps: number | null;
-  timeScale: number;
-  durationMs: number | null;
-  recordedAt: Date | null;
-  sharedWithAthlete: boolean;
-  athlete: { firstName: string; lastName: string };
-  jumps: { barHeightCm: number; attemptNo: number; result: "O" | "X" | "pass" }[];
-  _count: { annotations: number };
-}): Promise<VideoSummary> => {
+const summarize = async (
+  v: {
+    id: string;
+    athleteId: string;
+    status: VideoSummary["status"];
+    muxPlaybackId: string | null;
+    fps: number | null;
+    timeScale: number;
+    durationMs: number | null;
+    recordedAt: Date | null;
+    sharedWithAthlete: boolean;
+    athlete: { firstName: string; lastName: string };
+    jumps: { barHeightCm: number; attemptNo: number; result: "O" | "X" | "pass" }[];
+    _count: { annotations: number };
+  },
+  consentRevoked = false,
+): Promise<VideoSummary> => {
   const jump = v.jumps[0];
   let thumbnailUrl: string | null = null;
-  if (v.muxPlaybackId && env().MUX_SIGNING_KEY_ID) thumbnailUrl = (await signedPlayback(v.muxPlaybackId)).thumbnailUrl;
+  if (v.muxPlaybackId && !consentRevoked && env().MUX_SIGNING_KEY_ID)
+    thumbnailUrl = (await signedPlayback(v.muxPlaybackId)).thumbnailUrl;
   return {
     id: v.id,
     athleteId: v.athleteId,
@@ -62,6 +66,7 @@ const summarize = async (v: {
     status: v.status,
     playbackId: v.muxPlaybackId,
     thumbnailUrl,
+    consentRevoked,
     fps: v.fps,
     timeScale: v.timeScale,
     durationMs: v.durationMs,
@@ -72,6 +77,13 @@ const summarize = async (v: {
     result: jump?.result ?? null,
     annotationCount: v._count.annotations,
   };
+};
+
+// Accord vidéo retiré : le coach ne lit plus l'image. L'athlète garde l'accès à ses propres sauts.
+const revokedAthletes = async (access: Access, athleteIds: string[]): Promise<Set<string>> => {
+  if (access.role === "athlete" || athleteIds.length === 0) return new Set();
+  const consents = await consentForAthletes([...new Set(athleteIds)]);
+  return new Set([...new Set(athleteIds)].filter((id) => !consents.get(id)?.video));
 };
 
 const requireVideoConsent = async (athleteId: string): Promise<void> => {
@@ -212,12 +224,17 @@ const videoWhereFor = async (access: Access) => {
 export const listVideos = async (userId: string, organizationId: string, query: { athleteId?: string } = {}) => {
   const access = await requireOrgMember(userId, organizationId, "viewVideos");
   const rows = await prisma.video.findMany({
-    where: { ...(await videoWhereFor(access)), ...(query.athleteId ? { athleteId: query.athleteId } : {}) },
+    // AND : le filtre demandé réduit le périmètre, il ne le remplace jamais.
+    where: { AND: [await videoWhereFor(access), query.athleteId ? { athleteId: query.athleteId } : {}] },
     orderBy: { createdAt: "desc" },
     take: 100,
     select: VIDEO_SELECT,
   });
-  return Promise.all(rows.map(summarize));
+  const revoked = await revokedAthletes(
+    access,
+    rows.map((r) => r.athleteId),
+  );
+  return Promise.all(rows.map((row) => summarize(row, revoked.has(row.athleteId))));
 };
 
 const requireVideo = async (access: Access, videoId: string) => {
@@ -245,10 +262,14 @@ export const getVideo = async (userId: string, organizationId: string, videoId: 
       : Promise.resolve([]),
   ]);
   const names = await namesFor([...annotations.map((a) => a.authorId), ...comments.map((c) => c.authorId)]);
-  const signed = video.muxPlaybackId && env().MUX_SIGNING_KEY_ID ? await signedPlayback(video.muxPlaybackId) : null;
-  const devMp4 = process.env.NODE_ENV !== "production" ? env().VIDEO_DEV_MP4_URL : undefined;
+  const consentRevoked = (await revokedAthletes(access, [video.athleteId])).has(video.athleteId);
+  const signed =
+    video.muxPlaybackId && !consentRevoked && env().MUX_SIGNING_KEY_ID
+      ? await signedPlayback(video.muxPlaybackId)
+      : null;
+  const devMp4 = process.env.NODE_ENV !== "production" && !consentRevoked ? env().VIDEO_DEV_MP4_URL : undefined;
   return {
-    ...(await summarize(video)),
+    ...(await summarize(video, consentRevoked)),
     hlsUrl: signed?.hlsUrl ?? null,
     mp4Url: signed?.mp4Url ?? devMp4 ?? null,
     annotations: annotations.map((a) => ({
@@ -306,6 +327,7 @@ export const shareVideo = async (
     // Vidéos de mineurs : jamais partagées au groupe (§ 15.3). Le partage au groupe reste hors V1.
     throw forbidden();
   }
+  if (input.withAthlete) await requireVideoConsent(video.athleteId);
   await prisma.video.update({ where: { id: videoId }, data: { sharedWithAthlete: input.withAthlete } });
   if (input.withAthlete && !video.sharedWithAthlete && video.athlete.userId) {
     const jump = video.jumps[0];
@@ -374,11 +396,22 @@ export const getBarSheet = async (
       ...(query.competitionId ? { competitionId: query.competitionId } : {}),
     },
     orderBy: [{ barHeightCm: "asc" }, { attemptNo: "asc" }],
-    select: { barHeightCm: true, attemptNo: true, result: true, session: { select: { date: true } } },
+    select: {
+      barHeightCm: true,
+      attemptNo: true,
+      result: true,
+      scheduledSessionId: true,
+      competitionId: true,
+      createdAt: true,
+      session: { select: { date: true } },
+    },
   });
+  // Sans filtre, une seule séance : la notation O/X n'a de sens que le temps d'un concours.
+  const shown = query.scheduledSessionId || query.competitionId ? attempts : latestSitting(attempts);
   return {
-    rows: barSheet(attempts),
-    date: attempts[0]?.session ? fromDbDate(attempts[0].session.date) : null,
+    rows: barSheet(shown),
+    date: shown[0]?.session ? fromDbDate(shown[0].session.date) : null,
+    bestCm: bestClearedHeight(attempts),
   };
 };
 

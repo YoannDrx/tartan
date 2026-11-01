@@ -15,7 +15,8 @@ export const icalLink = async (userId: string, organizationId: string): Promise<
   return `${env().NEXT_PUBLIC_APP_URL}/api/ical/${access.athleteId}/${signature(access.athleteId)}`;
 };
 
-const esc = (text: string): string => text.replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+const esc = (text: string): string =>
+  text.replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 
 export const icalFeed = async (athleteId: string, token: string, now: Date = new Date()): Promise<string> => {
   const a = Buffer.from(signature(athleteId));
@@ -40,7 +41,9 @@ export const icalFeed = async (athleteId: string, token: string, now: Date = new
   const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
   const events = sessions.flatMap((s) => {
     const date = fromDbDate(s.date).replaceAll("-", "");
-    const start = s.startTime ? `DTSTART;TZID=Europe/Paris:${date}T${s.startTime.replace(":", "")}00` : `DTSTART;VALUE=DATE:${date}`;
+    const start = s.startTime
+      ? `DTSTART;TZID=Europe/Paris:${date}T${s.startTime.replace(":", "")}00`
+      : `DTSTART;VALUE=DATE:${date}`;
     return [
       "BEGIN:VEVENT",
       `UID:${createHash("sha256").update(s.id).digest("hex").slice(0, 24)}@tartan.coach`,
@@ -51,5 +54,12 @@ export const icalFeed = async (athleteId: string, token: string, now: Date = new
       "END:VEVENT",
     ];
   });
-  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Tartan//FR", "X-WR-CALNAME:Tartan", ...events, "END:VCALENDAR"].join("\r\n");
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Tartan//FR",
+    "X-WR-CALNAME:Tartan",
+    ...events,
+    "END:VCALENDAR",
+  ].join("\r\n");
 };

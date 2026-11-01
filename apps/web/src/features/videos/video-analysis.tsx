@@ -204,13 +204,15 @@ export const VideoAnalysis = ({
               />
             ) : (
               <div className="flex aspect-video w-full items-center justify-center p-6 text-center text-soft">
-                {video.status === "error"
-                  ? m.video.failed
-                  : video.status === "ready"
-                    ? "Lecture indisponible : la clé de signature Mux n'est pas configurée."
-                    : video.status === "processing"
-                      ? m.video.processing
-                      : m.video.uploading}
+                {video.consentRevoked
+                  ? m.video.consentRevoked
+                  : video.status === "error"
+                    ? m.video.failed
+                    : video.status === "ready"
+                      ? "Lecture indisponible : la clé de signature Mux n'est pas configurée."
+                      : video.status === "processing"
+                        ? m.video.processing
+                        : m.video.uploading}
               </div>
             )}
             {video.barHeightCm ? (

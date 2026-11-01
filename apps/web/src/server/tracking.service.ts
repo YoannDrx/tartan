@@ -229,6 +229,7 @@ export const getSessionDetailForCoach = async (
   now: Date = new Date(),
 ) => {
   const access = await requireOrgMember(userId, organizationId, "viewTracking");
+  if (access.role === "athlete") throw notFound();
   const session = await prisma.scheduledSession.findFirst({ where: { id: sessionId, organizationId } });
   if (!session) throw notFound();
   const visible = new Set(await visibleAthleteIds(access));

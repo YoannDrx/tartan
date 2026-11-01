@@ -6,6 +6,15 @@ import { actionFromResponse, normalizeNotificationData, routeForNotification } f
 import { useSpaceStore } from "./space-store";
 import { m } from "@tartan/i18n";
 
+let registeredToken: string | null = null;
+
+// À la déconnexion : cet appareil ne reçoit plus rien pour ce compte.
+export const forgetPushToken = async (): Promise<void> => {
+  if (!registeredToken) return;
+  await api.unregisterDevice(registeredToken).catch(() => undefined);
+  registeredToken = null;
+};
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -75,6 +84,7 @@ export const registerPush = async ({ prompt }: { prompt: boolean }): Promise<Pus
       config.projectId ? { projectId: config.projectId } : undefined,
     );
     await api.registerDevice(token.data, Platform.OS === "ios" ? "ios" : "android");
+    registeredToken = token.data;
   } catch {
     // Simulateur ou projet EAS pas encore créé : l'app marche sans notification.
   }

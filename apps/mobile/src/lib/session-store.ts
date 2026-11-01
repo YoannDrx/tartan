@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { authClient, clearSessionCookie } from "./auth-client";
+import { forgetPushToken } from "./notifications";
 import { clearPersistedData } from "./query-client";
 
 type SessionState = {
@@ -17,6 +18,7 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ status: cookie ? "signed-in" : "signed-out" });
   },
   signOut: async () => {
+    await forgetPushToken();
     await authClient.signOut().catch(() => undefined);
     await get().expire();
   },

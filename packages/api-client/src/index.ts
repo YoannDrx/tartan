@@ -84,6 +84,7 @@ export const createApiClient = (options: ApiClientOptions) => {
     athleteStats: (orgId: string, athleteId: string) => request("GET", `/orgs/${orgId}/athletes/${athleteId}/stats`, z.any()),
     updateProfile: (body: ProfileInput) => request("PATCH", "/me", meResponse, body),
     deleteAccount: () => request("DELETE", "/me", okResponse),
+    unregisterDevice: (pushToken: string) => request("DELETE", "/devices", okResponse, { pushToken }),
     registerDevice: (pushToken: string, platform: "ios" | "android" | "web") =>
       request("POST", "/devices", okResponse, { pushToken, platform }),
     consents: () =>

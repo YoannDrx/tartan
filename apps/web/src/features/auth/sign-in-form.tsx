@@ -26,7 +26,7 @@ export const SignInForm = ({
 }) => {
   const router = useRouter();
   const [mode, setMode] = useState<"magic" | "signin" | "signup">("magic");
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState<"magic" | "verify" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const form = useForm({ resolver: zodResolver(schema), defaultValues: { email: defaultEmail ?? "", password: "" } });
   const { errors, isSubmitting } = form.formState;
@@ -36,7 +36,7 @@ export const SignInForm = ({
     if (mode === "magic") {
       const res = await authClient.signIn.magicLink({ email, callbackURL });
       if (res.error) setError(m.common.genericError);
-      else setSent(true);
+      else setSent("magic");
       return;
     }
     const res =
@@ -49,7 +49,12 @@ export const SignInForm = ({
             callbackURL,
           });
     if (res.error) {
-      setError(mode === "signin" ? m.auth.invalidCredentials : (res.error.message ?? m.common.genericError));
+      if (res.error.status === 403) setError(m.auth.verifyFirst);
+      else setError(mode === "signin" ? m.auth.invalidCredentials : (res.error.message ?? m.common.genericError));
+      return;
+    }
+    if (mode === "signup") {
+      setSent("verify");
       return;
     }
     router.push(callbackURL);
@@ -59,8 +64,8 @@ export const SignInForm = ({
   if (sent) {
     return (
       <div role="status">
-        <p className="font-semibold">{m.auth.magicLinkSent}</p>
-        <button type="button" className="mt-2 min-h-11 text-ctx-link underline" onClick={() => setSent(false)}>
+        <p className="font-semibold">{sent === "magic" ? m.auth.magicLinkSent : m.auth.verifySent}</p>
+        <button type="button" className="mt-2 min-h-11 text-ctx-link underline" onClick={() => setSent(null)}>
           Changer d'adresse
         </button>
       </div>

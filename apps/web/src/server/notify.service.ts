@@ -71,7 +71,7 @@ export const notifyPublications = async (
   }
 };
 
-const sendExpo = async (messages: unknown[]): Promise<void> => {
+const sendExpo = async (messages: unknown[]): Promise<boolean> => {
   const token = env().EXPO_ACCESS_TOKEN;
   const res = await fetch("https://exp.host/--/api/v2/push/send", {
     method: "POST",
@@ -82,6 +82,17 @@ const sendExpo = async (messages: unknown[]): Promise<void> => {
     body: JSON.stringify(messages),
   });
   if (!res.ok) log.error("push_expo_failed", { status: String(res.status) });
+  return res.ok;
+};
+
+// Le web garde l'espace dans le lien : un compte coach et athlète ouvre la bonne page.
+export const webLink = (link: string | undefined, organizationId: string | undefined): string | undefined => {
+  if (!link || !organizationId) return link;
+  return `${link}${link.includes("?") ? "&" : "?"}espace=${organizationId}`;
+};
+
+export const unregisterDevice = async (userId: string, pushToken: string): Promise<void> => {
+  await prisma.device.deleteMany({ where: { userId, pushToken } });
 };
 
 const sendWeb = async (subscription: string, body: string): Promise<boolean> => {
@@ -93,6 +104,7 @@ const sendWeb = async (subscription: string, body: string): Promise<boolean> => 
     return true;
   } catch (error) {
     const status = (error as { statusCode?: number }).statusCode;
+    if (status !== 404 && status !== 410) log.error("push_web_failed", { status: String(status) });
     return status !== 404 && status !== 410;
   }
 };
@@ -105,7 +117,7 @@ export const dispatchPending = async (now: Date = new Date()): Promise<number> =
   });
   if (pending.length === 0) return 0;
   const devices = await prisma.device.findMany({ where: { userId: { in: pending.map((p) => p.userId) } } });
-  const expoMessages: unknown[] = [];
+  const expoMessages: { notificationId: string; message: unknown }[] = [];
   const staleDevices: string[] = [];
   for (const n of pending) {
     const payload = n.payload as Payload;
@@ -113,32 +125,45 @@ export const dispatchPending = async (now: Date = new Date()): Promise<number> =
     const text = renderNotification(type, payload);
     for (const device of devices.filter((d) => d.userId === n.userId)) {
       if (device.platform === "web") {
-        const ok = await sendWeb(device.pushToken, JSON.stringify({ ...text, link: payload.link }));
+        const ok = await sendWeb(
+          device.pushToken,
+          JSON.stringify({ ...text, link: webLink(payload.link, payload.organizationId) }),
+        );
         if (!ok) staleDevices.push(device.id);
       } else {
         expoMessages.push({
-          to: device.pushToken,
-          title: text.title,
-          body: text.body,
-          sound: "default",
-          channelId: CHANNELS[type],
-          priority: type === "pain_alert" ? "high" : "default",
-          categoryId: type === "session_eve" ? "attendance" : type === "session_reminder" ? "validate" : undefined,
-          data: {
-            type,
-            link: payload.link,
-            organizationId: payload.organizationId,
-            sessionId: payload.sessionId,
-            videoId: payload.videoId,
+          notificationId: n.id,
+          message: {
+            to: device.pushToken,
+            title: text.title,
+            body: text.body,
+            sound: "default",
+            channelId: CHANNELS[type],
+            priority: type === "pain_alert" ? "high" : "default",
+            categoryId: type === "session_eve" ? "attendance" : type === "session_reminder" ? "validate" : undefined,
+            data: {
+              type,
+              link: payload.link,
+              organizationId: payload.organizationId,
+              sessionId: payload.sessionId,
+              videoId: payload.videoId,
+            },
           },
         });
       }
     }
   }
-  for (let i = 0; i < expoMessages.length; i += 100) await sendExpo(expoMessages.slice(i, i + 100));
+  // Expo indisponible : la notification repart à la prochaine tâche, pendant quelques heures au plus.
+  const failed = new Set<string>();
+  for (let i = 0; i < expoMessages.length; i += 100) {
+    const batch = expoMessages.slice(i, i + 100);
+    if (!(await sendExpo(batch.map((b) => b.message)))) for (const b of batch) failed.add(b.notificationId);
+  }
+  const retryUntil = now.getTime() - 6 * 60 * 60 * 1000;
+  const done = pending.filter((p) => !failed.has(p.id) || p.createdAt.getTime() < retryUntil);
   if (staleDevices.length) await prisma.device.deleteMany({ where: { id: { in: staleDevices } } });
   await prisma.notification.updateMany({
-    where: { id: { in: pending.map((p) => p.id) } },
+    where: { id: { in: done.map((p) => p.id) } },
     data: { sentAt: now },
   });
   log.info("notifications_dispatched", { count: pending.length });

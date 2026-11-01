@@ -161,6 +161,7 @@ export const videoSummary = z.object({
   status: videoStatus,
   playbackId: z.string().nullable(),
   thumbnailUrl: z.string().nullable(),
+  consentRevoked: z.boolean().optional(),
   fps: z.number().nullable(),
   timeScale: z.number(),
   durationMs: z.number().nullable(),

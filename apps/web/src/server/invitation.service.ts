@@ -8,7 +8,7 @@ import { invitationDefaults, invitationStateOf, requiresParentalConsent } from "
 import { m } from "@tartan/i18n";
 import { createElement } from "react";
 import { InvitationEmail } from "@email/auth";
-import { toDbDate } from "@/lib/dates";
+import { fromDbDate, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
 import { log } from "@/lib/logger";
@@ -201,19 +201,45 @@ export const acceptInvitation = async (
   if (!input.consents.terms) throw invalid(m.invite.termsRequired);
 
   const isAthlete = inv.role === "athlete";
-  const minor = isAthlete && requiresParentalConsent(input.birthDate, new Date());
+  // La date décide de l'accord parental (§ 15.3) : sans elle, un enfant consentirait seul.
+  const [knownProfile, preparedSheet] = await Promise.all([
+    prisma.profile.findUnique({ where: { id: actor.userId }, select: { birthDate: true } }),
+    inv.athleteId
+      ? prisma.athlete.findFirst({
+          where: { id: inv.athleteId, organizationId: inv.organizationId },
+          select: { birthDate: true },
+        })
+      : null,
+  ]);
+  const knownDate = knownProfile?.birthDate ?? preparedSheet?.birthDate ?? null;
+  const birthDateIso = input.birthDate ?? (knownDate ? fromDbDate(knownDate) : null);
+  if (isAthlete && !birthDateIso) throw invalid(m.invite.birthRequired);
+  const minor = isAthlete && requiresParentalConsent(birthDateIso, new Date());
   if (minor && !input.guardianEmail) throw invalid(m.invite.guardianHint);
+  if (!isAthlete) {
+    const alreadyMember = await prisma.organizationMember.findUnique({
+      where: { organizationId_userId: { organizationId: inv.organizationId, userId: actor.userId } },
+    });
+    if (!alreadyMember) await assertWithinPlan(inv.organizationId, "maxCoaches");
+  }
 
   // Une fiche préparée ou un retour dans l'espace ne compte pas comme un athlète de plus.
   const alreadyCounted =
     Boolean(inv.athleteId) ||
-    Boolean(await prisma.athlete.findUnique({ where: { organizationId_userId: { organizationId: inv.organizationId, userId: actor.userId } }, select: { id: true } }));
+    Boolean(
+      await prisma.athlete.findUnique({
+        where: { organizationId_userId: { organizationId: inv.organizationId, userId: actor.userId } },
+        select: { id: true },
+      }),
+    );
   if (isAthlete && !alreadyCounted) {
     await assertWithinPlan(inv.organizationId, "maxAthletes").catch((error) => {
-      throw error instanceof AppError && error.code === "plan_limit" ? new AppError(402, "plan_limit", m.billing.limitJoinAthlete) : error;
+      throw error instanceof AppError && error.code === "plan_limit"
+        ? new AppError(402, "plan_limit", m.billing.limitJoinAthlete)
+        : error;
     });
   }
-  const birthDate = input.birthDate ? toDbDate(input.birthDate) : null;
+  const birthDate = birthDateIso ? toDbDate(birthDateIso) : null;
   const athleteId = await prisma.$transaction(async (tx) => {
     // Réservation atomique : un lien nominatif à usage unique ne sert qu'une fois, même en concurrence.
     const claimed = await tx.invitation.updateMany({

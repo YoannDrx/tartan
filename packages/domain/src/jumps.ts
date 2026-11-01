@@ -31,6 +31,17 @@ export const bestClearedHeight = (attempts: Attempt[]): number | null => {
   return cleared.length ? Math.max(...cleared) : null;
 };
 
+// Dernière séance de saut d'une liste d'essais : même séance, même concours, ou à défaut même jour.
+export const latestSitting = <
+  T extends { scheduledSessionId: string | null; competitionId: string | null; createdAt: Date },
+>(
+  attempts: T[],
+): T[] => {
+  const keyOf = (a: T) => a.scheduledSessionId ?? a.competitionId ?? a.createdAt.toISOString().slice(0, 10);
+  const latest = attempts.reduce<T | null>((best, a) => (!best || a.createdAt > best.createdAt ? a : best), null);
+  return latest ? attempts.filter((a) => keyOf(a) === keyOf(latest)) : [];
+};
+
 // Prochain essai logique à une barre donnée (1 à 3), null si la barre est terminée.
 export const nextAttemptNo = (attempts: Attempt[], heightCm: number): number | null => {
   const here = attempts.filter((a) => a.barHeightCm === heightCm);

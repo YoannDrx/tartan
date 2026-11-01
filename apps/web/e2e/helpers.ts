@@ -1,5 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page } from "@playwright/test";
+import { m } from "@tartan/i18n";
+import { Client } from "pg";
+
+const DB = process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e";
 
 export const PASSWORD = "mot-de-passe-de-test-e2e";
 
@@ -19,6 +23,17 @@ export const signUp = async (page: Page, email: string, next = "/connexion") => 
   await page.getByLabel("Adresse e-mail").fill(email);
   await page.getByLabel("Mot de passe").fill(PASSWORD);
   await page.getByRole("button", { name: "Créer mon compte", exact: true }).click();
+  // Le lien de confirmation part par e-mail : le test le remplace par une écriture en base.
+  await expect(page.getByText(m.auth.verifySent)).toBeVisible();
+  const sql = new Client({ connectionString: DB });
+  await sql.connect();
+  await sql.query(`update "user" set email_verified = true where email = $1`, [email]);
+  await sql.end();
+  await page.goto(next);
+  await page.getByRole("button", { name: "Utiliser un mot de passe" }).click();
+  await page.getByLabel("Adresse e-mail").fill(email);
+  await page.getByLabel("Mot de passe").fill(PASSWORD);
+  await page.getByRole("button", { name: m.auth.signInWithPassword, exact: true }).click();
 };
 
 export const createCoachSpace = async (page: Page, name = "Thomas") => {
