@@ -17,7 +17,7 @@ export const uniqueEmail = (name: string) =>
   `${slug(name)}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@e2e.tartan.test`;
 
 export const signUp = async (page: Page, email: string, next = "/connexion") => {
-  await page.goto(next);
+  await page.goto(next, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Utiliser un mot de passe" }).click();
   await page.getByRole("button", { name: /Pas encore de compte/ }).click();
   await page.getByLabel("Adresse e-mail").fill(email);
@@ -29,7 +29,7 @@ export const signUp = async (page: Page, email: string, next = "/connexion") => 
   await sql.connect();
   await sql.query(`update "user" set email_verified = true where email = $1`, [email]);
   await sql.end();
-  await page.goto(next);
+  await page.goto(next, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Utiliser un mot de passe" }).click();
   await page.getByLabel("Adresse e-mail").fill(email);
   await page.getByLabel("Mot de passe").fill(PASSWORD);
@@ -38,13 +38,15 @@ export const signUp = async (page: Page, email: string, next = "/connexion") => 
 
 export const createCoachSpace = async (page: Page, name = "Thomas") => {
   await signUp(page, uniqueEmail(name.toLowerCase()));
-  await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible();
+  // En développement, la première compilation d'une page peut prendre longtemps.
+  await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible({ timeout: 60_000 });
+  await page.waitForLoadState("networkidle");
   await page.getByLabel("Prénom").fill(name);
   await page.getByLabel("Nom", { exact: true }).fill("Coach");
   await page.getByLabel("Nom du club ou de ton coaching").fill(`Coaching ${name}`);
   await page.getByLabel("Premier groupe").fill("Hauteur Élite");
   await page.getByRole("button", { name: "Créer mon espace" }).click();
-  await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible({ timeout: 60_000 });
 };
 
 export const expectAccessible = async (page: Page) => {

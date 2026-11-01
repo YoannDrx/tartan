@@ -19,10 +19,15 @@ test("lecture image par image d'une vidéo à 240 i/s", async ({ page }, info) =
   const org = (await sql.query("select id, owner_id from organizations order by created_at desc limit 1")).rows[0];
   const athlete = (
     await sql.query(
-      `insert into athletes (id, organization_id, first_name, last_name, updated_at) values (gen_random_uuid(), $1, 'Léa', 'Test', now()) returning id`,
-      [org.id],
+      `insert into athletes (id, organization_id, user_id, first_name, last_name, updated_at) values (gen_random_uuid(), $1, $2, 'Léa', 'Test', now()) returning id`,
+      [org.id, org.owner_id],
     )
   ).rows[0];
+  // Sans accord vidéo, le lecteur reste fermé au coach.
+  await sql.query(
+    `insert into consents (id, user_id, kind, version, granted_at, updated_at) values (gen_random_uuid(), $1, 'video', '1', now(), now())`,
+    [org.owner_id],
+  );
   const video = (
     await sql.query(
       `insert into videos (id, organization_id, athlete_id, uploaded_by, status, fps, time_scale, duration_ms, updated_at)
