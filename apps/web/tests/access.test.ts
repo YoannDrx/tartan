@@ -608,7 +608,7 @@ describe("séance : du coach à l'athlète", () => {
     await deleteExercise(org.owner.userId, org.organizationId, exercise.id);
     const detail = await getAthleteSession(ath.userId, org.organizationId, session.id);
     expect(detail.blocks[0]?.items[0]?.name).toBe("Fentes");
-    expect(await listExercises(org.owner.userId, org.organizationId)).toEqual([]);
+    expect((await listExercises(org.owner.userId, org.organizationId)).map((e) => e.name)).not.toContain("Fentes");
   });
 
   it("un brouillon reste invisible pour l'athlète", async () => {
@@ -941,7 +941,12 @@ describe("ouverture aux coachs", () => {
     expect(fresh.canCreateCoachSpace(stranger.email)).toBe(false);
     expect(fresh.canCreateCoachSpace(invited.email)).toBe(true);
     await expect(
-      fresh.createOrganization(stranger.userId, { name: "X", type: "independent", disciplines: [], firstGroupName: "G" }),
+      fresh.createOrganization(stranger.userId, {
+        name: "X",
+        type: "independent",
+        disciplines: [],
+        firstGroupName: "G",
+      }),
     ).rejects.toMatchObject({ code: "signup_closed" });
     vi.unstubAllEnvs();
     vi.resetModules();

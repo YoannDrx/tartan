@@ -14,6 +14,7 @@ import { createDirectUpload, deleteAsset, signedPlayback, unwrapWebhook, videoEn
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireVisibleAthlete, visibleAthleteIds, type Access } from "./access";
+import { assertWithinPlan } from "./billing.service";
 import { consentForAthletes } from "./consent.service";
 import { firstNameOf, namesFor } from "./me.service";
 import { notify } from "./notify.service";
@@ -79,6 +80,7 @@ export const createVideoUpload = async (userId: string, organizationId: string, 
   const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
   await requireVisibleAthlete(access, input.athleteId);
   await requireVideoConsent(input.athleteId);
+  await assertWithinPlan(organizationId, "maxVideosPerMonth");
   if (!videoEnabled()) throw new AppError(503, "video_disabled", m.errors.videoDisabled);
   if (input.scheduledSessionId) {
     const session = await prisma.scheduledSession.findFirst({

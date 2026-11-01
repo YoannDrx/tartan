@@ -79,6 +79,9 @@ export const createApiClient = (options: ApiClientOptions) => {
 
   return {
     me: () => request("GET", "/me", meResponse),
+    exportMyData: () => request("GET", "/me/export", z.any()),
+    billing: (orgId: string) => request("GET", `/orgs/${orgId}/billing`, z.any()),
+    athleteStats: (orgId: string, athleteId: string) => request("GET", `/orgs/${orgId}/athletes/${athleteId}/stats`, z.any()),
     updateProfile: (body: ProfileInput) => request("PATCH", "/me", meResponse, body),
     deleteAccount: () => request("DELETE", "/me", okResponse),
     registerDevice: (pushToken: string, platform: "ios" | "android" | "web") =>

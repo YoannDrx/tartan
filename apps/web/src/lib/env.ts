@@ -29,6 +29,16 @@ const schema = z.object({
   MUX_SIGNING_KEY_ID: optional,
   MUX_SIGNING_PRIVATE_KEY: optional,
   VIDEO_DEV_MP4_URL: optional,
+  STRIPE_SECRET_KEY: optional,
+  STRIPE_WEBHOOK_SECRET: optional,
+  STRIPE_PRICE_COACH_MONTH: optional,
+  STRIPE_PRICE_COACH_YEAR: optional,
+  STRIPE_PRICE_CLUB_MONTH: optional,
+  STRIPE_PRICE_CLUB_YEAR: optional,
+  STRIPE_TAX_ENABLED: z.enum(["true", "false"]).default("false"),
+  REVENUECAT_WEBHOOK_AUTH: optional,
+  REVENUECAT_PRODUCT_COACH: z.string().default("tartan_coach_monthly,tartan_coach_yearly"),
+  REVENUECAT_PRODUCT_CLUB: z.string().default("tartan_club_monthly,tartan_club_yearly"),
   BLOB_READ_WRITE_TOKEN: optional,
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: optional,
   VAPID_PRIVATE_KEY: optional,
@@ -42,7 +52,8 @@ export type Env = z.infer<typeof schema>;
 let cached: Env | undefined;
 
 // En preview, l'adresse vient du déploiement Vercel.
-const previewUrl = process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
+const previewUrl =
+  process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
 
 export const env = (): Env => {
   cached ??= schema.parse({

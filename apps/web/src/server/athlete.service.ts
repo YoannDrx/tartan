@@ -18,6 +18,7 @@ import {
   visibleAthleteIds,
   type Access,
 } from "./access";
+import { assertWithinPlan } from "./billing.service";
 import { consentForAthletes } from "./consent.service";
 import { namesFor } from "./me.service";
 
@@ -74,6 +75,7 @@ export const saveAthlete = async (userId: string, organizationId: string, raw: A
     });
     return { id: input.id };
   }
+  await assertWithinPlan(organizationId, "maxAthletes");
   const created = await prisma.athlete.create({
     data: {
       ...data,

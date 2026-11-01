@@ -135,8 +135,8 @@ enum OrganizationType {
 
 enum OrganizationPlan {
   pilot
-  free
-  pro
+  discovery
+  coach
   club
 
   @@map("organization_plan")
@@ -150,7 +150,8 @@ model Organization {
   disciplines String[]         @default([])
   ownerId     String           @map("owner_id") @db.Uuid
   owner       User             @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  plan        OrganizationPlan @default(pilot)
+  plan        OrganizationPlan @default(discovery)
+  stripeCustomerId String?     @unique @map("stripe_customer_id")
   // Relance douce d'une séance non validée, réglable par le coach (§ 7.7).
   overdueReminders Boolean     @default(true) @map("overdue_reminders")
   createdAt   DateTime         @default(now()) @map("created_at")
@@ -1110,6 +1111,7 @@ model Subscription {
   status           SubscriptionStatus   @default(active)
   provider         SubscriptionProvider @default(manual)
   providerRef      String?              @map("provider_ref")
+  paidSince        DateTime?            @map("paid_since")
   currentPeriodEnd DateTime?            @map("current_period_end")
   cancelAt         DateTime?            @map("cancel_at")
   createdAt        DateTime             @default(now()) @map("created_at")
@@ -1190,6 +1192,16 @@ model Referral {
 
   @@index([codeId])
   @@map("referrals")
+}
+
+// Événements déjà traités : Stripe et RevenueCat peuvent renvoyer plusieurs fois le même.
+model BillingEvent {
+  id        String   @id
+  provider  String
+  type      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("billing_events")
 }
 
 enum RewardKind {

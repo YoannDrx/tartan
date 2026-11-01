@@ -2,6 +2,8 @@ import { addDays, isOverdue } from "@tartan/domain";
 import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { processReferrals, purgeExpiredVideos } from "./billing.service";
+import { sendWeeklyDigests } from "./digest.service";
 import { dispatchPending, notify } from "./notify.service";
 import { audienceAthleteIds, publishRow } from "./session.service";
 
@@ -96,5 +98,8 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
   const closed = await closeOverdueSessions(now);
   const eve = await sendEveQuestions(now);
   const dispatched = await dispatchPending(now);
-  return { published, closed, eve, dispatched };
+  const referrals = await processReferrals(now);
+  const purged = await purgeExpiredVideos(now);
+  const digests = await sendWeeklyDigests(now);
+  return { published, closed, eve, dispatched, referrals, purged, digests };
 };

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addPrescriptionVolumes,
   ageAt,
   alertKinds,
   applyOverride,
@@ -10,8 +11,10 @@ import {
   compareTrackingRows,
   completionPct,
   effectiveConsent,
+  emptyVolumes,
   estimatedOneRm,
   formatHeight,
+  formatPrice,
   formatPrescription,
   formatTimecode,
   frameStepMs,
@@ -21,13 +24,18 @@ import {
   invitationStateOf,
   isAttributionFresh,
   isOverdue,
+  isPaidPlan,
   isQuietHours,
+  isReferralQualified,
   isSelfReferral,
+  isWithinLimit,
   nextAttemptNo,
   notationFor,
   parseYouTubeUrl,
   phaseAt,
   phaseRanges,
+  planForSubscription,
+  PLANS,
   referralCodeFor,
   renderNotification,
   requiresParentalConsent,
@@ -35,9 +43,13 @@ import {
   resolveVariant,
   roundToPlate,
   scopeOf,
+  sessionLoad,
+  STARTER_LIBRARY,
   startOfWeek,
+  toCsv,
   trailingMissedCount,
   validateClipRange,
+  weekTrendPct,
   youtubeEmbedUrl,
 } from "./index";
 
@@ -262,6 +274,62 @@ describe("timeline vidéo", () => {
     ]);
     expect(phaseAt(ranges, 3200)).toBe("clearance");
     expect(phaseRanges([], 5000)).toEqual([]);
+  });
+});
+
+describe("offres", () => {
+  it("applique les limites, illimité compris", () => {
+    expect(isWithinLimit(PLANS.discovery.limits.maxAthletes, 4)).toBe(true);
+    expect(isWithinLimit(PLANS.discovery.limits.maxAthletes, 5)).toBe(false);
+    expect(isWithinLimit(PLANS.club.limits.maxAthletes, 5000)).toBe(true);
+    expect(isPaidPlan("discovery")).toBe(false);
+    expect(isPaidPlan("coach")).toBe(true);
+  });
+
+  it("retombe sur Découverte à la résiliation, garde l'accès pendant un impayé", () => {
+    expect(planForSubscription("coach", "canceled")).toBe("discovery");
+    expect(planForSubscription("coach", "past_due")).toBe("coach");
+  });
+
+  it("formate les prix", () => {
+    expect(formatPrice(1900)).toBe("19\u00a0€");
+    expect(formatPrice(1950)).toBe("19,50\u00a0€");
+  });
+
+  it("qualifie un parrainage seulement après 30 jours payés", () => {
+    const now = new Date("2026-11-01");
+    const base = { plan: "coach" as const, status: "active" as const, now };
+    expect(isReferralQualified({ ...base, paidSince: new Date("2026-09-15") })).toBe(true);
+    expect(isReferralQualified({ ...base, paidSince: new Date("2026-10-20") })).toBe(false);
+    expect(isReferralQualified({ ...base, status: "trialing", paidSince: new Date("2026-09-15") })).toBe(false);
+    expect(isReferralQualified({ ...base, plan: "discovery", paidSince: new Date("2026-09-15") })).toBe(false);
+  });
+});
+
+describe("charge et export", () => {
+  it("calcule la charge de séance", () => {
+    expect(sessionLoad(7, 60)).toBe(420);
+    expect(sessionLoad(null, 60)).toBeNull();
+  });
+
+  it("additionne les volumes", () => {
+    const v = addPrescriptionVolumes(emptyVolumes(), { sets: 4, reps: 5, ground_contacts: 30, distance_m: 20 }, 80);
+    expect(v).toEqual({ groundContacts: 30, tonnageKg: 1600, distanceM: 80, jumps: 0 });
+  });
+
+  it("compare à la moyenne récente", () => {
+    expect(weekTrendPct([100, 100, 150])).toBe(50);
+    expect(weekTrendPct([null, 100])).toBeNull();
+  });
+
+  it("protège le CSV contre les formules et les séparateurs", () => {
+    expect(toCsv(["a"], [["=1+1"], ["x;y"], [null]])).toBe('a\r\n\'=1+1\r\n"x;y"\r\n');
+  });
+
+  it("fournit une bibliothèque de départ exploitable", () => {
+    expect(STARTER_LIBRARY.length).toBeGreaterThanOrEqual(30);
+    expect(new Set(STARTER_LIBRARY.map((e) => e.name)).size).toBe(STARTER_LIBRARY.length);
+    for (const e of STARTER_LIBRARY) expect(e.cues.length).toBeGreaterThan(0);
   });
 });
 

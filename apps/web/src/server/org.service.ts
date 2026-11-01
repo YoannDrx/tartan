@@ -1,5 +1,5 @@
 import { type CreateOrganizationInput, type GroupInput } from "@tartan/contracts";
-import { referralCodeFor } from "@tartan/domain";
+import { type PlanKey, referralCodeFor, STARTER_LIBRARY } from "@tartan/domain";
 import { randomId } from "@/lib/tokens";
 import { prisma } from "@/lib/prisma";
 import { m } from "@tartan/i18n";
@@ -7,18 +7,13 @@ import { env } from "@/lib/env";
 import { AppError, notFound } from "@/lib/errors";
 import { coachGroupIds, requireOrgMember, requireGroupInScope, type Access } from "./access";
 import { firstNameOf } from "./me.service";
+import { assertWithinPlan, ensurePlans, syncEntitlements } from "./billing.service";
 import { attributeReferral } from "./referral.service";
 
-const PILOT_ENTITLEMENTS = { max_athletes: null, video_retention_days: null };
-
-export const ensurePlans = async (): Promise<void> => {
-  const plans = [
-    { key: "pilot", name: "Pilote", limits: {} },
-    { key: "discovery", name: "Découverte", limits: {} },
-    { key: "coach", name: "Coach", limits: {} },
-    { key: "club", name: "Club", limits: {} },
-  ];
-  await prisma.plan.createMany({ data: plans, skipDuplicates: true });
+// Les adresses de la liste sont celles du pilote : tout gratuit. Les autres démarrent en Découverte.
+const initialPlan = (email: string): PlanKey => {
+  const listed = env().COACH_SIGNUP_EMAILS.split(",").map((e) => e.trim().toLowerCase());
+  return listed.includes(email.trim().toLowerCase()) ? "pilot" : "discovery";
 };
 
 export const ensureReferralCode = async (userId: string): Promise<string> => {
@@ -49,6 +44,7 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
   if (!canCreateCoachSpace(user.email)) throw new AppError(403, "signup_closed", m.onboarding.closed);
   await ensurePlans();
+  const plan = initialPlan(user.email);
   const organization = await prisma.$transaction(async (tx) => {
     const org = await tx.organization.create({
       data: {
@@ -56,14 +52,16 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
         type: input.type,
         disciplines: input.disciplines,
         ownerId: userId,
-        plan: "pilot",
+        plan,
         members: { create: { userId, role: "owner", status: "active" } },
-        subscriptions: { create: { planKey: "pilot", status: "active", provider: "manual" } },
-        entitlements: {
-          create: Object.entries(PILOT_ENTITLEMENTS).map(([key, value]) => ({
-            key,
-            value: value === null ? { unlimited: true } : value,
-            source: "plan" as const,
+        subscriptions: { create: { planKey: plan, status: "active", provider: "manual" } },
+        exercises: {
+          create: STARTER_LIBRARY.map((e) => ({
+            name: e.name,
+            category: e.category,
+            cues: e.cues,
+            defaultPrescription: e.prescription,
+            createdBy: userId,
           })),
         },
       },
@@ -72,6 +70,7 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
     await tx.groupCoach.create({ data: { groupId: group.id, userId, role: "lead" } });
     return { ...org, firstGroupId: group.id };
   });
+  await syncEntitlements(organization.id, plan);
   await ensureReferralCode(userId);
   if (input.referralCode)
     await attributeReferral({ userId, code: input.referralCode, organizationId: organization.id });
@@ -128,6 +127,7 @@ export const saveGroup = async (userId: string, organizationId: string, input: G
     await requireGroupInScope(access, [input.id]);
     return prisma.group.update({ where: { id: input.id }, data });
   }
+  await assertWithinPlan(organizationId, "maxGroups");
   return prisma.group.create({
     data: { ...data, organizationId, coaches: { create: { userId, role: "lead" } } },
   });

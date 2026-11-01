@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { setConsent } from "@/server/consent.service";
+import { syncEntitlements } from "@/server/billing.service";
 import { createOrganization } from "@/server/org.service";
 
 export const makeUser = async (firstName: string, opts: { birthDate?: string } = {}) => {
@@ -36,6 +37,9 @@ export const makeOrg = async (coachName = "Thomas") => {
     disciplines: ["high_jump"],
     firstGroupName: "Hauteur Élite",
   });
+  // Les tests d'accès ne portent pas sur les offres : espace sans limite, sauf test dédié.
+  await prisma.organization.update({ where: { id: org.id }, data: { plan: "pilot" } });
+  await syncEntitlements(org.id, "pilot");
   return { owner, organizationId: org.id, groupId: org.firstGroupId };
 };
 

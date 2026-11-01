@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { deriveToken, sha256, tokenMatches } from "@/lib/tokens";
 import { audit, requireGroupInScope, requireOrgMember, requireVisibleAthlete } from "./access";
+import { assertWithinPlan } from "./billing.service";
 import { setConsent, startParentalConsent } from "./consent.service";
 import { displayName, namesFor } from "./me.service";
 import { ensureReferralCode } from "./org.service";
@@ -32,6 +33,7 @@ export const createInvitation = async (userId: string, organizationId: string, r
   const permission = input.role === "athlete" ? "inviteAthlete" : "inviteCoach";
   const access = await requireOrgMember(userId, organizationId, permission);
   await enforceRateLimit(`invite:${userId}`, 60, 3600);
+  if (input.role !== "athlete") await assertWithinPlan(organizationId, "maxCoaches");
   await requireGroupInScope(access, input.groupIds);
   if (input.athleteId) await requireVisibleAthlete(access, input.athleteId);
 
@@ -202,6 +204,15 @@ export const acceptInvitation = async (
   const minor = isAthlete && requiresParentalConsent(input.birthDate, new Date());
   if (minor && !input.guardianEmail) throw invalid(m.invite.guardianHint);
 
+  // Une fiche préparée ou un retour dans l'espace ne compte pas comme un athlète de plus.
+  const alreadyCounted =
+    Boolean(inv.athleteId) ||
+    Boolean(await prisma.athlete.findUnique({ where: { organizationId_userId: { organizationId: inv.organizationId, userId: actor.userId } }, select: { id: true } }));
+  if (isAthlete && !alreadyCounted) {
+    await assertWithinPlan(inv.organizationId, "maxAthletes").catch((error) => {
+      throw error instanceof AppError && error.code === "plan_limit" ? new AppError(402, "plan_limit", m.billing.limitJoinAthlete) : error;
+    });
+  }
   const birthDate = input.birthDate ? toDbDate(input.birthDate) : null;
   const athleteId = await prisma.$transaction(async (tx) => {
     // Réservation atomique : un lien nominatif à usage unique ne sert qu'une fois, même en concurrence.
