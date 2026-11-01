@@ -19,7 +19,7 @@ import { consentForAthletes } from "./consent.service";
 import { firstNameOf, namesFor } from "./me.service";
 import { notify } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
-import { formatHeight } from "@tartan/domain";
+import { deliveredFps, formatHeight, toRealMs } from "@tartan/domain";
 
 const VIDEO_SELECT = {
   id: true,
@@ -27,6 +27,7 @@ const VIDEO_SELECT = {
   status: true,
   muxPlaybackId: true,
   fps: true,
+  timeScale: true,
   durationMs: true,
   recordedAt: true,
   sharedWithAthlete: true,
@@ -43,6 +44,7 @@ const summarize = async (v: {
   status: VideoSummary["status"];
   muxPlaybackId: string | null;
   fps: number | null;
+  timeScale: number;
   durationMs: number | null;
   recordedAt: Date | null;
   sharedWithAthlete: boolean;
@@ -61,6 +63,7 @@ const summarize = async (v: {
     playbackId: v.muxPlaybackId,
     thumbnailUrl,
     fps: v.fps,
+    timeScale: v.timeScale,
     durationMs: v.durationMs,
     recordedAt: v.recordedAt?.toISOString() ?? null,
     sharedWithAthlete: v.sharedWithAthlete,
@@ -95,6 +98,7 @@ export const createVideoUpload = async (userId: string, organizationId: string, 
       uploadedBy: userId,
       scheduledSessionId: input.scheduledSessionId ?? null,
       fps: input.fps ?? null,
+      timeScale: input.timeScale ?? 1,
       recordedAt: input.recordedAt ? new Date(input.recordedAt) : new Date(),
       ...(input.attempt
         ? {
@@ -172,15 +176,20 @@ export const applyMuxEvent = async (event: {
     await prisma.video.updateMany({ where: { id }, data: { status: "processing", muxAssetId: event.data.id } });
   } else if (event.type === "video.asset.ready") {
     const track = event.data.tracks?.find((t) => t.type === "video");
-    const video = await prisma.video.findUnique({ where: { id }, select: { fps: true } });
+    const video = await prisma.video.findUnique({ where: { id }, select: { fps: true, timeScale: true } });
+    const timeScale = video?.timeScale ?? 1;
     await prisma.video.updateMany({
       where: { id },
       data: {
         status: "ready",
         muxAssetId: event.data.id,
         muxPlaybackId: event.data.playback_ids?.[0]?.id ?? null,
-        durationMs: event.data.duration ? Math.round(event.data.duration * 1000) : null,
-        fps: track?.max_frame_rate ? Math.round(track.max_frame_rate) : (video?.fps ?? null),
+        durationMs: event.data.duration ? Math.round(toRealMs(event.data.duration, timeScale)) : null,
+        fps: deliveredFps({
+          declaredFps: video?.fps ?? null,
+          encodedFps: track?.max_frame_rate ?? null,
+          timeScale,
+        }),
       },
     });
   } else if (event.type === "video.asset.errored") {

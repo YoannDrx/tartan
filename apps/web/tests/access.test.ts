@@ -805,7 +805,25 @@ describe("vidéos", () => {
       },
     });
     const row = await prisma.video.findUniqueOrThrow({ where: { id } });
-    expect(row).toMatchObject({ status: "ready", fps: 240, durationMs: 4250, muxPlaybackId: "playback-1" });
+    // Non étirée : Mux ne sert que 30 i/s au plus, quoi que dise la source.
+    expect(row).toMatchObject({ status: "ready", fps: 30, durationMs: 4250, muxPlaybackId: "playback-1" });
+  });
+
+  it("une vidéo étirée garde sa fréquence de capture et sa durée réelle", async () => {
+    const id = await makeVideo(false);
+    await prisma.video.update({ where: { id }, data: { fps: 240, timeScale: 8 } });
+    await applyMuxEvent({
+      type: "video.asset.ready",
+      data: {
+        id: "asset-2",
+        passthrough: `video:${id}`,
+        duration: 24,
+        playback_ids: [{ id: "playback-2" }],
+        tracks: [{ type: "video", max_frame_rate: 30 }],
+      },
+    });
+    const row = await prisma.video.findUniqueOrThrow({ where: { id } });
+    expect(row).toMatchObject({ status: "ready", fps: 240, timeScale: 8, durationMs: 3000 });
   });
 
   it("un essai rejoué depuis la file hors ligne ne crée pas de doublon", async () => {

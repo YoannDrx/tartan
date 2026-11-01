@@ -5,9 +5,10 @@ import { Client } from "pg";
 import { createCoachSpace } from "./helpers";
 
 const DB = process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e";
-const clip = readFileSync(path.resolve(import.meta.dirname, "fixtures/saut-240.webm"));
+const clip = readFileSync(path.resolve(import.meta.dirname, "fixtures/saut-240-etire.webm"));
 
-// Preuve de concept du § 11.5 côté web : ralenti et pas image par image sur un vrai 240 i/s.
+// Preuve de concept du § 11.5 côté web : ralenti et pas image par image sur un 240 i/s étiré ×8 avant l'envoi,
+// comme le fait l'envoi réel : le fichier fait 16 s à 30 i/s pour 2 s réelles.
 // iOS et Android restent à valider sur appareils réels avec une vraie vidéo Mux.
 test("lecture image par image d'une vidéo à 240 i/s", async ({ page }, info) => {
   // Le clip de test passe par une variable réservée au développement : elle est inerte en production.
@@ -24,8 +25,8 @@ test("lecture image par image d'une vidéo à 240 i/s", async ({ page }, info) =
   ).rows[0];
   const video = (
     await sql.query(
-      `insert into videos (id, organization_id, athlete_id, uploaded_by, status, fps, duration_ms, updated_at)
-       values (gen_random_uuid(), $1, $2, $3, 'ready', 240, 2000, now()) returning id`,
+      `insert into videos (id, organization_id, athlete_id, uploaded_by, status, fps, time_scale, duration_ms, updated_at)
+       values (gen_random_uuid(), $1, $2, $3, 'ready', 240, 8, 2000, now()) returning id`,
       [org.id, athlete.id, org.owner_id],
     )
   ).rows[0];
@@ -61,24 +62,24 @@ test("lecture image par image d'une vidéo à 240 i/s", async ({ page }, info) =
     await expect.poll(() => player.evaluate((v: HTMLVideoElement) => !v.seeking)).toBe(true);
     frames.push(await time());
   }
-  // Chaque pas avance d'une image, soit 1/240 s, et s'affiche sans retour en arrière.
+  // Chaque pas avance d'une image : 1/240 s réelle, soit 8/240 s dans le fichier étiré, sans retour en arrière.
   for (let i = 1; i < frames.length; i += 1) {
-    expect((frames[i] as number) - (frames[i - 1] as number)).toBeCloseTo(1 / 240, 2);
+    expect((frames[i] as number) - (frames[i - 1] as number)).toBeCloseTo(8 / 240, 2);
   }
   const before = await time();
   await page.getByRole("button", { name: "Image précédente" }).click();
   await expect.poll(time).toBeLessThan(before);
 
-  // Ralenti réglable de 0,1× à 1×.
+  // Ralenti réglable de 0,1× à 1× en temps réel : 0,1× réel vaut 0,8× pour le fichier étiré.
   await page.getByRole("button", { name: "0,1×" }).click();
-  expect(await player.evaluate((v: HTMLVideoElement) => v.playbackRate)).toBeCloseTo(0.1);
+  expect(await player.evaluate((v: HTMLVideoElement) => v.playbackRate)).toBeCloseTo(0.8);
   const start = await time();
   await page.getByRole("button", { name: "Lecture" }).click();
   await page.waitForTimeout(1000);
   await page.getByRole("button", { name: "Pause" }).click();
   const elapsed = (await time()) - start;
-  expect(elapsed).toBeGreaterThan(0.03);
-  expect(elapsed).toBeLessThan(0.3);
+  expect(elapsed).toBeGreaterThan(0.24);
+  expect(elapsed).toBeLessThan(2.4);
 
   // Commentaire placé à l'instant de la tête de lecture, classé par phase.
   await page.getByLabel("Phase du saut").selectOption("takeoff");

@@ -22,7 +22,7 @@ export const createDirectUpload = async (passthrough: string): Promise<{ uploadI
     new_asset_settings: {
       passthrough,
       playback_policy: ["signed"],
-      // MP4 à pleine fréquence : le flux adaptatif peut réduire la cadence pour l'analyse.
+      // MP4 pour l'analyse image par image : plafonné à 30 i/s par Mux, d'où l'étirement avant l'envoi (video-stretch).
       static_renditions: [{ resolution: "highest" }],
     },
   });

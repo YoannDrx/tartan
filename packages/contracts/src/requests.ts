@@ -254,6 +254,7 @@ export const createVideoInput = z.object({
   athleteId: uuid,
   scheduledSessionId: uuid.nullable().optional(),
   fps: z.number().int().min(1).max(1000).nullable().optional(),
+  timeScale: z.number().int().min(1).max(64).optional(),
   recordedAt: z.iso.datetime().optional(),
   attempt: z
     .object({

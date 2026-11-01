@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  deliveredFps,
+  planStretch,
+  timeScaleFor,
+  toFileSeconds,
+  toRealMs,
   addPrescriptionVolumes,
   ageAt,
   alertKinds,
@@ -440,5 +445,85 @@ describe("parrainage", () => {
     expect(isSelfReferral(base)).toBe(false);
     expect(isSelfReferral({ ...base, referredUserId: "u1" })).toBe(true);
     expect(isSelfReferral({ ...base, codeOwnerUserId: null, codeOwnerOrgId: "o1" })).toBe(true);
+  });
+});
+
+describe("étirement vidéo", () => {
+  const box = (type: string, ...payload: Uint8Array[]): Uint8Array => {
+    const size = 8 + payload.reduce((sum, p) => sum + p.length, 0);
+    const out = new Uint8Array(size);
+    new DataView(out.buffer).setUint32(0, size);
+    out.set([...type].map((c) => c.charCodeAt(0)), 4);
+    let pos = 8;
+    for (const p of payload) {
+      out.set(p, pos);
+      pos += p.length;
+    }
+    return out;
+  };
+  const u32s = (...values: number[]): Uint8Array => {
+    const out = new Uint8Array(values.length * 4);
+    values.forEach((v, i) => new DataView(out.buffer).setUint32(i * 4, v));
+    return out;
+  };
+  // 720 images à 240 i/s dans un temps de 24 000 graduations par seconde : 3 secondes.
+  const movie = (extra: Uint8Array[] = []): Uint8Array => {
+    const stbl = box("stbl", box("stts", u32s(0, 1, 720, 100)), box("ctts", u32s(0, 1, 720, 200)));
+    const hdlr = box("hdlr", u32s(0, 0, 0x76696465));
+    const mdhd = box("mdhd", u32s(0, 0, 0, 24000, 72000));
+    const trak = box(
+      "trak",
+      box("tkhd", u32s(0, 0, 0, 1, 0, 3000)),
+      box("edts", box("elst", u32s(0, 1, 3000, 0, 0x10000))),
+      box("mdia", mdhd, hdlr, box("minf", stbl)),
+    );
+    const moov = box("moov", box("mvhd", u32s(0, 0, 0, 1000, 3000)), trak, ...extra);
+    const ftyp = box("ftyp", u32s(0));
+    const mdat = box("mdat", u32s(1, 2, 3));
+    const out = new Uint8Array(ftyp.length + mdat.length + moov.length);
+    out.set(ftyp, 0);
+    out.set(mdat, ftyp.length);
+    out.set(moov, ftyp.length + mdat.length);
+    return out;
+  };
+  const reader = (file: Uint8Array) => async (offset: number, length: number) => file.slice(offset, offset + length);
+
+  it("choisit le facteur qui ramène à 30 i/s au plus", () => {
+    expect(timeScaleFor(240)).toBe(8);
+    expect(timeScaleFor(120)).toBe(4);
+    expect(timeScaleFor(59.94)).toBe(2);
+    expect(timeScaleFor(30)).toBe(1);
+    expect(timeScaleFor(null)).toBe(1);
+  });
+
+  it("étire toutes les durées sans changer la taille de l'en-tête", async () => {
+    const file = movie();
+    const plan = await planStretch(reader(file), file.length);
+    expect(plan).toMatchObject({ fps: 240, timeScale: 8 });
+    const bytes = plan?.patch?.bytes as Uint8Array;
+    const before = file.slice(plan?.patch?.offset);
+    expect(bytes.length).toBe(before.length);
+    const again = new Uint8Array(file);
+    again.set(bytes, plan?.patch?.offset as number);
+    const stretched = await planStretch(reader(again), again.length);
+    expect(stretched).toMatchObject({ fps: 30, timeScale: 1, patch: null });
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const values = Array.from({ length: bytes.length >> 2 }, (_, i) => view.getUint32(i * 4));
+    for (const scaled of [24000, 800, 1600]) expect(values).toContain(scaled);
+  });
+
+  it("laisse partir tel quel un MP4 fragmenté ou un fichier inconnu", async () => {
+    const fragmented = movie([box("mvex")]);
+    await expect(planStretch(reader(fragmented), fragmented.length)).resolves.toBeNull();
+    const garbage = new Uint8Array(64).fill(0x41);
+    await expect(planStretch(reader(garbage), garbage.length)).resolves.toBeNull();
+  });
+
+  it("rapporte la fréquence réellement lisible", () => {
+    expect(deliveredFps({ declaredFps: 240, encodedFps: 30, timeScale: 8 })).toBe(240);
+    expect(deliveredFps({ declaredFps: null, encodedFps: 239.97, timeScale: 1 })).toBe(30);
+    expect(deliveredFps({ declaredFps: 25, encodedFps: null, timeScale: 1 })).toBe(25);
+    expect(deliveredFps({ declaredFps: null, encodedFps: null, timeScale: 1 })).toBeNull();
+    expect(toRealMs(toFileSeconds(1500, 8), 8)).toBe(1500);
   });
 });

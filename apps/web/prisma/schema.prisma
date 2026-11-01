@@ -897,6 +897,8 @@ model Video {
   muxPlaybackId      String?           @map("mux_playback_id")
   status             VideoStatus       @default(uploading)
   fps                Int?
+  // Facteur d'étirement du fichier envoyé à Mux : temps du fichier = temps réel × timeScale.
+  timeScale          Int               @default(1) @map("time_scale")
   durationMs         Int?              @map("duration_ms")
   recordedAt         DateTime?         @map("recorded_at")
   sharedWithAthlete  Boolean           @default(false) @map("shared_with_athlete")

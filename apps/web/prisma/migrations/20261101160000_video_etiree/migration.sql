@@ -1,0 +1,1 @@
+ALTER TABLE "videos" ADD COLUMN "time_scale" INTEGER NOT NULL DEFAULT 1;

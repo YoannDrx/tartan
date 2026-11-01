@@ -4,6 +4,7 @@ export * from "./variants";
 export * from "./consent";
 export * from "./youtube";
 export * from "./jumps";
+export * from "./video-stretch";
 export * from "./permissions";
 export * from "./alerts";
 export * from "./invitations";

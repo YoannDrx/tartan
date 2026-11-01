@@ -162,6 +162,7 @@ export const videoSummary = z.object({
   playbackId: z.string().nullable(),
   thumbnailUrl: z.string().nullable(),
   fps: z.number().nullable(),
+  timeScale: z.number(),
   durationMs: z.number().nullable(),
   recordedAt: z.string().nullable(),
   sharedWithAthlete: z.boolean(),
