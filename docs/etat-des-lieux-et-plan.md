@@ -8,6 +8,8 @@ Niveau de preuve de chaque constat :
 - **[relu]** : signalé par une relecture indépendante du code, sans exécution. À reproduire avant correction.
 - **[appareil]** : impossible à trancher sans un vrai téléphone.
 
+> **Mise à jour du 1er novembre, soir.** Les phases 0 et 1 sont déployées (`e84b614`), vente coupée : voir le § 13. Les constats ci-dessous décrivent l'état avant ce déploiement.
+
 ## 1. Verdict
 
 **Tartan n'est pas terminé, et rien de ce qui a été fait depuis ce matin n'est en ligne.**
@@ -313,3 +315,30 @@ Ne pas construire avant les retours du pilote.
 - Ouvrir Apple Developer et Google Play, créer Firebase.
 - Adhérer au médiateur, consulter un juriste, lancer la recherche de marque.
 - Avec ton frère : le cahier, les 8 questions, les exercices, les essais sur vrais téléphones, les 12 testeurs Android.
+
+## 13. Fait et vérifié : phases 0 et 1
+
+Production sur `e84b614`, avec les migrations `offres_payantes`, `video_etiree` et `verification_texte`.
+
+| Point | État |
+| --- | --- |
+| Identité rouge, tarifs, mot de passe oublié, redirection `www` | En ligne, vérifié |
+| Vente | Coupée : clé Stripe retirée, webhook Stripe désactivé, offres menant à une prise de contact |
+| F1 à F5, F7 à F10 | Corrigés, avec des tests pour F1, F2, F3, F5 et la feuille de barres. F4, F7, F8 et le reste de F10 sont couverts par relecture du code, pas par un test dédié |
+| F6 | Validation gardée à l'expiration de la session, testée |
+| F9 | Feuille de barres corrigée. Le rattachement des vidéos web à la séance reste en phase 2 |
+| Bug trouvé en route | Le lien magique plantait sur un compte non vérifié (table `verification`), corrigé |
+| Webhook Mux | Signature contrôlée en ligne, envoi réel traité |
+
+**Restent de la phase 1, à ta charge :**
+
+- Neon Launch et sa restauration testée ; carte sur Mux (limite de 10 vidéos).
+- Sentry : le code est en place, mais sans projet. La création par API est refusée et Chrome n'est pas connecté à Sentry.
+- Recette connectée en production (lien magique, invitation, validation) : je n'ouvre pas de compte en production à ta place. Le parcours complet passe sur le build de production en local.
+
+**Nouveau constat Stripe (S12) :** le webhook écoute tout le compte, donc aussi les abonnements de tes autres produits. Argument de plus pour un compte dédié. Il reste désactivé d'ici là.
+
+**À savoir :**
+
+- L'accord vidéo retiré masque l'image au coach sans la supprimer : à trancher avec le juriste.
+- Le compte de démonstration devra être rejoué sans envoi d'e-mail, le `seed` passant désormais par la confirmation d'adresse.
