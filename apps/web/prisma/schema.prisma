@@ -1,0 +1,1216 @@
+// Modèle de données Tartan (cahier des charges, chapitre 12).
+// Identifiants UUID, tables en snake_case, created_at et updated_at partout.
+// Toutes les tables métier portent organization_id : base de la sécurité (§ 11.4).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Better Auth ──────────────────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false) @map("email_verified")
+  image         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  sessions    Session[]
+  accounts    Account[]
+  passkeys    Passkey[]
+  profile     Profile?
+  memberships OrganizationMember[]
+  ownedOrgs   Organization[]       @relation("OrgOwner")
+  athletes    Athlete[]
+  devices     Device[]
+  consents    Consent[]            @relation("ConsentUser")
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id") @db.Uuid
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Passkey {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String?
+  publicKey    String    @map("public_key")
+  userId       String    @map("user_id") @db.Uuid
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialID String    @map("credential_id")
+  counter      Int
+  deviceType   String    @map("device_type")
+  backedUp     Boolean   @map("backed_up")
+  transports   String?
+  createdAt    DateTime? @default(now()) @map("created_at")
+  aaguid       String?
+
+  @@index([userId])
+  @@map("passkey")
+}
+
+model RateLimit {
+  id          String @id @default(uuid()) @db.Uuid
+  key         String @unique
+  count       Int
+  lastRequest BigInt @map("last_request")
+
+  @@map("rate_limit")
+}
+
+// ── Comptes, organisations et groupes ────────────────────────────────────────
+
+model Profile {
+  id        String    @id @db.Uuid
+  user      User      @relation(fields: [id], references: [id], onDelete: Cascade)
+  firstName String?   @map("first_name")
+  lastName  String?   @map("last_name")
+  birthDate DateTime? @map("birth_date") @db.Date
+  avatarUrl String?   @map("avatar_url")
+  locale    String    @default("fr")
+  units     String    @default("kg")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+enum OrganizationType {
+  club
+  independent
+
+  @@map("organization_type")
+}
+
+enum OrganizationPlan {
+  pilot
+  free
+  pro
+  club
+
+  @@map("organization_plan")
+}
+
+model Organization {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  type        OrganizationType @default(independent)
+  logoUrl     String?          @map("logo_url")
+  disciplines String[]         @default([])
+  ownerId     String           @map("owner_id") @db.Uuid
+  owner       User             @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  plan        OrganizationPlan @default(pilot)
+  // Relance douce d'une séance non validée, réglable par le coach (§ 7.7).
+  overdueReminders Boolean     @default(true) @map("overdue_reminders")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  members           OrganizationMember[]
+  groups            Group[]
+  athletes          Athlete[]
+  invitations       Invitation[]
+  exercises         Exercise[]
+  templates         SessionTemplate[]
+  scheduledSessions ScheduledSession[]
+  competitions      Competition[]
+  videos            Video[]
+  announcements     Announcement[]
+  comments          Comment[]
+  auditLogs         AuditLog[]
+  subscriptions     Subscription[]
+  entitlements      Entitlement[]
+
+  @@map("organizations")
+}
+
+enum MemberRole {
+  owner
+  coach
+  assistant
+  athlete
+  guardian
+
+  @@map("member_role")
+}
+
+enum MemberStatus {
+  active
+  invited
+  suspended
+
+  @@map("member_status")
+}
+
+model OrganizationMember {
+  organizationId String       @map("organization_id") @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  role           MemberRole
+  status         MemberStatus @default(active)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, userId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+model Group {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  name           String
+  color          String?
+  level          String?
+  goal           String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  members       GroupMember[]
+  coaches       GroupCoach[]
+  announcements Announcement[]
+
+  @@index([organizationId])
+  @@map("groups")
+}
+
+model GroupMember {
+  groupId   String   @map("group_id") @db.Uuid
+  athleteId String   @map("athlete_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  athlete   Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, athleteId])
+  @@index([athleteId])
+  @@map("group_members")
+}
+
+enum GroupCoachRole {
+  lead
+  assistant
+
+  @@map("group_coach_role")
+}
+
+model GroupCoach {
+  groupId   String         @map("group_id") @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  role      GroupCoachRole @default(lead)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  group     Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, userId])
+  @@index([userId])
+  @@map("group_coaches")
+}
+
+enum TakeoffFoot {
+  left
+  right
+
+  @@map("takeoff_foot")
+}
+
+model Athlete {
+  id              String       @id @default(uuid()) @db.Uuid
+  organizationId  String       @map("organization_id") @db.Uuid
+  userId          String?      @map("user_id") @db.Uuid
+  firstName       String       @map("first_name")
+  lastName        String       @map("last_name")
+  birthDate       DateTime?    @map("birth_date") @db.Date
+  disciplines     String[]     @default([])
+  level           String?
+  takeoffFoot     TakeoffFoot? @map("takeoff_foot")
+  approachSteps   Int?         @map("approach_steps")
+  goals           String?
+  particularities String?
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  groups       GroupMember[]
+  coachNotes   CoachNote[]
+  injuries     Injury[]
+  tests        StrengthTest[]
+  performances Performance[]
+  jumps        JumpAttempt[]
+  wellness     WellnessCheckin[]
+  guardians    Guardian[]
+  overrides    AthleteOverride[]
+  attendance   Attendance[]
+  logs         SessionLog[]
+  videos       Video[]
+  consents     Consent[]
+  competitions CompetitionAthlete[]
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("athletes")
+}
+
+// Table séparée : jamais sélectionnée pour un athlète (test dédié, § 11.4).
+model CoachNote {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  athleteId      String   @map("athlete_id") @db.Uuid
+  authorId       String   @map("author_id") @db.Uuid
+  body           String
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  athlete        Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@index([athleteId])
+  @@map("coach_notes")
+}
+
+enum InvitationKind {
+  group_link
+  qr
+  personal_email
+  personal_sms
+
+  @@map("invitation_kind")
+}
+
+enum InvitationRole {
+  athlete
+  coach
+  assistant
+
+  @@map("invitation_role")
+}
+
+enum InvitationStatus {
+  sent
+  opened
+  accepted
+  expired
+  revoked
+
+  @@map("invitation_status")
+}
+
+model Invitation {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  groupIds       String[]         @default([]) @map("group_ids") @db.Uuid
+  kind           InvitationKind
+  email          String?
+  phone          String?
+  tokenHash      String           @unique @map("token_hash")
+  role           InvitationRole   @default(athlete)
+  athleteId      String?          @map("athlete_id") @db.Uuid
+  expiresAt      DateTime?        @map("expires_at")
+  maxUses        Int?             @map("max_uses")
+  useCount       Int              @default(0) @map("use_count")
+  status         InvitationStatus @default(sent)
+  invitedBy      String           @map("invited_by") @db.Uuid
+  acceptedBy     String?          @map("accepted_by") @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("invitations")
+}
+
+enum ConsentStatus {
+  pending
+  granted
+  refused
+
+  @@map("consent_status")
+}
+
+model Guardian {
+  id              String        @id @default(uuid()) @db.Uuid
+  organizationId  String        @map("organization_id") @db.Uuid
+  athleteId       String        @map("athlete_id") @db.Uuid
+  guardianEmail   String        @map("guardian_email")
+  guardianUserId  String?       @map("guardian_user_id") @db.Uuid
+  consentStatus   ConsentStatus @default(pending) @map("consent_status")
+  consentAt       DateTime?     @map("consent_at")
+  consentScope    Json?         @map("consent_scope")
+  tokenHash       String?       @unique @map("token_hash")
+  tokenExpiresAt  DateTime?     @map("token_expires_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  athlete         Athlete       @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@index([athleteId])
+  @@map("guardians")
+}
+
+enum ConsentKind {
+  terms
+  health
+  video
+
+  @@map("consent_kind")
+}
+
+// Consentements explicites et séparés, révocables à tout moment (§ 15.2).
+model Consent {
+  id             String      @id @default(uuid()) @db.Uuid
+  userId         String      @map("user_id") @db.Uuid
+  organizationId String?     @map("organization_id") @db.Uuid
+  athleteId      String?     @map("athlete_id") @db.Uuid
+  kind           ConsentKind
+  version        String
+  grantedAt      DateTime?   @map("granted_at")
+  revokedAt      DateTime?   @map("revoked_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  user           User        @relation("ConsentUser", fields: [userId], references: [id], onDelete: Cascade)
+  athlete        Athlete?    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind])
+  @@map("consents")
+}
+
+// ── Exercices et séances ─────────────────────────────────────────────────────
+
+enum ExerciseCategory {
+  strength
+  plyo
+  running_drill
+  stairs
+  cones
+  mobility
+  jump
+  warmup
+
+  @@map("exercise_category")
+}
+
+model Exercise {
+  id                  String           @id @default(uuid()) @db.Uuid
+  organizationId      String?          @map("organization_id") @db.Uuid
+  name                String
+  category            ExerciseCategory
+  tags                String[]         @default([])
+  cues                String[]         @default([])
+  defaultPrescription Json             @default("{}") @map("default_prescription")
+  createdBy           String?          @map("created_by") @db.Uuid
+  deletedAt           DateTime?        @map("deleted_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+  organization        Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  media ExerciseMedia[]
+  items SessionItem[]
+
+  @@index([organizationId])
+  @@map("exercises")
+}
+
+enum MediaKind {
+  upload
+  youtube
+
+  @@map("media_kind")
+}
+
+model ExerciseMedia {
+  id             String    @id @default(uuid()) @db.Uuid
+  exerciseId     String    @map("exercise_id") @db.Uuid
+  kind           MediaKind
+  muxAssetId     String?   @map("mux_asset_id")
+  muxUploadId    String?   @map("mux_upload_id")
+  muxPlaybackId  String?   @map("mux_playback_id")
+  youtubeId      String?   @map("youtube_id")
+  customTitle    String?   @map("custom_title")
+  startS         Int?      @map("start_s")
+  endS           Int?      @map("end_s")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  exercise       Exercise  @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([exerciseId])
+  @@map("exercise_media")
+}
+
+enum SessionType {
+  strength
+  plyo
+  running
+  stairs
+  cones
+  mobility
+  jump
+
+  @@map("session_type")
+}
+
+enum BlockVariant {
+  club
+  autonomous
+  both
+
+  @@map("block_variant")
+}
+
+model SessionTemplate {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  title          String
+  type           SessionType
+  durationMin    Int?         @map("duration_min")
+  coachNote      String?      @map("coach_note")
+  createdBy      String       @map("created_by") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  blocks SessionBlock[]
+
+  @@index([organizationId])
+  @@map("session_templates")
+}
+
+model SessionBlock {
+  id         String          @id @default(uuid()) @db.Uuid
+  templateId String          @map("template_id") @db.Uuid
+  name       String
+  position   Int
+  variant    BlockVariant    @default(both)
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+  template   SessionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  items SessionItem[]
+
+  @@index([templateId])
+  @@map("session_blocks")
+}
+
+model SessionItem {
+  id           String       @id @default(uuid()) @db.Uuid
+  blockId      String       @map("block_id") @db.Uuid
+  exerciseId   String       @map("exercise_id") @db.Uuid
+  position     Int
+  prescription Json         @default("{}")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  block        SessionBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  exercise     Exercise     @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+
+  @@index([blockId])
+  @@map("session_items")
+}
+
+model ScheduledSession {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  createdBy      String       @map("created_by") @db.Uuid
+  date           DateTime     @db.Date
+  startTime      String?      @map("start_time")
+  location       String?
+  // Brouillon modifiable tant que la séance n'est pas publiée (draft) ; snapshot figé ensuite.
+  draft          Json?
+  snapshot       Json?
+  title          String
+  type           SessionType
+  publishedAt    DateTime?    @map("published_at")
+  publishAt      DateTime?    @map("publish_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  assignments Assignment[]
+  overrides   AthleteOverride[]
+  attendance  Attendance[]
+  logs        SessionLog[]
+  jumps       JumpAttempt[]
+  videos      Video[]
+
+  @@index([organizationId, date])
+  @@map("scheduled_sessions")
+}
+
+enum AssignmentTarget {
+  group
+  athlete
+
+  @@map("assignment_target")
+}
+
+model Assignment {
+  id                 String           @id @default(uuid()) @db.Uuid
+  scheduledSessionId String           @map("scheduled_session_id") @db.Uuid
+  targetType         AssignmentTarget @map("target_type")
+  targetId           String           @map("target_id") @db.Uuid
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+  session            ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledSessionId, targetType, targetId])
+  @@index([targetId])
+  @@map("assignments")
+}
+
+model AthleteOverride {
+  id                 String           @id @default(uuid()) @db.Uuid
+  scheduledSessionId String           @map("scheduled_session_id") @db.Uuid
+  athleteId          String           @map("athlete_id") @db.Uuid
+  itemRef            String           @map("item_ref")
+  prescription       Json
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+  session            ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
+  athlete            Athlete          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledSessionId, athleteId, itemRef])
+  @@map("athlete_overrides")
+}
+
+enum AttendanceStatus {
+  present
+  absent
+  unknown
+
+  @@map("attendance_status")
+}
+
+enum AttendanceSource {
+  athlete
+  coach
+
+  @@map("attendance_source")
+}
+
+model Attendance {
+  id                 String           @id @default(uuid()) @db.Uuid
+  scheduledSessionId String           @map("scheduled_session_id") @db.Uuid
+  athleteId          String           @map("athlete_id") @db.Uuid
+  status             AttendanceStatus @default(unknown)
+  source             AttendanceSource
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+  session            ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
+  athlete            Athlete          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledSessionId, athleteId])
+  @@map("attendance")
+}
+
+enum LogStatus {
+  done
+  partial
+  missed
+  skipped
+
+  @@map("log_status")
+}
+
+enum SessionVariant {
+  club
+  autonomous
+
+  @@map("session_variant")
+}
+
+model SessionLog {
+  id                 String           @id @default(uuid()) @db.Uuid
+  scheduledSessionId String           @map("scheduled_session_id") @db.Uuid
+  athleteId          String           @map("athlete_id") @db.Uuid
+  clientId           String?          @map("client_id")
+  status             LogStatus
+  variantDone        SessionVariant?  @map("variant_done")
+  rpe                Int?
+  durationMin        Int?             @map("duration_min")
+  comment            String?
+  pain               Json?
+  completedAt        DateTime?        @map("completed_at")
+  reminderSentAt     DateTime?        @map("reminder_sent_at")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+  session            ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
+  athlete            Athlete          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  sets SetLog[]
+
+  @@unique([scheduledSessionId, athleteId])
+  @@index([athleteId])
+  @@map("session_logs")
+}
+
+model SetLog {
+  id           String     @id @default(uuid()) @db.Uuid
+  sessionLogId String     @map("session_log_id") @db.Uuid
+  itemRef      String     @map("item_ref")
+  setIndex     Int        @map("set_index")
+  reps         Int?
+  loadKg       Decimal?   @map("load_kg") @db.Decimal(7, 2)
+  distanceM    Decimal?   @map("distance_m") @db.Decimal(9, 2)
+  timeS        Decimal?   @map("time_s") @db.Decimal(9, 2)
+  done         Boolean    @default(true)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  log          SessionLog @relation(fields: [sessionLogId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionLogId, itemRef, setIndex])
+  @@map("set_logs")
+}
+
+// ── Santé, performance et vidéo ──────────────────────────────────────────────
+
+enum BodySide {
+  left
+  right
+  both
+  none
+
+  @@map("body_side")
+}
+
+enum InjuryStatus {
+  active
+  recovering
+  resolved
+
+  @@map("injury_status")
+}
+
+model Injury {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  athleteId      String       @map("athlete_id") @db.Uuid
+  bodyArea       String       @map("body_area")
+  side           BodySide     @default(none)
+  description    String?
+  startDate      DateTime     @map("start_date") @db.Date
+  endDate        DateTime?    @map("end_date") @db.Date
+  status         InjuryStatus @default(active)
+  restrictions   String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  athlete        Athlete      @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@index([athleteId])
+  @@map("injuries")
+}
+
+// Table présente dès la V1, interface en V2 (bilan du matin).
+model WellnessCheckin {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  athleteId      String   @map("athlete_id") @db.Uuid
+  date           DateTime @db.Date
+  sleep          Int?
+  fatigue        Int?
+  soreness       Int?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  athlete        Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([athleteId, date])
+  @@map("wellness_checkins")
+}
+
+enum StrengthTestKind {
+  one_rm
+  three_rm
+  estimated
+
+  @@map("strength_test_kind")
+}
+
+model StrengthTest {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  athleteId      String           @map("athlete_id") @db.Uuid
+  exerciseKey    String           @map("exercise_key")
+  value          Decimal          @db.Decimal(7, 2)
+  unit           String           @default("kg")
+  kind           StrengthTestKind
+  date           DateTime         @db.Date
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  athlete        Athlete          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@index([athleteId, exerciseKey])
+  @@map("strength_tests")
+}
+
+model Competition {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  name           String
+  date           DateTime     @db.Date
+  location       String?
+  level          String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  athletes     CompetitionAthlete[]
+  performances Performance[]
+  jumps        JumpAttempt[]
+
+  @@index([organizationId, date])
+  @@map("competitions")
+}
+
+model CompetitionAthlete {
+  competitionId String      @map("competition_id") @db.Uuid
+  athleteId     String      @map("athlete_id") @db.Uuid
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  athlete       Athlete     @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@id([competitionId, athleteId])
+  @@map("competition_athletes")
+}
+
+model Performance {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  athleteId      String       @map("athlete_id") @db.Uuid
+  discipline     String
+  mark           Decimal      @db.Decimal(9, 3)
+  unit           String
+  wind           Decimal?     @db.Decimal(4, 1)
+  date           DateTime     @db.Date
+  location       String?
+  competitionId  String?      @map("competition_id") @db.Uuid
+  isPb           Boolean      @default(false) @map("is_pb")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  athlete        Athlete      @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  competition    Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+
+  @@index([athleteId])
+  @@map("performances")
+}
+
+enum JumpResult {
+  O
+  X
+  pass
+
+  @@map("jump_result")
+}
+
+model JumpAttempt {
+  id                 String            @id @default(uuid()) @db.Uuid
+  organizationId     String            @map("organization_id") @db.Uuid
+  athleteId          String            @map("athlete_id") @db.Uuid
+  scheduledSessionId String?           @map("scheduled_session_id") @db.Uuid
+  competitionId      String?           @map("competition_id") @db.Uuid
+  barHeightCm        Int               @map("bar_height_cm")
+  attemptNo          Int               @map("attempt_no")
+  result             JumpResult
+  approachSteps      Int?              @map("approach_steps")
+  takeoffDistanceCm  Int?              @map("takeoff_distance_cm")
+  videoId            String?           @map("video_id") @db.Uuid
+  // Rend la saisie hors ligne idempotente : un rejeu ne crée pas de doublon.
+  clientId           String?           @map("client_id")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  athlete            Athlete           @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  session            ScheduledSession? @relation(fields: [scheduledSessionId], references: [id], onDelete: SetNull)
+  competition        Competition?      @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+  video              Video?            @relation(fields: [videoId], references: [id], onDelete: SetNull)
+
+  @@unique([athleteId, clientId])
+  @@index([athleteId])
+  @@index([scheduledSessionId])
+  @@map("jump_attempts")
+}
+
+enum VideoStatus {
+  uploading
+  processing
+  ready
+  error
+
+  @@map("video_status")
+}
+
+model Video {
+  id                 String            @id @default(uuid()) @db.Uuid
+  organizationId     String            @map("organization_id") @db.Uuid
+  athleteId          String            @map("athlete_id") @db.Uuid
+  uploadedBy         String            @map("uploaded_by") @db.Uuid
+  scheduledSessionId String?           @map("scheduled_session_id") @db.Uuid
+  muxUploadId        String?           @map("mux_upload_id")
+  muxAssetId         String?           @map("mux_asset_id")
+  muxPlaybackId      String?           @map("mux_playback_id")
+  status             VideoStatus       @default(uploading)
+  fps                Int?
+  durationMs         Int?              @map("duration_ms")
+  recordedAt         DateTime?         @map("recorded_at")
+  sharedWithAthlete  Boolean           @default(false) @map("shared_with_athlete")
+  sharedWithGroup    Boolean           @default(false) @map("shared_with_group")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  organization       Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  athlete            Athlete           @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  session            ScheduledSession? @relation(fields: [scheduledSessionId], references: [id], onDelete: SetNull)
+
+  annotations VideoAnnotation[]
+  jumps       JumpAttempt[]
+
+  @@index([organizationId])
+  @@index([athleteId])
+  @@index([muxUploadId])
+  @@index([muxAssetId])
+  @@map("videos")
+}
+
+enum JumpPhase {
+  approach
+  penultimate
+  takeoff
+  clearance
+  landing
+
+  @@map("jump_phase")
+}
+
+enum AnnotationKind {
+  comment
+  line
+  arrow
+  angle
+
+  @@map("annotation_kind")
+}
+
+model VideoAnnotation {
+  id        String         @id @default(uuid()) @db.Uuid
+  videoId   String         @map("video_id") @db.Uuid
+  authorId  String         @map("author_id") @db.Uuid
+  tMs       Int            @map("t_ms")
+  phase     JumpPhase?
+  kind      AnnotationKind @default(comment)
+  text      String?
+  shape     Json?
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  video     Video          @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId])
+  @@map("video_annotations")
+}
+
+// ── Communication et système ─────────────────────────────────────────────────
+
+enum CommentEntity {
+  session
+  log
+  video
+
+  @@map("comment_entity")
+}
+
+model Comment {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  entityType     CommentEntity @map("entity_type")
+  entityId       String        @map("entity_id") @db.Uuid
+  authorId       String        @map("author_id") @db.Uuid
+  body           String
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([entityType, entityId])
+  @@map("comments")
+}
+
+model Announcement {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  groupId        String       @map("group_id") @db.Uuid
+  authorId       String       @map("author_id") @db.Uuid
+  body           String
+  pinned         Boolean      @default(false)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  group          Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@map("announcements")
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  type      String
+  payload   Json      @default("{}")
+  readAt    DateTime? @map("read_at")
+  deliverAfter DateTime? @map("deliver_after")
+  sentAt    DateTime? @map("sent_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt])
+  @@index([sentAt, deliverAfter])
+  @@map("notifications")
+}
+
+enum DevicePlatform {
+  ios
+  android
+  web
+
+  @@map("device_platform")
+}
+
+model Device {
+  id        String         @id @default(uuid()) @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  pushToken String         @unique @map("push_token")
+  platform  DevicePlatform
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("devices")
+}
+
+// Journal des accès aux données sensibles et des suppressions. Jamais de donnée de santé en clair.
+model AuditLog {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String?       @map("organization_id") @db.Uuid
+  actorId        String?       @map("actor_id") @db.Uuid
+  action         String
+  entity         String
+  entityId       String?       @map("entity_id")
+  at             DateTime      @default(now())
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, at])
+  @@map("audit_log")
+}
+
+// Signalement de contenu et blocage d'utilisateur (exigences App Store, § 16.2).
+model ContentReport {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  reporterId     String   @map("reporter_id") @db.Uuid
+  entityType     String   @map("entity_type")
+  entityId       String   @map("entity_id") @db.Uuid
+  reason         String
+  detail         String?
+  resolvedAt     DateTime? @map("resolved_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@map("content_reports")
+}
+
+model UserBlock {
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([blockerId, blockedId])
+  @@map("user_blocks")
+}
+
+// ── Abonnements et parrainage ────────────────────────────────────────────────
+
+model Plan {
+  key       String   @id
+  name      String
+  limits    Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("plans")
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  canceled
+
+  @@map("subscription_status")
+}
+
+enum SubscriptionProvider {
+  stripe
+  revenuecat
+  manual
+
+  @@map("subscription_provider")
+}
+
+model Subscription {
+  id               String               @id @default(uuid()) @db.Uuid
+  organizationId   String               @map("organization_id") @db.Uuid
+  planKey          String               @map("plan_key")
+  status           SubscriptionStatus   @default(active)
+  provider         SubscriptionProvider @default(manual)
+  providerRef      String?              @map("provider_ref")
+  currentPeriodEnd DateTime?            @map("current_period_end")
+  cancelAt         DateTime?            @map("cancel_at")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+  organization     Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("subscriptions")
+}
+
+enum EntitlementSource {
+  plan
+  stripe
+  revenuecat
+  admin
+  referral
+
+  @@map("entitlement_source")
+}
+
+model Entitlement {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @map("organization_id") @db.Uuid
+  key            String
+  value          Json
+  source         EntitlementSource @default(plan)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key])
+  @@map("entitlements")
+}
+
+enum ReferralOwnerType {
+  user
+  organization
+
+  @@map("referral_owner_type")
+}
+
+model ReferralCode {
+  id        String            @id @default(uuid()) @db.Uuid
+  ownerType ReferralOwnerType @map("owner_type")
+  ownerId   String            @map("owner_id") @db.Uuid
+  code      String            @unique
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  referrals Referral[]
+
+  @@unique([ownerType, ownerId])
+  @@map("referral_codes")
+}
+
+enum ReferralStatus {
+  signed_up
+  trialing
+  qualified
+  rewarded
+  rejected
+
+  @@map("referral_status")
+}
+
+model Referral {
+  id             String         @id @default(uuid()) @db.Uuid
+  codeId         String         @map("code_id") @db.Uuid
+  referredUserId String         @unique @map("referred_user_id") @db.Uuid
+  referredOrgId  String?        @map("referred_org_id") @db.Uuid
+  status         ReferralStatus @default(signed_up)
+  qualifiedAt    DateTime?      @map("qualified_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  code           ReferralCode   @relation(fields: [codeId], references: [id], onDelete: Cascade)
+
+  rewards ReferralReward[]
+
+  @@index([codeId])
+  @@map("referrals")
+}
+
+enum RewardKind {
+  free_month
+  discount
+
+  @@map("reward_kind")
+}
+
+model ReferralReward {
+  id            String     @id @default(uuid()) @db.Uuid
+  referralId    String     @map("referral_id") @db.Uuid
+  beneficiaryId String     @map("beneficiary_id") @db.Uuid
+  kind          RewardKind
+  value         Json       @default("{}")
+  appliedAt     DateTime?  @map("applied_at")
+  providerRef   String?    @map("provider_ref")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  referral      Referral   @relation(fields: [referralId], references: [id], onDelete: Cascade)
+
+  @@index([referralId])
+  @@map("referral_rewards")
+}

@@ -1,0 +1,207 @@
+import { ApiError } from "@tartan/api-client";
+import type { AthleteSessionCard, AthleteToday } from "@tartan/contracts";
+import { describe, expect, it, vi } from "vitest";
+import {
+  applyPendingToCard,
+  applyPendingToToday,
+  createChunkedStore,
+  enqueue,
+  isRetryable,
+  parseQueue,
+  replay,
+  toAsciiJson,
+  type LogOp,
+  type QueuedOp,
+} from "./queue-core";
+
+const log = (sessionId: string, id = `client-${sessionId}`): LogOp => ({
+  id,
+  kind: "log",
+  orgId: "org",
+  sessionId,
+  queuedAt: "2026-11-01T10:00:00.000Z",
+  input: { clientId: id, status: "done", variantDone: "club", sets: [] },
+});
+
+const card = (over: Partial<AthleteSessionCard> = {}): AthleteSessionCard => ({
+  id: "s1",
+  title: "Pliométrie",
+  type: "plyo",
+  date: "2026-11-01",
+  startTime: null,
+  location: null,
+  coachName: null,
+  coachNote: null,
+  durationMin: null,
+  exerciseCount: 3,
+  variant: "club",
+  hasAutonomous: true,
+  status: "upcoming",
+  attendance: "unknown",
+  ...over,
+});
+
+describe("enqueue", () => {
+  it("remplace une validation en attente pour la même séance", () => {
+    const items = enqueue(enqueue([], log("s1", "a-client")), log("s1", "b-client"));
+    expect(items).toHaveLength(1);
+    expect(items[0]?.id).toBe("b-client");
+  });
+
+  it("garde une validation et une présence de la même séance", () => {
+    const att: QueuedOp = {
+      id: "p",
+      kind: "attendance",
+      orgId: "org",
+      sessionId: "s1",
+      status: "absent",
+      queuedAt: "",
+    };
+    expect(enqueue(enqueue([], log("s1")), att)).toHaveLength(2);
+  });
+
+  it("additionne les essais de saut", () => {
+    const attempt: QueuedOp = {
+      id: "j1",
+      kind: "attempt",
+      orgId: "org",
+      queuedAt: "",
+      input: { athleteId: "a", barHeightCm: 160, attemptNo: 1, result: "O" },
+    };
+    expect(enqueue(enqueue([], attempt), { ...attempt, id: "j2" })).toHaveLength(2);
+  });
+});
+
+describe("isRetryable", () => {
+  it("réessaie réseau, serveur et session expirée", () => {
+    expect(isRetryable(new TypeError("Network request failed"))).toBe(true);
+    expect(isRetryable(new ApiError(503, undefined, "x"))).toBe(true);
+    expect(isRetryable(new ApiError(401, undefined, "x"))).toBe(true);
+    expect(isRetryable(new ApiError(429, undefined, "x"))).toBe(true);
+  });
+
+  it("abandonne sur un refus définitif", () => {
+    expect(isRetryable(new ApiError(404, undefined, "x"))).toBe(false);
+    expect(isRetryable(new ApiError(400, undefined, "x"))).toBe(false);
+    expect(isRetryable(new ApiError(403, undefined, "x"))).toBe(false);
+  });
+});
+
+describe("replay", () => {
+  it("envoie dans l'ordre et vide la file", async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const result = await replay([log("s1"), log("s2")], send);
+    expect(send.mock.calls.map(([op]) => (op as LogOp).sessionId)).toEqual(["s1", "s2"]);
+    expect(result.remaining).toEqual([]);
+    expect(result.sent).toHaveLength(2);
+  });
+
+  it("garde le clientId d'origine : l'API reconnaît le rejeu", async () => {
+    const items = [log("s1", "stable-client")];
+    const first = vi.fn().mockRejectedValue(new TypeError("offline"));
+    const { remaining } = await replay(items, first);
+    const second = vi.fn().mockResolvedValue(undefined);
+    await replay(remaining, second);
+    const sent = second.mock.calls[0]?.[0] as LogOp;
+    expect(sent.input.clientId).toBe("stable-client");
+  });
+
+  it("s'arrête à la première erreur temporaire", async () => {
+    const send = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new TypeError("offline"));
+    const result = await replay([log("s1"), log("s2"), log("s3")], send);
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(result.sent).toHaveLength(1);
+    expect(result.remaining.map((o) => (o as LogOp).sessionId)).toEqual(["s2", "s3"]);
+  });
+
+  it("écarte un refus définitif sans bloquer la suite", async () => {
+    const send = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError(404, undefined, "x"))
+      .mockResolvedValueOnce(undefined);
+    const result = await replay([log("s1"), log("s2")], send);
+    expect(result.rejected).toHaveLength(1);
+    expect(result.sent).toHaveLength(1);
+    expect(result.remaining).toEqual([]);
+  });
+});
+
+describe("applyPendingToCard", () => {
+  it("affiche la validation en attente", () => {
+    const op: LogOp = { ...log("s1"), input: { ...log("s1").input, status: "partial", variantDone: "autonomous" } };
+    const out = applyPendingToCard(card(), [op]);
+    expect(out.status).toBe("partial");
+    expect(out.variant).toBe("autonomous");
+  });
+
+  it("bascule en autonomie si l'athlète ne vient pas et que la version existe", () => {
+    const op: QueuedOp = { id: "p", kind: "attendance", orgId: "org", sessionId: "s1", status: "absent", queuedAt: "" };
+    expect(applyPendingToCard(card(), [op]).variant).toBe("autonomous");
+    expect(applyPendingToCard(card({ hasAutonomous: false }), [op]).variant).toBe("club");
+  });
+
+  it("ignore les autres séances", () => {
+    expect(applyPendingToCard(card(), [log("autre")]).status).toBe("upcoming");
+  });
+});
+
+describe("applyPendingToToday", () => {
+  const today: AthleteToday = {
+    firstName: "Léa",
+    today: [card()],
+    next: null,
+    week: [{ date: "2026-11-01", status: "today" }],
+    pinnedAnnouncement: null,
+    healthConsent: true,
+    videoConsent: true,
+    parentalConsentPending: false,
+  };
+
+  it("marque le jour comme fait", () => {
+    expect(applyPendingToToday(today, [log("s1")], "2026-11-01").week[0]?.status).toBe("done");
+  });
+
+  it("ne change rien sans file", () => {
+    expect(applyPendingToToday(today, [], "2026-11-01").week[0]?.status).toBe("today");
+  });
+});
+
+describe("createChunkedStore", () => {
+  const memory = () => {
+    const map = new Map<string, string>();
+    return {
+      map,
+      get: async (k: string) => map.get(k) ?? null,
+      set: async (k: string, v: string) => void map.set(k, v),
+      remove: async (k: string) => void map.delete(k),
+    };
+  };
+
+  it("relit une valeur découpée et nettoie les anciens morceaux", async () => {
+    const backend = memory();
+    const store = createChunkedStore(backend, 4);
+    await store.write("k", "abcdefghij");
+    expect(backend.map.get("k.count")).toBe("3");
+    expect(await store.read("k")).toBe("abcdefghij");
+    await store.write("k", "ab");
+    expect(backend.map.has("k.1")).toBe(false);
+    expect(await store.read("k")).toBe("ab");
+    await store.remove("k");
+    expect(await store.read("k")).toBeNull();
+  });
+
+  it("échappe les accents en ASCII", () => {
+    const raw = toAsciiJson({ comment: "gêne au 3e bond" });
+    expect(raw).not.toContain("ê");
+    expect(JSON.parse(raw)).toEqual({ comment: "gêne au 3e bond" });
+  });
+});
+
+describe("parseQueue", () => {
+  it("tolère un contenu abîmé", () => {
+    expect(parseQueue("pas du json")).toEqual([]);
+    expect(parseQueue('{"a":1}')).toEqual([]);
+    expect(parseQueue(null)).toEqual([]);
+    expect(parseQueue(JSON.stringify([{ nope: 1 }, log("s1")]))).toHaveLength(1);
+  });
+});

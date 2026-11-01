@@ -1,0 +1,119 @@
+import { Barlow_400Regular } from "@expo-google-fonts/barlow/400Regular";
+import { Barlow_500Medium } from "@expo-google-fonts/barlow/500Medium";
+import { Barlow_600SemiBold } from "@expo-google-fonts/barlow/600SemiBold";
+import { BarlowCondensed_600SemiBold } from "@expo-google-fonts/barlow-condensed/600SemiBold";
+import { BarlowCondensed_700Bold } from "@expo-google-fonts/barlow-condensed/700Bold";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { tokens } from "@tartan/design-tokens";
+import { useFonts } from "expo-font";
+import { Stack, usePathname, useRouter, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import * as SystemUI from "expo-system-ui";
+import { useEffect } from "react";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { startNetworkWatcher } from "../src/lib/network";
+import { listenToNotificationResponses, registerPush, setupNotificationChannels } from "../src/lib/notifications";
+import { useMe } from "../src/lib/queries";
+import { persister, queryClient, shouldPersistQuery, WEEK_MS } from "../src/lib/query-client";
+import { useSession } from "../src/lib/session-store";
+import { useOpQueue } from "../src/lib/sync/op-queue";
+import { flushUploads } from "../src/lib/upload/upload-queue";
+import { color } from "../src/ui/theme";
+
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
+void SystemUI.setBackgroundColorAsync(color.bg).catch(() => undefined);
+
+// Une fois connecté : la file du compte se recharge et le jeton de notification se rafraîchit.
+const SessionEffects = () => {
+  const status = useSession((s) => s.status);
+  const me = useMe(status === "signed-in");
+  const hydrate = useOpQueue((s) => s.hydrate);
+  const flush = useOpQueue((s) => s.flush);
+  const userId = me.data?.id;
+  useEffect(() => {
+    if (!userId) return;
+    void hydrate(userId).then(flush);
+    void flushUploads();
+    void registerPush({ prompt: false });
+  }, [userId, hydrate, flush]);
+  return null;
+};
+
+// Sans session, seuls la connexion et le lien d'invitation restent accessibles.
+const AuthGuard = () => {
+  const status = useSession((s) => s.status);
+  const segments = useSegments();
+  const pathname = usePathname();
+  const router = useRouter();
+  const first = segments[0];
+  const open = first === "(auth)" || first === "i";
+  useEffect(() => {
+    if (status === "signed-out" && !open && pathname !== "/sign-in") router.replace("/sign-in");
+  }, [status, open, pathname, router]);
+  return null;
+};
+
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    [tokens.font.display]: BarlowCondensed_700Bold,
+    [tokens.font.title]: BarlowCondensed_600SemiBold,
+    [tokens.font.body]: Barlow_400Regular,
+    [tokens.font.bodyMedium]: Barlow_500Medium,
+    [tokens.font.bodyStrong]: Barlow_600SemiBold,
+  });
+  const status = useSession((s) => s.status);
+  const refresh = useSession((s) => s.refresh);
+  const router = useRouter();
+
+  useEffect(() => {
+    void refresh();
+    void setupNotificationChannels().catch(() => undefined);
+    const stopNetwork = startNetworkWatcher();
+    const stopNotifications = listenToNotificationResponses((route) => router.navigate(route as never));
+    return () => {
+      stopNetwork();
+      stopNotifications();
+    };
+  }, [refresh, router]);
+
+  const ready = (fontsLoaded || Boolean(fontError)) && status !== "loading";
+  useEffect(() => {
+    if (ready) void SplashScreen.hideAsync().catch(() => undefined);
+  }, [ready]);
+
+  if (!ready) return null;
+
+  return (
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: WEEK_MS,
+        buster: "1",
+        dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
+      }}
+    >
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <SessionEffects />
+        <AuthGuard />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(athlete)" options={{ animation: "none" }} />
+          <Stack.Screen name="(coach)" options={{ animation: "none" }} />
+          <Stack.Screen name="i/[token]" options={{ gestureEnabled: false }} />
+          <Stack.Screen
+            name="session/[id]"
+            options={{ gestureEnabled: false, contentStyle: { backgroundColor: color.ink } }}
+          />
+          <Stack.Screen name="video/[id]" options={{ contentStyle: { backgroundColor: color.ink } }} />
+          <Stack.Screen name="capture" options={{ contentStyle: { backgroundColor: color.ink } }} />
+          <Stack.Screen name="coach-session/[id]" />
+          <Stack.Screen name="settings" />
+        </Stack>
+      </SafeAreaProvider>
+    </PersistQueryClientProvider>
+  );
+}

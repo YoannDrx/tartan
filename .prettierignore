@@ -1,0 +1,5 @@
+pnpm-lock.yaml
+.next
+apps/web/src/generated
+apps/web/prisma/migrations
+.expo

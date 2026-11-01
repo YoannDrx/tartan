@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+/* Miroir CSS de packages/design-tokens (tests/design-tokens.test.ts vérifie l'égalité). */
+@theme {
+  --color-brand: #c4442b;
+  --color-brand-strong: #9e3320;
+  --color-brand-tint: #fbe7e2;
+  --color-ink: #15161a;
+  --color-ink-2: #24262c;
+  --color-ink-3: #3a3c43;
+  --color-muted: #5e6066;
+  --color-muted-on-ink: #b9bbc0;
+  --color-brand-on-ink: #f2a08f;
+  --color-bg: #f2f3f1;
+  --color-surface: #ffffff;
+  --color-surface-sunk: #e6e7e3;
+  --color-border: #e2e3df;
+  --color-warning-tint: #fcefd9;
+  --color-warning-strong: #8a4e08;
+  --color-status-done: #1e5fa8;
+  --color-status-partial: #e08a1e;
+  --color-status-missed: #c4442b;
+  --color-status-upcoming: #8c8e94;
+
+  --font-display: var(--font-barlow-condensed), "Barlow Condensed", sans-serif;
+  --font-body: var(--font-barlow), "Barlow", sans-serif;
+
+  --radius-thumb: 10px;
+  --radius-button: 12px;
+  --radius-card: 14px;
+  --radius-block: 16px;
+  --radius-hero: 20px;
+
+  --breakpoint-tablet: 600px;
+  --breakpoint-desktop: 1024px;
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 22px;
+    -webkit-text-size-adjust: 100%;
+    accent-color: var(--color-brand);
+    scrollbar-color: var(--color-status-upcoming) transparent;
+  }
+  body {
+    min-height: 100dvh;
+    background: var(--color-bg);
+  }
+  ::selection {
+    background: var(--color-brand);
+    color: #ffffff;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand-strong);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  .scene-dark :focus-visible {
+    outline-color: var(--color-brand-on-ink);
+  }
+  button,
+  [role="button"],
+  summary,
+  select,
+  label[for] {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  a {
+    color: var(--color-brand-strong);
+  }
+}
+
+@layer components {
+  .t-display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 34px;
+    line-height: 36px;
+  }
+  .t-h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 32px;
+  }
+  .t-h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 22px;
+    line-height: 26px;
+  }
+  .t-num {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .t-caption {
+    font-size: 13px;
+    line-height: 16px;
+    font-weight: 500;
+  }
+  /* Titre d'une courte liste, jamais au-dessus d'un autre titre (§ 9.5). */
+  .t-section {
+    font-size: 13px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+  @media (min-width: 1024px) {
+    .t-display {
+      font-size: 40px;
+      line-height: 44px;
+    }
+    .t-h1 {
+      font-size: 32px;
+      line-height: 36px;
+    }
+    .t-h2 {
+      font-size: 24px;
+      line-height: 28px;
+    }
+  }
+}
+
+/* Un seul moment animé : la coche de validation (§ 9.11). */
+@keyframes tartan-check {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.validation-check {
+  stroke-dasharray: 24;
+  animation: tartan-check 320ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .validation-check {
+    animation: none;
+  }
+}

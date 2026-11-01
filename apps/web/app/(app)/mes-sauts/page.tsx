@@ -1,0 +1,30 @@
+import type { Metadata } from "next";
+import { m } from "@tartan/i18n";
+import { EmptyState, PageHeader } from "@/components/states";
+import { requireAthleteSpace } from "@/features/shell/space";
+import { VideoList } from "@/features/videos/video-list";
+import { getAthleteToday } from "@/server/athlete-view.service";
+import { listVideos } from "@/server/video.service";
+
+export const metadata: Metadata = { title: m.nav.mesSauts };
+
+export default async function MesSautsPage() {
+  const { actor, organizationId } = await requireAthleteSpace();
+  const [videos, today] = await Promise.all([
+    listVideos(actor.userId, organizationId),
+    getAthleteToday(actor.userId, organizationId),
+  ]);
+  return (
+    <div className="flex max-w-2xl flex-col gap-4">
+      <PageHeader title={m.nav.mesSauts} />
+      {!today.videoConsent ? (
+        <p className="rounded-card bg-warning-tint p-3 text-warning-strong">{m.video.consentMissingAthlete}</p>
+      ) : null}
+      {videos.length === 0 ? (
+        <EmptyState>{m.video.emptyAthlete}</EmptyState>
+      ) : (
+        <VideoList videos={videos} basePath="/mes-sauts" showAthlete={false} />
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tartan
+  TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tartan_test
+  E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tartan_e2e
+  BETTER_AUTH_SECRET: secret-de-ci-secret-de-ci-secret-de-ci-secret
+  BETTER_AUTH_URL: http://localhost:3000
+  NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tartan
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Bases de test
+        run: |
+          psql "$DATABASE_URL" -c 'create database tartan_test'
+          psql "$DATABASE_URL" -c 'create database tartan_e2e'
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm design:check
+      - run: pnpm --filter @tartan/web exec playwright install --with-deps chromium
+      - name: Parcours sur le build de production (CSP et en-têtes réels)
+        run: pnpm test:e2e
+        env:
+          E2E_PROD: "1"
+      - name: Preuve de concept vidéo
+        run: pnpm --filter @tartan/web exec playwright test video-poc --project=desktop
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright
+          path: apps/web/test-results
+          if-no-files-found: ignore
+
+  mobile:
+    # Builds EAS sur la branche principale, une fois le projet Expo créé (§ 14).
+    if: github.ref == 'refs/heads/main' && vars.EAS_ENABLED == 'true'
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: eas build --platform all --profile preview --non-interactive --no-wait
+        working-directory: apps/mobile

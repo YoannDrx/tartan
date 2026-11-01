@@ -1,0 +1,41 @@
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+
+const buildCsp = (nonce: string): string =>
+  [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://image.mux.com https://i.ytimg.com https://*.public.blob.vercel-storage.com",
+    "font-src 'self'",
+    "media-src 'self' blob: https://stream.mux.com https://*.mux.com",
+    "connect-src 'self' https://*.mux.com https://storage.googleapis.com https://vitals.vercel-insights.com",
+    "frame-src https://www.youtube-nocookie.com",
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+    ...(process.env.VERCEL_ENV === "production" ? ["upgrade-insecure-requests"] : []),
+  ].join("; ");
+
+export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  // app.tartan.coach ouvre directement l'application ; tartan.coach reste le site.
+  if (request.nextUrl.hostname.startsWith("app.") && pathname === "/") {
+    return NextResponse.redirect(new URL("/accueil", request.url));
+  }
+  const nonce = btoa(crypto.randomUUID());
+  const policy = buildCsp(nonce);
+  const headers = new Headers(request.headers);
+  headers.set("x-nonce", nonce);
+  headers.set("Content-Security-Policy", policy);
+  const response = NextResponse.next({ request: { headers } });
+  response.headers.set("Content-Security-Policy", policy);
+  return response;
+}
+
+export const config = {
+  matcher: [{ source: "/((?!api|_next/static|_next/image|.well-known|favicon|icon|manifest|sw.js).*)" }],
+};
