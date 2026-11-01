@@ -7,8 +7,7 @@ export default function ConfidentialitePage() {
   return (
     <LegalPage title="Politique de confidentialité" updated="1er novembre 2026">
       <p>
-        Responsable du traitement : [À DÉFINIR : identité et adresse de l'éditeur]. Contact : [À DÉFINIR : adresse de
-        contact].
+        Responsable du traitement : Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130 Franconville. Contact : hello@tartan.coach.
       </p>
       <h2>Ce que Tartan traite, et pourquoi</h2>
       <ul>
@@ -35,16 +34,15 @@ export default function ConfidentialitePage() {
       </p>
       <h2>Où vont tes données</h2>
       <p>
-        Hébergement dans l'Union européenne (base de données à Francfort). Sous-traitants : Vercel, Neon, Mux, Expo,
-        Resend, et Stripe et RevenueCat quand l'offre payante sera ouverte.
+        Hébergement dans l'Union européenne (base de données à Francfort). Sous-traitants : Vercel, Neon, Mux, Expo, Resend, Stripe et RevenueCat. Certains sont établis aux États-Unis : les transferts sont encadrés par leurs clauses contractuelles types.
       </p>
       <h2>Combien de temps</h2>
       <p>
-        [À DÉFINIR avec le juriste : durée de conservation pour un athlète qui quitte un groupe, avant anonymisation.]
+        Tes données restent tant que ton compte est actif. Un athlète retiré d'un espace, ou qui le quitte, voit sa fiche et ses données d'entraînement de cet espace supprimées. Les vidéos suivent la durée de conservation de l'offre de l'espace. Les factures sont conservées 10 ans, comme la loi l'impose. Les journaux d'accès aux données sensibles sont conservés 1 an.
       </p>
       <h2>Tes droits</h2>
       <p>
-        Accès, rectification, opposition, retrait du consentement, suppression. La suppression du compte se fait depuis
+        Accès, rectification, export, opposition, retrait du consentement, suppression. L'export de tes données se fait depuis les réglages. La suppression du compte se fait depuis
         les réglages de l'app : elle efface ton compte et tes contenus, sauf obligation légale de conservation. Tu peux
         aussi saisir la CNIL.
       </p>
