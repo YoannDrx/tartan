@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { outbox } from "@/lib/mail";
 import {
@@ -22,7 +22,7 @@ import {
   revokeInvitation,
 } from "@/server/invitation.service";
 import { attributeReferral } from "@/server/referral.service";
-import { ensureReferralCode, updateOrganization } from "@/server/org.service";
+import { canCreateCoachSpace, ensureReferralCode, updateOrganization } from "@/server/org.service";
 import {
   getAlerts,
   getSessionDetailForCoach,
@@ -926,6 +926,25 @@ describe("parrainage", () => {
     const code = await ensureReferralCode(coach.owner.userId);
     const kid = await makeUser("Petit", { birthDate: `${new Date().getUTCFullYear() - 12}-01-01` });
     expect(await attributeReferral({ userId: kid.userId, code })).toBe(false);
+  });
+});
+
+describe("ouverture aux coachs", () => {
+  it("réserve la création d'espace à la liste quand les inscriptions sont fermées", async () => {
+    const stranger = await makeUser("Inconnu");
+    const invited = await makeUser("Invite");
+    expect(canCreateCoachSpace(stranger.email)).toBe(true);
+    vi.resetModules();
+    vi.stubEnv("COACH_SIGNUP_MODE", "closed");
+    vi.stubEnv("COACH_SIGNUP_EMAILS", ` ${invited.email.toUpperCase()} , autre@test.fr`);
+    const fresh = await import("@/server/org.service");
+    expect(fresh.canCreateCoachSpace(stranger.email)).toBe(false);
+    expect(fresh.canCreateCoachSpace(invited.email)).toBe(true);
+    await expect(
+      fresh.createOrganization(stranger.userId, { name: "X", type: "independent", disciplines: [], firstGroupName: "G" }),
+    ).rejects.toMatchObject({ code: "signup_closed" });
+    vi.unstubAllEnvs();
+    vi.resetModules();
   });
 });
 

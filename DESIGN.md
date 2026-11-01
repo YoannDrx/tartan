@@ -2,11 +2,41 @@
 
 Lu à chaque session de design. L'identité Tartan prime sur tout système généré (cahier des charges, chapitre 9).
 
-**Intention.** L'énergie de la piste, la lisibilité du terrain, la sobriété d'un outil de travail. Le rouge brique du tartan est la seule couleur de marque ; tout le reste est neutre pour laisser la place aux séances, vidéos et statuts.
+**Intention.** Une direction artistique très marquée, très soignée. On ouvre Tartan et on est sur la piste : le rouge brique du tartan remplit l'écran, les lignes blanches de couloir le structurent, le contenu se pose sur des cartes encre. Aucune autre app ne ressemble à ça, et c'est le but.
+
+Décision du fondateur (1er novembre 2026), qui remplace le « clair par défaut » du cahier (§ 9.9) : **l'app est sombre et rouge, il n'y a plus de mode clair.**
+
+## Le système : trois scènes
+
+| Scène | Fond | Où | Pourquoi |
+| --- | --- | --- | --- |
+| **Piste** (par défaut) | Rouge piste plein écran | Toute la navigation : suivi, calendrier, exercices, athlètes, annonces, réglages, Aujourd'hui, connexion, site | L'identité : on est sur le tartan |
+| **Encre** | Encre pleine | Mode séance, analyse vidéo | La vidéo et l'effort priment, le rouge fatiguerait l'œil et fausserait la perception de l'image |
+| **Lecture** | Rouge piste, texte dans une grande carte encre | Pages légales et textes longs | Lire longtemps sur du rouge est pénible |
+
+### Règles de la scène Piste
+
+- **Le rouge est le fond, jamais une carte.** Le contenu vit sur des cartes encre (`scene.card`, rayon 14). Pas de carte rouge sur fond rouge, pas de carte dans une carte : à l'intérieur d'une carte, on structure par lignes (`scene.cardLine`) et par rangées surélevées (`scene.cardRaised`).
+- **Les lignes de couloir sont la signature.** Traits blancs pleins de 3 px, à bord perdu, jamais translucides. Sous le titre d'écran et entre grandes sections. La ligne d'arrivée (verticale, 7 px, plus du double) marque le lieu de l'action principale ou de la fin d'un parcours, pas la décoration : au plus une par écran. Pas de damier, de dégradé, d'ombre ni de reflet sur ces lignes.
+- **Les titres d'écran sont posés directement sur le rouge**, en blanc, Barlow Condensed Bold, et grands : c'est là que se joue la force de l'identité. Augmente le corps plutôt que d'ajouter un élément.
+- **Sur le rouge, tout le texte est blanc** (5,0:1). L'encre y échoue (3,6:1), comme tout texte secondaire grisé, rosé ou translucide : l'encre n'existe sur le rouge qu'en surface. L'action principale sur le rouge est un bouton blanc, texte encre.
+- **Dans une carte encre**, l'action principale est rouge piste, texte blanc. Texte blanc, secondaire `scene.textMuted`, liens `scene.link`. Les contours de champs utilisent `scene.controlLine` (3:1), `scene.cardLine` reste aux séparateurs décoratifs.
+- **Une carte héros par écran au maximum** peut passer en craie (`scene.hero`, texte encre) : c'est le point focal, comme la séance du jour. Elle ne devient pas une habitude.
+- **Le logo** : logotype blanc seul sur le rouge (le cahier interdit l'icône rouge sur fond rouge) ; icône complète autorisée sur l'encre.
+- Barres de navigation : encre, onglet actif avec pictogramme et libellé blancs sur une pastille rouge piste. La barre système est en contenu clair.
+- Les e-mails restent clairs : ils s'affichent dans la messagerie de chacun.
+
+### Statuts
+
+Sur l'encre, les statuts utilisent `scene.status` (`done` #4C8FE0, `partial` #E08A1E, `missed` #F0644C, `upcoming` #8C8E94), pictogramme encre (`scene.onStatus`) dans le disque. Le pictogramme reste distinct par statut, jamais la couleur seule. Les valeurs `color.status` restent celles des fonds clairs (carte héros craie, e-mails).
+
+### Exigence de soin
+
+Tout est aligné sur la grille de 4, chiffres tabulaires partout, rythme vertical constant. Sélection de texte, focus (blanc sur le rouge, `scene.link` sur l'encre), barres de défilement, états vides : tout porte l'identité. Un seul moment animé : la validation d'une séance (coche), éventuellement la barre franchie. Un écran correct mais quelconque n'est pas terminé.
 
 ## Jetons
 
-Source unique : `packages/design-tokens/src/index.ts`. Ne pas écrire de couleur ailleurs.
+Source unique : `packages/design-tokens/src/index.ts`. Ne pas écrire de couleur ailleurs. Les rôles à l'écran viennent de `tokens.scene` ; le tableau ci-dessous donne les couleurs de base du cahier.
 
 | Jeton                     | Valeur  | Usage                                        |
 | ------------------------- | ------- | -------------------------------------------- |
@@ -26,7 +56,7 @@ Source unique : `packages/design-tokens/src/index.ts`. Ne pas écrire de couleur
 
 Espacements : 4, 8, 12, 16, 20, 24, 32, 48, 64. Marge latérale mobile 16, desktop 24.
 Rayons : 10 vignettes, 12 boutons carrés, 14 cartes, 16 blocs, 20 carte héros, plein pour les pastilles.
-Bordures plutôt qu'ombres (lisibilité au soleil). Ombre légère seulement pour un élément flottant.
+Aplats et bordures plutôt qu'ombres (lisibilité au soleil). Ombre légère seulement pour un élément flottant.
 Cibles tactiles : 44 × 44 minimum.
 
 ## Typographie
@@ -51,22 +81,18 @@ Jamais la couleur seule : fait = bleu + coche, partiel = orange + demi-disque, m
 
 ## Composants
 
-- Bouton principal : fond Piste, texte blanc SemiBold 16, hauteur 48–52, pastille. Une seule action principale par écran.
-- Bouton secondaire : fond blanc (encre en sombre), bordure 1 px, même hauteur.
+- Bouton principal : blanc texte encre sur le rouge, rouge piste texte blanc sur l'encre. SemiBold 16, hauteur 48–52, pastille. Une seule action principale par écran.
+- Bouton secondaire : sur le rouge, contour blanc 2 px et texte blanc ; sur l'encre, fond `cardRaised`, bordure `cardLine`.
 - Bouton icône : 44 × 44, rond ou carré arrondi 12, libellé accessible obligatoire.
-- Pastille de filtre : hauteur 36, pastille ; active = fond encre, texte blanc.
+- Pastille de filtre : hauteur 36, pastille. Sur le rouge : active = fond blanc, texte encre ; inactive = contour blanc. Sur l'encre : active = fond blanc, texte encre ; inactive = fond `cardRaised`.
 - Cellule de statut : disque 26 px avec pictogramme, cible tactile 44 px.
-- Carte séance : type, titre, horaire · public, étiquettes de version (Club, Autonomie, Filmée). Séance de saut en fond Piste.
+- Carte séance : type, titre, horaire · public, étiquettes de version (Club, Autonomie, Filmée), sur encre. Séance de saut signalée par une ligne d'arrivée et un pictogramme de barre, puisque le rouge est désormais le fond.
 - Ligne d'exercice : vignette vidéo 44 px, nom, prescription en texte secondaire, étiquette de catégorie.
-- Barre d'onglets : 5 entrées maximum, pictogramme + libellé 11 px, actif en Piste foncé.
+- Barre d'onglets : 5 entrées maximum, pictogramme + libellé 11 px, fond encre, actif blanc sur pastille rouge piste.
 - Champ : hauteur 44, libellé visible (ou masqué mais présent pour les lecteurs d'écran), coins 10–22.
 - Timeline vidéo : segments par phase (luminosités alternées, phase courante en Piste), repères de commentaires, tête de lecture blanche.
 - Feuille de barres : une pastille par hauteur, résultat dessous (O / XO / XXX), hauteur courante en Piste.
-- Alerte : carte blanche, pastille d'icône teintée (brique ou orange), titre + détail, chevron.
-
-## Scènes
-
-Clair pour naviguer et planifier. Sombre pour le mode séance et l'analyse vidéo. Le choix suit la scène, pas la catégorie.
+- Alerte : ligne dans une carte encre, pastille d'icône pleine (`missed` ou `partial`), titre + détail, chevron.
 
 ## Interdits (exigence « aucun AI slop »)
 

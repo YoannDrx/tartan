@@ -21,6 +21,7 @@ export default defineConfig({
       BETTER_AUTH_SECRET: "secret-de-test-secret-de-test-secret-de-test",
       BETTER_AUTH_URL: "http://localhost:3000",
       NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+      COACH_SIGNUP_MODE: "public",
     },
   },
 });

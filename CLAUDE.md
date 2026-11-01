@@ -17,5 +17,6 @@ Pnpm 10 via corepack (`corepack pnpm …`).
 - Les règles métier pures vont dans `packages/domain`, avec tests. Les contrats (Zod) dans `packages/contracts`.
 - Textes dans `packages/i18n`, couleurs dans `packages/design-tokens`.
 - Aucune donnée de santé dans les journaux, notifications ou analyses d'usage. Effort ressenti, douleurs et blessures exigent le consentement santé.
+- Direction artistique : rouge piste en fond, cartes encre, pas de mode clair (`DESIGN.md` prime sur le § 9.9 du cahier).
 - Chaque écran passe par UI/UX Pro Max, Frontend Design puis Impeccable (§ 9.12).
 - La V1 s'arrête à la roadmap du § 8 : tout ajout passe par une décision explicite.

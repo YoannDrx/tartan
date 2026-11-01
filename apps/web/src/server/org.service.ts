@@ -2,7 +2,9 @@ import { type CreateOrganizationInput, type GroupInput } from "@tartan/contracts
 import { referralCodeFor } from "@tartan/domain";
 import { randomId } from "@/lib/tokens";
 import { prisma } from "@/lib/prisma";
-import { notFound } from "@/lib/errors";
+import { m } from "@tartan/i18n";
+import { env } from "@/lib/env";
+import { AppError, notFound } from "@/lib/errors";
 import { coachGroupIds, requireOrgMember, requireGroupInScope, type Access } from "./access";
 import { firstNameOf } from "./me.service";
 import { attributeReferral } from "./referral.service";
@@ -36,7 +38,16 @@ export const ensureReferralCode = async (userId: string): Promise<string> => {
   throw new Error("referral_code_collision");
 };
 
+export const canCreateCoachSpace = (email: string): boolean => {
+  const { COACH_SIGNUP_MODE, COACH_SIGNUP_EMAILS } = env();
+  if (COACH_SIGNUP_MODE === "public") return true;
+  const allowed = COACH_SIGNUP_EMAILS.split(",").map((e) => e.trim().toLowerCase());
+  return allowed.includes(email.trim().toLowerCase());
+};
+
 export const createOrganization = async (userId: string, input: CreateOrganizationInput) => {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
+  if (!canCreateCoachSpace(user.email)) throw new AppError(403, "signup_closed", m.onboarding.closed);
   await ensurePlans();
   const organization = await prisma.$transaction(async (tx) => {
     const org = await tx.organization.create({

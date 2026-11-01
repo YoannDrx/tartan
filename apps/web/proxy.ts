@@ -20,11 +20,20 @@ const buildCsp = (nonce: string): string =>
     ...(process.env.VERCEL_ENV === "production" ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
 
+const SITE_PATHS = ["/", "/tarifs", "/confidentialite", "/conditions", "/cgv", "/mentions-legales", "/contact"];
+const isSitePath = (pathname: string): boolean =>
+  SITE_PATHS.includes(pathname) || pathname.startsWith("/r/") || pathname.startsWith("/brand/");
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host") ?? "";
   // app.tartan.coach ouvre directement l'application ; tartan.coach reste le site.
-  if (request.nextUrl.hostname.startsWith("app.") && pathname === "/") {
+  if (host.startsWith("app.") && pathname === "/") {
     return NextResponse.redirect(new URL("/accueil", request.url));
+  }
+  // La session vit sur app.tartan.coach : les pages d'application y sont toujours servies.
+  if ((host === "tartan.coach" || host === "www.tartan.coach") && !isSitePath(pathname)) {
+    return NextResponse.redirect(new URL(`${pathname}${request.nextUrl.search}`, "https://app.tartan.coach"));
   }
   const nonce = btoa(crypto.randomUUID());
   const policy = buildCsp(nonce);
@@ -37,5 +46,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [{ source: "/((?!api|_next/static|_next/image|.well-known|favicon|icon|manifest|sw.js).*)" }],
+  matcher: [{ source: "/((?!api|_next/static|_next/image|.well-known|favicon|icon|apple-touch|manifest|sw.js|brand).*)" }],
 };

@@ -23,6 +23,7 @@ export const sendEmail = async (input: { to: string; subject: string; react: Rea
     to: input.to,
     subject: input.subject,
     html,
+    replyTo: env().EMAIL_CONTACT,
   });
   if (error) {
     log.error("email_failed", { code: error.name });

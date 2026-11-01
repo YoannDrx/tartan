@@ -27,6 +27,7 @@ export default defineConfig({
     timeout: 300_000,
     env: {
       E2E_DISABLE_RATE_LIMIT: "true",
+      COACH_SIGNUP_MODE: "public",
       DATABASE_URL,
       BETTER_AUTH_URL: `http://localhost:${PORT}`,
       NEXT_PUBLIC_APP_URL: `http://localhost:${PORT}`,
