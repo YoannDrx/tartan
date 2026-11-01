@@ -36,7 +36,7 @@ export default function ConfidentialitePage() {
       <h2>Où vont tes données</h2>
       <p>
         Hébergement dans l'Union européenne (base de données à Francfort). Sous-traitants : Vercel, Neon, Mux, Expo,
-        Resend, Stripe et RevenueCat. Certains sont établis aux États-Unis : les transferts sont encadrés par leurs
+        Resend, Sentry (suivi des erreurs, sans contenu d'entraînement ni de santé), Stripe et RevenueCat. Certains sont établis aux États-Unis : les transferts sont encadrés par leurs
         clauses contractuelles types.
       </p>
       <h2>Combien de temps</h2>

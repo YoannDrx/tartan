@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { m } from "@tartan/i18n";
 import { Wordmark } from "@/components/logo";
+import { env } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: { absolute: m.brand.storeName },
@@ -28,6 +29,7 @@ const lanes = [
 ];
 
 export default function LandingPage() {
+  const signupOpen = env().COACH_SIGNUP_MODE === "public";
   return (
     <main className="min-h-dvh overflow-x-clip">
       <header className="mx-auto flex max-w-[1200px] items-center justify-between px-4 pt-6 desktop:px-6">
@@ -50,14 +52,14 @@ export default function LandingPage() {
           Le carnet d’entraînement de ton groupe.
         </h1>
         <p className="mt-6 max-w-[44ch] text-[18px] leading-[26px] desktop:text-[20px] desktop:leading-[28px]">
-          Pour les coachs de saut, de sprint et de haies. Plus de séances perdues dans les SMS : chacun sait ce qu'il a
-          à faire, et tu sais ce qui a été fait.
+          Pour les coachs de saut en hauteur et leur groupe. Plus de séances perdues dans les SMS : chacun sait ce qu'il
+          a à faire, et tu sais ce qui a été fait.
         </p>
         <Link
-          href="/connexion"
+          href={signupOpen ? "/connexion" : "/contact"}
           className="mt-8 inline-flex min-h-[52px] items-center rounded-full bg-cta px-7 text-base font-semibold text-on-cta no-underline hover:bg-cta-hover"
         >
-          Créer mon espace coach
+          {signupOpen ? "Créer mon espace coach" : "Rejoindre le pilote"}
         </Link>
       </section>
 

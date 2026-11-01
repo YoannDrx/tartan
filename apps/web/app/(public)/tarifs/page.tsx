@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { m } from "@tartan/i18n";
+import { env } from "@/lib/env";
+import { billingEnabled } from "@/lib/stripe";
 import { PricingGrid } from "@/features/billing/pricing";
 import { PublicPage } from "@/features/shell/public-page";
 
@@ -12,7 +14,8 @@ export default function TarifsPage() {
   return (
     <PublicPage title={m.billing.pricingTitle} lead={m.billing.athleteFree} width="wide">
       <div className="flex flex-col gap-4">
-        <PricingGrid />
+        {!billingEnabled() ? <p className="font-semibold">{m.billing.disabled}</p> : null}
+        <PricingGrid billingEnabled={billingEnabled()} signupOpen={env().COACH_SIGNUP_MODE === "public"} />
         <p>{m.billing.safetyFree}</p>
         <p className="t-caption font-normal">{m.billing.taxNote}</p>
       </div>

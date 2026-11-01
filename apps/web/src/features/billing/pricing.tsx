@@ -31,10 +31,12 @@ export const PricingGrid = ({
   current,
   canBuy = false,
   billingEnabled = true,
+  signupOpen = true,
 }: {
   current?: PlanKey;
   canBuy?: boolean;
   billingEnabled?: boolean;
+  signupOpen?: boolean;
 }) => {
   const [interval, setInterval] = useState<BillingInterval>("year");
   const checkout = useAction(checkoutAction, {
@@ -102,10 +104,15 @@ export const PricingGrid = ({
               {current === key ? (
                 <p className="flex min-h-11 items-center font-semibold">{m.billing.current}</p>
               ) : !canBuy ? (
+                // Tant que la vente et les inscriptions sont fermées, chaque offre mène à une prise de contact.
                 <Button asChild variant={highlighted ? "primary" : "secondary"}>
-                  <Link href={key === "discovery" ? "/connexion" : "/connexion?next=/abonnement"}>
-                    {key === "discovery" ? m.billing.startFree : m.billing.choose(label)}
-                  </Link>
+                  {!signupOpen || (key !== "discovery" && !billingEnabled) ? (
+                    <Link href="/contact">{m.billing.contactUs}</Link>
+                  ) : (
+                    <Link href={key === "discovery" ? "/connexion" : "/connexion?next=/abonnement"}>
+                      {key === "discovery" ? m.billing.startFree : m.billing.choose(label)}
+                    </Link>
+                  )}
                 </Button>
               ) : key === "discovery" ? null : (
                 <Button
