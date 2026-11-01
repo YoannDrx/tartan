@@ -88,6 +88,8 @@ export const saveExercise = async (userId: string, organizationId: string, raw: 
     } else {
       id = (await tx.exercise.create({ data: { ...data, organizationId, createdBy: userId } })).id;
     }
+    // Lien effacé : le YouTube part. Une vidéo filmée par le coach n'est jamais touchée ici.
+    if (input.media === null) await tx.exerciseMedia.deleteMany({ where: { exerciseId: id, kind: "youtube" } });
     if (youtube) {
       await tx.exerciseMedia.deleteMany({ where: { exerciseId: id, kind: "youtube" } });
       await tx.exerciseMedia.create({ data: { exerciseId: id, kind: "youtube", ...youtube } });

@@ -109,6 +109,21 @@ describe("notifications", () => {
   });
 });
 
+describe("exercices", () => {
+  it("effacer le lien retire le YouTube, sans toucher à la vidéo du coach", async () => {
+    const a = await prepare();
+    const base = { name: "Bonds", category: "plyo" as const, cues: [] };
+    const { id } = await saveExercise(a.owner.userId, a.organizationId, {
+      ...base,
+      media: { kind: "youtube", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+    });
+    await prisma.exerciseMedia.create({ data: { exerciseId: id, kind: "upload", muxPlaybackId: "coach" } });
+    await saveExercise(a.owner.userId, a.organizationId, { ...base, id, media: null });
+    const left = await prisma.exerciseMedia.findMany({ where: { exerciseId: id } });
+    expect(left.map((x) => x.kind)).toEqual(["upload"]);
+  });
+});
+
 describe("accord parental", () => {
   it("l'athlète relance son parent, sans relancer une demande déjà traitée", async () => {
     const a = await prepare();
