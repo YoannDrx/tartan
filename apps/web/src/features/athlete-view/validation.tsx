@@ -10,7 +10,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { StatusIcon } from "@/components/status-cell";
 import { cn } from "@/lib/cn";
-import { flushValidations, newClientId, sendValidation } from "./validation-queue";
+import { newClientId, pendingStatusFor, sendValidation } from "./validation-queue";
 
 type Status = "done" | "partial";
 
@@ -56,6 +56,13 @@ export const QuickValidate = ({
 }) => {
   const router = useRouter();
   const [status, setStatus] = useState<Status | null>(null);
+  // Page rouverte hors ligne : ce qui attend d'être envoyé compte déjà comme validé.
+  const [waiting, setWaiting] = useState(false);
+  useEffect(() => {
+    void pendingStatusFor(session.id).then((pending) => {
+      if (pending) setWaiting(true);
+    });
+  }, [session.id]);
   const [clientId] = useState(newClientId);
   const [details, setDetails] = useState(false);
   const [rpe, setRpe] = useState<number | null>(null);
@@ -96,7 +103,8 @@ export const QuickValidate = ({
   // La carte se met à jour à la fermeture : rafraîchir plus tôt la démonterait avec ses détails.
   const closeDetails = (open: boolean) => {
     setDetails(open);
-    if (!open) router.refresh();
+    // Hors ligne, rafraîchir renverrait vers une page d'erreur : la carte reste à jour localement.
+    if (!open && navigator.onLine) router.refresh();
   };
 
   const validate = async (value: Status) => {
@@ -105,6 +113,14 @@ export const QuickValidate = ({
       setDetails(true);
     }
   };
+
+  if (waiting) {
+    return (
+      <p role="status" className="font-semibold">
+        {m.validation.waitingSend}
+      </p>
+    );
+  }
 
   return (
     <>
@@ -241,17 +257,4 @@ export const QuickValidate = ({
       </Dialog>
     </>
   );
-};
-
-export const ValidationFlusher = () => {
-  const router = useRouter();
-  useEffect(() => {
-    const run = async () => {
-      if ((await flushValidations()) > 0) router.refresh();
-    };
-    run();
-    window.addEventListener("online", run);
-    return () => window.removeEventListener("online", run);
-  }, [router]);
-  return null;
 };

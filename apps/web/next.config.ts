@@ -23,6 +23,8 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
         ],
       },
+      // Un service worker à jour doit être vu tout de suite.
+      { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache" }] },
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
     ];
   },

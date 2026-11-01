@@ -4,12 +4,15 @@ import type { CommentEntity, CommentItem } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { Ban, Flag } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button, IconButton } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
-import { addCommentAction, blockUserAction, reportContentAction } from "./comment.action";
+import { useSpaceId } from "@/features/offline/offline-provider";
+import { submitOp } from "@/features/offline/op-queue";
+import { blockUserAction, reportContentAction } from "./comment.action";
 
 export const CommentThread = ({
   entityType,
@@ -27,10 +30,25 @@ export const CommentThread = ({
   dark?: boolean;
 }) => {
   const [body, setBody] = useState("");
-  const add = useAction(addCommentAction, {
-    onSuccess: () => setBody(""),
-    onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),
-  });
+  const router = useRouter();
+  const organizationId = useSpaceId();
+  const [sending, setSending] = useState(false);
+  const add = async (text: string) => {
+    setSending(true);
+    const clientId = crypto.randomUUID();
+    const res = await submitOp({
+      id: clientId,
+      kind: "comment",
+      target: entityId,
+      path: `/orgs/${organizationId}/comments`,
+      body: { entityType, entityId, body: text, clientId },
+    });
+    setSending(false);
+    if (res.state === "error") return toast.error(res.message);
+    setBody("");
+    if (res.state === "queued") toast.ok(m.offline.commentQueued);
+    else router.refresh();
+  };
   const report = useAction(reportContentAction, { onSuccess: () => toast.ok(m.comments.reported) });
   const block = useAction(blockUserAction, { onSuccess: () => toast.ok("Utilisateur bloqué.") });
   return (
@@ -72,7 +90,7 @@ export const CommentThread = ({
         className="flex flex-col gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          if (body.trim()) add.execute({ entityType, entityId, body, path });
+          if (body.trim()) void add(body);
         }}
       >
         <label className="sr-only" htmlFor={`comment-${entityId}`}>
@@ -85,13 +103,7 @@ export const CommentThread = ({
           placeholder={m.comments.placeholder}
           className="min-h-11"
         />
-        <Button
-          type="submit"
-          size="sm"
-          variant="secondary"
-          className="self-start"
-          disabled={add.isPending || !body.trim()}
-        >
+        <Button type="submit" size="sm" variant="secondary" className="self-start" disabled={sending || !body.trim()}>
           {m.common.send}
         </Button>
       </form>

@@ -20,6 +20,7 @@ import { m } from "@tartan/i18n";
 import { Logo } from "@/components/logo";
 import { Select } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
+import { InstallBanner } from "./install-banner";
 import { switchSpaceAction } from "./shell.action";
 
 type Item = { href: string; label: string; icon: LucideIcon; mobile: boolean };
@@ -140,7 +141,10 @@ export const AppShell = ({
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1440px] px-4 pb-8 pt-5 desktop:px-6 desktop:pt-8">{children}</main>
+      <main className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pb-8 pt-5 desktop:px-6 desktop:pt-8">
+        <InstallBanner />
+        <div>{children}</div>
+      </main>
 
       <nav
         aria-label="Navigation principale"

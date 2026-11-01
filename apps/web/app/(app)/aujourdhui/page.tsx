@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { todayIso } from "@/lib/dates";
 import { AttendanceQuestion, TodayAbsence } from "@/features/athlete-view/attendance-question";
-import { QuickValidate, ValidationFlusher } from "@/features/athlete-view/validation";
+import { QuickValidate } from "@/features/athlete-view/validation";
 import { requireAthleteSpace } from "@/features/shell/space";
 import { getAthleteSession, getAthleteToday } from "@/server/athlete-view.service";
 
@@ -146,7 +146,6 @@ export default async function AujourdhuiPage() {
   const details = await Promise.all(data.today.map((c) => getAthleteSession(actor.userId, organizationId, c.id)));
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <ValidationFlusher />
       <PageHeader
         title={data.firstName ? m.today.greeting(data.firstName) : m.nav.aujourdhui}
         detail={capitalize(formatDateLong(today))}

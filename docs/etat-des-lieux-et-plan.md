@@ -8,7 +8,7 @@ Niveau de preuve de chaque constat :
 - **[relu]** : signalé par une relecture indépendante du code, sans exécution. À reproduire avant correction.
 - **[appareil]** : impossible à trancher sans un vrai téléphone.
 
-> **Mise à jour du 1er novembre, soir.** Les phases 0 et 1 sont déployées (`e84b614`), vente coupée : voir le § 13. Les constats ci-dessous décrivent l'état avant ce déploiement.
+> **Mise à jour.** Les phases 0, 1 et 2 sont déployées, vente coupée : voir les § 13 et § 14. Les constats ci-dessous décrivent l'état avant ces déploiements.
 
 ## 1. Verdict
 
@@ -198,7 +198,7 @@ Légende du responsable : **C** moi, **T** toi, **F** ton frère.
 | --- | --- | --- | --- |
 | Découper et commiter le travail local en commits lisibles, mobile à part | C | S | Arbre propre, CI verte |
 | Finir la vérification des écrans ajoutés, supprimer le code mort du mobile | C | S | Lint et types sans nouvel avertissement |
-| Remplacer `docs/lancement.md` par ce plan | C | S | Une seule liste à jour |
+| Remplacer `docs/lancement.md` par ce plan | C | S | Fait |
 
 ### Phase 1 : corriger et mettre en ligne sans vente
 
@@ -342,3 +342,29 @@ Production sur `e84b614`, avec les migrations `offres_payantes`, `video_etiree` 
 
 - L'accord vidéo retiré masque l'image au coach sans la supprimer : à trancher avec le juriste.
 - Le compte de démonstration devra être rejoué sans envoi d'e-mail, le `seed` passant désormais par la confirmation d'adresse.
+
+## 14. Fait et vérifié : phase 2, la web app
+
+| Point | État | Preuve |
+| --- | --- | --- |
+| Pages rouvrables sans réseau : journée, séances des 7 prochains jours, page d'explication sinon | Fait | Parcours Playwright, Chromium et WebKit |
+| File persistante : validation, présence, appel, essais, commentaires, par compte, sans perte à l'expiration de session | Fait | Tests et parcours hors ligne |
+| Vidéo : file persistante, reprise, durée plafonnée, rattachement à la séance | Fait | **Vrai Mux** : coupure, rechargement, reprise à 12,5 Mo sur 46,7 Mo, 1 440 images sur 1 440 |
+| Notifications : demande après l'arrivée, boutons Oui / Non sur Android, repli si indisponible | Fait, à essayer | Aucun vrai téléphone |
+| Guide d'installation iPhone et Android | Fait, à essayer | Aucun vrai téléphone |
+| Repli e-mail sans appareil abonné | Fait | Test |
+| Regroupement d'une semaine programmée, alerte à la 2e séance manquée | Fait | Tests |
+| Signalements : e-mail, traitement dans Réglages, vidéo signalable | Fait | Test |
+| Logo, disciplines, envoi de vidéo d'exercice avec progression | Fait | Types seulement. Logo masqué tant que Blob n'est pas configuré |
+
+**Défaut trouvé par l'essai réel :** un envoi refusé (accord vidéo manquant) n'affichait qu'un message générique. Le motif réel remonte maintenant.
+
+**Limites à connaître :**
+
+- Les vidéos d'exercices ne sont pas gardées hors ligne : le mode séance reste utilisable, sans la vidéo.
+- Le coach garde sur son téléphone les pages de suivi, avec l'effort et la douleur de ses athlètes. Effacées à la déconnexion. À signaler au juriste.
+- Sur iPhone, un envoi vidéo peut se suspendre quand Safari passe en arrière-plan. Il reprend au retour.
+- « Fait » depuis la notification reste réservé à l'app mobile : sur le web, la notification ouvre la page, en 2 touches.
+- Mobile : l'étirement vidéo n'est toujours pas branché (phase 5).
+
+**Reste de la phase 2 :** l'essai sur vrai iPhone et vrai Android d'entrée de gamme (ralenti importé, envoi, notifications), avec toi et ton frère.

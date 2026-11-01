@@ -165,9 +165,17 @@ export const publishSession = async (
 };
 
 // Fige la séance, puis notifie. Les charges individuelles se calculent à la lecture depuis les tests.
-export const publishRow = async (sessionId: string, authorId: string, now: Date) => {
+export type Publication = { userId: string; date: string; sessionId: string };
+
+// `silent` : l'appelant regroupe les notifications d'un lot de séances.
+export const publishRow = async (
+  sessionId: string,
+  authorId: string,
+  now: Date,
+  options: { silent?: boolean } = {},
+): Promise<Publication[]> => {
   const session = await prisma.scheduledSession.findUniqueOrThrow({ where: { id: sessionId } });
-  if (session.publishedAt) return;
+  if (session.publishedAt) return [];
   const assignmentCount = await prisma.assignment.count({ where: { scheduledSessionId: sessionId } });
   if (assignmentCount === 0) throw invalid(m.builder.noAudience);
   const snapshot = await buildSnapshot(session.organizationId, sessionDraft.parse(session.draft));
@@ -176,16 +184,15 @@ export const publishRow = async (sessionId: string, authorId: string, now: Date)
     data: { snapshot, publishedAt: now },
   });
   const users = await audienceUsers(sessionId);
-  await notifyPublications(
-    users.map((u) => ({ userId: u, date: fromDbDate(session.date) })),
-    {
+  const publications = users.map((userId) => ({ userId, date: fromDbDate(session.date), sessionId }));
+  if (!options.silent) {
+    await notifyPublications(publications, {
       coach: await firstNameOf(authorId),
       organizationId: session.organizationId,
-      sessionId,
-      link: `/seance/${sessionId}`,
-    },
-  );
+    });
+  }
   log.info("session_published", { organizationId: session.organizationId, entityId: sessionId, count: users.length });
+  return publications;
 };
 
 export const getSessionForEdit = async (userId: string, organizationId: string, sessionId: string) => {

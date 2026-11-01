@@ -19,7 +19,14 @@ import { consentForAthletes } from "./consent.service";
 import { firstNameOf, namesFor } from "./me.service";
 import { notify } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
-import { bestClearedHeight, deliveredFps, formatHeight, latestSitting, toRealMs } from "@tartan/domain";
+import {
+  bestClearedHeight,
+  deliveredFps,
+  formatHeight,
+  latestSitting,
+  MAX_FILE_SECONDS,
+  toRealMs,
+} from "@tartan/domain";
 
 const VIDEO_SELECT = {
   id: true,
@@ -190,6 +197,13 @@ export const applyMuxEvent = async (event: {
     const track = event.data.tracks?.find((t) => t.type === "video");
     const video = await prisma.video.findUnique({ where: { id }, select: { fps: true, timeScale: true } });
     const timeScale = video?.timeScale ?? 1;
+    // Le client refuse déjà les fichiers trop longs : ici, seul un envoi qui l'aurait contourné est arrêté.
+    if ((event.data.duration ?? 0) > MAX_FILE_SECONDS * 1.1) {
+      await prisma.video.updateMany({ where: { id }, data: { status: "error" } });
+      await deleteAsset(event.data.id).catch(() => log.error("video_oversized_delete_failed", { entityId: id }));
+      log.warn("video_oversized", { entityId: id });
+      return;
+    }
     await prisma.video.updateMany({
       where: { id },
       data: {

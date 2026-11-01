@@ -5,6 +5,7 @@ export * from "./consent";
 export * from "./youtube";
 export * from "./jumps";
 export * from "./video-stretch";
+export * from "./upload-protocol";
 export * from "./permissions";
 export * from "./alerts";
 export * from "./invitations";

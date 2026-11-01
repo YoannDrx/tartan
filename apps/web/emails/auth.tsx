@@ -18,6 +18,15 @@ export const VerifyEmail = ({ url }: { url: string }) => (
   </Layout>
 );
 
+// Repli pour qui n'a aucun appareil abonné aux notifications : même texte neutre, jamais de donnée de santé.
+export const NotificationEmail = ({ title, body, url }: { title: string; body: string; url: string }) => (
+  <Layout preview={body}>
+    <Title>{title}</Title>
+    <Paragraph>{body}</Paragraph>
+    <PrimaryLink href={url}>Ouvrir Tartan</PrimaryLink>
+  </Layout>
+);
+
 export const ResetPasswordEmail = ({ url }: { url: string }) => (
   <Layout preview="Réinitialise ton mot de passe Tartan">
     <Title>Nouveau mot de passe</Title>

@@ -3,8 +3,9 @@ import { type PlanKey, referralCodeFor, STARTER_LIBRARY } from "@tartan/domain";
 import { randomId } from "@/lib/tokens";
 import { prisma } from "@/lib/prisma";
 import { m } from "@tartan/i18n";
+import { put } from "@vercel/blob";
 import { env } from "@/lib/env";
-import { AppError, notFound } from "@/lib/errors";
+import { AppError, invalid, notFound } from "@/lib/errors";
 import { coachGroupIds, requireOrgMember, requireGroupInScope, type Access } from "./access";
 import { firstNameOf } from "./me.service";
 import { assertWithinPlan, ensurePlans, syncEntitlements } from "./billing.service";
@@ -116,10 +117,25 @@ export const getOrganization = async (userId: string, organizationId: string) =>
 export const updateOrganization = async (
   userId: string,
   organizationId: string,
-  input: { name: string; overdueReminders: boolean },
+  input: { name: string; overdueReminders: boolean; disciplines?: string[] },
 ) => {
   await requireOrgMember(userId, organizationId, "manageOrganization");
   await prisma.organization.update({ where: { id: organizationId }, data: input });
+};
+
+const LOGO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_LOGO_BYTES = 4 * 1024 * 1024;
+
+export const saveOrganizationLogo = async (userId: string, organizationId: string, file: File): Promise<void> => {
+  await requireOrgMember(userId, organizationId, "manageOrganization");
+  if (!env().BLOB_READ_WRITE_TOKEN) throw invalid("L'envoi d'images n'est pas configuré sur ce serveur.");
+  if (!LOGO_TYPES.includes(file.type)) throw invalid("Choisis une image JPEG, PNG ou WebP.");
+  if (file.size > MAX_LOGO_BYTES) throw invalid("Cette image dépasse 4 Mo.");
+  const blob = await put(`logos/${organizationId}/${crypto.randomUUID()}`, file, {
+    access: "public",
+    contentType: file.type,
+  });
+  await prisma.organization.update({ where: { id: organizationId }, data: { logoUrl: blob.url } });
 };
 
 export const saveGroup = async (userId: string, organizationId: string, input: GroupInput) => {

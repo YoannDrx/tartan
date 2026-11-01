@@ -1,11 +1,33 @@
-import { addDays, isOverdue } from "@tartan/domain";
+import { addDays, isOverdue, MISSED_STREAK_THRESHOLD } from "@tartan/domain";
 import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { processReferrals, purgeExpiredVideos } from "./billing.service";
 import { sendWeeklyDigests } from "./digest.service";
-import { dispatchPending, notify } from "./notify.service";
-import { audienceAthleteIds, publishRow } from "./session.service";
+import { firstNameOf } from "./me.service";
+import { dispatchPending, notify, notifyPublications } from "./notify.service";
+import { coachesOfAthlete } from "./org.service";
+import { audienceAthleteIds, publishRow, type Publication } from "./session.service";
+
+// Une seule alerte, au moment où la série atteint le seuil (§ 13.2) : pas de rappel à chaque nouvelle séance.
+const alertMissedStreak = async (organizationId: string, athleteIds: string[]): Promise<void> => {
+  for (const athleteId of athleteIds) {
+    const recent = await prisma.sessionLog.findMany({
+      where: { athleteId },
+      orderBy: { session: { date: "desc" } },
+      take: MISSED_STREAK_THRESHOLD + 1,
+      select: { status: true },
+    });
+    const streak = recent.findIndex((r) => r.status !== "missed");
+    if ((streak === -1 ? recent.length : streak) !== MISSED_STREAK_THRESHOLD) continue;
+    const athlete = await prisma.athlete.findUniqueOrThrow({ where: { id: athleteId }, select: { firstName: true } });
+    await notify(await coachesOfAthlete(organizationId, athleteId), "missed_streak", {
+      athlete: athlete.firstName,
+      organizationId,
+      link: `/athletes/${athleteId}`,
+    });
+  }
+};
 
 // Passe en « manquée » les séances non validées 24 h après la date prévue, avec une relance douce.
 export const closeOverdueSessions = async (now: Date = new Date()): Promise<number> => {
@@ -14,6 +36,7 @@ export const closeOverdueSessions = async (now: Date = new Date()): Promise<numb
       publishedAt: { not: null },
       date: { gte: toDbDate(addDays(todayIso(now), -14)), lt: toDbDate(todayIso(now)) },
     },
+    orderBy: { date: "asc" },
     select: { id: true, date: true, organizationId: true, organization: { select: { overdueReminders: true } } },
   });
   let closed = 0;
@@ -37,6 +60,7 @@ export const closeOverdueSessions = async (now: Date = new Date()): Promise<numb
       skipDuplicates: true,
     });
     closed += missing.length;
+    await alertMissedStreak(session.organizationId, missing);
     if (!session.organization.overdueReminders) continue;
     const users = await prisma.athlete.findMany({
       where: { id: { in: missing }, userId: { not: null } },
@@ -56,10 +80,34 @@ export const closeOverdueSessions = async (now: Date = new Date()): Promise<numb
 export const publishScheduledSessions = async (now: Date = new Date()): Promise<number> => {
   const due = await prisma.scheduledSession.findMany({
     where: { publishedAt: null, publishAt: { lte: now } },
-    select: { id: true, createdBy: true },
+    select: { id: true, createdBy: true, organizationId: true },
   });
-  for (const session of due) await publishRow(session.id, session.createdBy, now);
-  return due.length;
+  // Un brouillon programmé sans destinataire ne doit pas bloquer les autres.
+  const lots = new Map<string, { createdBy: string; organizationId: string; publications: Publication[] }>();
+  let published = 0;
+  for (const session of due) {
+    try {
+      const publications = await publishRow(session.id, session.createdBy, now, { silent: true });
+      const key = `${session.organizationId}:${session.createdBy}`;
+      const lot = lots.get(key) ?? {
+        createdBy: session.createdBy,
+        organizationId: session.organizationId,
+        publications: [],
+      };
+      lot.publications.push(...publications);
+      lots.set(key, lot);
+      published += 1;
+    } catch {
+      log.warn("scheduled_publish_skipped", { entityId: session.id });
+    }
+  }
+  for (const lot of lots.values()) {
+    await notifyPublications(lot.publications, {
+      coach: await firstNameOf(lot.createdBy),
+      organizationId: lot.organizationId,
+    });
+  }
+  return published;
 };
 
 // « Seras-tu au club demain ? » la veille d'une séance, une seule fois par séance.

@@ -109,10 +109,12 @@ export const MemberList = ({ members, groups }: { members: Member[]; groups: Gro
             {m.roles[member.role]}
             {member.role === "owner"
               ? ""
-              : `, ${groups
-                  .filter((g) => member.groupIds.includes(g.id))
-                  .map((g) => g.name)
-                  .join(", ") || m.settings.memberNoGroup}`}
+              : `, ${
+                  groups
+                    .filter((g) => member.groupIds.includes(g.id))
+                    .map((g) => g.name)
+                    .join(", ") || m.settings.memberNoGroup
+                }`}
           </p>
         </div>
         {member.role === "owner" ? null : <MemberDialog member={member} groups={groups} />}

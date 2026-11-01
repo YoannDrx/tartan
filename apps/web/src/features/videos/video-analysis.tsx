@@ -12,7 +12,7 @@ import {
   toRealMs,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { Check, ChevronLeft, Pause, Play, Repeat, Share2, SkipBack, SkipForward, Trash2 } from "lucide-react";
+import { Check, ChevronLeft, Flag, Pause, Play, Repeat, Share2, SkipBack, SkipForward, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,6 +22,7 @@ import { IconButton } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
+import { reportContentAction } from "@/features/comments/comment.action";
 import { CommentThread } from "@/features/comments/thread";
 import { addAnnotationAction, deleteAnnotationAction, shareVideoAction } from "./video.action";
 
@@ -144,6 +145,11 @@ export const VideoAnalysis = ({
     onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),
   });
 
+  const report = useAction(reportContentAction, {
+    onSuccess: () => toast.ok(m.video.reported),
+    onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),
+  });
+
   const pct = (ms: number) => (durationMs > 0 ? (ms / durationMs) * 100 : 0);
 
   return (
@@ -171,6 +177,14 @@ export const VideoAnalysis = ({
                   : ""}
               </p>
             </div>
+            <IconButton
+              tone="darkRound"
+              label={m.video.report}
+              disabled={report.isPending}
+              onClick={() => report.execute({ entityType: "video", entityId: video.id, reason: "inappropriate" })}
+            >
+              <Flag aria-hidden className="size-4" />
+            </IconButton>
             {canAnnotate ? (
               <IconButton
                 tone="darkRound"

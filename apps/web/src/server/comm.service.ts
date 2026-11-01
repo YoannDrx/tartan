@@ -7,7 +7,14 @@ import {
   reportContentInput,
 } from "@tartan/contracts";
 import { isStaff } from "@tartan/domain";
+import { m } from "@tartan/i18n";
+import { createElement } from "react";
 import type { z } from "zod";
+import { NotificationEmail } from "@email/auth";
+import { env } from "@/lib/env";
+import { log } from "@/lib/logger";
+import { sendEmail } from "@/lib/mail";
+import { deleteAsset, videoEnabled } from "@/lib/mux";
 import { forbidden, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -158,8 +165,13 @@ export const addComment = async (userId: string, organizationId: string, input: 
   const access = await requireOrgMember(userId, organizationId);
   if (access.role === "guardian") throw forbidden();
   const thread = await resolveThread(access, input.entityType, input.entityId);
+  if (input.clientId) {
+    const replayed = await prisma.comment.findUnique({ where: { clientId: input.clientId }, select: { id: true } });
+    if (replayed) return replayed;
+  }
   const created = await prisma.comment.create({
     data: {
+      clientId: input.clientId ?? null,
       organizationId,
       entityType: input.entityType,
       entityId: input.entityId,
@@ -225,5 +237,89 @@ export const reportContent = async (
     action: "content_reported",
     entity: input.entityType,
     entityId: input.entityId,
+  });
+  // Un signalement doit être lu : le responsable de l'espace et l'éditeur sont prévenus (§ 16.2).
+  const organization = await prisma.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: { name: true, ownerId: true },
+  });
+  const owner = await prisma.user.findUniqueOrThrow({ where: { id: organization.ownerId }, select: { email: true } });
+  const subject = `Contenu signalé dans ${organization.name}`;
+  const url = `${env().NEXT_PUBLIC_APP_URL}/reglages?espace=${organizationId}#signalements`;
+  const react = createElement(NotificationEmail, { title: subject, body: m.settings.reportsEmailBody, url });
+  for (const to of new Set([owner.email, env().EMAIL_CONTACT])) {
+    await sendEmail({ to, subject, react }).catch(() => log.error("report_email_failed"));
+  }
+};
+
+export const listReports = async (userId: string, organizationId: string) => {
+  await requireOrgMember(userId, organizationId, "manageOrganization");
+  const reports = await prisma.contentReport.findMany({
+    where: { organizationId, resolvedAt: null },
+    orderBy: { createdAt: "asc" },
+    take: 50,
+  });
+  const ids = (type: string) => reports.filter((r) => r.entityType === type).map((r) => r.entityId);
+  const [comments, announcements, videos] = await Promise.all([
+    prisma.comment.findMany({
+      where: { id: { in: ids("comment") }, organizationId },
+      select: { id: true, body: true },
+    }),
+    prisma.announcement.findMany({
+      where: { id: { in: ids("announcement") }, organizationId },
+      select: { id: true, body: true },
+    }),
+    prisma.video.findMany({
+      where: { id: { in: ids("video") }, organizationId },
+      select: { id: true, athlete: { select: { firstName: true, lastName: true } } },
+    }),
+  ]);
+  return reports.map((r) => {
+    const video = videos.find((v) => v.id === r.entityId);
+    const excerpt = [...comments, ...announcements].find((c) => c.id === r.entityId)?.body;
+    return {
+      id: r.id,
+      entityType: r.entityType as "comment" | "video" | "announcement",
+      excerpt: video ? `${video.athlete.firstName} ${video.athlete.lastName}`.trim() : (excerpt ?? null),
+      link: video ? `/videos/${video.id}` : null,
+      detail: r.detail,
+    };
+  });
+};
+
+export const resolveReport = async (
+  userId: string,
+  organizationId: string,
+  input: { id: string; removeContent: boolean },
+) => {
+  await requireOrgMember(userId, organizationId, "manageOrganization");
+  const report = await prisma.contentReport.findFirst({ where: { id: input.id, organizationId } });
+  if (!report) throw notFound();
+  if (input.removeContent) {
+    if (report.entityType === "comment") {
+      await prisma.comment.deleteMany({ where: { id: report.entityId, organizationId } });
+    } else if (report.entityType === "announcement") {
+      await prisma.announcement.deleteMany({ where: { id: report.entityId, organizationId } });
+    } else {
+      const video = await prisma.video.findFirst({
+        where: { id: report.entityId, organizationId },
+        select: { id: true, muxAssetId: true },
+      });
+      if (video) {
+        if (video.muxAssetId && videoEnabled()) await deleteAsset(video.muxAssetId);
+        await prisma.video.delete({ where: { id: video.id } });
+      }
+    }
+  }
+  await prisma.contentReport.updateMany({
+    where: { organizationId, entityType: report.entityType, entityId: report.entityId, resolvedAt: null },
+    data: { resolvedAt: new Date() },
+  });
+  await audit({
+    organizationId,
+    actorId: userId,
+    action: input.removeContent ? "report_content_removed" : "report_dismissed",
+    entity: report.entityType,
+    entityId: report.entityId,
   });
 };

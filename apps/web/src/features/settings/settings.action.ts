@@ -12,7 +12,7 @@ import { SPACE_COOKIE } from "@/features/shell/space";
 import { deleteAccount } from "@/server/account.service";
 import { setConsent } from "@/server/consent.service";
 import { saveAvatar, updateProfile } from "@/server/me.service";
-import { deleteGroup, saveGroup, updateOrganization } from "@/server/org.service";
+import { deleteGroup, saveGroup, saveOrganizationLogo, updateOrganization } from "@/server/org.service";
 import { leaveOrganization, removeAthlete, removeCoach, updateMember } from "@/server/members.service";
 
 export const updateProfileAction = authAction.inputSchema(profileInput).action(async ({ parsedInput, ctx }) => {
@@ -24,6 +24,13 @@ export const uploadAvatarAction = authAction
   .inputSchema(z.object({ file: z.instanceof(File) }))
   .action(async ({ parsedInput, ctx }) => {
     await saveAvatar(ctx.actor.userId, parsedInput.file);
+    revalidatePath("/reglages");
+  });
+
+export const uploadLogoAction = spaceAction
+  .inputSchema(z.object({ file: z.instanceof(File) }))
+  .action(async ({ parsedInput, ctx }) => {
+    await saveOrganizationLogo(ctx.userId, ctx.organizationId, parsedInput.file);
     revalidatePath("/reglages");
   });
 
@@ -40,7 +47,11 @@ export const saveGroupAction = spaceAction.inputSchema(groupInput).action(async 
 
 export const updateOrganizationAction = spaceAction
   .inputSchema(
-    z.object({ name: z.string().trim().min(1, "Donne un nom à ton espace").max(120), overdueReminders: z.boolean() }),
+    z.object({
+      name: z.string().trim().min(1, "Donne un nom à ton espace").max(120),
+      overdueReminders: z.boolean(),
+      disciplines: z.array(z.enum(Object.keys(m.disciplines) as [string, ...string[]])).max(20),
+    }),
   )
   .action(async ({ parsedInput, ctx }) => {
     await updateOrganization(ctx.userId, ctx.organizationId, parsedInput);

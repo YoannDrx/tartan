@@ -967,6 +967,8 @@ enum CommentEntity {
 }
 
 model Comment {
+  // Rend la file hors ligne idempotente : un rejeu ne crée pas de doublon.
+  clientId     String?  @unique @map("client_id")
   id             String        @id @default(uuid()) @db.Uuid
   organizationId String        @map("organization_id") @db.Uuid
   entityType     CommentEntity @map("entity_type")

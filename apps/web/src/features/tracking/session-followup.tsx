@@ -2,11 +2,14 @@
 
 import { m } from "@tartan/i18n";
 import { useAction } from "next-safe-action/hooks";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
-import { generateAutonomousAction, remindAction, rollCallAction } from "./tracking.action";
+import { useSpaceId } from "@/features/offline/offline-provider";
+import { submitOp } from "@/features/offline/op-queue";
+import { generateAutonomousAction, remindAction } from "./tracking.action";
 
 export type AttendanceRow = { athleteId: string; name: string; attendance: "present" | "absent" | "unknown" };
 
@@ -19,6 +22,7 @@ export const RollCall = ({
   rows: AttendanceRow[];
   hasAutonomous: boolean;
 }) => {
+  const router = useRouter();
   // Pas de présence présumée : un appel distrait ne doit rien enregistrer de faux.
   const [state, setState] = useState<Record<string, "present" | "absent" | undefined>>(() =>
     Object.fromEntries(rows.map((r) => [r.athleteId, r.attendance === "unknown" ? undefined : r.attendance])),
@@ -27,12 +31,30 @@ export const RollCall = ({
     onSuccess: () => toast.ok("Version autonomie générée. Ajuste-la depuis la séance."),
     onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),
   });
-  const save = useAction(rollCallAction, {
-    onSuccess: ({ data }) => {
-      if (data) toast.ok(m.coach.rollCallDone(data.hasAutonomous ? data.absentCount : 0));
-    },
-    onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),
-  });
+  const organizationId = useSpaceId();
+  const [saving, setSaving] = useState(false);
+  // L'appel se fait au bord de la piste : il part au retour du réseau s'il le faut.
+  const save = async () => {
+    setSaving(true);
+    const res = await submitOp({
+      id: crypto.randomUUID(),
+      kind: "rollCall",
+      target: sessionId,
+      path: `/orgs/${organizationId}/sessions/${sessionId}/roll-call`,
+      body: {
+        entries: rows.flatMap((r) => {
+          const status = state[r.athleteId];
+          return status ? [{ athleteId: r.athleteId, status }] : [];
+        }),
+      },
+    });
+    setSaving(false);
+    if (res.state === "error") return toast.error(res.message);
+    if (res.state === "queued") return toast.ok(m.offline.rollCallQueued);
+    const data = res.data as { hasAutonomous: boolean; absentCount: number } | null;
+    if (data) toast.ok(m.coach.rollCallDone(data.hasAutonomous ? data.absentCount : 0));
+    router.refresh();
+  };
   const absent = Object.values(state).filter((v) => v === "absent").length;
   return (
     <section aria-labelledby="appel" className="rounded-card on-card bg-card p-4">
@@ -77,20 +99,7 @@ export const RollCall = ({
           </Button>
         </div>
       ) : null}
-      <Button
-        className="mt-3"
-        size="sm"
-        disabled={save.isPending || !Object.values(state).some(Boolean)}
-        onClick={() =>
-          save.execute({
-            sessionId,
-            entries: rows.flatMap((r) => {
-              const status = state[r.athleteId];
-              return status ? [{ athleteId: r.athleteId, status }] : [];
-            }),
-          })
-        }
-      >
+      <Button className="mt-3" size="sm" disabled={saving || !Object.values(state).some(Boolean)} onClick={save}>
         {m.coach.rollCallSave}
       </Button>
     </section>

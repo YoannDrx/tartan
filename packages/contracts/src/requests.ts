@@ -247,6 +247,8 @@ export const commentInput = z.object({
   entityType: commentEntity,
   entityId: uuid,
   body: required(2000, "Écris ton commentaire"),
+  // Rend la file hors ligne idempotente : un rejeu ne crée pas de doublon.
+  clientId: z.string().min(8).max(64).optional(),
 });
 export type CommentInput = z.infer<typeof commentInput>;
 

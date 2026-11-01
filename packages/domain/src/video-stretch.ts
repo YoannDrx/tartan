@@ -19,9 +19,14 @@ export const deliveredFps = (input: { declaredFps: number | null; encodedFps: nu
 
 export type ReadBytes = (offset: number, length: number) => Promise<Uint8Array>;
 
+// Le coût Mux suit la durée du fichier étiré : 8 minutes, soit 60 s réelles à 240 i/s.
+export const MAX_FILE_SECONDS = 480;
+
 export type StretchPlan = {
   fps: number;
   timeScale: number;
+  // Durée réelle du clip, en secondes.
+  durationSeconds: number;
   // En-tête à réécrire au même endroit, de même taille. Absent si le fichier part tel quel.
   patch: { offset: number; bytes: Uint8Array } | null;
 };
@@ -141,7 +146,7 @@ const scaleTrack = (view: DataView, trak: Box, factor: number): void => {
   if (stbl) scaleSampleTable(view, stbl, factor);
 };
 
-const videoFpsOf = (view: DataView, traks: Box[]): number | null => {
+const videoTimingOf = (view: DataView, traks: Box[]): { fps: number; seconds: number } | null => {
   for (const trak of traks) {
     const mdia = childOf(view, trak, "mdia");
     const hdlr = mdia && childOf(view, mdia, "hdlr");
@@ -160,7 +165,7 @@ const videoFpsOf = (view: DataView, traks: Box[]): number | null => {
       frames += samples;
       ticks += samples * view.getUint32(stts.start + 8 + i * 8 + 4);
     }
-    return frames > 1 && ticks > 0 ? (frames * timescale) / ticks : null;
+    return frames > 1 && ticks > 0 ? { fps: (frames * timescale) / ticks, seconds: ticks / timescale } : null;
   }
   return null;
 };
@@ -202,15 +207,17 @@ export const planStretch = async (read: ReadBytes, fileSize: number): Promise<St
     const view = new DataView(moov.buffer, moov.byteOffset, moov.byteLength);
     const boxes = childrenOf(view, view.getUint32(0) === 1 ? 16 : 8, moov.byteLength);
     if (boxes.some((b) => b.type === "mvex")) return null;
-    const fps = videoFpsOf(
+    const timing = videoTimingOf(
       view,
       boxes.filter((b) => b.type === "trak"),
     );
-    if (fps === null) return null;
-    const timeScale = timeScaleFor(fps);
-    if (timeScale === 1) return { fps: Math.round(fps), timeScale, patch: null };
+    if (timing === null) return null;
+    const fps = Math.round(timing.fps);
+    const timeScale = timeScaleFor(timing.fps);
+    const base = { fps, timeScale, durationSeconds: timing.seconds };
+    if (timeScale === 1) return { ...base, patch: null };
     stretchMoov(moov, timeScale);
-    return { fps: Math.round(fps), timeScale, patch: { offset: found.offset, bytes: moov } };
+    return { ...base, patch: { offset: found.offset, bytes: moov } };
   } catch {
     return null;
   }

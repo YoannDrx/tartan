@@ -14,6 +14,7 @@ import {
   GroupRow,
   InvitationList,
   InviteForm,
+  LogoForm,
   NewGroupForm,
   OrganizationForm,
   ProfileForm,
@@ -22,6 +23,8 @@ import {
   WebPushToggle,
 } from "@/features/settings/settings-forms";
 import { LeaveSpace, MemberList } from "@/features/settings/members";
+import { ReportList } from "@/features/settings/reports";
+import { listReports } from "@/server/comm.service";
 import { requireOrgMember } from "@/server/access";
 import { icalLink } from "@/server/ical.service";
 import { listMembers } from "@/server/members.service";
@@ -39,7 +42,7 @@ export default async function ReglagesPage() {
   const access = await requireOrgMember(actor.userId, organizationId);
   const canInvite = can(access.role, "inviteAthlete");
   const canManageMembers = can(access.role, "manageOrganization");
-  const [groups, invitations, consents, effective, referral, organization, members, ical] = await Promise.all([
+  const [groups, invitations, consents, effective, referral, organization, members, ical, reports] = await Promise.all([
     canInvite ? listGroups(access) : Promise.resolve([]),
     canInvite ? listInvitations(actor.userId, organizationId) : Promise.resolve([]),
     getUserConsents(actor.userId),
@@ -48,6 +51,7 @@ export default async function ReglagesPage() {
     getOrganization(actor.userId, organizationId),
     canManageMembers ? listMembers(actor.userId, organizationId) : Promise.resolve([]),
     access.athleteId ? icalLink(actor.userId, organizationId) : Promise.resolve(null),
+    canManageMembers ? listReports(actor.userId, organizationId) : Promise.resolve([]),
   ]);
   const parentalPending = access.athleteId ? (effective?.get(access.athleteId)?.parentalPending ?? false) : false;
   const isAthlete = access.role === "athlete";
@@ -82,8 +86,22 @@ export default async function ReglagesPage() {
       ? {
           id: "espace",
           title: m.settings.organization,
-          content: <OrganizationForm name={organization.name} overdueReminders={organization.overdueReminders} />,
+          content: (
+            <div className="flex flex-col gap-4">
+              {env().BLOB_READ_WRITE_TOKEN ? (
+                <LogoForm logoUrl={organization.logoUrl} name={organization.name} />
+              ) : null}
+              <OrganizationForm
+                name={organization.name}
+                overdueReminders={organization.overdueReminders}
+                disciplines={organization.disciplines}
+              />
+            </div>
+          ),
         }
+      : null,
+    canManageMembers
+      ? { id: "signalements", title: m.settings.reports, content: <ReportList reports={reports} /> }
       : null,
     canManageMembers
       ? { id: "membres", title: m.settings.members, content: <MemberList members={members} groups={groups} /> }

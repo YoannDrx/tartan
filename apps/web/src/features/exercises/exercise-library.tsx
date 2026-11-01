@@ -43,16 +43,30 @@ const ExerciseForm = ({
   const [endS, setEndS] = useState(youtube?.endS?.toString() ?? "");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
   const upload = useAction(exerciseUploadAction);
   const save = useAction(saveExerciseAction, {
     onSuccess: async ({ data }) => {
       if (file && data) {
         const res = await upload.executeAsync({ exerciseId: data.id });
-        if (res?.data) {
-          const { createUpload } = await import("@mux/upchunk");
-          createUpload({ endpoint: res.data.uploadUrl, file, chunkSize: 5120 });
-          toast.ok(m.video.uploading);
-        } else toast.error(res?.serverError ?? m.errors.videoDisabled);
+        if (!res?.data) {
+          toast.error(res?.serverError ?? m.errors.videoDisabled);
+          return onDone();
+        }
+        const { createUpload } = await import("@mux/upchunk");
+        const sending = createUpload({ endpoint: res.data.uploadUrl, file, chunkSize: 5120 });
+        setProgress(0);
+        sending.on("progress", (ev) => setProgress(Math.round(ev.detail)));
+        sending.on("error", () => {
+          setProgress(null);
+          setError("L'envoi a échoué. L'exercice est enregistré : réessaie d'ajouter la vidéo.");
+        });
+        sending.on("success", () => {
+          setProgress(null);
+          toast.ok(m.video.processing);
+          onDone();
+        });
+        return;
       }
       onDone();
     },
@@ -184,7 +198,10 @@ const ExerciseForm = ({
           {error}
         </p>
       ) : null}
-      <Button type="submit" disabled={save.isPending}>
+      {progress !== null ? (
+        <progress value={progress} max={100} className="w-full accent-brand" aria-label="Progression de l'envoi" />
+      ) : null}
+      <Button type="submit" disabled={save.isPending || progress !== null}>
         {m.common.save}
       </Button>
     </form>

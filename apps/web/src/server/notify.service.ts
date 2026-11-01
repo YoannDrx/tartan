@@ -6,10 +6,14 @@ import {
   type NotificationType,
   renderNotification,
 } from "@tartan/domain";
+import { m } from "@tartan/i18n";
+import { createElement } from "react";
 import webpush from "web-push";
+import { NotificationEmail } from "@email/auth";
 import { env } from "@/lib/env";
 import { hourInParis, todayIso } from "@/lib/dates";
 import { log } from "@/lib/logger";
+import { sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 
 export type NotificationVars = Parameters<typeof renderNotification>[1];
@@ -57,16 +61,27 @@ export const notify = async (
   if (!quiet) await dispatchPending(now);
 };
 
+// Plusieurs séances publiées d'un coup = une seule notification, qui ouvre la journée (§ 13.2).
 export const notifyPublications = async (
-  entries: { userId: string; date: string }[],
+  entries: { userId: string; date: string; sessionId: string }[],
   payload: Payload,
 ): Promise<void> => {
   for (const group of groupPublications(entries)) {
     const first = group.dates[0];
     if (group.dates.length > 1) {
-      await notify([group.userId], "session_batch_published", { ...payload, count: group.dates.length });
+      await notify([group.userId], "session_batch_published", {
+        ...payload,
+        count: group.dates.length,
+        link: "/accueil",
+      });
     } else if (first) {
-      await notify([group.userId], "session_published", { ...payload, date: first });
+      const sessionId = entries.find((e) => e.userId === group.userId)?.sessionId;
+      await notify([group.userId], "session_published", {
+        ...payload,
+        date: first,
+        sessionId,
+        link: `/seance/${sessionId}`,
+      });
     }
   }
 };
@@ -89,6 +104,54 @@ const sendExpo = async (messages: unknown[]): Promise<boolean> => {
 export const webLink = (link: string | undefined, organizationId: string | undefined): string | undefined => {
   if (!link || !organizationId) return link;
   return `${link}${link.includes("?") ? "&" : "?"}espace=${organizationId}`;
+};
+
+// Android : répondre depuis la notification. iOS ignore ces boutons et ouvre la page.
+const webActions = (type: NotificationType, payload: Payload) => {
+  if (type !== "session_eve" || !payload.organizationId || !payload.sessionId) return {};
+  const path = `/api/v1/orgs/${payload.organizationId}/sessions/${payload.sessionId}/attendance`;
+  return {
+    actions: [
+      { action: "present", title: m.today.attendanceYes },
+      { action: "absent", title: m.today.attendanceNo },
+    ],
+    api: { present: { path, body: { status: "present" } }, absent: { path, body: { status: "absent" } } },
+  };
+};
+
+// Sans appareil abonné, ces messages partent par e-mail : un athlète sur iPhone sans installation reste prévenu.
+const EMAIL_FALLBACK: ReadonlySet<NotificationType> = new Set([
+  "session_published",
+  "session_batch_published",
+  "session_eve",
+  "session_autonomous",
+  "session_updated",
+  "video_shared",
+  "pain_alert",
+  "missed_streak",
+  "announcement",
+]);
+
+const sendEmailFallbacks = async (
+  pending: { userId: string; type: string; payload: unknown }[],
+  deviceUsers: Set<string>,
+): Promise<void> => {
+  const targets = pending.filter((n) => !deviceUsers.has(n.userId) && EMAIL_FALLBACK.has(n.type as NotificationType));
+  if (targets.length === 0) return;
+  const users = await prisma.user.findMany({
+    where: { id: { in: targets.map((n) => n.userId) } },
+    select: { id: true, email: true },
+  });
+  for (const n of targets) {
+    const email = users.find((u) => u.id === n.userId)?.email;
+    if (!email) continue;
+    const payload = n.payload as Payload;
+    const { title, body } = renderNotification(n.type as NotificationType, payload);
+    const url = `${env().NEXT_PUBLIC_APP_URL}${webLink(payload.link, payload.organizationId) ?? "/accueil"}`;
+    await sendEmail({ to: email, subject: body, react: createElement(NotificationEmail, { title, body, url }) }).catch(
+      () => log.error("notification_email_failed", { code: n.type }),
+    );
+  }
 };
 
 export const unregisterDevice = async (userId: string, pushToken: string): Promise<void> => {
@@ -127,7 +190,11 @@ export const dispatchPending = async (now: Date = new Date()): Promise<number> =
       if (device.platform === "web") {
         const ok = await sendWeb(
           device.pushToken,
-          JSON.stringify({ ...text, link: webLink(payload.link, payload.organizationId) }),
+          JSON.stringify({
+            ...text,
+            link: webLink(payload.link, payload.organizationId),
+            ...webActions(type, payload),
+          }),
         );
         if (!ok) staleDevices.push(device.id);
       } else {
@@ -159,6 +226,7 @@ export const dispatchPending = async (now: Date = new Date()): Promise<number> =
     const batch = expoMessages.slice(i, i + 100);
     if (!(await sendExpo(batch.map((b) => b.message)))) for (const b of batch) failed.add(b.notificationId);
   }
+  await sendEmailFallbacks(pending, new Set(devices.map((d) => d.userId)));
   const retryUntil = now.getTime() - 6 * 60 * 60 * 1000;
   const done = pending.filter((p) => !failed.has(p.id) || p.createdAt.getTime() < retryUntil);
   if (staleDevices.length) await prisma.device.deleteMany({ where: { id: { in: staleDevices } } });

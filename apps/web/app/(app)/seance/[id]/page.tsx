@@ -7,7 +7,7 @@ import { StatusIcon } from "@/components/status-cell";
 import { Button } from "@/components/ui/button";
 import { AttendanceQuestion, TodayAbsence } from "@/features/athlete-view/attendance-question";
 import { todayIso } from "@/lib/dates";
-import { QuickValidate, ValidationFlusher } from "@/features/athlete-view/validation";
+import { QuickValidate } from "@/features/athlete-view/validation";
 import { CommentThread } from "@/features/comments/thread";
 import { orNotFound, requireAthleteSpace } from "@/features/shell/space";
 import { getAthleteSession, getAthleteToday } from "@/server/athlete-view.service";
@@ -26,7 +26,6 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
   const validated = session.status === "done" || session.status === "partial";
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <ValidationFlusher />
       <PageHeader title={session.title} detail={capitalize(formatDateLong(session.date))} />
       <p className="flex flex-wrap items-center gap-2">
         {/* Sur le rouge, le statut reste sur l'encre : aucun disque de couleur directement sur le fond. */}

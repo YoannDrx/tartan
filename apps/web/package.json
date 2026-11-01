@@ -74,6 +74,7 @@
     "dotenv": "17.2.3",
     "eslint": "9.39.1",
     "eslint-config-next": "16.4.3",
+    "fake-indexeddb": "^6.2.7",
     "jsdom": "27.0.1",
     "prisma": "7.10.1",
     "tailwindcss": "4.3.3",

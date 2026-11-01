@@ -14,8 +14,15 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure", locale: "fr-FR", timezoneId: "Europe/Paris" },
   globalSetup: "./e2e/global-setup.ts",
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } } },
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    {
+      name: "desktop",
+      testIgnore: /terrain/,
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
+    },
+    { name: "mobile", testIgnore: /terrain/, use: { ...devices["Pixel 7"] } },
+    // Au bord de la piste, sur téléphone : le coach aussi, et le moteur de l'iPhone.
+    { name: "terrain", testMatch: /terrain/, use: { ...devices["Pixel 7"] } },
+    { name: "terrain-webkit", testMatch: /terrain/, use: { ...devices["iPhone 13"] } },
   ],
   webServer: {
     // E2E_PROD=1 : build de production, pour vérifier aussi la CSP et les en-têtes réels.

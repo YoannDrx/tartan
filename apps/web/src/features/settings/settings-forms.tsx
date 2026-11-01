@@ -16,6 +16,8 @@ import { Dialog } from "@/components/ui/dialog";
 import { CheckRow, Field, Input, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { authClient } from "@/lib/auth-client";
+import { clearOfflinePages } from "@/features/offline/service-worker";
+import { enablePush } from "@/features/shell/push";
 import {
   createInvitationAction,
   groupLinkAction,
@@ -30,6 +32,7 @@ import {
   updateOrganizationAction,
   updateProfileAction,
   uploadAvatarAction,
+  uploadLogoAction,
 } from "./settings.action";
 
 type AnyErrors = Record<string, { _errors?: string[] }> | undefined;
@@ -162,6 +165,7 @@ export const DeleteAccount = ({ detail }: { detail: string }) => {
   const [word, setWord] = useState("");
   const { execute, isPending, result } = useAction(deleteAccountAction, {
     onSuccess: async () => {
+      await clearOfflinePages();
       await authClient.signOut().catch(() => undefined);
       window.location.href = "/";
     },
@@ -201,6 +205,7 @@ export const SignOutButton = () => (
     variant="secondary"
     onClick={async () => {
       await forgetThisDevice();
+      await clearOfflinePages();
       await authClient.signOut();
       window.location.href = "/";
     }}
@@ -259,8 +264,16 @@ export const ReferralLink = ({ link }: { link: string }) => (
   </div>
 );
 
-export const OrganizationForm = ({ name, overdueReminders }: { name: string; overdueReminders: boolean }) => {
-  const [v, setV] = useState({ name, overdueReminders });
+export const OrganizationForm = ({
+  name,
+  overdueReminders,
+  disciplines,
+}: {
+  name: string;
+  overdueReminders: boolean;
+  disciplines: string[];
+}) => {
+  const [v, setV] = useState({ name, overdueReminders, disciplines });
   const { execute, isPending, result } = useAction(updateOrganizationAction, {
     onSuccess: () => toast.ok("Espace enregistré."),
     onError: onErr,
@@ -278,6 +291,24 @@ export const OrganizationForm = ({ name, overdueReminders }: { name: string; ove
       <Field label={m.onboarding.orgName} error={errors?.name?._errors?.[0]}>
         {(a) => <Input {...a} value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} />}
       </Field>
+      <fieldset className="flex flex-col">
+        <legend className="t-caption mb-1">{m.settings.disciplines}</legend>
+        <div className="grid gap-x-4 tablet:grid-cols-2">
+          {Object.entries(m.disciplines).map(([key, label]) => (
+            <CheckRow
+              key={key}
+              label={label}
+              checked={v.disciplines.includes(key)}
+              onChange={(e) =>
+                setV({
+                  ...v,
+                  disciplines: e.target.checked ? [...v.disciplines, key] : v.disciplines.filter((d) => d !== key),
+                })
+              }
+            />
+          ))}
+        </div>
+      </fieldset>
       <CheckRow
         label={m.settings.overdueReminders}
         detail={m.settings.overdueRemindersDetail}
@@ -606,22 +637,43 @@ export const AvatarForm = ({ avatarUrl, name }: { avatarUrl: string | null; name
   );
 };
 
+export const LogoForm = ({ logoUrl, name }: { logoUrl: string | null; name: string }) => {
+  const router = useRouter();
+  const { execute, isPending } = useAction(uploadLogoAction, { onSuccess: () => router.refresh(), onError: onErr });
+  return (
+    <div className="flex items-center gap-3">
+      <span className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-thumb bg-card-raised font-semibold">
+        {logoUrl ? (
+          <Image src={logoUrl} alt={`Logo de ${name}`} fill sizes="64px" className="object-contain" unoptimized />
+        ) : (
+          name.slice(0, 2).toUpperCase()
+        )}
+      </span>
+      <Field label={m.settings.logo} hint={m.settings.logoHint} className="flex-1">
+        {(a) => (
+          <Input
+            {...a}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="py-2"
+            disabled={isPending}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) execute({ file });
+            }}
+          />
+        )}
+      </Field>
+    </div>
+  );
+};
+
 export const WebPushToggle = ({ vapidKey }: { vapidKey: string }) => {
   const [state, setState] = useState<"idle" | "on" | "denied">("idle");
   const enable = async () => {
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") return setState("denied");
-    const registration = await navigator.serviceWorker.register("/sw.js");
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: vapidKey,
-    });
-    const res = await fetch("/api/v1/devices", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pushToken: JSON.stringify(subscription), platform: "web" }),
-    });
-    if (!res.ok) return toast.error(m.common.genericError);
+    const outcome = await enablePush(vapidKey).catch(() => "unavailable" as const);
+    if (outcome === "denied") return setState("denied");
+    if (outcome !== "on") return toast.error(m.common.genericError);
     setState("on");
     toast.ok("Notifications activées sur cet appareil.");
   };
