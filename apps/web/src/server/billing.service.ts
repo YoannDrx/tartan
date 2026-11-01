@@ -14,10 +14,13 @@ import {
   TRIAL_DAYS,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import { createElement } from "react";
 import type Stripe from "stripe";
+import { NotificationEmail } from "@email/auth";
 import { env } from "@/lib/env";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
 import { log } from "@/lib/logger";
+import { sendEmail } from "@/lib/mail";
 import { deleteAsset, videoEnabled } from "@/lib/mux";
 import { prisma } from "@/lib/prisma";
 import { billingEnabled, planForPriceId, priceIdFor, stripe } from "@/lib/stripe";
@@ -106,6 +109,9 @@ export const getBillingOverview = async (userId: string, organizationId: string)
   };
 };
 
+const INVOICE_FOOTER =
+  "Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590. TVA non applicable, article 293 B du CGI.";
+
 export const createCheckout = async (
   userId: string,
   organizationId: string,
@@ -116,11 +122,23 @@ export const createCheckout = async (
   if (!billingEnabled() || !price) throw new AppError(503, "billing_disabled", m.billing.disabled);
   const org = await prisma.organization.findUniqueOrThrow({ where: { id: organizationId } });
   const owner = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, name: true } });
+  // Un abonnement en cours se change depuis le portail : un second Checkout ferait payer deux fois.
+  const current = await prisma.subscription.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } });
+  if (current && current.status !== "canceled" && isPaidPlan(current.planKey as PlanKey)) {
+    if (current.provider === "revenuecat") throw new AppError(409, "store_subscription", m.billing.storeHint);
+    if (current.provider === "stripe" && org.stripeCustomerId) return createPortal(userId, organizationId);
+  }
   const client = stripe();
   let customerId = org.stripeCustomerId;
   if (!customerId) {
     const customer = await client.customers.create(
-      { email: owner.email, name: org.name, metadata: { organizationId } },
+      {
+        email: owner.email,
+        name: org.name,
+        metadata: { organizationId },
+        // Identité du vendeur et franchise en base de TVA : mentions obligatoires sur chaque facture.
+        invoice_settings: { footer: INVOICE_FOOTER },
+      },
       { idempotencyKey: `customer-${organizationId}` },
     );
     customerId = customer.id;
@@ -221,16 +239,21 @@ export const applySubscription = async (input: {
   log.info("subscription_applied", { organizationId: input.organizationId, status: input.status });
 };
 
-const markProcessed = async (id: string, provider: string, type: string): Promise<boolean> => {
-  const { count } = await prisma.billingEvent.createMany({ data: [{ id, provider, type }], skipDuplicates: true });
-  return count === 1;
+// Marqué après application : si la base tombe entre les deux, le renvoi du prestataire rejoue l'événement.
+const alreadyProcessed = async (id: string): Promise<boolean> =>
+  Boolean(await prisma.billingEvent.findUnique({ where: { id }, select: { id: true } }));
+
+const markProcessed = async (id: string, provider: string, type: string): Promise<void> => {
+  await prisma.billingEvent.createMany({ data: [{ id, provider, type }], skipDuplicates: true });
 };
 
 const STRIPE_STATUS: Partial<Record<Stripe.Subscription.Status, SubscriptionState>> = {
   trialing: "trialing",
   active: "active",
   past_due: "past_due",
-  unpaid: "past_due",
+  // Relances épuisées : l'accès payant s'arrête, les données restent.
+  unpaid: "canceled",
+  paused: "canceled",
   canceled: "canceled",
   incomplete_expired: "canceled",
 };
@@ -239,26 +262,33 @@ const fromUnix = (seconds: number | null | undefined): Date | null => (seconds ?
 
 export const handleStripeEvent = async (event: Stripe.Event): Promise<void> => {
   if (!event.type.startsWith("customer.subscription.")) return;
-  if (!(await markProcessed(event.id, "stripe", event.type))) return;
-  const subscription = event.data.object as Stripe.Subscription;
+  if (await alreadyProcessed(event.id)) return;
+  const subscription = event.data.object as Stripe.Subscription & { current_period_end?: number };
   const organizationId = subscription.metadata.organizationId;
   if (!organizationId) {
+    // Le compte Stripe peut porter d'autres produits : cet abonnement n'est pas le nôtre.
     log.warn("stripe_subscription_without_organization");
     return;
   }
   const item = subscription.items.data[0];
   const plan = planForPriceId(item?.price.id);
   const status = STRIPE_STATUS[subscription.status];
-  if (!status || (!plan && status !== "canceled")) return;
-  await applySubscription({
-    organizationId,
-    plan: plan ?? "discovery",
-    status,
-    provider: "stripe",
-    providerRef: subscription.id,
-    currentPeriodEnd: fromUnix(item?.current_period_end),
-    cancelAt: fromUnix(subscription.cancel_at),
-  });
+  const current = await prisma.subscription.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } });
+  // La fin d'un ancien abonnement ne doit pas faire retomber l'offre qui l'a remplacé.
+  const stale = status === "canceled" && current?.providerRef && current.providerRef !== subscription.id;
+  if (status && (plan || status === "canceled") && !stale) {
+    await applySubscription({
+      organizationId,
+      plan: plan ?? "discovery",
+      status,
+      provider: "stripe",
+      providerRef: subscription.id,
+      // Selon la version d'API du compte, la date est sur l'abonnement ou sur la ligne.
+      currentPeriodEnd: fromUnix(item?.current_period_end ?? subscription.current_period_end),
+      cancelAt: fromUnix(subscription.cancel_at),
+    });
+  }
+  await markProcessed(event.id, "stripe", event.type);
 };
 
 type RevenueCatEvent = {
@@ -280,11 +310,15 @@ const planForProduct = (productId: string | undefined): PlanKey | null => {
 
 // L'identifiant RevenueCat est celui de l'organisation : l'abonnement appartient à l'espace (§ 17.1).
 export const handleRevenueCatEvent = async (event: RevenueCatEvent): Promise<void> => {
-  if (!(await markProcessed(event.id, "revenuecat", event.type))) return;
+  if (await alreadyProcessed(event.id)) return;
   const organizationId = event.app_user_id.startsWith("org_") ? event.app_user_id.slice(4) : null;
-  if (!organizationId) return;
-  const org = await prisma.organization.findUnique({ where: { id: organizationId }, select: { id: true } });
-  if (!org) return;
+  const org = organizationId
+    ? await prisma.organization.findUnique({ where: { id: organizationId }, select: { id: true } })
+    : null;
+  if (!organizationId || !org) {
+    await markProcessed(event.id, "revenuecat", event.type);
+    return;
+  }
   const plan = planForProduct(event.product_id);
   const periodEnd = event.expiration_at_ms ? new Date(event.expiration_at_ms) : null;
   const base = {
@@ -318,6 +352,19 @@ export const handleRevenueCatEvent = async (event: RevenueCatEvent): Promise<voi
       break;
     default:
       break;
+  }
+  await markProcessed(event.id, "revenuecat", event.type);
+};
+
+// Le compte disparaît : l'abonnement web s'arrête tout de suite, sinon le client paierait pour rien.
+export const cancelStripeSubscriptions = async (organizationIds: string[]): Promise<void> => {
+  if (organizationIds.length === 0 || !billingEnabled()) return;
+  const subscriptions = await prisma.subscription.findMany({
+    where: { organizationId: { in: organizationIds }, provider: "stripe", status: { not: "canceled" } },
+    select: { providerRef: true },
+  });
+  for (const { providerRef } of subscriptions) {
+    if (providerRef) await stripe().subscriptions.cancel(providerRef);
   }
 };
 
@@ -434,17 +481,54 @@ const referrerBeneficiary = async (ownerType: "user" | "organization", ownerId: 
   return membership?.organization.ownerId ?? null;
 };
 
-// Conservation vidéo des offres limitées. Le coach en est prévenu sur la page des tarifs.
+const PURGE_NOTICE_DAYS = 14;
+const DAY_MS = 86400 * 1000;
+
+// Le propriétaire est prévenu par e-mail ; rien ne part avant la fin du préavis annoncé par les CGV.
+const purgeNoticeServed = async (
+  organizationId: string,
+  name: string,
+  ownerEmail: string,
+  now: Date,
+): Promise<boolean> => {
+  const notice = await prisma.auditLog.findFirst({
+    where: { organizationId, action: "video_purge_notice" },
+    orderBy: { at: "desc" },
+  });
+  const age = notice ? now.getTime() - notice.at.getTime() : null;
+  if (age === null || age > 3 * PURGE_NOTICE_DAYS * DAY_MS) {
+    await prisma.auditLog.create({
+      data: { organizationId, action: "video_purge_notice", entity: "video", at: now },
+    });
+    const body = m.billing.purgeNotice(PURGE_NOTICE_DAYS);
+    await sendEmail({
+      to: ownerEmail,
+      subject: `Vidéos de ${name} : fin de conservation`,
+      react: createElement(NotificationEmail, {
+        title: "Fin de conservation de vidéos",
+        body,
+        url: `${env().NEXT_PUBLIC_APP_URL}/videos?espace=${organizationId}`,
+      }),
+    }).catch(() => log.error("purge_notice_email_failed"));
+    return false;
+  }
+  return age >= PURGE_NOTICE_DAYS * DAY_MS;
+};
+
+// Conservation vidéo : coût maîtrisé (§ 17.1), après préavis.
 export const purgeExpiredVideos = async (now: Date = new Date()): Promise<number> => {
   const orgs = await prisma.organization.findMany({
-    where: { plan: { in: ["discovery", "coach"] } },
-    select: { id: true, plan: true },
+    where: { plan: { in: ["discovery", "coach", "club"] } },
+    select: { id: true, name: true, plan: true, owner: { select: { email: true } } },
   });
   let purged = 0;
   for (const org of orgs) {
     const days = PLANS[org.plan].limits.videoRetentionDays;
     if (days === null) continue;
-    const before = new Date(now.getTime() - days * 86400 * 1000);
+    const before = new Date(now.getTime() - days * DAY_MS);
+    const soon = new Date(before.getTime() + PURGE_NOTICE_DAYS * DAY_MS);
+    const expiring = await prisma.video.count({ where: { organizationId: org.id, createdAt: { lt: soon } } });
+    if (expiring === 0 || !(await purgeNoticeServed(org.id, org.name, org.owner.email, now))) continue;
     const videos = await prisma.video.findMany({
       where: { organizationId: org.id, createdAt: { lt: before } },
       select: { id: true, muxAssetId: true },

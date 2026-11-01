@@ -30,7 +30,11 @@ const ensureProduct = async (id: string, name: string, description: string) => {
   }
 };
 
-const coach = await ensureProduct("tartan_coach", "Tartan Coach", "Jusqu'à 30 athlètes, groupes illimités, vidéo étendue.");
+const coach = await ensureProduct(
+  "tartan_coach",
+  "Tartan Coach",
+  "Jusqu'à 30 athlètes, groupes illimités, vidéo étendue.",
+);
 const club = await ensureProduct("tartan_club", "Tartan Club", "Plusieurs coachs, athlètes et vidéo illimités.");
 const prices = {
   STRIPE_PRICE_COACH_MONTH: await ensurePrice("tartan_coach_month", coach, PLANS.coach.prices?.month ?? 0, "month"),
@@ -59,8 +63,16 @@ const portalParams = {
       default_allowed_updates: ["price"] as const,
       proration_behavior: "create_prorations" as const,
       products: [
-        { product: coach, prices: [prices.STRIPE_PRICE_COACH_MONTH, prices.STRIPE_PRICE_COACH_YEAR] },
-        { product: club, prices: [prices.STRIPE_PRICE_CLUB_MONTH, prices.STRIPE_PRICE_CLUB_YEAR] },
+        {
+          product: coach,
+          prices: [prices.STRIPE_PRICE_COACH_MONTH, prices.STRIPE_PRICE_COACH_YEAR],
+          adjustable_quantity: { enabled: false },
+        },
+        {
+          product: club,
+          prices: [prices.STRIPE_PRICE_CLUB_MONTH, prices.STRIPE_PRICE_CLUB_YEAR],
+          adjustable_quantity: { enabled: false },
+        },
       ],
     },
   },
@@ -78,10 +90,16 @@ if (!hooks.data.some((h) => h.url === webhookUrl)) {
   const hook = await client.webhookEndpoints.create({
     url: webhookUrl,
     description: "Tartan",
+    // Version fixée : le contenu des événements ne doit pas dépendre du réglage du compte.
+    api_version: "2025-03-31.basil",
     enabled_events: ["customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"],
   });
   webhookSecret = hook.secret ?? null;
 }
 
-const out = { ...prices, STRIPE_PORTAL_CONFIGURATION_ID: portal.id, ...(webhookSecret ? { STRIPE_WEBHOOK_SECRET: webhookSecret } : {}) };
+const out = {
+  ...prices,
+  STRIPE_PORTAL_CONFIGURATION_ID: portal.id,
+  ...(webhookSecret ? { STRIPE_WEBHOOK_SECRET: webhookSecret } : {}),
+};
 for (const [name, value] of Object.entries(out)) console.log(`${name}=${value}`);

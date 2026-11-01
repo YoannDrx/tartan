@@ -37,7 +37,8 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
   },
   club: {
     key: "club",
-    limits: { maxAthletes: null, maxGroups: null, maxCoaches: null, maxVideosPerMonth: null, videoRetentionDays: null },
+    // La vidéo est le coût variable (§ 17.1) : l'offre Club a un plafond large, jamais une dépense sans limite.
+    limits: { maxAthletes: null, maxGroups: null, maxCoaches: null, maxVideosPerMonth: 500, videoRetentionDays: 1095 },
     prices: { month: 5900, year: 59000 },
   },
 };

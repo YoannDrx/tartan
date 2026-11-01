@@ -21,6 +21,7 @@ import { Logo } from "@/components/logo";
 import { Select } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import { InstallBanner } from "./install-banner";
+import { SatisfactionQuestion } from "./satisfaction";
 import { switchSpaceAction } from "./shell.action";
 
 type Item = { href: string; label: string; icon: LucideIcon; mobile: boolean };
@@ -79,11 +80,13 @@ export const AppShell = ({
   staff,
   spaces,
   space,
+  askSatisfaction = false,
   children,
 }: {
   staff: boolean;
   spaces: SpaceSummary[];
   space: SpaceSummary;
+  askSatisfaction?: boolean;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -143,6 +146,7 @@ export const AppShell = ({
 
       <main className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pb-8 pt-5 desktop:px-6 desktop:pt-8">
         <InstallBanner />
+        {askSatisfaction ? <SatisfactionQuestion /> : null}
         <div>{children}</div>
       </main>
 

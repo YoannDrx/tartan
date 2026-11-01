@@ -2,6 +2,7 @@ import { revokeAppleToken } from "@/lib/apple";
 import { log } from "@/lib/logger";
 import { deleteAsset, videoEnabled } from "@/lib/mux";
 import { prisma } from "@/lib/prisma";
+import { cancelStripeSubscriptions } from "./billing.service";
 import { audit } from "./access";
 
 // Suppression réelle du compte et de ses données, contenus créés compris (Apple 5.1.1(v), § 15.4).
@@ -32,6 +33,7 @@ export const deleteAccount = async (userId: string): Promise<void> => {
   // Espace repris par le plus ancien autre coach ; sans autre coach, l'espace disparaît avec ses données.
   const orgsToDelete = owned.filter((o) => o.members.length === 0).map((o) => o.id);
   const transfers = owned.filter((o) => o.members.length > 0);
+  await cancelStripeSubscriptions(orgsToDelete);
 
   const assets = await prisma.video.findMany({
     where: {

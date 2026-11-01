@@ -7,7 +7,9 @@ import { uuid } from "@tartan/contracts";
 import { forbidden } from "@/lib/errors";
 import { authAction } from "@/lib/safe-action";
 import { listSpaces } from "@/server/me.service";
+import { answerSatisfaction } from "@/server/satisfaction.service";
 import { SPACE_COOKIE } from "./space";
+import { spaceAction } from "./space-action";
 
 export const switchSpaceAction = authAction
   .inputSchema(z.object({ organizationId: uuid }))
@@ -23,4 +25,10 @@ export const switchSpaceAction = authAction
       path: "/",
     });
     revalidatePath("/", "layout");
+  });
+
+export const answerSatisfactionAction = spaceAction
+  .inputSchema(z.object({ recommend: z.boolean(), comment: z.string().trim().max(1000).optional() }))
+  .action(async ({ parsedInput, ctx }) => {
+    await answerSatisfaction(ctx.userId, ctx.organizationId, parsedInput);
   });

@@ -23,6 +23,8 @@ const schema = z.object({
   // Ouverture commerciale : « closed » réserve la création d'espace coach à la liste ci-dessous.
   COACH_SIGNUP_MODE: z.enum(["closed", "public"]).default("closed"),
   COACH_SIGNUP_EMAILS: z.string().default(""),
+  // Accès à la console de l'éditeur.
+  ADMIN_EMAILS: z.string().default(""),
   MUX_TOKEN_ID: optional,
   MUX_TOKEN_SECRET: optional,
   MUX_WEBHOOK_SECRET: optional,

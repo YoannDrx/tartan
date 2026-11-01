@@ -8,7 +8,7 @@ Niveau de preuve de chaque constat :
 - **[relu]** : signalé par une relecture indépendante du code, sans exécution. À reproduire avant correction.
 - **[appareil]** : impossible à trancher sans un vrai téléphone.
 
-> **Mise à jour.** Les phases 0, 1 et 2 sont déployées, vente coupée : voir les § 13 et § 14. Les constats ci-dessous décrivent l'état avant ces déploiements.
+> **Mise à jour.** Les phases 0, 1 et 2 sont déployées, vente coupée : voir les § 13, § 14 et § 15. Les constats ci-dessous décrivent l'état avant ces déploiements.
 
 ## 1. Verdict
 
@@ -23,33 +23,33 @@ Niveau de preuve de chaque constat :
 
 ### Contrôles lancés
 
-| Contrôle | Résultat |
-| --- | --- |
-| Types web et mobile | sans erreur |
-| Lint web | 0 erreur, 4 avertissements |
-| Tests `domain` | 50 sur 50 |
-| Tests web, sur Postgres réel | 107 sur 107 |
-| Tests mobile | 54 sur 54 |
-| Détecteur de travers `design:check` | 0 |
-| Playwright sur build de production | 21 réussis, 7 ignorés |
-| Preuve de concept vidéo web, en développement | réussie |
+| Contrôle                                      | Résultat                   |
+| --------------------------------------------- | -------------------------- |
+| Types web et mobile                           | sans erreur                |
+| Lint web                                      | 0 erreur, 4 avertissements |
+| Tests `domain`                                | 50 sur 50                  |
+| Tests web, sur Postgres réel                  | 107 sur 107                |
+| Tests mobile                                  | 54 sur 54                  |
+| Détecteur de travers `design:check`           | 0                          |
+| Playwright sur build de production            | 21 réussis, 7 ignorés      |
+| Preuve de concept vidéo web, en développement | réussie                    |
 
 **Limite de ces chiffres :** le parcours complet simule déjà l'athlète sur téléphone, mais le coach seulement sur ordinateur. Rien ne vérifie le coach au bord de la piste, ni un vrai navigateur iPhone. Aucun test ne couvre le paiement réel.
 
 ## 2. Production et services
 
-| Service | État réel | Conséquence | Preuve |
-| --- | --- | --- | --- |
-| Vercel | Plan Pro, `ed209ae` déployé | Le plan permet l'usage commercial et le cron horaire | [vu] |
-| Webhook Mux | 837 erreurs en 7 h : le secret a été ajouté après le dernier déploiement | La vidéo ne marche pas en production avant un redéploiement | [vu] |
-| Mux | **Offre gratuite : 10 vidéos au plus**, logo Mux sur le lecteur | Inutilisable pour le pilote. Il faut ajouter une carte | [vu] |
-| Neon | **Offre gratuite** : restauration sur 6 h, 1 Go, 0,25 CU, mise en veille | Le § 15.5 (sauvegardes quotidiennes, restauration testée) n'est pas tenu | [vu] |
-| Base de production | 1 compte, 1 espace, 0 athlète. Migrations `offres_payantes` et `video_etiree` non appliquées | Sans risque aujourd'hui, à appliquer au déploiement | [vu] |
-| Resend, DNS, domaines | En place | `www.tartan.coach` sert la page au lieu de rediriger vers le domaine nu | [vu] |
-| Apple et Google (connexion) | Variables absentes en production | Boutons masqués | [vu] |
-| Blob, RevenueCat produits | Variables absentes | Pas de photo de profil, pas d'achat intégré | [vu] |
-| Suivi d'erreurs | Rien, à part les journaux Vercel | Les 837 erreurs ont passé 7 h sans alerte | [vu] |
-| Fichiers de liens d'app | Servis, mais `TEAMID` fictif et empreintes vides | Liens universels inactifs | [relu] |
+| Service                     | État réel                                                                                    | Conséquence                                                              | Preuve |
+| --------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------ |
+| Vercel                      | Plan Pro, `ed209ae` déployé                                                                  | Le plan permet l'usage commercial et le cron horaire                     | [vu]   |
+| Webhook Mux                 | 837 erreurs en 7 h : le secret a été ajouté après le dernier déploiement                     | La vidéo ne marche pas en production avant un redéploiement              | [vu]   |
+| Mux                         | **Offre gratuite : 10 vidéos au plus**, logo Mux sur le lecteur                              | Inutilisable pour le pilote. Il faut ajouter une carte                   | [vu]   |
+| Neon                        | **Offre gratuite** : restauration sur 6 h, 1 Go, 0,25 CU, mise en veille                     | Le § 15.5 (sauvegardes quotidiennes, restauration testée) n'est pas tenu | [vu]   |
+| Base de production          | 1 compte, 1 espace, 0 athlète. Migrations `offres_payantes` et `video_etiree` non appliquées | Sans risque aujourd'hui, à appliquer au déploiement                      | [vu]   |
+| Resend, DNS, domaines       | En place                                                                                     | `www.tartan.coach` sert la page au lieu de rediriger vers le domaine nu  | [vu]   |
+| Apple et Google (connexion) | Variables absentes en production                                                             | Boutons masqués                                                          | [vu]   |
+| Blob, RevenueCat produits   | Variables absentes                                                                           | Pas de photo de profil, pas d'achat intégré                              | [vu]   |
+| Suivi d'erreurs             | Rien, à part les journaux Vercel                                                             | Les 837 erreurs ont passé 7 h sans alerte                                | [vu]   |
+| Fichiers de liens d'app     | Servis, mais `TEAMID` fictif et empreintes vides                                             | Liens universels inactifs                                                | [relu] |
 
 ## 3. Stripe : pas correctement configuré
 
@@ -61,57 +61,57 @@ Niveau de preuve de chaque constat :
 
 ### Ce qui ne va pas
 
-| # | Défaut | Conséquence | Preuve |
-| --- | --- | --- | --- |
-| S1 | La clé secrète de production est encore la clé **de test** du bac à sable Moodday. La clé réelle n'a pas été créée : Stripe attendait ta validation Touch ID | Prix réels et clé de test : tout paiement échouerait après le déploiement | [vu] |
-| S2 | Le webhook reçoit la version d'API `2022-11-15` du compte, alors que le code lit `items.data[0].current_period_end`, champ de versions récentes | Date de fin d'abonnement vide en production. Les tests ne le voient pas | [vu] |
-| S3 | Le portail autorise le changement de quantité | Un client peut acheter 3 × Coach | [vu] |
-| S4 | Aucun pied de facture : pas de mention « TVA non applicable, art. 293 B » ni d'identité Yodev | Factures non conformes | [vu] |
-| S5 | Nom public du compte : **Pressay**, relevé bancaire : YOANN ANDRIEUX | Seule la page de paiement affiche Tartan. Reçus, factures et relevés non | [vu] |
-| S6 | « Choisir Club » alors qu'un abonnement existe en crée un second | Double prélèvement, puis repli en Découverte à la fin de l'ancien | [vu] |
-| S7 | L'événement est marqué traité avant d'être appliqué | Une erreur de base fait perdre l'abonnement : le renvoi est ignoré | [vu] |
-| S8 | Supprimer son compte ne résilie pas l'abonnement | Le client continue de payer un service disparu | [vu] |
-| S9 | Produits et webhook de test restés dans le bac à sable Moodday, webhook pointant vers la production | Pollution, à nettoyer | [vu] |
-| S10 | Statut `unpaid` : l'offre reste active sans fin ; mois offert du parrainage seulement sur Stripe | Abus possible, promesse partielle | [relu] |
-| S11 | Aucun paiement de bout en bout n'a été joué | Rien ne prouve que le circuit marche | [vu] |
+| #   | Défaut                                                                                                                                                       | Conséquence                                                               | Preuve |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | ------ |
+| S1  | La clé secrète de production est encore la clé **de test** du bac à sable Moodday. La clé réelle n'a pas été créée : Stripe attendait ta validation Touch ID | Prix réels et clé de test : tout paiement échouerait après le déploiement | [vu]   |
+| S2  | Le webhook reçoit la version d'API `2022-11-15` du compte, alors que le code lit `items.data[0].current_period_end`, champ de versions récentes              | Date de fin d'abonnement vide en production. Les tests ne le voient pas   | [vu]   |
+| S3  | Le portail autorise le changement de quantité                                                                                                                | Un client peut acheter 3 × Coach                                          | [vu]   |
+| S4  | Aucun pied de facture : pas de mention « TVA non applicable, art. 293 B » ni d'identité Yodev                                                                | Factures non conformes                                                    | [vu]   |
+| S5  | Nom public du compte : **Pressay**, relevé bancaire : YOANN ANDRIEUX                                                                                         | Seule la page de paiement affiche Tartan. Reçus, factures et relevés non  | [vu]   |
+| S6  | « Choisir Club » alors qu'un abonnement existe en crée un second                                                                                             | Double prélèvement, puis repli en Découverte à la fin de l'ancien         | [vu]   |
+| S7  | L'événement est marqué traité avant d'être appliqué                                                                                                          | Une erreur de base fait perdre l'abonnement : le renvoi est ignoré        | [vu]   |
+| S8  | Supprimer son compte ne résilie pas l'abonnement                                                                                                             | Le client continue de payer un service disparu                            | [vu]   |
+| S9  | Produits et webhook de test restés dans le bac à sable Moodday, webhook pointant vers la production                                                          | Pollution, à nettoyer                                                     | [vu]   |
+| S10 | Statut `unpaid` : l'offre reste active sans fin ; mois offert du parrainage seulement sur Stripe                                                             | Abus possible, promesse partielle                                         | [relu] |
+| S11 | Aucun paiement de bout en bout n'a été joué                                                                                                                  | Rien ne prouve que le circuit marche                                      | [vu]   |
 
 ## 4. Failles à corriger avant tout utilisateur extérieur
 
-| # | Gravité | Scénario | Preuve |
-| --- | --- | --- | --- |
-| F1 | Élevée | E-mail jamais vérifié : un tiers s'inscrit avec une adresse de la liste du pilote et obtient un espace gratuit, puis garde son mot de passe quand le vrai titulaire arrive par Google | [vu] `src/lib/auth.ts` |
-| F2 | Élevée | Date de naissance laissée vide : un enfant de 13 ans consent seul, sans parent. Point juridique du § 15.3 | [vu] `accept-form.tsx`, `invitation.service.ts` |
-| F3 | Moyenne | Un adjoint du groupe A passe `athleteId` et lit les vidéos du groupe B : le filtre écrase le contrôle | [vu] `video.service.ts`, `listVideos` |
-| F4 | Moyenne | Un athlète lit via `/sessions/:id/coach` une séance de l'espace qui ne lui est pas attribuée | [relu] `tracking.service.ts` |
-| F5 | Moyenne | Consentement vidéo révoqué : la lecture et le partage continuent | [relu] `video.service.ts` |
-| F6 | Moyenne | Hors ligne, session expirée : la validation en file est effacée sans prévenir | [relu] `validation-queue.ts` |
-| F7 | Moyenne | Compte à la fois coach et athlète : le lien de la notification ouvre la mauvaise page | [relu] `notify.service.ts` |
-| F8 | Moyenne | Après déconnexion, l'appareil reçoit encore les notifications | [relu] `notify.service.ts` |
-| F9 | Moyenne | La feuille de barres de la fiche mélange tous les jours, et aucune vidéo web n'est rattachée à la séance | [relu] `video.service.ts` |
-| F10 | Faible | Invitations de coachs hors limite, push échoué marqué envoyé, pas de limite de débit sur commentaires et signalements | [relu] |
+| #   | Gravité | Scénario                                                                                                                                                                              | Preuve                                          |
+| --- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| F1  | Élevée  | E-mail jamais vérifié : un tiers s'inscrit avec une adresse de la liste du pilote et obtient un espace gratuit, puis garde son mot de passe quand le vrai titulaire arrive par Google | [vu] `src/lib/auth.ts`                          |
+| F2  | Élevée  | Date de naissance laissée vide : un enfant de 13 ans consent seul, sans parent. Point juridique du § 15.3                                                                             | [vu] `accept-form.tsx`, `invitation.service.ts` |
+| F3  | Moyenne | Un adjoint du groupe A passe `athleteId` et lit les vidéos du groupe B : le filtre écrase le contrôle                                                                                 | [vu] `video.service.ts`, `listVideos`           |
+| F4  | Moyenne | Un athlète lit via `/sessions/:id/coach` une séance de l'espace qui ne lui est pas attribuée                                                                                          | [relu] `tracking.service.ts`                    |
+| F5  | Moyenne | Consentement vidéo révoqué : la lecture et le partage continuent                                                                                                                      | [relu] `video.service.ts`                       |
+| F6  | Moyenne | Hors ligne, session expirée : la validation en file est effacée sans prévenir                                                                                                         | [relu] `validation-queue.ts`                    |
+| F7  | Moyenne | Compte à la fois coach et athlète : le lien de la notification ouvre la mauvaise page                                                                                                 | [relu] `notify.service.ts`                      |
+| F8  | Moyenne | Après déconnexion, l'appareil reçoit encore les notifications                                                                                                                         | [relu] `notify.service.ts`                      |
+| F9  | Moyenne | La feuille de barres de la fiche mélange tous les jours, et aucune vidéo web n'est rattachée à la séance                                                                              | [relu] `video.service.ts`                       |
+| F10 | Faible  | Invitations de coachs hors limite, push échoué marqué envoyé, pas de limite de débit sur commentaires et signalements                                                                 | [relu]                                          |
 
 Point sain [relu] : aucune requête Prisma hors des services, webhooks signés, cron protégé, santé masquée dans la grille, le CSV et les notifications.
 
 ## 5. Couverture du cahier
 
-| Module | V1 du pilote | Écarts |
-| --- | --- | --- |
-| M1 Comptes | OK | Langue absente du profil. Apple et Google à configurer |
-| M2 Organisations | Partiel | Disciplines figées, **logo absent**. Coachs multiples OK |
-| M3 Fiche athlète | OK | Objectifs en texte libre. Courbes (V2) absentes |
-| M4 Exercices | Partiel | Envoi de vidéo coach sans progression ni erreur. Bibliothèque réelle à remplir avec ton frère |
-| M5 Séances | OK | Volume calculé (V2) seulement dans les statistiques |
-| M6 Calendrier | Partiel | Glisser-déposer à la souris, repli « Déplacer » au doigt. Saison (V2) absente |
-| M7 Athlète | Partiel | Présence depuis la notification : ouvre une page, sans bouton, sur le web. Bilan du matin (V2) absent |
-| M8 Suivi | OK | PDF (V2) absent |
-| M9 Charge | V2 partielle | Statistiques de saut absentes |
-| M10 Vidéo | Partiel | Voir ci-dessous. Dessin et comparaison (V2) absents |
-| M11 Communication | Partiel | Signalements enregistrés, **lus par personne**, vidéo non signalable (§ 16.2) |
-| M12 Notifications | Partiel | Regroupement absent, alerte « 2 manquées » sans push, préférences (V2) absentes |
-| M13 Disciplines | Hauteur OK | Longueur, sprint (V2) absents |
-| M14 Réglages | Partiel | Visibilité du profil absente. Anglais (V2) absent |
-| RGPD | Partiel | Journal d'accès santé limité à la fiche, accord parental sans renvoi, registre et contrats à faire |
-| Mesures d'usage | Partiel | Script à la main par espace. MRR, désabonnement et satisfaction absents |
+| Module            | V1 du pilote | Écarts                                                                                                |
+| ----------------- | ------------ | ----------------------------------------------------------------------------------------------------- |
+| M1 Comptes        | OK           | Langue absente du profil. Apple et Google à configurer                                                |
+| M2 Organisations  | Partiel      | Disciplines figées, **logo absent**. Coachs multiples OK                                              |
+| M3 Fiche athlète  | OK           | Objectifs en texte libre. Courbes (V2) absentes                                                       |
+| M4 Exercices      | Partiel      | Envoi de vidéo coach sans progression ni erreur. Bibliothèque réelle à remplir avec ton frère         |
+| M5 Séances        | OK           | Volume calculé (V2) seulement dans les statistiques                                                   |
+| M6 Calendrier     | Partiel      | Glisser-déposer à la souris, repli « Déplacer » au doigt. Saison (V2) absente                         |
+| M7 Athlète        | Partiel      | Présence depuis la notification : ouvre une page, sans bouton, sur le web. Bilan du matin (V2) absent |
+| M8 Suivi          | OK           | PDF (V2) absent                                                                                       |
+| M9 Charge         | V2 partielle | Statistiques de saut absentes                                                                         |
+| M10 Vidéo         | Partiel      | Voir ci-dessous. Dessin et comparaison (V2) absents                                                   |
+| M11 Communication | Partiel      | Signalements enregistrés, **lus par personne**, vidéo non signalable (§ 16.2)                         |
+| M12 Notifications | Partiel      | Regroupement absent, alerte « 2 manquées » sans push, préférences (V2) absentes                       |
+| M13 Disciplines   | Hauteur OK   | Longueur, sprint (V2) absents                                                                         |
+| M14 Réglages      | Partiel      | Visibilité du profil absente. Anglais (V2) absent                                                     |
+| RGPD              | Partiel      | Journal d'accès santé limité à la fiche, accord parental sans renvoi, registre et contrats à faire    |
+| Mesures d'usage   | Partiel      | Script à la main par espace. MRR, désabonnement et satisfaction absents                               |
 
 Détail [relu]. Les écarts V2 déjà présents ou absents ne bloquent pas le pilote.
 
@@ -131,15 +131,15 @@ Restent :
 
 **C'est faisable à court terme, et c'est prévu par le cahier (§ 10.1, § 16.3 étape 4).** Athlète et coach peuvent déjà, en ligne, au téléphone : de l'invitation à la première validation, consentements et accord parental, mode séance, appel, relance, import vidéo. [relu] Ce n'est pas encore en ligne, et ça n'a jamais été essayé sur un vrai téléphone.
 
-| Besoin | Aujourd'hui | À faire |
-| --- | --- | --- |
-| Être en ligne | `ed209ae` | Déployer (phase 1) |
-| Coach | Compte créé, puis « Tartan ouvre bientôt » s'il n'est pas sur la liste | Ajouter chaque coach à la liste, ou ouvrir |
-| Installation | Manifeste présent, aucun guide | Guide d'installation après l'invitation, adapté à iPhone et Android |
-| Hors ligne | **`sw.js` ne fait que le push : au stade sans réseau, aucune page ne s'ouvre** | Coquille en cache, 7 jours de séances, file persistante |
-| File locale | Validations seulement, page ouverte | Présence, appel, essais, commentaires, en IndexedDB |
-| Notifications | Activables dans Réglages seulement | Demande après l'invitation, attente de `serviceWorker.ready`, repli si `Notification` est absent |
-| Vidéo | Sélecteur système, envoi sans reprise après fermeture | File persistante, reprise, rattachement à la séance |
+| Besoin        | Aujourd'hui                                                                    | À faire                                                                                          |
+| ------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Être en ligne | `ed209ae`                                                                      | Déployer (phase 1)                                                                               |
+| Coach         | Compte créé, puis « Tartan ouvre bientôt » s'il n'est pas sur la liste         | Ajouter chaque coach à la liste, ou ouvrir                                                       |
+| Installation  | Manifeste présent, aucun guide                                                 | Guide d'installation après l'invitation, adapté à iPhone et Android                              |
+| Hors ligne    | **`sw.js` ne fait que le push : au stade sans réseau, aucune page ne s'ouvre** | Coquille en cache, 7 jours de séances, file persistante                                          |
+| File locale   | Validations seulement, page ouverte                                            | Présence, appel, essais, commentaires, en IndexedDB                                              |
+| Notifications | Activables dans Réglages seulement                                             | Demande après l'invitation, attente de `serviceWorker.ready`, repli si `Notification` est absent |
+| Vidéo         | Sélecteur système, envoi sans reprise après fermeture                          | File persistante, reprise, rattachement à la séance                                              |
 
 ### Ce que le web ne fera jamais aussi bien que l'app
 
@@ -149,14 +149,14 @@ Restent :
 
 ## 7. Design : la réponse honnête
 
-| Surface | État | Preuve |
-| --- | --- | --- |
-| Écrans web existants | Passe faite avec les trois skills, axe sans violation sur 3 largeurs, **mais une passe globale, pas les 5 étapes écran par écran du § 9.12** | Rapport de l'agent |
-| Écrans web écrits ensuite : tarifs, abonnement, mot de passe, membres, retrait d'athlète, charge, CSV, publication programmée | **Aucun skill.** Seuls tarifs, abonnement, suivi, réglages et Aujourd'hui ont été regardés en capture : le rendu tient | [vu] |
-| App mobile | **Ni validée ni terminée.** L'agent s'est arrêté avant de rendre son rapport | [vu] |
-| Vrais Safari, iPhone, Android | Jamais vérifié, alors que le § 9.11 l'exige | [vu] |
-| Tableau de bord d'administration | **N'existe pas.** Le cahier n'en demande pas ; il cite juste « un administrateur » (§ 12.6) | [vu] |
-| Production | Encore l'ancien design | [vu] |
+| Surface                                                                                                                       | État                                                                                                                                         | Preuve             |
+| ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| Écrans web existants                                                                                                          | Passe faite avec les trois skills, axe sans violation sur 3 largeurs, **mais une passe globale, pas les 5 étapes écran par écran du § 9.12** | Rapport de l'agent |
+| Écrans web écrits ensuite : tarifs, abonnement, mot de passe, membres, retrait d'athlète, charge, CSV, publication programmée | **Aucun skill.** Seuls tarifs, abonnement, suivi, réglages et Aujourd'hui ont été regardés en capture : le rendu tient                       | [vu]               |
+| App mobile                                                                                                                    | **Ni validée ni terminée.** L'agent s'est arrêté avant de rendre son rapport                                                                 | [vu]               |
+| Vrais Safari, iPhone, Android                                                                                                 | Jamais vérifié, alors que le § 9.11 l'exige                                                                                                  | [vu]               |
+| Tableau de bord d'administration                                                                                              | **N'existe pas.** Le cahier n'en demande pas ; il cite juste « un administrateur » (§ 12.6)                                                  | [vu]               |
+| Production                                                                                                                    | Encore l'ancien design                                                                                                                       | [vu]               |
 
 Écarts repérés : capitales au-dessus des sections (« ATHLÈTE », « AU PROGRAMME »), interdites par le § 9.11, et `window.confirm` natif pour certaines suppressions. Le détecteur en CI est un script maison, là où le § 9.12 prévoit celui d'Impeccable.
 
@@ -174,15 +174,15 @@ Restent :
 
 ## 9. Coûts à prévoir
 
-| Poste | Montant | Quand |
-| --- | --- | --- |
-| Neon Launch | Sans minimum, environ 15 $/mois pour une petite base, restauration jusqu'à 7 jours ([Neon](https://neon.com/pricing)) | Phase 1 |
-| Mux à l'usage | Carte requise, 20 $ de crédit mensuel et 100 000 minutes de lecture offertes ([Mux](https://www.mux.com/docs/changelog/video-free-plan)) | Phase 1 |
-| Vercel Pro | Déjà payé | |
-| Apple Developer | 99 $/an (§ 16.1, à vérifier) | Phase 5 |
-| Google Play | 25 $ une fois (§ 16.1, à vérifier) | Phase 5 |
-| Médiateur CM2C | 48 € pour 3 ans, 36 € par litige ([CM2C](https://www.cm2c.net/tarifs.php)) | Phase 6 |
-| Juriste ou DPO | À chiffrer | Phase 6 |
+| Poste           | Montant                                                                                                                                  | Quand   |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| Neon Launch     | Sans minimum, environ 15 $/mois pour une petite base, restauration jusqu'à 7 jours ([Neon](https://neon.com/pricing))                    | Phase 1 |
+| Mux à l'usage   | Carte requise, 20 $ de crédit mensuel et 100 000 minutes de lecture offertes ([Mux](https://www.mux.com/docs/changelog/video-free-plan)) | Phase 1 |
+| Vercel Pro      | Déjà payé                                                                                                                                |         |
+| Apple Developer | 99 $/an (§ 16.1, à vérifier)                                                                                                             | Phase 5 |
+| Google Play     | 25 $ une fois (§ 16.1, à vérifier)                                                                                                       | Phase 5 |
+| Médiateur CM2C  | 48 € pour 3 ans, 36 € par litige ([CM2C](https://www.cm2c.net/tarifs.php))                                                               | Phase 6 |
+| Juriste ou DPO  | À chiffrer                                                                                                                               | Phase 6 |
 
 **Coût vidéo, à vérifier sur la vraie facture :** stockage à partir de 0,0024 $/minute ([Mux](https://www.mux.com/docs/pricing/overview)). Un coach au maximum de l'offre (100 vidéos par mois, gardées 365 jours), avec des clips de 10 s à 240 i/s, stockerait 1 600 minutes, soit environ 3,84 $/mois, contre 0,48 $ sans étirement. Soutenable à 19 €, à condition d'un plafond de durée.
 
@@ -194,102 +194,102 @@ Légende du responsable : **C** moi, **T** toi, **F** ton frère.
 
 ### Phase 0 : remettre le dépôt d'équerre
 
-| Tâche | Qui | Effort | Terminé quand |
-| --- | --- | --- | --- |
-| Découper et commiter le travail local en commits lisibles, mobile à part | C | S | Arbre propre, CI verte |
-| Finir la vérification des écrans ajoutés, supprimer le code mort du mobile | C | S | Lint et types sans nouvel avertissement |
-| Remplacer `docs/lancement.md` par ce plan | C | S | Fait |
+| Tâche                                                                      | Qui | Effort | Terminé quand                           |
+| -------------------------------------------------------------------------- | --- | ------ | --------------------------------------- |
+| Découper et commiter le travail local en commits lisibles, mobile à part   | C   | S      | Arbre propre, CI verte                  |
+| Finir la vérification des écrans ajoutés, supprimer le code mort du mobile | C   | S      | Lint et types sans nouvel avertissement |
+| Remplacer `docs/lancement.md` par ce plan                                  | C   | S      | Fait                                    |
 
 ### Phase 1 : corriger et mettre en ligne sans vente
 
-| Tâche | Qui | Effort | Terminé quand |
-| --- | --- | --- | --- |
-| F1 : e-mail vérifié avant tout droit, inscription par mot de passe comprise | C | M | Test : adresse de la liste non vérifiée, pas d'espace pilote |
-| F2 : date de naissance obligatoire pour un athlète | C | S | Test : sans date, invitation refusée |
-| F3 à F5 : contrôles d'accès, reproduits d'abord par un test | C | M | Tests rouges puis verts |
-| F6 à F10 | C | M | Chaque scénario couvert ou écarté, avec preuve |
-| Couper la vente en production : retirer `STRIPE_PRICE_*` ou clé de test, `/tarifs` sans paiement | C | S | Aucun achat possible ; message clair |
-| Corriger les promesses du site, retirer sprint et haies | C | S | Texte conforme à l'existant |
-| Passer Neon en Launch, restauration 7 jours, et jouer une restauration | T puis C | S | Restauration testée sur une branche |
-| Ajouter une carte sur Mux | T | S | Plus de limite de 10 vidéos, plus de logo |
-| Sentry avec alerte (le § 14 le prévoit « si besoin » : les 837 erreurs le justifient) | C | S | Erreur de test reçue |
-| Déployer, appliquer les migrations, rediriger `www` | C | S | Webhook Mux sans erreur sur 24 h, vraie vidéo traitée |
-| Recette en production : lien magique, invitation, validation, vidéo signée | C | M | Parcours joué sur `app.tartan.coach` |
+| Tâche                                                                                            | Qui      | Effort | Terminé quand                                                |
+| ------------------------------------------------------------------------------------------------ | -------- | ------ | ------------------------------------------------------------ |
+| F1 : e-mail vérifié avant tout droit, inscription par mot de passe comprise                      | C        | M      | Test : adresse de la liste non vérifiée, pas d'espace pilote |
+| F2 : date de naissance obligatoire pour un athlète                                               | C        | S      | Test : sans date, invitation refusée                         |
+| F3 à F5 : contrôles d'accès, reproduits d'abord par un test                                      | C        | M      | Tests rouges puis verts                                      |
+| F6 à F10                                                                                         | C        | M      | Chaque scénario couvert ou écarté, avec preuve               |
+| Couper la vente en production : retirer `STRIPE_PRICE_*` ou clé de test, `/tarifs` sans paiement | C        | S      | Aucun achat possible ; message clair                         |
+| Corriger les promesses du site, retirer sprint et haies                                          | C        | S      | Texte conforme à l'existant                                  |
+| Passer Neon en Launch, restauration 7 jours, et jouer une restauration                           | T puis C | S      | Restauration testée sur une branche                          |
+| Ajouter une carte sur Mux                                                                        | T        | S      | Plus de limite de 10 vidéos, plus de logo                    |
+| Sentry avec alerte (le § 14 le prévoit « si besoin » : les 837 erreurs le justifient)            | C        | S      | Erreur de test reçue                                         |
+| Déployer, appliquer les migrations, rediriger `www`                                              | C        | S      | Webhook Mux sans erreur sur 24 h, vraie vidéo traitée        |
+| Recette en production : lien magique, invitation, validation, vidéo signée                       | C        | M      | Parcours joué sur `app.tartan.coach`                         |
 
 ### Phase 2 : la vraie web app (ton objectif)
 
-| Tâche | Qui | Effort | Terminé quand |
-| --- | --- | --- | --- |
-| Service worker : coquille, séances des 7 prochains jours, page hors ligne | C | L | Mode avion : séance du jour lisible |
-| File persistante en IndexedDB : validation, présence, appel, essais, commentaires ; session expirée sans perte | C | L | Valider hors ligne, fermer, revenir : la validation arrive |
-| Vidéo web : file persistante, reprise, progression, durée maximale, rattachement à la séance | C | L | Coupure pendant l'envoi : reprise sans perte |
-| Notifications web : demande après l'invitation, repli sans `Notification`, espace dans le lien, désinscription à la déconnexion | C | M | Reçue sur Android et sur iPhone installé |
-| Guide d'installation iPhone et Android, bandeau tant que ce n'est pas installé | C | M | Un athlète s'installe seul |
-| Repli e-mail si aucune notification n'est possible | C | M | Athlète sans push prévenu par e-mail |
-| Regroupement des séances publiées d'un coup, alerte « 2 manquées » | C | M | Une seule notification pour une semaine publiée |
-| Manifeste : icône adaptable, captures, raccourcis | C | S | Installation propre sur Android |
-| Parcours coach terrain sur profil téléphone (appel, relance, import vidéo), moteur WebKit compris | C | M | Parcours vert sur Chromium et WebKit mobiles |
-| Essai sur vrai iPhone et vrai Android d'entrée de gamme : ralenti, envoi, push | T, F, C | M | Compte rendu d'essai, § 5 et § 6 tranchés |
-| Signalement de vidéo et traitement des signalements | C | M | Signalement visible et traité |
-| Combler la V1 : logo, disciplines, envoi de vidéo coach avec progression | C | M | Écarts du § 5 fermés ou reportés |
+| Tâche                                                                                                                           | Qui     | Effort | Terminé quand                                              |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------- | ------ | ---------------------------------------------------------- |
+| Service worker : coquille, séances des 7 prochains jours, page hors ligne                                                       | C       | L      | Mode avion : séance du jour lisible                        |
+| File persistante en IndexedDB : validation, présence, appel, essais, commentaires ; session expirée sans perte                  | C       | L      | Valider hors ligne, fermer, revenir : la validation arrive |
+| Vidéo web : file persistante, reprise, progression, durée maximale, rattachement à la séance                                    | C       | L      | Coupure pendant l'envoi : reprise sans perte               |
+| Notifications web : demande après l'invitation, repli sans `Notification`, espace dans le lien, désinscription à la déconnexion | C       | M      | Reçue sur Android et sur iPhone installé                   |
+| Guide d'installation iPhone et Android, bandeau tant que ce n'est pas installé                                                  | C       | M      | Un athlète s'installe seul                                 |
+| Repli e-mail si aucune notification n'est possible                                                                              | C       | M      | Athlète sans push prévenu par e-mail                       |
+| Regroupement des séances publiées d'un coup, alerte « 2 manquées »                                                              | C       | M      | Une seule notification pour une semaine publiée            |
+| Manifeste : icône adaptable, captures, raccourcis                                                                               | C       | S      | Installation propre sur Android                            |
+| Parcours coach terrain sur profil téléphone (appel, relance, import vidéo), moteur WebKit compris                               | C       | M      | Parcours vert sur Chromium et WebKit mobiles               |
+| Essai sur vrai iPhone et vrai Android d'entrée de gamme : ralenti, envoi, push                                                  | T, F, C | M      | Compte rendu d'essai, § 5 et § 6 tranchés                  |
+| Signalement de vidéo et traitement des signalements                                                                             | C       | M      | Signalement visible et traité                              |
+| Combler la V1 : logo, disciplines, envoi de vidéo coach avec progression                                                        | C       | M      | Écarts du § 5 fermés ou reportés                           |
 
 ### Phase 3 : design, écran par écran
 
-| Tâche | Qui | Effort | Terminé quand |
-| --- | --- | --- | --- |
-| Registre des écrans : un fichier listant les 5 étapes du § 9.12 pour chacun, web et mobile | C | S | Tous les écrans listés |
-| Passer les écrans ajoutés dans les trois skills | C | L | Registre coché |
-| Repasser les écrans web existants avec les étapes manquantes, vrais Safari et iPhone | C | L | Registre coché |
-| Retirer les capitales de section, remplacer `window.confirm` | C | S | Écarts du § 7 fermés |
-| Brancher le détecteur d'Impeccable en CI, si son binaire s'y prête | C | S | Anti-pattern qui fait échouer la CI |
-| Test du rouge en plein soleil à la piste | F, T | S | Décision écrite, cahier et `DESIGN.md` alignés |
+| Tâche                                                                                      | Qui  | Effort | Terminé quand                                  |
+| ------------------------------------------------------------------------------------------ | ---- | ------ | ---------------------------------------------- |
+| Registre des écrans : un fichier listant les 5 étapes du § 9.12 pour chacun, web et mobile | C    | S      | Tous les écrans listés                         |
+| Passer les écrans ajoutés dans les trois skills                                            | C    | L      | Registre coché                                 |
+| Repasser les écrans web existants avec les étapes manquantes, vrais Safari et iPhone       | C    | L      | Registre coché                                 |
+| Retirer les capitales de section, remplacer `window.confirm`                               | C    | S      | Écarts du § 7 fermés                           |
+| Brancher le détecteur d'Impeccable en CI, si son binaire s'y prête                         | C    | S      | Anti-pattern qui fait échouer la CI            |
+| Test du rouge en plein soleil à la piste                                                   | F, T | S      | Décision écrite, cahier et `DESIGN.md` alignés |
 
 Le mobile suit la même passe en phase 5.
 
 ### Phase 4 : pilote, 6 semaines
 
-| Tâche | Qui | Effort | Terminé quand |
-| --- | --- | --- | --- |
-| Faire valider le cahier et répondre aux 8 questions du § 19.1 | T, F | S | Réponses écrites |
-| Saisir 30 à 50 exercices réels | F, C | M | Bibliothèque remplie |
-| Console éditeur minimale : espaces, indicateurs du § 18, signalements, accès réservé par liste d'adresses | C | M | Indicateurs lisibles sans SQL |
-| Ajouter ton frère à la liste, inviter le groupe, installer à la piste | T, F | S | Athlètes actifs |
-| Question de satisfaction mensuelle | C | S | Réponses enregistrées |
-| Point hebdomadaire, corrections | T, F, C | suivi | **Critère de sortie : plus de 70 % de validation après 4 semaines, 100 % des séances via Tartan (§ 18)** |
+| Tâche                                                                                                     | Qui     | Effort | Terminé quand                                                                                            |
+| --------------------------------------------------------------------------------------------------------- | ------- | ------ | -------------------------------------------------------------------------------------------------------- |
+| Faire valider le cahier et répondre aux 8 questions du § 19.1                                             | T, F    | S      | Réponses écrites                                                                                         |
+| Saisir 30 à 50 exercices réels                                                                            | F, C    | M      | Bibliothèque remplie                                                                                     |
+| Console éditeur minimale : espaces, indicateurs du § 18, signalements, accès réservé par liste d'adresses | C       | M      | Indicateurs lisibles sans SQL                                                                            |
+| Ajouter ton frère à la liste, inviter le groupe, installer à la piste                                     | T, F    | S      | Athlètes actifs                                                                                          |
+| Question de satisfaction mensuelle                                                                        | C       | S      | Réponses enregistrées                                                                                    |
+| Point hebdomadaire, corrections                                                                           | T, F, C | suivi  | **Critère de sortie : plus de 70 % de validation après 4 semaines, 100 % des séances via Tartan (§ 18)** |
 
 ### Phase 5 : stores, en parallèle dès la phase 2
 
-| Tâche | Qui | Effort | Terminé quand |
-| --- | --- | --- | --- |
-| Ouvrir Apple Developer et Google Play | T | S | Comptes actifs |
-| **Étirement sur mobile** : envoi et lecteur, essai à 240 i/s | C | M | 720 images sur iPhone et Android |
-| Projet EAS, clé APNs, Firebase, `TEAMID`, empreintes | T puis C | M | Build interne sur les deux plateformes |
-| Connexion Apple et Google, serveur et mobile, toujours les deux ensemble | T puis C | M | Connexion sur vrai appareil |
-| Envoi Android au premier plan, révocation Apple, liens `/r`, `/seance`, `/mes-sauts` | C | M | Essais réussis |
-| Parité terrain : invitation, fiche athlète, exercices et calendrier éditables | C | L | Parcours § 6 sur mobile |
-| Passe design mobile, VoiceOver et TalkBack | C | L | Registre coché |
-| Compte de démonstration, fiches, formulaires de confidentialité | C, T | M | Prêts pour la review |
-| Message de limite sans incitation à l'achat tant que l'achat intégré n'existe pas | C | S | Rien à reprocher à la règle d'achat |
-| **Test fermé Google : 12 testeurs, 14 jours** | T, F | suivi | Accès production demandé |
-| TestFlight, puis soumission | T, C | suivi | Apps acceptées |
+| Tâche                                                                                | Qui      | Effort | Terminé quand                          |
+| ------------------------------------------------------------------------------------ | -------- | ------ | -------------------------------------- |
+| Ouvrir Apple Developer et Google Play                                                | T        | S      | Comptes actifs                         |
+| **Étirement sur mobile** : envoi et lecteur, essai à 240 i/s                         | C        | M      | 720 images sur iPhone et Android       |
+| Projet EAS, clé APNs, Firebase, `TEAMID`, empreintes                                 | T puis C | M      | Build interne sur les deux plateformes |
+| Connexion Apple et Google, serveur et mobile, toujours les deux ensemble             | T puis C | M      | Connexion sur vrai appareil            |
+| Envoi Android au premier plan, révocation Apple, liens `/r`, `/seance`, `/mes-sauts` | C        | M      | Essais réussis                         |
+| Parité terrain : invitation, fiche athlète, exercices et calendrier éditables        | C        | L      | Parcours § 6 sur mobile                |
+| Passe design mobile, VoiceOver et TalkBack                                           | C        | L      | Registre coché                         |
+| Compte de démonstration, fiches, formulaires de confidentialité                      | C, T     | M      | Prêts pour la review                   |
+| Message de limite sans incitation à l'achat tant que l'achat intégré n'existe pas    | C        | S      | Rien à reprocher à la règle d'achat    |
+| **Test fermé Google : 12 testeurs, 14 jours**                                        | T, F     | suivi  | Accès production demandé               |
+| TestFlight, puis soumission                                                          | T, C     | suivi  | Apps acceptées                         |
 
 ### Phase 6 : vente, après le pilote
 
-| Tâche | Qui | Effort | Terminé quand |
-| --- | --- | --- | --- |
-| Décider le compte Stripe, créer la clé limitée, valider l'identité | T, C | S | Clé réelle en production |
-| S2 : fixer la version d'API du webhook et lire les bons champs | C | S | Test sur un vrai événement de cette version |
-| S3, S6, S7, S8, S10 : quantité, changement d'offre, idempotence, résiliation à la suppression, `unpaid` | C | M | Tests pour chaque scénario |
-| S4 : factures avec identité Yodev et mention 293 B | C | S | Facture de test relue |
-| S9 : nettoyer le bac à sable Moodday | C | S | Plus aucune trace |
-| Paiement réel de bout en bout : carte de test, puis un vrai paiement remboursé | C, T | M | Essai, résiliation, impayé, reprise vérifiés |
-| Adhésion au médiateur, mise à jour des CGV | T puis C | S | Plus de `[À DÉFINIR]` |
-| Relecture juridique, HDS, mineurs, registre, contrats (§ 15) ; retirer « version de travail » | T | L | Avis écrit |
-| Recherche de marque, `tartancoach.com` et `.fr` | T | S | Résultat écrit |
-| Interroger 10 à 20 coachs sur le prix (§ 17.1) | T, F | L | Prix confirmés ou corrigés |
-| Plafonds vidéo, préavis avant purge | C | S | CGV et code alignés |
-| RevenueCat, paywall mobile, parrainage réel et tableau du parrain | T puis C | L | Achat intégré sur vrai appareil |
-| **Ton feu vert pour ouvrir les inscriptions** | T | S | `COACH_SIGNUP_MODE=public` |
+| Tâche                                                                                                   | Qui      | Effort | Terminé quand                                |
+| ------------------------------------------------------------------------------------------------------- | -------- | ------ | -------------------------------------------- |
+| Décider le compte Stripe, créer la clé limitée, valider l'identité                                      | T, C     | S      | Clé réelle en production                     |
+| S2 : fixer la version d'API du webhook et lire les bons champs                                          | C        | S      | Test sur un vrai événement de cette version  |
+| S3, S6, S7, S8, S10 : quantité, changement d'offre, idempotence, résiliation à la suppression, `unpaid` | C        | M      | Tests pour chaque scénario                   |
+| S4 : factures avec identité Yodev et mention 293 B                                                      | C        | S      | Facture de test relue                        |
+| S9 : nettoyer le bac à sable Moodday                                                                    | C        | S      | Plus aucune trace                            |
+| Paiement réel de bout en bout : carte de test, puis un vrai paiement remboursé                          | C, T     | M      | Essai, résiliation, impayé, reprise vérifiés |
+| Adhésion au médiateur, mise à jour des CGV                                                              | T puis C | S      | Plus de `[À DÉFINIR]`                        |
+| Relecture juridique, HDS, mineurs, registre, contrats (§ 15) ; retirer « version de travail »           | T        | L      | Avis écrit                                   |
+| Recherche de marque, `tartancoach.com` et `.fr`                                                         | T        | S      | Résultat écrit                               |
+| Interroger 10 à 20 coachs sur le prix (§ 17.1)                                                          | T, F     | L      | Prix confirmés ou corrigés                   |
+| Plafonds vidéo, préavis avant purge                                                                     | C        | S      | CGV et code alignés                          |
+| RevenueCat, paywall mobile, parrainage réel et tableau du parrain                                       | T puis C | L      | Achat intégré sur vrai appareil              |
+| **Ton feu vert pour ouvrir les inscriptions**                                                           | T        | S      | `COACH_SIGNUP_MODE=public`                   |
 
 ### Phase 7 : V2 et V3, à trier après le pilote
 
@@ -300,13 +300,13 @@ Ne pas construire avant les retours du pilote.
 
 ## 11. Tes décisions
 
-| # | Décision | Ma recommandation |
-| --- | --- | --- |
-| 1 | Vente avant ou après le pilote | **Après**, vente coupée d'ici là |
-| 2 | Compte Stripe existant ou dédié | **Dédié Tartan** |
-| 3 | Inscription des coachs sur le web | **Sur liste** pendant le pilote |
-| 4 | Console éditeur minimale | **Oui**, phase 4 |
-| 5 | Passer Neon en Launch et ajouter une carte à Mux | **Oui, tout de suite** |
+| #   | Décision                                         | Ma recommandation                |
+| --- | ------------------------------------------------ | -------------------------------- |
+| 1   | Vente avant ou après le pilote                   | **Après**, vente coupée d'ici là |
+| 2   | Compte Stripe existant ou dédié                  | **Dédié Tartan**                 |
+| 3   | Inscription des coachs sur le web                | **Sur liste** pendant le pilote  |
+| 4   | Console éditeur minimale                         | **Oui**, phase 4                 |
+| 5   | Passer Neon en Launch et ajouter une carte à Mux | **Oui, tout de suite**           |
 
 ## 12. Ce que toi seul peux faire
 
@@ -320,15 +320,15 @@ Ne pas construire avant les retours du pilote.
 
 Production sur `e84b614`, avec les migrations `offres_payantes`, `video_etiree` et `verification_texte`.
 
-| Point | État |
-| --- | --- |
-| Identité rouge, tarifs, mot de passe oublié, redirection `www` | En ligne, vérifié |
-| Vente | Coupée : clé Stripe retirée, webhook Stripe désactivé, offres menant à une prise de contact |
-| F1 à F5, F7 à F10 | Corrigés, avec des tests pour F1, F2, F3, F5 et la feuille de barres. F4, F7, F8 et le reste de F10 sont couverts par relecture du code, pas par un test dédié |
-| F6 | Validation gardée à l'expiration de la session, testée |
-| F9 | Feuille de barres corrigée. Le rattachement des vidéos web à la séance reste en phase 2 |
-| Bug trouvé en route | Le lien magique plantait sur un compte non vérifié (table `verification`), corrigé |
-| Webhook Mux | Signature contrôlée en ligne, envoi réel traité |
+| Point                                                          | État                                                                                                                                                           |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identité rouge, tarifs, mot de passe oublié, redirection `www` | En ligne, vérifié                                                                                                                                              |
+| Vente                                                          | Coupée : clé Stripe retirée, webhook Stripe désactivé, offres menant à une prise de contact                                                                    |
+| F1 à F5, F7 à F10                                              | Corrigés, avec des tests pour F1, F2, F3, F5 et la feuille de barres. F4, F7, F8 et le reste de F10 sont couverts par relecture du code, pas par un test dédié |
+| F6                                                             | Validation gardée à l'expiration de la session, testée                                                                                                         |
+| F9                                                             | Feuille de barres corrigée. Le rattachement des vidéos web à la séance reste en phase 2                                                                        |
+| Bug trouvé en route                                            | Le lien magique plantait sur un compte non vérifié (table `verification`), corrigé                                                                             |
+| Webhook Mux                                                    | Signature contrôlée en ligne, envoi réel traité                                                                                                                |
 
 **Restent de la phase 1, à ta charge :**
 
@@ -345,17 +345,17 @@ Production sur `e84b614`, avec les migrations `offres_payantes`, `video_etiree` 
 
 ## 14. Fait et vérifié : phase 2, la web app
 
-| Point | État | Preuve |
-| --- | --- | --- |
-| Pages rouvrables sans réseau : journée, séances des 7 prochains jours, page d'explication sinon | Fait | Parcours Playwright, Chromium et WebKit |
-| File persistante : validation, présence, appel, essais, commentaires, par compte, sans perte à l'expiration de session | Fait | Tests et parcours hors ligne |
-| Vidéo : file persistante, reprise, durée plafonnée, rattachement à la séance | Fait | **Vrai Mux** : coupure, rechargement, reprise à 12,5 Mo sur 46,7 Mo, 1 440 images sur 1 440 |
-| Notifications : demande après l'arrivée, boutons Oui / Non sur Android, repli si indisponible | Fait, à essayer | Aucun vrai téléphone |
-| Guide d'installation iPhone et Android | Fait, à essayer | Aucun vrai téléphone |
-| Repli e-mail sans appareil abonné | Fait | Test |
-| Regroupement d'une semaine programmée, alerte à la 2e séance manquée | Fait | Tests |
-| Signalements : e-mail, traitement dans Réglages, vidéo signalable | Fait | Test |
-| Logo, disciplines, envoi de vidéo d'exercice avec progression | Fait | Types seulement. Logo masqué tant que Blob n'est pas configuré |
+| Point                                                                                                                  | État            | Preuve                                                                                      |
+| ---------------------------------------------------------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------- |
+| Pages rouvrables sans réseau : journée, séances des 7 prochains jours, page d'explication sinon                        | Fait            | Parcours Playwright, Chromium et WebKit                                                     |
+| File persistante : validation, présence, appel, essais, commentaires, par compte, sans perte à l'expiration de session | Fait            | Tests et parcours hors ligne                                                                |
+| Vidéo : file persistante, reprise, durée plafonnée, rattachement à la séance                                           | Fait            | **Vrai Mux** : coupure, rechargement, reprise à 12,5 Mo sur 46,7 Mo, 1 440 images sur 1 440 |
+| Notifications : demande après l'arrivée, boutons Oui / Non sur Android, repli si indisponible                          | Fait, à essayer | Aucun vrai téléphone                                                                        |
+| Guide d'installation iPhone et Android                                                                                 | Fait, à essayer | Aucun vrai téléphone                                                                        |
+| Repli e-mail sans appareil abonné                                                                                      | Fait            | Test                                                                                        |
+| Regroupement d'une semaine programmée, alerte à la 2e séance manquée                                                   | Fait            | Tests                                                                                       |
+| Signalements : e-mail, traitement dans Réglages, vidéo signalable                                                      | Fait            | Test                                                                                        |
+| Logo, disciplines, envoi de vidéo d'exercice avec progression                                                          | Fait            | Types seulement. Logo masqué tant que Blob n'est pas configuré                              |
 
 **Défaut trouvé par l'essai réel :** un envoi refusé (accord vidéo manquant) n'affichait qu'un message générique. Le motif réel remonte maintenant.
 
@@ -368,3 +368,21 @@ Production sur `e84b614`, avec les migrations `offres_payantes`, `video_etiree` 
 - Mobile : l'étirement vidéo n'est toujours pas branché (phase 5).
 
 **Reste de la phase 2 :** l'essai sur vrai iPhone et vrai Android d'entrée de gamme (ralenti importé, envoi, notifications), avec toi et ton frère.
+
+## 15. Fait : le code des phases 4 et 6
+
+| Point                                                                                       | État | Preuve                                                      |
+| ------------------------------------------------------------------------------------------- | ---- | ----------------------------------------------------------- |
+| S2 date de fin lue quelle que soit la version d'API, version fixée pour le prochain webhook | Fait | Test sur la forme `2022-11-15`                              |
+| S3 quantité retirée du portail                                                              | Fait | Portail réel mis à jour                                     |
+| S4 identité Yodev et mention 293 B sur les factures                                         | Fait | Test ; facture réelle à relire                              |
+| S6 un abonnement en cours mène au portail, l'ancien ne fait plus retomber l'offre           | Fait | Tests                                                       |
+| S7 événement marqué après application                                                       | Fait | Test avec panne simulée                                     |
+| S8 résiliation à la suppression du compte                                                   | Fait | Test. La future clé limitée doit écrire sur `Subscriptions` |
+| S10 `unpaid` arrête l'offre payante                                                         | Fait | Test                                                        |
+| Plafonds vidéo : Club à 500 par mois, conservées 3 ans ; préavis de 14 jours                | Fait | Test, CGV à jour                                            |
+| Tableau du parrain, parrainage d'un athlète majeur                                          | Fait | Types ; à essayer                                           |
+| Console éditeur `/admin`, réservée à `ADMIN_EMAILS`                                         | Fait | Test du refus                                               |
+| Question mensuelle de satisfaction                                                          | Fait | Test                                                        |
+
+Ce qui ne dépend pas du code reste au § 12 : le choix du compte Stripe, Touch ID, le paiement réel, les comptes de stores.

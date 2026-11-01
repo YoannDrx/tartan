@@ -38,7 +38,14 @@ export const attributeReferral = async (input: {
 export const referralStats = async (userId: string) => {
   const code = await prisma.referralCode.findUnique({
     where: { ownerType_ownerId: { ownerType: "user", ownerId: userId } },
-    include: { _count: { select: { referrals: true } } },
+    include: { referrals: { select: { status: true } } },
   });
-  return code ? { code: code.code, signups: code._count.referrals } : null;
+  if (!code) return null;
+  const months = await prisma.referralReward.count({ where: { beneficiaryId: userId, appliedAt: { not: null } } });
+  return {
+    code: code.code,
+    signups: code.referrals.length,
+    paying: code.referrals.filter((r) => r.status === "qualified" || r.status === "rewarded").length,
+    months,
+  };
 };

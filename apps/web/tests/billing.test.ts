@@ -137,7 +137,7 @@ describe("webhooks", () => {
       plan: "coach",
       status: "active",
       provider: "stripe",
-      providerRef: "sub_1",
+      providerRef: `sub_${org.organizationId}`,
       currentPeriodEnd: null,
       cancelAt: null,
     });
@@ -413,7 +413,7 @@ describe("statistiques et agenda", () => {
 });
 
 describe("conservation vidéo", () => {
-  it("retire les vidéos trop anciennes en Découverte, pas en Club", async () => {
+  it("retire les vidéos trop anciennes après un préavis, selon la durée de l'offre", async () => {
     const small = await discoveryOrg("Petit2");
     const big = await makeOrg("Grand");
     await applySubscription({
@@ -428,6 +428,7 @@ describe("conservation vidéo", () => {
     const a1 = await addAthlete(small.organizationId, small.groupId, "Vid");
     const a2 = await addAthlete(big.organizationId, big.groupId, "Vad");
     const old = new Date("2020-01-01");
+    const recent = new Date("2026-01-01");
     await prisma.video.create({
       data: {
         organizationId: small.organizationId,
@@ -441,13 +442,17 @@ describe("conservation vidéo", () => {
         organizationId: big.organizationId,
         athleteId: a2.athleteId,
         uploadedBy: big.owner.userId,
-        createdAt: old,
+        createdAt: recent,
       },
     });
+    // Premier passage : le préavis part, rien n'est retiré.
     await purgeExpiredVideos(new Date("2026-11-01"));
+    expect(await prisma.video.count({ where: { organizationId: small.organizationId } })).toBe(1);
+    expect(outbox.some((mail) => mail.subject.includes("fin de conservation"))).toBe(true);
+    // Préavis écoulé : la vidéo part, celle de l'offre Club, encore dans sa durée, reste.
+    await purgeExpiredVideos(new Date("2026-11-16"));
     expect(await prisma.video.count({ where: { organizationId: small.organizationId } })).toBe(0);
     expect(await prisma.video.findUnique({ where: { id: kept.id } })).toBeTruthy();
-    void outbox;
     void syncEntitlements;
   });
 });

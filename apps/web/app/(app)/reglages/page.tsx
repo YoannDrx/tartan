@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { can } from "@tartan/domain";
+import { can, requiresParentalConsent } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { env } from "@/lib/env";
 import Link from "next/link";
@@ -24,6 +24,7 @@ import {
 } from "@/features/settings/settings-forms";
 import { LeaveSpace, MemberList } from "@/features/settings/members";
 import { ReportList } from "@/features/settings/reports";
+import { isAdmin } from "@/server/admin.service";
 import { listReports } from "@/server/comm.service";
 import { requireOrgMember } from "@/server/access";
 import { icalLink } from "@/server/ical.service";
@@ -31,7 +32,7 @@ import { listMembers } from "@/server/members.service";
 import { consentForAthletes, getUserConsents } from "@/server/consent.service";
 import { listInvitations } from "@/server/invitation.service";
 import { getMe } from "@/server/me.service";
-import { getOrganization, listGroups } from "@/server/org.service";
+import { ensureReferralCode, getOrganization, listGroups } from "@/server/org.service";
 import { referralStats } from "@/server/referral.service";
 
 export const metadata: Metadata = { title: m.settings.title };
@@ -42,12 +43,19 @@ export default async function ReglagesPage() {
   const access = await requireOrgMember(actor.userId, organizationId);
   const canInvite = can(access.role, "inviteAthlete");
   const canManageMembers = can(access.role, "manageOrganization");
+  // Les athlètes mineurs ne participent à aucune mécanique de parrainage (§ 17.4).
+  const adultAthlete =
+    access.role === "athlete" && Boolean(me.birthDate) && !requiresParentalConsent(me.birthDate, new Date());
+  const shareableReferral = async (userId: string) => {
+    await ensureReferralCode(userId);
+    return referralStats(userId);
+  };
   const [groups, invitations, consents, effective, referral, organization, members, ical, reports] = await Promise.all([
     canInvite ? listGroups(access) : Promise.resolve([]),
     canInvite ? listInvitations(actor.userId, organizationId) : Promise.resolve([]),
     getUserConsents(actor.userId),
     access.athleteId ? consentForAthletes([access.athleteId]) : Promise.resolve(null),
-    canInvite ? referralStats(actor.userId) : Promise.resolve(null),
+    canInvite || adultAthlete ? shareableReferral(actor.userId) : Promise.resolve(null),
     getOrganization(actor.userId, organizationId),
     canManageMembers ? listMembers(actor.userId, organizationId) : Promise.resolve([]),
     access.athleteId ? icalLink(actor.userId, organizationId) : Promise.resolve(null),
@@ -163,10 +171,10 @@ export default async function ReglagesPage() {
           title: m.settings.referral,
           content: (
             <div className="flex flex-col gap-2">
-              <p>{m.settings.referralDetail}</p>
+              <p>{isAthlete ? m.settings.referralAthleteDetail : m.settings.referralDetail}</p>
               <ReferralLink link={referralLink} />
               <p className="t-caption font-normal text-soft">
-                {referral.signups} inscrit{referral.signups > 1 ? "s" : ""} grâce à ton lien.
+                {m.settings.referralCounts(referral.signups, referral.paying, referral.months)}
               </p>
             </div>
           ),
@@ -186,6 +194,17 @@ export default async function ReglagesPage() {
       : null,
     vapidKey
       ? { id: "notifications", title: m.push.permissionTitle, content: <WebPushToggle vapidKey={vapidKey} /> }
+      : null,
+    isAdmin(actor.email)
+      ? {
+          id: "console",
+          title: m.admin.title,
+          content: (
+            <Button asChild size="sm" variant="secondary">
+              <Link href="/admin">{m.admin.title}</Link>
+            </Button>
+          ),
+        }
       : null,
     {
       id: "compte",

@@ -1,0 +1,106 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { m } from "@tartan/i18n";
+import { Sheet, SheetSection } from "@/components/sheet";
+import { PageHeader } from "@/components/states";
+import { requireSpace } from "@/features/shell/space";
+import { adminOverview, isAdmin } from "@/server/admin.service";
+
+export const metadata: Metadata = { title: m.admin.title, robots: { index: false } };
+
+const pct = (value: number | null) => (value === null ? "–" : `${value} %`);
+
+export default async function AdminPage() {
+  const { actor } = await requireSpace();
+  if (!isAdmin(actor.email)) redirect("/accueil");
+  const data = await adminOverview(actor);
+  const totals = [
+    { label: m.admin.spaces, value: data.spaces.length },
+    { label: m.admin.users, value: data.users },
+    ...Object.entries(data.plans).map(([plan, count]) => ({
+      label: m.billing.plans[plan as keyof typeof m.billing.plans],
+      value: count,
+    })),
+    { label: m.admin.recommend, value: `${data.satisfaction.yes} / ${data.satisfaction.yes + data.satisfaction.no}` },
+  ];
+  return (
+    <div className="flex flex-col gap-4">
+      <PageHeader title={m.admin.title} detail={m.admin.lead} />
+      <Sheet>
+        <dl className="grid grid-cols-2 gap-px bg-card-line tablet:grid-cols-4">
+          {totals.map((item) => (
+            <div key={item.label} className="bg-card px-4 py-2">
+              <dt className="t-caption font-normal text-soft">{item.label}</dt>
+              <dd className="t-num text-[24px]">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </Sheet>
+      <Sheet>
+        <SheetSection title={m.admin.spaces} flush>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[840px] text-left">
+              <thead className="t-caption text-soft">
+                <tr>
+                  {[
+                    m.admin.space,
+                    m.admin.plan,
+                    m.admin.athletes,
+                    m.admin.sessionsWeek,
+                    m.admin.validation,
+                    m.admin.delay,
+                    m.admin.active,
+                    m.admin.activation,
+                    m.admin.videos,
+                    m.admin.reports,
+                  ].map((label) => (
+                    <th key={label} scope="col" className="px-3 py-2 font-medium first:pl-4">
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-card-line">
+                {data.spaces.map((space) => (
+                  <tr key={space.id}>
+                    <th scope="row" className="px-3 py-2 pl-4 text-left font-semibold">
+                      {space.name}
+                      <span className="t-caption block font-normal text-soft">{space.ownerEmail}</span>
+                    </th>
+                    <td className="px-3 py-2">{m.billing.plans[space.plan]}</td>
+                    <td className="t-num px-3 py-2">{space.athletes}</td>
+                    <td className="t-num px-3 py-2">{space.sessionsThisWeek}</td>
+                    <td className="t-num px-3 py-2">{pct(space.metrics.validationRatePct)}</td>
+                    <td className="t-num px-3 py-2">
+                      {space.metrics.medianValidationHours === null
+                        ? "–"
+                        : `${Math.round(space.metrics.medianValidationHours)} h`}
+                    </td>
+                    <td className="t-num px-3 py-2">{pct(space.metrics.activeAthletesPct)}</td>
+                    <td className="t-num px-3 py-2">{pct(space.metrics.activationPct)}</td>
+                    <td className="t-num px-3 py-2">{space.metrics.sharedVideosLast7Days}</td>
+                    <td className="t-num px-3 py-2">{space.openReports}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </SheetSection>
+      </Sheet>
+      {data.satisfaction.comments.length > 0 ? (
+        <Sheet>
+          <SheetSection title={m.admin.comments}>
+            <ul className="divide-y divide-card-line">
+              {data.satisfaction.comments.map((c) => (
+                <li key={c.id} className="py-2">
+                  <span className="font-semibold">{c.recommend ? m.satisfaction.yes : m.satisfaction.no} : </span>
+                  {c.comment}
+                </li>
+              ))}
+            </ul>
+          </SheetSection>
+        </Sheet>
+      ) : null}
+    </div>
+  );
+}

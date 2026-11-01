@@ -549,6 +549,9 @@ export const fr = {
     disciplines: "Disciplines",
     logo: "Logo de l'espace",
     logoHint: "JPEG, PNG ou WebP, 4 Mo au plus.",
+    referralAthleteDetail: "Ton préparateur physique ou ton nouveau club cherche un outil ? Fais-lui découvrir Tartan.",
+    referralCounts: (signups: number, paying: number, months: number) =>
+      `${signups} inscrit${signups > 1 ? "s" : ""}, ${paying} devenu${paying > 1 ? "s" : ""} payant${paying > 1 ? "s" : ""}, ${months} mois offert${months > 1 ? "s" : ""}.`,
     memberSaved: "Coach mis à jour.",
     memberRole: "Rôle",
     memberGroups: "Groupes suivis",
@@ -576,6 +579,31 @@ export const fr = {
     permissionBody: "Une notification quand ton coach t'envoie une séance. Rien d'autre sans ton accord.",
     enable: "Activer les notifications",
     later: "Plus tard",
+  },
+  satisfaction: {
+    question: "Recommanderais-tu Tartan ?",
+    yes: "Oui",
+    no: "Non",
+    why: "Pourquoi ? (facultatif)",
+    thanks: "Merci, c'est noté.",
+  },
+  admin: {
+    title: "Console",
+    lead: "Les indicateurs du pilote, sans donnée de santé.",
+    spaces: "Espaces",
+    users: "Comptes",
+    recommend: "Recommandent",
+    space: "Espace",
+    plan: "Offre",
+    athletes: "Athlètes",
+    sessionsWeek: "Séances, 7 j",
+    validation: "Validation",
+    delay: "Délai médian",
+    active: "Actifs",
+    activation: "Activation",
+    videos: "Vidéos partagées, 7 j",
+    reports: "Signalements",
+    comments: "Ce qu'ils en disent",
   },
   disciplines: {
     high_jump: "Saut en hauteur",
@@ -663,7 +691,12 @@ export const fr = {
     athleteFree: "Les athlètes ne paient jamais.",
     safetyFree:
       "Suppression de compte, export, consentements et signalement de douleur restent gratuits, à toute offre.",
-    videoRetention: (days: number) => `Vidéos conservées ${days} jours`,
+    videoRetention: (days: number) =>
+      days >= 365
+        ? `Vidéos conservées ${Math.round(days / 365)} an${days >= 730 ? "s" : ""}`
+        : `Vidéos conservées ${days} jours`,
+    purgeNotice: (days: number) =>
+      `Certaines vidéos arrivent à la fin de leur durée de conservation : elles seront retirées dans ${days} jours. Partage-les ou enregistre-les d'ici là si tu veux les garder.`,
     videoRetentionForever: "Vidéos conservées tant que l'offre est active",
     videosPerMonth: (n: number) => `${n} vidéos par mois`,
     videosUnlimited: "Vidéos illimitées",

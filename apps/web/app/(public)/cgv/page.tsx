@@ -21,7 +21,7 @@ export default function CgvPage() {
       <ul>
         <li>Découverte : gratuite, 1 groupe, 5 athlètes, 10 vidéos par mois conservées 30 jours.</li>
         <li>Coach : {price("coach")}, jusqu'à 30 athlètes, 2 coachs, 100 vidéos par mois conservées 1 an.</li>
-        <li>Club : {price("club")}, coachs, athlètes et vidéos illimités.</li>
+        <li>Club : {price("club")}, coachs et athlètes illimités, 500 vidéos par mois conservées 3 ans.</li>
       </ul>
       <p>
         Prix en euros. TVA non applicable, article 293 B du Code général des impôts. L'abonnement est payé par le coach
@@ -43,7 +43,7 @@ export default function CgvPage() {
         La résiliation se fait à tout moment depuis la page Abonnement, ou depuis les réglages du téléphone pour un
         achat intégré. Elle prend effet à la fin de la période payée ; l'espace repasse alors en offre Découverte. Les
         athlètes et les données existants sont conservés ; seul l'ajout au-delà des limites est bloqué, et les vidéos
-        plus anciennes que la durée de conservation de l'offre sont retirées.
+        plus anciennes que la durée de conservation de l'offre sont retirées, après un préavis par e-mail de 14 jours.
       </p>
       <h2>Impayé</h2>
       <p>
