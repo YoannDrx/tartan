@@ -150,12 +150,7 @@ export const textStyles: Record<TextVariant, TextStyle> = {
   small: { fontFamily: tokens.font.body, fontSize: 15, lineHeight: 21 },
   smallStrong: { fontFamily: tokens.font.bodyStrong, fontSize: 15, lineHeight: 20 },
   caption: { fontFamily: tokens.font.bodyMedium, fontSize: 13, lineHeight: 16 },
-  section: {
-    fontFamily: tokens.font.bodyStrong,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-  },
+  // Même voix que les titres d'écran, une marche plus bas : jamais de capitales au-dessus d'une section.
+  section: { fontFamily: tokens.font.title, fontSize: 20, lineHeight: 24 },
   tab: { fontFamily: tokens.font.bodyStrong, fontSize: 11, lineHeight: 14 },
 };

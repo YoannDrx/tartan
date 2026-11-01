@@ -12,6 +12,7 @@ import { api } from "../../src/lib/api";
 import { config } from "../../src/lib/config";
 import { errorMessage } from "../../src/lib/errors";
 import { registerPush } from "../../src/lib/notifications";
+import { currentReferral, usePendingReferral } from "../../src/lib/pending-referral";
 import { usePendingInvite } from "../../src/lib/pending-invite";
 import { useMe } from "../../src/lib/queries";
 import { queryClient } from "../../src/lib/query-client";
@@ -199,9 +200,11 @@ export default function InvitationScreen() {
         birthDate: isAthlete ? birthDate : null,
         guardianEmail: minor ? guardianEmail.trim().toLowerCase() : undefined,
         consents: { terms, health: isAthlete && health, video: isAthlete && video },
+        referralCode: currentReferral(),
       }),
     onSuccess: async (result) => {
       clear();
+      usePendingReferral.getState().clear();
       setActive(result.organizationId);
       await queryClient.invalidateQueries({ queryKey: ["me"] });
       setAccepted(true);

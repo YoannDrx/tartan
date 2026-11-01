@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { addDays } from "@tartan/domain";
 import { useEffect } from "react";
-import { api } from "./api";
+import { api, fetchCoachAthleteFile } from "./api";
 import { localIsoDate } from "./dates";
 import { pickSpace, useSpaceStore } from "./space-store";
-import { athleteFile, coachSessionDetail } from "./schemas";
+import { athleteFile, athleteStats, coachAthleteFile, coachSessionDetail } from "./schemas";
 import { queryClient, WEEK_MS } from "./query-client";
 import { useSession } from "./session-store";
 
@@ -88,6 +88,43 @@ export const useAthleteFile = (orgId: string) =>
     queryKey: ["athlete-file", orgId],
     queryFn: async () => athleteFile.parse(await api.athleteFile(orgId)),
     enabled: Boolean(orgId),
+  });
+
+// Données de santé d'autres personnes : ces requêtes restent en mémoire (voir PERSISTED).
+export const useAthleteStats = (orgId: string, athleteId: string | undefined) =>
+  useQuery({
+    queryKey: ["athlete-stats", orgId, athleteId],
+    queryFn: async () => athleteStats.parse(await api.athleteStats(orgId, athleteId as string)),
+    enabled: Boolean(orgId && athleteId),
+  });
+
+export const useCoachAthleteFile = (orgId: string, athleteId: string | undefined) =>
+  useQuery({
+    queryKey: ["coach-athlete", orgId, athleteId],
+    queryFn: async () => coachAthleteFile.parse(await fetchCoachAthleteFile(orgId, athleteId as string)),
+    enabled: Boolean(orgId && athleteId),
+  });
+
+export const useBarSheet = (orgId: string, athleteId: string | undefined) =>
+  useQuery({
+    queryKey: ["bar-sheet", orgId, athleteId],
+    queryFn: () => api.barSheet(orgId, athleteId as string),
+    enabled: Boolean(orgId && athleteId),
+  });
+
+export const useAthleteVideos = (orgId: string, athleteId: string | undefined) =>
+  useQuery({
+    queryKey: ["videos", orgId, "athlete", athleteId],
+    queryFn: () => api.videos(orgId, athleteId),
+    enabled: Boolean(orgId && athleteId),
+  });
+
+export const useGroupLink = (orgId: string, groupId: string | undefined) =>
+  useQuery({
+    queryKey: ["group-link", orgId, groupId],
+    queryFn: () => api.groupLink(orgId, groupId as string),
+    enabled: Boolean(orgId && groupId),
+    staleTime: 5 * 60 * 1000,
   });
 
 export const useComments = (orgId: string, entityType: "session" | "log" | "video", entityId: string) =>

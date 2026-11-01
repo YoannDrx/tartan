@@ -54,3 +54,58 @@ export const athleteFile = z.object({
   ),
 });
 export type AthleteFile = z.infer<typeof athleteFile>;
+
+// Charge par semaine : route `/athletes/:id/stats`, que l'API client type en « any ».
+export const athleteStats = z.object({
+  weeks: z.array(
+    z.object({ weekStart: z.string(), load: z.number().nullable(), sessions: z.number(), done: z.number() }),
+  ),
+  loadTrendPct: z.number().nullable(),
+  healthVisible: z.boolean(),
+});
+export type AthleteStats = z.infer<typeof athleteStats>;
+
+// Fiche vue par le staff : même forme que `getAthleteFile` côté serveur. Les notes privées restent sur le web.
+export const coachAthleteFile = z.object({
+  id: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  birthDate: z.string().nullable(),
+  hasAccount: z.boolean(),
+  groups: z.array(z.object({ id: z.string(), name: z.string() })),
+  level: z.string().nullable(),
+  takeoffFoot: z.enum(["left", "right", "both", "none"]).nullable(),
+  approachSteps: z.number().nullable(),
+  goals: z.string().nullable(),
+  particularities: z.string().nullable(),
+  tests: z.array(
+    z.object({ id: z.string(), exerciseKey: z.string(), value: z.number(), kind: z.string(), date: z.string() }),
+  ),
+  performances: z.array(
+    z.object({
+      id: z.string(),
+      discipline: z.string(),
+      mark: z.number(),
+      unit: z.string(),
+      date: z.string(),
+      location: z.string().nullable(),
+      isPb: z.boolean(),
+    }),
+  ),
+  healthVisible: z.boolean(),
+  injuries: z.array(
+    z.object({
+      id: z.string(),
+      bodyArea: z.string(),
+      side: z.enum(["left", "right", "both", "none"]),
+      startDate: z.string(),
+      endDate: z.string().nullable(),
+      status: z.enum(["active", "recovering", "resolved"]),
+      restrictions: z.string().nullable(),
+    }),
+  ),
+  history: z.array(
+    z.object({ id: z.string(), status: z.string(), sessionId: z.string(), title: z.string(), date: z.string() }),
+  ),
+});
+export type CoachAthleteFile = z.infer<typeof coachAthleteFile>;

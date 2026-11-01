@@ -22,6 +22,11 @@ describe("routeForNotification", () => {
     expect(routeForNotification({ link: `/seance/${id}` })).toBe("/today");
   });
 
+  it("ouvre la fiche de l'athlète côté coach", () => {
+    expect(routeForNotification({ link: `/athletes/${id}` })).toBe(`/athletes/${id}`);
+    expect(routeForNotification({ link: "/athletes" })).toBe("/tracking");
+  });
+
   it("revient à l'accueil sur un contenu inconnu", () => {
     expect(routeForNotification({ link: "https://exemple.fr" })).toBe("/");
     expect(routeForNotification({ link: "/videos/../../x" })).toBe("/");

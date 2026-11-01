@@ -1,11 +1,13 @@
 import type { ExerciseSummary } from "@tartan/contracts";
-import { formatPrescription } from "@tartan/domain";
+import { can, formatPrescription } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { ExerciseRow, ExerciseVideo, parseMedia } from "../../src/features/media";
 import { useActiveSpace, useExercises } from "../../src/lib/queries";
-import { Chip, Divider, Field, ListSurface, T } from "../../src/ui/primitives";
+import { Pencil, Plus } from "../../src/ui/icons";
+import { Button, Chip, Divider, Field, ListSurface, T } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
 import { Sheet } from "../../src/ui/sheet";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
@@ -14,8 +16,10 @@ import { space } from "../../src/ui/theme";
 const folded = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 export default function Exercises() {
-  const { orgId } = useActiveSpace();
+  const { orgId, space: active } = useActiveSpace();
   const exercises = useExercises(orgId);
+  const router = useRouter();
+  const canEdit = active ? can(active.role, "editExercises") : false;
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [open, setOpen] = useState<ExerciseSummary | null>(null);
@@ -32,6 +36,14 @@ export default function Exercises() {
 
   return (
     <TabScreen title={m.exercises.title} refreshing={exercises.isRefetching} onRefresh={() => void exercises.refetch()}>
+      {canEdit && exercises.data ? (
+        <Button
+          testID="exercise-new"
+          label={m.exercises.new}
+          icon={Plus}
+          onPress={() => router.push("/exercise/new")}
+        />
+      ) : null}
       {exercises.data && exercises.data.length > 0 ? (
         <>
           <Field
@@ -82,11 +94,27 @@ export default function Exercises() {
           ))}
         </ListSurface>
       ) : null}
-      <T variant="caption" tone="muted">
-        {m.mobile.exercises.desktopHint}
-      </T>
       {open ? (
-        <Sheet visible title={open.name} onClose={() => setOpen(null)}>
+        <Sheet
+          visible
+          title={open.name}
+          onClose={() => setOpen(null)}
+          footer={
+            canEdit ? (
+              <Button
+                testID="exercise-edit"
+                label={m.mobile.exerciseForm.edit}
+                icon={Pencil}
+                variant="secondary"
+                onPress={() => {
+                  const id = open.id;
+                  setOpen(null);
+                  router.push(`/exercise/${id}`);
+                }}
+              />
+            ) : undefined
+          }
+        >
           {parseMedia(open.media) ? <ExerciseVideo media={parseMedia(open.media)} rate={1} /> : null}
           {open.cues.length > 0 ? (
             <View style={{ gap: space.xs }}>

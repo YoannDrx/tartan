@@ -14,7 +14,9 @@ export { default as ChevronsUpDown } from "lucide-react-native/icons/chevrons-up
 export { default as Clock } from "lucide-react-native/icons/clock";
 export { default as CloudOff } from "lucide-react-native/icons/cloud-off";
 export { default as CloudUpload } from "lucide-react-native/icons/cloud-upload";
+export { default as Copy } from "lucide-react-native/icons/copy";
 export { default as Dumbbell } from "lucide-react-native/icons/dumbbell";
+export { default as Flag } from "lucide-react-native/icons/flag";
 export { default as Flame } from "lucide-react-native/icons/flame";
 export { default as Footprints } from "lucide-react-native/icons/footprints";
 export { default as Home } from "lucide-react-native/icons/house";
@@ -25,6 +27,7 @@ export { default as MessageSquare } from "lucide-react-native/icons/message-squa
 export { default as Minus } from "lucide-react-native/icons/minus";
 export { default as MoreHorizontal } from "lucide-react-native/icons/ellipsis";
 export { default as Pause } from "lucide-react-native/icons/pause";
+export { default as Pencil } from "lucide-react-native/icons/pencil";
 export { default as Pin } from "lucide-react-native/icons/pin";
 export { default as Play } from "lucide-react-native/icons/play";
 export { default as Plus } from "lucide-react-native/icons/plus";
@@ -39,6 +42,8 @@ export { default as Square } from "lucide-react-native/icons/square";
 export { default as Stretch } from "lucide-react-native/icons/stretch-horizontal";
 export { default as Timer } from "lucide-react-native/icons/timer";
 export { default as TrendingUp } from "lucide-react-native/icons/trending-up";
+export { default as UserPlus } from "lucide-react-native/icons/user-plus";
+export { default as Users } from "lucide-react-native/icons/users";
 export { default as Video } from "lucide-react-native/icons/video";
 export { default as Trash } from "lucide-react-native/icons/trash";
 export { default as X } from "lucide-react-native/icons/x";

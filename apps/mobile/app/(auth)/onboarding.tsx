@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { InviteLinkSheet } from "../../src/features/invite-link-sheet";
 import { api } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
+import { currentReferral, usePendingReferral } from "../../src/lib/pending-referral";
 import { useMe } from "../../src/lib/queries";
 import { queryClient } from "../../src/lib/query-client";
 import { useSession } from "../../src/lib/session-store";
@@ -48,9 +49,11 @@ export default function Onboarding() {
         type: orgType,
         firstGroupName: groupName.trim(),
         disciplines: ["high_jump"],
+        referralCode: currentReferral(),
       });
     },
     onSuccess: async (result) => {
+      usePendingReferral.getState().clear();
       setActive(result.organizationId);
       await queryClient.invalidateQueries({ queryKey: ["me"] });
       router.replace("/tracking");

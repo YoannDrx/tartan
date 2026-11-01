@@ -80,6 +80,7 @@ export const TabScreen = ({ title, subtitle, right, children, refreshing, onRefr
         style={{ flex: 1 }}
         contentInsetAdjustmentBehavior="never"
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={{
           paddingTop: space.sm,
           paddingHorizontal: pad,
@@ -202,6 +203,7 @@ const StackInner = ({
           style={{ flex: 1 }}
           contentInsetAdjustmentBehavior="never"
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           contentContainerStyle={content}
         >
           {children}

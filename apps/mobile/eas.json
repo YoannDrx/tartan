@@ -4,7 +4,12 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "base": {
+      "node": "22.23.4",
+      "pnpm": "10.34.9"
+    },
     "development": {
+      "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
       "environment": "development",
@@ -15,9 +20,14 @@
       "ios": { "simulator": true }
     },
     "preview": {
+      "extends": "base",
       "distribution": "internal",
       "environment": "preview",
-      "env": { "APP_VARIANT": "preview" },
+      "env": {
+        "APP_VARIANT": "preview",
+        "EXPO_PUBLIC_API_URL": "https://app.tartan.coach",
+        "EXPO_PUBLIC_WEB_URL": "https://tartan.coach"
+      },
       "android": { "buildType": "apk" }
     },
     "preview-simulator": {
@@ -25,12 +35,24 @@
       "ios": { "simulator": true }
     },
     "production": {
+      "extends": "base",
       "autoIncrement": true,
       "environment": "production",
-      "env": { "APP_VARIANT": "production" }
+      "env": {
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_API_URL": "https://app.tartan.coach",
+        "EXPO_PUBLIC_WEB_URL": "https://tartan.coach"
+      },
+      "android": { "buildType": "app-bundle" }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    }
   }
 }

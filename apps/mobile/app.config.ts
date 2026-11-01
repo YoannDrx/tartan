@@ -1,9 +1,14 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
+// Lu par Node au moment de la configuration : pas de types Node dans cette app.
+const { existsSync } = require("node:fs") as { existsSync: (path: string) => boolean };
+
 type AppVariant = "development" | "preview" | "production";
 
 const BRICK = "#C4442B";
 const UNIVERSAL_HOSTS = ["tartan.coach", "app.tartan.coach"];
+// Les mêmes chemins que apple-app-site-association, côté serveur.
+const UNIVERSAL_PATHS = ["/i/", "/r/", "/seance/", "/mes-sauts"];
 
 const variantNames: Record<AppVariant, string> = {
   development: "Tartan Dev",
@@ -36,6 +41,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   }
 
   const projectId = process.env.EAS_PROJECT_ID?.trim();
+  const appleTeamId = process.env.APPLE_TEAM_ID?.trim() || undefined;
+  // Sur EAS, une variable de type fichier donne son chemin ; en local, le fichier à côté de cette configuration.
+  const googleServicesFile = process.env.GOOGLE_SERVICES_JSON?.trim() || "./google-services.json";
   const appleSignIn = flag(process.env.EXPO_PUBLIC_OAUTH_APPLE_ENABLED);
   const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() || undefined;
 
@@ -52,6 +60,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: `coach.tartan.app${suffix}`,
+      ...(appleTeamId ? { appleTeamId } : {}),
       // Liens universels : le serveur doit publier apple-app-site-association.
       associatedDomains: UNIVERSAL_HOSTS.map((host) => `applinks:${host}`),
       ...(appleSignIn ? { usesAppleSignIn: true } : {}),
@@ -63,6 +72,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     android: {
       package: `coach.tartan.app${suffix}`,
+      // Notifications : absent tant que le projet Firebase n'existe pas, l'app se construit quand même.
+      ...(existsSync(googleServicesFile) ? { googleServicesFile } : {}),
       adaptiveIcon: {
         foregroundImage: "./assets/brand/adaptive-foreground.png",
         backgroundImage: "./assets/brand/adaptive-background.png",
@@ -83,7 +94,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         action: "VIEW",
         autoVerify: true,
         category: ["BROWSABLE", "DEFAULT"],
-        data: [{ scheme: "https", host, pathPrefix: "/i/" }],
+        data: UNIVERSAL_PATHS.map((pathPrefix) => ({ scheme: "https", host, pathPrefix })),
       })),
     },
     plugins: [

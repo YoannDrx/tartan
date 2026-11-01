@@ -350,10 +350,10 @@ export const SectionTitle = ({ children, right }: { children: string; right?: Re
       alignItems: "center",
       justifyContent: "space-between",
       gap: space.md,
-      minHeight: 20,
+      minHeight: 24,
     }}
   >
-    <T variant="section" tone="muted" accessibilityRole="header">
+    <T variant="section" heading>
       {children}
     </T>
     {right}
@@ -403,37 +403,4 @@ export const LaneLine = () => {
       style={{ height: 3, backgroundColor: scene.lane, marginHorizontal: -pad }}
     />
   );
-};
-
-export const Avatar = ({ initials, size = 32 }: { initials: string; size?: number }) => {
-  const p = usePalette();
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: p.surfaceAlt,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-      importantForAccessibility="no-hide-descendants"
-      accessibilityElementsHidden
-    >
-      <Text
-        maxFontSizeMultiplier={1.1}
-        style={[
-          size >= 40 ? textStyles.smallStrong : textStyles.caption,
-          { color: p.text, fontFamily: textStyles.smallStrong.fontFamily },
-        ]}
-      >
-        {initials}
-      </Text>
-    </View>
-  );
-};
-
-export const initialsOf = (first?: string | null, last?: string | null, fallback = ""): string => {
-  const value = `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase();
-  return value || fallback.slice(0, 2).toUpperCase();
 };

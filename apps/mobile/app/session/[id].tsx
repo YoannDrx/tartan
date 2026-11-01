@@ -312,7 +312,7 @@ export default function SessionMode() {
 
       <View style={{ gap: space.sm }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-          <T variant="section" tone="muted">
+          <T variant="section" heading>
             {m.sessionMode.sets}
           </T>
           <T variant="figure" accessibilityLabel={m.mobile.sessionMode.setsCount(doneCount, total)}>

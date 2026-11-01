@@ -36,6 +36,8 @@ export default function SignIn() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  // Une réussite qui demande une action, pas une erreur : elle ne s'affiche pas en rouge.
+  const [formNotice, setFormNotice] = useState<string | null>(null);
   const [pasting, setPasting] = useState(false);
   const [busy, setBusy] = useState<null | "magic" | "password" | "apple" | "google">(null);
 
@@ -78,6 +80,7 @@ export default function SignIn() {
     }
     setPasswordError(null);
     setFormError(null);
+    setFormNotice(null);
     setBusy("password");
     const result = await (
       creating
@@ -103,7 +106,9 @@ export default function SignIn() {
     }
     // Compte créé : la session n'existe qu'une fois l'adresse confirmée par e-mail.
     if (creating) {
-      setFormError(m.auth.verifySent);
+      setFormNotice(m.auth.verifySent);
+      setCreating(false);
+      setPassword("");
       return;
     }
     await refresh();
@@ -228,6 +233,7 @@ export default function SignIn() {
                         onPress={() => {
                           setCreating(!creating);
                           setFormError(null);
+                          setFormNotice(null);
                         }}
                       />
                     </View>
@@ -258,6 +264,11 @@ export default function SignIn() {
                 {formError ? (
                   <T variant="small" tone="danger" accessibilityLiveRegion="assertive">
                     {formError}
+                  </T>
+                ) : null}
+                {formNotice ? (
+                  <T testID="sign-in-notice" variant="small" accessibilityLiveRegion="polite">
+                    {formNotice}
                   </T>
                 ) : null}
                 {hasSocial ? (

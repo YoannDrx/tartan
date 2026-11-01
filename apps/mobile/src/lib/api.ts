@@ -1,4 +1,5 @@
-import { createApiClient } from "@tartan/api-client";
+import { ApiError, createApiClient } from "@tartan/api-client";
+import type { ExerciseInput } from "@tartan/contracts";
 import { authClient } from "./auth-client";
 import { config } from "./config";
 import { useSession } from "./session-store";
@@ -20,3 +21,33 @@ export const api = createApiClient({
   headers: async () => ({ Cookie: await authClient.getCookie() }),
   fetch: fetchWithSession,
 });
+
+// Routes pas encore dans l'API client : même contrat d'erreur, même session.
+const callApi = async (method: "GET" | "POST", path: string, body?: unknown): Promise<unknown> => {
+  const res = await fetchWithSession(`${config.apiUrl}/api/v1${path}`, {
+    method,
+    headers: {
+      Accept: "application/json",
+      ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+      Cookie: await authClient.getCookie(),
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  const json: unknown = await res.json().catch(() => null);
+  if (!res.ok) {
+    const error = json as { message?: string; code?: string } | null;
+    throw new ApiError(res.status, error?.code, error?.message ?? "Erreur réseau");
+  }
+  return json;
+};
+
+// Fiche complète d'un athlète, vue par le staff.
+export const fetchCoachAthleteFile = (orgId: string, athleteId: string): Promise<unknown> =>
+  callApi("GET", `/orgs/${orgId}/athletes/${athleteId}`);
+
+// Création, ou modification si le corps porte `id`.
+export const saveExercise = (orgId: string, body: ExerciseInput): Promise<unknown> =>
+  callApi("POST", `/orgs/${orgId}/exercises`, body);
+
+export const resendParentalConsent = (orgId: string): Promise<unknown> =>
+  callApi("POST", `/orgs/${orgId}/athlete/parental-consent`);

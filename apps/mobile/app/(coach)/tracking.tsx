@@ -5,14 +5,14 @@ import { compareTrackingRows } from "@tartan/domain";
 import { formatDayMonth, formatWeekdayShort, m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Share, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useWeekNavigator, WeekNav } from "../../src/features/agenda";
 import { groupAlerts, type AthleteAlertGroup } from "../../src/lib/alerts";
 import { api } from "../../src/lib/api";
 import { localIsoDate } from "../../src/lib/dates";
 import { errorMessage } from "../../src/lib/errors";
 import { useActiveSpace, useAlerts, useGroups, useTracking } from "../../src/lib/queries";
-import { AlertTriangle, ChevronRight, Clock, Send } from "../../src/ui/icons";
+import { AlertTriangle, ChevronRight, Clock, Send, UserPlus, Users } from "../../src/ui/icons";
 import { Button, Chip, Divider, ListSurface, SectionTitle, T } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
 import { Sheet } from "../../src/ui/sheet";
@@ -180,7 +180,7 @@ const Grid = ({
                     tone="muted"
                     numberOfLines={1}
                     maxFontSizeMultiplier={1.1}
-                    style={{ fontSize: 11 }}
+                    style={{ fontSize: 12 }}
                   >
                     {m.mobile.sessionTypeShort[s.type]}
                   </T>
@@ -322,6 +322,16 @@ const AthleteSheet = ({
           ))}
         </View>
       ) : null}
+      <Button
+        testID="open-athlete-file"
+        label={m.mobile.athletePage.open}
+        variant="secondary"
+        compact
+        onPress={() => {
+          onClose();
+          router.push(`/athletes/${row.athleteId}`);
+        }}
+      />
       {done ? (
         <T accessibilityLiveRegion="polite" variant="small">
           {done}
@@ -421,18 +431,8 @@ export default function Tracking() {
     onError: (error) => setMessage(errorMessage(error)),
   });
 
-  const invite = useMutation({
-    mutationFn: async () => {
-      const group = groups.data?.find((g) => g.id === groupId) ?? groups.data?.[0];
-      if (!group) throw new Error(m.mobile.coach.noGroup);
-      const invitation = await api.groupLink(orgId, group.id);
-      await Share.share({ message: m.mobile.coach.inviteMessage(group.name, invitation.link) });
-    },
-    onError: (error) =>
-      setMessage(
-        error instanceof Error && error.message === m.mobile.coach.noGroup ? error.message : errorMessage(error),
-      ),
-  });
+  const invite = () =>
+    router.push(groupId ? { pathname: "/invite", params: { groupId } } : "/invite");
 
   const refresh = () => {
     void tracking.refetch();
@@ -505,7 +505,7 @@ export default function Tracking() {
           body={m.coach.noAthletes}
           action={
             canInvite ? (
-              <Button label={m.mobile.coach.inviteShare} loading={invite.isPending} onPress={() => invite.mutate()} />
+              <Button testID="open-invite" label={m.mobile.invitePage.open} icon={UserPlus} onPress={invite} />
             ) : undefined
           }
         />
@@ -533,16 +533,31 @@ export default function Tracking() {
               }}
             />
           ) : null}
+        </>
+      ) : null}
+      {grid && athleteCount > 0 ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+          <Button
+            testID="open-athletes"
+            label={m.mobile.athletePage.listLink}
+            icon={Users}
+            variant="secondary"
+            compact
+            style={{ flexGrow: 1 }}
+            onPress={() => router.push("/athletes")}
+          />
           {canInvite ? (
             <Button
-              label={m.mobile.coach.inviteShare}
+              testID="open-invite"
+              label={m.mobile.invitePage.open}
+              icon={UserPlus}
               variant="secondary"
               compact
-              loading={invite.isPending}
-              onPress={() => invite.mutate()}
+              style={{ flexGrow: 1 }}
+              onPress={invite}
             />
           ) : null}
-        </>
+        </View>
       ) : null}
       {message ? (
         <T variant="small" accessibilityLiveRegion="polite">

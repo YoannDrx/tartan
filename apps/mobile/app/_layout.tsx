@@ -50,7 +50,8 @@ const AuthGuard = () => {
   const pathname = usePathname();
   const router = useRouter();
   const first = segments[0];
-  const open = first === "(auth)" || first === "i";
+  // Le lien de parrainage garde son code avant d'envoyer vers la connexion.
+  const open = first === "(auth)" || first === "i" || first === "r";
   useEffect(() => {
     if (status === "signed-out" && !open && pathname !== "/sign-in") router.replace("/sign-in");
   }, [status, open, pathname, router]);
@@ -114,6 +115,10 @@ export default function RootLayout() {
           <Stack.Screen name="capture" options={{ contentStyle: { backgroundColor: scene.card } }} />
           <Stack.Screen name="coach-session/[id]" />
           <Stack.Screen name="settings" />
+          <Stack.Screen name="invite" />
+          <Stack.Screen name="athletes/index" />
+          <Stack.Screen name="athletes/[id]" />
+          <Stack.Screen name="exercise/[id]" />
         </Stack>
       </SafeAreaProvider>
     </PersistQueryClientProvider>

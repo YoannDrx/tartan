@@ -33,7 +33,6 @@ const PERSISTED = new Set([
   "groups",
   "coach-calendar",
   "exercises",
-  "athlete-videos",
 ]);
 
 export const shouldPersistQuery = (query: Query): boolean =>

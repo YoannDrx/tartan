@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { CommentsSection } from "../../src/features/comments";
 import { ExerciseRow, parseMedia } from "../../src/features/media";
+import { ParentalPending } from "../../src/features/parental-pending";
 import { AttendanceLink, AttendanceRow, SessionHero } from "../../src/features/session-hero";
 import { recordValidation, ValidationSheet, type ValidationTarget } from "../../src/features/validation-sheet";
 import { WeekStrip } from "../../src/features/week-strip";
@@ -76,11 +77,7 @@ export default function Today() {
       {today.isError && !view ? <ErrorState error={today.error} onRetry={() => void today.refetch()} /> : null}
       {view ? (
         <>
-          {view.parentalConsentPending ? (
-            <Card>
-              <T variant="small">{m.parental.pendingBanner}</T>
-            </Card>
-          ) : null}
+          {view.parentalConsentPending ? <ParentalPending orgId={orgId} /> : null}
 
           <WeekStrip week={view.week} today={date} />
 

@@ -19,6 +19,8 @@ export const routeForNotification = (data: NotificationData | null | undefined):
   if (coachSession && ID.test(coachSession)) return `/coach-session/${coachSession}`;
   // « /seance/… » ouvre Aujourd'hui, d'où la validation se fait en deux touches.
   if (link.startsWith("/seance/")) return "/today";
+  const athlete = link.match(/^\/athletes\/([^/?#]+)/)?.[1];
+  if (athlete && ID.test(athlete)) return `/athletes/${athlete}`;
   if (link.startsWith("/athletes")) return "/tracking";
   return "/";
 };

@@ -1,6 +1,7 @@
 import { m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
+import { ParentalPending } from "../../src/features/parental-pending";
 import { VideoRow } from "../../src/features/video-bits";
 import { useActiveSpace, useToday, useVideos } from "../../src/lib/queries";
 import { Divider, ListSurface, T } from "../../src/ui/primitives";
@@ -15,11 +16,12 @@ export default function Jumps() {
   const consentOff = today.data && !today.data.videoConsent;
   return (
     <TabScreen title={m.nav.mesSauts} refreshing={videos.isRefetching} onRefresh={() => void videos.refetch()}>
-      {consentOff ? (
+      {consentOff && !today.data?.parentalConsentPending ? (
         <T variant="small" tone="muted">
-          {today.data?.parentalConsentPending ? m.parental.pendingBanner : m.video.consentMissingAthlete}
+          {m.video.consentMissingAthlete}
         </T>
       ) : null}
+      {today.data?.parentalConsentPending ? <ParentalPending orgId={orgId} /> : null}
       {videos.isPending ? <LoadingState /> : null}
       {videos.isError && !videos.data ? (
         <ErrorState error={videos.error} onRetry={() => void videos.refetch()} />

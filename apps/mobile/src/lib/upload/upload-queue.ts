@@ -22,7 +22,8 @@ import {
   settleProbe,
   statusProbeRange,
 } from "./chunks";
-import { clearUploadProgress, showUploadProgress } from "./progress-notification";
+import { clearUploadProgress, showUploadProgress, startUploadService, stopUploadService } from "./progress-notification";
+import { stretchInPlace, type StretchOutcome } from "./stretch";
 
 export type UploadItem = {
   id: string;
@@ -45,7 +46,13 @@ export type UploadItem = {
 type UploadState = {
   items: UploadItem[];
   running: boolean;
-  add: (params: { orgId: string; athleteName: string; sourceUri: string; input: CreateVideoInput }) => Promise<void>;
+  // Null si la vidéo est en file ; sinon la durée maximale à cette fréquence, en secondes.
+  add: (params: {
+    orgId: string;
+    athleteName: string;
+    sourceUri: string;
+    input: CreateVideoInput;
+  }) => Promise<{ tooLongSeconds: number } | null>;
   remove: (id: string) => void;
   retry: (id: string) => void;
   patch: (id: string, patch: Partial<UploadItem>) => void;
@@ -67,6 +74,27 @@ const deleteLocal = (uri: string) => {
   }
 };
 
+// L'en-tête est réécrit sur la copie : le fichier d'origine (pellicule, capture) reste tel quel.
+const stretchCopy = async (uri: string): Promise<StretchOutcome> => {
+  const file = new File(uri);
+  const handle = file.open();
+  try {
+    return await stretchInPlace({
+      size: handle.size ?? file.size,
+      read: async (offset, length) => {
+        handle.offset = offset;
+        return handle.readBytes(length);
+      },
+      write: (offset, bytes) => {
+        handle.offset = offset;
+        handle.writeBytes(bytes);
+      },
+    });
+  } finally {
+    handle.close();
+  }
+};
+
 export const useUploads = create<UploadState>()(
   persist(
     (set, get) => ({
@@ -74,17 +102,29 @@ export const useUploads = create<UploadState>()(
       running: false,
       add: async ({ orgId, athleteName, sourceUri, input }) => {
         const id = Crypto.randomUUID();
-        // Copie durable : le fichier temporaire du sélecteur peut disparaître avant l'envoi.
-        const source = new File(sourceUri);
+        // Copie durable, hors du cache que le système peut vider : le fichier temporaire du sélecteur
+        // peut disparaître avant l'envoi. Copie asynchrone : une longue vidéo ne fige pas l'écran.
         const target = new File(uploadsDir(), `${id}.mp4`);
-        source.copy(target);
+        await LegacyFS.copyAsync({ from: sourceUri, to: target.uri });
+        let stretch: StretchOutcome;
+        try {
+          stretch = await stretchCopy(target.uri);
+        } catch (error) {
+          deleteLocal(target.uri);
+          throw error;
+        }
+        if (stretch.kind === "too-long") {
+          deleteLocal(target.uri);
+          return { tooLongSeconds: stretch.maxSeconds };
+        }
         const item: UploadItem = {
           id,
           orgId,
           athleteName,
           fileUri: target.uri,
           size: target.size,
-          input,
+          // Dans la file persistante : une reprise après fermeture crée la vidéo avec le bon `timeScale`.
+          input: { ...input, fps: stretch.fps ?? input.fps ?? null, timeScale: stretch.timeScale },
           videoId: null,
           uploadUrl: null,
           started: false,
@@ -96,6 +136,7 @@ export const useUploads = create<UploadState>()(
         };
         set({ items: [...get().items, item] });
         void flushUploads();
+        return null;
       },
       remove: (id) => {
         const item = get().items.find((i) => i.id === id);
@@ -280,6 +321,8 @@ export const flushUploads = async (): Promise<void> => {
     for (;;) {
       const next = useUploads.getState().items.find((i) => i.state === "queued");
       if (!next) return;
+      // Android : le service au premier plan garde l'envoi en vie quand l'écran s'éteint.
+      startUploadService(next.athleteName);
       try {
         // eslint-disable-next-line no-await-in-loop -- une vidéo à la fois pour ménager le réseau
         await uploadOne(next.id);
@@ -308,6 +351,7 @@ export const flushUploads = async (): Promise<void> => {
       }
     }
   } finally {
+    stopUploadService();
     useUploads.getState().setRunning(false);
   }
 };

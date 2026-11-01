@@ -93,7 +93,6 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
         void queryClient.invalidateQueries({ queryKey: ["today"] });
         void queryClient.invalidateQueries({ queryKey: ["session"] });
         void queryClient.invalidateQueries({ queryKey: ["athlete-calendar"] });
-        void queryClient.invalidateQueries({ queryKey: ["bar-sheet"] });
       }
       // Serveur occupé alors que le réseau répond : on réessaiera sans attendre un changement d'état.
       if (result.remaining.length > 0) {

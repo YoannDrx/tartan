@@ -1,5 +1,5 @@
 import type { JumpResult } from "@tartan/contracts";
-import { formatHeight, isHighFrameRate, nextAttemptNo, type Attempt } from "@tartan/domain";
+import { formatHeight, isHighFrameRate, MAX_FILE_SECONDS, nextAttemptNo, timeScaleFor, type Attempt } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -157,7 +157,9 @@ const CameraModal = ({
     }
     setFailed(false);
     try {
-      const recorder = await video.createRecorder({ maxDuration: 120 });
+      // Au-delà, le fichier étiré dépasserait la durée acceptée à l'envoi : 60 s à 240 i/s.
+      const maxDuration = Math.min(120, Math.floor(MAX_FILE_SECONDS / timeScaleFor(selectedFps)));
+      const recorder = await video.createRecorder({ maxDuration });
       recorderRef.current = recorder;
       await recorder.startRecording(
         (filePath) => {
@@ -366,7 +368,7 @@ export default function Capture() {
     if (!uri) return;
     setBusy(true);
     try {
-      await addUpload({
+      const refused = await addUpload({
         orgId,
         athleteName: athleteName(),
         sourceUri: uri,
@@ -378,6 +380,10 @@ export default function Capture() {
           attempt,
         },
       });
+      if (refused) {
+        setMessage(m.video.tooLong(refused.tooLongSeconds));
+        return;
+      }
       setMessage(m.mobile.video.queued);
       remember();
     } catch {
@@ -441,20 +447,21 @@ export default function Capture() {
                 testID="capture-import"
                 label={m.video.import}
                 icon={Images}
-
                 onPress={() => void pick()}
               />
             </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                testID="capture-film"
-                label={m.mobile.video.film}
-                icon={CameraIcon}
-                variant="secondary"
-
-                onPress={() => setCameraOpen(true)}
-              />
-            </View>
+            {/* Pas de caméra (simulateur, appareil sans capteur) : un bouton qui ne ferait rien n'a pas sa place. */}
+            {choice ? (
+              <View style={{ flex: 1 }}>
+                <Button
+                  testID="capture-film"
+                  label={m.mobile.video.film}
+                  icon={CameraIcon}
+                  variant="secondary"
+                  onPress={() => setCameraOpen(true)}
+                />
+              </View>
+            ) : null}
           </View>
         </View>
       )}

@@ -1,7 +1,15 @@
 import { tokens } from "@tartan/design-tokens";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { JumpPhase } from "@tartan/contracts";
-import { formatHeight, formatTimecode, frameStepMs, isHighFrameRate, isStaff } from "@tartan/domain";
+import {
+  formatHeight,
+  formatTimecode,
+  frameStepMs,
+  isHighFrameRate,
+  isStaff,
+  toFileSeconds,
+  toRealMs,
+} from "@tartan/domain";
 import { capitalize, formatDayMonth, m } from "@tartan/i18n";
 import { useEvent, useEventListener } from "expo";
 import { Redirect, useLocalSearchParams } from "expo-router";
@@ -13,19 +21,13 @@ import { BarSheetRow, resultLabel } from "../../src/features/video-bits";
 import { api } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
 import { PHASE_ORDER, phaseSegments, preciseTimecode, segmentAt, type PhaseSegment } from "../../src/lib/phases";
+import { defaultSpeed, playerRate, speedsFor } from "../../src/lib/playback";
 import { useActiveSpace, useVideo } from "../../src/lib/queries";
-import { ArrowUp, Pause, Play, Repeat, Share, SkipBack, SkipForward, Trash } from "../../src/ui/icons";
+import { ArrowUp, Flag, Pause, Play, Repeat, Share, SkipBack, SkipForward, Trash } from "../../src/ui/icons";
 import { Button, Chip, Field, IconButton, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { color, radius, scene, space } from "../../src/ui/theme";
-
-const RATES = [
-  { value: 0.1, label: "0,1×" },
-  { value: 0.25, label: "0,25×" },
-  { value: 0.5, label: "0,5×" },
-  { value: 1, label: "1×" },
-] as const;
 
 const Timeline = ({
   positionMs,
@@ -136,7 +138,7 @@ const Timeline = ({
               numberOfLines={1}
               tone={current?.phase === s.phase ? "default" : "muted"}
               maxFontSizeMultiplier={1.1}
-              style={{ flex: Math.max(1, s.endMs - s.startMs), fontSize: 11 }}
+              style={{ flex: Math.max(1, s.endMs - s.startMs), fontSize: 12 }}
             >
               {m.mobile.jumpPhaseShort[s.phase]}
             </T>
@@ -154,6 +156,7 @@ const Timeline = ({
 const Player = ({
   uri,
   fps,
+  timeScale,
   knownDurationMs,
   annotations,
   canAnnotate,
@@ -164,6 +167,8 @@ const Player = ({
   onRetry: () => void;
   uri: string;
   fps: number | null;
+  // Tout l'écran raisonne en temps réel : seuls les échanges avec le lecteur passent par le temps du fichier étiré.
+  timeScale: number;
   knownDurationMs: number | null;
   annotations: { id: string; tMs: number; phase: JumpPhase | null; text: string | null; authorName: string | null }[];
   canAnnotate: boolean;
@@ -171,14 +176,17 @@ const Player = ({
   videoId: string;
 }) => {
   const client = useQueryClient();
+  const startSpeed = defaultSpeed(timeScale);
+  const speeds = speedsFor(timeScale);
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
+    // Son coupé : l'étirement l'a ralenti avec l'image.
     p.muted = true;
     p.preservesPitch = false;
     p.timeUpdateEventInterval = 0.04;
     // Pas image par image exact : aucune tolérance de positionnement.
     p.seekTolerance = { toleranceBefore: 0, toleranceAfter: 0 };
-    p.playbackRate = 0.5;
+    p.playbackRate = playerRate(startSpeed, timeScale);
     p.play();
   });
   const { isPlaying } = useEvent(player, "playingChange", { isPlaying: player.playing });
@@ -186,25 +194,25 @@ const Player = ({
   const playable = status !== "error";
   const [positionMs, setPositionMs] = useState(0);
   const [durationMs, setDurationMs] = useState(knownDurationMs ?? 0);
-  const [rate, setRate] = useState(0.5);
+  const [rate, setRate] = useState<number>(startSpeed);
   const [loop, setLoop] = useState<PhaseSegment | null>(null);
   const [text, setText] = useState("");
   const [phase, setPhase] = useState<JumpPhase | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEventListener(player, "sourceLoad", ({ duration }) => {
-    if (duration > 0) setDurationMs(Math.round(duration * 1000));
+    if (duration > 0) setDurationMs(Math.round(toRealMs(duration, timeScale)));
   });
   useEventListener(player, "timeUpdate", ({ currentTime }) => {
-    const ms = currentTime * 1000;
+    const ms = toRealMs(currentTime, timeScale);
     setPositionMs(ms);
-    if (loop && ms >= loop.endMs) player.currentTime = loop.startMs / 1000;
+    if (loop && ms >= loop.endMs) player.currentTime = toFileSeconds(loop.startMs, timeScale);
   });
 
   const stepMs = frameStepMs(fps);
   const seek = (ms: number) => {
     setPositionMs(ms);
-    player.currentTime = ms / 1000;
+    player.currentTime = toFileSeconds(ms, timeScale);
   };
   const stepFrame = (direction: 1 | -1) => {
     player.pause();
@@ -320,7 +328,7 @@ const Player = ({
             <T variant="caption" tone="muted">
               {m.mobile.video.speed}
             </T>
-            {RATES.map((r) => (
+            {speeds.map((r) => (
               <Chip
                 key={r.value}
                 tall
@@ -331,7 +339,7 @@ const Player = ({
                   setRate(r.value);
                   // Sur iOS, changer la vitesse relance la lecture : une image figée doit le rester.
                   const wasPlaying = player.playing;
-                  player.playbackRate = r.value;
+                  player.playbackRate = playerRate(r.value, timeScale);
                   if (!wasPlaying) player.pause();
                 }}
               />
@@ -476,6 +484,14 @@ export default function VideoAnalysis() {
       void client.invalidateQueries({ queryKey: ["videos", orgId] });
     },
   });
+  const report = useMutation({
+    mutationFn: () => api.report(orgId, { entityType: "video", entityId: id, reason: "inappropriate" }),
+  });
+  const confirmReport = () =>
+    Alert.alert(m.video.report, undefined, [
+      { text: m.common.cancel, style: "cancel" },
+      { text: m.comments.report, style: "destructive", onPress: () => report.mutate() },
+    ]);
 
   if (me.data && !orgId) return <Redirect href="/" />;
   if (video.isPending) {
@@ -493,7 +509,7 @@ export default function VideoAnalysis() {
     );
   }
   const v = video.data;
-  // Le MP4 garde la pleine fréquence ; le flux adaptatif peut la réduire (§ 11.5).
+  // Le MP4 de Mux est plafonné à 30 i/s : c'est l'étirement à l'envoi qui y garde chaque image d'un ralenti.
   const uri = v.mp4Url ?? v.hlsUrl;
   const title = v.barHeightCm ? m.mobile.video.saut(v.athleteName, formatHeight(v.barHeightCm)) : v.athleteName;
   const subtitle = [
@@ -513,6 +529,7 @@ export default function VideoAnalysis() {
           onRetry={() => setAttempt((n) => n + 1)}
           uri={uri}
           fps={v.fps}
+          timeScale={v.timeScale}
           knownDurationMs={v.durationMs}
           annotations={v.annotations}
           canAnnotate={canAnnotate}
@@ -572,6 +589,30 @@ export default function VideoAnalysis() {
       <View style={{ gap: space.sm }}>
         <SectionTitle>{m.mobile.video.replies}</SectionTitle>
         <CommentsSection orgId={orgId} entityType="video" entityId={v.id} dark placeholder={m.comments.placeholder} />
+      </View>
+
+      <View style={{ gap: space.xs }}>
+        <Button
+          testID="video-report"
+          label={m.video.report}
+          icon={Flag}
+          variant="ghost"
+          compact
+          style={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
+          loading={report.isPending}
+          disabled={report.isSuccess}
+          onPress={confirmReport}
+        />
+        {report.isSuccess ? (
+          <T variant="caption" accessibilityLiveRegion="polite">
+            {m.video.reported}
+          </T>
+        ) : null}
+        {report.isError ? (
+          <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
+            {errorMessage(report.error)}
+          </T>
+        ) : null}
       </View>
     </StackScreen>
   );
