@@ -13,6 +13,7 @@ import { deleteAccount } from "@/server/account.service";
 import { setConsent } from "@/server/consent.service";
 import { saveAvatar, updateProfile } from "@/server/me.service";
 import { deleteGroup, saveGroup, updateOrganization } from "@/server/org.service";
+import { leaveOrganization, removeAthlete, removeCoach, updateMember } from "@/server/members.service";
 
 export const updateProfileAction = authAction.inputSchema(profileInput).action(async ({ parsedInput, ctx }) => {
   await updateProfile(ctx.actor.userId, parsedInput);
@@ -61,3 +62,29 @@ export const deleteAccountAction = authAction
     const jar = await cookies();
     jar.delete(SPACE_COOKIE);
   });
+
+export const updateMemberAction = spaceAction
+  .inputSchema(z.object({ memberId: uuid, role: z.enum(["coach", "assistant"]), groupIds: z.array(uuid) }))
+  .action(async ({ parsedInput, ctx }) => {
+    await updateMember(ctx.userId, ctx.organizationId, parsedInput);
+    revalidatePath("/reglages");
+  });
+
+export const removeCoachAction = spaceAction
+  .inputSchema(z.object({ memberId: uuid }))
+  .action(async ({ parsedInput, ctx }) => {
+    await removeCoach(ctx.userId, ctx.organizationId, parsedInput.memberId);
+    revalidatePath("/reglages");
+  });
+
+export const removeAthleteAction = spaceAction
+  .inputSchema(z.object({ id: uuid }))
+  .action(async ({ parsedInput, ctx }) => {
+    await removeAthlete(ctx.userId, ctx.organizationId, parsedInput.id);
+    revalidatePath("/athletes");
+  });
+
+export const leaveOrganizationAction = spaceAction.action(async ({ ctx }) => {
+  await leaveOrganization(ctx.userId, ctx.organizationId);
+  (await cookies()).delete(SPACE_COOKIE);
+});

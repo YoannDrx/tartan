@@ -1,14 +1,25 @@
 "use client";
 
 import type { JumpPhase, VideoDetail } from "@tartan/contracts";
-import { formatHeight, formatTimecode, frameStepMs, isHighFrameRate, phaseAt, phaseRanges } from "@tartan/domain";
+import {
+  formatHeight,
+  formatTimecode,
+  frameStepMs,
+  isHighFrameRate,
+  phaseAt,
+  phaseRanges,
+  toFileSeconds,
+  toRealMs,
+} from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Check, ChevronLeft, Pause, Play, Repeat, Share2, SkipBack, SkipForward, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BarSheet } from "@/components/bar-sheet";
 import { IconButton } from "@/components/ui/button";
+import { Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { CommentThread } from "@/features/comments/thread";
@@ -41,6 +52,8 @@ export const VideoAnalysis = ({
   const [phase, setPhase] = useState<JumpPhase | "">("");
   const [loop, setLoop] = useState<{ a: number; b: number | null } | null>(null);
   const src = video.mp4Url ?? video.hlsUrl;
+  // Le fichier est étiré : tout l'écran raisonne en temps réel, seul l'élément vidéo voit le temps du fichier.
+  const scale = video.timeScale;
 
   useEffect(() => {
     const el = ref.current;
@@ -62,8 +75,8 @@ export const VideoAnalysis = ({
   }, [src]);
 
   useEffect(() => {
-    if (ref.current) ref.current.playbackRate = speed;
-  }, [speed]);
+    if (ref.current) ref.current.playbackRate = speed * scale;
+  }, [speed, scale]);
 
   // Suivi fin de la tête de lecture ; la boucle sur une portion se règle ici aussi.
   useEffect(() => {
@@ -71,15 +84,15 @@ export const VideoAnalysis = ({
     const tick = () => {
       const el = ref.current;
       if (el) {
-        const ms = el.currentTime * 1000;
+        const ms = toRealMs(el.currentTime, scale);
         setTimeMs(ms);
-        if (loop?.b != null && ms >= loop.b) el.currentTime = loop.a / 1000;
+        if (loop?.b != null && ms >= loop.b) el.currentTime = toFileSeconds(loop.a, scale);
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [loop]);
+  }, [loop, scale]);
 
   const step = useMemo(() => frameStepMs(video.fps), [video.fps]);
   const seek = (ms: number) => {
@@ -87,14 +100,14 @@ export const VideoAnalysis = ({
     if (!el) return;
     el.pause();
     setPlaying(false);
-    el.currentTime = Math.max(0, Math.min(ms, durationMs)) / 1000;
-    setTimeMs(el.currentTime * 1000);
+    el.currentTime = toFileSeconds(Math.max(0, Math.min(ms, durationMs)), scale);
+    setTimeMs(toRealMs(el.currentTime, scale));
   };
   const toggle = () => {
     const el = ref.current;
     if (!el) return;
     if (el.paused) {
-      el.playbackRate = speed;
+      el.playbackRate = speed * scale;
       el.play().catch(() => toast.error("Lecture impossible sur cet appareil."));
       setPlaying(true);
     } else {
@@ -134,14 +147,14 @@ export const VideoAnalysis = ({
   const pct = (ms: number) => (durationMs > 0 ? (ms / durationMs) * 100 : 0);
 
   return (
-    <div className="scene-dark min-h-dvh bg-ink text-white [&_a]:text-brand-on-ink">
+    <div className="scene-dark min-h-dvh bg-ink text-white [&_a]:text-link">
       <div className="mx-auto grid max-w-[1200px] gap-4 p-4 desktop:grid-cols-[minmax(0,1fr)_360px] desktop:p-6">
         <div className="flex min-w-0 flex-col gap-3">
           <header className="flex items-center gap-3">
             <Link
               href={backHref}
               aria-label={m.common.back}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-ink-2 !text-white"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-card-raised !text-white"
             >
               <ChevronLeft aria-hidden className="size-5" />
             </Link>
@@ -150,7 +163,7 @@ export const VideoAnalysis = ({
                 {video.athleteName}
                 {video.attemptNo ? `, essai ${video.attemptNo}` : ""}
               </h1>
-              <p className="t-caption font-normal text-muted-on-ink">
+              <p className="t-caption font-normal text-soft">
                 {video.recordedAt
                   ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(
                       new Date(video.recordedAt),
@@ -175,7 +188,7 @@ export const VideoAnalysis = ({
             ) : null}
           </header>
 
-          <div className="relative overflow-hidden rounded-block bg-black">
+          <div className="relative overflow-hidden rounded-card bg-black">
             {src ? (
               <video
                 ref={ref}
@@ -183,14 +196,14 @@ export const VideoAnalysis = ({
                 preload="auto"
                 muted
                 loop={loop === null}
-                onLoadedMetadata={(e) => setDurationMs(e.currentTarget.duration * 1000)}
+                onLoadedMetadata={(e) => setDurationMs(toRealMs(e.currentTarget.duration, scale))}
                 onPause={() => setPlaying(false)}
                 onPlay={() => setPlaying(true)}
                 className="aspect-video w-full"
                 aria-label={`Vidéo du saut de ${video.athleteName}`}
               />
             ) : (
-              <div className="flex aspect-video w-full items-center justify-center p-6 text-center text-muted-on-ink">
+              <div className="flex aspect-video w-full items-center justify-center p-6 text-center text-soft">
                 {video.status === "error"
                   ? m.video.failed
                   : video.status === "ready"
@@ -210,13 +223,13 @@ export const VideoAnalysis = ({
                     : m.video.passed.toLowerCase()}
               </span>
             ) : null}
-            <span className="absolute right-3 top-3 rounded-full bg-ink-2 px-2.5 py-1 t-caption font-semibold">
+            <span className="absolute right-3 top-3 rounded-full bg-card-raised px-2.5 py-1 t-caption font-semibold">
               {speedLabel(speed)}
               {video.fps ? `, ${video.fps} i/s` : ""}
             </span>
           </div>
           {video.fps && !isHighFrameRate(video.fps) ? (
-            <p className="t-caption font-normal text-muted-on-ink">{m.video.fpsLow}</p>
+            <p className="t-caption font-normal text-soft">{m.video.fpsLow}</p>
           ) : null}
 
           <div className="flex flex-wrap items-center gap-2">
@@ -244,7 +257,7 @@ export const VideoAnalysis = ({
                   onClick={() => setSpeed(s)}
                   className={cn(
                     "min-h-11 min-w-11 rounded-button px-2 text-[14px] font-semibold",
-                    speed === s ? "bg-white text-ink" : "bg-ink-2 text-white",
+                    speed === s ? "bg-white text-ink" : "bg-card-raised text-white",
                   )}
                 >
                   {speedLabel(s)}
@@ -261,7 +274,7 @@ export const VideoAnalysis = ({
               }}
               className={cn(
                 "inline-flex min-h-11 items-center gap-1.5 rounded-button px-3 text-[14px] font-semibold",
-                loop ? "bg-brand text-white" : "bg-ink-2 text-white",
+                loop ? "bg-brand text-white" : "bg-card-raised text-white",
               )}
             >
               <Repeat aria-hidden className="size-4" />
@@ -275,12 +288,12 @@ export const VideoAnalysis = ({
               Position dans la vidéo
             </label>
             <div className="relative h-9">
-              <div className="absolute inset-x-0 top-3 flex h-2.5 gap-0.5 overflow-hidden rounded-[3px] bg-ink-3">
+              <div className="absolute inset-x-0 top-3 flex h-2.5 gap-0.5 overflow-hidden rounded-[3px] bg-card-line">
                 {ranges.map((r, i) => (
                   <span
                     key={r.phase}
                     style={{ flexGrow: Math.max(r.endMs - r.startMs, 1) }}
-                    className={cn(currentPhase === r.phase ? "bg-brand" : i % 2 ? "bg-[#4E5159]" : "bg-ink-3")}
+                    className={cn(currentPhase === r.phase ? "bg-brand" : i % 2 ? "bg-control-line" : "bg-card-line")}
                   />
                 ))}
               </div>
@@ -313,7 +326,7 @@ export const VideoAnalysis = ({
               />
             </div>
             {ranges.length > 0 ? (
-              <div className="flex gap-0.5 text-[12px] text-muted-on-ink">
+              <div className="flex gap-0.5 text-[12px] text-soft">
                 {ranges.map((r) => (
                   <span
                     key={r.phase}
@@ -331,40 +344,23 @@ export const VideoAnalysis = ({
         <aside className="flex min-w-0 flex-col gap-4">
           {video.barSheet.length > 0 ? (
             <section>
-              <h2 className="t-section mb-2 text-muted-on-ink">{m.video.barSheet}</h2>
-              <ul className="flex flex-wrap gap-1.5">
-                {video.barSheet.map((r) => (
-                  <li
-                    key={r.heightCm}
-                    className={cn(
-                      "flex min-w-14 flex-1 flex-col items-center rounded-thumb px-2 py-1.5",
-                      r.heightCm === video.barHeightCm ? "bg-brand" : "bg-ink-2",
-                    )}
-                  >
-                    <span className="t-num text-[17px] leading-tight">{r.label}</span>
-                    <span
-                      className={cn("t-caption", r.heightCm === video.barHeightCm ? "text-white" : "text-muted-on-ink")}
-                    >
-                      {r.notation}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <h2 className="t-section mb-2">{m.video.barSheet}</h2>
+              <BarSheet rows={video.barSheet} current={video.barHeightCm} />
             </section>
           ) : null}
 
           <section aria-label="Remarques sur la vidéo" className="flex flex-col gap-2">
             {video.annotations.map((a) => (
-              <div key={a.id} className="flex items-start gap-2.5 rounded-card bg-ink-2 p-2.5">
+              <div key={a.id} className="flex items-start gap-2.5 rounded-card bg-card-raised p-2.5">
                 <button
                   type="button"
                   onClick={() => seek(a.tMs)}
-                  className="t-caption inline-flex min-h-11 shrink-0 items-center rounded-full px-1 font-semibold text-brand-on-ink underline"
+                  className="t-caption inline-flex min-h-11 shrink-0 items-center rounded-full px-1 font-semibold text-link underline"
                 >
                   {formatTimecode(a.tMs)}
                 </button>
                 <div className="min-w-0 flex-1 py-1.5">
-                  {a.phase ? <p className="t-caption font-semibold text-muted-on-ink">{m.jumpPhase[a.phase]}</p> : null}
+                  {a.phase ? <p className="t-caption font-semibold text-soft">{m.jumpPhase[a.phase]}</p> : null}
                   <p className="break-words">{a.text}</p>
                 </div>
                 {canAnnotate ? (
@@ -395,29 +391,26 @@ export const VideoAnalysis = ({
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder={m.video.remarkAt(formatTimecode(timeMs))}
-                  className="min-h-11 w-full rounded-full border border-ink-3 bg-ink px-4 text-[16px] text-white placeholder:text-muted-on-ink"
+                  className="min-h-11 w-full rounded-full border border-control-line bg-transparent px-4 text-[16px] text-white placeholder:text-fg-muted"
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <label htmlFor="phase" className="sr-only">
                     Phase du saut
                   </label>
-                  <select
-                    id="phase"
-                    value={phase}
-                    onChange={(e) => setPhase(e.target.value as JumpPhase | "")}
-                    className="min-h-11 flex-1 rounded-button border border-ink-3 bg-ink px-2 text-white"
-                  >
-                    <option value="">Sans phase</option>
-                    {PHASES.map((p) => (
-                      <option key={p} value={p}>
-                        {m.jumpPhase[p]}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="min-w-36 flex-1">
+                    <Select id="phase" value={phase} onChange={(e) => setPhase(e.target.value as JumpPhase | "")}>
+                      <option value="">Sans phase</option>
+                      {PHASES.map((p) => (
+                        <option key={p} value={p}>
+                          {m.jumpPhase[p]}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
                   <button
                     type="submit"
                     disabled={add.isPending || !text.trim()}
-                    className="min-h-11 rounded-full bg-brand px-4 font-semibold text-white disabled:opacity-50"
+                    className="min-h-11 flex-1 whitespace-nowrap rounded-full bg-brand px-4 font-semibold text-white disabled:opacity-50"
                   >
                     {m.video.addComment}
                   </button>

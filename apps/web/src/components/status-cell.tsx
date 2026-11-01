@@ -2,7 +2,7 @@ import type { CellStatus } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { cn } from "@/lib/cn";
 
-// Pictogramme distinct par statut, jamais la couleur seule (§ 9.4).
+// Pictogramme distinct par statut, jamais la couleur seule (§ 9.4). Les valeurs suivent le fond (globals.css).
 export const StatusIcon = ({
   status,
   size = 26,
@@ -25,11 +25,11 @@ export const StatusIcon = ({
       <title>{label}</title>
       {status === "done" ? (
         <>
-          <circle cx="13" cy="13" r="12" fill="#1E5FA8" />
+          <circle cx="13" cy="13" r="12" fill="var(--st-done)" />
           <path
             d="M8 13.5l3.2 3.2L18 10"
             fill="none"
-            stroke="#fff"
+            stroke="var(--st-on)"
             strokeWidth="2.4"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -38,25 +38,25 @@ export const StatusIcon = ({
       ) : null}
       {status === "partial" ? (
         <>
-          <circle cx="13" cy="13" r="11" fill="#fff" stroke="#E08A1E" strokeWidth="2" />
-          <path d="M13 2 A 11 11 0 0 1 13 24 Z" fill="#E08A1E" />
+          <circle cx="13" cy="13" r="11" fill="none" stroke="var(--st-partial)" strokeWidth="2" />
+          <path d="M13 2 A 11 11 0 0 1 13 24 Z" fill="var(--st-partial)" />
         </>
       ) : null}
       {status === "missed" ? (
         <>
-          <circle cx="13" cy="13" r="12" fill="#C4442B" />
-          <path d="M9 9l8 8M17 9l-8 8" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
+          <circle cx="13" cy="13" r="12" fill="var(--st-missed)" />
+          <path d="M9 9l8 8M17 9l-8 8" stroke="var(--st-on)" strokeWidth="2.4" strokeLinecap="round" />
         </>
       ) : null}
       {status === "upcoming" ? (
-        <circle cx="13" cy="13" r="11" fill="none" stroke="#8C8E94" strokeWidth="2" strokeDasharray="3 3" />
+        <circle cx="13" cy="13" r="11" fill="none" stroke="var(--st-upcoming)" strokeWidth="2" strokeDasharray="3 3" />
       ) : null}
     </svg>
   );
 };
 
 export const StatusLegend = () => (
-  <ul className="flex flex-wrap gap-x-4 gap-y-1 t-caption font-normal text-muted">
+  <ul className="flex flex-wrap gap-x-4 gap-y-1 t-caption font-normal text-soft">
     {(["done", "partial", "missed", "upcoming"] as const).map((status) => (
       <li key={status} className="flex items-center gap-1.5">
         <StatusIcon status={status} size={18} />

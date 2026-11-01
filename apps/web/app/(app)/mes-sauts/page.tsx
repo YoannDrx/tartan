@@ -15,10 +15,10 @@ export default async function MesSautsPage() {
     getAthleteToday(actor.userId, organizationId),
   ]);
   return (
-    <div className="flex max-w-2xl flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       <PageHeader title={m.nav.mesSauts} />
       {!today.videoConsent ? (
-        <p className="rounded-card bg-warning-tint p-3 text-warning-strong">{m.video.consentMissingAthlete}</p>
+        <p className="rounded-thumb bg-card-raised p-3 text-st-partial">{m.video.consentMissingAthlete}</p>
       ) : null}
       {videos.length === 0 ? (
         <EmptyState>{m.video.emptyAthlete}</EmptyState>

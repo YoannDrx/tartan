@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { m } from "@tartan/i18n";
-import { Logo } from "@/components/logo";
+import { PublicPage } from "@/features/shell/public-page";
 import { enabledSocialProviders } from "@/lib/auth";
 import { getActor } from "@/lib/session";
 import { SignInForm } from "@/features/auth/sign-in-form";
@@ -14,15 +13,10 @@ export default async function ConnexionPage({ searchParams }: { searchParams: Pr
   const callbackURL = next?.startsWith("/") && !next.startsWith("//") ? next : "/accueil";
   if (await getActor()) redirect(callbackURL);
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-4 py-10">
-      <Link href="/" aria-label="Tartan, retour au site" className="self-start">
-        <Logo height={40} />
-      </Link>
-      <div>
-        <h1 className="t-display">{m.auth.signInTitle}</h1>
-        <p className="mt-1 text-muted">{m.auth.signInLead}</p>
+    <PublicPage title={m.auth.signInTitle} lead={m.auth.signInLead}>
+      <div className="on-card rounded-card bg-card p-5">
+        <SignInForm callbackURL={callbackURL} providers={enabledSocialProviders} />
       </div>
-      <SignInForm callbackURL={callbackURL} providers={enabledSocialProviders} />
-    </main>
+    </PublicPage>
   );
 }

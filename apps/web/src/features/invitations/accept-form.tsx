@@ -110,7 +110,7 @@ export const AcceptForm = ({
           )}
         </Field>
       ) : null}
-      <div className="flex flex-col border-t border-border pt-2">
+      <div className="flex flex-col border-t border-card-line pt-2">
         <CheckRow
           label={m.invite.consentTerms}
           checked={consents.terms}
@@ -128,12 +128,12 @@ export const AcceptForm = ({
               checked={consents.video}
               onChange={(e) => setConsents({ ...consents, video: e.target.checked })}
             />
-            <p className="t-caption mt-1 font-normal text-muted">{m.invite.consentOptional}</p>
+            <p className="t-caption mt-1 font-normal text-soft">{m.invite.consentOptional}</p>
           </>
         ) : null}
       </div>
       {formError ? (
-        <p role="alert" className="text-brand-strong">
+        <p role="alert" className="text-alert">
           {formError}
         </p>
       ) : null}

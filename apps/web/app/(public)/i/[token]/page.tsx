@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { m } from "@tartan/i18n";
-import { Logo } from "@/components/logo";
+import { PublicPage } from "@/features/shell/public-page";
 import { AppError } from "@/lib/errors";
 import { enabledSocialProviders } from "@/lib/auth";
 import { getActor } from "@/lib/session";
@@ -41,31 +41,29 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
   const me = actor ? await getMe(actor.userId) : null;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-lg flex-col gap-6 px-4 py-10">
-      <Logo height={40} />
-      <h1 className="t-display">{title}</h1>
-      {blocked ? (
-        <p role="alert" className="rounded-card border border-border bg-surface p-4">
-          {blocked}
-        </p>
-      ) : actor && me ? (
-        <AcceptForm
-          token={token}
-          role={invitation.role}
-          firstName={me.firstName ?? ""}
-          lastName={me.lastName ?? ""}
-          birthDate={me.birthDate ?? ""}
-        />
-      ) : (
-        <>
-          <p className="text-muted">Connecte-toi pour rejoindre. Tu reviendras ici juste après.</p>
+    <PublicPage
+      title={title}
+      lead={!blocked && !(actor && me) ? "Connecte-toi pour rejoindre. Tu reviendras ici juste après." : undefined}
+    >
+      <div className="on-card rounded-card bg-card p-5">
+        {blocked ? (
+          <p role="alert">{blocked}</p>
+        ) : actor && me ? (
+          <AcceptForm
+            token={token}
+            role={invitation.role}
+            firstName={me.firstName ?? ""}
+            lastName={me.lastName ?? ""}
+            birthDate={me.birthDate ?? ""}
+          />
+        ) : (
           <SignInForm
             callbackURL={`/i/${token}`}
             providers={enabledSocialProviders}
             defaultEmail={invitation.email ?? undefined}
           />
-        </>
-      )}
-    </main>
+        )}
+      </div>
+    </PublicPage>
   );
 }

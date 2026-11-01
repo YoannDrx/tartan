@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
+import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import { ToastHost } from "@/components/ui/toast";
 import "./globals.css";
@@ -37,7 +38,12 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = { themeColor: "#C4442B", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = {
+  themeColor: tokens.scene.page,
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+};
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

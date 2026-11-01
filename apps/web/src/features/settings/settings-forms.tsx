@@ -1,6 +1,7 @@
 "use client";
 
 import type { InvitationStatus } from "@tartan/contracts";
+import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import { Check, Copy, Pencil, QrCode, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
@@ -100,7 +101,7 @@ export const ProfileForm = ({
           )}
         </Field>
       </div>
-      <Button type="submit" size="sm" className="self-start" disabled={isPending}>
+      <Button type="submit" size="sm" variant="secondary" className="self-start" disabled={isPending}>
         {m.common.save}
       </Button>
     </form>
@@ -121,7 +122,7 @@ export const ConsentSwitches = ({
   return (
     <div className="flex flex-col">
       {parentalPending ? (
-        <p className="mb-2 rounded-card bg-warning-tint p-3 text-warning-strong">{m.parental.pendingBanner}</p>
+        <p className="mb-2 rounded-thumb bg-card-raised p-3 text-st-partial">{m.parental.pendingBanner}</p>
       ) : null}
       <CheckRow
         label={m.settings.healthConsent}
@@ -191,7 +192,7 @@ export const SignOutButton = () => (
   </Button>
 );
 
-const CopyButton = ({ text, label }: { text: string; label: string }) => {
+export const CopyButton = ({ text, label }: { text: string; label: string }) => {
   const [copied, setCopied] = useState(false);
   return (
     <IconButton
@@ -211,19 +212,35 @@ const CopyButton = ({ text, label }: { text: string; label: string }) => {
 const QrPreview = ({ link, groupName }: { link: string; groupName: string }) => {
   const [svg, setSvg] = useState<string | null>(null);
   useEffect(() => {
-    QRCode.toString(link, { type: "svg", margin: 1, width: 320, color: { dark: "#15161A", light: "#FFFFFF" } }).then(
-      setSvg,
-    );
+    QRCode.toString(link, {
+      type: "svg",
+      margin: 1,
+      width: 320,
+      color: { dark: tokens.color.ink, light: tokens.color.surface },
+    }).then(setSvg);
   }, [link]);
   return svg ? (
     <div
       role="img"
       aria-label={`QR code du groupe ${groupName}`}
-      className="mx-auto w-full max-w-80"
+      className="mx-auto w-full max-w-80 overflow-hidden rounded-thumb"
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   ) : null;
 };
+
+export const ReferralLink = ({ link }: { link: string }) => (
+  <div className="flex items-center gap-1">
+    <Input
+      readOnly
+      aria-label={m.settings.referralLinkLabel}
+      value={link}
+      className="t-num text-[17px]"
+      onFocus={(e) => e.target.select()}
+    />
+    <CopyButton text={link} label={m.settings.copyReferral} />
+  </div>
+);
 
 export const OrganizationForm = ({ name, overdueReminders }: { name: string; overdueReminders: boolean }) => {
   const [v, setV] = useState({ name, overdueReminders });
@@ -250,7 +267,7 @@ export const OrganizationForm = ({ name, overdueReminders }: { name: string; ove
         checked={v.overdueReminders}
         onChange={(e) => setV({ ...v, overdueReminders: e.target.checked })}
       />
-      <Button type="submit" size="sm" className="self-start" disabled={isPending}>
+      <Button type="submit" size="sm" variant="secondary" className="self-start" disabled={isPending}>
         {m.common.save}
       </Button>
     </form>
@@ -271,7 +288,7 @@ const GroupDialog = ({ group }: { group: GroupValues }) => {
   const [open, setOpen] = useState(false);
   const [v, setV] = useState({
     name: group.name,
-    color: group.color ?? "#C4442B",
+    color: group.color ?? tokens.color.brand,
     level: group.level ?? "",
     goal: group.goal ?? "",
   });
@@ -339,13 +356,22 @@ export const GroupRow = ({ group, canDelete }: { group: GroupValues; canDelete: 
   const getLink = useAction(groupLinkAction, { onSuccess: ({ data }) => setLink(data?.link ?? null), onError: onErr });
   const remove = useAction(deleteGroupAction, { onSuccess: () => router.refresh(), onError: onErr });
   return (
-    <li className="flex flex-wrap items-center gap-2 py-2">
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold">{group.name}</p>
-        <p className="t-caption font-normal text-muted">
-          {group.athleteCount} athlète{group.athleteCount > 1 ? "s" : ""}
-          {group.level ? `, ${group.level}` : ""}
-        </p>
+    <li className="flex flex-wrap items-center gap-x-1 gap-y-2 py-2">
+      <div className="min-w-48 flex-1">
+        <div className="min-w-0 leading-tight">
+          <p className="flex items-center gap-2 break-words font-semibold">
+            {group.color ? (
+              // Couleur choisie par le coach pour son groupe : une donnée, pas un jeton.
+              <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: group.color }} />
+            ) : null}
+            {group.name}
+          </p>
+          <p className="t-caption font-normal text-soft">
+            {[`${group.athleteCount} athlète${group.athleteCount > 1 ? "s" : ""}`, group.level, group.goal]
+              .filter(Boolean)
+              .join(", ")}
+          </p>
+        </div>
       </div>
       {link ? <CopyButton text={link} label={m.settings.copyLink} /> : null}
       <Button
@@ -537,7 +563,7 @@ export const AvatarForm = ({ avatarUrl, name }: { avatarUrl: string | null; name
   const { execute, isPending } = useAction(uploadAvatarAction, { onSuccess: () => router.refresh(), onError: onErr });
   return (
     <div className="flex items-center gap-3">
-      <span className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-sunk font-semibold">
+      <span className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card-raised font-semibold">
         {avatarUrl ? (
           <Image src={avatarUrl} alt={`Photo de ${name}`} fill sizes="64px" className="object-cover" unoptimized />
         ) : (
@@ -585,7 +611,7 @@ export const WebPushToggle = ({ vapidKey }: { vapidKey: string }) => {
   return (
     <div className="flex flex-col items-start gap-2">
       <p>{m.push.permissionBody}</p>
-      {state === "denied" ? <p className="text-brand-strong">{m.settings.pushDenied}</p> : null}
+      {state === "denied" ? <p className="text-alert">{m.settings.pushDenied}</p> : null}
       <Button size="sm" variant="secondary" disabled={state === "on"} onClick={enable}>
         {state === "on" ? "Notifications activées" : m.push.enable}
       </Button>
@@ -613,16 +639,16 @@ export const InvitationList = ({
     onSuccess: () => toast.ok("Invitation relancée."),
     onError: onErr,
   });
-  if (invitations.length === 0) return <p className="text-muted">Aucune invitation pour l'instant.</p>;
+  if (invitations.length === 0) return <p className="text-soft">Aucune invitation pour l'instant.</p>;
   return (
-    <ul className="divide-y divide-border">
+    <ul className="divide-y divide-card-line border-t border-card-line">
       {invitations.map((inv) => {
         const label = inv.email ?? inv.phone ?? (inv.kind === "group_link" ? "Lien de groupe" : "QR code");
         return (
-          <li key={inv.id} className="flex flex-wrap items-center gap-2 py-2">
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold">{label}</p>
-              <p className="t-caption flex flex-wrap items-center gap-2 font-normal text-muted">
+          <li key={inv.id} className="flex flex-wrap items-center gap-x-1 gap-y-2 py-2">
+            <div className="min-w-48 flex-1 leading-tight">
+              <p className="break-all font-semibold">{label}</p>
+              <p className="t-caption flex flex-wrap items-center gap-2 font-normal text-soft">
                 <Chip>{m.invitationStatus[inv.status]}</Chip>
                 {inv.kind === "group_link" || inv.kind === "qr"
                   ? `${inv.useCount} inscrits`

@@ -28,32 +28,30 @@ export const AlertList = ({ alerts }: { alerts: CoachAlert[] }) => {
   const rows = groupByAthlete(alerts);
   const hidden = rows.length - VISIBLE_ON_PHONE;
   return (
-    <div className="rounded-block border border-border bg-surface">
-      <ul className="divide-y divide-border">
+    <div className="rounded-card on-card bg-card">
+      <ul className="divide-y divide-card-line">
         {rows.map((alert, index) => {
           const Icon = icons[alert.kind];
           return (
             <li key={alert.id} className={cn(!expanded && index >= VISIBLE_ON_PHONE && "max-desktop:hidden")}>
               <Link
                 href={`/athletes/${alert.athleteId}`}
-                className="flex min-h-11 items-center gap-3 p-2.5 text-ink no-underline hover:bg-bg"
+                className="flex min-h-11 items-center gap-3 p-2.5 text-inherit no-underline hover:bg-raise"
               >
                 <span
                   aria-hidden
                   className={cn(
                     "flex size-9 shrink-0 items-center justify-center rounded-thumb",
-                    alert.severity === "high"
-                      ? "bg-brand-tint text-brand-strong"
-                      : "bg-warning-tint text-warning-strong",
+                    alert.severity === "high" ? "bg-st-missed text-on-status" : "bg-st-partial text-on-status",
                   )}
                 >
                   <Icon className="size-5" />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="font-semibold">{alert.title}</span>
-                  {alert.detail ? <span className="t-caption font-normal text-muted">{alert.detail}</span> : null}
+                  {alert.detail ? <span className="t-caption font-normal text-soft">{alert.detail}</span> : null}
                 </span>
-                <ChevronRight aria-hidden className="size-5 shrink-0 text-muted" />
+                <ChevronRight aria-hidden className="size-5 shrink-0 text-soft" />
               </Link>
             </li>
           );
@@ -63,7 +61,7 @@ export const AlertList = ({ alerts }: { alerts: CoachAlert[] }) => {
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="min-h-11 w-full border-t border-border text-brand-strong underline desktop:hidden"
+          className="min-h-11 w-full border-t border-card-line text-ctx-link underline desktop:hidden"
         >
           {m.coach.allAlerts(rows.length)}
         </button>

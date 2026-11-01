@@ -1,6 +1,6 @@
 import { m } from "@tartan/i18n";
-import { Spinner } from "@/components/states";
+import { SheetSkeleton } from "@/components/states";
 
 export default function Loading() {
-  return <Spinner label={m.common.loading} />;
+  return <SheetSkeleton label={m.common.loading} />;
 }

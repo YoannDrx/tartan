@@ -34,14 +34,14 @@ export const AnnouncementComposer = ({ groups }: { groups: { id: string; name: s
   });
   return (
     <form
-      className="flex flex-col gap-3 rounded-block border border-border bg-surface p-4"
+      className="flex flex-col gap-3 rounded-card on-card bg-card p-4"
       onSubmit={(e) => {
         e.preventDefault();
         if (body.trim() && groupId) execute({ groupId, body, pinned });
       }}
     >
       <h2 className="t-h2">{m.announcements.new}</h2>
-      <Field label="Message">
+      <Field label={m.announcements.message}>
         {(a) => (
           <Textarea
             {...a}
@@ -51,8 +51,8 @@ export const AnnouncementComposer = ({ groups }: { groups: { id: string; name: s
           />
         )}
       </Field>
-      <div className="flex flex-wrap items-end gap-4">
-        <Field label="Groupe" className="min-w-48">
+      <div className="flex flex-col gap-3">
+        <Field label={m.announcements.group}>
           {(a) => (
             <Select {...a} value={groupId} onChange={(e) => setGroupId(e.target.value)}>
               {groups.map((g) => (
@@ -64,7 +64,7 @@ export const AnnouncementComposer = ({ groups }: { groups: { id: string; name: s
           )}
         </Field>
         <CheckRow label={m.announcements.pin} checked={pinned} onChange={(e) => setPinned(e.target.checked)} />
-        <Button type="submit" size="sm" className="ml-auto" disabled={isPending || !body.trim()}>
+        <Button type="submit" size="sm" className="self-start" disabled={isPending || !body.trim()}>
           {m.announcements.publish}
         </Button>
       </div>
@@ -78,14 +78,23 @@ export const AnnouncementList = ({ items, canManage }: { items: AnnouncementItem
   const report = useAction(reportContentAction, { onSuccess: () => toast.ok(m.comments.reported) });
   if (items.length === 0) return <EmptyState>{m.announcements.empty}</EmptyState>;
   return (
-    <ul className="divide-y divide-border rounded-block border border-border bg-surface">
+    <ul className="divide-y divide-card-line rounded-card on-card bg-card">
       {items.map((a) => (
-        <li key={a.id} className="flex items-start gap-2 p-4">
+        <li key={a.id} className="flex items-start gap-2 px-4 py-3">
           <div className="min-w-0 flex-1">
-            <p className="whitespace-pre-line break-words">{a.body}</p>
-            <p className="t-caption mt-1 flex flex-wrap items-center gap-2 font-normal text-muted">
-              {a.authorName}, {a.groupName}, {dateLabel.format(new Date(a.createdAt))}
-              {a.pinned ? <Chip tone="brand">{m.announcements.pinned}</Chip> : null}
+            {/* Le coach reste la voix : la signature passe avant le message. */}
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 leading-tight">
+              <span className="font-semibold">{a.authorName}</span>
+              {a.pinned ? (
+                <Chip tone="brand">
+                  <Pin aria-hidden className="mr-1 size-3" />
+                  {m.announcements.pinned}
+                </Chip>
+              ) : null}
+            </p>
+            <p className="mt-1 whitespace-pre-line break-words">{a.body}</p>
+            <p className="t-caption mt-1 font-normal text-soft">
+              {a.groupName}, {dateLabel.format(new Date(a.createdAt))}
             </p>
           </div>
           {canManage ? (

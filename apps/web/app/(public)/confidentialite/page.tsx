@@ -7,7 +7,8 @@ export default function ConfidentialitePage() {
   return (
     <LegalPage title="Politique de confidentialité" updated="1er novembre 2026">
       <p>
-        Responsable du traitement : Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130 Franconville. Contact : hello@tartan.coach.
+        Responsable du traitement : Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des
+        Jonquilles, 95130 Franconville. Contact : hello@tartan.coach.
       </p>
       <h2>Ce que Tartan traite, et pourquoi</h2>
       <ul>
@@ -34,17 +35,22 @@ export default function ConfidentialitePage() {
       </p>
       <h2>Où vont tes données</h2>
       <p>
-        Hébergement dans l'Union européenne (base de données à Francfort). Sous-traitants : Vercel, Neon, Mux, Expo, Resend, Stripe et RevenueCat. Certains sont établis aux États-Unis : les transferts sont encadrés par leurs clauses contractuelles types.
+        Hébergement dans l'Union européenne (base de données à Francfort). Sous-traitants : Vercel, Neon, Mux, Expo,
+        Resend, Stripe et RevenueCat. Certains sont établis aux États-Unis : les transferts sont encadrés par leurs
+        clauses contractuelles types.
       </p>
       <h2>Combien de temps</h2>
       <p>
-        Tes données restent tant que ton compte est actif. Un athlète retiré d'un espace, ou qui le quitte, voit sa fiche et ses données d'entraînement de cet espace supprimées. Les vidéos suivent la durée de conservation de l'offre de l'espace. Les factures sont conservées 10 ans, comme la loi l'impose. Les journaux d'accès aux données sensibles sont conservés 1 an.
+        Tes données restent tant que ton compte est actif. Un athlète retiré d'un espace, ou qui le quitte, voit sa
+        fiche et ses données d'entraînement de cet espace supprimées. Les vidéos suivent la durée de conservation de
+        l'offre de l'espace. Les factures sont conservées 10 ans, comme la loi l'impose. Les journaux d'accès aux
+        données sensibles sont conservés 1 an.
       </p>
       <h2>Tes droits</h2>
       <p>
-        Accès, rectification, export, opposition, retrait du consentement, suppression. L'export de tes données se fait depuis les réglages. La suppression du compte se fait depuis
-        les réglages de l'app : elle efface ton compte et tes contenus, sauf obligation légale de conservation. Tu peux
-        aussi saisir la CNIL.
+        Accès, rectification, export, opposition, retrait du consentement, suppression. L'export de tes données se fait
+        depuis les réglages. La suppression du compte se fait depuis les réglages de l'app : elle efface ton compte et
+        tes contenus, sauf obligation légale de conservation. Tu peux aussi saisir la CNIL.
       </p>
     </LegalPage>
   );

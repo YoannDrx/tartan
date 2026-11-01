@@ -3,11 +3,13 @@
 import type { ExerciseSummary, Prescription, SessionDraft, SessionType } from "@tartan/contracts";
 import { formatPrescription } from "@tartan/domain";
 import { m, strengthTestLabel } from "@tartan/i18n";
-import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, GripVertical, Plus, Search, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { FilterPill, pillClass } from "@/components/filter-pill";
+import { ActivityPicto } from "@/components/pictos";
+import { EmptyState } from "@/components/states";
 import { Button, IconButton } from "@/components/ui/button";
 import { CheckRow, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Dialog } from "@/components/ui/dialog";
@@ -171,6 +173,7 @@ export const SessionBuilder = ({
     startTime: string | null;
     location: string | null;
     publishedAt: string | null;
+    publishAt: string | null;
     draft: SessionDraft;
     assignments: { targetType: "group" | "athlete"; targetId: string }[];
     overrides: Override[];
@@ -189,6 +192,13 @@ export const SessionBuilder = ({
   const [date, setDate] = useState(initial?.date ?? defaultDate);
   const [startTime, setStartTime] = useState(initial?.startTime ?? "");
   const [location, setLocation] = useState(initial?.location ?? "");
+  const [scheduling, setScheduling] = useState(Boolean(initial?.publishAt));
+  // Valeur d'un champ date et heure : l'heure locale de l'appareil, sans fuseau.
+  const [publishAt, setPublishAt] = useState(() => {
+    if (!initial?.publishAt) return "";
+    const d = new Date(initial.publishAt);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  });
   const [durationMin, setDurationMin] = useState(initial?.draft.durationMin?.toString() ?? "");
   const [coachNote, setCoachNote] = useState(initial?.draft.coachNote ?? "");
   const [club, setClub] = useState(start.club);
@@ -274,7 +284,13 @@ export const SessionBuilder = ({
   const save = useAction(saveSessionAction, {
     onSuccess: ({ data, input }) => {
       toast.ok(
-        input.publish ? (initial?.publishedAt ? m.builder.updated : m.builder.published) : "Brouillon enregistré.",
+        input.publishAt
+          ? m.builder.scheduled
+          : input.publish
+            ? initial?.publishedAt
+              ? m.builder.updated
+              : m.builder.published
+            : "Brouillon enregistré.",
       );
       if (input.publish && data) router.push(`/seances/${data.id}/suivi`);
       else if (data && !initial) router.replace(`/seances/${data.id}`);
@@ -293,7 +309,7 @@ export const SessionBuilder = ({
     },
   });
 
-  const submit = (publish: boolean) => {
+  const submit = (publish: boolean, scheduleAt: string | null = null) => {
     setFormError(null);
     const draft = buildDraft();
     if (!draft.title) return setFormError("Donne un titre à la séance.");
@@ -302,7 +318,8 @@ export const SessionBuilder = ({
       ...selectedGroups.map((targetId) => ({ targetType: "group" as const, targetId })),
       ...selectedAthletes.map((targetId) => ({ targetType: "athlete" as const, targetId })),
     ];
-    if (publish && assignments.length === 0) return setFormError(m.builder.noAudience);
+    if ((publish || scheduleAt) && assignments.length === 0) return setFormError(m.builder.noAudience);
+    if (scheduleAt && new Date(scheduleAt) <= new Date()) return setFormError(m.builder.schedulePast);
     save.execute({
       id: initial?.id,
       date,
@@ -311,7 +328,7 @@ export const SessionBuilder = ({
       draft,
       assignments,
       overrides,
-      publishAt: null,
+      publishAt: scheduleAt ? new Date(scheduleAt).toISOString() : null,
       publish,
     });
   };
@@ -338,137 +355,80 @@ export const SessionBuilder = ({
     : null;
 
   return (
-    <div className="grid gap-6 desktop:grid-cols-[300px_minmax(0,1fr)]">
-      <aside
-        aria-label={m.builder.library}
-        className="flex flex-col gap-3 rounded-block border border-border bg-surface p-4 desktop:sticky desktop:top-20 desktop:max-h-[calc(100dvh-100px)] desktop:self-start desktop:overflow-y-auto"
+    <div className="grid gap-4 desktop:grid-cols-[300px_minmax(0,1fr)] desktop:gap-x-6">
+      <section
+        aria-label={m.builder.details}
+        className="desktop:col-start-2 min-w-0 flex flex-col gap-4 rounded-card on-card bg-card p-4"
       >
-        <h2 className="t-h2">{m.builder.library}</h2>
-        <Field label="Rechercher un exercice">
-          {(a) => <Input {...a} type="search" value={search} onChange={(e) => setSearch(e.target.value)} />}
-        </Field>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            className={pillClass(category === null)}
-            aria-pressed={category === null}
-            onClick={() => setCategory(null)}
-          >
-            Tout
-          </button>
-          {(Object.keys(m.exerciseCategory) as (keyof typeof m.exerciseCategory)[]).map((c) => (
-            <button
-              key={c}
-              type="button"
-              className={pillClass(category === c)}
-              aria-pressed={category === c}
-              onClick={() => setCategory(c)}
-            >
-              {m.exerciseCategory[c]}
-            </button>
-          ))}
-        </div>
-        {exercises.length === 0 ? (
-          <p className="text-muted">
-            {m.exercises.empty}{" "}
-            <FilterPill href="/exercices?nouveau=1" active={false} className="mt-2">
-              {m.exercises.new}
-            </FilterPill>
-          </p>
-        ) : null}
-        <ul className="flex flex-col divide-y divide-border">
-          {library.map((e) => (
-            <li
-              key={e.id}
-              draggable
-              onDragStart={(ev) => ev.dataTransfer.setData("text/exercise-id", e.id)}
-              className="flex cursor-grab items-center gap-2 py-1.5"
-            >
-              <GripVertical aria-hidden className="size-4 shrink-0 text-status-upcoming" />
-              <span className="flex min-w-0 flex-1 flex-col leading-tight">
-                <span className="truncate font-semibold">{e.name}</span>
-                <span className="t-caption font-normal text-muted">
-                  {m.exerciseCategory[e.category as keyof typeof m.exerciseCategory]}
-                </span>
-              </span>
-              <IconButton label={`Ajouter ${e.name} à la séance`} onClick={() => addExercise(e.id)}>
-                <Plus aria-hidden className="size-5" />
-              </IconButton>
-            </li>
-          ))}
-        </ul>
-      </aside>
-
-      <div className="flex min-w-0 flex-col gap-6">
-        <section className="flex flex-col gap-4 rounded-block border border-border bg-surface p-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <Field label={m.builder.titleLabel} className="min-w-64 flex-1">
-              {(a) => <Input {...a} value={title} onChange={(e) => setTitle(e.target.value)} />}
-            </Field>
-            {templates.length > 0 ? (
-              <Field label={m.builder.useTemplate}>
-                {(a) => (
-                  <Select {...a} defaultValue="" onChange={(e) => applyTemplate(e.target.value)}>
-                    <option value="" disabled>
-                      Choisir
-                    </option>
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.title}
-                      </option>
-                    ))}
-                  </Select>
-                )}
-              </Field>
-            ) : null}
-          </div>
-          <div className="grid grid-cols-2 gap-3 desktop:grid-cols-5">
-            <Field label={m.builder.type}>
+        <div className="flex flex-wrap items-end gap-3">
+          <Field label={m.builder.titleLabel} className="min-w-64 flex-1">
+            {(a) => <Input {...a} value={title} onChange={(e) => setTitle(e.target.value)} />}
+          </Field>
+          {templates.length > 0 ? (
+            <Field label={m.builder.useTemplate}>
               {(a) => (
-                <Select {...a} value={type} onChange={(e) => setType(e.target.value as SessionType)}>
-                  {(Object.keys(m.sessionType) as SessionType[]).map((t) => (
-                    <option key={t} value={t}>
-                      {m.sessionType[t]}
+                <Select {...a} defaultValue="" onChange={(e) => applyTemplate(e.target.value)}>
+                  <option value="" disabled>
+                    Choisir
+                  </option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title}
                     </option>
                   ))}
                 </Select>
               )}
             </Field>
-            <Field label={m.builder.date}>
-              {(a) => <Input {...a} type="date" value={date} onChange={(e) => setDate(e.target.value)} />}
-            </Field>
-            <Field label={m.builder.time}>
-              {(a) => <Input {...a} type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />}
-            </Field>
-            <Field label={m.builder.location}>
-              {(a) => <Input {...a} value={location} onChange={(e) => setLocation(e.target.value)} />}
-            </Field>
-            <Field label={m.builder.duration}>
-              {(a) => (
-                <Input
-                  {...a}
-                  type="number"
-                  min={1}
-                  value={durationMin}
-                  onChange={(e) => setDurationMin(e.target.value)}
-                />
-              )}
-            </Field>
-          </div>
-          <Field label={m.builder.coachNote}>
+          ) : null}
+        </div>
+        <div className="grid grid-cols-2 gap-3 desktop:grid-cols-5">
+          <Field label={m.builder.type}>
             {(a) => (
-              <Textarea
+              <Select {...a} value={type} onChange={(e) => setType(e.target.value as SessionType)}>
+                {(Object.keys(m.sessionType) as SessionType[]).map((t) => (
+                  <option key={t} value={t}>
+                    {m.sessionType[t]}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <Field label={m.builder.date}>
+            {(a) => <Input {...a} type="date" value={date} onChange={(e) => setDate(e.target.value)} />}
+          </Field>
+          <Field label={m.builder.time}>
+            {(a) => <Input {...a} type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />}
+          </Field>
+          <Field label={m.builder.location}>
+            {(a) => <Input {...a} value={location} onChange={(e) => setLocation(e.target.value)} />}
+          </Field>
+          <Field label={m.builder.duration}>
+            {(a) => (
+              <Input
                 {...a}
-                className="min-h-11"
-                maxLength={280}
-                value={coachNote}
-                onChange={(e) => setCoachNote(e.target.value)}
+                type="number"
+                min={1}
+                value={durationMin}
+                onChange={(e) => setDurationMin(e.target.value)}
               />
             )}
           </Field>
-        </section>
+        </div>
+        <Field label={m.builder.coachNote}>
+          {(a) => (
+            <Textarea
+              {...a}
+              className="min-h-11"
+              maxLength={280}
+              value={coachNote}
+              onChange={(e) => setCoachNote(e.target.value)}
+            />
+          )}
+        </Field>
+      </section>
 
-        <section className="flex flex-col gap-3">
+      <section aria-label={m.builder.body} className="desktop:col-start-2 min-w-0 flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <div role="tablist" aria-label="Version de la séance" className="flex flex-wrap items-center gap-2">
             {(["club", "autonomous"] as const).map((v) => (
               <button
@@ -482,266 +442,378 @@ export const SessionBuilder = ({
                 {v === "club" ? m.builder.versionClub : m.builder.versionAutonomous}
               </button>
             ))}
-            {version === "autonomous" ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={generateAutonomous}
-                disabled={club.every((b) => b.items.length === 0)}
-              >
-                {m.builder.generate}
-              </Button>
-            ) : null}
-            {version === "autonomous" && autonomous.length === 0 ? (
-              <Button size="sm" variant="quiet" onClick={() => setAutonomous(defaultBlocks(newKey()))}>
-                Partir de zéro
-              </Button>
-            ) : null}
           </div>
-
-          {version === "autonomous" && autonomous.length === 0 ? (
-            <p className="rounded-block border border-dashed border-status-upcoming p-6">
-              Pas encore de version autonomie. Les absents recevraient la version club.
-            </p>
-          ) : null}
-
-          {blocks.map((block) => (
-            <section
-              key={block.key}
-              aria-label={block.name}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                const id = e.dataTransfer.getData("text/exercise-id");
-                if (id) addExercise(id, block.key);
-              }}
-              className="rounded-block border border-border bg-surface p-3"
-            >
-              <label className="sr-only" htmlFor={`block-${block.key}`}>
-                Nom du bloc
-              </label>
-              <input
-                id={`block-${block.key}`}
-                value={block.name}
-                onChange={(e) =>
-                  setBlocks(blocks.map((b) => (b.key === block.key ? { ...b, name: e.target.value } : b)))
-                }
-                className="t-h2 min-h-11 w-full rounded-[10px] bg-transparent px-1"
-              />
-              {block.items.length === 0 ? <p className="p-3 text-muted">{m.builder.dropHere}</p> : null}
-              <ul className="divide-y divide-border">
-                {block.items.map((item, index) => {
-                  const exercise = byId.get(item.exerciseId);
-                  return (
-                    <li key={item.key} className="flex flex-wrap items-center gap-2 py-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setEditing({ blockKey: block.key, itemKey: item.key })}
-                        className="flex min-h-11 min-w-0 flex-1 flex-col items-start rounded-button px-1 text-left hover:bg-bg"
-                      >
-                        <span className="font-semibold">{exercise?.name ?? "Exercice supprimé"}</span>
-                        <span className="t-caption font-normal text-muted">
-                          {formatPrescription(item.prescription) || "Préciser la prescription"}
-                        </span>
-                      </button>
-                      <IconButton label="Monter" disabled={index === 0} onClick={() => moveItem(block.key, index, -1)}>
-                        <ArrowUp aria-hidden className="size-4" />
-                      </IconButton>
-                      <IconButton
-                        label="Descendre"
-                        disabled={index === block.items.length - 1}
-                        onClick={() => moveItem(block.key, index, 1)}
-                      >
-                        <ArrowDown aria-hidden className="size-4" />
-                      </IconButton>
-                      <IconButton
-                        label={`Retirer ${exercise?.name ?? ""}`}
-                        onClick={() => removeItem(block.key, item.key)}
-                      >
-                        <Trash2 aria-hidden className="size-4" />
-                      </IconButton>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
-          {blocks.length > 0 ? (
+          {version === "autonomous" ? (
             <Button
               size="sm"
-              variant="quiet"
-              className="self-start"
-              onClick={() => setBlocks([...blocks, { key: newKey(), name: "Nouveau bloc", items: [] }])}
+              variant="secondary"
+              onClick={generateAutonomous}
+              disabled={club.every((b) => b.items.length === 0)}
             >
-              <Plus aria-hidden className="size-4" />
-              {m.builder.addBlock}
+              {m.builder.generate}
             </Button>
           ) : null}
-        </section>
+          {version === "autonomous" && autonomous.length === 0 ? (
+            <Button size="sm" variant="quiet" onClick={() => setAutonomous(defaultBlocks(newKey()))}>
+              Partir de zéro
+            </Button>
+          ) : null}
+        </div>
 
-        <section className="flex flex-col gap-4 rounded-block border border-border bg-surface p-4">
-          <h2 className="t-h2">{m.builder.audience}</h2>
-          <div className="grid gap-4 tablet:grid-cols-2">
-            <fieldset>
-              <legend className="t-caption mb-1">{m.builder.entireGroup}</legend>
-              {groups.map((g) => (
+        {version === "autonomous" && autonomous.length === 0 ? (
+          <EmptyState>Pas encore de version autonomie. Les absents recevraient la version club.</EmptyState>
+        ) : null}
+
+        {blocks.map((block) => (
+          <section
+            key={block.key}
+            aria-label={block.name}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              const id = e.dataTransfer.getData("text/exercise-id");
+              if (id) addExercise(id, block.key);
+            }}
+            className="overflow-hidden rounded-card on-card bg-card"
+          >
+            <label className="sr-only" htmlFor={`block-${block.key}`}>
+              Nom du bloc
+            </label>
+            <input
+              id={`block-${block.key}`}
+              value={block.name}
+              onChange={(e) => setBlocks(blocks.map((b) => (b.key === block.key ? { ...b, name: e.target.value } : b)))}
+              className="t-h2 min-h-11 w-full border-b border-card-line bg-card-raised px-4 hover:bg-raise"
+            />
+            {block.items.length === 0 ? <p className="px-4 py-3 text-soft">{m.builder.dropHere}</p> : null}
+            <ul className="divide-y divide-card-line">
+              {block.items.map((item, index) => {
+                const exercise = byId.get(item.exerciseId);
+                return (
+                  <li key={item.key} className="flex flex-wrap items-center gap-x-1 gap-y-1 px-2 py-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditing({ blockKey: block.key, itemKey: item.key })}
+                      className="flex min-h-11 min-w-48 flex-1 items-center gap-3 rounded-button px-2 py-1 text-left leading-tight hover:bg-raise"
+                    >
+                      <ActivityPicto kind={exercise?.category ?? "strength"} className="size-5 text-soft" />
+                      <span className="flex min-w-0 flex-col desktop:flex-1 desktop:flex-row desktop:items-center desktop:gap-4">
+                        <span className="break-words font-semibold desktop:w-1/2">
+                          {exercise?.name ?? "Exercice supprimé"}
+                        </span>
+                        {formatPrescription(item.prescription) ? (
+                          <span className="t-num text-[17px] desktop:w-1/2">
+                            {formatPrescription(item.prescription)}
+                          </span>
+                        ) : (
+                          <span className="t-caption font-normal text-alert desktop:w-1/2">
+                            {m.builder.setPrescription}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                    <IconButton label="Monter" disabled={index === 0} onClick={() => moveItem(block.key, index, -1)}>
+                      <ArrowUp aria-hidden className="size-4" />
+                    </IconButton>
+                    <IconButton
+                      label="Descendre"
+                      disabled={index === block.items.length - 1}
+                      onClick={() => moveItem(block.key, index, 1)}
+                    >
+                      <ArrowDown aria-hidden className="size-4" />
+                    </IconButton>
+                    <IconButton
+                      label={`Retirer ${exercise?.name ?? ""}`}
+                      onClick={() => removeItem(block.key, item.key)}
+                    >
+                      <Trash2 aria-hidden className="size-4" />
+                    </IconButton>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+        {blocks.length > 0 ? (
+          <Button
+            size="sm"
+            variant="quiet"
+            className="self-start"
+            onClick={() => setBlocks([...blocks, { key: newKey(), name: "Nouveau bloc", items: [] }])}
+          >
+            <Plus aria-hidden className="size-4" />
+            {m.builder.addBlock}
+          </Button>
+        ) : null}
+      </section>
+
+      <aside
+        aria-label={m.builder.library}
+        className="flex min-w-0 flex-col gap-3 rounded-card on-card bg-card p-4 desktop:sticky desktop:top-20 desktop:col-start-1 desktop:row-span-6 desktop:row-start-1 desktop:max-h-[calc(100dvh-100px)] desktop:self-start desktop:overflow-y-auto"
+      >
+        <h2 className="t-h2">{m.builder.library}</h2>
+        <div className="relative">
+          <Search aria-hidden className="pointer-events-none absolute left-3 top-3 size-5 text-soft" />
+          <Field label={m.exercises.search} labelHidden>
+            {(a) => (
+              <Input
+                {...a}
+                type="search"
+                className="pl-10"
+                placeholder={m.exercises.search}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            )}
+          </Field>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            className={pillClass(category === null)}
+            aria-pressed={category === null}
+            onClick={() => setCategory(null)}
+          >
+            Tout
+          </button>
+          {(Object.keys(m.exerciseCategory) as (keyof typeof m.exerciseCategory)[]).map((c) => (
+            <button
+              key={c}
+              type="button"
+              className={cn(pillClass(category === c), "px-2.5")}
+              aria-pressed={category === c}
+              aria-label={m.exerciseCategory[c]}
+              title={m.exerciseCategory[c]}
+              onClick={() => setCategory(c)}
+            >
+              <ActivityPicto kind={c} className="size-[18px]" />
+            </button>
+          ))}
+        </div>
+        {exercises.length === 0 ? (
+          <p className="text-soft">
+            {m.exercises.empty}{" "}
+            <FilterPill href="/exercices?nouveau=1" active={false} className="mt-2">
+              {m.exercises.new}
+            </FilterPill>
+          </p>
+        ) : null}
+        <ul className="-mx-1 flex flex-col divide-y divide-card-line">
+          {library.map((e) => (
+            <li
+              key={e.id}
+              draggable
+              onDragStart={(ev) => ev.dataTransfer.setData("text/exercise-id", e.id)}
+              className="flex cursor-grab items-center gap-2 px-1 py-1 active:cursor-grabbing"
+            >
+              <GripVertical aria-hidden className="size-4 shrink-0 text-st-upcoming" />
+              <ActivityPicto kind={e.category} className="size-5 text-soft" />
+              <span className="flex min-w-0 flex-1 flex-col leading-tight">
+                <span className="break-words font-semibold">{e.name}</span>
+                <span className="t-caption font-normal text-soft">
+                  {m.exerciseCategory[e.category as keyof typeof m.exerciseCategory]}
+                </span>
+              </span>
+              <IconButton label={`Ajouter ${e.name} à la séance`} onClick={() => addExercise(e.id)}>
+                <Plus aria-hidden className="size-5" />
+              </IconButton>
+            </li>
+          ))}
+        </ul>
+      </aside>
+
+      <section className="desktop:col-start-2 min-w-0 flex flex-col gap-3 rounded-card on-card bg-card p-4">
+        <h2 className="t-h2">{m.builder.audience}</h2>
+        <div className="grid gap-4 tablet:grid-cols-2">
+          <fieldset>
+            <legend className="t-caption mb-1">{m.builder.entireGroup}</legend>
+            {groups.map((g) => (
+              <CheckRow
+                key={g.id}
+                label={g.name}
+                detail={`${g.athleteCount} athlète${g.athleteCount > 1 ? "s" : ""}`}
+                checked={selectedGroups.includes(g.id)}
+                onChange={(e) =>
+                  setSelectedGroups(
+                    e.target.checked ? [...selectedGroups, g.id] : selectedGroups.filter((x) => x !== g.id),
+                  )
+                }
+              />
+            ))}
+          </fieldset>
+          <fieldset>
+            <legend className="t-caption mb-1">{m.builder.pickAthletes}</legend>
+            <div className="max-h-56 overflow-y-auto">
+              {athletes.map((a) => (
                 <CheckRow
-                  key={g.id}
-                  label={g.name}
-                  detail={`${g.athleteCount} athlète${g.athleteCount > 1 ? "s" : ""}`}
-                  checked={selectedGroups.includes(g.id)}
+                  key={a.id}
+                  label={`${a.firstName} ${a.lastName}`}
+                  checked={selectedAthletes.includes(a.id)}
                   onChange={(e) =>
-                    setSelectedGroups(
-                      e.target.checked ? [...selectedGroups, g.id] : selectedGroups.filter((x) => x !== g.id),
+                    setSelectedAthletes(
+                      e.target.checked ? [...selectedAthletes, a.id] : selectedAthletes.filter((x) => x !== a.id),
                     )
                   }
                 />
               ))}
-            </fieldset>
-            <fieldset>
-              <legend className="t-caption mb-1">{m.builder.pickAthletes}</legend>
-              <div className="max-h-56 overflow-y-auto">
-                {athletes.map((a) => (
-                  <CheckRow
-                    key={a.id}
-                    label={`${a.firstName} ${a.lastName}`}
-                    checked={selectedAthletes.includes(a.id)}
-                    onChange={(e) =>
-                      setSelectedAthletes(
-                        e.target.checked ? [...selectedAthletes, a.id] : selectedAthletes.filter((x) => x !== a.id),
-                      )
-                    }
-                  />
-                ))}
-              </div>
-            </fieldset>
-          </div>
-        </section>
+            </div>
+          </fieldset>
+        </div>
+      </section>
 
-        {clubRefs.length > 0 && athletes.length > 0 ? (
-          <details className="rounded-block border border-border bg-surface p-4">
-            <summary className="t-h2 min-h-11 content-center">{m.builder.adjustments}</summary>
-            <div className="mt-3 flex flex-col gap-3">
-              <Field label="Athlète">
+      {clubRefs.length > 0 && athletes.length > 0 ? (
+        <details className="desktop:col-start-2 min-w-0 rounded-card on-card bg-card px-4 py-2">
+          <summary className="t-h2 flex min-h-11 items-center gap-2 [&::-webkit-details-marker]:hidden">
+            <ChevronRight aria-hidden className="size-5 transition-transform [[open]>summary>&]:rotate-90" />
+            {m.builder.adjustments}
+          </summary>
+          <div className="mb-2 mt-1 flex flex-col gap-3">
+            <Field label="Athlète">
+              {(a) => (
+                <Select {...a} value={overrideFor} onChange={(e) => setOverrideFor(e.target.value)}>
+                  <option value="">Choisir</option>
+                  {athletes.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.firstName} {x.lastName}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+            {overrideFor
+              ? clubRefs.map(({ ref, item }) => {
+                  const current = overrides.find((o) => o.athleteId === overrideFor && o.itemRef === ref);
+                  const sets = current?.prescription.sets ?? "";
+                  const reps = current?.prescription.reps ?? "";
+                  const load = current?.prescription.load;
+                  const update = (patch: Prescription) => {
+                    const merged = { ...current?.prescription, ...patch };
+                    const others = overrides.filter((o) => !(o.athleteId === overrideFor && o.itemRef === ref));
+                    const empty = Object.values(merged).every((v) => v === undefined);
+                    setOverrides(
+                      empty ? others : [...others, { athleteId: overrideFor, itemRef: ref, prescription: merged }],
+                    );
+                  };
+                  return (
+                    <div key={ref} className="border-t border-card-line pt-3">
+                      <p className="font-semibold">{byId.get(item.exerciseId)?.name}</p>
+                      <p className="t-caption mb-2 font-normal text-soft">
+                        Groupe : {formatPrescription(item.prescription)}
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Field label={m.builder.sets}>
+                          {(a) => (
+                            <Input
+                              {...a}
+                              type="number"
+                              min={0}
+                              value={sets}
+                              onChange={(e) => update({ sets: numberOrUndefined(e.target.value) })}
+                            />
+                          )}
+                        </Field>
+                        <Field label={m.builder.reps}>
+                          {(a) => (
+                            <Input
+                              {...a}
+                              type="number"
+                              min={0}
+                              value={reps}
+                              onChange={(e) => update({ reps: numberOrUndefined(e.target.value) })}
+                            />
+                          )}
+                        </Field>
+                        <Field label="Charge (kg)">
+                          {(a) => (
+                            <Input
+                              {...a}
+                              type="number"
+                              min={0}
+                              step="0.25"
+                              value={load?.type === "kg" ? load.value : ""}
+                              onChange={(e) =>
+                                update({
+                                  load:
+                                    e.target.value === "" ? undefined : { type: "kg", value: Number(e.target.value) },
+                                })
+                              }
+                            />
+                          )}
+                        </Field>
+                      </div>
+                    </div>
+                  );
+                })
+              : null}
+          </div>
+        </details>
+      ) : null}
+
+      {formError ? (
+        <p
+          role="alert"
+          className="on-card desktop:col-start-2 min-w-0 rounded-card bg-card p-3 font-semibold text-alert"
+        >
+          {formError}
+        </p>
+      ) : null}
+      <div className="on-card desktop:col-start-2 min-w-0 z-10 flex flex-wrap items-center gap-2 rounded-card bg-card p-3 desktop:sticky desktop:bottom-4">
+        <Button disabled={save.isPending} onClick={() => submit(true)}>
+          {initial?.publishedAt ? "Enregistrer et prévenir les athlètes" : m.builder.publish}
+        </Button>
+        {!initial?.publishedAt ? (
+          <Button variant="secondary" disabled={save.isPending} onClick={() => submit(false)}>
+            {m.builder.saveDraft}
+          </Button>
+        ) : null}
+        {!initial?.publishedAt ? (
+          scheduling ? (
+            <div className="flex flex-wrap items-end gap-2">
+              <Field label={m.builder.scheduleAt}>
                 {(a) => (
-                  <Select {...a} value={overrideFor} onChange={(e) => setOverrideFor(e.target.value)}>
-                    <option value="">Choisir</option>
-                    {athletes.map((x) => (
-                      <option key={x.id} value={x.id}>
-                        {x.firstName} {x.lastName}
-                      </option>
-                    ))}
-                  </Select>
+                  <Input
+                    {...a}
+                    type="datetime-local"
+                    value={publishAt}
+                    onChange={(e) => setPublishAt(e.target.value)}
+                  />
                 )}
               </Field>
-              {overrideFor
-                ? clubRefs.map(({ ref, item }) => {
-                    const current = overrides.find((o) => o.athleteId === overrideFor && o.itemRef === ref);
-                    const sets = current?.prescription.sets ?? "";
-                    const reps = current?.prescription.reps ?? "";
-                    const load = current?.prescription.load;
-                    const update = (patch: Prescription) => {
-                      const merged = { ...current?.prescription, ...patch };
-                      const others = overrides.filter((o) => !(o.athleteId === overrideFor && o.itemRef === ref));
-                      const empty = Object.values(merged).every((v) => v === undefined);
-                      setOverrides(
-                        empty ? others : [...others, { athleteId: overrideFor, itemRef: ref, prescription: merged }],
-                      );
-                    };
-                    return (
-                      <div key={ref} className="rounded-card border border-border p-3">
-                        <p className="font-semibold">{byId.get(item.exerciseId)?.name}</p>
-                        <p className="t-caption mb-2 font-normal text-muted">
-                          Groupe : {formatPrescription(item.prescription)}
-                        </p>
-                        <div className="grid grid-cols-3 gap-2">
-                          <Field label={m.builder.sets}>
-                            {(a) => (
-                              <Input
-                                {...a}
-                                type="number"
-                                min={0}
-                                value={sets}
-                                onChange={(e) => update({ sets: numberOrUndefined(e.target.value) })}
-                              />
-                            )}
-                          </Field>
-                          <Field label={m.builder.reps}>
-                            {(a) => (
-                              <Input
-                                {...a}
-                                type="number"
-                                min={0}
-                                value={reps}
-                                onChange={(e) => update({ reps: numberOrUndefined(e.target.value) })}
-                              />
-                            )}
-                          </Field>
-                          <Field label="Charge (kg)">
-                            {(a) => (
-                              <Input
-                                {...a}
-                                type="number"
-                                min={0}
-                                step="0.25"
-                                value={load?.type === "kg" ? load.value : ""}
-                                onChange={(e) =>
-                                  update({
-                                    load:
-                                      e.target.value === "" ? undefined : { type: "kg", value: Number(e.target.value) },
-                                  })
-                                }
-                              />
-                            )}
-                          </Field>
-                        </div>
-                      </div>
-                    );
-                  })
-                : null}
+              <Button
+                variant="secondary"
+                disabled={save.isPending || !publishAt}
+                onClick={() => submit(false, publishAt)}
+              >
+                {m.builder.schedule}
+              </Button>
             </div>
-          </details>
-        ) : null}
-
-        {formError ? (
-          <p role="alert" className="font-semibold text-brand-strong">
-            {formError}
-          </p>
-        ) : null}
-        <div className="flex flex-wrap items-center gap-2 pb-4">
-          <Button size="lg" disabled={save.isPending} onClick={() => submit(true)}>
-            {initial?.publishedAt ? "Enregistrer et prévenir les athlètes" : m.builder.publish}
-          </Button>
-          {!initial?.publishedAt ? (
-            <Button size="lg" variant="secondary" disabled={save.isPending} onClick={() => submit(false)}>
-              {m.builder.saveDraft}
+          ) : (
+            <Button variant="secondary" onClick={() => setScheduling(true)}>
+              {m.builder.schedule}
             </Button>
-          ) : null}
+          )
+        ) : null}
+        <Button
+          variant="quiet"
+          disabled={template.isPending}
+          onClick={() => {
+            const draft = buildDraft();
+            if (draft.title && draft.blocks.length) template.execute(draft);
+            else setFormError("Une séance avec un titre et un exercice est nécessaire pour créer un modèle.");
+          }}
+        >
+          {m.builder.saveTemplate}
+        </Button>
+        {initial ? (
           <Button
-            size="lg"
-            variant="quiet"
-            disabled={template.isPending}
-            onClick={() => {
-              const draft = buildDraft();
-              if (draft.title && draft.blocks.length) template.execute(draft);
-              else setFormError("Une séance avec un titre et un exercice est nécessaire pour créer un modèle.");
-            }}
+            variant="danger"
+            className={cn("ml-auto")}
+            disabled={remove.isPending}
+            onClick={() => window.confirm("Supprimer cette séance ?") && remove.execute({ id: initial.id })}
           >
-            {m.builder.saveTemplate}
+            {m.common.delete}
           </Button>
-          {initial ? (
-            <Button
-              size="lg"
-              variant="danger"
-              className={cn("ml-auto")}
-              disabled={remove.isPending}
-              onClick={() => window.confirm("Supprimer cette séance ?") && remove.execute({ id: initial.id })}
-            >
-              {m.common.delete}
-            </Button>
-          ) : null}
-        </div>
+        ) : null}
       </div>
-
       <Dialog
         open={editing !== null}
         onOpenChange={(open) => !open && setEditing(null)}

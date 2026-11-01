@@ -18,6 +18,7 @@ import { useTransition, type ReactNode } from "react";
 import type { SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { Logo } from "@/components/logo";
+import { Select } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import { switchSpaceAction } from "./shell.action";
 
@@ -46,14 +47,14 @@ const SpaceSwitcher = ({ spaces, current }: { spaces: SpaceSummary[]; current: S
   const router = useRouter();
   const [pending, start] = useTransition();
   if (spaces.length < 2) {
-    return <span className="truncate text-[14px] text-muted">{current.organizationName}</span>;
+    return <span className="truncate text-[14px] text-fg-muted max-tablet:max-w-32">{current.organizationName}</span>;
   }
   return (
-    <label className="flex items-center gap-2 text-[14px]">
+    <label className="block w-40 min-w-0 text-[14px] tablet:w-56">
       <span className="sr-only">{m.settings.switchSpace}</span>
-      <select
+      <Select
         disabled={pending}
-        className="min-h-11 max-w-56 rounded-[10px] border border-border bg-surface px-2"
+        className="truncate text-[14px]"
         value={current.organizationId}
         onChange={(e) =>
           start(async () => {
@@ -68,7 +69,7 @@ const SpaceSwitcher = ({ spaces, current }: { spaces: SpaceSummary[]; current: S
             {s.organizationName} ({m.roles[s.role]})
           </option>
         ))}
-      </select>
+      </Select>
     </label>
   );
 };
@@ -89,14 +90,14 @@ export const AppShell = ({
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   // Le mode séance et l'analyse vidéo prennent tout l'écran, en sombre.
   const immersive = /^\/(seance\/[^/]+\/mode|videos\/[^/]+|mes-sauts\/[^/]+)/.test(pathname);
-  if (immersive) return <>{children}</>;
+  if (immersive) return <div className="overflow-x-clip">{children}</div>;
 
   return (
-    <div className="min-h-dvh pb-[76px] desktop:pb-0">
-      <header className="sticky top-0 z-30 border-b border-border bg-surface">
+    <div className="min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0">
+      <header className="on-card sticky top-0 z-30 bg-card">
         <div className="mx-auto flex min-h-14 max-w-[1440px] items-center gap-4 px-4 desktop:px-6">
           <Link href="/accueil" aria-label="Tartan, accueil" className="inline-flex shrink-0 items-center">
-            <Logo height={28} />
+            <Logo height={28} onDark />
           </Link>
           <nav aria-label="Navigation principale" className="hidden flex-1 items-center gap-1 desktop:flex">
             {items.map((item) => (
@@ -105,8 +106,8 @@ export const AppShell = ({
                 href={item.href}
                 aria-current={isActive(item.href) ? "page" : undefined}
                 className={cn(
-                  "inline-flex min-h-11 items-center rounded-button px-3 font-medium no-underline hover:bg-bg",
-                  isActive(item.href) ? "font-semibold text-brand-strong" : "text-ink",
+                  "inline-flex min-h-11 items-center rounded-full px-3.5 font-medium no-underline transition-colors",
+                  isActive(item.href) ? "bg-brand font-semibold text-white" : "text-fg hover:bg-raise",
                 )}
               >
                 {item.label}
@@ -115,22 +116,35 @@ export const AppShell = ({
           </nav>
           <div className="ml-auto flex min-w-0 items-center gap-2">
             <SpaceSwitcher spaces={spaces} current={space} />
-            <Link
-              href="/reglages"
-              aria-label={m.nav.reglages}
-              className="inline-flex size-11 items-center justify-center rounded-button text-ink hover:bg-bg desktop:hidden"
-            >
-              <Settings aria-hidden className="size-5" />
-            </Link>
+            {/* Les rubriques hors de la barre d'onglets (§ 10.3) restent à portée de doigt. */}
+            {items
+              .filter((item) => !item.mobile)
+              .map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-label={item.label}
+                    aria-current={isActive(item.href) ? "page" : undefined}
+                    className={cn(
+                      "inline-flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-raise desktop:hidden",
+                      isActive(item.href) ? "bg-brand text-white" : "text-fg",
+                    )}
+                  >
+                    <Icon aria-hidden className="size-5" />
+                  </Link>
+                );
+              })}
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1440px] px-4 py-6 desktop:px-6">{children}</main>
+      <main className="mx-auto max-w-[1440px] px-4 pb-8 pt-5 desktop:px-6 desktop:pt-8">{children}</main>
 
       <nav
         aria-label="Navigation principale"
-        className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] desktop:hidden"
+        className="on-card fixed inset-x-0 bottom-0 z-30 flex justify-around gap-1 bg-card px-1 pb-[env(safe-area-inset-bottom)] pt-1 desktop:hidden"
       >
         {items
           .filter((item) => item.mobile)
@@ -143,8 +157,8 @@ export const AppShell = ({
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-[68px] min-w-[60px] flex-1 flex-col items-center justify-center gap-1 text-[11px] leading-none no-underline",
-                  active ? "font-semibold text-brand-strong" : "font-medium text-muted",
+                  "my-1 flex min-h-[60px] min-w-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-button text-[11px] leading-none no-underline",
+                  active ? "bg-brand font-semibold text-white" : "font-medium text-fg-muted",
                 )}
               >
                 <Icon aria-hidden className="size-6" strokeWidth={2} />

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { m } from "@tartan/i18n";
+import { Wordmark } from "@/components/logo";
 
 export const metadata: Metadata = {
   title: { absolute: m.brand.storeName },
@@ -28,20 +29,24 @@ const lanes = [
 
 export default function LandingPage() {
   return (
-    <main className="min-h-dvh bg-brand text-white [&_a]:text-white">
+    <main className="min-h-dvh overflow-x-clip">
       <header className="mx-auto flex max-w-[1200px] items-center justify-between px-4 pt-6 desktop:px-6">
-        {/* Sur fond rouge, le logotype seul : l'icône s'y perdrait (§ 9.2). */}
-        <span className="font-display text-[34px] font-bold leading-none">Tartan</span>
-        <Link
-          href="/connexion"
-          className="inline-flex min-h-11 items-center rounded-full bg-white px-5 font-semibold !text-ink no-underline hover:bg-bg"
-        >
-          Se connecter
-        </Link>
+        <Wordmark />
+        <div className="flex items-center gap-4">
+          <Link href="/tarifs" className="inline-flex min-h-11 items-center font-semibold">
+            {m.billing.pricing}
+          </Link>
+          <Link
+            href="/connexion"
+            className="inline-flex min-h-11 items-center rounded-full border-2 border-on-page px-5 font-semibold no-underline hover:bg-brand-strong"
+          >
+            Se connecter
+          </Link>
+        </div>
       </header>
 
       <section className="mx-auto max-w-[1200px] px-4 pb-14 pt-12 desktop:px-6 desktop:pt-20">
-        <h1 className="max-w-[16ch] font-display text-[56px] font-bold leading-[0.95] desktop:text-[104px]">
+        <h1 className="max-w-[16ch] font-display text-[60px] font-bold leading-[0.95] desktop:text-[120px]">
           Le carnet d’entraînement de ton groupe.
         </h1>
         <p className="mt-6 max-w-[44ch] text-[18px] leading-[26px] desktop:text-[20px] desktop:leading-[28px]">
@@ -50,7 +55,7 @@ export default function LandingPage() {
         </p>
         <Link
           href="/connexion"
-          className="mt-8 inline-flex min-h-[52px] items-center rounded-full bg-ink px-7 text-base font-semibold no-underline hover:bg-ink-2"
+          className="mt-8 inline-flex min-h-[52px] items-center rounded-full bg-cta px-7 text-base font-semibold text-on-cta no-underline hover:bg-cta-hover"
         >
           Créer mon espace coach
         </Link>
@@ -80,11 +85,20 @@ export default function LandingPage() {
       </section>
 
       <footer className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-8 desktop:px-6">
+        <Link href="/tarifs" className="min-h-11 content-center">
+          {m.billing.pricing}
+        </Link>
         <Link href="/confidentialite" className="min-h-11 content-center">
           {m.legal.privacy}
         </Link>
         <Link href="/conditions" className="min-h-11 content-center">
           {m.legal.terms}
+        </Link>
+        <Link href="/cgv" className="min-h-11 content-center">
+          Conditions de vente
+        </Link>
+        <Link href="/mentions-legales" className="min-h-11 content-center">
+          Mentions légales
         </Link>
         <Link href="/contact" className="min-h-11 content-center">
           {m.legal.contact}

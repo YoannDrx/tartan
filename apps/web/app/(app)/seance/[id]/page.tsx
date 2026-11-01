@@ -29,7 +29,10 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
       <ValidationFlusher />
       <PageHeader title={session.title} detail={capitalize(formatDateLong(session.date))} />
       <p className="flex flex-wrap items-center gap-2">
-        <StatusIcon status={session.status} />
+        {/* Sur le rouge, le statut reste sur l'encre : aucun disque de couleur directement sur le fond. */}
+        <span className="on-card inline-flex rounded-full bg-card p-1">
+          <StatusIcon status={session.status} />
+        </span>
         <Chip>{m.sessionType[session.type]}</Chip>
         <Chip>{m.variant[session.variant]}</Chip>
         {session.startTime ? <span>{session.startTime.replace(":", " h ")}</span> : null}
@@ -59,13 +62,13 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
       {session.blocks.map((block) => (
         <section key={block.ref} className="flex flex-col gap-2">
           <h2 className="t-h2">{block.name}</h2>
-          <ul className="divide-y divide-border rounded-block border border-border bg-surface px-3">
+          <ul className="divide-y divide-card-line rounded-card on-card bg-card px-3">
             {block.items.map((item) => (
               <li key={item.ref} className="py-2">
                 <p className="font-semibold">{item.name}</p>
-                <p className="t-caption font-normal text-muted">{item.summary}</p>
+                <p className="t-caption font-normal text-soft">{item.summary}</p>
                 {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg === null ? (
-                  <p className="t-caption text-warning-strong">{m.today.loadMissing}</p>
+                  <p className="t-caption text-st-partial">{m.today.loadMissing}</p>
                 ) : null}
                 {item.cues.length ? <p className="t-caption mt-1 font-normal">{item.cues.join(". ")}</p> : null}
               </li>

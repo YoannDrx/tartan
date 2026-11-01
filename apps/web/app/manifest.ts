@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -9,8 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "fr",
     start_url: "/accueil",
     display: "standalone",
-    background_color: "#F2F3F1",
-    theme_color: "#C4442B",
+    background_color: tokens.scene.page,
+    theme_color: tokens.scene.page,
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png" },

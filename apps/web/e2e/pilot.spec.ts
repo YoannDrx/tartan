@@ -13,7 +13,8 @@ const createExercise = async (page: Page, name: string) => {
   await page.getByLabel("Nom affiché").fill("Démo courte");
   await page.getByLabel("Fin (s)").fill("90");
   await page.getByRole("button", { name: "Enregistrer" }).click();
-  await expect(page.getByRole("listitem").filter({ hasText: name })).toBeVisible();
+  // Le nom exact : la bibliothèque de départ contient des exercices aux noms voisins.
+  await expect(page.getByRole("listitem").filter({ has: page.getByText(name, { exact: true }) })).toBeVisible();
 };
 
 const groupLink = async (page: Page): Promise<string> => {
@@ -70,11 +71,11 @@ test.describe("le pilote", () => {
 
   test("remplace les SMS : du coach à la validation de l'athlète en moins de 10 s", async ({ page, browser }) => {
     await createCoachSpace(page, "Thomas");
-    await createExercise(page, "Sauts de haies basses");
+    await createExercise(page, "Haies basses du pilote");
     const link = await groupLink(page);
     const { page: athlete, context } = await joinAsAthlete(browser, link, "Léa");
 
-    await publishSession(page, "Technique et pliométrie", "Sauts de haies basses");
+    await publishSession(page, "Technique et pliométrie", "Haies basses du pilote");
 
     // L'athlète voit la séance signée de son coach, et valide en un toucher.
     await athlete.reload();
@@ -113,10 +114,10 @@ test.describe("le pilote", () => {
 
   test("un absent bascule en autonomie après l'appel", async ({ page, browser }) => {
     await createCoachSpace(page, "Sarah");
-    await createExercise(page, "Fentes sautées");
+    await createExercise(page, "Fentes du pilote");
     const link = await groupLink(page);
     const { page: athlete, context } = await joinAsAthlete(browser, link, "Hugo");
-    await publishSession(page, "Séance au club", "Fentes sautées");
+    await publishSession(page, "Séance au club", "Fentes du pilote");
     await page.getByRole("button", { name: "Absent" }).click();
     await page.getByRole("button", { name: "Valider l'appel" }).click();
     await expect(page.getByText(/1 absent basculé en autonomie/)).toBeVisible();

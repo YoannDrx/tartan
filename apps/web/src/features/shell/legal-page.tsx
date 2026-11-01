@@ -1,16 +1,15 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { Logo } from "@/components/logo";
+import { PublicPage } from "./public-page";
 
+// Scène Lecture : le texte long se lit sur une grande carte encre, jamais sur le rouge.
 export const LegalPage = ({ title, updated, children }: { title: string; updated: string; children: ReactNode }) => (
-  <main className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-6 px-4 py-10">
-    <Link href="/" aria-label="Tartan, retour au site" className="self-start">
-      <Logo height={32} />
-    </Link>
-    <div>
-      <h1 className="t-display">{title}</h1>
-      <p className="text-muted">Version de travail du {updated}, à faire relire par un juriste avant publication.</p>
+  <PublicPage
+    title={title}
+    lead={`Version de travail du ${updated}, à faire relire par un juriste avant publication.`}
+    width="text"
+  >
+    <div className="on-card flex flex-col gap-4 rounded-card bg-card p-5 tablet:p-8 [&_a]:text-link [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-[26px] [&_h2]:font-semibold [&_h2]:leading-[30px] [&_li]:ml-5 [&_li]:list-disc">
+      {children}
     </div>
-    <div className="flex flex-col gap-4 [&_h2]:t-h2 [&_h2]:mt-4 [&_li]:ml-5 [&_li]:list-disc">{children}</div>
-  </main>
+  </PublicPage>
 );

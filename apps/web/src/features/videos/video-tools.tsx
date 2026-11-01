@@ -1,6 +1,7 @@
 "use client";
 
 import type { JumpResult } from "@tartan/contracts";
+import { planStretch } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Upload } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
@@ -58,7 +59,9 @@ const JumpFields = ({
           onClick={() => onChange({ ...value, attemptNo: n })}
           className={cn(
             "t-num size-11 rounded-button text-[18px]",
-            value.attemptNo === n ? "bg-ink text-white" : "border border-border bg-surface",
+            value.attemptNo === n
+              ? "bg-white font-semibold text-ink"
+              : "border border-card-line bg-card-raised hover:bg-card-line",
           )}
         >
           {n}
@@ -81,7 +84,9 @@ const JumpFields = ({
           onClick={() => onChange({ ...value, result: key })}
           className={cn(
             "min-h-11 rounded-full px-4 font-semibold",
-            value.result === key ? "bg-ink text-white" : "border border-border bg-surface",
+            value.result === key
+              ? "bg-white font-semibold text-ink"
+              : "border border-card-line bg-card-raised hover:bg-card-line",
           )}
         >
           {key === "pass" ? "–" : key} {label}
@@ -90,6 +95,19 @@ const JumpFields = ({
     </fieldset>
   </div>
 );
+
+// Garde chaque image d'un ralenti : voir video-stretch. Le fichier d'origine part tel quel si on ne sait pas le lire.
+const prepareVideo = async (file: File): Promise<{ file: File; fps: number | null; timeScale: number }> => {
+  const plan = await planStretch(
+    async (offset, length) => new Uint8Array(await file.slice(offset, offset + length).arrayBuffer()),
+    file.size,
+  );
+  if (!plan) return { file, fps: null, timeScale: 1 };
+  if (!plan.patch) return { file, fps: plan.fps, timeScale: 1 };
+  const { offset, bytes } = plan.patch;
+  const parts = [file.slice(0, offset), bytes as BlobPart, file.slice(offset + bytes.byteLength)];
+  return { file: new File(parts, file.name, { type: file.type }), fps: plan.fps, timeScale: plan.timeScale };
+};
 
 export const UploadVideoDialog = ({ athletes, enabled }: { athletes: Athlete[]; enabled: boolean }) => {
   const router = useRouter();
@@ -122,8 +140,11 @@ export const UploadVideoDialog = ({ athletes, enabled }: { athletes: Athlete[]; 
             e.preventDefault();
             setError(null);
             if (!file) return setError("Choisis une vidéo.");
+            const prepared = await prepareVideo(file);
             const res = await executeAsync({
               athleteId,
+              fps: prepared.fps,
+              timeScale: prepared.timeScale,
               attempt: jump.height
                 ? {
                     barHeightCm: Number(jump.height),
@@ -135,7 +156,7 @@ export const UploadVideoDialog = ({ athletes, enabled }: { athletes: Athlete[]; 
             });
             if (!res?.data) return setError(res?.serverError ?? m.errors.invalid);
             const { createUpload } = await import("@mux/upchunk");
-            const upload = createUpload({ endpoint: res.data.uploadUrl, file, chunkSize: 5120 });
+            const upload = createUpload({ endpoint: res.data.uploadUrl, file: prepared.file, chunkSize: 5120 });
             setProgress(0);
             upload.on("progress", (ev) => setProgress(Math.round(ev.detail)));
             upload.on("error", () => {
@@ -174,7 +195,7 @@ export const UploadVideoDialog = ({ athletes, enabled }: { athletes: Athlete[]; 
           </Field>
           <JumpFields value={jump} onChange={setJump} />
           {error ? (
-            <p role="alert" className="text-brand-strong">
+            <p role="alert" className="text-alert">
               {error}
             </p>
           ) : null}

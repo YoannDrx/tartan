@@ -15,9 +15,9 @@ export const ParentalForm = ({ token }: { token: string }) => {
   });
   if (answered) {
     return (
-      <div role="status" className="rounded-card border border-border bg-surface p-4">
+      <div role="status">
         <p className="font-semibold">{answered === "granted" ? m.parental.grantedTitle : m.parental.refusedTitle}</p>
-        {answered === "refused" ? <p className="mt-1 text-muted">{m.parental.refusedBody}</p> : null}
+        {answered === "refused" ? <p className="mt-1 text-soft">{m.parental.refusedBody}</p> : null}
       </div>
     );
   }
@@ -35,9 +35,9 @@ export const ParentalForm = ({ token }: { token: string }) => {
           onChange={(e) => setScope({ ...scope, video: e.target.checked })}
         />
       </div>
-      <p className="t-caption font-normal text-muted">{m.parental.otherParent}</p>
+      <p className="t-caption font-normal text-soft">{m.parental.otherParent}</p>
       {result.serverError ? (
-        <p role="alert" className="text-brand-strong">
+        <p role="alert" className="text-alert">
           {result.serverError}
         </p>
       ) : null}

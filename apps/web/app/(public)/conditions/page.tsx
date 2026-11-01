@@ -6,10 +6,14 @@ export const metadata: Metadata = { title: "Conditions d'utilisation" };
 export default function ConditionsPage() {
   return (
     <LegalPage title="Conditions d'utilisation" updated="1er novembre 2026">
-      <p>Éditeur : Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130 Franconville.</p>
+      <p>
+        Éditeur : Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130
+        Franconville.
+      </p>
       <h2>Le service</h2>
       <p>
-        Tartan aide un coach d'athlétisme et ses athlètes à planifier, suivre et analyser l'entraînement. Les offres payantes relèvent des conditions de vente.
+        Tartan aide un coach d'athlétisme et ses athlètes à planifier, suivre et analyser l'entraînement. Les offres
+        payantes relèvent des conditions de vente.
       </p>
       <h2>Ce que Tartan n'est pas</h2>
       <p>
@@ -19,7 +23,8 @@ export default function ConditionsPage() {
       <h2>Les contenus</h2>
       <p>
         Tu restes responsable de ce que tu publies. Tu dois avoir l'accord des personnes que tu filmes. Tout contenu
-        peut être signalé depuis l'app, et tout utilisateur bloqué. Les signalements sont examinés sous 48 heures ouvrées ; un contenu illicite est retiré et son auteur peut être exclu.
+        peut être signalé depuis l'app, et tout utilisateur bloqué. Les signalements sont examinés sous 48 heures
+        ouvrées ; un contenu illicite est retiré et son auteur peut être exclu.
       </p>
       <h2>Ton compte</h2>
       <p>

@@ -1,9 +1,10 @@
+import { ChevronDown } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useId } from "react";
 import { cn } from "@/lib/cn";
 
 const control =
-  "w-full min-h-11 rounded-[10px] border border-border bg-surface px-3 text-[16px] text-ink placeholder:text-muted disabled:opacity-60 aria-invalid:border-brand-strong";
+  "w-full min-h-11 rounded-[10px] border border-control-line bg-transparent px-3 text-[16px] text-inherit placeholder:text-fg-muted hover:border-fg-muted disabled:opacity-60 aria-invalid:border-st-missed";
 
 export const Input = ({ className, ...props }: ComponentProps<"input">) => (
   <input className={cn(control, className)} {...props} />
@@ -14,7 +15,13 @@ export const Textarea = ({ className, ...props }: ComponentProps<"textarea">) =>
 );
 
 export const Select = ({ className, ...props }: ComponentProps<"select">) => (
-  <select className={cn(control, "pr-8", className)} {...props} />
+  <span className="relative block w-full">
+    <select className={cn(control, "appearance-none pr-9", className)} {...props} />
+    <ChevronDown
+      aria-hidden
+      className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-soft"
+    />
+  </span>
 );
 
 export const Field = ({
@@ -23,8 +30,10 @@ export const Field = ({
   error,
   className,
   children,
+  labelHidden,
 }: {
   label: string;
+  labelHidden?: boolean;
   hint?: string;
   error?: string;
   className?: string;
@@ -34,17 +43,17 @@ export const Field = ({
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={id} className="t-caption text-ink">
+      <label htmlFor={id} className={labelHidden ? "sr-only" : "t-caption text-inherit"}>
         {label}
       </label>
       {children({ id, "aria-describedby": describedBy, "aria-invalid": error ? true : undefined })}
       {hint && !error ? (
-        <p id={`${id}-hint`} className="t-caption text-muted font-normal">
+        <p id={`${id}-hint`} className="t-caption text-soft font-normal">
           {hint}
         </p>
       ) : null}
       {error ? (
-        <p id={`${id}-error`} role="alert" className="t-caption text-brand-strong">
+        <p id={`${id}-error`} role="alert" className="t-caption text-alert">
           {error}
         </p>
       ) : null}
@@ -59,10 +68,10 @@ export const CheckRow = ({
   ...props
 }: Omit<ComponentProps<"input">, "type"> & { label: string; detail?: string }) => (
   <label className={cn("flex min-h-11 items-start gap-3 py-2", className)}>
-    <input type="checkbox" className="mt-0.5 size-5 shrink-0 rounded border-border accent-brand" {...props} />
+    <input type="checkbox" className="mt-px size-5 shrink-0 rounded border-card-line accent-brand" {...props} />
     <span className="flex flex-col">
       <span>{label}</span>
-      {detail ? <span className="t-caption text-muted font-normal">{detail}</span> : null}
+      {detail ? <span className="t-caption text-soft font-normal">{detail}</span> : null}
     </span>
   </label>
 );

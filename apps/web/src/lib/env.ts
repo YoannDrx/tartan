@@ -35,6 +35,7 @@ const schema = z.object({
   STRIPE_PRICE_COACH_YEAR: optional,
   STRIPE_PRICE_CLUB_MONTH: optional,
   STRIPE_PRICE_CLUB_YEAR: optional,
+  STRIPE_PORTAL_CONFIGURATION_ID: optional,
   STRIPE_TAX_ENABLED: z.enum(["true", "false"]).default("false"),
   REVENUECAT_WEBHOOK_AUTH: optional,
   REVENUECAT_PRODUCT_COACH: z.string().default("tartan_coach_monthly,tartan_coach_yearly"),

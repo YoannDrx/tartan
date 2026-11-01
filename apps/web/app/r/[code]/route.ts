@@ -6,7 +6,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { code } = await params;
   const host = request.headers.get("host") ?? "";
   const onProduction = host.endsWith("tartan.coach");
-  const response = NextResponse.redirect(new URL("/connexion", onProduction ? "https://app.tartan.coach" : request.url));
+  const response = NextResponse.redirect(
+    new URL("/connexion", onProduction ? "https://app.tartan.coach" : request.url),
+  );
   if (/^[A-Za-z0-9-]{4,40}$/.test(code)) {
     response.cookies.set("tartan_ref", code.toUpperCase(), {
       maxAge: ATTRIBUTION_WINDOW_DAYS * 86400,

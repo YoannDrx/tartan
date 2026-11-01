@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { AthleteSessionCard, AthleteSessionDetail } from "@tartan/contracts";
 import { capitalize, formatDateLong, formatWeekdayShort, m } from "@tartan/i18n";
-import { EmptyState } from "@/components/states";
+import { ActivityPicto, LaneArcs } from "@/components/pictos";
+import { EmptyState, PageHeader } from "@/components/states";
 import { StatusIcon } from "@/components/status-cell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -16,7 +17,10 @@ import { getAthleteSession, getAthleteToday } from "@/server/athlete-view.servic
 export const metadata: Metadata = { title: m.nav.aujourdhui };
 
 const WeekDots = ({ week, today }: { week: { date: string; status: string }[]; today: string }) => (
-  <ol aria-label="Ta semaine" className="grid grid-cols-7 gap-1.5">
+  <ol
+    aria-label="Ta semaine"
+    className="on-card grid grid-cols-7 divide-x divide-card-line overflow-hidden rounded-card bg-card"
+  >
     {week.map((d) => {
       const label: Record<string, string> = {
         done: "séance faite",
@@ -27,15 +31,9 @@ const WeekDots = ({ week, today }: { week: { date: string; status: string }[]; t
         rest: "repos",
       };
       return (
-        <li
-          key={d.date}
-          className={cn(
-            "flex flex-col items-center gap-1 rounded-button border bg-surface py-2",
-            d.date === today ? "border-ink" : "border-border",
-          )}
-        >
-          <span className="t-caption font-normal text-muted">{formatWeekdayShort(d.date)}</span>
-          <span className="t-num text-[18px] leading-none">{Number(d.date.slice(8))}</span>
+        <li key={d.date} className={cn("flex flex-col items-center gap-1 py-2", d.date === today && "bg-card-raised")}>
+          <span className="t-caption font-normal text-soft">{formatWeekdayShort(d.date)}</span>
+          <span className="t-num text-[20px] leading-none">{Number(d.date.slice(8))}</span>
           <span className="flex h-3.5 items-center">
             {d.status === "done" || d.status === "partial" || d.status === "missed" ? (
               <StatusIcon status={d.status} size={14} />
@@ -68,28 +66,15 @@ const Hero = ({
   return (
     <>
       {/* Carte héros en rouge piste : les arcs reprennent le virage de l'élan. */}
-      <section
-        aria-labelledby={`seance-${card.id}`}
-        className="relative overflow-hidden rounded-hero bg-brand p-5 text-white"
-      >
-        <svg
-          aria-hidden
-          width="220"
-          height="220"
-          viewBox="0 0 220 220"
-          className="absolute -right-20 -top-20 opacity-[0.12]"
-        >
-          <path d="M 20 220 A 200 200 0 0 1 220 20" fill="none" stroke="#fff" strokeWidth="4" />
-          <path d="M 60 220 A 160 160 0 0 1 220 60" fill="none" stroke="#fff" strokeWidth="4" />
-          <path d="M 100 220 A 120 120 0 0 1 220 100" fill="none" stroke="#fff" strokeWidth="4" />
-        </svg>
+      <section aria-labelledby={`seance-${card.id}`} className="on-hero relative overflow-hidden rounded-hero p-5">
+        <LaneArcs weight={3} className="pointer-events-none absolute -bottom-2 right-0 h-3/4 w-1/2 text-surface-sunk" />
         <div className="relative flex flex-col gap-3">
           <p className="flex flex-wrap items-center gap-2 t-caption font-semibold">
-            <span className="rounded-full bg-white px-2.5 py-1 text-brand-strong">{m.sessionType[card.type]}</span>
-            <span className="rounded-full border border-white px-2.5 py-1">{m.variant[card.variant]}</span>
+            <span className="rounded-full bg-ink px-2.5 py-1 text-white">{m.sessionType[card.type]}</span>
+            <span className="rounded-full border-2 border-ink px-2.5 py-0.5">{m.variant[card.variant]}</span>
           </p>
           <div>
-            <h2 id={`seance-${card.id}`} className="font-display text-[30px] font-bold leading-[32px]">
+            <h2 id={`seance-${card.id}`} className="t-h1 text-balance">
               {card.title}
             </h2>
             <p>
@@ -111,13 +96,8 @@ const Hero = ({
           ) : (
             <QuickValidate session={card} organizationId={organizationId} healthConsent={healthConsent} onDark />
           )}
-          <Button
-            asChild
-            size="md"
-            variant={validated ? "inverse" : "quiet"}
-            className={validated ? "" : "border border-white hover:bg-brand-strong"}
-          >
-            <Link href={`/seance/${card.id}/mode`} className="!text-white">
+          <Button asChild size="md" variant={validated ? "primary" : "secondary"}>
+            <Link href={`/seance/${card.id}/mode`}>
               <Play aria-hidden className="size-4 fill-current" />
               {m.today.start}
             </Link>
@@ -133,22 +113,22 @@ const Hero = ({
       {!validated && card.hasAutonomous ? <TodayAbsence sessionId={card.id} current={card.attendance} /> : null}
       <section className="flex flex-col gap-2">
         <h2 className="t-section">{m.today.program}</h2>
-        <ul className="divide-y divide-border rounded-block border border-border bg-surface px-3">
+        <ul className="divide-y divide-card-line rounded-card on-card bg-card px-3">
           {exercises.map((item) => (
             <li key={item.ref}>
               <Link
                 href={`/seance/${card.id}`}
-                className="flex min-h-[60px] items-center gap-3 py-2 text-ink no-underline"
+                className="flex min-h-[60px] items-center gap-3 py-2 text-inherit no-underline"
               >
                 <span
                   aria-hidden
-                  className="flex size-11 shrink-0 items-center justify-center rounded-thumb bg-surface-sunk"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-thumb bg-brand text-white"
                 >
                   <Play className="size-4 fill-current" />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col leading-tight">
                   <span className="font-semibold">{item.name}</span>
-                  <span className="t-caption font-normal text-muted">{item.summary}</span>
+                  <span className="t-caption font-normal text-soft">{item.summary}</span>
                 </span>
               </Link>
             </li>
@@ -167,19 +147,16 @@ export default async function AujourdhuiPage() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <ValidationFlusher />
-      <header>
-        <p className="text-muted">{capitalize(formatDateLong(today))}</p>
-        <h1 className="t-display">{data.firstName ? m.today.greeting(data.firstName) : m.nav.aujourdhui}</h1>
-      </header>
+      <PageHeader
+        title={data.firstName ? m.today.greeting(data.firstName) : m.nav.aujourdhui}
+        detail={capitalize(formatDateLong(today))}
+      />
       {data.parentalConsentPending ? (
-        <p className="rounded-card bg-warning-tint p-3 text-warning-strong">{m.parental.pendingBanner}</p>
+        <p className="on-card rounded-card bg-card p-3 text-st-partial">{m.parental.pendingBanner}</p>
       ) : null}
       <WeekDots week={data.week} today={today} />
       {data.pinnedAnnouncement ? (
-        <Link
-          href="/annonces"
-          className="rounded-card border border-border bg-surface p-3 text-ink no-underline hover:bg-bg"
-        >
+        <Link href="/annonces" className="rounded-card on-card bg-card p-3 text-inherit no-underline hover:bg-raise">
           <span className="font-semibold">{data.pinnedAnnouncement.authorName} : </span>
           {data.pinnedAnnouncement.body}
         </Link>
@@ -202,16 +179,14 @@ export default async function AujourdhuiPage() {
           <h2 className="t-section">{m.today.next}</h2>
           <Link
             href={`/seance/${data.next.id}`}
-            className={cn(
-              "flex flex-col gap-0.5 rounded-card border p-3 no-underline",
-              data.next.type === "jump"
-                ? "border-brand bg-brand text-white"
-                : "border-border bg-surface text-ink hover:bg-bg",
-            )}
+            className="on-card flex items-center gap-3 rounded-card bg-card p-3 no-underline hover:bg-card-raised"
           >
-            <span className="font-semibold">{data.next.title}</span>
-            <span className="t-caption font-normal">
-              {capitalize(formatDateLong(data.next.date))}, {m.variant[data.next.variant].toLowerCase()}
+            <ActivityPicto kind={data.next.type} className="size-5 text-fg-muted" />
+            <span className="flex min-w-0 flex-col gap-0.5 text-fg">
+              <span className="font-semibold">{data.next.title}</span>
+              <span className="t-caption font-normal text-fg-muted">
+                {capitalize(formatDateLong(data.next.date))}, {m.variant[data.next.variant].toLowerCase()}
+              </span>
             </span>
           </Link>
           <AttendanceQuestion sessionId={data.next.id} current={data.next.attendance} />

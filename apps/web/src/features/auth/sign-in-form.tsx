@@ -58,9 +58,9 @@ export const SignInForm = ({
 
   if (sent) {
     return (
-      <div role="status" className="rounded-card border border-border bg-surface p-4">
+      <div role="status">
         <p className="font-semibold">{m.auth.magicLinkSent}</p>
-        <button type="button" className="mt-2 min-h-11 text-brand-strong underline" onClick={() => setSent(false)}>
+        <button type="button" className="mt-2 min-h-11 text-ctx-link underline" onClick={() => setSent(false)}>
           Changer d'adresse
         </button>
       </div>
@@ -113,7 +113,7 @@ export const SignInForm = ({
           </Field>
         ) : null}
         {error ? (
-          <p role="alert" className="text-brand-strong">
+          <p role="alert" className="text-alert">
             {error}
           </p>
         ) : null}
@@ -127,27 +127,32 @@ export const SignInForm = ({
       </form>
       <div className="flex flex-col items-start">
         {mode === "magic" ? (
-          <button type="button" className="min-h-11 text-brand-strong underline" onClick={() => setMode("signin")}>
+          <button type="button" className="min-h-11 text-ctx-link underline" onClick={() => setMode("signin")}>
             {m.auth.usePassword}
           </button>
         ) : (
           <>
+            {mode === "signin" ? (
+              <a href="/mot-de-passe-oublie" className="inline-flex min-h-11 items-center">
+                {m.auth.forgotPassword}
+              </a>
+            ) : null}
             <button
               type="button"
-              className="min-h-11 text-brand-strong underline"
+              className="min-h-11 text-ctx-link underline"
               onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
             >
               {mode === "signin"
                 ? `${m.auth.noAccount} ${m.auth.signUpWithPassword}`
                 : `${m.auth.hasAccount} ${m.auth.signInWithPassword}`}
             </button>
-            <button type="button" className="min-h-11 text-brand-strong underline" onClick={() => setMode("magic")}>
+            <button type="button" className="min-h-11 text-ctx-link underline" onClick={() => setMode("magic")}>
               {m.auth.useMagicLink}
             </button>
           </>
         )}
       </div>
-      <p className="t-caption font-normal text-muted">
+      <p className="t-caption font-normal text-soft">
         En continuant, tu acceptes les <a href="/conditions">conditions d'utilisation</a> et la{" "}
         <a href="/confidentialite">politique de confidentialité</a>.
       </p>

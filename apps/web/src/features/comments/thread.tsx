@@ -34,34 +34,31 @@ export const CommentThread = ({
   const report = useAction(reportContentAction, { onSuccess: () => toast.ok(m.comments.reported) });
   const block = useAction(blockUserAction, { onSuccess: () => toast.ok("Utilisateur bloqué.") });
   return (
-    <section aria-label={m.comments.title} className="flex flex-col gap-3">
-      <h2 className={cn("t-section", dark && "text-muted-on-ink")}>{m.comments.title}</h2>
-      {comments.length === 0 ? <p className={dark ? "text-muted-on-ink" : "text-muted"}>{m.comments.empty}</p> : null}
+    <section
+      aria-label={m.comments.title}
+      className={cn("flex flex-col gap-3", !dark && "on-card rounded-card bg-card p-4")}
+    >
+      <h2 className="t-section">{m.comments.title}</h2>
+      {comments.length === 0 ? <p className="text-soft">{m.comments.empty}</p> : null}
       <ul className="flex flex-col gap-2">
         {comments.map((c) => (
-          <li
-            key={c.id}
-            className={cn(
-              "flex items-start gap-2 rounded-card p-3",
-              dark ? "bg-ink-2" : "border border-border bg-surface",
-            )}
-          >
+          <li key={c.id} className={cn("flex items-start gap-2 rounded-card p-3", "bg-card-raised")}>
             <div className="min-w-0 flex-1">
-              <p className={cn("t-caption", dark ? "text-muted-on-ink" : "text-muted")}>{c.authorName}</p>
+              <p className="t-caption text-soft">{c.authorName}</p>
               <p className="break-words">{c.body}</p>
             </div>
             {c.authorId !== currentUserId ? (
               <div className="flex">
                 <IconButton
                   label={m.comments.report}
-                  tone={dark ? "dark" : "plain"}
+                  tone="plain"
                   onClick={() => report.execute({ entityType: "comment", entityId: c.id, reason: "inappropriate" })}
                 >
                   <Flag aria-hidden className="size-4" />
                 </IconButton>
                 <IconButton
                   label={m.comments.block}
-                  tone={dark ? "dark" : "plain"}
+                  tone="plain"
                   onClick={() => block.execute({ userId: c.authorId, path })}
                 >
                   <Ban aria-hidden className="size-4" />
@@ -86,12 +83,12 @@ export const CommentThread = ({
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder={m.comments.placeholder}
-          className={dark ? "min-h-11 border-ink-3 bg-ink text-white placeholder:text-muted-on-ink" : "min-h-11"}
+          className="min-h-11"
         />
         <Button
           type="submit"
           size="sm"
-          variant={dark ? "darkSecondary" : "secondary"}
+          variant="secondary"
           className="self-start"
           disabled={add.isPending || !body.trim()}
         >

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { m } from "@tartan/i18n";
+import { FilterPill } from "@/components/filter-pill";
 import { EmptyState, PageHeader } from "@/components/states";
 import { videoEnabled } from "@/lib/mux";
 import { requireStaffSpace } from "@/features/shell/space";
@@ -17,10 +18,12 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
     listVideos(actor.userId, organizationId, /^[0-9a-f-]{36}$/.test(athlete ?? "") ? { athleteId: athlete } : {}),
     listAthletes(actor.userId, organizationId),
   ]);
+  const filtered = athletes.find((a) => a.id === athlete);
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <PageHeader
         title={m.video.title}
+        detail={filtered ? m.video.forAthlete(`${filtered.firstName} ${filtered.lastName}`) : undefined}
         actions={
           athletes.length > 0 ? (
             <>
@@ -30,6 +33,11 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
           ) : null
         }
       />
+      {filtered ? (
+        <FilterPill href="/videos" active={false} className="self-start">
+          {m.video.allAthletes}
+        </FilterPill>
+      ) : null}
       {videos.length === 0 ? (
         <EmptyState>
           {m.video.empty} {m.video.slowHint}

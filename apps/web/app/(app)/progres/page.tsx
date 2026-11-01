@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { formatDayMonth, m, strengthTestLabel } from "@tartan/i18n";
-import { Chip, EmptyState, PageHeader } from "@/components/states";
+import { Mark, Rows, Sheet, SheetSection } from "@/components/sheet";
+import { Chip, PageHeader } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { InjuryDialog } from "@/features/athletes/athlete-forms";
 import { requireAthleteSpace } from "@/features/shell/space";
@@ -15,79 +16,78 @@ export default async function ProgresPage() {
   const { actor, organizationId } = await requireAthleteSpace();
   const file = await getMyFile(actor.userId, organizationId);
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <PageHeader title={m.nav.progres} />
       {file.goals ? (
         <section className="flex flex-col gap-1">
           <h2 className="t-section">{m.athletes.goals}</h2>
-          <p className="whitespace-pre-line">{file.goals}</p>
+          <p className="whitespace-pre-line break-words">{file.goals}</p>
         </section>
       ) : null}
-      <section className="flex flex-col gap-2">
-        <h2 className="t-h2">{m.athletes.records}</h2>
-        {file.performances.length === 0 ? (
-          <EmptyState>Tes records apparaîtront ici dès que ton coach les aura notés.</EmptyState>
-        ) : (
-          <ul className="divide-y divide-border rounded-block border border-border bg-surface px-3">
+      <Sheet className="divide-y divide-card-line">
+        <SheetSection title={m.athletes.records}>
+          {file.performances.length === 0 ? (
+            <p className="text-soft">Tes records apparaîtront ici dès que ton coach les aura notés.</p>
+          ) : null}
+          <Rows>
             {file.performances.map((p) => (
-              <li
-                key={`${p.discipline}-${p.date}-${p.mark}`}
-                className="flex items-baseline justify-between gap-3 py-2"
-              >
-                <span>
-                  {p.discipline} <span className="t-caption font-normal text-muted">{date(p.date)}</span>{" "}
-                  {p.isPb ? <Chip tone="brand">Record</Chip> : null}
+              <li key={`${p.discipline}-${p.date}-${p.mark}`} className="flex items-center justify-between gap-3 py-2">
+                <span className="min-w-0 leading-tight">
+                  <span className="flex flex-wrap items-center gap-x-2 font-semibold">
+                    {p.discipline}
+                    {p.isPb ? <Chip tone="brand">{m.athletes.record}</Chip> : null}
+                  </span>
+                  <span className="t-caption block font-normal text-soft">{date(p.date)}</span>
                 </span>
-                <span className="t-num text-[22px]">
+                <Mark>
                   {String(p.mark).replace(".", ",")} {p.unit}
-                </span>
+                </Mark>
               </li>
             ))}
-          </ul>
-        )}
-      </section>
-      {file.tests.length > 0 ? (
-        <section className="flex flex-col gap-2">
-          <h2 className="t-h2">{m.athletes.tests}</h2>
-          <ul className="divide-y divide-border rounded-block border border-border bg-surface px-3">
+          </Rows>
+        </SheetSection>
+        <SheetSection title={m.athletes.tests}>
+          {file.tests.length === 0 ? (
+            <p className="text-soft">Tes tests de force apparaîtront ici dès que ton coach les aura notés.</p>
+          ) : null}
+          <Rows>
             {file.tests.map((t) => (
-              <li key={`${t.exerciseKey}-${t.date}`} className="flex items-baseline justify-between gap-3 py-2">
-                <span>
-                  {strengthTestLabel(t.exerciseKey)}{" "}
-                  <span className="t-caption font-normal text-muted">
+              <li key={`${t.exerciseKey}-${t.date}`} className="flex items-center justify-between gap-3 py-2">
+                <span className="min-w-0 leading-tight">
+                  <span className="block font-semibold">{strengthTestLabel(t.exerciseKey)}</span>
+                  <span className="t-caption block font-normal text-soft">
                     {m.testKind[t.kind]}, {date(t.date)}
                   </span>
                 </span>
-                <span className="t-num text-[22px]">{String(t.value).replace(".", ",")} kg</span>
+                <Mark>{String(t.value).replace(".", ",")} kg</Mark>
               </li>
             ))}
-          </ul>
-        </section>
-      ) : null}
-      {file.healthVisible ? (
-        <section className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="t-h2">{m.athletes.injuries}</h2>
-            <InjuryDialog
-              athleteId={file.id}
-              trigger={
-                <Button size="sm" variant="secondary">
-                  {m.common.add}
-                </Button>
-              }
-            />
-          </div>
-          {file.injuries.length === 0 ? <p className="text-muted">Aucune blessure enregistrée.</p> : null}
-          {file.injuries.length > 0 ? (
-            <ul className="divide-y divide-border rounded-block border border-border bg-surface px-3">
+          </Rows>
+        </SheetSection>
+        {file.healthVisible ? (
+          <SheetSection
+            title={m.athletes.injuries}
+            action={
+              <InjuryDialog
+                athleteId={file.id}
+                trigger={
+                  <Button size="sm" variant="secondary">
+                    {m.common.add}
+                  </Button>
+                }
+              />
+            }
+          >
+            {file.injuries.length === 0 ? <p className="text-soft">{m.athletes.noInjuries}</p> : null}
+            <Rows>
               {file.injuries.map((i) => (
                 <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <div className="min-w-0">
-                    <p className="font-semibold">
-                      {m.bodyArea[i.bodyArea as keyof typeof m.bodyArea]}{" "}
+                  <div className="min-w-0 flex-1 leading-tight">
+                    <p className="flex flex-wrap items-center gap-x-2 font-semibold">
+                      {m.bodyArea[i.bodyArea as keyof typeof m.bodyArea]}
                       <Chip tone={i.status === "resolved" ? "neutral" : "warning"}>{m.injuryStatus[i.status]}</Chip>
                     </p>
-                    {i.restrictions ? <p>{i.restrictions}</p> : null}
+                    {i.restrictions ? <p className="mt-1">{i.restrictions}</p> : null}
                   </div>
                   <InjuryDialog
                     athleteId={file.id}
@@ -109,10 +109,10 @@ export default async function ProgresPage() {
                   />
                 </li>
               ))}
-            </ul>
-          ) : null}
-        </section>
-      ) : null}
+            </Rows>
+          </SheetSection>
+        ) : null}
+      </Sheet>
     </div>
   );
 }

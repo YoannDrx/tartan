@@ -141,6 +141,13 @@ export const createCheckout = async (
       metadata: { organizationId },
       ...(alreadyPaid === 0 ? { trial_period_days: TRIAL_DAYS } : {}),
     },
+    // Le compte Stripe sert plusieurs produits : la page de paiement doit afficher Tartan.
+    branding_settings: {
+      display_name: "Tartan",
+      button_color: "#C4442B",
+      background_color: "#15161A",
+      icon: { type: "url", url: `${appUrl}/icon-512.png` },
+    },
     custom_text: { submit: { message: `En validant, tu acceptes les conditions de vente : ${appUrl}/cgv` } },
     success_url: `${appUrl}/abonnement?merci=1`,
     cancel_url: `${appUrl}/abonnement`,
@@ -156,6 +163,7 @@ export const createPortal = async (userId: string, organizationId: string): Prom
   const session = await stripe().billingPortal.sessions.create({
     customer: org.stripeCustomerId,
     locale: "fr",
+    ...(env().STRIPE_PORTAL_CONFIGURATION_ID ? { configuration: env().STRIPE_PORTAL_CONFIGURATION_ID } : {}),
     return_url: `${env().NEXT_PUBLIC_APP_URL}/abonnement`,
   });
   return { url: session.url };

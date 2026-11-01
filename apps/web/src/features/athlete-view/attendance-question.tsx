@@ -32,7 +32,9 @@ export const AttendanceQuestion = ({
           onClick={() => execute({ sessionId, status })}
           className={cn(
             "min-h-11 rounded-full px-4 font-medium",
-            current === status ? "bg-ink font-semibold text-white" : "border border-border bg-surface text-ink",
+            current === status
+              ? "bg-white font-semibold text-ink"
+              : "border border-pill-line bg-pill-off text-inherit hover:bg-raise",
           )}
         >
           {status === "present" ? m.today.attendanceYes : m.today.attendanceNo}
@@ -63,7 +65,7 @@ export const TodayAbsence = ({
       type="button"
       disabled={isPending}
       onClick={() => execute({ sessionId, status: absent ? "present" : "absent" })}
-      className="min-h-11 self-start text-brand-strong underline"
+      className="min-h-11 self-start text-ctx-link underline"
     >
       {absent ? m.today.comingAfterAll : m.today.notComing}
     </button>

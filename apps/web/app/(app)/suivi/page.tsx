@@ -1,11 +1,10 @@
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { addDays, startOfWeek } from "@tartan/domain";
 import { formatDayMonth, m } from "@tartan/i18n";
 import { FilterPill } from "@/components/filter-pill";
-import { EmptyState, PageHeader } from "@/components/states";
-import { StatusLegend } from "@/components/status-cell";
+import { EmptyState, PageHeader, PeriodStepper } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { todayIso } from "@/lib/dates";
 import { requireOrgMember } from "@/server/access";
@@ -48,23 +47,13 @@ export default async function SuiviPage({
     <div className="flex flex-col gap-4">
       <PageHeader
         title={m.coach.trackingTitle}
-        detail={m.coach.weekOf(formatDayMonth(week))}
         actions={
           <>
-            <Link
-              href={query({ semaine: addDays(week, -7), groupe })}
-              aria-label="Semaine précédente"
-              className="inline-flex size-11 items-center justify-center rounded-full border border-border bg-surface text-ink hover:bg-bg"
-            >
-              <ChevronLeft aria-hidden className="size-5" />
-            </Link>
-            <Link
-              href={query({ semaine: addDays(week, 7), groupe })}
-              aria-label="Semaine suivante"
-              className="inline-flex size-11 items-center justify-center rounded-full border border-border bg-surface text-ink hover:bg-bg"
-            >
-              <ChevronRight aria-hidden className="size-5" />
-            </Link>
+            <Button asChild size="sm" variant="secondary">
+              <a href={`/api/v1/orgs/${organizationId}/tracking/export?from=${week}&to=${addDays(week, 6)}`} download>
+                {m.coach.exportCsv}
+              </a>
+            </Button>
             <Button asChild size="sm">
               <Link href="/seances/nouvelle">
                 <Plus aria-hidden className="size-5" />
@@ -74,13 +63,34 @@ export default async function SuiviPage({
           </>
         }
       />
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <PeriodStepper
+          label={m.coach.weekOf(formatDayMonth(week))}
+          previous={query({ semaine: addDays(week, -7), groupe })}
+          next={query({ semaine: addDays(week, 7), groupe })}
+          previousLabel="Semaine précédente"
+          nextLabel="Semaine suivante"
+        />
+        {groups.length > 1 ? (
+          <nav aria-label="Filtrer par groupe" className="flex max-w-full gap-2 overflow-x-auto py-1">
+            <FilterPill href={query({ semaine })} active={!groupe}>
+              {m.coach.allGroups}
+            </FilterPill>
+            {groups.map((g) => (
+              <FilterPill key={g.id} href={query({ semaine, groupe: g.id })} active={groupe === g.id}>
+                {g.name}
+              </FilterPill>
+            ))}
+          </nav>
+        ) : null}
+      </div>
 
       {firstRun ? (
-        <section aria-labelledby="demarrer" className="rounded-block border border-border bg-surface">
+        <section aria-labelledby="demarrer" className="rounded-card on-card bg-card">
           <h2 id="demarrer" className="t-h2 px-4 pt-4">
             {m.home.guidedTitle}
           </h2>
-          <ol className="divide-y divide-border">
+          <ol className="divide-y divide-card-line">
             {[
               { href: "/reglages#invitations", title: m.home.inviteAthletes, detail: m.home.inviteAthletesDetail },
               { href: "/exercices?nouveau=1", title: m.home.createExercise, detail: m.home.createExerciseDetail },
@@ -89,33 +99,20 @@ export default async function SuiviPage({
               <li key={step.href}>
                 <Link
                   href={step.href}
-                  className="flex min-h-11 items-center gap-4 px-4 py-3 text-ink no-underline hover:bg-bg"
+                  className="flex min-h-11 items-center gap-4 px-4 py-3 text-inherit no-underline hover:bg-raise"
                 >
-                  <span aria-hidden className="t-num text-[28px] text-brand-strong">
+                  <span aria-hidden className="t-num text-[28px]">
                     {i + 1}
                   </span>
                   <span className="flex flex-col">
                     <span className="font-semibold">{step.title}</span>
-                    <span className="t-caption font-normal text-muted">{step.detail}</span>
+                    <span className="t-caption font-normal text-soft">{step.detail}</span>
                   </span>
                 </Link>
               </li>
             ))}
           </ol>
         </section>
-      ) : null}
-
-      {groups.length > 1 ? (
-        <nav aria-label="Filtrer par groupe" className="flex gap-2 overflow-x-auto py-1">
-          <FilterPill href={query({ semaine })} active={!groupe}>
-            {m.coach.allGroups}
-          </FilterPill>
-          {groups.map((g) => (
-            <FilterPill key={g.id} href={query({ semaine, groupe: g.id })} active={groupe === g.id}>
-              {g.name}
-            </FilterPill>
-          ))}
-        </nav>
       ) : null}
 
       {/* La grille reste l'écran de travail : au bureau, les alertes passent à côté. */}
@@ -150,7 +147,6 @@ export default async function SuiviPage({
           {grid.rows.length > 0 && grid.sessions.length > 0 ? (
             <>
               <TrackingTable grid={grid} />
-              <StatusLegend />
             </>
           ) : null}
         </div>

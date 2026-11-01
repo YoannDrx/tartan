@@ -15,11 +15,32 @@ export default async function AnnoncesPage() {
   const groups = staff
     ? await listGroups(await requireOrgMember(actor.userId, organizationId, "publishAnnouncement"))
     : [];
+  const composing = staff && groups.length > 0;
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
-      <PageHeader title={m.announcements.title} />
-      {staff && groups.length > 0 ? <AnnouncementComposer groups={groups} /> : null}
-      <AnnouncementList items={items} canManage={staff} />
+    <div className="flex flex-col gap-4">
+      {composing ? (
+        <PageHeader title={m.announcements.title} />
+      ) : (
+        <div className="mx-auto w-full max-w-2xl">
+          <PageHeader title={m.announcements.title} />
+        </div>
+      )}
+      <div
+        className={
+          composing
+            ? "grid items-start gap-4 desktop:grid-cols-[minmax(0,1fr)_380px] desktop:gap-6"
+            : "mx-auto w-full max-w-2xl"
+        }
+      >
+        {composing ? (
+          <div className="desktop:sticky desktop:top-20 desktop:col-start-2 desktop:row-start-1">
+            <AnnouncementComposer groups={groups} />
+          </div>
+        ) : null}
+        <div className="min-w-0 desktop:col-start-1 desktop:row-start-1">
+          <AnnouncementList items={items} canManage={staff} />
+        </div>
+      </div>
     </div>
   );
 }

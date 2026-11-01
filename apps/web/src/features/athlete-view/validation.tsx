@@ -17,7 +17,7 @@ type Status = "done" | "partial";
 const RpeScale = ({ value, onChange }: { value: number | null; onChange: (v: number | null) => void }) => (
   <fieldset>
     <legend className="t-caption">{m.validation.rpe}</legend>
-    <p className="t-caption mb-2 font-normal text-muted">{m.validation.rpeHint}</p>
+    <p className="t-caption mb-2 font-normal text-soft">{m.validation.rpeHint}</p>
     <div className="grid grid-cols-5 gap-1.5 tablet:grid-cols-10">
       {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
         <button
@@ -28,7 +28,9 @@ const RpeScale = ({ value, onChange }: { value: number | null; onChange: (v: num
           onClick={() => onChange(value === n ? null : n)}
           className={cn(
             "t-num min-h-11 rounded-button text-[18px]",
-            value === n ? "bg-ink text-white" : "border border-border bg-surface",
+            value === n
+              ? "bg-white font-semibold text-ink"
+              : "border border-card-line bg-card-raised hover:bg-card-line",
           )}
         >
           {n}
@@ -106,22 +108,10 @@ export const QuickValidate = ({
 
   return (
     <>
-      <Button
-        size="lg"
-        variant={onDark ? "secondary" : "primary"}
-        className="w-full"
-        disabled={sending}
-        onClick={() => validate("done")}
-      >
+      <Button size="lg" variant="primary" className="w-full" disabled={sending} onClick={() => validate("done")}>
         {m.today.quickDone}
       </Button>
-      <Button
-        size="md"
-        variant={onDark ? "quiet" : "secondary"}
-        className={cn("w-full", onDark && "border border-white text-white hover:bg-brand-strong")}
-        disabled={sending}
-        onClick={() => validate("partial")}
-      >
+      <Button size="md" variant="secondary" className="w-full" disabled={sending} onClick={() => validate("partial")}>
         {m.today.quickPartial}
       </Button>
       <Dialog
@@ -135,12 +125,12 @@ export const QuickValidate = ({
             <StatusIcon status="partial" size={48} className="self-start" />
           ) : (
             <svg aria-hidden width="48" height="48" viewBox="0 0 26 26" className="self-start">
-              <circle cx="13" cy="13" r="12" fill="#1E5FA8" />
+              <circle cx="13" cy="13" r="12" fill="var(--st-done)" />
               <path
                 className="validation-check"
                 d="M8 13.5l3.2 3.2L18 10"
                 fill="none"
-                stroke="#fff"
+                stroke="var(--st-on)"
                 strokeWidth="2.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -234,7 +224,7 @@ export const QuickValidate = ({
               ) : null}
             </div>
           ) : (
-            <p className="t-caption font-normal text-muted">{m.validation.healthDisabled}</p>
+            <p className="t-caption font-normal text-soft">{m.validation.healthDisabled}</p>
           )}
           <Button
             variant="secondary"

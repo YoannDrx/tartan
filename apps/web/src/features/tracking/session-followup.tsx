@@ -35,14 +35,14 @@ export const RollCall = ({
   });
   const absent = Object.values(state).filter((v) => v === "absent").length;
   return (
-    <section aria-labelledby="appel" className="rounded-block border border-border bg-surface p-4">
-      <h2 id="appel" className="t-h2 mb-3">
+    <section aria-labelledby="appel" className="rounded-card on-card bg-card p-4">
+      <h2 id="appel" className="t-h2 mb-1">
         {m.coach.rollCall}
       </h2>
-      <ul className="divide-y divide-border">
+      <ul className="divide-y divide-card-line">
         {rows.map((row) => (
           <li key={row.athleteId} className="flex items-center justify-between gap-3 py-1.5">
-            <span className="font-semibold">{row.name}</span>
+            <span className="min-w-0 break-words font-semibold leading-tight">{row.name}</span>
             <div role="group" aria-label={`Présence de ${row.name}`} className="flex gap-1">
               {(["present", "absent"] as const).map((value) => (
                 <button
@@ -51,10 +51,10 @@ export const RollCall = ({
                   aria-pressed={state[row.athleteId] === value}
                   onClick={() => setState({ ...state, [row.athleteId]: value })}
                   className={cn(
-                    "min-h-11 rounded-full px-3 text-[14px]",
+                    "min-h-11 rounded-full px-3 text-[14px] transition-colors",
                     state[row.athleteId] === value
-                      ? "bg-ink font-semibold text-white"
-                      : "border border-border bg-surface",
+                      ? "bg-white font-semibold text-ink"
+                      : "border border-card-line bg-card-raised hover:bg-card-line",
                   )}
                 >
                   {value === "present" ? "Présent" : "Absent"}
@@ -65,8 +65,8 @@ export const RollCall = ({
         ))}
       </ul>
       {absent > 0 && !hasAutonomous ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-card bg-warning-tint p-3 text-warning-strong">
-          <p className="flex-1">{m.coach.noAutonomous}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-thumb bg-card-raised p-3">
+          <p className="flex-1 text-st-partial">{m.coach.noAutonomous}</p>
           <Button
             size="sm"
             variant="secondary"

@@ -26,7 +26,7 @@ const Demo = ({ item, speed }: { item: ResolvedItem; speed: number }) => {
         title={media.title ?? item.name}
         src={youtubeEmbedUrl(media)}
         allow="encrypted-media; picture-in-picture"
-        className="aspect-video w-full rounded-block bg-ink-2"
+        className="aspect-video w-full rounded-card bg-card-raised"
       />
     );
   }
@@ -40,7 +40,7 @@ const Demo = ({ item, speed }: { item: ResolvedItem; speed: number }) => {
         muted
         playsInline
         controls
-        className="aspect-video w-full rounded-block bg-black"
+        className="aspect-video w-full rounded-card bg-black"
         aria-label={`Démonstration : ${item.name}`}
       />
     );
@@ -124,12 +124,10 @@ export const SessionMode = ({
             <X aria-hidden className="size-5" />
           </IconButton>
           <div className="flex flex-1 flex-col gap-1.5">
-            <span className="t-caption font-normal text-muted-on-ink">
-              {m.sessionMode.exerciseOf(index + 1, items.length)}
-            </span>
+            <span className="t-caption font-normal text-soft">{m.sessionMode.exerciseOf(index + 1, items.length)}</span>
             <div className="flex gap-1" aria-hidden>
               {items.map((it, i) => (
-                <span key={it.ref} className={cn("h-1 flex-1 rounded-sm", i <= index ? "bg-brand" : "bg-ink-3")} />
+                <span key={it.ref} className={cn("h-1 flex-1 rounded-sm", i <= index ? "bg-brand" : "bg-card-line")} />
               ))}
             </div>
           </div>
@@ -140,7 +138,7 @@ export const SessionMode = ({
         <Demo item={item} speed={speed} />
         {(item.media as Media | null)?.kind === "upload" ? (
           <div role="group" aria-label={m.sessionMode.speed} className="flex items-center gap-2">
-            <span className="t-caption font-normal text-muted-on-ink">{m.sessionMode.speed}</span>
+            <span className="t-caption font-normal text-soft">{m.sessionMode.speed}</span>
             {SPEEDS.map((s) => (
               <button
                 key={s}
@@ -149,7 +147,7 @@ export const SessionMode = ({
                 onClick={() => setSpeed(s)}
                 className={cn(
                   "min-h-11 min-w-16 rounded-full px-3 font-semibold",
-                  speed === s ? "bg-white text-ink" : "border border-ink-3 text-white",
+                  speed === s ? "bg-white text-ink" : "border border-control-line text-white",
                 )}
               >
                 {String(s).replace(".", ",")}×
@@ -160,12 +158,12 @@ export const SessionMode = ({
 
         <p className="t-num text-[22px] leading-tight">{item.summary}</p>
         {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg === null ? (
-          <p className="text-brand-on-ink">{m.today.loadMissing}</p>
+          <p className="text-link">{m.today.loadMissing}</p>
         ) : null}
         {item.prescription.notes ? <p>{item.prescription.notes}</p> : null}
 
         {item.cues.length ? (
-          <ul className="flex list-disc flex-col gap-1.5 rounded-card bg-ink-2 py-3 pl-8 pr-4">
+          <ul className="flex list-disc flex-col gap-1.5 rounded-card bg-card-raised py-3 pl-8 pr-4">
             {item.cues.map((cue) => (
               <li key={cue}>{cue}</li>
             ))}
@@ -174,7 +172,7 @@ export const SessionMode = ({
 
         <section className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between">
-            <h2 className="t-section text-muted-on-ink">{m.sessionMode.sets}</h2>
+            <h2 className="t-section text-soft">{m.sessionMode.sets}</h2>
             <span className="t-num text-[20px]">
               {doneCount} / {setCount}
             </span>
@@ -195,7 +193,7 @@ export const SessionMode = ({
                   }}
                   className={cn(
                     "flex h-[60px] flex-col items-center justify-center rounded-card",
-                    done ? "bg-status-done" : "border border-ink-3 bg-ink-2",
+                    done ? "bg-st-done" : "border border-control-line bg-card-raised",
                   )}
                 >
                   {done ? (
@@ -210,8 +208,8 @@ export const SessionMode = ({
         </section>
 
         {item.prescription.rest_s ? (
-          <div className="flex items-center gap-3 rounded-card bg-ink-2 py-2.5 pl-4 pr-2.5">
-            <Timer aria-hidden className="size-5 shrink-0 text-brand-on-ink" />
+          <div className="flex items-center gap-3 rounded-card bg-card-raised py-2.5 pl-4 pr-2.5">
+            <Timer aria-hidden className="size-5 shrink-0 text-link" />
             <span className="flex-1">{m.sessionMode.rest}</span>
             <span role="timer" className="t-num text-[22px]">
               {formatDuration(restLeft ?? item.prescription.rest_s)}

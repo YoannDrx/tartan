@@ -3,12 +3,14 @@
 import type { ExerciseMediaSnapshot, ExerciseSummary, Prescription } from "@tartan/contracts";
 import { formatPrescription, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { CirclePlay, Pencil, Plus, Trash2, Video } from "lucide-react";
+import { Pencil, Play, Plus, Search, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { pillClass } from "@/components/filter-pill";
-import { Chip, EmptyState, PageHeader } from "@/components/states";
+import { ActivityPicto } from "@/components/pictos";
+import { Sheet } from "@/components/sheet";
+import { EmptyState, PageHeader } from "@/components/states";
 import { Button, IconButton } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -108,7 +110,7 @@ const ExerciseForm = ({
       <Field label={m.exercises.tags} hint="Séparées par des virgules.">
         {(a) => <Input {...a} value={tags} onChange={(e) => setTags(e.target.value)} />}
       </Field>
-      <fieldset className="flex flex-col gap-3 border-t border-border pt-4">
+      <fieldset className="flex flex-col gap-3 border-t border-card-line pt-4">
         <legend className="t-section pr-2">{m.exercises.defaults}</legend>
         <div className="grid grid-cols-2 gap-3 tablet:grid-cols-4">
           {(
@@ -135,7 +137,7 @@ const ExerciseForm = ({
           ))}
         </div>
       </fieldset>
-      <fieldset className="flex flex-col gap-3 border-t border-border pt-4">
+      <fieldset className="flex flex-col gap-3 border-t border-card-line pt-4">
         <legend className="t-section pr-2">Vidéo</legend>
         <Field label={m.exercises.youtubeUrl}>
           {(a) => (
@@ -174,11 +176,11 @@ const ExerciseForm = ({
             )}
           </Field>
         ) : (
-          <p className="t-caption font-normal text-muted">{m.errors.videoDisabled}</p>
+          <p className="t-caption font-normal text-soft">{m.errors.videoDisabled}</p>
         )}
       </fieldset>
       {error ? (
-        <p role="alert" className="text-brand-strong">
+        <p role="alert" className="text-alert">
           {error}
         </p>
       ) : null}
@@ -232,19 +234,29 @@ export const ExerciseLibrary = ({
       ) : (
         <>
           <div className="flex flex-col gap-3 desktop:flex-row desktop:items-center">
-            <div className="w-full desktop:w-72">
-              <Field label="Rechercher un exercice">
-                {(a) => <Input {...a} type="search" value={search} onChange={(e) => setSearch(e.target.value)} />}
+            <div className="on-card relative w-full rounded-[10px] desktop:w-72 desktop:shrink-0">
+              <Search aria-hidden className="pointer-events-none absolute left-3 top-3 size-5 text-fg-muted" />
+              <Field label={m.exercises.search} labelHidden>
+                {(a) => (
+                  <Input
+                    {...a}
+                    type="search"
+                    className="border-card bg-card pl-10"
+                    placeholder={m.exercises.search}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                )}
               </Field>
             </div>
-            <div className="flex flex-wrap gap-1.5 desktop:self-end">
+            <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
                 className={pillClass(category === null)}
                 aria-pressed={category === null}
                 onClick={() => setCategory(null)}
               >
-                Tout
+                {m.exercises.allCategories}
               </button>
               {(Object.keys(m.exerciseCategory) as Category[]).map((c) => (
                 <button
@@ -259,46 +271,83 @@ export const ExerciseLibrary = ({
               ))}
             </div>
           </div>
-          <ul className="divide-y divide-border rounded-block border border-border bg-surface">
-            {list.map((e) => {
-              const media = e.media as ExerciseMediaSnapshot | null;
-              return (
-                <li key={e.id} className="flex flex-wrap items-center gap-3 p-3">
-                  <span
-                    aria-hidden
-                    className="flex size-11 shrink-0 items-center justify-center rounded-thumb bg-surface-sunk"
-                  >
-                    {media?.kind === "youtube" ? <CirclePlay className="size-5" /> : <Video className="size-5" />}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{e.name}</p>
-                    <p className="t-caption font-normal text-muted">
-                      {formatPrescription(e.defaultPrescription) || (e.cues[0] ?? "")}
-                    </p>
-                    {media?.kind === "youtube" && media.title ? (
-                      <p className="t-caption font-normal text-muted">{media.title}</p>
-                    ) : null}
-                  </div>
-                  <Chip>{m.exerciseCategory[e.category as Category]}</Chip>
-                  <IconButton label={`${m.common.edit} ${e.name}`} onClick={() => setDialog({ exercise: e })}>
-                    <Pencil aria-hidden className="size-4" />
-                  </IconButton>
-                  <IconButton
-                    label={`${m.common.delete} ${e.name}`}
-                    onClick={() =>
-                      window.confirm(`Supprimer « ${e.name} » ? ${m.exercises.deleteNotice}`) &&
-                      remove.execute({ id: e.id })
-                    }
-                  >
-                    <Trash2 aria-hidden className="size-4" />
-                  </IconButton>
-                </li>
-              );
-            })}
-            {list.length === 0 ? (
-              <li className="p-4 text-muted">Aucun exercice ne correspond. Change le filtre ou crée-le.</li>
-            ) : null}
-          </ul>
+          {list.length === 0 ? (
+            <EmptyState>{m.exercises.noMatch}</EmptyState>
+          ) : (
+            <Sheet>
+              {(Object.keys(m.exerciseCategory) as Category[]).map((c) => {
+                const rows = list.filter((e) => e.category === c);
+                if (rows.length === 0) return null;
+                return (
+                  <section key={c} aria-label={m.exerciseCategory[c]}>
+                    <h2 className="flex items-center gap-2 border-b border-card-line bg-card-raised px-4 py-1.5 text-inherit [&:not(:first-child)]:border-t">
+                      <span className="t-section text-inherit">{m.exerciseCategory[c]}</span>
+                      <span className="t-num ml-auto text-[15px] text-soft">{rows.length}</span>
+                    </h2>
+                    <ul className="divide-y divide-card-line">
+                      {rows.map((e) => {
+                        const media = e.media as ExerciseMediaSnapshot | null;
+                        return (
+                          <li
+                            key={e.id}
+                            className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-3 px-4 py-1.5 desktop:grid-cols-[44px_minmax(0,1fr)_minmax(0,1fr)_auto]"
+                          >
+                            {media ? (
+                              <span
+                                aria-hidden
+                                title={m.exercises.hasVideo}
+                                className="flex size-11 items-center justify-center rounded-thumb bg-brand text-white"
+                              >
+                                <Play className="size-4" />
+                              </span>
+                            ) : (
+                              <span
+                                aria-hidden
+                                className="flex size-11 items-center justify-center rounded-thumb bg-card-raised text-fg-muted"
+                              >
+                                <ActivityPicto kind={e.category} className="size-5" />
+                              </span>
+                            )}
+                            <div className="min-w-0 leading-tight">
+                              <p className="break-words font-semibold">{e.name}</p>
+                              {media?.kind === "youtube" && media.title ? (
+                                <p className="t-caption font-normal text-soft">{media.title}</p>
+                              ) : null}
+                              <p className="t-caption font-normal text-soft desktop:hidden">
+                                {formatPrescription(e.defaultPrescription) || (e.cues[0] ?? "")}
+                              </p>
+                            </div>
+                            <p className="t-num text-[17px] max-desktop:hidden">
+                              {formatPrescription(e.defaultPrescription) || (
+                                <span className="font-body text-[13px] font-normal text-soft">{e.cues[0] ?? ""}</span>
+                              )}
+                            </p>
+                            <div className="flex">
+                              <IconButton
+                                label={`${m.common.edit} ${e.name}`}
+                                onClick={() => setDialog({ exercise: e })}
+                              >
+                                <Pencil aria-hidden className="size-4" />
+                              </IconButton>
+                              <IconButton
+                                label={`${m.common.delete} ${e.name}`}
+                                onClick={() =>
+                                  window.confirm(`Supprimer « ${e.name} » ? ${m.exercises.deleteNotice}`) &&
+                                  remove.execute({ id: e.id })
+                                }
+                              >
+                                <Trash2 aria-hidden className="size-4" />
+                              </IconButton>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                );
+              })}
+            </Sheet>
+          )}
         </>
       )}
       <Dialog

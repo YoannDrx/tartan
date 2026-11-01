@@ -2,6 +2,9 @@
 
 /* Miroir CSS de packages/design-tokens (tests/design-tokens.test.ts vérifie l'égalité). */
 @theme {
+  /* Pas de 4 px exact : la grille rem suivrait sinon la base de 15 px et donnerait des cibles de 41 px (§ 9.6). */
+  --spacing: 4px;
+
   --color-brand: #c4442b;
   --color-brand-strong: #9e3320;
   --color-brand-tint: #fbe7e2;
@@ -22,6 +25,30 @@
   --color-status-missed: #c4442b;
   --color-status-upcoming: #8c8e94;
 
+  /* Rôles à l'écran : miroir de tokens.scene. */
+  --color-page: #c4442b;
+  --color-on-page: #ffffff;
+  --color-lane: #ffffff;
+  --color-card: #15161a;
+  --color-card-raised: #24262c;
+  --color-card-line: #3a3c43;
+  --color-control-line: #6b6e76;
+  --color-fg: #ffffff;
+  --color-fg-muted: #b9bbc0;
+  --color-link: #f2a08f;
+  --color-hero: #f2f3f1;
+  --color-on-hero: #15161a;
+  --color-on-hero-accent: #9e3320;
+  --color-action-page: #ffffff;
+  --color-on-action-page: #15161a;
+  --color-action-card: #c4442b;
+  --color-on-action-card: #ffffff;
+  --color-st-done: #4c8fe0;
+  --color-st-partial: #e08a1e;
+  --color-st-missed: #f0644c;
+  --color-st-upcoming: #8c8e94;
+  --color-on-status: #15161a;
+
   --font-display: var(--font-barlow-condensed), "Barlow Condensed", sans-serif;
   --font-body: var(--font-barlow), "Barlow", sans-serif;
 
@@ -35,32 +62,124 @@
   --breakpoint-desktop: 1024px;
 }
 
+/* Couleurs qui dépendent du fond : la même classe s'adapte au rouge, à l'encre ou à la craie. */
+@theme inline {
+  --color-soft: var(--ctx-soft);
+  --color-ctx-link: var(--ctx-link);
+  --color-alert: var(--ctx-alert);
+  --color-cta: var(--ctx-cta);
+  --color-on-cta: var(--ctx-on-cta);
+  --color-cta-hover: var(--ctx-cta-hover);
+  --color-second: var(--ctx-second);
+  --color-second-line: var(--ctx-second-line);
+  --color-second-hover: var(--ctx-second-hover);
+  --color-raise: var(--ctx-raise);
+  --color-pill-off: var(--ctx-pill-off);
+  --color-pill-line: var(--ctx-pill-line);
+}
+
 @layer base {
+  /* Scène Piste, par défaut : le rouge remplit l'écran, tout le texte y est blanc. */
+  :root {
+    --ctx-fg: var(--color-on-page);
+    --ctx-soft: var(--color-on-page);
+    --ctx-link: var(--color-on-page);
+    --ctx-alert: var(--color-on-page);
+    --ctx-focus: var(--color-on-page);
+    --ctx-cta: var(--color-action-page);
+    --ctx-on-cta: var(--color-on-action-page);
+    --ctx-cta-hover: var(--color-hero);
+    --ctx-second: transparent;
+    --ctx-second-line: var(--color-on-page);
+    --ctx-second-width: 2px;
+    --ctx-second-hover: var(--color-brand-strong);
+    --ctx-raise: var(--color-brand-strong);
+    --ctx-pill-off: transparent;
+    --ctx-pill-line: var(--color-on-page);
+    --ctx-select-bg: var(--color-on-page);
+    --ctx-select-fg: var(--color-ink);
+    --st-done: var(--color-st-done);
+    --st-partial: var(--color-st-partial);
+    --st-missed: var(--color-st-missed);
+    --st-upcoming: var(--color-st-upcoming);
+    --st-on: var(--color-on-status);
+    color-scheme: dark;
+  }
+  /* Contenu sur carte encre, et scène Encre (mode séance, vidéo). */
+  .on-card,
+  .scene-dark {
+    --ctx-fg: var(--color-fg);
+    --ctx-soft: var(--color-fg-muted);
+    --ctx-link: var(--color-link);
+    --ctx-alert: var(--color-st-missed);
+    --ctx-focus: var(--color-link);
+    --ctx-cta: var(--color-action-card);
+    --ctx-on-cta: var(--color-on-action-card);
+    --ctx-cta-hover: var(--color-brand-strong);
+    --ctx-second: var(--color-card-raised);
+    --ctx-second-line: var(--color-card-line);
+    --ctx-second-width: 1px;
+    --ctx-second-hover: var(--color-card-line);
+    --ctx-raise: var(--color-card-raised);
+    --ctx-pill-off: var(--color-card-raised);
+    --ctx-pill-line: var(--color-card-raised);
+    --ctx-select-bg: var(--color-brand);
+    --ctx-select-fg: var(--color-on-action-card);
+    color: var(--ctx-fg);
+    scrollbar-color: var(--color-control-line) transparent;
+  }
+  /* Carte héros craie : le seul clair de l'app, au plus une par écran. */
+  .on-hero {
+    --ctx-fg: var(--color-on-hero);
+    --ctx-soft: var(--color-muted);
+    --ctx-link: var(--color-on-hero-accent);
+    --ctx-alert: var(--color-on-hero-accent);
+    --ctx-focus: var(--color-on-hero);
+    --ctx-cta: var(--color-action-card);
+    --ctx-on-cta: var(--color-on-action-card);
+    --ctx-cta-hover: var(--color-brand-strong);
+    --ctx-second: transparent;
+    --ctx-second-line: var(--color-on-hero);
+    --ctx-second-width: 2px;
+    --ctx-second-hover: var(--color-surface-sunk);
+    --ctx-raise: var(--color-surface-sunk);
+    --ctx-pill-off: transparent;
+    --ctx-pill-line: var(--color-on-hero);
+    --ctx-select-bg: var(--color-brand);
+    --ctx-select-fg: var(--color-on-action-card);
+    --st-done: var(--color-status-done);
+    --st-partial: var(--color-status-partial);
+    --st-missed: var(--color-status-missed);
+    --st-upcoming: var(--color-status-upcoming);
+    --st-on: var(--color-surface);
+    background: var(--color-hero);
+    color: var(--ctx-fg);
+    color-scheme: light;
+  }
   html {
-    background: var(--color-bg);
-    color: var(--color-ink);
+    background: var(--color-page);
+    color: var(--ctx-fg);
     font-family: var(--font-body);
     font-size: 15px;
     line-height: 22px;
     -webkit-text-size-adjust: 100%;
     accent-color: var(--color-brand);
-    scrollbar-color: var(--color-status-upcoming) transparent;
+    caret-color: currentColor;
+    scrollbar-color: var(--color-on-page) var(--color-brand-strong);
+    scrollbar-width: thin;
   }
   body {
     min-height: 100dvh;
-    background: var(--color-bg);
+    background: var(--color-page);
   }
   ::selection {
-    background: var(--color-brand);
-    color: #ffffff;
+    background: var(--ctx-select-bg);
+    color: var(--ctx-select-fg);
   }
   :focus-visible {
-    outline: 2px solid var(--color-brand-strong);
+    outline: 2px solid var(--ctx-focus);
     outline-offset: 2px;
     border-radius: 4px;
-  }
-  .scene-dark :focus-visible {
-    outline-color: var(--color-brand-on-ink);
   }
   button,
   [role="button"],
@@ -73,28 +192,32 @@
     cursor: not-allowed;
   }
   a {
-    color: var(--color-brand-strong);
+    color: var(--ctx-link);
+    text-underline-offset: 3px;
   }
 }
 
 @layer components {
+  /* Le titre d'écran est posé sur le rouge, en blanc : c'est là que se joue l'identité. */
   .t-display {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 34px;
-    line-height: 36px;
+    font-size: 52px;
+    line-height: 52px;
+    letter-spacing: -0.005em;
+    overflow-wrap: anywhere;
   }
   .t-h1 {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 28px;
-    line-height: 32px;
+    font-size: 36px;
+    line-height: 40px;
   }
   .t-h2 {
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 22px;
-    line-height: 26px;
+    font-size: 24px;
+    line-height: 28px;
   }
   .t-num {
     font-family: var(--font-display);
@@ -106,6 +229,15 @@
     line-height: 16px;
     font-weight: 500;
   }
+  /* En-tête de colonne des feuilles : même voix que le titre court, en plus petit. */
+  .t-col {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--ctx-soft);
+  }
   /* Titre d'une courte liste, jamais au-dessus d'un autre titre (§ 9.5). */
   .t-section {
     font-size: 13px;
@@ -113,21 +245,32 @@
     font-weight: 600;
     letter-spacing: 1px;
     text-transform: uppercase;
-    color: var(--color-muted);
+    color: var(--ctx-soft);
   }
   @media (min-width: 1024px) {
     .t-display {
-      font-size: 40px;
-      line-height: 44px;
+      font-size: 80px;
+      line-height: 80px;
     }
     .t-h1 {
-      font-size: 32px;
-      line-height: 36px;
+      font-size: 44px;
+      line-height: 48px;
     }
     .t-h2 {
-      font-size: 24px;
-      line-height: 28px;
+      font-size: 26px;
+      line-height: 30px;
     }
+  }
+  /* Ligne de couloir : blanche, pleine, 3 px, à bord perdu quelle que soit la largeur du contenu. */
+  .lane {
+    position: relative;
+    height: 3px;
+  }
+  .lane::before {
+    content: "";
+    position: absolute;
+    inset: 0 -100vw;
+    background: var(--color-lane);
   }
 }
 
