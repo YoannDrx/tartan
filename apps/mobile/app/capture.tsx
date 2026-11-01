@@ -2,19 +2,26 @@ import type { JumpResult } from "@tartan/contracts";
 import { formatHeight, isHighFrameRate, nextAttemptNo, type Attempt } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { CameraView, useCameraPermissions, useMicrophonePermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import { StatusBar } from "expo-status-bar";
 import { useEventListener } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useMemo, useRef, useState } from "react";
-import { Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Linking, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import {
+  Camera,
+  CommonResolutions,
+  type Recorder,
+  useCameraDevice,
+  useCameraPermission,
+  useMicrophonePermission,
+  useVideoOutput,
+} from "react-native-vision-camera";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { availableFrameRates } from "../modules/tartan-camera-info";
+import { chooseCaptureFps, type CaptureChoice } from "../src/lib/capture-fps";
 import { useActiveSpace, useAthletes } from "../src/lib/queries";
 import { submitJumpAttempt } from "../src/lib/sync/op-queue";
 import { useUploads } from "../src/lib/upload/upload-queue";
-import { Camera, Images, Minus, Plus, Square, X } from "../src/ui/icons";
+import { Camera as CameraIcon, Images, Minus, Plus, Square, X } from "../src/ui/icons";
 import { Button, Chip, IconButton, T } from "../src/ui/primitives";
 import { StackScreen } from "../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../src/ui/states";
@@ -93,7 +100,7 @@ const Stepper = ({
   );
 };
 
-const LocalPreview = ({ uri, onFps }: { uri: string; onFps: (fps: number | null) => void }) => {
+const LocalPreview = ({ uri, onFps }: { uri: string; onFps: (fps: number) => void }) => {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.muted = true;
@@ -101,7 +108,8 @@ const LocalPreview = ({ uri, onFps }: { uri: string; onFps: (fps: number | null)
   });
   useEventListener(player, "sourceLoad", ({ availableVideoTracks }) => {
     const rate = availableVideoTracks[0]?.frameRate ?? null;
-    onFps(rate ? Math.round(rate) : null);
+    // Fichier sans information : on garde la fréquence connue (celle de la capture).
+    if (rate) onFps(Math.round(rate));
   });
   return (
     <VideoView
@@ -114,30 +122,57 @@ const LocalPreview = ({ uri, onFps }: { uri: string; onFps: (fps: number | null)
   );
 };
 
-const CameraModal = ({ onClose, onRecorded }: { onClose: () => void; onRecorded: (uri: string) => void }) => {
-  const [camera, askCamera] = useCameraPermissions();
-  const [mic, askMic] = useMicrophonePermissions();
-  const ref = useRef<CameraView>(null);
+const CameraModal = ({
+  choice,
+  onClose,
+  onRecorded,
+}: {
+  choice: CaptureChoice;
+  onClose: () => void;
+  onRecorded: (uri: string, fps: number) => void;
+}) => {
+  const camera = useCameraPermission();
+  const mic = useMicrophonePermission();
+  const device = useCameraDevice("back");
+  const insets = useSafeAreaInsets();
+  const video = useVideoOutput({ targetResolution: CommonResolutions.FHD_16_9, enableAudio: mic.hasPermission });
+  const recorderRef = useRef<Recorder | null>(null);
   const [ready, setReady] = useState(false);
   const [recording, setRecording] = useState(false);
   const [failed, setFailed] = useState(false);
-  const insets = useSafeAreaInsets();
+  // La négociation peut retenir moins que demandé : c'est la fréquence réelle qui compte.
+  const [selectedFps, setSelectedFps] = useState(choice.fps);
+
+  useEffect(() => {
+    if (camera.canRequestPermission) void camera.requestPermission();
+    if (mic.canRequestPermission) void mic.requestPermission();
+    // Une seule demande à l'ouverture.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggle = async () => {
     if (recording) {
-      ref.current?.stopRecording();
+      await recorderRef.current?.stopRecording().catch(() => setFailed(true));
       return;
     }
     setFailed(false);
-    setRecording(true);
     try {
-      const result = await ref.current?.recordAsync({ maxDuration: 120 });
-      if (result?.uri) onRecorded(result.uri);
-      else setFailed(true);
+      const recorder = await video.createRecorder({ maxDuration: 120 });
+      recorderRef.current = recorder;
+      await recorder.startRecording(
+        (filePath) => {
+          setRecording(false);
+          onRecorded(filePath.startsWith("file://") ? filePath : `file://${filePath}`, selectedFps);
+        },
+        () => {
+          setRecording(false);
+          setFailed(true);
+        },
+      );
+      setRecording(true);
     } catch {
-      setFailed(true);
-    } finally {
       setRecording(false);
+      setFailed(true);
     }
   };
 
@@ -145,34 +180,51 @@ const CameraModal = ({ onClose, onRecorded }: { onClose: () => void; onRecorded:
     <Modal visible animationType="slide" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       <Scene dark>
         <View style={{ flex: 1, backgroundColor: color.ink }}>
-          {!camera ? (
-            <LoadingState />
-          ) : !camera.granted ? (
+          {!device ? (
+            <View style={{ flex: 1, justifyContent: "center", padding: space.xl, gap: space.lg }}>
+              <T>{m.mobile.capture.noCamera}</T>
+              <Button label={m.common.close} variant="secondary" onPress={onClose} />
+            </View>
+          ) : !camera.hasPermission ? (
             <View style={{ flex: 1, justifyContent: "center", padding: space.xl, gap: space.lg }}>
               <T>{m.mobile.video.cameraDenied}</T>
-              {camera.canAskAgain ? (
+              {camera.canRequestPermission ? (
+                <Button label={m.mobile.video.cameraAllow} onPress={() => void camera.requestPermission()} />
+              ) : (
                 <Button
-                  label={m.mobile.video.cameraAllow}
-                  onPress={() => {
-                    void askCamera();
-                    if (!mic?.granted) void askMic();
-                  }}
+                  label={m.mobile.video.openSettings}
+                  variant="secondary"
+                  onPress={() => void Linking.openSettings()}
                 />
-              ) : null}
+              )}
               <Button label={m.common.close} variant="secondary" onPress={onClose} />
             </View>
           ) : (
             <>
-              <CameraView
-                ref={ref}
+              <Camera
                 style={{ flex: 1 }}
-                mode="video"
-                facing="back"
-                videoQuality="1080p"
-                mute={!mic?.granted}
-                onCameraReady={() => setReady(true)}
+                device={device}
+                isActive
+                outputs={[video]}
+                constraints={[{ fps: choice.fps }, { resolutionBias: video }]}
+                resizeMode="contain"
+                onStarted={() => setReady(true)}
+                onSessionConfigSelected={(config) => {
+                  if (config.selectedFPS) setSelectedFps(Math.round(config.selectedFPS));
+                }}
+                onError={() => setFailed(true)}
               />
-              <View style={{ position: "absolute", top: insets.top + space.sm, left: space.lg }}>
+              <View
+                style={{
+                  position: "absolute",
+                  top: insets.top + space.sm,
+                  left: space.lg,
+                  right: space.lg,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
                 <IconButton
                   icon={X}
                   label={m.mobile.video.cameraClose}
@@ -180,6 +232,18 @@ const CameraModal = ({ onClose, onRecorded }: { onClose: () => void; onRecorded:
                   onPress={onClose}
                   disabled={recording}
                 />
+                <View
+                  style={{
+                    backgroundColor: color.ink,
+                    borderRadius: radius.pill,
+                    paddingHorizontal: space.md,
+                    paddingVertical: space.xs + 2,
+                  }}
+                >
+                  <T variant="smallStrong" style={{ fontVariant: ["tabular-nums"] }}>
+                    {m.mobile.capture.badge(selectedFps)}
+                  </T>
+                </View>
               </View>
               <View
                 style={{
@@ -202,6 +266,7 @@ const CameraModal = ({ onClose, onRecorded }: { onClose: () => void; onRecorded:
                   disabled={!ready}
                   accessibilityRole="button"
                   accessibilityLabel={recording ? m.mobile.video.stop : m.mobile.video.record}
+                  accessibilityState={{ disabled: !ready }}
                   style={{
                     width: 76,
                     height: 76,
@@ -228,8 +293,6 @@ const CameraModal = ({ onClose, onRecorded }: { onClose: () => void; onRecorded:
   );
 };
 
-const SLOW_MO_FPS = 100;
-
 export default function Capture() {
   const params = useLocalSearchParams<{ sessionId?: string }>();
   const { orgId } = useActiveSpace();
@@ -249,14 +312,15 @@ export default function Capture() {
   const [athleteError, setAthleteError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const rates = useMemo(() => availableFrameRates(), []);
-  const maxRate = rates.length > 0 ? Math.max(...rates) : null;
-  const advice =
-    maxRate === null
-      ? m.mobile.video.unknownFps
-      : maxRate >= SLOW_MO_FPS
-        ? m.mobile.video.slowAdvice(maxRate)
-        : m.mobile.video.noSlowAdvice(maxRate);
+  const device = useCameraDevice("back");
+  const choice = useMemo(() => (device ? chooseCaptureFps((fps) => device.supportsFPS(fps)) : null), [device]);
+  const advice = !choice
+    ? m.mobile.capture.noCamera
+    : choice.fps >= 240
+      ? m.mobile.capture.fps240
+      : choice.slowMotion
+        ? m.mobile.capture.fps120
+        : m.mobile.capture.fpsStandard(choice.fps);
 
   const suggested = nextAttemptNo(saved, barCm) ?? 1;
   const attemptNo = attemptOverride ?? suggested;
@@ -350,7 +414,6 @@ export default function Capture() {
         )
       }
     >
-      <StatusBar style="light" />
       {uri ? (
         <View style={{ gap: space.sm }}>
           <View style={{ height: 220, borderRadius: radius.block, overflow: "hidden", backgroundColor: color.ink2 }}>
@@ -386,16 +449,13 @@ export default function Capture() {
               <Button
                 testID="capture-film"
                 label={m.mobile.video.film}
-                icon={Camera}
+                icon={CameraIcon}
                 variant="secondary"
 
                 onPress={() => setCameraOpen(true)}
               />
             </View>
           </View>
-          <T variant="caption" tone="muted">
-            {m.mobile.video.inAppFps}
-          </T>
         </View>
       )}
 
@@ -501,12 +561,13 @@ export default function Capture() {
         onChange={setSteps}
       />
 
-      {cameraOpen ? (
+      {cameraOpen && choice ? (
         <CameraModal
+          choice={choice}
           onClose={() => setCameraOpen(false)}
-          onRecorded={(recorded) => {
+          onRecorded={(recorded, recordedFps) => {
             setCameraOpen(false);
-            setFps(null);
+            setFps(recordedFps);
             setUri(recorded);
           }}
         />

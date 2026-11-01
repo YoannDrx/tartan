@@ -8,7 +8,7 @@ import { tokens } from "@tartan/design-tokens";
 import { useFonts } from "expo-font";
 import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
+import { setStatusBarStyle } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -19,10 +19,13 @@ import { persister, queryClient, shouldPersistQuery, WEEK_MS } from "../src/lib/
 import { useSession } from "../src/lib/session-store";
 import { useOpQueue } from "../src/lib/sync/op-queue";
 import { flushUploads } from "../src/lib/upload/upload-queue";
-import { color } from "../src/ui/theme";
+import { scene } from "../src/ui/theme";
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
-void SystemUI.setBackgroundColorAsync(color.bg).catch(() => undefined);
+// Fond natif rouge : aucun flash blanc au démarrage ni entre deux écrans.
+void SystemUI.setBackgroundColorAsync(scene.page).catch(() => undefined);
+// L'app n'a que des scènes sombres : la barre d'état reste en contenu clair.
+setStatusBarStyle("light");
 
 // Une fois connecté : la file du compte se recharge et le jeton de notification se rafraîchit.
 const SessionEffects = () => {
@@ -95,10 +98,9 @@ export default function RootLayout() {
       }}
     >
       <SafeAreaProvider>
-        <StatusBar style="dark" />
         <SessionEffects />
         <AuthGuard />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: scene.page } }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(athlete)" options={{ animation: "none" }} />
@@ -106,10 +108,10 @@ export default function RootLayout() {
           <Stack.Screen name="i/[token]" options={{ gestureEnabled: false }} />
           <Stack.Screen
             name="session/[id]"
-            options={{ gestureEnabled: false, contentStyle: { backgroundColor: color.ink } }}
+            options={{ gestureEnabled: false, contentStyle: { backgroundColor: scene.card } }}
           />
-          <Stack.Screen name="video/[id]" options={{ contentStyle: { backgroundColor: color.ink } }} />
-          <Stack.Screen name="capture" options={{ contentStyle: { backgroundColor: color.ink } }} />
+          <Stack.Screen name="video/[id]" options={{ contentStyle: { backgroundColor: scene.card } }} />
+          <Stack.Screen name="capture" options={{ contentStyle: { backgroundColor: scene.card } }} />
           <Stack.Screen name="coach-session/[id]" />
           <Stack.Screen name="settings" />
         </Stack>

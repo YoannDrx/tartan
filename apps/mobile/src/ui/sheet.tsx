@@ -1,6 +1,6 @@
 import { m } from "@tartan/i18n";
-import type { ReactNode } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { type ReactNode, useEffect, useState } from "react";
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "./icons";
 import { IconButton, T } from "./primitives";
@@ -28,13 +28,27 @@ const SheetBody = ({
 }: Omit<SheetProps, "visible" | "dark">) => {
   const p = usePalette();
   const insets = useSafeAreaInsets();
+  // Clavier ouvert, la zone du bas n'a plus à éviter l'indicateur d'accueil : le champ reste collé au clavier.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () =>
+      setKeyboardOpen(true),
+    );
+    const hide = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () =>
+      setKeyboardOpen(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1, justifyContent: "flex-end" }}
     >
       <Pressable
-        style={{ flex: 1, backgroundColor: p.scrim }}
+        style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: p.scrim }}
         onPress={onClose}
         accessibilityRole="button"
         accessibilityLabel={m.mobile.a11y.closeSheet}
@@ -43,10 +57,10 @@ const SheetBody = ({
         accessibilityViewIsModal
         style={{
           maxHeight: "88%",
-          backgroundColor: p.dark ? p.surface : p.bg,
+          backgroundColor: p.bg,
           borderTopLeftRadius: radius.hero,
           borderTopRightRadius: radius.hero,
-          paddingBottom: Math.max(insets.bottom, space.lg),
+          paddingBottom: keyboardOpen ? 0 : Math.max(insets.bottom, space.lg),
         }}
       >
         <View
@@ -88,7 +102,7 @@ const SheetBody = ({
 };
 
 // Le retour Android ferme la feuille (onRequestClose), jamais l'écran derrière.
-export const Sheet = ({ visible, dark, ...rest }: SheetProps) => (
+export const Sheet = ({ visible, dark: _dark, ...rest }: SheetProps) => (
   <Modal
     visible={visible}
     transparent
@@ -97,7 +111,7 @@ export const Sheet = ({ visible, dark, ...rest }: SheetProps) => (
     statusBarTranslucent
     navigationBarTranslucent
   >
-    <Scene dark={dark}>
+    <Scene scene="card">
       <SheetBody {...rest} />
     </Scene>
   </Modal>

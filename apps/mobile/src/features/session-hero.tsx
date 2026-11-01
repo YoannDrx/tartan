@@ -1,11 +1,11 @@
 import type { AthleteSessionCard } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { View } from "react-native";
-import { LaneArcs } from "../ui/glyphs";
+import { BarGlyph } from "../ui/glyphs";
 import { Check, Play } from "../ui/icons";
 import { StatusGlyph } from "../ui/status";
 import { Button, T, Tag } from "../ui/primitives";
-import { color, radius, space } from "../ui/theme";
+import { radius, scene, Scene, space, usePalette } from "../ui/theme";
 
 type HeroProps = {
   card: AthleteSessionCard;
@@ -112,52 +112,46 @@ export const AttendanceLink = ({
   );
 };
 
-// Carte héros : fond Piste pour une séance de saut, surface blanche pour le reste.
-export const SessionHero = ({ card, pending, onValidate, onStart, onEdit }: HeroProps) => {
+// Séance de saut : une ligne d'arrivée coupe le haut de la carte, avec le pictogramme de barre.
+const SessionCardBody = ({ card, pending, onValidate, onStart, onEdit }: HeroProps) => {
+  const p = usePalette();
   const jump = card.type === "jump";
   const validated = card.status === "done" || card.status === "partial";
-  const titleTone = jump ? "white" : "default";
-  const mutedTone = jump ? "white" : "muted";
-  const outline = jump ? "onBrandOutline" : "secondary";
   return (
-    <View
-      testID="session-hero"
-      style={{
-        borderRadius: radius.hero,
-        padding: space.xl,
-        gap: space.lg,
-        overflow: "hidden",
-        backgroundColor: jump ? color.brand : color.surface,
-        borderWidth: jump ? 0 : 1,
-        borderColor: color.border,
-      }}
-    >
-      <View
-        style={{ position: "absolute", right: -60, bottom: -60 }}
-        pointerEvents="none"
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <LaneArcs color={jump ? color.white : color.brand} opacity={jump ? 0.18 : 0.1} />
-      </View>
-
-      <View style={{ gap: space.sm }}>
-        <T variant="display" tone={titleTone} heading>
+    <>
+      <View style={{ gap: space.sm, paddingRight: jump ? space.huge : 0 }}>
+        {jump ? (
+          <View
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{
+              position: "absolute",
+              top: -space.xl,
+              bottom: 0,
+              right: space.md,
+              width: 7,
+              backgroundColor: p.text,
+            }}
+          />
+        ) : null}
+        <T variant="display" heading>
           {card.title}
         </T>
         {metaLine(card) ? (
-          <T variant="small" tone={mutedTone}>
+          <T variant="small" tone="muted">
             {metaLine(card)}
           </T>
         ) : null}
         {card.coachName ? (
-          <T variant="caption" tone={mutedTone}>
+          <T variant="caption" tone="muted">
             {m.today.sentBy(card.coachName)}
           </T>
         ) : null}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: 2 }}>
-          <Tag label={m.sessionType[card.type]} tone={jump ? "onBrand" : "neutral"} />
-          <Tag label={m.variant[card.variant]} tone={jump ? "onBrand" : "neutral"} />
+        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space.sm, marginTop: 2 }}>
+          {jump ? <BarGlyph size={22} color={p.text} /> : null}
+          <Tag label={m.sessionType[card.type]} />
+          <Tag label={m.variant[card.variant]} />
         </View>
       </View>
 
@@ -168,27 +162,21 @@ export const SessionHero = ({ card, pending, onValidate, onStart, onEdit }: Hero
             accessibilityLiveRegion="polite"
             accessible
           >
-            <View
-              style={{ backgroundColor: jump ? color.white : "transparent", borderRadius: 26, padding: jump ? 4 : 0 }}
-            >
-              <StatusGlyph status={card.status as "done" | "partial"} size={44} />
-            </View>
+            <StatusGlyph status={card.status as "done" | "partial"} size={44} />
             <View style={{ flex: 1 }}>
-              <T variant="title2" tone={titleTone}>
-                {card.status === "partial" ? m.today.validatedPartial : m.today.validated}
-              </T>
+              <T variant="title2">{card.status === "partial" ? m.today.validatedPartial : m.today.validated}</T>
               {pending ? (
-                <T variant="caption" tone={mutedTone}>
+                <T variant="caption" tone="muted">
                   {m.mobile.today.pending}
                 </T>
               ) : null}
             </View>
           </View>
           <View style={{ flexDirection: "row", gap: space.sm }}>
-            <Button label={m.mobile.today.edit} variant={outline} compact style={{ flex: 1 }} onPress={onEdit} />
+            <Button label={m.mobile.today.edit} variant="secondary" compact style={{ flex: 1 }} onPress={onEdit} />
             <Button
               label={m.mobile.today.viewProgram}
-              variant={outline}
+              variant="secondary"
               compact
               style={{ flex: 1 }}
               onPress={onStart}
@@ -198,33 +186,45 @@ export const SessionHero = ({ card, pending, onValidate, onStart, onEdit }: Hero
       ) : (
         <View style={{ gap: space.sm }}>
           {card.status === "missed" ? (
-            <T variant="small" tone={mutedTone}>
+            <T variant="small" tone="muted">
               {m.mobile.today.missed}
             </T>
           ) : null}
-          <Button
-            testID="validate-done"
-            label={m.today.quickDone}
-            icon={Check}
-            variant={jump ? "onBrand" : "primary"}
-            onPress={() => onValidate("done")}
-          />
+          <Button testID="validate-done" label={m.today.quickDone} icon={Check} onPress={() => onValidate("done")} />
           <Button
             testID="validate-partial"
             label={m.today.quickPartial}
-            variant={outline}
+            variant="secondary"
             onPress={() => onValidate("partial")}
           />
           <Button
             testID="start-session"
             label={m.today.start}
             icon={Play}
-            variant={outline}
+            variant="secondary"
             compact
             onPress={onStart}
           />
         </View>
       )}
-    </View>
+    </>
   );
 };
+
+// La séance du jour est le seul point focal en craie ; les autres séances restent sur l'encre.
+export const SessionHero = ({ secondary, ...props }: HeroProps & { secondary?: boolean }) => (
+  <Scene scene={secondary ? "card" : "hero"}>
+    <View
+      testID={secondary ? undefined : "session-hero"}
+      style={{
+        borderRadius: secondary ? radius.card : radius.hero,
+        padding: space.xl,
+        gap: space.lg,
+        overflow: "hidden",
+        backgroundColor: secondary ? scene.card : scene.hero,
+      }}
+    >
+      <SessionCardBody {...props} />
+    </View>
+  </Scene>
+);

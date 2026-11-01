@@ -2,7 +2,6 @@ import { m } from "@tartan/i18n";
 import type { ReactNode } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { errorMessage } from "../lib/errors";
-import { LaneArcs } from "./glyphs";
 import { Button, T } from "./primitives";
 import { space, usePalette } from "./theme";
 
@@ -21,7 +20,7 @@ export const LoadingState = ({ label = m.common.loading, inline }: { label?: str
         flex: inline ? undefined : 1,
       }}
     >
-      <ActivityIndicator color={p.accent} size={inline ? "small" : "large"} />
+      <ActivityIndicator color={p.text} size={inline ? "small" : "large"} />
       <T variant="small" tone="muted">
         {label}
       </T>
@@ -47,27 +46,16 @@ export const ErrorState = ({
   </View>
 );
 
-export const EmptyState = ({ title, body, action }: { title?: string; body: string; action?: ReactNode }) => {
-  const p = usePalette();
-  return (
-    <View style={{ paddingVertical: space.xxxl, gap: space.md, overflow: "hidden", minHeight: 160 }}>
-      <View
-        style={{ position: "absolute", right: -48, bottom: -48 }}
-        pointerEvents="none"
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <LaneArcs width={170} height={170} color={p.textMuted} opacity={0.22} />
-      </View>
-      {title ? (
-        <T variant="title2" heading>
-          {title}
-        </T>
-      ) : null}
-      <T variant="body" tone="muted" style={{ maxWidth: 300 }}>
-        {body}
+export const EmptyState = ({ title, body, action }: { title?: string; body: string; action?: ReactNode }) => (
+  <View style={{ paddingVertical: space.xxl, gap: space.md }}>
+    {title ? (
+      <T variant="title1" heading>
+        {title}
       </T>
-      {action}
-    </View>
-  );
-};
+    ) : null}
+    <T variant="body" style={{ maxWidth: 320 }}>
+      {body}
+    </T>
+    {action}
+  </View>
+);

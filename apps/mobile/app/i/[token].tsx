@@ -17,10 +17,9 @@ import { useMe } from "../../src/lib/queries";
 import { queryClient } from "../../src/lib/query-client";
 import { useSession } from "../../src/lib/session-store";
 import { useSpaceStore } from "../../src/lib/space-store";
-import { LaneArcs } from "../../src/ui/glyphs";
-import { Button, Field, T } from "../../src/ui/primitives";
+import { Button, Card, Field, LaneLine, T } from "../../src/ui/primitives";
 import { ErrorState, LoadingState } from "../../src/ui/states";
-import { color, GUTTER, radius, space, usePalette } from "../../src/ui/theme";
+import { radius, scene, space, usePagePad, usePalette } from "../../src/ui/theme";
 
 const emailSchema = z.email();
 
@@ -65,8 +64,6 @@ const ConsentRow = ({
         padding: space.md,
         backgroundColor: p.surface,
         borderRadius: radius.card,
-        borderWidth: 1,
-        borderColor: p.border,
         minHeight: 64,
       }}
     >
@@ -76,7 +73,8 @@ const ConsentRow = ({
       <Switch
         value={value}
         onValueChange={onChange}
-        trackColor={{ true: color.ink, false: color.surfaceSunk }}
+        trackColor={{ true: scene.actionOnCard, false: scene.controlLine }}
+        thumbColor={scene.text}
         accessibilityElementsHidden
         importantForAccessibility="no"
       />
@@ -86,17 +84,18 @@ const ConsentRow = ({
 
 const Shell = ({ children }: { children: React.ReactNode }) => {
   const insets = useSafeAreaInsets();
+  const pad = usePagePad();
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ flex: 1, backgroundColor: color.bg, paddingTop: insets.top }}
+      style={{ flex: 1, backgroundColor: scene.page, paddingTop: insets.top }}
     >
       <ScrollView
         contentInsetAdjustmentBehavior="never"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingTop: space.xl,
-          paddingHorizontal: GUTTER,
+          paddingHorizontal: pad,
           paddingBottom: insets.bottom + space.xxl,
           gap: space.lg,
         }}
@@ -113,12 +112,12 @@ const PushStep = ({ coach, onDone }: { coach: boolean; onDone: () => void }) => 
   const [busy, setBusy] = useState(false);
   return (
     <Shell>
-      <T variant="display" heading>
+      <T variant="screen" heading maxFontSizeMultiplier={1.3}>
         {coach ? m.mobile.push.coachTitle : m.push.permissionTitle}
       </T>
       <T>{coach ? m.mobile.push.coachBody : m.push.permissionBody}</T>
       {denied ? (
-        <T variant="small" tone="muted" accessibilityLiveRegion="polite">
+        <T variant="small" accessibilityLiveRegion="polite">
           {m.mobile.push.denied}
         </T>
       ) : null}
@@ -266,30 +265,13 @@ export default function InvitationScreen() {
 
   return (
     <Shell>
-      <View
-        style={{
-          backgroundColor: color.brand,
-          borderRadius: radius.hero,
-          padding: space.xl,
-          gap: space.sm,
-          overflow: "hidden",
-        }}
-      >
-        <View
-          style={{ position: "absolute", right: -70, bottom: -90 }}
-          pointerEvents="none"
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        >
-          <LaneArcs color={color.white} />
-        </View>
-        <T variant="display" tone="white" heading testID="invite-title">
+      <View style={{ gap: space.sm }}>
+        <T variant="display" heading testID="invite-title" maxFontSizeMultiplier={1.3}>
           {title}
         </T>
-        <T variant="small" tone="white">
-          {invitation.organizationName}
-        </T>
+        <T variant="small">{invitation.organizationName}</T>
       </View>
+      <LaneLine />
 
       {blocked ? (
         <>
@@ -303,117 +285,124 @@ export default function InvitationScreen() {
         </>
       ) : (
         <>
-          <Field
-            label={m.onboarding.firstName}
-            value={firstName}
-            onChangeText={setFirstName}
-            autoComplete="given-name"
-            textContentType="givenName"
-            error={errors.firstName}
-          />
-          <Field
-            label={m.onboarding.lastName}
-            value={lastName}
-            onChangeText={setLastName}
-            autoComplete="family-name"
-            textContentType="familyName"
-            error={errors.lastName}
-          />
-          {isAthlete ? (
-            <View style={{ gap: space.xs + 2 }}>
-              <T variant="smallStrong">{m.invite.birthDate}</T>
-              <View style={{ flexDirection: "row", gap: space.sm }}>
-                <Field
-                  label={m.mobile.invite.day}
-                  hideLabel
-                  placeholder={m.mobile.invite.day}
-                  value={day}
-                  onChangeText={(v) => setDay(v.replace(/\D/g, ""))}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  containerStyle={{ flex: 1 }}
-                />
-                <Field
-                  label={m.mobile.invite.month}
-                  hideLabel
-                  placeholder={m.mobile.invite.month}
-                  value={month}
-                  onChangeText={(v) => setMonth(v.replace(/\D/g, ""))}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  containerStyle={{ flex: 1 }}
-                />
-                <Field
-                  label={m.mobile.invite.year}
-                  hideLabel
-                  placeholder={m.mobile.invite.year}
-                  value={year}
-                  onChangeText={(v) => setYear(v.replace(/\D/g, ""))}
-                  keyboardType="number-pad"
-                  maxLength={4}
-                  containerStyle={{ flex: 1.3 }}
-                />
-              </View>
-              {errors.birthDate ? (
-                <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
-                  {errors.birthDate}
-                </T>
-              ) : null}
-            </View>
-          ) : null}
-          {minor ? (
+          <Card>
             <Field
-              label={m.invite.guardianEmail}
-              hint={m.invite.guardianHint}
-              value={guardianEmail}
-              onChangeText={setGuardianEmail}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              error={errors.guardianEmail}
+              label={m.onboarding.firstName}
+              value={firstName}
+              onChangeText={setFirstName}
+              autoComplete="given-name"
+              textContentType="givenName"
+              error={errors.firstName}
             />
-          ) : null}
+            <Field
+              label={m.onboarding.lastName}
+              value={lastName}
+              onChangeText={setLastName}
+              autoComplete="family-name"
+              textContentType="familyName"
+              error={errors.lastName}
+            />
+            {isAthlete ? (
+              <View style={{ gap: space.xs + 2 }}>
+                <T variant="smallStrong">{m.invite.birthDate}</T>
+                <View style={{ flexDirection: "row", gap: space.sm }}>
+                  <Field
+                    label={m.mobile.invite.day}
+                    hideLabel
+                    placeholder={m.mobile.invite.day}
+                    value={day}
+                    onChangeText={(v) => setDay(v.replace(/\D/g, ""))}
+                    keyboardType="number-pad"
+                    maxLength={2}
+                    containerStyle={{ flex: 1 }}
+                  />
+                  <Field
+                    label={m.mobile.invite.month}
+                    hideLabel
+                    placeholder={m.mobile.invite.month}
+                    value={month}
+                    onChangeText={(v) => setMonth(v.replace(/\D/g, ""))}
+                    keyboardType="number-pad"
+                    maxLength={2}
+                    containerStyle={{ flex: 1 }}
+                  />
+                  <Field
+                    label={m.mobile.invite.year}
+                    hideLabel
+                    placeholder={m.mobile.invite.year}
+                    value={year}
+                    onChangeText={(v) => setYear(v.replace(/\D/g, ""))}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    containerStyle={{ flex: 1.3 }}
+                  />
+                </View>
+                {errors.birthDate ? (
+                  <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
+                    {errors.birthDate}
+                  </T>
+                ) : null}
+              </View>
+            ) : null}
+            {minor ? (
+              <Field
+                label={m.invite.guardianEmail}
+                hint={m.invite.guardianHint}
+                value={guardianEmail}
+                onChangeText={setGuardianEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                error={errors.guardianEmail}
+              />
+            ) : null}
 
-          <T variant="title2" heading>
-            {m.mobile.invite.consentsTitle}
-          </T>
-          <ConsentRow testID="consent-terms" label={m.invite.consentTerms} value={terms} onChange={setTerms} />
-          {errors.terms ? (
-            <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
-              {errors.terms}
+            <T variant="title2" heading>
+              {m.mobile.invite.consentsTitle}
             </T>
-          ) : null}
-          <View style={{ flexDirection: "row", gap: space.sm, flexWrap: "wrap" }}>
-            <Button
-              label={m.mobile.invite.termsLink}
-              variant="ghost"
-              compact
-              style={{ paddingHorizontal: 0 }}
-              onPress={() => void WebBrowser.openBrowserAsync(`${config.webUrl}/conditions`)}
-            />
-            <Button
-              label={m.mobile.invite.privacyLink}
-              variant="ghost"
-              compact
-              style={{ paddingHorizontal: 0 }}
-              onPress={() => void WebBrowser.openBrowserAsync(`${config.webUrl}/confidentialite`)}
-            />
-          </View>
-          {isAthlete ? (
-            <>
-              <ConsentRow testID="consent-health" label={m.invite.consentHealth} value={health} onChange={setHealth} />
-              <ConsentRow testID="consent-video" label={m.invite.consentVideo} value={video} onChange={setVideo} />
-              <T variant="caption" tone="muted">
-                {m.invite.consentOptional}
+            <ConsentRow testID="consent-terms" label={m.invite.consentTerms} value={terms} onChange={setTerms} />
+            {errors.terms ? (
+              <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
+                {errors.terms}
               </T>
-            </>
-          ) : null}
-          {formError ? (
-            <T variant="small" tone="danger" accessibilityLiveRegion="assertive">
-              {formError}
-            </T>
-          ) : null}
-          <Button testID="invite-accept" label={m.invite.accept} loading={accept.isPending} onPress={submit} />
+            ) : null}
+            <View style={{ flexDirection: "row", gap: space.sm, flexWrap: "wrap" }}>
+              <Button
+                label={m.mobile.invite.termsLink}
+                variant="ghost"
+                compact
+                style={{ paddingHorizontal: 0 }}
+                onPress={() => void WebBrowser.openBrowserAsync(`${config.webUrl}/conditions`)}
+              />
+              <Button
+                label={m.mobile.invite.privacyLink}
+                variant="ghost"
+                compact
+                style={{ paddingHorizontal: 0 }}
+                onPress={() => void WebBrowser.openBrowserAsync(`${config.webUrl}/confidentialite`)}
+              />
+            </View>
+            {isAthlete ? (
+              <>
+                <ConsentRow
+                  testID="consent-health"
+                  label={m.invite.consentHealth}
+                  value={health}
+                  onChange={setHealth}
+                />
+                <ConsentRow testID="consent-video" label={m.invite.consentVideo} value={video} onChange={setVideo} />
+                <T variant="caption" tone="muted">
+                  {m.invite.consentOptional}
+                </T>
+              </>
+            ) : null}
+            {formError ? (
+              <T variant="small" tone="danger" accessibilityLiveRegion="assertive">
+                {formError}
+              </T>
+            ) : null}
+            <Button testID="invite-accept" label={m.invite.accept} loading={accept.isPending} onPress={submit} />
+          </Card>
           <Button label={m.mobile.invite.ignore} variant="secondary" compact onPress={leave} />
         </>
       )}

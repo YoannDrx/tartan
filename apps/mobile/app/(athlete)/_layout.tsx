@@ -4,15 +4,16 @@ import { useActiveSpace } from "../../src/lib/queries";
 import { useSession } from "../../src/lib/session-store";
 import { BarGlyph } from "../../src/ui/glyphs";
 import { Calendar, Home, Megaphone, TrendingUp } from "../../src/ui/icons";
-import { tabBarOptions } from "../../src/ui/tabs";
+import { useTabBarOptions } from "../../src/ui/tabs";
 
 export default function AthleteLayout() {
   const status = useSession((s) => s.status);
+  const options = useTabBarOptions();
   const { me, space } = useActiveSpace();
   if (status !== "signed-in") return <Redirect href="/sign-in" />;
   if (me.data && space?.role !== "athlete") return <Redirect href="/" />;
   return (
-    <Tabs screenOptions={tabBarOptions}>
+    <Tabs screenOptions={options}>
       <Tabs.Screen
         name="today"
         options={{ title: m.nav.aujourdhui, tabBarIcon: ({ color, size }) => <Home color={color} size={size} /> }}

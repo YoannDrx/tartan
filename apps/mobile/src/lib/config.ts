@@ -13,6 +13,7 @@ export const config = {
   scheme,
   appleSignIn: extra.appleSignIn === true,
   googleSignIn: extra.googleSignIn === true,
+  googleWebClientId: typeof extra.googleWebClientId === "string" ? extra.googleWebClientId : undefined,
   appVersion: Constants.expoConfig?.version ?? "0.0.0",
   projectId:
     (extra.eas as { projectId?: string } | undefined)?.projectId ?? Constants.easConfig?.projectId ?? undefined,

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { actionFromResponse, routeForNotification } from "./notification-routes";
+import {
+  actionFromResponse,
+  clientIdForAction,
+  normalizeNotificationData,
+  routeForNotification,
+} from "./notification-routes";
 
 const id = "3f2c1d7e-0000-4000-8000-000000000000";
 
@@ -22,6 +27,29 @@ describe("routeForNotification", () => {
     expect(routeForNotification({ link: "/videos/../../x" })).toBe("/");
     expect(routeForNotification(null)).toBe("/");
     expect(routeForNotification({ link: 42 })).toBe("/");
+  });
+});
+
+describe("normalizeNotificationData", () => {
+  it("lit le JSON de la tâche Android", () => {
+    expect(normalizeNotificationData({ dataString: '{"sessionId":"s"}' })).toEqual({ sessionId: "s" });
+  });
+
+  it("garde un objet déjà décodé et refuse le reste", () => {
+    expect(normalizeNotificationData({ sessionId: "s" })).toEqual({ sessionId: "s" });
+    expect(normalizeNotificationData({ dataString: "pas du json" })).toBeNull();
+    expect(normalizeNotificationData(null)).toBeNull();
+  });
+});
+
+describe("clientIdForAction", () => {
+  it("reste stable et valide pour l'API (8 à 64 caractères)", () => {
+    const id = clientIdForAction("3f2c1d7e-0000-4000-8000-000000000000", "validate-done");
+    expect(id).toBe(clientIdForAction("3f2c1d7e-0000-4000-8000-000000000000", "validate-done"));
+    expect(id.length).toBeGreaterThanOrEqual(8);
+    expect(id.length).toBeLessThanOrEqual(64);
+    expect(clientIdForAction("a".repeat(200), "x").length).toBe(64);
+    expect(clientIdForAction("", "").length).toBeGreaterThanOrEqual(8);
   });
 });
 

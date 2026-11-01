@@ -23,6 +23,25 @@ export const routeForNotification = (data: NotificationData | null | undefined):
   return "/";
 };
 
+// Sur Android, la tâche d'arrière-plan reçoit les données sous forme de texte JSON.
+export const normalizeNotificationData = (raw: unknown): NotificationData | null => {
+  if (typeof raw !== "object" || raw === null) return null;
+  const dataString = (raw as { dataString?: unknown }).dataString;
+  if (typeof dataString !== "string") return raw as NotificationData;
+  try {
+    const parsed = JSON.parse(dataString) as unknown;
+    return typeof parsed === "object" && parsed !== null ? (parsed as NotificationData) : null;
+  } catch {
+    return null;
+  }
+};
+
+// Dérivé de la notification et du bouton : un second traitement garde le même clientId.
+export const clientIdForAction = (notificationId: string, actionId: string): string => {
+  const raw = `${actionId}-${notificationId}`.replace(/[^A-Za-z0-9-]/g, "");
+  return raw.length >= 8 ? raw.slice(0, 64) : `notif-${raw}`.padEnd(8, "0");
+};
+
 export type NotificationAction =
   | { kind: "attendance"; status: "present" | "absent"; orgId: string; sessionId: string }
   | { kind: "validate"; orgId: string; sessionId: string };

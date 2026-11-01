@@ -5,21 +5,20 @@ import { formatHeight, formatTimecode, frameStepMs, isHighFrameRate, isStaff } f
 import { capitalize, formatDayMonth, m } from "@tartan/i18n";
 import { useEvent, useEventListener } from "expo";
 import { Redirect, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useMemo, useRef, useState } from "react";
-import { AccessibilityActionEvent, PanResponder, Pressable, ScrollView, View } from "react-native";
+import { AccessibilityActionEvent, Alert, PanResponder, Pressable, ScrollView, View } from "react-native";
 import { CommentsSection } from "../../src/features/comments";
 import { BarSheetRow, resultLabel } from "../../src/features/video-bits";
 import { api } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
 import { PHASE_ORDER, phaseSegments, preciseTimecode, segmentAt, type PhaseSegment } from "../../src/lib/phases";
 import { useActiveSpace, useVideo } from "../../src/lib/queries";
-import { ArrowUp, Pause, Play, Repeat, Share, SkipBack, SkipForward } from "../../src/ui/icons";
+import { ArrowUp, Pause, Play, Repeat, Share, SkipBack, SkipForward, Trash } from "../../src/ui/icons";
 import { Button, Chip, Field, IconButton, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
-import { color, radius, space } from "../../src/ui/theme";
+import { color, radius, scene, space } from "../../src/ui/theme";
 
 const RATES = [
   { value: 0.1, label: "0,1×" },
@@ -87,7 +86,8 @@ const Timeline = ({
                 style={{
                   flex: Math.max(1, s.endMs - s.startMs),
                   borderRadius: 3,
-                  backgroundColor: current?.phase === s.phase ? color.brand : i % 2 === 0 ? color.ink3 : color.muted,
+                  backgroundColor:
+                    current?.phase === s.phase ? color.brand : i % 2 === 0 ? color.ink3 : scene.textMuted,
                 }}
               />
             ))
@@ -138,7 +138,7 @@ const Timeline = ({
               maxFontSizeMultiplier={1.1}
               style={{ flex: Math.max(1, s.endMs - s.startMs), fontSize: 11 }}
             >
-              {m.jumpPhase[s.phase]}
+              {m.mobile.jumpPhaseShort[s.phase]}
             </T>
           ))}
         </View>
@@ -159,7 +159,9 @@ const Player = ({
   canAnnotate,
   orgId,
   videoId,
+  onRetry,
 }: {
+  onRetry: () => void;
   uri: string;
   fps: number | null;
   knownDurationMs: number | null;
@@ -181,6 +183,7 @@ const Player = ({
   });
   const { isPlaying } = useEvent(player, "playingChange", { isPlaying: player.playing });
   const { status } = useEvent(player, "statusChange", { status: player.status });
+  const playable = status !== "error";
   const [positionMs, setPositionMs] = useState(0);
   const [durationMs, setDurationMs] = useState(knownDurationMs ?? 0);
   const [rate, setRate] = useState(0.5);
@@ -220,15 +223,30 @@ const Player = ({
     },
     onError: (error) => setFormError(errorMessage(error)),
   });
+  const remove = useMutation({
+    mutationFn: (annotationId: string) => api.deleteAnnotation(orgId, videoId, annotationId),
+    onSuccess: () => {
+      setLoop(null);
+      setFormError(null);
+      void client.invalidateQueries({ queryKey: ["videos", orgId, videoId] });
+    },
+    onError: (error) => setFormError(errorMessage(error)),
+  });
+  const confirmRemove = (annotationId: string) =>
+    Alert.alert(m.mobile.video.deleteAnnotation, m.mobile.video.deleteAnnotationConfirm, [
+      { text: m.common.cancel, style: "cancel" },
+      { text: m.common.delete, style: "destructive", onPress: () => remove.mutate(annotationId) },
+    ]);
 
   return (
     <>
       <View style={{ height: 260, borderRadius: radius.block, overflow: "hidden", backgroundColor: color.ink2 }}>
         {status === "error" ? (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: space.xl }}>
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: space.xl, gap: space.md }}>
             <T variant="small" tone="muted" style={{ textAlign: "center" }}>
               {m.mobile.video.playError}
             </T>
+            <Button label={m.mobile.video.retryPlayback} variant="secondary" compact onPress={onRetry} />
           </View>
         ) : (
           <VideoView
@@ -241,82 +259,86 @@ const Player = ({
         )}
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
-        <IconButton
-          testID="frame-back"
-          icon={SkipBack}
-          label={m.video.previousFrame}
-          tone="filled"
-          shape="square"
-          onPress={() => stepFrame(-1)}
-        />
-        <IconButton
-          testID="play-toggle"
-          icon={isPlaying ? Pause : Play}
-          label={isPlaying ? m.video.pause : m.video.play}
-          tone="inverse"
-          size={52}
-          onPress={() => (isPlaying ? player.pause() : player.play())}
-        />
-        <IconButton
-          testID="frame-forward"
-          icon={SkipForward}
-          label={m.video.nextFrame}
-          tone="filled"
-          shape="square"
-          onPress={() => stepFrame(1)}
-        />
-        <T
-          variant="figure"
-          style={{ flex: 1, textAlign: "right" }}
-          accessibilityLabel={m.mobile.a11y.playback(formatTimecode(positionMs))}
-        >
-          {preciseTimecode(positionMs)}
-        </T>
-        {currentSegment ? (
-          <IconButton
-            icon={Repeat}
-            label={loop ? m.mobile.video.unloop : m.mobile.video.loopPhase}
-            tone={loop ? "inverse" : "filled"}
-            shape="square"
-            selected={Boolean(loop)}
-            onPress={() => {
-              if (loop) setLoop(null);
-              else {
-                setLoop(currentSegment);
-                seek(currentSegment.startMs);
-                player.play();
-              }
-            }}
-          />
-        ) : null}
-      </View>
+      {playable ? (
+        <>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+            <IconButton
+              testID="frame-back"
+              icon={SkipBack}
+              label={m.video.previousFrame}
+              tone="filled"
+              shape="square"
+              onPress={() => stepFrame(-1)}
+            />
+            <IconButton
+              testID="play-toggle"
+              icon={isPlaying ? Pause : Play}
+              label={isPlaying ? m.video.pause : m.video.play}
+              tone="inverse"
+              size={52}
+              onPress={() => (isPlaying ? player.pause() : player.play())}
+            />
+            <IconButton
+              testID="frame-forward"
+              icon={SkipForward}
+              label={m.video.nextFrame}
+              tone="filled"
+              shape="square"
+              onPress={() => stepFrame(1)}
+            />
+            <T
+              variant="figure"
+              style={{ flex: 1, textAlign: "right" }}
+              accessibilityLabel={m.mobile.a11y.playback(formatTimecode(positionMs))}
+            >
+              {preciseTimecode(positionMs)}
+            </T>
+            {currentSegment ? (
+              <IconButton
+                icon={Repeat}
+                label={loop ? m.mobile.video.unloop : m.mobile.video.loopPhase}
+                tone={loop ? "inverse" : "filled"}
+                shape="square"
+                selected={Boolean(loop)}
+                onPress={() => {
+                  if (loop) setLoop(null);
+                  else {
+                    setLoop(currentSegment);
+                    seek(currentSegment.startMs);
+                    player.play();
+                  }
+                }}
+              />
+            ) : null}
+          </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: space.sm, alignItems: "center" }}
-      >
-        <T variant="caption" tone="muted">
-          {m.mobile.video.speed}
-        </T>
-        {RATES.map((r) => (
-          <Chip
-            key={r.value}
-            tall
-            minWidth={64}
-            label={r.label}
-            active={rate === r.value}
-            onPress={() => {
-              setRate(r.value);
-              // Sur iOS, changer la vitesse relance la lecture : une image figée doit le rester.
-              const wasPlaying = player.playing;
-              player.playbackRate = r.value;
-              if (!wasPlaying) player.pause();
-            }}
-          />
-        ))}
-      </ScrollView>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: space.sm, alignItems: "center" }}
+          >
+            <T variant="caption" tone="muted">
+              {m.mobile.video.speed}
+            </T>
+            {RATES.map((r) => (
+              <Chip
+                key={r.value}
+                tall
+                minWidth={64}
+                label={r.label}
+                active={rate === r.value}
+                onPress={() => {
+                  setRate(r.value);
+                  // Sur iOS, changer la vitesse relance la lecture : une image figée doit le rester.
+                  const wasPlaying = player.playing;
+                  player.playbackRate = r.value;
+                  if (!wasPlaying) player.pause();
+                }}
+              />
+            ))}
+          </ScrollView>
+        </>
+      ) : null}
 
       <Timeline
         positionMs={positionMs}
@@ -329,51 +351,68 @@ const Player = ({
       {annotations.length > 0 ? (
         <View style={{ gap: space.sm }}>
           {annotations.map((a) => (
-            <Pressable
+            <View
               key={a.id}
-              onPress={() => {
-                player.pause();
-                seek(a.tMs);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={`${formatTimecode(a.tMs)}, ${a.phase ? m.jumpPhase[a.phase] : ""}, ${a.text ?? ""}`}
-              style={({ pressed }) => ({
+              style={{
                 flexDirection: "row",
-                gap: space.md,
-                padding: space.md,
+                alignItems: "stretch",
                 borderRadius: radius.card,
                 backgroundColor: color.ink2,
-                minHeight: 56,
-                opacity: pressed ? 0.8 : 1,
-              })}
+              }}
             >
-              <View
-                style={{
-                  height: 24,
-                  paddingHorizontal: space.sm,
-                  borderRadius: radius.button,
-                  backgroundColor: color.brandOnInk,
-                  alignItems: "center",
-                  justifyContent: "center",
+              <Pressable
+                onPress={() => {
+                  player.pause();
+                  seek(a.tMs);
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={`${formatTimecode(a.tMs)}, ${a.phase ? m.jumpPhase[a.phase] : ""}, ${a.text ?? ""}`}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  flexDirection: "row",
+                  gap: space.md,
+                  padding: space.md,
+                  minHeight: 56,
+                  opacity: pressed ? 0.8 : 1,
+                })}
               >
-                <T
-                  variant="caption"
-                  style={{ color: color.ink, fontFamily: tokens.font.bodyStrong, fontVariant: ["tabular-nums"] }}
-                  maxFontSizeMultiplier={1.1}
+                <View
+                  style={{
+                    height: 24,
+                    paddingHorizontal: space.sm,
+                    borderRadius: radius.button,
+                    backgroundColor: color.brandOnInk,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
-                  {formatTimecode(a.tMs)}
-                </T>
-              </View>
-              <View style={{ flex: 1, gap: 1 }}>
-                {a.phase ? (
-                  <T variant="caption" tone="muted">
-                    {m.jumpPhase[a.phase]}
+                  <T
+                    variant="caption"
+                    style={{ color: color.ink, fontFamily: tokens.font.bodyStrong, fontVariant: ["tabular-nums"] }}
+                    maxFontSizeMultiplier={1.1}
+                  >
+                    {formatTimecode(a.tMs)}
                   </T>
-                ) : null}
-                <T variant="small">{a.text}</T>
-              </View>
-            </Pressable>
+                </View>
+                <View style={{ flex: 1, gap: 1 }}>
+                  {a.phase ? (
+                    <T variant="caption" tone="muted">
+                      {m.jumpPhase[a.phase]}
+                    </T>
+                  ) : null}
+                  <T variant="small">{a.text}</T>
+                </View>
+              </Pressable>
+              {canAnnotate ? (
+                <IconButton
+                  testID={`annotation-delete-${a.id}`}
+                  icon={Trash}
+                  label={m.mobile.video.deleteAnnotationNamed(formatTimecode(a.tMs))}
+                  disabled={remove.isPending}
+                  onPress={() => confirmRemove(a.id)}
+                />
+              ) : null}
+            </View>
           ))}
         </View>
       ) : (
@@ -382,7 +421,7 @@ const Player = ({
         </T>
       )}
 
-      {canAnnotate ? (
+      {canAnnotate && playable ? (
         <View style={{ gap: space.sm }}>
           <ScrollView
             horizontal
@@ -398,6 +437,7 @@ const Player = ({
           <View style={{ flexDirection: "row", gap: space.sm, alignItems: "flex-end" }}>
             <Field
               testID="annotation-input"
+              onFocus={() => player.pause()}
               label={m.video.remarkAt(formatTimecode(positionMs))}
               hideLabel
               placeholder={m.video.remarkAt(formatTimecode(positionMs))}
@@ -427,6 +467,7 @@ export default function VideoAnalysis() {
   const { me, orgId, space: active } = useActiveSpace();
   const video = useVideo(orgId, id);
   const client = useQueryClient();
+  const [attempt, setAttempt] = useState(0);
   const canAnnotate = active ? isStaff(active.role) : false;
 
   const share = useMutation({
@@ -440,7 +481,6 @@ export default function VideoAnalysis() {
   if (video.isPending) {
     return (
       <StackScreen dark>
-        <StatusBar style="light" />
         <LoadingState />
       </StackScreen>
     );
@@ -448,7 +488,6 @@ export default function VideoAnalysis() {
   if (!video.data) {
     return (
       <StackScreen dark>
-        <StatusBar style="light" />
         <ErrorState message={m.mobile.video.detailError} onRetry={() => void video.refetch()} />
       </StackScreen>
     );
@@ -468,10 +507,10 @@ export default function VideoAnalysis() {
 
   return (
     <StackScreen dark title={title} subtitle={subtitle}>
-      <StatusBar style="light" />
       {uri ? (
         <Player
-          key={uri}
+          key={`${uri}-${attempt}`}
+          onRetry={() => setAttempt((n) => n + 1)}
           uri={uri}
           fps={v.fps}
           knownDurationMs={v.durationMs}

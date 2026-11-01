@@ -10,7 +10,7 @@ import { Button, Chip, Divider, Field, IconButton, ListSurface, T, Tag } from ".
 import { TabScreen } from "../ui/screen";
 import { Sheet } from "../ui/sheet";
 import { EmptyState, ErrorState, LoadingState } from "../ui/states";
-import { color, space } from "../ui/theme";
+import { scene, space } from "../ui/theme";
 import { ModerationSheet } from "./comments";
 
 const PublishSheet = ({ orgId, onClose }: { orgId: string; onClose: () => void }) => {
@@ -79,7 +79,8 @@ const PublishSheet = ({ orgId, onClose }: { orgId: string; onClose: () => void }
         <Switch
           value={pinned}
           onValueChange={setPinned}
-          trackColor={{ true: color.ink, false: color.surfaceSunk }}
+          trackColor={{ true: scene.actionOnCard, false: scene.controlLine }}
+          thumbColor={scene.text}
           accessibilityLabel={m.announcements.pin}
         />
       </View>
@@ -136,12 +137,7 @@ export const AnnouncementsScreen = ({ canPublish }: { canPublish: boolean }) => 
                     </T>
                     {a.pinned ? (
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                        <Pin
-                          size={14}
-                          color={color.brandStrong}
-                          accessibilityElementsHidden
-                          importantForAccessibility="no"
-                        />
+                        <Pin size={14} color={scene.link} accessibilityElementsHidden importantForAccessibility="no" />
                         <Tag label={m.announcements.pinned} tone="brand" />
                       </View>
                     ) : null}

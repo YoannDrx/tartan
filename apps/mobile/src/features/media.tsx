@@ -10,7 +10,7 @@ import { useIsOnline } from "../lib/network";
 import { CategoryGlyph } from "../ui/glyphs";
 import { Play } from "../ui/icons";
 import { Tag, T } from "../ui/primitives";
-import { color, radius, space, usePalette } from "../ui/theme";
+import { scene, radius, space, usePalette } from "../ui/theme";
 
 // Les vidéos Mux sont privées : l'API fournit des adresses signées (streamUrl en MP4, hlsUrl).
 // Sans clé Mux ou sans jeton, ces champs manquent : l'écran affiche « pas de vidéo ».
@@ -86,7 +86,7 @@ const youtubeHtml = (media: Extract<ExerciseMedia, { kind: "youtube" }>, rate: n
   const start = media.startS ?? 0;
   const end = media.endS ?? null;
   return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<style>html,body,#p{margin:0;padding:0;width:100%;height:100%;background:${color.ink}}</style></head><body><div id="p"></div>
+<style>html,body,#p{margin:0;padding:0;width:100%;height:100%;background:${scene.card}}</style></head><body><div id="p"></div>
 <script src="https://www.youtube.com/iframe_api"></script><script>
 var player,rate=${rate};
 function onYouTubeIframeAPIReady(){player=new YT.Player('p',{videoId:${JSON.stringify(media.youtubeId)},
@@ -116,7 +116,7 @@ const YouTubeLoop = ({ media, rate }: { media: Extract<ExerciseMedia, { kind: "y
       javaScriptEnabled
       scrollEnabled={false}
       onError={() => setFailed(true)}
-      style={{ flex: 1, backgroundColor: color.ink }}
+      style={{ flex: 1, backgroundColor: scene.card }}
       accessibilityLabel={m.sessionMode.playDemo}
     />
   );
@@ -136,7 +136,7 @@ export const ExerciseVideo = ({ media, rate }: { media: ExerciseMedia | null; ra
     content = <MuxLoop uri={(media.streamUrl ?? media.hlsUrl) as string} rate={rate} />;
   }
   return (
-    <View style={{ height: 210, borderRadius: radius.block, overflow: "hidden", backgroundColor: color.ink2 }}>
+    <View style={{ height: 210, borderRadius: radius.block, overflow: "hidden", backgroundColor: scene.cardRaised }}>
       {content}
     </View>
   );

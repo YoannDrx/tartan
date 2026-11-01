@@ -15,40 +15,59 @@ import { homeFor, useSpaceStore } from "../src/lib/space-store";
 import { useOpQueue } from "../src/lib/sync/op-queue";
 import { useUploads } from "../src/lib/upload/upload-queue";
 import { Check, ChevronRight } from "../src/ui/icons";
-import { Button, Divider, Field, ListSurface, SectionTitle, T } from "../src/ui/primitives";
+import { Button, Card, Divider, Field, ListSurface, SectionTitle, T } from "../src/ui/primitives";
 import { StackScreen } from "../src/ui/screen";
 import { Sheet } from "../src/ui/sheet";
 import { ErrorState, LoadingState } from "../src/ui/states";
-import { color, space } from "../src/ui/theme";
+import { scene, space } from "../src/ui/theme";
 
+// Toute la ligne bascule le réglage : cible large, et un seul élément pour le lecteur d'écran.
 const ConsentRow = ({
   title,
   detail,
   value,
   disabled,
+  testID,
   onChange,
 }: {
   title: string;
   detail: string;
   value: boolean;
   disabled: boolean;
+  testID: string;
   onChange: (v: boolean) => void;
 }) => (
-  <View style={{ flexDirection: "row", alignItems: "center", gap: space.md, padding: space.md, minHeight: 64 }}>
+  <Pressable
+    testID={testID}
+    disabled={disabled}
+    onPress={() => onChange(!value)}
+    accessibilityRole="switch"
+    accessibilityLabel={`${title}. ${detail}`}
+    accessibilityState={{ checked: value, disabled }}
+    style={({ pressed }) => ({
+      flexDirection: "row",
+      alignItems: "center",
+      gap: space.md,
+      padding: space.md,
+      minHeight: 64,
+      opacity: pressed ? 0.75 : 1,
+    })}
+  >
     <View style={{ flex: 1, gap: 2 }}>
       <T variant="smallStrong">{title}</T>
       <T variant="caption" tone="muted">
         {detail}
       </T>
     </View>
-    <Switch
-      value={value}
-      disabled={disabled}
-      onValueChange={onChange}
-      trackColor={{ true: color.ink, false: color.surfaceSunk }}
-      accessibilityLabel={title}
-    />
-  </View>
+    <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Switch
+        value={value}
+        disabled={disabled}
+        trackColor={{ true: scene.actionOnCard, false: scene.controlLine }}
+        thumbColor={scene.text}
+      />
+    </View>
+  </Pressable>
 );
 
 const LinkRow = ({ label, onPress }: { label: string; onPress: () => void }) => (
@@ -68,7 +87,7 @@ const LinkRow = ({ label, onPress }: { label: string; onPress: () => void }) => 
     <T variant="small" style={{ flex: 1 }}>
       {label}
     </T>
-    <ChevronRight size={18} color={color.muted} accessibilityElementsHidden importantForAccessibility="no" />
+    <ChevronRight size={18} color={scene.textMuted} accessibilityElementsHidden importantForAccessibility="no" />
   </Pressable>
 );
 
@@ -180,50 +199,56 @@ export default function Settings() {
 
   return (
     <StackScreen title={m.settings.title}>
-      <View style={{ gap: space.md }}>
+      <View style={{ gap: space.sm }}>
         <SectionTitle>{m.settings.profile}</SectionTitle>
-        <Field
-          label={m.onboarding.firstName}
-          value={firstName}
-          onChangeText={(v) => {
-            setFirstName(v);
-            setSaved(false);
-          }}
-          autoComplete="given-name"
-        />
-        <Field
-          label={m.onboarding.lastName}
-          value={lastName}
-          onChangeText={(v) => {
-            setLastName(v);
-            setSaved(false);
-          }}
-          autoComplete="family-name"
-        />
-        <View style={{ gap: 2 }}>
-          <T variant="smallStrong">{m.mobile.settings.email}</T>
-          <T variant="small" tone="muted">
-            {me.data.email}
-          </T>
-        </View>
-        <Button
-          testID="profile-save"
-          label={m.common.save}
-          variant="secondary"
-          loading={saveProfile.isPending}
-          disabled={!firstName.trim() || !lastName.trim()}
-          onPress={() => saveProfile.mutate()}
-        />
-        {saved ? (
-          <T variant="caption" tone="muted" accessibilityLiveRegion="polite">
-            {m.mobile.settings.saved}
-          </T>
-        ) : null}
-        {profileError ? (
-          <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
-            {profileError}
-          </T>
-        ) : null}
+        <Card>
+          <Field
+            label={m.onboarding.firstName}
+            value={firstName}
+            onChangeText={(v) => {
+              setFirstName(v);
+              setSaved(false);
+            }}
+            autoComplete="given-name"
+          />
+          <Field
+            label={m.onboarding.lastName}
+            value={lastName}
+            onChangeText={(v) => {
+              setLastName(v);
+              setSaved(false);
+            }}
+            autoComplete="family-name"
+          />
+          <View style={{ gap: 2 }}>
+            <T variant="smallStrong">{m.mobile.settings.email}</T>
+            <T variant="small" tone="muted">
+              {me.data.email}
+            </T>
+          </View>
+          <Button
+            testID="profile-save"
+            label={m.common.save}
+            variant="secondary"
+            loading={saveProfile.isPending}
+            disabled={
+              !firstName.trim() ||
+              !lastName.trim() ||
+              (firstName.trim() === (me.data.firstName ?? "") && lastName.trim() === (me.data.lastName ?? ""))
+            }
+            onPress={() => saveProfile.mutate()}
+          />
+          {saved ? (
+            <T variant="caption" tone="muted" accessibilityLiveRegion="polite">
+              {m.mobile.settings.saved}
+            </T>
+          ) : null}
+          {profileError ? (
+            <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
+              {profileError}
+            </T>
+          ) : null}
+        </Card>
       </View>
 
       {me.data.spaces.length > 1 ? (
@@ -256,7 +281,7 @@ export default function Settings() {
                     </T>
                   </View>
                   {s.organizationId === active?.organizationId ? (
-                    <Check size={20} color={color.ink} accessibilityElementsHidden importantForAccessibility="no" />
+                    <Check size={20} color={scene.text} accessibilityElementsHidden importantForAccessibility="no" />
                   ) : null}
                 </Pressable>
               </View>
@@ -273,6 +298,7 @@ export default function Settings() {
           {consents.data ? (
             <ListSurface>
               <ConsentRow
+                testID="consent-health"
                 title={m.settings.healthConsent}
                 detail={m.settings.healthConsentDetail}
                 value={consents.data.health}
@@ -281,6 +307,7 @@ export default function Settings() {
               />
               <Divider />
               <ConsentRow
+                testID="consent-video"
                 title={m.settings.videoConsent}
                 detail={m.settings.videoConsentDetail}
                 value={consents.data.video}
@@ -299,7 +326,7 @@ export default function Settings() {
 
       <View style={{ gap: space.sm }}>
         <SectionTitle>{m.mobile.settings.notifications}</SectionTitle>
-        <T variant="small" tone="muted">
+        <T variant="small">
           {push === "granted"
             ? m.mobile.settings.notificationsOn
             : push === "denied"

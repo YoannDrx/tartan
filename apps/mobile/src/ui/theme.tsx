@@ -1,60 +1,112 @@
 import { tokens } from "@tartan/design-tokens";
 import { createContext, useContext, type ReactNode } from "react";
-import type { TextStyle } from "react-native";
+import { useWindowDimensions, type TextStyle } from "react-native";
 
 const c = tokens.color;
+const s = tokens.scene;
+
+// Quatre surfaces (DESIGN.md, « trois scènes ») :
+// piste : le rouge plein écran, tout y est blanc ; card : dans une carte encre ou une feuille ;
+// encre : mode séance, capture et vidéo ; hero : la seule carte craie, au plus une par écran.
+export type SceneName = "piste" | "card" | "encre" | "hero";
 
 export type Palette = {
+  name: SceneName;
   dark: boolean;
+  onRed: boolean;
   bg: string;
   surface: string;
   surfaceAlt: string;
   text: string;
   textMuted: string;
   border: string;
+  controlLine: string;
   accent: string;
   accentText: string;
   link: string;
+  focus: string;
+  danger: string;
   scrim: string;
   ripple: string;
+  status: { done: string; partial: string; missed: string; upcoming: string };
+  onStatus: string;
 };
 
-export const lightPalette: Palette = {
-  dark: false,
-  bg: c.bg,
-  surface: c.surface,
-  surfaceAlt: c.surfaceSunk,
-  text: c.ink,
-  textMuted: c.muted,
-  border: c.border,
-  accent: c.brand,
-  accentText: c.white,
-  link: c.brandStrong,
-  scrim: `${c.ink}80`,
-  ripple: c.surfaceSunk,
-};
-
-export const darkPalette: Palette = {
+const inkBase = {
   dark: true,
-  bg: c.ink,
-  surface: c.ink2,
-  surfaceAlt: c.ink3,
-  text: c.white,
-  textMuted: c.mutedOnInk,
-  border: c.ink3,
-  accent: c.brand,
-  accentText: c.white,
-  link: c.brandOnInk,
-  scrim: `${c.ink}B3`,
-  ripple: c.ink3,
+  onRed: false,
+  bg: s.card,
+  surface: s.cardRaised,
+  surfaceAlt: s.cardLine,
+  text: s.text,
+  textMuted: s.textMuted,
+  border: s.cardLine,
+  controlLine: s.controlLine,
+  accent: s.actionOnCard,
+  accentText: s.onActionOnCard,
+  link: s.link,
+  focus: s.link,
+  danger: s.status.missed,
+  scrim: `${s.card}B3`,
+  ripple: s.cardLine,
+  status: s.status,
+  onStatus: s.onStatus,
+} as const;
+
+const palettes: Record<SceneName, Palette> = {
+  piste: {
+    ...inkBase,
+    name: "piste",
+    onRed: true,
+    bg: s.page,
+    surface: s.card,
+    surfaceAlt: s.cardRaised,
+    // Aucun texte atténué sur le rouge : seul le blanc y passe 4,5:1.
+    text: s.onPage,
+    textMuted: s.onPage,
+    border: s.lane,
+    controlLine: s.lane,
+    accent: s.actionOnPage,
+    accentText: s.onActionOnPage,
+    link: s.onPage,
+    focus: s.onPage,
+    danger: s.onPage,
+    ripple: c.ink3,
+  },
+  card: { ...inkBase, name: "card" },
+  encre: { ...inkBase, name: "encre" },
+  hero: {
+    ...inkBase,
+    name: "hero",
+    dark: false,
+    bg: s.hero,
+    surface: c.surface,
+    surfaceAlt: c.surfaceSunk,
+    text: s.onHero,
+    textMuted: c.muted,
+    border: c.border,
+    controlLine: c.muted,
+    link: s.onHeroAccent,
+    focus: s.onHero,
+    danger: s.onHeroAccent,
+    ripple: c.surfaceSunk,
+    status: c.status,
+    onStatus: c.white,
+  },
 };
 
-const SceneContext = createContext<Palette>(lightPalette);
+const SceneContext = createContext<Palette>(palettes.piste);
 
-// Clair pour naviguer, sombre pour le mode séance et la vidéo : le choix suit la scène.
-export const Scene = ({ dark = false, children }: { dark?: boolean; children: ReactNode }) => (
-  <SceneContext.Provider value={dark ? darkPalette : lightPalette}>{children}</SceneContext.Provider>
-);
+// Rouge pour naviguer, encre pour le mode séance et la vidéo : le choix suit la scène.
+export const Scene = ({
+  scene,
+  dark = false,
+  children,
+}: {
+  scene?: SceneName;
+  dark?: boolean;
+  children: ReactNode;
+}) => <SceneContext.Provider value={palettes[scene ?? (dark ? "encre" : "piste")]}>{children}</SceneContext.Provider>;
 
 export const usePalette = (): Palette => useContext(SceneContext);
 
@@ -63,8 +115,18 @@ export const radius = tokens.radius;
 export const TOUCH = tokens.touch;
 export const GUTTER = 16;
 export const color = c;
+export const scene = s;
+
+const CONTENT_MAX = 720;
+
+// Marge latérale de l'écran : sur tablette, le contenu reste centré sur une colonne lisible.
+export const usePagePad = (): number => {
+  const { width } = useWindowDimensions();
+  return width > CONTENT_MAX + GUTTER * 2 ? (width - CONTENT_MAX) / 2 : GUTTER;
+};
 
 export type TextVariant =
+  | "screen"
   | "display"
   | "title1"
   | "title2"
@@ -78,6 +140,7 @@ export type TextVariant =
   | "tab";
 
 export const textStyles: Record<TextVariant, TextStyle> = {
+  screen: { fontFamily: tokens.font.display, fontSize: 48, lineHeight: 50 },
   display: { fontFamily: tokens.font.display, fontSize: 34, lineHeight: 36 },
   title1: { fontFamily: tokens.font.display, fontSize: 28, lineHeight: 32 },
   title2: { fontFamily: tokens.font.title, fontSize: 22, lineHeight: 26 },

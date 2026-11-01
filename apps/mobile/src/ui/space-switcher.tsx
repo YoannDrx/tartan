@@ -7,7 +7,7 @@ import { homeFor, useSpaceStore } from "../lib/space-store";
 import { Check, ChevronsUpDown } from "./icons";
 import { T } from "./primitives";
 import { Sheet } from "./sheet";
-import { color, radius, space, usePalette } from "./theme";
+import { radius, scene, Scene, space, usePalette } from "./theme";
 
 // N'apparaît que si l'utilisateur a plusieurs espaces (§ 6.2).
 export const SpaceSwitcher = () => {
@@ -33,19 +33,19 @@ export const SpaceSwitcher = () => {
           gap: space.sm,
           paddingHorizontal: space.md,
           borderRadius: radius.pill,
-          backgroundColor: color.surface,
-          borderWidth: 1,
-          borderColor: p.border,
+          backgroundColor: p.surface,
           opacity: pressed ? 0.8 : 1,
         })}
       >
-        <T variant="smallStrong" numberOfLines={1} style={{ flexShrink: 1 }}>
-          {active.organizationName}
-        </T>
-        <T variant="caption" tone="muted">
-          {m.roles[active.role]}
-        </T>
-        <ChevronsUpDown size={16} color={p.textMuted} accessibilityElementsHidden importantForAccessibility="no" />
+        <Scene scene="card">
+          <T variant="smallStrong" numberOfLines={1} style={{ flexShrink: 1 }}>
+            {active.organizationName}
+          </T>
+          <T variant="caption" tone="muted">
+            {m.roles[active.role]}
+          </T>
+          <ChevronsUpDown size={16} color={p.text} accessibilityElementsHidden importantForAccessibility="no" />
+        </Scene>
       </Pressable>
       <Sheet visible={open} title={m.settings.switchSpace} onClose={() => setOpen(false)}>
         <View style={{ gap: space.sm }}>
@@ -70,9 +70,9 @@ export const SpaceSwitcher = () => {
                   gap: space.md,
                   paddingHorizontal: space.lg,
                   borderRadius: radius.card,
-                  backgroundColor: color.surface,
-                  borderWidth: 1,
-                  borderColor: selected ? color.ink : p.border,
+                  backgroundColor: scene.cardRaised,
+                  borderWidth: selected ? 2 : 0,
+                  borderColor: scene.text,
                   opacity: pressed ? 0.8 : 1,
                 })}
               >
@@ -83,7 +83,7 @@ export const SpaceSwitcher = () => {
                   </T>
                 </View>
                 {selected ? (
-                  <Check size={20} color={color.ink} accessibilityElementsHidden importantForAccessibility="no" />
+                  <Check size={20} color={scene.text} accessibilityElementsHidden importantForAccessibility="no" />
                 ) : null}
               </Pressable>
             );

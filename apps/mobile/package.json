@@ -2,19 +2,21 @@
   "name": "@tartan/mobile",
   "version": "0.1.0",
   "private": true,
-  "main": "expo-router/entry",
+  "main": "index.js",
   "scripts": {
     "start": "expo start --dev-client",
     "ios": "expo run:ios",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "maestro:test": "maestro test .maestro"
   },
   "dependencies": {
     "@better-auth/expo": "1.7.15",
     "@expo-google-fonts/barlow": "0.4.1",
     "@expo-google-fonts/barlow-condensed": "0.4.1",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-google-signin/google-signin": "17.0.0",
     "@tanstack/query-async-storage-persister": "5.105.1",
     "@tanstack/react-query": "5.105.1",
     "@tanstack/react-query-persist-client": "5.105.1",
@@ -25,7 +27,8 @@
     "@tartan/i18n": "workspace:*",
     "better-auth": "1.7.15",
     "expo": "55.0.29",
-    "expo-camera": "~55.0.22",
+    "expo-apple-authentication": "~55.0.16",
+    "expo-clipboard": "~55.0.16",
     "expo-constants": "~55.0.17",
     "expo-crypto": "~55.0.18",
     "expo-dev-client": "~55.0.38",
@@ -40,15 +43,19 @@
     "expo-splash-screen": "~55.0.24",
     "expo-status-bar": "~55.0.6",
     "expo-system-ui": "~55.0.21",
+    "expo-task-manager": "~55.0.19",
     "expo-video": "~55.0.20",
     "expo-web-browser": "~55.0.19",
     "lucide-react-native": "1.66.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.10",
+    "react-native-nitro-image": "0.15.2",
+    "react-native-nitro-modules": "0.37.1",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.23.0",
     "react-native-svg": "15.15.3",
+    "react-native-vision-camera": "5.2.4",
     "react-native-webview": "13.16.0",
     "zod": "4.6.7",
     "zustand": "5.0.8"
@@ -57,5 +64,14 @@
     "@types/react": "~19.2.2",
     "typescript": "5.9.3",
     "vitest": "5.0.5"
+  },
+  "expo": {
+    "autolinking": {
+      "ios": {
+        "exclude": [
+          "@react-native-google-signin/google-signin"
+        ]
+      }
+    }
   }
 }

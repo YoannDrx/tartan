@@ -12,11 +12,11 @@ import { useActiveSpace, usePrefetchUpcomingSessions, useSessionDetail, useToday
 import { submitAttendance, useOpQueue } from "../../src/lib/sync/op-queue";
 import { applyPendingToCard, applyPendingToToday, pendingLogFor } from "../../src/lib/sync/queue-core";
 import { MessageSquare, Pin } from "../../src/ui/icons";
-import { Button, Divider, ListSurface, SectionTitle, T } from "../../src/ui/primitives";
+import { Button, Card, Divider, ListSurface, SectionTitle, T } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
 import { Sheet } from "../../src/ui/sheet";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
-import { color, radius, space, usePalette } from "../../src/ui/theme";
+import { scene, space } from "../../src/ui/theme";
 import type { AthleteSessionCard } from "@tartan/contracts";
 
 const nextLine = (card: AthleteSessionCard) =>
@@ -30,7 +30,6 @@ export default function Today() {
   usePrefetchUpcomingSessions(orgId);
   const items = useOpQueue((s) => s.items);
   const router = useRouter();
-  const p = usePalette();
   const date = localIsoDate();
   const [sheet, setSheet] = useState<{
     card: AthleteSessionCard;
@@ -78,11 +77,9 @@ export default function Today() {
       {view ? (
         <>
           {view.parentalConsentPending ? (
-            <View style={{ backgroundColor: color.warningTint, borderRadius: radius.card, padding: space.md }}>
-              <T variant="small" style={{ color: color.warningStrong }}>
-                {m.parental.pendingBanner}
-              </T>
-            </View>
+            <Card>
+              <T variant="small">{m.parental.pendingBanner}</T>
+            </Card>
           ) : null}
 
           <WeekStrip week={view.week} today={date} />
@@ -109,6 +106,7 @@ export default function Today() {
           {others.map((card) => (
             <SessionHero
               key={card.id}
+              secondary
               card={card}
               pending={Boolean(pendingLogFor(items, card.id))}
               onValidate={(status) => validate(card, status)}
@@ -118,67 +116,34 @@ export default function Today() {
           ))}
 
           {main?.coachNote ? (
-            <View style={{ gap: space.xs + 2 }}>
-              <SectionTitle>{m.today.coachWord}</SectionTitle>
-              <T variant="body">{main.coachNote}</T>
-              {main.coachName ? (
-                <T variant="caption" tone="muted">
-                  {main.coachName}
-                </T>
-              ) : null}
-            </View>
-          ) : null}
-
-          {view.pinnedAnnouncement ? (
-            <View
-              style={{
-                flexDirection: "row",
-                gap: space.md,
-                backgroundColor: p.surface,
-                borderRadius: radius.card,
-                borderWidth: 1,
-                borderColor: p.border,
-                padding: space.md,
-              }}
-            >
-              <Pin size={18} color={color.brandStrong} accessibilityElementsHidden importantForAccessibility="no" />
-              <View style={{ flex: 1, gap: 2 }}>
-                <T variant="small">{view.pinnedAnnouncement.body}</T>
-                {view.pinnedAnnouncement.authorName ? (
+            <Card>
+              <View style={{ gap: space.xs + 2 }}>
+                <SectionTitle>{m.today.coachWord}</SectionTitle>
+                <T variant="body">{main.coachNote}</T>
+                {main.coachName ? (
                   <T variant="caption" tone="muted">
-                    {view.pinnedAnnouncement.authorName}
+                    {main.coachName}
                   </T>
                 ) : null}
               </View>
-            </View>
+            </Card>
           ) : null}
 
           {!main && view.next ? (
-            <View style={{ gap: space.sm }}>
-              <View
-                style={{
-                  backgroundColor: p.surface,
-                  borderRadius: radius.card,
-                  borderWidth: 1,
-                  borderColor: p.border,
-                  padding: space.lg,
-                  gap: space.md,
-                }}
-              >
-                <View style={{ gap: 2 }}>
-                  <T variant="title2" heading>
-                    {view.next.title}
-                  </T>
-                  <T variant="small" tone="muted">
-                    {`${m.today.next} : ${nextLine(view.next)}`}
-                  </T>
-                </View>
-                <AttendanceRow
-                  card={applyPendingToCard(view.next, items)}
-                  onAnswer={(status) => void submitAttendance(orgId, (view.next as AthleteSessionCard).id, status)}
-                />
+            <Card>
+              <View style={{ gap: 2 }}>
+                <T variant="title2" heading>
+                  {view.next.title}
+                </T>
+                <T variant="small" tone="muted">
+                  {`${m.today.next} : ${nextLine(view.next)}`}
+                </T>
               </View>
-            </View>
+              <AttendanceRow
+                card={applyPendingToCard(view.next, items)}
+                onAnswer={(status) => void submitAttendance(orgId, (view.next as AthleteSessionCard).id, status)}
+              />
+            </Card>
           ) : null}
 
           {programCard ? (
@@ -188,11 +153,7 @@ export default function Today() {
               {program.isError && !program.data ? (
                 <ErrorState message={m.mobile.today.programError} onRetry={() => void program.refetch()} />
               ) : null}
-              {program.data && programItems.length === 0 ? (
-                <T variant="small" tone="muted">
-                  {m.mobile.today.noExercises}
-                </T>
-              ) : null}
+              {program.data && programItems.length === 0 ? <T variant="small">{m.mobile.today.noExercises}</T> : null}
               {programItems.length > 0 ? (
                 <ListSurface>
                   {programItems.map((item, index) => (
@@ -220,6 +181,20 @@ export default function Today() {
                 onPress={() => setCommentsOpen(true)}
               />
             </View>
+          ) : null}
+
+          {view.pinnedAnnouncement ? (
+            <ListSurface style={{ flexDirection: "row", gap: space.md, padding: space.lg }}>
+              <Pin size={18} color={scene.link} accessibilityElementsHidden importantForAccessibility="no" />
+              <View style={{ flex: 1, gap: 2 }}>
+                <T variant="small">{view.pinnedAnnouncement.body}</T>
+                {view.pinnedAnnouncement.authorName ? (
+                  <T variant="caption" tone="muted">
+                    {view.pinnedAnnouncement.authorName}
+                  </T>
+                ) : null}
+              </View>
+            </ListSurface>
           ) : null}
         </>
       ) : null}

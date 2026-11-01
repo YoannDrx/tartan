@@ -7,7 +7,7 @@ import { homeFor, pickSpace, useSpaceStore } from "../src/lib/space-store";
 import { usePendingInvite } from "../src/lib/pending-invite";
 import { Button, T } from "../src/ui/primitives";
 import { ErrorState, LoadingState } from "../src/ui/states";
-import { color, GUTTER, space } from "../src/ui/theme";
+import { GUTTER, scene, space } from "../src/ui/theme";
 
 // Aiguillage unique : session, invitation en attente, espaces. Le rôle découle des espaces.
 export default function Gate() {
@@ -19,7 +19,7 @@ export default function Gate() {
 
   if (status === "signed-out") return <Redirect href="/sign-in" />;
   if (pendingToken) return <Redirect href={`/i/${pendingToken}`} />;
-  const shell = { flex: 1, backgroundColor: color.bg, justifyContent: "center" as const, padding: GUTTER };
+  const shell = { flex: 1, backgroundColor: scene.page, justifyContent: "center" as const, padding: GUTTER };
   if (me.isPending) {
     return (
       <View style={shell}>

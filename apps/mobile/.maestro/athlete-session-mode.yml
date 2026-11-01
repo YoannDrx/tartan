@@ -1,0 +1,29 @@
+# Mode séance : un exercice, une série cochée, sortie avec confirmation.
+appId: ${APP_ID}
+env:
+  EMAIL: ${ATHLETE_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: session-hero
+    timeout: 30000
+- runFlow:
+    when:
+      visible:
+        id: start-session
+    commands:
+      - tapOn:
+          id: start-session
+      - extendedWaitUntil:
+          visible:
+            id: set-0
+          timeout: 10000
+      - tapOn:
+          id: set-0
+      - assertVisible: "Série 1 faite"
+      - tapOn: "Quitter la séance"
+      - assertVisible: "Quitter le mode séance.*"
+      - tapOn: "Continuer la séance"
+      - assertVisible:
+          id: set-0

@@ -40,6 +40,7 @@ const send = (op: QueuedOp): Promise<unknown> => {
 };
 
 const RETRY_MS = 30_000;
+const LAST_OWNER_KEY = "tartan.last-owner";
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
 type OpQueueState = {
@@ -68,12 +69,14 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
     if (get().ownerId === ownerId) return;
     const items = parseQueue(await chunked.read(keyFor(ownerId)));
     set({ ownerId, items });
+    // La tâche d'arrière-plan des notifications retrouve ainsi la file du compte, sans écran ouvert.
+    await SecureStore.setItemAsync(LAST_OWNER_KEY, ownerId, secureOptions).catch(() => undefined);
   },
   add: async (op) => {
     const items = enqueue(get().items, op);
     set({ items });
     await save(get().ownerId, items);
-    void get().flush();
+    await get().flush();
   },
   flush: async () => {
     if (get().syncing || get().items.length === 0) return;
@@ -106,8 +109,22 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
 
 export const newClientId = (): string => Crypto.randomUUID();
 
-export const submitValidation = (orgId: string, sessionId: string, input: Omit<SessionLogInput, "clientId">) => {
-  const id = newClientId();
+export const hydrateLastOwner = async (): Promise<boolean> => {
+  if (useOpQueue.getState().ownerId) return true;
+  const ownerId = await SecureStore.getItemAsync(LAST_OWNER_KEY, secureOptions).catch(() => null);
+  if (!ownerId) return false;
+  await useOpQueue.getState().hydrate(ownerId);
+  return true;
+};
+
+// Une notification peut être traitée deux fois (écouteur et tâche) : son identifiant donne un clientId stable.
+export const submitValidation = (
+  orgId: string,
+  sessionId: string,
+  input: Omit<SessionLogInput, "clientId">,
+  clientId: string = newClientId(),
+) => {
+  const id = clientId;
   return useOpQueue.getState().add({
     id,
     kind: "log",
@@ -128,11 +145,14 @@ export const submitAttendance = (orgId: string, sessionId: string, status: "pres
     queuedAt: new Date().toISOString(),
   });
 
-export const submitJumpAttempt = (orgId: string, input: JumpAttemptInput) =>
-  useOpQueue.getState().add({
-    id: newClientId(),
+// Le clientId rend le rejeu idempotent : un essai n'est jamais compté deux fois.
+export const submitJumpAttempt = (orgId: string, input: Omit<JumpAttemptInput, "clientId">) => {
+  const id = newClientId();
+  return useOpQueue.getState().add({
+    id,
     kind: "attempt",
     orgId,
-    input,
+    input: { ...input, clientId: id },
     queuedAt: new Date().toISOString(),
   });
+};

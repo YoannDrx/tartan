@@ -13,12 +13,12 @@ import { localIsoDate } from "../../src/lib/dates";
 import { errorMessage } from "../../src/lib/errors";
 import { useActiveSpace, useAlerts, useGroups, useTracking } from "../../src/lib/queries";
 import { AlertTriangle, ChevronRight, Clock, Send } from "../../src/ui/icons";
-import { Button, Chip, ListSurface, SectionTitle, T } from "../../src/ui/primitives";
+import { Button, Chip, Divider, ListSurface, SectionTitle, T } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
 import { Sheet } from "../../src/ui/sheet";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { StatusDisc, StatusGlyph } from "../../src/ui/status";
-import { color, radius, space, usePalette } from "../../src/ui/theme";
+import { radius, scene, space, usePalette } from "../../src/ui/theme";
 
 type Row = TrackingGrid["rows"][number];
 type Session = TrackingGrid["sessions"][number];
@@ -54,10 +54,6 @@ const AlertRow = ({ group, onPress }: { group: AthleteAlertGroup; onPress: () =>
         alignItems: "center",
         gap: space.md,
         padding: space.md,
-        backgroundColor: p.surface,
-        borderRadius: radius.card,
-        borderWidth: 1,
-        borderColor: p.border,
         minHeight: 64,
         opacity: pressed ? 0.8 : 1,
       })}
@@ -69,15 +65,10 @@ const AlertRow = ({ group, onPress }: { group: AthleteAlertGroup; onPress: () =>
           borderRadius: radius.thumb,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: high ? color.brandTint : color.warningTint,
+          backgroundColor: high ? p.status.missed : p.status.partial,
         }}
       >
-        <Icon
-          size={20}
-          color={high ? color.brandStrong : color.warningStrong}
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-        />
+        <Icon size={20} color={p.onStatus} accessibilityElementsHidden importantForAccessibility="no" />
       </View>
       <View style={{ flex: 1, gap: 1 }}>
         <T variant="smallStrong">{main.title}</T>
@@ -103,13 +94,21 @@ const Grid = ({
   onRow: (row: Row) => void;
   onSession: (session: Session) => void;
 }) => {
-  const p = usePalette();
-  const rows = useMemo(() => [...grid.rows].sort(compareTrackingRows), [grid.rows]);
-  const sep = { borderBottomWidth: 1, borderBottomColor: p.border } as const;
+  // Sans séance cette semaine, l'athlète passe en bas : les lignes utiles restent groupées.
+  const rows = useMemo(
+    () =>
+      [...grid.rows].sort((a, b) => {
+        const idle = Number(a.cells.every((c) => !c.status)) - Number(b.cells.every((c) => !c.status));
+        return idle || compareTrackingRows(a, b);
+      }),
+    [grid.rows],
+  );
+  const line = scene.cardLine;
+  const sep = { borderBottomWidth: 1, borderBottomColor: line } as const;
   return (
     <ListSurface>
       <View style={{ flexDirection: "row" }}>
-        <View style={{ width: NAME_WIDTH, borderRightWidth: 1, borderRightColor: p.border }}>
+        <View style={{ width: NAME_WIDTH, borderRightWidth: 1, borderRightColor: line }}>
           <View style={[{ height: HEADER_HEIGHT, justifyContent: "center", paddingHorizontal: space.md }, sep]}>
             <T variant="caption" tone="muted">
               {m.coach.athleteCol}
@@ -147,7 +146,7 @@ const Grid = ({
               >
                 {row.name}
               </T>
-              {row.hasPain || row.activeInjury ? <AlertTriangle size={14} color={color.brandStrong} /> : null}
+              {row.hasPain || row.activeInjury ? <AlertTriangle size={14} color={scene.status.missed} /> : null}
             </Pressable>
           ))}
         </View>
@@ -168,7 +167,12 @@ const Grid = ({
                   accessibilityLabel={`${s.title}, ${formatDayMonth(s.date)}`}
                   style={{ width: CELL_WIDTH, flexGrow: 1, alignItems: "center", justifyContent: "center" }}
                 >
-                  <T variant="caption" maxFontSizeMultiplier={1.1} style={{ fontFamily: tokens.font.bodyStrong }}>
+                  <T
+                    variant="caption"
+                    tone={s.date === localIsoDate() ? "link" : "default"}
+                    maxFontSizeMultiplier={1.1}
+                    style={{ fontFamily: tokens.font.bodyStrong }}
+                  >
                     {formatWeekdayShort(s.date)}
                   </T>
                   <T
@@ -187,7 +191,18 @@ const Grid = ({
               <View key={row.athleteId} style={[{ height: ROW_HEIGHT, flexDirection: "row" }, sep]}>
                 {grid.sessions.map((s) => {
                   const cell = row.cells.find((c) => c.sessionId === s.id);
-                  if (!cell?.status) return <View key={s.id} style={{ width: CELL_WIDTH, flexGrow: 1 }} />;
+                  if (!cell?.status) {
+                    return (
+                      <View
+                        key={s.id}
+                        accessibilityElementsHidden
+                        importantForAccessibility="no-hide-descendants"
+                        style={{ width: CELL_WIDTH, flexGrow: 1, alignItems: "center", justifyContent: "center" }}
+                      >
+                        <View style={{ width: 10, height: 2, borderRadius: 1, backgroundColor: scene.controlLine }} />
+                      </View>
+                    );
+                  }
                   const status = cell.status;
                   return (
                     <Pressable
@@ -213,7 +228,7 @@ const Grid = ({
           </View>
         </ScrollView>
 
-        <View style={{ width: PCT_WIDTH, borderLeftWidth: 1, borderLeftColor: p.border }}>
+        <View style={{ width: PCT_WIDTH, borderLeftWidth: 1, borderLeftColor: line }}>
           <View style={[{ height: HEADER_HEIGHT, justifyContent: "center", alignItems: "center" }, sep]}>
             <T variant="caption" tone="muted">
               {m.coach.doneCol}
@@ -353,7 +368,12 @@ const AthleteSheet = ({
                   {meta}
                 </T>
               </View>
-              <ChevronRight size={18} color={color.muted} accessibilityElementsHidden importantForAccessibility="no" />
+              <ChevronRight
+                size={18}
+                color={scene.textMuted}
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+              />
             </Pressable>
           );
         })}
@@ -405,7 +425,7 @@ export default function Tracking() {
     mutationFn: async () => {
       const group = groups.data?.find((g) => g.id === groupId) ?? groups.data?.[0];
       if (!group) throw new Error(m.mobile.coach.noGroup);
-      const invitation = await api.createInvitation(orgId, { kind: "group_link", groupIds: [group.id] });
+      const invitation = await api.groupLink(orgId, group.id);
       await Share.share({ message: m.mobile.coach.inviteMessage(group.name, invitation.link) });
     },
     onError: (error) =>
@@ -446,21 +466,25 @@ export default function Tracking() {
       {alertGroups.length > 0 ? (
         <View style={{ gap: space.sm }}>
           <SectionTitle>{m.coach.alerts}</SectionTitle>
-          {(allAlerts ? alertGroups : alertGroups.slice(0, VISIBLE_ALERTS)).map((group) => (
-            <AlertRow
-              key={group.athleteId}
-              group={group}
-              onPress={() => {
-                const row = grid?.rows.find((r) => r.athleteId === group.athleteId);
-                if (row) setFocus({ row, alert: group });
-                else {
-                  // L'athlète est hors du filtre affiché : on revient à la vue complète.
-                  setGroupId(undefined);
-                  nav.reset();
-                }
-              }}
-            />
-          ))}
+          <ListSurface>
+            {(allAlerts ? alertGroups : alertGroups.slice(0, VISIBLE_ALERTS)).map((group, index) => (
+              <View key={group.athleteId}>
+                {index > 0 ? <Divider /> : null}
+                <AlertRow
+                  group={group}
+                  onPress={() => {
+                    const row = grid?.rows.find((r) => r.athleteId === group.athleteId);
+                    if (row) setFocus({ row, alert: group });
+                    else {
+                      // L'athlète est hors du filtre affiché : on revient à la vue complète.
+                      setGroupId(undefined);
+                      nav.reset();
+                    }
+                  }}
+                />
+              </View>
+            ))}
+          </ListSurface>
           {!allAlerts && alertGroups.length > VISIBLE_ALERTS ? (
             <Button
               label={m.coach.allAlerts(alertGroups.length)}

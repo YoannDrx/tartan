@@ -1,0 +1,21 @@
+# Réglages : consentements et suppression du compte présents et accessibles, sans rien supprimer.
+appId: ${APP_ID}
+env:
+  EMAIL: ${ATHLETE_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: open-settings
+    timeout: 30000
+- tapOn:
+    id: open-settings
+- assertVisible: "Données de santé"
+- scrollUntilVisible:
+    element:
+      id: delete-account
+- tapOn:
+    id: delete-account
+- assertVisible: "Écris SUPPRIMER pour confirmer"
+- assertVisible:
+    id: delete-confirm

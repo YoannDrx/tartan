@@ -1,0 +1,4 @@
+# Parcours critiques (§ 14). Lancer avec un build de développement ou de préversion et le serveur local :
+#   maestro test -e APP_ID=coach.tartan.app.dev -e COACH_EMAIL=… -e ATHLETE_EMAIL=… -e PASSWORD=… .maestro
+flows:
+  - "*.yml"

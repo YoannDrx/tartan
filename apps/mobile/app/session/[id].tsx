@@ -2,7 +2,6 @@ import type { ResolvedItem } from "@tartan/contracts";
 import { countSets, formatDuration } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, BackHandler, Pressable, Vibration, View } from "react-native";
 import { ExerciseVideo, parseMedia, SPEEDS } from "../../src/features/media";
@@ -51,7 +50,7 @@ const RestTimer = ({ seconds }: { seconds: number }) => {
     >
       <Timer size={22} color={color.brandOnInk} accessibilityElementsHidden importantForAccessibility="no" />
       <T variant="small" style={{ flex: 1 }}>
-        {m.sessionMode.rest}
+        {m.mobile.sessionMode.restLabel}
       </T>
       <T
         variant="figure"
@@ -91,12 +90,12 @@ const SetButton = ({ index, done, onPress }: { index: number; done: boolean; onP
         flexBasis: "18%",
         flexGrow: 1,
         minWidth: 60,
-        height: 60,
+        height: 56,
         borderRadius: radius.card,
         alignItems: "center",
         justifyContent: "center",
         gap: 2,
-        backgroundColor: done ? color.status.done : p.surface,
+        backgroundColor: done ? p.status.done : p.surface,
         borderWidth: done ? 0 : 1,
         borderColor: p.border,
         opacity: pressed ? 0.8 : 1,
@@ -104,18 +103,17 @@ const SetButton = ({ index, done, onPress }: { index: number; done: boolean; onP
     >
       {done ? (
         <Check
-          size={20}
-          color={color.white}
+          size={22}
+          color={p.onStatus}
           strokeWidth={2.6}
           accessibilityElementsHidden
           importantForAccessibility="no"
         />
       ) : (
-        <T variant="figure">{index + 1}</T>
+        <T variant="figure" style={{ fontSize: 22, lineHeight: 26 }} accessibilityElementsHidden>
+          {index + 1}
+        </T>
       )}
-      <T variant="caption" tone={done ? "white" : "muted"}>
-        {m.sessionMode.set(index + 1)}
-      </T>
     </Pressable>
   );
 };
@@ -166,7 +164,6 @@ export default function SessionMode() {
   if (detail.isPending) {
     return (
       <StackScreen dark backIcon="close" onBack={leave}>
-        <StatusBar style="light" />
         <LoadingState />
       </StackScreen>
     );
@@ -174,7 +171,6 @@ export default function SessionMode() {
   if (!detail.data) {
     return (
       <StackScreen dark backIcon="close" onBack={leave}>
-        <StatusBar style="light" />
         <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
       </StackScreen>
     );
@@ -185,7 +181,6 @@ export default function SessionMode() {
   if (!item) {
     return (
       <StackScreen dark backIcon="close" onBack={leave} title={session.title}>
-        <StatusBar style="light" />
         <T>{m.mobile.sessionMode.empty}</T>
       </StackScreen>
     );
@@ -207,6 +202,7 @@ export default function SessionMode() {
     <StackScreen
       dark
       backIcon="close"
+      backLabel={m.sessionMode.quit}
       onBack={confirmQuit}
       subtitle={m.sessionMode.exerciseOf(index + 1, items.length)}
       footer={
@@ -244,7 +240,6 @@ export default function SessionMode() {
         </View>
       }
     >
-      <StatusBar style="light" />
       <View
         style={{ flexDirection: "row", gap: space.xs }}
         accessibilityElementsHidden

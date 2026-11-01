@@ -5,10 +5,32 @@ import {
   contentRange,
   nextChunk,
   offsetFromRangeHeader,
+  planUpload,
   progressPct,
   retryDelayMs,
+  settleProbe,
   statusProbeRange,
 } from "./chunks";
+
+describe("settleProbe", () => {
+  const readings = (values: (number | "complete")[]) => {
+    let i = 0;
+    return async () => values[Math.min(i++, values.length - 1)] as number | "complete";
+  };
+  const wait = async () => {};
+
+  it("attend que le serveur cesse de recevoir", async () => {
+    await expect(settleProbe(readings([10, 20, 30, 30]), wait)).resolves.toBe(30);
+  });
+
+  it("s'arrête dès que l'envoi d'arrière-plan a terminé", async () => {
+    await expect(settleProbe(readings([10, "complete"]), wait)).resolves.toBe("complete");
+  });
+
+  it("reprend au même point si rien ne bouge", async () => {
+    await expect(settleProbe(readings([0, 0]), wait)).resolves.toBe(0);
+  });
+});
 
 describe("nextChunk", () => {
   it("découpe en morceaux multiples de 256 Kio", () => {
@@ -50,7 +72,23 @@ describe("classifyResponse", () => {
     expect(classifyResponse(503)).toBe("retry");
     expect(classifyResponse(429)).toBe("retry");
     expect(classifyResponse(403)).toBe("failed");
-    expect(classifyResponse(410)).toBe("failed");
+    expect(classifyResponse(410)).toBe("expired");
+    expect(classifyResponse(404)).toBe("expired");
+  });
+});
+
+describe("planUpload", () => {
+  it("lance un PUT unique au départ ou si Mux n'a rien reçu", () => {
+    expect(planUpload(null)).toEqual({ kind: "single-put" });
+    expect(planUpload(0)).toEqual({ kind: "single-put" });
+  });
+
+  it("reprend en morceaux après une coupure", () => {
+    expect(planUpload(4194304)).toEqual({ kind: "chunks", from: 4194304 });
+  });
+
+  it("s'arrête si l'envoi a abouti pendant que l'app dormait", () => {
+    expect(planUpload("complete")).toEqual({ kind: "done" });
   });
 });
 

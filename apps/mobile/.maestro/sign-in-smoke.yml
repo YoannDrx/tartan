@@ -1,0 +1,23 @@
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- extendedWaitUntil:
+    visible:
+      id: sign-in-title
+    timeout: 20000
+- assertVisible:
+    id: sign-in-email
+- assertVisible:
+    id: sign-in-magic
+- assertVisible:
+    id: invite-link-open
+# Une adresse invalide est refusée avant tout appel réseau.
+- tapOn:
+    id: sign-in-email
+- inputText: "pas-un-email"
+- hideKeyboard
+- tapOn:
+    id: sign-in-magic
+- assertVisible: "Indique une adresse e-mail valide.*"

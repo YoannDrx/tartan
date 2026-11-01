@@ -12,7 +12,18 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { color, radius, space, textStyles, TOUCH, usePalette, type TextVariant } from "./theme";
+import {
+  color,
+  radius,
+  scene,
+  Scene,
+  space,
+  textStyles,
+  TOUCH,
+  usePagePad,
+  usePalette,
+  type TextVariant,
+} from "./theme";
 
 type TProps = TextProps & {
   variant?: TextVariant;
@@ -28,20 +39,20 @@ export const T = ({ variant = "body", tone = "default", heading, style, ...rest 
     muted: p.textMuted,
     link: p.link,
     white: color.white,
-    danger: p.dark ? color.brandOnInk : color.brandStrong,
+    danger: p.danger,
   };
   return (
     <Text
       accessibilityRole={heading ? "header" : undefined}
-      maxFontSizeMultiplier={variant === "tab" ? 1.2 : 1.6}
-      selectionColor={p.accent}
+      maxFontSizeMultiplier={variant === "tab" ? 1.2 : variant === "screen" || variant === "display" ? 1.3 : 1.6}
+      selectionColor={p.focus}
       {...rest}
       style={[textStyles[variant], { color: tones[tone] }, style]}
     />
   );
 };
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "onBrand" | "onBrandOutline" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 type ButtonProps = {
   label: string;
@@ -71,17 +82,15 @@ export const Button = ({
   testID,
 }: ButtonProps) => {
   const p = usePalette();
-  const looks: Record<ButtonVariant, { bg: string; fg: string; border?: string }> = {
+  // Sur le rouge : bouton blanc et contour blanc. Sur l'encre : bouton rouge et rangée surélevée.
+  const raised = p.onRed
+    ? { bg: "transparent", border: p.border, borderWidth: 2 }
+    : { bg: p.surface, border: p.border, borderWidth: 1 };
+  const looks: Record<ButtonVariant, { bg: string; fg: string; border?: string; borderWidth?: number }> = {
     primary: { bg: p.accent, fg: p.accentText },
-    secondary: { bg: p.dark ? color.ink : color.surface, fg: p.text, border: p.dark ? color.ink3 : color.border },
+    secondary: { ...raised, fg: p.text },
     ghost: { bg: "transparent", fg: p.link },
-    onBrand: { bg: color.white, fg: color.brandStrong },
-    onBrandOutline: { bg: "transparent", fg: color.white, border: color.white },
-    danger: {
-      bg: p.dark ? color.ink : color.surface,
-      fg: p.dark ? color.brandOnInk : color.brandStrong,
-      border: p.dark ? color.ink3 : color.border,
-    },
+    danger: { ...raised, fg: p.danger },
   };
   const look = looks[variant];
   const off = Boolean(disabled || loading);
@@ -102,7 +111,7 @@ export const Button = ({
           paddingVertical: space.sm,
           borderRadius: radius.pill,
           backgroundColor: look.bg,
-          borderWidth: look.border ? 1 : 0,
+          borderWidth: look.borderWidth ?? 0,
           borderColor: look.border,
           flexDirection: "row",
           alignItems: "center",
@@ -155,7 +164,7 @@ export const IconButton = ({
   const p = usePalette();
   const bg = {
     plain: "transparent",
-    filled: p.dark ? color.ink2 : color.surfaceSunk,
+    filled: p.dark ? p.surface : p.surfaceAlt,
     accent: p.accent,
     inverse: color.white,
   }[tone];
@@ -213,9 +222,9 @@ export const Chip = ({ label, active, onPress, accessibilityLabel, minWidth, tal
         minWidth,
         paddingHorizontal: space.md + 2,
         borderRadius: radius.pill,
-        backgroundColor: active ? onBg : p.dark ? color.ink : color.surface,
-        borderWidth: active ? 0 : 1,
-        borderColor: p.dark ? color.ink3 : color.border,
+        backgroundColor: active ? onBg : p.onRed ? "transparent" : p.surface,
+        borderWidth: !active && p.onRed ? 2 : 0,
+        borderColor: p.border,
         alignItems: "center",
         justifyContent: "center",
         opacity: pressed ? 0.8 : 1,
@@ -232,12 +241,17 @@ export const Chip = ({ label, active, onPress, accessibilityLabel, minWidth, tal
   );
 };
 
-export const Tag = ({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "onBrand" | "brand" }) => {
+export const Tag = ({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "brand" }) => {
   const p = usePalette();
   const looks = {
-    neutral: { bg: p.dark ? color.ink3 : color.surfaceSunk, fg: p.dark ? color.white : color.muted },
-    onBrand: { bg: color.white, fg: color.brandStrong },
-    brand: { bg: color.brandTint, fg: color.brandStrong },
+    neutral: {
+      bg: p.onRed ? p.surface : p.surfaceAlt,
+      fg: p.dark ? color.white : p.textMuted,
+    },
+    brand: {
+      bg: p.onRed ? p.surface : p.dark ? p.accent : color.brandTint,
+      fg: p.dark ? color.white : color.brandStrong,
+    },
   }[tone];
   return (
     <View
@@ -283,9 +297,10 @@ export const Field = forwardRef<TextInput, FieldProps>(
           accessibilityLabel={label}
           accessibilityHint={hint}
           accessibilityLabelledBy={hideLabel ? undefined : `label-${label}`}
-          placeholderTextColor={p.dark ? color.mutedOnInk : color.muted}
-          selectionColor={p.accent}
-          cursorColor={p.accent}
+          placeholderTextColor={scene.textMuted}
+          selectionColor={scene.link}
+          cursorColor={scene.link}
+          keyboardAppearance="dark"
           maxFontSizeMultiplier={1.4}
           onFocus={(e) => {
             setFocused(true);
@@ -304,9 +319,9 @@ export const Field = forwardRef<TextInput, FieldProps>(
               paddingVertical: space.sm,
               borderRadius: radius.button,
               borderWidth: focused ? 2 : 1,
-              borderColor: error ? color.brandStrong : focused ? p.text : p.dark ? color.ink3 : color.border,
-              backgroundColor: p.dark ? color.ink : color.surface,
-              color: p.text,
+              borderColor: error ? p.danger : focused ? p.focus : scene.controlLine,
+              backgroundColor: p.surface,
+              color: scene.text,
             },
             rest.multiline ? { minHeight: 88, textAlignVertical: "top", paddingTop: space.md } : null,
             style,
@@ -350,24 +365,43 @@ export const Divider = () => {
   return <View style={{ height: 1, backgroundColor: p.border }} />;
 };
 
-// Surface unique pour une liste : bordures plutôt qu'ombres, lisibles au soleil.
+// Le rouge est le fond, jamais une carte : le contenu se pose sur une carte encre, qui change la scène de ses enfants.
 export const ListSurface = ({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) => {
   const p = usePalette();
-  return (
-    <View
-      style={[
-        {
-          backgroundColor: p.surface,
-          borderRadius: radius.block,
-          borderWidth: p.dark ? 0 : 1,
-          borderColor: p.border,
-          overflow: "hidden",
-        },
-        style,
-      ]}
-    >
+  const body = (
+    <View style={[{ backgroundColor: p.surface, borderRadius: radius.card, overflow: "hidden" }, style]}>
       {children}
     </View>
+  );
+  return p.onRed ? <Scene scene="card">{body}</Scene> : body;
+};
+
+// Carte encre avec sa marge intérieure. Pas de carte dans une carte : à l'intérieur, des lignes et des rangées.
+export const Card = ({
+  children,
+  style,
+  testID,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+}) => (
+  <ListSurface style={[{ padding: space.lg, gap: space.md }, style]}>
+    <View testID={testID} style={{ gap: space.md }}>
+      {children}
+    </View>
+  </ListSurface>
+);
+
+// La signature : un trait blanc plein de 3 px, à bord perdu, sous le titre et entre les grandes sections.
+export const LaneLine = () => {
+  const pad = usePagePad();
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ height: 3, backgroundColor: scene.lane, marginHorizontal: -pad }}
+    />
   );
 };
 
@@ -379,7 +413,7 @@ export const Avatar = ({ initials, size = 32 }: { initials: string; size?: numbe
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: p.dark ? color.ink3 : color.surfaceSunk,
+        backgroundColor: p.surfaceAlt,
         alignItems: "center",
         justifyContent: "center",
       }}

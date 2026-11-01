@@ -4,15 +4,16 @@ import { Redirect, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { InviteLinkSheet } from "../../src/features/invite-link-sheet";
 import { api } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
 import { useMe } from "../../src/lib/queries";
 import { queryClient } from "../../src/lib/query-client";
 import { useSession } from "../../src/lib/session-store";
 import { useSpaceStore } from "../../src/lib/space-store";
-import { Button, Chip, Field, T } from "../../src/ui/primitives";
+import { Button, Card, Chip, Field, LaneLine, T } from "../../src/ui/primitives";
 import { LoadingState } from "../../src/ui/states";
-import { color, GUTTER, space } from "../../src/ui/theme";
+import { scene, space, usePagePad } from "../../src/ui/theme";
 
 type Errors = Partial<Record<"firstName" | "lastName" | "orgName" | "groupName", string>>;
 
@@ -23,12 +24,14 @@ export default function Onboarding() {
   const setActive = useSpaceStore((s) => s.setActive);
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const pad = usePagePad();
   const [step, setStep] = useState<"profile" | "org">("profile");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [orgName, setOrgName] = useState("");
   const [orgType, setOrgType] = useState<"club" | "independent">("club");
   const [groupName, setGroupName] = useState("");
+  const [pasting, setPasting] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -79,97 +82,109 @@ export default function Onboarding() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ flex: 1, backgroundColor: color.bg, paddingTop: insets.top }}
+      style={{ flex: 1, backgroundColor: scene.page, paddingTop: insets.top }}
     >
       <ScrollView
         contentInsetAdjustmentBehavior="never"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingTop: space.xxl,
-          paddingHorizontal: GUTTER,
+          paddingHorizontal: pad,
           paddingBottom: insets.bottom + space.xxl,
           gap: space.lg,
         }}
       >
         {step === "profile" ? (
           <>
-            <T variant="display" heading>
+            <T variant="screen" heading maxFontSizeMultiplier={1.3}>
               {m.onboarding.profileTitle}
             </T>
-            <Field
-              label={m.onboarding.firstName}
-              value={firstName}
-              onChangeText={setFirstName}
-              autoComplete="given-name"
-              textContentType="givenName"
-              error={errors.firstName}
+            <LaneLine />
+            <Card>
+              <Field
+                label={m.onboarding.firstName}
+                value={firstName}
+                onChangeText={setFirstName}
+                autoComplete="given-name"
+                textContentType="givenName"
+                error={errors.firstName}
+              />
+              <Field
+                label={m.onboarding.lastName}
+                value={lastName}
+                onChangeText={setLastName}
+                autoComplete="family-name"
+                textContentType="familyName"
+                error={errors.lastName}
+              />
+              <Button label={m.mobile.onboarding.next} onPress={nextStep} />
+            </Card>
+            <T variant="small">{m.onboarding.joinHint}</T>
+            <Button
+              testID="invite-link-open"
+              label={m.mobile.inviteLink.open}
+              variant="secondary"
+              compact
+              onPress={() => setPasting(true)}
             />
-            <Field
-              label={m.onboarding.lastName}
-              value={lastName}
-              onChangeText={setLastName}
-              autoComplete="family-name"
-              textContentType="familyName"
-              error={errors.lastName}
-            />
-            <Button label={m.mobile.onboarding.next} onPress={nextStep} />
-            <T variant="small" tone="muted">
-              {m.onboarding.joinHint}
-            </T>
             <Button
               label={m.common.signOut}
               variant="ghost"
               compact
               onPress={() => void signOut()}
-              style={{ alignSelf: "flex-start" }}
+              style={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
             />
           </>
         ) : (
           <>
-            <T variant="display" heading>
+            <T variant="screen" heading maxFontSizeMultiplier={1.3}>
               {m.onboarding.orgTitle}
             </T>
-            <View style={{ gap: space.sm }}>
-              <T variant="smallStrong">{m.onboarding.orgType}</T>
-              <View style={{ flexDirection: "row", gap: space.sm, flexWrap: "wrap" }}>
-                <Chip
-                  tall
-                  label={m.onboarding.orgTypeClub}
-                  active={orgType === "club"}
-                  onPress={() => setOrgType("club")}
-                />
-                <Chip
-                  tall
-                  label={m.onboarding.orgTypeIndependent}
-                  active={orgType === "independent"}
-                  onPress={() => setOrgType("independent")}
-                />
+            <LaneLine />
+            <Card>
+              <View style={{ gap: space.sm }}>
+                <T variant="smallStrong">{m.onboarding.orgType}</T>
+                <View style={{ flexDirection: "row", gap: space.sm, flexWrap: "wrap" }}>
+                  <Chip
+                    tall
+                    label={m.onboarding.orgTypeClub}
+                    active={orgType === "club"}
+                    onPress={() => setOrgType("club")}
+                  />
+                  <Chip
+                    tall
+                    label={m.onboarding.orgTypeIndependent}
+                    active={orgType === "independent"}
+                    onPress={() => setOrgType("independent")}
+                  />
+                </View>
               </View>
-            </View>
-            <Field
-              label={m.onboarding.orgName}
-              value={orgName}
-              onChangeText={setOrgName}
-              hint={m.onboarding.orgNameHint(firstName.trim())}
-              error={errors.orgName}
-            />
-            <Field
-              label={m.onboarding.firstGroup}
-              value={groupName}
-              onChangeText={setGroupName}
-              hint={m.onboarding.firstGroupHint}
-              error={errors.groupName}
-            />
-            {formError ? (
-              <T variant="small" tone="danger" accessibilityLiveRegion="assertive">
-                {formError}
-              </T>
-            ) : null}
-            <Button label={m.onboarding.createSpace} loading={create.isPending} onPress={submit} />
+              <Field
+                label={m.onboarding.orgName}
+                value={orgName}
+                onChangeText={setOrgName}
+                hint={m.onboarding.orgNameHint(firstName.trim())}
+                error={errors.orgName}
+              />
+              <Field
+                label={m.onboarding.firstGroup}
+                value={groupName}
+                onChangeText={setGroupName}
+                hint={m.onboarding.firstGroupHint}
+                error={errors.groupName}
+              />
+              {formError ? (
+                <T variant="small" tone="danger" accessibilityLiveRegion="assertive">
+                  {formError}
+                </T>
+              ) : null}
+              <Button label={m.onboarding.createSpace} loading={create.isPending} onPress={submit} />
+            </Card>
             <Button label={m.mobile.onboarding.back} variant="secondary" compact onPress={() => setStep("profile")} />
           </>
         )}
       </ScrollView>
+      {pasting ? <InviteLinkSheet onClose={() => setPasting(false)} /> : null}
     </KeyboardAvoidingView>
   );
 }

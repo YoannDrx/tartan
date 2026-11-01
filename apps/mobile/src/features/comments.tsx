@@ -7,10 +7,10 @@ import { api } from "../lib/api";
 import { errorMessage } from "../lib/errors";
 import { useComments, useMe } from "../lib/queries";
 import { ArrowUp, MoreHorizontal } from "../ui/icons";
-import { Button, Field, IconButton, T } from "../ui/primitives";
+import { Button, Field, IconButton, ListSurface, T } from "../ui/primitives";
 import { Sheet } from "../ui/sheet";
 import { ErrorState, LoadingState } from "../ui/states";
-import { radius, space, usePalette } from "../ui/theme";
+import { space } from "../ui/theme";
 
 type ModerationTarget = {
   entityType: "comment" | "video" | "announcement";
@@ -42,11 +42,15 @@ export const ModerationSheet = ({
       setStep("done");
     },
   });
+  const client = useQueryClient();
   const block = useMutation({
     mutationFn: () => api.block(target.authorId as string),
     onSuccess: () => {
       setMessage(m.mobile.moderation.blocked);
       setStep("done");
+      // Ses contenus disparaissent tout de suite : le serveur les filtre à la prochaine lecture.
+      void client.invalidateQueries({ queryKey: ["comments"] });
+      void client.invalidateQueries({ queryKey: ["announcements"] });
     },
   });
   const name = target.authorName ?? m.mobile.moderation.someone;
@@ -55,7 +59,13 @@ export const ModerationSheet = ({
       visible
       dark={dark}
       onClose={onClose}
-      title={step === "reason" ? m.mobile.moderation.reportTitle : m.mobile.moderation.title}
+      title={
+        step === "reason"
+          ? m.mobile.moderation.reportTitle
+          : step === "done"
+            ? m.mobile.moderation.doneTitle
+            : m.mobile.moderation.title
+      }
     >
       {step === "menu" ? (
         <View style={{ gap: space.sm }}>
@@ -82,6 +92,7 @@ export const ModerationSheet = ({
               key={reason}
               label={m.mobile.moderation.reasons[reason]}
               variant="secondary"
+              loading={report.isPending && report.variables === reason}
               disabled={report.isPending}
               onPress={() => report.mutate(reason)}
             />
@@ -116,7 +127,6 @@ export const CommentsSection = ({
   dark?: boolean;
   placeholder?: string;
 }) => {
-  const p = usePalette();
   const me = useMe();
   const client = useQueryClient();
   const comments = useComments(orgId, entityType, entityId);
@@ -150,16 +160,12 @@ export const CommentsSection = ({
         </T>
       ) : null}
       {comments.data?.map((c) => (
-        <View
+        <ListSurface
           key={c.id}
           style={{
             flexDirection: "row",
             alignItems: "flex-start",
             gap: space.xs,
-            backgroundColor: p.surface,
-            borderRadius: radius.card,
-            borderWidth: p.dark ? 0 : 1,
-            borderColor: p.border,
             paddingLeft: space.md,
             paddingVertical: space.sm,
           }}
@@ -181,7 +187,7 @@ export const CommentsSection = ({
               }
             />
           ) : null}
-        </View>
+        </ListSurface>
       ))}
       <View style={{ flexDirection: "row", alignItems: "flex-end", gap: space.sm }}>
         <Field

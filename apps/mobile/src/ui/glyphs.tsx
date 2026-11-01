@@ -10,8 +10,8 @@ const stroke = { fill: "none", strokeWidth: 2, strokeLinecap: "round", strokeLin
 // Pictogrammes métier dessinés sur la grille Lucide (24 px, trait 2 px).
 export const BarGlyph = ({ size = 22, color }: GlyphProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24">
-    <Path d="M5 21V4M19 21V4M5 9h14" stroke={color} {...stroke} />
-    <Path d="M3 21h4M17 21h4" stroke={color} {...stroke} />
+    <Path d="M6 21V9M18 21V9M6 12h12" stroke={color} {...stroke} />
+    <Path d="M3 15C6 1 15 -1 21 8" stroke={color} {...stroke} />
   </Svg>
 );
 
@@ -48,22 +48,3 @@ export const CategoryGlyph = ({ category, size, color }: GlyphProps & { category
   const Glyph = CATEGORY_GLYPH[category as ExerciseCategory] ?? Dumbbell;
   return <Glyph size={size} color={color} />;
 };
-
-// Lignes de couloirs, seule illustration de l'app (§ 9.7).
-export const LaneArcs = ({
-  width = 220,
-  height = 220,
-  color,
-  opacity = 0.18,
-}: {
-  width?: number;
-  height?: number;
-  color: string;
-  opacity?: number;
-}) => (
-  <Svg width={width} height={height} viewBox="0 0 220 220">
-    <Path d="M 20 220 A 200 200 0 0 1 220 20" fill="none" stroke={color} strokeOpacity={opacity} strokeWidth={4} />
-    <Path d="M 60 220 A 160 160 0 0 1 220 60" fill="none" stroke={color} strokeOpacity={opacity} strokeWidth={4} />
-    <Path d="M 100 220 A 120 120 0 0 1 220 100" fill="none" stroke={color} strokeOpacity={opacity} strokeWidth={4} />
-  </Svg>
-);

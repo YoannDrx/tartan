@@ -1,36 +1,47 @@
 import { m } from "@tartan/i18n";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Linking from "expo-linking";
+import { useNavigationContainerRef, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
+import { paramFromUrl } from "../../src/lib/auth-callback";
 import { storeSessionCookie } from "../../src/lib/auth-client";
+import { clearPersistedData } from "../../src/lib/query-client";
 import { useSession } from "../../src/lib/session-store";
 import { Button, T } from "../../src/ui/primitives";
 import { LoadingState } from "../../src/ui/states";
-import { color, GUTTER, space } from "../../src/ui/theme";
+import { GUTTER, scene, space } from "../../src/ui/theme";
 
 // Le lien magique revient ici avec le cookie de session. Il ne reste ni dans l'historique ni dans les journaux.
 export default function AuthCallback() {
-  const { cookie, error } = useLocalSearchParams<{ cookie?: string; error?: string }>();
+  const url = Linking.useLinkingURL();
+  const cookie = paramFromUrl(url, "cookie");
+  const error = paramFromUrl(url, "error");
   const refresh = useSession((s) => s.refresh);
-  const status = useSession((s) => s.status);
   const router = useRouter();
-  const [failed, setFailed] = useState(Boolean(error));
+  const navigation = useNavigationContainerRef();
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (error) return;
+    if (!url) return;
+    if (error || !cookie) {
+      setFailed(true);
+      return;
+    }
+    setFailed(false);
     void (async () => {
-      // Le serveur encode les espaces en « + » ; les valeurs du cookie restent en %XX.
-      if (cookie) await storeSessionCookie(cookie.replace(/\+/g, " "));
+      // Un autre compte était peut-être ouvert sur ce téléphone : rien de lui ne doit rester à l'écran.
+      await clearPersistedData();
+      await storeSessionCookie(cookie);
       await refresh();
-      if (cookie || status === "signed-in") router.replace("/");
-      else setFailed(true);
+      // La pile de l'ancien compte disparaît aussi : pas de retour possible vers ses écrans.
+      navigation.reset({ index: 0, routes: [{ name: "index" }] });
     })().catch(() => setFailed(true));
     // Une seule exécution par lien reçu.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cookie, error]);
+  }, [url]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: color.bg, justifyContent: "center", padding: GUTTER, gap: space.lg }}>
+    <View style={{ flex: 1, backgroundColor: scene.page, justifyContent: "center", padding: GUTTER, gap: space.lg }}>
       {failed ? (
         <>
           <T>{m.mobile.auth.callbackFailed}</T>

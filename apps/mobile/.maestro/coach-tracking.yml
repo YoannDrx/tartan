@@ -1,0 +1,14 @@
+# Suivi coach : la grille s'affiche, et l'appel d'une séance s'ouvre.
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- assertVisible: "Vidéos"
+- assertVisible: "Exercices"
+- tapOn: "Vidéos"
+- assertVisible:
+    id: open-capture

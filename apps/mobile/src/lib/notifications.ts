@@ -2,11 +2,9 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { api } from "./api";
 import { config } from "./config";
-import { actionFromResponse, routeForNotification, type NotificationData } from "./notification-routes";
-import { queryClient } from "./query-client";
+import { actionFromResponse, normalizeNotificationData, routeForNotification } from "./notification-routes";
 import { useSpaceStore } from "./space-store";
-import { submitAttendance, submitValidation } from "./sync/op-queue";
-import type { AthleteSessionDetail } from "@tartan/contracts";
+import { m } from "@tartan/i18n";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -30,18 +28,26 @@ export const setupNotificationChannels = async (): Promise<void> => {
       description: "Vidéo partagée et commentaires",
       importance: Notifications.AndroidImportance.DEFAULT,
     });
+    // Canal discret : la progression d'un envoi ne sonne pas à chaque mise à jour.
+    await Notifications.setNotificationChannelAsync("envois", {
+      name: m.mobile.uploadNotice.channel,
+      description: m.mobile.uploadNotice.channelDetail,
+      importance: Notifications.AndroidImportance.LOW,
+    });
     await Notifications.setNotificationChannelAsync("alertes-coach", {
       name: "Alertes coach",
       description: "Douleur signalée, séances manquées",
       importance: Notifications.AndroidImportance.HIGH,
     });
   }
+  // Sans ouvrir l'app. Sur iOS, le déverrouillage garantit l'accès au trousseau (session et file).
+  const silent = { opensAppToForeground: false, isAuthenticationRequired: true };
   await Notifications.setNotificationCategoryAsync("attendance", [
-    { identifier: "attendance-yes", buttonTitle: "Oui", options: { opensAppToForeground: true } },
-    { identifier: "attendance-no", buttonTitle: "Non", options: { opensAppToForeground: true } },
+    { identifier: "attendance-yes", buttonTitle: "Oui", options: silent },
+    { identifier: "attendance-no", buttonTitle: "Non", options: silent },
   ]);
   await Notifications.setNotificationCategoryAsync("validate", [
-    { identifier: "validate-done", buttonTitle: "Fait", options: { opensAppToForeground: true } },
+    { identifier: "validate-done", buttonTitle: "Fait", options: silent },
   ]);
 };
 
@@ -75,35 +81,21 @@ export const registerPush = async ({ prompt }: { prompt: boolean }): Promise<Pus
   return permission;
 };
 
-const handleResponse = (response: Notifications.NotificationResponse, navigate: (route: string) => void) => {
-  const data = response.notification.request.content.data as NotificationData | null;
+// Les boutons d'action sont traités sans ouvrir l'app (voir notification-actions.ts). Ici, seul le toucher simple navigue.
+const handleTap = (response: Notifications.NotificationResponse, navigate: (route: string) => void) => {
+  const data = normalizeNotificationData(response.notification.request.content.data);
+  if (actionFromResponse(response.actionIdentifier, data)) return;
   if (typeof data?.organizationId === "string") useSpaceStore.getState().setActive(data.organizationId);
-  const action = actionFromResponse(response.actionIdentifier, data);
-  if (action?.kind === "attendance") {
-    void submitAttendance(action.orgId, action.sessionId, action.status);
-    navigate("/today");
-    return;
-  }
-  if (action?.kind === "validate") {
-    const cached = queryClient.getQueryData<AthleteSessionDetail>(["session", action.orgId, action.sessionId]);
-    void submitValidation(action.orgId, action.sessionId, {
-      status: "done",
-      variantDone: cached?.variant ?? "club",
-      sets: [],
-    });
-    navigate("/today");
-    return;
-  }
   navigate(routeForNotification(data));
 };
 
 export const listenToNotificationResponses = (navigate: (route: string) => void): (() => void) => {
-  const sub = Notifications.addNotificationResponseReceivedListener((r) => handleResponse(r, navigate));
+  const sub = Notifications.addNotificationResponseReceivedListener((r) => handleTap(r, navigate));
   // Un toucher qui a lancé l'app arrive avant l'écouteur.
   void Notifications.getLastNotificationResponseAsync()
     .then((response) => {
       if (!response) return;
-      handleResponse(response, navigate);
+      handleTap(response, navigate);
       Notifications.clearLastNotificationResponse();
     })
     .catch(() => undefined);

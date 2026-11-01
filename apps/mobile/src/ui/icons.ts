@@ -40,4 +40,5 @@ export { default as Stretch } from "lucide-react-native/icons/stretch-horizontal
 export { default as Timer } from "lucide-react-native/icons/timer";
 export { default as TrendingUp } from "lucide-react-native/icons/trending-up";
 export { default as Video } from "lucide-react-native/icons/video";
+export { default as Trash } from "lucide-react-native/icons/trash";
 export { default as X } from "lucide-react-native/icons/x";

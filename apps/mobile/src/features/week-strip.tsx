@@ -3,8 +3,8 @@ import { formatDayMonth, formatWeekdayShort, m } from "@tartan/i18n";
 import { View } from "react-native";
 import { dayNumber } from "../lib/dates";
 import { StatusGlyph } from "../ui/status";
-import { T } from "../ui/primitives";
-import { color, radius, space, usePalette } from "../ui/theme";
+import { ListSurface, T } from "../ui/primitives";
+import { radius, scene, space } from "../ui/theme";
 
 const GLYPH: Partial<Record<AthleteToday["week"][number]["status"], CellStatus>> = {
   done: "done",
@@ -14,24 +14,13 @@ const GLYPH: Partial<Record<AthleteToday["week"][number]["status"], CellStatus>>
   today: "upcoming",
 };
 
-// La semaine en un coup d'œil : une seule règle horizontale, aujourd'hui passé à l'encre.
+// La semaine en un coup d'œil : une carte encre, aujourd'hui en rangée surélevée.
 export const WeekStrip = ({ week, today }: { week: AthleteToday["week"]; today: string }) => {
-  const p = usePalette();
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        backgroundColor: p.surface,
-        borderRadius: radius.block,
-        borderWidth: 1,
-        borderColor: p.border,
-        padding: space.xs,
-      }}
-    >
+    <ListSurface style={{ flexDirection: "row", padding: space.xs }}>
       {week.map((d) => {
         const isToday = d.date === today;
         const glyph = GLYPH[d.status];
-        const tone = isToday ? "white" : "default";
         return (
           <View
             key={d.date}
@@ -43,13 +32,13 @@ export const WeekStrip = ({ week, today }: { week: AthleteToday["week"]; today: 
               gap: 2,
               paddingVertical: space.sm,
               borderRadius: radius.button,
-              backgroundColor: isToday ? color.ink : "transparent",
+              backgroundColor: isToday ? scene.cardRaised : "transparent",
             }}
           >
-            <T variant="caption" tone={isToday ? "white" : "muted"} maxFontSizeMultiplier={1.2}>
+            <T variant="caption" tone={isToday ? "default" : "muted"} maxFontSizeMultiplier={1.2}>
               {formatWeekdayShort(d.date)}
             </T>
-            <T variant="figure" tone={tone} maxFontSizeMultiplier={1.2} style={{ fontSize: 18, lineHeight: 22 }}>
+            <T variant="figure" maxFontSizeMultiplier={1.2} style={{ fontSize: 18, lineHeight: 22 }}>
               {dayNumber(d.date)}
             </T>
             <View style={{ height: 16, justifyContent: "center" }}>
@@ -58,6 +47,6 @@ export const WeekStrip = ({ week, today }: { week: AthleteToday["week"]; today: 
           </View>
         );
       })}
-    </View>
+    </ListSurface>
   );
 };

@@ -1,17 +1,15 @@
 import { m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { RefreshControl, ScrollView, useWindowDimensions, View, type ScrollViewProps } from "react-native";
+import { RefreshControl, ScrollView, View, type ScrollViewProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIsOnline } from "../lib/network";
 import { useOpQueue } from "../lib/sync/op-queue";
 import { useUploads } from "../lib/upload/upload-queue";
 import { ArrowLeft, CloudOff, CloudUpload, Settings, X } from "./icons";
-import { IconButton, T } from "./primitives";
+import { IconButton, LaneLine, ListSurface, T } from "./primitives";
 import { SpaceSwitcher } from "./space-switcher";
-import { color, GUTTER, radius, Scene, space, usePalette } from "./theme";
-
-const CONTENT_MAX = 720;
+import { Scene, scene, space, usePagePad, usePalette } from "./theme";
 
 // Hors ligne ou envois en attente : l'état se lit sans chercher.
 export const SyncBanner = () => {
@@ -23,22 +21,12 @@ export const SyncBanner = () => {
   const pending = ops + uploads;
   if (rejected > 0) {
     return (
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: space.sm,
-          backgroundColor: color.brandTint,
-          borderRadius: radius.card,
-          paddingLeft: space.md,
-          paddingVertical: space.xs,
-        }}
-      >
-        <T variant="caption" style={{ flex: 1, color: color.brandStrong }} accessibilityLiveRegion="polite">
+      <ListSurface style={{ flexDirection: "row", alignItems: "center", gap: space.sm, paddingLeft: space.lg }}>
+        <T variant="caption" style={{ flex: 1 }} accessibilityLiveRegion="polite">
           {m.mobile.validation.rejected}
         </T>
         <IconButton icon={X} label={m.common.close} onPress={dismiss} />
-      </View>
+      </ListSurface>
     );
   }
   if (online && pending === 0) return null;
@@ -48,24 +36,20 @@ export const SyncBanner = () => {
     pending > 0 ? m.mobile.offline.pending(pending) : null,
   ].filter(Boolean);
   return (
-    <View
-      accessibilityLiveRegion="polite"
-      accessible
+    <ListSurface
       style={{
         flexDirection: "row",
         alignItems: "center",
         gap: space.sm,
-        backgroundColor: color.warningTint,
-        borderRadius: radius.card,
-        paddingHorizontal: space.md,
-        paddingVertical: space.sm,
+        paddingHorizontal: space.lg,
+        paddingVertical: space.md,
       }}
     >
-      <Icon size={18} color={color.warningStrong} accessibilityElementsHidden importantForAccessibility="no" />
-      <T variant="caption" style={{ flex: 1, color: color.warningStrong }}>
+      <Icon size={18} color={scene.status.partial} accessibilityElementsHidden importantForAccessibility="no" />
+      <T variant="caption" accessibilityLiveRegion="polite" style={{ flex: 1 }}>
         {parts.join(" ")}
       </T>
-    </View>
+    </ListSurface>
   );
 };
 
@@ -84,8 +68,7 @@ export const TabScreen = ({ title, subtitle, right, children, refreshing, onRefr
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const p = usePalette();
-  const { width } = useWindowDimensions();
-  const pad = width > CONTENT_MAX + GUTTER * 2 ? (width - CONTENT_MAX) / 2 : GUTTER;
+  const pad = usePagePad();
   // L'indicateur ne suit que le geste de l'utilisateur, pas les actualisations d'arrière-plan.
   const [pulled, setPulled] = useState(false);
   useEffect(() => {
@@ -111,8 +94,8 @@ export const TabScreen = ({ title, subtitle, right, children, refreshing, onRefr
                 setPulled(true);
                 onRefresh();
               }}
-              tintColor={p.accent}
-              colors={[p.accent]}
+              tintColor={p.text}
+              colors={[scene.card]}
             />
           ) : undefined
         }
@@ -121,14 +104,10 @@ export const TabScreen = ({ title, subtitle, right, children, refreshing, onRefr
         <SpaceSwitcher />
         <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
           <View style={{ flex: 1, gap: 2 }}>
-            <T variant="display" heading>
+            <T variant="screen" heading maxFontSizeMultiplier={1.3}>
               {title}
             </T>
-            {subtitle ? (
-              <T variant="small" tone="muted">
-                {subtitle}
-              </T>
-            ) : null}
+            {subtitle ? <T variant="small">{subtitle}</T> : null}
           </View>
           {right}
           <IconButton
@@ -139,6 +118,7 @@ export const TabScreen = ({ title, subtitle, right, children, refreshing, onRefr
             onPress={() => router.push("/settings")}
           />
         </View>
+        <LaneLine />
         <SyncBanner />
         {children}
       </ScrollView>
@@ -152,6 +132,8 @@ type StackScreenProps = {
   dark?: boolean;
   onBack?: () => void;
   backIcon?: "back" | "close";
+  // Libellé lu par VoiceOver et TalkBack quand le bouton fait plus que revenir en arrière.
+  backLabel?: string;
   right?: ReactNode;
   children: ReactNode;
   scroll?: boolean;
@@ -163,6 +145,7 @@ const StackInner = ({
   subtitle,
   onBack,
   backIcon = "back",
+  backLabel,
   right,
   children,
   scroll = true,
@@ -171,8 +154,7 @@ const StackInner = ({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const p = usePalette();
-  const { width } = useWindowDimensions();
-  const pad = width > CONTENT_MAX + GUTTER * 2 ? (width - CONTENT_MAX) / 2 : GUTTER;
+  const pad = usePagePad();
   const content = {
     paddingHorizontal: pad,
     paddingBottom: footer ? space.lg : insets.bottom + space.xxl,
@@ -185,20 +167,20 @@ const StackInner = ({
           flexDirection: "row",
           alignItems: "center",
           gap: space.sm,
-          paddingHorizontal: pad - space.xs,
+          paddingHorizontal: pad,
           paddingVertical: space.sm,
           minHeight: 60,
         }}
       >
         <IconButton
           icon={backIcon === "close" ? X : ArrowLeft}
-          label={backIcon === "close" ? m.common.close : m.common.back}
+          label={backLabel ?? (backIcon === "close" ? m.common.close : m.common.back)}
           tone="filled"
           onPress={onBack ?? (() => (router.canGoBack() ? router.back() : router.replace("/")))}
         />
         <View style={{ flex: 1 }}>
           {title ? (
-            <T variant="title2" heading numberOfLines={2}>
+            <T variant={p.onRed ? "title1" : "title2"} heading numberOfLines={2}>
               {title}
             </T>
           ) : null}
@@ -210,6 +192,11 @@ const StackInner = ({
         </View>
         {right}
       </View>
+      {p.onRed && title ? (
+        <View style={{ paddingHorizontal: pad, marginBottom: space.lg }}>
+          <LaneLine />
+        </View>
+      ) : null}
       {scroll ? (
         <ScrollView
           style={{ flex: 1 }}

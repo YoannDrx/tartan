@@ -3,7 +3,6 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
 type AppVariant = "development" | "preview" | "production";
 
 const BRICK = "#C4442B";
-const CRAIE = "#F2F3F1";
 const UNIVERSAL_HOSTS = ["tartan.coach", "app.tartan.coach"];
 
 const variantNames: Record<AppVariant, string> = {
@@ -37,6 +36,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   }
 
   const projectId = process.env.EAS_PROJECT_ID?.trim();
+  const appleSignIn = flag(process.env.EXPO_PUBLIC_OAUTH_APPLE_ENABLED);
+  const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() || undefined;
 
   return {
     ...config,
@@ -46,14 +47,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     scheme,
     orientation: "portrait",
     icon: "./assets/brand/icon-ios.png",
-    userInterfaceStyle: "light",
-    backgroundColor: CRAIE,
+    userInterfaceStyle: "dark",
+    backgroundColor: BRICK,
     ios: {
       supportsTablet: true,
       bundleIdentifier: `coach.tartan.app${suffix}`,
       // Liens universels : le serveur doit publier apple-app-site-association.
       associatedDomains: UNIVERSAL_HOSTS.map((host) => `applinks:${host}`),
-      infoPlist: { ITSAppUsesNonExemptEncryption: false },
+      ...(appleSignIn ? { usesAppleSignIn: true } : {}),
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+        NSCameraUsageDescription: "Tartan utilise la caméra pour filmer les sauts de tes athlètes.",
+        NSMicrophoneUsageDescription: "Tartan enregistre le son des vidéos de saut quand tu filmes.",
+      },
     },
     android: {
       package: `coach.tartan.app${suffix}`,
@@ -84,13 +90,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-router",
       "expo-font",
       "expo-web-browser",
+      ...(appleSignIn ? ["expo-apple-authentication"] : []),
       ["expo-secure-store", { faceIDPermission: false }],
       [
         "expo-splash-screen",
         {
           backgroundColor: BRICK,
           image: "./assets/brand/splash.png",
-          imageWidth: 200,
+          imageWidth: 240,
           resizeMode: "contain",
         },
       ],
@@ -101,14 +108,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           color: BRICK,
           defaultChannel: "seances",
           enableBackgroundRemoteNotifications: false,
-        },
-      ],
-      [
-        "expo-camera",
-        {
-          cameraPermission: "Tartan utilise la caméra pour filmer les sauts de tes athlètes.",
-          microphonePermission: "Tartan enregistre le son des vidéos de saut quand tu filmes.",
-          recordAudioAndroid: true,
         },
       ],
       [
@@ -126,8 +125,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       apiUrl,
       webUrl: process.env.EXPO_PUBLIC_WEB_URL?.trim() || "https://tartan.coach",
       // Masqués tant que les comptes Apple et Google ne sont pas configurés côté serveur.
-      appleSignIn: flag(process.env.EXPO_PUBLIC_OAUTH_APPLE_ENABLED),
+      appleSignIn,
       googleSignIn: flag(process.env.EXPO_PUBLIC_OAUTH_GOOGLE_ENABLED),
+      googleWebClientId,
       ...(projectId ? { eas: { projectId } } : {}),
     },
   };

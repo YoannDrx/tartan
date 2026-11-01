@@ -1,13 +1,28 @@
 import { tokens } from "@tartan/design-tokens";
-import { color, textStyles } from "./theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { radius, scene, space, textStyles } from "./theme";
 
-// Barre d'onglets : pictogramme + libellé 11 px, actif en Piste foncé.
-export const tabBarOptions = {
-  headerShown: false,
-  tabBarActiveTintColor: color.brandStrong,
-  tabBarInactiveTintColor: color.muted,
-  tabBarLabelStyle: { ...textStyles.tab, fontFamily: tokens.font.bodyStrong },
-  tabBarStyle: { backgroundColor: color.surface, borderTopColor: color.border, borderTopWidth: 1 },
-  tabBarAllowFontScaling: false,
-  sceneStyle: { backgroundColor: color.bg },
-} as const;
+const BAR_HEIGHT = 64;
+
+// Barre d'onglets encre : pictogramme + libellé 11 px, actif blanc sur une pastille rouge piste.
+export const useTabBarOptions = () => {
+  const insets = useSafeAreaInsets();
+  return {
+    headerShown: false,
+    tabBarActiveTintColor: scene.onActionOnCard,
+    tabBarInactiveTintColor: scene.textMuted,
+    tabBarActiveBackgroundColor: scene.actionOnCard,
+    tabBarLabelStyle: { ...textStyles.tab, fontFamily: tokens.font.bodyStrong },
+    tabBarStyle: {
+      backgroundColor: scene.card,
+      borderTopWidth: 0,
+      height: BAR_HEIGHT + insets.bottom,
+      paddingTop: space.xs + 2,
+      paddingHorizontal: space.xs,
+      paddingBottom: insets.bottom,
+    },
+    tabBarItemStyle: { borderRadius: radius.card, marginHorizontal: 2, marginBottom: space.xs, overflow: "hidden" },
+    tabBarAllowFontScaling: false,
+    sceneStyle: { backgroundColor: scene.page },
+  } as const;
+};

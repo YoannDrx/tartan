@@ -7,7 +7,7 @@ import { progressPct } from "../lib/upload/chunks";
 import { BarGlyph } from "../ui/glyphs";
 import { ChevronRight, CloudUpload } from "../ui/icons";
 import { Button, Tag, T } from "../ui/primitives";
-import { color, radius, space, usePalette } from "../ui/theme";
+import { color, radius, scene, space, usePalette } from "../ui/theme";
 
 export const resultLabel = (result: VideoSummary["result"]): string | null => {
   if (result === "O") return m.video.cleared;
@@ -17,7 +17,8 @@ export const resultLabel = (result: VideoSummary["result"]): string | null => {
 };
 
 const statusLabel = (video: VideoSummary): string | null => {
-  if (video.status === "processing" || video.status === "uploading") return m.video.processing;
+  if (video.status === "uploading") return m.mobile.video.sending;
+  if (video.status === "processing") return m.video.processing;
   if (video.status === "error") return m.video.failed;
   return null;
 };
@@ -64,7 +65,7 @@ export const VideoRow = ({
           height: 48,
           borderRadius: radius.thumb,
           overflow: "hidden",
-          backgroundColor: color.ink2,
+          backgroundColor: scene.cardRaised,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -76,7 +77,7 @@ export const VideoRow = ({
             accessibilityIgnoresInvertColors
           />
         ) : (
-          <BarGlyph color={color.mutedOnInk} />
+          <BarGlyph color={scene.textMuted} />
         )}
       </View>
       <View style={{ flex: 1, gap: 2 }}>
@@ -111,7 +112,7 @@ export const UploadRow = ({ item }: { item: UploadItem }) => {
       <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
         <CloudUpload
           size={22}
-          color={failed ? color.brandStrong : p.textMuted}
+          color={failed ? p.danger : p.textMuted}
           accessibilityElementsHidden
           importantForAccessibility="no"
         />
@@ -125,7 +126,7 @@ export const UploadRow = ({ item }: { item: UploadItem }) => {
         </View>
       </View>
       <View style={{ height: 4, borderRadius: 2, backgroundColor: p.surfaceAlt, overflow: "hidden" }}>
-        <View style={{ height: 4, width: `${pct}%`, backgroundColor: failed ? color.status.missed : p.text }} />
+        <View style={{ height: 4, width: `${pct}%`, backgroundColor: failed ? p.status.missed : p.text }} />
       </View>
       {failed ? (
         <View style={{ flexDirection: "row", gap: space.sm }}>
