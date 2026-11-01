@@ -243,6 +243,19 @@ export const getSessionDetailForCoach = async (
     prisma.attendance.findMany({ where: { scheduledSessionId: sessionId, athleteId: { in: audience } } }),
   ]);
   const consents = await consentForAthletes(audience);
+  // Effort et douleur affichés au coach : accès journalisé (§ 15.2).
+  const healthRead = logs.filter((l) => (l.rpe !== null || l.pain) && consents.get(l.athleteId)?.health);
+  if (healthRead.length > 0) {
+    await prisma.auditLog.createMany({
+      data: healthRead.map((l) => ({
+        organizationId,
+        actorId: userId,
+        action: "health_read",
+        entity: "athlete",
+        entityId: l.athleteId,
+      })),
+    });
+  }
   const date = fromDbDate(session.date);
   const snapshot = session.snapshot ? sessionSnapshot.parse(session.snapshot) : null;
   return {

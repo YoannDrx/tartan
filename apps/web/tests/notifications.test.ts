@@ -3,6 +3,7 @@ import { outbox } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 import { addDays } from "@tartan/domain";
 import { listReports, reportContent, resolveReport } from "@/server/comm.service";
+import { resendParentalConsent } from "@/server/consent.service";
 import { closeOverdueSessions, publishScheduledSessions } from "@/server/cron.service";
 import { offlineUrls } from "@/server/offline.service";
 import { dispatchPending, notify, webLink } from "@/server/notify.service";
@@ -105,6 +106,25 @@ describe("notifications", () => {
     const alerts = await prisma.notification.findMany({ where: { userId: a.owner.userId, type: "missed_streak" } });
     expect(alerts).toHaveLength(1);
     expect(alerts[0]?.payload).toMatchObject({ athlete: "Léa" });
+  });
+});
+
+describe("accord parental", () => {
+  it("l'athlète relance son parent, sans relancer une demande déjà traitée", async () => {
+    const a = await prepare();
+    await prisma.guardian.create({
+      data: {
+        organizationId: a.organizationId,
+        athleteId: a.lea.athleteId,
+        guardianEmail: "parent-relance@exemple.fr",
+        consentStatus: "pending",
+      },
+    });
+    await resendParentalConsent(a.lea.userId, a.organizationId);
+    const mail = [...outbox].reverse().find((m) => m.to === "parent-relance@exemple.fr");
+    expect(mail?.html).toContain("/accord-parental/");
+    await prisma.guardian.updateMany({ where: { athleteId: a.lea.athleteId }, data: { consentStatus: "granted" } });
+    await expect(resendParentalConsent(a.lea.userId, a.organizationId)).rejects.toMatchObject({ status: 400 });
   });
 });
 

@@ -7,6 +7,7 @@ import { fromDbDateOrNull } from "@/lib/dates";
 import { invalid } from "@/lib/errors";
 import { sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { deriveToken, idFromToken, sha256, tokenMatches } from "@/lib/tokens";
 import { audit } from "./access";
 
@@ -95,6 +96,34 @@ export const startParentalConsent = async (input: {
       url: `${env().NEXT_PUBLIC_APP_URL}/accord-parental/${token}`,
       athlete: input.athleteName,
       coach: input.coachName,
+    }),
+  });
+};
+
+// Le parent n'a pas répondu : l'athlète relance sa demande, sans attendre son coach.
+export const resendParentalConsent = async (userId: string, organizationId: string): Promise<void> => {
+  await enforceRateLimit(`parental:${userId}`, 3, 3600);
+  const athlete = await prisma.athlete.findFirst({
+    where: { userId, organizationId },
+    select: {
+      firstName: true,
+      organization: { select: { name: true } },
+      guardians: { where: { consentStatus: "pending" }, orderBy: { createdAt: "desc" }, take: 1 },
+    },
+  });
+  const guardian = athlete?.guardians[0];
+  if (!athlete || !guardian) throw invalid("Aucune demande en attente.");
+  await prisma.guardian.update({
+    where: { id: guardian.id },
+    data: { tokenExpiresAt: new Date(Date.now() + 30 * 86400 * 1000) },
+  });
+  await sendEmail({
+    to: guardian.guardianEmail,
+    subject: `Ton accord est demandé pour ${athlete.firstName}`,
+    react: createElement(ParentalConsentEmail, {
+      url: `${env().NEXT_PUBLIC_APP_URL}/accord-parental/${deriveToken(GUARDIAN_PURPOSE, guardian.id)}`,
+      athlete: athlete.firstName,
+      coach: athlete.organization.name,
     }),
   });
 };
