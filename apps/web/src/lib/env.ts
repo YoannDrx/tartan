@@ -41,7 +41,14 @@ export type Env = z.infer<typeof schema>;
 
 let cached: Env | undefined;
 
+// En preview, l'adresse vient du déploiement Vercel.
+const previewUrl = process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
+
 export const env = (): Env => {
-  cached ??= schema.parse(process.env);
+  cached ??= schema.parse({
+    ...process.env,
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? previewUrl,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? previewUrl,
+  });
   return cached;
 };
