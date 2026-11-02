@@ -440,13 +440,13 @@ Liste remplacée par celle du § 17.
 
 ### Fait
 
-| Sujet         | État                                                                                                                          |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Sentry        | Projet `tartan`, région Allemagne, DSN en production, alerte sur les problèmes de haute priorité                              |
-| EAS           | Projet `tartan` créé, identifiant dans `app.config.ts`                                                                        |
-| Apple         | App ID `coach.tartan.app` (notifications, domaines associés), fiche « Tartan – Coach athlé » créée                            |
-| Plafond vidéo | En place, testé                                                                                                               |
-| Sauvegarde    | Atelier écrit. Chaîne export, chiffrement, restauration vérifiée sur une base locale. **Pas encore lancée sur la production** |
+| Sujet         | État                                                                                                                                                                                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sentry        | Projet `tartan`, région Allemagne, DSN en production, alerte sur les problèmes de haute priorité. Erreur réelle reçue depuis la production. Le premier essai montrait l'IP et la ville : réglages corrigés, nouvel essai vérifié sans l'une ni l'autre |
+| EAS           | Projet `tartan` créé, identifiant dans `app.config.ts`                                                                                                                                                                                                 |
+| Apple         | App ID `coach.tartan.app` (notifications, domaines associés), fiche « Tartan – Coach athlé » créée                                                                                                                                                     |
+| Plafond vidéo | En place, testé                                                                                                                                                                                                                                        |
+| Sauvegarde    | Atelier écrit. Chaîne export, chiffrement, restauration vérifiée sur une base locale. **Pas encore lancée sur la production**                                                                                                                          |
 
 ### Reste à ta charge, dans l'ordre
 
