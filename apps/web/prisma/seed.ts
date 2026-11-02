@@ -18,8 +18,16 @@ const PASSWORD = process.env.DEMO_PASSWORD ?? randomBytes(12).toString("base64ur
 const signUp = async (email: string, name: string): Promise<string> => {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return existing.id;
-  const res = await auth.api.signUpEmail({ body: { email, password: PASSWORD, name } });
-  return res.user.id;
+  // Adresses fictives : confirmées d'emblée, aucun e-mail ne part vers elles.
+  const ctx = await auth.$context;
+  const user = await ctx.internalAdapter.createUser({ email, name, emailVerified: true }, { method: "email-password" });
+  await ctx.internalAdapter.linkAccount({
+    userId: user.id,
+    providerId: "credential",
+    accountId: user.id,
+    password: await ctx.password.hash(PASSWORD),
+  });
+  return user.id;
 };
 
 const main = async () => {

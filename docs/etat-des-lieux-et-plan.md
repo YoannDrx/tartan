@@ -158,7 +158,9 @@ Restent :
 | Tableau de bord d'administration                                                                                              | **N'existe pas.** Le cahier n'en demande pas ; il cite juste « un administrateur » (§ 12.6)                                                  | [vu]               |
 | Production                                                                                                                    | Encore l'ancien design                                                                                                                       | [vu]               |
 
-Écarts repérés : capitales au-dessus des sections (« ATHLÈTE », « AU PROGRAMME »), interdites par le § 9.11, et `window.confirm` natif pour certaines suppressions. Le détecteur en CI est un script maison, là où le § 9.12 prévoit celui d'Impeccable.
+Écarts repérés : capitales au-dessus des sections (« ATHLÈTE », « AU PROGRAMME »), interdites par le § 9.11, et `window.confirm` natif pour certaines suppressions.
+
+**Correction :** j'avais écrit ici que le détecteur en CI était un script maison. C'est faux : la CI lance déjà celui d'Impeccable, via son paquet figé. Ce tableau décrit l'état au moment de l'audit ; l'état actuel est au § 16.
 
 ## 8. Ce que je remets en question
 
@@ -341,7 +343,7 @@ Production sur `e84b614`, avec les migrations `offres_payantes`, `video_etiree` 
 **À savoir :**
 
 - L'accord vidéo retiré masque l'image au coach sans la supprimer : à trancher avec le juriste.
-- Le compte de démonstration devra être rejoué sans envoi d'e-mail, le `seed` passant désormais par la confirmation d'adresse.
+- Le `seed` du compte de démonstration confirme maintenant ses adresses sans envoyer d'e-mail (§ 16).
 
 ## 14. Fait et vérifié : phase 2, la web app
 
@@ -365,7 +367,7 @@ Production sur `e84b614`, avec les migrations `offres_payantes`, `video_etiree` 
 - Le coach garde sur son téléphone les pages de suivi, avec l'effort et la douleur de ses athlètes. Effacées à la déconnexion. À signaler au juriste.
 - Sur iPhone, un envoi vidéo peut se suspendre quand Safari passe en arrière-plan. Il reprend au retour.
 - « Fait » depuis la notification reste réservé à l'app mobile : sur le web, la notification ouvre la page, en 2 touches.
-- Mobile : l'étirement vidéo n'est toujours pas branché (phase 5).
+- Mobile : l'étirement vidéo est branché depuis (phase 5, § 16), à essayer sur vrai téléphone.
 
 **Reste de la phase 2 :** l'essai sur vrai iPhone et vrai Android d'entrée de gamme (ralenti importé, envoi, notifications), avec toi et ton frère.
 
@@ -386,3 +388,47 @@ Production sur `e84b614`, avec les migrations `offres_payantes`, `video_etiree` 
 | Question mensuelle de satisfaction                                                          | Fait | Test                                                        |
 
 Ce qui ne dépend pas du code reste au § 12 : le choix du compte Stripe, Touch ID, le paiement réel, les comptes de stores.
+
+## 16. Fait : le code des phases 3 et 5
+
+### Phase 3 : design web
+
+Détail écran par écran dans `docs/registre-design-web.md` (68 lignes).
+
+| Point                                                              | État                                                                                             | Preuve                                                  |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| Registre des écrans, largeurs 390, 768 et 1280, Chromium et WebKit | Fait, sauf exceptions notées ligne par ligne                                                     | Registre. Critique indépendante sur 16 écrans seulement |
+| Capitales de section retirées, `window.confirm` remplacé           | Fait                                                                                             | `design-check` les refuse désormais                     |
+| Détecteur d'Impeccable en CI                                       | Déjà en place, durci : une panne fait échouer la vérification, un témoin prouve qu'il fonctionne | `design-check` local ; Linux vérifié par la CI          |
+| Vrais Safari et iPhone                                             | **Pas fait**                                                                                     | WebKit de Playwright seulement                          |
+| Rouge en plein soleil                                              | **Pas fait**                                                                                     | À faire à la piste, avec ton frère                      |
+
+### Phase 5 : mobile
+
+Détail dans `docs/registre-design-mobile.md` et `docs/fiches-stores.md`.
+
+| Point                                                                        | État                                                   | Preuve                                                                                        |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Étirement vidéo, envoi Android au premier plan, liens profonds               | Fait, à essayer                                        | Tests. Android jamais exécuté                                                                 |
+| Parité terrain : invitation, fiche athlète, exercices, relance du parent     | Fait                                                   | Simulateur iOS sur l'API locale. Android non vérifié                                          |
+| Passe design mobile                                                          | Faite sur simulateur iOS                               | VoiceOver et TalkBack non vérifiés                                                            |
+| Message de limite sans incitation à l'achat                                  | Fait                                                   | Relecture                                                                                     |
+| Compte de démonstration                                                      | Script prêt : adresses confirmées, aucun e-mail envoyé | Joué sur une base locale vide, connexion coach et athlète réussie. **Pas créé en production** |
+| Fiches, formulaires de confidentialité                                       | Rédigés                                                | À relire et à saisir par toi                                                                  |
+| Comptes de stores, EAS, Firebase, RevenueCat, build, TestFlight, 12 testeurs | **Pas fait, à ta charge**                              |                                                                                               |
+
+### Phase 7
+
+Rien n'est construit, volontairement : le plan réserve la V2 et la V3 aux retours du pilote.
+
+### Reste à ta charge, dans l'ordre
+
+1. Carte sur Mux et passage de Neon en Launch, puis restauration à tester ensemble.
+2. Projet Sentry et son DSN.
+3. L'adresse de ton frère pour `COACH_SIGNUP_EMAILS`.
+4. La recette et les essais sur vrais téléphones : `docs/recette-pilote.md`, § 1 et 2.
+5. Le pilote de 6 semaines.
+6. Les comptes de stores, en parallèle.
+7. Après le pilote : compte Stripe, juriste, médiateur, marque, entretiens sur le prix, feu vert pour les inscriptions.
+
+**Tartan n'est donc ni « terminé » ni commercialisable aujourd'hui :** le code prévu par le plan est écrit, mais le critère de sortie du pilote et la relecture juridique restent à passer.
