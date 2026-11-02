@@ -6,14 +6,13 @@
 
 ## Où on en est
 
-| Sujet              | État vérifié le 2 novembre                                                                                                 |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| Production         | `tartan.coach` et `app.tartan.coach` répondent, `/api/health` à `ok`, déploiement `3095f0b` en ligne, CI de `main` verte   |
-| Code du plan       | Phases 0 à 6 écrites et testées. Il manque surtout des essais réels, des comptes et des décisions, pas des fonctionnalités |
-| Paiement           | Compte Stripe activé, 4 prix actifs et conformes au code. Aucun vrai paiement encore passé                                 |
-| Sauvegarde         | Copie chiffrée chaque nuit, restauration testée                                                                            |
-| Suivi d'erreurs    | Sentry reçoit les erreurs de production                                                                                    |
-| Branche de travail | `feat/sprint-0-fondations` contient la landing et ces correctifs, **pas encore en ligne**                                  |
+| Sujet           | État vérifié le 2 novembre                                                                                                 |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Production      | `tartan.coach` et `app.tartan.coach` répondent, `/api/health` à `ok`, déploiement `3095f0b` en ligne, CI de `main` verte   |
+| Code du plan    | Phases 0 à 6 écrites et testées. Il manque surtout des essais réels, des comptes et des décisions, pas des fonctionnalités |
+| Paiement        | Compte Stripe activé, 4 prix actifs et conformes au code. Aucun vrai paiement encore passé                                 |
+| Sauvegarde      | Copie chiffrée chaque nuit, restauration testée                                                                            |
+| Suivi d'erreurs | Sentry reçoit les erreurs de production                                                                                    |
 
 ## Ce qui bloque l'ouverture
 
@@ -33,9 +32,9 @@ Sans ces 7 points, on n'ouvre pas.
 
 ### Étape 1 : mettre en ligne ce qui est prêt (moi, 1 jour)
 
-- [ ] Relire et valider la landing et les écrans sur l'aperçu Vercel.
-- [ ] Fusionner `feat/sprint-0-fondations` dans `main`, vérifier la CI et le déploiement.
-- [ ] Vérifier en production `robots.txt`, `sitemap.xml` et l'image de partage.
+- [ ] Relire la landing et les écrans en ligne, et me dire ce qui ne te plaît pas.
+- [x] `feat/sprint-0-fondations` fusionnée dans `main`, CI verte, déployée le 2 novembre.
+- [x] Vérifiés en production : `robots.txt`, `sitemap.xml`, image de partage, pages du site. Les inscriptions restent sur liste.
 
 **Terminé quand :** la nouvelle landing est en ligne, CI verte. Les inscriptions restent sur liste.
 

@@ -88,9 +88,10 @@ export const PricingGrid = ({
         {contact ? (
           <Link href="/contact">{m.billing.contactUs}</Link>
         ) : (
-          <Link href={key === "discovery" ? "/connexion?creer=1" : "/connexion?creer=1&next=/abonnement"}>
+          // Une vraie navigation : depuis le site, la création d'espace vit sur un autre domaine.
+          <a href={key === "discovery" ? "/connexion?creer=1" : "/connexion?creer=1&next=/abonnement"}>
             {key === "discovery" ? m.billing.startFree : m.billing.choose(label)}
-          </Link>
+          </a>
         )}
       </Button>
     );

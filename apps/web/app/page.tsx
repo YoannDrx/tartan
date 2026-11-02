@@ -22,12 +22,13 @@ const bendPadding = "pt-[72px] pb-[88px] desktop:pt-[120px] desktop:pb-[144px]";
 export default function LandingPage() {
   const signupOpen = env().COACH_SIGNUP_MODE === "public";
   const cta = (
-    <Link
+    // Une vraie navigation : la création d'espace vit sur app.tartan.coach, hors de portée du préchargement.
+    <a
       href={signupOpen ? "/connexion?creer=1" : "/contact"}
       className="inline-flex min-h-[52px] items-center rounded-full bg-cta px-7 text-base font-semibold text-on-cta no-underline hover:bg-cta-hover"
     >
       {signupOpen ? t.ctaOpen : t.ctaClosed}
-    </Link>
+    </a>
   );
 
   return (

@@ -1,7 +1,6 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { Wordmark } from "@/components/logo";
-import { SiteFooter, SiteHeader } from "@/features/shell/site-chrome";
+import { SITE_HOME, SiteFooter, SiteHeader } from "@/features/shell/site-chrome";
 import { LaneArcs } from "@/components/pictos";
 import { cn } from "@/lib/cn";
 
@@ -31,13 +30,13 @@ export const PublicPage = ({
       {site ? (
         <SiteHeader />
       ) : (
-        <Link
-          href="/"
+        <a
+          href={SITE_HOME}
           aria-label="Tartan, retour au site"
           className="inline-flex min-h-11 items-center self-start no-underline"
         >
           <Wordmark />
-        </Link>
+        </a>
       )}
       {title ? (
         <header className="mt-4 flex flex-col gap-4 desktop:mt-10">
