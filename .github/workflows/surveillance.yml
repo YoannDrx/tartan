@@ -1,0 +1,20 @@
+name: Surveillance
+
+# Un échec envoie l'alerte de GitHub au propriétaire du dépôt.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Application et base de données
+        run: curl --fail --silent --show-error --retry 3 --retry-all-errors --retry-delay 20 --max-time 20 https://app.tartan.coach/api/health
+      - name: Site
+        run: curl --fail --silent --show-error --output /dev/null --retry 3 --retry-all-errors --retry-delay 20 --max-time 20 https://tartan.coach/
