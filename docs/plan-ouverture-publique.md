@@ -103,6 +103,8 @@ Ce suivi ne bloque pas l'ouverture web.
 
 ## Ce que j'attends de toi d'abord
 
+Le mode d'emploi détaillé, avec le message pour le juriste, est dans `docs/guide-actions-fondateur.md`.
+
 1. Prendre rendez-vous avec le juriste : c'est le délai le plus long, et il peut changer le code (hébergement vidéo, suppression des données).
 2. Faire l'adhésion au médiateur.
 3. Relire la landing sur l'aperçu.
