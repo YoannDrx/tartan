@@ -74,9 +74,9 @@ Point chaque semaine, indicateurs dans `/admin`.
 Voir le § 12 du plan et `docs/conformite.md`. Ensuite, seulement :
 
 - [x] Compte Stripe « Tartan » créé (`acct_1UXJjd4TQfkM7TmX`), avec un environnement de test contenant les 4 prix et un portail.
-- [ ] Activation du compte : formulaire Stripe à remplir par toi. Il est lié à une entité juridique partagée avec tes autres comptes : relis le nom de l'entreprise avant d'envoyer.
-- [ ] Clé limitée créée avec Touch ID, droits : Customers, Checkout Sessions et Customer Portal en écriture, Subscriptions en écriture, Payment Methods en lecture.
-- [ ] Webhook réactivé, ou recréé sur le compte dédié.
-- [ ] Un vrai paiement remboursé, puis résiliation.
+- [x] Activation du compte : informations complètes, au nom de Yoann ANDRIEUX, site `tartan.coach`.
+- [x] Offres, 4 prix, portail et webhook créés en production, identifiants sur Vercel, redéploiement fait le 2 novembre.
+- [ ] Vrai paiement : vérifie sur la page Stripe le prix, les 14 jours d'essai et le nom Tartan. Ensuite : facture avec identité Yodev et mention 293 B, abonnement visible dans `/abonnement`, remboursement, résiliation. C'est aussi le seul test du webhook et de la clé secrète, que je ne peux pas lire.
+- [ ] Confirmer la franchise de TVA : un numéro de TVA est renseigné sur le compte, le pied de facture indique « TVA non applicable, art. 293 B ».
 - [ ] 10 à 20 coachs interrogés sur le prix.
 - [ ] Ton feu vert pour ouvrir les inscriptions.

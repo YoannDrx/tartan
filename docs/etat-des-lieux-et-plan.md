@@ -457,5 +457,5 @@ Liste remplacée par celle du § 17.
 4. Le pilote de 6 semaines.
 5. Apple : contrat « Paid Applications Schedule » accepté. Reste une première compilation iOS, avec ta connexion Apple.
 6. Google : créer le compte Play Console (type de compte, 25 $, pièce d'identité), puis Firebase et 12 testeurs. La configuration suivra.
-7. Stripe : compte « Tartan » créé, environnement de test en place. Reste l'activation (formulaire à remplir par toi, entité juridique partagée), puis `stripe login` pour que je configure la production sans voir de secret, et la clé limitée avant la vente.
+7. Stripe : compte `acct_1UXJjd4TQfkM7TmX` activé. Offres (code fiscal `txcd_10103001`), 4 prix, portail et webhook en production, contrôlés le 2 novembre. Variables sur Vercel, redéploiement à 19 h 11. Aucun abonnement à ce jour. Reste à vérifier avec un vrai paiement remboursé : clé secrète, prix sur Vercel, webhook et facture. À confirmer : la franchise de TVA et le type de clé (limitée ou non).
 8. Après le pilote : juriste, médiateur, marque, entretiens sur le prix, feu vert pour les inscriptions. Puis Neon Launch et la carte Mux.
