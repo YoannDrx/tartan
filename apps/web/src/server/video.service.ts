@@ -19,6 +19,7 @@ import { consentForAthletes } from "./consent.service";
 import { firstNameOf, namesFor } from "./me.service";
 import { notify } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
+import { assertVideoCapacity } from "./video-capacity.service";
 import {
   bestClearedHeight,
   deliveredFps,
@@ -104,6 +105,7 @@ export const createVideoUpload = async (userId: string, organizationId: string, 
   await requireVideoConsent(input.athleteId);
   await assertWithinPlan(organizationId, "maxVideosPerMonth");
   if (!videoEnabled()) throw new AppError(503, "video_disabled", m.errors.videoDisabled);
+  await assertVideoCapacity();
   if (input.scheduledSessionId) {
     const session = await prisma.scheduledSession.findFirst({
       where: { id: input.scheduledSessionId, organizationId },

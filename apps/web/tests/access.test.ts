@@ -1012,6 +1012,48 @@ describe("parrainage", () => {
   });
 });
 
+describe("plafond de l'offre gratuite de Mux", () => {
+  const withLimit = async (limit: string) => {
+    vi.resetModules();
+    vi.stubEnv("MUX_VIDEO_LIMIT", limit);
+    return import("@/server/video-capacity.service");
+  };
+
+  it("ne plafonne rien sans limite définie", async () => {
+    const service = await withLimit("");
+    expect(await service.videoCapacity()).toBeNull();
+    await expect(service.assertVideoCapacity()).resolves.toBeUndefined();
+    vi.unstubAllEnvs();
+  });
+
+  it("compte les vidéos stockées et les envois en cours, pas les envois abandonnés", async () => {
+    const org = await makeOrg("Plafond");
+    const athlete = await addAthlete(org.organizationId, org.groupId, "Paul");
+    const video = (data: { muxAssetId?: string; createdAt?: Date }) =>
+      prisma.video.create({
+        data: {
+          organizationId: org.organizationId,
+          athleteId: athlete.athleteId,
+          uploadedBy: org.owner.userId,
+          ...data,
+        },
+      });
+    const service = await withLimit("100000");
+    const start = (await service.videoCapacity())?.used ?? 0;
+
+    await video({ muxAssetId: `plafond-${org.organizationId}` });
+    await video({});
+    await video({ createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000) });
+    expect((await service.videoCapacity())?.used).toBe(start + 2);
+
+    const full = await withLimit(String(start + 2));
+    await expect(full.assertVideoCapacity()).rejects.toMatchObject({ status: 409, code: "video_storage_full" });
+    const room = await withLimit(String(start + 3));
+    await expect(room.assertVideoCapacity()).resolves.toBeUndefined();
+    vi.unstubAllEnvs();
+  });
+});
+
 describe("ouverture aux coachs", () => {
   it("réserve la création d'espace à la liste quand les inscriptions sont fermées", async () => {
     const stranger = await makeUser("Inconnu");

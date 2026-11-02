@@ -30,6 +30,8 @@ const schema = z.object({
   MUX_WEBHOOK_SECRET: optional,
   MUX_SIGNING_KEY_ID: optional,
   MUX_SIGNING_PRIVATE_KEY: optional,
+  // Offre gratuite de Mux : nombre de vidéos stockées au plus. À retirer le jour où l'offre change.
+  MUX_VIDEO_LIMIT: optional,
   VIDEO_DEV_MP4_URL: optional,
   STRIPE_SECRET_KEY: optional,
   STRIPE_WEBHOOK_SECRET: optional,

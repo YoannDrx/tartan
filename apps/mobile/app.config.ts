@@ -40,8 +40,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     throw new Error(`EXPO_PUBLIC_API_URL doit être en HTTPS pour la variante ${variant}.`);
   }
 
-  const projectId = process.env.EAS_PROJECT_ID?.trim();
-  const appleTeamId = process.env.APPLE_TEAM_ID?.trim() || undefined;
+  // Identifiants publics du projet EAS et de l'équipe Apple : aucun secret ici.
+  const projectId = process.env.EAS_PROJECT_ID?.trim() || "0067d5f6-b62a-455e-9680-d7624cfd4676";
+  const appleTeamId = process.env.APPLE_TEAM_ID?.trim() || "G9WFV7HNV6";
   // Sur EAS, une variable de type fichier donne son chemin ; en local, le fichier à côté de cette configuration.
   const googleServicesFile = process.env.GOOGLE_SERVICES_JSON?.trim() || "./google-services.json";
   const appleSignIn = flag(process.env.EXPO_PUBLIC_OAUTH_APPLE_ENABLED);

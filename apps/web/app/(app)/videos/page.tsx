@@ -10,6 +10,7 @@ import { VideoList } from "@/features/videos/video-list";
 import { JumpEntryDialog, UploadVideoDialog } from "@/features/videos/video-tools";
 import { listAthletes } from "@/server/athlete.service";
 import { listCalendar } from "@/server/session.service";
+import { videoCapacity } from "@/server/video-capacity.service";
 import { listVideos } from "@/server/video.service";
 
 export const metadata: Metadata = { title: m.video.title };
@@ -18,10 +19,11 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
   const { actor, organizationId } = await requireStaffSpace();
   const { athlete } = await searchParams;
   const today = todayIso();
-  const [videos, athletes, calendar] = await Promise.all([
+  const [videos, athletes, calendar, capacity] = await Promise.all([
     listVideos(actor.userId, organizationId, /^[0-9a-f-]{36}$/.test(athlete ?? "") ? { athleteId: athlete } : {}),
     listAthletes(actor.userId, organizationId),
     listCalendar(actor.userId, organizationId, { from: addDays(today, -14), to: addDays(today, 1) }),
+    videoCapacity(),
   ]);
   const sessions = calendar.sessions
     .filter((s) => s.publishedAt)
@@ -46,6 +48,9 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
         <FilterPill href="/videos" active={false} className="self-start">
           {m.video.allAthletes}
         </FilterPill>
+      ) : null}
+      {capacity ? (
+        <p className="t-caption font-normal text-soft">{m.video.storage(capacity.used, capacity.limit)}</p>
       ) : null}
       {videos.length === 0 ? (
         <EmptyState>

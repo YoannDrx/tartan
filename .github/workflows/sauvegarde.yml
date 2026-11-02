@@ -1,0 +1,37 @@
+name: Sauvegarde quotidienne
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sauvegarde:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Installer age
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+
+      # La clé publique seule est ici : GitHub ne peut pas relire la copie. Clé privée et restauration : docs/sauvegarde.md.
+      - name: Exporter et chiffrer
+        env:
+          NEON_BACKUP_URL: ${{ secrets.NEON_BACKUP_URL }}
+          AGE_RECIPIENT: age1eyq9qj44sw7ujhjlacam4rxjnrag48hp3zw9uqwpregqpdh8mydq72kqlc
+        run: |
+          set -euo pipefail
+          test -n "$NEON_BACKUP_URL"
+          docker run --rm -e NEON_BACKUP_URL postgres:17 \
+            sh -c 'pg_dump --format=custom --no-owner --no-privileges "$NEON_BACKUP_URL"' \
+            | age --recipient "$AGE_RECIPIENT" --output tartan.dump.age
+          test -s tartan.dump.age
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tartan-${{ github.run_number }}
+          path: tartan.dump.age
+          retention-days: 30
+          if-no-files-found: error

@@ -29,10 +29,13 @@ Un iPhone et un Android d'entrée de gamme.
 
 ## 3. Avant d'inviter le groupe
 
-- [ ] Carte ajoutée sur Mux (limite de 10 vidéos sans carte).
-- [ ] Neon passé en Launch, restauration sur 7 jours.
+- [ ] Sauvegarde quotidienne en route : `docs/sauvegarde.md`, une commande à lancer, puis clé privée rangée dans ton gestionnaire de mots de passe.
 - [ ] Adresse de ton frère ajoutée à `COACH_SIGNUP_EMAILS` (me la donner suffit).
-- [ ] Projet Sentry créé et `NEXT_PUBLIC_SENTRY_DSN` défini.
+
+Mux et Neon restent sur leur offre gratuite. Quand passer à l'offre payante :
+
+- **Mux :** dès que la limite de 10 vidéos stockées gêne le pilote. Tartan affiche « x vidéos stockées sur 10 » et refuse proprement l'envoi suivant. Ajouter la carte, puis me demander de retirer `MUX_VIDEO_LIMIT`.
+- **Neon :** si la base dépasse 800 Mo ou 80 CU-heures par mois, et de toute façon avant la vente.
 
 ## 4. Avec ton frère, avant de démarrer
 

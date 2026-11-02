@@ -35,6 +35,7 @@ Rôle à faire confirmer : Yodev est-il responsable de traitement, ou sous-trait
 | Stripe      | Paiement web          | UE, États-Unis                                                | DPA inclus aux conditions                          |
 | RevenueCat  | Achats intégrés       | États-Unis                                                    | DPA                                                |
 | Sentry      | Suivi d'erreurs       | Région Allemagne                                              | DPA                                                |
+| GitHub      | Copie de sauvegarde   | États-Unis, chiffrée avant envoi, clé gardée par l'éditeur    | DPA, à confirmer avec le juriste                   |
 
 ## Questions à poser au juriste
 

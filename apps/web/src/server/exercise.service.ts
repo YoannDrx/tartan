@@ -7,6 +7,7 @@ import { createDirectUpload, signedPlayback, videoEnabled } from "@/lib/mux";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "./access";
+import { assertVideoCapacity } from "./video-capacity.service";
 
 type MediaRow = {
   kind: "upload" | "youtube";
@@ -113,6 +114,7 @@ export const createExerciseVideoUpload = async (userId: string, organizationId: 
   if (!videoEnabled()) throw new AppError(503, "video_disabled", m.errors.videoDisabled);
   const exercise = await prisma.exercise.findFirst({ where: { id: exerciseId, organizationId, deletedAt: null } });
   if (!exercise) throw notFound();
+  await assertVideoCapacity();
   const media = await prisma.exerciseMedia.create({ data: { exerciseId, kind: "upload" } });
   const upload = await createDirectUpload(`exercise:${media.id}`);
   await prisma.exerciseMedia.update({ where: { id: media.id }, data: { muxUploadId: upload.uploadId } });

@@ -171,7 +171,7 @@ Restent :
 5. **Le rouge plein écran.** Ta décision prime, mais elle contredit le § 9.11 (« clair pour planifier »). Blanc sur rouge passe à 4,99:1, sans marge. À tester en plein soleil, à la piste, avec ton frère, avant de la figer. Le cahier et `DESIGN.md` doivent aussi être alignés.
 6. **Aucune console pour toi.** Le cahier n'en veut pas, mais tu ne verrais aujourd'hui ni tes clients, ni qui valide, ni les signalements, sauf en SQL. Apple attend qu'un signalement soit traité. **Une console minimale** me semble nécessaire ; Stripe suffit pour les revenus.
 7. **Le test fermé Google n'attend pas la fin.** 12 testeurs, 14 jours : l'horloge doit partir tôt, même si le web porte le pilote (§ 16.3).
-8. **Offres gratuites.** Mux et Neon gratuits ne tiennent pas un pilote. Ce sont les seules dépenses vraiment immédiates.
+8. **Offres gratuites.** J'avais écrit que Mux et Neon gratuits ne tiennent pas un pilote. C'était trop fort : voir le § 17, tu restes sur le gratuit tant que c'est possible.
 9. **Mon compte rendu d'étapes.** J'ai annoncé des choses comme faites alors qu'elles n'étaient que locales, ou vérifiées sur la mauvaise source (240 i/s). D'où la règle : **rien n'est « fait » tant que ce n'est pas vérifié en production** (phase 1 et suivantes).
 
 ## 9. Coûts à prévoir
@@ -427,12 +427,34 @@ Rien n'est construit, volontairement : le plan réserve la V2 et la V3 aux retou
 
 ### Reste à ta charge, dans l'ordre
 
-1. Carte sur Mux et passage de Neon en Launch, puis restauration à tester ensemble.
-2. Projet Sentry et son DSN.
+Liste remplacée par celle du § 17.
+
+**Tartan n'est donc ni « terminé » ni commercialisable aujourd'hui :** le code prévu par le plan est écrit, mais le critère de sortie du pilote et la relecture juridique restent à passer.
+
+## 17. Mise à jour du 2 novembre 2026 : gratuit d'abord, comptes configurés
+
+### Tes décisions
+
+- **Mux reste gratuit** tant que possible : 10 vidéos stockées au plus, logo Mux sur le lecteur. Tartan compte les vidéos, l'affiche sur `/videos` et refuse proprement l'envoi suivant. `MUX_VIDEO_LIMIT=10` en production. Les vidéos d'exercice comptent aussi, y compris celles d'un exercice supprimé, dont Mux garde le fichier.
+- **Neon reste gratuit.** La place n'est pas le sujet : 34 Mo utilisés sur 1 Go, rien à nettoyer. Le seul manque était la restauration, limitée à 6 h. Il est comblé par une copie chiffrée chaque nuit, gardée 30 jours : `docs/sauvegarde.md`.
+
+### Fait
+
+| Sujet         | État                                                                                                                          |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Sentry        | Projet `tartan`, région Allemagne, DSN en production, alerte sur les problèmes de haute priorité                              |
+| EAS           | Projet `tartan` créé, identifiant dans `app.config.ts`                                                                        |
+| Apple         | App ID `coach.tartan.app` (notifications, domaines associés), fiche « Tartan – Coach athlé » créée                            |
+| Plafond vidéo | En place, testé                                                                                                               |
+| Sauvegarde    | Atelier écrit. Chaîne export, chiffrement, restauration vérifiée sur une base locale. **Pas encore lancée sur la production** |
+
+### Reste à ta charge, dans l'ordre
+
+1. Lancer la sauvegarde : `docs/sauvegarde.md`, une commande. Je testerai la restauration sur la vraie copie ensuite.
+2. Ranger `~/.tartan/cle-sauvegarde.txt` dans ton gestionnaire de mots de passe.
 3. L'adresse de ton frère pour `COACH_SIGNUP_EMAILS`.
 4. La recette et les essais sur vrais téléphones : `docs/recette-pilote.md`, § 1 et 2.
 5. Le pilote de 6 semaines.
-6. Les comptes de stores, en parallèle.
-7. Après le pilote : compte Stripe, juriste, médiateur, marque, entretiens sur le prix, feu vert pour les inscriptions.
-
-**Tartan n'est donc ni « terminé » ni commercialisable aujourd'hui :** le code prévu par le plan est écrit, mais le critère de sortie du pilote et la relecture juridique restent à passer.
+6. Apple : accepter le « Paid Applications Schedule » (rôle Account Holder), bandeau dans App Store Connect. Il bloque la soumission.
+7. Google : compte Play Console, Firebase, 12 testeurs. Non connectés.
+8. Après le pilote : créer un compte Stripe « Tartan » dans ton organisation Yodev, juriste, médiateur, marque, entretiens sur le prix, feu vert pour les inscriptions. Puis Neon Launch et la carte Mux.

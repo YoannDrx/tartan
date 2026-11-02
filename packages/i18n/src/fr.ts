@@ -443,6 +443,8 @@ export const fr = {
     capture: "Filmer",
     import: "Importer",
     slowHint: "Filme en ralenti (120 ou 240 i/s) pour une analyse nette.",
+    storage: (used: number, limit: number) =>
+      `${Math.min(used, limit)} vidéos stockées sur ${limit}. Supprime les anciennes pour faire de la place.`,
     tooLong: (seconds: number) =>
       `Cette vidéo est trop longue. À cette fréquence, garde ${seconds} s au plus : coupe-la autour du saut.`,
     linkedSession: "Séance",
@@ -736,6 +738,7 @@ export const fr = {
     invalid: "Certaines informations sont invalides.",
     rateLimited: "Trop de tentatives. Patiente une minute puis réessaie.",
     videoDisabled: "L'envoi vidéo n'est pas encore configuré sur ce serveur.",
+    videoStorageFull: "L'espace vidéo est plein. Supprime une ancienne vidéo, ou demande à ton coach de le faire.",
     consentRequired: "L'accord de l'athlète est nécessaire pour cette action.",
   },
   // Textes propres à l'app mobile (apps/mobile).
@@ -1047,7 +1050,8 @@ export const fr = {
       copied: "Lien copié.",
       personalTitle: "Inviter une personne",
       personalLead: "Le lien lui est envoyé par e-mail. Il sert une seule fois.",
-      personalForAthlete: (name: string) => `Le lien est envoyé à ${name} par e-mail et rattache son compte à sa fiche.`,
+      personalForAthlete: (name: string) =>
+        `Le lien est envoyé à ${name} par e-mail et rattache son compte à sa fiche.`,
       emailLabel: "Adresse e-mail de l'athlète",
       send: "Envoyer l'invitation",
       sent: (email: string) => `Invitation envoyée à ${email}.`,
