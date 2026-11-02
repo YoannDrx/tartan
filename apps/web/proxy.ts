@@ -21,7 +21,18 @@ const buildCsp = (nonce: string): string =>
     ...(process.env.VERCEL_ENV === "production" ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
 
-const SITE_PATHS = ["/", "/tarifs", "/confidentialite", "/conditions", "/cgv", "/mentions-legales", "/contact", "/suppression-compte"];
+const SITE_PATHS = [
+  "/",
+  "/tarifs",
+  "/confidentialite",
+  "/conditions",
+  "/cgv",
+  "/mentions-legales",
+  "/contact",
+  "/suppression-compte",
+  "/robots.txt",
+  "/sitemap.xml",
+];
 const isSitePath = (pathname: string): boolean =>
   SITE_PATHS.includes(pathname) || pathname.startsWith("/r/") || pathname.startsWith("/brand/");
 

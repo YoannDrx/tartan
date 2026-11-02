@@ -16,6 +16,14 @@ export const metadata: Metadata = {
   title: { default: m.brand.storeName, template: "%s · Tartan" },
   description: m.brand.tagline,
   manifest: "/manifest.webmanifest",
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "Tartan",
+    url: "https://tartan.coach",
+    images: [{ url: "https://tartan.coach/brand/og.png", width: 1200, height: 630, alt: "Tartan" }],
+  },
+  twitter: { card: "summary_large_image" },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },

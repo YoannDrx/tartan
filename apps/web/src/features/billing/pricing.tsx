@@ -88,7 +88,7 @@ export const PricingGrid = ({
         {contact ? (
           <Link href="/contact">{m.billing.contactUs}</Link>
         ) : (
-          <Link href={key === "discovery" ? "/connexion" : "/connexion?next=/abonnement"}>
+          <Link href={key === "discovery" ? "/connexion?creer=1" : "/connexion?creer=1&next=/abonnement"}>
             {key === "discovery" ? m.billing.startFree : m.billing.choose(label)}
           </Link>
         )}

@@ -130,13 +130,34 @@ test.describe("le pilote", () => {
     await page.getByRole("button", { name: "Supprimer mon compte" }).click();
     await page.getByLabel("Écris SUPPRIMER pour confirmer").fill("SUPPRIMER");
     await page.getByRole("dialog").getByRole("button", { name: "Supprimer mon compte" }).click();
-    await expect(page.getByRole("heading", { name: "Le carnet d’entraînement de ton groupe." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Plus de séances perdues dans les SMS." })).toBeVisible();
     await page.goto("/suivi");
     await expect(page).toHaveURL(/\/connexion/);
   });
 });
 
 test.describe("toutes tailles d'écran", () => {
+  test("la landing se laisse essayer : validation, appel et saut image par image", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "J'ai fait la séance" }).click();
+    await expect(page.getByText("Séance validée, bien joué")).toBeVisible();
+    await expect(page.getByText(/^Validée en \d+,\d s\.$/)).toBeVisible();
+    await page.getByRole("button", { name: "Recommencer" }).click();
+    await expect(page.getByRole("button", { name: "J'ai fait la séance" })).toBeVisible();
+
+    await page.getByRole("group", { name: "Présence de Léa" }).getByRole("button", { name: "Absent" }).click();
+    await expect(page.getByText("En autonomie").first()).toBeVisible();
+
+    const frame = page.getByText(/^Image \d+ sur 480/);
+    const before = await frame.textContent();
+    await page.getByRole("button", { name: "Image suivante" }).click();
+    await expect(frame).not.toHaveText(before ?? "");
+
+    // Le visiteur qui veut créer son espace trouve une page qui le dit.
+    await page.getByRole("link", { name: "Créer mon espace coach" }).first().click();
+    await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible();
+  });
+
   test("site, connexion et pages légales sont accessibles et sans défilement horizontal", async ({ page }) => {
     for (const path of [
       "/",

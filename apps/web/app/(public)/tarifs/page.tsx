@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function TarifsPage() {
   return (
-    <PublicPage title={m.billing.pricingTitle} lead={m.billing.athleteFree} width="wide">
+    <PublicPage title={m.billing.pricingTitle} lead={m.billing.athleteFree} width="wide" site>
       <div className="flex flex-col gap-4">
         {!billingEnabled() ? <p className="font-semibold">{m.billing.disabled}</p> : null}
         <PricingGrid billingEnabled={billingEnabled()} signupOpen={env().COACH_SIGNUP_MODE === "public"} />

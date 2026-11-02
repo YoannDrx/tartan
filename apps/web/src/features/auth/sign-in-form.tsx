@@ -18,10 +18,12 @@ export const SignInForm = ({
   callbackURL = "/accueil",
   providers,
   defaultEmail,
+  creating = false,
 }: {
   callbackURL?: string;
   providers: ("google" | "apple")[];
   defaultEmail?: string;
+  creating?: boolean;
 }) => {
   const [mode, setMode] = useState<"magic" | "signin" | "signup">("magic");
   const [sent, setSent] = useState<"magic" | "verify" | null>(null);
@@ -122,7 +124,9 @@ export const SignInForm = ({
         ) : null}
         <Button type="submit" size="lg" disabled={isSubmitting}>
           {mode === "magic"
-            ? m.auth.sendMagicLink
+            ? creating
+              ? m.auth.createSubmit
+              : m.auth.sendMagicLink
             : mode === "signin"
               ? m.auth.signInWithPassword
               : m.auth.signUpWithPassword}

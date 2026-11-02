@@ -330,6 +330,99 @@
   }
 }
 
+/* Site public seulement (DESIGN.md) : les couloirs se dessinent au défilement. Sans prise en charge, ils sont déjà là. */
+.lap {
+  --lap-gap: 9px;
+  --lap-overlap: calc(var(--lap-gap) * -3);
+  view-timeline: --lap block;
+}
+.lap + .lap {
+  margin-top: var(--lap-overlap);
+}
+@media (min-width: 1024px) {
+  .lap {
+    --lap-gap: 14px;
+  }
+}
+@keyframes lap-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .lap-lane {
+      stroke-dasharray: 1;
+      animation: lap-draw linear both;
+      animation-timeline: --lap;
+      /* La tête du tracé reste à 70 % de l'écran : un virage finit quand le suivant commence. */
+      animation-range: cover 30vh cover calc(100% - 70vh);
+    }
+  }
+}
+/* Le signal part de l'athlète et arrive chez le coach. */
+@keyframes demo-signal {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(var(--signal-distance, 0));
+  }
+}
+.demo-signal {
+  animation: demo-signal 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes demo-cell {
+  from {
+    transform: scale(0.4);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+.demo-cell {
+  animation: demo-cell 320ms cubic-bezier(0.16, 1, 0.3, 1) 280ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo-signal,
+  .demo-cell {
+    animation: none;
+  }
+}
+/* Curseur image par image : même tête de lecture que la timeline vidéo. */
+.jump-range {
+  appearance: none;
+  width: 100%;
+  height: 44px;
+  background: transparent;
+}
+.jump-range::-webkit-slider-runnable-track {
+  height: 3px;
+  background: var(--color-card-line);
+}
+.jump-range::-moz-range-track {
+  height: 3px;
+  background: var(--color-card-line);
+}
+.jump-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 8px;
+  height: 32px;
+  margin-top: -14px;
+  border-radius: 4px;
+  background: var(--color-fg);
+}
+.jump-range::-moz-range-thumb {
+  width: 8px;
+  height: 32px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--color-fg);
+}
+
 /* Un seul moment animé : la coche de validation (§ 9.11). */
 @keyframes tartan-check {
   from {

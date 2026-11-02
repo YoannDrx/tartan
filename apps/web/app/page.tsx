@@ -1,111 +1,133 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { formatPrice, PLANS, TRIAL_DAYS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { Wordmark } from "@/components/logo";
+import { JumpScrubber } from "@/features/landing/jump-scrubber";
+import { LapBend } from "@/features/landing/lap";
+import { RollCallDemo } from "@/features/landing/roll-call-demo";
+import { ValidationDemo } from "@/features/landing/validation-demo";
+import { SiteFooter, SiteHeader } from "@/features/shell/site-chrome";
 import { env } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: { absolute: m.brand.storeName },
-  description: "Le carnet d'entraînement partagé du coach d'athlé et de son groupe.",
+  description:
+    "Le carnet d'entraînement partagé du coach d'athlé et de son groupe : séances, suivi et analyse vidéo. Gratuit jusqu'à 5 athlètes.",
+  alternates: { canonical: "https://tartan.coach" },
 };
 
-const lanes = [
-  {
-    title: "Tu crées la séance une fois.",
-    body: "Pour le groupe, un sous-groupe ou un athlète. Chacun la reçoit en notification, avec ses propres charges.",
-  },
-  {
-    title: "L’absent reçoit la bonne version.",
-    body: "Au club ou en autonomie : après l'appel, la bascule se fait toute seule.",
-  },
-  {
-    title: "Tu vois qui a fait quoi.",
-    body: "L'athlète valide en moins de 10 secondes. Fait, partiel, manqué : une ligne par athlète, une case par séance.",
-  },
-  {
-    title: "Chaque saut devient une leçon.",
-    body: "Filmé, rattaché à la barre et à l'essai, revu image par image, commenté à l'instant précis de l'impulsion.",
-  },
-];
+const t = m.landing;
+const bendPadding = "pt-[72px] pb-[88px] desktop:pt-[120px] desktop:pb-[144px]";
 
 export default function LandingPage() {
   const signupOpen = env().COACH_SIGNUP_MODE === "public";
+  const cta = (
+    <Link
+      href={signupOpen ? "/connexion?creer=1" : "/contact"}
+      className="inline-flex min-h-[52px] items-center rounded-full bg-cta px-7 text-base font-semibold text-on-cta no-underline hover:bg-cta-hover"
+    >
+      {signupOpen ? t.ctaOpen : t.ctaClosed}
+    </Link>
+  );
+
   return (
     <main className="min-h-dvh overflow-x-clip">
-      <header className="mx-auto flex max-w-[1200px] items-center justify-between px-4 pt-6 desktop:px-6">
-        <Wordmark />
-        <div className="flex items-center gap-4">
-          <Link href="/tarifs" className="inline-flex min-h-11 items-center font-semibold">
-            {m.billing.pricing}
-          </Link>
-          <Link
-            href="/connexion"
-            className="inline-flex min-h-11 items-center rounded-full border-2 border-on-page px-5 font-semibold no-underline hover:bg-brand-strong"
-          >
-            Se connecter
-          </Link>
-        </div>
-      </header>
+      <div className="mx-auto max-w-[1200px] px-4 pt-6 desktop:px-6">
+        <SiteHeader />
+      </div>
 
-      <section className="mx-auto max-w-[1200px] px-4 pb-14 pt-12 desktop:px-6 desktop:pt-20">
-        <h1 className="max-w-[16ch] font-display text-[60px] font-bold leading-[0.95] desktop:text-[120px]">
-          Le carnet d’entraînement de ton groupe.
+      <section className="mx-auto max-w-[1200px] px-4 pb-14 pt-10 desktop:px-6 desktop:pb-20 desktop:pt-16">
+        <h1 className="text-balance font-display text-[60px] font-bold leading-[0.95] desktop:text-[116px]">
+          {t.title}
         </h1>
-        <p className="mt-6 max-w-[44ch] text-[18px] leading-[26px] desktop:text-[20px] desktop:leading-[28px]">
-          Pour les coachs de saut en hauteur et leur groupe. Plus de séances perdues dans les SMS : chacun sait ce qu'il
-          a à faire, et tu sais ce qui a été fait.
-        </p>
-        <Link
-          href={signupOpen ? "/connexion" : "/contact"}
-          className="mt-8 inline-flex min-h-[52px] items-center rounded-full bg-cta px-7 text-base font-semibold text-on-cta no-underline hover:bg-cta-hover"
-        >
-          {signupOpen ? "Créer mon espace coach" : "Rejoindre le pilote"}
-        </Link>
+        <div className="mt-6 flex flex-col gap-6 desktop:mt-8 desktop:flex-row desktop:items-end desktop:justify-between">
+          <p className="max-w-[52ch] text-[18px] leading-[26px] desktop:text-[20px] desktop:leading-[28px]">{t.lead}</p>
+          <div className="shrink-0">
+            {cta}
+            <p className="t-caption mt-3 max-w-[32ch]">
+              {t.offer(PLANS.discovery.limits.maxAthletes ?? 0, TRIAL_DAYS)}
+            </p>
+          </div>
+        </div>
+        <div className="mt-10 desktop:mt-14">
+          <ValidationDemo />
+        </div>
       </section>
 
-      {/* La piste : quatre couloirs numérotés, coupés par la ligne d'arrivée, comme le logo. */}
-      <section aria-label="Comment ça marche" className="relative border-b-[3px] border-white">
+      <LapBend side="right" start="bleed">
+        <div className={`mx-auto max-w-[1200px] pl-4 pr-12 desktop:pl-6 desktop:pr-24 ${bendPadding}`}>
+          <div className="grid gap-8 desktop:grid-cols-2 desktop:items-center desktop:gap-14">
+            <div>
+              <h2 className="text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[72px] desktop:leading-[72px]">
+                {t.rollCall.title}
+              </h2>
+              <p className="mt-4 max-w-[46ch] text-[17px] leading-[25px]">{t.rollCall.body}</p>
+            </div>
+            <RollCallDemo />
+          </div>
+        </div>
+      </LapBend>
+
+      <LapBend side="left">
+        <div className={`mx-auto max-w-[1200px] pl-12 pr-4 desktop:pl-24 desktop:pr-6 ${bendPadding}`}>
+          <div className="grid gap-8 desktop:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] desktop:items-center desktop:gap-14">
+            <div className="order-2 desktop:order-1">
+              <JumpScrubber />
+            </div>
+            <div className="order-1 desktop:order-2">
+              <h2 className="text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[72px] desktop:leading-[72px]">
+                {t.video.title}
+              </h2>
+              <p className="mt-4 max-w-[40ch] text-[17px] leading-[25px]">{t.video.body}</p>
+            </div>
+          </div>
+        </div>
+      </LapBend>
+
+      <LapBend side="right" end="bleed">
+        <div className={`mx-auto max-w-[1200px] pl-4 pr-12 desktop:pl-6 desktop:pr-24 ${bendPadding}`}>
+          <h2 className="max-w-[14ch] text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[72px] desktop:leading-[72px]">
+            {t.field.title}
+          </h2>
+          <dl className="mt-8 desktop:mt-12">
+            {t.field.items.map((item) => (
+              <div
+                key={item.title}
+                className="grid gap-1 border-t-[3px] border-white py-5 desktop:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] desktop:gap-8 desktop:py-7"
+              >
+                <dt className="font-display text-[32px] font-bold leading-9 desktop:text-[44px] desktop:leading-[48px]">
+                  {item.title}
+                </dt>
+                <dd className="max-w-[56ch] text-[17px] leading-[25px] desktop:self-center">{item.body}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        {/* La ligne d'arrivée coupe la piste, une seule fois (DESIGN.md). */}
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-[11%] hidden w-[7px] bg-white desktop:block"
+          className="absolute bottom-[-3px] left-[11%] h-[calc(var(--lap-gap)*3+24px)] w-[7px] bg-lane"
         />
-        <ol>
-          {lanes.map((lane, i) => (
-            <li key={lane.title} className="border-t-[3px] border-white">
-              <div className="mx-auto grid max-w-[1200px] grid-cols-[48px_1fr] gap-x-4 px-4 py-8 desktop:grid-cols-[96px_minmax(0,1fr)_minmax(0,1fr)_12%] desktop:gap-x-8 desktop:px-6 desktop:py-10">
-                <span aria-hidden className="t-num text-[48px] font-bold leading-none desktop:text-[72px]">
-                  {i + 1}
-                </span>
-                <h2 className="font-display text-[28px] font-bold leading-[32px] desktop:text-[36px] desktop:leading-[40px]">
-                  {lane.title}
-                </h2>
-                <p className="col-start-2 mt-2 max-w-[48ch] desktop:col-start-3 desktop:mt-0">{lane.body}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+      </LapBend>
+
+      <section className="mx-auto max-w-[1200px] px-4 pb-14 pt-16 desktop:px-6 desktop:pb-20 desktop:pt-24">
+        <h2 className="text-balance font-display text-[60px] font-bold leading-[0.95] desktop:text-[116px]">
+          {t.finish.title}
+        </h2>
+        <p className="mt-5 max-w-[52ch] text-[18px] leading-[26px]">
+          {t.finish.prices(formatPrice(PLANS.coach.prices?.month ?? 0), formatPrice(PLANS.club.prices?.month ?? 0))}
+        </p>
+        <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+          {cta}
+          <Link href="/tarifs" className="inline-flex min-h-11 items-center font-semibold">
+            {t.finish.pricing}
+          </Link>
+        </div>
       </section>
 
-      <footer className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-8 desktop:px-6">
-        <Link href="/tarifs" className="min-h-11 content-center">
-          {m.billing.pricing}
-        </Link>
-        <Link href="/confidentialite" className="min-h-11 content-center">
-          {m.legal.privacy}
-        </Link>
-        <Link href="/conditions" className="min-h-11 content-center">
-          {m.legal.terms}
-        </Link>
-        <Link href="/cgv" className="min-h-11 content-center">
-          Conditions de vente
-        </Link>
-        <Link href="/mentions-legales" className="min-h-11 content-center">
-          Mentions légales
-        </Link>
-        <Link href="/contact" className="min-h-11 content-center">
-          {m.legal.contact}
-        </Link>
-      </footer>
+      <div className="mx-auto max-w-[1200px] px-4 desktop:px-6">
+        <SiteFooter />
+      </div>
     </main>
   );
 }

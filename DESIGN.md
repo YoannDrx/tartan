@@ -32,7 +32,7 @@ Sur l'encre, les statuts utilisent `scene.status` (`done` #4C8FE0, `partial` #E0
 
 ### Exigence de soin
 
-Tout est aligné sur la grille de 4, chiffres tabulaires partout, rythme vertical constant. Sélection de texte, focus (blanc sur le rouge, `scene.link` sur l'encre), barres de défilement, états vides : tout porte l'identité. Un seul moment animé : la validation d'une séance (coche), éventuellement la barre franchie. Un écran correct mais quelconque n'est pas terminé.
+Tout est aligné sur la grille de 4, chiffres tabulaires partout, rythme vertical constant. Sélection de texte, focus (blanc sur le rouge, `scene.link` sur l'encre), barres de défilement, états vides : tout porte l'identité. Un seul moment animé : la validation d'une séance (coche), éventuellement la barre franchie. Exception décidée par le fondateur le 2 novembre 2026, limitée au site public (`/`) : les couloirs s'y dessinent aussi au défilement, en plus de la validation que le visiteur déclenche dans la démonstration. Sans prise en charge ou avec la réduction des animations, ils sont simplement là. Un écran correct mais quelconque n'est pas terminé.
 
 ## Jetons
 
@@ -111,7 +111,7 @@ Un écran qui contient l'un de ces travers n'est pas terminé.
 - Ombres dures ou lourdes.
 - Police système comme voix de la marque.
 - Faux contenu (lorem ipsum, statistiques inventées). Contenu réel du pilote ou repère explicite [À DÉFINIR].
-- Animations d'apparition identiques partout : un seul moment animé qui a du sens (validation d'une séance, barre franchie).
+- Animations d'apparition identiques partout : un seul moment animé qui a du sens (validation d'une séance, barre franchie). Seul le site public y ajoute le tracé des couloirs.
 
 ## À vérifier sur chaque écran
 
