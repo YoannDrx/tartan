@@ -440,21 +440,22 @@ Liste remplacée par celle du § 17.
 
 ### Fait
 
-| Sujet         | État                                                                                                                                                                                                                                                   |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sentry        | Projet `tartan`, région Allemagne, DSN en production, alerte sur les problèmes de haute priorité. Erreur réelle reçue depuis la production. Le premier essai montrait l'IP et la ville : réglages corrigés, nouvel essai vérifié sans l'une ni l'autre |
-| EAS           | Projet `tartan` créé, identifiant dans `app.config.ts`                                                                                                                                                                                                 |
-| Apple         | App ID `coach.tartan.app` (notifications, domaines associés), fiche « Tartan – Coach athlé » créée                                                                                                                                                     |
-| Plafond vidéo | En place, testé                                                                                                                                                                                                                                        |
-| Sauvegarde    | Atelier écrit. Chaîne export, chiffrement, restauration vérifiée sur une base locale. **Pas encore lancée sur la production**                                                                                                                          |
+| Sujet          | État                                                                                                                                                                                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sentry         | Projet `tartan`, région Allemagne, DSN en production, alerte sur les problèmes de haute priorité. Erreur réelle reçue depuis la production. Le premier essai montrait l'IP et la ville : réglages corrigés, nouvel essai vérifié sans l'une ni l'autre |
+| EAS            | Projet `tartan` créé, identifiant dans `app.config.ts`                                                                                                                                                                                                 |
+| Apple          | App ID `coach.tartan.app` (notifications, domaines associés), fiche « Tartan – Coach athlé » créée                                                                                                                                                     |
+| Plafond vidéo  | En place, testé                                                                                                                                                                                                                                        |
+| Sauvegarde     | En production, avec un rôle en lecture seule. Vraie copie téléchargée, déchiffrée et restaurée sur une base locale : mêmes données que la production                                                                                                   |
+| Recette, coach | Groupe, lien d'invitation, séance publiée, `/admin` vérifiés en production. Le côté athlète reste à faire sur ton téléphone                                                                                                                            |
 
 ### Reste à ta charge, dans l'ordre
 
-1. Lancer la sauvegarde : `docs/sauvegarde.md`, une commande. Je testerai la restauration sur la vraie copie ensuite.
-2. Ranger `~/.tartan/cle-sauvegarde.txt` dans ton gestionnaire de mots de passe.
-3. L'adresse de ton frère pour `COACH_SIGNUP_EMAILS`.
-4. La recette et les essais sur vrais téléphones : `docs/recette-pilote.md`, § 1 et 2.
-5. Le pilote de 6 semaines.
-6. Apple : accepter le « Paid Applications Schedule » (rôle Account Holder), bandeau dans App Store Connect. Il bloque la soumission.
-7. Google : compte Play Console, Firebase, 12 testeurs. Non connectés.
-8. Après le pilote : créer un compte Stripe « Tartan » dans ton organisation Yodev, juriste, médiateur, marque, entretiens sur le prix, feu vert pour les inscriptions. Puis Neon Launch et la carte Mux.
+1. Ranger `~/.tartan/cle-sauvegarde.txt` dans ton gestionnaire de mots de passe.
+2. L'adresse de ton frère pour `COACH_SIGNUP_EMAILS`.
+3. Le côté athlète de la recette et les essais sur vrais téléphones : `docs/recette-pilote.md`, § 1 et 2.
+4. Le pilote de 6 semaines.
+5. Apple : contrat « Paid Applications Schedule » accepté. Reste une première compilation iOS, avec ta connexion Apple.
+6. Google : créer le compte Play Console (type de compte, 25 $, pièce d'identité), puis Firebase et 12 testeurs. La configuration suivra.
+7. Stripe : créer le compte « Tartan » dans ton organisation Yodev et la clé limitée. La configuration suivra.
+8. Après le pilote : juriste, médiateur, marque, entretiens sur le prix, feu vert pour les inscriptions. Puis Neon Launch et la carte Mux.

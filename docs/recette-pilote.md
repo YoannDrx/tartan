@@ -5,12 +5,12 @@ Ce qui ne peut pas être vérifié depuis le code. À cocher au fil de l'eau.
 ## 1. Recette en production, avec ton téléphone (20 minutes)
 
 - [ ] Sur `app.tartan.coach`, connexion par lien magique avec ton adresse. L'e-mail arrive, le lien ouvre l'espace.
-- [ ] Crée un groupe, puis copie son lien d'invitation.
+- [x] Crée un groupe, puis copie son lien d'invitation. Groupe « Jump », lien dans Réglages, avec un QR code.
 - [ ] Sur ton téléphone, en navigation privée ou avec une autre adresse : ouvre le lien, rejoins le groupe, donne les accords.
-- [ ] Depuis l'ordinateur : publie une séance pour aujourd'hui.
+- [x] Depuis l'ordinateur : publie une séance pour aujourd'hui. « Séance de recette », 2 novembre 2026.
 - [ ] Sur le téléphone : la séance arrive, valide-la en moins de 10 secondes.
 - [ ] Sur l'ordinateur : la grille passe à « Fait ».
-- [ ] Ouvre `/admin` depuis l'ordinateur : ton espace y apparaît.
+- [x] Ouvre `/admin` depuis l'ordinateur : ton espace y apparaît.
 
 ## 2. Essai sur vrais téléphones (une séance)
 
@@ -29,7 +29,8 @@ Un iPhone et un Android d'entrée de gamme.
 
 ## 3. Avant d'inviter le groupe
 
-- [ ] Sauvegarde quotidienne en route : `docs/sauvegarde.md`, une commande à lancer, puis clé privée rangée dans ton gestionnaire de mots de passe.
+- [x] Sauvegarde quotidienne en route et restauration testée : `docs/sauvegarde.md`.
+- [ ] Clé privée `~/.tartan/cle-sauvegarde.txt` rangée dans ton gestionnaire de mots de passe.
 - [ ] Adresse de ton frère ajoutée à `COACH_SIGNUP_EMAILS` (me la donner suffit).
 
 Mux et Neon restent sur leur offre gratuite. Quand passer à l'offre payante :

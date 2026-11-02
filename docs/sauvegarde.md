@@ -7,13 +7,12 @@ L'offre gratuite de Neon ne permet de revenir que 6 heures en arrière. Pour ten
 - **Clé privée :** `~/.tartan/cle-sauvegarde.txt` sur ton Mac. **Sans elle, aucune copie n'est lisible.** Mets-la dans ton gestionnaire de mots de passe.
 - **Si l'atelier échoue :** GitHub t'envoie un e-mail.
 
-## Mise en route, une seule fois
+## En place
 
-Dans la console Neon, bouton **Connect**, branche `production`, **Connection pooling désactivé**, copie l'adresse. Puis, en collant l'adresse quand c'est demandé :
+- **Accès :** le secret GitHub `NEON_BACKUP_URL` utilise le rôle `tartan_sauvegarde`, en lecture seule (contrôlé : ni écriture, ni suppression, ni création).
+- **Essai réel, 2 novembre 2026 :** la copie de production a été téléchargée, déchiffrée et restaurée sur une base locale vide. 53 tables, comptes, espaces, groupes, exercices et migrations identiques à la production. La séance publiée 30 secondes après le départ de la copie n'y figure pas, ce qui est normal.
 
-```bash
-gh secret set NEON_BACKUP_URL --repo YoannDrx/tartan
-```
+Pour lancer une copie à la main :
 
 ```bash
 gh workflow run sauvegarde.yml --repo YoannDrx/tartan
