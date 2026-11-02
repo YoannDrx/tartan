@@ -73,7 +73,9 @@ Point chaque semaine, indicateurs dans `/admin`.
 
 Voir le § 12 du plan et `docs/conformite.md`. Ensuite, seulement :
 
-- [ ] Compte Stripe choisi, clé limitée créée avec Touch ID, droits : Customers, Checkout Sessions et Customer Portal en écriture, Subscriptions en écriture, Payment Methods en lecture.
+- [x] Compte Stripe « Tartan » créé (`acct_1UXJjd4TQfkM7TmX`), avec un environnement de test contenant les 4 prix et un portail.
+- [ ] Activation du compte : formulaire Stripe à remplir par toi. Il est lié à une entité juridique partagée avec tes autres comptes : relis le nom de l'entreprise avant d'envoyer.
+- [ ] Clé limitée créée avec Touch ID, droits : Customers, Checkout Sessions et Customer Portal en écriture, Subscriptions en écriture, Payment Methods en lecture.
 - [ ] Webhook réactivé, ou recréé sur le compte dédié.
 - [ ] Un vrai paiement remboursé, puis résiliation.
 - [ ] 10 à 20 coachs interrogés sur le prix.
