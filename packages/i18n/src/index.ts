@@ -13,14 +13,21 @@ export const getMessages = (locale: string | null | undefined): Messages =>
 
 export const m = fr;
 
+// En français, le premier jour du mois s'écrit « 1er », ce qu'Intl ne fait pas.
+export const withFirstOfMonth = (label: string): string => label.replace(/(^|\s)1 (?=\p{L})/u, "$11er ");
+
 export const formatDateLong = (isoDate: string): string =>
-  new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(
-    new Date(`${isoDate}T12:00:00.000Z`),
+  withFirstOfMonth(
+    new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(
+      new Date(`${isoDate}T12:00:00.000Z`),
+    ),
   );
 
 export const formatDayMonth = (isoDate: string): string =>
-  new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" }).format(
-    new Date(`${isoDate}T12:00:00.000Z`),
+  withFirstOfMonth(
+    new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" }).format(
+      new Date(`${isoDate}T12:00:00.000Z`),
+    ),
   );
 
 export const formatWeekdayShort = (isoDate: string): string => {

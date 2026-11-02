@@ -138,7 +138,7 @@ export const SignInForm = ({
         ) : (
           <>
             {mode === "signin" ? (
-              <a href="/mot-de-passe-oublie" className="inline-flex min-h-11 items-center">
+              <a href="/mot-de-passe-oublie" className="inline-flex min-h-11 items-center underline">
                 {m.auth.forgotPassword}
               </a>
             ) : null}

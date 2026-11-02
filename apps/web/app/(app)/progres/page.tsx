@@ -32,7 +32,7 @@ export default async function ProgresPage() {
           <Rows>
             {file.performances.map((p) => (
               <li key={`${p.discipline}-${p.date}-${p.mark}`} className="flex items-center justify-between gap-3 py-2">
-                <span className="min-w-0 leading-tight">
+                <span className="min-w-0 leading-snug">
                   <span className="flex flex-wrap items-center gap-x-2 font-semibold">
                     {p.discipline}
                     {p.isPb ? <Chip tone="brand">{m.athletes.record}</Chip> : null}
@@ -53,7 +53,7 @@ export default async function ProgresPage() {
           <Rows>
             {file.tests.map((t) => (
               <li key={`${t.exerciseKey}-${t.date}`} className="flex items-center justify-between gap-3 py-2">
-                <span className="min-w-0 leading-tight">
+                <span className="min-w-0 leading-snug">
                   <span className="block font-semibold">{strengthTestLabel(t.exerciseKey)}</span>
                   <span className="t-caption block font-normal text-soft">
                     {m.testKind[t.kind]}, {date(t.date)}
@@ -82,7 +82,7 @@ export default async function ProgresPage() {
             <Rows>
               {file.injuries.map((i) => (
                 <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <div className="min-w-0 flex-1 leading-tight">
+                  <div className="min-w-0 flex-1 leading-snug">
                     <p className="flex flex-wrap items-center gap-x-2 font-semibold">
                       {m.bodyArea[i.bodyArea as keyof typeof m.bodyArea]}
                       <Chip tone={i.status === "resolved" ? "neutral" : "warning"}>{m.injuryStatus[i.status]}</Chip>

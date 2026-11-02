@@ -11,6 +11,28 @@ const req = (path: string, body: unknown) =>
   });
 
 describe("authentification", () => {
+  it("le début de l'adresse n'est pas pris pour un prénom à l'inscription", async () => {
+    const email = `etat-vide-${Date.now()}@test.tartan.coach`;
+    const res = await auth.handler(
+      req("/sign-up/email", { email, password: "mot-de-passe-de-test", name: email.split("@")[0] }),
+    );
+    expect(res.status).toBe(200);
+    const user = await prisma.user.findUniqueOrThrow({ where: { email }, include: { profile: true } });
+    expect(user.profile?.firstName).toBeNull();
+    expect(user.profile?.lastName).toBeNull();
+  });
+
+  it("un vrai nom reste découpé en prénom et nom", async () => {
+    const email = `vrai-nom-${Date.now()}@test.tartan.coach`;
+    const res = await auth.handler(
+      req("/sign-up/email", { email, password: "mot-de-passe-de-test", name: "Léa Martin" }),
+    );
+    expect(res.status).toBe(200);
+    const user = await prisma.user.findUniqueOrThrow({ where: { email }, include: { profile: true } });
+    expect(user.profile?.firstName).toBe("Léa");
+    expect(user.profile?.lastName).toBe("Martin");
+  });
+
   it("le lien magique crée le compte, son profil, et ne sert qu'une fois", async () => {
     const email = `magique-${Date.now()}@test.tartan.coach`;
     const res = await auth.handler(req("/sign-in/magic-link", { email, callbackURL: "/accueil" }));

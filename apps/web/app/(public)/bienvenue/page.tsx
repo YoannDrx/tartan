@@ -28,10 +28,12 @@ export default async function BienvenuePage() {
       </PublicPage>
     );
   }
+  // Les comptes créés avant le correctif de `splitName` ont le début de leur adresse comme prénom.
+  const firstName = me.firstName && me.firstName !== actor.email.split("@")[0] ? me.firstName : "";
   return (
     <PublicPage title="Crée ton espace coach">
       <div className="on-card flex flex-col gap-5 rounded-card bg-card p-5">
-        <OnboardingForm firstName={me.firstName ?? ""} lastName={me.lastName ?? ""} />
+        <OnboardingForm firstName={firstName} lastName={me.lastName ?? ""} />
         <p className="text-soft">{m.onboarding.joinHint}</p>
       </div>
     </PublicPage>

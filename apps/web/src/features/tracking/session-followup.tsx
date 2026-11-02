@@ -64,7 +64,7 @@ export const RollCall = ({
       <ul className="divide-y divide-card-line">
         {rows.map((row) => (
           <li key={row.athleteId} className="flex items-center justify-between gap-3 py-1.5">
-            <span className="min-w-0 break-words font-semibold leading-tight">{row.name}</span>
+            <span className="min-w-0 break-words font-semibold leading-snug">{row.name}</span>
             <div role="group" aria-label={`Présence de ${row.name}`} className="flex gap-1">
               {(["present", "absent"] as const).map((value) => (
                 <button

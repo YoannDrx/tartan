@@ -1,5 +1,6 @@
 "use client";
 
+import { CloudOff } from "lucide-react";
 import { m } from "@tartan/i18n";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -100,11 +101,12 @@ export const OfflineProvider = ({
       {lines.length > 0 || expired ? (
         <div
           role="status"
-          className="on-card sticky top-0 z-40 flex flex-wrap items-center gap-x-3 bg-card px-4 py-1.5"
+          className="offline-bar sticky top-0 z-40 flex min-h-11 flex-wrap items-center gap-x-3 bg-st-partial px-4 text-on-status"
         >
+          <CloudOff aria-hidden className="size-4 shrink-0" />
           <span className="t-caption font-semibold">{lines.join(", ")}</span>
           {expired ? (
-            <Link href="/connexion" className="t-caption inline-flex min-h-11 items-center font-semibold">
+            <Link href="/connexion" className="t-caption inline-flex min-h-11 items-center font-semibold text-inherit">
               {m.offline.session} {m.offline.signIn}
             </Link>
           ) : null}

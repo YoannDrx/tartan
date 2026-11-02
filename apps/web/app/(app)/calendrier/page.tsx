@@ -37,7 +37,7 @@ const AthleteCalendar = async ({ ctx }: { ctx: SpaceContext }) => {
         className="grid min-h-11 grid-cols-[26px_minmax(0,1fr)] items-center gap-x-3 px-4 py-2 text-inherit no-underline hover:bg-raise"
       >
         <StatusIcon status={s.status} />
-        <span className="flex min-w-0 flex-col leading-tight">
+        <span className="flex min-w-0 flex-col leading-snug">
           <span className="break-words font-semibold">{s.title}</span>
           <span className="t-caption font-normal text-soft">
             {capitalize(formatDateLong(s.date))}, {m.variant[s.variant].toLowerCase()}
@@ -59,7 +59,7 @@ const AthleteCalendar = async ({ ctx }: { ctx: SpaceContext }) => {
               {competitions.map((c) => (
                 <li
                   key={c.id}
-                  className="grid grid-cols-[26px_minmax(0,1fr)] items-center gap-x-3 px-4 py-2 leading-tight"
+                  className="grid grid-cols-[26px_minmax(0,1fr)] items-center gap-x-3 px-4 py-2 leading-snug"
                 >
                   <Medal aria-hidden className="size-5 justify-self-center" />
                   <span className="min-w-0">

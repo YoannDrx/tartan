@@ -98,7 +98,7 @@ export const AppShell = ({
 
   return (
     <div className="min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0">
-      <header className="on-card sticky top-0 z-30 bg-card">
+      <header className="app-header on-card sticky top-0 z-30 bg-card">
         <div className="mx-auto flex min-h-14 max-w-[1440px] items-center gap-4 px-4 desktop:px-6">
           <Link href="/accueil" aria-label="Tartan, accueil" className="inline-flex shrink-0 items-center">
             <Logo height={28} onDark />
@@ -145,9 +145,10 @@ export const AppShell = ({
       </header>
 
       <main className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pb-8 pt-5 desktop:px-6 desktop:pt-8">
+        {/* Le contenu d'abord, l'athlète vient pour sa séance : les bandeaux passent dessous. */}
+        <div>{children}</div>
         <InstallBanner />
         {askSatisfaction ? <SatisfactionQuestion /> : null}
-        <div>{children}</div>
       </main>
 
       <nav

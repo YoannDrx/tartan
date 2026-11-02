@@ -7,6 +7,7 @@ import { ArrowRight, Check, Timer, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, IconButton } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/cn";
 import { QuickValidate } from "./validation";
 
@@ -91,10 +92,6 @@ export const SessionMode = ({
     return () => clearTimeout(timer);
   }, [restLeft]);
 
-  const quit = () => {
-    if (window.confirm(m.sessionMode.quitConfirm)) router.push(`/seance/${session.id}`);
-  };
-
   const item = items[index];
   const sets = Object.entries(checked)
     .filter(([, done]) => done)
@@ -120,9 +117,19 @@ export const SessionMode = ({
     <main className="scene-dark min-h-dvh bg-ink text-white">
       <div className="mx-auto flex min-h-dvh max-w-xl flex-col gap-4 p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-3">
-          <IconButton tone="darkRound" label={m.sessionMode.quit} onClick={quit}>
-            <X aria-hidden className="size-5" />
-          </IconButton>
+          <ConfirmDialog
+            title={m.sessionMode.quitTitle}
+            description={m.sessionMode.quitDetail}
+            confirmLabel={m.sessionMode.quitAction}
+            cancelLabel={m.sessionMode.quitStay}
+            tone="neutral"
+            onConfirm={() => router.push(`/seance/${session.id}`)}
+            trigger={
+              <IconButton tone="darkRound" label={m.sessionMode.quit}>
+                <X aria-hidden className="size-5" />
+              </IconButton>
+            }
+          />
           <div className="flex flex-1 flex-col gap-1.5">
             <span className="t-caption font-normal text-soft">{m.sessionMode.exerciseOf(index + 1, items.length)}</span>
             <div className="flex gap-1" aria-hidden>
@@ -156,7 +163,7 @@ export const SessionMode = ({
           </div>
         ) : null}
 
-        <p className="t-num text-[22px] leading-tight">{item.summary}</p>
+        <p className="t-num text-[22px] leading-snug">{item.summary}</p>
         {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg === null ? (
           <p className="text-link">{m.today.loadMissing}</p>
         ) : null}

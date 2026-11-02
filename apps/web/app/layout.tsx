@@ -1,25 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
-import { Barlow, Barlow_Condensed } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
 import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import { ToastHost } from "@/components/ui/toast";
+import { fontVariables } from "./fonts";
 import "./globals.css";
-
-const barlow = Barlow({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-barlow",
-  display: "swap",
-});
-const barlowCondensed = Barlow_Condensed({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-barlow-condensed",
-  display: "swap",
-});
 
 // La CSP à nonce exige un rendu à la demande : une page statique verrait ses scripts bloqués.
 export const dynamic = "force-dynamic";
@@ -47,7 +34,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr" className={`${barlow.variable} ${barlowCondensed.variable}`}>
+    <html lang="fr" className={fontVariables}>
       <body>
         <NuqsAdapter>
           {children}

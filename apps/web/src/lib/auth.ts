@@ -37,8 +37,13 @@ const socialProviders = {
 
 export const enabledSocialProviders = Object.keys(socialProviders) as ("google" | "apple")[];
 
-const splitName = (name: string | null | undefined): { firstName: string | null; lastName: string | null } => {
+// L'inscription par mot de passe remplit `name` avec le début de l'adresse (better-auth l'exige) : ce n'est pas un prénom.
+const splitName = (
+  name: string | null | undefined,
+  email: string,
+): { firstName: string | null; lastName: string | null } => {
   const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1 && parts[0] === email.split("@")[0]) return { firstName: null, lastName: null };
   return { firstName: parts[0] ?? null, lastName: parts.slice(1).join(" ") || null };
 };
 
@@ -109,7 +114,7 @@ export const auth = betterAuth({
         after: async (user) => {
           await prisma.profile.upsert({
             where: { id: user.id },
-            create: { id: user.id, ...splitName(user.name) },
+            create: { id: user.id, ...splitName(user.name, user.email) },
             update: {},
           });
         },

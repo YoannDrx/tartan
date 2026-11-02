@@ -96,7 +96,7 @@ const Hero = ({
           ) : (
             <QuickValidate session={card} organizationId={organizationId} healthConsent={healthConsent} onDark />
           )}
-          <Button asChild size="md" variant={validated ? "primary" : "secondary"}>
+          <Button asChild size="md" variant="secondary">
             <Link href={`/seance/${card.id}/mode`}>
               <Play aria-hidden className="size-4 fill-current" />
               {m.today.start}
@@ -126,7 +126,7 @@ const Hero = ({
                 >
                   <Play className="size-4 fill-current" />
                 </span>
-                <span className="flex min-w-0 flex-1 flex-col leading-tight">
+                <span className="flex min-w-0 flex-1 flex-col leading-snug">
                   <span className="font-semibold">{item.name}</span>
                   <span className="t-caption font-normal text-soft">{item.summary}</span>
                 </span>

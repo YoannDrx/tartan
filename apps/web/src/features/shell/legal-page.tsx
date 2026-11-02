@@ -8,7 +8,7 @@ export const LegalPage = ({ title, updated, children }: { title: string; updated
     lead={`Version de travail du ${updated}, à faire relire par un juriste avant publication.`}
     width="text"
   >
-    <div className="on-card flex flex-col gap-4 rounded-card bg-card p-5 tablet:p-8 [&_a]:text-link [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-[26px] [&_h2]:font-semibold [&_h2]:leading-[30px] [&_li]:ml-5 [&_li]:list-disc">
+    <div className="on-card flex flex-col gap-4 rounded-card bg-card p-5 tablet:max-w-[calc(58ch+64px)] tablet:p-8 [&_a]:text-link [&_p]:max-w-[58ch] [&_ul]:max-w-[58ch] [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-[26px] [&_h2]:font-semibold [&_h2]:leading-[30px] [&_li]:ml-5 [&_li]:list-disc">
       {children}
     </div>
   </PublicPage>

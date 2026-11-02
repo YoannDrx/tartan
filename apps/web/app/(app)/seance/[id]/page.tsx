@@ -1,4 +1,4 @@
-import { Play } from "lucide-react";
+import { ChevronLeft, Play } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { capitalize, formatDateLong, m } from "@tartan/i18n";
@@ -26,6 +26,10 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
   const validated = session.status === "done" || session.status === "partial";
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
+      <Link href="/aujourdhui" className="-mb-2 inline-flex min-h-11 items-center gap-1 self-start font-semibold">
+        <ChevronLeft aria-hidden className="size-5" />
+        {m.common.back}
+      </Link>
       <PageHeader title={session.title} detail={capitalize(formatDateLong(session.date))} />
       <p className="flex flex-wrap items-center gap-2">
         {/* Sur le rouge, le statut reste sur l'encre : aucun disque de couleur directement sur le fond. */}
@@ -52,7 +56,7 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
           {session.hasAutonomous ? <TodayAbsence sessionId={id} current={session.attendance} /> : null}
         </div>
       ) : null}
-      <Button asChild size="lg" variant={!validated && session.date <= todayIso() ? "secondary" : "primary"}>
+      <Button asChild size="lg" variant={validated || session.date <= todayIso() ? "secondary" : "primary"}>
         <Link href={`/seance/${id}/mode`}>
           <Play aria-hidden className="size-4 fill-current" />
           {m.today.start}

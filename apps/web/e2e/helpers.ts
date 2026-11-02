@@ -41,6 +41,8 @@ export const createCoachSpace = async (page: Page, name = "Thomas") => {
   // En développement, la première compilation d'une page peut prendre longtemps.
   await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible({ timeout: 60_000 });
   await page.waitForLoadState("networkidle");
+  // Le début de l'adresse n'est pas un prénom : le champ attend le vrai.
+  await expect(page.getByLabel("Prénom")).toHaveValue("");
   await page.getByLabel("Prénom").fill(name);
   await page.getByLabel("Nom", { exact: true }).fill("Coach");
   await page.getByLabel("Nom du club ou de ton coaching").fill(`Coaching ${name}`);

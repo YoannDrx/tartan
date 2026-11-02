@@ -11,6 +11,7 @@ import { FilterPill, pillClass } from "@/components/filter-pill";
 import { ActivityPicto } from "@/components/pictos";
 import { EmptyState } from "@/components/states";
 import { Button, IconButton } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CheckRow, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Dialog } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
@@ -493,7 +494,7 @@ export const SessionBuilder = ({
                     <button
                       type="button"
                       onClick={() => setEditing({ blockKey: block.key, itemKey: item.key })}
-                      className="flex min-h-11 min-w-48 flex-1 items-center gap-3 rounded-button px-2 py-1 text-left leading-tight hover:bg-raise"
+                      className="flex min-h-11 min-w-48 flex-1 items-center gap-3 rounded-button px-2 py-1 text-left leading-snug hover:bg-raise"
                     >
                       <ActivityPicto kind={exercise?.category ?? "strength"} className="size-5 text-soft" />
                       <span className="flex min-w-0 flex-col desktop:flex-1 desktop:flex-row desktop:items-center desktop:gap-4">
@@ -607,7 +608,7 @@ export const SessionBuilder = ({
             >
               <GripVertical aria-hidden className="size-4 shrink-0 text-st-upcoming" />
               <ActivityPicto kind={e.category} className="size-5 text-soft" />
-              <span className="flex min-w-0 flex-1 flex-col leading-tight">
+              <span className="flex min-w-0 flex-1 flex-col leading-snug">
                 <span className="break-words font-semibold">{e.name}</span>
                 <span className="t-caption font-normal text-soft">
                   {m.exerciseCategory[e.category as keyof typeof m.exerciseCategory]}
@@ -756,7 +757,7 @@ export const SessionBuilder = ({
           {formError}
         </p>
       ) : null}
-      <div className="on-card desktop:col-start-2 min-w-0 z-10 flex flex-wrap items-center gap-2 rounded-card bg-card p-3 desktop:sticky desktop:bottom-4">
+      <div className="on-card desktop:col-start-2 min-w-0 z-10 flex flex-wrap items-center gap-2 rounded-card bg-card p-3 desktop:sticky desktop:bottom-4 desktop:border desktop:border-control-line desktop:shadow-[0_8px_24px_rgba(21,22,26,0.16)]">
         <Button disabled={save.isPending} onClick={() => submit(true)}>
           {initial?.publishedAt ? "Enregistrer et prévenir les athlètes" : m.builder.publish}
         </Button>
@@ -804,14 +805,15 @@ export const SessionBuilder = ({
           {m.builder.saveTemplate}
         </Button>
         {initial ? (
-          <Button
-            variant="danger"
-            className={cn("ml-auto")}
-            disabled={remove.isPending}
-            onClick={() => window.confirm("Supprimer cette séance ?") && remove.execute({ id: initial.id })}
-          >
-            {m.common.delete}
-          </Button>
+          <ConfirmDialog
+            title="Supprimer cette séance ?"
+            onConfirm={() => remove.execute({ id: initial.id })}
+            trigger={
+              <Button variant="danger" className={cn("ml-auto")} disabled={remove.isPending}>
+                {m.common.delete}
+              </Button>
+            }
+          />
         ) : null}
       </div>
       <Dialog

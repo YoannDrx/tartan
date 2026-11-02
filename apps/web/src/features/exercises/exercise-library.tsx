@@ -12,6 +12,7 @@ import { ActivityPicto } from "@/components/pictos";
 import { Sheet } from "@/components/sheet";
 import { EmptyState, PageHeader } from "@/components/states";
 import { Button, IconButton } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
@@ -325,7 +326,7 @@ export const ExerciseLibrary = ({
                                 <ActivityPicto kind={e.category} className="size-5" />
                               </span>
                             )}
-                            <div className="min-w-0 leading-tight">
+                            <div className="min-w-0 leading-snug">
                               <p className="break-words font-semibold">{e.name}</p>
                               {media?.kind === "youtube" && media.title ? (
                                 <p className="t-caption font-normal text-soft">{media.title}</p>
@@ -346,15 +347,16 @@ export const ExerciseLibrary = ({
                               >
                                 <Pencil aria-hidden className="size-4" />
                               </IconButton>
-                              <IconButton
-                                label={`${m.common.delete} ${e.name}`}
-                                onClick={() =>
-                                  window.confirm(`Supprimer « ${e.name} » ? ${m.exercises.deleteNotice}`) &&
-                                  remove.execute({ id: e.id })
+                              <ConfirmDialog
+                                title={`Supprimer « ${e.name} » ?`}
+                                description={m.exercises.deleteNotice}
+                                onConfirm={() => remove.execute({ id: e.id })}
+                                trigger={
+                                  <IconButton label={`${m.common.delete} ${e.name}`}>
+                                    <Trash2 aria-hidden className="size-4" />
+                                  </IconButton>
                                 }
-                              >
-                                <Trash2 aria-hidden className="size-4" />
-                              </IconButton>
+                              />
                             </div>
                           </li>
                         );

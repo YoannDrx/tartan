@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { pillClass } from "@/components/filter-pill";
 import { Chip } from "@/components/states";
 import { Button, IconButton } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { CheckRow, Field, Input, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
@@ -27,6 +28,7 @@ import {
 import {
   deleteAccountAction,
   deleteGroupAction,
+  resendParentalAction,
   saveGroupAction,
   setConsentAction,
   updateOrganizationAction,
@@ -138,10 +140,19 @@ export const ConsentSwitches = ({
 }) => {
   const router = useRouter();
   const { execute, isPending } = useAction(setConsentAction, { onSuccess: () => router.refresh(), onError: onErr });
+  const resend = useAction(resendParentalAction, {
+    onSuccess: () => toast.ok(m.parental.resent),
+    onError: onErr,
+  });
   return (
     <div className="flex flex-col">
       {parentalPending ? (
-        <p className="mb-2 rounded-thumb bg-card-raised p-3 text-st-partial">{m.parental.pendingBanner}</p>
+        <div className="mb-2 flex flex-col items-start gap-2 rounded-thumb bg-card-raised p-3">
+          <p className="text-st-partial">{m.parental.pendingBanner}</p>
+          <Button size="sm" variant="secondary" disabled={resend.isPending} onClick={() => resend.execute()}>
+            {m.parental.resend}
+          </Button>
+        </div>
       ) : null}
       <CheckRow
         label={m.settings.healthConsent}
@@ -406,7 +417,7 @@ export const GroupRow = ({ group, canDelete }: { group: GroupValues; canDelete: 
   return (
     <li className="flex flex-wrap items-center gap-x-1 gap-y-2 py-2">
       <div className="min-w-48 flex-1">
-        <div className="min-w-0 leading-tight">
+        <div className="min-w-0 leading-snug">
           <p className="flex items-center gap-2 break-words font-semibold">
             {group.color ? (
               // Couleur choisie par le coach pour son groupe : une donnée, pas un jeton.
@@ -444,12 +455,15 @@ export const GroupRow = ({ group, canDelete }: { group: GroupValues; canDelete: 
       </IconButton>
       <GroupDialog group={group} />
       {canDelete ? (
-        <IconButton
-          label={`${m.common.delete} ${group.name}`}
-          onClick={() => window.confirm(`Supprimer le groupe « ${group.name} » ?`) && remove.execute({ id: group.id })}
-        >
-          <Trash2 aria-hidden className="size-4" />
-        </IconButton>
+        <ConfirmDialog
+          title={`Supprimer le groupe « ${group.name} » ?`}
+          onConfirm={() => remove.execute({ id: group.id })}
+          trigger={
+            <IconButton label={`${m.common.delete} ${group.name}`}>
+              <Trash2 aria-hidden className="size-4" />
+            </IconButton>
+          }
+        />
       ) : null}
       {link && !showQr ? (
         <Input
@@ -715,7 +729,7 @@ export const InvitationList = ({
         const label = inv.email ?? inv.phone ?? (inv.kind === "group_link" ? "Lien de groupe" : "QR code");
         return (
           <li key={inv.id} className="flex flex-wrap items-center gap-x-1 gap-y-2 py-2">
-            <div className="min-w-48 flex-1 leading-tight">
+            <div className="min-w-48 flex-1 leading-snug">
               <p className="break-all font-semibold">{label}</p>
               <p className="t-caption flex flex-wrap items-center gap-2 font-normal text-soft">
                 <Chip>{m.invitationStatus[inv.status]}</Chip>

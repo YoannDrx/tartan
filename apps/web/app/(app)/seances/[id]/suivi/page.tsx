@@ -71,7 +71,7 @@ export default async function SessionFollowupPage({ params }: { params: Promise<
                     className="grid scroll-mt-20 grid-cols-[26px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 px-4 py-2"
                   >
                     <StatusIcon status={a.status} className="mt-px" />
-                    <div className="min-w-0 leading-tight">
+                    <div className="min-w-0 leading-snug">
                       <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <Link
                           href={`/athletes/${a.athleteId}`}

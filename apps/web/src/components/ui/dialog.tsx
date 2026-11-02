@@ -28,7 +28,6 @@ export const Dialog = ({
     <Radix.Portal>
       <Radix.Overlay className="fixed inset-0 z-40 bg-ink/70" />
       <Radix.Content
-        aria-describedby={description ? undefined : undefined}
         className={cn(
           "fixed z-50 flex max-h-[92dvh] flex-col overflow-y-auto on-card bg-card shadow-[0_8px_24px_rgba(21,22,26,0.16)]",
           "inset-x-0 bottom-0 rounded-t-hero p-4 pb-[max(16px,env(safe-area-inset-bottom))]",

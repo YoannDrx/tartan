@@ -75,7 +75,7 @@ export const Chip = ({
   tone = "neutral",
 }: {
   children: ReactNode;
-  tone?: "neutral" | "dark" | "brand" | "warning";
+  tone?: "neutral" | "dark" | "brand" | "warning" | "missed";
 }) => (
   <span
     className={cn(
@@ -84,6 +84,7 @@ export const Chip = ({
       tone === "dark" && "bg-card text-fg",
       tone === "brand" && "bg-brand text-white",
       tone === "warning" && "bg-st-partial text-on-status",
+      tone === "missed" && "bg-st-missed text-on-status",
     )}
   >
     {children}

@@ -1,12 +1,13 @@
 "use client";
 
 import type { AnnouncementItem } from "@tartan/contracts";
-import { m } from "@tartan/i18n";
+import { m, withFirstOfMonth } from "@tartan/i18n";
 import { Flag, Pin, PinOff, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
 import { Chip, EmptyState } from "@/components/states";
 import { Button, IconButton } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CheckRow, Field, Select, Textarea } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { reportContentAction } from "@/features/comments/comment.action";
@@ -83,7 +84,7 @@ export const AnnouncementList = ({ items, canManage }: { items: AnnouncementItem
         <li key={a.id} className="flex items-start gap-2 px-4 py-3">
           <div className="min-w-0 flex-1">
             {/* Le coach reste la voix : la signature passe avant le message. */}
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 leading-tight">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 leading-snug">
               <span className="font-semibold">{a.authorName}</span>
               {a.pinned ? (
                 <Chip tone="brand">
@@ -94,7 +95,7 @@ export const AnnouncementList = ({ items, canManage }: { items: AnnouncementItem
             </p>
             <p className="mt-1 whitespace-pre-line break-words">{a.body}</p>
             <p className="t-caption mt-1 font-normal text-soft">
-              {a.groupName}, {dateLabel.format(new Date(a.createdAt))}
+              {a.groupName}, {withFirstOfMonth(dateLabel.format(new Date(a.createdAt)))}
             </p>
           </div>
           {canManage ? (
@@ -105,12 +106,15 @@ export const AnnouncementList = ({ items, canManage }: { items: AnnouncementItem
               >
                 {a.pinned ? <PinOff aria-hidden className="size-4" /> : <Pin aria-hidden className="size-4" />}
               </IconButton>
-              <IconButton
-                label={m.common.delete}
-                onClick={() => window.confirm("Supprimer cette annonce ?") && remove.execute({ id: a.id })}
-              >
-                <Trash2 aria-hidden className="size-4" />
-              </IconButton>
+              <ConfirmDialog
+                title="Supprimer cette annonce ?"
+                onConfirm={() => remove.execute({ id: a.id })}
+                trigger={
+                  <IconButton label={m.common.delete}>
+                    <Trash2 aria-hidden className="size-4" />
+                  </IconButton>
+                }
+              />
             </div>
           ) : (
             <IconButton

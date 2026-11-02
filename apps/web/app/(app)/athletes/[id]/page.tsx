@@ -63,7 +63,6 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
               {!file.hasAccount ? (
                 <InviteAthleteDialog athleteId={file.id} groupIds={file.groups.map((g) => g.id)} />
               ) : null}
-              <RemoveAthlete id={file.id} name={file.firstName} />
               <AthleteDialog
                 trigger={
                   <Button size="sm" variant="secondary">
@@ -85,6 +84,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                   groupIds: file.groups.map((g) => g.id),
                 }}
               />
+              <RemoveAthlete id={file.id} name={file.firstName} />
             </>
           ) : null
         }
@@ -169,7 +169,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
               <Rows>
                 {file.performances.map((p) => (
                   <li key={p.id} className="flex items-center justify-between gap-3 py-2">
-                    <span className="min-w-0 leading-tight">
+                    <span className="min-w-0 leading-snug">
                       <span className="flex flex-wrap items-center gap-x-2 font-semibold">
                         {p.discipline}
                         {p.isPb ? <Chip tone="brand">{m.athletes.record}</Chip> : null}
@@ -191,7 +191,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
               <Rows>
                 {file.tests.map((t) => (
                   <li key={t.id} className="flex items-center justify-between gap-3 py-2">
-                    <span className="min-w-0 leading-tight">
+                    <span className="min-w-0 leading-snug">
                       <span className="block font-semibold">{strengthTestLabel(t.exerciseKey)}</span>
                       <span className="t-caption block font-normal text-soft">
                         {m.testKind[t.kind]}, {year(t.date)}
@@ -225,7 +225,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
               <Rows>
                 {file.injuries.map((i) => (
                   <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <div className="min-w-0 flex-1 leading-tight">
+                    <div className="min-w-0 flex-1 leading-snug">
                       <p className="flex flex-wrap items-center gap-x-2 font-semibold">
                         {m.bodyArea[i.bodyArea as keyof typeof m.bodyArea]}
                         {i.side !== "none" ? ` ${m.bodySide[i.side].toLowerCase()}` : ""}
@@ -283,7 +283,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                       className="grid min-h-11 grid-cols-[26px_minmax(0,1fr)_auto] items-center gap-x-3 px-4 py-1 text-inherit no-underline hover:bg-raise"
                     >
                       <StatusIcon status={h.status === "done" || h.status === "partial" ? h.status : "missed"} />
-                      <span className="flex min-w-0 flex-col leading-tight">
+                      <span className="flex min-w-0 flex-col leading-snug">
                         <span className="truncate font-semibold">{h.title}</span>
                         <span className="t-caption font-normal text-soft">{year(h.date)}</span>
                       </span>

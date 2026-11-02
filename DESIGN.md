@@ -8,16 +8,16 @@ Décision du fondateur (1er novembre 2026), qui remplace le « clair par défaut
 
 ## Le système : trois scènes
 
-| Scène | Fond | Où | Pourquoi |
-| --- | --- | --- | --- |
-| **Piste** (par défaut) | Rouge piste plein écran | Toute la navigation : suivi, calendrier, exercices, athlètes, annonces, réglages, Aujourd'hui, connexion, site | L'identité : on est sur le tartan |
-| **Encre** | Encre pleine | Mode séance, analyse vidéo | La vidéo et l'effort priment, le rouge fatiguerait l'œil et fausserait la perception de l'image |
-| **Lecture** | Rouge piste, texte dans une grande carte encre | Pages légales et textes longs | Lire longtemps sur du rouge est pénible |
+| Scène                  | Fond                                           | Où                                                                                                             | Pourquoi                                                                                        |
+| ---------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Piste** (par défaut) | Rouge piste plein écran                        | Toute la navigation : suivi, calendrier, exercices, athlètes, annonces, réglages, Aujourd'hui, connexion, site | L'identité : on est sur le tartan                                                               |
+| **Encre**              | Encre pleine                                   | Mode séance, analyse vidéo                                                                                     | La vidéo et l'effort priment, le rouge fatiguerait l'œil et fausserait la perception de l'image |
+| **Lecture**            | Rouge piste, texte dans une grande carte encre | Pages légales et textes longs                                                                                  | Lire longtemps sur du rouge est pénible                                                         |
 
 ### Règles de la scène Piste
 
 - **Le rouge est le fond, jamais une carte.** Le contenu vit sur des cartes encre (`scene.card`, rayon 14). Pas de carte rouge sur fond rouge, pas de carte dans une carte : à l'intérieur d'une carte, on structure par lignes (`scene.cardLine`) et par rangées surélevées (`scene.cardRaised`).
-- **Les lignes de couloir sont la signature.** Traits blancs pleins de 3 px, à bord perdu, jamais translucides. Sous le titre d'écran et entre grandes sections. La ligne d'arrivée (verticale, 7 px, plus du double) marque le lieu de l'action principale ou de la fin d'un parcours, pas la décoration : au plus une par écran. Pas de damier, de dégradé, d'ombre ni de reflet sur ces lignes.
+- **Les lignes de couloir sont la signature.** Traits blancs pleins de 3 px, à bord perdu, jamais translucides. Sous le titre d'écran et entre grandes sections. La ligne d'arrivée (verticale, 7 px, plus du double) a deux usages et pas d'autre : couper la piste du site, une seule fois ; signaler une séance de saut, au bord droit de sa carte dans le calendrier, où elle se répète avec les séances puisque c'est un marqueur de type. Pas de damier, de dégradé, d'ombre ni de reflet sur ces lignes.
 - **Les titres d'écran sont posés directement sur le rouge**, en blanc, Barlow Condensed Bold, et grands : c'est là que se joue la force de l'identité. Augmente le corps plutôt que d'ajouter un élément.
 - **Sur le rouge, tout le texte est blanc** (5,0:1). L'encre y échoue (3,6:1), comme tout texte secondaire grisé, rosé ou translucide : l'encre n'existe sur le rouge qu'en surface. L'action principale sur le rouge est un bouton blanc, texte encre.
 - **Dans une carte encre**, l'action principale est rouge piste, texte blanc. Texte blanc, secondaire `scene.textMuted`, liens `scene.link`. Les contours de champs utilisent `scene.controlLine` (3:1), `scene.cardLine` reste aux séparateurs décoratifs.
@@ -46,7 +46,7 @@ Source unique : `packages/design-tokens/src/index.ts`. Ne pas écrire de couleur
 | ink (Encre)               | #15161A | Texte, fonds sombres (mode séance, vidéo)    |
 | ink2                      | #24262C | Cartes sur fond sombre                       |
 | muted                     | #5E6066 | Texte secondaire                             |
-| bg (Craie)                | #F2F3F1 | Fond de l'app en clair                       |
+| bg (Craie)                | #F2F3F1 | Carte héros, e-mails                         |
 | surface                   | #FFFFFF | Cartes, listes                               |
 | border                    | #E2E3DF | Bordures et séparateurs                      |
 | status.done (Couloir)     | #1E5FA8 | Fait, avec coche                             |
@@ -63,17 +63,20 @@ Cibles tactiles : 44 × 44 minimum.
 
 Barlow Condensed pour les titres et les chiffres, Barlow pour le texte. Chiffres tabulaires pour hauteurs, charges, chronos, pourcentages.
 
-| Rôle                   | Police                                         | Mobile   | Desktop  |
-| ---------------------- | ---------------------------------------------- | -------- | -------- |
-| Display                | Barlow Condensed Bold                          | 34/36    | 40/44    |
-| Titre 1                | Barlow Condensed Bold                          | 28/32    | 32/36    |
-| Titre 2                | Barlow Condensed SemiBold                      | 22/26    | 24/28    |
-| Chiffre                | Barlow Condensed SemiBold                      | 18 à 34  | 18 à 40  |
-| Corps                  | Barlow Regular/SemiBold                        | 15–16/22 | 15/22    |
-| Légende                | Barlow Medium                                  | 12–13/16 | 12–13/16 |
-| Titre de section court | Barlow SemiBold capitales, interlettrage 1–1,5 | 12–13    | 12–13    |
+Source : `apps/web/app/globals.css`, classes `.t-*`. Bascule à 1024 px.
 
-Le titre de section court ne se place jamais au-dessus d'un autre titre.
+| Rôle                    | Classe       | Police                    | Mobile  | Desktop |
+| ----------------------- | ------------ | ------------------------- | ------- | ------- |
+| Titre d'écran (Display) | `.t-display` | Barlow Condensed Bold     | 52/52   | 80/80   |
+| Titre 1                 | `.t-h1`      | Barlow Condensed Bold     | 36/40   | 44/48   |
+| Titre 2                 | `.t-h2`      | Barlow Condensed SemiBold | 24/28   | 26/30   |
+| Titre de section        | `.t-section` | Barlow Condensed SemiBold | 20/24   | 20/24   |
+| Chiffre                 | `.t-num`     | Barlow Condensed SemiBold | 17 à 34 | 17 à 40 |
+| Corps                   | base         | Barlow Regular/SemiBold   | 15/22   | 15/22   |
+| Légende                 | `.t-caption` | Barlow Medium             | 13/18   | 13/18   |
+| En-tête de colonne      | `.t-col`     | Barlow SemiBold           | 13/16   | 13/16   |
+
+Aucun texte en capitales d'affichage : ni au-dessus d'une section, ni en en-tête de colonne (§ 9.11).
 
 ## Statuts
 

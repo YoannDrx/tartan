@@ -106,22 +106,25 @@ export default async function AthletesPage() {
                   </tr>
                   {section.list.map((a) => {
                     const row = weekRows.get(a.id);
-                    const watch = row?.hasPain ? m.athletes.painReported : row?.activeInjury;
+                    const watch = row?.hasPain
+                      ? m.athletes.painReported
+                      : row?.activeInjury
+                        ? `${m.coach.activeInjury} : ${m.bodyArea[row.activeInjury as keyof typeof m.bodyArea].toLowerCase()}`
+                        : null;
                     return (
                       <tr key={a.id} className="group relative border-b border-card-line last:border-0 hover:bg-raise">
                         <td className="px-4 py-2">
                           <div className="flex items-center gap-3">
                             <span
                               aria-hidden
-                              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card-raised text-[12px] font-semibold uppercase max-tablet:hidden"
+                              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card-raised text-[12px] font-semibold max-tablet:hidden"
                             >
-                              {a.firstName[0]}
-                              {a.lastName[0]}
+                              {`${a.firstName[0] ?? ""}${a.lastName[0] ?? ""}`.toUpperCase()}
                             </span>
                             <div className="min-w-0 flex-1">
                               <Link
                                 href={`/athletes/${a.id}`}
-                                className="block break-words font-semibold leading-tight text-inherit no-underline after:absolute after:inset-0"
+                                className="block break-words font-semibold leading-snug text-inherit no-underline after:absolute after:inset-0"
                               >
                                 {a.firstName} {a.lastName}
                                 {watch ? (

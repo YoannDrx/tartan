@@ -2,7 +2,6 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll, uniqueEmail } from "./helpers";
 import { createExercise, groupLink, joinAsAthlete, publishSession, today } from "./journeys";
 
-
 test.describe("le pilote", () => {
   // Parcours coach au bureau ; l'athlète y est déjà simulé sur téléphone.
   test.beforeEach(({}, info) => test.skip(info.project.name !== "desktop"));
@@ -100,6 +99,31 @@ test.describe("le pilote", () => {
     await other.close();
   });
 
+  test("supprimer une annonce passe par un dialogue, jamais par le navigateur", async ({ page }) => {
+    page.on("dialog", (native) => {
+      throw new Error(`Dialogue natif : ${native.message()}`);
+    });
+    await createCoachSpace(page, "Annie");
+    await page.goto("/annonces");
+    // Le formulaire existe deux fois, un seul visible selon la largeur.
+    await page.getByLabel("Message").filter({ visible: true }).fill("Séance déplacée à 10 h");
+    await page.getByRole("button", { name: "Publier" }).filter({ visible: true }).click();
+    const item = page.getByText("Séance déplacée à 10 h");
+    await expect(item).toBeVisible();
+
+    await page.getByRole("button", { name: "Supprimer" }).click();
+    const dialog = page.getByRole("dialog", { name: "Supprimer cette annonce ?" });
+    await expect(dialog).toBeVisible();
+    await expectAccessible(page);
+    await dialog.getByRole("button", { name: "Annuler" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(item).toBeVisible();
+
+    await page.getByRole("button", { name: "Supprimer" }).click();
+    await dialog.getByRole("button", { name: "Supprimer" }).click();
+    await expect(item).toBeHidden();
+  });
+
   test("la suppression du compte se fait depuis les réglages", async ({ page }) => {
     await createCoachSpace(page, "Partant");
     await page.goto("/reglages");
@@ -114,7 +138,20 @@ test.describe("le pilote", () => {
 
 test.describe("toutes tailles d'écran", () => {
   test("site, connexion et pages légales sont accessibles et sans défilement horizontal", async ({ page }) => {
-    for (const path of ["/", "/connexion", "/confidentialite", "/conditions"]) {
+    for (const path of [
+      "/",
+      "/connexion",
+      "/confidentialite",
+      "/conditions",
+      "/tarifs",
+      "/contact",
+      "/cgv",
+      "/mentions-legales",
+      "/mot-de-passe-oublie",
+      "/nouveau-mot-de-passe",
+      "/nouveau-mot-de-passe?token=x",
+      "/hors-ligne",
+    ]) {
       await page.goto(path);
       await expectNoHorizontalScroll(page);
       await expectAccessible(page);
@@ -131,6 +168,7 @@ test.describe("toutes tailles d'écran", () => {
       "/videos",
       "/annonces",
       "/reglages",
+      "/abonnement",
       "/seances/nouvelle",
     ]) {
       await page.goto(path);

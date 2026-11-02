@@ -13,7 +13,7 @@ const variants = cva(
         secondary:
           "bg-second text-inherit border-[length:var(--ctx-second-width)] border-second-line hover:bg-second-hover rounded-full",
         quiet: "text-inherit hover:bg-raise rounded-full",
-        danger: "bg-transparent text-st-missed border border-st-missed hover:bg-raise rounded-full",
+        danger: "bg-transparent text-danger border border-danger hover:bg-raise rounded-full",
         darkPrimary: "bg-cta text-on-cta hover:bg-cta-hover rounded-full",
         darkSecondary:
           "bg-second text-inherit border-[length:var(--ctx-second-width)] border-second-line hover:bg-second-hover rounded-full",

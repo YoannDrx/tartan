@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { createCoachSpace } from "./helpers";
+import { createCoachSpace, signUp, uniqueEmail } from "./helpers";
 import { createExercise, groupLink, joinAsAthlete, publishSession } from "./journeys";
 
 // Le service worker garde les pages en différé : on attend que celle qu'on veut soit là.
@@ -75,4 +75,26 @@ test("sur téléphone, le coach fait l'appel sans réseau et l'appel part au ret
     page.getByRole("group", { name: "Présence de Hugo Test" }).getByRole("button", { name: "Absent" }),
   ).toHaveAttribute("aria-pressed", "true");
   await athleteContext.close();
+});
+
+test("un athlète de moins de 15 ans relance son parent depuis ses réglages", async ({ page }) => {
+  await createCoachSpace(page, "Thomas");
+  const link = await groupLink(page);
+  await page.context().clearCookies();
+  await page.goto(link);
+  await signUp(page, uniqueEmail("jeune"), new URL(link).pathname);
+  await page.getByLabel("Prénom").fill("Jeune");
+  await page.getByLabel("Nom", { exact: true }).fill("Test");
+  const year = new Date().getFullYear() - 13;
+  await page.getByLabel("Date de naissance").fill(`${year}-05-12`);
+  await page.getByLabel(m.invite.guardianEmail).fill(uniqueEmail("parent"));
+  await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
+  await page.getByRole("button", { name: "Rejoindre le groupe" }).click();
+  await expect(page.getByRole("heading", { name: "Salut Jeune" })).toBeVisible();
+  await page.goto("/reglages#confidentialite");
+  await expect(
+    page.getByRole("region", { name: m.settings.privacy }).getByText(m.parental.pendingBanner),
+  ).toBeVisible();
+  await page.getByRole("button", { name: m.parental.resend }).click();
+  await expect(page.getByText(m.parental.resent)).toBeVisible();
 });

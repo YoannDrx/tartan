@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Rows } from "@/components/sheet";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { CheckRow, Field, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
@@ -103,7 +104,7 @@ export const MemberList = ({ members, groups }: { members: Member[]; groups: Gro
   <Rows>
     {members.map((member) => (
       <li key={member.userId} className="flex flex-wrap items-center justify-between gap-2 py-2">
-        <div className="min-w-48 flex-1 leading-tight">
+        <div className="min-w-48 flex-1 leading-snug">
           <p className="break-all font-semibold">{member.name || member.email}</p>
           <p className="t-caption font-normal text-soft">
             {m.roles[member.role]}
@@ -131,18 +132,16 @@ export const LeaveSpace = ({ name }: { name: string }) => {
     onError: onErr,
   });
   return (
-    <Dialog
+    <ConfirmDialog
       title={m.settings.leaveSpace}
       description={m.settings.leaveDetail(name)}
+      confirmLabel={m.settings.leaveConfirm(name)}
+      onConfirm={() => leave.execute()}
       trigger={
-        <Button size="sm" variant="danger">
+        <Button size="sm" variant="danger" disabled={leave.isPending}>
           {m.settings.leaveSpace}
         </Button>
       }
-    >
-      <Button variant="danger" disabled={leave.isPending} onClick={() => leave.execute()}>
-        {m.settings.leaveConfirm(name)}
-      </Button>
-    </Dialog>
+    />
   );
 };

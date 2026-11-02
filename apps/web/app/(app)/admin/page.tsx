@@ -27,9 +27,13 @@ export default async function AdminPage() {
     <div className="flex flex-col gap-4">
       <PageHeader title={m.admin.title} detail={m.admin.lead} />
       <Sheet>
-        <dl className="grid grid-cols-2 gap-px bg-card-line tablet:grid-cols-4">
+        {/* Chaque case s'étire : un total impair ne laisse pas de trou dans la feuille. */}
+        <dl className="flex flex-wrap gap-px bg-card-line">
           {totals.map((item) => (
-            <div key={item.label} className="bg-card px-4 py-2">
+            <div
+              key={item.label}
+              className="min-w-[calc(50%-1px)] flex-1 bg-card px-4 py-2 tablet:min-w-[calc(25%-1px)]"
+            >
               <dt className="t-caption font-normal text-soft">{item.label}</dt>
               <dd className="t-num text-[24px]">{item.value}</dd>
             </div>
@@ -38,9 +42,9 @@ export default async function AdminPage() {
       </Sheet>
       <Sheet>
         <SheetSection title={m.admin.spaces} flush>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={m.admin.spaces}>
             <table className="w-full min-w-[840px] text-left">
-              <thead className="t-caption text-soft">
+              <thead>
                 <tr>
                   {[
                     m.admin.space,
@@ -54,7 +58,7 @@ export default async function AdminPage() {
                     m.admin.videos,
                     m.admin.reports,
                   ].map((label) => (
-                    <th key={label} scope="col" className="px-3 py-2 font-medium first:pl-4">
+                    <th key={label} scope="col" className="t-col px-3 py-2 first:pl-4">
                       {label}
                     </th>
                   ))}

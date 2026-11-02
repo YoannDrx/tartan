@@ -10,7 +10,7 @@ import { m } from "@tartan/i18n";
 import { spaceAction } from "@/features/shell/space-action";
 import { SPACE_COOKIE } from "@/features/shell/space";
 import { deleteAccount } from "@/server/account.service";
-import { setConsent } from "@/server/consent.service";
+import { resendParentalConsent, setConsent } from "@/server/consent.service";
 import { saveAvatar, updateProfile } from "@/server/me.service";
 import { deleteGroup, saveGroup, saveOrganizationLogo, updateOrganization } from "@/server/org.service";
 import { leaveOrganization, removeAthlete, removeCoach, updateMember } from "@/server/members.service";
@@ -37,6 +37,10 @@ export const uploadLogoAction = spaceAction
 export const setConsentAction = authAction.inputSchema(consentInput).action(async ({ parsedInput, ctx }) => {
   await setConsent(ctx.actor.userId, parsedInput.kind, parsedInput.granted);
   revalidatePath("/", "layout");
+});
+
+export const resendParentalAction = spaceAction.action(async ({ ctx }) => {
+  await resendParentalConsent(ctx.userId, ctx.organizationId);
 });
 
 export const saveGroupAction = spaceAction.inputSchema(groupInput).action(async ({ parsedInput, ctx }) => {

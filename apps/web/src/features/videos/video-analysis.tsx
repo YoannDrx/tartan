@@ -11,7 +11,7 @@ import {
   toFileSeconds,
   toRealMs,
 } from "@tartan/domain";
-import { m } from "@tartan/i18n";
+import { m, withFirstOfMonth } from "@tartan/i18n";
 import { Check, ChevronLeft, Flag, Pause, Play, Repeat, Share2, SkipBack, SkipForward, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import Link from "next/link";
@@ -171,8 +171,10 @@ export const VideoAnalysis = ({
               </h1>
               <p className="t-caption font-normal text-soft">
                 {video.recordedAt
-                  ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(
-                      new Date(video.recordedAt),
+                  ? withFirstOfMonth(
+                      new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(
+                        new Date(video.recordedAt),
+                      ),
                     )
                   : ""}
               </p>
@@ -320,7 +322,7 @@ export const VideoAnalysis = ({
                   aria-label={`Aller à ${formatTimecode(a.tMs)}`}
                   onClick={() => seek(a.tMs)}
                   style={{ left: `${pct(a.tMs)}%` }}
-                  className="absolute top-0 z-10 flex size-3 -translate-x-1/2 items-start justify-center before:absolute before:-inset-3 before:content-['']"
+                  className="absolute -top-1 z-10 flex size-6 -translate-x-1/2 items-start justify-center pt-1"
                 >
                   <span className="size-2 rounded-full bg-brand-on-ink" />
                 </button>

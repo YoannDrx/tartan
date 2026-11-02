@@ -41,7 +41,7 @@ const SessionCard = ({
       </p>
       <Link
         href={`/seances/${session.id}/suivi`}
-        className="mt-0.5 block break-words font-semibold leading-tight text-fg no-underline hover:underline"
+        className="mt-0.5 block break-words font-semibold leading-snug text-fg no-underline hover:underline"
       >
         {session.title}
       </Link>
@@ -215,7 +215,7 @@ export const MonthBoard = ({ month, today, data }: { month: string; today: strin
               aria-label={capitalize(formatDateLong(day))}
               className="grid grid-cols-[48px_minmax(0,1fr)] gap-x-2 px-3 py-2"
             >
-              <h2 className="flex flex-col items-center leading-tight">
+              <h2 className="flex flex-col items-center leading-snug">
                 <span className="t-caption">{formatWeekdayShort(day)}</span>
                 <span
                   className={cn(
@@ -245,7 +245,7 @@ export const MonthBoard = ({ month, today, data }: { month: string; today: strin
                       key={s.id}
                       href={`/seances/${s.id}/suivi`}
                       className={cn(
-                        "flex min-h-11 items-center gap-2 rounded-thumb px-2 font-medium leading-tight no-underline",
+                        "flex min-h-11 items-center gap-2 rounded-thumb px-2 font-medium leading-snug no-underline",
                         s.type === "jump" ? "bg-brand text-white" : "bg-card-raised text-fg",
                       )}
                     >

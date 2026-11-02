@@ -67,6 +67,7 @@
   --color-soft: var(--ctx-soft);
   --color-ctx-link: var(--ctx-link);
   --color-alert: var(--ctx-alert);
+  --color-danger: var(--ctx-danger);
   --color-cta: var(--ctx-cta);
   --color-on-cta: var(--ctx-on-cta);
   --color-cta-hover: var(--ctx-cta-hover);
@@ -85,6 +86,7 @@
     --ctx-soft: var(--color-on-page);
     --ctx-link: var(--color-on-page);
     --ctx-alert: var(--color-on-page);
+    --ctx-danger: var(--color-on-page);
     --ctx-focus: var(--color-on-page);
     --ctx-cta: var(--color-action-page);
     --ctx-on-cta: var(--color-on-action-page);
@@ -112,6 +114,7 @@
     --ctx-soft: var(--color-fg-muted);
     --ctx-link: var(--color-link);
     --ctx-alert: var(--color-st-missed);
+    --ctx-danger: var(--color-st-missed);
     --ctx-focus: var(--color-link);
     --ctx-cta: var(--color-action-card);
     --ctx-on-cta: var(--color-on-action-card);
@@ -134,6 +137,7 @@
     --ctx-soft: var(--color-muted);
     --ctx-link: var(--color-on-hero-accent);
     --ctx-alert: var(--color-on-hero-accent);
+    --ctx-danger: var(--color-on-hero-accent);
     --ctx-focus: var(--color-on-hero);
     --ctx-cta: var(--color-action-card);
     --ctx-on-cta: var(--color-on-action-card);
@@ -166,6 +170,8 @@
     accent-color: var(--color-brand);
     caret-color: currentColor;
     scrollbar-color: var(--color-on-page) var(--color-brand-strong);
+    /* Un champ atteint au clavier ne finit pas sous la barre collante du constructeur. */
+    scroll-padding-bottom: 96px;
     scrollbar-width: thin;
   }
   body {
@@ -226,26 +232,22 @@
   }
   .t-caption {
     font-size: 13px;
-    line-height: 16px;
+    line-height: 18px;
     font-weight: 500;
   }
-  /* En-tête de colonne des feuilles : même voix que le titre court, en plus petit. */
+  /* En-tête de colonne et rangée de regroupement des feuilles. Jamais en capitales (§ 9.11). */
   .t-col {
-    font-size: 12px;
-    line-height: 16px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--ctx-soft);
-  }
-  /* Titre d'une courte liste, jamais au-dessus d'un autre titre (§ 9.5). */
-  .t-section {
     font-size: 13px;
     line-height: 16px;
     font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
     color: var(--ctx-soft);
+  }
+  /* Titre de section : une petite marche sous `.t-h2`, la même voix que les titres d'écran. */
+  .t-section {
+    font-family: var(--font-display);
+    font-size: 20px;
+    line-height: 24px;
+    font-weight: 600;
   }
   @media (min-width: 1024px) {
     .t-display {
@@ -260,6 +262,60 @@
       font-size: 26px;
       line-height: 30px;
     }
+  }
+  /* Case à cocher dessinée : chaque moteur a la sienne, ronde sur iPhone, carrée ailleurs. */
+  .check {
+    appearance: none;
+    display: inline-grid;
+    place-content: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    border: 1px solid var(--color-control-line);
+    border-radius: 5px;
+    background: var(--color-card-raised);
+  }
+  .check::before {
+    content: "";
+    width: 12px;
+    height: 12px;
+    background: var(--color-on-action-card);
+    clip-path: polygon(14% 44%, 0 58%, 40% 100%, 100% 16%, 84% 4%, 38% 68%);
+    transform: scale(0);
+  }
+  .check:checked {
+    border-color: var(--color-action-card);
+    background: var(--color-action-card);
+  }
+  .check:checked::before {
+    transform: scale(1);
+  }
+  .check:disabled {
+    opacity: 0.5;
+  }
+  /* La barre d'état reste visible au défilement : l'en-tête se pose dessous. */
+  body:has(.offline-bar) .app-header {
+    top: 44px;
+  }
+  /* Jauge d'usage : sans ça, Safari garde sa barre système, quelle que soit `accent-color`. */
+  .meter {
+    display: block;
+    width: 100%;
+    height: 6px;
+    border: 0;
+    border-radius: 999px;
+    overflow: hidden;
+    appearance: none;
+    background: var(--color-card-line);
+  }
+  .meter::-webkit-progress-bar {
+    background: var(--color-card-line);
+  }
+  .meter::-webkit-progress-value {
+    background: var(--color-link);
+  }
+  .meter::-moz-progress-bar {
+    background: var(--color-link);
   }
   /* Ligne de couloir : blanche, pleine, 3 px, à bord perdu quelle que soit la largeur du contenu. */
   .lane {

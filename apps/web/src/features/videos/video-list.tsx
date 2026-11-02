@@ -1,7 +1,7 @@
 import type { VideoSummary } from "@tartan/contracts";
 import { formatHeight, formatTimecode } from "@tartan/domain";
-import { capitalize, m } from "@tartan/i18n";
-import { Play } from "lucide-react";
+import { capitalize, m, withFirstOfMonth } from "@tartan/i18n";
+import { Play, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { JumpMark } from "@/components/bar-sheet";
@@ -38,7 +38,7 @@ export const VideoList = ({
   // Les envois en cours d'abord, puis du plus récent au plus ancien.
   const ordered = [...videos].sort((a, b) => (b.recordedAt ?? "9999").localeCompare(a.recordedAt ?? "9999"));
   for (const v of ordered) {
-    const key = v.recordedAt ? capitalize(dayLabel.format(new Date(v.recordedAt))) : m.video.noDate;
+    const key = v.recordedAt ? capitalize(withFirstOfMonth(dayLabel.format(new Date(v.recordedAt)))) : m.video.noDate;
     days.set(key, [...(days.get(key) ?? []), v]);
   }
   return (
@@ -60,6 +60,8 @@ export const VideoList = ({
                     <span className="relative row-span-3 flex aspect-video w-full items-center justify-center self-start overflow-hidden rounded-thumb bg-card-raised text-white tablet:row-span-2 desktop:row-span-1 desktop:self-center">
                       {v.thumbnailUrl ? (
                         <Image src={v.thumbnailUrl} alt="" fill sizes="112px" className="object-cover" unoptimized />
+                      ) : v.status === "error" ? (
+                        <X aria-hidden className="size-4 text-st-missed tablet:size-5" />
                       ) : (
                         <Play aria-hidden className="size-4 tablet:size-5" />
                       )}
@@ -96,7 +98,7 @@ export const VideoList = ({
                       </span>
                       <span className="flex items-center desktop:justify-end">
                         {status ? (
-                          <Chip tone="warning">{status}</Chip>
+                          <Chip tone={v.status === "error" ? "missed" : "warning"}>{status}</Chip>
                         ) : v.sharedWithAthlete && showAthlete ? (
                           <Chip>{m.video.shared}</Chip>
                         ) : null}

@@ -4,7 +4,7 @@ import { useId } from "react";
 import { cn } from "@/lib/cn";
 
 const control =
-  "w-full min-h-11 rounded-[10px] border border-control-line bg-transparent px-3 text-[16px] text-inherit placeholder:text-fg-muted hover:border-fg-muted disabled:opacity-60 aria-invalid:border-st-missed";
+  "w-full min-h-11 rounded-[10px] border border-control-line bg-transparent px-3 text-[16px] text-inherit placeholder:text-fg-muted hover:border-fg-muted disabled:opacity-60 aria-invalid:border-st-missed file:mr-3 file:min-h-8 file:cursor-pointer file:rounded-full file:border-0 file:bg-card-raised file:px-3 file:text-[14px] file:font-semibold file:text-inherit";
 
 export const Input = ({ className, ...props }: ComponentProps<"input">) => (
   <input className={cn(control, className)} {...props} />
@@ -68,7 +68,7 @@ export const CheckRow = ({
   ...props
 }: Omit<ComponentProps<"input">, "type"> & { label: string; detail?: string }) => (
   <label className={cn("flex min-h-11 items-start gap-3 py-2", className)}>
-    <input type="checkbox" className="mt-px size-5 shrink-0 rounded border-card-line accent-brand" {...props} />
+    <input type="checkbox" className="check mt-px" {...props} />
     <span className="flex flex-col">
       <span>{label}</span>
       {detail ? <span className="t-caption text-soft font-normal">{detail}</span> : null}

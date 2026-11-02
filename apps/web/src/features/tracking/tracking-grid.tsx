@@ -54,7 +54,7 @@ export const TrackingTable = ({ grid, today = todayIso() }: { grid: TrackingGrid
                 <Link
                   href={`/seances/${s.id}/suivi`}
                   title={s.title}
-                  className="inline-flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-button py-1 leading-tight text-inherit no-underline hover:bg-raise"
+                  className="inline-flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-button py-1 leading-snug text-inherit no-underline hover:bg-raise"
                 >
                   <ActivityPicto kind={s.type} className="size-[18px] text-soft" />
                   <span className="flex items-baseline gap-1 t-caption font-semibold">
@@ -95,7 +95,7 @@ export const TrackingTable = ({ grid, today = todayIso() }: { grid: TrackingGrid
                   >
                     {row.initials}
                   </span>
-                  <span className="flex min-w-0 flex-col leading-tight">
+                  <span className="flex min-w-0 flex-col leading-snug">
                     <span className="flex items-center gap-1 font-semibold desktop:whitespace-nowrap">
                       <span className="truncate">{row.name}</span>
                       {row.hasPain || row.activeInjury ? (

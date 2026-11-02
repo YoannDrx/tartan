@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { isPaidPlan, type LimitKey } from "@tartan/domain";
-import { m } from "@tartan/i18n";
+import { m, withFirstOfMonth } from "@tartan/i18n";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { Chip, PageHeader } from "@/components/states";
 import { ManageSubscriptionButton, PricingGrid } from "@/features/billing/pricing";
@@ -12,7 +12,9 @@ export const metadata: Metadata = { title: m.billing.title };
 const LIMITS: LimitKey[] = ["maxAthletes", "maxGroups", "maxCoaches", "maxVideosPerMonth"];
 
 const longDate = (iso: string) =>
-  new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(new Date(iso));
+  withFirstOfMonth(
+    new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(new Date(iso)),
+  );
 
 export default async function AbonnementPage({ searchParams }: { searchParams: Promise<{ merci?: string }> }) {
   const { actor, organizationId } = await requireStaffSpace();
@@ -53,15 +55,15 @@ export default async function AbonnementPage({ searchParams }: { searchParams: P
                   <dd className="t-num text-[24px]">
                     {used}
                     {limit === null ? "" : ` / ${limit}`}
+                    {limit === null ? null : (
+                      <progress
+                        value={Math.min(used, limit)}
+                        max={limit}
+                        aria-label={m.billing.usage[key]}
+                        className="meter mt-1"
+                      />
+                    )}
                   </dd>
-                  {limit === null ? null : (
-                    <progress
-                      value={Math.min(used, limit)}
-                      max={limit}
-                      aria-label={m.billing.usage[key]}
-                      className="h-1.5 w-full accent-brand-on-ink"
-                    />
-                  )}
                 </div>
               );
             })}
