@@ -141,7 +141,7 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
           <>
             <CompetitionDialog athletes={athletes} today={today} />
             {!isMonth ? <DuplicateWeekDialog week={week} groups={groups} /> : null}
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="order-first desktop:order-none">
               <Link href="/seances/nouvelle">
                 <Plus aria-hidden className="size-5" />
                 {m.coach.newSession}

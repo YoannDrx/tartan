@@ -17,6 +17,8 @@ test("au stade sans réseau, l'athlète ouvre sa séance, valide, et le coach le
   page,
   browser,
 }) => {
+  // En développement, le service worker n'a pas tous les fichiers de la page : hors ligne, elle ne s'hydrate pas.
+  test.skip(!process.env.E2E_PROD, "Parcours réservé au build de production, comme en CI.");
   await createCoachSpace(page, "Thomas");
   await createExercise(page, "Bonds du terrain");
   const link = await groupLink(page);

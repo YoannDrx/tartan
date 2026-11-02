@@ -38,7 +38,7 @@ export default async function AbonnementPage({ searchParams }: { searchParams: P
         >
           {billing.status === "past_due" ? <p className="text-alert">{m.billing.pastDueHint}</p> : null}
           {paid && billing.cancelAt ? <p>{m.billing.endsOn(longDate(billing.cancelAt))}</p> : null}
-          {paid && !billing.cancelAt && billing.currentPeriodEnd ? (
+          {paid && !billing.cancelAt && billing.currentPeriodEnd && billing.status !== "past_due" ? (
             <p className="text-soft">{m.billing.until(longDate(billing.currentPeriodEnd))}</p>
           ) : null}
           {store ? <p className="text-soft">{m.billing.storeHint}</p> : null}

@@ -24,6 +24,7 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { reportContentAction } from "@/features/comments/comment.action";
 import { CommentThread } from "@/features/comments/thread";
+import { groupMarkers } from "./timeline-markers";
 import { addAnnotationAction, deleteAnnotationAction, shareVideoAction } from "./video.action";
 
 const SPEEDS = [0.1, 0.25, 0.5, 1];
@@ -151,6 +152,19 @@ export const VideoAnalysis = ({
   });
 
   const pct = (ms: number) => (durationMs > 0 ? (ms / durationMs) * 100 : 0);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [timelineWidth, setTimelineWidth] = useState(0);
+  useEffect(() => {
+    const element = timelineRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => setTimelineWidth(element.offsetWidth));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const markers = useMemo(
+    () => groupMarkers(video.annotations, durationMs, timelineWidth),
+    [video.annotations, durationMs, timelineWidth],
+  );
 
   return (
     <div className="scene-dark min-h-dvh bg-ink text-white [&_a]:text-link">
@@ -305,7 +319,7 @@ export const VideoAnalysis = ({
             <label htmlFor="timeline" className="sr-only">
               Position dans la vidéo
             </label>
-            <div className="relative h-9">
+            <div ref={timelineRef} className="relative h-9">
               <div className="absolute inset-x-0 top-3 flex h-2.5 gap-0.5 overflow-hidden rounded-[3px] bg-card-line">
                 {ranges.map((r, i) => (
                   <span
@@ -315,13 +329,13 @@ export const VideoAnalysis = ({
                   />
                 ))}
               </div>
-              {video.annotations.map((a) => (
+              {markers.map(({ first, count }) => (
                 <button
-                  key={a.id}
+                  key={first.id}
                   type="button"
-                  aria-label={`Aller à ${formatTimecode(a.tMs)}`}
-                  onClick={() => seek(a.tMs)}
-                  style={{ left: `${pct(a.tMs)}%` }}
+                  aria-label={`Aller à ${formatTimecode(first.tMs)}${count > 1 ? `, ${count} remarques` : ""}`}
+                  onClick={() => seek(first.tMs)}
+                  style={{ left: `${pct(first.tMs)}%` }}
                   className="absolute -top-1 z-10 flex size-6 -translate-x-1/2 items-start justify-center pt-1"
                 >
                   <span className="size-2 rounded-full bg-brand-on-ink" />

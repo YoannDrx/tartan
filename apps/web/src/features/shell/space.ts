@@ -56,7 +56,9 @@ export const orNotFound = async <T>(load: () => Promise<T>): Promise<T> => {
   try {
     return await load();
   } catch (error) {
-    if (error instanceof AppError && (error.status === 403 || error.status === 404)) {
+    // Un identifiant mal formé dans l'adresse est une page introuvable, pas une panne.
+    const badId = typeof error === "object" && error !== null && "code" in error && error.code === "P2007";
+    if (badId || (error instanceof AppError && (error.status === 403 || error.status === 404))) {
       const { notFound } = await import("next/navigation");
       notFound();
     }

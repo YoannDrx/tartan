@@ -54,7 +54,7 @@ export default async function SuiviPage({
                 {m.coach.exportCsv}
               </a>
             </Button>
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="order-first desktop:order-none">
               <Link href="/seances/nouvelle">
                 <Plus aria-hidden className="size-5" />
                 {m.coach.newSession}
