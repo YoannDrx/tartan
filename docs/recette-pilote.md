@@ -77,6 +77,7 @@ Voir le § 12 du plan et `docs/conformite.md`. Ensuite, seulement :
 - [x] Activation du compte : informations complètes, au nom de Yoann ANDRIEUX, site `tartan.coach`.
 - [x] Offres, 4 prix, portail et webhook créés en production, identifiants sur Vercel, redéploiement fait le 2 novembre.
 - [ ] Vrai paiement : vérifie sur la page Stripe le prix, les 14 jours d'essai et le nom Tartan. Ensuite : facture avec identité Yodev et mention 293 B, abonnement visible dans `/abonnement`, remboursement, résiliation. C'est aussi le seul test du webhook et de la clé secrète, que je ne peux pas lire.
-- [ ] Confirmer la franchise de TVA : un numéro de TVA est renseigné sur le compte, le pied de facture indique « TVA non applicable, art. 293 B ».
+- [x] Franchise de TVA confirmée par toi (micro-entreprise) : le pied de facture « TVA non applicable, art. 293 B » reste valable. À revoir si tu dépasses le seuil de la franchise.
+- [x] Clé secrète limitée (`rk_live`), confirmée par toi.
 - [ ] 10 à 20 coachs interrogés sur le prix.
 - [ ] Ton feu vert pour ouvrir les inscriptions.
