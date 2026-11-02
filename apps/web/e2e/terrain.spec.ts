@@ -100,3 +100,16 @@ test("un athlète de moins de 15 ans relance son parent depuis ses réglages", a
   await page.getByRole("button", { name: m.parental.resend }).click();
   await expect(page.getByText(m.parental.resent)).toBeVisible();
 });
+
+test("un titre tapé dès l'affichage du formulaire n'est pas perdu", async ({ page }) => {
+  await createCoachSpace(page, "Thomas");
+  for (let round = 0; round < 25; round += 1) {
+    await page.goto("/seances/nouvelle", { waitUntil: "commit" });
+    await page.getByLabel("Titre").locator("visible=true").fill(`Essai ${round}`);
+    await page.waitForLoadState("networkidle");
+    const field = page.getByLabel("Titre").locator("visible=true");
+    await expect(field).toHaveValue(`Essai ${round}`);
+    // Un identifiant « _r_ » trahit un formulaire refait côté client après coup.
+    await expect(field).toHaveAttribute("id", /^_R_/);
+  }
+});

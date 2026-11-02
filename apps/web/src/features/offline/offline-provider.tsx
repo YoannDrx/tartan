@@ -18,12 +18,14 @@ import { syncOfflinePages } from "./service-worker";
 
 const RETRY_MS = 30_000;
 
-const SpaceContext = createContext<{ organizationId: string } | null>(null);
+// Une valeur simple, stable d'un rendu à l'autre : un contexte qui change pendant l'hydratation fait
+// repartir la page en rendu client, et ce qui vient d'être saisi est perdu.
+const SpaceContext = createContext<string | null>(null);
 
 export const useSpaceId = (): string => {
-  const value = useContext(SpaceContext);
-  if (!value) throw new Error("useSpaceId hors de OfflineProvider");
-  return value.organizationId;
+  const organizationId = useContext(SpaceContext);
+  if (!organizationId) throw new Error("useSpaceId hors de OfflineProvider");
+  return organizationId;
 };
 
 // Actions et vidéos en attente repartent dès que possible, sans qu'il y ait rien à faire.
@@ -97,7 +99,7 @@ export const OfflineProvider = ({
   ].filter(Boolean);
 
   return (
-    <SpaceContext.Provider value={{ organizationId }}>
+    <SpaceContext.Provider value={organizationId}>
       {lines.length > 0 || expired ? (
         <div
           role="status"
