@@ -83,6 +83,26 @@ Passe du 1er et 2 novembre 2026, méthode du § 9.12 : 1. Cadrer (UI/UX Pro Max)
 | Annonces athlète                           | `/annonces`                                                               | oui        | gardée     | Moi  | oui        | oui        | 390, 768, 1280                     | Chromium, WebKit                                  | « 1er »                                                                                                                          |
 | Accueil, parrainage                        | `/accueil`, `/r/[code]`                                                   | sans objet | sans objet | code | sans objet | sans objet | aucune                             | aucun                                             | Redirections sans écran                                                                                                          |
 
+## Passe du 2 novembre 2026, ouverture publique
+
+Audit de 56 captures, Chromium, 390 et 1280, sur une base de démonstration locale. Coach, athlète et pages publiques.
+
+| Écran                 | Fait                                                                                                      |
+| --------------------- | --------------------------------------------------------------------------------------------------------- |
+| Site, `/`             | Nouvelle composition : tour de piste, démonstrations de validation, d'appel et d'analyse image par image  |
+| Connexion             | `?creer=1` dit « Crée ton espace coach » et conserve le lien vers l'autre parcours                        |
+| Contact               | Vraie page avec adresse et raccourcis, sans la mention « version de travail », qui n'y avait pas sa place |
+| Tarifs, textes légaux | Navigation et pied de page communs au site                                                                |
+| Suivi, calendrier     | Sur téléphone, l'action principale passe en premier                                                       |
+| Adresse invalide      | Un identifiant mal formé mène à la page introuvable, plus à la page d'erreur                              |
+| Partage               | Image de partage, `robots.txt`, `sitemap.xml`                                                             |
+
+Les autres écrans ont été regardés sur planche réduite et laissés tels quels : aucun défaut nouveau n'y justifiait une refonte.
+
+Analyse vidéo, détail d'un saut, offre payante, impayé et résiliation ont été revus à l'écran, avec des données fictives et une vidéo de test.
+
+**Non vus :** un vrai saut filmé, le vrai retour de Stripe. WebKit n'a tourné que dans la suite e2e, sans relecture visuelle.
+
 ## Vérifié en plus, hors tableau
 
 - Clavier, Chromium : ouverture au clavier d'un `ConfirmDialog`, focus piégé (Annuler, Supprimer, Fermer), Échap, retour du focus sur le déclencheur. WebKit : dialogue, Échap et retour du focus vérifiés ; Playwright WebKit sur macOS ne tabule que le premier contrôle, le cycle complet n'y est pas établi. Anneau blanc sur le rouge regardé.
@@ -97,13 +117,12 @@ Passe du 1er et 2 novembre 2026, méthode du § 9.12 : 1. Cadrer (UI/UX Pro Max)
 
 ## Écarts restants
 
-| Gravité | Écart                                                                                                                                                                     | Où                              |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| P2      | Repères de 24 px trop proches sur une courte vidéo : axe `target-size`. Un bouton de temps équivalent existe dans la liste des remarques                                  | Analyse vidéo, détail d'un saut |
-| P3      | La barre d'actions collante passe sur le formulaire pendant le défilement. Un champ atteint au clavier n'est plus masqué (`scroll-padding-bottom`, non rejoué au clavier) | Constructeur                    |
-| P3      | « Commencer gratuitement » se coupe à 390 px                                                                                                                              | Tarifs                          |
-| P3      | Titre d'invitation de 80 px, signalé par le détecteur                                                                                                                     | Invitation                      |
-| P3      | Veuves signalées à titre indicatif par le détecteur                                                                                                                       | Pages légales surtout           |
+| Gravité | Écart                                                                                                                                                                     | Où                    |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| P3      | La barre d'actions collante passe sur le formulaire pendant le défilement. Un champ atteint au clavier n'est plus masqué (`scroll-padding-bottom`, non rejoué au clavier) | Constructeur          |
+| P3      | « Commencer gratuitement » se coupe à 390 px                                                                                                                              | Tarifs                |
+| P3      | Titre d'invitation de 80 px, signalé par le détecteur                                                                                                                     | Invitation            |
+| P3      | Veuves signalées à titre indicatif par le détecteur                                                                                                                       | Pages légales surtout |
 
 ## Non vérifié
 

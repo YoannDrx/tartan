@@ -451,6 +451,8 @@ Liste remplacée par celle du § 17.
 
 ### Reste à ta charge, dans l'ordre
 
+Depuis le 2 novembre, le plan à suivre pour l'ouverture est `docs/plan-ouverture-publique.md`.
+
 1. Ranger `~/.tartan/cle-sauvegarde.txt` dans ton gestionnaire de mots de passe.
 2. L'adresse de ton frère pour `COACH_SIGNUP_EMAILS`.
 3. Le côté athlète de la recette et les essais sur vrais téléphones : `docs/recette-pilote.md`, § 1 et 2.
