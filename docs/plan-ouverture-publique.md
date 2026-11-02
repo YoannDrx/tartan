@@ -44,7 +44,8 @@ Sans ces 7 points, on n'ouvre pas.
 - [ ] Passer `BLOB_READ_WRITE_TOKEN` en variable sensible sur Vercel : il est signalé lisible, et partagé entre production, preview et développement.
 - [ ] Vérifier que les previews n'utilisent ni la base ni les clés de production. Valeurs masquées, je n'ai pas pu le contrôler.
 - [ ] Confirmer que l'offre Vercel autorise un usage commercial. L'API ne me donne pas l'offre. Le déploiement avec une tâche horaire le laisse penser, sans le prouver : l'offre gratuite Hobby n'autorise pas l'usage commercial.
-- [ ] E-mails : `yodev.fr` envoie avec DKIM et DMARC en place. **`tartan.coach` n'a pas de DMARC** : à ajouter chez OVH. Reste à vérifier que `EMAIL_FROM` utilise bien `yodev.fr` (valeur masquée) et que `hello@tartan.coach` reçoit bien.
+- [x] E-mails : `yodev.fr` envoie avec DKIM et DMARC. DMARC ajouté sur `tartan.coach` en observation (`p=none`), rapports vers `hello@tartan.coach`, qui redirige bien vers ta boîte Gmail.
+- [ ] Confirmer que `EMAIL_FROM` utilise bien `yodev.fr` en production (valeur masquée), et envoyer un message de test à `hello@tartan.coach`.
 - [x] Surveillance de `/api/health` et du site toutes les 15 minutes, par `.github/workflows/surveillance.yml`. Un échec déclenche l'alerte de GitHub. Coupure simulée : à faire une fois en ligne.
 
 **Terminé quand :** chaque case est cochée, et une coupure simulée déclenche une alerte.
