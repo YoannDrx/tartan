@@ -54,8 +54,8 @@ export const joinAsAthlete = async (
 };
 
 export const publishSession = async (page: Page, title: string, exercise: string) => {
-  await page.goto(`/seances/nouvelle?date=${today()}`);
-  // Pendant le rendu en flux, React garde une copie masquée du formulaire : on vise celle qui s'affiche.
+  // Pendant le rendu en flux, React peut remplacer le formulaire : on attend la fin, puis on vise la copie affichée.
+  await page.goto(`/seances/nouvelle?date=${today()}`, { waitUntil: "networkidle" });
   await page.getByLabel("Titre").locator("visible=true").fill(title);
   await page.getByRole("button", { name: `Ajouter ${exercise} à la séance` }).click();
   await expect(page.getByRole("button", { name: new RegExp(exercise) }).first()).toBeVisible();

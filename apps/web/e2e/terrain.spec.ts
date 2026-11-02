@@ -42,6 +42,8 @@ test("au stade sans réseau, l'athlète ouvre sa séance, valide, et le coach le
   await expect(athlete.getByRole("heading", { name: m.offline.title })).toBeVisible();
 
   await athlete.goto("/aujourdhui").catch(() => undefined);
+  // La file se relit après le chargement : sans cette attente, « disparu » serait vrai trop tôt.
+  await expect(athlete.getByText(m.offline.pending(1))).toBeVisible();
   await context.setOffline(false);
   await expect(athlete.getByText(m.offline.pending(1))).toBeHidden({ timeout: 45_000 });
   await page.goto("/suivi");

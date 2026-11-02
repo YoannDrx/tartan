@@ -417,6 +417,10 @@ Détail dans `docs/registre-design-mobile.md` et `docs/fiches-stores.md`.
 | Fiches, formulaires de confidentialité                                       | Rédigés                                                | À relire et à saisir par toi                                                                  |
 | Comptes de stores, EAS, Firebase, RevenueCat, build, TestFlight, 12 testeurs | **Pas fait, à ta charge**                              |                                                                                               |
 
+### Limite connue, trouvée par la CI sous WebKit
+
+Pendant le rendu en flux, React peut remplacer un formulaire qui vient de s'afficher : le titre d'une séance tapé dans le tout premier instant a été perdu en test, et le formulaire le signale à la publication. La cause n'est pas corrigée. À surveiller sur vrai téléphone lent. Le rechargement après connexion qui effaçait le prénom, lui, est corrigé.
+
 ### Phase 7
 
 Rien n'est construit, volontairement : le plan réserve la V2 et la V3 aux retours du pilote.

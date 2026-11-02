@@ -33,7 +33,10 @@ export const AcceptForm = ({
       router.push("/accueil");
       router.refresh();
     },
-    onError: ({ error }) => setFormError(error.serverError ?? m.common.genericError),
+    // Un champ refusé affiche son erreur à côté de lui : inutile d'accuser la connexion.
+    onError: ({ error }) => {
+      if (!error.validationErrors) setFormError(error.serverError ?? m.common.genericError);
+    },
   });
   const fieldErrors = result.validationErrors as Record<string, { _errors?: string[] }> | undefined;
 

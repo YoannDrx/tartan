@@ -1,7 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -24,7 +23,6 @@ export const SignInForm = ({
   providers: ("google" | "apple")[];
   defaultEmail?: string;
 }) => {
-  const router = useRouter();
   const [mode, setMode] = useState<"magic" | "signin" | "signup">("magic");
   const [sent, setSent] = useState<"magic" | "verify" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,8 +55,8 @@ export const SignInForm = ({
       setSent("verify");
       return;
     }
-    router.push(callbackURL);
-    router.refresh();
+    // Une seule navigation complète : sous Safari, enchaîner push et refresh rechargeait la page et effaçait la saisie suivante.
+    window.location.assign(callbackURL);
   });
 
   if (sent) {

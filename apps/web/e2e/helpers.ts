@@ -33,7 +33,11 @@ export const signUp = async (page: Page, email: string, next = "/connexion") => 
   await page.getByRole("button", { name: "Utiliser un mot de passe" }).click();
   await page.getByLabel("Adresse e-mail").fill(email);
   await page.getByLabel("Mot de passe").fill(PASSWORD);
-  await page.getByRole("button", { name: m.auth.signInWithPassword, exact: true }).click();
+  const signIn = page.getByRole("button", { name: m.auth.signInWithPassword, exact: true });
+  await signIn.click();
+  // La connexion recharge la page : un champ rempli avant la fin serait perdu.
+  await expect(signIn).toBeHidden();
+  await page.waitForLoadState("networkidle");
 };
 
 export const createCoachSpace = async (page: Page, name = "Thomas") => {
