@@ -64,7 +64,7 @@ const ConsentRow = ({
         value={value}
         disabled={disabled}
         trackColor={{ true: scene.actionOnCard, false: scene.controlLine }}
-        thumbColor={scene.text}
+        thumbColor={value ? scene.onActionOnCard : scene.text}
       />
     </View>
   </Pressable>
@@ -184,21 +184,21 @@ export default function Settings() {
 
   if (me.isPending) {
     return (
-      <StackScreen title={m.settings.title}>
+      <StackScreen world="craie" title={m.settings.title}>
         <LoadingState />
       </StackScreen>
     );
   }
   if (!me.data) {
     return (
-      <StackScreen title={m.settings.title}>
+      <StackScreen world="craie" title={m.settings.title}>
         <ErrorState error={me.error} onRetry={() => void me.refetch()} />
       </StackScreen>
     );
   }
 
   return (
-    <StackScreen title={m.settings.title}>
+    <StackScreen world="craie" title={m.settings.title}>
       <View style={{ gap: space.sm }}>
         <SectionTitle>{m.settings.profile}</SectionTitle>
         <Card>
@@ -281,7 +281,12 @@ export default function Settings() {
                     </T>
                   </View>
                   {s.organizationId === active?.organizationId ? (
-                    <Check size={20} color={scene.text} accessibilityElementsHidden importantForAccessibility="no" />
+                    <Check
+                      size={20}
+                      color={scene.actionOnCard}
+                      accessibilityElementsHidden
+                      importantForAccessibility="no"
+                    />
                   ) : null}
                 </Pressable>
               </View>

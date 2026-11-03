@@ -75,7 +75,7 @@ export const RollCall = ({
                   className={cn(
                     "min-h-11 rounded-full px-3 text-[14px] transition-colors",
                     state[row.athleteId] === value
-                      ? "bg-white font-semibold text-ink"
+                      ? "bg-accent font-semibold text-on-accent"
                       : "border border-card-line bg-card-raised hover:bg-card-line",
                   )}
                 >

@@ -15,13 +15,15 @@ import {
   socialErrorMessage,
 } from "../../src/lib/social-auth";
 import { useSession } from "../../src/lib/session-store";
-import { Button, Card, Divider, Field, LaneLine, T } from "../../src/ui/primitives";
+import { Button, Card, Divider, Field, LaneLine, ScreenTitle, T } from "../../src/ui/primitives";
+import { useSceneStatusBar } from "../../src/ui/screen";
 import { scene, space, usePagePad } from "../../src/ui/theme";
 
 const CALLBACK = "/callback";
 const emailSchema = z.email();
 
 export default function SignIn() {
+  useSceneStatusBar();
   const status = useSession((s) => s.status);
   const refresh = useSession((s) => s.refresh);
   const router = useRouter();
@@ -155,9 +157,7 @@ export default function SignIn() {
           <T variant="title1" accessibilityLabel={m.brand.name}>
             {m.brand.name}
           </T>
-          <T variant="screen" heading testID="sign-in-title" maxFontSizeMultiplier={1.3}>
-            {m.auth.signInTitle}
-          </T>
+          <ScreenTitle title={m.auth.signInTitle} testID="sign-in-title" />
           <T variant="body" style={{ maxWidth: 320 }}>
             {m.auth.signInLead}
           </T>

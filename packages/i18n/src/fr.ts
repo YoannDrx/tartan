@@ -190,6 +190,18 @@ export const fr = {
       days: ["Lundi", "Mercredi", "Ce soir"],
       announce: (athlete: string) => `${athlete} passe à Fait dans la grille du coach.`,
     },
+    film: {
+      titleMark: "faite",
+      run: { title: "Plus aucune séance perdue dans les SMS.", mark: "SMS" },
+      plant: { title: "Commenté à l'instant de l'impulsion.", mark: "l'impulsion" },
+      flightMark: "leçon",
+      validated: { title: "Validée, bien joué.", mark: "bien joué" },
+      finish: {
+        title: "Et toi, tu sais qui l'a faite.",
+        mark: "tu sais",
+        body: "L'athlète valide d'un appui. Sa case passe à Fait dans ta grille.",
+      },
+    },
     rollCall: {
       title: "Tu crées la séance une fois. L'absent reçoit la bonne version.",
       body: "Pour le groupe, un sous-groupe ou un athlète, chacun avec ses charges. Fais l'appel : la bascule se fait toute seule.",

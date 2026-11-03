@@ -40,7 +40,7 @@ export const SettingsMenu = ({
         aria-label={m.nav.reglages}
         className={cn(
           "inline-flex size-11 shrink-0 items-center justify-center rounded-full data-[state=open]:bg-raise",
-          active ? "bg-brand text-white" : "text-fg hover:bg-raise",
+          active ? "bg-accent text-on-accent" : "text-fg hover:bg-raise",
         )}
       >
         <Settings aria-hidden className="size-5" />

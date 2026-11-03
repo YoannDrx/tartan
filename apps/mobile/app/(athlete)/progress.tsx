@@ -21,7 +21,12 @@ export default function Progress() {
   const file = useAthleteFile(orgId);
   const empty = file.data && file.data.performances.length === 0 && file.data.tests.length === 0;
   return (
-    <TabScreen title={m.mobile.progress.title} refreshing={file.isRefetching} onRefresh={() => void file.refetch()}>
+    <TabScreen
+      world="soleil"
+      title={m.mobile.progress.title}
+      refreshing={file.isRefetching}
+      onRefresh={() => void file.refetch()}
+    >
       {file.isPending ? <LoadingState /> : null}
       {file.isError && !file.data ? <ErrorState error={file.error} onRetry={() => void file.refetch()} /> : null}
       {empty ? <EmptyState body={m.mobile.progress.empty} /> : null}

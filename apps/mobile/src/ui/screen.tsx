@@ -1,15 +1,26 @@
 import { m } from "@tartan/i18n";
-import { useRouter } from "expo-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { setStatusBarStyle } from "expo-status-bar";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { RefreshControl, ScrollView, View, type ScrollViewProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIsOnline } from "../lib/network";
 import { useOpQueue } from "../lib/sync/op-queue";
 import { useUploads } from "../lib/upload/upload-queue";
 import { ArrowLeft, CloudOff, CloudUpload, Settings, X } from "./icons";
-import { IconButton, LaneLine, ListSurface, T } from "./primitives";
+import { IconButton, LaneLine, ListSurface, ScreenTitle, T } from "./primitives";
 import { SpaceSwitcher } from "./space-switcher";
-import { Scene, scene, space, usePagePad, usePalette } from "./theme";
+import { Scene, scene, space, usePagePad, usePalette, type WorldName } from "./theme";
+
+// La barre d'état suit le fond de l'écran au premier plan : encre sur la craie et le soleil, claire ailleurs.
+export const useSceneStatusBar = () => {
+  const { dark } = usePalette();
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle(dark ? "light" : "dark");
+    }, [dark]),
+  );
+};
 
 // Hors ligne ou envois en attente : l'état se lit sans chercher.
 export const SyncBanner = () => {
@@ -54,6 +65,7 @@ export const SyncBanner = () => {
 };
 
 type TabScreenProps = {
+  world?: WorldName;
   title: string;
   subtitle?: string;
   right?: ReactNode;
@@ -64,7 +76,16 @@ type TabScreenProps = {
 };
 
 // Écran d'onglet : sélecteur d'espace, titre, contenu défilant, tirer pour actualiser.
-export const TabScreen = ({ title, subtitle, right, children, refreshing, onRefresh, scrollProps }: TabScreenProps) => {
+const TabInner = ({
+  title,
+  subtitle,
+  right,
+  children,
+  refreshing,
+  onRefresh,
+  scrollProps,
+}: Omit<TabScreenProps, "world">) => {
+  useSceneStatusBar();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const p = usePalette();
@@ -105,9 +126,7 @@ export const TabScreen = ({ title, subtitle, right, children, refreshing, onRefr
         <SpaceSwitcher />
         <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
           <View style={{ flex: 1, gap: 2 }}>
-            <T variant="screen" heading maxFontSizeMultiplier={1.3}>
-              {title}
-            </T>
+            <ScreenTitle title={title} />
             {subtitle ? <T variant="small">{subtitle}</T> : null}
           </View>
           {right}
@@ -127,7 +146,14 @@ export const TabScreen = ({ title, subtitle, right, children, refreshing, onRefr
   );
 };
 
+export const TabScreen = ({ world = "piste", ...rest }: TabScreenProps) => (
+  <Scene scene={world}>
+    <TabInner {...rest} />
+  </Scene>
+);
+
 type StackScreenProps = {
+  world?: WorldName;
   title?: string;
   subtitle?: string;
   dark?: boolean;
@@ -151,7 +177,8 @@ const StackInner = ({
   children,
   scroll = true,
   footer,
-}: Omit<StackScreenProps, "dark">) => {
+}: Omit<StackScreenProps, "dark" | "world">) => {
+  useSceneStatusBar();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const p = usePalette();
@@ -180,11 +207,7 @@ const StackInner = ({
           onPress={onBack ?? (() => (router.canGoBack() ? router.back() : router.replace("/")))}
         />
         <View style={{ flex: 1 }}>
-          {title ? (
-            <T variant={p.onRed ? "title1" : "title2"} heading numberOfLines={2}>
-              {title}
-            </T>
-          ) : null}
+          {title ? <ScreenTitle title={title} variant={p.world ? "title1" : "title2"} numberOfLines={2} /> : null}
           {subtitle ? (
             <T variant="caption" tone="muted" numberOfLines={2}>
               {subtitle}
@@ -193,7 +216,7 @@ const StackInner = ({
         </View>
         {right}
       </View>
-      {p.onRed && title ? (
+      {p.world && title ? (
         <View style={{ paddingHorizontal: pad, marginBottom: space.lg }}>
           <LaneLine />
         </View>
@@ -227,8 +250,9 @@ const StackInner = ({
   );
 };
 
-export const StackScreen = ({ dark, ...rest }: StackScreenProps) => (
-  <Scene dark={dark}>
+// `dark` : l'encre des écrans de tâche (vidéo, capture, mode séance), prioritaire sur le monde.
+export const StackScreen = ({ dark, world = "piste", ...rest }: StackScreenProps) => (
+  <Scene scene={dark ? "encre" : world}>
     <StackInner {...rest} />
   </Scene>
 );

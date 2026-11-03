@@ -2,60 +2,94 @@
 
 Lu à chaque session de design. L'identité Tartan prime sur tout système généré (cahier des charges, chapitre 9).
 
-**Intention.** Une direction artistique très marquée, très soignée. On ouvre Tartan et on est sur la piste : le rouge brique du tartan remplit l'écran, les lignes blanches de couloir le structurent, le contenu se pose sur des cartes encre. Aucune autre app ne ressemble à ça, et c'est le but.
+**Intention.** Une affiche d'athlétisme qui s'anime : aplats vifs, formes franches, un personnage qui saute. Chaque rubrique a son monde de couleur, les données restent posées sur des cartes encre, et le citron signale ce qu'on peut faire et ce qui est fait. Aucune autre app de coach ne ressemble à ça, et c'est le but.
 
-Décision du fondateur (1er novembre 2026), qui remplace le « clair par défaut » du cahier (§ 9.9) : **l'app est sombre et rouge, il n'y a plus de mode clair.**
+Décision du fondateur (3 novembre 2026), qui remplace la direction « sombre et rouge » du 1er novembre et le « clair par défaut » du cahier (§ 9.9) : **cette direction s'applique au site et aux applications, sur toutes les pages.**
 
-## Le système : trois scènes
+## Deux régimes
 
-| Scène                  | Fond                                           | Où                                                                                                             | Pourquoi                                                                                        |
-| ---------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| **Piste** (par défaut) | Rouge piste plein écran                        | Toute la navigation : suivi, calendrier, exercices, athlètes, annonces, réglages, Aujourd'hui, connexion, site | L'identité : on est sur le tartan                                                               |
-| **Encre**              | Encre pleine                                   | Mode séance, analyse vidéo                                                                                     | La vidéo et l'effort priment, le rouge fatiguerait l'œil et fausserait la perception de l'image |
-| **Lecture**            | Rouge piste, texte dans une grande carte encre | Pages légales et textes longs                                                                                  | Lire longtemps sur du rouge est pénible                                                         |
+- **Le site public** cherche à convaincre : le film du saut, les mots qui rebondissent, le spectacle assumé.
+- **L'application** sert une tâche : même univers, mais lisibilité d'abord. Pas d'animation au chargement, transitions de 150 à 250 ms, un seul grand moment animé. Le critère reste : valider en moins de 10 secondes côté athlète, lisible au soleil sur le terrain.
 
-### Règles de la scène Piste
+## Les mondes
 
-- **Le rouge est le fond, jamais une carte.** Le contenu vit sur des cartes encre (`scene.card`, rayon 14). Pas de carte rouge sur fond rouge, pas de carte dans une carte : à l'intérieur d'une carte, on structure par lignes (`scene.cardLine`) et par rangées surélevées (`scene.cardRaised`).
-- **Les lignes de couloir sont la signature.** Traits blancs pleins de 3 px, à bord perdu, jamais translucides. Sous le titre d'écran et entre grandes sections. La ligne d'arrivée (verticale, 7 px, plus du double) a deux usages et pas d'autre : couper la piste du site, une seule fois ; signaler une séance de saut, au bord droit de sa carte dans le calendrier, où elle se répète avec les séances puisque c'est un marqueur de type. Pas de damier, de dégradé, d'ombre ni de reflet sur ces lignes.
-- **Les titres d'écran sont posés directement sur le rouge**, en blanc, Barlow Condensed Bold, et grands : c'est là que se joue la force de l'identité. Augmente le corps plutôt que d'ajouter un élément.
-- **Sur le rouge, tout le texte est blanc** (5,0:1). L'encre y échoue (3,6:1), comme tout texte secondaire grisé, rosé ou translucide : l'encre n'existe sur le rouge qu'en surface. L'action principale sur le rouge est un bouton blanc, texte encre.
-- **Dans une carte encre**, l'action principale est rouge piste, texte blanc. Texte blanc, secondaire `scene.textMuted`, liens `scene.link`. Les contours de champs utilisent `scene.controlLine` (3:1), `scene.cardLine` reste aux séparateurs décoratifs.
-- **Une carte héros par écran au maximum** peut passer en craie (`scene.hero`, texte encre) : c'est le point focal, comme la séance du jour. Elle ne devient pas une habitude.
-- **Le logo** : logotype blanc seul sur le rouge (le cahier interdit l'icône rouge sur fond rouge) ; icône complète autorisée sur l'encre.
-- Barres de navigation : encre, onglet actif avec pictogramme et libellé blancs sur une pastille rouge piste. La barre système est en contenu clair.
+Le fond change franchement d'une rubrique à l'autre, sans fondu. Source web : `apps/web/src/lib/world.ts` et les classes `.world-*`. Le mobile applique la même répartition.
+
+| Monde   | Fond             | Texte | Où                                                                   |
+| ------- | ---------------- | ----- | -------------------------------------------------------------------- |
+| Piste   | Rouge `#C4442B`  | Blanc | Accueil, Aujourd'hui, séance, connexion, invitations, site           |
+| Couloir | Bleu électrique  | Blanc | Suivi, calendrier, séances, tarifs                                   |
+| Craie   | Craie `#F2F3F1`  | Encre | Exercices, annonces, réglages, abonnement, textes légaux             |
+| Soleil  | Jaune `#FFC838`  | Encre | Athlètes, progrès, contact                                           |
+| Nuit    | Encre `#15161A`  | Blanc | Vidéos et mes sauts, mode séance, analyse vidéo, capture, hors ligne |
+| Citron  | Citron `#C6F432` | Encre | Réservé au moment de validation et à sa séquence dans le film        |
+
+La vidéo et le mode séance restent sur encre : l'effort prime, et une couleur vive fausserait la perception de l'image.
+
+### Règles
+
+- **Les données vivent sur des cartes encre** (`scene.card`). Pas de carte dans une carte : à l'intérieur, on structure par lignes (`scene.cardLine`) et par rangées surélevées (`scene.cardRaised`). Dans le monde Nuit, les cartes passent à `ink2`.
+- **Sur un monde, le texte a une seule couleur** : blanc sur Piste, Couloir et Nuit, encre sur Craie et Soleil. Pas de secondaire grisé ou teinté directement sur un fond plein.
+- **Une couleur de texte s'écrit avec un rôle** (`--ctx-*`, `bg-accent`, `text-on-accent`, `text-on-page`), jamais en dur : un même composant traverse tous les mondes.
+- **Les lignes de couloir restent la signature** : traits pleins de 3 px à bord perdu, de la couleur du texte du monde, sous le titre d'écran et entre grandes sections. La ligne d'arrivée (7 px) coupe la piste du site une seule fois et signale une séance de saut dans le calendrier.
+- **Une carte héros par écran au maximum** peut passer en craie (`scene.hero`) : c'est le point focal, comme la séance du jour.
+- **Le logo** : logotype seul sur un monde, de la couleur du texte ; icône complète autorisée sur l'encre.
+- Barres de navigation : encre, onglet actif citron avec texte et pictogramme encre.
 - Les e-mails restent clairs : ils s'affichent dans la messagerie de chacun.
 
-### Statuts
+## L'accent citron
 
-Sur l'encre, les statuts utilisent `scene.status` (`done` #4C8FE0, `partial` #E08A1E, `missed` #F0644C, `upcoming` #8C8E94), pictogramme encre (`scene.onStatus`) dans le disque. Le pictogramme reste distinct par statut, jamais la couleur seule. Les valeurs `color.status` restent celles des fonds clairs (carte héros craie, e-mails).
+Le citron sert aux actions principales, à la sélection, au statut « fait » et au marqueur. Il suit le fond :
+
+- sur Piste, Couloir, Nuit et les cartes encre : fond citron, texte encre ;
+- sur Craie, Soleil et la carte héros : fond encre, texte citron.
+
+Sur le rouge, le citron atteint 3,9:1 : il ne sert jamais de couleur de texte. Sur l'encre, il sert aussi aux liens. Le rouge reste la marque et le type « saut » : il n'indique plus une sélection.
+
+## Le marqueur
+
+Le dernier mot de chaque titre d'écran est posé sur un aplat d'accent (`Marked`), tracé une fois à l'arrivée sur l'écran. Pas de marqueur ailleurs que sur les titres d'écran et de section du site : il perdrait sa force.
+
+## La mascotte
+
+Un personnage en aplats : tête ronde, deux yeux en points, membres épais, baskets citron (`Jumper`, poses et proportions dans `packages/design-tokens/src/jumper.ts`). Elle occupe les états vides, les erreurs, le hors-ligne et le moment de validation. Elle est décorative : le texte voisin porte le sens. Elle ne remplace ni une donnée ni une action.
+
+## Le mouvement
+
+- **Un seul grand moment dans l'application : la validation d'une séance faite** (`Victory`). Une seconde plein écran en citron, coche, mascotte et confettis, sans bloquer l'écran ni retarder l'envoi. Une validation partielle n'y a pas droit.
+- **Sur le site public** : le film du saut piloté par le défilement, le tracé des couloirs et le même moment dans la démonstration.
+- Avec la réduction des animations ou sans JavaScript, ces animations disparaissent : image fixe et textes empilés.
+
+## Statuts
+
+Sur l'encre, les statuts utilisent `scene.status` (`done` citron, `partial` soleil, `missed` corail, `upcoming` gris), pictogramme encre (`scene.onStatus`) dans le disque. Les valeurs `color.status` restent celles des fonds clairs (carte héros, e-mails). **Jamais la couleur seule :** fait = coche, partiel = demi-disque, manqué = croix, à venir = contour pointillé.
 
 ### Exigence de soin
 
-Tout est aligné sur la grille de 4, chiffres tabulaires partout, rythme vertical constant. Sélection de texte, focus (blanc sur le rouge, `scene.link` sur l'encre), barres de défilement, états vides : tout porte l'identité. Un seul moment animé : la validation d'une séance (coche), éventuellement la barre franchie. Exception décidée par le fondateur le 2 novembre 2026, limitée au site public (`/`) : les couloirs s'y dessinent aussi au défilement, en plus de la validation que le visiteur déclenche dans la démonstration. Sans prise en charge ou avec la réduction des animations, ils sont simplement là. Un écran correct mais quelconque n'est pas terminé.
+Tout est aligné sur la grille de 4, chiffres tabulaires partout, rythme vertical constant. Sélection de texte, focus, barres de défilement, états vides : tout porte l'identité. Un écran correct mais quelconque n'est pas terminé.
 
 ## Jetons
 
-Source unique : `packages/design-tokens/src/index.ts`. Ne pas écrire de couleur ailleurs. Les rôles à l'écran viennent de `tokens.scene` ; le tableau ci-dessous donne les couleurs de base du cahier.
+Source unique : `packages/design-tokens/src/index.ts`. Ne pas écrire de couleur ailleurs. Les rôles à l'écran viennent de `tokens.scene`, la palette vive de `color.film`.
 
-| Jeton                     | Valeur  | Usage                                        |
-| ------------------------- | ------- | -------------------------------------------- |
-| brand (Piste)             | #C4442B | Action principale, onglet actif, marque      |
-| brandStrong (Piste foncé) | #9E3320 | Texte rouge sur clair, liens, onglet actif   |
-| brandTint                 | #FBE7E2 | Fond d'alerte douce                          |
-| ink (Encre)               | #15161A | Texte, fonds sombres (mode séance, vidéo)    |
-| ink2                      | #24262C | Cartes sur fond sombre                       |
-| muted                     | #5E6066 | Texte secondaire                             |
-| bg (Craie)                | #F2F3F1 | Carte héros, e-mails                         |
-| surface                   | #FFFFFF | Cartes, listes                               |
-| border                    | #E2E3DF | Bordures et séparateurs                      |
-| status.done (Couloir)     | #1E5FA8 | Fait, avec coche                             |
-| status.partial (Sautoir)  | #E08A1E | Partiel, demi-disque, pictogramme seul       |
-| status.missed             | #C4442B | Manqué, avec croix                           |
-| status.upcoming           | #8C8E94 | À venir, contour pointillé, pictogramme seul |
+| Jeton             | Valeur  | Usage                                      |
+| ----------------- | ------- | ------------------------------------------ |
+| brand (Piste)     | #C4442B | Monde Piste, marque, type « saut »         |
+| brandStrong       | #9E3320 | Piste foncé, survol, texte rouge sur clair |
+| ink (Encre)       | #15161A | Texte sur clair, cartes, monde Nuit        |
+| ink2              | #24262C | Rangées surélevées, cartes du monde Nuit   |
+| bg (Craie)        | #F2F3F1 | Monde Craie, carte héros, e-mails          |
+| film.electric     | #2B4DFF | Monde Couloir                              |
+| film.electricDeep | #1E37C2 | Survol sur Couloir                         |
+| film.lime         | #C6F432 | Accent, statut fait, moment de validation  |
+| film.limeDeep     | #AEDB1E | Survol de l'accent                         |
+| film.sun          | #FFC838 | Monde Soleil, statut partiel, tapis        |
+| film.sunDeep      | #EFB21C | Survol sur Soleil                          |
+| film.sunLight     | #FFE08A | Dessus du tapis dans le film               |
+| film.skin         | #E8A87C | Peau de la mascotte                        |
 
 Espacements : 4, 8, 12, 16, 20, 24, 32, 48, 64. Marge latérale mobile 16, desktop 24.
-Rayons : 10 vignettes, 12 boutons carrés, 14 cartes, 16 blocs, 20 carte héros, plein pour les pastilles.
+Rayons : 12 vignettes, 14 boutons carrés, 20 cartes, 24 blocs, 28 carte héros, plein pour les pastilles.
 Aplats et bordures plutôt qu'ombres (lisibilité au soleil). Ombre légère seulement pour un élément flottant.
 Cibles tactiles : 44 × 44 minimum.
 
@@ -78,23 +112,19 @@ Source : `apps/web/app/globals.css`, classes `.t-*`. Bascule à 1024 px.
 
 Aucun texte en capitales d'affichage : ni au-dessus d'une section, ni en en-tête de colonne (§ 9.11).
 
-## Statuts
-
-Jamais la couleur seule : fait = bleu + coche, partiel = orange + demi-disque, manqué = brique + croix, à venir = contour pointillé.
-
 ## Composants
 
-- Bouton principal : blanc texte encre sur le rouge, rouge piste texte blanc sur l'encre. SemiBold 16, hauteur 48–52, pastille. Une seule action principale par écran.
-- Bouton secondaire : sur le rouge, contour blanc 2 px et texte blanc ; sur l'encre, fond `cardRaised`, bordure `cardLine`.
-- Bouton icône : 44 × 44, rond ou carré arrondi 12, libellé accessible obligatoire.
-- Pastille de filtre : hauteur 36, pastille. Sur le rouge : active = fond blanc, texte encre ; inactive = contour blanc. Sur l'encre : active = fond blanc, texte encre ; inactive = fond `cardRaised`.
+- Bouton principal : accent, SemiBold 16, hauteur 48–52, pastille. Une seule action principale par écran.
+- Bouton secondaire : sur un monde, contour 2 px de la couleur du texte ; sur l'encre, fond `cardRaised`, bordure `cardLine`.
+- Bouton icône : 44 × 44, rond ou carré arrondi, libellé accessible obligatoire.
+- Pastille de filtre : hauteur 36, pastille. Active : accent. Inactive : contour sur un monde, fond `cardRaised` sur l'encre.
 - Cellule de statut : disque 26 px avec pictogramme, cible tactile 44 px.
-- Carte séance : type, titre, horaire · public, étiquettes de version (Club, Autonomie, Filmée), sur encre. Séance de saut signalée par une ligne d'arrivée et un pictogramme de barre, puisque le rouge est désormais le fond.
+- Carte séance : type, titre, horaire · public, étiquettes de version (Club, Autonomie, Filmée), sur encre. Séance de saut signalée par une ligne d'arrivée et un pictogramme de barre.
 - Ligne d'exercice : vignette vidéo 44 px, nom, prescription en texte secondaire, étiquette de catégorie.
-- Barre d'onglets : 5 entrées maximum, pictogramme + libellé 11 px, fond encre, actif blanc sur pastille rouge piste.
+- Barre d'onglets : 5 entrées maximum, pictogramme + libellé 11 px, fond encre, actif citron.
 - Champ : hauteur 44, libellé visible (ou masqué mais présent pour les lecteurs d'écran), coins 10–22.
-- Timeline vidéo : segments par phase (luminosités alternées, phase courante en Piste), repères de commentaires, tête de lecture blanche.
-- Feuille de barres : une pastille par hauteur, résultat dessous (O / XO / XXX), hauteur courante en Piste.
+- Timeline vidéo : segments par phase (luminosités alternées, phase courante en citron), repères de commentaires, tête de lecture blanche.
+- Feuille de barres : une pastille par hauteur, résultat dessous (O / XO / XXX), hauteur courante en citron.
 - Alerte : ligne dans une carte encre, pastille d'icône pleine (`missed` ou `partial`), titre + détail, chevron.
 
 ## Interdits (exigence « aucun AI slop »)
@@ -111,8 +141,8 @@ Un écran qui contient l'un de ces travers n'est pas terminé.
 - Ombres dures ou lourdes.
 - Police système comme voix de la marque.
 - Faux contenu (lorem ipsum, statistiques inventées). Contenu réel du pilote ou repère explicite [À DÉFINIR].
-- Animations d'apparition identiques partout : un seul moment animé qui a du sens (validation d'une séance, barre franchie). Seul le site public y ajoute le tracé des couloirs.
+- Animations d'apparition sur les écrans de l'application.
 
 ## À vérifier sur chaque écran
 
-Contraste 4,5:1 (3:1 gros titres), cibles 44 px, focus clavier visible. États : chargement, vide, erreur, désactivé, survol, contenu long, contenu réel. Éléments oubliés stylés : sélection de texte, barres de défilement, anneaux de focus, chiffres tabulaires. Textes dans la langue du coach et de l'athlète ; les boutons disent ce qu'ils font, les erreurs disent quoi faire.
+Contraste 4,5:1 (3:1 gros titres), cibles 44 px, focus clavier visible, dans le monde réel de l'écran. États : chargement, vide, erreur, désactivé, survol, contenu long, contenu réel. Éléments oubliés stylés : sélection de texte, barres de défilement, anneaux de focus, chiffres tabulaires. Textes dans la langue du coach et de l'athlète ; les boutons disent ce qu'ils font, les erreurs disent quoi faire.

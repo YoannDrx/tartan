@@ -1,3 +1,4 @@
+export * from "./jumper";
 // Jetons du design system Tartan (cahier des charges, § 9.3 à 9.6 et § 9.14).
 // Source unique pour le web et le mobile. Ne pas ajouter de couleur ailleurs.
 export const tokens = {
@@ -18,6 +19,17 @@ export const tokens = {
     white: "#FFFFFF",
     warningTint: "#FCEFD9",
     warningStrong: "#8A4E08",
+    // La palette vive : les mondes de couleur, l'accent citron et la mascotte (DESIGN.md).
+    film: {
+      electric: "#2B4DFF",
+      electricDeep: "#1E37C2",
+      lime: "#C6F432",
+      limeDeep: "#AEDB1E",
+      sun: "#FFC838",
+      sunDeep: "#EFB21C",
+      sunLight: "#FFE08A",
+      skin: "#E8A87C",
+    },
     status: {
       done: "#1E5FA8",
       partial: "#E08A1E",
@@ -36,15 +48,15 @@ export const tokens = {
     controlLine: "#6B6E76",
     text: "#FFFFFF",
     textMuted: "#B9BBC0",
-    link: "#F2A08F",
+    link: "#C6F432",
     hero: "#F2F3F1",
     onHero: "#15161A",
     onHeroAccent: "#9E3320",
-    actionOnPage: "#FFFFFF",
+    actionOnPage: "#C6F432",
     onActionOnPage: "#15161A",
-    actionOnCard: "#C4442B",
-    onActionOnCard: "#FFFFFF",
-    status: { done: "#4C8FE0", partial: "#E08A1E", missed: "#F0644C", upcoming: "#8C8E94" },
+    actionOnCard: "#C6F432",
+    onActionOnCard: "#15161A",
+    status: { done: "#C6F432", partial: "#FFC838", missed: "#FF6B57", upcoming: "#8C8E94" },
     onStatus: "#15161A",
   },
   font: {
@@ -55,7 +67,7 @@ export const tokens = {
     bodyStrong: "Barlow-SemiBold",
   },
   space: [0, 4, 8, 12, 16, 20, 24, 32, 48, 64],
-  radius: { thumb: 10, button: 12, card: 14, block: 16, hero: 20, pill: 999 },
+  radius: { thumb: 12, button: 14, card: 20, block: 24, hero: 28, pill: 999 },
   touch: 44,
   breakpoint: { tablet: 600, desktop: 1024, contentMax: 1440 },
 } as const;

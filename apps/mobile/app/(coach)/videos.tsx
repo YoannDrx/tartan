@@ -19,7 +19,12 @@ export default function CoachVideos() {
   const router = useRouter();
   const pending = uploads.filter((u) => u.orgId === orgId);
   return (
-    <TabScreen title={m.video.title} refreshing={videos.isRefetching} onRefresh={() => void videos.refetch()}>
+    <TabScreen
+      world="nuit"
+      title={m.video.title}
+      refreshing={videos.isRefetching}
+      onRefresh={() => void videos.refetch()}
+    >
       <Button testID="open-capture" label={m.video.capture} icon={Camera} onPress={() => router.push("/capture")} />
       {pending.length > 0 ? (
         <View style={{ gap: space.sm }}>
@@ -43,7 +48,7 @@ export default function CoachVideos() {
       {videos.isError && !videos.data ? (
         <ErrorState error={videos.error} onRetry={() => void videos.refetch()} />
       ) : null}
-      {videos.data?.length === 0 && pending.length === 0 ? <EmptyState body={m.video.empty} /> : null}
+      {videos.data?.length === 0 && pending.length === 0 ? <EmptyState body={m.video.empty} pose="apex" /> : null}
       {videos.data && videos.data.length > 0 ? (
         <ListSurface>
           {videos.data.map((video, i) => (

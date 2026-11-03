@@ -44,7 +44,7 @@ export const SpaceSwitcher = () => {
           <T variant="caption" tone="muted">
             {m.roles[active.role]}
           </T>
-          <ChevronsUpDown size={16} color={p.text} accessibilityElementsHidden importantForAccessibility="no" />
+          <ChevronsUpDown size={16} color={scene.text} accessibilityElementsHidden importantForAccessibility="no" />
         </Scene>
       </Pressable>
       <Sheet visible={open} title={m.settings.switchSpace} onClose={() => setOpen(false)}>
@@ -72,7 +72,7 @@ export const SpaceSwitcher = () => {
                   borderRadius: radius.card,
                   backgroundColor: scene.cardRaised,
                   borderWidth: selected ? 2 : 0,
-                  borderColor: scene.text,
+                  borderColor: scene.actionOnCard,
                   opacity: pressed ? 0.8 : 1,
                 })}
               >
@@ -83,7 +83,12 @@ export const SpaceSwitcher = () => {
                   </T>
                 </View>
                 {selected ? (
-                  <Check size={20} color={scene.text} accessibilityElementsHidden importantForAccessibility="no" />
+                  <Check
+                    size={20}
+                    color={scene.actionOnCard}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no"
+                  />
                 ) : null}
               </Pressable>
             );

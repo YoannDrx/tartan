@@ -23,11 +23,11 @@ export const BarSheet = ({
           aria-current={isCurrent ? "true" : undefined}
           className={cn(
             "flex min-w-14 flex-col items-center rounded-thumb px-2 py-1",
-            isCurrent ? "bg-brand text-white" : "bg-card-raised text-fg",
+            isCurrent ? "bg-accent text-on-accent" : "bg-card-raised text-fg",
           )}
         >
           <span className="t-num text-[17px]">{formatHeight(r.heightCm)}</span>
-          <span className={cn("t-caption tracking-wide", isCurrent ? "text-white" : "text-fg-muted")}>
+          <span className={cn("t-caption tracking-wide", isCurrent ? "text-on-accent" : "text-fg-muted")}>
             {r.notation}
           </span>
         </li>

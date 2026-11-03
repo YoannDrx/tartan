@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Wordmark } from "@/components/logo";
 import { SITE_HOME, SiteFooter, SiteHeader } from "@/features/shell/site-chrome";
 import { LaneArcs } from "@/components/pictos";
+import { Marked } from "@/components/marked";
 import { cn } from "@/lib/cn";
 
 // Pages hors de l'app : le logotype blanc, le grand titre sur sa ligne de couloir, le contenu sur l'encre.
@@ -11,6 +12,7 @@ export const PublicPage = ({
   children,
   width = "form",
   site = false,
+  world = "piste",
 }: {
   title?: string;
   lead?: ReactNode;
@@ -18,8 +20,9 @@ export const PublicPage = ({
   width?: "form" | "text" | "wide";
   // Page du site (tarifs, contact, textes légaux) : navigation et pied de page. Les parcours ciblés restent sans issue parasite.
   site?: boolean;
+  world?: "piste" | "couloir" | "craie" | "soleil" | "nuit";
 }) => (
-  <main className="relative flex min-h-dvh flex-col overflow-x-clip pb-10">
+  <main className={cn(`world-${world}`, "relative flex min-h-dvh flex-col overflow-x-clip pb-10")}>
     {width === "form" && !site ? (
       <LaneArcs
         weight={3}
@@ -41,7 +44,9 @@ export const PublicPage = ({
       {title ? (
         <header className="mt-4 flex flex-col gap-4 desktop:mt-10">
           <div>
-            <h1 className="t-display max-w-[18ch] text-balance">{title}</h1>
+            <h1 className="t-display max-w-[18ch] text-balance">
+              <Marked text={title} />
+            </h1>
             {lead ? <div className="mt-2 max-w-[56ch] text-[16px] font-medium">{lead}</div> : null}
           </div>
           <div aria-hidden className="lane" />

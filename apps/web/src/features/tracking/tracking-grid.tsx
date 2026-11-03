@@ -62,7 +62,7 @@ export const TrackingTable = ({ grid, today = todayIso() }: { grid: TrackingGrid
                     <span
                       className={cn(
                         "t-num text-[15px] max-desktop:hidden",
-                        s.date === today && "rounded-full bg-brand px-1.5 text-white",
+                        s.date === today && "rounded-full bg-accent px-1.5 text-on-accent",
                       )}
                     >
                       {Number(s.date.slice(8))}

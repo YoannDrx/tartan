@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { formatPrice, PLANS, TRIAL_DAYS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import { Jumper } from "@/components/jumper";
+import { Marked } from "@/components/marked";
+import { JumpFilm } from "@/features/landing/jump-film";
 import { JumpScrubber } from "@/features/landing/jump-scrubber";
 import { LapBend } from "@/features/landing/lap";
 import { RollCallDemo } from "@/features/landing/roll-call-demo";
@@ -25,7 +28,7 @@ export default function LandingPage() {
     // Une vraie navigation : la création d'espace vit sur app.tartan.coach, hors de portée du préchargement.
     <a
       href={signupOpen ? "/connexion?creer=1" : "/contact"}
-      className="inline-flex min-h-[52px] items-center rounded-full bg-cta px-7 text-base font-semibold text-on-cta no-underline hover:bg-cta-hover"
+      className="inline-flex min-h-[52px] items-center rounded-full bg-accent px-7 text-base font-semibold text-on-accent no-underline hover:bg-accent-hover"
     >
       {signupOpen ? t.ctaOpen : t.ctaClosed}
     </a>
@@ -33,26 +36,14 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-dvh overflow-x-clip">
-      <div className="mx-auto max-w-[1200px] px-4 pt-6 desktop:px-6">
-        <SiteHeader />
-      </div>
+      <JumpFilm
+        header={<SiteHeader />}
+        cta={cta}
+        offer={t.offer(PLANS.discovery.limits.maxAthletes ?? 0, TRIAL_DAYS)}
+      />
 
-      <section className="mx-auto max-w-[1200px] px-4 pb-14 pt-10 desktop:px-6 desktop:pb-20 desktop:pt-16">
-        <h1 className="text-balance font-display text-[60px] font-bold leading-[0.95] desktop:text-[116px]">
-          {t.title}
-        </h1>
-        <div className="mt-6 flex flex-col gap-6 desktop:mt-8 desktop:flex-row desktop:items-end desktop:justify-between">
-          <p className="max-w-[52ch] text-[18px] leading-[26px] desktop:text-[20px] desktop:leading-[28px]">{t.lead}</p>
-          <div className="shrink-0">
-            {cta}
-            <p className="t-caption mt-3 max-w-[32ch]">
-              {t.offer(PLANS.discovery.limits.maxAthletes ?? 0, TRIAL_DAYS)}
-            </p>
-          </div>
-        </div>
-        <div className="mt-10 desktop:mt-14">
-          <ValidationDemo />
-        </div>
+      <section className="mx-auto max-w-[1200px] px-4 py-14 desktop:px-6 desktop:py-20">
+        <ValidationDemo />
       </section>
 
       <LapBend side="right" start="bleed">
@@ -60,7 +51,7 @@ export default function LandingPage() {
           <div className="grid gap-8 desktop:grid-cols-2 desktop:items-center desktop:gap-14">
             <div>
               <h2 className="text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[72px] desktop:leading-[72px]">
-                {t.rollCall.title}
+                <Marked text={t.rollCall.title} />
               </h2>
               <p className="mt-4 max-w-[46ch] text-[17px] leading-[25px]">{t.rollCall.body}</p>
             </div>
@@ -77,7 +68,7 @@ export default function LandingPage() {
             </div>
             <div className="order-1 desktop:order-2">
               <h2 className="text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[72px] desktop:leading-[72px]">
-                {t.video.title}
+                <Marked text={t.video.title} />
               </h2>
               <p className="mt-4 max-w-[40ch] text-[17px] leading-[25px]">{t.video.body}</p>
             </div>
@@ -88,13 +79,13 @@ export default function LandingPage() {
       <LapBend side="right" end="bleed">
         <div className={`mx-auto max-w-[1200px] pl-4 pr-12 desktop:pl-6 desktop:pr-24 ${bendPadding}`}>
           <h2 className="max-w-[14ch] text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[72px] desktop:leading-[72px]">
-            {t.field.title}
+            <Marked text={t.field.title} />
           </h2>
           <dl className="mt-8 desktop:mt-12">
             {t.field.items.map((item) => (
               <div
                 key={item.title}
-                className="grid gap-1 border-t-[3px] border-white py-5 desktop:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] desktop:gap-8 desktop:py-7"
+                className="grid gap-1 border-t-[3px] border-lane py-5 desktop:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] desktop:gap-8 desktop:py-7"
               >
                 <dt className="font-display text-[32px] font-bold leading-9 desktop:text-[44px] desktop:leading-[48px]">
                   {item.title}
@@ -113,7 +104,7 @@ export default function LandingPage() {
 
       <section className="mx-auto max-w-[1200px] px-4 pb-14 pt-16 desktop:px-6 desktop:pb-20 desktop:pt-24">
         <h2 className="text-balance font-display text-[60px] font-bold leading-[0.95] desktop:text-[116px]">
-          {t.finish.title}
+          <Marked text={t.finish.title} />
         </h2>
         <p className="mt-5 max-w-[52ch] text-[18px] leading-[26px]">
           {t.finish.prices(formatPrice(PLANS.coach.prices?.month ?? 0), formatPrice(PLANS.club.prices?.month ?? 0))}

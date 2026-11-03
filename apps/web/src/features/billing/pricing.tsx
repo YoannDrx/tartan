@@ -108,7 +108,7 @@ export const PricingGrid = ({
             onClick={() => setInterval(key)}
             className={cn(
               "min-h-11 rounded-full border-2 border-on-page px-4 font-semibold",
-              interval === key ? "bg-white text-ink" : "text-white hover:bg-brand-strong",
+              interval === key ? "bg-accent text-on-accent" : "text-on-page hover:bg-raise",
             )}
           >
             {key === "month" ? m.billing.monthly : m.billing.yearly}

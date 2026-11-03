@@ -12,7 +12,7 @@ import { ArrowRight, Check, Timer } from "../../src/ui/icons";
 import { Button, Chip, T, Tag } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
-import { color, radius, space, usePalette } from "../../src/ui/theme";
+import { color, radius, scene, space, usePalette } from "../../src/ui/theme";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${pad(seconds % 60)}`;
@@ -48,7 +48,7 @@ const RestTimer = ({ seconds }: { seconds: number }) => {
         backgroundColor: p.surface,
       }}
     >
-      <Timer size={22} color={color.brandOnInk} accessibilityElementsHidden importantForAccessibility="no" />
+      <Timer size={22} color={p.accent} accessibilityElementsHidden importantForAccessibility="no" />
       <T variant="small" style={{ flex: 1 }}>
         {m.mobile.sessionMode.restLabel}
       </T>
@@ -248,7 +248,12 @@ export default function SessionMode() {
         {items.map((it, n) => (
           <View
             key={it.ref}
-            style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: n <= index ? color.brand : color.ink3 }}
+            style={{
+              flex: 1,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: n <= index ? scene.actionOnCard : color.ink3,
+            }}
           />
         ))}
       </View>
@@ -298,7 +303,7 @@ export default function SessionMode() {
 
       {item.cues.length > 0 || item.prescription.notes ? (
         <View
-          style={{ padding: space.lg, borderRadius: radius.card, backgroundColor: color.ink2, gap: space.sm }}
+          style={{ padding: space.lg, borderRadius: radius.card, backgroundColor: scene.cardRaised, gap: space.sm }}
           accessibilityLabel={m.sessionMode.cues}
           accessible
         >

@@ -24,6 +24,7 @@ export default function Athletes() {
 
   return (
     <StackScreen
+      world="soleil"
       title={m.athletes.title}
       footer={
         canInvite ? (
@@ -52,9 +53,7 @@ export default function Athletes() {
           autoCorrect={false}
         />
       ) : null}
-      {athletes.data && athletes.data.length > 0 && list.length === 0 ? (
-        <T>{m.mobile.athletePage.noResult}</T>
-      ) : null}
+      {athletes.data && athletes.data.length > 0 && list.length === 0 ? <T>{m.mobile.athletePage.noResult}</T> : null}
       {list.length > 0 ? (
         <ListSurface>
           {list.map((a, i) => {

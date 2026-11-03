@@ -272,7 +272,7 @@ export const VideoAnalysis = ({
               type="button"
               aria-label={playing ? m.video.pause : m.video.play}
               onClick={toggle}
-              className="inline-flex size-[52px] items-center justify-center rounded-full bg-white text-ink"
+              className="inline-flex size-[52px] items-center justify-center rounded-full bg-accent text-on-accent"
             >
               {playing ? <Pause aria-hidden className="size-5" /> : <Play aria-hidden className="size-5" />}
             </button>
@@ -289,7 +289,7 @@ export const VideoAnalysis = ({
                   onClick={() => setSpeed(s)}
                   className={cn(
                     "min-h-11 min-w-11 rounded-button px-2 text-[14px] font-semibold",
-                    speed === s ? "bg-white text-ink" : "bg-card-raised text-white",
+                    speed === s ? "bg-accent text-on-accent" : "bg-card-raised text-white",
                   )}
                 >
                   {speedLabel(s)}
@@ -306,7 +306,7 @@ export const VideoAnalysis = ({
               }}
               className={cn(
                 "inline-flex min-h-11 items-center gap-1.5 rounded-button px-3 text-[14px] font-semibold",
-                loop ? "bg-brand text-white" : "bg-card-raised text-white",
+                loop ? "bg-accent text-on-accent" : "bg-card-raised text-white",
               )}
             >
               <Repeat aria-hidden className="size-4" />
@@ -325,7 +325,7 @@ export const VideoAnalysis = ({
                   <span
                     key={r.phase}
                     style={{ flexGrow: Math.max(r.endMs - r.startMs, 1) }}
-                    className={cn(currentPhase === r.phase ? "bg-brand" : i % 2 ? "bg-control-line" : "bg-card-line")}
+                    className={cn(currentPhase === r.phase ? "bg-accent" : i % 2 ? "bg-control-line" : "bg-card-line")}
                   />
                 ))}
               </div>
@@ -338,7 +338,7 @@ export const VideoAnalysis = ({
                   style={{ left: `${pct(first.tMs)}%` }}
                   className="absolute -top-1 z-10 flex size-6 -translate-x-1/2 items-start justify-center pt-1"
                 >
-                  <span className="size-2 rounded-full bg-brand-on-ink" />
+                  <span className="size-2 rounded-full bg-accent" />
                 </button>
               ))}
               <span
@@ -442,7 +442,7 @@ export const VideoAnalysis = ({
                   <button
                     type="submit"
                     disabled={add.isPending || !text.trim()}
-                    className="min-h-11 flex-1 whitespace-nowrap rounded-full bg-brand px-4 font-semibold text-white disabled:opacity-50"
+                    className="min-h-11 flex-1 whitespace-nowrap rounded-full bg-accent px-4 font-semibold text-on-accent disabled:opacity-50"
                   >
                     {m.video.addComment}
                   </button>

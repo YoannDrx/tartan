@@ -8,7 +8,7 @@ const variants = cva(
   {
     variants: {
       variant: {
-        // Blanc sur le rouge, rouge piste sur l'encre et la craie : le fond décide (globals.css).
+        // Citron sur les fonds soutenus et l'encre, encre sur la craie et le soleil : le fond décide (globals.css).
         primary: "bg-cta text-on-cta hover:bg-cta-hover rounded-full",
         secondary:
           "bg-second text-inherit border-[length:var(--ctx-second-width)] border-second-line hover:bg-second-hover rounded-full",
@@ -17,7 +17,7 @@ const variants = cva(
         darkPrimary: "bg-cta text-on-cta hover:bg-cta-hover rounded-full",
         darkSecondary:
           "bg-second text-inherit border-[length:var(--ctx-second-width)] border-second-line hover:bg-second-hover rounded-full",
-        inverse: "bg-white text-ink hover:bg-hero rounded-full",
+        inverse: "bg-accent text-on-accent hover:bg-hero rounded-full",
       },
       size: {
         lg: "min-h-[52px] px-6 text-base",

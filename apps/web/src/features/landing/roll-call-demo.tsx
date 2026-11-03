@@ -32,7 +32,7 @@ export const RollCallDemo = () => {
                       onClick={() => toggle(name, value)}
                       className={cn(
                         "min-h-11 rounded-full px-4 font-semibold",
-                        isAbsent === value ? "bg-white text-ink" : "bg-card-raised hover:bg-card-line",
+                        isAbsent === value ? "bg-accent text-on-accent" : "bg-card-raised hover:bg-card-line",
                       )}
                     >
                       {value ? t.absent : t.present}

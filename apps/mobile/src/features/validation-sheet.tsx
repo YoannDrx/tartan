@@ -1,12 +1,13 @@
 import type { BodyArea, BodySide, PainInput, SessionLogInput } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
-import { useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, Easing, View } from "react-native";
+import { useEffect, useState } from "react";
+import { AccessibilityInfo, View } from "react-native";
 import { submitValidation } from "../lib/sync/op-queue";
 import { StatusGlyph } from "../ui/status";
 import { Button, Chip, Field, T } from "../ui/primitives";
 import { Sheet } from "../ui/sheet";
 import { space } from "../ui/theme";
+import { ValidationBurst } from "./validation-burst";
 
 type Sets = SessionLogInput["sets"];
 type Status = "done" | "partial";
@@ -23,38 +24,6 @@ export type ExistingLog = { rpe: number | null; durationMin: number | null; comm
 // Le premier toucher enregistre : c'est le critère n°1 du produit. La feuille n'ajoute que du facultatif.
 export const recordValidation = (target: ValidationTarget, status: Status, sets: Sets = []) =>
   submitValidation(target.orgId, target.sessionId, { status, variantDone: target.variant, sets });
-
-// Le seul moment animé de l'app : la validation d'une séance (§ 9.11).
-const ValidatedMark = ({ status, animate }: { status: Status; animate: boolean }) => {
-  const scale = useRef(new Animated.Value(animate ? 0.4 : 1)).current;
-  useEffect(() => {
-    if (!animate) return;
-    let cancelled = false;
-    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
-      if (cancelled) return;
-      if (reduced) scale.setValue(1);
-      else
-        Animated.timing(scale, {
-          toValue: 1,
-          duration: 420,
-          easing: Easing.out(Easing.back(2.4)),
-          useNativeDriver: true,
-        }).start();
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [animate, scale]);
-  return (
-    <Animated.View
-      style={{ transform: [{ scale }] }}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
-      <StatusGlyph status={status} size={28} />
-    </Animated.View>
-  );
-};
 
 const Scale = ({
   value,
@@ -109,6 +78,15 @@ export const ValidationSheet = ({
   const [side, setSide] = useState<BodySide>("none");
   const [intensity, setIntensity] = useState(5);
   const [painError, setPainError] = useState<string | null>(null);
+  // Seule une séance faite en entier déclenche le grand moment : jamais une validation partielle.
+  const [burst, setBurst] = useState(justRecorded && initialStatus === "done" ? 1 : 0);
+  const [announce, setAnnounce] = useState(justRecorded);
+
+  // L'état reste annoncé aux lecteurs d'écran, avec ou sans animation.
+  useEffect(() => {
+    if (announce)
+      AccessibilityInfo.announceForAccessibility(status === "partial" ? m.today.validatedPartial : m.today.validated);
+  }, [announce, status]);
 
   const initialDuration = existing?.durationMin ? String(existing.durationMin) : "";
   const dirty =
@@ -156,7 +134,10 @@ export const ValidationSheet = ({
   // Une erreur de touche se corrige sans ressaisie.
   const switchStatus = () => {
     const next: Status = status === "done" ? "partial" : "done";
-    if (send(next)) setStatus(next);
+    if (!send(next)) return;
+    setStatus(next);
+    setAnnounce(true);
+    setBurst(next === "done" ? burst + 1 : 0);
   };
 
   return (
@@ -164,7 +145,12 @@ export const ValidationSheet = ({
       visible
       dark={dark}
       title={status === "partial" ? m.today.validatedPartial : m.today.validated}
-      titleIcon={<ValidatedMark key={status} status={status} animate={justRecorded} />}
+      titleIcon={
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <StatusGlyph status={status} size={28} />
+        </View>
+      }
+      overlay={burst > 0 ? <ValidationBurst key={burst} /> : null}
       onClose={finish}
       headerAction={<Button testID="validation-finish" label={m.validation.finish} onPress={finish} />}
     >

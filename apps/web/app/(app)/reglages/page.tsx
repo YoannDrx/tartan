@@ -254,7 +254,7 @@ export default async function ReglagesPage() {
               <a
                 key={section.id}
                 href={`#${section.id}`}
-                className="inline-flex min-h-11 shrink-0 items-center rounded-full border-2 border-on-page px-3.5 font-medium no-underline hover:bg-brand-strong desktop:-ml-3 desktop:border-0 desktop:text-[17px] desktop:font-semibold"
+                className="inline-flex min-h-11 shrink-0 items-center rounded-full border-2 border-on-page px-3.5 font-medium no-underline hover:bg-raise desktop:-ml-3 desktop:border-0 desktop:text-[17px] desktop:font-semibold"
               >
                 {section.title}
               </a>

@@ -431,8 +431,7 @@ export default function Tracking() {
     onError: (error) => setMessage(errorMessage(error)),
   });
 
-  const invite = () =>
-    router.push(groupId ? { pathname: "/invite", params: { groupId } } : "/invite");
+  const invite = () => router.push(groupId ? { pathname: "/invite", params: { groupId } } : "/invite");
 
   const refresh = () => {
     void tracking.refetch();
@@ -444,7 +443,7 @@ export default function Tracking() {
   const canInvite = active?.role === "owner" || active?.role === "coach";
 
   return (
-    <TabScreen title={m.coach.trackingTitle} refreshing={tracking.isRefetching} onRefresh={refresh}>
+    <TabScreen world="couloir" title={m.coach.trackingTitle} refreshing={tracking.isRefetching} onRefresh={refresh}>
       <WeekNav {...nav} />
 
       {groups.data && groups.data.length > 1 ? (

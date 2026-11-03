@@ -35,7 +35,12 @@ export default function Exercises() {
   }, [exercises.data, search, category]);
 
   return (
-    <TabScreen title={m.exercises.title} refreshing={exercises.isRefetching} onRefresh={() => void exercises.refetch()}>
+    <TabScreen
+      world="craie"
+      title={m.exercises.title}
+      refreshing={exercises.isRefetching}
+      onRefresh={() => void exercises.refetch()}
+    >
       {canEdit && exercises.data ? (
         <Button
           testID="exercise-new"

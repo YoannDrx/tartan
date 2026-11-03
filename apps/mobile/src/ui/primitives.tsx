@@ -12,6 +12,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
+import { splitTitle } from "./title-mark";
 import {
   color,
   radius,
@@ -27,7 +28,7 @@ import {
 
 type TProps = TextProps & {
   variant?: TextVariant;
-  tone?: "default" | "muted" | "link" | "white" | "danger";
+  tone?: "default" | "muted" | "link" | "danger";
   heading?: boolean;
   style?: StyleProp<TextStyle>;
 };
@@ -38,7 +39,6 @@ export const T = ({ variant = "body", tone = "default", heading, style, ...rest 
     default: p.text,
     muted: p.textMuted,
     link: p.link,
-    white: color.white,
     danger: p.danger,
   };
   return (
@@ -82,9 +82,9 @@ export const Button = ({
   testID,
 }: ButtonProps) => {
   const p = usePalette();
-  // Sur le rouge : bouton blanc et contour blanc. Sur l'encre : bouton rouge et rangée surélevée.
-  const raised = p.onRed
-    ? { bg: "transparent", border: p.border, borderWidth: 2 }
+  // Sur un monde : l'accent et un contour plein. Sur l'encre : l'accent et une rangée surélevée.
+  const raised = p.outlined
+    ? { bg: "transparent", border: p.lane, borderWidth: 2 }
     : { bg: p.surface, border: p.border, borderWidth: 1 };
   const looks: Record<ButtonVariant, { bg: string; fg: string; border?: string; borderWidth?: number }> = {
     primary: { bg: p.accent, fg: p.accentText },
@@ -164,11 +164,11 @@ export const IconButton = ({
   const p = usePalette();
   const bg = {
     plain: "transparent",
-    filled: p.dark ? p.surface : p.surfaceAlt,
+    filled: p.raised,
     accent: p.accent,
     inverse: color.white,
   }[tone];
-  const fg = { plain: p.text, filled: p.text, accent: p.accentText, inverse: color.ink }[tone];
+  const fg = { plain: p.text, filled: p.onRaised, accent: p.accentText, inverse: color.ink }[tone];
   return (
     <Pressable
       testID={testID}
@@ -206,8 +206,6 @@ type ChipProps = {
 // Pastille de filtre : 36 de haut, cible tactile portée à 44.
 export const Chip = ({ label, active, onPress, accessibilityLabel, minWidth, tall, testID }: ChipProps) => {
   const p = usePalette();
-  const onBg = p.dark ? color.white : color.ink;
-  const onFg = p.dark ? color.ink : color.white;
   const height = tall ? TOUCH : 36;
   return (
     <Pressable
@@ -222,9 +220,9 @@ export const Chip = ({ label, active, onPress, accessibilityLabel, minWidth, tal
         minWidth,
         paddingHorizontal: space.md + 2,
         borderRadius: radius.pill,
-        backgroundColor: active ? onBg : p.onRed ? "transparent" : p.surface,
-        borderWidth: !active && p.onRed ? 2 : 0,
-        borderColor: p.border,
+        backgroundColor: active ? p.accent : p.outlined ? "transparent" : p.surface,
+        borderWidth: !active && p.outlined ? 2 : 0,
+        borderColor: p.lane,
         alignItems: "center",
         justifyContent: "center",
         opacity: pressed ? 0.8 : 1,
@@ -233,7 +231,7 @@ export const Chip = ({ label, active, onPress, accessibilityLabel, minWidth, tal
       <Text
         numberOfLines={1}
         maxFontSizeMultiplier={1.3}
-        style={[active ? textStyles.smallStrong : textStyles.small, { color: active ? onFg : p.text }]}
+        style={[active ? textStyles.smallStrong : textStyles.small, { color: active ? p.accentText : p.text }]}
       >
         {label}
       </Text>
@@ -241,17 +239,17 @@ export const Chip = ({ label, active, onPress, accessibilityLabel, minWidth, tal
   );
 };
 
-export const Tag = ({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "brand" }) => {
+export type TagTone = "neutral" | "brand" | "jump" | "warning" | "alert";
+
+// brand : l'accent. jump : le rouge piste, réservé au type « saut ». warning et alert ne servent que sur l'encre.
+export const Tag = ({ label, tone = "neutral" }: { label: string; tone?: TagTone }) => {
   const p = usePalette();
   const looks = {
-    neutral: {
-      bg: p.onRed ? p.surface : p.surfaceAlt,
-      fg: p.dark ? color.white : p.textMuted,
-    },
-    brand: {
-      bg: p.onRed ? p.surface : p.dark ? p.accent : color.brandTint,
-      fg: p.dark ? color.white : color.brandStrong,
-    },
+    neutral: { bg: p.world ? p.surface : p.surfaceAlt, fg: p.onRaised },
+    brand: { bg: p.accent, fg: p.accentText },
+    jump: { bg: color.brand, fg: color.white },
+    warning: { bg: scene.status.partial, fg: scene.onStatus },
+    alert: { bg: scene.status.missed, fg: scene.onStatus },
   }[tone];
   return (
     <View
@@ -319,7 +317,16 @@ export const Field = forwardRef<TextInput, FieldProps>(
               paddingVertical: space.sm,
               borderRadius: radius.button,
               borderWidth: focused ? 2 : 1,
-              borderColor: error ? p.danger : focused ? p.focus : scene.controlLine,
+              // Le champ reste encre sur tous les fonds : son contour se lit contre lui, pas contre le monde.
+              borderColor: error
+                ? p.dark
+                  ? p.danger
+                  : scene.status.missed
+                : focused
+                  ? p.dark
+                    ? p.focus
+                    : scene.link
+                  : scene.controlLine,
               backgroundColor: p.surface,
               color: scene.text,
             },
@@ -343,6 +350,34 @@ export const Field = forwardRef<TextInput, FieldProps>(
 );
 Field.displayName = "Field";
 
+type ScreenTitleProps = {
+  title: string;
+  variant?: TextVariant;
+  numberOfLines?: number;
+  testID?: string;
+  style?: StyleProp<TextStyle>;
+};
+
+// Le titre d'écran : le dernier mot sur un aplat accent. Le lecteur d'écran lit le titre entier, une seule fois.
+export const ScreenTitle = ({ title, variant = "screen", numberOfLines, testID, style }: ScreenTitleProps) => {
+  const p = usePalette();
+  const { lead, mark } = splitTitle(title);
+  return (
+    <T
+      variant={variant}
+      heading
+      testID={testID}
+      numberOfLines={numberOfLines}
+      maxFontSizeMultiplier={1.3}
+      accessibilityLabel={title}
+      style={style}
+    >
+      {lead}
+      <Text style={{ backgroundColor: p.accent, color: p.accentText }}>{`\u00A0${mark}\u00A0`}</Text>
+    </T>
+  );
+};
+
 export const SectionTitle = ({ children, right }: { children: string; right?: ReactNode }) => (
   <View
     style={{
@@ -365,7 +400,7 @@ export const Divider = () => {
   return <View style={{ height: 1, backgroundColor: p.border }} />;
 };
 
-// Le rouge est le fond, jamais une carte : le contenu se pose sur une carte encre, qui change la scène de ses enfants.
+// Le monde est le fond, jamais une carte : le contenu se pose sur une carte encre, qui change la scène de ses enfants.
 export const ListSurface = ({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) => {
   const p = usePalette();
   const body = (
@@ -373,7 +408,7 @@ export const ListSurface = ({ children, style }: { children: ReactNode; style?: 
       {children}
     </View>
   );
-  return p.onRed ? <Scene scene="card">{body}</Scene> : body;
+  return p.world ? <Scene scene={p.cardScene}>{body}</Scene> : body;
 };
 
 // Carte encre avec sa marge intérieure. Pas de carte dans une carte : à l'intérieur, des lignes et des rangées.
@@ -393,14 +428,15 @@ export const Card = ({
   </ListSurface>
 );
 
-// La signature : un trait blanc plein de 3 px, à bord perdu, sous le titre et entre les grandes sections.
+// La signature : un trait plein de 3 px, à bord perdu, sous le titre et entre les grandes sections.
 export const LaneLine = () => {
+  const p = usePalette();
   const pad = usePagePad();
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ height: 3, backgroundColor: scene.lane, marginHorizontal: -pad }}
+      style={{ height: 3, backgroundColor: p.lane, marginHorizontal: -pad }}
     />
   );
 };

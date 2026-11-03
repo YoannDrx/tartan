@@ -22,7 +22,8 @@ const Demo = ({ item, speed }: { item: ResolvedItem; speed: number }) => {
   useEffect(() => {
     if (ref.current) ref.current.playbackRate = speed;
   }, [speed]);
-  if (media?.kind === "youtube" || media?.kind === "instagram") return <ExternalVideo media={media} title={item.name} />;
+  if (media?.kind === "youtube" || media?.kind === "instagram")
+    return <ExternalVideo media={media} title={item.name} />;
   if (media?.kind === "upload" && media.streamUrl) {
     return (
       <video
@@ -126,7 +127,7 @@ export const SessionMode = ({
             <span className="t-caption font-normal text-soft">{m.sessionMode.exerciseOf(index + 1, items.length)}</span>
             <div className="flex gap-1" aria-hidden>
               {items.map((it, i) => (
-                <span key={it.ref} className={cn("h-1 flex-1 rounded-sm", i <= index ? "bg-brand" : "bg-card-line")} />
+                <span key={it.ref} className={cn("h-1 flex-1 rounded-sm", i <= index ? "bg-accent" : "bg-card-line")} />
               ))}
             </div>
           </div>
@@ -146,7 +147,7 @@ export const SessionMode = ({
                 onClick={() => setSpeed(s)}
                 className={cn(
                   "min-h-11 min-w-16 rounded-full px-3 font-semibold",
-                  speed === s ? "bg-white text-ink" : "border border-control-line text-white",
+                  speed === s ? "bg-accent text-on-accent" : "border border-control-line text-white",
                 )}
               >
                 {String(s).replace(".", ",")}×
@@ -216,7 +217,7 @@ export const SessionMode = ({
             <button
               type="button"
               onClick={() => setRestLeft(restLeft === null ? (item.prescription.rest_s ?? 0) : null)}
-              className="min-h-11 rounded-full bg-white px-4 font-semibold text-ink"
+              className="min-h-11 rounded-full bg-accent px-4 font-semibold text-on-accent"
             >
               {restLeft === null ? m.sessionMode.startRest : m.sessionMode.stopRest}
             </button>

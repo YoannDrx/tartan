@@ -1,10 +1,11 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LaneArcs } from "@/components/pictos";
+import { Jumper } from "@/components/jumper";
+import { Marked } from "@/components/marked";
 import { cn } from "@/lib/cn";
 
-// Un vide invite à agir : du texte, une action, et les lignes de couloir en filigrane.
+// Un vide invite à agir : du texte, une action, et la mascotte qui attend la suite.
 export const EmptyState = ({
   children,
   action,
@@ -16,22 +17,24 @@ export const EmptyState = ({
 }) => (
   <div
     className={cn(
-      "relative flex flex-col items-start gap-3 overflow-hidden rounded-card on-card bg-card p-6 pr-20",
+      "relative flex min-h-36 flex-col items-start gap-3 overflow-hidden rounded-card on-card bg-card p-6 pr-28 tablet:pr-40",
       className,
     )}
   >
-    <LaneArcs className="pointer-events-none absolute inset-y-0 right-0 h-full w-40 text-card-raised" />
+    <Jumper pose="run" className="pointer-events-none absolute -right-2 bottom-0 size-28 tablet:size-36" />
     <p className="relative max-w-prose">{children}</p>
     {action ? <div className="relative">{action}</div> : null}
   </div>
 );
 
-// Le titre d'écran, grand et blanc sur le rouge, posé sur sa ligne de couloir.
+// Le titre d'écran, grand, posé sur le monde de la rubrique et sur sa ligne de couloir.
 export const PageHeader = ({ title, detail, actions }: { title: string; detail?: ReactNode; actions?: ReactNode }) => (
   <header className="flex flex-col gap-4">
     <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="min-w-0">
-        <h1 className="t-display text-balance">{title}</h1>
+        <h1 className="t-display text-balance">
+          <Marked text={title} />
+        </h1>
         {detail ? <p className="mt-1 text-[16px] font-medium">{detail}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2 pb-1">{actions}</div> : null}
@@ -41,7 +44,7 @@ export const PageHeader = ({ title, detail, actions }: { title: string; detail?:
 );
 
 const stepClass =
-  "inline-flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-on-page text-on-page hover:bg-brand-strong";
+  "inline-flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-on-page text-on-page hover:bg-raise";
 
 // Reculer ou avancer d'une période : le libellé reste entre les deux flèches.
 export const PeriodStepper = ({
@@ -82,7 +85,7 @@ export const Chip = ({
       "inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 t-caption font-semibold",
       tone === "neutral" && "bg-card-raised text-fg-muted ring-1 ring-card-line",
       tone === "dark" && "bg-card text-fg",
-      tone === "brand" && "bg-brand text-white",
+      tone === "brand" && "bg-accent text-on-accent",
       tone === "warning" && "bg-st-partial text-on-status",
       tone === "missed" && "bg-st-missed text-on-status",
     )}
@@ -102,7 +105,7 @@ export const SheetSkeleton = ({ label, rows = 7 }: { label: string; rows?: numbe
   <div role="status" aria-busy className="flex flex-col gap-5">
     <span className="sr-only">{label}</span>
     <div aria-hidden className="flex flex-col gap-4">
-      <div className="h-[52px] w-64 max-w-full rounded-button bg-brand-strong desktop:h-20 desktop:w-96" />
+      <div className="h-[52px] w-64 max-w-full rounded-button bg-page-deep desktop:h-20 desktop:w-96" />
       <div className="lane" />
     </div>
     <div aria-hidden className="on-card divide-y divide-card-line overflow-hidden rounded-card bg-card">

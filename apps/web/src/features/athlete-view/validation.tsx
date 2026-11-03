@@ -9,6 +9,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { StatusIcon } from "@/components/status-cell";
+import { Victory } from "@/components/victory";
 import { cn } from "@/lib/cn";
 import { newClientId, pendingStatusFor, sendValidation } from "./validation-queue";
 
@@ -29,7 +30,7 @@ const RpeScale = ({ value, onChange }: { value: number | null; onChange: (v: num
           className={cn(
             "t-num min-h-11 rounded-button text-[18px]",
             value === n
-              ? "bg-white font-semibold text-ink"
+              ? "bg-accent font-semibold text-on-accent"
               : "border border-card-line bg-card-raised hover:bg-card-line",
           )}
         >
@@ -71,6 +72,7 @@ export const QuickValidate = ({
   const [showPain, setShowPain] = useState(false);
   const [pain, setPain] = useState<PainInput>({ bodyArea: "knee", side: "left", intensity: 5 });
   const [sending, setSending] = useState(false);
+  const [victory, setVictory] = useState(0);
 
   const send = async (next: Status, extra: { withDetails: boolean }) => {
     setSending(true);
@@ -111,6 +113,7 @@ export const QuickValidate = ({
     if (await send(value, { withDetails: false })) {
       setStatus(value);
       setDetails(true);
+      if (value === "done") setVictory((count) => count + 1);
     }
   };
 
@@ -124,6 +127,7 @@ export const QuickValidate = ({
 
   return (
     <>
+      <Victory play={victory} />
       <Button size="lg" variant="primary" className="w-full" disabled={sending} onClick={() => validate("done")}>
         {m.today.quickDone}
       </Button>

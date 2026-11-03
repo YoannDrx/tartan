@@ -60,7 +60,7 @@ const JumpFields = ({
           className={cn(
             "t-num size-11 rounded-button text-[18px]",
             value.attemptNo === n
-              ? "bg-white font-semibold text-ink"
+              ? "bg-accent font-semibold text-on-accent"
               : "border border-card-line bg-card-raised hover:bg-card-line",
           )}
         >
@@ -85,7 +85,7 @@ const JumpFields = ({
           className={cn(
             "min-h-11 rounded-full px-4 font-semibold",
             value.result === key
-              ? "bg-white font-semibold text-ink"
+              ? "bg-accent font-semibold text-on-accent"
               : "border border-card-line bg-card-raised hover:bg-card-line",
           )}
         >
