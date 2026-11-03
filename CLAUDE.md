@@ -7,6 +7,7 @@ Suivi d'entraînement pour coachs d'athlétisme. Référence produit : `PRODUCT.
 Pnpm 10 via corepack (`corepack pnpm …`).
 
 - `pnpm db:start` : Postgres local jetable (port 54329) ; `pnpm db:migrate`, `pnpm db:seed`.
+- `pnpm --filter @tartan/web demo:fill <e-mail>` : remplit un compte coach de données fictives, sans notification ; `--retirer` les enlève.
 - `pnpm dev` : web et API ; `pnpm dev:mobile` : Expo.
 - `pnpm test` : règles métier et contrôles d'accès (base `tartan_test`).
 - `pnpm test:e2e` : Playwright ; `pnpm typecheck`, `pnpm lint`, `pnpm design:check`.

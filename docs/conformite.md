@@ -37,6 +37,8 @@ Rôle à faire confirmer : Yodev est-il responsable de traitement, ou sous-trait
 | Sentry      | Suivi d'erreurs       | Région Allemagne                                              | DPA                                                |
 | GitHub      | Copie de sauvegarde   | États-Unis, chiffrée avant envoi, clé gardée par l'éditeur    | DPA, à confirmer avec le juriste                   |
 
+YouTube et Instagram ne sont pas des sous-traitants : les vidéos de la bibliothèque commune restent chez eux et Tartan n'en garde que la référence et l'auteur. Le lecteur Instagram ne charge qu'au clic, avec une mention. Le lecteur YouTube passe par `youtube-nocookie.com`.
+
 ## Questions à poser au juriste
 
 1. **HDS** : un outil de coaching sportif qui garde blessures et douleurs relève-t-il de la certification (§ 15.2) ?
@@ -47,6 +49,7 @@ Rôle à faire confirmer : Yodev est-il responsable de traitement, ou sous-trait
 6. **E-mail de repli** : texte neutre, sans donnée de santé. Faut-il une option pour le couper dès la V1 ?
 7. **CGV** : plafonds de l'offre Club, préavis de 14 jours avant retrait des vidéos, droit de rétractation d'un professionnel ou d'un consommateur.
 8. **Bénévole de club** : un coach bénévole est-il un consommateur (médiateur obligatoire) ?
+9. **Vidéos de tiers** : la bibliothèque commune intègre 24 vidéos publiques d'autres auteurs dans un service payant, sans les copier. Est-ce permis sans leur accord ? Une copie de secours, puis une diffusion si le lien disparaît, l'est-elle ? Une de ces vidéos montre un enfant : faut-il la retirer ?
 
 ## Médiateur
 

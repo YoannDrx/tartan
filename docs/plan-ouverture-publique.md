@@ -69,7 +69,7 @@ Sans ces 7 points, on n'ouvre pas.
 
 ### Étape 5 : le juridique et la vente (toi, 2 à 4 semaines, à lancer dès maintenant)
 
-- [ ] Juriste : les 8 questions de `docs/conformite.md`.
+- [ ] Juriste : les 9 questions de `docs/conformite.md`.
 - [ ] Contrats de sous-traitance (DPA) de la liste de `docs/conformite.md`.
 - [ ] Adhésion au médiateur (CM2C recommandé).
 - [ ] Recherche de marque, `tartancoach.com` et `.fr`.
@@ -81,6 +81,7 @@ Sans ces 7 points, on n'ouvre pas.
 
 ### Étape 6 : l'ouverture (toi et moi, 1 jour)
 
+- [ ] Retirer les données fictives de ton compte : `pnpm --filter @tartan/web demo:fill <e-mail> --retirer`.
 - [ ] Répétition complète sur production avec un compte neuf : landing, création d'espace, invitation, séance, validation, paiement, résiliation, suppression du compte.
 - [ ] Ton feu vert, puis `COACH_SIGNUP_MODE=public`.
 - [ ] Surveillance rapprochée pendant 72 h : Sentry, webhooks Stripe, livraison des e-mails, capacité Mux et Neon.

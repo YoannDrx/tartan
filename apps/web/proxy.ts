@@ -15,7 +15,7 @@ const buildCsp = (nonce: string): string =>
     "font-src 'self'",
     "media-src 'self' blob: https://stream.mux.com https://*.mux.com",
     "connect-src 'self' https://*.mux.com https://storage.googleapis.com https://vitals.vercel-insights.com https://*.ingest.de.sentry.io",
-    "frame-src https://www.youtube-nocookie.com",
+    "frame-src https://www.youtube-nocookie.com https://www.instagram.com",
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     ...(process.env.VERCEL_ENV === "production" ? ["upgrade-insecure-requests"] : []),

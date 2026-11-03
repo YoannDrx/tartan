@@ -100,7 +100,7 @@ export default function Exercises() {
           title={open.name}
           onClose={() => setOpen(null)}
           footer={
-            canEdit ? (
+            canEdit && !open.shared ? (
               <Button
                 testID="exercise-edit"
                 label={m.mobile.exerciseForm.edit}

@@ -124,13 +124,50 @@ test.describe("le pilote", () => {
     await expect(item).toBeHidden();
   });
 
+  test("la bibliothèque commune se lit sans se modifier, et Instagram ne charge qu'à la demande", async ({ page }) => {
+    await createCoachSpace(page, "Lecteur");
+    const blocked: string[] = [];
+    page.on("console", (message) => {
+      if (message.text().includes("Content Security Policy")) blocked.push(message.text());
+    });
+    await page.goto("/exercices");
+    await page.getByRole("button", { name: "Bibliothèque Tartan", exact: true }).click();
+    await expect(page.getByRole("button", { name: /^Modifier / })).toHaveCount(0);
+
+    await page.getByRole("button", { name: /^Routine cheville en 10 minutes/ }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByText("Vidéo de svengirlando")).toBeVisible();
+    await expect(dialog.locator("iframe")).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Lire la vidéo" }).click();
+    await expect(dialog.locator('iframe[src="https://www.instagram.com/reel/Dbq862ptfM6/embed/"]')).toBeVisible();
+    expect(blocked).toEqual([]);
+    await dialog.getByRole("button", { name: "Fermer" }).click();
+
+    await page.getByRole("button", { name: /^Pliométrie en fente sur caisson/ }).click();
+    await expect(dialog.getByText("n'autorise la lecture que sur Instagram")).toBeVisible();
+    await expect(dialog.locator("iframe")).toHaveCount(0);
+  });
+
+  test("la molette regroupe les réglages et la déconnexion", async ({ page }) => {
+    await createCoachSpace(page, "Molette");
+    await page.goto("/suivi");
+    await page.getByRole("button", { name: "Réglages" }).click();
+    const menu = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem", { name: "Tous les réglages" })).toBeVisible();
+    await expectAccessible(page);
+    await menu.getByRole("menuitem", { name: "Se déconnecter" }).click();
+    await expect(page.getByRole("heading", { name: "Ta séance, ils l'ont faite ?" })).toBeVisible();
+    await page.goto("/suivi");
+    await expect(page).toHaveURL(/\/connexion/);
+  });
+
   test("la suppression du compte se fait depuis les réglages", async ({ page }) => {
     await createCoachSpace(page, "Partant");
     await page.goto("/reglages");
     await page.getByRole("button", { name: "Supprimer mon compte" }).click();
     await page.getByLabel("Écris SUPPRIMER pour confirmer").fill("SUPPRIMER");
     await page.getByRole("dialog").getByRole("button", { name: "Supprimer mon compte" }).click();
-    await expect(page.getByRole("heading", { name: "Plus de séances perdues dans les SMS." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Ta séance, ils l'ont faite ?" })).toBeVisible();
     await page.goto("/suivi");
     await expect(page).toHaveURL(/\/connexion/);
   });

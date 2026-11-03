@@ -172,6 +172,11 @@ export const exerciseMediaInput = z.discriminatedUnion("kind", [
     endS: z.number().int().min(0).nullable().optional(),
   }),
   z.object({
+    kind: z.literal("instagram"),
+    url: z.string().trim().min(1, "Colle un lien Instagram"),
+    customTitle: trimmed(120).nullable().optional(),
+  }),
+  z.object({
     kind: z.literal("upload"),
     videoUploadId: z.string().min(1),
     customTitle: trimmed(120).nullable().optional(),

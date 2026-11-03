@@ -1,3 +1,4 @@
+import { instagramEmbedUrl } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -27,6 +28,11 @@ const exerciseMedia = z.discriminatedUnion("kind", [
     title: z.string().nullish(),
     startS: z.number().nullish(),
     endS: z.number().nullish(),
+  }),
+  z.object({
+    kind: z.literal("instagram"),
+    instagramCode: z.string(),
+    title: z.string().nullish(),
   }),
 ]);
 export type ExerciseMedia = z.infer<typeof exerciseMedia>;
@@ -129,6 +135,18 @@ export const ExerciseVideo = ({ media, rate }: { media: ExerciseMedia | null; ra
   else if (media.kind === "youtube") {
     content = online ? (
       <YouTubeLoop media={media} rate={rate} />
+    ) : (
+      <NoVideo message={m.mobile.sessionMode.offlineNote} />
+    );
+  } else if (media.kind === "instagram") {
+    content = online ? (
+      <WebView
+        source={{ uri: instagramEmbedUrl(media.instagramCode) }}
+        allowsInlineMediaPlayback
+        javaScriptEnabled
+        style={{ flex: 1, backgroundColor: scene.card }}
+        accessibilityLabel={m.sessionMode.playDemo}
+      />
     ) : (
       <NoVideo message={m.mobile.sessionMode.offlineNote} />
     );

@@ -232,6 +232,8 @@ export const exerciseSummary = z.object({
   cues: z.array(z.string()),
   defaultPrescription: prescriptionSchema,
   media: z.unknown().nullable(),
+  // Bibliothèque commune de Tartan : lisible par tous, modifiable par personne depuis un espace.
+  shared: z.boolean().default(false),
 });
 export type ExerciseSummary = z.infer<typeof exerciseSummary>;
 

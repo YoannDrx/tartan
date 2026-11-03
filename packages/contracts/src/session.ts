@@ -41,8 +41,16 @@ export const exerciseMediaSnapshot = z.discriminatedUnion("kind", [
     kind: z.literal("youtube"),
     youtubeId: z.string(),
     title: z.string().nullable(),
+    author: z.string().nullable().optional(),
     startS: z.number().int().nullable(),
     endS: z.number().int().nullable(),
+  }),
+  z.object({
+    kind: z.literal("instagram"),
+    instagramCode: z.string(),
+    title: z.string().nullable(),
+    author: z.string().nullable().optional(),
+    embeddable: z.boolean().optional(),
   }),
 ]);
 export type ExerciseMediaSnapshot = z.infer<typeof exerciseMediaSnapshot>;

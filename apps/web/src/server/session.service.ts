@@ -39,7 +39,7 @@ const requireSessionWrite = async (access: Access, sessionId: string) => {
 export const buildSnapshot = async (organizationId: string, draft: SessionDraft): Promise<SessionSnapshot> => {
   const ids = draft.blocks.flatMap((b) => b.items.map((i) => i.exerciseId));
   const exercises = await prisma.exercise.findMany({
-    where: { id: { in: ids }, organizationId },
+    where: { id: { in: ids }, OR: [{ organizationId }, { organizationId: null }] },
     include: { media: { orderBy: { createdAt: "desc" }, take: 1 } },
   });
   const byId = new Map(exercises.map((e) => [e.id, e]));

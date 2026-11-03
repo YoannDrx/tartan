@@ -24,11 +24,11 @@ Cherche un avocat en droit du numérique et des données personnelles. Message �
 >
 > J'édite Tartan (Yodev, entreprise individuelle), une application de suivi d'entraînement pour les coachs d'athlétisme, déjà en ligne, avec inscriptions encore fermées. Je veux l'ouvrir au public et à la vente.
 >
-> Elle traite des données d'athlètes, souvent mineurs : blessures, douleurs, effort ressenti, et vidéos hébergées par un prestataire aux États-Unis.
+> Elle traite des données d'athlètes, souvent mineurs : blessures, douleurs, effort ressenti, et vidéos hébergées par un prestataire aux États-Unis. Elle intègre aussi des vidéos publiques d'autres auteurs, venues de YouTube et d'Instagram.
 >
-> Je cherche un avis écrit sur ces points, avant l'ouverture : certification HDS, hébergement des vidéos de mineurs, rôle de responsable de traitement, retrait de l'accord vidéo, départ d'un athlète, cache hors ligne du coach, CGV et médiation.
+> Je cherche un avis écrit sur ces points, avant l'ouverture : certification HDS, hébergement des vidéos de mineurs, rôle de responsable de traitement, retrait de l'accord vidéo, départ d'un athlète, cache hors ligne du coach, CGV, médiation et vidéos de tiers.
 >
-> J'ai préparé un dossier avec le registre des traitements, les sous-traitants et 8 questions précises. Pouvez-vous me dire vos délais et votre tarif pour cette mission ?
+> J'ai préparé un dossier avec le registre des traitements, les sous-traitants et 9 questions précises. Pouvez-vous me dire vos délais et votre tarif pour cette mission ?
 
 Joins `docs/conformite.md` et les pages `/confidentialite`, `/conditions` et `/cgv`.
 

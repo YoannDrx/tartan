@@ -18,6 +18,8 @@ export const sendEmail = async (input: { to: string; subject: string; react: Rea
     }
     return;
   }
+  // Comptes de démonstration : ces adresses n'existent pas, un envoi nuirait à la réputation du domaine.
+  if (input.to.endsWith("@demo.tartan.coach")) return;
   const { error } = await new Resend(RESEND_API_KEY).emails.send({
     from: EMAIL_FROM,
     to: input.to,

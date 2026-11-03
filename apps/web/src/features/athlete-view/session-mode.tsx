@@ -1,13 +1,14 @@
 "use client";
 
 import type { AthleteSessionDetail, ExerciseMediaSnapshot, ResolvedItem } from "@tartan/contracts";
-import { formatDuration, youtubeEmbedUrl } from "@tartan/domain";
+import { formatDuration } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { ArrowRight, Check, Timer, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, IconButton } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ExternalVideo } from "@/features/exercises/exercise-video";
 import { cn } from "@/lib/cn";
 import { QuickValidate } from "./validation";
 
@@ -21,16 +22,7 @@ const Demo = ({ item, speed }: { item: ResolvedItem; speed: number }) => {
   useEffect(() => {
     if (ref.current) ref.current.playbackRate = speed;
   }, [speed]);
-  if (media?.kind === "youtube") {
-    return (
-      <iframe
-        title={media.title ?? item.name}
-        src={youtubeEmbedUrl(media)}
-        allow="encrypted-media; picture-in-picture"
-        className="aspect-video w-full rounded-card bg-card-raised"
-      />
-    );
-  }
+  if (media?.kind === "youtube" || media?.kind === "instagram") return <ExternalVideo media={media} title={item.name} />;
   if (media?.kind === "upload" && media.streamUrl) {
     return (
       <video

@@ -465,6 +465,7 @@ model Exercise {
 enum MediaKind {
   upload
   youtube
+  instagram
 
   @@map("media_kind")
 }
@@ -477,6 +478,10 @@ model ExerciseMedia {
   muxUploadId    String?   @map("mux_upload_id")
   muxPlaybackId  String?   @map("mux_playback_id")
   youtubeId      String?   @map("youtube_id")
+  instagramCode  String?   @map("instagram_code")
+  author         String?
+  // Certains auteurs interdisent la lecture hors d'Instagram : la fiche renvoie alors vers la publication.
+  embeddable     Boolean   @default(true)
   customTitle    String?   @map("custom_title")
   startS         Int?      @map("start_s")
   endS           Int?      @map("end_s")

@@ -1,5 +1,5 @@
 import { exerciseInput, type ExerciseInput, type ExerciseSummary, prescriptionSchema } from "@tartan/contracts";
-import { parseYouTubeUrl, validateClipRange } from "@tartan/domain";
+import { parseInstagramUrl, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { invalid, notFound } from "@/lib/errors";
 import { env } from "@/lib/env";
@@ -10,9 +10,12 @@ import { requireOrgMember } from "./access";
 import { assertVideoCapacity } from "./video-capacity.service";
 
 type MediaRow = {
-  kind: "upload" | "youtube";
+  kind: "upload" | "youtube" | "instagram";
   muxPlaybackId: string | null;
   youtubeId: string | null;
+  instagramCode: string | null;
+  author: string | null;
+  embeddable: boolean;
   customTitle: string | null;
   startS: number | null;
   endS: number | null;
@@ -25,8 +28,18 @@ export const mediaSnapshot = (media: MediaRow | undefined) => {
       kind: "youtube" as const,
       youtubeId: media.youtubeId,
       title: media.customTitle,
+      author: media.author,
       startS: media.startS,
       endS: media.endS,
+    };
+  }
+  if (media.kind === "instagram" && media.instagramCode) {
+    return {
+      kind: "instagram" as const,
+      instagramCode: media.instagramCode,
+      title: media.customTitle,
+      author: media.author,
+      embeddable: media.embeddable,
     };
   }
   return { kind: "upload" as const, muxPlaybackId: media.muxPlaybackId, title: media.customTitle };
@@ -35,7 +48,7 @@ export const mediaSnapshot = (media: MediaRow | undefined) => {
 export const listExercises = async (userId: string, organizationId: string): Promise<ExerciseSummary[]> => {
   await requireOrgMember(userId, organizationId, "editExercises");
   const rows = await prisma.exercise.findMany({
-    where: { organizationId, deletedAt: null },
+    where: { OR: [{ organizationId }, { organizationId: null }], deletedAt: null },
     orderBy: { name: "asc" },
     include: { media: { orderBy: { createdAt: "desc" }, take: 1 } },
   });
@@ -55,6 +68,7 @@ export const listExercises = async (userId: string, organizationId: string): Pro
         cues: e.cues,
         defaultPrescription: prescriptionSchema.parse(e.defaultPrescription),
         media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
+        shared: e.organizationId === null,
       };
     }),
   );
@@ -73,6 +87,12 @@ export const saveExercise = async (userId: string, organizationId: string, raw: 
     if (!validateClipRange(startS, endS)) throw invalid(m.exercises.clipInvalid);
     youtube = { youtubeId: parsed.youtubeId, startS, endS, customTitle: input.media.customTitle ?? null };
   }
+  let instagram: { instagramCode: string; customTitle: string | null } | null = null;
+  if (input.media?.kind === "instagram") {
+    const instagramCode = parseInstagramUrl(input.media.url);
+    if (!instagramCode) throw invalid(m.exercises.linkInvalid);
+    instagram = { instagramCode, customTitle: input.media.customTitle ?? null };
+  }
   const data = {
     name: input.name,
     category: input.category,
@@ -89,12 +109,12 @@ export const saveExercise = async (userId: string, organizationId: string, raw: 
     } else {
       id = (await tx.exercise.create({ data: { ...data, organizationId, createdBy: userId } })).id;
     }
-    // Lien effacé : le YouTube part. Une vidéo filmée par le coach n'est jamais touchée ici.
-    if (input.media === null) await tx.exerciseMedia.deleteMany({ where: { exerciseId: id, kind: "youtube" } });
-    if (youtube) {
-      await tx.exerciseMedia.deleteMany({ where: { exerciseId: id, kind: "youtube" } });
-      await tx.exerciseMedia.create({ data: { exerciseId: id, kind: "youtube", ...youtube } });
+    // Lien effacé ou remplacé : l'ancien part. Une vidéo filmée par le coach n'est jamais touchée ici.
+    if (input.media === null || youtube || instagram) {
+      await tx.exerciseMedia.deleteMany({ where: { exerciseId: id, kind: { in: ["youtube", "instagram"] } } });
     }
+    if (youtube) await tx.exerciseMedia.create({ data: { exerciseId: id, kind: "youtube", ...youtube } });
+    if (instagram) await tx.exerciseMedia.create({ data: { exerciseId: id, kind: "instagram", ...instagram } });
     return { id };
   });
 };

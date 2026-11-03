@@ -36,6 +36,7 @@ import {
   isWithinLimit,
   nextAttemptNo,
   notationFor,
+  parseInstagramUrl,
   parseYouTubeUrl,
   phaseAt,
   phaseRanges,
@@ -208,6 +209,14 @@ describe("YouTube", () => {
     expect(parseYouTubeUrl("https://youtube.com/shorts/dQw4w9WgXcQ")?.youtubeId).toBe("dQw4w9WgXcQ");
     expect(parseYouTubeUrl("https://example.com/watch?v=dQw4w9WgXcQ")).toBeNull();
     expect(parseYouTubeUrl("pas un lien")).toBeNull();
+  });
+
+  it("garde seulement le code d'un lien Instagram, sans le suivi du partage", () => {
+    expect(parseInstagramUrl("https://www.instagram.com/reel/DeKl2zopMw9/?stkn=aDQzNXF5OXZkOHZ5")).toBe("DeKl2zopMw9");
+    expect(parseInstagramUrl("https://instagram.com/p/Dbq862ptfM6/")).toBe("Dbq862ptfM6");
+    expect(parseInstagramUrl("https://www.instagram.com/tresordpw_/")).toBeNull();
+    expect(parseInstagramUrl("https://example.com/reel/DeKl2zopMw9/")).toBeNull();
+    expect(parseInstagramUrl("pas un lien")).toBeNull();
   });
 
   it("construit le lien du lecteur officiel avec l'extrait", () => {

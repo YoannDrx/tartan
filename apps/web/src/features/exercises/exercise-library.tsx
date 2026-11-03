@@ -1,7 +1,7 @@
 "use client";
 
 import type { ExerciseMediaSnapshot, ExerciseSummary, Prescription } from "@tartan/contracts";
-import { formatPrescription, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
+import { formatPrescription, instagramUrl, parseInstagramUrl, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Pencil, Play, Plus, Search, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
@@ -17,8 +17,11 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { deleteExerciseAction, exerciseUploadAction, saveExerciseAction } from "./exercise.action";
+import { ExternalVideo } from "./exercise-video";
 
 type Category = keyof typeof m.exerciseCategory;
+type Source = "shared" | "mine";
+type Media = ExerciseMediaSnapshot & { streamUrl?: string };
 
 const num = (v: string): number | undefined => (v === "" ? undefined : Number(v));
 
@@ -38,8 +41,14 @@ const ExerciseForm = ({
   const [cues, setCues] = useState((exercise?.cues ?? []).join("\n"));
   const [tags, setTags] = useState((exercise?.tags ?? []).join(", "));
   const [p, setP] = useState<Prescription>(exercise?.defaultPrescription ?? {});
-  const [url, setUrl] = useState(youtube ? `https://youtu.be/${youtube.youtubeId}` : "");
-  const [title, setTitle] = useState(youtube?.title ?? "");
+  const [url, setUrl] = useState(
+    youtube
+      ? `https://youtu.be/${youtube.youtubeId}`
+      : media?.kind === "instagram"
+        ? instagramUrl(media.instagramCode)
+        : "",
+  );
+  const [title, setTitle] = useState((youtube ?? (media?.kind === "instagram" ? media : null))?.title ?? "");
   const [startS, setStartS] = useState(youtube?.startS?.toString() ?? "");
   const [endS, setEndS] = useState(youtube?.endS?.toString() ?? "");
   const [file, setFile] = useState<File | null>(null);
@@ -84,7 +93,8 @@ const ExerciseForm = ({
         setError(null);
         const start = num(startS) ?? null;
         const end = num(endS) ?? null;
-        if (url && !parseYouTubeUrl(url)) return setError(m.exercises.youtubeInvalid);
+        const instagram = Boolean(parseInstagramUrl(url));
+        if (url && !instagram && !parseYouTubeUrl(url)) return setError(m.exercises.linkInvalid);
         if (!validateClipRange(start, end)) return setError(m.exercises.clipInvalid);
         save.execute({
           id: exercise?.id,
@@ -99,7 +109,11 @@ const ExerciseForm = ({
             .map((t) => t.trim())
             .filter(Boolean),
           defaultPrescription: p,
-          media: url ? { kind: "youtube", url, customTitle: title || null, startS: start, endS: end } : null,
+          media: !url
+            ? null
+            : instagram
+              ? { kind: "instagram", url, customTitle: title || null }
+              : { kind: "youtube", url, customTitle: title || null, startS: start, endS: end },
         });
       }}
     >
@@ -154,7 +168,7 @@ const ExerciseForm = ({
       </fieldset>
       <fieldset className="flex flex-col gap-3 border-t border-card-line pt-4">
         <legend className="t-section pr-2">Vidéo</legend>
-        <Field label={m.exercises.youtubeUrl}>
+        <Field label={m.exercises.videoUrl}>
           {(a) => (
             <Input
               {...a}
@@ -170,12 +184,18 @@ const ExerciseForm = ({
             <Field label={m.exercises.youtubeTitle}>
               {(a) => <Input {...a} value={title} onChange={(e) => setTitle(e.target.value)} />}
             </Field>
-            <Field label={m.exercises.youtubeStart}>
-              {(a) => <Input {...a} type="number" min={0} value={startS} onChange={(e) => setStartS(e.target.value)} />}
-            </Field>
-            <Field label={m.exercises.youtubeEnd}>
-              {(a) => <Input {...a} type="number" min={0} value={endS} onChange={(e) => setEndS(e.target.value)} />}
-            </Field>
+            {parseInstagramUrl(url) ? null : (
+              <>
+                <Field label={m.exercises.youtubeStart}>
+                  {(a) => (
+                    <Input {...a} type="number" min={0} value={startS} onChange={(e) => setStartS(e.target.value)} />
+                  )}
+                </Field>
+                <Field label={m.exercises.youtubeEnd}>
+                  {(a) => <Input {...a} type="number" min={0} value={endS} onChange={(e) => setEndS(e.target.value)} />}
+                </Field>
+              </>
+            )}
           </div>
         ) : null}
         {videoEnabled ? (
@@ -209,6 +229,52 @@ const ExerciseForm = ({
   );
 };
 
+const sourceLink = (media: Media | null) => {
+  if (media?.kind === "instagram") return { service: "Instagram", href: instagramUrl(media.instagramCode) };
+  if (media?.kind === "youtube") return { service: "YouTube", href: `https://youtu.be/${media.youtubeId}` };
+  return null;
+};
+
+const ExerciseDetail = ({ exercise }: { exercise: ExerciseSummary }) => {
+  const media = exercise.media as Media | null;
+  const source = sourceLink(media);
+  const prescription = formatPrescription(exercise.defaultPrescription);
+  return (
+    <div className="flex flex-col gap-4">
+      {media?.kind === "youtube" || media?.kind === "instagram" ? (
+        <ExternalVideo media={media} title={exercise.name} />
+      ) : media?.kind === "upload" && media.streamUrl ? (
+        <video
+          src={media.streamUrl}
+          controls
+          playsInline
+          className="aspect-video w-full rounded-card bg-black"
+          aria-label={exercise.name}
+        />
+      ) : null}
+      {prescription ? <p className="t-num text-[20px]">{prescription}</p> : null}
+      {exercise.cues.length > 0 ? (
+        <section>
+          <h3 className="t-section">{m.exercises.cues}</h3>
+          <ul className="mt-1 flex flex-col gap-1">
+            {exercise.cues.map((cue) => (
+              <li key={cue}>{cue}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {source ? (
+        <p className="t-caption flex flex-wrap items-center justify-between gap-x-4 font-normal text-soft">
+          {media && "author" in media && media.author ? <span>{m.exercises.videoBy(media.author)}</span> : null}
+          <a href={source.href} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center">
+            {m.exercises.watchOn(source.service)}
+          </a>
+        </p>
+      ) : null}
+    </div>
+  );
+};
+
 export const ExerciseLibrary = ({
   exercises,
   openNew,
@@ -222,11 +288,16 @@ export const ExerciseLibrary = ({
   const [dialog, setDialog] = useState<{ exercise: ExerciseSummary | null } | null>(
     openNew ? { exercise: null } : null,
   );
+  const [detail, setDetail] = useState<ExerciseSummary | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
+  const [source, setSource] = useState<Source | null>(null);
   const [search, setSearch] = useState("");
   const remove = useAction(deleteExerciseAction, { onSuccess: () => router.refresh() });
   const list = exercises.filter(
-    (e) => (!category || e.category === category) && e.name.toLowerCase().includes(search.trim().toLowerCase()),
+    (e) =>
+      (!category || e.category === category) &&
+      (!source || e.shared === (source === "shared")) &&
+      e.name.toLowerCase().includes(search.trim().toLowerCase()),
   );
   return (
     <div className="flex flex-col gap-4">
@@ -267,6 +338,27 @@ export const ExerciseLibrary = ({
                 )}
               </Field>
             </div>
+            <div role="group" aria-label={m.exercises.source} className="flex flex-wrap gap-1.5">
+              {(
+                [
+                  [null, m.exercises.sourceAll],
+                  ["shared", m.exercises.sourceShared],
+                  ["mine", m.exercises.sourceMine],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={pillClass(source === value)}
+                  aria-pressed={source === value}
+                  onClick={() => setSource(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div role="group" aria-label={m.exercises.category} className="-mt-1">
             <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -304,59 +396,73 @@ export const ExerciseLibrary = ({
                     </h2>
                     <ul className="divide-y divide-card-line">
                       {rows.map((e) => {
-                        const media = e.media as ExerciseMediaSnapshot | null;
+                        const media = e.media as Media | null;
                         return (
                           <li
                             key={e.id}
-                            className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-3 px-4 py-1.5 desktop:grid-cols-[44px_minmax(0,1fr)_minmax(0,1fr)_auto]"
+                            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 px-4 py-1.5 desktop:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
                           >
-                            {media ? (
-                              <span
-                                aria-hidden
-                                title={m.exercises.hasVideo}
-                                className="flex size-11 items-center justify-center rounded-thumb bg-brand text-white"
-                              >
-                                <Play className="size-4" />
+                            <button
+                              type="button"
+                              onClick={() => setDetail(e)}
+                              className="-mx-1 flex min-h-11 min-w-0 items-center gap-3 rounded-thumb px-1 text-left hover:bg-raise"
+                            >
+                              {media ? (
+                                <span
+                                  aria-hidden
+                                  title={m.exercises.hasVideo}
+                                  className="flex size-11 shrink-0 items-center justify-center rounded-thumb bg-brand text-white"
+                                >
+                                  <Play className="size-4" />
+                                </span>
+                              ) : (
+                                <span
+                                  aria-hidden
+                                  className="flex size-11 shrink-0 items-center justify-center rounded-thumb bg-card-raised text-fg-muted"
+                                >
+                                  <ActivityPicto kind={e.category} className="size-5" />
+                                </span>
+                              )}
+                              <span className="block min-w-0 leading-snug">
+                                <span className="block break-words font-semibold">{e.name}</span>
+                                {e.shared ? (
+                                  <span className="t-caption block font-normal text-soft">
+                                    {m.exercises.sourceShared}
+                                  </span>
+                                ) : media?.kind === "youtube" && media.title ? (
+                                  <span className="t-caption block font-normal text-soft">{media.title}</span>
+                                ) : null}
+                                <span className="t-caption block font-normal text-soft desktop:hidden">
+                                  {formatPrescription(e.defaultPrescription) || (e.cues[0] ?? "")}
+                                </span>
                               </span>
-                            ) : (
-                              <span
-                                aria-hidden
-                                className="flex size-11 items-center justify-center rounded-thumb bg-card-raised text-fg-muted"
-                              >
-                                <ActivityPicto kind={e.category} className="size-5" />
-                              </span>
-                            )}
-                            <div className="min-w-0 leading-snug">
-                              <p className="break-words font-semibold">{e.name}</p>
-                              {media?.kind === "youtube" && media.title ? (
-                                <p className="t-caption font-normal text-soft">{media.title}</p>
-                              ) : null}
-                              <p className="t-caption font-normal text-soft desktop:hidden">
-                                {formatPrescription(e.defaultPrescription) || (e.cues[0] ?? "")}
-                              </p>
-                            </div>
+                            </button>
                             <p className="t-num text-[17px] max-desktop:hidden">
                               {formatPrescription(e.defaultPrescription) || (
                                 <span className="font-body text-[13px] font-normal text-soft">{e.cues[0] ?? ""}</span>
                               )}
                             </p>
-                            <div className="flex">
-                              <IconButton
-                                label={`${m.common.edit} ${e.name}`}
-                                onClick={() => setDialog({ exercise: e })}
-                              >
-                                <Pencil aria-hidden className="size-4" />
-                              </IconButton>
-                              <ConfirmDialog
-                                title={`Supprimer « ${e.name} » ?`}
-                                description={m.exercises.deleteNotice}
-                                onConfirm={() => remove.execute({ id: e.id })}
-                                trigger={
-                                  <IconButton label={`${m.common.delete} ${e.name}`}>
-                                    <Trash2 aria-hidden className="size-4" />
+                            <div className="flex desktop:w-[88px]">
+                              {e.shared ? null : (
+                                <>
+                                  <IconButton
+                                    label={`${m.common.edit} ${e.name}`}
+                                    onClick={() => setDialog({ exercise: e })}
+                                  >
+                                    <Pencil aria-hidden className="size-4" />
                                   </IconButton>
-                                }
-                              />
+                                  <ConfirmDialog
+                                    title={`Supprimer « ${e.name} » ?`}
+                                    description={m.exercises.deleteNotice}
+                                    onConfirm={() => remove.execute({ id: e.id })}
+                                    trigger={
+                                      <IconButton label={`${m.common.delete} ${e.name}`}>
+                                        <Trash2 aria-hidden className="size-4" />
+                                      </IconButton>
+                                    }
+                                  />
+                                </>
+                              )}
                             </div>
                           </li>
                         );
@@ -369,6 +475,14 @@ export const ExerciseLibrary = ({
           )}
         </>
       )}
+      <Dialog
+        open={detail !== null}
+        onOpenChange={(open) => !open && setDetail(null)}
+        title={detail?.name ?? m.exercises.title}
+        wide
+      >
+        {detail ? <ExerciseDetail exercise={detail} /> : null}
+      </Dialog>
       <Dialog
         open={dialog !== null}
         onOpenChange={(open) => !open && setDialog(null)}

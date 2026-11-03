@@ -2,6 +2,7 @@ export * from "./charges";
 export * from "./status";
 export * from "./variants";
 export * from "./consent";
+export * from "./instagram";
 export * from "./youtube";
 export * from "./jumps";
 export * from "./video-stretch";

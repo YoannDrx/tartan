@@ -6,7 +6,6 @@ import {
   Dumbbell,
   House,
   Megaphone,
-  Settings,
   TrendingUp,
   UsersRound,
   Video,
@@ -22,6 +21,7 @@ import { Select } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import { InstallBanner } from "./install-banner";
 import { SatisfactionQuestion } from "./satisfaction";
+import { SettingsMenu } from "./settings-menu";
 import { switchSpaceAction } from "./shell.action";
 
 type Item = { href: string; label: string; icon: LucideIcon; mobile: boolean };
@@ -33,7 +33,6 @@ const coachItems: Item[] = [
   { href: "/athletes", label: m.nav.athletes, icon: UsersRound, mobile: false },
   { href: "/videos", label: m.nav.videos, icon: Video, mobile: true },
   { href: "/annonces", label: m.nav.annonces, icon: Megaphone, mobile: true },
-  { href: "/reglages", label: m.nav.reglages, icon: Settings, mobile: false },
 ];
 
 const athleteItems: Item[] = [
@@ -42,7 +41,6 @@ const athleteItems: Item[] = [
   { href: "/progres", label: m.nav.progres, icon: TrendingUp, mobile: true },
   { href: "/mes-sauts", label: m.nav.mesSauts, icon: Video, mobile: true },
   { href: "/annonces", label: m.nav.annonces, icon: Megaphone, mobile: true },
-  { href: "/reglages", label: m.nav.reglages, icon: Settings, mobile: false },
 ];
 
 const SpaceSwitcher = ({ spaces, current }: { spaces: SpaceSummary[]; current: SpaceSummary }) => {
@@ -80,12 +78,16 @@ export const AppShell = ({
   staff,
   spaces,
   space,
+  account,
+  admin,
   askSatisfaction = false,
   children,
 }: {
   staff: boolean;
   spaces: SpaceSummary[];
   space: SpaceSummary;
+  account: { name: string | null; email: string };
+  admin: boolean;
   askSatisfaction?: boolean;
   children: ReactNode;
 }) => {
@@ -140,6 +142,7 @@ export const AppShell = ({
                   </Link>
                 );
               })}
+            <SettingsMenu account={account} space={space} active={isActive("/reglages")} admin={admin} />
           </div>
         </div>
       </header>

@@ -41,7 +41,7 @@ export default async function SuiviPage({
     const text = next.toString();
     return text ? `/suivi?${text}` : "/suivi";
   };
-  const firstRun = athletes.length === 0 && exercises.length === 0;
+  const firstRun = athletes.length === 0 && exercises.every((e) => e.shared);
 
   return (
     <div className="flex flex-col gap-4">
