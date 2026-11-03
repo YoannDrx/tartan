@@ -8,6 +8,7 @@ import { firstNameOf } from "./me.service";
 import { dispatchPending, notify, notifyPublications } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
 import { audienceAthleteIds, publishRow, type Publication } from "./session.service";
+import { reconcileStripeSubscriptions } from "./stripe-subscriptions.service";
 
 // Une seule alerte, au moment où la série atteint le seuil (§ 13.2) : pas de rappel à chaque nouvelle séance.
 const alertMissedStreak = async (organizationId: string, athleteIds: string[]): Promise<void> => {
@@ -146,8 +147,9 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
   const closed = await closeOverdueSessions(now);
   const eve = await sendEveQuestions(now);
   const dispatched = await dispatchPending(now);
+  const billing = await reconcileStripeSubscriptions(now);
   const referrals = await processReferrals(now);
   const purged = await purgeExpiredVideos(now);
   const digests = await sendWeeklyDigests(now);
-  return { published, closed, eve, dispatched, referrals, purged, digests };
+  return { published, closed, eve, dispatched, billing, referrals, purged, digests };
 };

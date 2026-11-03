@@ -153,6 +153,9 @@ model Organization {
   owner       User             @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   plan        OrganizationPlan @default(discovery)
   stripeCustomerId String?     @unique @map("stripe_customer_id")
+  billingRevision Int          @default(0) @map("billing_revision")
+  billingSyncedAt DateTime?     @map("billing_synced_at")
+  billingSyncAttemptedAt DateTime? @map("billing_sync_attempted_at")
   // Relance douce d'une séance non validée, réglable par le coach (§ 7.7).
   overdueReminders Boolean     @default(true) @map("overdue_reminders")
   createdAt   DateTime         @default(now()) @map("created_at")

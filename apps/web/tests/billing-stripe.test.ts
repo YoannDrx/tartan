@@ -1,30 +1,34 @@
 import { randomUUID } from "node:crypto";
 import type Stripe from "stripe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PLANS } from "@tartan/domain";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { adminOverview } from "@/server/admin.service";
-import { applySubscription, createCheckout, handleStripeEvent } from "@/server/billing.service";
+import { applySubscription, createCheckout, handleStripeEvent, limitsOf } from "@/server/billing.service";
+import { reconcileStripeSubscription } from "@/server/stripe-subscriptions.service";
 import { deleteAccount } from "@/server/account.service";
 import { answerSatisfaction, shouldAskSatisfaction } from "@/server/satisfaction.service";
 import { makeOrg } from "./helpers";
 
-const cancel = vi.fn();
-const portal = vi.fn().mockResolvedValue({ url: "https://portail" });
-const checkout = vi.fn().mockResolvedValue({ url: "https://paiement" });
-const createCustomer = vi.fn().mockResolvedValue({ id: "cus_nouveau" });
-
+const mocks = vi.hoisted(() => ({
+  cancel: vi.fn(),
+  portal: vi.fn(),
+  checkout: vi.fn(),
+  customer: vi.fn(),
+  list: vi.fn(),
+}));
 vi.mock("@/lib/stripe", () => ({
   billingEnabled: () => true,
   priceIdFor: () => "price_coach",
   planForPriceId: (id: string) => (id === "price_coach" ? "coach" : id === "price_club" ? "club" : null),
   stripe: () => ({
-    subscriptions: { cancel },
-    billingPortal: { sessions: { create: portal } },
-    checkout: { sessions: { create: checkout } },
-    customers: { create: createCustomer },
+    subscriptions: { cancel: mocks.cancel, list: mocks.list },
+    billingPortal: { sessions: { create: mocks.portal } },
+    checkout: { sessions: { create: mocks.checkout } },
+    customers: { create: mocks.customer },
   }),
 }));
-
 const paid = (organizationId: string, ref: string) =>
   applySubscription({
     organizationId,
@@ -35,86 +39,217 @@ const paid = (organizationId: string, ref: string) =>
     currentPeriodEnd: null,
     cancelAt: null,
   });
+const setup = async () => {
+  const org = await makeOrg("Vente");
+  const customer = `cus_${org.organizationId}`;
+  await prisma.organization.update({ where: { id: org.organizationId }, data: { stripeCustomerId: customer } });
+  const sub = (status: string, id = `sub_${org.organizationId}`, price = "price_coach", created = 100) =>
+    ({
+      id,
+      customer,
+      created,
+      status,
+      metadata: { organizationId: org.organizationId },
+      cancel_at: null,
+      items: { data: [{ price: { id: price }, current_period_end: 1893456000 }] },
+    }) as unknown as Stripe.Subscription;
+  const event = (snapshot: Stripe.Subscription, type = "customer.subscription.updated", id = randomUUID()) =>
+    ({ id, type, data: { object: snapshot } }) as unknown as Stripe.Event;
+  const state = (...subscriptions: Stripe.Subscription[]) =>
+    mocks.list.mockResolvedValue({ data: subscriptions, has_more: false });
+  const read = () => prisma.organization.findUniqueOrThrow({ where: { id: org.organizationId } });
+  return { ...org, customer, sub, event, state, read };
+};
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.list.mockReset().mockResolvedValue({ data: [], has_more: false });
+  mocks.portal.mockReset().mockResolvedValue({ url: "https://portail" });
+  mocks.checkout.mockReset().mockResolvedValue({ url: "https://paiement" });
+  mocks.customer.mockReset().mockImplementation(async () => ({ id: `cus_${randomUUID()}` }));
+});
 
-// Forme de l'API 2022-11-15, celle que reçoit le webhook actuel du compte : la date est sur l'abonnement.
-const legacyEvent = (organizationId: string, id: string, status: string, priceId: string, eventId = randomUUID()) =>
-  ({
-    id: eventId,
-    type: "customer.subscription.updated",
-    data: {
-      object: {
-        id,
-        status,
-        metadata: { organizationId },
-        cancel_at: null,
-        current_period_end: 1893456000,
-        items: { data: [{ price: { id: priceId } }] },
-      },
-    },
-  }) as unknown as Stripe.Event;
-
-describe("vente", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("lit la date de fin quelle que soit la version d'API du webhook", async () => {
-    const org = await makeOrg("Date");
-    await handleStripeEvent(legacyEvent(org.organizationId, "sub_1", "active", "price_coach"));
-    const row = await prisma.subscription.findFirstOrThrow({ where: { organizationId: org.organizationId } });
+describe("vente Stripe", () => {
+  it("lit l'état courant et la date de l'API, même si le webhook a l'ancien format", async () => {
+    const a = await setup();
+    a.state(a.sub("active"));
+    const old = {
+      ...a.sub("trialing"),
+      current_period_end: 100,
+      items: { data: [{ price: { id: "price_coach" } }] },
+    } as unknown as Stripe.Subscription;
+    await handleStripeEvent(a.event(old));
+    const row = await prisma.subscription.findFirstOrThrow({ where: { organizationId: a.organizationId } });
+    expect(row.status).toBe("active");
     expect(row.currentPeriodEnd?.getTime()).toBe(1893456000 * 1000);
+    expect(await limitsOf(a.organizationId)).toEqual(PLANS.coach.limits);
   });
-
+  it("un ancien événement actif reçu après une résiliation ne réactive jamais l'offre", async () => {
+    const a = await setup();
+    a.state(a.sub("canceled"));
+    await handleStripeEvent(a.event(a.sub("canceled"), "customer.subscription.deleted"));
+    await handleStripeEvent(a.event(a.sub("active")));
+    expect((await a.read()).plan).toBe("discovery");
+    expect(await limitsOf(a.organizationId)).toEqual(PLANS.discovery.limits);
+  });
+  it("le changement d'un ancien abonnement ne remplace pas le nouvel abonnement", async () => {
+    const a = await setup();
+    a.state(a.sub("canceled", "sub_ancien", "price_coach", 1), a.sub("active", "sub_nouveau", "price_club", 2));
+    await handleStripeEvent(a.event(a.sub("active", "sub_ancien")));
+    expect((await a.read()).plan).toBe("club");
+    await handleStripeEvent(a.event(a.sub("canceled", "sub_ancien")));
+    expect((await a.read()).plan).toBe("club");
+  });
+  it("une réponse lente ancienne ne peut pas écraser une synchronisation plus récente", async () => {
+    const a = await setup();
+    let release!: (value: unknown) => void;
+    let started!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    mocks.list.mockImplementationOnce(() => {
+      started();
+      return new Promise((resolve) => {
+        release = resolve;
+      });
+    });
+    const first = handleStripeEvent(a.event(a.sub("active")));
+    const result = first.then(
+      () => null,
+      (error: Error) => error.message,
+    );
+    await ready;
+    a.state(a.sub("canceled"));
+    await handleStripeEvent(a.event(a.sub("canceled")));
+    release({ data: [a.sub("active")], has_more: false });
+    // Acquittée sans erreur : Stripe ne relance pas pour rien à chaque rafale d'événements.
+    expect(await result).toBeNull();
+    expect((await a.read()).plan).toBe("discovery");
+  });
+  it("un paiement jamais abouti ne retire pas l'offre de l'espace", async () => {
+    const a = await setup();
+    for (const status of ["incomplete", "incomplete_expired"]) {
+      a.state(a.sub(status));
+      await handleStripeEvent(a.event(a.sub(status)));
+      expect((await a.read()).plan).toBe("pilot");
+    }
+  });
+  it("un événement Stripe ne touche pas un abonnement pris sur le store", async () => {
+    const a = await setup();
+    await applySubscription({
+      organizationId: a.organizationId,
+      plan: "club",
+      status: "active",
+      provider: "revenuecat",
+      providerRef: "rc_1",
+      currentPeriodEnd: null,
+      cancelAt: null,
+    });
+    a.state(a.sub("canceled"));
+    await handleStripeEvent(a.event(a.sub("canceled")));
+    expect((await a.read()).plan).toBe("club");
+  });
+  it("un doublon concurrent est acquitté une seule fois", async () => {
+    const a = await setup();
+    a.state(a.sub("active"));
+    const event = a.event(a.sub("active"));
+    const results = await Promise.allSettled([handleStripeEvent(event), handleStripeEvent(event)]);
+    expect(results.some((r) => r.status === "fulfilled")).toBe(true);
+    await handleStripeEvent(event);
+    expect(await prisma.billingEvent.count({ where: { id: event.id } })).toBe(1);
+    expect(await prisma.subscription.count({ where: { organizationId: a.organizationId } })).toBe(1);
+    expect((await a.read()).plan).toBe("coach");
+  });
+  it("une erreur Stripe laisse les droits intacts et l'événement rejouable", async () => {
+    const a = await setup();
+    const before = await a.read();
+    const event = a.event(a.sub("active"));
+    mocks.list.mockRejectedValueOnce(new Error("Stripe indisponible"));
+    await expect(handleStripeEvent(event)).rejects.toThrow("Stripe indisponible");
+    expect(await prisma.billingEvent.findUnique({ where: { id: event.id } })).toBeNull();
+    expect((await a.read()).plan).toBe(before.plan);
+    a.state(a.sub("active"));
+    await handleStripeEvent(event);
+    expect((await a.read()).plan).toBe("coach");
+  });
+  it("une panne pendant l'écriture des droits annule aussi l'abonnement et le traitement", async () => {
+    const a = await setup();
+    a.state(a.sub("active"));
+    const event = a.event(a.sub("active"));
+    const original = prisma.$transaction.bind(prisma);
+    const spy = vi.spyOn(prisma, "$transaction").mockImplementationOnce(((
+      callback: (tx: Prisma.TransactionClient) => Promise<unknown>,
+    ) =>
+      original(async (tx) => {
+        vi.spyOn(tx.entitlement, "upsert").mockRejectedValueOnce(new Error("écriture indisponible"));
+        return callback(tx);
+      })) as typeof prisma.$transaction);
+    try {
+      await expect(handleStripeEvent(event)).rejects.toThrow("écriture indisponible");
+    } finally {
+      spy.mockRestore();
+    }
+    expect((await a.read()).plan).toBe("pilot");
+    expect(await prisma.subscription.findFirstOrThrow({ where: { organizationId: a.organizationId } })).toMatchObject({
+      provider: "manual",
+      planKey: "discovery",
+    });
+    expect(await prisma.billingEvent.findUnique({ where: { id: event.id } })).toBeNull();
+    expect(await limitsOf(a.organizationId)).toEqual(PLANS.pilot.limits);
+    await handleStripeEvent(event);
+    expect((await a.read()).plan).toBe("coach");
+  });
+  it("ignore les clients d'un autre produit, même avec une métadonnée d'espace", async () => {
+    const a = await setup();
+    await handleStripeEvent(a.event({ ...a.sub("active"), customer: "cus_autre_produit" }));
+    expect(mocks.list).not.toHaveBeenCalled();
+    expect((await a.read()).plan).toBe("pilot");
+  });
+  it("un tarif inconnu actif reste à corriger et à rejouer", async () => {
+    const a = await setup();
+    a.state(a.sub("active", "sub_inconnu", "price_inconnu"));
+    const event = a.event(a.sub("active"));
+    await expect(handleStripeEvent(event)).rejects.toThrow("stripe_subscription_price_unknown");
+    expect(await prisma.billingEvent.findUnique({ where: { id: event.id } })).toBeNull();
+    expect((await a.read()).plan).toBe("pilot");
+  });
+  it("une réconciliation sans webhook rattrape l'état du prestataire", async () => {
+    const a = await setup();
+    await paid(a.organizationId, a.sub("active").id);
+    a.state(a.sub("unpaid"));
+    await reconcileStripeSubscription(a.organizationId);
+    expect((await a.read()).plan).toBe("discovery");
+    expect((await a.read()).billingSyncedAt).not.toBeNull();
+  });
+  it("parcourt toutes les pages avant de décider des droits", async () => {
+    const a = await setup();
+    mocks.list
+      .mockResolvedValueOnce({ data: [a.sub("canceled", "sub_old")], has_more: true })
+      .mockResolvedValueOnce({ data: [a.sub("active", "sub_new", "price_club", 200)], has_more: false });
+    await reconcileStripeSubscription(a.organizationId);
+    expect((await a.read()).plan).toBe("club");
+    expect(mocks.list.mock.calls[1]?.[0].starting_after).toBe("sub_old");
+  });
   it("un abonnement en cours mène au portail, jamais à un second paiement", async () => {
-    const org = await makeOrg("Double");
-    await prisma.organization.update({ where: { id: org.organizationId }, data: { stripeCustomerId: "cus_1" } });
-    await paid(org.organizationId, "sub_en_cours");
-    const res = await createCheckout(org.owner.userId, org.organizationId, { plan: "club", interval: "year" });
+    const a = await setup();
+    await paid(a.organizationId, "sub_en_cours");
+    const res = await createCheckout(a.owner.userId, a.organizationId, { plan: "club", interval: "year" });
     expect(res.url).toBe("https://portail");
-    expect(checkout).not.toHaveBeenCalled();
+    expect(mocks.checkout).not.toHaveBeenCalled();
   });
-
   it("met l'identité du vendeur et la mention de TVA sur les factures du nouveau client", async () => {
-    const org = await makeOrg("Facture");
-    await createCheckout(org.owner.userId, org.organizationId, { plan: "coach", interval: "month" });
-    const [params] = createCustomer.mock.calls[0] as [Stripe.CustomerCreateParams];
+    const a = await makeOrg("Facture");
+    await createCheckout(a.owner.userId, a.organizationId, { plan: "coach", interval: "month" });
+    const [params] = mocks.customer.mock.calls[0] as [Stripe.CustomerCreateParams];
     expect(params.invoice_settings?.footer).toContain("293 B");
     expect(params.invoice_settings?.footer).toContain("803 272 590");
   });
-
-  it("la fin d'un ancien abonnement ne fait pas retomber l'offre qui l'a remplacé", async () => {
-    const org = await makeOrg("Remplace");
-    await paid(org.organizationId, "sub_nouveau");
-    await handleStripeEvent(legacyEvent(org.organizationId, "sub_ancien", "canceled", "price_x"));
-    const space = await prisma.organization.findUniqueOrThrow({ where: { id: org.organizationId } });
-    expect(space.plan).toBe("coach");
-  });
-
-  it("une erreur de base n'empêche pas le renvoi du prestataire de rejouer l'événement", async () => {
-    const org = await makeOrg("Rejeu");
-    const event = legacyEvent(org.organizationId, "sub_2", "active", "price_coach");
-    const spy = vi.spyOn(prisma.organization, "update").mockRejectedValueOnce(new Error("base indisponible"));
-    await expect(handleStripeEvent(event)).rejects.toThrow("base indisponible");
-    spy.mockRestore();
-    await handleStripeEvent(event);
-    const space = await prisma.organization.findUniqueOrThrow({ where: { id: org.organizationId } });
-    expect(space.plan).toBe("coach");
-  });
-
-  it("des relances épuisées arrêtent l'offre payante", async () => {
-    const org = await makeOrg("Impaye");
-    await paid(org.organizationId, "sub_3");
-    await handleStripeEvent(legacyEvent(org.organizationId, "sub_3", "unpaid", "price_coach"));
-    const space = await prisma.organization.findUniqueOrThrow({ where: { id: org.organizationId } });
-    expect(space.plan).toBe("discovery");
-  });
-
   it("supprimer son compte résilie l'abonnement de l'espace qui disparaît", async () => {
-    const org = await makeOrg("Depart");
-    await paid(org.organizationId, "sub_depart");
-    await deleteAccount(org.owner.userId);
-    expect(cancel).toHaveBeenCalledWith("sub_depart");
+    const a = await setup();
+    await paid(a.organizationId, "sub_depart");
+    await deleteAccount(a.owner.userId);
+    expect(mocks.cancel).toHaveBeenCalledWith("sub_depart");
   });
 });
-
 describe("console et satisfaction", () => {
   it("la console refuse toute adresse hors de la liste", async () => {
     await expect(adminOverview({ email: "quelqu-un@exemple.fr" })).rejects.toMatchObject({ status: 403 });

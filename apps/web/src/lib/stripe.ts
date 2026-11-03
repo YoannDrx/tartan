@@ -4,7 +4,8 @@ import { env } from "./env";
 
 export const billingEnabled = (): boolean => Boolean(env().STRIPE_SECRET_KEY);
 
-export const stripe = (): Stripe => new Stripe(env().STRIPE_SECRET_KEY ?? "");
+export const stripe = (): Stripe =>
+  new Stripe(env().STRIPE_SECRET_KEY ?? "", { timeout: 10_000, maxNetworkRetries: 1 });
 
 export const priceIdFor = (plan: PlanKey, interval: BillingInterval): string | undefined => {
   const e = env();
