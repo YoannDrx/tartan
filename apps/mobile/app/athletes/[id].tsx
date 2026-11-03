@@ -17,7 +17,7 @@ import { Button, Divider, ListSurface, SectionTitle, T, Tag } from "../../src/ui
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { StatusDisc } from "../../src/ui/status";
-import { radius, scene, space, usePalette } from "../../src/ui/theme";
+import { radius, scene, space } from "../../src/ui/theme";
 
 const day = (iso: string) => capitalize(formatDayMonth(iso));
 const fullDay = (iso: string) => `${day(iso)} ${iso.slice(0, 4)}`;
@@ -73,7 +73,6 @@ const MarkRow = ({ title, detail, value, badge }: { title: string; detail: strin
 );
 
 const InjuryAlert = ({ injury }: { injury: CoachAthleteFile["injuries"][number] }) => {
-  const p = usePalette();
   return (
     <ListSurface>
       <View
@@ -91,7 +90,7 @@ const InjuryAlert = ({ injury }: { injury: CoachAthleteFile["injuries"][number] 
             backgroundColor: scene.status.missed,
           }}
         >
-          <AlertTriangle size={20} color={p.onStatus} accessibilityElementsHidden importantForAccessibility="no" />
+          <AlertTriangle size={20} color={scene.onStatus} accessibilityElementsHidden importantForAccessibility="no" />
         </View>
         <View style={{ flex: 1, gap: 1 }}>
           <T variant="smallStrong" style={{ color: scene.text }}>
@@ -122,14 +121,14 @@ export default function AthleteFile() {
 
   if (file.isPending || stats.isPending) {
     return (
-      <StackScreen title={m.athletes.title}>
+      <StackScreen world="soleil" title={m.athletes.title}>
         <LoadingState />
       </StackScreen>
     );
   }
   if (!detail) {
     return (
-      <StackScreen title={m.athletes.title}>
+      <StackScreen world="soleil" title={m.athletes.title}>
         <ErrorState message={m.mobile.athletePage.error} onRetry={() => void file.refetch()} />
       </StackScreen>
     );
@@ -140,7 +139,10 @@ export default function AthleteFile() {
   const cleared = (sheet.data?.rows ?? []).filter((r) => r.cleared).map((r) => r.heightCm);
   const bestCm = cleared.length > 0 ? Math.max(...cleared) : null;
   const weeks = (stats.data?.weeks ?? []).filter((w) => w.sessions > 0).reverse();
-  const totals = weeks.reduce((sum, w) => ({ done: sum.done + w.done, all: sum.all + w.sessions }), { done: 0, all: 0 });
+  const totals = weeks.reduce((sum, w) => ({ done: sum.done + w.done, all: sum.all + w.sessions }), {
+    done: 0,
+    all: 0,
+  });
   const rate = totals.all > 0 ? Math.round((totals.done / totals.all) * 100) : null;
   const activeInjury = detail.injuries.find((i) => i.status !== "resolved");
   const figures: { label: string; value: string | null }[] = [
@@ -152,7 +154,7 @@ export default function AthleteFile() {
   const shownFigures = figures.flatMap((f) => (f.value === null ? [] : [{ label: f.label, value: f.value }]));
 
   return (
-    <StackScreen title={name} subtitle={subtitle}>
+    <StackScreen world="soleil" title={name} subtitle={subtitle}>
       {activeInjury ? <InjuryAlert injury={activeInjury} /> : null}
 
       {shownFigures.length > 0 ? (
@@ -226,7 +228,13 @@ export default function AthleteFile() {
                 {i > 0 ? <Divider /> : null}
                 <View
                   accessible
-                  style={{ flexDirection: "row", alignItems: "center", gap: space.md, padding: space.md, minHeight: 56 }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: space.md,
+                    padding: space.md,
+                    minHeight: 56,
+                  }}
                 >
                   <View style={{ flex: 1, gap: 1 }}>
                     <T variant="smallStrong">{m.athletes.weekOf(formatDayMonth(week.weekStart))}</T>
@@ -247,126 +255,126 @@ export default function AthleteFile() {
       </Section>
 
       <>
-          <Section title={m.athletes.records}>
-            <ListSurface>
-              {detail.performances.length === 0 ? (
-                <T variant="small" tone="muted" style={{ padding: space.md }}>
-                  {m.athletes.noRecords}
-                </T>
-              ) : (
-                detail.performances.map((p, i) => (
-                  <View key={p.id}>
-                    {i > 0 ? <Divider /> : null}
-                    <MarkRow
-                      title={discipline(p.discipline)}
-                      detail={[fullDay(p.date), p.location].filter(Boolean).join(" · ")}
-                      value={mark(p.mark, p.unit)}
-                      badge={p.isPb ? m.athletes.record : undefined}
-                    />
-                  </View>
-                ))
-              )}
-            </ListSurface>
-          </Section>
+        <Section title={m.athletes.records}>
+          <ListSurface>
+            {detail.performances.length === 0 ? (
+              <T variant="small" tone="muted" style={{ padding: space.md }}>
+                {m.athletes.noRecords}
+              </T>
+            ) : (
+              detail.performances.map((p, i) => (
+                <View key={p.id}>
+                  {i > 0 ? <Divider /> : null}
+                  <MarkRow
+                    title={discipline(p.discipline)}
+                    detail={[fullDay(p.date), p.location].filter(Boolean).join(" · ")}
+                    value={mark(p.mark, p.unit)}
+                    badge={p.isPb ? m.athletes.record : undefined}
+                  />
+                </View>
+              ))
+            )}
+          </ListSurface>
+        </Section>
 
-          <Section title={m.athletes.tests}>
-            <ListSurface>
-              {detail.tests.length === 0 ? (
-                <T variant="small" tone="muted" style={{ padding: space.md }}>
-                  {m.athletes.noTests}
-                </T>
-              ) : (
-                detail.tests.map((t, i) => (
-                  <View key={t.id}>
-                    {i > 0 ? <Divider /> : null}
-                    <MarkRow
-                      title={strengthTestLabel(t.exerciseKey)}
-                      detail={`${testKind(t.kind)} · ${fullDay(t.date)}`}
-                      value={`${String(t.value).replace(".", ",")} kg`}
-                    />
-                  </View>
-                ))
-              )}
-            </ListSurface>
-          </Section>
+        <Section title={m.athletes.tests}>
+          <ListSurface>
+            {detail.tests.length === 0 ? (
+              <T variant="small" tone="muted" style={{ padding: space.md }}>
+                {m.athletes.noTests}
+              </T>
+            ) : (
+              detail.tests.map((t, i) => (
+                <View key={t.id}>
+                  {i > 0 ? <Divider /> : null}
+                  <MarkRow
+                    title={strengthTestLabel(t.exerciseKey)}
+                    detail={`${testKind(t.kind)} · ${fullDay(t.date)}`}
+                    value={`${String(t.value).replace(".", ",")} kg`}
+                  />
+                </View>
+              ))
+            )}
+          </ListSurface>
+        </Section>
 
-          <Section title={m.athletes.injuries}>
-            <ListSurface>
-              {!detail.healthVisible ? (
-                <T variant="small" tone="muted" style={{ padding: space.md }}>
-                  {m.athletes.healthHidden}
-                </T>
-              ) : detail.injuries.length === 0 ? (
-                <T variant="small" tone="muted" style={{ padding: space.md }}>
-                  {m.athletes.noInjuries}
-                </T>
-              ) : (
-                detail.injuries.map((injury, i) => (
-                  <View key={injury.id}>
-                    {i > 0 ? <Divider /> : null}
-                    <View accessible style={{ padding: space.md, gap: 2, minHeight: 56 }}>
-                      <T variant="smallStrong">{injuryLabel(injury)}</T>
-                      <T variant="caption" tone="muted">
-                        {[
-                          m.mobile.athletePage.since(fullDay(injury.startDate)),
-                          injury.endDate ? m.mobile.athletePage.until(fullDay(injury.endDate)) : null,
-                        ]
-                          .filter(Boolean)
-                          .join(", ")}
-                      </T>
-                      {injury.restrictions ? <T variant="small">{injury.restrictions}</T> : null}
-                    </View>
+        <Section title={m.athletes.injuries}>
+          <ListSurface>
+            {!detail.healthVisible ? (
+              <T variant="small" tone="muted" style={{ padding: space.md }}>
+                {m.athletes.healthHidden}
+              </T>
+            ) : detail.injuries.length === 0 ? (
+              <T variant="small" tone="muted" style={{ padding: space.md }}>
+                {m.athletes.noInjuries}
+              </T>
+            ) : (
+              detail.injuries.map((injury, i) => (
+                <View key={injury.id}>
+                  {i > 0 ? <Divider /> : null}
+                  <View accessible style={{ padding: space.md, gap: 2, minHeight: 56 }}>
+                    <T variant="smallStrong">{injuryLabel(injury)}</T>
+                    <T variant="caption" tone="muted">
+                      {[
+                        m.mobile.athletePage.since(fullDay(injury.startDate)),
+                        injury.endDate ? m.mobile.athletePage.until(fullDay(injury.endDate)) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </T>
+                    {injury.restrictions ? <T variant="small">{injury.restrictions}</T> : null}
                   </View>
-                ))
-              )}
-            </ListSurface>
-          </Section>
+                </View>
+              ))
+            )}
+          </ListSurface>
+        </Section>
 
-          <Section title={m.athletes.history}>
-            <ListSurface>
-              {detail.history.length === 0 ? (
-                <T variant="small" tone="muted" style={{ padding: space.md }}>
-                  {m.athletes.noHistory}
-                </T>
-              ) : (
-                detail.history.map((h, i) => {
-                  const status = h.status === "done" || h.status === "partial" ? h.status : "missed";
-                  return (
-                    <View key={h.id}>
-                      {i > 0 ? <Divider /> : null}
-                      <Pressable
-                        onPress={() => router.push(`/coach-session/${h.sessionId}`)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`${h.title}, ${fullDay(h.date)}, ${m.status[status]}`}
-                        style={({ pressed }) => ({
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: space.md,
-                          padding: space.md,
-                          minHeight: 56,
-                          opacity: pressed ? 0.75 : 1,
-                        })}
-                      >
-                        <StatusDisc status={status} />
-                        <View style={{ flex: 1, gap: 1 }}>
-                          <T variant="smallStrong">{h.title}</T>
-                          <T variant="caption" tone="muted">
-                            {fullDay(h.date)}
-                          </T>
-                        </View>
-                        <ChevronRight
-                          size={18}
-                          color={scene.textMuted}
-                          accessibilityElementsHidden
-                          importantForAccessibility="no"
-                        />
-                      </Pressable>
-                    </View>
-                  );
-                })
-              )}
-            </ListSurface>
-          </Section>
+        <Section title={m.athletes.history}>
+          <ListSurface>
+            {detail.history.length === 0 ? (
+              <T variant="small" tone="muted" style={{ padding: space.md }}>
+                {m.athletes.noHistory}
+              </T>
+            ) : (
+              detail.history.map((h, i) => {
+                const status = h.status === "done" || h.status === "partial" ? h.status : "missed";
+                return (
+                  <View key={h.id}>
+                    {i > 0 ? <Divider /> : null}
+                    <Pressable
+                      onPress={() => router.push(`/coach-session/${h.sessionId}`)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${h.title}, ${fullDay(h.date)}, ${m.status[status]}`}
+                      style={({ pressed }) => ({
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: space.md,
+                        padding: space.md,
+                        minHeight: 56,
+                        opacity: pressed ? 0.75 : 1,
+                      })}
+                    >
+                      <StatusDisc status={status} />
+                      <View style={{ flex: 1, gap: 1 }}>
+                        <T variant="smallStrong">{h.title}</T>
+                        <T variant="caption" tone="muted">
+                          {fullDay(h.date)}
+                        </T>
+                      </View>
+                      <ChevronRight
+                        size={18}
+                        color={scene.textMuted}
+                        accessibilityElementsHidden
+                        importantForAccessibility="no"
+                      />
+                    </Pressable>
+                  </View>
+                );
+              })
+            )}
+          </ListSurface>
+        </Section>
       </>
 
       {videos.data && videos.data.length > 0 ? (
@@ -381,7 +389,6 @@ export default function AthleteFile() {
           </ListSurface>
         </Section>
       ) : null}
-
     </StackScreen>
   );
 }

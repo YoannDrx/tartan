@@ -125,7 +125,7 @@ export const WeekBoard = ({ week, today, data }: { week: string; today: string; 
                   <span
                     className={cn(
                       "t-num flex min-w-7 items-center justify-center rounded-full text-[22px] leading-7",
-                      day === today && "bg-brand px-1 text-white",
+                      day === today && "bg-accent px-1 text-on-accent",
                     )}
                   >
                     {Number(day.slice(8))}
@@ -220,7 +220,7 @@ export const MonthBoard = ({ month, today, data }: { month: string; today: strin
                 <span
                   className={cn(
                     "t-num flex min-w-7 items-center justify-center rounded-full text-[22px] leading-7",
-                    day === today && "bg-brand px-1 text-white",
+                    day === today && "bg-accent px-1 text-on-accent",
                   )}
                 >
                   {Number(day.slice(8))}
@@ -276,7 +276,7 @@ export const MonthBoard = ({ month, today, data }: { month: string; today: strin
                 <p
                   className={cn(
                     "t-num mb-1 flex size-6 items-center justify-center rounded-full text-[16px]",
-                    day === today && "bg-brand text-white",
+                    day === today && "bg-accent text-on-accent",
                   )}
                 >
                   {Number(day.slice(8))}

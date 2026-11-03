@@ -44,13 +44,18 @@ export default function AthleteAgenda() {
   }, [calendar.data, items, router]);
 
   return (
-    <TabScreen title={m.nav.calendrier} refreshing={calendar.isRefetching} onRefresh={() => void calendar.refetch()}>
+    <TabScreen
+      world="couloir"
+      title={m.nav.calendrier}
+      refreshing={calendar.isRefetching}
+      onRefresh={() => void calendar.refetch()}
+    >
       <WeekNav {...nav} />
       {calendar.isPending ? <LoadingState /> : null}
       {calendar.isError && !calendar.data ? (
         <ErrorState error={calendar.error} onRetry={() => void calendar.refetch()} />
       ) : null}
-      {calendar.data && entries.length === 0 ? <EmptyState body={m.mobile.agenda.empty} /> : null}
+      {calendar.data && entries.length === 0 ? <EmptyState body={m.mobile.agenda.empty} pose="run" /> : null}
       {entries.length > 0 ? <AgendaList entries={entries} /> : null}
     </TabScreen>
   );

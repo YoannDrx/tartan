@@ -150,7 +150,7 @@ const SessionCardBody = ({ card, pending, onValidate, onStart, onEdit }: HeroPro
         ) : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space.sm, marginTop: 2 }}>
           {jump ? <BarGlyph size={22} color={p.text} /> : null}
-          <Tag label={m.sessionType[card.type]} />
+          <Tag label={m.sessionType[card.type]} tone={card.type === "jump" ? "jump" : "neutral"} />
           <Tag label={m.variant[card.variant]} />
         </View>
       </View>

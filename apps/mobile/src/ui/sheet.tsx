@@ -1,6 +1,6 @@
 import { m } from "@tartan/i18n";
-import { type ReactNode, useEffect, useState } from "react";
-import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Animated, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "./icons";
 import { IconButton, T } from "./primitives";
@@ -16,7 +16,12 @@ type SheetProps = {
   titleIcon?: ReactNode;
   headerAction?: ReactNode;
   dark?: boolean;
+  // Posée au-dessus de la feuille et de son voile : le seul moment animé y vit, sans bloquer les touchers.
+  overlay?: ReactNode;
 };
+
+const ENTER_MS = 200;
+const ENTER_OFFSET = 48;
 
 const SheetBody = ({
   title,
@@ -25,8 +30,12 @@ const SheetBody = ({
   footer,
   titleIcon,
   headerAction,
-}: Omit<SheetProps, "visible" | "dark">) => {
+}: Omit<SheetProps, "visible" | "dark" | "overlay">) => {
   const p = usePalette();
+  const enter = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(enter, { toValue: 1, duration: ENTER_MS, useNativeDriver: true }).start();
+  }, [enter]);
   const insets = useSafeAreaInsets();
   // Clavier ouvert, la zone du bas n'a plus à éviter l'indicateur d'accueil : le champ reste collé au clavier.
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -47,20 +56,27 @@ const SheetBody = ({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1, justifyContent: "flex-end" }}
     >
-      <Pressable
-        style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: p.scrim }}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel={m.mobile.a11y.closeSheet}
-      />
-      <View
+      <Animated.View style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, opacity: enter }}>
+        <Pressable
+          style={{ flex: 1, backgroundColor: p.scrim }}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel={m.mobile.a11y.closeSheet}
+        />
+      </Animated.View>
+      <Animated.View
         accessibilityViewIsModal
         style={{
           maxHeight: "88%",
           backgroundColor: p.bg,
           borderTopLeftRadius: radius.hero,
           borderTopRightRadius: radius.hero,
+          // Sur la nuit et l'encre, la feuille encre se détache par ce filet : ni ombre ni dégradé.
+          borderWidth: 1,
+          borderBottomWidth: 0,
+          borderColor: p.border,
           paddingBottom: keyboardOpen ? 0 : Math.max(insets.bottom, space.lg),
+          transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [ENTER_OFFSET, 0] }) }],
         }}
       >
         <View
@@ -96,23 +112,24 @@ const SheetBody = ({
           {children}
         </ScrollView>
         {footer ? <View style={{ paddingHorizontal: GUTTER, paddingTop: space.sm }}>{footer}</View> : null}
-      </View>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 };
 
 // Le retour Android ferme la feuille (onRequestClose), jamais l'écran derrière.
-export const Sheet = ({ visible, dark: _dark, ...rest }: SheetProps) => (
+export const Sheet = ({ visible, dark: _dark, overlay, ...rest }: SheetProps) => (
   <Modal
     visible={visible}
     transparent
-    animationType="slide"
+    animationType="none"
     onRequestClose={rest.onClose}
     statusBarTranslucent
     navigationBarTranslucent
   >
     <Scene scene="card">
       <SheetBody {...rest} />
+      {overlay}
     </Scene>
   </Modal>
 );

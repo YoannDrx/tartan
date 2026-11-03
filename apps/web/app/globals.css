@@ -24,6 +24,14 @@
   --color-status-partial: #e08a1e;
   --color-status-missed: #c4442b;
   --color-status-upcoming: #8c8e94;
+  --color-film-electric: #2b4dff;
+  --color-film-electric-deep: #1e37c2;
+  --color-film-lime: #c6f432;
+  --color-film-lime-deep: #aedb1e;
+  --color-film-sun: #ffc838;
+  --color-film-sun-deep: #efb21c;
+  --color-film-sun-light: #ffe08a;
+  --color-film-skin: #e8a87c;
 
   /* Rôles à l'écran : miroir de tokens.scene. */
   --color-page: #c4442b;
@@ -35,28 +43,33 @@
   --color-control-line: #6b6e76;
   --color-fg: #ffffff;
   --color-fg-muted: #b9bbc0;
-  --color-link: #f2a08f;
+  --color-link: #c6f432;
   --color-hero: #f2f3f1;
   --color-on-hero: #15161a;
   --color-on-hero-accent: #9e3320;
-  --color-action-page: #ffffff;
+  --color-action-page: #c6f432;
   --color-on-action-page: #15161a;
-  --color-action-card: #c4442b;
-  --color-on-action-card: #ffffff;
-  --color-st-done: #4c8fe0;
-  --color-st-partial: #e08a1e;
-  --color-st-missed: #f0644c;
+  --color-action-card: #c6f432;
+  --color-on-action-card: #15161a;
+  --color-st-done: #c6f432;
+  --color-st-partial: #ffc838;
+  --color-st-missed: #ff6b57;
   --color-st-upcoming: #8c8e94;
   --color-on-status: #15161a;
+  /* L'accent suit le fond : citron sur les fonds soutenus et l'encre, encre sur la craie et le soleil. */
+  --color-accent: #c6f432;
+  --color-on-accent: #15161a;
+  --color-accent-hover: #aedb1e;
+  --color-page-deep: #9e3320;
 
   --font-display: var(--font-barlow-condensed), "Barlow Condensed", sans-serif;
   --font-body: var(--font-barlow), "Barlow", sans-serif;
 
-  --radius-thumb: 10px;
-  --radius-button: 12px;
-  --radius-card: 14px;
-  --radius-block: 16px;
-  --radius-hero: 20px;
+  --radius-thumb: 12px;
+  --radius-button: 14px;
+  --radius-card: 20px;
+  --radius-block: 24px;
+  --radius-hero: 28px;
 
   --breakpoint-tablet: 600px;
   --breakpoint-desktop: 1024px;
@@ -80,45 +93,91 @@
 }
 
 @layer base {
-  /* Scène Piste, par défaut : le rouge remplit l'écran, tout le texte y est blanc. */
-  :root {
+  /* Le monde de la rubrique : un fond plein, le texte posé dessus, sans teinte intermédiaire. */
+  .world-couloir {
+    --color-page: var(--color-film-electric);
+    --color-page-deep: var(--color-film-electric-deep);
+  }
+  .world-craie {
+    --color-page: var(--color-hero);
+    --color-page-deep: var(--color-surface-sunk);
+    --color-on-page: var(--color-ink);
+    --color-lane: var(--color-ink);
+    --color-accent: var(--color-ink);
+    --color-on-accent: var(--color-film-lime);
+    --color-accent-hover: var(--color-ink-3);
+  }
+  .world-soleil {
+    --color-page: var(--color-film-sun);
+    --color-page-deep: var(--color-film-sun-deep);
+    --color-on-page: var(--color-ink);
+    --color-lane: var(--color-ink);
+    --color-accent: var(--color-ink);
+    --color-on-accent: var(--color-film-lime);
+    --color-accent-hover: var(--color-ink-3);
+  }
+  .world-nuit {
+    --color-page: var(--color-ink);
+    --color-page-deep: var(--color-ink-2);
+    --color-card: var(--color-ink-2);
+    --color-card-raised: var(--color-ink-3);
+    --color-card-line: var(--color-control-line);
+  }
+  /* Scène Piste, par défaut ; chaque monde reprend les mêmes rôles avec ses couleurs. */
+  :root,
+  .world-piste,
+  .world-couloir,
+  .world-craie,
+  .world-soleil,
+  .world-nuit {
     --ctx-fg: var(--color-on-page);
     --ctx-soft: var(--color-on-page);
     --ctx-link: var(--color-on-page);
     --ctx-alert: var(--color-on-page);
     --ctx-danger: var(--color-on-page);
     --ctx-focus: var(--color-on-page);
-    --ctx-cta: var(--color-action-page);
-    --ctx-on-cta: var(--color-on-action-page);
-    --ctx-cta-hover: var(--color-hero);
+    --ctx-cta: var(--color-accent);
+    --ctx-on-cta: var(--color-on-accent);
+    --ctx-cta-hover: var(--color-accent-hover);
     --ctx-second: transparent;
     --ctx-second-line: var(--color-on-page);
     --ctx-second-width: 2px;
-    --ctx-second-hover: var(--color-brand-strong);
-    --ctx-raise: var(--color-brand-strong);
+    --ctx-second-hover: var(--color-page-deep);
+    --ctx-raise: var(--color-page-deep);
     --ctx-pill-off: transparent;
     --ctx-pill-line: var(--color-on-page);
-    --ctx-select-bg: var(--color-on-page);
-    --ctx-select-fg: var(--color-ink);
+    --ctx-select-bg: var(--color-accent);
+    --ctx-select-fg: var(--color-on-accent);
     --st-done: var(--color-st-done);
     --st-partial: var(--color-st-partial);
     --st-missed: var(--color-st-missed);
     --st-upcoming: var(--color-st-upcoming);
     --st-on: var(--color-on-status);
+    color: var(--ctx-fg);
     color-scheme: dark;
+  }
+  .world-craie,
+  .world-soleil {
+    color-scheme: light;
+  }
+  [class*="world-"] {
+    background: var(--color-page);
   }
   /* Contenu sur carte encre, et scène Encre (mode séance, vidéo). */
   .on-card,
   .scene-dark {
+    --color-accent: var(--color-film-lime);
+    --color-on-accent: var(--color-ink);
+    --color-accent-hover: var(--color-film-lime-deep);
     --ctx-fg: var(--color-fg);
     --ctx-soft: var(--color-fg-muted);
     --ctx-link: var(--color-link);
     --ctx-alert: var(--color-st-missed);
     --ctx-danger: var(--color-st-missed);
     --ctx-focus: var(--color-link);
-    --ctx-cta: var(--color-action-card);
-    --ctx-on-cta: var(--color-on-action-card);
-    --ctx-cta-hover: var(--color-brand-strong);
+    --ctx-cta: var(--color-accent);
+    --ctx-on-cta: var(--color-on-accent);
+    --ctx-cta-hover: var(--color-accent-hover);
     --ctx-second: var(--color-card-raised);
     --ctx-second-line: var(--color-card-line);
     --ctx-second-width: 1px;
@@ -126,22 +185,26 @@
     --ctx-raise: var(--color-card-raised);
     --ctx-pill-off: var(--color-card-raised);
     --ctx-pill-line: var(--color-card-raised);
-    --ctx-select-bg: var(--color-brand);
-    --ctx-select-fg: var(--color-on-action-card);
+    --ctx-select-bg: var(--color-accent);
+    --ctx-select-fg: var(--color-on-accent);
     color: var(--ctx-fg);
+    color-scheme: dark;
     scrollbar-color: var(--color-control-line) transparent;
   }
   /* Carte héros craie : le seul clair de l'app, au plus une par écran. */
   .on-hero {
+    --color-accent: var(--color-ink);
+    --color-on-accent: var(--color-film-lime);
+    --color-accent-hover: var(--color-ink-3);
     --ctx-fg: var(--color-on-hero);
     --ctx-soft: var(--color-muted);
     --ctx-link: var(--color-on-hero-accent);
     --ctx-alert: var(--color-on-hero-accent);
     --ctx-danger: var(--color-on-hero-accent);
     --ctx-focus: var(--color-on-hero);
-    --ctx-cta: var(--color-action-card);
-    --ctx-on-cta: var(--color-on-action-card);
-    --ctx-cta-hover: var(--color-brand-strong);
+    --ctx-cta: var(--color-accent);
+    --ctx-on-cta: var(--color-on-accent);
+    --ctx-cta-hover: var(--color-accent-hover);
     --ctx-second: transparent;
     --ctx-second-line: var(--color-on-hero);
     --ctx-second-width: 2px;
@@ -149,8 +212,8 @@
     --ctx-raise: var(--color-surface-sunk);
     --ctx-pill-off: transparent;
     --ctx-pill-line: var(--color-on-hero);
-    --ctx-select-bg: var(--color-brand);
-    --ctx-select-fg: var(--color-on-action-card);
+    --ctx-select-bg: var(--color-accent);
+    --ctx-select-fg: var(--color-on-accent);
     --st-done: var(--color-status-done);
     --st-partial: var(--color-status-partial);
     --st-missed: var(--color-status-missed);
@@ -160,6 +223,18 @@
     color: var(--ctx-fg);
     color-scheme: light;
   }
+  html:has(.world-couloir) {
+    background: var(--color-film-electric);
+  }
+  html:has(.world-craie) {
+    background: var(--color-hero);
+  }
+  html:has(.world-soleil) {
+    background: var(--color-film-sun);
+  }
+  html:has(.world-nuit) {
+    background: var(--color-ink);
+  }
   html {
     background: var(--color-page);
     color: var(--ctx-fg);
@@ -167,16 +242,16 @@
     font-size: 15px;
     line-height: 22px;
     -webkit-text-size-adjust: 100%;
-    accent-color: var(--color-brand);
+    accent-color: var(--color-film-lime);
     caret-color: currentColor;
-    scrollbar-color: var(--color-on-page) var(--color-brand-strong);
+    scrollbar-color: var(--color-on-page) var(--color-page-deep);
     /* Un champ atteint au clavier ne finit pas sous la barre collante du constructeur. */
     scroll-padding-bottom: 96px;
     scrollbar-width: thin;
   }
   body {
     min-height: 100dvh;
-    background: var(--color-page);
+    background: transparent;
   }
   ::selection {
     background: var(--ctx-select-bg);
@@ -292,6 +367,27 @@
   }
   .check:disabled {
     opacity: 0.5;
+  }
+  /* Le marqueur : un aplat posé derrière un mot, signature des titres. Il se trace une fois, à l'arrivée sur l'écran. */
+  .marked {
+    position: relative;
+    isolation: isolate;
+    display: inline-block;
+    color: var(--color-on-accent);
+  }
+  .marked::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0.06em -0.1em 0.02em;
+    border-radius: 0.1em;
+    background: var(--color-accent);
+    transform-origin: left;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .marked::before {
+      animation: film-swipe-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
   }
   /* La barre d'état reste visible au défilement : l'en-tête se pose dessous. */
   body:has(.offline-bar) .app-header {
@@ -439,5 +535,475 @@
 @media (prefers-reduced-motion: reduce) {
   .validation-check {
     animation: none;
+  }
+}
+
+/* Film du saut (site public, DESIGN.md). Sans défilement piloté, tout s'empile sur le rouge. */
+.film {
+  --film-bg: var(--color-brand);
+  --film-text: var(--color-lane);
+  --film-track: var(--color-brand-strong);
+  --film-line: var(--color-lane);
+  --film-bar: var(--color-lane);
+  --film-post: var(--color-lane);
+  --film-tee: var(--color-bg);
+  --film-shorts: var(--color-ink);
+  --film-shoe: var(--color-film-lime);
+  --film-hair: var(--color-ink);
+  --film-stripe: var(--color-lane);
+  --film-mark: var(--color-film-lime);
+  --film-on-mark: var(--color-ink);
+  --film-note-bg: var(--color-ink);
+  --film-note-fg: var(--color-lane);
+  --film-on-track: var(--color-lane);
+  --film-confetti-0: var(--color-brand);
+  --film-confetti-1: var(--color-film-electric);
+  --film-confetti-2: var(--color-ink);
+  --film-confetti-3: var(--color-film-sun);
+  --film-confetti-4: var(--color-lane);
+  color: var(--film-text);
+  background: var(--film-bg);
+}
+.film[data-world="couloir"] {
+  --film-bg: var(--color-film-electric);
+  --film-track: var(--color-brand);
+}
+.film[data-world="craie"] {
+  --film-bg: var(--color-bg);
+  --film-text: var(--color-ink);
+  --film-track: var(--color-brand);
+  --film-line: var(--color-ink);
+  --film-bar: var(--color-ink);
+  --film-post: var(--color-ink);
+  --film-tee: var(--color-brand);
+}
+.film[data-world="nuit"] {
+  --film-bg: var(--color-ink);
+  --film-track: var(--color-brand);
+  --film-shorts: var(--color-film-electric);
+  --film-hair: var(--color-bg);
+  --film-note-bg: var(--color-bg);
+  --film-note-fg: var(--color-ink);
+}
+.film[data-world="coche"] {
+  --film-bg: var(--color-film-lime);
+  --film-text: var(--color-ink);
+  --film-tee: var(--color-brand);
+  --film-shoe: var(--color-ink);
+  --film-mark: var(--color-ink);
+  --film-on-mark: var(--color-film-lime);
+}
+.film-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding-bottom: 32px;
+  overflow: hidden;
+  background: var(--film-bg);
+}
+.film-scene {
+  order: 1;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+.film-disc {
+  display: none;
+  fill: var(--color-brand);
+}
+.film-chrome,
+.film-beat {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+.film-chrome {
+  order: -2;
+  padding-top: 24px;
+}
+.film-beat {
+  order: 2;
+}
+.film-beat-hero {
+  order: -1;
+}
+.film-hero-title,
+.film-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-wrap: balance;
+}
+.film-hero-title {
+  font-size: clamp(58px, 8.7vw, 134px);
+  line-height: 0.95;
+}
+.film-title {
+  font-size: clamp(46px, 6.2vw, 96px);
+  line-height: 0.98;
+}
+.film-swipe {
+  position: relative;
+  isolation: isolate;
+  color: var(--film-on-mark);
+}
+.film-swipe::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0.04em -0.1em 0;
+  border-radius: 0.1em;
+  background: var(--film-mark);
+}
+.film-lead,
+.film-sub {
+  margin-top: 16px;
+  max-width: 44ch;
+  font-size: 18px;
+  line-height: 26px;
+}
+.film-cta {
+  margin-top: 20px;
+}
+.film-note {
+  width: fit-content;
+  max-width: 38ch;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-card);
+  color: var(--film-note-fg);
+  background: var(--film-note-bg);
+}
+.film-check {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  margin-bottom: 16px;
+  border-radius: 999px;
+  color: var(--color-film-lime);
+  background: var(--color-ink);
+}
+.film-check svg {
+  width: 52px;
+  height: 52px;
+}
+.film-timeline {
+  display: none;
+}
+@keyframes film-word-in {
+  0% {
+    opacity: 0;
+    transform: translateY(0.55em) scale(1.18, 0.6);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-0.09em) scale(0.94, 1.12);
+  }
+  80% {
+    transform: translateY(0.02em) scale(1.02, 0.98);
+  }
+  100% {
+    transform: none;
+  }
+}
+/* Le titre du haut de page reste lisible dès le premier rendu : il rebondit sans jamais être masqué. */
+@keyframes film-hero-word-in {
+  0% {
+    transform: translateY(0.3em) scale(1.08, 0.82);
+  }
+  55% {
+    transform: translateY(-0.06em) scale(0.97, 1.06);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes film-swipe-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes film-pop-in {
+  0% {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.14) rotate(-2deg);
+  }
+  82% {
+    transform: scale(0.97) rotate(1deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes film-blink {
+  0%,
+  94%,
+  100% {
+    transform: scaleY(1);
+  }
+  97% {
+    transform: scaleY(0.1);
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .film {
+    height: 680svh;
+  }
+  .film-stage {
+    position: sticky;
+    top: 0;
+    display: block;
+    height: 100svh;
+    padding: 0;
+  }
+  .film-scene {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  .film[data-world="nuit"] .film-disc {
+    display: inline;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: film-pop-in 420ms both;
+  }
+  .film-eyes {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: film-blink 4.4s infinite;
+  }
+  .film-chrome {
+    position: absolute;
+    z-index: 3;
+    inset: 0 0 auto;
+  }
+  .film[data-beat="1"] .film-chrome,
+  .film[data-beat="2"] .film-chrome,
+  .film[data-beat="3"] .film-chrome,
+  .film[data-beat="4"] .film-chrome {
+    visibility: hidden;
+  }
+  .film-beat {
+    position: absolute;
+    z-index: 2;
+    inset: 88px 0 auto;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .film-beat:not(.is-active) .film-cta {
+    visibility: hidden;
+  }
+  .film-beat.is-active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .film-beat.is-active .film-word {
+    display: inline-block;
+    animation: film-word-in 460ms calc(var(--i) * 34ms) both;
+  }
+  .film-beat-hero.is-active .film-word {
+    animation-name: film-hero-word-in;
+  }
+  .film-beat.is-active .film-swipe::before {
+    transform-origin: left;
+    animation: film-swipe-in 240ms calc(var(--i) * 34ms + 200ms) both;
+  }
+  .film-beat.is-active .film-note,
+  .film-beat.is-active .film-check {
+    animation: film-pop-in 420ms 280ms both;
+  }
+  .film-timeline {
+    position: absolute;
+    z-index: 2;
+    inset: auto 0 16px;
+    display: block;
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: 16px;
+    color: var(--film-on-track);
+  }
+  .film[data-world="coche"] .film-timeline {
+    color: var(--color-ink);
+  }
+  .film[data-beat="0"] .film-timeline,
+  .film[data-beat="5"] .film-timeline {
+    visibility: hidden;
+  }
+  .film-track {
+    position: relative;
+    display: flex;
+    gap: 3px;
+  }
+  .film-phase {
+    flex-basis: 0;
+    min-width: 0;
+    padding: 4px 8px;
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 18px;
+    white-space: nowrap;
+    color: var(--color-lane);
+    background: var(--color-ink);
+  }
+  .film-head {
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    width: 4px;
+    margin-left: -2px;
+    border-radius: 2px;
+    background: var(--color-lane);
+    box-shadow: 0 0 0 2px var(--color-ink);
+  }
+  .film-frame {
+    display: block;
+    margin-top: 8px;
+    font-size: 15px;
+  }
+  /* Sur téléphone, seule la phase en cours est nommée : les segments étroits couperaient leur libellé. */
+  @media (max-width: 1023px) {
+    .film-phase {
+      height: 12px;
+      padding: 0;
+      font-size: 0;
+    }
+  }
+}
+@media (min-width: 1024px) {
+  .film-chrome,
+  .film-beat {
+    padding-inline: 24px;
+  }
+  .film-title {
+    max-width: 13ch;
+  }
+  .film-lead,
+  .film-sub {
+    font-size: 20px;
+    line-height: 28px;
+  }
+}
+
+/* La mascotte prend les couleurs qui ressortent sur le fond où elle est posée. */
+.jumper {
+  --j-tee: var(--color-bg);
+  --j-shorts: var(--color-ink);
+  --j-shoe: var(--color-film-lime);
+  --j-hair: var(--color-ink);
+}
+.on-card .jumper,
+.scene-dark .jumper,
+.world-nuit .jumper {
+  --j-shorts: var(--color-film-electric);
+  --j-hair: var(--color-bg);
+}
+.world-craie .jumper:not(.on-card *),
+.world-soleil .jumper:not(.on-card *) {
+  --j-tee: var(--color-brand);
+  --j-shoe: var(--color-ink);
+}
+/* Séance validée : le monde passe au citron une seconde, la coche, la mascotte, les confettis. */
+.victory {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--color-film-lime);
+  animation: victory-world 1150ms both;
+}
+.victory-check {
+  display: grid;
+  place-items: center;
+  width: min(34vmin, 180px);
+  height: min(34vmin, 180px);
+  border-radius: 999px;
+  color: var(--color-film-lime);
+  background: var(--color-ink);
+  animation: film-pop-in 420ms 60ms both;
+}
+.victory-check svg {
+  width: 62%;
+  height: 62%;
+}
+.victory-jumper {
+  --j-tee: var(--color-brand);
+  --j-shorts: var(--color-ink);
+  --j-shoe: var(--color-ink);
+  position: absolute;
+  bottom: -2vmin;
+  width: min(46vmin, 280px);
+  animation: victory-jump 700ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.victory-piece {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  animation: victory-burst 950ms 80ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.victory-piece-0 {
+  border-radius: 999px;
+}
+.victory-piece-1 {
+  height: 7px;
+  border-radius: 2px;
+}
+.victory-piece-2 {
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.victory-color-0 {
+  background: var(--color-brand);
+}
+.victory-color-1 {
+  background: var(--color-film-electric);
+}
+.victory-color-2 {
+  background: var(--color-ink);
+}
+.victory-color-3 {
+  background: var(--color-surface);
+}
+@keyframes victory-world {
+  0% {
+    clip-path: circle(0 at 50% 62%);
+  }
+  22%,
+  84% {
+    clip-path: circle(150vmax at 50% 62%);
+    opacity: 1;
+  }
+  100% {
+    clip-path: circle(150vmax at 50% 62%);
+    opacity: 0;
+  }
+}
+@keyframes victory-jump {
+  from {
+    transform: translateY(60%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes victory-burst {
+  from {
+    transform: translate(0, 0) rotate(0);
+  }
+  to {
+    transform: translate(var(--x), var(--y)) rotate(420deg);
   }
 }

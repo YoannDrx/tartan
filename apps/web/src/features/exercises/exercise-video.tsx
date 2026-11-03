@@ -24,7 +24,7 @@ const InstagramPlayer = ({ code, title }: { code: string; title: string }) => {
       <button
         type="button"
         onClick={() => setPlaying(true)}
-        className="inline-flex min-h-12 items-center gap-2 rounded-full bg-brand px-5 font-semibold text-white hover:bg-brand-strong"
+        className="inline-flex min-h-12 items-center gap-2 rounded-full bg-accent px-5 font-semibold text-on-accent hover:bg-accent-hover"
       >
         <Play aria-hidden className="size-5" />
         {m.exercises.instagramPlay}

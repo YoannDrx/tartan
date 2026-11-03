@@ -83,6 +83,7 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
 
   return (
     <StackScreen
+      world="craie"
       title={exercise ? m.mobile.exerciseForm.editTitle : m.exercises.new}
       footer={
         <>
@@ -210,7 +211,7 @@ export default function ExerciseEdit() {
   if (id === "new") return <ExerciseForm orgId={orgId} exercise={null} />;
   if (exercises.isPending) {
     return (
-      <StackScreen title={m.mobile.exerciseForm.editTitle}>
+      <StackScreen world="craie" title={m.mobile.exerciseForm.editTitle}>
         <LoadingState />
       </StackScreen>
     );
@@ -218,7 +219,7 @@ export default function ExerciseEdit() {
   const exercise = exercises.data?.find((e) => e.id === id);
   if (!exercise) {
     return (
-      <StackScreen title={m.mobile.exerciseForm.editTitle}>
+      <StackScreen world="craie" title={m.mobile.exerciseForm.editTitle}>
         <ErrorState message={m.common.notFound} onRetry={() => void exercises.refetch()} />
       </StackScreen>
     );

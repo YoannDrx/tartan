@@ -19,12 +19,12 @@ import { persister, queryClient, shouldPersistQuery, WEEK_MS } from "../src/lib/
 import { useSession } from "../src/lib/session-store";
 import { useOpQueue } from "../src/lib/sync/op-queue";
 import { flushUploads } from "../src/lib/upload/upload-queue";
-import { scene } from "../src/ui/theme";
+import { palettes, scene, type WorldName } from "../src/ui/theme";
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 // Fond natif rouge : aucun flash blanc au démarrage ni entre deux écrans.
 void SystemUI.setBackgroundColorAsync(scene.page).catch(() => undefined);
-// L'app n'a que des scènes sombres : la barre d'état reste en contenu clair.
+// Avant le premier écran ; chaque écran règle ensuite la barre d'état selon son fond (useSceneStatusBar).
 setStatusBarStyle("light");
 
 // Une fois connecté : la file du compte se recharge et le jeton de notification se rafraîchit.
@@ -57,6 +57,8 @@ const AuthGuard = () => {
   }, [status, open, pathname, router]);
   return null;
 };
+
+const worldContent = (world: WorldName) => ({ contentStyle: { backgroundColor: palettes[world].bg } });
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -101,7 +103,15 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <SessionEffects />
         <AuthGuard />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: scene.page } }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: scene.page },
+            // La transition d'une rubrique à l'autre reste franche : 200 ms, sans en-tête animé.
+            animation: "simple_push",
+            animationDuration: 200,
+          }}
+        >
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(athlete)" options={{ animation: "none" }} />
@@ -113,12 +123,12 @@ export default function RootLayout() {
           />
           <Stack.Screen name="video/[id]" options={{ contentStyle: { backgroundColor: scene.card } }} />
           <Stack.Screen name="capture" options={{ contentStyle: { backgroundColor: scene.card } }} />
-          <Stack.Screen name="coach-session/[id]" />
-          <Stack.Screen name="settings" />
+          <Stack.Screen name="coach-session/[id]" options={worldContent("couloir")} />
+          <Stack.Screen name="settings" options={worldContent("craie")} />
           <Stack.Screen name="invite" />
-          <Stack.Screen name="athletes/index" />
-          <Stack.Screen name="athletes/[id]" />
-          <Stack.Screen name="exercise/[id]" />
+          <Stack.Screen name="athletes/index" options={worldContent("soleil")} />
+          <Stack.Screen name="athletes/[id]" options={worldContent("soleil")} />
+          <Stack.Screen name="exercise/[id]" options={worldContent("craie")} />
         </Stack>
       </SafeAreaProvider>
     </PersistQueryClientProvider>

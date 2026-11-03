@@ -53,7 +53,7 @@ export const AttendanceQuestion = ({ sessionId, current: initial }: { sessionId:
           className={cn(
             "min-h-11 rounded-full px-4 font-medium",
             current === status
-              ? "bg-white font-semibold text-ink"
+              ? "bg-accent font-semibold text-on-accent"
               : "border border-pill-line bg-pill-off text-inherit hover:bg-raise",
           )}
         >

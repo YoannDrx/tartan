@@ -1,10 +1,13 @@
 import { tokens } from "@tartan/design-tokens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { radius, scene, space, textStyles } from "./theme";
+import { palettes, radius, scene, space, textStyles, type WorldName } from "./theme";
 
 const BAR_HEIGHT = 64;
 
-// Barre d'onglets encre : pictogramme + libellé 11 px, actif blanc sur une pastille rouge piste.
+// Le fond natif d'un onglet prend la couleur de son monde : le changement de rubrique est franc, sans éclair.
+export const worldScene = (world: WorldName) => ({ sceneStyle: { backgroundColor: palettes[world].bg } });
+
+// Barre d'onglets encre : pictogramme + libellé 11 px, actif encre sur une pastille citron, dans tous les mondes.
 export const useTabBarOptions = () => {
   const insets = useSafeAreaInsets();
   return {

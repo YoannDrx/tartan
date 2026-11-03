@@ -1,103 +1,16 @@
 import { tokens } from "@tartan/design-tokens";
 import { createContext, useContext, type ReactNode } from "react";
 import { useWindowDimensions, type TextStyle } from "react-native";
+import { palettes, type Palette, type SceneName } from "./palettes";
 
 const c = tokens.color;
 const s = tokens.scene;
 
-// Quatre surfaces (DESIGN.md, « trois scènes ») :
-// piste : le rouge plein écran, tout y est blanc ; card : dans une carte encre ou une feuille ;
-// encre : mode séance, capture et vidéo ; hero : la seule carte craie, au plus une par écran.
-export type SceneName = "piste" | "card" | "encre" | "hero";
-
-export type Palette = {
-  name: SceneName;
-  dark: boolean;
-  onRed: boolean;
-  bg: string;
-  surface: string;
-  surfaceAlt: string;
-  text: string;
-  textMuted: string;
-  border: string;
-  controlLine: string;
-  accent: string;
-  accentText: string;
-  link: string;
-  focus: string;
-  danger: string;
-  scrim: string;
-  ripple: string;
-  status: { done: string; partial: string; missed: string; upcoming: string };
-  onStatus: string;
-};
-
-const inkBase = {
-  dark: true,
-  onRed: false,
-  bg: s.card,
-  surface: s.cardRaised,
-  surfaceAlt: s.cardLine,
-  text: s.text,
-  textMuted: s.textMuted,
-  border: s.cardLine,
-  controlLine: s.controlLine,
-  accent: s.actionOnCard,
-  accentText: s.onActionOnCard,
-  link: s.link,
-  focus: s.link,
-  danger: s.status.missed,
-  scrim: `${s.card}B3`,
-  ripple: s.cardLine,
-  status: s.status,
-  onStatus: s.onStatus,
-} as const;
-
-const palettes: Record<SceneName, Palette> = {
-  piste: {
-    ...inkBase,
-    name: "piste",
-    onRed: true,
-    bg: s.page,
-    surface: s.card,
-    surfaceAlt: s.cardRaised,
-    // Aucun texte atténué sur le rouge : seul le blanc y passe 4,5:1.
-    text: s.onPage,
-    textMuted: s.onPage,
-    border: s.lane,
-    controlLine: s.lane,
-    accent: s.actionOnPage,
-    accentText: s.onActionOnPage,
-    link: s.onPage,
-    focus: s.onPage,
-    danger: s.onPage,
-    ripple: c.ink3,
-  },
-  card: { ...inkBase, name: "card" },
-  encre: { ...inkBase, name: "encre" },
-  hero: {
-    ...inkBase,
-    name: "hero",
-    dark: false,
-    bg: s.hero,
-    surface: c.surface,
-    surfaceAlt: c.surfaceSunk,
-    text: s.onHero,
-    textMuted: c.muted,
-    border: c.border,
-    controlLine: c.muted,
-    link: s.onHeroAccent,
-    focus: s.onHero,
-    danger: s.onHeroAccent,
-    ripple: c.surfaceSunk,
-    status: c.status,
-    onStatus: c.white,
-  },
-};
+export { palettes, type Palette, type SceneName, type WorldName } from "./palettes";
 
 const SceneContext = createContext<Palette>(palettes.piste);
 
-// Rouge pour naviguer, encre pour le mode séance et la vidéo : le choix suit la scène.
+// Un monde par rubrique, l'encre pour le mode séance et la vidéo : le choix suit la scène.
 export const Scene = ({
   scene,
   dark = false,

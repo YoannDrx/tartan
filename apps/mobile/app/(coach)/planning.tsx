@@ -37,7 +37,7 @@ export default function Planning() {
         detail,
         tags: (
           <>
-            <Tag label={m.sessionType[s.type]} />
+            <Tag label={m.sessionType[s.type]} tone={s.type === "jump" ? "jump" : "neutral"} />
             {s.hasAutonomous ? <Tag label={m.builder.versionAutonomous} /> : null}
             {s.publishedAt ? null : <Tag label={m.mobile.agenda.draft} tone="brand" />}
           </>
@@ -50,7 +50,12 @@ export default function Planning() {
   }, [calendar.data, router]);
 
   return (
-    <TabScreen title={m.nav.calendrier} refreshing={calendar.isRefetching} onRefresh={() => void calendar.refetch()}>
+    <TabScreen
+      world="couloir"
+      title={m.nav.calendrier}
+      refreshing={calendar.isRefetching}
+      onRefresh={() => void calendar.refetch()}
+    >
       <WeekNav {...nav} />
       {groups.data && groups.data.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
@@ -64,7 +69,7 @@ export default function Planning() {
       {calendar.isError && !calendar.data ? (
         <ErrorState error={calendar.error} onRetry={() => void calendar.refetch()} />
       ) : null}
-      {calendar.data && entries.length === 0 ? <EmptyState body={m.mobile.agenda.empty} /> : null}
+      {calendar.data && entries.length === 0 ? <EmptyState body={m.mobile.agenda.empty} pose="run" /> : null}
       {entries.length > 0 ? <AgendaList entries={entries} /> : null}
       <T variant="caption" tone="muted">
         {m.mobile.agenda.desktopHint}

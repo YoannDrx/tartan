@@ -12,13 +12,15 @@ import { useMe } from "../../src/lib/queries";
 import { queryClient } from "../../src/lib/query-client";
 import { useSession } from "../../src/lib/session-store";
 import { useSpaceStore } from "../../src/lib/space-store";
-import { Button, Card, Chip, Field, LaneLine, T } from "../../src/ui/primitives";
+import { Button, Card, Chip, Field, LaneLine, ScreenTitle, T } from "../../src/ui/primitives";
+import { useSceneStatusBar } from "../../src/ui/screen";
 import { LoadingState } from "../../src/ui/states";
 import { scene, space, usePagePad } from "../../src/ui/theme";
 
 type Errors = Partial<Record<"firstName" | "lastName" | "orgName" | "groupName", string>>;
 
 export default function Onboarding() {
+  useSceneStatusBar();
   const status = useSession((s) => s.status);
   const signOut = useSession((s) => s.signOut);
   const me = useMe(status === "signed-in");
@@ -99,9 +101,7 @@ export default function Onboarding() {
       >
         {step === "profile" ? (
           <>
-            <T variant="screen" heading maxFontSizeMultiplier={1.3}>
-              {m.onboarding.profileTitle}
-            </T>
+            <ScreenTitle title={m.onboarding.profileTitle} />
             <LaneLine />
             <Card>
               <Field
@@ -140,9 +140,7 @@ export default function Onboarding() {
           </>
         ) : (
           <>
-            <T variant="screen" heading maxFontSizeMultiplier={1.3}>
-              {m.onboarding.orgTitle}
-            </T>
+            <ScreenTitle title={m.onboarding.orgTitle} />
             <LaneLine />
             <Card>
               <View style={{ gap: space.sm }}>

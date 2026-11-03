@@ -89,7 +89,7 @@ const Timeline = ({
                   flex: Math.max(1, s.endMs - s.startMs),
                   borderRadius: 3,
                   backgroundColor:
-                    current?.phase === s.phase ? color.brand : i % 2 === 0 ? color.ink3 : scene.textMuted,
+                    current?.phase === s.phase ? scene.actionOnCard : i % 2 === 0 ? color.ink3 : scene.textMuted,
                 }}
               />
             ))
@@ -107,7 +107,7 @@ const Timeline = ({
               height: 8,
               marginLeft: -4,
               borderRadius: 4,
-              backgroundColor: color.brandOnInk,
+              backgroundColor: scene.actionOnCard,
             }}
           />
         ))}
@@ -389,14 +389,18 @@ const Player = ({
                     height: 24,
                     paddingHorizontal: space.sm,
                     borderRadius: radius.button,
-                    backgroundColor: color.brandOnInk,
+                    backgroundColor: scene.actionOnCard,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
                   <T
                     variant="caption"
-                    style={{ color: color.ink, fontFamily: tokens.font.bodyStrong, fontVariant: ["tabular-nums"] }}
+                    style={{
+                      color: scene.onActionOnCard,
+                      fontFamily: tokens.font.bodyStrong,
+                      fontVariant: ["tabular-nums"],
+                    }}
                     maxFontSizeMultiplier={1.1}
                   >
                     {formatTimecode(a.tMs)}

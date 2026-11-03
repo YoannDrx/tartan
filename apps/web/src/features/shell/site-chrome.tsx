@@ -18,7 +18,7 @@ export const SiteHeader = () => (
       {/* La connexion vit sur app.tartan.coach : une vraie navigation, car la CSP bloque le préchargement vers ce domaine. */}
       <a
         href="/connexion"
-        className="inline-flex min-h-11 items-center rounded-full border-2 border-on-page px-5 font-semibold no-underline hover:bg-brand-strong"
+        className="inline-flex min-h-11 items-center rounded-full border-2 border-on-page px-5 font-semibold no-underline hover:bg-raise"
       >
         {m.landing.signIn}
       </a>

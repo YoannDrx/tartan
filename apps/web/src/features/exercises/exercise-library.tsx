@@ -1,7 +1,13 @@
 "use client";
 
 import type { ExerciseMediaSnapshot, ExerciseSummary, Prescription } from "@tartan/contracts";
-import { formatPrescription, instagramUrl, parseInstagramUrl, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
+import {
+  formatPrescription,
+  instagramUrl,
+  parseInstagramUrl,
+  parseYouTubeUrl,
+  validateClipRange,
+} from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Pencil, Play, Plus, Search, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
@@ -411,7 +417,7 @@ export const ExerciseLibrary = ({
                                 <span
                                   aria-hidden
                                   title={m.exercises.hasVideo}
-                                  className="flex size-11 shrink-0 items-center justify-center rounded-thumb bg-brand text-white"
+                                  className="flex size-11 shrink-0 items-center justify-center rounded-thumb bg-accent text-on-accent"
                                 >
                                   <Play className="size-4" />
                                 </span>

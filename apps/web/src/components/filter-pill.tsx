@@ -6,7 +6,7 @@ export const pillClass = (active: boolean) =>
   cn(
     "inline-flex min-h-9 items-center whitespace-nowrap rounded-full px-3.5 text-[14px] no-underline before:absolute before:inset-x-0 before:-inset-y-1 relative",
     active
-      ? "bg-white font-semibold text-ink"
+      ? "bg-accent font-semibold text-on-accent"
       : "border border-pill-line bg-pill-off font-medium text-inherit hover:bg-raise",
   );
 

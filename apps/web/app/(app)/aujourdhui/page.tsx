@@ -39,7 +39,7 @@ const WeekDots = ({ week, today }: { week: { date: string; status: string }[]; t
               <StatusIcon status={d.status} size={14} />
             ) : null}
             {d.status === "today" ? (
-              <span role="img" aria-label={label.today} className="size-2.5 rounded-full bg-brand" />
+              <span role="img" aria-label={label.today} className="size-2.5 rounded-full bg-accent" />
             ) : null}
             {d.status === "planned" ? <StatusIcon status="upcoming" size={14} /> : null}
           </span>
@@ -122,7 +122,7 @@ const Hero = ({
               >
                 <span
                   aria-hidden
-                  className="flex size-11 shrink-0 items-center justify-center rounded-thumb bg-brand text-white"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-thumb bg-accent text-on-accent"
                 >
                   <Play className="size-4 fill-current" />
                 </span>

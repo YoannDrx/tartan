@@ -13,7 +13,7 @@ const t = m.contact;
 export default function ContactPage() {
   const email = env().EMAIL_CONTACT;
   return (
-    <PublicPage title={t.title} lead={t.lead} site>
+    <PublicPage title={t.title} lead={t.lead} site world="soleil">
       <div className="on-card rounded-card bg-card p-5">
         <Button asChild size="lg" className="w-full">
           <a href={`mailto:${email}`}>

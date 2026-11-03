@@ -167,14 +167,14 @@ export default function CoachSession() {
   if (me.data && !orgId) return <Redirect href="/" />;
   if (detail.isPending) {
     return (
-      <StackScreen>
+      <StackScreen world="couloir">
         <LoadingState />
       </StackScreen>
     );
   }
   if (!detail.data) {
     return (
-      <StackScreen>
+      <StackScreen world="couloir">
         <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
       </StackScreen>
     );
@@ -187,6 +187,7 @@ export default function CoachSession() {
 
   return (
     <StackScreen
+      world="couloir"
       title={session.title}
       subtitle={subtitle}
       footer={
@@ -207,7 +208,7 @@ export default function CoachSession() {
       }
     >
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
-        <Tag label={m.sessionType[session.type]} />
+        <Tag label={m.sessionType[session.type]} tone={session.type === "jump" ? "jump" : "neutral"} />
         {session.hasAutonomous ? <Tag label={m.builder.versionAutonomous} /> : null}
         {session.publishedAt ? null : <Tag label={m.mobile.coach.draft} tone="brand" />}
       </View>

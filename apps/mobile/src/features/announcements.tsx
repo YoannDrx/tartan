@@ -80,7 +80,7 @@ const PublishSheet = ({ orgId, onClose }: { orgId: string; onClose: () => void }
           value={pinned}
           onValueChange={setPinned}
           trackColor={{ true: scene.actionOnCard, false: scene.controlLine }}
-          thumbColor={scene.text}
+          thumbColor={pinned ? scene.onActionOnCard : scene.text}
           accessibilityLabel={m.announcements.pin}
         />
       </View>
@@ -100,6 +100,7 @@ export const AnnouncementsScreen = ({ canPublish }: { canPublish: boolean }) => 
   const [reporting, setReporting] = useState<string | null>(null);
   return (
     <TabScreen
+      world="craie"
       title={m.announcements.title}
       refreshing={announcements.isRefetching}
       onRefresh={() => void announcements.refetch()}

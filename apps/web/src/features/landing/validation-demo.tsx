@@ -5,6 +5,7 @@ import { m } from "@tartan/i18n";
 import { useEffect, useRef, useState } from "react";
 import { StatusIcon } from "@/components/status-cell";
 import { Button } from "@/components/ui/button";
+import { Victory } from "@/components/victory";
 import { cn } from "@/lib/cn";
 
 const t = m.landing.demo;
@@ -23,6 +24,7 @@ export const ValidationDemo = () => {
   const root = useRef<HTMLDivElement>(null);
   const startedAt = useRef<number | null>(null);
   const [elapsed, setElapsed] = useState<number | null>(null);
+  const [victory, setVictory] = useState(0);
 
   useEffect(() => {
     const element = root.current;
@@ -37,7 +39,10 @@ export const ValidationDemo = () => {
     return () => observer.disconnect();
   }, []);
 
-  const validate = () => setElapsed(performance.now() - (startedAt.current ?? performance.now()));
+  const validate = () => {
+    setElapsed(performance.now() - (startedAt.current ?? performance.now()));
+    setVictory((count) => count + 1);
+  };
   const restart = () => {
     startedAt.current = performance.now();
     setElapsed(null);
@@ -51,6 +56,7 @@ export const ValidationDemo = () => {
       aria-label={t.label}
       className="grid gap-4 desktop:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] desktop:gap-8"
     >
+      <Victory play={victory} />
       <div className="on-hero flex flex-col rounded-hero p-5 desktop:p-6">
         <p className="t-caption text-soft">
           {t.today}. {t.example}.

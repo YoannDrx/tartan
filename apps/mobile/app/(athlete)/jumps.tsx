@@ -15,7 +15,12 @@ export default function Jumps() {
   const router = useRouter();
   const consentOff = today.data && !today.data.videoConsent;
   return (
-    <TabScreen title={m.nav.mesSauts} refreshing={videos.isRefetching} onRefresh={() => void videos.refetch()}>
+    <TabScreen
+      world="nuit"
+      title={m.nav.mesSauts}
+      refreshing={videos.isRefetching}
+      onRefresh={() => void videos.refetch()}
+    >
       {consentOff && !today.data?.parentalConsentPending ? (
         <T variant="small" tone="muted">
           {m.video.consentMissingAthlete}
@@ -26,7 +31,7 @@ export default function Jumps() {
       {videos.isError && !videos.data ? (
         <ErrorState error={videos.error} onRetry={() => void videos.refetch()} />
       ) : null}
-      {videos.data?.length === 0 ? <EmptyState body={m.video.emptyAthlete} /> : null}
+      {videos.data?.length === 0 ? <EmptyState body={m.video.emptyAthlete} pose="apex" /> : null}
       {videos.data && videos.data.length > 0 ? (
         <ListSurface>
           {videos.data.map((video, i) => (

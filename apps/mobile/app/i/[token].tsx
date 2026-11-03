@@ -18,7 +18,8 @@ import { useMe } from "../../src/lib/queries";
 import { queryClient } from "../../src/lib/query-client";
 import { useSession } from "../../src/lib/session-store";
 import { useSpaceStore } from "../../src/lib/space-store";
-import { Button, Card, Field, LaneLine, T } from "../../src/ui/primitives";
+import { Button, Card, Field, LaneLine, ScreenTitle, T } from "../../src/ui/primitives";
+import { useSceneStatusBar } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { radius, scene, space, usePagePad, usePalette } from "../../src/ui/theme";
 
@@ -75,7 +76,7 @@ const ConsentRow = ({
         value={value}
         onValueChange={onChange}
         trackColor={{ true: scene.actionOnCard, false: scene.controlLine }}
-        thumbColor={scene.text}
+        thumbColor={value ? scene.onActionOnCard : scene.text}
         accessibilityElementsHidden
         importantForAccessibility="no"
       />
@@ -84,6 +85,7 @@ const ConsentRow = ({
 };
 
 const Shell = ({ children }: { children: React.ReactNode }) => {
+  useSceneStatusBar();
   const insets = useSafeAreaInsets();
   const pad = usePagePad();
   return (
@@ -113,9 +115,7 @@ const PushStep = ({ coach, onDone }: { coach: boolean; onDone: () => void }) => 
   const [busy, setBusy] = useState(false);
   return (
     <Shell>
-      <T variant="screen" heading maxFontSizeMultiplier={1.3}>
-        {coach ? m.mobile.push.coachTitle : m.push.permissionTitle}
-      </T>
+      <ScreenTitle title={coach ? m.mobile.push.coachTitle : m.push.permissionTitle} />
       <T>{coach ? m.mobile.push.coachBody : m.push.permissionBody}</T>
       {denied ? (
         <T variant="small" accessibilityLiveRegion="polite">
@@ -269,9 +269,7 @@ export default function InvitationScreen() {
   return (
     <Shell>
       <View style={{ gap: space.sm }}>
-        <T variant="display" heading testID="invite-title" maxFontSizeMultiplier={1.3}>
-          {title}
-        </T>
+        <ScreenTitle title={title} variant="display" testID="invite-title" />
         <T variant="small">{invitation.organizationName}</T>
       </View>
       <LaneLine />

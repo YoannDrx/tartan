@@ -4,6 +4,7 @@ import { m } from "@tartan/i18n";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { BarSheet } from "@/components/bar-sheet";
+import { Jumper } from "@/components/jumper";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
@@ -28,6 +29,8 @@ const trail = Array.from({ length: Math.ceil(FRAMES / 8) }, (_, i) => {
   return `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
 }).join(" ");
 
+const POSE = { approach: "run", takeoff: "cheer", flight: "apex", landing: "landing" } as const;
+
 const BARS = [
   { heightCm: 180, notation: "O" },
   { heightCm: 185, notation: "XO" },
@@ -45,10 +48,10 @@ export const JumpScrubber = () => {
       <svg viewBox="0 50 640 200" aria-hidden className="w-full">
         <rect x="470" y="205" width="150" height="30" rx="4" fill="var(--color-card-raised)" />
         <line x1="420" y1="88" x2="420" y2="236" stroke="var(--color-control-line)" strokeWidth="3" />
-        <line x1="396" y1="112" x2="444" y2="112" stroke="var(--color-brand)" strokeWidth="5" strokeLinecap="round" />
+        <line x1="396" y1="112" x2="444" y2="112" stroke="var(--color-fg)" strokeWidth="5" strokeLinecap="round" />
         <line x1="0" y1="236" x2="640" y2="236" stroke="var(--color-card-line)" strokeWidth="3" />
         <path d={trail} fill="none" stroke="var(--color-control-line)" strokeWidth="2" strokeDasharray="2 6" />
-        <circle cx={point.x} cy={point.y} r="9" fill="var(--color-fg)" />
+        <Jumper pose={POSE[phase.key]} x={point.x - 36} y={point.y - 40} width={72} height={72} />
       </svg>
 
       <div className="mt-2 flex items-center gap-1">
@@ -85,7 +88,7 @@ export const JumpScrubber = () => {
               onClick={() => setFrame(p.from + Math.floor((p.to - p.from) / 2))}
               className={cn(
                 "t-caption min-h-11 w-full truncate rounded-[4px] px-1",
-                p.key === phase.key ? "bg-brand font-semibold text-white" : "bg-card-raised hover:bg-card-line",
+                p.key === phase.key ? "bg-accent font-semibold text-on-accent" : "bg-card-raised hover:bg-card-line",
               )}
             >
               {t.phases[p.key]}

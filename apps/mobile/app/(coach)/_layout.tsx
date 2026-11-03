@@ -4,7 +4,7 @@ import { Redirect, Tabs } from "expo-router";
 import { useActiveSpace } from "../../src/lib/queries";
 import { useSession } from "../../src/lib/session-store";
 import { BarChart, Calendar, Library, Megaphone, Video } from "../../src/ui/icons";
-import { useTabBarOptions } from "../../src/ui/tabs";
+import { useTabBarOptions, worldScene } from "../../src/ui/tabs";
 
 export default function CoachLayout() {
   const status = useSession((s) => s.status);
@@ -16,23 +16,43 @@ export default function CoachLayout() {
     <Tabs screenOptions={options}>
       <Tabs.Screen
         name="tracking"
-        options={{ title: m.nav.suivi, tabBarIcon: ({ color, size }) => <BarChart color={color} size={size} /> }}
+        options={{
+          ...worldScene("couloir"),
+          title: m.nav.suivi,
+          tabBarIcon: ({ color, size }) => <BarChart color={color} size={size} />,
+        }}
       />
       <Tabs.Screen
         name="planning"
-        options={{ title: m.nav.calendrier, tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} /> }}
+        options={{
+          ...worldScene("couloir"),
+          title: m.nav.calendrier,
+          tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
+        }}
       />
       <Tabs.Screen
         name="exercises"
-        options={{ title: m.nav.exercices, tabBarIcon: ({ color, size }) => <Library color={color} size={size} /> }}
+        options={{
+          ...worldScene("craie"),
+          title: m.nav.exercices,
+          tabBarIcon: ({ color, size }) => <Library color={color} size={size} />,
+        }}
       />
       <Tabs.Screen
         name="videos"
-        options={{ title: m.nav.videos, tabBarIcon: ({ color, size }) => <Video color={color} size={size} /> }}
+        options={{
+          ...worldScene("nuit"),
+          title: m.nav.videos,
+          tabBarIcon: ({ color, size }) => <Video color={color} size={size} />,
+        }}
       />
       <Tabs.Screen
         name="announcements"
-        options={{ title: m.nav.annonces, tabBarIcon: ({ color, size }) => <Megaphone color={color} size={size} /> }}
+        options={{
+          ...worldScene("craie"),
+          title: m.nav.annonces,
+          tabBarIcon: ({ color, size }) => <Megaphone color={color} size={size} />,
+        }}
       />
     </Tabs>
   );

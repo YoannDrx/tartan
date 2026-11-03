@@ -7,7 +7,7 @@ import { progressPct } from "../lib/upload/chunks";
 import { BarGlyph } from "../ui/glyphs";
 import { ChevronRight, CloudUpload } from "../ui/icons";
 import { Button, Tag, T } from "../ui/primitives";
-import { color, radius, scene, space, usePalette } from "../ui/theme";
+import { radius, scene, space, usePalette } from "../ui/theme";
 
 export const resultLabel = (result: VideoSummary["result"]): string | null => {
   if (result === "O") return m.video.cleared;
@@ -86,9 +86,9 @@ export const VideoRow = ({
           {detail}
         </T>
         <View style={{ flexDirection: "row", gap: space.xs, flexWrap: "wrap", marginTop: 2 }}>
-          {status ? <Tag label={status} tone={video.status === "error" ? "brand" : "neutral"} /> : null}
+          {status ? <Tag label={status} tone={video.status === "error" ? "alert" : "neutral"} /> : null}
           {video.fps ? (
-            <Tag label={m.mobile.video.fps(video.fps)} tone={isHighFrameRate(video.fps) ? "neutral" : "brand"} />
+            <Tag label={m.mobile.video.fps(video.fps)} tone={isHighFrameRate(video.fps) ? "neutral" : "warning"} />
           ) : null}
         </View>
       </View>
@@ -174,13 +174,13 @@ export const BarSheetRow = ({
               alignItems: "center",
               paddingVertical: space.xs + 2,
               borderRadius: radius.thumb,
-              backgroundColor: current ? color.brand : p.surface,
+              backgroundColor: current ? p.accent : p.surface,
             }}
           >
-            <T variant="figure" tone={current ? "white" : "default"} style={{ fontSize: 17, lineHeight: 20 }}>
+            <T variant="figure" style={[{ fontSize: 17, lineHeight: 20 }, current ? { color: p.accentText } : null]}>
               {r.label}
             </T>
-            <T variant="caption" tone={current ? "white" : "muted"}>
+            <T variant="caption" tone="muted" style={current ? { color: p.accentText } : null}>
               {r.notation}
             </T>
           </View>
