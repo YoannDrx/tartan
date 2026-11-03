@@ -1012,12 +1012,39 @@ model Notification {
   readAt    DateTime? @map("read_at")
   deliverAfter DateTime? @map("deliver_after")
   sentAt    DateTime? @map("sent_at")
+  deliveryInitializedAt DateTime? @map("delivery_initialized_at")
+  deliveryCompletedAt DateTime? @map("delivery_completed_at")
+  deliveries NotificationDelivery[]
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   @@index([userId, createdAt])
   @@index([sentAt, deliverAfter])
   @@map("notifications")
+}
+
+// Aucun contenu ni jeton d'appareil ici : l'état d'acheminement est distinct du message in-app.
+model NotificationDelivery {
+  id             String       @id @default(uuid()) @db.Uuid
+  notificationId String       @map("notification_id") @db.Uuid
+  targetKey      String       @map("target_key")
+  channel        String
+  deviceId       String?      @map("device_id") @db.Uuid
+  state          String       @default("pending")
+  attempts       Int          @default(0)
+  nextAttemptAt  DateTime     @default(now()) @map("next_attempt_at")
+  leaseUntil     DateTime?    @map("lease_until")
+  leaseToken     String?      @map("lease_token") @db.Uuid
+  receiptId      String?      @map("receipt_id")
+  acceptedAt     DateTime?    @map("accepted_at")
+  errorCode      String?      @map("error_code")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, targetKey])
+  @@index([state, nextAttemptAt])
+  @@map("notification_deliveries")
 }
 
 enum DevicePlatform {

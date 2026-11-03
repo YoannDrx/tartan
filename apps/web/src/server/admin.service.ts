@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 import { forbidden } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { pilotMetrics } from "./metrics.service";
+import { notificationDeliveryHealth } from "./notification-delivery.service";
 
 // La console de l'éditeur : réservée aux adresses listées, jamais de donnée de santé ni de contenu d'entraînement.
 export const isAdmin = (email: string): boolean =>
@@ -69,6 +70,7 @@ export const adminOverview = async (actor: { email: string }, now: Date = new Da
   return {
     spaces,
     plans,
+    notificationDelivery: await notificationDeliveryHealth(now),
     users: await prisma.user.count(),
     satisfaction: {
       yes: count(true),

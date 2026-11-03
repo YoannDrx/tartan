@@ -6,7 +6,12 @@ import { log } from "./logger";
 
 export const outbox: { to: string; subject: string; html: string }[] = [];
 
-export const sendEmail = async (input: { to: string; subject: string; react: ReactElement }): Promise<void> => {
+export const sendEmail = async (input: {
+  to: string;
+  subject: string;
+  react: ReactElement;
+  idempotencyKey?: string;
+}): Promise<void> => {
   const html = await render(input.react);
   const { RESEND_API_KEY, EMAIL_FROM } = env();
   if (!RESEND_API_KEY) {
@@ -20,13 +25,16 @@ export const sendEmail = async (input: { to: string; subject: string; react: Rea
   }
   // Comptes de démonstration : ces adresses n'existent pas, un envoi nuirait à la réputation du domaine.
   if (input.to.endsWith("@demo.tartan.coach")) return;
-  const { error } = await new Resend(RESEND_API_KEY).emails.send({
-    from: EMAIL_FROM,
-    to: input.to,
-    subject: input.subject,
-    html,
-    replyTo: env().EMAIL_CONTACT,
-  });
+  const { error } = await new Resend(RESEND_API_KEY).emails.send(
+    {
+      from: EMAIL_FROM,
+      to: input.to,
+      subject: input.subject,
+      html,
+      replyTo: env().EMAIL_CONTACT,
+    },
+    { ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}), signal: AbortSignal.timeout(10_000) },
+  );
   if (error) {
     log.error("email_failed", { code: error.name });
     throw new Error("email_failed");

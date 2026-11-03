@@ -205,7 +205,18 @@ const main = async () => {
     body: "Annonce de démonstration : séance de samedi au stade.",
     pinned: true,
   });
-  await prisma.notification.updateMany({ where: { sentAt: null }, data: { sentAt: new Date() } });
+  // La démonstration ne doit jamais clôturer les messages de vrais utilisateurs.
+  const demoUsers = [coachId, ...athletes.map((athlete) => athlete.userId)];
+  await prisma.$transaction([
+    prisma.notificationDelivery.updateMany({
+      where: { notification: { userId: { in: demoUsers } }, state: { in: ["pending", "receipt"] } },
+      data: { state: "skipped", leaseToken: null, leaseUntil: null, errorCode: "demo_seed" },
+    }),
+    prisma.notification.updateMany({
+      where: { userId: { in: demoUsers }, sentAt: null },
+      data: { deliveryInitializedAt: new Date(), deliveryCompletedAt: new Date() },
+    }),
+  ]);
 
   console.log(
     `Démonstration prête : coach@demo.tartan.coach, un@demo.tartan.coach (mot de passe : ${process.env.DEMO_PASSWORD ? "DEMO_PASSWORD" : PASSWORD}).`,
