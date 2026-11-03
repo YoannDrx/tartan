@@ -13,7 +13,6 @@ import { AlertList } from "@/features/tracking/alert-list";
 import { TrackingTable } from "@/features/tracking/tracking-grid";
 import { listGroups } from "@/server/org.service";
 import { getAlerts, getTrackingGrid } from "@/server/tracking.service";
-import { listExercises } from "@/server/exercise.service";
 import { listAthletes } from "@/server/athlete.service";
 
 export const metadata: Metadata = { title: m.coach.trackingTitle };
@@ -27,11 +26,10 @@ export default async function SuiviPage({
   const { semaine, groupe } = await searchParams;
   const week = startOfWeek(semaine && /^\d{4}-\d{2}-\d{2}$/.test(semaine) ? semaine : todayIso());
   const access = await requireOrgMember(actor.userId, organizationId, "viewTracking");
-  const [grid, alerts, groups, exercises, athletes] = await Promise.all([
+  const [grid, alerts, groups, athletes] = await Promise.all([
     getTrackingGrid(actor.userId, organizationId, { week, groupId: groupe }),
     getAlerts(actor.userId, organizationId),
     listGroups(access),
-    listExercises(actor.userId, organizationId),
     listAthletes(actor.userId, organizationId),
   ]);
   const query = (params: { semaine?: string; groupe?: string }) => {
@@ -41,7 +39,8 @@ export default async function SuiviPage({
     const text = next.toString();
     return text ? `/suivi?${text}` : "/suivi";
   };
-  const firstRun = athletes.length === 0 && exercises.every((e) => e.shared);
+  // Un espace neuf a déjà une bibliothèque : seul le premier athlète dit que le coach a démarré.
+  const firstRun = athletes.length === 0;
 
   return (
     <div className="flex flex-col gap-4">

@@ -30,7 +30,6 @@ const EMAIL_FALLBACK: ReadonlySet<string> = new Set([
   "session_eve",
   "session_autonomous",
   "session_updated",
-  "session_reminder",
   "video_shared",
   "pain_alert",
   "missed_streak",

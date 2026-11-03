@@ -248,7 +248,7 @@ export const fr = {
     inviteAthletes: "Inviter des athlètes",
     inviteAthletesDetail: "Lien du groupe, QR code à la piste ou invitation nominative.",
     createExercise: "Créer un premier exercice",
-    createExerciseDetail: "Vidéo du coach ou lien YouTube renommé.",
+    createExerciseDetail: "Vidéo du coach, lien YouTube ou Instagram.",
     createSession: "Créer une première séance",
     createSessionDetail: "Une fois, pour tout le groupe.",
   },
@@ -1139,7 +1139,7 @@ export const fr = {
       tooManyCues: "Garde 5 consignes au plus.",
       cueTooLong: "Une consigne fait 120 caractères au plus. Raccourcis-la.",
       video: "Vidéo",
-      youtubeKeep: "Vider ce champ retire le lien YouTube. Une vidéo filmée reste en place.",
+      youtubeKeep: "Vider ce champ retire le lien. Une vidéo filmée reste en place.",
     },
     parentalNudge: {
       action: "Relancer mon parent",
