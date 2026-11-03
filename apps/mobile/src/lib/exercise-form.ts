@@ -1,5 +1,5 @@
 import { exerciseInput, type ExerciseInput, type Prescription } from "@tartan/contracts";
-import { parseYouTubeUrl, validateClipRange } from "@tartan/domain";
+import { parseInstagramUrl, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 
 export const NUMBER_FIELDS = ["sets", "reps", "distance_m", "duration_s", "rest_s", "ground_contacts"] as const;
@@ -21,8 +21,7 @@ export type ExerciseDraft = {
 };
 
 export type DraftResult =
-  | { ok: true; input: ExerciseInput }
-  | { ok: false; field: "name" | "cues" | "url" | "clip" | "form"; message: string };
+  { ok: true; input: ExerciseInput } | { ok: false; field: "name" | "cues" | "url" | "clip" | "form"; message: string };
 
 const toNumber = (value: string): number | undefined => {
   const clean = value.trim().replace(",", ".");
@@ -48,10 +47,17 @@ export const buildExerciseInput = (draft: ExerciseDraft): DraftResult => {
   if (cues.length > 5) return { ok: false, field: "cues", message: m.mobile.exerciseForm.tooManyCues };
   if (cues.some((c) => c.length > 120)) return { ok: false, field: "cues", message: m.mobile.exerciseForm.cueTooLong };
   const url = draft.url.trim();
-  if (url && !parseYouTubeUrl(url)) return { ok: false, field: "url", message: m.exercises.youtubeInvalid };
-  const startS = toNumber(draft.startS) ?? null;
-  const endS = toNumber(draft.endS) ?? null;
-  if (url && !validateClipRange(startS, endS)) return { ok: false, field: "clip", message: m.exercises.clipInvalid };
+  const customTitle = draft.title.trim() || null;
+  let media: ExerciseInput["media"] = null;
+  if (parseInstagramUrl(url)) {
+    media = { kind: "instagram", url, customTitle };
+  } else if (url) {
+    if (!parseYouTubeUrl(url)) return { ok: false, field: "url", message: m.exercises.linkInvalid };
+    const startS = toNumber(draft.startS) ?? null;
+    const endS = toNumber(draft.endS) ?? null;
+    if (!validateClipRange(startS, endS)) return { ok: false, field: "clip", message: m.exercises.clipInvalid };
+    media = { kind: "youtube", url, customTitle, startS, endS };
+  }
   const input: ExerciseInput = {
     ...(draft.id ? { id: draft.id } : {}),
     name: draft.name.trim(),
@@ -59,7 +65,7 @@ export const buildExerciseInput = (draft: ExerciseDraft): DraftResult => {
     tags: draft.tags,
     cues,
     defaultPrescription: prescriptionFrom(draft),
-    media: url ? { kind: "youtube", url, customTitle: draft.title.trim() || null, startS, endS } : null,
+    media,
   };
   // Le même contrat que le serveur : un nombre hors bornes s'arrête ici, sans aller-retour.
   return exerciseInput.safeParse(input).success

@@ -53,6 +53,8 @@ export const createCoachSpace = async (page: Page, name = "Thomas") => {
   await page.getByLabel("Premier groupe").fill("Hauteur Élite");
   await page.getByRole("button", { name: "Créer mon espace" }).click();
   await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible({ timeout: 60_000 });
+  // Un espace neuf guide le coach, même avec sa bibliothèque de départ.
+  await expect(page.getByRole("heading", { name: "Pour démarrer" })).toBeVisible();
 };
 
 export const expectAccessible = async (page: Page) => {

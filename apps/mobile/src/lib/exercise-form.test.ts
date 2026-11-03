@@ -55,6 +55,19 @@ describe("formulaire d'exercice", () => {
     ).toMatchObject({ ok: false, field: "form" });
   });
 
+  it("garde le lien Instagram quand on change seulement le nom", () => {
+    const result = buildExerciseInput(
+      draft({ name: "Nouveau nom", url: "https://www.instagram.com/reel/DeGC80pC82E/", title: "Hanche" }),
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      input: {
+        name: "Nouveau nom",
+        media: { kind: "instagram", url: "https://www.instagram.com/reel/DeGC80pC82E/", customTitle: "Hanche" },
+      },
+    });
+  });
+
   it("envoie la vidéo YouTube", () => {
     const result = buildExerciseInput(draft({ url: "https://youtu.be/dQw4w9WgXcQ", title: "Démo", startS: "5", endS: "20" }));
     expect(result.ok && result.input.media).toEqual({

@@ -7,15 +7,12 @@ import {
   MAX_REWARDS_PER_YEAR,
   type LimitKey,
   PLANS,
-  planForSubscription,
   type PlanKey,
   type PlanLimits,
-  type SubscriptionState,
   TRIAL_DAYS,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { createElement } from "react";
-import type Stripe from "stripe";
 import { NotificationEmail } from "@email/auth";
 import { env } from "@/lib/env";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
@@ -23,8 +20,11 @@ import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
 import { deleteAsset, videoEnabled } from "@/lib/mux";
 import { prisma } from "@/lib/prisma";
-import { billingEnabled, planForPriceId, priceIdFor, stripe } from "@/lib/stripe";
+import { billingEnabled, priceIdFor, stripe } from "@/lib/stripe";
 import { audit, requireOrgMember } from "./access";
+import { applySubscription } from "./subscription-state.service";
+export { applySubscription, syncEntitlements } from "./subscription-state.service";
+export { handleStripeEvent } from "./stripe-subscriptions.service";
 
 export const ensurePlans = async (): Promise<void> => {
   const names: Record<PlanKey, string> = { pilot: "Pilote", discovery: "Découverte", coach: "Coach", club: "Club" };
@@ -32,20 +32,6 @@ export const ensurePlans = async (): Promise<void> => {
     data: (Object.keys(PLANS) as PlanKey[]).map((key) => ({ key, name: names[key], limits: PLANS[key].limits })),
     skipDuplicates: true,
   });
-};
-
-// Les droits sont la seule source lue par l'app, quel que soit le canal de paiement (§ 17.3).
-export const syncEntitlements = async (organizationId: string, plan: PlanKey): Promise<void> => {
-  const limits = PLANS[plan].limits;
-  await prisma.$transaction(
-    (Object.entries(limits) as [keyof PlanLimits, number | null][]).map(([key, value]) =>
-      prisma.entitlement.upsert({
-        where: { organizationId_key: { organizationId, key } },
-        create: { organizationId, key, value: { limit: value }, source: "plan" },
-        update: { value: { limit: value }, source: "plan" },
-      }),
-    ),
-  );
 };
 
 export const limitsOf = async (organizationId: string): Promise<PlanLimits> => {
@@ -195,100 +181,12 @@ export const createPortal = async (userId: string, organizationId: string): Prom
   return { url: session.url };
 };
 
-// Point unique de mise à jour : abonnement, offre de l'espace, droits.
-export const applySubscription = async (input: {
-  organizationId: string;
-  plan: PlanKey;
-  status: SubscriptionState;
-  provider: "stripe" | "revenuecat" | "manual";
-  providerRef: string | null;
-  currentPeriodEnd: Date | null;
-  cancelAt: Date | null;
-  now?: Date;
-}): Promise<void> => {
-  const now = input.now ?? new Date();
-  const existing = await prisma.subscription.findFirst({
-    where: { organizationId: input.organizationId },
-    orderBy: { createdAt: "desc" },
-  });
-  const effective = planForSubscription(input.plan, input.status);
-  const paidSince =
-    input.status === "active" && isPaidPlan(effective)
-      ? (existing?.paidSince ?? now)
-      : input.status === "canceled"
-        ? null
-        : (existing?.paidSince ?? null);
-  const data = {
-    planKey: effective,
-    status: input.status,
-    provider: input.provider,
-    providerRef: input.providerRef,
-    currentPeriodEnd: input.currentPeriodEnd,
-    cancelAt: input.cancelAt,
-    paidSince,
-  };
-  if (existing) await prisma.subscription.update({ where: { id: existing.id }, data });
-  else await prisma.subscription.create({ data: { ...data, organizationId: input.organizationId } });
-  await prisma.organization.update({ where: { id: input.organizationId }, data: { plan: effective } });
-  await syncEntitlements(input.organizationId, effective);
-  await audit({
-    organizationId: input.organizationId,
-    action: `plan_${effective}_${input.status}`,
-    entity: "subscription",
-  });
-  log.info("subscription_applied", { organizationId: input.organizationId, status: input.status });
-};
-
 // Marqué après application : si la base tombe entre les deux, le renvoi du prestataire rejoue l'événement.
 const alreadyProcessed = async (id: string): Promise<boolean> =>
   Boolean(await prisma.billingEvent.findUnique({ where: { id }, select: { id: true } }));
 
 const markProcessed = async (id: string, provider: string, type: string): Promise<void> => {
   await prisma.billingEvent.createMany({ data: [{ id, provider, type }], skipDuplicates: true });
-};
-
-const STRIPE_STATUS: Partial<Record<Stripe.Subscription.Status, SubscriptionState>> = {
-  trialing: "trialing",
-  active: "active",
-  past_due: "past_due",
-  // Relances épuisées : l'accès payant s'arrête, les données restent.
-  unpaid: "canceled",
-  paused: "canceled",
-  canceled: "canceled",
-  incomplete_expired: "canceled",
-};
-
-const fromUnix = (seconds: number | null | undefined): Date | null => (seconds ? new Date(seconds * 1000) : null);
-
-export const handleStripeEvent = async (event: Stripe.Event): Promise<void> => {
-  if (!event.type.startsWith("customer.subscription.")) return;
-  if (await alreadyProcessed(event.id)) return;
-  const subscription = event.data.object as Stripe.Subscription & { current_period_end?: number };
-  const organizationId = subscription.metadata.organizationId;
-  if (!organizationId) {
-    // Le compte Stripe peut porter d'autres produits : cet abonnement n'est pas le nôtre.
-    log.warn("stripe_subscription_without_organization");
-    return;
-  }
-  const item = subscription.items.data[0];
-  const plan = planForPriceId(item?.price.id);
-  const status = STRIPE_STATUS[subscription.status];
-  const current = await prisma.subscription.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } });
-  // La fin d'un ancien abonnement ne doit pas faire retomber l'offre qui l'a remplacé.
-  const stale = status === "canceled" && current?.providerRef && current.providerRef !== subscription.id;
-  if (status && (plan || status === "canceled") && !stale) {
-    await applySubscription({
-      organizationId,
-      plan: plan ?? "discovery",
-      status,
-      provider: "stripe",
-      providerRef: subscription.id,
-      // Selon la version d'API du compte, la date est sur l'abonnement ou sur la ligne.
-      currentPeriodEnd: fromUnix(item?.current_period_end ?? subscription.current_period_end),
-      cancelAt: fromUnix(subscription.cancel_at),
-    });
-  }
-  await markProcessed(event.id, "stripe", event.type);
 };
 
 type RevenueCatEvent = {

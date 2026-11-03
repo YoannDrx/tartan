@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { exerciseCategory, type ExerciseSummary } from "@tartan/contracts";
+import { instagramUrl, parseYouTubeUrl } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -28,6 +29,7 @@ const text = (value: number | null | undefined) => (value === null || value === 
 const draftFrom = (exercise: ExerciseSummary | null): ExerciseDraft => {
   const media = parseMedia(exercise?.media);
   const youtube = media?.kind === "youtube" ? media : null;
+  const instagram = media?.kind === "instagram" ? media : null;
   const p = exercise?.defaultPrescription ?? {};
   return {
     id: exercise?.id,
@@ -44,8 +46,8 @@ const draftFrom = (exercise: ExerciseSummary | null): ExerciseDraft => {
       rest_s: text(p.rest_s),
       ground_contacts: text(p.ground_contacts),
     },
-    url: youtube ? `https://youtu.be/${youtube.youtubeId}` : "",
-    title: youtube?.title ?? "",
+    url: youtube ? `https://youtu.be/${youtube.youtubeId}` : instagram ? instagramUrl(instagram.instagramCode) : "",
+    title: youtube?.title ?? instagram?.title ?? "",
     startS: text(youtube?.startS),
     endS: text(youtube?.endS),
   };
@@ -162,7 +164,7 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
         <Card>
           <Field
             testID="exercise-youtube"
-            label={m.exercises.youtubeUrl}
+            label={m.exercises.videoUrl}
             hint={m.mobile.exerciseForm.youtubeKeep}
             value={draft.url}
             onChangeText={(url) => set({ url })}
@@ -179,23 +181,25 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
                 onChangeText={(title) => set({ title })}
                 maxLength={120}
               />
-              <View style={{ flexDirection: "row", gap: space.md }}>
-                <Field
-                  label={m.exercises.youtubeStart}
-                  value={draft.startS}
-                  onChangeText={(startS) => set({ startS })}
-                  keyboardType="number-pad"
-                  containerStyle={{ flex: 1 }}
-                />
-                <Field
-                  label={m.exercises.youtubeEnd}
-                  value={draft.endS}
-                  onChangeText={(endS) => set({ endS })}
-                  keyboardType="number-pad"
-                  containerStyle={{ flex: 1 }}
-                  error={errorOn("clip")}
-                />
-              </View>
+              {parseYouTubeUrl(draft.url) ? (
+                <View style={{ flexDirection: "row", gap: space.md }}>
+                  <Field
+                    label={m.exercises.youtubeStart}
+                    value={draft.startS}
+                    onChangeText={(startS) => set({ startS })}
+                    keyboardType="number-pad"
+                    containerStyle={{ flex: 1 }}
+                  />
+                  <Field
+                    label={m.exercises.youtubeEnd}
+                    value={draft.endS}
+                    onChangeText={(endS) => set({ endS })}
+                    keyboardType="number-pad"
+                    containerStyle={{ flex: 1 }}
+                    error={errorOn("clip")}
+                  />
+                </View>
+              ) : null}
             </>
           ) : null}
         </Card>

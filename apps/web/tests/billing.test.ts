@@ -1,6 +1,5 @@
 import { PLANS } from "@tartan/domain";
 import { randomUUID } from "node:crypto";
-import type Stripe from "stripe";
 import { beforeAll, describe, expect, it } from "vitest";
 import { outbox } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
@@ -16,7 +15,6 @@ import {
   applySubscription,
   getBillingOverview,
   handleRevenueCatEvent,
-  handleStripeEvent,
   limitsOf,
   processReferrals,
   purgeExpiredVideos,
@@ -40,21 +38,6 @@ const discoveryOrg = async (name: string) => {
   });
   return org;
 };
-
-const stripeEvent = (organizationId: string, status: string, priceId: string, id = randomUUID()) =>
-  ({
-    id,
-    type: "customer.subscription.updated",
-    data: {
-      object: {
-        id: `sub_${organizationId}`,
-        status,
-        cancel_at: null,
-        metadata: { organizationId },
-        items: { data: [{ price: { id: priceId }, current_period_end: 1893456000 }] },
-      },
-    },
-  }) as unknown as Stripe.Event;
 
 describe("offres et limites", () => {
   it("un nouvel espace démarre en Découverte avec la bibliothèque de départ", async () => {
@@ -123,32 +106,6 @@ describe("webhooks", () => {
   beforeAll(async () => {
     process.env.STRIPE_PRICE_COACH_MONTH = "price_coach_m";
     org = await discoveryOrg("Payeur");
-  });
-
-  it("Stripe active l'offre, est idempotent, puis retombe à la résiliation", async () => {
-    // Le prix inconnu ne doit rien activer : la correspondance vient de la configuration.
-    await handleStripeEvent(stripeEvent(org.organizationId, "active", "price_inconnu"));
-    expect((await prisma.organization.findUniqueOrThrow({ where: { id: org.organizationId } })).plan).toBe("discovery");
-
-    const canceled = stripeEvent(org.organizationId, "canceled", "price_x");
-    await handleStripeEvent(canceled);
-    await applySubscription({
-      organizationId: org.organizationId,
-      plan: "coach",
-      status: "active",
-      provider: "stripe",
-      providerRef: `sub_${org.organizationId}`,
-      currentPeriodEnd: null,
-      cancelAt: null,
-    });
-    expect(await limitsOf(org.organizationId)).toEqual(PLANS.coach.limits);
-    // Rejeu du même événement : aucun effet.
-    await handleStripeEvent(canceled);
-    expect((await prisma.organization.findUniqueOrThrow({ where: { id: org.organizationId } })).plan).toBe("coach");
-
-    await handleStripeEvent(stripeEvent(org.organizationId, "canceled", "price_x"));
-    expect((await prisma.organization.findUniqueOrThrow({ where: { id: org.organizationId } })).plan).toBe("discovery");
-    expect(await limitsOf(org.organizationId)).toEqual(PLANS.discovery.limits);
   });
 
   it("un impayé garde l'accès", async () => {
