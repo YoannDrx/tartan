@@ -752,7 +752,7 @@
     transform: scaleY(0.1);
   }
 }
-@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) and (min-height: 560px) {
   .film {
     height: 680svh;
   }
@@ -831,9 +831,6 @@
     padding-inline: 16px;
     color: var(--film-on-track);
   }
-  .film[data-world="coche"] .film-timeline {
-    color: var(--color-ink);
-  }
   .film[data-beat="0"] .film-timeline,
   .film[data-beat="5"] .film-timeline {
     visibility: hidden;
@@ -865,10 +862,25 @@
     background: var(--color-lane);
     box-shadow: 0 0 0 2px var(--color-ink);
   }
+  /* Sur son aplat : une ligne de couloir passe derrière le compteur. */
   .film-frame {
     display: block;
-    margin-top: 8px;
+    width: fit-content;
+    margin-top: 6px;
+    padding: 1px 8px;
+    border-radius: 6px;
     font-size: 15px;
+    color: var(--color-lane);
+    background: var(--color-ink);
+  }
+  /* Écran bas : la remarque du coach céderait sa place au saut, c'est elle qui s'efface. */
+  @media (max-height: 620px) {
+    .film-note {
+      display: none;
+    }
+    .film-beat-hero .film-cta p {
+      display: none;
+    }
   }
   /* Sur téléphone, seule la phase en cours est nommée : les segments étroits couperaient leur libellé. */
   @media (max-width: 1023px) {

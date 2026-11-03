@@ -28,6 +28,9 @@ const f = t.film;
 const FRAMES = 480;
 const STAGE_WIDTH = 1600;
 const STAGE_HEIGHT = 900;
+// Hauteur occupée par le titre et sa remarque, et hauteur du saut au-dessus du bas de la scène.
+const TEXT_ROOM = 290;
+const ACTION_HEIGHT = 860;
 
 const PHASES = [
   { key: "approach", from: T.run, to: T.plant },
@@ -127,6 +130,11 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
     const measure = () => {
       const aspect = svg.clientWidth / Math.max(svg.clientHeight, 1);
       viewWidth = aspect >= 1.5 ? STAGE_WIDTH : Math.max(720, (STAGE_WIDTH * aspect) / 1.5);
+      // Écran étroit et court : on recule pour que le saut reste dégagé sous le titre et la remarque.
+      if (aspect < 1) {
+        const room = Math.max(svg.clientHeight - TEXT_ROOM, 1);
+        viewWidth = Math.min(STAGE_WIDTH, Math.max(viewWidth, (svg.clientWidth * ACTION_HEIGHT) / room));
+      }
       viewHeight = viewWidth / aspect;
     };
 
@@ -202,8 +210,8 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
       render(current);
     });
 
-    // Animations réduites : une image fixe, l'athlète au-dessus de la barre.
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    // Animations réduites ou écran trop bas pour le film : une image fixe, l'athlète au-dessus de la barre.
+    if (matchMedia("(prefers-reduced-motion: reduce), (max-height: 559px)").matches) {
       measure();
       render(T.apex);
       root.dataset.world = "piste";
