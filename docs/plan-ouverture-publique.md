@@ -97,8 +97,8 @@ Ce suivi ne bloque pas l'ouverture web.
 | Première compilation iOS, TestFlight           | Toi, moi       | App ID et fiche créés, reste ta connexion Apple |
 | Compte Play Console, Firebase                  | Toi            | Pas commencé                                    |
 | Essai sur vrais appareils, VoiceOver, TalkBack | Toi, moi       | Vérifié sur simulateur iOS seulement            |
-| Compte de démonstration en production          | Moi            | Script prêt, à jouer                            |
-| RevenueCat, achats intégrés                    | Toi, moi       | Code prévu, comptes à créer                     |
+| Compte de démonstration en production          | Toi            | Procédure dans `fiches-stores.md`, à jouer      |
+| Achats intégrés                                | Décision       | Hors V1 : abonnement web seulement, app gratuite |
 | Test fermé Google : 12 testeurs, 14 jours      | Toi, ton frère | Pas commencé                                    |
 | Soumission aux stores                          | Toi, moi       | Après tout ce qui précède                       |
 

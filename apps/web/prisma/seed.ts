@@ -1,5 +1,6 @@
 // Données de démonstration pour les environnements de preview et la revue des stores (§ 14, § 16.1).
-// Personnes fictives, clairement identifiées. Ne jamais lancer en production avec de vrais comptes.
+// Personnes fictives et majeures, clairement identifiées. En production, seulement pour les comptes de revue
+// (docs/fiches-stores.md) : aucune vraie donnée sur ces comptes.
 import { randomBytes } from "node:crypto";
 import { addDays, startOfWeek } from "@tartan/domain";
 import { auth } from "@/lib/auth";
