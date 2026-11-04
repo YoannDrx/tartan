@@ -242,6 +242,11 @@ export default async function ReglagesPage() {
             <RevokeOtherSessionsButton />
             <SignOutButton />
             {access.role === "owner" ? null : <LeaveSpace name={space.organizationName} />}
+            {access.role === "owner" ? null : (
+              <Button asChild size="sm" variant="secondary">
+                <a href="/bienvenue">{m.onboarding.createOwnSpace}</a>
+              </Button>
+            )}
             <DeleteAccount detail={m.settings.deleteDetail} />
           </div>
         </div>

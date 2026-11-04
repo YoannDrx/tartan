@@ -21,6 +21,7 @@ import { hasBearer } from "@/lib/secure-compare";
 import { sendEmail } from "@/lib/mail";
 import { videoEnabled } from "@/lib/mux";
 import { drainExternalDeletions } from "./external-deletion.service";
+import { reconcileStripeSubscription } from "./stripe-subscriptions.service";
 import { prisma } from "@/lib/prisma";
 import { billingEnabled, priceIdFor, stripe } from "@/lib/stripe";
 import { audit, requireOrgMember } from "./access";
@@ -100,6 +101,8 @@ export const getBillingOverview = async (userId: string, organizationId: string)
 const INVOICE_FOOTER =
   "Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590. TVA non applicable, article 293 B du CGI.";
 
+const LIVE_SUBSCRIPTIONS: readonly string[] = ["active", "trialing", "past_due", "incomplete"];
+
 export const createCheckout = async (
   userId: string,
   organizationId: string,
@@ -118,12 +121,27 @@ export const createCheckout = async (
   }
   const client = stripe();
   let customerId = org.stripeCustomerId;
+  if (customerId) {
+    // Un webhook perdu laisse la base en retard : Stripe fait foi, et deux onglets ne créent qu'un abonnement.
+    const { data: subscriptions } = await client.subscriptions.list({ customer: customerId, status: "all", limit: 10 });
+    if (subscriptions.some((subscription) => LIVE_SUBSCRIPTIONS.includes(subscription.status))) {
+      await reconcileStripeSubscription(organizationId);
+      return createPortal(userId, organizationId);
+    }
+    const { data: openSessions } = await client.checkout.sessions.list({
+      customer: customerId,
+      status: "open",
+      limit: 10,
+    });
+    await Promise.all(openSessions.map((session) => client.checkout.sessions.expire(session.id)));
+  }
   if (!customerId) {
     const customer = await client.customers.create(
       {
         email: owner.email,
         name: org.name,
         metadata: { organizationId },
+        preferred_locales: ["fr"],
         // Identité du vendeur et franchise en base de TVA : mentions obligatoires sur chaque facture.
         invoice_settings: { footer: INVOICE_FOOTER },
       },
@@ -132,9 +150,9 @@ export const createCheckout = async (
     customerId = customer.id;
     await prisma.organization.update({ where: { id: organizationId }, data: { stripeCustomerId: customerId } });
   }
-  // Un seul essai par espace : résilier puis reprendre ne le redonne pas.
+  // Un seul essai par propriétaire : ni résilier puis reprendre, ni ouvrir un autre espace ne le redonne.
   const alreadyPaid = await prisma.subscription.count({
-    where: { organizationId, provider: { in: ["stripe", "revenuecat"] } },
+    where: { organization: { ownerId: org.ownerId }, provider: { in: ["stripe", "revenuecat"] } },
   });
   const appUrl = env().NEXT_PUBLIC_APP_URL;
   const session = await client.checkout.sessions.create({
@@ -169,6 +187,17 @@ export const createCheckout = async (
   });
   if (!session.url) throw new Error("stripe_checkout_url_missing");
   return { url: session.url };
+};
+
+export const syncAfterCheckout = async (userId: string, organizationId: string): Promise<void> => {
+  await requireOrgMember(userId, organizationId, "manageSubscription");
+  const org = await prisma.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: { stripeCustomerId: true },
+  });
+  if (!billingEnabled() || !org.stripeCustomerId) return;
+  // Sans réponse de Stripe, la page reste lisible : le webhook et la réconciliation prendront le relais.
+  await reconcileStripeSubscription(organizationId).catch(() => log.warn("checkout_return_sync_failed"));
 };
 
 export const createPortal = async (userId: string, organizationId: string): Promise<{ url: string }> => {

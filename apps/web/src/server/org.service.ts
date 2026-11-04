@@ -60,6 +60,11 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
   }
   await ensurePlans();
   const plan = initialPlan(user.email);
+  // L'offre gratuite ne se multiplie pas : un préparateur qui suit plusieurs clubs paie pour en ouvrir d'autres.
+  if (plan === "discovery") {
+    const free = await prisma.organization.count({ where: { ownerId: userId, plan: "discovery" } });
+    if (free > 0) throw new AppError(409, "discovery_limit", m.onboarding.discoveryLimit);
+  }
   const organization = await prisma.$transaction(async (tx) => {
     const org = await tx.organization.create({
       data: {

@@ -24,10 +24,12 @@ export const OnboardingForm = ({
   firstName,
   lastName,
   birthDate,
+  nextPath,
 }: {
   firstName: string;
   lastName: string;
   birthDate: string;
+  nextPath: string;
 }) => {
   const router = useRouter();
   const form = useForm({
@@ -37,7 +39,7 @@ export const OnboardingForm = ({
   const { errors } = form.formState;
   const { execute, isPending } = useAction(createSpaceAction, {
     onSuccess: () => {
-      router.push("/suivi");
+      router.push(nextPath);
       router.refresh();
     },
     onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),

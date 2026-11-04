@@ -142,6 +142,8 @@ export const fr = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
   onboarding: {
+    discoveryLimit: "Tu as déjà un espace Découverte. Passe-le à une offre payante pour en ouvrir un autre.",
+    createOwnSpace: "Créer mon espace coach",
     profileTitle: "Ton profil",
     orgTitle: "Ton espace",
     firstName: "Prénom",
@@ -893,6 +895,8 @@ export const fr = {
       none: "Sans objet",
     },
     choose: (plan: string) => `Choisir ${plan}`,
+    continueToPayment: "Continuer vers le paiement",
+    confirming: "Paiement en cours de confirmation. Recharge cette page dans un instant.",
     current: "Ton offre actuelle",
     manage: "Gérer mon abonnement",
     manageHint: "Factures, moyen de paiement, résiliation.",
