@@ -1,3 +1,4 @@
+import { isAdmin } from "@/server/admin.service";
 import type { Metadata } from "next";
 import { addDays } from "@tartan/domain";
 import { formatDayMonth, m } from "@tartan/i18n";
@@ -49,7 +50,8 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
           {m.video.allAthletes}
         </FilterPill>
       ) : null}
-      {capacity ? (
+      {/* Le total global concerne tout Tartan : il ne regarde que l'éditeur. */}
+      {capacity && isAdmin(actor.email) ? (
         <p className="t-caption font-normal text-soft">{m.video.storage(capacity.used, capacity.limit)}</p>
       ) : null}
       {videos.length === 0 ? (

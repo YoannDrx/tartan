@@ -182,10 +182,22 @@ export const applyMuxEvent = async (event: {
     tracks?: { type: string; max_frame_rate?: number }[];
   };
 }): Promise<void> => {
+  // Un envoi interrompu ne laisse pas la vidéo « en cours d'envoi » pour toujours.
+  if (event.type === "video.upload.errored") {
+    await prisma.video.updateMany({ where: { muxUploadId: event.data.id }, data: { status: "error" } });
+    return;
+  }
   const [kind, id] = (event.data.passthrough ?? "").split(":");
   if (!id) return;
   if (kind === "exercise") {
     if (event.type === "video.asset.ready") {
+      // Mêmes limites que les vidéos d'athlètes : une démonstration trop longue ne reste pas.
+      if ((event.data.duration ?? 0) > MAX_FILE_SECONDS * 1.1) {
+        await enqueueExternalDeletion({ provider: "mux_asset", ref: event.data.id, reason: "video_oversized" });
+        await prisma.exerciseMedia.deleteMany({ where: { id } });
+        log.warn("video_oversized", { entityId: id });
+        return;
+      }
       const updated = await prisma.exerciseMedia.updateMany({
         where: { id },
         data: { muxAssetId: event.data.id, muxPlaybackId: event.data.playback_ids?.[0]?.id ?? null },

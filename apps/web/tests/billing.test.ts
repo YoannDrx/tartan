@@ -23,6 +23,7 @@ import {
 import { acceptInvitation, createInvitation } from "@/server/invitation.service";
 import { createOrganization, ensureReferralCode, saveGroup } from "@/server/org.service";
 import { listExercises, saveExercise } from "@/server/exercise.service";
+import { usageOf } from "@/server/billing.service";
 import { addAthlete, addStaff, makeOrg, makeUser } from "./helpers";
 
 const discoveryOrg = async (name: string) => {
@@ -416,5 +417,37 @@ describe("conservation vidéo", () => {
     expect(await prisma.video.count({ where: { organizationId: small.organizationId } })).toBe(0);
     expect(await prisma.video.findUnique({ where: { id: kept.id } })).toBeTruthy();
     void syncEntitlements;
+  });
+});
+
+describe("quotas vidéo", () => {
+  const NOW = new Date("2030-06-15T12:00:00Z");
+  const prepare = async () => {
+    const org = await makeOrg("Quota");
+    const exercise = await prisma.exercise.findFirstOrThrow({ where: { organizationId: org.organizationId } });
+    const athlete = await addAthlete(org.organizationId, org.groupId, "Léa");
+    return { org, exercise, athlete };
+  };
+  const uploaded = (exerciseId: string, createdAt: Date, muxAssetId: string | null) =>
+    prisma.exerciseMedia.create({ data: { exerciseId, kind: "upload", createdAt, muxAssetId } });
+
+  it("une démonstration d'exercice compte dans le quota du mois", async () => {
+    const { org, exercise } = await prepare();
+    await uploaded(exercise.id, new Date("2030-06-14T12:00:00Z"), "asset-1");
+    expect((await usageOf(org.organizationId, NOW)).maxVideosPerMonth).toBe(1);
+  });
+  it("un envoi abandonné depuis plus de 24 h ne compte plus", async () => {
+    const { org, exercise, athlete } = await prepare();
+    await uploaded(exercise.id, new Date("2030-06-14T11:00:00Z"), null);
+    await uploaded(exercise.id, new Date("2030-06-15T11:00:00Z"), null);
+    await prisma.video.create({
+      data: {
+        organizationId: org.organizationId,
+        athleteId: athlete.athleteId,
+        uploadedBy: org.owner.userId,
+        createdAt: new Date("2030-06-13T11:00:00Z"),
+      },
+    });
+    expect((await usageOf(org.organizationId, NOW)).maxVideosPerMonth).toBe(1);
   });
 });

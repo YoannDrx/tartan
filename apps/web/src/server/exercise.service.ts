@@ -7,6 +7,7 @@ import { createDirectUpload, signedPlayback, videoEnabled } from "@/lib/mux";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "./access";
+import { assertWithinPlan } from "./billing.service";
 import { assertVideoCapacity } from "./video-capacity.service";
 
 type MediaRow = {
@@ -135,6 +136,7 @@ export const createExerciseVideoUpload = async (userId: string, organizationId: 
   const exercise = await prisma.exercise.findFirst({ where: { id: exerciseId, organizationId, deletedAt: null } });
   if (!exercise) throw notFound();
   await assertVideoCapacity();
+  await assertWithinPlan(organizationId, "maxVideosPerMonth");
   const media = await prisma.exerciseMedia.create({ data: { exerciseId, kind: "upload" } });
   const upload = await createDirectUpload(`exercise:${media.id}`);
   await prisma.exerciseMedia.update({ where: { id: media.id }, data: { muxUploadId: upload.uploadId } });

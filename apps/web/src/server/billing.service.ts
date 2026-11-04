@@ -50,13 +50,29 @@ export const limitsOf = async (organizationId: string): Promise<PlanLimits> => {
 const startOfMonth = (now: Date): Date => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
 export const usageOf = async (organizationId: string, now: Date = new Date()) => {
-  const [maxAthletes, maxGroups, maxCoaches, maxVideosPerMonth] = await Promise.all([
+  // Un envoi sans fichier n'occupe rien : abandonné depuis 24 h, il ne compte plus dans le quota.
+  const abandonedBefore = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const [maxAthletes, maxGroups, maxCoaches, videos, demonstrations] = await Promise.all([
     prisma.athlete.count({ where: { organizationId } }),
     prisma.group.count({ where: { organizationId } }),
     prisma.organizationMember.count({ where: { organizationId, role: { in: ["owner", "coach", "assistant"] } } }),
-    prisma.video.count({ where: { organizationId, createdAt: { gte: startOfMonth(now) } } }),
+    prisma.video.count({
+      where: {
+        organizationId,
+        createdAt: { gte: startOfMonth(now) },
+        NOT: { muxAssetId: null, createdAt: { lt: abandonedBefore } },
+      },
+    }),
+    prisma.exerciseMedia.count({
+      where: {
+        kind: "upload",
+        exercise: { organizationId },
+        createdAt: { gte: startOfMonth(now) },
+        NOT: { muxAssetId: null, createdAt: { lt: abandonedBefore } },
+      },
+    }),
   ]);
-  return { maxAthletes, maxGroups, maxCoaches, maxVideosPerMonth };
+  return { maxAthletes, maxGroups, maxCoaches, maxVideosPerMonth: videos + demonstrations };
 };
 
 const LIMIT_MESSAGES: Record<LimitKey, string> = {
