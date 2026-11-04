@@ -1,3 +1,4 @@
+import { m } from "@tartan/i18n";
 import {
   athleteInput,
   type AthleteInput,
@@ -8,7 +9,7 @@ import {
 import { can } from "@tartan/domain";
 import type { z } from "zod";
 import { fromDbDate, fromDbDateOrNull, toDbDate } from "@/lib/dates";
-import { consentRequired, forbidden, notFound } from "@/lib/errors";
+import { AppError, consentRequired, forbidden, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import {
   audit,
@@ -20,6 +21,7 @@ import {
   type Access,
   requireOwnedRefs,
 } from "./access";
+import { assertAdultDate } from "./age.service";
 import { assertWithinPlan } from "./billing.service";
 import { consentForAthletes } from "./consent.service";
 import { namesFor } from "./me.service";
@@ -61,6 +63,11 @@ export const saveAthlete = async (userId: string, organizationId: string, raw: A
     access,
     input.groupIds.filter((id) => !existingGroups.some((group) => group.groupId === id)),
   );
+  await assertAdultDate(input.birthDate, {
+    actorId: userId,
+    missing: m.age.athleteRequired,
+    restricted: new AppError(403, "age_restricted", m.age.athleteRestricted),
+  });
   const editableGroups = access.role === "owner" ? null : await coachGroupIds(access);
   const data = {
     firstName: input.firstName,

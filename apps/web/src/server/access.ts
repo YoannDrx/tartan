@@ -2,6 +2,7 @@ import type { OrgRole } from "@tartan/contracts";
 import { can, type Permission, scopeOf } from "@tartan/domain";
 import { forbidden, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
+import { assertMemberAge } from "./age.service";
 
 export type Access = {
   userId: string;
@@ -19,9 +20,10 @@ export const requireOrgMember = async (
 ): Promise<Access> => {
   const member = await prisma.organizationMember.findUnique({
     where: { organizationId_userId: { organizationId, userId } },
-    select: { role: true, status: true },
+    select: { role: true, status: true, user: { select: { profile: { select: { birthDate: true } } } } },
   });
   if (!member || member.status !== "active") throw forbidden();
+  assertMemberAge(member.user.profile?.birthDate);
   if (permission && !can(member.role, permission)) throw forbidden();
   const athlete =
     member.role === "athlete"

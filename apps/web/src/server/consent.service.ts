@@ -9,7 +9,9 @@ import { sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { deriveToken, idFromToken, sha256, tokenMatches } from "@/lib/tokens";
+import { m } from "@tartan/i18n";
 import { audit } from "./access";
+import { parentalFlowEnabled } from "./age.service";
 
 export const CONSENT_VERSION = "2026-11";
 const GUARDIAN_PURPOSE = "guardian";
@@ -66,9 +68,17 @@ export const consentForAthletes = async (athleteIds: string[]): Promise<Map<stri
       guardian: guardian ? guardian.consentStatus : "none",
       guardianScope: (guardian?.consentScope as ConsentState["guardianScope"]) ?? null,
     };
-    result.set(a.id, { ...effectiveConsent(state), parentalPending: guardian?.consentStatus === "pending" });
+    result.set(a.id, {
+      ...effectiveConsent(state),
+      // Bandeaux inertes tant que le parcours est dormant.
+      parentalPending: parentalFlowEnabled() && guardian?.consentStatus === "pending",
+    });
   }
   return result;
+};
+
+const assertParentalFlow = (): void => {
+  if (!parentalFlowEnabled()) throw invalid(m.age.parentalClosed);
 };
 
 export const startParentalConsent = async (input: {
@@ -78,6 +88,7 @@ export const startParentalConsent = async (input: {
   athleteName: string;
   coachName: string;
 }): Promise<void> => {
+  assertParentalFlow();
   const guardian = await prisma.guardian.create({
     data: {
       organizationId: input.organizationId,
@@ -102,6 +113,7 @@ export const startParentalConsent = async (input: {
 
 // Le parent n'a pas répondu : l'athlète relance sa demande, sans attendre son coach.
 export const resendParentalConsent = async (userId: string, organizationId: string): Promise<void> => {
+  assertParentalFlow();
   await enforceRateLimit(`parental:${userId}`, 3, 3600);
   const athlete = await prisma.athlete.findFirst({
     where: { userId, organizationId },
@@ -155,6 +167,7 @@ export const answerParentalConsent = async (input: {
   decision: "granted" | "refused";
   scope: { health: boolean; video: boolean };
 }): Promise<void> => {
+  assertParentalFlow();
   const guardian = await guardianFromToken(input.token);
   if (!guardian) throw invalid();
   await prisma.guardian.update({

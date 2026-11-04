@@ -57,7 +57,12 @@ describe("offres et limites", () => {
     const org = await discoveryOrg("Petit");
     for (const name of ["A", "B", "C", "D", "E"]) await addAthlete(org.organizationId, org.groupId, `Ath${name}`);
     await expect(
-      saveAthlete(org.owner.userId, org.organizationId, { firstName: "Six", lastName: "T", groupIds: [] }),
+      saveAthlete(org.owner.userId, org.organizationId, {
+        firstName: "Six",
+        lastName: "T",
+        birthDate: "2000-01-01",
+        groupIds: [],
+      }),
     ).rejects.toMatchObject({ code: "plan_limit", status: 402 });
     const { link } = await createInvitation(org.owner.userId, org.organizationId, {
       kind: "group_link",

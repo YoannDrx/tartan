@@ -5,7 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { m } from "@tartan/i18n";
 import { put } from "@vercel/blob";
 import { env } from "@/lib/env";
+import { fromDbDateOrNull, toDbDate } from "@/lib/dates";
 import { AppError, invalid, notFound } from "@/lib/errors";
+import { assertAdultDate } from "./age.service";
 import { coachGroupIds, requireOrgMember, requireGroupInScope, type Access } from "./access";
 import { firstNameOf } from "./me.service";
 import { assertWithinPlan, ensurePlans, syncEntitlements } from "./billing.service";
@@ -44,8 +46,18 @@ export const canCreateCoachSpace = (email: string): boolean => {
 };
 
 export const createOrganization = async (userId: string, input: CreateOrganizationInput) => {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { email: true, profile: { select: { birthDate: true } } },
+  });
   if (!canCreateCoachSpace(user.email)) throw new AppError(403, "signup_closed", m.onboarding.closed);
+  // La date déjà enregistrée prime : ce contrôle couvre aussi POST /api/v1/orgs.
+  const knownBirthDate = fromDbDateOrNull(user.profile?.birthDate);
+  await assertAdultDate(knownBirthDate ?? input.birthDate, { actorId: userId });
+  if (!knownBirthDate && input.birthDate) {
+    const birthDate = toDbDate(input.birthDate);
+    await prisma.profile.upsert({ where: { id: userId }, create: { id: userId, birthDate }, update: { birthDate } });
+  }
   await ensurePlans();
   const plan = initialPlan(user.email);
   const organization = await prisma.$transaction(async (tx) => {
@@ -53,7 +65,7 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
       data: {
         name: input.name,
         type: input.type,
-        disciplines: input.disciplines,
+        disciplines: input.disciplines ?? [],
         ownerId: userId,
         plan,
         members: { create: { userId, role: "owner", status: "active" } },

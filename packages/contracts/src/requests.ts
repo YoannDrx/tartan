@@ -45,8 +45,9 @@ export const createOrganizationInput = z.object({
   disciplines: z.array(z.string().max(40)).max(12).default(["high_jump"]),
   firstGroupName: required(80, "Donne un nom à ton premier groupe"),
   referralCode: z.string().trim().max(40).optional(),
+  birthDate: isoDate.optional(),
 });
-export type CreateOrganizationInput = z.infer<typeof createOrganizationInput>;
+export type CreateOrganizationInput = z.input<typeof createOrganizationInput>;
 
 export const groupInput = z.object({
   id: uuid.optional(),

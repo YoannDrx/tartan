@@ -4,6 +4,7 @@ import type { SpaceSummary } from "@tartan/contracts";
 import { isStaff } from "@tartan/domain";
 import { getActor, type Actor } from "@/lib/session";
 import { AppError, unauthorized } from "@/lib/errors";
+import { ageStatusOfUser } from "@/server/age.service";
 import { listSpaces } from "@/server/me.service";
 import { SPACE_COOKIE } from "./space-cookie";
 
@@ -27,7 +28,9 @@ export const requireSpace = async (): Promise<SpaceContext> => {
   const spaces = await listSpaces(actor.userId);
   const jar = await cookies();
   const space = pick(spaces, jar.get(SPACE_COOKIE)?.value);
+  // Sans espace, la création d'espace demande elle-même la date et traite un compte mineur.
   if (!space) redirect("/bienvenue");
+  if ((await ageStatusOfUser(actor.userId)) !== "adult") redirect("/confirmer-age");
   return { actor, spaces, space, organizationId: space.organizationId, staff: isStaff(space.role) };
 };
 

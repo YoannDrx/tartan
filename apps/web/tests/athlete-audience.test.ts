@@ -57,6 +57,7 @@ describe("groupes et audience", () => {
       id: a.athlete.athleteId,
       firstName: "Présent",
       lastName: "Test",
+      birthDate: "2000-01-01",
       groupIds: [other.id],
     });
     expect(
@@ -66,6 +67,7 @@ describe("groupes et audience", () => {
       id: a.athlete.athleteId,
       firstName: "Présent",
       lastName: "Test",
+      birthDate: "2000-01-01",
       groupIds: [],
     });
     expect(await prisma.groupMember.count({ where: { athleteId: a.athlete.athleteId } })).toBe(0);
@@ -76,7 +78,7 @@ describe("groupes et audience", () => {
     await prisma.groupMember.create({ data: { athleteId: a.athlete.athleteId, groupId: other.id } });
     const coach = await addStaff(a.organizationId, "Coach", "coach", [a.groupId]);
     const forbidden = await prisma.group.create({ data: { organizationId: a.organizationId, name: "Interdit" } });
-    const data = { id: a.athlete.athleteId, firstName: "Présent", lastName: "Test" };
+    const data = { id: a.athlete.athleteId, firstName: "Présent", lastName: "Test", birthDate: "2000-01-01" };
     await expect(
       saveAthlete(coach.userId, a.organizationId, { ...data, groupIds: [forbidden.id] }),
     ).rejects.toMatchObject({ status: 403 });
@@ -167,6 +169,7 @@ describe("groupes et audience", () => {
       id: a.athlete.athleteId,
       firstName: "Présent",
       lastName: "Test",
+      birthDate: "2000-01-01",
       groupIds: [],
     });
     expect(result).toEqual({ id: a.athlete.athleteId, stillVisible: false });
@@ -270,6 +273,7 @@ describe("groupes et audience", () => {
       id: a.athlete.athleteId,
       firstName: "Présent",
       lastName: "Test",
+      birthDate: "2000-01-01",
       groupIds: [],
     });
     expect(await audienceAthleteIds(session.id)).toContain(a.athlete.athleteId);
@@ -318,6 +322,7 @@ describe("groupes et audience", () => {
       id: late.athleteId,
       firstName: "Minuit",
       lastName: "Test",
+      birthDate: "2000-01-01",
       groupIds: [a.groupId],
     });
     expect(

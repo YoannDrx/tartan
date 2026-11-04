@@ -14,16 +14,25 @@ import { createSpaceAction } from "./onboarding.action";
 const schema = z.object({
   firstName: z.string().trim().min(1, "Indique ton prénom"),
   lastName: z.string().trim().min(1, "Indique ton nom"),
+  birthDate: z.string().min(1, m.invite.birthRequired),
   name: z.string().trim().min(1, "Donne un nom à ton espace"),
   type: z.enum(["club", "independent"]),
   firstGroupName: z.string().trim().min(1, "Donne un nom à ton premier groupe"),
 });
 
-export const OnboardingForm = ({ firstName, lastName }: { firstName: string; lastName: string }) => {
+export const OnboardingForm = ({
+  firstName,
+  lastName,
+  birthDate,
+}: {
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+}) => {
   const router = useRouter();
   const form = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { firstName, lastName, name: "", type: "independent" as const, firstGroupName: "" },
+    defaultValues: { firstName, lastName, birthDate, name: "", type: "independent" as const, firstGroupName: "" },
   });
   const { errors } = form.formState;
   const { execute, isPending } = useAction(createSpaceAction, {
@@ -45,7 +54,7 @@ export const OnboardingForm = ({ firstName, lastName }: { firstName: string; las
           type: v.type,
           firstGroupName: v.firstGroupName,
           disciplines: ["high_jump"],
-          profile: { firstName: v.firstName, lastName: v.lastName },
+          profile: { firstName: v.firstName, lastName: v.lastName, birthDate: v.birthDate },
         }),
       )}
     >
@@ -59,6 +68,9 @@ export const OnboardingForm = ({ firstName, lastName }: { firstName: string; las
             {(a) => <Input {...a} autoComplete="family-name" {...form.register("lastName")} />}
           </Field>
         </div>
+        <Field label={m.invite.birthDate} error={errors.birthDate?.message}>
+          {(a) => <Input {...a} type="date" autoComplete="bday" {...form.register("birthDate")} />}
+        </Field>
       </fieldset>
       <fieldset className="flex flex-col gap-4">
         <legend className="t-h2 mb-3">{m.onboarding.orgTitle}</legend>

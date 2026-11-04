@@ -7,6 +7,7 @@ import { enabledSocialProviders } from "@/lib/auth";
 import { getActor } from "@/lib/session";
 import { SignInForm } from "@/features/auth/sign-in-form";
 import { AcceptForm } from "@/features/invitations/accept-form";
+import { parentalFlowEnabled } from "@/server/age.service";
 import { previewInvitation } from "@/server/invitation.service";
 import { getMe } from "@/server/me.service";
 
@@ -55,6 +56,7 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
             firstName={me.firstName ?? ""}
             lastName={me.lastName ?? ""}
             birthDate={me.birthDate ?? ""}
+            parentalFlow={parentalFlowEnabled()}
           />
         ) : (
           <SignInForm

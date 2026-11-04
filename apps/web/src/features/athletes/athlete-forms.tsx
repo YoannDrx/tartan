@@ -60,6 +60,7 @@ export const AthleteDialog = ({
       groupIds: [],
     },
   );
+  const [missingBirth, setMissingBirth] = useState(false);
   const { execute, isPending, result } = useAction(saveAthleteAction, {
     onSuccess: ({ data }) => {
       setOpen(false);
@@ -80,7 +81,8 @@ export const AthleteDialog = ({
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault();
-          execute({ ...v, disciplines: ["high_jump"] });
+          setMissingBirth(!v.birthDate);
+          if (v.birthDate) execute({ ...v, disciplines: ["high_jump"] });
         }}
       >
         <div className="grid gap-4 tablet:grid-cols-2">
@@ -90,7 +92,7 @@ export const AthleteDialog = ({
           <Field label={m.onboarding.lastName} error={errors?.lastName?._errors?.[0]}>
             {(a) => <Input {...a} value={v.lastName} onChange={(e) => setV({ ...v, lastName: e.target.value })} />}
           </Field>
-          <Field label={m.invite.birthDate}>
+          <Field label={m.invite.birthDate} error={missingBirth ? m.age.athleteRequired : undefined}>
             {(a) => (
               <Input
                 {...a}

@@ -15,19 +15,22 @@ export const AcceptForm = ({
   firstName,
   lastName,
   birthDate,
+  parentalFlow,
 }: {
   token: string;
   role: "athlete" | "coach" | "assistant";
   firstName: string;
   lastName: string;
   birthDate: string;
+  parentalFlow: boolean;
 }) => {
   const router = useRouter();
   const isAthlete = role === "athlete";
   const [values, setValues] = useState({ firstName, lastName, birthDate, guardianEmail: "" });
   const [consents, setConsents] = useState({ terms: false, health: false, video: false });
   const [formError, setFormError] = useState<string | null>(null);
-  const minor = isAthlete && values.birthDate ? requiresParentalConsent(values.birthDate, new Date()) : false;
+  const minor =
+    parentalFlow && isAthlete && values.birthDate ? requiresParentalConsent(values.birthDate, new Date()) : false;
   const { execute, isPending, result } = useAction(acceptInvitationAction, {
     onSuccess: () => {
       router.push("/accueil");
@@ -51,7 +54,7 @@ export const AcceptForm = ({
           setFormError(m.invite.termsRequired);
           return;
         }
-        if (isAthlete && !values.birthDate) {
+        if (!values.birthDate) {
           setFormError(m.invite.birthRequired);
           return;
         }
@@ -87,19 +90,17 @@ export const AcceptForm = ({
           )}
         </Field>
       </div>
-      {isAthlete ? (
-        <Field label={m.invite.birthDate} error={fieldErrors?.birthDate?._errors?.[0]}>
-          {(a) => (
-            <Input
-              {...a}
-              type="date"
-              autoComplete="bday"
-              value={values.birthDate}
-              onChange={(e) => setValues({ ...values, birthDate: e.target.value })}
-            />
-          )}
-        </Field>
-      ) : null}
+      <Field label={m.invite.birthDate} error={fieldErrors?.birthDate?._errors?.[0]}>
+        {(a) => (
+          <Input
+            {...a}
+            type="date"
+            autoComplete="bday"
+            value={values.birthDate}
+            onChange={(e) => setValues({ ...values, birthDate: e.target.value })}
+          />
+        )}
+      </Field>
       {minor ? (
         <Field
           label={m.invite.guardianEmail}

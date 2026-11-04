@@ -717,6 +717,20 @@ export const fr = {
     why: "Pourquoi ? (facultatif)",
     thanks: "Merci, c'est noté.",
   },
+  age: {
+    title: "Ta date de naissance",
+    lead: "Elle manque à ton compte. Indique-la pour continuer.",
+    confirm: "Continuer",
+    required: "Indique ta date de naissance pour continuer.",
+    restrictedTitle: "Tartan est réservé aux majeurs",
+    restricted: "Tartan est réservé aux personnes majeures. Ce compte ne peut pas rejoindre ou ouvrir d'espace.",
+    restrictedNext:
+      "Tes données restent à toi : tu peux les télécharger ou supprimer ton compte. Une erreur sur ta date ? Écris-nous.",
+    athleteRestricted: "Tartan est réservé aux sportifs majeurs pour l'instant.",
+    athleteRequired: "Indique sa date de naissance.",
+    alreadySet: "Ta date de naissance est déjà enregistrée. Écris-nous pour la corriger.",
+    parentalClosed: "L'accord parental n'est pas ouvert : Tartan est réservé aux personnes majeures.",
+  },
   admin: {
     title: "Console",
     lead: "Les indicateurs du pilote, sans donnée de santé.",

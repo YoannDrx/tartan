@@ -81,7 +81,7 @@ test("sur téléphone, le coach fait l'appel sans réseau et l'appel part au ret
   await athleteContext.close();
 });
 
-test("un athlète de moins de 15 ans relance son parent depuis ses réglages", async ({ page }) => {
+test("un mineur est refusé, et le lien d'invitation reste valable", async ({ page }) => {
   await createCoachSpace(page, "Thomas");
   const link = await groupLink(page);
   await page.context().clearCookies();
@@ -91,16 +91,26 @@ test("un athlète de moins de 15 ans relance son parent depuis ses réglages", a
   await page.getByLabel("Nom", { exact: true }).fill("Test");
   const year = new Date().getFullYear() - 13;
   await page.getByLabel("Date de naissance").fill(`${year}-05-12`);
-  await page.getByLabel(m.invite.guardianEmail).fill(uniqueEmail("parent"));
+  await expect(page.getByLabel(m.invite.guardianEmail)).toHaveCount(0);
   await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
   await page.getByRole("button", { name: "Rejoindre le groupe" }).click();
-  await expect(page.getByRole("heading", { name: "Salut Jeune" })).toBeVisible();
-  await page.goto("/reglages#confidentialite");
-  await expect(
-    page.getByRole("region", { name: m.settings.privacy }).getByText(m.parental.pendingBanner),
-  ).toBeVisible();
-  await page.getByRole("button", { name: m.parental.resend }).click();
-  await expect(page.getByText(m.parental.resent)).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: m.age.restricted })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Salut Jeune" })).toHaveCount(0);
+  // L'invitation n'est pas consommée : le lien marche encore pour quelqu'un d'autre.
+  await page.context().clearCookies();
+  await page.goto(link);
+  await expect(page.getByRole("heading", { name: /t'invite à rejoindre/ })).toBeVisible();
+});
+
+test("un compte sans date confirme son âge avant d'entrer", async ({ page }) => {
+  await signUp(page, uniqueEmail("sans-date"));
+  await page.goto("/confirmer-age");
+  await expect(page.getByRole("heading", { name: m.age.title })).toBeVisible();
+  await page.getByRole("button", { name: m.age.confirm }).click();
+  await expect(page.getByText(m.invite.birthRequired)).toBeVisible();
+  await page.getByLabel("Date de naissance").fill("1985-03-14");
+  await page.getByRole("button", { name: m.age.confirm }).click();
+  await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible({ timeout: 30_000 });
 });
 
 test("un titre tapé dès l'affichage du formulaire n'est pas perdu", async ({ page }) => {

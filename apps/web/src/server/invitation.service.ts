@@ -11,6 +11,7 @@ import { InvitationEmail } from "@email/auth";
 import { fromDbDate, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
+import { assertAdultDate, parentalFlowEnabled } from "./age.service";
 import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
@@ -213,8 +214,11 @@ export const acceptInvitation = async (
   ]);
   const knownDate = knownProfile?.birthDate ?? preparedSheet?.birthDate ?? null;
   const birthDateIso = input.birthDate ?? (knownDate ? fromDbDate(knownDate) : null);
-  if (isAthlete && !birthDateIso) throw invalid(m.invite.birthRequired);
-  const minor = isAthlete && requiresParentalConsent(birthDateIso, new Date());
+  const parental = parentalFlowEnabled();
+  if (parental && isAthlete && !birthDateIso) throw invalid(m.invite.birthRequired);
+  // Refus avant la transaction : l'invitation n'est pas consommée. Une date déjà connue ne se contourne pas par la saisie.
+  await assertAdultDate(knownDate ? fromDbDate(knownDate) : birthDateIso, { actorId: actor.userId });
+  const minor = parental && isAthlete && requiresParentalConsent(birthDateIso, new Date());
   if (minor && !input.guardianEmail) throw invalid(m.invite.guardianHint);
   if (!isAthlete) {
     const alreadyMember = await prisma.organizationMember.findUnique({

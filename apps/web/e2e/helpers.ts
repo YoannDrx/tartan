@@ -49,6 +49,7 @@ export const createCoachSpace = async (page: Page, name = "Thomas") => {
   await expect(page.getByLabel("Prénom")).toHaveValue("");
   await page.getByLabel("Prénom").fill(name);
   await page.getByLabel("Nom", { exact: true }).fill("Coach");
+  await page.getByLabel("Date de naissance").fill("1985-03-14");
   await page.getByLabel("Nom du club ou de ton coaching").fill(`Coaching ${name}`);
   await page.getByLabel("Premier groupe").fill("Hauteur Élite");
   await page.getByRole("button", { name: "Créer mon espace" }).click();
