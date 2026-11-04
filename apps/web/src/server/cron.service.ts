@@ -8,6 +8,7 @@ import { firstNameOf } from "./me.service";
 import { dispatchPending, notify, notifyPublications } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
 import { audienceAthleteIds, publishRow, type Publication } from "./session.service";
+import { runCronJobs } from "./cron-runner";
 import { reconcileStripeSubscriptions } from "./stripe-subscriptions.service";
 
 // Une seule alerte, au moment où la série atteint le seuil (§ 13.2) : pas de rappel à chaque nouvelle séance.
@@ -41,39 +42,46 @@ export const closeOverdueSessions = async (now: Date = new Date()): Promise<numb
     select: { id: true, date: true, organizationId: true, organization: { select: { overdueReminders: true } } },
   });
   let closed = 0;
+  let failed = 0;
   for (const session of sessions) {
-    const date = fromDbDate(session.date);
-    if (!isOverdue(date, now)) continue;
-    const audience = await audienceAthleteIds(session.id);
-    const logged = await prisma.sessionLog.findMany({
-      where: { scheduledSessionId: session.id, athleteId: { in: audience } },
-      select: { athleteId: true },
-    });
-    const missing = audience.filter((id) => !logged.some((l) => l.athleteId === id));
-    if (missing.length === 0) continue;
-    await prisma.sessionLog.createMany({
-      data: missing.map((athleteId) => ({
-        scheduledSessionId: session.id,
-        athleteId,
-        status: "missed" as const,
-        reminderSentAt: now,
-      })),
-      skipDuplicates: true,
-    });
-    closed += missing.length;
-    await alertMissedStreak(session.organizationId, missing);
-    if (!session.organization.overdueReminders) continue;
-    const users = await prisma.athlete.findMany({
-      where: { id: { in: missing }, userId: { not: null } },
-      select: { userId: true },
-    });
-    await notify(
-      users.map((u) => u.userId as string),
-      "session_reminder",
-      { organizationId: session.organizationId, sessionId: session.id, link: `/seance/${session.id}` },
-      now,
-    );
+    try {
+      const date = fromDbDate(session.date);
+      if (!isOverdue(date, now)) continue;
+      const audience = await audienceAthleteIds(session.id);
+      const logged = await prisma.sessionLog.findMany({
+        where: { scheduledSessionId: session.id, athleteId: { in: audience } },
+        select: { athleteId: true },
+      });
+      const missing = audience.filter((id) => !logged.some((l) => l.athleteId === id));
+      if (missing.length === 0) continue;
+      await prisma.sessionLog.createMany({
+        data: missing.map((athleteId) => ({
+          scheduledSessionId: session.id,
+          athleteId,
+          status: "missed" as const,
+          reminderSentAt: now,
+        })),
+        skipDuplicates: true,
+      });
+      closed += missing.length;
+      await alertMissedStreak(session.organizationId, missing);
+      if (!session.organization.overdueReminders) continue;
+      const users = await prisma.athlete.findMany({
+        where: { id: { in: missing }, userId: { not: null } },
+        select: { userId: true },
+      });
+      await notify(
+        users.map((u) => u.userId as string),
+        "session_reminder",
+        { organizationId: session.organizationId, sessionId: session.id, link: `/seance/${session.id}` },
+        now,
+      );
+    } catch {
+      failed++;
+      log.error("cron_session_close_failed", { entityId: session.id });
+    }
   }
+  if (failed) throw new Error("cron_sessions_close_failed");
   log.info("cron_close_overdue", { count: closed });
   return closed;
 };
@@ -119,37 +127,48 @@ export const sendEveQuestions = async (now: Date = new Date()): Promise<number> 
     select: { id: true, organizationId: true },
   });
   let sent = 0;
+  let failed = 0;
   for (const session of sessions) {
-    const audience = await audienceAthleteIds(session.id);
-    const athletes = await prisma.athlete.findMany({
-      where: { id: { in: audience }, userId: { not: null }, attendance: { none: { scheduledSessionId: session.id } } },
-      select: { userId: true },
-    });
-    const users = athletes.map((a) => a.userId as string);
-    const already = await prisma.notification.findMany({
-      where: { userId: { in: users }, type: "session_eve", payload: { path: ["sessionId"], equals: session.id } },
-      select: { userId: true },
-    });
-    const remaining = users.filter((u) => !already.some((n) => n.userId === u));
-    await notify(
-      remaining,
-      "session_eve",
-      { organizationId: session.organizationId, sessionId: session.id, link: `/seance/${session.id}` },
-      now,
-    );
-    sent += remaining.length;
+    try {
+      const audience = await audienceAthleteIds(session.id);
+      const athletes = await prisma.athlete.findMany({
+        where: {
+          id: { in: audience },
+          userId: { not: null },
+          attendance: { none: { scheduledSessionId: session.id } },
+        },
+        select: { userId: true },
+      });
+      const users = athletes.map((a) => a.userId as string);
+      const already = await prisma.notification.findMany({
+        where: { userId: { in: users }, type: "session_eve", payload: { path: ["sessionId"], equals: session.id } },
+        select: { userId: true },
+      });
+      const remaining = users.filter((u) => !already.some((n) => n.userId === u));
+      await notify(
+        remaining,
+        "session_eve",
+        { organizationId: session.organizationId, sessionId: session.id, link: `/seance/${session.id}` },
+        now,
+      );
+      sent += remaining.length;
+    } catch {
+      failed++;
+      log.error("cron_session_eve_failed", { entityId: session.id });
+    }
   }
+  if (failed) throw new Error("cron_sessions_eve_failed");
   return sent;
 };
 
-export const runHourlyJobs = async (now: Date = new Date()) => {
-  const published = await publishScheduledSessions(now);
-  const closed = await closeOverdueSessions(now);
-  const eve = await sendEveQuestions(now);
-  const dispatched = await dispatchPending(now);
-  const billing = await reconcileStripeSubscriptions(now);
-  const referrals = await processReferrals(now);
-  const purged = await purgeExpiredVideos(now);
-  const digests = await sendWeeklyDigests(now);
-  return { published, closed, eve, dispatched, billing, referrals, purged, digests };
-};
+export const runHourlyJobs = (now: Date = new Date()) =>
+  runCronJobs({
+    published: () => publishScheduledSessions(now),
+    closed: () => closeOverdueSessions(now),
+    eve: () => sendEveQuestions(now),
+    dispatched: () => dispatchPending(now),
+    billing: () => reconcileStripeSubscriptions(now),
+    referrals: () => processReferrals(now),
+    purged: () => purgeExpiredVideos(now),
+    digests: () => sendWeeklyDigests(now),
+  });

@@ -154,7 +154,10 @@ export const saveGroup = async (userId: string, organizationId: string, input: G
 export const deleteGroup = async (userId: string, organizationId: string, groupId: string) => {
   const access = await requireOrgMember(userId, organizationId, "manageOrganization");
   await requireGroupInScope(access, [groupId]);
-  await prisma.group.delete({ where: { id: groupId } });
+  await prisma.$transaction([
+    prisma.assignment.deleteMany({ where: { targetType: "group", targetId: groupId } }),
+    prisma.group.delete({ where: { id: groupId } }),
+  ]);
 };
 
 export const listStaff = async (userId: string, organizationId: string) => {

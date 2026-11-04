@@ -6,6 +6,7 @@ import {
   compareTrackingRows,
   completionPct,
   hasAutonomousVersion,
+  isSessionAssigned,
   startOfWeek,
   trailingMissedCount,
 } from "@tartan/domain";
@@ -44,7 +45,7 @@ export const getTrackingGrid = async (
       id: true,
       firstName: true,
       lastName: true,
-      groups: { select: { groupId: true, group: { select: { name: true } } } },
+      groups: { select: { groupId: true, createdAt: true, group: { select: { name: true } } } },
     },
   });
   const sessions = await prisma.scheduledSession.findMany({
@@ -67,9 +68,13 @@ export const getTrackingGrid = async (
   const injuries = await activeInjuriesByAthlete(healthIds);
 
   const concerned = (s: (typeof sessions)[number], a: (typeof athletes)[number]): boolean =>
-    s.assignments.some((t) =>
-      t.targetType === "athlete" ? t.targetId === a.id : a.groups.some((g) => g.groupId === t.targetId),
-    );
+    isSessionAssigned({
+      date: fromDbDate(s.date),
+      assignments: s.assignments,
+      athleteId: a.id,
+      groups: a.groups.map((g) => ({ groupId: g.groupId, joinedOn: todayIso(g.createdAt) })),
+      hasLog: s.logs.some((l) => l.athleteId === a.id),
+    });
   const visibleSessions = sessions.filter((s) => athletes.some((a) => concerned(s, a)));
 
   const rows = athletes.map((a) => {
@@ -126,7 +131,7 @@ export const getAlerts = async (
     select: {
       id: true,
       firstName: true,
-      groups: { select: { groupId: true } },
+      groups: { select: { groupId: true, createdAt: true } },
     },
   });
   const sessions = await prisma.scheduledSession.findMany({
@@ -147,9 +152,13 @@ export const getAlerts = async (
   const alerts: CoachAlert[] = [];
   for (const a of athletes) {
     const mine = sessions.filter((s) =>
-      s.assignments.some((t) =>
-        t.targetType === "athlete" ? t.targetId === a.id : a.groups.some((g) => g.groupId === t.targetId),
-      ),
+      isSessionAssigned({
+        date: fromDbDate(s.date),
+        assignments: s.assignments,
+        athleteId: a.id,
+        groups: a.groups.map((g) => ({ groupId: g.groupId, joinedOn: todayIso(g.createdAt) })),
+        hasLog: s.logs.some((l) => l.athleteId === a.id),
+      }),
     );
     const entries = mine.map((s) => ({
       date: fromDbDate(s.date),

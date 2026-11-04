@@ -15,3 +15,4 @@ export * from "./referrals";
 export * from "./plans";
 export * from "./starter-library";
 export * from "./training-load";
+export { isSessionAssigned } from "./session-audience";
