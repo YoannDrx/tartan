@@ -6,8 +6,8 @@ Objectif accepté le 3 novembre 2026 : implémenter le plan de l'audit, corriger
 
 - [ ] Notifications : tentatives persistantes par appareil/canal, erreurs web et Expo, receipts, reprise e-mail, concurrence, échecs visibles.
 - [ ] Abonnements : désordre et concurrence des webhooks, synchronisation Stripe, Checkout simultanés, réconciliation.
-- [ ] Médias Instagram : conservation à l'édition mobile et formulaire cohérent.
-- [ ] Guide de démarrage : progression réelle du coach, première validation.
+- [x] Médias Instagram : conservation à l'édition mobile et formulaire cohérent.
+- [x] Guide de démarrage : progression réelle du coach, première validation.
 - [ ] Suppression et confidentialité : prestataires, cache hors ligne, retrait du consentement, reprise après erreur.
 
 ## B — Services
@@ -20,7 +20,7 @@ Objectif accepté le 3 novembre 2026 : implémenter le plan de l'audit, corriger
 
 ## C — Usage
 
-- [ ] Parcours de première séance et invitation guidé.
+- [x] Parcours de première séance et invitation guidé.
 - [ ] Constructeur progressif et aperçu athlète ; libellés des filtres vidéo.
 - [ ] États synchronisation/reprise explicites ; actions après validation et aide.
 - [ ] Appel et parcours coach à une main ; accessibilité et gros caractères.
@@ -50,6 +50,13 @@ Objectif accepté le 3 novembre 2026 : implémenter le plan de l'audit, corriger
 - [ ] Répétition avec un nouveau coach, nettoyage démonstration approprié, lancement et surveillance.
 
 ## Journal des preuves
+
+- 4 novembre, exécution du plan V1 (`docs/plan-implementation-v1.pdf`), lots A1 à G9 et section Usage, une PR par lot. Tests : 371 web, 136 mobile, 66 domaine ; Playwright en production locale, 42 réussis et 10 ignorés, plus le test vidéo en mode développement. Cases cochées seulement quand le code suffit à le prouver. Tout le reste attend un paiement, un compte, un vrai téléphone ou le juriste : voir § 7 et § 8 du plan.
+  - A : notifications, abonnements, suppression et confidentialité sont codés (C1, C2, C3, E1, F4), mais restent à éprouver en réel (appareils, bac à sable Stripe, effacement chez Mux).
+  - B : isolation codée (A2) ; le jeton Blob est encore commun aux trois environnements et `preview.tartan.coach` n'existe pas (T3). Liens : 404 sans configuration (G3), variables à poser (T7, T8). Restauration non rejouée. Surveillance : signal de vie codé (A3), sonde externe à créer (T3).
+  - C : aperçu athlète, filtre vidéo par athlète, aide dans les réglages, régularité de l'athlète, actions après validation livrés. Appel à une main et gros caractères : non retouchés, à juger sur téléphone (S15, S16).
+  - D, E, F, G : recette terrain, paiement réel, juriste, stores et pilote restent à faire ; le code et les textes sont prêts (G1 à G9).
+  - Écarts au plan, assumés : deux adresses de signal de vie au lieu d'une (seuils différents) ; retrait de l'accord vidéo traité par une tâche quotidienne plutôt qu'une date différée dans la file, pour supprimer la ligne et le fichier ensemble ; le préavis d'inactivité ajoute `inactivity_notice_at`.
 
 - 4 novembre : reprise depuis `main` (`2e1f9a1`) et prise en compte de l'audit du 4 novembre. Nouveau lot : retrait effectif des groupes dans le périmètre du coach, nettoyage des attributions à la suppression, exclusion des anciennes séances de groupe avant l'arrivée (jour de Paris), conservation des validations existantes, isolation des tâches horaires et des séances en échec. Reprises des notifications espacées à 15 minutes, décision explicite du fondateur pour limiter les réveils de Neon. Pas de migration de schéma pour ce lot. Les anciennes validations ne sont pas supprimées ou recalculées automatiquement.
 

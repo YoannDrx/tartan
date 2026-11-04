@@ -234,6 +234,20 @@ export default async function ReglagesPage() {
         }
       : null,
     {
+      id: "aide",
+      title: m.settings.help,
+      content: (
+        <div className="flex flex-col gap-2">
+          <p>{m.settings.helpDetail}</p>
+          <div>
+            <Button asChild size="sm" variant="secondary">
+              <a href="/contact">{m.settings.helpContact}</a>
+            </Button>
+          </div>
+        </div>
+      ),
+    },
+    {
       id: "compte",
       title: m.settings.account,
       content: (

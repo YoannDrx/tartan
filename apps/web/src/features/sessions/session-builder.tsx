@@ -2,7 +2,7 @@
 
 import type { ExerciseSummary, Prescription, SessionDraft, SessionType } from "@tartan/contracts";
 import { formatPrescription } from "@tartan/domain";
-import { m, strengthTestLabel } from "@tartan/i18n";
+import { m, strengthTestLabel, formatDateLong } from "@tartan/i18n";
 import { ArrowDown, ArrowUp, ChevronRight, GripVertical, Plus, Search, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
@@ -226,6 +226,7 @@ export const SessionBuilder = ({
   );
   const [overrides, setOverrides] = useState<Override[]>(() => attachItemKeys(initial?.overrides ?? [], start.club));
   const [chosenTemplate, setChosenTemplate] = useState("");
+  const [previewing, setPreviewing] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ blockKey: string; itemKey: string } | null>(null);
@@ -857,6 +858,9 @@ export const SessionBuilder = ({
         >
           {m.builder.saveTemplate}
         </Button>
+        <Button variant="secondary" onClick={() => setPreviewing(true)}>
+          {m.builder.preview}
+        </Button>
         {initial ? (
           <ConfirmDialog
             title="Supprimer cette séance ?"
@@ -870,6 +874,43 @@ export const SessionBuilder = ({
           />
         ) : null}
       </div>
+      {/* Ce que l'athlète verra, avant de publier : aucune surprise sur le terrain. */}
+      <Dialog open={previewing} onOpenChange={setPreviewing} title={title.trim() || m.builder.preview} wide>
+        <div className="flex flex-col gap-4">
+          <p className="t-caption font-normal text-soft">
+            {[formatDateLong(date), startTime, location.trim(), durationMin ? `${durationMin} min` : ""]
+              .filter(Boolean)
+              .join(", ")}
+          </p>
+          {coachNote.trim() ? <p className="whitespace-pre-line">{coachNote.trim()}</p> : null}
+          {club.every((block) => block.items.length === 0) ? (
+            <p className="text-soft">{m.builder.previewEmpty}</p>
+          ) : null}
+          {club
+            .filter((block) => block.items.length > 0)
+            .map((block) => (
+              <section key={block.key} className="flex flex-col gap-2">
+                <h3 className="t-section">{block.name}</h3>
+                <ul className="divide-y divide-card-line">
+                  {block.items.map((item) => {
+                    const exercise = byId.get(item.exerciseId);
+                    return (
+                      <li key={item.key} className="py-2">
+                        <p className="font-semibold">{exercise?.name}</p>
+                        {formatPrescription(item.prescription) ? (
+                          <p className="t-num">{formatPrescription(item.prescription)}</p>
+                        ) : null}
+                        {exercise?.cues.length ? (
+                          <p className="t-caption font-normal text-soft">{exercise.cues.join(", ")}</p>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
+        </div>
+      </Dialog>
       <Dialog
         open={editing !== null}
         onOpenChange={(open) => !open && setEditing(null)}

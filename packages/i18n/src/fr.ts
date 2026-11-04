@@ -418,6 +418,8 @@ export const fr = {
     activeInjury: "Blessure active",
   },
   builder: {
+    preview: "Aperçu athlète",
+    previewEmpty: "Ajoute un exercice pour voir la séance telle que l'athlète la verra.",
     tempo: "Tempo",
     tempoHint: "Par exemple 3-1-1",
     deleteLosesLogs: (count: number) =>
@@ -524,6 +526,9 @@ export const fr = {
     instagramBlocked: "L'auteur de cette vidéo n'autorise la lecture que sur Instagram.",
   },
   athletes: {
+    regularityTitle: "Tes 4 dernières semaines",
+    regularity: (done: number, total: number) =>
+      `${done} séance${done > 1 ? "s" : ""} faite${done > 1 ? "s" : ""} sur ${total}`,
     deleteEntry: "Retirer cette saisie ?",
     deleteEntryDetail: (label: string) => `« ${label} » sera retiré. Pour corriger une erreur, ressaisis-le ensuite.`,
     noteLabel: "cette note",
@@ -608,7 +613,8 @@ export const fr = {
     barSheet: "Feuille de barres",
     noDate: "Sans date",
     noBar: "Barre non renseignée",
-    forAthlete: (name: string) => `Sauts de ${name}`,
+    forAthlete: (name: string) => `Vidéos de ${name}`,
+    filterLabel: "Filtrer par athlète",
     allAthletes: "Tous les athlètes",
     previousFrame: "Image précédente",
     nextFrame: "Image suivante",
@@ -706,6 +712,9 @@ export const fr = {
     blockedEmpty: "Tu n'as bloqué personne.",
     blockedUnknown: "Utilisateur",
     unblock: "Débloquer",
+    help: "Aide",
+    helpDetail: "Une question, un souci à la piste ? Écris-nous, on répond vite.",
+    helpContact: "Nous écrire",
     revokeOtherSessions: "Déconnecter mes autres appareils",
     revokeOtherSessionsDone: "Tes autres appareils sont déconnectés.",
     plan: "Offre",

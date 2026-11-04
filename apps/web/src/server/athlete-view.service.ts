@@ -258,6 +258,23 @@ export const getAthleteSession = async (
   };
 };
 
+// Quatre semaines de régularité : un encouragement simple, sans donnée de santé et sans notification en plus.
+export const getMyRegularity = async (userId: string, organizationId: string, now: Date = new Date()) => {
+  const access = await requireAthleteAccess(userId, organizationId);
+  const today = todayIso(now);
+  const logs = await prisma.sessionLog.findMany({
+    where: {
+      athleteId: access.athleteId,
+      session: { date: { gte: toDbDate(addDays(today, -27)), lte: toDbDate(today) } },
+    },
+    select: { status: true },
+  });
+  return {
+    done: logs.filter((log) => log.status === "done" || log.status === "partial").length,
+    total: logs.length,
+  };
+};
+
 export const logSession = async (userId: string, organizationId: string, sessionId: string, raw: SessionLogInput) => {
   const input = sessionLogInput.parse(raw);
   const access = await requireAthleteAccess(userId, organizationId);
