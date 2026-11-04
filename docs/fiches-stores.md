@@ -52,7 +52,7 @@ Aucun suivi publicitaire (« Tracking : non »). Toutes les données sont liées
 | Catégorie Apple                        | Données réelles                                                     | Finalité déclarée |
 | -------------------------------------- | ------------------------------------------------------------------- | ----------------- |
 | Coordonnées : nom                      | Prénom, nom                                                         | Fonctionnement    |
-| Coordonnées : e-mail                   | Compte ; e-mail d'un parent pour un mineur                          | Fonctionnement    |
+| Coordonnées : e-mail                   | Compte                                                              | Fonctionnement    |
 | Santé et forme : santé                 | Effort ressenti, douleurs, blessures. Avec consentement             | Fonctionnement    |
 | Santé et forme : forme                 | Séances validées, durées, charges, tests, records, essais de saut   | Fonctionnement    |
 | Contenu utilisateur : photos ou vidéos | Vidéos de saut filmées ou choisies, images d'aperçu                 | Fonctionnement    |

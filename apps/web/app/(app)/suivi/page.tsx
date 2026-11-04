@@ -1,3 +1,4 @@
+import { StatusIcon } from "@/components/status-cell";
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,7 +13,7 @@ import { requireStaffSpace } from "@/features/shell/space";
 import { AlertList } from "@/features/tracking/alert-list";
 import { TrackingTable } from "@/features/tracking/tracking-grid";
 import { listGroups } from "@/server/org.service";
-import { getAlerts, getTrackingGrid } from "@/server/tracking.service";
+import { getAlerts, getTrackingGrid, onboardingProgress } from "@/server/tracking.service";
 import { listAthletes } from "@/server/athlete.service";
 
 export const metadata: Metadata = { title: m.coach.trackingTitle };
@@ -26,11 +27,12 @@ export default async function SuiviPage({
   const { semaine, groupe } = await searchParams;
   const week = startOfWeek(semaine && /^\d{4}-\d{2}-\d{2}$/.test(semaine) ? semaine : todayIso());
   const access = await requireOrgMember(actor.userId, organizationId, "viewTracking");
-  const [grid, alerts, groups, athletes] = await Promise.all([
+  const [grid, alerts, groups, athletes, progress] = await Promise.all([
     getTrackingGrid(actor.userId, organizationId, { week, groupId: groupe }),
     getAlerts(actor.userId, organizationId),
     listGroups(access),
     listAthletes(actor.userId, organizationId),
+    onboardingProgress(actor.userId, organizationId),
   ]);
   const query = (params: { semaine?: string; groupe?: string }) => {
     const next = new URLSearchParams();
@@ -39,8 +41,8 @@ export default async function SuiviPage({
     const text = next.toString();
     return text ? `/suivi?${text}` : "/suivi";
   };
-  // Un espace neuf a déjà une bibliothèque : seul le premier athlète dit que le coach a démarré.
-  const firstRun = athletes.length === 0;
+  // Le guide reste jusqu'à la première validation reçue : c'est elle qui prouve que tout marche.
+  const firstRun = progress.validations === 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -49,7 +51,10 @@ export default async function SuiviPage({
         actions={
           <>
             <Button asChild size="sm" variant="secondary">
-              <a href={`/api/v1/orgs/${organizationId}/tracking/export?from=${week}&to=${addDays(week, 6)}`} download>
+              <a
+                href={`/api/v1/orgs/${organizationId}/tracking/export?from=${week}&to=${addDays(week, 6)}${groupe ? `&groupId=${groupe}` : ""}`}
+                download
+              >
                 {m.coach.exportCsv}
               </a>
             </Button>
@@ -91,18 +96,37 @@ export default async function SuiviPage({
           </h2>
           <ol className="divide-y divide-card-line">
             {[
-              { href: "/reglages#invitations", title: m.home.inviteAthletes, detail: m.home.inviteAthletesDetail },
-              { href: "/exercices?nouveau=1", title: m.home.createExercise, detail: m.home.createExerciseDetail },
-              { href: "/seances/nouvelle", title: m.home.createSession, detail: m.home.createSessionDetail },
+              {
+                href: "/reglages#invitations",
+                title: m.home.inviteAthletes,
+                detail: m.home.inviteAthletesDetail,
+                done: progress.athletes > 0,
+              },
+              {
+                href: "/seances/nouvelle",
+                title: m.home.createSession,
+                detail: m.home.createSessionDetail,
+                done: progress.publishedSessions > 0,
+              },
+              {
+                href: "/calendrier",
+                title: m.home.firstValidation,
+                detail: m.home.firstValidationDetail,
+                done: false,
+              },
             ].map((step, i) => (
               <li key={step.href}>
                 <Link
                   href={step.href}
                   className="flex min-h-11 items-center gap-4 px-4 py-3 text-inherit no-underline hover:bg-raise"
                 >
-                  <span aria-hidden className="t-num text-[28px]">
-                    {i + 1}
-                  </span>
+                  {step.done ? (
+                    <StatusIcon status="done" size={28} />
+                  ) : (
+                    <span aria-hidden className="t-num text-[28px]">
+                      {i + 1}
+                    </span>
+                  )}
                   <span className="flex flex-col">
                     <span className="font-semibold">{step.title}</span>
                     <span className="t-caption font-normal text-soft">{step.detail}</span>

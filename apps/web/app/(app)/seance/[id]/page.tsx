@@ -59,7 +59,7 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
       <Button asChild size="lg" variant={validated || session.date <= todayIso() ? "secondary" : "primary"}>
         <Link href={`/seance/${id}/mode`}>
           <Play aria-hidden className="size-4 fill-current" />
-          {m.today.start}
+          {validated ? m.today.review : m.today.start}
         </Link>
       </Button>
       {session.blocks.map((block) => (

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { outbox } from "@/lib/mail";
 import {
@@ -52,6 +52,8 @@ import { todayIso } from "@/lib/dates";
 import { addDays } from "@tartan/domain";
 import { pilotMetrics } from "@/server/metrics.service";
 import { addAthlete, addStaff, makeOrg, makeUser } from "./helpers";
+
+afterEach(() => vi.unstubAllEnvs());
 
 const TODAY = todayIso();
 
@@ -312,6 +314,7 @@ describe("invitations", () => {
   });
 
   it("refuse un athlète sans date de naissance, sinon un enfant consentirait seul", async () => {
+    vi.stubEnv("PARENTAL_FLOW_ENABLED", "true");
     const { link } = await createInvitation(a.owner.userId, a.organizationId, {
       kind: "group_link",
       role: "athlete",
@@ -328,6 +331,7 @@ describe("invitations", () => {
   });
 
   it("garde la date connue au lieu de l'effacer, et demande un parent si elle révèle un mineur", async () => {
+    vi.stubEnv("PARENTAL_FLOW_ENABLED", "true");
     const { link } = await createInvitation(a.owner.userId, a.organizationId, {
       kind: "group_link",
       role: "athlete",
@@ -468,6 +472,7 @@ describe("mineurs et consentements", () => {
   const under15 = `${new Date().getUTCFullYear() - 13}-01-01`;
 
   it("exige l'e-mail d'un parent sous 15 ans et masque santé et vidéos", async () => {
+    vi.stubEnv("PARENTAL_FLOW_ENABLED", "true");
     const org = await makeOrg("Paul");
     const { link } = await createInvitation(org.owner.userId, org.organizationId, {
       kind: "group_link",

@@ -10,32 +10,30 @@ Rôle à faire confirmer : Yodev est-il responsable de traitement, ou sous-trait
 
 ## Registre des traitements
 
-| Traitement                             | Données                                                        | Personnes                 | Base envisagée                    | Durée en place                         |
-| -------------------------------------- | -------------------------------------------------------------- | ------------------------- | --------------------------------- | -------------------------------------- |
-| Compte et connexion                    | E-mail, nom, date de naissance, photo, sessions                | Coachs, athlètes          | Contrat                           | Jusqu'à la suppression du compte       |
-| Entraînement                           | Séances, validations, charges, tests, records                  | Athlètes                  | Contrat                           | Tant que l'athlète reste dans l'espace |
-| Santé                                  | Blessures, douleurs, effort ressenti                           | Athlètes                  | Consentement explicite, art. 9    | Jusqu'au retrait ou à la suppression   |
-| Vidéos                                 | Sauts filmés, annotations                                      | Athlètes, souvent mineurs | Consentement                      | Selon l'offre : 30 jours, 1 an, 3 ans  |
-| Mineurs de moins de 15 ans             | Toutes les données ci-dessus                                   | Athlètes, un parent       | Accord d'un parent et de l'enfant | Comme ci-dessus                        |
-| Notifications                          | Jeton d'appareil, texte neutre                                 | Tous                      | Intérêt légitime                  | Jusqu'à la déconnexion                 |
-| Facturation                            | Client Stripe, abonnement                                      | Coachs                    | Contrat, obligation légale        | 10 ans pour les factures               |
-| Parrainage                             | Code, attribution                                              | Coachs, athlètes majeurs  | Intérêt légitime                  | Durée du compte                        |
-| Journaux                               | Événements techniques, accès santé                             | Tous                      | Intérêt légitime                  | 1 an pour les accès sensibles          |
-| Suivi d'erreurs (si Sentry est activé) | Message et pile d'erreur, sans utilisateur ni corps de requête | Tous                      | Intérêt légitime                  | Selon Sentry                           |
+| Traitement                             | Données                                                        | Personnes                | Base envisagée                 | Durée en place                         |
+| -------------------------------------- | -------------------------------------------------------------- | ------------------------ | ------------------------------ | -------------------------------------- |
+| Compte et connexion                    | E-mail, nom, date de naissance, photo, sessions                | Coachs, athlètes         | Contrat                        | Jusqu'à la suppression du compte       |
+| Entraînement                           | Séances, validations, charges, tests, records                  | Athlètes                 | Contrat                        | Tant que l'athlète reste dans l'espace |
+| Santé                                  | Blessures, douleurs, effort ressenti                           | Athlètes                 | Consentement explicite, art. 9 | Jusqu'au retrait ou à la suppression   |
+| Vidéos                                 | Sauts filmés, annotations                                      | Athlètes majeurs         | Consentement                   | Selon l'offre : 30 jours, 1 an, 3 ans  |
+| Notifications                          | Jeton d'appareil, texte neutre                                 | Tous                     | Intérêt légitime               | Jusqu'à la déconnexion                 |
+| Facturation                            | Client Stripe, abonnement                                      | Coachs                   | Contrat, obligation légale     | 10 ans pour les factures               |
+| Parrainage                             | Code, attribution                                              | Coachs, athlètes majeurs | Intérêt légitime               | Durée du compte                        |
+| Journaux                               | Événements techniques, accès santé                             | Tous                     | Intérêt légitime               | 1 an pour les accès sensibles          |
+| Suivi d'erreurs (si Sentry est activé) | Message et pile d'erreur, sans utilisateur ni corps de requête | Tous                     | Intérêt légitime               | Selon Sentry                           |
 
 ## Sous-traitants
 
-| Prestataire | Rôle                  | Localisation à vérifier                                       | Contrat à signer ou accepter                       |
-| ----------- | --------------------- | ------------------------------------------------------------- | -------------------------------------------------- |
-| Vercel      | Hébergement, images   | États-Unis, région Francfort pour les fonctions et les images | DPA                                                |
-| Neon        | Base de données       | Francfort                                                     | DPA                                                |
-| Mux         | Vidéo                 | États-Unis                                                    | DPA, à regarder de près pour les vidéos de mineurs |
-| Resend      | E-mails               | États-Unis ou UE                                              | DPA                                                |
-| Expo        | Notifications mobiles | États-Unis                                                    | DPA                                                |
-| Stripe      | Paiement web          | UE, États-Unis                                                | DPA inclus aux conditions                          |
-| RevenueCat  | Achats intégrés       | États-Unis                                                    | DPA                                                |
-| Sentry      | Suivi d'erreurs       | Région Allemagne                                              | DPA                                                |
-| GitHub      | Copie de sauvegarde   | États-Unis, chiffrée avant envoi, clé gardée par l'éditeur    | DPA, à confirmer avec le juriste                   |
+| Prestataire | Rôle                  | Localisation à vérifier                                       | Contrat à signer ou accepter     |
+| ----------- | --------------------- | ------------------------------------------------------------- | -------------------------------- |
+| Vercel      | Hébergement, images   | États-Unis, région Francfort pour les fonctions et les images | DPA                              |
+| Neon        | Base de données       | Francfort                                                     | DPA                              |
+| Mux         | Vidéo                 | États-Unis                                                    | DPA                              |
+| Resend      | E-mails               | États-Unis ou UE                                              | DPA                              |
+| Expo        | Notifications mobiles | États-Unis                                                    | DPA                              |
+| Stripe      | Paiement web          | UE, États-Unis                                                | DPA inclus aux conditions        |
+| Sentry      | Suivi d'erreurs       | Région Allemagne                                              | DPA                              |
+| GitHub      | Copie de sauvegarde   | États-Unis, chiffrée avant envoi, clé gardée par l'éditeur    | DPA, à confirmer avec le juriste |
 
 YouTube et Instagram ne sont pas des sous-traitants : les vidéos de la bibliothèque commune restent chez eux et Tartan n'en garde que la référence et l'auteur. Le lecteur Instagram ne charge qu'au clic, avec une mention. Le lecteur YouTube passe par `youtube-nocookie.com`.
 

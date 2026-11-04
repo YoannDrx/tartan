@@ -17,6 +17,7 @@ import { NotificationEmail } from "@email/auth";
 import { env } from "@/lib/env";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
 import { log } from "@/lib/logger";
+import { hasBearer } from "@/lib/secure-compare";
 import { sendEmail } from "@/lib/mail";
 import { deleteAsset, videoEnabled } from "@/lib/mux";
 import { prisma } from "@/lib/prisma";
@@ -157,7 +158,11 @@ export const createCheckout = async (
       background_color: "#15161A",
       icon: { type: "url", url: `${appUrl}/icon-512.png` },
     },
-    custom_text: { submit: { message: `En validant, tu acceptes les conditions de vente : ${appUrl}/cgv` } },
+    custom_text: {
+      submit: {
+        message: `En validant, tu acceptes les conditions de vente (${appUrl}/cgv) et tu demandes que le service commence tout de suite. Si tu te rétractes sous 14 jours, le service déjà fourni reste dû.`,
+      },
+    },
     success_url: `${appUrl}/abonnement?merci=1`,
     cancel_url: `${appUrl}/abonnement`,
   });
@@ -443,6 +448,5 @@ export const purgeExpiredVideos = async (now: Date = new Date()): Promise<number
 };
 
 export const assertRevenueCatAuth = (header: string | null): void => {
-  const expected = env().REVENUECAT_WEBHOOK_AUTH;
-  if (!expected || header !== `Bearer ${expected}`) throw invalid();
+  if (!hasBearer(header, env().REVENUECAT_WEBHOOK_AUTH)) throw invalid();
 };

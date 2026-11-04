@@ -24,6 +24,7 @@ import {
   createInvitationAction,
   groupLinkAction,
   resendInvitationAction,
+  regenerateInvitationLinkAction,
   revokeInvitationAction,
 } from "@/features/invitations/invitation.action";
 import {
@@ -36,6 +37,7 @@ import {
   updateProfileAction,
   uploadAvatarAction,
   uploadLogoAction,
+  revokeIcalLinkAction,
 } from "./settings.action";
 
 type AnyErrors = Record<string, { _errors?: string[] }> | undefined;
@@ -192,6 +194,43 @@ export const DeleteAccount = ({ detail }: { detail: string }) => {
         </Button>
       </form>
     </Dialog>
+  );
+};
+
+export const RevokeIcalLink = () => {
+  const { execute, isPending } = useAction(revokeIcalLinkAction, { onError: onErr });
+  return (
+    <ConfirmDialog
+      trigger={
+        <Button size="sm" variant="secondary" disabled={isPending}>
+          {m.settings.calendarRevoke}
+        </Button>
+      }
+      title={m.settings.calendarRevoke}
+      description={m.settings.calendarRevokeDetail}
+      tone="neutral"
+      confirmLabel={m.settings.calendarRevoke}
+      onConfirm={() => execute()}
+    />
+  );
+};
+
+export const RevokeOtherSessionsButton = () => {
+  const [state, setState] = useState<"idle" | "pending" | "done" | "error">("idle");
+  const revoke = async () => {
+    setState("pending");
+    const { error } = await authClient.revokeOtherSessions();
+    setState(error ? "error" : "done");
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      <Button size="sm" variant="secondary" disabled={state === "pending"} onClick={() => void revoke()}>
+        {m.settings.revokeOtherSessions}
+      </Button>
+      <p role="status" className="t-caption text-soft">
+        {state === "done" ? m.settings.revokeOtherSessionsDone : state === "error" ? m.common.genericError : ""}
+      </p>
+    </div>
   );
 };
 
@@ -694,6 +733,13 @@ export const InvitationList = ({
 }) => {
   const router = useRouter();
   const revoke = useAction(revokeInvitationAction, { onSuccess: () => router.refresh(), onError: onErr });
+  const regenerate = useAction(regenerateInvitationLinkAction, {
+    onSuccess: () => {
+      toast.ok(m.settings.linkRegenerated);
+      router.refresh();
+    },
+    onError: onErr,
+  });
   const resend = useAction(resendInvitationAction, {
     onSuccess: () => toast.ok("Invitation relancée."),
     onError: onErr,
@@ -718,6 +764,11 @@ export const InvitationList = ({
             {inv.status !== "accepted" && inv.status !== "revoked" && inv.email ? (
               <Button size="sm" variant="quiet" onClick={() => resend.execute({ id: inv.id })}>
                 {m.settings.resend}
+              </Button>
+            ) : null}
+            {inv.status !== "revoked" && (inv.kind === "group_link" || inv.kind === "qr") ? (
+              <Button size="sm" variant="quiet" onClick={() => regenerate.execute({ id: inv.id })}>
+                {m.settings.regenerateLink}
               </Button>
             ) : null}
             {inv.status !== "revoked" ? (

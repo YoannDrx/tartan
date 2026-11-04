@@ -12,6 +12,7 @@ import {
   createInvitation,
   groupInvitationLink,
   resendInvitation,
+  regenerateInvitationLink,
   revokeInvitation,
 } from "@/server/invitation.service";
 
@@ -43,6 +44,10 @@ export const createInvitationAction = spaceAction
 export const groupLinkAction = spaceAction
   .inputSchema(z.object({ groupId: uuid }))
   .action(({ parsedInput, ctx }) => groupInvitationLink(ctx.userId, ctx.organizationId, parsedInput.groupId));
+
+export const regenerateInvitationLinkAction = spaceAction
+  .inputSchema(z.object({ id: uuid }))
+  .action(({ parsedInput, ctx }) => regenerateInvitationLink(ctx.userId, ctx.organizationId, parsedInput.id));
 
 export const revokeInvitationAction = spaceAction
   .inputSchema(z.object({ id: uuid }))

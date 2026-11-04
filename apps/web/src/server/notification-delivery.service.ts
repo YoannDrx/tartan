@@ -30,6 +30,7 @@ const EMAIL_FALLBACK: ReadonlySet<string> = new Set([
   "session_eve",
   "session_autonomous",
   "session_updated",
+  "session_cancelled",
   "video_shared",
   "pain_alert",
   "missed_streak",
@@ -42,11 +43,13 @@ const CHANNELS: Record<NotificationType, string> = {
   session_autonomous: "seances",
   session_reminder: "seances",
   session_updated: "seances",
+  session_cancelled: "seances",
   announcement: "seances",
   video_shared: "videos",
   comment: "videos",
   pain_alert: "alertes-coach",
   missed_streak: "alertes-coach",
+  member_joined: "seances",
 };
 
 export const webLink = (link: string | undefined, organizationId: string | undefined): string | undefined => {
@@ -153,7 +156,8 @@ const send = async (delivery: Delivery): Promise<DeliveryResult | { state: "skip
       priority: type === "pain_alert" ? "high" : "default",
       categoryId: type === "session_eve" ? "attendance" : type === "session_reminder" ? "validate" : undefined,
       data: {
-        type,
+        // Aucune indication de santé ne part vers Expo, Apple ou Google. L'app ne route pas sur ce type.
+        type: type === "pain_alert" || type === "missed_streak" ? "alert" : type,
         link: payload.link,
         organizationId: payload.organizationId,
         sessionId: payload.sessionId,
@@ -286,12 +290,14 @@ export const dispatchPending = async (now = new Date(), notificationIds?: string
 // Agrégats techniques uniquement : aucun destinataire, jeton ni contenu dans la supervision.
 export const notificationDeliveryHealth = async (now = new Date()) => {
   const since = new Date(now.getTime() - 24 * 60 * MINUTE);
-  const [pending, failedLast24h, undeliveredLast24h] = await Promise.all([
+  const lateSince = new Date(now.getTime() - 30 * MINUTE);
+  const [pending, late, failedLast24h, undeliveredLast24h] = await Promise.all([
     prisma.notificationDelivery.count({ where: { state: { in: PENDING } } }),
+    prisma.notificationDelivery.count({ where: { state: { in: PENDING }, nextAttemptAt: { lte: lateSince } } }),
     prisma.notificationDelivery.count({ where: { state: "failed", updatedAt: { gte: since } } }),
     prisma.notification.count({
       where: { sentAt: null, deliveryCompletedAt: { gte: since }, deliveries: { some: {} } },
     }),
   ]);
-  return { pending, failedLast24h, undeliveredLast24h };
+  return { pending, late, failedLast24h, undeliveredLast24h };
 };

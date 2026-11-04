@@ -11,9 +11,15 @@ import { spaceAction } from "@/features/shell/space-action";
 import { SPACE_COOKIE } from "@/features/shell/space";
 import { deleteAccount } from "@/server/account.service";
 import { resendParentalConsent, setConsent } from "@/server/consent.service";
+import { revokeIcalLink } from "@/server/ical.service";
 import { saveAvatar, updateProfile } from "@/server/me.service";
 import { deleteGroup, saveGroup, saveOrganizationLogo, updateOrganization } from "@/server/org.service";
 import { leaveOrganization, removeAthlete, removeCoach, updateMember } from "@/server/members.service";
+
+export const revokeIcalLinkAction = spaceAction.action(async ({ ctx }) => {
+  await revokeIcalLink(ctx.userId, ctx.organizationId);
+  revalidatePath("/reglages");
+});
 
 export const updateProfileAction = authAction.inputSchema(profileInput).action(async ({ parsedInput, ctx }) => {
   await updateProfile(ctx.actor.userId, parsedInput);

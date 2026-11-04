@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client";
 import {
   type CalendarResponse,
   type SaveScheduledSessionInput,
@@ -9,7 +10,7 @@ import {
 } from "@tartan/contracts";
 import { addDays, generateAutonomousBlocks, hasAutonomousVersion } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { fromDbDate, toDbDate } from "@/lib/dates";
+import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
 import { forbidden, invalid, notFound } from "@/lib/errors";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -21,7 +22,7 @@ import {
   coachGroupIds,
   type Access,
 } from "./access";
-import { activeAudienceIds } from "./session-audience.service";
+import { activeAudienceIds, athleteAssignedWhere } from "./session-audience.service";
 export { activeAudienceIds, audienceAthleteIds } from "./session-audience.service";
 import { mediaSnapshot } from "./exercise.service";
 import { firstNameOf } from "./me.service";
@@ -189,9 +190,10 @@ export const publishRow = async (
 export const getSessionForEdit = async (userId: string, organizationId: string, sessionId: string) => {
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   const session = await requireSessionWrite(access, sessionId);
-  const [rows, overrides] = await Promise.all([
+  const [rows, overrides, logCount] = await Promise.all([
     prisma.assignment.findMany({ where: { scheduledSessionId: sessionId } }),
     prisma.athleteOverride.findMany({ where: { scheduledSessionId: sessionId } }),
+    prisma.sessionLog.count({ where: { scheduledSessionId: sessionId, status: { in: ["done", "partial"] } } }),
   ]);
   // Une ancienne attribution orpheline ne doit pas empêcher de réenregistrer la séance.
   const targetIds = rows.map((a) => a.targetId);
@@ -208,6 +210,7 @@ export const getSessionForEdit = async (userId: string, organizationId: string, 
     location: session.location,
     publishedAt: session.publishedAt?.toISOString() ?? null,
     publishAt: session.publishAt?.toISOString() ?? null,
+    logCount,
     draft: sessionDraft.parse(session.draft),
     assignments: assignments.map((a) => ({ targetType: a.targetType, targetId: a.targetId })),
     overrides: overrides.map((o) => ({
@@ -221,7 +224,20 @@ export const getSessionForEdit = async (userId: string, organizationId: string, 
 export const deleteSession = async (userId: string, organizationId: string, sessionId: string) => {
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   const session = await requireSessionWrite(access, sessionId);
+  // À calculer avant : la suppression emporte les attributions.
+  const date = fromDbDate(session.date);
+  const upcoming = Boolean(session.publishedAt) && date >= todayIso();
+  const users = upcoming ? await audienceUsers(session.id) : [];
   await prisma.scheduledSession.delete({ where: { id: session.id } });
+  await notify(users, "session_cancelled", { date, organizationId, link: "/aujourdhui" });
+};
+
+export const deleteTemplate = async (userId: string, organizationId: string, templateId: string) => {
+  const access = await requireOrgMember(userId, organizationId, "manageSessions");
+  const template = await prisma.sessionTemplate.findFirst({ where: { id: templateId, organizationId } });
+  if (!template) throw notFound();
+  if (access.role !== "owner" && template.createdBy !== userId) throw forbidden();
+  await prisma.sessionTemplate.delete({ where: { id: template.id } });
 };
 
 export const moveSession = async (userId: string, organizationId: string, sessionId: string, date: string) => {
@@ -252,7 +268,11 @@ const copySession = async (
   date: string,
   groupId?: string,
 ) => {
-  const assignments = await prisma.assignment.findMany({ where: { scheduledSessionId: session.id } });
+  const [assignments, overrides] = await Promise.all([
+    prisma.assignment.findMany({ where: { scheduledSessionId: session.id } }),
+    // Vers un autre groupe, les adaptations individuelles n'ont plus de sens.
+    groupId ? [] : prisma.athleteOverride.findMany({ where: { scheduledSessionId: session.id } }),
+  ]);
   return prisma.scheduledSession.create({
     data: {
       organizationId: session.organizationId,
@@ -267,6 +287,13 @@ const copySession = async (
         create: groupId
           ? [{ targetType: "group" as const, targetId: groupId }]
           : assignments.map((a) => ({ targetType: a.targetType, targetId: a.targetId })),
+      },
+      overrides: {
+        create: overrides.map((o) => ({
+          athleteId: o.athleteId,
+          itemRef: o.itemRef,
+          prescription: o.prescription as Prisma.InputJsonValue,
+        })),
       },
     },
   });
@@ -322,10 +349,13 @@ export const listCalendar = async (
   const access = await requireOrgMember(userId, organizationId, "viewTracking");
   const scopeGroups = access.role === "owner" ? null : await coachGroupIds(access);
   const scopeAthletes = access.role === "owner" ? null : await visibleAthleteIds(access);
+  // Un athlète ne voit jamais un brouillon, ni les compétitions auxquelles il n'est pas inscrit.
+  const athleteId = access.role === "athlete" ? access.athleteId : null;
   const sessions = await prisma.scheduledSession.findMany({
     where: {
       organizationId,
       date: { gte: toDbDate(query.from), lte: toDbDate(query.to) },
+      ...(athleteId ? await athleteAssignedWhere(athleteId) : {}),
     },
     orderBy: [{ date: "asc" }, { startTime: "asc" }],
     include: { assignments: true },
@@ -336,7 +366,7 @@ export const listCalendar = async (
     if (query.groupId && !s.assignments.some((a) => a.targetType === "group" && a.targetId === query.groupId)) {
       return false;
     }
-    if (!scopeGroups || !scopeAthletes) return true;
+    if (athleteId || !scopeGroups || !scopeAthletes) return true;
     // Chaque coach voit ses séances et celles qui concernent ses athlètes (§ 5.2).
     return (
       s.createdBy === userId ||
@@ -346,7 +376,11 @@ export const listCalendar = async (
     );
   });
   const competitions = await prisma.competition.findMany({
-    where: { organizationId, date: { gte: toDbDate(query.from), lte: toDbDate(query.to) } },
+    where: {
+      organizationId,
+      date: { gte: toDbDate(query.from), lte: toDbDate(query.to) },
+      ...(athleteId ? { athletes: { some: { athleteId } } } : {}),
+    },
     orderBy: { date: "asc" },
   });
   return {
@@ -373,6 +407,12 @@ export const listCalendar = async (
 
 export const saveTemplate = async (userId: string, organizationId: string, draft: SessionDraft) => {
   await requireOrgMember(userId, organizationId, "manageSessions");
+  // Un exercice d'un autre espace ne doit pas entrer par un modèle.
+  const exerciseIds = [...new Set(draft.blocks.flatMap((block) => block.items.map((item) => item.exerciseId)))];
+  const known = await prisma.exercise.count({
+    where: { id: { in: exerciseIds }, OR: [{ organizationId }, { organizationId: null }] },
+  });
+  if (known !== exerciseIds.length) throw notFound();
   const template = await prisma.sessionTemplate.create({
     data: {
       organizationId,
@@ -430,6 +470,18 @@ export const listTemplates = async (
       })),
     })),
   }));
+};
+
+// Une compétition partagée avec un athlète hors périmètre ne se retire pas à sa place.
+export const deleteCompetition = async (userId: string, organizationId: string, competitionId: string) => {
+  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
+  const competition = await prisma.competition.findFirst({
+    where: { id: competitionId, organizationId },
+    select: { id: true, athletes: { select: { athleteId: true } } },
+  });
+  if (!competition) throw notFound();
+  for (const { athleteId } of competition.athletes) await requireVisibleAthlete(access, athleteId);
+  await prisma.competition.delete({ where: { id: competition.id } });
 };
 
 export const saveCompetition = async (

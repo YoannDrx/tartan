@@ -10,9 +10,16 @@ export const sessionDeadline = (date: string): Date => {
 
 export const isOverdue = (date: string, now: Date): boolean => now > sessionDeadline(date);
 
-export const cellStatusOf = (log: { status: LogStatus } | null | undefined, date: string, now: Date): CellStatus => {
+// Une fiche sans compte ne valide rien elle-même : l'absence de saisie n'est pas une séance manquée.
+export const cellStatusOf = (
+  log: { status: LogStatus } | null | undefined,
+  date: string,
+  now: Date,
+  hasAccount = true,
+): CellStatus => {
   if (log?.status === "done") return "done";
   if (log?.status === "partial") return "partial";
+  if (!hasAccount) return isOverdue(date, now) ? "no_return" : "upcoming";
   if (log?.status === "missed" || log?.status === "skipped") return "missed";
   return isOverdue(date, now) ? "missed" : "upcoming";
 };
@@ -22,7 +29,7 @@ export const completionPct = (statuses: (CellStatus | null)[]): number | null =>
   let past = 0;
   let score = 0;
   for (const s of statuses) {
-    if (!s || s === "upcoming") continue;
+    if (!s || s === "upcoming" || s === "no_return") continue;
     past += 1;
     if (s === "done") score += 1;
     if (s === "partial") score += 0.5;

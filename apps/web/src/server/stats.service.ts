@@ -110,12 +110,18 @@ const STATUS = m.status as Record<string, string>;
 export const exportTrackingCsv = async (
   userId: string,
   organizationId: string,
-  query: { from: string; to: string; athleteId?: string },
+  query: { from: string; to: string; athleteId?: string; groupId?: string },
 ): Promise<string> => {
   const access = await requireOrgMember(userId, organizationId, "viewTracking");
   if (access.role === "athlete") throw forbidden();
   const visible = await visibleAthleteIds(access);
-  const athleteIds = query.athleteId ? visible.filter((id) => id === query.athleteId) : visible;
+  const inGroup = query.groupId
+    ? await prisma.groupMember.findMany({ where: { groupId: query.groupId }, select: { athleteId: true } })
+    : null;
+  const athleteIds = visible.filter(
+    (id) =>
+      (!query.athleteId || id === query.athleteId) && (!inGroup || inGroup.some((member) => member.athleteId === id)),
+  );
   const logs = await prisma.sessionLog.findMany({
     where: {
       athleteId: { in: athleteIds },

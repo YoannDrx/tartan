@@ -27,6 +27,9 @@ const signUp = async (email: string, name: string): Promise<string> => {
     accountId: user.id,
     password: await ctx.password.hash(PASSWORD),
   });
+  // Comptes fictifs et majeurs : sans date, la revue buterait sur l'écran de confirmation.
+  const birthDate = new Date("1990-05-12T00:00:00Z");
+  await prisma.profile.upsert({ where: { id: user.id }, create: { id: user.id, birthDate }, update: { birthDate } });
   return user.id;
 };
 

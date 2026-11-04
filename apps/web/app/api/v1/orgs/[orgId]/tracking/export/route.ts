@@ -7,7 +7,7 @@ import { orgParams } from "../../../../_params";
 
 export const GET = authRoute
   .params(orgParams)
-  .query(z.object({ from: isoDate, to: isoDate, athleteId: uuid.optional() }))
+  .query(z.object({ from: isoDate, to: isoDate, athleteId: uuid.optional(), groupId: uuid.optional() }))
   .handler(async (_req, { ctx, params, query }) => {
     const csv = await exportTrackingCsv(ctx.actor.userId, params.orgId, query);
     return new NextResponse(`\ufeff${csv}`, {

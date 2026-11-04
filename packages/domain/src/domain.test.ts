@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  personalBestIds,
   deliveredFps,
   planStretch,
   timeScaleFor,
@@ -537,5 +538,35 @@ describe("étirement vidéo", () => {
     expect(deliveredFps({ declaredFps: 25, encodedFps: null, timeScale: 1 })).toBe(25);
     expect(deliveredFps({ declaredFps: null, encodedFps: null, timeScale: 1 })).toBeNull();
     expect(toRealMs(toFileSeconds(1500, 8), 8)).toBe(1500);
+  });
+});
+
+describe("records personnels", () => {
+  it("205 cm reste sous 2,10 m, malgré des unités différentes", () => {
+    expect(
+      personalBestIds([
+        { id: "cm", mark: 205, unit: "cm" },
+        { id: "m", mark: 2.1, unit: "m" },
+      ]),
+    ).toEqual(["m"]);
+  });
+  it("un temps plus court est meilleur", () => {
+    expect(
+      personalBestIds([
+        { id: "lent", mark: 12.4, unit: "s" },
+        { id: "vite", mark: 11.9, unit: "s" },
+      ]),
+    ).toEqual(["vite"]);
+  });
+  it("sans marque restante, aucun record", () => {
+    expect(personalBestIds([])).toEqual([]);
+  });
+  it("à égalité, la première marque reçue garde le record", () => {
+    expect(
+      personalBestIds([
+        { id: "avant", mark: 2, unit: "m" },
+        { id: "apres", mark: 200, unit: "cm" },
+      ]),
+    ).toEqual(["avant"]);
   });
 });

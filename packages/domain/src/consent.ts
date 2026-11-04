@@ -1,4 +1,7 @@
 export const PARENTAL_CONSENT_AGE = 15;
+export const MINIMUM_AGE = 18;
+
+export type AgeStatus = "adult" | "minor" | "unknown";
 
 export const ageAt = (birthDate: string, now: Date): number => {
   const birth = new Date(`${birthDate}T00:00:00.000Z`);
@@ -8,6 +11,11 @@ export const ageAt = (birthDate: string, now: Date): number => {
     (now.getUTCMonth() === birth.getUTCMonth() && now.getUTCDate() < birth.getUTCDate());
   if (beforeBirthday) age -= 1;
   return age;
+};
+
+export const ageStatus = (birthDate: string | null, now: Date): AgeStatus => {
+  if (!birthDate) return "unknown";
+  return ageAt(birthDate, now) >= MINIMUM_AGE ? "adult" : "minor";
 };
 
 export const requiresParentalConsent = (birthDate: string | null, now: Date): boolean =>

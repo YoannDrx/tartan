@@ -9,6 +9,7 @@ import { dispatchPending, notify, notifyPublications } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
 import { activeAudienceIds, audienceAthleteIds, publishRow, type Publication } from "./session.service";
 import { runCronJobs } from "./cron-runner";
+import { sendHeartbeat } from "./heartbeat";
 import { reconcileStripeSubscriptions } from "./stripe-subscriptions.service";
 
 // Une seule alerte, au moment où la série atteint le seuil (§ 13.2) : pas de rappel à chaque nouvelle séance.
@@ -52,7 +53,12 @@ export const closeOverdueSessions = async (now: Date = new Date()): Promise<numb
         where: { scheduledSessionId: session.id, athleteId: { in: audience } },
         select: { athleteId: true },
       });
-      const missing = audience.filter((id) => !logged.some((l) => l.athleteId === id));
+      // Une fiche sans compte ne valide jamais elle-même : aucune séance « manquée » en son nom.
+      const withAccount = await prisma.athlete.findMany({
+        where: { id: { in: audience }, userId: { not: null } },
+        select: { id: true },
+      });
+      const missing = withAccount.map((a) => a.id).filter((id) => !logged.some((l) => l.athleteId === id));
       if (missing.length === 0) continue;
       await prisma.sessionLog.createMany({
         data: missing.map((athleteId) => ({
@@ -161,8 +167,8 @@ export const sendEveQuestions = async (now: Date = new Date()): Promise<number> 
   return sent;
 };
 
-export const runHourlyJobs = (now: Date = new Date()) =>
-  runCronJobs({
+export const runHourlyJobs = async (now: Date = new Date()) => {
+  const result = await runCronJobs({
     published: () => publishScheduledSessions(now),
     closed: () => closeOverdueSessions(now),
     eve: () => sendEveQuestions(now),
@@ -172,3 +178,6 @@ export const runHourlyJobs = (now: Date = new Date()) =>
     purged: () => purgeExpiredVideos(now),
     digests: () => sendWeeklyDigests(now),
   });
+  await sendHeartbeat("hourly", result.errors);
+  return result;
+};

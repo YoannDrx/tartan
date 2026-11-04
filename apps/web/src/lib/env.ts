@@ -51,6 +51,8 @@ const schema = z.object({
   VAPID_SUBJECT: z.string().default("mailto:bonjour@tartan.coach"),
   EXPO_ACCESS_TOKEN: optional,
   CRON_SECRET: optional,
+  CRON_HEARTBEAT_URL: optional,
+  CRON_HEARTBEAT_NOTIFICATIONS_URL: optional,
 });
 
 export type Env = z.infer<typeof schema>;

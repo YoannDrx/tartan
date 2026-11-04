@@ -37,6 +37,12 @@ export const StatusGlyph = ({ status, size = 26 }: { status: CellStatus; size?: 
       {status === "upcoming" ? (
         <Circle cx={13} cy={13} r={11} fill="none" stroke={p.status.upcoming} strokeWidth={2} strokeDasharray="3 3" />
       ) : null}
+      {status === "no_return" ? (
+        <>
+          <Circle cx={13} cy={13} r={11} fill="none" stroke={p.status.upcoming} strokeWidth={2} />
+          <Path d="M9 13h8" stroke={p.status.upcoming} strokeWidth={2.4} strokeLinecap="round" />
+        </>
+      ) : null}
     </Svg>
   );
 };

@@ -5,6 +5,7 @@ import { PublicPage } from "@/features/shell/public-page";
 import { getActor } from "@/lib/session";
 import { OnboardingForm } from "@/features/onboarding/onboarding-form";
 import { env } from "@/lib/env";
+import { ageStatusOfUser } from "@/server/age.service";
 import { getMe } from "@/server/me.service";
 import { canCreateCoachSpace } from "@/server/org.service";
 
@@ -15,6 +16,7 @@ export default async function BienvenuePage() {
   if (!actor) redirect("/connexion?next=/bienvenue");
   const me = await getMe(actor.userId);
   if (me.spaces.length > 0) redirect("/accueil");
+  if ((await ageStatusOfUser(actor.userId)) === "minor") redirect("/confirmer-age");
   if (!canCreateCoachSpace(actor.email)) {
     return (
       <PublicPage title={m.onboarding.closedTitle}>
@@ -33,7 +35,7 @@ export default async function BienvenuePage() {
   return (
     <PublicPage title="Crée ton espace coach">
       <div className="on-card flex flex-col gap-5 rounded-card bg-card p-5">
-        <OnboardingForm firstName={firstName} lastName={me.lastName ?? ""} />
+        <OnboardingForm firstName={firstName} lastName={me.lastName ?? ""} birthDate={me.birthDate ?? ""} />
         <p className="text-soft">{m.onboarding.joinHint}</p>
       </div>
     </PublicPage>

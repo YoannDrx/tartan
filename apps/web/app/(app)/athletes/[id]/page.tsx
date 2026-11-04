@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ageAt, formatHeight } from "@tartan/domain";
 import { formatDayMonth, m, strengthTestLabel } from "@tartan/i18n";
+import { DeleteRow } from "@/features/athletes/delete-row";
 import { BarSheet } from "@/components/bar-sheet";
 import { Mark, Rows, Sheet, SheetSection } from "@/components/sheet";
 import { Chip, PageHeader } from "@/components/states";
@@ -133,6 +134,25 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
             }
           >
             <BarSheet rows={sheet.rows} current={best} />
+            {canManage ? (
+              <details className="mt-2">
+                <summary className="inline-flex min-h-11 cursor-pointer items-center">{m.athletes.fixBars}</summary>
+                <Rows>
+                  {sheet.attempts.map((a) => (
+                    <li key={a.id} className="flex items-center justify-between gap-3 py-1">
+                      <span className="t-num">
+                        {formatHeight(a.heightCm)} m, {m.athletes.attempt(a.attemptNo)}, {a.result}
+                      </span>
+                      <DeleteRow
+                        kind="jump"
+                        id={a.id}
+                        label={`${formatHeight(a.heightCm)} m, ${m.athletes.attempt(a.attemptNo)}`}
+                      />
+                    </li>
+                  ))}
+                </Rows>
+              </details>
+            ) : null}
           </SheetSection>
         ) : null}
 
@@ -178,9 +198,18 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                         {[year(p.date), p.location].filter(Boolean).join(", ")}
                       </span>
                     </span>
-                    <Mark>
-                      {String(p.mark).replace(".", ",")} {p.unit}
-                    </Mark>
+                    <span className="flex items-center gap-1">
+                      <Mark>
+                        {String(p.mark).replace(".", ",")} {p.unit}
+                      </Mark>
+                      {canManage ? (
+                        <DeleteRow
+                          kind="performance"
+                          id={p.id}
+                          label={`${p.discipline}, ${String(p.mark).replace(".", ",")} ${p.unit}`}
+                        />
+                      ) : null}
+                    </span>
                   </li>
                 ))}
               </Rows>
@@ -197,7 +226,16 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                         {m.testKind[t.kind]}, {year(t.date)}
                       </span>
                     </span>
-                    <Mark>{String(t.value).replace(".", ",")} kg</Mark>
+                    <span className="flex items-center gap-1">
+                      <Mark>{String(t.value).replace(".", ",")} kg</Mark>
+                      {canManage ? (
+                        <DeleteRow
+                          kind="test"
+                          id={t.id}
+                          label={`${strengthTestLabel(t.exerciseKey)}, ${String(t.value).replace(".", ",")} kg`}
+                        />
+                      ) : null}
+                    </span>
                   </li>
                 ))}
               </Rows>
@@ -305,11 +343,16 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                 {file.notes.length > 0 ? (
                   <Rows className="mt-3">
                     {file.notes.map((n) => (
-                      <li key={n.id} className="py-2">
-                        <p className="whitespace-pre-line break-words">{n.body}</p>
-                        <p className="t-caption font-normal text-soft">
-                          {n.authorName}, {year(n.createdAt.slice(0, 10))}
-                        </p>
+                      <li key={n.id} className="flex items-start justify-between gap-2 py-2">
+                        <div className="min-w-0">
+                          <p className="whitespace-pre-line break-words">{n.body}</p>
+                          <p className="t-caption font-normal text-soft">
+                            {n.authorName}, {year(n.createdAt.slice(0, 10))}
+                          </p>
+                        </div>
+                        {access.role === "owner" || n.authorId === access.userId ? (
+                          <DeleteRow kind="note" id={n.id} label={m.athletes.noteLabel} />
+                        ) : null}
                       </li>
                     ))}
                   </Rows>

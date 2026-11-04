@@ -3,6 +3,7 @@ import { put } from "@vercel/blob";
 import { fromDbDateOrNull, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { invalid, notFound } from "@/lib/errors";
+import { ageRestricted, ageStatusOfUser, assertAdultDate, parentalFlowEnabled } from "./age.service";
 import { prisma } from "@/lib/prisma";
 
 export const listSpaces = async (userId: string): Promise<SpaceSummary[]> => {
@@ -40,7 +41,17 @@ export const getMe = async (userId: string): Promise<MeResponse> => {
 };
 
 export const updateProfile = async (userId: string, input: ProfileInput): Promise<void> => {
-  const birthDate = input.birthDate === undefined ? undefined : input.birthDate ? toDbDate(input.birthDate) : null;
+  // V1 majeurs : une date ne s'efface pas, et une date mineure ne s'efface pas par une autre.
+  const parental = parentalFlowEnabled();
+  if (!parental) {
+    if (input.birthDate) await assertAdultDate(input.birthDate, { actorId: userId });
+    if ((await ageStatusOfUser(userId)) === "minor") throw ageRestricted();
+  }
+  const birthDate = input.birthDate
+    ? toDbDate(input.birthDate)
+    : input.birthDate === null && parental
+      ? null
+      : undefined;
   const data = {
     firstName: input.firstName,
     lastName: input.lastName,

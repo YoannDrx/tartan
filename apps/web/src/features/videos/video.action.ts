@@ -9,6 +9,7 @@ import {
   addJumpAttempt,
   createVideoUpload,
   deleteAnnotation,
+  deleteJumpAttempt,
   deleteVideo,
   shareVideo,
 } from "@/server/video.service";
@@ -33,6 +34,11 @@ export const deleteAnnotationAction = spaceAction
     await deleteAnnotation(ctx.userId, ctx.organizationId, parsedInput.id);
     revalidatePath(`/videos/${parsedInput.videoId}`);
   });
+
+export const deleteJumpAction = spaceAction.inputSchema(z.object({ id: uuid })).action(async ({ parsedInput, ctx }) => {
+  const { athleteId } = await deleteJumpAttempt(ctx.userId, ctx.organizationId, parsedInput.id);
+  revalidatePath(`/athletes/${athleteId}`);
+});
 
 export const shareVideoAction = spaceAction
   .inputSchema(shareVideoInput.extend({ videoId: uuid }))

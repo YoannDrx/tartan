@@ -9,12 +9,22 @@ import { deleteGroup } from "@/server/org.service";
 import {
   activeAudienceIds,
   audienceAthleteIds,
+  deleteSession,
+  duplicateSession,
   getSessionForEdit,
+  listCalendar,
   publishRow,
   saveScheduledSession,
 } from "@/server/session.service";
-import { getTrackingGrid, getAlerts, remindAthletes, takeRollCall } from "@/server/tracking.service";
-import { icalFeed, icalLink } from "@/server/ical.service";
+import {
+  coachLogSession,
+  getAlerts,
+  getSessionDetailForCoach,
+  getTrackingGrid,
+  remindAthletes,
+  takeRollCall,
+} from "@/server/tracking.service";
+import { icalFeed, icalLink, revokeIcalLink } from "@/server/ical.service";
 import { makeOrg, addAthlete, addStaff } from "./helpers";
 
 const NOW = new Date("2030-06-12T10:00:00Z");
@@ -56,6 +66,7 @@ describe("groupes et audience", () => {
       id: a.athlete.athleteId,
       firstName: "Présent",
       lastName: "Test",
+      birthDate: "2000-01-01",
       groupIds: [other.id],
     });
     expect(
@@ -65,6 +76,7 @@ describe("groupes et audience", () => {
       id: a.athlete.athleteId,
       firstName: "Présent",
       lastName: "Test",
+      birthDate: "2000-01-01",
       groupIds: [],
     });
     expect(await prisma.groupMember.count({ where: { athleteId: a.athlete.athleteId } })).toBe(0);
@@ -75,7 +87,7 @@ describe("groupes et audience", () => {
     await prisma.groupMember.create({ data: { athleteId: a.athlete.athleteId, groupId: other.id } });
     const coach = await addStaff(a.organizationId, "Coach", "coach", [a.groupId]);
     const forbidden = await prisma.group.create({ data: { organizationId: a.organizationId, name: "Interdit" } });
-    const data = { id: a.athlete.athleteId, firstName: "Présent", lastName: "Test" };
+    const data = { id: a.athlete.athleteId, firstName: "Présent", lastName: "Test", birthDate: "2000-01-01" };
     await expect(
       saveAthlete(coach.userId, a.organizationId, { ...data, groupIds: [forbidden.id] }),
     ).rejects.toMatchObject({ status: 403 });
@@ -166,9 +178,127 @@ describe("groupes et audience", () => {
       id: a.athlete.athleteId,
       firstName: "Présent",
       lastName: "Test",
+      birthDate: "2000-01-01",
       groupIds: [],
     });
     expect(result).toEqual({ id: a.athlete.athleteId, stillVisible: false });
+  });
+  it("le flux d'agenda échappe le texte, donne une fin, et son lien se révoque", async () => {
+    const a = await prepare();
+    await a.schedule("2030-06-20");
+    await prisma.scheduledSession.updateMany({
+      where: { organizationId: a.organizationId },
+      data: { title: "Force; bas, haut" },
+    });
+    const link = await icalLink(a.athlete.userId, a.organizationId);
+    const token = link.split("/").at(-1)!;
+    const feed = await icalFeed(a.athlete.athleteId, token, NOW);
+    expect(feed).toContain("SUMMARY:Force\\; bas\\, haut");
+    expect(feed).toContain("DTSTART;TZID=Europe/Paris:20300620T180000");
+    expect(feed).toContain("DTEND;TZID=Europe/Paris:20300620T190000");
+    await revokeIcalLink(a.athlete.userId, a.organizationId);
+    await expect(icalFeed(a.athlete.athleteId, token, NOW)).rejects.toThrow();
+    const fresh = await icalLink(a.athlete.userId, a.organizationId);
+    await expect(icalFeed(a.athlete.athleteId, fresh.split("/").at(-1)!, NOW)).resolves.toContain("BEGIN:VCALENDAR");
+  });
+  it("l'athlète ne voit ni brouillon ni compétition d'un autre dans le calendrier", async () => {
+    const a = await prepare();
+    const published = await a.schedule("2030-06-20");
+    const draft = await saveScheduledSession(a.owner.userId, a.organizationId, {
+      date: "2030-06-21",
+      startTime: "18:00",
+      location: "Stade",
+      publishAt: null,
+      draft: { title: "Brouillon", type: "strength", durationMin: 60, coachNote: null, blocks: [] },
+      assignments: [{ targetType: "athlete", targetId: a.athlete.athleteId }],
+      overrides: [],
+    });
+    const other = await prisma.competition.create({
+      data: { organizationId: a.organizationId, name: "Autre", date: new Date("2030-06-22T00:00:00Z") },
+    });
+    const mine = await prisma.competition.create({
+      data: {
+        organizationId: a.organizationId,
+        name: "La mienne",
+        date: new Date("2030-06-23T00:00:00Z"),
+        athletes: { create: { athleteId: a.athlete.athleteId } },
+      },
+    });
+    const range = { from: "2030-06-19", to: "2030-06-24" };
+    const seen = await listCalendar(a.athlete.userId, a.organizationId, range);
+    expect(seen.sessions.map((s) => s.id)).toEqual([published.id]);
+    expect(seen.competitions.map((c) => c.id)).toEqual([mine.id]);
+    const coach = await listCalendar(a.owner.userId, a.organizationId, range);
+    expect(coach.sessions.map((s) => s.id)).toContain(draft.id);
+    expect(coach.competitions.map((c) => c.id)).toContain(other.id);
+  });
+  it("supprimer une séance publiée à venir prévient ses athlètes, sans mot de santé", async () => {
+    const a = await prepare();
+    const future = "2030-06-20";
+    const session = await a.schedule(future);
+    await deleteSession(a.owner.userId, a.organizationId, session.id);
+    const sent = await prisma.notification.findFirstOrThrow({
+      where: { userId: a.athlete.userId, type: "session_cancelled" },
+    });
+    expect(sent.payload).toMatchObject({ date: future, organizationId: a.organizationId });
+  });
+  it("supprimer une séance passée ne prévient personne", async () => {
+    const a = await prepare();
+    const session = await a.schedule("2020-01-10");
+    await deleteSession(a.owner.userId, a.organizationId, session.id);
+    expect(await prisma.notification.count({ where: { userId: a.athlete.userId, type: "session_cancelled" } })).toBe(0);
+  });
+  it("une fiche sans compte est « sans retour », sans relance, et le coach peut valider pour elle", async () => {
+    const a = await prepare();
+    const sheet = await prisma.athlete.create({
+      data: {
+        organizationId: a.organizationId,
+        firstName: "Sans",
+        lastName: "Compte",
+        birthDate: new Date("2000-01-01T00:00:00Z"),
+        groups: { create: { groupId: a.groupId, createdAt: new Date("2030-06-01T10:00:00Z") } },
+      },
+    });
+    const session = await a.schedule("2030-06-10");
+    await closeOverdueSessions(NOW);
+    expect(await prisma.sessionLog.count({ where: { athleteId: sheet.id } })).toBe(0);
+    const detail = await getSessionDetailForCoach(a.owner.userId, a.organizationId, session.id, NOW);
+    expect(detail.athletes.find((x) => x.athleteId === sheet.id)).toMatchObject({
+      status: "no_return",
+      hasAccount: false,
+    });
+    await coachLogSession(a.owner.userId, a.organizationId, session.id, sheet.id, "partial");
+    const after = await getSessionDetailForCoach(a.owner.userId, a.organizationId, session.id, NOW);
+    expect(after.athletes.find((x) => x.athleteId === sheet.id)?.status).toBe("partial");
+    await expect(
+      coachLogSession(a.owner.userId, a.organizationId, session.id, a.athlete.athleteId, "done"),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+  it("dupliquer une séance copie ses adaptations", async () => {
+    const a = await prepare();
+    const session = await a.schedule("2030-06-20");
+    await prisma.athleteOverride.create({
+      data: {
+        scheduledSessionId: session.id,
+        athleteId: a.athlete.athleteId,
+        itemRef: "b0-i0",
+        prescription: { load: 80 },
+      },
+    });
+    const copy = await duplicateSession(a.owner.userId, a.organizationId, session.id, "2030-06-27");
+    expect(await prisma.athleteOverride.count({ where: { scheduledSessionId: copy.id } })).toBe(1);
+  });
+  it("corriger une validation retire la douleur saisie par erreur", async () => {
+    const a = await prepare();
+    const session = await a.schedule("2030-06-10");
+    const base = { clientId: randomUUID(), status: "done" as const, variantDone: "club" as const, sets: [] };
+    await logSession(a.athlete.userId, a.organizationId, session.id, {
+      ...base,
+      pain: { bodyArea: "knee", side: "left", intensity: 5 },
+    });
+    await logSession(a.athlete.userId, a.organizationId, session.id, { ...base, clientId: randomUUID() });
+    const log = await prisma.sessionLog.findFirstOrThrow({ where: { scheduledSessionId: session.id } });
+    expect(log.pain).toBeNull();
   });
   it("quitter un espace et supprimer un groupe nettoient aussi les attributions", async () => {
     const a = await prepare();
@@ -220,6 +350,7 @@ describe("groupes et audience", () => {
       id: a.athlete.athleteId,
       firstName: "Présent",
       lastName: "Test",
+      birthDate: "2000-01-01",
       groupIds: [],
     });
     expect(await audienceAthleteIds(session.id)).toContain(a.athlete.athleteId);
@@ -268,6 +399,7 @@ describe("groupes et audience", () => {
       id: late.athleteId,
       firstName: "Minuit",
       lastName: "Test",
+      birthDate: "2000-01-01",
       groupIds: [a.groupId],
     });
     expect(

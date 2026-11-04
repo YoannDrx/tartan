@@ -15,7 +15,7 @@ import { env } from "@/lib/env";
 export const metadata: Metadata = {
   title: { absolute: m.brand.storeName },
   description:
-    "Le carnet d'entraînement partagé du coach d'athlé et de son groupe : séances, suivi et analyse vidéo. Gratuit jusqu'à 5 athlètes.",
+    "Le carnet d'entraînement partagé des coachs d'athlétisme et des préparateurs physiques : séances, suivi et analyse du saut. Gratuit jusqu'à 5 athlètes.",
   alternates: { canonical: "https://tartan.coach" },
 };
 

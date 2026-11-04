@@ -16,3 +16,4 @@ export * from "./plans";
 export * from "./starter-library";
 export * from "./training-load";
 export { isSessionAssigned } from "./session-audience";
+export { personalBestIds, toComparableMark, type RecordMark } from "./records";

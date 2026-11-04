@@ -30,7 +30,12 @@ export const profileInput = z.object({
   birthDate: isoDate.nullable().optional(),
   units: z.enum(["kg", "lb"]).optional(),
   locale: z.enum(["fr", "en"]).optional(),
-  avatarUrl: z.url().nullable().optional(),
+  // Seules les photos envoyées dans le stockage de Tartan : pas de pixel espion sur une adresse tierce.
+  avatarUrl: z
+    .url()
+    .refine((url) => /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\//i.test(url))
+    .nullable()
+    .optional(),
 });
 export type ProfileInput = z.infer<typeof profileInput>;
 
@@ -40,8 +45,9 @@ export const createOrganizationInput = z.object({
   disciplines: z.array(z.string().max(40)).max(12).default(["high_jump"]),
   firstGroupName: required(80, "Donne un nom à ton premier groupe"),
   referralCode: z.string().trim().max(40).optional(),
+  birthDate: isoDate.optional(),
 });
-export type CreateOrganizationInput = z.infer<typeof createOrganizationInput>;
+export type CreateOrganizationInput = z.input<typeof createOrganizationInput>;
 
 export const groupInput = z.object({
   id: uuid.optional(),
@@ -64,7 +70,7 @@ export const createInvitationInput = z
     email: z.email("Adresse e-mail invalide").optional(),
     phone: z.string().trim().min(6).max(24).optional(),
     athleteId: uuid.optional(),
-    expiresInDays: z.number().int().min(1).max(365).optional(),
+    expiresInDays: z.number().int().min(1).max(30).optional(),
   })
   .refine((v) => v.kind !== "personal_email" || Boolean(v.email), {
     message: "Indique l'adresse e-mail à inviter",

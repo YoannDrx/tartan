@@ -5,7 +5,13 @@ import { rollCallInput, uuid } from "@tartan/contracts";
 import { z } from "zod";
 import { spaceAction } from "@/features/shell/space-action";
 import { generateAutonomousVersion } from "@/server/session.service";
-import { remindAthletes, takeRollCall } from "@/server/tracking.service";
+import { coachLogSession, remindAthletes, takeRollCall } from "@/server/tracking.service";
+
+export const coachLogAction = spaceAction
+  .inputSchema(z.object({ sessionId: uuid, athleteId: uuid, status: z.enum(["done", "partial"]) }))
+  .action(({ parsedInput, ctx }) =>
+    coachLogSession(ctx.userId, ctx.organizationId, parsedInput.sessionId, parsedInput.athleteId, parsedInput.status),
+  );
 
 export const rollCallAction = spaceAction
   .inputSchema(rollCallInput.extend({ sessionId: uuid }))

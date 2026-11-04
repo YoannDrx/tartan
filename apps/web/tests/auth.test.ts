@@ -54,6 +54,35 @@ describe("authentification", () => {
     expect(replay.headers.get("location") ?? "").toContain("error");
   });
 
+  it("une réinitialisation de mot de passe coupe les sessions ouvertes", async () => {
+    const email = `reinit-${Date.now()}@test.tartan.coach`;
+    const password = "mot-de-passe-solide";
+    await auth.handler(req("/sign-up/email", { email, password, name: "Reinit Test" }));
+    await prisma.user.update({ where: { email }, data: { emailVerified: true } });
+    const signIn = await auth.handler(req("/sign-in/email", { email, password }));
+    const cookie = signIn.headers.get("set-cookie")!.split(";")[0]!;
+    const session = () =>
+      auth.handler(new Request("http://localhost:3000/api/auth/get-session", { headers: { cookie } }));
+    expect(await (await session()).json()).toMatchObject({ user: { email } });
+
+    await auth.handler(req("/request-password-reset", { email, redirectTo: "/nouveau-mot-de-passe" }));
+    const mail = [...outbox].reverse().find((m) => m.to === email && m.html.includes("reset-password"));
+    const token = mail?.html.match(/reset-password\/([^?"&]+)/)?.[1];
+    expect(token).toBeTruthy();
+    const reset = await auth.handler(req("/reset-password", { token, newPassword: "nouveau-mot-de-passe" }));
+    expect(reset.status).toBe(200);
+    expect(await (await session()).json()).toBeNull();
+  });
+
+  it("le jeton du lien magique n'est pas stocké en clair", async () => {
+    const email = `hache-${Date.now()}@test.tartan.coach`;
+    await auth.handler(req("/sign-in/magic-link", { email, callbackURL: "/accueil" }));
+    const mail = outbox.find((m) => m.to === email);
+    const token = mail?.html.match(/token=([^&"]+)/)?.[1];
+    expect(token).toBeTruthy();
+    expect(await prisma.verification.count({ where: { identifier: token as string } })).toBe(0);
+  });
+
   it("un même e-mail reste un seul compte", async () => {
     const email = `unique-${Date.now()}@test.tartan.coach`;
     const first = await auth.handler(req("/sign-up/email", { email, password: "mot-de-passe-solide", name: "Un" }));

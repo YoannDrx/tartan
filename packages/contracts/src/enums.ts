@@ -37,7 +37,7 @@ export type SessionVariant = z.infer<typeof sessionVariant>;
 export const logStatus = z.enum(["done", "partial", "missed", "skipped"]);
 export type LogStatus = z.infer<typeof logStatus>;
 
-export const cellStatus = z.enum(["done", "partial", "missed", "upcoming"]);
+export const cellStatus = z.enum(["done", "partial", "missed", "upcoming", "no_return"]);
 export type CellStatus = z.infer<typeof cellStatus>;
 
 export const attendanceStatus = z.enum(["present", "absent", "unknown"]);

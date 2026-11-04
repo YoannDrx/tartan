@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { outbox } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 import { addDays } from "@tartan/domain";
@@ -10,6 +10,8 @@ import { dispatchPending, notify, webLink } from "@/server/notify.service";
 import { saveExercise } from "@/server/exercise.service";
 import { publishSession, saveScheduledSession } from "@/server/session.service";
 import { addAthlete, addStaff, makeOrg } from "./helpers";
+
+afterEach(() => vi.unstubAllEnvs());
 
 const NOON = new Date("2026-06-10T10:00:00Z");
 const draftWith = (exerciseId: string, title: string) => ({
@@ -126,6 +128,7 @@ describe("exercices", () => {
 
 describe("accord parental", () => {
   it("l'athlète relance son parent, sans relancer une demande déjà traitée", async () => {
+    vi.stubEnv("PARENTAL_FLOW_ENABLED", "true");
     const a = await prepare();
     await prisma.guardian.create({
       data: {

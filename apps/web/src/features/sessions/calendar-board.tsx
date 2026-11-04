@@ -16,6 +16,7 @@ import { Field, Input } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { duplicateSessionAction, moveSessionAction } from "./session.action";
+import { DeleteRow } from "@/features/athletes/delete-row";
 
 const SessionCard = ({
   session,
@@ -140,13 +141,14 @@ export const WeekBoard = ({ week, today, data }: { week: string; today: string; 
                 </Link>
               </div>
               {competitions.map((c) => (
-                <p
+                <div
                   key={c.id}
-                  className="flex items-start gap-1.5 rounded-thumb border border-control-line p-2 t-caption"
+                  className="flex items-center gap-1.5 rounded-thumb border border-control-line p-2 t-caption"
                 >
                   <Medal aria-hidden className="size-4 shrink-0" />
-                  <span className="min-w-0 break-words">{c.name}</span>
-                </p>
+                  <span className="min-w-0 flex-1 break-words">{c.name}</span>
+                  <DeleteRow kind="competition" id={c.id} label={c.name} />
+                </div>
               ))}
               {sessions.map((s) => (
                 <SessionCard
@@ -230,13 +232,14 @@ export const MonthBoard = ({ month, today, data }: { month: string; today: strin
                 {data.competitions
                   .filter((c) => c.date === day)
                   .map((c) => (
-                    <p
+                    <div
                       key={c.id}
-                      className="flex items-start gap-1.5 rounded-thumb border border-control-line p-2 t-caption"
+                      className="flex items-center gap-1.5 rounded-thumb border border-control-line p-2 t-caption"
                     >
                       <Medal aria-hidden className="size-4 shrink-0" />
-                      <span className="min-w-0 break-words">{c.name}</span>
-                    </p>
+                      <span className="min-w-0 flex-1 break-words">{c.name}</span>
+                      <DeleteRow kind="competition" id={c.id} label={c.name} />
+                    </div>
                   ))}
                 {data.sessions
                   .filter((s) => s.date === day)

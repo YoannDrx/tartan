@@ -55,6 +55,37 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
+describe("charges neutres", () => {
+  const dispatchPain = async (platform: "web" | "ios" | null) => {
+    const a = await setup(platform);
+    await prisma.notification.update({
+      where: { id: a.notification.id },
+      data: { type: "pain_alert", payload: { athlete: "Léa", link: "/athletes/1" } },
+    });
+    mocks.fetch.mockResolvedValue(json({ data: { status: "ok", id: "reçu-1" } }));
+    await a.dispatch();
+    return a;
+  };
+  it("aucun mot de santé dans la charge Expo, le type est masqué", async () => {
+    await dispatchPain("ios");
+    const body = String(mocks.fetch.mock.calls[0]?.[1]?.body);
+    expect(body).toContain('"type":"alert"');
+    expect(body).not.toMatch(/pain|douleur/i);
+  });
+  it("aucun mot de santé dans la charge Web Push", async () => {
+    await dispatchPain("web");
+    const payload = String(mocks.web.mock.calls[0]?.[1]);
+    expect(payload).toContain("Nouvelle alerte");
+    expect(payload).not.toMatch(/pain|douleur/i);
+  });
+  it("aucun mot de santé dans l'e-mail de repli", async () => {
+    await dispatchPain(null);
+    const mail = mocks.email.mock.calls[0]?.[0];
+    expect(mail?.subject).toContain("Nouvelle alerte");
+    expect(JSON.stringify(mail)).not.toMatch(/pain|douleur/i);
+  });
+});
+
 describe("acheminement persistant", () => {
   it("réessaie un push web 503 sans le marquer envoyé ni envoyer d'e-mail en parallèle", async () => {
     const a = await setup();

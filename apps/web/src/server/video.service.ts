@@ -13,7 +13,7 @@ import { AppError, consentRequired, forbidden, invalid, notFound } from "@/lib/e
 import { createDirectUpload, deleteAsset, signedPlayback, unwrapWebhook, videoEnabled } from "@/lib/mux";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { requireOrgMember, requireVisibleAthlete, visibleAthleteIds, type Access } from "./access";
+import { requireOrgMember, requireOwnedRefs, requireVisibleAthlete, visibleAthleteIds, type Access } from "./access";
 import { assertWithinPlan } from "./billing.service";
 import { consentForAthletes } from "./consent.service";
 import { firstNameOf, namesFor } from "./me.service";
@@ -365,9 +365,23 @@ export const deleteVideo = async (userId: string, organizationId: string, videoI
   await prisma.video.delete({ where: { id: videoId } });
 };
 
+export const deleteJumpAttempt = async (userId: string, organizationId: string, attemptId: string) => {
+  const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
+  const attempt = await prisma.jumpAttempt.findFirst({ where: { id: attemptId, organizationId } });
+  if (!attempt) throw notFound();
+  await requireVisibleAthlete(access, attempt.athleteId);
+  await prisma.jumpAttempt.delete({ where: { id: attempt.id } });
+  return { athleteId: attempt.athleteId };
+};
+
 export const addJumpAttempt = async (userId: string, organizationId: string, input: JumpAttemptInput) => {
   const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
   await requireVisibleAthlete(access, input.athleteId);
+  await requireOwnedRefs(organizationId, {
+    sessionId: input.scheduledSessionId,
+    competitionId: input.competitionId,
+    videoId: input.videoId,
+  });
   if (input.clientId) {
     const existing = await prisma.jumpAttempt.findUnique({
       where: { athleteId_clientId: { athleteId: input.athleteId, clientId: input.clientId } },
@@ -413,6 +427,7 @@ export const getBarSheet = async (
     },
     orderBy: [{ barHeightCm: "asc" }, { attemptNo: "asc" }],
     select: {
+      id: true,
       barHeightCm: true,
       attemptNo: true,
       result: true,
@@ -426,9 +441,9 @@ export const getBarSheet = async (
   const shown = query.scheduledSessionId || query.competitionId ? attempts : latestSitting(attempts);
   return {
     rows: barSheet(shown),
+    attempts: shown.map((a) => ({ id: a.id, heightCm: a.barHeightCm, attemptNo: a.attemptNo, result: a.result })),
     date: shown[0]?.session ? fromDbDate(shown[0].session.date) : null,
     bestCm: bestClearedHeight(attempts),
   };
 };
 
-export const coachesForVideo = coachesOfAthlete;

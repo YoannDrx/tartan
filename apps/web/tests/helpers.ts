@@ -4,7 +4,9 @@ import { setConsent } from "@/server/consent.service";
 import { syncEntitlements } from "@/server/billing.service";
 import { createOrganization } from "@/server/org.service";
 
-export const makeUser = async (firstName: string, opts: { birthDate?: string } = {}) => {
+// Adulte par défaut, comme l'exige la V1. null : compte sans date.
+export const makeUser = async (firstName: string, opts: { birthDate?: string | null } = {}) => {
+  const birth = opts.birthDate === undefined ? "2000-01-01" : opts.birthDate;
   const id = randomUUID();
   const slug = firstName
     .normalize("NFD")
@@ -21,7 +23,7 @@ export const makeUser = async (firstName: string, opts: { birthDate?: string } =
         create: {
           firstName,
           lastName: "Test",
-          birthDate: opts.birthDate ? new Date(`${opts.birthDate}T00:00:00Z`) : null,
+          birthDate: birth ? new Date(`${birth}T00:00:00Z`) : null,
         },
       },
     },

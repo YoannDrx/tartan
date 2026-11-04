@@ -15,7 +15,7 @@ Application de suivi d'entraînement pour les coachs d'athlétisme des disciplin
 - Coach principal : terrain et ordinateur. Créer vite, attribuer finement, voir qui a fait quoi, analyser les sauts.
 - Coach adjoint / préparateur physique : gère ses séances, voit les retours.
 - Athlète adulte : vient au club ou s'entraîne seul. Savoir quoi faire, valider sans effort.
-- Athlète mineur : même chose, dans un cadre protégé ; accord d'un parent sous 15 ans pour la santé et les vidéos.
+- V1 réservée aux majeurs, en France, sportifs compris (décision du 4 novembre 2026). Le parcours d'accord parental reste dans le code, dormant (`PARENTAL_FLOW_ENABLED`).
 
 ## Plateformes
 

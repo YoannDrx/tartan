@@ -2,6 +2,7 @@ import type { OrgRole } from "@tartan/contracts";
 import { can, type Permission, scopeOf } from "@tartan/domain";
 import { forbidden, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
+import { assertMemberAge } from "./age.service";
 
 export type Access = {
   userId: string;
@@ -19,9 +20,10 @@ export const requireOrgMember = async (
 ): Promise<Access> => {
   const member = await prisma.organizationMember.findUnique({
     where: { organizationId_userId: { organizationId, userId } },
-    select: { role: true, status: true },
+    select: { role: true, status: true, user: { select: { profile: { select: { birthDate: true } } } } },
   });
   if (!member || member.status !== "active") throw forbidden();
+  assertMemberAge(member.user.profile?.birthDate);
   if (permission && !can(member.role, permission)) throw forbidden();
   const athlete =
     member.role === "athlete"
@@ -80,12 +82,6 @@ export const requireVisibleAthlete = async (access: Access, athleteId: string): 
   if (!ids.includes(athleteId)) throw forbidden();
 };
 
-export const requireScope = (access: Access, permission: Permission) => {
-  const scope = scopeOf(access.role, permission);
-  if (!scope) throw forbidden();
-  return scope;
-};
-
 export const requireGroupInScope = async (access: Access, groupIds: string[]): Promise<void> => {
   if (groupIds.length === 0) return;
   const known = await prisma.group.count({
@@ -95,6 +91,19 @@ export const requireGroupInScope = async (access: Access, groupIds: string[]): P
   if (access.role === "owner") return;
   const mine = await coachGroupIds(access);
   if (!groupIds.every((id) => mine.includes(id))) throw forbidden();
+};
+
+// Une référence transmise par le client doit appartenir à l'espace : le schéma ne l'impose pas.
+export const requireOwnedRefs = async (
+  organizationId: string,
+  refs: { sessionId?: string | null; competitionId?: string | null; videoId?: string | null },
+): Promise<void> => {
+  const [session, competition, video] = await Promise.all([
+    refs.sessionId ? prisma.scheduledSession.count({ where: { id: refs.sessionId, organizationId } }) : 1,
+    refs.competitionId ? prisma.competition.count({ where: { id: refs.competitionId, organizationId } }) : 1,
+    refs.videoId ? prisma.video.count({ where: { id: refs.videoId, organizationId } }) : 1,
+  ]);
+  if (!session || !competition || !video) throw notFound();
 };
 
 export const audit = async (input: {

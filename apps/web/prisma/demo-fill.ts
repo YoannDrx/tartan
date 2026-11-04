@@ -71,7 +71,7 @@ const toEmail = (p: { first: string; last: string }) =>
     .replace(/[^A-Za-z.]/g, "")
     .toLowerCase()}${DOMAIN}`;
 
-const createPerson = async (email: string, firstName: string, lastName: string, birthDate?: string) => {
+const createPerson = async (email: string, firstName: string, lastName: string, birthDate = "1985-03-14") => {
   const id = randomUUID();
   await prisma.user.create({
     data: {
@@ -80,7 +80,7 @@ const createPerson = async (email: string, firstName: string, lastName: string, 
       name: `${firstName} ${lastName}`,
       emailVerified: true,
       profile: {
-        create: { firstName, lastName, birthDate: birthDate ? new Date(`${birthDate}T00:00:00Z`) : null },
+        create: { firstName, lastName, birthDate: new Date(`${birthDate}T00:00:00Z`) },
       },
     },
   });

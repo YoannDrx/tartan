@@ -19,6 +19,8 @@ import {
   OrganizationForm,
   ProfileForm,
   ReferralLink,
+  RevokeIcalLink,
+  RevokeOtherSessionsButton,
   SignOutButton,
   WebPushToggle,
 } from "@/features/settings/settings-forms";
@@ -188,6 +190,9 @@ export default async function ReglagesPage() {
             <div className="flex flex-col gap-2">
               <p>{m.settings.calendarDetail}</p>
               <ReferralLink link={ical} />
+              <div>
+                <RevokeIcalLink />
+              </div>
             </div>
           ),
         }
@@ -220,6 +225,7 @@ export default async function ReglagesPage() {
             </Button>
           </div>
           <div className="flex flex-wrap justify-between gap-2">
+            <RevokeOtherSessionsButton />
             <SignOutButton />
             {access.role === "owner" ? null : <LeaveSpace name={space.organizationName} />}
             <DeleteAccount detail={m.settings.deleteDetail} />

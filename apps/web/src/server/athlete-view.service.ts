@@ -1,3 +1,4 @@
+import { Prisma } from "@/generated/prisma/client";
 import {
   type AthleteSessionCard,
   type AthleteSessionDetail,
@@ -284,7 +285,8 @@ export const logSession = async (userId: string, organizationId: string, session
     rpe,
     durationMin: input.durationMin ?? null,
     comment: input.comment ?? null,
-    pain: pain ?? undefined,
+    // Corriger une validation doit pouvoir retirer une douleur saisie par erreur.
+    pain: pain ?? Prisma.DbNull,
     completedAt: input.completedAt ? new Date(input.completedAt) : new Date(),
   };
   const saved = await prisma.$transaction(async (tx) => {
