@@ -51,6 +51,8 @@ Objectif accepté le 3 novembre 2026 : implémenter le plan de l'audit, corriger
 
 ## Journal des preuves
 
+- 4 novembre, mise en ligne des lots D5 à G9 et de la section Usage (commit `1a3bec6`, PR 17 à 42). Déploiement prêt, `/api/health` à 200, 21 migrations et aucune inachevée, 22 accords sur 22 repris par fiche, 60 attributions et 11 fiches intactes, file d'effacement vide. Pages légales de l'app à 200 sur `tartan.coach`, sans tarif ni lien de vente sur la page de contact. Seul groupe d'erreurs d'exécution : l'avertissement SSL de `pg`, déjà connu. `.well-known` reste à 404 jusqu'à la pose des variables Apple et Google. Première compilation Android réussie en CI (Release, une architecture) après correction de la mémoire Gradle ; l'app Android n'a jamais tourné sur un appareil. Rien n'a été écrit en production hors migrations, aucun paiement ni e-mail réel n'a été déclenché par ces contrôles.
+
 - 4 novembre, relecture indépendante des risques de données avant fusion, puis requêtes en lecture seule sur la production : 0 vidéo, 0 compte à plusieurs fiches, plus ancien profil du 1er novembre, `EMAIL_FROM` défini. Aucune purge ni aucun e-mail d'historique attendu au premier passage. Corrigés : une préversion n'efface plus rien chez un prestataire, une fiche sans compte encore suivie (présences, performances, tests, sauts, notes, vidéos) n'est plus purgée. Reste une saisie unique de la date de naissance : une erreur se corrige par le support.
 
 - 4 novembre, section C relue contre le code. Constructeur : détails repliés, aperçu athlète et filtre vidéo par athlète. États mobiles : hors ligne, envois en attente et validation refusée dans la bannière, file d'envoi vidéo. Les coupures réelles restent à éprouver en recette terrain (section D).
