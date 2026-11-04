@@ -51,6 +51,8 @@ Objectif accepté le 3 novembre 2026 : implémenter le plan de l'audit, corriger
 
 ## Journal des preuves
 
+- 4 novembre, essai sur simulateur iPhone 17 Pro (build de développement, API locale, compte fictif). Compte sans date : écran de date. Date de mineur : refus 403, date enregistrée, écran réservé aux majeurs, téléchargement des données par la feuille de partage (bouton et contact ajoutés à cette occasion). Date d'adulte : accueil athlète. Essayés aussi : déconnexion, mot de passe oublié (lien resté local, aucun envoi), réglages et accords, annonces vides. Non couvert : appareil réel, notifications, Android, contenu des pages légales dans l'app (elles répondent 200 en local, 404 en production tant que G1 n'est pas déployé).
+
 - 4 novembre, exécution du plan V1 (`docs/plan-implementation-v1.pdf`), lots A1 à G9 et section Usage, une PR par lot. Tests : 371 web, 136 mobile, 66 domaine ; Playwright en production locale, 42 réussis et 10 ignorés, plus le test vidéo en mode développement. Cases cochées seulement quand le code suffit à le prouver. Tout le reste attend un paiement, un compte, un vrai téléphone ou le juriste : voir § 7 et § 8 du plan.
   - A : notifications, abonnements, suppression et confidentialité sont codés (C1, C2, C3, E1, F4), mais restent à éprouver en réel (appareils, bac à sable Stripe, effacement chez Mux).
   - B : isolation codée (A2) ; le jeton Blob est encore commun aux trois environnements et `preview.tartan.coach` n'existe pas (T3). Liens : 404 sans configuration (G3), variables à poser (T7, T8). Restauration non rejouée. Surveillance : signal de vie codé (A3), sonde externe à créer (T3).
