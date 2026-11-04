@@ -14,7 +14,7 @@ import { NotificationEmail } from "@email/auth";
 import { env } from "@/lib/env";
 import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
-import { deleteAsset, videoEnabled } from "@/lib/mux";
+import { drainExternalDeletions } from "./external-deletion.service";
 import { forbidden, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -319,14 +319,8 @@ export const resolveReport = async (
     } else if (report.entityType === "announcement") {
       await prisma.announcement.deleteMany({ where: { id: report.entityId, organizationId } });
     } else {
-      const video = await prisma.video.findFirst({
-        where: { id: report.entityId, organizationId },
-        select: { id: true, muxAssetId: true },
-      });
-      if (video) {
-        if (video.muxAssetId && videoEnabled()) await deleteAsset(video.muxAssetId);
-        await prisma.video.delete({ where: { id: video.id } });
-      }
+      await prisma.video.deleteMany({ where: { id: report.entityId, organizationId } });
+      await drainExternalDeletions();
     }
   }
   await prisma.contentReport.updateMany({

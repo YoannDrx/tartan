@@ -10,11 +10,12 @@ import { m } from "@tartan/i18n";
 import { fromDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { AppError, consentRequired, forbidden, invalid, notFound } from "@/lib/errors";
-import { createDirectUpload, deleteAsset, signedPlayback, unwrapWebhook, videoEnabled } from "@/lib/mux";
+import { createDirectUpload, signedPlayback, unwrapWebhook, videoEnabled } from "@/lib/mux";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireOwnedRefs, requireVisibleAthlete, visibleAthleteIds, type Access } from "./access";
 import { assertWithinPlan } from "./billing.service";
+import { drainExternalDeletions, enqueueExternalDeletion } from "./external-deletion.service";
 import { consentForAthletes } from "./consent.service";
 import { firstNameOf, namesFor } from "./me.service";
 import { notify } from "./notify.service";
@@ -185,14 +186,25 @@ export const applyMuxEvent = async (event: {
   if (!id) return;
   if (kind === "exercise") {
     if (event.type === "video.asset.ready") {
-      await prisma.exerciseMedia.updateMany({
+      const updated = await prisma.exerciseMedia.updateMany({
         where: { id },
         data: { muxAssetId: event.data.id, muxPlaybackId: event.data.playback_ids?.[0]?.id ?? null },
       });
+      if (!updated.count) {
+        await enqueueExternalDeletion({ provider: "mux_asset", ref: event.data.id, reason: "late_webhook" });
+      }
     }
     return;
   }
   if (kind !== "video") return;
+  // La vidéo a été supprimée avant l'arrivée du fichier : ce fichier ne doit pas rester chez Mux.
+  if (id && (event.type === "video.asset.created" || event.type === "video.asset.ready")) {
+    const known = await prisma.video.count({ where: { id } });
+    if (!known) {
+      await enqueueExternalDeletion({ provider: "mux_asset", ref: event.data.id, reason: "late_webhook" });
+      return;
+    }
+  }
   if (event.type === "video.asset.created") {
     await prisma.video.updateMany({ where: { id }, data: { status: "processing", muxAssetId: event.data.id } });
   } else if (event.type === "video.asset.ready") {
@@ -202,7 +214,7 @@ export const applyMuxEvent = async (event: {
     // Le client refuse déjà les fichiers trop longs : ici, seul un envoi qui l'aurait contourné est arrêté.
     if ((event.data.duration ?? 0) > MAX_FILE_SECONDS * 1.1) {
       await prisma.video.updateMany({ where: { id }, data: { status: "error" } });
-      await deleteAsset(event.data.id).catch(() => log.error("video_oversized_delete_failed", { entityId: id }));
+      await enqueueExternalDeletion({ provider: "mux_asset", ref: event.data.id, reason: "video_oversized" });
       log.warn("video_oversized", { entityId: id });
       return;
     }
@@ -360,9 +372,8 @@ export const shareVideo = async (
 export const deleteVideo = async (userId: string, organizationId: string, videoId: string) => {
   const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
   await requireVideo(access, videoId);
-  const video = await prisma.video.findUniqueOrThrow({ where: { id: videoId }, select: { muxAssetId: true } });
-  if (video.muxAssetId && videoEnabled()) await deleteAsset(video.muxAssetId);
   await prisma.video.delete({ where: { id: videoId } });
+  await drainExternalDeletions();
 };
 
 export const deleteJumpAttempt = async (userId: string, organizationId: string, attemptId: string) => {
@@ -446,4 +457,3 @@ export const getBarSheet = async (
     bestCm: bestClearedHeight(attempts),
   };
 };
-

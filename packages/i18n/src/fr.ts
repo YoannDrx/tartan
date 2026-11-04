@@ -814,6 +814,8 @@ export const fr = {
     notificationsLate: "En retard de plus de 30 min",
     notificationsFailed: "Échecs de livraison, 24 h",
     notificationsUndelivered: "Jamais reçues, 24 h",
+    deletionsFailed: "Effacements en échec",
+    deletionsLate: "Effacements en retard de 24 h",
   },
   disciplines: {
     high_jump: "Saut en hauteur",

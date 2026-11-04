@@ -19,7 +19,8 @@ import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
 import { log } from "@/lib/logger";
 import { hasBearer } from "@/lib/secure-compare";
 import { sendEmail } from "@/lib/mail";
-import { deleteAsset, videoEnabled } from "@/lib/mux";
+import { videoEnabled } from "@/lib/mux";
+import { drainExternalDeletions } from "./external-deletion.service";
 import { prisma } from "@/lib/prisma";
 import { billingEnabled, priceIdFor, stripe } from "@/lib/stripe";
 import { audit, requireOrgMember } from "./access";
@@ -432,17 +433,10 @@ export const purgeExpiredVideos = async (now: Date = new Date()): Promise<number
     const soon = new Date(before.getTime() + PURGE_NOTICE_DAYS * DAY_MS);
     const expiring = await prisma.video.count({ where: { organizationId: org.id, createdAt: { lt: soon } } });
     if (expiring === 0 || !(await purgeNoticeServed(org.id, org.name, org.owner.email, now))) continue;
-    const videos = await prisma.video.findMany({
-      where: { organizationId: org.id, createdAt: { lt: before } },
-      select: { id: true, muxAssetId: true },
-    });
-    for (const video of videos) {
-      if (video.muxAssetId && videoEnabled())
-        await deleteAsset(video.muxAssetId).catch(() => log.warn("mux_asset_delete_failed"));
-      await prisma.video.delete({ where: { id: video.id } });
-      purged += 1;
-    }
+    const { count } = await prisma.video.deleteMany({ where: { organizationId: org.id, createdAt: { lt: before } } });
+    purged += count;
   }
+  if (purged) await drainExternalDeletions();
   log.info("videos_purged", { count: purged });
   return purged;
 };

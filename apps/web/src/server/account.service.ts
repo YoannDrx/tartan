@@ -1,6 +1,6 @@
 import { revokeAppleToken } from "@/lib/apple";
 import { log } from "@/lib/logger";
-import { deleteAsset, videoEnabled } from "@/lib/mux";
+import { drainExternalDeletions } from "./external-deletion.service";
 import { prisma } from "@/lib/prisma";
 import { cancelStripeSubscriptions } from "./billing.service";
 import { audit } from "./access";
@@ -36,14 +36,6 @@ export const deleteAccount = async (userId: string): Promise<void> => {
   const transfers = owned.filter((o) => o.members.length > 0);
   await cancelStripeSubscriptions(orgsToDelete);
 
-  const assets = await prisma.video.findMany({
-    where: {
-      OR: [{ athleteId: { in: athleteIds } }, { organizationId: { in: orgsToDelete } }],
-      muxAssetId: { not: null },
-    },
-    select: { muxAssetId: true },
-  });
-
   await prisma.$transaction(async (tx) => {
     for (const org of transfers) {
       const next = org.members[0]?.userId as string;
@@ -70,11 +62,7 @@ export const deleteAccount = async (userId: string): Promise<void> => {
     await tx.user.delete({ where: { id: userId } });
   });
 
-  if (videoEnabled()) {
-    for (const asset of assets) {
-      await deleteAsset(asset.muxAssetId as string).catch(() => log.warn("mux_asset_delete_failed"));
-    }
-  }
+  await drainExternalDeletions();
   await audit({ action: "account_deleted", entity: "user" });
   log.info("account_deleted");
 };

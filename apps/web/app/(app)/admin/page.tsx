@@ -40,6 +40,8 @@ export default async function AdminPage() {
     { label: m.admin.notificationsLate, value: data.notificationDelivery.late },
     { label: m.admin.notificationsFailed, value: data.notificationDelivery.failedLast24h },
     { label: m.admin.notificationsUndelivered, value: data.notificationDelivery.undeliveredLast24h },
+    { label: m.admin.deletionsFailed, value: data.externalDeletions.failed },
+    { label: m.admin.deletionsLate, value: data.externalDeletions.overdue },
   ];
   return (
     <div className="flex flex-col gap-4">
