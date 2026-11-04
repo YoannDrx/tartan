@@ -6,8 +6,14 @@ import { getAthleteCalendar, logSession } from "@/server/athlete-view.service";
 import { removeAthlete, leaveOrganization } from "@/server/members.service";
 import { closeOverdueSessions } from "@/server/cron.service";
 import { deleteGroup } from "@/server/org.service";
-import { audienceAthleteIds, publishRow, saveScheduledSession } from "@/server/session.service";
-import { getTrackingGrid, getAlerts } from "@/server/tracking.service";
+import {
+  activeAudienceIds,
+  audienceAthleteIds,
+  getSessionForEdit,
+  publishRow,
+  saveScheduledSession,
+} from "@/server/session.service";
+import { getTrackingGrid, getAlerts, remindAthletes, takeRollCall } from "@/server/tracking.service";
 import { icalFeed, icalLink } from "@/server/ical.service";
 import { makeOrg, addAthlete, addStaff } from "./helpers";
 
@@ -100,6 +106,69 @@ describe("groupes et audience", () => {
         where: { scheduledSessionId_athleteId: { scheduledSessionId: good.id, athleteId: b.athlete.athleteId } },
       }),
     ).toMatchObject({ status: "missed" });
+  });
+  it("un ancien membre avec un log manqué n'est plus sollicité, mais reste dans l'historique", async () => {
+    const a = await prepare();
+    const past = await a.schedule("2030-06-10");
+    await closeOverdueSessions(NOW);
+    await prisma.groupMember.deleteMany({ where: { athleteId: a.athlete.athleteId } });
+    expect(await audienceAthleteIds(past.id)).toContain(a.athlete.athleteId);
+    expect(await activeAudienceIds(past.id)).not.toContain(a.athlete.athleteId);
+    const before = await prisma.notification.count({ where: { userId: a.athlete.userId } });
+    await remindAthletes(a.owner.userId, a.organizationId, past.id, undefined, NOW);
+    expect(await prisma.notification.count({ where: { userId: a.athlete.userId } })).toBe(before);
+    await takeRollCall(a.owner.userId, a.organizationId, past.id, {
+      entries: [{ athleteId: a.athlete.athleteId, status: "absent" }],
+    });
+    expect(await prisma.attendance.count({ where: { scheduledSessionId: past.id } })).toBe(0);
+  });
+  it("une séance à l'attribution orpheline se réenregistre", async () => {
+    const a = await prepare();
+    const session = await a.schedule("2030-06-20");
+    await prisma.assignment.create({
+      data: { scheduledSessionId: session.id, targetType: "group", targetId: randomUUID() },
+    });
+    const edit = await getSessionForEdit(a.owner.userId, a.organizationId, session.id);
+    expect(edit.assignments).toEqual([{ targetType: "group", targetId: a.groupId }]);
+    await expect(saveScheduledSession(a.owner.userId, a.organizationId, { ...edit })).resolves.toMatchObject({
+      id: session.id,
+    });
+  });
+  it("supprimer le dernier groupe d'un brouillon programmé annule sa publication", async () => {
+    const a = await prepare();
+    const other = await prisma.group.create({ data: { organizationId: a.organizationId, name: "Autre" } });
+    const save = (targetIds: string[]) =>
+      prisma.scheduledSession
+        .create({
+          data: {
+            organizationId: a.organizationId,
+            createdBy: a.owner.userId,
+            date: new Date("2030-07-01T00:00:00Z"),
+            startTime: "18:00",
+            title: "Brouillon",
+            type: "strength",
+            draft: {},
+            publishAt: new Date("2030-06-30T10:00:00Z"),
+            assignments: { create: targetIds.map((targetId) => ({ targetType: "group" as const, targetId })) },
+          },
+        })
+        .then((row) => row.id);
+    const alone = await save([a.groupId]);
+    const shared = await save([a.groupId, other.id]);
+    await deleteGroup(a.owner.userId, a.organizationId, a.groupId);
+    expect((await prisma.scheduledSession.findUniqueOrThrow({ where: { id: alone } })).publishAt).toBeNull();
+    expect((await prisma.scheduledSession.findUniqueOrThrow({ where: { id: shared } })).publishAt).not.toBeNull();
+  });
+  it("saveAthlete signale qu'un coach vient de sortir l'athlète de son périmètre", async () => {
+    const a = await prepare();
+    const coach = await addStaff(a.organizationId, "Coach", "coach", [a.groupId]);
+    const result = await saveAthlete(coach.userId, a.organizationId, {
+      id: a.athlete.athleteId,
+      firstName: "Présent",
+      lastName: "Test",
+      groupIds: [],
+    });
+    expect(result).toEqual({ id: a.athlete.athleteId, stillVisible: false });
   });
   it("quitter un espace et supprimer un groupe nettoient aussi les attributions", async () => {
     const a = await prepare();

@@ -19,7 +19,7 @@ import { activeInjuriesByAthlete } from "./athlete.service";
 import { consentForAthletes } from "./consent.service";
 import { firstNameOf } from "./me.service";
 import { notify } from "./notify.service";
-import { audienceAthleteIds } from "./session.service";
+import { activeAudienceIds, audienceAthleteIds } from "./session.service";
 
 const scopedAthletes = async (access: Access, groupId?: string) => {
   const visible = await visibleAthleteIds(access);
@@ -312,7 +312,7 @@ export const takeRollCall = async (userId: string, organizationId: string, sessi
   const session = await prisma.scheduledSession.findFirst({ where: { id: sessionId, organizationId } });
   if (!session?.snapshot) throw notFound();
   const visible = new Set(await visibleAthleteIds(access));
-  const audience = new Set(await audienceAthleteIds(sessionId));
+  const audience = new Set(await activeAudienceIds(sessionId));
   const entries = input.entries.filter((e) => visible.has(e.athleteId) && audience.has(e.athleteId));
   await prisma.$transaction(
     entries.map((e) =>
@@ -353,7 +353,7 @@ export const remindAthletes = async (
   });
   if (!session) throw notFound();
   const visible = new Set(await visibleAthleteIds(access));
-  const audience = (await audienceAthleteIds(sessionId)).filter((id) => visible.has(id));
+  const audience = (await activeAudienceIds(sessionId)).filter((id) => visible.has(id));
   const logs = await prisma.sessionLog.findMany({
     where: { scheduledSessionId: sessionId, athleteId: { in: audience } },
     select: { athleteId: true, status: true },

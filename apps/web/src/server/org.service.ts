@@ -154,10 +154,24 @@ export const saveGroup = async (userId: string, organizationId: string, input: G
 export const deleteGroup = async (userId: string, organizationId: string, groupId: string) => {
   const access = await requireOrgMember(userId, organizationId, "manageOrganization");
   await requireGroupInScope(access, [groupId]);
-  await prisma.$transaction([
-    prisma.assignment.deleteMany({ where: { targetType: "group", targetId: groupId } }),
-    prisma.group.delete({ where: { id: groupId } }),
-  ]);
+  await prisma.$transaction(async (tx) => {
+    const affected = await tx.assignment.findMany({
+      where: { targetType: "group", targetId: groupId },
+      select: { scheduledSessionId: true },
+    });
+    await tx.assignment.deleteMany({ where: { targetType: "group", targetId: groupId } });
+    await tx.group.delete({ where: { id: groupId } });
+    // Un brouillon programmé sans destinataire échouerait à chaque passage de la tâche de publication.
+    await tx.scheduledSession.updateMany({
+      where: {
+        id: { in: affected.map((a) => a.scheduledSessionId) },
+        publishedAt: null,
+        publishAt: { not: null },
+        assignments: { none: {} },
+      },
+      data: { publishAt: null },
+    });
+  });
 };
 
 export const listStaff = async (userId: string, organizationId: string) => {

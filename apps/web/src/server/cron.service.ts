@@ -7,7 +7,7 @@ import { sendWeeklyDigests } from "./digest.service";
 import { firstNameOf } from "./me.service";
 import { dispatchPending, notify, notifyPublications } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
-import { audienceAthleteIds, publishRow, type Publication } from "./session.service";
+import { activeAudienceIds, audienceAthleteIds, publishRow, type Publication } from "./session.service";
 import { runCronJobs } from "./cron-runner";
 import { reconcileStripeSubscriptions } from "./stripe-subscriptions.service";
 
@@ -130,7 +130,7 @@ export const sendEveQuestions = async (now: Date = new Date()): Promise<number> 
   let failed = 0;
   for (const session of sessions) {
     try {
-      const audience = await audienceAthleteIds(session.id);
+      const audience = await activeAudienceIds(session.id);
       const athletes = await prisma.athlete.findMany({
         where: {
           id: { in: audience },
