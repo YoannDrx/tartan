@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Conditions d'utilisation" };
 
 export default function ConditionsPage() {
   return (
-    <LegalPage title="Conditions d'utilisation" updated="1er novembre 2026">
+    <LegalPage title="Conditions d'utilisation" updated="4 novembre 2026">
       <p>
         Éditeur : Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130
         Franconville.
@@ -15,6 +15,11 @@ export default function ConditionsPage() {
         Tartan aide un coach d'athlétisme et ses athlètes à planifier, suivre et analyser l'entraînement. Les offres
         payantes relèvent des conditions de vente.
       </p>
+      <h2>Qui peut l'utiliser</h2>
+      <p>
+        Tartan est réservé aux personnes majeures, en France. En créant un compte, tu déclares avoir 18 ans révolus. Un
+        compte qui ne remplit pas cette condition est fermé.
+      </p>
       <h2>Ce que Tartan n'est pas</h2>
       <p>
         Tartan n'est pas un dispositif médical. Les indicateurs sont des aides à la décision, pas des diagnostics. En
@@ -22,9 +27,10 @@ export default function ConditionsPage() {
       </p>
       <h2>Les contenus</h2>
       <p>
-        Tu restes responsable de ce que tu publies. Tu dois avoir l'accord des personnes que tu filmes. Tout contenu
+        Tu restes responsable de ce que tu publies. Tu dois avoir l'accord de chaque personne que tu filmes. Tartan ne
+        tolère aucun contenu abusif : harcèlement, discrimination, nudité, violence ou contenu illicite. Tout contenu
         peut être signalé depuis l'app, et tout utilisateur bloqué. Les signalements sont examinés sous 48 heures
-        ouvrées ; un contenu illicite est retiré et son auteur peut être exclu.
+        ouvrées ; un contenu abusif est retiré et son auteur est exclu.
       </p>
       <h2>Ton compte</h2>
       <p>

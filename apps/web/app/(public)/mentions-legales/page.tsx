@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Mentions légales" };
 
 export default function MentionsLegalesPage() {
   return (
-    <LegalPage title="Mentions légales" updated="1er novembre 2026">
+    <LegalPage title="Mentions légales" updated="4 novembre 2026">
       <h2>Éditeur</h2>
       <p>
         Tartan est édité sous le nom commercial Yodev par Yoann Andrieux, entrepreneur individuel. SIREN 803 272 590,
@@ -20,7 +20,8 @@ export default function MentionsLegalesPage() {
         Site et application : Vercel Inc., 440 N Barranca Avenue #4133, Covina, CA 91723, États-Unis, exécution en Union
         européenne (Francfort).
       </p>
-      <p>Base de données : Neon, région Union européenne (Francfort).</p>
+      <p>Base de données : Neon (neon.com), région Union européenne (Francfort).</p>
+      <p>Stockage et diffusion des vidéos : Mux, Inc., 88 Stevenson Street, San Francisco, CA 94105, États-Unis.</p>
       <h2>Propriété intellectuelle</h2>
       <p>
         La marque, le logo et l'application Tartan appartiennent à leur éditeur. Les contenus publiés par les coachs et

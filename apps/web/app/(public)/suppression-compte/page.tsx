@@ -9,11 +9,12 @@ export const metadata: Metadata = {
 // Adresse à déclarer sur Google Play : la suppression doit être possible sans installer l'application (§ 16.2).
 export default function SuppressionComptePage() {
   return (
-    <LegalPage title="Supprimer mon compte" updated="2 novembre 2026">
+    <LegalPage title="Supprimer mon compte" updated="4 novembre 2026">
       <h2>Depuis Tartan</h2>
       <p>
         Dans l'application ou sur <a href="https://app.tartan.coach/reglages#compte">app.tartan.coach</a> : Réglages,
-        Compte, puis « Supprimer mon compte ». La suppression est immédiate.
+        Compte, puis « Supprimer mon compte ». Ton compte disparaît aussitôt. Les fichiers chez nos prestataires, comme
+        les vidéos, sont retirés dans l'heure en temps normal.
       </p>
       <h2>Sans accès à ton compte</h2>
       <p>
@@ -24,11 +25,14 @@ export default function SuppressionComptePage() {
       <p>
         Ton compte, ton profil, tes séances réalisées, tes tests, tes blessures, tes vidéos, tes commentaires et tes
         accords. Si tu es propriétaire d'un espace sans autre coach, l'espace et ses données sont supprimés, et son
-        abonnement est résilié. S'il a d'autres coachs, l'espace est repris par le plus ancien d'entre eux.
+        abonnement est résilié : plus aucun prélèvement. S'il a d'autres coachs, l'espace est repris par le plus ancien
+        d'entre eux, qui en est prévenu ; l'abonnement s'arrête à la fin de la période payée.
       </p>
       <h2>Ce qui est conservé</h2>
       <p>
-        Les factures, 10 ans, comme la loi l'impose. Les journaux techniques, 1 an au plus, sans contenu d'entraînement.
+        Les factures, 10 ans, comme la loi l'impose, chez nous et chez Stripe. Les journaux techniques, 1 an au plus,
+        sans contenu d'entraînement. Les copies de sauvegarde, 30 jours au plus : tes données y restent jusqu'à leur
+        expiration.
       </p>
     </LegalPage>
   );

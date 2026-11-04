@@ -158,7 +158,11 @@ export const createCheckout = async (
       background_color: "#15161A",
       icon: { type: "url", url: `${appUrl}/icon-512.png` },
     },
-    custom_text: { submit: { message: `En validant, tu acceptes les conditions de vente : ${appUrl}/cgv` } },
+    custom_text: {
+      submit: {
+        message: `En validant, tu acceptes les conditions de vente (${appUrl}/cgv) et tu demandes que le service commence tout de suite. Si tu te rétractes sous 14 jours, le service déjà fourni reste dû.`,
+      },
+    },
     success_url: `${appUrl}/abonnement?merci=1`,
     cancel_url: `${appUrl}/abonnement`,
   });

@@ -11,7 +11,7 @@ const price = (plan: "coach" | "club") => {
 
 export default function CgvPage() {
   return (
-    <LegalPage title="Conditions de vente" updated="1er novembre 2026">
+    <LegalPage title="Conditions de vente" updated="4 novembre 2026">
       <h2>Vendeur</h2>
       <p>
         Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130 Franconville.
@@ -35,15 +35,15 @@ export default function CgvPage() {
       </p>
       <h2>Paiement et factures</h2>
       <p>
-        Sur le web, le paiement est traité par Stripe, et les factures sont disponibles dans la gestion de l'abonnement.
-        Dans l'application mobile, l'achat passe par l'App Store ou Google Play, selon leurs propres conditions.
+        L'abonnement s'achète uniquement sur le web. Le paiement est traité par Stripe, et les factures sont disponibles
+        dans la gestion de l'abonnement. Les applications mobiles sont gratuites et ne proposent aucun achat.
       </p>
       <h2>Résiliation</h2>
       <p>
-        La résiliation se fait à tout moment depuis la page Abonnement, ou depuis les réglages du téléphone pour un
-        achat intégré. Elle prend effet à la fin de la période payée ; l'espace repasse alors en offre Découverte. Les
-        athlètes et les données existants sont conservés ; seul l'ajout au-delà des limites est bloqué, et les vidéos
-        plus anciennes que la durée de conservation de l'offre sont retirées, après un préavis par e-mail de 14 jours.
+        La résiliation se fait à tout moment depuis la page Abonnement. Elle prend effet à la fin de la période payée ;
+        l'espace repasse alors en offre Découverte. Les athlètes et les données existants sont conservés ; seul l'ajout
+        au-delà des limites est bloqué, et les vidéos plus anciennes que la durée de conservation de l'offre sont
+        retirées, après un préavis par e-mail de 14 jours.
       </p>
       <h2>Impayé</h2>
       <p>
@@ -53,13 +53,20 @@ export default function CgvPage() {
       <h2>Droit de rétractation</h2>
       <p>
         Le client consommateur dispose de 14 jours à compter de la souscription pour se rétracter, sans motif, en
-        écrivant à hello@tartan.coach. S'il demande à utiliser le service payant avant la fin de ce délai, le montant
-        correspondant au service déjà fourni reste dû.
+        écrivant à hello@tartan.coach. Au moment du paiement, il demande expressément que le service commence sans
+        attendre la fin de ce délai : s'il se rétracte ensuite, le montant correspondant au service déjà fourni reste
+        dû.
+      </p>
+      <p>Il peut utiliser le modèle suivant, sans y être obligé :</p>
+      <p>
+        À l'attention de Yodev, 7 allée des Jonquilles, 95130 Franconville, hello@tartan.coach. Je vous notifie par la
+        présente ma rétractation du contrat portant sur l'abonnement Tartan suivant : offre et espace concernés, date de
+        souscription, nom, adresse, date, signature si le formulaire est envoyé sur papier.
       </p>
       <h2>Parrainage</h2>
       <p>
         Un mois offert au parrain et au filleul, une fois le filleul abonné depuis 30 jours après son essai. Pas
-        d'auto-parrainage, 12 récompenses par an au maximum. Les athlètes mineurs ne participent pas au parrainage.
+        d'auto-parrainage, 12 récompenses par an au maximum.
       </p>
       <h2>Médiation et litiges</h2>
       <p>

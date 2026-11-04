@@ -167,7 +167,7 @@ export const fr = {
   },
   landing: {
     title: "Ta séance, ils l'ont faite ?",
-    lead: "Tartan est le carnet d'entraînement partagé du coach d'athlé et de son groupe : sauts, sprint, haies. Chacun sait quoi faire, et tu sais ce qui a été fait.",
+    lead: "Tartan est le carnet d'entraînement partagé des coachs d'athlétisme et des préparateurs physiques, avec l'analyse du saut comme spécialité. Chacun sait quoi faire, et tu sais ce qui a été fait.",
     ctaOpen: "Créer mon espace coach",
     ctaClosed: "Rejoindre le pilote",
     signIn: "Se connecter",
@@ -243,8 +243,8 @@ export const fr = {
           body: "Un lien ou un QR code suffit à rejoindre le groupe depuis le téléphone. L'installation vient ensuite, si l'athlète le veut.",
         },
         {
-          title: "Avec des mineurs",
-          body: "Accord d'un parent sous 15 ans pour la santé et les vidéos. Les vidéos ne sont visibles que par ses coachs et par l'athlète.",
+          title: "Entre adultes",
+          body: "Tartan est réservé aux personnes majeures. Santé et vidéos demandent un accord séparé, et les vidéos ne sont visibles que par ses coachs et par l'athlète.",
         },
       ],
     },

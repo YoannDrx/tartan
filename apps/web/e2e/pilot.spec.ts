@@ -195,6 +195,23 @@ test.describe("toutes tailles d'écran", () => {
     await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible();
   });
 
+  test("le site public ne parle plus de mineurs", async ({ page }) => {
+    for (const path of [
+      "/",
+      "/tarifs",
+      "/confidentialite",
+      "/conditions",
+      "/cgv",
+      "/mentions-legales",
+      "/suppression-compte",
+    ]) {
+      await page.goto(path);
+      const text = (await page.locator("body").innerText()).toLowerCase();
+      expect(text, path).not.toContain("mineur");
+      expect(text, path).not.toContain("15 ans");
+    }
+  });
+
   test("site, connexion et pages légales sont accessibles et sans défilement horizontal", async ({ page }) => {
     for (const path of [
       "/",
