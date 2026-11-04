@@ -1,9 +1,8 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
+import { type AppVariant, parseVariant, resolveApiUrl, universalHostsFor } from "./src/lib/app-variant.ts";
 
 // Lu par Node au moment de la configuration : pas de types Node dans cette app.
 const { existsSync } = require("node:fs") as { existsSync: (path: string) => boolean };
-
-type AppVariant = "development" | "preview" | "production";
 
 const BRICK = "#C4442B";
 const UNIVERSAL_HOSTS = ["tartan.coach", "app.tartan.coach"];
@@ -16,29 +15,16 @@ const variantNames: Record<AppVariant, string> = {
   production: "Tartan – Coach athlé",
 };
 
-const getVariant = (): AppVariant => {
-  const value = process.env.APP_VARIANT;
-  if (value === "preview" || value === "production") return value;
-  return "development";
-};
-
 const flag = (value: string | undefined) => value === "true";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
-  const variant = getVariant();
+  const variant = parseVariant(process.env.APP_VARIANT);
   const suffix = variant === "production" ? "" : variant === "preview" ? ".preview" : ".dev";
   // Le serveur Better Auth ne fait confiance qu'à tartan:// et tartan-dev:// : la préversion partage tartan://.
   const scheme = variant === "development" ? "tartan-dev" : "tartan";
 
-  const apiUrlValue = process.env.EXPO_PUBLIC_API_URL?.trim();
-  const configuredApiUrl = apiUrlValue === "" ? undefined : apiUrlValue;
-  if (variant !== "development" && !configuredApiUrl) {
-    throw new Error(`EXPO_PUBLIC_API_URL est obligatoire pour la variante ${variant}.`);
-  }
-  const apiUrl = configuredApiUrl ?? "http://localhost:3000";
-  if (variant !== "development" && !apiUrl.startsWith("https://")) {
-    throw new Error(`EXPO_PUBLIC_API_URL doit être en HTTPS pour la variante ${variant}.`);
-  }
+  const apiUrl = resolveApiUrl(variant, process.env.EXPO_PUBLIC_API_URL);
+  const universalHosts = universalHostsFor(variant, UNIVERSAL_HOSTS);
 
   // Identifiants publics du projet EAS et de l'équipe Apple : aucun secret ici.
   const projectId = process.env.EAS_PROJECT_ID?.trim() || "0067d5f6-b62a-455e-9680-d7624cfd4676";
@@ -63,7 +49,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       bundleIdentifier: `coach.tartan.app${suffix}`,
       ...(appleTeamId ? { appleTeamId } : {}),
       // Liens universels : le serveur doit publier apple-app-site-association.
-      associatedDomains: UNIVERSAL_HOSTS.map((host) => `applinks:${host}`),
+      associatedDomains: universalHosts.map((host) => `applinks:${host}`),
       ...(appleSignIn ? { usesAppleSignIn: true } : {}),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -91,7 +77,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "android.permission.SYSTEM_ALERT_WINDOW",
       ],
       // App Links : le serveur doit publier assetlinks.json.
-      intentFilters: UNIVERSAL_HOSTS.map((host) => ({
+      intentFilters: universalHosts.map((host) => ({
         action: "VIEW",
         autoVerify: true,
         category: ["BROWSABLE", "DEFAULT"],

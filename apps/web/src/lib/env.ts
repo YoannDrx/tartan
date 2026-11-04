@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 
 const optional = z
@@ -54,6 +55,35 @@ const schema = z.object({
 
 export type Env = z.infer<typeof schema>;
 
+// Empreinte de l'hôte Neon de production : la comparaison n'expose rien dans le dépôt.
+const PRODUCTION_DB_HOST_SHA256 = "57c83b8db9a6c548eee02df0a8fc4b30ea821e393f034442433cb85745b9c2a1";
+
+const isProductionDatabase = (url: string | undefined): boolean => {
+  if (!url) return false;
+  try {
+    const host = new URL(url).hostname.replace("-pooler.", ".");
+    return createHash("sha256").update(host).digest("hex") === PRODUCTION_DB_HOST_SHA256;
+  } catch {
+    return false;
+  }
+};
+
+// Un essai destructif ne doit jamais atteindre la production, et un réglage de test ne doit jamais y arriver.
+export const assertEnvIsolation = (vars: Record<string, string | undefined>): void => {
+  if (vars.VERCEL_ENV === "production") {
+    for (const name of ["E2E_DISABLE_RATE_LIMIT", "VIDEO_DEV_MP4_URL"]) {
+      if (vars[name]) throw new Error(`${name} est interdit en production.`);
+    }
+    return;
+  }
+  if (/^(sk|rk)_live_/.test(vars.STRIPE_SECRET_KEY ?? "")) {
+    throw new Error("Clé Stripe réelle refusée hors production.");
+  }
+  if (isProductionDatabase(vars.DATABASE_URL) || isProductionDatabase(vars.DATABASE_URL_UNPOOLED)) {
+    throw new Error("La base de production est refusée hors production.");
+  }
+};
+
 let cached: Env | undefined;
 
 // En preview, l'adresse vient du déploiement Vercel.
@@ -61,6 +91,7 @@ const previewUrl =
   process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
 
 export const env = (): Env => {
+  if (!cached) assertEnvIsolation(process.env);
   cached ??= schema.parse({
     ...process.env,
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? previewUrl,
