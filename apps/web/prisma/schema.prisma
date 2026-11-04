@@ -294,6 +294,7 @@ model Athlete {
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  athleteConsents AthleteConsent[]
   groups       GroupMember[]
   coachNotes   CoachNote[]
   injuries     Injury[]
@@ -428,10 +429,26 @@ model Consent {
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
   user           User        @relation("ConsentUser", fields: [userId], references: [id], onDelete: Cascade)
-  athlete        Athlete?    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  athlete        Athlete?    @relation(fields: [athleteId], references: [id], onDelete: SetNull)
 
   @@unique([userId, kind])
   @@map("consents")
+}
+
+// Santé et vidéo s'accordent par fiche : un sportif peut suivre un club et un préparateur sans tout mélanger.
+model AthleteConsent {
+  id        String      @id @default(uuid()) @db.Uuid
+  athleteId String      @map("athlete_id") @db.Uuid
+  kind      ConsentKind
+  version   String
+  grantedAt DateTime?   @map("granted_at")
+  revokedAt DateTime?   @map("revoked_at")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @default(now()) @updatedAt @map("updated_at")
+  athlete   Athlete     @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([athleteId, kind])
+  @@map("athlete_consents")
 }
 
 // ── Exercices et séances ─────────────────────────────────────────────────────

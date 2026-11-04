@@ -692,6 +692,14 @@ export const fr = {
     emailsDetail: "Les messages liés à ton compte et à ton abonnement continuent d'arriver.",
     emailDigest: "Récapitulatif de la semaine, le dimanche soir",
     emailNotifications: "E-mail quand une notification n'a pas pu arriver",
+    consentPerSpace: "Tu suis plusieurs espaces : donne ton accord depuis les réglages de chacun d'eux.",
+    healthRevokeTitle: "Retirer ton accord pour la santé ?",
+    healthRevokeDetail:
+      "Ton effort ressenti, tes douleurs et tes blessures de cet espace seront effacés aussitôt, et ça ne se rattrape pas. Les exports déjà faits et les copies de sauvegarde peuvent en garder une trace pendant 30 jours au plus.",
+    videoRevokeTitle: "Retirer ton accord pour les vidéos ?",
+    videoRevokeDetail:
+      "Tes vidéos de cet espace seront masquées à tes coachs aussitôt, puis supprimées dans 30 jours, sauf si tu redonnes ton accord d'ici là.",
+    revokeConsent: "Retirer mon accord",
     revokeOtherSessions: "Déconnecter mes autres appareils",
     revokeOtherSessionsDone: "Tes autres appareils sont déconnectés.",
     plan: "Offre",

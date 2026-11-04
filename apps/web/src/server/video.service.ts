@@ -73,7 +73,7 @@ const summarize = async (
     athleteId: v.athleteId,
     athleteName: `${v.athlete.firstName} ${v.athlete.lastName}`.trim(),
     status: v.status,
-    playbackId: v.muxPlaybackId,
+    playbackId: consentRevoked ? null : v.muxPlaybackId,
     thumbnailUrl,
     consentRevoked,
     fps: v.fps,
@@ -150,6 +150,7 @@ export const renewVideoUpload = async (userId: string, organizationId: string, v
   const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
   const video = await requireVideo(access, videoId);
   if (video.status !== "uploading") throw invalid("Cette vidéo est déjà envoyée.");
+  await requireVideoConsent(video.athleteId);
   if (!videoEnabled()) throw new AppError(503, "video_disabled", m.errors.videoDisabled);
   const upload = await createDirectUpload(`video:${videoId}`);
   await prisma.video.update({ where: { id: videoId }, data: { muxUploadId: upload.uploadId } });

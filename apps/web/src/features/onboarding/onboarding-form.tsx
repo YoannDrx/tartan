@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { m } from "@tartan/i18n";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { CheckRow, Field, Input, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { createSpaceAction } from "./onboarding.action";
 
@@ -18,6 +18,7 @@ const schema = z.object({
   name: z.string().trim().min(1, "Donne un nom à ton espace"),
   type: z.enum(["club", "independent"]),
   firstGroupName: z.string().trim().min(1, "Donne un nom à ton premier groupe"),
+  termsAccepted: z.boolean().refine(Boolean, m.invite.termsRequired),
 });
 
 export const OnboardingForm = ({
@@ -34,7 +35,7 @@ export const OnboardingForm = ({
   const router = useRouter();
   const form = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { firstName, lastName, birthDate, name: "", type: "independent" as const, firstGroupName: "" },
+    defaultValues: { firstName, lastName, birthDate, name: "", type: "independent" as const, firstGroupName: "", termsAccepted: false },
   });
   const { errors } = form.formState;
   const { execute, isPending } = useAction(createSpaceAction, {
@@ -57,6 +58,7 @@ export const OnboardingForm = ({
           firstGroupName: v.firstGroupName,
           disciplines: [],
           profile: { firstName: v.firstName, lastName: v.lastName, birthDate: v.birthDate },
+          termsAccepted: true,
         }),
       )}
     >
@@ -95,6 +97,14 @@ export const OnboardingForm = ({
           {(a) => <Input {...a} {...form.register("firstGroupName")} />}
         </Field>
       </fieldset>
+      <div>
+        <CheckRow label={m.invite.consentTerms} {...form.register("termsAccepted")} />
+        {errors.termsAccepted ? (
+          <p role="alert" className="text-alert">
+            {errors.termsAccepted.message}
+          </p>
+        ) : null}
+      </div>
       <Button type="submit" size="lg" disabled={isPending}>
         {m.onboarding.createSpace}
       </Button>

@@ -9,6 +9,7 @@ import { dispatchPending, notify, notifyPublications } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
 import { activeAudienceIds, audienceAthleteIds, publishRow, type Publication } from "./session.service";
 import { runCronJobs } from "./cron-runner";
+import { purgeRevokedConsentVideos } from "./consent.service";
 import { processExternalDeletions, reconcileExternalAssets } from "./external-deletion.service";
 import { sendHeartbeat } from "./heartbeat";
 import { reconcileStripeSubscriptions } from "./stripe-subscriptions.service";
@@ -178,6 +179,8 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     referrals: () => processReferrals(now),
     purged: () => purgeExpiredVideos(now),
     digests: () => sendWeeklyDigests(now),
+    // D'abord les lignes : leur suppression met les fichiers en file, traitée juste après.
+    revokedVideos: () => purgeRevokedConsentVideos(now),
     externalDeletions: () => processExternalDeletions(now),
     // Une fois par jour, au creux de la nuit.
     reconciled: async () => (hourInParis(now) === 4 ? reconcileExternalAssets(now) : null),

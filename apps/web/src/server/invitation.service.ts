@@ -358,9 +358,10 @@ export const acceptInvitation = async (
   });
 
   await setConsent(actor.userId, "terms", true, athleteId);
-  if (isAthlete) {
-    await setConsent(actor.userId, "health", input.consents.health, athleteId);
-    await setConsent(actor.userId, "video", input.consents.video, athleteId);
+  // Rejoindre un espace n'enlève jamais un accord donné à un autre, ni à celui-ci : cocher accorde, c'est tout.
+  if (isAthlete && athleteId) {
+    if (input.consents.health) await setConsent(actor.userId, "health", true, athleteId);
+    if (input.consents.video) await setConsent(actor.userId, "video", true, athleteId);
   }
   if (minor && athleteId && input.guardianEmail) {
     const names = await namesFor([inv.invitedBy]);

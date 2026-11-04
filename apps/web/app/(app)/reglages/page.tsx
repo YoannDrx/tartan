@@ -33,7 +33,7 @@ import { requireOrgMember } from "@/server/access";
 import { getEmailPreferences } from "@/server/email-preferences.service";
 import { icalLink } from "@/server/ical.service";
 import { listMembers } from "@/server/members.service";
-import { consentForAthletes, getUserConsents } from "@/server/consent.service";
+import { athleteConsentState, consentForAthletes, getUserConsents } from "@/server/consent.service";
 import { listInvitations } from "@/server/invitation.service";
 import { getMe } from "@/server/me.service";
 import { ensureReferralCode, getOrganization, listGroups } from "@/server/org.service";
@@ -66,6 +66,7 @@ export default async function ReglagesPage() {
     canManageMembers ? listReports(actor.userId, organizationId) : Promise.resolve([]),
   ]);
   const emailPreferences = await getEmailPreferences(actor.userId);
+  const spaceConsents = access.athleteId ? await athleteConsentState(access.athleteId) : consents;
   const parentalPending = access.athleteId ? (effective?.get(access.athleteId)?.parentalPending ?? false) : false;
   const isAthlete = access.role === "athlete";
   const referralLink = referral ? `${env().NEXT_PUBLIC_APP_URL}/r/${referral.code}` : null;
@@ -155,7 +156,11 @@ export default async function ReglagesPage() {
           id: "confidentialite",
           title: m.settings.privacy,
           content: (
-            <ConsentSwitches health={consents.health} video={consents.video} parentalPending={parentalPending} />
+            <ConsentSwitches
+              health={spaceConsents.health}
+              video={spaceConsents.video}
+              parentalPending={parentalPending}
+            />
           ),
         }
       : null,
