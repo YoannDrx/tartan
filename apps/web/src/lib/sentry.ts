@@ -1,7 +1,7 @@
 import type { ErrorEvent } from "@sentry/nextjs";
 
 // Jamais de donnée de santé ni de jeton : ni corps de requête, ni cookies, ni utilisateur, ni jeton d'URL (§ 14).
-const scrubUrl = (url: string): string =>
+export const scrubUrl = (url: string): string =>
   url
     .replace(/\?.*$/, "")
     .replace(/\/(i|r|accord-parental|nouveau-mot-de-passe)\/[^/]+/, "/$1/[masqué]")

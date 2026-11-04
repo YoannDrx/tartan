@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Analytics } from "@vercel/analytics/next";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
 import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import { ToastHost } from "@/components/ui/toast";
+import { UsageAnalytics } from "@/components/usage-analytics";
 import { fontVariables } from "./fonts";
 import "./globals.css";
 
@@ -48,7 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {children}
           <ToastHost />
         </NuqsAdapter>
-        <Analytics />
+        <UsageAnalytics />
       </body>
     </html>
   );
