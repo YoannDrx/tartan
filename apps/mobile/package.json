@@ -27,7 +27,7 @@
     "@tartan/domain": "workspace:*",
     "@tartan/i18n": "workspace:*",
     "better-auth": "1.7.15",
-    "expo": "55.0.29",
+    "expo": "55.0.32",
     "expo-apple-authentication": "~55.0.16",
     "expo-clipboard": "~55.0.16",
     "expo-constants": "~55.0.17",
