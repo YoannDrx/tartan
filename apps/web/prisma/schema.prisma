@@ -121,6 +121,9 @@ model Profile {
   avatarUrl String?   @map("avatar_url")
   locale    String    @default("fr")
   units     String    @default("kg")
+  // Envois coupables d'un clic : résumé hebdomadaire et replis de notification.
+  emailDigest        Boolean @default(true) @map("email_digest")
+  emailNotifications Boolean @default(true) @map("email_notifications")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 

@@ -86,6 +86,26 @@ describe("charges neutres", () => {
   });
 });
 
+describe("préférence d'e-mail", () => {
+  it("repli coupé : pas d'e-mail, le message reste dans l'app", async () => {
+    const a = await setup(null);
+    await prisma.profile.update({ where: { id: a.userId }, data: { emailNotifications: false } });
+    await a.dispatch();
+    expect(mocks.email).not.toHaveBeenCalled();
+    const row = await a.read();
+    expect(row.deliveries.find((d) => d.channel === "email")).toMatchObject({
+      state: "skipped",
+      errorCode: "email_opt_out",
+    });
+    expect(await prisma.notification.count({ where: { id: a.notification.id } })).toBe(1);
+  });
+  it("le repli porte sa désinscription", async () => {
+    const a = await setup(null);
+    await a.dispatch();
+    expect(mocks.email.mock.calls[0]?.[0].unsubscribeUrl).toContain("/api/email/desinscription/notifications/");
+  });
+});
+
 describe("acheminement persistant", () => {
   it("réessaie un push web 503 sans le marquer envoyé ni envoyer d'e-mail en parallèle", async () => {
     const a = await setup();

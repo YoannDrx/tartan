@@ -11,10 +11,18 @@ import { spaceAction } from "@/features/shell/space-action";
 import { SPACE_COOKIE } from "@/features/shell/space";
 import { deleteAccount } from "@/server/account.service";
 import { resendParentalConsent, setConsent } from "@/server/consent.service";
+import { EMAIL_KINDS, setEmailPreference } from "@/server/email-preferences.service";
 import { revokeIcalLink } from "@/server/ical.service";
 import { saveAvatar, updateProfile } from "@/server/me.service";
 import { deleteGroup, saveGroup, saveOrganizationLogo, updateOrganization } from "@/server/org.service";
 import { leaveOrganization, removeAthlete, removeCoach, updateMember } from "@/server/members.service";
+
+export const setEmailPreferenceAction = authAction
+  .inputSchema(z.object({ kind: z.enum(EMAIL_KINDS), on: z.boolean() }))
+  .action(async ({ parsedInput, ctx }) => {
+    await setEmailPreference(ctx.actor.userId, parsedInput.kind, parsedInput.on);
+    revalidatePath("/reglages");
+  });
 
 export const revokeIcalLinkAction = spaceAction.action(async ({ ctx }) => {
   await revokeIcalLink(ctx.userId, ctx.organizationId);

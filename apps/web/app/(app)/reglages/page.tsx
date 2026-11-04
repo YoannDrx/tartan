@@ -19,6 +19,7 @@ import {
   OrganizationForm,
   ProfileForm,
   ReferralLink,
+  EmailPreferences,
   RevokeIcalLink,
   RevokeOtherSessionsButton,
   SignOutButton,
@@ -29,6 +30,7 @@ import { ReportList } from "@/features/settings/reports";
 import { isAdmin } from "@/server/admin.service";
 import { listReports } from "@/server/comm.service";
 import { requireOrgMember } from "@/server/access";
+import { getEmailPreferences } from "@/server/email-preferences.service";
 import { icalLink } from "@/server/ical.service";
 import { listMembers } from "@/server/members.service";
 import { consentForAthletes, getUserConsents } from "@/server/consent.service";
@@ -63,6 +65,7 @@ export default async function ReglagesPage() {
     access.athleteId ? icalLink(actor.userId, organizationId) : Promise.resolve(null),
     canManageMembers ? listReports(actor.userId, organizationId) : Promise.resolve([]),
   ]);
+  const emailPreferences = await getEmailPreferences(actor.userId);
   const parentalPending = access.athleteId ? (effective?.get(access.athleteId)?.parentalPending ?? false) : false;
   const isAthlete = access.role === "athlete";
   const referralLink = referral ? `${env().NEXT_PUBLIC_APP_URL}/r/${referral.code}` : null;
@@ -197,6 +200,17 @@ export default async function ReglagesPage() {
           ),
         }
       : null,
+    {
+      id: "emails",
+      title: m.settings.emails,
+      content: (
+        <EmailPreferences
+          digest={emailPreferences.digest}
+          notifications={emailPreferences.notifications}
+          showDigest={access.role === "owner"}
+        />
+      ),
+    },
     vapidKey
       ? { id: "notifications", title: m.push.permissionTitle, content: <WebPushToggle vapidKey={vapidKey} /> }
       : null,

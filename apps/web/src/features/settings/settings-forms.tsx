@@ -38,6 +38,7 @@ import {
   uploadAvatarAction,
   uploadLogoAction,
   revokeIcalLinkAction,
+  setEmailPreferenceAction,
 } from "./settings.action";
 
 type AnyErrors = Record<string, { _errors?: string[] }> | undefined;
@@ -194,6 +195,37 @@ export const DeleteAccount = ({ detail }: { detail: string }) => {
         </Button>
       </form>
     </Dialog>
+  );
+};
+
+export const EmailPreferences = ({
+  digest,
+  notifications,
+  showDigest,
+}: {
+  digest: boolean;
+  notifications: boolean;
+  showDigest: boolean;
+}) => {
+  const { execute, isPending } = useAction(setEmailPreferenceAction, { onError: onErr });
+  return (
+    <div className="flex flex-col gap-1">
+      <p>{m.settings.emailsDetail}</p>
+      <CheckRow
+        label={m.settings.emailNotifications}
+        defaultChecked={notifications}
+        disabled={isPending}
+        onChange={(e) => execute({ kind: "notifications", on: e.target.checked })}
+      />
+      {showDigest ? (
+        <CheckRow
+          label={m.settings.emailDigest}
+          defaultChecked={digest}
+          disabled={isPending}
+          onChange={(e) => execute({ kind: "digest", on: e.target.checked })}
+        />
+      ) : null}
+    </div>
   );
 };
 

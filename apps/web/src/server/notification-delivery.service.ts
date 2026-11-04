@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { createElement } from "react";
+import { Link } from "@react-email/components";
+import { createElement, Fragment } from "react";
 import { renderNotification, type NotificationType } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { NotificationEmail } from "@email/auth";
+import { unsubscribePageUrl, unsubscribeUrl } from "./email-preferences.service";
 import type { Notification, NotificationDelivery } from "@/generated/prisma/client";
 import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/mail";
@@ -111,8 +113,13 @@ const send = async (delivery: Delivery): Promise<DeliveryResult | { state: "skip
   const type = n.type as NotificationType;
   const text = renderNotification(type, payload);
   if (delivery.channel === "email") {
-    const user = await prisma.user.findUnique({ where: { id: n.userId }, select: { email: true } });
+    const user = await prisma.user.findUnique({
+      where: { id: n.userId },
+      select: { email: true, profile: { select: { emailNotifications: true } } },
+    });
     if (!user) return { state: "skipped", code: "account_deleted" };
+    // Le message reste dans l'app : seul l'e-mail de repli est coupé.
+    if (user.profile?.emailNotifications === false) return { state: "skipped", code: "email_opt_out" };
     // Une configuration absente en production ne doit pas fabriquer un succès dans une boîte en mémoire.
     if (process.env.NODE_ENV === "production" && !env().RESEND_API_KEY)
       return { state: "retry", code: "email_unconfigured" };
@@ -121,9 +128,16 @@ const send = async (delivery: Delivery): Promise<DeliveryResult | { state: "skip
         to: user.email,
         subject: text.body,
         idempotencyKey: `notification/${delivery.id}`,
+        unsubscribeUrl: unsubscribeUrl(n.userId, "notifications"),
         react: createElement(NotificationEmail, {
           body: text.body,
           cta: m.email.cta[type],
+          footerNote: createElement(
+            Fragment,
+            null,
+            `${m.email.fallbackFooter} `,
+            createElement(Link, { href: unsubscribePageUrl(n.userId, "notifications") }, m.email.unsubscribeLink),
+          ),
           url: `${env().NEXT_PUBLIC_APP_URL}${webLink(payload.link, payload.organizationId) ?? "/accueil"}`,
         }),
       });

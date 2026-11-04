@@ -2,6 +2,9 @@ import { createElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MagicLinkEmail, NotificationEmail, ResetPasswordEmail, VerifyEmail } from "@email/auth";
 import { outbox, sendEmail } from "@/lib/mail";
+import { getEmailPreferences, isValidUnsubscribe, unsubscribeUrl } from "@/server/email-preferences.service";
+import { POST } from "../app/api/email/desinscription/[kind]/[token]/route";
+import { makeUser } from "./helpers";
 
 const send = (extra: { unsubscribeUrl?: string } = {}) => {
   const to = `socle-${Math.random()}@test.tartan.coach`;
@@ -66,5 +69,32 @@ describe("socle e-mail", () => {
     // Une fois dans l'aperçu, une fois dans le titre.
     expect(mail.html.split(body).length - 1).toBe(2);
     expect(mail.html).toContain("Voir mes séances");
+  });
+  it("un POST valide coupe le flux sans session, un jeton faux donne 404, le GET ne change rien", async () => {
+    const user = await makeUser("Coupe");
+    const url = unsubscribeUrl(user.userId, "digest");
+    const token = url.split("/").at(-1)!;
+    const params = (kind: string, value: string) => ({ params: Promise.resolve({ kind, token: value }) });
+    const request = new Request(url, { method: "POST", body: "List-Unsubscribe=One-Click" });
+    const wrong = await POST(request.clone(), params("digest", `${token}x`));
+    expect(wrong.status).toBe(404);
+    const otherKind = await POST(request.clone(), params("notifications", token));
+    expect(otherKind.status).toBe(404);
+    expect(isValidUnsubscribe("digest", token)).toBe(true);
+    expect((await getEmailPreferences(user.userId)).digest).toBe(true);
+    const done = await POST(request.clone(), params("digest", token));
+    expect(done.status).toBe(200);
+    const after = await getEmailPreferences(user.userId);
+    expect(after).toEqual({ digest: false, notifications: true });
+  });
+  it("le formulaire de la page revient sur la page", async () => {
+    const user = await makeUser("Page");
+    const url = unsubscribeUrl(user.userId, "notifications");
+    const token = url.split("/").at(-1)!;
+    const response = await POST(new Request(url, { method: "POST", headers: { accept: "text/html" } }), {
+      params: Promise.resolve({ kind: "notifications", token }),
+    });
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toContain(`/e-mails/notifications/${token}?fait=1`);
   });
 });

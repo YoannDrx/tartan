@@ -5,7 +5,8 @@ export const scrubUrl = (url: string): string =>
   url
     .replace(/\?.*$/, "")
     .replace(/\/(i|r|accord-parental|nouveau-mot-de-passe)\/[^/]+/, "/$1/[masqué]")
-    .replace(/\/api\/ical\/[^/]+\/[^/]+/, "/api/ical/[masqué]");
+    .replace(/\/api\/ical\/[^/]+\/[^/]+/, "/api/ical/[masqué]")
+    .replace(/\/(e-mails|api\/email\/desinscription)\/([^/]+)\/[^/]+/, "/$1/$2/[masqué]");
 
 export const scrubEvent = (event: ErrorEvent): ErrorEvent => {
   delete event.user;

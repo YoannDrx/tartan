@@ -685,6 +685,10 @@ export const fr = {
     linkRegenerated: "Nouveau lien créé. L'ancien ne marche plus.",
     calendarRevoke: "Changer le lien",
     calendarRevokeDetail: "L'ancien lien cesse de fonctionner. Il faudra réabonner ton agenda avec le nouveau.",
+    emails: "E-mails",
+    emailsDetail: "Les messages liés à ton compte et à ton abonnement continuent d'arriver.",
+    emailDigest: "Récapitulatif de la semaine, le dimanche soir",
+    emailNotifications: "E-mail quand une notification n'a pas pu arriver",
     revokeOtherSessions: "Déconnecter mes autres appareils",
     revokeOtherSessionsDone: "Tes autres appareils sont déconnectés.",
     plan: "Offre",
@@ -730,7 +734,7 @@ export const fr = {
   },
   push: {
     permissionTitle: "Reçois tes séances",
-    permissionBody: "Une notification quand ton coach t'envoie une séance. Rien d'autre sans ton accord.",
+    permissionBody: "Une notification quand ton coach t'envoie une séance ou te répond. Tu peux les couper ici.",
     enable: "Activer les notifications",
     later: "Plus tard",
   },
@@ -756,6 +760,17 @@ export const fr = {
     parentalClosed: "L'accord parental n'est pas ouvert : Tartan est réservé aux personnes majeures.",
   },
   email: {
+    fallbackFooter: "Tu reçois cet e-mail car aucune notification n'a pu arriver sur ton téléphone ou ton navigateur.",
+    digestFooter: (organization: string) => `Tu reçois ce récapitulatif car tu gères ${organization}.`,
+    unsubscribeLink: "Ne plus recevoir ces e-mails",
+    unsubscribeTitle: "Tes e-mails Tartan",
+    unsubscribeConfirm: "Ne plus les recevoir",
+    unsubscribeDone: "C'est fait. Tu peux les réactiver à tout moment dans tes réglages.",
+    unsubscribeKinds: {
+      digest: "Le récapitulatif de ta semaine, chaque dimanche soir.",
+      notifications:
+        "Les e-mails envoyés quand une notification n'a pas pu arriver sur ton téléphone ou ton navigateur.",
+    },
     cta: {
       session_published: "Voir la séance",
       session_batch_published: "Voir mes séances",
