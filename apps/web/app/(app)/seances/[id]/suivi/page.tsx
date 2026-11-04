@@ -1,3 +1,4 @@
+import { CoachLog } from "@/features/tracking/coach-log";
 import { Pencil, TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -52,7 +53,7 @@ export default async function SessionFollowupPage({ params }: { params: Promise<
           <Sheet>
             <section aria-label={m.coach.athleteReturns}>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-card-line bg-card-raised px-4 py-2">
-                {(["done", "partial", "missed", "upcoming"] as const).map((status) => {
+                {(["done", "partial", "missed", "upcoming", "no_return"] as const).map((status) => {
                   const count = session.athletes.filter((a) => a.status === status).length;
                   return count > 0 ? (
                     <span key={status} className="flex items-center gap-1.5">
@@ -96,6 +97,11 @@ export default async function SessionFollowupPage({ params }: { params: Promise<
                         </p>
                       ) : null}
                       {a.comment ? <p className="mt-1 break-words">{a.comment}</p> : null}
+                      {!a.hasAccount && a.status !== "done" && session.canEdit ? (
+                        <div className="mt-2">
+                          <CoachLog sessionId={id} athleteId={a.athleteId} />
+                        </div>
+                      ) : null}
                       {a.sets.length > 0 ? (
                         <p className="t-caption mt-1 font-normal text-soft">
                           {a.sets.filter((s) => s.done).length} séries cochées

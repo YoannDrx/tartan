@@ -9,12 +9,21 @@ import { deleteGroup } from "@/server/org.service";
 import {
   activeAudienceIds,
   audienceAthleteIds,
+  deleteSession,
+  duplicateSession,
   getSessionForEdit,
   listCalendar,
   publishRow,
   saveScheduledSession,
 } from "@/server/session.service";
-import { getTrackingGrid, getAlerts, remindAthletes, takeRollCall } from "@/server/tracking.service";
+import {
+  coachLogSession,
+  getAlerts,
+  getSessionDetailForCoach,
+  getTrackingGrid,
+  remindAthletes,
+  takeRollCall,
+} from "@/server/tracking.service";
 import { icalFeed, icalLink, revokeIcalLink } from "@/server/ical.service";
 import { makeOrg, addAthlete, addStaff } from "./helpers";
 
@@ -222,6 +231,74 @@ describe("groupes et audience", () => {
     const coach = await listCalendar(a.owner.userId, a.organizationId, range);
     expect(coach.sessions.map((s) => s.id)).toContain(draft.id);
     expect(coach.competitions.map((c) => c.id)).toContain(other.id);
+  });
+  it("supprimer une séance publiée à venir prévient ses athlètes, sans mot de santé", async () => {
+    const a = await prepare();
+    const future = "2030-06-20";
+    const session = await a.schedule(future);
+    await deleteSession(a.owner.userId, a.organizationId, session.id);
+    const sent = await prisma.notification.findFirstOrThrow({
+      where: { userId: a.athlete.userId, type: "session_cancelled" },
+    });
+    expect(sent.payload).toMatchObject({ date: future, organizationId: a.organizationId });
+  });
+  it("supprimer une séance passée ne prévient personne", async () => {
+    const a = await prepare();
+    const session = await a.schedule("2020-01-10");
+    await deleteSession(a.owner.userId, a.organizationId, session.id);
+    expect(await prisma.notification.count({ where: { userId: a.athlete.userId, type: "session_cancelled" } })).toBe(0);
+  });
+  it("une fiche sans compte est « sans retour », sans relance, et le coach peut valider pour elle", async () => {
+    const a = await prepare();
+    const sheet = await prisma.athlete.create({
+      data: {
+        organizationId: a.organizationId,
+        firstName: "Sans",
+        lastName: "Compte",
+        birthDate: new Date("2000-01-01T00:00:00Z"),
+        groups: { create: { groupId: a.groupId, createdAt: new Date("2030-06-01T10:00:00Z") } },
+      },
+    });
+    const session = await a.schedule("2030-06-10");
+    await closeOverdueSessions(NOW);
+    expect(await prisma.sessionLog.count({ where: { athleteId: sheet.id } })).toBe(0);
+    const detail = await getSessionDetailForCoach(a.owner.userId, a.organizationId, session.id, NOW);
+    expect(detail.athletes.find((x) => x.athleteId === sheet.id)).toMatchObject({
+      status: "no_return",
+      hasAccount: false,
+    });
+    await coachLogSession(a.owner.userId, a.organizationId, session.id, sheet.id, "partial");
+    const after = await getSessionDetailForCoach(a.owner.userId, a.organizationId, session.id, NOW);
+    expect(after.athletes.find((x) => x.athleteId === sheet.id)?.status).toBe("partial");
+    await expect(
+      coachLogSession(a.owner.userId, a.organizationId, session.id, a.athlete.athleteId, "done"),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+  it("dupliquer une séance copie ses adaptations", async () => {
+    const a = await prepare();
+    const session = await a.schedule("2030-06-20");
+    await prisma.athleteOverride.create({
+      data: {
+        scheduledSessionId: session.id,
+        athleteId: a.athlete.athleteId,
+        itemRef: "b0-i0",
+        prescription: { load: 80 },
+      },
+    });
+    const copy = await duplicateSession(a.owner.userId, a.organizationId, session.id, "2030-06-27");
+    expect(await prisma.athleteOverride.count({ where: { scheduledSessionId: copy.id } })).toBe(1);
+  });
+  it("corriger une validation retire la douleur saisie par erreur", async () => {
+    const a = await prepare();
+    const session = await a.schedule("2030-06-10");
+    const base = { clientId: randomUUID(), status: "done" as const, variantDone: "club" as const, sets: [] };
+    await logSession(a.athlete.userId, a.organizationId, session.id, {
+      ...base,
+      pain: { bodyArea: "knee", side: "left", intensity: 5 },
+    });
+    await logSession(a.athlete.userId, a.organizationId, session.id, { ...base, clientId: randomUUID() });
+    const log = await prisma.sessionLog.findFirstOrThrow({ where: { scheduledSessionId: session.id } });
+    expect(log.pain).toBeNull();
   });
   it("quitter un espace et supprimer un groupe nettoient aussi les attributions", async () => {
     const a = await prepare();

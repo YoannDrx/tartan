@@ -7,6 +7,7 @@ import { spaceAction } from "@/features/shell/space-action";
 import {
   deleteCompetition,
   deleteSession,
+  deleteTemplate,
   duplicateSession,
   duplicateWeek,
   moveSession,
@@ -31,6 +32,12 @@ export const deleteSessionAction = spaceAction
   .action(async ({ parsedInput, ctx }) => {
     await deleteSession(ctx.userId, ctx.organizationId, parsedInput.id);
     revalidatePath("/calendrier");
+  });
+
+export const deleteTemplateAction = spaceAction
+  .inputSchema(z.object({ id: uuid }))
+  .action(async ({ parsedInput, ctx }) => {
+    await deleteTemplate(ctx.userId, ctx.organizationId, parsedInput.id);
   });
 
 export const deleteCompetitionAction = spaceAction

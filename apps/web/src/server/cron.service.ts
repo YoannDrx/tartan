@@ -53,7 +53,12 @@ export const closeOverdueSessions = async (now: Date = new Date()): Promise<numb
         where: { scheduledSessionId: session.id, athleteId: { in: audience } },
         select: { athleteId: true },
       });
-      const missing = audience.filter((id) => !logged.some((l) => l.athleteId === id));
+      // Une fiche sans compte ne valide jamais elle-même : aucune séance « manquée » en son nom.
+      const withAccount = await prisma.athlete.findMany({
+        where: { id: { in: audience }, userId: { not: null } },
+        select: { id: true },
+      });
+      const missing = withAccount.map((a) => a.id).filter((id) => !logged.some((l) => l.athleteId === id));
       if (missing.length === 0) continue;
       await prisma.sessionLog.createMany({
         data: missing.map((athleteId) => ({

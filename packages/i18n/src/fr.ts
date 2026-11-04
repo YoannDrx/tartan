@@ -35,7 +35,7 @@ export const fr = {
     progres: "Progrès",
     mesSauts: "Mes sauts",
   },
-  status: { done: "Fait", partial: "Partiel", missed: "Manqué", upcoming: "À venir" },
+  status: { no_return: "Sans retour", done: "Fait", partial: "Partiel", missed: "Manqué", upcoming: "À venir" },
   variant: { club: "Au club", autonomous: "En autonomie", both: "Club et autonomie" },
   roles: {
     owner: "Propriétaire",
@@ -257,6 +257,8 @@ export const fr = {
   },
   home: {
     guidedTitle: "Pour démarrer",
+    firstValidation: "Reçois une première validation",
+    firstValidationDetail: "Dès qu'un athlète valide sa séance, ce guide disparaît.",
     inviteAthletes: "Inviter des athlètes",
     inviteAthletesDetail: "Lien du groupe, QR code à la piste ou invitation nominative.",
     createExercise: "Créer un premier exercice",
@@ -308,6 +310,8 @@ export const fr = {
     greeting: (name: string) => `Salut ${name}`,
     sessionOfDay: "Séance du jour",
     start: "Démarrer la séance",
+    review: "Revoir la séance",
+    correct: "Corriger",
     quickDone: "J'ai fait la séance",
     quickPartial: "Fait en partie",
     notComing: "Je ne viens pas au club",
@@ -410,6 +414,11 @@ export const fr = {
     activeInjury: "Blessure active",
   },
   builder: {
+    deleteLosesLogs: (count: number) =>
+      `${count > 1 ? `${count} validations seront perdues` : "1 validation sera perdue"}. Les athlètes concernés seront prévenus si la séance est à venir.`,
+    deleteTemplate: "Supprimer ce modèle",
+    scheduleHint: "Publication dans l'heure qui suit.",
+    scheduleCancel: "Annuler la programmation",
     details: "Informations de la séance",
     body: "Contenu de la séance",
     setPrescription: "Préciser la prescription",

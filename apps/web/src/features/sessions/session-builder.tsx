@@ -16,7 +16,8 @@ import { CheckRow, Field, Input, Select, Textarea } from "@/components/ui/field"
 import { Dialog } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
-import { deleteSessionAction, saveSessionAction, saveTemplateAction } from "./session.action";
+import { attachItemKeys, overridesForSubmit, type KeyedOverride } from "./overrides";
+import { deleteSessionAction, deleteTemplateAction, saveSessionAction, saveTemplateAction } from "./session.action";
 
 type BlockState = {
   key: string;
@@ -24,7 +25,7 @@ type BlockState = {
   items: { key: string; exerciseId: string; prescription: Prescription }[];
 };
 type Version = "club" | "autonomous";
-type Override = { athleteId: string; itemRef: string; prescription: Prescription };
+type Override = KeyedOverride<Prescription>;
 
 const newKey = () => Math.random().toString(36).slice(2, 10);
 
@@ -177,7 +178,8 @@ export const SessionBuilder = ({
     publishAt: string | null;
     draft: SessionDraft;
     assignments: { targetType: "group" | "athlete"; targetId: string }[];
-    overrides: Override[];
+    overrides: { athleteId: string; itemRef: string; prescription: Prescription }[];
+    logCount: number;
   } | null;
   exercises: ExerciseSummary[];
   groups: { id: string; name: string; athleteCount: number }[];
@@ -212,7 +214,8 @@ export const SessionBuilder = ({
   const [selectedAthletes, setSelectedAthletes] = useState(
     initial?.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId) ?? [],
   );
-  const [overrides, setOverrides] = useState<Override[]>(initial?.overrides ?? []);
+  const [overrides, setOverrides] = useState<Override[]>(() => attachItemKeys(initial?.overrides ?? [], start.club));
+  const [chosenTemplate, setChosenTemplate] = useState("");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ blockKey: string; itemKey: string } | null>(null);
@@ -303,6 +306,12 @@ export const SessionBuilder = ({
     onSuccess: () => toast.ok("Modèle enregistré."),
     onError: ({ error }) => toast.error(error.serverError ?? m.errors.invalid),
   });
+  const removeTemplate = useAction(deleteTemplateAction, {
+    onSuccess: () => {
+      setChosenTemplate("");
+      router.refresh();
+    },
+  });
   const remove = useAction(deleteSessionAction, {
     onSuccess: () => {
       router.push("/calendrier");
@@ -321,6 +330,7 @@ export const SessionBuilder = ({
     ];
     if ((publish || scheduleAt) && assignments.length === 0) return setFormError(m.builder.noAudience);
     if (scheduleAt && new Date(scheduleAt) <= new Date()) return setFormError(m.builder.schedulePast);
+    const keptSchedule = scheduleAt ?? (!publish && scheduling ? publishAt : "");
     save.execute({
       id: initial?.id,
       date,
@@ -328,8 +338,9 @@ export const SessionBuilder = ({
       location: location.trim() || null,
       draft,
       assignments,
-      overrides,
-      publishAt: scheduleAt ? new Date(scheduleAt).toISOString() : null,
+      overrides: overridesForSubmit(overrides, club),
+      // Enregistrer un brouillon programmé ne doit pas annuler sa programmation en silence.
+      publishAt: keptSchedule ? new Date(keptSchedule).toISOString() : null,
       publish,
     });
   };
@@ -366,20 +377,40 @@ export const SessionBuilder = ({
             {(a) => <Input {...a} value={title} onChange={(e) => setTitle(e.target.value)} />}
           </Field>
           {templates.length > 0 ? (
-            <Field label={m.builder.useTemplate}>
-              {(a) => (
-                <Select {...a} defaultValue="" onChange={(e) => applyTemplate(e.target.value)}>
-                  <option value="" disabled>
-                    Choisir
-                  </option>
-                  {templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title}
+            <div className="flex flex-col gap-1">
+              <Field label={m.builder.useTemplate}>
+                {(a) => (
+                  <Select
+                    {...a}
+                    defaultValue=""
+                    onChange={(e) => {
+                      setChosenTemplate(e.target.value);
+                      applyTemplate(e.target.value);
+                    }}
+                  >
+                    <option value="" disabled>
+                      Choisir
                     </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+              {chosenTemplate ? (
+                <ConfirmDialog
+                  title={m.builder.deleteTemplate}
+                  onConfirm={() => removeTemplate.execute({ id: chosenTemplate })}
+                  trigger={
+                    <Button size="sm" variant="quiet" disabled={removeTemplate.isPending}>
+                      {m.builder.deleteTemplate}
+                    </Button>
+                  }
+                />
+              ) : null}
+            </div>
           ) : null}
         </div>
         <div className="grid grid-cols-2 gap-3 desktop:grid-cols-5">
@@ -682,16 +713,16 @@ export const SessionBuilder = ({
             </Field>
             {overrideFor
               ? clubRefs.map(({ ref, item }) => {
-                  const current = overrides.find((o) => o.athleteId === overrideFor && o.itemRef === ref);
+                  const current = overrides.find((o) => o.athleteId === overrideFor && o.itemKey === item.key);
                   const sets = current?.prescription.sets ?? "";
                   const reps = current?.prescription.reps ?? "";
                   const load = current?.prescription.load;
                   const update = (patch: Prescription) => {
                     const merged = { ...current?.prescription, ...patch };
-                    const others = overrides.filter((o) => !(o.athleteId === overrideFor && o.itemRef === ref));
+                    const others = overrides.filter((o) => !(o.athleteId === overrideFor && o.itemKey === item.key));
                     const empty = Object.values(merged).every((v) => v === undefined);
                     setOverrides(
-                      empty ? others : [...others, { athleteId: overrideFor, itemRef: ref, prescription: merged }],
+                      empty ? others : [...others, { athleteId: overrideFor, itemKey: item.key, prescription: merged }],
                     );
                   };
                   return (
@@ -769,7 +800,7 @@ export const SessionBuilder = ({
         {!initial?.publishedAt ? (
           scheduling ? (
             <div className="flex flex-wrap items-end gap-2">
-              <Field label={m.builder.scheduleAt}>
+              <Field label={m.builder.scheduleAt} hint={m.builder.scheduleHint}>
                 {(a) => (
                   <Input
                     {...a}
@@ -786,6 +817,18 @@ export const SessionBuilder = ({
               >
                 {m.builder.schedule}
               </Button>
+              {initial?.publishAt ? (
+                <Button
+                  variant="quiet"
+                  disabled={save.isPending}
+                  onClick={() => {
+                    setScheduling(false);
+                    setPublishAt("");
+                  }}
+                >
+                  {m.builder.scheduleCancel}
+                </Button>
+              ) : null}
             </div>
           ) : (
             <Button variant="secondary" onClick={() => setScheduling(true)}>
@@ -807,6 +850,7 @@ export const SessionBuilder = ({
         {initial ? (
           <ConfirmDialog
             title="Supprimer cette séance ?"
+            description={initial.logCount > 0 ? m.builder.deleteLosesLogs(initial.logCount) : undefined}
             onConfirm={() => remove.execute({ id: initial.id })}
             trigger={
               <Button variant="danger" className={cn("ml-auto")} disabled={remove.isPending}>

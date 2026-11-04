@@ -96,12 +96,20 @@ const Hero = ({
           ) : (
             <QuickValidate session={card} organizationId={organizationId} healthConsent={healthConsent} onDark />
           )}
-          <Button asChild size="md" variant="secondary">
-            <Link href={`/seance/${card.id}/mode`}>
-              <Play aria-hidden className="size-4 fill-current" />
-              {m.today.start}
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild size="md" variant="secondary">
+              <Link href={`/seance/${card.id}/mode`}>
+                <Play aria-hidden className="size-4 fill-current" />
+                {validated ? m.today.review : m.today.start}
+              </Link>
+            </Button>
+            {/* La validation peut se refaire : c'est aussi le moyen de retirer une douleur saisie par erreur. */}
+            {validated ? (
+              <Button asChild size="md" variant="quiet">
+                <Link href={`/seance/${card.id}/mode`}>{m.today.correct}</Link>
+              </Button>
+            ) : null}
+          </div>
         </div>
       </section>
       {card.coachNote ? (

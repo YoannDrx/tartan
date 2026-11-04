@@ -12,9 +12,16 @@ import {
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
-import { notFound } from "@/lib/errors";
+import { forbidden, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
-import { audit, requireGroupInScope, requireOrgMember, visibleAthleteIds, type Access } from "./access";
+import {
+  audit,
+  requireGroupInScope,
+  requireOrgMember,
+  requireVisibleAthlete,
+  visibleAthleteIds,
+  type Access,
+} from "./access";
 import { activeInjuriesByAthlete } from "./athlete.service";
 import { consentForAthletes } from "./consent.service";
 import { firstNameOf } from "./me.service";
@@ -53,6 +60,7 @@ export const getTrackingGrid = async (
     where: { id: { in: athleteIds } },
     select: {
       id: true,
+      userId: true,
       firstName: true,
       lastName: true,
       groups: { select: { groupId: true, createdAt: true, group: { select: { name: true } } } },
@@ -95,7 +103,7 @@ export const getTrackingGrid = async (
       const entry = s.logs.find((l) => l.athleteId === a.id) ?? null;
       return {
         sessionId: s.id,
-        status: cellStatusOf(entry, fromDbDate(s.date), now),
+        status: cellStatusOf(entry, fromDbDate(s.date), now, Boolean(a.userId)),
         rpe: health ? (entry?.rpe ?? null) : null,
         hasPain: health && Boolean(entry?.pain),
         variant: entry?.variantDone ?? null,
@@ -257,7 +265,10 @@ export const getSessionDetailForCoach = async (
   const visible = new Set(await visibleAthleteIds(access));
   const audience = (await audienceAthleteIds(sessionId)).filter((id) => visible.has(id));
   const [athletes, logs, attendance] = await Promise.all([
-    prisma.athlete.findMany({ where: { id: { in: audience } }, select: { id: true, firstName: true, lastName: true } }),
+    prisma.athlete.findMany({
+      where: { id: { in: audience } },
+      select: { id: true, userId: true, firstName: true, lastName: true },
+    }),
     prisma.sessionLog.findMany({
       where: { scheduledSessionId: sessionId, athleteId: { in: audience } },
       include: { sets: true },
@@ -298,7 +309,8 @@ export const getSessionDetailForCoach = async (
         return {
           athleteId: a.id,
           name: `${a.firstName} ${a.lastName}`.trim(),
-          status: cellStatusOf(entry, date, now),
+          status: cellStatusOf(entry, date, now, Boolean(a.userId)),
+          hasAccount: Boolean(a.userId),
           attendance: attendance.find((t) => t.athleteId === a.id)?.status ?? ("unknown" as const),
           variant: entry?.variantDone ?? null,
           rpe: health ? (entry?.rpe ?? null) : null,
@@ -350,6 +362,44 @@ export const takeRollCall = async (userId: string, organizationId: string, sessi
     );
   }
   return { absentCount: absentIds.length, hasAutonomous };
+};
+
+// Un sportif sans compte ne peut rien valider : son coach le fait pour lui.
+export const coachLogSession = async (
+  userId: string,
+  organizationId: string,
+  sessionId: string,
+  athleteId: string,
+  status: "done" | "partial",
+) => {
+  const access = await requireOrgMember(userId, organizationId, "manageSessions");
+  await requireVisibleAthlete(access, athleteId);
+  const athlete = await prisma.athlete.findFirst({ where: { id: athleteId, organizationId, userId: null } });
+  if (!athlete) throw forbidden();
+  const session = await prisma.scheduledSession.findFirst({
+    where: { id: sessionId, organizationId, publishedAt: { not: null } },
+    select: { id: true },
+  });
+  if (!session || !(await audienceAthleteIds(sessionId)).includes(athleteId)) throw notFound();
+  const data = { status, completedAt: new Date() };
+  await prisma.sessionLog.upsert({
+    where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId } },
+    create: { ...data, scheduledSessionId: sessionId, athleteId },
+    update: data,
+  });
+};
+
+// Les trois repères du guide : il reste affiché jusqu'à la première validation reçue.
+export const onboardingProgress = async (userId: string, organizationId: string) => {
+  const access = await requireOrgMember(userId, organizationId, "viewTracking");
+  const athleteIds = await visibleAthleteIds(access);
+  const [publishedSessions, validations] = await Promise.all([
+    prisma.scheduledSession.count({ where: { organizationId, publishedAt: { not: null } } }),
+    prisma.sessionLog.count({
+      where: { athleteId: { in: athleteIds }, status: { in: ["done", "partial"] } },
+    }),
+  ]);
+  return { athletes: athleteIds.length, publishedSessions, validations };
 };
 
 export const remindAthletes = async (
