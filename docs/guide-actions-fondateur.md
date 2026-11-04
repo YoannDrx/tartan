@@ -2,6 +2,15 @@
 
 Le mode d'emploi des cases de `docs/plan-ouverture-publique.md` qui ne dépendent que de toi, dans l'ordre. Rien ici n'a encore été envoyé ni payé.
 
+## À savoir après le plan V1 (4 novembre)
+
+- **Ta date de naissance :** ton compte la demandera à la prochaine connexion. **Une seule saisie est possible** : une faute sur l'année qui te ferait passer pour mineur ferme tous tes espaces, et seule une correction en base les rouvre.
+- **Signal de vie :** crée la sonde externe, puis pose `CRON_HEARTBEAT_URL` et `CRON_HEARTBEAT_NOTIFICATIONS_URL` dans Vercel (deux adresses, car les seuils diffèrent). Sans elles, une tâche planifiée arrêtée ne déclenche aucune alerte.
+- **Préversion :** `preview.tartan.coach` n'existe pas encore, alors que le profil `preview` de l'app mobile le vise.
+- **Script d'isolation :** `scripts/verify-env-isolation.mjs` ne peut pas lire les variables « sensibles » de Vercel, et il le dit. Contrôle celles-là à la main.
+- **Mobile :** le DSN Sentry mobile et `SENTRY_AUTH_TOKEN` restent à poser. Le téléversement des symboles a échoué en local et reste coupé : à réessayer avec le premier build EAS.
+- **Pour le juriste :** après 24 mois d'inactivité, l'espace sans autre coach est supprimé avec les données de ses athlètes, et seul le propriétaire est prévenu. Fais valider cette règle.
+
 ## Aujourd'hui (20 minutes)
 
 1. **Relire la landing** sur [tartan.coach](https://tartan.coach), sur ordinateur et sur téléphone. Dis-moi ce qui ne te plaît pas.
