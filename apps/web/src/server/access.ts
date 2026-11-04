@@ -80,12 +80,6 @@ export const requireVisibleAthlete = async (access: Access, athleteId: string): 
   if (!ids.includes(athleteId)) throw forbidden();
 };
 
-export const requireScope = (access: Access, permission: Permission) => {
-  const scope = scopeOf(access.role, permission);
-  if (!scope) throw forbidden();
-  return scope;
-};
-
 export const requireGroupInScope = async (access: Access, groupIds: string[]): Promise<void> => {
   if (groupIds.length === 0) return;
   const known = await prisma.group.count({
@@ -95,6 +89,19 @@ export const requireGroupInScope = async (access: Access, groupIds: string[]): P
   if (access.role === "owner") return;
   const mine = await coachGroupIds(access);
   if (!groupIds.every((id) => mine.includes(id))) throw forbidden();
+};
+
+// Une référence transmise par le client doit appartenir à l'espace : le schéma ne l'impose pas.
+export const requireOwnedRefs = async (
+  organizationId: string,
+  refs: { sessionId?: string | null; competitionId?: string | null; videoId?: string | null },
+): Promise<void> => {
+  const [session, competition, video] = await Promise.all([
+    refs.sessionId ? prisma.scheduledSession.count({ where: { id: refs.sessionId, organizationId } }) : 1,
+    refs.competitionId ? prisma.competition.count({ where: { id: refs.competitionId, organizationId } }) : 1,
+    refs.videoId ? prisma.video.count({ where: { id: refs.videoId, organizationId } }) : 1,
+  ]);
+  if (!session || !competition || !video) throw notFound();
 };
 
 export const audit = async (input: {

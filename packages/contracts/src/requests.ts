@@ -30,7 +30,12 @@ export const profileInput = z.object({
   birthDate: isoDate.nullable().optional(),
   units: z.enum(["kg", "lb"]).optional(),
   locale: z.enum(["fr", "en"]).optional(),
-  avatarUrl: z.url().nullable().optional(),
+  // Seules les photos envoyées dans le stockage de Tartan : pas de pixel espion sur une adresse tierce.
+  avatarUrl: z
+    .url()
+    .refine((url) => /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\//i.test(url))
+    .nullable()
+    .optional(),
 });
 export type ProfileInput = z.infer<typeof profileInput>;
 

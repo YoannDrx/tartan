@@ -153,7 +153,8 @@ const send = async (delivery: Delivery): Promise<DeliveryResult | { state: "skip
       priority: type === "pain_alert" ? "high" : "default",
       categoryId: type === "session_eve" ? "attendance" : type === "session_reminder" ? "validate" : undefined,
       data: {
-        type,
+        // Aucune indication de santé ne part vers Expo, Apple ou Google. L'app ne route pas sur ce type.
+        type: type === "pain_alert" || type === "missed_streak" ? "alert" : type,
         link: payload.link,
         organizationId: payload.organizationId,
         sessionId: payload.sessionId,

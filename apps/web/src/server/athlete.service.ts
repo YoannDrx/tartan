@@ -18,6 +18,7 @@ import {
   requireVisibleAthlete,
   visibleAthleteIds,
   type Access,
+  requireOwnedRefs,
 } from "./access";
 import { assertWithinPlan } from "./billing.service";
 import { consentForAthletes } from "./consent.service";
@@ -304,6 +305,7 @@ export const addPerformance = async (
 ) => {
   const access = await requireOrgMember(userId, organizationId, "manageAthletes");
   await requireVisibleAthlete(access, input.athleteId);
+  await requireOwnedRefs(organizationId, { competitionId: input.competitionId });
   const higherIsBetter = input.unit !== "s";
   const previous = await prisma.performance.findMany({
     where: { athleteId: input.athleteId, discipline: input.discipline },

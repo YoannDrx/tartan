@@ -30,6 +30,16 @@ const scopedAthletes = async (access: Access, groupId?: string) => {
   return visible.filter((id) => inGroup.has(id));
 };
 
+// Une vue d'ensemble lit la santé de tout un groupe : une seule ligne suffit, sans détail.
+const logAggregatedHealthRead = async (
+  access: Access,
+  entity: "tracking_grid" | "alerts",
+  athleteIds: readonly string[],
+): Promise<void> => {
+  if (access.role === "athlete" || athleteIds.length === 0) return;
+  await audit({ organizationId: access.organizationId, actorId: access.userId, action: "health_read", entity });
+};
+
 export const getTrackingGrid = async (
   userId: string,
   organizationId: string,
@@ -66,6 +76,7 @@ export const getTrackingGrid = async (
   const consents = await consentForAthletes(athleteIds);
   const healthIds = athleteIds.filter((id) => consents.get(id)?.health);
   const injuries = await activeInjuriesByAthlete(healthIds);
+  await logAggregatedHealthRead(access, "tracking_grid", healthIds);
 
   const concerned = (s: (typeof sessions)[number], a: (typeof athletes)[number]): boolean =>
     isSessionAssigned({
@@ -148,7 +159,9 @@ export const getAlerts = async (
     },
   });
   const consents = await consentForAthletes(athleteIds);
-  const injuries = await activeInjuriesByAthlete(athleteIds.filter((id) => consents.get(id)?.health));
+  const healthIds = athleteIds.filter((id) => consents.get(id)?.health);
+  const injuries = await activeInjuriesByAthlete(healthIds);
+  await logAggregatedHealthRead(access, "alerts", healthIds);
   const alerts: CoachAlert[] = [];
   for (const a of athletes) {
     const mine = sessions.filter((s) =>

@@ -174,15 +174,6 @@ export const deleteGroup = async (userId: string, organizationId: string, groupI
   });
 };
 
-export const listStaff = async (userId: string, organizationId: string) => {
-  await requireOrgMember(userId, organizationId, "viewTracking");
-  const rows = await prisma.organizationMember.findMany({
-    where: { organizationId, role: { in: ["owner", "coach", "assistant"] } },
-    select: { role: true, user: { select: { id: true, name: true, email: true } } },
-  });
-  return rows.map((r) => ({ userId: r.user.id, name: r.user.name, email: r.user.email, role: r.role }));
-};
-
 export const coachesOfAthlete = async (organizationId: string, athleteId: string): Promise<string[]> => {
   const rows = await prisma.groupCoach.findMany({
     where: { group: { organizationId, members: { some: { athleteId } } } },

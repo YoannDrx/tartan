@@ -10,11 +10,12 @@ import {
   activeAudienceIds,
   audienceAthleteIds,
   getSessionForEdit,
+  listCalendar,
   publishRow,
   saveScheduledSession,
 } from "@/server/session.service";
 import { getTrackingGrid, getAlerts, remindAthletes, takeRollCall } from "@/server/tracking.service";
-import { icalFeed, icalLink } from "@/server/ical.service";
+import { icalFeed, icalLink, revokeIcalLink } from "@/server/ical.service";
 import { makeOrg, addAthlete, addStaff } from "./helpers";
 
 const NOW = new Date("2030-06-12T10:00:00Z");
@@ -169,6 +170,55 @@ describe("groupes et audience", () => {
       groupIds: [],
     });
     expect(result).toEqual({ id: a.athlete.athleteId, stillVisible: false });
+  });
+  it("le flux d'agenda échappe le texte, donne une fin, et son lien se révoque", async () => {
+    const a = await prepare();
+    await a.schedule("2030-06-20");
+    await prisma.scheduledSession.updateMany({
+      where: { organizationId: a.organizationId },
+      data: { title: "Force; bas, haut" },
+    });
+    const link = await icalLink(a.athlete.userId, a.organizationId);
+    const token = link.split("/").at(-1)!;
+    const feed = await icalFeed(a.athlete.athleteId, token, NOW);
+    expect(feed).toContain("SUMMARY:Force\\; bas\\, haut");
+    expect(feed).toContain("DTSTART;TZID=Europe/Paris:20300620T180000");
+    expect(feed).toContain("DTEND;TZID=Europe/Paris:20300620T190000");
+    await revokeIcalLink(a.athlete.userId, a.organizationId);
+    await expect(icalFeed(a.athlete.athleteId, token, NOW)).rejects.toThrow();
+    const fresh = await icalLink(a.athlete.userId, a.organizationId);
+    await expect(icalFeed(a.athlete.athleteId, fresh.split("/").at(-1)!, NOW)).resolves.toContain("BEGIN:VCALENDAR");
+  });
+  it("l'athlète ne voit ni brouillon ni compétition d'un autre dans le calendrier", async () => {
+    const a = await prepare();
+    const published = await a.schedule("2030-06-20");
+    const draft = await saveScheduledSession(a.owner.userId, a.organizationId, {
+      date: "2030-06-21",
+      startTime: "18:00",
+      location: "Stade",
+      publishAt: null,
+      draft: { title: "Brouillon", type: "strength", durationMin: 60, coachNote: null, blocks: [] },
+      assignments: [{ targetType: "athlete", targetId: a.athlete.athleteId }],
+      overrides: [],
+    });
+    const other = await prisma.competition.create({
+      data: { organizationId: a.organizationId, name: "Autre", date: new Date("2030-06-22T00:00:00Z") },
+    });
+    const mine = await prisma.competition.create({
+      data: {
+        organizationId: a.organizationId,
+        name: "La mienne",
+        date: new Date("2030-06-23T00:00:00Z"),
+        athletes: { create: { athleteId: a.athlete.athleteId } },
+      },
+    });
+    const range = { from: "2030-06-19", to: "2030-06-24" };
+    const seen = await listCalendar(a.athlete.userId, a.organizationId, range);
+    expect(seen.sessions.map((s) => s.id)).toEqual([published.id]);
+    expect(seen.competitions.map((c) => c.id)).toEqual([mine.id]);
+    const coach = await listCalendar(a.owner.userId, a.organizationId, range);
+    expect(coach.sessions.map((s) => s.id)).toContain(draft.id);
+    expect(coach.competitions.map((c) => c.id)).toContain(other.id);
   });
   it("quitter un espace et supprimer un groupe nettoient aussi les attributions", async () => {
     const a = await prepare();

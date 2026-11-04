@@ -13,7 +13,7 @@ import { AppError, consentRequired, forbidden, invalid, notFound } from "@/lib/e
 import { createDirectUpload, deleteAsset, signedPlayback, unwrapWebhook, videoEnabled } from "@/lib/mux";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { requireOrgMember, requireVisibleAthlete, visibleAthleteIds, type Access } from "./access";
+import { requireOrgMember, requireOwnedRefs, requireVisibleAthlete, visibleAthleteIds, type Access } from "./access";
 import { assertWithinPlan } from "./billing.service";
 import { consentForAthletes } from "./consent.service";
 import { firstNameOf, namesFor } from "./me.service";
@@ -368,6 +368,11 @@ export const deleteVideo = async (userId: string, organizationId: string, videoI
 export const addJumpAttempt = async (userId: string, organizationId: string, input: JumpAttemptInput) => {
   const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
   await requireVisibleAthlete(access, input.athleteId);
+  await requireOwnedRefs(organizationId, {
+    sessionId: input.scheduledSessionId,
+    competitionId: input.competitionId,
+    videoId: input.videoId,
+  });
   if (input.clientId) {
     const existing = await prisma.jumpAttempt.findUnique({
       where: { athleteId_clientId: { athleteId: input.athleteId, clientId: input.clientId } },
@@ -431,4 +436,3 @@ export const getBarSheet = async (
   };
 };
 
-export const coachesForVideo = coachesOfAthlete;

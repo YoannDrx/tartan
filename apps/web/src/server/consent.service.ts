@@ -173,5 +173,3 @@ export const answerParentalConsent = async (input: {
   });
 };
 
-export const isMinorPendingConsent = (birthDate: Date | null, now: Date = new Date()): boolean =>
-  requiresParentalConsent(fromDbDateOrNull(birthDate), now);

@@ -19,6 +19,7 @@ import {
   OrganizationForm,
   ProfileForm,
   ReferralLink,
+  RevokeIcalLink,
   RevokeOtherSessionsButton,
   SignOutButton,
   WebPushToggle,
@@ -189,6 +190,9 @@ export default async function ReglagesPage() {
             <div className="flex flex-col gap-2">
               <p>{m.settings.calendarDetail}</p>
               <ReferralLink link={ical} />
+              <div>
+                <RevokeIcalLink />
+              </div>
             </div>
           ),
         }

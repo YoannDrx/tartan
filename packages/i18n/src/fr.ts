@@ -660,6 +660,8 @@ export const fr = {
       "Supprime ton compte et tes données : séances réalisées, commentaires, vidéos. Si tu es le seul coach d'un espace, il disparaît avec ses données ; sinon il revient au coach suivant. C'est définitif.",
     deleteConfirmLabel: "Écris SUPPRIMER pour confirmer",
     deleteConfirmWord: "SUPPRIMER",
+    calendarRevoke: "Changer le lien",
+    calendarRevokeDetail: "L'ancien lien cesse de fonctionner. Il faudra réabonner ton agenda avec le nouveau.",
     revokeOtherSessions: "Déconnecter mes autres appareils",
     revokeOtherSessionsDone: "Tes autres appareils sont déconnectés.",
     plan: "Offre",

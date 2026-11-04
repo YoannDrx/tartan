@@ -36,6 +36,7 @@ import {
   updateProfileAction,
   uploadAvatarAction,
   uploadLogoAction,
+  revokeIcalLinkAction,
 } from "./settings.action";
 
 type AnyErrors = Record<string, { _errors?: string[] }> | undefined;
@@ -192,6 +193,24 @@ export const DeleteAccount = ({ detail }: { detail: string }) => {
         </Button>
       </form>
     </Dialog>
+  );
+};
+
+export const RevokeIcalLink = () => {
+  const { execute, isPending } = useAction(revokeIcalLinkAction, { onError: onErr });
+  return (
+    <ConfirmDialog
+      trigger={
+        <Button size="sm" variant="secondary" disabled={isPending}>
+          {m.settings.calendarRevoke}
+        </Button>
+      }
+      title={m.settings.calendarRevoke}
+      description={m.settings.calendarRevokeDetail}
+      tone="neutral"
+      confirmLabel={m.settings.calendarRevoke}
+      onConfirm={() => execute()}
+    />
   );
 };
 

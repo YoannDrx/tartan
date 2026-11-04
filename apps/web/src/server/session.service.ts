@@ -21,7 +21,7 @@ import {
   coachGroupIds,
   type Access,
 } from "./access";
-import { activeAudienceIds } from "./session-audience.service";
+import { activeAudienceIds, athleteAssignedWhere } from "./session-audience.service";
 export { activeAudienceIds, audienceAthleteIds } from "./session-audience.service";
 import { mediaSnapshot } from "./exercise.service";
 import { firstNameOf } from "./me.service";
@@ -322,10 +322,13 @@ export const listCalendar = async (
   const access = await requireOrgMember(userId, organizationId, "viewTracking");
   const scopeGroups = access.role === "owner" ? null : await coachGroupIds(access);
   const scopeAthletes = access.role === "owner" ? null : await visibleAthleteIds(access);
+  // Un athlète ne voit jamais un brouillon, ni les compétitions auxquelles il n'est pas inscrit.
+  const athleteId = access.role === "athlete" ? access.athleteId : null;
   const sessions = await prisma.scheduledSession.findMany({
     where: {
       organizationId,
       date: { gte: toDbDate(query.from), lte: toDbDate(query.to) },
+      ...(athleteId ? await athleteAssignedWhere(athleteId) : {}),
     },
     orderBy: [{ date: "asc" }, { startTime: "asc" }],
     include: { assignments: true },
@@ -336,7 +339,7 @@ export const listCalendar = async (
     if (query.groupId && !s.assignments.some((a) => a.targetType === "group" && a.targetId === query.groupId)) {
       return false;
     }
-    if (!scopeGroups || !scopeAthletes) return true;
+    if (athleteId || !scopeGroups || !scopeAthletes) return true;
     // Chaque coach voit ses séances et celles qui concernent ses athlètes (§ 5.2).
     return (
       s.createdBy === userId ||
@@ -346,7 +349,11 @@ export const listCalendar = async (
     );
   });
   const competitions = await prisma.competition.findMany({
-    where: { organizationId, date: { gte: toDbDate(query.from), lte: toDbDate(query.to) } },
+    where: {
+      organizationId,
+      date: { gte: toDbDate(query.from), lte: toDbDate(query.to) },
+      ...(athleteId ? { athletes: { some: { athleteId } } } : {}),
+    },
     orderBy: { date: "asc" },
   });
   return {
@@ -373,6 +380,12 @@ export const listCalendar = async (
 
 export const saveTemplate = async (userId: string, organizationId: string, draft: SessionDraft) => {
   await requireOrgMember(userId, organizationId, "manageSessions");
+  // Un exercice d'un autre espace ne doit pas entrer par un modèle.
+  const exerciseIds = [...new Set(draft.blocks.flatMap((block) => block.items.map((item) => item.exerciseId)))];
+  const known = await prisma.exercise.count({
+    where: { id: { in: exerciseIds }, OR: [{ organizationId }, { organizationId: null }] },
+  });
+  if (known !== exerciseIds.length) throw notFound();
   const template = await prisma.sessionTemplate.create({
     data: {
       organizationId,

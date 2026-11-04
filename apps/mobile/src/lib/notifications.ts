@@ -44,8 +44,8 @@ export const setupNotificationChannels = async (): Promise<void> => {
       importance: Notifications.AndroidImportance.LOW,
     });
     await Notifications.setNotificationChannelAsync("alertes-coach", {
-      name: "Alertes coach",
-      description: "Douleur signalée, séances manquées",
+      name: "Alertes sur ton groupe",
+      description: "Une alerte concernant un de tes athlètes",
       importance: Notifications.AndroidImportance.HIGH,
     });
   }
