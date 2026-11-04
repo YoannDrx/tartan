@@ -6,6 +6,7 @@ coverage
 .expo
 apps/mobile/ios
 apps/mobile/android
+apps/mobile/modules/*/android/build
 *.tsbuildinfo
 next-env.d.ts
 .env

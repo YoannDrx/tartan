@@ -41,13 +41,13 @@ Notifications.setNotificationHandler({
 export const setupNotificationChannels = async (): Promise<void> => {
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("seances", {
-      name: "Séances",
-      description: "Nouvelle séance, rappel, séance modifiée, annonces",
+      name: m.mobile.channels.sessions,
+      description: m.mobile.channels.sessionsDetail,
       importance: Notifications.AndroidImportance.DEFAULT,
     });
     await Notifications.setNotificationChannelAsync("videos", {
-      name: "Vidéos",
-      description: "Vidéo partagée et commentaires",
+      name: m.mobile.channels.videos,
+      description: m.mobile.channels.videosDetail,
       importance: Notifications.AndroidImportance.DEFAULT,
     });
     // Canal discret : la progression d'un envoi ne sonne pas à chaque mise à jour.
@@ -57,19 +57,19 @@ export const setupNotificationChannels = async (): Promise<void> => {
       importance: Notifications.AndroidImportance.LOW,
     });
     await Notifications.setNotificationChannelAsync("alertes-coach", {
-      name: "Alertes sur ton groupe",
-      description: "Une alerte concernant un de tes athlètes",
+      name: m.mobile.channels.alerts,
+      description: m.mobile.channels.alertsDetail,
       importance: Notifications.AndroidImportance.HIGH,
     });
   }
   // Sans ouvrir l'app. Sur iOS, le déverrouillage garantit l'accès au trousseau (session et file).
   const silent = { opensAppToForeground: false, isAuthenticationRequired: true };
   await Notifications.setNotificationCategoryAsync("attendance", [
-    { identifier: "attendance-yes", buttonTitle: "Oui", options: silent },
-    { identifier: "attendance-no", buttonTitle: "Non", options: silent },
+    { identifier: "attendance-yes", buttonTitle: m.mobile.channels.yes, options: silent },
+    { identifier: "attendance-no", buttonTitle: m.mobile.channels.no, options: silent },
   ]);
   await Notifications.setNotificationCategoryAsync("validate", [
-    { identifier: "validate-done", buttonTitle: "Fait", options: silent },
+    { identifier: "validate-done", buttonTitle: m.status.done, options: silent },
   ]);
 };
 

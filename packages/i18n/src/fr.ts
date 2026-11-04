@@ -1315,6 +1315,7 @@ export const fr = {
       jump: "Saut",
     },
     exerciseForm: {
+      nameRequired: "Donne un nom à l'exercice",
       editTitle: "Modifier l'exercice",
       edit: "Modifier",
       cuesHint: "2 ou 3 phrases courtes affichées à l'athlète. Une par ligne, 5 au plus.",
@@ -1378,6 +1379,16 @@ export const fr = {
         `Ce téléphone ne filme ni à 120 ni à 240 i/s (${fps} i/s ici) : le ralenti sera saccadé. Si l'appareil photo a un mode Ralenti, importe la vidéo.`,
       noCamera: "Pas de caméra disponible sur cet appareil. Importe une vidéo depuis la pellicule.",
       badge: (fps: number) => `${fps} i/s`,
+    },
+    channels: {
+      sessions: "Séances",
+      sessionsDetail: "Nouvelle séance, rappel, séance modifiée ou annulée, annonces",
+      videos: "Vidéos",
+      videosDetail: "Vidéo partagée et commentaires",
+      alerts: "Alertes sur ton groupe",
+      alertsDetail: "Une alerte concernant un de tes athlètes",
+      yes: "Oui",
+      no: "Non",
     },
     uploadNotice: {
       title: "Envoi de la vidéo",

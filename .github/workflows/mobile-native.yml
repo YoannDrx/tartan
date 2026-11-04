@@ -1,0 +1,96 @@
+name: Mobile natif
+
+# Une vraie compilation Android à chaque changement mobile, sans brûler les crédits EAS.
+# Les builds EAS, eux, n'ont lieu que le lundi si le mobile a changé, ou à la demande.
+on:
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/mobile-native.yml"
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      eas:
+        description: "Lancer aussi les builds EAS de préversion"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      APP_VARIANT: production
+      EXPO_PUBLIC_API_URL: https://app.tartan.coach
+      EXPO_PUBLIC_WEB_URL: https://tartan.coach
+      SENTRY_DISABLE_AUTO_UPLOAD: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: pnpm install --frozen-lockfile
+      - name: Diagnostic Expo
+        working-directory: apps/mobile
+        run: pnpm exec expo-doctor
+      - name: Configuration de production
+        working-directory: apps/mobile
+        run: pnpm exec expo config --json > /dev/null
+      - name: Génération du projet Android
+        working-directory: apps/mobile
+        run: pnpm exec expo prebuild --platform android --no-install
+      - name: Compilation
+        working-directory: apps/mobile/android
+        run: ./gradlew assembleRelease --no-daemon
+
+  eas:
+    if: github.event_name == 'schedule' || inputs.eas == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Le mobile a-t-il changé cette semaine ?
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] && [ -z "$(git log --since='7 days ago' --format=%H -- apps/mobile packages)" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: pnpm/action-setup@v4
+        if: steps.changes.outputs.skip != 'true'
+      - uses: actions/setup-node@v4
+        if: steps.changes.outputs.skip != 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: steps.changes.outputs.skip != 'true'
+      - uses: expo/expo-github-action@v8
+        if: steps.changes.outputs.skip != 'true'
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: eas build --profile preview-simulator -p ios --non-interactive --wait
+        if: steps.changes.outputs.skip != 'true'
+        working-directory: apps/mobile
+      - run: eas build --profile preview -p android --non-interactive --wait
+        if: steps.changes.outputs.skip != 'true'
+        working-directory: apps/mobile
