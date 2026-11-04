@@ -1,3 +1,5 @@
+import { Linking } from "react-native";
+import { staysInPlayer } from "../lib/webview-guard";
 import { instagramEmbedUrl } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useEvent } from "expo";
@@ -103,6 +105,17 @@ window.setRate=function(r){rate=r;if(player&&player.setPlaybackRate)player.setPl
 </script></body></html>`;
 };
 
+const PLAYER_ORIGINS = ["https://*", "about:*"];
+
+// Un lien touché dans le lecteur s'ouvre hors de Tartan, jamais dedans.
+const guard =
+  (initialUrl: string) =>
+  (request: { url: string; isTopFrame?: boolean }): boolean => {
+    if (staysInPlayer(request, initialUrl)) return true;
+    void Linking.openURL(request.url);
+    return false;
+  };
+
 const YouTubeLoop = ({ media, rate }: { media: Extract<ExerciseMedia, { kind: "youtube" }>; rate: number }) => {
   const ref = useRef<WebView>(null);
   const [failed, setFailed] = useState(false);
@@ -116,7 +129,10 @@ const YouTubeLoop = ({ media, rate }: { media: Extract<ExerciseMedia, { kind: "y
     <WebView
       ref={ref}
       source={{ html, baseUrl: config.webUrl }}
-      originWhitelist={["*"]}
+      originWhitelist={PLAYER_ORIGINS}
+      setSupportMultipleWindows={false}
+      thirdPartyCookiesEnabled={false}
+      onShouldStartLoadWithRequest={guard(config.webUrl)}
       allowsInlineMediaPlayback
       mediaPlaybackRequiresUserAction={false}
       javaScriptEnabled
@@ -142,6 +158,10 @@ export const ExerciseVideo = ({ media, rate }: { media: ExerciseMedia | null; ra
     content = online ? (
       <WebView
         source={{ uri: instagramEmbedUrl(media.instagramCode) }}
+        originWhitelist={PLAYER_ORIGINS}
+        setSupportMultipleWindows={false}
+        thirdPartyCookiesEnabled={false}
+        onShouldStartLoadWithRequest={guard(instagramEmbedUrl(media.instagramCode))}
         allowsInlineMediaPlayback
         javaScriptEnabled
         style={{ flex: 1, backgroundColor: scene.card }}
@@ -153,9 +173,18 @@ export const ExerciseVideo = ({ media, rate }: { media: ExerciseMedia | null; ra
   } else {
     content = <MuxLoop uri={(media.streamUrl ?? media.hlsUrl) as string} rate={rate} />;
   }
+  // Une vidéo commune garde le crédit de son auteur, comme sur le web.
+  const author = media && "author" in media ? media.author : null;
   return (
+    <View style={{ gap: space.xs }}>
     <View style={{ height: 210, borderRadius: radius.block, overflow: "hidden", backgroundColor: scene.cardRaised }}>
       {content}
+    </View>
+      {author ? (
+        <T variant="caption" tone="muted">
+          {m.exercises.videoBy(author)}
+        </T>
+      ) : null}
     </View>
   );
 };
