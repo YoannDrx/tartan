@@ -19,7 +19,7 @@ const schema = z.object({
   APPLE_PRIVATE_KEY: optional,
   APPLE_APP_BUNDLE_IDENTIFIER: optional,
   RESEND_API_KEY: optional,
-  EMAIL_FROM: z.string().default("Tartan <tartan@yodev.fr>"),
+  EMAIL_FROM: z.string().default("Tartan <tartan@mail.tartan.coach>"),
   EMAIL_CONTACT: z.string().default("hello@tartan.coach"),
   // Ouverture commerciale : « closed » réserve la création d'espace coach à la liste ci-dessous.
   COACH_SIGNUP_MODE: z.enum(["closed", "public"]).default("closed"),

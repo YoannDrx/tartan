@@ -8,7 +8,7 @@ Le mode d'emploi des cases de `docs/plan-ouverture-publique.md` qui ne dépenden
 2. **Ranger la clé de sauvegarde** : copie `~/.tartan/cle-sauvegarde.txt` dans ton gestionnaire de mots de passe. Sans elle, les sauvegardes sont illisibles.
 3. **Sécuriser le jeton Blob** : dans Vercel, projet `tartan`, Settings, Environment Variables, recrée `BLOB_READ_WRITE_TOKEN` en « Sensitive », avec un jeton distinct pour la production.
 4. **Contrôler trois valeurs** dans Vercel :
-   - `EMAIL_FROM` doit finir par `@yodev.fr` ;
+   - `EMAIL_FROM` doit finir par `@mail.tartan.coach` une fois le domaine vérifié dans Resend, sinon `@yodev.fr` ;
    - `DATABASE_URL` en Preview doit être différente de la production ;
    - `STRIPE_SECRET_KEY` en Preview doit commencer par `sk_test_` ou `rk_test_`.
 5. **Tester le contact** : envoie un message à `hello@tartan.coach` depuis une autre adresse et vérifie qu'il arrive sur Gmail.
