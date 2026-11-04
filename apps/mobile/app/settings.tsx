@@ -1,3 +1,4 @@
+import { legalLinks } from "../src/lib/legal-links";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@tartan/api-client";
 import { m } from "@tartan/i18n";
@@ -353,15 +354,18 @@ export default function Settings() {
       <ListSurface>
         <LinkRow
           label={m.legal.terms}
-          onPress={() => void WebBrowser.openBrowserAsync(`${config.webUrl}/conditions`)}
+          onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).terms)}
         />
         <Divider />
         <LinkRow
           label={m.legal.privacy}
-          onPress={() => void WebBrowser.openBrowserAsync(`${config.webUrl}/confidentialite`)}
+          onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).privacy)}
         />
         <Divider />
-        <LinkRow label={m.legal.contact} onPress={() => void WebBrowser.openBrowserAsync(`${config.webUrl}/contact`)} />
+        <LinkRow
+          label={m.legal.contact}
+          onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).contact)}
+        />
       </ListSurface>
 
       <View style={{ gap: space.sm }}>

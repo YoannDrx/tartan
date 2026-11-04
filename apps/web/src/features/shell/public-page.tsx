@@ -13,6 +13,7 @@ export const PublicPage = ({
   width = "form",
   site = false,
   world = "piste",
+  embedded = false,
 }: {
   title?: string;
   lead?: ReactNode;
@@ -21,6 +22,8 @@ export const PublicPage = ({
   // Page du site (tarifs, contact, textes légaux) : navigation et pied de page. Les parcours ciblés restent sans issue parasite.
   site?: boolean;
   world?: "piste" | "couloir" | "craie" | "soleil" | "nuit";
+  // Ouverte depuis l'app : ni navigation, ni pied de page, ni logo. Rien ne doit mener aux tarifs.
+  embedded?: boolean;
 }) => (
   <main className={cn(`world-${world}`, "relative flex min-h-dvh flex-col overflow-x-clip pb-10")}>
     {width === "form" && !site ? (
@@ -30,7 +33,7 @@ export const PublicPage = ({
       />
     ) : null}
     <div className="relative mx-auto flex w-full max-w-[1200px] flex-1 flex-col gap-4 px-4 pt-5 desktop:px-6 desktop:pt-6">
-      {site ? (
+      {embedded ? null : site ? (
         <SiteHeader />
       ) : (
         <a
@@ -55,7 +58,7 @@ export const PublicPage = ({
       <div className={cn("mt-2 w-full", width === "form" ? "max-w-md" : width === "text" ? "max-w-3xl" : "")}>
         {children}
       </div>
-      {site ? (
+      {site && !embedded ? (
         <div className="mt-auto pt-8">
           <SiteFooter />
         </div>

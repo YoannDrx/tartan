@@ -1147,7 +1147,7 @@ export const fr = {
       thisWeek: "Cette semaine",
       week: (label: string) => `Semaine du ${label}`,
       empty: "Aucune séance cette semaine.",
-      desktopHint: "La création de séance se fait sur ordinateur, sur tartan.coach.",
+      desktopHint: "La création de séance se fait sur ordinateur.",
       draft: "Brouillon",
     },
     progress: {
@@ -1172,7 +1172,7 @@ export const fr = {
       openSession: "Voir la séance",
       inviteShare: "Partager le lien du groupe",
       inviteMessage: (group: string, link: string) => `Rejoins ${group} sur Tartan : ${link}`,
-      noGroup: "Aucun groupe pour l'instant. Crée-le sur tartan.coach.",
+      noGroup: "Aucun groupe pour l'instant.",
       rpe: (n: number) => `RPE ${n}`,
       pain: (area: string, intensity: number) => `Douleur ${area.toLowerCase()} · ${intensity}/10`,
       duration: (n: number) => `${n} min`,
@@ -1193,7 +1193,7 @@ export const fr = {
       noResult: "Aucun exercice ne correspond. Essaie un autre mot.",
       all: "Tous",
       prescription: "Par défaut",
-      desktopHint: "L'ajout et la modification se font sur tartan.coach.",
+      desktopHint: "L'ajout et la modification se font sur ordinateur.",
     },
     video: {
       pendingTitle: "En attente d'envoi",

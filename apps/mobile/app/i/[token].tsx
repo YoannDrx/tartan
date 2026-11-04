@@ -1,3 +1,4 @@
+import { legalLinks } from "../../src/lib/legal-links";
 import { BirthDateField, toIsoBirthDate, type BirthParts } from "../../src/features/birth-date-field";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ApiError } from "@tartan/api-client";
@@ -21,7 +22,6 @@ import { Button, Card, Field, LaneLine, ScreenTitle, T } from "../../src/ui/prim
 import { useSceneStatusBar } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { radius, scene, space, usePagePad, usePalette } from "../../src/ui/theme";
-
 
 const ConsentRow = ({
   label,
@@ -292,14 +292,14 @@ export default function InvitationScreen() {
                 variant="ghost"
                 compact
                 style={{ paddingHorizontal: 0 }}
-                onPress={() => void WebBrowser.openBrowserAsync(`${config.webUrl}/conditions`)}
+                onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).terms)}
               />
               <Button
                 label={m.mobile.invite.privacyLink}
                 variant="ghost"
                 compact
                 style={{ paddingHorizontal: 0 }}
-                onPress={() => void WebBrowser.openBrowserAsync(`${config.webUrl}/confidentialite`)}
+                onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).privacy)}
               />
             </View>
             {isAthlete ? (

@@ -34,7 +34,10 @@ const SITE_PATHS = [
   "/sitemap.xml",
 ];
 const isSitePath = (pathname: string): boolean =>
-  SITE_PATHS.includes(pathname) || pathname.startsWith("/r/") || pathname.startsWith("/brand/");
+  SITE_PATHS.includes(pathname) ||
+  pathname.startsWith("/r/") ||
+  pathname.startsWith("/brand/") ||
+  pathname.startsWith("/mobile/");
 
 // Jamais new URL(chemin, base) : un chemin « //evil.com » changerait d'hôte.
 const onHost = (base: string, pathname: string, search: string): URL => {
