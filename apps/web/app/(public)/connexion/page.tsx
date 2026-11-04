@@ -1,3 +1,4 @@
+import { safeReturnPath } from "@/lib/return-path";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -17,7 +18,7 @@ export default async function ConnexionPage({
   searchParams: Promise<{ next?: string; creer?: string }>;
 }) {
   const { next, creer } = await searchParams;
-  const callbackURL = next?.startsWith("/") && !next.startsWith("//") ? next : "/accueil";
+  const callbackURL = safeReturnPath(next);
   if (await getActor()) redirect(callbackURL);
   const signupOpen = env().COACH_SIGNUP_MODE === "public";
   // On arrive ici depuis « Créer mon espace » : même formulaire, mais la page dit ce qu'on est venu faire.
