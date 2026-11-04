@@ -21,6 +21,7 @@ import { audit, requireGroupInScope, requireOrgMember, requireVisibleAthlete } f
 import { assertWithinPlan } from "./billing.service";
 import { setConsent, startParentalConsent } from "./consent.service";
 import { displayName, namesFor } from "./me.service";
+import { notify } from "./notify.service";
 import { ensureReferralCode } from "./org.service";
 import { attributeReferral } from "./referral.service";
 
@@ -138,6 +139,14 @@ export const revokeInvitation = async (userId: string, organizationId: string, i
   });
 };
 
+// Lien fuité : l'ancien cesse de fonctionner, le nouveau se copie aussitôt.
+export const regenerateInvitationLink = async (userId: string, organizationId: string, invitationId: string) => {
+  const inv = await prisma.invitation.findFirst({ where: { id: invitationId, organizationId } });
+  if (!inv || (inv.kind !== "group_link" && inv.kind !== "qr")) throw notFound();
+  await revokeInvitation(userId, organizationId, inv.id);
+  return createInvitation(userId, organizationId, { kind: inv.kind, role: inv.role, groupIds: inv.groupIds });
+};
+
 export const resendInvitation = async (userId: string, organizationId: string, invitationId: string) => {
   const access = await requireOrgMember(userId, organizationId, "inviteAthlete");
   const inv = await prisma.invitation.findFirst({ where: { id: invitationId, organizationId } });
@@ -156,7 +165,7 @@ const findByToken = async (token: string) => {
   if (!tokenMatches(PURPOSE, token)) return null;
   return prisma.invitation.findUnique({
     where: { tokenHash: sha256(token) },
-    include: { organization: { select: { name: true } } },
+    include: { organization: { select: { name: true, ownerId: true } } },
   });
 };
 
@@ -330,5 +339,17 @@ export const acceptInvitation = async (
     entityId: inv.id,
   });
   log.info("invitation_accepted", { organizationId: inv.organizationId });
+  // Un lien partagé peut fuiter : chaque arrivée se voit, et le coach peut retirer l'arrivant depuis sa fiche.
+  if (athleteId && (inv.kind === "group_link" || inv.kind === "qr")) {
+    await notify(
+      [inv.organization.ownerId, inv.invitedBy].filter((id) => id !== actor.userId),
+      "member_joined",
+      {
+        athlete: input.firstName,
+        organizationId: inv.organizationId,
+        link: `/athletes/${athleteId}`,
+      },
+    );
+  }
   return { organizationId: inv.organizationId, athleteId, parentalConsentRequired: minor };
 };

@@ -1,5 +1,5 @@
 export const PERSONAL_INVITATION_DAYS = 7;
-export const GROUP_LINK_DEFAULT_DAYS = 90;
+export const GROUP_LINK_DEFAULT_DAYS = 14;
 
 export type InvitationState = "valid" | "expired" | "revoked" | "used";
 

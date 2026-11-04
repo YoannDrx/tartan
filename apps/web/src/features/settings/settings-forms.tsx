@@ -24,6 +24,7 @@ import {
   createInvitationAction,
   groupLinkAction,
   resendInvitationAction,
+  regenerateInvitationLinkAction,
   revokeInvitationAction,
 } from "@/features/invitations/invitation.action";
 import {
@@ -732,6 +733,13 @@ export const InvitationList = ({
 }) => {
   const router = useRouter();
   const revoke = useAction(revokeInvitationAction, { onSuccess: () => router.refresh(), onError: onErr });
+  const regenerate = useAction(regenerateInvitationLinkAction, {
+    onSuccess: () => {
+      toast.ok(m.settings.linkRegenerated);
+      router.refresh();
+    },
+    onError: onErr,
+  });
   const resend = useAction(resendInvitationAction, {
     onSuccess: () => toast.ok("Invitation relancée."),
     onError: onErr,
@@ -756,6 +764,11 @@ export const InvitationList = ({
             {inv.status !== "accepted" && inv.status !== "revoked" && inv.email ? (
               <Button size="sm" variant="quiet" onClick={() => resend.execute({ id: inv.id })}>
                 {m.settings.resend}
+              </Button>
+            ) : null}
+            {inv.status !== "revoked" && (inv.kind === "group_link" || inv.kind === "qr") ? (
+              <Button size="sm" variant="quiet" onClick={() => regenerate.execute({ id: inv.id })}>
+                {m.settings.regenerateLink}
               </Button>
             ) : null}
             {inv.status !== "revoked" ? (

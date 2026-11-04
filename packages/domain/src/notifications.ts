@@ -15,7 +15,8 @@ export type NotificationType =
   | "comment"
   | "pain_alert"
   | "missed_streak"
-  | "announcement";
+  | "announcement"
+  | "member_joined";
 
 export const bypassesQuietHours = (type: NotificationType): boolean => type === "pain_alert";
 
@@ -55,6 +56,8 @@ export const renderNotification = (
       return { title: "Tartan", body: `${v.athlete ?? "Un athlète"} n'a pas validé ses 2 dernières séances` };
     case "announcement":
       return { title: v.group ?? "Tartan", body: `${coach} a publié une annonce` };
+    case "member_joined":
+      return { title: "Tartan", body: `${v.athlete ?? "Un athlète"} a rejoint ton espace` };
   }
 };
 

@@ -47,6 +47,7 @@ const CHANNELS: Record<NotificationType, string> = {
   comment: "videos",
   pain_alert: "alertes-coach",
   missed_streak: "alertes-coach",
+  member_joined: "seances",
 };
 
 export const webLink = (link: string | undefined, organizationId: string | undefined): string | undefined => {

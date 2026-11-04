@@ -70,7 +70,7 @@ export const createInvitationInput = z
     email: z.email("Adresse e-mail invalide").optional(),
     phone: z.string().trim().min(6).max(24).optional(),
     athleteId: uuid.optional(),
-    expiresInDays: z.number().int().min(1).max(365).optional(),
+    expiresInDays: z.number().int().min(1).max(30).optional(),
   })
   .refine((v) => v.kind !== "personal_email" || Boolean(v.email), {
     message: "Indique l'adresse e-mail à inviter",
