@@ -88,6 +88,8 @@ export const cancelExternalDeletion = async (provider: ExternalProvider, ref: st
 const nextDelayMs = (attempts: number): number => Math.min(24 * 60, 2 ** attempts) * 60 * 1000;
 
 export const processExternalDeletions = async (now: Date = new Date(), ids?: string[]): Promise<number> => {
+  // Une préversion n'efface rien chez un prestataire : elle peut partager un jeton avec la production.
+  if (process.env.VERCEL_ENV === "preview") return 0;
   const due = await prisma.externalDeletion.findMany({
     where: {
       state: "pending",

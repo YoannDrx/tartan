@@ -51,6 +51,8 @@ Objectif accepté le 3 novembre 2026 : implémenter le plan de l'audit, corriger
 
 ## Journal des preuves
 
+- 4 novembre, relecture indépendante des risques de données avant fusion, puis requêtes en lecture seule sur la production : 0 vidéo, 0 compte à plusieurs fiches, plus ancien profil du 1er novembre, `EMAIL_FROM` défini. Aucune purge ni aucun e-mail d'historique attendu au premier passage. Corrigés : une préversion n'efface plus rien chez un prestataire, une fiche sans compte encore suivie (présences, performances, tests, sauts, notes, vidéos) n'est plus purgée. Reste une saisie unique de la date de naissance : une erreur se corrige par le support.
+
 - 4 novembre, section C relue contre le code. Constructeur : détails repliés, aperçu athlète et filtre vidéo par athlète. États mobiles : hors ligne, envois en attente et validation refusée dans la bannière, file d'envoi vidéo. Les coupures réelles restent à éprouver en recette terrain (section D).
 
 - 4 novembre, essai sur simulateur iPhone 17 Pro (build de développement, API locale, compte fictif). Compte sans date : écran de date. Date de mineur : refus 403, date enregistrée, écran réservé aux majeurs, téléchargement des données par la feuille de partage (bouton et contact ajoutés à cette occasion). Date d'adulte : accueil athlète. Essayés aussi : déconnexion, mot de passe oublié (lien resté local, aucun envoi), réglages et accords, annonces vides. Non couvert : appareil réel, notifications, Android, contenu des pages légales dans l'app (elles répondent 200 en local, 404 en production tant que G1 n'est pas déployé).

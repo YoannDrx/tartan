@@ -72,6 +72,23 @@ describe("durées de conservation", () => {
     expect(await prisma.athlete.count({ where: { id: old.id } })).toBe(0);
     expect(await prisma.athlete.count({ where: { id: recent.id } })).toBe(1);
   });
+  it("une fiche ancienne encore suivie par le coach reste", async () => {
+    const a = await makeOrg("Suivie");
+    const followed = await prisma.athlete.create({
+      data: { organizationId: a.organizationId, firstName: "Suivi", lastName: "Test", updatedAt: daysAgo(400) },
+    });
+    await prisma.coachNote.create({
+      data: {
+        organizationId: a.organizationId,
+        athleteId: followed.id,
+        authorId: a.owner.userId,
+        body: "Note récente",
+        updatedAt: daysAgo(10),
+      },
+    });
+    await runRetention(NOW);
+    expect(await prisma.athlete.count({ where: { id: followed.id } })).toBe(1);
+  });
   it("un compte inactif reçoit d'abord un préavis, puis disparaît 30 jours plus tard", async () => {
     const user = await makeUser("Inactif");
     await prisma.profile.update({ where: { id: user.userId }, data: { lastActiveAt: daysAgo(731) } });

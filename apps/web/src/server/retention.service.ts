@@ -39,11 +39,19 @@ const purgeBatch = async <T extends { id: string | number }>(
 
 const purgeSheetsWithoutAccount = async (now: Date): Promise<number> => {
   const before = ago(now, RETENTION_DAYS.sheetWithoutAccount);
+  // Une fiche sans compte vit par ce que le coach y saisit : tout suivi récent la garde.
+  const noRecent = { none: { updatedAt: { gte: before } } };
   const sheets = await prisma.athlete.findMany({
     where: {
       userId: null,
       updatedAt: { lt: before },
-      logs: { none: { updatedAt: { gte: before } } },
+      logs: noRecent,
+      attendance: noRecent,
+      performances: noRecent,
+      tests: noRecent,
+      jumps: noRecent,
+      coachNotes: noRecent,
+      videos: noRecent,
     },
     take: BATCH,
     select: { id: true },

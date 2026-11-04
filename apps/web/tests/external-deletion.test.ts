@@ -115,6 +115,14 @@ describe("traitement de la file", () => {
     expect(mocks.deleteAsset).toHaveBeenCalledWith(ref);
     expect(await pendingFor(ref)).toMatchObject({ state: "done" });
   });
+  it("une préversion n'appelle aucun prestataire et laisse la ligne en file", async () => {
+    vi.stubEnv("VERCEL_ENV", "preview");
+    const ref = await enqueue();
+    expect(await processExternalDeletions(FAR)).toBe(0);
+    vi.unstubAllEnvs();
+    expect(mocks.deleteAsset).not.toHaveBeenCalled();
+    expect(await pendingFor(ref)).toMatchObject({ state: "pending" });
+  });
   it("un 404 vaut réussite", async () => {
     const ref = await enqueue();
     mocks.deleteAsset.mockRejectedValueOnce(Object.assign(new Error("absent"), { status: 404 }));
