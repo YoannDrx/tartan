@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Politique de confidentialité" };
 
 export default function ConfidentialitePage() {
   return (
-    <LegalPage title="Politique de confidentialité" updated="1er novembre 2026">
+    <LegalPage title="Politique de confidentialité" updated="4 novembre 2026">
       <p>
         Responsable du traitement : Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des
         Jonquilles, 95130 Franconville. Contact : hello@tartan.coach.
@@ -25,6 +25,10 @@ export default function ConfidentialitePage() {
         <li>
           Données techniques (jetons de notification, journaux d'erreurs sans donnée de santé) : pour faire fonctionner
           et sécuriser le service.
+        </li>
+        <li>
+          Mesure d'audience (pages vues sans jeton ni identifiant, provenance, pays, appareil, navigateur) : statistiques
+          agrégées pour améliorer le service, sans cookie tiers ni donnée de santé.
         </li>
       </ul>
       <h2>Athlètes de moins de 15 ans</h2>
