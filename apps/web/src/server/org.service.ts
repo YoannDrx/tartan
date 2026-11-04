@@ -173,6 +173,18 @@ export const deleteGroup = async (userId: string, organizationId: string, groupI
     });
     await tx.assignment.deleteMany({ where: { targetType: "group", targetId: groupId } });
     await tx.group.delete({ where: { id: groupId } });
+    // Un lien qui ne mène plus à aucun groupe est coupé : il n'ajouterait l'arrivant nulle part.
+    const links = await tx.invitation.findMany({
+      where: { organizationId, groupIds: { has: groupId } },
+      select: { id: true, groupIds: true },
+    });
+    for (const link of links) {
+      const groupIds = link.groupIds.filter((id) => id !== groupId);
+      await tx.invitation.update({
+        where: { id: link.id },
+        data: { groupIds, ...(groupIds.length === 0 ? { status: "revoked" as const } : {}) },
+      });
+    }
     // Un brouillon programmé sans destinataire échouerait à chaque passage de la tâche de publication.
     await tx.scheduledSession.updateMany({
       where: {

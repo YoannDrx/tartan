@@ -265,6 +265,8 @@ export const fr = {
     createSessionDetail: "Une fois, pour tout le groupe.",
   },
   invite: {
+    alreadyStaff: "Tu fais déjà partie de l'équipe de cet espace. Ce lien est destiné aux athlètes : partage-le-leur.",
+    roleConflict: "Tu es athlète dans cet espace. Demande à son responsable de changer ton rôle.",
     birthRequired: "Indique ta date de naissance.",
     title: (coach: string, group: string) => `${coach} t'invite à rejoindre ${group}`,
     titleCoach: (owner: string, org: string) => `${owner} t'invite à coacher dans ${org}`,

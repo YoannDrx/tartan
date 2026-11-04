@@ -8,7 +8,7 @@ import { getActor } from "@/lib/session";
 import { SignInForm } from "@/features/auth/sign-in-form";
 import { AcceptForm } from "@/features/invitations/accept-form";
 import { parentalFlowEnabled } from "@/server/age.service";
-import { previewInvitation } from "@/server/invitation.service";
+import { invitationConflictMessage, previewInvitation } from "@/server/invitation.service";
 import { getMe } from "@/server/me.service";
 
 export const metadata: Metadata = { title: "Invitation", robots: { index: false } };
@@ -40,6 +40,8 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
           : null;
   const actor = await getActor();
   const me = actor ? await getMe(actor.userId) : null;
+  // Le refus s'affiche avant le formulaire : inutile de le remplir pour l'apprendre ensuite.
+  const conflict = actor && !blocked ? await invitationConflictMessage(token, actor.userId) : null;
 
   return (
     <PublicPage
@@ -47,8 +49,8 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
       lead={!blocked && !(actor && me) ? "Connecte-toi pour rejoindre. Tu reviendras ici juste après." : undefined}
     >
       <div className="on-card rounded-card bg-card p-5">
-        {blocked ? (
-          <p role="alert">{blocked}</p>
+        {blocked || conflict ? (
+          <p role="alert">{blocked ?? conflict}</p>
         ) : actor && me ? (
           <AcceptForm
             token={token}

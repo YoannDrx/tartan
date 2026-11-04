@@ -169,6 +169,28 @@ const findByToken = async (token: string) => {
   });
 };
 
+// Un coach qui teste son lien ne doit pas devenir athlète de son propre groupe.
+const roleConflict = async (
+  userId: string,
+  inv: { organizationId: string; role: string },
+): Promise<"already_staff" | "role_conflict" | null> => {
+  const member = await prisma.organizationMember.findUnique({
+    where: { organizationId_userId: { organizationId: inv.organizationId, userId } },
+    select: { role: true },
+  });
+  if (!member) return null;
+  if (inv.role === "athlete") return member.role === "athlete" ? null : "already_staff";
+  return member.role === "athlete" ? "role_conflict" : null;
+};
+
+export const invitationConflictMessage = async (token: string, userId: string): Promise<string | null> => {
+  const inv = await findByToken(token);
+  if (!inv) return null;
+  const conflict = await roleConflict(userId, inv);
+  if (conflict === "already_staff") return m.invite.alreadyStaff;
+  return conflict === "role_conflict" ? m.invite.roleConflict : null;
+};
+
 export const previewInvitation = async (token: string): Promise<InvitationPreview> => {
   const inv = await findByToken(token);
   if (!inv) throw notFound();
@@ -209,6 +231,16 @@ export const acceptInvitation = async (
     throw new AppError(403, "wrong_account", "Cette invitation est destinée à une autre adresse e-mail.");
   }
   if (!input.consents.terms) throw invalid(m.invite.termsRequired);
+  const conflict = await roleConflict(actor.userId, inv);
+  if (conflict === "already_staff") throw new AppError(409, conflict, m.invite.alreadyStaff);
+  if (conflict === "role_conflict") throw new AppError(409, conflict, m.invite.roleConflict);
+  // Un groupe supprimé après l'envoi du lien ne doit pas casser l'arrivée.
+  const liveGroups = await prisma.group.findMany({
+    where: { id: { in: inv.groupIds }, organizationId: inv.organizationId },
+    select: { id: true },
+  });
+  const groupIds = liveGroups.map((group) => group.id);
+  if (inv.groupIds.length > 0 && groupIds.length === 0) throw invalid(m.invite.revoked);
 
   const isAthlete = inv.role === "athlete";
   // La date décide de l'accord parental (§ 15.3) : sans elle, un enfant consentirait seul.
@@ -282,7 +314,7 @@ export const acceptInvitation = async (
 
     if (!isAthlete) {
       await tx.groupCoach.createMany({
-        data: inv.groupIds.map((groupId) => ({
+        data: groupIds.map((groupId) => ({
           groupId,
           userId: actor.userId,
           role: inv.role === "assistant" ? ("assistant" as const) : ("lead" as const),
@@ -306,7 +338,7 @@ export const acceptInvitation = async (
         ? await tx.athlete.update({ where: { id: prepared.id }, data: { ...profile, userId: actor.userId } })
         : await tx.athlete.create({ data: { ...profile, organizationId: inv.organizationId, userId: actor.userId } });
     await tx.groupMember.createMany({
-      data: inv.groupIds.map((groupId) => ({ groupId, athleteId: athlete.id })),
+      data: groupIds.map((groupId) => ({ groupId, athleteId: athlete.id })),
       skipDuplicates: true,
     });
     return athlete.id;
