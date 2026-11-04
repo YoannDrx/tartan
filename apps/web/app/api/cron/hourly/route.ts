@@ -9,5 +9,6 @@ export async function GET(request: Request) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
   }
-  return NextResponse.json(await runHourlyJobs());
+  const result = await runHourlyJobs();
+  return NextResponse.json(result, { status: result.errors.length ? 500 : 200 });
 }

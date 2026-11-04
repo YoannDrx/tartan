@@ -33,21 +33,7 @@ import { consentForAthletes } from "./consent.service";
 import { displayName, firstNameOf, namesFor } from "./me.service";
 import { notify } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
-
-const assignedWhere = async (athleteId: string) => {
-  const groups = await prisma.groupMember.findMany({ where: { athleteId }, select: { groupId: true } });
-  return {
-    publishedAt: { not: null },
-    assignments: {
-      some: {
-        OR: [
-          { targetType: "athlete" as const, targetId: athleteId },
-          { targetType: "group" as const, targetId: { in: groups.map((g) => g.groupId) } },
-        ],
-      },
-    },
-  };
-};
+import { athleteAssignedWhere as assignedWhere } from "./session-audience.service";
 
 const loadTests = async (athleteId: string): Promise<StrengthTest[]> => {
   const rows = await prisma.strengthTest.findMany({ where: { athleteId } });

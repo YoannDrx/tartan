@@ -4,6 +4,7 @@ import { deleteAsset, videoEnabled } from "@/lib/mux";
 import { prisma } from "@/lib/prisma";
 import { cancelStripeSubscriptions } from "./billing.service";
 import { audit } from "./access";
+import { deleteAthleteAssignments } from "./session-audience.service";
 
 // Suppression réelle du compte et de ses données, contenus créés compris (Apple 5.1.1(v), § 15.4).
 export const deleteAccount = async (userId: string): Promise<void> => {
@@ -53,6 +54,7 @@ export const deleteAccount = async (userId: string): Promise<void> => {
       });
     }
     await tx.organization.deleteMany({ where: { id: { in: orgsToDelete } } });
+    await deleteAthleteAssignments(tx, athleteIds);
     await tx.athlete.deleteMany({ where: { id: { in: athleteIds } } });
     await tx.comment.deleteMany({ where: { authorId: userId } });
     await tx.videoAnnotation.deleteMany({ where: { authorId: userId } });

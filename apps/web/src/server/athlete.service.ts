@@ -12,6 +12,7 @@ import { consentRequired, forbidden, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import {
   audit,
+  coachGroupIds,
   requireGroupInScope,
   requireOrgMember,
   requireVisibleAthlete,
@@ -50,7 +51,16 @@ export const listAthletes = async (userId: string, organizationId: string) => {
 export const saveAthlete = async (userId: string, organizationId: string, raw: AthleteInput) => {
   const input = athleteInput.parse(raw);
   const access = await requireOrgMember(userId, organizationId, "manageAthletes");
-  await requireGroupInScope(access, input.groupIds);
+  if (input.id) await requireVisibleAthlete(access, input.id);
+  const existingGroups = input.id
+    ? await prisma.groupMember.findMany({ where: { athleteId: input.id }, select: { groupId: true } })
+    : [];
+  // Un coach peut conserver les groupes d'un collègue, mais jamais y ajouter un athlète.
+  await requireGroupInScope(
+    access,
+    input.groupIds.filter((id) => !existingGroups.some((group) => group.groupId === id)),
+  );
+  const editableGroups = access.role === "owner" ? null : await coachGroupIds(access);
   const data = {
     firstName: input.firstName,
     lastName: input.lastName,
@@ -63,9 +73,14 @@ export const saveAthlete = async (userId: string, organizationId: string, raw: A
     particularities: input.particularities ?? null,
   };
   if (input.id) {
-    await requireVisibleAthlete(access, input.id);
     await prisma.$transaction(async (tx) => {
       await tx.athlete.update({ where: { id: input.id }, data });
+      await tx.groupMember.deleteMany({
+        where: {
+          athleteId: input.id,
+          groupId: { notIn: input.groupIds, ...(editableGroups ? { in: editableGroups } : {}) },
+        },
+      });
       if (input.groupIds.length) {
         await tx.groupMember.createMany({
           data: input.groupIds.map((groupId) => ({ groupId, athleteId: input.id as string })),

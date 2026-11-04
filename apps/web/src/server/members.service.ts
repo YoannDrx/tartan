@@ -1,3 +1,4 @@
+import { deleteAthleteAssignments } from "./session-audience.service";
 import { forbidden, invalid, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { audit, requireOrgMember, requireVisibleAthlete } from "./access";
@@ -80,6 +81,7 @@ export const removeAthlete = async (userId: string, organizationId: string, athl
   await requireVisibleAthlete(access, athleteId);
   const athlete = await prisma.athlete.findUniqueOrThrow({ where: { id: athleteId }, select: { userId: true } });
   await prisma.$transaction(async (tx) => {
+    await deleteAthleteAssignments(tx, [athleteId]);
     await tx.athlete.delete({ where: { id: athleteId } });
     if (athlete.userId) {
       await tx.organizationMember.deleteMany({ where: { organizationId, userId: athlete.userId, role: "athlete" } });
@@ -92,8 +94,13 @@ export const removeAthlete = async (userId: string, organizationId: string, athl
 export const leaveOrganization = async (userId: string, organizationId: string) => {
   const access = await requireOrgMember(userId, organizationId);
   if (access.role === "owner") throw invalid("Transfère ou supprime ton espace pour le quitter.");
-  if (access.athleteId) await prisma.athlete.delete({ where: { id: access.athleteId } });
-  await prisma.groupCoach.deleteMany({ where: { userId, group: { organizationId } } });
-  await prisma.organizationMember.delete({ where: { organizationId_userId: { organizationId, userId } } });
+  await prisma.$transaction(async (tx) => {
+    if (access.athleteId) {
+      await deleteAthleteAssignments(tx, [access.athleteId]);
+      await tx.athlete.delete({ where: { id: access.athleteId } });
+    }
+    await tx.groupCoach.deleteMany({ where: { userId, group: { organizationId } } });
+    await tx.organizationMember.delete({ where: { organizationId_userId: { organizationId, userId } } });
+  });
   await audit({ organizationId, actorId: userId, action: "member_left", entity: "member" });
 };

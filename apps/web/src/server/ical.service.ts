@@ -4,6 +4,7 @@ import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
+import { athleteAssignedWhere } from "./session-audience.service";
 import { requireAthleteAccess } from "./access";
 
 const signature = (athleteId: string): string =>
@@ -22,19 +23,10 @@ export const icalFeed = async (athleteId: string, token: string, now: Date = new
   const a = Buffer.from(signature(athleteId));
   const b = Buffer.from(token);
   if (a.length !== b.length || !timingSafeEqual(a, b)) throw notFound();
-  const groups = await prisma.groupMember.findMany({ where: { athleteId }, select: { groupId: true } });
   const sessions = await prisma.scheduledSession.findMany({
     where: {
-      publishedAt: { not: null },
+      ...(await athleteAssignedWhere(athleteId)),
       date: { gte: toDbDate(addDays(todayIso(now), -30)) },
-      assignments: {
-        some: {
-          OR: [
-            { targetType: "athlete", targetId: athleteId },
-            { targetType: "group", targetId: { in: groups.map((g) => g.groupId) } },
-          ],
-        },
-      },
     },
     select: { id: true, title: true, date: true, startTime: true, location: true, updatedAt: true },
   });

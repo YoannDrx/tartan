@@ -21,6 +21,8 @@ import {
   coachGroupIds,
   type Access,
 } from "./access";
+import { audienceAthleteIds } from "./session-audience.service";
+export { audienceAthleteIds } from "./session-audience.service";
 import { mediaSnapshot } from "./exercise.service";
 import { firstNameOf } from "./me.service";
 import { notify, notifyPublications } from "./notify.service";
@@ -67,17 +69,6 @@ export const buildSnapshot = async (organizationId: string, draft: SessionDraft)
       }),
     })),
   });
-};
-
-export const audienceAthleteIds = async (sessionId: string): Promise<string[]> => {
-  const assignments = await prisma.assignment.findMany({ where: { scheduledSessionId: sessionId } });
-  const direct = assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId);
-  const groups = assignments.filter((a) => a.targetType === "group").map((a) => a.targetId);
-  const fromGroups = await prisma.groupMember.findMany({
-    where: { groupId: { in: groups } },
-    select: { athleteId: true },
-  });
-  return [...new Set([...direct, ...fromGroups.map((r) => r.athleteId)])];
 };
 
 const audienceUsers = async (sessionId: string): Promise<string[]> => {

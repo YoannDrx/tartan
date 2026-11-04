@@ -47,7 +47,7 @@ export const addAthlete = async (
   organizationId: string,
   groupId: string | null,
   firstName: string,
-  opts: { health?: boolean; video?: boolean; birthDate?: string } = {},
+  opts: { health?: boolean; video?: boolean; birthDate?: string; joinedAt?: Date } = {},
 ) => {
   const user = await makeUser(firstName, { birthDate: opts.birthDate });
   await prisma.organizationMember.create({
@@ -60,7 +60,10 @@ export const addAthlete = async (
       firstName,
       lastName: "Test",
       birthDate: opts.birthDate ? new Date(`${opts.birthDate}T00:00:00Z`) : null,
-      ...(groupId ? { groups: { create: { groupId } } } : {}),
+      // Les scénarios historiques utilisent un membre déjà présent. Les tests d'arrivée fixent leur date.
+      ...(groupId
+        ? { groups: { create: { groupId, createdAt: opts.joinedAt ?? new Date("2020-01-01T10:00:00Z") } } }
+        : {}),
     },
   });
   await setConsent(user.userId, "terms", true, athlete.id);
