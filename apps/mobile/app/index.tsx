@@ -1,3 +1,4 @@
+import { ageStatus } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Redirect } from "expo-router";
 import { View } from "react-native";
@@ -34,13 +35,17 @@ export default function Gate() {
       </View>
     );
   }
+  const age = ageStatus(me.data.birthDate ?? null, new Date());
+  if (age === "minor") return <Redirect href="/age" />;
   if (me.data.spaces.length === 0) return <Redirect href="/onboarding" />;
+  // Le serveur refuse tout accès sans date : autant la demander tout de suite.
+  if (age === "unknown") return <Redirect href="/age" />;
   const space_ = pickSpace(me.data.spaces, activeOrgId);
   const home = space_ ? homeFor(space_) : null;
   if (home) return <Redirect href={home} />;
   return (
     <View style={[shell, { gap: space.lg }]}>
-      <T>{m.mobile.errors.guardian}</T>
+      <T>{m.mobile.errors.noSpace}</T>
       <Button label={m.common.signOut} variant="secondary" onPress={() => void signOut()} />
     </View>
   );

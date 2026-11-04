@@ -1,0 +1,27 @@
+# Compte sans date de naissance : l'écran d'âge passe avant l'espace, et une date mineure ferme l'accès.
+appId: ${APP_ID}
+env:
+  EMAIL: ${NO_AGE_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: age-confirm
+    timeout: 30000
+- assertVisible: "Ta date de naissance"
+- tapOn:
+    id: birth-day
+- inputText: "12"
+- tapOn:
+    id: birth-month
+- inputText: "05"
+- tapOn:
+    id: birth-year
+- inputText: "2015"
+- tapOn:
+    id: age-confirm
+- extendedWaitUntil:
+    visible: "Tartan est réservé aux majeurs"
+    timeout: 15000
+- assertVisible:
+    id: age-sign-out

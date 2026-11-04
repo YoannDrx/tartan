@@ -49,5 +49,3 @@ export const fetchCoachAthleteFile = (orgId: string, athleteId: string): Promise
 export const saveExercise = (orgId: string, body: ExerciseInput): Promise<unknown> =>
   callApi("POST", `/orgs/${orgId}/exercises`, body);
 
-export const resendParentalConsent = (orgId: string): Promise<unknown> =>
-  callApi("POST", `/orgs/${orgId}/athlete/parental-consent`);

@@ -81,12 +81,14 @@ export const createApiClient = (options: ApiClientOptions) => {
     me: () => request("GET", "/me", meResponse),
     exportMyData: () => request("GET", "/me/export", z.any()),
     billing: (orgId: string) => request("GET", `/orgs/${orgId}/billing`, z.any()),
-    athleteStats: (orgId: string, athleteId: string) => request("GET", `/orgs/${orgId}/athletes/${athleteId}/stats`, z.any()),
+    athleteStats: (orgId: string, athleteId: string) =>
+      request("GET", `/orgs/${orgId}/athletes/${athleteId}/stats`, z.any()),
     updateProfile: (body: ProfileInput) => request("PATCH", "/me", meResponse, body),
     deleteAccount: () => request("DELETE", "/me", okResponse),
     unregisterDevice: (pushToken: string) => request("DELETE", "/devices", okResponse, { pushToken }),
     registerDevice: (pushToken: string, platform: "ios" | "android" | "web") =>
       request("POST", "/devices", okResponse, { pushToken, platform }),
+    confirmAge: (birthDate: string) => request("POST", "/me/age", z.unknown(), { birthDate }),
     consents: () =>
       request("GET", "/consents", z.object({ health: z.boolean(), video: z.boolean(), terms: z.boolean() })),
     setConsent: (kind: "health" | "video" | "terms", granted: boolean) =>
@@ -103,6 +105,7 @@ export const createApiClient = (options: ApiClientOptions) => {
       firstGroupName: string;
       disciplines?: string[];
       referralCode?: string;
+      birthDate?: string;
     }) => request("POST", "/orgs", z.object({ organizationId: z.string(), firstGroupId: z.string() }), body),
     today: (orgId: string) => request("GET", `/orgs/${orgId}/athlete/today`, athleteToday),
     athleteCalendar: (orgId: string, from: string, to: string) =>
@@ -233,6 +236,16 @@ export const createApiClient = (options: ApiClientOptions) => {
       },
     ) => request("POST", `/orgs/${orgId}/reports`, okResponse, body),
     block: (userId: string) => request("POST", "/blocks", okResponse, { userId }),
+    setSpaceConsent: (orgId: string, kind: "health" | "video", granted: boolean) =>
+      request(
+        "PUT",
+        `/orgs/${orgId}/athlete/consents`,
+        z.object({ health: z.boolean(), video: z.boolean(), terms: z.boolean() }),
+        {
+          kind,
+          granted,
+        },
+      ),
   };
 };
 

@@ -1140,7 +1140,7 @@ export const fr = {
       network: "Pas de réseau pour le moment. Réessaie dès que la connexion revient.",
       offlineEmpty: "Pas encore de données sur ce téléphone. Connecte-toi au réseau une première fois.",
       unknownSpace: "Cet espace n'est plus accessible.",
-      guardian: "L'espace parent n'est pas encore disponible dans l'app.",
+      noSpace: "Aucun espace disponible pour ce compte.",
       planLimit: "Cet espace a atteint sa limite pour l'instant. Tout ce qui existe reste accessible.",
     },
     agenda: {

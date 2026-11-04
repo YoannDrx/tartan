@@ -4,6 +4,7 @@ import { Redirect, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BirthDateField, toIsoBirthDate, type BirthParts } from "../../src/features/birth-date-field";
 import { InviteLinkSheet } from "../../src/features/invite-link-sheet";
 import { api } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
@@ -17,7 +18,7 @@ import { useSceneStatusBar } from "../../src/ui/screen";
 import { LoadingState } from "../../src/ui/states";
 import { scene, space, usePagePad } from "../../src/ui/theme";
 
-type Errors = Partial<Record<"firstName" | "lastName" | "orgName" | "groupName", string>>;
+type Errors = Partial<Record<"firstName" | "lastName" | "birthDate" | "orgName" | "groupName", string>>;
 
 export default function Onboarding() {
   useSceneStatusBar();
@@ -29,6 +30,7 @@ export default function Onboarding() {
   const insets = useSafeAreaInsets();
   const pad = usePagePad();
   const [step, setStep] = useState<"profile" | "org">("profile");
+  const [birth, setBirth] = useState<BirthParts>({ day: "", month: "", year: "" });
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [orgName, setOrgName] = useState("");
@@ -52,6 +54,7 @@ export default function Onboarding() {
         firstGroupName: groupName.trim(),
         disciplines: [],
         referralCode: currentReferral(),
+        birthDate: toIsoBirthDate(birth) ?? undefined,
       });
     },
     onSuccess: async (result) => {
@@ -71,6 +74,7 @@ export default function Onboarding() {
     const next: Errors = {};
     if (!firstName.trim()) next.firstName = m.mobile.forms.firstNameRequired;
     if (!lastName.trim()) next.lastName = m.mobile.forms.lastNameRequired;
+    if (!me.data?.birthDate && !toIsoBirthDate(birth)) next.birthDate = m.mobile.invite.birthRequired;
     setErrors(next);
     if (Object.keys(next).length === 0) setStep("org");
   };
@@ -120,6 +124,9 @@ export default function Onboarding() {
                 textContentType="familyName"
                 error={errors.lastName}
               />
+              {me.data?.birthDate ? null : (
+                <BirthDateField value={birth} onChange={setBirth} error={errors.birthDate} />
+              )}
               <Button label={m.mobile.onboarding.next} onPress={nextStep} />
             </Card>
             <T variant="small">{m.onboarding.joinHint}</T>

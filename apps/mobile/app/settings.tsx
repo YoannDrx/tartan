@@ -97,6 +97,7 @@ export default function Settings() {
   const router = useRouter();
   const signOut = useSession((s) => s.signOut);
   const expire = useSession((s) => s.expire);
+  const activeSpaceId = useSpaceStore((s) => s.activeOrgId);
   const setActive = useSpaceStore((s) => s.setActive);
   const pendingOps = useOpQueue((s) => s.items.length);
   const pendingUploads = useUploads((s) => s.items.length);
@@ -137,7 +138,8 @@ export default function Settings() {
   });
 
   const setConsent = useMutation({
-    mutationFn: ({ kind, granted }: { kind: "health" | "video"; granted: boolean }) => api.setConsent(kind, granted),
+    mutationFn: ({ kind, granted }: { kind: "health" | "video"; granted: boolean }) =>
+      activeSpaceId ? api.setSpaceConsent(activeSpaceId, kind, granted) : api.setConsent(kind, granted),
     onSuccess: (data) => {
       client.setQueryData(["consents"], data);
       void client.invalidateQueries({ queryKey: ["today"] });
