@@ -82,7 +82,7 @@ export const AthleteDialog = ({
         onSubmit={(e) => {
           e.preventDefault();
           setMissingBirth(!v.birthDate);
-          if (v.birthDate) execute({ ...v, disciplines: ["high_jump"] });
+          if (v.birthDate) execute({ ...v, disciplines: [] });
         }}
       >
         <div className="grid gap-4 tablet:grid-cols-2">
@@ -259,7 +259,7 @@ export const PerformanceDialog = ({ athleteId }: { athleteId: string }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [v, setV] = useState({
-    discipline: "Saut en hauteur",
+    discipline: "",
     mark: "",
     unit: "m" as "m" | "cm" | "s",
     date: today(),

@@ -53,8 +53,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...(appleSignIn ? { usesAppleSignIn: true } : {}),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-        NSCameraUsageDescription: "Tartan utilise la caméra pour filmer les sauts de tes athlètes.",
-        NSMicrophoneUsageDescription: "Tartan enregistre le son des vidéos de saut quand tu filmes.",
+        NSCameraUsageDescription: "Tartan utilise la caméra pour filmer les entraînements de tes athlètes.",
+        NSMicrophoneUsageDescription: "Tartan enregistre le son des vidéos quand tu filmes.",
       },
     },
     android: {
@@ -111,9 +111,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         "expo-image-picker",
         {
-          photosPermission: "Tartan ouvre ta pellicule pour importer une vidéo de saut que tu choisis.",
-          cameraPermission: "Tartan utilise la caméra pour filmer les sauts de tes athlètes.",
-          microphonePermission: "Tartan enregistre le son des vidéos de saut quand tu filmes.",
+          photosPermission: "Tartan ouvre ta pellicule pour importer une vidéo que tu choisis.",
+          cameraPermission: "Tartan utilise la caméra pour filmer les entraînements de tes athlètes.",
+          microphonePermission: "Tartan enregistre le son des vidéos quand tu filmes.",
         },
       ],
       ["expo-video", { supportsBackgroundPlayback: false, supportsPictureInPicture: false }],

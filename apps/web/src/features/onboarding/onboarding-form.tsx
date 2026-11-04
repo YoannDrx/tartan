@@ -53,7 +53,7 @@ export const OnboardingForm = ({
           name: v.name,
           type: v.type,
           firstGroupName: v.firstGroupName,
-          disciplines: ["high_jump"],
+          disciplines: [],
           profile: { firstName: v.firstName, lastName: v.lastName, birthDate: v.birthDate },
         }),
       )}

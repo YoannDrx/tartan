@@ -13,7 +13,7 @@ import { m } from "@tartan/i18n";
 import { audit } from "./access";
 import { parentalFlowEnabled } from "./age.service";
 
-export const CONSENT_VERSION = "2026-11";
+export const CONSENT_VERSION = "2026-11-2";
 const GUARDIAN_PURPOSE = "guardian";
 
 export const setConsent = async (userId: string, kind: ConsentKind, granted: boolean, athleteId?: string | null) => {

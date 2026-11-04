@@ -50,7 +50,7 @@ export default function Onboarding() {
         name: orgName.trim(),
         type: orgType,
         firstGroupName: groupName.trim(),
-        disciplines: ["high_jump"],
+        disciplines: [],
         referralCode: currentReferral(),
       });
     },

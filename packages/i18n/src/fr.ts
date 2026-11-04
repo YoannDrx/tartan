@@ -33,7 +33,7 @@ export const fr = {
     allSettings: "Tous les réglages",
     aujourdhui: "Aujourd'hui",
     progres: "Progrès",
-    mesSauts: "Mes sauts",
+    mesSauts: "Mes vidéos",
   },
   status: { no_return: "Sans retour", done: "Fait", partial: "Partiel", missed: "Manqué", upcoming: "À venir" },
   variant: { club: "Au club", autonomous: "En autonomie", both: "Club et autonomie" },
@@ -96,6 +96,8 @@ export const fr = {
     snatch: "Arraché",
     deadlift: "Soulevé de terre",
     hip_thrust: "Hip thrust",
+    bench_press: "Développé couché",
+    pull_up: "Tractions",
   },
   invitationStatus: {
     sent: "Envoyée",
@@ -283,7 +285,7 @@ export const fr = {
     consentTerms: "J'accepte les conditions d'utilisation et la politique de confidentialité.",
     consentHealth:
       "J'accepte que mes informations de santé (blessures, douleurs, effort ressenti) soient traitées et visibles par mes coachs.",
-    consentVideo: "J'accepte que mes coachs me filment et conservent mes vidéos de saut.",
+    consentVideo: "J'accepte que mes coachs me filment et conservent mes vidéos d'entraînement.",
     consentOptional:
       "Tu peux refuser : l'app marche quand même, ces fonctions restent masquées. Tu pourras changer d'avis dans les réglages.",
     termsRequired: "Accepte les conditions pour continuer.",
@@ -414,6 +416,8 @@ export const fr = {
     activeInjury: "Blessure active",
   },
   builder: {
+    tempo: "Tempo",
+    tempoHint: "Par exemple 3-1-1",
     deleteLosesLogs: (count: number) =>
       `${count > 1 ? `${count} validations seront perdues` : "1 validation sera perdue"}. Les athlètes concernés seront prévenus si la séance est à venir.`,
     deleteTemplate: "Supprimer ce modèle",
@@ -573,7 +577,8 @@ export const fr = {
   },
   video: {
     title: "Vidéos",
-    mine: "Mes sauts",
+    barFields: "Ajouter une barre (saut)",
+    mine: "Mes vidéos",
     capture: "Filmer",
     import: "Importer",
     slowHint: "Filme en ralenti (120 ou 240 i/s) pour une analyse nette.",
@@ -1083,7 +1088,7 @@ export const fr = {
       session: "Séance (facultatif)",
       noSession: "Aucune",
       film: "Filmer ici",
-      importSlow: "Importer un ralenti",
+      importSlow: "Importer une vidéo",
       slowAdvice: (max: number) =>
         `Ce téléphone filme jusqu'à ${max} i/s. Pour le meilleur ralenti, filme avec l'appareil photo en mode Ralenti, puis importe la vidéo.`,
       noSlowAdvice: (max: number) =>
@@ -1254,7 +1259,7 @@ export const fr = {
       title: "Envoi de la vidéo",
       progress: (name: string, pct: number) => `${name} : ${pct} %`,
       channel: "Envois vidéo",
-      channelDetail: "Progression de l'envoi des vidéos de saut",
+      channelDetail: "Progression de l'envoi des vidéos",
     },
     forms: {
       firstNameRequired: "Indique ton prénom",

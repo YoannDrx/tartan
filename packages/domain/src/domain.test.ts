@@ -570,3 +570,9 @@ describe("records personnels", () => {
     ).toEqual(["avant"]);
   });
 });
+
+describe("préparation physique", () => {
+  it("le tempo s'affiche dans la prescription", () => {
+    expect(formatPrescription({ sets: 4, reps: 6, tempo: "3-1-1" })).toBe("4 × 6 rép. · tempo 3-1-1");
+  });
+});

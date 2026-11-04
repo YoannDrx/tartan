@@ -147,6 +147,16 @@ const PrescriptionEditor = ({
           )}
         </Field>
       ) : null}
+      <Field label={m.builder.tempo} hint={m.builder.tempoHint}>
+        {(a) => (
+          <Input
+            {...a}
+            maxLength={20}
+            value={value.tempo ?? ""}
+            onChange={(e) => onChange({ ...value, tempo: e.target.value || undefined })}
+          />
+        )}
+      </Field>
       <Field label={m.builder.notes} className="col-span-2 tablet:col-span-3">
         {(a) => (
           <Input
