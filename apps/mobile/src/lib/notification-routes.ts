@@ -17,8 +17,11 @@ export const routeForNotification = (data: NotificationData | null | undefined):
   if (video && ID.test(video)) return `/video/${video}`;
   const coachSession = link.match(/^\/seances\/([^/?#]+)/)?.[1];
   if (coachSession && ID.test(coachSession)) return `/coach-session/${coachSession}`;
-  // « /seance/… » ouvre Aujourd'hui, d'où la validation se fait en deux touches.
-  if (link.startsWith("/seance/")) return "/today";
+  const session = link.match(/^\/seance\/([^/?#]+)/)?.[1];
+  // Le rappel vise la validation, à deux touches depuis Aujourd'hui. Le reste ouvre la séance concernée.
+  if (session && ID.test(session)) return data?.type === "session_reminder" ? "/today" : `/session/${session}`;
+  if (link.startsWith("/seance/") || link === "/aujourdhui") return "/today";
+  if (link === "/annonces") return "/annonces";
   const athlete = link.match(/^\/athletes\/([^/?#]+)/)?.[1];
   if (athlete && ID.test(athlete)) return `/athletes/${athlete}`;
   if (link.startsWith("/athletes")) return "/tracking";

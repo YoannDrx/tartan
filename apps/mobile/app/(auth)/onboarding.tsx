@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BirthDateField, toIsoBirthDate, type BirthParts } from "../../src/features/birth-date-field";
 import { InviteLinkSheet } from "../../src/features/invite-link-sheet";
+import { PushStep } from "../../src/features/push-step";
 import { api } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
 import { currentReferral, usePendingReferral } from "../../src/lib/pending-referral";
@@ -31,6 +32,7 @@ export default function Onboarding() {
   const pad = usePagePad();
   const [step, setStep] = useState<"profile" | "org">("profile");
   const [birth, setBirth] = useState<BirthParts>({ day: "", month: "", year: "" });
+  const [created, setCreated] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [orgName, setOrgName] = useState("");
@@ -61,12 +63,14 @@ export default function Onboarding() {
       usePendingReferral.getState().clear();
       setActive(result.organizationId);
       await queryClient.invalidateQueries({ queryKey: ["me"] });
-      router.replace("/tracking");
+      setCreated(true);
     },
     onError: (error) => setFormError(errorMessage(error)),
   });
 
   if (status === "signed-out") return <Redirect href="/sign-in" />;
+  // Un coach sans notification ne saura pas qu'un athlète a validé : la question vient tout de suite.
+  if (created) return <PushStep coach onDone={() => router.replace("/tracking")} />;
   if (me.isPending) return <LoadingState />;
   if (me.data && me.data.spaces.length > 0 && !create.isPending) return <Redirect href="/" />;
 

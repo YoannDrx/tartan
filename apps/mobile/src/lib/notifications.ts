@@ -2,18 +2,31 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { api } from "./api";
 import { config } from "./config";
+import { launchRoute } from "./notification-launch";
+import { forgetDevicePush, stopDevicePush } from "./push-lifecycle";
+import { reportTechnical } from "./report";
 import { actionFromResponse, normalizeNotificationData, routeForNotification } from "./notification-routes";
 import { useSpaceStore } from "./space-store";
 import { m } from "@tartan/i18n";
 
-let registeredToken: string | null = null;
+const pushDeps = {
+  currentToken: async () => {
+    const status = await Notifications.getPermissionsAsync();
+    if (!status.granted) return null;
+    const token = await Notifications.getExpoPushTokenAsync(
+      config.projectId ? { projectId: config.projectId } : undefined,
+    );
+    return token.data;
+  },
+  unregisterOnServer: (token: string) => api.unregisterDevice(token),
+  unregisterOnDevice: () => Notifications.unregisterForNotificationsAsync(),
+};
 
 // À la déconnexion : cet appareil ne reçoit plus rien pour ce compte.
-export const forgetPushToken = async (): Promise<void> => {
-  if (!registeredToken) return;
-  await api.unregisterDevice(registeredToken).catch(() => undefined);
-  registeredToken = null;
-};
+export const forgetPushToken = (): Promise<void> => forgetDevicePush(pushDeps);
+
+// Session expirée : le serveur ne répondra plus, seul l'appareil peut encore se couper.
+export const stopPushOnDevice = (): Promise<unknown> => stopDevicePush(pushDeps);
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -84,9 +97,9 @@ export const registerPush = async ({ prompt }: { prompt: boolean }): Promise<Pus
       config.projectId ? { projectId: config.projectId } : undefined,
     );
     await api.registerDevice(token.data, Platform.OS === "ios" ? "ios" : "android");
-    registeredToken = token.data;
-  } catch {
-    // Simulateur ou projet EAS pas encore créé : l'app marche sans notification.
+  } catch (error) {
+    // L'app marche sans notification, mais un échec sur un vrai téléphone doit se voir.
+    reportTechnical("push_token_failed", error);
   }
   return permission;
 };
@@ -96,7 +109,7 @@ const handleTap = (response: Notifications.NotificationResponse, navigate: (rout
   const data = normalizeNotificationData(response.notification.request.content.data);
   if (actionFromResponse(response.actionIdentifier, data)) return;
   if (typeof data?.organizationId === "string") useSpaceStore.getState().setActive(data.organizationId);
-  navigate(routeForNotification(data));
+  launchRoute.offer(routeForNotification(data), navigate);
 };
 
 export const listenToNotificationResponses = (navigate: (route: string) => void): (() => void) => {

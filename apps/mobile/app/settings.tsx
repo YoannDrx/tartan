@@ -5,7 +5,7 @@ import { m } from "@tartan/i18n";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Pressable, Switch, View } from "react-native";
+import { Alert, Linking, Pressable, Switch, View } from "react-native";
 import { api } from "../src/lib/api";
 import { config } from "../src/lib/config";
 import { errorMessage } from "../src/lib/errors";
@@ -341,6 +341,15 @@ export default function Settings() {
               ? m.mobile.push.denied
               : m.mobile.settings.notificationsOff}
         </T>
+        {push === "denied" ? (
+          <Button
+            testID="push-open-settings"
+            label={m.mobile.settings.openSystemSettings}
+            variant="secondary"
+            compact
+            onPress={() => void Linking.openSettings()}
+          />
+        ) : null}
         {push === "undetermined" ? (
           <Button
             label={m.mobile.settings.enableNotifications}

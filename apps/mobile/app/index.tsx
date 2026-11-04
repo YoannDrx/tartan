@@ -2,6 +2,7 @@ import { ageStatus } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Redirect } from "expo-router";
 import { View } from "react-native";
+import { launchRoute } from "../src/lib/notification-launch";
 import { useMe } from "../src/lib/queries";
 import { useSession } from "../src/lib/session-store";
 import { homeFor, pickSpace, useSpaceStore } from "../src/lib/space-store";
@@ -42,6 +43,9 @@ export default function Gate() {
   if (age === "unknown") return <Redirect href="/age" />;
   const space_ = pickSpace(me.data.spaces, activeOrgId);
   const home = space_ ? homeFor(space_) : null;
+  // Une notification touchée au lancement l'emporte sur l'accueil.
+  const launch = launchRoute.take();
+  if (launch) return <Redirect href={launch as never} />;
   if (home) return <Redirect href={home} />;
   return (
     <View style={[shell, { gap: space.lg }]}>

@@ -18,8 +18,17 @@ describe("routeForNotification", () => {
     expect(routeForNotification({ link: `/seances/${id}/suivi` })).toBe(`/coach-session/${id}`);
   });
 
-  it("ouvre Aujourd'hui pour une séance athlète", () => {
-    expect(routeForNotification({ link: `/seance/${id}` })).toBe("/today");
+  it("ouvre la séance concernée pour un athlète", () => {
+    expect(routeForNotification({ link: `/seance/${id}` })).toBe(`/session/${id}`);
+  });
+
+  it("un rappel ouvre Aujourd'hui, d'où la validation se fait en deux touches", () => {
+    expect(routeForNotification({ type: "session_reminder", link: `/seance/${id}` })).toBe("/today");
+  });
+
+  it("une séance annulée ouvre Aujourd'hui, une annonce ouvre les annonces", () => {
+    expect(routeForNotification({ link: "/aujourdhui" })).toBe("/today");
+    expect(routeForNotification({ link: "/annonces" })).toBe("/annonces");
   });
 
   it("ouvre la fiche de l'athlète côté coach", () => {

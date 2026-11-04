@@ -1275,6 +1275,7 @@ export const fr = {
       notifications: "Notifications",
       notificationsOn: "Activées sur ce téléphone.",
       notificationsOff: "Désactivées sur ce téléphone.",
+      openSystemSettings: "Ouvrir les réglages du téléphone",
       enableNotifications: "Activer les notifications",
       deleteConfirmTitle: "Supprimer ton compte",
       deleteFailed: "La suppression a échoué. Vérifie ta connexion et réessaie.",
