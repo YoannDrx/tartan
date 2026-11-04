@@ -21,8 +21,8 @@ Objectif accepté le 3 novembre 2026 : implémenter le plan de l'audit, corriger
 ## C — Usage
 
 - [x] Parcours de première séance et invitation guidé.
-- [ ] Constructeur progressif et aperçu athlète ; libellés des filtres vidéo.
-- [ ] États synchronisation/reprise explicites ; actions après validation et aide.
+- [x] Constructeur progressif et aperçu athlète ; libellés des filtres vidéo.
+- [x] États synchronisation/reprise explicites ; actions après validation et aide.
 - [ ] Appel et parcours coach à une main ; accessibilité et gros caractères.
 - [ ] Retours coach et progression athlète utiles, sans multiplier les sollicitations.
 
@@ -50,6 +50,8 @@ Objectif accepté le 3 novembre 2026 : implémenter le plan de l'audit, corriger
 - [ ] Répétition avec un nouveau coach, nettoyage démonstration approprié, lancement et surveillance.
 
 ## Journal des preuves
+
+- 4 novembre, section C relue contre le code. Constructeur : détails repliés, aperçu athlète et filtre vidéo par athlète. États mobiles : hors ligne, envois en attente et validation refusée dans la bannière, file d'envoi vidéo. Les coupures réelles restent à éprouver en recette terrain (section D).
 
 - 4 novembre, essai sur simulateur iPhone 17 Pro (build de développement, API locale, compte fictif). Compte sans date : écran de date. Date de mineur : refus 403, date enregistrée, écran réservé aux majeurs, téléchargement des données par la feuille de partage (bouton et contact ajoutés à cette occasion). Date d'adulte : accueil athlète. Essayés aussi : déconnexion, mot de passe oublié (lien resté local, aucun envoi), réglages et accords, annonces vides. Non couvert : appareil réel, notifications, Android, contenu des pages légales dans l'app (elles répondent 200 en local, 404 en production tant que G1 n'est pas déployé).
 
