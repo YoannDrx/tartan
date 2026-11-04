@@ -62,8 +62,8 @@ export const auth = betterAuth({
     ...(process.env.NODE_ENV === "development" ? ["exp://"] : []),
   ],
   session: {
-    // Session longue durée sur mobile (§ 6.2).
-    expiresIn: 60 * 60 * 24 * 90,
+    // Session glissante : un usage régulier ne redemande jamais la connexion.
+    expiresIn: 60 * 60 * 24 * 30,
     updateAge: 60 * 60 * 24,
   },
   account: {
@@ -87,6 +87,8 @@ export const auth = betterAuth({
     // Une adresse non prouvée n'ouvre aucun droit : ni session, ni espace du pilote.
     requireEmailVerification: true,
     minPasswordLength: 10,
+    // Un mot de passe réinitialisé coupe tout accès pris avec l'ancien.
+    revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
       await sendEmail({
         to: user.email,
@@ -97,7 +99,10 @@ export const auth = betterAuth({
   },
   socialProviders,
   rateLimit: {
-    enabled: process.env.NODE_ENV === "production" && process.env.E2E_DISABLE_RATE_LIMIT !== "true",
+    // Désactivable pour les tests de navigateur, jamais sur la vraie production.
+    enabled:
+      process.env.VERCEL_ENV === "production" ||
+      (process.env.NODE_ENV === "production" && process.env.E2E_DISABLE_RATE_LIMIT !== "true"),
     storage: "database",
     modelName: "rateLimit",
     window: 60,
@@ -124,6 +129,7 @@ export const auth = betterAuth({
   plugins: [
     magicLink({
       expiresIn: 60 * 15,
+      storeToken: "hashed",
       sendMagicLink: async ({ email, url }) => {
         await sendEmail({
           to: email,

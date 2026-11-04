@@ -17,6 +17,7 @@ import { NotificationEmail } from "@email/auth";
 import { env } from "@/lib/env";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
 import { log } from "@/lib/logger";
+import { hasBearer } from "@/lib/secure-compare";
 import { sendEmail } from "@/lib/mail";
 import { deleteAsset, videoEnabled } from "@/lib/mux";
 import { prisma } from "@/lib/prisma";
@@ -443,6 +444,5 @@ export const purgeExpiredVideos = async (now: Date = new Date()): Promise<number
 };
 
 export const assertRevenueCatAuth = (header: string | null): void => {
-  const expected = env().REVENUECAT_WEBHOOK_AUTH;
-  if (!expected || header !== `Bearer ${expected}`) throw invalid();
+  if (!hasBearer(header, env().REVENUECAT_WEBHOOK_AUTH)) throw invalid();
 };

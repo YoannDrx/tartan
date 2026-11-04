@@ -36,11 +36,19 @@ const SITE_PATHS = [
 const isSitePath = (pathname: string): boolean =>
   SITE_PATHS.includes(pathname) || pathname.startsWith("/r/") || pathname.startsWith("/brand/");
 
+// Jamais new URL(chemin, base) : un chemin « //evil.com » changerait d'hôte.
+const onHost = (base: string, pathname: string, search: string): URL => {
+  const target = new URL(base);
+  target.pathname = pathname;
+  target.search = search;
+  return target;
+};
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
   if (host === "www.tartan.coach") {
-    return NextResponse.redirect(new URL(`${pathname}${request.nextUrl.search}`, "https://tartan.coach"), 308);
+    return NextResponse.redirect(onHost("https://tartan.coach", pathname, request.nextUrl.search), 308);
   }
   // Lien de notification : il ouvre le bon espace. Le serveur revérifie l'appartenance à chaque lecture.
   const space = request.nextUrl.searchParams.get("espace");
@@ -63,7 +71,7 @@ export function proxy(request: NextRequest) {
   }
   // La session vit sur app.tartan.coach : les pages d'application y sont toujours servies.
   if ((host === "tartan.coach" || host === "www.tartan.coach") && !isSitePath(pathname)) {
-    return NextResponse.redirect(new URL(`${pathname}${request.nextUrl.search}`, "https://app.tartan.coach"));
+    return NextResponse.redirect(onHost("https://app.tartan.coach", pathname, request.nextUrl.search));
   }
   const nonce = btoa(crypto.randomUUID());
   const policy = buildCsp(nonce);
