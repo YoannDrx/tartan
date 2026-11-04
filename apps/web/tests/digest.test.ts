@@ -24,7 +24,8 @@ const prepare = async (name: string) => {
   });
   return org;
 };
-const sentTo = (email: string) => mocks.email.mock.calls.filter(([mail]) => mail.to === email);
+const sentTo = (email: string) =>
+  mocks.email.mock.calls.filter(([mail]) => mail.to === email && mail.subject.includes("Ta semaine"));
 
 beforeEach(async () => {
   mocks.email.mockReset().mockResolvedValue(undefined);

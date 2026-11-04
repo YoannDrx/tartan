@@ -72,6 +72,7 @@ describe("authentification", () => {
     const reset = await auth.handler(req("/reset-password", { token, newPassword: "nouveau-mot-de-passe" }));
     expect(reset.status).toBe(200);
     expect(await (await session()).json()).toBeNull();
+    expect(outbox.some((entry) => entry.to === email && entry.subject.includes("a été modifié"))).toBe(true);
   });
 
   it("le jeton du lien magique n'est pas stocké en clair", async () => {

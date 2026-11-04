@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { m } from "@tartan/i18n";
 import { Layout, PlainLink, PrimaryLink, Paragraph, Title } from "./layout";
 
 export const MagicLinkEmail = ({ url }: { url: string }) => (
@@ -97,3 +98,60 @@ export const ParentalConsentEmail = ({ url, athlete, coach }: { url: string; ath
     <Paragraph muted>Sans réponse de ta part, ces deux usages restent désactivés.</Paragraph>
   </Layout>
 );
+
+export const WelcomeEmail = ({ space, url }: { space: string; url: string }) => {
+  const t = m.email.welcome;
+  return (
+    <Layout preview={t.subject(space)}>
+      <Title>{t.subject(space)}</Title>
+      <Paragraph>{t.body}</Paragraph>
+      <PrimaryLink href={url}>{t.cta}</PrimaryLink>
+      <Paragraph muted>{t.question}</Paragraph>
+    </Layout>
+  );
+};
+
+export const AccountDeletedEmail = ({ hadSubscription }: { hadSubscription: boolean }) => {
+  const t = m.email.accountDeleted;
+  return (
+    <Layout preview={t.subject}>
+      <Title>{t.subject}</Title>
+      <Paragraph>{t.body}</Paragraph>
+      {hadSubscription ? <Paragraph>{t.subscription}</Paragraph> : null}
+      <Paragraph muted>{t.notYou}</Paragraph>
+    </Layout>
+  );
+};
+
+export const SpaceTransferredEmail = ({
+  previous,
+  space,
+  subscriptionEnds,
+  url,
+}: {
+  previous: string;
+  space: string;
+  subscriptionEnds: string | null;
+  url: string;
+}) => {
+  const t = m.email.spaceTransferred;
+  return (
+    <Layout preview={t.subject(space)}>
+      <Title>{t.subject(space)}</Title>
+      <Paragraph>{t.body(previous, space)}</Paragraph>
+      {subscriptionEnds ? <Paragraph>{t.subscriptionEnds(subscriptionEnds)}</Paragraph> : null}
+      <PrimaryLink href={url}>{t.cta}</PrimaryLink>
+    </Layout>
+  );
+};
+
+export const PasswordChangedEmail = ({ url }: { url: string }) => {
+  const t = m.email.passwordChanged;
+  return (
+    <Layout preview={t.subject}>
+      <Title>{t.subject}</Title>
+      <Paragraph>{t.body}</Paragraph>
+      <PrimaryLink href={url}>{t.cta}</PrimaryLink>
+    </Layout>
+  );
+};

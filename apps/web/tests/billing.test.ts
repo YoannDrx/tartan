@@ -470,7 +470,7 @@ describe("préavis de purge", () => {
           createdAt,
         },
       });
-    const mails = () => outbox.filter((mail) => mail.to === org.owner.email);
+    const mails = () => outbox.filter((entry) => entry.to === org.owner.email && entry.subject.includes("supprimée"));
     return { ...org, video, mails };
   };
   it("un envoi échoué n'écrit rien, et rien n'est supprimé 30 jours plus tard", async () => {

@@ -1,3 +1,5 @@
+import { log } from "./logger";
+import { m } from "@tartan/i18n";
 import { expo } from "@better-auth/expo";
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
@@ -6,7 +8,7 @@ import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins";
 import { randomUUID } from "node:crypto";
 import { createElement } from "react";
-import { MagicLinkEmail, VerifyEmail, ResetPasswordEmail } from "@email/auth";
+import { MagicLinkEmail, VerifyEmail, ResetPasswordEmail, PasswordChangedEmail } from "@email/auth";
 import { appleClientSecret } from "./apple";
 import { env } from "./env";
 import { sendEmail } from "./mail";
@@ -89,6 +91,14 @@ export const auth = betterAuth({
     minPasswordLength: 10,
     // Un mot de passe réinitialisé coupe tout accès pris avec l'ancien.
     revokeSessionsOnPasswordReset: true,
+    onPasswordReset: async ({ user }) => {
+      // Une alerte qui échoue ne doit pas annuler le nouveau mot de passe.
+      await sendEmail({
+        to: user.email,
+        subject: m.email.passwordChanged.subject,
+        react: createElement(PasswordChangedEmail, { url: `${e.NEXT_PUBLIC_APP_URL}/mot-de-passe-oublie` }),
+      }).catch(() => log.warn("password_changed_email_failed"));
+    },
     sendResetPassword: async ({ user, url }) => {
       await sendEmail({
         to: user.email,

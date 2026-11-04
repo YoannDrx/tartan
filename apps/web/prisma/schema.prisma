@@ -478,6 +478,23 @@ enum MediaKind {
   @@map("media_kind")
 }
 
+// Mails liés à une transition d'abonnement : écrits dans la transaction, envoyés après, repris pendant 24 h.
+model EmailOutbox {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String?   @map("organization_id") @db.Uuid
+  toEmail        String    @map("to_email")
+  kind           String
+  dedupeKey      String    @unique @map("dedupe_key")
+  payload        Json
+  attempts       Int       @default(0)
+  nextAttemptAt  DateTime  @default(now()) @map("next_attempt_at")
+  sentAt         DateTime? @map("sent_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([sentAt, nextAttemptAt])
+  @@map("email_outbox")
+}
+
 // File d'effacement chez les prestataires. Les triggers SQL de la migration la remplissent à chaque suppression.
 model ExternalDeletion {
   id            String    @id @default(uuid()) @db.Uuid

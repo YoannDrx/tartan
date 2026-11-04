@@ -1,8 +1,9 @@
 import type Stripe from "stripe";
-import type { SubscriptionState } from "@tartan/domain";
+import { billingEmailsFor, isPaidPlan, type PlanKey, type SubscriptionState } from "@tartan/domain";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { billingEnabled, planForPriceId, stripe } from "@/lib/stripe";
+import { enqueueBillingEmail, flushEmailOutbox } from "./email-outbox.service";
 import { applySubscriptionInTransaction, syncEntitlementsInTransaction } from "./subscription-state.service";
 
 const STRIPE_STATUS: Partial<Record<Stripe.Subscription.Status, SubscriptionState>> = {
@@ -96,7 +97,8 @@ export const reconcileStripeSubscription = async (
         item?.current_period_end ??
           (selected as Stripe.Subscription & { current_period_end?: number }).current_period_end,
       );
-      const cancelAt = fromUnix(selected.cancel_at);
+      // Une résiliation en fin de période peut n'indiquer que ce drapeau, selon la version d'API.
+      const cancelAt = fromUnix(selected.cancel_at) ?? (selected.cancel_at_period_end ? end : null);
       const unchanged =
         currentOrg.plan === plan &&
         current?.provider === "stripe" &&
@@ -116,6 +118,28 @@ export const reconcileStripeSubscription = async (
           currentPeriodEnd: end,
           cancelAt,
         });
+      // Sous le verrou : webhook et réconciliation concurrents voient la même transition une seule fois.
+      const owner = await tx.user.findUniqueOrThrow({ where: { id: currentOrg.ownerId }, select: { email: true } });
+      const emails = billingEmailsFor(
+        {
+          paid: isPaidPlan(currentOrg.plan),
+          status: current?.status ?? null,
+          cancelAt: current?.cancelAt ?? null,
+          subscriptionId: current?.provider === "stripe" ? current.providerRef : null,
+        },
+        { paid: isPaidPlan(plan), status, cancelAt, subscriptionId: selected.id },
+      );
+      for (const email of emails) {
+        await enqueueBillingEmail(tx, {
+          organizationId,
+          to: owner.email,
+          email,
+          space: currentOrg.name,
+          plan: isPaidPlan(plan) ? plan : ((current?.planKey as PlanKey | undefined) ?? plan),
+          interval: item?.price.recurring?.interval === "month" ? "month" : "year",
+          trialEnd: fromUnix(selected.trial_end),
+        });
+      }
     } else if (!selected && current?.provider === "stripe") {
       // Une réponse incomplète ou inattendue ne résilie pas un espace payant.
       throw new Error("stripe_subscription_missing");
@@ -123,6 +147,8 @@ export const reconcileStripeSubscription = async (
     await tx.organization.update({ where: { id: organizationId }, data: { billingSyncedAt: new Date() } });
     if (event) await tx.billingEvent.create({ data: { id: event.id, provider: "stripe", type: event.type } });
   });
+  // L'envoi suit la validation. S'il échoue, la tâche de notifications reprend pendant 24 h.
+  await flushEmailOutbox().catch(() => log.warn("email_outbox_flush_failed"));
 };
 
 export const handleStripeEvent = async (event: Stripe.Event): Promise<void> => {

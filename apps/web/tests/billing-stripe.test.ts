@@ -3,7 +3,10 @@ import type Stripe from "stripe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PLANS } from "@tartan/domain";
 import type { Prisma } from "@/generated/prisma/client";
+import * as mail from "@/lib/mail";
+import { outbox } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
+import { flushEmailOutbox } from "@/server/email-outbox.service";
 import { adminOverview } from "@/server/admin.service";
 import { applySubscription, createCheckout, handleStripeEvent, limitsOf } from "@/server/billing.service";
 import { reconcileStripeSubscription } from "@/server/stripe-subscriptions.service";
@@ -253,6 +256,57 @@ describe("vente Stripe", () => {
     expect(mocks.cancel).toHaveBeenCalledWith("sub_depart");
   });
 });
+describe("mails d'abonnement", () => {
+  const mails = (email: string) => outbox.filter((mail) => mail.to === email);
+  const next = () => Math.floor(Date.now() / 1000) + 30 * 86400;
+
+  it("un webhook rejoué et une réconciliation concurrente ne donnent qu'un mail", async () => {
+    const a = await setup();
+    const owner = a.owner.email;
+    await prisma.organization.update({ where: { id: a.organizationId }, data: { plan: "discovery" } });
+    a.state(a.sub("trialing"));
+    await reconcileStripeSubscription(a.organizationId);
+    await Promise.all([reconcileStripeSubscription(a.organizationId), reconcileStripeSubscription(a.organizationId)]);
+    expect(mails(owner).filter((mail) => mail.subject.includes("est confirmé"))).toHaveLength(1);
+  });
+  it("une résiliation, puis une reprise, puis une nouvelle résiliation à la même date : un seul mail par date", async () => {
+    const a = await setup();
+    await prisma.organization.update({ where: { id: a.organizationId }, data: { plan: "discovery" } });
+    const cancelAt = next();
+    a.state(a.sub("active"));
+    await reconcileStripeSubscription(a.organizationId);
+    a.state({ ...a.sub("active"), cancel_at: cancelAt });
+    await reconcileStripeSubscription(a.organizationId);
+    a.state(a.sub("active"));
+    await reconcileStripeSubscription(a.organizationId);
+    a.state({ ...a.sub("active"), cancel_at: cancelAt });
+    await reconcileStripeSubscription(a.organizationId);
+    expect(mails(a.owner.email).filter((mail) => mail.subject.includes("Résiliation"))).toHaveLength(1);
+  });
+  it("un impayé épuisé annonce la fin en le disant", async () => {
+    const a = await setup();
+    await prisma.organization.update({ where: { id: a.organizationId }, data: { plan: "discovery" } });
+    a.state(a.sub("past_due"));
+    await reconcileStripeSubscription(a.organizationId);
+    a.state(a.sub("unpaid"));
+    await reconcileStripeSubscription(a.organizationId);
+    const ended = mails(a.owner.email).find((mail) => mail.subject.includes("a pris fin"));
+    expect(ended?.html).toContain("tentatives de prélèvement");
+  });
+  it("un envoi qui échoue est repris par la tâche, sans doublon", async () => {
+    const a = await setup();
+    await prisma.organization.update({ where: { id: a.organizationId }, data: { plan: "discovery" } });
+    const send = vi.spyOn(mail, "sendEmail").mockRejectedValueOnce(new Error("email_failed"));
+    a.state(a.sub("active"));
+    await reconcileStripeSubscription(a.organizationId);
+    const row = await prisma.emailOutbox.findFirstOrThrow({ where: { organizationId: a.organizationId } });
+    expect(row.sentAt).toBeNull();
+    send.mockRestore();
+    expect(await flushEmailOutbox(new Date(Date.now() + 10 * 60_000))).toBe(1);
+    expect(await flushEmailOutbox(new Date(Date.now() + 20 * 60_000))).toBe(0);
+  });
+});
+
 describe("parcours d'achat", () => {
   const prepared = async () => {
     const a = await setup();

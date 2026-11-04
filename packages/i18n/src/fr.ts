@@ -763,6 +763,54 @@ export const fr = {
     parentalClosed: "L'accord parental n'est pas ouvert : Tartan est réservé aux personnes majeures.",
   },
   email: {
+    welcome: {
+      subject: (space: string) => `Ton espace ${space} est prêt`,
+      body: "Trois étapes pour démarrer : invite tes athlètes, prépare ta première séance, puis suis les retours dans la grille de suivi.",
+      cta: "Ouvrir mon espace",
+      question: "Une question\u00a0? Réponds à cet e-mail.",
+    },
+    confirmed: {
+      subject: (plan: string) => `Ton abonnement Tartan ${plan} est confirmé`,
+      price: (space: string, plan: string, price: number, interval: "month" | "year") =>
+        `${space} passe à l'offre ${plan} : ${price}\u00a0€ par ${interval === "month" ? "mois" : "an"}, TVA non applicable (art. 293 B du CGI).`,
+      trial: (date: string) =>
+        `Ton essai gratuit court jusqu'au ${date}. Sans résiliation avant cette date, le premier prélèvement a lieu ce jour-là, puis l'abonnement se renouvelle tacitement.`,
+      cancelAnytime: "Tu peux résilier à tout moment depuis la page Abonnement.",
+      withdrawal:
+        "Tu disposes de 14 jours pour te rétracter si tu es un consommateur, comme expliqué dans les conditions de vente.",
+      cta: "Gérer mon abonnement",
+    },
+    cancelled: {
+      subject: "Résiliation de ton abonnement Tartan enregistrée",
+      body: (plan: string, space: string, date: string) =>
+        `Ton abonnement ${plan} pour ${space} s'arrête le ${date}. Aucun nouveau prélèvement n'aura lieu et rien ne change d'ici là. Ensuite, l'espace repasse en offre Découverte : athlètes et données sont conservés, l'ajout au-delà des limites est bloqué, et les vidéos de plus de 30 jours sont supprimées après un préavis de 14 jours par e-mail.`,
+      cta: "Gérer mon abonnement",
+    },
+    ended: {
+      subject: "Ton abonnement Tartan a pris fin",
+      unpaid: "Les tentatives de prélèvement n'ont pas abouti.",
+      body: (space: string) =>
+        `${space} est repassé en offre Découverte. Tes athlètes et tes données restent en place. Au-delà de 5 athlètes et 1 groupe, l'ajout est bloqué.`,
+      cta: "Voir mon abonnement",
+    },
+    accountDeleted: {
+      subject: "Ton compte Tartan a été supprimé",
+      body: "Ton compte et tes données sont supprimés, ainsi que les espaces dont tu étais le seul coach et leurs vidéos.",
+      subscription: "Ton abonnement est résilié, aucun nouveau prélèvement n'aura lieu.",
+      notYou: "Ce n'est pas toi\u00a0? Écris-nous tout de suite à hello@tartan.coach.",
+    },
+    spaceTransferred: {
+      subject: (space: string) => `Tu deviens responsable de ${space}`,
+      body: (previous: string, space: string) =>
+        `${previous} a supprimé son compte. Tu es désormais responsable de l'espace ${space} : les signalements et les préavis de suppression de vidéos te seront adressés.`,
+      subscriptionEnds: (date: string) => `Son abonnement s'arrête le ${date}.`,
+      cta: "Ouvrir l'espace",
+    },
+    passwordChanged: {
+      subject: "Ton mot de passe Tartan a été modifié",
+      body: "Ton mot de passe vient d'être changé. Si c'est toi, tu n'as rien à faire. Sinon, choisis-en un nouveau tout de suite et écris-nous à hello@tartan.coach.",
+      cta: "Choisir un mot de passe",
+    },
     fallbackFooter: "Tu reçois cet e-mail car aucune notification n'a pu arriver sur ton téléphone ou ton navigateur.",
     digestFooter: (organization: string) => `Tu reçois ce récapitulatif car tu gères ${organization}.`,
     unsubscribeLink: "Ne plus recevoir ces e-mails",
