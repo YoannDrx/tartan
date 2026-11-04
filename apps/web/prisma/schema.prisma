@@ -931,6 +931,8 @@ model Video {
   muxUploadId        String?           @map("mux_upload_id")
   muxAssetId         String?           @map("mux_asset_id")
   muxPlaybackId      String?           @map("mux_playback_id")
+  // Écrit seulement quand le préavis de purge a été accepté par Resend.
+  purgeNoticeAt      DateTime?         @map("purge_notice_at")
   status             VideoStatus       @default(uploading)
   fps                Int?
   // Facteur d'étirement du fichier envoyé à Mux : temps du fichier = temps réel × timeScale.
@@ -952,6 +954,7 @@ model Video {
   @@index([athleteId])
   @@index([muxUploadId])
   @@index([muxAssetId])
+  @@index([organizationId, createdAt])
   @@map("videos")
 }
 

@@ -1,3 +1,4 @@
+import { todayIso } from "@/lib/dates";
 import {
   type BillingInterval,
   isPaidPlan,
@@ -13,7 +14,7 @@ import {
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { createElement } from "react";
-import { NotificationEmail } from "@email/auth";
+import { PurgeNoticeEmail } from "@email/billing";
 import { env } from "@/lib/env";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
 import { log } from "@/lib/logger";
@@ -433,38 +434,68 @@ const referrerBeneficiary = async (ownerType: "user" | "organization", ownerId: 
 const PURGE_NOTICE_DAYS = 14;
 const DAY_MS = 86400 * 1000;
 
-// Le propriétaire est prévenu par e-mail ; rien ne part avant la fin du préavis annoncé par les CGV.
-const purgeNoticeServed = async (
-  organizationId: string,
-  name: string,
-  ownerEmail: string,
+const NOTICE_WINDOW_DAYS = 21;
+const NOTICE_INTERVAL_DAYS = 7;
+
+const dateInParis = (date: Date): string =>
+  new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(date);
+
+// Prévient des vidéos qui entrent dans la fenêtre, au plus une fois par semaine pour un espace.
+// La date du préavis n'est écrite qu'après l'acceptation par Resend : sans envoi, jamais de suppression.
+const sendPurgeNotice = async (
+  org: { id: string; name: string; owner: { email: string } },
+  retentionDays: number,
   now: Date,
-): Promise<boolean> => {
-  const notice = await prisma.auditLog.findFirst({
-    where: { organizationId, action: "video_purge_notice" },
-    orderBy: { at: "desc" },
+): Promise<void> => {
+  const windowStart = new Date(now.getTime() - (retentionDays - NOTICE_WINDOW_DAYS) * DAY_MS);
+  const videos = await prisma.video.findMany({
+    where: { organizationId: org.id, purgeNoticeAt: null, createdAt: { lt: windowStart } },
+    select: { id: true, createdAt: true },
   });
-  const age = notice ? now.getTime() - notice.at.getTime() : null;
-  if (age === null || age > 3 * PURGE_NOTICE_DAYS * DAY_MS) {
-    await prisma.auditLog.create({
-      data: { organizationId, action: "video_purge_notice", entity: "video", at: now },
-    });
-    const body = m.billing.purgeNotice(PURGE_NOTICE_DAYS);
+  if (videos.length === 0) return;
+  const recent = await prisma.auditLog.findFirst({
+    where: {
+      organizationId: org.id,
+      action: "video_purge_notice",
+      at: { gte: new Date(now.getTime() - NOTICE_INTERVAL_DAYS * DAY_MS) },
+    },
+  });
+  if (recent) return;
+  const newest = videos.reduce((latest, video) => (video.createdAt > latest ? video.createdAt : latest), new Date(0));
+  const limitDate = new Date(newest.getTime() + DAY_MS);
+  const subject = m.billing.purge.subject(videos.length, org.name);
+  try {
     await sendEmail({
-      to: ownerEmail,
-      subject: `Vidéos de ${name} : fin de conservation`,
-      react: createElement(NotificationEmail, {
-        body: "Fin de conservation de vidéos",
-        detail: body,
-        url: `${env().NEXT_PUBLIC_APP_URL}/videos?espace=${organizationId}`,
+      to: org.owner.email,
+      subject,
+      idempotencyKey: `purge-notice/${org.id}/${todayIso(now)}`,
+      react: createElement(PurgeNoticeEmail, {
+        subject,
+        body: m.billing.purge.body(
+          videos.length,
+          org.name,
+          dateInParis(limitDate),
+          retentionDays,
+          dateInParis(new Date(now.getTime() + PURGE_NOTICE_DAYS * DAY_MS)),
+        ),
+        cta: m.billing.purge.cta,
+        url: `${env().NEXT_PUBLIC_APP_URL}/videos?espace=${org.id}`,
       }),
-    }).catch(() => log.error("purge_notice_email_failed"));
-    return false;
+    });
+  } catch {
+    log.error("purge_notice_email_failed", { organizationId: org.id });
+    return;
   }
-  return age >= PURGE_NOTICE_DAYS * DAY_MS;
+  await prisma.video.updateMany({
+    where: { id: { in: videos.map((video) => video.id) } },
+    data: { purgeNoticeAt: now },
+  });
+  await prisma.auditLog.create({
+    data: { organizationId: org.id, action: "video_purge_notice", entity: "video", at: now },
+  });
 };
 
-// Conservation vidéo : coût maîtrisé (§ 17.1), après préavis.
+// Conservation vidéo : coût maîtrisé (§ 17.1), jamais sans préavis réel d'au moins 14 jours.
 export const purgeExpiredVideos = async (now: Date = new Date()): Promise<number> => {
   const orgs = await prisma.organization.findMany({
     where: { plan: { in: ["discovery", "coach", "club"] } },
@@ -474,11 +505,14 @@ export const purgeExpiredVideos = async (now: Date = new Date()): Promise<number
   for (const org of orgs) {
     const days = PLANS[org.plan].limits.videoRetentionDays;
     if (days === null) continue;
-    const before = new Date(now.getTime() - days * DAY_MS);
-    const soon = new Date(before.getTime() + PURGE_NOTICE_DAYS * DAY_MS);
-    const expiring = await prisma.video.count({ where: { organizationId: org.id, createdAt: { lt: soon } } });
-    if (expiring === 0 || !(await purgeNoticeServed(org.id, org.name, org.owner.email, now))) continue;
-    const { count } = await prisma.video.deleteMany({ where: { organizationId: org.id, createdAt: { lt: before } } });
+    await sendPurgeNotice(org, days, now);
+    const { count } = await prisma.video.deleteMany({
+      where: {
+        organizationId: org.id,
+        createdAt: { lt: new Date(now.getTime() - days * DAY_MS) },
+        purgeNoticeAt: { lte: new Date(now.getTime() - PURGE_NOTICE_DAYS * DAY_MS) },
+      },
+    });
     purged += count;
   }
   if (purged) await drainExternalDeletions();

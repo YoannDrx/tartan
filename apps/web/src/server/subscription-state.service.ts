@@ -69,6 +69,10 @@ export const applySubscriptionInTransaction = async (
   if (existing) await tx.subscription.update({ where: { id: existing.id }, data });
   else await tx.subscription.create({ data: { ...data, organizationId: input.organizationId } });
   await tx.organization.update({ where: { id: input.organizationId }, data: { plan: effective } });
+  // La durée de conservation change avec l'offre : l'ancien préavis ne vaut plus, un nouveau partira si besoin.
+  if (existing?.planKey !== effective) {
+    await tx.video.updateMany({ where: { organizationId: input.organizationId }, data: { purgeNoticeAt: null } });
+  }
   await syncEntitlementsInTransaction(tx, input.organizationId, effective);
   await tx.auditLog.create({
     data: {

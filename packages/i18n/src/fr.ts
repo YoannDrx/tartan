@@ -580,6 +580,7 @@ export const fr = {
   video: {
     title: "Vidéos",
     barFields: "Ajouter une barre (saut)",
+    download: "Enregistrer",
     mine: "Mes vidéos",
     capture: "Filmer",
     import: "Importer",
@@ -896,6 +897,15 @@ export const fr = {
     },
     choose: (plan: string) => `Choisir ${plan}`,
     continueToPayment: "Continuer vers le paiement",
+    purge: {
+      subject: (count: number, organization: string) =>
+        `${count} vidéo${count > 1 ? "s" : ""} de ${organization} bientôt supprimée${count > 1 ? "s" : ""}`,
+      body: (count: number, organization: string, limit: string, retentionDays: number, from: string) =>
+        count > 1
+          ? `${count} vidéos de ${organization}, ajoutées avant le ${limit}, arrivent à la fin de la durée de conservation de ton offre (${retentionDays} jours). Elles seront supprimées définitivement à partir du ${from}, sans autre message. Pour les garder, enregistre-les depuis leur fiche, ou change d'offre avant cette date.`
+          : `1 vidéo de ${organization}, ajoutée avant le ${limit}, arrive à la fin de la durée de conservation de ton offre (${retentionDays} jours). Elle sera supprimée définitivement à partir du ${from}, sans autre message. Pour la garder, enregistre-la depuis sa fiche, ou change d'offre avant cette date.`,
+      cta: "Voir les vidéos",
+    },
     confirming: "Paiement en cours de confirmation. Recharge cette page dans un instant.",
     current: "Ton offre actuelle",
     manage: "Gérer mon abonnement",
