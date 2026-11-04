@@ -245,10 +245,28 @@ export const reportContent = async (
   });
   const owner = await prisma.user.findUniqueOrThrow({ where: { id: organization.ownerId }, select: { email: true } });
   const subject = `Contenu signalé dans ${organization.name}`;
-  const url = `${env().NEXT_PUBLIC_APP_URL}/reglages?espace=${organizationId}#signalements`;
-  const react = createElement(NotificationEmail, { title: subject, body: m.settings.reportsEmailBody, url });
-  for (const to of new Set([owner.email, env().EMAIL_CONTACT])) {
-    await sendEmail({ to, subject, react }).catch(() => log.error("report_email_failed"));
+  const editor = env().EMAIL_CONTACT;
+  const appUrl = env().NEXT_PUBLIC_APP_URL;
+  const mails = [
+    {
+      to: owner.email,
+      url: `${appUrl}/reglages?espace=${organizationId}#signalements`,
+      detail: m.settings.reportsEmailBody,
+    },
+    // L'éditeur traite depuis sa console, et voit le motif sans ouvrir l'espace.
+    { to: editor, url: `${appUrl}/admin#signalements`, detail: m.settings.reportsEmailReason(input.reason) },
+  ].filter((mail, index) => index === 1 || mail.to !== editor);
+  for (const mail of mails) {
+    await sendEmail({
+      to: mail.to,
+      subject,
+      react: createElement(NotificationEmail, {
+        body: subject,
+        detail: mail.detail,
+        url: mail.url,
+        cta: m.email.reportCta,
+      }),
+    }).catch(() => log.error("report_email_failed"));
   }
 };
 

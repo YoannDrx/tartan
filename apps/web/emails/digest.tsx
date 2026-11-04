@@ -17,7 +17,7 @@ export const WeeklyDigestEmail = ({
     <Title>{`Semaine du ${weekLabel}`}</Title>
     <Paragraph>
       {`${organization} : ${sessions} séance${sessions > 1 ? "s" : ""} publiée${sessions > 1 ? "s" : ""}${
-        completionPct === null ? "." : `, ${completionPct} % de réalisation.`
+        completionPct === null ? "." : `, ${completionPct}\u00a0% de réalisation.`
       }`}
     </Paragraph>
     <PrimaryLink href={url}>Voir le suivi</PrimaryLink>

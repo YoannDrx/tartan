@@ -408,8 +408,8 @@ const purgeNoticeServed = async (
       to: ownerEmail,
       subject: `Vidéos de ${name} : fin de conservation`,
       react: createElement(NotificationEmail, {
-        title: "Fin de conservation de vidéos",
-        body,
+        body: "Fin de conservation de vidéos",
+        detail: body,
         url: `${env().NEXT_PUBLIC_APP_URL}/videos?espace=${organizationId}`,
       }),
     }).catch(() => log.error("purge_notice_email_failed"));

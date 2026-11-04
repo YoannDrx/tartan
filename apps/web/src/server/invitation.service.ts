@@ -7,7 +7,7 @@ import {
 import { invitationDefaults, invitationStateOf, requiresParentalConsent } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { createElement } from "react";
-import { InvitationEmail } from "@email/auth";
+import { InvitationEmail, StaffInvitationEmail } from "@email/auth";
 import { fromDbDate, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
@@ -73,6 +73,19 @@ const sendInvitationEmail = async (invitationId: string): Promise<void> => {
   const groups = await prisma.group.findMany({ where: { id: { in: inv.groupIds } }, select: { name: true } });
   const target = groups[0]?.name ?? inv.organization.name;
   const inviter = names.get(inv.invitedBy) ?? inv.organization.name;
+  if (inv.role !== "athlete") {
+    await sendEmail({
+      to: inv.email,
+      subject: `${inviter} t'invite dans l'espace ${inv.organization.name} sur Tartan`,
+      react: createElement(StaffInvitationEmail, {
+        url: invitationLink(inv.id),
+        inviter,
+        organization: inv.organization.name,
+        role: inv.role,
+      }),
+    });
+    return;
+  }
   await sendEmail({
     to: inv.email,
     subject: `${inviter} t'invite à rejoindre ${target}`,

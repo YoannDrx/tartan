@@ -122,7 +122,8 @@ const send = async (delivery: Delivery): Promise<DeliveryResult | { state: "skip
         subject: text.body,
         idempotencyKey: `notification/${delivery.id}`,
         react: createElement(NotificationEmail, {
-          ...text,
+          body: text.body,
+          cta: m.email.cta[type],
           url: `${env().NEXT_PUBLIC_APP_URL}${webLink(payload.link, payload.organizationId) ?? "/accueil"}`,
         }),
       });
