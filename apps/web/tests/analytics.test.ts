@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scrubAnalyticsEvent } from "@/lib/analytics";
+import nextConfig from "../next.config";
 
 const urlSent = (url: string) => scrubAnalyticsEvent({ type: "pageview", url })?.url;
 
@@ -22,5 +23,11 @@ describe("mesure d'audience", () => {
     expect(urlSent("https://app.tartan.coach/athletes/8f14e45f-ceea-467f-a8d1-5f6a3b1c2d3e/progres")).toBe(
       "https://app.tartan.coach/athletes/[id]/progres",
     );
+  });
+
+  it("ne laisse pas l'adresse complète partir dans l'en-tête Referer", async () => {
+    const rules = (await nextConfig.headers?.()) ?? [];
+    const headers = rules.flatMap((rule) => rule.headers);
+    expect(headers.find((header) => header.key === "Referrer-Policy")?.value).toBe("strict-origin");
   });
 });

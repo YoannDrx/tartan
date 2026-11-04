@@ -16,7 +16,8 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: [
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // Même entre nos pages, le référent reste le domaine : un jeton d'URL ne part pas avec la mesure d'audience.
+          { key: "Referrer-Policy", value: "strict-origin" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
