@@ -133,6 +133,16 @@ export default function SignIn() {
 
   const hasSocial = appleAvailable || googleAvailable;
 
+  const askPasswordReset = async () => {
+    const address = checkEmail();
+    if (!address) return;
+    setFormError(null);
+    const res = await authClient.requestPasswordReset({ email: address, redirectTo: "/nouveau-mot-de-passe" });
+    // Même réponse que l'adresse existe ou non : le formulaire ne révèle pas qui a un compte.
+    if (res.error?.status === 429) setFormError(m.errors.rateLimited);
+    else setFormNotice(m.auth.resetSent);
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -237,6 +247,16 @@ export default function SignIn() {
                         }}
                       />
                     </View>
+                    {!creating ? (
+                      <Button
+                        testID="sign-in-forgot"
+                        label={m.auth.forgotPassword}
+                        variant="ghost"
+                        compact
+                        style={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
+                        onPress={() => void askPasswordReset()}
+                      />
+                    ) : null}
                     <Button
                       label={m.auth.useMagicLink}
                       variant="secondary"
