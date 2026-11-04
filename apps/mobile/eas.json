@@ -25,8 +25,8 @@
       "environment": "preview",
       "env": {
         "APP_VARIANT": "preview",
-        "EXPO_PUBLIC_API_URL": "https://app.tartan.coach",
-        "EXPO_PUBLIC_WEB_URL": "https://tartan.coach"
+        "EXPO_PUBLIC_API_URL": "https://preview.tartan.coach",
+        "EXPO_PUBLIC_WEB_URL": "https://preview.tartan.coach"
       },
       "android": { "buildType": "apk" }
     },
