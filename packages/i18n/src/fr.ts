@@ -754,6 +754,12 @@ export const fr = {
     alreadySet: "Ta date de naissance est déjà enregistrée. Écris-nous pour la corriger.",
     parentalClosed: "L'accord parental n'est pas ouvert : Tartan est réservé aux personnes majeures.",
   },
+  email: {
+    publisher: "Tartan est édité par Yodev (Yoann Andrieux, entrepreneur individuel), SIREN 803 272 590.",
+    legal: "Mentions légales",
+    privacy: "Confidentialité",
+    contact: "Contact",
+  },
   admin: {
     title: "Console",
     lead: "Les indicateurs du pilote, sans donnée de santé.",
