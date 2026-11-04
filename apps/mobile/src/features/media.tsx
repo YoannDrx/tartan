@@ -174,7 +174,7 @@ export const ExerciseVideo = ({ media, rate }: { media: ExerciseMedia | null; ra
     content = <MuxLoop uri={(media.streamUrl ?? media.hlsUrl) as string} rate={rate} />;
   }
   // Une vidéo commune garde le crédit de son auteur, comme sur le web.
-  const author = media && "author" in media ? media.author : null;
+  const author = media && "author" in media && typeof media.author === "string" ? media.author : null;
   return (
     <View style={{ gap: space.xs }}>
     <View style={{ height: 210, borderRadius: radius.block, overflow: "hidden", backgroundColor: scene.cardRaised }}>
