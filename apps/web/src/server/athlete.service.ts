@@ -88,7 +88,9 @@ export const saveAthlete = async (userId: string, organizationId: string, raw: A
         });
       }
     });
-    return { id: input.id };
+    // Un coach peut retirer l'athlète de ses propres groupes, et donc de son périmètre.
+    const stillVisible = (await visibleAthleteIds(access)).includes(input.id);
+    return { id: input.id, stillVisible };
   }
   await assertWithinPlan(organizationId, "maxAthletes");
   const created = await prisma.athlete.create({
@@ -98,7 +100,7 @@ export const saveAthlete = async (userId: string, organizationId: string, raw: A
       groups: { create: input.groupIds.map((groupId) => ({ groupId })) },
     },
   });
-  return { id: created.id };
+  return { id: created.id, stillVisible: true };
 };
 
 const healthVisible = async (access: Access, athleteId: string): Promise<boolean> => {

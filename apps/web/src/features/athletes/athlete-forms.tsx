@@ -63,7 +63,11 @@ export const AthleteDialog = ({
   const { execute, isPending, result } = useAction(saveAthleteAction, {
     onSuccess: ({ data }) => {
       setOpen(false);
-      if (!initial && data) router.push(`/athletes/${data.id}`);
+      if (data && !data.stillVisible) {
+        router.replace("/athletes");
+      } else if (!initial && data) {
+        router.push(`/athletes/${data.id}`);
+      }
       router.refresh();
     },
     onError: onErr,

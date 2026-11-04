@@ -3,7 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 
-export const audienceAthleteIds = async (sessionId: string): Promise<string[]> => {
+const computeAudience = async (sessionId: string, options: { includeLogged: boolean }): Promise<string[]> => {
   const session = await prisma.scheduledSession.findUnique({
     where: { id: sessionId },
     select: { organizationId: true, date: true, assignments: true, logs: { select: { athleteId: true } } },
@@ -11,7 +11,7 @@ export const audienceAthleteIds = async (sessionId: string): Promise<string[]> =
   if (!session) return [];
   const direct = session.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId);
   const groups = session.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId);
-  const logged = new Set(session.logs.map((l) => l.athleteId));
+  const logged = new Set(options.includeLogged ? session.logs.map((l) => l.athleteId) : []);
   // Les attributions polymorphes peuvent être anciennes : toujours vérifier l'existence et l'espace.
   const athletes = await prisma.athlete.findMany({
     where: {
@@ -32,6 +32,14 @@ export const audienceAthleteIds = async (sessionId: string): Promise<string[]> =
     )
     .map((a) => a.id);
 };
+
+// Historique du suivi : garde quiconque a un log, même après son départ du groupe.
+export const audienceAthleteIds = (sessionId: string): Promise<string[]> =>
+  computeAudience(sessionId, { includeLogged: true });
+
+// Destinataires réels : un log, même « manqué », ne suffit pas à rester sollicité après un départ.
+export const activeAudienceIds = (sessionId: string): Promise<string[]> =>
+  computeAudience(sessionId, { includeLogged: false });
 
 // Même règle pour le calendrier, le détail, la validation et le flux iCal.
 // Les dates sont à l'intérieur de OR pour ne pas être écrasées par la plage demandée.

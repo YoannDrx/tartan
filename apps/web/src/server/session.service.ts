@@ -21,8 +21,8 @@ import {
   coachGroupIds,
   type Access,
 } from "./access";
-import { audienceAthleteIds } from "./session-audience.service";
-export { audienceAthleteIds } from "./session-audience.service";
+import { activeAudienceIds } from "./session-audience.service";
+export { activeAudienceIds, audienceAthleteIds } from "./session-audience.service";
 import { mediaSnapshot } from "./exercise.service";
 import { firstNameOf } from "./me.service";
 import { notify, notifyPublications } from "./notify.service";
@@ -72,7 +72,7 @@ export const buildSnapshot = async (organizationId: string, draft: SessionDraft)
 };
 
 const audienceUsers = async (sessionId: string): Promise<string[]> => {
-  const ids = await audienceAthleteIds(sessionId);
+  const ids = await activeAudienceIds(sessionId);
   const rows = await prisma.athlete.findMany({
     where: { id: { in: ids }, userId: { not: null } },
     select: { userId: true },
@@ -189,10 +189,18 @@ export const publishRow = async (
 export const getSessionForEdit = async (userId: string, organizationId: string, sessionId: string) => {
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   const session = await requireSessionWrite(access, sessionId);
-  const [assignments, overrides] = await Promise.all([
+  const [rows, overrides] = await Promise.all([
     prisma.assignment.findMany({ where: { scheduledSessionId: sessionId } }),
     prisma.athleteOverride.findMany({ where: { scheduledSessionId: sessionId } }),
   ]);
+  // Une ancienne attribution orpheline ne doit pas empêcher de réenregistrer la séance.
+  const targetIds = rows.map((a) => a.targetId);
+  const [groups, athletes] = await Promise.all([
+    prisma.group.findMany({ where: { organizationId, id: { in: targetIds } }, select: { id: true } }),
+    prisma.athlete.findMany({ where: { organizationId, id: { in: targetIds } }, select: { id: true } }),
+  ]);
+  const existing = new Set([...groups, ...athletes].map((target) => target.id));
+  const assignments = rows.filter((a) => existing.has(a.targetId));
   return {
     id: session.id,
     date: fromDbDate(session.date),
