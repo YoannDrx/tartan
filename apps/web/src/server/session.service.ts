@@ -445,6 +445,18 @@ export const listTemplates = async (
   }));
 };
 
+// Une compétition partagée avec un athlète hors périmètre ne se retire pas à sa place.
+export const deleteCompetition = async (userId: string, organizationId: string, competitionId: string) => {
+  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
+  const competition = await prisma.competition.findFirst({
+    where: { id: competitionId, organizationId },
+    select: { id: true, athletes: { select: { athleteId: true } } },
+  });
+  if (!competition) throw notFound();
+  for (const { athleteId } of competition.athletes) await requireVisibleAthlete(access, athleteId);
+  await prisma.competition.delete({ where: { id: competition.id } });
+};
+
 export const saveCompetition = async (
   userId: string,
   organizationId: string,

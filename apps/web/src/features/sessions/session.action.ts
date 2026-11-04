@@ -5,6 +5,7 @@ import { competitionInput, isoDate, saveScheduledSessionInput, sessionDraft, uui
 import { z } from "zod";
 import { spaceAction } from "@/features/shell/space-action";
 import {
+  deleteCompetition,
   deleteSession,
   duplicateSession,
   duplicateWeek,
@@ -29,6 +30,13 @@ export const deleteSessionAction = spaceAction
   .inputSchema(z.object({ id: uuid }))
   .action(async ({ parsedInput, ctx }) => {
     await deleteSession(ctx.userId, ctx.organizationId, parsedInput.id);
+    revalidatePath("/calendrier");
+  });
+
+export const deleteCompetitionAction = spaceAction
+  .inputSchema(z.object({ id: uuid }))
+  .action(async ({ parsedInput, ctx }) => {
+    await deleteCompetition(ctx.userId, ctx.organizationId, parsedInput.id);
     revalidatePath("/calendrier");
   });
 

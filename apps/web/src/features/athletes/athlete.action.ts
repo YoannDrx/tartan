@@ -3,13 +3,41 @@
 import { revalidatePath } from "next/cache";
 import { athleteInput, coachNoteInput, injuryInput, performanceInput, strengthTestInput } from "@tartan/contracts";
 import { spaceAction } from "@/features/shell/space-action";
-import { addCoachNote, addPerformance, addStrengthTest, saveAthlete, saveInjury } from "@/server/athlete.service";
+import { z } from "zod";
+import { uuid } from "@tartan/contracts";
+import {
+  addCoachNote,
+  addPerformance,
+  addStrengthTest,
+  deleteCoachNote,
+  deletePerformance,
+  deleteStrengthTest,
+  saveAthlete,
+  saveInjury,
+} from "@/server/athlete.service";
 
 export const saveAthleteAction = spaceAction.inputSchema(athleteInput).action(async ({ parsedInput, ctx }) => {
   const saved = await saveAthlete(ctx.userId, ctx.organizationId, parsedInput);
   revalidatePath("/athletes");
   revalidatePath(`/athletes/${saved.id}`);
   return saved;
+});
+
+const byId = z.object({ id: uuid });
+
+export const deleteTestAction = spaceAction.inputSchema(byId).action(async ({ parsedInput, ctx }) => {
+  const { athleteId } = await deleteStrengthTest(ctx.userId, ctx.organizationId, parsedInput.id);
+  revalidatePath(`/athletes/${athleteId}`);
+});
+
+export const deletePerformanceAction = spaceAction.inputSchema(byId).action(async ({ parsedInput, ctx }) => {
+  const { athleteId } = await deletePerformance(ctx.userId, ctx.organizationId, parsedInput.id);
+  revalidatePath(`/athletes/${athleteId}`);
+});
+
+export const deleteNoteAction = spaceAction.inputSchema(byId).action(async ({ parsedInput, ctx }) => {
+  const { athleteId } = await deleteCoachNote(ctx.userId, ctx.organizationId, parsedInput.id);
+  revalidatePath(`/athletes/${athleteId}`);
 });
 
 export const addTestAction = spaceAction.inputSchema(strengthTestInput).action(async ({ parsedInput, ctx }) => {

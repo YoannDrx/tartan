@@ -509,6 +509,11 @@ export const fr = {
     instagramBlocked: "L'auteur de cette vidéo n'autorise la lecture que sur Instagram.",
   },
   athletes: {
+    deleteEntry: "Retirer cette saisie ?",
+    deleteEntryDetail: (label: string) => `« ${label} » sera retiré. Pour corriger une erreur, ressaisis-le ensuite.`,
+    noteLabel: "cette note",
+    fixBars: "Corriger une barre",
+    attempt: (n: number) => `essai ${n}`,
     remove: "Retirer de l'espace",
     removeTitle: (name: string) => `Retirer ${name}`,
     removeDetail: "Sa fiche et ses données d'entraînement dans cet espace seront supprimées. Son compte reste actif.",

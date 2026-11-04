@@ -6,7 +6,7 @@ import {
   performanceInput,
   type StrengthTestInput,
 } from "@tartan/contracts";
-import { can } from "@tartan/domain";
+import { can, personalBestIds } from "@tartan/domain";
 import type { z } from "zod";
 import { fromDbDate, fromDbDateOrNull, toDbDate } from "@/lib/dates";
 import { AppError, consentRequired, forbidden, notFound } from "@/lib/errors";
@@ -225,6 +225,7 @@ export const getAthleteFile = async (userId: string, organizationId: string, ath
     notes: notes.map((n) => ({
       id: n.id,
       body: n.body,
+      authorId: n.authorId,
       authorName: authors.get(n.authorId) ?? null,
       createdAt: n.createdAt.toISOString(),
     })),
@@ -313,14 +314,6 @@ export const addPerformance = async (
   const access = await requireOrgMember(userId, organizationId, "manageAthletes");
   await requireVisibleAthlete(access, input.athleteId);
   await requireOwnedRefs(organizationId, { competitionId: input.competitionId });
-  const higherIsBetter = input.unit !== "s";
-  const previous = await prisma.performance.findMany({
-    where: { athleteId: input.athleteId, discipline: input.discipline },
-    select: { mark: true },
-  });
-  const marks = previous.map((p) => Number(p.mark));
-  const isPb =
-    marks.length === 0 || (higherIsBetter ? input.mark > Math.max(...marks) : input.mark < Math.min(...marks));
   await prisma.performance.create({
     data: {
       organizationId,
@@ -332,9 +325,52 @@ export const addPerformance = async (
       date: toDbDate(input.date),
       location: input.location ?? null,
       competitionId: input.competitionId ?? null,
-      isPb,
     },
   });
+  await recomputePb(input.athleteId, input.discipline);
+};
+
+// Le record se déduit des marques restantes : ajouter ou retirer une marque le recalcule.
+const recomputePb = async (athleteId: string, discipline: string): Promise<void> => {
+  const rows = await prisma.performance.findMany({
+    where: { athleteId, discipline },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, mark: true, unit: true },
+  });
+  const best = personalBestIds(rows.map((row) => ({ id: row.id, mark: Number(row.mark), unit: row.unit })));
+  await prisma.$transaction([
+    prisma.performance.updateMany({ where: { athleteId, discipline, id: { notIn: best } }, data: { isPb: false } }),
+    prisma.performance.updateMany({ where: { id: { in: best } }, data: { isPb: true } }),
+  ]);
+};
+
+export const deleteStrengthTest = async (userId: string, organizationId: string, testId: string) => {
+  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
+  const test = await prisma.strengthTest.findFirst({ where: { id: testId, organizationId } });
+  if (!test) throw notFound();
+  await requireVisibleAthlete(access, test.athleteId);
+  await prisma.strengthTest.delete({ where: { id: test.id } });
+  return { athleteId: test.athleteId };
+};
+
+export const deletePerformance = async (userId: string, organizationId: string, performanceId: string) => {
+  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
+  const row = await prisma.performance.findFirst({ where: { id: performanceId, organizationId } });
+  if (!row) throw notFound();
+  await requireVisibleAthlete(access, row.athleteId);
+  await prisma.performance.delete({ where: { id: row.id } });
+  await recomputePb(row.athleteId, row.discipline);
+  return { athleteId: row.athleteId };
+};
+
+export const deleteCoachNote = async (userId: string, organizationId: string, noteId: string) => {
+  const access = await requireOrgMember(userId, organizationId, "privateNotes");
+  const note = await prisma.coachNote.findFirst({ where: { id: noteId, organizationId } });
+  if (!note) throw notFound();
+  await requireVisibleAthlete(access, note.athleteId);
+  if (access.role !== "owner" && note.authorId !== userId) throw forbidden();
+  await prisma.coachNote.delete({ where: { id: note.id } });
+  return { athleteId: note.athleteId };
 };
 
 export const saveInjury = async (userId: string, organizationId: string, input: InjuryInput) => {
