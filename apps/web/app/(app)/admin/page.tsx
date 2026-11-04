@@ -4,7 +4,9 @@ import { m } from "@tartan/i18n";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { PageHeader } from "@/components/states";
 import { requireSpace } from "@/features/shell/space";
+import { AdminReports } from "@/features/admin/admin-reports";
 import { adminOverview, isAdmin } from "@/server/admin.service";
+import { listAllReports } from "@/server/comm.service";
 
 export const metadata: Metadata = { title: m.admin.title, robots: { index: false } };
 
@@ -25,7 +27,7 @@ const Totals = ({ items }: { items: { label: string; value: number | string }[] 
 export default async function AdminPage() {
   const { actor } = await requireSpace();
   if (!isAdmin(actor.email)) redirect("/accueil");
-  const data = await adminOverview(actor);
+  const [data, reports] = await Promise.all([adminOverview(actor), listAllReports(actor)]);
   const totals = [
     { label: m.admin.spaces, value: data.spaces.length },
     { label: m.admin.users, value: data.users },
@@ -48,6 +50,13 @@ export default async function AdminPage() {
       <PageHeader title={m.admin.title} detail={m.admin.lead} />
       <Sheet>
         <Totals items={totals} />
+      </Sheet>
+      <Sheet>
+        <div id="signalements" className="scroll-mt-20">
+          <SheetSection title={m.admin.reportsTitle}>
+            <AdminReports reports={reports} />
+          </SheetSection>
+        </div>
       </Sheet>
       <Sheet>
         <SheetSection title={m.admin.operations} flush>

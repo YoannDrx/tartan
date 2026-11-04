@@ -15,6 +15,7 @@ import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireOwnedRefs, requireVisibleAthlete, visibleAthleteIds, type Access } from "./access";
 import { assertWithinPlan } from "./billing.service";
+import { blockedUserIds } from "./blocks.service";
 import { drainExternalDeletions, enqueueExternalDeletion } from "./external-deletion.service";
 import { consentForAthletes } from "./consent.service";
 import { firstNameOf, namesFor } from "./me.service";
@@ -33,6 +34,7 @@ import {
 const VIDEO_SELECT = {
   id: true,
   athleteId: true,
+  uploadedBy: true,
   status: true,
   muxPlaybackId: true,
   fps: true,
@@ -51,6 +53,7 @@ const summarize = async (
   v: {
     id: string;
     athleteId: string;
+    uploadedBy: string;
     status: VideoSummary["status"];
     muxPlaybackId: string | null;
     fps: number | null;
@@ -72,6 +75,7 @@ const summarize = async (
     id: v.id,
     athleteId: v.athleteId,
     athleteName: `${v.athlete.firstName} ${v.athlete.lastName}`.trim(),
+    uploadedBy: v.uploadedBy,
     status: v.status,
     playbackId: consentRevoked ? null : v.muxPlaybackId,
     thumbnailUrl,
@@ -266,7 +270,14 @@ export const listVideos = async (userId: string, organizationId: string, query: 
   const access = await requireOrgMember(userId, organizationId, "viewVideos");
   const rows = await prisma.video.findMany({
     // AND : le filtre demandé réduit le périmètre, il ne le remplace jamais.
-    where: { AND: [await videoWhereFor(access), query.athleteId ? { athleteId: query.athleteId } : {}] },
+    where: {
+      AND: [
+        await videoWhereFor(access),
+        query.athleteId ? { athleteId: query.athleteId } : {},
+        // Une vidéo déposée par quelqu'un qu'on a bloqué n'apparaît plus.
+        { uploadedBy: { notIn: await blockedUserIds(userId) } },
+      ],
+    },
     orderBy: { createdAt: "desc" },
     take: 100,
     select: VIDEO_SELECT,
@@ -291,7 +302,10 @@ export const getVideo = async (userId: string, organizationId: string, videoId: 
   const access = await requireOrgMember(userId, organizationId, "viewVideos");
   const video = await requireVideo(access, videoId);
   const [annotations, comments, attempts] = await Promise.all([
-    prisma.videoAnnotation.findMany({ where: { videoId }, orderBy: { tMs: "asc" } }),
+    prisma.videoAnnotation.findMany({
+      where: { videoId, authorId: { notIn: await blockedUserIds(userId) } },
+      orderBy: { tMs: "asc" },
+    }),
     prisma.comment.findMany({
       where: { organizationId, entityType: "video", entityId: videoId },
       orderBy: { createdAt: "asc" },

@@ -1,3 +1,4 @@
+import { containsBlockedWord } from "./moderation";
 import { billingEmailsFor } from "./billing-emails";
 import { describe, expect, it } from "vitest";
 import {
@@ -606,5 +607,16 @@ describe("mails de facturation", () => {
     expect(billingEmailsFor({ ...paid, status: "past_due" }, { ...free, status: "canceled" })[0]).toMatchObject({
       unpaid: true,
     });
+  });
+});
+
+describe("filtre de mots", () => {
+  it("repère un mot insultant, accents et majuscules compris", () => {
+    expect(containsBlockedWord("Quel ENCULÉ")).toBe(true);
+  });
+  it("ne se trompe pas sur un mot qui en contient un autre", () => {
+    expect(containsBlockedWord("Séance de computation et de députés")).toBe(false);
+    expect(containsBlockedWord("Bonne séance, pédé est absent")).toBe(true);
+    expect(containsBlockedWord("Pédaler 20 minutes")).toBe(false);
   });
 });

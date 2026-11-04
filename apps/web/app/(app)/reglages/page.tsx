@@ -28,7 +28,8 @@ import {
 import { LeaveSpace, MemberList } from "@/features/settings/members";
 import { ReportList } from "@/features/settings/reports";
 import { isAdmin } from "@/server/admin.service";
-import { listReports } from "@/server/comm.service";
+import { listBlockedUsers, listReports } from "@/server/comm.service";
+import { BlockedUsers } from "@/features/settings/blocked-users";
 import { requireOrgMember } from "@/server/access";
 import { getEmailPreferences } from "@/server/email-preferences.service";
 import { icalLink } from "@/server/ical.service";
@@ -66,6 +67,7 @@ export default async function ReglagesPage() {
     canManageMembers ? listReports(actor.userId, organizationId) : Promise.resolve([]),
   ]);
   const emailPreferences = await getEmailPreferences(actor.userId);
+  const blockedUsers = await listBlockedUsers(actor.userId);
   const spaceConsents = access.athleteId ? await athleteConsentState(access.athleteId) : consents;
   const parentalPending = access.athleteId ? (effective?.get(access.athleteId)?.parentalPending ?? false) : false;
   const isAthlete = access.role === "athlete";
@@ -205,6 +207,7 @@ export default async function ReglagesPage() {
           ),
         }
       : null,
+    { id: "bloques", title: m.settings.blocked, content: <BlockedUsers users={blockedUsers} /> },
     {
       id: "emails",
       title: m.settings.emails,

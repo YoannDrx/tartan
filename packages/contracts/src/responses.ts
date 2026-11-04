@@ -158,6 +158,7 @@ export const videoSummary = z.object({
   id: z.string(),
   athleteId: z.string(),
   athleteName: z.string(),
+  uploadedBy: z.string(),
   status: videoStatus,
   playbackId: z.string().nullable(),
   thumbnailUrl: z.string().nullable(),
@@ -210,6 +211,7 @@ export const announcementItem = z.object({
   groupName: z.string(),
   body: z.string(),
   pinned: z.boolean(),
+  authorId: z.string(),
   authorName: z.string().nullable(),
   createdAt: z.string(),
 });

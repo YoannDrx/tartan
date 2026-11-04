@@ -2,7 +2,7 @@
 
 import type { CommentEntity, CommentItem } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
-import { Ban, Flag } from "lucide-react";
+import { Ban, Flag, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -12,7 +12,7 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { useSpaceId } from "@/features/offline/offline-provider";
 import { submitOp } from "@/features/offline/op-queue";
-import { blockUserAction, reportContentAction } from "./comment.action";
+import { blockUserAction, deleteCommentAction, reportContentAction } from "./comment.action";
 
 export const CommentThread = ({
   entityType,
@@ -49,6 +49,9 @@ export const CommentThread = ({
     if (res.state === "queued") toast.ok(m.offline.commentQueued);
     else router.refresh();
   };
+  const remove = useAction(deleteCommentAction, {
+    onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),
+  });
   const report = useAction(reportContentAction, { onSuccess: () => toast.ok(m.comments.reported) });
   const block = useAction(blockUserAction, { onSuccess: () => toast.ok("Utilisateur bloqué.") });
   return (
@@ -65,6 +68,15 @@ export const CommentThread = ({
               <p className="t-caption text-soft">{c.authorName}</p>
               <p className="break-words">{c.body}</p>
             </div>
+            {c.authorId === currentUserId ? (
+              <IconButton
+                label={m.comments.deleteOwn}
+                disabled={remove.isPending}
+                onClick={() => remove.execute({ id: c.id, path })}
+              >
+                <Trash2 aria-hidden className="size-4" />
+              </IconButton>
+            ) : null}
             {c.authorId !== currentUserId ? (
               <div className="flex">
                 <IconButton

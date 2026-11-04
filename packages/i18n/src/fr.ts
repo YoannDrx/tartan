@@ -642,6 +642,8 @@ export const fr = {
     empty: "Aucun commentaire.",
     report: "Signaler",
     block: "Bloquer cet utilisateur",
+    deleteOwn: "Supprimer mon commentaire",
+    blockedWord: "Ce message contient un mot que Tartan n'accepte pas. Reformule-le.",
     reported: "Merci, ton signalement a été transmis.",
   },
   settings: {
@@ -700,6 +702,10 @@ export const fr = {
     videoRevokeDetail:
       "Tes vidéos de cet espace seront masquées à tes coachs aussitôt, puis supprimées dans 30 jours, sauf si tu redonnes ton accord d'ici là.",
     revokeConsent: "Retirer mon accord",
+    blocked: "Utilisateurs bloqués",
+    blockedEmpty: "Tu n'as bloqué personne.",
+    blockedUnknown: "Utilisateur",
+    unblock: "Débloquer",
     revokeOtherSessions: "Déconnecter mes autres appareils",
     revokeOtherSessionsDone: "Tes autres appareils sont déconnectés.",
     plan: "Offre",
@@ -875,6 +881,7 @@ export const fr = {
     reports: "Signalements",
     comments: "Ce qu'ils en disent",
     operations: "Exploitation",
+    reportsTitle: "Signalements à traiter",
     notificationsPending: "Notifications en attente",
     notificationsLate: "En retard de plus de 30 min",
     notificationsFailed: "Échecs de livraison, 24 h",
