@@ -18,6 +18,7 @@ const schema = z.object({
   APPLE_KEY_ID: optional,
   APPLE_PRIVATE_KEY: optional,
   APPLE_APP_BUNDLE_IDENTIFIER: optional,
+  ANDROID_SHA256_FINGERPRINTS: optional,
   RESEND_API_KEY: optional,
   EMAIL_FROM: z.string().default("Tartan <tartan@mail.tartan.coach>"),
   EMAIL_CONTACT: z.string().default("hello@tartan.coach"),
