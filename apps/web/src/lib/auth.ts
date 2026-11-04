@@ -124,6 +124,25 @@ export const auth = betterAuth({
     },
   },
   databaseHooks: {
+    session: {
+      // La date d'activité décide de la suppression d'un compte inactif, et lever le préavis en découle.
+      create: {
+        after: async (session) => {
+          await prisma.profile.updateMany({
+            where: { id: session.userId },
+            data: { lastActiveAt: new Date(), inactivityNoticeAt: null },
+          });
+        },
+      },
+      update: {
+        after: async (session) => {
+          await prisma.profile.updateMany({
+            where: { id: session.userId },
+            data: { lastActiveAt: new Date(), inactivityNoticeAt: null },
+          });
+        },
+      },
+    },
     user: {
       create: {
         after: async (user) => {

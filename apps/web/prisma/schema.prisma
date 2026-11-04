@@ -124,6 +124,8 @@ model Profile {
   // Envois coupables d'un clic : résumé hebdomadaire et replis de notification.
   emailDigest        Boolean @default(true) @map("email_digest")
   emailNotifications Boolean @default(true) @map("email_notifications")
+  lastActiveAt       DateTime? @map("last_active_at")
+  inactivityNoticeAt DateTime? @map("inactivity_notice_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 

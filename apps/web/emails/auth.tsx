@@ -155,3 +155,14 @@ export const PasswordChangedEmail = ({ url }: { url: string }) => {
     </Layout>
   );
 };
+
+export const InactivityNoticeEmail = ({ days, url }: { days: number; url: string }) => {
+  const t = m.email.inactivity;
+  return (
+    <Layout preview={t.subject}>
+      <Title>{t.subject}</Title>
+      <Paragraph>{t.body(days)}</Paragraph>
+      <PrimaryLink href={url}>{t.cta}</PrimaryLink>
+    </Layout>
+  );
+};

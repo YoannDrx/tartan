@@ -814,6 +814,12 @@ export const fr = {
       subscriptionEnds: (date: string) => `Son abonnement s'arrête le ${date}.`,
       cta: "Ouvrir l'espace",
     },
+    inactivity: {
+      subject: "Ton compte Tartan va être supprimé",
+      body: (days: number) =>
+        `Tu ne t'es pas connecté depuis 24 mois. Sans connexion de ta part d'ici ${days} jours, ton compte et ses données seront supprimés. Si tu veux le garder, il suffit de te connecter une fois.`,
+      cta: "Me connecter",
+    },
     passwordChanged: {
       subject: "Ton mot de passe Tartan a été modifié",
       body: "Ton mot de passe vient d'être changé. Si c'est toi, tu n'as rien à faire. Sinon, choisis-en un nouveau tout de suite et écris-nous à hello@tartan.coach.",
