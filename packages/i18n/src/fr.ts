@@ -1277,6 +1277,7 @@ export const fr = {
       email: "Adresse e-mail",
       spaces: "Mes espaces",
       consentFailed: "Ton choix n'a pas été enregistré. Vérifie ta connexion.",
+      exportFailed: "Le téléchargement a échoué. Vérifie ta connexion.",
       revokeTitle: "Retirer ton accord ?",
       revokeHealth: "Ton effort ressenti et tes douleurs ne seront plus enregistrés ni visibles par tes coachs.",
       revokeVideo: "Tes coachs ne pourront plus te filmer ni voir tes vidéos.",

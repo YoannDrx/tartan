@@ -2,12 +2,16 @@ import { useMutation } from "@tanstack/react-query";
 import { ageStatus } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Redirect, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BirthDateField, toIsoBirthDate, type BirthParts } from "../../src/features/birth-date-field";
 import { api } from "../../src/lib/api";
+import { config } from "../../src/lib/config";
 import { errorMessage } from "../../src/lib/errors";
+import { shareMyData } from "../../src/lib/export-data";
+import { legalLinks } from "../../src/lib/legal-links";
 import { useMe } from "../../src/lib/queries";
 import { queryClient } from "../../src/lib/query-client";
 import { useSession } from "../../src/lib/session-store";
@@ -44,6 +48,7 @@ export default function Age() {
     mutationFn: () => api.deleteAccount(),
     onSuccess: () => expire(),
   });
+  const exportData = useMutation({ mutationFn: shareMyData });
 
   if (status === "signed-out") return <Redirect href="/sign-in" />;
   if (!me.data) return <LoadingState />;
@@ -59,6 +64,18 @@ export default function Age() {
           <T>{m.age.restricted}</T>
           <T variant="small">{m.age.restrictedNext}</T>
           <Button
+            testID="age-export"
+            label={m.settings.exportData}
+            variant="secondary"
+            loading={exportData.isPending}
+            onPress={() => exportData.mutate()}
+          />
+          {exportData.isError ? (
+            <T variant="caption" tone="danger">
+              {m.mobile.settings.exportFailed}
+            </T>
+          ) : null}
+          <Button
             testID="age-delete"
             label={m.settings.deleteAccount}
             variant="danger"
@@ -71,6 +88,12 @@ export default function Age() {
             }
           />
           <Button testID="age-sign-out" label={m.common.signOut} variant="secondary" onPress={() => void signOut()} />
+          <Button
+            testID="age-contact"
+            label={m.legal.contact}
+            variant="ghost"
+            onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).contact)}
+          />
         </Card>
       </>
     ) : (
