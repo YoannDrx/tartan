@@ -27,7 +27,7 @@ describe("cron notifications", () => {
   });
   it("déclenche les reprises et ne renvoie que les compteurs techniques", async () => {
     const response = await GET(new Request("https://test.invalid", { headers: { authorization: "Bearer cron-test" } }));
-    expect(await response.json()).toEqual({ dispatched: 2, pending: 1, failedLast24h: 1, undeliveredLast24h: 0 });
+    expect(await response.json()).toEqual({ dispatched: 2, outbox: 0, pending: 1, failedLast24h: 1, undeliveredLast24h: 0 });
     expect(mocks.dispatch).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+import { confirmAgeInput } from "@tartan/contracts";
 import { ageStatus } from "@tartan/domain";
+import { POST } from "../app/api/v1/me/age/route";
 import { prisma } from "@/lib/prisma";
 import { outbox } from "@/lib/mail";
 import { assertMemberAge, confirmBirthDate } from "@/server/age.service";
@@ -192,5 +194,26 @@ describe("compte sans date ou mineur", () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+});
+
+describe("route me/age", () => {
+  const call = (body: unknown) =>
+    POST(
+      new Request("http://localhost:3000/api/v1/me/age", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({}) },
+    );
+  it("refuse une session absente, comme toute route authentifiée", async () => {
+    const response = await call({ birthDate: "1990-01-01" });
+    expect(response.status).toBe(401);
+  });
+  it("le contrat exige une date valide", () => {
+    expect(confirmAgeInput.safeParse({}).success).toBe(false);
+    expect(confirmAgeInput.safeParse({ birthDate: "pas-une-date" }).success).toBe(false);
+    expect(confirmAgeInput.safeParse({ birthDate: "1990-01-01" }).success).toBe(true);
   });
 });

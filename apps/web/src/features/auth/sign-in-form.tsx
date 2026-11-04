@@ -34,7 +34,11 @@ export const SignInForm = ({
   const onSubmit = form.handleSubmit(async ({ email, password }) => {
     setError(null);
     if (mode === "magic") {
-      const res = await authClient.signIn.magicLink({ email, callbackURL });
+      const res = await authClient.signIn.magicLink({
+        email,
+        callbackURL,
+        errorCallbackURL: "/connexion?lien=expire",
+      });
       if (res.error) setError(m.common.genericError);
       else setSent("magic");
       return;

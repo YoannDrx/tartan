@@ -1,4 +1,5 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
+import { withGradleProperties } from "expo/config-plugins";
 import { type AppVariant, parseVariant, resolveApiUrl, universalHostsFor } from "./src/lib/app-variant.ts";
 
 // Lu par Node au moment de la configuration : pas de types Node dans cette app.
@@ -12,10 +13,21 @@ const UNIVERSAL_PATHS = ["/i/", "/r/", "/seance/", "/mes-sauts"];
 const variantNames: Record<AppVariant, string> = {
   development: "Tartan Dev",
   preview: "Tartan Preview",
-  production: "Tartan – Coach athlé",
+  production: "Tartan",
 };
 
 const flag = (value: string | undefined) => value === "true";
+
+// Le lint Android de la version Release sature le Metaspace par défaut de Gradle, en CI comme sur EAS.
+const GRADLE_JVM_ARGS = "-Xmx5g -XX:MaxMetaspaceSize=2g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8";
+const withGradleMemory = (config: ExpoConfig): ExpoConfig =>
+  withGradleProperties(config, (next) => {
+    next.modResults = [
+      ...next.modResults.filter((item) => !(item.type === "property" && item.key === "org.gradle.jvmargs")),
+      { type: "property", key: "org.gradle.jvmargs", value: GRADLE_JVM_ARGS },
+    ];
+    return next;
+  });
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const variant = parseVariant(process.env.APP_VARIANT);
@@ -34,18 +46,21 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const appleSignIn = flag(process.env.EXPO_PUBLIC_OAUTH_APPLE_ENABLED);
   const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() || undefined;
 
-  return {
+  return withGradleMemory({
     ...config,
     name: variantNames[variant],
     slug: "tartan",
-    version: "0.1.0",
+    version: "1.0.0",
+    // Une mise à jour à distance ne vise que les binaires de la même version native.
+    runtimeVersion: { policy: "appVersion" },
+    ...(projectId ? { updates: { url: `https://u.expo.dev/${projectId}` } } : {}),
     scheme,
     orientation: "portrait",
     icon: "./assets/brand/icon-ios.png",
     userInterfaceStyle: "dark",
     backgroundColor: BRICK,
     ios: {
-      supportsTablet: true,
+      supportsTablet: false,
       bundleIdentifier: `coach.tartan.app${suffix}`,
       ...(appleTeamId ? { appleTeamId } : {}),
       // Liens universels : le serveur doit publier apple-app-site-association.
@@ -53,12 +68,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...(appleSignIn ? { usesAppleSignIn: true } : {}),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-        NSCameraUsageDescription: "Tartan utilise la caméra pour filmer les sauts de tes athlètes.",
-        NSMicrophoneUsageDescription: "Tartan enregistre le son des vidéos de saut quand tu filmes.",
+        NSCameraUsageDescription: "Tartan utilise la caméra pour filmer les entraînements de tes athlètes.",
+        NSMicrophoneUsageDescription: "Tartan enregistre le son des vidéos quand tu filmes.",
       },
     },
     android: {
       package: `coach.tartan.app${suffix}`,
+      // Une session ou un cache hors ligne ne doit pas repartir dans une sauvegarde du téléphone.
+      allowBackup: false,
       // Notifications : absent tant que le projet Firebase n'existe pas, l'app se construit quand même.
       ...(existsSync(googleServicesFile) ? { googleServicesFile } : {}),
       adaptiveIcon: {
@@ -88,6 +105,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-router",
       "expo-font",
       "expo-web-browser",
+      "expo-updates",
+      [
+        "@sentry/react-native/expo",
+        { url: "https://de.sentry.io/", organization: "yoanns-org", project: "tartan" },
+      ],
       ...(appleSignIn ? ["expo-apple-authentication"] : []),
       ["expo-secure-store", { faceIDPermission: false }],
       [
@@ -111,9 +133,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         "expo-image-picker",
         {
-          photosPermission: "Tartan ouvre ta pellicule pour importer une vidéo de saut que tu choisis.",
-          cameraPermission: "Tartan utilise la caméra pour filmer les sauts de tes athlètes.",
-          microphonePermission: "Tartan enregistre le son des vidéos de saut quand tu filmes.",
+          photosPermission: "Tartan ouvre ta pellicule pour importer une vidéo que tu choisis.",
+          cameraPermission: "Tartan utilise la caméra pour filmer les entraînements de tes athlètes.",
+          microphonePermission: "Tartan enregistre le son des vidéos quand tu filmes.",
         },
       ],
       ["expo-video", { supportsBackgroundPlayback: false, supportsPictureInPicture: false }],
@@ -128,5 +150,5 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       googleWebClientId,
       ...(projectId ? { eas: { projectId } } : {}),
     },
-  };
+  });
 };

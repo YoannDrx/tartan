@@ -47,13 +47,18 @@ export const PricingGrid = ({
   canBuy = false,
   billingEnabled = true,
   signupOpen = true,
+  initialInterval = "year",
+  suggested,
 }: {
   current?: PlanKey;
   canBuy?: boolean;
   billingEnabled?: boolean;
   signupOpen?: boolean;
+  initialInterval?: BillingInterval;
+  // L'offre choisie sur le site : elle reste à portée de main, sans paiement déclenché tout seul.
+  suggested?: PlanKey;
 }) => {
-  const [interval, setInterval] = useState<BillingInterval>("year");
+  const [interval, setInterval] = useState<BillingInterval>(initialInterval);
   const checkout = useAction(checkoutAction, {
     onSuccess: ({ data }) => {
       if (data?.url) window.location.href = data.url;
@@ -63,7 +68,7 @@ export const PricingGrid = ({
 
   const action = (key: (typeof SOLD)[number]): ReactNode => {
     const label = m.billing.plans[key];
-    const variant = key === HIGHLIGHTED ? "primary" : "secondary";
+    const variant = key === (suggested ?? HIGHLIGHTED) ? "primary" : "secondary";
     const buttonClass =
       "w-full whitespace-normal px-0.5 text-[13px] leading-4 tablet:px-4 tablet:text-[15px] tablet:leading-5";
     if (current === key) return <p className="flex min-h-11 items-center font-semibold">{m.billing.current}</p>;
@@ -77,7 +82,7 @@ export const PricingGrid = ({
           disabled={checkout.isPending}
           onClick={() => checkout.execute({ plan: key, interval })}
         >
-          {m.billing.choose(label)}
+          {suggested === key ? m.billing.continueToPayment : m.billing.choose(label)}
         </Button>
       );
     }
@@ -89,7 +94,13 @@ export const PricingGrid = ({
           <Link href="/contact">{m.billing.contactUs}</Link>
         ) : (
           // Une vraie navigation : depuis le site, la création d'espace vit sur un autre domaine.
-          <a href={key === "discovery" ? "/connexion?creer=1" : "/connexion?creer=1&next=/abonnement"}>
+          <a
+            href={
+              key === "discovery"
+                ? "/connexion?creer=1"
+                : `/connexion?creer=1&next=${encodeURIComponent(`/bienvenue?offre=${key}&rythme=${interval}`)}`
+            }
+          >
             {key === "discovery" ? m.billing.startFree : m.billing.choose(label)}
           </a>
         )}

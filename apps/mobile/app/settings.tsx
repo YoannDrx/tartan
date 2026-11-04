@@ -1,10 +1,11 @@
+import { legalLinks } from "../src/lib/legal-links";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@tartan/api-client";
 import { m } from "@tartan/i18n";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Pressable, Switch, View } from "react-native";
+import { Alert, Linking, Pressable, Switch, View } from "react-native";
 import { api } from "../src/lib/api";
 import { config } from "../src/lib/config";
 import { errorMessage } from "../src/lib/errors";
@@ -97,6 +98,7 @@ export default function Settings() {
   const router = useRouter();
   const signOut = useSession((s) => s.signOut);
   const expire = useSession((s) => s.expire);
+  const activeSpaceId = useSpaceStore((s) => s.activeOrgId);
   const setActive = useSpaceStore((s) => s.setActive);
   const pendingOps = useOpQueue((s) => s.items.length);
   const pendingUploads = useUploads((s) => s.items.length);
@@ -137,7 +139,8 @@ export default function Settings() {
   });
 
   const setConsent = useMutation({
-    mutationFn: ({ kind, granted }: { kind: "health" | "video"; granted: boolean }) => api.setConsent(kind, granted),
+    mutationFn: ({ kind, granted }: { kind: "health" | "video"; granted: boolean }) =>
+      activeSpaceId ? api.setSpaceConsent(activeSpaceId, kind, granted) : api.setConsent(kind, granted),
     onSuccess: (data) => {
       client.setQueryData(["consents"], data);
       void client.invalidateQueries({ queryKey: ["today"] });
@@ -338,6 +341,15 @@ export default function Settings() {
               ? m.mobile.push.denied
               : m.mobile.settings.notificationsOff}
         </T>
+        {push === "denied" ? (
+          <Button
+            testID="push-open-settings"
+            label={m.mobile.settings.openSystemSettings}
+            variant="secondary"
+            compact
+            onPress={() => void Linking.openSettings()}
+          />
+        ) : null}
         {push === "undetermined" ? (
           <Button
             label={m.mobile.settings.enableNotifications}
@@ -351,15 +363,18 @@ export default function Settings() {
       <ListSurface>
         <LinkRow
           label={m.legal.terms}
-          onPress={() => void WebBrowser.openBrowserAsync(`${config.webUrl}/conditions`)}
+          onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).terms)}
         />
         <Divider />
         <LinkRow
           label={m.legal.privacy}
-          onPress={() => void WebBrowser.openBrowserAsync(`${config.webUrl}/confidentialite`)}
+          onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).privacy)}
         />
         <Divider />
-        <LinkRow label={m.legal.contact} onPress={() => void WebBrowser.openBrowserAsync(`${config.webUrl}/contact`)} />
+        <LinkRow
+          label={m.legal.contact}
+          onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).contact)}
+        />
       </ListSurface>
 
       <View style={{ gap: space.sm }}>

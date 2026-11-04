@@ -65,23 +65,3 @@ jobs:
           name: playwright
           path: apps/web/test-results
           if-no-files-found: ignore
-
-  mobile:
-    # Builds EAS sur la branche principale, une fois le projet Expo créé (§ 14).
-    if: github.ref == 'refs/heads/main' && vars.EAS_ENABLED == 'true'
-    needs: quality
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-      - run: eas build --platform all --profile preview --non-interactive --no-wait
-        working-directory: apps/mobile

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { z } from "zod";
 import { isPaidPlan, type LimitKey } from "@tartan/domain";
 import { m, withFirstOfMonth } from "@tartan/i18n";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { Chip, PageHeader } from "@/components/states";
 import { ManageSubscriptionButton, PricingGrid } from "@/features/billing/pricing";
 import { requireStaffSpace } from "@/features/shell/space";
-import { getBillingOverview } from "@/server/billing.service";
+import { getBillingOverview, syncAfterCheckout } from "@/server/billing.service";
 
 export const metadata: Metadata = { title: m.billing.title };
 
@@ -16,10 +17,23 @@ const longDate = (iso: string) =>
     new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(new Date(iso)),
   );
 
-export default async function AbonnementPage({ searchParams }: { searchParams: Promise<{ merci?: string }> }) {
+const offerSchema = z.object({
+  offre: z.enum(["coach", "club"]).optional().catch(undefined),
+  rythme: z.enum(["month", "year"]).optional().catch(undefined),
+});
+
+export default async function AbonnementPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ merci?: string; offre?: string; rythme?: string }>;
+}) {
   const { actor, organizationId } = await requireStaffSpace();
-  const { merci } = await searchParams;
+  const { merci, ...query } = await searchParams;
+  const { offre, rythme } = offerSchema.parse(query);
+  // Le retour de paiement peut précéder le webhook : on relit Stripe plutôt que de montrer une grille d'achat.
+  if (merci) await syncAfterCheckout(actor.userId, organizationId);
   const billing = await getBillingOverview(actor.userId, organizationId);
+  const confirming = Boolean(merci) && !isPaidPlan(billing.plan);
   const paid = isPaidPlan(billing.plan);
   const store = billing.provider === "revenuecat";
   return (
@@ -27,7 +41,7 @@ export default async function AbonnementPage({ searchParams }: { searchParams: P
       <PageHeader title={m.billing.title} detail={m.billing.planLead[billing.plan]} />
       {merci ? (
         <p role="status" className="on-card rounded-card bg-card p-3 font-semibold">
-          {m.billing.thanks}
+          {confirming ? m.billing.confirming : m.billing.thanks}
         </p>
       ) : null}
       <Sheet className="divide-y divide-card-line">
@@ -70,10 +84,16 @@ export default async function AbonnementPage({ searchParams }: { searchParams: P
           </dl>
         </SheetSection>
       </Sheet>
-      {billing.plan !== "pilot" && billing.canManage && !store ? (
+      {billing.plan !== "pilot" && billing.canManage && !store && !confirming ? (
         <>
           {!billing.billingEnabled ? <p>{m.billing.disabled}</p> : null}
-          <PricingGrid current={billing.plan} canBuy billingEnabled={billing.billingEnabled} />
+          <PricingGrid
+            current={billing.plan}
+            canBuy
+            billingEnabled={billing.billingEnabled}
+            suggested={offre}
+            initialInterval={rythme ?? "year"}
+          />
         </>
       ) : null}
       <p>{m.billing.safetyFree}</p>

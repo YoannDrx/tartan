@@ -121,6 +121,11 @@ model Profile {
   avatarUrl String?   @map("avatar_url")
   locale    String    @default("fr")
   units     String    @default("kg")
+  // Envois coupables d'un clic : résumé hebdomadaire et replis de notification.
+  emailDigest        Boolean @default(true) @map("email_digest")
+  emailNotifications Boolean @default(true) @map("email_notifications")
+  lastActiveAt       DateTime? @map("last_active_at")
+  inactivityNoticeAt DateTime? @map("inactivity_notice_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
@@ -291,6 +296,7 @@ model Athlete {
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  athleteConsents AthleteConsent[]
   groups       GroupMember[]
   coachNotes   CoachNote[]
   injuries     Injury[]
@@ -425,10 +431,26 @@ model Consent {
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
   user           User        @relation("ConsentUser", fields: [userId], references: [id], onDelete: Cascade)
-  athlete        Athlete?    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  athlete        Athlete?    @relation(fields: [athleteId], references: [id], onDelete: SetNull)
 
   @@unique([userId, kind])
   @@map("consents")
+}
+
+// Santé et vidéo s'accordent par fiche : un sportif peut suivre un club et un préparateur sans tout mélanger.
+model AthleteConsent {
+  id        String      @id @default(uuid()) @db.Uuid
+  athleteId String      @map("athlete_id") @db.Uuid
+  kind      ConsentKind
+  version   String
+  grantedAt DateTime?   @map("granted_at")
+  revokedAt DateTime?   @map("revoked_at")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @default(now()) @updatedAt @map("updated_at")
+  athlete   Athlete     @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([athleteId, kind])
+  @@map("athlete_consents")
 }
 
 // ── Exercices et séances ─────────────────────────────────────────────────────
@@ -473,6 +495,45 @@ enum MediaKind {
   instagram
 
   @@map("media_kind")
+}
+
+// Mails liés à une transition d'abonnement : écrits dans la transaction, envoyés après, repris pendant 24 h.
+model EmailOutbox {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String?   @map("organization_id") @db.Uuid
+  toEmail        String    @map("to_email")
+  kind           String
+  dedupeKey      String    @unique @map("dedupe_key")
+  payload        Json
+  attempts       Int       @default(0)
+  nextAttemptAt  DateTime  @default(now()) @map("next_attempt_at")
+  sentAt         DateTime? @map("sent_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([sentAt, nextAttemptAt])
+  @@map("email_outbox")
+}
+
+// File d'effacement chez les prestataires. Les triggers SQL de la migration la remplissent à chaque suppression.
+model ExternalDeletion {
+  id            String    @id @default(uuid()) @db.Uuid
+  provider      String
+  externalRef   String    @map("external_ref")
+  reason        String
+  notBefore     DateTime  @default(now()) @map("not_before")
+  state         String    @default("pending")
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at")
+  leaseToken    String?   @map("lease_token")
+  leaseUntil    DateTime? @map("lease_until")
+  lastErrorCode String?   @map("last_error_code")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([provider, externalRef])
+  @@index([state, nextAttemptAt])
+  @@map("external_deletions")
 }
 
 model ExerciseMedia {
@@ -906,6 +967,8 @@ model Video {
   muxUploadId        String?           @map("mux_upload_id")
   muxAssetId         String?           @map("mux_asset_id")
   muxPlaybackId      String?           @map("mux_playback_id")
+  // Écrit seulement quand le préavis de purge a été accepté par Resend.
+  purgeNoticeAt      DateTime?         @map("purge_notice_at")
   status             VideoStatus       @default(uploading)
   fps                Int?
   // Facteur d'étirement du fichier envoyé à Mux : temps du fichier = temps réel × timeScale.
@@ -927,6 +990,7 @@ model Video {
   @@index([athleteId])
   @@index([muxUploadId])
   @@index([muxAssetId])
+  @@index([organizationId, createdAt])
   @@map("videos")
 }
 

@@ -1,3 +1,4 @@
+import { ModerationSheet } from "../../src/features/comments";
 import { tokens } from "@tartan/design-tokens";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { JumpPhase } from "@tartan/contracts";
@@ -488,14 +489,7 @@ export default function VideoAnalysis() {
       void client.invalidateQueries({ queryKey: ["videos", orgId] });
     },
   });
-  const report = useMutation({
-    mutationFn: () => api.report(orgId, { entityType: "video", entityId: id, reason: "inappropriate" }),
-  });
-  const confirmReport = () =>
-    Alert.alert(m.video.report, undefined, [
-      { text: m.common.cancel, style: "cancel" },
-      { text: m.comments.report, style: "destructive", onPress: () => report.mutate() },
-    ]);
+  const [moderating, setModerating] = useState(false);
 
   if (me.data && !orgId) return <Redirect href="/" />;
   if (video.isPending) {
@@ -603,19 +597,15 @@ export default function VideoAnalysis() {
           variant="ghost"
           compact
           style={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
-          loading={report.isPending}
-          disabled={report.isSuccess}
-          onPress={confirmReport}
+          onPress={() => setModerating(true)}
         />
-        {report.isSuccess ? (
-          <T variant="caption" accessibilityLiveRegion="polite">
-            {m.video.reported}
-          </T>
-        ) : null}
-        {report.isError ? (
-          <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
-            {errorMessage(report.error)}
-          </T>
+        {moderating && video.data ? (
+          <ModerationSheet
+            dark
+            orgId={orgId}
+            target={{ entityType: "video", entityId: id, authorId: video.data.uploadedBy }}
+            onClose={() => setModerating(false)}
+          />
         ) : null}
       </View>
     </StackScreen>

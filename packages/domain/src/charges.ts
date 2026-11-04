@@ -44,6 +44,7 @@ export const formatPrescription = (p: Prescription, resolvedLoadKg: number | nul
   if (resolvedLoadKg !== null) parts.push(`${formatNumber(resolvedLoadKg)} kg`);
   else if (p.load?.type === "pct_1rm") parts.push(`${p.load.value} % du max`);
   if (p.ground_contacts) parts.push(`${p.ground_contacts} contacts`);
+  if (p.tempo) parts.push(`tempo ${p.tempo}`);
   if (p.rest_s) parts.push(`récup ${formatDuration(p.rest_s)}`);
   return parts.join(" · ");
 };

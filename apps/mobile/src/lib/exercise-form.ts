@@ -39,7 +39,7 @@ export const prescriptionFrom = (draft: Pick<ExerciseDraft, "base" | "numbers">)
 };
 
 export const buildExerciseInput = (draft: ExerciseDraft): DraftResult => {
-  if (!draft.name.trim()) return { ok: false, field: "name", message: "Donne un nom à l'exercice" };
+  if (!draft.name.trim()) return { ok: false, field: "name", message: m.mobile.exerciseForm.nameRequired };
   const cues = draft.cues
     .split("\n")
     .map((c) => c.trim())

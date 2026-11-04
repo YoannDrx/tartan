@@ -1,13 +1,13 @@
 // Monorepo pnpm : Metro surveille la racine pour résoudre packages/* et le magasin .pnpm.
-const { getDefaultConfig } = require("expo/metro-config");
+const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 const path = require("node:path");
 
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, "../..");
 
-const config = getDefaultConfig(projectRoot);
+const config = getSentryExpoConfig(projectRoot);
 
-config.watchFolders = [workspaceRoot];
+config.watchFolders = [...new Set([...config.watchFolders, workspaceRoot])];
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(workspaceRoot, "node_modules"),

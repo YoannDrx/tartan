@@ -38,6 +38,7 @@ import {
   uploadAvatarAction,
   uploadLogoAction,
   revokeIcalLinkAction,
+  setEmailPreferenceAction,
 } from "./settings.action";
 
 type AnyErrors = Record<string, { _errors?: string[] }> | undefined;
@@ -126,6 +127,7 @@ export const ConsentSwitches = ({
   parentalPending: boolean;
 }) => {
   const router = useRouter();
+  const [confirming, setConfirming] = useState<"health" | "video" | null>(null);
   const { execute, isPending } = useAction(setConsentAction, { onSuccess: () => router.refresh(), onError: onErr });
   const resend = useAction(resendParentalAction, {
     onSuccess: () => toast.ok(m.parental.resent),
@@ -146,14 +148,26 @@ export const ConsentSwitches = ({
         detail={m.settings.healthConsentDetail}
         checked={health}
         disabled={isPending}
-        onChange={(e) => execute({ kind: "health", granted: e.target.checked })}
+        onChange={(e) => (e.target.checked ? execute({ kind: "health", granted: true }) : setConfirming("health"))}
       />
       <CheckRow
         label={m.settings.videoConsent}
         detail={m.settings.videoConsentDetail}
         checked={video}
         disabled={isPending}
-        onChange={(e) => execute({ kind: "video", granted: e.target.checked })}
+        onChange={(e) => (e.target.checked ? execute({ kind: "video", granted: true }) : setConfirming("video"))}
+      />
+      {/* Retirer efface pour de bon : la décision se confirme, et le texte dit exactement ce qui part. */}
+      <ConfirmDialog
+        open={confirming !== null}
+        onOpenChange={(open) => !open && setConfirming(null)}
+        title={confirming === "health" ? m.settings.healthRevokeTitle : m.settings.videoRevokeTitle}
+        description={confirming === "health" ? m.settings.healthRevokeDetail : m.settings.videoRevokeDetail}
+        confirmLabel={m.settings.revokeConsent}
+        onConfirm={() => {
+          if (confirming) execute({ kind: confirming, granted: false });
+          setConfirming(null);
+        }}
       />
     </div>
   );
@@ -194,6 +208,37 @@ export const DeleteAccount = ({ detail }: { detail: string }) => {
         </Button>
       </form>
     </Dialog>
+  );
+};
+
+export const EmailPreferences = ({
+  digest,
+  notifications,
+  showDigest,
+}: {
+  digest: boolean;
+  notifications: boolean;
+  showDigest: boolean;
+}) => {
+  const { execute, isPending } = useAction(setEmailPreferenceAction, { onError: onErr });
+  return (
+    <div className="flex flex-col gap-1">
+      <p>{m.settings.emailsDetail}</p>
+      <CheckRow
+        label={m.settings.emailNotifications}
+        defaultChecked={notifications}
+        disabled={isPending}
+        onChange={(e) => execute({ kind: "notifications", on: e.target.checked })}
+      />
+      {showDigest ? (
+        <CheckRow
+          label={m.settings.emailDigest}
+          defaultChecked={digest}
+          disabled={isPending}
+          onChange={(e) => execute({ kind: "digest", on: e.target.checked })}
+        />
+      ) : null}
+    </div>
   );
 };
 

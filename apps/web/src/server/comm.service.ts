@@ -6,7 +6,7 @@ import {
   type CommentItem,
   reportContentInput,
 } from "@tartan/contracts";
-import { isStaff } from "@tartan/domain";
+import { containsBlockedWord, isStaff } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { createElement } from "react";
 import type { z } from "zod";
@@ -14,8 +14,10 @@ import { NotificationEmail } from "@email/auth";
 import { env } from "@/lib/env";
 import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
-import { deleteAsset, videoEnabled } from "@/lib/mux";
-import { forbidden, notFound } from "@/lib/errors";
+import { requireAdmin } from "./admin.service";
+import { blockedUserIds } from "./blocks.service";
+import { drainExternalDeletions } from "./external-deletion.service";
+import { forbidden, invalid, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { audit, coachGroupIds, requireGroupInScope, requireOrgMember, visibleAthleteIds, type Access } from "./access";
@@ -53,6 +55,7 @@ export const listAnnouncements = async (userId: string, organizationId: string):
     groupName: a.group.name,
     body: a.body,
     pinned: a.pinned,
+    authorId: a.authorId,
     authorName: names.get(a.authorId) ?? null,
     createdAt: a.createdAt.toISOString(),
   }));
@@ -61,6 +64,7 @@ export const listAnnouncements = async (userId: string, organizationId: string):
 export const publishAnnouncement = async (userId: string, organizationId: string, raw: AnnouncementInput) => {
   const input = announcementInput.parse(raw);
   const access = await requireOrgMember(userId, organizationId, "publishAnnouncement");
+  assertAcceptableText(input.body);
   await requireGroupInScope(access, [input.groupId]);
   const created = await prisma.announcement.create({
     data: { organizationId, groupId: input.groupId, authorId: userId, body: input.body, pinned: input.pinned },
@@ -160,8 +164,13 @@ export const listComments = async (
   }));
 };
 
+const assertAcceptableText = (text: string): void => {
+  if (containsBlockedWord(text)) throw invalid(m.comments.blockedWord);
+};
+
 export const addComment = async (userId: string, organizationId: string, input: CommentInput) => {
   await enforceRateLimit(`comment:${userId}`, 120, 3600);
+  assertAcceptableText(input.body);
   const access = await requireOrgMember(userId, organizationId);
   if (access.role === "guardian") throw forbidden();
   const thread = await resolveThread(access, input.entityType, input.entityId);
@@ -198,10 +207,7 @@ export const addComment = async (userId: string, organizationId: string, input: 
   return created;
 };
 
-export const blockedUserIds = async (userId: string): Promise<string[]> => {
-  const rows = await prisma.userBlock.findMany({ where: { blockerId: userId }, select: { blockedId: true } });
-  return rows.map((r) => r.blockedId);
-};
+export { blockedUserIds };
 
 export const blockUser = async (userId: string, blockedId: string) => {
   if (userId === blockedId) throw forbidden();
@@ -245,10 +251,28 @@ export const reportContent = async (
   });
   const owner = await prisma.user.findUniqueOrThrow({ where: { id: organization.ownerId }, select: { email: true } });
   const subject = `Contenu signalé dans ${organization.name}`;
-  const url = `${env().NEXT_PUBLIC_APP_URL}/reglages?espace=${organizationId}#signalements`;
-  const react = createElement(NotificationEmail, { title: subject, body: m.settings.reportsEmailBody, url });
-  for (const to of new Set([owner.email, env().EMAIL_CONTACT])) {
-    await sendEmail({ to, subject, react }).catch(() => log.error("report_email_failed"));
+  const editor = env().EMAIL_CONTACT;
+  const appUrl = env().NEXT_PUBLIC_APP_URL;
+  const mails = [
+    {
+      to: owner.email,
+      url: `${appUrl}/reglages?espace=${organizationId}#signalements`,
+      detail: m.settings.reportsEmailBody,
+    },
+    // L'éditeur traite depuis sa console, et voit le motif sans ouvrir l'espace.
+    { to: editor, url: `${appUrl}/admin#signalements`, detail: m.settings.reportsEmailReason(input.reason) },
+  ].filter((mail, index) => index === 1 || mail.to !== editor);
+  for (const mail of mails) {
+    await sendEmail({
+      to: mail.to,
+      subject,
+      react: createElement(NotificationEmail, {
+        body: subject,
+        detail: mail.detail,
+        url: mail.url,
+        cta: m.email.reportCta,
+      }),
+    }).catch(() => log.error("report_email_failed"));
   }
 };
 
@@ -287,28 +311,21 @@ export const listReports = async (userId: string, organizationId: string) => {
   });
 };
 
-export const resolveReport = async (
-  userId: string,
-  organizationId: string,
-  input: { id: string; removeContent: boolean },
-) => {
-  await requireOrgMember(userId, organizationId, "manageOrganization");
-  const report = await prisma.contentReport.findFirst({ where: { id: input.id, organizationId } });
-  if (!report) throw notFound();
-  if (input.removeContent) {
+// Cœur commun au responsable de l'espace et à l'éditeur.
+const applyReportResolution = async (
+  report: { organizationId: string; entityType: string; entityId: string },
+  actorId: string,
+  removeContent: boolean,
+): Promise<void> => {
+  const { organizationId } = report;
+  if (removeContent) {
     if (report.entityType === "comment") {
       await prisma.comment.deleteMany({ where: { id: report.entityId, organizationId } });
     } else if (report.entityType === "announcement") {
       await prisma.announcement.deleteMany({ where: { id: report.entityId, organizationId } });
     } else {
-      const video = await prisma.video.findFirst({
-        where: { id: report.entityId, organizationId },
-        select: { id: true, muxAssetId: true },
-      });
-      if (video) {
-        if (video.muxAssetId && videoEnabled()) await deleteAsset(video.muxAssetId);
-        await prisma.video.delete({ where: { id: video.id } });
-      }
+      await prisma.video.deleteMany({ where: { id: report.entityId, organizationId } });
+      await drainExternalDeletions();
     }
   }
   await prisma.contentReport.updateMany({
@@ -317,9 +334,78 @@ export const resolveReport = async (
   });
   await audit({
     organizationId,
-    actorId: userId,
-    action: input.removeContent ? "report_content_removed" : "report_dismissed",
+    actorId,
+    action: removeContent ? "report_content_removed" : "report_dismissed",
     entity: report.entityType,
     entityId: report.entityId,
   });
+};
+
+export const resolveReport = async (
+  userId: string,
+  organizationId: string,
+  input: { id: string; removeContent: boolean },
+) => {
+  await requireOrgMember(userId, organizationId, "manageOrganization");
+  const report = await prisma.contentReport.findFirst({ where: { id: input.id, organizationId } });
+  if (!report) throw notFound();
+  await applyReportResolution(report, userId, input.removeContent);
+};
+
+// Console de l'éditeur : la promesse des 48 heures se tient depuis un seul écran, tous espaces confondus.
+export const listAllReports = async (actor: { email: string }) => {
+  requireAdmin(actor.email);
+  const reports = await prisma.contentReport.findMany({
+    where: { resolvedAt: null },
+    orderBy: { createdAt: "asc" },
+    take: 100,
+  });
+  const ids = (type: string) => reports.filter((r) => r.entityType === type).map((r) => r.entityId);
+  const [comments, announcements, organizations] = await Promise.all([
+    prisma.comment.findMany({ where: { id: { in: ids("comment") } }, select: { id: true, body: true } }),
+    prisma.announcement.findMany({ where: { id: { in: ids("announcement") } }, select: { id: true, body: true } }),
+    prisma.organization.findMany({
+      where: { id: { in: reports.map((r) => r.organizationId) } },
+      select: { id: true, name: true },
+    }),
+  ]);
+  return reports.map((r) => ({
+    id: r.id,
+    organizationName: organizations.find((org) => org.id === r.organizationId)?.name ?? "",
+    entityType: r.entityType as "comment" | "video" | "announcement",
+    excerpt: [...comments, ...announcements].find((c) => c.id === r.entityId)?.body ?? null,
+    reason: r.reason,
+    detail: r.detail,
+    createdAt: r.createdAt.toISOString(),
+  }));
+};
+
+export const adminResolveReport = async (
+  actor: { userId: string; email: string },
+  input: { id: string; removeContent: boolean },
+) => {
+  requireAdmin(actor.email);
+  const report = await prisma.contentReport.findUnique({ where: { id: input.id } });
+  if (!report) throw notFound();
+  await applyReportResolution(report, actor.userId, input.removeContent);
+};
+
+// Son propre commentaire se retire librement ; celui d'un autre passe par le signalement.
+export const deleteComment = async (userId: string, organizationId: string, commentId: string) => {
+  await requireOrgMember(userId, organizationId);
+  const comment = await prisma.comment.findFirst({ where: { id: commentId, organizationId } });
+  if (!comment) throw notFound();
+  if (comment.authorId !== userId) throw forbidden();
+  await prisma.comment.delete({ where: { id: comment.id } });
+};
+
+export const unblockUser = async (userId: string, blockedId: string) => {
+  await prisma.userBlock.deleteMany({ where: { blockerId: userId, blockedId } });
+  await audit({ actorId: userId, action: "user_unblocked", entity: "user", entityId: blockedId });
+};
+
+export const listBlockedUsers = async (userId: string) => {
+  const ids = await blockedUserIds(userId);
+  const names = await namesFor(ids);
+  return ids.map((id) => ({ id, name: names.get(id) ?? null }));
 };

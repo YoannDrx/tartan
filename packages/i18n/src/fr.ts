@@ -33,7 +33,7 @@ export const fr = {
     allSettings: "Tous les réglages",
     aujourdhui: "Aujourd'hui",
     progres: "Progrès",
-    mesSauts: "Mes sauts",
+    mesSauts: "Mes vidéos",
   },
   status: { no_return: "Sans retour", done: "Fait", partial: "Partiel", missed: "Manqué", upcoming: "À venir" },
   variant: { club: "Au club", autonomous: "En autonomie", both: "Club et autonomie" },
@@ -96,6 +96,8 @@ export const fr = {
     snatch: "Arraché",
     deadlift: "Soulevé de terre",
     hip_thrust: "Hip thrust",
+    bench_press: "Développé couché",
+    pull_up: "Tractions",
   },
   invitationStatus: {
     sent: "Envoyée",
@@ -140,6 +142,8 @@ export const fr = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
   onboarding: {
+    discoveryLimit: "Tu as déjà un espace Découverte. Passe-le à une offre payante pour en ouvrir un autre.",
+    createOwnSpace: "Créer mon espace coach",
     profileTitle: "Ton profil",
     orgTitle: "Ton espace",
     firstName: "Prénom",
@@ -283,7 +287,7 @@ export const fr = {
     consentTerms: "J'accepte les conditions d'utilisation et la politique de confidentialité.",
     consentHealth:
       "J'accepte que mes informations de santé (blessures, douleurs, effort ressenti) soient traitées et visibles par mes coachs.",
-    consentVideo: "J'accepte que mes coachs me filment et conservent mes vidéos de saut.",
+    consentVideo: "J'accepte que mes coachs me filment et conservent mes vidéos d'entraînement.",
     consentOptional:
       "Tu peux refuser : l'app marche quand même, ces fonctions restent masquées. Tu pourras changer d'avis dans les réglages.",
     termsRequired: "Accepte les conditions pour continuer.",
@@ -414,6 +418,10 @@ export const fr = {
     activeInjury: "Blessure active",
   },
   builder: {
+    preview: "Aperçu athlète",
+    previewEmpty: "Ajoute un exercice pour voir la séance telle que l'athlète la verra.",
+    tempo: "Tempo",
+    tempoHint: "Par exemple 3-1-1",
     deleteLosesLogs: (count: number) =>
       `${count > 1 ? `${count} validations seront perdues` : "1 validation sera perdue"}. Les athlètes concernés seront prévenus si la séance est à venir.`,
     deleteTemplate: "Supprimer ce modèle",
@@ -518,6 +526,9 @@ export const fr = {
     instagramBlocked: "L'auteur de cette vidéo n'autorise la lecture que sur Instagram.",
   },
   athletes: {
+    regularityTitle: "Tes 4 dernières semaines",
+    regularity: (done: number, total: number) =>
+      `${done} séance${done > 1 ? "s" : ""} faite${done > 1 ? "s" : ""} sur ${total}`,
     deleteEntry: "Retirer cette saisie ?",
     deleteEntryDetail: (label: string) => `« ${label} » sera retiré. Pour corriger une erreur, ressaisis-le ensuite.`,
     noteLabel: "cette note",
@@ -573,7 +584,9 @@ export const fr = {
   },
   video: {
     title: "Vidéos",
-    mine: "Mes sauts",
+    barFields: "Ajouter une barre (saut)",
+    download: "Enregistrer",
+    mine: "Mes vidéos",
     capture: "Filmer",
     import: "Importer",
     slowHint: "Filme en ralenti (120 ou 240 i/s) pour une analyse nette.",
@@ -600,7 +613,8 @@ export const fr = {
     barSheet: "Feuille de barres",
     noDate: "Sans date",
     noBar: "Barre non renseignée",
-    forAthlete: (name: string) => `Sauts de ${name}`,
+    forAthlete: (name: string) => `Vidéos de ${name}`,
+    filterLabel: "Filtrer par athlète",
     allAthletes: "Tous les athlètes",
     previousFrame: "Image précédente",
     nextFrame: "Image suivante",
@@ -634,6 +648,8 @@ export const fr = {
     empty: "Aucun commentaire.",
     report: "Signaler",
     block: "Bloquer cet utilisateur",
+    deleteOwn: "Supprimer mon commentaire",
+    blockedWord: "Ce message contient un mot que Tartan n'accepte pas. Reformule-le.",
     reported: "Merci, ton signalement a été transmis.",
   },
   settings: {
@@ -680,6 +696,25 @@ export const fr = {
     linkRegenerated: "Nouveau lien créé. L'ancien ne marche plus.",
     calendarRevoke: "Changer le lien",
     calendarRevokeDetail: "L'ancien lien cesse de fonctionner. Il faudra réabonner ton agenda avec le nouveau.",
+    emails: "E-mails",
+    emailsDetail: "Les messages liés à ton compte et à ton abonnement continuent d'arriver.",
+    emailDigest: "Récapitulatif de la semaine, le dimanche soir",
+    emailNotifications: "E-mail quand une notification n'a pas pu arriver",
+    consentPerSpace: "Tu suis plusieurs espaces : donne ton accord depuis les réglages de chacun d'eux.",
+    healthRevokeTitle: "Retirer ton accord pour la santé ?",
+    healthRevokeDetail:
+      "Ton effort ressenti, tes douleurs et tes blessures de cet espace seront effacés aussitôt, et ça ne se rattrape pas. Les exports déjà faits et les copies de sauvegarde peuvent en garder une trace pendant 30 jours au plus.",
+    videoRevokeTitle: "Retirer ton accord pour les vidéos ?",
+    videoRevokeDetail:
+      "Tes vidéos de cet espace seront masquées à tes coachs aussitôt, puis supprimées dans 30 jours, sauf si tu redonnes ton accord d'ici là.",
+    revokeConsent: "Retirer mon accord",
+    blocked: "Utilisateurs bloqués",
+    blockedEmpty: "Tu n'as bloqué personne.",
+    blockedUnknown: "Utilisateur",
+    unblock: "Débloquer",
+    help: "Aide",
+    helpDetail: "Une question, un souci à la piste ? Écris-nous, on répond vite.",
+    helpContact: "Nous écrire",
     revokeOtherSessions: "Déconnecter mes autres appareils",
     revokeOtherSessionsDone: "Tes autres appareils sont déconnectés.",
     plan: "Offre",
@@ -688,6 +723,7 @@ export const fr = {
     members: "Coachs de l'espace",
     reports: "Signalements",
     reportsEmpty: "Aucun signalement à traiter.",
+    reportsEmailReason: (reason: string) => `Motif : ${reason}`,
     reportsEmailBody: "Un contenu a été signalé. Ouvre les réglages pour le garder ou le supprimer.",
     reportKeep: "Garder le contenu",
     reportDelete: "Supprimer le contenu",
@@ -724,7 +760,7 @@ export const fr = {
   },
   push: {
     permissionTitle: "Reçois tes séances",
-    permissionBody: "Une notification quand ton coach t'envoie une séance. Rien d'autre sans ton accord.",
+    permissionBody: "Une notification quand ton coach t'envoie une séance ou te répond. Tu peux les couper ici.",
     enable: "Activer les notifications",
     later: "Plus tard",
   },
@@ -749,6 +785,93 @@ export const fr = {
     alreadySet: "Ta date de naissance est déjà enregistrée. Écris-nous pour la corriger.",
     parentalClosed: "L'accord parental n'est pas ouvert : Tartan est réservé aux personnes majeures.",
   },
+  email: {
+    welcome: {
+      subject: (space: string) => `Ton espace ${space} est prêt`,
+      body: "Trois étapes pour démarrer : invite tes athlètes, prépare ta première séance, puis suis les retours dans la grille de suivi.",
+      cta: "Ouvrir mon espace",
+      question: "Une question\u00a0? Réponds à cet e-mail.",
+    },
+    confirmed: {
+      subject: (plan: string) => `Ton abonnement Tartan ${plan} est confirmé`,
+      price: (space: string, plan: string, price: number, interval: "month" | "year") =>
+        `${space} passe à l'offre ${plan} : ${price}\u00a0€ par ${interval === "month" ? "mois" : "an"}, TVA non applicable (art. 293 B du CGI).`,
+      trial: (date: string) =>
+        `Ton essai gratuit court jusqu'au ${date}. Sans résiliation avant cette date, le premier prélèvement a lieu ce jour-là, puis l'abonnement se renouvelle tacitement.`,
+      cancelAnytime: "Tu peux résilier à tout moment depuis la page Abonnement.",
+      withdrawal:
+        "Tu disposes de 14 jours pour te rétracter si tu es un consommateur, comme expliqué dans les conditions de vente.",
+      cta: "Gérer mon abonnement",
+    },
+    cancelled: {
+      subject: "Résiliation de ton abonnement Tartan enregistrée",
+      body: (plan: string, space: string, date: string) =>
+        `Ton abonnement ${plan} pour ${space} s'arrête le ${date}. Aucun nouveau prélèvement n'aura lieu et rien ne change d'ici là. Ensuite, l'espace repasse en offre Découverte : athlètes et données sont conservés, l'ajout au-delà des limites est bloqué, et les vidéos de plus de 30 jours sont supprimées après un préavis de 14 jours par e-mail.`,
+      cta: "Gérer mon abonnement",
+    },
+    ended: {
+      subject: "Ton abonnement Tartan a pris fin",
+      unpaid: "Les tentatives de prélèvement n'ont pas abouti.",
+      body: (space: string) =>
+        `${space} est repassé en offre Découverte. Tes athlètes et tes données restent en place. Au-delà de 5 athlètes et 1 groupe, l'ajout est bloqué.`,
+      cta: "Voir mon abonnement",
+    },
+    accountDeleted: {
+      subject: "Ton compte Tartan a été supprimé",
+      body: "Ton compte et tes données sont supprimés, ainsi que les espaces dont tu étais le seul coach et leurs vidéos.",
+      subscription: "Ton abonnement est résilié, aucun nouveau prélèvement n'aura lieu.",
+      notYou: "Ce n'est pas toi\u00a0? Écris-nous tout de suite à hello@tartan.coach.",
+    },
+    spaceTransferred: {
+      subject: (space: string) => `Tu deviens responsable de ${space}`,
+      body: (previous: string, space: string) =>
+        `${previous} a supprimé son compte. Tu es désormais responsable de l'espace ${space} : les signalements et les préavis de suppression de vidéos te seront adressés.`,
+      subscriptionEnds: (date: string) => `Son abonnement s'arrête le ${date}.`,
+      cta: "Ouvrir l'espace",
+    },
+    inactivity: {
+      subject: "Ton compte Tartan va être supprimé",
+      body: (days: number) =>
+        `Tu ne t'es pas connecté depuis 24 mois. Sans connexion de ta part d'ici ${days} jours, ton compte et ses données seront supprimés. Si tu veux le garder, il suffit de te connecter une fois.`,
+      cta: "Me connecter",
+    },
+    passwordChanged: {
+      subject: "Ton mot de passe Tartan a été modifié",
+      body: "Ton mot de passe vient d'être changé. Si c'est toi, tu n'as rien à faire. Sinon, choisis-en un nouveau tout de suite et écris-nous à hello@tartan.coach.",
+      cta: "Choisir un mot de passe",
+    },
+    fallbackFooter: "Tu reçois cet e-mail car aucune notification n'a pu arriver sur ton téléphone ou ton navigateur.",
+    digestFooter: (organization: string) => `Tu reçois ce récapitulatif car tu gères ${organization}.`,
+    unsubscribeLink: "Ne plus recevoir ces e-mails",
+    unsubscribeTitle: "Tes e-mails Tartan",
+    unsubscribeConfirm: "Ne plus les recevoir",
+    unsubscribeDone: "C'est fait. Tu peux les réactiver à tout moment dans tes réglages.",
+    unsubscribeKinds: {
+      digest: "Le récapitulatif de ta semaine, chaque dimanche soir.",
+      notifications:
+        "Les e-mails envoyés quand une notification n'a pas pu arriver sur ton téléphone ou ton navigateur.",
+    },
+    cta: {
+      session_published: "Voir la séance",
+      session_batch_published: "Voir mes séances",
+      session_eve: "Voir la séance",
+      session_autonomous: "Voir la séance",
+      session_reminder: "Voir la séance",
+      session_updated: "Voir la séance",
+      session_cancelled: "Voir mes séances",
+      video_shared: "Voir le saut",
+      comment: "Voir le saut",
+      pain_alert: "Voir l'athlète",
+      missed_streak: "Voir l'athlète",
+      announcement: "Lire l'annonce",
+      member_joined: "Voir l'athlète",
+    },
+    reportCta: "Voir le signalement",
+    publisher: "Tartan est édité par Yodev (Yoann Andrieux, entrepreneur individuel), SIREN 803 272 590.",
+    legal: "Mentions légales",
+    privacy: "Confidentialité",
+    contact: "Contact",
+  },
   admin: {
     title: "Console",
     lead: "Les indicateurs du pilote, sans donnée de santé.",
@@ -767,10 +890,13 @@ export const fr = {
     reports: "Signalements",
     comments: "Ce qu'ils en disent",
     operations: "Exploitation",
+    reportsTitle: "Signalements à traiter",
     notificationsPending: "Notifications en attente",
     notificationsLate: "En retard de plus de 30 min",
     notificationsFailed: "Échecs de livraison, 24 h",
     notificationsUndelivered: "Jamais reçues, 24 h",
+    deletionsFailed: "Effacements en échec",
+    deletionsLate: "Effacements en retard de 24 h",
   },
   disciplines: {
     high_jump: "Saut en hauteur",
@@ -848,6 +974,17 @@ export const fr = {
       none: "Sans objet",
     },
     choose: (plan: string) => `Choisir ${plan}`,
+    continueToPayment: "Continuer vers le paiement",
+    purge: {
+      subject: (count: number, organization: string) =>
+        `${count} vidéo${count > 1 ? "s" : ""} de ${organization} bientôt supprimée${count > 1 ? "s" : ""}`,
+      body: (count: number, organization: string, limit: string, retentionDays: number, from: string) =>
+        count > 1
+          ? `${count} vidéos de ${organization}, ajoutées avant le ${limit}, arrivent à la fin de la durée de conservation de ton offre (${retentionDays} jours). Elles seront supprimées définitivement à partir du ${from}, sans autre message. Pour les garder, enregistre-les depuis leur fiche, ou change d'offre avant cette date.`
+          : `1 vidéo de ${organization}, ajoutée avant le ${limit}, arrive à la fin de la durée de conservation de ton offre (${retentionDays} jours). Elle sera supprimée définitivement à partir du ${from}, sans autre message. Pour la garder, enregistre-la depuis sa fiche, ou change d'offre avant cette date.`,
+      cta: "Voir les vidéos",
+    },
+    confirming: "Paiement en cours de confirmation. Recharge cette page dans un instant.",
     current: "Ton offre actuelle",
     manage: "Gérer mon abonnement",
     manageHint: "Factures, moyen de paiement, résiliation.",
@@ -1012,14 +1149,14 @@ export const fr = {
       network: "Pas de réseau pour le moment. Réessaie dès que la connexion revient.",
       offlineEmpty: "Pas encore de données sur ce téléphone. Connecte-toi au réseau une première fois.",
       unknownSpace: "Cet espace n'est plus accessible.",
-      guardian: "L'espace parent n'est pas encore disponible dans l'app.",
+      noSpace: "Aucun espace disponible pour ce compte.",
       planLimit: "Cet espace a atteint sa limite pour l'instant. Tout ce qui existe reste accessible.",
     },
     agenda: {
       thisWeek: "Cette semaine",
       week: (label: string) => `Semaine du ${label}`,
       empty: "Aucune séance cette semaine.",
-      desktopHint: "La création de séance se fait sur ordinateur, sur tartan.coach.",
+      desktopHint: "La création de séance se fait sur ordinateur.",
       draft: "Brouillon",
     },
     progress: {
@@ -1044,7 +1181,7 @@ export const fr = {
       openSession: "Voir la séance",
       inviteShare: "Partager le lien du groupe",
       inviteMessage: (group: string, link: string) => `Rejoins ${group} sur Tartan : ${link}`,
-      noGroup: "Aucun groupe pour l'instant. Crée-le sur tartan.coach.",
+      noGroup: "Aucun groupe pour l'instant.",
       rpe: (n: number) => `RPE ${n}`,
       pain: (area: string, intensity: number) => `Douleur ${area.toLowerCase()} · ${intensity}/10`,
       duration: (n: number) => `${n} min`,
@@ -1065,7 +1202,7 @@ export const fr = {
       noResult: "Aucun exercice ne correspond. Essaie un autre mot.",
       all: "Tous",
       prescription: "Par défaut",
-      desktopHint: "L'ajout et la modification se font sur tartan.coach.",
+      desktopHint: "L'ajout et la modification se font sur ordinateur.",
     },
     video: {
       pendingTitle: "En attente d'envoi",
@@ -1083,7 +1220,7 @@ export const fr = {
       session: "Séance (facultatif)",
       noSession: "Aucune",
       film: "Filmer ici",
-      importSlow: "Importer un ralenti",
+      importSlow: "Importer une vidéo",
       slowAdvice: (max: number) =>
         `Ce téléphone filme jusqu'à ${max} i/s. Pour le meilleur ralenti, filme avec l'appareil photo en mode Ralenti, puis importe la vidéo.`,
       noSlowAdvice: (max: number) =>
@@ -1140,6 +1277,7 @@ export const fr = {
       email: "Adresse e-mail",
       spaces: "Mes espaces",
       consentFailed: "Ton choix n'a pas été enregistré. Vérifie ta connexion.",
+      exportFailed: "Le téléchargement a échoué. Vérifie ta connexion.",
       revokeTitle: "Retirer ton accord ?",
       revokeHealth: "Ton effort ressenti et tes douleurs ne seront plus enregistrés ni visibles par tes coachs.",
       revokeVideo: "Tes coachs ne pourront plus te filmer ni voir tes vidéos.",
@@ -1147,6 +1285,7 @@ export const fr = {
       notifications: "Notifications",
       notificationsOn: "Activées sur ce téléphone.",
       notificationsOff: "Désactivées sur ce téléphone.",
+      openSystemSettings: "Ouvrir les réglages du téléphone",
       enableNotifications: "Activer les notifications",
       deleteConfirmTitle: "Supprimer ton compte",
       deleteFailed: "La suppression a échoué. Vérifie ta connexion et réessaie.",
@@ -1186,6 +1325,7 @@ export const fr = {
       jump: "Saut",
     },
     exerciseForm: {
+      nameRequired: "Donne un nom à l'exercice",
       editTitle: "Modifier l'exercice",
       edit: "Modifier",
       cuesHint: "2 ou 3 phrases courtes affichées à l'athlète. Une par ligne, 5 au plus.",
@@ -1250,11 +1390,21 @@ export const fr = {
       noCamera: "Pas de caméra disponible sur cet appareil. Importe une vidéo depuis la pellicule.",
       badge: (fps: number) => `${fps} i/s`,
     },
+    channels: {
+      sessions: "Séances",
+      sessionsDetail: "Nouvelle séance, rappel, séance modifiée ou annulée, annonces",
+      videos: "Vidéos",
+      videosDetail: "Vidéo partagée et commentaires",
+      alerts: "Alertes sur ton groupe",
+      alertsDetail: "Une alerte concernant un de tes athlètes",
+      yes: "Oui",
+      no: "Non",
+    },
     uploadNotice: {
       title: "Envoi de la vidéo",
       progress: (name: string, pct: number) => `${name} : ${pct} %`,
       channel: "Envois vidéo",
-      channelDetail: "Progression de l'envoi des vidéos de saut",
+      channelDetail: "Progression de l'envoi des vidéos",
     },
     forms: {
       firstNameRequired: "Indique ton prénom",

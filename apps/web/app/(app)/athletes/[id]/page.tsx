@@ -111,14 +111,17 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
             { label: m.athletes.approachSteps, value: file.approachSteps },
             { label: m.athletes.bestBar, value: best ? `${formatHeight(best)} m` : null },
             { label: m.athletes.doneRate, value: rate !== null ? `${rate}\u00a0%` : null },
-          ].map((item) => (
-            <div key={item.label} className="bg-card px-4 py-2">
-              <dt className="t-caption font-normal text-soft">{item.label}</dt>
-              <dd className={item.value === null ? "leading-7 text-soft" : "t-num text-[24px] leading-7"}>
-                {item.value ?? m.athletes.notSet}
-              </dd>
-            </div>
-          ))}
+          ]
+            // Pied d'appel, foulées et barre n'ont de sens que pour un sauteur : vides, ils disparaissent.
+            .filter((item, index) => index === 3 || item.value)
+            .map((item) => (
+              <div key={item.label} className="bg-card px-4 py-2">
+                <dt className="t-caption font-normal text-soft">{item.label}</dt>
+                <dd className={item.value === null ? "leading-7 text-soft" : "t-num text-[24px] leading-7"}>
+                  {item.value ?? m.athletes.notSet}
+                </dd>
+              </div>
+            ))}
         </dl>
 
         {sheet.rows.length > 0 ? (

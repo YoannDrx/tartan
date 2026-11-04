@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { m } from "@tartan/i18n";
 import { PublicPage } from "@/features/shell/public-page";
 import { getActor } from "@/lib/session";
@@ -11,11 +12,25 @@ import { canCreateCoachSpace } from "@/server/org.service";
 
 export const metadata: Metadata = { title: "Bienvenue" };
 
-export default async function BienvenuePage() {
+const offerSchema = z.object({
+  offre: z.enum(["coach", "club"]).optional().catch(undefined),
+  rythme: z.enum(["month", "year"]).optional().catch(undefined),
+});
+
+export default async function BienvenuePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ offre?: string; rythme?: string }>;
+}) {
+  const { offre, rythme } = offerSchema.parse(await searchParams);
+  const offerQuery = offre ? `?offre=${offre}&rythme=${rythme ?? "year"}` : "";
   const actor = await getActor();
-  if (!actor) redirect("/connexion?next=/bienvenue");
+  if (!actor) redirect(`/connexion?next=${encodeURIComponent(`/bienvenue${offerQuery}`)}`);
   const me = await getMe(actor.userId);
-  if (me.spaces.length > 0) redirect("/accueil");
+  // Un athlète peut ouvrir son espace de coach : seul un espace possédé ramène à l'abonnement ou à l'accueil.
+  if (me.spaces.some((space) => space.role === "owner")) {
+    redirect(offerQuery ? `/abonnement${offerQuery}` : "/accueil");
+  }
   if ((await ageStatusOfUser(actor.userId)) === "minor") redirect("/confirmer-age");
   if (!canCreateCoachSpace(actor.email)) {
     return (
@@ -35,7 +50,12 @@ export default async function BienvenuePage() {
   return (
     <PublicPage title="Crée ton espace coach">
       <div className="on-card flex flex-col gap-5 rounded-card bg-card p-5">
-        <OnboardingForm firstName={firstName} lastName={me.lastName ?? ""} birthDate={me.birthDate ?? ""} />
+        <OnboardingForm
+          firstName={firstName}
+          lastName={me.lastName ?? ""}
+          birthDate={me.birthDate ?? ""}
+          nextPath={offerQuery ? `/abonnement${offerQuery}` : "/suivi"}
+        />
         <p className="text-soft">{m.onboarding.joinHint}</p>
       </div>
     </PublicPage>

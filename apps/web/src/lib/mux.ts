@@ -36,6 +36,21 @@ export const deleteAsset = async (assetId: string): Promise<void> => {
   await client().video.assets.delete(assetId);
 };
 
+export const cancelUpload = async (uploadId: string): Promise<void> => {
+  await client().video.uploads.cancel(uploadId);
+};
+
+// Parcourt tout le compte Mux, page après page, pour le rapprochement quotidien.
+export async function* listAssets(): AsyncGenerator<{ id: string; passthrough: string | null; createdAt: Date }> {
+  for await (const asset of client().video.assets.list({ limit: 100 })) {
+    yield {
+      id: asset.id,
+      passthrough: asset.passthrough ?? null,
+      createdAt: new Date(Number(asset.created_at) * 1000),
+    };
+  }
+}
+
 // Jetons signés à durée limitée, aucune URL publique (§ 11.4).
 export const signedPlayback = async (
   playbackId: string,
@@ -46,8 +61,8 @@ export const signedPlayback = async (
   }
   const mux = client();
   const [video, thumbnail] = await Promise.all([
-    mux.jwt.signPlaybackId(playbackId, { type: "video", expiration: "6h" }),
-    mux.jwt.signPlaybackId(playbackId, { type: "thumbnail", expiration: "6h" }),
+    mux.jwt.signPlaybackId(playbackId, { type: "video", expiration: "1h" }),
+    mux.jwt.signPlaybackId(playbackId, { type: "thumbnail", expiration: "1h" }),
   ]);
   return {
     hlsUrl: `https://stream.mux.com/${playbackId}.m3u8?token=${video}`,

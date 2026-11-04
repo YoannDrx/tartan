@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { saveAthlete } from "@/server/athlete.service";
-import { getAthleteCalendar, logSession } from "@/server/athlete-view.service";
+import { getAthleteCalendar, getMyRegularity, logSession } from "@/server/athlete-view.service";
 import { removeAthlete, leaveOrganization } from "@/server/members.service";
 import { closeOverdueSessions } from "@/server/cron.service";
 import { deleteGroup } from "@/server/org.service";
@@ -299,6 +299,21 @@ describe("groupes et audience", () => {
     await logSession(a.athlete.userId, a.organizationId, session.id, { ...base, clientId: randomUUID() });
     const log = await prisma.sessionLog.findFirstOrThrow({ where: { scheduledSessionId: session.id } });
     expect(log.pain).toBeNull();
+  });
+  it("la régularité de l'athlète compte ses séances des 4 dernières semaines", async () => {
+    const a = await prepare();
+    const now = new Date("2030-06-30T10:00:00Z");
+    const done = await a.schedule("2030-06-20");
+    const missed = await a.schedule("2030-06-21");
+    const old = await a.schedule("2030-05-01");
+    await prisma.sessionLog.createMany({
+      data: [
+        { scheduledSessionId: done.id, athleteId: a.athlete.athleteId, status: "done" },
+        { scheduledSessionId: missed.id, athleteId: a.athlete.athleteId, status: "missed" },
+        { scheduledSessionId: old.id, athleteId: a.athlete.athleteId, status: "done" },
+      ],
+    });
+    expect(await getMyRegularity(a.athlete.userId, a.organizationId, now)).toEqual({ done: 1, total: 2 });
   });
   it("quitter un espace et supprimer un groupe nettoient aussi les attributions", async () => {
     const a = await prepare();

@@ -1,3 +1,7 @@
+import { createElement } from "react";
+import { WelcomeEmail } from "@email/auth";
+import { sendEmail } from "@/lib/mail";
+import { log } from "@/lib/logger";
 import { type CreateOrganizationInput, type GroupInput } from "@tartan/contracts";
 import { type PlanKey, referralCodeFor, STARTER_LIBRARY } from "@tartan/domain";
 import { randomId } from "@/lib/tokens";
@@ -60,6 +64,11 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
   }
   await ensurePlans();
   const plan = initialPlan(user.email);
+  // L'offre gratuite ne se multiplie pas : un préparateur qui suit plusieurs clubs paie pour en ouvrir d'autres.
+  if (plan === "discovery") {
+    const free = await prisma.organization.count({ where: { ownerId: userId, plan: "discovery" } });
+    if (free > 0) throw new AppError(409, "discovery_limit", m.onboarding.discoveryLimit);
+  }
   const organization = await prisma.$transaction(async (tx) => {
     const org = await tx.organization.create({
       data: {
@@ -87,6 +96,19 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
   });
   await syncEntitlements(organization.id, plan);
   await ensureReferralCode(userId);
+  // Une seule fois, et sans promotion : c'est un message de service. Un échec n'empêche pas de créer l'espace.
+  const owned = await prisma.organization.count({ where: { ownerId: userId } });
+  if (owned === 1) {
+    await sendEmail({
+      to: user.email,
+      subject: m.email.welcome.subject(input.name),
+      idempotencyKey: `welcome/${userId}`,
+      react: createElement(WelcomeEmail, {
+        space: input.name,
+        url: `${env().NEXT_PUBLIC_APP_URL}/accueil?espace=${organization.id}`,
+      }),
+    }).catch(() => log.warn("welcome_email_failed"));
+  }
   if (input.referralCode)
     await attributeReferral({ userId, code: input.referralCode, organizationId: organization.id });
   return organization;

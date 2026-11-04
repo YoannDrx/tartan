@@ -1,5 +1,5 @@
 import { addDays, isOverdue, MISSED_STREAK_THRESHOLD } from "@tartan/domain";
-import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
+import { fromDbDate, todayIso, toDbDate, hourInParis } from "@/lib/dates";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { processReferrals, purgeExpiredVideos } from "./billing.service";
@@ -9,7 +9,10 @@ import { dispatchPending, notify, notifyPublications } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
 import { activeAudienceIds, audienceAthleteIds, publishRow, type Publication } from "./session.service";
 import { runCronJobs } from "./cron-runner";
+import { purgeRevokedConsentVideos } from "./consent.service";
+import { processExternalDeletions, reconcileExternalAssets } from "./external-deletion.service";
 import { sendHeartbeat } from "./heartbeat";
+import { runRetention } from "./retention.service";
 import { reconcileStripeSubscriptions } from "./stripe-subscriptions.service";
 
 // Une seule alerte, au moment où la série atteint le seuil (§ 13.2) : pas de rappel à chaque nouvelle séance.
@@ -177,6 +180,13 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     referrals: () => processReferrals(now),
     purged: () => purgeExpiredVideos(now),
     digests: () => sendWeeklyDigests(now),
+    // D'abord les lignes : leur suppression met les fichiers en file, traitée juste après.
+    revokedVideos: () => purgeRevokedConsentVideos(now),
+    // Une fois par jour, avant le rapprochement : un compte supprimé part dans la même file.
+    retention: async () => (hourInParis(now) === 3 ? runRetention(now) : null),
+    externalDeletions: () => processExternalDeletions(now),
+    // Une fois par jour, au creux de la nuit.
+    reconciled: async () => (hourInParis(now) === 4 ? reconcileExternalAssets(now) : null),
   });
   await sendHeartbeat("hourly", result.errors);
   return result;

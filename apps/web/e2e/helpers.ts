@@ -52,6 +52,7 @@ export const createCoachSpace = async (page: Page, name = "Thomas") => {
   await page.getByLabel("Date de naissance").fill("1985-03-14");
   await page.getByLabel("Nom du club ou de ton coaching").fill(`Coaching ${name}`);
   await page.getByLabel("Premier groupe").fill("Hauteur Élite");
+  await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
   await page.getByRole("button", { name: "Créer mon espace" }).click();
   await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible({ timeout: 60_000 });
   // Un espace neuf guide le coach, même avec sa bibliothèque de départ.

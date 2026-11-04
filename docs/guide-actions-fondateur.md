@@ -2,13 +2,22 @@
 
 Le mode d'emploi des cases de `docs/plan-ouverture-publique.md` qui ne dépendent que de toi, dans l'ordre. Rien ici n'a encore été envoyé ni payé.
 
+## À savoir après le plan V1 (4 novembre)
+
+- **Ta date de naissance :** ton compte la demandera à la prochaine connexion. **Une seule saisie est possible** : une faute sur l'année qui te ferait passer pour mineur ferme tous tes espaces, et seule une correction en base les rouvre.
+- **Signal de vie :** crée la sonde externe, puis pose `CRON_HEARTBEAT_URL` et `CRON_HEARTBEAT_NOTIFICATIONS_URL` dans Vercel (deux adresses, car les seuils diffèrent). Sans elles, une tâche planifiée arrêtée ne déclenche aucune alerte.
+- **Préversion :** `preview.tartan.coach` n'existe pas encore, alors que le profil `preview` de l'app mobile le vise.
+- **Script d'isolation :** `scripts/verify-env-isolation.mjs` ne peut pas lire les variables « sensibles » de Vercel, et il le dit. Contrôle celles-là à la main.
+- **Mobile :** le DSN Sentry mobile et `SENTRY_AUTH_TOKEN` restent à poser. Le téléversement des symboles a échoué en local et reste coupé : à réessayer avec le premier build EAS.
+- **Pour le juriste :** après 24 mois d'inactivité, l'espace sans autre coach est supprimé avec les données de ses athlètes, et seul le propriétaire est prévenu. Fais valider cette règle.
+
 ## Aujourd'hui (20 minutes)
 
 1. **Relire la landing** sur [tartan.coach](https://tartan.coach), sur ordinateur et sur téléphone. Dis-moi ce qui ne te plaît pas.
 2. **Ranger la clé de sauvegarde** : copie `~/.tartan/cle-sauvegarde.txt` dans ton gestionnaire de mots de passe. Sans elle, les sauvegardes sont illisibles.
 3. **Sécuriser le jeton Blob** : dans Vercel, projet `tartan`, Settings, Environment Variables, recrée `BLOB_READ_WRITE_TOKEN` en « Sensitive », avec un jeton distinct pour la production.
 4. **Contrôler trois valeurs** dans Vercel :
-   - `EMAIL_FROM` doit finir par `@yodev.fr` ;
+   - `EMAIL_FROM` doit finir par `@mail.tartan.coach` une fois le domaine vérifié dans Resend, sinon `@yodev.fr` ;
    - `DATABASE_URL` en Preview doit être différente de la production ;
    - `STRIPE_SECRET_KEY` en Preview doit commencer par `sk_test_` ou `rk_test_`.
 5. **Tester le contact** : envoie un message à `hello@tartan.coach` depuis une autre adresse et vérifie qu'il arrive sur Gmail.

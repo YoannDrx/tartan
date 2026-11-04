@@ -25,8 +25,8 @@ test("lecture image par image d'une vidéo à 240 i/s", async ({ page }, info) =
   ).rows[0];
   // Sans accord vidéo, le lecteur reste fermé au coach.
   await sql.query(
-    `insert into consents (id, user_id, kind, version, granted_at, updated_at) values (gen_random_uuid(), $1, 'video', '1', now(), now())`,
-    [org.owner_id],
+    `insert into athlete_consents (athlete_id, kind, version, granted_at) values ($1, 'video', '1', now())`,
+    [athlete.id],
   );
   const video = (
     await sql.query(

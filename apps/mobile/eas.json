@@ -6,13 +6,17 @@
   "build": {
     "base": {
       "node": "22.23.4",
-      "pnpm": "10.34.9"
+      "pnpm": "10.34.9",
+      "env": { "SENTRY_DISABLE_AUTO_UPLOAD": "true" },
+      "ios": { "image": "sdk-55" },
+      "android": { "image": "sdk-55" }
     },
     "development": {
       "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
       "environment": "development",
+      "channel": "development",
       "env": { "APP_VARIANT": "development" }
     },
     "development-simulator": {
@@ -23,6 +27,7 @@
       "extends": "base",
       "distribution": "internal",
       "environment": "preview",
+      "channel": "preview",
       "env": {
         "APP_VARIANT": "preview",
         "EXPO_PUBLIC_API_URL": "https://preview.tartan.coach",
@@ -38,6 +43,7 @@
       "extends": "base",
       "autoIncrement": true,
       "environment": "production",
+      "channel": "production",
       "env": {
         "APP_VARIANT": "production",
         "EXPO_PUBLIC_API_URL": "https://app.tartan.coach",

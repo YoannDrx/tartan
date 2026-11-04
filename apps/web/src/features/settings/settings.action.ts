@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { consentInput, groupInput, profileInput, uuid } from "@tartan/contracts";
+import { athleteConsentInput, groupInput, profileInput, uuid } from "@tartan/contracts";
 import { z } from "zod";
 import { authAction } from "@/lib/safe-action";
 import { invalid } from "@/lib/errors";
@@ -10,11 +10,19 @@ import { m } from "@tartan/i18n";
 import { spaceAction } from "@/features/shell/space-action";
 import { SPACE_COOKIE } from "@/features/shell/space";
 import { deleteAccount } from "@/server/account.service";
-import { resendParentalConsent, setConsent } from "@/server/consent.service";
+import { resendParentalConsent, setAthleteConsent } from "@/server/consent.service";
+import { EMAIL_KINDS, setEmailPreference } from "@/server/email-preferences.service";
 import { revokeIcalLink } from "@/server/ical.service";
 import { saveAvatar, updateProfile } from "@/server/me.service";
 import { deleteGroup, saveGroup, saveOrganizationLogo, updateOrganization } from "@/server/org.service";
 import { leaveOrganization, removeAthlete, removeCoach, updateMember } from "@/server/members.service";
+
+export const setEmailPreferenceAction = authAction
+  .inputSchema(z.object({ kind: z.enum(EMAIL_KINDS), on: z.boolean() }))
+  .action(async ({ parsedInput, ctx }) => {
+    await setEmailPreference(ctx.actor.userId, parsedInput.kind, parsedInput.on);
+    revalidatePath("/reglages");
+  });
 
 export const revokeIcalLinkAction = spaceAction.action(async ({ ctx }) => {
   await revokeIcalLink(ctx.userId, ctx.organizationId);
@@ -40,8 +48,8 @@ export const uploadLogoAction = spaceAction
     revalidatePath("/reglages");
   });
 
-export const setConsentAction = authAction.inputSchema(consentInput).action(async ({ parsedInput, ctx }) => {
-  await setConsent(ctx.actor.userId, parsedInput.kind, parsedInput.granted);
+export const setConsentAction = spaceAction.inputSchema(athleteConsentInput).action(async ({ parsedInput, ctx }) => {
+  await setAthleteConsent(ctx.userId, ctx.organizationId, parsedInput.kind, parsedInput.granted);
   revalidatePath("/", "layout");
 });
 

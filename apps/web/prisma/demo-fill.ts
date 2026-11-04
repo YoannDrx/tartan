@@ -103,6 +103,19 @@ const grantConsents = async (userId: string, athleteId: string, health: boolean)
     }),
     skipDuplicates: true,
   });
+  await prisma.athleteConsent.createMany({
+    data: (["video", "health"] as const).map((kind) => {
+      const granted = kind !== "health" || health;
+      return {
+        athleteId,
+        kind,
+        version: "2026-11",
+        grantedAt: granted ? now : null,
+        revokedAt: granted ? null : now,
+      };
+    }),
+    skipDuplicates: true,
+  });
 };
 
 type Roster = { id: string; person: Person; health: boolean };

@@ -40,6 +40,8 @@ export default defineConfig({
       NEXT_PUBLIC_APP_URL: `http://localhost:${PORT}`,
       BETTER_AUTH_SECRET: "secret-e2e-secret-e2e-secret-e2e-secret-e2e",
       CRON_SECRET: "e2e-cron",
+      APPLE_TEAM_ID: "TESTTEAM00",
+      ANDROID_SHA256_FINGERPRINTS: "AA:BB:CC",
       RESEND_API_KEY: "",
       MUX_TOKEN_ID: "",
       MUX_TOKEN_SECRET: "",

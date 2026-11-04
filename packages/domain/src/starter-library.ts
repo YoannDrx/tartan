@@ -7,7 +7,7 @@ export type StarterExercise = {
   prescription: Prescription;
 };
 
-// Bibliothèque de départ (§ 7.4) : exercices courants d'un groupe de sauteurs, sans vidéo,
+// Bibliothèque de départ (§ 7.4) : exercices courants d'un groupe de sauteurs et d'un préparateur physique, sans vidéo,
 // copiés dans chaque nouvel espace et modifiables. Le coach reste maître des consignes.
 export const STARTER_LIBRARY: StarterExercise[] = [
   {
@@ -135,6 +135,54 @@ export const STARTER_LIBRARY: StarterExercise[] = [
     category: "strength",
     cues: ["Amplitude complète", "Montée explosive"],
     prescription: { sets: 3, reps: 12, rest_s: 60 },
+  },
+  {
+    name: "Développé couché",
+    category: "strength",
+    cues: ["Omoplates serrées", "Pieds ancrés au sol"],
+    prescription: { sets: 4, reps: 6, rest_s: 150 },
+  },
+  {
+    name: "Développé militaire",
+    category: "strength",
+    cues: ["Gainage serré", "Pousser à la verticale"],
+    prescription: { sets: 4, reps: 6, rest_s: 150 },
+  },
+  {
+    name: "Tractions",
+    category: "strength",
+    cues: ["Épaules basses", "Amplitude complète"],
+    prescription: { sets: 4, reps: 6, rest_s: 120 },
+  },
+  {
+    name: "Rowing",
+    category: "strength",
+    cues: ["Dos plat", "Tirer les coudes vers l'arrière"],
+    prescription: { sets: 4, reps: 8, rest_s: 120 },
+  },
+  {
+    name: "Fentes avant",
+    category: "strength",
+    cues: ["Genou dans l'axe", "Buste droit"],
+    prescription: { sets: 3, reps: 10, rest_s: 90 },
+  },
+  {
+    name: "Squat bulgare",
+    category: "strength",
+    cues: ["Pied avant bien ancré", "Descente contrôlée"],
+    prescription: { sets: 3, reps: 8, rest_s: 90 },
+  },
+  {
+    name: "Soulevé de terre roumain",
+    category: "strength",
+    cues: ["Hanches vers l'arrière", "Dos plat"],
+    prescription: { sets: 3, reps: 8, rest_s: 120 },
+  },
+  {
+    name: "Gainage",
+    category: "strength",
+    cues: ["Bassin neutre", "Respiration régulière"],
+    prescription: { sets: 3, duration_s: 45, rest_s: 45 },
   },
   {
     name: "Gainage ventral",

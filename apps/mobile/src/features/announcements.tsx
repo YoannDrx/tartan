@@ -161,7 +161,12 @@ export const AnnouncementsScreen = ({ canPublish }: { canPublish: boolean }) => 
       {reporting ? (
         <ModerationSheet
           orgId={orgId}
-          target={{ entityType: "announcement", entityId: reporting }}
+          target={{
+            entityType: "announcement",
+            entityId: reporting,
+            authorId: announcements.data?.find((a) => a.id === reporting)?.authorId,
+            authorName: announcements.data?.find((a) => a.id === reporting)?.authorName,
+          }}
           onClose={() => setReporting(null)}
         />
       ) : null}

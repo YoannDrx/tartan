@@ -1,3 +1,4 @@
+import { todayIso } from "@/lib/dates";
 import {
   type BillingInterval,
   isPaidPlan,
@@ -13,13 +14,15 @@ import {
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { createElement } from "react";
-import { NotificationEmail } from "@email/auth";
+import { PurgeNoticeEmail } from "@email/billing";
 import { env } from "@/lib/env";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
 import { log } from "@/lib/logger";
 import { hasBearer } from "@/lib/secure-compare";
 import { sendEmail } from "@/lib/mail";
-import { deleteAsset, videoEnabled } from "@/lib/mux";
+import { videoEnabled } from "@/lib/mux";
+import { drainExternalDeletions } from "./external-deletion.service";
+import { reconcileStripeSubscription } from "./stripe-subscriptions.service";
 import { prisma } from "@/lib/prisma";
 import { billingEnabled, priceIdFor, stripe } from "@/lib/stripe";
 import { audit, requireOrgMember } from "./access";
@@ -48,13 +51,29 @@ export const limitsOf = async (organizationId: string): Promise<PlanLimits> => {
 const startOfMonth = (now: Date): Date => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
 export const usageOf = async (organizationId: string, now: Date = new Date()) => {
-  const [maxAthletes, maxGroups, maxCoaches, maxVideosPerMonth] = await Promise.all([
+  // Un envoi sans fichier n'occupe rien : abandonné depuis 24 h, il ne compte plus dans le quota.
+  const abandonedBefore = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const [maxAthletes, maxGroups, maxCoaches, videos, demonstrations] = await Promise.all([
     prisma.athlete.count({ where: { organizationId } }),
     prisma.group.count({ where: { organizationId } }),
     prisma.organizationMember.count({ where: { organizationId, role: { in: ["owner", "coach", "assistant"] } } }),
-    prisma.video.count({ where: { organizationId, createdAt: { gte: startOfMonth(now) } } }),
+    prisma.video.count({
+      where: {
+        organizationId,
+        createdAt: { gte: startOfMonth(now) },
+        NOT: { muxAssetId: null, createdAt: { lt: abandonedBefore } },
+      },
+    }),
+    prisma.exerciseMedia.count({
+      where: {
+        kind: "upload",
+        exercise: { organizationId },
+        createdAt: { gte: startOfMonth(now) },
+        NOT: { muxAssetId: null, createdAt: { lt: abandonedBefore } },
+      },
+    }),
   ]);
-  return { maxAthletes, maxGroups, maxCoaches, maxVideosPerMonth };
+  return { maxAthletes, maxGroups, maxCoaches, maxVideosPerMonth: videos + demonstrations };
 };
 
 const LIMIT_MESSAGES: Record<LimitKey, string> = {
@@ -99,6 +118,8 @@ export const getBillingOverview = async (userId: string, organizationId: string)
 const INVOICE_FOOTER =
   "Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590. TVA non applicable, article 293 B du CGI.";
 
+const LIVE_SUBSCRIPTIONS: readonly string[] = ["active", "trialing", "past_due", "incomplete"];
+
 export const createCheckout = async (
   userId: string,
   organizationId: string,
@@ -117,12 +138,27 @@ export const createCheckout = async (
   }
   const client = stripe();
   let customerId = org.stripeCustomerId;
+  if (customerId) {
+    // Un webhook perdu laisse la base en retard : Stripe fait foi, et deux onglets ne créent qu'un abonnement.
+    const { data: subscriptions } = await client.subscriptions.list({ customer: customerId, status: "all", limit: 10 });
+    if (subscriptions.some((subscription) => LIVE_SUBSCRIPTIONS.includes(subscription.status))) {
+      await reconcileStripeSubscription(organizationId);
+      return createPortal(userId, organizationId);
+    }
+    const { data: openSessions } = await client.checkout.sessions.list({
+      customer: customerId,
+      status: "open",
+      limit: 10,
+    });
+    await Promise.all(openSessions.map((session) => client.checkout.sessions.expire(session.id)));
+  }
   if (!customerId) {
     const customer = await client.customers.create(
       {
         email: owner.email,
         name: org.name,
         metadata: { organizationId },
+        preferred_locales: ["fr"],
         // Identité du vendeur et franchise en base de TVA : mentions obligatoires sur chaque facture.
         invoice_settings: { footer: INVOICE_FOOTER },
       },
@@ -131,9 +167,9 @@ export const createCheckout = async (
     customerId = customer.id;
     await prisma.organization.update({ where: { id: organizationId }, data: { stripeCustomerId: customerId } });
   }
-  // Un seul essai par espace : résilier puis reprendre ne le redonne pas.
+  // Un seul essai par propriétaire : ni résilier puis reprendre, ni ouvrir un autre espace ne le redonne.
   const alreadyPaid = await prisma.subscription.count({
-    where: { organizationId, provider: { in: ["stripe", "revenuecat"] } },
+    where: { organization: { ownerId: org.ownerId }, provider: { in: ["stripe", "revenuecat"] } },
   });
   const appUrl = env().NEXT_PUBLIC_APP_URL;
   const session = await client.checkout.sessions.create({
@@ -168,6 +204,17 @@ export const createCheckout = async (
   });
   if (!session.url) throw new Error("stripe_checkout_url_missing");
   return { url: session.url };
+};
+
+export const syncAfterCheckout = async (userId: string, organizationId: string): Promise<void> => {
+  await requireOrgMember(userId, organizationId, "manageSubscription");
+  const org = await prisma.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: { stripeCustomerId: true },
+  });
+  if (!billingEnabled() || !org.stripeCustomerId) return;
+  // Sans réponse de Stripe, la page reste lisible : le webhook et la réconciliation prendront le relais.
+  await reconcileStripeSubscription(organizationId).catch(() => log.warn("checkout_return_sync_failed"));
 };
 
 export const createPortal = async (userId: string, organizationId: string): Promise<{ url: string }> => {
@@ -387,38 +434,68 @@ const referrerBeneficiary = async (ownerType: "user" | "organization", ownerId: 
 const PURGE_NOTICE_DAYS = 14;
 const DAY_MS = 86400 * 1000;
 
-// Le propriétaire est prévenu par e-mail ; rien ne part avant la fin du préavis annoncé par les CGV.
-const purgeNoticeServed = async (
-  organizationId: string,
-  name: string,
-  ownerEmail: string,
+const NOTICE_WINDOW_DAYS = 21;
+const NOTICE_INTERVAL_DAYS = 7;
+
+const dateInParis = (date: Date): string =>
+  new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(date);
+
+// Prévient des vidéos qui entrent dans la fenêtre, au plus une fois par semaine pour un espace.
+// La date du préavis n'est écrite qu'après l'acceptation par Resend : sans envoi, jamais de suppression.
+const sendPurgeNotice = async (
+  org: { id: string; name: string; owner: { email: string } },
+  retentionDays: number,
   now: Date,
-): Promise<boolean> => {
-  const notice = await prisma.auditLog.findFirst({
-    where: { organizationId, action: "video_purge_notice" },
-    orderBy: { at: "desc" },
+): Promise<void> => {
+  const windowStart = new Date(now.getTime() - (retentionDays - NOTICE_WINDOW_DAYS) * DAY_MS);
+  const videos = await prisma.video.findMany({
+    where: { organizationId: org.id, purgeNoticeAt: null, createdAt: { lt: windowStart } },
+    select: { id: true, createdAt: true },
   });
-  const age = notice ? now.getTime() - notice.at.getTime() : null;
-  if (age === null || age > 3 * PURGE_NOTICE_DAYS * DAY_MS) {
-    await prisma.auditLog.create({
-      data: { organizationId, action: "video_purge_notice", entity: "video", at: now },
-    });
-    const body = m.billing.purgeNotice(PURGE_NOTICE_DAYS);
+  if (videos.length === 0) return;
+  const recent = await prisma.auditLog.findFirst({
+    where: {
+      organizationId: org.id,
+      action: "video_purge_notice",
+      at: { gte: new Date(now.getTime() - NOTICE_INTERVAL_DAYS * DAY_MS) },
+    },
+  });
+  if (recent) return;
+  const newest = videos.reduce((latest, video) => (video.createdAt > latest ? video.createdAt : latest), new Date(0));
+  const limitDate = new Date(newest.getTime() + DAY_MS);
+  const subject = m.billing.purge.subject(videos.length, org.name);
+  try {
     await sendEmail({
-      to: ownerEmail,
-      subject: `Vidéos de ${name} : fin de conservation`,
-      react: createElement(NotificationEmail, {
-        title: "Fin de conservation de vidéos",
-        body,
-        url: `${env().NEXT_PUBLIC_APP_URL}/videos?espace=${organizationId}`,
+      to: org.owner.email,
+      subject,
+      idempotencyKey: `purge-notice/${org.id}/${todayIso(now)}`,
+      react: createElement(PurgeNoticeEmail, {
+        subject,
+        body: m.billing.purge.body(
+          videos.length,
+          org.name,
+          dateInParis(limitDate),
+          retentionDays,
+          dateInParis(new Date(now.getTime() + PURGE_NOTICE_DAYS * DAY_MS)),
+        ),
+        cta: m.billing.purge.cta,
+        url: `${env().NEXT_PUBLIC_APP_URL}/videos?espace=${org.id}`,
       }),
-    }).catch(() => log.error("purge_notice_email_failed"));
-    return false;
+    });
+  } catch {
+    log.error("purge_notice_email_failed", { organizationId: org.id });
+    return;
   }
-  return age >= PURGE_NOTICE_DAYS * DAY_MS;
+  await prisma.video.updateMany({
+    where: { id: { in: videos.map((video) => video.id) } },
+    data: { purgeNoticeAt: now },
+  });
+  await prisma.auditLog.create({
+    data: { organizationId: org.id, action: "video_purge_notice", entity: "video", at: now },
+  });
 };
 
-// Conservation vidéo : coût maîtrisé (§ 17.1), après préavis.
+// Conservation vidéo : coût maîtrisé (§ 17.1), jamais sans préavis réel d'au moins 14 jours.
 export const purgeExpiredVideos = async (now: Date = new Date()): Promise<number> => {
   const orgs = await prisma.organization.findMany({
     where: { plan: { in: ["discovery", "coach", "club"] } },
@@ -428,21 +505,17 @@ export const purgeExpiredVideos = async (now: Date = new Date()): Promise<number
   for (const org of orgs) {
     const days = PLANS[org.plan].limits.videoRetentionDays;
     if (days === null) continue;
-    const before = new Date(now.getTime() - days * DAY_MS);
-    const soon = new Date(before.getTime() + PURGE_NOTICE_DAYS * DAY_MS);
-    const expiring = await prisma.video.count({ where: { organizationId: org.id, createdAt: { lt: soon } } });
-    if (expiring === 0 || !(await purgeNoticeServed(org.id, org.name, org.owner.email, now))) continue;
-    const videos = await prisma.video.findMany({
-      where: { organizationId: org.id, createdAt: { lt: before } },
-      select: { id: true, muxAssetId: true },
+    await sendPurgeNotice(org, days, now);
+    const { count } = await prisma.video.deleteMany({
+      where: {
+        organizationId: org.id,
+        createdAt: { lt: new Date(now.getTime() - days * DAY_MS) },
+        purgeNoticeAt: { lte: new Date(now.getTime() - PURGE_NOTICE_DAYS * DAY_MS) },
+      },
     });
-    for (const video of videos) {
-      if (video.muxAssetId && videoEnabled())
-        await deleteAsset(video.muxAssetId).catch(() => log.warn("mux_asset_delete_failed"));
-      await prisma.video.delete({ where: { id: video.id } });
-      purged += 1;
-    }
+    purged += count;
   }
+  if (purged) await drainExternalDeletions();
   log.info("videos_purged", { count: purged });
   return purged;
 };

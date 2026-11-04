@@ -101,6 +101,13 @@ export const consentInput = z.object({
   granted: z.boolean(),
 });
 
+export const confirmAgeInput = z.object({ birthDate: isoDate });
+
+export const athleteConsentInput = z.object({
+  kind: z.enum(["health", "video"]),
+  granted: z.boolean(),
+});
+
 export const parentalConsentInput = z.object({
   token: z.string().min(16),
   decision: z.enum(["granted", "refused"]),

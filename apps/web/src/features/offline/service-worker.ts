@@ -26,6 +26,11 @@ export const syncOfflinePages = async (organizationId: string): Promise<void> =>
   if (last?.space === organizationId && Date.now() - last.at < SYNC_EVERY_MS) return;
   if (last && last.space !== organizationId) active.postMessage({ type: "clear-pages" });
   const res = await fetch(`/api/v1/orgs/${organizationId}/offline-urls`).catch(() => null);
+  // Plus de droits sur cet espace : ses pages ne doivent pas rester sur l'appareil.
+  if (res?.status === 401 || res?.status === 403) {
+    await clearOfflinePages();
+    return;
+  }
   if (!res?.ok) return;
   const { urls } = (await res.json()) as { urls: string[] };
   active.postMessage({ type: "cache-pages", urls });

@@ -12,7 +12,19 @@ import {
   toRealMs,
 } from "@tartan/domain";
 import { m, withFirstOfMonth } from "@tartan/i18n";
-import { Check, ChevronLeft, Flag, Pause, Play, Repeat, Share2, SkipBack, SkipForward, Trash2 } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  Flag,
+  Pause,
+  Play,
+  Repeat,
+  Share2,
+  SkipBack,
+  SkipForward,
+  Trash2,
+  Download,
+} from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -215,6 +227,18 @@ export const VideoAnalysis = ({
                   <Share2 aria-hidden className="size-4" />
                 )}
               </IconButton>
+            ) : null}
+            {video.mp4Url ? (
+              <a
+                href={video.mp4Url}
+                target="_blank"
+                rel="noreferrer"
+                download
+                className="inline-flex min-h-11 shrink-0 items-center gap-1.5 font-semibold"
+              >
+                <Download aria-hidden className="size-5" />
+                {m.video.download}
+              </a>
             ) : null}
           </header>
 

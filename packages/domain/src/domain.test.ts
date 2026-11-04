@@ -1,3 +1,5 @@
+import { containsBlockedWord } from "./moderation";
+import { billingEmailsFor } from "./billing-emails";
 import { describe, expect, it } from "vitest";
 import {
   personalBestIds,
@@ -568,5 +570,53 @@ describe("records personnels", () => {
         { id: "apres", mark: 200, unit: "cm" },
       ]),
     ).toEqual(["avant"]);
+  });
+});
+
+describe("préparation physique", () => {
+  it("le tempo s'affiche dans la prescription", () => {
+    expect(formatPrescription({ sets: 4, reps: 6, tempo: "3-1-1" })).toBe("4 × 6 rép. · tempo 3-1-1");
+  });
+});
+
+describe("mails de facturation", () => {
+  const free = { paid: false, status: "active", cancelAt: null, subscriptionId: null };
+  const paid = { paid: true, status: "active", cancelAt: null, subscriptionId: "sub_1" };
+  const date = new Date("2030-07-01T00:00:00Z");
+
+  it("un nouvel abonnement donne une confirmation", () => {
+    expect(billingEmailsFor(free, paid)).toEqual([{ kind: "started", dedupeKey: "sub_1:started" }]);
+  });
+  it("aucune transition, aucun mail", () => {
+    expect(billingEmailsFor(paid, paid)).toEqual([]);
+  });
+  it("une résiliation programmée, avec sa date", () => {
+    expect(billingEmailsFor(paid, { ...paid, cancelAt: date })).toEqual([
+      { kind: "cancel", dedupeKey: "sub_1:cancel:2030-07-01", cancelAt: date },
+    ]);
+  });
+  it("reprendre avant l'échéance n'envoie rien, résilier à nouveau pour une autre date renvoie", () => {
+    expect(billingEmailsFor({ ...paid, cancelAt: date }, paid)).toEqual([]);
+    const later = new Date("2030-08-01T00:00:00Z");
+    expect(billingEmailsFor(paid, { ...paid, cancelAt: later })[0]?.dedupeKey).toBe("sub_1:cancel:2030-08-01");
+  });
+  it("la fin d'un abonnement, en précisant l'impayé", () => {
+    expect(billingEmailsFor(paid, { ...free, subscriptionId: "sub_1", status: "canceled" })).toEqual([
+      { kind: "ended", dedupeKey: "sub_1:ended", unpaid: false },
+    ]);
+    expect(billingEmailsFor({ ...paid, status: "past_due" }, { ...free, status: "canceled" })[0]).toMatchObject({
+      unpaid: true,
+    });
+  });
+});
+
+describe("filtre de mots", () => {
+  it("repère un mot insultant, accents et majuscules compris", () => {
+    expect(containsBlockedWord("Quel ENCULÉ")).toBe(true);
+  });
+  it("ne se trompe pas sur un mot qui en contient un autre", () => {
+    expect(containsBlockedWord("Séance de computation et de députés")).toBe(false);
+    expect(containsBlockedWord("Bonne séance, pédé est absent")).toBe(true);
+    expect(containsBlockedWord("Pédaler 20 minutes")).toBe(false);
   });
 });

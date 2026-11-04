@@ -15,9 +15,9 @@ export const metadata: Metadata = { title: m.auth.signInTitle };
 export default async function ConnexionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; creer?: string }>;
+  searchParams: Promise<{ next?: string; creer?: string; lien?: string }>;
 }) {
-  const { next, creer } = await searchParams;
+  const { next, creer, lien } = await searchParams;
   const callbackURL = safeReturnPath(next);
   if (await getActor()) redirect(callbackURL);
   const signupOpen = env().COACH_SIGNUP_MODE === "public";
@@ -29,7 +29,8 @@ export default async function ConnexionPage({
       title={creating ? m.auth.createTitle : m.auth.signInTitle}
       lead={creating ? m.auth.createLead(PLANS.discovery.limits.maxAthletes ?? 0) : m.auth.signInLead}
     >
-      <div className="on-card rounded-card bg-card p-5">
+      <div className="on-card flex flex-col gap-4 rounded-card bg-card p-5">
+        {lien === "expire" ? <p role="alert">{m.auth.resetInvalid}</p> : null}
         <SignInForm callbackURL={callbackURL} providers={enabledSocialProviders} creating={creating} />
       </div>
       {signupOpen ? (

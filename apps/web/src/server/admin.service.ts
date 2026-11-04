@@ -3,6 +3,7 @@ import { todayIso, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { forbidden } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
+import { externalDeletionHealth } from "./external-deletion.service";
 import { pilotMetrics } from "./metrics.service";
 import { notificationDeliveryHealth } from "./notification-delivery.service";
 
@@ -71,6 +72,7 @@ export const adminOverview = async (actor: { email: string }, now: Date = new Da
     spaces,
     plans,
     notificationDelivery: await notificationDeliveryHealth(now),
+    externalDeletions: await externalDeletionHealth(now),
     users: await prisma.user.count(),
     satisfaction: {
       yes: count(true),

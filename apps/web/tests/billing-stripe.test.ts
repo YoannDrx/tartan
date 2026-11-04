@@ -3,13 +3,17 @@ import type Stripe from "stripe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PLANS } from "@tartan/domain";
 import type { Prisma } from "@/generated/prisma/client";
+import * as mail from "@/lib/mail";
+import { outbox } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
+import { flushEmailOutbox } from "@/server/email-outbox.service";
 import { adminOverview } from "@/server/admin.service";
 import { applySubscription, createCheckout, handleStripeEvent, limitsOf } from "@/server/billing.service";
 import { reconcileStripeSubscription } from "@/server/stripe-subscriptions.service";
 import { deleteAccount } from "@/server/account.service";
 import { answerSatisfaction, shouldAskSatisfaction } from "@/server/satisfaction.service";
-import { makeOrg } from "./helpers";
+import { createOrganization } from "@/server/org.service";
+import { addStaff, makeOrg } from "./helpers";
 
 const mocks = vi.hoisted(() => ({
   cancel: vi.fn(),
@@ -17,16 +21,21 @@ const mocks = vi.hoisted(() => ({
   checkout: vi.fn(),
   customer: vi.fn(),
   list: vi.fn(),
+  sessions: vi.fn(),
+  expire: vi.fn(),
+  update: vi.fn(),
+  customerDel: vi.fn(),
+  customerUpdate: vi.fn(),
 }));
 vi.mock("@/lib/stripe", () => ({
   billingEnabled: () => true,
   priceIdFor: () => "price_coach",
   planForPriceId: (id: string) => (id === "price_coach" ? "coach" : id === "price_club" ? "club" : null),
   stripe: () => ({
-    subscriptions: { cancel: mocks.cancel, list: mocks.list },
+    subscriptions: { cancel: mocks.cancel, list: mocks.list, update: mocks.update },
     billingPortal: { sessions: { create: mocks.portal } },
-    checkout: { sessions: { create: mocks.checkout } },
-    customers: { create: mocks.customer },
+    checkout: { sessions: { create: mocks.checkout, list: mocks.sessions, expire: mocks.expire } },
+    customers: { create: mocks.customer, del: mocks.customerDel, update: mocks.customerUpdate },
   }),
 }));
 const paid = (organizationId: string, ref: string) =>
@@ -250,6 +259,165 @@ describe("vente Stripe", () => {
     expect(mocks.cancel).toHaveBeenCalledWith("sub_depart");
   });
 });
+describe("mails d'abonnement", () => {
+  const mails = (email: string) => outbox.filter((mail) => mail.to === email);
+  const next = () => Math.floor(Date.now() / 1000) + 30 * 86400;
+
+  it("un webhook rejoué et une réconciliation concurrente ne donnent qu'un mail", async () => {
+    const a = await setup();
+    const owner = a.owner.email;
+    await prisma.organization.update({ where: { id: a.organizationId }, data: { plan: "discovery" } });
+    a.state(a.sub("trialing"));
+    await reconcileStripeSubscription(a.organizationId);
+    await Promise.all([reconcileStripeSubscription(a.organizationId), reconcileStripeSubscription(a.organizationId)]);
+    expect(mails(owner).filter((mail) => mail.subject.includes("est confirmé"))).toHaveLength(1);
+  });
+  it("une résiliation, puis une reprise, puis une nouvelle résiliation à la même date : un seul mail par date", async () => {
+    const a = await setup();
+    await prisma.organization.update({ where: { id: a.organizationId }, data: { plan: "discovery" } });
+    const cancelAt = next();
+    a.state(a.sub("active"));
+    await reconcileStripeSubscription(a.organizationId);
+    a.state({ ...a.sub("active"), cancel_at: cancelAt });
+    await reconcileStripeSubscription(a.organizationId);
+    a.state(a.sub("active"));
+    await reconcileStripeSubscription(a.organizationId);
+    a.state({ ...a.sub("active"), cancel_at: cancelAt });
+    await reconcileStripeSubscription(a.organizationId);
+    expect(mails(a.owner.email).filter((mail) => mail.subject.includes("Résiliation"))).toHaveLength(1);
+  });
+  it("un impayé épuisé annonce la fin en le disant", async () => {
+    const a = await setup();
+    await prisma.organization.update({ where: { id: a.organizationId }, data: { plan: "discovery" } });
+    a.state(a.sub("past_due"));
+    await reconcileStripeSubscription(a.organizationId);
+    a.state(a.sub("unpaid"));
+    await reconcileStripeSubscription(a.organizationId);
+    const ended = mails(a.owner.email).find((mail) => mail.subject.includes("a pris fin"));
+    expect(ended?.html).toContain("tentatives de prélèvement");
+  });
+  it("un envoi qui échoue est repris par la tâche, sans doublon", async () => {
+    const a = await setup();
+    await prisma.organization.update({ where: { id: a.organizationId }, data: { plan: "discovery" } });
+    const send = vi.spyOn(mail, "sendEmail").mockRejectedValueOnce(new Error("email_failed"));
+    a.state(a.sub("active"));
+    await reconcileStripeSubscription(a.organizationId);
+    const row = await prisma.emailOutbox.findFirstOrThrow({ where: { organizationId: a.organizationId } });
+    expect(row.sentAt).toBeNull();
+    send.mockRestore();
+    expect(await flushEmailOutbox(new Date(Date.now() + 10 * 60_000))).toBe(1);
+    expect(await flushEmailOutbox(new Date(Date.now() + 20 * 60_000))).toBe(0);
+  });
+});
+
+describe("parcours d'achat", () => {
+  const prepared = async () => {
+    const a = await setup();
+    mocks.sessions.mockReset().mockResolvedValue({ data: [] });
+    mocks.expire.mockReset().mockResolvedValue({});
+    mocks.checkout.mockReset().mockResolvedValue({ url: "https://checkout.test" });
+    mocks.portal.mockReset().mockResolvedValue({ url: "https://portail.test" });
+    return a;
+  };
+  const input = { plan: "coach" as const, interval: "year" as const };
+
+  it("un abonnement en essai retrouvé chez Stripe mène au portail, sans second paiement", async () => {
+    const a = await prepared();
+    mocks.list.mockResolvedValue({ data: [a.sub("trialing")] });
+    await expect(createCheckout(a.owner.userId, a.organizationId, input)).resolves.toEqual({
+      url: "https://portail.test",
+    });
+    expect(mocks.checkout).not.toHaveBeenCalled();
+  });
+  it("une session de paiement encore ouverte est expirée : deux onglets ne créent qu'un abonnement", async () => {
+    const a = await prepared();
+    mocks.list.mockResolvedValue({ data: [] });
+    mocks.sessions.mockResolvedValue({ data: [{ id: "cs_ouvert" }] });
+    await createCheckout(a.owner.userId, a.organizationId, input);
+    expect(mocks.expire).toHaveBeenCalledWith("cs_ouvert");
+    expect(mocks.checkout).toHaveBeenCalledTimes(1);
+  });
+  it("l'essai n'est pas redonné dans un second espace du même propriétaire", async () => {
+    const a = await prepared();
+    mocks.list.mockResolvedValue({ data: [] });
+    await prisma.subscription.create({
+      data: { organizationId: a.organizationId, planKey: "coach", status: "canceled", provider: "stripe" },
+    });
+    await prisma.organization.update({ where: { id: a.organizationId }, data: { plan: "coach" } });
+    const second = await createOrganization(a.owner.userId, {
+      name: "Second",
+      type: "independent",
+      disciplines: [],
+      firstGroupName: "Groupe",
+    });
+    await createCheckout(a.owner.userId, second.id, input);
+    const params = mocks.checkout.mock.calls.at(-1)![0];
+    expect(params.subscription_data.trial_period_days).toBeUndefined();
+  });
+  it("un second espace Découverte est refusé", async () => {
+    const a = await prepared();
+    await prisma.organization.update({ where: { id: a.organizationId }, data: { plan: "discovery" } });
+    await expect(
+      createOrganization(a.owner.userId, {
+        name: "Encore",
+        type: "independent",
+        disciplines: [],
+        firstGroupName: "Groupe",
+      }),
+    ).rejects.toMatchObject({ code: "discovery_limit", status: 409 });
+  });
+  it("un coach adjoint ne lance pas de paiement", async () => {
+    const a = await prepared();
+    const coach = await addStaff(a.organizationId, "Adjoint", "assistant");
+    await expect(createCheckout(coach.userId, a.organizationId, input)).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe("suppression de compte et abonnement", () => {
+  const withSubscription = async () => {
+    const a = await setup();
+    const ref = `sub_${randomUUID()}`;
+    await prisma.subscription.create({
+      data: {
+        organizationId: a.organizationId,
+        planKey: "coach",
+        status: "active",
+        provider: "stripe",
+        providerRef: ref,
+        currentPeriodEnd: new Date("2030-07-01T10:00:00Z"),
+      },
+    });
+    return { ...a, ref };
+  };
+  it("espace supprimé : abonnement et client partent en file, plus aucun prélèvement", async () => {
+    const a = await withSubscription();
+    await deleteAccount(a.owner.userId);
+    expect(mocks.cancel).toHaveBeenCalledWith(a.ref);
+    expect(mocks.customerDel).toHaveBeenCalledWith(a.customer);
+    expect(await prisma.externalDeletion.findFirst({ where: { externalRef: a.ref } })).toMatchObject({ state: "done" });
+  });
+  it("Stripe en panne ne bloque pas la suppression, et la file reprendra", async () => {
+    const a = await withSubscription();
+    mocks.cancel.mockRejectedValueOnce(Object.assign(new Error("panne"), { status: 503 }));
+    await deleteAccount(a.owner.userId);
+    expect(await prisma.user.count({ where: { id: a.owner.userId } })).toBe(0);
+    expect(await prisma.externalDeletion.findFirst({ where: { externalRef: a.ref } })).toMatchObject({
+      state: "pending",
+      lastErrorCode: "http_503",
+    });
+  });
+  it("espace transféré : arrêt en fin de période, facture au repreneur, repreneur prévenu de la date", async () => {
+    const a = await withSubscription();
+    const heir = await addStaff(a.organizationId, "Repreneur", "coach", []);
+    await deleteAccount(a.owner.userId);
+    expect(mocks.cancel).not.toHaveBeenCalledWith(a.ref);
+    expect(mocks.update).toHaveBeenCalledWith(a.ref, { cancel_at_period_end: true });
+    expect(mocks.customerUpdate).toHaveBeenCalledWith(a.customer, { email: heir.email });
+    const told = outbox.find((entry) => entry.to === heir.email && entry.subject.includes("responsable"));
+    expect(told?.html).toContain("1 juillet 2030");
+  });
+});
+
 describe("console et satisfaction", () => {
   it("la console refuse toute adresse hors de la liste", async () => {
     await expect(adminOverview({ email: "quelqu-un@exemple.fr" })).rejects.toMatchObject({ status: 403 });

@@ -10,11 +10,13 @@ import { m } from "@tartan/i18n";
 import { fromDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { AppError, consentRequired, forbidden, invalid, notFound } from "@/lib/errors";
-import { createDirectUpload, deleteAsset, signedPlayback, unwrapWebhook, videoEnabled } from "@/lib/mux";
+import { createDirectUpload, signedPlayback, unwrapWebhook, videoEnabled } from "@/lib/mux";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireOwnedRefs, requireVisibleAthlete, visibleAthleteIds, type Access } from "./access";
 import { assertWithinPlan } from "./billing.service";
+import { blockedUserIds } from "./blocks.service";
+import { drainExternalDeletions, enqueueExternalDeletion } from "./external-deletion.service";
 import { consentForAthletes } from "./consent.service";
 import { firstNameOf, namesFor } from "./me.service";
 import { notify } from "./notify.service";
@@ -32,6 +34,7 @@ import {
 const VIDEO_SELECT = {
   id: true,
   athleteId: true,
+  uploadedBy: true,
   status: true,
   muxPlaybackId: true,
   fps: true,
@@ -50,6 +53,7 @@ const summarize = async (
   v: {
     id: string;
     athleteId: string;
+    uploadedBy: string;
     status: VideoSummary["status"];
     muxPlaybackId: string | null;
     fps: number | null;
@@ -71,8 +75,9 @@ const summarize = async (
     id: v.id,
     athleteId: v.athleteId,
     athleteName: `${v.athlete.firstName} ${v.athlete.lastName}`.trim(),
+    uploadedBy: v.uploadedBy,
     status: v.status,
-    playbackId: v.muxPlaybackId,
+    playbackId: consentRevoked ? null : v.muxPlaybackId,
     thumbnailUrl,
     consentRevoked,
     fps: v.fps,
@@ -149,6 +154,7 @@ export const renewVideoUpload = async (userId: string, organizationId: string, v
   const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
   const video = await requireVideo(access, videoId);
   if (video.status !== "uploading") throw invalid("Cette vidéo est déjà envoyée.");
+  await requireVideoConsent(video.athleteId);
   if (!videoEnabled()) throw new AppError(503, "video_disabled", m.errors.videoDisabled);
   const upload = await createDirectUpload(`video:${videoId}`);
   await prisma.video.update({ where: { id: videoId }, data: { muxUploadId: upload.uploadId } });
@@ -181,18 +187,41 @@ export const applyMuxEvent = async (event: {
     tracks?: { type: string; max_frame_rate?: number }[];
   };
 }): Promise<void> => {
+  // Un envoi interrompu ne laisse pas la vidéo « en cours d'envoi » pour toujours.
+  if (event.type === "video.upload.errored") {
+    await prisma.video.updateMany({ where: { muxUploadId: event.data.id }, data: { status: "error" } });
+    return;
+  }
   const [kind, id] = (event.data.passthrough ?? "").split(":");
   if (!id) return;
   if (kind === "exercise") {
     if (event.type === "video.asset.ready") {
-      await prisma.exerciseMedia.updateMany({
+      // Mêmes limites que les vidéos d'athlètes : une démonstration trop longue ne reste pas.
+      if ((event.data.duration ?? 0) > MAX_FILE_SECONDS * 1.1) {
+        await enqueueExternalDeletion({ provider: "mux_asset", ref: event.data.id, reason: "video_oversized" });
+        await prisma.exerciseMedia.deleteMany({ where: { id } });
+        log.warn("video_oversized", { entityId: id });
+        return;
+      }
+      const updated = await prisma.exerciseMedia.updateMany({
         where: { id },
         data: { muxAssetId: event.data.id, muxPlaybackId: event.data.playback_ids?.[0]?.id ?? null },
       });
+      if (!updated.count) {
+        await enqueueExternalDeletion({ provider: "mux_asset", ref: event.data.id, reason: "late_webhook" });
+      }
     }
     return;
   }
   if (kind !== "video") return;
+  // La vidéo a été supprimée avant l'arrivée du fichier : ce fichier ne doit pas rester chez Mux.
+  if (id && (event.type === "video.asset.created" || event.type === "video.asset.ready")) {
+    const known = await prisma.video.count({ where: { id } });
+    if (!known) {
+      await enqueueExternalDeletion({ provider: "mux_asset", ref: event.data.id, reason: "late_webhook" });
+      return;
+    }
+  }
   if (event.type === "video.asset.created") {
     await prisma.video.updateMany({ where: { id }, data: { status: "processing", muxAssetId: event.data.id } });
   } else if (event.type === "video.asset.ready") {
@@ -202,7 +231,7 @@ export const applyMuxEvent = async (event: {
     // Le client refuse déjà les fichiers trop longs : ici, seul un envoi qui l'aurait contourné est arrêté.
     if ((event.data.duration ?? 0) > MAX_FILE_SECONDS * 1.1) {
       await prisma.video.updateMany({ where: { id }, data: { status: "error" } });
-      await deleteAsset(event.data.id).catch(() => log.error("video_oversized_delete_failed", { entityId: id }));
+      await enqueueExternalDeletion({ provider: "mux_asset", ref: event.data.id, reason: "video_oversized" });
       log.warn("video_oversized", { entityId: id });
       return;
     }
@@ -241,7 +270,14 @@ export const listVideos = async (userId: string, organizationId: string, query: 
   const access = await requireOrgMember(userId, organizationId, "viewVideos");
   const rows = await prisma.video.findMany({
     // AND : le filtre demandé réduit le périmètre, il ne le remplace jamais.
-    where: { AND: [await videoWhereFor(access), query.athleteId ? { athleteId: query.athleteId } : {}] },
+    where: {
+      AND: [
+        await videoWhereFor(access),
+        query.athleteId ? { athleteId: query.athleteId } : {},
+        // Une vidéo déposée par quelqu'un qu'on a bloqué n'apparaît plus.
+        { uploadedBy: { notIn: await blockedUserIds(userId) } },
+      ],
+    },
     orderBy: { createdAt: "desc" },
     take: 100,
     select: VIDEO_SELECT,
@@ -266,7 +302,10 @@ export const getVideo = async (userId: string, organizationId: string, videoId: 
   const access = await requireOrgMember(userId, organizationId, "viewVideos");
   const video = await requireVideo(access, videoId);
   const [annotations, comments, attempts] = await Promise.all([
-    prisma.videoAnnotation.findMany({ where: { videoId }, orderBy: { tMs: "asc" } }),
+    prisma.videoAnnotation.findMany({
+      where: { videoId, authorId: { notIn: await blockedUserIds(userId) } },
+      orderBy: { tMs: "asc" },
+    }),
     prisma.comment.findMany({
       where: { organizationId, entityType: "video", entityId: videoId },
       orderBy: { createdAt: "asc" },
@@ -360,9 +399,8 @@ export const shareVideo = async (
 export const deleteVideo = async (userId: string, organizationId: string, videoId: string) => {
   const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
   await requireVideo(access, videoId);
-  const video = await prisma.video.findUniqueOrThrow({ where: { id: videoId }, select: { muxAssetId: true } });
-  if (video.muxAssetId && videoEnabled()) await deleteAsset(video.muxAssetId);
   await prisma.video.delete({ where: { id: videoId } });
+  await drainExternalDeletions();
 };
 
 export const deleteJumpAttempt = async (userId: string, organizationId: string, attemptId: string) => {
@@ -446,4 +484,3 @@ export const getBarSheet = async (
     bestCm: bestClearedHeight(attempts),
   };
 };
-

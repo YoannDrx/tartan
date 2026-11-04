@@ -17,3 +17,5 @@ export * from "./starter-library";
 export * from "./training-load";
 export { isSessionAssigned } from "./session-audience";
 export { personalBestIds, toComparableMark, type RecordMark } from "./records";
+export { billingEmailsFor, type BillingEmail, type BillingSnapshot } from "./billing-emails";
+export { containsBlockedWord } from "./moderation";

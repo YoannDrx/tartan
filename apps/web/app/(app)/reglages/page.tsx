@@ -19,6 +19,7 @@ import {
   OrganizationForm,
   ProfileForm,
   ReferralLink,
+  EmailPreferences,
   RevokeIcalLink,
   RevokeOtherSessionsButton,
   SignOutButton,
@@ -27,11 +28,13 @@ import {
 import { LeaveSpace, MemberList } from "@/features/settings/members";
 import { ReportList } from "@/features/settings/reports";
 import { isAdmin } from "@/server/admin.service";
-import { listReports } from "@/server/comm.service";
+import { listBlockedUsers, listReports } from "@/server/comm.service";
+import { BlockedUsers } from "@/features/settings/blocked-users";
 import { requireOrgMember } from "@/server/access";
+import { getEmailPreferences } from "@/server/email-preferences.service";
 import { icalLink } from "@/server/ical.service";
 import { listMembers } from "@/server/members.service";
-import { consentForAthletes, getUserConsents } from "@/server/consent.service";
+import { athleteConsentState, consentForAthletes, getUserConsents } from "@/server/consent.service";
 import { listInvitations } from "@/server/invitation.service";
 import { getMe } from "@/server/me.service";
 import { ensureReferralCode, getOrganization, listGroups } from "@/server/org.service";
@@ -63,6 +66,9 @@ export default async function ReglagesPage() {
     access.athleteId ? icalLink(actor.userId, organizationId) : Promise.resolve(null),
     canManageMembers ? listReports(actor.userId, organizationId) : Promise.resolve([]),
   ]);
+  const emailPreferences = await getEmailPreferences(actor.userId);
+  const blockedUsers = await listBlockedUsers(actor.userId);
+  const spaceConsents = access.athleteId ? await athleteConsentState(access.athleteId) : consents;
   const parentalPending = access.athleteId ? (effective?.get(access.athleteId)?.parentalPending ?? false) : false;
   const isAthlete = access.role === "athlete";
   const referralLink = referral ? `${env().NEXT_PUBLIC_APP_URL}/r/${referral.code}` : null;
@@ -152,7 +158,11 @@ export default async function ReglagesPage() {
           id: "confidentialite",
           title: m.settings.privacy,
           content: (
-            <ConsentSwitches health={consents.health} video={consents.video} parentalPending={parentalPending} />
+            <ConsentSwitches
+              health={spaceConsents.health}
+              video={spaceConsents.video}
+              parentalPending={parentalPending}
+            />
           ),
         }
       : null,
@@ -197,6 +207,18 @@ export default async function ReglagesPage() {
           ),
         }
       : null,
+    { id: "bloques", title: m.settings.blocked, content: <BlockedUsers users={blockedUsers} /> },
+    {
+      id: "emails",
+      title: m.settings.emails,
+      content: (
+        <EmailPreferences
+          digest={emailPreferences.digest}
+          notifications={emailPreferences.notifications}
+          showDigest={access.role === "owner"}
+        />
+      ),
+    },
     vapidKey
       ? { id: "notifications", title: m.push.permissionTitle, content: <WebPushToggle vapidKey={vapidKey} /> }
       : null,
@@ -211,6 +233,20 @@ export default async function ReglagesPage() {
           ),
         }
       : null,
+    {
+      id: "aide",
+      title: m.settings.help,
+      content: (
+        <div className="flex flex-col gap-2">
+          <p>{m.settings.helpDetail}</p>
+          <div>
+            <Button asChild size="sm" variant="secondary">
+              <a href="/contact">{m.settings.helpContact}</a>
+            </Button>
+          </div>
+        </div>
+      ),
+    },
     {
       id: "compte",
       title: m.settings.account,
@@ -228,6 +264,11 @@ export default async function ReglagesPage() {
             <RevokeOtherSessionsButton />
             <SignOutButton />
             {access.role === "owner" ? null : <LeaveSpace name={space.organizationName} />}
+            {access.role === "owner" ? null : (
+              <Button asChild size="sm" variant="secondary">
+                <a href="/bienvenue">{m.onboarding.createOwnSpace}</a>
+              </Button>
+            )}
             <DeleteAccount detail={m.settings.deleteDetail} />
           </div>
         </div>

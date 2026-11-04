@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { m } from "@tartan/i18n";
+import { outbox } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 import { deleteGroup } from "@/server/org.service";
 import {
@@ -103,6 +104,19 @@ describe("lien de groupe", () => {
     await expect(invitationConflictMessage(tokenOf(link.link), org.owner.userId)).resolves.toBe(m.invite.alreadyStaff);
     const row = await prisma.invitation.findUniqueOrThrow({ where: { id: link.id } });
     expect(row.useCount).toBe(0);
+  });
+  it("une invitation de coach parle à un coach, pas à un athlète", async () => {
+    const email = `coach-${Date.now()}@test.tartan.coach`;
+    await createInvitation(org.owner.userId, org.organizationId, {
+      kind: "personal_email",
+      role: "coach",
+      email,
+      groupIds: [org.groupId],
+    });
+    const mail = outbox.find((entry) => entry.to === email)!;
+    expect(mail.subject).toContain("dans l'espace");
+    expect(mail.html).not.toContain("séances arriveront");
+    expect(mail.html).toContain("Rejoindre l&#x27;espace");
   });
   it("un athlète invité comme coach est refusé", async () => {
     const user = await makeUser("Athlète");

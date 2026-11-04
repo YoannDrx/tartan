@@ -1,3 +1,6 @@
+import * as Sentry from "@sentry/react-native";
+import Constants from "expo-constants";
+import { sentryOptions } from "../src/lib/sentry-scrub";
 import { Barlow_400Regular } from "@expo-google-fonts/barlow/400Regular";
 import { Barlow_500Medium } from "@expo-google-fonts/barlow/500Medium";
 import { Barlow_600SemiBold } from "@expo-google-fonts/barlow/600SemiBold";
@@ -20,6 +23,10 @@ import { useSession } from "../src/lib/session-store";
 import { useOpQueue } from "../src/lib/sync/op-queue";
 import { flushUploads } from "../src/lib/upload/upload-queue";
 import { palettes, scene, type WorldName } from "../src/ui/theme";
+
+const variant = (Constants.expoConfig?.extra as { appVariant?: string } | undefined)?.appVariant ?? "development";
+Sentry.init(sentryOptions(process.env.EXPO_PUBLIC_SENTRY_DSN, variant));
+
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 // Fond natif rouge : aucun flash blanc au démarrage ni entre deux écrans.
