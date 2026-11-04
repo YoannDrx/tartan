@@ -49,7 +49,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Diagnostic Expo
         working-directory: apps/mobile
-        run: pnpm exec expo-doctor
+        run: pnpm dlx expo-doctor
       - name: Configuration de production
         working-directory: apps/mobile
         run: pnpm exec expo config --json > /dev/null
