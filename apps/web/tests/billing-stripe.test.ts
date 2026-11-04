@@ -23,16 +23,19 @@ const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   sessions: vi.fn(),
   expire: vi.fn(),
+  update: vi.fn(),
+  customerDel: vi.fn(),
+  customerUpdate: vi.fn(),
 }));
 vi.mock("@/lib/stripe", () => ({
   billingEnabled: () => true,
   priceIdFor: () => "price_coach",
   planForPriceId: (id: string) => (id === "price_coach" ? "coach" : id === "price_club" ? "club" : null),
   stripe: () => ({
-    subscriptions: { cancel: mocks.cancel, list: mocks.list },
+    subscriptions: { cancel: mocks.cancel, list: mocks.list, update: mocks.update },
     billingPortal: { sessions: { create: mocks.portal } },
     checkout: { sessions: { create: mocks.checkout, list: mocks.sessions, expire: mocks.expire } },
-    customers: { create: mocks.customer },
+    customers: { create: mocks.customer, del: mocks.customerDel, update: mocks.customerUpdate },
   }),
 }));
 const paid = (organizationId: string, ref: string) =>
@@ -367,6 +370,51 @@ describe("parcours d'achat", () => {
     const a = await prepared();
     const coach = await addStaff(a.organizationId, "Adjoint", "assistant");
     await expect(createCheckout(coach.userId, a.organizationId, input)).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe("suppression de compte et abonnement", () => {
+  const withSubscription = async () => {
+    const a = await setup();
+    const ref = `sub_${randomUUID()}`;
+    await prisma.subscription.create({
+      data: {
+        organizationId: a.organizationId,
+        planKey: "coach",
+        status: "active",
+        provider: "stripe",
+        providerRef: ref,
+        currentPeriodEnd: new Date("2030-07-01T10:00:00Z"),
+      },
+    });
+    return { ...a, ref };
+  };
+  it("espace supprimé : abonnement et client partent en file, plus aucun prélèvement", async () => {
+    const a = await withSubscription();
+    await deleteAccount(a.owner.userId);
+    expect(mocks.cancel).toHaveBeenCalledWith(a.ref);
+    expect(mocks.customerDel).toHaveBeenCalledWith(a.customer);
+    expect(await prisma.externalDeletion.findFirst({ where: { externalRef: a.ref } })).toMatchObject({ state: "done" });
+  });
+  it("Stripe en panne ne bloque pas la suppression, et la file reprendra", async () => {
+    const a = await withSubscription();
+    mocks.cancel.mockRejectedValueOnce(Object.assign(new Error("panne"), { status: 503 }));
+    await deleteAccount(a.owner.userId);
+    expect(await prisma.user.count({ where: { id: a.owner.userId } })).toBe(0);
+    expect(await prisma.externalDeletion.findFirst({ where: { externalRef: a.ref } })).toMatchObject({
+      state: "pending",
+      lastErrorCode: "http_503",
+    });
+  });
+  it("espace transféré : arrêt en fin de période, facture au repreneur, repreneur prévenu de la date", async () => {
+    const a = await withSubscription();
+    const heir = await addStaff(a.organizationId, "Repreneur", "coach", []);
+    await deleteAccount(a.owner.userId);
+    expect(mocks.cancel).not.toHaveBeenCalledWith(a.ref);
+    expect(mocks.update).toHaveBeenCalledWith(a.ref, { cancel_at_period_end: true });
+    expect(mocks.customerUpdate).toHaveBeenCalledWith(a.customer, { email: heir.email });
+    const told = outbox.find((entry) => entry.to === heir.email && entry.subject.includes("responsable"));
+    expect(told?.html).toContain("1 juillet 2030");
   });
 });
 

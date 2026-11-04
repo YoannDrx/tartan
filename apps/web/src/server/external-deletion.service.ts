@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { del } from "@vercel/blob";
+import type { Prisma } from "@/generated/prisma/client";
 import { env } from "@/lib/env";
 import { log } from "@/lib/logger";
 import { cancelUpload, deleteAsset, listAssets, videoEnabled } from "@/lib/mux";
 import { prisma } from "@/lib/prisma";
-import { stripe } from "@/lib/stripe";
+import { billingEnabled, stripe } from "@/lib/stripe";
 
 export type ExternalProvider = "mux_asset" | "mux_upload" | "blob" | "stripe_subscription" | "stripe_customer";
 
@@ -38,11 +39,11 @@ const remove = async (provider: string, ref: string): Promise<void> => {
       if (!env().BLOB_READ_WRITE_TOKEN) throw new ProviderUnconfigured();
       return del(ref, { token: env().BLOB_READ_WRITE_TOKEN });
     case "stripe_subscription":
-      if (!env().STRIPE_SECRET_KEY) throw new ProviderUnconfigured();
+      if (!billingEnabled()) throw new ProviderUnconfigured();
       await stripe().subscriptions.cancel(ref);
       return;
     case "stripe_customer":
-      if (!env().STRIPE_SECRET_KEY) throw new ProviderUnconfigured();
+      if (!billingEnabled()) throw new ProviderUnconfigured();
       await stripe().customers.del(ref);
       return;
     default:
@@ -51,12 +52,15 @@ const remove = async (provider: string, ref: string): Promise<void> => {
 };
 
 // Mise en file : les triggers SQL couvrent les suppressions en base, ceci couvre le reste.
-export const enqueueExternalDeletion = async (input: {
-  provider: ExternalProvider;
-  ref: string;
-  reason: string;
-  notBefore?: Date;
-}): Promise<void> => {
+export const enqueueExternalDeletion = async (
+  input: {
+    provider: ExternalProvider;
+    ref: string;
+    reason: string;
+    notBefore?: Date;
+  },
+  db: Pick<Prisma.TransactionClient, "externalDeletion"> = prisma,
+): Promise<void> => {
   const data = {
     reason: input.reason,
     notBefore: input.notBefore ?? new Date(),
@@ -66,7 +70,7 @@ export const enqueueExternalDeletion = async (input: {
     lastErrorCode: null,
     completedAt: null,
   };
-  await prisma.externalDeletion.upsert({
+  await db.externalDeletion.upsert({
     where: { provider_externalRef: { provider: input.provider, externalRef: input.ref } },
     create: { ...data, provider: input.provider, externalRef: input.ref },
     update: data,
