@@ -12,7 +12,7 @@ const UNIVERSAL_PATHS = ["/i/", "/r/", "/seance/", "/mes-sauts"];
 const variantNames: Record<AppVariant, string> = {
   development: "Tartan Dev",
   preview: "Tartan Preview",
-  production: "Tartan – Coach athlé",
+  production: "Tartan",
 };
 
 const flag = (value: string | undefined) => value === "true";
@@ -38,14 +38,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: variantNames[variant],
     slug: "tartan",
-    version: "0.1.0",
+    version: "1.0.0",
     scheme,
     orientation: "portrait",
     icon: "./assets/brand/icon-ios.png",
     userInterfaceStyle: "dark",
     backgroundColor: BRICK,
     ios: {
-      supportsTablet: true,
+      supportsTablet: false,
       bundleIdentifier: `coach.tartan.app${suffix}`,
       ...(appleTeamId ? { appleTeamId } : {}),
       // Liens universels : le serveur doit publier apple-app-site-association.
@@ -59,6 +59,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     android: {
       package: `coach.tartan.app${suffix}`,
+      // Une session ou un cache hors ligne ne doit pas repartir dans une sauvegarde du téléphone.
+      allowBackup: false,
       // Notifications : absent tant que le projet Firebase n'existe pas, l'app se construit quand même.
       ...(existsSync(googleServicesFile) ? { googleServicesFile } : {}),
       adaptiveIcon: {
