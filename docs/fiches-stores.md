@@ -64,7 +64,7 @@ Aucun suivi publicitaire (« Tracking : non »). Toutes les données sont liées
 
 Non collectés par l'app : localisation, contacts, historique de navigation, données financières (vente coupée, aucun achat intégré), identifiant publicitaire. L'app mobile n'embarque ni analyse d'usage ni suivi d'erreurs. La photothèque n'est ouverte que pour la vidéo choisie : l'accès demandé sur iOS sert à garder la pleine fréquence, rien d'autre n'en sort.
 
-**À revoir avant envoi :** si Sentry ou une analyse d'usage arrive sur le mobile, ajouter « Données de diagnostic ».
+Données de diagnostic : Sentry reçoit les plantages, sans utilisateur, fil d'Ariane ni contenu de requête. À déclarer : « Données de plantage », liées à aucune identité, finalité fonctionnement. Sentry n'est actif que si `EXPO_PUBLIC_SENTRY_DSN` est défini. Les cartes de sources demandent `SENTRY_AUTH_TOKEN` sur EAS ; à ce moment-là, retirer `SENTRY_DISABLE_AUTO_UPLOAD` de `eas.json`.
 
 ## Formulaire Google « Sécurité des données »
 

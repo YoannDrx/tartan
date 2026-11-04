@@ -39,6 +39,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: variantNames[variant],
     slug: "tartan",
     version: "1.0.0",
+    // Une mise à jour à distance ne vise que les binaires de la même version native.
+    runtimeVersion: { policy: "appVersion" },
+    ...(projectId ? { updates: { url: `https://u.expo.dev/${projectId}` } } : {}),
     scheme,
     orientation: "portrait",
     icon: "./assets/brand/icon-ios.png",
@@ -90,6 +93,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-router",
       "expo-font",
       "expo-web-browser",
+      "expo-updates",
+      [
+        "@sentry/react-native/expo",
+        { url: "https://de.sentry.io/", organization: "yoanns-org", project: "tartan" },
+      ],
       ...(appleSignIn ? ["expo-apple-authentication"] : []),
       ["expo-secure-store", { faceIDPermission: false }],
       [
