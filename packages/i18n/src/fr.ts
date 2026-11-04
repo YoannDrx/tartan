@@ -730,6 +730,11 @@ export const fr = {
     videos: "Vidéos partagées, 7 j",
     reports: "Signalements",
     comments: "Ce qu'ils en disent",
+    operations: "Exploitation",
+    notificationsPending: "Notifications en attente",
+    notificationsLate: "En retard de plus de 30 min",
+    notificationsFailed: "Échecs de livraison, 24 h",
+    notificationsUndelivered: "Jamais reçues, 24 h",
   },
   disciplines: {
     high_jump: "Saut en hauteur",

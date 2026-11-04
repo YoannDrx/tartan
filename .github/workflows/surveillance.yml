@@ -1,9 +1,10 @@
 name: Surveillance
 
-# Un échec envoie l'alerte de GitHub au propriétaire du dépôt.
+# Filet de secours : la sonde externe assure l'alerte rapide (toutes les minutes).
+# Cadence réduite pour ne pas consommer le quota dont dépend la sauvegarde.
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "0 */6 * * *"
   workflow_dispatch:
 
 permissions:

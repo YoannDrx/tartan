@@ -286,12 +286,14 @@ export const dispatchPending = async (now = new Date(), notificationIds?: string
 // Agrégats techniques uniquement : aucun destinataire, jeton ni contenu dans la supervision.
 export const notificationDeliveryHealth = async (now = new Date()) => {
   const since = new Date(now.getTime() - 24 * 60 * MINUTE);
-  const [pending, failedLast24h, undeliveredLast24h] = await Promise.all([
+  const lateSince = new Date(now.getTime() - 30 * MINUTE);
+  const [pending, late, failedLast24h, undeliveredLast24h] = await Promise.all([
     prisma.notificationDelivery.count({ where: { state: { in: PENDING } } }),
+    prisma.notificationDelivery.count({ where: { state: { in: PENDING }, nextAttemptAt: { lte: lateSince } } }),
     prisma.notificationDelivery.count({ where: { state: "failed", updatedAt: { gte: since } } }),
     prisma.notification.count({
       where: { sentAt: null, deliveryCompletedAt: { gte: since }, deliveries: { some: {} } },
     }),
   ]);
-  return { pending, failedLast24h, undeliveredLast24h };
+  return { pending, late, failedLast24h, undeliveredLast24h };
 };

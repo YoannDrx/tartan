@@ -10,6 +10,18 @@ export const metadata: Metadata = { title: m.admin.title, robots: { index: false
 
 const pct = (value: number | null) => (value === null ? "–" : `${value} %`);
 
+// Chaque case s'étire : un total impair ne laisse pas de trou dans la feuille.
+const Totals = ({ items }: { items: { label: string; value: number | string }[] }) => (
+  <dl className="flex flex-wrap gap-px bg-card-line">
+    {items.map((item) => (
+      <div key={item.label} className="min-w-[calc(50%-1px)] flex-1 bg-card px-4 py-2 tablet:min-w-[calc(25%-1px)]">
+        <dt className="t-caption font-normal text-soft">{item.label}</dt>
+        <dd className="t-num text-[24px]">{item.value}</dd>
+      </div>
+    ))}
+  </dl>
+);
+
 export default async function AdminPage() {
   const { actor } = await requireSpace();
   if (!isAdmin(actor.email)) redirect("/accueil");
@@ -23,22 +35,22 @@ export default async function AdminPage() {
     })),
     { label: m.admin.recommend, value: `${data.satisfaction.yes} / ${data.satisfaction.yes + data.satisfaction.no}` },
   ];
+  const operations = [
+    { label: m.admin.notificationsPending, value: data.notificationDelivery.pending },
+    { label: m.admin.notificationsLate, value: data.notificationDelivery.late },
+    { label: m.admin.notificationsFailed, value: data.notificationDelivery.failedLast24h },
+    { label: m.admin.notificationsUndelivered, value: data.notificationDelivery.undeliveredLast24h },
+  ];
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={m.admin.title} detail={m.admin.lead} />
       <Sheet>
-        {/* Chaque case s'étire : un total impair ne laisse pas de trou dans la feuille. */}
-        <dl className="flex flex-wrap gap-px bg-card-line">
-          {totals.map((item) => (
-            <div
-              key={item.label}
-              className="min-w-[calc(50%-1px)] flex-1 bg-card px-4 py-2 tablet:min-w-[calc(25%-1px)]"
-            >
-              <dt className="t-caption font-normal text-soft">{item.label}</dt>
-              <dd className="t-num text-[24px]">{item.value}</dd>
-            </div>
-          ))}
-        </dl>
+        <Totals items={totals} />
+      </Sheet>
+      <Sheet>
+        <SheetSection title={m.admin.operations} flush>
+          <Totals items={operations} />
+        </SheetSection>
       </Sheet>
       <Sheet>
         <SheetSection title={m.admin.spaces} flush>
