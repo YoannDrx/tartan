@@ -1,0 +1,83 @@
+# Livraison V1.1 — suivi d’exécution
+
+Décision produit du 7 novembre 2026 : le plan « Tartan V1.1 — préparation physique pour l’athlétisme, en deux PR » transmis par le fondateur remplace les plans antérieurs. Les ajouts de progression, phases et planificateur sont explicitement autorisés. La PR 1 reste indépendante de la refonte et de l’IA ; la PR 2 comprend les lots A à E et conserve la parité native.
+
+Ce document distingue le code livré, la configuration et les preuves réelles. Un test avec prestataire simulé ne vaut pas un essai Stripe, Resend, APNs ou FCM réel. Aucune ouverture commerciale ni publication store n’est effectuée par cette PR.
+
+## PR 1 — état du code
+
+Branche : `codex/v1-1-fiabilite`, fondée sur `origin/main` `1852b25`. Commit du code vérifié : `02398a9`. Aucun fichier d’audit personnel non suivi n’est inclus. La PR reste en brouillon : la recette externe et les lignes marquées « à compléter » conditionnent sa finalisation.
+
+| Périmètre                                                                               | Codé                                                                 | Test automatique                                                                                                     | Configuration / essai réel                                          | Activation / publication          |
+| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------- |
+| Checkout persistant, bail atomique, paramètres figés, idempotence et changement d’offre | Oui                                                                  | Concurrence réelle sur Postgres, réponse perdue, bail expiré, délai d’idempotence dépassé, reprise après résiliation | Stripe simulé ; sandbox à jouer                                     | Pas déployé                       |
+| Départ du payeur, commandes durables, fermeture des Checkout et isolation du portail    | Oui                                                                  | Panne, reprise, réponse Checkout perdue avant transfert, portail interdit au repreneur                               | Cycle réel à jouer                                                  | Pas déployé                       |
+| Anomalies de souscriptions vivantes                                                     | Oui                                                                  | Plusieurs souscriptions dont une incomplète ; aucune annulation automatique                                          | Rapprochement opérateur à exercer                                   | Console protégée, pas déployée    |
+| Conservation du choix d’offre                                                           | Parcours existant conservé ; lien magique expiré corrigé             | Recette inscription / vérification à compléter                                                                       | À vérifier sur Preview                                              | Pas déployé                       |
+| Confirmation de date avant écriture                                                     | Web et native                                                        | Parcours navigateur desktop/mobile, contrôle a11y ; déclaration concurrente                                          | iPhone/Android physiques à vérifier                                 | Pas déployé                       |
+| Rectification support de date                                                           | Oui, motif contrôlé, profil et fiches liés, audit sans date          | Accès interdit hors administration et trace vérifiés                                                                 | Recette console à compléter                                         | Pas déployé                       |
+| Activité de l’espace indépendante du compte                                             | Oui, contributions métier ; publication cron et relance exclues      | Espace actif protégé, timestamp cron sans effet                                                                      | Préavis aux coachs à vérifier sur boîte réelle                      | Pas déployé                       |
+| Outbox de facturation                                                                   | Échecs durables visibles, reprise explicite, message obsolète refusé | Expiration, reprise et obsolescence                                                                                  | Réception réelle à vérifier                                         | Pas déployé                       |
+| Rebonds / plaintes                                                                      | Webhook Resend signé et liste d’exclusion par empreinte              | Signature invalide, signature valide, rejeu                                                                          | `RESEND_WEBHOOK_SECRET` absent sur Vercel lors du contrôle          | Non raccordé                      |
+| E-mails de suppression / reprise d’espace                                               | Contenu de résiliation rendu prudent ; envoi existant maintenu       | Tests de compte existants                                                                                            | Ces envois directs ne sont pas encore une outbox durable            | À compléter                       |
+| Sonde légère                                                                            | `/api/live` sans accès base ; `/api/health` conserve le contrôle DB  | Typecheck / build                                                                                                    | Sonde externe à raccorder                                           | Non raccordée                     |
+| Push et liens universels                                                                | Implémentation existante conservée                                   | Tests natifs existants                                                                                               | APNs, FCM, appareils physiques et identités de signature à vérifier | Stores non publiés par ce travail |
+
+## Preuves locales
+
+Environnement jetable : Postgres local port 54329, bases dédiées `tartan_v11_test`, `tartan_v11_e2e`, `tartan_v11_migration`. Aucune migration ni suppression exécutée en production.
+
+- Suites automatisées : 594 tests verts (392 serveur, 66 domaine, 136 mobile). Après les derniers ajustements de facturation, les deux suites ciblées passent avec 40 tests, dont la création d’un nouveau client Stripe pour le repreneur après fermeture du Checkout du partant.
+- Domaine : 66 tests verts ; mobile : 136 tests verts.
+- TypeScript : ensemble du monorepo vert.
+- ESLint : zéro erreur, quatre avertissements préexistants sur React Hook Form et navigation.
+- Impeccable / `design:check` : zéro travers.
+- Campagne Playwright sur build de production : 44 tests passés, 10 ignorés et deux anciens tests d’âge à adapter au nouveau dialogue. Après adaptation, les deux tests d’âge et deux nouveaux tests de console administrateur passent (desktop/mobile, Axe et absence de débordement). Soit 48 scénarios passés sur la campagne et les reprises ciblées ; la suite complète n’a pas été relancée après cette dernière adaptation. Les deux nouveaux parcours de confirmation d’âge avaient déjà réussi dans la campagne complète.
+- Migrations sur base vierge : appliquées par la préparation des suites.
+- Migration sur ancien schéma synthétique : 21 migrations historiques, insertion d’un propriétaire, d’un client Stripe fictif et d’une séance ; application des trois migrations additives et vérification du payeur, de l’activité et de la conservation de la séance. Application des trois migrations : 0,09 s localement. Ce chiffre n’est pas une durée de migration de production.
+- Première vérification complète lancée via un script récursif a employé le runtime de repli local ; les commandes directes suivantes utilisent Node 22.23.4 et Corepack/pnpm du dépôt. Les préparations Vitest/Playwright utilisent maintenant Corepack pour éviter le pnpm de repli.
+
+## Configuration externe observée le 7 novembre 2026
+
+Projet Vercel `tartan`, équipe `team_3XXL1abz5SsLVR9IW9gUU0Sv`, projet `prj_Tg2NrUya3YLeWmwdTlcI0QjYzAvT`. Lecture des métadonnées via CLI authentifiée ; le connecteur a refusé la liste des variables (403), le repli CLI a réussi. Aucune valeur secrète publiée.
+
+- `BLOB_READ_WRITE_TOKEN` cible simultanément Production, Preview et Development. Un seul store lié observé : `tartan-images`, région `fra1`. **Isolation Blob non validée.** Créer/raccorder des stockages distincts avant tout essai d’effacement sur Preview.
+- Des entrées Production et Preview distinctes existent pour Neon, Stripe, Mux et VAPID. Leur simple présence ne prouve pas que leurs valeurs ou comptes sont différents.
+- Le contrôle CLI doit ignorer les marqueurs `[sensitive]` : l’ancien script les comparait comme des secrets identiques. Il exige désormais le projet et l’équipe explicites, classe ces marqueurs comme illisibles et sort avec un code non nul si l’isolation n’est pas prouvée. Le partage du jeton Blob est confirmé par sa valeur réelle, sans la révéler ; l’égalité des marqueurs ne permet aucune conclusion sur Neon ou Stripe.
+- La clé **publique** VAPID est identique entre Preview et production. La clé privée étant masquée, son égalité n’est pas démontrée ; vérifier et séparer la paire avant la recette push.
+- Le script `vercel-migrate.mjs` migre uniquement la production. Une Preview de cette branche n’est donc pas déclarée utilisable tant que les trois migrations n’ont pas été appliquées à une base Preview dont l’isolation a été prouvée.
+- `APPLE_TEAM_ID`, `ANDROID_SHA256_FINGERPRINTS`, `CRON_HEARTBEAT_URL`, `CRON_HEARTBEAT_NOTIFICATIONS_URL` et `RESEND_WEBHOOK_SECRET` ne figurent pas dans cette liste.
+- Resend et Sentry sont configurés en production dans les métadonnées ; réception, sourcemaps et alertes ne sont pas validées par cette lecture.
+- La sauvegarde quotidienne chiffrée sur 30 jours existe dans `.github/workflows/sauvegarde.yml`. La possession d’une copie de la clé hors du Mac et une nouvelle restauration chronométrée restent à prouver.
+
+## Procédures de recette et de retour arrière
+
+1. Sauvegarder puis restaurer dans une base isolée avant la migration de production. Vérifier comptes, espaces, séances, fichiers et migrations. Chronométrer et noter le commit et l’environnement.
+2. Appliquer les migrations additives avant le nouveau code. Ne pas retirer de colonnes en circulation. Vérifier les valeurs reprises (`billing_owner_id`, `last_business_activity_at`).
+3. Sur la Preview isolée, jouer les cas de `billing-reliability.test.ts` contre Stripe sandbox, puis contrôler le portail et la facture. Ne pas lancer ces scénarios sur les clients de production.
+4. Configurer le webhook Resend `/api/webhooks/resend` pour `email.bounced`, `email.complained`, `email.suppressed`, avec secret propre à l’environnement. Vérifier une livraison réelle et un événement de test signé. La liste d’exclusion locale ne se lève pas automatiquement.
+5. Raccorder Better Stack à `/api/live` pour la disponibilité fréquente, `/api/health` à une cadence adaptée pour le contrôle DB, et les deux heartbeats aux tâches correspondantes. Simuler un échec et conserver la preuve de réception.
+6. En cas de défaut applicatif, définir `BILLING_CHECKOUT_ENABLED=false` puis redéployer pour arrêter les nouvelles souscriptions sans couper le portail, les webhooks ou les commandes d’arrêt. Garder la base additive. Ne pas redéployer aveuglément l’ancienne logique Checkout pendant que des intentions ou commandes sont en attente : elle ignore leur verrou. Privilégier un correctif en avant, préserver la file puis reprendre après vérification.
+
+### Rapprochement facturation
+
+- Intention `review` : relever espace, intention, génération, date et session dans la console. Chercher l’opération Stripe avec la clé `checkout-{id}-{generation}` et les métadonnées de l’espace. Ne jamais remplacer une issue inconnue par une nouvelle clé après 24 h.
+- Si la session existe : vérifier son client et son état, puis rattacher son identifiant à l’intention sous contrôle opérateur. Une session complète doit conduire à la réconciliation de l’abonnement ; une session ouverte doit être expirée avec confirmation avant toute nouvelle génération.
+- Plusieurs souscriptions : vérifier chaque facture et moyen de paiement dans Stripe. La déduplication des webhooks ne justifie aucun remboursement. Les décisions financières nécessitent une vérification explicite.
+- Commande d’arrêt en attente : contrôler le code d’erreur et l’état Stripe. La tâche reprend avec délai croissant. Une disparition de ligne d’outbox n’est jamais un moyen de résoudre une anomalie.
+- E-mail en échec : la reprise console recontrôle destinataire et état métier. Un doublon reste possible si une réponse d’envoi s’est perdue au-delà de la fenêtre d’idempotence du prestataire ; la confirmation de reprise le précise. Ne pas rejouer un message obsolète.
+- Espace actif sans repreneur : traiter la file support dans les 30 jours, organiser une reprise vérifiée, puis supprimer le compte inactif. Le mécanisme de protection ne clôt pas cette obligation de traitement.
+
+## PR 2 — lots restant à implémenter
+
+| Lot | Contenu autorisé                                                                                                                   | État                                                            |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| A   | Préparation physique athlé, DA de travail, onboarding, bibliothèque, vidéo générique, constructeur natif                           | Non commencé sur cette branche                                  |
+| B   | Références liées aux exercices, identifiants stables, versions, charges résolues figées, séries réellement réalisées et hors ligne | Non commencé                                                    |
+| C   | Historique, Epley, tableau des pourcentages, records comparables et célébration unique                                             | Non commencé                                                    |
+| D   | Phases privées/partagées, progression et analyse avec provenance et couverture                                                     | Non commencé                                                    |
+| E   | Dictée web/native, clarifications, propositions contrôlées, quotas, confidentialité et corpus d’évaluation                         | Non commencé ; clé exposée à remplacer par le parcours sécurisé |
+
+La fusion de la PR 2 exige les cinq lots compilables, testés et isolés par drapeaux. L’IA peut rester désactivée pour l’ouverture commerciale. Aucun écran incomplet, preuve simulée ou réglage absent ne doit être présenté comme publié.
+
+Références prestataire utilisées pour le webhook : [vérification de la signature Resend](https://resend.com/docs/webhooks/verify-webhooks-requests), [distinction entre rebond permanent et temporaire](https://resend.com/changelog/email-bounce-details). Les rebonds temporaires ne créent pas d’exclusion définitive.
