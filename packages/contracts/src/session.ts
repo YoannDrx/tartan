@@ -148,3 +148,13 @@ export const saveScheduledSessionInput = z.object({
   publishAt: z.iso.datetime().nullable().default(null),
 });
 export type SaveScheduledSessionInput = z.infer<typeof saveScheduledSessionInput>;
+
+export const sessionSaveResult = z.object({ id: uuid, version: z.number().int().min(1) });
+export const sessionEditResponse = saveScheduledSessionInput.extend({
+  id: uuid,
+  version: z.number().int().min(1),
+  expectedVersion: z.number().int().min(1),
+  publishedAt: z.iso.datetime().nullable(),
+  logCount: z.number().int().min(0),
+});
+export type SessionEditResponse = z.infer<typeof sessionEditResponse>;

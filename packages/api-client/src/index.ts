@@ -22,6 +22,10 @@ import {
   type RollCallInput,
   type SessionLogInput,
   sessionLogResult,
+  sessionSaveResult,
+  sessionEditResponse,
+  sessionBuilderContext,
+  type SaveScheduledSessionInput,
   trackingGrid,
   videoDetail,
   videoSummary,
@@ -143,6 +147,22 @@ export const createApiClient = (options: ApiClientOptions) => {
     alerts: (orgId: string) => request("GET", `/orgs/${orgId}/alerts`, z.array(coachAlert)),
     coachSession: (orgId: string, sessionId: string) =>
       request("GET", `/orgs/${orgId}/sessions/${sessionId}/coach`, z.any()),
+    sessionBuilder: (orgId: string) => request("GET", `/orgs/${orgId}/session-builder`, sessionBuilderContext),
+    editSession: (orgId: string, sessionId: string) =>
+      request("GET", `/orgs/${orgId}/sessions/${sessionId}`, sessionEditResponse),
+    createSession: (orgId: string, body: Omit<SaveScheduledSessionInput, "id" | "expectedVersion">) =>
+      request("POST", `/orgs/${orgId}/sessions`, sessionSaveResult, body),
+    updateSession: (
+      orgId: string,
+      sessionId: string,
+      body: Omit<SaveScheduledSessionInput, "id"> & { expectedVersion: number },
+    ) => request("PUT", `/orgs/${orgId}/sessions/${sessionId}`, sessionSaveResult, body),
+    publishSession: (orgId: string, sessionId: string, expectedVersion: number) =>
+      request("POST", `/orgs/${orgId}/sessions/${sessionId}/publish`, z.object({ id: z.string() }), {
+        expectedVersion,
+      }),
+    deleteSession: (orgId: string, sessionId: string) =>
+      request("DELETE", `/orgs/${orgId}/sessions/${sessionId}`, okResponse),
     rollCall: (orgId: string, sessionId: string, body: RollCallInput) =>
       request(
         "POST",

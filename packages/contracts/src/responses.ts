@@ -9,7 +9,7 @@ import {
   sessionVariant,
   videoStatus,
 } from "./enums";
-import { prescriptionSchema, snapshotBlock } from "./session";
+import { prescriptionSchema, snapshotBlock, sessionDraft, uuid } from "./session";
 import { detailedSetInput } from "./requests";
 
 export const spaceSummary = z.object({
@@ -249,6 +249,14 @@ export const exerciseSummary = z.object({
   shared: z.boolean().default(false),
 });
 export type ExerciseSummary = z.infer<typeof exerciseSummary>;
+
+export const sessionBuilderContext = z.object({
+  exercises: z.array(exerciseSummary),
+  groups: z.array(z.object({ id: uuid, name: z.string(), athleteCount: z.number().int().min(0) })),
+  athletes: z.array(z.object({ id: uuid, firstName: z.string(), lastName: z.string() })),
+  templates: z.array(sessionDraft.extend({ id: uuid })),
+  testKeys: z.array(z.string()),
+});
 
 export const calendarSession = z.object({
   id: z.string(),

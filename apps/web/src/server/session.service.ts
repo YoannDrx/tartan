@@ -38,6 +38,16 @@ import { notify, notifyPublications } from "./notify.service";
 
 const sessionConflict = () => new AppError(409, "session_version_conflict", m.builder.versionConflict);
 
+const requireAthletesInScope = async (access: Access, ids: string[]) => {
+  const unique = [...new Set(ids)];
+  if (!unique.length) return;
+  const count = await prisma.athlete.count({ where: { organizationId: access.organizationId, id: { in: unique } } });
+  if (count !== unique.length) throw notFound();
+  if (access.role === "owner") return;
+  const visible = new Set(await visibleAthleteIds(access));
+  if (!unique.every((id) => visible.has(id))) throw forbidden();
+};
+
 const requireSessionWrite = async (access: Access, sessionId: string) => {
   const session = await prisma.scheduledSession.findFirst({
     where: { id: sessionId, organizationId: access.organizationId },
@@ -45,6 +55,22 @@ const requireSessionWrite = async (access: Access, sessionId: string) => {
   if (!session) throw notFound();
   // Coach adjoint : seulement ses propres séances (§ 5.3).
   if (access.role === "assistant" && session.createdBy !== access.userId) throw forbidden();
+  if (access.role !== "owner") {
+    const assignments = await prisma.assignment.findMany({ where: { scheduledSessionId: sessionId } });
+    if (assignments.length === 0 && session.createdBy !== access.userId) throw forbidden();
+    await requireGroupInScope(
+      access,
+      assignments.filter((a) => a.targetType === "group").map((a) => a.targetId),
+    );
+    const overrides = await prisma.athleteOverride.findMany({
+      where: { scheduledSessionId: sessionId },
+      select: { athleteId: true },
+    });
+    await requireAthletesInScope(access, [
+      ...assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId),
+      ...overrides.map((o) => o.athleteId),
+    ]);
+  }
   return session;
 };
 
@@ -96,8 +122,7 @@ const checkAudience = async (access: Access, input: SaveScheduledSessionInput): 
   const groups = input.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId);
   const athletes = input.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId);
   await requireGroupInScope(access, groups);
-  for (const id of athletes) await requireVisibleAthlete(access, id);
-  for (const o of input.overrides) await requireVisibleAthlete(access, o.athleteId);
+  await requireAthletesInScope(access, [...athletes, ...input.overrides.map((o) => o.athleteId)]);
 };
 
 export const saveScheduledSession = async (
@@ -188,10 +213,12 @@ export const publishSession = async (
   organizationId: string,
   sessionId: string,
   now: Date = new Date(),
+  expectedVersion?: number,
 ) => {
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   const session = await requireSessionWrite(access, sessionId);
-  await publishRow(session.id, session.createdBy, now);
+  if (expectedVersion !== undefined && expectedVersion !== session.version) throw sessionConflict();
+  await publishRow(session.id, session.createdBy, now, { expectedVersion: session.version });
   return { id: session.id };
 };
 
@@ -203,9 +230,10 @@ export const publishRow = async (
   sessionId: string,
   authorId: string,
   now: Date,
-  options: { silent?: boolean } = {},
+  options: { silent?: boolean; expectedVersion?: number } = {},
 ): Promise<Publication[]> => {
   const session = await prisma.scheduledSession.findUniqueOrThrow({ where: { id: sessionId } });
+  if (options.expectedVersion !== undefined && options.expectedVersion !== session.version) throw sessionConflict();
   if (session.publishedAt) return [];
   const assignmentCount = await prisma.assignment.count({ where: { scheduledSessionId: sessionId } });
   if (assignmentCount === 0) throw invalid(m.builder.noAudience);

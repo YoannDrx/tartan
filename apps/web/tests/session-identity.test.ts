@@ -6,10 +6,12 @@ import {
   getSessionForEdit,
   saveScheduledSession,
   publishRow,
+  publishSession,
   generateAutonomousVersion,
   moveSession,
 } from "@/server/session.service";
-import { addAthlete, makeOrg } from "./helpers";
+import { getSessionBuilderContext } from "@/server/session-builder.service";
+import { addAthlete, addStaff, makeOrg } from "./helpers";
 
 const setup = async () => {
   const org = await makeOrg("IdentitesSeance");
@@ -129,5 +131,35 @@ it("déplacer la date invalide un éditeur ouvert ; republier n'incrémente pas 
   await moveSession(a.owner.userId, a.organizationId, a.saved.id, "2030-06-13");
   await expect(saveScheduledSession(a.owner.userId, a.organizationId, a.edit)).rejects.toMatchObject({
     code: "session_version_conflict",
+  });
+});
+
+it("le constructeur ne révèle que les destinataires du coach, sans notes privées ni santé", async () => {
+  const a = await setup();
+  const outside = await prisma.group.create({ data: { organizationId: a.organizationId, name: "Autre groupe" } });
+  await addAthlete(a.organizationId, outside.id, "HorsPerimetre");
+  const coach = await addStaff(a.organizationId, "CoachLimite", "coach", [a.groupId]);
+  const context = await getSessionBuilderContext(coach.userId, a.organizationId);
+  expect(context.groups.map((g) => g.id)).toEqual([a.groupId]);
+  expect(context.athletes.map((x) => x.id)).toEqual([a.athlete.athleteId]);
+  expect(Object.keys(context.athletes[0]!).sort()).toEqual(["firstName", "id", "lastName"]);
+  await expect(getSessionBuilderContext(a.athlete.userId, a.organizationId)).rejects.toMatchObject({ status: 403 });
+});
+
+it("le coach ne peut ni lire, ni publier, ni réattribuer une séance d'un autre groupe", async () => {
+  const a = await setup();
+  const otherGroup = await prisma.group.create({ data: { organizationId: a.organizationId, name: "Son groupe" } });
+  const coach = await addStaff(a.organizationId, "AutreCoach", "coach", [otherGroup.id]);
+  await expect(getSessionForEdit(coach.userId, a.organizationId, a.saved.id)).rejects.toMatchObject({ status: 403 });
+  await expect(publishSession(coach.userId, a.organizationId, a.saved.id)).rejects.toMatchObject({ status: 403 });
+  await expect(
+    saveScheduledSession(coach.userId, a.organizationId, {
+      ...a.edit,
+      overrides: [],
+      assignments: [{ targetType: "group", targetId: otherGroup.id }],
+    }),
+  ).rejects.toMatchObject({ status: 403 });
+  await expect(moveSession(coach.userId, a.organizationId, a.saved.id, "2030-06-14")).rejects.toMatchObject({
+    status: 403,
   });
 });

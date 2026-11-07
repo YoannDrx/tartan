@@ -115,3 +115,13 @@ Les nouvelles références du constructeur web sont persistantes. Les anciennes 
 Les enregistrements comparent la version attendue sous verrou et incrémentent la version. Publication, déplacement de date et génération de l’autonomie invalident aussi un éditeur ouvert. Les anciens clients sont refusés avec un conflit explicite lorsqu’une séance a déjà des références persistantes ou des validations ; ils ne peuvent pas réécrire silencieusement les liens des séries.
 
 Preuves locales du 7 novembre : **422 tests serveur**, **77 tests domaine** réussis ; **2 parcours navigateur sur build de production**, desktop et mobile, vérifient réordonnancement, réouverture, conflit entre deux onglets et sauvegarde suivante. Lint ciblé réussi. Ce lot ne crée pas encore le constructeur natif ni le gel des charges individuelles à la publication.
+
+### API du constructeur et périmètre coach
+
+Création de brouillons, lecture d’édition, mise à jour versionnée, suppression et publication séparée sont exposées dans l’API existante et le client partagé. Le web consomme le même contexte de constructeur : exercices, modèles, groupes et destinataires autorisés, sans notes privées ni santé. Une publication exige la version relue ; une modification concurrente impose une nouvelle relecture.
+
+L’ouverture de ces écritures a aussi conduit à fermer une reprise de séance hors périmètre : un coach ne peut pas lire puis réattribuer à son groupe une séance d’un autre groupe. Les contrôles des athlètes et adaptations sont regroupés pour éviter une requête complète de périmètre pour chaque item.
+
+Preuves : **88 tests ciblés** d’identité, accès et audience passent après le renforcement des contrôles ; **29 tests ciblés** de progression, identité et notifications passent après ajout du contrôle de publication. Les types de tous les packages, du web et du mobile passent. **Deux parcours HTTP sur build de production**, desktop/mobile, couvrent création privée, lecture des références, rejet sans version, conflit de mise à jour, refus de publication obsolète, publication explicite et suppression. Les deux parcours visuels de réordonnancement/conflit avaient aussi réussi avec le service de contexte commun. Lint : zéro erreur, quatre avertissements préexistants ; design : zéro travers.
+
+Ces API préparent la parité native ; elles ne constituent pas encore l’écran natif du constructeur. La publication groupée et les API de phases/IA restent à implémenter. CI qualité de la PR 1 au commit `5218ea1` réussie (run `42401662041`) ; compilation Android encore en cours lors de cette vérification.
