@@ -20,6 +20,7 @@ const schema = z.object({
   APPLE_APP_BUNDLE_IDENTIFIER: optional,
   ANDROID_SHA256_FINGERPRINTS: optional,
   RESEND_API_KEY: optional,
+  RESEND_WEBHOOK_SECRET: optional,
   EMAIL_FROM: z.string().default("Tartan <tartan@mail.tartan.coach>"),
   EMAIL_CONTACT: z.string().default("hello@tartan.coach"),
   // Ouverture commerciale : « closed » réserve la création d'espace coach à la liste ci-dessous.
@@ -36,6 +37,7 @@ const schema = z.object({
   MUX_VIDEO_LIMIT: optional,
   VIDEO_DEV_MP4_URL: optional,
   STRIPE_SECRET_KEY: optional,
+  BILLING_CHECKOUT_ENABLED: z.enum(["true", "false"]).default("true"),
   STRIPE_WEBHOOK_SECRET: optional,
   STRIPE_PRICE_COACH_MONTH: optional,
   STRIPE_PRICE_COACH_YEAR: optional,

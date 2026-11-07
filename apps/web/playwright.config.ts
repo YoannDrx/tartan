@@ -27,14 +27,15 @@ export default defineConfig({
   webServer: {
     // E2E_PROD=1 : build de production, pour vérifier aussi la CSP et les en-têtes réels.
     command: process.env.E2E_PROD
-      ? `pnpm exec next build && pnpm exec next start -p ${PORT}`
-      : `pnpm exec next dev --turbopack -p ${PORT}`,
+      ? `corepack pnpm exec next build && corepack pnpm exec next start -p ${PORT}`
+      : `corepack pnpm exec next dev --turbopack -p ${PORT}`,
     url: `http://localhost:${PORT}/connexion`,
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,
     env: {
       E2E_DISABLE_RATE_LIMIT: "true",
       COACH_SIGNUP_MODE: "public",
+      ADMIN_EMAILS: "support-desktop@e2e.tartan.test,support-mobile@e2e.tartan.test",
       DATABASE_URL,
       BETTER_AUTH_URL: `http://localhost:${PORT}`,
       NEXT_PUBLIC_APP_URL: `http://localhost:${PORT}`,

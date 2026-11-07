@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 import { Resend } from "resend";
 import { env } from "./env";
 import { log } from "./logger";
+import { assertEmailDeliverable } from "@/server/email-suppression.service";
 
 export const outbox: { to: string; subject: string; html: string; text: string; headers: Record<string, string> }[] =
   [];
@@ -36,6 +37,7 @@ export const sendEmail = async (input: {
   }
   // Comptes de démonstration : ces adresses n'existent pas, un envoi nuirait à la réputation du domaine.
   if (input.to.endsWith("@demo.tartan.coach")) return;
+  await assertEmailDeliverable(input.to);
   const { error } = await new Resend(RESEND_API_KEY).emails.send(
     {
       from: EMAIL_FROM,

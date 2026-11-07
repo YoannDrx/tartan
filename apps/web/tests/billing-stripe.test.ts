@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   customer: vi.fn(),
   list: vi.fn(),
   sessions: vi.fn(),
+  retrieve: vi.fn(),
   expire: vi.fn(),
   update: vi.fn(),
   customerDel: vi.fn(),
@@ -34,7 +35,9 @@ vi.mock("@/lib/stripe", () => ({
   stripe: () => ({
     subscriptions: { cancel: mocks.cancel, list: mocks.list, update: mocks.update },
     billingPortal: { sessions: { create: mocks.portal } },
-    checkout: { sessions: { create: mocks.checkout, list: mocks.sessions, expire: mocks.expire } },
+    checkout: {
+      sessions: { create: mocks.checkout, list: mocks.sessions, retrieve: mocks.retrieve, expire: mocks.expire },
+    },
     customers: { create: mocks.customer, del: mocks.customerDel, update: mocks.customerUpdate },
   }),
 }));
@@ -73,7 +76,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.list.mockReset().mockResolvedValue({ data: [], has_more: false });
   mocks.portal.mockReset().mockResolvedValue({ url: "https://portail" });
-  mocks.checkout.mockReset().mockResolvedValue({ url: "https://paiement" });
+  mocks.checkout.mockReset().mockResolvedValue({ id: "cs_paiement", url: "https://paiement", expires_at: 1893456000 });
+  mocks.retrieve.mockReset().mockResolvedValue({ id: "cs_paiement", status: "open", url: "https://paiement" });
+  mocks.expire.mockReset().mockResolvedValue({ status: "expired" });
+  mocks.sessions.mockReset().mockResolvedValue({ data: [] });
   mocks.customer.mockReset().mockImplementation(async () => ({ id: `cus_${randomUUID()}` }));
 });
 
@@ -314,8 +320,10 @@ describe("parcours d'achat", () => {
   const prepared = async () => {
     const a = await setup();
     mocks.sessions.mockReset().mockResolvedValue({ data: [] });
-    mocks.expire.mockReset().mockResolvedValue({});
-    mocks.checkout.mockReset().mockResolvedValue({ url: "https://checkout.test" });
+    mocks.expire.mockReset().mockResolvedValue({ status: "expired" });
+    mocks.checkout
+      .mockReset()
+      .mockResolvedValue({ id: "cs_test", url: "https://checkout.test", expires_at: 1893456000 });
     mocks.portal.mockReset().mockResolvedValue({ url: "https://portail.test" });
     return a;
   };
@@ -406,13 +414,13 @@ describe("suppression de compte et abonnement", () => {
       lastErrorCode: "http_503",
     });
   });
-  it("espace transféré : arrêt en fin de période, facture au repreneur, repreneur prévenu de la date", async () => {
+  it("espace transféré : arrêt en fin de période, carte du partant inaccessible, repreneur prévenu de la date", async () => {
     const a = await withSubscription();
     const heir = await addStaff(a.organizationId, "Repreneur", "coach", []);
     await deleteAccount(a.owner.userId);
     expect(mocks.cancel).not.toHaveBeenCalledWith(a.ref);
     expect(mocks.update).toHaveBeenCalledWith(a.ref, { cancel_at_period_end: true });
-    expect(mocks.customerUpdate).toHaveBeenCalledWith(a.customer, { email: heir.email });
+    expect(mocks.customerUpdate).not.toHaveBeenCalled();
     const told = outbox.find((entry) => entry.to === heir.email && entry.subject.includes("responsable"));
     expect(told?.html).toContain("1 juillet 2030");
   });

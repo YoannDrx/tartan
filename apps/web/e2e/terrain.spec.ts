@@ -110,6 +110,7 @@ test("un compte sans date confirme son âge avant d'entrer", async ({ page }) =>
   await expect(page.getByText(m.invite.birthRequired)).toBeVisible();
   await page.getByLabel("Date de naissance").fill("1985-03-14");
   await page.getByRole("button", { name: m.age.confirm }).click();
+  await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
   await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible({ timeout: 30_000 });
 });
 

@@ -1,4 +1,4 @@
-// À lancer par le fondateur : node scripts/verify-env-isolation.mjs (Vercel CLI connectée, projet lié).
+// À lancer avec --project <id> --scope <équipe> : ne jamais dépendre du projet courant de la CLI.
 // Compare chaque secret entre environnements par empreinte : aucune valeur n'est affichée ni conservée.
 // Vercel ne renvoie jamais une variable « sensible » : elle apparaît illisible, et se contrôle dans le tableau de bord.
 import { execFileSync } from "node:child_process";
@@ -24,6 +24,7 @@ export const ISOLATED_VARIABLES = [
   "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
   "VAPID_PRIVATE_KEY",
   "RESEND_API_KEY",
+  "RESEND_WEBHOOK_SECRET",
   "CRON_SECRET",
 ];
 
@@ -38,6 +39,7 @@ export const parseDotenv = (text) => {
 };
 
 export const fingerprint = (value) => createHash("sha256").update(value).digest("hex");
+const readable = (value) => value && !/^\[?(sensitive|encrypted|redacted)\]?$/i.test(value) && !/^\*+$/.test(value);
 
 // production comparée à chaque autre environnement.
 export const compareEnvironments = (byEnvironment, variables = ISOLATED_VARIABLES) =>
@@ -45,23 +47,35 @@ export const compareEnvironments = (byEnvironment, variables = ISOLATED_VARIABLE
     const production = byEnvironment.production?.[name];
     const others = ENVIRONMENTS.filter((environment) => environment !== "production").map((environment) => {
       const value = byEnvironment[environment]?.[name];
-      if (!production) return { environment, status: "illisible ou absent en production" };
-      if (!value) return { environment, status: "illisible ou absent" };
+      if (!readable(production)) return { environment, status: "illisible ou absent en production" };
+      if (!readable(value)) return { environment, status: "illisible ou absent" };
       return { environment, status: fingerprint(value) === fingerprint(production) ? "identique" : "distinct" };
     });
     return { name, others };
   });
 
-const pull = (environment, directory) => {
+const pull = (environment, directory, project, scope) => {
   const file = path.join(directory, `${environment}.env`);
-  execFileSync("vercel", ["env", "pull", file, `--environment=${environment}`, "--yes"], { stdio: "ignore" });
+  execFileSync(
+    "vercel",
+    ["--scope", scope, "env", "pull", file, "--project", project, `--environment=${environment}`, "--yes"],
+    { stdio: "ignore" },
+  );
   return parseDotenv(readFileSync(file, "utf8"));
 };
 
 const main = () => {
+  const arg = (name) => process.argv[process.argv.indexOf(name) + 1];
+  if (!process.argv.includes("--project") || !process.argv.includes("--scope")) {
+    console.error("Préciser --project <id> --scope <équipe> pour contrôler le bon projet.");
+    process.exitCode = 2;
+    return;
+  }
+  const project = arg("--project");
+  const scope = arg("--scope");
   const directory = mkdtempSync(path.join(tmpdir(), "tartan-isolation-"));
   try {
-    const byEnvironment = Object.fromEntries(ENVIRONMENTS.map((name) => [name, pull(name, directory)]));
+    const byEnvironment = Object.fromEntries(ENVIRONMENTS.map((name) => [name, pull(name, directory, project, scope)]));
     const results = compareEnvironments(byEnvironment);
     for (const { name, others } of results) {
       console.log(`${name.padEnd(32)} ${others.map((o) => `${o.environment} : ${o.status}`).join("  |  ")}`);
@@ -75,7 +89,12 @@ const main = () => {
         "\nVariable illisible : soit sensible, soit absente. Ce script ne prouve rien pour elle : contrôle-la dans Vercel.",
       );
     if (!shared && !unread) console.log("\nTout est distinct.");
-    process.exitCode = shared ? 1 : 0;
+    process.exitCode = shared ? 1 : unread ? 2 : 0;
+  } catch {
+    console.error(
+      "Lecture Vercel impossible. Vérifier l’authentification CLI et le projet ; aucune isolation n’est certifiée.",
+    );
+    process.exitCode = 2;
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

@@ -3,7 +3,7 @@ import path from "node:path";
 
 export default function globalSetup() {
   const url = process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e";
-  execFileSync("pnpm", ["exec", "prisma", "migrate", "reset", "--force"], {
+  execFileSync("corepack", ["pnpm", "exec", "prisma", "migrate", "reset", "--force"], {
     cwd: path.resolve(import.meta.dirname, ".."),
     env: {
       ...process.env,

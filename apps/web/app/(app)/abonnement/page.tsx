@@ -56,6 +56,8 @@ export default async function AbonnementPage({
             <p className="text-soft">{m.billing.until(longDate(billing.currentPeriodEnd))}</p>
           ) : null}
           {store ? <p className="text-soft">{m.billing.storeHint}</p> : null}
+          {billing.billingTransferred ? <p role="status">{m.billing.transferred}</p> : null}
+          {billing.billingReview ? <p role="status">{m.billing.checkoutReview}</p> : null}
           {billing.canManage && billing.hasCustomer && !store ? (
             <p className="t-caption font-normal text-soft">{m.billing.manageHint}</p>
           ) : null}
@@ -84,7 +86,12 @@ export default async function AbonnementPage({
           </dl>
         </SheetSection>
       </Sheet>
-      {billing.plan !== "pilot" && billing.canManage && !store && !confirming ? (
+      {billing.plan !== "pilot" &&
+      billing.canManage &&
+      !store &&
+      !confirming &&
+      !billing.billingTransferred &&
+      !billing.billingReview ? (
         <>
           {!billing.billingEnabled ? <p>{m.billing.disabled}</p> : null}
           <PricingGrid

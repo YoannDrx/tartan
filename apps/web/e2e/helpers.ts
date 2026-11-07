@@ -40,8 +40,8 @@ export const signUp = async (page: Page, email: string, next = "/connexion") => 
   await page.waitForLoadState("networkidle");
 };
 
-export const createCoachSpace = async (page: Page, name = "Thomas") => {
-  await signUp(page, uniqueEmail(name.toLowerCase()));
+export const createCoachSpace = async (page: Page, name = "Thomas", email = uniqueEmail(name.toLowerCase())) => {
+  await signUp(page, email);
   // En développement, la première compilation d'une page peut prendre longtemps.
   await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible({ timeout: 60_000 });
   await page.waitForLoadState("networkidle");

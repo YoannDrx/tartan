@@ -62,7 +62,12 @@ export const PrivacyContent = ({ embedded = false }: { embedded?: boolean }) => 
       l'espace.
     </p>
     <ul>
-      <li>Compte inactif : supprimé après 24 mois sans connexion, avec un préavis de 30 jours.</li>
+      <li>
+        Compte inactif : supprimé après 24 mois sans connexion, avec un préavis de 30 jours. Si son propriétaire est
+        inactif, un espace encore utilisé est confié à un autre coach actif. Sans repreneur, le support organise la
+        succession avant la suppression du compte. L’activité de l’espace provient des séances, validations, appels et
+        contributions, pas des tâches automatiques.
+      </li>
       <li>Fiche préparée par un coach, sans compte : supprimée après 12 mois sans activité.</li>
       <li>Coordonnées d'une invitation : effacées 30 jours après son expiration.</li>
       <li>Notifications : 90 jours.</li>

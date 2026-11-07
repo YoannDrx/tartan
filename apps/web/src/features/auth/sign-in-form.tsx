@@ -37,7 +37,7 @@ export const SignInForm = ({
       const res = await authClient.signIn.magicLink({
         email,
         callbackURL,
-        errorCallbackURL: "/connexion?lien=expire",
+        errorCallbackURL: `/connexion?lien=expire&next=${encodeURIComponent(callbackURL)}`,
       });
       if (res.error) setError(m.common.genericError);
       else setSent("magic");

@@ -772,6 +772,11 @@ export const fr = {
     thanks: "Merci, c'est noté.",
   },
   age: {
+    checkTitle: "Vérifie ta date de naissance",
+    check: (date: string, age: number) =>
+      `Tu es né(e) le ${date}, soit ${age} ans. Cette date détermine ton accès à Tartan. Après enregistrement, toute correction passe par le support.`,
+    saveConfirmed: "Confirmer cette date",
+    correct: "Corriger la saisie",
     title: "Ta date de naissance",
     lead: "Elle manque à ton compte. Indique-la pour continuer.",
     confirm: "Continuer",
@@ -786,6 +791,12 @@ export const fr = {
     parentalClosed: "L'accord parental n'est pas ouvert : Tartan est réservé aux personnes majeures.",
   },
   email: {
+    workspaceInactivity: {
+      subject: (space: string) => `Préparer la reprise de l’espace ${space}`,
+      body: (days: number) =>
+        `Le compte du responsable est inactif depuis deux ans. Sans retour de sa part, il sera supprimé après un préavis d’au moins ${days} jours. L’espace sera confié au plus ancien autre coach actif. Vérifie les membres et exporte les données depuis les réglages avant cette échéance. Contacte le support si la reprise doit être organisée autrement.`,
+      cta: "Vérifier l’espace et exporter",
+    },
     welcome: {
       subject: (space: string) => `Ton espace ${space} est prêt`,
       body: "Trois étapes pour démarrer : invite tes athlètes, prépare ta première séance, puis suis les retours dans la grille de suivi.",
@@ -819,7 +830,8 @@ export const fr = {
     accountDeleted: {
       subject: "Ton compte Tartan a été supprimé",
       body: "Ton compte et tes données sont supprimés, ainsi que les espaces dont tu étais le seul coach et leurs vidéos.",
-      subscription: "Ton abonnement est résilié, aucun nouveau prélèvement n'aura lieu.",
+      subscription:
+        "La clôture de ton abonnement est prise en charge. Si le prestataire est indisponible, la demande sera retentée automatiquement. Contacte-nous si un prélèvement intervient après ton départ.",
       notYou: "Ce n'est pas toi\u00a0? Écris-nous tout de suite à hello@tartan.coach.",
     },
     spaceTransferred: {
@@ -873,6 +885,31 @@ export const fr = {
     contact: "Contact",
   },
   admin: {
+    retentionReviews: "Espaces actifs sans repreneur",
+    retentionProcedure:
+      "Contacter les membres pour organiser une reprise dans les 30 jours. Après vérification du repreneur, transférer l’espace puis supprimer le compte inactif. Le report protège l’espace ; il ne justifie pas de conserver indéfiniment le compte du partant.",
+    billingIssues: "Anomalies de facturation",
+    billingCommands: "Arrêts de facturation en attente",
+    checkoutReviews: "Paiements à rapprocher",
+    failedEmails: "E-mails en échec durable",
+    retryEmail: "Réexaminer et reprendre l’envoi",
+    retryEmailDetail:
+      "L’état de l’abonnement et le destinataire seront revérifiés. Si le prestataire avait accepté un précédent envoi sans répondre, un doublon reste possible après 24 heures.",
+    retryQueued: "Reprise programmée. La tâche d’envoi revérifiera le message.",
+    obsoleteEmail: "Ce message ne correspond plus à l’état actuel. Il ne sera pas renvoyé.",
+    billingProcedure:
+      "Comparer les abonnements et sessions dans Stripe avec l’espace concerné. Vérifier les paiements avant toute résiliation ou restitution. Aucune opération financière automatique n’est lancée depuis cette liste.",
+    correctionTitle: "Rectifier une date de naissance",
+    correctionDetail:
+      "Après vérification d’une demande support, la correction s’applique au profil et aux fiches liées. Ne saisir aucune pièce d’identité ici.",
+    userId: "Identifiant du compte",
+    correctionReason: "Motif de la rectification",
+    correctionReasons: {
+      verified_support_request: "Demande support vérifiée",
+      migration_error: "Erreur de reprise de données",
+    },
+    correctionConfirm: "Enregistrer la rectification",
+    correctionDone: "Date rectifiée et intervention journalisée.",
     title: "Console",
     lead: "Les indicateurs du pilote, sans donnée de santé.",
     spaces: "Espaces",
@@ -937,6 +974,11 @@ export const fr = {
     later: "Plus tard",
   },
   billing: {
+    checkoutInProgress: "Une demande de paiement est déjà en cours. Réessaie dans quelques secondes.",
+    checkoutReview: "La facturation doit être vérifiée. Contacte le support avant de réessayer.",
+    checkoutCompleted: "Le paiement est déjà confirmé. Actualise ton abonnement.",
+    transferred:
+      "L’abonnement du précédent propriétaire est en cours de clôture. Tu pourras souscrire avec tes propres coordonnées à son échéance.",
     title: "Abonnement",
     pricing: "Tarifs",
     pricingTitle: "Un prix simple, payé par le coach.",

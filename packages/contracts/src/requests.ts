@@ -101,7 +101,16 @@ export const consentInput = z.object({
   granted: z.boolean(),
 });
 
-export const confirmAgeInput = z.object({ birthDate: isoDate });
+const birthDateInput = isoDate.refine((value) => {
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value && date <= new Date();
+}, "Indique une date de naissance valide");
+export const confirmAgeInput = z.object({ birthDate: birthDateInput });
+export const correctBirthDateInput = z.object({
+  userId: uuid,
+  birthDate: birthDateInput,
+  reason: z.enum(["verified_support_request", "migration_error"]),
+});
 
 export const athleteConsentInput = z.object({
   kind: z.enum(["health", "video"]),

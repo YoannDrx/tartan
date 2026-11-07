@@ -6,7 +6,12 @@ import { revokeAppleToken } from "@/lib/apple";
 import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/mail";
 import { log } from "@/lib/logger";
-import { billingEnabled, stripe } from "@/lib/stripe";
+import { AppError } from "@/lib/errors";
+import {
+  enqueueBillingCancellation,
+  enqueueCustomerCancellation,
+  processBillingCommands,
+} from "./billing-command.service";
 import { drainExternalDeletions, enqueueExternalDeletion } from "./external-deletion.service";
 import { prisma } from "@/lib/prisma";
 import { audit } from "./access";
@@ -24,7 +29,7 @@ const revokeWithRetries = async (refreshToken: string): Promise<void> => {
 };
 
 // Suppression réelle du compte et de ses données, contenus créés compris (Apple 5.1.1(v), § 15.4).
-export const deleteAccount = async (userId: string): Promise<void> => {
+export const deleteAccount = async (userId: string, options: { inactiveBefore?: Date } = {}): Promise<void> => {
   // Lue avant la suppression : c'est la seule trace de l'adresse à prévenir.
   const leaving = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
   const accounts = await prisma.account.findMany({
@@ -45,8 +50,9 @@ export const deleteAccount = async (userId: string): Promise<void> => {
       id: true,
       name: true,
       plan: true,
+      billingOwnerId: true,
       members: {
-        where: { role: { in: ["coach", "assistant"] }, userId: { not: userId } },
+        where: { role: { in: ["coach", "assistant"] }, status: "active", userId: { not: userId } },
         orderBy: { createdAt: "asc" },
         select: { userId: true, user: { select: { email: true } } },
       },
@@ -78,13 +84,47 @@ export const deleteAccount = async (userId: string): Promise<void> => {
   ]);
 
   await prisma.$transaction(async (tx) => {
+    if (options.inactiveBefore) {
+      await tx.$queryRaw`SELECT id FROM profiles WHERE id = ${userId}::uuid FOR UPDATE`;
+      const profile = await tx.profile.findUniqueOrThrow({ where: { id: userId } });
+      if (!profile.inactivityNoticeAt || (profile.lastActiveAt ?? profile.createdAt) >= options.inactiveBefore) {
+        throw new AppError(409, "account_active", m.common.genericError);
+      }
+    }
+    // Ne pas laisser un Checkout en vol facturer après la disparition du payeur.
+    for (const org of owned) {
+      await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${org.id}::uuid FOR UPDATE`;
+      const current = await tx.organization.findUniqueOrThrow({ where: { id: org.id } });
+      if (current.ownerId !== userId) throw new AppError(409, "owner_changed", m.common.genericError);
+      if (
+        options.inactiveBefore &&
+        current.lastBusinessActivityAt &&
+        current.lastBusinessActivityAt >= options.inactiveBefore &&
+        !org.members.length
+      ) {
+        throw new AppError(409, "retention_review", m.common.genericError);
+      }
+      const checkout = await tx.checkoutIntent.findUnique({ where: { organizationId: org.id } });
+      if (checkout?.leaseUntil && checkout.leaseUntil > new Date()) {
+        throw new AppError(409, "checkout_in_progress", m.billing.checkoutInProgress);
+      }
+    }
     for (const org of transfers) {
       const next = org.members[0]?.userId as string;
-      await tx.organization.update({ where: { id: org.id }, data: { ownerId: next } });
+      await tx.organization.update({
+        where: { id: org.id },
+        data: { ownerId: next, billingOwnerId: org.billingOwnerId ?? userId },
+      });
       await tx.organizationMember.update({
         where: { organizationId_userId: { organizationId: org.id, userId: next } },
         data: { role: "owner" },
       });
+    }
+    for (const org of transferredBilling) {
+      if (org.stripeCustomerId) await enqueueCustomerCancellation(tx, org.id, org.stripeCustomerId);
+      for (const subscription of org.subscriptions) {
+        if (subscription.providerRef) await enqueueBillingCancellation(tx, org.id, subscription.providerRef);
+      }
     }
     for (const org of deletedBilling) {
       for (const { providerRef } of org.subscriptions) {
@@ -128,26 +168,22 @@ export const deleteAccount = async (userId: string): Promise<void> => {
   await drainExternalDeletions();
   await audit({ action: "account_deleted", entity: "user" });
   const appUrl = env().NEXT_PUBLIC_APP_URL;
-  // Espace repris : l'abonnement du partant s'arrête à l'échéance, et les messages de Stripe vont au repreneur.
+  await processBillingCommands().catch(() => log.error("billing_commands_drain_failed"));
+  // La date n'est annoncée que si la commande durable a réellement réussi.
   const endsByOrg = new Map<string, string>();
   for (const org of transferredBilling) {
-    const heir = transfers.find((transfer) => transfer.id === org.id)?.members[0]?.user.email;
     for (const subscription of org.subscriptions) {
-      if (!subscription.providerRef || !billingEnabled()) continue;
-      try {
-        await stripe().subscriptions.update(subscription.providerRef, { cancel_at_period_end: true });
-        if (org.stripeCustomerId && heir) await stripe().customers.update(org.stripeCustomerId, { email: heir });
-        if (subscription.currentPeriodEnd) {
-          endsByOrg.set(
-            org.id,
-            new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(
-              subscription.currentPeriodEnd,
-            ),
-          );
-        }
-      } catch {
-        log.error("transfer_subscription_update_failed", { organizationId: org.id });
-      }
+      if (!subscription.providerRef || !subscription.currentPeriodEnd) continue;
+      const command = await prisma.billingCommand.findUnique({
+        where: { kind_externalRef: { kind: "cancel_at_period_end", externalRef: subscription.providerRef } },
+      });
+      if (command?.state === "done")
+        endsByOrg.set(
+          org.id,
+          new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(
+            subscription.currentPeriodEnd,
+          ),
+        );
     }
   }
   // Un message qui échoue n'empêche jamais une suppression déjà faite.

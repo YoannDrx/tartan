@@ -5,6 +5,7 @@ import { Sheet, SheetSection } from "@/components/sheet";
 import { PageHeader } from "@/components/states";
 import { requireSpace } from "@/features/shell/space";
 import { AdminReports } from "@/features/admin/admin-reports";
+import { BirthDateCorrection, RetryEmail } from "@/features/admin/operations";
 import { adminOverview, isAdmin } from "@/server/admin.service";
 import { listAllReports } from "@/server/comm.service";
 
@@ -44,6 +45,10 @@ export default async function AdminPage() {
     { label: m.admin.notificationsUndelivered, value: data.notificationDelivery.undeliveredLast24h },
     { label: m.admin.deletionsFailed, value: data.externalDeletions.failed },
     { label: m.admin.deletionsLate, value: data.externalDeletions.overdue },
+    { label: m.admin.billingCommands, value: data.billingCommands },
+    { label: m.admin.checkoutReviews, value: data.checkoutReviews },
+    { label: m.admin.failedEmails, value: data.failedEmailCount },
+    { label: m.admin.retentionReviews, value: data.retentionReviews.length },
   ];
   return (
     <div className="flex flex-col gap-4">
@@ -61,6 +66,61 @@ export default async function AdminPage() {
       <Sheet>
         <SheetSection title={m.admin.operations} flush>
           <Totals items={operations} />
+        </SheetSection>
+      </Sheet>
+      <Sheet>
+        <SheetSection title={m.admin.billingIssues}>
+          <p className="text-soft">{m.admin.billingProcedure}</p>
+          <ul className="divide-y divide-card-line">
+            {data.billingIssues.map((issue) => (
+              <li key={issue.id} className="py-2">
+                {issue.name} · {issue.id} · {issue.billingIssue}
+              </li>
+            ))}
+          </ul>
+        </SheetSection>
+        <SheetSection title={m.admin.failedEmails}>
+          <ul className="divide-y divide-card-line">
+            {data.failedEmails.map((email) => (
+              <li key={email.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className="break-all">
+                  {email.kind} · {email.failureCode} · {email.id}
+                </span>
+                <RetryEmail id={email.id} />
+              </li>
+            ))}
+          </ul>
+        </SheetSection>
+        <SheetSection title={m.admin.checkoutReviews}>
+          <ul>
+            {data.checkoutReviewItems.map((item) => (
+              <li key={item.id} className="break-all py-2">
+                {item.organizationId} · {item.id} · v{item.generation} · {item.sessionId ?? "–"}
+              </li>
+            ))}
+          </ul>
+        </SheetSection>
+        <SheetSection title={m.admin.billingCommands}>
+          <ul>
+            {data.pendingBillingCommands.map((item) => (
+              <li key={item.id} className="break-all py-2">
+                {item.organizationId} · {item.kind} · {item.externalRef} · {item.attempts} · {item.lastErrorCode ?? "–"}
+              </li>
+            ))}
+          </ul>
+        </SheetSection>
+        <SheetSection title={m.admin.correctionTitle}>
+          <BirthDateCorrection />
+        </SheetSection>
+        <SheetSection title={m.admin.retentionReviews}>
+          <p className="text-soft">{m.admin.retentionProcedure}</p>
+          <ul>
+            {data.retentionReviews.map((space) => (
+              <li key={space.id} className="py-2">
+                {space.name} · {space.id} · {space.retentionReviewAt?.toLocaleDateString("fr-FR")}
+              </li>
+            ))}
+          </ul>
         </SheetSection>
       </Sheet>
       <Sheet>
