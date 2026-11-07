@@ -1,3 +1,6 @@
+import { tokens } from "@tartan/design-tokens";
+import { m } from "@tartan/i18n";
+import type { SessionType } from "@tartan/contracts";
 import type { LucideIcon } from "lucide-react-native";
 import { forwardRef, useId, useState, type ReactNode } from "react";
 import {
@@ -15,6 +18,7 @@ import {
 import { splitTitle } from "./title-mark";
 import {
   color,
+  palettes,
   radius,
   scene,
   Scene,
@@ -44,7 +48,9 @@ export const T = ({ variant = "body", tone = "default", heading, style, ...rest 
   return (
     <Text
       accessibilityRole={heading ? "header" : undefined}
-      maxFontSizeMultiplier={variant === "tab" ? 1.2 : variant === "screen" || variant === "display" ? 1.3 : 1.6}
+      maxFontSizeMultiplier={
+        variant === "tab" ? 1.2 : p.work ? 2 : variant === "screen" || variant === "display" ? 1.3 : 1.6
+      }
       selectionColor={p.focus}
       {...rest}
       style={[textStyles[variant], { color: tones[tone] }, style]}
@@ -131,7 +137,7 @@ export const Button = ({
         <Icon size={20} color={look.fg} strokeWidth={2.2} accessibilityElementsHidden importantForAccessibility="no" />
       ) : null}
       <Text
-        maxFontSizeMultiplier={1.4}
+        maxFontSizeMultiplier={p.work ? 2 : 1.4}
         style={[textStyles.bodyStrong, { color: look.fg, textAlign: "center", flexShrink: 1 }]}
       >
         {label}
@@ -284,6 +290,7 @@ type FieldProps = TextInputProps & {
 export const Field = forwardRef<TextInput, FieldProps>(
   ({ label, error, hint, hideLabel, containerStyle, style, onFocus, onBlur, ...rest }, ref) => {
     const p = usePalette();
+    const field = p.world ? palettes[p.cardScene] : p;
     const labelId = useId();
     const [focused, setFocused] = useState(false);
     return (
@@ -298,11 +305,11 @@ export const Field = forwardRef<TextInput, FieldProps>(
           accessibilityLabel={label}
           accessibilityHint={hint}
           accessibilityLabelledBy={hideLabel ? undefined : labelId}
-          placeholderTextColor={scene.textMuted}
-          selectionColor={scene.link}
-          cursorColor={scene.link}
-          keyboardAppearance="dark"
-          maxFontSizeMultiplier={1.4}
+          placeholderTextColor={field.textMuted}
+          selectionColor={field.focus}
+          cursorColor={field.focus}
+          keyboardAppearance={field.dark ? "dark" : "light"}
+          maxFontSizeMultiplier={p.work ? 2 : 1.4}
           onFocus={(e) => {
             setFocused(true);
             onFocus?.(e);
@@ -320,18 +327,9 @@ export const Field = forwardRef<TextInput, FieldProps>(
               paddingVertical: space.sm,
               borderRadius: radius.button,
               borderWidth: focused ? 2 : 1,
-              // Le champ reste encre sur tous les fonds : son contour se lit contre lui, pas contre le monde.
-              borderColor: error
-                ? p.dark
-                  ? p.danger
-                  : scene.status.missed
-                : focused
-                  ? p.dark
-                    ? p.focus
-                    : scene.link
-                  : scene.controlLine,
-              backgroundColor: p.surface,
-              color: scene.text,
+              borderColor: error ? field.danger : focused ? field.focus : field.controlLine,
+              backgroundColor: field.surface,
+              color: field.text,
             },
             rest.multiline ? { minHeight: 88, textAlignVertical: "top", paddingTop: space.md } : null,
             style,
@@ -365,6 +363,19 @@ type ScreenTitleProps = {
 export const ScreenTitle = ({ title, variant = "screen", numberOfLines, testID, style }: ScreenTitleProps) => {
   const p = usePalette();
   const { lead, mark } = splitTitle(title);
+  if (p.work)
+    return (
+      <T
+        variant={variant === "screen" ? "title1" : variant}
+        heading
+        testID={testID}
+        numberOfLines={numberOfLines}
+        accessibilityLabel={title}
+        style={style}
+      >
+        {title}
+      </T>
+    );
   return (
     <T
       variant={variant}
@@ -439,7 +450,27 @@ export const LaneLine = () => {
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ height: 3, backgroundColor: p.lane, marginHorizontal: -pad }}
+      style={{ height: p.work ? 1 : 3, backgroundColor: p.lane, marginHorizontal: p.work ? 0 : -pad }}
     />
+  );
+};
+
+// Même poids visuel pour chaque pratique ; le libellé porte toujours le sens.
+export const ActivityTag = ({ type }: { type: SessionType }) => {
+  const tint = tokens.activity[type];
+  return (
+    <View
+      style={{
+        alignSelf: "flex-start",
+        borderRadius: radius.thumb,
+        paddingHorizontal: space.sm,
+        paddingVertical: 2,
+        backgroundColor: tint.background,
+      }}
+    >
+      <T variant="caption" style={{ color: tint.text }}>
+        {m.sessionType[type]}
+      </T>
+    </View>
   );
 };

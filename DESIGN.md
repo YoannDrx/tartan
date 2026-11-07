@@ -1,131 +1,74 @@
 # Tartan — design system
 
-Lu à chaque session de design. L'identité Tartan prime sur tout système généré (cahier des charges, chapitre 9).
+Lu à chaque session de design. Source produit : `PRODUCT.md` ; état effectivement livré : `docs/livraison-v1-1.md`.
 
-**Intention.** Une affiche d'athlétisme qui s'anime : aplats vifs, formes franches, un personnage qui saute. Chaque rubrique a son monde de couleur, les données restent posées sur des cartes encre, et le citron signale ce qu'on peut faire et ce qui est fait. Aucune autre app de coach ne ressemble à ça, et c'est le but.
+**Décision du fondateur du 7 novembre 2026 — V1.1.** Les surfaces de travail deviennent claires, la navigation compacte et la couleur porte les séances, catégories et états utiles. Cette décision remplace l’obligation du 3 novembre d’un fond vif et de cartes encre sur chaque écran. L’identité expressive reste disponible sur les accueils, le site et la célébration. La sobriété des espaces de travail de Nolio est une référence d’usage, sans reprise de sa marque ni de ses composants.
 
-Décision du fondateur (3 novembre 2026), qui remplace la direction « sombre et rouge » du 1er novembre et le « clair par défaut » du cahier (§ 9.9) : **cette direction s'applique au site et aux applications, sur toutes les pages.**
+**Intention.** Un carnet de préparation physique pour l’athlétisme : lire la semaine, préparer une séance, individualiser et comprendre le réalisé. Rouge piste comme signature, citron comme accent, typographie Barlow. Force, vitesse, puissance, endurance et mobilité ont la même légitimité ; le saut en hauteur conserve ses outils spécialisés dans leur contexte.
 
-## Deux régimes
+## Deux régimes, une identité
 
-- **Le site public** cherche à convaincre : le film du saut, les mots qui rebondissent, le spectacle assumé.
-- **L'application** sert une tâche : même univers, mais lisibilité d'abord. Pas d'animation au chargement, transitions de 150 à 250 ms, un seul grand moment animé. Le critère reste : valider en moins de 10 secondes côté athlète, lisible au soleil sur le terrain.
+### Travail
 
-## Les mondes
+Calendrier, suivi, constructeur, bibliothèque, fiches athlètes, progrès, listes de vidéos, annonces, réglages et formulaires utilisent un fond craie, des surfaces blanches et du texte encre. Les séparations sont fines ; les chiffres sont tabulaires. Une liste structurée est préférable à une succession de cartes décoratives. Le contenu et l’action principale sont visibles tôt, sans titre de 80 px ni mot systématiquement surligné.
 
-Le fond change franchement d'une rubrique à l'autre, sans fondu. Source web : `apps/web/src/lib/world.ts` et les classes `.world-*`. Le mobile applique la même répartition.
+Les titres d’écran font 28–32 px, les titres de section 20–22 px, le texte 15–16 px. La navigation garde des cibles de 44 px au minimum. Le rouge identifie l’action principale ou la sélection ; le citron reste un accent et la couleur de la célébration. Une couleur n’est jamais le seul moyen de comprendre un état.
 
-| Monde   | Fond             | Texte | Où                                                                   |
-| ------- | ---------------- | ----- | -------------------------------------------------------------------- |
-| Piste   | Rouge `#C4442B`  | Blanc | Accueil, Aujourd'hui, séance, connexion, invitations, site           |
-| Couloir | Bleu électrique  | Blanc | Suivi, calendrier, séances, tarifs                                   |
-| Craie   | Craie `#F2F3F1`  | Encre | Exercices, annonces, réglages, abonnement, textes légaux             |
-| Soleil  | Jaune `#FFC838`  | Encre | Athlètes, progrès, contact                                           |
-| Nuit    | Encre `#15161A`  | Blanc | Vidéos et mes sauts, mode séance, analyse vidéo, capture, hors ligne |
-| Citron  | Citron `#C6F432` | Encre | Réservé au moment de validation et à sa séquence dans le film        |
+Sur desktop, les comparaisons peuvent utiliser plusieurs colonnes et les détails un panneau ; sur téléphone, ils se lisent dans un écran dédié et une colonne. Les interfaces natives appliquent les mêmes rôles et intitulés. Les formulaires, feuilles, menus et dialogues suivent le contexte clair, y compris les éléments rendus dans un portail.
 
-La vidéo et le mode séance restent sur encre : l'effort prime, et une couleur vive fausserait la perception de l'image.
+### Expression et immersion
 
-### Règles
+Le site et l’accueil athlète peuvent garder les aplats et la mascotte, avec une représentation équilibrée de la préparation physique. Le parcours présenté est « préparer → individualiser → réaliser → progresser ». Les captures représentent les fonctions réellement disponibles. La hauteur ne constitue plus l’unique récit du produit.
 
-- **Les données vivent sur des cartes encre** (`scene.card`). Pas de carte dans une carte : à l'intérieur, on structure par lignes (`scene.cardLine`) et par rangées surélevées (`scene.cardRaised`). Dans le monde Nuit, les cartes passent à `ink2`.
-- **Sur un monde, le texte a une seule couleur** : blanc sur Piste, Couloir et Nuit, encre sur Craie et Soleil. Pas de secondaire grisé ou teinté directement sur un fond plein.
-- **Une couleur de texte s'écrit avec un rôle** (`--ctx-*`, `bg-accent`, `text-on-accent`, `text-on-page`), jamais en dur : un même composant traverse tous les mondes.
-- **Les lignes de couloir restent la signature** : traits pleins de 3 px à bord perdu, de la couleur du texte du monde, sous le titre d'écran et entre grandes sections. La ligne d'arrivée (7 px) coupe la piste du site une seule fois et signale une séance de saut dans le calendrier.
-- **Une carte héros par écran au maximum** peut passer en craie (`scene.hero`) : c'est le point focal, comme la séance du jour.
-- **Le logo** : logotype seul sur un monde, de la couleur du texte ; icône complète autorisée sur l'encre.
-- Barres de navigation : encre, onglet actif citron avec texte et pictogramme encre.
-- Les e-mails restent clairs : ils s'affichent dans la messagerie de chacun.
+La lecture/analyse vidéo, la capture et le mode séance restent encre : la couleur du fond ne doit pas distraire du geste. La célébration de validation reste citron. Une route historique conserve son adresse tant qu’une redirection compatible n’a pas été ajoutée.
 
-## L'accent citron
+## Palette et rôles
 
-Le citron sert aux actions principales, à la sélection, au statut « fait » et au marqueur. Il suit le fond :
+Source unique : `packages/design-tokens/src/index.ts`. Les valeurs CSS sont un miroir contrôlé par les tests. Aucun hexadécimal dans les composants.
 
-- sur Piste, Couloir, Nuit et les cartes encre : fond citron, texte encre ;
-- sur Craie, Soleil et la carte héros : fond encre, texte citron.
+| Rôle        | Couleur   | Usage                                      |
+| ----------- | --------- | ------------------------------------------ |
+| Piste       | `#C4442B` | Marque et action principale sur clair      |
+| Piste forte | `#9E3320` | Liens et états de survol sur clair         |
+| Encre       | `#15161A` | Texte, immersion, navigation expressive    |
+| Craie       | `#F2F3F1` | Fond de travail                            |
+| Blanc       | `#FFFFFF` | Surfaces de travail                        |
+| Citron      | `#C6F432` | Accent, célébration et sélection sur encre |
 
-Sur le rouge, le citron atteint 3,9:1 : il ne sert jamais de couleur de texte. Sur l'encre, il sert aussi aux liens. Le rouge reste la marque et le type « saut » : il n'indique plus une sélection.
+Les jetons `work` définissent le contexte de travail ; `scene` conserve le contexte expressif et immersif. Les composants utilisent la palette locale : texte, texte secondaire, surface, séparateur, contour de contrôle, action, lien, focus et statut. Un composant partagé ne suppose jamais que sa surface est sombre.
 
-## Le marqueur
+Les mondes historiques Piste, Couloir, Craie, Soleil et Nuit restent des palettes expressives ; ils ne dictent plus la couleur des écrans de travail. La navigation quotidienne est claire, avec sélection rouge et libellé explicite. L’accueil expressif peut garder sa navigation encre. Les e-mails restent clairs dans toutes les messageries.
 
-Le dernier mot de chaque titre d'écran est posé sur un aplat d'accent (`Marked`), tracé une fois à l'arrivée sur l'écran. Pas de marqueur ailleurs que sur les titres d'écran et de section du site : il perdrait sa force.
+## Typographie et rythme
 
-## La mascotte
+Barlow pour le texte ; Barlow Condensed pour les titres et chiffres. Titres de travail courts et alignés à gauche, sans mot isolé au marqueur. Le marqueur peut rester sur les titres expressifs du site et de l’accueil.
 
-Un personnage en aplats : tête ronde, deux yeux en points, membres épais, baskets citron (`Jumper`, poses et proportions dans `packages/design-tokens/src/jumper.ts`). Elle occupe les états vides, les erreurs, le hors-ligne et le moment de validation. Elle est décorative : le texte voisin porte le sens. Elle ne remplace ni une donnée ni une action.
+Grille de 4 px ; espacements de 4 à 64 px. Marge latérale mobile 16 px, desktop 24 px. Rayons cohérents : boutons 14 px, cartes 20 px ; pas de carte dans une carte. Cibles tactiles de 44 × 44 px. Aplats et bordures plutôt qu’ombres, sauf éléments flottants.
 
-## Le mouvement
+La couleur des séances et catégories sert la lecture du calendrier ; une spécialité ne bénéficie pas systématiquement d’un poids visuel supérieur. Les volumes et intensités conservent leurs unités et leur couverture de données.
 
-- **Un seul grand moment dans l'application : la validation d'une séance faite** (`Victory`). Une seconde plein écran en citron, coche, mascotte et confettis, sans bloquer l'écran ni retarder l'envoi. Une validation partielle n'y a pas droit.
-- **Sur le site public** : le film du saut piloté par le défilement, le tracé des couloirs et le même moment dans la démonstration.
-- Avec la réduction des animations ou sans JavaScript, ces animations disparaissent : image fixe et textes empilés.
+## Composants et parcours
 
-## Statuts
+- Une action principale explicite par étape ; publication principale, brouillon secondaire, options avancées regroupées.
+- Boutons secondaires sobres, contours et focus visibles sur leur surface réelle.
+- Champs avec libellé permanent, erreur proche et annoncée, clavier suivant le thème ; les valeurs ne disparaissent pas sur une erreur.
+- Cartes/listes de séance : titre, date, destinataires, état et catégorie avant les métadonnées secondaires.
+- Contexte groupe/athlète/semaine conservé lors d’une consultation et d’un retour.
+- Graphiques accompagnés d’une synthèse et d’un tableau ; aucun résultat manquant présenté comme mesuré.
+- Installation proposée au bon moment, refermable ; aucune action cachée sous les barres fixes.
+- Vidéo générale : « Vidéos » et « Analyse technique ». Barre, hauteur et phases techniques de saut seulement dans le contexte hauteur.
 
-Sur l'encre, les statuts utilisent `scene.status` (`done` citron, `partial` soleil, `missed` corail, `upcoming` gris), pictogramme encre (`scene.onStatus`) dans le disque. Les valeurs `color.status` restent celles des fonds clairs (carte héros, e-mails). **Jamais la couleur seule :** fait = coche, partiel = demi-disque, manqué = croix, à venir = contour pointillé.
+## Mouvement et mascotte
 
-### Exigence de soin
+**Un seul grand moment animé : la validation d’une séance faite.** La célébration peut intégrer les records confirmés de cette séance. Pas de seconde animation dans l’historique, de son ni de rejeu après synchronisation. Une validation partielle ne déclenche pas cette célébration. Réduction des animations respectée.
 
-Tout est aligné sur la grille de 4, chiffres tabulaires partout, rythme vertical constant. Sélection de texte, focus, barres de défilement, états vides : tout porte l'identité. Un écran correct mais quelconque n'est pas terminé.
+Pas d’animation d’apparition dans les écrans de travail. Transitions de 150 à 250 ms lorsqu’elles expliquent une interaction. La mascotte reste décorative dans les accueils, états vides et la validation ; elle ne remplace jamais une information ou une action.
 
-## Jetons
+## Recette
 
-Source unique : `packages/design-tokens/src/index.ts`. Ne pas écrire de couleur ailleurs. Les rôles à l'écran viennent de `tokens.scene`, la palette vive de `color.film`.
+Chaque écran passe par UI/UX Pro Max, Frontend Design et Impeccable, en conservant le contexte produit. Les suggestions génériques de landing ou de styles décoratifs ne remplacent pas ces décisions.
 
-| Jeton             | Valeur  | Usage                                      |
-| ----------------- | ------- | ------------------------------------------ |
-| brand (Piste)     | #C4442B | Monde Piste, marque, type « saut »         |
-| brandStrong       | #9E3320 | Piste foncé, survol, texte rouge sur clair |
-| ink (Encre)       | #15161A | Texte sur clair, cartes, monde Nuit        |
-| ink2              | #24262C | Rangées surélevées, cartes du monde Nuit   |
-| bg (Craie)        | #F2F3F1 | Monde Craie, carte héros, e-mails          |
-| film.electric     | #2B4DFF | Monde Couloir                              |
-| film.electricDeep | #1E37C2 | Survol sur Couloir                         |
-| film.lime         | #C6F432 | Accent, statut fait, moment de validation  |
-| film.limeDeep     | #AEDB1E | Survol de l'accent                         |
-| film.sun          | #FFC838 | Monde Soleil, statut partiel, tapis        |
-| film.sunDeep      | #EFB21C | Survol sur Soleil                          |
-| film.sunLight     | #FFE08A | Dessus du tapis dans le film               |
-| film.skin         | #E8A87C | Peau de la mascotte                        |
-
-Espacements : 4, 8, 12, 16, 20, 24, 32, 48, 64. Marge latérale mobile 16, desktop 24.
-Rayons : 12 vignettes, 14 boutons carrés, 20 cartes, 24 blocs, 28 carte héros, plein pour les pastilles.
-Aplats et bordures plutôt qu'ombres (lisibilité au soleil). Ombre légère seulement pour un élément flottant.
-Cibles tactiles : 44 × 44 minimum.
-
-## Typographie
-
-Barlow Condensed pour les titres et les chiffres, Barlow pour le texte. Chiffres tabulaires pour hauteurs, charges, chronos, pourcentages.
-
-Source : `apps/web/app/globals.css`, classes `.t-*`. Bascule à 1024 px.
-
-| Rôle                    | Classe       | Police                    | Mobile  | Desktop |
-| ----------------------- | ------------ | ------------------------- | ------- | ------- |
-| Titre d'écran (Display) | `.t-display` | Barlow Condensed Bold     | 52/52   | 80/80   |
-| Titre 1                 | `.t-h1`      | Barlow Condensed Bold     | 36/40   | 44/48   |
-| Titre 2                 | `.t-h2`      | Barlow Condensed SemiBold | 24/28   | 26/30   |
-| Titre de section        | `.t-section` | Barlow Condensed SemiBold | 20/24   | 20/24   |
-| Chiffre                 | `.t-num`     | Barlow Condensed SemiBold | 17 à 34 | 17 à 40 |
-| Corps                   | base         | Barlow Regular/SemiBold   | 15/22   | 15/22   |
-| Légende                 | `.t-caption` | Barlow Medium             | 13/18   | 13/18   |
-| En-tête de colonne      | `.t-col`     | Barlow SemiBold           | 13/16   | 13/16   |
-
-Aucun texte en capitales d'affichage : ni au-dessus d'une section, ni en en-tête de colonne (§ 9.11).
-
-## Composants
-
-- Bouton principal : accent, SemiBold 16, hauteur 48–52, pastille. Une seule action principale par écran.
-- Bouton secondaire : sur un monde, contour 2 px de la couleur du texte ; sur l'encre, fond `cardRaised`, bordure `cardLine`.
-- Bouton icône : 44 × 44, rond ou carré arrondi, libellé accessible obligatoire.
-- Pastille de filtre : hauteur 36, pastille. Active : accent. Inactive : contour sur un monde, fond `cardRaised` sur l'encre.
-- Cellule de statut : disque 26 px avec pictogramme, cible tactile 44 px.
-- Carte séance : type, titre, horaire · public, étiquettes de version (Club, Autonomie, Filmée), sur encre. Séance de saut signalée par une ligne d'arrivée et un pictogramme de barre.
-- Ligne d'exercice : vignette vidéo 44 px, nom, prescription en texte secondaire, étiquette de catégorie.
-- Barre d'onglets : 5 entrées maximum, pictogramme + libellé 11 px, fond encre, actif citron.
-- Champ : hauteur 44, libellé visible (ou masqué mais présent pour les lecteurs d'écran), coins 10–22.
-- Timeline vidéo : segments par phase (luminosités alternées, phase courante en citron), repères de commentaires, tête de lecture blanche.
-- Feuille de barres : une pastille par hauteur, résultat dessous (O / XO / XXX), hauteur courante en citron.
-- Alerte : ligne dans une carte encre, pastille d'icône pleine (`missed` ou `partial`), titre + détail, chevron.
+Vérifier 390, 768 et 1440 px, clavier, zoom 200 %, contenus longs, 30/60/120 athlètes et barres fixes. Contraste texte 4,5:1, gros texte 3:1, contrôles/focus 3:1. Vérifier les portails, menus et retours d’erreur dans le bon thème. VoiceOver/TalkBack et appareils physiques restent des recettes distinctes des exports et tests automatisés.
 
 ## Interdits (exigence « aucun AI slop »)
 

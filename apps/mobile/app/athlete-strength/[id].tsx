@@ -238,7 +238,7 @@ const StrengthScreen = ({ orgId, athleteId }: { orgId: string; athleteId: string
   );
   return (
     <StackScreen
-      world="craie"
+      world="work"
       title={m.strength.manage}
       subtitle={file.data ? `${file.data.firstName} ${file.data.lastName}` : undefined}
     >

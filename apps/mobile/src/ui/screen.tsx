@@ -26,6 +26,7 @@ export const useSceneStatusBar = () => {
 // Hors ligne ou envois en attente : l'état se lit sans chercher.
 export const SyncBanner = () => {
   const router = useRouter();
+  const p = usePalette();
   const pathname = usePathname();
   const online = useIsOnline();
   const ops = useOpQueue((s) => s.items.length - reviewRequiredOps(s.items).length);
@@ -64,7 +65,7 @@ export const SyncBanner = () => {
         paddingVertical: space.md,
       }}
     >
-      <Icon size={18} color={scene.status.partial} accessibilityElementsHidden importantForAccessibility="no" />
+      <Icon size={18} color={p.status.partial} accessibilityElementsHidden importantForAccessibility="no" />
       <T variant="caption" accessibilityLiveRegion="polite" style={{ flex: 1 }}>
         {parts.join(" ")}
       </T>
@@ -263,7 +264,7 @@ const StackInner = ({
 };
 
 // `dark` : l'encre des écrans de tâche (vidéo, capture, mode séance), prioritaire sur le monde.
-export const StackScreen = ({ dark, world = "piste", ...rest }: StackScreenProps) => (
+export const StackScreen = ({ dark, world = "work", ...rest }: StackScreenProps) => (
   <Scene scene={dark ? "encre" : world}>
     <StackInner {...rest} />
   </Scene>

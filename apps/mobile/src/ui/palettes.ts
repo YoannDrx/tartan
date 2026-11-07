@@ -3,16 +3,18 @@ import { tokens } from "@tartan/design-tokens";
 const c = tokens.color;
 const s = tokens.scene;
 const film = c.film;
+const w = tokens.work;
 
 // Un monde remplit l'écran d'une rubrique ; les trois autres scènes sont posées dessus ou le remplacent :
 // card : dans une carte encre ou une feuille ; encre : mode séance, capture et vidéo ; hero : la seule carte craie.
-export type WorldName = "piste" | "couloir" | "craie" | "soleil" | "nuit";
-export type SceneName = WorldName | "nuitCard" | "card" | "encre" | "hero";
+export type WorldName = "piste" | "couloir" | "craie" | "soleil" | "nuit" | "work";
+export type SceneName = WorldName | "workCard" | "nuitCard" | "card" | "encre" | "hero";
 
 export type Palette = {
   name: SceneName;
   // Contenu clair sur fond sombre : décide aussi de la barre d'état.
   dark: boolean;
+  work: boolean;
   // Fond plein de rubrique : le contenu se pose sur des cartes, dans la scène `cardScene`.
   world: boolean;
   // Boutons secondaires et pastilles au repos : contour plein, sans surface.
@@ -42,6 +44,7 @@ export type Palette = {
 
 const inkBase = {
   dark: true,
+  work: false,
   world: false,
   outlined: false,
   cardScene: "card",
@@ -100,7 +103,35 @@ const inkAccent = {
   onStatus: film.lime,
 } as const;
 
+const workBase = {
+  ...inkBase,
+  work: true,
+  dark: false,
+  cardScene: "workCard",
+  bg: w.page,
+  surface: w.surface,
+  surfaceAlt: w.raised,
+  raised: w.raised,
+  onRaised: w.text,
+  text: w.text,
+  textMuted: w.muted,
+  border: w.border,
+  lane: w.border,
+  controlLine: w.controlLine,
+  accent: w.action,
+  accentText: w.onAction,
+  link: w.link,
+  focus: w.actionHover,
+  danger: w.status.missed,
+  ripple: w.raised,
+  status: w.status,
+  onStatus: w.onStatus,
+  jumperHair: w.text,
+} as const satisfies Omit<Palette, "name">;
+
 export const palettes: Record<SceneName, Palette> = {
+  work: { ...workBase, name: "work", world: true },
+  workCard: { ...workBase, name: "workCard", bg: w.surface, surface: w.page },
   piste: { ...fullWorld(s.page, s.onPage), name: "piste", accent: s.actionOnPage, accentText: s.onActionOnPage },
   couloir: { ...fullWorld(film.electric, c.white), name: "couloir" },
   craie: { ...fullWorld(s.hero, s.onHero), ...inkAccent, name: "craie" },

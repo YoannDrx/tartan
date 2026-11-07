@@ -17,7 +17,7 @@ import { Button, Divider, ListSurface, SectionTitle, T, Tag } from "../../src/ui
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { StatusDisc } from "../../src/ui/status";
-import { radius, scene, space } from "../../src/ui/theme";
+import { radius, palettes, space, usePalette } from "../../src/ui/theme";
 
 const day = (iso: string) => capitalize(formatDayMonth(iso));
 const fullDay = (iso: string) => `${day(iso)} ${iso.slice(0, 4)}`;
@@ -73,6 +73,7 @@ const MarkRow = ({ title, detail, value, badge }: { title: string; detail: strin
 );
 
 const InjuryAlert = ({ injury }: { injury: CoachAthleteFile["injuries"][number] }) => {
+  const p = usePalette();
   return (
     <ListSurface>
       <View
@@ -87,17 +88,15 @@ const InjuryAlert = ({ injury }: { injury: CoachAthleteFile["injuries"][number] 
             borderRadius: radius.thumb,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: scene.status.missed,
+            backgroundColor: p.status.missed,
           }}
         >
-          <AlertTriangle size={20} color={scene.onStatus} accessibilityElementsHidden importantForAccessibility="no" />
+          <AlertTriangle size={20} color={p.onStatus} accessibilityElementsHidden importantForAccessibility="no" />
         </View>
         <View style={{ flex: 1, gap: 1 }}>
-          <T variant="smallStrong" style={{ color: scene.text }}>
-            {injuryLabel(injury)}
-          </T>
+          <T variant="smallStrong">{injuryLabel(injury)}</T>
           {injury.restrictions ? (
-            <T variant="caption" style={{ color: scene.textMuted }}>
+            <T variant="caption" tone="muted">
               {injury.restrictions}
             </T>
           ) : null}
@@ -121,14 +120,14 @@ export default function AthleteFile() {
 
   if (file.isPending || stats.isPending) {
     return (
-      <StackScreen world="soleil" title={m.athletes.title}>
+      <StackScreen world="work" title={m.athletes.title}>
         <LoadingState />
       </StackScreen>
     );
   }
   if (!detail) {
     return (
-      <StackScreen world="soleil" title={m.athletes.title}>
+      <StackScreen world="work" title={m.athletes.title}>
         <ErrorState message={m.mobile.athletePage.error} onRetry={() => void file.refetch()} />
       </StackScreen>
     );
@@ -154,7 +153,7 @@ export default function AthleteFile() {
   const shownFigures = figures.flatMap((f) => (f.value === null ? [] : [{ label: f.label, value: f.value }]));
 
   return (
-    <StackScreen world="soleil" title={name} subtitle={subtitle}>
+    <StackScreen world="work" title={name} subtitle={subtitle}>
       {activeInjury ? <InjuryAlert injury={activeInjury} /> : null}
 
       {shownFigures.length > 0 ? (
@@ -371,7 +370,7 @@ export default function AthleteFile() {
                       </View>
                       <ChevronRight
                         size={18}
-                        color={scene.textMuted}
+                        color={palettes.work.textMuted}
                         accessibilityElementsHidden
                         importantForAccessibility="no"
                       />

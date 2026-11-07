@@ -20,7 +20,7 @@ import { Button, Card, Divider, Field, ListSurface, SectionTitle, T } from "../s
 import { StackScreen } from "../src/ui/screen";
 import { Sheet } from "../src/ui/sheet";
 import { ErrorState, LoadingState } from "../src/ui/states";
-import { scene, space } from "../src/ui/theme";
+import { scene, space, palettes } from "../src/ui/theme";
 
 // Toute la ligne bascule le réglage : cible large, et un seul élément pour le lecteur d'écran.
 const ConsentRow = ({
@@ -88,7 +88,12 @@ const LinkRow = ({ label, onPress }: { label: string; onPress: () => void }) => 
     <T variant="small" style={{ flex: 1 }}>
       {label}
     </T>
-    <ChevronRight size={18} color={scene.textMuted} accessibilityElementsHidden importantForAccessibility="no" />
+    <ChevronRight
+      size={18}
+      color={palettes.work.textMuted}
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+    />
   </Pressable>
 );
 
@@ -187,21 +192,21 @@ export default function Settings() {
 
   if (me.isPending) {
     return (
-      <StackScreen world="craie" title={m.settings.title}>
+      <StackScreen world="work" title={m.settings.title}>
         <LoadingState />
       </StackScreen>
     );
   }
   if (!me.data) {
     return (
-      <StackScreen world="craie" title={m.settings.title}>
+      <StackScreen world="work" title={m.settings.title}>
         <ErrorState error={me.error} onRetry={() => void me.refetch()} />
       </StackScreen>
     );
   }
 
   return (
-    <StackScreen world="craie" title={m.settings.title}>
+    <StackScreen world="work" title={m.settings.title}>
       <View style={{ gap: space.sm }}>
         <SectionTitle>{m.settings.profile}</SectionTitle>
         <Card>

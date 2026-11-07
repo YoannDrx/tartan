@@ -11,7 +11,7 @@ export default function SessionSets() {
   const { me, orgId } = useActiveSpace();
   const detail = useSessionDetail(orgId, id);
   return (
-    <StackScreen dark title={m.progression.setsTitle} subtitle={detail.data?.title}>
+    <StackScreen world="work" title={m.progression.setsTitle} subtitle={detail.data?.title}>
       {detail.isPending || !me.data ? (
         <LoadingState />
       ) : !detail.data ? (

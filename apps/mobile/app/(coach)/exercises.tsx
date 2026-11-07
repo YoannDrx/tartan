@@ -36,7 +36,7 @@ export default function Exercises() {
 
   return (
     <TabScreen
-      world="craie"
+      world="work"
       title={m.exercises.title}
       refreshing={exercises.isRefetching}
       onRefresh={() => void exercises.refetch()}

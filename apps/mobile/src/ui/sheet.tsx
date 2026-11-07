@@ -118,18 +118,21 @@ const SheetBody = ({
 };
 
 // Le retour Android ferme la feuille (onRequestClose), jamais l'écran derrière.
-export const Sheet = ({ visible, dark: _dark, overlay, ...rest }: SheetProps) => (
-  <Modal
-    visible={visible}
-    transparent
-    animationType="none"
-    onRequestClose={rest.onClose}
-    statusBarTranslucent
-    navigationBarTranslucent
-  >
-    <Scene scene="card">
-      <SheetBody {...rest} />
-      {overlay}
-    </Scene>
-  </Modal>
-);
+export const Sheet = ({ visible, dark, overlay, ...rest }: SheetProps) => {
+  const p = usePalette();
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      onRequestClose={rest.onClose}
+      statusBarTranslucent
+      navigationBarTranslucent
+    >
+      <Scene scene={dark ? "card" : p.work ? "workCard" : "card"}>
+        <SheetBody {...rest} />
+        {overlay}
+      </Scene>
+    </Modal>
+  );
+};

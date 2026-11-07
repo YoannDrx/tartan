@@ -178,14 +178,14 @@ export default function CoachSession() {
   if (me.data && !orgId) return <Redirect href="/" />;
   if (detail.isPending) {
     return (
-      <StackScreen world="couloir">
+      <StackScreen world="work">
         <LoadingState />
       </StackScreen>
     );
   }
   if (!detail.data) {
     return (
-      <StackScreen world="couloir">
+      <StackScreen world="work">
         <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
       </StackScreen>
     );
@@ -198,7 +198,7 @@ export default function CoachSession() {
 
   return (
     <StackScreen
-      world="couloir"
+      world="work"
       title={session.title}
       subtitle={subtitle}
       footer={

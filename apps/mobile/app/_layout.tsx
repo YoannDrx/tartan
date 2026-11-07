@@ -27,7 +27,6 @@ import { palettes, scene, type WorldName } from "../src/ui/theme";
 const variant = (Constants.expoConfig?.extra as { appVariant?: string } | undefined)?.appVariant ?? "development";
 Sentry.init(sentryOptions(process.env.EXPO_PUBLIC_SENTRY_DSN, variant));
 
-
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 // Fond natif rouge : aucun flash blanc au démarrage ni entre deux écrans.
 void SystemUI.setBackgroundColorAsync(scene.page).catch(() => undefined);
@@ -113,29 +112,29 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: scene.page },
+            contentStyle: { backgroundColor: palettes.work.bg },
             // La transition d'une rubrique à l'autre reste franche : 200 ms, sans en-tête animé.
             animation: "simple_push",
             animationDuration: 200,
           }}
         >
           <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(auth)" options={worldContent("piste")} />
           <Stack.Screen name="(athlete)" options={{ animation: "none" }} />
           <Stack.Screen name="(coach)" options={{ animation: "none" }} />
-          <Stack.Screen name="i/[token]" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="i/[token]" options={{ gestureEnabled: false, ...worldContent("piste") }} />
           <Stack.Screen
             name="session/[id]"
             options={{ gestureEnabled: false, contentStyle: { backgroundColor: scene.card } }}
           />
           <Stack.Screen name="video/[id]" options={{ contentStyle: { backgroundColor: scene.card } }} />
           <Stack.Screen name="capture" options={{ contentStyle: { backgroundColor: scene.card } }} />
-          <Stack.Screen name="coach-session/[id]" options={worldContent("couloir")} />
-          <Stack.Screen name="settings" options={worldContent("craie")} />
+          <Stack.Screen name="coach-session/[id]" options={worldContent("work")} />
+          <Stack.Screen name="settings" options={worldContent("work")} />
           <Stack.Screen name="invite" />
-          <Stack.Screen name="athletes/index" options={worldContent("soleil")} />
-          <Stack.Screen name="athletes/[id]" options={worldContent("soleil")} />
-          <Stack.Screen name="exercise/[id]" options={worldContent("craie")} />
+          <Stack.Screen name="athletes/index" options={worldContent("work")} />
+          <Stack.Screen name="athletes/[id]" options={worldContent("work")} />
+          <Stack.Screen name="exercise/[id]" options={worldContent("work")} />
         </Stack>
       </SafeAreaProvider>
     </PersistQueryClientProvider>

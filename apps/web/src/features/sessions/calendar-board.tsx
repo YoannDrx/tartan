@@ -1,5 +1,6 @@
 "use client";
 
+import { tokens } from "@tartan/design-tokens";
 import type { CalendarResponse, CalendarSession } from "@tartan/contracts";
 import { addDays } from "@tartan/domain";
 import { capitalize, formatDateLong, formatWeekdayShort, m } from "@tartan/i18n";
@@ -27,16 +28,17 @@ const SessionCard = ({
   onMove: () => void;
   onDuplicate: () => void;
 }) => {
-  const jump = session.type === "jump";
+  const tint = tokens.activity[session.type];
   return (
     <article
       draggable
       onDragStart={(e) => e.dataTransfer.setData("text/session-id", session.id)}
       className="relative cursor-grab overflow-hidden rounded-thumb bg-card-raised p-2 pr-3 active:cursor-grabbing"
     >
-      {/* Séance de saut : la ligne d'arrivée, le rouge étant désormais le fond (DESIGN.md). */}
-      {jump ? <span aria-hidden className="absolute inset-y-0 right-0 w-[7px] bg-lane" /> : null}
-      <p className="flex items-center gap-1.5 t-caption text-soft">
+      <p
+        className="inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 t-caption"
+        style={{ backgroundColor: tint.background, color: tint.text }}
+      >
         <ActivityPicto kind={session.type} className="size-4" />
         {m.sessionType[session.type]}
       </p>
@@ -247,9 +249,12 @@ export const MonthBoard = ({ month, today, data }: { month: string; today: strin
                     <Link
                       key={s.id}
                       href={`/seances/${s.id}/suivi`}
+                      style={{
+                        backgroundColor: tokens.activity[s.type].background,
+                        color: tokens.activity[s.type].text,
+                      }}
                       className={cn(
                         "flex min-h-11 items-center gap-2 rounded-thumb px-2 font-medium leading-snug no-underline",
-                        s.type === "jump" ? "bg-brand text-white" : "bg-card-raised text-fg",
                       )}
                     >
                       <ActivityPicto kind={s.type} className="size-4" />
@@ -297,10 +302,10 @@ export const MonthBoard = ({ month, today, data }: { month: string; today: strin
                   <Link
                     key={s.id}
                     href={`/seances/${s.id}/suivi`}
-                    title={s.title}
+                    title={`${s.title} · ${m.sessionType[s.type]}`}
+                    style={{ backgroundColor: tokens.activity[s.type].background, color: tokens.activity[s.type].text }}
                     className={cn(
                       "mb-0.5 flex min-h-6 items-center gap-1 rounded px-1 text-[12px] font-medium no-underline hover:underline",
-                      s.type === "jump" ? "bg-brand text-white" : "bg-card-raised text-fg",
                     )}
                   >
                     <ActivityPicto kind={s.type} className="size-3.5" />

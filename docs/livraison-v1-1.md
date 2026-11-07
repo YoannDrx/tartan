@@ -10,7 +10,7 @@ Au 7 novembre 2026, après `25557b0` : PR #45 en brouillon, fonctionnalités de 
 
 | Lot | État actuel | Reste principal |
 | --- | --- | --- |
-| A — positionnement et expérience | Non terminé | Préparation physique athlé, DA, onboarding, bibliothèque relue, vidéo générique, landing et constructeur natif |
+| A — positionnement et expérience | Socle visuel clair web/natif validé localement, en cours d’intégration | Constructeur natif, onboarding, bibliothèque relue, vidéo générique, landing et recette physique |
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
 | C — historique et records | Règles de calcul initiales présentes | Historique, dernière réalisation comparable, calculateur, courbes, records et célébration unique |
 | D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |
@@ -273,3 +273,12 @@ Le coach relit les charges et leurs sources avant confirmation. Les pourcentages
 Preuves du code `25557b0` : 477 tests serveur sur la suite complète, puis 32 tests ciblés après les derniers ajustements ; 98 tests domaine et 160 mobiles ; types monorepo, lint et design réussis. Deux parcours de production desktop/mobile, Axe, 390/768/1440 px et zoom 200 % réussis. Exports Hermes iOS/Android réussis, sans recette physique revendiquée. Cas de 120 athlètes, concurrence, panne de copie et panne de mise en file couverts. Détails et capture : `docs/preuves-v1-1/lot-b-actualisation-charges.md`.
 
 Aucune migration ni activation en production. La CI qualité de `5e5a3bf` est réussie (run `42417182212`) ; Android reste en cours au moment de cette preuve. Les nouveaux commits nécessitent leur propre CI. Le prochain chantier est le lot A : repositionnement préparation physique, interface et constructeur natif, puis les historiques/records, phases/analyses et IA.
+
+
+### Surfaces de travail claires — web et natif
+
+Première partie du lot A : palette de travail craie/blanc/encre, actions rouge piste, navigation compacte et titres réduits. Les catégories de séance disposent de teintes et libellés de même importance. L’accueil et les écrans immersifs conservent leurs palettes expressives. Les dialogues web et feuilles natives suivent le contexte ; champs, focus et statuts ont été adaptés aux surfaces claires. `DESIGN.md` consigne la direction explicitement choisie dans le plan V1.1.
+
+Preuves locales du 7 novembre : types monorepo réussis, 168 tests mobiles et 61 tests de tokens, lint sans erreur (quatre avertissements existants), Impeccable sans travers. Deux parcours navigateur de production couvrent 30/60/120 athlètes, calendrier, bibliothèque/dialogue, constructeur et liste vidéo, à 390/768/1440 px, avec Axe et zoom 200 %. Quatre parcours de non-régression références/actualisation des charges passent également. Le premier essai du nouveau parcours ne créait aucune séance publiée et affichait donc l’état vide du suivi ; fixture corrigée, puis deux parcours réussis. Exports Hermes iOS et Android réussis. Aucune recette sur appareil physique ni validation VoiceOver/TalkBack revendiquée.
+
+Ce lot ne termine pas le repositionnement : constructeur natif, onboarding, bibliothèque relue, vidéo générique et landing restent à livrer. Aucun changement de schéma ni activation de progression en production.

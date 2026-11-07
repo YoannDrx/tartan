@@ -6,7 +6,7 @@ Tartan est l'outil de préparation physique pour les coachs et athlètes d'athl�
 
 **Vision.** Le carnet d'entraînement partagé du coach et de son groupe : chacun sait ce qu'il a à faire, le coach sait ce qui a réellement été fait, et l'historique aide à comprendre la progression.
 
-**Ce que la V1 doit réussir.** Remplacer les SMS. Savoir qui a fait quoi : l'athlète valide en moins de 10 secondes, le coach voit une grille athlètes × séances. Analyser les sauts : filmer, revoir au ralenti, commenter sur la timeline, partager.
+**Ce que la V1 doit réussir.** Remplacer les SMS. Savoir qui a fait quoi : l'athlète valide en moins de 10 secondes, le coach voit une grille athlètes × séances. Analyser un geste athlétique : filmer, revoir au ralenti, commenter sur la timeline, partager.
 
 **Le principal risque.** Les athlètes ne rempliront rien si valider demande plus de quelques secondes. Chaque décision côté athlète se juge à l'aune de ce critère.
 
@@ -14,7 +14,7 @@ Tartan est l'outil de préparation physique pour les coachs et athlètes d'athl�
 
 ## Utilisateurs
 
-- Coach principal : terrain et ordinateur. Créer vite, attribuer finement, voir qui a fait quoi, analyser les sauts.
+- Coach principal : terrain et ordinateur. Créer vite, attribuer finement, voir qui a fait quoi, analyser les gestes techniques.
 - Coach adjoint / préparateur physique : gère ses séances, voit les retours.
 - Athlète adulte : vient au club ou s'entraîne seul. Savoir quoi faire, valider sans effort.
 - V1 réservée aux majeurs, en France, sportifs compris (décision du 4 novembre 2026). Le parcours d'accord parental reste dans le code, dormant (`PARENTAL_FLOW_ENABLED`).

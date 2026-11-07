@@ -17,7 +17,7 @@ export default function CoachSets() {
     enabled: Boolean(orgId && id && athleteId),
   });
   return (
-    <StackScreen dark title={m.progression.coachSetsTitle} subtitle={detail.data?.athlete?.name}>
+    <StackScreen world="work" title={m.progression.coachSetsTitle} subtitle={detail.data?.athlete?.name}>
       {!id || !athleteId ? (
         <T>{m.common.notFound}</T>
       ) : detail.isPending || !me.data ? (

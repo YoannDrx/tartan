@@ -18,7 +18,7 @@ import { TabScreen } from "../../src/ui/screen";
 import { Sheet } from "../../src/ui/sheet";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { StatusDisc, StatusGlyph } from "../../src/ui/status";
-import { radius, scene, space, usePalette } from "../../src/ui/theme";
+import { radius, space, usePalette } from "../../src/ui/theme";
 
 type Row = TrackingGrid["rows"][number];
 type Session = TrackingGrid["sessions"][number];
@@ -103,7 +103,8 @@ const Grid = ({
       }),
     [grid.rows],
   );
-  const line = scene.cardLine;
+  const p = usePalette();
+  const line = p.border;
   const sep = { borderBottomWidth: 1, borderBottomColor: line } as const;
   return (
     <ListSurface>
@@ -146,7 +147,7 @@ const Grid = ({
               >
                 {row.name}
               </T>
-              {row.hasPain || row.activeInjury ? <AlertTriangle size={14} color={scene.status.missed} /> : null}
+              {row.hasPain || row.activeInjury ? <AlertTriangle size={14} color={p.status.missed} /> : null}
             </Pressable>
           ))}
         </View>
@@ -199,7 +200,7 @@ const Grid = ({
                         importantForAccessibility="no-hide-descendants"
                         style={{ width: CELL_WIDTH, flexGrow: 1, alignItems: "center", justifyContent: "center" }}
                       >
-                        <View style={{ width: 10, height: 2, borderRadius: 1, backgroundColor: scene.controlLine }} />
+                        <View style={{ width: 10, height: 2, borderRadius: 1, backgroundColor: p.controlLine }} />
                       </View>
                     );
                   }
@@ -279,6 +280,7 @@ const AthleteSheet = ({
 }) => {
   const router = useRouter();
   const client = useQueryClient();
+  const p = usePalette();
   const { row, alert } = focus;
   const late = lateSessions(row, sessions, today);
   const target = focus.focus && late.some((s) => s.id === focus.focus?.id) ? focus.focus : late[late.length - 1];
@@ -378,12 +380,7 @@ const AthleteSheet = ({
                   {meta}
                 </T>
               </View>
-              <ChevronRight
-                size={18}
-                color={scene.textMuted}
-                accessibilityElementsHidden
-                importantForAccessibility="no"
-              />
+              <ChevronRight size={18} color={p.textMuted} accessibilityElementsHidden importantForAccessibility="no" />
             </Pressable>
           );
         })}
@@ -443,7 +440,7 @@ export default function Tracking() {
   const canInvite = active?.role === "owner" || active?.role === "coach";
 
   return (
-    <TabScreen world="couloir" title={m.coach.trackingTitle} refreshing={tracking.isRefetching} onRefresh={refresh}>
+    <TabScreen world="work" title={m.coach.trackingTitle} refreshing={tracking.isRefetching} onRefresh={refresh}>
       <WeekNav {...nav} />
 
       {groups.data && groups.data.length > 1 ? (

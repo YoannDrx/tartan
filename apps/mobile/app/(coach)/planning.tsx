@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { ScrollView } from "react-native";
 import { AgendaList, useWeekNavigator, WeekNav, type AgendaEntry } from "../../src/features/agenda";
 import { useActiveSpace, useCoachCalendar, useGroups } from "../../src/lib/queries";
-import { Chip, T, Tag } from "../../src/ui/primitives";
+import { Chip, T, Tag, ActivityTag } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { space } from "../../src/ui/theme";
@@ -37,7 +37,7 @@ export default function Planning() {
         detail,
         tags: (
           <>
-            <Tag label={m.sessionType[s.type]} tone={s.type === "jump" ? "jump" : "neutral"} />
+            <ActivityTag type={s.type} />
             {s.hasAutonomous ? <Tag label={m.builder.versionAutonomous} /> : null}
             {s.publishedAt ? null : <Tag label={m.mobile.agenda.draft} tone="brand" />}
           </>
@@ -51,7 +51,7 @@ export default function Planning() {
 
   return (
     <TabScreen
-      world="couloir"
+      world="work"
       title={m.nav.calendrier}
       refreshing={calendar.isRefetching}
       onRefresh={() => void calendar.refetch()}

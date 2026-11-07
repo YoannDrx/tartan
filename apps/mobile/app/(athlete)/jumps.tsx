@@ -15,7 +15,7 @@ export default function Jumps() {
   const consentOff = today.data && !today.data.videoConsent;
   return (
     <TabScreen
-      world="nuit"
+      world="work"
       title={m.nav.mesSauts}
       refreshing={videos.isRefetching}
       onRefresh={() => void videos.refetch()}

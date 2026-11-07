@@ -17,7 +17,7 @@ export default function CoachLayout() {
       <Tabs.Screen
         name="tracking"
         options={{
-          ...worldScene("couloir"),
+          ...worldScene("work"),
           title: m.nav.suivi,
           tabBarIcon: ({ color, size }) => <BarChart color={color} size={size} />,
         }}
@@ -25,7 +25,7 @@ export default function CoachLayout() {
       <Tabs.Screen
         name="planning"
         options={{
-          ...worldScene("couloir"),
+          ...worldScene("work"),
           title: m.nav.calendrier,
           tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
         }}
@@ -33,7 +33,7 @@ export default function CoachLayout() {
       <Tabs.Screen
         name="exercises"
         options={{
-          ...worldScene("craie"),
+          ...worldScene("work"),
           title: m.nav.exercices,
           tabBarIcon: ({ color, size }) => <Library color={color} size={size} />,
         }}
@@ -41,7 +41,7 @@ export default function CoachLayout() {
       <Tabs.Screen
         name="videos"
         options={{
-          ...worldScene("nuit"),
+          ...worldScene("work"),
           title: m.nav.videos,
           tabBarIcon: ({ color, size }) => <Video color={color} size={size} />,
         }}
@@ -49,7 +49,7 @@ export default function CoachLayout() {
       <Tabs.Screen
         name="announcements"
         options={{
-          ...worldScene("craie"),
+          ...worldScene("work"),
           title: m.nav.annonces,
           tabBarIcon: ({ color, size }) => <Megaphone color={color} size={size} />,
         }}

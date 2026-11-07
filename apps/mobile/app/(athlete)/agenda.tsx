@@ -45,7 +45,7 @@ export default function AthleteAgenda() {
 
   return (
     <TabScreen
-      world="couloir"
+      world="work"
       title={m.nav.calendrier}
       refreshing={calendar.isRefetching}
       onRefresh={() => void calendar.refetch()}

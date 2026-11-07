@@ -22,7 +22,7 @@ export default function Progress() {
   const empty = file.data && file.data.performances.length === 0 && file.data.tests.length === 0;
   return (
     <TabScreen
-      world="soleil"
+      world="work"
       title={m.mobile.progress.title}
       refreshing={file.isRefetching}
       onRefresh={() => void file.refetch()}

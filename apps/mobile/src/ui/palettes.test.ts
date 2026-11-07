@@ -1,3 +1,4 @@
+import { tokens } from "@tartan/design-tokens";
 import { describe, expect, it } from "vitest";
 import { palettes, type Palette, type SceneName } from "./palettes";
 
@@ -52,7 +53,7 @@ describe("palettes", () => {
   });
 
   // Sur la piste, le couloir et la nuit, les statuts ne s'affichent que dans les cartes encre.
-  it.each(["card", "encre", "nuitCard", "hero", "craie", "soleil"] as const)(
+  it.each(["card", "encre", "nuitCard", "hero", "craie", "soleil", "work", "workCard"] as const)(
     "%s : les statuts se lisent sur le fond",
     (name) => {
       const p = palettes[name];
@@ -62,7 +63,23 @@ describe("palettes", () => {
     },
   );
 
+  it("les contrôles et leur focus restent visibles sur les surfaces de travail", () => {
+    for (const p of [palettes.work, palettes.workCard]) {
+      for (const surface of [p.bg, p.surface, p.surfaceAlt]) {
+        expect(contrast(p.text, surface)).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(p.textMuted, surface)).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(p.controlLine, surface)).toBeGreaterThanOrEqual(3);
+        expect(contrast(p.focus, surface)).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
   it("les cheveux de la mascotte restent visibles sur le fond", () => {
     for (const p of ALL) expect(contrast(p.jumperHair, p.bg)).toBeGreaterThanOrEqual(3);
   });
+});
+
+it("les catégories de séance gardent un libellé lisible sur leur teinte", () => {
+  for (const tint of Object.values(tokens.activity))
+    expect(contrast(tint.text, tint.background)).toBeGreaterThanOrEqual(4.5);
 });

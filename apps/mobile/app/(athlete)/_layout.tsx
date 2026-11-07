@@ -25,7 +25,7 @@ export default function AthleteLayout() {
       <Tabs.Screen
         name="agenda"
         options={{
-          ...worldScene("couloir"),
+          ...worldScene("work"),
           title: m.nav.calendrier,
           tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
         }}
@@ -33,7 +33,7 @@ export default function AthleteLayout() {
       <Tabs.Screen
         name="progress"
         options={{
-          ...worldScene("soleil"),
+          ...worldScene("work"),
           title: m.nav.progres,
           tabBarIcon: ({ color, size }) => <TrendingUp color={color} size={size} />,
         }}
@@ -41,7 +41,7 @@ export default function AthleteLayout() {
       <Tabs.Screen
         name="jumps"
         options={{
-          ...worldScene("nuit"),
+          ...worldScene("work"),
           title: m.nav.mesSauts,
           tabBarIcon: ({ color, size }) => <BarGlyph color={color} size={size} />,
         }}
@@ -49,7 +49,7 @@ export default function AthleteLayout() {
       <Tabs.Screen
         name="news"
         options={{
-          ...worldScene("craie"),
+          ...worldScene("work"),
           title: m.nav.annonces,
           tabBarIcon: ({ color, size }) => <Megaphone color={color} size={size} />,
         }}

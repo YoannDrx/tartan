@@ -194,7 +194,7 @@ const MappingsScreen = ({ orgId }: { orgId: string }) => {
     (item) => item.strengthLoadKind === "external_total" || item.strengthLoadKind === "added_weight",
   );
   return (
-    <StackScreen world="craie" title={m.strengthMapping.title}>
+    <StackScreen world="work" title={m.strengthMapping.title}>
       {report.isPending || exercises.isPending ? (
         <LoadingState />
       ) : report.isError || exercises.isError ? (
