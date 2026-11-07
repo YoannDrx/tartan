@@ -6,12 +6,12 @@ Ce document distingue le code livré, la configuration et les preuves réelles. 
 
 ## État courant de la PR 2
 
-Au 7 novembre 2026, après `7519866` : PR #45 en brouillon, fonctionnalités de progression désactivées par défaut et non publiées en production. Les sections de preuves ci-dessous gardent l’historique des étapes ; les mentions « reste à faire » d’un ancien lot sont remplacées par les preuves plus récentes.
+Au 7 novembre 2026, après `25557b0` : PR #45 en brouillon, fonctionnalités de progression désactivées par défaut et non publiées en production. Les sections de preuves ci-dessous gardent l’historique des étapes ; les mentions « reste à faire » d’un ancien lot sont remplacées par les preuves plus récentes.
 
 | Lot | État actuel | Reste principal |
 | --- | --- | --- |
 | A — positionnement et expérience | Non terminé | Préparation physique athlé, DA, onboarding, bibliothèque relue, vidéo générique, landing et constructeur natif |
-| B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique via interface implémentés | Actualisation explicite des charges déjà publiées ; recette native physique |
+| B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
 | C — historique et records | Règles de calcul initiales présentes | Historique, dernière réalisation comparable, calculateur, courbes, records et célébration unique |
 | D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |
 | E — planificateur IA | Non implémenté ; clé locale disponible | Dictée, transcription, clarifications, brouillons, quotas, purge et corpus d’évaluation |
@@ -264,3 +264,12 @@ Code `7519866`, vérifié le 7 novembre 2026. Les réglages du propriétaire exp
 **11 tests serveur ciblés**, types monorepo puis natifs, lint sans erreur, Impeccable et exports Hermes iOS/Android réussis. **Deux parcours navigateur sur build de production**, avec annulation sans écriture, refus d’accès athlète, clé inconnue longue, rechargement, Axe et rendu 390/768/1440 px ; zoom 200 % sans débordement. [Preuves et captures](preuves-v1-1/lot-b-rapprochement-force.md). Ni migration ni opération sur les données de production. La CI et la recette native physique restent distinctes.
 
 Dans le lot B, la commande explicite d’actualisation des charges déjà prescrites reste à réaliser. Le rapprochement via interface et la saisie coach ne sont plus des écrans manquants. Les lots A, C, D et E ainsi que les recettes externes restent ouverts.
+
+
+### Actualisation explicite des charges publiées — web et natif
+
+Le coach relit les charges et leurs sources avant confirmation. Les pourcentages sont recalculés sur les références actuelles, sans conversion des kilogrammes absolus ni du RPE/RIR. Les athlètes ayant une saisie conservent leur prescription ; une convention incompatible est signalée. Un changement de version, référence, audience ou saisie après aperçu impose une nouvelle relecture. Les nouvelles copies, l’audit et les notifications sont transactionnels ; aucune notification ne contient de charge ou de santé.
+
+Preuves du code `25557b0` : 477 tests serveur sur la suite complète, puis 32 tests ciblés après les derniers ajustements ; 98 tests domaine et 160 mobiles ; types monorepo, lint et design réussis. Deux parcours de production desktop/mobile, Axe, 390/768/1440 px et zoom 200 % réussis. Exports Hermes iOS/Android réussis, sans recette physique revendiquée. Cas de 120 athlètes, concurrence, panne de copie et panne de mise en file couverts. Détails et capture : `docs/preuves-v1-1/lot-b-actualisation-charges.md`.
+
+Aucune migration ni activation en production. La CI qualité de `5e5a3bf` est réussie (run `42417182212`) ; Android reste en cours au moment de cette preuve. Les nouveaux commits nécessitent leur propre CI. Le prochain chantier est le lot A : repositionnement préparation physique, interface et constructeur natif, puis les historiques/records, phases/analyses et IA.
