@@ -48,6 +48,18 @@ describe("file d'attente hors ligne", () => {
     expect(await pendingOps()).toHaveLength(2);
   });
 
+  it("garde l'ordre de saisie même dans la même milliseconde", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(123);
+    try {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
+      await sendValidation(pending("z-first"));
+      await sendValidation(pending("a-second"));
+      expect((await pendingOps()).map((op) => op.id)).toEqual(["z-first", "a-second"]);
+    } finally {
+      now.mockRestore();
+    }
+  });
+
   it("abandonne une action refusée pour de bon et le signale", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
     await sendValidation(pending());
@@ -64,5 +76,77 @@ describe("file d'attente hors ligne", () => {
     expect(await flushOps()).toEqual({ sent: 0, rejected: 0 });
     setQueueOwner("moi");
     expect(await pendingOps()).toHaveLength(1);
+  });
+
+  it("conserve un conflit et ses écritures suivantes, mais synchronise une autre séance", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
+    await sendValidation(pending("first"));
+    await sendValidation(pending("next"));
+    await sendValidation({ ...pending("other"), sessionId: "other-session" });
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("{}", { status: 409 }))
+      .mockResolvedValue(new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    expect(await flushOps()).toEqual({ sent: 1, rejected: 0 });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const saved = await pendingOps();
+    expect(saved.map((op) => op.id)).toEqual(["first", "next"]);
+    expect(saved[0]?.blocked).toEqual({ status: 409 });
+    expect(await pendingStatusFor("session")).toBeNull();
+    fetch.mockClear();
+    await flushOps();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("conserve aussi une saisie détaillée refusée immédiatement, sans son message sensible", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: "private" }), { status: 403 })),
+    );
+    const input = { ...pending().input, expectedVersion: 2, expectedSessionVersion: 3, detailedSets: [] };
+    expect((await sendValidation({ ...pending(), input })).state).toBe("error");
+    const [saved] = await pendingOps();
+    expect(saved?.blocked).toEqual({ status: 403 });
+    expect(saved?.body).toEqual(input);
+    expect(JSON.stringify(saved)).not.toContain("private");
+  });
+
+  it("persiste avant l'appel réseau et empêche un rejeu parallèle pendant l'envoi", async () => {
+    let resolve!: (value: Response) => void;
+    const fetch = vi.fn(
+      () =>
+        new Promise<Response>((done) => {
+          resolve = done;
+        }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const input = { ...pending().input, expectedVersion: 0, expectedSessionVersion: 1, detailedSets: [] };
+    const first = sendValidation({ ...pending(), input });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    expect(await pendingOps()).toHaveLength(1);
+    await flushOps();
+    const second = sendValidation({ ...pending(), input });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    resolve(new Response("{}", { status: 200 }));
+    expect((await first).state).toBe("sent");
+    expect((await second).state).toBe("sent");
+    expect(await pendingOps()).toHaveLength(0);
+  });
+
+  it("arrête l'envoi dès qu'un autre compte prend la main", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
+    await sendValidation(pending("first"));
+    await sendValidation({ ...pending("second"), sessionId: "s2" });
+    const fetch = vi.fn().mockImplementation(async () => {
+      setQueueOwner("other");
+      return new Response("{}", { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    expect(await flushOps()).toEqual({ sent: 1, rejected: 0 });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(await pendingOps()).toHaveLength(0);
+    setQueueOwner("moi");
+    expect((await pendingOps()).map((op) => op.id)).toEqual(["second"]);
   });
 });

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { authClient, clearSessionCookie } from "./auth-client";
 import { forgetPushToken, stopPushOnDevice } from "./notifications";
 import { clearPersistedData } from "./query-client";
+import { useOpQueue } from "./sync/op-queue";
 
 type SessionState = {
   status: "loading" | "signed-in" | "signed-out";
@@ -18,11 +19,13 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ status: cookie ? "signed-in" : "signed-out" });
   },
   signOut: async () => {
+    await useOpQueue.getState().detach();
     await forgetPushToken();
     await authClient.signOut().catch(() => undefined);
     await get().expire();
   },
   expire: async () => {
+    await useOpQueue.getState().detach();
     await stopPushOnDevice();
     await clearSessionCookie().catch(() => undefined);
     await clearPersistedData();

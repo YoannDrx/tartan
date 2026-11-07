@@ -9,6 +9,7 @@ import {
   enqueue,
   parseQueue,
   replay,
+  reviewRequiredOps,
   toAsciiJson,
   type KeyValueStore,
   type QueuedOp,
@@ -42,22 +43,32 @@ const send = (op: QueuedOp): Promise<unknown> => {
 const RETRY_MS = 30_000;
 const LAST_OWNER_KEY = "tartan.last-owner";
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let ownerGeneration = 0;
+// SecureStore écrit plusieurs morceaux : les sauvegardes ne doivent pas s'entrelacer.
+let persistence: Promise<void> = Promise.resolve();
 
 type OpQueueState = {
   ownerId: string | null;
   items: QueuedOp[];
   syncing: boolean;
   rejectedCount: number;
+  storageError: boolean;
   hydrate: (ownerId: string) => Promise<void>;
+  detach: () => Promise<void>;
   add: (op: QueuedOp) => Promise<void>;
   flush: () => Promise<void>;
   dismissRejected: () => void;
 };
 
-const save = async (ownerId: string | null, items: QueuedOp[]) => {
-  if (!ownerId) return;
-  if (items.length === 0) await chunked.remove(keyFor(ownerId));
-  else await chunked.write(keyFor(ownerId), toAsciiJson(items));
+const save = (ownerId: string, items: QueuedOp[]): Promise<void> => {
+  const next = persistence
+    .catch(() => undefined)
+    .then(async () => {
+      if (items.length === 0) await chunked.remove(keyFor(ownerId));
+      else await chunked.write(keyFor(ownerId), toAsciiJson(items));
+    });
+  persistence = next;
+  return next;
 };
 
 export const useOpQueue = create<OpQueueState>((set, get) => ({
@@ -65,42 +76,76 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
   items: [],
   syncing: false,
   rejectedCount: 0,
+  storageError: false,
   hydrate: async (ownerId) => {
     if (get().ownerId === ownerId) return;
+    const generation = ++ownerGeneration;
+    set({ ownerId: null, items: [], rejectedCount: 0, storageError: false });
+    await persistence.catch(() => undefined);
     const items = parseQueue(await chunked.read(keyFor(ownerId)));
+    if (generation !== ownerGeneration) return;
     set({ ownerId, items });
     // La tâche d'arrière-plan des notifications retrouve ainsi la file du compte, sans écran ouvert.
     await SecureStore.setItemAsync(LAST_OWNER_KEY, ownerId, secureOptions).catch(() => undefined);
   },
+  detach: async () => {
+    ownerGeneration += 1;
+    if (retryTimer) clearTimeout(retryTimer);
+    retryTimer = null;
+    set({ ownerId: null, items: [], rejectedCount: 0, storageError: false });
+    await SecureStore.deleteItemAsync(LAST_OWNER_KEY, secureOptions).catch(() => undefined);
+  },
   add: async (op) => {
+    const ownerId = get().ownerId;
+    if (!ownerId) throw new Error("QUEUE_OWNER_REQUIRED");
     const items = enqueue(get().items, op);
     set({ items });
-    await save(get().ownerId, items);
+    try {
+      await save(ownerId, items);
+    } catch {
+      if (get().ownerId === ownerId) set({ storageError: true });
+      return;
+    }
     await get().flush();
   },
   flush: async () => {
-    if (get().syncing || get().items.length === 0) return;
+    const ownerId = get().ownerId;
+    const generation = ownerGeneration;
+    if (!ownerId || get().syncing || (get().items.length === 0 && !get().storageError)) return;
     set({ syncing: true });
     try {
       const batch = get().items;
-      const result = await replay(batch, send);
+      // Une écriture précédente a pu échouer faute de place. Ne jamais envoyer
+      // avant d'avoir une copie durable que la fermeture de l'app préservera.
+      await save(ownerId, batch);
+      if (generation !== ownerGeneration) return;
+      set({ storageError: false });
+      const result = await replay(batch, send, () => generation === ownerGeneration);
+      if (generation !== ownerGeneration) {
+        // La réponse du compte précédent ne modifie jamais la file du nouveau compte.
+        // Son stockage est conservé : le clientId permettra un rejeu sans doublon.
+        return;
+      }
       // Ce qui a été ajouté pendant l'envoi reste dans la file.
       const added = get().items.filter((i) => !batch.includes(i));
       const items = [...result.remaining, ...added];
       set((s) => ({ items, rejectedCount: s.rejectedCount + result.rejected.length }));
-      await save(get().ownerId, items);
+      await save(ownerId, items);
       if (result.sent.length > 0 || result.rejected.length > 0) {
         void queryClient.invalidateQueries({ queryKey: ["today"] });
         void queryClient.invalidateQueries({ queryKey: ["session"] });
         void queryClient.invalidateQueries({ queryKey: ["athlete-calendar"] });
       }
       // Serveur occupé alors que le réseau répond : on réessaiera sans attendre un changement d'état.
-      if (result.remaining.length > 0) {
+      if (items.length > reviewRequiredOps(items).length) {
         if (retryTimer) clearTimeout(retryTimer);
         retryTimer = setTimeout(() => void get().flush(), RETRY_MS);
       }
+    } catch {
+      if (generation === ownerGeneration) set({ storageError: true });
     } finally {
       set({ syncing: false });
+      if (generation !== ownerGeneration && get().ownerId) void get().flush();
     }
   },
   dismissRejected: () => set({ rejectedCount: 0 }),

@@ -17,6 +17,7 @@ export const sendValidation = ({ organizationId, sessionId, input }: Pending): P
 // Une validation en attente reste visible quand la page, enregistrée avant, est rouverte hors ligne.
 export const pendingStatusFor = async (sessionId: string): Promise<SessionLogInput["status"] | null> => {
   const ops: QueuedOp[] = await pendingOps();
+  if (ops.some((op) => op.blocked && op.target === sessionId)) return null;
   const last = ops.filter((op) => op.kind === "log" && op.target === sessionId).at(-1);
   return last ? (last.body as SessionLogInput).status : null;
 };

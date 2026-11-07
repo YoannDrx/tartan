@@ -42,6 +42,14 @@ const card = (over: Partial<AthleteSessionCard> = {}): AthleteSessionCard => ({
 });
 
 describe("enqueue", () => {
+  it("ne remplace ni une écriture versionnée ni un conflit par une validation rapide", () => {
+    const versioned = { ...log("s1", "detail"), input: { ...log("s1", "detail").input, expectedVersion: 1 } };
+    expect(enqueue([versioned], log("s1", "quick"))).toHaveLength(2);
+    expect(enqueue([{ ...log("s1", "conflict"), blocked: { status: 409 } }], log("s1", "quick"))).toHaveLength(2);
+    expect(enqueue([versioned], { ...versioned, input: { ...versioned.input, status: "partial" } })).toEqual([
+      versioned,
+    ]);
+  });
   it("remplace une validation en attente pour la même séance", () => {
     const items = enqueue(enqueue([], log("s1", "a-client")), log("s1", "b-client"));
     expect(items).toHaveLength(1);
@@ -88,6 +96,39 @@ describe("isRetryable", () => {
 });
 
 describe("replay", () => {
+  it("garde les conflits et leurs dépendants sans bloquer les autres séances", async () => {
+    const send = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError(409, undefined, "private"))
+      .mockResolvedValue(undefined);
+    const result = await replay([log("s1", "first"), log("s1", "next"), log("s2")], send);
+    expect(result.rejected).toEqual([]);
+    expect(result.sent.map((op) => op.id)).toEqual(["client-s2"]);
+    expect(result.remaining.map((op) => op.id)).toEqual(["first", "next"]);
+    expect(result.remaining[0]?.blocked).toEqual({ status: 409 });
+    expect(JSON.stringify(result)).not.toContain("private");
+    send.mockClear();
+    expect((await replay(result.remaining, send)).remaining).toEqual(result.remaining);
+    expect(send).not.toHaveBeenCalled();
+    expect(applyPendingToCard(card(), result.remaining).status).toBe("upcoming");
+  });
+
+  it("conserve les séries versionnées même après un refus d'accès", async () => {
+    const op = { ...log("s1"), input: { ...log("s1").input, expectedVersion: 1 } };
+    const result = await replay([op], vi.fn().mockRejectedValue(new ApiError(403, undefined, "x")));
+    expect(result.remaining).toEqual([{ ...op, blocked: { status: 403 } }]);
+    expect(result.rejected).toEqual([]);
+  });
+
+  it("arrête les appels après un changement de propriétaire", async () => {
+    let current = true;
+    const send = vi.fn(async () => {
+      current = false;
+    });
+    const result = await replay([log("s1"), log("s2")], send, () => current);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(result.remaining).toEqual([log("s2")]);
+  });
   it("envoie dans l'ordre et vide la file", async () => {
     const send = vi.fn().mockResolvedValue(undefined);
     const result = await replay([log("s1"), log("s2")], send);
@@ -181,13 +222,47 @@ describe("createChunkedStore", () => {
     const backend = memory();
     const store = createChunkedStore(backend, 4);
     await store.write("k", "abcdefghij");
-    expect(backend.map.get("k.count")).toBe("3");
+    expect(JSON.parse(backend.map.get("k.head")!).count).toBe(3);
     expect(await store.read("k")).toBe("abcdefghij");
     await store.write("k", "ab");
     expect(backend.map.has("k.1")).toBe(false);
     expect(await store.read("k")).toBe("ab");
     await store.remove("k");
     expect(await store.read("k")).toBeNull();
+  });
+
+  it("conserve la génération précédente si l'écriture d'un morceau échoue", async () => {
+    const backend = memory();
+    const store = createChunkedStore(backend, 4);
+    await store.write("k", "abcdefghij");
+    const set = backend.set;
+    let calls = 0;
+    backend.set = async (key, value) => {
+      if (++calls === 2) throw new Error("disk full");
+      await set(key, value);
+    };
+    await expect(store.write("k", "0123456789")).rejects.toThrow("disk full");
+    expect(await store.read("k")).toBe("abcdefghij");
+  });
+
+  it("reprend les anciens morceaux et sérialise deux écritures simultanées", async () => {
+    const backend = memory();
+    backend.map.set("k.count", "2");
+    backend.map.set("k.0", "abcd");
+    backend.map.set("k.1", "ef");
+    const store = createChunkedStore(backend, 4);
+    expect(await store.read("k")).toBe("abcdef");
+    await Promise.all([store.write("k", "first-value"), store.write("k", "second-value")]);
+    expect(await store.read("k")).toBe("second-value");
+    expect(backend.map.has("k.count")).toBe(false);
+    expect(backend.map.has("k.0")).toBe(false);
+    expect(backend.map.size).toBe(4); // tête + trois morceaux de la dernière génération
+  });
+
+  it("signale un morceau manquant au lieu de prendre une file corrompue pour une file vide", async () => {
+    const backend = memory();
+    backend.map.set("k.count", "1");
+    await expect(createChunkedStore(backend).read("k")).rejects.toThrow("QUEUE_STORAGE_CORRUPTED");
   });
 
   it("échappe les accents en ASCII", () => {

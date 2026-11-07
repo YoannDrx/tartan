@@ -13,7 +13,7 @@ import {
   uploadProgress,
   type UploadProgress,
 } from "@/features/videos/upload-queue";
-import { flushOps, isSessionExpired, pendingOps, QUEUE_EVENT, setQueueOwner } from "./op-queue";
+import { flushOps, isSessionExpired, pendingOps, QUEUE_EVENT, reviewRequiredOps, setQueueOwner } from "./op-queue";
 import { syncOfflinePages } from "./service-worker";
 
 const RETRY_MS = 30_000;
@@ -41,6 +41,7 @@ export const OfflineProvider = ({
   const router = useRouter();
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
+  const [blocked, setBlocked] = useState(0);
   const [expired, setExpired] = useState(false);
   const [upload, setUpload] = useState<UploadProgress>({ waiting: 0, pct: null });
 
@@ -50,7 +51,10 @@ export const OfflineProvider = ({
 
   useEffect(() => {
     const refreshCounts = async () => {
-      setPending((await pendingOps()).length);
+      const ops = await pendingOps();
+      const review = reviewRequiredOps(ops).length;
+      setPending(ops.length - review);
+      setBlocked(review);
       setExpired(isSessionExpired());
       setUpload(uploadProgress());
     };
@@ -86,11 +90,12 @@ export const OfflineProvider = ({
       window.removeEventListener(UPLOAD_EVENT, refreshCounts);
       document.removeEventListener("visibilitychange", visible);
     };
-  }, [organizationId, router]);
+  }, [organizationId, userId, router]);
 
   const lines = [
     !online ? m.offline.bar : null,
     pending > 0 ? m.offline.pending(pending) : null,
+    blocked > 0 ? m.offline.reviewPending(blocked) : null,
     upload.pct !== null
       ? m.offline.uploading(upload.pct)
       : upload.waiting > 0
@@ -106,7 +111,7 @@ export const OfflineProvider = ({
           className="offline-bar sticky top-0 z-40 flex min-h-11 flex-wrap items-center gap-x-3 bg-st-partial px-4 text-on-status"
         >
           <CloudOff aria-hidden className="size-4 shrink-0" />
-          <span className="t-caption font-semibold">{lines.join(", ")}</span>
+          <span className="t-caption min-w-0 flex-1 py-2 font-semibold">{lines.join(", ")}</span>
           {expired ? (
             <Link href="/connexion" className="t-caption inline-flex min-h-11 items-center font-semibold text-inherit">
               {m.offline.session} {m.offline.signIn}

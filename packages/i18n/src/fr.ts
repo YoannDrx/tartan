@@ -1005,6 +1005,11 @@ export const fr = {
     session: "Reconnecte-toi pour envoyer ce qui attend.",
     signIn: "Me reconnecter",
     rejected: "Une action enregistrée hors ligne a été refusée par le serveur.",
+    needsReview: "L’enregistrement a été refusé. Ta saisie est conservée sur cet appareil pour vérification.",
+    deviceStorageError:
+      "La sauvegarde sur cet appareil a échoué. Garde l’application ouverte et libère de l’espace avant de réessayer.",
+    reviewPending: (n: number) =>
+      `${n} ${n > 1 ? "saisies conservées" : "saisie conservée"} sur cet appareil, à vérifier avant envoi`,
     noStorage: "Ce navigateur ne peut rien garder hors ligne. Réessaie avec du réseau.",
     uploading: (pct: number) => `Envoi de la vidéo : ${pct} %`,
     uploadWaiting: (n: number) => (n > 1 ? `${n} vidéos en attente d'envoi` : "1 vidéo en attente d'envoi"),

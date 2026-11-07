@@ -6,8 +6,9 @@ import { RefreshControl, ScrollView, View, type ScrollViewProps } from "react-na
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIsOnline } from "../lib/network";
 import { useOpQueue } from "../lib/sync/op-queue";
+import { reviewRequiredOps } from "../lib/sync/queue-core";
 import { useUploads } from "../lib/upload/upload-queue";
-import { ArrowLeft, CloudOff, CloudUpload, Settings, X } from "./icons";
+import { ArrowLeft, CloudOff, CloudUpload, Repeat, Settings, X } from "./icons";
 import { IconButton, LaneLine, ListSurface, ScreenTitle, T } from "./primitives";
 import { SpaceSwitcher } from "./space-switcher";
 import { Scene, scene, space, usePagePad, usePalette, type WorldName } from "./theme";
@@ -25,12 +26,15 @@ export const useSceneStatusBar = () => {
 // Hors ligne ou envois en attente : l'état se lit sans chercher.
 export const SyncBanner = () => {
   const online = useIsOnline();
-  const ops = useOpQueue((s) => s.items.length);
+  const ops = useOpQueue((s) => s.items.length - reviewRequiredOps(s.items).length);
+  const blocked = useOpQueue((s) => reviewRequiredOps(s.items).length);
+  const storageError = useOpQueue((s) => s.storageError);
+  const flush = useOpQueue((s) => s.flush);
   const rejected = useOpQueue((s) => s.rejectedCount);
   const dismiss = useOpQueue((s) => s.dismissRejected);
   const uploads = useUploads((s) => s.items.length);
   const pending = ops + uploads;
-  if (rejected > 0) {
+  if (rejected > 0 && !storageError && blocked === 0) {
     return (
       <ListSurface style={{ flexDirection: "row", alignItems: "center", gap: space.sm, paddingLeft: space.lg }}>
         <T variant="caption" style={{ flex: 1 }} accessibilityLiveRegion="polite">
@@ -40,11 +44,13 @@ export const SyncBanner = () => {
       </ListSurface>
     );
   }
-  if (online && pending === 0) return null;
+  if (online && pending === 0 && blocked === 0 && !storageError) return null;
   const Icon = online ? CloudUpload : CloudOff;
   const parts = [
     online ? null : m.mobile.offline.banner,
     pending > 0 ? m.mobile.offline.pending(pending) : null,
+    blocked > 0 ? m.offline.reviewPending(blocked) : null,
+    storageError ? m.offline.deviceStorageError : null,
   ].filter(Boolean);
   return (
     <ListSurface
@@ -60,6 +66,7 @@ export const SyncBanner = () => {
       <T variant="caption" accessibilityLiveRegion="polite" style={{ flex: 1 }}>
         {parts.join(" ")}
       </T>
+      {storageError ? <IconButton icon={Repeat} label={m.offline.retry} onPress={() => void flush()} /> : null}
     </ListSurface>
   );
 };
