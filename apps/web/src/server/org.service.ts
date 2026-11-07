@@ -88,6 +88,8 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
           create: STARTER_LIBRARY.map((e) => ({
             name: e.name,
             category: e.category,
+            tags: e.tags,
+            strengthLoadKind: e.strengthLoadKind,
             cues: e.cues,
             defaultPrescription: e.prescription,
             createdBy: userId,

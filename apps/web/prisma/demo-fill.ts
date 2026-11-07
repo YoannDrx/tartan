@@ -202,7 +202,7 @@ const trainingSheets = async (organizationId: string) => {
           name: "Sans matériel",
           variant: "autonomous",
           items: [
-            item("Bonds alternés", { sets: 4, distance_m: 20, ground_contacts: 40, rest_s: 120 }),
+            item("Foulées bondissantes", { sets: 4, distance_m: 20, rest_s: 120 }),
             item("Fentes sautées", { sets: 3, reps: 10, ground_contacts: 30, rest_s: 90 }),
           ],
         },
@@ -408,6 +408,8 @@ const fillCoachSpace = async (coachId: string, organizationId: string) => {
       createdBy: coachId,
       name: e.name,
       category: e.category,
+      tags: e.tags,
+      strengthLoadKind: e.strengthLoadKind,
       cues: e.cues,
       defaultPrescription: e.prescription,
     })),

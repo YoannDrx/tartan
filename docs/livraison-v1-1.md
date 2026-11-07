@@ -10,7 +10,7 @@ Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil s
 
 | Lot | État actuel | Reste principal |
 | --- | --- | --- |
-| A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles, vidéo générique et profil sportif web/native ajoutés | Suite de la recette du constructeur, publication groupée, recette complète de l’onboarding, bibliothèque relue, landing et recette physique |
+| A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles, vidéo générique, profil sportif web/native et 49 fiches initiales ajoutés | Suite de la recette du constructeur, publication groupée, recette complète de l’onboarding, médias de bibliothèque, landing et recette physique |
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
 | C — historique et records | Règles de calcul initiales présentes | Historique, dernière réalisation comparable, calculateur, courbes, records et célébration unique |
 | D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |
@@ -305,3 +305,8 @@ La capture native ne crée plus systématiquement un essai de saut. Les outils h
 ### Profil sportif — onboarding et réglages
 
 Disciplines sans hauteur présélectionnée, objectifs de préparation, matériel et objectif du premier groupe disponibles sur web et natif. Réglages modifiables par le propriétaire ; champs omis par les anciens clients conservés. Migration additive éprouvée sur schéma ancien synthétique puis Preview Neon (28 migrations), sans changement en production. 516 tests serveur, 199 mobiles, deux parcours navigateur, types, lint, design et exports réussis. Lecture, modification et persistance vérifiées dans le simulateur iOS. [Preuves et limites](preuves-v1-1/lot-a-profil-sportif.md).
+
+
+### Bibliothèque de préparation physique
+
+49 fiches distinctes, tags et conventions de charge copiés pour les nouveaux espaces, sans réécriture des fiches existantes. Doublons retirés de la bibliothèque initiale ; endurance et mobilité renforcées. 103 tests domaine, 17 tests serveur ciblés et types monorepo réussis. Les médias de démonstration et la recette coach restent ouverts. [Preuves](preuves-v1-1/lot-a-bibliotheque.md).
