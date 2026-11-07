@@ -36,7 +36,9 @@ export const signUp = async (page: Page, email: string, next = "/connexion") => 
   const signIn = page.getByRole("button", { name: m.auth.signInWithPassword, exact: true });
   await signIn.click();
   // La connexion recharge la page : un champ rempli avant la fin serait perdu.
-  await expect(signIn).toBeHidden();
+  // Le test vidéo utilise next dev : la première compilation de /accueil peut dépasser
+  // 15 s sur le runner CI. Le build de production conserve son seuil strict.
+  await expect(signIn).toBeHidden({ timeout: process.env.E2E_PROD ? 15_000 : 60_000 });
   await page.waitForLoadState("networkidle");
 };
 

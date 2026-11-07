@@ -34,6 +34,8 @@ Environnement jetable : Postgres local port 54329, bases dédiées `tartan_v11_t
 - Impeccable / `design:check` : zéro travers.
 - Campagne Playwright sur build de production : 44 tests passés, 10 ignorés et deux anciens tests d’âge à adapter au nouveau dialogue. Après adaptation, les deux tests d’âge et deux nouveaux tests de console administrateur passent (desktop/mobile, Axe et absence de débordement). Soit 48 scénarios passés sur la campagne et les reprises ciblées ; la suite complète n’a pas été relancée après cette dernière adaptation. Les deux nouveaux parcours de confirmation d’âge avaient déjà réussi dans la campagne complète.
 - Après extension aux autres parcours d’âge : **16 tests navigateur réussis sur build de production**, incluant confirmation/correction à l’onboarding, console support, invitation refusée et parcours hors ligne Chromium/WebKit. La CI doit encore vérifier l’ensemble sur le dernier commit.
+- CI du commit `3614f95` : **50 parcours de production réussis, 10 ignorés**, tests métier, lint, types et design verts. Le test vidéo séparé en développement échoue pendant l'attente de compilation suivant la connexion (15 s). Reproduction locale réussie ; le délai de navigation en développement est aligné sur les 60 s déjà accordées à l'onboarding, sans assouplir les 15 s de production. Nouvelle CI requise après ce correctif.
+- Configuration Stripe : 11 tests ciblés réussis sur le script exigeant mode, compte attendu et origine explicites. La sandbox ne peut plus raccorder par défaut ses webhooks à la production ; un nouveau secret est écrit dans un fichier privé, jamais dans les logs. La sandbox dédiée `acct_1UXJsn7nmxxw9EFI` contient les quatre tarifs attendus mais aucun webhook lors du contrôle.
 - Migrations sur base vierge : appliquées par la préparation des suites.
 - Migration sur ancien schéma synthétique : 21 migrations historiques, insertion d’un propriétaire, d’un client Stripe fictif et d’une séance ; application des trois migrations additives et vérification du payeur, de l’activité et de la conservation de la séance. Application des trois migrations : 0,09 s localement. Ce chiffre n’est pas une durée de migration de production.
 - Première vérification complète lancée via un script récursif a employé le runtime de repli local ; les commandes directes suivantes utilisent Node 22.23.4 et Corepack/pnpm du dépôt. Les préparations Vitest/Playwright utilisent maintenant Corepack pour éviter le pnpm de repli.
@@ -52,6 +54,7 @@ Projet Vercel `tartan`, équipe `team_3XXL1abz5SsLVR9IW9gUU0Sv`, projet `prj_Tg2
 - Resend et Sentry sont configurés en production dans les métadonnées ; réception, sourcemaps et alertes ne sont pas validées par cette lecture.
 - Protection Neon production demandée mais refusée (HTTP 422) : limite du nombre de branches protégées de l’offre actuelle. L’historique observé reste de 21 600 secondes (6 h) ; aucune montée en gamme effectuée. La [documentation actuelle](https://neon.com/docs/guides/protected-branches) réserve cette fonction aux plans payants (2 branches protégées en Launch, 5 en Scale) ; supprimer un autre projet gratuit ne donne pas accès à cette fonction.
 - La sauvegarde quotidienne chiffrée sur 30 jours existe dans `.github/workflows/sauvegarde.yml`. La possession d’une copie de la clé hors du Mac et une nouvelle restauration chronométrée restent à prouver.
+- Restauration réelle du 7 novembre, sauvegarde GitHub `42357874404` (source `1852b25`, créée à 09 h UTC) : déchiffrement puis restauration dans une nouvelle base locale isolée en **0,57 s** ; 57 tables, 21 migrations. Application des trois migrations de la PR : **0,82 s**, 60 tables et 24 migrations ; 12 comptes, 2 espaces et 60 séances conservés. Ces durées locales ne préjugent pas d'une restauration distante. Fichiers temporaires et base restaurée supprimés après vérification. La copie de la clé hors du Mac reste à attester.
 
 ## Procédures de recette et de retour arrière
 
@@ -73,13 +76,15 @@ Projet Vercel `tartan`, équipe `team_3XXL1abz5SsLVR9IW9gUU0Sv`, projet `prj_Tg2
 
 ## PR 2 — lots restant à implémenter
 
-| Lot | Contenu autorisé                                                                                                                   | État                                                            |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| A   | Préparation physique athlé, DA de travail, onboarding, bibliothèque, vidéo générique, constructeur natif                           | Non commencé sur cette branche                                  |
-| B   | Références liées aux exercices, identifiants stables, versions, charges résolues figées, séries réellement réalisées et hors ligne | Non commencé                                                    |
-| C   | Historique, Epley, tableau des pourcentages, records comparables et célébration unique                                             | Non commencé                                                    |
-| D   | Phases privées/partagées, progression et analyse avec provenance et couverture                                                     | Non commencé                                                    |
-| E   | Dictée web/native, clarifications, propositions contrôlées, quotas, confidentialité et corpus d’évaluation                         | Non commencé ; clé exposée à remplacer par le parcours sécurisé |
+| Lot | Contenu autorisé                                                                                                                   | État                                                                                    |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| A   | Préparation physique athlé, DA de travail, onboarding, bibliothèque, vidéo générique, constructeur natif                           | Non commencé sur cette branche                                                          |
+| B   | Références liées aux exercices, identifiants stables, versions, charges résolues figées, séries réellement réalisées et hors ligne | Non commencé                                                                            |
+| C   | Historique, Epley, tableau des pourcentages, records comparables et célébration unique                                             | Non commencé                                                                            |
+| D   | Phases privées/partagées, progression et analyse avec provenance et couverture                                                     | Non commencé                                                                            |
+| E   | Dictée web/native, clarifications, propositions contrôlées, quotas, confidentialité et corpus d’évaluation                         | Non commencé ; clé locale existante identifiée, réutilisation demandée par le fondateur |
+
+Accès OpenAI : présence de `OPEN_AI_API_KEY` vérifiée dans le `.env.local` racine, sans afficher sa valeur. Le fondateur demande de réutiliser cette configuration ; aucune nouvelle création de clé n’est nécessaire pour commencer le lot E. Aucun appel OpenAI n’a encore été testé. Le branchement serveur, la compatibilité avec ce nom de variable et la vérification du remplacement de la clé anciennement exposée restent à traiter ; la présence locale seule ne prouve ni la validité de la clé ni sa rotation.
 
 La fusion de la PR 2 exige les cinq lots compilables, testés et isolés par drapeaux. L’IA peut rester désactivée pour l’ouverture commerciale. Aucun écran incomplet, preuve simulée ou réglage absent ne doit être présenté comme publié.
 

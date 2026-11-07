@@ -1,11 +1,40 @@
 // Crée ou retrouve les produits et prix Tartan sur le compte Stripe de la clé utilisée, sans doublon.
 // Mode test d'abord : STRIPE_SECRET_KEY=sk_test_... ; en production, relancer avec la clé live.
 import { PLANS } from "@tartan/domain";
+import { existsSync, writeFileSync } from "node:fs";
 import Stripe from "stripe";
 
 const key = process.env.STRIPE_SECRET_KEY;
 if (!key) throw new Error("STRIPE_SECRET_KEY manquante.");
+// Aucun défaut vers la production : une sandbox doit avoir sa propre destination.
+const mode = process.env.STRIPE_SETUP_MODE;
+if (mode !== "sandbox" && mode !== "production") throw new Error("STRIPE_SETUP_MODE requis : sandbox ou production.");
+if (
+  !key.startsWith(mode === "sandbox" ? "sk_test_" : "sk_live_") &&
+  !key.startsWith(mode === "sandbox" ? "rk_test_" : "rk_live_")
+)
+  throw new Error("La clé Stripe ne correspond pas au mode demandé.");
+const expectedAccount = process.env.STRIPE_EXPECTED_ACCOUNT_ID;
+if (!expectedAccount) throw new Error("STRIPE_EXPECTED_ACCOUNT_ID requis.");
+const appUrl = new URL(process.env.STRIPE_SETUP_APP_URL ?? "");
+if (
+  appUrl.protocol !== "https:" ||
+  appUrl.username ||
+  appUrl.password ||
+  appUrl.pathname !== "/" ||
+  appUrl.search ||
+  appUrl.hash
+)
+  throw new Error("STRIPE_SETUP_APP_URL doit être une origine HTTPS sans chemin ni identifiants.");
+if (mode === "sandbox" && ["tartan.coach", "app.tartan.coach", "www.tartan.coach"].includes(appUrl.hostname))
+  throw new Error("Une sandbox ne doit pas cibler la production Tartan.");
+const outputFile = process.env.STRIPE_SETUP_OUTPUT_FILE;
+if (!outputFile || existsSync(outputFile))
+  throw new Error("STRIPE_SETUP_OUTPUT_FILE doit désigner un nouveau fichier privé.");
 const client = new Stripe(key);
+const account = await client.accounts.retrieveCurrent();
+if (account.id !== expectedAccount) throw new Error("Le compte Stripe ne correspond pas au compte attendu.");
+const origin = appUrl.origin;
 
 const ensurePrice = async (lookupKey: string, product: string, amount: number, interval: "month" | "year") => {
   const found = await client.prices.list({ lookup_keys: [lookupKey], limit: 1 });
@@ -69,10 +98,10 @@ const portals = await client.billingPortal.configurations.list({ limit: 100, act
 const portalParams = {
   business_profile: {
     headline: "Tartan : gère ton abonnement",
-    privacy_policy_url: "https://tartan.coach/confidentialite",
-    terms_of_service_url: "https://tartan.coach/cgv",
+    privacy_policy_url: `${origin}/confidentialite`,
+    terms_of_service_url: `${origin}/cgv`,
   },
-  default_return_url: "https://app.tartan.coach/abonnement",
+  default_return_url: `${origin}/abonnement`,
   metadata: { app: portalMarker },
   features: {
     invoice_history: { enabled: true },
@@ -104,16 +133,24 @@ const portal = existingPortal
   : await client.billingPortal.configurations.create(portalParams as never);
 
 // Webhook idempotent : même adresse, on ne recrée pas.
-const webhookUrl = "https://app.tartan.coach/api/webhooks/stripe";
+const webhookUrl = `${origin}/api/webhooks/stripe`;
 const hooks = await client.webhookEndpoints.list({ limit: 100 });
 let webhookSecret: string | null = null;
-if (!hooks.data.some((h) => h.url === webhookUrl)) {
+const existingHook = hooks.data.find((h) => h.url === webhookUrl);
+const enabledEvents: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
+  "customer.subscription.created",
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+];
+if (existingHook) {
+  await client.webhookEndpoints.update(existingHook.id, { enabled_events: enabledEvents, disabled: false });
+} else {
   const hook = await client.webhookEndpoints.create({
     url: webhookUrl,
     description: "Tartan",
     // Version fixée : le contenu des événements ne doit pas dépendre du réglage du compte.
-    api_version: "2025-03-31.basil",
-    enabled_events: ["customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"],
+    api_version: Stripe.API_VERSION,
+    enabled_events: enabledEvents,
   });
   webhookSecret = hook.secret ?? null;
 }
@@ -123,4 +160,12 @@ const out = {
   STRIPE_PORTAL_CONFIGURATION_ID: portal.id,
   ...(webhookSecret ? { STRIPE_WEBHOOK_SECRET: webhookSecret } : {}),
 };
-for (const [name, value] of Object.entries(out)) console.log(`${name}=${value}`);
+// Le secret de signature n'est retourné qu'à la création. Ne jamais l'imprimer dans les logs CI.
+writeFileSync(
+  outputFile,
+  Object.entries(out)
+    .map(([name, value]) => `${name}=${value}\n`)
+    .join(""),
+  { mode: 0o600, flag: "wx" },
+);
+console.log(`Configuration Stripe ${mode} enregistrée dans le fichier privé demandé. Compte : ${account.id}.`);
