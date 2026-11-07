@@ -15,7 +15,7 @@ Le rattachement ne choisit aucune référence de travail. L’interface indique 
 - **11 tests serveur ciblés** des références : rattachement explicite/idempotent/audité, concurrence, accès, conventions, référence choisie et rapport enrichi avec nom et convention.
 - Typecheck complet du monorepo réussi ; nouvelle vérification native après les derniers ajustements de messages d’erreur.
 - **Deux parcours Playwright de production** réussis : propriétaire depuis les réglages, refus de lecture par l’athlète, absence de sélection initiale, motif/confirmation obligatoires, annulation sans écriture, rattachement, conservation d’une clé inconnue longue et absence de sélection automatique d’un maximum. Relecture après rechargement.
-- Axe et absence de débordement vérifiés à 390, 768 et 1440 px ; zoom 200 % sans débordement. La dernière exécution couvre aussi une clé inconnue longue de 55 caractères.
+- Axe et absence de débordement vérifiés à 390, 768 et 1440 px ; zoom 200 % sans débordement. La dernière exécution couvre aussi une clé inconnue longue de 58 caractères.
 - ESLint web sans erreur (quatre avertissements préexistants), Impeccable sans travers.
 - Exports Hermes iOS et Android réussis avec les écrans et les erreurs près des champs. Pas de build signé, de VoiceOver/TalkBack ni de téléphone physique revendiqué.
 

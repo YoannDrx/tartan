@@ -4,6 +4,20 @@ Décision produit du 7 novembre 2026 : le plan « Tartan V1.1 — préparation p
 
 Ce document distingue le code livré, la configuration et les preuves réelles. Un test avec prestataire simulé ne vaut pas un essai Stripe, Resend, APNs ou FCM réel. Aucune ouverture commerciale ni publication store n’est effectuée par cette PR.
 
+## État courant de la PR 2
+
+Au 7 novembre 2026, après `7519866` : PR #45 en brouillon, fonctionnalités de progression désactivées par défaut et non publiées en production. Les sections de preuves ci-dessous gardent l’historique des étapes ; les mentions « reste à faire » d’un ancien lot sont remplacées par les preuves plus récentes.
+
+| Lot | État actuel | Reste principal |
+| --- | --- | --- |
+| A — positionnement et expérience | Non terminé | Préparation physique athlé, DA, onboarding, bibliothèque relue, vidéo générique, landing et constructeur natif |
+| B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique via interface implémentés | Actualisation explicite des charges déjà publiées ; recette native physique |
+| C — historique et records | Règles de calcul initiales présentes | Historique, dernière réalisation comparable, calculateur, courbes, records et célébration unique |
+| D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |
+| E — planificateur IA | Non implémenté ; clé locale disponible | Dictée, transcription, clarifications, brouillons, quotas, purge et corpus d’évaluation |
+
+Les recettes réelles Stripe/e-mails/push/vidéo, les configurations externes encore absentes, les démarches commerciales et juridiques et la publication stores restent ouvertes. Les preuves locales et exports Hermes ne les remplacent pas.
+
 ## PR 1 — état du code
 
 **PR [#44](https://github.com/YoannDrx/tartan/pull/44) fusionnée et déployée en production le 7 novembre 2026.** Commit de fusion `98daa94862d23ccb28e71174d55761074d4adc3e`, code revu `5218ea1`. CI qualité et compilation Android de la PR réussies. Le déploiement Vercel `dpl_6oFeiXS1ux1XkWrj8pY8WvBfGRrU` est Ready et porte les domaines Tartan. La CI supplémentaire de main est réussie (run `42413864150`). Les configurations et recettes externes ci-dessous restent à compléter avant les jalons commerciaux correspondants. Aucun fichier d’audit personnel non suivi n’est inclus.
