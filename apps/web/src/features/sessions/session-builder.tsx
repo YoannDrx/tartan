@@ -1,7 +1,7 @@
 "use client";
 
 import type { ExerciseSummary, Prescription, SessionDraft, SessionType } from "@tartan/contracts";
-import { formatPrescription } from "@tartan/domain";
+import { copyDraftWithNewRefs, formatPrescription, withSessionRefs } from "@tartan/domain";
 import { m, strengthTestLabel, formatDateLong } from "@tartan/i18n";
 import { ArrowDown, ArrowUp, ChevronRight, GripVertical, Plus, Search, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
@@ -22,12 +22,13 @@ import { deleteSessionAction, deleteTemplateAction, saveSessionAction, saveTempl
 type BlockState = {
   key: string;
   name: string;
+  shared?: boolean;
   items: { key: string; exerciseId: string; prescription: Prescription }[];
 };
 type Version = "club" | "autonomous";
 type Override = KeyedOverride<Prescription>;
 
-const newKey = () => Math.random().toString(36).slice(2, 10);
+const newKey = () => crypto.randomUUID();
 
 // Clés déterministes au premier rendu : le serveur et le navigateur doivent produire le même HTML.
 const defaultBlocks = (prefix = "init"): BlockState[] => [
@@ -39,13 +40,14 @@ const defaultBlocks = (prefix = "init"): BlockState[] => [
 const split = (draft: SessionDraft | null) => {
   if (!draft) return { club: defaultBlocks(), autonomous: [] as BlockState[] };
   const toState = (variant: Version) =>
-    draft.blocks
-      .filter((b) => b.variant === variant || b.variant === "both")
-      .map((b, bi) => ({
-        key: `${variant}-${bi}`,
+    withSessionRefs(draft)
+      .blocks.filter((b) => b.variant === variant || (variant === "club" && b.variant === "both"))
+      .map((b) => ({
+        key: b.ref!,
         name: b.name,
-        items: b.items.map((i, ii) => ({
-          key: `${variant}-${bi}-${ii}`,
+        shared: b.variant === "both",
+        items: b.items.map((i) => ({
+          key: i.ref!,
           exerciseId: i.exerciseId,
           prescription: i.prescription,
         })),
@@ -181,6 +183,7 @@ export const SessionBuilder = ({
 }: {
   initial: {
     id: string;
+    version: number;
     date: string;
     startTime: string | null;
     location: string | null;
@@ -232,6 +235,7 @@ export const SessionBuilder = ({
   const [editing, setEditing] = useState<{ blockKey: string; itemKey: string } | null>(null);
   const [overrideFor, setOverrideFor] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [expectedVersion, setExpectedVersion] = useState(initial?.version);
 
   const blocks = version === "club" ? club : autonomous;
   const setBlocks = version === "club" ? setClub : setAutonomous;
@@ -273,7 +277,11 @@ export const SessionBuilder = ({
     );
 
   const generateAutonomous = () => {
-    setAutonomous(club.map((b) => ({ ...b, key: newKey(), items: b.items.map((i) => ({ ...i, key: newKey() })) })));
+    setAutonomous(
+      club
+        .filter((b) => !b.shared)
+        .map((b) => ({ ...b, key: newKey(), items: b.items.map((i) => ({ ...i, key: newKey() })) })),
+    );
     setVersion("autonomous");
     toast.ok("Version autonomie générée : ajuste-la (exercices sans matériel, consignes plus détaillées).");
   };
@@ -283,9 +291,10 @@ export const SessionBuilder = ({
       list
         .filter((b) => b.items.length > 0)
         .map((b) => ({
+          ref: b.key,
           name: b.name,
-          variant,
-          items: b.items.map((i) => ({ exerciseId: i.exerciseId, prescription: i.prescription })),
+          variant: b.shared ? ("both" as const) : variant,
+          items: b.items.map((i) => ({ ref: i.key, exerciseId: i.exerciseId, prescription: i.prescription })),
         }));
     return {
       title: title.trim(),
@@ -298,6 +307,7 @@ export const SessionBuilder = ({
 
   const save = useAction(saveSessionAction, {
     onSuccess: ({ data, input }) => {
+      if (data) setExpectedVersion(data.version);
       toast.ok(
         input.publishAt
           ? m.builder.scheduled
@@ -344,6 +354,7 @@ export const SessionBuilder = ({
     const keptSchedule = scheduleAt ?? (!publish && scheduling ? publishAt : "");
     save.execute({
       id: initial?.id,
+      expectedVersion,
       date,
       startTime: startTime || null,
       location: location.trim() || null,
@@ -359,7 +370,8 @@ export const SessionBuilder = ({
   const applyTemplate = (id: string) => {
     const t = templates.find((x) => x.id === id);
     if (!t) return;
-    const parts = split(t);
+    const parts = split(copyDraftWithNewRefs(t, newKey));
+    setOverrides([]);
     setTitle(t.title);
     setType(t.type);
     setDurationMin(t.durationMin?.toString() ?? "");
@@ -368,10 +380,10 @@ export const SessionBuilder = ({
     setAutonomous(parts.autonomous);
   };
 
-  // Références calculées comme à la publication : b{bloc}-i{exercice} dans l'ordre du brouillon.
+  // Même identité à l'écran, à la publication et après un réordonnancement.
   const clubRefs = club
     .filter((b) => b.items.length > 0)
-    .flatMap((b, bi) => b.items.map((item, ii) => ({ ref: `b${bi}-i${ii}`, item })));
+    .flatMap((b) => b.items.map((item) => ({ ref: item.key, item })));
 
   const editingItem = editing
     ? blocks.find((b) => b.key === editing.blockKey)?.items.find((i) => i.key === editing.itemKey)
@@ -503,7 +515,16 @@ export const SessionBuilder = ({
           ) : null}
         </div>
 
-        {version === "autonomous" && autonomous.length === 0 ? (
+        {version === "autonomous" && club.some((b) => b.shared) ? (
+          <p className="text-soft">
+            {m.builder.sharedBlocksHint}{" "}
+            {club
+              .filter((b) => b.shared)
+              .map((b) => b.name)
+              .join(", ")}
+          </p>
+        ) : null}
+        {version === "autonomous" && autonomous.length === 0 && !club.some((b) => b.shared) ? (
           <EmptyState>Pas encore de version autonomie. Les absents recevraient la version club.</EmptyState>
         ) : null}
 

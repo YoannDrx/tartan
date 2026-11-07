@@ -8,7 +8,7 @@ import {
   logSession,
   logSessionForAthlete,
 } from "@/server/athlete-view.service";
-import { publishRow, saveScheduledSession } from "@/server/session.service";
+import { getSessionForEdit, publishRow, saveScheduledSession } from "@/server/session.service";
 import { athleteWeeklyStats } from "@/server/stats.service";
 import { addAthlete, addStaff, makeOrg } from "./helpers";
 
@@ -55,7 +55,7 @@ const setup = async () => {
       status: "done",
       variantDone: "club",
       expectedVersion: 0,
-      expectedSessionVersion: 1,
+      expectedSessionVersion: 2,
       detailedSets: [
         {
           itemRef: "b0-i0",
@@ -142,7 +142,7 @@ it("signale une prescription modifiée et refuse les références d'un autre exe
   await expect(a.log()).rejects.toMatchObject({ code: "session_version_conflict" });
   await expect(
     a.log({
-      expectedSessionVersion: 2,
+      expectedSessionVersion: 3,
       detailedSets: [
         {
           itemRef: "inconnu",
@@ -184,12 +184,19 @@ it("un nouveau maximum et un exercice remplacé ne réécrivent pas la réalisat
   const replacement = await prisma.exercise.findFirstOrThrow({
     where: { organizationId: a.organizationId, id: { not: a.exercise.id } },
   });
-  const draft = structuredClone(a.input.draft);
+  const edit = await getSessionForEdit(a.owner.userId, a.organizationId, a.session.id);
+  const draft = structuredClone(edit.draft);
   draft.blocks[0]!.items[0]!.exerciseId = replacement.id;
-  await saveScheduledSession(a.owner.userId, a.organizationId, { ...a.input, id: a.session.id, draft });
+  draft.blocks[0]!.items[0]!.ref = randomUUID();
+  await saveScheduledSession(a.owner.userId, a.organizationId, {
+    ...a.input,
+    id: a.session.id,
+    expectedVersion: edit.version,
+    draft,
+  });
   const detail = await getAthleteSession(a.athlete.userId, a.organizationId, a.session.id);
   expect(detail.blocks[0]?.items[0]).toMatchObject({ exerciseId: a.exercise.id, resolvedLoadKg: 40 });
-  await a.log({ expectedVersion: 1, expectedSessionVersion: 2 });
+  await a.log({ expectedVersion: 1, expectedSessionVersion: 3 });
   const saved = await prisma.setLog.findFirstOrThrow({ where: { log: { scheduledSessionId: a.session.id } } });
   expect(saved.exerciseId).toBe(a.exercise.id);
 });
@@ -238,7 +245,7 @@ it("le coach autorisé corrige une réalisation avec son identité et la même p
     status: "partial",
     variantDone: "club",
     expectedVersion: 1,
-    expectedSessionVersion: 1,
+    expectedSessionVersion: 2,
     detailedSets: [],
   });
   expect(result.version).toBe(2);

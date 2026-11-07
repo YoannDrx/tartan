@@ -103,11 +103,13 @@ export const sessionSnapshot = z.object({
 export type SessionSnapshot = z.infer<typeof sessionSnapshot>;
 
 export const sessionDraftItem = z.object({
+  ref: z.string().min(1).max(100).optional(),
   exerciseId: uuid,
   prescription: prescriptionSchema,
 });
 
 export const sessionDraftBlock = z.object({
+  ref: z.string().min(1).max(100).optional(),
   name: z.string().trim().min(1).max(80),
   variant: blockVariant,
   items: z.array(sessionDraftItem).max(60),
@@ -136,6 +138,7 @@ export const athleteOverrideInput = z.object({
 
 export const saveScheduledSessionInput = z.object({
   id: uuid.optional(),
+  expectedVersion: z.number().int().min(1).optional(),
   date: isoDate,
   startTime: clockTime.nullable(),
   location: z.string().trim().max(120).nullable(),

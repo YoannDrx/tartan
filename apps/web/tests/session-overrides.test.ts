@@ -7,12 +7,12 @@ const load = { load: 80 };
 describe("adaptations d'un athlète", () => {
   it("déplacer un exercice garde la charge sur le bon exercice", () => {
     const keyed = attachItemKeys(
-      [{ athleteId: "a", itemRef: "b0-i1", prescription: load }],
+      [{ athleteId: "a", itemRef: "fente", prescription: load }],
       blocks(["squat", "fente"]),
     );
     expect(keyed).toEqual([{ athleteId: "a", itemKey: "fente", prescription: load }]);
     expect(overridesForSubmit(keyed, blocks(["fente", "squat"]))).toEqual([
-      { athleteId: "a", itemRef: "b0-i0", prescription: load },
+      { athleteId: "a", itemRef: "fente", prescription: load },
     ]);
   });
   it("retirer l'exercice retire son adaptation", () => {
@@ -22,7 +22,7 @@ describe("adaptations d'un athlète", () => {
   it("un bloc vide ne décale pas les références", () => {
     const keyed = [{ athleteId: "a", itemKey: "squat", prescription: load }];
     expect(overridesForSubmit(keyed, blocks([], ["squat"]))).toEqual([
-      { athleteId: "a", itemRef: "b0-i0", prescription: load },
+      { athleteId: "a", itemRef: "squat", prescription: load },
     ]);
   });
   it("une référence ancienne sans exercice est ignorée", () => {

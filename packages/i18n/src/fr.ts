@@ -427,6 +427,13 @@ export const fr = {
     activeInjury: "Blessure active",
   },
   builder: {
+    versionConflict:
+      "Cette séance a changé. Recharge-la avant d’enregistrer pour conserver les modifications de chacun.",
+    legacyConflict:
+      "Cette séance utilise le suivi détaillé. Mets l’application à jour puis recharge la séance avant de la modifier.",
+    identityConflict:
+      "Un exercice remplacé doit recevoir une nouvelle référence. Recharge la séance avant de réessayer.",
+    sharedBlocksHint: "Ces blocs sont communs aux deux versions. Modifie-les dans l’onglet Au club :",
     preview: "Aperçu athlète",
     previewEmpty: "Ajoute un exercice pour voir la séance telle que l'athlète la verra.",
     tempo: "Tempo",

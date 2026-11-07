@@ -100,10 +100,18 @@ PR en brouillon : [#45](https://github.com/YoannDrx/tartan/pull/45). Branche fon
 - Epley 2–10 répétitions, une répétition conservée ; pourcentages 40–100 % et arrondi au pas du matériel. Cibles RPE/RIR indépendantes des kilos.
 - Vérification : **621 tests verts** (411 serveur, 74 domaine, 136 mobile), types du monorepo verts. La suite navigateur de ce lot reste à exécuter.
 
-Ce lot ne termine pas le socle : les identifiants persistants du constructeur, le lien des maxima à la bibliothèque, le gel des références dès la prescription (actuellement au premier enregistrement détaillé), les interfaces de saisie web/natives restent à implémenter. L'API de saisie coach et sa lecture sont maintenant partagées avec les mêmes contrôles de version, auteur, espace et groupe ; 11 tests ciblés de progression et les types du monorepo passent après cet ajout. Les phases, records et le planificateur ne sont pas livrés par ce premier lot.
+Ce lot ne termine pas le socle : le lien des maxima à la bibliothèque, le gel des références dès la prescription (actuellement au premier enregistrement détaillé), les interfaces de saisie web/natives restent à implémenter. L'API de saisie coach et sa lecture sont maintenant partagées avec les mêmes contrôles de version, auteur, espace et groupe ; 11 tests ciblés de progression et les types du monorepo passent après cet ajout. Les phases, records et le planificateur ne sont pas livrés par ce premier lot.
 
 La fusion de la PR 2 exige les cinq lots compilables, testés et isolés par drapeaux. L’IA peut rester désactivée pour l’ouverture commerciale. Aucun écran incomplet, preuve simulée ou réglage absent ne doit être présenté comme publié.
 
 Références prestataire utilisées pour le webhook : [vérification de la signature Resend](https://resend.com/docs/webhooks/verify-webhooks-requests), [distinction entre rebond permanent et temporaire](https://resend.com/changelog/email-bounce-details). Les rebonds temporaires ne créent pas d’exclusion définitive.
 
 Preview Neon : la migration additive du premier lot a été appliquée le 7 novembre sur `br-floral-sun-b9iar8ge` en 4,16 s. Lecture via le rôle applicatif limité vérifiée : 25 migrations, aucune mutation de série, aucun espace activé pour la progression. Aucune migration exécutée en production.
+
+### Identité des items et conflits d’édition
+
+Les nouvelles références du constructeur web sont persistantes. Les anciennes séances conservent leurs références `b0-i0` lors de la première lecture puis de l’enregistrement modernisé ; elles ne sont pas réattribuées selon le nouvel ordre. Les adaptations suivent les items, y compris entre blocs. Une copie de modèle ou une version autonomie reçoit des références distinctes. Un exercice remplacé ne peut pas réutiliser l’identité d’un autre.
+
+Les enregistrements comparent la version attendue sous verrou et incrémentent la version. Publication, déplacement de date et génération de l’autonomie invalident aussi un éditeur ouvert. Les anciens clients sont refusés avec un conflit explicite lorsqu’une séance a déjà des références persistantes ou des validations ; ils ne peuvent pas réécrire silencieusement les liens des séries.
+
+Preuves locales du 7 novembre : **422 tests serveur**, **77 tests domaine** réussis ; **2 parcours navigateur sur build de production**, desktop et mobile, vérifient réordonnancement, réouverture, conflit entre deux onglets et sauvegarde suivante. Lint ciblé réussi. Ce lot ne crée pas encore le constructeur natif ni le gel des charges individuelles à la publication.
