@@ -15,6 +15,7 @@ export * from "./referrals";
 export * from "./plans";
 export * from "./starter-library";
 export * from "./training-load";
+export * from "./progression";
 export { isSessionAssigned } from "./session-audience";
 export { personalBestIds, toComparableMark, type RecordMark } from "./records";
 export { billingEmailsFor, type BillingEmail, type BillingSnapshot } from "./billing-emails";

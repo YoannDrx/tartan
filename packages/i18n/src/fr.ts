@@ -2,6 +2,15 @@
 // Côté coach : sobre et précis, vocabulaire du métier (§ 4.5).
 export const fr = {
   brand: { name: "Tartan", storeName: "Tartan – Coach athlé", tagline: "Séances, suivi et vidéo pour ton groupe" },
+  progression: {
+    disabled: "Le suivi détaillé n'est pas encore activé dans cet espace.",
+    logConflict:
+      "Cette validation a changé sur un autre appareil. Recharge-la avant de choisir les données à conserver.",
+    sessionConflict: "Le coach a modifié la séance. Relis la nouvelle prescription avant d'enregistrer tes séries.",
+    legacyConflict:
+      "Cette validation contient des séries détaillées. Mets à jour l'application pour la modifier sans les perdre.",
+    unknownItem: "Une série ne correspond pas à un exercice de cette version de la séance.",
+  },
   common: {
     save: "Enregistrer",
     cancel: "Annuler",

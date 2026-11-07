@@ -76,15 +76,28 @@ Projet Vercel `tartan`, équipe `team_3XXL1abz5SsLVR9IW9gUU0Sv`, projet `prj_Tg2
 
 ## PR 2 — lots restant à implémenter
 
-| Lot | Contenu autorisé                                                                                                                   | État                                                                                    |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| A   | Préparation physique athlé, DA de travail, onboarding, bibliothèque, vidéo générique, constructeur natif                           | Non commencé sur cette branche                                                          |
-| B   | Références liées aux exercices, identifiants stables, versions, charges résolues figées, séries réellement réalisées et hors ligne | Non commencé                                                                            |
-| C   | Historique, Epley, tableau des pourcentages, records comparables et célébration unique                                             | Non commencé                                                                            |
-| D   | Phases privées/partagées, progression et analyse avec provenance et couverture                                                     | Non commencé                                                                            |
-| E   | Dictée web/native, clarifications, propositions contrôlées, quotas, confidentialité et corpus d’évaluation                         | Non commencé ; clé locale existante identifiée, réutilisation demandée par le fondateur |
+| Lot | Contenu autorisé                                                                                                                   | État                                                                                      |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| A   | Préparation physique athlé, DA de travail, onboarding, bibliothèque, vidéo générique, constructeur natif                           | Non commencé sur cette branche                                                            |
+| B   | Références liées aux exercices, identifiants stables, versions, charges résolues figées, séries réellement réalisées et hors ligne | En cours : stockage versionné, conflits et rejeux ; interfaces et références à poursuivre |
+| C   | Historique, Epley, tableau des pourcentages, records comparables et célébration unique                                             | En cours : calcul Epley et pourcentages ; historique, records et interfaces à poursuivre  |
+| D   | Phases privées/partagées, progression et analyse avec provenance et couverture                                                     | Non commencé                                                                              |
+| E   | Dictée web/native, clarifications, propositions contrôlées, quotas, confidentialité et corpus d’évaluation                         | Non commencé ; clé locale existante identifiée, réutilisation demandée par le fondateur   |
 
 Accès OpenAI : présence de `OPEN_AI_API_KEY` vérifiée dans le `.env.local` racine, sans afficher sa valeur. Le fondateur demande de réutiliser cette configuration ; aucune nouvelle création de clé n’est nécessaire pour commencer le lot E. Aucun appel OpenAI n’a encore été testé. Le branchement serveur, la compatibilité avec ce nom de variable et la vérification du remplacement de la clé anciennement exposée restent à traiter ; la présence locale seule ne prouve ni la validité de la clé ni sa rotation.
+
+### Premier lot de progression — branche `codex/v1-1-progression`
+
+Branche fondée provisoirement sur la PR 1, à cibler vers `main` après fusion de celle-ci. Migration additive, drapeaux progression/phases/IA désactivés par défaut ; aucune activation en production.
+
+- Contrat détaillé : séries de travail/échauffement, charge externe/poids du corps/assistance, répétitions totales/par côté, distance, durée et contacts distincts.
+- Versions de séance et de validation, auteur, snapshot de la prescription au premier enregistrement détaillé. Un maximum ultérieur ou le remplacement d'un exercice ne réécrit plus cette réalisation.
+- Mutation persistante : le rejeu de A après une correction B ne remet pas A en place. Concurrence testée sur Postgres ; conflit HTTP 409 explicite. Une ancienne application ne peut ni modifier silencieusement une validation détaillée ni effacer les séries avec un tableau vide.
+- Statistiques de volumes : uniquement les données réalisées renseignées, valeurs absentes à `null`, couverture explicite ; coefficient de 50 % et recalcul depuis les maxima récents retirés. La tendance n'utilise plus une ancienne semaine en guise de semaine courante manquante.
+- Epley 2–10 répétitions, une répétition conservée ; pourcentages 40–100 % et arrondi au pas du matériel. Cibles RPE/RIR indépendantes des kilos.
+- Vérification : **621 tests verts** (411 serveur, 74 domaine, 136 mobile), types du monorepo verts. La suite navigateur de ce lot reste à exécuter.
+
+Ce lot ne termine pas le socle : les identifiants persistants du constructeur, le lien des maxima à la bibliothèque, le gel des références dès la prescription (actuellement au premier enregistrement détaillé), la saisie coach et les interfaces web/natives restent à implémenter. Les phases, records et le planificateur ne sont pas livrés par ce premier lot.
 
 La fusion de la PR 2 exige les cinq lots compilables, testés et isolés par drapeaux. L’IA peut rester désactivée pour l’ouverture commerciale. Aucun écran incomplet, preuve simulée ou réglage absent ne doit être présenté comme publié.
 

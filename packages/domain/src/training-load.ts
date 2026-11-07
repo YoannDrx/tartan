@@ -24,10 +24,9 @@ export const addPrescriptionVolumes = (
 
 // Compare la dernière semaine à la moyenne des semaines précédentes, sans jamais conclure à un risque.
 export const weekTrendPct = (weeks: (number | null)[]): number | null => {
-  const known = weeks.filter((w): w is number => w !== null);
-  const current = known[known.length - 1];
-  const previous = known.slice(0, -1);
-  if (current === undefined || previous.length === 0) return null;
+  const current = weeks.at(-1);
+  const previous = weeks.slice(0, -1).filter((w): w is number => w !== null);
+  if (current == null || previous.length === 0) return null;
   const mean = previous.reduce((a, b) => a + b, 0) / previous.length;
   return mean === 0 ? null : Math.round(((current - mean) / mean) * 100);
 };

@@ -25,6 +25,13 @@ export const prescriptionSchema = z.object({
   duration_s: z.number().int().min(0).max(14400).optional(),
   rest_s: z.number().int().min(0).max(3600).optional(),
   load: loadSchema.optional(),
+  // Cible de prescription, indépendante de la charge et de l'effort réellement déclaré.
+  intensityTarget: z
+    .discriminatedUnion("type", [
+      z.object({ type: z.literal("rpe"), value: z.number().min(1).max(10) }),
+      z.object({ type: z.literal("rir"), value: z.number().int().min(0).max(10) }),
+    ])
+    .optional(),
   tempo: z.string().max(20).optional(),
   ground_contacts: z.number().int().min(0).max(2000).optional(),
   notes: z.string().max(500).optional(),
@@ -63,6 +70,17 @@ export const snapshotItem = z.object({
   cues: z.array(z.string()),
   media: exerciseMediaSnapshot.nullable(),
   prescription: prescriptionSchema,
+  resolvedLoadKg: z.number().nullable().optional(),
+  strengthReference: z
+    .object({
+      id: uuid,
+      exerciseKey: z.string(),
+      value: z.number(),
+      kind: z.string(),
+      date: isoDate,
+    })
+    .nullable()
+    .optional(),
 });
 export type SnapshotItem = z.infer<typeof snapshotItem>;
 

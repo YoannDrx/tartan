@@ -8,7 +8,9 @@ import {
   sessionLogInput,
   type SessionSnapshot,
   sessionSnapshot,
+  detailedSetInput,
 } from "@tartan/contracts";
+import { m } from "@tartan/i18n";
 import {
   addDays,
   applyOverride,
@@ -25,7 +27,7 @@ import {
 } from "@tartan/domain";
 import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
-import { notFound } from "@/lib/errors";
+import { AppError, invalid, notFound } from "@/lib/errors";
 import { signedPlayback } from "@/lib/mux";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -192,6 +194,7 @@ export const getAthleteSession = async (
     where: { id: sessionId, organizationId, ...(await assignedWhere(access.athleteId)) },
     select: {
       id: true,
+      version: true,
       date: true,
       startTime: true,
       location: true,
@@ -200,15 +203,24 @@ export const getAthleteSession = async (
       attendance: { where: { athleteId: access.athleteId }, select: { status: true } },
       logs: {
         where: { athleteId: access.athleteId },
-        select: { status: true, variantDone: true, rpe: true, durationMin: true, comment: true },
+        select: {
+          status: true,
+          variantDone: true,
+          rpe: true,
+          durationMin: true,
+          comment: true,
+          version: true,
+          sets: true,
+          prescriptionSnapshot: true,
+        },
       },
       overrides: { where: { athleteId: access.athleteId }, select: { itemRef: true, prescription: true } },
     },
   });
   if (!session) throw notFound();
-  const snapshot = sessionSnapshot.parse(session.snapshot);
-  const coaches = await namesFor([session.createdBy]);
   const log = session.logs[0] ?? null;
+  const snapshot = sessionSnapshot.parse(log?.prescriptionSnapshot ?? session.snapshot);
+  const coaches = await namesFor([session.createdBy]);
   const card = toCard(
     session,
     snapshot,
@@ -235,15 +247,20 @@ export const getAthleteSession = async (
   );
   return {
     ...card,
+    sessionVersion: session.version,
     blocks: blocks.map((block) => ({
       ref: block.ref,
       name: block.name,
       variant: block.variant,
       items: block.items.map((item) => {
-        const prescription = applyOverride(item.prescription, overrides.get(item.ref));
-        const resolvedLoadKg = resolveLoadKg(prescription, tests);
+        const prescription = log?.prescriptionSnapshot
+          ? item.prescription
+          : applyOverride(item.prescription, overrides.get(item.ref));
+        const resolvedLoadKg =
+          item.resolvedLoadKg !== undefined ? item.resolvedLoadKg : resolveLoadKg(prescription, tests);
         return {
           ref: item.ref,
+          exerciseId: item.exerciseId,
           name: item.name,
           category: item.category,
           cues: item.cues,
@@ -254,7 +271,24 @@ export const getAthleteSession = async (
         };
       }),
     })),
-    log: log ? { status: log.status, rpe: log.rpe, durationMin: log.durationMin, comment: log.comment } : null,
+    log: log
+      ? {
+          status: log.status,
+          rpe: log.rpe,
+          durationMin: log.durationMin,
+          comment: log.comment,
+          version: log.version,
+          detailedSets: log.sets.flatMap((set) => {
+            const parsed = detailedSetInput.safeParse({
+              ...set,
+              loadKg: set.loadKg === null ? null : Number(set.loadKg),
+              distanceM: set.distanceM === null ? null : Number(set.distanceM),
+              timeS: set.timeS === null ? null : Number(set.timeS),
+            });
+            return parsed.success ? [parsed.data] : [];
+          }),
+        }
+      : null,
   };
 };
 
@@ -278,6 +312,13 @@ export const getMyRegularity = async (userId: string, organizationId: string, no
 export const logSession = async (userId: string, organizationId: string, sessionId: string, raw: SessionLogInput) => {
   const input = sessionLogInput.parse(raw);
   const access = await requireAthleteAccess(userId, organizationId);
+  if (input.detailedSets !== undefined) {
+    const space = await prisma.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { progressionEnabled: true },
+    });
+    if (!space.progressionEnabled) throw new AppError(409, "progression_disabled", m.progression.disabled);
+  }
   const session = await prisma.scheduledSession.findFirst({
     where: { id: sessionId, organizationId, ...(await assignedWhere(access.athleteId)) },
     select: { id: true, date: true },
@@ -287,13 +328,6 @@ export const logSession = async (userId: string, organizationId: string, session
   // Effort ressenti et douleur sont des données de santé : sans accord, on ne les enregistre pas (§ 15.1).
   const rpe = consent?.health ? (input.rpe ?? null) : null;
   const pain = consent?.health ? (input.pain ?? null) : null;
-
-  const existing = await prisma.sessionLog.findUnique({
-    where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId: access.athleteId } },
-    select: { id: true, clientId: true },
-  });
-  // Rejeu de la file hors ligne : même clientId, on ne refait rien (ni écriture, ni alerte).
-  if (existing?.clientId && existing.clientId === input.clientId) return { id: existing.id, replayed: true };
 
   const data = {
     clientId: input.clientId,
@@ -307,29 +341,128 @@ export const logSession = async (userId: string, organizationId: string, session
     completedAt: input.completedAt ? new Date(input.completedAt) : new Date(),
   };
   const saved = await prisma.$transaction(async (tx) => {
+    // Sérialise aussi la première écriture : aucun upsert concurrent ne contourne la version attendue.
+    await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${sessionId}::uuid FOR UPDATE`;
+    const currentSession = await tx.scheduledSession.findFirst({
+      where: { id: sessionId, organizationId, ...(await assignedWhere(access.athleteId)) },
+      include: { overrides: { where: { athleteId: access.athleteId } } },
+    });
+    if (!currentSession) throw notFound();
+    const existing = await tx.sessionLog.findUnique({
+      where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId: access.athleteId } },
+    });
+    if (
+      existing &&
+      (existing.clientId === input.clientId ||
+        (await tx.sessionLogMutation.findUnique({
+          where: { sessionLogId_clientId: { sessionLogId: existing.id, clientId: input.clientId } },
+        })))
+    )
+      return { ...existing, replayed: true };
+    if (input.expectedVersion !== undefined && input.expectedVersion !== (existing?.version ?? 0))
+      throw new AppError(409, "log_version_conflict", m.progression.logConflict);
+    if (input.expectedSessionVersion !== undefined && input.expectedSessionVersion !== currentSession.version)
+      throw new AppError(409, "session_version_conflict", m.progression.sessionConflict);
+    if (input.expectedVersion === undefined && existing?.prescriptionSnapshot)
+      throw new AppError(409, "legacy_log_conflict", m.progression.legacyConflict);
+
+    const snapshot = sessionSnapshot.parse(existing?.prescriptionSnapshot ?? currentSession.snapshot);
+    const items = new Map(
+      blocksForVariant(snapshot.blocks, input.variantDone).flatMap((b) => b.items.map((i) => [i.ref, i] as const)),
+    );
+    const sets = input.detailedSets ?? input.sets;
+    if (sets.some((set) => !items.has(set.itemRef))) throw invalid(m.progression.unknownItem);
+    const version = (existing?.version ?? 0) + 1;
+    // Fige l'identité et la prescription utilisée. Une correction garde la référence historique.
+    const references =
+      input.detailedSets !== undefined && !existing?.prescriptionSnapshot
+        ? await tx.strengthTest.findMany({
+            where: { athleteId: access.athleteId },
+            orderBy: [{ date: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+          })
+        : [];
+    const prescriptionSnapshot =
+      input.detailedSets !== undefined && !existing?.prescriptionSnapshot
+        ? {
+            ...snapshot,
+            blocks: snapshot.blocks.map((block) => ({
+              ...block,
+              items: block.items.map((item) => {
+                const prescription = applyOverride(
+                  item.prescription,
+                  currentSession.overrides.find((o) => o.itemRef === item.ref)?.prescription as object | undefined,
+                );
+                const referenceKey = prescription.load?.type === "pct_1rm" ? prescription.load.test : null;
+                const row = references.find((t) => t.exerciseKey === referenceKey);
+                const reference = row
+                  ? {
+                      id: row.id,
+                      exerciseKey: row.exerciseKey,
+                      value: Number(row.value),
+                      kind: row.kind,
+                      date: fromDbDate(row.date),
+                    }
+                  : null;
+                return {
+                  ...item,
+                  prescription,
+                  resolvedLoadKg:
+                    item.resolvedLoadKg !== undefined
+                      ? item.resolvedLoadKg
+                      : resolveLoadKg(prescription, reference ? [reference] : []),
+                  strengthReference: item.strengthReference !== undefined ? item.strengthReference : reference,
+                };
+              }),
+            })),
+          }
+        : undefined;
+    const versioned = {
+      ...data,
+      version,
+      recordedBy: userId,
+      ...(prescriptionSnapshot
+        ? {
+            prescriptionSnapshot: prescriptionSnapshot as unknown as Prisma.InputJsonValue,
+            sessionVersion: currentSession.version,
+          }
+        : {}),
+    };
     const row = await tx.sessionLog.upsert({
       where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId: access.athleteId } },
-      create: { ...data, scheduledSessionId: sessionId, athleteId: access.athleteId },
-      update: data,
+      create: { ...versioned, scheduledSessionId: sessionId, athleteId: access.athleteId },
+      update: versioned,
     });
-    await tx.setLog.deleteMany({ where: { sessionLogId: row.id } });
-    if (input.sets.length) {
+    // Anciennes applications / action rapide : [] veut dire « aucun détail envoyé », pas « tout effacer ».
+    // Le contrat détaillé versionné permet, lui, une suppression explicite avec detailedSets: [].
+    if (input.detailedSets !== undefined || sets.length > 0) {
+      await tx.setLog.deleteMany({ where: { sessionLogId: row.id } });
       await tx.setLog.createMany({
-        data: input.sets.map((s) => ({
+        data: sets.map((s, index) => ({
           sessionLogId: row.id,
           itemRef: s.itemRef,
+          exerciseId: items.get(s.itemRef)?.exerciseId,
           setIndex: s.setIndex,
           reps: s.reps ?? null,
           loadKg: s.loadKg ?? null,
           distanceM: s.distanceM ?? null,
           timeS: s.timeS ?? null,
           done: s.done,
+          ...(input.detailedSets?.[index]
+            ? {
+                setKind: input.detailedSets[index].setKind,
+                loadKind: input.detailedSets[index].loadKind,
+                repetitionScope: input.detailedSets[index].repetitionScope,
+                sideCount: input.detailedSets[index].sideCount,
+                groundContacts: input.detailedSets[index].groundContacts ?? null,
+              }
+            : {}),
         })),
-        skipDuplicates: true,
       });
     }
-    return row;
+    await tx.sessionLogMutation.create({ data: { sessionLogId: row.id, clientId: input.clientId, version } });
+    return { ...row, replayed: false };
   });
+  if (saved.replayed) return { id: saved.id, version: saved.version, replayed: true };
   log.info("session_validated", { organizationId, entityId: sessionId });
 
   if (pain) {
@@ -340,7 +473,7 @@ export const logSession = async (userId: string, organizationId: string, session
       link: `/athletes/${access.athleteId}`,
     });
   }
-  return { id: saved.id, replayed: false };
+  return { id: saved.id, version: saved.version, replayed: false };
 };
 
 export const setMyAttendance = async (

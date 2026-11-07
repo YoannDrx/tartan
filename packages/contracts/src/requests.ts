@@ -233,18 +233,53 @@ export const setLogInput = z.object({
   done: z.boolean(),
 });
 
+// Contrat V1.1 explicite : les anciennes cases cochées ne deviennent pas des kilos réalisés.
+export const detailedSetInput = setLogInput
+  .extend({
+    itemRef: z.string().min(1).max(100),
+    setKind: z.enum(["work", "warmup"]),
+    loadKind: z.enum(["external", "bodyweight", "assisted"]),
+    repetitionScope: z.enum(["total", "per_side"]),
+    sideCount: z.union([z.literal(1), z.literal(2)]),
+    groundContacts: z.number().int().min(0).max(2000).nullable().optional(),
+  })
+  .refine((s) => s.repetitionScope !== "total" || s.sideCount === 1, {
+    message: "Des répétitions totales ne se multiplient pas par le nombre de côtés.",
+    path: ["sideCount"],
+  });
+export type DetailedSetInput = z.infer<typeof detailedSetInput>;
+
 // clientId rend l'envoi idempotent : la file hors ligne peut rejouer sans doublon.
-export const sessionLogInput = z.object({
-  clientId: z.string().min(8).max(64),
-  status: z.enum(["done", "partial"]),
-  variantDone: sessionVariant,
-  rpe: z.number().int().min(1).max(10).nullable().optional(),
-  durationMin: z.number().int().min(1).max(600).nullable().optional(),
-  comment: trimmed(1000).nullable().optional(),
-  pain: painInput.nullable().optional(),
-  sets: z.array(setLogInput).max(500).default([]),
-  completedAt: z.iso.datetime().optional(),
-});
+export const sessionLogInput = z
+  .object({
+    clientId: z.string().min(8).max(64),
+    status: z.enum(["done", "partial"]),
+    variantDone: sessionVariant,
+    rpe: z.number().int().min(1).max(10).nullable().optional(),
+    durationMin: z.number().int().min(1).max(600).nullable().optional(),
+    comment: trimmed(1000).nullable().optional(),
+    pain: painInput.nullable().optional(),
+    sets: z.array(setLogInput).max(500).default([]),
+    detailedSets: z.array(detailedSetInput).max(500).optional(),
+    expectedVersion: z.number().int().min(0).optional(),
+    expectedSessionVersion: z.number().int().min(1).optional(),
+    completedAt: z.iso.datetime().optional(),
+  })
+  .superRefine((input, ctx) => {
+    if (
+      input.detailedSets !== undefined &&
+      (input.expectedVersion === undefined || input.expectedSessionVersion === undefined)
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["expectedVersion"],
+        message: "Les versions de la séance et de la saisie sont requises.",
+      });
+    const sets = input.detailedSets ?? input.sets;
+    const keys = sets.map((s) => `${s.itemRef}:${s.setIndex}`);
+    if (new Set(keys).size !== keys.length)
+      ctx.addIssue({ code: "custom", path: ["sets"], message: "Une série ne peut pas être présente deux fois." });
+  });
 export type SessionLogInput = z.input<typeof sessionLogInput>;
 
 export const attendanceInput = z.object({

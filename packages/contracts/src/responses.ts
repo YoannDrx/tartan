@@ -10,6 +10,7 @@ import {
   videoStatus,
 } from "./enums";
 import { prescriptionSchema, snapshotBlock } from "./session";
+import { detailedSetInput } from "./requests";
 
 export const spaceSummary = z.object({
   organizationId: z.string(),
@@ -86,6 +87,7 @@ export type AthleteToday = z.infer<typeof athleteToday>;
 
 export const resolvedItem = z.object({
   ref: z.string(),
+  exerciseId: z.string().nullable().optional(),
   name: z.string(),
   category: z.string(),
   cues: z.array(z.string()),
@@ -97,6 +99,7 @@ export const resolvedItem = z.object({
 export type ResolvedItem = z.infer<typeof resolvedItem>;
 
 export const athleteSessionDetail = athleteSessionCard.extend({
+  sessionVersion: z.number().int().optional(),
   blocks: z.array(snapshotBlock.omit({ items: true }).extend({ items: z.array(resolvedItem) })),
   log: z
     .object({
@@ -104,6 +107,8 @@ export const athleteSessionDetail = athleteSessionCard.extend({
       rpe: z.number().nullable(),
       durationMin: z.number().nullable(),
       comment: z.string().nullable(),
+      version: z.number().int().optional(),
+      detailedSets: z.array(detailedSetInput).optional(),
     })
     .nullable(),
 });

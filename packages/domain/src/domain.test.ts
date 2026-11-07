@@ -339,6 +339,7 @@ describe("charge et export", () => {
   it("compare à la moyenne récente", () => {
     expect(weekTrendPct([100, 100, 150])).toBe(50);
     expect(weekTrendPct([null, 100])).toBeNull();
+    expect(weekTrendPct([100, 120, null])).toBeNull();
   });
 
   it("protège le CSV contre les formules et les séparateurs", () => {

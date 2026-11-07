@@ -110,7 +110,7 @@ export const saveScheduledSession = async (
   };
   const saved = await prisma.$transaction(async (tx) => {
     const row = existing
-      ? await tx.scheduledSession.update({ where: { id: existing.id }, data })
+      ? await tx.scheduledSession.update({ where: { id: existing.id }, data: { ...data, version: { increment: 1 } } })
       : await tx.scheduledSession.create({ data: { ...data, organizationId, createdBy: userId } });
     await tx.assignment.deleteMany({ where: { scheduledSessionId: row.id } });
     await tx.assignment.createMany({
@@ -205,6 +205,7 @@ export const getSessionForEdit = async (userId: string, organizationId: string, 
   const assignments = rows.filter((a) => existing.has(a.targetId));
   return {
     id: session.id,
+    version: session.version,
     date: fromDbDate(session.date),
     startTime: session.startTime,
     location: session.location,

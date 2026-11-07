@@ -149,27 +149,30 @@ enum OrganizationPlan {
 }
 
 model Organization {
-  id          String           @id @default(uuid()) @db.Uuid
-  name        String
-  type        OrganizationType @default(independent)
-  logoUrl     String?          @map("logo_url")
-  disciplines String[]         @default([])
-  ownerId     String           @map("owner_id") @db.Uuid
-  owner       User             @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  plan        OrganizationPlan @default(discovery)
-  stripeCustomerId String?     @unique @map("stripe_customer_id")
+  id                     String           @id @default(uuid()) @db.Uuid
+  name                   String
+  type                   OrganizationType @default(independent)
+  logoUrl                String?          @map("logo_url")
+  disciplines            String[]         @default([])
+  ownerId                String           @map("owner_id") @db.Uuid
+  owner                  User             @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  plan                   OrganizationPlan @default(discovery)
+  progressionEnabled     Boolean          @default(false) @map("progression_enabled")
+  phasesEnabled          Boolean          @default(false) @map("phases_enabled")
+  aiPlannerEnabled       Boolean          @default(false) @map("ai_planner_enabled")
+  stripeCustomerId       String?          @unique @map("stripe_customer_id")
   // Identité du payeur : conservée au transfert, jamais assimilée au nouveau propriétaire.
-  billingOwnerId String?       @map("billing_owner_id") @db.Uuid
-  billingIssue String?         @map("billing_issue")
-  lastBusinessActivityAt DateTime? @map("last_business_activity_at")
-  retentionReviewAt DateTime? @map("retention_review_at")
-  billingRevision Int          @default(0) @map("billing_revision")
-  billingSyncedAt DateTime?     @map("billing_synced_at")
-  billingSyncAttemptedAt DateTime? @map("billing_sync_attempted_at")
+  billingOwnerId         String?          @map("billing_owner_id") @db.Uuid
+  billingIssue           String?          @map("billing_issue")
+  lastBusinessActivityAt DateTime?        @map("last_business_activity_at")
+  retentionReviewAt      DateTime?        @map("retention_review_at")
+  billingRevision        Int              @default(0) @map("billing_revision")
+  billingSyncedAt        DateTime?        @map("billing_synced_at")
+  billingSyncAttemptedAt DateTime?        @map("billing_sync_attempted_at")
   // Relance douce d'une séance non validée, réglable par le coach (§ 7.7).
-  overdueReminders Boolean     @default(true) @map("overdue_reminders")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  overdueReminders       Boolean          @default(true) @map("overdue_reminders")
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @updatedAt @map("updated_at")
 
   members           OrganizationMember[]
   groups            Group[]
@@ -680,6 +683,7 @@ model SessionItem {
 
 model ScheduledSession {
   id             String       @id @default(uuid()) @db.Uuid
+  version        Int          @default(1)
   organizationId String       @map("organization_id") @db.Uuid
   createdBy      String       @map("created_by") @db.Uuid
   date           DateTime     @db.Date
@@ -790,43 +794,68 @@ enum SessionVariant {
 }
 
 model SessionLog {
-  id                 String           @id @default(uuid()) @db.Uuid
-  scheduledSessionId String           @map("scheduled_session_id") @db.Uuid
-  athleteId          String           @map("athlete_id") @db.Uuid
-  clientId           String?          @map("client_id")
-  status             LogStatus
-  variantDone        SessionVariant?  @map("variant_done")
-  rpe                Int?
-  durationMin        Int?             @map("duration_min")
-  comment            String?
-  pain               Json?
-  completedAt        DateTime?        @map("completed_at")
-  reminderSentAt     DateTime?        @map("reminder_sent_at")
-  createdAt          DateTime         @default(now()) @map("created_at")
-  updatedAt          DateTime         @updatedAt @map("updated_at")
-  session            ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
-  athlete            Athlete          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  id                   String           @id @default(uuid()) @db.Uuid
+  version              Int              @default(0)
+  sessionVersion       Int?             @map("session_version")
+  prescriptionSnapshot Json?            @map("prescription_snapshot")
+  recordedBy           String?          @map("recorded_by") @db.Uuid
+  scheduledSessionId   String           @map("scheduled_session_id") @db.Uuid
+  athleteId            String           @map("athlete_id") @db.Uuid
+  clientId             String?          @map("client_id")
+  status               LogStatus
+  variantDone          SessionVariant?  @map("variant_done")
+  rpe                  Int?
+  durationMin          Int?             @map("duration_min")
+  comment              String?
+  pain                 Json?
+  completedAt          DateTime?        @map("completed_at")
+  reminderSentAt       DateTime?        @map("reminder_sent_at")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+  session              ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
+  athlete              Athlete          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
 
-  sets SetLog[]
+  sets      SetLog[]
+  mutations SessionLogMutation[]
 
   @@unique([scheduledSessionId, athleteId])
   @@index([athleteId])
   @@map("session_logs")
 }
 
-model SetLog {
+// Le rejeu d'une ancienne mutation après une correction ne doit jamais restaurer l'ancien contenu.
+model SessionLogMutation {
   id           String     @id @default(uuid()) @db.Uuid
   sessionLogId String     @map("session_log_id") @db.Uuid
-  itemRef      String     @map("item_ref")
-  setIndex     Int        @map("set_index")
-  reps         Int?
-  loadKg       Decimal?   @map("load_kg") @db.Decimal(7, 2)
-  distanceM    Decimal?   @map("distance_m") @db.Decimal(9, 2)
-  timeS        Decimal?   @map("time_s") @db.Decimal(9, 2)
-  done         Boolean    @default(true)
+  clientId     String     @map("client_id")
+  version      Int
   createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
   log          SessionLog @relation(fields: [sessionLogId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionLogId, clientId])
+  @@map("session_log_mutations")
+}
+
+model SetLog {
+  id              String     @id @default(uuid()) @db.Uuid
+  sessionLogId    String     @map("session_log_id") @db.Uuid
+  itemRef         String     @map("item_ref")
+  setIndex        Int        @map("set_index")
+  reps            Int?
+  loadKg          Decimal?   @map("load_kg") @db.Decimal(7, 2)
+  distanceM       Decimal?   @map("distance_m") @db.Decimal(9, 2)
+  timeS           Decimal?   @map("time_s") @db.Decimal(9, 2)
+  done            Boolean    @default(true)
+  // NULL pour les anciennes cases : aucune convention de charge inventée à la migration.
+  exerciseId      String?    @map("exercise_id") @db.Uuid
+  setKind         String?    @map("set_kind")
+  loadKind        String?    @map("load_kind")
+  repetitionScope String?    @map("repetition_scope")
+  sideCount       Int?       @map("side_count")
+  groundContacts  Int?       @map("ground_contacts")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  log             SessionLog @relation(fields: [sessionLogId], references: [id], onDelete: Cascade)
 
   @@unique([sessionLogId, itemRef, setIndex])
   @@map("set_logs")
