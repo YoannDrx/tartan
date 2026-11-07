@@ -12,7 +12,7 @@ import { getSessionForEdit, publishRow, saveScheduledSession } from "@/server/se
 import { athleteWeeklyStats } from "@/server/stats.service";
 import { addAthlete, addStaff, makeOrg } from "./helpers";
 
-const setup = async () => {
+const setup = async (initialMaximum?: number) => {
   const org = await makeOrg("Progression");
   await prisma.organization.update({ where: { id: org.organizationId }, data: { progressionEnabled: true } });
   const athlete = await addAthlete(org.organizationId, org.groupId, "Athlète");
@@ -47,6 +47,17 @@ const setup = async () => {
       ],
     },
   };
+  if (initialMaximum !== undefined)
+    await prisma.strengthTest.create({
+      data: {
+        organizationId: org.organizationId,
+        athleteId: athlete.athleteId,
+        exerciseKey: "squat",
+        value: initialMaximum,
+        kind: "one_rm",
+        date: new Date("2029-01-01"),
+      },
+    });
   const session = await saveScheduledSession(org.owner.userId, org.organizationId, input);
   await publishRow(session.id, org.owner.userId, new Date("2030-06-01T10:00:00Z"), { silent: true });
   const log = (data: Partial<SessionLogInput> = {}) =>
@@ -138,7 +149,8 @@ it("les anciennes validations simples conservent leurs cases si aucun détail n'
 
 it("signale une prescription modifiée et refuse les références d'un autre exercice", async () => {
   const a = await setup();
-  await saveScheduledSession(a.owner.userId, a.organizationId, { ...a.input, id: a.session.id });
+  const edit = await getSessionForEdit(a.owner.userId, a.organizationId, a.session.id);
+  await saveScheduledSession(a.owner.userId, a.organizationId, edit);
   await expect(a.log()).rejects.toMatchObject({ code: "session_version_conflict" });
   await expect(
     a.log({
@@ -159,7 +171,7 @@ it("signale une prescription modifiée et refuse les références d'un autre exe
 });
 
 it("un nouveau maximum et un exercice remplacé ne réécrivent pas la réalisation passée", async () => {
-  const a = await setup();
+  const a = await setup(50);
   await prisma.strengthTest.create({
     data: {
       organizationId: a.organizationId,

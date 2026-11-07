@@ -32,6 +32,7 @@ import {
 } from "./access";
 import { activeAudienceIds, athleteAssignedWhere } from "./session-audience.service";
 export { activeAudienceIds, audienceAthleteIds } from "./session-audience.service";
+import { freezeSessionPrescriptions } from "./prescription.service";
 import { mediaSnapshot } from "./exercise.service";
 import { firstNameOf } from "./me.service";
 import { notify, notifyPublications } from "./notify.service";
@@ -165,6 +166,7 @@ export const saveScheduledSession = async (
     ...(existing?.publishedAt ? { snapshot } : {}),
   };
   const saved = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
     if (existing) {
       // Le verrou est partagé avec les saisies athlètes : une validation ne peut pas
       // apparaître entre le contrôle de compatibilité et la modification de séance.
@@ -172,7 +174,7 @@ export const saveScheduledSession = async (
       const storedDraft = sessionDraft.parse(existing.draft);
       const hasPersistentRefs = storedDraft.blocks.some((b) => b.ref || b.items.some((i) => i.ref));
       const hasLogs = await tx.sessionLog.count({ where: { scheduledSessionId: existing.id } });
-      if ((hasPersistentRefs || hasLogs > 0) && input.expectedVersion === undefined)
+      if ((hasPersistentRefs || hasLogs > 0 || existing.prescriptionFrozenAt) && input.expectedVersion === undefined)
         throw new AppError(409, "legacy_session_conflict", m.builder.legacyConflict);
       if (input.expectedVersion !== undefined) {
         if (input.draft.blocks.some((b) => !b.ref || b.items.some((i) => !i.ref))) throw invalid();
@@ -206,6 +208,7 @@ export const saveScheduledSession = async (
         prescription: o.prescription,
       })),
     });
+    if (row.publishedAt) await freezeSessionPrescriptions(tx, row.id, "revision");
     return row;
   });
   // Modifier une séance déjà publiée notifie les athlètes concernés (§ 7.5).
@@ -234,7 +237,7 @@ export const publishSession = async (
   return { id: session.id };
 };
 
-// Fige la séance, puis notifie. Les charges individuelles se calculent à la lecture depuis les tests.
+// Fige la séance et ses prescriptions individuelles dans la même transaction, puis notifie.
 export type Publication = { userId: string; date: string; sessionId: string };
 
 // `silent` : l'appelant regroupe les notifications d'un lot de séances.
@@ -250,14 +253,21 @@ export const publishRow = async (
   const assignmentCount = await prisma.assignment.count({ where: { scheduledSessionId: sessionId } });
   if (assignmentCount === 0) throw invalid(m.builder.noAudience);
   const snapshot = await buildSnapshot(session.organizationId, sessionDraft.parse(session.draft));
-  const published = await prisma.scheduledSession.updateMany({
-    where: { id: sessionId, version: session.version, publishedAt: null },
-    data: { snapshot, publishedAt: now, version: { increment: 1 } },
+  const didPublish = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${session.organizationId}::uuid FOR UPDATE`;
+    await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${sessionId}::uuid FOR UPDATE`;
+    const published = await tx.scheduledSession.updateMany({
+      where: { id: sessionId, version: session.version, publishedAt: null },
+      data: { snapshot, publishedAt: now, version: { increment: 1 } },
+    });
+    if (published.count !== 1) {
+      if ((await tx.scheduledSession.findUnique({ where: { id: sessionId } }))?.publishedAt) return false;
+      throw sessionConflict();
+    }
+    await freezeSessionPrescriptions(tx, sessionId, "publication");
+    return true;
   });
-  if (published.count !== 1) {
-    if ((await prisma.scheduledSession.findUnique({ where: { id: sessionId } }))?.publishedAt) return [];
-    throw sessionConflict();
-  }
+  if (!didPublish) return [];
   const users = await audienceUsers(sessionId);
   const publications = users.map((userId) => ({ userId, date: fromDbDate(session.date), sessionId }));
   if (!options.silent) {
@@ -328,11 +338,15 @@ export const deleteTemplate = async (userId: string, organizationId: string, tem
 export const moveSession = async (userId: string, organizationId: string, sessionId: string, date: string) => {
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   const session = await requireSessionWrite(access, sessionId);
-  const moved = await prisma.scheduledSession.updateMany({
-    where: { id: session.id, version: session.version },
-    data: { date: toDbDate(date), version: { increment: 1 } },
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    const moved = await tx.scheduledSession.updateMany({
+      where: { id: session.id, version: session.version },
+      data: { date: toDbDate(date), version: { increment: 1 } },
+    });
+    if (moved.count !== 1) throw sessionConflict();
+    if (session.publishedAt) await freezeSessionPrescriptions(tx, session.id, "revision");
   });
-  if (moved.count !== 1) throw sessionConflict();
   if (session.publishedAt) {
     await notify(await audienceUsers(session.id), "session_updated", {
       date,
@@ -426,15 +440,16 @@ export const generateAutonomousVersion = async (userId: string, organizationId: 
     randomUUID,
   );
   const next = { ...draft, blocks: [...generated.filter((b) => b.variant !== "autonomous"), ...copied.blocks] };
-  const updated = await prisma.scheduledSession.updateMany({
-    where: { id: session.id, version: session.version },
-    data: {
-      draft: next,
-      version: { increment: 1 },
-      ...(session.publishedAt ? { snapshot: await buildSnapshot(organizationId, next) } : {}),
-    },
+  const snapshot = session.publishedAt ? await buildSnapshot(organizationId, next) : null;
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    const updated = await tx.scheduledSession.updateMany({
+      where: { id: session.id, version: session.version },
+      data: { draft: next, version: { increment: 1 }, ...(snapshot ? { snapshot } : {}) },
+    });
+    if (updated.count !== 1) throw sessionConflict();
+    if (session.publishedAt) await freezeSessionPrescriptions(tx, session.id, "revision");
   });
-  if (updated.count !== 1) throw sessionConflict();
 };
 
 export const listCalendar = async (

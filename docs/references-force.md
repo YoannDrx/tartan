@@ -34,4 +34,4 @@ Supprimer le test source retire la référence actuelle qui en dépend ; aucun a
 
 ## Limites de ce lot
 
-Le gel des charges se fait encore au premier enregistrement détaillé : le gel dès publication de la prescription reste à implémenter. Le choix de référence est utilisable sur le web ; les applications natives affichent les noms des exercices liés et disposent du client API partagé, mais leurs formulaires de saisie restent à réaliser. L’historique complet des séries, les courbes et les records ne sont pas terminés par ce lot.
+Le gel dès publication est désormais implémenté pour les séances avec progression activée ; voir `docs/prescriptions-figees.md` pour les révisions et les anciennes séances. Le choix de référence est utilisable sur le web ; les applications natives affichent les noms des exercices liés et disposent du client API partagé, mais leurs formulaires de saisie restent à réaliser. L’historique complet des séries, les courbes et les records ne sont pas terminés par ce lot.

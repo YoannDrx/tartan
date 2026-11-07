@@ -312,6 +312,7 @@ model Athlete {
   injuries     Injury[]
   tests        StrengthTest[]
   strengthReferences StrengthReference[]
+  prescriptions SessionPrescription[]
   performances Performance[]
   jumps        JumpAttempt[]
   wellness     WellnessCheckin[]
@@ -702,11 +703,13 @@ model ScheduledSession {
   title          String
   type           SessionType
   publishedAt    DateTime?    @map("published_at")
+  prescriptionFrozenAt DateTime? @map("prescription_frozen_at")
   publishAt      DateTime?    @map("publish_at")
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  prescriptions SessionPrescription[]
   assignments Assignment[]
   overrides   AthleteOverride[]
   attendance  Attendance[]
@@ -716,6 +719,23 @@ model ScheduledSession {
 
   @@index([organizationId, date])
   @@map("scheduled_sessions")
+}
+
+// Copie individuelle immuable par version, hors données de santé.
+model SessionPrescription {
+  id                 String @id @default(uuid()) @db.Uuid
+  scheduledSessionId String @map("scheduled_session_id") @db.Uuid
+  athleteId          String @map("athlete_id") @db.Uuid
+  sessionVersion     Int @map("session_version")
+  snapshot           Json
+  origin             String
+  frozenAt           DateTime @default(now()) @map("frozen_at")
+  session            ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
+  athlete            Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledSessionId, athleteId, sessionVersion])
+  @@index([athleteId])
+  @@map("session_prescriptions")
 }
 
 enum AssignmentTarget {

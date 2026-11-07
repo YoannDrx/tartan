@@ -381,11 +381,25 @@ export const coachLogSession = async (
     select: { id: true },
   });
   if (!session || !(await audienceAthleteIds(sessionId)).includes(athleteId)) throw notFound();
-  const data = { status, completedAt: new Date() };
-  await prisma.sessionLog.upsert({
-    where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId } },
-    create: { ...data, scheduledSessionId: sessionId, athleteId },
-    update: data,
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${sessionId}::uuid FOR UPDATE`;
+    const current = await tx.scheduledSession.findUniqueOrThrow({ where: { id: sessionId } });
+    const existing = await tx.sessionLog.findUnique({
+      where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId } },
+    });
+    const data = {
+      status,
+      completedAt: new Date(),
+      recordedBy: userId,
+      version: (existing?.version ?? 0) + 1,
+      ...(current.prescriptionFrozenAt && !existing?.sessionVersion ? { sessionVersion: current.version } : {}),
+    };
+    await tx.sessionLog.upsert({
+      where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId } },
+      create: { ...data, scheduledSessionId: sessionId, athleteId },
+      update: data,
+    });
   });
 };
 

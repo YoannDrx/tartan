@@ -8,6 +8,7 @@ import {
   sessionLogInput,
   type SessionSnapshot,
   sessionSnapshot,
+  prescriptionSchema,
   detailedSetInput,
 } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
@@ -18,6 +19,7 @@ import {
   cellStatusOf,
   exerciseCount,
   formatPrescription,
+  freezePrescription,
   hasAutonomousVersion,
   resolveLoadKg,
   resolveVariant,
@@ -218,6 +220,7 @@ const readAthleteSession = async (
       location: true,
       createdBy: true,
       snapshot: true,
+      prescriptionFrozenAt: true,
       attendance: { where: { athleteId: access.athleteId }, select: { status: true } },
       logs: {
         where: { athleteId: access.athleteId },
@@ -230,6 +233,7 @@ const readAthleteSession = async (
           version: true,
           sets: true,
           prescriptionSnapshot: true,
+          sessionVersion: true,
         },
       },
       overrides: { where: { athleteId: access.athleteId }, select: { itemRef: true, prescription: true } },
@@ -237,7 +241,36 @@ const readAthleteSession = async (
   });
   if (!session) throw notFound();
   const log = session.logs[0] ?? null;
-  const snapshot = sessionSnapshot.parse(log?.prescriptionSnapshot ?? session.snapshot);
+  // Borne la copie à la version lue : une révision concurrente ne peut pas
+  // associer une prescription plus récente à l'ancien jeton de version.
+  const storedPrescription =
+    !log?.prescriptionSnapshot && session.prescriptionFrozenAt
+      ? (
+          await prisma.sessionPrescription.findFirst({
+            where: {
+              scheduledSessionId: sessionId,
+              athleteId,
+              sessionVersion: { lte: log?.sessionVersion ?? session.version },
+            },
+            orderBy: { sessionVersion: "desc" },
+          })
+        )?.snapshot
+      : undefined;
+  const individualized = Boolean(log?.prescriptionSnapshot || storedPrescription || session.prescriptionFrozenAt);
+  const snapshot = sessionSnapshot.parse(
+    log?.prescriptionSnapshot ??
+      storedPrescription ??
+      (session.prescriptionFrozenAt
+        ? freezePrescription(
+            sessionSnapshot.parse(session.snapshot),
+            [],
+            session.overrides.map((o) => ({
+              itemRef: o.itemRef,
+              prescription: prescriptionSchema.parse(o.prescription),
+            })),
+          )
+        : session.snapshot),
+  );
   const coaches = await namesFor([session.createdBy]);
   const card = toCard(
     session,
@@ -247,7 +280,7 @@ const readAthleteSession = async (
     coaches.get(session.createdBy) ?? null,
     now,
   );
-  const tests = await loadTests(access.athleteId);
+  const tests = individualized ? [] : await loadTests(access.athleteId);
   const overrides = new Map(session.overrides.map((o) => [o.itemRef, o.prescription as object]));
   // Les vidéos du coach sont privées : lecture par jeton signé, à durée limitée (§ 11.4).
   const withStream = async (media: SessionSnapshot["blocks"][number]["items"][number]["media"]) => {
@@ -271,7 +304,7 @@ const readAthleteSession = async (
       name: block.name,
       variant: block.variant,
       items: block.items.map((item) => {
-        const prescription = log?.prescriptionSnapshot
+        const prescription = individualized
           ? item.prescription
           : applyOverride(item.prescription, overrides.get(item.ref));
         const resolvedLoadKg =
@@ -382,11 +415,15 @@ const persistSessionLog = async (
     completedAt: input.completedAt ? new Date(input.completedAt) : new Date(),
   };
   const saved = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
     // Sérialise aussi la première écriture : aucun upsert concurrent ne contourne la version attendue.
     await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${sessionId}::uuid FOR UPDATE`;
     const currentSession = await tx.scheduledSession.findFirst({
-      where: { id: sessionId, organizationId, ...(await assignedWhere(access.athleteId)) },
-      include: { overrides: { where: { athleteId: access.athleteId } } },
+      where: { id: sessionId, organizationId, ...(await assignedWhere(access.athleteId, tx)) },
+      include: {
+        overrides: { where: { athleteId: access.athleteId } },
+        prescriptions: { where: { athleteId: access.athleteId }, orderBy: { sessionVersion: "desc" }, take: 1 },
+      },
     });
     if (!currentSession) throw notFound();
     const existing = await tx.sessionLog.findUnique({
@@ -407,7 +444,29 @@ const persistSessionLog = async (
     if (input.expectedVersion === undefined && existing?.prescriptionSnapshot)
       throw new AppError(409, "legacy_log_conflict", m.progression.legacyConflict);
 
-    const snapshot = sessionSnapshot.parse(existing?.prescriptionSnapshot ?? currentSession.snapshot);
+    const individualized =
+      existing?.sessionVersion && !existing.prescriptionSnapshot
+        ? (
+            await tx.sessionPrescription.findFirst({
+              where: { scheduledSessionId: sessionId, athleteId, sessionVersion: { lte: existing.sessionVersion } },
+              orderBy: { sessionVersion: "desc" },
+            })
+          )?.snapshot
+        : currentSession.prescriptions[0]?.snapshot;
+    const snapshot = sessionSnapshot.parse(
+      existing?.prescriptionSnapshot ??
+        individualized ??
+        (currentSession.prescriptionFrozenAt
+          ? freezePrescription(
+              sessionSnapshot.parse(currentSession.snapshot),
+              [],
+              currentSession.overrides.map((o) => ({
+                itemRef: o.itemRef,
+                prescription: prescriptionSchema.parse(o.prescription),
+              })),
+            )
+          : currentSession.snapshot),
+    );
     const items = new Map(
       blocksForVariant(snapshot.blocks, input.variantDone).flatMap((b) => b.items.map((i) => [i.ref, i] as const)),
     );
@@ -416,7 +475,7 @@ const persistSessionLog = async (
     const version = (existing?.version ?? 0) + 1;
     // Fige l'identité et la prescription utilisée. Une correction garde la référence historique.
     const references =
-      input.detailedSets !== undefined && !existing?.prescriptionSnapshot
+      input.detailedSets !== undefined && !existing?.prescriptionSnapshot && !currentSession.prescriptionFrozenAt
         ? await strengthResolutionInputs(tx, access.athleteId)
         : [];
     const prescriptionSnapshot =
@@ -426,10 +485,12 @@ const persistSessionLog = async (
             blocks: snapshot.blocks.map((block) => ({
               ...block,
               items: block.items.map((item) => {
-                const prescription = applyOverride(
-                  item.prescription,
-                  currentSession.overrides.find((o) => o.itemRef === item.ref)?.prescription as object | undefined,
-                );
+                const prescription = currentSession.prescriptionFrozenAt
+                  ? item.prescription
+                  : applyOverride(
+                      item.prescription,
+                      currentSession.overrides.find((o) => o.itemRef === item.ref)?.prescription as object | undefined,
+                    );
                 const referenceKey = prescription.load?.type === "pct_1rm" ? prescription.load.test : null;
                 const row = references.find((t) => t.exerciseKey === referenceKey);
                 const reference = row
@@ -462,10 +523,13 @@ const persistSessionLog = async (
       ...data,
       version,
       recordedBy: userId,
+      ...(currentSession.prescriptionFrozenAt && !existing?.sessionVersion
+        ? { sessionVersion: currentSession.version }
+        : {}),
       ...(prescriptionSnapshot
         ? {
             prescriptionSnapshot: prescriptionSnapshot as unknown as Prisma.InputJsonValue,
-            sessionVersion: currentSession.version,
+            sessionVersion: existing?.sessionVersion ?? currentSession.version,
           }
         : {}),
     };

@@ -66,12 +66,55 @@ test("le coach choisit une référence liée ; un nouveau test ne la remplace pa
   );
   expect(result.reference?.valueKg).toBe(100);
   expect(result.tests).toHaveLength(2);
+  const sessionResponse = await page.request.post(`${root}/sessions`, {
+    data: {
+      date: "2030-06-12",
+      startTime: null,
+      location: null,
+      publishAt: null,
+      assignments: [{ targetType: "athlete", targetId: athleteId }],
+      overrides: [],
+      draft: {
+        title: "Charge publiée",
+        type: "strength",
+        durationMin: 30,
+        coachNote: null,
+        blocks: [
+          {
+            name: "Force",
+            variant: "club",
+            items: [
+              {
+                exerciseId: exercise.id,
+                prescription: {
+                  sets: 3,
+                  reps: 4,
+                  load: { type: "pct_1rm", value: 80, test: `exercise:${exercise.id}` },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+  expect(sessionResponse.ok()).toBe(true);
+  const session = await sessionResponse.json();
+  expect(
+    (
+      await page.request.post(`${root}/sessions/${session.id}/publish`, { data: { expectedVersion: session.version } })
+    ).ok(),
+  ).toBe(true);
   await references.getByRole("button", { name: m.strength.workingReference, exact: true }).click();
   await dialog.getByLabel(m.strength.valueKg, { exact: true }).fill("90");
   await dialog.getByRole("button", { name: m.common.save, exact: true }).click();
   await expect(dialog).toBeHidden();
   await expect(references.getByText("90 kg", { exact: true })).toBeVisible();
   await expect(references.getByText(m.strength.referenceKinds.working, { exact: true })).toBeVisible();
+  const frozen = await (await page.request.get(`${root}/sessions/${session.id}/athletes/${athleteId}/log`)).json();
+  expect(frozen.blocks[0].items[0].resolvedLoadKg).toBe(80);
+  expect(frozen.sessionVersion).toBe(2);
+  expect(frozen.log).toBeNull();
   await expectNoHorizontalScroll(page);
   await expectAccessible(page);
 });

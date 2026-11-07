@@ -1,3 +1,4 @@
+import { freezeAssignedPrescriptions } from "./prescription.service";
 import {
   type AcceptInvitationInput,
   createInvitationInput,
@@ -302,6 +303,7 @@ export const acceptInvitation = async (
   }
   const athleteId = await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM "user" WHERE id = ${actor.userId}::uuid FOR UPDATE`;
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${inv.organizationId}::uuid FOR UPDATE`;
     const currentProfile = await tx.profile.findUnique({ where: { id: actor.userId }, select: { birthDate: true } });
     const birthDate = parental ? (birthDateIso ? toDbDate(birthDateIso) : null) : (currentProfile?.birthDate ?? null);
     if (!parental) assertMemberAge(birthDate);
@@ -360,6 +362,7 @@ export const acceptInvitation = async (
       data: groupIds.map((groupId) => ({ groupId, athleteId: athlete.id })),
       skipDuplicates: true,
     });
+    await freezeAssignedPrescriptions(tx, athlete.id);
     return athlete.id;
   });
 

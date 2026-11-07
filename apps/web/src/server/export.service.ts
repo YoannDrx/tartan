@@ -28,7 +28,13 @@ export const exportMyData = async (userId: string) => {
       organization: { select: { name: true } },
       athleteConsents: { select: { kind: true, version: true, grantedAt: true, revokedAt: true } },
       groups: { select: { group: { select: { name: true } } } },
-      tests: { select: { exerciseKey: true, value: true, kind: true, date: true } },
+      tests: { select: { exerciseKey: true, exerciseId: true, loadKind: true, value: true, kind: true, date: true } },
+      strengthReferences: {
+        select: { exerciseId: true, valueKg: true, kind: true, loadKind: true, sourceTestId: true, selectedAt: true },
+      },
+      prescriptions: {
+        select: { scheduledSessionId: true, sessionVersion: true, snapshot: true, origin: true, frozenAt: true },
+      },
       performances: {
         select: { discipline: true, mark: true, unit: true, wind: true, date: true, location: true, isPb: true },
       },
@@ -55,6 +61,8 @@ export const exportMyData = async (userId: string) => {
           comment: true,
           pain: true,
           completedAt: true,
+          sessionVersion: true,
+          prescriptionSnapshot: true,
           session: { select: { title: true, date: true, type: true } },
           sets: {
             select: {
@@ -65,6 +73,11 @@ export const exportMyData = async (userId: string) => {
               distanceM: true,
               timeS: true,
               done: true,
+              setKind: true,
+              loadKind: true,
+              repetitionScope: true,
+              sideCount: true,
+              groundContacts: true,
             },
           },
         },

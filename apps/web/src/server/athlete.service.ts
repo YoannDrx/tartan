@@ -1,3 +1,4 @@
+import { freezeAssignedPrescriptions } from "./prescription.service";
 import { m } from "@tartan/i18n";
 import { athleteInput, type AthleteInput, type InjuryInput, performanceInput } from "@tartan/contracts";
 import { can, personalBestIds } from "@tartan/domain";
@@ -76,6 +77,7 @@ export const saveAthlete = async (userId: string, organizationId: string, raw: A
   };
   if (input.id) {
     await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
       await tx.athlete.update({ where: { id: input.id }, data });
       await tx.groupMember.deleteMany({
         where: {
@@ -89,18 +91,24 @@ export const saveAthlete = async (userId: string, organizationId: string, raw: A
           skipDuplicates: true,
         });
       }
+      await freezeAssignedPrescriptions(tx, input.id!);
     });
     // Un coach peut retirer l'athlète de ses propres groupes, et donc de son périmètre.
     const stillVisible = (await visibleAthleteIds(access)).includes(input.id);
     return { id: input.id, stillVisible };
   }
   await assertWithinPlan(organizationId, "maxAthletes");
-  const created = await prisma.athlete.create({
-    data: {
-      ...data,
-      organizationId,
-      groups: { create: input.groupIds.map((groupId) => ({ groupId })) },
-    },
+  const created = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    const row = await tx.athlete.create({
+      data: {
+        ...data,
+        organizationId,
+        groups: { create: input.groupIds.map((groupId) => ({ groupId })) },
+      },
+    });
+    await freezeAssignedPrescriptions(tx, row.id);
+    return row;
   });
   return { id: created.id, stillVisible: true };
 };
@@ -357,7 +365,10 @@ export const deleteStrengthTest = async (userId: string, organizationId: string,
   const test = await prisma.strengthTest.findFirst({ where: { id: testId, organizationId } });
   if (!test) throw notFound();
   await requireVisibleAthlete(access, test.athleteId);
-  await prisma.strengthTest.delete({ where: { id: test.id } });
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    await tx.strengthTest.delete({ where: { id: test.id } });
+  });
   return { athleteId: test.athleteId };
 };
 

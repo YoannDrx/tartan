@@ -25,48 +25,62 @@ const lockOrganization = async (tx: Prisma.TransactionClient, organizationId: st
 
 // Adaptateur interne : les clés historiques restent lisibles, les nouvelles clés
 // ne résolvent que la référence choisie, jamais le dernier test ajouté.
-export const strengthResolutionInputs = async (db: Prisma.TransactionClient, athleteId: string) => {
+export const strengthResolutionInputsForAthletes = async (db: Prisma.TransactionClient, athleteIds: string[]) => {
   const [tests, references, mappings] = await Promise.all([
     db.strengthTest.findMany({
-      where: { athleteId },
+      where: { athleteId: { in: athleteIds } },
       orderBy: [{ date: "desc" }, { createdAt: "desc" }, { id: "desc" }],
     }),
-    db.strengthReference.findMany({ where: { athleteId }, include: { exercise: { select: { loadStepKg: true } } } }),
-    db.legacyStrengthMapping.findMany({ where: { organization: { athletes: { some: { id: athleteId } } } } }),
+    db.strengthReference.findMany({
+      where: { athleteId: { in: athleteIds } },
+      include: { exercise: { select: { loadStepKg: true } } },
+    }),
+    db.legacyStrengthMapping.findMany({ where: { organization: { athletes: { some: { id: { in: athleteIds } } } } } }),
   ]);
-  const mappedAliases = new Set(mappings.map((m) => m.legacyKey));
-  const legacy = tests
-    .filter((t) => !t.exerciseKey.startsWith("exercise:") && !mappedAliases.has(t.exerciseKey))
-    .map((t) => ({
-      id: t.id,
-      exerciseKey: t.exerciseKey,
-      value: Number(t.value),
-      kind: t.kind,
-      date: fromDbDate(t.date),
-      originKind: t.kind,
-      sourceTestId: t.id,
-      loadKind: t.loadKind,
-      stepKg: 1.25,
-    }));
-  const chosen = references.flatMap((r) => {
-    const keys = [
-      `exercise:${r.exerciseId}`,
-      ...mappings.filter((m) => m.exerciseId === r.exerciseId).map((m) => m.legacyKey),
-    ];
-    return keys.map((exerciseKey) => ({
-      id: r.id,
-      exerciseKey,
-      value: Number(r.valueKg),
-      kind: "one_rm" as const,
-      date: fromDbDate(r.selectedAt),
-      originKind: r.kind,
-      sourceTestId: r.sourceTestId,
-      loadKind: r.loadKind,
-      stepKg: Number(r.exercise.loadStepKg),
-    }));
-  });
-  return [...legacy, ...chosen] satisfies (StrengthTest & { id: string })[];
+  return new Map(
+    athleteIds.map((athleteId) => {
+      const athleteTests = tests.filter((t) => t.athleteId === athleteId);
+      const athleteReferences = references.filter((r) => r.athleteId === athleteId);
+      const organizationId = athleteTests[0]?.organizationId ?? athleteReferences[0]?.organizationId;
+      const athleteMappings = mappings.filter((m) => m.organizationId === organizationId);
+      const mappedAliases = new Set(athleteMappings.map((m) => m.legacyKey));
+      const legacy = athleteTests
+        .filter((t) => !t.exerciseKey.startsWith("exercise:") && !mappedAliases.has(t.exerciseKey))
+        .map((t) => ({
+          id: t.id,
+          exerciseKey: t.exerciseKey,
+          value: Number(t.value),
+          kind: t.kind,
+          date: fromDbDate(t.date),
+          originKind: t.kind,
+          sourceTestId: t.id,
+          loadKind: t.loadKind,
+          stepKg: 1.25,
+        }));
+      const chosen = athleteReferences.flatMap((r) => {
+        const keys = [
+          `exercise:${r.exerciseId}`,
+          ...athleteMappings.filter((m) => m.exerciseId === r.exerciseId).map((m) => m.legacyKey),
+        ];
+        return keys.map((exerciseKey) => ({
+          id: r.id,
+          exerciseKey,
+          value: Number(r.valueKg),
+          kind: "one_rm" as const,
+          date: fromDbDate(r.selectedAt),
+          originKind: r.kind,
+          sourceTestId: r.sourceTestId,
+          loadKind: r.loadKind,
+          stepKg: Number(r.exercise.loadStepKg),
+        }));
+      });
+      return [athleteId, [...legacy, ...chosen] satisfies (StrengthTest & { id: string })[]] as const;
+    }),
+  );
 };
+
+export const strengthResolutionInputs = async (db: Prisma.TransactionClient, athleteId: string) =>
+  (await strengthResolutionInputsForAthletes(db, [athleteId])).get(athleteId) ?? [];
 
 const eligibleExercise = async (tx: Prisma.TransactionClient, organizationId: string, exerciseId: string) => {
   const exercise = await tx.exercise.findFirst({
