@@ -278,6 +278,13 @@ export default function AthleteFile() {
         </Section>
 
         <Section title={m.athletes.tests}>
+          {active?.progressionEnabled && (active.role === "owner" || active.role === "coach") ? (
+            <Button
+              label={m.strength.manage}
+              variant="secondary"
+              onPress={() => router.push(`/athlete-strength/${id}`)}
+            />
+          ) : null}
           <ListSurface>
             {detail.tests.length === 0 ? (
               <T variant="small" tone="muted" style={{ padding: space.md }}>

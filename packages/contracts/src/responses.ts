@@ -15,6 +15,7 @@ import { detailedSetInput, painInput } from "./requests";
 export const spaceSummary = z.object({
   organizationId: z.string(),
   organizationName: z.string(),
+  progressionEnabled: z.boolean().optional(),
   role: orgRole,
   athleteId: z.string().nullable(),
 });

@@ -33,7 +33,10 @@ describe("formulaire d'exercice", () => {
 
   it("retire un nombre vidé", () => {
     const result = buildExerciseInput(
-      draft({ base: { sets: 4, reps: 8 }, numbers: { sets: "", reps: "8", distance_m: "", duration_s: "", rest_s: "", ground_contacts: "" } }),
+      draft({
+        base: { sets: 4, reps: 8 },
+        numbers: { sets: "", reps: "8", distance_m: "", duration_s: "", rest_s: "", ground_contacts: "" },
+      }),
     );
     expect(result.ok && result.input.defaultPrescription).toEqual({ reps: 8 });
   });
@@ -45,9 +48,10 @@ describe("formulaire d'exercice", () => {
       message: m.mobile.exerciseForm.tooManyCues,
     });
     expect(buildExerciseInput(draft({ url: "https://exemple.fr" }))).toMatchObject({ ok: false, field: "url" });
-    expect(
-      buildExerciseInput(draft({ url: "https://youtu.be/dQw4w9WgXcQ", startS: "30", endS: "10" })),
-    ).toMatchObject({ ok: false, field: "clip" });
+    expect(buildExerciseInput(draft({ url: "https://youtu.be/dQw4w9WgXcQ", startS: "30", endS: "10" }))).toMatchObject({
+      ok: false,
+      field: "clip",
+    });
     expect(
       buildExerciseInput(
         draft({ numbers: { sets: "0", reps: "", distance_m: "", duration_s: "", rest_s: "", ground_contacts: "" } }),
@@ -69,7 +73,9 @@ describe("formulaire d'exercice", () => {
   });
 
   it("envoie la vidéo YouTube", () => {
-    const result = buildExerciseInput(draft({ url: "https://youtu.be/dQw4w9WgXcQ", title: "Démo", startS: "5", endS: "20" }));
+    const result = buildExerciseInput(
+      draft({ url: "https://youtu.be/dQw4w9WgXcQ", title: "Démo", startS: "5", endS: "20" }),
+    );
     expect(result.ok && result.input.media).toEqual({
       kind: "youtube",
       url: "https://youtu.be/dQw4w9WgXcQ",
@@ -78,4 +84,13 @@ describe("formulaire d'exercice", () => {
       endS: 20,
     });
   });
+});
+
+it("préserve les conventions et accepte un pas français sans tronquer les nombres", () => {
+  expect(buildExerciseInput(draft({ strengthLoadKind: "added_weight", loadStepKg: "2,5" }))).toMatchObject({
+    ok: true,
+    input: { strengthLoadKind: "added_weight", loadStepKg: 2.5 },
+  });
+  for (const step of ["", "1kg", "1e2", "0", "101", "1.234"])
+    expect(buildExerciseInput(draft({ loadStepKg: step })).ok).toBe(false);
 });

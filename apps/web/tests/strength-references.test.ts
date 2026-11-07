@@ -1,3 +1,4 @@
+import { listSpaces } from "@/server/me.service";
 import { randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
 import { resolveLoadKg } from "@tartan/domain";
@@ -343,5 +344,30 @@ it("refuse une précision que le stockage en centièmes de kilogramme ne peut pa
       valueKg: 75.125,
     }),
   ).rejects.toHaveProperty("name", "ZodError");
+  expect(await prisma.strengthTest.count({ where: { athleteId: a.athlete.athleteId } })).toBe(0);
+});
+
+it("expose l’activation de progression seulement dans les espaces du membre", async () => {
+  const enabled = await setup();
+  const disabled = await makeOrg("Sans progression");
+  const spaces = await listSpaces(enabled.owner.userId);
+  expect(spaces.find((s) => s.organizationId === enabled.organizationId)?.progressionEnabled).toBe(true);
+  expect(spaces.some((s) => s.organizationId === disabled.organizationId)).toBe(false);
+  expect((await listSpaces(disabled.owner.userId))[0]?.progressionEnabled).toBe(false);
+});
+
+it("refuse une date de test inexistante au lieu de la déplacer au mois suivant", async () => {
+  const a = await setup();
+  await expect(
+    addStrengthTest(a.owner.userId, a.organizationId, {
+      athleteId: a.athlete.athleteId,
+      exerciseId: a.exercise.id,
+      exerciseKey: "ignored",
+      kind: "one_rm",
+      value: 100,
+      date: "2026-02-30",
+      selectAsReference: true,
+    }),
+  ).rejects.toThrow();
   expect(await prisma.strengthTest.count({ where: { athleteId: a.athlete.athleteId } })).toBe(0);
 });

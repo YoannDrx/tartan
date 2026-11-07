@@ -159,6 +159,19 @@ export const fr = {
   injuryStatus: { active: "Active", recovering: "En reprise", resolved: "Guérie" },
   testKind: { one_rm: "1RM", three_rm: "3RM", estimated: "Estimé" },
   strength: {
+    manage: "Tests et références de force",
+    changeExercise: "Choisir un autre exercice",
+    changeExerciseConfirm: "Quitter cet exercice et abandonner les valeurs non enregistrées du formulaire ?",
+    addTest: "Ajouter un test de force",
+    testKind: "Type de test",
+    dateHint: "Date au format AAAA-MM-JJ",
+    currentReference: "Référence actuelle",
+    selectConfirm:
+      "Utiliser ce test comme référence pour les prochaines prescriptions ? Les charges déjà figées dans les séances restent conservées.",
+    workingConfirm:
+      "Utiliser cette charge comme référence de travail pour les prochaines prescriptions ? Elle ne devient pas un maximum testé et les séances existantes restent conservées.",
+    exerciseSearch: "Rechercher un exercice compatible",
+    noMatch: "Aucun exercice compatible ne correspond à la recherche.",
     convention: "Convention de charge",
     conventionHint: "Garde une fiche distincte pour chaque variante, machine ou assistance.",
     conventions: {

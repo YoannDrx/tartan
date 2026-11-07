@@ -10,6 +10,8 @@ export type ExerciseDraft = {
   name: string;
   category: string;
   cues: string;
+  strengthLoadKind?: ExerciseInput["strengthLoadKind"];
+  loadStepKg?: string;
   // Hors du formulaire mobile : gardés tels quels, l'API remplace ce qu'elle reçoit.
   tags: string[];
   base: Prescription;
@@ -58,11 +60,15 @@ export const buildExerciseInput = (draft: ExerciseDraft): DraftResult => {
     if (!validateClipRange(startS, endS)) return { ok: false, field: "clip", message: m.exercises.clipInvalid };
     media = { kind: "youtube", url, customTitle, startS, endS };
   }
+  if (draft.loadStepKg !== undefined && !/^\d+(?:[.,]\d{1,2})?$/.test(draft.loadStepKg.trim()))
+    return { ok: false, field: "form", message: m.errors.invalid };
   const input: ExerciseInput = {
     ...(draft.id ? { id: draft.id } : {}),
     name: draft.name.trim(),
     category: draft.category as ExerciseInput["category"],
     tags: draft.tags,
+    strengthLoadKind: draft.strengthLoadKind,
+    ...(draft.loadStepKg !== undefined ? { loadStepKg: toNumber(draft.loadStepKg) } : {}),
     cues,
     defaultPrescription: prescriptionFrom(draft),
     media,

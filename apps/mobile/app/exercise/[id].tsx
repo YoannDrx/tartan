@@ -36,6 +36,8 @@ const draftFrom = (exercise: ExerciseSummary | null): ExerciseDraft => {
     name: exercise?.name ?? "",
     category: exercise?.category ?? "plyo",
     cues: (exercise?.cues ?? []).join("\n"),
+    strengthLoadKind: exercise?.strengthLoadKind ?? null,
+    loadStepKg: String(exercise?.loadStepKg ?? 1.25),
     tags: exercise?.tags ?? [],
     base: p,
     numbers: {
@@ -140,6 +142,34 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
         />
       </Card>
 
+      <Card>
+        <SectionTitle>{m.strength.convention}</SectionTitle>
+        <T variant="caption">{m.strength.conventionHint}</T>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+          <Chip
+            tall
+            label={m.strength.unknownConvention}
+            active={!draft.strengthLoadKind}
+            onPress={() => set({ strengthLoadKind: null })}
+          />
+          {(Object.keys(m.strength.conventions) as (keyof typeof m.strength.conventions)[]).map((kind) => (
+            <Chip
+              key={kind}
+              tall
+              label={m.strength.conventions[kind]}
+              active={draft.strengthLoadKind === kind}
+              onPress={() => set({ strengthLoadKind: kind })}
+            />
+          ))}
+        </View>
+        <Field
+          label={m.strength.step}
+          hint={m.strength.stepHint}
+          value={draft.loadStepKg}
+          onChangeText={(loadStepKg) => set({ loadStepKg })}
+          keyboardType="decimal-pad"
+        />
+      </Card>
       <View style={{ gap: space.sm }}>
         <SectionTitle>{m.exercises.defaults}</SectionTitle>
         <Card>

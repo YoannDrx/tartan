@@ -150,7 +150,10 @@ export const strengthTestInput = z.object({
   selectAsReference: z.boolean().optional(),
   value: z.number().min(0.01, "Indique une charge").max(1000).multipleOf(0.01),
   kind: strengthTestKind,
-  date: isoDate,
+  date: isoDate.refine((value) => {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  }),
 });
 export type StrengthTestInput = z.infer<typeof strengthTestInput>;
 
