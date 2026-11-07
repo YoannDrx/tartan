@@ -24,6 +24,14 @@ export const performedSetsDraft = z.object({
   variant: sessionVariant,
   status: z.enum(["done", "partial"]),
   submittedClientId: z.string().max(64).optional(),
+  submittedContent: z.string().max(500_000).optional(),
   rows: z.array(performedSetDraftRow).max(500),
 });
 export type PerformedSetsDraft = z.infer<typeof performedSetsDraft>;
+
+export const performedDraftResolution = z.object({
+  submittedClientId: z.string().max(64),
+  content: z.string().max(500_000),
+  replacementClientId: z.string().max(64).nullable(),
+});
+export type PerformedDraftResolution = z.infer<typeof performedDraftResolution>;

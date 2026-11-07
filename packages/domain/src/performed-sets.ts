@@ -4,6 +4,7 @@ import {
   type DetailedSetInput,
   type PerformedSetDraftRow,
   type PerformedSetsDraft,
+  type PerformedDraftResolution,
   type ResolvedItem,
 } from "@tartan/contracts";
 
@@ -101,3 +102,54 @@ export const confirmedSets = (draft: PerformedSetsDraft): { sets: DetailedSetInp
   }
   return { sets, issues };
 };
+
+// Comparaison exacte, sans hash approximatif : une modification non envoyée,
+// même sur une série non cochée, ne doit jamais être jetée avec une ancienne file.
+export const performedDraftContent = (draft: PerformedSetsDraft): string =>
+  JSON.stringify([
+    draft.sessionVersion,
+    draft.logVersion,
+    draft.variant,
+    draft.status,
+    draft.rows.map((row) => [
+      row.itemRef,
+      row.setIndex,
+      row.done,
+      row.setKind,
+      row.loadKind,
+      row.repetitionScope,
+      row.sideCount,
+      row.reps,
+      row.loadKg,
+      row.distanceM,
+      row.timeS,
+      row.groundContacts,
+    ]),
+  ]);
+export const resolvedDraftReceipt = (
+  draft: PerformedSetsDraft,
+  observedIds: string[],
+  replacementClientId: string | null,
+  previous?: PerformedDraftResolution | null,
+): PerformedDraftResolution | null => {
+  const content = performedDraftContent(draft);
+  if (!draft.submittedClientId || draft.submittedContent !== content) return null;
+  const followsPrevious =
+    previous?.submittedClientId === draft.submittedClientId &&
+    previous.content === content &&
+    previous.replacementClientId &&
+    observedIds.includes(previous.replacementClientId);
+  if (!observedIds.includes(draft.submittedClientId) && !followsPrevious) return null;
+  return { submittedClientId: draft.submittedClientId, content, replacementClientId };
+};
+export const isResolvedDraft = (
+  draft: PerformedSetsDraft,
+  receipt: PerformedDraftResolution | null | undefined,
+  serverClientId?: string | null,
+): boolean =>
+  Boolean(
+    receipt &&
+    receipt.submittedClientId === draft.submittedClientId &&
+    receipt.content === performedDraftContent(draft) &&
+    (receipt.replacementClientId === null || receipt.replacementClientId === serverClientId),
+  );

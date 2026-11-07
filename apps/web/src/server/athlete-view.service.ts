@@ -314,6 +314,7 @@ const readAthleteSession = async (
     ...card,
     sessionVersion: session.version,
     progressionEnabled: session.organization.progressionEnabled,
+    healthConsent,
     blocks: blocks.map((block) => ({
       ref: block.ref,
       name: block.name,
@@ -539,6 +540,7 @@ const persistSessionLog = async (
         : undefined;
     const versioned = {
       ...data,
+      ...(input.expectedVersion !== undefined && existing?.completedAt ? { completedAt: existing.completedAt } : {}),
       ...(input.writeScope === "sets" || input.writeScope === "status"
         ? {
             rpe: consent?.health ? (existing?.rpe ?? null) : null,

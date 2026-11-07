@@ -449,6 +449,42 @@ export const fr = {
     noVideo: "Pas de vidéo pour cet exercice",
     cues: "Consignes",
   },
+  syncReview: {
+    title: "Saisies à vérifier",
+    lead: "Compare ta saisie avec la séance enregistrée avant de choisir les valeurs à garder.",
+    open: "Vérifier mes saisies",
+    compare: "Comparer avec la séance enregistrée",
+    empty: "Aucune saisie de séance à vérifier dans cet espace.",
+    batch: (n: number) => `${n} envoi${n > 1 ? "s" : ""} pour une séance`,
+    server: "Actuellement enregistré",
+    local: "Mes modifications en attente",
+    apply: "Enregistrer mes modifications",
+    discard: "Garder la version enregistrée",
+    discardUnavailable: "Abandonner ces envois locaux",
+    confirmApply:
+      "Les valeurs affichées dans « Mes modifications en attente » seront enregistrées. Si la séance a encore changé, une nouvelle comparaison sera nécessaire.",
+    confirmDiscard:
+      "Ces envois seront retirés de cet appareil. La séance enregistrée ne sera pas modifiée. Cette suppression locale ne peut pas être annulée.",
+    resolved: "Choix sauvegardé sur cet appareil. L'envoi reprend dès que possible.",
+    discarded: "Envois locaux retirés. La séance enregistrée est conservée.",
+    changed: "La file ou le compte a changé pendant la comparaison. Recharge les saisies avant de choisir à nouveau.",
+    unreadable:
+      "La comparaison est indisponible. Vérifie ta connexion et ton accès à la séance. Tes envois restent conservés.",
+    drafts: "Les brouillons non envoyés dans « Mes séries réalisées » restent conservés séparément.",
+    noSets: "Aucune série détaillée renseignée.",
+    missing: "Non renseigné",
+    unknownExercise: "Exercice indisponible",
+    reason: {
+      invalid: "Cette saisie ne peut pas être reprise automatiquement. Les données locales restent conservées.",
+      prescription:
+        "La prescription a changé. Pour éviter d'attribuer tes séries au mauvais exercice, reprends-les dans la séance actualisée après comparaison.",
+      variant:
+        "La version club ou autonomie a changé. Reprends ta saisie depuis la séance actualisée après comparaison.",
+      exercise:
+        "Un exercice de ta saisie n'est plus disponible dans cette séance. Aucun rattachement automatique ne sera effectué.",
+      disabled: "La saisie détaillée est désactivée pour cet espace. Tes valeurs restent conservées sur l'appareil.",
+    },
+  },
   validation: {
     waitingSend: "Séance validée, en attente d'envoi.",
     title: "Comment s'est passée ta séance ?",

@@ -22,7 +22,7 @@ vi.mock("expo-secure-store", () => ({
 }));
 vi.mock("../api", () => ({ api: { logSession: mocks.log } }));
 vi.mock("../query-client", () => ({ queryClient: { invalidateQueries: mocks.invalidate } }));
-import { hydrateLastOwner, submitValidation, useOpQueue } from "./op-queue";
+import { replaceReviewedLogs, hydrateLastOwner, submitValidation, useOpQueue } from "./op-queue";
 
 const log = (id: string): LogOp => ({
   id,
@@ -157,4 +157,43 @@ it("ne multiplie pas les tentatives lorsqu'une séance attend une résolution", 
   ).toMatchObject({ state: "error" });
   expect(queue().items).toHaveLength(count);
   expect(mocks.log).toHaveBeenCalledTimes(1);
+});
+
+it("résout un lot natif seulement après sauvegarde complète et refuse une comparaison périmée", async () => {
+  await queue().hydrate("first");
+  mocks.log.mockRejectedValue(new ApiError(409, undefined, "private"));
+  await queue().add(log("old-local"));
+  const observed = queue().items.slice();
+  const input = {
+    clientId: "new-local",
+    status: "done" as const,
+    variantDone: "club" as const,
+    expectedVersion: 3,
+    expectedSessionVersion: 2,
+    writeScope: "status" as const,
+  };
+  mocks.failStorage = true;
+  await expect(replaceReviewedLogs("first", "org", "old-local", observed, input)).rejects.toThrow();
+  expect(queue().items).toEqual(observed);
+  mocks.failStorage = false;
+  await queue().detach();
+  await queue().hydrate("first");
+  expect(queue().items).toEqual(observed);
+  await queue().add(log("other-one"));
+  await replaceReviewedLogs("first", "org", "old-local", observed, input);
+  expect(queue().items.map((op) => op.id)).toEqual(["new-local", "other-one"]);
+  await expect(replaceReviewedLogs("first", "org", "old-local", observed, null)).rejects.toThrow("REVIEW_CHANGED");
+  await queue().detach();
+  await queue().hydrate("first");
+  expect(queue().items[0]).toMatchObject({ id: "new-local", input });
+  expect(queue().items[0]?.blocked).toBeUndefined();
+});
+
+it("refuse une confirmation de résolution appartenant à un autre compte", async () => {
+  await queue().hydrate("first");
+  mocks.log.mockRejectedValue(new ApiError(409, undefined, "private"));
+  await queue().add(log("old-local"));
+  const observed = queue().items.slice();
+  await expect(replaceReviewedLogs("second", "org", "old-local", observed, null)).rejects.toThrow("REVIEW_CHANGED");
+  expect(queue().items).toEqual(observed);
 });

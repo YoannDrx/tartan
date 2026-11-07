@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { AthleteSessionDetail, ResolvedItem } from "@tartan/contracts";
-import { confirmedSets, draftFromSession, proposedSet } from "./performed-sets";
+import {
+  confirmedSets,
+  draftFromSession,
+  proposedSet,
+  performedDraftContent,
+  resolvedDraftReceipt,
+  isResolvedDraft,
+} from "./performed-sets";
 
 const item: ResolvedItem = {
   ref: "item",
@@ -67,4 +74,23 @@ describe("séries proposées et réalisées", () => {
     const assistance = proposedSet({ ...item, strengthLoadKind: "assistance" }, 0);
     expect(assistance.loadKind).toBe("assisted");
   });
+});
+
+it("ne clôt le brouillon résolu qu'après accusé serveur et sans perdre une modification ultérieure", () => {
+  const draft = draftFromSession(session);
+  draft.rows[0]!.done = true;
+  draft.submittedClientId = "old-client";
+  draft.submittedContent = performedDraftContent(draft);
+  const receipt = resolvedDraftReceipt(draft, ["old-client"], "new-client");
+  expect(receipt).not.toBeNull();
+  expect(isResolvedDraft(draft, receipt, "old-client")).toBe(false);
+  expect(isResolvedDraft(draft, receipt, "new-client")).toBe(true);
+  const second = resolvedDraftReceipt(draft, ["new-client"], "newer-client", receipt);
+  expect(isResolvedDraft(draft, second, "newer-client")).toBe(true);
+  const discarded = resolvedDraftReceipt(draft, ["new-client"], null, receipt);
+  expect(isResolvedDraft(draft, discarded)).toBe(true);
+  draft.rows[1]!.loadKg = "47.5"; // Une série encore non cochée reste un brouillon personnel.
+  expect(resolvedDraftReceipt(draft, ["old-client"], "new-client")).toBeNull();
+  expect(isResolvedDraft(draft, receipt, "new-client")).toBe(false);
+  expect(isResolvedDraft(draft, discarded)).toBe(false);
 });

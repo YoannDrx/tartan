@@ -104,6 +104,7 @@ export type ResolvedItem = z.infer<typeof resolvedItem>;
 
 export const athleteSessionDetail = athleteSessionCard.extend({
   progressionEnabled: z.boolean().optional(),
+  healthConsent: z.boolean().optional(),
   sessionVersion: z.number().int().optional(),
   blocks: z.array(snapshotBlock.omit({ items: true }).extend({ items: z.array(resolvedItem) })),
   log: z

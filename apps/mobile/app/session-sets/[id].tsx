@@ -1,6 +1,18 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { performedSetsDraft, type AthleteSessionDetail, type PerformedSetDraftRow } from "@tartan/contracts";
-import { confirmedSets, draftFromSession, performedNumberFields, proposedSet } from "@tartan/domain";
+import {
+  performedDraftResolution,
+  performedSetsDraft,
+  type AthleteSessionDetail,
+  type PerformedSetDraftRow,
+} from "@tartan/contracts";
+import {
+  performedDraftContent,
+  isResolvedDraft,
+  confirmedSets,
+  draftFromSession,
+  performedNumberFields,
+  proposedSet,
+} from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -60,8 +72,8 @@ const Editor = ({ session, orgId, userId }: { session: AthleteSessionDetail; org
   const writes = useRef<Promise<unknown>>(Promise.resolve());
   useEffect(() => {
     let active = true;
-    void AsyncStorage.getItem(key)
-      .then((value) => {
+    void Promise.all([AsyncStorage.getItem(key), AsyncStorage.getItem(`${key}.resolution`)])
+      .then(([value, resolution]) => {
         if (!active) return;
         if (value) {
           const parsed = performedSetsDraft.safeParse(JSON.parse(value));
@@ -69,7 +81,12 @@ const Editor = ({ session, orgId, userId }: { session: AthleteSessionDetail; org
             setStorageError(true);
             return;
           }
-          const acknowledged = parsed.data.submittedClientId && parsed.data.submittedClientId === session.log?.clientId;
+          const receipt = performedDraftResolution.safeParse(JSON.parse(resolution ?? "null"));
+          const acknowledged =
+            (parsed.data.submittedClientId &&
+              parsed.data.submittedClientId === session.log?.clientId &&
+              parsed.data.submittedContent === performedDraftContent(parsed.data)) ||
+            isResolvedDraft(parsed.data, receipt.success ? receipt.data : null, session.log?.clientId);
           setDraft(acknowledged ? draftFromSession(session) : parsed.data);
         }
         const pending = useOpQueue
@@ -113,7 +130,7 @@ const Editor = ({ session, orgId, userId }: { session: AthleteSessionDetail; org
     setSaving(true);
     setMessage("");
     const clientId = newClientId();
-    setDraft((old) => ({ ...old, submittedClientId: clientId }));
+    setDraft((old) => ({ ...old, submittedClientId: clientId, submittedContent: performedDraftContent(old) }));
     try {
       await submitValidation(
         orgId,

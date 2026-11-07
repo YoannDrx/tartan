@@ -1,3 +1,4 @@
+import { reviewSessionLogs } from "@tartan/domain";
 import { randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
 import { type SessionLogInput, type SaveScheduledSessionInput } from "@tartan/contracts";
@@ -430,4 +431,28 @@ it("le retrait du consentement masque aussi les retours santé des lectures athl
   });
   const updated = await getAthleteSession(a.athlete.userId, a.organizationId, a.session.id);
   expect(updated.log).toMatchObject({ rpe: null, pain: null });
+});
+
+it("une résolution relue conserve la date initiale, les séries et les retours non modifiés", async () => {
+  const a = await setup();
+  const first = await a.log({ rpe: 7, durationMin: 50, comment: "Serveur", completedAt: "2030-06-12T10:00:00Z" });
+  const current = await getAthleteSession(a.athlete.userId, a.organizationId, a.session.id);
+  const review = reviewSessionLogs(current, [
+    {
+      clientId: randomUUID(),
+      writeScope: "feedback",
+      status: "partial",
+      variantDone: "club",
+      expectedVersion: 0,
+      expectedSessionVersion: current.sessionVersion,
+      comment: "Local relu",
+    },
+  ]);
+  expect(review.reason).toBeNull();
+  await a.log({ ...review.input, detailedSets: review.input.detailedSets });
+  const row = await prisma.sessionLog.findUniqueOrThrow({ where: { id: first.id }, include: { sets: true } });
+  expect(row).toMatchObject({ version: 2, comment: "Local relu", rpe: 7, durationMin: 50 });
+  expect(row.completedAt?.toISOString()).toBe("2030-06-12T10:00:00.000Z");
+  expect(row.sets).toHaveLength(1);
+  expect(Number(row.sets[0]?.loadKg)).toBe(40);
 });

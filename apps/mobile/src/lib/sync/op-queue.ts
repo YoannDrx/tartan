@@ -1,5 +1,5 @@
 import { m } from "@tartan/i18n";
-import type { JumpAttemptInput, SessionLogInput } from "@tartan/contracts";
+import { sessionLogInput, type JumpAttemptInput, type SessionLogInput } from "@tartan/contracts";
 import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
@@ -55,6 +55,7 @@ type OpQueueState = {
   ownerId: string | null;
   items: QueuedOp[];
   syncing: boolean;
+  reviewing: boolean;
   rejectedCount: number;
   storageError: boolean;
   hydrate: (ownerId: string) => Promise<void>;
@@ -79,6 +80,7 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
   ownerId: null,
   items: [],
   syncing: false,
+  reviewing: false,
   rejectedCount: 0,
   storageError: false,
   hydrate: async (ownerId) => {
@@ -103,6 +105,7 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
     const ownerId = get().ownerId;
     const generation = ownerGeneration;
     if (!ownerId) return { state: "error", message: m.offline.session };
+    if (get().reviewing) return { state: "error", message: m.offline.needsReview };
     const receiptKey = `${ownerId}:${op.id}`;
     const receipt = { sent: false };
     acknowledgements.set(receiptKey, receipt);
@@ -131,7 +134,7 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
   flush: async () => {
     const ownerId = get().ownerId;
     const generation = ownerGeneration;
-    if (!ownerId || get().syncing || (get().items.length === 0 && !get().storageError)) return;
+    if (!ownerId || get().syncing || get().reviewing || (get().items.length === 0 && !get().storageError)) return;
     set({ syncing: true });
     try {
       const batch = get().items;
@@ -234,4 +237,63 @@ export const submitJumpAttempt = (orgId: string, input: Omit<JumpAttemptInput, "
     input: { ...input, clientId: id },
     queuedAt: new Date().toISOString(),
   });
+};
+
+export const replaceReviewedLogs = async (
+  expectedOwnerId: string,
+  orgId: string,
+  sessionId: string,
+  observed: QueuedOp[],
+  replacement: SessionLogInput | null,
+): Promise<void> => {
+  const state = useOpQueue.getState();
+  const ownerId = state.ownerId;
+  const generation = ownerGeneration;
+  const relevant = (op: QueuedOp) => op.kind === "log" && op.orgId === orgId && op.sessionId === sessionId;
+  if (
+    !ownerId ||
+    ownerId !== expectedOwnerId ||
+    state.syncing ||
+    state.reviewing ||
+    !observed.length ||
+    !observed.some((op) => op.blocked) ||
+    observed.some((op) => !relevant(op)) ||
+    JSON.stringify(state.items.filter(relevant)) !== JSON.stringify(observed)
+  )
+    throw new Error("REVIEW_CHANGED");
+  if (
+    replacement &&
+    (replacement.expectedVersion === undefined ||
+      replacement.expectedSessionVersion === undefined ||
+      state.items.some((op) => op.id === replacement.clientId))
+  )
+    throw new Error("REVIEW_INVALID");
+  if (replacement && !sessionLogInput.safeParse(replacement).success) throw new Error("REVIEW_INVALID");
+  const next: QueuedOp | null = replacement
+    ? {
+        id: replacement.clientId,
+        kind: "log",
+        orgId,
+        sessionId,
+        input: replacement,
+        queuedAt: observed[0]!.queuedAt,
+      }
+    : null;
+  let inserted = false;
+  const items = state.items.flatMap((op) => {
+    if (!relevant(op)) return [op];
+    if (inserted || !next) return [];
+    inserted = true;
+    return [next];
+  });
+  useOpQueue.setState({ reviewing: true });
+  try {
+    // L'ancien lot reste en mémoire et sur disque tant que la nouvelle génération
+    // n'est pas durable. add/flush attendent une nouvelle action pendant ce bref verrou.
+    await save(ownerId, items);
+    if (generation !== ownerGeneration) throw new Error("REVIEW_OWNER_CHANGED");
+    useOpQueue.setState({ items, storageError: false });
+  } finally {
+    useOpQueue.setState({ reviewing: false });
+  }
 };

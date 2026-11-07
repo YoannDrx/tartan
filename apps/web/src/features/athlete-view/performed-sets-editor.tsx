@@ -2,12 +2,15 @@
 
 import {
   performedSetsDraft,
+  performedDraftResolution,
   type AthleteSessionDetail,
   type PerformedSetDraftRow,
   type PerformedSetsDraft,
 } from "@tartan/contracts";
 import {
   confirmedSets,
+  performedDraftContent,
+  isResolvedDraft,
   draftFromSession,
   performedNumberFields,
   proposedSet,
@@ -48,8 +51,14 @@ export const PerformedSetsEditor = ({
         if (stored) {
           const parsed = performedSetsDraft.safeParse(JSON.parse(stored));
           if (parsed.success) {
+            const receipt = performedDraftResolution.safeParse(
+              JSON.parse(localStorage.getItem(`${key}.resolution`) ?? "null"),
+            );
             const acknowledged =
-              parsed.data.submittedClientId && parsed.data.submittedClientId === session.log?.clientId;
+              (parsed.data.submittedClientId &&
+                parsed.data.submittedClientId === session.log?.clientId &&
+                parsed.data.submittedContent === performedDraftContent(parsed.data)) ||
+              isResolvedDraft(parsed.data, receipt.success ? receipt.data : null, session.log?.clientId);
             setDraft(acknowledged ? draftFromSession(session) : parsed.data);
           } else {
             setUnreadableDraft(true);
@@ -106,7 +115,7 @@ export const PerformedSetsEditor = ({
     setSaving(true);
     setMessage("");
     const clientId = newClientId();
-    updateDraft({ ...draft, submittedClientId: clientId });
+    updateDraft({ ...draft, submittedClientId: clientId, submittedContent: performedDraftContent(draft) });
     try {
       const result = await sendValidation({
         organizationId,

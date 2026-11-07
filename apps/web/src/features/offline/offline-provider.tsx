@@ -112,6 +112,14 @@ export const OfflineProvider = ({
         >
           <CloudOff aria-hidden className="size-4 shrink-0" />
           <span className="t-caption min-w-0 flex-1 py-2 font-semibold">{lines.join(", ")}</span>
+          {blocked > 0 ? (
+            <Link
+              href="/synchronisation"
+              className="t-caption inline-flex min-h-11 items-center font-semibold text-inherit"
+            >
+              {m.syncReview.open}
+            </Link>
+          ) : null}
           {expired ? (
             <Link href="/connexion" className="t-caption inline-flex min-h-11 items-center font-semibold text-inherit">
               {m.offline.session} {m.offline.signIn}

@@ -1,5 +1,5 @@
 import { m } from "@tartan/i18n";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, usePathname, useRouter } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { RefreshControl, ScrollView, View, type ScrollViewProps } from "react-native";
@@ -9,7 +9,7 @@ import { useOpQueue } from "../lib/sync/op-queue";
 import { reviewRequiredOps } from "../lib/sync/queue-core";
 import { useUploads } from "../lib/upload/upload-queue";
 import { ArrowLeft, CloudOff, CloudUpload, Repeat, Settings, X } from "./icons";
-import { IconButton, LaneLine, ListSurface, ScreenTitle, T } from "./primitives";
+import { Button, IconButton, LaneLine, ListSurface, ScreenTitle, T } from "./primitives";
 import { SpaceSwitcher } from "./space-switcher";
 import { Scene, scene, space, usePagePad, usePalette, type WorldName } from "./theme";
 
@@ -25,6 +25,8 @@ export const useSceneStatusBar = () => {
 
 // Hors ligne ou envois en attente : l'état se lit sans chercher.
 export const SyncBanner = () => {
+  const router = useRouter();
+  const pathname = usePathname();
   const online = useIsOnline();
   const ops = useOpQueue((s) => s.items.length - reviewRequiredOps(s.items).length);
   const blocked = useOpQueue((s) => reviewRequiredOps(s.items).length);
@@ -66,6 +68,9 @@ export const SyncBanner = () => {
       <T variant="caption" accessibilityLiveRegion="polite" style={{ flex: 1 }}>
         {parts.join(" ")}
       </T>
+      {blocked > 0 && pathname !== "/sync-review" ? (
+        <Button compact variant="secondary" label={m.syncReview.open} onPress={() => router.push("/sync-review")} />
+      ) : null}
       {storageError ? <IconButton icon={Repeat} label={m.offline.retry} onPress={() => void flush()} /> : null}
     </ListSurface>
   );

@@ -186,6 +186,49 @@ test("l'athlète confirme ses séries, retrouve son brouillon et conserve son re
       comment: "Complément hors ligne",
     });
     expect(validated.log.detailedSets).toEqual(detail.log.detailedSets);
+
+    // Une résolution de conflit de charges reconnaît ensuite le brouillon envoyé.
+    await athlete.goto(url, { waitUntil: "networkidle" });
+    await first.getByLabel(m.progression.fields.loadKg, { exact: true }).fill("45");
+    await context.setOffline(true);
+    await athlete.getByRole("button", { name: m.progression.saveSets, exact: true }).click();
+    await expect(athlete.getByText(m.progression.queuedSets, { exact: true })).toBeVisible();
+    const other = await browser.newContext({ storageState: await context.storageState() });
+    try {
+      const endpoint = `${new URL(athlete.url()).origin}${root}/sessions/${session.id}`;
+      const concurrent = await other.request.post(`${endpoint}/log`, {
+        data: {
+          clientId: randomUUID(),
+          writeScope: "sets",
+          status: "done",
+          variantDone: "club",
+          expectedVersion: validated.log.version,
+          expectedSessionVersion: validated.sessionVersion,
+          detailedSets: validated.log.detailedSets.map((set: object, index: number) =>
+            index === 0 ? { ...set, loadKg: 50 } : set,
+          ),
+        },
+      });
+      expect(concurrent.ok()).toBe(true);
+      const beforeReview = await concurrent.json();
+      await context.setOffline(false);
+      await expect(athlete.getByText(m.offline.reviewPending(1), { exact: true })).toBeVisible();
+      await athlete.getByRole("link", { name: m.syncReview.open, exact: true }).click();
+      await athlete.getByRole("button", { name: m.syncReview.compare, exact: true }).click();
+      await expect(athlete.getByRole("region", { name: m.syncReview.server }).getByText(/50 kg/)).toBeVisible();
+      await expect(athlete.getByRole("region", { name: m.syncReview.local }).getByText(/45 kg/)).toBeVisible();
+      await athlete.getByRole("button", { name: m.syncReview.apply, exact: true }).click();
+      await athlete.getByRole("dialog").getByRole("button", { name: m.syncReview.apply, exact: true }).click();
+      await expect
+        .poll(async () => (await (await other.request.get(`${endpoint}/me`)).json()).log.version)
+        .toBe(beforeReview.version + 1);
+      await athlete.goto(url, { waitUntil: "networkidle" });
+      await expect(first.getByLabel(m.progression.fields.loadKg, { exact: true })).toHaveValue("45");
+      await expect(athlete.getByText(m.progression.draftStale)).toHaveCount(0);
+      await expect(athlete.getByRole("button", { name: m.progression.saveSets, exact: true })).toBeEnabled();
+    } finally {
+      await other.close();
+    }
   } finally {
     await context.close();
   }

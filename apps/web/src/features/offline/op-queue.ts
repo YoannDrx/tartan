@@ -1,7 +1,8 @@
 "use client";
 
+import { sessionLogInput } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
-import { idbAll, idbDelete, idbPut } from "./idb";
+import { idbAll, idbDelete, idbPut, idbTransform } from "./idb";
 
 export type OpKind = "log" | "attendance" | "rollCall" | "attempt" | "comment";
 
@@ -79,12 +80,13 @@ const remember = async (op: QueuedOp): Promise<boolean> => {
   }
 };
 
-export const pendingOps = async (): Promise<QueuedOp[]> => {
+export const pendingOps = async (strict = false): Promise<QueuedOp[]> => {
   const userId = owner;
   try {
     const all = await idbAll<QueuedOp>("ops");
     return all.filter((op) => op.ownerId === userId).sort((a, b) => a.createdAt - b.createdAt);
   } catch {
+    if (strict) throw new Error("QUEUE_STORAGE_UNAVAILABLE");
     return [];
   }
 };
@@ -198,4 +200,52 @@ export const flushOps = async (): Promise<FlushResult> => {
     announce();
   }
   return result;
+};
+
+// L'appelant a comparé ce lot avec une lecture serveur fraîche. Les versions de
+// remplacement sont celles affichées ; une nouvelle concurrence reste un 409.
+export const replaceReviewedLogs = async (
+  observed: QueuedOp[],
+  replacement: Pick<QueuedOp, "id" | "body"> | null,
+): Promise<void> => {
+  const userId = owner;
+  const generation = ownerGeneration;
+  const first = observed[0];
+  if (
+    !userId ||
+    !first ||
+    first.ownerId !== userId ||
+    first.kind !== "log" ||
+    !observed.some((op) => op.blocked) ||
+    observed.some(
+      (op) => op.ownerId !== userId || op.kind !== "log" || op.path !== first.path || op.target !== first.target,
+    )
+  )
+    throw new Error("REVIEW_CHANGED");
+  if (flushing || submissions.size) throw new Error("REVIEW_BUSY");
+  lastQueuedAt = Math.max(Date.now(), lastQueuedAt + 1);
+  const next: QueuedOp | null = replacement
+    ? { ...first, ...replacement, blocked: undefined, createdAt: first.createdAt }
+    : null;
+  if (next) {
+    const parsed = sessionLogInput.safeParse(next.body);
+    if (
+      !parsed.success ||
+      parsed.data.clientId !== next.id ||
+      parsed.data.expectedVersion === undefined ||
+      parsed.data.expectedSessionVersion === undefined
+    )
+      throw new Error("REVIEW_INVALID");
+  }
+  if (next && (!isVersionedLog(next) || observed.some((op) => op.id === next.id))) throw new Error("REVIEW_INVALID");
+  await idbTransform<QueuedOp>("ops", (rows) => {
+    if (generation !== ownerGeneration || flushing || submissions.size) throw new Error("REVIEW_CHANGED");
+    const current = rows
+      .filter((op) => op.ownerId === userId && op.path === first.path && op.target === first.target)
+      .sort((a, b) => a.createdAt - b.createdAt);
+    if (JSON.stringify(current) !== JSON.stringify(observed) || (next && rows.some((op) => op.id === next.id)))
+      throw new Error("REVIEW_CHANGED");
+    return { remove: current.map((op) => op.id), put: next ? [next] : [] };
+  });
+  announce();
 };

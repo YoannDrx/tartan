@@ -3,7 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { pendingStatusFor, sendValidation } from "@/features/athlete-view/validation-queue";
 import * as storage from "@/features/offline/idb";
 import { idbAll, idbDelete } from "@/features/offline/idb";
-import { flushOps, isSessionExpired, pendingOps, setQueueOwner, type QueuedOp } from "@/features/offline/op-queue";
+import {
+  replaceReviewedLogs,
+  flushOps,
+  isSessionExpired,
+  pendingOps,
+  setQueueOwner,
+  type QueuedOp,
+} from "@/features/offline/op-queue";
 
 const pending = (clientId = "client-1") =>
   ({
@@ -165,5 +172,42 @@ describe("file d'attente hors ligne", () => {
     }
     expect(await flushOps()).toEqual({ sent: 1, rejected: 0 });
     expect(await pendingOps()).toHaveLength(0);
+  });
+
+  it("remplace le lot relu atomiquement, sans perdre une autre séance ni accepter une vue périmée", async () => {
+    respond(409);
+    await sendValidation(pending("old-local"));
+    const observed = await pendingOps();
+    const input = {
+      clientId: "new-local",
+      status: "done" as const,
+      variantDone: "club" as const,
+      expectedVersion: 3,
+      expectedSessionVersion: 2,
+      writeScope: "status" as const,
+    };
+    const put = vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(() => {
+      throw new Error("disk");
+    });
+    await expect(replaceReviewedLogs(observed, { id: input.clientId, body: input })).rejects.toThrow();
+    put.mockRestore();
+    expect(await pendingOps()).toEqual(observed);
+    await sendValidation({ ...pending("other-one"), sessionId: "other" });
+    await replaceReviewedLogs(observed, { id: input.clientId, body: input });
+    expect((await pendingOps()).map((op) => op.id)).toEqual(["new-local", "other-one"]);
+    await expect(replaceReviewedLogs(observed, null)).rejects.toThrow("REVIEW_CHANGED");
+    expect((await pendingOps())[0]?.body).toEqual(input);
+    expect((await pendingOps())[0]?.blocked).toBeUndefined();
+  });
+
+  it("n'efface pas une nouvelle saisie ajoutée après la comparaison", async () => {
+    respond(409);
+    await sendValidation(pending("old-local"));
+    const observed = await pendingOps();
+    await storage.idbPut("ops", { ...observed[0], id: "new-following", createdAt: Date.now() + 1 });
+    await expect(replaceReviewedLogs(observed, null)).rejects.toThrow("REVIEW_CHANGED");
+    expect(await pendingOps()).toHaveLength(2);
+    setQueueOwner("other-owner");
+    await expect(replaceReviewedLogs(observed, null)).rejects.toThrow("REVIEW_CHANGED");
   });
 });
