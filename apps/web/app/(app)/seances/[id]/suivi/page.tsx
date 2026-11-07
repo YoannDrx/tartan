@@ -41,6 +41,11 @@ export default async function SessionFollowupPage({ params }: { params: Promise<
                 </Link>
               </Button>
             ) : null}
+            {space.progressionEnabled && session.canEdit && session.publishedAt ? (
+              <Button asChild size="sm" variant="secondary">
+                <Link href={`/seances/${id}/charges`}>{m.prescriptionRefresh.title}</Link>
+              </Button>
+            ) : null}
             {session.publishedAt ? <RemindButton sessionId={id} label={m.coach.remindAll} /> : null}
           </>
         }

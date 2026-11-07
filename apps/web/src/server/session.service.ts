@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   type CalendarResponse,
+  confirmPrescriptionRefresh,
+  type ConfirmPrescriptionRefresh,
   type SaveScheduledSessionInput,
   type SessionDraft,
   type SessionSnapshot,
@@ -32,10 +34,10 @@ import {
 } from "./access";
 import { activeAudienceIds, athleteAssignedWhere } from "./session-audience.service";
 export { activeAudienceIds, audienceAthleteIds } from "./session-audience.service";
-import { freezeSessionPrescriptions } from "./prescription.service";
+import { freezeSessionPrescriptions, preparePrescriptionRefresh } from "./prescription.service";
 import { mediaSnapshot } from "./exercise.service";
 import { firstNameOf } from "./me.service";
-import { notify, notifyPublications } from "./notify.service";
+import { notify, notifyPublications, queueNotifications, dispatchPending } from "./notify.service";
 
 const sessionConflict = () => new AppError(409, "session_version_conflict", m.builder.versionConflict);
 
@@ -645,4 +647,95 @@ export const listTestKeys = async (userId: string, organizationId: string): Prom
     select: { exerciseKey: true },
   });
   return rows.map((r) => r.exerciseKey);
+};
+
+// Aperçu et confirmation passent par les mêmes verrous ; aucun appel prestataire
+// pendant la transaction. Une validation arrivée entre les deux invalide l'aperçu.
+const withPrescriptionRefresh = async (
+  userId: string,
+  organizationId: string,
+  sessionId: string,
+  confirmation?: ConfirmPrescriptionRefresh,
+) => {
+  await requireOrgMember(userId, organizationId, "manageSessions");
+  return prisma.$transaction(async (tx) => {
+    const [space] = await tx.$queryRaw<
+      { progression_enabled: boolean }[]
+    >`SELECT progression_enabled FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    if (!space?.progression_enabled) throw new AppError(409, "progression_disabled", m.progression.disabled);
+    const access = await requireOrgMember(userId, organizationId, "manageSessions");
+    await requireSessionWrite(access, sessionId);
+    await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${sessionId}::uuid FOR UPDATE`;
+    const session = await tx.scheduledSession.findUniqueOrThrow({ where: { id: sessionId } });
+    if (!session.publishedAt || !session.prescriptionFrozenAt)
+      throw new AppError(409, "prescription_not_frozen", m.prescriptionRefresh.unavailable);
+    const prepared = await preparePrescriptionRefresh(tx, sessionId);
+    let notificationIds: string[] = [];
+    if (confirmation) {
+      if (confirmation.expectedVersion !== session.version || confirmation.token !== prepared.preview.token)
+        throw new AppError(409, "prescription_refresh_conflict", m.prescriptionRefresh.conflict);
+      if (!prepared.updates.length) throw invalid(m.prescriptionRefresh.empty);
+      const version = session.version + 1;
+      await tx.scheduledSession.update({ where: { id: sessionId }, data: { version } });
+      await tx.sessionPrescription.createMany({
+        data: prepared.updates.map((row) => ({
+          scheduledSessionId: sessionId,
+          athleteId: row.athleteId,
+          sessionVersion: version,
+          origin: "load_refresh",
+          snapshot: row.snapshot as unknown as Prisma.InputJsonValue,
+        })),
+      });
+      await tx.auditLog.create({
+        data: {
+          organizationId,
+          actorId: userId,
+          action: "prescription_loads_refreshed",
+          entity: "scheduled_session",
+          entityId: sessionId,
+        },
+      });
+      await tx.organization.update({ where: { id: organizationId }, data: { lastBusinessActivityAt: new Date() } });
+      const recipients = await tx.athlete.findMany({
+        where: { id: { in: prepared.updates.map((row) => row.athleteId) }, userId: { not: null } },
+        select: { userId: true },
+      });
+      notificationIds = await queueNotifications(
+        tx,
+        recipients.map((a) => a.userId!),
+        "session_updated",
+        {
+          date: fromDbDate(session.date),
+          organizationId,
+          sessionId,
+          link: `/seance/${sessionId}`,
+        },
+      );
+    }
+    return { preview: prepared.preview, notificationIds };
+  });
+};
+
+export const previewPrescriptionRefresh = async (userId: string, organizationId: string, sessionId: string) =>
+  (await withPrescriptionRefresh(userId, organizationId, sessionId)).preview;
+
+export const refreshPublishedLoads = async (
+  userId: string,
+  organizationId: string,
+  sessionId: string,
+  input: ConfirmPrescriptionRefresh,
+) => {
+  const { preview, notificationIds } = await withPrescriptionRefresh(
+    userId,
+    organizationId,
+    sessionId,
+    confirmPrescriptionRefresh.parse(input),
+  );
+  // L'enregistrement est acquis : une panne d'envoi laisse la file au cron.
+  try {
+    if (notificationIds.length) await dispatchPending(new Date(), notificationIds);
+  } catch {
+    log.warn("prescription_refresh_delivery_deferred", { organizationId, entityId: sessionId });
+  }
+  return { id: sessionId, version: preview.sessionVersion + 1 };
 };

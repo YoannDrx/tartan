@@ -210,6 +210,36 @@ export const fr = {
       "Cette ancienne clé est déjà rattachée à un autre exercice. Vérifie la correspondance avant de la modifier.",
     saved: "Test enregistré.",
   },
+  prescriptionRefresh: {
+    title: "Actualiser les charges",
+    lead: "Relis les charges recalculées depuis les références actuelles. Seuls les pourcentages des athlètes sans saisie peuvent changer ; les charges en kilogrammes et les autres consignes sont conservées.",
+    before: "Charge publiée",
+    after: "Nouvelle charge",
+    missing: "Charge à définir",
+    source: (value: number, kind: string, date: string, step: number) =>
+      `Référence : ${String(value).replace(".", ",")} kg · ${kind} · ${date} · arrondi ${String(step).replace(".", ",")} kg`,
+    legacy: "Test historique",
+    threeRm: "Test 3RM, conversion Epley",
+    status: {
+      ready: "Changements à confirmer",
+      recorded: "Saisie déjà enregistrée : prescription conservée",
+      unfrozen: "Ancienne prescription non figée : actualisation indisponible",
+      unchanged: "Aucun changement de charge ou de référence",
+    },
+    incompatible:
+      "Convention différente : charge conservée. Vérifie la variante et sa référence dans la fiche athlète.",
+    confirm: "Confirmer les nouvelles charges",
+    confirmDetail: (count: number) =>
+      `Actualiser les prescriptions de ${count} athlète${count > 1 ? "s" : ""} sans saisie ? Les anciennes versions restent conservées.`,
+    reload: "Relire un nouvel aperçu",
+    saved: "Charges actualisées. Les anciennes prescriptions et les réalisations sont conservées.",
+    back: "Revenir à la séance",
+    summary: (count: number, total: number) => `${count} athlète${count > 1 ? "s" : ""} à actualiser sur ${total}`,
+
+    unavailable: "Cette séance doit être publiée avec des prescriptions figées pour actualiser ses charges.",
+    conflict: "La séance, ses destinataires ou leurs références ont changé. Relis un nouvel aperçu avant de confirmer.",
+    empty: "Aucune charge à actualiser pour les athlètes sans saisie.",
+  },
   strengthMapping: {
     title: "Relier les anciens tests",
     lead: "Rattache les anciennes références à la bonne fiche de la bibliothèque après avoir vérifié le mouvement, la variante et la convention de charge.",

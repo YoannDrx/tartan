@@ -12,6 +12,8 @@ import {
   getSessionForEdit,
   moveSession,
   generateAutonomousVersion,
+  previewPrescriptionRefresh,
+  refreshPublishedLoads,
 } from "@/server/session.service";
 import { addAthlete, makeOrg } from "./helpers";
 
@@ -296,6 +298,18 @@ it("individualise une publication pour 120 athlètes sans confondre leurs réfé
     sessionSnapshot.parse(rows.find((r) => r.athleteId === ids[118])!.snapshot).blocks[0]?.items[0]?.resolvedLoadKg,
   ).toBe(142.5);
   expect((await a.detail()).blocks[0]?.items[0]?.resolvedLoadKg).toBe(80);
+  await prisma.strengthReference.updateMany({ where: { organizationId: a.organizationId }, data: { valueKg: 200 } });
+  const preview = await previewPrescriptionRefresh(a.owner.userId, a.organizationId, a.session.id);
+  expect(preview.athletes.filter((row) => row.status === "ready")).toHaveLength(120);
+  await refreshPublishedLoads(a.owner.userId, a.organizationId, a.session.id, {
+    expectedVersion: preview.sessionVersion,
+    token: preview.token,
+    confirmed: true,
+  });
+  expect(
+    await prisma.sessionPrescription.count({ where: { scheduledSessionId: a.session.id, origin: "load_refresh" } }),
+  ).toBe(120);
+  expect((await a.detail()).blocks[0]?.items[0]?.resolvedLoadKg).toBe(160);
 });
 
 it("la validation rapide du coach conserve la version et invalide une saisie détaillée concurrente", async () => {
@@ -332,4 +346,192 @@ it("les copies créées par une publication automatique ne prolongent pas la con
   expect(
     (await prisma.organization.findUniqueOrThrow({ where: { id: a.organizationId } })).lastBusinessActivityAt,
   ).toEqual(before);
+});
+
+const confirmRefresh = async (a: Awaited<ReturnType<typeof setup>>) => {
+  const preview = await previewPrescriptionRefresh(a.owner.userId, a.organizationId, a.session.id);
+  return () =>
+    refreshPublishedLoads(a.owner.userId, a.organizationId, a.session.id, {
+      expectedVersion: preview.sessionVersion,
+      token: preview.token,
+      confirmed: true,
+    });
+};
+
+it("actualise explicitement une charge, conserve l'ancienne copie et refuse le rejeu", async () => {
+  const a = await setup();
+  await a.publish();
+  await a.reference(150);
+  const preview = await previewPrescriptionRefresh(a.owner.userId, a.organizationId, a.session.id);
+  expect(preview.athletes[0]).toMatchObject({ status: "ready", changes: [{ before: { kg: 80 }, after: { kg: 120 } }] });
+  expect((await a.detail()).blocks[0]?.items[0]?.resolvedLoadKg).toBe(80);
+  const confirm = await confirmRefresh(a);
+  expect(await confirm()).toMatchObject({ version: 3 });
+  await expect(confirm()).rejects.toMatchObject({ code: "prescription_refresh_conflict" });
+  expect((await a.detail()).blocks[0]?.items[0]?.resolvedLoadKg).toBe(120);
+  const copies = await prisma.sessionPrescription.findMany({
+    where: { scheduledSessionId: a.session.id },
+    orderBy: { sessionVersion: "asc" },
+  });
+  expect(copies.map((p) => sessionSnapshot.parse(p.snapshot).blocks[0]?.items[0]?.resolvedLoadKg)).toEqual([80, 120]);
+  expect(
+    await prisma.auditLog.count({ where: { entityId: a.session.id, action: "prescription_loads_refreshed" } }),
+  ).toBe(1);
+});
+
+it("une nouvelle référence ou une nouvelle validation après l'aperçu exige une relecture", async () => {
+  const a = await setup();
+  await a.publish();
+  await a.reference(150);
+  const outdated = await confirmRefresh(a);
+  await a.reference(200);
+  await expect(outdated()).rejects.toMatchObject({ code: "prescription_refresh_conflict" });
+  const beforeLog = await confirmRefresh(a);
+  await logSession(a.athlete.userId, a.organizationId, a.session.id, {
+    clientId: randomUUID(),
+    status: "done",
+    variantDone: "club",
+  });
+  await expect(beforeLog()).rejects.toMatchObject({ code: "prescription_refresh_conflict" });
+  expect((await a.detail()).blocks[0]?.items[0]?.resolvedLoadKg).toBe(80);
+  expect((await previewPrescriptionRefresh(a.owner.userId, a.organizationId, a.session.id)).athletes[0]?.status).toBe(
+    "recorded",
+  );
+});
+
+it("préserve l'athlète déjà enregistré pendant l'actualisation des autres", async () => {
+  const a = await setup();
+  const b = await addAthlete(a.organizationId, a.groupId, "Sans saisie");
+  await a.publish();
+  await logSession(a.athlete.userId, a.organizationId, a.session.id, {
+    clientId: randomUUID(),
+    status: "partial",
+    variantDone: "club",
+  });
+  await a.reference(200);
+  await selectStrengthReference(a.owner.userId, a.organizationId, b.athleteId, a.exercise.id, {
+    source: "working",
+    valueKg: 150,
+  });
+  const confirm = await confirmRefresh(a);
+  await confirm();
+  expect((await a.detail()).blocks[0]?.items[0]?.resolvedLoadKg).toBe(80);
+  expect((await getAthleteSession(b.userId, a.organizationId, a.session.id)).blocks[0]?.items[0]?.resolvedLoadKg).toBe(
+    120,
+  );
+  expect(
+    await prisma.sessionPrescription.count({
+      where: { scheduledSessionId: a.session.id, athleteId: a.athlete.athleteId },
+    }),
+  ).toBe(1);
+  const notifications = await prisma.notification.findMany({
+    where: { type: "session_updated", payload: { path: ["sessionId"], equals: a.session.id } },
+  });
+  expect(notifications.map((n) => n.userId)).toEqual([b.userId]);
+  expect(notifications[0]?.payload).toEqual({
+    date: "2030-06-12",
+    organizationId: a.organizationId,
+    sessionId: a.session.id,
+    link: `/seance/${a.session.id}`,
+  });
+});
+
+it("refuse l'athlète, l'adjoint non auteur, un autre espace et la désactivation", async () => {
+  const { addStaff } = await import("./helpers");
+  const a = await setup();
+  await a.publish();
+  const assistant = await addStaff(a.organizationId, "Adjoint", "assistant", [a.groupId]);
+  for (const userId of [a.athlete.userId, assistant.userId])
+    await expect(previewPrescriptionRefresh(userId, a.organizationId, a.session.id)).rejects.toMatchObject({
+      status: 403,
+    });
+  const other = await makeOrg("Autre espace");
+  await prisma.organization.update({ where: { id: other.organizationId }, data: { progressionEnabled: true } });
+  await expect(
+    previewPrescriptionRefresh(other.owner.userId, other.organizationId, a.session.id),
+  ).rejects.toMatchObject({ status: 404 });
+  await a.reference(150);
+  const confirm = await confirmRefresh(a);
+  await prisma.organization.update({ where: { id: a.organizationId }, data: { progressionEnabled: false } });
+  await expect(confirm()).rejects.toMatchObject({ code: "progression_disabled" });
+});
+
+it("l'actualisation est atomique et ne produit pas une version vide", async () => {
+  const a = await setup();
+  await expect(previewPrescriptionRefresh(a.owner.userId, a.organizationId, a.session.id)).rejects.toMatchObject({
+    code: "prescription_not_frozen",
+  });
+  await a.publish();
+  await expect((await confirmRefresh(a))()).rejects.toMatchObject({ code: "invalid" });
+  await a.reference(150);
+  const confirm = await confirmRefresh(a);
+  await prisma.$executeRawUnsafe(
+    "ALTER TABLE session_prescriptions ADD CONSTRAINT simulated_refresh_failure CHECK (origin <> 'load_refresh') NOT VALID",
+  );
+  try {
+    await expect(confirm()).rejects.toBeDefined();
+    expect((await a.detail()).sessionVersion).toBe(2);
+    expect((await a.detail()).blocks[0]?.items[0]?.resolvedLoadKg).toBe(80);
+    expect(
+      await prisma.auditLog.count({ where: { entityId: a.session.id, action: "prescription_loads_refreshed" } }),
+    ).toBe(0);
+  } finally {
+    await prisma.$executeRawUnsafe("ALTER TABLE session_prescriptions DROP CONSTRAINT simulated_refresh_failure");
+  }
+  await confirm();
+  expect((await a.detail()).sessionVersion).toBe(3);
+});
+
+it("une arrivée après l'aperçu et une révocation du coach empêchent sa confirmation", async () => {
+  const { addStaff } = await import("./helpers");
+  const a = await setup();
+  await a.publish();
+  await a.reference(150);
+  const confirm = await confirmRefresh(a);
+  await addAthlete(a.organizationId, a.groupId, "Arrivant tardif");
+  await expect(confirm()).rejects.toMatchObject({ code: "prescription_refresh_conflict" });
+  const coach = await addStaff(a.organizationId, "Coach", "coach", [a.groupId]);
+  const preview = await previewPrescriptionRefresh(coach.userId, a.organizationId, a.session.id);
+  await prisma.organizationMember.update({
+    where: { organizationId_userId: { organizationId: a.organizationId, userId: coach.userId } },
+    data: { status: "suspended" },
+  });
+  await expect(
+    refreshPublishedLoads(coach.userId, a.organizationId, a.session.id, {
+      expectedVersion: preview.sessionVersion,
+      token: preview.token,
+      confirmed: true,
+    }),
+  ).rejects.toMatchObject({ status: 403 });
+});
+
+it("deux confirmations concurrentes créent une seule révision", async () => {
+  const a = await setup();
+  await a.publish();
+  await a.reference(150);
+  const confirm = await confirmRefresh(a);
+  const results = await Promise.allSettled([confirm(), confirm()]);
+  expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+  expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
+  expect(await prisma.sessionPrescription.count({ where: { scheduledSessionId: a.session.id } })).toBe(2);
+});
+
+it("un échec de mise en file des notifications annule aussi les nouvelles charges", async () => {
+  const a = await setup();
+  await a.publish();
+  await a.reference(150);
+  const confirm = await confirmRefresh(a);
+  await prisma.$executeRawUnsafe(
+    "ALTER TABLE notifications ADD CONSTRAINT simulated_refresh_notification_failure CHECK (type <> 'session_updated') NOT VALID",
+  );
+  try {
+    await expect(confirm()).rejects.toBeDefined();
+    expect((await a.detail()).sessionVersion).toBe(2);
+    expect((await a.detail()).blocks[0]?.items[0]?.resolvedLoadKg).toBe(80);
+    expect(await prisma.sessionPrescription.count({ where: { scheduledSessionId: a.session.id } })).toBe(1);
+  } finally {
+    await prisma.$executeRawUnsafe("ALTER TABLE notifications DROP CONSTRAINT simulated_refresh_notification_failure");
+  }
+  await confirm();
+  expect((await a.detail()).sessionVersion).toBe(3);
 });

@@ -269,6 +269,14 @@ export default function CoachSession() {
               />
             ) : null}
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+              {active?.progressionEnabled && session.canEdit && session.publishedAt ? (
+                <Button
+                  label={m.prescriptionRefresh.title}
+                  variant="secondary"
+                  compact
+                  onPress={() => router.push({ pathname: "/refresh-loads/[id]", params: { id } })}
+                />
+              ) : null}
               {late.length > 0 && session.publishedAt ? (
                 <Button
                   label={m.coach.remind}

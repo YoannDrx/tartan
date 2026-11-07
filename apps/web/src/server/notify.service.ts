@@ -6,6 +6,7 @@ import {
   type NotificationType,
   renderNotification,
 } from "@tartan/domain";
+import type { Prisma } from "@/generated/prisma/client";
 import { hourInParis, todayIso } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { dispatchPending } from "./notification-delivery.service";
@@ -21,29 +22,33 @@ const nextMorning = (now: Date): Date => {
   return new Date(now.getTime() + hoursToWait * 3600 * 1000);
 };
 
-// Écrit l'historique in-app ; l'envoi part tout de suite, ou à 7 h pendant les heures calmes.
+// File transactionnelle : aucune livraison réseau avant la validation des données métier.
+export const queueNotifications = async (
+  db: Prisma.TransactionClient,
+  userIds: string[],
+  type: NotificationType,
+  payload: Payload,
+  now: Date = new Date(),
+): Promise<string[]> => {
+  const targets = [...new Set(userIds)];
+  if (targets.length === 0) return [];
+  const quiet = isQuietHours(hourInParis(now)) && !bypassesQuietHours(type);
+  const notifications = await db.notification.createManyAndReturn({
+    data: targets.map((userId) => ({ userId, type, payload, deliverAfter: quiet ? nextMorning(now) : now })),
+    select: { id: true },
+  });
+  return notifications.map((n) => n.id);
+};
+
+// Écrit l'historique in-app ; dispatchPending respecte la date de livraison et les heures calmes.
 export const notify = async (
   userIds: string[],
   type: NotificationType,
   payload: Payload,
   now: Date = new Date(),
 ): Promise<void> => {
-  const targets = [...new Set(userIds)];
-  if (targets.length === 0) return;
-  const quiet = isQuietHours(hourInParis(now)) && !bypassesQuietHours(type);
-  const notifications = await prisma.notification.createManyAndReturn({
-    data: targets.map((userId) => ({
-      userId,
-      type,
-      payload,
-      deliverAfter: quiet ? nextMorning(now) : now,
-    })),
-  });
-  if (!quiet)
-    await dispatchPending(
-      now,
-      notifications.map((n) => n.id),
-    );
+  const ids = await queueNotifications(prisma, userIds, type, payload, now);
+  if (ids.length) await dispatchPending(now, ids);
 };
 
 // Plusieurs séances publiées d'un coup = une seule notification, qui ouvre la journée (§ 13.2).

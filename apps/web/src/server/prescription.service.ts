@@ -1,5 +1,6 @@
-import { prescriptionSchema, sessionSnapshot } from "@tartan/contracts";
-import { freezePrescription } from "@tartan/domain";
+import { createHash } from "node:crypto";
+import { prescriptionRefreshPreview, prescriptionSchema, sessionSnapshot } from "@tartan/contracts";
+import { freezePrescription, refreshPrescriptionLoads } from "@tartan/domain";
 import type { Prisma } from "@/generated/prisma/client";
 import { activeAudienceIds, athleteAssignedWhere } from "./session-audience.service";
 import { strengthResolutionInputsForAthletes } from "./strength.service";
@@ -71,4 +72,54 @@ export const freezeAssignedPrescriptions = async (tx: Prisma.TransactionClient, 
     await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${session.id}::uuid FOR UPDATE`;
     await freezeSessionPrescriptions(tx, session.id, "assignment", athleteId);
   }
+};
+
+// Lecture interne sous les mêmes verrous que publication, références et validations.
+// Aucun retour de santé ni note privée : seul l'existence d'une saisie exclut l'athlète.
+export const preparePrescriptionRefresh = async (tx: Prisma.TransactionClient, sessionId: string) => {
+  const session = await tx.scheduledSession.findUniqueOrThrow({ where: { id: sessionId } });
+  const audience = (await activeAudienceIds(sessionId, tx)).sort();
+  const [athletes, logs, copies, references] = await Promise.all([
+    tx.athlete.findMany({ where: { id: { in: audience } }, select: { id: true, firstName: true, lastName: true } }),
+    tx.sessionLog.findMany({
+      where: { scheduledSessionId: sessionId, athleteId: { in: audience } },
+      select: { athleteId: true },
+    }),
+    tx.sessionPrescription.findMany({
+      where: { scheduledSessionId: sessionId, athleteId: { in: audience }, sessionVersion: { lte: session.version } },
+      orderBy: { sessionVersion: "desc" },
+      distinct: ["athleteId"],
+    }),
+    strengthResolutionInputsForAthletes(tx, audience),
+  ]);
+  const recorded = new Set(logs.map((row) => row.athleteId));
+  const byAthlete = new Map(copies.map((row) => [row.athleteId, row]));
+  const rows = audience.map((athleteId) => {
+    const athlete = athletes.find((row) => row.id === athleteId)!;
+    const identity = { athleteId, name: `${athlete.firstName} ${athlete.lastName}` };
+    const copy = byAthlete.get(athleteId);
+    if (recorded.has(athleteId))
+      return { ...identity, status: "recorded" as const, changes: [], incompatible: [], snapshot: null };
+    // Pas de reconstruction d'une ancienne prescription à partir d'un maximum récent.
+    if (!copy) return { ...identity, status: "unfrozen" as const, changes: [], incompatible: [], snapshot: null };
+    const result = refreshPrescriptionLoads(sessionSnapshot.parse(copy.snapshot), references.get(athleteId) ?? []);
+    return { ...identity, status: result.changes.length ? ("ready" as const) : ("unchanged" as const), ...result };
+  });
+  rows.sort(
+    (a, b) =>
+      Number(b.status === "ready") - Number(a.status === "ready") ||
+      a.name.localeCompare(b.name, "fr") ||
+      a.athleteId.localeCompare(b.athleteId),
+  );
+  // Le jeton lie l'aperçu à l'espace, la version, l'audience, les sources et les valeurs.
+  // Ce n'est pas une autorisation : chaque confirmation recontrôle les accès.
+  const token = createHash("sha256")
+    .update(JSON.stringify({ organizationId: session.organizationId, sessionId, version: session.version, rows }))
+    .digest("hex");
+  return {
+    preview: prescriptionRefreshPreview.parse({ sessionId, sessionVersion: session.version, token, athletes: rows }),
+    updates: rows
+      .filter((row) => row.status === "ready" && row.snapshot)
+      .map((row) => ({ athleteId: row.athleteId, snapshot: row.snapshot! })),
+  };
 };

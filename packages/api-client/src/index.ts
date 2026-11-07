@@ -23,6 +23,8 @@ import {
   type SessionLogInput,
   sessionLogResult,
   sessionSaveResult,
+  prescriptionRefreshPreview,
+  type ConfirmPrescriptionRefresh,
   sessionEditResponse,
   sessionBuilderContext,
   type SaveScheduledSessionInput,
@@ -176,6 +178,10 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("POST", `/orgs/${orgId}/sessions/${sessionId}/publish`, z.object({ id: z.string() }), {
         expectedVersion,
       }),
+    previewPrescriptionRefresh: (orgId: string, sessionId: string) =>
+      request("GET", `/orgs/${orgId}/sessions/${sessionId}/refresh-loads`, prescriptionRefreshPreview),
+    refreshPublishedLoads: (orgId: string, sessionId: string, body: ConfirmPrescriptionRefresh) =>
+      request("POST", `/orgs/${orgId}/sessions/${sessionId}/refresh-loads`, sessionSaveResult, body),
     deleteSession: (orgId: string, sessionId: string) =>
       request("DELETE", `/orgs/${orgId}/sessions/${sessionId}`, okResponse),
     rollCall: (orgId: string, sessionId: string, body: RollCallInput) =>

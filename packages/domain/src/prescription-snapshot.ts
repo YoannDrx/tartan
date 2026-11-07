@@ -1,4 +1,9 @@
-import type { Prescription, SessionSnapshot } from "@tartan/contracts";
+import {
+  snapshotItem,
+  type Prescription,
+  type PrescriptionRefreshPreview,
+  type SessionSnapshot,
+} from "@tartan/contracts";
 import { applyOverride, latestTest, resolveLoadKg, type StrengthTest } from "./charges";
 
 type Reference = StrengthTest & NonNullable<SessionSnapshot["blocks"][number]["items"][number]["strengthReference"]>;
@@ -49,4 +54,42 @@ export const freezePrescription = (
       }),
     })),
   };
+};
+
+// Action explicite : recalculer seulement les pourcentages du document individuel figé.
+// Les kilogrammes absolus, adaptations et autres consignes restent identiques.
+export const refreshPrescriptionLoads = (snapshot: SessionSnapshot, references: Reference[]) => {
+  const changes: PrescriptionRefreshPreview["athletes"][number]["changes"] = [];
+  const incompatible: PrescriptionRefreshPreview["athletes"][number]["incompatible"] = [];
+  const next: SessionSnapshot = {
+    ...snapshot,
+    blocks: snapshot.blocks.map((block) => ({
+      ...block,
+      items: block.items.map((item) => {
+        const load = item.prescription.load;
+        if (load?.type !== "pct_1rm") return item;
+        const source = latestTest(references, load.test) as Reference | null;
+        const convention = item.strengthReference?.loadKind ?? item.strengthLoadKind;
+        if (source?.loadKind && convention && source.loadKind !== convention) {
+          incompatible.push({ itemRef: item.ref, exerciseName: item.name });
+          return item;
+        }
+        const updated = snapshotItem.parse({
+          ...item,
+          resolvedLoadKg: resolveLoadKg(item.prescription, source ? [source] : []),
+          strengthReference: source,
+          ...(source?.stepKg ? { loadStepKg: source.stepKg } : {}),
+        });
+        const before = {
+          kg: item.resolvedLoadKg ?? null,
+          reference: snapshotItem.parse(item).strengthReference ?? null,
+        };
+        const after = { kg: updated.resolvedLoadKg ?? null, reference: updated.strengthReference ?? null };
+        if (JSON.stringify(before) !== JSON.stringify(after))
+          changes.push({ itemRef: item.ref, exerciseName: item.name, percentage: load.value, before, after });
+        return updated;
+      }),
+    })),
+  };
+  return { snapshot: next, changes, incompatible };
 };

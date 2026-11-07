@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SessionSnapshot } from "@tartan/contracts";
-import { freezePrescription } from "./prescription-snapshot";
+import { freezePrescription, refreshPrescriptionLoads } from "./prescription-snapshot";
 
 const snapshot: SessionSnapshot = {
   title: "Force",
@@ -27,7 +27,7 @@ const snapshot: SessionSnapshot = {
   ],
 };
 const reference = {
-  id: "reference-one",
+  id: "00000000-0000-4000-8000-000000000001",
   exerciseKey: "squat",
   value: 100,
   kind: "one_rm" as const,
@@ -73,5 +73,49 @@ describe("prescription figée", () => {
     const rpeOnly = structuredClone(snapshot);
     firstItem(rpeOnly).prescription = { sets: 3, reps: 4, intensityTarget: { type: "rpe", value: 8 } };
     expect(firstItem(freezePrescription(rpeOnly, [reference], [])).resolvedLoadKg).toBeNull();
+  });
+});
+
+describe("actualisation explicite", () => {
+  it("calcule le pourcentage adapté et conserve le reste du document", () => {
+    const frozen = freezePrescription(
+      snapshot,
+      [reference],
+      [{ itemRef: "b0-i0", prescription: { load: { type: "pct_1rm", value: 60, test: "squat" }, reps: 8 } }],
+    );
+    const result = refreshPrescriptionLoads(frozen, [{ ...reference, value: 150 }]);
+    expect(result.changes[0]).toMatchObject({ percentage: 60, before: { kg: 60 }, after: { kg: 90 } });
+    expect(firstItem(result.snapshot).prescription.reps).toBe(8);
+    expect(firstItem(frozen).resolvedLoadKg).toBe(60);
+  });
+  it("signale une source différente même quand l'arrondi produit les mêmes kilos", () => {
+    const frozen = freezePrescription(snapshot, [reference], []);
+    expect(refreshPrescriptionLoads(frozen, [{ ...reference, value: 100.1 }]).changes[0]).toMatchObject({
+      before: { kg: 80 },
+      after: { kg: 80 },
+    });
+    expect(refreshPrescriptionLoads(frozen, [reference]).changes).toEqual([]);
+  });
+  it("ne convertit pas les kilogrammes absolus ni le RPE, et rend l'absence de référence explicite", () => {
+    const frozen = freezePrescription(snapshot, [reference], []);
+    expect(refreshPrescriptionLoads(frozen, []).changes[0]?.after).toEqual({ kg: null, reference: null });
+    const kg = freezePrescription(
+      snapshot,
+      [],
+      [
+        {
+          itemRef: "b0-i0",
+          prescription: { load: { type: "kg", value: 45 }, intensityTarget: { type: "rir", value: 2 } },
+        },
+      ],
+    );
+    expect(refreshPrescriptionLoads(kg, [reference])).toMatchObject({ snapshot: kg, changes: [] });
+  });
+  it("ne réinterprète pas une charge externe comme une charge additionnelle", () => {
+    const frozen = freezePrescription(snapshot, [{ ...reference, loadKind: "external_total" }], []);
+    const result = refreshPrescriptionLoads(frozen, [{ ...reference, loadKind: "added_weight", value: 150 }]);
+    expect(result.changes).toEqual([]);
+    expect(result.incompatible).toEqual([{ itemRef: "b0-i0", exerciseName: "Squat" }]);
+    expect(result.snapshot).toEqual(frozen);
   });
 });
