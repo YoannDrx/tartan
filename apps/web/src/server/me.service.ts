@@ -3,7 +3,9 @@ import { put } from "@vercel/blob";
 import { fromDbDateOrNull, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { invalid, notFound } from "@/lib/errors";
-import { ageRestricted, ageStatusOfUser, assertAdultDate, parentalFlowEnabled } from "./age.service";
+import { ageRestricted, ageStatusOfUser, assertAdultDate, confirmBirthDate, parentalFlowEnabled } from "./age.service";
+import { AppError } from "@/lib/errors";
+import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
 
 export const listSpaces = async (userId: string): Promise<SpaceSummary[]> => {
@@ -44,14 +46,23 @@ export const updateProfile = async (userId: string, input: ProfileInput): Promis
   // V1 majeurs : une date ne s'efface pas, et une date mineure ne s'efface pas par une autre.
   const parental = parentalFlowEnabled();
   if (!parental) {
-    if (input.birthDate) await assertAdultDate(input.birthDate, { actorId: userId });
     if ((await ageStatusOfUser(userId)) === "minor") throw ageRestricted();
+    if (input.birthDate) {
+      const profile = await prisma.profile.findUnique({ where: { id: userId }, select: { birthDate: true } });
+      if (!profile?.birthDate) await confirmBirthDate(userId, input.birthDate);
+      else if (fromDbDateOrNull(profile.birthDate) !== input.birthDate) {
+        await assertAdultDate(input.birthDate, { actorId: userId });
+        throw new AppError(409, "age_already_set", m.age.alreadySet);
+      }
+    }
   }
-  const birthDate = input.birthDate
-    ? toDbDate(input.birthDate)
-    : input.birthDate === null && parental
-      ? null
-      : undefined;
+  const birthDate = !parental
+    ? undefined
+    : input.birthDate
+      ? toDbDate(input.birthDate)
+      : input.birthDate === null && parental
+        ? null
+        : undefined;
   const data = {
     firstName: input.firstName,
     lastName: input.lastName,

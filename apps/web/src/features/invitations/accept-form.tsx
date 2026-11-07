@@ -1,11 +1,13 @@
 "use client";
 
-import { requiresParentalConsent } from "@tartan/domain";
+import { ageAt, requiresParentalConsent } from "@tartan/domain";
+import { confirmAgeInput } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CheckRow, Field, Input } from "@/components/ui/field";
 import { acceptInvitationAction } from "./invitation.action";
 
@@ -29,6 +31,7 @@ export const AcceptForm = ({
   const [values, setValues] = useState({ firstName, lastName, birthDate, guardianEmail: "" });
   const [consents, setConsents] = useState({ terms: false, health: false, video: false });
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const minor =
     parentalFlow && isAthlete && values.birthDate ? requiresParentalConsent(values.birthDate, new Date()) : false;
   const { execute, isPending, result } = useAction(acceptInvitationAction, {
@@ -42,6 +45,15 @@ export const AcceptForm = ({
     },
   });
   const fieldErrors = result.validationErrors as Record<string, { _errors?: string[] }> | undefined;
+  const accept = () =>
+    execute({
+      token,
+      firstName: values.firstName,
+      lastName: values.lastName,
+      birthDate: values.birthDate || null,
+      guardianEmail: minor ? values.guardianEmail : undefined,
+      consents,
+    });
 
   return (
     <form
@@ -54,18 +66,12 @@ export const AcceptForm = ({
           setFormError(m.invite.termsRequired);
           return;
         }
-        if (!values.birthDate) {
+        if (!confirmAgeInput.safeParse({ birthDate: values.birthDate }).success) {
           setFormError(m.invite.birthRequired);
           return;
         }
-        execute({
-          token,
-          firstName: values.firstName,
-          lastName: values.lastName,
-          birthDate: values.birthDate || null,
-          guardianEmail: minor ? values.guardianEmail : undefined,
-          consents,
-        });
+        if (birthDate) accept();
+        else setConfirming(true);
       }}
     >
       <div className="grid gap-4 tablet:grid-cols-2">
@@ -97,6 +103,7 @@ export const AcceptForm = ({
             type="date"
             autoComplete="bday"
             value={values.birthDate}
+            readOnly={Boolean(birthDate) && !parentalFlow}
             onChange={(e) => setValues({ ...values, birthDate: e.target.value })}
           />
         )}
@@ -148,6 +155,23 @@ export const AcceptForm = ({
       <Button type="submit" size="lg" disabled={isPending}>
         {m.invite.accept}
       </Button>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={m.age.checkTitle}
+        description={
+          values.birthDate
+            ? m.age.check(
+                new Date(`${values.birthDate}T12:00:00Z`).toLocaleDateString("fr-FR"),
+                ageAt(values.birthDate, new Date(), "Europe/Paris"),
+              )
+            : undefined
+        }
+        confirmLabel={m.age.saveConfirmed}
+        cancelLabel={m.age.correct}
+        tone="neutral"
+        onConfirm={accept}
+      />
     </form>
   );
 };

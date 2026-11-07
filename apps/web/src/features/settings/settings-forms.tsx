@@ -96,10 +96,8 @@ export const ProfileForm = ({
             />
           )}
         </Field>
-        <Field label={m.invite.birthDate}>
-          {(a) => (
-            <Input {...a} type="date" value={v.birthDate} onChange={(e) => setV({ ...v, birthDate: e.target.value })} />
-          )}
+        <Field label={m.invite.birthDate} hint={m.age.alreadySet}>
+          {(a) => <Input {...a} type="date" value={v.birthDate} readOnly />}
         </Field>
         <Field label="Unités">
           {(a) => (

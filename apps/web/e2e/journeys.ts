@@ -1,3 +1,4 @@
+import { m } from "@tartan/i18n";
 import { expect, type Browser, type Page } from "@playwright/test";
 import { signUp, uniqueEmail } from "./helpers";
 
@@ -49,6 +50,7 @@ export const joinAsAthlete = async (
   if (opts.health !== false) await page.getByRole("checkbox", { name: /informations de santé/ }).check();
   await page.getByRole("checkbox", { name: /me filment/ }).check();
   await page.getByRole("button", { name: "Rejoindre le groupe" }).click();
+  await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
   await expect(page.getByRole("heading", { name: `Salut ${firstName}` })).toBeVisible();
   return { context, page };
 };

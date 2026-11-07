@@ -11,7 +11,7 @@ import { InvitationEmail, StaffInvitationEmail } from "@email/auth";
 import { fromDbDate, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
-import { assertAdultDate, parentalFlowEnabled } from "./age.service";
+import { assertAdultDate, assertMemberAge, confirmBirthDate, parentalFlowEnabled } from "./age.service";
 import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
@@ -267,11 +267,14 @@ export const acceptInvitation = async (
       : null,
   ]);
   const knownDate = knownProfile?.birthDate ?? preparedSheet?.birthDate ?? null;
-  const birthDateIso = input.birthDate ?? (knownDate ? fromDbDate(knownDate) : null);
   const parental = parentalFlowEnabled();
+  const birthDateIso =
+    !parental && knownDate ? fromDbDate(knownDate) : (input.birthDate ?? (knownDate ? fromDbDate(knownDate) : null));
   if (parental && isAthlete && !birthDateIso) throw invalid(m.invite.birthRequired);
   // Refus avant la transaction : l'invitation n'est pas consommée. Une date déjà connue ne se contourne pas par la saisie.
-  await assertAdultDate(knownDate ? fromDbDate(knownDate) : birthDateIso, { actorId: actor.userId });
+  if (!parental && !knownProfile?.birthDate && birthDateIso) await confirmBirthDate(actor.userId, birthDateIso);
+  else await assertAdultDate(knownDate ? fromDbDate(knownDate) : birthDateIso, { actorId: actor.userId });
+  if (preparedSheet?.birthDate) await assertAdultDate(fromDbDate(preparedSheet.birthDate), { actorId: actor.userId });
   const minor = parental && isAthlete && requiresParentalConsent(birthDateIso, new Date());
   if (minor && !input.guardianEmail) throw invalid(m.invite.guardianHint);
   if (!isAthlete) {
@@ -297,8 +300,11 @@ export const acceptInvitation = async (
         : error;
     });
   }
-  const birthDate = birthDateIso ? toDbDate(birthDateIso) : null;
   const athleteId = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "user" WHERE id = ${actor.userId}::uuid FOR UPDATE`;
+    const currentProfile = await tx.profile.findUnique({ where: { id: actor.userId }, select: { birthDate: true } });
+    const birthDate = parental ? (birthDateIso ? toDbDate(birthDateIso) : null) : (currentProfile?.birthDate ?? null);
+    if (!parental) assertMemberAge(birthDate);
     // Réservation atomique : un lien nominatif à usage unique ne sert qu'une fois, même en concurrence.
     const claimed = await tx.invitation.updateMany({
       where: { id: inv.id, ...(inv.maxUses !== null ? { useCount: { lt: inv.maxUses } } : {}) },
@@ -309,7 +315,7 @@ export const acceptInvitation = async (
     await tx.profile.upsert({
       where: { id: actor.userId },
       create: { id: actor.userId, firstName: input.firstName, lastName: input.lastName, birthDate },
-      update: { firstName: input.firstName, lastName: input.lastName, birthDate },
+      update: { firstName: input.firstName, lastName: input.lastName, ...(parental ? { birthDate } : {}) },
     });
     await tx.user.update({
       where: { id: actor.userId },

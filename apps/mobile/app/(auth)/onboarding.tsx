@@ -1,8 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
 import { m } from "@tartan/i18n";
+import { ageAt } from "@tartan/domain";
 import { Redirect, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BirthDateField, toIsoBirthDate, type BirthParts } from "../../src/features/birth-date-field";
 import { InviteLinkSheet } from "../../src/features/invite-link-sheet";
@@ -89,7 +90,25 @@ export default function Onboarding() {
     if (!groupName.trim()) next.groupName = m.mobile.forms.groupNameRequired;
     setErrors(next);
     setFormError(null);
-    if (Object.keys(next).length === 0) create.mutate();
+    if (Object.keys(next).length) return;
+    const date = toIsoBirthDate(birth);
+    if (me.data?.birthDate) {
+      create.mutate();
+      return;
+    }
+    if (!date) {
+      setStep("profile");
+      setErrors({ birthDate: m.mobile.invite.birthRequired });
+      return;
+    }
+    Alert.alert(
+      m.age.checkTitle,
+      m.age.check(new Date(`${date}T12:00:00Z`).toLocaleDateString("fr-FR"), ageAt(date, new Date(), "Europe/Paris")),
+      [
+        { text: m.age.correct, style: "cancel", onPress: () => setStep("profile") },
+        { text: m.age.saveConfirmed, onPress: () => create.mutate() },
+      ],
+    );
   };
 
   return (

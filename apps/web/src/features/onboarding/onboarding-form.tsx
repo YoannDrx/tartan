@@ -4,9 +4,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { ageAt } from "@tartan/domain";
+import { confirmAgeInput } from "@tartan/contracts";
 import { z } from "zod";
 import { m } from "@tartan/i18n";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CheckRow, Field, Input, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { createSpaceAction } from "./onboarding.action";
@@ -14,7 +18,7 @@ import { createSpaceAction } from "./onboarding.action";
 const schema = z.object({
   firstName: z.string().trim().min(1, "Indique ton prénom"),
   lastName: z.string().trim().min(1, "Indique ton nom"),
-  birthDate: z.string().min(1, m.invite.birthRequired),
+  birthDate: confirmAgeInput.shape.birthDate,
   name: z.string().trim().min(1, "Donne un nom à ton espace"),
   type: z.enum(["club", "independent"]),
   firstGroupName: z.string().trim().min(1, "Donne un nom à ton premier groupe"),
@@ -33,9 +37,18 @@ export const OnboardingForm = ({
   nextPath: string;
 }) => {
   const router = useRouter();
+  const [pending, setPending] = useState<z.infer<typeof schema> | null>(null);
   const form = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { firstName, lastName, birthDate, name: "", type: "independent" as const, firstGroupName: "", termsAccepted: false },
+    defaultValues: {
+      firstName,
+      lastName,
+      birthDate,
+      name: "",
+      type: "independent" as const,
+      firstGroupName: "",
+      termsAccepted: false,
+    },
   });
   const { errors } = form.formState;
   const { execute, isPending } = useAction(createSpaceAction, {
@@ -46,21 +59,21 @@ export const OnboardingForm = ({
     onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),
   });
   const prenom = form.watch("firstName") || "Thomas";
+  const save = (v: z.infer<typeof schema>) =>
+    execute({
+      name: v.name,
+      type: v.type,
+      firstGroupName: v.firstGroupName,
+      disciplines: [],
+      profile: { firstName: v.firstName, lastName: v.lastName, birthDate: v.birthDate },
+      termsAccepted: true,
+    });
 
   return (
     <form
       noValidate
       className="flex flex-col gap-6"
-      onSubmit={form.handleSubmit((v) =>
-        execute({
-          name: v.name,
-          type: v.type,
-          firstGroupName: v.firstGroupName,
-          disciplines: [],
-          profile: { firstName: v.firstName, lastName: v.lastName, birthDate: v.birthDate },
-          termsAccepted: true,
-        }),
-      )}
+      onSubmit={form.handleSubmit((v) => (birthDate ? save(v) : setPending(v)))}
     >
       <fieldset className="flex flex-col gap-4">
         <legend className="t-h2 mb-3">{m.onboarding.profileTitle}</legend>
@@ -73,7 +86,15 @@ export const OnboardingForm = ({
           </Field>
         </div>
         <Field label={m.invite.birthDate} error={errors.birthDate?.message}>
-          {(a) => <Input {...a} type="date" autoComplete="bday" {...form.register("birthDate")} />}
+          {(a) => (
+            <Input
+              {...a}
+              type="date"
+              autoComplete="bday"
+              readOnly={Boolean(birthDate)}
+              {...form.register("birthDate")}
+            />
+          )}
         </Field>
       </fieldset>
       <fieldset className="flex flex-col gap-4">
@@ -108,6 +129,27 @@ export const OnboardingForm = ({
       <Button type="submit" size="lg" disabled={isPending}>
         {m.onboarding.createSpace}
       </Button>
+      <ConfirmDialog
+        open={Boolean(pending)}
+        onOpenChange={(open) => {
+          if (!open) setPending(null);
+        }}
+        title={m.age.checkTitle}
+        description={
+          pending
+            ? m.age.check(
+                new Date(`${pending.birthDate}T12:00:00Z`).toLocaleDateString("fr-FR"),
+                ageAt(pending.birthDate, new Date(), "Europe/Paris"),
+              )
+            : undefined
+        }
+        confirmLabel={m.age.saveConfirmed}
+        cancelLabel={m.age.correct}
+        tone="neutral"
+        onConfirm={() => {
+          if (pending) save(pending);
+        }}
+      />
     </form>
   );
 };

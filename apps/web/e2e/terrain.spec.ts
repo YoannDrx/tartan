@@ -94,6 +94,7 @@ test("un mineur est refusé, et le lien d'invitation reste valable", async ({ pa
   await expect(page.getByLabel(m.invite.guardianEmail)).toHaveCount(0);
   await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
   await page.getByRole("button", { name: "Rejoindre le groupe" }).click();
+  await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: m.age.restricted })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Salut Jeune" })).toHaveCount(0);
   // L'invitation n'est pas consommée : le lien marche encore pour quelqu'un d'autre.

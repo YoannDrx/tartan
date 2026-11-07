@@ -9,9 +9,9 @@ import { prisma } from "@/lib/prisma";
 import { m } from "@tartan/i18n";
 import { put } from "@vercel/blob";
 import { env } from "@/lib/env";
-import { fromDbDateOrNull, toDbDate } from "@/lib/dates";
+import { fromDbDateOrNull } from "@/lib/dates";
 import { AppError, invalid, notFound } from "@/lib/errors";
-import { assertAdultDate } from "./age.service";
+import { assertAdultDate, confirmBirthDate } from "./age.service";
 import { coachGroupIds, requireOrgMember, requireGroupInScope, type Access } from "./access";
 import { firstNameOf } from "./me.service";
 import { assertWithinPlan, ensurePlans, syncEntitlements } from "./billing.service";
@@ -57,11 +57,9 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
   if (!canCreateCoachSpace(user.email)) throw new AppError(403, "signup_closed", m.onboarding.closed);
   // La date déjà enregistrée prime : ce contrôle couvre aussi POST /api/v1/orgs.
   const knownBirthDate = fromDbDateOrNull(user.profile?.birthDate);
-  await assertAdultDate(knownBirthDate ?? input.birthDate, { actorId: userId });
   if (!knownBirthDate && input.birthDate) {
-    const birthDate = toDbDate(input.birthDate);
-    await prisma.profile.upsert({ where: { id: userId }, create: { id: userId, birthDate }, update: { birthDate } });
-  }
+    await confirmBirthDate(userId, input.birthDate);
+  } else await assertAdultDate(knownBirthDate, { actorId: userId });
   await ensurePlans();
   const plan = initialPlan(user.email);
   // L'offre gratuite ne se multiplie pas : un préparateur qui suit plusieurs clubs paie pour en ouvrir d'autres.
