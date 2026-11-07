@@ -22,3 +22,4 @@ export { personalBestIds, toComparableMark, type RecordMark } from "./records";
 export { billingEmailsFor, type BillingEmail, type BillingSnapshot } from "./billing-emails";
 export { containsBlockedWord } from "./moderation";
 export * from "./prescription-snapshot";
+export * from "./performed-sets";

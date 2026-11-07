@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react-native";
-import { forwardRef, useState, type ReactNode } from "react";
+import { forwardRef, useId, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -61,6 +61,7 @@ type ButtonProps = {
   icon?: LucideIcon;
   loading?: boolean;
   disabled?: boolean;
+  selected?: boolean;
   compact?: boolean;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
@@ -75,6 +76,7 @@ export const Button = ({
   icon: Icon,
   loading,
   disabled,
+  selected,
   compact,
   style,
   accessibilityLabel,
@@ -102,7 +104,7 @@ export const Button = ({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: off, busy: Boolean(loading) }}
+      accessibilityState={{ disabled: off, busy: Boolean(loading), ...(selected === undefined ? {} : { selected }) }}
       android_ripple={{ color: p.ripple }}
       style={({ pressed }) => [
         {
@@ -282,11 +284,12 @@ type FieldProps = TextInputProps & {
 export const Field = forwardRef<TextInput, FieldProps>(
   ({ label, error, hint, hideLabel, containerStyle, style, onFocus, onBlur, ...rest }, ref) => {
     const p = usePalette();
+    const labelId = useId();
     const [focused, setFocused] = useState(false);
     return (
       <View style={[{ gap: space.xs + 2 }, containerStyle]}>
         {hideLabel ? null : (
-          <T variant="smallStrong" nativeID={`label-${label}`}>
+          <T variant="smallStrong" nativeID={labelId}>
             {label}
           </T>
         )}
@@ -294,7 +297,7 @@ export const Field = forwardRef<TextInput, FieldProps>(
           ref={ref}
           accessibilityLabel={label}
           accessibilityHint={hint}
-          accessibilityLabelledBy={hideLabel ? undefined : `label-${label}`}
+          accessibilityLabelledBy={hideLabel ? undefined : labelId}
           placeholderTextColor={scene.textMuted}
           selectionColor={scene.link}
           cursorColor={scene.link}

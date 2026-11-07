@@ -35,6 +35,8 @@ export const freezePrescription = (
             prescription,
             resolvedLoadKg: old.resolvedLoadKg,
             strengthReference: old.strengthReference ?? null,
+            ...(old.strengthLoadKind !== undefined ? { strengthLoadKind: old.strengthLoadKind } : {}),
+            ...(old.loadStepKg !== undefined ? { loadStepKg: old.loadStepKg } : {}),
           };
         const key = prescription.load?.type === "pct_1rm" ? prescription.load.test : null;
         const source = key ? (latestTest(references, key) as Reference | null) : null;

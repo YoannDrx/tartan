@@ -62,6 +62,11 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
           {validated ? m.today.review : m.today.start}
         </Link>
       </Button>
+      {session.progressionEnabled ? (
+        <Button asChild variant="secondary">
+          <Link href={`/seance/${id}/series`}>{m.progression.setsTitle}</Link>
+        </Button>
+      ) : null}
       {session.blocks.map((block) => (
         <section key={block.ref} className="flex flex-col gap-2">
           <h2 className="t-h2">{block.name}</h2>

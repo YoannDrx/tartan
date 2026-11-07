@@ -107,6 +107,8 @@ export const buildSnapshot = async (organizationId: string, draft: SessionDraft)
           cues: exercise.cues,
           media: mediaSnapshot(exercise.media[0]),
           prescription: item.prescription,
+          strengthLoadKind: exercise.strengthLoadKind,
+          loadStepKg: Number(exercise.loadStepKg),
         };
       }),
     })),

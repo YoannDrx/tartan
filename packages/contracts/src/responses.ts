@@ -9,7 +9,7 @@ import {
   sessionVariant,
   videoStatus,
 } from "./enums";
-import { prescriptionSchema, snapshotBlock, sessionDraft, uuid } from "./session";
+import { prescriptionSchema, snapshotBlock, snapshotItem, sessionDraft, uuid } from "./session";
 import { detailedSetInput } from "./requests";
 
 export const spaceSummary = z.object({
@@ -93,12 +93,15 @@ export const resolvedItem = z.object({
   cues: z.array(z.string()),
   media: z.unknown().nullable(),
   prescription: prescriptionSchema,
+  strengthLoadKind: snapshotItem.shape.strengthLoadKind,
+  loadStepKg: snapshotItem.shape.loadStepKg,
   resolvedLoadKg: z.number().nullable(),
   summary: z.string(),
 });
 export type ResolvedItem = z.infer<typeof resolvedItem>;
 
 export const athleteSessionDetail = athleteSessionCard.extend({
+  progressionEnabled: z.boolean().optional(),
   sessionVersion: z.number().int().optional(),
   blocks: z.array(snapshotBlock.omit({ items: true }).extend({ items: z.array(resolvedItem) })),
   log: z
@@ -108,6 +111,7 @@ export const athleteSessionDetail = athleteSessionCard.extend({
       durationMin: z.number().nullable(),
       comment: z.string().nullable(),
       version: z.number().int().optional(),
+      clientId: z.string().nullable().optional(),
       detailedSets: z.array(detailedSetInput).optional(),
     })
     .nullable(),

@@ -70,6 +70,8 @@ export const snapshotItem = z.object({
   cues: z.array(z.string()),
   media: exerciseMediaSnapshot.nullable(),
   prescription: prescriptionSchema,
+  strengthLoadKind: z.enum(["external_total", "added_weight", "assistance", "bodyweight"]).nullable().optional(),
+  loadStepKg: z.number().positive().optional(),
   resolvedLoadKg: z.number().nullable().optional(),
   strengthReference: z
     .object({

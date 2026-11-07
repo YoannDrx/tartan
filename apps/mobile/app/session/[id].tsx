@@ -201,6 +201,16 @@ export default function SessionMode() {
   return (
     <StackScreen
       dark
+      right={
+        session.progressionEnabled ? (
+          <Button
+            compact
+            variant="secondary"
+            label={m.progression.setsTitle}
+            onPress={() => router.push(`/session-sets/${id}` as never)}
+          />
+        ) : undefined
+      }
       backIcon="close"
       backLabel={m.sessionMode.quit}
       onBack={confirmQuit}

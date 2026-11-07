@@ -290,3 +290,52 @@ it("refuse le coach hors groupe, le membre suspendu et l'autre espace", async ()
     getAthleteSessionForCoach(a.athlete.userId, a.organizationId, a.session.id, a.athlete.athleteId),
   ).rejects.toMatchObject({ status: 403 });
 });
+
+it("corriger les séries préserve le retour de séance et sa date de validation", async () => {
+  const a = await setup();
+  const first = await a.log({
+    rpe: 7,
+    durationMin: 50,
+    comment: "Retour conservé",
+    pain: { bodyArea: "knee", side: "left", intensity: 2 },
+    completedAt: "2030-06-12T10:00:00Z",
+  });
+  await a.log({ expectedVersion: first.version, writeScope: "sets", status: "partial", detailedSets: [] });
+  const row = await prisma.sessionLog.findUniqueOrThrow({ where: { id: first.id } });
+  expect(row).toMatchObject({
+    rpe: 7,
+    durationMin: 50,
+    comment: "Retour conservé",
+    pain: { bodyArea: "knee", side: "left", intensity: 2 },
+    status: "partial",
+  });
+  expect(row.completedAt?.toISOString()).toBe("2030-06-12T10:00:00.000Z");
+  await expect(a.log({ expectedVersion: row.version, writeScope: "sets", rpe: null })).rejects.toThrow();
+});
+
+it("expose le drapeau et la convention de charge figée dans la séance", async () => {
+  const a = await setup();
+  await prisma.exercise.update({
+    where: { id: a.exercise.id },
+    data: { strengthLoadKind: "assistance", loadStepKg: 2.5 },
+  });
+  const created = await saveScheduledSession(a.owner.userId, a.organizationId, a.input);
+  await publishRow(created.id, a.owner.userId, new Date("2030-06-01T10:00:00Z"), { silent: true });
+  await prisma.exercise.update({ where: { id: a.exercise.id }, data: { strengthLoadKind: "external_total" } });
+  const detail = await getAthleteSession(a.athlete.userId, a.organizationId, created.id);
+  expect(detail.progressionEnabled).toBe(true);
+  expect(detail.blocks[0]?.items[0]).toMatchObject({ strengthLoadKind: "assistance", loadStepKg: 2.5 });
+});
+
+it("des cases simples ne remplacent pas les séries détaillées, même avec la bonne version", async () => {
+  const a = await setup();
+  const first = await a.log();
+  await a.log({
+    expectedVersion: first.version,
+    detailedSets: undefined,
+    sets: [{ itemRef: "b0-i0", setIndex: 0, done: true }],
+  });
+  const detail = await getAthleteSession(a.athlete.userId, a.organizationId, a.session.id);
+  expect(detail.log?.detailedSets).toHaveLength(1);
+  expect(detail.log?.detailedSets?.[0]).toMatchObject({ loadKg: 40, reps: 4, loadKind: "external" });
+});

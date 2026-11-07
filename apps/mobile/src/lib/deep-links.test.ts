@@ -7,6 +7,7 @@ describe("liens du site vers l'app", () => {
   it("ouvre la séance, y compris son mode séance", () => {
     expect(sessionRoute(id)).toBe(`/session/${id}`);
     expect(sessionRoute([id, "mode"])).toBe(`/session/${id}`);
+    expect(sessionRoute([id, "series"])).toBe(`/session-sets/${id}`);
   });
 
   it("ouvre le saut, ou la liste sans identifiant", () => {

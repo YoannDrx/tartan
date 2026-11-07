@@ -259,6 +259,8 @@ export const sessionLogInput = z
     clientId: z.string().min(8).max(64),
     status: z.enum(["done", "partial"]),
     variantDone: sessionVariant,
+    // Une saisie de séries ne remplace pas le retour de séance déjà enregistré.
+    writeScope: z.enum(["all", "sets"]).optional(),
     rpe: z.number().int().min(1).max(10).nullable().optional(),
     durationMin: z.number().int().min(1).max(600).nullable().optional(),
     comment: trimmed(1000).nullable().optional(),
@@ -270,6 +272,20 @@ export const sessionLogInput = z
     completedAt: z.iso.datetime().optional(),
   })
   .superRefine((input, ctx) => {
+    if (
+      input.writeScope === "sets" &&
+      (input.detailedSets === undefined ||
+        input.rpe !== undefined ||
+        input.pain !== undefined ||
+        input.durationMin !== undefined ||
+        input.comment !== undefined)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["writeScope"],
+        message: "La saisie des séries ne modifie pas le retour de séance.",
+      });
+    }
     if (
       input.detailedSets !== undefined &&
       (input.expectedVersion === undefined || input.expectedSessionVersion === undefined)

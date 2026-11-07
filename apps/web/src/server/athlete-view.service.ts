@@ -221,6 +221,7 @@ const readAthleteSession = async (
       createdBy: true,
       snapshot: true,
       prescriptionFrozenAt: true,
+      organization: { select: { progressionEnabled: true } },
       attendance: { where: { athleteId: access.athleteId }, select: { status: true } },
       logs: {
         where: { athleteId: access.athleteId },
@@ -231,6 +232,7 @@ const readAthleteSession = async (
           durationMin: true,
           comment: true,
           version: true,
+          clientId: true,
           sets: true,
           prescriptionSnapshot: true,
           sessionVersion: true,
@@ -299,6 +301,7 @@ const readAthleteSession = async (
   return {
     ...card,
     sessionVersion: session.version,
+    progressionEnabled: session.organization.progressionEnabled,
     blocks: blocks.map((block) => ({
       ref: block.ref,
       name: block.name,
@@ -317,6 +320,8 @@ const readAthleteSession = async (
           cues: item.cues,
           media: item.media,
           prescription,
+          strengthLoadKind: item.strengthLoadKind,
+          loadStepKg: item.loadStepKg,
           resolvedLoadKg,
           summary: formatPrescription(prescription, resolvedLoadKg),
         };
@@ -329,6 +334,7 @@ const readAthleteSession = async (
           durationMin: log.durationMin,
           comment: log.comment,
           version: log.version,
+          clientId: log.clientId,
           detailedSets: log.sets.flatMap((set) => {
             const parsed = detailedSetInput.safeParse({
               ...set,
@@ -521,6 +527,15 @@ const persistSessionLog = async (
         : undefined;
     const versioned = {
       ...data,
+      ...(input.writeScope === "sets"
+        ? {
+            rpe: consent?.health ? (existing?.rpe ?? null) : null,
+            durationMin: existing?.durationMin ?? null,
+            comment: existing?.comment ?? null,
+            pain: consent?.health ? (existing?.pain ?? Prisma.DbNull) : Prisma.DbNull,
+            completedAt: existing?.completedAt ?? data.completedAt,
+          }
+        : {}),
       version,
       recordedBy: userId,
       ...(currentSession.prescriptionFrozenAt && !existing?.sessionVersion
@@ -540,7 +555,7 @@ const persistSessionLog = async (
     });
     // Anciennes applications / action rapide : [] veut dire « aucun détail envoyé », pas « tout effacer ».
     // Le contrat détaillé versionné permet, lui, une suppression explicite avec detailedSets: [].
-    if (input.detailedSets !== undefined || sets.length > 0) {
+    if (input.detailedSets !== undefined || (sets.length > 0 && !existing?.prescriptionSnapshot)) {
       await tx.setLog.deleteMany({ where: { sessionLogId: row.id } });
       await tx.setLog.createMany({
         data: sets.map((s, index) => ({
