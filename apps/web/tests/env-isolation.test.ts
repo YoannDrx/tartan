@@ -39,6 +39,12 @@ describe("garde d'environnement", () => {
 });
 
 describe("comparaison des environnements", () => {
+  it("ne confond pas deux valeurs masquées par Vercel avec des secrets identiques", () => {
+    const [result] = compareEnvironments({ production: { KEY: "[sensitive]" }, preview: { KEY: "[sensitive]" } }, [
+      "KEY",
+    ]);
+    expect(result?.others[0]?.status).toBe("illisible ou absent en production");
+  });
   it("dit identique, distinct ou illisible sans jamais renvoyer de valeur", () => {
     const results = compareEnvironments(
       {

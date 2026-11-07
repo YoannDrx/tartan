@@ -171,6 +171,8 @@ describe("consentement", () => {
 
   it("calcule l'âge à l'anniversaire près", () => {
     expect(ageAt("2011-11-01", now)).toBe(15);
+    expect(ageAt("2012-06-12", new Date("2030-06-11T23:30:00Z"), "Europe/Paris")).toBe(18);
+    expect(ageAt("2012-06-12", new Date("2030-06-11T23:30:00Z"))).toBe(17);
     expect(ageAt("2011-11-02", now)).toBe(14);
   });
 

@@ -49,6 +49,21 @@ describe("création d'espace", () => {
     const profile = await prisma.profile.findUniqueOrThrow({ where: { id: user.userId } });
     expect(profile.birthDate?.toISOString().slice(0, 10)).toBe("1990-01-01");
   });
+  it("une date refusée à l'onboarding ne se contourne pas par une nouvelle demande ou le profil", async () => {
+    const user = await makeUser("Déclaration initiale", { birthDate: null });
+    await expect(createOrganization(user.userId, { ...organization, birthDate: "2015-01-01" })).rejects.toEqual(
+      code(403, "age_restricted"),
+    );
+    await expect(createOrganization(user.userId, { ...organization, birthDate: "1990-01-01" })).rejects.toEqual(
+      code(403, "age_restricted"),
+    );
+    await expect(
+      updateProfile(user.userId, { firstName: "Prénom", lastName: "Nom", birthDate: "1990-01-01" }),
+    ).rejects.toEqual(code(403, "age_restricted"));
+    expect(
+      (await prisma.profile.findUniqueOrThrow({ where: { id: user.userId } })).birthDate?.toISOString().slice(0, 10),
+    ).toBe("2015-01-01");
+  });
 });
 
 describe("invitations", () => {
@@ -68,6 +83,9 @@ describe("invitations", () => {
     expect(outbox.length).toBe(before);
     expect(await prisma.organizationMember.count({ where: { userId: child.userId } })).toBe(0);
     expect(await prisma.guardian.count({ where: { guardianEmail: { contains: "noa" } } })).toBe(0);
+    await expect(acceptInvitation(actorOf(child), a.token, { ...accept, birthDate: "1990-01-01" })).rejects.toEqual(
+      code(403, "age_restricted"),
+    );
   });
   it("la date est exigée pour tous les rôles, et l'invitation n'est pas consommée", async () => {
     const a = await prepare();

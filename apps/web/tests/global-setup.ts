@@ -5,7 +5,7 @@ import path from "node:path";
 export default function setup() {
   const url = process.env.TEST_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_test";
   const cwd = path.resolve(import.meta.dirname, "..");
-  execFileSync("pnpm", ["exec", "prisma", "migrate", "reset", "--force"], {
+  execFileSync("corepack", ["pnpm", "exec", "prisma", "migrate", "reset", "--force"], {
     cwd,
     env: {
       ...process.env,

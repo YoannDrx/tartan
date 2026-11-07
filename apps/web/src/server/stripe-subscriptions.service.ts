@@ -27,7 +27,7 @@ const objectId = (value: unknown): string | null => {
   return value && typeof value === "object" && "id" in value && typeof value.id === "string" ? value.id : null;
 };
 
-const subscriptionsForCustomer = async (customer: string): Promise<Stripe.Subscription[]> => {
+export const subscriptionsForCustomer = async (customer: string): Promise<Stripe.Subscription[]> => {
   const subscriptions: Stripe.Subscription[] = [];
   const client = stripe();
   let startingAfter: string | undefined;
@@ -71,15 +71,25 @@ export const reconcileStripeSubscription = async (
     // Cet événement est donc acquitté sans être enregistré, pour que son doublon puisse encore s'appliquer.
     if (currentOrg.billingRevision !== org.billingRevision) return;
     const current = await tx.subscription.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } });
-    const related = subscriptions.filter(
+    const attached = subscriptions.filter(
       (s) =>
-        !NEVER_PAID.includes(s.status) &&
         objectId(s.customer) === org.stripeCustomerId &&
         (s.metadata.organizationId === organizationId ||
           (current?.provider === "stripe" && current.providerRef === s.id)),
     );
+    const related = attached.filter((s) => !NEVER_PAID.includes(s.status));
+    const live = attached.filter((s) => !["canceled", "incomplete_expired"].includes(s.status));
     const entitled = related.filter((s) => ENTITLED.includes(s.status));
-    if (entitled.length > 1) log.error("stripe_multiple_subscriptions", { organizationId, count: entitled.length });
+    await tx.organization.update({
+      where: { id: organizationId },
+      data: { billingIssue: live.length > 1 ? "multiple_subscriptions" : null },
+    });
+    if (live.length > 1) {
+      log.error("stripe_multiple_subscriptions", { organizationId, count: live.length });
+      // Ne pas choisir arbitrairement le payeur ni déclencher une opération financière.
+      if (event) await tx.billingEvent.create({ data: { id: event.id, provider: "stripe", type: event.type } });
+      return;
+    }
     const selected = [...(entitled.length ? entitled : related)].sort(
       (a, b) => b.created - a.created || b.id.localeCompare(a.id),
     )[0];
@@ -130,6 +140,7 @@ export const reconcileStripeSubscription = async (
         { paid: isPaidPlan(plan), status, cancelAt, subscriptionId: selected.id },
       );
       for (const email of emails) {
+        if (currentOrg.billingOwnerId && currentOrg.billingOwnerId !== currentOrg.ownerId) continue;
         await enqueueBillingEmail(tx, {
           organizationId,
           to: owner.email,

@@ -94,6 +94,7 @@ test("un mineur est refusé, et le lien d'invitation reste valable", async ({ pa
   await expect(page.getByLabel(m.invite.guardianEmail)).toHaveCount(0);
   await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
   await page.getByRole("button", { name: "Rejoindre le groupe" }).click();
+  await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: m.age.restricted })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Salut Jeune" })).toHaveCount(0);
   // L'invitation n'est pas consommée : le lien marche encore pour quelqu'un d'autre.
@@ -110,6 +111,7 @@ test("un compte sans date confirme son âge avant d'entrer", async ({ page }) =>
   await expect(page.getByText(m.invite.birthRequired)).toBeVisible();
   await page.getByLabel("Date de naissance").fill("1985-03-14");
   await page.getByRole("button", { name: m.age.confirm }).click();
+  await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
   await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible({ timeout: 30_000 });
 });
 

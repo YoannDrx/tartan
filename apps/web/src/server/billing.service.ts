@@ -1,3 +1,4 @@
+import { withCheckoutIntent, intentCheckout } from "./checkout-intent.service";
 import { todayIso } from "@/lib/dates";
 import {
   type BillingInterval,
@@ -22,7 +23,7 @@ import { hasBearer } from "@/lib/secure-compare";
 import { sendEmail } from "@/lib/mail";
 import { videoEnabled } from "@/lib/mux";
 import { drainExternalDeletions } from "./external-deletion.service";
-import { reconcileStripeSubscription } from "./stripe-subscriptions.service";
+import { reconcileStripeSubscription, subscriptionsForCustomer } from "./stripe-subscriptions.service";
 import { prisma } from "@/lib/prisma";
 import { billingEnabled, priceIdFor, stripe } from "@/lib/stripe";
 import { audit, requireOrgMember } from "./access";
@@ -92,14 +93,15 @@ export const assertWithinPlan = async (organizationId: string, key: LimitKey): P
 export const getBillingOverview = async (userId: string, organizationId: string) => {
   const access = await requireOrgMember(userId, organizationId, "viewTracking");
   if (!isStaff(access.role)) throw forbidden();
-  const [org, subscription, limits, usage] = await Promise.all([
+  const [org, subscription, limits, usage, pendingCommands] = await Promise.all([
     prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
-      select: { plan: true, stripeCustomerId: true },
+      select: { plan: true, ownerId: true, stripeCustomerId: true, billingOwnerId: true, billingIssue: true },
     }),
     prisma.subscription.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } }),
     limitsOf(organizationId),
     usageOf(organizationId),
+    prisma.billingCommand.count({ where: { organizationId, state: "pending" } }),
   ]);
   return {
     plan: org.plan,
@@ -110,15 +112,23 @@ export const getBillingOverview = async (userId: string, organizationId: string)
     limits,
     usage,
     canManage: access.role === "owner",
-    billingEnabled: billingEnabled(),
-    hasCustomer: Boolean(org.stripeCustomerId),
+    billingTransferred: Boolean(
+      org.stripeCustomerId &&
+      org.billingOwnerId &&
+      org.billingOwnerId !== org.ownerId &&
+      (pendingCommands > 0 || (subscription?.provider === "stripe" && subscription.status !== "canceled")),
+    ),
+    billingReview: Boolean(org.billingIssue),
+    billingEnabled: billingEnabled() && env().BILLING_CHECKOUT_ENABLED === "true",
+    hasCustomer:
+      Boolean(org.stripeCustomerId) && (!org.billingOwnerId || org.billingOwnerId === userId) && !org.billingIssue,
   };
 };
 
 const INVOICE_FOOTER =
   "Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590. TVA non applicable, article 293 B du CGI.";
 
-const LIVE_SUBSCRIPTIONS: readonly string[] = ["active", "trialing", "past_due", "incomplete"];
+const LIVE_SUBSCRIPTIONS: readonly string[] = ["active", "trialing", "past_due", "incomplete", "unpaid", "paused"];
 
 export const createCheckout = async (
   userId: string,
@@ -127,83 +137,124 @@ export const createCheckout = async (
 ): Promise<{ url: string }> => {
   await requireOrgMember(userId, organizationId, "manageSubscription");
   const price = priceIdFor(input.plan, input.interval);
-  if (!billingEnabled() || !price) throw new AppError(503, "billing_disabled", m.billing.disabled);
-  const org = await prisma.organization.findUniqueOrThrow({ where: { id: organizationId } });
-  const owner = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, name: true } });
-  // Un abonnement en cours se change depuis le portail : un second Checkout ferait payer deux fois.
-  const current = await prisma.subscription.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } });
-  if (current && current.status !== "canceled" && isPaidPlan(current.planKey as PlanKey)) {
-    if (current.provider === "revenuecat") throw new AppError(409, "store_subscription", m.billing.storeHint);
-    if (current.provider === "stripe" && org.stripeCustomerId) return createPortal(userId, organizationId);
-  }
-  const client = stripe();
-  let customerId = org.stripeCustomerId;
-  if (customerId) {
-    // Un webhook perdu laisse la base en retard : Stripe fait foi, et deux onglets ne créent qu'un abonnement.
-    const { data: subscriptions } = await client.subscriptions.list({ customer: customerId, status: "all", limit: 10 });
-    if (subscriptions.some((subscription) => LIVE_SUBSCRIPTIONS.includes(subscription.status))) {
+  if (!billingEnabled() || !price || env().BILLING_CHECKOUT_ENABLED === "false")
+    throw new AppError(503, "billing_disabled", m.billing.disabled);
+  return withCheckoutIntent(organizationId, input, async (intent, leaseToken) => {
+    let org = await prisma.organization.findUniqueOrThrow({ where: { id: organizationId } });
+    if (org.ownerId !== userId) throw forbidden();
+    if (org.billingIssue) throw new AppError(409, "billing_review", m.billing.checkoutReview);
+    const remoteSubscriptions = org.stripeCustomerId ? await subscriptionsForCustomer(org.stripeCustomerId) : [];
+    if (remoteSubscriptions.filter((s) => LIVE_SUBSCRIPTIONS.includes(s.status)).length > 1) {
       await reconcileStripeSubscription(organizationId);
-      return createPortal(userId, organizationId);
+      throw new AppError(409, "billing_review", m.billing.checkoutReview);
     }
-    const { data: openSessions } = await client.checkout.sessions.list({
-      customer: customerId,
-      status: "open",
-      limit: 10,
+    const closedSubscriptionIds = remoteSubscriptions.filter((s) => s.status === "canceled").map((s) => s.id);
+    const currentBeforeTransfer = await prisma.subscription.findFirst({
+      where: { organizationId },
+      orderBy: { createdAt: "desc" },
     });
-    await Promise.all(openSessions.map((session) => client.checkout.sessions.expire(session.id)));
-  }
-  if (!customerId) {
-    const customer = await client.customers.create(
+    if (org.billingOwnerId && org.billingOwnerId !== userId) {
+      const pending = await prisma.billingCommand.count({ where: { organizationId, state: "pending" } });
+      if (
+        pending ||
+        remoteSubscriptions.some((s) => LIVE_SUBSCRIPTIONS.includes(s.status)) ||
+        (currentBeforeTransfer?.provider === "stripe" && currentBeforeTransfer.status !== "canceled")
+      ) {
+        throw new AppError(409, "billing_transferred", m.billing.transferred);
+      }
+      org = await prisma.organization.update({
+        where: { id: organizationId },
+        data: { stripeCustomerId: null, billingOwnerId: null },
+      });
+    }
+    const owner = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, name: true } });
+    // Un abonnement en cours se change depuis le portail : un second Checkout ferait payer deux fois.
+    const current = await prisma.subscription.findFirst({ where: { organizationId }, orderBy: { createdAt: "desc" } });
+    if (current && current.status !== "canceled" && isPaidPlan(current.planKey as PlanKey)) {
+      if (current.provider === "revenuecat") throw new AppError(409, "store_subscription", m.billing.storeHint);
+      if (current.provider === "stripe" && org.stripeCustomerId) return createPortal(userId, organizationId);
+    }
+    const client = stripe();
+    let customerId = org.stripeCustomerId;
+    if (customerId) {
+      // Un webhook perdu laisse la base en retard : Stripe fait foi, et deux onglets ne créent qu'un abonnement.
+      if (remoteSubscriptions.some((subscription) => LIVE_SUBSCRIPTIONS.includes(subscription.status))) {
+        await reconcileStripeSubscription(organizationId);
+        return createPortal(userId, organizationId);
+      }
+      if (!intent.request) {
+        // La migration peut trouver plusieurs sessions ouvertes. Aucun résultat partiel ne suffit.
+        for (let page = 0; ; page++) {
+          if (page === 10) throw new AppError(409, "billing_review", m.billing.checkoutReview);
+          const result = await client.checkout.sessions.list({ customer: customerId, status: "open", limit: 100 });
+          for (const session of result.data) {
+            const expired = await client.checkout.sessions.expire(session.id);
+            if (expired.status !== "expired") throw new AppError(409, "billing_review", m.billing.checkoutReview);
+          }
+          if (!result.has_more) break;
+        }
+      }
+    }
+    if (!customerId) {
+      const customer = await client.customers.create(
+        {
+          email: owner.email,
+          name: org.name,
+          metadata: { organizationId },
+          preferred_locales: ["fr"],
+          // Identité du vendeur et franchise en base de TVA : mentions obligatoires sur chaque facture.
+          invoice_settings: { footer: INVOICE_FOOTER },
+        },
+        { idempotencyKey: `customer-${organizationId}-${userId}` },
+      );
+      customerId = customer.id;
+      await prisma.organization.update({
+        where: { id: organizationId },
+        data: { stripeCustomerId: customerId, billingOwnerId: userId },
+      });
+    }
+    // Un seul essai par propriétaire : ni résilier puis reprendre, ni ouvrir un autre espace ne le redonne.
+    const alreadyPaid = await prisma.subscription.count({
+      where: { organization: { ownerId: org.ownerId }, provider: { in: ["stripe", "revenuecat"] } },
+    });
+    const appUrl = env().NEXT_PUBLIC_APP_URL;
+    return intentCheckout(
+      intent,
+      leaseToken,
+      input,
       {
-        email: owner.email,
-        name: org.name,
-        metadata: { organizationId },
-        preferred_locales: ["fr"],
-        // Identité du vendeur et franchise en base de TVA : mentions obligatoires sur chaque facture.
-        invoice_settings: { footer: INVOICE_FOOTER },
+        mode: "subscription",
+        customer: customerId,
+        client_reference_id: organizationId,
+        line_items: [{ price, quantity: 1 }],
+        locale: "fr",
+        allow_promotion_codes: true,
+        billing_address_collection: "required",
+        tax_id_collection: { enabled: true },
+        customer_update: { address: "auto", name: "auto" },
+        automatic_tax: { enabled: env().STRIPE_TAX_ENABLED === "true" },
+        subscription_data: {
+          metadata: { organizationId },
+          ...(alreadyPaid === 0 ? { trial_period_days: TRIAL_DAYS } : {}),
+        },
+        // Le compte Stripe sert plusieurs produits : la page de paiement doit afficher Tartan.
+        branding_settings: {
+          display_name: "Tartan",
+          button_color: "#C4442B",
+          background_color: "#15161A",
+          icon: { type: "url", url: `${appUrl}/icon-512.png` },
+        },
+        custom_text: {
+          submit: {
+            message: `En validant, tu acceptes les conditions de vente (${appUrl}/cgv) et tu demandes que le service commence tout de suite. Si tu te rétractes sous 14 jours, le service déjà fourni reste dû.`,
+          },
+        },
+        success_url: `${appUrl}/abonnement?merci=1`,
+        cancel_url: `${appUrl}/abonnement`,
       },
-      { idempotencyKey: `customer-${organizationId}` },
+      closedSubscriptionIds,
     );
-    customerId = customer.id;
-    await prisma.organization.update({ where: { id: organizationId }, data: { stripeCustomerId: customerId } });
-  }
-  // Un seul essai par propriétaire : ni résilier puis reprendre, ni ouvrir un autre espace ne le redonne.
-  const alreadyPaid = await prisma.subscription.count({
-    where: { organization: { ownerId: org.ownerId }, provider: { in: ["stripe", "revenuecat"] } },
   });
-  const appUrl = env().NEXT_PUBLIC_APP_URL;
-  const session = await client.checkout.sessions.create({
-    mode: "subscription",
-    customer: customerId,
-    client_reference_id: organizationId,
-    line_items: [{ price, quantity: 1 }],
-    locale: "fr",
-    allow_promotion_codes: true,
-    billing_address_collection: "required",
-    tax_id_collection: { enabled: true },
-    customer_update: { address: "auto", name: "auto" },
-    automatic_tax: { enabled: env().STRIPE_TAX_ENABLED === "true" },
-    subscription_data: {
-      metadata: { organizationId },
-      ...(alreadyPaid === 0 ? { trial_period_days: TRIAL_DAYS } : {}),
-    },
-    // Le compte Stripe sert plusieurs produits : la page de paiement doit afficher Tartan.
-    branding_settings: {
-      display_name: "Tartan",
-      button_color: "#C4442B",
-      background_color: "#15161A",
-      icon: { type: "url", url: `${appUrl}/icon-512.png` },
-    },
-    custom_text: {
-      submit: {
-        message: `En validant, tu acceptes les conditions de vente (${appUrl}/cgv) et tu demandes que le service commence tout de suite. Si tu te rétractes sous 14 jours, le service déjà fourni reste dû.`,
-      },
-    },
-    success_url: `${appUrl}/abonnement?merci=1`,
-    cancel_url: `${appUrl}/abonnement`,
-  });
-  if (!session.url) throw new Error("stripe_checkout_url_missing");
-  return { url: session.url };
 };
 
 export const syncAfterCheckout = async (userId: string, organizationId: string): Promise<void> => {
@@ -221,8 +272,11 @@ export const createPortal = async (userId: string, organizationId: string): Prom
   await requireOrgMember(userId, organizationId, "manageSubscription");
   const org = await prisma.organization.findUniqueOrThrow({
     where: { id: organizationId },
-    select: { stripeCustomerId: true },
+    select: { stripeCustomerId: true, billingOwnerId: true, billingIssue: true },
   });
+  if (org.billingIssue) throw new AppError(409, "billing_review", m.billing.checkoutReview);
+  if (org.billingOwnerId && org.billingOwnerId !== userId)
+    throw new AppError(409, "billing_transferred", m.billing.transferred);
   if (!billingEnabled() || !org.stripeCustomerId) throw notFound();
   const session = await stripe().billingPortal.sessions.create({
     customer: org.stripeCustomerId,

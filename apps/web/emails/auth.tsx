@@ -166,3 +166,11 @@ export const InactivityNoticeEmail = ({ days, url }: { days: number; url: string
     </Layout>
   );
 };
+
+export const WorkspaceInactivityEmail = ({ space, days, url }: { space: string; days: number; url: string }) => (
+  <Layout preview={m.email.workspaceInactivity.subject(space)}>
+    <Title>{m.email.workspaceInactivity.subject(space)}</Title>
+    <Paragraph>{m.email.workspaceInactivity.body(days)}</Paragraph>
+    <PrimaryLink href={url}>{m.email.workspaceInactivity.cta}</PrimaryLink>
+  </Layout>
+);

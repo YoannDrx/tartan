@@ -158,6 +158,11 @@ model Organization {
   owner       User             @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   plan        OrganizationPlan @default(discovery)
   stripeCustomerId String?     @unique @map("stripe_customer_id")
+  // Identité du payeur : conservée au transfert, jamais assimilée au nouveau propriétaire.
+  billingOwnerId String?       @map("billing_owner_id") @db.Uuid
+  billingIssue String?         @map("billing_issue")
+  lastBusinessActivityAt DateTime? @map("last_business_activity_at")
+  retentionReviewAt DateTime? @map("retention_review_at")
   billingRevision Int          @default(0) @map("billing_revision")
   billingSyncedAt DateTime?     @map("billing_synced_at")
   billingSyncAttemptedAt DateTime? @map("billing_sync_attempted_at")
@@ -180,6 +185,7 @@ model Organization {
   auditLogs         AuditLog[]
   subscriptions     Subscription[]
   entitlements      Entitlement[]
+  checkoutIntent    CheckoutIntent?
 
   @@map("organizations")
 }
@@ -508,10 +514,54 @@ model EmailOutbox {
   attempts       Int       @default(0)
   nextAttemptAt  DateTime  @default(now()) @map("next_attempt_at")
   sentAt         DateTime? @map("sent_at")
+  failedAt       DateTime? @map("failed_at")
+  failureCode    String?   @map("failure_code")
+  retryUntil     DateTime? @map("retry_until")
   createdAt      DateTime  @default(now()) @map("created_at")
 
   @@index([sentAt, nextAttemptAt])
   @@map("email_outbox")
+}
+
+model CheckoutIntent {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @unique @map("organization_id") @db.Uuid
+  generation     Int      @default(1)
+  plan           String
+  interval       String
+  state          String   @default("creating")
+  sessionId      String?  @map("session_id")
+  url            String?
+  request        Json?
+  attemptedAt    DateTime? @map("attempted_at")
+  expiresAt      DateTime? @map("expires_at")
+  leaseToken     String?  @map("lease_token")
+  leaseUntil     DateTime? @map("lease_until")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("checkout_intents")
+}
+
+// Sans FK vers l'utilisateur : une suppression ne doit pas perdre l'ordre d'annuler.
+model BillingCommand {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  kind           String
+  externalRef    String   @map("external_ref")
+  state          String   @default("pending")
+  attempts       Int      @default(0)
+  nextAttemptAt  DateTime @default(now()) @map("next_attempt_at")
+  leaseToken     String?  @map("lease_token")
+  leaseUntil     DateTime? @map("lease_until")
+  lastErrorCode  String?  @map("last_error_code")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([kind, externalRef])
+  @@index([state, nextAttemptAt])
+  @@map("billing_commands")
 }
 
 // File d'effacement chez les prestataires. Les triggers SQL de la migration la remplissent à chaque suppression.
@@ -1138,6 +1188,14 @@ model Device {
 }
 
 // Journal des accès aux données sensibles et des suppressions. Jamais de donnée de santé en clair.
+model EmailSuppression {
+  emailHash String @id @map("email_hash")
+  reason String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("email_suppressions")
+}
+
 model AuditLog {
   id             String        @id @default(uuid()) @db.Uuid
   organizationId String?       @map("organization_id") @db.Uuid

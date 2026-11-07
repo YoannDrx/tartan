@@ -3,7 +3,8 @@ export const MINIMUM_AGE = 18;
 
 export type AgeStatus = "adult" | "minor" | "unknown";
 
-export const ageAt = (birthDate: string, now: Date): number => {
+export const ageAt = (birthDate: string, now: Date, timeZone?: string): number => {
+  if (timeZone) now = new Date(`${new Intl.DateTimeFormat("sv-SE", { timeZone }).format(now)}T12:00:00Z`);
   const birth = new Date(`${birthDate}T00:00:00.000Z`);
   let age = now.getUTCFullYear() - birth.getUTCFullYear();
   const beforeBirthday =

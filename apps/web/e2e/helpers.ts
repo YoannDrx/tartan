@@ -36,12 +36,14 @@ export const signUp = async (page: Page, email: string, next = "/connexion") => 
   const signIn = page.getByRole("button", { name: m.auth.signInWithPassword, exact: true });
   await signIn.click();
   // La connexion recharge la page : un champ rempli avant la fin serait perdu.
-  await expect(signIn).toBeHidden();
+  // Le test vidéo utilise next dev : la première compilation de /accueil peut dépasser
+  // 15 s sur le runner CI. Le build de production conserve son seuil strict.
+  await expect(signIn).toBeHidden({ timeout: process.env.E2E_PROD ? 15_000 : 60_000 });
   await page.waitForLoadState("networkidle");
 };
 
-export const createCoachSpace = async (page: Page, name = "Thomas") => {
-  await signUp(page, uniqueEmail(name.toLowerCase()));
+export const createCoachSpace = async (page: Page, name = "Thomas", email = uniqueEmail(name.toLowerCase())) => {
+  await signUp(page, email);
   // En développement, la première compilation d'une page peut prendre longtemps.
   await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible({ timeout: 60_000 });
   await page.waitForLoadState("networkidle");
@@ -54,6 +56,7 @@ export const createCoachSpace = async (page: Page, name = "Thomas") => {
   await page.getByLabel("Premier groupe").fill("Hauteur Élite");
   await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
   await page.getByRole("button", { name: "Créer mon espace" }).click();
+  await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
   await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible({ timeout: 60_000 });
   // Un espace neuf guide le coach, même avec sa bibliothèque de départ.
   await expect(page.getByRole("heading", { name: "Pour démarrer" })).toBeVisible();

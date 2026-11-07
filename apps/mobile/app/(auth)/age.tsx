@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { ageStatus } from "@tartan/domain";
+import { ageAt, ageStatus } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Redirect, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -114,7 +114,17 @@ export default function Age() {
                 return;
               }
               setError(undefined);
-              confirm.mutate(birthDate);
+              Alert.alert(
+                m.age.checkTitle,
+                m.age.check(
+                  new Date(`${birthDate}T12:00:00Z`).toLocaleDateString("fr-FR"),
+                  ageAt(birthDate, new Date(), "Europe/Paris"),
+                ),
+                [
+                  { text: m.age.correct, style: "cancel" },
+                  { text: m.age.saveConfirmed, onPress: () => confirm.mutate(birthDate) },
+                ],
+              );
             }}
           />
           <Button label={m.common.signOut} variant="ghost" onPress={() => void signOut()} />

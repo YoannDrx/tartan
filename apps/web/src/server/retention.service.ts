@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { m } from "@tartan/i18n";
-import { InactivityNoticeEmail } from "@email/auth";
+import { InactivityNoticeEmail, WorkspaceInactivityEmail } from "@email/auth";
 import { env } from "@/lib/env";
 import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
@@ -21,6 +21,7 @@ export const RETENTION_DAYS = {
   resolvedReport: 365,
   billingEvent: 395,
   finishedDeletion: 90,
+  emailOutbox: 30,
   inactiveAccount: 730,
   inactivityNotice: 30,
   sheetWithoutAccount: 365,
@@ -78,7 +79,17 @@ const handleInactiveAccounts = async (now: Date): Promise<{ warned: number; dele
   });
   let deleted = 0;
   for (const profile of toDelete) {
-    await deleteAccount(profile.id)
+    const protectedSpaces = await prisma.organization.updateMany({
+      where: {
+        ownerId: profile.id,
+        lastBusinessActivityAt: { gte: inactiveBefore },
+        members: { none: { userId: { not: profile.id }, status: "active", role: { in: ["coach", "assistant"] } } },
+        retentionReviewAt: null,
+      },
+      data: { retentionReviewAt: now },
+    });
+    if (protectedSpaces.count) log.error("retention_workspace_needs_successor", { count: protectedSpaces.count });
+    await deleteAccount(profile.id, { inactiveBefore })
       .then(() => {
         deleted += 1;
       })
@@ -92,6 +103,30 @@ const handleInactiveAccounts = async (now: Date): Promise<{ warned: number; dele
   let warned = 0;
   for (const profile of toWarn) {
     try {
+      const spaces = await prisma.organization.findMany({
+        where: { ownerId: profile.id },
+        select: {
+          id: true,
+          name: true,
+          members: {
+            where: { userId: { not: profile.id }, status: "active", role: { in: ["coach", "assistant"] } },
+            select: { userId: true, user: { select: { email: true } } },
+          },
+        },
+      });
+      for (const space of spaces)
+        for (const member of space.members) {
+          await sendEmail({
+            to: member.user.email,
+            subject: m.email.workspaceInactivity.subject(space.name),
+            idempotencyKey: `workspace-inactivity/${space.id}/${profile.id}/${member.userId}`,
+            react: createElement(WorkspaceInactivityEmail, {
+              space: space.name,
+              days: RETENTION_DAYS.inactivityNotice,
+              url: `${env().NEXT_PUBLIC_APP_URL}/reglages?espace=${space.id}`,
+            }),
+          });
+        }
       await sendEmail({
         to: profile.user.email,
         subject: m.email.inactivity.subject,
@@ -129,6 +164,18 @@ export const runRetention = async (now: Date = new Date()) => {
       }),
     (ids) => prisma.notification.deleteMany({ where: { id: { in: ids } } }),
   );
+  const emailOutbox = await purgeBatch(
+    () =>
+      prisma.emailOutbox.findMany({
+        where: {
+          createdAt: { lt: ago(now, RETENTION_DAYS.emailOutbox) },
+          OR: [{ sentAt: { not: null } }, { failedAt: { not: null } }],
+        },
+        take: BATCH,
+        select: { id: true },
+      }),
+    (ids) => prisma.emailOutbox.deleteMany({ where: { id: { in: ids } } }),
+  );
   const { count: invitations } = await prisma.invitation.updateMany({
     where: {
       expiresAt: { lt: ago(now, RETENTION_DAYS.invitationContact) },
@@ -158,6 +205,7 @@ export const runRetention = async (now: Date = new Date()) => {
   const result = {
     auditLogs,
     notifications,
+    emailOutbox,
     invitations,
     verifications,
     sessions,

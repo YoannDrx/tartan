@@ -1,5 +1,6 @@
 import { ageStatus, type AgeStatus } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import { confirmAgeInput } from "@tartan/contracts";
 import { fromDbDate, fromDbDateOrNull, todayIso, toDbDate } from "@/lib/dates";
 import { AppError, invalid } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
@@ -50,22 +51,24 @@ export const ageStatusOfUser = async (userId: string, now: Date = new Date()): P
 
 // Compte sans date : première écriture seulement. Les fiches du compte sans date la reçoivent aussi.
 export const confirmBirthDate = async (userId: string, iso: string, now: Date = new Date()): Promise<void> => {
-  const [profile, sheets] = await Promise.all([
-    prisma.profile.findUnique({ where: { id: userId }, select: { birthDate: true } }),
-    prisma.athlete.findMany({ where: { userId }, select: { birthDate: true } }),
-  ]);
-  if (profile?.birthDate) throw new AppError(409, "age_already_set", m.age.alreadySet);
-  // Une fiche préparée mineure ne se contourne pas par une autre saisie.
-  const minorSheet = sheets.find((sheet) => ageStatusOfDate(sheet.birthDate, now) === "minor");
-  const birthDate = minorSheet?.birthDate ? fromDbDate(minorSheet.birthDate) : iso;
-  const value = toDbDate(birthDate);
-  await prisma.$transaction([
-    prisma.profile.upsert({
+  const parsed = confirmAgeInput.safeParse({ birthDate: iso });
+  if (!parsed.success) throw invalid(m.invite.birthRequired);
+  const birthDate = await prisma.$transaction(async (tx) => {
+    // Le profil peut ne pas encore exister : le compte est le verrou commun aux deux déclarations.
+    await tx.$queryRaw`SELECT id FROM "user" WHERE id = ${userId}::uuid FOR UPDATE`;
+    const profile = await tx.profile.findUnique({ where: { id: userId }, select: { birthDate: true } });
+    if (profile?.birthDate) throw new AppError(409, "age_already_set", m.age.alreadySet);
+    const sheets = await tx.athlete.findMany({ where: { userId }, select: { birthDate: true } });
+    const minorSheet = sheets.find((sheet) => ageStatusOfDate(sheet.birthDate, now) === "minor");
+    const declared = minorSheet?.birthDate ? fromDbDate(minorSheet.birthDate) : iso;
+    const value = toDbDate(declared);
+    await tx.profile.upsert({
       where: { id: userId },
       create: { id: userId, birthDate: value },
       update: { birthDate: value },
-    }),
-    prisma.athlete.updateMany({ where: { userId, birthDate: null }, data: { birthDate: value } }),
-  ]);
+    });
+    await tx.athlete.updateMany({ where: { userId, birthDate: null }, data: { birthDate: value } });
+    return declared;
+  });
   await assertAdultDate(birthDate, { actorId: userId, now });
 };

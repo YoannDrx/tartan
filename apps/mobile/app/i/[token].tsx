@@ -4,10 +4,11 @@ import { BirthDateField, toIsoBirthDate, type BirthParts } from "../../src/featu
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ApiError } from "@tartan/api-client";
 import { m } from "@tartan/i18n";
+import { ageAt } from "@tartan/domain";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../../src/lib/api";
 import { config } from "../../src/lib/config";
@@ -145,7 +146,22 @@ export default function InvitationScreen() {
     if (!terms) next.terms = m.invite.termsRequired;
     setErrors(next);
     setFormError(null);
-    if (Object.keys(next).length === 0) accept.mutate();
+    if (Object.keys(next).length || !birthDate) return;
+    if (me.data?.birthDate) {
+      accept.mutate();
+      return;
+    }
+    Alert.alert(
+      m.age.checkTitle,
+      m.age.check(
+        new Date(`${birthDate}T12:00:00Z`).toLocaleDateString("fr-FR"),
+        ageAt(birthDate, new Date(), "Europe/Paris"),
+      ),
+      [
+        { text: m.age.correct, style: "cancel" },
+        { text: m.age.saveConfirmed, onPress: () => accept.mutate() },
+      ],
+    );
   };
 
   if (accepted) return <PushStep coach={!isAthlete} onDone={() => router.replace("/")} />;
@@ -218,7 +234,13 @@ export default function InvitationScreen() {
               textContentType="familyName"
               error={errors.lastName}
             />
-            <BirthDateField value={birth} onChange={setBirth} error={errors.birthDate} />
+            {me.data?.birthDate ? (
+              <T variant="small">
+                {m.invite.birthDate} : {new Date(`${me.data.birthDate}T12:00:00Z`).toLocaleDateString("fr-FR")}
+              </T>
+            ) : (
+              <BirthDateField value={birth} onChange={setBirth} error={errors.birthDate} />
+            )}
 
             <T variant="title2" heading>
               {m.mobile.invite.consentsTitle}
