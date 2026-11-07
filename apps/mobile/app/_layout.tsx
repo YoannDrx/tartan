@@ -129,6 +129,7 @@ export default function RootLayout() {
           />
           <Stack.Screen name="video/[id]" options={{ contentStyle: { backgroundColor: scene.card } }} />
           <Stack.Screen name="capture" options={{ contentStyle: { backgroundColor: scene.card } }} />
+          <Stack.Screen name="session-builder/[id]" options={worldContent("work")} />
           <Stack.Screen name="coach-session/[id]" options={worldContent("work")} />
           <Stack.Screen name="settings" options={worldContent("work")} />
           <Stack.Screen name="invite" />

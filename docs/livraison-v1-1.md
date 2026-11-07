@@ -10,7 +10,7 @@ Au 7 novembre 2026, après `25557b0` : PR #45 en brouillon, fonctionnalités de 
 
 | Lot | État actuel | Reste principal |
 | --- | --- | --- |
-| A — positionnement et expérience | Socle visuel clair web/natif validé localement, en cours d’intégration | Constructeur natif, onboarding, bibliothèque relue, vidéo générique, landing et recette physique |
+| A — positionnement et expérience | Socle visuel clair validé localement ; constructeur natif création/édition/publication implémenté, recette interactive à faire | Persistance/reprise du constructeur, finitions natives, onboarding, bibliothèque relue, vidéo générique, landing et recette physique |
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
 | C — historique et records | Règles de calcul initiales présentes | Historique, dernière réalisation comparable, calculateur, courbes, records et célébration unique |
 | D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |
@@ -282,3 +282,14 @@ Première partie du lot A : palette de travail craie/blanc/encre, actions rouge 
 Preuves locales du 7 novembre : types monorepo réussis, 168 tests mobiles et 61 tests de tokens, lint sans erreur (quatre avertissements existants), Impeccable sans travers. Deux parcours navigateur de production couvrent 30/60/120 athlètes, calendrier, bibliothèque/dialogue, constructeur et liste vidéo, à 390/768/1440 px, avec Axe et zoom 200 %. Quatre parcours de non-régression références/actualisation des charges passent également. Le premier essai du nouveau parcours ne créait aucune séance publiée et affichait donc l’état vide du suivi ; fixture corrigée, puis deux parcours réussis. Exports Hermes iOS et Android réussis. Aucune recette sur appareil physique ni validation VoiceOver/TalkBack revendiquée.
 
 Ce lot ne termine pas le repositionnement : constructeur natif, onboarding, bibliothèque relue, vidéo générique et landing restent à livrer. Aucun changement de schéma ni activation de progression en production.
+
+
+### Constructeur natif — création, édition et publication
+
+Le calendrier natif ouvre un constructeur en conservant groupe et semaine ; les brouillons et séances publiées sont modifiables. Les blocs club/autonomie/communs, la recherche d’exercices, les déplacements, prescriptions détaillées, adaptations individuelles, modèles et publication différée utilisent les mêmes contrats/services que le web. Publication relue séparément ; modification d’une séance publiée explicitement annoncée. Les versions périmées imposent une relecture, les clics concurrents sont bloqués et une création à réponse indéterminée n’est pas renvoyée automatiquement. La clé du brouillon reçu est conservée si l’étape de publication échoue.
+
+Les dates/heures des contrats partagés refusent désormais les jours et heures impossibles. Le résumé partagé affiche les charges absolues et les cibles RPE/RIR distinctes, y compris zéro RIR. Les valeurs décimales françaises sont conservées.
+
+Preuves locales du 7 novembre : 502 tests serveur, 178 mobiles, 99 domaine ; types monorepo puis natifs après les derniers changements ; lint web sans erreur (quatre avertissements existants), Impeccable sans travers. Deux parcours HTTP authentifiés sur build de production couvrent le transport utilisé par le natif, identités après déplacement, adaptations, versions obsolètes, publication, modèles et refus athlète. Exports Hermes iOS/Android réussis avec ces écrans. Le simulateur iOS et le client de développement ont démarré, mais la recette interactive n’a pas pu commencer : Mac verrouillé pour l’outil d’interface. Les serveurs 3102/8083 et le simulateur lancés pour cet essai ont été arrêtés ; aucun serveur préexistant n’a été arrêté.
+
+La saisie non enregistrée du constructeur reste en mémoire : persistance chiffrée, reprise après fermeture et résolution de ses brouillons obsolètes restent à réaliser. La suppression native des séances/modèles et la recette VoiceOver/TalkBack restent également ouvertes. Les saisies de séries déjà livrées disposent de leur propre stockage hors ligne ; ne pas confondre les deux parcours. Cette étape ne termine donc ni la parité du constructeur ni le lot A.

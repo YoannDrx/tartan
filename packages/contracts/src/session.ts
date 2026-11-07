@@ -2,8 +2,8 @@ import { z } from "zod";
 import { blockVariant, exerciseCategory, sessionType } from "./enums";
 
 export const uuid = z.uuid();
-export const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date attendue au format AAAA-MM-JJ");
-export const clockTime = z.string().regex(/^\d{2}:\d{2}$/, "Heure attendue au format HH:MM");
+export const isoDate = z.iso.date({ error: "Choisis une date valide au format AAAA-MM-JJ" });
+export const clockTime = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Choisis une heure valide au format HH:MM");
 
 export const loadSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("kg"), value: z.number().min(0).max(1000) }),

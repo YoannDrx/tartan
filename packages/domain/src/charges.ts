@@ -43,7 +43,10 @@ export const formatPrescription = (p: Prescription, resolvedLoadKg: number | nul
   else if (p.duration_s) parts.push(`${sets}${formatDuration(p.duration_s)}`);
   else if (p.sets) parts.push(`${p.sets} séries`);
   if (resolvedLoadKg !== null) parts.push(`${formatNumber(resolvedLoadKg)} kg`);
+  else if (p.load?.type === "kg") parts.push(`${formatNumber(p.load.value)} kg`);
   else if (p.load?.type === "pct_1rm") parts.push(`${p.load.value} % du max`);
+  if (p.intensityTarget)
+    parts.push(`cible ${p.intensityTarget.type.toUpperCase()} ${formatNumber(p.intensityTarget.value)}`);
   if (p.ground_contacts) parts.push(`${p.ground_contacts} contacts`);
   if (p.tempo) parts.push(`tempo ${p.tempo}`);
   if (p.rest_s) parts.push(`récup ${formatDuration(p.rest_s)}`);

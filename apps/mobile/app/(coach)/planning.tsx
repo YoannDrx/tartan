@@ -4,12 +4,12 @@ import { useMemo, useState } from "react";
 import { ScrollView } from "react-native";
 import { AgendaList, useWeekNavigator, WeekNav, type AgendaEntry } from "../../src/features/agenda";
 import { useActiveSpace, useCoachCalendar, useGroups } from "../../src/lib/queries";
-import { Chip, T, Tag, ActivityTag } from "../../src/ui/primitives";
+import { Button, Chip, Tag, ActivityTag } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { space } from "../../src/ui/theme";
 
-// Lecture seule : la création de séance se fait sur ordinateur (§ 6.5).
+// Le groupe et la semaine courante accompagnent la création native.
 export default function Planning() {
   const { orgId } = useActiveSpace();
   const nav = useWeekNavigator();
@@ -42,7 +42,7 @@ export default function Planning() {
             {s.publishedAt ? null : <Tag label={m.mobile.agenda.draft} tone="brand" />}
           </>
         ),
-        onPress: () => router.push(`/coach-session/${s.id}`),
+        onPress: () => router.push(s.publishedAt ? `/coach-session/${s.id}` : `/session-builder/${s.id}`),
         accessibilityLabel: `${s.title}, ${detail}`,
       };
     });
@@ -57,6 +57,15 @@ export default function Planning() {
       onRefresh={() => void calendar.refetch()}
     >
       <WeekNav {...nav} />
+      <Button
+        label={m.coach.newSession}
+        onPress={() =>
+          router.push({
+            pathname: "/session-builder/[id]",
+            params: { id: "new", date: nav.week, ...(groupId ? { groupId } : {}) },
+          })
+        }
+      />
       {groups.data && groups.data.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
           <Chip label={m.coach.allGroups} active={!groupId} onPress={() => setGroupId(undefined)} />
@@ -71,9 +80,6 @@ export default function Planning() {
       ) : null}
       {calendar.data && entries.length === 0 ? <EmptyState body={m.mobile.agenda.empty} pose="run" /> : null}
       {entries.length > 0 ? <AgendaList entries={entries} /> : null}
-      <T variant="caption" tone="muted">
-        {m.mobile.agenda.desktopHint}
-      </T>
     </TabScreen>
   );
 }

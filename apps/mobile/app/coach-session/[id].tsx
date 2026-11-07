@@ -201,6 +201,14 @@ export default function CoachSession() {
       world="work"
       title={session.title}
       subtitle={subtitle}
+      right={
+        <Button
+          compact
+          variant="secondary"
+          label={m.common.edit}
+          onPress={() => router.push({ pathname: "/session-builder/[id]", params: { id } })}
+        />
+      }
       footer={
         rollCall ? (
           <View style={{ gap: space.sm }}>

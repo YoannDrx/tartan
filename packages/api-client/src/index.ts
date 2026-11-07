@@ -28,6 +28,7 @@ import {
   sessionEditResponse,
   sessionBuilderContext,
   type SaveScheduledSessionInput,
+  type SessionDraft,
   strengthReferenceResponse,
   strengthMappingReportResponse,
   type LegacyStrengthMappingInput,
@@ -165,6 +166,8 @@ export const createApiClient = (options: ApiClientOptions) => {
     coachSession: (orgId: string, sessionId: string) =>
       request("GET", `/orgs/${orgId}/sessions/${sessionId}/coach`, z.any()),
     sessionBuilder: (orgId: string) => request("GET", `/orgs/${orgId}/session-builder`, sessionBuilderContext),
+    saveSessionTemplate: (orgId: string, body: SessionDraft) =>
+      request("POST", `/orgs/${orgId}/session-templates`, z.object({ id: z.uuid() }), body),
     editSession: (orgId: string, sessionId: string) =>
       request("GET", `/orgs/${orgId}/sessions/${sessionId}`, sessionEditResponse),
     createSession: (orgId: string, body: Omit<SaveScheduledSessionInput, "id" | "expectedVersion">) =>
