@@ -89,7 +89,7 @@ Accès OpenAI : présence de `OPEN_AI_API_KEY` vérifiée dans le `.env.local` r
 
 ### Premier lot de progression — branche `codex/v1-1-progression`
 
-Branche fondée provisoirement sur la PR 1, à cibler vers `main` après fusion de celle-ci. Migration additive, drapeaux progression/phases/IA désactivés par défaut ; aucune activation en production.
+PR en brouillon : [#45](https://github.com/YoannDrx/tartan/pull/45). Branche fondée provisoirement sur la PR 1, à cibler vers `main` après fusion de celle-ci. Migration additive, drapeaux progression/phases/IA désactivés par défaut ; aucune activation en production.
 
 - Contrat détaillé : séries de travail/échauffement, charge externe/poids du corps/assistance, répétitions totales/par côté, distance, durée et contacts distincts.
 - Versions de séance et de validation, auteur, snapshot de la prescription au premier enregistrement détaillé. Un maximum ultérieur ou le remplacement d'un exercice ne réécrit plus cette réalisation.
@@ -98,8 +98,10 @@ Branche fondée provisoirement sur la PR 1, à cibler vers `main` après fusion 
 - Epley 2–10 répétitions, une répétition conservée ; pourcentages 40–100 % et arrondi au pas du matériel. Cibles RPE/RIR indépendantes des kilos.
 - Vérification : **621 tests verts** (411 serveur, 74 domaine, 136 mobile), types du monorepo verts. La suite navigateur de ce lot reste à exécuter.
 
-Ce lot ne termine pas le socle : les identifiants persistants du constructeur, le lien des maxima à la bibliothèque, le gel des références dès la prescription (actuellement au premier enregistrement détaillé), la saisie coach et les interfaces web/natives restent à implémenter. Les phases, records et le planificateur ne sont pas livrés par ce premier lot.
+Ce lot ne termine pas le socle : les identifiants persistants du constructeur, le lien des maxima à la bibliothèque, le gel des références dès la prescription (actuellement au premier enregistrement détaillé), les interfaces de saisie web/natives restent à implémenter. L'API de saisie coach et sa lecture sont maintenant partagées avec les mêmes contrôles de version, auteur, espace et groupe ; 11 tests ciblés de progression et les types du monorepo passent après cet ajout. Les phases, records et le planificateur ne sont pas livrés par ce premier lot.
 
 La fusion de la PR 2 exige les cinq lots compilables, testés et isolés par drapeaux. L’IA peut rester désactivée pour l’ouverture commerciale. Aucun écran incomplet, preuve simulée ou réglage absent ne doit être présenté comme publié.
 
 Références prestataire utilisées pour le webhook : [vérification de la signature Resend](https://resend.com/docs/webhooks/verify-webhooks-requests), [distinction entre rebond permanent et temporaire](https://resend.com/changelog/email-bounce-details). Les rebonds temporaires ne créent pas d’exclusion définitive.
+
+Preview Neon : la migration additive du premier lot a été appliquée le 7 novembre sur `br-floral-sun-b9iar8ge` en 4,16 s. Lecture via le rôle applicatif limité vérifiée : 25 migrations, aucune mutation de série, aucun espace activé pour la progression. Aucune migration exécutée en production.

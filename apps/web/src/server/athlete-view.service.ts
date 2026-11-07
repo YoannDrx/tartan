@@ -33,7 +33,7 @@ import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { requireAthleteAccess, requireOrgMember, requireVisibleAthlete } from "./access";
 import { consentForAthletes } from "./consent.service";
-import { displayName, firstNameOf, namesFor } from "./me.service";
+import { displayName, namesFor } from "./me.service";
 import { notify } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
 import { athleteAssignedWhere as assignedWhere } from "./session-audience.service";
