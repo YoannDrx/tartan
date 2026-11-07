@@ -27,11 +27,11 @@ import {
 } from "@tartan/domain";
 import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
-import { AppError, invalid, notFound } from "@/lib/errors";
+import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
 import { signedPlayback } from "@/lib/mux";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { requireAthleteAccess } from "./access";
+import { requireAthleteAccess, requireOrgMember, requireVisibleAthlete } from "./access";
 import { consentForAthletes } from "./consent.service";
 import { displayName, firstNameOf, namesFor } from "./me.service";
 import { notify } from "./notify.service";
@@ -190,6 +190,29 @@ export const getAthleteSession = async (
   now: Date = new Date(),
 ): Promise<AthleteSessionDetail> => {
   const access = await requireAthleteAccess(userId, organizationId);
+  return readAthleteSession(organizationId, sessionId, access.athleteId, now);
+};
+
+export const getAthleteSessionForCoach = async (
+  userId: string,
+  organizationId: string,
+  sessionId: string,
+  athleteId: string,
+  now = new Date(),
+): Promise<AthleteSessionDetail> => {
+  const access = await requireOrgMember(userId, organizationId, "viewTracking");
+  if (access.role === "athlete" || access.role === "guardian") throw forbidden();
+  await requireVisibleAthlete(access, athleteId);
+  return readAthleteSession(organizationId, sessionId, athleteId, now);
+};
+
+const readAthleteSession = async (
+  organizationId: string,
+  sessionId: string,
+  athleteId: string,
+  now: Date,
+): Promise<AthleteSessionDetail> => {
+  const access = { athleteId };
   const session = await prisma.scheduledSession.findFirst({
     where: { id: sessionId, organizationId, ...(await assignedWhere(access.athleteId)) },
     select: {
@@ -310,8 +333,31 @@ export const getMyRegularity = async (userId: string, organizationId: string, no
 };
 
 export const logSession = async (userId: string, organizationId: string, sessionId: string, raw: SessionLogInput) => {
-  const input = sessionLogInput.parse(raw);
   const access = await requireAthleteAccess(userId, organizationId);
+  return persistSessionLog(userId, organizationId, sessionId, access.athleteId, raw);
+};
+
+export const logSessionForAthlete = async (
+  userId: string,
+  organizationId: string,
+  sessionId: string,
+  athleteId: string,
+  raw: SessionLogInput,
+) => {
+  const access = await requireOrgMember(userId, organizationId, "manageSessions");
+  await requireVisibleAthlete(access, athleteId);
+  return persistSessionLog(userId, organizationId, sessionId, athleteId, raw);
+};
+
+const persistSessionLog = async (
+  userId: string,
+  organizationId: string,
+  sessionId: string,
+  athleteId: string,
+  raw: SessionLogInput,
+) => {
+  const input = sessionLogInput.parse(raw);
+  const access = { athleteId };
   if (input.detailedSets !== undefined) {
     const space = await prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
@@ -467,8 +513,9 @@ export const logSession = async (userId: string, organizationId: string, session
 
   if (pain) {
     const coaches = await coachesOfAthlete(organizationId, access.athleteId);
+    const athlete = await prisma.athlete.findUniqueOrThrow({ where: { id: athleteId }, select: { firstName: true } });
     await notify(coaches, "pain_alert", {
-      athlete: await firstNameOf(userId),
+      athlete: athlete.firstName,
       organizationId,
       link: `/athletes/${access.athleteId}`,
     });

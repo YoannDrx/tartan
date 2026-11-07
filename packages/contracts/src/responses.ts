@@ -114,6 +114,12 @@ export const athleteSessionDetail = athleteSessionCard.extend({
 });
 export type AthleteSessionDetail = z.infer<typeof athleteSessionDetail>;
 
+export const sessionLogResult = z.object({
+  id: z.string(),
+  replayed: z.boolean(),
+  version: z.number().int().optional(),
+});
+
 export const trackingCell = z.object({
   sessionId: z.string(),
   status: cellStatus.nullable(),

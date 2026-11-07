@@ -2,10 +2,15 @@ import { randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
 import { type SessionLogInput, type SaveScheduledSessionInput } from "@tartan/contracts";
 import { prisma } from "@/lib/prisma";
-import { getAthleteSession, logSession } from "@/server/athlete-view.service";
+import {
+  getAthleteSession,
+  getAthleteSessionForCoach,
+  logSession,
+  logSessionForAthlete,
+} from "@/server/athlete-view.service";
 import { publishRow, saveScheduledSession } from "@/server/session.service";
 import { athleteWeeklyStats } from "@/server/stats.service";
-import { addAthlete, makeOrg } from "./helpers";
+import { addAthlete, addStaff, makeOrg } from "./helpers";
 
 const setup = async () => {
   const org = await makeOrg("Progression");
@@ -221,4 +226,48 @@ it("les statistiques additionnent les deux séries réalisées et exposent leur 
     distanceM: null,
     coverage: { detailedSessions: 1, completedWorkSets: 2, tonnageKnownSets: 2 },
   });
+});
+
+it("le coach autorisé corrige une réalisation avec son identité et la même protection de version", async () => {
+  const a = await setup();
+  await a.log();
+  const detail = await getAthleteSessionForCoach(a.owner.userId, a.organizationId, a.session.id, a.athlete.athleteId);
+  expect(detail.log?.version).toBe(1);
+  const result = await logSessionForAthlete(a.owner.userId, a.organizationId, a.session.id, a.athlete.athleteId, {
+    clientId: randomUUID(),
+    status: "partial",
+    variantDone: "club",
+    expectedVersion: 1,
+    expectedSessionVersion: 1,
+    detailedSets: [],
+  });
+  expect(result.version).toBe(2);
+  expect((await prisma.sessionLog.findUniqueOrThrow({ where: { id: result.id } })).recordedBy).toBe(a.owner.userId);
+  await expect(a.log({ expectedVersion: 1 })).rejects.toMatchObject({ code: "log_version_conflict" });
+});
+
+it("refuse le coach hors groupe, le membre suspendu et l'autre espace", async () => {
+  const a = await setup();
+  const coach = await addStaff(a.organizationId, "Autre groupe", "coach");
+  const body: SessionLogInput = { clientId: randomUUID(), status: "done", variantDone: "club" };
+  await expect(
+    logSessionForAthlete(coach.userId, a.organizationId, a.session.id, a.athlete.athleteId, body),
+  ).rejects.toMatchObject({ status: 403 });
+  await expect(
+    getAthleteSessionForCoach(coach.userId, a.organizationId, a.session.id, a.athlete.athleteId),
+  ).rejects.toMatchObject({ status: 403 });
+  await prisma.organizationMember.update({
+    where: { organizationId_userId: { organizationId: a.organizationId, userId: coach.userId } },
+    data: { status: "suspended" },
+  });
+  await expect(
+    logSessionForAthlete(coach.userId, a.organizationId, a.session.id, a.athlete.athleteId, body),
+  ).rejects.toMatchObject({ status: 403 });
+  const other = await makeOrg("Autre espace");
+  await expect(
+    logSessionForAthlete(other.owner.userId, other.organizationId, a.session.id, a.athlete.athleteId, body),
+  ).rejects.toMatchObject({ status: 404 });
+  await expect(
+    getAthleteSessionForCoach(a.athlete.userId, a.organizationId, a.session.id, a.athlete.athleteId),
+  ).rejects.toMatchObject({ status: 403 });
 });

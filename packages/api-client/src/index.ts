@@ -21,6 +21,7 @@ import {
   type ProfileInput,
   type RollCallInput,
   type SessionLogInput,
+  sessionLogResult,
   trackingGrid,
   videoDetail,
   videoSummary,
@@ -125,12 +126,11 @@ export const createApiClient = (options: ApiClientOptions) => {
     session: (orgId: string, sessionId: string) =>
       request("GET", `/orgs/${orgId}/sessions/${sessionId}/me`, athleteSessionDetail),
     logSession: (orgId: string, sessionId: string, body: SessionLogInput) =>
-      request(
-        "POST",
-        `/orgs/${orgId}/sessions/${sessionId}/log`,
-        z.object({ id: z.string(), replayed: z.boolean() }),
-        body,
-      ),
+      request("POST", `/orgs/${orgId}/sessions/${sessionId}/log`, sessionLogResult, body),
+    athleteSessionForCoach: (orgId: string, sessionId: string, athleteId: string) =>
+      request("GET", `/orgs/${orgId}/sessions/${sessionId}/athletes/${athleteId}/log`, athleteSessionDetail),
+    logSessionForAthlete: (orgId: string, sessionId: string, athleteId: string, body: SessionLogInput) =>
+      request("POST", `/orgs/${orgId}/sessions/${sessionId}/athletes/${athleteId}/log`, sessionLogResult, body),
     setAttendance: (orgId: string, sessionId: string, status: "present" | "absent") =>
       request(
         "POST",
