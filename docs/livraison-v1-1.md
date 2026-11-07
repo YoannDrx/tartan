@@ -10,7 +10,7 @@ Au 8 novembre 2026, après la reprise native `d27e460` et son complément de sup
 
 | Lot | État actuel | Reste principal |
 | --- | --- | --- |
-| A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée testée sur simulateur iOS, suppression séances/modèles ajoutée | Recette complète du constructeur, publication groupée, onboarding, bibliothèque relue, vidéo générique, landing et recette physique |
+| A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles et vidéo générique ajoutées | Suite de la recette du constructeur, publication groupée, onboarding, bibliothèque relue, landing et recette physique |
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
 | C — historique et records | Règles de calcul initiales présentes | Historique, dernière réalisation comparable, calculateur, courbes, records et célébration unique |
 | D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |
@@ -293,3 +293,10 @@ Les dates/heures des contrats partagés refusent désormais les jours et heures 
 Preuves locales du 7 novembre : 502 tests serveur, 178 mobiles, 99 domaine ; types monorepo puis natifs après les derniers changements ; lint web sans erreur (quatre avertissements existants), Impeccable sans travers. Deux parcours HTTP authentifiés sur build de production couvrent le transport utilisé par le natif, identités après déplacement, adaptations, versions obsolètes, publication, modèles et refus athlète. Exports Hermes iOS/Android réussis avec ces écrans. Le simulateur iOS et le client de développement ont démarré, mais la recette interactive n’a pas pu commencer : Mac verrouillé pour l’outil d’interface. Les serveurs 3102/8083 et le simulateur lancés pour cet essai ont été arrêtés ; aucun serveur préexistant n’a été arrêté.
 
 La saisie non enregistrée du constructeur reste en mémoire : persistance chiffrée, reprise après fermeture et résolution de ses brouillons obsolètes restent à réaliser. La suppression native des séances/modèles et la recette VoiceOver/TalkBack restent également ouvertes. Les saisies de séries déjà livrées disposent de leur propre stockage hors ligne ; ne pas confondre les deux parcours. Cette étape ne termine donc ni la parité du constructeur ni le lot A.
+
+
+### Vidéo générique — préparation physique
+
+La capture native ne crée plus systématiquement un essai de saut. Les outils hauteur deviennent explicites, les remarques génériques restent sans phase et les anciens essais/annotations conservent leur contexte. Les listes, imports et indications web/natives emploient un vocabulaire général ; les adresses historiques sont conservées. [Preuves du lot](preuves-v1-1/lot-a-video-generique.md).
+
+101 tests domaine, 199 mobiles, un scénario serveur d’import sans essai, deux parcours navigateur de production (Axe, 390/768/1440 px et zoom 200 %) et le parcours de ralenti existant réussis. Capture générique et activation/repli des outils vérifiés sur simulateur iOS. Aucun import ou envoi Mux réel revendiqué. Deux crashs distincts du client de développement restent à isoler ; les exports ne prouvent pas la stabilité sur téléphone. Le titre du constructeur suit maintenant son état enregistré après création.

@@ -141,7 +141,7 @@ export const UploadVideoDialog = ({
     <Dialog
       open={open}
       onOpenChange={setOpen}
-      title="Importer un saut"
+      title={m.video.importTitle}
       description={m.video.slowHint}
       trigger={
         <Button size="sm">

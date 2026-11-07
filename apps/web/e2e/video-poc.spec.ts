@@ -87,6 +87,8 @@ test("lecture image par image d'une vidéo à 240 i/s", async ({ page }, info) =
   expect(elapsed).toBeLessThan(2.4);
 
   // Commentaire placé à l'instant de la tête de lecture, classé par phase.
+  await expect(page.getByLabel("Phase du saut")).toHaveCount(0);
+  await page.getByLabel("Outils de saut en hauteur").check();
   await page.getByLabel("Phase du saut").selectOption("takeoff");
   await page.getByPlaceholder(/Remarque à/).fill("Pied d'appel posé à plat");
   await page.getByRole("button", { name: "Ajouter le commentaire" }).click();

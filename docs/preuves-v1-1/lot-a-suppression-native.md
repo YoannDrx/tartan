@@ -26,3 +26,20 @@ Connexion, calendrier, titre, choix du groupe, ajout d'un développé couché et
 Une première ouverture du client de développement, avant cette recette, a aussi produit un crash natif `EXC_BAD_ACCESS` dans `facebook::jsi::Pointer::~Pointer()` ; la relance a réussi. Sa cause n'est pas établie. Ce constat doit être vérifié sur un build natif propre ; les bundles Hermes et les tests TypeScript ne prouvent pas la stabilité de ce binaire.
 
 La recette sur téléphones physiques, VoiceOver/TalkBack, l'ensemble des interruptions réseau et les builds signés restent ouverts. La CI du lot de reprise `d27e460` a franchi Expo Doctor et atteint la compilation Android ; son résultat terminal et la CI du présent lot doivent être suivis séparément.
+
+## Reprise et publication iOS — 8 novembre, 00 h 27 CET
+
+Commit testé `9cf9c83b03e4907668986d465d7ceea36919afc5`. La compilation locale `expo run:ios --no-bundler --no-install` a réussi, avec trois avertissements et aucune erreur ; elle réutilise le projet et les caches natifs existants. Ce résultat ne constitue donc pas une reconstruction sans cache. Le binaire a été installé sur le même iPhone 17 Pro simulé. API locale 3102, Metro 8083 et base synthétique `tartan_v11_e2e` ; aucun service de production utilisé.
+
+Parcours effectué dans l'interface native après relance demandée par le fondateur :
+
+1. Calendrier → nouvelle séance : proposition de reprise du brouillon `Recette publication iOS`.
+2. Relecture et confirmation : titre, groupe et prescription non appliquée restaurés.
+3. Modification de la prescription à **3 séries × 4 répétitions × 40 kg**, récupération 150 secondes, puis application.
+4. Enregistrement : message « Brouillon enregistré. » et actions de séance enregistrée visibles.
+5. Publication : résumé montrant les trois séries, quatre répétitions, 40 kg et le groupe ; confirmation distincte, puis message « Séance publiée ».
+6. Contrôle SQL en lecture seule : une seule séance correspondante, version 3, `published_at` renseigné et snapshot conservant exactement `{sets: 3, reps: 4, load: {type: "kg", value: 40}, rest_s: 150}`.
+
+Aucun nouveau crash observé pendant ce parcours. Cela ne résout pas la cause du crash antérieur et ne valide ni les téléphones physiques ni la réception des notifications. La suppression depuis l'interface native reste à éprouver ; sa couverture serveur et HTTP est décrite plus haut. Le titre de l'écran restait « Nouvelle séance » après le premier enregistrement ; le lot vidéo corrige ce libellé à partir de l’identité enregistrée de la séance.
+
+CI de `9cf9c83` à ce point : lint, types, tests et design réussis ; parcours navigateur encore en cours (run `42424816384`) et compilation Android encore en cours (`42424816377`). Preview Vercel et GitGuardian réussis. Aucun résultat terminal de ces deux workflows n'est déduit des étapes déjà vertes.

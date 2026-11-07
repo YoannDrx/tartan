@@ -4,8 +4,7 @@ import { capitalize, formatDayMonth, m } from "@tartan/i18n";
 import { Image, Pressable, View } from "react-native";
 import { useUploads, type UploadItem } from "../lib/upload/upload-queue";
 import { progressPct } from "../lib/upload/chunks";
-import { BarGlyph } from "../ui/glyphs";
-import { ChevronRight, CloudUpload } from "../ui/icons";
+import { ChevronRight, CloudUpload, Play } from "../ui/icons";
 import { Button, Tag, T } from "../ui/primitives";
 import { radius, scene, space, usePalette } from "../ui/theme";
 
@@ -33,7 +32,7 @@ export const VideoRow = ({
   onPress: () => void;
 }) => {
   const p = usePalette();
-  const height = video.barHeightCm ? `${formatHeight(video.barHeightCm)} m` : m.mobile.video.noBar;
+  const height = video.barHeightCm ? `${formatHeight(video.barHeightCm)} m` : m.video.analysis;
   const title = showAthlete ? video.athleteName : height;
   const detail = [
     showAthlete ? height : null,
@@ -77,7 +76,7 @@ export const VideoRow = ({
             accessibilityIgnoresInvertColors
           />
         ) : (
-          <BarGlyph color={scene.textMuted} />
+          <Play color={scene.textMuted} size={24} />
         )}
       </View>
       <View style={{ flex: 1, gap: 2 }}>

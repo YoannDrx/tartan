@@ -619,7 +619,7 @@ export const NativeSessionBuilder = ({
       </StackScreen>
     );
   return (
-    <StackScreen title={initial ? m.common.edit + " · " + m.builder.title : m.coach.newSession}>
+    <StackScreen title={form.id ? m.common.edit + " · " + m.builder.title : m.coach.newSession}>
       {!online || !verified ? <T accessibilityRole="alert">{m.nativeBuilder.serverUnverified}</T> : null}
       {localState === "conflict" ? (
         <Button

@@ -24,7 +24,7 @@ const dayLabel = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "Europe/Paris",
 });
 
-// Journal de sauts : par jour, la vidéo puis la barre et le résultat, comme sur une feuille de concours.
+// Journal vidéo par jour ; les métadonnées de saut ne concernent que les essais renseignés.
 export const VideoList = ({
   videos,
   basePath,
@@ -72,7 +72,11 @@ export const VideoList = ({
                       ) : null}
                     </span>
                     <span className="min-w-0 truncate font-semibold">
-                      {showAthlete ? v.athleteName : `${m.video.attempt} ${v.attemptNo ?? ""}`.trim()}
+                      {showAthlete
+                        ? v.athleteName
+                        : v.attemptNo
+                          ? `${m.video.attempt} ${v.attemptNo}`
+                          : m.video.analysis}
                     </span>
                     <span className="flex min-w-0 flex-wrap items-center gap-x-2 max-tablet:col-start-2 tablet:justify-end desktop:justify-start">
                       {v.barHeightCm ? (
@@ -86,7 +90,7 @@ export const VideoList = ({
                           ) : null}
                         </>
                       ) : (
-                        <span className="t-caption font-normal text-soft desktop:hidden">{m.video.noBar}</span>
+                        <span className="t-caption font-normal text-soft desktop:hidden">{m.video.analysis}</span>
                       )}
                     </span>
                     <span className="t-num text-[17px] text-soft max-desktop:hidden">
