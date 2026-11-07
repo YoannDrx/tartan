@@ -13,7 +13,7 @@ import { m } from "@tartan/i18n";
 import { randomUUID } from "expo-crypto";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert, View } from "react-native";
+import { Alert, AppState, View } from "react-native";
 import { api } from "../../lib/api";
 import { errorMessage } from "../../lib/errors";
 import { useIsOnline } from "../../lib/network";
@@ -21,13 +21,26 @@ import { Button, Card, Chip, Divider, Field, T } from "../../ui/primitives";
 import { StackScreen } from "../../ui/screen";
 import { Sheet } from "../../ui/sheet";
 import { space } from "../../ui/theme";
-import { builderErrors, localSchedule, parseSessionForm } from "./form";
+import { builderErrors, localSchedule, parseSessionForm, prescriptionFields } from "./form";
+import {
+  BuilderStorageConflict,
+  recoveredBuilderDraft,
+  type BuilderDraft,
+  type StoredBuilderDraft,
+} from "./draft-storage";
+import { builderDraftStore } from "./draft-store";
+import { BuilderSaveFailure, persistBuilderSession } from "./save";
+import { BuilderSummary } from "./summary";
 import { PrescriptionEditor } from "./prescription-editor";
 
 type Context = Awaited<ReturnType<typeof api.sessionBuilder>>;
 type Item = SessionDraft["blocks"][number]["items"][number];
-type Editing = { itemRef: string; athleteId?: string };
-const initialForm = (initial: SessionEditResponse | null, date: string, groupId?: string): SaveScheduledSessionInput =>
+type Editing = NonNullable<BuilderDraft["prescription"]>;
+export const initialForm = (
+  initial: SessionEditResponse | null,
+  date: string,
+  groupId?: string,
+): SaveScheduledSessionInput =>
   initial
     ? {
         id: initial.id,
@@ -63,6 +76,9 @@ const initialForm = (initial: SessionEditResponse | null, date: string, groupId?
 
 export const NativeSessionBuilder = ({
   orgId,
+  storageKey,
+  stored,
+  verified,
   initial,
   context,
   date,
@@ -70,6 +86,9 @@ export const NativeSessionBuilder = ({
   onReload,
 }: {
   orgId: string;
+  storageKey: string;
+  stored: StoredBuilderDraft | null;
+  verified: boolean;
   initial: SessionEditResponse | null;
   context: Context;
   date: string;
@@ -79,6 +98,13 @@ export const NativeSessionBuilder = ({
   const [form, setForm] = useState(() => initialForm(initial, date, groupId));
   const [duration, setDuration] = useState(initial?.draft.durationMin?.toString() ?? "");
   const [baseline, setBaseline] = useState(() => JSON.stringify({ form, duration }));
+  const [base, setBase] = useState(initial);
+  const [ready, setReady] = useState(!stored);
+  const [writer] = useState(() => builderDraftStore.writer(storageKey, stored?.revision ?? null));
+  const [localState, setLocalState] = useState<"idle" | "saving" | "saved" | "error" | "conflict">("idle");
+  const [uncertain, setUncertain] = useState<BuilderDraft["pending"]>(null);
+  const storageSequence = useRef(0);
+  const closing = useRef(false);
   const [publishedAt, setPublishedAt] = useState(initial?.publishedAt ?? null);
   const [advanced, setAdvanced] = useState(false);
   const [error, setError] = useState("");
@@ -99,29 +125,119 @@ export const NativeSessionBuilder = ({
   const navigation = useNavigation();
   const router = useRouter();
   const client = useQueryClient();
-  const dirty = JSON.stringify({ form, duration }) !== baseline;
+  const dirty = JSON.stringify({ form, duration }) !== baseline || editing !== null;
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
-  usePreventRemove(dirty || busy, ({ data }) => {
-    if (pending.current) {
-      Alert.alert(m.builder.title, m.nativeBuilder.publicationPending);
-      return;
-    }
-    Alert.alert(m.nativeBuilder.unsaved, m.nativeBuilder.leaveConfirm, [
-      { text: m.common.cancel, style: "cancel" },
-      {
-        text: m.nativeBuilder.leave,
-        style: "destructive",
-        onPress: () => {
-          if (mounted.current && !pending.current) navigation.dispatch(data.action);
-        },
-      },
-    ]);
+  const snapshot = (nextForm = form, nextBase = base, marker = uncertain): BuilderDraft => ({
+    schemaVersion: 1,
+    form: nextForm,
+    duration,
+    base: nextBase,
+    context,
+    pending: marker,
+    prescription: editing ?? undefined,
   });
+  const storageFailure = (cause: unknown) => {
+    setLocalState(cause instanceof BuilderStorageConflict ? "conflict" : "error");
+    setError(cause instanceof BuilderStorageConflict ? m.nativeBuilder.localConflict : m.nativeBuilder.localError);
+  };
+  useEffect(() => {
+    const sequence = ++storageSequence.current;
+    if (!ready || !dirty || busy || closing.current || localState === "conflict") return;
+    setLocalState("saving");
+    // Regroupe une rafale de frappes ; quitter ou envoyer force la dernière copie.
+    const timer = setTimeout(() => {
+      void writer
+        .write({
+          schemaVersion: 1,
+          form,
+          duration,
+          base,
+          context,
+          pending: uncertain,
+          prescription: editing ?? undefined,
+        })
+        .then(() => {
+          if (mounted.current && sequence === storageSequence.current) {
+            setLocalState("saved");
+            setError((previous) => (previous === m.nativeBuilder.localError ? "" : previous));
+          }
+        })
+        .catch((cause: unknown) => {
+          if (mounted.current && sequence === storageSequence.current) storageFailure(cause);
+        });
+    }, 250);
+    return () => clearTimeout(timer);
+    // L'état de sauvegarde n'est pas une nouvelle saisie et ne doit pas reboucler les écritures.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, dirty, busy, form, duration, base, context, uncertain, writer, editing]);
+  useEffect(() => {
+    const flush = () => {
+      if (!ready || !dirty || pending.current || closing.current || localState === "conflict") return;
+      void writer
+        .write({
+          schemaVersion: 1,
+          form,
+          duration,
+          base,
+          context,
+          pending: uncertain,
+          prescription: editing ?? undefined,
+        })
+        .catch((cause: unknown) => {
+          if (mounted.current) storageFailure(cause);
+        });
+    };
+    const app = AppState.addEventListener("change", (state) => {
+      if (state !== "active") flush();
+    });
+    const blur = navigation.addListener("blur", flush);
+    return () => {
+      app.remove();
+      blur();
+    };
+  }, [ready, dirty, form, duration, base, context, uncertain, writer, editing, localState, navigation]);
+  usePreventRemove(
+    busy || (ready && (dirty || uncertain !== null || localState === "error" || localState === "conflict")),
+    ({ data }) => {
+      if (pending.current) {
+        Alert.alert(m.builder.title, m.nativeBuilder.publicationPending);
+        return;
+      }
+      const leave = async (keep: boolean) => {
+        if (!mounted.current || pending.current) return;
+        pending.current = true;
+        closing.current = true;
+        setBusy(true);
+        try {
+          if (keep) await writer.write(snapshot());
+          else {
+            try {
+              await writer.remove();
+            } catch (cause) {
+              if (!(cause instanceof BuilderStorageConflict)) throw cause;
+            }
+          }
+          if (mounted.current) navigation.dispatch(data.action);
+        } catch (cause) {
+          closing.current = false;
+          if (mounted.current) storageFailure(cause);
+        } finally {
+          pending.current = false;
+          if (mounted.current) setBusy(false);
+        }
+      };
+      Alert.alert(m.nativeBuilder.unsaved, m.nativeBuilder.keepDraftConfirm, [
+        { text: m.common.cancel, style: "cancel" },
+        { text: m.nativeBuilder.keepDraft, onPress: () => void leave(true) },
+        { text: m.nativeBuilder.leave, style: "destructive", onPress: () => void leave(false) },
+      ]);
+    },
+  );
   const confirm = (body: string, action: () => void, destructive = false) =>
     Alert.alert(m.builder.title, body, [
       { text: m.common.cancel, style: "cancel" },
@@ -143,6 +259,7 @@ export const NativeSessionBuilder = ({
   };
   const blocks = (next: SessionDraft["blocks"]) => {
     const refs = new Set(next.flatMap((b) => b.items.map((i) => i.ref)));
+    if (editing && !refs.has(editing.itemRef)) setEditing(null);
     setForm((v) => ({
       ...v,
       draft: { ...v.draft, blocks: next },
@@ -172,6 +289,15 @@ export const NativeSessionBuilder = ({
       ? (form.overrides.find((o) => o.itemRef === editing.itemRef && o.athleteId === editing.athleteId)?.prescription ??
         editedItem.prescription)
       : undefined;
+  const openPrescription = (target: { itemRef: string; athleteId?: string }) => {
+    const item = allItems.find((i) => i.ref === target.itemRef);
+    if (!item) return;
+    const value = target.athleteId
+      ? (form.overrides.find((o) => o.athleteId === target.athleteId && o.itemRef === target.itemRef)?.prescription ??
+        item.prescription)
+      : item.prescription;
+    setEditing({ ...target, fields: prescriptionFields(value) });
+  };
   const applyPrescription = (prescription: Prescription) => {
     if (!editing) return;
     if (editing.athleteId)
@@ -191,9 +317,13 @@ export const NativeSessionBuilder = ({
     setEditing(null);
   };
   const submit = async (publish: boolean) => {
-    if (!mounted.current || pending.current || stale) return;
-    if (!online) {
-      setError(m.nativeBuilder.offline);
+    if (editing) {
+      setError(m.nativeBuilder.applyPending);
+      return;
+    }
+    if (!mounted.current || pending.current || stale || !ready || localState === "conflict") return;
+    if (!online || !verified) {
+      setError(m.nativeBuilder.serverUnverified);
       return;
     }
     const parsed = parseSessionForm({ ...form, publishAt: publish ? null : form.publishAt }, duration);
@@ -213,46 +343,54 @@ export const NativeSessionBuilder = ({
     setBusy(true);
     setError("");
     setMessage("");
-    let saved: { id: string; version: number } | null = null;
     try {
-      const { id, expectedVersion, ...body } = parsed.data;
-      saved =
-        id && expectedVersion
-          ? await api.updateSession(orgId, id, { ...body, expectedVersion })
-          : await api.createSession(orgId, body);
-      if (!mounted.current) return;
-      const next = {
-        ...parsed.data,
-        publishAt: localSchedule(parsed.data.publishAt),
-        id: saved.id,
-        expectedVersion: saved.version,
-      };
-      // L'identité reçue est conservée même si la publication échoue ensuite.
-      setForm(next);
-      setBaseline(JSON.stringify({ form: next, duration }));
-      if (publish && !publishedAt) await api.publishSession(orgId, saved.id, saved.version);
-      if (!mounted.current) return;
-      const current = await api.editSession(orgId, saved.id);
-      const refreshed = initialForm(current, current.date);
-      if (!mounted.current) return;
-      setPublishedAt(current.publishedAt);
-      setForm(refreshed);
-      setBaseline(JSON.stringify({ form: refreshed, duration }));
-      setMessage(
-        publish || current.publishedAt
-          ? publishedAt
-            ? m.builder.updated
-            : m.builder.published
-          : m.nativeBuilder.saved,
-      );
+      setUncertain("save");
+      const result = await persistBuilderSession({
+        orgId,
+        parsed: parsed.data,
+        draft: snapshot(),
+        publish,
+        published: Boolean(publishedAt),
+        transport: api,
+        writer,
+        active: () => mounted.current,
+        onSaved: (next) => {
+          setForm(next);
+          setBaseline(JSON.stringify({ form: next, duration }));
+        },
+      });
+      if (!mounted.current || !result) return;
+      setBase(result.current);
+      setPublishedAt(result.current.publishedAt);
+      setForm(result.form);
+      setBaseline(JSON.stringify({ form: result.form, duration }));
+      setUncertain(null);
+      setLocalState("idle");
       setPreview(false);
-      // Le cache d'édition ne remplace jamais le formulaire pendant la saisie.
+      if (result.cleanupFailed) {
+        setError(m.nativeBuilder.storageAfterSave);
+        setStale(true);
+      } else
+        setMessage(
+          publish || result.current.publishedAt
+            ? publishedAt
+              ? m.builder.updated
+              : m.builder.published
+            : m.nativeBuilder.saved,
+        );
       for (const key of ["coach-calendar", "tracking", "coach-session", "session", "session-edit"])
         void client.invalidateQueries({ queryKey: [key, orgId] });
-    } catch (cause) {
+    } catch (failure) {
       if (!mounted.current) return;
+      const cause = failure instanceof BuilderSaveFailure ? failure.original : failure;
+      const saved = failure instanceof BuilderSaveFailure ? failure.saved : null;
+      if (failure instanceof BuilderSaveFailure && !failure.networkStarted) {
+        setUncertain(null);
+        storageFailure(cause);
+        return;
+      }
       setError(saved && publish ? m.nativeBuilder.publishFailed : errorMessage(cause));
-      // Une réponse perdue ou un conflit impose une relecture, jamais un écrasement automatique.
+      if (cause instanceof ApiError && cause.status < 500) setUncertain(null);
       if (saved || !(cause instanceof ApiError) || cause.status === 409 || cause.status >= 500) {
         setStale(true);
         if (!form.id && !saved) setError(m.nativeBuilder.unknownCreation);
@@ -263,7 +401,11 @@ export const NativeSessionBuilder = ({
     }
   };
   const saveTemplate = async () => {
-    if (!mounted.current || pending.current || !online) return;
+    if (editing) {
+      setError(m.nativeBuilder.applyPending);
+      return;
+    }
+    if (!mounted.current || pending.current || !online || !verified || !ready) return;
     const result = parseSessionForm(form, duration);
     if (!result.success) {
       setError(builderErrors(result.error.issues));
@@ -283,6 +425,10 @@ export const NativeSessionBuilder = ({
     }
   };
   const review = () => {
+    if (editing) {
+      setError(m.nativeBuilder.applyPending);
+      return;
+    }
     const parsed = parseSessionForm(form, duration);
     if (!parsed.success) {
       setError(builderErrors(parsed.error.issues));
@@ -294,16 +440,132 @@ export const NativeSessionBuilder = ({
     }
     setPreview(true);
   };
-  const audienceName = (a: SaveScheduledSessionInput["assignments"][number]) =>
-    a.targetType === "group"
-      ? (context.groups.find((g) => g.id === a.targetId)?.name ?? m.common.notFound)
-      : (() => {
-          const p = context.athletes.find((x) => x.id === a.targetId);
-          return p ? `${p.firstName} ${p.lastName}` : m.common.notFound;
-        })();
+  const reloadCurrent = async () => {
+    if (pending.current || !mounted.current) return;
+    pending.current = true;
+    setBusy(true);
+    try {
+      if (ready && dirty) await writer.write(snapshot());
+      if (mounted.current) onReload();
+    } catch (cause) {
+      if (mounted.current) storageFailure(cause);
+    } finally {
+      pending.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  };
+  const recover = async (keep: boolean) => {
+    if (!stored || pending.current || !mounted.current) return;
+    pending.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      if (keep) {
+        if (stored.value.pending && !stored.value.form.id) return;
+        const recovered = recoveredBuilderDraft(stored.value, initial, verified, context);
+        await writer.write(recovered);
+        if (!mounted.current) return;
+        setForm(recovered.form);
+        setDuration(recovered.duration);
+        setEditing(recovered.prescription ?? null);
+        setUncertain(recovered.pending);
+        setLocalState("saved");
+      } else {
+        await writer.remove();
+        if (!mounted.current) return;
+        setLocalState("idle");
+      }
+      setReady(true);
+    } catch (cause) {
+      if (mounted.current) storageFailure(cause);
+    } finally {
+      pending.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  };
+  if (!ready && stored)
+    return (
+      <StackScreen title={m.nativeBuilder.recoveredTitle}>
+        {stored.value.pending ? <T accessibilityRole="alert">{m.nativeBuilder.pendingReply}</T> : null}
+        {!verified ? <T accessibilityRole="alert">{m.nativeBuilder.serverUnverified}</T> : null}
+        {verified && initial && stored.value.form.expectedVersion !== initial.version ? (
+          <T>{m.nativeBuilder.restoreChanged}</T>
+        ) : null}
+        {error ? (
+          <T tone="danger" accessibilityRole="alert">
+            {error}
+          </T>
+        ) : null}
+        <T variant="title2" heading>
+          {m.nativeBuilder.localVersion}
+        </T>
+        <BuilderSummary
+          form={stored.value.form}
+          duration={stored.value.duration}
+          context={stored.value.context}
+          pendingPrescription={stored.value.prescription}
+        />
+        {verified && initial ? (
+          <>
+            <T variant="title2" heading>
+              {m.nativeBuilder.serverVersion}
+            </T>
+            <BuilderSummary
+              form={initialForm(initial, initial.date)}
+              duration={initial.draft.durationMin?.toString() ?? ""}
+              context={context}
+            />
+          </>
+        ) : null}
+        {stored.value.pending && !stored.value.form.id ? (
+          <>
+            <T>{m.nativeBuilder.unknownCreation}</T>
+            <Button variant="secondary" label={m.nav.calendrier} onPress={() => router.push("/(coach)/planning")} />
+          </>
+        ) : (
+          <Button
+            label={m.nativeBuilder.restore}
+            disabled={busy}
+            onPress={() => confirm(m.nativeBuilder.restoreConfirm, () => void recover(true))}
+          />
+        )}
+        <Button
+          variant="secondary"
+          label={m.nativeBuilder.discardLocal}
+          disabled={busy}
+          onPress={() => confirm(m.nativeBuilder.discardLocalConfirm, () => void recover(false), true)}
+        />
+        <Button
+          variant="secondary"
+          label={m.nativeBuilder.reload}
+          disabled={busy || !online}
+          onPress={() => onReload()}
+        />
+      </StackScreen>
+    );
   return (
     <StackScreen title={initial ? m.common.edit + " · " + m.builder.title : m.coach.newSession}>
-      {!online ? <T accessibilityRole="alert">{m.nativeBuilder.offline}</T> : null}
+      {!online || !verified ? <T accessibilityRole="alert">{m.nativeBuilder.serverUnverified}</T> : null}
+      {localState === "conflict" ? (
+        <Button
+          variant="secondary"
+          label={m.nativeBuilder.reload}
+          onPress={() => confirm(m.nativeBuilder.reloadConfirm, () => onReload())}
+        />
+      ) : null}
+      {!verified ? (
+        <Button
+          variant="secondary"
+          label={m.nativeBuilder.reload}
+          disabled={!online || busy}
+          onPress={() => void reloadCurrent()}
+        />
+      ) : null}
+      {localState === "saving" || localState === "saved" ? (
+        <T accessibilityLiveRegion="polite" variant="caption">
+          {localState === "saving" ? m.nativeBuilder.localSaving : m.nativeBuilder.localSaved}
+        </T>
+      ) : null}
       <View pointerEvents={busy ? "none" : "auto"} style={{ gap: space.lg }} accessibilityElementsHidden={busy}>
         <Field
           testID="builder-title"
@@ -404,7 +666,7 @@ export const NativeSessionBuilder = ({
                     variant="secondary"
                     label={m.builder.setPrescription}
                     accessibilityLabel={`${m.builder.setPrescription} · ${exerciseFor(item)?.name ?? ""}`}
-                    onPress={() => setEditing({ itemRef: item.ref! })}
+                    onPress={() => openPrescription({ itemRef: item.ref! })}
                   />
                   <Button
                     compact
@@ -616,23 +878,19 @@ export const NativeSessionBuilder = ({
           <Button variant="secondary" label={m.nav.calendrier} onPress={() => router.push("/(coach)/planning")} />
         ) : null}
         {stale && form.id ? (
-          <Button
-            variant="secondary"
-            label={m.nativeBuilder.reload}
-            onPress={() => confirm(m.nativeBuilder.reloadConfirm, () => onReload(form.id))}
-          />
+          <Button variant="secondary" label={m.nativeBuilder.reload} onPress={() => void reloadCurrent()} />
         ) : null}
 
         <Button
           label={publishedAt ? m.common.save : m.builder.publish}
-          disabled={busy || stale || !online}
+          disabled={busy || stale || !online || !verified || localState === "conflict"}
           onPress={review}
         />
         {!publishedAt ? (
           <Button
             variant="secondary"
             label={form.publishAt ? m.builder.publishLater : m.builder.saveDraft}
-            disabled={busy || stale || !online}
+            disabled={busy || stale || !online || !verified || localState === "conflict"}
             onPress={() => void submit(false)}
           />
         ) : null}
@@ -732,7 +990,7 @@ export const NativeSessionBuilder = ({
                     variant="secondary"
                     label={`${a.firstName} ${a.lastName}`}
                     onPress={() => {
-                      setEditing({ itemRef: adjusting, athleteId: a.id });
+                      openPrescription({ itemRef: adjusting, athleteId: a.id });
                       setAdjusting(null);
                     }}
                   />
@@ -752,12 +1010,21 @@ export const NativeSessionBuilder = ({
             })}
         </Sheet>
       ) : null}
+      {editing && (!editedItem || !editedExercise) ? (
+        <Button
+          variant="secondary"
+          label={m.nativeBuilder.pendingPrescription}
+          onPress={() => confirm(m.nativeBuilder.discardPrescription, () => setEditing(null), true)}
+        />
+      ) : null}
       {editing && editedItem && editedExercise && editedValue ? (
         <PrescriptionEditor
           key={`${editing.itemRef}-${editing.athleteId ?? "all"}`}
           title={editing.athleteId ? m.builder.adjustments : m.builder.setPrescription}
           exercise={editedExercise}
           value={editedValue}
+          fields={editing.fields}
+          onFieldsChange={(fields) => setEditing((value) => (value ? { ...value, fields } : null))}
           testKeys={context.testKeys}
           onClose={() => setEditing(null)}
           onApply={applyPrescription}
@@ -774,52 +1041,18 @@ export const NativeSessionBuilder = ({
             <Button
               label={publishedAt ? m.common.save : m.builder.publish}
               loading={busy}
-              disabled={!online || stale}
+              disabled={!online || !verified || stale || localState === "conflict"}
               onPress={() => void submit(true)}
             />
           }
         >
-          <T variant="title2">{form.draft.title}</T>
-          <T>
-            {form.date} · {form.startTime ?? ""}
-          </T>
-          <T>{form.assignments.map(audienceName).join(", ")}</T>
-          <T>
-            {[form.location, duration ? `${duration} min` : null, form.draft.coachNote].filter(Boolean).join(" · ")}
-          </T>
           <T>{publishedAt ? m.nativeBuilder.updateConfirm : m.nativeBuilder.publishConfirm}</T>
           {error ? (
             <T tone="danger" accessibilityRole="alert">
               {error}
             </T>
           ) : null}
-          {form.draft.blocks.map((b) => (
-            <View key={b.ref} style={{ gap: space.sm }}>
-              <T variant="bodyStrong">
-                {b.name} ·{" "}
-                {b.variant === "club"
-                  ? m.builder.versionClub
-                  : b.variant === "autonomous"
-                    ? m.builder.versionAutonomous
-                    : m.nativeBuilder.both}
-              </T>
-              {b.items.map((i) => (
-                <View key={i.ref}>
-                  <T>
-                    {exerciseFor(i)?.name ?? m.common.notFound} · {formatPrescription(i.prescription)}
-                  </T>
-                  {form.overrides
-                    .filter((o) => o.itemRef === i.ref)
-                    .map((o) => (
-                      <T key={o.athleteId} variant="caption">
-                        {audienceName({ targetType: "athlete", targetId: o.athleteId })} ·{" "}
-                        {formatPrescription(o.prescription)}
-                      </T>
-                    ))}
-                </View>
-              ))}
-            </View>
-          ))}
+          <BuilderSummary form={form} duration={duration} context={context} />
         </Sheet>
       ) : null}
     </StackScreen>

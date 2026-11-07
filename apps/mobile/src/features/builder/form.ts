@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { m } from "@tartan/i18n";
 import {
   clockTime,
@@ -116,3 +117,22 @@ export const builderErrors = (issues: { path: PropertyKey[] }[]): string => {
     ].join(", "),
   );
 };
+
+export const prescriptionFieldsSchema = z.object({
+  sets: z.string().max(100),
+  reps: z.string().max(100),
+  distance_m: z.string().max(100),
+  duration_s: z.string().max(100),
+  rest_s: z.string().max(100),
+  ground_contacts: z.string().max(100),
+  count: z.string().max(100),
+  height_cm: z.string().max(100),
+  loadValue: z.string().max(100),
+  intensityValue: z.string().max(100),
+  tempo: z.string().max(20),
+  notes: z.string().max(500),
+  unit: z.string().max(30),
+  test: z.string().max(60),
+  loadType: z.enum(["none", "kg", "pct_1rm"]),
+  intensityType: z.enum(["none", "rpe", "rir"]),
+});

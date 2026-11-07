@@ -699,6 +699,34 @@ export const fr = {
   },
   nativeBuilder: {
     invalidFields: (labels: string) => `Vérifie les champs suivants : ${labels}.`,
+    applyPending: "Applique ou abandonne la prescription en cours avant d’enregistrer la séance.",
+    pendingPrescription: "Prescription en cours de saisie, non appliquée",
+    discardPrescription:
+      "Abandonner la saisie de cette prescription ? Les valeurs appliquées précédemment restent conservées.",
+    localSaving: "Enregistrement sur cet appareil…",
+    localSaved: "Brouillon conservé sur cet appareil pendant sept jours après sa dernière sauvegarde.",
+    localError: "Le brouillon n’a pas pu être conservé sur cet appareil. Garde cet écran ouvert et réessaie.",
+    localConflict: "Ce brouillon a été modifié dans un autre écran. Recharge-le pour choisir les valeurs à conserver.",
+    recoveredTitle: "Un brouillon est conservé sur cet appareil",
+    localVersion: "Sur cet appareil",
+    serverVersion: "Sur le serveur",
+    restore: "Reprendre le brouillon",
+    discardLocal: "Abandonner le brouillon local",
+    discardLocalConfirm:
+      "Effacer la copie locale et reprendre la séance du serveur ? Aucune écriture n’est envoyée au serveur.",
+    restoreChanged:
+      "La séance a changé sur le serveur. Compare les deux versions avant de reprendre ton brouillon. Un enregistrement ultérieur remplacera la prescription actuelle par les valeurs relues.",
+    restoreConfirm:
+      "Reprendre ces valeurs sur la version affichée ? Rien n’est envoyé maintenant : tu devras encore enregistrer ou publier.",
+    pendingReply:
+      "Un envoi a été interrompu. Vérifie la version du serveur avant de reprendre ; aucun envoi n’est rejoué automatiquement.",
+    serverUnverified:
+      "Version serveur non vérifiée. Tu peux travailler sur la copie locale ; reconnecte-toi puis recharge la séance avant de l’envoyer.",
+    keepDraft: "Quitter en conservant le brouillon",
+    keepDraftConfirm:
+      "Conserver les modifications sur cet appareil avant de quitter ? Elles ne seront pas envoyées au serveur.",
+    storageAfterSave:
+      "La séance est enregistrée sur le serveur, mais la copie locale n’a pas pu être nettoyée. Recharge et vérifie son état avant de poursuivre.",
     advanced: "Options avancées",
     hideAdvanced: "Masquer les options avancées",
     addExercise: "Ajouter un exercice",
@@ -739,7 +767,7 @@ export const fr = {
     templateSaved: "Modèle enregistré.",
     unsaved: "Modifications non enregistrées",
     leaveConfirm: "Quitter et abandonner les modifications de cette séance ?",
-    leave: "Quitter sans enregistrer",
+    leave: "Quitter et abandonner le brouillon",
     reloadConfirm: "Recharger la version du serveur et abandonner les modifications affichées ?",
     reload: "Recharger la séance",
     offline:

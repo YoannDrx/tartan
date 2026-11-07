@@ -1,11 +1,17 @@
 import type { Prescription } from "@tartan/contracts";
 import { m, strengthTestLabel } from "@tartan/i18n";
 import { useId, useState } from "react";
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 import { Button, Chip, Field, T } from "../../ui/primitives";
 import { Sheet } from "../../ui/sheet";
 import { space } from "../../ui/theme";
-import { builderErrors, numericFields, parsePrescriptionFields, prescriptionFields } from "./form";
+import {
+  builderErrors,
+  numericFields,
+  parsePrescriptionFields,
+  prescriptionFields,
+  type PrescriptionFields,
+} from "./form";
 
 export const PrescriptionEditor = ({
   title,
@@ -14,6 +20,8 @@ export const PrescriptionEditor = ({
   testKeys,
   onApply,
   onClose,
+  fields,
+  onFieldsChange,
 }: {
   title: string;
   exercise: { id: string; name: string };
@@ -21,8 +29,9 @@ export const PrescriptionEditor = ({
   testKeys: string[];
   onApply: (value: Prescription) => void;
   onClose: () => void;
+  fields: PrescriptionFields;
+  onFieldsChange: (fields: PrescriptionFields) => void;
 }) => {
-  const [fields, setFields] = useState(() => prescriptionFields(value));
   const [advanced, setAdvanced] = useState(false);
   const [error, setError] = useState("");
   const uid = useId();
@@ -36,7 +45,7 @@ export const PrescriptionEditor = ({
     count: m.nativeBuilder.count,
     height_cm: m.nativeBuilder.height,
   };
-  const update = (patch: Partial<typeof fields>) => setFields((v) => ({ ...v, ...patch }));
+  const update = (patch: Partial<typeof fields>) => onFieldsChange({ ...fields, ...patch });
   const keys = [...new Set([...testKeys, ...(fields.test ? [fields.test] : [])])].filter(
     (key) => !key.startsWith("exercise:") || key === `exercise:${exercise.id}`,
   );
@@ -48,8 +57,18 @@ export const PrescriptionEditor = ({
     }
     onApply(result.data);
   };
+  const close = () => {
+    if (JSON.stringify(fields) === JSON.stringify(prescriptionFields(value))) {
+      onClose();
+      return;
+    }
+    Alert.alert(m.builder.setPrescription, m.nativeBuilder.discardPrescription, [
+      { text: m.common.cancel, style: "cancel" },
+      { text: m.common.delete, style: "destructive", onPress: onClose },
+    ]);
+  };
   return (
-    <Sheet visible title={title} onClose={onClose} footer={<Button label={m.nativeBuilder.apply} onPress={apply} />}>
+    <Sheet visible title={title} onClose={close} footer={<Button label={m.nativeBuilder.apply} onPress={apply} />}>
       <T variant="bodyStrong">{exercise.name}</T>
       {error ? (
         <T tone="danger" accessibilityRole="alert">
