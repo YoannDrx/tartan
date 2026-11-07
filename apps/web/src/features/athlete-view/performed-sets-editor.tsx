@@ -22,10 +22,11 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field, Input, Select, CheckRow } from "@/components/ui/field";
 import { sendValidation, newClientId } from "./validation-queue";
-import { pendingOps, reviewRequiredOps } from "@/features/offline/op-queue";
+import { PerformedDraftReview } from "./performed-draft-review";
+import { getQueueOwner, pendingOps, reviewRequiredOps } from "@/features/offline/op-queue";
 
 export const PerformedSetsEditor = ({
-  session,
+  session: initialSession,
   organizationId,
   userId,
 }: {
@@ -33,6 +34,9 @@ export const PerformedSetsEditor = ({
   organizationId: string;
   userId: string;
 }) => {
+  const [reviewedSession, setReviewedSession] = useState<AthleteSessionDetail | null>(null);
+  const session = reviewedSession ?? initialSession;
+  const [reviewing, setReviewing] = useState(false);
   const key = `tartan.performed.v1.${userId}.${organizationId}.${session.id}`;
   const [draft, setDraft] = useState<PerformedSetsDraft>(() => draftFromSession(session));
   const [ready, setReady] = useState(false);
@@ -65,7 +69,7 @@ export const PerformedSetsEditor = ({
             setStorageError(true);
           }
         }
-        const queue = await pendingOps();
+        const queue = await pendingOps(true);
         if (!active) return;
         const relevant = queue.filter(
           (op) => op.target === session.id && op.path === `/orgs/${organizationId}/sessions/${session.id}/log`,
@@ -152,7 +156,43 @@ export const PerformedSetsEditor = ({
       <p className="t-caption">{m.progression.loadHint}</p>
       {stale ? <p role="alert">{m.progression.draftStale}</p> : null}
       {storageError ? <p role="alert">{m.offline.deviceStorageError}</p> : null}
-      <fieldset disabled={!ready || saving || locked || unreadableDraft} className="flex min-w-0 flex-col gap-4">
+      {stale && ready && !unreadableDraft && !reviewing ? (
+        <Button variant="secondary" disabled={saving} onClick={() => setReviewing(true)}>
+          {m.progression.reviewDraft}
+        </Button>
+      ) : null}
+      {reviewing ? (
+        <PerformedDraftReview
+          draft={draft}
+          organizationId={organizationId}
+          sessionId={session.id}
+          onCancel={() => setReviewing(false)}
+          onResolve={async (next, current) => {
+            const queue = await pendingOps(true);
+            const stored = performedSetsDraft.safeParse(JSON.parse(localStorage.getItem(key) ?? "null"));
+            if (
+              getQueueOwner() !== userId ||
+              !stored.success ||
+              performedDraftContent(stored.data) !== performedDraftContent(draft) ||
+              queue.some(
+                (op) => op.target === session.id && op.path === `/orgs/${organizationId}/sessions/${session.id}/log`,
+              )
+            )
+              throw new Error("DRAFT_CHANGED");
+            localStorage.setItem(key, JSON.stringify(next));
+            setDraft(next);
+            setReviewedSession(current);
+            setIssues([]);
+            setStorageError(false);
+            setMessage(m.progression.draftReady);
+            setReviewing(false);
+          }}
+        />
+      ) : null}
+      <fieldset
+        disabled={!ready || saving || locked || unreadableDraft || reviewing}
+        className="flex min-w-0 flex-col gap-4"
+      >
         {session.blocks
           .flatMap((block) => block.items)
           .map((item) => (

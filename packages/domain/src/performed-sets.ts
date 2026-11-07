@@ -153,3 +153,31 @@ export const isResolvedDraft = (
     receipt.content === performedDraftContent(draft) &&
     (receipt.replacementClientId === null || receipt.replacementClientId === serverClientId),
   );
+
+// Seulement après comparaison explicite. Une version de prescription différente
+// ne prouve pas l'identité des exercices : on ne déplace jamais les anciennes séries.
+export const rebasePerformedDraft = (
+  draft: PerformedSetsDraft,
+  session: AthleteSessionDetail,
+): {
+  draft: PerformedSetsDraft | null;
+  reason: "invalid" | "disabled" | "prescription" | "variant" | "exercise" | null;
+} => {
+  if (session.sessionVersion === undefined) return { draft: null, reason: "invalid" };
+  if (!session.progressionEnabled) return { draft: null, reason: "disabled" };
+  if (draft.sessionVersion !== session.sessionVersion) return { draft: null, reason: "prescription" };
+  if (draft.variant !== session.variant) return { draft: null, reason: "variant" };
+  const refs = new Set(session.blocks.flatMap((block) => block.items.map((item) => item.ref)));
+  if (draft.rows.some((row) => !refs.has(row.itemRef))) return { draft: null, reason: "exercise" };
+  return {
+    draft: {
+      format: 1,
+      sessionVersion: session.sessionVersion,
+      logVersion: session.log?.version ?? 0,
+      variant: draft.variant,
+      status: draft.status,
+      rows: draft.rows.map((row) => ({ ...row })),
+    },
+    reason: null,
+  };
+};

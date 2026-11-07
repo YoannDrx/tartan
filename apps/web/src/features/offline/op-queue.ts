@@ -42,6 +42,7 @@ export const setQueueOwner = (userId: string) => {
 };
 
 export const isSessionExpired = () => sessionExpired;
+export const getQueueOwner = () => owner;
 
 const announce = () => {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(QUEUE_EVENT));

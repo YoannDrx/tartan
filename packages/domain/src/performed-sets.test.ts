@@ -7,6 +7,7 @@ import {
   performedDraftContent,
   resolvedDraftReceipt,
   isResolvedDraft,
+  rebasePerformedDraft,
 } from "./performed-sets";
 
 const item: ResolvedItem = {
@@ -93,4 +94,32 @@ it("ne clôt le brouillon résolu qu'après accusé serveur et sans perdre une m
   expect(resolvedDraftReceipt(draft, ["old-client"], "new-client")).toBeNull();
   expect(isResolvedDraft(draft, receipt, "new-client")).toBe(false);
   expect(isResolvedDraft(draft, discarded)).toBe(false);
+});
+
+it("reprend les valeurs non envoyées après choix explicite, sans conserver l'ancien accusé", () => {
+  const draft = draftFromSession(session);
+  draft.rows[0]!.loadKg = "42,5";
+  draft.rows[1]!.loadKg = "incomplet";
+  draft.submittedClientId = "ancien";
+  draft.submittedContent = "ancien-contenu";
+  const current = { ...session, progressionEnabled: true, log: { version: 7 } } as AthleteSessionDetail;
+  const result = rebasePerformedDraft(draft, current);
+  expect(result.reason).toBeNull();
+  expect(result.draft).toMatchObject({ logVersion: 7, sessionVersion: 2, rows: draft.rows });
+  expect(result.draft?.submittedClientId).toBeUndefined();
+  expect(result.draft?.submittedContent).toBeUndefined();
+  expect(draft.logVersion).toBe(0);
+  expect(result.draft?.rows[0]).not.toBe(draft.rows[0]);
+});
+it("refuse de reprendre un brouillon sous une autre prescription, variante ou identité", () => {
+  const draft = draftFromSession(session);
+  const current = { ...session, progressionEnabled: true };
+  expect(rebasePerformedDraft(draft, { ...current, sessionVersion: 3 })).toEqual({
+    draft: null,
+    reason: "prescription",
+  });
+  expect(rebasePerformedDraft(draft, { ...current, variant: "autonomous" }).reason).toBe("variant");
+  expect(rebasePerformedDraft(draft, { ...current, blocks: [] }).reason).toBe("exercise");
+  expect(rebasePerformedDraft(draft, { ...current, progressionEnabled: false }).reason).toBe("disabled");
+  expect(rebasePerformedDraft(draft, { ...current, sessionVersion: undefined }).reason).toBe("invalid");
 });

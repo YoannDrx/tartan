@@ -226,6 +226,74 @@ test("l'athlète confirme ses séries, retrouve son brouillon et conserve son re
       await expect(first.getByLabel(m.progression.fields.loadKg, { exact: true })).toHaveValue("45");
       await expect(athlete.getByText(m.progression.draftStale)).toHaveCount(0);
       await expect(athlete.getByRole("button", { name: m.progression.saveSets, exact: true })).toBeEnabled();
+
+      // Un brouillon jamais envoyé se relit séparément, sans écrire sur le serveur.
+      await first.getByLabel(m.progression.fields.loadKg, { exact: true }).fill("47");
+      const savedBeforeDraft = await (await other.request.get(`${endpoint}/me`)).json();
+      const correction = await other.request.post(`${endpoint}/log`, {
+        data: {
+          clientId: randomUUID(),
+          writeScope: "status",
+          status: "partial",
+          variantDone: "club",
+          expectedVersion: savedBeforeDraft.log.version,
+          expectedSessionVersion: savedBeforeDraft.sessionVersion,
+        },
+      });
+      expect(correction.ok()).toBe(true);
+      const correctionResult = await correction.json();
+      await athlete.reload({ waitUntil: "networkidle" });
+      await expect(athlete.getByText(m.progression.draftStale)).toBeVisible();
+      await athlete.getByRole("button", { name: m.progression.reviewDraft, exact: true }).click();
+      await expect(
+        athlete
+          .getByRole("region", { name: m.progression.localDraft })
+          .getByText(`${m.progression.fields.loadKg} : 47`, { exact: true }),
+      ).toBeVisible();
+      await expectAccessible(athlete);
+      await expectNoHorizontalScroll(athlete);
+      await athlete.getByRole("button", { name: m.progression.keepDraft, exact: true }).click();
+      await dialog.getByRole("button", { name: m.common.cancel, exact: true }).click();
+      await expect(athlete.getByText(m.progression.draftStale)).toBeVisible();
+      await athlete.getByRole("button", { name: m.progression.keepDraft, exact: true }).click();
+      await dialog.getByRole("button", { name: m.progression.keepDraft, exact: true }).click();
+      await expect(athlete.getByText(m.progression.draftReady, { exact: true })).toBeVisible();
+      expect((await (await other.request.get(`${endpoint}/me`)).json()).log.version).toBe(correctionResult.version);
+      await expect(first.getByLabel(m.progression.fields.loadKg, { exact: true })).toHaveValue("47");
+      await athlete.getByRole("button", { name: m.progression.saveSets, exact: true }).click();
+      await expect(athlete.getByText(m.progression.savedSets, { exact: true })).toBeVisible();
+      const kept = await (await other.request.get(`${endpoint}/me`)).json();
+      expect(kept.log.detailedSets[0].loadKg).toBe(47);
+      await athlete.reload({ waitUntil: "networkidle" });
+      await first.getByLabel(m.progression.fields.loadKg, { exact: true }).fill("48");
+      expect(
+        (
+          await other.request.post(`${endpoint}/log`, {
+            data: {
+              clientId: randomUUID(),
+              writeScope: "sets",
+              status: "done",
+              variantDone: "club",
+              expectedVersion: kept.log.version,
+              expectedSessionVersion: kept.sessionVersion,
+              detailedSets: kept.log.detailedSets.map((set: object, index: number) =>
+                index === 0 ? { ...set, loadKg: 49 } : set,
+              ),
+            },
+          })
+        ).ok(),
+      ).toBe(true);
+      await athlete.reload({ waitUntil: "networkidle" });
+      await athlete.getByRole("button", { name: m.progression.reviewDraft, exact: true }).click();
+      await athlete.getByRole("button", { name: m.progression.resetDraft, exact: true }).click();
+      await dialog.getByRole("button", { name: m.common.cancel, exact: true }).click();
+      await expect(first.getByLabel(m.progression.fields.loadKg, { exact: true })).toHaveValue("48");
+      await athlete.getByRole("button", { name: m.progression.resetDraft, exact: true }).click();
+      await dialog.getByRole("button", { name: m.progression.resetDraft, exact: true }).click();
+      await expect(first.getByLabel(m.progression.fields.loadKg, { exact: true })).toHaveValue("49");
+      await athlete.reload({ waitUntil: "networkidle" });
+      await expect(first.getByLabel(m.progression.fields.loadKg, { exact: true })).toHaveValue("49");
+      await expect(athlete.getByText(m.progression.draftStale)).toHaveCount(0);
     } finally {
       await other.close();
     }

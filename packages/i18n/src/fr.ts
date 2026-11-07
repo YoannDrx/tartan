@@ -47,6 +47,19 @@ export const fr = {
     savedSets: "Séries enregistrées",
     queuedSets: "Séries sauvegardées sur cet appareil, en attente d’envoi.",
     draftSaved: "Brouillon conservé sur cet appareil.",
+    reviewDraft: "Relire mon brouillon",
+    localDraft: "Mon brouillon non envoyé",
+    keepDraft: "Reprendre mon brouillon",
+    resetDraft: "Repartir des séries enregistrées",
+    reviewDraftHint:
+      "Compare les séries. Ton choix prépare le formulaire ; rien ne sera envoyé avant « Enregistrer mes séries ». Les séries non confirmées restent des propositions.",
+    keepDraftConfirm:
+      "Conserver toutes les valeurs de ton brouillon pour corriger la version affichée ? Tu pourras encore les modifier avant de les enregistrer.",
+    resetDraftConfirm:
+      "Remplacer ton brouillon local par les séries affichées comme actuellement enregistrées ? Les valeurs non envoyées seront perdues. La séance sur le serveur ne change pas.",
+    draftChanged:
+      "Le brouillon, le compte ou les envois en attente ont changé. Rouvre la séance pour les relire avant de continuer.",
+    draftReady: "Brouillon prêt à être modifié. Enregistre tes séries lorsque tu as terminé.",
     draftStale:
       "La séance ou sa validation a changé. Tes valeurs restent conservées. Relis les données enregistrées avant de résoudre ce conflit.",
     issue: {

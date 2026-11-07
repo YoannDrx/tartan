@@ -201,3 +201,18 @@ Les modifications de prescription, de variante ou d’identité d’exercice emp
 Preuves locales du 7 novembre : **465 tests serveur, 91 tests domaine et 155 tests mobiles réussis** ; types monorepo, lint sans erreur et Impeccable sans travers. Les **quatre parcours navigateur de production** (séries et relecture, desktop/mobile) réussissent : concurrence réelle entre deux contextes, nouvelle correction pendant la comparaison, confirmation/annulation d’abandon, persistance après rechargement et retour dans l’éditeur. Axe et absence de débordement sont vérifiés. Exports Expo Hermes iOS et Android générés ; aucun build signé ni essai physique revendiqué.
 
 Le parcours couvre les envois de validation de l’athlète dans l’espace courant. Il ne résout pas encore les brouillons jamais envoyés devenus obsolètes, ni tous les autres types de la file (appel, commentaire, tentative). La saisie coach et les formulaires natifs des références restent à développer. Aucune migration ni activation en production dans ce lot. La CI qualité de `da12c08` est réussie ; ces changements nécessitent leur propre CI avant fusion.
+
+
+### Brouillons non envoyés devenus obsolètes
+
+L’éditeur web/natif propose maintenant une relecture des séries actuelles et du brouillon local, y compris les valeurs non confirmées. Le choix « Reprendre mon brouillon » met à jour sa version attendue uniquement après confirmation et seulement si la prescription, la variante et les références d’exercice sont inchangées. Une autre prescription impose une reprise manuelle ; aucun exercice n’est réattribué. Le choix destructif « Repartir des séries enregistrées » exige une confirmation distincte. Aucun de ces choix n’écrit sur le serveur : l’athlète conserve l’étape d’enregistrement. Les envois déjà en file et les brouillons modifiés ailleurs empêchent une reprise aveugle.
+
+L’éditeur natif prend également en compte le résultat explicite de mise en file avant toute confirmation de succès. Un refus ne peut plus être interprété comme un envoi réussi au seul motif qu’aucune nouvelle opération n’est en attente.
+
+Preuves locales : **93 tests domaine**, types monorepo, lint ciblé et Impeccable réussis. **Deux parcours navigateur de production** (390/1440 px) couvrent reprise, annulation, remplacement confirmé, absence d’écriture serveur pendant le choix, enregistrement ultérieur et rechargement ; Axe et absence de débordement passent. Exports Hermes iOS et Android générés avec ces écrans. Les tests serveur ne sont pas relancés pour ce lot sans changement serveur ; les preuves natives restent automatisées, sans appareil physique.
+
+### Préparation du déploiement de fiabilité
+
+Nouvelle sauvegarde chiffrée GitHub `42413533493`, source `1852b25`, créée le 7 novembre à 20 h 57 UTC : réussie. Restauration isolée locale en **0,16 s**, puis migrations exactes de la branche PR 1 via Prisma en **0,95 s** : passage de 21 à 24 migrations, 12 comptes, 2 espaces et 60 séances conservés. Base et fichiers temporaires supprimés. Un premier essai de comptage employait un mauvais nom de table ; le nouvel essai utilise `scheduled_sessions` et vérifie les trois compteurs avant/après. Aucune modification de la production.
+
+Le compte Stripe de production Tartan `acct_1UXJjd4TQfkM7TmX` expose un webhook actif vers `https://app.tartan.coach/api/webhooks/stripe`, version `2025-03-31.basil`, pour création/modification/suppression d’abonnement. Cette lecture confirme sa configuration, pas la réception signée d’un événement par l’application.

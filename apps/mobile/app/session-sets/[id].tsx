@@ -24,6 +24,7 @@ import { Button, Field, T } from "../../src/ui/primitives";
 import { StackScreen, SyncBanner } from "../../src/ui/screen";
 import { LoadingState, ErrorState } from "../../src/ui/states";
 import { space } from "../../src/ui/theme";
+import { PerformedDraftReview } from "../../src/ui/performed-draft-review";
 import { Check } from "../../src/ui/icons";
 
 const Choice = ({
@@ -59,7 +60,18 @@ const Choice = ({
   </View>
 );
 
-const Editor = ({ session, orgId, userId }: { session: AthleteSessionDetail; orgId: string; userId: string }) => {
+const Editor = ({
+  session: initialSession,
+  orgId,
+  userId,
+}: {
+  session: AthleteSessionDetail;
+  orgId: string;
+  userId: string;
+}) => {
+  const [reviewedSession, setReviewedSession] = useState<AthleteSessionDetail | null>(null);
+  const session = reviewedSession ?? initialSession;
+  const [reviewing, setReviewing] = useState(false);
   const key = `tartan.performed.v1.${userId}.${orgId}.${session.id}`;
   const [draft, setDraft] = useState(() => draftFromSession(session));
   const [ready, setReady] = useState(false);
@@ -117,7 +129,7 @@ const Editor = ({ session, orgId, userId }: { session: AthleteSessionDetail; org
   }, [key, draft, ready, locked]);
   const stale =
     !locked && (draft.sessionVersion !== session.sessionVersion || draft.logVersion !== (session.log?.version ?? 0));
-  const disabled = !ready || locked || saving;
+  const disabled = !ready || locked || saving || reviewing;
   const checked = confirmedSets(draft);
   const patch = (index: number, change: Partial<PerformedSetDraftRow>) =>
     setDraft((old) => ({ ...old, rows: old.rows.map((row, i) => (i === index ? { ...row, ...change } : row)) }));
@@ -132,7 +144,7 @@ const Editor = ({ session, orgId, userId }: { session: AthleteSessionDetail; org
     const clientId = newClientId();
     setDraft((old) => ({ ...old, submittedClientId: clientId, submittedContent: performedDraftContent(old) }));
     try {
-      await submitValidation(
+      const result = await submitValidation(
         orgId,
         session.id,
         {
@@ -145,6 +157,10 @@ const Editor = ({ session, orgId, userId }: { session: AthleteSessionDetail; org
         },
         clientId,
       );
+      if (result.state === "error") {
+        setMessage(result.message);
+        return;
+      }
       const state = useOpQueue.getState();
       if (state.ownerId !== userId) {
         setMessage(m.offline.session);
@@ -178,6 +194,41 @@ const Editor = ({ session, orgId, userId }: { session: AthleteSessionDetail; org
       <SyncBanner />
       {stale ? <T accessibilityRole="alert">{m.progression.draftStale}</T> : null}
       {storageError ? <T accessibilityRole="alert">{m.offline.deviceStorageError}</T> : null}
+      {stale && ready && !reviewing ? (
+        <Button
+          variant="secondary"
+          disabled={saving}
+          label={m.progression.reviewDraft}
+          onPress={() => setReviewing(true)}
+        />
+      ) : null}
+      {reviewing ? (
+        <PerformedDraftReview
+          draft={draft}
+          orgId={orgId}
+          sessionId={session.id}
+          onCancel={() => setReviewing(false)}
+          onResolve={async (next, current) => {
+            await writes.current;
+            const stored = performedSetsDraft.safeParse(JSON.parse((await AsyncStorage.getItem(key)) ?? "null"));
+            const queue = useOpQueue.getState();
+            if (
+              queue.ownerId !== userId ||
+              !stored.success ||
+              performedDraftContent(stored.data) !== performedDraftContent(draft) ||
+              queue.items.some((op) => op.kind === "log" && op.orgId === orgId && op.sessionId === session.id)
+            )
+              throw new Error("DRAFT_CHANGED");
+            await AsyncStorage.setItem(key, JSON.stringify(next));
+            setDraft(next);
+            setReviewedSession(current);
+            setShowIssues(false);
+            setStorageError(false);
+            setMessage(m.progression.draftReady);
+            setReviewing(false);
+          }}
+        />
+      ) : null}
       {session.blocks
         .flatMap((block) => block.items)
         .map((item) => (
