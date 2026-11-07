@@ -20,6 +20,7 @@ import {
   takeoffFoot,
 } from "./enums";
 import { isoDate, prescriptionSchema, uuid } from "./session";
+import { trainingProfileSchema } from "./training-profile";
 
 const trimmed = (max: number) => z.string().trim().max(max);
 const required = (max: number, message: string) => z.string().trim().min(1, message).max(max);
@@ -42,8 +43,11 @@ export type ProfileInput = z.infer<typeof profileInput>;
 export const createOrganizationInput = z.object({
   name: required(120, "Donne un nom à ton espace"),
   type: z.enum(["club", "independent"]),
-  disciplines: z.array(z.string().max(40)).max(12).default(["high_jump"]),
+  disciplines: trainingProfileSchema.shape.disciplines.default([]),
+  trainingObjectives: trainingProfileSchema.shape.trainingObjectives.default([]),
+  availableEquipment: trainingProfileSchema.shape.availableEquipment.default([]),
   firstGroupName: required(80, "Donne un nom à ton premier groupe"),
+  firstGroupGoal: trimmed(280).nullable().optional(),
   referralCode: z.string().trim().max(40).optional(),
   birthDate: isoDate.optional(),
 });

@@ -6,11 +6,11 @@ Ce document distingue le code livré, la configuration et les preuves réelles. 
 
 ## État courant de la PR 2
 
-Au 8 novembre 2026, après la reprise native `d27e460` et son complément de suppression : PR #45 en brouillon, fonctionnalités de progression désactivées par défaut et non publiées en production. Les sections de preuves ci-dessous gardent l’historique des étapes ; les mentions « reste à faire » d’un ancien lot sont remplacées par les preuves plus récentes.
+Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil sportif : PR #45 en brouillon, fonctionnalités de progression désactivées par défaut et non publiées en production. Les sections de preuves ci-dessous gardent l’historique des étapes ; les mentions « reste à faire » d’un ancien lot sont remplacées par les preuves plus récentes.
 
 | Lot | État actuel | Reste principal |
 | --- | --- | --- |
-| A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles et vidéo générique ajoutées | Suite de la recette du constructeur, publication groupée, onboarding, bibliothèque relue, landing et recette physique |
+| A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles, vidéo générique et profil sportif web/native ajoutés | Suite de la recette du constructeur, publication groupée, recette complète de l’onboarding, bibliothèque relue, landing et recette physique |
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
 | C — historique et records | Règles de calcul initiales présentes | Historique, dernière réalisation comparable, calculateur, courbes, records et célébration unique |
 | D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |
@@ -300,3 +300,8 @@ La saisie non enregistrée du constructeur reste en mémoire : persistance chiff
 La capture native ne crée plus systématiquement un essai de saut. Les outils hauteur deviennent explicites, les remarques génériques restent sans phase et les anciens essais/annotations conservent leur contexte. Les listes, imports et indications web/natives emploient un vocabulaire général ; les adresses historiques sont conservées. [Preuves du lot](preuves-v1-1/lot-a-video-generique.md).
 
 101 tests domaine, 199 mobiles, un scénario serveur d’import sans essai, deux parcours navigateur de production (Axe, 390/768/1440 px et zoom 200 %) et le parcours de ralenti existant réussis. Capture générique et activation/repli des outils vérifiés sur simulateur iOS. Aucun import ou envoi Mux réel revendiqué. Deux crashs distincts du client de développement restent à isoler ; les exports ne prouvent pas la stabilité sur téléphone. Le titre du constructeur suit maintenant son état enregistré après création.
+
+
+### Profil sportif — onboarding et réglages
+
+Disciplines sans hauteur présélectionnée, objectifs de préparation, matériel et objectif du premier groupe disponibles sur web et natif. Réglages modifiables par le propriétaire ; champs omis par les anciens clients conservés. Migration additive éprouvée sur schéma ancien synthétique puis Preview Neon (28 migrations), sans changement en production. 516 tests serveur, 199 mobiles, deux parcours navigateur, types, lint, design et exports réussis. Lecture, modification et persistance vérifiées dans le simulateur iOS. [Preuves et limites](preuves-v1-1/lot-a-profil-sportif.md).

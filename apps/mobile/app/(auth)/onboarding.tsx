@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import type { TrainingProfile } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { ageAt } from "@tartan/domain";
 import { Redirect, useRouter } from "expo-router";
@@ -6,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BirthDateField, toIsoBirthDate, type BirthParts } from "../../src/features/birth-date-field";
+import { TrainingProfileFields } from "../../src/features/training-profile-fields";
 import { InviteLinkSheet } from "../../src/features/invite-link-sheet";
 import { PushStep } from "../../src/features/push-step";
 import { api } from "../../src/lib/api";
@@ -39,6 +41,12 @@ export default function Onboarding() {
   const [orgName, setOrgName] = useState("");
   const [orgType, setOrgType] = useState<"club" | "independent">("club");
   const [groupName, setGroupName] = useState("");
+  const [groupGoal, setGroupGoal] = useState("");
+  const [trainingProfile, setTrainingProfile] = useState<TrainingProfile>({
+    disciplines: [],
+    trainingObjectives: [],
+    availableEquipment: [],
+  });
   const [pasting, setPasting] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -55,7 +63,8 @@ export default function Onboarding() {
         name: orgName.trim(),
         type: orgType,
         firstGroupName: groupName.trim(),
-        disciplines: [],
+        ...trainingProfile,
+        firstGroupGoal: groupGoal.trim(),
         referralCode: currentReferral(),
         birthDate: toIsoBirthDate(birth) ?? undefined,
       });
@@ -203,6 +212,18 @@ export default function Onboarding() {
                 onChangeText={setGroupName}
                 hint={m.onboarding.firstGroupHint}
                 error={errors.groupName}
+              />
+              <Field
+                label={m.trainingProfile.firstGroupGoal}
+                hint={m.trainingProfile.groupGoalHint}
+                value={groupGoal}
+                onChangeText={setGroupGoal}
+                maxLength={280}
+              />
+              <TrainingProfileFields
+                value={trainingProfile}
+                onChange={setTrainingProfile}
+                disabled={create.isPending}
               />
               {formError ? (
                 <T variant="small" tone="danger" accessibilityLiveRegion="assertive">

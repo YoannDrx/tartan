@@ -303,6 +303,13 @@ export default function Settings() {
         </View>
       ) : null}
 
+      {active?.role === "owner" ? (
+        <Button
+          label={m.trainingProfile.settings}
+          variant="secondary"
+          onPress={() => router.push("/organization-settings")}
+        />
+      ) : null}
       {hasAthleteSpace ? (
         <View style={{ gap: space.sm }}>
           <SectionTitle>{m.settings.privacy}</SectionTitle>

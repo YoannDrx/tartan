@@ -57,9 +57,29 @@ describe("export des données", () => {
         date: new Date("2030-06-10T00:00:00Z"),
       },
     });
-    const text = JSON.stringify(await exportMyData(athlete.userId));
+    await prisma.strengthTest.create({
+      data: {
+        organizationId: a.organizationId,
+        athleteId: athlete.athleteId,
+        exerciseKey: "back_squat",
+        value: 100,
+        kind: "one_rm",
+        date: new Date("2030-06-10T00:00:00Z"),
+      },
+    });
+    const data = await exportMyData(athlete.userId);
+    expect(data.athletes.map((entry) => entry.id)).toEqual([athlete.athleteId]);
+    expect(
+      data.athletes[0]!.tests.map((entry) => ({
+        exerciseKey: entry.exerciseKey,
+        kind: entry.kind,
+        value: Number(entry.value),
+      })),
+    ).toEqual([{ exerciseKey: "back_squat", kind: "one_rm", value: 100 }]);
+    expect(data.athletes[0]!.tests).toHaveLength(1);
+    const text = JSON.stringify(data);
     expect(text).not.toContain("Note privée");
-    expect(text).not.toContain("199");
+    expect(text).not.toContain(other.athleteId);
     expect(text).not.toContain(other.email);
   });
   it("limite le nombre d'exports", async () => {

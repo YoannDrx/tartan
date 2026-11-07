@@ -1,5 +1,8 @@
 import {
   acceptInvitationResponse,
+  organizationResponse,
+  type OrganizationUpdateInput,
+  type CreateOrganizationInput,
   type AcceptInvitationInput,
   type AnnotationInput,
   announcementItem,
@@ -123,14 +126,11 @@ export const createApiClient = (options: ApiClientOptions) => {
     invitation: (token: string) => request("GET", `/invitations/${token}`, invitationPreview),
     acceptInvitation: (token: string, body: AcceptInvitationInput) =>
       request("POST", `/invitations/${token}/accept`, acceptInvitationResponse, body),
-    createOrganization: (body: {
-      name: string;
-      type: "club" | "independent";
-      firstGroupName: string;
-      disciplines?: string[];
-      referralCode?: string;
-      birthDate?: string;
-    }) => request("POST", "/orgs", z.object({ organizationId: z.string(), firstGroupId: z.string() }), body),
+    organization: (orgId: string) => request("GET", `/orgs/${orgId}`, organizationResponse),
+    updateOrganization: (orgId: string, body: OrganizationUpdateInput) =>
+      request("PATCH", `/orgs/${orgId}`, organizationResponse, body),
+    createOrganization: (body: CreateOrganizationInput) =>
+      request("POST", "/orgs", z.object({ organizationId: z.string(), firstGroupId: z.string() }), body),
     today: (orgId: string) => request("GET", `/orgs/${orgId}/athlete/today`, athleteToday),
     athleteCalendar: (orgId: string, from: string, to: string) =>
       request(

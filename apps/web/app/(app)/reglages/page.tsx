@@ -1,3 +1,4 @@
+import { trainingProfileSchema } from "@tartan/contracts";
 import type { Metadata } from "next";
 import { can, requiresParentalConsent } from "@tartan/domain";
 import { m } from "@tartan/i18n";
@@ -115,7 +116,7 @@ export default async function ReglagesPage() {
               <OrganizationForm
                 name={organization.name}
                 overdueReminders={organization.overdueReminders}
-                disciplines={organization.disciplines}
+                {...trainingProfileSchema.parse(organization)}
               />
             </div>
           ),

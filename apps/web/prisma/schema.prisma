@@ -154,6 +154,8 @@ model Organization {
   type                   OrganizationType @default(independent)
   logoUrl                String?          @map("logo_url")
   disciplines            String[]         @default([])
+  trainingObjectives     String[]         @default([]) @map("training_objectives")
+  availableEquipment     String[]         @default([]) @map("available_equipment")
   ownerId                String           @map("owner_id") @db.Uuid
   owner                  User             @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   plan                   OrganizationPlan @default(discovery)

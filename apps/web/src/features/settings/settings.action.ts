@@ -1,5 +1,7 @@
 "use server";
 
+import { organizationUpdateInput } from "@tartan/contracts";
+
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { athleteConsentInput, groupInput, profileInput, uuid } from "@tartan/contracts";
@@ -64,13 +66,7 @@ export const saveGroupAction = spaceAction.inputSchema(groupInput).action(async 
 });
 
 export const updateOrganizationAction = spaceAction
-  .inputSchema(
-    z.object({
-      name: z.string().trim().min(1, "Donne un nom à ton espace").max(120),
-      overdueReminders: z.boolean(),
-      disciplines: z.array(z.enum(Object.keys(m.disciplines) as [string, ...string[]])).max(20),
-    }),
-  )
+  .inputSchema(organizationUpdateInput)
   .action(async ({ parsedInput, ctx }) => {
     await updateOrganization(ctx.userId, ctx.organizationId, parsedInput);
     revalidatePath("/", "layout");
