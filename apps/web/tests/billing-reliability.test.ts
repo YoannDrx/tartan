@@ -223,3 +223,80 @@ it("conserve l'ordre d'annuler malgré une panne, et interdit le portail du part
     }),
   ).toMatchObject({ state: "done", attempts: 2 });
 });
+
+it("capture un client Stripe créé entre la lecture initiale et le verrou du transfert", async () => {
+  const a = await makeOrg("PaiementConcurrent");
+  await addStaff(a.organizationId, "RepreneurConcurrent", "coach");
+  const original = prisma.$transaction.bind(prisma);
+  const transaction = vi.spyOn(prisma, "$transaction");
+  transaction.mockImplementationOnce(async (work) => {
+    // Le Checkout a fini et libéré son bail juste avant que le départ prenne le verrou.
+    transaction.mockRestore();
+    await prisma.organization.update({
+      where: { id: a.organizationId },
+      data: {
+        stripeCustomerId: "cus_completed_before_transfer",
+        billingOwnerId: a.owner.userId,
+      },
+    });
+    await prisma.subscription.create({
+      data: {
+        organizationId: a.organizationId,
+        planKey: "coach",
+        provider: "stripe",
+        providerRef: "sub_completed_before_transfer",
+        status: "active",
+      },
+    });
+    return original(work);
+  });
+  try {
+    await deleteAccount(a.owner.userId);
+    expect(
+      await prisma.billingCommand.findUnique({
+        where: {
+          kind_externalRef: {
+            kind: "close_customer_checkout",
+            externalRef: "cus_completed_before_transfer",
+          },
+        },
+      }),
+    ).not.toBeNull();
+    expect(
+      await prisma.billingCommand.findUnique({
+        where: {
+          kind_externalRef: {
+            kind: "cancel_at_period_end",
+            externalRef: "sub_completed_before_transfer",
+          },
+        },
+      }),
+    ).not.toBeNull();
+  } finally {
+    transaction.mockRestore();
+  }
+});
+
+it("ne promeut pas un repreneur suspendu entre la lecture initiale et le transfert", async () => {
+  const a = await makeOrg("RepriseConcurrente");
+  const heir = await addStaff(a.organizationId, "CoachSuspendu", "coach");
+  const original = prisma.$transaction.bind(prisma);
+  const transaction = vi.spyOn(prisma, "$transaction");
+  transaction.mockImplementationOnce(async (work) => {
+    transaction.mockRestore();
+    await prisma.organizationMember.update({
+      where: { organizationId_userId: { organizationId: a.organizationId, userId: heir.userId } },
+      data: { status: "suspended" },
+    });
+    return original(work);
+  });
+  try {
+    await expect(deleteAccount(a.owner.userId)).rejects.toMatchObject({ code: "successor_changed" });
+    expect((await prisma.organization.findUniqueOrThrow({ where: { id: a.organizationId } })).ownerId).toBe(
+      a.owner.userId,
+    );
+    expect(await prisma.user.count({ where: { id: a.owner.userId } })).toBe(1);
+  } finally {
+    transaction.mockRestore();
+  }
+});

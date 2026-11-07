@@ -43,6 +43,7 @@ export const deleteAccount = async (userId: string, options: { inactiveBefore?: 
   const athleteIds = athletes.map((a) => a.id);
   const owned = await prisma.organization.findMany({
     where: { ownerId: userId },
+    orderBy: { id: "asc" },
     select: {
       id: true,
       name: true,
@@ -50,7 +51,7 @@ export const deleteAccount = async (userId: string, options: { inactiveBefore?: 
       billingOwnerId: true,
       members: {
         where: { role: { in: ["coach", "assistant"] }, status: "active", userId: { not: userId } },
-        orderBy: { createdAt: "asc" },
+        orderBy: [{ createdAt: "asc" }, { userId: "asc" }],
         select: { userId: true, user: { select: { email: true } } },
       },
     },
@@ -58,28 +59,6 @@ export const deleteAccount = async (userId: string, options: { inactiveBefore?: 
   // Espace repris par le plus ancien autre coach ; sans autre coach, l'espace disparaît avec ses données.
   const orgsToDelete = owned.filter((o) => o.members.length === 0).map((o) => o.id);
   const transfers = owned.filter((o) => o.members.length > 0);
-  // Le paiement ne doit jamais bloquer une suppression : la file reprendra si Stripe est en panne.
-  const [deletedBilling, transferredBilling] = await Promise.all([
-    prisma.organization.findMany({
-      where: { id: { in: orgsToDelete } },
-      select: {
-        stripeCustomerId: true,
-        subscriptions: { where: { provider: "stripe", status: { not: "canceled" } }, select: { providerRef: true } },
-      },
-    }),
-    prisma.organization.findMany({
-      where: { id: { in: transfers.map((org) => org.id) } },
-      select: {
-        id: true,
-        stripeCustomerId: true,
-        subscriptions: {
-          where: { provider: "stripe", status: { not: "canceled" } },
-          select: { providerRef: true, currentPeriodEnd: true },
-        },
-      },
-    }),
-  ]);
-
   await prisma.$transaction(async (tx) => {
     if (options.inactiveBefore) {
       await tx.$queryRaw`SELECT id FROM profiles WHERE id = ${userId}::uuid FOR UPDATE`;
@@ -93,6 +72,20 @@ export const deleteAccount = async (userId: string, options: { inactiveBefore?: 
       await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${org.id}::uuid FOR UPDATE`;
       const current = await tx.organization.findUniqueOrThrow({ where: { id: org.id } });
       if (current.ownerId !== userId) throw new AppError(409, "owner_changed", m.common.genericError);
+      // Une suspension/départ concurrent ne doit pas promouvoir un ancien coach.
+      await tx.$queryRaw`SELECT user_id FROM organization_members WHERE organization_id = ${org.id}::uuid FOR UPDATE`;
+      const successor = await tx.organizationMember.findFirst({
+        where: {
+          organizationId: org.id,
+          role: { in: ["coach", "assistant"] },
+          status: "active",
+          userId: { not: userId },
+        },
+        orderBy: [{ createdAt: "asc" }, { userId: "asc" }],
+        select: { userId: true },
+      });
+      if ((successor?.userId ?? null) !== (org.members[0]?.userId ?? null))
+        throw new AppError(409, "successor_changed", m.common.genericError);
       if (
         options.inactiveBefore &&
         current.lastBusinessActivityAt &&
@@ -106,11 +99,24 @@ export const deleteAccount = async (userId: string, options: { inactiveBefore?: 
         throw new AppError(409, "checkout_in_progress", m.billing.checkoutInProgress);
       }
     }
+    // Références lues sous le même verrou que le Checkout : un client créé juste avant
+    // le transfert ne doit pas disparaître de la commande durable.
+    const billing = await tx.organization.findMany({
+      where: { id: { in: owned.map((org) => org.id) } },
+      select: {
+        id: true,
+        billingOwnerId: true,
+        stripeCustomerId: true,
+        subscriptions: { where: { provider: "stripe", status: { not: "canceled" } }, select: { providerRef: true } },
+      },
+    });
+    const transferredBilling = billing.filter((org) => !orgsToDelete.includes(org.id));
+    const deletedBilling = billing.filter((org) => orgsToDelete.includes(org.id));
     for (const org of transfers) {
       const next = org.members[0]?.userId as string;
       await tx.organization.update({
         where: { id: org.id },
-        data: { ownerId: next, billingOwnerId: org.billingOwnerId ?? userId },
+        data: { ownerId: next, billingOwnerId: billing.find((row) => row.id === org.id)?.billingOwnerId ?? userId },
       });
       await tx.organizationMember.update({
         where: { organizationId_userId: { organizationId: org.id, userId: next } },
