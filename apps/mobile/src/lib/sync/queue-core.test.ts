@@ -340,3 +340,23 @@ it("ne remet pas dans le formulaire un ancien complément déjà reconnu par le 
   };
   expect(feedbackAfterPendingLogs(existing, [old], "org", "s1", 3)).toEqual(existing);
 });
+
+it("isole les envois coach par athlète et ne les applique pas à la carte personnelle", async () => {
+  const first: LogOp = {
+    ...log("s1", "first"),
+    athleteId: "a",
+    input: { ...log("s1").input, expectedVersion: 7, expectedSessionVersion: 1, rpe: 9 },
+  };
+  const second: LogOp = { ...log("s1", "second"), athleteId: "b" };
+  expect(enqueue(enqueue([first], second), log("s1", "self"))).toHaveLength(3);
+  const send = vi
+    .fn()
+    .mockRejectedValueOnce(new ApiError(409, undefined, "conflict"))
+    .mockResolvedValue(undefined);
+  const result = await replay([first, second, log("s1", "self")], send);
+  expect(result.remaining.map((op) => op.id)).toEqual(["first"]);
+  expect(result.sent.map((op) => op.id)).toEqual(["second", "self"]);
+  expect(applyPendingToCard(card(), [first, second]).status).toBe("upcoming");
+  expect(versionAfterPendingLogs([first, second], "org", "s1", 1, 0)).toBe(0);
+  expect(feedbackAfterPendingLogs(null, [first], "org", "s1").rpe).toBeNull();
+});

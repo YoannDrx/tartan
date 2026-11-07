@@ -4,7 +4,7 @@ import { CloudOff } from "lucide-react";
 import { m } from "@tartan/i18n";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "@/components/ui/toast";
 import {
   processUploads,
@@ -40,6 +40,8 @@ export const OfflineProvider = ({
 }) => {
   const router = useRouter();
   const [online, setOnline] = useState(true);
+  const container = useRef<HTMLDivElement>(null);
+  const banner = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState(0);
   const [blocked, setBlocked] = useState(0);
   const [expired, setExpired] = useState(false);
@@ -103,31 +105,52 @@ export const OfflineProvider = ({
         : null,
   ].filter(Boolean);
 
+  const hasBanner = lines.length > 0 || expired;
+  useEffect(() => {
+    const root = container.current;
+    const bar = banner.current;
+    if (!root || !bar) return;
+    const measure = () => root.style.setProperty("--offline-bar-height", `${bar.getBoundingClientRect().height}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(bar);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--offline-bar-height");
+    };
+  }, [hasBanner]);
+
   return (
     <SpaceContext.Provider value={organizationId}>
-      {lines.length > 0 || expired ? (
-        <div
-          role="status"
-          className="offline-bar sticky top-0 z-40 flex min-h-11 flex-wrap items-center gap-x-3 bg-st-partial px-4 text-on-status"
-        >
-          <CloudOff aria-hidden className="size-4 shrink-0" />
-          <span className="t-caption min-w-0 flex-1 py-2 font-semibold">{lines.join(", ")}</span>
-          {blocked > 0 ? (
-            <Link
-              href="/synchronisation"
-              className="t-caption inline-flex min-h-11 items-center font-semibold text-inherit"
-            >
-              {m.syncReview.open}
-            </Link>
-          ) : null}
-          {expired ? (
-            <Link href="/connexion" className="t-caption inline-flex min-h-11 items-center font-semibold text-inherit">
-              {m.offline.session} {m.offline.signIn}
-            </Link>
-          ) : null}
-        </div>
-      ) : null}
-      {children}
+      <div ref={container}>
+        {hasBanner ? (
+          <div
+            ref={banner}
+            role="status"
+            className="offline-bar sticky top-0 z-40 flex min-h-11 flex-wrap items-center gap-x-3 bg-st-partial px-4 text-on-status"
+          >
+            <CloudOff aria-hidden className="size-4 shrink-0" />
+            <span className="t-caption min-w-0 flex-1 py-2 font-semibold">{lines.join(", ")}</span>
+            {blocked > 0 ? (
+              <Link
+                href="/synchronisation"
+                className="t-caption inline-flex min-h-11 items-center font-semibold text-inherit"
+              >
+                {m.syncReview.open}
+              </Link>
+            ) : null}
+            {expired ? (
+              <Link
+                href="/connexion"
+                className="t-caption inline-flex min-h-11 items-center font-semibold text-inherit"
+              >
+                {m.offline.session} {m.offline.signIn}
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+        {children}
+      </div>
     </SpaceContext.Provider>
   );
 };

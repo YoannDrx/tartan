@@ -209,7 +209,20 @@ export const getAthleteSessionForCoach = async (
   const access = await requireOrgMember(userId, organizationId, "viewTracking");
   if (access.role === "athlete" || access.role === "guardian") throw forbidden();
   await requireVisibleAthlete(access, athleteId);
-  return readAthleteSession(organizationId, sessionId, athleteId, now);
+  const [detail, athlete, scheduled] = await Promise.all([
+    readAthleteSession(organizationId, sessionId, athleteId, now),
+    prisma.athlete.findFirst({
+      where: { id: athleteId, organizationId },
+      select: { id: true, firstName: true, lastName: true },
+    }),
+    prisma.scheduledSession.findFirst({ where: { id: sessionId, organizationId }, select: { createdBy: true } }),
+  ]);
+  if (!athlete || !scheduled) throw notFound();
+  return {
+    ...detail,
+    athlete: { id: athlete.id, name: `${athlete.firstName} ${athlete.lastName}`.trim() },
+    canRecordSets: access.role !== "assistant" || scheduled.createdBy === userId,
+  };
 };
 
 const readAthleteSession = async (
@@ -394,6 +407,14 @@ export const logSessionForAthlete = async (
 ) => {
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   await requireVisibleAthlete(access, athleteId);
+  if (access.role === "assistant") {
+    const session = await prisma.scheduledSession.findFirst({
+      where: { id: sessionId, organizationId },
+      select: { createdBy: true },
+    });
+    if (!session) throw notFound();
+    if (session.createdBy !== userId) throw forbidden();
+  }
   return persistSessionLog(userId, organizationId, sessionId, athleteId, raw);
 };
 

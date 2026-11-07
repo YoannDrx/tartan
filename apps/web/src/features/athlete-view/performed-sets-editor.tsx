@@ -1,5 +1,7 @@
 "use client";
 
+import { sessionLogPaths } from "@/features/athlete-view/session-log-paths";
+
 import {
   performedSetsDraft,
   performedDraftResolution,
@@ -10,6 +12,7 @@ import {
 import {
   confirmedSets,
   performedDraftContent,
+  performedSetsKey,
   isResolvedDraft,
   draftFromSession,
   performedNumberFields,
@@ -29,15 +32,18 @@ export const PerformedSetsEditor = ({
   session: initialSession,
   organizationId,
   userId,
+  athleteId,
 }: {
   session: AthleteSessionDetail;
   organizationId: string;
   userId: string;
+  athleteId?: string;
 }) => {
   const [reviewedSession, setReviewedSession] = useState<AthleteSessionDetail | null>(null);
   const session = reviewedSession ?? initialSession;
   const [reviewing, setReviewing] = useState(false);
-  const key = `tartan.performed.v1.${userId}.${organizationId}.${session.id}`;
+  const key = performedSetsKey(userId, organizationId, session.id, athleteId);
+  const paths = sessionLogPaths(organizationId, session.id, athleteId);
   const [draft, setDraft] = useState<PerformedSetsDraft>(() => draftFromSession(session));
   const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -71,9 +77,7 @@ export const PerformedSetsEditor = ({
         }
         const queue = await pendingOps(true);
         if (!active) return;
-        const relevant = queue.filter(
-          (op) => op.target === session.id && op.path === `/orgs/${organizationId}/sessions/${session.id}/log`,
-        );
+        const relevant = queue.filter((op) => op.target === session.id && op.path === paths.write);
         if (relevant.length) {
           setLocked(true);
           setMessage(reviewRequiredOps(relevant).length ? m.offline.needsReview : m.progression.queuedSets);
@@ -124,6 +128,8 @@ export const PerformedSetsEditor = ({
       const result = await sendValidation({
         organizationId,
         sessionId: session.id,
+        athleteId,
+        athleteName: session.athlete?.name,
         input: {
           clientId,
           writeScope: "sets",
@@ -165,6 +171,7 @@ export const PerformedSetsEditor = ({
         <PerformedDraftReview
           draft={draft}
           organizationId={organizationId}
+          athleteId={athleteId}
           sessionId={session.id}
           onCancel={() => setReviewing(false)}
           onResolve={async (next, current) => {
@@ -174,9 +181,7 @@ export const PerformedSetsEditor = ({
               getQueueOwner() !== userId ||
               !stored.success ||
               performedDraftContent(stored.data) !== performedDraftContent(draft) ||
-              queue.some(
-                (op) => op.target === session.id && op.path === `/orgs/${organizationId}/sessions/${session.id}/log`,
-              )
+              queue.some((op) => op.target === session.id && op.path === paths.write)
             )
               throw new Error("DRAFT_CHANGED");
             localStorage.setItem(key, JSON.stringify(next));
@@ -190,7 +195,14 @@ export const PerformedSetsEditor = ({
         />
       ) : null}
       <fieldset
-        disabled={!ready || saving || locked || unreadableDraft || reviewing}
+        disabled={
+          !ready ||
+          saving ||
+          locked ||
+          unreadableDraft ||
+          reviewing ||
+          (Boolean(athleteId) && session.canRecordSets !== true)
+        }
         className="flex min-w-0 flex-col gap-4"
       >
         {session.blocks
@@ -394,7 +406,7 @@ export const PerformedSetsEditor = ({
           )}
         </Field>
         <Button disabled={stale} onClick={() => void save()}>
-          {saving ? m.common.loading : m.progression.saveSets}
+          {saving ? m.common.loading : athleteId ? m.progression.saveCoachSets : m.progression.saveSets}
         </Button>
       </fieldset>
       {message ? <p role="status">{message}</p> : null}

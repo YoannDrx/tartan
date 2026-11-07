@@ -52,12 +52,14 @@ export const PerformedDraftReview = ({
   draft,
   orgId,
   sessionId,
+  athleteId,
   onResolve,
   onCancel,
 }: {
   draft: PerformedSetsDraft;
   orgId: string;
   sessionId: string;
+  athleteId?: string;
   onResolve: (next: PerformedSetsDraft, current: AthleteSessionDetail) => Promise<void>;
   onCancel: () => void;
 }) => {
@@ -66,8 +68,7 @@ export const PerformedDraftReview = ({
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let active = true;
-    void api
-      .session(orgId, sessionId)
+    void (athleteId ? api.athleteSessionForCoach(orgId, sessionId, athleteId) : api.session(orgId, sessionId))
       .then((current) => {
         if (active) setSession(current);
       })
@@ -77,7 +78,7 @@ export const PerformedDraftReview = ({
     return () => {
       active = false;
     };
-  }, [orgId, sessionId]);
+  }, [orgId, sessionId, athleteId]);
   const review = session ? rebasePerformedDraft(draft, session) : null;
   const resolve = async (keep: boolean) => {
     if (!session || busy || (keep && !review?.draft)) return;

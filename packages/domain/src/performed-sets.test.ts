@@ -121,5 +121,6 @@ it("refuse de reprendre un brouillon sous une autre prescription, variante ou id
   expect(rebasePerformedDraft(draft, { ...current, variant: "autonomous" }).reason).toBe("variant");
   expect(rebasePerformedDraft(draft, { ...current, blocks: [] }).reason).toBe("exercise");
   expect(rebasePerformedDraft(draft, { ...current, progressionEnabled: false }).reason).toBe("disabled");
+  expect(rebasePerformedDraft(draft, { ...current, canRecordSets: false })).toEqual({ draft: null, reason: "access" });
   expect(rebasePerformedDraft(draft, { ...current, sessionVersion: undefined }).reason).toBe("invalid");
 });

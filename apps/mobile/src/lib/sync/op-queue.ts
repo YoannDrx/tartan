@@ -33,7 +33,9 @@ const keyFor = (ownerId: string) => `tartan.op-queue.${ownerId.replace(/[^A-Za-z
 const send = (op: QueuedOp): Promise<unknown> => {
   switch (op.kind) {
     case "log":
-      return api.logSession(op.orgId, op.sessionId, op.input);
+      return op.athleteId
+        ? api.logSessionForAthlete(op.orgId, op.sessionId, op.athleteId, op.input)
+        : api.logSession(op.orgId, op.sessionId, op.input);
     case "attendance":
       return api.setAttendance(op.orgId, op.sessionId, op.status);
     case "attempt":
@@ -167,6 +169,10 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
         void queryClient.invalidateQueries({ queryKey: ["today"] });
         void queryClient.invalidateQueries({ queryKey: ["session"] });
         void queryClient.invalidateQueries({ queryKey: ["athlete-calendar"] });
+        if (result.sent.some((op) => op.kind === "log" && op.athleteId)) {
+          for (const key of ["coach-session", "coach-athlete-log", "tracking", "athlete-stats", "coach-athlete"])
+            void queryClient.invalidateQueries({ queryKey: [key] });
+        }
       }
       // Serveur occupé alors que le réseau répond : on réessaiera sans attendre un changement d'état.
       if (items.length > reviewRequiredOps(items).length) {
@@ -199,11 +205,13 @@ export const submitValidation = async (
   sessionId: string,
   input: Omit<SessionLogInput, "clientId">,
   clientId: string = newClientId(),
+  athleteId?: string,
+  athleteName?: string,
 ) => {
   const id = clientId;
   if (
     reviewRequiredOps(useOpQueue.getState().items).some(
-      (op) => op.kind === "log" && op.orgId === orgId && op.sessionId === sessionId,
+      (op) => op.kind === "log" && op.orgId === orgId && op.sessionId === sessionId && op.athleteId === athleteId,
     )
   )
     return { state: "error" as const, message: m.offline.needsReview };
@@ -212,6 +220,7 @@ export const submitValidation = async (
     kind: "log",
     orgId,
     sessionId,
+    ...(athleteId ? { athleteId, athleteName } : {}),
     queuedAt: new Date().toISOString(),
     input: { ...input, clientId: id, completedAt: input.completedAt ?? new Date().toISOString() },
   });
@@ -245,11 +254,13 @@ export const replaceReviewedLogs = async (
   sessionId: string,
   observed: QueuedOp[],
   replacement: SessionLogInput | null,
+  athleteId?: string,
 ): Promise<void> => {
   const state = useOpQueue.getState();
   const ownerId = state.ownerId;
   const generation = ownerGeneration;
-  const relevant = (op: QueuedOp) => op.kind === "log" && op.orgId === orgId && op.sessionId === sessionId;
+  const relevant = (op: QueuedOp) =>
+    op.kind === "log" && op.orgId === orgId && op.sessionId === sessionId && op.athleteId === athleteId;
   if (
     !ownerId ||
     ownerId !== expectedOwnerId ||
@@ -275,6 +286,9 @@ export const replaceReviewedLogs = async (
         kind: "log",
         orgId,
         sessionId,
+        ...(athleteId
+          ? { athleteId, athleteName: observed[0]?.kind === "log" ? observed[0].athleteName : undefined }
+          : {}),
         input: replacement,
         queuedAt: observed[0]!.queuedAt,
       }

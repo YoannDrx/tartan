@@ -15,6 +15,8 @@ export type LogOp = {
   kind: "log";
   orgId: string;
   sessionId: string;
+  athleteId?: string;
+  athleteName?: string;
   input: SessionLogInput;
   queuedAt: string;
 };
@@ -42,7 +44,7 @@ export const isVersionedLog = (op: QueuedOp): boolean =>
   op.kind === "log" && (op.input.expectedVersion !== undefined || op.input.detailedSets !== undefined);
 
 const targetKey = (op: QueuedOp): string =>
-  `${op.orgId}:${op.kind === "attempt" ? `attempt:${op.id}` : `session:${op.sessionId}`}`;
+  `${op.orgId}:${op.kind === "attempt" ? `attempt:${op.id}` : `session:${op.sessionId}${op.kind === "log" && op.athleteId ? `:athlete:${op.athleteId}` : ""}`}`;
 
 export const reviewRequiredOps = (ops: QueuedOp[]): QueuedOp[] => {
   const targets = new Set(ops.filter((op) => op.blocked).map(targetKey));
@@ -59,7 +61,7 @@ export const enqueue = (items: QueuedOp[], op: QueuedOp): QueuedOp[] => {
       i.blocked ||
       isVersionedLog(i) ||
       isVersionedLog(op) ||
-      !(i.kind === op.kind && i.orgId === op.orgId && i.sessionId === op.sessionId),
+      !(i.kind === op.kind && i.orgId === op.orgId && i.sessionId === op.sessionId && targetKey(i) === targetKey(op)),
   );
   return [...others, op];
 };
@@ -112,12 +114,16 @@ export const replay = async (
 };
 
 export const pendingLogFor = (items: QueuedOp[], sessionId: string): LogOp | null =>
-  items.some((i) => i.blocked && i.kind !== "attempt" && i.sessionId === sessionId)
+  items.some(
+    (i) => i.blocked && i.kind !== "attempt" && !(i.kind === "log" && i.athleteId) && i.sessionId === sessionId,
+  )
     ? null
-    : (items.findLast((i): i is LogOp => i.kind === "log" && i.sessionId === sessionId) ?? null);
+    : (items.findLast((i): i is LogOp => i.kind === "log" && !i.athleteId && i.sessionId === sessionId) ?? null);
 
 export const pendingAttendanceFor = (items: QueuedOp[], sessionId: string): AttendanceOp | null =>
-  items.some((i) => i.blocked && i.kind !== "attempt" && i.sessionId === sessionId)
+  items.some(
+    (i) => i.blocked && i.kind !== "attempt" && !(i.kind === "log" && i.athleteId) && i.sessionId === sessionId,
+  )
     ? null
     : (items.findLast((i): i is AttendanceOp => i.kind === "attendance" && i.sessionId === sessionId) ?? null);
 
@@ -132,7 +138,7 @@ export const versionAfterPendingLogs = (
 ): number | null => {
   const pending = items.filter(
     (op): op is LogOp & { blocked?: { status: number } } =>
-      op.kind === "log" && op.orgId === orgId && op.sessionId === sessionId,
+      op.kind === "log" && !op.athleteId && op.orgId === orgId && op.sessionId === sessionId,
   );
   let version = baseVersion;
   let previous: number | null = null;
@@ -163,10 +169,14 @@ export const feedbackAfterPendingLogs = (
   serverVersion = 0,
 ): SessionFeedback => {
   const feedback: SessionFeedback = { rpe: null, pain: null, durationMin: null, comment: null, ...existing };
-  if (items.some((op) => op.kind === "log" && op.orgId === orgId && op.sessionId === sessionId && op.blocked))
+  if (
+    items.some(
+      (op) => op.kind === "log" && !op.athleteId && op.orgId === orgId && op.sessionId === sessionId && op.blocked,
+    )
+  )
     return feedback;
   for (const op of items) {
-    if (op.kind !== "log" || op.orgId !== orgId || op.sessionId !== sessionId) continue;
+    if (op.kind !== "log" || op.athleteId || op.orgId !== orgId || op.sessionId !== sessionId) continue;
     const input = op.input;
     if (input.expectedVersion !== undefined && input.expectedVersion < serverVersion) continue;
     if (input.writeScope === "sets" || input.writeScope === "status") continue;

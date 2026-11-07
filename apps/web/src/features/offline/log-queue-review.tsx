@@ -1,4 +1,5 @@
 "use client";
+import { sessionLogPaths } from "@/features/athlete-view/session-log-paths";
 import {
   performedSetsDraft,
   performedDraftResolution,
@@ -6,7 +7,7 @@ import {
   type AthleteSessionDetail,
   type SessionLogInput,
 } from "@tartan/contracts";
-import { resolvedDraftReceipt, reviewSessionLogs } from "@tartan/domain";
+import { performedSetsKey, resolvedDraftReceipt, reviewSessionLogs } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,7 @@ const Values = ({
             </dd>
           </>
         ) : null}
-        <dt>{m.validation.comment}</dt>
+        <dt>{session.athlete ? m.progression.athleteComment : m.validation.comment}</dt>
         <dd className="whitespace-pre-wrap">{input.comment ?? m.syncReview.missing}</dd>
       </dl>
       <ul className="mt-4 flex flex-col gap-3">
@@ -90,9 +91,11 @@ const Values = ({
   );
 };
 
+const coachTarget = (op: QueuedOp): string | undefined => op.path.match(/\/athletes\/([a-zA-Z0-9-]+)\/log$/)?.[1];
+
 const loadGroups = async (organizationId: string) => {
   const ops = reviewRequiredOps(await pendingOps(true)).filter(
-    (op) => op.kind === "log" && op.path === `/orgs/${organizationId}/sessions/${op.target}/log`,
+    (op) => op.kind === "log" && op.path === sessionLogPaths(organizationId, op.target, coachTarget(op)).write,
   );
   const grouped = new Map<string, QueuedOp[]>();
   for (const op of ops) grouped.set(op.path, [...(grouped.get(op.path) ?? []), op]);
@@ -147,9 +150,12 @@ export const LogQueueReview = ({ organizationId, userId }: { organizationId: str
     setSession(null);
     setMessage("");
     try {
-      const response = await fetch(`/api/v1/orgs/${organizationId}/sessions/${batch[0]!.target}/me`, {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        `/api/v1${sessionLogPaths(organizationId, batch[0]!.target, coachTarget(batch[0]!)).read}`,
+        {
+          cache: "no-store",
+        },
+      );
       if (!response.ok) throw new Error("READ_FAILED");
       const current = athleteSessionDetail.parse(await response.json());
       if (mounted.current && ticket === request.current) setSession(current);
@@ -175,7 +181,7 @@ export const LogQueueReview = ({ organizationId, userId }: { organizationId: str
       // Le reçu ne modifie jamais le brouillon. L'éditeur ne l'utilise que si
       // toutes ses valeurs sont encore exactement celles de l'envoi relu.
       try {
-        const key = `tartan.performed.v1.${userId}.${organizationId}.${observed[0]!.target}`;
+        const key = performedSetsKey(userId, organizationId, observed[0]!.target, coachTarget(observed[0]!));
         const draft = performedSetsDraft.safeParse(JSON.parse(localStorage.getItem(key) ?? "null"));
         const previous = performedDraftResolution.safeParse(
           JSON.parse(localStorage.getItem(`${key}.resolution`) ?? "null"),
@@ -221,7 +227,10 @@ export const LogQueueReview = ({ organizationId, userId }: { organizationId: str
       <ul className="flex flex-col gap-3">
         {groups.map((batch) => (
           <li key={batch[0]!.path} className="flex flex-wrap items-center gap-3">
-            <span>{m.syncReview.batch(batch.length)}</span>
+            <span>
+              {batch[0]?.athleteName ? `${batch[0].athleteName} · ` : ""}
+              {m.syncReview.batch(batch.length)}
+            </span>
             <Button variant="secondary" disabled={busy} onClick={() => void compare(batch)}>
               {m.syncReview.compare}
             </Button>
@@ -230,7 +239,10 @@ export const LogQueueReview = ({ organizationId, userId }: { organizationId: str
       </ul>
       {session && review ? (
         <>
-          <h2 className="t-h2">{session.title}</h2>
+          <h2 className="t-h2">
+            {session.athlete ? `${session.athlete.name} · ` : ""}
+            {session.title}
+          </h2>
           <div className="grid gap-4 tablet:grid-cols-2">
             <Values
               session={session}

@@ -456,3 +456,71 @@ it("une résolution relue conserve la date initiale, les séries et les retours 
   expect(row.sets).toHaveLength(1);
   expect(Number(row.sets[0]?.loadKg)).toBe(40);
 });
+
+it("un assistant consulte le réalisé de son groupe mais écrit seulement sur ses propres séances", async () => {
+  const a = await setup();
+  const assistant = await addStaff(a.organizationId, "Assistant", "assistant", [a.groupId]);
+  const before = await getAthleteSessionForCoach(assistant.userId, a.organizationId, a.session.id, a.athlete.athleteId);
+  expect(before).toMatchObject({ athlete: { id: a.athlete.athleteId, name: "Athlète Test" }, canRecordSets: false });
+  const body: SessionLogInput = {
+    clientId: randomUUID(),
+    status: "partial",
+    variantDone: "club",
+    writeScope: "sets",
+    expectedVersion: 0,
+    expectedSessionVersion: before.sessionVersion,
+    detailedSets: [],
+  };
+  await expect(
+    logSessionForAthlete(assistant.userId, a.organizationId, a.session.id, a.athlete.athleteId, body),
+  ).rejects.toMatchObject({ status: 403 });
+  expect(await prisma.sessionLog.count({ where: { scheduledSessionId: a.session.id } })).toBe(0);
+  const own = await saveScheduledSession(assistant.userId, a.organizationId, a.input);
+  await publishRow(own.id, assistant.userId, new Date("2030-06-01T10:00:00Z"), { silent: true });
+  const editable = await getAthleteSessionForCoach(assistant.userId, a.organizationId, own.id, a.athlete.athleteId);
+  expect(editable.canRecordSets).toBe(true);
+  const result = await logSessionForAthlete(assistant.userId, a.organizationId, own.id, a.athlete.athleteId, {
+    ...body,
+    clientId: randomUUID(),
+    expectedSessionVersion: editable.sessionVersion,
+  });
+  expect((await prisma.sessionLog.findUniqueOrThrow({ where: { id: result.id } })).recordedBy).toBe(assistant.userId);
+});
+
+it("les versions et séries de deux athlètes de la même séance sont indépendantes", async () => {
+  const a = await setup();
+  const second = await addAthlete(a.organizationId, a.groupId, "Deuxième");
+  const otherSession = await saveScheduledSession(a.owner.userId, a.organizationId, a.input);
+  await publishRow(otherSession.id, a.owner.userId, new Date("2030-06-01T10:00:00Z"), { silent: true });
+  const body: SessionLogInput = {
+    clientId: randomUUID(),
+    status: "partial",
+    variantDone: "club",
+    writeScope: "sets",
+    expectedVersion: 0,
+    expectedSessionVersion: 2,
+    detailedSets: [
+      {
+        itemRef: "b0-i0",
+        setIndex: 0,
+        reps: 4,
+        loadKg: 40,
+        done: true,
+        setKind: "work",
+        loadKind: "external",
+        repetitionScope: "total",
+        sideCount: 1,
+      },
+    ],
+  };
+  await logSessionForAthlete(a.owner.userId, a.organizationId, otherSession.id, a.athlete.athleteId, body);
+  await logSessionForAthlete(a.owner.userId, a.organizationId, otherSession.id, second.athleteId, {
+    ...body,
+    clientId: randomUUID(),
+    detailedSets: body.detailedSets!.map((row) => ({ ...row, loadKg: 60 })),
+  });
+  const firstRead = await getAthleteSession(a.athlete.userId, a.organizationId, otherSession.id);
+  const secondRead = await getAthleteSession(second.userId, a.organizationId, otherSession.id);
+  expect(firstRead.log).toMatchObject({ version: 1, detailedSets: [{ loadKg: 40 }] });
+  expect(secondRead.log).toMatchObject({ version: 1, detailedSets: [{ loadKg: 60 }] });
+});

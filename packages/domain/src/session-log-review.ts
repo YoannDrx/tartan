@@ -1,6 +1,6 @@
 import { sessionLogInput, type AthleteSessionDetail, type SessionLogInput } from "@tartan/contracts";
 
-export type LogReviewReason = "invalid" | "prescription" | "variant" | "exercise" | "disabled";
+export type LogReviewReason = "invalid" | "prescription" | "variant" | "exercise" | "disabled" | "access";
 export type LogReview = { input: Omit<SessionLogInput, "clientId">; reason: LogReviewReason | null };
 
 // Relecture explicite uniquement : ce résultat n'est jamais envoyé par le synchroniseur.
@@ -49,6 +49,7 @@ export const reviewSessionLogs = (session: AthleteSessionDetail, changes: unknow
       if (field === "comment") input.comment = change.comment ?? null;
     }
   }
+  if (session.canRecordSets === false) reason = "access";
   if (!session.healthConsent) {
     input.rpe = null;
     input.pain = null;

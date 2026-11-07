@@ -11,6 +11,9 @@ export const fr = {
       "Cette validation contient des séries détaillées. Mets à jour l'application pour la modifier sans les perdre.",
     unknownItem: "Une série ne correspond pas à un exercice de cette version de la séance.",
     setsTitle: "Mes séries réalisées",
+    coachSetsTitle: "Séries réalisées",
+    saveCoachSets: "Enregistrer les séries",
+    athleteComment: "Commentaire de l’athlète",
     setsHint:
       "Les valeurs sont proposées depuis la séance. Confirme uniquement les séries réellement effectuées ; les autres restent non renseignées.",
     setNumber: (n: number) => `Série ${n}`,
@@ -501,6 +504,7 @@ export const fr = {
     missing: "Non renseigné",
     unknownExercise: "Exercice indisponible",
     reason: {
+      access: "Ton accès ne permet plus de modifier cette saisie. Les valeurs locales restent conservées.",
       invalid: "Cette saisie ne peut pas être reprise automatiquement. Les données locales restent conservées.",
       prescription:
         "La prescription a changé. Pour éviter d'attribuer tes séries au mauvais exercice, reprends-les dans la séance actualisée après comparaison.",

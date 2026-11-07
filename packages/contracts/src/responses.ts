@@ -104,6 +104,8 @@ export const resolvedItem = z.object({
 export type ResolvedItem = z.infer<typeof resolvedItem>;
 
 export const athleteSessionDetail = athleteSessionCard.extend({
+  athlete: z.object({ id: z.string(), name: z.string() }).optional(),
+  canRecordSets: z.boolean().optional(),
   progressionEnabled: z.boolean().optional(),
   healthConsent: z.boolean().optional(),
   sessionVersion: z.number().int().optional(),

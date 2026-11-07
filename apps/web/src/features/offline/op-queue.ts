@@ -14,6 +14,7 @@ export type QueuedOp = {
   // Séance ou fil visé : l'écran rouvert hors ligne sait ce qui attend.
   target: string;
   path: string;
+  athleteName?: string;
   body: unknown;
   createdAt: number;
   blocked?: { status: number };
@@ -57,7 +58,8 @@ const isVersionedLog = (op: Pick<QueuedOp, "kind" | "body">): boolean => {
 };
 
 // Le chemin contient l'espace ; une autre organisation ne partage pas ce blocage.
-const targetKey = (op: QueuedOp): string => `${op.path.split("/sessions/")[0]}:${op.target}`;
+const targetKey = (op: QueuedOp): string =>
+  `${op.path.split("/sessions/")[0]}:${op.target}:${op.path.match(/\/athletes\/([^/]+)\/log$/)?.[1] ?? "self"}`;
 
 export const reviewRequiredOps = (ops: QueuedOp[]): QueuedOp[] => {
   const targets = new Set(ops.filter((op) => op.blocked).map(targetKey));
@@ -92,7 +94,9 @@ export const pendingOps = async (strict = false): Promise<QueuedOp[]> => {
   }
 };
 
-const submit = async (op: Pick<QueuedOp, "id" | "kind" | "target" | "path" | "body">): Promise<SendResult> => {
+const submit = async (
+  op: Pick<QueuedOp, "id" | "kind" | "target" | "path" | "body" | "athleteName">,
+): Promise<SendResult> => {
   if (!owner) return { state: "error", message: m.offline.session };
   const generation = ownerGeneration;
   lastQueuedAt = Math.max(Date.now(), lastQueuedAt + 1);
@@ -144,7 +148,9 @@ const submit = async (op: Pick<QueuedOp, "id" | "kind" | "target" | "path" | "bo
   return { state: "error", message: body?.message ?? m.common.genericError };
 };
 
-export const submitOp = (op: Pick<QueuedOp, "id" | "kind" | "target" | "path" | "body">): Promise<SendResult> => {
+export const submitOp = (
+  op: Pick<QueuedOp, "id" | "kind" | "target" | "path" | "body" | "athleteName">,
+): Promise<SendResult> => {
   const key = `${owner}:${op.id}`;
   const current = submissions.get(key);
   if (current) return current;

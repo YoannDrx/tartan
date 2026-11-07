@@ -9,6 +9,8 @@ import {
 } from "@tartan/contracts";
 
 export const performedNumberFields = ["reps", "loadKg", "distanceM", "timeS", "groundContacts"] as const;
+export const performedSetsKey = (userId: string, orgId: string, sessionId: string, athleteId?: string): string =>
+  `tartan.performed.v1.${userId}.${orgId}.${sessionId}${athleteId ? `.athlete.${athleteId}` : ""}`;
 export type PerformedNumberField = (typeof performedNumberFields)[number];
 const text = (value: number | null | undefined): string => (value == null ? "" : String(value));
 
@@ -161,8 +163,9 @@ export const rebasePerformedDraft = (
   session: AthleteSessionDetail,
 ): {
   draft: PerformedSetsDraft | null;
-  reason: "invalid" | "disabled" | "prescription" | "variant" | "exercise" | null;
+  reason: "invalid" | "disabled" | "prescription" | "variant" | "exercise" | "access" | null;
 } => {
+  if (session.canRecordSets === false) return { draft: null, reason: "access" };
   if (session.sessionVersion === undefined) return { draft: null, reason: "invalid" };
   if (!session.progressionEnabled) return { draft: null, reason: "disabled" };
   if (draft.sessionVersion !== session.sessionVersion) return { draft: null, reason: "prescription" };

@@ -1,5 +1,7 @@
 "use client";
 
+import { sessionLogPaths } from "@/features/athlete-view/session-log-paths";
+
 import { athleteSessionDetail, type AthleteSessionDetail, type PerformedSetsDraft } from "@tartan/contracts";
 import { draftFromSession, performedNumberFields, rebasePerformedDraft } from "@tartan/domain";
 import { m } from "@tartan/i18n";
@@ -50,12 +52,14 @@ export const PerformedDraftReview = ({
   draft,
   organizationId,
   sessionId,
+  athleteId,
   onResolve,
   onCancel,
 }: {
   draft: PerformedSetsDraft;
   organizationId: string;
   sessionId: string;
+  athleteId?: string;
   onResolve: (next: PerformedSetsDraft, current: AthleteSessionDetail) => Promise<void>;
   onCancel: () => void;
 }) => {
@@ -65,7 +69,7 @@ export const PerformedDraftReview = ({
   const [confirm, setConfirm] = useState<"keep" | "reset" | null>(null);
   useEffect(() => {
     let active = true;
-    void fetch(`/api/v1/orgs/${organizationId}/sessions/${sessionId}/me`, { cache: "no-store" })
+    void fetch(`/api/v1${sessionLogPaths(organizationId, sessionId, athleteId).read}`, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("READ_FAILED");
         const current = athleteSessionDetail.parse(await response.json());
@@ -77,7 +81,7 @@ export const PerformedDraftReview = ({
     return () => {
       active = false;
     };
-  }, [organizationId, sessionId]);
+  }, [organizationId, sessionId, athleteId]);
   const review = session ? rebasePerformedDraft(draft, session) : null;
   const resolve = async (keep: boolean) => {
     if (!session || busy || (keep && !review?.draft)) return;

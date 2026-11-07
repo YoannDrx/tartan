@@ -101,7 +101,7 @@ export const AppShell = ({
 
   return (
     <div className={cn(worldFor(pathname), "min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0")}>
-      <header className="app-header on-card sticky top-0 z-30 bg-card">
+      <header className="app-header on-card sticky z-30 bg-card">
         <div className="mx-auto flex min-h-14 max-w-[1440px] items-center gap-4 px-4 desktop:px-6">
           <Link href="/accueil" aria-label="Tartan, accueil" className="inline-flex shrink-0 items-center">
             <Logo height={28} onDark />

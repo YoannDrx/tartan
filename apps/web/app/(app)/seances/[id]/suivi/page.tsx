@@ -22,7 +22,7 @@ const painLabel = (pain: { bodyArea: string; side: string; intensity: number }) 
 };
 
 export default async function SessionFollowupPage({ params }: { params: Promise<{ id: string }> }) {
-  const { actor, organizationId } = await requireStaffSpace();
+  const { actor, organizationId, space } = await requireStaffSpace();
   const { id } = await params;
   const session = await orNotFound(() => getSessionDetailForCoach(actor.userId, organizationId, id));
   const comments = await orNotFound(() => listComments(actor.userId, organizationId, "session", id));
@@ -101,6 +101,16 @@ export default async function SessionFollowupPage({ params }: { params: Promise<
                         <div className="mt-2">
                           <CoachLog sessionId={id} athleteId={a.athleteId} />
                         </div>
+                      ) : null}
+                      {space.progressionEnabled && session.canEdit ? (
+                        <Button asChild variant="secondary" size="sm" className="mt-2">
+                          <Link
+                            href={`/seances/${id}/athletes/${a.athleteId}/series`}
+                            aria-label={`${m.progression.coachSetsTitle} · ${a.name}`}
+                          >
+                            {m.progression.coachSetsTitle}
+                          </Link>
+                        </Button>
                       ) : null}
                       {a.sets.length > 0 ? (
                         <p className="t-caption mt-1 font-normal text-soft">

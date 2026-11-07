@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   disk: new Map<string, string>(),
   failStorage: false,
   log: vi.fn(),
+  coachLog: vi.fn(),
   invalidate: vi.fn(),
 }));
 vi.mock("expo-crypto", () => ({ randomUUID: () => "uuid-test" }));
@@ -20,7 +21,7 @@ vi.mock("expo-secure-store", () => ({
     mocks.disk.delete(key);
   },
 }));
-vi.mock("../api", () => ({ api: { logSession: mocks.log } }));
+vi.mock("../api", () => ({ api: { logSession: mocks.log, logSessionForAthlete: mocks.coachLog } }));
 vi.mock("../query-client", () => ({ queryClient: { invalidateQueries: mocks.invalidate } }));
 import { replaceReviewedLogs, hydrateLastOwner, submitValidation, useOpQueue } from "./op-queue";
 
@@ -39,6 +40,7 @@ beforeEach(async () => {
   mocks.disk.clear();
   mocks.failStorage = false;
   mocks.log.mockReset();
+  mocks.coachLog.mockReset();
   mocks.invalidate.mockReset();
 });
 afterEach(async () => {
@@ -196,4 +198,29 @@ it("refuse une confirmation de résolution appartenant à un autre compte", asyn
   const observed = queue().items.slice();
   await expect(replaceReviewedLogs("second", "org", "old-local", observed, null)).rejects.toThrow("REVIEW_CHANGED");
   expect(queue().items).toEqual(observed);
+});
+
+it("retrouve les envois coach après relance et ne résout que l'athlète choisi", async () => {
+  await queue().hydrate("coach");
+  mocks.coachLog.mockRejectedValue(new ApiError(409, undefined, "conflict"));
+  const first = { ...log("first"), sessionId: "shared", athleteId: "a", athleteName: "Alice" };
+  const second = { ...log("second"), sessionId: "shared", athleteId: "b", athleteName: "Basile" };
+  await queue().add(first);
+  await queue().add(second);
+  await queue().detach();
+  await queue().hydrate("coach");
+  const observed = queue().items.filter((op) => op.kind === "log" && op.athleteId === "a");
+  expect(observed[0]).toMatchObject({ athleteId: "a", athleteName: "Alice", blocked: { status: 409 } });
+  const replacement = { ...first.input, clientId: "reviewed", expectedVersion: 1 };
+  await expect(replaceReviewedLogs("coach", "org", "shared", observed, replacement, "b")).rejects.toThrow(
+    "REVIEW_CHANGED",
+  );
+  await replaceReviewedLogs("coach", "org", "shared", observed, replacement, "a");
+  mocks.coachLog.mockResolvedValue({ version: 2 });
+  await queue().flush();
+  expect(mocks.coachLog).toHaveBeenLastCalledWith("org", "shared", "a", replacement);
+  expect(mocks.log).not.toHaveBeenCalled();
+  expect(queue().items).toHaveLength(1);
+  expect(queue().items[0]).toMatchObject({ athleteId: "b", blocked: { status: 409 } });
+  expect(mocks.invalidate).toHaveBeenCalledWith({ queryKey: ["coach-athlete-log"] });
 });

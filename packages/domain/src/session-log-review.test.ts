@@ -65,3 +65,9 @@ it("ne transforme pas une validation simple en séries détaillées et refuse le
   expect(reviewSessionLogs(session, [simple]).input.detailedSets).toBeUndefined();
   expect(reviewSessionLogs(session, [{ ...change, status: "invalid" }]).reason).toBe("invalid");
 });
+
+it("une relecture coach avec droit retiré ne propose aucune réécriture applicable", () => {
+  const result = reviewSessionLogs({ ...session, canRecordSets: false }, [change]);
+  expect(result.reason).toBe("access");
+  expect(result.input.detailedSets).toEqual(change.detailedSets);
+});

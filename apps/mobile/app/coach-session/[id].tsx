@@ -22,10 +22,12 @@ const AthleteRow = ({
   athlete,
   onRemind,
   reminding,
+  onSets,
 }: {
   athlete: Athlete;
   onRemind: () => void;
   reminding: boolean;
+  onSets?: () => void;
 }) => {
   const late = athlete.status === "missed" || athlete.status === "upcoming";
   const doneSets = athlete.sets.filter((s) => s.done).length;
@@ -68,6 +70,15 @@ const AthleteRow = ({
           </T>
         ) : null}
         {athlete.comment ? <T variant="small">{athlete.comment}</T> : null}
+        {onSets ? (
+          <Button
+            compact
+            variant="secondary"
+            label={m.progression.coachSetsTitle}
+            accessibilityLabel={`${m.progression.coachSetsTitle} · ${athlete.name}`}
+            onPress={onSets}
+          />
+        ) : null}
       </View>
       {late ? (
         <IconButton
@@ -121,7 +132,7 @@ const RollCallRow = ({
 
 export default function CoachSession() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { me, orgId } = useActiveSpace();
+  const { me, orgId, space: active } = useActiveSpace();
   const detail = useCoachSession(orgId, id);
   const router = useRouter();
   const client = useQueryClient();
@@ -295,7 +306,16 @@ export default function CoachSession() {
             {session.athletes.map((a, i) => (
               <View key={a.athleteId}>
                 {i > 0 ? <Divider /> : null}
-                <AthleteRow athlete={a} reminding={remind.isPending} onRemind={() => remind.mutate([a.athleteId])} />
+                <AthleteRow
+                  athlete={a}
+                  reminding={remind.isPending}
+                  onRemind={() => remind.mutate([a.athleteId])}
+                  onSets={
+                    active?.progressionEnabled && session.canEdit && session.publishedAt
+                      ? () => router.push({ pathname: "/coach-sets/[id]", params: { id, athleteId: a.athleteId } })
+                      : undefined
+                  }
+                />
               </View>
             ))}
           </ListSurface>

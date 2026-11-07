@@ -390,8 +390,8 @@
     }
   }
   /* La barre d'état reste visible au défilement : l'en-tête se pose dessous. */
-  body:has(.offline-bar) .app-header {
-    top: 44px;
+  .app-header {
+    top: var(--offline-bar-height, 0px);
   }
   /* Jauge d'usage : sans ça, Safari garde sa barre système, quelle que soit `accent-color`. */
   .meter {

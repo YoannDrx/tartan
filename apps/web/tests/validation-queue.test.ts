@@ -210,4 +210,36 @@ describe("file d'attente hors ligne", () => {
     setQueueOwner("other-owner");
     await expect(replaceReviewedLogs(observed, null)).rejects.toThrow("REVIEW_CHANGED");
   });
+  it("un conflit coach ne bloque pas un autre athlète et n'altère pas la validation personnelle", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
+    const coachPending = (id: string, athleteId: string) => ({
+      ...pending(id),
+      athleteId,
+      athleteName: athleteId,
+      input: { ...pending(id).input, expectedVersion: 0, expectedSessionVersion: 1, variantDone: "club" as const },
+    });
+    await sendValidation(coachPending("a1", "a"));
+    await sendValidation(coachPending("a2", "a"));
+    await sendValidation(coachPending("b1", "b"));
+    expect(await pendingStatusFor("session")).toBeNull();
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("{}", { status: 409 }))
+      .mockResolvedValue(new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    expect(await flushOps()).toEqual({ sent: 1, rejected: 0 });
+    expect(fetch.mock.calls.map((call) => call[0])).toEqual([
+      "/api/v1/orgs/org/sessions/session/athletes/a/log",
+      "/api/v1/orgs/org/sessions/session/athletes/b/log",
+    ]);
+    const observed = await pendingOps();
+    expect(observed.map((op) => op.id)).toEqual(["a1", "a2"]);
+    await replaceReviewedLogs(observed, {
+      id: "reviewed",
+      body: { ...coachPending("reviewed", "a").input, expectedVersion: 2 },
+    });
+    await flushOps();
+    expect(fetch).toHaveBeenLastCalledWith("/api/v1/orgs/org/sessions/session/athletes/a/log", expect.anything());
+    expect(await pendingOps()).toEqual([]);
+  });
 });

@@ -5,7 +5,7 @@ import {
   type AthleteSessionDetail,
   type SessionLogInput,
 } from "@tartan/contracts";
-import { resolvedDraftReceipt, reviewSessionLogs } from "@tartan/domain";
+import { performedSetsKey, resolvedDraftReceipt, reviewSessionLogs } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
@@ -54,7 +54,8 @@ const Values = ({
           </>
         ) : null}
         <T>
-          {m.validation.comment} : {input.comment ?? m.syncReview.missing}
+          {session.athlete ? m.progression.athleteComment : m.validation.comment} :{" "}
+          {input.comment ?? m.syncReview.missing}
         </T>
         {sets.map((row) => (
           <View key={`${row.itemRef}:${row.setIndex}`} style={{ gap: space.xs, paddingTop: space.sm }}>
@@ -102,7 +103,10 @@ const Review = ({ orgId, userId }: { orgId: string; userId: string }) => {
   const items = useOpQueue((s) => s.items);
   const groups = new Map<string, QueuedOp[]>();
   for (const op of reviewRequiredOps(items)) {
-    if (op.kind === "log" && op.orgId === orgId) groups.set(op.sessionId, [...(groups.get(op.sessionId) ?? []), op]);
+    if (op.kind === "log" && op.orgId === orgId) {
+      const key = `${op.sessionId}:${op.athleteId ?? "self"}`;
+      groups.set(key, [...(groups.get(key) ?? []), op]);
+    }
   }
   for (const [id, batch] of groups) {
     if (!batch.some((op) => op.blocked)) groups.delete(id);
@@ -127,7 +131,9 @@ const Review = ({ orgId, userId }: { orgId: string; userId: string }) => {
     setSession(null);
     setMessage("");
     try {
-      const current = await api.session(orgId, first.sessionId);
+      const current = await (first.athleteId
+        ? api.athleteSessionForCoach(orgId, first.sessionId, first.athleteId)
+        : api.session(orgId, first.sessionId));
       if (ticket === request.current) setSession(current);
     } catch {
       if (ticket === request.current) setMessage(m.syncReview.unreadable);
@@ -154,9 +160,10 @@ const Review = ({ orgId, userId }: { orgId: string; userId: string }) => {
         first.sessionId,
         observed,
         apply ? { ...review!.input, clientId: replacementId } : null,
+        first.athleteId,
       );
       try {
-        const key = `tartan.performed.v1.${userId}.${orgId}.${first.sessionId}`;
+        const key = performedSetsKey(userId, orgId, first.sessionId, first.athleteId);
         const [stored, previousStored] = await Promise.all([
           AsyncStorage.getItem(key),
           AsyncStorage.getItem(`${key}.resolution`),
@@ -213,7 +220,10 @@ const Review = ({ orgId, userId }: { orgId: string; userId: string }) => {
       {busy ? <T accessibilityRole="alert">{m.common.loading}</T> : null}
       {[...groups].map(([id, batch]) => (
         <View key={id} style={{ gap: space.sm }}>
-          <T>{m.syncReview.batch(batch.length)}</T>
+          <T>
+            {batch[0]?.kind === "log" && batch[0].athleteName ? `${batch[0].athleteName} · ` : ""}
+            {m.syncReview.batch(batch.length)}
+          </T>
           <Button
             disabled={busy}
             label={m.syncReview.compare}
@@ -225,6 +235,7 @@ const Review = ({ orgId, userId }: { orgId: string; userId: string }) => {
       {session && review ? (
         <>
           <T variant="title2" heading>
+            {session.athlete ? `${session.athlete.name} · ` : ""}
             {session.title}
           </T>
           <Values
