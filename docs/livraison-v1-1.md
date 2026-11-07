@@ -241,3 +241,12 @@ Code `4d2df2c`, vérifié localement le 7 novembre 2026. Le suivi de séance ouv
 **470 tests serveur, 94 domaine, 160 mobiles**, types monorepo, lint sans erreur et Impeccable réussis. Deux nouveaux parcours coach sur build de production, puis huit parcours de non-régression séries/relecture/hors ligne réussis, incluant Chromium et WebKit. Le premier parcours desktop a révélé un chevauchement du bandeau hors ligne avec Réglages : corrigé par un décalage suivant la hauteur réelle du bandeau, puis retesté. Exports Hermes iOS/Android réussis. Aucune migration ni activation en production ; appareils physiques et CI du nouveau commit restent à vérifier.
 
 [Preuves, commandes et captures du lot](preuves-v1-1/lot-b-series-coach.md). La CI qualité de `9ad481b` est réussie (`42414716957`) ; sa compilation Android était encore en cours au dernier contrôle. Ce lot termine l’interface de saisie coach, pas l’ensemble du lot B : rapprochement historique et actualisation explicite des charges restent ouverts. Les lots A, C, D et E ne sont pas déclarés terminés.
+
+
+### Rapprochement historique — interfaces web et natives
+
+Code `7519866`, vérifié le 7 novembre 2026. Les réglages du propriétaire exposent les tests non rattachés et les correspondances confirmées. Choix de fiche sans présélection, convention/consignes visibles, motif et vérification obligatoires, puis confirmation récapitulative. Une clé inconnue reste conservée sans action ; les références de travail ne sont jamais choisies automatiquement. Le rapport API est typé et fournit le nom et la convention de la fiche.
+
+**11 tests serveur ciblés**, types monorepo puis natifs, lint sans erreur, Impeccable et exports Hermes iOS/Android réussis. **Deux parcours navigateur sur build de production**, avec annulation sans écriture, refus d’accès athlète, clé inconnue longue, rechargement, Axe et rendu 390/768/1440 px ; zoom 200 % sans débordement. [Preuves et captures](preuves-v1-1/lot-b-rapprochement-force.md). Ni migration ni opération sur les données de production. La CI et la recette native physique restent distinctes.
+
+Dans le lot B, la commande explicite d’actualisation des charges déjà prescrites reste à réaliser. Le rapprochement via interface et la saisie coach ne sont plus des écrans manquants. Les lots A, C, D et E ainsi que les recettes externes restent ouverts.

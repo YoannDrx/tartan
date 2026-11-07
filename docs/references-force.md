@@ -20,7 +20,7 @@ Opération réservée au propriétaire de l’espace, après vérification de la
 4. Relire le rapport. Le rapprochement est idempotent ; les futures saisies d’un ancien client avec cette clé sont liées à cette fiche. Deux confirmations concurrentes de variantes différentes ne peuvent pas réussir.
 5. Choisir ensuite la référence pour chaque athlète. Le rapprochement seul ne sélectionne pas automatiquement un ancien maximum. Jusqu’à ce choix, une ancienne prescription utilisant cette clé n’a pas de charge calculable. Organiser le rapprochement et les choix de références dans la même recette avant activation pour les utilisateurs.
 
-Une correspondance confirmée ne peut pas être réattribuée silencieusement. Le journal d’audit enregistre l’opération, son auteur et son espace, sans valeur de force ni données de santé. L’interface d’administration du rapprochement reste à construire ; ces routes sont déjà disponibles pour une procédure contrôlée.
+Une correspondance confirmée ne peut pas être réattribuée silencieusement. Le journal d’audit enregistre l’opération, son auteur et son espace, sans valeur de force ni données de santé. Depuis le lot `7519866`, le propriétaire dispose de ce parcours dans les réglages web (`/reglages/references-force`) et natifs. Il exige une fiche choisie explicitement, un motif, une vérification cochée et une confirmation récapitulative. Les clés inconnues restent visibles sans action. Voir `docs/preuves-v1-1/lot-b-rapprochement-force.md` pour les preuves et limites.
 
 ## API commune web et applications natives
 
