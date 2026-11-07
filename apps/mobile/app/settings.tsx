@@ -360,6 +360,11 @@ export default function Settings() {
         ) : null}
       </View>
 
+      {active?.role === "owner" && active.progressionEnabled ? (
+        <ListSurface>
+          <LinkRow label={m.strengthMapping.title} onPress={() => router.push("/strength-mappings")} />
+        </ListSurface>
+      ) : null}
       <ListSurface>
         <LinkRow
           label={m.legal.terms}

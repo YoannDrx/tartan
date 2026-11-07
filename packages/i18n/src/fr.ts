@@ -210,6 +210,35 @@ export const fr = {
       "Cette ancienne clé est déjà rattachée à un autre exercice. Vérifie la correspondance avant de la modifier.",
     saved: "Test enregistré.",
   },
+  strengthMapping: {
+    title: "Relier les anciens tests",
+    lead: "Rattache les anciennes références à la bonne fiche de la bibliothèque après avoir vérifié le mouvement, la variante et la convention de charge.",
+    warning:
+      "Ce choix s’applique aux tests existants et aux prochaines saisies utilisant cette ancienne référence. Il ne peut pas être réattribué depuis cet écran. En cas de doute, laisse les tests sans rattachement.",
+    referenceWarning:
+      "Après le rattachement, choisis une référence de travail pour chaque athlète dans sa fiche. Aucun maximum n’est choisi automatiquement : jusque-là, les nouvelles charges en pourcentage restent à définir. Les prescriptions déjà figées restent conservées.",
+    pending: "Tests sans rattachement",
+    confirmed: "Correspondances confirmées",
+    empty: "Tous les anciens tests sont rattachés, ou aucun ancien test n’a encore été enregistré.",
+    noConfirmed: "Aucune correspondance confirmée.",
+    unknown:
+      "Cette ancienne référence n’est pas reconnue. Ses résultats restent conservés sans rattachement automatique.",
+    count: (count: number) => `${count} test${count > 1 ? "s" : ""} à rattacher`,
+    choose: "Vérifier la correspondance",
+    exercise: "Fiche d’exercice correspondante",
+    placeholder: "Choisir la fiche exacte",
+    inspect: "Consulter la fiche d’exercice",
+    reason: "Vérification effectuée",
+    reasonHint: "Explique la correspondance technique en 10 à 500 caractères, sans information de santé.",
+    reasonError: "Décris la vérification en 10 à 500 caractères.",
+    check: "J’ai vérifié le mouvement, la variante et la convention des anciens tests.",
+    confirm: "Confirmer le rattachement",
+    confirmDetail: (legacy: string, exercise: string, convention: string, count: number) =>
+      `${legacy} → ${exercise} (${convention}). ${count} test${count > 1 ? "s" : ""} concerné${count > 1 ? "s" : ""}. Vérifie ensuite la référence de travail de chaque athlète ; aucune ne sera choisie automatiquement.`,
+    saved: "Correspondance confirmée. Choisis maintenant les références de travail dans les fiches athlètes.",
+    athletes: "Ouvrir les fiches athlètes",
+    invalid: "Choisis un exercice et confirme la vérification avant de continuer.",
+  },
   strengthTest: {
     back_squat: "Squat arrière",
     front_squat: "Squat avant",

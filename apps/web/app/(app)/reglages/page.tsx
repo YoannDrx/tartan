@@ -107,6 +107,11 @@ export default async function ReglagesPage() {
               {env().BLOB_READ_WRITE_TOKEN ? (
                 <LogoForm logoUrl={organization.logoUrl} name={organization.name} />
               ) : null}
+              {space.role === "owner" && space.progressionEnabled ? (
+                <Button asChild variant="secondary">
+                  <Link href="/reglages/references-force">{m.strengthMapping.title}</Link>
+                </Button>
+              ) : null}
               <OrganizationForm
                 name={organization.name}
                 overdueReminders={organization.overdueReminders}

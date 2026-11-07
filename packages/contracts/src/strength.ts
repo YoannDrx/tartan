@@ -47,3 +47,18 @@ export const strengthReferenceResponse = z.object({
     }),
   ),
 });
+
+export type LegacyStrengthMappingInput = z.infer<typeof legacyStrengthMappingInput>;
+export const strengthMappingReportResponse = z.object({
+  unmapped: z.array(z.object({ legacyKey: z.string(), count: z.number().int().nonnegative() })),
+  mappings: z.array(
+    z.object({
+      legacyKey: z.string(),
+      exerciseId: uuid,
+      reason: z.string(),
+      exerciseName: z.string(),
+      loadKind: z.string().nullable(),
+    }),
+  ),
+});
+export type StrengthMappingReport = z.infer<typeof strengthMappingReportResponse>;

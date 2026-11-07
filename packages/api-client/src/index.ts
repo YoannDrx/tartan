@@ -27,6 +27,8 @@ import {
   sessionBuilderContext,
   type SaveScheduledSessionInput,
   strengthReferenceResponse,
+  strengthMappingReportResponse,
+  type LegacyStrengthMappingInput,
   type ChooseStrengthReference,
   type StrengthTestInput,
   trackingGrid,
@@ -91,6 +93,10 @@ export const createApiClient = (options: ApiClientOptions) => {
     billing: (orgId: string) => request("GET", `/orgs/${orgId}/billing`, z.any()),
     athleteStats: (orgId: string, athleteId: string) =>
       request("GET", `/orgs/${orgId}/athletes/${athleteId}/stats`, z.any()),
+    strengthMappings: (orgId: string) =>
+      request("GET", `/orgs/${orgId}/strength-mappings`, strengthMappingReportResponse),
+    confirmStrengthMapping: (orgId: string, body: LegacyStrengthMappingInput) =>
+      request("POST", `/orgs/${orgId}/strength-mappings`, strengthMappingReportResponse, body),
     exerciseStrength: (orgId: string, athleteId: string, exerciseId: string) =>
       request("GET", `/orgs/${orgId}/athletes/${athleteId}/strength/${exerciseId}`, strengthReferenceResponse),
     selectStrengthReference: (orgId: string, athleteId: string, exerciseId: string, body: ChooseStrengthReference) =>

@@ -2,6 +2,7 @@ import {
   chooseStrengthReference,
   legacyStrengthMappingInput,
   strengthReferenceResponse,
+  strengthMappingReportResponse,
   strengthTestInput,
   type ChooseStrengthReference,
   type StrengthTestInput,
@@ -220,10 +221,25 @@ export const strengthMappingReport = async (userId: string, organizationId: stri
     prisma.strengthTest.groupBy({ by: ["exerciseKey"], where: { organizationId, exerciseId: null }, _count: true }),
     prisma.legacyStrengthMapping.findMany({
       where: { organizationId },
-      select: { legacyKey: true, exerciseId: true, reason: true },
+      select: {
+        legacyKey: true,
+        exerciseId: true,
+        reason: true,
+        exercise: { select: { name: true, strengthLoadKind: true } },
+      },
+      orderBy: { legacyKey: "asc" },
     }),
   ]);
-  return { unmapped: unmapped.map((row) => ({ legacyKey: row.exerciseKey, count: row._count })), mappings };
+  return strengthMappingReportResponse.parse({
+    unmapped: unmapped
+      .map((row) => ({ legacyKey: row.exerciseKey, count: row._count }))
+      .sort((a, b) => a.legacyKey.localeCompare(b.legacyKey)),
+    mappings: mappings.map(({ exercise, ...mapping }) => ({
+      ...mapping,
+      exerciseName: exercise.name,
+      loadKind: exercise.strengthLoadKind,
+    })),
+  });
 };
 
 // Correspondance confirmée par le propriétaire, jamais inférée d'un nom ou d'une ressemblance.

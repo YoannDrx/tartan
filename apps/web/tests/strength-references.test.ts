@@ -86,7 +86,16 @@ it("le rattachement est explicite, idempotent, audité et les anciennes clés re
     confirmed: true,
   };
   await confirmStrengthMapping(a.owner.userId, a.organizationId, mapping);
-  await confirmStrengthMapping(a.owner.userId, a.organizationId, mapping);
+  const report = await confirmStrengthMapping(a.owner.userId, a.organizationId, mapping);
+  expect(report.mappings).toEqual([
+    {
+      legacyKey: "back_squat",
+      exerciseId: a.exercise.id,
+      reason: mapping.reason,
+      exerciseName: "Squat arrière",
+      loadKind: "external_total",
+    },
+  ]);
   expect(await prisma.strengthTest.findUniqueOrThrow({ where: { id: old.id } })).toMatchObject({
     exerciseId: a.exercise.id,
     exerciseKey: "back_squat",
