@@ -1,18 +1,23 @@
 "use client";
 
+import { m } from "@tartan/i18n";
 import type { SessionLogInput } from "@tartan/contracts";
 import { pendingOps, submitOp, type QueuedOp, type SendResult } from "@/features/offline/op-queue";
 
 type Pending = { organizationId: string; sessionId: string; input: SessionLogInput };
 
-export const sendValidation = ({ organizationId, sessionId, input }: Pending): Promise<SendResult> =>
-  submitOp({
+export const sendValidation = async ({ organizationId, sessionId, input }: Pending): Promise<SendResult> => {
+  const path = `/orgs/${organizationId}/sessions/${sessionId}/log`;
+  if ((await pendingOps()).some((op) => op.path === path && op.blocked))
+    return { state: "error", message: m.offline.needsReview };
+  return submitOp({
     id: input.clientId,
     kind: "log",
     target: sessionId,
-    path: `/orgs/${organizationId}/sessions/${sessionId}/log`,
+    path,
     body: input,
   });
+};
 
 // Une validation en attente reste visible quand la page, enregistrée avant, est rouverte hors ligne.
 export const pendingStatusFor = async (sessionId: string): Promise<SessionLogInput["status"] | null> => {

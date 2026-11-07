@@ -10,7 +10,7 @@ import {
   videoStatus,
 } from "./enums";
 import { prescriptionSchema, snapshotBlock, snapshotItem, sessionDraft, uuid } from "./session";
-import { detailedSetInput } from "./requests";
+import { detailedSetInput, painInput } from "./requests";
 
 export const spaceSummary = z.object({
   organizationId: z.string(),
@@ -51,6 +51,8 @@ export const acceptInvitationResponse = z.object({
 });
 
 export const athleteSessionCard = z.object({
+  sessionVersion: z.number().int().min(1).optional(),
+  logVersion: z.number().int().min(0).optional(),
   id: z.string(),
   title: z.string(),
   type: sessionType,
@@ -108,6 +110,7 @@ export const athleteSessionDetail = athleteSessionCard.extend({
     .object({
       status: z.string(),
       rpe: z.number().nullable(),
+      pain: painInput.nullable().optional(),
       durationMin: z.number().nullable(),
       comment: z.string().nullable(),
       version: z.number().int().optional(),

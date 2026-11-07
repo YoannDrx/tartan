@@ -260,7 +260,7 @@ export const sessionLogInput = z
     status: z.enum(["done", "partial"]),
     variantDone: sessionVariant,
     // Une saisie de séries ne remplace pas le retour de séance déjà enregistré.
-    writeScope: z.enum(["all", "sets"]).optional(),
+    writeScope: z.enum(["all", "sets", "status", "feedback"]).optional(),
     rpe: z.number().int().min(1).max(10).nullable().optional(),
     durationMin: z.number().int().min(1).max(600).nullable().optional(),
     comment: trimmed(1000).nullable().optional(),
@@ -285,6 +285,25 @@ export const sessionLogInput = z
         path: ["writeScope"],
         message: "La saisie des séries ne modifie pas le retour de séance.",
       });
+    }
+    if (input.writeScope === "status" || input.writeScope === "feedback") {
+      if (input.expectedVersion === undefined || input.expectedSessionVersion === undefined)
+        ctx.addIssue({ code: "custom", path: ["expectedVersion"], message: "Les versions sont requises." });
+      if (input.detailedSets !== undefined || (input.writeScope === "feedback" && input.sets.length > 0))
+        ctx.addIssue({
+          code: "custom",
+          path: ["sets"],
+          message: "Cette action ne remplace pas les séries détaillées.",
+        });
+      if (
+        input.writeScope === "status" &&
+        [input.rpe, input.pain, input.durationMin, input.comment].some((value) => value !== undefined)
+      )
+        ctx.addIssue({
+          code: "custom",
+          path: ["writeScope"],
+          message: "La validation simple conserve le retour de séance.",
+        });
     }
     if (
       input.detailedSets !== undefined &&

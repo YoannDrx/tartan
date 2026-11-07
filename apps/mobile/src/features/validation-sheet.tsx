@@ -1,8 +1,9 @@
 import type { BodyArea, BodySide, PainInput, SessionLogInput } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, View } from "react-native";
-import { submitValidation } from "../lib/sync/op-queue";
+import { feedbackAfterPendingLogs, versionAfterPendingLogs } from "../lib/sync/queue-core";
+import { submitValidation, useOpQueue } from "../lib/sync/op-queue";
 import { StatusGlyph } from "../ui/status";
 import { Button, Chip, Field, T } from "../ui/primitives";
 import { Sheet } from "../ui/sheet";
@@ -17,13 +18,40 @@ export type ValidationTarget = {
   sessionId: string;
   variant: "club" | "autonomous";
   plannedMinutes: number | null;
+  sessionVersion?: number;
+  logVersion?: number;
 };
 
-export type ExistingLog = { rpe: number | null; durationMin: number | null; comment: string | null };
+export type ExistingLog = {
+  rpe: number | null;
+  durationMin: number | null;
+  comment: string | null;
+  pain?: PainInput | null;
+  version?: number;
+};
 
 // Le premier toucher enregistre : c'est le critère n°1 du produit. La feuille n'ajoute que du facultatif.
-export const recordValidation = (target: ValidationTarget, status: Status, sets: Sets = []) =>
-  submitValidation(target.orgId, target.sessionId, { status, variantDone: target.variant, sets });
+export const recordValidation = async (target: ValidationTarget, status: Status, sets: Sets = []) => {
+  if (target.sessionVersion === undefined || target.logVersion === undefined)
+    return { state: "error" as const, message: m.progression.sessionConflict };
+  const expectedVersion = versionAfterPendingLogs(
+    useOpQueue.getState().items,
+    target.orgId,
+    target.sessionId,
+    target.sessionVersion,
+    target.logVersion,
+  );
+  if (expectedVersion === null) return { state: "error" as const, message: m.offline.needsReview };
+  const result = await submitValidation(target.orgId, target.sessionId, {
+    writeScope: "status",
+    status,
+    variantDone: target.variant,
+    sets,
+    expectedVersion,
+    expectedSessionVersion: target.sessionVersion,
+  });
+  return result.state === "error" ? result : { ...result, nextVersion: expectedVersion + 1 };
+};
 
 const Scale = ({
   value,
@@ -53,7 +81,6 @@ type Props = {
   justRecorded: boolean;
   existing?: ExistingLog | null;
   healthConsent: boolean;
-  sets?: Sets;
   dark?: boolean;
   onClose: () => void;
 };
@@ -64,19 +91,49 @@ export const ValidationSheet = ({
   justRecorded,
   existing,
   healthConsent,
-  sets = [],
   dark,
   onClose,
 }: Props) => {
+  const [initialFeedback] = useState(() => {
+    const feedback = feedbackAfterPendingLogs(
+      existing,
+      useOpQueue.getState().items,
+      target.orgId,
+      target.sessionId,
+      existing?.version ?? 0,
+    );
+    return healthConsent ? feedback : { ...feedback, rpe: null, pain: null };
+  });
+  const [baseline, setBaseline] = useState({
+    rpe: initialFeedback.rpe ?? null,
+    duration: initialFeedback.durationMin ? String(initialFeedback.durationMin) : "",
+    comment: initialFeedback.comment ?? "",
+    pain: initialFeedback.pain ?? null,
+  });
   const [status, setStatus] = useState(initialStatus);
-  const [rpe, setRpe] = useState<number | null>(existing?.rpe ?? null);
-  const [duration, setDuration] = useState(existing?.durationMin ? String(existing.durationMin) : "");
+  const [startingVersion] = useState(() =>
+    target.sessionVersion !== undefined && target.logVersion !== undefined
+      ? versionAfterPendingLogs(
+          useOpQueue.getState().items,
+          target.orgId,
+          target.sessionId,
+          target.sessionVersion,
+          target.logVersion,
+        )
+      : null,
+  );
+  const version = useRef(startingVersion);
+  const busy = useRef(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [rpe, setRpe] = useState<number | null>(initialFeedback.rpe ?? null);
+  const [duration, setDuration] = useState(initialFeedback.durationMin ? String(initialFeedback.durationMin) : "");
   const [durationError, setDurationError] = useState<string | null>(null);
-  const [comment, setComment] = useState(existing?.comment ?? "");
-  const [painOn, setPainOn] = useState(false);
-  const [area, setArea] = useState<BodyArea | null>(null);
-  const [side, setSide] = useState<BodySide>("none");
-  const [intensity, setIntensity] = useState(5);
+  const [comment, setComment] = useState(initialFeedback.comment ?? "");
+  const [painOn, setPainOn] = useState(Boolean(initialFeedback.pain));
+  const [area, setArea] = useState<BodyArea | null>(initialFeedback.pain?.bodyArea ?? null);
+  const [side, setSide] = useState<BodySide>(initialFeedback.pain?.side ?? "none");
+  const [intensity, setIntensity] = useState(initialFeedback.pain?.intensity ?? 5);
   const [painError, setPainError] = useState<string | null>(null);
   // Seule une séance faite en entier déclenche le grand moment : jamais une validation partielle.
   const [burst, setBurst] = useState(justRecorded && initialStatus === "done" ? 1 : 0);
@@ -88,14 +145,20 @@ export const ValidationSheet = ({
       AccessibilityInfo.announceForAccessibility(status === "partial" ? m.today.validatedPartial : m.today.validated);
   }, [announce, status]);
 
-  const initialDuration = existing?.durationMin ? String(existing.durationMin) : "";
+  const currentPain = painOn && area ? { bodyArea: area, side, intensity } : null;
   const dirty =
-    rpe !== (existing?.rpe ?? null) ||
-    duration !== initialDuration ||
-    comment.trim() !== (existing?.comment ?? "") ||
-    painOn;
+    rpe !== baseline.rpe ||
+    duration !== baseline.duration ||
+    comment.trim() !== baseline.comment ||
+    JSON.stringify(currentPain) !== JSON.stringify(baseline.pain) ||
+    (painOn && !area);
 
-  const send = (nextStatus: Status): boolean => {
+  const send = async (nextStatus: Status): Promise<boolean> => {
+    if (busy.current) return false;
+    if (version.current === null || target.sessionVersion === undefined) {
+      setSendError(m.progression.sessionConflict);
+      return false;
+    }
     let durationMin: number | null = null;
     if (duration.trim()) {
       const parsed = Number(duration);
@@ -110,31 +173,45 @@ export const ValidationSheet = ({
       return false;
     }
     const pain: PainInput | null = healthConsent && painOn && area ? { bodyArea: area, side, intensity } : null;
-    void submitValidation(target.orgId, target.sessionId, {
+    busy.current = true;
+    setSending(true);
+    setSendError(null);
+    const result = await submitValidation(target.orgId, target.sessionId, {
+      writeScope: "feedback",
+      expectedVersion: version.current,
+      expectedSessionVersion: target.sessionVersion,
       status: nextStatus,
       variantDone: target.variant,
-      rpe: healthConsent ? rpe : null,
-      durationMin,
-      comment: comment.trim() || null,
-      pain,
-      sets,
+      ...(rpe !== baseline.rpe ? { rpe: healthConsent ? rpe : null } : {}),
+      ...(duration !== baseline.duration ? { durationMin } : {}),
+      ...(comment.trim() !== baseline.comment ? { comment: comment.trim() || null } : {}),
+      ...(JSON.stringify(currentPain) !== JSON.stringify(baseline.pain) ? { pain } : {}),
     });
+    busy.current = false;
+    setSending(false);
+    if (result.state === "error") {
+      setSendError(result.message);
+      return false;
+    }
+    version.current += 1;
+    setBaseline({ rpe, duration, comment: comment.trim(), pain: currentPain });
     return true;
   };
 
   // Rien de saisi ne se perd, quel que soit le bouton touché.
-  const finish = () => {
+  const finish = async () => {
+    if (busy.current) return;
     if (!dirty) {
       onClose();
       return;
     }
-    if (send(status)) onClose();
+    if (await send(status)) onClose();
   };
 
   // Une erreur de touche se corrige sans ressaisie.
-  const switchStatus = () => {
+  const switchStatus = async () => {
     const next: Status = status === "done" ? "partial" : "done";
-    if (!send(next)) return;
+    if (!(await send(next))) return;
     setStatus(next);
     setAnnounce(true);
     setBurst(next === "done" ? burst + 1 : 0);
@@ -152,8 +229,15 @@ export const ValidationSheet = ({
       }
       overlay={burst > 0 ? <ValidationBurst key={burst} /> : null}
       onClose={finish}
-      headerAction={<Button testID="validation-finish" label={m.validation.finish} onPress={finish} />}
+      headerAction={
+        <Button disabled={sending} testID="validation-finish" label={m.validation.finish} onPress={finish} />
+      }
     >
+      {sendError ? (
+        <T tone="danger" accessibilityRole="alert">
+          {sendError}
+        </T>
+      ) : null}
       {healthConsent ? (
         <View style={{ gap: space.sm }}>
           <View
@@ -248,8 +332,15 @@ export const ValidationSheet = ({
         </T>
       )}
 
-      <Button testID="validation-details" label={m.validation.addDetails} variant="secondary" onPress={finish} />
       <Button
+        disabled={sending}
+        testID="validation-details"
+        label={m.validation.addDetails}
+        variant="secondary"
+        onPress={finish}
+      />
+      <Button
+        disabled={sending}
         testID="validation-switch"
         label={status === "done" ? m.today.quickPartial : m.today.quickDone}
         variant="ghost"

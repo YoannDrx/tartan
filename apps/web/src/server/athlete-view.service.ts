@@ -10,6 +10,7 @@ import {
   sessionSnapshot,
   prescriptionSchema,
   detailedSetInput,
+  painInput,
 } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import {
@@ -46,6 +47,7 @@ const loadTests = async (athleteId: string): Promise<StrengthTest[]> => {
 };
 
 type SessionRow = {
+  version: number;
   id: string;
   date: Date;
   startTime: string | null;
@@ -58,7 +60,11 @@ const toCard = (
   session: SessionRow,
   snapshot: SessionSnapshot,
   attendance: AttendanceStatus,
-  log: { status: "done" | "partial" | "missed" | "skipped"; variantDone: "club" | "autonomous" | null } | null,
+  log: {
+    status: "done" | "partial" | "missed" | "skipped";
+    variantDone: "club" | "autonomous" | null;
+    version: number;
+  } | null,
   coachName: string | null,
   now: Date,
 ): AthleteSessionCard => {
@@ -66,6 +72,8 @@ const toCard = (
   const variant = log?.variantDone ?? resolveVariant(attendance, snapshot);
   return {
     id: session.id,
+    sessionVersion: session.version,
+    logVersion: log?.version ?? 0,
     title: snapshot.title,
     type: snapshot.type,
     date,
@@ -88,13 +96,14 @@ const fetchCards = async (athleteId: string, from: string, to: string, now: Date
     orderBy: [{ date: "asc" }, { startTime: "asc" }],
     select: {
       id: true,
+      version: true,
       date: true,
       startTime: true,
       location: true,
       createdBy: true,
       snapshot: true,
       attendance: { where: { athleteId }, select: { status: true } },
-      logs: { where: { athleteId }, select: { status: true, variantDone: true } },
+      logs: { where: { athleteId }, select: { status: true, variantDone: true, version: true } },
     },
   });
   const coaches = await namesFor(sessions.map((s) => s.createdBy));
@@ -229,6 +238,7 @@ const readAthleteSession = async (
           status: true,
           variantDone: true,
           rpe: true,
+          pain: true,
           durationMin: true,
           comment: true,
           version: true,
@@ -243,6 +253,8 @@ const readAthleteSession = async (
   });
   if (!session) throw notFound();
   const log = session.logs[0] ?? null;
+  const healthConsent = (await consentForAthletes([athleteId])).get(athleteId)?.health ?? false;
+  const visiblePain = healthConsent ? painInput.safeParse(log?.pain) : null;
   // Borne la copie à la version lue : une révision concurrente ne peut pas
   // associer une prescription plus récente à l'ancien jeton de version.
   const storedPrescription =
@@ -330,7 +342,8 @@ const readAthleteSession = async (
     log: log
       ? {
           status: log.status,
-          rpe: log.rpe,
+          rpe: healthConsent ? log.rpe : null,
+          pain: visiblePain?.success ? visiblePain.data : null,
           durationMin: log.durationMin,
           comment: log.comment,
           version: log.version,
@@ -435,14 +448,13 @@ const persistSessionLog = async (
     const existing = await tx.sessionLog.findUnique({
       where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId: access.athleteId } },
     });
-    if (
-      existing &&
-      (existing.clientId === input.clientId ||
-        (await tx.sessionLogMutation.findUnique({
+    const previousMutation = existing
+      ? await tx.sessionLogMutation.findUnique({
           where: { sessionLogId_clientId: { sessionLogId: existing.id, clientId: input.clientId } },
-        })))
-    )
-      return { ...existing, replayed: true };
+        })
+      : null;
+    if (existing && (previousMutation || existing.clientId === input.clientId))
+      return { ...existing, version: previousMutation?.version ?? existing.version, replayed: true };
     if (input.expectedVersion !== undefined && input.expectedVersion !== (existing?.version ?? 0))
       throw new AppError(409, "log_version_conflict", m.progression.logConflict);
     if (input.expectedSessionVersion !== undefined && input.expectedSessionVersion !== currentSession.version)
@@ -527,12 +539,25 @@ const persistSessionLog = async (
         : undefined;
     const versioned = {
       ...data,
-      ...(input.writeScope === "sets"
+      ...(input.writeScope === "sets" || input.writeScope === "status"
         ? {
             rpe: consent?.health ? (existing?.rpe ?? null) : null,
             durationMin: existing?.durationMin ?? null,
             comment: existing?.comment ?? null,
             pain: consent?.health ? (existing?.pain ?? Prisma.DbNull) : Prisma.DbNull,
+            completedAt: existing?.completedAt ?? data.completedAt,
+          }
+        : {}),
+      ...(input.writeScope === "feedback"
+        ? {
+            rpe: consent?.health ? (input.rpe !== undefined ? input.rpe : (existing?.rpe ?? null)) : null,
+            durationMin: input.durationMin !== undefined ? input.durationMin : (existing?.durationMin ?? null),
+            comment: input.comment !== undefined ? input.comment : (existing?.comment ?? null),
+            pain: consent?.health
+              ? input.pain !== undefined
+                ? (input.pain ?? Prisma.DbNull)
+                : (existing?.pain ?? Prisma.DbNull)
+              : Prisma.DbNull,
             completedAt: existing?.completedAt ?? data.completedAt,
           }
         : {}),

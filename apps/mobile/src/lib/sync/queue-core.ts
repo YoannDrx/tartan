@@ -1,5 +1,11 @@
 import { ApiError } from "@tartan/api-client";
-import type { AthleteSessionCard, AthleteToday, JumpAttemptInput, SessionLogInput } from "@tartan/contracts";
+import type {
+  AthleteSessionCard,
+  AthleteSessionDetail,
+  AthleteToday,
+  JumpAttemptInput,
+  SessionLogInput,
+} from "@tartan/contracts";
 
 // Logique pure de la file hors ligne (§ 10.4). L'adaptateur natif est dans op-queue.ts ;
 // ici tout se teste sans React Native.
@@ -115,13 +121,83 @@ export const pendingAttendanceFor = (items: QueuedOp[], sessionId: string): Atte
     ? null
     : (items.findLast((i): i is AttendanceOp => i.kind === "attendance" && i.sessionId === sessionId) ?? null);
 
+// Seules des mutations locales déjà sauvegardées peuvent être enchaînées.
+// Un conflit, une ancienne écriture sans version ou un trou demandent une relecture.
+export const versionAfterPendingLogs = (
+  items: QueuedOp[],
+  orgId: string,
+  sessionId: string,
+  sessionVersion: number,
+  baseVersion: number,
+): number | null => {
+  const pending = items.filter(
+    (op): op is LogOp & { blocked?: { status: number } } =>
+      op.kind === "log" && op.orgId === orgId && op.sessionId === sessionId,
+  );
+  let version = baseVersion;
+  let previous: number | null = null;
+  for (const op of pending) {
+    const expected = op.input.expectedVersion;
+    if (op.blocked || expected === undefined || op.input.expectedSessionVersion !== sessionVersion) return null;
+    if (previous !== null && expected !== previous + 1) return null;
+    previous = expected;
+    if (expected < version) continue; // Le serveur (ou la carte optimiste) connaît déjà cette mutation.
+    if (expected !== version) return null;
+    version += 1;
+  }
+  return version;
+};
+
+export type SessionFeedback = Pick<
+  NonNullable<AthleteSessionDetail["log"]>,
+  "rpe" | "pain" | "durationMin" | "comment"
+>;
+
+// L'édition hors ligne part aussi des compléments déjà en attente, pas seulement
+// de la dernière réponse serveur mise en cache.
+export const feedbackAfterPendingLogs = (
+  existing: SessionFeedback | null | undefined,
+  items: QueuedOp[],
+  orgId: string,
+  sessionId: string,
+  serverVersion = 0,
+): SessionFeedback => {
+  const feedback: SessionFeedback = { rpe: null, pain: null, durationMin: null, comment: null, ...existing };
+  if (items.some((op) => op.kind === "log" && op.orgId === orgId && op.sessionId === sessionId && op.blocked))
+    return feedback;
+  for (const op of items) {
+    if (op.kind !== "log" || op.orgId !== orgId || op.sessionId !== sessionId) continue;
+    const input = op.input;
+    if (input.expectedVersion !== undefined && input.expectedVersion < serverVersion) continue;
+    if (input.writeScope === "sets" || input.writeScope === "status") continue;
+    if (input.writeScope === "feedback") {
+      if (input.rpe !== undefined) feedback.rpe = input.rpe;
+      if (input.pain !== undefined) feedback.pain = input.pain;
+      if (input.durationMin !== undefined) feedback.durationMin = input.durationMin;
+      if (input.comment !== undefined) feedback.comment = input.comment;
+    } else {
+      feedback.rpe = input.rpe ?? null;
+      feedback.pain = input.pain ?? null;
+      feedback.durationMin = input.durationMin ?? null;
+      feedback.comment = input.comment ?? null;
+    }
+  }
+  return feedback;
+};
+
 // Ce qui attend dans la file se voit déjà à l'écran : l'athlète n'a jamais à revalider.
 export const applyPendingToCard = <T extends AthleteSessionCard>(card: T, items: QueuedOp[]): T => {
   const log = pendingLogFor(items, card.id);
   const attendance = pendingAttendanceFor(items, card.id);
   return {
     ...card,
-    ...(log ? { status: log.input.status, variant: log.input.variantDone } : {}),
+    ...(log
+      ? {
+          status: log.input.status,
+          variant: log.input.variantDone,
+          ...(log.input.expectedVersion !== undefined ? { logVersion: log.input.expectedVersion + 1 } : {}),
+        }
+      : {}),
     ...(attendance
       ? {
           attendance: attendance.status,

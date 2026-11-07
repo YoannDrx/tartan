@@ -2,6 +2,8 @@ import { ApiError } from "@tartan/api-client";
 import type { AthleteSessionCard, AthleteToday } from "@tartan/contracts";
 import { describe, expect, it, vi } from "vitest";
 import {
+  versionAfterPendingLogs,
+  feedbackAfterPendingLogs,
   applyPendingToCard,
   applyPendingToToday,
   createChunkedStore,
@@ -279,4 +281,62 @@ describe("parseQueue", () => {
     expect(parseQueue(null)).toEqual([]);
     expect(parseQueue(JSON.stringify([{ nope: 1 }, log("s1")]))).toHaveLength(1);
   });
+});
+
+it("enchaîne la validation rapide après les séries locales sans masquer un conflit ni une version manquante", () => {
+  const series: QueuedOp = {
+    ...log("s1", "series"),
+    input: { ...log("s1").input, expectedVersion: 2, expectedSessionVersion: 4 },
+  };
+  const quick: QueuedOp = {
+    ...log("s1", "quick"),
+    input: { ...log("s1").input, expectedVersion: 3, expectedSessionVersion: 4 },
+  };
+  expect(versionAfterPendingLogs([series, quick], "org", "s1", 4, 2)).toBe(4);
+  expect(versionAfterPendingLogs([series, quick], "org", "s1", 4, 4)).toBe(4);
+  expect(versionAfterPendingLogs([series], "other", "s1", 4, 2)).toBe(2);
+  expect(versionAfterPendingLogs([{ ...series, blocked: { status: 409 } }, quick], "org", "s1", 4, 2)).toBeNull();
+  expect(versionAfterPendingLogs([quick], "org", "s1", 4, 2)).toBeNull();
+  expect(versionAfterPendingLogs([series, { ...series, id: "concurrent" }], "org", "s1", 4, 2)).toBeNull();
+  expect(versionAfterPendingLogs([series], "org", "s1", 5, 2)).toBeNull();
+  expect(versionAfterPendingLogs([log("s1")], "org", "s1", 4, 2)).toBeNull();
+  expect(applyPendingToCard(card({ logVersion: 2 }), [series, quick]).logVersion).toBe(4);
+});
+
+it("rouvre les retours réellement en attente sans effacer une douleur omise ni lire un autre espace", () => {
+  const existing = {
+    rpe: 7,
+    durationMin: 30,
+    comment: "Serveur",
+    pain: { bodyArea: "knee" as const, side: "left" as const, intensity: 2 },
+  };
+  const pending: LogOp = {
+    ...log("s1"),
+    input: { ...log("s1").input, writeScope: "feedback", comment: "Brouillon", durationMin: 40 },
+  };
+  const quick: LogOp = { ...log("s1", "quick"), input: { ...log("s1").input, writeScope: "status" } };
+  expect(feedbackAfterPendingLogs(existing, [pending, quick], "org", "s1")).toEqual({
+    ...existing,
+    comment: "Brouillon",
+    durationMin: 40,
+  });
+  expect(feedbackAfterPendingLogs(existing, [pending], "other", "s1")).toEqual(existing);
+  expect(feedbackAfterPendingLogs(existing, [{ ...pending, blocked: { status: 409 } }], "org", "s1")).toEqual(existing);
+  expect(
+    feedbackAfterPendingLogs(
+      existing,
+      [{ ...pending, input: { ...pending.input, pain: null, rpe: null } }],
+      "org",
+      "s1",
+    ),
+  ).toMatchObject({ pain: null, rpe: null });
+});
+
+it("ne remet pas dans le formulaire un ancien complément déjà reconnu par le serveur", () => {
+  const existing = { rpe: null, pain: null, durationMin: 40, comment: "Correction récente" };
+  const old: LogOp = {
+    ...log("s1"),
+    input: { ...log("s1").input, expectedVersion: 1, writeScope: "feedback", comment: "Ancien texte" },
+  };
+  expect(feedbackAfterPendingLogs(existing, [old], "org", "s1", 3)).toEqual(existing);
 });

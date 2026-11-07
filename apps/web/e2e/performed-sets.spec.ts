@@ -71,6 +71,7 @@ test("l'athlète confirme ses séries, retrouve son brouillon et conserve son re
             variantDone: "club",
             status: "partial",
             rpe: 7,
+            pain: { bodyArea: "knee", side: "left", intensity: 2 },
             durationMin: 35,
             comment: "Retour à conserver",
             sets: [],
@@ -146,6 +147,45 @@ test("l'athlète confirme ses séries, retrouve son brouillon et conserve son re
     const cleared = await (await athlete.request.get(`${root}/sessions/${session.id}/me`)).json();
     expect(cleared.log.detailedSets).toEqual([]);
     expect(cleared.log.rpe).toBe(7);
+
+    // Une validation rapide puis son complément hors ligne restent compatibles avec
+    // les séries détaillées et ne suppriment que les champs explicitement corrigés.
+    const restoredResponse = await athlete.request.post(`${root}/sessions/${session.id}/log`, {
+      data: {
+        clientId: randomUUID(),
+        writeScope: "sets",
+        status: "partial",
+        variantDone: "club",
+        expectedVersion: cleared.log.version,
+        expectedSessionVersion: cleared.sessionVersion,
+        detailedSets: detail.log.detailedSets,
+      },
+    });
+    expect(restoredResponse.ok()).toBe(true);
+    const restored = await restoredResponse.json();
+    await athlete.goto(`/seance/${session.id}/mode`, { waitUntil: "networkidle" });
+    await context.setOffline(true);
+    await athlete.getByRole("button", { name: m.today.quickDone, exact: true }).click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel(m.validation.comment, { exact: true })).toHaveValue("Retour à conserver");
+    await dialog.getByLabel(m.validation.comment, { exact: true }).fill("Complément hors ligne");
+    await dialog.getByLabel(m.validation.duration, { exact: true }).fill("40");
+    await dialog.getByRole("button", { name: m.validation.pain, exact: true }).click();
+    await dialog.getByRole("button", { name: m.validation.addDetails, exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+    await context.setOffline(false);
+    await expect
+      .poll(async () => (await (await athlete.request.get(`${root}/sessions/${session.id}/me`)).json()).log.version)
+      .toBe(restored.version + 2);
+    const validated = await (await athlete.request.get(`${root}/sessions/${session.id}/me`)).json();
+    expect(validated.log).toMatchObject({
+      status: "done",
+      rpe: 7,
+      pain: null,
+      durationMin: 40,
+      comment: "Complément hors ligne",
+    });
+    expect(validated.log.detailedSets).toEqual(detail.log.detailedSets);
   } finally {
     await context.close();
   }

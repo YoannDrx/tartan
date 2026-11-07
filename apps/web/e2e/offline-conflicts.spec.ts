@@ -34,7 +34,7 @@ test("une validation en conflit reste sur l'appareil après rechargement et n'es
     await athlete.getByRole("button", { name: "J'ai fait la séance", exact: true }).click();
     await expect(athlete.getByText(m.offline.needsReview, { exact: true })).toBeVisible();
     expect(writes).toBe(1);
-    await expect(athlete.getByText(m.offline.reviewPending(2), { exact: true })).toBeVisible();
+    await expect(athlete.getByText(m.offline.reviewPending(1), { exact: true })).toBeVisible();
     await expectAccessible(athlete);
     await expectNoHorizontalScroll(athlete);
     await athlete.screenshot({ path: `/tmp/tartan-offline-conflicts-${info.project.name}.png`, fullPage: true });

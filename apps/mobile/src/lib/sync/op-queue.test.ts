@@ -22,7 +22,7 @@ vi.mock("expo-secure-store", () => ({
 }));
 vi.mock("../api", () => ({ api: { logSession: mocks.log } }));
 vi.mock("../query-client", () => ({ queryClient: { invalidateQueries: mocks.invalidate } }));
-import { hydrateLastOwner, useOpQueue } from "./op-queue";
+import { hydrateLastOwner, submitValidation, useOpQueue } from "./op-queue";
 
 const log = (id: string): LogOp => ({
   id,
@@ -106,4 +106,55 @@ describe("file native persistante", () => {
     expect(queue().items).toEqual([]);
     expect(mocks.log).toHaveBeenCalledTimes(1);
   });
+});
+
+it("annonce seulement une action reçue ou sauvegardée, jamais un conflit ou un disque plein", async () => {
+  await queue().hydrate("first");
+  mocks.log.mockResolvedValue({ version: 1 });
+  expect(await queue().add(log("received"))).toEqual({ state: "sent" });
+  mocks.log.mockRejectedValue(new TypeError("offline"));
+  expect(await queue().add(log("durable"))).toEqual({ state: "queued" });
+  mocks.log.mockRejectedValue(new ApiError(409, undefined, "private"));
+  expect(await queue().add(log("conflict"))).toMatchObject({ state: "error" });
+  mocks.failStorage = true;
+  expect(await queue().add(log("not-durable"))).toMatchObject({ state: "error" });
+});
+
+it("un changement de compte pendant l'envoi n'annonce pas la validation au compte suivant", async () => {
+  await queue().hydrate("first");
+  let resolve!: () => void;
+  mocks.log.mockImplementation(
+    () =>
+      new Promise<void>((done) => {
+        resolve = done;
+      }),
+  );
+  const request = queue().add(log("changing-owner"));
+  await vi.waitFor(() => expect(mocks.log).toHaveBeenCalledTimes(1));
+  await queue().hydrate("second");
+  resolve();
+  expect(await request).toMatchObject({ state: "error" });
+});
+
+it("ne multiplie pas les tentatives lorsqu'une séance attend une résolution", async () => {
+  await queue().hydrate("first");
+  mocks.log.mockRejectedValue(new ApiError(409, undefined, "private"));
+  await queue().add(log("blocked-session"));
+  const count = queue().items.length;
+  expect(
+    await submitValidation(
+      "org",
+      "blocked-session",
+      {
+        writeScope: "status",
+        expectedVersion: 0,
+        expectedSessionVersion: 1,
+        status: "done",
+        variantDone: "club",
+      },
+      "another-id",
+    ),
+  ).toMatchObject({ state: "error" });
+  expect(queue().items).toHaveLength(count);
+  expect(mocks.log).toHaveBeenCalledTimes(1);
 });

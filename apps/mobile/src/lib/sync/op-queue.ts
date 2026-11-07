@@ -1,3 +1,4 @@
+import { m } from "@tartan/i18n";
 import type { JumpAttemptInput, SessionLogInput } from "@tartan/contracts";
 import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
@@ -47,6 +48,9 @@ let ownerGeneration = 0;
 // SecureStore écrit plusieurs morceaux : les sauvegardes ne doivent pas s'entrelacer.
 let persistence: Promise<void> = Promise.resolve();
 
+export type QueueSubmitResult = { state: "sent" | "queued" } | { state: "error"; message: string };
+const acknowledgements = new Map<string, { sent: boolean }>();
+
 type OpQueueState = {
   ownerId: string | null;
   items: QueuedOp[];
@@ -55,7 +59,7 @@ type OpQueueState = {
   storageError: boolean;
   hydrate: (ownerId: string) => Promise<void>;
   detach: () => Promise<void>;
-  add: (op: QueuedOp) => Promise<void>;
+  add: (op: QueuedOp) => Promise<QueueSubmitResult>;
   flush: () => Promise<void>;
   dismissRejected: () => void;
 };
@@ -97,16 +101,32 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
   },
   add: async (op) => {
     const ownerId = get().ownerId;
-    if (!ownerId) throw new Error("QUEUE_OWNER_REQUIRED");
-    const items = enqueue(get().items, op);
-    set({ items });
+    const generation = ownerGeneration;
+    if (!ownerId) return { state: "error", message: m.offline.session };
+    const receiptKey = `${ownerId}:${op.id}`;
+    const receipt = { sent: false };
+    acknowledgements.set(receiptKey, receipt);
     try {
-      await save(ownerId, items);
-    } catch {
-      if (get().ownerId === ownerId) set({ storageError: true });
-      return;
+      const items = enqueue(get().items, op);
+      set({ items });
+      try {
+        await save(ownerId, items);
+      } catch {
+        if (generation === ownerGeneration) set({ storageError: true });
+        return { state: "error", message: m.offline.deviceStorageError };
+      }
+      if (generation !== ownerGeneration) return { state: "error", message: m.offline.session };
+      await get().flush();
+      if (generation !== ownerGeneration) return { state: "error", message: m.offline.session };
+      if (get().storageError) return { state: "error", message: m.offline.deviceStorageError };
+      if (reviewRequiredOps(get().items).some((item) => item.id === op.id))
+        return { state: "error", message: m.offline.needsReview };
+      if (receipt.sent) return { state: "sent" };
+      if (get().items.some((item) => item.id === op.id)) return { state: "queued" };
+      return { state: "error", message: m.common.genericError };
+    } finally {
+      if (acknowledgements.get(receiptKey) === receipt) acknowledgements.delete(receiptKey);
     }
-    await get().flush();
   },
   flush: async () => {
     const ownerId = get().ownerId;
@@ -120,7 +140,16 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
       await save(ownerId, batch);
       if (generation !== ownerGeneration) return;
       set({ storageError: false });
-      const result = await replay(batch, send, () => generation === ownerGeneration);
+      const result = await replay(
+        batch,
+        async (op) => {
+          const result = await send(op);
+          const receipt = acknowledgements.get(`${ownerId}:${op.id}`);
+          if (receipt) receipt.sent = true;
+          return result;
+        },
+        () => generation === ownerGeneration,
+      );
       if (generation !== ownerGeneration) {
         // La réponse du compte précédent ne modifie jamais la file du nouveau compte.
         // Son stockage est conservé : le clientId permettra un rejeu sans doublon.
@@ -162,13 +191,19 @@ export const hydrateLastOwner = async (): Promise<boolean> => {
 };
 
 // Une notification peut être traitée deux fois (écouteur et tâche) : son identifiant donne un clientId stable.
-export const submitValidation = (
+export const submitValidation = async (
   orgId: string,
   sessionId: string,
   input: Omit<SessionLogInput, "clientId">,
   clientId: string = newClientId(),
 ) => {
   const id = clientId;
+  if (
+    reviewRequiredOps(useOpQueue.getState().items).some(
+      (op) => op.kind === "log" && op.orgId === orgId && op.sessionId === sessionId,
+    )
+  )
+    return { state: "error" as const, message: m.offline.needsReview };
   return useOpQueue.getState().add({
     id,
     kind: "log",

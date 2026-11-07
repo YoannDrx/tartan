@@ -94,7 +94,7 @@ const Hero = ({
               {m.today.validated.toLowerCase()}
             </p>
           ) : (
-            <QuickValidate session={card} organizationId={organizationId} healthConsent={healthConsent} onDark />
+            <QuickValidate session={detail} organizationId={organizationId} healthConsent={healthConsent} onDark />
           )}
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild size="md" variant="secondary">

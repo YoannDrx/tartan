@@ -120,7 +120,9 @@ const submit = async (op: Pick<QueuedOp, "id" | "kind" | "target" | "path" | "bo
     return keep("offline");
   }
   if (res.ok) {
-    if (durable) await idbDelete("ops", op.id);
+    // L'accusé serveur reste valide si le ménage local échoue. La copie durable
+    // sera rejouée avec le même clientId, sans seconde écriture métier.
+    if (durable) await idbDelete("ops", op.id).catch(() => undefined);
     announce();
     return { state: "sent", data: await res.json().catch(() => null) };
   }
@@ -185,7 +187,11 @@ export const flushOps = async (): Promise<FlushResult> => {
       }
       if (res.ok) result.sent += 1;
       else result.rejected += 1;
-      await idbDelete("ops", op.id);
+      try {
+        await idbDelete("ops", op.id);
+      } catch {
+        break; // Conserver cette copie et l'ordre de ses dépendances pour la prochaine reprise.
+      }
     }
   } finally {
     flushing = false;

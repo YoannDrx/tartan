@@ -1,6 +1,6 @@
 import { capitalize, formatDateLong, m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import { CommentsSection } from "../../src/features/comments";
 import { ExerciseRow, parseMedia } from "../../src/features/media";
@@ -35,23 +35,45 @@ export default function Today() {
     card: AthleteSessionCard;
     status: "done" | "partial";
     justRecorded: boolean;
+    target: ValidationTarget;
   } | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const submitting = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const targetOf = (card: AthleteSessionCard): ValidationTarget => ({
     orgId,
     sessionId: card.id,
     variant: card.variant,
     plannedMinutes: card.durationMin,
+    sessionVersion: card.sessionVersion,
+    logVersion: card.logVersion,
   });
 
   // Premier toucher : c'est enregistré. La feuille qui s'ouvre ne contient que du facultatif.
-  const validate = (card: AthleteSessionCard, status: "done" | "partial") => {
-    void recordValidation(targetOf(card), status);
-    setSheet({ card, status, justRecorded: true });
+  const validate = async (card: AthleteSessionCard, status: "done" | "partial") => {
+    if (submitting.current) return;
+    submitting.current = true;
+    setSaving(true);
+    const target = targetOf(card);
+    const result = await recordValidation(target, status);
+    submitting.current = false;
+    setSaving(false);
+    if (result.state === "error") {
+      setSaveError(result.message);
+      return;
+    }
+    setSaveError(null);
+    setSheet({ card, status, justRecorded: true, target: { ...target, logVersion: result.nextVersion } });
   };
   const edit = (card: AthleteSessionCard) =>
-    setSheet({ card, status: card.status === "partial" ? "partial" : "done", justRecorded: false });
+    setSheet({
+      card,
+      status: card.status === "partial" ? "partial" : "done",
+      justRecorded: false,
+      target: targetOf(card),
+    });
 
   const view = useMemo(
     () => (today.data ? applyPendingToToday(today.data, items, date) : null),
@@ -61,6 +83,7 @@ export default function Today() {
   const others = view?.today.filter((c) => c.id !== main?.id) ?? [];
   const programCard = main ?? view?.next ?? null;
   const program = useSessionDetail(orgId, programCard?.id);
+  const sheetDetail = useSessionDetail(orgId, sheet?.card.id);
   const programItems = useMemo(() => program.data?.blocks.flatMap((b) => b.items) ?? [], [program.data?.blocks]);
 
   const greeting = view?.firstName ? m.today.greeting(view.firstName) : m.nav.aujourdhui;
@@ -72,6 +95,11 @@ export default function Today() {
       refreshing={today.isRefetching}
       onRefresh={() => void today.refetch()}
     >
+      {saveError ? (
+        <T tone="danger" accessibilityRole="alert">
+          {saveError}
+        </T>
+      ) : null}
       {today.isPending ? <LoadingState /> : null}
       {today.isError && !view ? <ErrorState error={today.error} onRetry={() => void today.refetch()} /> : null}
       {view ? (
@@ -81,7 +109,7 @@ export default function Today() {
           {main ? (
             <SessionHero
               card={main}
-              pending={Boolean(pendingLogFor(items, main.id))}
+              pending={saving || Boolean(pendingLogFor(items, main.id))}
               onValidate={(status) => validate(main, status)}
               onEdit={() => edit(main)}
               onStart={() => router.push(`/session/${main.id}`)}
@@ -102,7 +130,7 @@ export default function Today() {
               key={card.id}
               secondary
               card={card}
-              pending={Boolean(pendingLogFor(items, card.id))}
+              pending={saving || Boolean(pendingLogFor(items, card.id))}
               onValidate={(status) => validate(card, status)}
               onEdit={() => edit(card)}
               onStart={() => router.push(`/session/${card.id}`)}
@@ -193,15 +221,33 @@ export default function Today() {
         </>
       ) : null}
 
-      {sheet ? (
+      {sheet && sheetDetail.data ? (
         <ValidationSheet
-          target={targetOf(sheet.card)}
+          target={
+            sheet.justRecorded
+              ? sheet.target
+              : {
+                  ...sheet.target,
+                  sessionVersion: sheetDetail.data.sessionVersion,
+                  logVersion: sheetDetail.data.log?.version ?? sheetDetail.data.logVersion ?? 0,
+                }
+          }
           status={sheet.status}
           justRecorded={sheet.justRecorded}
-          existing={sheet.justRecorded || program.data?.id !== sheet.card.id ? null : program.data?.log}
+          existing={sheetDetail.data.log}
           healthConsent={view?.healthConsent ?? false}
           onClose={() => setSheet(null)}
         />
+      ) : null}
+
+      {sheet && !sheetDetail.data ? (
+        <Sheet visible title={m.validation.title} onClose={() => setSheet(null)}>
+          {sheetDetail.isError ? (
+            <ErrorState error={sheetDetail.error} onRetry={() => void sheetDetail.refetch()} />
+          ) : (
+            <LoadingState />
+          )}
+        </Sheet>
       ) : null}
 
       {commentsOpen && programCard ? (

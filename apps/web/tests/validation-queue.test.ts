@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { pendingStatusFor, sendValidation } from "@/features/athlete-view/validation-queue";
+import * as storage from "@/features/offline/idb";
 import { idbAll, idbDelete } from "@/features/offline/idb";
 import { flushOps, isSessionExpired, pendingOps, setQueueOwner, type QueuedOp } from "@/features/offline/op-queue";
 
@@ -148,5 +149,21 @@ describe("file d'attente hors ligne", () => {
     expect(await pendingOps()).toHaveLength(0);
     setQueueOwner("moi");
     expect((await pendingOps()).map((op) => op.id)).toEqual(["second"]);
+  });
+
+  it("conserve l'accusé serveur et reprend le nettoyage local sans perdre l'ordre", async () => {
+    respond(200);
+    const remove = vi.spyOn(storage, "idbDelete").mockRejectedValue(new Error("storage unavailable"));
+    try {
+      const input = { ...pending().input, expectedVersion: 0, expectedSessionVersion: 1 };
+      expect((await sendValidation({ ...pending(), input })).state).toBe("sent");
+      expect(await pendingOps()).toHaveLength(1);
+      expect(await flushOps()).toEqual({ sent: 1, rejected: 0 });
+      expect(await pendingOps()).toHaveLength(1);
+    } finally {
+      remove.mockRestore();
+    }
+    expect(await flushOps()).toEqual({ sent: 1, rejected: 0 });
+    expect(await pendingOps()).toHaveLength(0);
   });
 });

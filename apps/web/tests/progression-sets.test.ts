@@ -9,6 +9,7 @@ import {
   logSessionForAthlete,
 } from "@/server/athlete-view.service";
 import { getSessionForEdit, publishRow, saveScheduledSession } from "@/server/session.service";
+import { setConsent } from "@/server/consent.service";
 import { athleteWeeklyStats } from "@/server/stats.service";
 import { addAthlete, addStaff, makeOrg } from "./helpers";
 
@@ -117,7 +118,7 @@ it("le rejeu A après la correction B ne remet pas A en place", async () => {
   const clientId = randomUUID();
   await a.log({ clientId });
   await a.log({ expectedVersion: 1, detailedSets: [] });
-  expect(await a.log({ clientId })).toMatchObject({ replayed: true, version: 2 });
+  expect(await a.log({ clientId })).toMatchObject({ replayed: true, version: 1 });
   const row = await prisma.sessionLog.findFirstOrThrow({
     where: { scheduledSessionId: a.session.id },
     include: { sets: true },
@@ -338,4 +339,95 @@ it("des cases simples ne remplacent pas les séries détaillées, même avec la 
   const detail = await getAthleteSession(a.athlete.userId, a.organizationId, a.session.id);
   expect(detail.log?.detailedSets).toHaveLength(1);
   expect(detail.log?.detailedSets?.[0]).toMatchObject({ loadKg: 40, reps: 4, loadKind: "external" });
+});
+
+it("la validation rapide puis son complément conservent charges, santé et date", async () => {
+  const a = await setup();
+  const first = await a.log({
+    rpe: 7,
+    durationMin: 50,
+    comment: "Conservé",
+    pain: { bodyArea: "knee", side: "left", intensity: 2 },
+    completedAt: "2030-06-12T10:00:00Z",
+  });
+  const quick = await a.log({
+    writeScope: "status",
+    expectedVersion: 1,
+    detailedSets: undefined,
+    status: "partial",
+    sets: [{ itemRef: "b0-i0", setIndex: 0, done: true }],
+  });
+  expect(quick.version).toBe(2);
+  await a.log({ writeScope: "feedback", expectedVersion: 2, detailedSets: undefined, comment: "Corrigé" });
+  const row = await prisma.sessionLog.findUniqueOrThrow({ where: { id: first.id }, include: { sets: true } });
+  expect(row).toMatchObject({
+    version: 3,
+    rpe: 7,
+    durationMin: 50,
+    comment: "Corrigé",
+    pain: { bodyArea: "knee", side: "left", intensity: 2 },
+  });
+  expect(row.completedAt?.toISOString()).toBe("2030-06-12T10:00:00.000Z");
+  expect(Number(row.sets[0]?.loadKg)).toBe(40);
+  const detail = await getAthleteSession(a.athlete.userId, a.organizationId, a.session.id);
+  expect(detail).toMatchObject({ sessionVersion: 2, logVersion: 3 });
+  expect(detail.log?.pain).toEqual(row.pain);
+  await a.log({
+    writeScope: "feedback",
+    expectedVersion: 3,
+    detailedSets: undefined,
+    rpe: null,
+    pain: null,
+    comment: null,
+  });
+  const corrected = await prisma.sessionLog.findUniqueOrThrow({ where: { id: first.id } });
+  expect(corrected).toMatchObject({ rpe: null, pain: null, comment: null, durationMin: 50 });
+});
+
+it("un complément dépend de sa validation, pas de la correction d'un autre appareil", async () => {
+  const a = await setup();
+  const clientId = randomUUID();
+  await a.log({ clientId, writeScope: "status", detailedSets: undefined });
+  await a.log({ expectedVersion: 1, writeScope: "feedback", detailedSets: undefined, comment: "Autre appareil" });
+  expect(await a.log({ clientId, writeScope: "status", detailedSets: undefined })).toMatchObject({
+    version: 1,
+    replayed: true,
+  });
+  await expect(
+    a.log({ expectedVersion: 1, writeScope: "feedback", detailedSets: undefined, comment: "Ancien complément" }),
+  ).rejects.toMatchObject({ code: "log_version_conflict" });
+  const detail = await getAthleteSession(a.athlete.userId, a.organizationId, a.session.id);
+  expect(detail.log?.comment).toBe("Autre appareil");
+});
+
+it("les actions ciblées refusent les écritures hors de leur périmètre et les versions absentes", async () => {
+  const a = await setup();
+  for (const invalid of [
+    { writeScope: "status" as const, rpe: null, detailedSets: undefined },
+    { writeScope: "status" as const },
+    { writeScope: "status" as const, detailedSets: undefined, expectedVersion: undefined },
+    { writeScope: "feedback" as const, detailedSets: undefined, expectedSessionVersion: undefined },
+    { writeScope: "feedback" as const, detailedSets: undefined, sets: [{ itemRef: "b0-i0", setIndex: 0, done: true }] },
+  ])
+    await expect(a.log(invalid)).rejects.toThrow();
+  expect(await prisma.sessionLog.count({ where: { scheduledSessionId: a.session.id } })).toBe(0);
+});
+
+it("le retrait du consentement masque aussi les retours santé des lectures athlète et coach", async () => {
+  const a = await setup();
+  await a.log({ rpe: 8, pain: { bodyArea: "knee", side: "left", intensity: 2 } });
+  await setConsent(a.athlete.userId, "health", false, a.athlete.athleteId);
+  const own = await getAthleteSession(a.athlete.userId, a.organizationId, a.session.id);
+  const coach = await getAthleteSessionForCoach(a.owner.userId, a.organizationId, a.session.id, a.athlete.athleteId);
+  expect(own.log).toMatchObject({ rpe: null, pain: null });
+  expect(coach.log).toMatchObject({ rpe: null, pain: null });
+  await a.log({
+    writeScope: "feedback",
+    expectedVersion: 1,
+    detailedSets: undefined,
+    rpe: 9,
+    pain: { bodyArea: "knee", side: "left", intensity: 3 },
+  });
+  const updated = await getAthleteSession(a.athlete.userId, a.organizationId, a.session.id);
+  expect(updated.log).toMatchObject({ rpe: null, pain: null });
 });
