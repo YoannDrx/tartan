@@ -6,11 +6,11 @@ Ce document distingue le code livré, la configuration et les preuves réelles. 
 
 ## État courant de la PR 2
 
-Au 8 novembre 2026, base publiée `3329e86` et lot de reprise native encore local : PR #45 en brouillon, fonctionnalités de progression désactivées par défaut et non publiées en production. Les sections de preuves ci-dessous gardent l’historique des étapes ; les mentions « reste à faire » d’un ancien lot sont remplacées par les preuves plus récentes.
+Au 8 novembre 2026, après la reprise native `d27e460` et son complément de suppression : PR #45 en brouillon, fonctionnalités de progression désactivées par défaut et non publiées en production. Les sections de preuves ci-dessous gardent l’historique des étapes ; les mentions « reste à faire » d’un ancien lot sont remplacées par les preuves plus récentes.
 
 | Lot | État actuel | Reste principal |
 | --- | --- | --- |
-| A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée testée sur simulateur iOS, changements encore locaux | Finitions natives, recette complète du constructeur, onboarding, bibliothèque relue, vidéo générique, landing et recette physique |
+| A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée testée sur simulateur iOS, suppression séances/modèles ajoutée | Recette complète du constructeur, publication groupée, onboarding, bibliothèque relue, vidéo générique, landing et recette physique |
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
 | C — historique et records | Règles de calcul initiales présentes | Historique, dernière réalisation comparable, calculateur, courbes, records et célébration unique |
 | D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |

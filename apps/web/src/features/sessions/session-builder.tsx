@@ -207,7 +207,7 @@ export const SessionBuilder = ({
   exercises: ExerciseSummary[];
   groups: { id: string; name: string; athleteCount: number }[];
   athletes: { id: string; firstName: string; lastName: string }[];
-  templates: (SessionDraft & { id: string })[];
+  templates: (SessionDraft & { id: string; canDelete?: boolean })[];
   testKeys: string[];
   defaultDate: string;
 }) => {
@@ -342,12 +342,14 @@ export const SessionBuilder = ({
       setChosenTemplate("");
       router.refresh();
     },
+    onError: ({ error }) => toast.error(error.serverError ?? m.errors.invalid),
   });
   const remove = useAction(deleteSessionAction, {
     onSuccess: () => {
       router.push("/calendrier");
       router.refresh();
     },
+    onError: ({ error }) => setFormError(error.serverError ?? m.errors.invalid),
   });
 
   const submit = (publish: boolean, scheduleAt: string | null = null) => {
@@ -432,7 +434,7 @@ export const SessionBuilder = ({
                   </Select>
                 )}
               </Field>
-              {chosenTemplate ? (
+              {chosenTemplate && templates.find((t) => t.id === chosenTemplate)?.canDelete ? (
                 <ConfirmDialog
                   title={m.builder.deleteTemplate}
                   onConfirm={() => removeTemplate.execute({ id: chosenTemplate })}
@@ -896,7 +898,13 @@ export const SessionBuilder = ({
           <ConfirmDialog
             title="Supprimer cette séance ?"
             description={initial.logCount > 0 ? m.builder.deleteLosesLogs(initial.logCount) : undefined}
-            onConfirm={() => remove.execute({ id: initial.id })}
+            onConfirm={() =>
+              remove.execute({
+                id: initial.id,
+                expectedVersion: expectedVersion ?? initial.version,
+                expectedLogCount: initial.logCount,
+              })
+            }
             trigger={
               <Button variant="danger" className={cn("ml-auto")} disabled={remove.isPending}>
                 {m.common.delete}

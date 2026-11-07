@@ -164,3 +164,17 @@ export const sessionEditResponse = saveScheduledSessionInput.extend({
   logCount: z.number().int().min(0),
 });
 export type SessionEditResponse = z.infer<typeof sessionEditResponse>;
+
+export const deleteSessionInput = z.object({
+  expectedVersion: z.number().int().min(1),
+  expectedLogCount: z.number().int().min(0),
+});
+export type DeleteSessionInput = z.infer<typeof deleteSessionInput>;
+// Les anciennes applications envoient encore DELETE sans paramètres.
+export const deleteSessionQuery = z
+  .object({
+    expectedVersion: z.coerce.number().int().min(1).optional(),
+    expectedLogCount: z.coerce.number().int().min(0).optional(),
+  })
+  .strict()
+  .refine((v) => (v.expectedVersion === undefined) === (v.expectedLogCount === undefined));

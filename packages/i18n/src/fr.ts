@@ -698,6 +698,16 @@ export const fr = {
     notes: "Consigne",
   },
   nativeBuilder: {
+    deleteSession: "Supprimer cette séance",
+    deleteSessionConfirm:
+      "Supprimer définitivement cette séance et ses réalisations ? Les modifications locales seront également abandonnées. Les athlètes seront prévenus si la séance publiée est à venir.",
+    deleteTemplateConfirm: (name: string) =>
+      `Supprimer le modèle « ${name} » ? Les séances déjà créées à partir de ce modèle seront conservées.`,
+    deleted: "Séance supprimée",
+    deletedLocalCleanup:
+      "La séance est supprimée. Le nettoyage de sa copie locale a échoué ; elle ne pourra plus être envoyée au serveur.",
+    templateDeleted: "Modèle supprimé. Les séances existantes sont conservées.",
+    templatesEmpty: "Aucun modèle enregistré pour cet espace.",
     invalidFields: (labels: string) => `Vérifie les champs suivants : ${labels}.`,
     applyPending: "Applique ou abandonne la prescription en cours avant d’enregistrer la séance.",
     pendingPrescription: "Prescription en cours de saisie, non appliquée",

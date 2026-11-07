@@ -267,7 +267,7 @@ export const sessionBuilderContext = z.object({
   exercises: z.array(exerciseSummary),
   groups: z.array(z.object({ id: uuid, name: z.string(), athleteCount: z.number().int().min(0) })),
   athletes: z.array(z.object({ id: uuid, firstName: z.string(), lastName: z.string() })),
-  templates: z.array(sessionDraft.extend({ id: uuid })),
+  templates: z.array(sessionDraft.extend({ id: uuid, canDelete: z.boolean().default(false) })),
   testKeys: z.array(z.string()),
 });
 

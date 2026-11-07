@@ -53,10 +53,16 @@ test("l’API du constructeur conserve les identités, les adaptations, les vers
     expect(create.status()).toBe(200);
     const saved = await create.json();
     const path = `${root}/sessions/${saved.id}`;
-    expect((await page.request.post(`${root}/session-templates`, { data: draft })).ok()).toBe(true);
+    const templateResponse = await page.request.post(`${root}/session-templates`, { data: draft });
+    expect(templateResponse.ok()).toBe(true);
+    const templateId = (await templateResponse.json()).id;
     expect((await member.page.request.post(`${root}/session-templates`, { data: draft })).status()).toBe(403);
     const templates = (await (await page.request.get(`${root}/session-builder`)).json()).templates;
     expect(templates.some((t: { title: string }) => t.title === draft.title)).toBe(true);
+    expect(templates.find((t: { id: string }) => t.id === templateId).canDelete).toBe(true);
+    expect((await member.page.request.delete(`${root}/session-templates/${templateId}`)).status()).toBe(403);
+    expect((await page.request.delete(`${root}/session-templates/${templateId}`)).ok()).toBe(true);
+    expect((await page.request.get(path)).ok()).toBe(true);
     const moved = structuredClone(body);
     moved.draft.blocks[1]!.items.push(moved.draft.blocks[0]!.items.pop()!);
     const update = await page.request.put(path, { data: { ...moved, expectedVersion: saved.version } });
@@ -83,6 +89,20 @@ test("l’API du constructeur conserve les identités, les adaptations, les vers
     expect(athlete.blocks[1].items[0].prescription.intensityTarget).toEqual({ type: "rir", value: 2 });
     const impossible = await page.request.post(`${root}/sessions`, { data: { ...body, date: "2030-02-30" } });
     expect(impossible.status()).toBe(400);
+    expect(
+      (await member.page.request.delete(`${path}?expectedVersion=${published.version}&expectedLogCount=0`)).status(),
+    ).toBe(403);
+    expect((await page.request.delete(`${path}?expectedVersion=${saved.version}&expectedLogCount=0`)).status()).toBe(
+      409,
+    );
+    expect((await page.request.delete(`${path}?expectedVersion=${published.version}`)).status()).toBe(400);
+    expect(
+      (
+        await page.request.delete(`${path}?expectedVersion=${published.version}&expectedLogCount=${published.logCount}`)
+      ).ok(),
+    ).toBe(true);
+    expect((await page.request.get(path)).status()).toBe(404);
+    expect((await member.page.request.get(`${path}/me`)).status()).toBe(404);
   } finally {
     await member.context.close();
   }

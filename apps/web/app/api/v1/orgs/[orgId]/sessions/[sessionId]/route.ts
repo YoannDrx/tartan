@@ -1,4 +1,4 @@
-import { saveScheduledSessionInput } from "@tartan/contracts";
+import { deleteSessionQuery, saveScheduledSessionInput } from "@tartan/contracts";
 import { authRoute } from "@/lib/zod-route";
 import { deleteSession, getSessionForEdit, saveScheduledSession } from "@/server/session.service";
 import { sessionParams } from "../../../../_params";
@@ -14,7 +14,20 @@ export const PUT = authRoute
     saveScheduledSession(ctx.actor.userId, params.orgId, { ...body, id: params.sessionId }),
   );
 
-export const DELETE = authRoute.params(sessionParams).handler(async (_req, { ctx, params }) => {
-  await deleteSession(ctx.actor.userId, params.orgId, params.sessionId);
-  return { ok: true };
-});
+export const DELETE = authRoute
+  .params(sessionParams)
+  .query(deleteSessionQuery)
+  .handler(async (_req, { ctx, params, query }) => {
+    await deleteSession(
+      ctx.actor.userId,
+      params.orgId,
+      params.sessionId,
+      query.expectedVersion === undefined || query.expectedLogCount === undefined
+        ? undefined
+        : {
+            expectedVersion: query.expectedVersion,
+            expectedLogCount: query.expectedLogCount,
+          },
+    );
+    return { ok: true };
+  });

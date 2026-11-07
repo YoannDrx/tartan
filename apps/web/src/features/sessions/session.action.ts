@@ -1,7 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { competitionInput, isoDate, saveScheduledSessionInput, sessionDraft, uuid } from "@tartan/contracts";
+import {
+  competitionInput,
+  deleteSessionInput,
+  isoDate,
+  saveScheduledSessionInput,
+  sessionDraft,
+  uuid,
+} from "@tartan/contracts";
 import { z } from "zod";
 import { spaceAction } from "@/features/shell/space-action";
 import {
@@ -28,10 +35,11 @@ export const saveSessionAction = spaceAction
   });
 
 export const deleteSessionAction = spaceAction
-  .inputSchema(z.object({ id: uuid }))
+  .inputSchema(deleteSessionInput.extend({ id: uuid }))
   .action(async ({ parsedInput, ctx }) => {
-    await deleteSession(ctx.userId, ctx.organizationId, parsedInput.id);
+    await deleteSession(ctx.userId, ctx.organizationId, parsedInput.id, parsedInput);
     revalidatePath("/calendrier");
+    revalidatePath("/suivi");
   });
 
 export const deleteTemplateAction = spaceAction

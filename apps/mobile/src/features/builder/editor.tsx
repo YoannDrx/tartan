@@ -116,6 +116,8 @@ export const NativeSessionBuilder = ({
   const [libraryBlock, setLibraryBlock] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [templates, setTemplates] = useState(false);
+  const [availableTemplates, setAvailableTemplates] = useState(context.templates);
+  const [deleted, setDeleted] = useState(false);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [moving, setMoving] = useState<string | null>(null);
   const [adjusting, setAdjusting] = useState<string | null>(null);
@@ -202,7 +204,8 @@ export const NativeSessionBuilder = ({
     };
   }, [ready, dirty, form, duration, base, context, uncertain, writer, editing, localState, navigation]);
   usePreventRemove(
-    busy || (ready && (dirty || uncertain !== null || localState === "error" || localState === "conflict")),
+    !deleted &&
+      (busy || (ready && (dirty || uncertain !== null || localState === "error" || localState === "conflict"))),
     ({ data }) => {
       if (pending.current) {
         Alert.alert(m.builder.title, m.nativeBuilder.publicationPending);
@@ -415,8 +418,11 @@ export const NativeSessionBuilder = ({
     setBusy(true);
     setError("");
     try {
-      await api.saveSessionTemplate(orgId, result.data.draft);
-      if (mounted.current) setMessage(m.nativeBuilder.templateSaved);
+      const saved = await api.saveSessionTemplate(orgId, result.data.draft);
+      if (mounted.current) {
+        setAvailableTemplates((values) => [{ ...result.data.draft, id: saved.id, canDelete: true }, ...values]);
+        setMessage(m.nativeBuilder.templateSaved);
+      }
     } catch (cause) {
       if (mounted.current) setError(errorMessage(cause));
     } finally {
@@ -439,6 +445,68 @@ export const NativeSessionBuilder = ({
       return;
     }
     setPreview(true);
+  };
+  const removeTemplate = async (id: string) => {
+    if (!mounted.current || pending.current || !online || !verified) return;
+    pending.current = true;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await api.deleteSessionTemplate(orgId, id);
+      if (!mounted.current) return;
+      setAvailableTemplates((values) => values.filter((t) => t.id !== id));
+      setMessage(m.nativeBuilder.templateDeleted);
+    } catch (cause) {
+      if (mounted.current) setError(errorMessage(cause));
+    } finally {
+      pending.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  };
+  const removeSession = async () => {
+    if (
+      !mounted.current ||
+      pending.current ||
+      !online ||
+      !verified ||
+      stale ||
+      !base ||
+      !form.id ||
+      localState === "conflict"
+    )
+      return;
+    pending.current = true;
+    closing.current = true;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    let removed = false;
+    try {
+      await api.deleteSession(orgId, form.id, { expectedVersion: base.version, expectedLogCount: base.logCount });
+      removed = true;
+      try {
+        await writer.remove();
+      } catch {
+        if (mounted.current) setError(m.nativeBuilder.deletedLocalCleanup);
+      }
+      for (const key of ["coach-calendar", "tracking", "coach-session", "session", "athlete-calendar", "today"])
+        void client.invalidateQueries({ queryKey: [key, orgId] });
+      if (mounted.current) setDeleted(true);
+    } catch (cause) {
+      closing.current = false;
+      if (mounted.current) {
+        setError(errorMessage(cause));
+        // Relecture requise avant toute nouvelle opération, y compris après réponse perdue.
+        setStale(true);
+      }
+    } finally {
+      pending.current = false;
+      if (mounted.current) {
+        if (removed) setUncertain(null);
+        setBusy(false);
+      }
+    }
   };
   const reloadCurrent = async () => {
     if (pending.current || !mounted.current) return;
@@ -483,6 +551,13 @@ export const NativeSessionBuilder = ({
       if (mounted.current) setBusy(false);
     }
   };
+  if (deleted)
+    return (
+      <StackScreen title={m.nativeBuilder.deleted}>
+        {error ? <T accessibilityRole="alert">{error}</T> : null}
+        <Button label={m.nav.calendrier} onPress={() => router.replace("/(coach)/planning")} />
+      </StackScreen>
+    );
   if (!ready && stored)
     return (
       <StackScreen title={m.nativeBuilder.recoveredTitle}>
@@ -622,7 +697,7 @@ export const NativeSessionBuilder = ({
         <Button
           variant="secondary"
           label={m.builder.useTemplate}
-          disabled={!context.templates.length}
+          disabled={!availableTemplates.length}
           onPress={() => setTemplates(true)}
         />
         {form.draft.blocks.map((block, bi) => (
@@ -901,6 +976,20 @@ export const NativeSessionBuilder = ({
             onPress={() => router.push({ pathname: "/coach-session/[id]", params: { id: form.id! } })}
           />
         ) : null}
+        {base && form.id ? (
+          <Button
+            variant="danger"
+            label={m.nativeBuilder.deleteSession}
+            disabled={busy || stale || !online || !verified || localState === "conflict"}
+            onPress={() =>
+              confirm(
+                `${m.nativeBuilder.deleteSessionConfirm}${base.logCount ? `\n\n${m.builder.deleteLosesLogs(base.logCount)}` : ""}`,
+                () => void removeSession(),
+                true,
+              )
+            }
+          />
+        ) : null}
       </View>
       {libraryBlock ? (
         <Sheet visible title={m.builder.library} onClose={() => setLibraryBlock(null)}>
@@ -958,20 +1047,46 @@ export const NativeSessionBuilder = ({
         </Sheet>
       ) : null}
       {templates ? (
-        <Sheet visible title={m.builder.useTemplate} onClose={() => setTemplates(false)}>
-          {context.templates.map((t) => (
-            <Button
-              key={t.id}
-              variant="secondary"
-              label={t.title}
-              onPress={() =>
-                confirm(m.nativeBuilder.replaceTemplate, () => {
-                  change({ draft: copyDraftWithNewRefs(t, randomUUID), overrides: [] });
-                  setDuration(t.durationMin?.toString() ?? "");
-                  setTemplates(false);
-                })
-              }
-            />
+        <Sheet
+          visible
+          title={m.builder.useTemplate}
+          onClose={() => {
+            if (!busy) setTemplates(false);
+          }}
+        >
+          {error ? (
+            <T tone="danger" accessibilityRole="alert">
+              {error}
+            </T>
+          ) : null}
+          {message ? <T accessibilityLiveRegion="polite">{message}</T> : null}
+          {!availableTemplates.length ? <T>{m.nativeBuilder.templatesEmpty}</T> : null}
+          {availableTemplates.map((t) => (
+            <Card key={t.id}>
+              <Button
+                variant="secondary"
+                label={t.title}
+                disabled={busy}
+                onPress={() =>
+                  confirm(m.nativeBuilder.replaceTemplate, () => {
+                    change({ draft: copyDraftWithNewRefs(t, randomUUID), overrides: [] });
+                    setDuration(t.durationMin?.toString() ?? "");
+                    setTemplates(false);
+                  })
+                }
+              />
+              {t.canDelete ? (
+                <Button
+                  compact
+                  variant="danger"
+                  label={`${m.builder.deleteTemplate} · ${t.title}`}
+                  disabled={busy || !online || !verified}
+                  onPress={() =>
+                    confirm(m.nativeBuilder.deleteTemplateConfirm(t.title), () => void removeTemplate(t.id), true)
+                  }
+                />
+              ) : null}
+            </Card>
           ))}
         </Sheet>
       ) : null}

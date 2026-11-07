@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   type CalendarResponse,
+  type DeleteSessionInput,
   confirmPrescriptionRefresh,
   type ConfirmPrescriptionRefresh,
   type SaveScheduledSessionInput,
@@ -117,9 +118,9 @@ export const buildSnapshot = async (organizationId: string, draft: SessionDraft)
   });
 };
 
-const audienceUsers = async (sessionId: string): Promise<string[]> => {
-  const ids = await activeAudienceIds(sessionId);
-  const rows = await prisma.athlete.findMany({
+const audienceUsers = async (sessionId: string, db: Prisma.TransactionClient = prisma): Promise<string[]> => {
+  const ids = await activeAudienceIds(sessionId, db);
+  const rows = await db.athlete.findMany({
     where: { id: { in: ids }, userId: { not: null } },
     select: { userId: true },
   });
@@ -320,15 +321,53 @@ export const getSessionForEdit = async (userId: string, organizationId: string, 
   };
 };
 
-export const deleteSession = async (userId: string, organizationId: string, sessionId: string) => {
+export const deleteSession = async (
+  userId: string,
+  organizationId: string,
+  sessionId: string,
+  confirmation?: DeleteSessionInput,
+) => {
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   const session = await requireSessionWrite(access, sessionId);
-  // À calculer avant : la suppression emporte les attributions.
-  const date = fromDbDate(session.date);
-  const upcoming = Boolean(session.publishedAt) && date >= todayIso();
-  const users = upcoming ? await audienceUsers(session.id) : [];
-  await prisma.scheduledSession.delete({ where: { id: session.id } });
-  await notify(users, "session_cancelled", { date, organizationId, link: "/aujourdhui" });
+  const notificationIds = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${sessionId}::uuid FOR UPDATE`;
+    const current = await tx.scheduledSession.findUnique({ where: { id: sessionId } });
+    if (!current) throw notFound();
+    const logCount = await tx.sessionLog.count({ where: { scheduledSessionId: sessionId } });
+    if (
+      current.version !== session.version ||
+      (confirmation && current.version !== confirmation.expectedVersion) ||
+      (confirmation && confirmation.expectedLogCount !== logCount)
+    )
+      throw sessionConflict();
+    // Avant la suppression des attributions, sous le même verrou que les validations.
+    const date = fromDbDate(current.date);
+    const upcoming = Boolean(current.publishedAt) && date >= todayIso();
+    const users = upcoming ? await audienceUsers(sessionId, tx) : [];
+    await tx.scheduledSession.delete({ where: { id: sessionId } });
+    const ids = await queueNotifications(tx, users, "session_cancelled", {
+      date,
+      organizationId,
+      link: "/aujourdhui",
+    });
+    await tx.auditLog.create({
+      data: {
+        organizationId,
+        actorId: userId,
+        action: "session_deleted",
+        entity: "scheduled_session",
+        entityId: sessionId,
+      },
+    });
+    await tx.organization.update({ where: { id: organizationId }, data: { lastBusinessActivityAt: new Date() } });
+    return ids;
+  });
+  try {
+    if (notificationIds.length) await dispatchPending(new Date(), notificationIds);
+  } catch {
+    log.warn("session_cancellation_delivery_deferred", { organizationId, entityId: sessionId });
+  }
 };
 
 export const deleteTemplate = async (userId: string, organizationId: string, templateId: string) => {
@@ -558,8 +597,8 @@ export const saveTemplate = async (userId: string, organizationId: string, draft
 export const listTemplates = async (
   userId: string,
   organizationId: string,
-): Promise<(SessionDraft & { id: string })[]> => {
-  await requireOrgMember(userId, organizationId, "manageSessions");
+): Promise<(SessionDraft & { id: string; canDelete: boolean })[]> => {
+  const access = await requireOrgMember(userId, organizationId, "manageSessions");
   const rows = await prisma.sessionTemplate.findMany({
     where: { organizationId },
     orderBy: { updatedAt: "desc" },
@@ -572,6 +611,7 @@ export const listTemplates = async (
   });
   return rows.map((t) => ({
     id: t.id,
+    canDelete: access.role === "owner" || t.createdBy === userId,
     title: t.title,
     type: t.type,
     durationMin: t.durationMin,
