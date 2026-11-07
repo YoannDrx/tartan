@@ -35,6 +35,24 @@ Installer les valeurs du fichier privé dans **le seul environnement Vercel vis�
 
 Les tests locaux avec prestataire simulé ne remplacent pas cette recette. Le cycle réel contrôlé avant ouverture commerciale reste distinct du test sandbox.
 
+### Recette automatisée avec le prestataire sandbox
+
+`apps/web/tests-sandbox/billing.test.ts` appelle les services métier via un transport Stripe CLI authentifié. Les réponses du prestataire sont réelles ; seuls la perte de réponse et l'indisponibilité réseau sont injectées. Aucun secret Stripe n'est exporté vers Vitest. Ces tests sont exclus de `pnpm test` et de la CI ordinaire.
+
+Prérequis : Node 22, Postgres local démarré, base jetable `tartan_v11_sandbox` créée sur le port 54329, session Stripe CLI connectée à la sandbox Tartan et quatre tarifs configurés. Fournir `TEST_DATABASE_URL` pour **cette seule base**, puis lancer :
+
+```sh
+RUN_STRIPE_SANDBOX=1 corepack pnpm --filter @tartan/web exec vitest run --config vitest.sandbox.config.mts
+```
+
+Le setup refuse tout autre hôte, port ou nom de base, vérifie le compte `acct_1UXJsn7nmxxw9EFI`, puis réinitialise cette base locale. La CLI ne reçoit jamais `--live` et ignore les clés Stripe éventuellement héritées du shell. La recette vérifie :
+
+- session unique sous concurrence, réutilisation, expiration avant changement d'offre et récupération de réponse perdue ;
+- transfert avec panne, reprise de l'arrêt à échéance, maintien des droits et portail de l'ancien payeur inaccessible ;
+- nouveau client pour le repreneur après clôture de l'abonnement d'essai créé par la recette.
+
+La fin de suite expire les Checkout encore ouverts et supprime uniquement les clients créés par cette exécution, en vérifiant la confirmation de suppression. Un échec de nettoyage fait échouer la suite. L'abonnement de recette utilise une période d'essai : cette suite **ne prouve pas** le paiement par carte, la facturation payée, la livraison HTTP d'un webhook signé ni la réception d'un e-mail.
+
 ## Fiscalité
 
 `STRIPE_TAX_ENABLED=false` reste le défaut. Ne l'activer qu'après vérification du régime applicable et des immatriculations configurées : activer le calcul automatique seul ne suffit pas. Les mentions de facture doivent correspondre à la situation fiscale validée du vendeur.
