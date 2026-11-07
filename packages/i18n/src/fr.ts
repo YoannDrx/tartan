@@ -98,6 +98,42 @@ export const fr = {
   bodySide: { left: "Gauche", right: "Droite", both: "Les deux", none: "Sans objet" },
   injuryStatus: { active: "Active", recovering: "En reprise", resolved: "Guérie" },
   testKind: { one_rm: "1RM", three_rm: "3RM", estimated: "Estimé" },
+  strength: {
+    convention: "Convention de charge",
+    conventionHint: "Garde une fiche distincte pour chaque variante, machine ou assistance.",
+    conventions: {
+      external_total: "Charge externe totale",
+      added_weight: "Charge additionnelle au poids du corps",
+      assistance: "Charge d’assistance",
+      bodyweight: "Poids du corps seul",
+    },
+    unknownConvention: "Non renseignée",
+    step: "Pas d’arrondi (kg)",
+    stepHint: "Selon le matériel disponible. Par défaut : 1,25 kg.",
+    totalHint: "Indique la charge totale, barre et disques compris, ou les deux haltères additionnés.",
+    addedHint: "Indique seulement la charge ajoutée, sans inclure le poids du corps.",
+    selectReference: "Utiliser ce test comme référence de travail",
+    selectExisting: "Choisir comme référence",
+    referenceSaved: "Référence de travail enregistrée.",
+    referenceTitle: "Références de travail",
+    workingReference: "Choisir une charge de référence",
+    valueKg: "Charge de référence (kg)",
+    noReference: "Aucune référence choisie. Ajoute un test ou définis une charge de travail pour cet exercice.",
+    prescriptionMismatch:
+      "La référence de force ne correspond pas à cet exercice. Choisis la référence de cette variante.",
+    noCompatibleExercise:
+      "Renseigne la convention de charge d’un exercice dans la bibliothèque pour ajouter un test lié à cet exercice.",
+    openLibrary: "Ouvrir la bibliothèque",
+    referenceKinds: { tested: "Maximum testé", estimated: "Maximum estimé", working: "Référence choisie" },
+    unsupported:
+      "Définis la convention de charge de cet exercice avant de choisir une référence. Le poids du corps et l’assistance ne sont pas des maxima de charge externe.",
+    conventionLocked:
+      "Cet exercice possède déjà des données de force ou des séries. Crée une variante distincte pour changer sa convention de charge.",
+    sourceMismatch: "Ce test ne correspond pas à cet athlète et à cet exercice.",
+    mappingConflict:
+      "Cette ancienne clé est déjà rattachée à un autre exercice. Vérifie la correspondance avant de la modifier.",
+    saved: "Test enregistré.",
+  },
   strengthTest: {
     back_squat: "Squat arrière",
     front_squat: "Squat avant",

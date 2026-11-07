@@ -81,7 +81,7 @@ export default function Progress() {
                   accessible
                 >
                   <View style={{ flex: 1, gap: 2 }}>
-                    <T variant="smallStrong">{strengthTestLabel(test.exerciseKey)}</T>
+                    <T variant="smallStrong">{test.exerciseName ?? strengthTestLabel(test.exerciseKey)}</T>
                     <T variant="caption" tone="muted">
                       {`${testKind(test.kind)} · ${capitalize(formatDayMonth(test.date))}`}
                     </T>

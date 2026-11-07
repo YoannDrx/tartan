@@ -163,3 +163,24 @@ it("le coach ne peut ni lire, ni publier, ni réattribuer une séance d'un autre
     status: 403,
   });
 });
+
+it("une référence liée ne peut pas être attribuée à un autre exercice, y compris en adaptation", async () => {
+  const a = await setup();
+  const draft = structuredClone(a.edit.draft);
+  draft.blocks[0]!.items[0]!.prescription.load = { type: "pct_1rm", value: 80, test: `exercise:${a.exercises[1]!.id}` };
+  await expect(saveScheduledSession(a.owner.userId, a.organizationId, { ...a.edit, draft })).rejects.toMatchObject({
+    status: 400,
+  });
+  await expect(
+    saveScheduledSession(a.owner.userId, a.organizationId, {
+      ...a.edit,
+      overrides: [
+        {
+          athleteId: a.athlete.athleteId,
+          itemRef: "b0-i0",
+          prescription: { load: { type: "pct_1rm", value: 80, test: `exercise:${a.exercises[1]!.id}` } },
+        },
+      ],
+    }),
+  ).rejects.toMatchObject({ status: 400 });
+});

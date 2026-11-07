@@ -78,6 +78,10 @@ export const snapshotItem = z.object({
       value: z.number(),
       kind: z.string(),
       date: isoDate,
+      originKind: z.string().optional(),
+      sourceTestId: uuid.nullable().optional(),
+      loadKind: z.string().nullable().optional(),
+      stepKg: z.number().positive().optional(),
     })
     .nullable()
     .optional(),

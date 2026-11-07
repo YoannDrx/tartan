@@ -47,6 +47,10 @@ const ExerciseForm = ({
   const [cues, setCues] = useState((exercise?.cues ?? []).join("\n"));
   const [tags, setTags] = useState((exercise?.tags ?? []).join(", "));
   const [p, setP] = useState<Prescription>(exercise?.defaultPrescription ?? {});
+  const [strengthLoadKind, setStrengthLoadKind] = useState<NonNullable<ExerciseSummary["strengthLoadKind"]> | "">(
+    exercise?.strengthLoadKind ?? "",
+  );
+  const [loadStepKg, setLoadStepKg] = useState(String(exercise?.loadStepKg ?? 1.25));
   const [url, setUrl] = useState(
     youtube
       ? `https://youtu.be/${youtube.youtubeId}`
@@ -115,6 +119,8 @@ const ExerciseForm = ({
             .map((t) => t.trim())
             .filter(Boolean),
           defaultPrescription: p,
+          strengthLoadKind: strengthLoadKind || null,
+          loadStepKg: Number(loadStepKg),
           media: !url
             ? null
             : instagram
@@ -145,6 +151,38 @@ const ExerciseForm = ({
       <Field label={m.exercises.tags} hint="Séparées par des virgules.">
         {(a) => <Input {...a} value={tags} onChange={(e) => setTags(e.target.value)} />}
       </Field>
+      <div className="grid gap-4 tablet:grid-cols-2">
+        <Field label={m.strength.convention} hint={m.strength.conventionHint}>
+          {(a) => (
+            <Select
+              {...a}
+              value={strengthLoadKind}
+              onChange={(e) => setStrengthLoadKind(e.target.value as typeof strengthLoadKind)}
+            >
+              <option value="">{m.strength.unknownConvention}</option>
+              {Object.entries(m.strength.conventions).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        <Field label={m.strength.step} hint={m.strength.stepHint}>
+          {(a) => (
+            <Input
+              {...a}
+              type="number"
+              inputMode="decimal"
+              min={0.01}
+              max={100}
+              step="0.01"
+              value={loadStepKg}
+              onChange={(e) => setLoadStepKg(e.target.value)}
+            />
+          )}
+        </Field>
+      </div>
       <fieldset className="flex flex-col gap-3 border-t border-card-line pt-4">
         <legend className="t-section pr-2">{m.exercises.defaults}</legend>
         <div className="grid grid-cols-2 gap-3 tablet:grid-cols-4">

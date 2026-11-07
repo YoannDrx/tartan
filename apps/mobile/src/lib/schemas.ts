@@ -41,7 +41,16 @@ export type CoachSessionDetail = z.infer<typeof coachSessionDetail>;
 export const athleteFile = z.object({
   id: z.string(),
   firstName: z.string(),
-  tests: z.array(z.object({ exerciseKey: z.string(), value: z.number(), kind: z.string(), date: z.string() })),
+  tests: z.array(
+    z.object({
+      exerciseKey: z.string(),
+      exerciseId: z.string().nullable().optional(),
+      exerciseName: z.string().nullable().optional(),
+      value: z.number(),
+      kind: z.string(),
+      date: z.string(),
+    }),
+  ),
   performances: z.array(
     z.object({
       discipline: z.string(),
@@ -79,7 +88,15 @@ export const coachAthleteFile = z.object({
   goals: z.string().nullable(),
   particularities: z.string().nullable(),
   tests: z.array(
-    z.object({ id: z.string(), exerciseKey: z.string(), value: z.number(), kind: z.string(), date: z.string() }),
+    z.object({
+      id: z.string(),
+      exerciseKey: z.string(),
+      exerciseId: z.string().nullable().optional(),
+      exerciseName: z.string().nullable().optional(),
+      value: z.number(),
+      kind: z.string(),
+      date: z.string(),
+    }),
   ),
   performances: z.array(
     z.object({

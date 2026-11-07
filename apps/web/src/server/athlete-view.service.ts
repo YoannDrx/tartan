@@ -37,15 +37,10 @@ import { displayName, namesFor } from "./me.service";
 import { notify } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
 import { athleteAssignedWhere as assignedWhere } from "./session-audience.service";
+import { strengthResolutionInputs } from "./strength.service";
 
 const loadTests = async (athleteId: string): Promise<StrengthTest[]> => {
-  const rows = await prisma.strengthTest.findMany({ where: { athleteId } });
-  return rows.map((t) => ({
-    exerciseKey: t.exerciseKey,
-    value: Number(t.value),
-    kind: t.kind,
-    date: fromDbDate(t.date),
-  }));
+  return strengthResolutionInputs(prisma, athleteId);
 };
 
 type SessionRow = {
@@ -422,10 +417,7 @@ const persistSessionLog = async (
     // Fige l'identité et la prescription utilisée. Une correction garde la référence historique.
     const references =
       input.detailedSets !== undefined && !existing?.prescriptionSnapshot
-        ? await tx.strengthTest.findMany({
-            where: { athleteId: access.athleteId },
-            orderBy: [{ date: "desc" }, { createdAt: "desc" }, { id: "desc" }],
-          })
+        ? await strengthResolutionInputs(tx, access.athleteId)
         : [];
     const prescriptionSnapshot =
       input.detailedSets !== undefined && !existing?.prescriptionSnapshot
@@ -446,7 +438,11 @@ const persistSessionLog = async (
                       exerciseKey: row.exerciseKey,
                       value: Number(row.value),
                       kind: row.kind,
-                      date: fromDbDate(row.date),
+                      date: row.date,
+                      originKind: row.originKind,
+                      sourceTestId: row.sourceTestId,
+                      loadKind: row.loadKind,
+                      stepKg: row.stepKg,
                     }
                   : null;
                 return {

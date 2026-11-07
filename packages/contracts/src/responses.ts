@@ -244,6 +244,8 @@ export const exerciseSummary = z.object({
   tags: z.array(z.string()),
   cues: z.array(z.string()),
   defaultPrescription: prescriptionSchema,
+  strengthLoadKind: z.enum(["external_total", "added_weight", "assistance", "bodyweight"]).nullable().optional(),
+  loadStepKg: z.number().positive().optional(),
   media: z.unknown().nullable(),
   // Bibliothèque commune de Tartan : lisible par tous, modifiable par personne depuis un espace.
   shared: z.boolean().default(false),

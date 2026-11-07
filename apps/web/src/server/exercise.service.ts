@@ -68,6 +68,8 @@ export const listExercises = async (userId: string, organizationId: string): Pro
         tags: e.tags,
         cues: e.cues,
         defaultPrescription: prescriptionSchema.parse(e.defaultPrescription),
+        strengthLoadKind: e.strengthLoadKind as ExerciseSummary["strengthLoadKind"],
+        loadStepKg: Number(e.loadStepKg),
         media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
         shared: e.organizationId === null,
       };
@@ -100,12 +102,24 @@ export const saveExercise = async (userId: string, organizationId: string, raw: 
     tags: input.tags,
     cues: input.cues,
     defaultPrescription: input.defaultPrescription,
+    strengthLoadKind: input.strengthLoadKind,
+    loadStepKg: input.loadStepKg,
   };
   return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
     let id = input.id;
     if (id) {
       const existing = await tx.exercise.findFirst({ where: { id, organizationId, deletedAt: null } });
       if (!existing) throw notFound();
+      if (input.strengthLoadKind !== undefined && input.strengthLoadKind !== existing.strengthLoadKind) {
+        const [tests, references, sets] = await Promise.all([
+          tx.strengthTest.count({ where: { exerciseId: id } }),
+          tx.strengthReference.count({ where: { exerciseId: id } }),
+          tx.setLog.count({ where: { exerciseId: id } }),
+        ]);
+        if (tests + references + sets > 0)
+          throw new AppError(409, "exercise_convention_locked", m.strength.conventionLocked);
+      }
       await tx.exercise.update({ where: { id }, data });
     } else {
       id = (await tx.exercise.create({ data: { ...data, organizationId, createdBy: userId } })).id;

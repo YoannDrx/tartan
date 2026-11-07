@@ -288,7 +288,7 @@ export default function AthleteFile() {
                 <View key={t.id}>
                   {i > 0 ? <Divider /> : null}
                   <MarkRow
-                    title={strengthTestLabel(t.exerciseKey)}
+                    title={t.exerciseName ?? strengthTestLabel(t.exerciseKey)}
                     detail={`${testKind(t.kind)} · ${fullDay(t.date)}`}
                     value={`${String(t.value).replace(".", ",")} kg`}
                   />

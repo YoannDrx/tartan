@@ -61,7 +61,9 @@ const PrescriptionEditor = ({
   value,
   onChange,
   testKeys,
+  exercise,
 }: {
+  exercise?: { id: string; name: string };
   value: Prescription;
   onChange: (p: Prescription) => void;
   testKeys: string[];
@@ -103,7 +105,15 @@ const PrescriptionEditor = ({
                 const { load: _removed, ...rest } = value;
                 onChange(rest);
               } else if (type === "kg") onChange({ ...value, load: { type: "kg", value: 0 } });
-              else onChange({ ...value, load: { type: "pct_1rm", value: 80, test: testKeys[0] ?? "back_squat" } });
+              else
+                onChange({
+                  ...value,
+                  load: {
+                    type: "pct_1rm",
+                    value: 80,
+                    test: testKeys.find((key) => key === `exercise:${exercise?.id}`) ?? testKeys[0] ?? "back_squat",
+                  },
+                });
             }}
           >
             <option value="none">Aucune</option>
@@ -142,7 +152,7 @@ const PrescriptionEditor = ({
             >
               {testKeys.map((k) => (
                 <option key={k} value={k}>
-                  {strengthTestLabel(k)}
+                  {k === `exercise:${exercise?.id}` ? exercise?.name : strengthTestLabel(k)}
                 </option>
               ))}
             </Select>
@@ -943,7 +953,10 @@ export const SessionBuilder = ({
           <div className="flex flex-col gap-4">
             <PrescriptionEditor
               value={editingItem.prescription}
-              testKeys={testKeys}
+              exercise={byId.get(editingItem.exerciseId)}
+              testKeys={testKeys.filter(
+                (key) => !key.startsWith("exercise:") || key === `exercise:${editingItem.exerciseId}`,
+              )}
               onChange={(p) => updateItem(editing.blockKey, editing.itemKey, p)}
             />
             <Button onClick={() => setEditing(null)}>{m.common.close}</Button>

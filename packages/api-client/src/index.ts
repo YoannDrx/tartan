@@ -26,6 +26,9 @@ import {
   sessionEditResponse,
   sessionBuilderContext,
   type SaveScheduledSessionInput,
+  strengthReferenceResponse,
+  type ChooseStrengthReference,
+  type StrengthTestInput,
   trackingGrid,
   videoDetail,
   videoSummary,
@@ -88,6 +91,12 @@ export const createApiClient = (options: ApiClientOptions) => {
     billing: (orgId: string) => request("GET", `/orgs/${orgId}/billing`, z.any()),
     athleteStats: (orgId: string, athleteId: string) =>
       request("GET", `/orgs/${orgId}/athletes/${athleteId}/stats`, z.any()),
+    exerciseStrength: (orgId: string, athleteId: string, exerciseId: string) =>
+      request("GET", `/orgs/${orgId}/athletes/${athleteId}/strength/${exerciseId}`, strengthReferenceResponse),
+    selectStrengthReference: (orgId: string, athleteId: string, exerciseId: string, body: ChooseStrengthReference) =>
+      request("PUT", `/orgs/${orgId}/athletes/${athleteId}/strength/${exerciseId}`, strengthReferenceResponse, body),
+    addStrengthTest: (orgId: string, athleteId: string, body: Omit<StrengthTestInput, "athleteId">) =>
+      request("POST", `/orgs/${orgId}/athletes/${athleteId}/strength-tests`, z.object({ id: z.string() }), body),
     updateProfile: (body: ProfileInput) => request("PATCH", "/me", meResponse, body),
     deleteAccount: () => request("DELETE", "/me", okResponse),
     unregisterDevice: (pushToken: string) => request("DELETE", "/devices", okResponse, { pushToken }),

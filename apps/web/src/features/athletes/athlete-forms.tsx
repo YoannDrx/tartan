@@ -1,6 +1,8 @@
 "use client";
 
 import { m } from "@tartan/i18n";
+import type { ExerciseSummary } from "@tartan/contracts";
+import Link from "next/link";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -15,6 +17,7 @@ import {
   addTestAction,
   saveAthleteAction,
   saveInjuryAction,
+  selectReferenceAction,
 } from "./athlete.action";
 
 type AnyErrors = Record<string, { _errors?: string[] }> | undefined;
@@ -172,11 +175,133 @@ export const AthleteDialog = ({
   );
 };
 
-export const TestDialog = ({ athleteId }: { athleteId: string }) => {
+export const SelectTestReference = ({
+  athleteId,
+  exerciseId,
+  testId,
+}: {
+  athleteId: string;
+  exerciseId: string;
+  testId: string;
+}) => {
+  const router = useRouter();
+  const action = useAction(selectReferenceAction, {
+    onSuccess: () => {
+      toast.ok(m.strength.referenceSaved);
+      router.refresh();
+    },
+    onError: onErr,
+  });
+  return (
+    <Button
+      size="sm"
+      variant="quiet"
+      disabled={action.isPending}
+      onClick={() => action.execute({ athleteId, exerciseId, choice: { source: "test", testId } })}
+    >
+      {m.strength.selectExisting}
+    </Button>
+  );
+};
+
+export const WorkingReferenceDialog = ({
+  athleteId,
+  exercises,
+}: {
+  athleteId: string;
+  exercises: ExerciseSummary[];
+}) => {
+  const router = useRouter();
+  const compatible = exercises.filter(
+    (e) => e.strengthLoadKind === "external_total" || e.strengthLoadKind === "added_weight",
+  );
+  const [open, setOpen] = useState(false);
+  const [exerciseId, setExerciseId] = useState(compatible[0]?.id ?? "");
+  const [value, setValue] = useState("");
+  const action = useAction(selectReferenceAction, {
+    onSuccess: () => {
+      setOpen(false);
+      toast.ok(m.strength.referenceSaved);
+      router.refresh();
+    },
+    onError: onErr,
+  });
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={setOpen}
+      title={m.strength.workingReference}
+      trigger={
+        <Button size="sm" variant="secondary" disabled={!compatible.length}>
+          {m.strength.workingReference}
+        </Button>
+      }
+    >
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          action.execute({ athleteId, exerciseId, choice: { source: "working", valueKg: Number(value) } });
+        }}
+      >
+        <Field label="Exercice">
+          {(a) => (
+            <Select {...a} value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
+              {compatible.map((exercise) => (
+                <option key={exercise.id} value={exercise.id}>
+                  {exercise.name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        <Field
+          label={m.strength.valueKg}
+          hint={
+            compatible.find((e) => e.id === exerciseId)?.strengthLoadKind === "added_weight"
+              ? m.strength.addedHint
+              : m.strength.totalHint
+          }
+        >
+          {(a) => (
+            <Input
+              {...a}
+              type="number"
+              inputMode="decimal"
+              required
+              min={0.01}
+              max={1000}
+              step="0.01"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          )}
+        </Field>
+        <Button type="submit" disabled={action.isPending || !exerciseId}>
+          {m.common.save}
+        </Button>
+      </form>
+    </Dialog>
+  );
+};
+
+export const TestDialog = ({
+  athleteId,
+  exercises,
+  progressionEnabled,
+}: {
+  athleteId: string;
+  exercises: ExerciseSummary[];
+  progressionEnabled: boolean;
+}) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const compatible = exercises.filter(
+    (e) => e.strengthLoadKind === "external_total" || e.strengthLoadKind === "added_weight",
+  );
+  const [selectAsReference, setSelectAsReference] = useState(false);
   const [v, setV] = useState({
-    exerciseKey: "back_squat",
+    exerciseKey: progressionEnabled ? (compatible[0]?.id ?? "") : "back_squat",
     value: "",
     kind: "one_rm" as "one_rm" | "three_rm" | "estimated",
     date: today(),
@@ -184,7 +309,7 @@ export const TestDialog = ({ athleteId }: { athleteId: string }) => {
   const { execute, isPending } = useAction(addTestAction, {
     onSuccess: () => {
       setOpen(false);
-      toast.ok("Test enregistré. Les charges en % du max sont recalculées.");
+      toast.ok(selectAsReference ? m.strength.referenceSaved : m.strength.saved);
       router.refresh();
     },
     onError: onErr,
@@ -204,17 +329,48 @@ export const TestDialog = ({ athleteId }: { athleteId: string }) => {
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault();
-          execute({ athleteId, exerciseKey: v.exerciseKey, value: Number(v.value), kind: v.kind, date: v.date });
+          execute({
+            athleteId,
+            ...(progressionEnabled
+              ? { exerciseId: v.exerciseKey, exerciseKey: `exercise:${v.exerciseKey}`, selectAsReference }
+              : { exerciseKey: v.exerciseKey }),
+            value: Number(v.value),
+            kind: v.kind,
+            date: v.date,
+          });
         }}
       >
-        <Field label="Exercice">
+        {progressionEnabled && compatible.length === 0 ? (
+          <p>
+            {m.strength.noCompatibleExercise}{" "}
+            <Link className="underline" href="/exercices">
+              {m.strength.openLibrary}
+            </Link>
+          </p>
+        ) : null}
+        <Field
+          label="Exercice"
+          hint={
+            progressionEnabled
+              ? compatible.find((e) => e.id === v.exerciseKey)?.strengthLoadKind === "added_weight"
+                ? m.strength.addedHint
+                : m.strength.totalHint
+              : undefined
+          }
+        >
           {(a) => (
             <Select {...a} value={v.exerciseKey} onChange={(e) => setV({ ...v, exerciseKey: e.target.value })}>
-              {(Object.keys(m.strengthTest) as (keyof typeof m.strengthTest)[]).map((k) => (
-                <option key={k} value={k}>
-                  {m.strengthTest[k]}
-                </option>
-              ))}
+              {!progressionEnabled
+                ? Object.entries(m.strengthTest).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))
+                : compatible.map((exercise) => (
+                    <option key={exercise.id} value={exercise.id}>
+                      {exercise.name}
+                    </option>
+                  ))}
             </Select>
           )}
         </Field>
@@ -224,8 +380,9 @@ export const TestDialog = ({ athleteId }: { athleteId: string }) => {
               <Input
                 {...a}
                 type="number"
-                step="0.25"
-                min={0}
+                step="0.01"
+                min={0.01}
+                max={1000}
                 required
                 value={v.value}
                 onChange={(e) => setV({ ...v, value: e.target.value })}
@@ -247,7 +404,14 @@ export const TestDialog = ({ athleteId }: { athleteId: string }) => {
             <Input {...a} type="date" required value={v.date} onChange={(e) => setV({ ...v, date: e.target.value })} />
           )}
         </Field>
-        <Button type="submit" disabled={isPending}>
+        {progressionEnabled ? (
+          <CheckRow
+            label={m.strength.selectReference}
+            checked={selectAsReference}
+            onChange={(e) => setSelectAsReference(e.target.checked)}
+          />
+        ) : null}
+        <Button type="submit" disabled={isPending || !v.exerciseKey}>
           {m.common.save}
         </Button>
       </form>

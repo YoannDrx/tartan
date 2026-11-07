@@ -146,7 +146,9 @@ export const coachNoteInput = z.object({
 export const strengthTestInput = z.object({
   athleteId: uuid,
   exerciseKey: required(60, "Choisis l'exercice testé"),
-  value: z.number().positive("Indique une charge").max(1000),
+  exerciseId: uuid.optional(),
+  selectAsReference: z.boolean().optional(),
+  value: z.number().min(0.01, "Indique une charge").max(1000).multipleOf(0.01),
   kind: strengthTestKind,
   date: isoDate,
 });
@@ -212,6 +214,8 @@ export const exerciseInput = z.object({
   tags: z.array(z.string().trim().min(1).max(30)).max(12).default([]),
   cues: z.array(z.string().trim().min(1).max(120)).max(5).default([]),
   defaultPrescription: prescriptionSchema.default({}),
+  strengthLoadKind: z.enum(["external_total", "added_weight", "assistance", "bodyweight"]).nullable().optional(),
+  loadStepKg: z.number().min(0.01).max(100).multipleOf(0.01).optional(),
   media: exerciseMediaInput.nullable().optional(),
 });
 export type ExerciseInput = z.input<typeof exerciseInput>;

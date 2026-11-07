@@ -179,6 +179,7 @@ model Organization {
   athletes          Athlete[]
   invitations       Invitation[]
   exercises         Exercise[]
+  legacyStrengthMappings LegacyStrengthMapping[]
   templates         SessionTemplate[]
   scheduledSessions ScheduledSession[]
   competitions      Competition[]
@@ -310,6 +311,7 @@ model Athlete {
   coachNotes   CoachNote[]
   injuries     Injury[]
   tests        StrengthTest[]
+  strengthReferences StrengthReference[]
   performances Performance[]
   jumps        JumpAttempt[]
   wellness     WellnessCheckin[]
@@ -487,12 +489,17 @@ model Exercise {
   defaultPrescription Json             @default("{}") @map("default_prescription")
   createdBy           String?          @map("created_by") @db.Uuid
   deletedAt           DateTime?        @map("deleted_at")
+  strengthLoadKind    String?          @map("strength_load_kind")
+  loadStepKg          Decimal          @default(1.25) @map("load_step_kg") @db.Decimal(6, 3)
   createdAt           DateTime         @default(now()) @map("created_at")
   updatedAt           DateTime         @updatedAt @map("updated_at")
   organization        Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   media ExerciseMedia[]
   items SessionItem[]
+  strengthTests StrengthTest[]
+  strengthReferences StrengthReference[]
+  legacyStrengthMappings LegacyStrengthMapping[]
 
   @@index([organizationId])
   @@map("exercises")
@@ -929,6 +936,8 @@ model StrengthTest {
   organizationId String           @map("organization_id") @db.Uuid
   athleteId      String           @map("athlete_id") @db.Uuid
   exerciseKey    String           @map("exercise_key")
+  exerciseId     String?          @map("exercise_id") @db.Uuid
+  loadKind       String?          @map("load_kind")
   value          Decimal          @db.Decimal(7, 2)
   unit           String           @default("kg")
   kind           StrengthTestKind
@@ -936,9 +945,47 @@ model StrengthTest {
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
   athlete        Athlete          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  exercise       Exercise?        @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+  selectedReferences StrengthReference[]
 
   @@index([athleteId, exerciseKey])
+  @@index([athleteId, exerciseId])
   @@map("strength_tests")
+}
+
+model StrengthReference {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  athleteId      String @map("athlete_id") @db.Uuid
+  exerciseId     String @map("exercise_id") @db.Uuid
+  sourceTestId   String? @map("source_test_id") @db.Uuid
+  valueKg        Decimal @map("value_kg") @db.Decimal(7, 2)
+  kind           String
+  loadKind       String @map("load_kind")
+  selectedBy     String? @map("selected_by") @db.Uuid
+  selectedAt     DateTime @default(now()) @map("selected_at")
+  athlete        Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  exercise       Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  sourceTest     StrengthTest? @relation(fields: [sourceTestId], references: [id], onDelete: Cascade)
+
+  @@unique([athleteId, exerciseId])
+  @@index([organizationId])
+  @@map("strength_references")
+}
+
+model LegacyStrengthMapping {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  legacyKey      String @map("legacy_key")
+  exerciseId     String @map("exercise_id") @db.Uuid
+  confirmedBy    String? @map("confirmed_by") @db.Uuid
+  reason         String
+  createdAt      DateTime @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  exercise       Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, legacyKey])
+  @@map("legacy_strength_mappings")
 }
 
 model Competition {

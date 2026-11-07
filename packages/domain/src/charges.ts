@@ -7,6 +7,7 @@ export type StrengthTest = {
   value: number;
   kind: StrengthTestKind;
   date: string;
+  stepKg?: number;
 };
 
 // Formule d'Epley, pour ramener un 3RM à un 1RM estimé.
@@ -16,7 +17,7 @@ export const estimatedOneRm = (test: Pick<StrengthTest, "value" | "kind">): numb
 export const roundToPlate = (kg: number, step: number = PLATE_STEP_KG): number => Math.round(kg / step) * step;
 
 export const latestTest = (tests: StrengthTest[], exerciseKey: string): StrengthTest | null =>
-  tests.filter((t) => t.exerciseKey === exerciseKey).sort((a, b) => (a.date < b.date ? 1 : -1))[0] ?? null;
+  tests.filter((t) => t.exerciseKey === exerciseKey).sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
 
 // Null = charge non calculable (pas de test) : l'interface doit le dire, pas inventer.
 export const resolveLoadKg = (prescription: Prescription, tests: StrengthTest[]): number | null => {
@@ -25,7 +26,7 @@ export const resolveLoadKg = (prescription: Prescription, tests: StrengthTest[])
   if (load.type === "kg") return load.value;
   const test = latestTest(tests, load.test);
   if (!test) return null;
-  return roundToPlate((estimatedOneRm(test) * load.value) / 100);
+  return roundToPlate((estimatedOneRm(test) * load.value) / 100, test.stepKg ?? PLATE_STEP_KG);
 };
 
 export const applyOverride = (base: Prescription, override: Prescription | undefined): Prescription =>

@@ -16,12 +16,15 @@ import {
   NoteForm,
   PerformanceDialog,
   TestDialog,
+  SelectTestReference,
+  WorkingReferenceDialog,
 } from "@/features/athletes/athlete-forms";
 import { RemoveAthlete } from "@/features/athletes/remove-athlete";
 import { orNotFound, requireStaffSpace } from "@/features/shell/space";
 import { requireOrgMember } from "@/server/access";
 import { getAthleteFile } from "@/server/athlete.service";
 import { listGroups } from "@/server/org.service";
+import { listExercises } from "@/server/exercise.service";
 import { athleteWeeklyStats } from "@/server/stats.service";
 import { getBarSheet, listVideos } from "@/server/video.service";
 
@@ -34,11 +37,12 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
   const { id } = await params;
   const file = await orNotFound(() => getAthleteFile(actor.userId, organizationId, id));
   const access = await requireOrgMember(actor.userId, organizationId, "viewTracking");
-  const [groups, videos, sheet, stats] = await Promise.all([
+  const [groups, videos, sheet, stats, exercises] = await Promise.all([
     listGroups(access),
     listVideos(actor.userId, organizationId, { athleteId: id }),
     getBarSheet(actor.userId, organizationId, { athleteId: id }),
     athleteWeeklyStats(actor.userId, organizationId, id),
+    listExercises(actor.userId, organizationId),
   ]);
   const activeWeeks = stats.weeks.filter((w) => w.sessions > 0).reverse();
   const activeInjury = file.injuries.find((i) => i.status !== "resolved");
@@ -218,24 +222,58 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
               </Rows>
             </SheetSection>
 
-            <SheetSection title={m.athletes.tests} action={canManage ? <TestDialog athleteId={file.id} /> : null}>
+            {file.progressionEnabled ? (
+              <SheetSection
+                title={m.strength.referenceTitle}
+                action={canManage ? <WorkingReferenceDialog athleteId={file.id} exercises={exercises} /> : null}
+              >
+                {file.strengthReferences.length === 0 ? <p className="text-soft">{m.strength.noReference}</p> : null}
+                <Rows>
+                  {file.strengthReferences.map((reference) => (
+                    <li key={reference.id} className="flex items-center justify-between gap-3 py-2">
+                      <span>
+                        <span className="block font-semibold">{reference.exerciseName}</span>
+                        <span className="t-caption text-soft">
+                          {m.strength.referenceKinds[reference.kind as keyof typeof m.strength.referenceKinds]}
+                        </span>
+                      </span>
+                      <Mark>{String(reference.valueKg).replace(".", ",")} kg</Mark>
+                    </li>
+                  ))}
+                </Rows>
+              </SheetSection>
+            ) : null}
+            <SheetSection
+              title={m.athletes.tests}
+              action={
+                canManage ? (
+                  <TestDialog athleteId={file.id} exercises={exercises} progressionEnabled={file.progressionEnabled} />
+                ) : null
+              }
+            >
               {file.tests.length === 0 ? <p className="text-soft">{m.athletes.noTests}</p> : null}
               <Rows>
                 {file.tests.map((t) => (
-                  <li key={t.id} className="flex items-center justify-between gap-3 py-2">
+                  <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
                     <span className="min-w-0 leading-snug">
-                      <span className="block font-semibold">{strengthTestLabel(t.exerciseKey)}</span>
+                      <span className="block font-semibold">{t.exerciseName ?? strengthTestLabel(t.exerciseKey)}</span>
                       <span className="t-caption block font-normal text-soft">
                         {m.testKind[t.kind]}, {year(t.date)}
                       </span>
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex flex-wrap items-center gap-1">
                       <Mark>{String(t.value).replace(".", ",")} kg</Mark>
+                      {file.progressionEnabled &&
+                      canManage &&
+                      t.exerciseId &&
+                      !file.strengthReferences.some((r) => r.sourceTestId === t.id) ? (
+                        <SelectTestReference athleteId={file.id} exerciseId={t.exerciseId} testId={t.id} />
+                      ) : null}
                       {canManage ? (
                         <DeleteRow
                           kind="test"
                           id={t.id}
-                          label={`${strengthTestLabel(t.exerciseKey)}, ${String(t.value).replace(".", ",")} kg`}
+                          label={`${t.exerciseName ?? strengthTestLabel(t.exerciseKey)}, ${String(t.value).replace(".", ",")} kg`}
                         />
                       ) : null}
                     </span>

@@ -1,11 +1,5 @@
 import { m } from "@tartan/i18n";
-import {
-  athleteInput,
-  type AthleteInput,
-  type InjuryInput,
-  performanceInput,
-  type StrengthTestInput,
-} from "@tartan/contracts";
+import { athleteInput, type AthleteInput, type InjuryInput, performanceInput } from "@tartan/contracts";
 import { can, personalBestIds } from "@tartan/domain";
 import type { z } from "zod";
 import { fromDbDate, fromDbDateOrNull, toDbDate } from "@/lib/dates";
@@ -147,7 +141,9 @@ export const getAthleteFile = async (userId: string, organizationId: string, ath
       particularities: true,
       userId: true,
       groups: { select: { group: { select: { id: true, name: true } } } },
-      tests: { orderBy: { date: "desc" } },
+      tests: { orderBy: { date: "desc" }, include: { exercise: { select: { name: true } } } },
+      strengthReferences: { include: { exercise: { select: { name: true } } } },
+      organization: { select: { progressionEnabled: true } },
       performances: { orderBy: { date: "desc" } },
     },
   });
@@ -180,6 +176,7 @@ export const getAthleteFile = async (userId: string, organizationId: string, ath
   });
   return {
     id: athlete.id,
+    progressionEnabled: athlete.organization.progressionEnabled,
     firstName: athlete.firstName,
     lastName: athlete.lastName,
     birthDate: fromDbDateOrNull(athlete.birthDate),
@@ -194,10 +191,20 @@ export const getAthleteFile = async (userId: string, organizationId: string, ath
     tests: athlete.tests.map((t) => ({
       id: t.id,
       exerciseKey: t.exerciseKey,
+      exerciseId: t.exerciseId,
+      exerciseName: t.exercise?.name ?? null,
       value: Number(t.value),
       unit: t.unit,
       kind: t.kind,
       date: fromDbDate(t.date),
+    })),
+    strengthReferences: athlete.strengthReferences.map((r) => ({
+      id: r.id,
+      exerciseId: r.exerciseId,
+      exerciseName: r.exercise.name,
+      valueKg: Number(r.valueKg),
+      kind: r.kind,
+      sourceTestId: r.sourceTestId,
     })),
     performances: athlete.performances.map((p) => ({
       id: p.id,
@@ -256,7 +263,17 @@ export const getMyFile = async (userId: string, organizationId: string) => {
       particularities: true,
       takeoffFoot: true,
       approachSteps: true,
-      tests: { orderBy: { date: "desc" }, select: { exerciseKey: true, value: true, kind: true, date: true } },
+      tests: {
+        orderBy: { date: "desc" },
+        select: {
+          exerciseKey: true,
+          exerciseId: true,
+          exercise: { select: { name: true } },
+          value: true,
+          kind: true,
+          date: true,
+        },
+      },
       performances: {
         orderBy: { date: "desc" },
         select: { discipline: true, mark: true, unit: true, date: true, location: true, isPb: true },
@@ -283,28 +300,19 @@ export const getMyFile = async (userId: string, organizationId: string) => {
     : [];
   return {
     ...athlete,
-    tests: athlete.tests.map((t) => ({ ...t, value: Number(t.value), date: fromDbDate(t.date) })),
+    tests: athlete.tests.map(({ exercise, ...t }) => ({
+      ...t,
+      exerciseName: exercise?.name ?? null,
+      value: Number(t.value),
+      date: fromDbDate(t.date),
+    })),
     performances: athlete.performances.map((p) => ({ ...p, mark: Number(p.mark), date: fromDbDate(p.date) })),
     healthVisible: showHealth,
     injuries: injuries.map((i) => ({ ...i, startDate: fromDbDate(i.startDate), endDate: fromDbDateOrNull(i.endDate) })),
   };
 };
 
-export const addStrengthTest = async (userId: string, organizationId: string, input: StrengthTestInput) => {
-  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
-  await requireVisibleAthlete(access, input.athleteId);
-  // Les charges étant calculées à la lecture depuis le dernier test, elles se recalculent d'elles-mêmes.
-  await prisma.strengthTest.create({
-    data: {
-      organizationId,
-      athleteId: input.athleteId,
-      exerciseKey: input.exerciseKey,
-      value: input.value,
-      kind: input.kind,
-      date: toDbDate(input.date),
-    },
-  });
-};
+export { addStrengthTest } from "./strength.service";
 
 export const addPerformance = async (
   userId: string,

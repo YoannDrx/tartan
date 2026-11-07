@@ -95,6 +95,9 @@ export const buildSnapshot = async (organizationId: string, draft: SessionDraft)
       items: block.items.map((item, i) => {
         const exercise = byId.get(item.exerciseId);
         if (!exercise) throw notFound();
+        const load = item.prescription.load;
+        if (load?.type === "pct_1rm" && load.test.startsWith("exercise:") && load.test !== `exercise:${exercise.id}`)
+          throw invalid(m.strength.prescriptionMismatch);
         return {
           ref: item.ref ?? `b${b}-i${i}`,
           exerciseId: exercise.id,
@@ -140,6 +143,15 @@ export const saveScheduledSession = async (
   const snapshotItems = snapshot.blocks.flatMap((b) => b.items);
   const itemIds = new Map(snapshotItems.map((i) => [i.ref, i.exerciseId]));
   if (input.overrides.some((o) => !itemIds.has(o.itemRef))) throw invalid();
+  for (const override of input.overrides) {
+    const load = override.prescription.load;
+    if (
+      load?.type === "pct_1rm" &&
+      load.test.startsWith("exercise:") &&
+      load.test !== `exercise:${itemIds.get(override.itemRef)}`
+    )
+      throw invalid(m.strength.prescriptionMismatch);
+  }
   if (existing && input.expectedVersion !== undefined && input.expectedVersion !== existing.version)
     throw sessionConflict();
   const data = {
