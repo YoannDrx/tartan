@@ -3,6 +3,7 @@ import type { BillingEmail } from "@tartan/domain";
 import { PLANS, isPaidPlan, type PlanKey } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { SubscriptionCancelledEmail, SubscriptionConfirmedEmail, SubscriptionEndedEmail } from "@email/billing";
+import { AccountDeletedEmail, SpaceTransferredEmail } from "@email/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { env } from "@/lib/env";
 import { log } from "@/lib/logger";
@@ -23,6 +24,42 @@ type Payload = {
   trialEnd: string | null;
   cancelAt: string | null;
   unpaid: boolean;
+};
+
+type AccountPayload = { userId: string; hadSubscription: boolean };
+type TransferPayload = { userId: string; previous: string; space: string };
+
+export const enqueueAccountEmails = async (
+  tx: Prisma.TransactionClient,
+  input: {
+    userId: string;
+    to: string;
+    hadSubscription: boolean;
+    transfers: { organizationId: string; to: string; userId: string; previous: string; space: string }[];
+  },
+): Promise<void> => {
+  await tx.emailOutbox.createMany({
+    data: [
+      {
+        toEmail: input.to,
+        kind: "account_deleted",
+        dedupeKey: `account:${input.userId}:deleted`,
+        payload: { userId: input.userId, hadSubscription: input.hadSubscription } satisfies AccountPayload,
+      },
+      ...input.transfers.map((transfer) => ({
+        organizationId: transfer.organizationId,
+        toEmail: transfer.to,
+        kind: "space_transferred",
+        dedupeKey: `account:${input.userId}:transferred:${transfer.organizationId}`,
+        payload: {
+          userId: transfer.userId,
+          previous: transfer.previous,
+          space: transfer.space,
+        } satisfies TransferPayload,
+      })),
+    ],
+    skipDuplicates: true,
+  });
 };
 
 // Dans la transaction de la transition : la clé unique évite tout doublon, même en concurrence.
@@ -61,7 +98,45 @@ export const enqueueBillingEmail = async (
   });
 };
 
-const render = (kind: string, p: Payload, organizationId: string | null) => {
+const render = async (kind: string, payload: unknown, organizationId: string | null, now: Date) => {
+  if (kind === "account_deleted") {
+    return {
+      subject: m.email.accountDeleted.subject,
+      react: createElement(AccountDeletedEmail, { hadSubscription: (payload as AccountPayload).hadSubscription }),
+    };
+  }
+  if (kind === "space_transferred") {
+    const p = payload as TransferPayload;
+    const org = await prisma.organization.findUniqueOrThrow({ where: { id: organizationId! } });
+    const sub = await prisma.subscription.findFirst({
+      where: { organizationId: org.id, provider: "stripe" },
+      orderBy: { createdAt: "desc" },
+    });
+    const command = sub?.providerRef
+      ? await prisma.billingCommand.findUnique({
+          where: { kind_externalRef: { kind: "cancel_at_period_end", externalRef: sub.providerRef } },
+        })
+      : null;
+    // Une échéance n'est annoncée qu'après confirmation de la commande, et seulement pour l'ancien payeur.
+    const end =
+      !org.billingIssue &&
+      org.billingOwnerId !== org.ownerId &&
+      command?.state === "done" &&
+      sub?.currentPeriodEnd &&
+      sub.currentPeriodEnd > now
+        ? sub.currentPeriodEnd
+        : null;
+    return {
+      subject: m.email.spaceTransferred.subject(p.space),
+      react: createElement(SpaceTransferredEmail, {
+        previous: p.previous,
+        space: p.space,
+        subscriptionEnds: end ? dateInParis(end.toISOString()) : null,
+        url: `${env().NEXT_PUBLIC_APP_URL}/reglages?espace=${org.id}`,
+      }),
+    };
+  }
+  const p = payload as Payload;
   const url = `${env().NEXT_PUBLIC_APP_URL}/abonnement${organizationId ? `?espace=${organizationId}` : ""}`;
   const plan = m.billing.plans[p.plan];
   if (kind === "started") {
@@ -124,11 +199,11 @@ export const flushEmailOutbox = async (now: Date = new Date()): Promise<number> 
     });
     if (!claimed.count) continue;
     try {
-      if (!(await isBillingEmailRelevant(row, now))) {
+      if (!(await isEmailRelevant(row, now))) {
         await prisma.emailOutbox.update({ where: { id: row.id }, data: { failedAt: now, failureCode: "obsolete" } });
         continue;
       }
-      const { subject, react } = render(row.kind, row.payload as Payload, row.organizationId);
+      const { subject, react } = await render(row.kind, row.payload, row.organizationId, now);
       await sendEmail({ to: row.toEmail, subject, react, idempotencyKey: `outbox/${row.dedupeKey}` });
       await prisma.emailOutbox.update({ where: { id: row.id }, data: { sentAt: now } });
       sent += 1;
@@ -145,15 +220,24 @@ export const flushEmailOutbox = async (now: Date = new Date()): Promise<number> 
   return sent;
 };
 
-export const isBillingEmailRelevant = async (
+export const isEmailRelevant = async (
   row: { organizationId: string | null; kind: string; dedupeKey: string; payload: unknown; toEmail: string },
   now = new Date(),
 ) => {
+  if (row.kind === "account_deleted") {
+    const payload = row.payload as AccountPayload;
+    // Une réinscription rendrait cette ancienne confirmation trompeuse.
+    return !(await prisma.user.count({ where: { OR: [{ id: payload.userId }, { email: row.toEmail }] } }));
+  }
   if (!row.organizationId) return false;
   const org = await prisma.organization.findUnique({
     where: { id: row.organizationId },
     include: { owner: { select: { email: true } } },
   });
+  if (row.kind === "space_transferred") {
+    const payload = row.payload as TransferPayload;
+    return Boolean(org && org.ownerId === payload.userId && org.owner.email === row.toEmail);
+  }
   if (!org || org.owner.email !== row.toEmail || (org.billingOwnerId && org.billingOwnerId !== org.ownerId))
     return false;
   const sub = await prisma.subscription.findFirst({

@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { externalDeletionHealth } from "./external-deletion.service";
 import { pilotMetrics } from "./metrics.service";
 import { notificationDeliveryHealth } from "./notification-delivery.service";
-import { isBillingEmailRelevant } from "./email-outbox.service";
+import { isEmailRelevant } from "./email-outbox.service";
 
 // La console de l'éditeur : réservée aux adresses listées, jamais de donnée de santé ni de contenu d'entraînement.
 export const isAdmin = (email: string): boolean =>
@@ -47,7 +47,7 @@ export const adminRetryEmail = async (actor: { email: string; userId: string }, 
   requireAdmin(actor.email);
   const row = await prisma.emailOutbox.findUnique({ where: { id } });
   if (!row || row.sentAt || !row.failedAt) throw notFound();
-  if (!(await isBillingEmailRelevant(row))) throw invalid(m.admin.obsoleteEmail);
+  if (!(await isEmailRelevant(row))) throw invalid(m.admin.obsoleteEmail);
   const now = new Date();
   await prisma.$transaction(async (tx) => {
     const changed = await tx.emailOutbox.updateMany({

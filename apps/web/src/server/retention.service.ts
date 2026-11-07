@@ -21,6 +21,7 @@ export const RETENTION_DAYS = {
   resolvedReport: 365,
   billingEvent: 395,
   finishedDeletion: 90,
+  emailOutbox: 30,
   inactiveAccount: 730,
   inactivityNotice: 30,
   sheetWithoutAccount: 365,
@@ -163,6 +164,18 @@ export const runRetention = async (now: Date = new Date()) => {
       }),
     (ids) => prisma.notification.deleteMany({ where: { id: { in: ids } } }),
   );
+  const emailOutbox = await purgeBatch(
+    () =>
+      prisma.emailOutbox.findMany({
+        where: {
+          createdAt: { lt: ago(now, RETENTION_DAYS.emailOutbox) },
+          OR: [{ sentAt: { not: null } }, { failedAt: { not: null } }],
+        },
+        take: BATCH,
+        select: { id: true },
+      }),
+    (ids) => prisma.emailOutbox.deleteMany({ where: { id: { in: ids } } }),
+  );
   const { count: invitations } = await prisma.invitation.updateMany({
     where: {
       expiresAt: { lt: ago(now, RETENTION_DAYS.invitationContact) },
@@ -192,6 +205,7 @@ export const runRetention = async (now: Date = new Date()) => {
   const result = {
     auditLogs,
     notifications,
+    emailOutbox,
     invitations,
     verifications,
     sessions,
