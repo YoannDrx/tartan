@@ -36,7 +36,7 @@ import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
 import { signedPlayback } from "@/lib/mux";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { requireAthleteAccess, requireOrgMember, requireVisibleAthlete } from "./access";
+import { audit, requireAthleteAccess, requireOrgMember, requireVisibleAthlete } from "./access";
 import { consentForAthletes } from "./consent.service";
 import { displayName, namesFor } from "./me.service";
 import { notify } from "./notify.service";
@@ -221,6 +221,9 @@ export const getAthleteSessionForCoach = async (
     prisma.scheduledSession.findFirst({ where: { id: sessionId, organizationId }, select: { createdBy: true } }),
   ]);
   if (!athlete || !scheduled) throw notFound();
+  // Effort et douleur affichés au coach : accès journalisé (§ 15.2).
+  if (detail.healthConsent && (detail.log?.rpe != null || detail.log?.pain))
+    await audit({ organizationId, actorId: userId, action: "health_read", entity: "athlete", entityId: athleteId });
   return {
     ...detail,
     athlete: { id: athlete.id, name: `${athlete.firstName} ${athlete.lastName}`.trim() },
@@ -429,7 +432,11 @@ export const logSessionForAthlete = async (
     if (!session) throw notFound();
     if (session.createdBy !== userId) throw forbidden();
   }
-  return persistSessionLog(userId, organizationId, sessionId, athleteId, raw, false);
+  // Le staff corrige les séries réalisées ; effort, douleur et commentaire restent ceux de l'athlète.
+  if (raw.writeScope !== undefined && raw.writeScope !== "sets") throw forbidden();
+  const staffWrite = { ...raw, writeScope: "sets" as const };
+  if (!sessionLogInput.safeParse(staffWrite).success) throw invalid();
+  return persistSessionLog(userId, organizationId, sessionId, athleteId, staffWrite, false);
 };
 
 const persistSessionLog = async (
@@ -494,7 +501,12 @@ const persistSessionLog = async (
       return { ...existing, version: previousMutation?.version ?? existing.version, replayed: true };
     if (input.expectedVersion !== undefined && input.expectedVersion !== (existing?.version ?? 0))
       throw new AppError(409, "log_version_conflict", m.progression.logConflict);
-    if (input.expectedSessionVersion !== undefined && input.expectedSessionVersion !== currentSession.version)
+    // Seules les séries détaillées se rattachent à une prescription précise : une validation simple reste possible.
+    if (
+      input.detailedSets !== undefined &&
+      input.expectedSessionVersion !== undefined &&
+      input.expectedSessionVersion !== currentSession.version
+    )
       throw new AppError(409, "session_version_conflict", m.progression.sessionConflict);
     if (input.expectedVersion === undefined && existing?.prescriptionSnapshot)
       throw new AppError(409, "legacy_log_conflict", m.progression.legacyConflict);
@@ -525,8 +537,9 @@ const persistSessionLog = async (
     const items = new Map(
       blocksForVariant(snapshot.blocks, input.variantDone).flatMap((b) => b.items.map((i) => [i.ref, i] as const)),
     );
-    const sets = input.detailedSets ?? input.sets;
-    if (sets.some((set) => !items.has(set.itemRef))) throw invalid(m.progression.unknownItem);
+    if (input.detailedSets?.some((set) => !items.has(set.itemRef))) throw invalid(m.progression.unknownItem);
+    // Une case cochée sur un exercice retiré depuis ne doit pas faire perdre la validation.
+    const sets = input.detailedSets ?? input.sets.filter((set) => items.has(set.itemRef));
     const version = (existing?.version ?? 0) + 1;
     // Fige l'identité et la prescription utilisée. Une correction garde la référence historique.
     const references =

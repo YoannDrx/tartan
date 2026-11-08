@@ -31,14 +31,16 @@ export const reviewSessionLogs = (session: AthleteSessionDetail, changes: unknow
     const change = parsed.data;
     input.status = change.status;
     if (change.variantDone !== session.variant) reason = "variant";
-    const carriesSets = change.detailedSets !== undefined || change.sets.length > 0;
-    if (carriesSets && change.expectedSessionVersion !== session.sessionVersion) reason = "prescription";
-    if ((change.detailedSets ?? change.sets).some((set) => !refs.has(set.itemRef))) reason = "exercise";
+    // Comme au serveur, seules les séries détaillées dépendent de la prescription relue.
+    if (change.detailedSets !== undefined && change.expectedSessionVersion !== session.sessionVersion)
+      reason = "prescription";
+    if (change.detailedSets?.some((set) => !refs.has(set.itemRef))) reason = "exercise";
     if (change.detailedSets !== undefined) {
       input.detailedSets = change.detailedSets;
       input.sets = [];
       if (!session.progressionEnabled) reason = "disabled";
-    } else if (change.sets.length && input.detailedSets === undefined) input.sets = change.sets;
+    } else if (change.sets.length && input.detailedSets === undefined)
+      input.sets = change.sets.filter((set) => refs.has(set.itemRef));
     if (change.writeScope === "status" || change.writeScope === "sets") continue;
     for (const field of ["rpe", "pain", "durationMin", "comment"] as const) {
       if (change.writeScope === "feedback" && change[field] === undefined) continue;

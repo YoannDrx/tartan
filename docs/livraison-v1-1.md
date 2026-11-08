@@ -8,13 +8,13 @@ Ce document distingue le code livré, la configuration et les preuves réelles. 
 
 Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil sportif : PR #45 en brouillon, fonctionnalités de progression désactivées par défaut et non publiées en production. Les sections de preuves ci-dessous gardent l’historique des étapes ; les mentions « reste à faire » d’un ancien lot sont remplacées par les preuves plus récentes.
 
-| Lot | État actuel | Reste principal |
-| --- | --- | --- |
-| A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles, vidéo générique, profil sportif web/native, 49 fiches initiales et publication groupée atomique ajoutés ; accueil préparation physique avec captures réelles et disponibilité V1.1 explicite ; contexte groupe/période conservé dans les parcours de séance ; détail latéral desktop/plein écran mobile avec appel et retour clavier testés sur build de production | Bannière contextuelle, suite de la recette du constructeur/onboarding, médias de bibliothèque et recette physique |
-| B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
-| C — historique et records | Historique web/natif, API sécurisée, courbes de volumes et de force avec provenance, références séparées, rappel des séries comparables, calculateur, records de séries, célébration unique confirmée par le serveur et performances athlé typées avec correction web/native | Recette native et physique globale |
-| D — phases et analyses | Phases web/native, choix du constructeur conservé/revalidé et référence figée par prescription ; analyse prévu/réalisé, couverture, courbes hebdomadaires de volumes et charge ressentie avec consentement, diversité, catégories et classement mouvement/matériel figé et intensités par exercice/unité avec couverture, filtres 4/12 semaines/un an/phase conservée avec fenêtre de dates ; période partagée séparée pour athlète/adjoint | Recette globale et physique |
-| E — planificateur IA | Contrats stricts, adaptateur OpenAI, quotas atomiques, propositions privées et clarifications, purge, API/SDK et transcription durable ; parcours web et natif raccordés avec dictée, phases datées, revue et aperçu de charges individuelles calculé au serveur, adaptations et création de brouillons ; reprise web éprouvée après rechargement et perte de réponse ; alias persistants éditables, matériel/conventions transmis, noms résolus localement dans questions/citations et brouillons, textes longs conservés pour correction ; premiers essais réels fictifs réussis ; drapeau global désactivé | Précision IA insuffisante au corpus enrichi (52/60), fidélité des dates/consignes, dictées réelles, recette visuelle/native et physique, reprise après arrêt réel du téléphone et bêta utilisateur |
+| Lot                              | État actuel                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Reste principal                                                                                                                                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles, vidéo générique, profil sportif web/native, 49 fiches initiales et publication groupée atomique ajoutés ; accueil préparation physique avec captures réelles et disponibilité V1.1 explicite ; contexte groupe/période conservé dans les parcours de séance ; détail latéral desktop/plein écran mobile avec appel et retour clavier testés sur build de production                                                                | Suite de la recette du constructeur/onboarding, médias de bibliothèque et recette physique                                                                                                         |
+| B — données réalisées            | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés                                                                                                                                                                                                                                                                                                                                                                                                                         | Recette native physique et validation globale                                                                                                                                                      |
+| C — historique et records        | Historique web/natif, API sécurisée, courbes de volumes et de force avec provenance, références séparées, rappel des séries comparables, calculateur, records de séries, célébration unique confirmée par le serveur et performances athlé typées avec correction web/native                                                                                                                                                                                                                                                                                                                                  | Recette native et physique globale                                                                                                                                                                 |
+| D — phases et analyses           | Phases web/native, choix du constructeur conservé/revalidé et référence figée par prescription ; analyse prévu/réalisé, couverture, courbes hebdomadaires de volumes et charge ressentie avec consentement, diversité, catégories et classement mouvement/matériel figé et intensités par exercice/unité avec couverture, filtres 4/12 semaines/un an/phase conservée avec fenêtre de dates ; période partagée séparée pour athlète/adjoint                                                                                                                                                                   | Recette globale et physique                                                                                                                                                                        |
+| E — planificateur IA             | Contrats stricts, adaptateur OpenAI, quotas atomiques, propositions privées et clarifications, purge, API/SDK et transcription durable ; parcours web et natif raccordés avec dictée, phases datées, revue et aperçu de charges individuelles calculé au serveur, adaptations et création de brouillons ; reprise web éprouvée après rechargement et perte de réponse ; alias persistants éditables, matériel/conventions transmis, noms résolus localement dans questions/citations et brouillons, textes longs conservés pour correction ; premiers essais réels fictifs réussis ; drapeau global désactivé | Précision IA insuffisante au corpus enrichi (52/60), fidélité des dates/consignes, dictées réelles, recette visuelle/native et physique, reprise après arrêt réel du téléphone et bêta utilisateur |
 
 Les recettes réelles Stripe/e-mails/push/vidéo, les configurations externes encore absentes, les démarches commerciales et juridiques et la publication stores restent ouvertes. Les preuves locales et exports Hermes ne les remplacent pas.
 
@@ -24,24 +24,39 @@ Dernière preuve de positionnement : [accueil préparation physique, captures et
 
 Dernière preuve IA : [charges individuelles compactes](preuves-v1-1/lot-e-charges-compactes.md), puis [textes des brouillons sans troncature](preuves-v1-1/lot-e-textes-brouillons.md), puis [contexte matériel et noms lisibles](preuves-v1-1/lot-e-contexte-exercices.md), puis [corpus de 60 cas et défauts restant à corriger](preuves-v1-1/lot-e-corpus-ia.md), après les [alias contrôlés et leur compatibilité](preuves-v1-1/lot-e-alias-exercices.md), après le [parcours web, dictée synthétique, relecture et reprise](preuves-v1-1/lot-e-parcours-web.md). Le [parcours natif](preuves-v1-1/lot-e-parcours-natif.md) et sa liste privée sont raccordés ; leur recette visuelle et la récupération après redémarrage réel restent à éprouver.
 
+## Correctifs avant fusion de la PR 2 — 8 novembre 2026
+
+Relecture indépendante du code de la PR 2, puis correctifs avec tests d’abord en échec (`apps/web/tests/v1-1-fusion.test.ts`, `apps/web/e2e/install-banner.spec.ts`).
+
+- Une validation simple n’est plus refusée quand le coach vient de modifier la séance ; les cases d’un exercice retiré sont ignorées. Les séries détaillées restent protégées par la version de la séance.
+- Une case cochée ne verrouille plus la convention de charge d’un exercice.
+- Le staff ne corrige que les séries réalisées : il ne peut ni écrire ni effacer effort, douleur ou commentaire d’un athlète. La lecture de ces données depuis la page des séries est journalisée.
+- La duplication d’une semaine, le détail d’une séance et la validation d’un athlète sans compte respectent le périmètre du coach ou de l’adjoint.
+- La publication programmée d’un auteur révoqué reste bloquée, comme prévu. Le brouillon sort maintenant de la file et le propriétaire reçoit une seule notification.
+- La cible RPE/RIR n’est proposée qu’avec la progression activée ; une cible déjà prescrite reste modifiable.
+- Bannière d’installation : téléphone uniquement, après une action utile, sur les écrans de synthèse.
+- Console d’administration : activation de la progression, des phases et de l’IA par espace, avec trace, et coupure de l’IA pour tous les espaces sans redéploiement. La variable `AI_PLANNER_ENABLED` reste requise pour ouvrir l’IA.
+
+Laissés volontairement : les refus visant d’anciennes applications, aucune build n’étant distribuée, et les migrations qui rafraîchissent la date d’activité, sans effet notable sur les deux espaces de production. À reprendre avant toute distribution native pour le premier point.
+
 ## PR 1 — état du code
 
 **PR [#44](https://github.com/YoannDrx/tartan/pull/44) fusionnée et déployée en production le 7 novembre 2026.** Commit de fusion `98daa94862d23ccb28e71174d55761074d4adc3e`, code revu `5218ea1`. CI qualité et compilation Android de la PR réussies. Le déploiement Vercel `dpl_6oFeiXS1ux1XkWrj8pY8WvBfGRrU` est Ready et porte les domaines Tartan. La CI supplémentaire de main est réussie (run `42413864150`). Les configurations et recettes externes ci-dessous restent à compléter avant les jalons commerciaux correspondants. Aucun fichier d’audit personnel non suivi n’est inclus.
 
-| Périmètre                                                                               | Codé                                                                                | Test automatique                                                                                                     | Configuration / essai réel                                          | Activation / publication            |
-| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------- |
-| Checkout persistant, bail atomique, paramètres figés, idempotence et changement d’offre | Oui                                                                                 | Concurrence réelle sur Postgres, réponse perdue, bail expiré, délai d’idempotence dépassé, reprise après résiliation | API sandbox éprouvée ; Checkout navigateur à jouer                  | Code déployé                   |
-| Départ du payeur, commandes durables, fermeture des Checkout et isolation du portail    | Oui                                                                                 | Panne, reprise, réponse Checkout perdue avant transfert, portail interdit au repreneur                               | Reprise API sandbox éprouvée ; cycle payé à jouer                   | Code déployé                   |
-| Anomalies de souscriptions vivantes                                                     | Oui                                                                                 | Plusieurs souscriptions dont une incomplète ; aucune annulation automatique                                          | Rapprochement opérateur à exercer                                   | Console protégée, code déployé |
-| Conservation du choix d’offre                                                           | Parcours existant conservé ; lien magique expiré corrigé                            | Recette inscription / vérification à compléter                                                                       | À vérifier sur Preview                                              | Code déployé                   |
-| Confirmation de date avant écriture                                                     | Web et native, âge/onboarding/invitation                                            | Parcours navigateur desktop/mobile, contrôle a11y ; déclaration concurrente                                          | iPhone/Android physiques à vérifier                                 | Code déployé                   |
-| Rectification support de date                                                           | Oui, motif contrôlé, profil et fiches liés, audit sans date                         | Accès interdit hors administration et trace vérifiés                                                                 | Recette console à compléter                                         | Code déployé                   |
-| Activité de l’espace indépendante du compte                                             | Oui, contributions métier ; publication cron et relance exclues                     | Espace actif protégé, timestamp cron sans effet                                                                      | Préavis aux coachs à vérifier sur boîte réelle                      | Code déployé                   |
-| Outbox de facturation                                                                   | Échecs durables visibles, reprise explicite, message obsolète refusé                | Expiration, reprise et obsolescence                                                                                  | Réception réelle à vérifier                                         | Code déployé                   |
-| Rebonds / plaintes                                                                      | Webhook Resend signé et liste d’exclusion par empreinte                             | Signature invalide, signature valide, rejeu                                                                          | `RESEND_WEBHOOK_SECRET` absent sur Vercel lors du contrôle          | Non raccordé                        |
-| E-mails de suppression / reprise d’espace                                               | Écriture transactionnelle, reprise, contrôle du destinataire actuel et du transfert | Panne puis reprise, transfert obsolète et purge des contenus après 30 jours                                          | Réception réelle à vérifier                                         | À compléter                         |
-| Sonde légère                                                                            | `/api/live` sans accès base ; `/api/health` conserve le contrôle DB                 | Typecheck / build                                                                                                    | Sonde externe à raccorder                                           | Non raccordée                       |
-| Push et liens universels                                                                | Implémentation existante conservée                                                  | Tests natifs existants                                                                                               | APNs, FCM, appareils physiques et identités de signature à vérifier | Stores non publiés par ce travail   |
+| Périmètre                                                                               | Codé                                                                                | Test automatique                                                                                                     | Configuration / essai réel                                          | Activation / publication          |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------- |
+| Checkout persistant, bail atomique, paramètres figés, idempotence et changement d’offre | Oui                                                                                 | Concurrence réelle sur Postgres, réponse perdue, bail expiré, délai d’idempotence dépassé, reprise après résiliation | API sandbox éprouvée ; Checkout navigateur à jouer                  | Code déployé                      |
+| Départ du payeur, commandes durables, fermeture des Checkout et isolation du portail    | Oui                                                                                 | Panne, reprise, réponse Checkout perdue avant transfert, portail interdit au repreneur                               | Reprise API sandbox éprouvée ; cycle payé à jouer                   | Code déployé                      |
+| Anomalies de souscriptions vivantes                                                     | Oui                                                                                 | Plusieurs souscriptions dont une incomplète ; aucune annulation automatique                                          | Rapprochement opérateur à exercer                                   | Console protégée, code déployé    |
+| Conservation du choix d’offre                                                           | Parcours existant conservé ; lien magique expiré corrigé                            | Recette inscription / vérification à compléter                                                                       | À vérifier sur Preview                                              | Code déployé                      |
+| Confirmation de date avant écriture                                                     | Web et native, âge/onboarding/invitation                                            | Parcours navigateur desktop/mobile, contrôle a11y ; déclaration concurrente                                          | iPhone/Android physiques à vérifier                                 | Code déployé                      |
+| Rectification support de date                                                           | Oui, motif contrôlé, profil et fiches liés, audit sans date                         | Accès interdit hors administration et trace vérifiés                                                                 | Recette console à compléter                                         | Code déployé                      |
+| Activité de l’espace indépendante du compte                                             | Oui, contributions métier ; publication cron et relance exclues                     | Espace actif protégé, timestamp cron sans effet                                                                      | Préavis aux coachs à vérifier sur boîte réelle                      | Code déployé                      |
+| Outbox de facturation                                                                   | Échecs durables visibles, reprise explicite, message obsolète refusé                | Expiration, reprise et obsolescence                                                                                  | Réception réelle à vérifier                                         | Code déployé                      |
+| Rebonds / plaintes                                                                      | Webhook Resend signé et liste d’exclusion par empreinte                             | Signature invalide, signature valide, rejeu                                                                          | `RESEND_WEBHOOK_SECRET` absent sur Vercel lors du contrôle          | Non raccordé                      |
+| E-mails de suppression / reprise d’espace                                               | Écriture transactionnelle, reprise, contrôle du destinataire actuel et du transfert | Panne puis reprise, transfert obsolète et purge des contenus après 30 jours                                          | Réception réelle à vérifier                                         | À compléter                       |
+| Sonde légère                                                                            | `/api/live` sans accès base ; `/api/health` conserve le contrôle DB                 | Typecheck / build                                                                                                    | Sonde externe à raccorder                                           | Non raccordée                     |
+| Push et liens universels                                                                | Implémentation existante conservée                                                  | Tests natifs existants                                                                                               | APNs, FCM, appareils physiques et identités de signature à vérifier | Stores non publiés par ce travail |
 
 ## Preuves locales
 
@@ -99,13 +114,13 @@ Projet Vercel `tartan`, équipe `team_3XXL1abz5SsLVR9IW9gUU0Sv`, projet `prj_Tg2
 
 ## Journal initial de la PR 2 — état historique avant les lots ci-dessous
 
-| Lot | Contenu autorisé                                                                                                                   | État                                                                                                         |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| A   | Préparation physique athlé, DA de travail, onboarding, bibliothèque, vidéo générique, constructeur natif                           | Non commencé sur cette branche                                                                               |
+| Lot | Contenu autorisé                                                                                                                   | État                                                                                                                                                                                                                            |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A   | Préparation physique athlé, DA de travail, onboarding, bibliothèque, vidéo générique, constructeur natif                           | Non commencé sur cette branche                                                                                                                                                                                                  |
 | B   | Références liées aux exercices, identifiants stables, versions, charges résolues figées, séries réellement réalisées et hors ligne | En cours : références, gel, saisie athlète, validation rapide, conflits et brouillons web/natifs ; formulaires natifs de force ajoutés ; saisie coach, rapprochement historique et actualisation des prescriptions à poursuivre |
-| C   | Historique, Epley, tableau des pourcentages, records comparables et célébration unique                                             | En cours : calcul Epley et pourcentages ; historique, records et interfaces à poursuivre                     |
-| D   | Phases privées/partagées, progression et analyse avec provenance et couverture                                                     | Non commencé                                                                                                 |
-| E   | Dictée web/native, clarifications, propositions contrôlées, quotas, confidentialité et corpus d’évaluation                         | Non commencé ; clé locale existante identifiée, réutilisation demandée par le fondateur                      |
+| C   | Historique, Epley, tableau des pourcentages, records comparables et célébration unique                                             | En cours : calcul Epley et pourcentages ; historique, records et interfaces à poursuivre                                                                                                                                        |
+| D   | Phases privées/partagées, progression et analyse avec provenance et couverture                                                     | Non commencé                                                                                                                                                                                                                    |
+| E   | Dictée web/native, clarifications, propositions contrôlées, quotas, confidentialité et corpus d’évaluation                         | Non commencé ; clé locale existante identifiée, réutilisation demandée par le fondateur                                                                                                                                         |
 
 Accès OpenAI : présence de `OPEN_AI_API_KEY` vérifiée dans le `.env.local` racine, sans afficher sa valeur. Le fondateur demande de réutiliser cette configuration ; aucune nouvelle création de clé n’est nécessaire pour commencer le lot E. Aucun appel OpenAI n’a encore été testé. Le branchement serveur, la compatibilité avec ce nom de variable et la vérification du remplacement de la clé anciennement exposée restent à traiter ; la présence locale seule ne prouve ni la validité de la clé ni sa rotation.
 
@@ -196,7 +211,6 @@ Preuves locales du 7 novembre : **456 tests serveur**, **86 tests domaine** et *
 
 À terminer dans ce parcours : relecture/comparaison et résolution des conflits conservés, saisie coach depuis son interface, articulation des validations rapides et des compléments de retour avec les versions détaillées, puis intégration de l'historique et de la célébration unique. L'éditeur reste derrière le drapeau désactivé par défaut ; les écrans natifs doivent encore être éprouvés sur téléphone. La nouvelle DA appartient au lot A et n'est pas déclarée terminée par ces formulaires. Aucun changement de schéma SQL ni activation en production dans ce lot. CI qualité du lot précédent `2fde79b` réussie ; le présent lot nécessite sa propre CI.
 
-
 ### Validation rapide et compléments compatibles avec les séries détaillées
 
 La validation rapide web/native utilise maintenant les versions de la séance et de la saisie. Deux périmètres explicites complètent `sets` : `status` conserve les retours existants, et `feedback` ne modifie que les champs envoyés. Ils exigent les versions et refusent un remplacement des séries détaillées. Les cases simples du mode séance restent compatibles. Le ressenti, la douleur, la durée, le commentaire et la date initiale ne disparaissent plus lors d’une validation rapide après saisie de charges.
@@ -211,7 +225,6 @@ Preuves locales du 7 novembre : **460 tests serveur** réussis avant ajout du de
 
 Restent dans le lot B : comparaison et résolution explicite des conflits, saisie coach, interface native des références et actualisation explicite des prescriptions. L’historique, les records et la célébration enrichie appartiennent au lot C ; les lots A, D et E restent ouverts. Aucune migration SQL ni activation en production dans ce lot. Les CI du nouveau commit doivent encore être observées avant fusion.
 
-
 ### Relecture et résolution des envois en conflit — web et natif
 
 Le bandeau de synchronisation ouvre maintenant un écran de comparaison entre les valeurs du serveur et les modifications conservées sur l’appareil. Appliquer les modifications ou abandonner l’envoi demande une confirmation explicite. Le remplacement du lot est atomique dans IndexedDB et durable dans SecureStore ; une panne de stockage conserve les originaux. Une nouvelle correction serveur pendant la relecture provoque un nouveau conflit, sans écrasement ni changement automatique de version. Les autres séances restent intactes.
@@ -221,7 +234,6 @@ Les modifications de prescription, de variante ou d’identité d’exercice emp
 Preuves locales du 7 novembre : **465 tests serveur, 91 tests domaine et 155 tests mobiles réussis** ; types monorepo, lint sans erreur et Impeccable sans travers. Les **quatre parcours navigateur de production** (séries et relecture, desktop/mobile) réussissent : concurrence réelle entre deux contextes, nouvelle correction pendant la comparaison, confirmation/annulation d’abandon, persistance après rechargement et retour dans l’éditeur. Axe et absence de débordement sont vérifiés. Exports Expo Hermes iOS et Android générés ; aucun build signé ni essai physique revendiqué.
 
 Le parcours couvre les envois de validation de l’athlète dans l’espace courant. Il ne résout pas encore les brouillons jamais envoyés devenus obsolètes, ni tous les autres types de la file (appel, commentaire, tentative). La saisie coach et les formulaires natifs des références restent à développer. Aucune migration ni activation en production dans ce lot. La CI qualité de `da12c08` est réussie ; ces changements nécessitent leur propre CI avant fusion.
-
 
 ### Brouillons non envoyés devenus obsolètes
 
@@ -237,13 +249,11 @@ Nouvelle sauvegarde chiffrée GitHub `42413533493`, source `1852b25`, créée le
 
 Le compte Stripe de production Tartan `acct_1UXJjd4TQfkM7TmX` expose un webhook actif vers `https://app.tartan.coach/api/webhooks/stripe`, version `2025-03-31.basil`, pour création/modification/suppression d’abonnement. Cette lecture confirme sa configuration, pas la réception signée d’un événement par l’application.
 
-
 ### PR 1 déployée en production
 
 Fusion de #44 le 7 novembre à **21 h 01 UTC**, commit `98daa94`. Vercel Ready, domaines `tartan.coach`, `app.tartan.coach` et `www.tartan.coach` associés au bon commit. Lecture Neon production : **24 migrations appliquées, zéro migration inachevée**, activité métier initialisée pour les deux espaces. Aucun espace ne possède encore de client Stripe ; l’absence de payeur de facturation sur ces espaces gratuits est conforme à la reprise conditionnelle. Les routes publiques `/api/live`, `/api/health`, `/api/auth/get-session` et `/connexion` répondent HTTP 200 ; les deux sondes renvoient `status: ok`. Les vérifications n’ont créé ni paiement ni envoi de message.
 
 La PR 2 est reciblée vers main, reste en brouillon et conserve ses fonctionnalités nouvelles hors production. Le passage en production des correctifs de fiabilité ne valide pas à lui seul l’ouverture commerciale ni les stores.
-
 
 ### Références de force — formulaires natifs
 
@@ -253,7 +263,6 @@ La bibliothèque native permet de renseigner la convention de charge et le pas d
 
 Preuves locales : **467 tests serveur, 158 tests mobiles**, types de tout le monorepo puis contrats revalidés après correction de date, lint ciblé et Impeccable réussis. Exports Hermes iOS/Android générés avec le nouvel écran. Les deux nouveaux cas serveur vérifient la portée du drapeau et l’absence d’écriture pour une date impossible ; les tests mobiles vérifient décimales, bornes, rattachement et choix de référence explicite. Aucune recette physique ni validation VoiceOver/TalkBack de ce nouvel écran n’est revendiquée. Aucun changement de schéma ni activation en production. Restent dans le lot B : interface de saisie coach, rapprochement historique et actualisation explicite des charges.
 
-
 ### Séries réalisées saisies par le coach — web et natif
 
 Code `4d2df2c`, vérifié localement le 7 novembre 2026. Le suivi de séance ouvre l’éditeur pour chaque athlète autorisé, avec brouillons et files distincts. La comparaison des conflits nomme l’athlète et ne bloque pas les autres saisies. Le serveur limite l’assistant aux séances dont il est l’auteur. Une correction conserve le retour de l’athlète et enregistre l’identité du coach.
@@ -261,7 +270,6 @@ Code `4d2df2c`, vérifié localement le 7 novembre 2026. Le suivi de séance ouv
 **470 tests serveur, 94 domaine, 160 mobiles**, types monorepo, lint sans erreur et Impeccable réussis. Deux nouveaux parcours coach sur build de production, puis huit parcours de non-régression séries/relecture/hors ligne réussis, incluant Chromium et WebKit. Le premier parcours desktop a révélé un chevauchement du bandeau hors ligne avec Réglages : corrigé par un décalage suivant la hauteur réelle du bandeau, puis retesté. Exports Hermes iOS/Android réussis. Aucune migration ni activation en production ; appareils physiques et CI du nouveau commit restent à vérifier.
 
 [Preuves, commandes et captures du lot](preuves-v1-1/lot-b-series-coach.md). La CI qualité de `9ad481b` est réussie (`42414716957`) ; sa compilation Android était encore en cours au dernier contrôle. Ce lot termine l’interface de saisie coach, pas l’ensemble du lot B : rapprochement historique et actualisation explicite des charges restent ouverts. Les lots A, C, D et E ne sont pas déclarés terminés.
-
 
 ### Rapprochement historique — interfaces web et natives
 
@@ -271,7 +279,6 @@ Code `7519866`, vérifié le 7 novembre 2026. Les réglages du propriétaire exp
 
 Dans le lot B, la commande explicite d’actualisation des charges déjà prescrites reste à réaliser. Le rapprochement via interface et la saisie coach ne sont plus des écrans manquants. Les lots A, C, D et E ainsi que les recettes externes restent ouverts.
 
-
 ### Actualisation explicite des charges publiées — web et natif
 
 Le coach relit les charges et leurs sources avant confirmation. Les pourcentages sont recalculés sur les références actuelles, sans conversion des kilogrammes absolus ni du RPE/RIR. Les athlètes ayant une saisie conservent leur prescription ; une convention incompatible est signalée. Un changement de version, référence, audience ou saisie après aperçu impose une nouvelle relecture. Les nouvelles copies, l’audit et les notifications sont transactionnels ; aucune notification ne contient de charge ou de santé.
@@ -280,7 +287,6 @@ Preuves du code `25557b0` : 477 tests serveur sur la suite complète, puis 32 te
 
 Aucune migration ni activation en production. La CI qualité de `5e5a3bf` est réussie (run `42417182212`) ; Android reste en cours au moment de cette preuve. Les nouveaux commits nécessitent leur propre CI. Le prochain chantier est le lot A : repositionnement préparation physique, interface et constructeur natif, puis les historiques/records, phases/analyses et IA.
 
-
 ### Surfaces de travail claires — web et natif
 
 Première partie du lot A : palette de travail craie/blanc/encre, actions rouge piste, navigation compacte et titres réduits. Les catégories de séance disposent de teintes et libellés de même importance. L’accueil et les écrans immersifs conservent leurs palettes expressives. Les dialogues web et feuilles natives suivent le contexte ; champs, focus et statuts ont été adaptés aux surfaces claires. `DESIGN.md` consigne la direction explicitement choisie dans le plan V1.1.
@@ -288,7 +294,6 @@ Première partie du lot A : palette de travail craie/blanc/encre, actions rouge 
 Preuves locales du 7 novembre : types monorepo réussis, 168 tests mobiles et 61 tests de tokens, lint sans erreur (quatre avertissements existants), Impeccable sans travers. Deux parcours navigateur de production couvrent 30/60/120 athlètes, calendrier, bibliothèque/dialogue, constructeur et liste vidéo, à 390/768/1440 px, avec Axe et zoom 200 %. Quatre parcours de non-régression références/actualisation des charges passent également. Le premier essai du nouveau parcours ne créait aucune séance publiée et affichait donc l’état vide du suivi ; fixture corrigée, puis deux parcours réussis. Exports Hermes iOS et Android réussis. Aucune recette sur appareil physique ni validation VoiceOver/TalkBack revendiquée.
 
 Ce lot ne termine pas le repositionnement : constructeur natif, onboarding, bibliothèque relue, vidéo générique et landing restent à livrer. Aucun changement de schéma ni activation de progression en production.
-
 
 ### Constructeur natif — création, édition et publication
 
@@ -300,38 +305,31 @@ Preuves locales du 7 novembre : 502 tests serveur, 178 mobiles, 99 domaine ; typ
 
 La saisie non enregistrée du constructeur reste en mémoire : persistance chiffrée, reprise après fermeture et résolution de ses brouillons obsolètes restent à réaliser. La suppression native des séances/modèles et la recette VoiceOver/TalkBack restent également ouvertes. Les saisies de séries déjà livrées disposent de leur propre stockage hors ligne ; ne pas confondre les deux parcours. Cette étape ne termine donc ni la parité du constructeur ni le lot A.
 
-
 ### Vidéo générique — préparation physique
 
 La capture native ne crée plus systématiquement un essai de saut. Les outils hauteur deviennent explicites, les remarques génériques restent sans phase et les anciens essais/annotations conservent leur contexte. Les listes, imports et indications web/natives emploient un vocabulaire général ; les adresses historiques sont conservées. [Preuves du lot](preuves-v1-1/lot-a-video-generique.md).
 
 101 tests domaine, 199 mobiles, un scénario serveur d’import sans essai, deux parcours navigateur de production (Axe, 390/768/1440 px et zoom 200 %) et le parcours de ralenti existant réussis. Capture générique et activation/repli des outils vérifiés sur simulateur iOS. Aucun import ou envoi Mux réel revendiqué. Deux crashs distincts du client de développement restent à isoler ; les exports ne prouvent pas la stabilité sur téléphone. Le titre du constructeur suit maintenant son état enregistré après création.
 
-
 ### Profil sportif — onboarding et réglages
 
 Disciplines sans hauteur présélectionnée, objectifs de préparation, matériel et objectif du premier groupe disponibles sur web et natif. Réglages modifiables par le propriétaire ; champs omis par les anciens clients conservés. Migration additive éprouvée sur schéma ancien synthétique puis Preview Neon (28 migrations), sans changement en production. 516 tests serveur, 199 mobiles, deux parcours navigateur, types, lint, design et exports réussis. Lecture, modification et persistance vérifiées dans le simulateur iOS. [Preuves et limites](preuves-v1-1/lot-a-profil-sportif.md).
-
 
 ### Bibliothèque de préparation physique
 
 49 fiches distinctes, tags et conventions de charge copiés pour les nouveaux espaces, sans réécriture des fiches existantes. Doublons retirés de la bibliothèque initiale ; endurance et mobilité renforcées. 103 tests domaine, 17 tests serveur ciblés et types monorepo réussis. Les médias de démonstration et la recette coach restent ouverts. [Preuves](preuves-v1-1/lot-a-bibliotheque.md).
 
-
 ### Historique par exercice — services et calculs
 
 Lecture bornée par période, séries figées, références actuelles séparées, corrections immédiatement visibles et contrôle d’accès. Règles pures de comparaison/records sans célébration automatique. 108 tests domaine, six tests serveur ciblés, types et lint réussis. [Preuves et limites](preuves-v1-1/lot-c-historique-socle.md). Interfaces et intégration des records restent ouvertes.
-
 
 ### Calculateur web et natif
 
 Epley, saisie française, estimation distincte de la référence du tableau, choix explicite et 13 pourcentages exacts/arrondis. Aucune référence enregistrée modifiée. 110 tests domaine, 523 serveur, types, lint, design, exports Hermes et parcours navigateur réussis ; calcul/tableau/bornes vérifiés sur simulateur iOS. [Preuves](preuves-v1-1/lot-c-calculateur.md). Le commit vidéo `079418d` dispose désormais de ses deux CI réussies : qualité `42426108440`, Android `42426108438`. Les commits ultérieurs ont besoin de leur propre CI.
 
-
 ### Historique par exercice — interfaces et volumes
 
 Sélection d’exercice et de période, références actuelles distinctes des prescriptions figées, séries détaillées, courbes par unité et tableau accessible sur web/natif. Références manuelles seules incluses ; archive, manque et troncature explicites. [Preuves et portée de la couverture](preuves-v1-1/lot-c-historique-interface.md). Les records/célébrations et analyses complètes ne sont pas déclarés terminés.
-
 
 ### Rappel des réalisations comparables
 
@@ -396,7 +394,6 @@ Inspection des octets WAV/M4A/WebM, durée calculée depuis les paquets, refus d
 ### Transcription : récupération, quota et conservation
 
 La route multipart autorise avant de lire l’audio, mesure sa durée et réserve les secondes atomiquement. Réponse perdue récupérable, auteur privé, échecs restitués, résultats tardifs refusés ; texte brut purgé sous 24 heures même IA coupée. API et SDK communs, sans stockage audio serveur. **662 tests serveur** et deux parcours navigateur de production réussis ; Preview à 36 migrations, production inchangée. Enregistrement et interfaces restent à intégrer. [Preuves détaillées](preuves-v1-1/lot-e-transcription-workflow.md).
-
 
 ### Capture web du planificateur
 

@@ -7,7 +7,8 @@ test("le support rectifie une date avec confirmation, sans révéler l'ancienne 
   page,
 }, testInfo) => {
   const email = `support-${testInfo.project.name}@e2e.tartan.test`;
-  await createCoachSpace(page, "Support", email);
+  const name = `Support ${testInfo.project.name}`;
+  await createCoachSpace(page, name, email);
   const sql = new Client({
     connectionString: process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e",
   });
@@ -29,6 +30,24 @@ test("le support rectifie une date avec confirmation, sans révéler l'ancienne 
       [id],
     );
     expect(audit.rows).toHaveLength(1);
+
+    // Activation pilote : la case agit tout de suite, sans SQL, et laisse une trace.
+    const { rows: spaces } = await sql.query("select id from organizations where owner_id = $1::uuid", [id]);
+    const organizationId = spaces[0].id;
+    await page
+      .getByRole("group", { name: `Coaching ${name}` })
+      .getByLabel(m.admin.featureProgression)
+      .check();
+    await expect(page.getByText(m.admin.featuresSaved)).toBeVisible();
+    const features = await sql.query(
+      "select action from audit_log where entity = 'organization' and entity_id = $1::text",
+      [organizationId],
+    );
+    expect(features.rows.map((row) => row.action)).toContain("space_features:progression=on,phases=off,ai=off");
+    const enabled = await sql.query("select progression_enabled from organizations where id = $1::uuid", [
+      organizationId,
+    ]);
+    expect(enabled.rows[0].progression_enabled).toBe(true);
   } finally {
     await sql.end();
   }

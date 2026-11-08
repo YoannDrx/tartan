@@ -1,5 +1,6 @@
 "use client";
 
+import { markInstallOpportunity } from "@/features/shell/install-opportunity";
 import { Victory } from "@/components/victory";
 import { ConfirmedRecords } from "../progression/confirmed-records";
 import { sessionLogPaths } from "@/features/athlete-view/session-log-paths";
@@ -162,7 +163,10 @@ export const PerformedSetsEditor = ({
         if (celebration && !athleteId) setVictory((old) => old + 1);
       }
       // La relecture serveur est nécessaire avant une autre correction, également après un envoi différé.
-      if (result.state !== "error") setLocked(true);
+      if (result.state !== "error") {
+        setLocked(true);
+        markInstallOpportunity();
+      }
       if (result.state === "sent") localStorage.removeItem(key);
     } catch {
       setMessage(m.common.genericError);

@@ -172,7 +172,7 @@ const Form = ({
           label={m.builder.date}
           value={date}
           onChangeText={setDate}
-          placeholder="AAAA-MM-JJ"
+          placeholder={m.nativeBuilder.dateHint}
           editable={!saving && !saved}
         />
         <Field

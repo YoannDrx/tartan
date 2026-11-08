@@ -221,7 +221,10 @@ it("une validation coach ne provoque pas de fête ; une action simple sans progr
   const coach = await a.create("2030-06-12", 50);
   expect(
     sessionLogResult.parse(
-      await logSessionForAthlete(a.owner.userId, a.organizationId, coach.session.id, a.athlete.athleteId, coach.input),
+      await logSessionForAthlete(a.owner.userId, a.organizationId, coach.session.id, a.athlete.athleteId, {
+        ...coach.input,
+        comment: undefined,
+      }),
     ).celebration,
   ).toBeNull();
   expect(

@@ -1231,6 +1231,8 @@ export const fr = {
     healthDisabled: "Le signalement de douleur demande ton accord pour les données de santé (voir Réglages).",
   },
   coach: {
+    absent: "Absent",
+    draftHidden: "Cette séance est encore un brouillon : tes athlètes ne la voient pas.",
     athleteReturns: "Retours des athlètes",
     exportCsv: "Exporter la semaine (CSV)",
     trackingTitle: "Suivi du groupe",
@@ -1837,6 +1839,7 @@ export const fr = {
       session_reminder: "Voir la séance",
       session_updated: "Voir la séance",
       session_cancelled: "Voir mes séances",
+      scheduled_publication_blocked: "Relire la séance",
       video_shared: "Voir le saut",
       comment: "Voir le saut",
       pain_alert: "Voir l'athlète",
@@ -1866,6 +1869,19 @@ export const fr = {
     billingProcedure:
       "Comparer les abonnements et sessions dans Stripe avec l’espace concerné. Vérifier les paiements avant toute résiliation ou restitution. Aucune opération financière automatique n’est lancée depuis cette liste.",
     correctionTitle: "Rectifier une date de naissance",
+    featuresTitle: "Fonctions par espace",
+    featuresLead: "L’effet est immédiat et chaque changement est tracé. Ces fonctions sont éteintes par défaut.",
+    featuresSaved: "Fonctions de l’espace enregistrées.",
+    featureProgression: "Progression",
+    featurePhases: "Phases",
+    featureAi: "Planificateur IA",
+    aiServerOn: "Variable serveur de l’IA : activée.",
+    aiServerOff: "Variable serveur de l’IA : désactivée. Le planificateur reste fermé, même coché ici.",
+    aiNotInDiscovery: "L’offre Découverte n’inclut pas le planificateur.",
+    disableAi: "Couper l’IA partout",
+    disableAiDetail:
+      "Le planificateur se ferme aussitôt pour tous les espaces. Il faudra le réactiver espace par espace.",
+    disableAiDone: "IA coupée pour tous les espaces.",
     correctionDetail:
       "Après vérification d’une demande support, la correction s’applique au profil et aux fiches liées. Ne saisir aucune pièce d’identité ici.",
     userId: "Identifiant du compte",
@@ -1940,6 +1956,7 @@ export const fr = {
     commentQueued: "Commentaire enregistré. Il partira au retour du réseau.",
   },
   install: {
+    pushOn: "Notifications activées sur cet appareil.",
     iosTitle: "Ajoute Tartan à ton écran d'accueil",
     iosSteps: "Touche Partager, puis « Sur l'écran d'accueil ». Sans ça, ton iPhone ne peut pas recevoir tes séances.",
     androidTitle: "Installe Tartan sur ce téléphone",

@@ -53,6 +53,15 @@ it("refuse le rattachement des séries à une prescription révisée, un exercic
   expect(reviewSessionLogs({ ...session, variant: "autonomous" }, [change]).reason).toBe("variant");
   expect(reviewSessionLogs({ ...session, progressionEnabled: false }, [change]).reason).toBe("disabled");
 });
+it("ne bloque pas une validation simple sur une séance modifiée et retire les cases devenues inconnues", () => {
+  const { detailedSets: _detailed, ...simple } = change;
+  const stale = { itemRef: "exercice-retire", setIndex: 0, done: true };
+  const result = reviewSessionLogs({ ...session, sessionVersion: 4 }, [
+    { ...simple, writeScope: "status", sets: [stale] },
+  ]);
+  expect(result.reason).toBeNull();
+  expect(result.input.sets).toEqual([]);
+});
 it("conserve une suppression explicite de séries et masque les données santé sans consentement", () => {
   const result = reviewSessionLogs({ ...session, healthConsent: false }, [
     { ...change, detailedSets: [], writeScope: "all", rpe: 8, pain: { bodyArea: "knee", side: "left", intensity: 3 } },

@@ -126,7 +126,19 @@ export const saveExercise = async (userId: string, organizationId: string, raw: 
         const [tests, references, sets] = await Promise.all([
           tx.strengthTest.count({ where: { exerciseId: id } }),
           tx.strengthReference.count({ where: { exerciseId: id } }),
-          tx.setLog.count({ where: { exerciseId: id } }),
+          // Une case cochée ne mesure rien : seule une valeur saisie dépend de la convention.
+          tx.setLog.count({
+            where: {
+              exerciseId: id,
+              OR: [
+                { reps: { not: null } },
+                { loadKg: { not: null } },
+                { distanceM: { not: null } },
+                { timeS: { not: null } },
+                { groundContacts: { not: null } },
+              ],
+            },
+          }),
         ]);
         if (tests + references + sets > 0)
           throw new AppError(409, "exercise_convention_locked", m.strength.conventionLocked);

@@ -17,7 +17,8 @@ export type NotificationType =
   | "missed_streak"
   | "announcement"
   | "member_joined"
-  | "session_cancelled";
+  | "session_cancelled"
+  | "scheduled_publication_blocked";
 
 export const bypassesQuietHours = (type: NotificationType): boolean => type === "pain_alert";
 
@@ -57,6 +58,11 @@ export const renderNotification = (
       return { title: "Tartan", body: `${v.athlete ?? "Un athlète"} n'a pas validé ses 2 dernières séances` };
     case "announcement":
       return { title: v.group ?? "Tartan", body: `${coach} a publié une annonce` };
+    case "scheduled_publication_blocked":
+      return {
+        title: "Tartan",
+        body: `La séance programmée pour ${day} attend ta relecture : son auteur n'a plus accès`,
+      };
     case "session_cancelled":
       return { title: "Tartan", body: `Ta séance de ${day} est annulée` };
     case "member_joined":

@@ -2,12 +2,15 @@
 
 import { m } from "@tartan/i18n";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { enablePush, pushSupported } from "./push";
+import { hasInstallOpportunity, INSTALL_OPPORTUNITY } from "./install-opportunity";
 
 const DISMISSED = "tartan.install-dismissed";
 const QUIET_MS = 14 * 24 * 60 * 60 * 1000;
+const SUMMARY_SCREENS = ["/suivi", "/calendrier", "/aujourdhui"];
 
 type InstallEvent = Event & { prompt: () => Promise<void> };
 type Banner = "ios" | "android" | "push" | null;
@@ -20,6 +23,10 @@ const isIos = () =>
   /iphone|ipad|ipod/i.test(navigator.userAgent) ||
   (/macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
+// Une tablette ou un ordinateur n'a pas besoin de cette invitation.
+const isPhone = () =>
+  window.matchMedia("(hover: none) and (pointer: coarse)").matches && Math.min(screen.width, screen.height) < 768;
+
 const dismissedRecently = () => {
   try {
     return Date.now() - Number(localStorage.getItem(DISMISSED) ?? 0) < QUIET_MS;
@@ -28,14 +35,26 @@ const dismissedRecently = () => {
   }
 };
 
-// Sans installation, un iPhone ne reçoit aucune notification : tout le suivi en dépend, on le dit clairement.
+// Après une première action utile, sur un écran de synthèse ; jamais pendant la construction d’une séance.
 export const InstallBanner = () => {
+  const pathname = usePathname();
+  const [ready, setReady] = useState(false);
   const [banner, setBanner] = useState<Banner>(null);
   const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null);
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
   useEffect(() => {
-    if (dismissedRecently()) return;
+    const refresh = () => setReady(hasInstallOpportunity());
+    const first = setTimeout(refresh, 0);
+    window.addEventListener(INSTALL_OPPORTUNITY, refresh);
+    return () => {
+      clearTimeout(first);
+      window.removeEventListener(INSTALL_OPPORTUNITY, refresh);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (dismissedRecently() || !isPhone()) return;
     const canAskPush = () => pushSupported() && Notification.permission === "default" && Boolean(vapidKey);
     // Après le premier rendu : le serveur ne connaît ni le téléphone ni les permissions.
     const first = setTimeout(() => {
@@ -54,7 +73,7 @@ export const InstallBanner = () => {
     };
   }, [vapidKey]);
 
-  if (!banner) return null;
+  if (!banner || !ready || !SUMMARY_SCREENS.includes(pathname)) return null;
 
   const later = () => {
     try {
@@ -92,7 +111,7 @@ export const InstallBanner = () => {
             size="sm"
             onClick={async () => {
               const outcome = await enablePush(vapidKey).catch(() => "unavailable" as const);
-              if (outcome === "on") toast.ok("Notifications activées sur cet appareil.");
+              if (outcome === "on") toast.ok(m.install.pushOn);
               else if (outcome === "denied") toast.error(m.settings.pushDenied);
               else toast.error(m.common.genericError);
               setBanner(null);

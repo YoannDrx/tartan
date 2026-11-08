@@ -255,6 +255,7 @@ export function PlannerDraftReview({
           value={editing.value}
           fields={editing.fields}
           testKeys={[`exercise:${exercise.id}`]}
+          intensityEnabled
           onFieldsChange={(fields) => setEditing({ ...editing, fields })}
           onClose={() => setEditing(null)}
           onApply={(prescription) => {

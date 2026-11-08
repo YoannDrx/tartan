@@ -111,6 +111,15 @@ const birthDateInput = isoDate.refine((value) => {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value && date <= new Date();
 }, "Indique une date de naissance valide");
 export const confirmAgeInput = z.object({ birthDate: birthDateInput });
+export const adminSpaceFeaturesInput = z
+  .object({
+    organizationId: uuid,
+    progressionEnabled: z.boolean(),
+    phasesEnabled: z.boolean(),
+    aiPlannerEnabled: z.boolean(),
+  })
+  .strict();
+
 export const correctBirthDateInput = z.object({
   userId: uuid,
   birthDate: birthDateInput,

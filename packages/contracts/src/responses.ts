@@ -286,6 +286,7 @@ export type ExerciseSummary = z.infer<typeof exerciseSummary>;
 
 export const sessionBuilderContext = z.object({
   phasesEnabled: z.boolean().optional(),
+  progressionEnabled: z.boolean().optional(),
   exercises: z.array(exerciseSummary),
   groups: z.array(z.object({ id: uuid, name: z.string(), athleteCount: z.number().int().min(0) })),
   athletes: z.array(z.object({ id: uuid, firstName: z.string(), lastName: z.string() })),

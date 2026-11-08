@@ -18,6 +18,7 @@ export const PrescriptionEditor = ({
   exercise,
   value,
   testKeys,
+  intensityEnabled,
   onApply,
   onClose,
   fields,
@@ -27,6 +28,7 @@ export const PrescriptionEditor = ({
   exercise: { id: string; name: string };
   value: Prescription;
   testKeys: string[];
+  intensityEnabled: boolean;
   onApply: (value: Prescription) => void;
   onClose: () => void;
   fields: PrescriptionFields;
@@ -120,28 +122,32 @@ export const PrescriptionEditor = ({
           ))}
         </View>
       ) : null}
-      <T variant="smallStrong">{m.nativeBuilder.intensity}</T>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
-        {(["none", "rpe", "rir"] as const).map((type) => (
-          <Chip
-            key={type}
-            label={type === "none" ? m.nativeBuilder.noIntensity : type.toUpperCase()}
-            active={fields.intensityType === type}
-            onPress={() => update({ intensityType: type })}
-          />
-        ))}
-      </View>
-      <T variant="caption" tone="muted">
-        {m.nativeBuilder.intensityHint}
-      </T>
-      {fields.intensityType !== "none" ? (
-        <Field
-          nativeID={`${uid}-intensity`}
-          label={m.nativeBuilder.intensityValue}
-          value={fields.intensityValue}
-          keyboardType="decimal-pad"
-          onChangeText={(intensityValue) => update({ intensityValue })}
-        />
+      {intensityEnabled || fields.intensityType !== "none" ? (
+        <>
+          <T variant="smallStrong">{m.nativeBuilder.intensity}</T>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
+            {(["none", "rpe", "rir"] as const).map((type) => (
+              <Chip
+                key={type}
+                label={type === "none" ? m.nativeBuilder.noIntensity : type.toUpperCase()}
+                active={fields.intensityType === type}
+                onPress={() => update({ intensityType: type })}
+              />
+            ))}
+          </View>
+          <T variant="caption" tone="muted">
+            {m.nativeBuilder.intensityHint}
+          </T>
+          {fields.intensityType !== "none" ? (
+            <Field
+              nativeID={`${uid}-intensity`}
+              label={m.nativeBuilder.intensityValue}
+              value={fields.intensityValue}
+              keyboardType="decimal-pad"
+              onChangeText={(intensityValue) => update({ intensityValue })}
+            />
+          ) : null}
+        </>
       ) : null}
       <Button
         variant="secondary"

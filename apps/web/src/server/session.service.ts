@@ -692,10 +692,23 @@ export const duplicateWeek = async (
     },
   });
   const offset = Math.round((toDbDate(input.toWeek).getTime() - toDbDate(input.fromWeek).getTime()) / 86400000);
-  for (const session of sessions) {
+  // La semaine d'un coach ne comprend pas les séances des groupes qu'il n'encadre pas.
+  const writable = await Promise.all(
+    sessions.map((session) =>
+      requireSessionWrite(access, session.id).then(
+        () => true,
+        (error: unknown) => {
+          if (error instanceof AppError && error.status === 403) return false;
+          throw error;
+        },
+      ),
+    ),
+  );
+  const copied = sessions.filter((_, index) => writable[index]);
+  for (const session of copied) {
     await copySession(session, userId, addDays(fromDbDate(session.date), offset), input.targetGroupId);
   }
-  return { count: sessions.length };
+  return { count: copied.length };
 };
 
 export const generateAutonomousVersion = async (userId: string, organizationId: string, sessionId: string) => {

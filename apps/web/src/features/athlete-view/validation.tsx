@@ -1,5 +1,7 @@
 "use client";
 
+import { markInstallOpportunity } from "@/features/shell/install-opportunity";
+
 import { celebrationFromResponse } from "@tartan/domain";
 import { ConfirmedRecords } from "../progression/confirmed-records";
 import type { AthleteSessionDetail, PainInput, StrengthRecordValue } from "@tartan/contracts";
@@ -117,6 +119,7 @@ export const QuickValidate = ({
       toast.error(res.message);
       return false;
     }
+    if (!extra.withDetails) markInstallOpportunity();
     const celebration = res.state === "sent" ? celebrationFromResponse(res.data) : null;
     if (celebration) {
       setRecords(celebration.records);

@@ -240,6 +240,7 @@ export function PlannerDraftReview({
                   <details>
                     <summary className="min-h-11 cursor-pointer py-2">{m.builder.setPrescription}</summary>
                     <PrescriptionEditor
+                      intensityEnabled
                       value={item.prescription}
                       exercise={exercise}
                       testKeys={[`exercise:${item.exerciseId}`]}

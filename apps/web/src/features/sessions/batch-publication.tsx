@@ -9,6 +9,7 @@ import { useAction } from "next-safe-action/hooks";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
+import { markInstallOpportunity } from "@/features/shell/install-opportunity";
 import { publishSessionsAction } from "./session.action";
 const t = m.batchPublication;
 export function BatchPublication({ sessions }: { sessions: CalendarSession[] }) {
@@ -22,6 +23,7 @@ export function BatchPublication({ sessions }: { sessions: CalendarSession[] }) 
       setReview(null);
       setSelected([]);
       toast.ok(t.success);
+      markInstallOpportunity();
       router.refresh();
     },
     onError: ({ error }) => setError(error.serverError ?? m.common.genericError),

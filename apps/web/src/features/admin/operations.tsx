@@ -7,7 +7,14 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field, Input, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
-import { correctBirthDateAction, retryEmailAction } from "./operations.action";
+import {
+  correctBirthDateAction,
+  disableAiEverywhereAction,
+  retryEmailAction,
+  setSpaceFeaturesAction,
+} from "./operations.action";
+
+type SpaceFeatures = { progressionEnabled: boolean; phasesEnabled: boolean; aiPlannerEnabled: boolean };
 
 export const RetryEmail = ({ id }: { id: string }) => {
   const retry = useAction(retryEmailAction, {
@@ -71,5 +78,75 @@ export const BirthDateCorrection = () => {
         trigger={<Button disabled={correction.isPending || !userId || !birthDate}>{m.admin.correctionConfirm}</Button>}
       />
     </div>
+  );
+};
+
+export const SpaceFeaturesForm = ({
+  organizationId,
+  name,
+  discovery,
+  features,
+}: {
+  organizationId: string;
+  name: string;
+  discovery: boolean;
+  features: SpaceFeatures;
+}) => {
+  // La case garde son état pendant que la page se rafraîchit ; seul un refus la ramène en arrière.
+  const [shown, setShown] = useState(features);
+  const update = useAction(setSpaceFeaturesAction, {
+    onSuccess: () => toast.ok(m.admin.featuresSaved),
+    onError: ({ error }) => {
+      setShown(features);
+      toast.error(error.serverError ?? m.common.genericError);
+    },
+  });
+  const options = [
+    { key: "progressionEnabled", label: m.admin.featureProgression },
+    { key: "phasesEnabled", label: m.admin.featurePhases },
+    { key: "aiPlannerEnabled", label: m.admin.featureAi },
+  ] as const;
+  return (
+    <fieldset className="py-2">
+      <legend className="font-semibold">{name}</legend>
+      <div className="flex flex-wrap gap-x-6">
+        {options.map((option) => (
+          <label key={option.key} className="flex min-h-11 items-center gap-2">
+            <input
+              type="checkbox"
+              checked={shown[option.key]}
+              disabled={update.isPending}
+              onChange={(event) => {
+                const next = { ...shown, [option.key]: event.target.checked };
+                setShown(next);
+                update.execute({ organizationId, ...next });
+              }}
+            />
+            {option.label}
+          </label>
+        ))}
+      </div>
+      {discovery ? <p className="t-caption text-soft">{m.admin.aiNotInDiscovery}</p> : null}
+    </fieldset>
+  );
+};
+
+export const DisableAiEverywhere = () => {
+  const disable = useAction(disableAiEverywhereAction, {
+    onSuccess: () => toast.ok(m.admin.disableAiDone),
+    onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),
+  });
+  return (
+    <ConfirmDialog
+      title={m.admin.disableAi}
+      description={m.admin.disableAiDetail}
+      confirmLabel={m.admin.disableAi}
+      onConfirm={() => disable.execute()}
+      trigger={
+        <Button variant="secondary" size="sm" disabled={disable.isPending}>
+          {m.admin.disableAi}
+        </Button>
+      }
+    />
   );
 };

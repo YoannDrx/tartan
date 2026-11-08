@@ -1209,6 +1209,7 @@ export const NativeSessionBuilder = ({
           fields={editing.fields}
           onFieldsChange={(fields) => setEditing((value) => (value ? { ...value, fields } : null))}
           testKeys={context.testKeys}
+          intensityEnabled={context.progressionEnabled === true}
           onClose={() => setEditing(null)}
           onApply={applyPrescription}
         />

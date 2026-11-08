@@ -5,7 +5,7 @@ import { Sheet, SheetSection } from "@/components/sheet";
 import { PageHeader } from "@/components/states";
 import { requireSpace } from "@/features/shell/space";
 import { AdminReports } from "@/features/admin/admin-reports";
-import { BirthDateCorrection, RetryEmail } from "@/features/admin/operations";
+import { BirthDateCorrection, DisableAiEverywhere, RetryEmail, SpaceFeaturesForm } from "@/features/admin/operations";
 import { adminOverview, isAdmin } from "@/server/admin.service";
 import { listAllReports } from "@/server/comm.service";
 
@@ -55,6 +55,30 @@ export default async function AdminPage() {
       <PageHeader title={m.admin.title} detail={m.admin.lead} />
       <Sheet>
         <Totals items={totals} />
+      </Sheet>
+      <Sheet>
+        <SheetSection title={m.admin.featuresTitle}>
+          <p className="text-soft">{m.admin.featuresLead}</p>
+          <p role="status">{data.aiServerEnabled ? m.admin.aiServerOn : m.admin.aiServerOff}</p>
+          <div className="divide-y divide-card-line">
+            {data.spaces.map((space) => (
+              <SpaceFeaturesForm
+                key={space.id}
+                organizationId={space.id}
+                name={space.name}
+                discovery={space.plan === "discovery"}
+                features={{
+                  progressionEnabled: space.progressionEnabled,
+                  phasesEnabled: space.phasesEnabled,
+                  aiPlannerEnabled: space.aiPlannerEnabled,
+                }}
+              />
+            ))}
+          </div>
+          <div className="mt-3">
+            <DisableAiEverywhere />
+          </div>
+        </SheetSection>
       </Sheet>
       <Sheet>
         <div id="signalements" className="scroll-mt-20">

@@ -1,5 +1,7 @@
 "use client";
 
+import { markInstallOpportunity } from "@/features/shell/install-opportunity";
+
 import { withSessionReturn } from "@/lib/session-navigation";
 
 import type { ExerciseSummary, Prescription, SessionDraft, SessionType } from "@tartan/contracts";
@@ -66,11 +68,13 @@ export const PrescriptionEditor = ({
   onChange,
   testKeys,
   exercise,
+  intensityEnabled,
 }: {
   exercise?: { id: string; name: string };
   value: Prescription;
   onChange: (p: Prescription) => void;
   testKeys: string[];
+  intensityEnabled: boolean;
 }) => {
   const numberField = (
     key: "sets" | "reps" | "distance_m" | "duration_s" | "rest_s" | "ground_contacts",
@@ -163,29 +167,32 @@ export const PrescriptionEditor = ({
           )}
         </Field>
       ) : null}
-      <Field label={m.nativeBuilder.intensity} hint={m.nativeBuilder.intensityHint}>
-        {(a) => (
-          <Select
-            {...a}
-            value={value.intensityTarget?.type ?? "none"}
-            onChange={(e) => {
-              const type = e.target.value;
-              const { intensityTarget: _removed, ...rest } = value;
-              onChange(
-                type === "rpe"
-                  ? { ...rest, intensityTarget: { type, value: 7 } }
-                  : type === "rir"
-                    ? { ...rest, intensityTarget: { type, value: 2 } }
-                    : rest,
-              );
-            }}
-          >
-            <option value="none">{m.nativeBuilder.noIntensity}</option>
-            <option value="rpe">RPE</option>
-            <option value="rir">RIR</option>
-          </Select>
-        )}
-      </Field>
+      {/* Une cible déjà prescrite reste modifiable si la progression est éteinte ensuite. */}
+      {intensityEnabled || value.intensityTarget ? (
+        <Field label={m.nativeBuilder.intensity} hint={m.nativeBuilder.intensityHint}>
+          {(a) => (
+            <Select
+              {...a}
+              value={value.intensityTarget?.type ?? "none"}
+              onChange={(e) => {
+                const type = e.target.value;
+                const { intensityTarget: _removed, ...rest } = value;
+                onChange(
+                  type === "rpe"
+                    ? { ...rest, intensityTarget: { type, value: 7 } }
+                    : type === "rir"
+                      ? { ...rest, intensityTarget: { type, value: 2 } }
+                      : rest,
+                );
+              }}
+            >
+              <option value="none">{m.nativeBuilder.noIntensity}</option>
+              <option value="rpe">RPE</option>
+              <option value="rir">RIR</option>
+            </Select>
+          )}
+        </Field>
+      ) : null}
       {value.intensityTarget ? (
         <Field label={m.nativeBuilder.intensityValue}>
           {(a) => (
@@ -230,6 +237,7 @@ export const PrescriptionEditor = ({
 export const SessionBuilder = ({
   organizationId,
   phasesEnabled = false,
+  progressionEnabled = false,
   initial,
   exercises,
   groups,
@@ -242,6 +250,7 @@ export const SessionBuilder = ({
 }: {
   organizationId: string;
   phasesEnabled?: boolean;
+  progressionEnabled?: boolean;
   initial: {
     id: string;
     version: number;
@@ -380,6 +389,7 @@ export const SessionBuilder = ({
   const save = useAction(saveSessionAction, {
     onSuccess: ({ data, input }) => {
       if (data) setExpectedVersion(data.version);
+      if (data && (input.publish || input.publishAt)) markInstallOpportunity();
       toast.ok(
         input.publishAt
           ? m.builder.scheduled
@@ -1055,6 +1065,7 @@ export const SessionBuilder = ({
             <PrescriptionEditor
               value={editingItem.prescription}
               exercise={byId.get(editingItem.exerciseId)}
+              intensityEnabled={progressionEnabled}
               testKeys={testKeys.filter(
                 (key) => !key.startsWith("exercise:") || key === `exercise:${editingItem.exerciseId}`,
               )}

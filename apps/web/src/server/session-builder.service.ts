@@ -23,6 +23,7 @@ export const getSessionBuilderContext = async (userId: string, organizationId: s
   ]);
   return sessionBuilderContext.parse({
     phasesEnabled: space.phasesEnabled,
+    progressionEnabled: space.progressionEnabled,
     exercises,
     groups,
     templates,

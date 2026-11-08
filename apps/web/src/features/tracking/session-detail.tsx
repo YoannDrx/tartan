@@ -62,9 +62,7 @@ export async function SessionFollowupContent({
           </>
         }
       />
-      {!session.publishedAt ? (
-        <EmptyState>Cette séance est encore un brouillon : tes athlètes ne la voient pas.</EmptyState>
-      ) : null}
+      {!session.publishedAt ? <EmptyState>{m.coach.draftHidden}</EmptyState> : null}
       {session.publishedAt && session.athletes.length > 0 ? (
         <div
           className={compact ? "flex flex-col gap-6" : "grid items-start gap-6 desktop:grid-cols-[minmax(0,1fr)_380px]"}
@@ -100,7 +98,7 @@ export async function SessionFollowupContent({
                           {a.name}
                         </Link>
                         {a.variant ? <Chip>{m.variant[a.variant]}</Chip> : null}
-                        {a.attendance === "absent" ? <Chip tone="warning">Absent</Chip> : null}
+                        {a.attendance === "absent" ? <Chip tone="warning">{m.coach.absent}</Chip> : null}
                       </p>
                       {a.rpe || a.durationMin ? (
                         <p className="t-num mt-0.5 text-[17px] leading-5">

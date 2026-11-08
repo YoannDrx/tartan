@@ -247,7 +247,7 @@ export const WorkingReferenceDialog = ({
           action.execute({ athleteId, exerciseId, choice: { source: "working", valueKg: Number(value) } });
         }}
       >
-        <Field label="Exercice">
+        <Field label={m.exerciseHistory.exercise}>
           {(a) => (
             <Select {...a} value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
               {compatible.map((exercise) => (
@@ -352,7 +352,7 @@ export const TestDialog = ({
           </p>
         ) : null}
         <Field
-          label="Exercice"
+          label={m.exerciseHistory.exercise}
           hint={
             progressionEnabled
               ? compatible.find((e) => e.id === v.exerciseKey)?.strengthLoadKind === "added_weight"
