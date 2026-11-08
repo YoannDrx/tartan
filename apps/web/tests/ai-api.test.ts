@@ -44,6 +44,26 @@ beforeEach(() => {
     questions: [{ id: "repos", field: "rest", question: "Quel repos ?", options: [] }],
   }));
 });
+
+it("le client transmet l'annulation de la dictée au transport multipart sans renvoi automatique", async () => {
+  const abort = new AbortController();
+  const body = new FormData();
+  body.append("audio", new Blob(["fiction"], { type: "audio/mp4" }), "dictee.m4a");
+  const fetcher = vi.fn<typeof fetch>(async (_url, init) => {
+    expect(init?.body).toBe(body);
+    expect(new Headers(init?.headers).has("Content-Type")).toBe(false);
+    expect(init?.signal).toBe(abort.signal);
+    return await new Promise<Response>((_resolve, reject) => {
+      init!.signal!.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+      abort.abort();
+    });
+  });
+  const client = createApiClient({ baseUrl: "https://test.invalid", fetch: fetcher });
+  await expect(client.transcribePlannerAudio(randomUUID(), body, abort.signal)).rejects.toMatchObject({
+    name: "AbortError",
+  });
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
 const transport = (userId?: string) =>
   createApiClient({
     baseUrl: "https://test.invalid",

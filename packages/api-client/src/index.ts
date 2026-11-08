@@ -99,6 +99,7 @@ export const createApiClient = (options: ApiClientOptions) => {
     schema: z.ZodType<T>,
     body?: unknown,
     query?: Record<string, string | undefined>,
+    signal?: AbortSignal,
   ): Promise<T> => {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(query ?? {})) if (value) params.set(key, value);
@@ -106,6 +107,7 @@ export const createApiClient = (options: ApiClientOptions) => {
     const multipart = typeof FormData !== "undefined" && body instanceof FormData;
     const res = await doFetch(`${options.baseUrl}/api/v1${path}${suffix}`, {
       method,
+      signal,
       headers: {
         Accept: "application/json",
         ...(body !== undefined && !multipart ? { "Content-Type": "application/json" } : {}),
@@ -122,10 +124,17 @@ export const createApiClient = (options: ApiClientOptions) => {
   };
 
   return {
-    transcribePlannerAudio: (orgId: string, body: FormData) =>
-      request("POST", `/orgs/${orgId}/planner/transcriptions`, plannerTranscriptionResponse, body),
-    plannerTranscription: (orgId: string, transcriptionId: string) =>
-      request("GET", `/orgs/${orgId}/planner/transcriptions/${transcriptionId}`, plannerTranscriptionResponse),
+    transcribePlannerAudio: (orgId: string, body: FormData, signal?: AbortSignal) =>
+      request("POST", `/orgs/${orgId}/planner/transcriptions`, plannerTranscriptionResponse, body, undefined, signal),
+    plannerTranscription: (orgId: string, transcriptionId: string, signal?: AbortSignal) =>
+      request(
+        "GET",
+        `/orgs/${orgId}/planner/transcriptions/${transcriptionId}`,
+        plannerTranscriptionResponse,
+        undefined,
+        undefined,
+        signal,
+      ),
     plannerUsage: (orgId: string) => request("GET", `/orgs/${orgId}/planner/usage`, plannerUsageResponse),
     createPlannerProposal: (orgId: string, body: CreatePlannerProposalInput) =>
       request("POST", `/orgs/${orgId}/planner`, plannerProposalResponse, body),

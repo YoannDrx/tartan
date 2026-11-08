@@ -16,6 +16,7 @@ import * as SystemUI from "expo-system-ui";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { startNetworkWatcher } from "../src/lib/network";
+import { purgeAbandonedPlannerRecordings } from "../src/lib/planner-recording-files";
 import { listenToNotificationResponses, registerPush, setupNotificationChannels } from "../src/lib/notifications";
 import { useMe } from "../src/lib/queries";
 import { persister, queryClient, shouldPersistQuery, WEEK_MS } from "../src/lib/query-client";
@@ -79,6 +80,13 @@ export default function RootLayout() {
   const router = useRouter();
 
   useEffect(() => {
+    // Reprise après arrêt du processus : aucun fichier de dictée dans la file hors ligne.
+    // Un échec sera présenté avant toute nouvelle capture, sans journaliser de chemin.
+    try {
+      purgeAbandonedPlannerRecordings();
+    } catch {
+      /* réessayé avant la prochaine dictée */
+    }
     void refresh();
     void setupNotificationChannels().catch(() => undefined);
     const stopNetwork = startNetworkWatcher();

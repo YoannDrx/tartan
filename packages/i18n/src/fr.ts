@@ -644,6 +644,30 @@ export const fr = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
   aiPlanner: {
+    dictate: "Dicter la consigne",
+    dictationNotice:
+      "L’audio est transmis à OpenAI tel que tu le prononces. Ne cite ni nom d’athlète, ni blessure, douleur ou autre donnée de santé. Le fichier temporaire est supprimé après l’envoi, l’échec ou l’annulation ; il n’est pas ajouté à tes vidéos.",
+    dictationLimit:
+      "Moins de trois minutes, 3 Mio maximum. Relis et corrige la transcription avant de préparer les séances.",
+    acceptAudio: "J’ai lu ces informations et j’accepte la transcription de cette dictée",
+    stopDictation: "Arrêter et transcrire",
+    cancelDictation: "Annuler la dictée",
+    dictationStarting: "Autorisation et préparation du micro…",
+    dictationProgress: (seconds: number) =>
+      `Enregistrement : ${Math.floor(seconds / 60)} min ${String(seconds % 60).padStart(2, "0")} s`,
+    dictationTranscribing: "Transcription en cours…",
+    dictationCleaning: "Suppression du fichier temporaire…",
+    dictationReady: "La transcription est ajoutée à ta consigne. Relis-la avant de continuer.",
+    dictationPending: "La transcription est encore en cours. Tu peux vérifier son résultat sans renvoyer l’audio.",
+    checkTranscription: "Vérifier la transcription",
+    microphoneSettings: "Ouvrir les réglages du micro",
+    microphonePermission:
+      "Tartan utilise le micro pour dicter tes consignes de séance et enregistrer le son des vidéos.",
+    microphoneDenied:
+      "Le micro n’est pas autorisé. Tu peux écrire ta consigne ou autoriser le micro dans les réglages du téléphone.",
+    recordingFailed: "La dictée a été interrompue. Tu peux écrire ta consigne ou recommencer.",
+    audioCleanupFailed:
+      "Le fichier temporaire n’a pas pu être effacé. Ferme puis relance Tartan pour réessayer le nettoyage avant une nouvelle dictée.",
     transcriptionFailed:
       "La dictée n’a pas pu être transcrite. Tu peux écrire ta consigne ou enregistrer une nouvelle dictée.",
     audioInvalid:
