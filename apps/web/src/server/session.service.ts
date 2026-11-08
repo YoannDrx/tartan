@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import {
   type CalendarResponse,
   type DeleteSessionInput,
@@ -35,6 +35,7 @@ import {
 } from "./access";
 import { activeAudienceIds, athleteAssignedWhere } from "./session-audience.service";
 export { activeAudienceIds, audienceAthleteIds } from "./session-audience.service";
+import { reviewSessionPhases, storedPhaseContext } from "./session-phase-context";
 import { freezeSessionPrescriptions, preparePrescriptionRefresh } from "./prescription.service";
 import { mediaSnapshot } from "./exercise.service";
 import { firstNameOf } from "./me.service";
@@ -42,38 +43,43 @@ import { notify, notifyPublications, queueNotifications, dispatchPending } from 
 
 const sessionConflict = () => new AppError(409, "session_version_conflict", m.builder.versionConflict);
 
-const requireAthletesInScope = async (access: Access, ids: string[]) => {
+const requireAthletesInScope = async (access: Access, ids: string[], db: Prisma.TransactionClient = prisma) => {
   const unique = [...new Set(ids)];
   if (!unique.length) return;
-  const count = await prisma.athlete.count({ where: { organizationId: access.organizationId, id: { in: unique } } });
+  const count = await db.athlete.count({ where: { organizationId: access.organizationId, id: { in: unique } } });
   if (count !== unique.length) throw notFound();
   if (access.role === "owner") return;
-  const visible = new Set(await visibleAthleteIds(access));
+  const visible = new Set(await visibleAthleteIds(access, db));
   if (!unique.every((id) => visible.has(id))) throw forbidden();
 };
 
-const requireSessionWrite = async (access: Access, sessionId: string) => {
-  const session = await prisma.scheduledSession.findFirst({
+const requireSessionWrite = async (access: Access, sessionId: string, db: Prisma.TransactionClient = prisma) => {
+  const session = await db.scheduledSession.findFirst({
     where: { id: sessionId, organizationId: access.organizationId },
   });
   if (!session) throw notFound();
   // Coach adjoint : seulement ses propres séances (§ 5.3).
   if (access.role === "assistant" && session.createdBy !== access.userId) throw forbidden();
   if (access.role !== "owner") {
-    const assignments = await prisma.assignment.findMany({ where: { scheduledSessionId: sessionId } });
+    const assignments = await db.assignment.findMany({ where: { scheduledSessionId: sessionId } });
     if (assignments.length === 0 && session.createdBy !== access.userId) throw forbidden();
     await requireGroupInScope(
       access,
       assignments.filter((a) => a.targetType === "group").map((a) => a.targetId),
+      db,
     );
-    const overrides = await prisma.athleteOverride.findMany({
+    const overrides = await db.athleteOverride.findMany({
       where: { scheduledSessionId: sessionId },
       select: { athleteId: true },
     });
-    await requireAthletesInScope(access, [
-      ...assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId),
-      ...overrides.map((o) => o.athleteId),
-    ]);
+    await requireAthletesInScope(
+      access,
+      [
+        ...assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId),
+        ...overrides.map((o) => o.athleteId),
+      ],
+      db,
+    );
   }
   return session;
 };
@@ -127,11 +133,15 @@ const audienceUsers = async (sessionId: string, db: Prisma.TransactionClient = p
   return rows.map((r) => r.userId as string);
 };
 
-const checkAudience = async (access: Access, input: SaveScheduledSessionInput): Promise<void> => {
+const checkAudience = async (
+  access: Access,
+  input: SaveScheduledSessionInput,
+  db: Prisma.TransactionClient = prisma,
+): Promise<void> => {
   const groups = input.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId);
   const athletes = input.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId);
-  await requireGroupInScope(access, groups);
-  await requireAthletesInScope(access, [...athletes, ...input.overrides.map((o) => o.athleteId)]);
+  await requireGroupInScope(access, groups, db);
+  await requireAthletesInScope(access, [...athletes, ...input.overrides.map((o) => o.athleteId)], db);
 };
 
 export const saveScheduledSession = async (
@@ -172,6 +182,17 @@ export const saveScheduledSession = async (
   };
   const saved = await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    const currentAccess = await requireOrgMember(userId, organizationId, "manageSessions", tx);
+    await checkAudience(currentAccess, input, tx);
+    if (existing) await requireSessionWrite(currentAccess, existing.id, tx);
+    const phaseContext = await reviewSessionPhases(
+      tx,
+      currentAccess,
+      input,
+      existing?.phaseContext,
+      Boolean(existing?.publishedAt || input.publishAt),
+    );
+    const reviewedData = { ...data, phaseContext: phaseContext ?? Prisma.DbNull };
     if (existing) {
       // Le verrou est partagé avec les saisies athlètes : une validation ne peut pas
       // apparaître entre le contrôle de compatibilité et la modification de séance.
@@ -188,13 +209,13 @@ export const saveScheduledSession = async (
       }
       const updated = await tx.scheduledSession.updateMany({
         where: { id: existing.id, version: input.expectedVersion ?? existing.version },
-        data: { ...data, version: { increment: 1 } },
+        data: { ...reviewedData, version: { increment: 1 } },
       });
       if (updated.count !== 1) throw sessionConflict();
     }
     const row = existing
       ? await tx.scheduledSession.findUniqueOrThrow({ where: { id: existing.id } })
-      : await tx.scheduledSession.create({ data: { ...data, organizationId, createdBy: userId } });
+      : await tx.scheduledSession.create({ data: { ...reviewedData, organizationId, createdBy: userId } });
     await tx.assignment.deleteMany({ where: { scheduledSessionId: row.id } });
     await tx.assignment.createMany({
       data: input.assignments.map((a) => ({
@@ -238,7 +259,7 @@ export const publishSession = async (
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   const session = await requireSessionWrite(access, sessionId);
   if (expectedVersion !== undefined && expectedVersion !== session.version) throw sessionConflict();
-  await publishRow(session.id, session.createdBy, now, { expectedVersion: session.version });
+  await publishRow(session.id, session.createdBy, now, { expectedVersion: session.version, actorId: userId });
   return { id: session.id };
 };
 
@@ -250,7 +271,7 @@ export const publishRow = async (
   sessionId: string,
   authorId: string,
   now: Date,
-  options: { silent?: boolean; expectedVersion?: number } = {},
+  options: { silent?: boolean; expectedVersion?: number; actorId?: string } = {},
 ): Promise<Publication[]> => {
   const session = await prisma.scheduledSession.findUniqueOrThrow({ where: { id: sessionId } });
   if (options.expectedVersion !== undefined && options.expectedVersion !== session.version) throw sessionConflict();
@@ -261,9 +282,28 @@ export const publishRow = async (
   const didPublish = await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${session.organizationId}::uuid FOR UPDATE`;
     await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${sessionId}::uuid FOR UPDATE`;
+    const currentAccess = await requireOrgMember(
+      options.actorId ?? authorId,
+      session.organizationId,
+      "manageSessions",
+      tx,
+    );
+    const current = await requireSessionWrite(currentAccess, sessionId, tx);
+    if (current.publishedAt) return false;
+    const assignments = await tx.assignment.findMany({
+      where: { scheduledSessionId: sessionId },
+      select: { targetType: true, targetId: true },
+    });
+    const phaseContext = await reviewSessionPhases(
+      tx,
+      currentAccess,
+      { date: fromDbDate(current.date), assignments },
+      current.phaseContext,
+      true,
+    );
     const published = await tx.scheduledSession.updateMany({
       where: { id: sessionId, version: session.version, publishedAt: null },
-      data: { snapshot, publishedAt: now, version: { increment: 1 } },
+      data: { snapshot, phaseContext: phaseContext ?? Prisma.DbNull, publishedAt: now, version: { increment: 1 } },
     });
     if (published.count !== 1) {
       if ((await tx.scheduledSession.findUnique({ where: { id: sessionId } }))?.publishedAt) return false;
@@ -301,7 +341,18 @@ export const getSessionForEdit = async (userId: string, organizationId: string, 
   ]);
   const existing = new Set([...groups, ...athletes].map((target) => target.id));
   const assignments = rows.filter((a) => existing.has(a.targetId));
+  const phaseContext = storedPhaseContext.safeParse(session.phaseContext);
+  const phaseGroups = access.role === "owner" ? null : await coachGroupIds(access);
+  const phaseAthletes = access.role === "owner" ? null : new Set(await visibleAthleteIds(access));
+  const phaseReview =
+    phaseContext.success &&
+    phaseContext.data.review.choices.every(
+      (c) => (!phaseGroups || phaseGroups.includes(c.groupId)) && (!phaseAthletes || phaseAthletes.has(c.athleteId)),
+    )
+      ? phaseContext.data.review
+      : undefined;
   return {
+    ...(phaseReview ? { phaseReview } : {}),
     id: session.id,
     version: session.version,
     expectedVersion: session.version,
@@ -383,9 +434,22 @@ export const moveSession = async (userId: string, organizationId: string, sessio
   const session = await requireSessionWrite(access, sessionId);
   await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    const currentAccess = await requireOrgMember(userId, organizationId, "manageSessions", tx);
+    const current = await requireSessionWrite(currentAccess, sessionId, tx);
+    const assignments = await tx.assignment.findMany({
+      where: { scheduledSessionId: sessionId },
+      select: { targetType: true, targetId: true },
+    });
+    const phaseContext = await reviewSessionPhases(
+      tx,
+      currentAccess,
+      { date, assignments },
+      current.phaseContext,
+      Boolean(current.publishedAt || current.publishAt),
+    );
     const moved = await tx.scheduledSession.updateMany({
       where: { id: session.id, version: session.version },
-      data: { date: toDbDate(date), version: { increment: 1 } },
+      data: { date: toDbDate(date), phaseContext: phaseContext ?? Prisma.DbNull, version: { increment: 1 } },
     });
     if (moved.count !== 1) throw sessionConflict();
     if (session.publishedAt) await freezeSessionPrescriptions(tx, session.id, "revision");
@@ -723,6 +787,8 @@ const withPrescriptionRefresh = async (
           athleteId: row.athleteId,
           sessionVersion: version,
           origin: "load_refresh",
+          phaseId: row.phaseId,
+          phaseVersion: row.phaseVersion,
           snapshot: row.snapshot as unknown as Prisma.InputJsonValue,
         })),
       });

@@ -209,6 +209,7 @@ export const SessionBuilder = ({
     assignments: { targetType: "group" | "athlete"; targetId: string }[];
     overrides: { athleteId: string; itemRef: string; prescription: Prescription }[];
     logCount: number;
+    phaseReview?: import("@tartan/contracts").SessionPhaseReview;
   } | null;
   exercises: ExerciseSummary[];
   groups: { id: string; name: string; athleteCount: number }[];
@@ -382,6 +383,7 @@ export const SessionBuilder = ({
     save.execute({
       id: initial?.id,
       expectedVersion,
+      phaseReview: phaseReady.key === planningKey && phaseReady.ready ? phaseReady.review : undefined,
       date,
       startTime: startTime || null,
       location: location.trim() || null,
@@ -551,6 +553,17 @@ export const SessionBuilder = ({
       {phasesEnabled ? (
         <div className="desktop:col-start-2 min-w-0">
           <PhasePlanningPanel
+            initialChoices={
+              initial &&
+              planningKey ===
+                phasePlanningKey(
+                  initial.date,
+                  initial.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId),
+                  initial.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId),
+                )
+                ? initial.phaseReview?.choices
+                : []
+            }
             key={planningKey}
             organizationId={organizationId}
             date={date}

@@ -73,6 +73,7 @@ export const phasePlanningResult = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("choose_group"), phases: z.array(planningPhase) }),
 ]);
 export const phasePlanningResponse = z.object({
+  token: z.string().regex(/^[a-f0-9]{64}$/),
   date: isoDate,
   groups: z.array(z.object({ id: uuid, name: z.string(), phase: planningPhase.nullable() })),
   athletes: z.array(z.object({ id: uuid, name: z.string(), result: phasePlanningResult })),

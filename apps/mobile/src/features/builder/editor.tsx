@@ -14,7 +14,7 @@ import { NativePhasePlanning } from "../phase-planning";
 import { m } from "@tartan/i18n";
 import { randomUUID } from "expo-crypto";
 import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, AppState, View } from "react-native";
 import { api } from "../../lib/api";
 import { errorMessage } from "../../lib/errors";
@@ -53,6 +53,7 @@ export const initialForm = (
         publishAt: localSchedule(initial.publishAt),
         assignments: initial.assignments,
         overrides: initial.overrides,
+        phaseReview: initial.phaseReview,
         draft: withSessionRefs(initial.draft),
       }
     : {
@@ -102,6 +103,19 @@ export const NativeSessionBuilder = ({
   const phaseAthletes = form.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId);
   const planningKey = phasePlanningKey(form.date, phaseGroups, phaseAthletes);
   const [phaseReady, setPhaseReady] = useState<PhasePlanningReadiness>({ key: "", ready: false });
+  const acceptPhaseReview = useCallback((state: PhasePlanningReadiness) => {
+    setPhaseReady(state);
+    if (!state.ready || !state.review) return;
+    setForm((current) => {
+      const key = phasePlanningKey(
+        current.date,
+        current.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId),
+        current.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId),
+      );
+      if (key !== state.key || JSON.stringify(current.phaseReview) === JSON.stringify(state.review)) return current;
+      return { ...current, phaseReview: state.review };
+    });
+  }, []);
   const [duration, setDuration] = useState(initial?.draft.durationMin?.toString() ?? "");
   const [baseline, setBaseline] = useState(() => JSON.stringify({ form, duration }));
   const [base, setBase] = useState(initial);
@@ -260,7 +274,11 @@ export const NativeSessionBuilder = ({
     ]);
   const change = (patch: Partial<SaveScheduledSessionInput>) => {
     setMessage("");
-    setForm((v) => ({ ...v, ...patch }));
+    setForm((v) => ({
+      ...v,
+      ...patch,
+      ...("date" in patch || "assignments" in patch ? { phaseReview: undefined } : {}),
+    }));
   };
   const draft = (patch: Partial<SessionDraft>) => {
     setMessage("");
@@ -335,7 +353,14 @@ export const NativeSessionBuilder = ({
       setError(m.nativeBuilder.serverUnverified);
       return;
     }
-    const parsed = parseSessionForm({ ...form, publishAt: publish ? null : form.publishAt }, duration);
+    const parsed = parseSessionForm(
+      {
+        ...form,
+        publishAt: publish ? null : form.publishAt,
+        phaseReview: phaseReady.key === planningKey && phaseReady.ready ? phaseReady.review : undefined,
+      },
+      duration,
+    );
     if (!parsed.success) {
       setError(builderErrors(parsed.error.issues));
       return;
@@ -739,7 +764,8 @@ export const NativeSessionBuilder = ({
             date={form.date}
             groupIds={phaseGroups}
             athleteIds={phaseAthletes}
-            onReady={setPhaseReady}
+            initialChoices={form.phaseReview?.choices}
+            onReady={acceptPhaseReview}
           />
         ) : null}
         {form.draft.blocks.map((block, bi) => (

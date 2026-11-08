@@ -32,7 +32,7 @@ export const persistBuilderSession = async (input: {
   let networkStarted = false;
   let saved: Receipt | null = null;
   try {
-    await writer.write({ ...draft, pending: "save" });
+    await writer.write({ ...draft, form: { ...draft.form, phaseReview: parsed.phaseReview }, pending: "save" });
     if (!active()) {
       await writer.write({ ...draft, pending: null });
       return null;
@@ -65,6 +65,7 @@ export const persistBuilderSession = async (input: {
       draft: current.draft,
       assignments: current.assignments,
       overrides: current.overrides,
+      phaseReview: current.phaseReview,
     };
     await writer.write({ ...draft, form: refreshed, base: current, pending: null });
     let cleanupFailed = false;

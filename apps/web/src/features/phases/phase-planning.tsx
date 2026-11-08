@@ -15,15 +15,17 @@ export function PhasePlanningPanel({
   groupIds,
   athleteIds,
   onReady,
+  initialChoices = [],
 }: {
   organizationId: string;
   date: string;
   groupIds: string[];
   athleteIds: string[];
   onReady: (state: PhasePlanningReadiness) => void;
+  initialChoices?: PhasePlanningQuery["choices"];
 }) {
   const key = phasePlanningKey(date, groupIds, athleteIds);
-  const [choices, setChoices] = useState<PhasePlanningQuery["choices"]>([]);
+  const [choices, setChoices] = useState<PhasePlanningQuery["choices"]>(initialChoices);
   const [retry, setRetry] = useState(0);
   const queryString = JSON.stringify({ ...JSON.parse(key), choices });
   const requestKey = `${queryString}:${retry}`;
@@ -51,9 +53,11 @@ export function PhasePlanningPanel({
   const current = response?.key === requestKey ? response : null;
   const ready =
     !hasAudience || Boolean(current?.data && current.data.athletes.every((a) => a.result.kind !== "choose_group"));
+  const token = current?.data?.token;
+  const choicesKey = JSON.stringify(choices);
   useEffect(() => {
-    onReady({ key, ready });
-  }, [key, ready, onReady]);
+    onReady({ key, ready, ...(ready && token ? { review: { token, choices: JSON.parse(choicesKey) } } : {}) });
+  }, [key, ready, token, choicesKey, onReady]);
   return (
     <section aria-label={t.planning} className="flex min-w-0 flex-col gap-3 rounded-card border border-card-line p-4">
       <h2 className="t-section">{t.planning}</h2>

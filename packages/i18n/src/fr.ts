@@ -363,6 +363,7 @@ export const fr = {
     apply: "Afficher l’analyse",
   },
   trainingPhases: {
+    contextChanged: "Les phases ou les destinataires ont changé. Relis le contexte avant de publier.",
     title: "Phases de préparation",
     planning: "Contexte de préparation",
     planningHint: "Les phases donnent le cap. Elles ne modifient pas les exercices ni les charges de cette séance.",

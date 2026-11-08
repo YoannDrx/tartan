@@ -63,6 +63,19 @@ const setup = () => {
   };
   return { input, transport, writer, stored: () => stored };
 };
+it("conserve la revue de phase avant une réponse perdue et après relecture du serveur", async () => {
+  const a = setup();
+  const review = { token: "a".repeat(64), choices: [{ athleteId: "athlete", groupId: "group" }] };
+  a.transport.createSession.mockRejectedValueOnce(new Error("LOST"));
+  await expect(
+    persistBuilderSession({ ...a.input, parsed: { ...a.input.parsed, phaseReview: review } }),
+  ).rejects.toBeInstanceOf(BuilderSaveFailure);
+  expect(a.stored()?.form.phaseReview).toEqual(review);
+  const current = await a.transport.editSession();
+  a.transport.editSession.mockResolvedValue({ ...current, phaseReview: review });
+  const result = await persistBuilderSession({ ...a.input, parsed: { ...a.input.parsed, phaseReview: review } });
+  expect(result?.form.phaseReview).toEqual(review);
+});
 it("n'envoie rien tant que la copie préalable n'est pas durable", async () => {
   const a = setup();
   a.writer.write.mockRejectedValue(new Error("FULL"));

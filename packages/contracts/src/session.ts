@@ -142,8 +142,19 @@ export const athleteOverrideInput = z.object({
   prescription: prescriptionSchema,
 });
 
+export const sessionPhaseChoice = z.object({ athleteId: uuid, groupId: uuid }).strict();
+export const sessionPhaseReview = z
+  .object({
+    token: z.string().regex(/^[a-f0-9]{64}$/),
+    choices: z.array(sessionPhaseChoice).max(500),
+  })
+  .strict()
+  .refine((v) => new Set(v.choices.map((c) => c.athleteId)).size === v.choices.length);
+export type SessionPhaseReview = z.infer<typeof sessionPhaseReview>;
+
 export const saveScheduledSessionInput = z.object({
   id: uuid.optional(),
+  phaseReview: sessionPhaseReview.optional(),
   expectedVersion: z.number().int().min(1).optional(),
   date: isoDate,
   startTime: clockTime.nullable(),

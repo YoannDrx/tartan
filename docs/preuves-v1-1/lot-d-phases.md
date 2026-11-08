@@ -28,7 +28,7 @@ UI/UX Pro Max n'a pas donné de correspondance vérifiée pour une frise de phas
 
 ## Suite du lot D
 
-Les analyses prévu/réalisé, diversité et couverture par groupe/athlète/phase restent ouvertes. Le contexte du constructeur et les filtres natifs par cible sont ajoutés dans la preuve complémentaire ci-dessous. La recette avec 30/60/120 athlètes sur ces nouveaux écrans, les essais coachs et les appareils physiques restent à faire. L'IA et les conditions externes de commercialisation ne sont pas validées par ce lot.
+Les analyses prévu/réalisé, diversité et couverture sont décrites dans [la preuve dédiée](lot-d-analyse.md). Leur attribution historique aux phases reste à raccorder. Le contexte du constructeur et les filtres natifs par cible sont ajoutés dans la preuve complémentaire ci-dessous. La recette avec 30/60/120 athlètes sur ces nouveaux écrans, les essais coachs et les appareils physiques restent à faire. L'IA et les conditions externes de commercialisation ne sont pas validées par ce lot.
 
 ## Complément — contexte du constructeur
 
@@ -36,10 +36,30 @@ Les analyses prévu/réalisé, diversité et couverture par groupe/athlète/phas
 
 Le service recontrôle l'espace et les destinataires. Un coach adjoint peut préparer ses séances avec les phases partagées uniquement ; aucune note privée n'est sélectionnée. Le mobile permet aussi de rechercher et filtrer les phases par groupe ou athlète.
 
-Limite explicite : ce contexte guide l'édition en cours ; le choix multi-groupes n'est pas encore conservé avec la séance ni revalidé dans sa transaction de publication. Il ne constitue pas une attribution historique à une phase. Ce point reste à traiter avant de présenter des statistiques attribuées à la phase choisie.
+Limite à cette étape, levée par le complément suivant : ce contexte guide l'édition en cours ; le choix multi-groupes n'est pas encore conservé avec la séance ni revalidé dans sa transaction de publication. Il ne constitue pas une attribution historique à une phase. Ce point reste à traiter avant de présenter des statistiques attribuées à la phase choisie.
 
 - 21 tests serveur ciblés réussis : phases et identité des séances, incluant contexte multi-groupes, priorité individuelle, refus hors périmètre, choix périmé, groupe vide, dates d'appartenance et accès adjoint.
 - Quatre parcours navigateur sur build de production réussis en 42,1 s : contexte des phases et identité des séances, desktop et mobile. Blocage avant choix, publication après choix, priorité individuelle, absence de note privée, Axe et débordement contrôlés.
 - Types du monorepo verts, lint sans erreur (quatre avertissements préexistants), Impeccable sans travers. Export Hermes iOS et Android réussi avant l'ajout du filtre natif par cible ; types natifs revérifiés après cet ajout.
 - [Contexte desktop](images/phase-planning-desktop.png) et [mobile](images/phase-planning-mobile.png) relus. Pas de recette native interactive ou physique supplémentaire : contrôle du simulateur toujours bloqué par le verrouillage du Mac.
 - CI qualité `fcda7e5` réussie, run `42436975131`. Cette CI précède les phases ; nouvelle CI requise pour le présent commit.
+
+
+## Complément — conservation et revalidation du contexte
+
+8 novembre 2026, depuis `eaefd52`. Le choix multi-groupes et un jeton de revue sont conservés avec le brouillon et restitués aux éditeurs web/natif autorisés. Le mobile les conserve aussi avant un envoi dont la réponse pourrait être perdue. Un changement de date ou de destinataires invalide l'ancien contexte. Les anciennes applications restent compatibles ; une publication ambiguë exige cependant le choix explicite d'un client à jour.
+
+L'écriture et la publication recontrôlent les droits et la résolution sous le verrou de l'espace. Une phase modifiée, une audience changée ou un choix périmé refuse la publication jusqu'à une nouvelle revue. Un brouillon sans nouvelle revue reste enregistrable ; il ne contourne pas le contrôle final. Une publication différée ne s'exécute plus sous l'identité d'un auteur révoqué ; un propriétaire autorisé peut la reprendre. Le drapeau désactivé laisse le travail manuel disponible sans inventer de contexte.
+
+Chaque copie de prescription conserve l'identifiant et la version de phase connus au moment de son gel. Modifier une phase ne réécrit aucune copie ; déplacer explicitement une séance crée une nouvelle version. Aucune attribution rétroactive n'est inventée pour les anciennes séances. Ces références restent serveur : aucun identifiant de phase privée ni jeton n'est exposé dans la vue athlète. Un coach ne reçoit pas les choix d'un athlète sorti de son périmètre. Le filtre statistique actuel reste un filtre de période/cible jusqu'au raccordement de cette provenance, avec traitement distinct de la visibilité publique.
+
+Preuves de ce complément :
+
+- Suite complète : **572 tests serveur réussis, 57 fichiers, 58,67 s**. Après le contrôle supplémentaire de sortie du périmètre : **9 tests ciblés réussis**. Concurrence et règles d'accès existantes couvertes par la suite complète.
+- **21 tests mobiles ciblés réussis**, dont copie durable du choix avant perte de réponse et conservation après relecture serveur.
+- **Quatre parcours navigateur de production réussis en 47,1 s**, desktop/mobile : choix obligatoire, publication, réouverture avec le choix conservé, priorité individuelle et refus d'un éditeur obsolète. Axe et débordement contrôlés.
+- Types monorepo verts après le dernier contrôle de périmètre ; lint sans erreur (quatre avertissements préexistants), Impeccable sans travers. Exports Hermes iOS/Android réussis.
+- Migration additive `20261108050000_session_phase_context`, appliquée sur les bases locales jetables et Preview : **31 → 32 migrations en 2,67 s**, zéro compte et aucun drapeau activé. La contrainte SQL interdit un identifiant sans version et l'inverse. Production inchangée.
+- Simulateur iPhone 17 Pro relancé à la demande du fondateur ; API locale sur 3102 vérifiée HTTP 200. Le contrôle visuel reste refusé par le verrouillage du Mac : aucune recette interactive nouvelle revendiquée.
+
+La CI qualité de `dd83b45` est réussie (`42439252577`). Son build Android (`42439252513`) a été interrompu pendant Gradle, avec « The operation was canceled » ; cause non établie, aucune réussite revendiquée pour cette exécution. Les présents changements nécessitent leur propre CI.

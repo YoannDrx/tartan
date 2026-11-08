@@ -84,6 +84,13 @@ test("le constructeur demande le contexte multi-groupes avant publication et res
   await page.getByRole("button", { name: m.builder.publish, exact: true }).click();
   await expect(page).toHaveURL(/\/seances\/[a-f0-9-]+\/suivi$/);
   const editUrl = page.url().replace(/\/suivi$/, "");
+  const sessionId = editUrl.split("/").at(-1)!;
+  expect((await native.editSession(orgId, sessionId)).phaseReview?.choices).toEqual([{ athleteId, groupId: second }]);
+  await page.goto(editUrl);
+  await expect(panel.getByText(t.planningAthletes(1), { exact: true })).toBeVisible();
+  await expect(panel.getByText(t.chooseGroup)).toHaveCount(0);
+  await panel.getByText(t.planningAthletes(1), { exact: true }).click();
+  await expect(panel.getByText(/Camille Contexte/).locator("..")).toContainText("Vitesse");
   const personal = await native.saveTrainingPhase(orgId, {
     ...body,
     id: randomUUID(),

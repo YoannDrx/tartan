@@ -1,3 +1,4 @@
+import { storedPhaseContext } from "./session-phase-context";
 import { createHash } from "node:crypto";
 import { prescriptionRefreshPreview, prescriptionSchema, sessionSnapshot } from "@tartan/contracts";
 import { freezePrescription, refreshPrescriptionLoads } from "@tartan/domain";
@@ -40,6 +41,8 @@ export const freezeSessionPrescriptions = async (
   ]);
   const previousByAthlete = new Map(previous.map((p) => [p.athleteId, sessionSnapshot.parse(p.snapshot)]));
   const snapshot = sessionSnapshot.parse(session.snapshot);
+  const context = storedPhaseContext.safeParse(session.phaseContext);
+  const phases = new Map(context.success ? context.data.athletes.map((a) => [a.athleteId, a]) : []);
   await tx.sessionPrescription.createMany({
     data: athletes.map((athleteId) => ({
       scheduledSessionId: sessionId,
@@ -47,6 +50,8 @@ export const freezeSessionPrescriptions = async (
       sessionVersion: session.version,
       origin,
       frozenAt,
+      phaseId: phases.get(athleteId)?.phaseId ?? null,
+      phaseVersion: phases.get(athleteId)?.phaseVersion ?? null,
       snapshot: freezePrescription(
         snapshot,
         references.get(athleteId) ?? [],
@@ -120,6 +125,11 @@ export const preparePrescriptionRefresh = async (tx: Prisma.TransactionClient, s
     preview: prescriptionRefreshPreview.parse({ sessionId, sessionVersion: session.version, token, athletes: rows }),
     updates: rows
       .filter((row) => row.status === "ready" && row.snapshot)
-      .map((row) => ({ athleteId: row.athleteId, snapshot: row.snapshot! })),
+      .map((row) => ({
+        athleteId: row.athleteId,
+        snapshot: row.snapshot!,
+        phaseId: byAthlete.get(row.athleteId)?.phaseId ?? null,
+        phaseVersion: byAthlete.get(row.athleteId)?.phaseVersion ?? null,
+      })),
   };
 };

@@ -712,6 +712,7 @@ model ScheduledSession {
   type           SessionType
   publishedAt    DateTime?    @map("published_at")
   prescriptionFrozenAt DateTime? @map("prescription_frozen_at")
+  phaseContext Json? @map("phase_context")
   publishAt      DateTime?    @map("publish_at")
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
@@ -737,12 +738,15 @@ model SessionPrescription {
   sessionVersion     Int @map("session_version")
   snapshot           Json
   origin             String
+  phaseId            String? @map("phase_id") @db.Uuid
+  phaseVersion       Int? @map("phase_version")
   frozenAt           DateTime @default(now()) @map("frozen_at")
   session            ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
   athlete            Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
 
   @@unique([scheduledSessionId, athleteId, sessionVersion])
   @@index([athleteId])
+  @@index([phaseId])
   @@map("session_prescriptions")
 }
 

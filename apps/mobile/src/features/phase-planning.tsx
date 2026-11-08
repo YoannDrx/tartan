@@ -17,16 +17,18 @@ export function NativePhasePlanning({
   groupIds,
   athleteIds,
   onReady,
+  initialChoices = [],
 }: {
   orgId: string;
   date: string;
   groupIds: string[];
   athleteIds: string[];
   onReady: (state: PhasePlanningReadiness) => void;
+  initialChoices?: PhasePlanningQuery["choices"];
 }) {
   const { me, space: active } = useActiveSpace();
   const key = phasePlanningKey(date, groupIds, athleteIds);
-  const [choices, setChoices] = useState<PhasePlanningQuery["choices"]>([]);
+  const [choices, setChoices] = useState<PhasePlanningQuery["choices"]>(initialChoices);
   const [expanded, setExpanded] = useState(false);
   const parsed = phasePlanningQuery.safeParse({ date, groupIds, athleteIds, choices });
   const hasAudience = groupIds.length + athleteIds.length > 0;
@@ -38,9 +40,11 @@ export function NativePhasePlanning({
   });
   const current = !data.isError && !data.isFetching ? data.data : undefined;
   const ready = !hasAudience || Boolean(current && current.athletes.every((a) => a.result.kind !== "choose_group"));
+  const token = current?.token;
+  const choicesKey = JSON.stringify(choices);
   useEffect(() => {
-    onReady({ key, ready });
-  }, [key, ready, onReady]);
+    onReady({ key, ready, ...(ready && token ? { review: { token, choices: JSON.parse(choicesKey) } } : {}) });
+  }, [key, ready, token, choicesKey, onReady]);
   return (
     <View style={{ gap: space.sm }}>
       <SectionTitle>{t.planning}</SectionTitle>
