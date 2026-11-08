@@ -1,3 +1,4 @@
+import { ChevronRight } from "./icons";
 import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import type { SessionType } from "@tartan/contracts";
@@ -287,6 +288,8 @@ export const Tag = ({ label, tone = "neutral" }: { label: string; tone?: TagTone
 };
 
 type FieldProps = TextInputProps & {
+  // Action posée dans le champ, à droite : le calendrier d’une date par exemple.
+  accessory?: ReactNode;
   label: string;
   error?: string | null;
   hint?: string;
@@ -295,7 +298,7 @@ type FieldProps = TextInputProps & {
 };
 
 export const Field = forwardRef<TextInput, FieldProps>(
-  ({ label, error, hint, hideLabel, containerStyle, style, onFocus, onBlur, ...rest }, ref) => {
+  ({ label, error, hint, hideLabel, containerStyle, style, onFocus, onBlur, accessory, ...rest }, ref) => {
     const p = usePalette();
     const field = p.world ? palettes[p.cardScene] : p;
     const labelId = useId();
@@ -307,41 +310,45 @@ export const Field = forwardRef<TextInput, FieldProps>(
             {label}
           </T>
         )}
-        <TextInput
-          ref={ref}
-          accessibilityLabel={label}
-          accessibilityHint={hint}
-          accessibilityLabelledBy={hideLabel ? undefined : labelId}
-          placeholderTextColor={field.textMuted}
-          selectionColor={field.focus}
-          cursorColor={field.focus}
-          keyboardAppearance={field.dark ? "dark" : "light"}
-          maxFontSizeMultiplier={p.work ? 2 : 1.4}
-          onFocus={(e) => {
-            setFocused(true);
-            onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            setFocused(false);
-            onBlur?.(e);
-          }}
-          {...rest}
-          style={[
-            textStyles.body,
-            {
-              minHeight: TOUCH + 4,
-              paddingHorizontal: space.lg,
-              paddingVertical: space.sm,
-              borderRadius: radius.button,
-              borderWidth: focused ? 2 : 1,
-              borderColor: error ? field.danger : focused ? field.focus : field.controlLine,
-              backgroundColor: field.surface,
-              color: field.text,
-            },
-            rest.multiline ? { minHeight: 88, textAlignVertical: "top", paddingTop: space.md } : null,
-            style,
-          ]}
-        />
+        <View>
+          <TextInput
+            ref={ref}
+            accessibilityLabel={label}
+            accessibilityHint={hint}
+            accessibilityLabelledBy={hideLabel ? undefined : labelId}
+            placeholderTextColor={field.textMuted}
+            selectionColor={field.focus}
+            cursorColor={field.focus}
+            keyboardAppearance={field.dark ? "dark" : "light"}
+            maxFontSizeMultiplier={p.work ? 2 : 1.4}
+            onFocus={(e) => {
+              setFocused(true);
+              onFocus?.(e);
+            }}
+            onBlur={(e) => {
+              setFocused(false);
+              onBlur?.(e);
+            }}
+            {...rest}
+            style={[
+              textStyles.body,
+              {
+                minHeight: TOUCH + 4,
+                paddingHorizontal: space.lg,
+                paddingVertical: space.sm,
+                borderRadius: radius.button,
+                borderWidth: focused ? 2 : 1,
+                borderColor: error ? field.danger : focused ? field.focus : field.controlLine,
+                backgroundColor: field.surface,
+                color: field.text,
+              },
+              accessory ? { paddingRight: 52 } : null,
+              rest.multiline ? { minHeight: 88, textAlignVertical: "top", paddingTop: space.md } : null,
+              style,
+            ]}
+          />
+          {accessory ? <View style={{ position: "absolute", right: 2, top: 2 }}>{accessory}</View> : null}
+        </View>
         {hint && !error ? (
           <T variant="caption" tone="muted">
             {hint}
@@ -359,6 +366,8 @@ export const Field = forwardRef<TextInput, FieldProps>(
 Field.displayName = "Field";
 
 type ScreenTitleProps = {
+  // Sur le bandeau piste : titre blanc, sans marqueur citron.
+  plain?: boolean;
   title: string;
   variant?: TextVariant;
   numberOfLines?: number;
@@ -367,13 +376,13 @@ type ScreenTitleProps = {
 };
 
 // Le titre d'écran : le dernier mot sur un aplat accent. Le lecteur d'écran lit le titre entier, une seule fois.
-export const ScreenTitle = ({ title, variant = "screen", numberOfLines, testID, style }: ScreenTitleProps) => {
+export const ScreenTitle = ({ title, variant = "screen", numberOfLines, testID, style, plain }: ScreenTitleProps) => {
   const p = usePalette();
   const { lead, mark } = splitTitle(title);
-  if (p.work)
+  if (p.work || plain)
     return (
       <T
-        variant={variant === "screen" ? "title1" : variant}
+        variant={variant === "screen" && !plain ? "title1" : variant}
         heading
         testID={testID}
         numberOfLines={numberOfLines}
@@ -462,9 +471,15 @@ export const LaneLine = () => {
   );
 };
 
+export const MutedChevron = () => {
+  const p = usePalette();
+  return <ChevronRight size={18} color={p.textMuted} accessibilityElementsHidden importantForAccessibility="no" />;
+};
+
 // Même poids visuel pour chaque pratique ; le libellé porte toujours le sens.
 export const ActivityTag = ({ type }: { type: SessionType }) => {
-  const tint = tokens.activity[type];
+  const p = usePalette();
+  const tint = (p.work && p.dark ? tokens.activityDark : tokens.activity)[type];
   return (
     <View
       style={{

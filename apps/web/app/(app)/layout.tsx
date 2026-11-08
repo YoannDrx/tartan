@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
+import { THEME_COOKIE, themePreference } from "@/features/shell/theme";
 import { OfflineProvider } from "@/features/offline/offline-provider";
 import { AppShell } from "@/features/shell/app-shell";
 import { requireSpace } from "@/features/shell/space";
@@ -10,18 +12,21 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const { actor, spaces, space, staff } = await requireSpace();
   const [askSatisfaction, me] = await Promise.all([shouldAskSatisfaction(actor.userId), getMe(actor.userId)]);
   const name = `${me.firstName ?? ""} ${me.lastName ?? ""}`.trim() || null;
+  const theme = themePreference((await cookies()).get(THEME_COOKIE)?.value);
   return (
-    <OfflineProvider organizationId={space.organizationId} userId={actor.userId}>
-      <AppShell
-        staff={staff}
-        spaces={spaces}
-        space={space}
-        account={{ name, email: me.email }}
-        admin={isAdmin(actor.email)}
-        askSatisfaction={askSatisfaction}
-      >
-        {children}
-      </AppShell>
-    </OfflineProvider>
+    <div data-theme={theme}>
+      <OfflineProvider organizationId={space.organizationId} userId={actor.userId}>
+        <AppShell
+          staff={staff}
+          spaces={spaces}
+          space={space}
+          account={{ name, email: me.email }}
+          admin={isAdmin(actor.email)}
+          askSatisfaction={askSatisfaction}
+        >
+          {children}
+        </AppShell>
+      </OfflineProvider>
+    </div>
   );
 }

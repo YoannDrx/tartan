@@ -1,7 +1,8 @@
 import { tokens } from "@tartan/design-tokens";
 import { createContext, useContext, type ReactNode } from "react";
-import { useWindowDimensions, type TextStyle } from "react-native";
+import { useColorScheme, useWindowDimensions, type TextStyle } from "react-native";
 import { palettes, type Palette, type SceneName } from "./palettes";
+import { useThemePreference } from "./theme-preference";
 
 const c = tokens.color;
 const s = tokens.scene;
@@ -9,6 +10,16 @@ const s = tokens.scene;
 export { palettes, type Palette, type SceneName, type WorldName } from "./palettes";
 
 const SceneContext = createContext<Palette>(palettes.piste);
+
+export const useDarkTheme = (): boolean => {
+  const preference = useThemePreference((state) => state.preference);
+  const system = useColorScheme();
+  return preference === "dark" || (preference === "system" && system === "dark");
+};
+
+// Le thème choisi ne change que les écrans de travail ; accueil, vidéo et mode séance gardent leur scène.
+const themedScene = (scene: SceneName, dark: boolean): SceneName =>
+  !dark ? scene : scene === "work" ? "workDark" : scene === "workCard" ? "workCardDark" : scene;
 
 // Un monde par rubrique, l'encre pour le mode séance et la vidéo : le choix suit la scène.
 export const Scene = ({
@@ -19,7 +30,14 @@ export const Scene = ({
   scene?: SceneName;
   dark?: boolean;
   children: ReactNode;
-}) => <SceneContext.Provider value={palettes[scene ?? (dark ? "encre" : "piste")]}>{children}</SceneContext.Provider>;
+}) => {
+  const darkTheme = useDarkTheme();
+  return (
+    <SceneContext.Provider value={palettes[themedScene(scene ?? (dark ? "encre" : "piste"), darkTheme)]}>
+      {children}
+    </SceneContext.Provider>
+  );
+};
 
 export const usePalette = (): Palette => useContext(SceneContext);
 

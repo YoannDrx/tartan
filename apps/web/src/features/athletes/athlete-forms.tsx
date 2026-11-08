@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/ui/date-input";
 import { m } from "@tartan/i18n";
 import type { ExerciseSummary, PerformanceEntry } from "@tartan/contracts";
 import Link from "next/link";
@@ -100,9 +101,8 @@ export const AthleteDialog = ({
           </Field>
           <Field label={m.invite.birthDate} error={missingBirth ? m.age.athleteRequired : undefined}>
             {(a) => (
-              <Input
+              <DateInput
                 {...a}
-                type="date"
                 value={v.birthDate ?? ""}
                 onChange={(e) => setV({ ...v, birthDate: e.target.value || null })}
               />
@@ -403,9 +403,7 @@ export const TestDialog = ({
           </Field>
         </div>
         <Field label={m.builder.date}>
-          {(a) => (
-            <Input {...a} type="date" required value={v.date} onChange={(e) => setV({ ...v, date: e.target.value })} />
-          )}
+          {(a) => <DateInput {...a} required value={v.date} onChange={(e) => setV({ ...v, date: e.target.value })} />}
         </Field>
         {progressionEnabled ? (
           <CheckRow
@@ -588,9 +586,7 @@ export const PerformanceDialog = ({ athleteId, initial }: { athleteId: string; i
           )}
         </Field>
         <Field label={m.builder.date}>
-          {(a) => (
-            <Input {...a} type="date" required value={v.date} onChange={(e) => setV({ ...v, date: e.target.value })} />
-          )}
+          {(a) => <DateInput {...a} required value={v.date} onChange={(e) => setV({ ...v, date: e.target.value })} />}
         </Field>
         <Field label={m.builder.location}>
           {(a) => (
@@ -703,9 +699,8 @@ export const InjuryDialog = ({
           </Field>
           <Field label="Début">
             {(a) => (
-              <Input
+              <DateInput
                 {...a}
-                type="date"
                 required
                 value={v.startDate}
                 onChange={(e) => setV({ ...v, startDate: e.target.value })}
@@ -713,9 +708,7 @@ export const InjuryDialog = ({
             )}
           </Field>
           <Field label="Fin">
-            {(a) => (
-              <Input {...a} type="date" value={v.endDate} onChange={(e) => setV({ ...v, endDate: e.target.value })} />
-            )}
+            {(a) => <DateInput {...a} value={v.endDate} onChange={(e) => setV({ ...v, endDate: e.target.value })} />}
           </Field>
         </div>
         <Field label="Statut">

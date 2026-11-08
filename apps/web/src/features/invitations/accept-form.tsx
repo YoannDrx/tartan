@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/ui/date-input";
 import { ageAt, requiresParentalConsent } from "@tartan/domain";
 import { confirmAgeInput } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
@@ -98,9 +99,8 @@ export const AcceptForm = ({
       </div>
       <Field label={m.invite.birthDate} error={fieldErrors?.birthDate?._errors?.[0]}>
         {(a) => (
-          <Input
+          <DateInput
             {...a}
-            type="date"
             autoComplete="bday"
             value={values.birthDate}
             readOnly={Boolean(birthDate) && !parentalFlow}

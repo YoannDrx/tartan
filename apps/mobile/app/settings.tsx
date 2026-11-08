@@ -1,3 +1,4 @@
+import { themePreferences, useThemePreference } from "../src/ui/theme-preference";
 import { legalLinks } from "../src/lib/legal-links";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@tartan/api-client";
@@ -16,7 +17,7 @@ import { homeFor, useSpaceStore } from "../src/lib/space-store";
 import { useOpQueue } from "../src/lib/sync/op-queue";
 import { useUploads } from "../src/lib/upload/upload-queue";
 import { Check, ChevronRight } from "../src/ui/icons";
-import { Button, Card, Divider, Field, ListSurface, SectionTitle, T } from "../src/ui/primitives";
+import { Button, Card, Chip, Divider, Field, ListSurface, SectionTitle, T, MutedChevron } from "../src/ui/primitives";
 import { StackScreen } from "../src/ui/screen";
 import { Sheet } from "../src/ui/sheet";
 import { ErrorState, LoadingState } from "../src/ui/states";
@@ -88,12 +89,7 @@ const LinkRow = ({ label, onPress }: { label: string; onPress: () => void }) => 
     <T variant="small" style={{ flex: 1 }}>
       {label}
     </T>
-    <ChevronRight
-      size={18}
-      color={palettes.work.textMuted}
-      accessibilityElementsHidden
-      importantForAccessibility="no"
-    />
+    <MutedChevron />
   </Pressable>
 );
 
@@ -102,6 +98,8 @@ export default function Settings() {
   const client = useQueryClient();
   const router = useRouter();
   const signOut = useSession((s) => s.signOut);
+  const theme = useThemePreference((state) => state.preference);
+  const setTheme = useThemePreference((state) => state.setPreference);
   const expire = useSession((s) => s.expire);
   const activeSpaceId = useSpaceStore((s) => s.activeOrgId);
   const setActive = useSpaceStore((s) => s.setActive);
@@ -207,6 +205,23 @@ export default function Settings() {
 
   return (
     <StackScreen world="work" title={m.settings.title}>
+      <View style={{ gap: space.sm }}>
+        <SectionTitle>{m.appearance.title}</SectionTitle>
+        <T variant="caption" tone="muted">
+          {m.appearance.hint}
+        </T>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+          {themePreferences.map((option) => (
+            <Chip
+              key={option}
+              tall
+              label={m.appearance[option]}
+              active={theme === option}
+              onPress={() => setTheme(option)}
+            />
+          ))}
+        </View>
+      </View>
       <View style={{ gap: space.sm }}>
         <SectionTitle>{m.settings.profile}</SectionTitle>
         <Card>

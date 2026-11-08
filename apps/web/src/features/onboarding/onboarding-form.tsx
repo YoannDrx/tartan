@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/ui/date-input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
@@ -97,12 +98,17 @@ export const OnboardingForm = ({
         </div>
         <Field label={m.invite.birthDate} error={errors.birthDate?.message}>
           {(a) => (
-            <Input
+            <DateInput
               {...a}
-              type="date"
               autoComplete="bday"
               readOnly={Boolean(birthDate)}
-              {...form.register("birthDate")}
+              value={form.watch("birthDate") ?? ""}
+              onChange={(event) =>
+                form.setValue("birthDate", event.target.value, {
+                  shouldDirty: true,
+                  shouldValidate: form.formState.isSubmitted,
+                })
+              }
             />
           )}
         </Field>

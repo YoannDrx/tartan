@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput, DateTimeInput } from "@/components/ui/date-input";
 import { markInstallOpportunity } from "@/features/shell/install-opportunity";
 
 import { withSessionReturn } from "@/lib/session-navigation";
@@ -541,7 +542,7 @@ export const SessionBuilder = ({
             )}
           </Field>
           <Field label={m.builder.date}>
-            {(a) => <Input {...a} type="date" value={date} onChange={(e) => setDate(e.target.value)} />}
+            {(a) => <DateInput {...a} value={date} onChange={(e) => setDate(e.target.value)} />}
           </Field>
           <Field label={m.builder.time}>
             {(a) => <Input {...a} type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />}
@@ -948,14 +949,7 @@ export const SessionBuilder = ({
           scheduling ? (
             <div className="flex flex-wrap items-end gap-2">
               <Field label={m.builder.scheduleAt} hint={m.builder.scheduleHint}>
-                {(a) => (
-                  <Input
-                    {...a}
-                    type="datetime-local"
-                    value={publishAt}
-                    onChange={(e) => setPublishAt(e.target.value)}
-                  />
-                )}
+                {(a) => <DateTimeInput {...a} value={publishAt} onChange={(e) => setPublishAt(e.target.value)} />}
               </Field>
               <Button
                 variant="secondary"

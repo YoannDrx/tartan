@@ -1,3 +1,4 @@
+import { DateInput } from "@/components/ui/date-input";
 import { notFound } from "next/navigation";
 import { trainingAnalysisQuery } from "@tartan/contracts";
 import { historyRange } from "@tartan/domain";
@@ -95,10 +96,10 @@ export default async function AnalysisPage({
             {search.target ? <input type="hidden" name="target" value={search.target} /> : null}
             <p className="text-soft sm:col-span-3">{m.analysis.phaseRangeHint}</p>
             <Field label={m.analysis.rangeFrom}>
-              {(props) => <Input {...props} type="date" name="from" required defaultValue={from} />}
+              {(props) => <DateInput {...props} name="from" required defaultValue={from} />}
             </Field>
             <Field label={m.analysis.rangeTo}>
-              {(props) => <Input {...props} type="date" name="to" required defaultValue={to} />}
+              {(props) => <DateInput {...props} name="to" required defaultValue={to} />}
             </Field>
             <Button type="submit">{m.analysis.applyRange}</Button>
           </form>

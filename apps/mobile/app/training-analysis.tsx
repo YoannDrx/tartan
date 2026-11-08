@@ -1,3 +1,4 @@
+import { DateField } from "../src/ui/date-field";
 import { trainingAnalysisQuery } from "@tartan/contracts";
 import { historyRange } from "@tartan/domain";
 import { m } from "@tartan/i18n";
@@ -147,19 +148,17 @@ function AnalysisPanel({
               {rangeExpanded || !parsed.success ? (
                 <>
                   <T tone="muted">{t.phaseRangeHint}</T>
-                  <Field
+                  <DateField
                     label={t.rangeFrom}
                     value={range.from}
-                    placeholder={m.trainingPhases.dateFormat}
                     onChangeText={(from) => {
                       setRangeExpanded(true);
                       setPhaseRange({ ...range, from });
                     }}
                   />
-                  <Field
+                  <DateField
                     label={t.rangeTo}
                     value={range.to}
-                    placeholder={m.trainingPhases.dateFormat}
                     onChangeText={(to) => {
                       setRangeExpanded(true);
                       setPhaseRange({ ...range, to });

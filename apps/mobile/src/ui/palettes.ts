@@ -8,7 +8,7 @@ const w = tokens.work;
 // Un monde remplit l'écran d'une rubrique ; les trois autres scènes sont posées dessus ou le remplacent :
 // card : dans une carte encre ou une feuille ; encre : mode séance, capture et vidéo ; hero : la seule carte craie.
 export type WorldName = "piste" | "couloir" | "craie" | "soleil" | "nuit" | "work";
-export type SceneName = WorldName | "workCard" | "nuitCard" | "card" | "encre" | "hero";
+export type SceneName = WorldName | "workCard" | "workDark" | "workCardDark" | "nuitCard" | "card" | "encre" | "hero";
 
 export type Palette = {
   name: SceneName;
@@ -129,7 +129,36 @@ const workBase = {
   jumperHair: w.text,
 } as const satisfies Omit<Palette, "name">;
 
+const d = tokens.workDark;
+
+const workDarkBase = {
+  ...workBase,
+  dark: true,
+  cardScene: "workCardDark",
+  bg: d.page,
+  surface: d.surface,
+  surfaceAlt: d.raised,
+  raised: d.raised,
+  onRaised: d.text,
+  text: d.text,
+  textMuted: d.muted,
+  border: d.border,
+  lane: tokens.band.lane,
+  controlLine: d.controlLine,
+  accent: d.action,
+  accentText: d.onAction,
+  link: d.link,
+  focus: d.link,
+  danger: d.status.missed,
+  ripple: d.raised,
+  status: d.status,
+  onStatus: d.onStatus,
+  jumperHair: s.hero,
+} as const satisfies Omit<Palette, "name">;
+
 export const palettes: Record<SceneName, Palette> = {
+  workDark: { ...workDarkBase, name: "workDark", world: true },
+  workCardDark: { ...workDarkBase, name: "workCardDark", bg: d.surface, surface: d.raised },
   work: { ...workBase, name: "work", world: true },
   workCard: { ...workBase, name: "workCard", bg: w.surface, surface: w.page },
   piste: { ...fullWorld(s.page, s.onPage), name: "piste", accent: s.actionOnPage, accentText: s.onActionOnPage },

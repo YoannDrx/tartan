@@ -1,3 +1,4 @@
+import { DateField } from "../../src/ui/date-field";
 import { performanceInput, updatePerformanceInput, type PerformanceEntry } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { useQueryClient } from "@tanstack/react-query";
@@ -167,12 +168,11 @@ const Form = ({
           onChangeText={setWind}
           editable={!saving && !saved}
         />
-        <Field
+        <DateField
           error={errors.date}
           label={m.builder.date}
           value={date}
           onChangeText={setDate}
-          placeholder={m.nativeBuilder.dateHint}
           editable={!saving && !saved}
         />
         <Field

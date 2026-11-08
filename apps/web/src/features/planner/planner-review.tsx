@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/ui/date-input";
 import {
   sessionType,
   sessionTextLimits,
@@ -125,9 +126,8 @@ export function PlannerDraftReview({
             </Field>
             <Field label={m.trainingPhases.start}>
               {(a) => (
-                <Input
+                <DateInput
                   {...a}
-                  type="date"
                   min={proposal.selection.period.from}
                   max={proposal.selection.period.to}
                   value={session.date}

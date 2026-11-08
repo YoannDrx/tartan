@@ -58,7 +58,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     scheme,
     orientation: "portrait",
     icon: "./assets/brand/icon-ios.png",
-    userInterfaceStyle: "dark",
+    userInterfaceStyle: "automatic",
     backgroundColor: BRICK,
     ios: {
       supportsTablet: false,

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useActiveSpace, useAthletes } from "../../src/lib/queries";
 import { ChevronRight, UserPlus } from "../../src/ui/icons";
-import { Button, Divider, Field, ListSurface, T } from "../../src/ui/primitives";
+import { Button, Divider, Field, ListSurface, T, MutedChevron } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { palettes, space } from "../../src/ui/theme";
@@ -90,12 +90,7 @@ export default function Athletes() {
                       </T>
                     ) : null}
                   </View>
-                  <ChevronRight
-                    size={18}
-                    color={palettes.work.textMuted}
-                    accessibilityElementsHidden
-                    importantForAccessibility="no"
-                  />
+                  <MutedChevron />
                 </Pressable>
               </View>
             );

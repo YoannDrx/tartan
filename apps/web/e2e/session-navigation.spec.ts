@@ -40,7 +40,7 @@ test("garde le groupe et la période du calendrier jusqu'au brouillon, à la pub
   await page.goto(returnTo, { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: m.nav.calendrier, exact: true })).toBeVisible();
   await page.getByRole("link", { name: m.coach.newSession, exact: true }).click();
-  await expect(page.getByLabel(m.builder.date, { exact: true })).toHaveValue(week);
+  await expect(page.getByLabel(m.builder.date, { exact: true })).toHaveValue("07/12/2026");
   await expect(page.getByRole("checkbox", { name: /Force sprint/ })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: /Hauteur Élite/ })).not.toBeChecked();
   await page.getByLabel("Titre", { exact: true }).fill("Force avec contexte conservé");
@@ -130,7 +130,7 @@ test("garde le groupe et la période du calendrier jusqu'au brouillon, à la pub
   // La vue mois conserve également son filtre et propose le premier jour du mois consulté.
   await page.goto(`/calendrier?vue=mois&mois=2027-01&groupe=${groupId}`);
   await page.getByRole("link", { name: m.coach.newSession, exact: true }).click();
-  await expect(page.getByLabel(m.builder.date, { exact: true })).toHaveValue("2027-01-01");
+  await expect(page.getByLabel(m.builder.date, { exact: true })).toHaveValue("01/01/2027");
   await page.getByRole("link", { name: m.calendar.backToContext, exact: true }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe("/calendrier");
   expect(new URL(page.url()).searchParams.get("mois")).toBe("2027-01");

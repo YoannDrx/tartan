@@ -10,14 +10,8 @@ env:
     timeout: 30000
 - assertVisible: "Ta date de naissance"
 - tapOn:
-    id: birth-day
-- inputText: "12"
-- tapOn:
-    id: birth-month
-- inputText: "05"
-- tapOn:
-    id: birth-year
-- inputText: "2015"
+    id: birth-date
+- inputText: "12052015"
 - tapOn:
     id: age-confirm
 - extendedWaitUntil:

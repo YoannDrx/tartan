@@ -13,7 +13,7 @@ import {
 } from "../../src/lib/queries";
 import type { CoachAthleteFile } from "../../src/lib/schemas";
 import { AlertTriangle, ChevronRight, UserPlus } from "../../src/ui/icons";
-import { Button, Divider, ListSurface, SectionTitle, T, Tag } from "../../src/ui/primitives";
+import { Button, Divider, ListSurface, SectionTitle, T, Tag, MutedChevron } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { StatusDisc } from "../../src/ui/status";
@@ -396,12 +396,7 @@ export default function AthleteFile() {
                           {fullDay(h.date)}
                         </T>
                       </View>
-                      <ChevronRight
-                        size={18}
-                        color={palettes.work.textMuted}
-                        accessibilityElementsHidden
-                        importantForAccessibility="no"
-                      />
+                      <MutedChevron />
                     </Pressable>
                   </View>
                 );

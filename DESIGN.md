@@ -2,19 +2,21 @@
 
 Lu à chaque session de design. Source produit : `PRODUCT.md` ; état effectivement livré : `docs/livraison-v1-1.md`.
 
-**Décision du fondateur du 7 novembre 2026 — V1.1.** Les surfaces de travail deviennent claires, la navigation compacte et la couleur porte les séances, catégories et états utiles. Cette décision remplace l’obligation du 3 novembre d’un fond vif et de cartes encre sur chaque écran. L’identité expressive reste disponible sur les accueils, le site et la célébration. La sobriété des espaces de travail de Nolio est une référence d’usage, sans reprise de sa marque ni de ses composants.
-
-**Intention.** Un carnet de préparation physique pour l’athlétisme : lire la semaine, préparer une séance, individualiser et comprendre le réalisé. Rouge piste comme signature, citron comme accent, typographie Barlow. Force, vitesse, puissance, endurance et mobilité ont la même légitimité ; le saut en hauteur conserve ses outils spécialisés dans leur contexte.
+**Décision du fondateur du 8 novembre 2026.** La couleur tartan et les lignes blanches portent toute l’application. Chaque écran de travail ouvre sur un bandeau rouge piste, avec son titre en blanc et deux lignes de couloir d’un bord à l’autre ; la navigation est posée sur la même piste. Le contenu reste lisible sur un fond clair ou sombre, au choix de l’utilisateur (Automatique, Clair, Sombre). Cette décision complète celle du 7 novembre, qui avait retiré la couleur des écrans de travail.
 
 ## Deux régimes, une identité
 
 ### Travail
 
-Calendrier, suivi, constructeur, bibliothèque, fiches athlètes, progrès, listes de vidéos, annonces, réglages et formulaires utilisent un fond craie, des surfaces blanches et du texte encre. Les séparations sont fines ; les chiffres sont tabulaires. Une liste structurée est préférable à une succession de cartes décoratives. Le contenu et l’action principale sont visibles tôt, sans titre de 80 px ni mot systématiquement surligné.
+Calendrier, suivi, constructeur, bibliothèque, fiches athlètes, progrès, listes de vidéos, annonces, réglages et formulaires ouvrent sur le **bandeau piste** : fond `#C4442B`, titre blanc en Barlow Condensed, deux lignes blanches pleine largeur, action principale citron. Barre de navigation et barre d’onglets sont sur la même piste, séparées du contenu par une ligne blanche. Le bandeau ne change pas avec le thème.
 
-Les titres d’écran font 28–32 px, les titres de section 20–22 px, le texte 15–16 px. La navigation garde des cibles de 44 px au minimum. Le rouge identifie l’action principale ou la sélection ; le citron reste un accent et la couleur de la célébration. Une couleur n’est jamais le seul moyen de comprendre un état.
+Sous le bandeau, le contenu suit le thème choisi. En clair : fond craie, surfaces blanches, texte encre, action rouge. En sombre : fond encre, surfaces relevées, texte blanc, action citron. Les séparations sont fines et les chiffres tabulaires. Une liste structurée est préférable à une succession de cartes décoratives. Une couleur n’est jamais le seul moyen de comprendre un état.
 
-Sur desktop, les comparaisons peuvent utiliser plusieurs colonnes et les détails un panneau ; sur téléphone, ils se lisent dans un écran dédié et une colonne. Les interfaces natives appliquent les mêmes rôles et intitulés. Les formulaires, feuilles, menus et dialogues suivent le contexte clair, y compris les éléments rendus dans un portail.
+Les titres de bandeau font 40 px sur téléphone et 52 px sur ordinateur, les titres de section 20–22 px, le texte 15–16 px. La navigation garde des cibles de 44 px au minimum.
+
+Les dates s’affichent et se saisissent toujours en JJ/MM/AAAA, avec le calendrier maison : en-tête piste à deux lignes blanches, jour choisi dans la couleur d’action, année accessible d’un geste. Le serveur et les contrats conservent l’ISO.
+
+Sur desktop, les comparaisons peuvent utiliser plusieurs colonnes et les détails un panneau ; sur téléphone, ils se lisent dans un écran dédié et une colonne. Les interfaces natives appliquent les mêmes rôles et intitulés. Les formulaires, feuilles, menus et dialogues suivent le thème choisi, y compris les éléments rendus dans un portail.
 
 ### Expression et immersion
 
@@ -35,9 +37,9 @@ Source unique : `packages/design-tokens/src/index.ts`. Les valeurs CSS sont un m
 | Blanc       | `#FFFFFF` | Surfaces de travail                        |
 | Citron      | `#C6F432` | Accent, célébration et sélection sur encre |
 
-Les jetons `work` définissent le contexte de travail ; `scene` conserve le contexte expressif et immersif. Les composants utilisent la palette locale : texte, texte secondaire, surface, séparateur, contour de contrôle, action, lien, focus et statut. Un composant partagé ne suppose jamais que sa surface est sombre.
+Les jetons `work` et `workDark` définissent le contenu de travail dans chaque thème, `band` le bandeau piste ; `scene` conserve le contexte expressif et immersif. Les composants utilisent la palette locale : texte, texte secondaire, surface, séparateur, contour de contrôle, action, lien, focus et statut. Un composant partagé ne suppose jamais que sa surface est sombre.
 
-Les mondes historiques Piste, Couloir, Craie, Soleil et Nuit restent des palettes expressives ; ils ne dictent plus la couleur des écrans de travail. La navigation quotidienne est claire, avec sélection rouge et libellé explicite. L’accueil expressif peut garder sa navigation encre. Les e-mails restent clairs dans toutes les messageries.
+Les mondes historiques Piste, Couloir, Craie, Soleil et Nuit restent des palettes expressives ; ils ne dictent plus la couleur des écrans de travail. La navigation quotidienne est sur la piste, avec sélection citron et libellé explicite. L’accueil expressif peut garder sa navigation encre. Les e-mails restent clairs dans toutes les messageries : bandeau piste avec logo complet, message sur blanc, pied de page encre signé « Société Yodev ».
 
 ## Typographie et rythme
 

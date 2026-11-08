@@ -1,3 +1,4 @@
+import { DateInput } from "@/components/ui/date-input";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { trainingPhaseQuery } from "@tartan/contracts";
@@ -45,10 +46,8 @@ export default async function PhasesPage({
         }
       />
       <form className="grid grid-cols-1 items-end gap-3 tablet:grid-cols-2 desktop:grid-cols-4" action="/phases">
-        <Field label={t.start}>
-          {(props) => <Input {...props} type="date" name="from" defaultValue={from} required />}
-        </Field>
-        <Field label={t.end}>{(props) => <Input {...props} type="date" name="to" defaultValue={to} required />}</Field>
+        <Field label={t.start}>{(props) => <DateInput {...props} name="from" defaultValue={from} required />}</Field>
+        <Field label={t.end}>{(props) => <DateInput {...props} name="to" defaultValue={to} required />}</Field>
         {context ? (
           <Field label={t.target}>
             {(props) => (

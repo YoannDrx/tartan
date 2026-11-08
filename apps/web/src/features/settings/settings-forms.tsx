@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/ui/date-input";
 import type { InvitationStatus, TrainingProfile } from "@tartan/contracts";
 import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
@@ -98,7 +99,7 @@ export const ProfileForm = ({
           )}
         </Field>
         <Field label={m.invite.birthDate} hint={m.age.alreadySet}>
-          {(a) => <Input {...a} type="date" value={v.birthDate} readOnly />}
+          {(a) => <DateInput {...a} value={v.birthDate} readOnly />}
         </Field>
         <Field label="Unités">
           {(a) => (

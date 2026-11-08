@@ -1,4 +1,4 @@
-import { Body, Button, Container, Head, Html, Link, Preview, Text } from "@react-email/components";
+import { Body, Button, Container, Head, Html, Img, Link, Preview, Section, Text } from "@react-email/components";
 import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import type { ReactNode } from "react";
@@ -7,12 +7,28 @@ const font = "Barlow, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
 const SITE = "https://tartan.coach";
 
 const FooterLink = ({ href, children }: { href: string; children: ReactNode }) => (
-  <Link href={href} style={{ color: tokens.color.muted, textDecoration: "underline" }}>
+  <Link href={href} style={{ color: tokens.color.white, textDecoration: "underline" }}>
     {children}
   </Link>
 );
 
-// Identité Tartan : ligne encre, carte blanche, action encre et citron. Les mêmes couleurs dans tous les clients.
+const footerText = { color: tokens.color.mutedOnInk, fontSize: 13, lineHeight: "19px" };
+
+// Les deux lignes blanches de la piste, en tableaux : c'est la seule forme fiable dans Outlook.
+const Lanes = () => (
+  <>
+    <Section style={{ backgroundColor: tokens.color.white, height: 2, lineHeight: "2px", fontSize: 1 }}>&nbsp;</Section>
+    <Section style={{ backgroundColor: tokens.band.background, height: 6, lineHeight: "6px", fontSize: 1 }}>
+      &nbsp;
+    </Section>
+    <Section style={{ backgroundColor: tokens.color.white, height: 2, lineHeight: "2px", fontSize: 1 }}>&nbsp;</Section>
+    <Section style={{ backgroundColor: tokens.band.background, height: 10, lineHeight: "10px", fontSize: 1 }}>
+      &nbsp;
+    </Section>
+  </>
+);
+
+// Identité Tartan : bandeau piste et logo complet, message sur blanc, pied de page encre. Clair dans tous les clients.
 export const Layout = ({
   preview,
   footerNote,
@@ -28,32 +44,31 @@ export const Layout = ({
       <meta name="supported-color-schemes" content="light" />
     </Head>
     <Preview>{preview}</Preview>
-    <Body style={{ backgroundColor: tokens.color.bg, fontFamily: font, margin: 0, padding: "32px 16px" }}>
-      <Container
-        style={{
-          backgroundColor: tokens.color.surface,
-          borderRadius: 20,
-          borderTop: `3px solid ${tokens.color.ink}`,
-          maxWidth: 480,
-          padding: 32,
-        }}
-      >
-        <Text style={{ color: tokens.color.ink, fontSize: 20, fontWeight: 700, margin: "0 0 24px" }}>Tartan</Text>
-        {children}
-      </Container>
-      <Container style={{ maxWidth: 480, padding: "16px 32px 0" }}>
-        {footerNote ? (
-          <Text style={{ color: tokens.color.muted, fontSize: 13, lineHeight: "18px", margin: "0 0 8px" }}>
-            {footerNote}
+    <Body style={{ backgroundColor: tokens.color.bg, fontFamily: font, margin: 0, padding: "24px 12px" }}>
+      <Container style={{ borderRadius: 20, maxWidth: 560, overflow: "hidden" }}>
+        <Section style={{ backgroundColor: tokens.band.background, padding: "24px 32px 20px" }}>
+          <Link href={SITE}>
+            <Img
+              src={`${SITE}/brand/logo-email.png`}
+              alt="Tartan"
+              height={36}
+              style={{ display: "block", border: 0 }}
+            />
+          </Link>
+        </Section>
+        <Lanes />
+        <Section style={{ backgroundColor: tokens.color.surface, padding: "32px 32px 16px" }}>{children}</Section>
+        <Section style={{ backgroundColor: tokens.color.ink, padding: "24px 32px 28px" }}>
+          {footerNote ? <Text style={{ ...footerText, margin: "0 0 12px" }}>{footerNote}</Text> : null}
+          <Text style={{ ...footerText, margin: "0 0 12px" }}>
+            <FooterLink href={`${SITE}/mentions-legales`}>{m.email.legal}</FooterLink>
+            {"  ·  "}
+            <FooterLink href={`${SITE}/confidentialite`}>{m.email.privacy}</FooterLink>
+            {"  ·  "}
+            <FooterLink href={`${SITE}/contact`}>{m.email.contact}</FooterLink>
           </Text>
-        ) : null}
-        <Text style={{ color: tokens.color.muted, fontSize: 13, lineHeight: "18px", margin: 0 }}>
-          {m.email.publisher} <FooterLink href={`${SITE}/mentions-legales`}>{m.email.legal}</FooterLink>
-          {" · "}
-          <FooterLink href={`${SITE}/confidentialite`}>{m.email.privacy}</FooterLink>
-          {" · "}
-          <FooterLink href={`${SITE}/contact`}>{m.email.contact}</FooterLink>
-        </Text>
+          <Text style={{ ...footerText, margin: 0 }}>{m.email.publisher}</Text>
+        </Section>
       </Container>
     </Body>
   </Html>
@@ -82,9 +97,9 @@ export const PrimaryLink = ({ href, children }: { href: string; children: ReactN
   <Button
     href={href}
     style={{
-      backgroundColor: tokens.color.ink,
-      borderRadius: 999,
-      color: tokens.color.film.lime,
+      backgroundColor: tokens.band.background,
+      borderRadius: 14,
+      color: tokens.color.white,
       display: "inline-block",
       fontSize: 16,
       fontWeight: 600,
