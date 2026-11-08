@@ -8,6 +8,7 @@ import { Button, Chip, Tag, ActivityTag } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { space } from "../../src/ui/theme";
+import { NativeCalendarPhases } from "../../src/features/training-phases";
 
 // Le groupe et la semaine courante accompagnent la création native.
 export default function Planning() {
@@ -74,6 +75,7 @@ export default function Planning() {
           ))}
         </ScrollView>
       ) : null}
+      <NativeCalendarPhases from={nav.week} to={nav.to} groupId={groupId} />
       {calendar.isPending ? <LoadingState /> : null}
       {calendar.isError && !calendar.data ? (
         <ErrorState error={calendar.error} onRetry={() => void calendar.refetch()} />

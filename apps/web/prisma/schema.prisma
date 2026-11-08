@@ -29,6 +29,7 @@ model User {
   memberships OrganizationMember[]
   ownedOrgs   Organization[]       @relation("OrgOwner")
   athletes    Athlete[]
+  trainingPhases TrainingPhase[]
   devices     Device[]
   consents    Consent[]            @relation("ConsentUser")
 
@@ -176,6 +177,7 @@ model Organization {
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
 
+  trainingPhases TrainingPhase[]
   performanceCreations PerformanceCreation[]
   members           OrganizationMember[]
   groups            Group[]
@@ -241,6 +243,7 @@ model Group {
   updatedAt      DateTime     @updatedAt @map("updated_at")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  trainingPhases TrainingPhase[]
   members       GroupMember[]
   coaches       GroupCoach[]
   announcements Announcement[]
@@ -309,6 +312,7 @@ model Athlete {
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  trainingPhases TrainingPhase[]
   performanceCreations PerformanceCreation[]
   athleteConsents AthleteConsent[]
   groups       GroupMember[]
@@ -1523,4 +1527,33 @@ model SatisfactionAnswer {
   @@index([userId, createdAt])
   @@index([organizationId, createdAt])
   @@map("satisfaction_answers")
+}
+
+model TrainingPhase {
+  id String @id @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  groupId String? @map("group_id") @db.Uuid
+  athleteId String? @map("athlete_id") @db.Uuid
+  createdBy String? @map("created_by") @db.Uuid
+  name String
+  kind String
+  startDate DateTime @map("start_date") @db.Date
+  endDate DateTime @map("end_date") @db.Date
+  objective String @default("")
+  description String @default("")
+  privateNote String @default("") @map("private_note")
+  publishedAt DateTime? @map("published_at")
+  deletedAt DateTime? @map("deleted_at")
+  version Int @default(1)
+  creationFingerprint String @map("creation_fingerprint")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  group Group? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  athlete Athlete? @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  @@index([organizationId, startDate, endDate])
+  @@index([groupId])
+  @@index([athleteId])
+  @@map("training_phases")
 }

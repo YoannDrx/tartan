@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { audit } from "./access";
 
+const sharedPhases = {
+  where: { publishedAt: { not: null }, deletedAt: null },
+  select: { name: true, kind: true, startDate: true, endDate: true, objective: true, description: true },
+} as const;
+
 // Droit d'accès et de portabilité (art. 15 et 20 RGPD, § 15.4) : tout ce qui concerne l'utilisateur,
 // jamais les notes privées d'un coach à son sujet, qui restent des données du coach.
 export const exportMyData = async (userId: string) => {
@@ -27,7 +32,8 @@ export const exportMyData = async (userId: string) => {
       particularities: true,
       organization: { select: { name: true } },
       athleteConsents: { select: { kind: true, version: true, grantedAt: true, revokedAt: true } },
-      groups: { select: { group: { select: { name: true } } } },
+      groups: { select: { group: { select: { name: true, trainingPhases: sharedPhases } } } },
+      trainingPhases: sharedPhases,
       tests: { select: { exerciseKey: true, exerciseId: true, loadKind: true, value: true, kind: true, date: true } },
       strengthReferences: {
         select: { exerciseId: true, valueKg: true, kind: true, loadKind: true, sourceTestId: true, selectedAt: true },
@@ -36,7 +42,18 @@ export const exportMyData = async (userId: string) => {
         select: { scheduledSessionId: true, sessionVersion: true, snapshot: true, origin: true, frozenAt: true },
       },
       performances: {
-        select: { discipline: true, mark: true, unit: true, wind: true, date: true, location: true, isPb: true },
+        select: {
+          discipline: true,
+          mark: true,
+          unit: true,
+          wind: true,
+          date: true,
+          location: true,
+          isPb: true,
+          measurementType: true,
+          recordDirection: true,
+          comparisonContext: true,
+        },
       },
       injuries: {
         select: {

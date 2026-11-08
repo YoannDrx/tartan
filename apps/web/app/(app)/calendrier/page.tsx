@@ -17,6 +17,7 @@ import { getAthleteCalendar } from "@/server/athlete-view.service";
 import { listAthletes } from "@/server/athlete.service";
 import { listGroups } from "@/server/org.service";
 import { listCalendar } from "@/server/session.service";
+import { CalendarPhases } from "@/features/phases/calendar-phases";
 
 export const metadata: Metadata = { title: m.nav.calendrier };
 
@@ -49,6 +50,7 @@ const AthleteCalendar = async ({ ctx }: { ctx: SpaceContext }) => {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
       <PageHeader title={m.nav.calendrier} />
+      <CalendarPhases ctx={ctx} from={today} to={addDays(today, 42)} today={today} />
       <Sheet>
         {competitions.length > 0 ? (
           <section>
@@ -183,6 +185,7 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
             : null}
         </nav>
       </div>
+      <CalendarPhases ctx={ctx} from={from} to={to} today={today} groupId={params.groupe} />
       {isMonth ? (
         <MonthBoard month={month} today={today} data={data} />
       ) : (

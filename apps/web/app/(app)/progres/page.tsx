@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { InjuryDialog } from "@/features/athletes/athlete-forms";
 import { requireAthleteSpace } from "@/features/shell/space";
 import { getMyFile } from "@/server/athlete.service";
+import { CalendarPhases } from "@/features/phases/calendar-phases";
+import { todayIso } from "@/lib/dates";
+import { addDays } from "@tartan/domain";
 
 export const metadata: Metadata = { title: m.nav.progres };
 
@@ -15,7 +18,9 @@ const date = (iso: string) => `${formatDayMonth(iso)} ${iso.slice(0, 4)}`;
 
 // Les courbes par exercice sont disponibles lorsque la progression est activée.
 export default async function ProgresPage() {
-  const { actor, organizationId, space } = await requireAthleteSpace();
+  const ctx = await requireAthleteSpace();
+  const { actor, organizationId, space } = ctx;
+  const today = todayIso();
   const [file, regularity] = await Promise.all([
     getMyFile(actor.userId, organizationId),
     getMyRegularity(actor.userId, organizationId),
@@ -37,6 +42,7 @@ export default async function ProgresPage() {
           ) : null
         }
       />
+      <CalendarPhases ctx={ctx} from={today} to={addDays(today, 83)} today={today} />
       {regularity.total > 0 ? (
         <Sheet>
           <SheetSection title={m.athletes.regularityTitle}>

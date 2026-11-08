@@ -225,6 +225,9 @@ importers:
       '@tanstack/react-query':
         specifier: 5.105.1
         version: 5.105.1(@types/react@19.2.18)(react@19.2.8)
+      '@tartan/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@tartan/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts

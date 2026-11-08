@@ -1,4 +1,4 @@
-import { formatHeight } from "@tartan/domain";
+import { addDays, formatHeight } from "@tartan/domain";
 import { capitalize, formatDayMonth, m, strengthTestLabel } from "@tartan/i18n";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
@@ -7,6 +7,8 @@ import { Button, Divider, ListSurface, SectionTitle, T, Tag } from "../../src/ui
 import { TabScreen } from "../../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { space } from "../../src/ui/theme";
+import { NativeCalendarPhases } from "../../src/features/training-phases";
+import { localIsoDate } from "../../src/lib/dates";
 
 const markLabel = (mark: number, unit: string) => {
   if (unit === "cm") return `${formatHeight(mark)} m`;
@@ -20,6 +22,7 @@ const testKind = (kind: string) => (m.testKind as Record<string, string>)[kind] 
 export default function Progress() {
   const { orgId, space: active } = useActiveSpace();
   const router = useRouter();
+  const today = localIsoDate();
   const file = useAthleteFile(orgId);
   const empty = file.data && file.data.performances.length === 0 && file.data.tests.length === 0;
   return (
@@ -43,6 +46,7 @@ export default function Progress() {
           ) : null}
         </>
       ) : null}
+      <NativeCalendarPhases from={today} to={addDays(today, 83)} />
       {empty ? <EmptyState body={m.mobile.progress.empty} /> : null}
       {file.data && file.data.performances.length > 0 ? (
         <View style={{ gap: space.sm }}>

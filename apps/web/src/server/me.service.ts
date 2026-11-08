@@ -12,13 +12,17 @@ export const listSpaces = async (userId: string): Promise<SpaceSummary[]> => {
   const rows = await prisma.organizationMember.findMany({
     where: { userId, status: "active" },
     orderBy: { createdAt: "asc" },
-    select: { role: true, organization: { select: { id: true, name: true, progressionEnabled: true } } },
+    select: {
+      role: true,
+      organization: { select: { id: true, name: true, progressionEnabled: true, phasesEnabled: true } },
+    },
   });
   const athletes = await prisma.athlete.findMany({ where: { userId }, select: { id: true, organizationId: true } });
   return rows.map((r) => ({
     organizationId: r.organization.id,
     organizationName: r.organization.name,
     progressionEnabled: r.organization.progressionEnabled,
+    phasesEnabled: r.organization.phasesEnabled,
     role: r.role,
     athleteId: r.role === "athlete" ? (athletes.find((a) => a.organizationId === r.organization.id)?.id ?? null) : null,
   }));

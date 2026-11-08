@@ -3,7 +3,13 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   experimental: { serverActions: { bodySizeLimit: "5mb" } },
-  transpilePackages: ["@tartan/contracts", "@tartan/design-tokens", "@tartan/domain", "@tartan/i18n"],
+  transpilePackages: [
+    "@tartan/api-client",
+    "@tartan/contracts",
+    "@tartan/design-tokens",
+    "@tartan/domain",
+    "@tartan/i18n",
+  ],
   serverExternalPackages: ["pg", "@prisma/adapter-pg"],
   images: {
     remotePatterns: [

@@ -338,3 +338,13 @@ Tests 1RM/3RM, estimations du coach, charges réalisées à répétitions égale
 ### Records de séries confirmés
 
 Records toutes périodes, lecture paginée sans troncature, premières références distinctes, corrections et suppressions prises en compte. Réponse de mutation versionnée, encart statique web/natif après accusé direct et aucun rejeu lors de la synchronisation différée. [Preuves](preuves-v1-1/lot-c-records-confirmes.md). La célébration de validation et les records de performances athlé typées restent à implémenter.
+
+### Célébration unique et performances athlé — suite du lot C
+
+La célébration de séance est désormais enrichie des records confirmés, avec revendication serveur unique et respect de la réduction des animations. Les performances athlé disposent de règles comparables, de corrections versionnées et d'une création dédupliquée sur web/natif. Voir [célébration](preuves-v1-1/lot-c-celebration.md) et [performances](preuves-v1-1/lot-c-performances-athle.md). Les recettes physiques restent ouvertes.
+
+### Phases de préparation — gestion et partage
+
+Création privée, partage explicite, groupe ou athlète, périodes libres sans chevauchement, frise calendrier, accès Progrès et gestion native. Versions, concurrence, reprise de création, export et conservation testés ; aucune modification automatique des séances. 549 tests serveur, 131 domaine, 201 mobiles et deux parcours navigateur de production réussis. Preview à 31 migrations, production inchangée. [Preuves et limites](preuves-v1-1/lot-d-phases.md).
+
+Les règles de priorité individuelle et de choix multi-groupes sont testées, mais leur intégration au contexte des constructeurs reste ouverte, ainsi que les analyses complètes du lot D et l'IA du lot E. Les écrans natifs de ce lot restent à éprouver sur simulateur et téléphones. PR #45 reste en brouillon.

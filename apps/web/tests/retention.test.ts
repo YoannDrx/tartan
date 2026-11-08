@@ -4,6 +4,7 @@ import { outbox } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 import { RETENTION_DAYS, runRetention } from "@/server/retention.service";
 import { makeOrg, makeUser } from "./helpers";
+import { saveTrainingPhase, deleteTrainingPhase } from "@/server/training-phases.service";
 
 const NOW = new Date();
 const DAY = 86_400_000;
@@ -100,6 +101,31 @@ describe("durées de conservation", () => {
     expect(await prisma.user.count({ where: { id: user.userId } })).toBe(1);
     await runRetention(new Date(NOW.getTime() + 31 * DAY));
     expect(await prisma.user.count({ where: { id: user.userId } })).toBe(0);
+  });
+  it("une programmation individuelle récente protège la fiche sans compte, une phase retirée ne la prolonge pas", async () => {
+    const a = await makeOrg("PhaseSuivie");
+    await prisma.organization.update({ where: { id: a.organizationId }, data: { phasesEnabled: true } });
+    const athlete = await prisma.athlete.create({
+      data: { organizationId: a.organizationId, firstName: "Suivi", lastName: "Phase", updatedAt: daysAgo(400) },
+    });
+    const phase = await saveTrainingPhase(a.owner.userId, a.organizationId, {
+      id: randomUUID(),
+      expectedVersion: 0,
+      target: { type: "athlete", id: athlete.id },
+      name: "Reprise",
+      kind: "general",
+      startDate: "2030-01-01",
+      endDate: "2030-03-31",
+      objective: "",
+      description: "",
+      privateNote: "",
+    });
+    await runRetention(NOW);
+    expect(await prisma.athlete.count({ where: { id: athlete.id } })).toBe(1);
+    await deleteTrainingPhase(a.owner.userId, a.organizationId, phase.id, { expectedVersion: 1 });
+    await runRetention(NOW);
+    expect(await prisma.athlete.count({ where: { id: athlete.id } })).toBe(0);
+    expect(await prisma.trainingPhase.count({ where: { id: phase.id } })).toBe(0);
   });
   it("se reconnecter lève le préavis", async () => {
     const user = await makeUser("Retour");

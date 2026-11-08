@@ -1,4 +1,9 @@
 import {
+  trainingPhaseList,
+  trainingPhaseContext,
+  trainingPhaseWriteResult,
+  type TrainingPhaseQuery,
+  type SaveTrainingPhaseInput,
   performanceWriteResult,
   type PerformanceInput,
   type UpdatePerformanceInput,
@@ -102,6 +107,20 @@ export const createApiClient = (options: ApiClientOptions) => {
   };
 
   return {
+    trainingPhases: (orgId: string, query: TrainingPhaseQuery) =>
+      request("GET", `/orgs/${orgId}/phases`, trainingPhaseList, undefined, query),
+    trainingPhaseContext: (orgId: string) => request("GET", `/orgs/${orgId}/phases/context`, trainingPhaseContext),
+    saveTrainingPhase: (orgId: string, body: SaveTrainingPhaseInput) =>
+      request("POST", `/orgs/${orgId}/phases`, trainingPhaseWriteResult, body),
+    setTrainingPhaseVisibility: (orgId: string, phaseId: string, expectedVersion: number, shared: boolean) =>
+      request("PUT", `/orgs/${orgId}/phases/${phaseId}/visibility`, trainingPhaseWriteResult, {
+        expectedVersion,
+        shared,
+      }),
+    deleteTrainingPhase: (orgId: string, phaseId: string, expectedVersion: number) =>
+      request("DELETE", `/orgs/${orgId}/phases/${phaseId}`, trainingPhaseWriteResult, undefined, {
+        expectedVersion: String(expectedVersion),
+      }),
     me: () => request("GET", "/me", meResponse),
     exportMyData: () => request("GET", "/me/export", z.any()),
     billing: (orgId: string) => request("GET", `/orgs/${orgId}/billing`, z.any()),

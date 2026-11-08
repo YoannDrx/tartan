@@ -49,6 +49,7 @@ const purgeSheetsWithoutAccount = async (now: Date): Promise<number> => {
       logs: noRecent,
       attendance: noRecent,
       performances: noRecent,
+      trainingPhases: { none: { deletedAt: null, updatedAt: { gte: before } } },
       tests: noRecent,
       jumps: noRecent,
       coachNotes: noRecent,
