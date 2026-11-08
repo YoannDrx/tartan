@@ -1,3 +1,4 @@
+import { DateField } from "../ui/date-field";
 import { plannerPeriod, plannerSelection, type PlannerSelection } from "@tartan/contracts";
 import { addDays, phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
 import { m } from "@tartan/i18n";
@@ -126,17 +127,15 @@ export function NativePlannerSelection({
     <View style={{ gap: space.md }}>
       <SectionTitle>{t.period}</SectionTitle>
       <T>{t.periodHint}</T>
-      <Field
+      <DateField
         label={m.trainingPhases.start}
         value={selection.period.from}
         onChangeText={(from) => update({ period: { ...selection.period, from } })}
-        hint={m.trainingPhases.dateFormat}
       />
-      <Field
+      <DateField
         label={m.trainingPhases.end}
         value={selection.period.to}
         onChangeText={(to) => update({ period: { ...selection.period, to } })}
-        hint={m.trainingPhases.dateFormat}
       />
       {!dates.length ? (
         <T tone="danger" accessibilityLiveRegion="polite">

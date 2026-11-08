@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/ui/date-input";
 import { plannerPeriod, plannerSelection, type PlannerSelection } from "@tartan/contracts";
 import { addDays, phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
 import { m, historyDate } from "@tartan/i18n";
@@ -121,9 +122,8 @@ export function PlannerSelectionForm({
         <p className="text-soft tablet:col-span-2">{t.periodHint}</p>
         <Field label={m.trainingPhases.start}>
           {(a) => (
-            <Input
+            <DateInput
               {...a}
-              type="date"
               required
               value={selection.period.from}
               onChange={(e) => update({ period: { ...selection.period, from: e.target.value } })}
@@ -132,9 +132,8 @@ export function PlannerSelectionForm({
         </Field>
         <Field label={m.trainingPhases.end}>
           {(a) => (
-            <Input
+            <DateInput
               {...a}
-              type="date"
               required
               value={selection.period.to}
               onChange={(e) => update({ period: { ...selection.period, to: e.target.value } })}

@@ -1,7 +1,6 @@
 import { m } from "@tartan/i18n";
-import { View } from "react-native";
-import { Field, T } from "../ui/primitives";
-import { space } from "../ui/theme";
+import { localIsoDate } from "../lib/dates";
+import { DateField } from "../ui/date-field";
 
 export type BirthParts = { day: string; month: string; year: string };
 
@@ -15,7 +14,8 @@ export const toIsoBirthDate = ({ day, month, year }: BirthParts): string | null 
   return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 };
 
-const digits = (value: string) => value.replace(/\D/g, "");
+const partsOf = (iso: string): BirthParts =>
+  iso ? { year: iso.slice(0, 4), month: iso.slice(5, 7), day: iso.slice(8, 10) } : { day: "", month: "", year: "" };
 
 // Neutre : ni valeur préremplie, ni mention d'un âge minimal.
 export const BirthDateField = ({
@@ -27,47 +27,12 @@ export const BirthDateField = ({
   onChange: (next: BirthParts) => void;
   error?: string;
 }) => (
-  <View style={{ gap: space.xs + 2 }}>
-    <T variant="smallStrong">{m.invite.birthDate}</T>
-    <View style={{ flexDirection: "row", gap: space.sm }}>
-      <Field
-        testID="birth-day"
-        label={m.mobile.invite.day}
-        hideLabel
-        placeholder={m.mobile.invite.day}
-        value={value.day}
-        onChangeText={(v) => onChange({ ...value, day: digits(v) })}
-        keyboardType="number-pad"
-        maxLength={2}
-        containerStyle={{ flex: 1 }}
-      />
-      <Field
-        testID="birth-month"
-        label={m.mobile.invite.month}
-        hideLabel
-        placeholder={m.mobile.invite.month}
-        value={value.month}
-        onChangeText={(v) => onChange({ ...value, month: digits(v) })}
-        keyboardType="number-pad"
-        maxLength={2}
-        containerStyle={{ flex: 1 }}
-      />
-      <Field
-        testID="birth-year"
-        label={m.mobile.invite.year}
-        hideLabel
-        placeholder={m.mobile.invite.year}
-        value={value.year}
-        onChangeText={(v) => onChange({ ...value, year: digits(v) })}
-        keyboardType="number-pad"
-        maxLength={4}
-        containerStyle={{ flex: 1.3 }}
-      />
-    </View>
-    {error ? (
-      <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
-        {error}
-      </T>
-    ) : null}
-  </View>
+  <DateField
+    testID="birth-date"
+    label={m.invite.birthDate}
+    value={toIsoBirthDate(value) ?? ""}
+    max={localIsoDate()}
+    error={error}
+    onChangeText={(iso) => onChange(partsOf(iso))}
+  />
 );

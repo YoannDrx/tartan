@@ -28,12 +28,16 @@ export const BuilderPage = async ({
   const groupUnavailable = defaultGroupId !== undefined && !context.groups.some((group) => group.id === defaultGroupId);
   return (
     <div className="flex flex-col gap-4">
-      {returnTo ? (
-        <Link href={returnTo} className="inline-flex min-h-11 items-center font-semibold">
-          {m.calendar.backToContext}
-        </Link>
-      ) : null}
-      <PageHeader title={initial ? initial.draft.title : m.coach.newSession} />
+      <PageHeader
+        title={initial ? initial.draft.title : m.coach.newSession}
+        before={
+          returnTo ? (
+            <Link href={returnTo} className="inline-flex min-h-11 items-center font-semibold">
+              {m.calendar.backToContext}
+            </Link>
+          ) : undefined
+        }
+      />
       {groupUnavailable ? <p role="status">{m.calendar.groupUnavailable}</p> : null}
       <SessionBuilder
         organizationId={organizationId}

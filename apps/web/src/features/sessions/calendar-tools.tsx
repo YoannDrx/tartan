@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/ui/date-input";
 import { addDays } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useAction } from "next-safe-action/hooks";
@@ -43,7 +44,7 @@ export const DuplicateWeekDialog = ({ week, groups }: { week: string; groups: { 
         }}
       >
         <Field label="Vers la semaine du" hint="Choisis le lundi de la semaine.">
-          {(a) => <Input {...a} type="date" required value={toWeek} onChange={(e) => setToWeek(e.target.value)} />}
+          {(a) => <DateInput {...a} required value={toWeek} onChange={(e) => setToWeek(e.target.value)} />}
         </Field>
         <Field label="Pour le groupe">
           {(a) => (
@@ -108,9 +109,8 @@ export const CompetitionDialog = ({
         </Field>
         <Field label={m.builder.date}>
           {(a) => (
-            <Input
+            <DateInput
               {...a}
-              type="date"
               required
               value={values.date}
               onChange={(e) => setValues({ ...values, date: e.target.value })}

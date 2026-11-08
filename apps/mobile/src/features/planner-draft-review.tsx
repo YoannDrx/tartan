@@ -1,3 +1,4 @@
+import { DateField } from "../ui/date-field";
 import {
   sessionType,
   sessionTextLimits,
@@ -99,11 +100,10 @@ export function PlannerDraftReview({
             }
             onChangeText={(title) => change({ draft: { ...session.draft, title } })}
           />
-          <Field
+          <DateField
             label={m.trainingPhases.start}
             value={session.date}
             editable={!busy}
-            hint={m.trainingPhases.dateFormat}
             onChangeText={(date) => change({ date, phaseReview: undefined })}
           />
           <Field

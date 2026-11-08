@@ -18,11 +18,13 @@ export * from "./history";
 export const withFirstOfMonth = (label: string): string => label.replace(/(^|\s)1 (?=\p{L})/u, "$11er ");
 
 export const formatDateLong = (isoDate: string): string =>
-  withFirstOfMonth(
-    new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(
-      new Date(`${isoDate}T12:00:00.000Z`),
-    ),
-  );
+  !/^\d{4}-\d{2}-\d{2}/.test(isoDate)
+    ? ""
+    : withFirstOfMonth(
+        new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(
+          new Date(`${isoDate}T12:00:00.000Z`),
+        ),
+      );
 
 export const formatDayMonth = (isoDate: string): string =>
   withFirstOfMonth(

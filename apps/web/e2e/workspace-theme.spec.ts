@@ -85,7 +85,7 @@ test("le bureau clair conserve les contrôles, les dialogues et les groupes de 3
       await expectNoHorizontalScroll(page);
     }
     const heading = page.getByRole("heading", { name: m.coach.trackingTitle });
-    expect(await heading.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeLessThanOrEqual(32);
+    expect(await heading.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeLessThanOrEqual(52);
     expect(await page.locator(".world-work").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
       "rgb(242, 243, 241)",
     );

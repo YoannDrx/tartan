@@ -1,3 +1,4 @@
+import { DateField } from "../src/ui/date-field";
 import {
   saveTrainingPhaseInput,
   trainingPhaseKind,
@@ -143,15 +144,14 @@ function PhaseForm({
           />
         ))}
       </View>
-      <Field
+      <DateField
         label={t.start}
         value={value.startDate}
         onChangeText={(v) => field("startDate", v)}
-        hint={t.dateFormat}
         error={issues.startDate}
         editable={!busy && !saved}
       />
-      <Field
+      <DateField
         label={t.end}
         value={value.endDate}
         onChangeText={(v) => field("endDate", v)}
@@ -359,13 +359,8 @@ function PhasePanel({
           ) : null}
         </>
       ) : null}
-      <Field
-        label={t.start}
-        value={dates.from}
-        onChangeText={(from) => setDates({ ...dates, from })}
-        hint={t.dateFormat}
-      />
-      <Field label={t.end} value={dates.to} onChangeText={(to) => setDates({ ...dates, to })} hint={t.dateFormat} />
+      <DateField label={t.start} value={dates.from} onChangeText={(from) => setDates({ ...dates, from })} />
+      <DateField label={t.end} value={dates.to} onChangeText={(to) => setDates({ ...dates, to })} />
       <Button
         label={t.filter}
         variant="secondary"

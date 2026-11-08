@@ -1,3 +1,4 @@
+import { DateField } from "../../ui/date-field";
 import { usePreventRemove } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@tartan/api-client";
@@ -706,12 +707,7 @@ export const NativeSessionBuilder = ({
           maxLength={120}
           onChangeText={(title) => draft({ title })}
         />
-        <Field
-          label={m.builder.date}
-          value={form.date}
-          placeholder={m.nativeBuilder.dateHint}
-          onChangeText={(date) => change({ date })}
-        />
+        <DateField label={m.builder.date} value={form.date} onChangeText={(date) => change({ date })} />
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
           {sessionType.options.map((type) => (
             <Chip
@@ -975,10 +971,9 @@ export const NativeSessionBuilder = ({
                     <T variant="caption">
                       {m.nativeBuilder.scheduleZone(Intl.DateTimeFormat().resolvedOptions().timeZone)}
                     </T>
-                    <Field
+                    <DateField
                       label={m.nativeBuilder.scheduleDate}
                       value={form.publishAt.split("T")[0] ?? ""}
-                      placeholder={m.nativeBuilder.dateHint}
                       onChangeText={(text) =>
                         change({ publishAt: `${text}T${form.publishAt?.split("T")[1] ?? "18:00"}` })
                       }

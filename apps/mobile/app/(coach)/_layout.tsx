@@ -4,11 +4,12 @@ import { Redirect, Tabs } from "expo-router";
 import { useActiveSpace } from "../../src/lib/queries";
 import { useSession } from "../../src/lib/session-store";
 import { BarChart, Calendar, Library, Megaphone, Video } from "../../src/ui/icons";
-import { useTabBarOptions, worldScene } from "../../src/ui/tabs";
+import { useTabBarOptions, useWorldScene } from "../../src/ui/tabs";
 
 export default function CoachLayout() {
   const status = useSession((s) => s.status);
   const options = useTabBarOptions();
+  const worldScene = useWorldScene();
   const { me, space } = useActiveSpace();
   if (status !== "signed-in") return <Redirect href="/sign-in" />;
   if (me.data && (!space || !isStaff(space.role))) return <Redirect href="/" />;

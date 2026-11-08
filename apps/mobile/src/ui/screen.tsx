@@ -1,3 +1,4 @@
+import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import { useFocusEffect, usePathname, useRouter } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
@@ -15,13 +16,26 @@ import { Scene, scene, space, usePagePad, usePalette, type WorldName } from "./t
 
 // La barre d'état suit le fond de l'écran au premier plan : encre sur la craie et le soleil, claire ailleurs.
 export const useSceneStatusBar = () => {
-  const { dark } = usePalette();
+  // Le bandeau piste passe sous la barre d'état des écrans de travail : texte clair dans les deux thèmes.
+  const { dark, work } = usePalette();
   useFocusEffect(
     useCallback(() => {
-      setStatusBarStyle(dark ? "light" : "dark");
-    }, [dark]),
+      setStatusBarStyle(dark || work ? "light" : "dark");
+    }, [dark, work]),
   );
 };
+
+// Les couloirs de la piste : deux lignes blanches, d'un bord à l'autre de l'écran.
+const BandLanes = ({ bleed }: { bleed: number }) => (
+  <View
+    accessibilityElementsHidden
+    importantForAccessibility="no-hide-descendants"
+    style={{ gap: 6, marginHorizontal: -bleed, marginTop: space.xs }}
+  >
+    <View style={{ height: 2, backgroundColor: tokens.band.lane }} />
+    <View style={{ height: 2, backgroundColor: tokens.band.lane }} />
+  </View>
+);
 
 // Hors ligne ou envois en attente : l'état se lit sans chercher.
 export const SyncBanner = () => {
@@ -108,15 +122,55 @@ const TabInner = ({
   useEffect(() => {
     if (!refreshing) setPulled(false);
   }, [refreshing]);
+  const titleRow = (
+    <>
+      <SpaceSwitcher />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <ScreenTitle title={title} plain={p.work} />
+          {subtitle ? <T variant="small">{subtitle}</T> : null}
+        </View>
+        {right}
+        <IconButton
+          testID="open-settings"
+          icon={Settings}
+          label={m.mobile.a11y.openSettings}
+          tone="filled"
+          onPress={() => router.push("/settings")}
+        />
+      </View>
+    </>
+  );
+  const header = (
+    <>
+      {titleRow}
+      <LaneLine />
+    </>
+  );
+  const bandHeader = (
+    <View
+      style={{
+        marginHorizontal: -pad,
+        paddingHorizontal: pad,
+        paddingTop: space.sm,
+        paddingBottom: space.md,
+        gap: space.md,
+        backgroundColor: tokens.band.background,
+      }}
+    >
+      {titleRow}
+      <BandLanes bleed={pad} />
+    </View>
+  );
   return (
-    <View style={{ flex: 1, backgroundColor: p.bg, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: p.work ? tokens.band.background : p.bg, paddingTop: insets.top }}>
       <ScrollView
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: p.bg }}
         contentInsetAdjustmentBehavior="never"
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
         contentContainerStyle={{
-          paddingTop: space.sm,
+          paddingTop: p.work ? 0 : space.sm,
           paddingHorizontal: pad,
           paddingBottom: space.xxl,
           gap: space.lg,
@@ -136,22 +190,7 @@ const TabInner = ({
         }
         {...scrollProps}
       >
-        <SpaceSwitcher />
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <ScreenTitle title={title} />
-            {subtitle ? <T variant="small">{subtitle}</T> : null}
-          </View>
-          {right}
-          <IconButton
-            testID="open-settings"
-            icon={Settings}
-            label={m.mobile.a11y.openSettings}
-            tone="filled"
-            onPress={() => router.push("/settings")}
-          />
-        </View>
-        <LaneLine />
+        {p.work ? <Scene scene="piste">{bandHeader}</Scene> : header}
         <SyncBanner />
         {children}
       </ScrollView>
@@ -197,46 +236,56 @@ const StackInner = ({
   const p = usePalette();
   const pad = usePagePad();
   const content = {
+    paddingTop: p.work ? space.lg : 0,
     paddingHorizontal: pad,
     paddingBottom: footer ? space.lg : insets.bottom + space.xxl,
     gap: space.lg,
   };
   return (
-    <View style={{ flex: 1, backgroundColor: p.bg, paddingTop: insets.top }}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: space.sm,
-          paddingHorizontal: pad,
-          paddingVertical: space.sm,
-          minHeight: 60,
-        }}
-      >
-        <IconButton
-          icon={backIcon === "close" ? X : ArrowLeft}
-          label={backLabel ?? (backIcon === "close" ? m.common.close : m.common.back)}
-          tone="filled"
-          onPress={onBack ?? (() => (router.canGoBack() ? router.back() : router.replace("/")))}
-        />
-        <View style={{ flex: 1 }}>
-          {title ? <ScreenTitle title={title} variant={p.world ? "title1" : "title2"} numberOfLines={2} /> : null}
-          {subtitle ? (
-            <T variant="caption" tone="muted" numberOfLines={2}>
-              {subtitle}
-            </T>
-          ) : null}
+    <View style={{ flex: 1, backgroundColor: p.work ? tokens.band.background : p.bg, paddingTop: insets.top }}>
+      <Scene scene={p.work ? "piste" : p.name}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.sm,
+            paddingHorizontal: pad,
+            paddingVertical: space.sm,
+            minHeight: 60,
+          }}
+        >
+          <IconButton
+            icon={backIcon === "close" ? X : ArrowLeft}
+            label={backLabel ?? (backIcon === "close" ? m.common.close : m.common.back)}
+            tone="filled"
+            onPress={onBack ?? (() => (router.canGoBack() ? router.back() : router.replace("/")))}
+          />
+          <View style={{ flex: 1 }}>
+            {title ? (
+              <ScreenTitle title={title} plain={p.work} variant={p.world ? "title1" : "title2"} numberOfLines={2} />
+            ) : null}
+            {subtitle ? (
+              <T variant="caption" tone="muted" numberOfLines={2}>
+                {subtitle}
+              </T>
+            ) : null}
+          </View>
+          {right}
         </View>
-        {right}
-      </View>
-      {p.world && title ? (
-        <View style={{ paddingHorizontal: pad, marginBottom: space.lg }}>
-          <LaneLine />
-        </View>
-      ) : null}
+        {p.work ? (
+          <View style={{ paddingBottom: space.sm }}>
+            <BandLanes bleed={0} />
+          </View>
+        ) : null}
+        {!p.work && p.world && title ? (
+          <View style={{ paddingHorizontal: pad, marginBottom: space.lg }}>
+            <LaneLine />
+          </View>
+        ) : null}
+      </Scene>
       {scroll ? (
         <ScrollView
-          style={{ flex: 1 }}
+          style={{ flex: 1, backgroundColor: p.bg }}
           contentInsetAdjustmentBehavior="never"
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets
@@ -245,11 +294,12 @@ const StackInner = ({
           {children}
         </ScrollView>
       ) : (
-        <View style={[{ flex: 1 }, content]}>{children}</View>
+        <View style={[{ flex: 1, backgroundColor: p.bg }, content]}>{children}</View>
       )}
       {footer ? (
         <View
           style={{
+            backgroundColor: p.bg,
             paddingHorizontal: pad,
             paddingTop: space.sm,
             paddingBottom: Math.max(insets.bottom, space.lg),

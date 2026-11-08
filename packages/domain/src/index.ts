@@ -1,5 +1,6 @@
 export * from "./charges";
 export * from "./status";
+export * from "./date-input";
 export * from "./variants";
 export * from "./consent";
 export * from "./instagram";

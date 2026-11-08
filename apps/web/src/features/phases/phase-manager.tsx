@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/ui/date-input";
 import { createApiClient } from "@tartan/api-client";
 import {
   saveTrainingPhaseInput,
@@ -115,9 +116,8 @@ function PhaseForm({
         <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
           <Field label={t.start} error={issues.startDate}>
             {(props) => (
-              <Input
+              <DateInput
                 {...props}
-                type="date"
                 value={initial.startDate}
                 onChange={(event) => field("startDate", event.target.value)}
               />
@@ -125,9 +125,8 @@ function PhaseForm({
           </Field>
           <Field label={t.end} error={issues.endDate} hint={t.datesHint}>
             {(props) => (
-              <Input
+              <DateInput
                 {...props}
-                type="date"
                 value={initial.endDate}
                 onChange={(event) => field("endDate", event.target.value)}
               />

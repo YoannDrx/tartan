@@ -94,7 +94,8 @@ export const AppShell = ({
 }) => {
   const pathname = usePathname();
   const work = worldFor(pathname) === "world-work";
-  const selectedClass = work ? "bg-brand-tint text-brand-strong" : "bg-accent text-on-accent";
+  const selectedClass = "bg-accent text-on-accent";
+  const barClass = work ? "tartan-band" : "on-card bg-card";
   const items = staff ? coachItems : athleteItems;
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   // Le mode séance et l'analyse vidéo prennent tout l'écran, en sombre.
@@ -103,10 +104,10 @@ export const AppShell = ({
 
   return (
     <div className={cn(worldFor(pathname), "min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0")}>
-      <header className="app-header on-card sticky z-30 bg-card">
+      <header className={cn("app-header sticky z-30", barClass)}>
         <div className="mx-auto flex min-h-14 max-w-[1440px] items-center gap-4 px-4 desktop:px-6">
           <Link href="/accueil" aria-label="Tartan, accueil" className="inline-flex shrink-0 items-center">
-            <Logo height={28} onDark={!work} />
+            <Logo height={28} onDark />
           </Link>
           <nav aria-label="Navigation principale" className="hidden flex-1 items-center gap-1 desktop:flex">
             {items.map((item) => (
@@ -159,7 +160,10 @@ export const AppShell = ({
 
       <nav
         aria-label="Navigation principale"
-        className="on-card fixed inset-x-0 bottom-0 z-30 flex justify-around gap-1 bg-card px-1 pb-[env(safe-area-inset-bottom)] pt-1 desktop:hidden"
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-30 flex justify-around gap-1 px-1 pb-[env(safe-area-inset-bottom)] pt-1 desktop:hidden",
+          barClass,
+        )}
       >
         {items
           .filter((item) => item.mobile)
@@ -173,7 +177,11 @@ export const AppShell = ({
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "my-1 flex min-h-[60px] min-w-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-button text-[11px] leading-none no-underline",
-                  active ? `${selectedClass} font-semibold` : "font-medium text-fg-muted",
+                  active
+                    ? `${selectedClass} font-semibold`
+                    : work
+                      ? "font-medium text-fg"
+                      : "font-medium text-fg-muted",
                 )}
               >
                 <Icon aria-hidden className="size-6" strokeWidth={2} />

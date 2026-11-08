@@ -1,6 +1,7 @@
 "use client";
 
-import { tokens } from "@tartan/design-tokens";
+import { activityColors } from "@/lib/activity-colors";
+import { DateInput } from "@/components/ui/date-input";
 import type { CalendarResponse, CalendarSession } from "@tartan/contracts";
 import { addDays } from "@tartan/domain";
 import { capitalize, formatDateLong, formatWeekdayShort, m } from "@tartan/i18n";
@@ -31,7 +32,7 @@ const SessionCard = ({
   onMove: () => void;
   onDuplicate: () => void;
 }) => {
-  const tint = tokens.activity[session.type];
+  const tint = activityColors(session.type);
   return (
     <article
       draggable
@@ -203,7 +204,7 @@ export const WeekBoard = ({
           }}
         >
           <Field label={m.builder.date}>
-            {(a) => <Input {...a} type="date" required value={date} onChange={(e) => setDate(e.target.value)} />}
+            {(a) => <DateInput {...a} required value={date} onChange={(e) => setDate(e.target.value)} />}
           </Field>
           <Button type="submit" disabled={move.isPending || duplicate.isPending}>
             {target?.mode === "move" ? "Déplacer" : m.calendar.duplicate}
@@ -278,8 +279,8 @@ export const MonthBoard = ({
                       scroll={false}
                       href={calendarSessionHref(s.id, returnTo)}
                       style={{
-                        backgroundColor: tokens.activity[s.type].background,
-                        color: tokens.activity[s.type].text,
+                        backgroundColor: activityColors(s.type).background,
+                        color: activityColors(s.type).text,
                       }}
                       className={cn(
                         "flex min-h-11 items-center gap-2 rounded-thumb px-2 font-medium leading-snug no-underline",
@@ -332,7 +333,7 @@ export const MonthBoard = ({
                     scroll={false}
                     href={calendarSessionHref(s.id, returnTo)}
                     title={`${s.title} · ${m.sessionType[s.type]}`}
-                    style={{ backgroundColor: tokens.activity[s.type].background, color: tokens.activity[s.type].text }}
+                    style={{ backgroundColor: activityColors(s.type).background, color: activityColors(s.type).text }}
                     className={cn(
                       "mb-0.5 flex min-h-6 items-center gap-1 rounded px-1 text-[12px] font-medium no-underline hover:underline",
                     )}

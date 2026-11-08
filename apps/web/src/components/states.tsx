@@ -28,8 +28,19 @@ export const EmptyState = ({
 );
 
 // Le titre d'écran, grand, posé sur le monde de la rubrique et sur sa ligne de couloir.
-export const PageHeader = ({ title, detail, actions }: { title: string; detail?: ReactNode; actions?: ReactNode }) => (
-  <header className="flex flex-col gap-4">
+export const PageHeader = ({
+  title,
+  detail,
+  actions,
+  before,
+}: {
+  title: string;
+  detail?: ReactNode;
+  actions?: ReactNode;
+  before?: ReactNode;
+}) => (
+  <header className="page-band tartan-band flex flex-col gap-4 bg-transparent">
+    {before}
     <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="min-w-0">
         <h1 className="t-display text-balance">

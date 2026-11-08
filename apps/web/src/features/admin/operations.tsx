@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/ui/date-input";
 import { useState } from "react";
 import { useAction } from "next-safe-action/hooks";
 import { m } from "@tartan/i18n";
@@ -56,7 +57,7 @@ export const BirthDateCorrection = () => {
         {(a) => <Input {...a} value={userId} onChange={(e) => setUserId(e.target.value)} />}
       </Field>
       <Field label={m.invite.birthDate}>
-        {(a) => <Input {...a} type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />}
+        {(a) => <DateInput {...a} value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />}
       </Field>
       <Field label={m.admin.correctionReason}>
         {(a) => (

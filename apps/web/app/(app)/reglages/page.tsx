@@ -1,5 +1,8 @@
 import { trainingProfileSchema } from "@tartan/contracts";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { ThemeChoice } from "@/features/settings/theme-choice";
+import { THEME_COOKIE, themePreference } from "@/features/shell/theme";
 import { can, requiresParentalConsent } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { env } from "@/lib/env";
@@ -74,7 +77,9 @@ export default async function ReglagesPage() {
   const isAthlete = access.role === "athlete";
   const referralLink = referral ? `${env().NEXT_PUBLIC_APP_URL}/r/${referral.code}` : null;
   const vapidKey = env().NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const theme = themePreference((await cookies()).get(THEME_COOKIE)?.value);
   const sections = [
+    { id: "apparence", title: m.appearance.title, content: <ThemeChoice initial={theme} /> },
     {
       id: "profil",
       title: m.settings.profile,

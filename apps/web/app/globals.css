@@ -81,6 +81,16 @@
   --color-work-st-missed: #9e3320;
   --color-work-st-upcoming: #5e6066;
   --color-work-on-status: #ffffff;
+  --work-scheme: light;
+
+  /* Miroir de tokens.band : le bandeau piste, identique dans les deux thèmes. */
+  --color-band: #c4442b;
+  --color-band-deep: #9e3320;
+  --color-band-text: #ffffff;
+  --color-band-lane: #ffffff;
+  --color-band-action: #c6f432;
+  --color-on-band-action: #15161a;
+  --color-band-action-hover: #aedb1e;
 
   --font-display: var(--font-barlow-condensed), "Barlow Condensed", sans-serif;
   --font-body: var(--font-barlow), "Barlow", sans-serif;
@@ -276,7 +286,96 @@
     --color-st-upcoming: var(--color-work-st-upcoming);
     --color-on-status: var(--color-work-on-status);
     background: var(--color-work-page);
-    color-scheme: light;
+    color-scheme: var(--work-scheme);
+  }
+  :root {
+    --activity-strength-bg: #e6e7e3;
+    --activity-strength-text: #15161a;
+    --activity-plyo-bg: #f0ebf8;
+    --activity-plyo-text: #62419a;
+    --activity-running-bg: #e8f0fa;
+    --activity-running-text: #1e5fa8;
+    --activity-stairs-bg: #fcefd9;
+    --activity-stairs-text: #8a4e08;
+    --activity-cones-bg: #fff3cc;
+    --activity-cones-text: #6b5100;
+    --activity-mobility-bg: #e8f3ec;
+    --activity-mobility-text: #246a4b;
+    --activity-jump-bg: #fbe7e2;
+    --activity-jump-text: #9e3320;
+  }
+  /* Thème choisi dans les réglages : seuls les rôles du bureau changent, le bandeau reste piste. */
+  html:has([data-theme="dark"]) {
+    --work-scheme: dark;
+    --activity-strength-bg: #3a3c43;
+    --activity-strength-text: #ffffff;
+    --activity-plyo-bg: #3a2c55;
+    --activity-plyo-text: #d9c8f5;
+    --activity-running-bg: #1c3552;
+    --activity-running-text: #b5d3f5;
+    --activity-stairs-bg: #4a3312;
+    --activity-stairs-text: #f7d29a;
+    --activity-cones-bg: #473b0e;
+    --activity-cones-text: #f5de85;
+    --activity-mobility-bg: #1c3f2f;
+    --activity-mobility-text: #b0e3c6;
+    --activity-jump-bg: #5a281d;
+    --activity-jump-text: #f9c0b2;
+    --color-work-page: #15161a;
+    --color-work-surface: #24262c;
+    --color-work-raised: #3a3c43;
+    --color-work-text: #ffffff;
+    --color-work-muted: #b9bbc0;
+    --color-work-border: #3a3c43;
+    --color-work-control-line: #8c8e94;
+    --color-work-action: #c6f432;
+    --color-work-on-action: #15161a;
+    --color-work-action-hover: #aedb1e;
+    --color-work-selection: #3a3c43;
+    --color-work-on-selection: #c6f432;
+    --color-work-link: #c6f432;
+    --color-work-st-done: #c6f432;
+    --color-work-st-partial: #ffc838;
+    --color-work-st-missed: #ff6b57;
+    --color-work-st-upcoming: #b9bbc0;
+    --color-work-on-status: #15161a;
+  }
+  @media (prefers-color-scheme: dark) {
+    html:has([data-theme="system"]) {
+      --work-scheme: dark;
+      --activity-strength-bg: #3a3c43;
+      --activity-strength-text: #ffffff;
+      --activity-plyo-bg: #3a2c55;
+      --activity-plyo-text: #d9c8f5;
+      --activity-running-bg: #1c3552;
+      --activity-running-text: #b5d3f5;
+      --activity-stairs-bg: #4a3312;
+      --activity-stairs-text: #f7d29a;
+      --activity-cones-bg: #473b0e;
+      --activity-cones-text: #f5de85;
+      --activity-mobility-bg: #1c3f2f;
+      --activity-mobility-text: #b0e3c6;
+      --activity-jump-bg: #5a281d;
+      --activity-jump-text: #f9c0b2;
+      --color-work-page: #15161a;
+      --color-work-surface: #24262c;
+      --color-work-raised: #3a3c43;
+      --color-work-text: #ffffff;
+      --color-work-muted: #b9bbc0;
+      --color-work-border: #3a3c43;
+      --color-work-control-line: #8c8e94;
+      --color-work-action: #c6f432;
+      --color-work-on-action: #15161a;
+      --color-work-action-hover: #aedb1e;
+      --color-work-selection: #3a3c43;
+      --color-work-on-selection: #c6f432;
+      --color-work-link: #c6f432;
+      --color-work-st-done: #c6f432;
+      --color-work-st-partial: #ffc838;
+      --color-work-st-missed: #ff6b57;
+      --color-work-st-upcoming: #b9bbc0;
+      --color-work-on-status: #15161a;
+    }
   }
   .world-work,
   html:has(.world-work) .on-card:not(.scene-dark, .scene-dark *) {
@@ -302,8 +401,41 @@
     --ctx-select-bg: var(--color-work-selection);
     --ctx-select-fg: var(--color-work-text);
     color: var(--ctx-fg);
-    color-scheme: light;
+    color-scheme: var(--work-scheme);
     scrollbar-color: var(--color-work-muted) transparent;
+  }
+  /* Le bandeau piste : texte blanc, lignes blanches, action citron, quel que soit le thème. */
+  .tartan-band {
+    --color-page: var(--color-band);
+    --color-page-deep: var(--color-band-deep);
+    --color-on-page: var(--color-band-text);
+    --color-lane: var(--color-band-lane);
+    --color-fg: var(--color-band-text);
+    --color-fg-muted: var(--color-band-text);
+    --color-accent: var(--color-band-action);
+    --color-on-accent: var(--color-on-band-action);
+    --color-accent-hover: var(--color-band-action-hover);
+    --ctx-fg: var(--color-band-text);
+    --ctx-soft: var(--color-band-text);
+    --ctx-link: var(--color-band-text);
+    --ctx-alert: var(--color-band-text);
+    --ctx-danger: var(--color-band-text);
+    --ctx-focus: var(--color-band-text);
+    --ctx-cta: var(--color-band-action);
+    --ctx-on-cta: var(--color-on-band-action);
+    --ctx-cta-hover: var(--color-band-action-hover);
+    --ctx-second: transparent;
+    --ctx-second-line: var(--color-band-text);
+    --ctx-second-width: 2px;
+    --ctx-second-hover: var(--color-band-deep);
+    --ctx-raise: var(--color-band-deep);
+    --ctx-pill-off: transparent;
+    --ctx-pill-line: var(--color-band-text);
+    --ctx-select-bg: var(--color-band-action);
+    --ctx-select-fg: var(--color-on-band-action);
+    background: var(--color-band);
+    color: var(--ctx-fg);
+    color-scheme: dark;
   }
   /* Un lecteur embarqué reste sombre, même dans une page de travail claire. */
   html:has(.world-work) .scene-dark {
@@ -433,6 +565,57 @@
     font-size: 30px;
     line-height: 34px;
   }
+  /* Le titre de l'écran court sur toute la largeur, posé sur la piste. */
+  .world-work .page-band:not(.on-card .page-band) {
+    --band-bleed: 20px;
+    position: relative;
+    isolation: isolate;
+    padding-block: 12px 28px;
+    margin-bottom: 8px;
+  }
+  .world-work .page-band:first-child:not(.on-card .page-band) {
+    margin-top: calc(var(--band-bleed) * -1);
+  }
+  .world-work .page-band:not(.on-card .page-band)::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0 -100vw;
+    background: var(--color-band);
+  }
+  .world-work .page-band:not(.on-card .page-band) .t-display {
+    font-size: 40px;
+    line-height: 42px;
+  }
+  .world-work .page-band:not(.on-card .page-band) .lane {
+    position: absolute;
+    inset: auto 0 12px;
+    height: 2px;
+  }
+  .world-work .page-band:not(.on-card .page-band) .lane::before,
+  .world-work .page-band:not(.on-card .page-band) .lane::after {
+    content: "";
+    position: absolute;
+    inset-inline: -100vw;
+    height: 2px;
+    background: var(--color-band-lane);
+  }
+  .world-work .page-band:not(.on-card .page-band) .lane::before {
+    inset-block-start: 0;
+  }
+  .world-work .page-band:not(.on-card .page-band) .lane::after {
+    inset-block-start: 8px;
+  }
+  @media (min-width: 1024px) {
+    .world-work .page-band:not(.on-card .page-band) {
+      --band-bleed: 32px;
+      padding-block: 20px 32px;
+    }
+    .world-work .page-band:not(.on-card .page-band) .t-display {
+      font-size: 52px;
+      line-height: 54px;
+    }
+  }
   .world-work .marked {
     padding: 0;
     color: inherit;
@@ -449,10 +632,10 @@
     inset: 0;
   }
   .world-work .app-header {
-    border-bottom: 1px solid var(--color-work-border);
+    border-bottom: 2px solid var(--color-band-lane);
   }
   .world-work > nav {
-    border-top: 1px solid var(--color-work-border);
+    border-top: 2px solid var(--color-band-lane);
   }
   @media (min-width: 1024px) {
     .world-work .t-display,

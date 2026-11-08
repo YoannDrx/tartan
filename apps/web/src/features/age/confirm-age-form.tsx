@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/ui/date-input";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -43,9 +44,8 @@ export const ConfirmAgeForm = () => {
     >
       <Field label={m.invite.birthDate} error={error}>
         {(a) => (
-          <Input
+          <DateInput
             {...a}
-            type="date"
             autoComplete="bday"
             value={birthDate}
             onChange={(event) => setBirthDate(event.target.value)}

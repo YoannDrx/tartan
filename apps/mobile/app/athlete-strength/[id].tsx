@@ -1,3 +1,4 @@
+import { DateField } from "../../src/ui/date-field";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ChooseStrengthReference, ExerciseSummary, StrengthTestInput } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
@@ -136,15 +137,7 @@ const StrengthPanel = ({
               />
             ))}
           </View>
-          <Field
-            label={m.builder.date}
-            hint={m.strength.dateHint}
-            value={date}
-            onChangeText={setDate}
-            editable={!write.isPending}
-            autoCapitalize="none"
-            maxLength={10}
-          />
+          <DateField label={m.builder.date} value={date} onChangeText={setDate} editable={!write.isPending} />
           <Button
             label={m.strength.selectReference}
             selected={selectAsReference}
