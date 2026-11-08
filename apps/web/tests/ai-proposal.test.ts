@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { beforeEach, expect, it, vi } from "vitest";
-import type { PlannerInterpretation, CreatePlannerProposalInput } from "@tartan/contracts";
+import {
+  plannerDraftsResponse,
+  confirmPlannerProposalInput,
+  previewPlannerLoadsInput,
+  type PlannerInterpretation,
+  type CreatePlannerProposalInput,
+} from "@tartan/contracts";
 import { prisma } from "@/lib/prisma";
 import {
   createPlannerProposal,
@@ -431,6 +437,51 @@ it("pseudonymise les noms connus avec accents et ponctuation, sans attribuer un 
   expect(pseudonymizePlannerText("Vitesse (A), LÉA MARTIN et Léa. Cléa reste un autre nom.", bindings)).toBe(
     "group_1, athlete_1 et Léa. Cléa reste un autre nom.",
   );
+});
+
+it("résout les textes des brouillons sans tronquer et refuse l'écriture avant correction des longueurs", async () => {
+  const a = await setup();
+  const groupName = "G".repeat(100),
+    exerciseName = "E".repeat(100);
+  await prisma.group.update({ where: { id: a.groupId }, data: { name: groupName } });
+  await saveExercise(a.owner.userId, a.organizationId, {
+    id: a.exercise.id,
+    name: exerciseName,
+    category: a.exercise.category,
+  });
+  const p = provider((context) => {
+    const output = proposal(context),
+      session = output.sessions[0]!;
+    session.title = "group_1 group_1";
+    session.blocks[0]!.name = "exercise_1 exercise_1";
+    session.blocks[0]!.items[0]!.prescription.notes = Array(10).fill("exercise_1").join(" ");
+    return output;
+  });
+  const created = await a.create(p);
+  const response = await preparePlannerDrafts(a.owner.userId, a.organizationId, a.input.id, created.version, now);
+  const review = plannerDraftsResponse.parse(response),
+    draft = review.sessions[0]!.draft;
+  expect(draft.title).toBe(`${groupName} ${groupName}`);
+  expect(draft.blocks[0]!.name).toBe(`${exerciseName} ${exerciseName}`);
+  expect(draft.blocks[0]!.items[0]!.prescription.notes).toBe(Array(10).fill(exerciseName).join(" "));
+  const input = { expectedVersion: review.version, sessions: review.sessions, confirmed: true as const };
+  expect(confirmPlannerProposalInput.safeParse(input).success).toBe(false);
+  expect(
+    previewPlannerLoadsInput.safeParse({ expectedVersion: review.version, session: review.sessions[0] }).success,
+  ).toBe(false);
+  await expect(confirmPlannerProposal(a.owner.userId, a.organizationId, a.input.id, input, now)).rejects.toMatchObject({
+    name: "ZodError",
+  });
+  expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
+  draft.title = "Force relue";
+  draft.blocks[0]!.name = "Bloc relu";
+  draft.blocks[0]!.items[0]!.prescription.notes = "Consigne relue, sans modification des kilogrammes.";
+  expect(confirmPlannerProposalInput.safeParse(input).success).toBe(true);
+  await confirmPlannerProposal(a.owner.userId, a.organizationId, a.input.id, input, now);
+  expect(await prisma.scheduledSession.findFirstOrThrow({ where: { organizationId: a.organizationId } })).toMatchObject(
+    { title: "Force relue", publishedAt: null },
+  );
+  expect(p.interpret).toHaveBeenCalledTimes(1);
 });
 
 it("confirme des brouillons modifiés une seule fois, sans publication, puis purge les échanges sous 24 heures", async () => {

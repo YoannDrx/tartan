@@ -73,3 +73,15 @@ it("la publication locale conserve son instant après aller-retour", () => {
   expect(scheduleToUtc("2030-02-30T18:00")).toBe("2030-02-30T18:00");
   expect(scheduleToUtc("2030-02-28T28:00")).toBe("2030-02-28T28:00");
 });
+
+it("conserve une consigne développée entière pour correction et refuse de l'appliquer trop longue", () => {
+  const notes = "Consigne sportive. ".repeat(40);
+  const fields = prescriptionFields({ sets: 3, reps: 4, notes });
+  expect(fields.notes).toBe(notes);
+  expect(parsePrescriptionFields(fields).success).toBe(false);
+  fields.notes = "Consigne relue.";
+  expect(parsePrescriptionFields(fields)).toMatchObject({
+    success: true,
+    data: { sets: 3, reps: 4, notes: "Consigne relue." },
+  });
+});

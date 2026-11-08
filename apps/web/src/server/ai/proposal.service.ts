@@ -23,6 +23,7 @@ import {
 import {
   validatePlannerInterpretation,
   plannerPrescriptionToSession,
+  plannerDisplayText,
   plannerRetentionDeadline,
   plannerPhaseChoicesForDate,
   freezePrescription,
@@ -401,13 +402,13 @@ export async function preparePlannerDrafts(
           overrides: [],
           ...(phaseReview ? { phaseReview } : {}),
           draft: {
-            title: session.title,
+            title: plannerDisplayText(session.title, bindings),
             type: session.type,
             durationMin: session.durationMin,
             coachNote: null,
             blocks: session.blocks.map((block, b) => ({
               ref: `ai-${proposalId}-${index}-b${b}`,
-              name: block.name,
+              name: plannerDisplayText(block.name, bindings),
               variant: "club",
               items: block.items.map((item, i) => {
                 const exercise = bindings.exercises.find((e) => e.token === item.exerciseToken);
@@ -415,7 +416,12 @@ export async function preparePlannerDrafts(
                 return {
                   ref: `ai-${proposalId}-${index}-b${b}-i${i}`,
                   exerciseId: exercise.id,
-                  prescription: plannerPrescriptionToSession(item.prescription, exercise.id),
+                  prescription: {
+                    ...plannerPrescriptionToSession(item.prescription, exercise.id),
+                    ...(item.prescription.notes !== null
+                      ? { notes: plannerDisplayText(item.prescription.notes, bindings) }
+                      : {}),
+                  },
                 };
               }),
             })),

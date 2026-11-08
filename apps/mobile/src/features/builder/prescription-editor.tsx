@@ -166,7 +166,8 @@ export const PrescriptionEditor = ({
         nativeID={`${uid}-notes`}
         label={m.builder.notes}
         value={fields.notes}
-        maxLength={500}
+        maxLength={Math.max(500, fields.notes.length)}
+        hint={fields.notes.length > 500 ? m.aiPlanner.textLimit(fields.notes.length, 500) : undefined}
         multiline
         onChangeText={(notes) => update({ notes })}
       />

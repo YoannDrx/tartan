@@ -1,7 +1,13 @@
 "use client";
 
 import { createApiClient } from "@tartan/api-client";
-import { loadSchema, type PlannerLoadsPreview, type PlannerReviewedDraft, type Prescription } from "@tartan/contracts";
+import {
+  plannerReviewedDraft,
+  loadSchema,
+  type PlannerLoadsPreview,
+  type PlannerReviewedDraft,
+  type Prescription,
+} from "@tartan/contracts";
 import { formatPrescription } from "@tartan/domain";
 import { historyDate, m } from "@tartan/i18n";
 import { useEffect, useState } from "react";
@@ -41,6 +47,7 @@ export function PlannerLoads({
   const [value, setValue] = useState("");
   const [unit, setUnit] = useState<"kg" | "pct_1rm">("kg");
   const [error, setError] = useState("");
+  const requestValid = plannerReviewedDraft.safeParse(session).success;
   const sessionKey = JSON.stringify(session);
   // La pagination appartient à cette version de séance. Une correction repart
   // de la première page ; aucune réponse ancienne ne valide le nouvel aperçu.
@@ -50,7 +57,7 @@ export function PlannerLoads({
   const key = `${orgId}:${proposalId}:${retry}:${request}`;
   const current = response?.key === key ? response : null;
   useEffect(() => {
-    if (!open) return;
+    if (!open || !requestValid) return;
     let alive = true;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30_000);
@@ -79,15 +86,21 @@ export function PlannerLoads({
       clearTimeout(debounce);
       controller.abort();
     };
-  }, [open, orgId, proposalId, key, request]);
-  const valid = Boolean(current?.data && !current.error);
+  }, [open, requestValid, orgId, proposalId, key, request]);
+  const valid = Boolean(requestValid && current?.data && !current.error);
   useEffect(() => {
     onReady(sessionKey, valid);
   }, [sessionKey, valid, onReady]);
   useEffect(() => () => onReady(sessionKey, false), [sessionKey, onReady]);
   return (
     <section className="flex min-w-0 flex-col gap-3">
-      <Button type="button" variant="secondary" aria-expanded={open} disabled={disabled} onClick={() => setOpen(!open)}>
+      <Button
+        type="button"
+        variant="secondary"
+        aria-expanded={open}
+        disabled={disabled || !requestValid}
+        onClick={() => setOpen(!open)}
+      >
         {t.previewLoads}
       </Button>
       {open ? (

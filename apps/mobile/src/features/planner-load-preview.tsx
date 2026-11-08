@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { PlannerReviewedDraft, Prescription } from "@tartan/contracts";
+import { plannerReviewedDraft, type PlannerReviewedDraft, type Prescription } from "@tartan/contracts";
 import { formatPrescription } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useEffect, useState } from "react";
@@ -40,6 +40,7 @@ export function PlannerLoadPreview({
   const [value, setValue] = useState("");
   const [unit, setUnit] = useState<"kg" | "pct_1rm">("kg");
   const [error, setError] = useState("");
+  const requestValid = plannerReviewedDraft.safeParse(session).success;
   const data = useQuery({
     queryKey: ["planner-loads", orgId, proposalId, version, session, cursors[page]],
     queryFn: ({ signal }) =>
@@ -49,7 +50,7 @@ export function PlannerLoadPreview({
         { expectedVersion: version, session, afterAthleteId: cursors[page] },
         signal,
       ),
-    enabled: open,
+    enabled: open && requestValid,
     retry: false,
     networkMode: "always",
     staleTime: 0,
@@ -58,8 +59,8 @@ export function PlannerLoadPreview({
     refetchOnReconnect: false,
   });
   useEffect(() => {
-    onReady(Boolean(data.data && !data.isError && !data.isFetching));
-  }, [data.data, data.isError, data.isFetching, onReady]);
+    onReady(Boolean(requestValid && data.data && !data.isError && !data.isFetching));
+  }, [requestValid, data.data, data.isError, data.isFetching, onReady]);
   useEffect(() => () => onReady(false), [onReady]);
   const apply = () => {
     if (!editing) return;
@@ -82,14 +83,14 @@ export function PlannerLoadPreview({
     );
     setEditing(null);
   };
-  const current = !data.isError && !data.isFetching ? data.data : undefined;
+  const current = requestValid && !data.isError && !data.isFetching ? data.data : undefined;
   return (
     <View style={{ gap: space.sm }}>
       <Button
         variant="secondary"
         label={t.previewLoads}
         expanded={open}
-        disabled={disabled}
+        disabled={disabled || !requestValid}
         onPress={() => setOpen(!open)}
       />
       {open ? (

@@ -652,8 +652,11 @@ export const fr = {
       `« ${term} » désigne plusieurs fiches. Quel exercice souhaites-tu ? Précise son nom complet ou sa variante.`,
     createdDraft: (index: number) => `Brouillon ${index}`,
     editSchedule: "Modifier la date, les destinataires et le format",
+    textLimit: (length: number, limit: number) =>
+      `${length} caractères sur ${limit} autorisés. Raccourcis ce texte avant de confirmer ; son contenu a été conservé en entier.`,
     quotaDetails: "Consommation et fuseau de l’espace",
-    draftsInvalid: "Vérifie les dates, les destinataires et les valeurs des prescriptions avant de confirmer.",
+    draftsInvalid:
+      "Vérifie les titres, noms de blocs, notes, dates, destinataires et valeurs des prescriptions avant de confirmer.",
     recent: "Mes propositions récentes",
     recentRefresh: "Actualiser la liste",
     pendingAnswer: "Précisions envoyées : résultat à vérifier",

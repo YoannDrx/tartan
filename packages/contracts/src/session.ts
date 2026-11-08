@@ -15,6 +15,8 @@ export const loadSchema = z.discriminatedUnion("type", [
   }),
 ]);
 
+export const sessionTextLimits = { title: 120, blockName: 80, notes: 500 } as const;
+
 // Prescription souple, stockée en JSONB (cahier des charges § 12.3).
 export const prescriptionSchema = z.object({
   sets: z.number().int().min(1).max(50).optional(),
@@ -35,7 +37,7 @@ export const prescriptionSchema = z.object({
     .optional(),
   tempo: z.string().max(20).optional(),
   ground_contacts: z.number().int().min(0).max(2000).optional(),
-  notes: z.string().max(500).optional(),
+  notes: z.string().max(sessionTextLimits.notes).optional(),
 });
 export type Prescription = z.infer<typeof prescriptionSchema>;
 
@@ -118,13 +120,13 @@ export const sessionDraftItem = z.object({
 
 export const sessionDraftBlock = z.object({
   ref: z.string().min(1).max(100).optional(),
-  name: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(sessionTextLimits.blockName),
   variant: blockVariant,
   items: z.array(sessionDraftItem).max(60),
 });
 
 export const sessionDraft = z.object({
-  title: z.string().trim().min(1, "Donne un titre à la séance").max(120),
+  title: z.string().trim().min(1, "Donne un titre à la séance").max(sessionTextLimits.title),
   type: sessionType,
   durationMin: z.number().int().min(1).max(600).nullable(),
   coachNote: z.string().trim().max(280).nullable(),

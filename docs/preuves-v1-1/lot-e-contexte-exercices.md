@@ -10,7 +10,7 @@ L'adaptateur explique explicitement la distinction entre barre libre, machines, 
 
 Web et natif résolvent localement les jetons connus dans les questions, options, échanges, citations et textes de présentation. La réponse choisie est relue avec les noms, puis le service pseudonymise de nouveau avant tout appel. Le remplacement utilise uniquement le contexte déjà autorisé ; aucun nom extérieur n'est recherché, aucune substitution récursive ni troncature. Les champs techniques de destinataire et d'exercice restent inchangés.
 
-La résolution des titres et notes copiés dans les brouillons enregistrables reste à terminer séparément, avec traitement explicite des limites de longueur. Le présent correctif couvre la lecture de la proposition et le parcours de clarification.
+Le présent correctif couvre la lecture de la proposition et le parcours de clarification. La résolution des titres et notes copiés dans les brouillons a ensuite été ajoutée avec correction explicite des limites de longueur : [preuve du lot suivant](lot-e-textes-brouillons.md).
 
 ## Vérifications
 

@@ -27,7 +27,7 @@ Après ces changements : **36 tests ciblés** de prestataire, propositions et é
 
 ## Travail restant
 
-Le contexte de matériel/convention et la résolution locale des noms dans les questions et citations sont désormais implémentés : voir [la preuve complémentaire](lot-e-contexte-exercices.md). La précision reste insuffisante : poursuivre les contrôles de fidélité, les questions réellement utiles et le traitement des dates/périodes. La copie des titres et notes vers les brouillons demande encore une résolution des jetons ; aucun texte ne doit être tronqué pour rentrer artificiellement dans un contrat.
+Le contexte de matériel/convention et la résolution locale des noms dans les questions et citations sont désormais implémentés : voir [la preuve complémentaire](lot-e-contexte-exercices.md). La précision reste insuffisante : poursuivre les contrôles de fidélité, les questions réellement utiles et le traitement des dates/périodes. La copie des titres et notes vers les brouillons résout maintenant les jetons sans troncature, avec correction explicite des longueurs : [preuve complémentaire](lot-e-textes-brouillons.md).
 
 Il reste aussi les trente dictées consenties/scénarisées effectivement enregistrées, la transcription avec bruit et interruptions, les essais sur téléphones et le nombre de corrections mesuré par les coachs. Les notes, titres et suggestions demandent une revue sémantique, dont la recherche d’une force individuelle inventée dans le texte libre. L’absence de champ « maximum individuel » dans le JSON ne suffit pas à prouver cette absence partout.
 

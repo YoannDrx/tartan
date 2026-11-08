@@ -7,6 +7,9 @@ import {
   sessionPhaseReview,
   saveScheduledSessionInput,
   prescriptionSchema,
+  sessionDraft,
+  sessionDraftBlock,
+  sessionDraftItem,
 } from "./session";
 import { sessionType } from "./enums";
 
@@ -175,10 +178,34 @@ const plannerCreatedSessions = z
   .min(1)
   .max(14);
 export const plannerConfirmationResult = z.object({ sessions: plannerCreatedSessions });
+// Réponse de relecture seulement : l'expansion locale des noms peut dépasser
+// les limites d'écriture. Le coach corrige le texte entier, jamais tronqué.
+// Confirmation et aperçu de charges conservent plannerReviewedDraft strict.
+const preparedText = z.string().max(24000);
+export const plannerPreparedDraft = plannerReviewedDraft.extend({
+  draft: sessionDraft.extend({
+    title: preparedText,
+    blocks: z
+      .array(
+        sessionDraftBlock.extend({
+          name: preparedText,
+          items: z
+            .array(
+              sessionDraftItem.extend({
+                prescription: prescriptionSchema.extend({ notes: preparedText.optional() }),
+              }),
+            )
+            .max(60),
+        }),
+      )
+      .min(1)
+      .max(12),
+  }),
+});
 export const plannerDraftsResponse = z.object({
   proposalId: uuid,
   version: z.number().int().positive(),
-  sessions: z.array(plannerReviewedDraft).min(1).max(14),
+  sessions: z.array(plannerPreparedDraft).min(1).max(14),
 });
 export type PlannerDraftsResponse = z.infer<typeof plannerDraftsResponse>;
 export const previewPlannerLoadsInput = z

@@ -130,13 +130,13 @@ test("contexte, clarification, reprise, aperçu, correction et confirmation perd
           {
             date: a.today,
             startTime: "18:00",
-            title: "Force fictive",
+            title: Array(10).fill("group_1").join(" "),
             type: "strength",
             durationMin: 45,
             targetTokens: ["group_1"],
             blocks: [
               {
-                name: "Force",
+                name: Array(6).fill("exercise_1").join(" "),
                 items: [
                   {
                     exerciseToken: "exercise_1",
@@ -151,7 +151,7 @@ test("contexte, clarification, reprise, aperçu, correction et confirmation perd
                       durationS: null,
                       tempo: null,
                       contacts: null,
-                      notes: null,
+                      notes: Array(40).fill("exercise_1").join(" "),
                     },
                   },
                 ],
@@ -194,8 +194,26 @@ test("contexte, clarification, reprise, aperçu, correction et confirmation perd
     await page.getByRole("checkbox", { name: t.reviewed, exact: true }).check();
     await page.getByRole("button", { name: t.clarify, exact: true }).click();
     await page.getByRole("button", { name: t.prepareReview, exact: true }).click();
+    const initialReview = page.getByRole("region", { name: Array(10).fill(a.group.name).join(" "), exact: true });
+    await expect(initialReview).toBeVisible();
+    await expect(initialReview.getByRole("button", { name: t.previewLoads, exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: t.confirmDrafts(1), exact: true })).toBeDisabled();
+    await initialReview.getByText(t.editSchedule, { exact: true }).click();
+    await expect(initialReview.getByLabel(m.builder.title, { exact: true })).toHaveValue(
+      Array(10).fill(a.group.name).join(" "),
+    );
+    await initialReview.getByLabel(m.builder.title, { exact: true }).fill("Force fictive");
     const review = page.getByRole("region", { name: "Force fictive", exact: true });
-    await expect(review).toBeVisible();
+    await expect(review.getByLabel(m.nativeBuilder.blockName, { exact: true })).toHaveValue(
+      Array(6).fill(a.exercise.name).join(" "),
+    );
+    await review.getByLabel(m.nativeBuilder.blockName, { exact: true }).fill("Force");
+    await review.getByText(m.builder.setPrescription, { exact: true }).click();
+    await expect(review.getByLabel(m.builder.notes, { exact: true })).toHaveValue(
+      Array(40).fill(a.exercise.name).join(" "),
+    );
+    await review.getByLabel(m.builder.notes, { exact: true }).fill("Consigne relue.");
+    await review.getByText(m.builder.setPrescription, { exact: true }).click();
     await expect(page.getByRole("button", { name: t.confirmDrafts(1), exact: true })).toBeDisabled();
     await review.getByRole("button", { name: t.previewLoads, exact: true }).click();
     await expect(review.getByText(t.previewCoverage(10, 12), { exact: true })).toBeVisible();
@@ -242,6 +260,8 @@ test("contexte, clarification, reprise, aperçu, correction et confirmation perd
     expect(created.draftIds).toHaveLength(1);
     const session = await a.api.editSession(a.orgId, created.draftIds![0]!.id);
     expect(session.publishedAt).toBeNull();
+    expect(session.draft.blocks[0]!.name).toBe("Force");
+    expect(session.draft.blocks[0]!.items[0]!.prescription.notes).toBe("Consigne relue.");
     expect(session.draft.blocks[0]!.items[0]!.prescription.intensityTarget).toEqual({ type: "rir", value: 2 });
     expect(session.overrides[0]!.prescription.load).toEqual({ type: "kg", value: 35 });
     expect(

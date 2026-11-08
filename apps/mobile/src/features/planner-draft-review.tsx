@@ -1,5 +1,6 @@
 import {
   sessionType,
+  sessionTextLimits,
   type PlannerReviewedDraft,
   type PlannerProposalResponse,
   type Prescription,
@@ -88,7 +89,11 @@ export function PlannerDraftReview({
             label={m.builder.title}
             value={session.draft.title}
             editable={!busy}
-            maxLength={120}
+            hint={
+              session.draft.title.trim().length > sessionTextLimits.title
+                ? m.aiPlanner.textLimit(session.draft.title.trim().length, sessionTextLimits.title)
+                : undefined
+            }
             onChangeText={(title) => change({ draft: { ...session.draft, title } })}
           />
           <Field
@@ -148,9 +153,32 @@ export function PlannerDraftReview({
           })}
           {session.draft.blocks.map((block) => (
             <View key={block.ref} style={{ gap: space.sm }}>
-              <SectionTitle>{block.name}</SectionTitle>
+              <Field
+                label={m.nativeBuilder.blockName}
+                value={block.name}
+                editable={!busy}
+                hint={
+                  block.name.trim().length > sessionTextLimits.blockName
+                    ? m.aiPlanner.textLimit(block.name.trim().length, sessionTextLimits.blockName)
+                    : undefined
+                }
+                onChangeText={(name) =>
+                  change({
+                    draft: {
+                      ...session.draft,
+                      blocks: session.draft.blocks.map((b) => (b.ref === block.ref ? { ...b, name } : b)),
+                    },
+                  })
+                }
+              />
               {block.items.map((item) => (
                 <View key={item.ref} style={{ gap: space.xs }}>
+                  {(item.prescription.notes?.length ?? 0) > sessionTextLimits.notes ? (
+                    <T tone="danger">
+                      {m.builder.notes} :{" "}
+                      {m.aiPlanner.textLimit(item.prescription.notes!.length, sessionTextLimits.notes)}
+                    </T>
+                  ) : null}
                   <Button
                     variant="secondary"
                     disabled={busy}

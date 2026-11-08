@@ -2,6 +2,7 @@
 
 import {
   sessionType,
+  sessionTextLimits,
   isoDate,
   type PlannerReviewedDraft,
   type PlannerProposalResponse,
@@ -106,11 +107,17 @@ export function PlannerDraftReview({
         <details>
           <summary className="min-h-11 cursor-pointer py-2 font-semibold">{t.editSchedule}</summary>
           <div className="grid gap-3 tablet:grid-cols-2">
-            <Field label={m.builder.title}>
+            <Field
+              label={m.builder.title}
+              hint={
+                session.draft.title.trim().length > sessionTextLimits.title
+                  ? t.textLimit(session.draft.title.trim().length, sessionTextLimits.title)
+                  : undefined
+              }
+            >
               {(a) => (
                 <Input
                   {...a}
-                  maxLength={120}
                   value={session.draft.title}
                   onChange={(e) => change({ draft: { ...session.draft, title: e.target.value } })}
                 />
@@ -194,13 +201,42 @@ export function PlannerDraftReview({
         </details>
         {session.draft.blocks.map((block) => (
           <section key={block.ref} className="mt-3 border-t border-card-line pt-3">
-            <h3 className="font-semibold break-words">{block.name}</h3>
+            <Field
+              label={m.nativeBuilder.blockName}
+              hint={
+                block.name.trim().length > sessionTextLimits.blockName
+                  ? t.textLimit(block.name.trim().length, sessionTextLimits.blockName)
+                  : undefined
+              }
+            >
+              {(a) => (
+                <Input
+                  {...a}
+                  value={block.name}
+                  onChange={(e) =>
+                    change({
+                      draft: {
+                        ...session.draft,
+                        blocks: session.draft.blocks.map((b) =>
+                          b.ref === block.ref ? { ...b, name: e.target.value } : b,
+                        ),
+                      },
+                    })
+                  }
+                />
+              )}
+            </Field>
             {block.items.map((item) => {
               const exercise = context.exercises.find((e) => e.id === item.exerciseId);
               return (
                 <div key={item.ref} className="flex min-w-0 flex-col gap-2 py-3">
                   <p className="font-semibold break-words">{exercise?.name ?? m.common.notFound}</p>
                   <p>{formatPrescription(item.prescription)}</p>
+                  {(item.prescription.notes?.length ?? 0) > sessionTextLimits.notes ? (
+                    <p role="alert">
+                      {m.builder.notes} : {t.textLimit(item.prescription.notes!.length, sessionTextLimits.notes)}
+                    </p>
+                  ) : null}
                   <details>
                     <summary className="min-h-11 cursor-pointer py-2">{m.builder.setPrescription}</summary>
                     <PrescriptionEditor
