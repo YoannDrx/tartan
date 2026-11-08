@@ -149,7 +149,11 @@ it("filtre la période d'une phase sans exposer une phase privée à l'athlète"
     getTrainingAnalysis(a.athlete.userId, a.organizationId, { ...period, phaseId: phase.id }),
   ).rejects.toMatchObject({ status: 404 });
   const data = await getTrainingAnalysis(a.owner.userId, a.organizationId, { ...period, phaseId: phase.id });
-  expect(data).toMatchObject({ from: "2030-06-10", to: "2030-06-20", phase: { name: "Force" } });
+  expect(data).toMatchObject({
+    ...period,
+    phase: { name: "Force", basis: "prescription", coverage: { matched: 0, withoutReference: 1, otherPhase: 0 } },
+    totals: { assignedSessions: 0 },
+  });
   expect(JSON.stringify(data)).not.toContain("Secret");
   await setTrainingPhaseVisibility(a.owner.userId, a.organizationId, phase.id, {
     expectedVersion: phase.version,

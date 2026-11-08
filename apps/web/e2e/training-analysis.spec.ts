@@ -48,6 +48,18 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
   }
   const context = await api.trainingAnalysisContext(orgId);
   const today = context.today;
+  const phase = await api.saveTrainingPhase(orgId, {
+    id: randomUUID(),
+    expectedVersion: 0,
+    name: "Cycle de force",
+    kind: "development",
+    target: { type: "group", id: group.id },
+    startDate: addDays(today, -27),
+    endDate: today,
+    objective: "",
+    description: "",
+    privateNote: "SECRET_PHASE_ANALYSE",
+  });
   for (let index = 0; index < 4; index++) {
     const session = await api.createSession(orgId, {
       date: addDays(today, -21 + index * 7),
@@ -95,18 +107,6 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
       });
     }
   }
-  const phase = await api.saveTrainingPhase(orgId, {
-    id: randomUUID(),
-    expectedVersion: 0,
-    name: "Cycle de force",
-    kind: "development",
-    target: { type: "group", id: group.id },
-    startDate: addDays(today, -27),
-    endDate: today,
-    objective: "",
-    description: "",
-    privateNote: "SECRET_PHASE_ANALYSE",
-  });
   const data = await api.trainingAnalysis(orgId, { from: addDays(today, -27), to: today });
   expect(data.totals).toMatchObject({
     assignedSessions: 4,
@@ -147,8 +147,34 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
   await page.getByLabel(m.trainingPhases.target, { exact: true }).selectOption(`athlete:${athleteId}`);
   await page.getByLabel(m.analysis.period, { exact: true }).selectOption(`phase:${phase.id}`);
   await page.getByRole("button", { name: m.analysis.apply, exact: true }).click();
-  await expect(page.getByRole("status").filter({ hasText: m.analysis.phaseScope })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: m.analysis.phaseAttributedScope })).toBeVisible();
   await expect(page.getByText("960", { exact: true })).toBeVisible();
+  // Editing a phase must not reassign its old sessions. A long union remains queryable with an explicit window.
+  await api.saveTrainingPhase(orgId, {
+    id: phase.id,
+    expectedVersion: phase.version,
+    name: "Cycle de force",
+    kind: "development",
+    target: { type: "group", id: group.id },
+    startDate: addDays(today, 400),
+    endDate: addDays(today, 428),
+    objective: "",
+    description: "",
+    privateNote: "SECRET_PHASE_ANALYSE",
+  });
+  await page.reload();
+  await expect(page.getByRole("alert").filter({ hasText: m.analysis.invalid })).toBeVisible();
+  await page.getByLabel(m.analysis.rangeFrom, { exact: true }).fill(addDays(today, -27));
+  await page.getByLabel(m.analysis.rangeTo, { exact: true }).fill(today);
+  await page.getByRole("button", { name: m.analysis.applyRange, exact: true }).click();
+  await expect(page.getByText("960", { exact: true })).toBeVisible();
+  await page.getByLabel(m.trainingPhases.target, { exact: true }).selectOption(`group:${group.id}`);
+  await page.getByRole("button", { name: m.analysis.apply, exact: true }).click();
+  await expect(page.getByText("960", { exact: true })).toBeVisible();
+  expect(new URL(page.url()).searchParams.get("from")).toBe(addDays(today, -27));
+  expect(new URL(page.url()).searchParams.get("to")).toBe(today);
+  await expect(page.getByRole("status").filter({ hasText: m.analysis.phaseAttributedScope })).toBeVisible();
+  await page.screenshot({ path: `/tmp/tartan-phase-analysis-${info.project.name}.png`, fullPage: true });
   await page.getByLabel(m.analysis.chooseMetric, { exact: true }).selectOption("distanceM");
   await expect(page.getByText(m.analysis.missing, { exact: true }).first()).toBeVisible();
   for (const width of [390, 768, 1440]) {

@@ -148,3 +148,30 @@ export function analysisPerceivedLoadPoints(data: Pick<TrainingAnalysis, "health
     sessions: w.totals.healthEligibleSessions,
   }));
 }
+
+export function scopeAnalysisEntries<T extends { date: string; athleteId: string; phaseId: string | null }>(
+  entries: readonly T[],
+  input: { from: string; to: string; previousFrom: string; previousTo: string; phaseId?: string },
+) {
+  const candidates = entries.filter((e) => e.date >= input.from && e.date <= input.to);
+  const attributed = input.phaseId ? entries.filter((e) => e.phaseId === input.phaseId) : [...entries];
+  const current = attributed.filter((e) => e.date >= input.from && e.date <= input.to);
+  const athleteIds = new Set(current.map((e) => e.athleteId));
+  return {
+    current,
+    attributed,
+    athleteIds,
+    // Compare the same athletes before this cycle, even when their previous work belongs to another phase.
+    previous: entries.filter(
+      (e) =>
+        e.date >= input.previousFrom && e.date <= input.previousTo && (!input.phaseId || athleteIds.has(e.athleteId)),
+    ),
+    coverage: input.phaseId
+      ? {
+          matched: current.length,
+          withoutReference: candidates.filter((e) => !e.phaseId).length,
+          otherPhase: candidates.filter((e) => e.phaseId && e.phaseId !== input.phaseId).length,
+        }
+      : undefined,
+  };
+}

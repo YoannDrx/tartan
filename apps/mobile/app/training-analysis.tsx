@@ -30,6 +30,8 @@ function AnalysisPanel({
   const [choosing, setChoosing] = useState(false),
     [search, setSearch] = useState("");
   const [choosingPeriod, setChoosingPeriod] = useState(false);
+  const [phaseRange, setPhaseRange] = useState<{ id: string; from: string; to: string } | null>(null);
+  const [rangeExpanded, setRangeExpanded] = useState(false);
   const context = useQuery({
     queryKey: ["analysis-context", orgId, userId, role],
     queryFn: () => api.trainingAnalysisContext(orgId),
@@ -37,10 +39,16 @@ function AnalysisPanel({
   });
   const available = !context.isError && !context.isFetching ? context.data : undefined;
   const phase = available?.phases.find((p) => period === `phase:${p.id}`);
+  const range =
+    phaseRange?.id === phase?.id
+      ? phaseRange
+      : phase
+        ? { id: phase.id, from: phase.startDate, to: phase.endDate }
+        : null;
   const [kind, id] = target.split(":");
   const parsed = trainingAnalysisQuery.safeParse({
     ...(phase
-      ? { from: phase.startDate, to: phase.endDate, phaseId: phase.id }
+      ? { from: range!.from, to: range!.to, phaseId: phase.id }
       : ["28", "84", "365"].includes(period)
         ? historyRange(available?.today ?? localIsoDate(), Number(period) as 28 | 84 | 365)
         : { from: "", to: "" }),
@@ -121,11 +129,46 @@ function AnalysisPanel({
                   selected={p.value === period}
                   onPress={() => {
                     setPeriod(p.value);
+                    setPhaseRange(null);
+                    setRangeExpanded(false);
                     setChoosingPeriod(false);
                   }}
                 />
               ))
             : null}
+          {phase && range ? (
+            <View style={{ gap: space.sm }}>
+              <Button
+                label={t.phaseRange}
+                variant="secondary"
+                expanded={rangeExpanded || !parsed.success}
+                onPress={() => setRangeExpanded(!rangeExpanded)}
+              />
+              {rangeExpanded || !parsed.success ? (
+                <>
+                  <T tone="muted">{t.phaseRangeHint}</T>
+                  <Field
+                    label={t.rangeFrom}
+                    value={range.from}
+                    placeholder={m.trainingPhases.dateFormat}
+                    onChangeText={(from) => {
+                      setRangeExpanded(true);
+                      setPhaseRange({ ...range, from });
+                    }}
+                  />
+                  <Field
+                    label={t.rangeTo}
+                    value={range.to}
+                    placeholder={m.trainingPhases.dateFormat}
+                    onChangeText={(to) => {
+                      setRangeExpanded(true);
+                      setPhaseRange({ ...range, to });
+                    }}
+                  />
+                </>
+              ) : null}
+            </View>
+          ) : null}
           {!parsed.success ? (
             <T tone="danger">{t.invalid}</T>
           ) : data.isPending || data.isFetching ? (

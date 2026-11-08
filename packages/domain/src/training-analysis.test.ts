@@ -3,6 +3,7 @@ import type { DetailedSetInput, SnapshotItem } from "@tartan/contracts";
 import {
   analysisEntryTotals,
   analysisPerceivedLoadPoints,
+  scopeAnalysisEntries,
   plannedItemVolumes,
   sumAnalysisTotals,
   type AnalysisEntry,
@@ -150,5 +151,24 @@ describe("analyse avec provenance et couverture", () => {
     expect(historyChartGeometry(points).path.match(/M/g)).toHaveLength(2);
     expect(historyChartGeometry(points).path).not.toContain("L");
     expect(analysisPerceivedLoadPoints({ healthVisible: false, weeks })).toEqual([]);
+  });
+  it("filtre la phase conservée et compare les mêmes athlètes à leur période précédente", () => {
+    const entries = [
+      { date: "2030-06-12", athleteId: "a", phaseId: "cycle" },
+      { date: "2030-06-12", athleteId: "b", phaseId: "autre" },
+      { date: "2030-06-13", athleteId: "a", phaseId: null },
+      { date: "2030-05-12", athleteId: "a", phaseId: "precedent" },
+      { date: "2030-05-12", athleteId: "b", phaseId: "precedent" },
+    ];
+    const result = scopeAnalysisEntries(entries, {
+      from: "2030-06-01",
+      to: "2030-06-28",
+      previousFrom: "2030-05-04",
+      previousTo: "2030-05-31",
+      phaseId: "cycle",
+    });
+    expect(result.current).toEqual([entries[0]]);
+    expect(result.previous).toEqual([entries[3]]);
+    expect(result.coverage).toEqual({ matched: 1, withoutReference: 1, otherPhase: 1 });
   });
 });

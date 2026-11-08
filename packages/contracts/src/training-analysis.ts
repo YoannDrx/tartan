@@ -56,7 +56,14 @@ export const trainingAnalysisResponse = z.object({
   to: isoDate,
   previousFrom: isoDate,
   previousTo: isoDate,
-  phase: z.object({ id: uuid, name: z.string() }).nullable(),
+  phase: z
+    .object({
+      id: uuid,
+      name: z.string(),
+      basis: z.enum(["prescription", "shared_period"]).default("shared_period"),
+      coverage: z.object({ matched: count, withoutReference: count, otherPhase: count }).optional(),
+    })
+    .nullable(),
   athleteCount: count,
   healthVisible: z.boolean(),
   totals: analysisTotals,

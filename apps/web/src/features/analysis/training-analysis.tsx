@@ -25,9 +25,25 @@ export function TrainingAnalysisView({ data }: { data: TrainingAnalysis }) {
   return (
     <div className="flex min-w-0 flex-col gap-4">
       {data.phase ? (
-        <p role="status">
-          {data.phase.name} — {t.phaseScope}
-        </p>
+        <div role="status" className="space-y-2">
+          <p>
+            {data.phase.name} — {data.phase.basis === "prescription" ? t.phaseStored : t.phasePublic}
+          </p>
+          {data.phase.coverage ? (
+            <p className="text-soft">
+              {t.phaseCoverage(
+                data.phase.coverage.matched,
+                data.phase.coverage.withoutReference,
+                data.phase.coverage.otherPhase,
+              )}
+            </p>
+          ) : null}
+          <details>
+            <summary className="min-h-11 cursor-pointer py-3 font-semibold">{t.phaseMethod}</summary>
+            <p className="text-soft">{data.phase.basis === "prescription" ? t.phaseAttributedScope : t.phaseScope}</p>
+            {data.phase.basis === "prescription" ? <p className="text-soft">{t.phasePriorScope}</p> : null}
+          </details>
+        </div>
       ) : null}
       <Sheet>
         <SheetSection title={t.volumes}>

@@ -317,7 +317,21 @@ export const fr = {
     scope:
       "Les totaux concernent les athlètes actuellement dans le périmètre choisi. Une séance collective compte une fois par athlète concerné.",
     phaseScope:
-      "Période de la phase : les séances sont filtrées par dates et destinataires. Ce filtre ne prouve pas leur attribution historique à cette phase.",
+      "Période partagée : les séances sont filtrées par dates et destinataires, indépendamment des choix privés de programmation.",
+    phaseAttributedScope:
+      "Attribution conservée dans les prescriptions. Modifier les dates d’une phase ne réattribue pas les anciennes séances.",
+    phaseMethod: "Comprendre l’attribution à la phase",
+    phaseStored: "Phase conservée dans la prescription",
+    phasePublic: "Période partagée",
+    phaseCoverage: (matched: number, withoutReference: number, otherPhase: number) =>
+      `Séances du périmètre : ${matched} dans cette phase · ${withoutReference} sans référence conservée · ${otherPhase} dans une autre phase.`,
+    phasePriorScope:
+      "La période précédente porte sur les mêmes athlètes que les séances attribuées à cette phase, quelle que soit leur phase précédente.",
+    phaseRange: "Dates de l’analyse de phase",
+    phaseRangeHint: "Consulte jusqu’à 366 jours à la fois. Ces dates ne modifient ni la phase ni les séances.",
+    rangeFrom: "Début de l’analyse",
+    rangeTo: "Fin de l’analyse",
+    applyRange: "Afficher ces dates",
     volumes: "Volumes et couverture",
     sessions: "Séances par athlète",
     completed: "Validations complètes ou partielles",

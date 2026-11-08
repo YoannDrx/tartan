@@ -15,12 +15,14 @@ import {
   resolveVariant,
   startOfWeek,
   sumAnalysisTotals,
+  scopeAnalysisEntries,
   type AnalysisEntry,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import {
   coachGroupIds,
   audit,
@@ -52,6 +54,8 @@ export async function getTrainingAnalysis(
     query.athleteId = access.athleteId;
   }
   let phase: TrainingAnalysis["phase"] = null;
+  const canAttribute = access.role === "owner" || access.role === "coach";
+  const historicalPhase = Boolean(query.phaseId && canAttribute);
   if (query.phaseId) {
     if (!org.phasesEnabled) throw new AppError(409, "phases_disabled", m.trainingPhases.disabled);
     const row = await prisma.trainingPhase.findFirst({
@@ -66,16 +70,23 @@ export async function getTrainingAnalysis(
     if (!row) throw notFound();
     if (row.athleteId) {
       await requireVisibleAthlete(access, row.athleteId);
-      if (query.athleteId && query.athleteId !== row.athleteId) throw forbidden();
-      query.athleteId = row.athleteId;
+      if (!historicalPhase) {
+        if (query.athleteId && query.athleteId !== row.athleteId) throw forbidden();
+        query.athleteId = row.athleteId;
+      }
     } else if (row.groupId) {
-      if (query.groupId && query.groupId !== row.groupId) throw forbidden();
-      query.groupId = row.groupId;
+      if (canAttribute) await requireGroupInScope(access, [row.groupId]);
+      if (!historicalPhase) {
+        if (query.groupId && query.groupId !== row.groupId) throw forbidden();
+        query.groupId = row.groupId;
+      }
     }
-    query.from = query.from > fromDbDate(row.startDate) ? query.from : fromDbDate(row.startDate);
-    query.to = query.to < fromDbDate(row.endDate) ? query.to : fromDbDate(row.endDate);
+    if (!historicalPhase) {
+      query.from = query.from > fromDbDate(row.startDate) ? query.from : fromDbDate(row.startDate);
+      query.to = query.to < fromDbDate(row.endDate) ? query.to : fromDbDate(row.endDate);
+    }
     if (query.from > query.to) throw invalid(m.analysis.invalid);
-    phase = { id: row.id, name: row.name };
+    phase = { id: row.id, name: row.name, basis: historicalPhase ? "prescription" : "shared_period" };
   }
   if (query.athleteId) await requireVisibleAthlete(access, query.athleteId);
   if (query.groupId) {
@@ -121,7 +132,12 @@ export async function getTrainingAnalysis(
           where: { athleteId: { in: athleteIds } },
           orderBy: { sessionVersion: "desc" },
           distinct: ["athleteId"],
-          select: { athleteId: true, sessionVersion: true, snapshot: true },
+          select: {
+            athleteId: true,
+            sessionVersion: true,
+            snapshot: true,
+            ...(historicalPhase ? { phaseId: true } : {}),
+          },
         },
         logs: {
           where: { athleteId: { in: athleteIds } },
@@ -161,10 +177,33 @@ export async function getTrainingAnalysis(
       : [],
   ]);
   if (sessions.length > 5000) throw invalid(m.analysis.tooLarge);
+  // The latest copy may have changed after an athlete's validation. Match that validation's exact version.
+  // No private phase references are selected for the public/shared-period view.
+  const recordedCopies =
+    historicalPhase && athleteIds.length
+      ? await prisma.$queryRaw<
+          {
+            logId: string;
+            phaseId: string | null;
+            snapshot: unknown;
+          }[]
+        >(Prisma.sql`
+    SELECT l.id AS "logId", p.phase_id AS "phaseId", p.snapshot
+    FROM session_logs l
+    JOIN scheduled_sessions s ON s.id = l.scheduled_session_id
+    JOIN session_prescriptions p ON p.scheduled_session_id = l.scheduled_session_id
+      AND p.athlete_id = l.athlete_id AND p.session_version = l.session_version
+    WHERE s.organization_id = ${organizationId}::uuid AND s.published_at IS NOT NULL
+      AND s.date >= ${dates.gte} AND s.date <= ${dates.lte}
+      AND p.session_version <= s.version
+      AND l.athlete_id IN (${Prisma.join(athleteIds.map((id) => Prisma.sql`${id}::uuid`))})
+  `)
+      : [];
+  const recordedCopyById = new Map(recordedCopies.map((copy) => [copy.logId, copy]));
   if (healthLogs.length && access.role !== "athlete")
     await audit({ organizationId, actorId: userId, action: "health_read", entity: "training_analysis" });
   const healthById = new Map(healthLogs.map((l) => [l.id, l]));
-  const entries: { date: string; entry: AnalysisEntry }[] = [];
+  const entries: { date: string; athleteId: string; phaseId: string | null; entry: AnalysisEntry }[] = [];
   for (const session of sessions) {
     const date = fromDbDate(session.date);
     const logs = new Map(session.logs.map((l) => [l.athleteId, l]));
@@ -189,11 +228,18 @@ export async function getTrainingAnalysis(
         (!log?.sessionVersion || copy.sessionVersion === log.sessionVersion)
           ? copy
           : null;
-      const frozen = log?.prescriptionSnapshot ?? validCopy?.snapshot;
+      const recordedCopy = log ? recordedCopyById.get(log.id) : undefined;
+      const frozen = log?.prescriptionSnapshot ?? recordedCopy?.snapshot ?? validCopy?.snapshot;
       const snapshot = sessionSnapshot.safeParse(frozen);
       const detail = healthById.get(log?.id ?? "");
       entries.push({
         date,
+        athleteId: athlete.id,
+        phaseId: historicalPhase
+          ? ((!log || (log.status === "missed" && log.sessionVersion === null)
+              ? validCopy?.phaseId
+              : recordedCopy?.phaseId) ?? null)
+          : null,
         entry: {
           snapshot: snapshot.success ? snapshot.data : null,
           frozen: Boolean(frozen) && snapshot.success,
@@ -217,7 +263,15 @@ export async function getTrainingAnalysis(
       });
     }
   }
-  const current = entries.filter((e) => e.date >= query.from && e.date <= query.to);
+  const scope = scopeAnalysisEntries(entries, {
+    from: query.from,
+    to: query.to,
+    previousFrom,
+    previousTo,
+    ...(historicalPhase ? { phaseId: query.phaseId } : {}),
+  });
+  const current = scope.current;
+  if (phase && historicalPhase) phase.coverage = scope.coverage;
   const totals = (rows: typeof entries) => sumAnalysisTotals(rows.map((e) => analysisEntryTotals(e.entry)));
   const weeks: TrainingAnalysis["weeks"] = [];
   for (let week = startOfWeek(query.from); week <= query.to; week = addDays(week, 7)) {
@@ -227,7 +281,7 @@ export async function getTrainingAnalysis(
   const distinct28 = new Set<string>();
   let occurrences28 = 0,
     unidentifiedItems = 0;
-  for (const { date, entry } of entries) {
+  for (const { date, entry } of scope.attributed) {
     const items = entry.snapshot ? blocksForVariant(entry.snapshot.blocks, entry.variant).flatMap((b) => b.items) : [];
     for (const item of items) {
       if (date >= diversityFrom) {
@@ -275,10 +329,10 @@ export async function getTrainingAnalysis(
     previousFrom,
     previousTo,
     phase,
-    athleteCount: athletes.length,
+    athleteCount: historicalPhase ? scope.athleteIds.size : athletes.length,
     healthVisible: healthIds.length > 0,
     totals: totals(current),
-    previous: totals(entries.filter((e) => e.date >= previousFrom && e.date <= previousTo)),
+    previous: totals(scope.previous),
     weeks,
     exercises: [...exercises.values()].sort(
       (a, b) => b.occurrences - a.occurrences || a.name.localeCompare(b.name, "fr"),
@@ -340,6 +394,20 @@ export async function getTrainingAnalysisContext(userId: string, organizationId:
         orderBy: [{ startDate: "desc" }, { id: "asc" }],
       })
     : [];
+  // Expand the coach's analysis window to include recorded references even after phase dates change.
+  // Public views only use the shared period; private references must not influence their bounds.
+  const ranges =
+    (access.role === "owner" || access.role === "coach") && phases.length && ids.length
+      ? await prisma.$queryRaw<{ phaseId: string; first: Date; last: Date }[]>(Prisma.sql`
+        SELECT p.phase_id AS "phaseId", MIN(s.date) AS first, MAX(s.date) AS last
+        FROM session_prescriptions p JOIN scheduled_sessions s ON s.id = p.scheduled_session_id
+        WHERE s.organization_id = ${organizationId}::uuid AND s.published_at IS NOT NULL
+          AND p.phase_id IN (${Prisma.join(phases.map((phase) => Prisma.sql`${phase.id}::uuid`))})
+          AND p.athlete_id IN (${Prisma.join(ids.map((id) => Prisma.sql`${id}::uuid`))})
+        GROUP BY p.phase_id
+      `)
+      : [];
+  const rangeByPhase = new Map(ranges.map((row) => [row.phaseId, row]));
   return trainingAnalysisContext.parse({
     today: todayIso(),
     groups,
@@ -348,8 +416,16 @@ export async function getTrainingAnalysisContext(userId: string, organizationId:
       id: p.id,
       name: p.name,
       targetName: p.group?.name ?? `${p.athlete?.firstName ?? ""} ${p.athlete?.lastName ?? ""}`.trim(),
-      startDate: fromDbDate(p.startDate),
-      endDate: fromDbDate(p.endDate),
+      startDate: fromDbDate(
+        rangeByPhase.get(p.id)?.first && rangeByPhase.get(p.id)!.first < p.startDate
+          ? rangeByPhase.get(p.id)!.first
+          : p.startDate,
+      ),
+      endDate: fromDbDate(
+        rangeByPhase.get(p.id)?.last && rangeByPhase.get(p.id)!.last > p.endDate
+          ? rangeByPhase.get(p.id)!.last
+          : p.endDate,
+      ),
     })),
   });
 }

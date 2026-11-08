@@ -27,14 +27,38 @@ export function NativeTrainingAnalysis({ data }: { data: TrainingAnalysis }) {
     a = historyChartGeometry(actual, max);
   const [healthTable, setHealthTable] = useState(false);
   const [healthMethod, setHealthMethod] = useState(false);
+  const [phaseMethod, setPhaseMethod] = useState(false);
   const healthPoints = analysisPerceivedLoadPoints(data);
   const health = historyChartGeometry(healthPoints);
   return (
     <View style={{ gap: space.md }}>
       {data.phase ? (
-        <T>
-          {data.phase.name} — {t.phaseScope}
-        </T>
+        <View style={{ gap: space.sm }}>
+          <T>
+            {data.phase.name} — {data.phase.basis === "prescription" ? t.phaseStored : t.phasePublic}
+          </T>
+          {data.phase.coverage ? (
+            <T tone="muted">
+              {t.phaseCoverage(
+                data.phase.coverage.matched,
+                data.phase.coverage.withoutReference,
+                data.phase.coverage.otherPhase,
+              )}
+            </T>
+          ) : null}
+          <Button
+            label={t.phaseMethod}
+            variant="secondary"
+            expanded={phaseMethod}
+            onPress={() => setPhaseMethod(!phaseMethod)}
+          />
+          {phaseMethod ? (
+            <>
+              <T tone="muted">{data.phase.basis === "prescription" ? t.phaseAttributedScope : t.phaseScope}</T>
+              {data.phase.basis === "prescription" ? <T tone="muted">{t.phasePriorScope}</T> : null}
+            </>
+          ) : null}
+        </View>
       ) : null}
       <Card>
         <View style={{ gap: space.sm }}>
