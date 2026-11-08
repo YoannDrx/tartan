@@ -8,9 +8,9 @@ import {
   type PlannerReviewedDraft,
   type Prescription,
 } from "@tartan/contracts";
-import { formatPrescription } from "@tartan/domain";
+import { formatPrescription, plannerLoadSummary } from "@tartan/domain";
 import { historyDate, m } from "@tartan/i18n";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -35,6 +35,8 @@ export function PlannerLoads({
   onLoad: (athleteId: string, itemRef: string, load: Prescription["load"]) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [expandedAthlete, setExpandedAthlete] = useState<string | null>(null);
+  const uid = useId();
   const [cursors, setCursors] = useState<string[]>([]);
   const [retry, setRetry] = useState(0);
   const [response, setResponse] = useState<{ key: string; data?: PlannerLoadsPreview; error?: string } | null>(null);
@@ -120,74 +122,112 @@ export function PlannerLoads({
               <p role="status">
                 {t.previewCoverage(current.data.offset + current.data.athletes.length, current.data.athleteCount)}
               </p>
-              {current.data.athletes.map((athlete) => (
-                <section key={athlete.id} className="flex flex-col gap-3 rounded-card border border-card-line p-3">
-                  <h3 className="t-section break-words">{athlete.name}</h3>
-                  {athlete.items.map((item) => {
-                    const kind = item.source?.kind;
-                    const sourceLabel =
-                      kind && kind in m.strength.referenceKinds
-                        ? m.strength.referenceKinds[kind as keyof typeof m.strength.referenceKinds]
-                        : t.referenceSource;
-                    return (
-                      <div key={item.ref} className="flex min-w-0 flex-col gap-2 border-t border-card-line pt-3">
-                        <h4 className="font-semibold break-words">{item.name}</h4>
-                        <p>{formatPrescription(item.prescription, item.resolvedLoadKg)}</p>
-                        {item.prescription.load?.type === "pct_1rm" ? (
-                          <p className="text-soft">
-                            {item.prescription.load.value} {m.builder.loadPct}
-                            {item.resolvedLoadKg === null ? ` · ${t.loadUndefined}` : ""}
-                          </p>
-                        ) : null}
-                        {item.source ? (
-                          <p className="text-soft">
-                            {sourceLabel} : {item.source.value} kg · {historyDate(item.source.date)}
-                          </p>
-                        ) : null}
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            disabled={disabled}
-                            onClick={() => {
-                              setEditing({
-                                athleteId: athlete.id,
-                                itemRef: item.ref,
-                                exerciseId: item.exerciseId,
-                                title: `${athlete.name} · ${item.name}`,
-                              });
-                              setUnit(item.prescription.load?.type ?? "kg");
-                              setValue(item.prescription.load?.value.toString() ?? "");
-                              setError("");
-                            }}
-                          >
-                            {t.adaptLoad}
-                          </Button>
-                          {session.overrides.some(
-                            (o) => o.athleteId === athlete.id && o.itemRef === item.ref && o.prescription.load,
-                          ) ? (
-                            <Button
-                              type="button"
-                              variant="quiet"
-                              disabled={disabled}
-                              onClick={() => onLoad(athlete.id, item.ref, undefined)}
-                            >
-                              {t.resetLoad}
-                            </Button>
-                          ) : null}
-                        </div>
+              <p className="text-soft">{t.loadRowsHint}</p>
+              <div role="group" aria-label={t.loadRows} className="divide-y divide-card-line border-y border-card-line">
+                {current.data.athletes.map((athlete) => {
+                  const summary = plannerLoadSummary(athlete, session.overrides);
+                  const expanded = expandedAthlete === athlete.id;
+                  const detailsId = `${uid}-${athlete.id}`;
+                  return (
+                    <section key={athlete.id}>
+                      <h3>
+                        <button
+                          type="button"
+                          aria-expanded={expanded}
+                          aria-controls={detailsId}
+                          disabled={disabled}
+                          onClick={() => setExpandedAthlete(expanded ? null : athlete.id)}
+                          className="flex min-h-16 w-full items-center justify-between gap-3 py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                        >
+                          <span className="min-w-0">
+                            <span className="block font-semibold break-words">{athlete.name}</span>{" "}
+                            <span id={`${detailsId}-summary`} className="block text-sm text-soft">
+                              {t.loadRowSummary(summary.exercises, summary.unresolvedPercentages, summary.customized)}
+                            </span>
+                          </span>
+                          <span aria-hidden="true" className="shrink-0">
+                            {expanded ? "−" : "+"}
+                          </span>
+                        </button>
+                      </h3>
+                      <div id={detailsId} hidden={!expanded} className="pb-4">
+                        {expanded
+                          ? athlete.items.map((item) => {
+                              const kind = item.source?.kind;
+                              const sourceLabel =
+                                kind && kind in m.strength.referenceKinds
+                                  ? m.strength.referenceKinds[kind as keyof typeof m.strength.referenceKinds]
+                                  : t.referenceSource;
+                              return (
+                                <div
+                                  key={item.ref}
+                                  className="flex min-w-0 flex-col gap-2 border-t border-card-line pt-3"
+                                >
+                                  <h4 className="font-semibold break-words">{item.name}</h4>
+                                  <p>{formatPrescription(item.prescription, item.resolvedLoadKg)}</p>
+                                  {item.prescription.load?.type === "pct_1rm" ? (
+                                    <p className="text-soft">
+                                      {item.prescription.load.value} {m.builder.loadPct}
+                                      {item.resolvedLoadKg === null ? ` · ${t.loadUndefined}` : ""}
+                                    </p>
+                                  ) : null}
+                                  {item.source ? (
+                                    <p className="text-soft">
+                                      {sourceLabel} : {item.source.value} kg · {historyDate(item.source.date)}
+                                    </p>
+                                  ) : null}
+                                  <div className="flex flex-wrap gap-2">
+                                    <Button
+                                      type="button"
+                                      variant="secondary"
+                                      disabled={disabled}
+                                      onClick={() => {
+                                        setEditing({
+                                          athleteId: athlete.id,
+                                          itemRef: item.ref,
+                                          exerciseId: item.exerciseId,
+                                          title: `${athlete.name} · ${item.name}`,
+                                        });
+                                        setUnit(item.prescription.load?.type ?? "kg");
+                                        setValue(item.prescription.load?.value.toString() ?? "");
+                                        setError("");
+                                      }}
+                                    >
+                                      {t.adaptLoad}
+                                    </Button>
+                                    {session.overrides.some(
+                                      (o) =>
+                                        o.athleteId === athlete.id && o.itemRef === item.ref && o.prescription.load,
+                                    ) ? (
+                                      <Button
+                                        type="button"
+                                        variant="quiet"
+                                        disabled={disabled}
+                                        onClick={() => onLoad(athlete.id, item.ref, undefined)}
+                                      >
+                                        {t.resetLoad}
+                                      </Button>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          : null}
                       </div>
-                    );
-                  })}
-                </section>
-              ))}
+                    </section>
+                  );
+                })}
+              </div>
               <div className="flex flex-wrap gap-2">
                 {after ? (
                   <Button
                     type="button"
                     variant="secondary"
                     disabled={disabled}
-                    onClick={() => setCursors((old) => old.slice(0, -1))}
+                    onClick={() => {
+                      setExpandedAthlete(null);
+                      setCursors((old) => old.slice(0, -1));
+                    }}
                   >
                     {t.previousAthletes}
                   </Button>
@@ -198,6 +238,7 @@ export function PlannerLoads({
                     variant="secondary"
                     disabled={disabled}
                     onClick={() => {
+                      setExpandedAthlete(null);
                       setCursorSession(sessionKey);
                       setCursors((old) => [...(cursorSession === sessionKey ? old : []), current.data!.nextCursor!]);
                     }}

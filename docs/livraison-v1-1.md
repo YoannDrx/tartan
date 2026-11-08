@@ -18,7 +18,7 @@ Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil s
 
 Les recettes réelles Stripe/e-mails/push/vidéo, les configurations externes encore absentes, les démarches commerciales et juridiques et la publication stores restent ouvertes. Les preuves locales et exports Hermes ne les remplacent pas.
 
-Dernière preuve IA : [textes des brouillons sans troncature](preuves-v1-1/lot-e-textes-brouillons.md), puis [contexte matériel et noms lisibles](preuves-v1-1/lot-e-contexte-exercices.md), puis [corpus de 60 cas et défauts restant à corriger](preuves-v1-1/lot-e-corpus-ia.md), après les [alias contrôlés et leur compatibilité](preuves-v1-1/lot-e-alias-exercices.md), après le [parcours web, dictée synthétique, relecture et reprise](preuves-v1-1/lot-e-parcours-web.md). Le [parcours natif](preuves-v1-1/lot-e-parcours-natif.md) et sa liste privée sont raccordés ; leur recette visuelle et la récupération après redémarrage réel restent à éprouver.
+Dernière preuve IA : [charges individuelles compactes](preuves-v1-1/lot-e-charges-compactes.md), puis [textes des brouillons sans troncature](preuves-v1-1/lot-e-textes-brouillons.md), puis [contexte matériel et noms lisibles](preuves-v1-1/lot-e-contexte-exercices.md), puis [corpus de 60 cas et défauts restant à corriger](preuves-v1-1/lot-e-corpus-ia.md), après les [alias contrôlés et leur compatibilité](preuves-v1-1/lot-e-alias-exercices.md), après le [parcours web, dictée synthétique, relecture et reprise](preuves-v1-1/lot-e-parcours-web.md). Le [parcours natif](preuves-v1-1/lot-e-parcours-natif.md) et sa liste privée sont raccordés ; leur recette visuelle et la récupération après redémarrage réel restent à éprouver.
 
 ## PR 1 — état du code
 

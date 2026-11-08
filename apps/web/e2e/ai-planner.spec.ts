@@ -217,17 +217,42 @@ test("contexte, clarification, reprise, aperçu, correction et confirmation perd
     await expect(page.getByRole("button", { name: t.confirmDrafts(1), exact: true })).toBeDisabled();
     await review.getByRole("button", { name: t.previewLoads, exact: true }).click();
     await expect(review.getByText(t.previewCoverage(10, 12), { exact: true })).toBeVisible();
+    const loadRows = review.getByRole("group", { name: t.loadRows, exact: true });
+    await expect(loadRows.getByRole("button", { expanded: false })).toHaveCount(10);
+    await expect(loadRows.getByRole("button", { name: t.adaptLoad, exact: true })).toHaveCount(0);
+    const firstAthlete = loadRows.getByRole("button", { name: /^Athlète 1 Fictif / });
+    const secondAthlete = loadRows.getByRole("button", {
+      name: /^Athlète 2 Fictif /,
+    });
+    await expect(secondAthlete).toHaveAccessibleName(`Athlète 2 Fictif ${t.loadRowSummary(1, 1, 0)}`);
+    for (const width of [390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expectNoHorizontalScroll(page);
+      expect((await loadRows.boundingBox())!.height).toBeLessThan(1300);
+    }
+    await page.setViewportSize(
+      info.project.name === "mobile" ? { width: 390, height: 844 } : { width: 1440, height: 900 },
+    );
+    await loadRows.screenshot({ path: info.outputPath("charges-compactes.png") });
+    await firstAthlete.focus();
+    await firstAthlete.press("Enter");
+    await expect(firstAthlete).toHaveAttribute("aria-expanded", "true");
     await expect(review.getByText(/3 × 4.*80 kg/)).toBeVisible();
+    await secondAthlete.click();
+    await expect(firstAthlete).toHaveAttribute("aria-expanded", "false");
     await expect(review.getByText(t.loadUndefined, { exact: false }).first()).toBeVisible();
     await review.getByRole("button", { name: t.nextAthletes, exact: true }).click();
     await expect(review.getByText(t.previewCoverage(12, 12), { exact: true })).toBeVisible();
     await review.getByRole("button", { name: t.previousAthletes, exact: true }).click();
+    await firstAthlete.click();
     await review.getByRole("button", { name: t.adaptLoad, exact: true }).first().click();
     const modal = page.getByRole("dialog", { name: t.adaptLoad, exact: true });
     await modal.getByLabel(m.nativeBuilder.unit, { exact: true }).selectOption("kg");
     await modal.getByLabel(m.builder.load, { exact: true }).fill("35");
     await modal.getByRole("button", { name: m.nativeBuilder.apply, exact: true }).click();
     await expect(review.getByText(/3 × 4.*35 kg/)).toBeVisible();
+    await expect(firstAthlete).toHaveAttribute("aria-expanded", "true");
+    await expect(firstAthlete).toHaveAccessibleName(`Athlète 1 Fictif ${t.loadRowSummary(1, 0, 1)}`);
     await review.getByText(m.builder.setPrescription, { exact: true }).click();
     await review.getByLabel(m.nativeBuilder.intensity, { exact: true }).selectOption("rir");
     await review.getByLabel(m.nativeBuilder.intensityValue, { exact: true }).fill("3");

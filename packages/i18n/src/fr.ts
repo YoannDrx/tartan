@@ -704,6 +704,15 @@ export const fr = {
       "Aperçu avec les références actuelles, calculé par Tartan sans les transmettre à l’IA. Les pourcentages seront résolus à nouveau à la publication ; les charges absolues restent celles que tu choisis.",
     previewCoverage: (shown: number, total: number) =>
       `Page jusqu’à l’athlète ${shown} sur ${total}. Dix athlètes au maximum par page.`,
+    loadRowSummary: (exercises: number, unresolved: number, customized: number) =>
+      [
+        `${exercises} exercice${exercises > 1 ? "s" : ""}`,
+        ...(unresolved ? [`${unresolved} charge${unresolved > 1 ? "s" : ""} en % à définir`] : []),
+        ...(customized ? [`${customized} adaptation${customized > 1 ? "s" : ""}`] : []),
+      ].join(" · "),
+    loadRowAction: (athlete: string) => `Charges de ${athlete}`,
+    loadRows: "Charges par athlète",
+    loadRowsHint: "Ouvre un athlète pour lire ses prescriptions, vérifier les références et adapter ses charges.",
     loadUndefined: "Charge à définir : aucune référence compatible disponible.",
     adaptLoad: "Adapter la charge pour cet athlète",
     resetLoad: "Reprendre la charge commune",

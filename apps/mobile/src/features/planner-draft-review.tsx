@@ -41,7 +41,7 @@ export function PlannerDraftReview({
   busy: boolean;
   onUpdate: Update;
   onPhaseReady: (index: number, state: PhasePlanningReadiness) => void;
-  onLoadsReady: (index: number, ready: boolean) => void;
+  onLoadsReady: (index: number, key: string, ready: boolean) => void;
 }) {
   const [editing, setEditing] = useState<{
     ref: string;
@@ -52,7 +52,10 @@ export function PlannerDraftReview({
   const [expanded, setExpanded] = useState(false);
   const [replacement, setReplacement] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const acceptLoads = useCallback((ready: boolean) => onLoadsReady(index, ready), [index, onLoadsReady]);
+  const acceptLoads = useCallback(
+    (key: string, ready: boolean) => onLoadsReady(index, key, ready),
+    [index, onLoadsReady],
+  );
   const acceptPhase = useCallback(
     (state: PhasePlanningReadiness) => {
       onPhaseReady(index, state);
@@ -223,7 +226,6 @@ export function PlannerDraftReview({
         />
       ) : null}
       <PlannerLoadPreview
-        key={JSON.stringify(session)}
         orgId={orgId}
         proposalId={proposal.id}
         version={proposal.version}

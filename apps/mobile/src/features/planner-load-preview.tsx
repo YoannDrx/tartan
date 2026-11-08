@@ -1,14 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { plannerReviewedDraft, type PlannerReviewedDraft, type Prescription } from "@tartan/contracts";
-import { formatPrescription } from "@tartan/domain";
+import { formatPrescription, plannerLoadSummary } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { api } from "../lib/api";
 import { Button, Divider, Field, T } from "../ui/primitives";
 import { Sheet } from "../ui/sheet";
 import { ErrorState, LoadingState } from "../ui/states";
-import { space } from "../ui/theme";
+import { space, TOUCH, usePalette } from "../ui/theme";
 
 const t = m.aiPlanner;
 export function PlannerLoadPreview({
@@ -25,10 +25,12 @@ export function PlannerLoadPreview({
   version: number;
   session: PlannerReviewedDraft;
   disabled: boolean;
-  onReady: (ready: boolean) => void;
+  onReady: (key: string, ready: boolean) => void;
   onLoad: (athleteId: string, itemRef: string, load: Prescription["load"]) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [expandedAthlete, setExpandedAthlete] = useState<string | null>(null);
+  const palette = usePalette();
   const [cursors, setCursors] = useState<(string | undefined)[]>([undefined]);
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<{
@@ -41,15 +43,14 @@ export function PlannerLoadPreview({
   const [unit, setUnit] = useState<"kg" | "pct_1rm">("kg");
   const [error, setError] = useState("");
   const requestValid = plannerReviewedDraft.safeParse(session).success;
+  const sessionKey = JSON.stringify(session);
+  const [cursorSession, setCursorSession] = useState(sessionKey);
+  const activePage = cursorSession === sessionKey ? page : 0;
+  const after = cursorSession === sessionKey ? cursors[activePage] : undefined;
   const data = useQuery({
-    queryKey: ["planner-loads", orgId, proposalId, version, session, cursors[page]],
+    queryKey: ["planner-loads", orgId, proposalId, version, session, after],
     queryFn: ({ signal }) =>
-      api.previewPlannerLoads(
-        orgId,
-        proposalId,
-        { expectedVersion: version, session, afterAthleteId: cursors[page] },
-        signal,
-      ),
+      api.previewPlannerLoads(orgId, proposalId, { expectedVersion: version, session, afterAthleteId: after }, signal),
     enabled: open && requestValid,
     retry: false,
     networkMode: "always",
@@ -59,9 +60,9 @@ export function PlannerLoadPreview({
     refetchOnReconnect: false,
   });
   useEffect(() => {
-    onReady(Boolean(requestValid && data.data && !data.isError && !data.isFetching));
-  }, [requestValid, data.data, data.isError, data.isFetching, onReady]);
-  useEffect(() => () => onReady(false), [onReady]);
+    onReady(sessionKey, Boolean(requestValid && data.data && !data.isError && !data.isFetching));
+  }, [sessionKey, requestValid, data.data, data.isError, data.isFetching, onReady]);
+  useEffect(() => () => onReady(sessionKey, false), [sessionKey, onReady]);
   const apply = () => {
     if (!editing) return;
     const number = Number(value.trim().replace(",", "."));
@@ -108,70 +109,109 @@ export function PlannerLoadPreview({
           {current ? (
             <>
               <T>{t.previewCoverage(current.offset + current.athletes.length, current.athleteCount)}</T>
-              {current.athletes.map((athlete) => (
-                <View key={athlete.id} style={{ gap: space.sm }}>
-                  <Divider />
-                  <T variant="bodyStrong">{athlete.name}</T>
-                  {athlete.items.map((item) => {
-                    const sourceKind = item.source?.kind;
-                    const sourceLabel =
-                      sourceKind && sourceKind in m.strength.referenceKinds
-                        ? m.strength.referenceKinds[sourceKind as keyof typeof m.strength.referenceKinds]
-                        : t.referenceSource;
-                    return (
-                      <View key={item.ref} style={{ gap: space.xs }}>
-                        <T variant="smallStrong">{item.name}</T>
-                        <T>{formatPrescription(item.prescription, item.resolvedLoadKg)}</T>
-                        {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg !== null ? (
-                          <T variant="small" tone="muted">
-                            {item.prescription.load.value} {m.builder.loadPct}
-                          </T>
-                        ) : null}
-                        {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg === null ? (
-                          <T>{t.loadUndefined}</T>
-                        ) : null}
-                        {item.source ? (
-                          <T variant="small" tone="muted">
-                            {sourceLabel} : {item.source.value} kg · {item.source.date}
-                          </T>
-                        ) : null}
-                        <Button
-                          variant="secondary"
-                          label={t.adaptLoad}
-                          disabled={disabled}
-                          onPress={() => {
-                            setEditing({
-                              athleteId: athlete.id,
-                              itemRef: item.ref,
-                              exerciseId: item.exerciseId,
-                              title: `${athlete.name} · ${item.name}`,
-                            });
-                            setUnit(item.prescription.load?.type ?? "kg");
-                            setValue(item.prescription.load?.value.toString() ?? "");
-                            setError("");
-                          }}
-                        />
-                        {session.overrides.some(
-                          (o) => o.athleteId === athlete.id && o.itemRef === item.ref && o.prescription.load,
-                        ) ? (
-                          <Button
-                            variant="ghost"
-                            label={t.resetLoad}
-                            disabled={disabled}
-                            onPress={() => onLoad(athlete.id, item.ref, undefined)}
-                          />
-                        ) : null}
+              <T variant="small" tone="muted">
+                {t.loadRowsHint}
+              </T>
+              {current.athletes.map((athlete) => {
+                const summary = plannerLoadSummary(athlete, session.overrides);
+                const summaryText = t.loadRowSummary(
+                  summary.exercises,
+                  summary.unresolvedPercentages,
+                  summary.customized,
+                );
+                const expanded = expandedAthlete === athlete.id;
+                return (
+                  <View key={athlete.id} style={{ gap: space.sm }}>
+                    <Divider />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${t.loadRowAction(athlete.name)}, ${summaryText}`}
+                      accessibilityState={{ expanded, disabled }}
+                      disabled={disabled}
+                      onPress={() => setExpandedAthlete(expanded ? null : athlete.id)}
+                      style={({ pressed }) => ({
+                        minHeight: TOUCH,
+                        paddingVertical: space.sm,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: space.sm,
+                        backgroundColor: pressed ? palette.surface : undefined,
+                      })}
+                    >
+                      <View style={{ flex: 1, gap: space.xs }}>
+                        <T variant="bodyStrong">{athlete.name}</T>
+                        <T variant="small" tone="muted">
+                          {summaryText}
+                        </T>
                       </View>
-                    );
-                  })}
-                </View>
-              ))}
-              {page > 0 ? (
+                      <T accessible={false}>{expanded ? "−" : "+"}</T>
+                    </Pressable>
+                    {expanded
+                      ? athlete.items.map((item) => {
+                          const sourceKind = item.source?.kind;
+                          const sourceLabel =
+                            sourceKind && sourceKind in m.strength.referenceKinds
+                              ? m.strength.referenceKinds[sourceKind as keyof typeof m.strength.referenceKinds]
+                              : t.referenceSource;
+                          return (
+                            <View key={item.ref} style={{ gap: space.xs }}>
+                              <T variant="smallStrong">{item.name}</T>
+                              <T>{formatPrescription(item.prescription, item.resolvedLoadKg)}</T>
+                              {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg !== null ? (
+                                <T variant="small" tone="muted">
+                                  {item.prescription.load.value} {m.builder.loadPct}
+                                </T>
+                              ) : null}
+                              {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg === null ? (
+                                <T>{t.loadUndefined}</T>
+                              ) : null}
+                              {item.source ? (
+                                <T variant="small" tone="muted">
+                                  {sourceLabel} : {item.source.value} kg · {item.source.date}
+                                </T>
+                              ) : null}
+                              <Button
+                                variant="secondary"
+                                label={t.adaptLoad}
+                                disabled={disabled}
+                                onPress={() => {
+                                  setEditing({
+                                    athleteId: athlete.id,
+                                    itemRef: item.ref,
+                                    exerciseId: item.exerciseId,
+                                    title: `${athlete.name} · ${item.name}`,
+                                  });
+                                  setUnit(item.prescription.load?.type ?? "kg");
+                                  setValue(item.prescription.load?.value.toString() ?? "");
+                                  setError("");
+                                }}
+                              />
+                              {session.overrides.some(
+                                (o) => o.athleteId === athlete.id && o.itemRef === item.ref && o.prescription.load,
+                              ) ? (
+                                <Button
+                                  variant="ghost"
+                                  label={t.resetLoad}
+                                  disabled={disabled}
+                                  onPress={() => onLoad(athlete.id, item.ref, undefined)}
+                                />
+                              ) : null}
+                            </View>
+                          );
+                        })
+                      : null}
+                  </View>
+                );
+              })}
+              {activePage > 0 ? (
                 <Button
                   variant="secondary"
                   label={t.previousAthletes}
                   disabled={disabled}
-                  onPress={() => setPage((p) => p - 1)}
+                  onPress={() => {
+                    setExpandedAthlete(null);
+                    setPage(activePage - 1);
+                  }}
                 />
               ) : null}
               {current.nextCursor ? (
@@ -180,8 +220,13 @@ export function PlannerLoadPreview({
                   label={t.nextAthletes}
                   disabled={disabled}
                   onPress={() => {
-                    setCursors((old) => [...old.slice(0, page + 1), current.nextCursor!]);
-                    setPage((p) => p + 1);
+                    setExpandedAthlete(null);
+                    setCursors((old) => [
+                      ...(cursorSession === sessionKey ? old.slice(0, activePage + 1) : [undefined]),
+                      current.nextCursor!,
+                    ]);
+                    setCursorSession(sessionKey);
+                    setPage(activePage + 1);
                   }}
                 />
               ) : null}

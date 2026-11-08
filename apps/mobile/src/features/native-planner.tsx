@@ -57,7 +57,7 @@ export function NativePlanner({
   const [drafts, setDrafts] = useState<PlannerReviewedDraft[] | null>(null);
   const [draftsReviewed, setDraftsReviewed] = useState(false);
   const [phases, setPhases] = useState<Record<number, PhasePlanningReadiness>>({});
-  const [loadsReady, setLoadsReady] = useState<Record<number, boolean>>({});
+  const [loadsReady, setLoadsReady] = useState<Record<number, { key: string; ready: boolean }>>({});
   const [created, setCreated] = useState(initial?.draftIds ?? null);
   const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -200,8 +200,10 @@ export function NativePlanner({
     setPhases((old) => (JSON.stringify(old[index]) === JSON.stringify(state) ? old : { ...old, [index]: state }));
   }, []);
   const acceptLoads = useCallback(
-    (index: number, ready: boolean) =>
-      setLoadsReady((old) => (old[index] === ready ? old : { ...old, [index]: ready })),
+    (index: number, key: string, ready: boolean) =>
+      setLoadsReady((old) =>
+        old[index]?.key === key && old[index]?.ready === ready ? old : { ...old, [index]: { key, ready } },
+      ),
     [],
   );
   const confirm = () =>
@@ -494,7 +496,9 @@ export function NativePlanner({
                 />
               ))}
               <T>{t.noPublication}</T>
-              {drafts.some((_s, i) => !loadsReady[i]) ? <T>{t.previewRequired}</T> : null}
+              {drafts.some((draft, i) => !loadsReady[i]?.ready || loadsReady[i]?.key !== JSON.stringify(draft)) ? (
+                <T>{t.previewRequired}</T>
+              ) : null}
               <Button
                 label={t.reviewedDrafts}
                 variant="secondary"
@@ -505,7 +509,11 @@ export function NativePlanner({
               <Button
                 label={t.confirmDrafts(drafts.length)}
                 disabled={
-                  disabled || !draftsReviewed || !phaseReady || !draftsValid || drafts.some((_s, i) => !loadsReady[i])
+                  disabled ||
+                  !draftsReviewed ||
+                  !phaseReady ||
+                  !draftsValid ||
+                  drafts.some((draft, i) => !loadsReady[i]?.ready || loadsReady[i]?.key !== JSON.stringify(draft))
                 }
                 loading={busy}
                 onPress={() => {
