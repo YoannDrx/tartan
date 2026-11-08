@@ -1,12 +1,14 @@
 "use client";
 
 import { m } from "@tartan/i18n";
-import type { ExerciseSummary } from "@tartan/contracts";
+import type { ExerciseSummary, PerformanceEntry } from "@tartan/contracts";
 import Link from "next/link";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useRef, useEffect, type ReactNode } from "react";
+import { Button, IconButton } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
+import { todayIso } from "@/lib/dates";
 import { Dialog } from "@/components/ui/dialog";
 import { CheckRow, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
@@ -14,6 +16,7 @@ import { createInvitationAction } from "@/features/invitations/invitation.action
 import {
   addNoteAction,
   addPerformanceAction,
+  updatePerformanceAction,
   addTestAction,
   saveAthleteAction,
   saveInjuryAction,
@@ -419,86 +422,187 @@ export const TestDialog = ({
   );
 };
 
-export const PerformanceDialog = ({ athleteId }: { athleteId: string }) => {
+export const PerformanceDialog = ({ athleteId, initial }: { athleteId: string; initial?: PerformanceEntry }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [formError, setFormError] = useState("");
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (formError) errorRef.current?.focus();
+  }, [formError]);
+  const [clientId, setClientId] = useState(() => crypto.randomUUID());
   const [v, setV] = useState({
-    discipline: "",
-    mark: "",
-    unit: "m" as "m" | "cm" | "s",
-    date: today(),
-    location: "",
+    discipline: initial?.discipline ?? "",
+    mark: initial ? String(initial.mark) : "",
+    unit: (initial ? (["m", "cm", "s"].includes(initial.unit) ? initial.unit : "") : "m") as "m" | "cm" | "s" | "",
+    date: initial?.date ?? todayIso(),
+    location: initial?.location ?? "",
+    comparisonContext: initial?.comparisonContext ?? "",
+    wind: initial?.wind == null ? "" : String(initial.wind),
   });
-  const { execute, isPending } = useAction(addPerformanceAction, {
+  const options = {
     onSuccess: () => {
       setOpen(false);
+      setClientId(crypto.randomUUID());
       router.refresh();
     },
-    onError: onErr,
-  });
+    onError: ({ error }: { error: { serverError?: string } }) =>
+      setFormError(error.serverError ?? m.performances.invalid),
+  };
+  const create = useAction(addPerformanceAction, options);
+  const update = useAction(updatePerformanceAction, options);
+  const busy = create.isPending || update.isPending;
   return (
     <Dialog
       open={open}
       onOpenChange={setOpen}
-      title="Ajouter un record"
+      title={initial ? m.performances.edit : m.performances.add}
       trigger={
-        <Button size="sm" variant="secondary">
-          {m.common.add}
-        </Button>
+        initial ? (
+          <IconButton label={`${m.performances.edit} : ${initial.discipline}, ${initial.mark} ${initial.unit}`}>
+            <Pencil aria-hidden className="size-4" />
+          </IconButton>
+        ) : (
+          <Button size="sm" variant="secondary">
+            {m.common.add}
+          </Button>
+        )
       }
     >
       <form
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault();
-          execute({
+          setFormError("");
+          if (!v.unit) {
+            setFormError(m.performances.unknown);
+            return;
+          }
+          const body = {
             athleteId,
             discipline: v.discipline,
-            mark: Number(v.mark),
+            mark: Number(v.mark.replace(",", ".")),
             unit: v.unit,
+            measurementType: v.unit === "s" ? ("time" as const) : ("distance" as const),
+            recordDirection: v.unit === "s" ? ("lower" as const) : ("higher" as const),
             date: v.date,
             location: v.location || null,
-          });
+            comparisonContext: v.comparisonContext,
+            wind: v.wind.trim() ? Number(v.wind.replace(",", ".")) : null,
+            competitionId: initial?.competitionId ?? null,
+          };
+          if (initial && initial.version) update.execute({ ...body, id: initial.id, expectedVersion: initial.version });
+          else create.execute({ ...body, clientId });
         }}
       >
-        <Field label="Discipline">
+        {formError ? (
+          <p ref={errorRef} role="alert" tabIndex={-1}>
+            {formError}
+          </p>
+        ) : null}
+        <Field label={m.performances.discipline}>
           {(a) => (
-            <Input {...a} required value={v.discipline} onChange={(e) => setV({ ...v, discipline: e.target.value })} />
+            <Input
+              {...a}
+              required
+              maxLength={40}
+              value={v.discipline}
+              onChange={(e) => setV({ ...v, discipline: e.target.value })}
+            />
+          )}
+        </Field>
+        <Field label={m.performances.measurement}>
+          {(a) => (
+            <Select
+              {...a}
+              value={v.unit === "s" ? "time" : v.unit ? "distance" : ""}
+              onChange={(e) => setV({ ...v, unit: e.target.value === "time" ? "s" : "m" })}
+            >
+              {!v.unit ? (
+                <option value="" disabled>
+                  {m.performances.unknown}
+                </option>
+              ) : null}
+              <option value="distance">{m.performances.distance}</option>
+              <option value="time">{m.performances.time}</option>
+            </Select>
           )}
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Marque">
+          <Field label={m.performances.mark}>
             {(a) => (
               <Input
                 {...a}
                 type="number"
-                step="0.01"
-                min={0}
+                step="0.001"
+                min="0.001"
+                max="100000"
                 required
                 value={v.mark}
                 onChange={(e) => setV({ ...v, mark: e.target.value })}
               />
             )}
           </Field>
-          <Field label="Unité">
+          <Field label={m.performances.unit}>
             {(a) => (
               <Select {...a} value={v.unit} onChange={(e) => setV({ ...v, unit: e.target.value as typeof v.unit })}>
-                <option value="m">m</option>
-                <option value="cm">cm</option>
-                <option value="s">s</option>
+                {!v.unit ? (
+                  <option value="" disabled>
+                    {m.performances.unknown}
+                  </option>
+                ) : null}
+                {v.unit === "s" ? (
+                  <option value="s">s</option>
+                ) : (
+                  <>
+                    <option value="m">m</option>
+                    <option value="cm">cm</option>
+                  </>
+                )}
               </Select>
             )}
           </Field>
         </div>
+        <Field label={m.performances.context}>
+          {(a) => (
+            <Input
+              {...a}
+              maxLength={80}
+              value={v.comparisonContext}
+              onChange={(e) => setV({ ...v, comparisonContext: e.target.value })}
+            />
+          )}
+        </Field>
+        <p className="t-caption text-soft">{m.performances.contextHint}</p>
+        <Field label={m.performances.wind}>
+          {(a) => (
+            <Input
+              {...a}
+              type="number"
+              min="-20"
+              max="20"
+              step="0.1"
+              value={v.wind}
+              onChange={(e) => setV({ ...v, wind: e.target.value })}
+            />
+          )}
+        </Field>
         <Field label={m.builder.date}>
           {(a) => (
             <Input {...a} type="date" required value={v.date} onChange={(e) => setV({ ...v, date: e.target.value })} />
           )}
         </Field>
         <Field label={m.builder.location}>
-          {(a) => <Input {...a} value={v.location} onChange={(e) => setV({ ...v, location: e.target.value })} />}
+          {(a) => (
+            <Input
+              {...a}
+              maxLength={120}
+              value={v.location}
+              onChange={(e) => setV({ ...v, location: e.target.value })}
+            />
+          )}
         </Field>
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={busy || !v.unit || Boolean(initial && !initial.version)}>
           {m.common.save}
         </Button>
       </form>

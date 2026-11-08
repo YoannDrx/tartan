@@ -6,6 +6,7 @@ import {
   coachNoteInput,
   injuryInput,
   performanceInput,
+  updatePerformanceInput,
   strengthTestInput,
   chooseStrengthReference,
 } from "@tartan/contracts";
@@ -16,6 +17,7 @@ import { uuid } from "@tartan/contracts";
 import {
   addCoachNote,
   addPerformance,
+  updatePerformance,
   addStrengthTest,
   deleteCoachNote,
   deletePerformance,
@@ -52,10 +54,17 @@ export const deleteTestAction = spaceAction.inputSchema(byId).action(async ({ pa
   revalidatePath(`/athletes/${athleteId}`);
 });
 
-export const deletePerformanceAction = spaceAction.inputSchema(byId).action(async ({ parsedInput, ctx }) => {
-  const { athleteId } = await deletePerformance(ctx.userId, ctx.organizationId, parsedInput.id);
-  revalidatePath(`/athletes/${athleteId}`);
-});
+export const deletePerformanceAction = spaceAction
+  .inputSchema(byId.extend({ expectedVersion: z.number().int().positive().optional() }))
+  .action(async ({ parsedInput, ctx }) => {
+    const { athleteId } = await deletePerformance(
+      ctx.userId,
+      ctx.organizationId,
+      parsedInput.id,
+      parsedInput.expectedVersion,
+    );
+    revalidatePath(`/athletes/${athleteId}`);
+  });
 
 export const deleteNoteAction = spaceAction.inputSchema(byId).action(async ({ parsedInput, ctx }) => {
   const { athleteId } = await deleteCoachNote(ctx.userId, ctx.organizationId, parsedInput.id);
@@ -68,9 +77,20 @@ export const addTestAction = spaceAction.inputSchema(strengthTestInput).action(a
 });
 
 export const addPerformanceAction = spaceAction.inputSchema(performanceInput).action(async ({ parsedInput, ctx }) => {
-  await addPerformance(ctx.userId, ctx.organizationId, parsedInput);
+  const result = await addPerformance(ctx.userId, ctx.organizationId, parsedInput);
   revalidatePath(`/athletes/${parsedInput.athleteId}`);
+  revalidatePath("/progres");
+  return result;
 });
+
+export const updatePerformanceAction = spaceAction
+  .inputSchema(updatePerformanceInput)
+  .action(async ({ parsedInput, ctx }) => {
+    const result = await updatePerformance(ctx.userId, ctx.organizationId, parsedInput);
+    revalidatePath(`/athletes/${parsedInput.athleteId}`);
+    revalidatePath("/progres");
+    return result;
+  });
 
 export const saveInjuryAction = spaceAction.inputSchema(injuryInput).action(async ({ parsedInput, ctx }) => {
   await saveInjury(ctx.userId, ctx.organizationId, parsedInput);

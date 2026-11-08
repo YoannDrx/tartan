@@ -46,7 +46,7 @@ export default function Progress() {
       {empty ? <EmptyState body={m.mobile.progress.empty} /> : null}
       {file.data && file.data.performances.length > 0 ? (
         <View style={{ gap: space.sm }}>
-          <SectionTitle>{m.mobile.progress.records}</SectionTitle>
+          <SectionTitle>{m.performances.title}</SectionTitle>
           <ListSurface>
             {file.data.performances.map((perf, i) => (
               <View key={`${perf.discipline}-${perf.date}-${i}`}>
@@ -64,9 +64,24 @@ export default function Progress() {
                   <View style={{ flex: 1, gap: 2 }}>
                     <T variant="smallStrong">{disciplineLabel(perf.discipline)}</T>
                     <T variant="caption" tone="muted">
-                      {[capitalize(formatDayMonth(perf.date)), perf.location].filter(Boolean).join(" · ")}
+                      {[
+                        capitalize(formatDayMonth(perf.date)),
+                        perf.location,
+                        perf.comparisonContext,
+                        perf.recordDirection === "lower"
+                          ? m.performances.lower
+                          : perf.recordDirection === "higher"
+                            ? m.performances.higher
+                            : m.performances.unknown,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </T>
-                    {perf.isPb ? <Tag label={m.mobile.progress.personalBest} tone="brand" /> : null}
+                    {perf.isBaseline ? (
+                      <Tag label={m.performances.baseline} />
+                    ) : perf.isPb ? (
+                      <Tag label={m.mobile.progress.personalBest} tone="brand" />
+                    ) : null}
                   </View>
                   <T variant="figure" style={{ fontSize: 24, lineHeight: 28 }}>
                     {markLabel(perf.mark, perf.unit)}

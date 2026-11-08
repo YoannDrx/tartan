@@ -176,6 +176,7 @@ model Organization {
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
 
+  performanceCreations PerformanceCreation[]
   members           OrganizationMember[]
   groups            Group[]
   athletes          Athlete[]
@@ -308,6 +309,7 @@ model Athlete {
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  performanceCreations PerformanceCreation[]
   athleteConsents AthleteConsent[]
   groups       GroupMember[]
   coachNotes   CoachNote[]
@@ -1054,6 +1056,11 @@ model Performance {
   location       String?
   competitionId  String?      @map("competition_id") @db.Uuid
   isPb           Boolean      @default(false) @map("is_pb")
+  measurementType String? @map("measurement_type")
+  recordDirection String? @map("record_direction")
+  comparisonContext String @default("") @map("comparison_context")
+  version Int @default(1)
+  creation PerformanceCreation?
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   athlete        Athlete      @relation(fields: [athleteId], references: [id], onDelete: Cascade)
@@ -1061,6 +1068,19 @@ model Performance {
 
   @@index([athleteId])
   @@map("performances")
+}
+
+model PerformanceCreation {
+  id String @id @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  athleteId String @map("athlete_id") @db.Uuid
+  performanceId String? @unique @map("performance_id") @db.Uuid
+  fingerprint String
+  createdAt DateTime @default(now()) @map("created_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  athlete Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  performance Performance? @relation(fields: [performanceId], references: [id], onDelete: SetNull)
+  @@map("performance_creations")
 }
 
 enum JumpResult {

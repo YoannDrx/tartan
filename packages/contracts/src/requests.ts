@@ -161,16 +161,7 @@ export const strengthTestInput = z.object({
 });
 export type StrengthTestInput = z.infer<typeof strengthTestInput>;
 
-export const performanceInput = z.object({
-  athleteId: uuid,
-  discipline: required(40, "Choisis la discipline"),
-  mark: z.number().positive("Indique la marque").max(100000),
-  unit: z.enum(["cm", "m", "s"]),
-  wind: z.number().min(-20).max(20).nullable().optional(),
-  date: isoDate,
-  location: trimmed(120).nullable().optional(),
-  competitionId: uuid.nullable().optional(),
-});
+export { performanceInput } from "./performance";
 
 export const injuryInput = z.object({
   id: uuid.optional(),

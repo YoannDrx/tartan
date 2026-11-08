@@ -20,7 +20,17 @@ const actions = {
 };
 
 // Retirer une saisie : une faute de frappe se corrige en supprimant puis en ressaisissant.
-export const DeleteRow = ({ kind, id, label }: { kind: keyof typeof actions; id: string; label: string }) => {
+export const DeleteRow = ({
+  kind,
+  id,
+  label,
+  expectedVersion,
+}: {
+  kind: keyof typeof actions;
+  id: string;
+  label: string;
+  expectedVersion?: number;
+}) => {
   const router = useRouter();
   const { execute, isPending } = useAction(actions[kind], {
     onSuccess: () => router.refresh(),
@@ -35,7 +45,7 @@ export const DeleteRow = ({ kind, id, label }: { kind: keyof typeof actions; id:
       }
       title={m.athletes.deleteEntry}
       description={m.athletes.deleteEntryDetail(label)}
-      onConfirm={() => execute({ id })}
+      onConfirm={() => execute({ id, ...(expectedVersion ? { expectedVersion } : {}) })}
     />
   );
 };

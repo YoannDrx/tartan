@@ -1,4 +1,7 @@
 import {
+  performanceWriteResult,
+  type PerformanceInput,
+  type UpdatePerformanceInput,
   acceptInvitationResponse,
   athleteExerciseIndex,
   athleteHistoryContext,
@@ -124,6 +127,31 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("GET", `/orgs/${orgId}/athletes/${athleteId}/strength/${exerciseId}`, strengthReferenceResponse),
     selectStrengthReference: (orgId: string, athleteId: string, exerciseId: string, body: ChooseStrengthReference) =>
       request("PUT", `/orgs/${orgId}/athletes/${athleteId}/strength/${exerciseId}`, strengthReferenceResponse, body),
+    addPerformance: (
+      orgId: string,
+      athleteId: string,
+      body: Omit<PerformanceInput, "athleteId"> & { clientId: string },
+    ) => request("POST", `/orgs/${orgId}/athletes/${athleteId}/performances`, performanceWriteResult, body),
+    updatePerformance: (
+      orgId: string,
+      athleteId: string,
+      performanceId: string,
+      body: Omit<UpdatePerformanceInput, "id" | "athleteId">,
+    ) =>
+      request(
+        "PUT",
+        `/orgs/${orgId}/athletes/${athleteId}/performances/${performanceId}`,
+        performanceWriteResult,
+        body,
+      ),
+    deletePerformance: (orgId: string, athleteId: string, performanceId: string, expectedVersion: number) =>
+      request(
+        "DELETE",
+        `/orgs/${orgId}/athletes/${athleteId}/performances/${performanceId}`,
+        z.object({ athleteId: z.string() }),
+        undefined,
+        { expectedVersion: String(expectedVersion) },
+      ),
     addStrengthTest: (orgId: string, athleteId: string, body: Omit<StrengthTestInput, "athleteId">) =>
       request("POST", `/orgs/${orgId}/athletes/${athleteId}/strength-tests`, z.object({ id: z.string() }), body),
     updateProfile: (body: ProfileInput) => request("PATCH", "/me", meResponse, body),

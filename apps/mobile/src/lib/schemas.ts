@@ -1,4 +1,11 @@
-import { sessionSnapshot, attendanceStatus, cellStatus, sessionType, sessionVariant } from "@tartan/contracts";
+import {
+  performanceEntry,
+  sessionSnapshot,
+  attendanceStatus,
+  cellStatus,
+  sessionType,
+  sessionVariant,
+} from "@tartan/contracts";
 import { z } from "zod";
 
 // L'API client type ces deux réponses en « any » : on les valide ici pour garder un code typé.
@@ -51,16 +58,7 @@ export const athleteFile = z.object({
       date: z.string(),
     }),
   ),
-  performances: z.array(
-    z.object({
-      discipline: z.string(),
-      mark: z.number(),
-      unit: z.string(),
-      date: z.string(),
-      location: z.string().nullable(),
-      isPb: z.boolean(),
-    }),
-  ),
+  performances: z.array(performanceEntry.extend({ id: z.string().optional() })),
 });
 export type AthleteFile = z.infer<typeof athleteFile>;
 
@@ -98,17 +96,7 @@ export const coachAthleteFile = z.object({
       date: z.string(),
     }),
   ),
-  performances: z.array(
-    z.object({
-      id: z.string(),
-      discipline: z.string(),
-      mark: z.number(),
-      unit: z.string(),
-      date: z.string(),
-      location: z.string().nullable(),
-      isPb: z.boolean(),
-    }),
-  ),
+  performances: z.array(performanceEntry),
   healthVisible: z.boolean(),
   injuries: z.array(
     z.object({

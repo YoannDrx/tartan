@@ -14,7 +14,7 @@ L'interface anime seulement une réponse directe, valide et non rejouée. Une r�
 
 La migration `20261108020000_session_celebration` ajoute une colonne nullable à `session_logs`. Elle marque les validations anciennes déjà terminées avec leur date de validation, ou de création si absente ; les anciennes validations partielles restent éligibles à leur première validation complète. Aucun historique de séries n'est modifié. Les anciens clients ignorent le nouveau champ ; leur animation locale ancienne n'est pas modifiable par cette évolution serveur.
 
-La migration a été appliquée sur les bases locales jetables de tests et de parcours navigateur. Un test SQL sur table temporaire reproduit les trois états anciens. Elle n'est pas encore appliquée à la Preview ni à la production au moment de cette preuve.
+La migration a été appliquée sur les bases locales jetables de tests et de parcours navigateur. Un test SQL sur table temporaire reproduit les trois états anciens. Après l'envoi de `9ea0639`, elle a aussi été appliquée sur la Preview isolée `br-floral-sun-b9iar8ge` : 28 → 29 migrations en 2,52 s, colonne relue, zéro compte et aucun drapeau activé. Le contrôle préalable du nombre de migrations a interrompu sans mutation un premier lancement dont le compteur attendu était incorrect ; le lancement corrigé a réussi. Aucune migration exécutée en production.
 
 ## Vérification
 

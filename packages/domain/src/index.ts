@@ -33,3 +33,5 @@ export * from "./history-chart";
 export * from "./strength-curves";
 
 export * from "./strength-records";
+
+export * from "./athletic-records";

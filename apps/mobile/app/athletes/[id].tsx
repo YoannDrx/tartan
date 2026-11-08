@@ -254,7 +254,14 @@ export default function AthleteFile() {
       </Section>
 
       <>
-        <Section title={m.athletes.records}>
+        <Section title={m.performances.title}>
+          {active && (active.role === "owner" || active.role === "coach") ? (
+            <Button
+              label={m.performances.manage}
+              variant="secondary"
+              onPress={() => router.push(`/athlete-performances/${id}`)}
+            />
+          ) : null}
           <ListSurface>
             {detail.performances.length === 0 ? (
               <T variant="small" tone="muted" style={{ padding: space.md }}>
@@ -266,9 +273,20 @@ export default function AthleteFile() {
                   {i > 0 ? <Divider /> : null}
                   <MarkRow
                     title={discipline(p.discipline)}
-                    detail={[fullDay(p.date), p.location].filter(Boolean).join(" · ")}
+                    detail={[
+                      fullDay(p.date),
+                      p.location,
+                      p.comparisonContext,
+                      p.recordDirection === "lower"
+                        ? m.performances.lower
+                        : p.recordDirection === "higher"
+                          ? m.performances.higher
+                          : m.performances.unknown,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                     value={mark(p.mark, p.unit)}
-                    badge={p.isPb ? m.athletes.record : undefined}
+                    badge={p.isBaseline ? m.performances.baseline : p.isPb ? m.athletes.record : undefined}
                   />
                 </View>
               ))

@@ -189,7 +189,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
         <div className="grid border-t border-card-line desktop:grid-cols-2 desktop:divide-x desktop:divide-card-line">
           <div className="divide-y divide-card-line">
             <SheetSection
-              title={m.athletes.records}
+              title={m.performances.title}
               action={canManage ? <PerformanceDialog athleteId={file.id} /> : null}
             >
               {file.performances.length === 0 ? <p className="text-soft">{m.athletes.noRecords}</p> : null}
@@ -199,22 +199,41 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                     <span className="min-w-0 leading-snug">
                       <span className="flex flex-wrap items-center gap-x-2 font-semibold">
                         {p.discipline}
-                        {p.isPb ? <Chip tone="brand">{m.athletes.record}</Chip> : null}
+                        {p.isBaseline ? (
+                          <Chip>{m.performances.baseline}</Chip>
+                        ) : p.isPb ? (
+                          <Chip tone="brand">{m.athletes.record}</Chip>
+                        ) : null}
                       </span>
                       <span className="t-caption block font-normal text-soft">
-                        {[year(p.date), p.location].filter(Boolean).join(", ")}
+                        {[
+                          year(p.date),
+                          p.location,
+                          p.comparisonContext,
+                          p.recordDirection === "lower"
+                            ? m.performances.lower
+                            : p.recordDirection === "higher"
+                              ? m.performances.higher
+                              : m.performances.unknown,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </span>
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex flex-wrap items-center justify-end gap-1">
                       <Mark>
                         {String(p.mark).replace(".", ",")} {p.unit}
                       </Mark>
                       {canManage ? (
-                        <DeleteRow
-                          kind="performance"
-                          id={p.id}
-                          label={`${p.discipline}, ${String(p.mark).replace(".", ",")} ${p.unit}`}
-                        />
+                        <>
+                          <PerformanceDialog key={`${p.id}-${p.version}`} athleteId={file.id} initial={p} />
+                          <DeleteRow
+                            expectedVersion={p.version}
+                            kind="performance"
+                            id={p.id}
+                            label={`${p.discipline}, ${String(p.mark).replace(".", ",")} ${p.unit}`}
+                          />
+                        </>
                       ) : null}
                     </span>
                   </li>

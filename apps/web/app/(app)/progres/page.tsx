@@ -53,7 +53,7 @@ export default async function ProgresPage() {
         </section>
       ) : null}
       <Sheet className="divide-y divide-card-line">
-        <SheetSection title={m.athletes.records}>
+        <SheetSection title={m.performances.title}>
           {file.performances.length === 0 ? (
             <p className="text-soft">Tes records apparaîtront ici dès que ton coach les aura notés.</p>
           ) : null}
@@ -63,9 +63,25 @@ export default async function ProgresPage() {
                 <span className="min-w-0 leading-snug">
                   <span className="flex flex-wrap items-center gap-x-2 font-semibold">
                     {p.discipline}
-                    {p.isPb ? <Chip tone="brand">{m.athletes.record}</Chip> : null}
+                    {p.isBaseline ? (
+                      <Chip>{m.performances.baseline}</Chip>
+                    ) : p.isPb ? (
+                      <Chip tone="brand">{m.athletes.record}</Chip>
+                    ) : null}
                   </span>
-                  <span className="t-caption block font-normal text-soft">{date(p.date)}</span>
+                  <span className="t-caption block font-normal text-soft">
+                    {[
+                      date(p.date),
+                      p.comparisonContext,
+                      p.recordDirection === "lower"
+                        ? m.performances.lower
+                        : p.recordDirection === "higher"
+                          ? m.performances.higher
+                          : m.performances.unknown,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
                 </span>
                 <Mark>
                   {String(p.mark).replace(".", ",")} {p.unit}

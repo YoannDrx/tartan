@@ -9,3 +9,5 @@ export * from "./training-profile";
 export * from "./exercise-history";
 
 export * from "./strength-records";
+
+export * from "./performance";
