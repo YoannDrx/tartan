@@ -1,5 +1,6 @@
 import { getMyRegularity } from "@/server/athlete-view.service";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { formatDayMonth, m, strengthTestLabel } from "@tartan/i18n";
 import { Mark, Rows, Sheet, SheetSection } from "@/components/sheet";
 import { Chip, PageHeader } from "@/components/states";
@@ -14,14 +15,23 @@ const date = (iso: string) => `${formatDayMonth(iso)} ${iso.slice(0, 4)}`;
 
 // Vue simple en V1 : records et tests. Les courbes et les volumes arrivent en V2 (§ 7.7).
 export default async function ProgresPage() {
-  const { actor, organizationId } = await requireAthleteSpace();
+  const { actor, organizationId, space } = await requireAthleteSpace();
   const [file, regularity] = await Promise.all([
     getMyFile(actor.userId, organizationId),
     getMyRegularity(actor.userId, organizationId),
   ]);
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <PageHeader title={m.nav.progres} />
+      <PageHeader
+        title={m.nav.progres}
+        actions={
+          space.progressionEnabled ? (
+            <Button asChild variant="secondary">
+              <Link href="/outils/charges">{m.calculator.title}</Link>
+            </Button>
+          ) : null
+        }
+      />
       {regularity.total > 0 ? (
         <Sheet>
           <SheetSection title={m.athletes.regularityTitle}>

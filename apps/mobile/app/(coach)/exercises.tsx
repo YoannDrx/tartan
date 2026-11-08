@@ -49,6 +49,9 @@ export default function Exercises() {
           onPress={() => router.push("/exercise/new")}
         />
       ) : null}
+      {active?.progressionEnabled ? (
+        <Button label={m.calculator.title} variant="secondary" onPress={() => router.push("/load-calculator")} />
+      ) : null}
       {exercises.data && exercises.data.length > 0 ? (
         <>
           <Field

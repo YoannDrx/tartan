@@ -2,6 +2,36 @@
 // Côté coach : sobre et précis, vocabulaire du métier (§ 4.5).
 export const fr = {
   brand: { name: "Tartan", storeName: "Tartan – Coach athlé", tagline: "Séances, suivi et vidéo pour ton groupe" },
+  calculator: {
+    title: "Calculateur de charges",
+    intro:
+      "Calcule une estimation de maximum et prépare tes pourcentages. La référence enregistrée par ton coach reste inchangée.",
+    estimateTitle: "Estimer un maximum",
+    load: "Charge externe totale (kg)",
+    loadHint:
+      "Barre et disques compris ; pour deux haltères, additionne les charges. Sans poids du corps ni assistance.",
+    reps: "Répétitions réalisées",
+    formula:
+      "Epley : charge × (1 + répétitions / 30), de 2 à 10 répétitions. À une répétition, la charge est conservée. Au-delà de dix, aucune estimation.",
+    estimate: "Maximum estimé (Epley)",
+    measured: "Charge à une répétition",
+    estimateEmpty: "Renseigne une charge et 1 à 10 répétitions pour obtenir le résultat.",
+    useEstimate: "Utiliser dans le tableau",
+    tableTitle: "Pourcentages de la référence",
+    reference: "Référence du calcul (kg)",
+    referenceHint:
+      "Saisis ton maximum testé, une estimation ou la référence de travail choisie. Cette valeur sert uniquement à ce tableau.",
+    invalidKg: "Indique de 0,01 à 1 000 kg, avec deux décimales au maximum.",
+    invalidReps: "Indique un nombre entier de 1 à 10 répétitions.",
+    tableEmpty: "Renseigne une référence pour afficher les charges de 40 à 100 %.",
+    step: (value: string) =>
+      `Arrondi au pas de ${value} kg. Les pourcentages ne fixent ni objectif d’entraînement ni récupération.`,
+    percent: "%",
+    exact: "Exact (kg)",
+    rounded: "Arrondi (kg)",
+    row: (percent: number, exact: string, rounded: string) =>
+      `${percent} % : ${exact} kg exacts, ${rounded} kg arrondis`,
+  },
   progression: {
     disabled: "Le suivi détaillé n'est pas encore activé dans cet espace.",
     logConflict:

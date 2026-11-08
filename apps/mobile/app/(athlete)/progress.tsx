@@ -1,8 +1,9 @@
 import { formatHeight } from "@tartan/domain";
 import { capitalize, formatDayMonth, m, strengthTestLabel } from "@tartan/i18n";
 import { View } from "react-native";
+import { useRouter } from "expo-router";
 import { useActiveSpace, useAthleteFile } from "../../src/lib/queries";
-import { Divider, ListSurface, SectionTitle, T, Tag } from "../../src/ui/primitives";
+import { Button, Divider, ListSurface, SectionTitle, T, Tag } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { space } from "../../src/ui/theme";
@@ -17,7 +18,8 @@ const testKind = (kind: string) => (m.testKind as Record<string, string>)[kind] 
 
 // V1 : ce que le coach a saisi dans la fiche. Volumes et courbes arrivent avec la V2 (§ 7.7).
 export default function Progress() {
-  const { orgId } = useActiveSpace();
+  const { orgId, space: active } = useActiveSpace();
+  const router = useRouter();
   const file = useAthleteFile(orgId);
   const empty = file.data && file.data.performances.length === 0 && file.data.tests.length === 0;
   return (
@@ -29,6 +31,9 @@ export default function Progress() {
     >
       {file.isPending ? <LoadingState /> : null}
       {file.isError && !file.data ? <ErrorState error={file.error} onRetry={() => void file.refetch()} /> : null}
+      {active?.progressionEnabled ? (
+        <Button label={m.calculator.title} variant="secondary" onPress={() => router.push("/load-calculator")} />
+      ) : null}
       {empty ? <EmptyState body={m.mobile.progress.empty} /> : null}
       {file.data && file.data.performances.length > 0 ? (
         <View style={{ gap: space.sm }}>

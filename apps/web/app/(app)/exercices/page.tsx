@@ -8,8 +8,15 @@ import { listExercises } from "@/server/exercise.service";
 export const metadata: Metadata = { title: m.exercises.title };
 
 export default async function ExercicesPage({ searchParams }: { searchParams: Promise<{ nouveau?: string }> }) {
-  const { actor, organizationId } = await requireStaffSpace();
+  const { actor, organizationId, space } = await requireStaffSpace();
   const { nouveau } = await searchParams;
   const exercises = await listExercises(actor.userId, organizationId);
-  return <ExerciseLibrary exercises={exercises} openNew={nouveau === "1"} videoEnabled={videoEnabled()} />;
+  return (
+    <ExerciseLibrary
+      exercises={exercises}
+      openNew={nouveau === "1"}
+      videoEnabled={videoEnabled()}
+      progressionEnabled={space.progressionEnabled}
+    />
+  );
 }

@@ -12,6 +12,7 @@ import { m } from "@tartan/i18n";
 import { Pencil, Play, Plus, Search, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { pillClass } from "@/components/filter-pill";
 import { ActivityPicto } from "@/components/pictos";
@@ -323,8 +324,10 @@ export const ExerciseLibrary = ({
   exercises,
   openNew,
   videoEnabled,
+  progressionEnabled = false,
 }: {
   exercises: ExerciseSummary[];
+  progressionEnabled?: boolean;
   openNew: boolean;
   videoEnabled: boolean;
 }) => {
@@ -348,10 +351,17 @@ export const ExerciseLibrary = ({
       <PageHeader
         title={m.exercises.title}
         actions={
-          <Button size="sm" onClick={() => setDialog({ exercise: null })}>
-            <Plus aria-hidden className="size-5" />
-            {m.exercises.new}
-          </Button>
+          <>
+            {progressionEnabled ? (
+              <Button asChild size="sm" variant="secondary">
+                <Link href="/outils/charges">{m.calculator.title}</Link>
+              </Button>
+            ) : null}
+            <Button size="sm" onClick={() => setDialog({ exercise: null })}>
+              <Plus aria-hidden className="size-5" />
+              {m.exercises.new}
+            </Button>
+          </>
         }
       />
       {exercises.length === 0 ? (

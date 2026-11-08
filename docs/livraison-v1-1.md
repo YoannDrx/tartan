@@ -12,7 +12,7 @@ Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil s
 | --- | --- | --- |
 | A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles, vidéo générique, profil sportif web/native et 49 fiches initiales ajoutés | Suite de la recette du constructeur, publication groupée, recette complète de l’onboarding, médias de bibliothèque, landing et recette physique |
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
-| C — historique et records | Historique par exercice et API sécurisée, règles de comparaison et de records implémentés | Historique, dernière réalisation comparable, calculateur, courbes, records et célébration unique |
+| C — historique et records | Historique par exercice et API sécurisée, règles de comparaison et de records, calculateur web/natif implémentés | Écrans d’historique, rappel dans la séance, courbes, confirmation des records et célébration unique |
 | D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |
 | E — planificateur IA | Non implémenté ; clé locale disponible | Dictée, transcription, clarifications, brouillons, quotas, purge et corpus d’évaluation |
 
@@ -315,3 +315,8 @@ Disciplines sans hauteur présélectionnée, objectifs de préparation, matérie
 ### Historique par exercice — services et calculs
 
 Lecture bornée par période, séries figées, références actuelles séparées, corrections immédiatement visibles et contrôle d’accès. Règles pures de comparaison/records sans célébration automatique. 108 tests domaine, six tests serveur ciblés, types et lint réussis. [Preuves et limites](preuves-v1-1/lot-c-historique-socle.md). Interfaces et intégration des records restent ouvertes.
+
+
+### Calculateur web et natif
+
+Epley, saisie française, estimation distincte de la référence du tableau, choix explicite et 13 pourcentages exacts/arrondis. Aucune référence enregistrée modifiée. 110 tests domaine, 523 serveur, types, lint, design, exports Hermes et parcours navigateur réussis ; calcul/tableau/bornes vérifiés sur simulateur iOS. [Preuves](preuves-v1-1/lot-c-calculateur.md). Le commit vidéo `079418d` dispose désormais de ses deux CI réussies : qualité `42426108440`, Android `42426108438`. Les commits ultérieurs ont besoin de leur propre CI.

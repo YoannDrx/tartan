@@ -28,3 +28,4 @@ export * from "./session-log-review";
 
 export * from "./video-context";
 export * from "./exercise-history";
+export * from "./strength-calculator";

@@ -1,7 +1,7 @@
 // La préparation quotidienne utilise le bureau clair ; accueil et immersion gardent leur identité.
 const WORLDS: Array<[RegExp, string]> = [
   [
-    /^\/(suivi|calendrier|seances|exercices|annonces|reglages|abonnement|admin|athletes|progres|videos|mes-sauts)(\/|$)/,
+    /^\/(suivi|calendrier|seances|exercices|annonces|reglages|abonnement|admin|athletes|progres|outils|videos|mes-sauts)(\/|$)/,
     "world-work",
   ],
 ];
