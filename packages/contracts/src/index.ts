@@ -7,3 +7,5 @@ export * from "./performed-sets";
 export * from "./prescription-refresh";
 export * from "./training-profile";
 export * from "./exercise-history";
+
+export * from "./strength-records";

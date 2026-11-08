@@ -1,3 +1,5 @@
+import { loadStrengthRecords } from "./strength-records";
+import { confirmedStrengthImprovements } from "@tartan/domain";
 import { Prisma } from "@/generated/prisma/client";
 import {
   type AthleteSessionCard,
@@ -608,6 +610,16 @@ const persistSessionLog = async (
           }
         : {}),
     };
+    const recordsEnabled =
+      (input.detailedSets !== undefined || (existing?.prescriptionSnapshot && existing.status !== input.status)) &&
+      (await tx.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { progressionEnabled: true } }))
+        .progressionEnabled;
+    const recordExercises = [
+      ...new Set([...items.values()].flatMap((item) => (item.exerciseId ? [item.exerciseId] : []))),
+    ];
+    const beforeRecords = recordsEnabled
+      ? await loadStrengthRecords(tx, organizationId, athleteId, recordExercises)
+      : [];
     const row = await tx.sessionLog.upsert({
       where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId: access.athleteId } },
       create: { ...versioned, scheduledSessionId: sessionId, athleteId: access.athleteId },
@@ -641,9 +653,17 @@ const persistSessionLog = async (
       });
     }
     await tx.sessionLogMutation.create({ data: { sessionLogId: row.id, clientId: input.clientId, version } });
-    return { ...row, replayed: false };
+    const afterRecords = recordsEnabled
+      ? await loadStrengthRecords(tx, organizationId, athleteId, recordExercises)
+      : [];
+    const records = confirmedStrengthImprovements(beforeRecords, afterRecords, {
+      logId: row.id,
+      version,
+      clientId: input.clientId,
+    });
+    return { ...row, replayed: false, records };
   });
-  if (saved.replayed) return { id: saved.id, version: saved.version, replayed: true };
+  if (saved.replayed) return { id: saved.id, version: saved.version, replayed: true, records: [] };
   log.info("session_validated", { organizationId, entityId: sessionId });
 
   if (pain) {
@@ -655,7 +675,7 @@ const persistSessionLog = async (
       link: `/athletes/${access.athleteId}`,
     });
   }
-  return { id: saved.id, version: saved.version, replayed: false };
+  return { id: saved.id, version: saved.version, replayed: false, records: "records" in saved ? saved.records : [] };
 };
 
 export const setMyAttendance = async (

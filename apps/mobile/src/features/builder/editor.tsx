@@ -381,7 +381,15 @@ export const NativeSessionBuilder = ({
               : m.builder.published
             : m.nativeBuilder.saved,
         );
-      for (const key of ["coach-calendar", "tracking", "coach-session", "session", "session-edit"])
+      for (const key of [
+        "coach-calendar",
+        "tracking",
+        "coach-session",
+        "session",
+        "session-edit",
+        "exercise-history",
+        "exercise-history-context",
+      ])
         void client.invalidateQueries({ queryKey: [key, orgId] });
     } catch (failure) {
       if (!mounted.current) return;
@@ -490,7 +498,16 @@ export const NativeSessionBuilder = ({
       } catch {
         if (mounted.current) setError(m.nativeBuilder.deletedLocalCleanup);
       }
-      for (const key of ["coach-calendar", "tracking", "coach-session", "session", "athlete-calendar", "today"])
+      for (const key of [
+        "coach-calendar",
+        "tracking",
+        "coach-session",
+        "session",
+        "athlete-calendar",
+        "today",
+        "exercise-history",
+        "exercise-history-context",
+      ])
         void client.invalidateQueries({ queryKey: [key, orgId] });
       if (mounted.current) setDeleted(true);
     } catch (cause) {

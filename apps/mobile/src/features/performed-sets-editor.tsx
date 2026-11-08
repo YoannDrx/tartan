@@ -1,3 +1,4 @@
+import { ConfirmedRecords } from "./confirmed-records";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   performedDraftResolution,
@@ -9,6 +10,7 @@ import {
   performedDraftContent,
   performedSetsKey,
   isResolvedDraft,
+  confirmedRecordsFromResponse,
   confirmedSets,
   draftFromSession,
   performedNumberFields,
@@ -79,6 +81,7 @@ export const PerformedSetsEditor = ({
   const [locked, setLocked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [records, setRecords] = useState<ReturnType<typeof confirmedRecordsFromResponse>>([]);
   const [storageError, setStorageError] = useState(false);
   const [showIssues, setShowIssues] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -144,6 +147,7 @@ export const PerformedSetsEditor = ({
       return;
     }
     setSaving(true);
+    setRecords([]);
     setMessage("");
     const clientId = newClientId();
     setDraft((old) => ({ ...old, submittedClientId: clientId, submittedContent: performedDraftContent(old) }));
@@ -181,6 +185,7 @@ export const PerformedSetsEditor = ({
         setMessage(m.offline.needsReview);
         return;
       }
+      if (result.state === "sent") setRecords(confirmedRecordsFromResponse(result.data));
       setLocked(true);
       setMessage(pending ? m.progression.queuedSets : m.progression.savedSets);
       if (!pending) {
@@ -418,6 +423,7 @@ export const PerformedSetsEditor = ({
         }}
       />
       {message ? <T accessibilityLiveRegion="polite">{message}</T> : null}
+      {locked ? <ConfirmedRecords records={records} /> : null}
     </>
   );
 };

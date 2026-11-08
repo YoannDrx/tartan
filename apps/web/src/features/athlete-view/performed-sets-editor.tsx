@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmedRecords } from "../progression/confirmed-records";
 import { sessionLogPaths } from "@/features/athlete-view/session-log-paths";
 
 import {
@@ -10,6 +11,7 @@ import {
   type PerformedSetsDraft,
 } from "@tartan/contracts";
 import {
+  confirmedRecordsFromResponse,
   confirmedSets,
   performedDraftContent,
   performedSetsKey,
@@ -50,6 +52,7 @@ export const PerformedSetsEditor = ({
   const [saving, setSaving] = useState(false);
   const [issues, setIssues] = useState<PerformedSetIssue[]>([]);
   const [message, setMessage] = useState("");
+  const [records, setRecords] = useState<ReturnType<typeof confirmedRecordsFromResponse>>([]);
   const [storageError, setStorageError] = useState(false);
   const [locked, setLocked] = useState(false);
   const [unreadableDraft, setUnreadableDraft] = useState(false);
@@ -122,6 +125,7 @@ export const PerformedSetsEditor = ({
       return;
     }
     setSaving(true);
+    setRecords([]);
     setMessage("");
     const clientId = newClientId();
     updateDraft({ ...draft, submittedClientId: clientId, submittedContent: performedDraftContent(draft) });
@@ -148,6 +152,7 @@ export const PerformedSetsEditor = ({
             ? m.progression.queuedSets
             : result.message,
       );
+      if (result.state === "sent" && getQueueOwner() === userId) setRecords(confirmedRecordsFromResponse(result.data));
       // La relecture serveur est nécessaire avant une autre correction, également après un envoi différé.
       if (result.state !== "error") setLocked(true);
       if (result.state === "sent") localStorage.removeItem(key);
@@ -417,6 +422,7 @@ export const PerformedSetsEditor = ({
         </Button>
       </fieldset>
       {message ? <p role="status">{message}</p> : null}
+      {locked ? <ConfirmedRecords records={records} /> : null}
       <ConfirmDialog
         open={clearConfirm}
         onOpenChange={setClearConfirm}

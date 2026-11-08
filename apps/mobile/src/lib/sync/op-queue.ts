@@ -50,8 +50,9 @@ let ownerGeneration = 0;
 // SecureStore écrit plusieurs morceaux : les sauvegardes ne doivent pas s'entrelacer.
 let persistence: Promise<void> = Promise.resolve();
 
-export type QueueSubmitResult = { state: "sent" | "queued" } | { state: "error"; message: string };
-const acknowledgements = new Map<string, { sent: boolean }>();
+export type QueueSubmitResult =
+  { state: "sent"; data: unknown } | { state: "queued" } | { state: "error"; message: string };
+const acknowledgements = new Map<string, { sent: boolean; data: unknown }>();
 
 type OpQueueState = {
   ownerId: string | null;
@@ -109,7 +110,7 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
     if (!ownerId) return { state: "error", message: m.offline.session };
     if (get().reviewing) return { state: "error", message: m.offline.needsReview };
     const receiptKey = `${ownerId}:${op.id}`;
-    const receipt = { sent: false };
+    const receipt: { sent: boolean; data: unknown } = { sent: false, data: undefined };
     acknowledgements.set(receiptKey, receipt);
     try {
       const items = enqueue(get().items, op);
@@ -126,7 +127,7 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
       if (get().storageError) return { state: "error", message: m.offline.deviceStorageError };
       if (reviewRequiredOps(get().items).some((item) => item.id === op.id))
         return { state: "error", message: m.offline.needsReview };
-      if (receipt.sent) return { state: "sent" };
+      if (receipt.sent) return { state: "sent", data: receipt.data };
       if (get().items.some((item) => item.id === op.id)) return { state: "queued" };
       return { state: "error", message: m.common.genericError };
     } finally {
@@ -150,7 +151,10 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
         async (op) => {
           const result = await send(op);
           const receipt = acknowledgements.get(`${ownerId}:${op.id}`);
-          if (receipt) receipt.sent = true;
+          if (receipt) {
+            receipt.sent = true;
+            receipt.data = result;
+          }
           return result;
         },
         () => generation === ownerGeneration,
@@ -168,6 +172,8 @@ export const useOpQueue = create<OpQueueState>((set, get) => ({
       if (result.sent.length > 0 || result.rejected.length > 0) {
         void queryClient.invalidateQueries({ queryKey: ["today"] });
         void queryClient.invalidateQueries({ queryKey: ["session"] });
+        void queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
+        void queryClient.invalidateQueries({ queryKey: ["exercise-history-context"] });
         void queryClient.invalidateQueries({ queryKey: ["athlete-calendar"] });
         if (result.sent.some((op) => op.kind === "log" && op.athleteId)) {
           for (const key of ["coach-session", "coach-athlete-log", "tracking", "athlete-stats", "coach-athlete"])

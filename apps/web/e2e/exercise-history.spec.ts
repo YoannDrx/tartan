@@ -258,6 +258,72 @@ test("historique réel, référence manuelle, calculateur et courbes accessibles
     await expect(page.getByLabel(m.exerciseHistory.exercise, { exact: true })).toHaveValue(exercise.id);
     await page.getByRole("button", { name: m.exerciseHistory.untilToday }).click();
     await expect(page).toHaveURL(new RegExp(`to=${context.today}`));
+    const records = page.getByRole("region", { name: m.strengthRecords.title, exact: true });
+    await expect(records.getByText("40 kg", { exact: true })).toBeVisible();
+    await expect(records.getByText(m.strengthRecords.baseline, { exact: false })).toBeVisible();
+    const currentHistory = await (
+      await page.request.get(`${historyRoot}/${exercise.id}?from=${dates[0]}&to=${context.today}`)
+    ).json();
+    const lastSession = currentHistory.sessions[0];
+    const logPath = `${root}/sessions/${lastSession.sessionId}/athletes/${athleteId}/log`;
+    const historyUrl = page.url();
+    await page.goto(`/seances/${lastSession.sessionId}/athletes/${athleteId}/series`);
+    for (const index of [1, 2]) {
+      await page
+        .getByRole("group", { name: m.progression.setNumber(index), exact: true })
+        .getByLabel(m.progression.fields.loadKg, { exact: true })
+        .fill("50");
+    }
+    const responsePromise = page.waitForResponse(
+      (response) => response.url().endsWith(logPath) && response.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: m.progression.saveCoachSets, exact: true }).click();
+    const improvedResponse = await responsePromise;
+    const correction = improvedResponse.request().postDataJSON();
+    await expect(page.getByRole("heading", { name: m.strengthRecords.confirmed, exact: true })).toBeVisible();
+    const confirmation = page
+      .getByRole("status")
+      .filter({ has: page.getByRole("heading", { name: m.strengthRecords.confirmed, exact: true }) });
+    await expect(confirmation).toContainText("50 kg");
+    await expectAccessible(page);
+    await confirmation.screenshot({ path: `/tmp/tartan-record-confirmation-${info.project.name}.png` });
+    expect(improvedResponse.ok()).toBe(true);
+    const improved = await improvedResponse.json();
+    expect(improved.records).toHaveLength(2);
+    expect(improved.records.find((record: { kind: string }) => record.kind === "load_at_reps")).toMatchObject({
+      value: 50,
+      previousValue: 40,
+      baseline: false,
+    });
+    expect(await (await page.request.post(logPath, { data: correction })).json()).toMatchObject({
+      replayed: true,
+      records: [],
+    });
+    await page.goto(historyUrl);
+    await expect(records.getByText("50 kg", { exact: true })).toBeVisible();
+    await expect(records.getByText(m.strengthRecords.record, { exact: false })).toBeVisible();
+    await records.getByLabel(m.strengthRecords.measure, { exact: true }).selectOption("estimated_one_rm");
+    await expect(records.getByText("56,67 kg", { exact: true })).toBeVisible();
+    await expect(records.getByText(m.strengthRecords.estimate)).toBeVisible();
+    await expectAccessible(page);
+    await expectNoHorizontalScroll(page);
+    await records.screenshot({ path: `/tmp/tartan-records-${info.project.name}.png` });
+    const correctedResponse = await page.request.post(logPath, {
+      data: {
+        ...correction,
+        clientId: randomUUID(),
+        expectedVersion: improved.version,
+        detailedSets: correction.detailedSets.map((set: { loadKg: number }) => ({ ...set, loadKg: 30 })),
+      },
+    });
+    expect(correctedResponse.ok()).toBe(true);
+    expect((await correctedResponse.json()).records).toEqual([]);
+    await page.reload();
+    await expect(records.getByText("40 kg", { exact: true })).toBeVisible();
+    expect(
+      (await (await page.request.get(`${root}/athletes/${athleteId}/strength/${exercise.id}`)).json()).reference
+        .valueKg,
+    ).toBe(80);
     await sql.query("UPDATE organizations SET progression_enabled = false WHERE id = $1", [orgId]);
     await page.reload();
     await expect(page.getByText(m.progression.disabled)).toBeVisible();

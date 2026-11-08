@@ -56,3 +56,20 @@ export const realizedSetLabel = (
   ];
   return values.filter(Boolean).join(" · ");
 };
+
+export const strengthRecordLabel = (record: {
+  kind: keyof typeof fr.strengthRecords.kinds;
+  reps: number;
+  loadKg: number;
+}) =>
+  record.kind === "load_at_reps"
+    ? fr.strengthRecords.loadAtReps(record.reps)
+    : record.kind === "reps_at_load"
+      ? fr.strengthRecords.repsAtLoad(historyNumber(record.loadKg))
+      : fr.strengthRecords.kinds.estimated_one_rm;
+export const strengthRecordConvention = (record: {
+  convention: keyof typeof fr.strength.conventions;
+  repetitionScope: "total" | "per_side";
+  sideCount: number;
+}) =>
+  `${fr.strength.conventions[record.convention]} · ${record.repetitionScope === "per_side" ? fr.exerciseHistory.perSide(record.sideCount) : fr.progression.totalReps.toLowerCase()}`;

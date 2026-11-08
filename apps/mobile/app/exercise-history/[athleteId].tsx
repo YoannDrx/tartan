@@ -21,6 +21,7 @@ import { Button, Card, Field, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { space, usePalette } from "../../src/ui/theme";
+import { StrengthRecords } from "../../src/features/strength-records";
 import { StrengthHistory } from "../../src/features/strength-history";
 import { StrengthCalculator } from "../../src/features/strength-calculator";
 
@@ -85,6 +86,7 @@ function HistoryDetail({ history }: { history: ExerciseHistory }) {
         </View>
       </Card>
       <StrengthHistory history={history} />
+      <StrengthRecords records={history.records} />
       <SectionTitle>{t.volumes}</SectionTitle>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
         {volumeMetrics.map((key) => (

@@ -14,6 +14,7 @@ import { fromDbDate, toDbDate, todayIso } from "@/lib/dates";
 import { AppError, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireVisibleAthlete } from "./access";
+import { loadStrengthRecords } from "./strength-records";
 import { getExerciseStrength } from "./strength.service";
 
 const requireHistoryAccess = async (userId: string, organizationId: string, athleteId: string) => {
@@ -104,7 +105,7 @@ export const getAthleteExerciseHistory = async (
     session: { organizationId, date: { gte: toDbDate(range.from), lte: toDbDate(range.to) } },
     sets: { some: { exerciseId } },
   };
-  const [totalSessions, logs, strength] = await Promise.all([
+  const [totalSessions, logs, strength, records] = await Promise.all([
     prisma.sessionLog.count({ where }),
     prisma.sessionLog.findMany({
       where,
@@ -139,6 +140,10 @@ export const getAthleteExerciseHistory = async (
       },
     }),
     getExerciseStrength(userId, organizationId, athleteId, exerciseId),
+    prisma.$transaction((tx) => loadStrengthRecords(tx, organizationId, athleteId, [exerciseId]), {
+      isolationLevel: "RepeatableRead",
+      timeout: 15_000,
+    }),
   ]);
   let unusableSets = 0;
   const sessions: ExerciseHistorySession[] = logs.map((log) => {
@@ -186,6 +191,7 @@ export const getAthleteExerciseHistory = async (
     exercise: { ...strength.exercise, archived: exercise.deletedAt !== null },
     ...range,
     sessions,
+    records,
     coverage: {
       totalSessions,
       returnedSessions: sessions.length,

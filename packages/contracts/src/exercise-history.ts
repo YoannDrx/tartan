@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { strengthRecordValue } from "./strength-records";
 import { detailedSetInput } from "./requests";
 import { isoDate, prescriptionSchema, snapshotItem, uuid } from "./session";
 import { strengthReferenceResponse } from "./strength";
@@ -47,6 +48,7 @@ export const exerciseHistoryResponse = z.object({
   from: isoDate,
   to: isoDate,
   sessions: z.array(exerciseHistorySession),
+  records: z.array(strengthRecordValue).optional(),
   coverage: z.object({
     totalSessions: z.number().int(),
     returnedSessions: z.number().int(),

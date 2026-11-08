@@ -16,6 +16,7 @@ import { m, historyDate, historyNumber, realizedSetLabel } from "@tartan/i18n";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { Field, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { StrengthRecords } from "./strength-records";
 import { StrengthHistory } from "./strength-history";
 import { StrengthCalculator } from "./strength-calculator";
 
@@ -140,6 +141,7 @@ export function ExerciseHistoryView({
             ) : null}
           </Sheet>
           <StrengthHistory history={history} />
+          <StrengthRecords records={history.records} />
           <Sheet>
             <SheetSection title={t.volumes}>
               <div className="flex flex-col gap-3">

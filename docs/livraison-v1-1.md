@@ -12,7 +12,7 @@ Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil s
 | --- | --- | --- |
 | A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles, vidéo générique, profil sportif web/native et 49 fiches initiales ajoutés | Suite de la recette du constructeur, publication groupée, recette complète de l’onboarding, médias de bibliothèque, landing et recette physique |
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
-| C — historique et records | Historique web/natif, API sécurisée, courbes de volumes et de force avec provenance, références séparées, rappel des séries comparables dans la séance et calculateur raccordé à l’exercice | Confirmation des records et célébration unique |
+| C — historique et records | Historique web/natif, API sécurisée, courbes de volumes et de force avec provenance, références séparées, rappel des séries comparables, calculateur et records de séries confirmés par le serveur | Célébration unique enrichie, performances athlé typées et recette native |
 | D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |
 | E — planificateur IA | Non implémenté ; clé locale disponible | Dictée, transcription, clarifications, brouillons, quotas, purge et corpus d’évaluation |
 
@@ -334,3 +334,7 @@ Rappel web/natif dans les séries athlète/coach, séparé de la prescription et
 ### Courbes de force par provenance
 
 Tests 1RM/3RM, estimations du coach, charges réalisées à répétitions égales et Epley sont présentés séparément sur le web et le natif. Référence inchangée, conventions distinctes, couverture et tableau équivalent. [Preuves du lot](preuves-v1-1/lot-c-courbes-force.md). Les records confirmés et la célébration ne sont pas livrés par cet ajout.
+
+### Records de séries confirmés
+
+Records toutes périodes, lecture paginée sans troncature, premières références distinctes, corrections et suppressions prises en compte. Réponse de mutation versionnée, encart statique web/natif après accusé direct et aucun rejeu lors de la synchronisation différée. [Preuves](preuves-v1-1/lot-c-records-confirmes.md). La célébration de validation et les records de performances athlé typées restent à implémenter.

@@ -303,6 +303,28 @@ export const fr = {
     summary: (count: number, total: string) => `${count} journées renseignées · somme des valeurs : ${total}`,
     perSide: (count: number) => `par côté, ${count} côté${count > 1 ? "s" : ""}`,
   },
+  strengthRecords: {
+    title: "Records de séries",
+    confirmed: "Records confirmés",
+    confirmedHint:
+      "Ces séries améliorent les meilleures valeurs précédemment enregistrées. Elles ne changent pas la référence de travail.",
+    scope:
+      "Toutes les périodes, indépendamment du filtre. Séries de travail confirmées, liées à cet exercice et avec une convention de charge connue. Les références choisies par le coach restent distinctes.",
+    empty: "Aucune série comparable renseignée pour cette mesure.",
+    measure: "Type de record",
+    kinds: {
+      load_at_reps: "Charge à répétitions égales",
+      reps_at_load: "Répétitions à charge égale",
+      estimated_one_rm: "1RM estimé depuis les séries",
+    },
+    baseline: "Référence initiale",
+    record: "Record personnel",
+    loadAtReps: (reps: number) => `À ${reps} répétition${reps > 1 ? "s" : ""}`,
+    repsAtLoad: (load: string) => `À ${load} kg`,
+    repsValue: (value: string) => `${value} répétitions`,
+    more: "Afficher les records suivants",
+    estimate: "Estimation Epley, 2 à 10 répétitions. Ce n’est pas un maximum testé.",
+  },
   strengthHistory: {
     title: "Évolution de la force",
     choose: "Courbe de force",

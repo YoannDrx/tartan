@@ -31,3 +31,5 @@ export * from "./exercise-history";
 export * from "./strength-calculator";
 export * from "./history-chart";
 export * from "./strength-curves";
+
+export * from "./strength-records";

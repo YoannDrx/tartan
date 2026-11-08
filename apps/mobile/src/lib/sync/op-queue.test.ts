@@ -113,7 +113,7 @@ describe("file native persistante", () => {
 it("annonce seulement une action reçue ou sauvegardée, jamais un conflit ou un disque plein", async () => {
   await queue().hydrate("first");
   mocks.log.mockResolvedValue({ version: 1 });
-  expect(await queue().add(log("received"))).toEqual({ state: "sent" });
+  expect(await queue().add(log("received"))).toEqual({ state: "sent", data: { version: 1 } });
   mocks.log.mockRejectedValue(new TypeError("offline"));
   expect(await queue().add(log("durable"))).toEqual({ state: "queued" });
   mocks.log.mockRejectedValue(new ApiError(409, undefined, "private"));
@@ -223,4 +223,20 @@ it("retrouve les envois coach après relance et ne résout que l'athlète choisi
   expect(queue().items).toHaveLength(1);
   expect(queue().items[0]).toMatchObject({ athleteId: "b", blocked: { status: 409 } });
   expect(mocks.invalidate).toHaveBeenCalledWith({ queryKey: ["coach-athlete-log"] });
+});
+
+it("ne restitue les records qu’à l’appel direct, sans les conserver ni les rejouer à la synchronisation", async () => {
+  await queue().hydrate("first");
+  const reply = { id: "log", version: 1, replayed: false, records: [{ eventId: "record" }] };
+  mocks.log.mockResolvedValue(reply);
+  expect(await queue().add(log("direct-record"))).toEqual({ state: "sent", data: reply });
+  expect(JSON.stringify([...mocks.disk])).not.toContain("eventId");
+  expect(mocks.invalidate).toHaveBeenCalledWith({ queryKey: ["exercise-history"] });
+  mocks.log.mockRejectedValueOnce(new TypeError("offline"));
+  expect(await queue().add(log("later-record"))).toEqual({ state: "queued" });
+  mocks.log.mockResolvedValue(reply);
+  await queue().flush();
+  expect(queue().items).toEqual([]);
+  expect(JSON.stringify(queue())).not.toContain("eventId");
+  expect(JSON.stringify([...mocks.disk])).not.toContain("eventId");
 });
