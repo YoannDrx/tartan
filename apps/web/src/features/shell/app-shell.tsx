@@ -14,12 +14,14 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition, type ReactNode } from "react";
-import type { SpaceSummary } from "@tartan/contracts";
+import type { ReleaseView, SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { Logo } from "@/components/logo";
 import { Select } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import { worldFor } from "@/lib/world";
+import { NotificationBell } from "@/features/notifications/notification-bell";
+import { UpdateWatcher } from "./update-watcher";
 import { InstallBanner } from "./install-banner";
 import { SatisfactionQuestion } from "./satisfaction";
 import { SettingsMenu } from "./settings-menu";
@@ -82,6 +84,7 @@ export const AppShell = ({
   account,
   admin,
   askSatisfaction = false,
+  unseenRelease = null,
   children,
 }: {
   staff: boolean;
@@ -90,6 +93,7 @@ export const AppShell = ({
   account: { name: string | null; email: string };
   admin: boolean;
   askSatisfaction?: boolean;
+  unseenRelease?: ReleaseView | null;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -146,6 +150,7 @@ export const AppShell = ({
                   </Link>
                 );
               })}
+            <NotificationBell />
             <SettingsMenu account={account} space={space} active={isActive("/reglages")} admin={admin} />
           </div>
         </div>
@@ -154,6 +159,7 @@ export const AppShell = ({
       <main className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pb-8 pt-5 desktop:px-6 desktop:pt-8">
         {/* Le contenu d'abord, l'athlète vient pour sa séance : les bandeaux passent dessous. */}
         <div>{children}</div>
+        <UpdateWatcher unseen={unseenRelease} />
         <InstallBanner />
         {askSatisfaction ? <SatisfactionQuestion /> : null}
       </main>
