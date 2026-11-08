@@ -16,7 +16,7 @@ const pages = [
 
 test("la console s'ouvre à l'éditeur, lisible sur chaque écran, et reste fermée aux autres", async ({ page }, info) => {
   test.setTimeout(180_000);
-  await createCoachSpace(page, "Console", `support-${info.project.name}@e2e.tartan.test`);
+  await createCoachSpace(page, "Console", `console-${info.project.name}@e2e.tartan.test`);
   for (const [path, title] of pages) {
     await page.goto(path, { waitUntil: "networkidle" });
     await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
@@ -24,7 +24,7 @@ test("la console s'ouvre à l'éditeur, lisible sur chaque écran, et reste ferm
     await expectAccessible(page);
   }
   await page.goto("/admin/utilisateurs");
-  await page.getByRole("link", { name: `support-${info.project.name}@e2e.tartan.test` }).click();
+  await page.getByRole("link", { name: `console-${info.project.name}@e2e.tartan.test` }).click();
   await expect(page.getByRole("button", { name: m.admin.resendVerification })).toBeVisible();
   await expect(page.getByRole("button", { name: m.admin.suspend })).toHaveCount(0);
 });

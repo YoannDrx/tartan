@@ -9,13 +9,14 @@ test("le calculateur distingue estimation, référence et arrondi sans enregistr
   await createCoachSpace(page, "Calculateur");
   const me = await (await page.request.get("/api/v1/me")).json();
   const orgId = me.spaces[0].organizationId;
-  await page.goto("/outils/charges");
-  await expect(page.getByText(m.progression.disabled)).toBeVisible();
   const sql = new Client({
     connectionString: process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e",
   });
   await sql.connect();
   try {
+    await sql.query("UPDATE organizations SET progression_enabled = false WHERE id = $1", [orgId]);
+    await page.goto("/outils/charges");
+    await expect(page.getByText(m.progression.disabled)).toBeVisible();
     await sql.query("UPDATE organizations SET progression_enabled = true WHERE id = $1", [orgId]);
     await page.goto("/exercices");
     await page.getByRole("link", { name: m.calculator.title, exact: true }).click();

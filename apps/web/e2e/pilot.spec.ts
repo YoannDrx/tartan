@@ -157,7 +157,7 @@ test.describe("le pilote", () => {
     await expect(menu.getByRole("menuitem", { name: "Tous les réglages" })).toBeVisible();
     await expectAccessible(page);
     await menu.getByRole("menuitem", { name: "Se déconnecter" }).click();
-    await expect(page.getByRole("heading", { name: "Prépare le groupe. Fais progresser chacun." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: m.landing.title })).toBeVisible();
     await page.goto("/suivi");
     await expect(page).toHaveURL(/\/connexion/);
   });
@@ -168,7 +168,7 @@ test.describe("le pilote", () => {
     await page.getByRole("button", { name: "Supprimer mon compte" }).click();
     await page.getByLabel("Écris SUPPRIMER pour confirmer").fill("SUPPRIMER");
     await page.getByRole("dialog").getByRole("button", { name: "Supprimer mon compte" }).click();
-    await expect(page.getByRole("heading", { name: "Prépare le groupe. Fais progresser chacun." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: m.landing.title })).toBeVisible();
     await page.goto("/suivi");
     await expect(page).toHaveURL(/\/connexion/);
   });
@@ -184,7 +184,7 @@ test.describe("toutes tailles d'écran", () => {
       await expect.poll(() => image.evaluate((el) => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
     }
     for (const title of [m.landing.film.run.title, m.landing.film.plant.title, m.landing.film.flight.title]) {
-      await expect(page.getByRole("heading", { name: title, includeHidden: true })).toHaveCount(1);
+      await expect(page.locator(".film-title").filter({ hasText: title })).toHaveCount(1);
     }
     await expect(page.locator("body")).not.toContainText("saut en hauteur");
     const initialViewport = page.viewportSize()!;
