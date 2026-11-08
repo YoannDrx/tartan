@@ -643,6 +643,20 @@ export const fr = {
     consentNotice: "En continuant, tu acceptes les conditions d'utilisation et la politique de confidentialité.",
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
+  batchPublication: {
+    open: "Publier des brouillons",
+    title: "Publication groupée",
+    hint: "Sélectionne jusqu’à 14 séances. Elles seront publiées immédiatement, même si une publication était programmée. Vérifie les dates et destinataires avant de confirmer.",
+    atomic:
+      "Si une séance a changé ou qu’un choix de phase manque, aucune nouvelle séance de cette sélection ne sera publiée. Ouvre la séance pour la corriger, puis actualise la sélection.",
+    confirm: (count: number) => `Publier ${count} séance${count > 1 ? "s" : ""} maintenant`,
+    selected: (count: number) => `${count} / 14 séances sélectionnées`,
+    success: "Les séances sélectionnées sont publiées.",
+    refresh: "Actualiser la sélection",
+    edit: "Ouvrir la séance",
+    coach: "Ton coach",
+    scheduled: "Publication programmée",
+  },
   intensityAnalysis: {
     title: "Charges et cibles d’intensité",
     chooseMetric: "Unité de comparaison",

@@ -1,3 +1,4 @@
+import { publishSessionsResult, type PublishSessionsInput } from "@tartan/contracts";
 import {
   trainingAnalysisContext,
   trainingAnalysisResponse,
@@ -256,6 +257,8 @@ export const createApiClient = (options: ApiClientOptions) => {
       sessionId: string,
       body: Omit<SaveScheduledSessionInput, "id"> & { expectedVersion: number },
     ) => request("PUT", `/orgs/${orgId}/sessions/${sessionId}`, sessionSaveResult, body),
+    publishSessions: (orgId: string, body: PublishSessionsInput) =>
+      request("POST", `/orgs/${orgId}/sessions/publish-batch`, publishSessionsResult, body),
     publishSession: (orgId: string, sessionId: string, expectedVersion: number) =>
       request("POST", `/orgs/${orgId}/sessions/${sessionId}/publish`, z.object({ id: z.string() }), {
         expectedVersion,

@@ -1,3 +1,4 @@
+import { NativeBatchPublication } from "../../src/features/batch-publication";
 import { m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -74,6 +75,14 @@ export default function Planning() {
             <Chip key={g.id} label={g.name} active={groupId === g.id} onPress={() => setGroupId(g.id)} />
           ))}
         </ScrollView>
+      ) : null}
+      {calendar.data ? (
+        <NativeBatchPublication
+          key={`${orgId}:${nav.week}:${groupId ?? "all"}`}
+          orgId={orgId}
+          sessions={calendar.data.sessions}
+          refresh={() => calendar.refetch()}
+        />
       ) : null}
       <NativeCalendarPhases from={nav.week} to={nav.to} groupId={groupId} />
       {calendar.isPending ? <LoadingState /> : null}

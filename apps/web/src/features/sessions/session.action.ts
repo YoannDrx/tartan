@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import {
   competitionInput,
+  publishSessionsInput,
   deleteSessionInput,
   isoDate,
   saveScheduledSessionInput,
@@ -19,6 +20,7 @@ import {
   duplicateWeek,
   moveSession,
   publishSession,
+  publishSessions,
   saveCompetition,
   saveScheduledSession,
   saveTemplate,
@@ -87,3 +89,12 @@ export const saveCompetitionAction = spaceAction.inputSchema(competitionInput).a
   revalidatePath("/calendrier");
   return saved;
 });
+
+export const publishSessionsAction = spaceAction
+  .inputSchema(publishSessionsInput)
+  .action(async ({ parsedInput, ctx }) => {
+    const result = await publishSessions(ctx.userId, ctx.organizationId, parsedInput);
+    revalidatePath("/calendrier");
+    revalidatePath("/suivi");
+    return result;
+  });

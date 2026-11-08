@@ -18,3 +18,5 @@ export * from "./training-analysis";
 export * from "./exercise-classification";
 
 export * from "./training-intensity";
+
+export * from "./session-publication";

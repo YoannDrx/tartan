@@ -40,3 +40,5 @@ export * from "./training-phases";
 export * from "./training-analysis";
 
 export * from "./training-intensity";
+
+export * from "./session-publication";

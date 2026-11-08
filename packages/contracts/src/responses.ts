@@ -292,6 +292,9 @@ export const sessionBuilderContext = z.object({
 });
 
 export const calendarSession = z.object({
+  version: z.number().int().positive().optional(),
+  canPublish: z.boolean().optional(),
+  publishAt: z.string().nullable().optional(),
   id: z.string(),
   title: z.string(),
   type: sessionType,

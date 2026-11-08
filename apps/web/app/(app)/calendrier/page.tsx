@@ -1,3 +1,4 @@
+import { BatchPublication } from "@/features/sessions/batch-publication";
 import { Medal, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -141,6 +142,10 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
         title={m.nav.calendrier}
         actions={
           <>
+            <BatchPublication
+              key={`${ctx.organizationId}:${from}:${to}:${params.groupe ?? "all"}`}
+              sessions={data.sessions.filter((s) => (isMonth ? s.date.startsWith(month) : true))}
+            />
             <CompetitionDialog athletes={athletes} today={today} />
             {!isMonth ? <DuplicateWeekDialog week={week} groups={groups} /> : null}
             <Button asChild size="sm" className="order-first desktop:order-none">
