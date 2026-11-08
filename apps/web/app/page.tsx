@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { formatPrice, PLANS, TRIAL_DAYS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { Jumper } from "@/components/jumper";
 import { Marked } from "@/components/marked";
-import { JumpFilm } from "@/features/landing/jump-film";
 import { JumpScrubber } from "@/features/landing/jump-scrubber";
+import calendarCapture from "@/features/landing/images/calendrier.png";
+import analysisCapture from "@/features/landing/images/analyse-v1-1.png";
 import { LapBend } from "@/features/landing/lap";
 import { RollCallDemo } from "@/features/landing/roll-call-demo";
 import { ValidationDemo } from "@/features/landing/validation-demo";
@@ -14,8 +15,7 @@ import { env } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: { absolute: m.brand.storeName },
-  description:
-    "Le carnet d'entraînement partagé des coachs d'athlétisme et des préparateurs physiques : séances, suivi et analyse du saut. Gratuit jusqu'à 5 athlètes.",
+  description: m.landing.description,
   alternates: { canonical: "https://tartan.coach" },
 };
 
@@ -36,22 +36,66 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-dvh overflow-x-clip">
-      <JumpFilm
-        header={<SiteHeader />}
-        cta={cta}
-        offer={t.offer(PLANS.discovery.limits.maxAthletes ?? 0, TRIAL_DAYS)}
-      />
-
-      <section className="mx-auto max-w-[1200px] px-4 py-14 desktop:px-6 desktop:py-20">
-        <ValidationDemo />
-      </section>
+      <div className="mx-auto max-w-[1200px] px-4 pt-4 desktop:px-6 desktop:pt-6">
+        <SiteHeader />
+        <section className="pb-10 pt-12 desktop:pb-14 desktop:pt-16">
+          <h1 className="max-w-[22ch] text-balance font-display text-[60px] font-bold leading-[0.95] desktop:text-[88px]">
+            {t.title}
+          </h1>
+          <div className="mt-6 grid gap-6 desktop:grid-cols-2 desktop:items-end desktop:gap-14">
+            <div>
+              <p className="max-w-[52ch] text-lg leading-7">{t.lead}</p>
+              <p className="mt-4 font-semibold">{t.disciplines}</p>
+            </div>
+            <div className="desktop:justify-self-end">
+              {cta}
+              <p className="mt-3 max-w-[38ch] text-sm">
+                {t.offer(PLANS.discovery.limits.maxAthletes ?? 0, TRIAL_DAYS)}
+              </p>
+            </div>
+          </div>
+        </section>
+        <nav aria-label={t.journeyLabel} className="flex flex-wrap gap-x-6 gap-y-1 border-y border-lane py-3">
+          {t.journey.map((step, index) => (
+            <a key={step.id} href={`#${step.id}`} className="inline-flex min-h-11 items-center gap-2 font-semibold">
+              <span aria-hidden className="font-display text-2xl">
+                {index + 1}.
+              </span>{" "}
+              {step.label}
+            </a>
+          ))}
+        </nav>
+        <section id="preparer" className="scroll-mt-6 py-12 desktop:py-16">
+          <div className="grid gap-4 desktop:grid-cols-2 desktop:items-end desktop:gap-14">
+            <h2 className="font-display text-[44px] font-bold leading-none desktop:text-[64px]">{t.prepare.title}</h2>
+            <p className="max-w-[56ch] text-[17px] leading-[25px]">{t.prepare.body}</p>
+          </div>
+          <figure className="mt-8">
+            <Image
+              src={calendarCapture}
+              alt={t.prepare.alt}
+              className="h-auto w-full rounded-card"
+              sizes="(min-width: 1200px) 1152px, 100vw"
+            />
+            <figcaption className="mt-3 flex flex-wrap justify-between gap-x-6 gap-y-2 text-sm">
+              <span>{t.prepare.caption}</span>
+              <a href={calendarCapture.src} className="inline-flex min-h-11 items-center font-semibold">
+                {t.prepare.enlarge}
+              </a>
+            </figcaption>
+          </figure>
+        </section>
+      </div>
 
       <LapBend side="right" start="bleed">
-        <div className={`mx-auto max-w-[1200px] pl-4 pr-12 desktop:pl-6 desktop:pr-24 ${bendPadding}`}>
+        <div
+          id="individualiser"
+          className={`mx-auto max-w-[1200px] scroll-mt-6 pl-4 pr-12 desktop:pl-6 desktop:pr-24 ${bendPadding}`}
+        >
           <div className="grid gap-8 desktop:grid-cols-2 desktop:items-center desktop:gap-14">
             <div>
-              <h2 className="text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[72px] desktop:leading-[72px]">
-                <Marked text={t.rollCall.title} />
+              <h2 className="text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[64px] desktop:leading-[64px]">
+                {t.rollCall.title}
               </h2>
               <p className="mt-4 max-w-[46ch] text-[17px] leading-[25px]">{t.rollCall.body}</p>
             </div>
@@ -60,21 +104,52 @@ export default function LandingPage() {
         </div>
       </LapBend>
 
-      <LapBend side="left">
-        <div className={`mx-auto max-w-[1200px] pl-12 pr-4 desktop:pl-24 desktop:pr-6 ${bendPadding}`}>
-          <div className="grid gap-8 desktop:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] desktop:items-center desktop:gap-14">
-            <div className="order-2 desktop:order-1">
-              <JumpScrubber />
-            </div>
-            <div className="order-1 desktop:order-2">
-              <h2 className="text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[72px] desktop:leading-[72px]">
-                <Marked text={t.video.title} />
-              </h2>
-              <p className="mt-4 max-w-[40ch] text-[17px] leading-[25px]">{t.video.body}</p>
-            </div>
+      <section id="realiser" className="mx-auto max-w-[1200px] scroll-mt-6 px-4 py-12 desktop:px-6 desktop:py-16">
+        <h2 className="font-display text-[44px] font-bold leading-none desktop:text-[64px]">{t.realize.title}</h2>
+        <p className="mb-8 mt-4 max-w-[65ch] text-[17px] leading-[25px]">{t.realize.body}</p>
+        <ValidationDemo />
+      </section>
+
+      <section id="progresser" className="on-hero scroll-mt-6 py-12 desktop:py-16">
+        <div className="mx-auto grid max-w-[1200px] gap-8 px-4 desktop:grid-cols-2 desktop:items-start desktop:gap-14 desktop:px-6">
+          <div>
+            <h2 className="font-display text-[44px] font-bold leading-none desktop:text-[64px]">{t.progress.title}</h2>
+            <p className="mt-4 text-[17px] leading-[25px]">{t.progress.body}</p>
+            <p className="mt-6 border-t border-line pt-4 font-semibold">{t.progress.availability}</p>
           </div>
+          <figure>
+            <a
+              href={analysisCapture.src}
+              aria-label={t.progress.enlarge}
+              className="block rounded-card focus-visible:outline-2 focus-visible:outline-offset-4"
+            >
+              <Image
+                src={analysisCapture}
+                alt={t.progress.alt}
+                className="max-h-[440px] w-full rounded-card object-cover object-top"
+                sizes="(min-width: 1024px) 550px, 100vw"
+              />
+            </a>
+            <figcaption className="mt-3 text-sm">
+              {t.progress.caption}
+              <a href={analysisCapture.src} className="mt-1 flex min-h-11 items-center font-semibold">
+                {t.progress.enlarge}
+              </a>
+            </figcaption>
+          </figure>
         </div>
-      </LapBend>
+      </section>
+
+      <section className="mx-auto max-w-[1200px] px-4 py-12 desktop:px-6 desktop:py-16">
+        <h2 className="font-display text-[44px] font-bold leading-none desktop:text-[64px]">{t.video.title}</h2>
+        <p className="mt-4 max-w-[65ch] text-[17px] leading-[25px]">{t.video.body}</p>
+        <details className="mt-6 border-y border-lane py-3">
+          <summary className="min-h-11 cursor-pointer content-center font-semibold">{t.videoExample}</summary>
+          <div className="mx-auto max-w-[720px] py-6">
+            <JumpScrubber />
+          </div>
+        </details>
+      </section>
 
       <LapBend side="right" end="bleed">
         <div className={`mx-auto max-w-[1200px] pl-4 pr-12 desktop:pl-6 desktop:pr-24 ${bendPadding}`}>

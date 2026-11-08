@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { Client } from "pg";
 import { m } from "@tartan/i18n";
+import { addDays, startOfWeek } from "@tartan/domain";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 import { today } from "./journeys";
 
@@ -21,11 +22,17 @@ test("le bureau clair conserve les contrôles, les dialogues et les groupes de 3
   });
   await sql.connect();
   try {
-    const exercise = (await (await page.request.get(`${root}/exercises`)).json())[0];
-    for (const type of ["strength", "plyo", "running", "mobility", "jump"] as const) {
+    await sql.query("UPDATE groups SET name = 'Préparation athlé' WHERE id = $1", [groupId]);
+    const exercises = await (await page.request.get(`${root}/exercises`)).json();
+    const types = ["strength", "running", "plyo", "mobility", "jump"] as const;
+    for (const [index, type] of types.entries()) {
+      const exercise = exercises.find(
+        (item: { category: string }) => item.category === (type === "running" ? "running_drill" : type),
+      );
+      expect(exercise).toBeDefined();
       const response = await page.request.post(`${root}/sessions`, {
         data: {
-          date: today(),
+          date: addDays(startOfWeek(today()), index),
           startTime: "18:00",
           location: "Stade",
           publishAt: null,
@@ -98,7 +105,10 @@ test("le bureau clair conserve les contrôles, les dialogues et les groupes de 3
     await page.goto("/calendrier", { waitUntil: "networkidle" });
     await expectAccessible(page);
     await expectNoHorizontalScroll(page);
-    await page.screenshot({ path: `/tmp/tartan-workspace-calendar-${info.project.name}.png` });
+    await page.screenshot({
+      path: `/tmp/tartan-workspace-calendar-${info.project.name}.png`,
+      style: "nextjs-portal { visibility: hidden; }",
+    });
     if (info.project.name === "desktop") {
       await page.setViewportSize({ width: 768, height: 900 });
       await expectAccessible(page);
