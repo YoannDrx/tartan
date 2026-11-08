@@ -36,6 +36,10 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
       [group.id, athleteId],
     );
     await sql.query(
+      "INSERT INTO athlete_consents (id, athlete_id, kind, version, granted_at) VALUES ($1,$2,'health','test-synthetique',now())",
+      [randomUUID(), athleteId],
+    );
+    await sql.query(
       "INSERT INTO exercises (id, organization_id, name, category, strength_load_kind, updated_at) VALUES ($1,$2,'Squat analyse','strength','external_total',now())",
       [exerciseId, orgId],
     );
@@ -75,6 +79,8 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
         variantDone: "club",
         expectedVersion: 0,
         expectedSessionVersion: detail.sessionVersion,
+        rpe: index === 1 ? null : index + 5,
+        durationMin: 40,
         detailedSets: [0, 1].map((setIndex) => ({
           itemRef: "b0-i0",
           setIndex,
@@ -108,6 +114,9 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
     planned: { tonnageKg: 1920 },
     actual: { tonnageKg: 960 },
     detailedSessions: 3,
+    perceivedLoad: 480,
+    loadResponses: 2,
+    healthEligibleSessions: 3,
   });
   expect(JSON.stringify(await api.trainingAnalysisContext(orgId))).not.toContain("SECRET_PHASE_ANALYSE");
   await page.goto("/suivi");
@@ -116,8 +125,23 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
   await expect(page.getByText("960", { exact: true })).toBeVisible();
   await page.getByText(m.analysis.table, { exact: true }).click();
   await expect(page.getByRole("table")).toBeVisible();
+  await expect(page.getByRole("heading", { name: m.analysis.healthWeekly, exact: true })).toBeVisible();
+  await page.getByText(m.analysis.healthTable, { exact: true }).click();
+  const healthTable = page.getByRole("table", { name: m.analysis.healthWeekly, exact: true });
+  await expect(healthTable).toBeVisible();
+  await expect(healthTable.getByText("200", { exact: true })).toBeVisible();
+  await expect(healthTable.getByText("280", { exact: true })).toBeVisible();
+  await expect(healthTable.getByText(m.analysis.missing, { exact: true }).first()).toBeVisible();
+  await expect(healthTable.getByText("0 / 1", { exact: true })).toBeVisible();
+  const healthSection = page.getByRole("region", { name: m.analysis.health, exact: true });
+  const healthPath = await healthSection.locator("svg path.stroke-brand").getAttribute("d");
+  expect(healthPath?.match(/M/g)).toHaveLength(2);
+  expect(healthPath).not.toContain("L");
   await expectAccessible(page);
   await expectNoHorizontalScroll(page);
+  await page.getByText(m.analysis.healthTable, { exact: true }).click();
+  await healthSection.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `/tmp/tartan-health-analysis-${info.project.name}.png` });
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: `/tmp/tartan-analysis-${info.project.name}.png`, fullPage: true });
   await page.getByLabel(m.trainingPhases.target, { exact: true }).selectOption(`athlete:${athleteId}`);
@@ -136,4 +160,23 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
   });
   await expectNoHorizontalScroll(page);
   await expectAccessible(page);
+  // Même si les anciennes valeurs existent encore, un accord retiré ne les expose plus.
+  const revoke = new Client({
+    connectionString: process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e",
+  });
+  await revoke.connect();
+  try {
+    await revoke.query("UPDATE athlete_consents SET revoked_at = now() WHERE athlete_id=$1 AND kind='health'", [
+      athleteId,
+    ]);
+  } finally {
+    await revoke.end();
+  }
+  await page.reload();
+  await expect(page.getByRole("heading", { name: m.analysis.health, exact: true })).toHaveCount(0);
+  const hidden = await api.trainingAnalysis(orgId, { from: addDays(today, -27), to: today });
+  expect(hidden.healthVisible).toBe(false);
+  expect(hidden.weeks.every((week) => week.totals.perceivedLoad === null && week.totals.loadResponses === 0)).toBe(
+    true,
+  );
 });

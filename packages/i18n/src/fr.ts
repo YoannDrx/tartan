@@ -355,6 +355,16 @@ export const fr = {
     healthHint:
       "Uniquement avec consentement santé et deux valeurs renseignées. Cette mesure n’est ni additionnée aux volumes ni interprétée comme un risque.",
     healthResponses: "Réponses complètes parmi les séances validées avec consentement",
+    healthWeekly: "Charge ressentie par semaine",
+    healthValue: "Charge renseignée",
+    healthUnit: "Unités arbitraires (RPE × minutes)",
+    healthTable: "Données de charge ressentie",
+    healthMethod: "Lire la charge ressentie",
+    healthCoverage: "Réponses complètes / validations",
+    healthColumn: "Réponses",
+    healthChartEmpty: "Deux semaines renseignées sont nécessaires pour tracer cette courbe.",
+    healthCoverageHint:
+      "Une semaine sans réponse reste manquante. Compare aussi le nombre de réponses : une somme de groupe peut varier avec le nombre de participants.",
     responseRate: "Réponses parmi les séances attribuées",
     period: "Période",
     fourWeeks: "4 semaines",

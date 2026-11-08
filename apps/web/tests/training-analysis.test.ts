@@ -127,6 +127,7 @@ it("ne lit pas les colonnes santé sans consentement et journalise leur lecture 
   const data = await getTrainingAnalysis(a.owner.userId, a.organizationId, period);
   expect(data.healthVisible).toBe(false);
   expect(data.totals.perceivedLoad).toBeNull();
+  expect(data.weeks.every((week) => week.totals.perceivedLoad === null && week.totals.loadResponses === 0)).toBe(true);
   expect(spy).not.toHaveBeenCalled();
   spy.mockRestore();
 });

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { DetailedSetInput, SnapshotItem } from "@tartan/contracts";
-import { analysisEntryTotals, plannedItemVolumes, sumAnalysisTotals, type AnalysisEntry } from "./training-analysis";
+import {
+  analysisEntryTotals,
+  analysisPerceivedLoadPoints,
+  plannedItemVolumes,
+  sumAnalysisTotals,
+  type AnalysisEntry,
+} from "./training-analysis";
+import { historyChartGeometry } from "./history-chart";
 const item: SnapshotItem = {
   ref: "force",
   exerciseId: null,
@@ -127,5 +134,21 @@ describe("analyse avec provenance et couverture", () => {
       healthEligibleSessions: 2,
     });
     expect(sumAnalysisTotals([]).actual.tonnageKg).toBeNull();
+  });
+  it("coupe la courbe de charge ressentie aux semaines manquantes et cache tout sans consentement", () => {
+    const weeks = [
+      { weekStart: "2030-06-03", totals: analysisEntryTotals({ ...base, health: true }) },
+      { weekStart: "2030-06-10", totals: analysisEntryTotals({ ...base, health: true, rpe: null }) },
+      { weekStart: "2030-06-17", totals: analysisEntryTotals({ ...base, health: true, rpe: 0 }) },
+    ];
+    const points = analysisPerceivedLoadPoints({ healthVisible: true, weeks });
+    expect(points.map((p) => [p.value, p.knownSessions, p.sessions])).toEqual([
+      [360, 1, 1],
+      [null, 0, 1],
+      [0, 1, 1],
+    ]);
+    expect(historyChartGeometry(points).path.match(/M/g)).toHaveLength(2);
+    expect(historyChartGeometry(points).path).not.toContain("L");
+    expect(analysisPerceivedLoadPoints({ healthVisible: false, weeks })).toEqual([]);
   });
 });

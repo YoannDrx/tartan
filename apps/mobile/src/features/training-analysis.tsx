@@ -1,5 +1,10 @@
 import type { TrainingAnalysis } from "@tartan/contracts";
-import { analysisChartPoints, analysisVolumeKeys, historyChartGeometry } from "@tartan/domain";
+import {
+  analysisChartPoints,
+  analysisPerceivedLoadPoints,
+  analysisVolumeKeys,
+  historyChartGeometry,
+} from "@tartan/domain";
 import { historyDate, historyNumber, m } from "@tartan/i18n";
 import { useState } from "react";
 import { View } from "react-native";
@@ -20,6 +25,10 @@ export function NativeTrainingAnalysis({ data }: { data: TrainingAnalysis }) {
   const max = Math.max(1, ...[...planned, ...actual].map((p) => p.value ?? 0));
   const p = historyChartGeometry(planned, max),
     a = historyChartGeometry(actual, max);
+  const [healthTable, setHealthTable] = useState(false);
+  const [healthMethod, setHealthMethod] = useState(false);
+  const healthPoints = analysisPerceivedLoadPoints(data);
+  const health = historyChartGeometry(healthPoints);
   return (
     <View style={{ gap: space.md }}>
       {data.phase ? (
@@ -202,9 +211,73 @@ export function NativeTrainingAnalysis({ data }: { data: TrainingAnalysis }) {
             <SectionTitle>{t.health}</SectionTitle>
             <T variant="figure">{value(data.totals.perceivedLoad)}</T>
             <T>
-              {t.healthResponses} : {data.totals.loadResponses} / {data.totals.healthEligibleSessions}
+              {t.healthCoverage} : {data.totals.loadResponses} / {data.totals.healthEligibleSessions}
             </T>
-            <T tone="muted">{t.healthHint}</T>
+            <Button
+              label={t.healthMethod}
+              variant="secondary"
+              expanded={healthMethod}
+              onPress={() => setHealthMethod(!healthMethod)}
+            />
+            {healthMethod ? (
+              <>
+                <T tone="muted">{t.healthHint}</T>
+                <T tone="muted">{t.healthResponses}</T>
+                <T tone="muted">{t.healthCoverageHint}</T>
+              </>
+            ) : null}
+            <T variant="smallStrong">{t.healthWeekly}</T>
+            {healthPoints.filter((point) => point.value !== null).length >= 2 ? (
+              <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                <T>
+                  {historyNumber(health.max)} · {t.healthUnit}
+                </T>
+                <Svg viewBox="0 0 600 200" width="100%" height={180}>
+                  <Path d="M20,20V180H580" stroke={palette.border} fill="none" />
+                  <Path d={health.path} stroke={palette.link} strokeWidth={3} fill="none" />
+                  {health.dots
+                    .filter((point) => point.y !== null)
+                    .map((point) => (
+                      <Circle key={point.date} cx={point.x} cy={point.y!} r={4} fill={palette.link} />
+                    ))}
+                </Svg>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap" }}>
+                  <T>0 · {historyDate(healthPoints[0]?.date ?? data.from)}</T>
+                  <T>{historyDate(healthPoints.at(-1)?.date ?? data.to)}</T>
+                </View>
+              </View>
+            ) : (
+              <T tone="muted">{t.healthChartEmpty}</T>
+            )}
+            <Button
+              label={t.healthTable}
+              variant="secondary"
+              expanded={healthTable}
+              onPress={() => setHealthTable(!healthTable)}
+            />
+            {healthTable
+              ? healthPoints.map((point) => (
+                  <View key={point.date} style={{ gap: space.xs }}>
+                    <T variant="smallStrong">{historyDate(point.date)}</T>
+                    <T>
+                      {t.healthValue} : {value(point.value)}
+                    </T>
+                    <T tone="muted">
+                      {t.healthCoverage} : {point.knownSessions} / {point.sessions}
+                    </T>
+                  </View>
+                ))
+              : null}
+            <T variant="smallStrong">{t.prior}</T>
+            <T>
+              {historyDate(data.previousFrom)} – {historyDate(data.previousTo)}
+            </T>
+            <T>
+              {t.healthValue} : {value(data.previous.perceivedLoad)}
+            </T>
+            <T tone="muted">
+              {t.healthCoverage} : {data.previous.loadResponses} / {data.previous.healthEligibleSessions}
+            </T>
           </View>
         </Card>
       ) : null}

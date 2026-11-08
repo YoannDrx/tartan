@@ -138,3 +138,13 @@ export function analysisChartPoints(
     sessions: w.totals.assignedSessions,
   }));
 }
+
+export function analysisPerceivedLoadPoints(data: Pick<TrainingAnalysis, "healthVisible" | "weeks">) {
+  if (!data.healthVisible) return [];
+  return data.weeks.map((w) => ({
+    date: w.weekStart,
+    value: w.totals.loadResponses > 0 ? w.totals.perceivedLoad : null,
+    knownSessions: w.totals.loadResponses,
+    sessions: w.totals.healthEligibleSessions,
+  }));
+}

@@ -1,6 +1,11 @@
 "use client";
 import type { TrainingAnalysis } from "@tartan/contracts";
-import { analysisChartPoints, analysisVolumeKeys, historyChartGeometry } from "@tartan/domain";
+import {
+  analysisChartPoints,
+  analysisPerceivedLoadPoints,
+  analysisVolumeKeys,
+  historyChartGeometry,
+} from "@tartan/domain";
 import { historyDate, historyNumber, m } from "@tartan/i18n";
 import { useState } from "react";
 import { Sheet, SheetSection } from "@/components/sheet";
@@ -15,6 +20,8 @@ export function TrainingAnalysisView({ data }: { data: TrainingAnalysis }) {
   const max = Math.max(1, ...[...planned, ...actual].map((p) => p.value ?? 0));
   const p = historyChartGeometry(planned, max),
     a = historyChartGeometry(actual, max);
+  const healthPoints = analysisPerceivedLoadPoints(data);
+  const health = historyChartGeometry(healthPoints);
   return (
     <div className="flex min-w-0 flex-col gap-4">
       {data.phase ? (
@@ -197,9 +204,75 @@ export function TrainingAnalysisView({ data }: { data: TrainingAnalysis }) {
           <SheetSection title={t.health}>
             <p className="text-xl font-semibold">{value(data.totals.perceivedLoad)}</p>
             <p>
-              {t.healthResponses} : {ratio(data.totals.loadResponses, data.totals.healthEligibleSessions)}
+              {t.healthCoverage} : {ratio(data.totals.loadResponses, data.totals.healthEligibleSessions)}
             </p>
-            <p className="text-soft">{t.healthHint}</p>
+            <details>
+              <summary className="min-h-11 cursor-pointer py-3 font-semibold">{t.healthMethod}</summary>
+              <div className="space-y-2 text-soft">
+                <p>{t.healthHint}</p>
+                <p>{t.healthResponses}</p>
+                <p>{t.healthCoverageHint}</p>
+              </div>
+            </details>
+            <h3 className="font-semibold">{t.healthWeekly}</h3>
+            {healthPoints.filter((point) => point.value !== null).length >= 2 ? (
+              <div aria-hidden="true">
+                <p className="text-sm">
+                  {historyNumber(health.max)} · {t.healthUnit}
+                </p>
+                <svg viewBox="0 0 600 200" className="w-full" focusable="false">
+                  <path d="M20,20V180H580" className="stroke-card-line" fill="none" />
+                  <path d={health.path} className="stroke-brand" strokeWidth="3" fill="none" />
+                  {health.dots
+                    .filter((point) => point.y !== null)
+                    .map((point) => (
+                      <circle key={point.date} cx={point.x} cy={point.y!} r="4" className="fill-brand" />
+                    ))}
+                </svg>
+                <div className="flex justify-between text-sm">
+                  <span>0 · {historyDate(healthPoints[0]?.date ?? data.from)}</span>
+                  <span>{historyDate(healthPoints.at(-1)?.date ?? data.to)}</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-soft">{t.healthChartEmpty}</p>
+            )}
+            <details>
+              <summary className="min-h-11 cursor-pointer py-3 font-semibold">{t.healthTable}</summary>
+              <table className="w-full table-fixed text-left text-sm tabular-nums">
+                <caption className="sr-only">{t.healthWeekly}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{t.week}</th>
+                    <th scope="col">{t.healthValue}</th>
+                    <th scope="col">{t.healthColumn}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {healthPoints.map((point) => (
+                    <tr key={point.date} className="border-t border-card-line">
+                      <th scope="row" className="py-3 font-normal">
+                        {historyDate(point.date)}
+                      </th>
+                      <td>{value(point.value)}</td>
+                      <td>{ratio(point.knownSessions, point.sessions)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+            <div>
+              <h3 className="font-semibold">{t.prior}</h3>
+              <p>
+                {historyDate(data.previousFrom)} – {historyDate(data.previousTo)}
+              </p>
+              <p>
+                {t.healthValue} : {value(data.previous.perceivedLoad)}
+              </p>
+              <p className="text-soft">
+                {t.healthCoverage} : {ratio(data.previous.loadResponses, data.previous.healthEligibleSessions)}
+              </p>
+            </div>
           </SheetSection>
         </Sheet>
       ) : null}
