@@ -18,7 +18,8 @@ export type NotificationType =
   | "announcement"
   | "member_joined"
   | "session_cancelled"
-  | "scheduled_publication_blocked";
+  | "scheduled_publication_blocked"
+  | "app_update";
 
 export const bypassesQuietHours = (type: NotificationType): boolean => type === "pain_alert";
 
@@ -28,7 +29,15 @@ export const weekdayFr = (isoDate: string): string => dayLabel.format(new Date(`
 // Le texte porte le nom du coach, jamais de donnée de santé (écran verrouillé, § 15.2).
 export const renderNotification = (
   type: NotificationType,
-  v: { coach?: string; athlete?: string; date?: string; height?: string; count?: number; group?: string },
+  v: {
+    coach?: string;
+    athlete?: string;
+    date?: string;
+    height?: string;
+    count?: number;
+    group?: string;
+    version?: string;
+  },
 ): { title: string; body: string } => {
   const day = v.date ? weekdayFr(v.date) : "";
   const coach = v.coach ?? "Ton coach";
@@ -67,6 +76,11 @@ export const renderNotification = (
       return { title: "Tartan", body: `Ta séance de ${day} est annulée` };
     case "member_joined":
       return { title: "Tartan", body: `${v.athlete ?? "Un athlète"} a rejoint ton espace` };
+    case "app_update":
+      return { title: "Tartan", body: `La version ${v.version ?? "récente"} de Tartan est disponible` };
+    default:
+      // Après un retour arrière, une notification d'un type plus récent reste lisible.
+      return { title: "Tartan", body: "Nouvelle notification" };
   }
 };
 

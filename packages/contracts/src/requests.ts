@@ -48,6 +48,14 @@ export type CalendarView = z.infer<typeof calendarView>;
 export const preferencesInput = z.object({
   calendarView: calendarView.optional(),
   calendarViewUpdatedAt: z.string().datetime().optional(),
+  notifications: z
+    .object({
+      sessions: z.boolean().optional(),
+      feedback: z.boolean().optional(),
+      group: z.boolean().optional(),
+      product: z.boolean().optional(),
+    })
+    .optional(),
 });
 export type PreferencesInput = z.infer<typeof preferencesInput>;
 
@@ -421,7 +429,35 @@ export type JumpAttemptInput = z.infer<typeof jumpAttemptInput>;
 export const deviceInput = z.object({
   pushToken: z.string().min(8).max(4096),
   platform: devicePlatform,
+  appVersion: z.string().min(1).max(32).optional(),
+  updateId: z.string().min(1).max(64).nullable().optional(),
+  installationId: uuid.optional(),
 });
+
+export const checkInInput = z.object({
+  installationId: uuid,
+  platform: devicePlatform,
+  appVersion: z.string().min(1).max(32),
+  updateId: z.string().min(1).max(64).nullable().optional(),
+  pushToken: z.string().min(8).max(4096).optional(),
+});
+export type CheckInInput = z.infer<typeof checkInInput>;
+
+export const markNotificationsInput = z
+  .object({ ids: z.array(uuid).min(1).max(100).optional(), all: z.literal(true).optional() })
+  .refine((value) => Boolean(value.ids) !== Boolean(value.all), { message: "Précise les notifications" });
+
+export const notificationsQuery = z.object({
+  cursor: uuid.optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+});
+
+export const releaseStatusQuery = z.object({
+  platform: z.enum(["ios", "android"]),
+  version: z.string().min(1).max(32),
+});
+
+export const releaseSeenInput = z.object({ releaseId: z.string().min(1).max(64) });
 
 export const reportContentInput = z.object({
   entityType: z.enum(["comment", "video", "announcement"]),

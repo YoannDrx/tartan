@@ -69,6 +69,12 @@ export const getMe = async (userId: string): Promise<MeResponse> => {
     preferences: {
       calendarView: parseCalendarView(user.profile?.calendarView),
       calendarViewUpdatedAt: user.profile?.calendarViewUpdatedAt?.toISOString() ?? null,
+      notifications: {
+        sessions: user.profile?.pushSessions ?? true,
+        feedback: user.profile?.pushFeedback ?? true,
+        group: user.profile?.pushGroup ?? true,
+        product: user.profile?.pushProductUpdates ?? true,
+      },
     },
   };
 };
@@ -85,6 +91,16 @@ export const getCalendarView = async (userId: string): Promise<CalendarView | nu
 
 // Dernier choix gagnant : un appareil revenu du hors-ligne n'écrase pas un choix plus récent.
 export const updatePreferences = async (userId: string, input: PreferencesInput): Promise<void> => {
+  if (input.notifications) {
+    const { sessions, feedback, group, product } = input.notifications;
+    const data = {
+      ...(sessions !== undefined ? { pushSessions: sessions } : {}),
+      ...(feedback !== undefined ? { pushFeedback: feedback } : {}),
+      ...(group !== undefined ? { pushGroup: group } : {}),
+      ...(product !== undefined ? { pushProductUpdates: product } : {}),
+    };
+    await prisma.profile.upsert({ where: { id: userId }, create: { id: userId, ...data }, update: data });
+  }
   if (!input.calendarView) return;
   const at = input.calendarViewUpdatedAt ? new Date(input.calendarViewUpdatedAt) : new Date();
   await prisma.profile.upsert({

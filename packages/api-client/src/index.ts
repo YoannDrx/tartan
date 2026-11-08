@@ -1,4 +1,10 @@
-import { publishSessionsResult, type PublishSessionsInput } from "@tartan/contracts";
+import {
+  notificationsPage,
+  publishSessionsResult,
+  releasesResponse,
+  releaseStatus,
+  type PublishSessionsInput,
+} from "@tartan/contracts";
 import {
   plannerTranscriptionResponse,
   plannerLoadsPreview,
@@ -51,7 +57,8 @@ import {
   invitationPreview,
   type JumpAttemptInput,
   meResponse,
-  type PreferencesInput,
+  type CheckInInput,
+  PreferencesInput,
   ProfileInput,
   type RollCallInput,
   type SessionLogInput,
@@ -283,8 +290,21 @@ export const createApiClient = (options: ApiClientOptions) => {
     updatePreferences: (body: PreferencesInput) => request("PATCH", "/me/preferences", meResponse, body),
     deleteAccount: () => request("DELETE", "/me", okResponse),
     unregisterDevice: (pushToken: string) => request("DELETE", "/devices", okResponse, { pushToken }),
-    registerDevice: (pushToken: string, platform: "ios" | "android" | "web") =>
-      request("POST", "/devices", okResponse, { pushToken, platform }),
+    registerDevice: (
+      pushToken: string,
+      platform: "ios" | "android" | "web",
+      client: { appVersion?: string; updateId?: string | null; installationId?: string } = {},
+    ) => request("POST", "/devices", okResponse, { pushToken, platform, ...client }),
+    checkIn: (body: CheckInInput) => request("POST", "/client/check-in", okResponse, body),
+    notifications: (cursor?: string) =>
+      request("GET", "/notifications", notificationsPage, undefined, { cursor }),
+    markNotificationsRead: (body: { ids?: string[]; all?: true }) =>
+      request("POST", "/notifications/read", okResponse, body),
+    releases: (platform: "web" | "ios" | "android") =>
+      request("GET", "/releases", releasesResponse, undefined, { platform }),
+    releaseStatus: (platform: "ios" | "android", version: string) =>
+      request("GET", "/releases/status", releaseStatus, undefined, { platform, version }),
+    markReleaseSeen: (releaseId: string) => request("POST", "/releases/seen", okResponse, { releaseId }),
     confirmAge: (birthDate: string) => request("POST", "/me/age", z.unknown(), { birthDate }),
     consents: () =>
       request("GET", "/consents", z.object({ health: z.boolean(), video: z.boolean(), terms: z.boolean() })),

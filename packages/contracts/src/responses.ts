@@ -39,6 +39,9 @@ export const meResponse = z.object({
     .object({
       calendarView: z.enum(["list", "month", "week"]).nullable(),
       calendarViewUpdatedAt: z.string().nullable().optional(),
+      notifications: z
+        .object({ sessions: z.boolean(), feedback: z.boolean(), group: z.boolean(), product: z.boolean() })
+        .optional(),
     })
     .optional(),
 });
@@ -332,6 +335,42 @@ export const calendarResponse = z.object({
   competitions: z.array(calendarCompetition),
 });
 export type CalendarResponse = z.infer<typeof calendarResponse>;
+
+export const notificationItem = z.object({
+  id: z.string(),
+  type: z.string(),
+  text: z.string(),
+  link: z.string().nullable(),
+  organizationId: z.string().nullable(),
+  readAt: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type NotificationItem = z.infer<typeof notificationItem>;
+
+export const notificationsPage = z.object({
+  items: z.array(notificationItem),
+  nextCursor: z.string().nullable(),
+  unread: z.number(),
+});
+export type NotificationsPage = z.infer<typeof notificationsPage>;
+
+export const releaseView = z.object({
+  id: z.string(),
+  date: z.string(),
+  title: z.string(),
+  items: z.array(z.string()),
+});
+export type ReleaseView = z.infer<typeof releaseView>;
+
+export const releaseStatus = z.object({
+  state: z.enum(["current", "optional", "required"]),
+  latestVersion: z.string().nullable(),
+  minimumVersion: z.string().nullable(),
+  storeUrl: z.string(),
+});
+export type ReleaseStatus = z.infer<typeof releaseStatus>;
+
+export const releasesResponse = z.object({ releases: z.array(releaseView), unseen: releaseView.nullable() });
 
 export const okResponse = z.object({ ok: z.literal(true) });
 export const apiError = z.object({ message: z.string(), code: z.string().optional() });

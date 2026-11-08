@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Link } from "@react-email/components";
 import { createElement, Fragment } from "react";
-import { renderNotification, type NotificationType } from "@tartan/domain";
+import { notificationCategory, renderNotification, type NotificationType } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { NotificationEmail } from "@email/auth";
 import { unsubscribePageUrl, unsubscribeUrl } from "./email-preferences.service";
@@ -18,6 +18,8 @@ import {
 } from "@/lib/notification-transport";
 
 type Payload = Parameters<typeof renderNotification>[1] & {
+  platform?: string;
+  versionCode?: number;
   link?: string;
   organizationId?: string;
   sessionId?: string;
@@ -54,6 +56,7 @@ const CHANNELS: Record<NotificationType, string> = {
   pain_alert: "alertes-coach",
   missed_streak: "alertes-coach",
   member_joined: "seances",
+  app_update: "mises-a-jour",
 };
 
 export const webLink = (link: string | undefined, organizationId: string | undefined): string | undefined => {
@@ -84,7 +87,35 @@ const initialize = async (notification: Notification, now: Date) => {
       data: { deliveryInitializedAt: now },
     });
     if (!claimed.count) return;
-    const devices = await tx.device.findMany({ where: { userId: notification.userId } });
+    const type = notification.type as NotificationType;
+    const category = notificationCategory(type);
+    const profile = await tx.profile.findUnique({
+      where: { id: notification.userId },
+      select: { pushSessions: true, pushFeedback: true, pushGroup: true, pushProductUpdates: true },
+    });
+    const allowed =
+      category === "alerts" ||
+      !profile ||
+      (category === "sessions" && profile.pushSessions) ||
+      (category === "feedback" && profile.pushFeedback) ||
+      (category === "group" && profile.pushGroup) ||
+      (category === "product" && profile.pushProductUpdates);
+    // Catégorie coupée : le message reste dans le centre de notifications, rien n'est envoyé.
+    if (!allowed) {
+      await tx.notification.update({ where: { id: notification.id }, data: { deliveryCompletedAt: now } });
+      return;
+    }
+    const payload = notification.payload as Payload;
+    const all = await tx.device.findMany({ where: { userId: notification.userId } });
+    // Une mise à jour ne vise que la plateforme concernée et les appareils encore en retard.
+    const devices =
+      type === "app_update"
+        ? all.filter(
+            (d) =>
+              d.platform === payload.platform &&
+              (d.appVersionCode === null || d.appVersionCode < (payload.versionCode ?? 0)),
+          )
+        : all;
     if (devices.length) {
       await tx.notificationDelivery.createMany({
         data: devices.map((d) => ({
@@ -151,6 +182,9 @@ const send = async (delivery: Delivery): Promise<DeliveryResult | { state: "skip
   // Un appareil déconnecté ou passé à un autre compte ne reçoit jamais l'ancien message.
   const device = await prisma.device.findFirst({ where: { id: delivery.deviceId ?? "", userId: n.userId } });
   if (!device) return { state: "skipped", code: "device_detached" };
+  if (type === "app_update" && device.appVersionCode !== null && device.appVersionCode >= (payload.versionCode ?? 0)) {
+    return { state: "skipped", code: "already_updated" };
+  }
   let result: DeliveryResult;
   if (delivery.state === "receipt" && delivery.receiptId) {
     result = await readExpoReceipt(delivery.receiptId);
@@ -169,7 +203,8 @@ const send = async (delivery: Delivery): Promise<DeliveryResult | { state: "skip
       title: text.title,
       body: text.body,
       sound: "default",
-      channelId: CHANNELS[type],
+      // Le canal des mises à jour n'existe pas sur un binaire antérieur au suivi des versions.
+      channelId: type === "app_update" && !device.appVersion ? "seances" : CHANNELS[type],
       priority: type === "pain_alert" ? "high" : "default",
       categoryId: type === "session_eve" ? "attendance" : type === "session_reminder" ? "validate" : undefined,
       data: {

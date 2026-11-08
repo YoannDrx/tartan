@@ -5,7 +5,9 @@ import {
   QUIET_END_HOUR,
   type NotificationType,
   renderNotification,
+  versionCode,
 } from "@tartan/domain";
+import type { NotificationsPage } from "@tartan/contracts";
 import type { Prisma } from "@/generated/prisma/client";
 import { hourInParis, todayIso } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
@@ -80,28 +82,71 @@ export const unregisterDevice = async (userId: string, pushToken: string): Promi
   await prisma.device.deleteMany({ where: { userId, pushToken } });
 };
 
-export const registerDevice = async (userId: string, pushToken: string, platform: "ios" | "android" | "web") => {
+export const registerDevice = async (
+  userId: string,
+  pushToken: string,
+  platform: "ios" | "android" | "web",
+  client: { appVersion?: string; updateId?: string | null; installationId?: string } = {},
+) => {
+  // Un ancien client n'envoie pas sa version : celle déjà connue n'est jamais effacée.
+  const version = client.appVersion
+    ? {
+        appVersion: client.appVersion,
+        appVersionCode: versionCode(client.appVersion),
+        updateId: client.updateId ?? null,
+        ...(client.installationId ? { installationId: client.installationId } : {}),
+        lastSeenAt: new Date(),
+      }
+    : {};
   await prisma.device.upsert({
     where: { pushToken },
-    create: { userId, pushToken, platform },
-    update: { userId, platform },
+    create: { userId, pushToken, platform, ...version },
+    update: { userId, platform, ...version },
   });
 };
 
-export const listNotifications = async (userId: string) => {
-  const rows = await prisma.notification.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 50,
+export const listNotifications = async (
+  userId: string,
+  query: { cursor?: string; limit?: number } = {},
+): Promise<NotificationsPage> => {
+  const limit = query.limit ?? 30;
+  const [rows, unread] = await Promise.all([
+    prisma.notification.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    }),
+    prisma.notification.count({ where: { userId, readAt: null } }),
+  ]);
+  const page = rows.slice(0, limit);
+  return {
+    items: page.map((n) => {
+      const payload = n.payload as Payload;
+      return {
+        id: n.id,
+        type: n.type,
+        text: renderNotification(n.type as NotificationType, payload).body,
+        link: payload.link ?? null,
+        organizationId: payload.organizationId ?? null,
+        readAt: n.readAt?.toISOString() ?? null,
+        createdAt: n.createdAt.toISOString(),
+      };
+    }),
+    nextCursor: rows.length > limit ? (page[page.length - 1]?.id ?? null) : null,
+    unread,
+  };
+};
+
+export const markNotificationsRead = async (
+  userId: string,
+  input: { ids?: string[]; all?: true },
+  now: Date = new Date(),
+): Promise<void> => {
+  await prisma.notification.updateMany({
+    where: { userId, readAt: null, ...(input.ids ? { id: { in: input.ids } } : {}) },
+    data: { readAt: now },
   });
-  return rows.map((n) => ({
-    id: n.id,
-    type: n.type,
-    text: renderNotification(n.type as NotificationType, n.payload as Payload).body,
-    link: (n.payload as Payload).link ?? null,
-    readAt: n.readAt,
-    createdAt: n.createdAt,
-  }));
 };
 
 export const todayForNotifications = todayIso;

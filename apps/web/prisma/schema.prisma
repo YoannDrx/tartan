@@ -36,6 +36,8 @@ model User {
   aiPlannerTranscriptions AiPlannerTranscription[]
   consents    Consent[]            @relation("ConsentUser")
 
+  clientInstallations ClientInstallation[]
+
   @@map("user")
 }
 
@@ -131,6 +133,12 @@ model Profile {
   // Vue du calendrier suivie d'un appareil à l'autre ; la date arbitre les écritures hors ligne.
   calendarView          String?   @map("calendar_view")
   calendarViewUpdatedAt DateTime? @map("calendar_view_updated_at")
+  // Notifications par catégorie : le message reste visible dans l'app, seul l'envoi est coupé.
+  pushSessions       Boolean @default(true) @map("push_sessions")
+  pushFeedback       Boolean @default(true) @map("push_feedback")
+  pushGroup          Boolean @default(true) @map("push_group")
+  pushProductUpdates Boolean @default(true) @map("push_product_updates")
+  lastSeenReleaseId  String? @map("last_seen_release_id")
   lastActiveAt       DateTime? @map("last_active_at")
   inactivityNoticeAt DateTime? @map("inactivity_notice_at")
   createdAt DateTime  @default(now()) @map("created_at")
@@ -1267,6 +1275,8 @@ model Notification {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @map("user_id") @db.Uuid
   type      String
+  // Une même version n'est annoncée qu'une fois, même si la tâche repasse.
+  dedupeKey String?   @unique @map("dedupe_key")
   payload   Json      @default("{}")
   readAt    DateTime? @map("read_at")
   deliverAfter DateTime? @map("deliver_after")
@@ -1279,6 +1289,7 @@ model Notification {
 
   @@index([userId, createdAt])
   @@index([sentAt, deliverAfter])
+  @@index([userId, readAt])
   @@map("notifications")
 }
 
@@ -1319,12 +1330,69 @@ model Device {
   userId    String         @map("user_id") @db.Uuid
   pushToken String         @unique @map("push_token")
   platform  DevicePlatform
+  // Version installée : vide pour un binaire antérieur au suivi, ciblé par défaut par une mise à jour.
+  appVersion     String?   @map("app_version")
+  appVersionCode Int?      @map("app_version_code")
+  updateId       String?   @map("update_id")
+  installationId String?   @map("installation_id") @db.Uuid
+  lastSeenAt     DateTime? @map("last_seen_at")
   createdAt DateTime       @default(now()) @map("created_at")
   updatedAt DateTime       @updatedAt @map("updated_at")
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([platform, appVersionCode])
   @@map("devices")
+}
+
+// Une installation existe même sans autorisation de notification : les statistiques de version en dépendent.
+model ClientInstallation {
+  id             String   @id @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  platform       String
+  appVersion     String   @map("app_version")
+  appVersionCode Int?     @map("app_version_code")
+  updateId       String?  @map("update_id")
+  lastSeenAt     DateTime @map("last_seen_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([platform, appVersionCode])
+  @@index([lastSeenAt])
+  @@map("client_installations")
+}
+
+// État de diffusion d'une version. Les notes restent dans packages/i18n/src/releases.ts.
+model AppReleaseTarget {
+  id             String    @id @default(uuid()) @db.Uuid
+  releaseId      String    @map("release_id")
+  platform       String
+  version        String
+  versionCode    Int?      @map("version_code")
+  delivery       String
+  state          String
+  storeCheckedAt DateTime? @map("store_checked_at")
+  availableAt    DateTime? @map("available_at")
+  rolloutCursor  String?   @map("rollout_cursor") @db.Uuid
+  notifiedCount  Int       @default(0) @map("notified_count")
+  lastErrorCode  String?   @map("last_error_code")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@unique([releaseId, platform])
+  @@index([delivery, state])
+  @@map("app_release_targets")
+}
+
+model AppPlatformConfig {
+  platform           String   @id
+  minimumVersion     String?  @map("minimum_version")
+  minimumVersionCode Int?     @map("minimum_version_code")
+  reason             String?
+  updatedBy          String?  @map("updated_by") @db.Uuid
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("app_platform_configs")
 }
 
 // Journal des accès aux données sensibles et des suppressions. Jamais de donnée de santé en clair.
