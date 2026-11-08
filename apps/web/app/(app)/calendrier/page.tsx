@@ -6,7 +6,7 @@ import { BatchPublication } from "@/features/sessions/batch-publication";
 import { Medal, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { addDays, startOfWeek, defaultDateForWeek } from "@tartan/domain";
+import { addDays, defaultDateForWeek, monthRange, shiftMonthKey, startOfWeek } from "@tartan/domain";
 import { capitalize, formatDateLong, formatDayMonth, m } from "@tartan/i18n";
 import { FilterPill } from "@/components/filter-pill";
 import { Sheet } from "@/components/sheet";
@@ -15,7 +15,10 @@ import { StatusIcon } from "@/components/status-cell";
 import { Button } from "@/components/ui/button";
 import { todayIso } from "@/lib/dates";
 import { CompetitionDialog, DuplicateWeekDialog } from "@/features/sessions/calendar-tools";
-import { MonthBoard, WeekBoard } from "@/features/sessions/calendar-board";
+import { ListBoard, MonthBoard, WeekBoard } from "@/features/sessions/calendar-board";
+import { CalendarViewPill } from "@/features/sessions/calendar-view-switch";
+import { MonthGrid } from "@/features/sessions/month-grid";
+import { getCalendarView } from "@/server/me.service";
 import { requireSpace, type SpaceContext } from "@/features/shell/space";
 import { requireOrgMember } from "@/server/access";
 import { getAthleteCalendar } from "@/server/athlete-view.service";
@@ -28,8 +31,73 @@ export const metadata: Metadata = { title: m.nav.calendrier };
 
 type Search = { vue?: string; semaine?: string; mois?: string; groupe?: string; seance?: string };
 
-const AthleteCalendar = async ({ ctx }: { ctx: SpaceContext }) => {
+const validMonth = (value?: string) =>
+  value && /^\d{4}-\d{2}$/.test(value) && isoDate.safeParse(`${value}-01`).success ? value : undefined;
+
+const monthLabel = (month: string) =>
+  capitalize(
+    new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+      new Date(`${month}-15T12:00:00Z`),
+    ),
+  );
+
+const AthleteMonth = async ({ ctx, month, today }: { ctx: SpaceContext; month: string; today: string }) => {
+  const range = monthRange(month);
+  const { sessions, competitions } = await getAthleteCalendar(ctx.actor.userId, ctx.organizationId, range);
+  return (
+    <>
+      <PeriodStepper
+        label={monthLabel(month)}
+        previous={`/calendrier?vue=mois&mois=${shiftMonthKey(month, -1)}`}
+        next={`/calendrier?vue=mois&mois=${shiftMonthKey(month, 1)}`}
+        previousLabel={m.calendar.previousMonth}
+        nextLabel={m.calendar.nextMonth}
+      />
+      <CalendarPhases ctx={ctx} from={range.from} to={range.to} today={today} />
+      <MonthGrid
+        key={month}
+        month={month}
+        today={today}
+        entries={sessions.map((s) => ({
+          id: s.id,
+          date: s.date,
+          title: s.title,
+          type: s.type,
+          href: `/seance/${s.id}`,
+          status: s.status,
+          detail: [s.startTime?.replace(":", " h "), m.variant[s.variant].toLowerCase()].filter(Boolean).join(", "),
+        }))}
+        competitions={competitions}
+      />
+    </>
+  );
+};
+
+const AthleteCalendar = async ({ ctx, params }: { ctx: SpaceContext; params: Search }) => {
   const today = todayIso();
+  const preference = await getCalendarView(ctx.actor.userId);
+  const isMonth = params.vue === "mois" || (params.vue !== "liste" && preference === "month");
+  const month = validMonth(params.mois) ?? today.slice(0, 7);
+  const switcher = (
+    <nav aria-label={m.calendar.viewAndGroup} className="flex gap-2 py-1">
+      <CalendarViewPill view="list" href="/calendrier?vue=liste" active={!isMonth} label={m.calendar.list} />
+      <CalendarViewPill
+        view="month"
+        href={`/calendrier?vue=mois&mois=${month}`}
+        active={isMonth}
+        label={m.calendar.month}
+      />
+    </nav>
+  );
+  if (isMonth) {
+    return (
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+        <PageHeader title={m.nav.calendrier} />
+        {switcher}
+        <AthleteMonth ctx={ctx} month={month} today={today} />
+      </div>
+    );
+  }
   const { sessions, competitions } = await getAthleteCalendar(ctx.actor.userId, ctx.organizationId, {
     from: addDays(today, -28),
     to: addDays(today, 42),
@@ -55,6 +123,7 @@ const AthleteCalendar = async ({ ctx }: { ctx: SpaceContext }) => {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
       <PageHeader title={m.nav.calendrier} />
+      {switcher}
       <CalendarPhases ctx={ctx} from={today} to={addDays(today, 42)} today={today} />
       <Sheet>
         {competitions.length > 0 ? (
@@ -104,47 +173,50 @@ const AthleteCalendar = async ({ ctx }: { ctx: SpaceContext }) => {
 
 export default async function CalendrierPage({ searchParams }: { searchParams: Promise<Search> }) {
   const ctx = await requireSpace();
-  if (!ctx.staff) return <AthleteCalendar ctx={ctx} />;
   const params = await searchParams;
+  if (!ctx.staff) return <AthleteCalendar ctx={ctx} params={params} />;
   const today = todayIso();
-  const isMonth = params.vue === "mois";
   const selectedWeek = isoDate.safeParse(params.semaine).success ? params.semaine : undefined;
-  const selectedMonth =
-    params.mois && /^\d{4}-\d{2}$/.test(params.mois) && isoDate.safeParse(`${params.mois}-01`).success
-      ? params.mois
-      : undefined;
+  const selectedMonth = validMonth(params.mois);
+  const preference = await getCalendarView(ctx.actor.userId);
+  // Une adresse explicite prime ; sinon le dernier choix de l'utilisateur, puis la semaine.
+  const view =
+    params.vue === "mois"
+      ? "month"
+      : params.vue === "liste"
+        ? "list"
+        : selectedWeek
+          ? "week"
+          : selectedMonth
+            ? "month"
+            : (preference ?? "week");
+  const isMonth = view === "month";
+  const isList = view === "list";
+  const usesMonth = isMonth || isList;
   const month = selectedMonth ?? (selectedWeek ?? today).slice(0, 7);
-  const week = startOfWeek(selectedWeek ?? (isMonth && selectedMonth ? `${selectedMonth}-01` : today));
-  const monthDate = new Date(`${month}-15T12:00:00Z`);
-  const shiftMonth = (delta: number) => {
-    const d = new Date(Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth() + delta, 15));
-    return d.toISOString().slice(0, 7);
-  };
+  const week = startOfWeek(selectedWeek ?? (usesMonth && selectedMonth ? `${selectedMonth}-01` : today));
   const access = await requireOrgMember(ctx.actor.userId, ctx.organizationId, "viewTracking");
-  const from = isMonth ? addDays(`${month}-01`, -7) : week;
-  const to = isMonth ? addDays(`${month}-01`, 42) : addDays(week, 6);
+  const range = monthRange(month);
+  const from = usesMonth ? range.from : week;
+  const to = usesMonth ? range.to : addDays(week, 6);
   const [data, groups, athletes] = await Promise.all([
-    listCalendar(ctx.actor.userId, ctx.organizationId, { from, to, groupId: params.groupe }),
+    listCalendar(ctx.actor.userId, ctx.organizationId, { from, to, groupId: params.groupe, summary: usesMonth }),
     listGroups(access),
     listAthletes(ctx.actor.userId, ctx.organizationId),
   ]);
   const href = (next: Search) => {
     const q = new URLSearchParams();
     const merged = {
-      vue: isMonth ? "mois" : undefined,
-      semaine: isMonth ? undefined : week,
-      mois: isMonth ? month : undefined,
+      vue: isMonth ? "mois" : isList ? "liste" : undefined,
+      semaine: usesMonth ? undefined : week,
+      mois: usesMonth ? month : undefined,
       groupe: params.groupe,
       ...next,
     };
     for (const [k, v] of Object.entries(merged)) if (v) q.set(k, v);
     return `/calendrier?${q.toString()}`;
   };
-  const label = isMonth
-    ? capitalize(
-        new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" }).format(monthDate),
-      )
-    : m.coach.weekOf(formatDayMonth(week));
+  const label = usesMonth ? monthLabel(month) : m.coach.weekOf(formatDayMonth(week));
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -153,14 +225,14 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
           <>
             <BatchPublication
               key={`${ctx.organizationId}:${from}:${to}:${params.groupe ?? "all"}`}
-              sessions={data.sessions.filter((s) => (isMonth ? s.date.startsWith(month) : true))}
+              sessions={data.sessions.filter((s) => (usesMonth ? s.date.startsWith(month) : true))}
             />
             <CompetitionDialog athletes={athletes} today={today} />
-            {!isMonth ? <DuplicateWeekDialog week={week} groups={groups} /> : null}
+            {!usesMonth ? <DuplicateWeekDialog week={week} groups={groups} /> : null}
             {ctx.space.aiPlannerEnabled ? (
               <Button asChild variant="secondary" size="sm">
                 <Link
-                  href={`/planificateur?date=${isMonth ? today : week}${params.groupe ? `&groupe=${encodeURIComponent(params.groupe)}` : ""}`}
+                  href={`/planificateur?date=${usesMonth ? today : week}${params.groupe ? `&groupe=${encodeURIComponent(params.groupe)}` : ""}`}
                   prefetch={false}
                 >
                   {m.aiPlanner.title}
@@ -170,7 +242,7 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
             <Button asChild size="sm" className="order-first desktop:order-none">
               <Link
                 href={newSessionHref({
-                  date: isMonth ? `${month}-01` : defaultDateForWeek(week, todayIso()),
+                  date: usesMonth ? `${month}-01` : defaultDateForWeek(week, todayIso()),
                   groupId: params.groupe,
                   returnTo: href({}),
                 })}
@@ -185,21 +257,34 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <PeriodStepper
           label={label}
-          previous={isMonth ? href({ mois: shiftMonth(-1) }) : href({ semaine: addDays(week, -7) })}
-          next={isMonth ? href({ mois: shiftMonth(1) }) : href({ semaine: addDays(week, 7) })}
+          previous={usesMonth ? href({ mois: shiftMonthKey(month, -1) }) : href({ semaine: addDays(week, -7) })}
+          next={usesMonth ? href({ mois: shiftMonthKey(month, 1) }) : href({ semaine: addDays(week, 7) })}
           previousLabel="Période précédente"
           nextLabel="Période suivante"
         />
         <nav
-          aria-label="Vue et groupe"
+          aria-label={m.calendar.viewAndGroup}
           className="flex max-w-full gap-2 overflow-x-auto py-1 desktop:flex-wrap desktop:overflow-visible"
         >
-          <FilterPill href={href({ vue: undefined, mois: undefined, semaine: week })} active={!isMonth}>
-            {m.calendar.week}
-          </FilterPill>
-          <FilterPill href={href({ vue: "mois", semaine: undefined, mois: month })} active={isMonth}>
-            {m.calendar.month}
-          </FilterPill>
+          <CalendarViewPill
+            view="week"
+            href={href({ vue: undefined, mois: undefined, semaine: week })}
+            active={view === "week"}
+            label={m.calendar.week}
+            desktopOnly
+          />
+          <CalendarViewPill
+            view="month"
+            href={href({ vue: "mois", semaine: undefined, mois: month })}
+            active={isMonth}
+            label={m.calendar.month}
+          />
+          <CalendarViewPill
+            view="list"
+            href={href({ vue: "liste", semaine: undefined, mois: month })}
+            active={isList}
+            label={m.calendar.list}
+          />
           {groups.length > 1 ? <span aria-hidden className="mx-1 w-px self-stretch bg-card-line" /> : null}
           {groups.length > 1 ? (
             <FilterPill href={href({ groupe: undefined })} active={!params.groupe}>
@@ -229,7 +314,9 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
         ) : null}
       </CalendarDetailPanel>
       {isMonth ? (
-        <MonthBoard month={month} today={today} data={data} returnTo={href({})} />
+        <MonthBoard month={month} today={today} data={data} returnTo={href({})} groupId={params.groupe} />
+      ) : isList ? (
+        <ListBoard month={month} today={today} data={data} returnTo={href({})} />
       ) : (
         <WeekBoard week={week} today={today} data={data} returnTo={href({})} groupId={params.groupe} />
       )}

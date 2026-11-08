@@ -79,9 +79,11 @@ const navigate = async (request) => {
   const url = new URL(request.url);
   const cache = await caches.open(PAGES_CACHE);
   const key = url.pathname;
-  const saved = OFFLINE_PATHS.test(url.pathname) ? await cache.match(key) : null;
+  // Un mois ou une semaine explicite ne remplace pas la vue courante gardée pour le stade.
+  const offlinePage = OFFLINE_PATHS.test(url.pathname) && !url.searchParams.has("mois") && !url.searchParams.has("semaine");
+  const saved = offlinePage ? await cache.match(key) : null;
   const network = fetch(request).then(async (res) => {
-    if (res.ok && OFFLINE_PATHS.test(url.pathname) && new URL(res.url).pathname !== "/connexion") {
+    if (res.ok && offlinePage && new URL(res.url).pathname !== "/connexion") {
       await cache.put(key, await storable(res));
     }
     return res;

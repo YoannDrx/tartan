@@ -1437,8 +1437,19 @@ export const fr = {
     groupUnavailable: "Le groupe sélectionné n’est plus disponible. Choisis les destinataires avant de publier.",
     backToContext: "Revenir à la période sélectionnée",
     emptyMonth: "Aucune séance ce mois-ci.",
+    emptyDay: "Aucune séance ce jour-là.",
+    dayCount: (count: number) => (count === 0 ? "aucune séance" : `${count} au programme`),
+    viewAndGroup: "Vue et groupe",
+    list: "Liste",
     week: "Semaine",
     month: "Mois",
+    previousMonth: "Mois précédent",
+    nextMonth: "Mois suivant",
+    summary: (minutes: number | null | undefined, exercises: number | undefined) =>
+      [minutes ? `${minutes} min` : null, exercises ? `${exercises} exercice${exercises > 1 ? "s" : ""}` : null]
+        .filter(Boolean)
+        .join(", "),
+    progress: (done: number, total: number) => `${done}/${total}`,
     today: "Aujourd'hui",
     competition: "Compétition",
     addCompetition: "Ajouter une compétition",
