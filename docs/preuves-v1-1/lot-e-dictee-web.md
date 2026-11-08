@@ -1,6 +1,6 @@
 # Lot E — capture audio web, 8 novembre 2026
 
-État : contrôleur et composant de dictée web implémentés ; **pas encore montés dans le parcours web complet**. L’IA reste désactivée. Ce lot ne vaut ni recette navigateur interactive ni validation de la dictée réelle.
+État initial : contrôleur et composant de dictée web implémentés. Le raccordement et les essais Chromium ont depuis été réalisés : voir [le parcours web](lot-e-parcours-web.md). L’IA reste désactivée ; les essais synthétiques ne valident pas la dictée humaine.
 
 ## Capture et interruption
 
@@ -24,6 +24,6 @@ Neuf tests de cycle audio avec périphérique simulé réussis en 1,21 s : derni
 
 **678 tests serveur réussis** dans 69 fichiers en 57,29 s, types du monorepo réussis, lint ciblé sans erreur et contrôle design sans travers. La liste privée et sa route sont incluses dans cette suite.
 
-Le raccordement au formulaire web, les parcours avec micro synthétique dans de vrais navigateurs, Safari/iOS et Chrome/Android, le corpus dicté et les essais humains restent à réaliser. Aucun appel OpenAI supplémentaire effectué pour ces tests.
+Le raccordement au formulaire et les parcours Chromium avec micro synthétique sont désormais couverts par la preuve du parcours web. Safari/iOS, Chrome/Android physique, le corpus dicté et les essais humains restent à réaliser. Aucun appel OpenAI supplémentaire effectué pour ces tests.
 
 Références consultées : [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder), notamment arrêt et émission des paquets ; [getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia), notamment contexte sécurisé et permission pouvant rester sans réponse. Aucune disponibilité universelle n’est supposée.

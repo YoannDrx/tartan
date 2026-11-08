@@ -59,7 +59,7 @@ const split = (draft: SessionDraft | null) => {
 
 const numberOrUndefined = (v: string): number | undefined => (v === "" ? undefined : Number(v));
 
-const PrescriptionEditor = ({
+export const PrescriptionEditor = ({
   value,
   onChange,
   testKeys,
@@ -158,6 +158,47 @@ const PrescriptionEditor = ({
                 </option>
               ))}
             </Select>
+          )}
+        </Field>
+      ) : null}
+      <Field label={m.nativeBuilder.intensity} hint={m.nativeBuilder.intensityHint}>
+        {(a) => (
+          <Select
+            {...a}
+            value={value.intensityTarget?.type ?? "none"}
+            onChange={(e) => {
+              const type = e.target.value;
+              const { intensityTarget: _removed, ...rest } = value;
+              onChange(
+                type === "rpe"
+                  ? { ...rest, intensityTarget: { type, value: 7 } }
+                  : type === "rir"
+                    ? { ...rest, intensityTarget: { type, value: 2 } }
+                    : rest,
+              );
+            }}
+          >
+            <option value="none">{m.nativeBuilder.noIntensity}</option>
+            <option value="rpe">RPE</option>
+            <option value="rir">RIR</option>
+          </Select>
+        )}
+      </Field>
+      {value.intensityTarget ? (
+        <Field label={m.nativeBuilder.intensityValue}>
+          {(a) => (
+            <Input
+              {...a}
+              type="number"
+              min={value.intensityTarget?.type === "rpe" ? 1 : 0}
+              max={10}
+              step={value.intensityTarget?.type === "rpe" ? 0.5 : 1}
+              value={value.intensityTarget?.value ?? ""}
+              onChange={(e) => {
+                if (value.intensityTarget)
+                  onChange({ ...value, intensityTarget: { ...value.intensityTarget, value: Number(e.target.value) } });
+              }}
+            />
           )}
         </Field>
       ) : null}

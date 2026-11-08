@@ -531,7 +531,7 @@ export function NativePlanner({
           {created.map((session, index) => (
             <Button
               key={session.id}
-              label={`${m.common.edit} · ${drafts?.[index]?.draft.title ?? proposal?.interpretation?.sessions[index]?.title ?? m.builder.title}`}
+              label={`${m.common.edit} · ${drafts?.[index]?.draft.title ?? t.createdDraft(index + 1)}`}
               variant="secondary"
               onPress={() => router.push(`/session-builder/${session.id}`)}
             />

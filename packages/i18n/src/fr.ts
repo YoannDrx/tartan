@@ -644,6 +644,10 @@ export const fr = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
   aiPlanner: {
+    createdDraft: (index: number) => `Brouillon ${index}`,
+    editSchedule: "Modifier la date, les destinataires et le format",
+    quotaDetails: "Consommation et fuseau de l’espace",
+    draftsInvalid: "Vérifie les dates, les destinataires et les valeurs des prescriptions avant de confirmer.",
     recent: "Mes propositions récentes",
     recentRefresh: "Actualiser la liste",
     pendingAnswer: "Précisions envoyées : résultat à vérifier",
@@ -690,7 +694,7 @@ export const fr = {
     previewProvisional:
       "Aperçu avec les références actuelles, calculé par Tartan sans les transmettre à l’IA. Les pourcentages seront résolus à nouveau à la publication ; les charges absolues restent celles que tu choisis.",
     previewCoverage: (shown: number, total: number) =>
-      `${shown} / ${total} athlètes parcourus. Dix athlètes au maximum par page.`,
+      `Page jusqu’à l’athlète ${shown} sur ${total}. Dix athlètes au maximum par page.`,
     loadUndefined: "Charge à définir : aucune référence compatible disponible.",
     adaptLoad: "Adapter la charge pour cet athlète",
     resetLoad: "Reprendre la charge commune",

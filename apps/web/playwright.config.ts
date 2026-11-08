@@ -46,6 +46,11 @@ export default defineConfig({
       RESEND_API_KEY: "",
       MUX_TOKEN_ID: "",
       MUX_TOKEN_SECRET: "",
+      // Les tests IA actifs simulent le prestataire, jamais les écritures finales.
+      // Aucune clé du poste ne doit être utilisée par un parcours automatisé.
+      AI_PLANNER_ENABLED: process.env.E2E_AI_PLANNER_ENABLED === "true" ? "true" : "false",
+      OPENAI_API_KEY: "",
+      OPEN_AI_API_KEY: "",
       VIDEO_DEV_MP4_URL: `http://localhost:${PORT}/dev-clip.webm`,
     },
   },

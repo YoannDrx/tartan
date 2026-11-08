@@ -148,6 +148,16 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
             />
             <CompetitionDialog athletes={athletes} today={today} />
             {!isMonth ? <DuplicateWeekDialog week={week} groups={groups} /> : null}
+            {ctx.space.aiPlannerEnabled ? (
+              <Button asChild variant="secondary" size="sm">
+                <Link
+                  href={`/planificateur?date=${isMonth ? today : week}${params.groupe ? `&groupe=${encodeURIComponent(params.groupe)}` : ""}`}
+                  prefetch={false}
+                >
+                  {m.aiPlanner.title}
+                </Link>
+              </Button>
+            ) : null}
             <Button asChild size="sm" className="order-first desktop:order-none">
               <Link href="/seances/nouvelle">
                 <Plus aria-hidden className="size-5" />
