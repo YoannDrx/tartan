@@ -382,3 +382,7 @@ Premier appel OpenAI réel sur une séance entièrement fictive : sortie stricte
 ### API du planificateur et protection des appels
 
 Six routes authentifiées et contrats de réponse partagés avec le SDK web/natif. Trois traitements simultanés maximum par espace, douze nouvelles opérations par minute et par coach, sans bloquer les rejeux. Quotas consommés et réservés distincts. **626 tests serveur**, dont deux parcours SDK/routes/Postgres avec modèle simulé ; types et lint réussis. Aucune interface ni dictée livrée par ce lot. [Preuves](preuves-v1-1/lot-e-api-ia.md).
+
+### Audio : limites serveur et premier essai de transcription
+
+Inspection des octets WAV/M4A/WebM, durée calculée depuis les paquets, refus des fichiers dépassant trois minutes ou 3 Mio, vidéos et pistes multiples. Adaptateur de transcription sans relance automatique ni stockage audio serveur. **649 tests serveur**, types monorepo et lint ciblé réussis. Premier essai sur voix synthétique : deux échecs sur le nom « squat arrière », puis restitution exacte après ajout d'un lexique sportif public. Raccordement quota/résultat/purge et interfaces d'enregistrement encore à faire. [Preuves et limites](preuves-v1-1/lot-e-audio-socle.md).

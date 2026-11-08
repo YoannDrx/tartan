@@ -43,6 +43,7 @@
     "hls.js": "1.7.4",
     "jose": "6.2.13",
     "lucide-react": "1.66.0",
+    "mediabunny": "1.65.2",
     "next": "16.4.3",
     "next-safe-action": "8.7.3",
     "next-zod-route": "1.0.0",
