@@ -1,3 +1,4 @@
+import { NativeTrainingIntensity } from "./training-intensity";
 import type { TrainingAnalysis } from "@tartan/contracts";
 import {
   analysisChartPoints,
@@ -273,6 +274,7 @@ export function NativeTrainingAnalysis({ data }: { data: TrainingAnalysis }) {
           </View>
         </Card>
       ) : null}
+      {data.intensity ? <NativeTrainingIntensity data={data.intensity} /> : null}
       {data.healthVisible ? (
         <Card>
           <View style={{ gap: space.sm }}>

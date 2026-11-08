@@ -17,6 +17,7 @@ import {
   sumAnalysisTotals,
   scopeAnalysisEntries,
   analyzeExerciseClassification,
+  analyzeTrainingIntensity,
   type AnalysisEntry,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
@@ -330,6 +331,10 @@ export async function getTrainingAnalysis(
     previousFrom,
     previousTo,
     phase,
+    intensity: {
+      current: analyzeTrainingIntensity(current.map((row) => row.entry)),
+      previous: analyzeTrainingIntensity(scope.previous.map((row) => row.entry)),
+    },
     classification: analyzeExerciseClassification(current.map((row) => row.entry)),
     athleteCount: historicalPhase ? scope.athleteIds.size : athletes.length,
     healthVisible: healthIds.length > 0,

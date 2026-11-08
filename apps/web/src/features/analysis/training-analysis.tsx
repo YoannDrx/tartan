@@ -1,4 +1,5 @@
 "use client";
+import { TrainingIntensityView } from "./training-intensity";
 import type { TrainingAnalysis } from "@tartan/contracts";
 import {
   analysisChartPoints,
@@ -253,6 +254,7 @@ export function TrainingAnalysisView({ data }: { data: TrainingAnalysis }) {
           </SheetSection>
         </Sheet>
       ) : null}
+      {data.intensity ? <TrainingIntensityView data={data.intensity} /> : null}
       {data.healthVisible ? (
         <Sheet>
           <SheetSection title={t.health}>

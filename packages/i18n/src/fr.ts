@@ -643,6 +643,33 @@ export const fr = {
     consentNotice: "En continuant, tu acceptes les conditions d'utilisation et la politique de confidentialité.",
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
+  intensityAnalysis: {
+    title: "Charges et cibles d’intensité",
+    chooseMetric: "Unité de comparaison",
+    units: {
+      kg: "Charge en kg",
+      pct_reference: "% de la référence conservée",
+      target_rpe: "Cible RPE",
+      target_rir: "Cible RIR",
+    },
+    method: "Lire ces comparaisons",
+    hint: "Chaque ligne concerne un exercice et une convention de charge. Les valeurs décrivent la programmation et le réalisé renseigné, sans conseil d’augmentation ni score de risque.",
+    means:
+      "Le prévu est une moyenne par occurrence de l’exercice et par athlète ; le réalisé est une moyenne par série de travail renseignée. Ces moyennes n’ont pas la même pondération. Les échauffements sont exclus du réalisé.",
+    reference:
+      "Les pourcentages réalisés utilisent la référence individuelle conservée à la publication. Cette référence peut être testée, estimée ou choisie par le coach. Une référence absente ou incompatible laisse la valeur manquante ; un maximum plus récent ne recalcule pas l’historique.",
+    targets:
+      "Les cibles RPE/RIR sont les consignes du coach, pas l’effort de séance déclaré par l’athlète. Elles ne sont pas converties en kilogrammes.",
+    empty: "Aucune valeur renseignée dans cette unité sur les deux périodes.",
+    current: "Période choisie",
+    previous: "Période précédente",
+    planned: "Prévu · par occurrence",
+    actual: "Réalisé · par série",
+    observations: (known: number, total: number) => `${known} / ${total} observations renseignées`,
+    values: (mean: string, min: string, max: string) => `Moyenne ${mean} · de ${min} à ${max}`,
+    omitted: (items: number, sets: number) =>
+      `${items} occurrences sans exercice relié et ${sets} séries sans prescription comparable exclues.`,
+  },
   exerciseClassification: {
     title: "Mouvement et matériel",
     movement: "Mouvement principal",

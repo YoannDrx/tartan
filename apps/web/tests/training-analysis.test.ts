@@ -32,7 +32,17 @@ async function setup() {
         {
           name: "Force",
           variant: "club",
-          items: [{ exerciseId: exercise.id, prescription: { sets: 3, reps: 4, load: { type: "kg", value: 40 } } }],
+          items: [
+            {
+              exerciseId: exercise.id,
+              prescription: {
+                sets: 3,
+                reps: 4,
+                load: { type: "kg", value: 40 },
+                intensityTarget: { type: "rpe", value: 7 },
+              },
+            },
+          ],
         },
       ],
     },
@@ -78,6 +88,14 @@ it("compare prévu/réalisé, couverture, historique figé et unités sans consu
     loadResponses: 1,
   });
   expect(data.previous.actual.tonnageKg).toBeNull();
+  expect(data.intensity?.current.rows.find((row) => row.metric === "kg")).toMatchObject({
+    planned: { mean: 40, count: 1, eligible: 1 },
+    actual: { mean: 40, count: 2, eligible: 2 },
+  });
+  expect(data.intensity?.current.rows.find((row) => row.metric === "target_rpe")).toMatchObject({
+    planned: { mean: 7 },
+    actual: null,
+  });
   expect(data.exercises[0]).toMatchObject({ exerciseId: a.exercise.id, occurrences: 1, completedWorkSets: 2 });
   expect(data.diversity28Days.distinctExercises).toBe(1);
   expect(JSON.stringify(data)).not.toContain("Interne séance");

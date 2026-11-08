@@ -1,3 +1,4 @@
+import { intensityAnalysis } from "./training-intensity";
 import { z } from "zod";
 import { isoDate, uuid } from "./session";
 
@@ -80,6 +81,7 @@ export const trainingAnalysisResponse = z.object({
     })
     .nullable(),
   classification: analysisClassification.optional(),
+  intensity: z.object({ current: intensityAnalysis, previous: intensityAnalysis }).optional(),
   athleteCount: count,
   healthVisible: z.boolean(),
   totals: analysisTotals,

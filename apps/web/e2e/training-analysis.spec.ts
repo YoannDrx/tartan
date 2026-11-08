@@ -93,7 +93,17 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
           {
             name: "Force",
             variant: "club",
-            items: [{ exerciseId, prescription: { sets: 3, reps: 4, load: { type: "kg", value: 40 } } }],
+            items: [
+              {
+                exerciseId,
+                prescription: {
+                  sets: 3,
+                  reps: 4,
+                  load: { type: "kg", value: 40 },
+                  intensityTarget: { type: "rir", value: 3 },
+                },
+              },
+            ],
           },
         ],
       },
@@ -134,6 +144,10 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
     loadResponses: 2,
     healthEligibleSessions: 3,
   });
+  expect(data.intensity?.current.rows.find((row) => row.metric === "kg")).toMatchObject({
+    planned: { mean: 40, count: 4, eligible: 4 },
+    actual: { mean: 40, count: 6, eligible: 6 },
+  });
   expect(data.classification).toMatchObject({
     items: 4,
     movementKnownItems: 4,
@@ -148,6 +162,16 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
   await page.getByRole("link", { name: m.analysis.title, exact: true }).click();
   await expect(page.getByRole("heading", { name: m.analysis.title, exact: true })).toBeVisible();
   await expect(page.getByText("960", { exact: true })).toBeVisible();
+  const intensitySection = page.getByRole("region", { name: m.intensityAnalysis.title, exact: true });
+  await expect(intensitySection.getByText(m.intensityAnalysis.observations(6, 6), { exact: true })).toBeVisible();
+  await intensitySection.getByLabel(m.intensityAnalysis.chooseMetric, { exact: true }).selectOption("target_rir");
+  await expect(intensitySection.getByText(m.intensityAnalysis.values("3", "3", "3"), { exact: true })).toBeVisible();
+  await expect(intensitySection.getByText(m.intensityAnalysis.actual, { exact: true })).toHaveCount(0);
+  await intensitySection.getByLabel(m.intensityAnalysis.chooseMetric, { exact: true }).selectOption("pct_reference");
+  await expect(intensitySection.getByText(m.intensityAnalysis.empty, { exact: true })).toBeVisible();
+  await intensitySection.getByLabel(m.intensityAnalysis.chooseMetric, { exact: true }).selectOption("kg");
+  await intensitySection.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `/tmp/tartan-intensity-${info.project.name}.png` });
   const classificationSection = page.getByRole("region", { name: m.exerciseClassification.title, exact: true });
   await classificationSection.getByText(m.exerciseClassification.movement, { exact: true }).click();
   await expect(
