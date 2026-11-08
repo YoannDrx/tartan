@@ -1,7 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { dispatchPending, listNotifications, markNotificationsRead, notify, registerDevice } from "@/server/notify.service";
+import {
+  dispatchPending,
+  listNotifications,
+  markNotificationsRead,
+  notify,
+  registerDevice,
+} from "@/server/notify.service";
 import {
   checkIosAvailability,
   clientCheckIn,

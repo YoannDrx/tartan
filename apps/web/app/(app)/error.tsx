@@ -6,7 +6,8 @@ import { Jumper } from "@/components/jumper";
 import { Button } from "@/components/ui/button";
 import { BUILD_ID } from "@/lib/build-id";
 
-const STALE = /ChunkLoadError|Loading chunk|Failed to load chunk|Failed to find Server Action|dynamically imported module/i;
+const STALE =
+  /ChunkLoadError|Loading chunk|Failed to load chunk|Failed to find Server Action|dynamically imported module/i;
 const RELOADED = "tartan.stale-reload";
 
 // Après un déploiement, un onglet ancien peut réclamer des fichiers disparus : un seul rechargement par version.

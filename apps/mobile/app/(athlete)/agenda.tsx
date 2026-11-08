@@ -69,7 +69,7 @@ export default function AthleteAgenda() {
     >
       <CalendarViewSwitch view={view} onChange={setView} />
       {isMonth ? <MonthNav {...monthNav} /> : <WeekNav {...nav} />}
-      <NativeCalendarPhases from={isMonth ? monthNav.from : nav.week} to={isMonth ? monthNav.to : nav.to} />
+      {isMonth ? null : <NativeCalendarPhases from={nav.week} to={nav.to} />}
       {calendar.isPending ? <LoadingState /> : null}
       {calendar.isError && !calendar.data ? (
         <ErrorState error={calendar.error} onRetry={() => void calendar.refetch()} />
@@ -82,6 +82,7 @@ export default function AthleteAgenda() {
           onSelect={setPicked}
         />
       ) : null}
+      {isMonth ? <NativeCalendarPhases from={monthNav.from} to={monthNav.to} /> : null}
       {!isMonth && calendar.data && entries.length === 0 ? (
         <EmptyState body={m.mobile.agenda.empty} pose="run" />
       ) : null}

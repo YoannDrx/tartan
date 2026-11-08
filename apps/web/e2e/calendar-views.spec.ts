@@ -24,7 +24,9 @@ test("le coach passe de la liste au mois complet et retrouve son choix", async (
         type: "strength",
         durationMin: 60,
         coachNote: null,
-        blocks: [{ name: "Corps", variant: "club", items: [{ exerciseId: exercise.id, prescription: { sets: 4, reps: 5 } }] }],
+        blocks: [
+          { name: "Corps", variant: "club", items: [{ exerciseId: exercise.id, prescription: { sets: 4, reps: 5 } }] },
+        ],
       },
     },
   });
@@ -32,7 +34,12 @@ test("le coach passe de la liste au mois complet et retrouve son choix", async (
 
   const month = today().slice(0, 7);
   await page.goto(`/calendrier?vue=mois&mois=${month}`, { waitUntil: "networkidle" });
-  await expect(page.getByRole("link", { name: /Force bas du corps/ }).locator("visible=true").first()).toBeVisible();
+  await expect(
+    page
+      .getByRole("link", { name: /Force bas du corps/ })
+      .locator("visible=true")
+      .first(),
+  ).toBeVisible();
   await expectAccessible(page);
   await expectNoHorizontalScroll(page);
 

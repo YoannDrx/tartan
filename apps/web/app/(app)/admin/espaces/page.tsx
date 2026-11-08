@@ -5,7 +5,11 @@ import { requireSpace } from "@/features/shell/space";
 import { AdminNav, DataTable, day, NextPage, SearchBox } from "@/features/admin/console-ui";
 import { listSpaces } from "@/server/admin-console.service";
 
-export default async function AdminSpacesPage({ searchParams }: { searchParams: Promise<{ q?: string; apres?: string }> }) {
+export default async function AdminSpacesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; apres?: string }>;
+}) {
   const { actor } = await requireSpace();
   const { q, apres } = await searchParams;
   const data = await listSpaces(actor, { q, cursor: apres });
@@ -28,7 +32,11 @@ export default async function AdminSpacesPage({ searchParams }: { searchParams: 
           day(org.createdAt),
         ])}
       />
-      <NextPage href={data.nextCursor ? `/admin/espaces?apres=${data.nextCursor}${q ? `&q=${encodeURIComponent(q)}` : ""}` : null} />
+      <NextPage
+        href={
+          data.nextCursor ? `/admin/espaces?apres=${data.nextCursor}${q ? `&q=${encodeURIComponent(q)}` : ""}` : null
+        }
+      />
     </div>
   );
 }

@@ -72,7 +72,13 @@ export const exportSpace = async (userId: string, organizationId: string) => {
         select: { sessionLogId: true, itemRef: true, setIndex: true, reps: true, loadKg: true, done: true },
       }),
     ]);
-  await audit({ organizationId, actorId: userId, action: "space_exported", entity: "organization", entityId: organizationId });
+  await audit({
+    organizationId,
+    actorId: userId,
+    action: "space_exported",
+    entity: "organization",
+    entityId: organizationId,
+  });
   return {
     exportedAt: new Date().toISOString(),
     organization,

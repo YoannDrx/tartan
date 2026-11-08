@@ -14,6 +14,13 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
     listExercises(actor.userId, organizationId).catch(() => []),
   ]);
   return (
-    <VideoAnalysis exercises={exercises.map((e) => ({ id: e.id, name: e.name }))} video={video} canAnnotate currentUserId={actor.userId} backHref="/videos" path={`/videos/${id}`} />
+    <VideoAnalysis
+      exercises={exercises.map((e) => ({ id: e.id, name: e.name }))}
+      video={video}
+      canAnnotate
+      currentUserId={actor.userId}
+      backHref="/videos"
+      path={`/videos/${id}`}
+    />
   );
 }

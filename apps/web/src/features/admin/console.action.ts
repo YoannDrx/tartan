@@ -70,22 +70,28 @@ export const prepareRefundAction = adminAction
   .action(async ({ ctx, parsedInput }) => prepareRefund(ctx.actor, parsedInput));
 
 export const confirmRefundAction = adminAction
-  .inputSchema(z.object({ refundId: uuid, token: z.string().min(1).max(100), amountCents: z.number().int().positive() }))
+  .inputSchema(
+    z.object({ refundId: uuid, token: z.string().min(1).max(100), amountCents: z.number().int().positive() }),
+  )
   .action(async ({ ctx, parsedInput }) => {
     const result = await confirmRefund(ctx.actor, parsedInput);
     revalidatePath("/admin/factures");
     return result;
   });
 
-export const confirmStoreAction = adminAction.inputSchema(z.object({ id: uuid })).action(async ({ ctx, parsedInput }) => {
-  await adminConfirmStore(ctx.actor, parsedInput.id);
-  revalidatePath("/admin/versions");
-});
+export const confirmStoreAction = adminAction
+  .inputSchema(z.object({ id: uuid }))
+  .action(async ({ ctx, parsedInput }) => {
+    await adminConfirmStore(ctx.actor, parsedInput.id);
+    revalidatePath("/admin/versions");
+  });
 
-export const stopRolloutAction = adminAction.inputSchema(z.object({ id: uuid })).action(async ({ ctx, parsedInput }) => {
-  await adminStopRollout(ctx.actor, parsedInput.id);
-  revalidatePath("/admin/versions");
-});
+export const stopRolloutAction = adminAction
+  .inputSchema(z.object({ id: uuid }))
+  .action(async ({ ctx, parsedInput }) => {
+    await adminStopRollout(ctx.actor, parsedInput.id);
+    revalidatePath("/admin/versions");
+  });
 
 export const setMinimumVersionAction = adminAction
   .inputSchema(

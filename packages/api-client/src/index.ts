@@ -296,8 +296,7 @@ export const createApiClient = (options: ApiClientOptions) => {
       client: { appVersion?: string; updateId?: string | null; installationId?: string } = {},
     ) => request("POST", "/devices", okResponse, { pushToken, platform, ...client }),
     checkIn: (body: CheckInInput) => request("POST", "/client/check-in", okResponse, body),
-    notifications: (cursor?: string) =>
-      request("GET", "/notifications", notificationsPage, undefined, { cursor }),
+    notifications: (cursor?: string) => request("GET", "/notifications", notificationsPage, undefined, { cursor }),
     markNotificationsRead: (body: { ids?: string[]; all?: true }) =>
       request("POST", "/notifications/read", okResponse, body),
     releases: (platform: "web" | "ios" | "android") =>

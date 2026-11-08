@@ -148,8 +148,8 @@ export const MonthGrid = ({
                     {visible.map((entry) => (
                       <span
                         key={entry.id}
-                        className="size-2 rounded-full border border-card-line"
-                        style={{ backgroundColor: activityColors(entry.type).background }}
+                        className="size-2 rounded-full"
+                        style={{ backgroundColor: activityColors(entry.type).text }}
                       />
                     ))}
                     {hidden > 0 ? <span className="text-[10px] leading-none">+{hidden}</span> : null}

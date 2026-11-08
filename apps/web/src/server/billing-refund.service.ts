@@ -26,7 +26,13 @@ const freshPaid = async (invoiceId: string) => {
 
 export const prepareRefund = async (
   actor: AdminActor,
-  input: { invoiceId: string; amountCents: number; reasonCode: RefundReason; withdrawal: boolean; note?: string | null },
+  input: {
+    invoiceId: string;
+    amountCents: number;
+    reasonCode: RefundReason;
+    withdrawal: boolean;
+    note?: string | null;
+  },
   now: Date = new Date(),
 ) => {
   await requireStepUp(actor, STEP_UP_MONEY_MS, now);
@@ -65,8 +71,7 @@ export const prepareRefund = async (
   return { refundId: refund.id, token, amountCents: input.amountCents, refundableCents: fresh.paid - fresh.refunded };
 };
 
-const isDefinitive = (error: unknown): boolean =>
-  error instanceof Error && error.name === "StripeInvalidRequestError";
+const isDefinitive = (error: unknown): boolean => error instanceof Error && error.name === "StripeInvalidRequestError";
 
 // La requête exacte est conservée : une reprise renvoie la même, avec la même clé.
 const execute = async (refundId: string, leaseToken: string, now: Date) => {

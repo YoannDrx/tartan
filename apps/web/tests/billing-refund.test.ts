@@ -56,7 +56,6 @@ const prepareFull = (actor: Awaited<ReturnType<typeof setup>>["actor"], invoiceI
 describe("remboursements depuis la console", () => {
   beforeEach(() => vi.useRealTimers());
   afterEach(() => {
-
     vi.restoreAllMocks();
   });
 
@@ -85,7 +84,9 @@ describe("remboursements depuis la console", () => {
       confirmRefund(actor, { refundId: prepared.refundId, token: prepared.token, amountCents: 1800 }, NOW),
     ).rejects.toThrow();
     expect(creditNotes).not.toHaveBeenCalled();
-    expect(await confirmRefund(actor, { ...prepared, refundId: prepared.refundId, token: prepared.token }, NOW)).toEqual({
+    expect(
+      await confirmRefund(actor, { ...prepared, refundId: prepared.refundId, token: prepared.token }, NOW),
+    ).toEqual({
       state: "succeeded",
     });
     expect(creditNotes).toHaveBeenCalledOnce();
@@ -141,8 +142,6 @@ describe("remboursements depuis la console", () => {
 });
 
 describe("confidentialité de la console", () => {
-
-
   it("ne renvoie ni santé, ni notes privées, ni contenu d'entraînement", async () => {
     const admin = await makeUser("Support");
     env().ADMIN_EMAILS = admin.email;
@@ -163,7 +162,17 @@ describe("confidentialité de la console", () => {
       }
     };
     walk(responses);
-    for (const forbidden of ["rpe", "pain", "injury", "injuries", "coachNote", "note", "draft", "snapshot", "birthDate"]) {
+    for (const forbidden of [
+      "rpe",
+      "pain",
+      "injury",
+      "injuries",
+      "coachNote",
+      "note",
+      "draft",
+      "snapshot",
+      "birthDate",
+    ]) {
       expect(keys.has(forbidden), forbidden).toBe(false);
     }
   });

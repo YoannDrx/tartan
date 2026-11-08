@@ -41,8 +41,7 @@ export const syncInvoice = async (invoiceId: string): Promise<void> => {
   const payment = invoice.payments?.data[0]?.payment;
   const intent = payment?.payment_intent;
   const paymentIntentId = idOf(intent);
-  const chargeId =
-    idOf(payment?.charge) ?? (typeof intent === "object" && intent ? idOf(intent.latest_charge) : null);
+  const chargeId = idOf(payment?.charge) ?? (typeof intent === "object" && intent ? idOf(intent.latest_charge) : null);
   const taxCents = invoice.total - (invoice.total_excluding_tax ?? invoice.total);
   const discountCents = (invoice.total_discount_amounts ?? []).reduce((total, row) => total + row.amount, 0);
   const data = {

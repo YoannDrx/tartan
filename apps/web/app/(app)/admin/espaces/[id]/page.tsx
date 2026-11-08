@@ -34,7 +34,11 @@ export default async function AdminSpacePage({ params }: { params: Promise<{ id:
           row.status,
           row.provider,
           day(row.currentPeriodEnd),
-          row.provider === "stripe" && row.status !== "canceled" ? <SubscriptionActions key="a" subscriptionId={row.id} /> : "–",
+          row.provider === "stripe" && row.status !== "canceled" ? (
+            <SubscriptionActions key="a" subscriptionId={row.id} />
+          ) : (
+            "–"
+          ),
         ])}
       />
     </div>

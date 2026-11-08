@@ -4,7 +4,11 @@ import { AdminNav, DataTable, day, NextPage, SearchBox } from "@/features/admin/
 import { requireSpace } from "@/features/shell/space";
 import { auditTrail } from "@/server/admin-console.service";
 
-export default async function AdminAuditPage({ searchParams }: { searchParams: Promise<{ q?: string; apres?: string }> }) {
+export default async function AdminAuditPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; apres?: string }>;
+}) {
   const { actor } = await requireSpace();
   const { q, apres } = await searchParams;
   const data = await auditTrail(actor, { action: q, cursor: apres });
@@ -23,7 +27,11 @@ export default async function AdminAuditPage({ searchParams }: { searchParams: P
           row.metadata ? JSON.stringify(row.metadata) : "–",
         ])}
       />
-      <NextPage href={data.nextCursor ? `/admin/journal?apres=${data.nextCursor}${q ? `&q=${encodeURIComponent(q)}` : ""}` : null} />
+      <NextPage
+        href={
+          data.nextCursor ? `/admin/journal?apres=${data.nextCursor}${q ? `&q=${encodeURIComponent(q)}` : ""}` : null
+        }
+      />
     </div>
   );
 }

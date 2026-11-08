@@ -137,10 +137,7 @@ export const UpdateGate = () => {
 
   if (isBusyRoute(pathname)) return null;
 
-  if (
-    otaReady &&
-    canRestart({ uploading, capturing: false, inSession: false, syncing: syncing || pending > 0 })
-  ) {
+  if (otaReady && canRestart({ uploading, capturing: false, inSession: false, syncing: syncing || pending > 0 })) {
     return (
       <Banner
         title={m.releases.updateReady}
@@ -160,11 +157,7 @@ export const UpdateGate = () => {
   }
   if (unseen.data?.unseen && pathname !== "/nouveautes") {
     return (
-      <Banner
-        title={unseen.data.unseen.title}
-        action={m.releases.seeAll}
-        onPress={() => router.push("/nouveautes")}
-      />
+      <Banner title={unseen.data.unseen.title} action={m.releases.seeAll} onPress={() => router.push("/nouveautes")} />
     );
   }
   return null;

@@ -29,7 +29,11 @@ const worker = async (): Promise<ServiceWorker | null> => {
 
 const readSync = (): { space: string; at: number; build?: string } | null => {
   try {
-    return JSON.parse(localStorage.getItem(LAST_SYNC) ?? "null") as { space: string; at: number; build?: string } | null;
+    return JSON.parse(localStorage.getItem(LAST_SYNC) ?? "null") as {
+      space: string;
+      at: number;
+      build?: string;
+    } | null;
   } catch {
     return null;
   }

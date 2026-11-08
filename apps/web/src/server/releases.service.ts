@@ -20,7 +20,8 @@ export const syncReleaseManifest = async (now: Date = new Date()): Promise<numbe
   let created = 0;
   for (const release of releases) {
     const targets: { platform: string; version: string; delivery: string; state: string }[] = [];
-    if (release.targets.web) targets.push({ platform: "web", version: release.id, delivery: "web", state: "available" });
+    if (release.targets.web)
+      targets.push({ platform: "web", version: release.id, delivery: "web", state: "available" });
     if (release.targets.ota) {
       targets.push({ platform: "ota", version: release.targets.ota.version, delivery: "ota", state: "available" });
     }
@@ -51,10 +52,7 @@ export const syncReleaseManifest = async (now: Date = new Date()): Promise<numbe
   return created;
 };
 
-export const checkIosAvailability = async (
-  now: Date = new Date(),
-  fetcher: typeof fetch = fetch,
-): Promise<number> => {
+export const checkIosAvailability = async (now: Date = new Date(), fetcher: typeof fetch = fetch): Promise<number> => {
   const waiting = await prisma.appReleaseTarget.findMany({ where: { platform: "ios", state: "awaiting_store" } });
   if (waiting.length === 0) return 0;
   let published: string | null = null;

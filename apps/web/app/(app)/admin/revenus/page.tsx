@@ -34,7 +34,10 @@ export default async function AdminRevenuePage() {
       <DataTable
         caption="Évolution du revenu"
         columns={["Jour", "MRR", "Payants"]}
-        rows={data.history.slice(-30).reverse().map((row) => [row.day, euros(row.mrrCents), row.paying])}
+        rows={data.history
+          .slice(-30)
+          .reverse()
+          .map((row) => [row.day, euros(row.mrrCents), row.paying])}
       />
     </div>
   );

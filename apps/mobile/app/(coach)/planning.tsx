@@ -117,11 +117,13 @@ export default function Planning() {
         <NativeBatchPublication
           key={`${orgId}:${isMonth ? monthNav.month : nav.week}:${groupId ?? "all"}`}
           orgId={orgId}
-          sessions={isMonth ? calendar.data.sessions.filter((s) => s.date.startsWith(monthNav.month)) : calendar.data.sessions}
+          sessions={
+            isMonth ? calendar.data.sessions.filter((s) => s.date.startsWith(monthNav.month)) : calendar.data.sessions
+          }
           refresh={() => calendar.refetch()}
         />
       ) : null}
-      <NativeCalendarPhases from={from} to={to} groupId={groupId} />
+      {isMonth ? null : <NativeCalendarPhases from={from} to={to} groupId={groupId} />}
       {calendar.isPending ? <LoadingState /> : null}
       {calendar.isError && !calendar.data ? (
         <ErrorState error={calendar.error} onRetry={() => void calendar.refetch()} />
@@ -129,6 +131,7 @@ export default function Planning() {
       {isMonth && calendar.data ? (
         <MonthCalendar month={monthNav.month} entries={entries} selected={selectedDay} onSelect={setPicked} />
       ) : null}
+      {isMonth ? <NativeCalendarPhases from={from} to={to} groupId={groupId} /> : null}
       {!isMonth && calendar.data && entries.length === 0 ? (
         <EmptyState body={m.mobile.agenda.empty} pose="run" />
       ) : null}

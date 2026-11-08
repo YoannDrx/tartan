@@ -2,7 +2,12 @@ import { createElement } from "react";
 import type { BillingEmail } from "@tartan/domain";
 import { PLANS, isPaidPlan, type PlanKey } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { SubscriptionCancelledEmail, SubscriptionConfirmedEmail, SubscriptionEndedEmail, BillingNoticeEmail } from "@email/billing";
+import {
+  SubscriptionCancelledEmail,
+  SubscriptionConfirmedEmail,
+  SubscriptionEndedEmail,
+  BillingNoticeEmail,
+} from "@email/billing";
 import { AccountDeletedEmail, SpaceTransferredEmail } from "@email/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { env } from "@/lib/env";
@@ -247,7 +252,9 @@ export const queueTrialReminders = async (now: Date = new Date()): Promise<numbe
       planKey: true,
       interval: true,
       trialEndsAt: true,
-      organization: { select: { id: true, name: true, billingOwnerId: true, ownerId: true, owner: { select: { email: true } } } },
+      organization: {
+        select: { id: true, name: true, billingOwnerId: true, ownerId: true, owner: { select: { email: true } } },
+      },
     },
   });
   let queued = 0;
@@ -315,6 +322,7 @@ export const isEmailRelevant = async (
     return sub.cancelAt?.toISOString() === payload.cancelAt && sub.cancelAt > now && sub.status !== "canceled";
   if (row.kind === "payment_failed") return sub.status === "past_due";
   if (row.kind === "recovered") return sub.status === "active";
-  if (row.kind === "trial_ending") return sub.status === "trialing" && Boolean(sub.trialEndsAt && sub.trialEndsAt > now);
+  if (row.kind === "trial_ending")
+    return sub.status === "trialing" && Boolean(sub.trialEndsAt && sub.trialEndsAt > now);
   return row.kind === "ended" && sub.status === "canceled";
 };

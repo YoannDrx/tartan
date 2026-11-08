@@ -42,7 +42,9 @@ describe("relances de paiement", () => {
     expect(await queueTrialReminders(NOW)).toBe(1);
     expect(await queueTrialReminders(NOW)).toBe(0);
     expect(
-      await prisma.emailOutbox.count({ where: { kind: "trial_ending", toEmail: owner.email, dedupeKey: { startsWith: providerRef } } }),
+      await prisma.emailOutbox.count({
+        where: { kind: "trial_ending", toEmail: owner.email, dedupeKey: { startsWith: providerRef } },
+      }),
     ).toBe(1);
   });
 });
@@ -79,7 +81,8 @@ describe("export d'un espace", () => {
     expect(data.groups).toHaveLength(1);
     expect(data.templates.length).toBeGreaterThan(0);
     const text = JSON.stringify(data);
-    for (const forbidden of ['"rpe"', '"pain"', '"injur', "coachNotes", '"birthDate"']) expect(text).not.toContain(forbidden);
+    for (const forbidden of ['"rpe"', '"pain"', '"injur', "coachNotes", '"birthDate"'])
+      expect(text).not.toContain(forbidden);
   });
 
   it("est réservé au propriétaire", async () => {

@@ -53,4 +53,3 @@ export const fetchCoachAthleteFile = (orgId: string, athleteId: string): Promise
 // Création, ou modification si le corps porte `id`.
 export const saveExercise = (orgId: string, body: ExerciseInput): Promise<unknown> =>
   callApi("POST", `/orgs/${orgId}/exercises`, body);
-

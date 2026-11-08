@@ -98,7 +98,8 @@ export const getCalendarView = async (userId: string): Promise<CalendarView | nu
 export const updatePreferences = async (userId: string, input: PreferencesInput): Promise<void> => {
   if (input.email) {
     if (input.email.digest !== undefined) await setEmailPreference(userId, "digest", input.email.digest);
-    if (input.email.notifications !== undefined) await setEmailPreference(userId, "notifications", input.email.notifications);
+    if (input.email.notifications !== undefined)
+      await setEmailPreference(userId, "notifications", input.email.notifications);
   }
   if (input.notifications) {
     const { sessions, feedback, group, product } = input.notifications;

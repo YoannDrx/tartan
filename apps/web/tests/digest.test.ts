@@ -29,7 +29,9 @@ const sentTo = (email: string) =>
 
 beforeEach(async () => {
   mocks.email.mockReset().mockResolvedValue(undefined);
-  await prisma.sessionTemplate.deleteMany({ where: { organization: { name: { in: ["Coaching Un", "Coaching Deux", "Coaching Coupé"] } } } });
+  await prisma.sessionTemplate.deleteMany({
+    where: { organization: { name: { in: ["Coaching Un", "Coaching Deux", "Coaching Coupé"] } } },
+  });
   await prisma.organization.deleteMany({ where: { name: { in: ["Coaching Un", "Coaching Deux", "Coaching Coupé"] } } });
 });
 

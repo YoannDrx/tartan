@@ -185,7 +185,9 @@ export const RefundForm = ({
       }}
     >
       <Field label={m.admin.refundAmount}>
-        {(a) => <Input {...a} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} required />}
+        {(a) => (
+          <Input {...a} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+        )}
       </Field>
       <Field label={m.admin.refundReason}>
         {(a) => (
@@ -220,7 +222,9 @@ export const RefundForm = ({
           }}
         >
           <Field label={m.admin.refundRetype}>
-            {(a) => <Input {...a} inputMode="decimal" value={typed} onChange={(e) => setTyped(e.target.value)} required />}
+            {(a) => (
+              <Input {...a} inputMode="decimal" value={typed} onChange={(e) => setTyped(e.target.value)} required />
+            )}
           </Field>
           <Button type="submit" disabled={confirm.isPending || !pending || toCents(typed) !== pending.amountCents}>
             {m.admin.refundConfirm}

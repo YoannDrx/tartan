@@ -126,9 +126,7 @@ const DayCell = memo(
                 width: 8,
                 height: 8,
                 borderRadius: 4,
-                backgroundColor: tints[type].background,
-                borderWidth: 1,
-                borderColor: p.border,
+                backgroundColor: tints[type].text,
               }}
             />
           ))}

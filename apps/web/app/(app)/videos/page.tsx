@@ -16,7 +16,11 @@ import { listVideos } from "@/server/video.service";
 
 export const metadata: Metadata = { title: m.video.title };
 
-export default async function VideosPage({ searchParams }: { searchParams: Promise<{ athlete?: string; exercice?: string }> }) {
+export default async function VideosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ athlete?: string; exercice?: string }>;
+}) {
   const { actor, organizationId } = await requireStaffSpace();
   const { athlete, exercice } = await searchParams;
   const uuidLike = (value?: string) => /^[0-9a-f-]{36}$/.test(value ?? "");

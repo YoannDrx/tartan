@@ -53,7 +53,7 @@ const AthleteMonth = async ({ ctx, month, today }: { ctx: SpaceContext; month: s
         previousLabel={m.calendar.previousMonth}
         nextLabel={m.calendar.nextMonth}
       />
-      <CalendarPhases ctx={ctx} from={range.from} to={range.to} today={today} />
+      <CalendarPhases ctx={ctx} from={range.from} to={range.to} today={today} collapsed />
       <MonthGrid
         key={month}
         month={month}
@@ -300,7 +300,7 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
             : null}
         </nav>
       </div>
-      <CalendarPhases ctx={ctx} from={from} to={to} today={today} groupId={params.groupe} />
+      <CalendarPhases ctx={ctx} from={from} to={to} today={today} groupId={params.groupe} collapsed={isMonth} />
       <CalendarDetailPanel
         sessionId={uuid.safeParse(params.seance).success ? params.seance : undefined}
         returnTo={href({})}

@@ -211,9 +211,6 @@ export const VideoAnalysis = ({
                   : ""}
                 {video.exerciseName && !canAnnotate ? `, ${video.exerciseName}` : ""}
               </p>
-              {canAnnotate && exercises.length > 0 ? (
-                <VideoExerciseLink videoId={video.id} current={video.exerciseId ?? null} exercises={exercises} />
-              ) : null}
             </div>
             <IconButton
               tone="darkRound"
@@ -251,6 +248,10 @@ export const VideoAnalysis = ({
               </a>
             ) : null}
           </header>
+
+          {canAnnotate && exercises.length > 0 ? (
+            <VideoExerciseLink videoId={video.id} current={video.exerciseId ?? null} exercises={exercises} />
+          ) : null}
 
           <div className="relative overflow-hidden rounded-card bg-black">
             {src ? (

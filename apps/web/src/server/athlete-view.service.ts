@@ -146,7 +146,12 @@ const athleteFocus = async (athleteId: string, card: AthleteSessionCard | null, 
         select: {
           id: true,
           exercise: { select: { name: true } },
-          annotations: { where: { text: { not: null } }, orderBy: { createdAt: "desc" }, take: 1, select: { text: true } },
+          annotations: {
+            where: { text: { not: null } },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { text: true },
+          },
         },
       })
     : null;

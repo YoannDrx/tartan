@@ -44,10 +44,16 @@ export default async function AdminSubscriptionsPage({
           euros(row.discountedMrrCents ?? row.listMrrCents),
           day(row.trialEndsAt),
           day(row.currentPeriodEnd),
-          row.provider === "stripe" && row.status !== "canceled" ? <SubscriptionActions key="a" subscriptionId={row.id} /> : "–",
+          row.provider === "stripe" && row.status !== "canceled" ? (
+            <SubscriptionActions key="a" subscriptionId={row.id} />
+          ) : (
+            "–"
+          ),
         ])}
       />
-      <NextPage href={data.nextCursor ? `/admin/abonnements?apres=${data.nextCursor}${status ? `&etat=${status}` : ""}` : null} />
+      <NextPage
+        href={data.nextCursor ? `/admin/abonnements?apres=${data.nextCursor}${status ? `&etat=${status}` : ""}` : null}
+      />
     </div>
   );
 }

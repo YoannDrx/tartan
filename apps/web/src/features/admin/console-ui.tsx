@@ -11,7 +11,9 @@ export const euros = (cents: number | null | undefined) =>
     : new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100);
 
 export const day = (date: Date | string | null | undefined) =>
-  date ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeZone: "Europe/Paris" }).format(new Date(date)) : "–";
+  date
+    ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeZone: "Europe/Paris" }).format(new Date(date))
+    : "–";
 
 const sections = [
   { href: "/admin", label: () => m.admin.nav.operations },

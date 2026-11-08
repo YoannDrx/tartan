@@ -305,7 +305,10 @@ export const ListBoard = ({
             {competitions
               .filter((c) => c.date === day)
               .map((c) => (
-                <li key={c.id} className="flex items-center gap-1.5 rounded-thumb border border-control-line p-2 t-caption">
+                <li
+                  key={c.id}
+                  className="flex items-center gap-1.5 rounded-thumb border border-control-line p-2 t-caption"
+                >
                   <Medal aria-hidden className="size-4 shrink-0" />
                   <span className="min-w-0 flex-1 break-words">{c.name}</span>
                   <DeleteRow kind="competition" id={c.id} label={c.name} />

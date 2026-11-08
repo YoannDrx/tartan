@@ -26,7 +26,10 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
           { exercise: "Squat bulgare", prescription: { sets: 3, reps: 8, rest_s: 90 } },
         ],
       },
-      { name: "Gainage", items: [{ exercise: "Gainage ventral", prescription: { sets: 3, duration_s: 40, rest_s: 45 } }] },
+      {
+        name: "Gainage",
+        items: [{ exercise: "Gainage ventral", prescription: { sets: 3, duration_s: 40, rest_s: 45 } }],
+      },
     ],
   },
   {
@@ -41,8 +44,14 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
       {
         name: "Contacts courts",
         items: [
-          { exercise: "Sauts de haies basses", prescription: { sets: 5, count: 6, unit: "haies", ground_contacts: 30, rest_s: 120 } },
-          { exercise: "Bonds unipodaux", prescription: { sets: 4, count: 6, unit: "bonds", ground_contacts: 24, rest_s: 120 } },
+          {
+            exercise: "Sauts de haies basses",
+            prescription: { sets: 5, count: 6, unit: "haies", ground_contacts: 30, rest_s: 120 },
+          },
+          {
+            exercise: "Bonds unipodaux",
+            prescription: { sets: 4, count: 6, unit: "bonds", ground_contacts: 24, rest_s: 120 },
+          },
         ],
       },
     ],
@@ -59,7 +68,10 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
           { exercise: "Gammes : talons-fesses", prescription: { sets: 3, distance_m: 30, rest_s: 60 } },
         ],
       },
-      { name: "Vitesse", items: [{ exercise: "Accélérations", prescription: { sets: 6, distance_m: 30, rest_s: 120 } }] },
+      {
+        name: "Vitesse",
+        items: [{ exercise: "Accélérations", prescription: { sets: 6, distance_m: 30, rest_s: 120 } }],
+      },
     ],
   },
   {

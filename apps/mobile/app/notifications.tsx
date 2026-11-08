@@ -49,7 +49,13 @@ export default function NotificationsScreen() {
                     const route = routeForNotification({ link: item.link ?? undefined, type: item.type });
                     if (route !== "/") router.push(route as never);
                   }}
-                  style={{ flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 60, padding: space.md }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: space.md,
+                    minHeight: 60,
+                    padding: space.md,
+                  }}
                 >
                   <View style={{ flex: 1, gap: 2 }}>
                     <T variant={unread ? "smallStrong" : "small"}>{item.text}</T>

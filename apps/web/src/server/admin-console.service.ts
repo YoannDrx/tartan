@@ -45,7 +45,10 @@ export const revenueOverview = async (actor: Admin, now: Date = new Date()) => {
       where: { paidAt: { gte: yearStart }, livemode: true },
       _sum: { amountPaidCents: true, refundedCents: true },
     }),
-    prisma.billingInvoice.aggregate({ where: { paidAt: { gte: monthStart }, livemode: true }, _sum: { amountPaidCents: true } }),
+    prisma.billingInvoice.aggregate({
+      where: { paidAt: { gte: monthStart }, livemode: true },
+      _sum: { amountPaidCents: true },
+    }),
     prisma.billingRefund.aggregate({
       where: { state: "succeeded", completedAt: { gte: monthStart } },
       _sum: { amountCents: true },
@@ -65,7 +68,9 @@ export const revenueOverview = async (actor: Admin, now: Date = new Date()) => {
     churnPercent: churnPercent(startOfMonth?.payingOrgs ?? 0, canceledThisMonth),
     conversionPercent: trialsStarted > 0 ? Math.round((trialsConverted / trialsStarted) * 100) : null,
     trialsStarted,
-    history: [...history].reverse().map((row) => ({ day: todayIso(row.day), mrrCents: row.mrrCents, paying: row.payingOrgs })),
+    history: [...history]
+      .reverse()
+      .map((row) => ({ day: todayIso(row.day), mrrCents: row.mrrCents, paying: row.payingOrgs })),
   };
 };
 
@@ -96,10 +101,7 @@ export const searchUsers = async (actor: Admin, query: { q?: string; cursor?: st
   const rows = await prisma.user.findMany({
     where: q
       ? {
-          OR: [
-            { email: { contains: q, mode: "insensitive" } },
-            { name: { contains: q, mode: "insensitive" } },
-          ],
+          OR: [{ email: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }],
         }
       : {},
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -316,7 +318,9 @@ export const listInvoices = async (actor: Admin, query: { cursor?: string }) => 
     select: { id: true, name: true },
   });
   const names = new Map(orgs.map((org) => [org.id, org.name]));
-  return page(rows.map((row) => ({ ...row, space: row.organizationId ? (names.get(row.organizationId) ?? null) : null })));
+  return page(
+    rows.map((row) => ({ ...row, space: row.organizationId ? (names.get(row.organizationId) ?? null) : null })),
+  );
 };
 
 export const invoiceCard = async (actor: Admin, invoiceId: string) => {
@@ -331,7 +335,11 @@ export const invoiceCard = async (actor: Admin, invoiceId: string) => {
           select: { startedAt: true, trialEndsAt: true },
         })
       : null,
-    billingEnabled() ? stripe().invoices.retrieve(invoiceId).catch(() => null) : null,
+    billingEnabled()
+      ? stripe()
+          .invoices.retrieve(invoiceId)
+          .catch(() => null)
+      : null,
   ]);
   return { invoice, subscription, pdfUrl: remote?.invoice_pdf ?? null };
 };
@@ -469,7 +477,10 @@ export const snapshotPlatformDay = async (now: Date = new Date()): Promise<void>
     prisma.profile.count({ where: { lastActiveAt: { gte: new Date(now.getTime() - 7 * 86_400_000) } } }),
     prisma.subscription.count({ where: { status: "canceled" } }),
     prisma.subscription.count({ where: { startedAt: { gte: day } } }),
-    prisma.billingRefund.aggregate({ where: { state: "succeeded", completedAt: { gte: day } }, _sum: { amountCents: true } }),
+    prisma.billingRefund.aggregate({
+      where: { state: "succeeded", completedAt: { gte: day } },
+      _sum: { amountCents: true },
+    }),
   ]);
   const revenue = summarizeRevenue(subscriptions, now);
   const data = {
