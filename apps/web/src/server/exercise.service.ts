@@ -1,4 +1,11 @@
-import { exerciseInput, type ExerciseInput, type ExerciseSummary, prescriptionSchema } from "@tartan/contracts";
+import { Prisma } from "@/generated/prisma/client";
+import {
+  exerciseClassification,
+  exerciseInput,
+  type ExerciseInput,
+  type ExerciseSummary,
+  prescriptionSchema,
+} from "@tartan/contracts";
 import { parseInstagramUrl, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { invalid, notFound } from "@/lib/errors";
@@ -63,6 +70,7 @@ export const listExercises = async (userId: string, organizationId: string): Pro
           : null;
       return {
         id: e.id,
+        classification: e.classification ? exerciseClassification.parse(e.classification) : null,
         name: e.name,
         category: e.category,
         tags: e.tags,
@@ -97,6 +105,7 @@ export const saveExercise = async (userId: string, organizationId: string, raw: 
     instagram = { instagramCode, customTitle: input.media.customTitle ?? null };
   }
   const data = {
+    classification: input.classification === null ? Prisma.DbNull : input.classification,
     name: input.name,
     category: input.category,
     tags: input.tags,

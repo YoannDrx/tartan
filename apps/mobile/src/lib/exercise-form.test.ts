@@ -94,3 +94,10 @@ it("préserve les conventions et accepte un pas français sans tronquer les nomb
   for (const step of ["", "1kg", "1e2", "0", "101", "1.234"])
     expect(buildExerciseInput(draft({ loadStepKg: step })).ok).toBe(false);
 });
+
+it("conserve le classement explicite et distingue absence de matériel et information manquante", () => {
+  for (const equipment of [null, [], ["barbell", "rack"]] as const) {
+    const classification = { movement: "squat" as const, equipment: equipment === null ? null : [...equipment] };
+    expect(buildExerciseInput(draft({ classification }))).toMatchObject({ ok: true, input: { classification } });
+  }
+});

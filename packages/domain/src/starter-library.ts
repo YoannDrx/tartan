@@ -1,7 +1,8 @@
-import type { ExerciseCategory, ExerciseInput, Prescription } from "@tartan/contracts";
+import type { ExerciseCategory, ExerciseInput, ExerciseClassification, Prescription } from "@tartan/contracts";
 
 export type StarterExercise = {
   name: string;
+  classification: ExerciseClassification;
   category: ExerciseCategory;
   cues: string[];
   tags: string[];
@@ -15,6 +16,7 @@ export type StarterExercise = {
 export const STARTER_LIBRARY: StarterExercise[] = [
   {
     name: "Gammes : montées de genoux",
+    classification: { movement: "coordination", equipment: ["track"] },
     category: "running_drill",
     tags: ["Coordination", "Piste"],
     strengthLoadKind: null,
@@ -23,6 +25,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Gammes : talons-fesses",
+    classification: { movement: "coordination", equipment: ["track"] },
     category: "running_drill",
     tags: ["Coordination", "Piste"],
     strengthLoadKind: null,
@@ -31,6 +34,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Foulées bondissantes",
+    classification: { movement: "jump", equipment: ["track"] },
     category: "plyo",
     tags: ["Puissance", "Piste"],
     strengthLoadKind: null,
@@ -39,6 +43,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Accélérations",
+    classification: { movement: "run", equipment: ["track"] },
     category: "running_drill",
     tags: ["Vitesse", "Piste"],
     strengthLoadKind: null,
@@ -47,6 +52,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Sprints départ lancé",
+    classification: { movement: "run", equipment: ["track"] },
     category: "running_drill",
     tags: ["Vitesse", "Piste"],
     strengthLoadKind: null,
@@ -55,6 +61,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Élans courts en courbe",
+    classification: { movement: "run", equipment: ["track"] },
     category: "jump",
     tags: ["Technique hauteur", "Piste"],
     strengthLoadKind: null,
@@ -63,6 +70,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Impulsions sur 3 appuis",
+    classification: { movement: "jump", equipment: ["track"] },
     category: "jump",
     tags: ["Technique hauteur", "Piste"],
     strengthLoadKind: null,
@@ -71,6 +79,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Sauts à la barre, élan complet",
+    classification: { movement: "jump", equipment: ["jump_mat"] },
     category: "jump",
     tags: ["Technique hauteur", "Sautoir"],
     strengthLoadKind: null,
@@ -79,6 +88,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Sauts avec élan réduit",
+    classification: { movement: "jump", equipment: ["jump_mat"] },
     category: "jump",
     tags: ["Technique hauteur", "Sautoir"],
     strengthLoadKind: null,
@@ -87,6 +97,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Sauts de haies basses",
+    classification: { movement: "jump", equipment: ["hurdles"] },
     category: "plyo",
     tags: ["Puissance", "Haies"],
     strengthLoadKind: null,
@@ -95,6 +106,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Bonds unipodaux",
+    classification: { movement: "jump", equipment: [] },
     category: "plyo",
     tags: ["Puissance", "Piste"],
     strengthLoadKind: null,
@@ -109,6 +121,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Sauts en contrebas",
+    classification: { movement: "jump", equipment: ["boxes"] },
     category: "plyo",
     tags: ["Puissance", "Caisson"],
     strengthLoadKind: null,
@@ -117,6 +130,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Sauts verticaux répétés",
+    classification: { movement: "jump", equipment: [] },
     category: "plyo",
     tags: ["Puissance", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -125,6 +139,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Fentes sautées",
+    classification: { movement: "jump", equipment: [] },
     category: "plyo",
     tags: ["Puissance", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -139,6 +154,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Squat arrière",
+    classification: { movement: "squat", equipment: ["barbell", "rack"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
     strengthLoadKind: "external_total",
@@ -147,6 +163,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Squat avant",
+    classification: { movement: "squat", equipment: ["barbell", "rack"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
     strengthLoadKind: "external_total",
@@ -155,6 +172,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Épaulé",
+    classification: { movement: "hinge", equipment: ["barbell"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
     strengthLoadKind: "external_total",
@@ -163,6 +181,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Soulevé de terre",
+    classification: { movement: "hinge", equipment: ["barbell"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
     strengthLoadKind: "external_total",
@@ -171,6 +190,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Hip thrust",
+    classification: { movement: "hinge", equipment: ["barbell", "bench"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
     strengthLoadKind: "external_total",
@@ -179,6 +199,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Mollets debout",
+    classification: { movement: "other", equipment: ["barbell", "rack"] },
     category: "strength",
     tags: ["Force", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -187,6 +208,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Développé couché",
+    classification: { movement: "push", equipment: ["barbell", "bench", "rack"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
     strengthLoadKind: "external_total",
@@ -195,6 +217,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Développé militaire",
+    classification: { movement: "push", equipment: ["barbell"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
     strengthLoadKind: "external_total",
@@ -203,6 +226,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Tractions",
+    classification: { movement: "pull", equipment: ["pullup_bar"] },
     category: "strength",
     tags: ["Force", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -211,6 +235,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Rowing barre",
+    classification: { movement: "pull", equipment: ["barbell"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
     strengthLoadKind: "external_total",
@@ -219,6 +244,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Fentes avant",
+    classification: { movement: "lunge", equipment: [] },
     category: "strength",
     tags: ["Force", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -227,6 +253,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Squat bulgare",
+    classification: { movement: "lunge", equipment: ["bench"] },
     category: "strength",
     tags: ["Force", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -235,6 +262,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Soulevé de terre roumain",
+    classification: { movement: "hinge", equipment: ["barbell"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
     strengthLoadKind: "external_total",
@@ -243,6 +271,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Gainage ventral",
+    classification: { movement: "trunk", equipment: [] },
     category: "warmup",
     tags: ["Force", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -251,6 +280,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Gainage latéral",
+    classification: { movement: "trunk", equipment: [] },
     category: "warmup",
     tags: ["Force", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -259,6 +289,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Footing d'échauffement",
+    classification: { movement: "run", equipment: [] },
     category: "warmup",
     tags: ["Échauffement", "Piste"],
     strengthLoadKind: null,
@@ -267,6 +298,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Éducatifs de cheville",
+    classification: { movement: "coordination", equipment: [] },
     category: "warmup",
     tags: ["Coordination", "Piste"],
     strengthLoadKind: null,
@@ -275,6 +307,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Montées d'escaliers",
+    classification: { movement: "run", equipment: ["steps"] },
     category: "stairs",
     tags: ["Coordination", "Escaliers"],
     strengthLoadKind: null,
@@ -283,6 +316,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Escaliers unipodaux",
+    classification: { movement: "jump", equipment: ["steps"] },
     category: "stairs",
     tags: ["Puissance", "Escaliers"],
     strengthLoadKind: null,
@@ -291,6 +325,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Slalom entre les plots",
+    classification: { movement: "coordination", equipment: ["cones"] },
     category: "cones",
     tags: ["Coordination", "Plots"],
     strengthLoadKind: null,
@@ -299,6 +334,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Mobilité des hanches",
+    classification: { movement: "mobility", equipment: [] },
     category: "mobility",
     tags: ["Mobilité", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -307,6 +343,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Mobilité de cheville",
+    classification: { movement: "mobility", equipment: [] },
     category: "mobility",
     tags: ["Mobilité", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -315,6 +352,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Étirements actifs du dos",
+    classification: { movement: "mobility", equipment: [] },
     category: "mobility",
     tags: ["Mobilité", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -323,6 +361,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Départs en accélération",
+    classification: { movement: "run", equipment: ["track"] },
     category: "running_drill",
     tags: ["Vitesse", "Piste"],
     strengthLoadKind: null,
@@ -331,6 +370,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Course en côte courte",
+    classification: { movement: "run", equipment: ["hill"] },
     category: "running_drill",
     tags: ["Vitesse", "Côte"],
     strengthLoadKind: null,
@@ -339,6 +379,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Course continue facile",
+    classification: { movement: "run", equipment: [] },
     category: "running_drill",
     tags: ["Endurance", "Piste"],
     strengthLoadKind: null,
@@ -347,6 +388,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Course intermittente courte",
+    classification: { movement: "run", equipment: [] },
     category: "running_drill",
     tags: ["Endurance", "Piste"],
     strengthLoadKind: null,
@@ -360,6 +402,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Intervalles de course longs",
+    classification: { movement: "run", equipment: [] },
     category: "running_drill",
     tags: ["Endurance", "Piste"],
     strengthLoadKind: null,
@@ -373,6 +416,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Fartlek sur terrain varié",
+    classification: { movement: "run", equipment: [] },
     category: "running_drill",
     tags: ["Endurance", "Extérieur"],
     strengthLoadKind: null,
@@ -381,6 +425,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Course tempo sur piste",
+    classification: { movement: "run", equipment: ["track"] },
     category: "running_drill",
     tags: ["Endurance", "Piste"],
     strengthLoadKind: null,
@@ -394,6 +439,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Pompes",
+    classification: { movement: "push", equipment: [] },
     category: "strength",
     tags: ["Force", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -402,6 +448,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Lancer de médecine-ball vers l’avant",
+    classification: { movement: "throw", equipment: ["medicine_ball"] },
     category: "plyo",
     tags: ["Puissance", "Médecine-ball"],
     strengthLoadKind: "external_total",
@@ -410,6 +457,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Rotation thoracique au sol",
+    classification: { movement: "mobility", equipment: [] },
     category: "mobility",
     tags: ["Mobilité", "Poids du corps"],
     strengthLoadKind: "bodyweight",
@@ -418,6 +466,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Mobilité des épaules avec bâton",
+    classification: { movement: "mobility", equipment: ["stick"] },
     category: "mobility",
     tags: ["Mobilité", "Bâton"],
     strengthLoadKind: null,
@@ -426,6 +475,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Fente de mobilité des fléchisseurs de hanche",
+    classification: { movement: "mobility", equipment: [] },
     category: "mobility",
     tags: ["Mobilité", "Poids du corps"],
     strengthLoadKind: "bodyweight",

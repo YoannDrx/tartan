@@ -1,3 +1,4 @@
+import { exerciseClassification } from "./exercise-classification";
 import { confirmedStrengthRecord, sessionCelebration } from "./strength-records";
 import { z } from "zod";
 import {
@@ -266,6 +267,7 @@ export const commentItem = z.object({
 export type CommentItem = z.infer<typeof commentItem>;
 
 export const exerciseSummary = z.object({
+  classification: exerciseClassification.nullable().optional(),
   id: z.string(),
   name: z.string(),
   category: z.string(),

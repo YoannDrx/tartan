@@ -407,6 +407,7 @@ const fillCoachSpace = async (coachId: string, organizationId: string) => {
       organizationId,
       createdBy: coachId,
       name: e.name,
+      classification: e.classification,
       category: e.category,
       tags: e.tags,
       strengthLoadKind: e.strengthLoadKind,

@@ -6,7 +6,7 @@ import {
   analysisVolumeKeys,
   historyChartGeometry,
 } from "@tartan/domain";
-import { historyDate, historyNumber, m } from "@tartan/i18n";
+import { historyDate, historyNumber, exerciseClassificationLabel, m } from "@tartan/i18n";
 import { useState } from "react";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { Field, Select } from "@/components/ui/field";
@@ -215,6 +215,44 @@ export function TrainingAnalysisView({ data }: { data: TrainingAnalysis }) {
           </div>
         </SheetSection>
       </Sheet>
+      {data.classification ? (
+        <Sheet>
+          <SheetSection title={m.exerciseClassification.title}>
+            <p className="text-soft">{m.exerciseClassification.analysisHint}</p>
+            {(["movements", "equipment"] as const).map((kind) => (
+              <details key={kind}>
+                <summary className="min-h-11 cursor-pointer py-3 font-semibold">
+                  {kind === "movements" ? m.exerciseClassification.movement : m.exerciseClassification.equipment}
+                </summary>
+                <p>
+                  {m.exerciseClassification.coverage(
+                    kind === "movements"
+                      ? data.classification!.movementKnownItems
+                      : data.classification!.equipmentKnownItems,
+                    data.classification!.items,
+                  )}
+                </p>
+                <ul className="divide-y divide-card-line">
+                  {data.classification![kind].map((row) => (
+                    <li key={row.key} className="space-y-1 py-3">
+                      <p className="font-semibold">{exerciseClassificationLabel(kind, row.key)}</p>
+                      <p>
+                        {row.occurrences} {t.occurrences.toLocaleLowerCase("fr")} ·{" "}
+                        {row.plannedSetsKnownItems ? row.plannedSets : t.missing}{" "}
+                        {t.prescribedSets.toLocaleLowerCase("fr")} · {row.completedWorkSets}{" "}
+                        {t.workSets.toLocaleLowerCase("fr")}
+                      </p>
+                      <p className="text-soft">
+                        {m.exerciseClassification.setsCoverage(row.plannedSetsKnownItems, row.occurrences)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ))}
+          </SheetSection>
+        </Sheet>
+      ) : null}
       {data.healthVisible ? (
         <Sheet>
           <SheetSection title={t.health}>

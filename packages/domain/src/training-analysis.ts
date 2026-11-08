@@ -1,5 +1,6 @@
 import type {
   TrainingAnalysis,
+  AnalysisClassification,
   AnalysisTotals,
   DetailedSetInput,
   SessionSnapshot,
@@ -174,4 +175,64 @@ export function scopeAnalysisEntries<T extends { date: string; athleteId: string
         }
       : undefined,
   };
+}
+
+/** Count the classification frozen at prescription time, never the live exercise library. */
+export function analyzeExerciseClassification(entries: readonly AnalysisEntry[]): AnalysisClassification {
+  const result: AnalysisClassification = {
+    items: 0,
+    movementKnownItems: 0,
+    equipmentKnownItems: 0,
+    movements: [],
+    equipment: [],
+  };
+  const movements = new Map<string, AnalysisClassification["movements"][number]>();
+  const equipment = new Map<string, AnalysisClassification["equipment"][number]>();
+  for (const entry of entries) {
+    if (!entry.frozen || !entry.snapshot) continue;
+    for (const item of blocksForVariant(entry.snapshot.blocks, entry.variant).flatMap((b) => b.items)) {
+      result.items++;
+      const classification = item.classification;
+      if (classification?.movement) result.movementKnownItems++;
+      if (classification?.equipment != null) result.equipmentKnownItems++;
+      const workSets = ["done", "partial"].includes(entry.status ?? "")
+        ? entry.sets.filter((s) => s.itemRef === item.ref && s.done && s.setKind === "work").length
+        : 0;
+      const groups = [
+        [movements, [classification?.movement ?? "unknown"]],
+        [
+          equipment,
+          classification?.equipment == null
+            ? ["unknown"]
+            : classification.equipment.length
+              ? [...new Set(classification.equipment)]
+              : ["none"],
+        ],
+      ] as const;
+      for (const [map, keys] of groups)
+        for (const key of keys) {
+          const row = map.get(key) ?? {
+            key,
+            occurrences: 0,
+            plannedSets: 0,
+            plannedSetsKnownItems: 0,
+            completedWorkSets: 0,
+          };
+          row.occurrences++;
+          if (item.prescription.sets !== undefined) {
+            row.plannedSets += item.prescription.sets;
+            row.plannedSetsKnownItems++;
+          }
+          row.completedWorkSets += workSets;
+          map.set(key, row);
+        }
+    }
+  }
+  result.movements = [...movements.values()].sort(
+    (a, b) => b.occurrences - a.occurrences || a.key.localeCompare(b.key),
+  );
+  result.equipment = [...equipment.values()].sort(
+    (a, b) => b.occurrences - a.occurrences || a.key.localeCompare(b.key),
+  );
+  return result;
 }

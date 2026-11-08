@@ -17,8 +17,28 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
     headers: async () => ({ Cookie: (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join("; ") }),
   });
   const group = (await api.sessionBuilder(orgId)).groups[0]!;
+  await page.goto("/exercices");
+  await page.getByRole("button", { name: m.exercises.new, exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel(m.exercises.name, { exact: true }).fill("Squat analyse");
+  await dialog.getByLabel(m.exercises.category, { exact: true }).selectOption("strength");
+  await dialog.getByText(m.exerciseClassification.title, { exact: true }).click();
+  await dialog.getByLabel(m.exerciseClassification.movement, { exact: true }).selectOption("squat");
+  await dialog.getByRole("checkbox", { name: m.trainingProfile.equipment.barbell, exact: true }).check();
+  await dialog.getByRole("checkbox", { name: m.trainingProfile.equipment.rack, exact: true }).check();
+  await dialog.getByLabel(m.strength.convention, { exact: true }).selectOption("external_total");
+  await expectAccessible(page);
+  await expectNoHorizontalScroll(page);
+  await dialog.evaluate((el) => {
+    el.scrollTop = 0;
+  });
+  await page.screenshot({ path: `/tmp/tartan-classification-editor-${info.project.name}.png` });
+  await dialog.getByRole("button", { name: m.common.save, exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const exercise = (await api.exercises(orgId)).find((e) => e.name === "Squat analyse")!;
+  expect(exercise.classification).toEqual({ movement: "squat", equipment: ["barbell", "rack"] });
   const athleteId = randomUUID(),
-    exerciseId = randomUUID();
+    exerciseId = exercise.id;
   const sql = new Client({
     connectionString: process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e",
   });
@@ -38,10 +58,6 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
     await sql.query(
       "INSERT INTO athlete_consents (id, athlete_id, kind, version, granted_at) VALUES ($1,$2,'health','test-synthetique',now())",
       [randomUUID(), athleteId],
-    );
-    await sql.query(
-      "INSERT INTO exercises (id, organization_id, name, category, strength_load_kind, updated_at) VALUES ($1,$2,'Squat analyse','strength','external_total',now())",
-      [exerciseId, orgId],
     );
   } finally {
     await sql.end();
@@ -118,11 +134,30 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
     loadResponses: 2,
     healthEligibleSessions: 3,
   });
+  expect(data.classification).toMatchObject({
+    items: 4,
+    movementKnownItems: 4,
+    equipmentKnownItems: 4,
+    movements: [{ key: "squat", occurrences: 4, plannedSets: 12, completedWorkSets: 6 }],
+  });
+  expect(data.classification?.equipment.every((row) => row.occurrences === 4 && row.completedWorkSets === 6)).toBe(
+    true,
+  );
   expect(JSON.stringify(await api.trainingAnalysisContext(orgId))).not.toContain("SECRET_PHASE_ANALYSE");
   await page.goto("/suivi");
   await page.getByRole("link", { name: m.analysis.title, exact: true }).click();
   await expect(page.getByRole("heading", { name: m.analysis.title, exact: true })).toBeVisible();
   await expect(page.getByText("960", { exact: true })).toBeVisible();
+  const classificationSection = page.getByRole("region", { name: m.exerciseClassification.title, exact: true });
+  await classificationSection.getByText(m.exerciseClassification.movement, { exact: true }).click();
+  await expect(
+    classificationSection.getByText(m.exerciseClassification.movements.squat, { exact: true }),
+  ).toBeVisible();
+  await classificationSection.getByText(m.exerciseClassification.equipment, { exact: true }).click();
+  await expect(classificationSection.getByText(m.trainingProfile.equipment.barbell, { exact: true })).toBeVisible();
+  await expect(classificationSection.getByText(m.trainingProfile.equipment.rack, { exact: true })).toBeVisible();
+  await classificationSection.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `/tmp/tartan-classification-analysis-${info.project.name}.png` });
   await page.getByText(m.analysis.table, { exact: true }).click();
   await expect(page.getByRole("table")).toBeVisible();
   await expect(page.getByRole("heading", { name: m.analysis.healthWeekly, exact: true })).toBeVisible();

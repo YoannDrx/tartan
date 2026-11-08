@@ -27,6 +27,8 @@ describe("bibliothèque initiale de préparation physique", () => {
   it("respecte le contrat de l’éditeur et ne fournit aucun média tiers implicite", () => {
     for (const exercise of STARTER_LIBRARY) {
       const input = exerciseInput.parse({ ...exercise, defaultPrescription: exercise.prescription });
+      expect(input.classification?.movement).toBeTruthy();
+      expect(input.classification?.equipment).not.toBeNull();
       expect(input.cues.length).toBeGreaterThan(0);
       expect(input.media).toBeUndefined();
       if (input.defaultPrescription.load) expect(input.strengthLoadKind).toBe("external_total");

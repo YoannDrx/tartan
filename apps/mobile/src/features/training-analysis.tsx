@@ -5,7 +5,7 @@ import {
   analysisVolumeKeys,
   historyChartGeometry,
 } from "@tartan/domain";
-import { historyDate, historyNumber, m } from "@tartan/i18n";
+import { historyDate, historyNumber, exerciseClassificationLabel, m } from "@tartan/i18n";
 import { useState } from "react";
 import { View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -27,6 +27,7 @@ export function NativeTrainingAnalysis({ data }: { data: TrainingAnalysis }) {
     a = historyChartGeometry(actual, max);
   const [healthTable, setHealthTable] = useState(false);
   const [healthMethod, setHealthMethod] = useState(false);
+  const [classificationSection, setClassificationSection] = useState<"movements" | "equipment" | null>(null);
   const [phaseMethod, setPhaseMethod] = useState(false);
   const healthPoints = analysisPerceivedLoadPoints(data);
   const health = historyChartGeometry(healthPoints);
@@ -229,6 +230,49 @@ export function NativeTrainingAnalysis({ data }: { data: TrainingAnalysis }) {
             : null}
         </View>
       </Card>
+      {data.classification ? (
+        <Card>
+          <View style={{ gap: space.sm }}>
+            <SectionTitle>{m.exerciseClassification.title}</SectionTitle>
+            <T tone="muted">{m.exerciseClassification.analysisHint}</T>
+            {(["movements", "equipment"] as const).map((kind) => (
+              <View key={kind} style={{ gap: space.sm }}>
+                <Button
+                  variant="secondary"
+                  label={kind === "movements" ? m.exerciseClassification.movement : m.exerciseClassification.equipment}
+                  expanded={classificationSection === kind}
+                  onPress={() => setClassificationSection(classificationSection === kind ? null : kind)}
+                />
+                {classificationSection === kind ? (
+                  <>
+                    <T>
+                      {m.exerciseClassification.coverage(
+                        kind === "movements"
+                          ? data.classification!.movementKnownItems
+                          : data.classification!.equipmentKnownItems,
+                        data.classification!.items,
+                      )}
+                    </T>
+                    {data.classification![kind].map((row) => (
+                      <View key={row.key} style={{ gap: space.xs }}>
+                        <T variant="smallStrong">{exerciseClassificationLabel(kind, row.key)}</T>
+                        <T>
+                          {t.occurrences} : {row.occurrences} · {t.prescribedSets} :{" "}
+                          {row.plannedSetsKnownItems ? row.plannedSets : t.missing} · {t.workSets} :{" "}
+                          {row.completedWorkSets}
+                        </T>
+                        <T tone="muted">
+                          {m.exerciseClassification.setsCoverage(row.plannedSetsKnownItems, row.occurrences)}
+                        </T>
+                      </View>
+                    ))}
+                  </>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        </Card>
+      ) : null}
       {data.healthVisible ? (
         <Card>
           <View style={{ gap: space.sm }}>

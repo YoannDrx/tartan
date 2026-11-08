@@ -489,6 +489,7 @@ enum ExerciseCategory {
 }
 
 model Exercise {
+  classification      Json?
   id                  String           @id @default(uuid()) @db.Uuid
   organizationId      String?          @map("organization_id") @db.Uuid
   name                String

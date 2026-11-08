@@ -1,3 +1,4 @@
+import { exerciseClassification } from "./exercise-classification";
 import { z } from "zod";
 import { blockVariant, exerciseCategory, sessionType } from "./enums";
 
@@ -63,6 +64,7 @@ export const exerciseMediaSnapshot = z.discriminatedUnion("kind", [
 export type ExerciseMediaSnapshot = z.infer<typeof exerciseMediaSnapshot>;
 
 export const snapshotItem = z.object({
+  classification: exerciseClassification.nullable().optional(),
   ref: z.string(),
   exerciseId: z.string().nullable(),
   name: z.string(),

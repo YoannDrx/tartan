@@ -10,6 +10,7 @@ export type ExerciseDraft = {
   name: string;
   category: string;
   cues: string;
+  classification?: ExerciseInput["classification"];
   strengthLoadKind?: ExerciseInput["strengthLoadKind"];
   loadStepKg?: string;
   // Hors du formulaire mobile : gardés tels quels, l'API remplace ce qu'elle reçoit.
@@ -67,6 +68,7 @@ export const buildExerciseInput = (draft: ExerciseDraft): DraftResult => {
     name: draft.name.trim(),
     category: draft.category as ExerciseInput["category"],
     tags: draft.tags,
+    classification: draft.classification,
     strengthLoadKind: draft.strengthLoadKind,
     ...(draft.loadStepKg !== undefined ? { loadStepKg: toNumber(draft.loadStepKg) } : {}),
     cues,

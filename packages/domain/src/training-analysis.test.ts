@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { DetailedSetInput, SnapshotItem } from "@tartan/contracts";
 import {
   analysisEntryTotals,
+  analyzeExerciseClassification,
   analysisPerceivedLoadPoints,
   scopeAnalysisEntries,
   plannedItemVolumes,
@@ -171,4 +172,44 @@ describe("analyse avec provenance et couverture", () => {
     expect(result.previous).toEqual([entries[3]]);
     expect(result.coverage).toEqual({ matched: 1, withoutReference: 1, otherPhase: 1 });
   });
+});
+
+it("classe le mouvement une seule fois et chaque matériel séparément avec couverture explicite", () => {
+  const classified = {
+    ...item,
+    classification: { movement: "squat" as const, equipment: ["barbell" as const, "rack" as const] },
+  };
+  const entry = {
+    ...base,
+    sets: [...base.sets, { ...set, setIndex: 2, setKind: "warmup" as const }],
+    snapshot: {
+      ...base.snapshot!,
+      blocks: [
+        {
+          ...base.snapshot!.blocks[0]!,
+          items: [
+            classified,
+            { ...item, ref: "legacy", prescription: {} },
+            { ...item, ref: "none", classification: { movement: null, equipment: [] } },
+          ],
+        },
+      ],
+    },
+  };
+  const data = analyzeExerciseClassification([entry]);
+  expect(data).toMatchObject({ items: 3, movementKnownItems: 1, equipmentKnownItems: 2 });
+  expect(data.movements.find((r) => r.key === "squat")).toMatchObject({
+    occurrences: 1,
+    plannedSets: 3,
+    completedWorkSets: 2,
+  });
+  expect(data.movements.find((r) => r.key === "unknown")).toMatchObject({ occurrences: 2, plannedSetsKnownItems: 1 });
+  for (const key of ["barbell", "rack"])
+    expect(data.equipment.find((r) => r.key === key)).toMatchObject({ occurrences: 1, completedWorkSets: 2 });
+  expect(data.equipment.find((r) => r.key === "none")?.occurrences).toBe(1);
+  expect(data.equipment.find((r) => r.key === "unknown")?.plannedSetsKnownItems).toBe(0);
+  expect(analyzeExerciseClassification([{ ...entry, frozen: false }]).items).toBe(0);
+  expect(
+    analyzeExerciseClassification([{ ...entry, status: "skipped" }]).movements.every((r) => r.completedWorkSets === 0),
+  ).toBe(true);
 });

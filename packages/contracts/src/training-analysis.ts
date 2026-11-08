@@ -51,6 +51,21 @@ export const analysisExercise = z.object({
   plannedSets: count,
   completedWorkSets: count,
 });
+export const analysisClassificationRow = z.object({
+  key: z.string(),
+  occurrences: count,
+  plannedSets: count,
+  plannedSetsKnownItems: count,
+  completedWorkSets: count,
+});
+export const analysisClassification = z.object({
+  items: count,
+  movementKnownItems: count,
+  equipmentKnownItems: count,
+  movements: z.array(analysisClassificationRow),
+  equipment: z.array(analysisClassificationRow),
+});
+export type AnalysisClassification = z.infer<typeof analysisClassification>;
 export const trainingAnalysisResponse = z.object({
   from: isoDate,
   to: isoDate,
@@ -64,6 +79,7 @@ export const trainingAnalysisResponse = z.object({
       coverage: z.object({ matched: count, withoutReference: count, otherPhase: count }).optional(),
     })
     .nullable(),
+  classification: analysisClassification.optional(),
   athleteCount: count,
   healthVisible: z.boolean(),
   totals: analysisTotals,

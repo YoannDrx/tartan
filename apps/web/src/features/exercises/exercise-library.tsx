@@ -1,6 +1,13 @@
 "use client";
 
-import type { ExerciseMediaSnapshot, ExerciseSummary, Prescription } from "@tartan/contracts";
+import {
+  exerciseMovement,
+  exerciseEquipment,
+  type ExerciseClassification,
+  type ExerciseMediaSnapshot,
+  type ExerciseSummary,
+  type Prescription,
+} from "@tartan/contracts";
 import {
   formatPrescription,
   instagramUrl,
@@ -8,7 +15,7 @@ import {
   parseYouTubeUrl,
   validateClipRange,
 } from "@tartan/domain";
-import { m } from "@tartan/i18n";
+import { m, exerciseClassificationLabel } from "@tartan/i18n";
 import { Pencil, Play, Plus, Search, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
@@ -43,6 +50,9 @@ const ExerciseForm = ({
 }) => {
   const media = exercise?.media as ExerciseMediaSnapshot | null | undefined;
   const youtube = media?.kind === "youtube" ? media : null;
+  const [classification, setClassification] = useState<ExerciseClassification>(
+    exercise?.classification ?? { movement: null, equipment: null },
+  );
   const [name, setName] = useState(exercise?.name ?? "");
   const [category, setCategory] = useState<Category>((exercise?.category as Category) ?? "plyo");
   const [cues, setCues] = useState((exercise?.cues ?? []).join("\n"));
@@ -111,6 +121,7 @@ const ExerciseForm = ({
           id: exercise?.id,
           name,
           category,
+          classification,
           cues: cues
             .split("\n")
             .map((c) => c.trim())
@@ -146,6 +157,73 @@ const ExerciseForm = ({
           )}
         </Field>
       </div>
+      <details>
+        <summary className="min-h-11 cursor-pointer py-3 font-semibold">{m.exerciseClassification.title}</summary>
+        <div className="flex flex-col gap-3">
+          <p className="text-soft">{m.exerciseClassification.hint}</p>
+          <Field label={m.exerciseClassification.movement}>
+            {(props) => (
+              <Select
+                {...props}
+                value={classification.movement ?? ""}
+                onChange={(e) =>
+                  setClassification({
+                    ...classification,
+                    movement: (e.target.value as ExerciseClassification["movement"]) || null,
+                  })
+                }
+              >
+                <option value="">{m.exerciseClassification.unknown}</option>
+                {exerciseMovement.options.map((key) => (
+                  <option key={key} value={key}>
+                    {exerciseClassificationLabel("movements", key)}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <fieldset className="flex flex-col gap-2">
+            <legend className="font-semibold">{m.exerciseClassification.equipment}</legend>
+            <label className="flex min-h-11 items-center gap-2">
+              <input
+                type="radio"
+                name="equipment-mode"
+                checked={classification.equipment === null}
+                onChange={() => setClassification({ ...classification, equipment: null })}
+              />
+              {m.exerciseClassification.unknown}
+            </label>
+            <label className="flex min-h-11 items-center gap-2">
+              <input
+                type="radio"
+                name="equipment-mode"
+                checked={classification.equipment?.length === 0}
+                onChange={() => setClassification({ ...classification, equipment: [] })}
+              />
+              {m.exerciseClassification.none}
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {exerciseEquipment.options.map((key) => (
+                <label key={key} className="flex min-h-11 items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={classification.equipment?.includes(key) ?? false}
+                    onChange={(e) =>
+                      setClassification({
+                        ...classification,
+                        equipment: e.target.checked
+                          ? [...(classification.equipment ?? []), key]
+                          : (classification.equipment ?? []).filter((k) => k !== key),
+                      })
+                    }
+                  />
+                  {exerciseClassificationLabel("equipment", key)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+      </details>
       <Field label={m.exercises.cues} hint={`${m.exercises.cuesHint} Une par ligne.`}>
         {(a) => <Textarea {...a} value={cues} onChange={(e) => setCues(e.target.value)} />}
       </Field>

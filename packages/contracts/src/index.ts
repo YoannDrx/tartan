@@ -14,3 +14,5 @@ export * from "./performance";
 
 export * from "./training-phases";
 export * from "./training-analysis";
+
+export * from "./exercise-classification";

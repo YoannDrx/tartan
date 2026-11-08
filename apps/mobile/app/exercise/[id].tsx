@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { exerciseCategory, type ExerciseSummary } from "@tartan/contracts";
+import { exerciseCategory, exerciseMovement, exerciseEquipment, type ExerciseSummary } from "@tartan/contracts";
 import { instagramUrl, parseYouTubeUrl } from "@tartan/domain";
-import { m } from "@tartan/i18n";
+import { m, exerciseClassificationLabel } from "@tartan/i18n";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
@@ -35,6 +35,7 @@ const draftFrom = (exercise: ExerciseSummary | null): ExerciseDraft => {
     id: exercise?.id,
     name: exercise?.name ?? "",
     category: exercise?.category ?? "plyo",
+    classification: exercise?.classification ?? { movement: null, equipment: null },
     cues: (exercise?.cues ?? []).join("\n"),
     strengthLoadKind: exercise?.strengthLoadKind ?? null,
     loadStepKg: String(exercise?.loadStepKg ?? 1.25),
@@ -59,6 +60,8 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
   const client = useQueryClient();
   const router = useRouter();
   const [draft, setDraft] = useState<ExerciseDraft>(() => draftFrom(exercise));
+  const [classifying, setClassifying] = useState(false);
+  const classification = draft.classification ?? { movement: null, equipment: null };
   const [problem, setProblem] = useState<{ field: string; message: string } | null>(null);
   const set = (patch: Partial<ExerciseDraft>) => {
     setDraft((d) => ({ ...d, ...patch }));
@@ -142,6 +145,70 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
         />
       </Card>
 
+      <Card>
+        <Button
+          label={m.exerciseClassification.title}
+          variant="secondary"
+          expanded={classifying}
+          onPress={() => setClassifying(!classifying)}
+        />
+        {classifying ? (
+          <View style={{ gap: space.sm }}>
+            <T tone="muted">{m.exerciseClassification.hint}</T>
+            <T variant="smallStrong">{m.exerciseClassification.movement}</T>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+              <Chip
+                tall
+                label={m.exerciseClassification.unknown}
+                active={classification.movement === null}
+                onPress={() => set({ classification: { ...classification, movement: null } })}
+              />
+              {exerciseMovement.options.map((key) => (
+                <Chip
+                  tall
+                  key={key}
+                  label={exerciseClassificationLabel("movements", key)}
+                  active={classification.movement === key}
+                  onPress={() => set({ classification: { ...classification, movement: key } })}
+                />
+              ))}
+            </View>
+            <T variant="smallStrong">{m.exerciseClassification.equipment}</T>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+              <Chip
+                tall
+                label={m.exerciseClassification.unknown}
+                active={classification.equipment === null}
+                onPress={() => set({ classification: { ...classification, equipment: null } })}
+              />
+              <Chip
+                tall
+                label={m.exerciseClassification.none}
+                active={classification.equipment?.length === 0}
+                onPress={() => set({ classification: { ...classification, equipment: [] } })}
+              />
+              {exerciseEquipment.options.map((key) => (
+                <Chip
+                  tall
+                  key={key}
+                  label={exerciseClassificationLabel("equipment", key)}
+                  active={classification.equipment?.includes(key) ?? false}
+                  onPress={() =>
+                    set({
+                      classification: {
+                        ...classification,
+                        equipment: classification.equipment?.includes(key)
+                          ? classification.equipment.filter((k) => k !== key)
+                          : [...(classification.equipment ?? []), key],
+                      },
+                    })
+                  }
+                />
+              ))}
+            </View>
+          </View>
+        ) : null}
+      </Card>
       <Card>
         <SectionTitle>{m.strength.convention}</SectionTitle>
         <T variant="caption">{m.strength.conventionHint}</T>

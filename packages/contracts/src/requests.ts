@@ -1,3 +1,4 @@
+import { exerciseClassification } from "./exercise-classification";
 import { z } from "zod";
 import {
   attendanceStatus,
@@ -206,6 +207,7 @@ export const exerciseMediaInput = z.discriminatedUnion("kind", [
 ]);
 
 export const exerciseInput = z.object({
+  classification: exerciseClassification.nullable().optional(),
   id: uuid.optional(),
   name: required(120, "Donne un nom à l'exercice"),
   category: exerciseCategory,

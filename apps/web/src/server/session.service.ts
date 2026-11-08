@@ -113,6 +113,7 @@ export const buildSnapshot = async (organizationId: string, draft: SessionDraft)
           exerciseId: exercise.id,
           name: exercise.name,
           category: exercise.category,
+          classification: exercise.classification,
           cues: exercise.cues,
           media: mediaSnapshot(exercise.media[0]),
           prescription: item.prescription,
