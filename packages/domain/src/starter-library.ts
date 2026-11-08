@@ -2,6 +2,7 @@ import type { ExerciseCategory, ExerciseInput, ExerciseClassification, Prescript
 
 export type StarterExercise = {
   name: string;
+  aliases?: string[];
   classification: ExerciseClassification;
   category: ExerciseCategory;
   cues: string[];
@@ -154,6 +155,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Squat arrière",
+    aliases: ["Back squat"],
     classification: { movement: "squat", equipment: ["barbell", "rack"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
@@ -163,6 +165,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Squat avant",
+    aliases: ["Front squat"],
     classification: { movement: "squat", equipment: ["barbell", "rack"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
@@ -181,6 +184,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Soulevé de terre",
+    aliases: ["Deadlift"],
     classification: { movement: "hinge", equipment: ["barbell"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
@@ -208,6 +212,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Développé couché",
+    aliases: ["Bench press"],
     classification: { movement: "push", equipment: ["barbell", "bench", "rack"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
@@ -217,6 +222,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Développé militaire",
+    aliases: ["Overhead press"],
     classification: { movement: "push", equipment: ["barbell"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
@@ -253,6 +259,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Squat bulgare",
+    aliases: ["Bulgarian split squat"],
     classification: { movement: "lunge", equipment: ["bench"] },
     category: "strength",
     tags: ["Force", "Poids du corps"],
@@ -262,6 +269,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Soulevé de terre roumain",
+    aliases: ["RDL", "Romanian deadlift"],
     classification: { movement: "hinge", equipment: ["barbell"] },
     category: "strength",
     tags: ["Force", "Barre libre"],
@@ -271,6 +279,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Gainage ventral",
+    aliases: ["Planche ventrale", "Front plank"],
     classification: { movement: "trunk", equipment: [] },
     category: "warmup",
     tags: ["Force", "Poids du corps"],
@@ -280,6 +289,7 @@ export const STARTER_LIBRARY: StarterExercise[] = [
   },
   {
     name: "Gainage latéral",
+    aliases: ["Planche latérale", "Side plank"],
     classification: { movement: "trunk", equipment: [] },
     category: "warmup",
     tags: ["Force", "Poids du corps"],

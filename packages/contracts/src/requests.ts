@@ -207,6 +207,8 @@ export const exerciseMediaInput = z.discriminatedUnion("kind", [
 ]);
 
 export const exerciseInput = z.object({
+  // Omitted by older apps: preserve the existing aliases on update.
+  aliases: z.array(z.string().trim().min(1).max(120)).max(20).optional(),
   classification: exerciseClassification.nullable().optional(),
   id: uuid.optional(),
   name: required(120, "Donne un nom à l'exercice"),

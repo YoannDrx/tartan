@@ -34,6 +34,7 @@ const draftFrom = (exercise: ExerciseSummary | null): ExerciseDraft => {
   return {
     id: exercise?.id,
     name: exercise?.name ?? "",
+    aliases: (exercise?.aliases ?? []).join("\n"),
     category: exercise?.category ?? "plyo",
     classification: exercise?.classification ?? { movement: null, equipment: null },
     cues: (exercise?.cues ?? []).join("\n"),
@@ -134,6 +135,15 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
             ))}
           </View>
         </View>
+        <Field
+          testID="exercise-aliases"
+          label={m.exercises.aliases}
+          hint={m.exercises.aliasesHint}
+          value={draft.aliases ?? ""}
+          onChangeText={(aliases) => set({ aliases })}
+          multiline
+          error={errorOn("aliases")}
+        />
         <Field
           testID="exercise-cues"
           label={m.exercises.cues}

@@ -644,6 +644,8 @@ export const fr = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
   aiPlanner: {
+    ambiguousAlias: (term: string) =>
+      `« ${term} » désigne plusieurs fiches. Quel exercice souhaites-tu ? Précise son nom complet ou sa variante.`,
     createdDraft: (index: number) => `Brouillon ${index}`,
     editSchedule: "Modifier la date, les destinataires et le format",
     quotaDetails: "Consommation et fuseau de l’espace",
@@ -1393,6 +1395,10 @@ export const fr = {
     empty: "Aucune séance",
   },
   exercises: {
+    aliases: "Autres noms de cet exercice",
+    aliasesHint:
+      "Un nom ou une abréviation par ligne, 20 maximum (120 caractères chacun). Utilise seulement des synonymes de cette fiche, pas d’autres variantes. Un terme partagé entre plusieurs fiches devra être précisé dans le planificateur.",
+    aliasesInvalid: "Vérifie les autres noms : 20 lignes maximum et 120 caractères par nom.",
     title: "Exercices",
     new: "Nouvel exercice",
     search: "Rechercher un exercice",

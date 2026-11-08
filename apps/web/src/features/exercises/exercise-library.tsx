@@ -10,6 +10,7 @@ import {
 } from "@tartan/contracts";
 import {
   formatPrescription,
+  normalizeExerciseTerm,
   instagramUrl,
   parseInstagramUrl,
   parseYouTubeUrl,
@@ -54,6 +55,7 @@ const ExerciseForm = ({
     exercise?.classification ?? { movement: null, equipment: null },
   );
   const [name, setName] = useState(exercise?.name ?? "");
+  const [aliases, setAliases] = useState((exercise?.aliases ?? []).join("\n"));
   const [category, setCategory] = useState<Category>((exercise?.category as Category) ?? "plyo");
   const [cues, setCues] = useState((exercise?.cues ?? []).join("\n"));
   const [tags, setTags] = useState((exercise?.tags ?? []).join(", "));
@@ -117,9 +119,15 @@ const ExerciseForm = ({
         const instagram = Boolean(parseInstagramUrl(url));
         if (url && !instagram && !parseYouTubeUrl(url)) return setError(m.exercises.linkInvalid);
         if (!validateClipRange(start, end)) return setError(m.exercises.clipInvalid);
+        const aliasList = aliases
+          .split("\n")
+          .map((v) => v.trim())
+          .filter(Boolean);
+        if (aliasList.length > 20 || aliasList.some((v) => v.length > 120)) return setError(m.exercises.aliasesInvalid);
         save.execute({
           id: exercise?.id,
           name,
+          aliases: aliasList,
           category,
           classification,
           cues: cues
@@ -157,6 +165,9 @@ const ExerciseForm = ({
           )}
         </Field>
       </div>
+      <Field label={m.exercises.aliases} hint={m.exercises.aliasesHint}>
+        {(a) => <Textarea {...a} value={aliases} onChange={(e) => setAliases(e.target.value)} />}
+      </Field>
       <details>
         <summary className="min-h-11 cursor-pointer py-3 font-semibold">{m.exerciseClassification.title}</summary>
         <div className="flex flex-col gap-3">
@@ -422,7 +433,9 @@ export const ExerciseLibrary = ({
     (e) =>
       (!category || e.category === category) &&
       (!source || e.shared === (source === "shared")) &&
-      e.name.toLowerCase().includes(search.trim().toLowerCase()),
+      [e.name, ...(e.aliases ?? [])].some((term) =>
+        normalizeExerciseTerm(term).includes(normalizeExerciseTerm(search)),
+      ),
   );
   return (
     <div className="flex flex-col gap-4">

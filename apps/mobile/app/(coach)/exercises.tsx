@@ -30,7 +30,7 @@ export default function Exercises() {
     return (exercises.data ?? []).filter(
       (e) =>
         (!category || e.category === category) &&
-        (!query || folded(e.name).includes(query) || e.tags.some((t) => folded(t).includes(query))),
+        (!query || [e.name, ...e.tags, ...(e.aliases ?? [])].some((term) => folded(term).includes(query))),
     );
   }, [exercises.data, search, category]);
 

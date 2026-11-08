@@ -8,6 +8,7 @@ export type NumberField = (typeof NUMBER_FIELDS)[number];
 export type ExerciseDraft = {
   id?: string;
   name: string;
+  aliases?: string;
   category: string;
   cues: string;
   classification?: ExerciseInput["classification"];
@@ -24,7 +25,8 @@ export type ExerciseDraft = {
 };
 
 export type DraftResult =
-  { ok: true; input: ExerciseInput } | { ok: false; field: "name" | "cues" | "url" | "clip" | "form"; message: string };
+  | { ok: true; input: ExerciseInput }
+  | { ok: false; field: "name" | "aliases" | "cues" | "url" | "clip" | "form"; message: string };
 
 const toNumber = (value: string): number | undefined => {
   const clean = value.trim().replace(",", ".");
@@ -43,6 +45,12 @@ export const prescriptionFrom = (draft: Pick<ExerciseDraft, "base" | "numbers">)
 
 export const buildExerciseInput = (draft: ExerciseDraft): DraftResult => {
   if (!draft.name.trim()) return { ok: false, field: "name", message: m.mobile.exerciseForm.nameRequired };
+  const aliases = draft.aliases
+    ?.split("\n")
+    .map((v) => v.trim())
+    .filter(Boolean);
+  if (aliases && (aliases.length > 20 || aliases.some((v) => v.length > 120)))
+    return { ok: false, field: "aliases", message: m.exercises.aliasesInvalid };
   const cues = draft.cues
     .split("\n")
     .map((c) => c.trim())
@@ -66,6 +74,7 @@ export const buildExerciseInput = (draft: ExerciseDraft): DraftResult => {
   const input: ExerciseInput = {
     ...(draft.id ? { id: draft.id } : {}),
     name: draft.name.trim(),
+    aliases,
     category: draft.category as ExerciseInput["category"],
     tags: draft.tags,
     classification: draft.classification,

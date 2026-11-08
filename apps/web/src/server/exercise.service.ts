@@ -6,7 +6,7 @@ import {
   type ExerciseSummary,
   prescriptionSchema,
 } from "@tartan/contracts";
-import { parseInstagramUrl, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
+import { cleanExerciseAliases, parseInstagramUrl, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { invalid, notFound } from "@/lib/errors";
 import { env } from "@/lib/env";
@@ -74,6 +74,7 @@ export const listExercises = async (userId: string, organizationId: string): Pro
         name: e.name,
         category: e.category,
         tags: e.tags,
+        aliases: e.aliases,
         cues: e.cues,
         defaultPrescription: prescriptionSchema.parse(e.defaultPrescription),
         strengthLoadKind: e.strengthLoadKind as ExerciseSummary["strengthLoadKind"],
@@ -109,6 +110,7 @@ export const saveExercise = async (userId: string, organizationId: string, raw: 
     name: input.name,
     category: input.category,
     tags: input.tags,
+    aliases: input.aliases === undefined ? undefined : cleanExerciseAliases(input.name, input.aliases),
     cues: input.cues,
     defaultPrescription: input.defaultPrescription,
     strengthLoadKind: input.strengthLoadKind,

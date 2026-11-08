@@ -17,6 +17,20 @@ const draft = (over: Partial<ExerciseDraft> = {}): ExerciseDraft => ({
 });
 
 describe("formulaire d'exercice", () => {
+  it("garde, efface et borne les autres noms sans les confondre avec les consignes", () => {
+    expect(buildExerciseInput(draft({ aliases: " RDL \n\n Romanian deadlift " }))).toMatchObject({
+      ok: true,
+      input: { aliases: ["RDL", "Romanian deadlift"] },
+    });
+    expect(buildExerciseInput(draft({ aliases: "" }))).toMatchObject({ ok: true, input: { aliases: [] } });
+    const legacy = buildExerciseInput(draft());
+    expect(legacy.ok && legacy.input.aliases).toBeUndefined();
+    expect(buildExerciseInput(draft({ aliases: "a".repeat(121) }))).toMatchObject({ ok: false, field: "aliases" });
+    expect(buildExerciseInput(draft({ aliases: Array(21).fill("nom").join("\n") }))).toMatchObject({
+      ok: false,
+      field: "aliases",
+    });
+  });
   it("garde les champs absents du formulaire et nettoie les consignes", () => {
     const result = buildExerciseInput(draft({ id: "3f2c1d7e-0000-4000-8000-000000000000" }));
     expect(result).toMatchObject({

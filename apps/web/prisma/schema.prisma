@@ -503,6 +503,7 @@ model Exercise {
   name                String
   category            ExerciseCategory
   tags                String[]         @default([])
+  aliases             String[]         @default([])
   cues                String[]         @default([])
   defaultPrescription Json             @default("{}") @map("default_prescription")
   createdBy           String?          @map("created_by") @db.Uuid

@@ -22,7 +22,14 @@ export const plannerBindings = z.object({
     }),
   ),
   exercises: z.array(
-    z.object({ token: z.string(), id: uuid, name: z.string(), category: z.string(), updatedAt: z.string() }),
+    z.object({
+      token: z.string(),
+      id: uuid,
+      name: z.string(),
+      category: z.string(),
+      updatedAt: z.string(),
+      aliases: z.array(z.string()).optional(),
+    }),
   ),
   phaseReviews: z.array(z.object({ date: z.iso.date(), review: sessionPhaseReview })),
   phaseCalendar: plannerProviderContext.shape.phaseCalendar,
@@ -64,7 +71,7 @@ export async function buildPlannerBindings(
         deletedAt: null,
         ...(selection.exerciseIds.length ? { id: { in: selection.exerciseIds } } : {}),
       },
-      select: { id: true, name: true, category: true, updatedAt: true },
+      select: { id: true, name: true, category: true, updatedAt: true, aliases: true },
       orderBy: { id: "asc" },
       take: 501,
     }),
@@ -165,7 +172,12 @@ export function providerContextFor(
         bindings.phaseCalendar?.find((p) => p.date === selection.period.from && p.targetToken === t.token)?.phase ??
         null,
     })),
-    exercises: bindings.exercises.map((e) => ({ token: e.token, name: e.name, category: e.category, aliases: [] })),
+    exercises: bindings.exercises.map((e) => ({
+      token: e.token,
+      name: e.name,
+      category: e.category,
+      aliases: e.aliases ?? [],
+    })),
     phaseCalendar: bindings.phaseCalendar,
     instructions: messages.map((text) => pseudonymizePlannerText(text, bindings)),
   });

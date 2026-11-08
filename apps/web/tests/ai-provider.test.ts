@@ -48,7 +48,7 @@ it("utilise l’alias local, une sortie stricte et store:false sans outil ni his
   });
   expect(body).not.toHaveProperty("tools");
   expect(body).not.toHaveProperty("previous_response_id");
-  expect(JSON.parse(body.input)).toEqual(context);
+  expect(JSON.parse(body.input)).toEqual({ ...context, ambiguousExerciseTerms: [] });
 });
 it("le drapeau global coupe tout appel et le nom standard prend priorité sur l’alias", async () => {
   const fetcher = transport();
@@ -59,6 +59,80 @@ it("le drapeau global coupe tout appel et le nom standard prend priorité sur l�
   settings.OPENAI_API_KEY = "standard-test-only";
   await openAiPlannerProvider(fetcher).interpret(context);
   expect(new Headers(fetcher.mock.calls[0]![1]?.headers).get("Authorization")).toBe("Bearer standard-test-only");
+});
+it("transmet les collisions de termes sans choisir arbitrairement une variante", async () => {
+  const fetcher = transport();
+  const input: PlannerProviderContext = {
+    ...context,
+    exercises: [
+      { token: "exercise_1", name: "Squat arrière", category: "strength", aliases: ["Squat"] },
+      { token: "exercise_2", name: "Squat avant", category: "strength", aliases: ["squat"] },
+    ],
+  };
+  await openAiPlannerProvider(fetcher).interpret(input);
+  const body = JSON.parse(String(fetcher.mock.calls[0]![1]?.body));
+  expect(JSON.parse(body.input)).toMatchObject({
+    exercises: input.exercises,
+    ambiguousExerciseTerms: [{ term: "Squat", exerciseTokens: ["exercise_1", "exercise_2"] }],
+  });
+});
+it("remplace une attribution ambiguë du modèle par une question, sans nouvelle génération", async () => {
+  const input: PlannerProviderContext = {
+    ...context,
+    instructions: ["Demain pour group_1 : squat, 3 séries de 4 à 40 kg, repos 120 secondes."],
+    exercises: [
+      { token: "exercise_1", name: "Squat arrière", category: "strength", aliases: ["Squat"] },
+      { token: "exercise_2", name: "Squat avant", category: "strength", aliases: ["squat"] },
+    ],
+  };
+  const result = {
+    status: "proposal",
+    questions: [],
+    assumptions: [],
+    suggestions: [],
+    sessions: [
+      {
+        date: "2026-11-09",
+        startTime: null,
+        title: "Force",
+        type: "strength",
+        durationMin: null,
+        targetTokens: ["group_1"],
+        blocks: [
+          {
+            name: "Force",
+            items: [
+              {
+                exerciseToken: "exercise_1",
+                instruction: input.instructions[0],
+                prescription: {
+                  sets: 3,
+                  reps: 4,
+                  distanceM: null,
+                  durationS: null,
+                  restS: 120,
+                  load: { type: "kg", value: 40 },
+                  intensityTarget: null,
+                  tempo: null,
+                  contacts: null,
+                  notes: null,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const fetcher = transport(completed(result));
+  expect(await openAiPlannerProvider(fetcher).interpret(input)).toMatchObject({
+    status: "clarification",
+    sessions: [],
+    questions: [{ field: "exercise", options: ["Squat arrière", "Squat avant"] }],
+  });
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  const clarified = { ...input, instructions: [...input.instructions, "Je choisis le squat arrière."] };
+  expect(await openAiPlannerProvider(transport(completed(result))).interpret(clarified)).toEqual(result);
 });
 it("refuse un contexte enrichi de données privées avant tout appel", async () => {
   const fetcher = transport();

@@ -17,6 +17,7 @@ import type { PlannerProvider, PlannerProviderContext } from "@/server/ai/provid
 import { expirePlannerOperations } from "@/server/ai/usage.service";
 import { saveTrainingPhase } from "@/server/training-phases.service";
 import { selectStrengthReference } from "@/server/strength.service";
+import { saveExercise } from "@/server/exercise.service";
 import { addStaff, addAthlete, makeOrg } from "./helpers";
 const flags = vi.hoisted(() => ({ AI_PLANNER_ENABLED: "true" }));
 vi.mock("@/lib/env", async (original) => {
@@ -101,6 +102,29 @@ async function setup() {
     createPlannerProposal(a.owner.userId, a.organizationId, value, { provider: p, clock });
   return { ...a, input, exercise, create };
 }
+it("fige les alias autorisés dans le contexte et invalide la revue après leur modification", async () => {
+  const a = await setup();
+  await saveExercise(a.owner.userId, a.organizationId, {
+    id: a.exercise.id,
+    name: a.exercise.name,
+    category: a.exercise.category,
+    aliases: ["Synonyme contrôlé"],
+  });
+  const p = provider();
+  const created = await a.create(p);
+  expect(p.interpret.mock.calls[0]![0].exercises).toMatchObject([{ aliases: ["Synonyme contrôlé"] }]);
+  const stored = await prisma.aiPlannerProposal.findUniqueOrThrow({ where: { id: a.input.id } });
+  expect(stored.bindings).toMatchObject({ exercises: [{ aliases: ["Synonyme contrôlé"] }] });
+  await saveExercise(a.owner.userId, a.organizationId, {
+    id: a.exercise.id,
+    name: a.exercise.name,
+    category: a.exercise.category,
+    aliases: ["Autre synonyme"],
+  });
+  await expect(
+    preparePlannerDrafts(a.owner.userId, a.organizationId, a.input.id, created.version, now),
+  ).rejects.toMatchObject({ code: "planner_context_changed" });
+});
 it("retrouve les propositions privées par pages stables, sans texte, quota ni appel IA supplémentaire", async () => {
   const a = await setup(),
     p = provider();
