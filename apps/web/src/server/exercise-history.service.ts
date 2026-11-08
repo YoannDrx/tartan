@@ -1,5 +1,6 @@
 import {
   athleteExerciseIndex,
+  athleteHistoryContext,
   detailedSetInput,
   exerciseHistoryQuery,
   exerciseHistoryResponse,
@@ -9,7 +10,7 @@ import {
 } from "@tartan/contracts";
 import { actualSetVolumes } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { fromDbDate, toDbDate } from "@/lib/dates";
+import { fromDbDate, toDbDate, todayIso } from "@/lib/dates";
 import { AppError, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireVisibleAthlete } from "./access";
@@ -28,7 +29,23 @@ const requireHistoryAccess = async (userId: string, organizationId: string, athl
 // Sélection fondée sur des liens explicites ; pas de rattachement d'une ancienne clé par nom.
 export const listAthleteHistoryExercises = async (userId: string, organizationId: string, athleteId: string) => {
   await requireHistoryAccess(userId, organizationId, athleteId);
-  const [sets, tests] = await Promise.all([
+  return loadHistoryExercises(organizationId, athleteId);
+};
+
+export const getAthleteHistoryContext = async (userId: string, organizationId: string, athleteId: string) => {
+  await requireHistoryAccess(userId, organizationId, athleteId);
+  const [athlete, exercises] = await Promise.all([
+    prisma.athlete.findFirstOrThrow({
+      where: { id: athleteId, organizationId },
+      select: { id: true, firstName: true, lastName: true },
+    }),
+    loadHistoryExercises(organizationId, athleteId),
+  ]);
+  return athleteHistoryContext.parse({ athlete, exercises, today: todayIso() });
+};
+
+const loadHistoryExercises = async (organizationId: string, athleteId: string) => {
+  const [sets, tests, references] = await Promise.all([
     prisma.setLog.findMany({
       where: {
         exerciseId: { not: null },
@@ -42,10 +59,12 @@ export const listAthleteHistoryExercises = async (userId: string, organizationId
       distinct: ["exerciseId"],
       select: { exerciseId: true },
     }),
+    prisma.strengthReference.findMany({ where: { organizationId, athleteId }, select: { exerciseId: true } }),
   ]);
   const realized = new Set(sets.map((set) => set.exerciseId));
   const tested = new Set(tests.map((test) => test.exerciseId));
-  const ids = [...new Set([...realized, ...tested])].filter((id): id is string => id !== null);
+  const referenced = new Set(references.map((reference) => reference.exerciseId));
+  const ids = [...new Set([...realized, ...tested, ...referenced])].filter((id): id is string => id !== null);
   const exercises = await prisma.exercise.findMany({
     where: { id: { in: ids }, OR: [{ organizationId }, { organizationId: null }] },
     select: { id: true, name: true, deletedAt: true },
@@ -58,6 +77,7 @@ export const listAthleteHistoryExercises = async (userId: string, organizationId
       archived: exercise.deletedAt !== null,
       hasRealizedSets: realized.has(exercise.id),
       hasStrengthTests: tested.has(exercise.id),
+      hasStrengthReference: referenced.has(exercise.id),
     })),
   );
 };

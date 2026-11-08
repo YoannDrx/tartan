@@ -253,7 +253,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
             >
               {file.progressionEnabled ? (
                 <Button asChild variant="secondary" size="sm">
-                  <Link href="/outils/charges">{m.calculator.title}</Link>
+                  <Link href={`/historique/${file.id}`}>{m.exerciseHistory.title}</Link>
                 </Button>
               ) : null}
               {file.tests.length === 0 ? <p className="text-soft">{m.athletes.noTests}</p> : null}

@@ -12,7 +12,7 @@ Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil s
 | --- | --- | --- |
 | A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles, vidéo générique, profil sportif web/native et 49 fiches initiales ajoutés | Suite de la recette du constructeur, publication groupée, recette complète de l’onboarding, médias de bibliothèque, landing et recette physique |
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
-| C — historique et records | Historique par exercice et API sécurisée, règles de comparaison et de records, calculateur web/natif implémentés | Écrans d’historique, rappel dans la séance, courbes, confirmation des records et célébration unique |
+| C — historique et records | Historique web/natif, API sécurisée, courbes de volumes renseignés, références séparées, règles de comparaison et calculateur raccordé à l’exercice | Rappel dans la séance, courbes de force, confirmation des records et célébration unique |
 | D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |
 | E — planificateur IA | Non implémenté ; clé locale disponible | Dictée, transcription, clarifications, brouillons, quotas, purge et corpus d’évaluation |
 
@@ -320,3 +320,8 @@ Lecture bornée par période, séries figées, références actuelles séparées
 ### Calculateur web et natif
 
 Epley, saisie française, estimation distincte de la référence du tableau, choix explicite et 13 pourcentages exacts/arrondis. Aucune référence enregistrée modifiée. 110 tests domaine, 523 serveur, types, lint, design, exports Hermes et parcours navigateur réussis ; calcul/tableau/bornes vérifiés sur simulateur iOS. [Preuves](preuves-v1-1/lot-c-calculateur.md). Le commit vidéo `079418d` dispose désormais de ses deux CI réussies : qualité `42426108440`, Android `42426108438`. Les commits ultérieurs ont besoin de leur propre CI.
+
+
+### Historique par exercice — interfaces et volumes
+
+Sélection d’exercice et de période, références actuelles distinctes des prescriptions figées, séries détaillées, courbes par unité et tableau accessible sur web/natif. Références manuelles seules incluses ; archive, manque et troncature explicites. [Preuves et portée de la couverture](preuves-v1-1/lot-c-historique-interface.md). Les records/célébrations et analyses complètes ne sont pas déclarés terminés.

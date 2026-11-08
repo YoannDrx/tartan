@@ -68,6 +68,7 @@ type ButtonProps = {
   loading?: boolean;
   disabled?: boolean;
   selected?: boolean;
+  expanded?: boolean;
   compact?: boolean;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
@@ -83,6 +84,7 @@ export const Button = ({
   loading,
   disabled,
   selected,
+  expanded,
   compact,
   style,
   accessibilityLabel,
@@ -110,7 +112,12 @@ export const Button = ({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: off, busy: Boolean(loading), ...(selected === undefined ? {} : { selected }) }}
+      accessibilityState={{
+        disabled: off,
+        busy: Boolean(loading),
+        ...(selected === undefined ? {} : { selected }),
+        ...(expanded === undefined ? {} : { expanded }),
+      }}
       android_ripple={{ color: p.ripple }}
       style={({ pressed }) => [
         {

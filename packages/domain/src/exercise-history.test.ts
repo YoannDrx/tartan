@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DetailedSetInput, ExerciseHistorySession } from "@tartan/contracts";
+import { historyChartGeometry, historyRange, historyVolumePoints } from "./history-chart";
 import { actualSetVolumes } from "./progression";
 import { lastComparableSets, strengthHistoryRecords } from "./exercise-history";
 
@@ -103,5 +104,43 @@ describe("records de séries comparables", () => {
       sets: [{ loadKg: 40 }],
     });
     expect(lastComparableSets(rows, set({ loadKind: "assisted" }), "external_total")).toBeNull();
+  });
+});
+
+describe("courbes du réalisé", () => {
+  it("additionne les mesures connues, garde les manques et ne compte pas deux fois une saisie", () => {
+    const first = session("01");
+    const corrected = { ...first, version: 2, volumes: actualSetVolumes([set({ loadKg: 30 })]) };
+    const missing = session("02", [set({ done: false })]);
+    const points = historyVolumePoints([first, corrected, missing, corrected], "tonnageKg");
+    expect(points).toEqual([
+      { date: "2026-11-01", value: 120, knownSessions: 1, sessions: 1 },
+      { date: "2026-11-02", value: null, knownSessions: 0, sessions: 1 },
+    ]);
+    expect(historyVolumePoints([first], "distanceM")[0]?.value).toBeNull();
+    const sameDayMissing = { ...first, logId: "different", volumes: missing.volumes };
+    expect(historyVolumePoints([first, sameDayMissing], "tonnageKg")[0]).toMatchObject({
+      value: 160,
+      knownSessions: 1,
+      sessions: 2,
+    });
+  });
+  it("respecte les écarts de dates et coupe la ligne sur une mesure absente", () => {
+    const points = historyVolumePoints(
+      [session("01"), session("02", [set({ done: false })]), session("05"), session("09"), session("13")],
+      "tonnageKg",
+    );
+    const chart = historyChartGeometry(points);
+    expect(chart.showChart).toBe(true);
+    expect(chart.path.match(/M/g)).toHaveLength(2);
+    expect(chart.dots[0]?.x).toBe(20);
+    expect(chart.dots.at(-1)?.x).toBe(580);
+    expect(chart.dots[2]!.x - 20).toBeCloseTo(560 / 3);
+    expect(historyChartGeometry(points.slice(0, 3)).showChart).toBe(false);
+    expect(historyChartGeometry([]).path).toBe("");
+  });
+  it("emploie des jours calendaires inclusifs indépendants du fuseau et du changement d'heure", () => {
+    expect(historyRange("2026-11-08", 28)).toEqual({ from: "2026-10-12", to: "2026-11-08" });
+    expect(historyRange("2028-03-01", 365)).toEqual({ from: "2027-03-03", to: "2028-03-01" });
   });
 });

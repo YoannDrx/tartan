@@ -12,6 +12,7 @@ export const getMessages = (locale: string | null | undefined): Messages =>
   locales[(locale ?? defaultLocale) as Locale] ?? fr;
 
 export const m = fr;
+export * from "./history";
 
 // En français, le premier jour du mois s'écrit « 1er », ce qu'Intl ne fait pas.
 export const withFirstOfMonth = (label: string): string => label.replace(/(^|\s)1 (?=\p{L})/u, "$11er ");

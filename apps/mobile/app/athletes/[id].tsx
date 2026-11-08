@@ -278,7 +278,14 @@ export default function AthleteFile() {
 
         <Section title={m.athletes.tests}>
           {active?.progressionEnabled ? (
-            <Button label={m.calculator.title} variant="secondary" onPress={() => router.push("/load-calculator")} />
+            <>
+              <Button label={m.calculator.title} variant="secondary" onPress={() => router.push("/load-calculator")} />
+              <Button
+                label={m.exerciseHistory.title}
+                variant="secondary"
+                onPress={() => router.push(`/exercise-history/${id}`)}
+              />
+            </>
           ) : null}
           {active?.progressionEnabled && (active.role === "owner" || active.role === "coach") ? (
             <Button

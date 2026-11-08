@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: m.nav.progres };
 
 const date = (iso: string) => `${formatDayMonth(iso)} ${iso.slice(0, 4)}`;
 
-// Vue simple en V1 : records et tests. Les courbes et les volumes arrivent en V2 (§ 7.7).
+// Les courbes par exercice sont disponibles lorsque la progression est activée.
 export default async function ProgresPage() {
   const { actor, organizationId, space } = await requireAthleteSpace();
   const [file, regularity] = await Promise.all([
@@ -26,9 +26,14 @@ export default async function ProgresPage() {
         title={m.nav.progres}
         actions={
           space.progressionEnabled ? (
-            <Button asChild variant="secondary">
-              <Link href="/outils/charges">{m.calculator.title}</Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="secondary">
+                <Link href={`/historique/${file.id}`}>{m.exerciseHistory.title}</Link>
+              </Button>
+              <Button asChild variant="secondary">
+                <Link href="/outils/charges">{m.calculator.title}</Link>
+              </Button>
+            </div>
           ) : null
         }
       />

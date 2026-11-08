@@ -1,6 +1,7 @@
 import {
   acceptInvitationResponse,
   athleteExerciseIndex,
+  athleteHistoryContext,
   exerciseHistoryResponse,
   type ExerciseHistoryQuery,
   organizationResponse,
@@ -105,6 +106,8 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("GET", `/orgs/${orgId}/athletes/${athleteId}/stats`, z.any()),
     athleteHistoryExercises: (orgId: string, athleteId: string) =>
       request("GET", `/orgs/${orgId}/athletes/${athleteId}/exercise-history`, athleteExerciseIndex),
+    athleteHistoryContext: (orgId: string, athleteId: string) =>
+      request("GET", `/orgs/${orgId}/athletes/${athleteId}/exercise-history/context`, athleteHistoryContext),
     athleteExerciseHistory: (orgId: string, athleteId: string, exerciseId: string, query: ExerciseHistoryQuery) =>
       request(
         "GET",

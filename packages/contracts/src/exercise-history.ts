@@ -66,5 +66,12 @@ export const athleteExerciseIndex = z.array(
     archived: z.boolean(),
     hasRealizedSets: z.boolean(),
     hasStrengthTests: z.boolean(),
+    hasStrengthReference: z.boolean().default(false),
   }),
 );
+
+export const athleteHistoryContext = z.object({
+  athlete: z.object({ id: uuid, firstName: z.string(), lastName: z.string() }),
+  exercises: athleteExerciseIndex,
+  today: isoDate,
+});

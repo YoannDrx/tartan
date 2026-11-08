@@ -240,6 +240,58 @@ export const fr = {
       "Cette ancienne clé est déjà rattachée à un autre exercice. Vérifie la correspondance avant de la modifier.",
     saved: "Test enregistré.",
   },
+  exerciseHistory: {
+    title: "Historique par exercice",
+    refresh: "Actualiser l’historique",
+    intro: "Retrouve les séries enregistrées, leur prescription et ta référence actuelle.",
+    exercise: "Exercice",
+    period: "Période",
+    periods: { 28: "4 semaines", 84: "12 semaines", 365: "Un an" },
+    empty:
+      "Aucun exercice suivi pour le moment. Renseigne tes séries après une séance ou demande au coach une référence de force.",
+    noSessions: "Aucune série enregistrée pour cet exercice sur cette période.",
+    archived: "Archivé",
+    metric: "Mesure",
+    metrics: {
+      tonnageKg: "Tonnage renseigné (kg)",
+      distanceM: "Distance renseignée (m)",
+      durationS: "Durée renseignée (s)",
+      groundContacts: "Contacts renseignés",
+    },
+    volumes: "Évolution du réalisé",
+    chartHint:
+      "Sommes journalières des séries de travail confirmées. Les échauffements et les séries non confirmées sont exclus. Les mesures absentes restent manquantes.",
+    scope:
+      "Cet historique porte sur les validations contenant des séries liées à cet exercice. Les validations simples sans détail ne permettent pas d’en déduire un volume.",
+    coverage: (shown: number, total: number) =>
+      `${shown} validations affichées sur ${total} avec séries liées sur la période.`,
+    truncated:
+      "L’historique est limité aux 200 validations les plus récentes. Réduis la période pour consulter un ensemble complet.",
+    unusable: (count: number) =>
+      `${count} séries anciennes ne disposent pas de conventions fiables et ne sont pas comptées.`,
+    chartEmpty:
+      "La courbe apparaît à partir de quatre journées renseignées. Les valeurs disponibles restent consultables ci-dessous.",
+    table: "Consulter les valeurs",
+    method: "Comprendre les données",
+    date: "Date",
+    value: "Valeur",
+    coverageColumn: "Validations renseignées",
+    coverageValue: (known: number, total: number) => `${known} sur ${total}`,
+    missing: "Non renseigné",
+    sessions: "Séances et séries",
+    prescribed: "Prescription conservée",
+    realized: "Séries enregistrées",
+    notConfirmed: "Non confirmée — exclue des volumes",
+    more: "Afficher les séances suivantes",
+    calculator: "Calculer les charges de cet exercice",
+    tests: "Tests de force enregistrés",
+    selectedOn: (date: string) => `Choisie le ${date}`,
+    updatedOn: (date: string) => `Dernière saisie le ${date}`,
+    recordOf: (name: string) => `Historique de ${name}`,
+    noMeasurements: "Aucune mesure renseignée pour cette unité sur la période.",
+    summary: (count: number, total: string) => `${count} journées renseignées · somme des valeurs : ${total}`,
+    perSide: (count: number) => `par côté, ${count} côté${count > 1 ? "s" : ""}`,
+  },
   prescriptionRefresh: {
     title: "Actualiser les charges",
     lead: "Relis les charges recalculées depuis les références actuelles. Seuls les pourcentages des athlètes sans saisie peuvent changer ; les charges en kilogrammes et les autres consignes sont conservées.",

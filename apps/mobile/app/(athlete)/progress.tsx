@@ -16,7 +16,7 @@ const markLabel = (mark: number, unit: string) => {
 const disciplineLabel = (key: string) => (m.mobile.progress.discipline as Record<string, string>)[key] ?? key;
 const testKind = (kind: string) => (m.testKind as Record<string, string>)[kind] ?? kind;
 
-// V1 : ce que le coach a saisi dans la fiche. Volumes et courbes arrivent avec la V2 (§ 7.7).
+// Les séries et courbes sont accessibles avec le flag progression.
 export default function Progress() {
   const { orgId, space: active } = useActiveSpace();
   const router = useRouter();
@@ -32,7 +32,16 @@ export default function Progress() {
       {file.isPending ? <LoadingState /> : null}
       {file.isError && !file.data ? <ErrorState error={file.error} onRetry={() => void file.refetch()} /> : null}
       {active?.progressionEnabled ? (
-        <Button label={m.calculator.title} variant="secondary" onPress={() => router.push("/load-calculator")} />
+        <>
+          <Button label={m.calculator.title} variant="secondary" onPress={() => router.push("/load-calculator")} />
+          {file.data && !file.isError ? (
+            <Button
+              label={m.exerciseHistory.title}
+              variant="secondary"
+              onPress={() => router.push(`/exercise-history/${file.data.id}`)}
+            />
+          ) : null}
+        </>
       ) : null}
       {empty ? <EmptyState body={m.mobile.progress.empty} /> : null}
       {file.data && file.data.performances.length > 0 ? (

@@ -2,7 +2,11 @@ import { randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
 import { exerciseHistoryQuery, type DetailedSetInput, type SessionLogInput } from "@tartan/contracts";
 import { prisma } from "@/lib/prisma";
-import { getAthleteExerciseHistory, listAthleteHistoryExercises } from "@/server/exercise-history.service";
+import {
+  getAthleteExerciseHistory,
+  getAthleteHistoryContext,
+  listAthleteHistoryExercises,
+} from "@/server/exercise-history.service";
 import { logSession } from "@/server/athlete-view.service";
 import { publishRow, saveScheduledSession } from "@/server/session.service";
 import { selectStrengthReference } from "@/server/strength.service";
@@ -151,6 +155,9 @@ it("vérifie rôle, groupe, espace, révocation, flag et bornes de période", as
   const otherAthlete = await addAthlete(a.organizationId, a.groupId, "Autre athlète");
   const coach = await addStaff(a.organizationId, "Coach hors groupe", "coach");
   for (const actor of [other.owner.userId, otherAthlete.userId, coach.userId]) {
+    await expect(getAthleteHistoryContext(actor, a.organizationId, a.athlete.athleteId)).rejects.toMatchObject({
+      status: 403,
+    });
     await expect(a.read(actor)).rejects.toMatchObject({ status: 403 });
     await expect(listAthleteHistoryExercises(actor, a.organizationId, a.athlete.athleteId)).rejects.toMatchObject({
       status: 403,
@@ -220,4 +227,30 @@ it("signale une période tronquée au lieu de présenter les dernières séances
     { from: "2030-07-01", to: "2030-07-31" },
   );
   expect(empty.coverage).toMatchObject({ totalSessions: 0, returnedSessions: 0, truncated: false });
+});
+
+it("inclut les références manuelles sans inventer de séries et expose un contexte athlète minimal", async () => {
+  const a = await setup();
+  await selectStrengthReference(a.owner.userId, a.organizationId, a.athlete.athleteId, a.exercise.id, {
+    source: "working",
+    valueKg: 80,
+  });
+  const context = await getAthleteHistoryContext(a.athlete.userId, a.organizationId, a.athlete.athleteId);
+  expect(Object.keys(context.athlete).sort()).toEqual(["firstName", "id", "lastName"]);
+  expect(context.exercises).toEqual([
+    {
+      id: a.exercise.id,
+      name: a.exercise.name,
+      archived: false,
+      hasRealizedSets: false,
+      hasStrengthTests: false,
+      hasStrengthReference: true,
+    },
+  ]);
+  expect(context.today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  expect((await a.read()).sessions).toEqual([]);
+  await prisma.organization.update({ where: { id: a.organizationId }, data: { progressionEnabled: false } });
+  await expect(getAthleteHistoryContext(a.owner.userId, a.organizationId, a.athlete.athleteId)).rejects.toMatchObject({
+    code: "progression_disabled",
+  });
 });
