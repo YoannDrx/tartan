@@ -644,6 +644,83 @@ export const fr = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
   aiPlanner: {
+    replaceExercise: "Remplacer l’exercice",
+    replacementReset:
+      "Le remplacement utilise la prescription par défaut du nouvel exercice et retire les adaptations de cet item. Tu devras relire ses valeurs et son aperçu individuel.",
+    phaseReady: "Contexte prêt",
+    phaseReview: "Phases à vérifier",
+    previewRequired:
+      "Ouvre l’aperçu des charges individuelles de chaque séance avant de confirmer. Vérifie les références manquantes et les adaptations ; les groupes se parcourent par pages.",
+    referenceSource: "Référence de force",
+    previousAthletes: "Athlètes précédents",
+    nextAthletes: "Athlètes suivants",
+    previewLoads: "Vérifier les charges individuelles",
+    previewProvisional:
+      "Aperçu avec les références actuelles, calculé par Tartan sans les transmettre à l’IA. Les pourcentages seront résolus à nouveau à la publication ; les charges absolues restent celles que tu choisis.",
+    previewCoverage: (shown: number, total: number) =>
+      `${shown} / ${total} athlètes parcourus. Dix athlètes au maximum par page.`,
+    loadUndefined: "Charge à définir : aucune référence compatible disponible.",
+    adaptLoad: "Adapter la charge pour cet athlète",
+    resetLoad: "Reprendre la charge commune",
+    reviewAgain:
+      "La création des brouillons n’est pas confirmée. Tes ajustements sont conservés : relis-les avant de réessayer.",
+    leaveDraft: "Les modifications non envoyées seront perdues. Les brouillons déjà créés restent dans le calendrier.",
+    refineSearch: "Les 50 premiers résultats sont affichés. Précise ta recherche pour retrouver les autres.",
+    selectedExercises: (count: number) =>
+      `${count} exercices sélectionnés ; zéro utilise toute la bibliothèque autorisée.`,
+    title: "Planificateur IA",
+    beta: "Bêta · brouillons à relire",
+    lead: "Choisis les destinataires et la période, puis décris ta séance ou ta semaine. Aucune séance n’est publiée automatiquement.",
+    period: "Période de planification",
+    periodHint:
+      "Une séance ou sept jours au maximum, dans le fuseau de l’espace. Jusqu’à quatorze séances par proposition.",
+    periodInvalid: "Choisis une période de un à sept jours et au moins un destinataire.",
+    chooseContext: "Continuer avec ces destinataires",
+    changeContext: "Modifier les destinataires ou la période",
+    instructions: "Consigne à relire",
+    instructionsHint:
+      "Précise les jours, exercices, séries, répétitions, récupération et charges. Utilise les noms des groupes choisis ; ne saisis ni données de santé ni notes privées.",
+    reviewed: "J’ai relu la consigne et ses valeurs",
+    propose: "Préparer une proposition",
+    recover: "Vérifier le résultat de ma demande",
+    immutableRequest:
+      "Une demande a été envoyée. Vérifie son résultat ou réessaie à l’identique avant de modifier la consigne. Aucun nouvel envoi automatique.",
+    processing: "La demande est en cours. Tu peux actualiser son résultat sans consommer une nouvelle proposition.",
+    refresh: "Actualiser la proposition",
+    clarifyTitle: "Précisions nécessaires",
+    clarificationAnswer: "Ta réponse aux questions",
+    clarify: "Envoyer ces précisions",
+    clarificationLimit:
+      "Les cinq échanges de clarification ont été utilisés. Prépare une nouvelle consigne plus précise ; elle comptera comme une nouvelle proposition.",
+    clarificationCount: (n: number) => `${n} / 5 échanges de clarification utilisés`,
+    prepareReview: "Relire et ajuster les brouillons",
+    assumptions: "Hypothèses à vérifier",
+    suggestions: "Suggestions facultatives",
+    quotedInstruction: "Consigne interprétée",
+    reviewedDrafts: "J’ai vérifié les dates, destinataires, exercices et prescriptions de chaque séance",
+    confirmDrafts: (n: number) => `Créer ${n} brouillon${n > 1 ? "s" : ""}`,
+    draftsCreated:
+      "Les brouillons sont créés. Ouvre-les pour vérifier les adaptations individuelles, puis publie séparément depuis le calendrier.",
+    newProposal: "Préparer une nouvelle proposition",
+    newProposalHint:
+      "Une nouvelle proposition est décomptée séparément. La proposition précédente n’est pas supprimée immédiatement.",
+    expiry: (date: string) =>
+      `Contenu de la proposition conservé jusqu’au ${date} au plus tard ; après création, transcription et échanges sont purgés sous 24 heures.`,
+    usage: (used: number, reserved: number, limit: number) =>
+      `${used} propositions utilisées, ${reserved} en cours, sur ${limit} ce mois-ci.`,
+    audioUsage: (used: number, reserved: number, limit: number) =>
+      `${Math.floor(used / 60)} min ${used % 60} s de dictée utilisées, ${Math.floor(reserved / 60)} min ${reserved % 60} s en cours, sur ${limit / 60} minutes.`,
+    timeZone: (zone: string) => `Dates et quota : ${zone}`,
+    textTooLong: "La consigne dépasse 12 000 caractères. Raccourcis-la avant de continuer.",
+    allLibrary: (count: number) =>
+      `${count} exercices disponibles dans la bibliothèque. L’IA doit te demander de préciser tout exercice inconnu ou ambigu.`,
+    librarySubset: "Exercices autorisés pour cette proposition",
+    librarySubsetHint:
+      "Choisis au maximum 500 exercices. Une sélection vide utilise toute la bibliothèque si elle ne dépasse pas cette limite.",
+    noPublication:
+      "Cette action crée uniquement des brouillons. Elle ne notifie pas les athlètes et ne publie aucune séance.",
+    noAutomaticLoad:
+      "Les pourcentages utilisent les références de chaque athlète au moment de la publication. Sans référence, la charge reste à définir. Les cibles RPE/RIR ne calculent pas de kilogrammes.",
     dictate: "Dicter la consigne",
     dictationNotice:
       "L’audio est transmis à OpenAI tel que tu le prononces. Ne cite ni nom d’athlète, ni blessure, douleur ou autre donnée de santé. Le fichier temporaire est supprimé après l’envoi, l’échec ou l’annulation ; il n’est pas ajouté à tes vidéos.",

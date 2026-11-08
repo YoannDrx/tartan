@@ -13,7 +13,7 @@ import { NativeCalendarPhases } from "../../src/features/training-phases";
 
 // Le groupe et la semaine courante accompagnent la création native.
 export default function Planning() {
-  const { orgId } = useActiveSpace();
+  const { orgId, space: activeSpace } = useActiveSpace();
   const nav = useWeekNavigator();
   const [groupId, setGroupId] = useState<string | undefined>();
   const groups = useGroups(orgId);
@@ -59,6 +59,15 @@ export default function Planning() {
       onRefresh={() => void calendar.refetch()}
     >
       <WeekNav {...nav} />
+      {activeSpace?.aiPlannerEnabled ? (
+        <Button
+          variant="secondary"
+          label={m.aiPlanner.title}
+          onPress={() =>
+            router.push({ pathname: "/planner", params: { date: nav.week, ...(groupId ? { groupId } : {}) } })
+          }
+        />
+      ) : null}
       <Button
         label={m.coach.newSession}
         onPress={() =>
