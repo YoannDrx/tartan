@@ -20,6 +20,7 @@
 - Compilation Xcode iOS réussie, zéro erreur et cinq avertissements de dépendances/scripts existants. Binaire de développement installé sur l’iPhone 17 Pro simulé, puis ouverture explicite du serveur Metro Tartan sur 8083 (statut `running`). L’API dédiée 3102 reste disponible. Cette compilation n’est pas un build de distribution TestFlight.
 - Exports Hermes iOS et Android réussis ; `design:check` : aucun travers détecté.
 - CI du prédécesseur poussé `d1df20f` : qualité `42449500250` et compilation Android `42449500262` réussies ; Preview Vercel prête. Ces résultats ne valent pas validation du nouveau code de capture.
+- La CI Android `42451584082` sur `752417c` a échoué au diagnostic, avant compilation : `expo-asset`, dépendance native requise par ExpoAudio, n’était déclaré qu’indirectement. Ajout direct de la version SDK 55 et de son plugin. Le diagnostic local `expo-doctor` passe ensuite ses 20 contrôles sur 20 ; la compilation CI corrigée reste à observer.
 
 ## Limites et suite
 
