@@ -10,7 +10,7 @@ test("l'onboarding permet de corriger la date avant de créer l'espace", async (
   await page.getByLabel("Nom", { exact: true }).fill("Coach");
   await page.getByLabel(m.invite.birthDate).fill("2015-01-01");
   await page.getByLabel(m.onboarding.orgName).fill("Recette physique");
-  await page.getByLabel(m.onboarding.firstGroup).fill("Sprint");
+  await page.getByLabel(m.onboarding.firstGroup, { exact: true }).fill("Sprint");
   await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
   await page.getByRole("button", { name: m.onboarding.createSpace, exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
