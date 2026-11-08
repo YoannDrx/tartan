@@ -9,6 +9,7 @@ import type { PlannerProviderContext } from "@/server/ai/provider";
 import { POST as create } from "../app/api/v1/orgs/[orgId]/planner/route";
 import { GET as usage } from "../app/api/v1/orgs/[orgId]/planner/usage/route";
 import { GET as read } from "../app/api/v1/orgs/[orgId]/planner/proposals/[proposalId]/route";
+import { GET as list } from "../app/api/v1/orgs/[orgId]/planner/proposals/route";
 import { POST as clarify } from "../app/api/v1/orgs/[orgId]/planner/proposals/[proposalId]/clarify/route";
 import { POST as prepare } from "../app/api/v1/orgs/[orgId]/planner/proposals/[proposalId]/prepare/route";
 import { POST as confirm } from "../app/api/v1/orgs/[orgId]/planner/proposals/[proposalId]/confirm/route";
@@ -108,7 +109,9 @@ const transport = (userId?: string) =>
                     ? confirm
                     : parts[8] === "preview"
                       ? preview
-                      : read;
+                      : proposalId
+                        ? read
+                        : list;
       const response = await handler(request, ctx);
       if (response.ok) expect(response.headers.get("cache-control")).toBe("private, no-store");
       if (parts[6] === "transcriptions" && [401, 403].includes(response.status)) expect(request.bodyUsed).toBe(false);
@@ -153,6 +156,12 @@ it("fait passer le parcours SDK et routes par les mêmes contrôles jusqu'aux br
   a.input.text = transcript.text!;
   const first = await a.api.createPlannerProposal(a.organizationId, a.input);
   expect(first.state).toBe("clarification");
+  expect((await a.api.plannerProposals(a.organizationId)).items.map((p) => p.id)).toEqual([first.id]);
+  expect((await a.api.plannerProposals(a.organizationId, { before: first.id })).items).toEqual([]);
+  await expect(transport().plannerProposals(a.organizationId)).rejects.toMatchObject({ status: 401 });
+  mocks.enabled = "false";
+  await expect(a.api.plannerProposals(a.organizationId)).rejects.toMatchObject({ status: 403 });
+  mocks.enabled = "true";
   expect((await a.api.plannerProposal(a.organizationId, first.id)).version).toBe(first.version);
   mocks.interpret.mockImplementationOnce(async (context: PlannerProviderContext) => ({
     status: "proposal",

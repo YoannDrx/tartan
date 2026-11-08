@@ -223,6 +223,23 @@ export const plannerProposalResponse = z.object({
   draftIds: plannerCreatedSessions.nullable(),
 });
 export type PlannerProposalResponse = z.infer<typeof plannerProposalResponse>;
+export const plannerProposalListQuery = z.object({ before: uuid.optional() }).strict();
+export type PlannerProposalListQuery = z.infer<typeof plannerProposalListQuery>;
+export const plannerProposalList = z.object({
+  items: z
+    .array(
+      z.object({
+        id: uuid,
+        state: plannerProposalResponse.shape.state,
+        period: plannerSelection.shape.period,
+        createdAt: z.iso.datetime(),
+        expiresAt: z.iso.datetime(),
+      }),
+    )
+    .max(20),
+  nextCursor: uuid.nullable(),
+});
+export type PlannerProposalList = z.infer<typeof plannerProposalList>;
 const plannerUsageCounts = z.object({
   proposals: z.number().int().nonnegative(),
   audioSeconds: z.number().int().nonnegative(),

@@ -8,6 +8,9 @@ import {
   plannerSelection,
   confirmPlannerProposalInput,
   plannerProposalResponse,
+  plannerProposalList,
+  plannerProposalListQuery,
+  type PlannerProposalListQuery,
   previewPlannerLoadsInput,
   plannerLoadsPreview,
   type PreviewPlannerLoadsInput,
@@ -115,6 +118,58 @@ export async function getPlannerProposal(userId: string, organizationId: string,
     phaseReviews: bindings.phaseReviews,
     draftIds: row.draftIds,
   });
+}
+
+// Index privé volontairement sans texte, noms, prescriptions ou échanges. La
+// lecture détaillée recontrôle les droits et résout l'état d'une opération interrompue.
+export async function listPlannerProposals(
+  userId: string,
+  organizationId: string,
+  input: PlannerProposalListQuery = {},
+  now = new Date(),
+) {
+  const access = await accessFor(userId, organizationId);
+  const { before } = plannerProposalListQuery.parse(input);
+  const cursor = before
+    ? await prisma.aiPlannerProposal.findFirst({
+        where: { id: before, organizationId, actorId: userId },
+        select: { id: true, createdAt: true },
+      })
+    : null;
+  if (before && !cursor) throw notFound();
+  const rows = await prisma.aiPlannerProposal.findMany({
+    where: {
+      organizationId,
+      actorId: userId,
+      expiresAt: { gt: now },
+      ...(cursor
+        ? { OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: cursor.id } }] }
+        : {}),
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 21,
+    select: { id: true, state: true, selection: true, createdAt: true, expiresAt: true },
+  });
+  const items = [];
+  for (const row of rows.slice(0, 20)) {
+    const selection = plannerSelection.parse(row.selection);
+    try {
+      await assertPlannerTargets(prisma, access, selection);
+    } catch (error) {
+      // Un changement de groupe peut retirer l'accès à une ancienne proposition.
+      // Les erreurs d'infrastructure restent visibles : pas de faux résultat vide.
+      if (error instanceof AppError && [403, 404].includes(error.status)) continue;
+      throw error;
+    }
+    items.push({
+      id: row.id,
+      state: row.state,
+      period: selection.period,
+      createdAt: row.createdAt.toISOString(),
+      expiresAt: row.expiresAt.toISOString(),
+    });
+  }
+  return plannerProposalList.parse({ items, nextCursor: rows.length > 20 ? rows[19]!.id : null });
 }
 type Execution = { provider?: PlannerProvider; clock?: () => Date };
 async function executeProposal(

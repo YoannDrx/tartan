@@ -644,6 +644,25 @@ export const fr = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
   aiPlanner: {
+    recent: "Mes propositions récentes",
+    recentRefresh: "Actualiser la liste",
+    pendingAnswer: "Précisions envoyées : résultat à vérifier",
+    recentHint:
+      "Retrouve uniquement tes demandes envoyées. Ouvrir un résultat ne consomme pas de nouvelle proposition. Les saisies non envoyées ne sont pas conservées ici.",
+    recentEmpty: "Aucune proposition accessible sur cette page.",
+    recentRetention:
+      "Les propositions expirent après sept jours, ou sous 24 heures après création des brouillons. Les séances créées restent dans le calendrier.",
+    recentEarlier: "Demandes précédentes",
+    recentNewer: "Demandes suivantes",
+    recentOpen: (from: string, to: string, status: string) => `Du ${from} au ${to} · ${status}`,
+    recentCreated: (date: string) => `Demande envoyée le ${date}`,
+    recentStates: {
+      processing: "Traitement à vérifier",
+      clarification: "Précisions attendues",
+      proposal: "Proposition à relire",
+      failed: "Demande échouée",
+      committed: "Brouillons créés",
+    },
     replaceExercise: "Remplacer l’exercice",
     replacementReset:
       "Le remplacement utilise la prescription par défaut du nouvel exercice et retire les adaptations de cet item. Tu devras relire ses valeurs et son aperçu individuel.",

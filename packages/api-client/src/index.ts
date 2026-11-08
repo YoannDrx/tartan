@@ -4,6 +4,8 @@ import {
   plannerLoadsPreview,
   type PreviewPlannerLoadsInput,
   plannerProposalResponse,
+  plannerProposalList,
+  type PlannerProposalListQuery,
   plannerDraftsResponse,
   plannerConfirmationResult,
   plannerUsageResponse,
@@ -139,6 +141,8 @@ export const createApiClient = (options: ApiClientOptions) => {
       ),
     plannerUsage: (orgId: string, signal?: AbortSignal) =>
       request("GET", `/orgs/${orgId}/planner/usage`, plannerUsageResponse, undefined, undefined, signal),
+    plannerProposals: (orgId: string, query: PlannerProposalListQuery = {}, signal?: AbortSignal) =>
+      request("GET", `/orgs/${orgId}/planner/proposals`, plannerProposalList, undefined, query, signal),
     createPlannerProposal: (orgId: string, body: CreatePlannerProposalInput, signal?: AbortSignal) =>
       request("POST", `/orgs/${orgId}/planner`, plannerProposalResponse, body, undefined, signal),
     plannerProposal: (orgId: string, proposalId: string, signal?: AbortSignal) =>

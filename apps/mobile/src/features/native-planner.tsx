@@ -252,6 +252,9 @@ export function NativePlanner({
       <T variant="small" tone="muted">
         {t.timeZone(usage.timeZone)}
       </T>
+      {!proposal && !contextReady ? (
+        <Button variant="secondary" label={t.recent} onPress={() => router.push("/planner-proposals")} />
+      ) : null}
       {error ? (
         <T tone="danger" accessibilityLiveRegion="assertive">
           {error}
@@ -345,6 +348,12 @@ export function NativePlanner({
           {proposal.messages.map((message, i) => (
             <T key={i}>{message}</T>
           ))}
+          {proposal.pendingText ? (
+            <>
+              <SectionTitle>{t.pendingAnswer}</SectionTitle>
+              <T selectable>{proposal.pendingText}</T>
+            </>
+          ) : null}
           <T variant="small" tone="muted">
             {t.expiry(new Date(proposal.expiresAt).toLocaleString("fr-FR"))}
           </T>

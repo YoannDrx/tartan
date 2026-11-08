@@ -1,6 +1,6 @@
 # Lot E — parcours natif et aperçu individuel, 8 novembre 2026
 
-État : parcours natif raccordé, compilable et isolé par les drapeaux ; non activé en production. La recette visuelle et sur téléphones n’est pas acquise. Le parcours web, la reprise depuis une liste de propositions et le corpus d’évaluation restent à terminer.
+État : parcours natif raccordé, compilable et isolé par les drapeaux ; non activé en production. La recette visuelle et sur téléphones n’est pas acquise. Le parcours web et le corpus d’évaluation restent à terminer. La liste de reprise privée a été ajoutée dans le lot suivant, décrit ci-dessous.
 
 Services, contrats et tests associés : commit `600c6dc`. Les écrans et cette preuve sont enregistrés dans le commit natif suivant, dans la même PR #45.
 
@@ -15,7 +15,7 @@ Services, contrats et tests associés : commit `600c6dc`. Les écrans et cette p
 - Validation explicite de brouillons uniquement. Aucune notification, publication ou publication programmée n’est disponible dans cette commande. Les brouillons sont ensuite ouvrables dans le constructeur complet ou publiables séparément depuis le calendrier.
 - Déduplication des appuis, demande de génération/clarification conservée à l’identique après réponse perdue, récupération par lecture, confirmation rejouée avec le même contenu. Une relecture après échec de confirmation conserve les ajustements. Délai de deux minutes et annulation locale au démontage ; les réponses tardives ne changent pas la route d’un autre écran/compte. Le serveur peut terminer une demande déjà reçue, selon son cycle durable.
 
-Les formulaires et aperçus restent en mémoire : aucun ajout à la liste de requêtes persistées, aucune file hors ligne contenant la dictée. Les brouillons serveur survivent au redémarrage. La proposition privée est relisible par sa route tant qu’elle existe ; une liste permettant de la retrouver facilement après fermeture complète reste à ajouter. Les modifications locales non envoyées sont annoncées comme perdues en quittant.
+Les formulaires et aperçus restent en mémoire : aucun ajout à la liste de requêtes persistées, aucune file hors ligne contenant la dictée. Les brouillons serveur survivent au redémarrage. La proposition privée est relisible par sa route tant qu’elle existe ; une liste privée permet maintenant de la retrouver après fermeture complète (recette interactive encore ouverte). Les modifications locales non envoyées sont annoncées comme perdues en quittant.
 
 ## Contrats et serveur
 
@@ -43,4 +43,15 @@ Aucune migration supplémentaire : Preview reste à 36 migrations. Les drapeaux 
 
 Le Mac verrouillé empêchait le contrôle visuel du simulateur lors du dernier essai. Aucun parcours de dictée humaine, VoiceOver/TalkBack ou iPhone/Android physique n’est déclaré réussi ici. Les contrôles de types, exports, règles de design et tests serveur ne prouvent pas cette expérience. Les passes UI/UX et la recette globale restent ouvertes ; le composant natif doit notamment être exercé avec une vraie interruption, une réponse perdue et une correction de proposition.
 
-À terminer : interface et dictée web, liste/reprise des propositions privées, alias contrôlés de bibliothèque, corpus d’au moins 60 cas dont 30 dictées, suivi du nombre de corrections, validation du traitement prestataire et bêta sur coachs. L’IA reste désactivée et la PR #45 reste en brouillon.
+À terminer : interface et dictée web, recette interactive de reprise des propositions privées, alias contrôlés de bibliothèque, corpus d’au moins 60 cas dont 30 dictées, suivi du nombre de corrections, validation du traitement prestataire et bêta sur coachs. L’IA reste désactivée et la PR #45 reste en brouillon.
+
+
+## Reprise privée après fermeture — 8 novembre, lot suivant `18a541c`
+
+Route `GET /api/v1/orgs/:orgId/planner/proposals` et SDK partagé. Vingt demandes au maximum par page, ordre stable par date et identifiant, curseur limité à l’auteur et à l’espace. Les demandes expirées sont exclues même avant le cron de purge. Les destinataires sont recontrôlés : une proposition dont le groupe ou l’athlète n’est plus accessible est masquée. Une page filtrée peut être vide ; son curseur permet de continuer sans bloquer les autres demandes. Aucune consigne, transcription, note, prescription, aucun nom de destinataire ni contenu d’interprétation n’est sélectionné ou renvoyé par cette liste. Aucun appel prestataire, écriture ou consommation.
+
+Entrée « Mes propositions récentes » avant le formulaire natif. Les cartes montrent période, date d’envoi et état ; l’ouverture relit la proposition au serveur. L’état « Traitement à vérifier » n’affirme pas qu’une opération interrompue tourne encore : la lecture détaillée résout le bail. Les précisions envoyées mais pas encore confirmées restent visibles et sélectionnables. Les saisies et ajustements non envoyés ne sont pas récupérables ; l’interface le précise. La liste reste en mémoire et n’est pas ajoutée au cache persistant. Aucun délai de conservation n’est prolongé.
+
+Preuves locales : **23 tests serveur/API réussis en 7,14 s**, incluant pagination avec dates identiques, exclusion des autres auteurs/espaces et des demandes expirées, révocation des accès, coupure IA et absence de consommation supplémentaire. Types du monorepo réussis après correction du typage JSON d’une fixture. Lint ciblé sans erreur, contrôle design sans travers, exports Hermes iOS et Android réussis avec la nouvelle route. Aucun test de redémarrage interactif ni téléphone physique revendiqué.
+
+Le simulateur iPhone 17 Pro était démarré ; l’application a été relancée avec succès (`simctl`, PID 68285). Le contrôle visuel a de nouveau signalé le Mac verrouillé. API locale 3102 et Metro 8083 conservés. La CI de `18a541c` était encore en cours pendant ce lot ; les résultats d’anciens commits ne valent pas validation du nouveau diff.

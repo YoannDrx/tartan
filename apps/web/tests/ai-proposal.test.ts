@@ -6,6 +6,7 @@ import {
   createPlannerProposal,
   clarifyPlannerProposal,
   getPlannerProposal,
+  listPlannerProposals,
   purgePlannerProposals,
   preparePlannerDrafts,
   confirmPlannerProposal,
@@ -100,6 +101,70 @@ async function setup() {
     createPlannerProposal(a.owner.userId, a.organizationId, value, { provider: p, clock });
   return { ...a, input, exercise, create };
 }
+it("retrouve les propositions privées par pages stables, sans texte, quota ni appel IA supplémentaire", async () => {
+  const a = await setup(),
+    p = provider();
+  await a.create(p);
+  const row = await prisma.aiPlannerProposal.findUniqueOrThrow({ where: { id: a.input.id } });
+  // Même horodatage : l'identifiant départage les pages sans saut ni doublon.
+  const additionalIds = Array.from({ length: 22 }, () => randomUUID());
+  await prisma.aiPlannerProposal.createMany({
+    data: additionalIds.map((id) => ({
+      ...row,
+      id,
+      selection: a.input.selection,
+      bindings: row.bindings!,
+      messages: [a.input.text],
+      interpretation: row.interpretation!,
+      draftIds: undefined,
+    })),
+  });
+  const expiredId = additionalIds[0]!;
+  await prisma.aiPlannerProposal.update({ where: { id: expiredId }, data: { expiresAt: now } });
+  const coach = await addStaff(a.organizationId, "AutreAuteurListe", "coach", [a.groupId]);
+  const foreignId = additionalIds[1]!;
+  await prisma.aiPlannerProposal.update({ where: { id: foreignId }, data: { actorId: coach.userId } });
+  const first = await listPlannerProposals(a.owner.userId, a.organizationId, {}, now);
+  expect(first.items).toHaveLength(20);
+  expect(first.nextCursor).toBeTruthy();
+  const second = await listPlannerProposals(a.owner.userId, a.organizationId, { before: first.nextCursor! }, now);
+  const ids = [...first.items, ...second.items].map((item) => item.id);
+  expect(new Set(ids).size).toBe(21);
+  expect(ids).not.toContain(expiredId);
+  expect(ids).not.toContain(foreignId);
+  expect(second.nextCursor).toBeNull();
+  expect(Object.keys(first.items[0]!).sort()).toEqual(["id", "state", "period", "createdAt", "expiresAt"].sort());
+  expect(JSON.stringify(first)).not.toContain(a.input.text);
+  await expect(
+    listPlannerProposals(a.owner.userId, a.organizationId, { before: foreignId }, now),
+  ).rejects.toMatchObject({ status: 404 });
+  const other = await makeOrg("AutreEspaceListe");
+  await expect(listPlannerProposals(other.owner.userId, a.organizationId, {}, now)).rejects.toMatchObject({
+    status: 403,
+  });
+  expect(p.interpret).toHaveBeenCalledTimes(1);
+  expect(await prisma.aiPlannerOperation.count({ where: { organizationId: a.organizationId } })).toBe(1);
+  expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
+});
+
+it("masque la liste après retrait du groupe, du rôle, du flag ou de l'offre", async () => {
+  const a = await setup();
+  const coach = await addStaff(a.organizationId, "ListeRévoquée", "coach", [a.groupId]);
+  await createPlannerProposal(coach.userId, a.organizationId, a.input, { provider: provider(), clock });
+  expect((await listPlannerProposals(coach.userId, a.organizationId, {}, now)).items).toHaveLength(1);
+  await prisma.groupCoach.deleteMany({ where: { groupId: a.groupId, userId: coach.userId } });
+  expect((await listPlannerProposals(coach.userId, a.organizationId, {}, now)).items).toEqual([]);
+  await prisma.organizationMember.update({
+    where: { organizationId_userId: { organizationId: a.organizationId, userId: coach.userId } },
+    data: { status: "suspended" },
+  });
+  await expect(listPlannerProposals(coach.userId, a.organizationId, {}, now)).rejects.toMatchObject({ status: 403 });
+  flags.AI_PLANNER_ENABLED = "false";
+  await expect(listPlannerProposals(a.owner.userId, a.organizationId, {}, now)).rejects.toMatchObject({ status: 403 });
+  flags.AI_PLANNER_ENABLED = "true";
+  await prisma.organization.update({ where: { id: a.organizationId }, data: { plan: "discovery" } });
+  await expect(listPlannerProposals(a.owner.userId, a.organizationId, {}, now)).rejects.toMatchObject({ status: 403 });
+});
 it("conserve une proposition privée, sans séance écrite, et retrouve la réponse perdue sans appel", async () => {
   const a = await setup(),
     p = provider();
