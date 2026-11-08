@@ -93,5 +93,5 @@ test("lecture image par image d'une vidéo à 240 i/s", async ({ page }, info) =
   await page.getByPlaceholder(/Remarque à/).fill("Pied d'appel posé à plat");
   await page.getByRole("button", { name: "Ajouter le commentaire" }).click();
   await expect(page.getByText("Pied d'appel posé à plat")).toBeVisible();
-  await expect(page.getByText("Impulsion").first()).toBeVisible();
+  await expect(page.getByText("Impulsion", { exact: true }).locator("visible=true").first()).toBeVisible();
 });
