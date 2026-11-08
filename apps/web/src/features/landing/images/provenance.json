@@ -1,0 +1,23 @@
+{
+  "dataset": "apps/web/prisma/demo-preparation.ts, base locale, personnes fictives",
+  "device": "iPhone 17 Pro, iOS 26.3, simulateur, build Release de la branche ; barre d'état normalisée",
+  "clip": {
+    "use": "ios-video.png, lecture du clip dans l'analyse",
+    "source": "https://www.pexels.com/video/athlete-sprinting-on-outdoor-track-37264421/",
+    "author": "Official Amit",
+    "license": "Licence Pexels, usage gratuit sans attribution obligatoire"
+  },
+  "captures": [
+    { "file": "ios-accueil.png", "source": "ios", "screen": "Athlète, Aujourd'hui" },
+    { "file": "ios-mois.png", "source": "ios", "screen": "Athlète, Calendrier, vue Mois" },
+    { "file": "ios-muscu.png", "source": "ios", "screen": "Athlète, mode séance, Squat arrière" },
+    { "file": "ios-plio.png", "source": "ios", "screen": "Athlète, mode séance, Sauts de haies basses" },
+    { "file": "ios-technique.png", "source": "ios", "screen": "Athlète, mode séance, Gammes" },
+    { "file": "ios-plots.png", "source": "ios", "screen": "Athlète, mode séance, Slalom entre les plots" },
+    { "file": "ios-video.png", "source": "ios", "screen": "Athlète, analyse vidéo" },
+    { "file": "ios-progres.png", "source": "ios", "screen": "Athlète, Progrès" },
+    { "file": "web-mois.png", "source": "web", "screen": "Coach, Calendrier, vue Mois" },
+    { "file": "web-constructeur.png", "source": "web", "screen": "Coach, constructeur de séance" },
+    { "file": "web-suivi.png", "source": "web", "screen": "Coach, Suivi du groupe" }
+  ]
+}

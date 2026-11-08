@@ -12,4 +12,4 @@ Ce document distingue trois états : code livré dans la PR, testé automatiquem
 | 3 | Console d'administration, remboursements | Livré dans la branche ; tests verts. À faire avant usage : `ADMIN_EMAILS`, `ADMIN_BOOTSTRAP_TOKEN`, `PASSKEY_RP_ID`, webhooks Stripe élargis, vrai remboursement éprouvé |
 | 4 | Lien vidéo-exercice, « À travailler », bibliothèque, modèles de départ, préférences e-mail mobile | Livré dans la branche ; tests verts. Le lien se pose depuis l'analyse web |
 | 5 | Activation, IA bêta, relances, export d'espace, Sentry | Livré dans la branche ; tests verts. IA : corpus à rejouer avec une nouvelle clé avant `AI_PLANNER_ENABLED=true` |
-| 6 | Landing, vraies captures | À faire |
+| 6 | Landing, vraies captures | Livré dans la branche ; captures iOS Release et web sur données fictives, procédure dans `preuves-v1-1/captures-landing.md` |

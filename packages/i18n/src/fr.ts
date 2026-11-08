@@ -1,7 +1,11 @@
 // Textes français de Tartan. Côté athlète : tutoiement, phrases courtes.
 // Côté coach : sobre et précis, vocabulaire du métier (§ 4.5).
 export const fr = {
-  brand: { name: "Tartan", storeName: "Tartan – Coach athlé", tagline: "Séances, suivi et vidéo pour ton groupe" },
+  brand: {
+    name: "Tartan",
+    storeName: "Tartan – Préparation physique",
+    tagline: "Séances, suivi et vidéo pour ton groupe",
+  },
   calculator: {
     title: "Calculateur de charges",
     intro:
@@ -953,102 +957,100 @@ export const fr = {
     pricing: "Comparer les offres",
   },
   landing: {
-    title: "Prépare le groupe. Fais progresser chacun.",
-    lead: "La préparation physique pour l’athlétisme, du bureau au bord de la piste. Planifie les séances, adapte les consignes et retrouve les retours de ton groupe au même endroit.",
+    title: "La préparation physique du coach et de son groupe.",
+    lead: "Tu construis les séances. Ton groupe sait ce qui arrive et sur quoi s’appliquer. Tu vois ce qui a vraiment été fait. Pensé pour l’athlétisme, du bureau au bord de la piste.",
     description:
-      "Le carnet partagé des coachs et athlètes d’athlétisme : planification, consignes individuelles, suivi des séances et analyse technique.",
-    disciplines: "Force · Vitesse · Puissance · Endurance · Mobilité",
-    journeyLabel: "Découvrir le parcours Tartan",
-    journey: [
-      { id: "preparer", label: "Préparer" },
-      { id: "individualiser", label: "Individualiser" },
-      { id: "realiser", label: "Réaliser" },
-      { id: "progresser", label: "Progresser" },
-    ],
-    prepare: {
-      title: "Ta semaine, au même endroit.",
-      body: "Construis tes séances avec ta bibliothèque d’exercices, choisis les destinataires et publie quand elles sont prêtes. Le calendrier garde les rendez-vous du groupe lisibles.",
-      alt: "Calendrier Tartan : une semaine de préparation avec musculation, course, pliométrie et mobilité, identifiées par leur nom et leur catégorie.",
-      caption: "Capture de Tartan sur ordinateur. Séances et espace fictifs de démonstration.",
-      enlarge: "Voir le calendrier en grand",
-    },
-    realize: {
-      title: "Un appui pour dire : c’est fait.",
-      body: "L’athlète retrouve sa séance sur téléphone. Sa validation apparaît dans le suivi du coach. Essaie ici avec un exemple fictif : aucune donnée n’est enregistrée.",
-    },
-    progress: {
-      title: "Comprendre ce qui a été réalisé.",
-      body: "Les nouveautés V1.1 rapprochent les séries renseignées, l’historique par exercice et les phases de préparation. Le prévu et le réalisé restent distincts ; une donnée absente n’est jamais inventée.",
-      availability:
-        "En préparation pour le pilote V1.1. Les séries détaillées, courbes, records et phases ne sont pas encore ouverts à tous les espaces.",
-      alt: "Aperçu V1.1 de l’analyse : volumes prévus et réalisés renseignés, couverture des données et tableau des valeurs du graphique.",
-      caption:
-        "Capture de la version V1.1 en cours de validation, avec données fictives. Ce graphique ne mesure pas un risque de blessure.",
-      enlarge: "Voir l’aperçu de l’analyse en grand",
-    },
-    videoExample: "Essayer un exemple en saut en hauteur",
+      "Tartan, l’app de préparation physique du coach et de son groupe : planification au mois, musculation, pliométrie, technique de course, suivi des séances et analyse vidéo, pour l’athlétisme.",
+    types: "Musculation · Pliométrie · Technique de course · Plots · Escaliers · Mobilité",
+    heroAltPhone:
+      "Application iPhone, accueil de l’athlète : semaine en cours, séance de force du jour et mot du coach.",
+    heroAltDesktop:
+      "Bureau du coach : calendrier du mois avec les séances de musculation, pliométrie, technique de course et plots, chacune avec sa couleur.",
+    captureNote: "Captures réelles de Tartan, sur un groupe fictif.",
     ctaOpen: "Créer mon espace coach",
     ctaClosed: "Rejoindre le pilote",
     signIn: "Se connecter",
     footer: { sales: "Conditions de vente", notice: "Mentions légales" },
     offer: (athletes: number, trialDays: number) =>
       `Gratuit jusqu'à ${athletes} athlètes. ${trialDays} jours d'essai sur les offres payantes.`,
-    demo: {
-      label: "Essaie : valide une séance comme un athlète",
-      example: "Exemple",
-      today: "Aujourd'hui",
-      sessionTitle: "Séance du stade",
-      sessionDetail: "Accélérations 6 × 30 m, puis gainage et mobilité",
-      validate: "J'ai fait la séance",
-      validated: "Séance validée, bien joué",
-      elapsed: (seconds: string) => `Validée en ${seconds} s.`,
-      goal: "Il suffit d'un appui, sans mot de passe à retrouver.",
-      restart: "Recommencer",
-      coachGrid: "Ce que voit le coach",
-      athlete: "Athlète",
-      days: ["Lundi", "Mercredi", "Ce soir"],
-      announce: (athlete: string) => `${athlete} passe à Fait dans la grille du coach.`,
-    },
     film: {
-      titleMark: "faite",
-      run: { title: "Plus aucune séance perdue dans les SMS.", mark: "SMS" },
-      plant: { title: "Commenté à l'instant de l'impulsion.", mark: "l'impulsion" },
-      flightMark: "leçon",
-      validated: { title: "Validée, bien joué.", mark: "bien joué" },
-      finish: {
-        title: "Et toi, tu sais qui l'a faite.",
-        mark: "tu sais",
-        body: "L'athlète valide d'un appui. Sa case passe à Fait dans ta grille.",
+      intro: {
+        title: "Ce que ça change pour ton groupe.",
+        mark: "groupe",
+        lead: "Une séance, du programme à la validation.",
       },
+      run: {
+        title: "Tu vois ce qui arrive.",
+        mark: "arrive",
+        noteTitle: "Le programme",
+        note: "Les prochaines semaines, séance par séance, en liste ou sur le mois.",
+      },
+      plant: {
+        title: "Tu sais ce que tu travailles.",
+        mark: "travailles",
+        noteTitle: "La séance",
+        note: "Musculation, pliométrie, technique de course, plots : les exercices, les charges, les consignes.",
+      },
+      flight: {
+        title: "Tu sais sur quoi t’appliquer.",
+        mark: "t’appliquer",
+        noteTitle: "Le geste",
+        note: "Le mouvement à soigner, la remarque du coach, l’analyse vidéo au bon instant.",
+      },
+      validated: { title: "Validée, bien joué.", mark: "bien joué", sub: "Un appui, et la séance est faite." },
+      finish: {
+        title: "Et ton coach sait où tu en es.",
+        mark: "où tu en es",
+        body: "Il voit qui a fait quoi, avec quelles charges, et ajuste la suite.",
+      },
+      timeline: ["Programme", "Travail", "Geste", "Validé"],
     },
-    rollCall: {
-      title: "Tu crées la séance une fois. L'absent reçoit la bonne version.",
-      body: "Pour le groupe, un sous-groupe ou un athlète, chacun avec ses charges. Fais l'appel : la bascule se fait toute seule.",
-      sheet: "Appel de ce soir",
-      present: "Présent",
-      absent: "Absent",
-      statusFor: (athlete: string) => `Présence de ${athlete}`,
-      clubSession: "Force et accélérations au stade",
-      soloSession: "Côtes 6 × 40 m et gainage",
+    coach: {
+      title: "Ton mois, séance par séance.",
+      body: "Chaque type de séance a sa couleur. Tu déplaces, tu dupliques, tu publies quand c’est prêt. La vue semaine, le mois complet ou la liste : le choix te suit d’un appareil à l’autre.",
+      builderTitle: "Une séance, chacun ses charges.",
+      builderBody:
+        "Tu crées la séance une fois, depuis ta bibliothèque d’exercices ou un modèle. Chaque athlète reçoit ses charges, calculées sur ses propres références. L’absent reçoit sa version en autonomie.",
+      builderAlt: "Constructeur de séance sur ordinateur : blocs, exercices et prescriptions.",
+      trackingTitle: "Qui a fait quoi, sans SMS.",
+      trackingBody:
+        "La grille du groupe se remplit à mesure que les athlètes valident. Tu repères d’un coup d’œil les absents et les séances partielles.",
+      trackingAlt: "Grille de suivi du coach : athlètes en lignes, séances en colonnes, état de chaque séance.",
+    },
+    content: {
+      title: "Ce que ton groupe ouvre vraiment.",
+      body: "Pas une liste de mots : la séance du jour, avec les exercices, les charges et les consignes de son coach.",
+      items: [
+        {
+          label: "Musculation",
+          alt: "Séance de musculation sur iPhone : squat arrière, soulevé de terre roumain, charges et repos.",
+        },
+        {
+          label: "Pliométrie",
+          alt: "Séance de pliométrie sur iPhone : sauts de haies basses, bonds et contacts au sol.",
+        },
+        {
+          label: "Technique de course",
+          alt: "Séance de technique de course sur iPhone : gammes, accélérations et consignes.",
+        },
+        { label: "Plots", alt: "Séance d’appuis sur plots sur iPhone : slalom et changements d’appuis." },
+      ],
+    },
+    views: {
+      title: "En liste ou sur le mois.",
+      body: "Coach comme athlète, chacun choisit sa vue et voit venir les semaines. Les jours se lisent d’un coup d’œil, le détail s’ouvre d’un appui.",
+      alt: "Calendrier du mois sur iPhone, avec une pastille de couleur par séance et la liste du jour sélectionné.",
     },
     video: {
       title: "Revoir le geste. Préciser la consigne.",
-      body: "Une course, un exercice de force ou un saut : retrouve la vidéo de l’athlète, parcours les images et place ta remarque au bon instant. Les outils de hauteur restent disponibles pour cette spécialité.",
-      frame: (current: number, total: number) => `Image ${current} sur ${total}`,
-      seconds: (value: string) => `${value} s`,
-      slider: "Parcourir le saut image par image",
-      previous: "Image précédente",
-      next: "Image suivante",
-      phases: { approach: "Élan", takeoff: "Impulsion", flight: "Franchissement", landing: "Retombée" },
-      comments: {
-        approach: "Pas de remarque sur l'élan.",
-        takeoff: "Dernier appui trop près de la barre : recule ta marque d'un pied.",
-        flight: "Bien : les épaules passent avant les hanches.",
-        landing: "Pas de remarque sur la retombée.",
-      },
-      coachSays: "Remarque du coach",
-      caption:
-        "Schéma d'illustration. Dans Tartan, c'est ta vidéo qui défile ici, avec les ralentis filmés à 240 images par seconde.",
+      body: "Une course, un exercice de force, un saut : filme, passe au ralenti, place ta remarque au bon instant. Elle remonte dans « À travailler » chez l’athlète.",
+      alt: "Analyse vidéo sur iPhone : un athlète en course, repères sur la frise et remarques du coach.",
+      caption: "Capture réelle de l’app. Clip d’illustration libre de droits, remarques fictives.",
+    },
+    progress: {
+      title: "Comprendre ce qui a été réalisé.",
+      body: "Séries saisies, historique par exercice, phases de préparation : le prévu et le réalisé restent distincts, et une donnée absente n’est jamais inventée.",
+      alt: "Progrès de l’athlète sur iPhone : analyse, historique par exercice, phase en cours et test de force.",
     },
     field: {
       title: "Pensé pour le bord de la piste.",
@@ -1940,7 +1942,8 @@ export const fr = {
     save: "Enregistrer",
     stepUpRequired: "Confirme ton identité avec ta passkey pour continuer.",
     verifyTitle: "Vérifie ton identité",
-    verifyLead: "La console donne accès aux comptes et aux remboursements : une passkey est demandée en plus de ta session.",
+    verifyLead:
+      "La console donne accès aux comptes et aux remboursements : une passkey est demandée en plus de ta session.",
     passkeyVerify: "Confirmer avec ma passkey",
     passkeyCreate: "Créer ma passkey",
     passkeyFailed: "La vérification n'a pas abouti.",
@@ -1986,7 +1989,8 @@ export const fr = {
     withdrawalClosed: (date: string) => `Délai de rétractation terminé le ${date}.`,
     withdrawalHint: "À toi de vérifier si le client est un consommateur.",
     confirmStore: "Confirmer la disponibilité",
-    confirmStoreDetail: "Le push partira vers les appareils en retard. Vérifie d'abord que la version est bien en ligne.",
+    confirmStoreDetail:
+      "Le push partira vers les appareils en retard. Vérifie d'abord que la version est bien en ligne.",
     stopRollout: "Stopper la diffusion",
     stopRolloutDetail: "Plus aucun appareil ne sera notifié pour cette version.",
     minimumVersion: (platform: string) => `Version minimale ${platform}`,

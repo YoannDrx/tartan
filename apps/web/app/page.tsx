@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
+import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
-import Image from "next/image";
 import { formatPrice, PLANS, TRIAL_DAYS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Marked } from "@/components/marked";
-import { JumpScrubber } from "@/features/landing/jump-scrubber";
-import calendarCapture from "@/features/landing/images/calendrier.png";
-import analysisCapture from "@/features/landing/images/analyse-v1-1.png";
+import iosHome from "@/features/landing/images/ios-accueil.png";
+import iosMonth from "@/features/landing/images/ios-mois.png";
+import iosPlyo from "@/features/landing/images/ios-plio.png";
+import iosCones from "@/features/landing/images/ios-plots.png";
+import iosProgress from "@/features/landing/images/ios-progres.png";
+import iosVideo from "@/features/landing/images/ios-video.png";
+import iosStrength from "@/features/landing/images/ios-muscu.png";
+import iosRunning from "@/features/landing/images/ios-technique.png";
+import webBuilder from "@/features/landing/images/web-constructeur.png";
+import webMonth from "@/features/landing/images/web-mois.png";
+import webTracking from "@/features/landing/images/web-suivi.png";
+import { JumpFilm } from "@/features/landing/jump-film";
 import { LapBend } from "@/features/landing/lap";
-import { RollCallDemo } from "@/features/landing/roll-call-demo";
-import { ValidationDemo } from "@/features/landing/validation-demo";
 import { SiteFooter, SiteHeader } from "@/features/shell/site-chrome";
 import { env } from "@/lib/env";
 
@@ -21,6 +28,31 @@ export const metadata: Metadata = {
 
 const t = m.landing;
 const bendPadding = "pt-[72px] pb-[88px] desktop:pt-[120px] desktop:pb-[144px]";
+const sectionTitle =
+  "text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[64px] desktop:leading-[64px]";
+const body = "max-w-[56ch] text-[17px] leading-[25px]";
+
+const Phone = ({
+  src,
+  alt,
+  sizes,
+  priority,
+}: {
+  src: StaticImageData;
+  alt: string;
+  sizes: string;
+  priority?: boolean;
+}) => (
+  <Image
+    src={src}
+    alt={alt}
+    sizes={sizes}
+    priority={priority}
+    className="h-auto w-full rounded-card border border-lane/40"
+  />
+);
+
+const strength = [iosStrength, iosPlyo, iosRunning, iosCones];
 
 export default function LandingPage() {
   const signupOpen = env().COACH_SIGNUP_MODE === "public";
@@ -28,7 +60,7 @@ export default function LandingPage() {
     // Une vraie navigation : la création d'espace vit sur app.tartan.coach, hors de portée du préchargement.
     <a
       href={signupOpen ? "/connexion?creer=1" : "/contact"}
-      className="inline-flex min-h-[52px] items-center rounded-full bg-accent px-7 text-base font-semibold text-on-accent no-underline hover:bg-accent-hover"
+      className="inline-flex min-h-[52px] items-center rounded-full bg-accent px-7 text-base font-semibold text-on-accent no-underline"
     >
       {signupOpen ? t.ctaOpen : t.ctaClosed}
     </a>
@@ -38,117 +70,121 @@ export default function LandingPage() {
     <main className="min-h-dvh overflow-x-clip">
       <div className="mx-auto max-w-[1200px] px-4 pt-4 desktop:px-6 desktop:pt-6">
         <SiteHeader />
-        <section className="pb-10 pt-12 desktop:pb-14 desktop:pt-16">
-          <h1 className="max-w-[22ch] text-balance font-display text-[60px] font-bold leading-[0.95] desktop:text-[88px]">
-            {t.title}
-          </h1>
-          <div className="mt-6 grid gap-6 desktop:grid-cols-2 desktop:items-end desktop:gap-14">
-            <div>
-              <p className="max-w-[52ch] text-lg leading-7">{t.lead}</p>
-              <p className="mt-4 font-semibold">{t.disciplines}</p>
-            </div>
-            <div className="desktop:justify-self-end">
+        <section className="grid gap-10 pb-12 pt-10 desktop:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] desktop:items-center desktop:gap-14 desktop:pb-16 desktop:pt-14">
+          <div>
+            <h1 className="text-balance font-display text-[56px] font-bold leading-[0.95] desktop:text-[84px]">
+              {t.title}
+            </h1>
+            <p className="mt-6 max-w-[52ch] text-lg leading-7">{t.lead}</p>
+            <p className="mt-4 font-semibold">{t.types}</p>
+            <div className="mt-8">
               {cta}
               <p className="mt-3 max-w-[38ch] text-sm">
                 {t.offer(PLANS.discovery.limits.maxAthletes ?? 0, TRIAL_DAYS)}
               </p>
             </div>
           </div>
-        </section>
-        <nav aria-label={t.journeyLabel} className="flex flex-wrap gap-x-6 gap-y-1 border-y border-lane py-3">
-          {t.journey.map((step, index) => (
-            <a key={step.id} href={`#${step.id}`} className="inline-flex min-h-11 items-center gap-2 font-semibold">
-              <span aria-hidden className="font-display text-2xl">
-                {index + 1}.
-              </span>{" "}
-              {step.label}
-            </a>
-          ))}
-        </nav>
-        <section id="preparer" className="scroll-mt-6 py-12 desktop:py-16">
-          <div className="grid gap-4 desktop:grid-cols-2 desktop:items-end desktop:gap-14">
-            <h2 className="font-display text-[44px] font-bold leading-none desktop:text-[64px]">{t.prepare.title}</h2>
-            <p className="max-w-[56ch] text-[17px] leading-[25px]">{t.prepare.body}</p>
-          </div>
-          <figure className="mt-8">
-            <Image
-              src={calendarCapture}
-              alt={t.prepare.alt}
-              className="h-auto w-full rounded-card"
-              sizes="(min-width: 1200px) 1152px, 100vw"
-            />
-            <figcaption className="mt-3 flex flex-wrap justify-between gap-x-6 gap-y-2 text-sm">
-              <span>{t.prepare.caption}</span>
-              <a href={calendarCapture.src} className="inline-flex min-h-11 items-center font-semibold">
-                {t.prepare.enlarge}
-              </a>
-            </figcaption>
+          <figure className="mx-auto w-full max-w-[340px]">
+            <Phone src={iosHome} alt={t.heroAltPhone} sizes="(min-width: 1024px) 340px, 80vw" priority />
+            <figcaption className="mt-3 text-sm">{t.captureNote}</figcaption>
           </figure>
         </section>
       </div>
 
+      <JumpFilm cta={cta} />
+
+      <section className="mx-auto max-w-[1200px] px-4 py-12 desktop:px-6 desktop:py-20">
+        <div className="grid gap-4 desktop:grid-cols-2 desktop:items-end desktop:gap-14">
+          <h2 className={sectionTitle}>{t.coach.title}</h2>
+          <p className={body}>{t.coach.body}</p>
+        </div>
+        <Image
+          src={webMonth}
+          alt={t.heroAltDesktop}
+          sizes="(min-width: 1200px) 1152px, 100vw"
+          className="mt-8 h-auto w-full rounded-card"
+        />
+      </section>
+
       <LapBend side="right" start="bleed">
-        <div
-          id="individualiser"
-          className={`mx-auto max-w-[1200px] scroll-mt-6 pl-4 pr-12 desktop:pl-6 desktop:pr-24 ${bendPadding}`}
-        >
+        <div className={`mx-auto max-w-[1200px] pl-4 pr-12 desktop:pl-6 desktop:pr-24 ${bendPadding}`}>
           <div className="grid gap-8 desktop:grid-cols-2 desktop:items-center desktop:gap-14">
             <div>
-              <h2 className="text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[64px] desktop:leading-[64px]">
-                {t.rollCall.title}
-              </h2>
-              <p className="mt-4 max-w-[46ch] text-[17px] leading-[25px]">{t.rollCall.body}</p>
+              <h2 className={sectionTitle}>{t.coach.builderTitle}</h2>
+              <p className={`mt-4 ${body}`}>{t.coach.builderBody}</p>
             </div>
-            <RollCallDemo />
+            <Image
+              src={webBuilder}
+              alt={t.coach.builderAlt}
+              sizes="(min-width: 1024px) 520px, 100vw"
+              className="h-auto w-full rounded-card"
+            />
+          </div>
+          <div className="mt-12 grid gap-8 desktop:mt-20 desktop:grid-cols-2 desktop:items-center desktop:gap-14">
+            <Image
+              src={webTracking}
+              alt={t.coach.trackingAlt}
+              sizes="(min-width: 1024px) 520px, 100vw"
+              className="h-auto w-full rounded-card max-desktop:order-2"
+            />
+            <div>
+              <h2 className={sectionTitle}>{t.coach.trackingTitle}</h2>
+              <p className={`mt-4 ${body}`}>{t.coach.trackingBody}</p>
+            </div>
           </div>
         </div>
       </LapBend>
 
-      <section id="realiser" className="mx-auto max-w-[1200px] scroll-mt-6 px-4 py-12 desktop:px-6 desktop:py-16">
-        <h2 className="font-display text-[44px] font-bold leading-none desktop:text-[64px]">{t.realize.title}</h2>
-        <p className="mb-8 mt-4 max-w-[65ch] text-[17px] leading-[25px]">{t.realize.body}</p>
-        <ValidationDemo />
+      <section className="mx-auto max-w-[1200px] py-12 desktop:px-6 desktop:py-20">
+        <div className="px-4 desktop:px-0">
+          <h2 className={sectionTitle}>{t.content.title}</h2>
+          <p className={`mt-4 ${body}`}>{t.content.body}</p>
+        </div>
+        <ul className="mt-8 flex snap-x gap-4 overflow-x-auto px-4 pb-2 desktop:grid desktop:grid-cols-4 desktop:overflow-visible desktop:px-0">
+          {t.content.items.map((item, index) => (
+            <li
+              key={item.label}
+              className="w-[64vw] max-w-[280px] shrink-0 snap-start desktop:w-auto desktop:max-w-none"
+            >
+              <Phone src={strength[index]!} alt={item.alt} sizes="(min-width: 1024px) 270px, 64vw" />
+              <p className="mt-3 font-semibold">{item.label}</p>
+            </li>
+          ))}
+        </ul>
       </section>
 
-      <section id="progresser" className="on-hero scroll-mt-6 py-12 desktop:py-16">
-        <div className="mx-auto grid max-w-[1200px] gap-8 px-4 desktop:grid-cols-2 desktop:items-start desktop:gap-14 desktop:px-6">
-          <div>
-            <h2 className="font-display text-[44px] font-bold leading-none desktop:text-[64px]">{t.progress.title}</h2>
-            <p className="mt-4 text-[17px] leading-[25px]">{t.progress.body}</p>
-            <p className="mt-6 border-t border-line pt-4 font-semibold">{t.progress.availability}</p>
+      <section className="on-hero py-12 desktop:py-20">
+        <div className="mx-auto grid max-w-[1200px] gap-12 px-4 desktop:grid-cols-2 desktop:px-6">
+          <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,6fr)] items-start gap-5">
+            <Phone src={iosMonth} alt={t.views.alt} sizes="(min-width: 1024px) 240px, 40vw" />
+            <div>
+              <h2 className="text-balance font-display text-[36px] font-bold leading-[38px] desktop:text-[48px] desktop:leading-[50px]">
+                {t.views.title}
+              </h2>
+              <p className="mt-3 text-[17px] leading-[25px]">{t.views.body}</p>
+            </div>
           </div>
-          <figure>
-            <a
-              href={analysisCapture.src}
-              aria-label={t.progress.enlarge}
-              className="block rounded-card focus-visible:outline-2 focus-visible:outline-offset-4"
-            >
-              <Image
-                src={analysisCapture}
-                alt={t.progress.alt}
-                className="max-h-[440px] w-full rounded-card object-cover object-top"
-                sizes="(min-width: 1024px) 550px, 100vw"
-              />
-            </a>
-            <figcaption className="mt-3 text-sm">
-              {t.progress.caption}
-              <a href={analysisCapture.src} className="mt-1 flex min-h-11 items-center font-semibold">
-                {t.progress.enlarge}
-              </a>
-            </figcaption>
-          </figure>
+          <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,6fr)] items-start gap-5">
+            <Phone src={iosProgress} alt={t.progress.alt} sizes="(min-width: 1024px) 240px, 40vw" />
+            <div>
+              <h2 className="text-balance font-display text-[36px] font-bold leading-[38px] desktop:text-[48px] desktop:leading-[50px]">
+                {t.progress.title}
+              </h2>
+              <p className="mt-3 text-[17px] leading-[25px]">{t.progress.body}</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1200px] px-4 py-12 desktop:px-6 desktop:py-16">
-        <h2 className="font-display text-[44px] font-bold leading-none desktop:text-[64px]">{t.video.title}</h2>
-        <p className="mt-4 max-w-[65ch] text-[17px] leading-[25px]">{t.video.body}</p>
-        <details className="mt-6 border-y border-lane py-3">
-          <summary className="min-h-11 cursor-pointer content-center font-semibold">{t.videoExample}</summary>
-          <div className="mx-auto max-w-[720px] py-6">
-            <JumpScrubber />
-          </div>
-        </details>
+      <section className="mx-auto grid max-w-[1200px] gap-8 px-4 py-12 desktop:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] desktop:items-center desktop:gap-14 desktop:px-6 desktop:py-20">
+        <div>
+          <h2 className={sectionTitle}>{t.video.title}</h2>
+          <p className={`mt-4 ${body}`}>{t.video.body}</p>
+        </div>
+        <figure className="mx-auto w-full max-w-[320px]">
+          <Phone src={iosVideo} alt={t.video.alt} sizes="(min-width: 1024px) 320px, 80vw" />
+          <figcaption className="mt-3 text-sm">{t.video.caption}</figcaption>
+        </figure>
       </section>
 
       <LapBend side="right" end="bleed">
@@ -160,7 +196,7 @@ export default function LandingPage() {
             {t.field.items.map((item) => (
               <div
                 key={item.title}
-                className="grid gap-1 border-t-[3px] border-lane py-5 desktop:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] desktop:gap-8 desktop:py-7"
+                className="grid gap-1 border-t-[3px] border-lane py-5 desktop:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] desktop:gap-8 desktop:py-6"
               >
                 <dt className="font-display text-[32px] font-bold leading-9 desktop:text-[44px] desktop:leading-[48px]">
                   {item.title}

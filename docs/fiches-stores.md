@@ -6,9 +6,9 @@ Base : cahier § 4.4 et § 16, et ce que l'app collecte réellement (code de `ap
 
 | Élément                   | Texte                                                                                            | Limite                                                                                                      |
 | ------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| Nom                       | Tartan – Coach athlé                                                                             | 30 (Apple, Google), 20 utilisés                                                                             |
+| Nom                       | Tartan – Préparation physique                                                                             | 30 (Apple, Google), 20 utilisés                                                                             |
 | Sous-titre Apple          | Séances, suivi et vidéo                                                                          | 30, 23 utilisés. La formule du § 4.4 (« Séances, suivi et vidéo pour ton groupe ») en fait 39 : trop longue |
-| Mots-clés Apple           | `athlétisme,coach,entraînement,saut en hauteur,sprint,pliométrie,musculation,analyse vidéo,club` | 100, 94 utilisés                                                                                            |
+| Mots-clés Apple           | `préparation physique,coach,athlétisme,entraînement,pliométrie,musculation,sprint,analyse vidéo,club` | 100, 94 utilisés                                                                                            |
 | Catégorie                 | Sport (secondaire : Forme et santé)                                                              |                                                                                                             |
 | Description courte Google | Le carnet du coach d'athlé et de son groupe : séances, suivi et analyse vidéo.                   | 80                                                                                                          |
 
@@ -16,7 +16,7 @@ Base : cahier § 4.4 et § 16, et ce que l'app collecte réellement (code de `ap
 
 ### Description
 
-Le carnet d'entraînement partagé du coach d'athlétisme et de son groupe.
+La préparation physique du coach et de son groupe, ancrée dans l'athlétisme.
 
 **Pour le coach**
 Sur le terrain, voyez d'un coup d'œil qui a fait quoi, semaine par semaine. Faites l'appel, relancez un athlète, invitez votre groupe avec un lien ou un QR code, consultez la charge et la feuille de barres de chacun.
@@ -25,12 +25,12 @@ Sur le terrain, voyez d'un coup d'œil qui a fait quoi, semaine par semaine. Fai
 Ta séance du jour, tes exercices avec leurs consignes et leurs vidéos. Tu valides en quelques secondes, même sans réseau : l'envoi part dès que la connexion revient.
 
 **Analyse vidéo**
-Filmez au ralenti ou importez depuis la pellicule. Chaque image d'un 240 i/s est conservée. Revoyez le saut image par image, découpez-le par phases, commentez sur la timeline et partagez avec l'athlète.
+Filmez au ralenti ou importez depuis la pellicule. Chaque image d'un 240 i/s est conservée. Revoyez le geste image par image, découpez-le par phases, commentez sur la timeline et partagez avec l'athlète.
 
 **Respect des données**
 Effort ressenti et douleurs ne sont visibles qu'avec l'accord de l'athlète, et l'accord d'un parent est demandé pour les plus jeunes. Le compte se supprime depuis l'app.
 
-Conçue pour le saut en hauteur et ses préparations physiques.
+Musculation, pliométrie, technique de course, plots, escaliers, mobilité : conçue pour la préparation physique en athlétisme.
 
 ### Adresses
 
@@ -61,7 +61,7 @@ Aucun suivi publicitaire (« Tracking : non »). Toutes les données sont liées
 | Coordonnées : e-mail                   | Compte                                                              | Fonctionnement    |
 | Santé et forme : santé                 | Effort ressenti, douleurs, blessures. Avec consentement             | Fonctionnement    |
 | Santé et forme : forme                 | Séances validées, durées, charges, tests, records, essais de saut   | Fonctionnement    |
-| Contenu utilisateur : photos ou vidéos | Vidéos de saut filmées ou choisies, images d'aperçu                 | Fonctionnement    |
+| Contenu utilisateur : photos ou vidéos | Vidéos de geste filmées ou choisies, images d'aperçu                 | Fonctionnement    |
 | Contenu utilisateur : audio            | Piste son de la vidéo si le micro est autorisé. Coupée à la lecture | Fonctionnement    |
 | Contenu utilisateur : autre            | Commentaires, annotations, annonces                                 | Fonctionnement    |
 | Identifiants : utilisateur             | Identifiant de compte                                               | Fonctionnement    |
@@ -86,7 +86,7 @@ Données de diagnostic : Sentry reçoit les plantages, sans utilisateur, fil d'A
 | ------------------------- | ------------------------------------------------------------- | --------------------------------- |
 | Informations personnelles | Nom, e-mail, identifiants, date de naissance                  | Fonctionnement, gestion du compte |
 | Santé et forme            | Effort, douleurs, blessures, séances, charges, tests, records | Fonctionnement                    |
-| Photos et vidéos          | Vidéos de saut                                                | Fonctionnement                    |
+| Photos et vidéos          | Vidéos de geste                                                | Fonctionnement                    |
 | Fichiers audio            | Piste son des vidéos                                          | Fonctionnement                    |
 | Messages                  | Commentaires et annonces                                      | Fonctionnement                    |
 | Identifiants d'appareil   | Jeton de notification                                         | Fonctionnement                    |
@@ -94,7 +94,7 @@ Données de diagnostic : Sentry reçoit les plantages, sans utilisateur, fil d'A
 ### Déclarations Play Console propres à cette version
 
 - **Service au premier plan `dataSync`** (`FOREGROUND_SERVICE_DATA_SYNC`) : envoi d'une vidéo choisie par l'utilisateur, avec notification de progression, pour qu'il survive à la mise en veille. Google demande une courte vidéo de démonstration, à tourner sur un vrai téléphone.
-- **Caméra, micro, notifications** : filmer un saut ; son de la vidéo ; séances et alertes. La galerie passe par le sélecteur système, sans `READ_MEDIA_*`.
+- **Caméra, micro, notifications** : filmer un geste ; son de la vidéo ; séances et alertes. La galerie passe par le sélecteur système, sans `READ_MEDIA_*`.
 - **Public cible** : l'app admet des mineurs, avec accord d'un parent en dessous de 15 ans. À faire valider par le juriste avant de remplir ce formulaire et la classification d'âge d'Apple.
 - **Contenu généré par les utilisateurs** : signalement de commentaire, d'annonce et de vidéo, et blocage d'un utilisateur, sont dans l'app. Les signalements sont traités dans les Réglages web.
 
@@ -111,21 +111,21 @@ Données de diagnostic : Sentry reçoit les plantages, sans utilisateur, fil d'A
 
 | Champ | Texte |
 | ---------------- | ---------------------------------------------------------------------------------- |
-| Titre | Tartan – Coach athlé |
+| Titre | Tartan – Préparation physique |
 | Sous-titre Apple | Séances, suivi et vidéo |
-| Mots-clés Apple | athlétisme,préparateur physique,entraînement,saut en hauteur,pliométrie,musculation,analyse vidéo |
+| Mots-clés Apple | préparation physique,athlétisme,coach,entraînement,pliométrie,musculation,analyse vidéo |
 | Description courte Google | Le carnet du coach d'athlé et du préparateur physique : séances, suivi, vidéo. |
 | Catégorie | Sport (secondaire Apple : Forme et santé) |
 
 Description longue :
 
-> Le carnet d'entraînement partagé des coachs d'athlétisme, des préparateurs physiques et de leurs athlètes majeurs.
+> L'app de préparation physique du coach et de son groupe, pour l'athlétisme et les athlètes majeurs.
 >
 > Pour le coach : voyez qui a fait quoi, semaine par semaine. Faites l'appel, relancez un athlète, invitez votre groupe par lien ou QR code, consultez charges et feuille de barres. La création des séances se fait sur ordinateur.
 >
 > Pour l'athlète : ta séance du jour, tes exercices, leurs consignes et leurs vidéos. Tu valides en quelques secondes, même sans réseau : l'envoi part au retour de la connexion.
 >
-> Analyse vidéo : filmez ou importez un saut, revoyez-le image par image, commentez et partagez.
+> Analyse vidéo : filmez ou importez un geste, revoyez-le image par image, commentez et partagez.
 >
 > Respect des données : effort ressenti et douleurs ne sont visibles qu'avec l'accord de l'athlète. Signalement, blocage et suppression du compte sont dans l'app.
 >
