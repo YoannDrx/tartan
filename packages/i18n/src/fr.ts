@@ -722,7 +722,7 @@ export const fr = {
     refineSearch: "Les 50 premiers résultats sont affichés. Précise ta recherche pour retrouver les autres.",
     selectedExercises: (count: number) =>
       `${count} exercices sélectionnés ; zéro utilise toute la bibliothèque autorisée.`,
-    title: "Planificateur IA",
+    title: "Planificateur IA (bêta)",
     beta: "Bêta · brouillons à relire",
     lead: "Choisis les destinataires et la période, puis décris ta séance ou ta semaine. Aucune séance n’est publiée automatiquement.",
     period: "Période de planification",
@@ -1724,6 +1724,7 @@ export const fr = {
     memberNoGroup: "aucun groupe",
     memberRemove: "Retirer de l'espace",
     exportData: "Télécharger mes données",
+    exportSpace: "Exporter tout l'espace",
     exportDetail: "Un fichier avec ton profil, tes séances, tes tests et tes commentaires.",
     calendar: "Agenda",
     calendarDetail:
@@ -1830,6 +1831,23 @@ export const fr = {
       subject: "Résiliation de ton abonnement Tartan enregistrée",
       body: (plan: string, space: string, date: string) =>
         `Ton abonnement ${plan} pour ${space} s'arrête le ${date}. Aucun nouveau prélèvement n'aura lieu et rien ne change d'ici là. Ensuite, l'espace repasse en offre Découverte : athlètes et données sont conservés, l'ajout au-delà des limites est bloqué, et les vidéos de plus de 30 jours sont supprimées après un préavis de 14 jours par e-mail.`,
+      cta: "Gérer mon abonnement",
+    },
+    paymentFailed: {
+      subject: "Ton paiement Tartan n'est pas passé",
+      body: (space: string, _date: string) =>
+        `Le dernier prélèvement pour ${space} a échoué. Mets à jour ta carte pour garder ton offre : Stripe retentera le paiement automatiquement.`,
+      cta: "Mettre à jour mon paiement",
+    },
+    paymentRecovered: {
+      subject: "Ton paiement Tartan est régularisé",
+      body: (space: string, _date: string) => `Le paiement pour ${space} est passé. Ton offre continue normalement.`,
+      cta: "Voir mon abonnement",
+    },
+    trialEnding: {
+      subject: "Ton essai Tartan se termine bientôt",
+      body: (space: string, date: string) =>
+        `L'essai de ${space} s'arrête le ${date}. Sans résiliation d'ici là, le premier prélèvement aura lieu ce jour-là.`,
       cta: "Gérer mon abonnement",
     },
     ended: {

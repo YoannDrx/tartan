@@ -143,8 +143,9 @@ export const reconcileStripeSubscription = async (
           status: current?.status ?? null,
           cancelAt: current?.cancelAt ?? null,
           subscriptionId: current?.provider === "stripe" ? current.providerRef : null,
+          periodEnd: current?.currentPeriodEnd ?? null,
         },
-        { paid: isPaidPlan(plan), status, cancelAt, subscriptionId: selected.id },
+        { paid: isPaidPlan(plan), status, cancelAt, subscriptionId: selected.id, periodEnd: end },
       );
       for (const email of emails) {
         if (currentOrg.billingOwnerId && currentOrg.billingOwnerId !== currentOrg.ownerId) continue;

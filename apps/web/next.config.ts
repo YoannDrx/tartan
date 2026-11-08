@@ -1,3 +1,4 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
 // Identifiant du déploiement : compare l'onglet ouvert à ce qui est en ligne, et versionne le service worker.
@@ -45,4 +46,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Cartes de code envoyées seulement si le jeton est présent : un build sans Sentry reste identique.
+const finalConfig: NextConfig = process.env.SENTRY_AUTH_TOKEN
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      silent: true,
+      release: { name: buildId },
+    })
+  : nextConfig;
+
+export default finalConfig;

@@ -26,6 +26,7 @@ export const sentryOptions = {
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   enabled: Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN),
   environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? "development",
+  release: process.env.NEXT_PUBLIC_BUILD_ID,
   sendDefaultPii: false,
   tracesSampleRate: 0,
   beforeSend: scrubEvent,

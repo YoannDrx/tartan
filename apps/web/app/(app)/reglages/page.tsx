@@ -282,6 +282,13 @@ export default async function ReglagesPage() {
                 {m.settings.exportData}
               </a>
             </Button>
+            {access.role === "owner" ? (
+              <Button asChild size="sm" variant="secondary" className="ml-2 mt-2">
+                <a href={`/api/v1/orgs/${organizationId}/export`} download="tartan-espace.json">
+                  {m.settings.exportSpace}
+                </a>
+              </Button>
+            ) : null}
           </div>
           <div className="flex flex-wrap justify-between gap-2">
             <RevokeOtherSessionsButton />
