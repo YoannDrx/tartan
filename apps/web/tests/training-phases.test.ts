@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import {
   listTrainingPhases,
   getTrainingPhaseContext,
+  getPhasePlanning,
   saveTrainingPhase,
   setTrainingPhaseVisibility,
   deleteTrainingPhase,
@@ -191,4 +192,115 @@ it("exporte les phases partagées sans les notes ni les phases privées, puis pu
   await prisma.athlete.delete({ where: { id: a.athlete.athleteId } });
   expect(await prisma.trainingPhase.count({ where: { id: personal.id } })).toBe(0);
   expect(await prisma.trainingPhase.count({ where: { id: a.input.id } })).toBe(1);
+});
+
+it("demande un contexte multi-groupes, puis donne priorité à la phase individuelle sans lire la note", async () => {
+  const a = await setup();
+  const g2 = await prisma.group.create({ data: { organizationId: a.organizationId, name: "Prépa physique" } });
+  await prisma.groupMember.create({ data: { groupId: g2.id, athleteId: a.athlete.athleteId } });
+  await a.write();
+  const second = await a.write({ id: randomUUID(), target: { type: "group", id: g2.id }, name: "Vitesse" });
+  const query = { date: "2030-01-15", groupIds: [a.groupId], athleteIds: [a.athlete.athleteId], choices: [] };
+  const planning = await getPhasePlanning(a.owner.userId, a.organizationId, query);
+  expect(planning.athletes).toHaveLength(1);
+  expect(planning.athletes[0]?.result).toMatchObject({
+    kind: "choose_group",
+    phases: [{ id: a.input.id }, { id: second.id }].sort((x, y) => x.id.localeCompare(y.id)),
+  });
+  const chosen = await getPhasePlanning(a.owner.userId, a.organizationId, {
+    ...query,
+    choices: [{ athleteId: a.athlete.athleteId, groupId: g2.id }],
+  });
+  expect(chosen.athletes[0]?.result).toMatchObject({ kind: "phase", phase: { id: second.id } });
+  const personal = await a.write({
+    id: randomUUID(),
+    target: { type: "athlete", id: a.athlete.athleteId },
+    name: "Adaptation individuelle",
+  });
+  const spy = vi.spyOn(prisma.trainingPhase, "findMany");
+  try {
+    const result = await getPhasePlanning(a.owner.userId, a.organizationId, query);
+    expect(result.athletes[0]?.result).toMatchObject({ kind: "phase", phase: { id: personal.id, shared: false } });
+    expect(JSON.stringify(result)).not.toContain("privateNote");
+    expect(JSON.stringify(result)).not.toContain(a.input.privateNote);
+    expect(spy.mock.calls.every(([args]) => !args?.select || !("privateNote" in args.select))).toBe(true);
+  } finally {
+    spy.mockRestore();
+  }
+  await expect(getPhasePlanning(a.athlete.userId, a.organizationId, query)).rejects.toMatchObject({ status: 403 });
+});
+
+it("limite le contexte aux groupes autorisés et refuse les choix invalides ou périmés", async () => {
+  const a = await setup();
+  const other = await setup();
+  const g2 = await prisma.group.create({ data: { organizationId: a.organizationId, name: "Autre programmation" } });
+  await prisma.groupMember.create({ data: { groupId: g2.id, athleteId: a.athlete.athleteId } });
+  await a.write();
+  const second = await a.write({ id: randomUUID(), target: { type: "group", id: g2.id }, name: "HORS_PERIMETRE" });
+  const coach = await addStaff(a.organizationId, "Contexte", "coach", [a.groupId]);
+  const query = { date: "2030-01-15", groupIds: [a.groupId], athleteIds: [], choices: [] };
+  const limited = await getPhasePlanning(coach.userId, a.organizationId, query);
+  expect(limited.athletes[0]?.result).toMatchObject({ kind: "phase", phase: { id: a.input.id } });
+  expect(JSON.stringify(limited)).not.toContain("HORS_PERIMETRE");
+  await expect(
+    getPhasePlanning(coach.userId, a.organizationId, {
+      ...query,
+      choices: [{ athleteId: a.athlete.athleteId, groupId: g2.id }],
+    }),
+  ).rejects.toMatchObject({ status: 403 });
+  await expect(
+    getPhasePlanning(a.owner.userId, a.organizationId, { ...query, groupIds: [other.groupId] }),
+  ).rejects.toMatchObject({ status: 403 });
+  await expect(
+    getPhasePlanning(a.owner.userId, a.organizationId, { ...query, athleteIds: [other.athlete.athleteId] }),
+  ).rejects.toMatchObject({ status: 403 });
+  await deleteTrainingPhase(a.owner.userId, a.organizationId, second.id, { expectedVersion: 1 });
+  await expect(
+    getPhasePlanning(a.owner.userId, a.organizationId, {
+      ...query,
+      choices: [{ athleteId: a.athlete.athleteId, groupId: g2.id }],
+    }),
+  ).rejects.toMatchObject({ code: "phase_conflict" });
+  await prisma.groupMember.deleteMany({ where: { groupId: a.groupId } });
+  const empty = await getPhasePlanning(a.owner.userId, a.organizationId, query);
+  expect(empty.athletes).toEqual([]);
+  expect(empty.groups[0]?.phase?.id).toBe(a.input.id);
+});
+
+it("n'ajoute pas rétroactivement un nouvel athlète au contexte d'une ancienne séance de groupe", async () => {
+  const a = await setup();
+  await a.write();
+  await prisma.groupMember.update({
+    where: { groupId_athleteId: { groupId: a.groupId, athleteId: a.athlete.athleteId } },
+    data: { createdAt: new Date("2030-02-01T12:00:00Z") },
+  });
+  const old = await getPhasePlanning(a.owner.userId, a.organizationId, {
+    date: "2030-01-15",
+    groupIds: [a.groupId],
+    athleteIds: [],
+    choices: [],
+  });
+  expect(old.athletes).toEqual([]);
+  const current = await getPhasePlanning(a.owner.userId, a.organizationId, {
+    date: "2030-02-01",
+    groupIds: [a.groupId],
+    athleteIds: [],
+    choices: [],
+  });
+  expect(current.athletes.map((athlete) => athlete.id)).toEqual([a.athlete.athleteId]);
+});
+
+it("laisse l'adjoint préparer ses séances avec les seules phases partagées", async () => {
+  const a = await setup();
+  const assistant = await addStaff(a.organizationId, "AdjointContexte", "assistant", [a.groupId]);
+  const query = { date: "2030-01-15", groupIds: [a.groupId], athleteIds: [], choices: [] };
+  await a.write();
+  const privateResult = await getPhasePlanning(assistant.userId, a.organizationId, query);
+  expect(privateResult.groups[0]?.phase).toBeNull();
+  expect(privateResult.athletes[0]?.result).toEqual({ kind: "none" });
+  await setTrainingPhaseVisibility(a.owner.userId, a.organizationId, a.input.id, { expectedVersion: 1, shared: true });
+  await a.write({ id: randomUUID(), target: { type: "athlete", id: a.athlete.athleteId }, name: "INDIVIDUEL_PRIVE" });
+  const sharedResult = await getPhasePlanning(assistant.userId, a.organizationId, query);
+  expect(sharedResult.athletes[0]?.result).toMatchObject({ kind: "phase", phase: { id: a.input.id } });
+  expect(JSON.stringify(sharedResult)).not.toContain("INDIVIDUEL_PRIVE");
 });

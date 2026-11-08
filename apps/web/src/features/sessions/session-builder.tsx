@@ -2,6 +2,8 @@
 
 import type { ExerciseSummary, Prescription, SessionDraft, SessionType } from "@tartan/contracts";
 import { copyDraftWithNewRefs, formatPrescription, withSessionRefs } from "@tartan/domain";
+import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
+import { PhasePlanningPanel } from "@/features/phases/phase-planning";
 import { m, strengthTestLabel, formatDateLong } from "@tartan/i18n";
 import { ArrowDown, ArrowUp, ChevronRight, GripVertical, Plus, Search, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
@@ -183,6 +185,8 @@ const PrescriptionEditor = ({
 };
 
 export const SessionBuilder = ({
+  organizationId,
+  phasesEnabled = false,
   initial,
   exercises,
   groups,
@@ -191,6 +195,8 @@ export const SessionBuilder = ({
   testKeys,
   defaultDate,
 }: {
+  organizationId: string;
+  phasesEnabled?: boolean;
   initial: {
     id: string;
     version: number;
@@ -237,6 +243,8 @@ export const SessionBuilder = ({
   const [selectedAthletes, setSelectedAthletes] = useState(
     initial?.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId) ?? [],
   );
+  const planningKey = phasePlanningKey(date, selectedGroups, selectedAthletes);
+  const [phaseReady, setPhaseReady] = useState<PhasePlanningReadiness>({ key: "", ready: false });
   const [overrides, setOverrides] = useState<Override[]>(() => attachItemKeys(initial?.overrides ?? [], start.club));
   const [chosenTemplate, setChosenTemplate] = useState("");
   const [previewing, setPreviewing] = useState(false);
@@ -364,6 +372,13 @@ export const SessionBuilder = ({
     if ((publish || scheduleAt) && assignments.length === 0) return setFormError(m.builder.noAudience);
     if (scheduleAt && new Date(scheduleAt) <= new Date()) return setFormError(m.builder.schedulePast);
     const keptSchedule = scheduleAt ?? (!publish && scheduling ? publishAt : "");
+    if (
+      phasesEnabled &&
+      (publish || keptSchedule || initial?.publishedAt) &&
+      assignments.length &&
+      (phaseReady.key !== planningKey || !phaseReady.ready)
+    )
+      return setFormError(m.trainingPhases.reviewRequired);
     save.execute({
       id: initial?.id,
       expectedVersion,
@@ -494,6 +509,57 @@ export const SessionBuilder = ({
         </Field>
       </section>
 
+      <section className="desktop:col-start-2 min-w-0 flex flex-col gap-3 rounded-card on-card bg-card p-4">
+        <h2 className="t-h2">{m.builder.audience}</h2>
+        <div className="grid gap-4 tablet:grid-cols-2">
+          <fieldset>
+            <legend className="t-caption mb-1">{m.builder.entireGroup}</legend>
+            {groups.map((g) => (
+              <CheckRow
+                key={g.id}
+                label={g.name}
+                detail={`${g.athleteCount} athlète${g.athleteCount > 1 ? "s" : ""}`}
+                checked={selectedGroups.includes(g.id)}
+                onChange={(e) =>
+                  setSelectedGroups(
+                    e.target.checked ? [...selectedGroups, g.id] : selectedGroups.filter((x) => x !== g.id),
+                  )
+                }
+              />
+            ))}
+          </fieldset>
+          <fieldset>
+            <legend className="t-caption mb-1">{m.builder.pickAthletes}</legend>
+            <div className="max-h-56 overflow-y-auto">
+              {athletes.map((a) => (
+                <CheckRow
+                  key={a.id}
+                  label={`${a.firstName} ${a.lastName}`}
+                  checked={selectedAthletes.includes(a.id)}
+                  onChange={(e) =>
+                    setSelectedAthletes(
+                      e.target.checked ? [...selectedAthletes, a.id] : selectedAthletes.filter((x) => x !== a.id),
+                    )
+                  }
+                />
+              ))}
+            </div>
+          </fieldset>
+        </div>
+      </section>
+
+      {phasesEnabled ? (
+        <div className="desktop:col-start-2 min-w-0">
+          <PhasePlanningPanel
+            key={planningKey}
+            organizationId={organizationId}
+            date={date}
+            groupIds={selectedGroups}
+            athleteIds={selectedAthletes}
+            onReady={setPhaseReady}
+          />
+        </div>
+      ) : null}
       <section aria-label={m.builder.body} className="desktop:col-start-2 min-w-0 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <div role="tablist" aria-label="Version de la séance" className="flex flex-wrap items-center gap-2">
@@ -696,45 +762,6 @@ export const SessionBuilder = ({
           ))}
         </ul>
       </aside>
-
-      <section className="desktop:col-start-2 min-w-0 flex flex-col gap-3 rounded-card on-card bg-card p-4">
-        <h2 className="t-h2">{m.builder.audience}</h2>
-        <div className="grid gap-4 tablet:grid-cols-2">
-          <fieldset>
-            <legend className="t-caption mb-1">{m.builder.entireGroup}</legend>
-            {groups.map((g) => (
-              <CheckRow
-                key={g.id}
-                label={g.name}
-                detail={`${g.athleteCount} athlète${g.athleteCount > 1 ? "s" : ""}`}
-                checked={selectedGroups.includes(g.id)}
-                onChange={(e) =>
-                  setSelectedGroups(
-                    e.target.checked ? [...selectedGroups, g.id] : selectedGroups.filter((x) => x !== g.id),
-                  )
-                }
-              />
-            ))}
-          </fieldset>
-          <fieldset>
-            <legend className="t-caption mb-1">{m.builder.pickAthletes}</legend>
-            <div className="max-h-56 overflow-y-auto">
-              {athletes.map((a) => (
-                <CheckRow
-                  key={a.id}
-                  label={`${a.firstName} ${a.lastName}`}
-                  checked={selectedAthletes.includes(a.id)}
-                  onChange={(e) =>
-                    setSelectedAthletes(
-                      e.target.checked ? [...selectedAthletes, a.id] : selectedAthletes.filter((x) => x !== a.id),
-                    )
-                  }
-                />
-              ))}
-            </div>
-          </fieldset>
-        </div>
-      </section>
 
       {clubRefs.length > 0 && athletes.length > 0 ? (
         <details className="desktop:col-start-2 min-w-0 rounded-card on-card bg-card px-4 py-2">

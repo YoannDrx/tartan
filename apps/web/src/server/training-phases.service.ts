@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { phasePlanningQuery, phasePlanningResponse, type PhasePlanningQuery } from "@tartan/contracts";
+import { resolveTrainingPhase } from "@tartan/domain";
 import {
   saveTrainingPhaseInput,
   trainingPhaseQuery,
@@ -10,7 +12,7 @@ import {
 } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import type { Prisma } from "@/generated/prisma/client";
-import { fromDbDate, toDbDate } from "@/lib/dates";
+import { fromDbDate, toDbDate, todayIso } from "@/lib/dates";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import {
@@ -192,6 +194,10 @@ export const listTrainingPhases = async (userId: string, organizationId: string,
 export const getTrainingPhaseContext = async (userId: string, organizationId: string) => {
   const access = await requireOrgMember(userId, organizationId, "manageAthletes");
   await ensureEnabled(organizationId);
+  return loadPhaseTargets(access);
+};
+const loadPhaseTargets = async (access: Access) => {
+  const { organizationId } = access;
   const groups = await prisma.group.findMany({
     where: { organizationId, ...(access.role !== "owner" ? { id: { in: await coachGroupIds(access) } } : {}) },
     select: { id: true, name: true },
@@ -210,6 +216,75 @@ export const getTrainingPhaseContext = async (userId: string, organizationId: st
       groupIds: a.groups.map((g) => g.groupId).filter((id) => groups.some((g) => g.id === id)),
     })),
   };
+};
+
+export const getPhasePlanning = async (userId: string, organizationId: string, raw: PhasePlanningQuery) => {
+  const parsed = phasePlanningQuery.safeParse(raw);
+  if (!parsed.success) throw invalid(m.trainingPhases.invalid);
+  const access = await requireOrgMember(userId, organizationId, "manageSessions");
+  await ensureEnabled(organizationId);
+  const input = parsed.data;
+  const context = await loadPhaseTargets(access);
+  const groupIds = new Set(input.groupIds);
+  const athleteIds = new Set(input.athleteIds);
+  if (
+    input.groupIds.some((id) => !context.groups.some((group) => group.id === id)) ||
+    input.athleteIds.some((id) => !context.athletes.some((athlete) => athlete.id === id))
+  )
+    throw forbidden();
+  const memberships = await prisma.groupMember.findMany({
+    where: { athleteId: { in: context.athletes.map((a) => a.id) }, groupId: { in: context.groups.map((g) => g.id) } },
+    select: { athleteId: true, groupId: true, createdAt: true },
+  });
+  const datedAthletes = context.athletes.map((a) => ({
+    ...a,
+    groupIds: memberships
+      .filter((member) => member.athleteId === a.id && todayIso(member.createdAt) <= input.date)
+      .map((member) => member.groupId),
+  }));
+  const athletes = datedAthletes.filter((a) => athleteIds.has(a.id) || a.groupIds.some((id) => groupIds.has(id)));
+  const groups = context.groups.filter((g) => groupIds.has(g.id));
+  for (const choice of input.choices) {
+    const athlete = athletes.find((a) => a.id === choice.athleteId);
+    if (!athlete?.groupIds.includes(choice.groupId)) throw forbidden();
+  }
+  const relevantGroups = [...new Set([...groupIds, ...athletes.flatMap((a) => a.groupIds)])];
+  const rows = await prisma.trainingPhase.findMany({
+    where: {
+      organizationId,
+      deletedAt: null,
+      ...(access.role === "assistant" ? { publishedAt: { not: null } } : {}),
+      startDate: { lte: toDbDate(input.date) },
+      endDate: { gte: toDbDate(input.date) },
+      OR: [{ groupId: { in: relevantGroups } }, { athleteId: { in: athletes.map((a) => a.id) } }],
+    },
+    select: publicTrainingPhaseSelect,
+    orderBy: [{ startDate: "asc" }, { id: "asc" }],
+  });
+  const phases = rows.map(dto);
+  // Un choix périmé ne supprime pas silencieusement les autres phases disponibles.
+  const choices = new Map(input.choices.map((c) => [c.athleteId, c.groupId]));
+  return phasePlanningResponse.parse({
+    date: input.date,
+    groups: groups.map((g) => ({
+      ...g,
+      phase: phases.find((p) => p.target.type === "group" && p.target.id === g.id) ?? null,
+    })),
+    athletes: athletes.map((a) => {
+      const selected = choices.get(a.id);
+      if (selected && !phases.some((p) => p.target.type === "group" && p.target.id === selected)) throw conflict();
+      return {
+        id: a.id,
+        name: a.name,
+        result: resolveTrainingPhase(phases, {
+          date: input.date,
+          athleteId: a.id,
+          groupIds: a.groupIds,
+          selectedGroupId: selected,
+        }),
+      };
+    }),
+  });
 };
 export const saveTrainingPhase = async (userId: string, organizationId: string, raw: SaveTrainingPhaseInput) => {
   const parsed = saveTrainingPhaseInput.safeParse(raw);

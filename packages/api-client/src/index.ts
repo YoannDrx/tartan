@@ -1,5 +1,7 @@
 import {
   trainingPhaseList,
+  phasePlanningResponse,
+  type PhasePlanningQuery,
   trainingPhaseContext,
   trainingPhaseWriteResult,
   type TrainingPhaseQuery,
@@ -107,6 +109,8 @@ export const createApiClient = (options: ApiClientOptions) => {
   };
 
   return {
+    phasePlanning: (orgId: string, query: PhasePlanningQuery) =>
+      request("POST", `/orgs/${orgId}/phases/planning`, phasePlanningResponse, query),
     trainingPhases: (orgId: string, query: TrainingPhaseQuery) =>
       request("GET", `/orgs/${orgId}/phases`, trainingPhaseList, undefined, query),
     trainingPhaseContext: (orgId: string) => request("GET", `/orgs/${orgId}/phases/context`, trainingPhaseContext),

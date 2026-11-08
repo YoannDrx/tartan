@@ -305,6 +305,17 @@ export const fr = {
   },
   trainingPhases: {
     title: "Phases de préparation",
+    planning: "Contexte de préparation",
+    planningHint: "Les phases donnent le cap. Elles ne modifient pas les exercices ni les charges de cette séance.",
+    reviewRequired:
+      "Vérifie le contexte de préparation et choisis les groupes demandés avant de publier ou programmer la séance.",
+    individualPriority: "La phase individuelle guide la préparation de cet athlète.",
+    noPlanning: "Aucune phase active pour ces destinataires à cette date.",
+    noAudience: "Choisis les destinataires pour consulter leurs phases.",
+    retryPlanning: "Relire les phases",
+    referenceFor: (name: string) => `Contexte pour ${name}`,
+    selectedReference: (name: string) => `Phase retenue : ${name}`,
+    planningAthletes: (count: number) => `Phases retenues pour ${count} athlète${count > 1 ? "s" : ""}`,
     add: "Créer une phase",
     edit: "Modifier la phase",
     name: "Nom",

@@ -220,13 +220,33 @@ function PhasePanel({
 }) {
   const [dates, setDates] = useState({ from: initialFrom, to: initialTo });
   const [filter, setFilter] = useState(dates);
-  const list = useTrainingPhases({ ...filter, groupId });
+  const [targetFilter, setTargetFilter] = useState<SaveTrainingPhaseInput["target"] | null>(
+    groupId ? { type: "group", id: groupId } : null,
+  );
+  const [choosingTarget, setChoosingTarget] = useState(false);
+  const [targetSearch, setTargetSearch] = useState("");
+  const list = useTrainingPhases({
+    ...filter,
+    ...(targetFilter?.type === "group"
+      ? { groupId: targetFilter.id }
+      : targetFilter
+        ? { athleteId: targetFilter.id }
+        : {}),
+  });
   const context = useQuery({
     queryKey: ["training-phase-context", orgId, userId],
     queryFn: () => api.trainingPhaseContext(orgId),
     enabled: canManage,
   });
   const client = useQueryClient();
+  const targets = context.data
+    ? [
+        ...context.data.groups.map((g) => ({ ...g, type: "group" as const })),
+        ...context.data.athletes.map((a) => ({ ...a, type: "athlete" as const })),
+      ]
+    : [];
+  const targetName =
+    targets.find((target) => target.type === targetFilter?.type && target.id === targetFilter.id)?.name ?? t.all;
   const [editing, setEditing] = useState<{ value: SaveTrainingPhaseInput; shared: boolean } | null>(null);
   const lock = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -272,7 +292,7 @@ function PhasePanel({
         : {
             id: randomUUID(),
             expectedVersion: 0,
-            target: { type: "group", id: groupId ?? "" },
+            target: targetFilter ?? { type: "group", id: "" },
             name: "",
             kind: "general",
             startDate: filter.from,
@@ -299,6 +319,46 @@ function PhasePanel({
     );
   return (
     <View style={{ gap: space.md }}>
+      {canManage && context.data && !context.isError ? (
+        <>
+          <Button
+            label={`${t.target} : ${targetName}`}
+            variant="secondary"
+            expanded={choosingTarget}
+            onPress={() => setChoosingTarget(!choosingTarget)}
+          />
+          {choosingTarget ? (
+            <View style={{ gap: space.sm }}>
+              <Field label={t.searchTarget} value={targetSearch} onChangeText={setTargetSearch} />
+              <Button
+                label={t.all}
+                variant="secondary"
+                selected={!targetFilter}
+                onPress={() => {
+                  setTargetFilter(null);
+                  setChoosingTarget(false);
+                }}
+              />
+              {targets
+                .filter((target) =>
+                  target.name.toLocaleLowerCase("fr").includes(targetSearch.trim().toLocaleLowerCase("fr")),
+                )
+                .map((target) => (
+                  <Button
+                    key={`${target.type}:${target.id}`}
+                    label={`${target.name} · ${target.type === "group" ? t.group : t.athlete}`}
+                    variant="secondary"
+                    selected={target.type === targetFilter?.type && target.id === targetFilter.id}
+                    onPress={() => {
+                      setTargetFilter({ type: target.type, id: target.id });
+                      setChoosingTarget(false);
+                    }}
+                  />
+                ))}
+            </View>
+          ) : null}
+        </>
+      ) : null}
       <Field
         label={t.start}
         value={dates.from}

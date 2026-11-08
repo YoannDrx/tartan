@@ -8,7 +8,7 @@ Une phase cible un groupe ou un athlète : nom, type, dates inclusives, objectif
 
 Le verrou d'espace sérialise les mutations ; droits et cibles sont revérifiés après acquisition. Une réattribution vérifie l'ancienne et la nouvelle cible. La version attendue refuse l'écrasement silencieux. Un identifiant de création stable et une empreinte dédupliquent le rejeu après perte de réponse ; le rejeu ne réécrit pas une correction. La suppression efface les contenus personnels et garde une trace sans ces contenus pour ne pas ressusciter l'objet. Cette trace disparaît avec la cible ou l'espace.
 
-Les projections athlète et assistant excluent la note privée de la requête SQL et ne lisent que les phases partagées. Une phase individuelle privée ne modifie donc pas indirectement la liste publique. Les règles pures donnent priorité à l'individuel et retournent un choix requis en présence de plusieurs phases de groupes. **Leur intégration comme contexte du constructeur et du futur planificateur reste à réaliser** ; la liste ne prétend pas avoir choisi ce contexte.
+Les projections athlète et assistant excluent la note privée de la requête SQL et ne lisent que les phases partagées. Une phase individuelle privée ne modifie donc pas indirectement la liste publique. Les règles pures donnent priorité à l'individuel et retournent un choix requis en présence de plusieurs phases de groupes. Le constructeur web et natif applique désormais cette priorité et demande un choix explicite entre groupes. Le futur planificateur reste à raccorder.
 
 Gestion web et native : création, correction, partage/retrait, suppression, erreurs conservant les valeurs et confirmation d'abandon. Calendrier et Progrès affichent les phases derrière le drapeau d'espace. Frise statique avec dates équivalentes lisibles, indication de semaine dans la période consultée, contenu partageable et note repliable sur le web. Le natif utilise l'API commune ; ses lectures restent en mémoire, sont séparées par compte/espace/rôle et ne réaffichent pas les données en cas de refus serveur. Les phases n'entrent pas dans le cache persistant.
 
@@ -28,4 +28,18 @@ UI/UX Pro Max n'a pas donné de correspondance vérifiée pour une frise de phas
 
 ## Suite du lot D
 
-Contexte de programmation avec priorité individuelle et choix multi-groupes dans les constructeurs, filtres natifs complets, analyses prévu/réalisé, diversité et couverture par groupe/athlète/phase restent ouverts. La recette avec 30/60/120 athlètes sur ces nouveaux écrans, les essais coachs et les appareils physiques restent à faire. L'IA et les conditions externes de commercialisation ne sont pas validées par ce lot.
+Les analyses prévu/réalisé, diversité et couverture par groupe/athlète/phase restent ouvertes. Le contexte du constructeur et les filtres natifs par cible sont ajoutés dans la preuve complémentaire ci-dessous. La recette avec 30/60/120 athlètes sur ces nouveaux écrans, les essais coachs et les appareils physiques restent à faire. L'IA et les conditions externes de commercialisation ne sont pas validées par ce lot.
+
+## Complément — contexte du constructeur
+
+8 novembre 2026, depuis `cc57f89`, même environnement local. Le choix des destinataires précède les blocs de séance. Le contexte affiche les phases du groupe et les priorités individuelles à la date sélectionnée. Plusieurs groupes actifs demandent un choix explicite avant publication ; enregistrer un brouillon reste possible. Une réponse ancienne, un refus ou une requête en cours ne débloque pas la publication. Les nouvelles appartenances à un groupe ne sont pas projetées sur les dates précédant leur création.
+
+Le service recontrôle l'espace et les destinataires. Un coach adjoint peut préparer ses séances avec les phases partagées uniquement ; aucune note privée n'est sélectionnée. Le mobile permet aussi de rechercher et filtrer les phases par groupe ou athlète.
+
+Limite explicite : ce contexte guide l'édition en cours ; le choix multi-groupes n'est pas encore conservé avec la séance ni revalidé dans sa transaction de publication. Il ne constitue pas une attribution historique à une phase. Ce point reste à traiter avant de présenter des statistiques attribuées à la phase choisie.
+
+- 21 tests serveur ciblés réussis : phases et identité des séances, incluant contexte multi-groupes, priorité individuelle, refus hors périmètre, choix périmé, groupe vide, dates d'appartenance et accès adjoint.
+- Quatre parcours navigateur sur build de production réussis en 42,1 s : contexte des phases et identité des séances, desktop et mobile. Blocage avant choix, publication après choix, priorité individuelle, absence de note privée, Axe et débordement contrôlés.
+- Types du monorepo verts, lint sans erreur (quatre avertissements préexistants), Impeccable sans travers. Export Hermes iOS et Android réussi avant l'ajout du filtre natif par cible ; types natifs revérifiés après cet ajout.
+- [Contexte desktop](images/phase-planning-desktop.png) et [mobile](images/phase-planning-mobile.png) relus. Pas de recette native interactive ou physique supplémentaire : contrôle du simulateur toujours bloqué par le verrouillage du Mac.
+- CI qualité `fcda7e5` réussie, run `42436975131`. Cette CI précède les phases ; nouvelle CI requise pour le présent commit.

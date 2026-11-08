@@ -16,9 +16,13 @@ export const getSessionBuilderContext = async (userId: string, organizationId: s
     listAthletes(userId, organizationId),
     listTemplates(userId, organizationId),
     listTestKeys(userId, organizationId),
-    prisma.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { progressionEnabled: true } }),
+    prisma.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { progressionEnabled: true, phasesEnabled: true },
+    }),
   ]);
   return sessionBuilderContext.parse({
+    phasesEnabled: space.phasesEnabled,
     exercises,
     groups,
     templates,

@@ -1,6 +1,9 @@
 import type { TrainingPhaseSummary } from "@tartan/contracts";
 
 type Period = { startDate: string; endDate: string };
+export const phasePlanningKey = (date: string, groupIds: readonly string[], athleteIds: readonly string[]) =>
+  JSON.stringify({ date, groupIds: [...new Set(groupIds)].sort(), athleteIds: [...new Set(athleteIds)].sort() });
+export type PhasePlanningReadiness = { key: string; ready: boolean };
 export const phasePeriodsOverlap = (a: Period, b: Period) => a.startDate <= b.endDate && b.startDate <= a.endDate;
 const day = (date: string) => Date.parse(`${date}T00:00:00Z`) / 86400000;
 export function trainingPhaseProgress(phase: Period, date: string) {

@@ -9,6 +9,8 @@ import {
   type SessionEditResponse,
 } from "@tartan/contracts";
 import { copyDraftWithNewRefs, formatPrescription, withSessionRefs } from "@tartan/domain";
+import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
+import { NativePhasePlanning } from "../phase-planning";
 import { m } from "@tartan/i18n";
 import { randomUUID } from "expo-crypto";
 import { useNavigation, useRouter } from "expo-router";
@@ -96,6 +98,10 @@ export const NativeSessionBuilder = ({
   onReload: (id?: string) => void;
 }) => {
   const [form, setForm] = useState(() => initialForm(initial, date, groupId));
+  const phaseGroups = form.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId);
+  const phaseAthletes = form.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId);
+  const planningKey = phasePlanningKey(form.date, phaseGroups, phaseAthletes);
+  const [phaseReady, setPhaseReady] = useState<PhasePlanningReadiness>({ key: "", ready: false });
   const [duration, setDuration] = useState(initial?.draft.durationMin?.toString() ?? "");
   const [baseline, setBaseline] = useState(() => JSON.stringify({ form, duration }));
   const [base, setBase] = useState(initial);
@@ -340,6 +346,15 @@ export const NativeSessionBuilder = ({
     }
     if (parsed.data.publishAt && Date.parse(parsed.data.publishAt) <= Date.now()) {
       setError(m.builder.schedulePast);
+      return;
+    }
+    if (
+      context.phasesEnabled &&
+      (publish || parsed.data.publishAt || publishedAt) &&
+      form.assignments.length &&
+      (phaseReady.key !== planningKey || !phaseReady.ready)
+    ) {
+      setError(m.trainingPhases.reviewRequired);
       return;
     }
     pending.current = true;
@@ -717,6 +732,16 @@ export const NativeSessionBuilder = ({
           disabled={!availableTemplates.length}
           onPress={() => setTemplates(true)}
         />
+        {context.phasesEnabled ? (
+          <NativePhasePlanning
+            key={planningKey}
+            orgId={orgId}
+            date={form.date}
+            groupIds={phaseGroups}
+            athleteIds={phaseAthletes}
+            onReady={setPhaseReady}
+          />
+        ) : null}
         {form.draft.blocks.map((block, bi) => (
           <Card key={block.ref}>
             <View style={{ gap: space.md }}>

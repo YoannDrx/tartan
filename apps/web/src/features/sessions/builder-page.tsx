@@ -23,7 +23,12 @@ export const BuilderPage = async ({
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={initial ? initial.draft.title : m.coach.newSession} />
-      <SessionBuilder initial={initial} {...context} defaultDate={defaultDate ?? todayIso()} />
+      <SessionBuilder
+        organizationId={organizationId}
+        initial={initial}
+        {...context}
+        defaultDate={defaultDate ?? todayIso()}
+      />
     </div>
   );
 };

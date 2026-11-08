@@ -48,3 +48,33 @@ export const trainingPhaseContext = z.object({
 });
 export type TrainingPhaseContext = z.infer<typeof trainingPhaseContext>;
 export const trainingPhaseWriteResult = z.object({ id: uuid, version: z.number().int().positive() });
+
+export const phasePlanningQuery = z
+  .object({
+    date: isoDate,
+    groupIds: z.array(uuid).max(100),
+    athleteIds: z.array(uuid).max(500),
+    choices: z
+      .array(z.object({ athleteId: uuid, groupId: uuid }).strict())
+      .max(500)
+      .default([]),
+  })
+  .strict()
+  .refine((input) => new Set(input.choices.map((choice) => choice.athleteId)).size === input.choices.length, {
+    path: ["choices"],
+    message: "Un seul contexte par athlète.",
+  });
+export type PhasePlanningQuery = z.infer<typeof phasePlanningQuery>;
+// Le contexte de programmation ne contient pas la note privée, même pour le coach.
+export const planningPhase = trainingPhaseSummary.omit({ privateNote: true });
+export const phasePlanningResult = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("none") }),
+  z.object({ kind: z.literal("phase"), phase: planningPhase }),
+  z.object({ kind: z.literal("choose_group"), phases: z.array(planningPhase) }),
+]);
+export const phasePlanningResponse = z.object({
+  date: isoDate,
+  groups: z.array(z.object({ id: uuid, name: z.string(), phase: planningPhase.nullable() })),
+  athletes: z.array(z.object({ id: uuid, name: z.string(), result: phasePlanningResult })),
+});
+export type PhasePlanningResponse = z.infer<typeof phasePlanningResponse>;
