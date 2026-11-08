@@ -644,6 +644,8 @@ export const fr = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
   aiPlanner: {
+    transcriptionFailed:
+      "La dictée n’a pas pu être transcrite. Tu peux écrire ta consigne ou enregistrer une nouvelle dictée.",
     audioInvalid:
       "Cet enregistrement est illisible ou dépasse trois minutes ou 3 Mio. Réenregistre une dictée plus courte.",
     rateLimited: "Plusieurs demandes sont déjà en cours. Patiente un instant avant de réessayer.",

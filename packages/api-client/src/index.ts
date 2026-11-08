@@ -1,5 +1,6 @@
 import { publishSessionsResult, type PublishSessionsInput } from "@tartan/contracts";
 import {
+  plannerTranscriptionResponse,
   plannerProposalResponse,
   plannerDraftsResponse,
   plannerConfirmationResult,
@@ -102,14 +103,15 @@ export const createApiClient = (options: ApiClientOptions) => {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(query ?? {})) if (value) params.set(key, value);
     const suffix = params.size ? `?${params.toString()}` : "";
+    const multipart = typeof FormData !== "undefined" && body instanceof FormData;
     const res = await doFetch(`${options.baseUrl}/api/v1${path}${suffix}`, {
       method,
       headers: {
         Accept: "application/json",
-        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+        ...(body !== undefined && !multipart ? { "Content-Type": "application/json" } : {}),
         ...(await options.headers?.()),
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: multipart ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
     const json: unknown = await res.json().catch(() => null);
     if (!res.ok) {
@@ -120,6 +122,10 @@ export const createApiClient = (options: ApiClientOptions) => {
   };
 
   return {
+    transcribePlannerAudio: (orgId: string, body: FormData) =>
+      request("POST", `/orgs/${orgId}/planner/transcriptions`, plannerTranscriptionResponse, body),
+    plannerTranscription: (orgId: string, transcriptionId: string) =>
+      request("GET", `/orgs/${orgId}/planner/transcriptions/${transcriptionId}`, plannerTranscriptionResponse),
     plannerUsage: (orgId: string) => request("GET", `/orgs/${orgId}/planner/usage`, plannerUsageResponse),
     createPlannerProposal: (orgId: string, body: CreatePlannerProposalInput) =>
       request("POST", `/orgs/${orgId}/planner`, plannerProposalResponse, body),

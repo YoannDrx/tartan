@@ -30,7 +30,10 @@ const inputSchema = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 type OperationInput = z.infer<typeof inputSchema>;
-const resultSchema = z.object({ proposalId: uuid, version: z.number().int().positive() }).strict();
+const resultSchema = z.union([
+  z.object({ proposalId: uuid, version: z.number().int().positive() }).strict(),
+  z.object({ transcriptionId: uuid, version: z.number().int().positive() }).strict(),
+]);
 export type PlannerResultReference = z.infer<typeof resultSchema>;
 export type PlannerOperationClaim =
   | { state: "claimed"; leaseToken: string }
@@ -279,6 +282,8 @@ export async function completePlannerOperation(
         return { state: "refunded" };
       }
       const result = resultSchema.parse(await commitResult(tx));
+      const isTranscriptionResult = "transcriptionId" in result;
+      if ((row.kind === "transcription") !== isTranscriptionResult) throw conflict();
       await tx.aiPlannerQuota.update({
         where: quotaWhere(row),
         data: {

@@ -321,3 +321,28 @@ it("expose les quotas du mois local sans texte ni bail expiré et contrôle les 
     code: "planner_disabled",
   });
 });
+
+it("une consommation audio doit référencer une transcription, sans accepter un résultat de proposition", async () => {
+  const a = await setup();
+  const input = { id: randomUUID(), kind: "transcription" as const, fingerprint: "a".repeat(64), audioSeconds: 2 };
+  const claim = await reservePlannerOperation(a.owner.userId, a.organizationId, input, now);
+  if (claim.state !== "claimed") throw new Error("claim missing");
+  await expect(
+    completePlannerOperation(a.owner.userId, a.organizationId, input.id, claim.leaseToken, async () => result, now),
+  ).rejects.toMatchObject({ status: 409 });
+  expect(await prisma.aiPlannerQuota.findUniqueOrThrow({ where: qwhere(a.organizationId) })).toMatchObject({
+    usedAudioSeconds: 0,
+    reservedAudioSeconds: 2,
+  });
+  const audioResult = { transcriptionId: input.id, version: 2 };
+  expect(
+    await completePlannerOperation(
+      a.owner.userId,
+      a.organizationId,
+      input.id,
+      claim.leaseToken,
+      async () => audioResult,
+      now,
+    ),
+  ).toEqual({ state: "succeeded", result: audioResult });
+});

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { createApiClient } from "@tartan/api-client";
@@ -11,8 +12,10 @@ import { GET as read } from "../app/api/v1/orgs/[orgId]/planner/proposals/[propo
 import { POST as clarify } from "../app/api/v1/orgs/[orgId]/planner/proposals/[proposalId]/clarify/route";
 import { POST as prepare } from "../app/api/v1/orgs/[orgId]/planner/proposals/[proposalId]/prepare/route";
 import { POST as confirm } from "../app/api/v1/orgs/[orgId]/planner/proposals/[proposalId]/confirm/route";
+import { POST as transcribe } from "../app/api/v1/orgs/[orgId]/planner/transcriptions/route";
+import { GET as readTranscription } from "../app/api/v1/orgs/[orgId]/planner/transcriptions/[transcriptionId]/route";
 import { addAthlete, makeOrg } from "./helpers";
-const mocks = vi.hoisted(() => ({ enabled: "true", interpret: vi.fn() }));
+const mocks = vi.hoisted(() => ({ enabled: "true", interpret: vi.fn(), transcribe: vi.fn() }));
 vi.mock("@/lib/session", () => ({
   getActorFrom: async (headers: Headers) => {
     const userId = headers.get("x-test-actor");
@@ -27,8 +30,12 @@ vi.mock("@/server/ai/provider", async (original) => ({
   ...(await original<typeof import("@/server/ai/provider")>()),
   openAiPlannerProvider: () => ({ interpret: mocks.interpret }),
 }));
+vi.mock("@/server/ai/transcription-provider", () => ({
+  openAiTranscriptionProvider: () => ({ transcribe: mocks.transcribe }),
+}));
 beforeEach(() => {
   mocks.enabled = "true";
+  mocks.transcribe.mockReset().mockResolvedValue("Trois séries de quatre répétitions à quarante kilos.");
   mocks.interpret.mockReset().mockImplementation(async (context: PlannerProviderContext) => ({
     status: "clarification",
     sessions: [],
@@ -46,21 +53,26 @@ const transport = (userId?: string) =>
       const parts = new URL(String(url)).pathname.split("/");
       const orgId = parts[4]!,
         proposalId = parts[7]!;
-      const ctx = { params: Promise.resolve({ orgId, proposalId }) };
+      const ctx = { params: Promise.resolve({ orgId, proposalId, transcriptionId: proposalId }) };
       const handler =
-        parts[6] === "usage"
-          ? usage
-          : parts[6] !== "proposals"
-            ? create
-            : parts[8] === "clarify"
-              ? clarify
-              : parts[8] === "prepare"
-                ? prepare
-                : parts[8] === "confirm"
-                  ? confirm
-                  : read;
+        parts[6] === "transcriptions"
+          ? proposalId
+            ? readTranscription
+            : transcribe
+          : parts[6] === "usage"
+            ? usage
+            : parts[6] !== "proposals"
+              ? create
+              : parts[8] === "clarify"
+                ? clarify
+                : parts[8] === "prepare"
+                  ? prepare
+                  : parts[8] === "confirm"
+                    ? confirm
+                    : read;
       const response = await handler(request, ctx);
       if (response.ok) expect(response.headers.get("cache-control")).toBe("private, no-store");
+      if (parts[6] === "transcriptions" && [401, 403].includes(response.status)) expect(request.bodyUsed).toBe(false);
       return response;
     },
   });
@@ -85,6 +97,21 @@ async function setup() {
 }
 it("fait passer le parcours SDK et routes par les mêmes contrôles jusqu'aux brouillons", async () => {
   const a = await setup();
+  const upload = new FormData();
+  const metadata = { id: randomUUID(), requestedAt: new Date().toISOString(), audioProcessingAccepted: true };
+  upload.set("metadata", JSON.stringify(metadata));
+  upload.set(
+    "audio",
+    new Blob([new Uint8Array(await readFile(new URL("./fixtures/planner-audio/silence.m4a", import.meta.url)))], {
+      type: "audio/mp4",
+    }),
+    "dictation.m4a",
+  );
+  const transcript = await a.api.transcribePlannerAudio(a.organizationId, upload);
+  expect(transcript.state).toBe("ready");
+  expect(await a.api.plannerTranscription(a.organizationId, transcript.id)).toEqual(transcript);
+  expect(mocks.transcribe).toHaveBeenCalledTimes(1);
+  a.input.text = transcript.text!;
   const first = await a.api.createPlannerProposal(a.organizationId, a.input);
   expect(first.state).toBe("clarification");
   expect((await a.api.plannerProposal(a.organizationId, first.id)).version).toBe(first.version);
@@ -165,4 +192,21 @@ it("refuse non-connecté, athlète, autre espace, flag coupé et entrée non rel
   ).rejects.toMatchObject({ status: 400 });
   expect(mocks.interpret).not.toHaveBeenCalled();
   expect(await prisma.aiPlannerOperation.count({ where: { organizationId: a.organizationId } })).toBe(0);
+});
+
+it("contrôle l'accès à l'envoi audio avant de lire le multipart et ne révèle pas le texte brut", async () => {
+  const a = await setup();
+  const athlete = await addAthlete(a.organizationId, a.groupId, "AudioApiAthlete");
+  for (const [api, status] of [
+    [transport(), 401],
+    [transport(athlete.userId), 403],
+  ] as const)
+    await expect(api.transcribePlannerAudio(a.organizationId, new FormData())).rejects.toMatchObject({ status });
+  mocks.enabled = "false";
+  await expect(a.api.transcribePlannerAudio(a.organizationId, new FormData())).rejects.toMatchObject({
+    code: "planner_disabled",
+  });
+  mocks.enabled = "true";
+  await expect(a.api.transcribePlannerAudio(a.organizationId, new FormData())).rejects.toMatchObject({ status: 400 });
+  expect(mocks.transcribe).not.toHaveBeenCalled();
 });

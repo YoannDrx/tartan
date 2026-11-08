@@ -176,3 +176,21 @@ export const plannerUsageResponse = z.object({
   reserved: plannerUsageCounts,
 });
 export type PlannerUsageResponse = z.infer<typeof plannerUsageResponse>;
+
+export const createPlannerTranscriptionInput = z
+  .object({
+    id: uuid,
+    requestedAt: z.iso.datetime(),
+    audioProcessingAccepted: z.literal(true),
+  })
+  .strict();
+export type CreatePlannerTranscriptionInput = z.infer<typeof createPlannerTranscriptionInput>;
+export const plannerTranscriptionResponse = z.object({
+  id: uuid,
+  version: z.number().int().positive(),
+  state: z.enum(["processing", "ready", "failed"]),
+  text: z.string().min(1).max(12000).nullable(),
+  audioSeconds: z.number().int().min(1).max(180),
+  expiresAt: z.iso.datetime(),
+});
+export type PlannerTranscriptionResponse = z.infer<typeof plannerTranscriptionResponse>;

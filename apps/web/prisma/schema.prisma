@@ -33,6 +33,7 @@ model User {
   devices     Device[]
   aiPlannerOperations AiPlannerOperation[]
   aiPlannerProposals AiPlannerProposal[]
+  aiPlannerTranscriptions AiPlannerTranscription[]
   consents    Consent[]            @relation("ConsentUser")
 
   @@map("user")
@@ -201,6 +202,7 @@ model Organization {
   aiPlannerQuotas AiPlannerQuota[]
   aiPlannerOperations AiPlannerOperation[]
   aiPlannerProposals AiPlannerProposal[]
+  aiPlannerTranscriptions AiPlannerTranscription[]
 
   @@map("organizations")
 }
@@ -1640,4 +1642,24 @@ model AiPlannerProposal {
   @@index([organizationId, actorId, createdAt])
   @@index([expiresAt])
   @@map("ai_planner_proposals")
+}
+
+// Texte brut à relire, jamais l’audio. Conservation courte de 24 heures au plus,
+// indépendante des propositions relues qui ont leur propre échéance.
+model AiPlannerTranscription {
+  id String @id @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  actorId String @map("actor_id") @db.Uuid
+  state String @default("processing")
+  version Int @default(1)
+  text String?
+  audioSeconds Int @map("audio_seconds")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  @@index([organizationId, actorId])
+  @@index([expiresAt])
+  @@map("ai_planner_transcriptions")
 }

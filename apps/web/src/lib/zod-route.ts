@@ -15,15 +15,15 @@ export const readJsonBody = async <T extends z.ZodType>(request: Request, schema
   return parsed.data;
 };
 
-export const route = createZodRoute({
-  handleServerError: (error: Error) => {
-    if (error instanceof AppError) {
-      return NextResponse.json({ message: error.message, code: error.code }, { status: error.status });
-    }
-    log.error("route_failed", { code: error.name });
-    return NextResponse.json({ message: m.common.genericError, code: "server_error" }, { status: 500 });
-  },
-});
+export const handleRouteError = (error: unknown) => {
+  if (error instanceof AppError) {
+    return NextResponse.json({ message: error.message, code: error.code }, { status: error.status });
+  }
+  log.error("route_failed", { code: error instanceof Error ? error.name : "unknown" });
+  return NextResponse.json({ message: m.common.genericError, code: "server_error" }, { status: 500 });
+};
+
+export const route = createZodRoute({ handleServerError: handleRouteError });
 
 export const authRoute = route.use(async ({ request, next }) => {
   const actor = await getActorFrom(request.headers);
