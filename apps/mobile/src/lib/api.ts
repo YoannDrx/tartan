@@ -1,5 +1,6 @@
 import { ApiError, createApiClient } from "@tartan/api-client";
 import type { ExerciseInput } from "@tartan/contracts";
+import { appVersion, nativePlatform } from "./app-version";
 import { authClient } from "./auth-client";
 import { config } from "./config";
 import { useSession } from "./session-store";
@@ -18,7 +19,11 @@ const fetchWithSession: typeof fetch = async (input, init) => {
 
 export const api = createApiClient({
   baseUrl: config.apiUrl,
-  headers: async () => ({ Cookie: await authClient.getCookie() }),
+  headers: async () => ({
+    Cookie: await authClient.getCookie(),
+    ...(appVersion ? { "X-Tartan-App-Version": appVersion } : {}),
+    "X-Tartan-Platform": nativePlatform,
+  }),
   fetch: fetchWithSession,
 });
 

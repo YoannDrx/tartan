@@ -1,6 +1,7 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { api } from "./api";
+import { clientVersionInfo, nativePlatform, appVersion, installationId, updateId } from "./app-version";
 import { config } from "./config";
 import { launchRoute } from "./notification-launch";
 import { forgetDevicePush, stopDevicePush } from "./push-lifecycle";
@@ -56,6 +57,11 @@ export const setupNotificationChannels = async (): Promise<void> => {
       description: m.mobile.uploadNotice.channelDetail,
       importance: Notifications.AndroidImportance.LOW,
     });
+    await Notifications.setNotificationChannelAsync("mises-a-jour", {
+      name: m.mobile.channels.updates,
+      description: m.mobile.channels.updatesDetail,
+      importance: Notifications.AndroidImportance.LOW,
+    });
     await Notifications.setNotificationChannelAsync("alertes-coach", {
       name: m.mobile.channels.alerts,
       description: m.mobile.channels.alertsDetail,
@@ -96,12 +102,26 @@ export const registerPush = async ({ prompt }: { prompt: boolean }): Promise<Pus
     const token = await Notifications.getExpoPushTokenAsync(
       config.projectId ? { projectId: config.projectId } : undefined,
     );
-    await api.registerDevice(token.data, Platform.OS === "ios" ? "ios" : "android");
+    await api.registerDevice(token.data, Platform.OS === "ios" ? "ios" : "android", await clientVersionInfo());
   } catch (error) {
     // L'app marche sans notification, mais un échec sur un vrai téléphone doit se voir.
     reportTechnical("push_token_failed", error);
   }
   return permission;
+};
+
+// Un jeton renouvelé par le système doit remplacer l'ancien, sinon l'appareil cesse de recevoir.
+export const listenToPushToken = (): (() => void) => {
+  const sub = Notifications.addPushTokenListener(() => void registerPush({ prompt: false }));
+  return () => sub.remove();
+};
+
+// Connaître la version de chaque installation, y compris sans autorisation de notification.
+export const reportClientVersion = async (): Promise<void> => {
+  if (!appVersion) return;
+  await api
+    .checkIn({ installationId: await installationId(), platform: nativePlatform, appVersion, updateId: updateId() })
+    .catch(() => undefined);
 };
 
 // Les boutons d'action sont traités sans ouvrir l'app (voir notification-actions.ts). Ici, seul le toucher simple navigue.

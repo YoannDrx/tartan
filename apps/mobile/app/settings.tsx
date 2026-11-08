@@ -96,6 +96,11 @@ const LinkRow = ({ label, onPress }: { label: string; onPress: () => void }) => 
 export default function Settings() {
   const { me, space: active } = useActiveSpace();
   const client = useQueryClient();
+  const categories = me.data?.preferences?.notifications;
+  const saveCategories = useMutation({
+    mutationFn: api.updatePreferences,
+    onSuccess: (next) => client.setQueryData(["me"], next),
+  });
   const router = useRouter();
   const signOut = useSession((s) => s.signOut);
   const theme = useThemePreference((state) => state.preference);
@@ -385,6 +390,31 @@ export default function Settings() {
             onPress={() => void registerPush({ prompt: true }).then(setPush)}
           />
         ) : null}
+      </View>
+
+      <View style={{ gap: space.sm }}>
+        <SectionTitle>{m.inbox.categories}</SectionTitle>
+        <T variant="small">{m.inbox.categoriesDetail}</T>
+        <ListSurface>
+          {(["sessions", "feedback", "group", "product"] as const).map((key, index) => (
+            <View key={key}>
+              {index > 0 ? <Divider /> : null}
+              <ConsentRow
+                testID={`push-category-${key}`}
+                title={m.inbox[key]}
+                detail=""
+                value={categories?.[key] ?? true}
+                disabled={saveCategories.isPending}
+                onChange={(on) => saveCategories.mutate({ notifications: { [key]: on } })}
+              />
+            </View>
+          ))}
+        </ListSurface>
+        <ListSurface>
+          <LinkRow label={m.inbox.title} onPress={() => router.push("/notifications")} />
+          <Divider />
+          <LinkRow label={m.releases.title} onPress={() => router.push("/nouveautes")} />
+        </ListSurface>
       </View>
 
       {active?.role === "owner" && active.progressionEnabled ? (

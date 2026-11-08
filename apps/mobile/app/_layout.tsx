@@ -17,8 +17,15 @@ import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { startNetworkWatcher } from "../src/lib/network";
 import { purgeAbandonedPlannerRecordings } from "../src/lib/planner-recording-files";
-import { listenToNotificationResponses, registerPush, setupNotificationChannels } from "../src/lib/notifications";
+import {
+  listenToNotificationResponses,
+  listenToPushToken,
+  registerPush,
+  reportClientVersion,
+  setupNotificationChannels,
+} from "../src/lib/notifications";
 import { useMe } from "../src/lib/queries";
+import { UpdateGate } from "../src/features/update-gate";
 import { persister, queryClient, shouldPersistQuery, WEEK_MS } from "../src/lib/query-client";
 import { useSession } from "../src/lib/session-store";
 import { useOpQueue } from "../src/lib/sync/op-queue";
@@ -46,6 +53,8 @@ const SessionEffects = () => {
     void hydrate(userId).then(flush);
     void flushUploads();
     void registerPush({ prompt: false });
+    void reportClientVersion();
+    return listenToPushToken();
   }, [userId, hydrate, flush]);
   return null;
 };
@@ -147,6 +156,7 @@ export default function RootLayout() {
           <Stack.Screen name="athletes/[id]" options={worldContent("work")} />
           <Stack.Screen name="exercise/[id]" options={worldContent("work")} />
         </Stack>
+        <UpdateGate />
       </SafeAreaProvider>
     </PersistQueryClientProvider>
   );

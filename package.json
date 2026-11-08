@@ -20,6 +20,7 @@
     "db:reset": "bash scripts/db-local.sh reset",
     "db:migrate": "pnpm --filter @tartan/web db:migrate",
     "db:seed": "pnpm --filter @tartan/web db:seed",
+    "release:new": "node scripts/release-new.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
