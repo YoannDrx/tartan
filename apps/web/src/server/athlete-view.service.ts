@@ -110,16 +110,21 @@ const fetchCards = async (athleteId: string, from: string, to: string, now: Date
     },
   });
   const coaches = await namesFor(sessions.map((s) => s.createdBy));
-  return sessions.map((s) =>
-    toCard(
-      s,
-      sessionSnapshot.parse(s.snapshot),
-      s.attendance[0]?.status ?? "unknown",
-      s.logs[0] ?? null,
-      coaches.get(s.createdBy) ?? null,
-      now,
-    ),
-  );
+  // Une séance au contenu illisible disparaît seule : elle ne fait pas tomber tout le mois.
+  return sessions.flatMap((s) => {
+    const snapshot = sessionSnapshot.safeParse(s.snapshot);
+    if (!snapshot.success) return [];
+    return [
+      toCard(
+        s,
+        snapshot.data,
+        s.attendance[0]?.status ?? "unknown",
+        s.logs[0] ?? null,
+        coaches.get(s.createdBy) ?? null,
+        now,
+      ),
+    ];
+  });
 };
 
 export const getAthleteToday = async (

@@ -51,7 +51,8 @@ import {
   invitationPreview,
   type JumpAttemptInput,
   meResponse,
-  type ProfileInput,
+  type PreferencesInput,
+  ProfileInput,
   type RollCallInput,
   type SessionLogInput,
   sessionLogResult,
@@ -279,6 +280,7 @@ export const createApiClient = (options: ApiClientOptions) => {
     addStrengthTest: (orgId: string, athleteId: string, body: Omit<StrengthTestInput, "athleteId">) =>
       request("POST", `/orgs/${orgId}/athletes/${athleteId}/strength-tests`, z.object({ id: z.string() }), body),
     updateProfile: (body: ProfileInput) => request("PATCH", "/me", meResponse, body),
+    updatePreferences: (body: PreferencesInput) => request("PATCH", "/me/preferences", meResponse, body),
     deleteAccount: () => request("DELETE", "/me", okResponse),
     unregisterDevice: (pushToken: string) => request("DELETE", "/devices", okResponse, { pushToken }),
     registerDevice: (pushToken: string, platform: "ios" | "android" | "web") =>
@@ -374,8 +376,13 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("POST", `/orgs/${orgId}/sessions/${sessionId}/remind`, z.object({ count: z.number() }), { athleteIds }),
     generateAutonomous: (orgId: string, sessionId: string) =>
       request("POST", `/orgs/${orgId}/sessions/${sessionId}/autonomous`, okResponse),
-    calendar: (orgId: string, from: string, to: string, groupId?: string) =>
-      request("GET", `/orgs/${orgId}/calendar`, calendarResponse, undefined, { from, to, groupId }),
+    calendar: (orgId: string, from: string, to: string, groupId?: string, summary?: boolean) =>
+      request("GET", `/orgs/${orgId}/calendar`, calendarResponse, undefined, {
+        from,
+        to,
+        groupId,
+        summary: summary ? "true" : undefined,
+      }),
     exercises: (orgId: string) => request("GET", `/orgs/${orgId}/exercises`, z.array(exerciseSummary)),
     athletes: (orgId: string) =>
       request(

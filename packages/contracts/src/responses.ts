@@ -35,6 +35,12 @@ export const meResponse = z.object({
   units: z.string(),
   locale: z.string(),
   spaces: z.array(spaceSummary),
+  preferences: z
+    .object({
+      calendarView: z.enum(["list", "month", "week"]).nullable(),
+      calendarViewUpdatedAt: z.string().nullable().optional(),
+    })
+    .optional(),
 });
 export type MeResponse = z.infer<typeof meResponse>;
 
@@ -307,6 +313,10 @@ export const calendarSession = z.object({
   publishedAt: z.string().nullable(),
   audience: z.string(),
   hasAutonomous: z.boolean(),
+  // Facultatifs : un ancien client et un cache persisté doivent continuer de passer.
+  durationMin: z.number().nullable().optional(),
+  exerciseCount: z.number().optional(),
+  completion: z.object({ done: z.number(), partial: z.number(), missed: z.number(), total: z.number() }).optional(),
 });
 export type CalendarSession = z.infer<typeof calendarSession>;
 

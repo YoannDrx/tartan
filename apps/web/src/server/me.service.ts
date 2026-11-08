@@ -1,4 +1,11 @@
-import type { MeResponse, ProfileInput, SpaceSummary } from "@tartan/contracts";
+import {
+  calendarView,
+  type CalendarView,
+  type MeResponse,
+  type PreferencesInput,
+  type ProfileInput,
+  type SpaceSummary,
+} from "@tartan/contracts";
 import { can } from "@tartan/domain";
 import { put } from "@vercel/blob";
 import { fromDbDateOrNull, toDbDate } from "@/lib/dates";
@@ -59,7 +66,36 @@ export const getMe = async (userId: string): Promise<MeResponse> => {
     units: user.profile?.units ?? "kg",
     locale: user.profile?.locale ?? "fr",
     spaces: await listSpaces(userId),
+    preferences: {
+      calendarView: parseCalendarView(user.profile?.calendarView),
+      calendarViewUpdatedAt: user.profile?.calendarViewUpdatedAt?.toISOString() ?? null,
+    },
   };
+};
+
+const parseCalendarView = (value: string | null | undefined): CalendarView | null => {
+  const parsed = calendarView.safeParse(value);
+  return parsed.success ? parsed.data : null;
+};
+
+export const getCalendarView = async (userId: string): Promise<CalendarView | null> => {
+  const profile = await prisma.profile.findUnique({ where: { id: userId }, select: { calendarView: true } });
+  return parseCalendarView(profile?.calendarView);
+};
+
+// Dernier choix gagnant : un appareil revenu du hors-ligne n'écrase pas un choix plus récent.
+export const updatePreferences = async (userId: string, input: PreferencesInput): Promise<void> => {
+  if (!input.calendarView) return;
+  const at = input.calendarViewUpdatedAt ? new Date(input.calendarViewUpdatedAt) : new Date();
+  await prisma.profile.upsert({
+    where: { id: userId },
+    create: { id: userId, calendarView: input.calendarView, calendarViewUpdatedAt: at },
+    update: {},
+  });
+  await prisma.profile.updateMany({
+    where: { id: userId, OR: [{ calendarViewUpdatedAt: null }, { calendarViewUpdatedAt: { lte: at } }] },
+    data: { calendarView: input.calendarView, calendarViewUpdatedAt: at },
+  });
 };
 
 export const updateProfile = async (userId: string, input: ProfileInput): Promise<void> => {

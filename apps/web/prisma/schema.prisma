@@ -128,6 +128,9 @@ model Profile {
   // Envois coupables d'un clic : résumé hebdomadaire et replis de notification.
   emailDigest        Boolean @default(true) @map("email_digest")
   emailNotifications Boolean @default(true) @map("email_notifications")
+  // Vue du calendrier suivie d'un appareil à l'autre ; la date arbitre les écritures hors ligne.
+  calendarView          String?   @map("calendar_view")
+  calendarViewUpdatedAt DateTime? @map("calendar_view_updated_at")
   lastActiveAt       DateTime? @map("last_active_at")
   inactivityNoticeAt DateTime? @map("inactivity_notice_at")
   createdAt DateTime  @default(now()) @map("created_at")

@@ -41,6 +41,16 @@ export const profileInput = z.object({
 });
 export type ProfileInput = z.infer<typeof profileInput>;
 
+export const calendarView = z.enum(["list", "month", "week"]);
+export type CalendarView = z.infer<typeof calendarView>;
+
+// Écriture partielle : un champ absent ne change rien. La date permet de rejouer un choix fait hors ligne.
+export const preferencesInput = z.object({
+  calendarView: calendarView.optional(),
+  calendarViewUpdatedAt: z.string().datetime().optional(),
+});
+export type PreferencesInput = z.infer<typeof preferencesInput>;
+
 export const createOrganizationInput = z.object({
   name: required(120, "Donne un nom à ton espace"),
   type: z.enum(["club", "independent"]),
@@ -427,11 +437,23 @@ export const trackingQuery = z.object({
   groupId: uuid.optional(),
 });
 
-export const rangeQuery = z.object({
-  from: isoDate,
-  to: isoDate,
-  groupId: uuid.optional(),
-});
+// Un mois complet s'affiche sur 42 jours ; la marge couvre les préchargements sans ouvrir une lecture sans borne.
+export const MAX_CALENDAR_RANGE_DAYS = 62;
+const rangeDays = (from: string, to: string) =>
+  (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000;
+
+export const rangeQuery = z
+  .object({
+    from: isoDate,
+    to: isoDate,
+    groupId: uuid.optional(),
+    // Durée, exercices et réalisation : calculés à la demande pour ne pas alourdir les petites lectures.
+    summary: z.enum(["true", "false"]).optional(),
+  })
+  .refine(({ from, to }) => rangeDays(from, to) >= 0 && rangeDays(from, to) <= MAX_CALENDAR_RANGE_DAYS, {
+    message: "Période de calendrier invalide",
+    path: ["to"],
+  });
 
 export const sessionTypeFilter = sessionType.optional();
 export const logStatusFilter = logStatus.optional();
