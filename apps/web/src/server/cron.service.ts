@@ -1,4 +1,5 @@
 import { processBillingCommands } from "./billing-command.service";
+import { expirePlannerOperations } from "./ai/usage.service";
 import { addDays, isOverdue, MISSED_STREAK_THRESHOLD } from "@tartan/domain";
 import { fromDbDate, todayIso, toDbDate, hourInParis } from "@/lib/dates";
 import { log } from "@/lib/logger";
@@ -178,6 +179,7 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     eve: () => sendEveQuestions(now),
     dispatched: () => dispatchPending(now),
     billingCommands: () => processBillingCommands(now),
+    aiReservations: () => expirePlannerOperations(now),
     billing: () => reconcileStripeSubscriptions(now),
     referrals: () => processReferrals(now),
     purged: () => purgeExpiredVideos(now),

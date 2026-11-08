@@ -31,6 +31,7 @@ model User {
   athletes    Athlete[]
   trainingPhases TrainingPhase[]
   devices     Device[]
+  aiPlannerOperations AiPlannerOperation[]
   consents    Consent[]            @relation("ConsentUser")
 
   @@map("user")
@@ -163,6 +164,7 @@ model Organization {
   progressionEnabled     Boolean          @default(false) @map("progression_enabled")
   phasesEnabled          Boolean          @default(false) @map("phases_enabled")
   aiPlannerEnabled       Boolean          @default(false) @map("ai_planner_enabled")
+  timeZone               String           @default("Europe/Paris") @map("time_zone")
   stripeCustomerId       String?          @unique @map("stripe_customer_id")
   // Identité du payeur : conservée au transfert, jamais assimilée au nouveau propriétaire.
   billingOwnerId         String?          @map("billing_owner_id") @db.Uuid
@@ -195,6 +197,8 @@ model Organization {
   subscriptions     Subscription[]
   entitlements      Entitlement[]
   checkoutIntent    CheckoutIntent?
+  aiPlannerQuotas AiPlannerQuota[]
+  aiPlannerOperations AiPlannerOperation[]
 
   @@map("organizations")
 }
@@ -1561,4 +1565,47 @@ model TrainingPhase {
   @@index([groupId])
   @@index([athleteId])
   @@map("training_phases")
+}
+
+// Compteurs agrégés sans texte ni identité personnelle. Une réservation et son
+// opération sont écrites sous le même verrou d’espace, hors appel fournisseur.
+model AiPlannerQuota {
+  organizationId String @map("organization_id") @db.Uuid
+  month String @db.VarChar(7)
+  reservedProposals Int @default(0) @map("reserved_proposals")
+  usedProposals Int @default(0) @map("used_proposals")
+  reservedAudioSeconds Int @default(0) @map("reserved_audio_seconds")
+  usedAudioSeconds Int @default(0) @map("used_audio_seconds")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  @@id([organizationId, month])
+  @@map("ai_planner_quotas")
+}
+
+model AiPlannerOperation {
+  organizationId String @map("organization_id") @db.Uuid
+  id String @db.Uuid
+  actorId String? @map("actor_id") @db.Uuid
+  kind String
+  fingerprint String
+  month String @db.VarChar(7)
+  proposalCost Int @map("proposal_cost")
+  audioSeconds Int @map("audio_seconds")
+  state String @default("pending")
+  leaseToken String? @map("lease_token") @db.Uuid
+  leaseUntil DateTime @map("lease_until")
+  // Référence de résultat seulement, jamais de transcription ni texte du coach.
+  result Json?
+  failureCode String? @map("failure_code")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  @@id([organizationId, id])
+  @@index([state, leaseUntil])
+  @@index([expiresAt])
+  @@index([actorId])
+  @@map("ai_planner_operations")
 }

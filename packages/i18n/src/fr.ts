@@ -643,6 +643,13 @@ export const fr = {
     consentNotice: "En continuant, tu acceptes les conditions d'utilisation et la politique de confidentialité.",
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
+  aiPlanner: {
+    disabled: "Le planificateur IA n’est pas activé pour cet espace.",
+    quotaExceeded: "Le quota IA de ce mois est atteint. Aucun dépassement payant n’est déclenché.",
+    requestConflict:
+      "Cette demande a déjà été utilisée avec un autre contenu. Recharge son résultat ou crée une nouvelle demande.",
+    expiredRequest: "Cette demande a expiré. Crée une nouvelle demande pour reprendre.",
+  },
   batchPublication: {
     open: "Publier des brouillons",
     title: "Publication groupée",
