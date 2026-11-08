@@ -16,7 +16,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "COACH_SIGNUP_MODE=public tsx --env-file-if-exists=.env prisma/seed.ts",
     "demo:fill": "tsx --env-file-if-exists=.env prisma/demo-fill.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "eval:planner": "node --conditions=react-server --import tsx scripts/planner-eval.ts"
   },
   "dependencies": {
     "@better-auth/expo": "1.7.15",
