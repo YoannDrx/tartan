@@ -42,3 +42,4 @@ export * from "./training-analysis";
 export * from "./training-intensity";
 
 export * from "./session-publication";
+export * from "./ai-planner";

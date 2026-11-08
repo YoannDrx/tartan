@@ -14,7 +14,7 @@ Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil s
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
 | C — historique et records | Historique web/natif, API sécurisée, courbes de volumes et de force avec provenance, références séparées, rappel des séries comparables, calculateur, records de séries, célébration unique confirmée par le serveur et performances athlé typées avec correction web/native | Recette native et physique globale |
 | D — phases et analyses | Phases web/native, choix du constructeur conservé/revalidé et référence figée par prescription ; analyse prévu/réalisé, couverture, courbes hebdomadaires de volumes et charge ressentie avec consentement, diversité, catégories et classement mouvement/matériel figé et intensités par exercice/unité avec couverture, filtres 4/12 semaines/un an/phase conservée avec fenêtre de dates ; période partagée séparée pour athlète/adjoint | Recette globale et physique |
-| E — planificateur IA | Non implémenté ; authentification de la clé locale vérifiée, aucun essai de génération/transcription | Dictée, transcription, clarifications, brouillons, quotas, purge et corpus d’évaluation |
+| E — planificateur IA | Contrats stricts, validation métier et adaptateur OpenAI serveur ajoutés, sans route ni interface ; drapeau global désactivé ; aucun essai réel de génération/transcription | Services et quotas atomiques, dictée/transcription, clarifications, brouillons, purge et corpus d’évaluation |
 
 Les recettes réelles Stripe/e-mails/push/vidéo, les configurations externes encore absentes, les démarches commerciales et juridiques et la publication stores restent ouvertes. Les preuves locales et exports Hermes ne les remplacent pas.
 
@@ -360,3 +360,9 @@ Répartition par exercices et catégories, diversité sur 28 jours et comparaiso
 Sélection explicite de 1 à 14 brouillons, publication immédiate après relecture, contrôle des droits, versions et phases au dernier moment. Un conflit annule tout le lot ; le rejeu immédiat après réponse perdue ne recrée ni prescriptions ni notifications. Les notifications sont regroupées par destinataire et inscrites dans la même transaction. Le rafraîchissement après conflit empêche la réouverture prématurée d’une sélection périmée.
 
 Preuves du 8 novembre : 586 tests serveur réussis, dont six scénarios de publication groupée ; test domaine partagé réussi ; deux parcours navigateur sur build de production en 22,3 s, Axe, 390/768/1440 px et zoom 200 %. Types monorepo et exports Hermes iOS/Android réussis. Aucun test de réception réelle ni nouvelle recette visuelle native revendiqués. Voir [preuve détaillée](preuves-v1-1/lot-a-publication-groupee.md).
+
+### Premier socle du planificateur IA
+
+Contrat strict de sortie, séparation questions/proposition, limites de période/séances, contrôle des jetons autorisés et conversion vers les prescriptions existantes. Adaptateur OpenAI sans outil d’écriture, `store:false`, erreurs neutralisées et arrêt global désactivé par défaut. L’alias local `OPEN_AI_API_KEY` est supporté ; aucune valeur de clé n’est inscrite au dépôt. 14 tests domaine et 9 tests d’adaptateur simulé réussis, types monorepo verts.
+
+Ce socle ne constitue pas une fonction disponible : aucun endpoint, quota persistant, transcription ou écran de planificateur n’est encore branché. [Preuves et limites](preuves-v1-1/lot-e-socle-ia.md).

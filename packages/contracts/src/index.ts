@@ -20,3 +20,4 @@ export * from "./exercise-classification";
 export * from "./training-intensity";
 
 export * from "./session-publication";
+export * from "./ai-planner";
