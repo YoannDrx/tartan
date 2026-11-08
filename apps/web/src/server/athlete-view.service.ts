@@ -127,6 +127,35 @@ const fetchCards = async (athleteId: string, from: string, to: string, now: Date
   });
 };
 
+// « À travailler » : la consigne du coach, les points techniques de la prochaine séance, la dernière remarque vidéo.
+const athleteFocus = async (athleteId: string, card: AthleteSessionCard | null, videoConsent: boolean) => {
+  const session = card
+    ? await prisma.scheduledSession.findUnique({ where: { id: card.id }, select: { snapshot: true } })
+    : null;
+  const snapshot = session ? sessionSnapshot.safeParse(session.snapshot) : null;
+  const cues = snapshot?.success
+    ? blocksForVariant(snapshot.data.blocks, card!.variant)
+        .flatMap((block) => block.items)
+        .flatMap((item) => (item.cues[0] ? [{ exercise: item.name, cue: item.cues[0] }] : []))
+        .slice(0, 3)
+    : [];
+  const latest = videoConsent
+    ? await prisma.video.findFirst({
+        where: { athleteId, sharedWithAthlete: true, annotations: { some: { text: { not: null } } } },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          exercise: { select: { name: true } },
+          annotations: { where: { text: { not: null } }, orderBy: { createdAt: "desc" }, take: 1, select: { text: true } },
+        },
+      })
+    : null;
+  const text = latest?.annotations[0]?.text;
+  const video = latest && text ? { id: latest.id, exerciseName: latest.exercise?.name ?? null, text } : null;
+  const coachNote = card?.coachNote ?? null;
+  return coachNote || cues.length > 0 || video ? { coachNote, cues, video } : null;
+};
+
 export const getAthleteToday = async (
   userId: string,
   organizationId: string,
@@ -161,7 +190,9 @@ export const getAthleteToday = async (
   const authors = pinned ? await namesFor([pinned.authorId]) : new Map<string, string>();
   const consent = (await consentForAthletes([access.athleteId])).get(access.athleteId);
   const profile = await prisma.profile.findUnique({ where: { id: userId }, select: { firstName: true } });
+  const focus = await athleteFocus(access.athleteId, todays[0] ?? next, consent?.video ?? false);
   return {
+    focus,
     firstName: profile?.firstName ?? null,
     today: todays,
     next,

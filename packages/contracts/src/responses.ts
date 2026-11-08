@@ -42,6 +42,7 @@ export const meResponse = z.object({
       notifications: z
         .object({ sessions: z.boolean(), feedback: z.boolean(), group: z.boolean(), product: z.boolean() })
         .optional(),
+      email: z.object({ digest: z.boolean(), notifications: z.boolean() }).optional(),
     })
     .optional(),
 });
@@ -98,6 +99,15 @@ export const athleteToday = z.object({
   healthConsent: z.boolean(),
   videoConsent: z.boolean(),
   parentalConsentPending: z.boolean(),
+  // Facultatif : un ancien client et un cache persisté doivent continuer de passer.
+  focus: z
+    .object({
+      coachNote: z.string().nullable(),
+      cues: z.array(z.object({ exercise: z.string(), cue: z.string() })),
+      video: z.object({ id: z.string(), exerciseName: z.string().nullable(), text: z.string() }).nullable(),
+    })
+    .nullable()
+    .optional(),
 });
 export type AthleteToday = z.infer<typeof athleteToday>;
 
@@ -222,6 +232,8 @@ export const videoSummary = z.object({
   attemptNo: z.number().nullable(),
   result: jumpResult.nullable(),
   annotationCount: z.number(),
+  exerciseId: z.string().nullable().optional(),
+  exerciseName: z.string().nullable().optional(),
 });
 export type VideoSummary = z.infer<typeof videoSummary>;
 

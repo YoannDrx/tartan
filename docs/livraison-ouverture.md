@@ -10,6 +10,6 @@ Ce document distingue trois états : code livré dans la PR, testé automatiquem
 | 1 | Vues Liste et Mois, coach et athlète | Livré dans la branche ; tests automatiques verts, simulateur iOS à éprouver avec le lot 6 |
 | 2 | Centre de notifications, notes de version, mises à jour | Livré dans la branche ; tests serveur verts. Skew Protection à activer dans Vercel. Android : disponibilité store confirmée à la main depuis la console. Push réels à éprouver |
 | 3 | Console d'administration, remboursements | Livré dans la branche ; tests verts. À faire avant usage : `ADMIN_EMAILS`, `ADMIN_BOOTSTRAP_TOKEN`, `PASSKEY_RP_ID`, webhooks Stripe élargis, vrai remboursement éprouvé |
-| 4 | Lien vidéo-exercice, « À travailler », bibliothèque, mobile terrain | À faire |
+| 4 | Lien vidéo-exercice, « À travailler », bibliothèque, modèles de départ, préférences e-mail mobile | Livré dans la branche ; tests verts. Le lien se pose depuis l'analyse web |
 | 5 | Activation, IA bêta, relances, export d'espace, Sentry | À faire |
 | 6 | Landing, vraies captures | À faire |

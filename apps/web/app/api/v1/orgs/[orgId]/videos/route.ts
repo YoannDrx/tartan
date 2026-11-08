@@ -6,7 +6,7 @@ import { orgParams } from "../../../_params";
 
 export const GET = authRoute
   .params(orgParams)
-  .query(z.object({ athleteId: uuid.optional() }))
+  .query(z.object({ athleteId: uuid.optional(), exerciseId: uuid.optional() }))
   .handler(async (_req, { ctx, params, query }) => listVideos(ctx.actor.userId, params.orgId, query));
 
 export const POST = authRoute

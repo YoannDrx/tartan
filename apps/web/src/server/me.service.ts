@@ -15,6 +15,7 @@ import { ageRestricted, ageStatusOfUser, assertAdultDate, confirmBirthDate, pare
 import { AppError } from "@/lib/errors";
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
+import { setEmailPreference } from "./email-preferences.service";
 
 export const listSpaces = async (userId: string): Promise<SpaceSummary[]> => {
   const rows = await prisma.organizationMember.findMany({
@@ -75,6 +76,10 @@ export const getMe = async (userId: string): Promise<MeResponse> => {
         group: user.profile?.pushGroup ?? true,
         product: user.profile?.pushProductUpdates ?? true,
       },
+      email: {
+        digest: user.profile?.emailDigest ?? true,
+        notifications: user.profile?.emailNotifications ?? true,
+      },
     },
   };
 };
@@ -91,6 +96,10 @@ export const getCalendarView = async (userId: string): Promise<CalendarView | nu
 
 // Dernier choix gagnant : un appareil revenu du hors-ligne n'écrase pas un choix plus récent.
 export const updatePreferences = async (userId: string, input: PreferencesInput): Promise<void> => {
+  if (input.email) {
+    if (input.email.digest !== undefined) await setEmailPreference(userId, "digest", input.email.digest);
+    if (input.email.notifications !== undefined) await setEmailPreference(userId, "notifications", input.email.notifications);
+  }
   if (input.notifications) {
     const { sessions, feedback, group, product } = input.notifications;
     const data = {

@@ -38,6 +38,7 @@ import { cn } from "@/lib/cn";
 import { reportContentAction } from "@/features/comments/comment.action";
 import { CommentThread } from "@/features/comments/thread";
 import { groupMarkers } from "./timeline-markers";
+import { VideoExerciseLink } from "./video-exercise-link";
 import { addAnnotationAction, deleteAnnotationAction, shareVideoAction } from "./video.action";
 
 const SPEEDS = [0.1, 0.25, 0.5, 1];
@@ -50,12 +51,14 @@ export const VideoAnalysis = ({
   currentUserId,
   backHref,
   path,
+  exercises = [],
 }: {
   video: VideoDetail;
   canAnnotate: boolean;
   currentUserId: string;
   backHref: string;
   path: string;
+  exercises?: { id: string; name: string }[];
 }) => {
   const router = useRouter();
   const ref = useRef<HTMLVideoElement>(null);
@@ -206,7 +209,11 @@ export const VideoAnalysis = ({
                       ),
                     )
                   : ""}
+                {video.exerciseName && !canAnnotate ? `, ${video.exerciseName}` : ""}
               </p>
+              {canAnnotate && exercises.length > 0 ? (
+                <VideoExerciseLink videoId={video.id} current={video.exerciseId ?? null} exercises={exercises} />
+              ) : null}
             </div>
             <IconButton
               tone="darkRound"

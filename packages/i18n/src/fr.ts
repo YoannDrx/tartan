@@ -149,7 +149,7 @@ export const fr = {
   sessionType: {
     strength: "Musculation",
     plyo: "Pliométrie",
-    running: "Course",
+    running: "Course et technique",
     stairs: "Escaliers",
     cones: "Plots",
     mobility: "Mobilité",
@@ -1126,6 +1126,7 @@ export const fr = {
     resent: "C'est renvoyé. Préviens ton parent de regarder ses e-mails.",
   },
   today: {
+    focusTitle: "À travailler",
     greeting: (name: string) => `Salut ${name}`,
     sessionOfDay: "Séance du jour",
     start: "Démarrer la séance",
@@ -1555,6 +1556,8 @@ export const fr = {
     allVideos: (n: number) => (n > 1 ? `Voir ses ${n} vidéos` : "Voir sa vidéo"),
   },
   video: {
+    exerciseLink: "Mouvement",
+    exerciseNone: "Aucun",
     title: "Vidéos",
     barFields: "Ajouter une barre (saut)",
     analysis: "Analyse technique",
@@ -1882,8 +1885,8 @@ export const fr = {
       session_cancelled: "Voir mes séances",
       scheduled_publication_blocked: "Relire la séance",
       app_update: "Voir les nouveautés",
-      video_shared: "Voir le saut",
-      comment: "Voir le saut",
+      video_shared: "Voir la vidéo",
+      comment: "Voir le message",
       pain_alert: "Voir l'athlète",
       missed_streak: "Voir l'athlète",
       announcement: "Lire l'annonce",
@@ -2511,7 +2514,7 @@ export const fr = {
     sessionTypeShort: {
       strength: "Muscu",
       plyo: "Plio",
-      running: "Course",
+      running: "Course et technique",
       stairs: "Escal.",
       cones: "Plots",
       mobility: "Mobi.",

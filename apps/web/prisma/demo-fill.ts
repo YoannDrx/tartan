@@ -657,6 +657,7 @@ const remove = async (email: string) => {
     where: { userId: me.id, role: "owner" },
     orderBy: { createdAt: "asc" },
   });
+  await prisma.sessionTemplate.deleteMany({ where: { organization: { ownerId: coach.id, name: ATHLETE_SPACE } } });
   await prisma.organization.deleteMany({ where: { ownerId: coach.id, name: ATHLETE_SPACE } });
   await prisma.organizationMember.deleteMany({ where: { userId: me.id, role: "athlete", organization: { name: ATHLETE_SPACE } } });
   if (membership) {

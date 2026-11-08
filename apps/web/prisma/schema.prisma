@@ -529,6 +529,7 @@ model Exercise {
   organization        Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   media ExerciseMedia[]
+  videos Video[]
   items SessionItem[]
   strengthTests StrengthTest[]
   strengthReferences StrengthReference[]
@@ -1165,6 +1166,8 @@ model Video {
   athleteId          String            @map("athlete_id") @db.Uuid
   uploadedBy         String            @map("uploaded_by") @db.Uuid
   scheduledSessionId String?           @map("scheduled_session_id") @db.Uuid
+  // Mouvement travaillé, facultatif : un exercice retiré ne supprime pas la vidéo.
+  exerciseId         String?           @map("exercise_id") @db.Uuid
   muxUploadId        String?           @map("mux_upload_id")
   muxAssetId         String?           @map("mux_asset_id")
   muxPlaybackId      String?           @map("mux_playback_id")
@@ -1184,10 +1187,13 @@ model Video {
   athlete            Athlete           @relation(fields: [athleteId], references: [id], onDelete: Cascade)
   session            ScheduledSession? @relation(fields: [scheduledSessionId], references: [id], onDelete: SetNull)
 
+  exercise           Exercise?         @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
   annotations VideoAnnotation[]
   jumps       JumpAttempt[]
 
   @@index([organizationId])
+  @@index([exerciseId])
   @@index([athleteId])
   @@index([muxUploadId])
   @@index([muxAssetId])

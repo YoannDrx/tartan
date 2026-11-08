@@ -145,6 +145,8 @@ export const deleteAccount = async (userId: string, options: { inactiveBefore?: 
         );
       }
     }
+    // Les exercices sont protégés tant qu'un modèle les cite : les modèles partent d'abord.
+    await tx.sessionTemplate.deleteMany({ where: { organizationId: { in: orgsToDelete } } });
     await tx.organization.deleteMany({ where: { id: { in: orgsToDelete } } });
     // Coordonnées laissées dans les invitations reçues ou acceptées, et réponses de satisfaction.
     await tx.invitation.updateMany({

@@ -97,6 +97,7 @@ export default function Settings() {
   const { me, space: active } = useActiveSpace();
   const client = useQueryClient();
   const categories = me.data?.preferences?.notifications;
+  const emails = me.data?.preferences?.email;
   const saveCategories = useMutation({
     mutationFn: api.updatePreferences,
     onSuccess: (next) => client.setQueryData(["me"], next),
@@ -409,6 +410,30 @@ export default function Settings() {
               />
             </View>
           ))}
+        </ListSurface>
+        <SectionTitle>{m.settings.emails}</SectionTitle>
+        <ListSurface>
+          <ConsentRow
+            testID="email-notifications"
+            title={m.settings.emailNotifications}
+            detail=""
+            value={emails?.notifications ?? true}
+            disabled={saveCategories.isPending}
+            onChange={(on) => saveCategories.mutate({ email: { notifications: on } })}
+          />
+          {active?.role === "owner" ? (
+            <>
+              <Divider />
+              <ConsentRow
+                testID="email-digest"
+                title={m.settings.emailDigest}
+                detail=""
+                value={emails?.digest ?? true}
+                disabled={saveCategories.isPending}
+                onChange={(on) => saveCategories.mutate({ email: { digest: on } })}
+              />
+            </>
+          ) : null}
         </ListSurface>
         <ListSurface>
           <LinkRow label={m.inbox.title} onPress={() => router.push("/notifications")} />
