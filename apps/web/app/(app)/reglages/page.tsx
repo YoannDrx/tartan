@@ -1,3 +1,4 @@
+import { trainingProfileSchema } from "@tartan/contracts";
 import type { Metadata } from "next";
 import { can, requiresParentalConsent } from "@tartan/domain";
 import { m } from "@tartan/i18n";
@@ -107,10 +108,15 @@ export default async function ReglagesPage() {
               {env().BLOB_READ_WRITE_TOKEN ? (
                 <LogoForm logoUrl={organization.logoUrl} name={organization.name} />
               ) : null}
+              {space.role === "owner" && space.progressionEnabled ? (
+                <Button asChild variant="secondary">
+                  <Link href="/reglages/references-force">{m.strengthMapping.title}</Link>
+                </Button>
+              ) : null}
               <OrganizationForm
                 name={organization.name}
                 overdueReminders={organization.overdueReminders}
-                disciplines={organization.disciplines}
+                {...trainingProfileSchema.parse(organization)}
               />
             </div>
           ),

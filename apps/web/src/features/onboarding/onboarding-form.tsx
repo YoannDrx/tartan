@@ -6,16 +6,19 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { ageAt } from "@tartan/domain";
-import { confirmAgeInput } from "@tartan/contracts";
+import { confirmAgeInput, trainingProfileSchema } from "@tartan/contracts";
 import { z } from "zod";
 import { m } from "@tartan/i18n";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CheckRow, Field, Input, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
+import { TrainingProfileFields } from "./training-profile-fields";
 import { createSpaceAction } from "./onboarding.action";
 
 const schema = z.object({
+  ...trainingProfileSchema.shape,
+  firstGroupGoal: z.string().trim().max(280),
   firstName: z.string().trim().min(1, "Indique ton prénom"),
   lastName: z.string().trim().min(1, "Indique ton nom"),
   birthDate: confirmAgeInput.shape.birthDate,
@@ -47,6 +50,10 @@ export const OnboardingForm = ({
       name: "",
       type: "independent" as const,
       firstGroupName: "",
+      firstGroupGoal: "",
+      disciplines: [] as string[],
+      trainingObjectives: [] as z.infer<typeof trainingProfileSchema>["trainingObjectives"],
+      availableEquipment: [] as z.infer<typeof trainingProfileSchema>["availableEquipment"],
       termsAccepted: false,
     },
   });
@@ -64,7 +71,10 @@ export const OnboardingForm = ({
       name: v.name,
       type: v.type,
       firstGroupName: v.firstGroupName,
-      disciplines: [],
+      disciplines: v.disciplines,
+      trainingObjectives: v.trainingObjectives,
+      availableEquipment: v.availableEquipment,
+      firstGroupGoal: v.firstGroupGoal,
       profile: { firstName: v.firstName, lastName: v.lastName, birthDate: v.birthDate },
       termsAccepted: true,
     });
@@ -117,6 +127,29 @@ export const OnboardingForm = ({
         >
           {(a) => <Input {...a} {...form.register("firstGroupName")} />}
         </Field>
+        <Field
+          label={m.trainingProfile.firstGroupGoal}
+          hint={m.trainingProfile.groupGoalHint}
+          error={errors.firstGroupGoal?.message}
+        >
+          {(a) => <Input {...a} maxLength={280} {...form.register("firstGroupGoal")} />}
+        </Field>
+      </fieldset>
+      <fieldset className="flex flex-col gap-3">
+        <legend className="t-h2 mb-3">{m.trainingProfile.title}</legend>
+        <TrainingProfileFields
+          value={{
+            disciplines: form.watch("disciplines"),
+            trainingObjectives: form.watch("trainingObjectives"),
+            availableEquipment: form.watch("availableEquipment"),
+          }}
+          disabled={isPending}
+          onChange={(value) => {
+            form.setValue("disciplines", value.disciplines);
+            form.setValue("trainingObjectives", value.trainingObjectives);
+            form.setValue("availableEquipment", value.availableEquipment);
+          }}
+        />
       </fieldset>
       <div>
         <CheckRow label={m.invite.consentTerms} {...form.register("termsAccepted")} />

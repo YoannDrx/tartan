@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { JumpPhase } from "@tartan/contracts";
 import {
   formatHeight,
+  hasHighJumpContext,
   formatTimecode,
   frameStepMs,
   isHighFrameRate,
@@ -161,6 +162,7 @@ const Player = ({
   knownDurationMs,
   annotations,
   canAnnotate,
+  highJump,
   orgId,
   videoId,
   onRetry,
@@ -173,6 +175,7 @@ const Player = ({
   knownDurationMs: number | null;
   annotations: { id: string; tMs: number; phase: JumpPhase | null; text: string | null; authorName: string | null }[];
   canAnnotate: boolean;
+  highJump: boolean;
   orgId: string;
   videoId: string;
 }) => {
@@ -198,6 +201,7 @@ const Player = ({
   const [rate, setRate] = useState<number>(startSpeed);
   const [loop, setLoop] = useState<PhaseSegment | null>(null);
   const [text, setText] = useState("");
+  const [showJumpTools, setShowJumpTools] = useState(highJump);
   const [phase, setPhase] = useState<JumpPhase | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -436,17 +440,27 @@ const Player = ({
 
       {canAnnotate && playable ? (
         <View style={{ gap: space.sm }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: space.sm }}
-            accessibilityLabel={m.mobile.video.phasePick}
-          >
-            <Chip label={m.mobile.video.noPhase} active={phase === null} onPress={() => setPhase(null)} />
-            {PHASE_ORDER.map((ph) => (
-              <Chip key={ph} label={m.jumpPhase[ph]} active={phase === ph} onPress={() => setPhase(ph)} />
-            ))}
-          </ScrollView>
+          <Chip
+            label={m.video.highJumpTools}
+            active={showJumpTools}
+            onPress={() => {
+              setShowJumpTools(!showJumpTools);
+              setPhase(null);
+            }}
+          />
+          {showJumpTools ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: space.sm }}
+              accessibilityLabel={m.video.jumpPhase}
+            >
+              <Chip label={m.mobile.video.noPhase} active={phase === null} onPress={() => setPhase(null)} />
+              {PHASE_ORDER.map((ph) => (
+                <Chip key={ph} label={m.jumpPhase[ph]} active={phase === ph} onPress={() => setPhase(ph)} />
+              ))}
+            </ScrollView>
+          ) : null}
           <View style={{ flexDirection: "row", gap: space.sm, alignItems: "flex-end" }}>
             <Field
               testID="annotation-input"
@@ -531,6 +545,7 @@ export default function VideoAnalysis() {
           knownDurationMs={v.durationMs}
           annotations={v.annotations}
           canAnnotate={canAnnotate}
+          highJump={hasHighJumpContext(v)}
           orgId={orgId}
           videoId={v.id}
         />
@@ -546,7 +561,11 @@ export default function VideoAnalysis() {
           }}
         >
           <T variant="small" tone="muted" style={{ textAlign: "center" }}>
-            {v.status === "error" ? m.video.failed : m.mobile.video.noStream}
+            {v.status === "error"
+              ? m.video.failed
+              : v.status === "ready"
+                ? m.video.playbackUnavailable
+                : m.mobile.video.noStream}
           </T>
         </View>
       )}
@@ -557,7 +576,7 @@ export default function VideoAnalysis() {
         </T>
       ) : null}
 
-      {v.barSheet.length > 0 ? (
+      {hasHighJumpContext(v) && v.barSheet.length > 0 ? (
         <View style={{ gap: space.sm }}>
           <SectionTitle>{m.video.barSheet}</SectionTitle>
           <BarSheetRow rows={v.barSheet} currentCm={v.barHeightCm} />

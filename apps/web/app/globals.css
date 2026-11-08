@@ -62,6 +62,26 @@
   --color-accent-hover: #aedb1e;
   --color-page-deep: #9e3320;
 
+  /* Miroir de tokens.work : les rôles du bureau de préparation physique. */
+  --color-work-page: #f2f3f1;
+  --color-work-surface: #ffffff;
+  --color-work-raised: #e6e7e3;
+  --color-work-text: #15161a;
+  --color-work-muted: #5e6066;
+  --color-work-border: #e2e3df;
+  --color-work-control-line: #5e6066;
+  --color-work-action: #c4442b;
+  --color-work-on-action: #ffffff;
+  --color-work-action-hover: #9e3320;
+  --color-work-selection: #fbe7e2;
+  --color-work-on-selection: #9e3320;
+  --color-work-link: #9e3320;
+  --color-work-st-done: #1e5fa8;
+  --color-work-st-partial: #8a4e08;
+  --color-work-st-missed: #9e3320;
+  --color-work-st-upcoming: #5e6066;
+  --color-work-on-status: #ffffff;
+
   --font-display: var(--font-barlow-condensed), "Barlow Condensed", sans-serif;
   --font-body: var(--font-barlow), "Barlow", sans-serif;
 
@@ -235,6 +255,76 @@
   html:has(.world-nuit) {
     background: var(--color-ink);
   }
+  html:has(.world-work) {
+    --color-page: var(--color-work-page);
+    --color-page-deep: var(--color-work-raised);
+    --color-on-page: var(--color-work-text);
+    --color-lane: var(--color-work-border);
+    --color-card: var(--color-work-surface);
+    --color-card-raised: var(--color-work-page);
+    --color-card-line: var(--color-work-border);
+    --color-control-line: var(--color-work-control-line);
+    --color-fg: var(--color-work-text);
+    --color-fg-muted: var(--color-work-muted);
+    --color-link: var(--color-work-link);
+    --color-accent: var(--color-work-action);
+    --color-on-accent: var(--color-work-on-action);
+    --color-accent-hover: var(--color-work-action-hover);
+    --color-st-done: var(--color-work-st-done);
+    --color-st-partial: var(--color-work-st-partial);
+    --color-st-missed: var(--color-work-st-missed);
+    --color-st-upcoming: var(--color-work-st-upcoming);
+    --color-on-status: var(--color-work-on-status);
+    background: var(--color-work-page);
+    color-scheme: light;
+  }
+  .world-work,
+  html:has(.world-work) .on-card:not(.scene-dark, .scene-dark *) {
+    --color-accent: var(--color-work-action);
+    --color-on-accent: var(--color-work-on-action);
+    --color-accent-hover: var(--color-work-action-hover);
+    --ctx-fg: var(--color-work-text);
+    --ctx-soft: var(--color-work-muted);
+    --ctx-link: var(--color-work-link);
+    --ctx-alert: var(--color-work-st-missed);
+    --ctx-danger: var(--color-work-st-missed);
+    --ctx-focus: var(--color-work-action-hover);
+    --ctx-cta: var(--color-work-action);
+    --ctx-on-cta: var(--color-work-on-action);
+    --ctx-cta-hover: var(--color-work-action-hover);
+    --ctx-second: var(--color-work-surface);
+    --ctx-second-line: var(--color-work-control-line);
+    --ctx-second-width: 1px;
+    --ctx-second-hover: var(--color-work-raised);
+    --ctx-raise: var(--color-work-raised);
+    --ctx-pill-off: var(--color-work-surface);
+    --ctx-pill-line: var(--color-work-border);
+    --ctx-select-bg: var(--color-work-selection);
+    --ctx-select-fg: var(--color-work-text);
+    color: var(--ctx-fg);
+    color-scheme: light;
+    scrollbar-color: var(--color-work-muted) transparent;
+  }
+  /* Un lecteur embarqué reste sombre, même dans une page de travail claire. */
+  html:has(.world-work) .scene-dark {
+    --color-card: #15161a;
+    --color-card-raised: #24262c;
+    --color-card-line: #3a3c43;
+    --color-control-line: #6b6e76;
+    --color-fg: #ffffff;
+    --color-fg-muted: #b9bbc0;
+    --color-link: #c6f432;
+    --color-st-done: #c6f432;
+    --color-st-partial: #ffc838;
+    --color-st-missed: #ff6b57;
+    --color-st-upcoming: #8c8e94;
+    --color-on-status: #15161a;
+    --st-done: var(--color-st-done);
+    --st-partial: var(--color-st-partial);
+    --st-missed: var(--color-st-missed);
+    --st-upcoming: var(--color-st-upcoming);
+    --st-on: var(--color-on-status);
+  }
   html {
     background: var(--color-page);
     color: var(--ctx-fg);
@@ -338,6 +428,39 @@
       line-height: 30px;
     }
   }
+  .world-work .t-display,
+  .world-work .t-h1 {
+    font-size: 30px;
+    line-height: 34px;
+  }
+  .world-work .marked {
+    padding: 0;
+    color: inherit;
+    background: none;
+  }
+  .world-work .marked::before {
+    display: none;
+  }
+  .world-work .lane {
+    height: 1px;
+  }
+  .world-work .lane::before {
+    height: 1px;
+    inset: 0;
+  }
+  .world-work .app-header {
+    border-bottom: 1px solid var(--color-work-border);
+  }
+  .world-work > nav {
+    border-top: 1px solid var(--color-work-border);
+  }
+  @media (min-width: 1024px) {
+    .world-work .t-display,
+    .world-work .t-h1 {
+      font-size: 32px;
+      line-height: 36px;
+    }
+  }
   /* Case à cocher dessinée : chaque moteur a la sienne, ronde sur iPhone, carrée ailleurs. */
   .check {
     appearance: none;
@@ -390,8 +513,8 @@
     }
   }
   /* La barre d'état reste visible au défilement : l'en-tête se pose dessous. */
-  body:has(.offline-bar) .app-header {
-    top: 44px;
+  .app-header {
+    top: var(--offline-bar-height, 0px);
   }
   /* Jauge d'usage : sans ça, Safari garde sa barre système, quelle que soit `accent-color`. */
   .meter {

@@ -1,7 +1,12 @@
+import { CalendarDetailPanel } from "@/features/sessions/calendar-detail-panel";
+import { SessionFollowupContent } from "@/features/tracking/session-detail";
+import { isoDate, uuid } from "@tartan/contracts";
+import { newSessionHref } from "@/lib/session-navigation";
+import { BatchPublication } from "@/features/sessions/batch-publication";
 import { Medal, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { addDays, startOfWeek } from "@tartan/domain";
+import { addDays, startOfWeek, defaultDateForWeek } from "@tartan/domain";
 import { capitalize, formatDateLong, formatDayMonth, m } from "@tartan/i18n";
 import { FilterPill } from "@/components/filter-pill";
 import { Sheet } from "@/components/sheet";
@@ -17,10 +22,11 @@ import { getAthleteCalendar } from "@/server/athlete-view.service";
 import { listAthletes } from "@/server/athlete.service";
 import { listGroups } from "@/server/org.service";
 import { listCalendar } from "@/server/session.service";
+import { CalendarPhases } from "@/features/phases/calendar-phases";
 
 export const metadata: Metadata = { title: m.nav.calendrier };
 
-type Search = { vue?: string; semaine?: string; mois?: string; groupe?: string };
+type Search = { vue?: string; semaine?: string; mois?: string; groupe?: string; seance?: string };
 
 const AthleteCalendar = async ({ ctx }: { ctx: SpaceContext }) => {
   const today = todayIso();
@@ -49,6 +55,7 @@ const AthleteCalendar = async ({ ctx }: { ctx: SpaceContext }) => {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
       <PageHeader title={m.nav.calendrier} />
+      <CalendarPhases ctx={ctx} from={today} to={addDays(today, 42)} today={today} />
       <Sheet>
         {competitions.length > 0 ? (
           <section>
@@ -101,8 +108,13 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
   const params = await searchParams;
   const today = todayIso();
   const isMonth = params.vue === "mois";
-  const week = startOfWeek(params.semaine && /^\d{4}-\d{2}-\d{2}$/.test(params.semaine) ? params.semaine : today);
-  const month = params.mois && /^\d{4}-\d{2}$/.test(params.mois) ? params.mois : today.slice(0, 7);
+  const selectedWeek = isoDate.safeParse(params.semaine).success ? params.semaine : undefined;
+  const selectedMonth =
+    params.mois && /^\d{4}-\d{2}$/.test(params.mois) && isoDate.safeParse(`${params.mois}-01`).success
+      ? params.mois
+      : undefined;
+  const month = selectedMonth ?? (selectedWeek ?? today).slice(0, 7);
+  const week = startOfWeek(selectedWeek ?? (isMonth && selectedMonth ? `${selectedMonth}-01` : today));
   const monthDate = new Date(`${month}-15T12:00:00Z`);
   const shiftMonth = (delta: number) => {
     const d = new Date(Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth() + delta, 15));
@@ -139,10 +151,30 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
         title={m.nav.calendrier}
         actions={
           <>
+            <BatchPublication
+              key={`${ctx.organizationId}:${from}:${to}:${params.groupe ?? "all"}`}
+              sessions={data.sessions.filter((s) => (isMonth ? s.date.startsWith(month) : true))}
+            />
             <CompetitionDialog athletes={athletes} today={today} />
             {!isMonth ? <DuplicateWeekDialog week={week} groups={groups} /> : null}
+            {ctx.space.aiPlannerEnabled ? (
+              <Button asChild variant="secondary" size="sm">
+                <Link
+                  href={`/planificateur?date=${isMonth ? today : week}${params.groupe ? `&groupe=${encodeURIComponent(params.groupe)}` : ""}`}
+                  prefetch={false}
+                >
+                  {m.aiPlanner.title}
+                </Link>
+              </Button>
+            ) : null}
             <Button asChild size="sm" className="order-first desktop:order-none">
-              <Link href="/seances/nouvelle">
+              <Link
+                href={newSessionHref({
+                  date: isMonth ? `${month}-01` : defaultDateForWeek(week, todayIso()),
+                  groupId: params.groupe,
+                  returnTo: href({}),
+                })}
+              >
                 <Plus aria-hidden className="size-5" />
                 {m.coach.newSession}
               </Link>
@@ -183,10 +215,23 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
             : null}
         </nav>
       </div>
+      <CalendarPhases ctx={ctx} from={from} to={to} today={today} groupId={params.groupe} />
+      <CalendarDetailPanel
+        sessionId={uuid.safeParse(params.seance).success ? params.seance : undefined}
+        returnTo={href({})}
+      >
+        {uuid.safeParse(params.seance).success ? (
+          <SessionFollowupContent
+            params={Promise.resolve({ id: params.seance! })}
+            searchParams={Promise.resolve({ retour: href({}) })}
+            compact
+          />
+        ) : null}
+      </CalendarDetailPanel>
       {isMonth ? (
-        <MonthBoard month={month} today={today} data={data} />
+        <MonthBoard month={month} today={today} data={data} returnTo={href({})} />
       ) : (
-        <WeekBoard week={week} today={today} data={data} />
+        <WeekBoard week={week} today={today} data={data} returnTo={href({})} groupId={params.groupe} />
       )}
     </div>
   );

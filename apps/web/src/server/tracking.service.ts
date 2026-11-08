@@ -16,6 +16,7 @@ import { forbidden, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import {
   audit,
+  coachGroupIds,
   requireGroupInScope,
   requireOrgMember,
   requireVisibleAthlete,
@@ -264,6 +265,12 @@ export const getSessionDetailForCoach = async (
   if (!session) throw notFound();
   const visible = new Set(await visibleAthleteIds(access));
   const audience = (await audienceAthleteIds(sessionId)).filter((id) => visible.has(id));
+  if (access.role !== "owner" && session.createdBy !== userId && audience.length === 0) {
+    const assigned = await prisma.assignment.count({
+      where: { scheduledSessionId: sessionId, targetType: "group", targetId: { in: await coachGroupIds(access) } },
+    });
+    if (assigned === 0) throw notFound();
+  }
   const [athletes, logs, attendance] = await Promise.all([
     prisma.athlete.findMany({
       where: { id: { in: audience } },
@@ -378,14 +385,29 @@ export const coachLogSession = async (
   if (!athlete) throw forbidden();
   const session = await prisma.scheduledSession.findFirst({
     where: { id: sessionId, organizationId, publishedAt: { not: null } },
-    select: { id: true },
+    select: { id: true, createdBy: true },
   });
   if (!session || !(await audienceAthleteIds(sessionId)).includes(athleteId)) throw notFound();
-  const data = { status, completedAt: new Date() };
-  await prisma.sessionLog.upsert({
-    where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId } },
-    create: { ...data, scheduledSessionId: sessionId, athleteId },
-    update: data,
+  if (access.role === "assistant" && session.createdBy !== userId) throw forbidden();
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${sessionId}::uuid FOR UPDATE`;
+    const current = await tx.scheduledSession.findUniqueOrThrow({ where: { id: sessionId } });
+    const existing = await tx.sessionLog.findUnique({
+      where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId } },
+    });
+    const data = {
+      status,
+      completedAt: new Date(),
+      recordedBy: userId,
+      version: (existing?.version ?? 0) + 1,
+      ...(current.prescriptionFrozenAt && !existing?.sessionVersion ? { sessionVersion: current.version } : {}),
+    };
+    await tx.sessionLog.upsert({
+      where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId } },
+      create: { ...data, scheduledSessionId: sessionId, athleteId },
+      update: data,
+    });
   });
 };
 

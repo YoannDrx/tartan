@@ -1,17 +1,26 @@
 "use client";
 
-import type { ExerciseMediaSnapshot, ExerciseSummary, Prescription } from "@tartan/contracts";
+import {
+  exerciseMovement,
+  exerciseEquipment,
+  type ExerciseClassification,
+  type ExerciseMediaSnapshot,
+  type ExerciseSummary,
+  type Prescription,
+} from "@tartan/contracts";
 import {
   formatPrescription,
+  normalizeExerciseTerm,
   instagramUrl,
   parseInstagramUrl,
   parseYouTubeUrl,
   validateClipRange,
 } from "@tartan/domain";
-import { m } from "@tartan/i18n";
+import { m, exerciseClassificationLabel } from "@tartan/i18n";
 import { Pencil, Play, Plus, Search, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { pillClass } from "@/components/filter-pill";
 import { ActivityPicto } from "@/components/pictos";
@@ -42,11 +51,19 @@ const ExerciseForm = ({
 }) => {
   const media = exercise?.media as ExerciseMediaSnapshot | null | undefined;
   const youtube = media?.kind === "youtube" ? media : null;
+  const [classification, setClassification] = useState<ExerciseClassification>(
+    exercise?.classification ?? { movement: null, equipment: null },
+  );
   const [name, setName] = useState(exercise?.name ?? "");
+  const [aliases, setAliases] = useState((exercise?.aliases ?? []).join("\n"));
   const [category, setCategory] = useState<Category>((exercise?.category as Category) ?? "plyo");
   const [cues, setCues] = useState((exercise?.cues ?? []).join("\n"));
   const [tags, setTags] = useState((exercise?.tags ?? []).join(", "));
   const [p, setP] = useState<Prescription>(exercise?.defaultPrescription ?? {});
+  const [strengthLoadKind, setStrengthLoadKind] = useState<NonNullable<ExerciseSummary["strengthLoadKind"]> | "">(
+    exercise?.strengthLoadKind ?? "",
+  );
+  const [loadStepKg, setLoadStepKg] = useState(String(exercise?.loadStepKg ?? 1.25));
   const [url, setUrl] = useState(
     youtube
       ? `https://youtu.be/${youtube.youtubeId}`
@@ -102,10 +119,17 @@ const ExerciseForm = ({
         const instagram = Boolean(parseInstagramUrl(url));
         if (url && !instagram && !parseYouTubeUrl(url)) return setError(m.exercises.linkInvalid);
         if (!validateClipRange(start, end)) return setError(m.exercises.clipInvalid);
+        const aliasList = aliases
+          .split("\n")
+          .map((v) => v.trim())
+          .filter(Boolean);
+        if (aliasList.length > 20 || aliasList.some((v) => v.length > 120)) return setError(m.exercises.aliasesInvalid);
         save.execute({
           id: exercise?.id,
           name,
+          aliases: aliasList,
           category,
+          classification,
           cues: cues
             .split("\n")
             .map((c) => c.trim())
@@ -115,6 +139,8 @@ const ExerciseForm = ({
             .map((t) => t.trim())
             .filter(Boolean),
           defaultPrescription: p,
+          strengthLoadKind: strengthLoadKind || null,
+          loadStepKg: Number(loadStepKg),
           media: !url
             ? null
             : instagram
@@ -139,12 +165,114 @@ const ExerciseForm = ({
           )}
         </Field>
       </div>
+      <Field label={m.exercises.aliases} hint={m.exercises.aliasesHint}>
+        {(a) => <Textarea {...a} value={aliases} onChange={(e) => setAliases(e.target.value)} />}
+      </Field>
+      <details>
+        <summary className="min-h-11 cursor-pointer py-3 font-semibold">{m.exerciseClassification.title}</summary>
+        <div className="flex flex-col gap-3">
+          <p className="text-soft">{m.exerciseClassification.hint}</p>
+          <Field label={m.exerciseClassification.movement}>
+            {(props) => (
+              <Select
+                {...props}
+                value={classification.movement ?? ""}
+                onChange={(e) =>
+                  setClassification({
+                    ...classification,
+                    movement: (e.target.value as ExerciseClassification["movement"]) || null,
+                  })
+                }
+              >
+                <option value="">{m.exerciseClassification.unknown}</option>
+                {exerciseMovement.options.map((key) => (
+                  <option key={key} value={key}>
+                    {exerciseClassificationLabel("movements", key)}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <fieldset className="flex flex-col gap-2">
+            <legend className="font-semibold">{m.exerciseClassification.equipment}</legend>
+            <label className="flex min-h-11 items-center gap-2">
+              <input
+                type="radio"
+                name="equipment-mode"
+                checked={classification.equipment === null}
+                onChange={() => setClassification({ ...classification, equipment: null })}
+              />
+              {m.exerciseClassification.unknown}
+            </label>
+            <label className="flex min-h-11 items-center gap-2">
+              <input
+                type="radio"
+                name="equipment-mode"
+                checked={classification.equipment?.length === 0}
+                onChange={() => setClassification({ ...classification, equipment: [] })}
+              />
+              {m.exerciseClassification.none}
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {exerciseEquipment.options.map((key) => (
+                <label key={key} className="flex min-h-11 items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={classification.equipment?.includes(key) ?? false}
+                    onChange={(e) =>
+                      setClassification({
+                        ...classification,
+                        equipment: e.target.checked
+                          ? [...(classification.equipment ?? []), key]
+                          : (classification.equipment ?? []).filter((k) => k !== key),
+                      })
+                    }
+                  />
+                  {exerciseClassificationLabel("equipment", key)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+      </details>
       <Field label={m.exercises.cues} hint={`${m.exercises.cuesHint} Une par ligne.`}>
         {(a) => <Textarea {...a} value={cues} onChange={(e) => setCues(e.target.value)} />}
       </Field>
       <Field label={m.exercises.tags} hint="Séparées par des virgules.">
         {(a) => <Input {...a} value={tags} onChange={(e) => setTags(e.target.value)} />}
       </Field>
+      <div className="grid gap-4 tablet:grid-cols-2">
+        <Field label={m.strength.convention} hint={m.strength.conventionHint}>
+          {(a) => (
+            <Select
+              {...a}
+              value={strengthLoadKind}
+              onChange={(e) => setStrengthLoadKind(e.target.value as typeof strengthLoadKind)}
+            >
+              <option value="">{m.strength.unknownConvention}</option>
+              {Object.entries(m.strength.conventions).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        <Field label={m.strength.step} hint={m.strength.stepHint}>
+          {(a) => (
+            <Input
+              {...a}
+              type="number"
+              inputMode="decimal"
+              min={0.01}
+              max={100}
+              step="0.01"
+              value={loadStepKg}
+              onChange={(e) => setLoadStepKg(e.target.value)}
+            />
+          )}
+        </Field>
+      </div>
       <fieldset className="flex flex-col gap-3 border-t border-card-line pt-4">
         <legend className="t-section pr-2">{m.exercises.defaults}</legend>
         <div className="grid grid-cols-2 gap-3 tablet:grid-cols-4">
@@ -285,8 +413,10 @@ export const ExerciseLibrary = ({
   exercises,
   openNew,
   videoEnabled,
+  progressionEnabled = false,
 }: {
   exercises: ExerciseSummary[];
+  progressionEnabled?: boolean;
   openNew: boolean;
   videoEnabled: boolean;
 }) => {
@@ -303,17 +433,26 @@ export const ExerciseLibrary = ({
     (e) =>
       (!category || e.category === category) &&
       (!source || e.shared === (source === "shared")) &&
-      e.name.toLowerCase().includes(search.trim().toLowerCase()),
+      [e.name, ...(e.aliases ?? [])].some((term) =>
+        normalizeExerciseTerm(term).includes(normalizeExerciseTerm(search)),
+      ),
   );
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title={m.exercises.title}
         actions={
-          <Button size="sm" onClick={() => setDialog({ exercise: null })}>
-            <Plus aria-hidden className="size-5" />
-            {m.exercises.new}
-          </Button>
+          <>
+            {progressionEnabled ? (
+              <Button asChild size="sm" variant="secondary">
+                <Link href="/outils/charges">{m.calculator.title}</Link>
+              </Button>
+            ) : null}
+            <Button size="sm" onClick={() => setDialog({ exercise: null })}>
+              <Plus aria-hidden className="size-5" />
+              {m.exercises.new}
+            </Button>
+          </>
         }
       />
       {exercises.length === 0 ? (

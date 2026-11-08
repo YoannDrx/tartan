@@ -3,6 +3,7 @@
 import type { JumpPhase, VideoDetail } from "@tartan/contracts";
 import {
   formatHeight,
+  hasHighJumpContext,
   formatTimecode,
   frameStepMs,
   isHighFrameRate,
@@ -31,7 +32,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BarSheet } from "@/components/bar-sheet";
 import { IconButton } from "@/components/ui/button";
-import { Select } from "@/components/ui/field";
+import { CheckRow, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { reportContentAction } from "@/features/comments/comment.action";
@@ -63,6 +64,8 @@ export const VideoAnalysis = ({
   const [timeMs, setTimeMs] = useState(0);
   const [durationMs, setDurationMs] = useState(video.durationMs ?? 0);
   const [text, setText] = useState("");
+  const [jumpTools, setJumpTools] = useState<boolean | null>(null);
+  const showJumpTools = jumpTools ?? hasHighJumpContext(video);
   const [phase, setPhase] = useState<JumpPhase | "">("");
   const [loop, setLoop] = useState<{ a: number; b: number | null } | null>(null);
   const src = video.mp4Url ?? video.hlsUrl;
@@ -254,7 +257,7 @@ export const VideoAnalysis = ({
                 onPause={() => setPlaying(false)}
                 onPlay={() => setPlaying(true)}
                 className="aspect-video w-full"
-                aria-label={`Vidéo du saut de ${video.athleteName}`}
+                aria-label={m.video.videoOf(video.athleteName)}
               />
             ) : (
               <div className="flex aspect-video w-full items-center justify-center p-6 text-center text-soft">
@@ -263,7 +266,7 @@ export const VideoAnalysis = ({
                   : video.status === "error"
                     ? m.video.failed
                     : video.status === "ready"
-                      ? "Lecture indisponible : la clé de signature Mux n'est pas configurée."
+                      ? m.video.playbackUnavailable
                       : video.status === "processing"
                         ? m.video.processing
                         : m.video.uploading}
@@ -398,7 +401,7 @@ export const VideoAnalysis = ({
         </div>
 
         <aside className="flex min-w-0 flex-col gap-4">
-          {video.barSheet.length > 0 ? (
+          {hasHighJumpContext(video) && video.barSheet.length > 0 ? (
             <section>
               <h2 className="t-section mb-2">{m.video.barSheet}</h2>
               <BarSheet rows={video.barSheet} current={video.barHeightCm} />
@@ -449,20 +452,32 @@ export const VideoAnalysis = ({
                   placeholder={m.video.remarkAt(formatTimecode(timeMs))}
                   className="min-h-11 w-full rounded-full border border-control-line bg-transparent px-4 text-[16px] text-white placeholder:text-fg-muted"
                 />
+                <CheckRow
+                  label={m.video.highJumpTools}
+                  checked={showJumpTools}
+                  onChange={(e) => {
+                    setJumpTools(e.target.checked);
+                    setPhase("");
+                  }}
+                />
                 <div className="flex flex-wrap gap-2">
-                  <label htmlFor="phase" className="sr-only">
-                    Phase du saut
-                  </label>
-                  <div className="min-w-36 flex-1">
-                    <Select id="phase" value={phase} onChange={(e) => setPhase(e.target.value as JumpPhase | "")}>
-                      <option value="">Sans phase</option>
-                      {PHASES.map((p) => (
-                        <option key={p} value={p}>
-                          {m.jumpPhase[p]}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
+                  {showJumpTools ? (
+                    <>
+                      <label htmlFor="phase" className="sr-only">
+                        {m.video.jumpPhase}
+                      </label>
+                      <div className="min-w-36 flex-1">
+                        <Select id="phase" value={phase} onChange={(e) => setPhase(e.target.value as JumpPhase | "")}>
+                          <option value="">{m.video.noPhase}</option>
+                          {PHASES.map((p) => (
+                            <option key={p} value={p}>
+                              {m.jumpPhase[p]}
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
+                    </>
+                  ) : null}
                   <button
                     type="submit"
                     disabled={add.isPending || !text.trim()}

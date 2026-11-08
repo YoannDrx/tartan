@@ -2,6 +2,8 @@ import { ApiError } from "@tartan/api-client";
 import type { AthleteSessionCard, AthleteToday } from "@tartan/contracts";
 import { describe, expect, it, vi } from "vitest";
 import {
+  versionAfterPendingLogs,
+  feedbackAfterPendingLogs,
   applyPendingToCard,
   applyPendingToToday,
   createChunkedStore,
@@ -42,6 +44,14 @@ const card = (over: Partial<AthleteSessionCard> = {}): AthleteSessionCard => ({
 });
 
 describe("enqueue", () => {
+  it("ne remplace ni une écriture versionnée ni un conflit par une validation rapide", () => {
+    const versioned = { ...log("s1", "detail"), input: { ...log("s1", "detail").input, expectedVersion: 1 } };
+    expect(enqueue([versioned], log("s1", "quick"))).toHaveLength(2);
+    expect(enqueue([{ ...log("s1", "conflict"), blocked: { status: 409 } }], log("s1", "quick"))).toHaveLength(2);
+    expect(enqueue([versioned], { ...versioned, input: { ...versioned.input, status: "partial" } })).toEqual([
+      versioned,
+    ]);
+  });
   it("remplace une validation en attente pour la même séance", () => {
     const items = enqueue(enqueue([], log("s1", "a-client")), log("s1", "b-client"));
     expect(items).toHaveLength(1);
@@ -88,6 +98,39 @@ describe("isRetryable", () => {
 });
 
 describe("replay", () => {
+  it("garde les conflits et leurs dépendants sans bloquer les autres séances", async () => {
+    const send = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError(409, undefined, "private"))
+      .mockResolvedValue(undefined);
+    const result = await replay([log("s1", "first"), log("s1", "next"), log("s2")], send);
+    expect(result.rejected).toEqual([]);
+    expect(result.sent.map((op) => op.id)).toEqual(["client-s2"]);
+    expect(result.remaining.map((op) => op.id)).toEqual(["first", "next"]);
+    expect(result.remaining[0]?.blocked).toEqual({ status: 409 });
+    expect(JSON.stringify(result)).not.toContain("private");
+    send.mockClear();
+    expect((await replay(result.remaining, send)).remaining).toEqual(result.remaining);
+    expect(send).not.toHaveBeenCalled();
+    expect(applyPendingToCard(card(), result.remaining).status).toBe("upcoming");
+  });
+
+  it("conserve les séries versionnées même après un refus d'accès", async () => {
+    const op = { ...log("s1"), input: { ...log("s1").input, expectedVersion: 1 } };
+    const result = await replay([op], vi.fn().mockRejectedValue(new ApiError(403, undefined, "x")));
+    expect(result.remaining).toEqual([{ ...op, blocked: { status: 403 } }]);
+    expect(result.rejected).toEqual([]);
+  });
+
+  it("arrête les appels après un changement de propriétaire", async () => {
+    let current = true;
+    const send = vi.fn(async () => {
+      current = false;
+    });
+    const result = await replay([log("s1"), log("s2")], send, () => current);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(result.remaining).toEqual([log("s2")]);
+  });
   it("envoie dans l'ordre et vide la file", async () => {
     const send = vi.fn().mockResolvedValue(undefined);
     const result = await replay([log("s1"), log("s2")], send);
@@ -181,13 +224,47 @@ describe("createChunkedStore", () => {
     const backend = memory();
     const store = createChunkedStore(backend, 4);
     await store.write("k", "abcdefghij");
-    expect(backend.map.get("k.count")).toBe("3");
+    expect(JSON.parse(backend.map.get("k.head")!).count).toBe(3);
     expect(await store.read("k")).toBe("abcdefghij");
     await store.write("k", "ab");
     expect(backend.map.has("k.1")).toBe(false);
     expect(await store.read("k")).toBe("ab");
     await store.remove("k");
     expect(await store.read("k")).toBeNull();
+  });
+
+  it("conserve la génération précédente si l'écriture d'un morceau échoue", async () => {
+    const backend = memory();
+    const store = createChunkedStore(backend, 4);
+    await store.write("k", "abcdefghij");
+    const set = backend.set;
+    let calls = 0;
+    backend.set = async (key, value) => {
+      if (++calls === 2) throw new Error("disk full");
+      await set(key, value);
+    };
+    await expect(store.write("k", "0123456789")).rejects.toThrow("disk full");
+    expect(await store.read("k")).toBe("abcdefghij");
+  });
+
+  it("reprend les anciens morceaux et sérialise deux écritures simultanées", async () => {
+    const backend = memory();
+    backend.map.set("k.count", "2");
+    backend.map.set("k.0", "abcd");
+    backend.map.set("k.1", "ef");
+    const store = createChunkedStore(backend, 4);
+    expect(await store.read("k")).toBe("abcdef");
+    await Promise.all([store.write("k", "first-value"), store.write("k", "second-value")]);
+    expect(await store.read("k")).toBe("second-value");
+    expect(backend.map.has("k.count")).toBe(false);
+    expect(backend.map.has("k.0")).toBe(false);
+    expect(backend.map.size).toBe(4); // tête + trois morceaux de la dernière génération
+  });
+
+  it("signale un morceau manquant au lieu de prendre une file corrompue pour une file vide", async () => {
+    const backend = memory();
+    backend.map.set("k.count", "1");
+    await expect(createChunkedStore(backend).read("k")).rejects.toThrow("QUEUE_STORAGE_CORRUPTED");
   });
 
   it("échappe les accents en ASCII", () => {
@@ -204,4 +281,82 @@ describe("parseQueue", () => {
     expect(parseQueue(null)).toEqual([]);
     expect(parseQueue(JSON.stringify([{ nope: 1 }, log("s1")]))).toHaveLength(1);
   });
+});
+
+it("enchaîne la validation rapide après les séries locales sans masquer un conflit ni une version manquante", () => {
+  const series: QueuedOp = {
+    ...log("s1", "series"),
+    input: { ...log("s1").input, expectedVersion: 2, expectedSessionVersion: 4 },
+  };
+  const quick: QueuedOp = {
+    ...log("s1", "quick"),
+    input: { ...log("s1").input, expectedVersion: 3, expectedSessionVersion: 4 },
+  };
+  expect(versionAfterPendingLogs([series, quick], "org", "s1", 4, 2)).toBe(4);
+  expect(versionAfterPendingLogs([series, quick], "org", "s1", 4, 4)).toBe(4);
+  expect(versionAfterPendingLogs([series], "other", "s1", 4, 2)).toBe(2);
+  expect(versionAfterPendingLogs([{ ...series, blocked: { status: 409 } }, quick], "org", "s1", 4, 2)).toBeNull();
+  expect(versionAfterPendingLogs([quick], "org", "s1", 4, 2)).toBeNull();
+  expect(versionAfterPendingLogs([series, { ...series, id: "concurrent" }], "org", "s1", 4, 2)).toBeNull();
+  expect(versionAfterPendingLogs([series], "org", "s1", 5, 2)).toBeNull();
+  expect(versionAfterPendingLogs([log("s1")], "org", "s1", 4, 2)).toBeNull();
+  expect(applyPendingToCard(card({ logVersion: 2 }), [series, quick]).logVersion).toBe(4);
+});
+
+it("rouvre les retours réellement en attente sans effacer une douleur omise ni lire un autre espace", () => {
+  const existing = {
+    rpe: 7,
+    durationMin: 30,
+    comment: "Serveur",
+    pain: { bodyArea: "knee" as const, side: "left" as const, intensity: 2 },
+  };
+  const pending: LogOp = {
+    ...log("s1"),
+    input: { ...log("s1").input, writeScope: "feedback", comment: "Brouillon", durationMin: 40 },
+  };
+  const quick: LogOp = { ...log("s1", "quick"), input: { ...log("s1").input, writeScope: "status" } };
+  expect(feedbackAfterPendingLogs(existing, [pending, quick], "org", "s1")).toEqual({
+    ...existing,
+    comment: "Brouillon",
+    durationMin: 40,
+  });
+  expect(feedbackAfterPendingLogs(existing, [pending], "other", "s1")).toEqual(existing);
+  expect(feedbackAfterPendingLogs(existing, [{ ...pending, blocked: { status: 409 } }], "org", "s1")).toEqual(existing);
+  expect(
+    feedbackAfterPendingLogs(
+      existing,
+      [{ ...pending, input: { ...pending.input, pain: null, rpe: null } }],
+      "org",
+      "s1",
+    ),
+  ).toMatchObject({ pain: null, rpe: null });
+});
+
+it("ne remet pas dans le formulaire un ancien complément déjà reconnu par le serveur", () => {
+  const existing = { rpe: null, pain: null, durationMin: 40, comment: "Correction récente" };
+  const old: LogOp = {
+    ...log("s1"),
+    input: { ...log("s1").input, expectedVersion: 1, writeScope: "feedback", comment: "Ancien texte" },
+  };
+  expect(feedbackAfterPendingLogs(existing, [old], "org", "s1", 3)).toEqual(existing);
+});
+
+it("isole les envois coach par athlète et ne les applique pas à la carte personnelle", async () => {
+  const first: LogOp = {
+    ...log("s1", "first"),
+    athleteId: "a",
+    input: { ...log("s1").input, expectedVersion: 7, expectedSessionVersion: 1, rpe: 9 },
+  };
+  const second: LogOp = { ...log("s1", "second"), athleteId: "b" };
+  expect(enqueue(enqueue([first], second), log("s1", "self"))).toHaveLength(3);
+  const send = vi
+    .fn()
+    .mockRejectedValueOnce(new ApiError(409, undefined, "conflict"))
+    .mockResolvedValue(undefined);
+  const result = await replay([first, second, log("s1", "self")], send);
+  expect(result.remaining.map((op) => op.id)).toEqual(["first"]);
+  expect(result.sent.map((op) => op.id)).toEqual(["second", "self"]);
+  expect(applyPendingToCard(card(), [first, second]).status).toBe("upcoming");
+  expect(versionAfterPendingLogs([first, second], "org", "s1", 1, 0)).toBe(0);
+  expect(feedbackAfterPendingLogs(null, [first], "org", "s1").rpe).toBeNull();
 });

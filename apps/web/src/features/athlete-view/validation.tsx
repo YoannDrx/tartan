@@ -1,9 +1,13 @@
 "use client";
 
-import type { AthleteSessionCard, PainInput } from "@tartan/contracts";
+import { markInstallOpportunity } from "@/features/shell/install-opportunity";
+
+import { celebrationFromResponse } from "@tartan/domain";
+import { ConfirmedRecords } from "../progression/confirmed-records";
+import type { AthleteSessionDetail, PainInput, StrengthRecordValue } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -49,7 +53,7 @@ export const QuickValidate = ({
   sets = [],
   onDark,
 }: {
-  session: Pick<AthleteSessionCard, "id" | "variant" | "durationMin">;
+  session: Pick<AthleteSessionDetail, "id" | "variant" | "durationMin" | "sessionVersion" | "logVersion" | "log">;
   organizationId: string;
   healthConsent: boolean;
   sets?: { itemRef: string; setIndex: number; done: boolean }[];
@@ -64,38 +68,66 @@ export const QuickValidate = ({
       if (pending) setWaiting(true);
     });
   }, [session.id]);
-  const [clientId] = useState(newClientId);
+  const version = useRef(session.log?.version ?? session.logVersion ?? 0);
+  const busy = useRef(false);
   const [details, setDetails] = useState(false);
-  const [rpe, setRpe] = useState<number | null>(null);
-  const [duration, setDuration] = useState("");
-  const [comment, setComment] = useState("");
-  const [showPain, setShowPain] = useState(false);
-  const [pain, setPain] = useState<PainInput>({ bodyArea: "knee", side: "left", intensity: 5 });
+  const [rpe, setRpe] = useState<number | null>(session.log?.rpe ?? null);
+  const [duration, setDuration] = useState(session.log?.durationMin ? String(session.log.durationMin) : "");
+  const [comment, setComment] = useState(session.log?.comment ?? "");
+  const [showPain, setShowPain] = useState(Boolean(session.log?.pain));
+  const [pain, setPain] = useState<PainInput>(session.log?.pain ?? { bodyArea: "knee", side: "left", intensity: 5 });
   const [sending, setSending] = useState(false);
   const [victory, setVictory] = useState(0);
+  const [records, setRecords] = useState<StrengthRecordValue[]>([]);
 
   const send = async (next: Status, extra: { withDetails: boolean }) => {
+    if (busy.current) return false;
+    if (session.sessionVersion === undefined) {
+      toast.error(m.progression.sessionConflict);
+      return false;
+    }
+    busy.current = true;
     setSending(true);
+    const expectedVersion = version.current;
     const res = await sendValidation({
       organizationId,
       sessionId: session.id,
       input: {
-        // Nouveau clientId pour les détails : ce n'est pas un rejeu, c'est un complément.
-        clientId: extra.withDetails ? newClientId() : clientId,
+        clientId: newClientId(),
         status: next,
         variantDone: session.variant,
-        rpe: extra.withDetails ? rpe : null,
-        durationMin: extra.withDetails && duration ? Number(duration) : null,
-        comment: extra.withDetails ? comment || null : null,
-        pain: extra.withDetails && showPain ? pain : null,
-        sets,
+        expectedVersion,
+        expectedSessionVersion: session.sessionVersion,
+        ...(extra.withDetails
+          ? {
+              writeScope: "feedback" as const,
+              ...(rpe !== (session.log?.rpe ?? null) ? { rpe } : {}),
+              ...(duration !== (session.log?.durationMin ? String(session.log.durationMin) : "")
+                ? { durationMin: duration ? Number(duration) : null }
+                : {}),
+              ...(comment !== (session.log?.comment ?? "") ? { comment: comment || null } : {}),
+              ...(JSON.stringify(showPain ? pain : null) !== JSON.stringify(session.log?.pain ?? null)
+                ? { pain: showPain ? pain : null }
+                : {}),
+            }
+          : { writeScope: "status" as const, sets }),
       },
     });
     setSending(false);
+    busy.current = false;
     if (res.state === "error") {
       toast.error(res.message);
       return false;
     }
+    if (!extra.withDetails) markInstallOpportunity();
+    const celebration = res.state === "sent" ? celebrationFromResponse(res.data) : null;
+    if (celebration) {
+      setRecords(celebration.records);
+      setVictory((old) => old + 1);
+    } else if (!extra.withDetails) setRecords([]);
+    // Le complément dépend de cette mutation, même si les deux attendent le réseau.
+    // Ne jamais remplacer cette version par celle d'un autre appareil après un conflit.
+    version.current = expectedVersion + 1;
     // La feuille de détails confirme déjà : le message ne sert qu'à signaler l'attente de réseau.
     if (res.state === "queued") toast.ok(m.validation.queued);
     else if (extra.withDetails) toast.ok("Précisions envoyées à ton coach.");
@@ -113,7 +145,6 @@ export const QuickValidate = ({
     if (await send(value, { withDetails: false })) {
       setStatus(value);
       setDetails(true);
-      if (value === "done") setVictory((count) => count + 1);
     }
   };
 
@@ -127,7 +158,7 @@ export const QuickValidate = ({
 
   return (
     <>
-      <Victory play={victory} />
+      <Victory play={victory} recordCount={records.length} />
       <Button size="lg" variant="primary" className="w-full" disabled={sending} onClick={() => validate("done")}>
         {m.today.quickDone}
       </Button>
@@ -160,6 +191,7 @@ export const QuickValidate = ({
           <Button size="lg" onClick={() => closeDetails(false)}>
             {m.validation.finish}
           </Button>
+          <ConfirmedRecords records={records} />
           {healthConsent ? <RpeScale value={rpe} onChange={setRpe} /> : null}
           <Field label={m.validation.duration}>
             {(a) => (

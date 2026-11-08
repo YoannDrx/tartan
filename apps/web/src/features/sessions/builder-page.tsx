@@ -1,47 +1,47 @@
-import { m } from "@tartan/i18n";
+import Link from "next/link";
 import { PageHeader } from "@/components/states";
 import { todayIso } from "@/lib/dates";
-import { requireOrgMember } from "@/server/access";
-import { listAthletes } from "@/server/athlete.service";
-import { listExercises } from "@/server/exercise.service";
-import { listGroups } from "@/server/org.service";
-import { getSessionForEdit, listTemplates, listTestKeys } from "@/server/session.service";
+import { getSessionForEdit } from "@/server/session.service";
+import { getSessionBuilderContext } from "@/server/session-builder.service";
+import { m } from "@tartan/i18n";
 import { SessionBuilder } from "./session-builder";
-
-const COMMON_TESTS = Object.keys(m.strengthTest);
 
 export const BuilderPage = async ({
   userId,
   organizationId,
   sessionId,
   defaultDate,
+  defaultGroupId,
+  returnTo,
 }: {
   userId: string;
   organizationId: string;
   sessionId?: string;
   defaultDate?: string;
+  defaultGroupId?: string;
+  returnTo?: string;
 }) => {
-  const access = await requireOrgMember(userId, organizationId, "manageSessions");
-  const [initial, exercises, groups, athletes, templates, keys] = await Promise.all([
+  const [initial, context] = await Promise.all([
     sessionId ? getSessionForEdit(userId, organizationId, sessionId) : Promise.resolve(null),
-    listExercises(userId, organizationId),
-    listGroups(access),
-    listAthletes(userId, organizationId),
-    listTemplates(userId, organizationId),
-    listTestKeys(userId, organizationId),
+    getSessionBuilderContext(userId, organizationId),
   ]);
-  const testKeys = [...new Set([...keys, ...COMMON_TESTS])];
+  const groupUnavailable = defaultGroupId !== undefined && !context.groups.some((group) => group.id === defaultGroupId);
   return (
     <div className="flex flex-col gap-4">
+      {returnTo ? (
+        <Link href={returnTo} className="inline-flex min-h-11 items-center font-semibold">
+          {m.calendar.backToContext}
+        </Link>
+      ) : null}
       <PageHeader title={initial ? initial.draft.title : m.coach.newSession} />
+      {groupUnavailable ? <p role="status">{m.calendar.groupUnavailable}</p> : null}
       <SessionBuilder
+        organizationId={organizationId}
         initial={initial}
-        exercises={exercises}
-        groups={groups}
-        athletes={athletes}
-        templates={templates}
-        testKeys={testKeys}
+        {...context}
         defaultDate={defaultDate ?? todayIso()}
+        defaultGroupId={groupUnavailable ? "" : defaultGroupId}
+        returnTo={returnTo}
       />
     </div>
   );

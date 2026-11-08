@@ -7,6 +7,12 @@ import { describe, expect, it } from "vitest";
 describe("jetons de design", () => {
   const css = readFileSync(path.resolve(import.meta.dirname, "../app/globals.css"), "utf8");
   const expected: Record<string, string> = {
+    ...Object.fromEntries(
+      Object.entries(tokens.work)
+        .filter(([key]) => key !== "status")
+        .map(([key, value]) => [`work-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`, value as string]),
+    ),
+    ...Object.fromEntries(Object.entries(tokens.work.status).map(([key, value]) => [`work-st-${key}`, value])),
     brand: tokens.color.brand,
     "brand-strong": tokens.color.brandStrong,
     "brand-tint": tokens.color.brandTint,

@@ -1,5 +1,12 @@
-import { exerciseInput, type ExerciseInput, type ExerciseSummary, prescriptionSchema } from "@tartan/contracts";
-import { parseInstagramUrl, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
+import { Prisma } from "@/generated/prisma/client";
+import {
+  exerciseClassification,
+  exerciseInput,
+  type ExerciseInput,
+  type ExerciseSummary,
+  prescriptionSchema,
+} from "@tartan/contracts";
+import { cleanExerciseAliases, parseInstagramUrl, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { invalid, notFound } from "@/lib/errors";
 import { env } from "@/lib/env";
@@ -63,11 +70,15 @@ export const listExercises = async (userId: string, organizationId: string): Pro
           : null;
       return {
         id: e.id,
+        classification: e.classification ? exerciseClassification.parse(e.classification) : null,
         name: e.name,
         category: e.category,
         tags: e.tags,
+        aliases: e.aliases,
         cues: e.cues,
         defaultPrescription: prescriptionSchema.parse(e.defaultPrescription),
+        strengthLoadKind: e.strengthLoadKind as ExerciseSummary["strengthLoadKind"],
+        loadStepKg: Number(e.loadStepKg),
         media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
         shared: e.organizationId === null,
       };
@@ -95,17 +106,43 @@ export const saveExercise = async (userId: string, organizationId: string, raw: 
     instagram = { instagramCode, customTitle: input.media.customTitle ?? null };
   }
   const data = {
+    classification: input.classification === null ? Prisma.DbNull : input.classification,
     name: input.name,
     category: input.category,
     tags: input.tags,
+    aliases: input.aliases === undefined ? undefined : cleanExerciseAliases(input.name, input.aliases),
     cues: input.cues,
     defaultPrescription: input.defaultPrescription,
+    strengthLoadKind: input.strengthLoadKind,
+    loadStepKg: input.loadStepKg,
   };
   return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
     let id = input.id;
     if (id) {
       const existing = await tx.exercise.findFirst({ where: { id, organizationId, deletedAt: null } });
       if (!existing) throw notFound();
+      if (input.strengthLoadKind !== undefined && input.strengthLoadKind !== existing.strengthLoadKind) {
+        const [tests, references, sets] = await Promise.all([
+          tx.strengthTest.count({ where: { exerciseId: id } }),
+          tx.strengthReference.count({ where: { exerciseId: id } }),
+          // Une case cochée ne mesure rien : seule une valeur saisie dépend de la convention.
+          tx.setLog.count({
+            where: {
+              exerciseId: id,
+              OR: [
+                { reps: { not: null } },
+                { loadKg: { not: null } },
+                { distanceM: { not: null } },
+                { timeS: { not: null } },
+                { groundContacts: { not: null } },
+              ],
+            },
+          }),
+        ]);
+        if (tests + references + sets > 0)
+          throw new AppError(409, "exercise_convention_locked", m.strength.conventionLocked);
+      }
       await tx.exercise.update({ where: { id }, data });
     } else {
       id = (await tx.exercise.create({ data: { ...data, organizationId, createdBy: userId } })).id;

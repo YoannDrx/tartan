@@ -1,4 +1,11 @@
-import { sessionSnapshot, attendanceStatus, cellStatus, sessionType, sessionVariant } from "@tartan/contracts";
+import {
+  performanceEntry,
+  sessionSnapshot,
+  attendanceStatus,
+  cellStatus,
+  sessionType,
+  sessionVariant,
+} from "@tartan/contracts";
 import { z } from "zod";
 
 // L'API client type ces deux réponses en « any » : on les valide ici pour garder un code typé.
@@ -41,17 +48,17 @@ export type CoachSessionDetail = z.infer<typeof coachSessionDetail>;
 export const athleteFile = z.object({
   id: z.string(),
   firstName: z.string(),
-  tests: z.array(z.object({ exerciseKey: z.string(), value: z.number(), kind: z.string(), date: z.string() })),
-  performances: z.array(
+  tests: z.array(
     z.object({
-      discipline: z.string(),
-      mark: z.number(),
-      unit: z.string(),
+      exerciseKey: z.string(),
+      exerciseId: z.string().nullable().optional(),
+      exerciseName: z.string().nullable().optional(),
+      value: z.number(),
+      kind: z.string(),
       date: z.string(),
-      location: z.string().nullable(),
-      isPb: z.boolean(),
     }),
   ),
+  performances: z.array(performanceEntry.extend({ id: z.string().optional() })),
 });
 export type AthleteFile = z.infer<typeof athleteFile>;
 
@@ -79,19 +86,17 @@ export const coachAthleteFile = z.object({
   goals: z.string().nullable(),
   particularities: z.string().nullable(),
   tests: z.array(
-    z.object({ id: z.string(), exerciseKey: z.string(), value: z.number(), kind: z.string(), date: z.string() }),
-  ),
-  performances: z.array(
     z.object({
       id: z.string(),
-      discipline: z.string(),
-      mark: z.number(),
-      unit: z.string(),
+      exerciseKey: z.string(),
+      exerciseId: z.string().nullable().optional(),
+      exerciseName: z.string().nullable().optional(),
+      value: z.number(),
+      kind: z.string(),
       date: z.string(),
-      location: z.string().nullable(),
-      isPb: z.boolean(),
     }),
   ),
+  performances: z.array(performanceEntry),
   healthVisible: z.boolean(),
   injuries: z.array(
     z.object({

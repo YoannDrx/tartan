@@ -1,6 +1,11 @@
 import { ApiError } from "@tartan/api-client";
 import { m } from "@tartan/i18n";
 
+// Une réponse d'accès négative invalide l'affichage, même avec une ancienne réponse en cache.
+// Une panne réseau conserve en revanche les données nécessaires à la saisie hors ligne.
+export const deniesCachedAccess = (error: unknown): boolean =>
+  error instanceof ApiError && [401, 403, 404].includes(error.status);
+
 // Le message explique quoi faire ; les réponses du serveur sont déjà rédigées pour l'utilisateur.
 export const errorMessage = (error: unknown): string => {
   if (error instanceof ApiError) {

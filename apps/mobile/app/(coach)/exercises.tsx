@@ -30,13 +30,13 @@ export default function Exercises() {
     return (exercises.data ?? []).filter(
       (e) =>
         (!category || e.category === category) &&
-        (!query || folded(e.name).includes(query) || e.tags.some((t) => folded(t).includes(query))),
+        (!query || [e.name, ...e.tags, ...(e.aliases ?? [])].some((term) => folded(term).includes(query))),
     );
   }, [exercises.data, search, category]);
 
   return (
     <TabScreen
-      world="craie"
+      world="work"
       title={m.exercises.title}
       refreshing={exercises.isRefetching}
       onRefresh={() => void exercises.refetch()}
@@ -48,6 +48,9 @@ export default function Exercises() {
           icon={Plus}
           onPress={() => router.push("/exercise/new")}
         />
+      ) : null}
+      {active?.progressionEnabled ? (
+        <Button label={m.calculator.title} variant="secondary" onPress={() => router.push("/load-calculator")} />
       ) : null}
       {exercises.data && exercises.data.length > 0 ? (
         <>

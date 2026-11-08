@@ -117,6 +117,20 @@ describe("charges", () => {
   });
 });
 
+it("affiche la charge absolue et la cible sans conversion ni disparition du zéro", () => {
+  expect(
+    formatPrescription({ reps: 4, load: { type: "kg", value: 42.5 }, intensityTarget: { type: "rir", value: 0 } }),
+  ).toBe("4 rép. · 42,5 kg · cible RIR 0");
+  expect(formatPrescription({ load: { type: "kg", value: 0 } })).toBe("0 kg");
+  expect(formatPrescription({ intensityTarget: { type: "rpe", value: 8 } })).toBe("cible RPE 8");
+  expect(
+    formatPrescription(
+      { load: { type: "pct_1rm", value: 80, test: "back_squat" }, intensityTarget: { type: "rpe", value: 8 } },
+      100,
+    ),
+  ).toBe("100 kg · cible RPE 8");
+});
+
 describe("statuts", () => {
   const now = new Date("2026-10-30T10:00:00Z");
 
@@ -339,6 +353,7 @@ describe("charge et export", () => {
   it("compare à la moyenne récente", () => {
     expect(weekTrendPct([100, 100, 150])).toBe(50);
     expect(weekTrendPct([null, 100])).toBeNull();
+    expect(weekTrendPct([100, 120, null])).toBeNull();
   });
 
   it("protège le CSV contre les formules et les séparateurs", () => {

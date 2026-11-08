@@ -93,6 +93,8 @@ export const AppShell = ({
   children: ReactNode;
 }) => {
   const pathname = usePathname();
+  const work = worldFor(pathname) === "world-work";
+  const selectedClass = work ? "bg-brand-tint text-brand-strong" : "bg-accent text-on-accent";
   const items = staff ? coachItems : athleteItems;
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   // Le mode séance et l'analyse vidéo prennent tout l'écran, en sombre.
@@ -101,10 +103,10 @@ export const AppShell = ({
 
   return (
     <div className={cn(worldFor(pathname), "min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0")}>
-      <header className="app-header on-card sticky top-0 z-30 bg-card">
+      <header className="app-header on-card sticky z-30 bg-card">
         <div className="mx-auto flex min-h-14 max-w-[1440px] items-center gap-4 px-4 desktop:px-6">
           <Link href="/accueil" aria-label="Tartan, accueil" className="inline-flex shrink-0 items-center">
-            <Logo height={28} onDark />
+            <Logo height={28} onDark={!work} />
           </Link>
           <nav aria-label="Navigation principale" className="hidden flex-1 items-center gap-1 desktop:flex">
             {items.map((item) => (
@@ -114,7 +116,7 @@ export const AppShell = ({
                 aria-current={isActive(item.href) ? "page" : undefined}
                 className={cn(
                   "inline-flex min-h-11 items-center rounded-full px-3.5 font-medium no-underline transition-colors",
-                  isActive(item.href) ? "bg-accent font-semibold text-on-accent" : "text-fg hover:bg-raise",
+                  isActive(item.href) ? `${selectedClass} font-semibold` : "text-fg hover:bg-raise",
                 )}
               >
                 {item.label}
@@ -136,7 +138,7 @@ export const AppShell = ({
                     aria-current={isActive(item.href) ? "page" : undefined}
                     className={cn(
                       "inline-flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-raise desktop:hidden",
-                      isActive(item.href) ? "bg-accent text-on-accent" : "text-fg",
+                      isActive(item.href) ? selectedClass : "text-fg",
                     )}
                   >
                     <Icon aria-hidden className="size-5" />
@@ -171,7 +173,7 @@ export const AppShell = ({
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "my-1 flex min-h-[60px] min-w-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-button text-[11px] leading-none no-underline",
-                  active ? "bg-accent font-semibold text-on-accent" : "font-medium text-fg-muted",
+                  active ? `${selectedClass} font-semibold` : "font-medium text-fg-muted",
                 )}
               >
                 <Icon aria-hidden className="size-6" strokeWidth={2} />

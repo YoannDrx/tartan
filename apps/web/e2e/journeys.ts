@@ -30,7 +30,7 @@ export const joinAsAthlete = async (
   browser: Browser,
   link: string,
   firstName: string,
-  opts: { health?: boolean } = {},
+  opts: { health?: boolean; groupName?: string } = {},
 ) => {
   const context = await browser.newContext({
     locale: "fr-FR",
@@ -41,7 +41,9 @@ export const joinAsAthlete = async (
   });
   const page = await context.newPage();
   await page.goto(link);
-  await expect(page.getByRole("heading", { name: /t'invite à rejoindre Hauteur Élite/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /t'invite à rejoindre/ })).toContainText(
+    opts.groupName ?? "Hauteur Élite",
+  );
   await signUp(page, uniqueEmail(firstName.toLowerCase()), new URL(link).pathname);
   await page.getByLabel("Prénom").fill(firstName);
   await page.getByLabel("Nom", { exact: true }).fill("Test");

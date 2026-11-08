@@ -1,5 +1,6 @@
 import { getMyRegularity } from "@/server/athlete-view.service";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { formatDayMonth, m, strengthTestLabel } from "@tartan/i18n";
 import { Mark, Rows, Sheet, SheetSection } from "@/components/sheet";
 import { Chip, PageHeader } from "@/components/states";
@@ -7,21 +8,44 @@ import { Button } from "@/components/ui/button";
 import { InjuryDialog } from "@/features/athletes/athlete-forms";
 import { requireAthleteSpace } from "@/features/shell/space";
 import { getMyFile } from "@/server/athlete.service";
+import { CalendarPhases } from "@/features/phases/calendar-phases";
+import { todayIso } from "@/lib/dates";
+import { addDays } from "@tartan/domain";
 
 export const metadata: Metadata = { title: m.nav.progres };
 
 const date = (iso: string) => `${formatDayMonth(iso)} ${iso.slice(0, 4)}`;
 
-// Vue simple en V1 : records et tests. Les courbes et les volumes arrivent en V2 (§ 7.7).
+// Les courbes par exercice sont disponibles lorsque la progression est activée.
 export default async function ProgresPage() {
-  const { actor, organizationId } = await requireAthleteSpace();
+  const ctx = await requireAthleteSpace();
+  const { actor, organizationId, space } = ctx;
+  const today = todayIso();
   const [file, regularity] = await Promise.all([
     getMyFile(actor.userId, organizationId),
     getMyRegularity(actor.userId, organizationId),
   ]);
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <PageHeader title={m.nav.progres} />
+      <PageHeader
+        title={m.nav.progres}
+        actions={
+          space.progressionEnabled ? (
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="secondary">
+                <Link href="/analyse">{m.analysis.title}</Link>
+              </Button>
+              <Button asChild variant="secondary">
+                <Link href={`/historique/${file.id}`}>{m.exerciseHistory.title}</Link>
+              </Button>
+              <Button asChild variant="secondary">
+                <Link href="/outils/charges">{m.calculator.title}</Link>
+              </Button>
+            </div>
+          ) : null
+        }
+      />
+      <CalendarPhases ctx={ctx} from={today} to={addDays(today, 83)} today={today} />
       {regularity.total > 0 ? (
         <Sheet>
           <SheetSection title={m.athletes.regularityTitle}>
@@ -38,7 +62,7 @@ export default async function ProgresPage() {
         </section>
       ) : null}
       <Sheet className="divide-y divide-card-line">
-        <SheetSection title={m.athletes.records}>
+        <SheetSection title={m.performances.title}>
           {file.performances.length === 0 ? (
             <p className="text-soft">Tes records apparaîtront ici dès que ton coach les aura notés.</p>
           ) : null}
@@ -48,9 +72,25 @@ export default async function ProgresPage() {
                 <span className="min-w-0 leading-snug">
                   <span className="flex flex-wrap items-center gap-x-2 font-semibold">
                     {p.discipline}
-                    {p.isPb ? <Chip tone="brand">{m.athletes.record}</Chip> : null}
+                    {p.isBaseline ? (
+                      <Chip>{m.performances.baseline}</Chip>
+                    ) : p.isPb ? (
+                      <Chip tone="brand">{m.athletes.record}</Chip>
+                    ) : null}
                   </span>
-                  <span className="t-caption block font-normal text-soft">{date(p.date)}</span>
+                  <span className="t-caption block font-normal text-soft">
+                    {[
+                      date(p.date),
+                      p.comparisonContext,
+                      p.recordDirection === "lower"
+                        ? m.performances.lower
+                        : p.recordDirection === "higher"
+                          ? m.performances.higher
+                          : m.performances.unknown,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
                 </span>
                 <Mark>
                   {String(p.mark).replace(".", ",")} {p.unit}

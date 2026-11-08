@@ -53,6 +53,12 @@ const schema = z.object({
   VAPID_PRIVATE_KEY: optional,
   VAPID_SUBJECT: z.string().default("mailto:bonjour@tartan.coach"),
   EXPO_ACCESS_TOKEN: optional,
+  OPENAI_API_KEY: optional,
+  // Compatibilité avec le nom déjà utilisé par la configuration locale.
+  OPEN_AI_API_KEY: optional,
+  AI_PLANNER_ENABLED: z.enum(["true", "false"]).default("false"),
+  AI_PLANNER_MODEL: z.string().min(1).default("gpt-4.1-mini"),
+  AI_TRANSCRIPTION_MODEL: z.string().min(1).default("gpt-4o-mini-transcribe"),
   CRON_SECRET: optional,
   CRON_HEARTBEAT_URL: optional,
   CRON_HEARTBEAT_NOTIFICATIONS_URL: optional,

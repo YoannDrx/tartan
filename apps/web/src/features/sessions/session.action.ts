@@ -1,7 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { competitionInput, isoDate, saveScheduledSessionInput, sessionDraft, uuid } from "@tartan/contracts";
+import {
+  competitionInput,
+  publishSessionsInput,
+  deleteSessionInput,
+  isoDate,
+  saveScheduledSessionInput,
+  sessionDraft,
+  uuid,
+} from "@tartan/contracts";
 import { z } from "zod";
 import { spaceAction } from "@/features/shell/space-action";
 import {
@@ -12,6 +20,7 @@ import {
   duplicateWeek,
   moveSession,
   publishSession,
+  publishSessions,
   saveCompetition,
   saveScheduledSession,
   saveTemplate,
@@ -21,17 +30,18 @@ export const saveSessionAction = spaceAction
   .inputSchema(saveScheduledSessionInput.extend({ publish: z.boolean().default(false) }))
   .action(async ({ parsedInput: { publish, ...input }, ctx }) => {
     const saved = await saveScheduledSession(ctx.userId, ctx.organizationId, input);
-    if (publish) await publishSession(ctx.userId, ctx.organizationId, saved.id);
+    if (publish) await publishSession(ctx.userId, ctx.organizationId, saved.id, undefined, saved.version);
     revalidatePath("/calendrier");
     revalidatePath("/suivi");
     return saved;
   });
 
 export const deleteSessionAction = spaceAction
-  .inputSchema(z.object({ id: uuid }))
+  .inputSchema(deleteSessionInput.extend({ id: uuid }))
   .action(async ({ parsedInput, ctx }) => {
-    await deleteSession(ctx.userId, ctx.organizationId, parsedInput.id);
+    await deleteSession(ctx.userId, ctx.organizationId, parsedInput.id, parsedInput);
     revalidatePath("/calendrier");
+    revalidatePath("/suivi");
   });
 
 export const deleteTemplateAction = spaceAction
@@ -79,3 +89,12 @@ export const saveCompetitionAction = spaceAction.inputSchema(competitionInput).a
   revalidatePath("/calendrier");
   return saved;
 });
+
+export const publishSessionsAction = spaceAction
+  .inputSchema(publishSessionsInput)
+  .action(async ({ parsedInput, ctx }) => {
+    const result = await publishSessions(ctx.userId, ctx.organizationId, parsedInput);
+    revalidatePath("/calendrier");
+    revalidatePath("/suivi");
+    return result;
+  });

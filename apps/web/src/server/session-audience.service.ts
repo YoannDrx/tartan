@@ -3,8 +3,12 @@ import type { Prisma } from "@/generated/prisma/client";
 import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 
-const computeAudience = async (sessionId: string, options: { includeLogged: boolean }): Promise<string[]> => {
-  const session = await prisma.scheduledSession.findUnique({
+const computeAudience = async (
+  sessionId: string,
+  options: { includeLogged: boolean },
+  db: Prisma.TransactionClient = prisma,
+): Promise<string[]> => {
+  const session = await db.scheduledSession.findUnique({
     where: { id: sessionId },
     select: { organizationId: true, date: true, assignments: true, logs: { select: { athleteId: true } } },
   });
@@ -13,7 +17,7 @@ const computeAudience = async (sessionId: string, options: { includeLogged: bool
   const groups = session.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId);
   const logged = new Set(options.includeLogged ? session.logs.map((l) => l.athleteId) : []);
   // Les attributions polymorphes peuvent être anciennes : toujours vérifier l'existence et l'espace.
-  const athletes = await prisma.athlete.findMany({
+  const athletes = await db.athlete.findMany({
     where: {
       organizationId: session.organizationId,
       OR: [{ id: { in: [...direct, ...logged] } }, { groups: { some: { groupId: { in: groups } } } }],
@@ -38,13 +42,16 @@ export const audienceAthleteIds = (sessionId: string): Promise<string[]> =>
   computeAudience(sessionId, { includeLogged: true });
 
 // Destinataires réels : un log, même « manqué », ne suffit pas à rester sollicité après un départ.
-export const activeAudienceIds = (sessionId: string): Promise<string[]> =>
-  computeAudience(sessionId, { includeLogged: false });
+export const activeAudienceIds = (sessionId: string, db: Prisma.TransactionClient = prisma): Promise<string[]> =>
+  computeAudience(sessionId, { includeLogged: false }, db);
 
 // Même règle pour le calendrier, le détail, la validation et le flux iCal.
 // Les dates sont à l'intérieur de OR pour ne pas être écrasées par la plage demandée.
-export const athleteAssignedWhere = async (athleteId: string): Promise<Prisma.ScheduledSessionWhereInput> => {
-  const athlete = await prisma.athlete.findUnique({
+export const athleteAssignedWhere = async (
+  athleteId: string,
+  db: Prisma.TransactionClient = prisma,
+): Promise<Prisma.ScheduledSessionWhereInput> => {
+  const athlete = await db.athlete.findUnique({
     where: { id: athleteId },
     select: {
       organizationId: true,

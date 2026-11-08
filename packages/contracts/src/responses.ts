@@ -1,3 +1,5 @@
+import { exerciseClassification } from "./exercise-classification";
+import { confirmedStrengthRecord, sessionCelebration } from "./strength-records";
 import { z } from "zod";
 import {
   attendanceStatus,
@@ -9,11 +11,15 @@ import {
   sessionVariant,
   videoStatus,
 } from "./enums";
-import { prescriptionSchema, snapshotBlock } from "./session";
+import { prescriptionSchema, snapshotBlock, snapshotItem, sessionDraft, uuid } from "./session";
+import { detailedSetInput, painInput } from "./requests";
 
 export const spaceSummary = z.object({
   organizationId: z.string(),
   organizationName: z.string(),
+  progressionEnabled: z.boolean().optional(),
+  phasesEnabled: z.boolean().optional(),
+  aiPlannerEnabled: z.boolean().optional(),
   role: orgRole,
   athleteId: z.string().nullable(),
 });
@@ -50,6 +56,8 @@ export const acceptInvitationResponse = z.object({
 });
 
 export const athleteSessionCard = z.object({
+  sessionVersion: z.number().int().min(1).optional(),
+  logVersion: z.number().int().min(0).optional(),
   id: z.string(),
   title: z.string(),
   type: sessionType,
@@ -86,28 +94,61 @@ export type AthleteToday = z.infer<typeof athleteToday>;
 
 export const resolvedItem = z.object({
   ref: z.string(),
+  exerciseId: z.string().nullable().optional(),
   name: z.string(),
   category: z.string(),
   cues: z.array(z.string()),
   media: z.unknown().nullable(),
   prescription: prescriptionSchema,
+  strengthLoadKind: snapshotItem.shape.strengthLoadKind,
+  loadStepKg: snapshotItem.shape.loadStepKg,
   resolvedLoadKg: z.number().nullable(),
   summary: z.string(),
 });
 export type ResolvedItem = z.infer<typeof resolvedItem>;
 
+export const previousExerciseSets = z.object({
+  exerciseId: uuid,
+  convention: snapshotItem.shape.strengthLoadKind,
+  date: z.string(),
+  startTime: z.string().nullable(),
+  sessionId: uuid,
+  totalSets: z.number().int().nonnegative(),
+  sets: z.array(detailedSetInput),
+});
+export type PreviousExerciseSets = z.infer<typeof previousExerciseSets>;
+
 export const athleteSessionDetail = athleteSessionCard.extend({
+  historyAthleteId: uuid.optional(),
+  previousExerciseSets: z.array(previousExerciseSets).optional(),
+  athlete: z.object({ id: z.string(), name: z.string() }).optional(),
+  canRecordSets: z.boolean().optional(),
+  progressionEnabled: z.boolean().optional(),
+  healthConsent: z.boolean().optional(),
+  sessionVersion: z.number().int().optional(),
   blocks: z.array(snapshotBlock.omit({ items: true }).extend({ items: z.array(resolvedItem) })),
   log: z
     .object({
       status: z.string(),
       rpe: z.number().nullable(),
+      pain: painInput.nullable().optional(),
       durationMin: z.number().nullable(),
       comment: z.string().nullable(),
+      version: z.number().int().optional(),
+      clientId: z.string().nullable().optional(),
+      detailedSets: z.array(detailedSetInput).optional(),
     })
     .nullable(),
 });
 export type AthleteSessionDetail = z.infer<typeof athleteSessionDetail>;
+
+export const sessionLogResult = z.object({
+  celebration: sessionCelebration.nullable().optional(),
+  records: z.array(confirmedStrengthRecord).optional(),
+  id: z.string(),
+  replayed: z.boolean(),
+  version: z.number().int().optional(),
+});
 
 export const trackingCell = z.object({
   sessionId: z.string(),
@@ -227,19 +268,36 @@ export const commentItem = z.object({
 export type CommentItem = z.infer<typeof commentItem>;
 
 export const exerciseSummary = z.object({
+  aliases: z.array(z.string()).optional(),
+  classification: exerciseClassification.nullable().optional(),
   id: z.string(),
   name: z.string(),
   category: z.string(),
   tags: z.array(z.string()),
   cues: z.array(z.string()),
   defaultPrescription: prescriptionSchema,
+  strengthLoadKind: z.enum(["external_total", "added_weight", "assistance", "bodyweight"]).nullable().optional(),
+  loadStepKg: z.number().positive().optional(),
   media: z.unknown().nullable(),
   // Bibliothèque commune de Tartan : lisible par tous, modifiable par personne depuis un espace.
   shared: z.boolean().default(false),
 });
 export type ExerciseSummary = z.infer<typeof exerciseSummary>;
 
+export const sessionBuilderContext = z.object({
+  phasesEnabled: z.boolean().optional(),
+  progressionEnabled: z.boolean().optional(),
+  exercises: z.array(exerciseSummary),
+  groups: z.array(z.object({ id: uuid, name: z.string(), athleteCount: z.number().int().min(0) })),
+  athletes: z.array(z.object({ id: uuid, firstName: z.string(), lastName: z.string() })),
+  templates: z.array(sessionDraft.extend({ id: uuid, canDelete: z.boolean().default(false) })),
+  testKeys: z.array(z.string()),
+});
+
 export const calendarSession = z.object({
+  version: z.number().int().positive().optional(),
+  canPublish: z.boolean().optional(),
+  publishAt: z.string().nullable().optional(),
   id: z.string(),
   title: z.string(),
   type: sessionType,

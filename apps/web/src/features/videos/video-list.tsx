@@ -24,7 +24,7 @@ const dayLabel = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "Europe/Paris",
 });
 
-// Journal de sauts : par jour, la vidéo puis la barre et le résultat, comme sur une feuille de concours.
+// Journal vidéo par jour ; les métadonnées de saut ne concernent que les essais renseignés.
 export const VideoList = ({
   videos,
   basePath,
@@ -57,7 +57,7 @@ export const VideoList = ({
                     href={`${basePath}/${v.id}`}
                     className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-x-3 gap-y-1 px-4 py-2 text-inherit no-underline hover:bg-raise tablet:grid-cols-[112px_minmax(0,1fr)_minmax(0,auto)] desktop:grid-cols-[112px_minmax(0,1fr)_200px_96px_128px_176px]"
                   >
-                    <span className="relative row-span-3 flex aspect-video w-full items-center justify-center self-start overflow-hidden rounded-thumb bg-card-raised text-white tablet:row-span-2 desktop:row-span-1 desktop:self-center">
+                    <span className="relative row-span-3 flex aspect-video w-full items-center justify-center self-start overflow-hidden rounded-thumb bg-ink-2 text-white tablet:row-span-2 desktop:row-span-1 desktop:self-center">
                       {v.thumbnailUrl ? (
                         <Image src={v.thumbnailUrl} alt="" fill sizes="112px" className="object-cover" unoptimized />
                       ) : v.status === "error" ? (
@@ -72,7 +72,11 @@ export const VideoList = ({
                       ) : null}
                     </span>
                     <span className="min-w-0 truncate font-semibold">
-                      {showAthlete ? v.athleteName : `${m.video.attempt} ${v.attemptNo ?? ""}`.trim()}
+                      {showAthlete
+                        ? v.athleteName
+                        : v.attemptNo
+                          ? `${m.video.attempt} ${v.attemptNo}`
+                          : m.video.analysis}
                     </span>
                     <span className="flex min-w-0 flex-wrap items-center gap-x-2 max-tablet:col-start-2 tablet:justify-end desktop:justify-start">
                       {v.barHeightCm ? (
@@ -86,7 +90,7 @@ export const VideoList = ({
                           ) : null}
                         </>
                       ) : (
-                        <span className="t-caption font-normal text-soft desktop:hidden">{m.video.noBar}</span>
+                        <span className="t-caption font-normal text-soft desktop:hidden">{m.video.analysis}</span>
                       )}
                     </span>
                     <span className="t-num text-[17px] text-soft max-desktop:hidden">

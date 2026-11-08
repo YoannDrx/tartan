@@ -1,0 +1,334 @@
+import { randomUUID } from "node:crypto";
+import { expect, test } from "@playwright/test";
+import { Client } from "pg";
+import { m, historyDate, strengthCurveLabel } from "@tartan/i18n";
+import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
+
+test("historique réel, référence manuelle, calculateur et courbes accessibles", async ({ page }, info) => {
+  await createCoachSpace(page, "Historique");
+  const me = await (await page.request.get("/api/v1/me")).json();
+  const orgId = me.spaces[0].organizationId;
+  const root = `/api/v1/orgs/${orgId}`;
+  const sql = new Client({
+    connectionString: process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e",
+  });
+  await sql.connect();
+  try {
+    await sql.query("UPDATE organizations SET progression_enabled = true WHERE id = $1", [orgId]);
+    await page.goto("/athletes");
+    await page.getByRole("button", { name: m.athletes.new, exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Prénom", { exact: true }).fill("Camille");
+    await dialog.getByLabel("Nom", { exact: true }).fill("Historique");
+    await dialog.getByLabel("Date de naissance", { exact: true }).fill("2000-04-10");
+    await dialog.getByRole("button", { name: m.common.save, exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Camille Historique" })).toBeVisible();
+    const athleteId = new URL(page.url()).pathname.split("/").at(-1)!;
+    const builder = await (await page.request.get(`${root}/session-builder`)).json();
+    const exercise = builder.exercises.find((item: { name: string }) => item.name === "Squat arrière");
+    const historyRoot = `${root}/athletes/${athleteId}/exercise-history`;
+    const selected = await page.request.put(`${root}/athletes/${athleteId}/strength/${exercise.id}`, {
+      data: { source: "working", valueKg: 80 },
+    });
+    expect(selected.ok()).toBe(true);
+    await page.getByRole("link", { name: m.exerciseHistory.title, exact: true }).click();
+    await expect(page.getByText(m.exerciseHistory.noSessions)).toBeVisible();
+    await expect(page.locator(".world-work")).toBeVisible();
+    const context = await (await page.request.get(`${historyRoot}/context`)).json();
+    expect(context.exercises).toHaveLength(1);
+    const dates = [12, 9, 6, 3, 1].map((days) =>
+      new Date(Date.parse(context.today) - days * 86400000).toISOString().slice(0, 10),
+    );
+    for (const [i, date] of dates.entries()) {
+      const response = await page.request.post(`${root}/sessions`, {
+        data: {
+          date,
+          startTime: null,
+          location: null,
+          publishAt: null,
+          assignments: [{ targetType: "athlete", targetId: athleteId }],
+          overrides: [],
+          draft: {
+            title: `Force ${i + 1}`,
+            type: "strength",
+            durationMin: 30,
+            coachNote: "NOTE_PRIVEE_HISTORIQUE",
+            blocks: [
+              {
+                name: "Force",
+                variant: "club",
+                items: [
+                  { exerciseId: exercise.id, prescription: { sets: 3, reps: 4, load: { type: "kg", value: 100 } } },
+                ],
+              },
+            ],
+          },
+        },
+      });
+      expect(response.ok()).toBe(true);
+      const session = await response.json();
+      expect(
+        (
+          await page.request.post(`${root}/sessions/${session.id}/publish`, {
+            data: { expectedVersion: session.version },
+          })
+        ).ok(),
+      ).toBe(true);
+      const detail = await (await page.request.get(`${root}/sessions/${session.id}/athletes/${athleteId}/log`)).json();
+      const ref = detail.blocks[0].items[0].ref;
+      const logged = await page.request.post(`${root}/sessions/${session.id}/athletes/${athleteId}/log`, {
+        data: {
+          clientId: randomUUID(),
+          expectedVersion: 0,
+          expectedSessionVersion: detail.sessionVersion,
+          status: "partial",
+          variantDone: "club",
+          detailedSets: [0, 1, 2].map((setIndex) => ({
+            itemRef: ref,
+            setIndex,
+            reps: 4,
+            loadKg: 40,
+            done: i !== 2 && setIndex < 2,
+            setKind: "work",
+            loadKind: "external",
+            repetitionScope: "total",
+            sideCount: 1,
+          })),
+        },
+      });
+      expect(logged.ok(), await logged.text()).toBe(true);
+    }
+    for (const [index, date] of [dates[0], dates[1], dates[3], dates[4]].entries()) {
+      const response = await page.request.post(`${root}/athletes/${athleteId}/strength-tests`, {
+        data: {
+          exerciseId: exercise.id,
+          exerciseKey: `exercise:${exercise.id}`,
+          kind: "one_rm",
+          value: 90 + index * 5,
+          date,
+        },
+      });
+      expect(response.ok(), await response.text()).toBe(true);
+    }
+    for (const [kind, value] of [
+      ["three_rm", 85],
+      ["estimated", 110],
+    ] as const) {
+      const response = await page.request.post(`${root}/athletes/${athleteId}/strength-tests`, {
+        data: { exerciseId: exercise.id, exerciseKey: `exercise:${exercise.id}`, kind, value, date: dates[2] },
+      });
+      expect(response.ok(), await response.text()).toBe(true);
+    }
+    const targetResponse = await page.request.post(`${root}/sessions`, {
+      data: {
+        date: context.today,
+        startTime: "18:00",
+        location: null,
+        publishAt: null,
+        assignments: [{ targetType: "athlete", targetId: athleteId }],
+        overrides: [],
+        draft: {
+          title: "Rappel sans remplacement",
+          type: "strength",
+          durationMin: 30,
+          coachNote: null,
+          blocks: [
+            {
+              name: "Force",
+              variant: "club",
+              items: [
+                { exerciseId: exercise.id, prescription: { sets: 1, reps: 4, load: { type: "kg", value: 100 } } },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    expect(targetResponse.ok()).toBe(true);
+    const target = await targetResponse.json();
+    expect(
+      (
+        await page.request.post(`${root}/sessions/${target.id}/publish`, { data: { expectedVersion: target.version } })
+      ).ok(),
+    ).toBe(true);
+    await sql.query("UPDATE exercises SET name = 'Squat archivé', deleted_at = now() WHERE id = $1", [exercise.id]);
+    await page.reload();
+    await expect(page.getByLabel(m.exerciseHistory.exercise, { exact: true })).toContainText("Squat archivé");
+    const tests = page.getByRole("region", { name: m.exerciseHistory.tests, exact: true });
+    await expect(tests.getByRole("list")).toBeHidden();
+    await tests.getByText(m.exerciseHistory.viewTests(6), { exact: true }).click();
+    await expect(tests.getByRole("listitem")).toHaveCount(6);
+    await tests.getByText(m.exerciseHistory.viewTests(6), { exact: true }).click();
+    const force = page.getByRole("region", { name: m.strengthHistory.title, exact: true });
+    const chooseCurve = force.getByLabel(m.strengthHistory.choose, { exact: true });
+    await expect(force.getByText(m.strengthHistory.summary("90", "105"))).toBeVisible();
+    await expect(force.locator("svg circle")).toHaveCount(4);
+    await force.getByText(m.strengthHistory.table, { exact: true }).click();
+    const forceTable = force.getByRole("table");
+    await expect(forceTable.getByRole("row")).toHaveCount(6);
+    await expect(forceTable.getByRole("row").filter({ hasText: historyDate(dates[2]!) })).toContainText(
+      m.exerciseHistory.missing,
+    );
+    const curveLabel = (source: "work_load" | "work_epley" | "test_three_rm" | "test_estimated") =>
+      strengthCurveLabel({
+        source,
+        convention: "external_total",
+        reps: source === "work_load" ? 4 : null,
+        repetitionScope: source.startsWith("work_") ? "total" : null,
+        sideCount: source.startsWith("work_") ? 1 : null,
+      });
+    await chooseCurve.selectOption({ label: curveLabel("test_three_rm") });
+    await expect(force.getByText(m.strengthHistory.summary("85", "85"))).toBeVisible();
+    await chooseCurve.selectOption({ label: curveLabel("test_estimated") });
+    await expect(force.getByText(m.strengthHistory.summary("110", "110"))).toBeVisible();
+    await chooseCurve.selectOption({ label: curveLabel("work_load") });
+    await expect(force.getByText(m.strengthHistory.summary("40", "40"))).toBeVisible();
+    await expect(forceTable.getByRole("row").filter({ hasText: historyDate(dates[2]!) })).toContainText(
+      m.exerciseHistory.missing,
+    );
+    await chooseCurve.selectOption({ label: curveLabel("work_epley") });
+    await expect(force.getByText(m.strengthHistory.summary("45,33", "45,33"))).toBeVisible();
+    await force.getByText(m.strengthHistory.method, { exact: true }).click();
+    await expect(force.getByText(m.strengthHistory.estimateHint)).toBeVisible();
+    await expect(page.getByText(m.exerciseHistory.summary(4, "1 280"))).toBeVisible();
+    await page.getByLabel(m.exerciseHistory.metric, { exact: true }).selectOption("distanceM");
+    await expect(page.getByText(m.exerciseHistory.noMeasurements)).toBeVisible();
+    await page.getByLabel(m.exerciseHistory.metric, { exact: true }).selectOption("tonnageKg");
+    await page.getByText(m.exerciseHistory.table, { exact: true }).click();
+    const table = page.getByRole("table", { name: m.exerciseHistory.metrics.tonnageKg });
+    await expect(table.getByRole("row")).toHaveCount(6);
+    await expect(table.getByRole("row").filter({ hasText: historyDate(dates[2]!) })).toContainText(
+      m.exerciseHistory.missing,
+    );
+    await expect(table.getByRole("row").filter({ hasText: historyDate(dates[0]!) })).toContainText("320");
+    await page.getByText(`${historyDate(dates[4]!)} · Force 5`, { exact: true }).click();
+    await expect(page.locator("details[open]").getByText("Prescription conservée :", { exact: false })).toContainText(
+      "100 kg",
+    );
+    await expect(page.getByRole("heading", { name: "Squat arrière", exact: true })).toBeVisible();
+    await expect(
+      page.locator("details[open]").getByText(m.exerciseHistory.notConfirmed, { exact: true }),
+    ).toBeVisible();
+    await expect(page.locator("body")).not.toContainText("NOTE_PRIVEE_HISTORIQUE");
+    await page.getByText(m.exerciseHistory.calculator, { exact: true }).click();
+    await expect(page.getByLabel(m.calculator.reference, { exact: true })).toHaveValue("80");
+    await page.getByLabel(m.calculator.reference, { exact: true }).fill("90");
+    expect(
+      (await (await page.request.get(`${root}/athletes/${athleteId}/strength/${exercise.id}`)).json()).reference
+        .valueKg,
+    ).toBe(80);
+    for (const width of [390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expectNoHorizontalScroll(page);
+    }
+    await expectAccessible(page);
+    await page.setViewportSize({ width: info.project.name === "desktop" ? 1440 : 390, height: 900 });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: `/tmp/tartan-exercise-history-${info.project.name}.png`, fullPage: true });
+    await page.evaluate(() => {
+      document.documentElement.style.zoom = "2";
+    });
+    await expectNoHorizontalScroll(page);
+    await expectAccessible(page);
+    await page.evaluate(() => {
+      document.documentElement.style.zoom = "1";
+    });
+    await page.getByLabel(m.exerciseHistory.period, { exact: true }).selectOption("84");
+    await expect(page).toHaveURL(/days=84/);
+    await expect(page.getByLabel(m.exerciseHistory.exercise, { exact: true })).toHaveValue(exercise.id);
+    await page.goto(`/seances/${target.id}/athletes/${athleteId}/series`);
+    const reminder = page.getByRole("complementary");
+    await expect(reminder.getByRole("heading", { name: m.exerciseHistory.lastTime, exact: true })).toBeVisible();
+    await expect(reminder).toContainText("40 kg");
+    await expect(reminder).toContainText(historyDate(dates[4]!));
+    const row = page.getByRole("group", { name: m.progression.setNumber(1), exact: true });
+    await expect(row.getByLabel(m.progression.fields.loadKg, { exact: true })).toHaveValue("100");
+    await row.getByText(m.progression.advancedSet, { exact: true }).click();
+    await row.getByLabel(m.progression.repetitionScope, { exact: true }).selectOption("per_side");
+    await expect(reminder.getByText(m.exerciseHistory.noComparable)).toBeVisible();
+    await row.getByLabel(m.progression.repetitionScope, { exact: true }).selectOption("total");
+    await expect(reminder).toContainText("40 kg");
+    await expect(row.getByLabel(m.progression.fields.loadKg, { exact: true })).toHaveValue("100");
+    await expectAccessible(page);
+    await expectNoHorizontalScroll(page);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: `/tmp/tartan-reminder-${info.project.name}.png`, fullPage: true });
+    await reminder.getByRole("link", { name: m.exerciseHistory.openExercise }).click();
+    await expect(page).toHaveURL(new RegExp(`to=${dates[4]}`));
+    await expect(page.getByLabel(m.exerciseHistory.exercise, { exact: true })).toHaveValue(exercise.id);
+    await page.getByRole("button", { name: m.exerciseHistory.untilToday }).click();
+    await expect(page).toHaveURL(new RegExp(`to=${context.today}`));
+    const records = page.getByRole("region", { name: m.strengthRecords.title, exact: true });
+    await expect(records.getByText("40 kg", { exact: true })).toBeVisible();
+    await expect(records.getByText(m.strengthRecords.baseline, { exact: false })).toBeVisible();
+    const currentHistory = await (
+      await page.request.get(`${historyRoot}/${exercise.id}?from=${dates[0]}&to=${context.today}`)
+    ).json();
+    const lastSession = currentHistory.sessions[0];
+    const logPath = `${root}/sessions/${lastSession.sessionId}/athletes/${athleteId}/log`;
+    const historyUrl = page.url();
+    await page.goto(`/seances/${lastSession.sessionId}/athletes/${athleteId}/series`);
+    for (const index of [1, 2]) {
+      await page
+        .getByRole("group", { name: m.progression.setNumber(index), exact: true })
+        .getByLabel(m.progression.fields.loadKg, { exact: true })
+        .fill("50");
+    }
+    const responsePromise = page.waitForResponse(
+      (response) => response.url().endsWith(logPath) && response.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: m.progression.saveCoachSets, exact: true }).click();
+    const improvedResponse = await responsePromise;
+    const correction = improvedResponse.request().postDataJSON();
+    await expect(page.getByRole("heading", { name: m.strengthRecords.confirmed, exact: true })).toBeVisible();
+    const confirmation = page
+      .getByRole("status")
+      .filter({ has: page.getByRole("heading", { name: m.strengthRecords.confirmed, exact: true }) });
+    await expect(confirmation).toContainText("50 kg");
+    await expectAccessible(page);
+    await confirmation.screenshot({ path: `/tmp/tartan-record-confirmation-${info.project.name}.png` });
+    expect(improvedResponse.ok()).toBe(true);
+    const improved = await improvedResponse.json();
+    expect(improved.records).toHaveLength(2);
+    expect(improved.records.find((record: { kind: string }) => record.kind === "load_at_reps")).toMatchObject({
+      value: 50,
+      previousValue: 40,
+      baseline: false,
+    });
+    expect(await (await page.request.post(logPath, { data: correction })).json()).toMatchObject({
+      replayed: true,
+      records: [],
+    });
+    await page.goto(historyUrl);
+    await expect(records.getByText("50 kg", { exact: true })).toBeVisible();
+    await expect(records.getByText(m.strengthRecords.record, { exact: false })).toBeVisible();
+    await records.getByLabel(m.strengthRecords.measure, { exact: true }).selectOption("estimated_one_rm");
+    await expect(records.getByText("56,67 kg", { exact: true })).toBeVisible();
+    await expect(records.getByText(m.strengthRecords.estimate)).toBeVisible();
+    await expectAccessible(page);
+    await expectNoHorizontalScroll(page);
+    await records.screenshot({ path: `/tmp/tartan-records-${info.project.name}.png` });
+    const correctedResponse = await page.request.post(logPath, {
+      data: {
+        ...correction,
+        clientId: randomUUID(),
+        expectedVersion: improved.version,
+        detailedSets: correction.detailedSets.map((set: { loadKg: number }) => ({ ...set, loadKg: 30 })),
+      },
+    });
+    expect(correctedResponse.ok()).toBe(true);
+    expect((await correctedResponse.json()).records).toEqual([]);
+    await page.reload();
+    await expect(records.getByText("40 kg", { exact: true })).toBeVisible();
+    expect(
+      (await (await page.request.get(`${root}/athletes/${athleteId}/strength/${exercise.id}`)).json()).reference
+        .valueKg,
+    ).toBe(80);
+    await sql.query("UPDATE organizations SET progression_enabled = false WHERE id = $1", [orgId]);
+    await page.reload();
+    await expect(page.getByText(m.progression.disabled)).toBeVisible();
+    expect((await page.request.get(`${historyRoot}/context`)).status()).toBe(409);
+  } finally {
+    await sql.end();
+  }
+});

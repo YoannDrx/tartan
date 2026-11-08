@@ -1,5 +1,7 @@
 "use client";
 
+import { markInstallOpportunity } from "@/features/shell/install-opportunity";
+
 import { m } from "@tartan/i18n";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
@@ -50,6 +52,7 @@ export const RollCall = ({
     });
     setSaving(false);
     if (res.state === "error") return toast.error(res.message);
+    markInstallOpportunity();
     if (res.state === "queued") return toast.ok(m.offline.rollCallQueued);
     const data = res.data as { hasAutonomous: boolean; absentCount: number } | null;
     if (data) toast.ok(m.coach.rollCallDone(data.hasAutonomous ? data.absentCount : 0));

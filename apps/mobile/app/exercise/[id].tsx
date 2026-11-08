@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { exerciseCategory, type ExerciseSummary } from "@tartan/contracts";
+import { exerciseCategory, exerciseMovement, exerciseEquipment, type ExerciseSummary } from "@tartan/contracts";
 import { instagramUrl, parseYouTubeUrl } from "@tartan/domain";
-import { m } from "@tartan/i18n";
+import { m, exerciseClassificationLabel } from "@tartan/i18n";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
@@ -34,8 +34,12 @@ const draftFrom = (exercise: ExerciseSummary | null): ExerciseDraft => {
   return {
     id: exercise?.id,
     name: exercise?.name ?? "",
+    aliases: (exercise?.aliases ?? []).join("\n"),
     category: exercise?.category ?? "plyo",
+    classification: exercise?.classification ?? { movement: null, equipment: null },
     cues: (exercise?.cues ?? []).join("\n"),
+    strengthLoadKind: exercise?.strengthLoadKind ?? null,
+    loadStepKg: String(exercise?.loadStepKg ?? 1.25),
     tags: exercise?.tags ?? [],
     base: p,
     numbers: {
@@ -57,6 +61,8 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
   const client = useQueryClient();
   const router = useRouter();
   const [draft, setDraft] = useState<ExerciseDraft>(() => draftFrom(exercise));
+  const [classifying, setClassifying] = useState(false);
+  const classification = draft.classification ?? { movement: null, equipment: null };
   const [problem, setProblem] = useState<{ field: string; message: string } | null>(null);
   const set = (patch: Partial<ExerciseDraft>) => {
     setDraft((d) => ({ ...d, ...patch }));
@@ -85,7 +91,7 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
 
   return (
     <StackScreen
-      world="craie"
+      world="work"
       title={exercise ? m.mobile.exerciseForm.editTitle : m.exercises.new}
       footer={
         <>
@@ -130,6 +136,15 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
           </View>
         </View>
         <Field
+          testID="exercise-aliases"
+          label={m.exercises.aliases}
+          hint={m.exercises.aliasesHint}
+          value={draft.aliases ?? ""}
+          onChangeText={(aliases) => set({ aliases })}
+          multiline
+          error={errorOn("aliases")}
+        />
+        <Field
           testID="exercise-cues"
           label={m.exercises.cues}
           hint={m.mobile.exerciseForm.cuesHint}
@@ -140,6 +155,98 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
         />
       </Card>
 
+      <Card>
+        <Button
+          label={m.exerciseClassification.title}
+          variant="secondary"
+          expanded={classifying}
+          onPress={() => setClassifying(!classifying)}
+        />
+        {classifying ? (
+          <View style={{ gap: space.sm }}>
+            <T tone="muted">{m.exerciseClassification.hint}</T>
+            <T variant="smallStrong">{m.exerciseClassification.movement}</T>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+              <Chip
+                tall
+                label={m.exerciseClassification.unknown}
+                active={classification.movement === null}
+                onPress={() => set({ classification: { ...classification, movement: null } })}
+              />
+              {exerciseMovement.options.map((key) => (
+                <Chip
+                  tall
+                  key={key}
+                  label={exerciseClassificationLabel("movements", key)}
+                  active={classification.movement === key}
+                  onPress={() => set({ classification: { ...classification, movement: key } })}
+                />
+              ))}
+            </View>
+            <T variant="smallStrong">{m.exerciseClassification.equipment}</T>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+              <Chip
+                tall
+                label={m.exerciseClassification.unknown}
+                active={classification.equipment === null}
+                onPress={() => set({ classification: { ...classification, equipment: null } })}
+              />
+              <Chip
+                tall
+                label={m.exerciseClassification.none}
+                active={classification.equipment?.length === 0}
+                onPress={() => set({ classification: { ...classification, equipment: [] } })}
+              />
+              {exerciseEquipment.options.map((key) => (
+                <Chip
+                  tall
+                  key={key}
+                  label={exerciseClassificationLabel("equipment", key)}
+                  active={classification.equipment?.includes(key) ?? false}
+                  onPress={() =>
+                    set({
+                      classification: {
+                        ...classification,
+                        equipment: classification.equipment?.includes(key)
+                          ? classification.equipment.filter((k) => k !== key)
+                          : [...(classification.equipment ?? []), key],
+                      },
+                    })
+                  }
+                />
+              ))}
+            </View>
+          </View>
+        ) : null}
+      </Card>
+      <Card>
+        <SectionTitle>{m.strength.convention}</SectionTitle>
+        <T variant="caption">{m.strength.conventionHint}</T>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+          <Chip
+            tall
+            label={m.strength.unknownConvention}
+            active={!draft.strengthLoadKind}
+            onPress={() => set({ strengthLoadKind: null })}
+          />
+          {(Object.keys(m.strength.conventions) as (keyof typeof m.strength.conventions)[]).map((kind) => (
+            <Chip
+              key={kind}
+              tall
+              label={m.strength.conventions[kind]}
+              active={draft.strengthLoadKind === kind}
+              onPress={() => set({ strengthLoadKind: kind })}
+            />
+          ))}
+        </View>
+        <Field
+          label={m.strength.step}
+          hint={m.strength.stepHint}
+          value={draft.loadStepKg}
+          onChangeText={(loadStepKg) => set({ loadStepKg })}
+          keyboardType="decimal-pad"
+        />
+      </Card>
       <View style={{ gap: space.sm }}>
         <SectionTitle>{m.exercises.defaults}</SectionTitle>
         <Card>
@@ -215,7 +322,7 @@ export default function ExerciseEdit() {
   if (id === "new") return <ExerciseForm orgId={orgId} exercise={null} />;
   if (exercises.isPending) {
     return (
-      <StackScreen world="craie" title={m.mobile.exerciseForm.editTitle}>
+      <StackScreen world="work" title={m.mobile.exerciseForm.editTitle}>
         <LoadingState />
       </StackScreen>
     );
@@ -223,7 +330,7 @@ export default function ExerciseEdit() {
   const exercise = exercises.data?.find((e) => e.id === id);
   if (!exercise) {
     return (
-      <StackScreen world="craie" title={m.mobile.exerciseForm.editTitle}>
+      <StackScreen world="work" title={m.mobile.exerciseForm.editTitle}>
         <ErrorState message={m.common.notFound} onRetry={() => void exercises.refetch()} />
       </StackScreen>
     );

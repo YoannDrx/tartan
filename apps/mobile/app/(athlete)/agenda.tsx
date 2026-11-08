@@ -9,6 +9,7 @@ import { Tag } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { StatusDisc } from "../../src/ui/status";
+import { NativeCalendarPhases } from "../../src/features/training-phases";
 
 export default function AthleteAgenda() {
   const { orgId } = useActiveSpace();
@@ -45,12 +46,13 @@ export default function AthleteAgenda() {
 
   return (
     <TabScreen
-      world="couloir"
+      world="work"
       title={m.nav.calendrier}
       refreshing={calendar.isRefetching}
       onRefresh={() => void calendar.refetch()}
     >
       <WeekNav {...nav} />
+      <NativeCalendarPhases from={nav.week} to={nav.to} />
       {calendar.isPending ? <LoadingState /> : null}
       {calendar.isError && !calendar.data ? (
         <ErrorState error={calendar.error} onRetry={() => void calendar.refetch()} />

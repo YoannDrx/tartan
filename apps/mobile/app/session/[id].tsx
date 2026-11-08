@@ -1,11 +1,13 @@
+import { celebrationFromResponse } from "@tartan/domain";
+import type { SessionCelebration } from "@tartan/contracts";
 import type { ResolvedItem } from "@tartan/contracts";
 import { countSets, formatDuration } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, BackHandler, Pressable, Vibration, View } from "react-native";
 import { ExerciseVideo, parseMedia, SPEEDS } from "../../src/features/media";
-import { recordValidation, ValidationSheet } from "../../src/features/validation-sheet";
+import { recordValidation, ValidationSheet, type ValidationTarget } from "../../src/features/validation-sheet";
 import { useActiveSpace, useSessionDetail, useToday } from "../../src/lib/queries";
 import { useSessionProgress } from "../../src/lib/session-progress";
 import { ArrowRight, Check, Timer } from "../../src/ui/icons";
@@ -133,9 +135,13 @@ export default function SessionMode() {
   const [rate, setRate] = useState<number>(0.5);
   const [finished, setFinished] = useState<{
     status: "done" | "partial";
-    sets: { itemRef: string; setIndex: number; done: boolean }[];
+    target: ValidationTarget;
+    celebration?: SessionCelebration | null;
   } | null>(null);
   const validating = finished !== null;
+  const sending = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const progress = useSessionProgress((s) => s.bySession[id] ?? NO_PROGRESS);
   const toggle = useSessionProgress((s) => s.toggle);
   const clearProgress = useSessionProgress((s) => s.clear);
@@ -193,7 +199,14 @@ export default function SessionMode() {
   const restSeconds = item.prescription.rest_s;
   const allSetsDone = items.every((it) => (progress[it.ref] ?? []).filter(Boolean).length >= countSets(it));
 
-  const target = { orgId, sessionId: session.id, variant: session.variant, plannedMinutes: session.durationMin };
+  const target = {
+    orgId,
+    sessionId: session.id,
+    variant: session.variant,
+    plannedMinutes: session.durationMin,
+    sessionVersion: session.sessionVersion,
+    logVersion: session.log?.version ?? session.logVersion ?? 0,
+  };
   const setLogs = items.flatMap((it) =>
     (progress[it.ref] ?? []).map((done, setIndex) => ({ itemRef: it.ref, setIndex, done })),
   );
@@ -201,6 +214,16 @@ export default function SessionMode() {
   return (
     <StackScreen
       dark
+      right={
+        session.progressionEnabled ? (
+          <Button
+            compact
+            variant="secondary"
+            label={m.progression.setsTitle}
+            onPress={() => router.push(`/session-sets/${id}` as never)}
+          />
+        ) : undefined
+      }
       backIcon="close"
       backLabel={m.sessionMode.quit}
       onBack={confirmQuit}
@@ -221,11 +244,26 @@ export default function SessionMode() {
               label={m.sessionMode.finish}
               icon={Check}
               style={{ flex: 2 }}
-              onPress={() => {
+              disabled={saving}
+              onPress={async () => {
+                if (sending.current) return;
+                sending.current = true;
+                setSaving(true);
                 const status = allSetsDone ? "done" : "partial";
-                void recordValidation(target, status, setLogs);
+                const result = await recordValidation(target, status, setLogs);
+                sending.current = false;
+                setSaving(false);
+                if (result.state === "error") {
+                  setSaveError(result.message);
+                  return;
+                }
+                setSaveError(null);
                 clearProgress(id);
-                setFinished({ status, sets: setLogs });
+                setFinished({
+                  status,
+                  celebration: result.state === "sent" ? celebrationFromResponse(result.data) : null,
+                  target: { ...target, logVersion: result.nextVersion },
+                });
               }}
             />
           ) : (
@@ -240,6 +278,11 @@ export default function SessionMode() {
         </View>
       }
     >
+      {saveError ? (
+        <T tone="danger" accessibilityRole="alert">
+          {saveError}
+        </T>
+      ) : null}
       <View
         style={{ flexDirection: "row", gap: space.xs }}
         accessibilityElementsHidden
@@ -336,11 +379,12 @@ export default function SessionMode() {
       {finished ? (
         <ValidationSheet
           dark
-          target={target}
+          target={finished.target}
+          existing={session.log}
           status={finished.status}
           justRecorded
+          celebration={finished.celebration}
           healthConsent={today.data?.healthConsent ?? false}
-          sets={finished.sets}
           onClose={() => router.replace("/today")}
         />
       ) : null}

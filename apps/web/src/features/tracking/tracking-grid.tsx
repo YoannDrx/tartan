@@ -1,3 +1,4 @@
+import { withSessionReturn } from "@/lib/session-navigation";
 import { TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import type { TrackingGrid } from "@tartan/contracts";
@@ -35,7 +36,15 @@ export const WeekStrip = ({
 );
 
 // La grille est l'écran de travail du coach : des lignes denses plutôt que des cartes.
-export const TrackingTable = ({ grid, today = todayIso() }: { grid: TrackingGrid; today?: string }) => (
+export const TrackingTable = ({
+  grid,
+  today = todayIso(),
+  returnTo,
+}: {
+  grid: TrackingGrid;
+  today?: string;
+  returnTo?: string;
+}) => (
   <div className="on-card overflow-hidden rounded-card bg-card">
     <div className="overflow-x-auto">
       <table className="w-full min-w-max border-collapse">
@@ -52,7 +61,7 @@ export const TrackingTable = ({ grid, today = todayIso() }: { grid: TrackingGrid
                 className="w-11 py-2 text-center align-bottom font-normal desktop:w-14 desktop:px-1"
               >
                 <Link
-                  href={`/seances/${s.id}/suivi`}
+                  href={withSessionReturn(`/seances/${s.id}/suivi`, returnTo)}
                   title={s.title}
                   className="inline-flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-button py-1 leading-snug text-inherit no-underline hover:bg-raise"
                 >
@@ -115,7 +124,7 @@ export const TrackingTable = ({ grid, today = todayIso() }: { grid: TrackingGrid
                 <td key={cell.sessionId} className="py-1.5 text-center desktop:px-1">
                   {cell.status ? (
                     <Link
-                      href={`/seances/${cell.sessionId}/suivi#${row.athleteId}`}
+                      href={withSessionReturn(`/seances/${cell.sessionId}/suivi#${row.athleteId}`, returnTo)}
                       aria-label={`${row.name}, ${m.status[cell.status]}`}
                       className="inline-flex size-11 items-center justify-center rounded-button hover:bg-raise"
                     >

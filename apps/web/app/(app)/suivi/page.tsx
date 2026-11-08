@@ -1,8 +1,10 @@
+import { isoDate } from "@tartan/contracts";
+import { newSessionHref } from "@/lib/session-navigation";
 import { StatusIcon } from "@/components/status-cell";
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { addDays, startOfWeek } from "@tartan/domain";
+import { addDays, startOfWeek, defaultDateForWeek } from "@tartan/domain";
 import { formatDayMonth, m } from "@tartan/i18n";
 import { FilterPill } from "@/components/filter-pill";
 import { EmptyState, PageHeader, PeriodStepper } from "@/components/states";
@@ -23,9 +25,9 @@ export default async function SuiviPage({
 }: {
   searchParams: Promise<{ semaine?: string; groupe?: string }>;
 }) {
-  const { actor, organizationId } = await requireStaffSpace();
+  const { actor, organizationId, space } = await requireStaffSpace();
   const { semaine, groupe } = await searchParams;
-  const week = startOfWeek(semaine && /^\d{4}-\d{2}-\d{2}$/.test(semaine) ? semaine : todayIso());
+  const week = startOfWeek(isoDate.safeParse(semaine).success ? semaine! : todayIso());
   const access = await requireOrgMember(actor.userId, organizationId, "viewTracking");
   const [grid, alerts, groups, athletes, progress] = await Promise.all([
     getTrackingGrid(actor.userId, organizationId, { week, groupId: groupe }),
@@ -50,6 +52,11 @@ export default async function SuiviPage({
         title={m.coach.trackingTitle}
         actions={
           <>
+            {space.progressionEnabled ? (
+              <Button asChild size="sm" variant="secondary">
+                <Link href={`/analyse${groupe ? `?target=group:${groupe}` : ""}`}>{m.analysis.title}</Link>
+              </Button>
+            ) : null}
             <Button asChild size="sm" variant="secondary">
               <a
                 href={`/api/v1/orgs/${organizationId}/tracking/export?from=${week}&to=${addDays(week, 6)}${groupe ? `&groupId=${groupe}` : ""}`}
@@ -59,7 +66,13 @@ export default async function SuiviPage({
               </a>
             </Button>
             <Button asChild size="sm" className="order-first desktop:order-none">
-              <Link href="/seances/nouvelle">
+              <Link
+                href={newSessionHref({
+                  date: defaultDateForWeek(week, todayIso()),
+                  groupId: groupe,
+                  returnTo: query({ semaine: week, groupe }),
+                })}
+              >
                 <Plus aria-hidden className="size-5" />
                 {m.coach.newSession}
               </Link>
@@ -169,7 +182,7 @@ export default async function SuiviPage({
           ) : null}
           {grid.rows.length > 0 && grid.sessions.length > 0 ? (
             <>
-              <TrackingTable grid={grid} />
+              <TrackingTable grid={grid} returnTo={query({ semaine: week, groupe })} />
             </>
           ) : null}
         </div>

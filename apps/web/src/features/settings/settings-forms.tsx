@@ -1,6 +1,6 @@
 "use client";
 
-import type { InvitationStatus } from "@tartan/contracts";
+import type { InvitationStatus, TrainingProfile } from "@tartan/contracts";
 import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import { Check, Copy, Pencil, QrCode, Trash2 } from "lucide-react";
@@ -9,6 +9,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
+import { TrainingProfileFields } from "@/features/onboarding/training-profile-fields";
 import { pillClass } from "@/components/filter-pill";
 import { Chip } from "@/components/states";
 import { Button, IconButton } from "@/components/ui/button";
@@ -337,12 +338,13 @@ export const OrganizationForm = ({
   name,
   overdueReminders,
   disciplines,
+  trainingObjectives,
+  availableEquipment,
 }: {
   name: string;
   overdueReminders: boolean;
-  disciplines: string[];
-}) => {
-  const [v, setV] = useState({ name, overdueReminders, disciplines });
+} & TrainingProfile) => {
+  const [v, setV] = useState({ name, overdueReminders, disciplines, trainingObjectives, availableEquipment });
   const { execute, isPending, result } = useAction(updateOrganizationAction, {
     onSuccess: () => toast.ok("Espace enregistré."),
     onError: onErr,
@@ -360,24 +362,7 @@ export const OrganizationForm = ({
       <Field label={m.onboarding.orgName} error={errors?.name?._errors?.[0]}>
         {(a) => <Input {...a} value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} />}
       </Field>
-      <fieldset className="flex flex-col">
-        <legend className="t-caption mb-1">{m.settings.disciplines}</legend>
-        <div className="grid gap-x-4 tablet:grid-cols-2">
-          {Object.entries(m.disciplines).map(([key, label]) => (
-            <CheckRow
-              key={key}
-              label={label}
-              checked={v.disciplines.includes(key)}
-              onChange={(e) =>
-                setV({
-                  ...v,
-                  disciplines: e.target.checked ? [...v.disciplines, key] : v.disciplines.filter((d) => d !== key),
-                })
-              }
-            />
-          ))}
-        </div>
-      </fieldset>
+      <TrainingProfileFields value={v} disabled={isPending} onChange={(profile) => setV({ ...v, ...profile })} />
       <CheckRow
         label={m.settings.overdueReminders}
         detail={m.settings.overdueRemindersDetail}

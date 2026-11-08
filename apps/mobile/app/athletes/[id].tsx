@@ -17,7 +17,7 @@ import { Button, Divider, ListSurface, SectionTitle, T, Tag } from "../../src/ui
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { StatusDisc } from "../../src/ui/status";
-import { radius, scene, space } from "../../src/ui/theme";
+import { radius, palettes, space, usePalette } from "../../src/ui/theme";
 
 const day = (iso: string) => capitalize(formatDayMonth(iso));
 const fullDay = (iso: string) => `${day(iso)} ${iso.slice(0, 4)}`;
@@ -73,6 +73,7 @@ const MarkRow = ({ title, detail, value, badge }: { title: string; detail: strin
 );
 
 const InjuryAlert = ({ injury }: { injury: CoachAthleteFile["injuries"][number] }) => {
+  const p = usePalette();
   return (
     <ListSurface>
       <View
@@ -87,17 +88,15 @@ const InjuryAlert = ({ injury }: { injury: CoachAthleteFile["injuries"][number] 
             borderRadius: radius.thumb,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: scene.status.missed,
+            backgroundColor: p.status.missed,
           }}
         >
-          <AlertTriangle size={20} color={scene.onStatus} accessibilityElementsHidden importantForAccessibility="no" />
+          <AlertTriangle size={20} color={p.onStatus} accessibilityElementsHidden importantForAccessibility="no" />
         </View>
         <View style={{ flex: 1, gap: 1 }}>
-          <T variant="smallStrong" style={{ color: scene.text }}>
-            {injuryLabel(injury)}
-          </T>
+          <T variant="smallStrong">{injuryLabel(injury)}</T>
           {injury.restrictions ? (
-            <T variant="caption" style={{ color: scene.textMuted }}>
+            <T variant="caption" tone="muted">
               {injury.restrictions}
             </T>
           ) : null}
@@ -121,14 +120,14 @@ export default function AthleteFile() {
 
   if (file.isPending || stats.isPending) {
     return (
-      <StackScreen world="soleil" title={m.athletes.title}>
+      <StackScreen world="work" title={m.athletes.title}>
         <LoadingState />
       </StackScreen>
     );
   }
   if (!detail) {
     return (
-      <StackScreen world="soleil" title={m.athletes.title}>
+      <StackScreen world="work" title={m.athletes.title}>
         <ErrorState message={m.mobile.athletePage.error} onRetry={() => void file.refetch()} />
       </StackScreen>
     );
@@ -154,7 +153,7 @@ export default function AthleteFile() {
   const shownFigures = figures.flatMap((f) => (f.value === null ? [] : [{ label: f.label, value: f.value }]));
 
   return (
-    <StackScreen world="soleil" title={name} subtitle={subtitle}>
+    <StackScreen world="work" title={name} subtitle={subtitle}>
       {activeInjury ? <InjuryAlert injury={activeInjury} /> : null}
 
       {shownFigures.length > 0 ? (
@@ -255,7 +254,14 @@ export default function AthleteFile() {
       </Section>
 
       <>
-        <Section title={m.athletes.records}>
+        <Section title={m.performances.title}>
+          {active && (active.role === "owner" || active.role === "coach") ? (
+            <Button
+              label={m.performances.manage}
+              variant="secondary"
+              onPress={() => router.push(`/athlete-performances/${id}`)}
+            />
+          ) : null}
           <ListSurface>
             {detail.performances.length === 0 ? (
               <T variant="small" tone="muted" style={{ padding: space.md }}>
@@ -267,9 +273,20 @@ export default function AthleteFile() {
                   {i > 0 ? <Divider /> : null}
                   <MarkRow
                     title={discipline(p.discipline)}
-                    detail={[fullDay(p.date), p.location].filter(Boolean).join(" · ")}
+                    detail={[
+                      fullDay(p.date),
+                      p.location,
+                      p.comparisonContext,
+                      p.recordDirection === "lower"
+                        ? m.performances.lower
+                        : p.recordDirection === "higher"
+                          ? m.performances.higher
+                          : m.performances.unknown,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                     value={mark(p.mark, p.unit)}
-                    badge={p.isPb ? m.athletes.record : undefined}
+                    badge={p.isBaseline ? m.performances.baseline : p.isPb ? m.athletes.record : undefined}
                   />
                 </View>
               ))
@@ -278,6 +295,23 @@ export default function AthleteFile() {
         </Section>
 
         <Section title={m.athletes.tests}>
+          {active?.progressionEnabled ? (
+            <>
+              <Button label={m.calculator.title} variant="secondary" onPress={() => router.push("/load-calculator")} />
+              <Button
+                label={m.exerciseHistory.title}
+                variant="secondary"
+                onPress={() => router.push(`/exercise-history/${id}`)}
+              />
+            </>
+          ) : null}
+          {active?.progressionEnabled && (active.role === "owner" || active.role === "coach") ? (
+            <Button
+              label={m.strength.manage}
+              variant="secondary"
+              onPress={() => router.push(`/athlete-strength/${id}`)}
+            />
+          ) : null}
           <ListSurface>
             {detail.tests.length === 0 ? (
               <T variant="small" tone="muted" style={{ padding: space.md }}>
@@ -288,7 +322,7 @@ export default function AthleteFile() {
                 <View key={t.id}>
                   {i > 0 ? <Divider /> : null}
                   <MarkRow
-                    title={strengthTestLabel(t.exerciseKey)}
+                    title={t.exerciseName ?? strengthTestLabel(t.exerciseKey)}
                     detail={`${testKind(t.kind)} · ${fullDay(t.date)}`}
                     value={`${String(t.value).replace(".", ",")} kg`}
                   />
@@ -364,7 +398,7 @@ export default function AthleteFile() {
                       </View>
                       <ChevronRight
                         size={18}
-                        color={scene.textMuted}
+                        color={palettes.work.textMuted}
                         accessibilityElementsHidden
                         importantForAccessibility="no"
                       />

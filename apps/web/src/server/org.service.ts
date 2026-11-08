@@ -2,7 +2,12 @@ import { createElement } from "react";
 import { WelcomeEmail } from "@email/auth";
 import { sendEmail } from "@/lib/mail";
 import { log } from "@/lib/logger";
-import { type CreateOrganizationInput, type GroupInput } from "@tartan/contracts";
+import {
+  type CreateOrganizationInput,
+  type GroupInput,
+  organizationUpdateInput,
+  type OrganizationUpdateInput,
+} from "@tartan/contracts";
 import { type PlanKey, referralCodeFor, STARTER_LIBRARY } from "@tartan/domain";
 import { randomId } from "@/lib/tokens";
 import { prisma } from "@/lib/prisma";
@@ -73,6 +78,8 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
         name: input.name,
         type: input.type,
         disciplines: input.disciplines ?? [],
+        trainingObjectives: input.trainingObjectives ?? [],
+        availableEquipment: input.availableEquipment ?? [],
         ownerId: userId,
         plan,
         members: { create: { userId, role: "owner", status: "active" } },
@@ -80,7 +87,11 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
         exercises: {
           create: STARTER_LIBRARY.map((e) => ({
             name: e.name,
+            aliases: e.aliases ?? [],
+            classification: e.classification,
             category: e.category,
+            tags: e.tags,
+            strengthLoadKind: e.strengthLoadKind,
             cues: e.cues,
             defaultPrescription: e.prescription,
             createdBy: userId,
@@ -88,7 +99,9 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
         },
       },
     });
-    const group = await tx.group.create({ data: { organizationId: org.id, name: input.firstGroupName } });
+    const group = await tx.group.create({
+      data: { organizationId: org.id, name: input.firstGroupName, goal: input.firstGroupGoal || null },
+    });
     await tx.groupCoach.create({ data: { groupId: group.id, userId, role: "lead" } });
     return { ...org, firstGroupId: group.id };
   });
@@ -140,19 +153,26 @@ export const getOrganization = async (userId: string, organizationId: string) =>
   await requireOrgMember(userId, organizationId);
   const org = await prisma.organization.findUnique({
     where: { id: organizationId },
-    select: { id: true, name: true, type: true, plan: true, logoUrl: true, disciplines: true, overdueReminders: true },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      plan: true,
+      logoUrl: true,
+      disciplines: true,
+      trainingObjectives: true,
+      availableEquipment: true,
+      overdueReminders: true,
+    },
   });
   if (!org) throw notFound();
   return org;
 };
 
-export const updateOrganization = async (
-  userId: string,
-  organizationId: string,
-  input: { name: string; overdueReminders: boolean; disciplines?: string[] },
-) => {
+export const updateOrganization = async (userId: string, organizationId: string, input: OrganizationUpdateInput) => {
   await requireOrgMember(userId, organizationId, "manageOrganization");
-  await prisma.organization.update({ where: { id: organizationId }, data: input });
+  const parsed = organizationUpdateInput.parse(input);
+  await prisma.organization.update({ where: { id: organizationId }, data: parsed });
 };
 
 const LOGO_TYPES = ["image/jpeg", "image/png", "image/webp"];

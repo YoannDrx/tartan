@@ -1,7 +1,13 @@
 "use client";
 
+import { markInstallOpportunity } from "@/features/shell/install-opportunity";
+
+import { withSessionReturn } from "@/lib/session-navigation";
+
 import type { ExerciseSummary, Prescription, SessionDraft, SessionType } from "@tartan/contracts";
-import { formatPrescription } from "@tartan/domain";
+import { copyDraftWithNewRefs, formatPrescription, withSessionRefs } from "@tartan/domain";
+import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
+import { PhasePlanningPanel } from "@/features/phases/phase-planning";
 import { m, strengthTestLabel, formatDateLong } from "@tartan/i18n";
 import { ArrowDown, ArrowUp, ChevronRight, GripVertical, Plus, Search, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
@@ -22,12 +28,13 @@ import { deleteSessionAction, deleteTemplateAction, saveSessionAction, saveTempl
 type BlockState = {
   key: string;
   name: string;
+  shared?: boolean;
   items: { key: string; exerciseId: string; prescription: Prescription }[];
 };
 type Version = "club" | "autonomous";
 type Override = KeyedOverride<Prescription>;
 
-const newKey = () => Math.random().toString(36).slice(2, 10);
+const newKey = () => crypto.randomUUID();
 
 // Clés déterministes au premier rendu : le serveur et le navigateur doivent produire le même HTML.
 const defaultBlocks = (prefix = "init"): BlockState[] => [
@@ -39,13 +46,14 @@ const defaultBlocks = (prefix = "init"): BlockState[] => [
 const split = (draft: SessionDraft | null) => {
   if (!draft) return { club: defaultBlocks(), autonomous: [] as BlockState[] };
   const toState = (variant: Version) =>
-    draft.blocks
-      .filter((b) => b.variant === variant || b.variant === "both")
-      .map((b, bi) => ({
-        key: `${variant}-${bi}`,
+    withSessionRefs(draft)
+      .blocks.filter((b) => b.variant === variant || (variant === "club" && b.variant === "both"))
+      .map((b) => ({
+        key: b.ref!,
         name: b.name,
-        items: b.items.map((i, ii) => ({
-          key: `${variant}-${bi}-${ii}`,
+        shared: b.variant === "both",
+        items: b.items.map((i) => ({
+          key: i.ref!,
           exerciseId: i.exerciseId,
           prescription: i.prescription,
         })),
@@ -55,14 +63,18 @@ const split = (draft: SessionDraft | null) => {
 
 const numberOrUndefined = (v: string): number | undefined => (v === "" ? undefined : Number(v));
 
-const PrescriptionEditor = ({
+export const PrescriptionEditor = ({
   value,
   onChange,
   testKeys,
+  exercise,
+  intensityEnabled,
 }: {
+  exercise?: { id: string; name: string };
   value: Prescription;
   onChange: (p: Prescription) => void;
   testKeys: string[];
+  intensityEnabled: boolean;
 }) => {
   const numberField = (
     key: "sets" | "reps" | "distance_m" | "duration_s" | "rest_s" | "ground_contacts",
@@ -101,7 +113,15 @@ const PrescriptionEditor = ({
                 const { load: _removed, ...rest } = value;
                 onChange(rest);
               } else if (type === "kg") onChange({ ...value, load: { type: "kg", value: 0 } });
-              else onChange({ ...value, load: { type: "pct_1rm", value: 80, test: testKeys[0] ?? "back_squat" } });
+              else
+                onChange({
+                  ...value,
+                  load: {
+                    type: "pct_1rm",
+                    value: 80,
+                    test: testKeys.find((key) => key === `exercise:${exercise?.id}`) ?? testKeys[0] ?? "back_squat",
+                  },
+                });
             }}
           >
             <option value="none">Aucune</option>
@@ -140,10 +160,54 @@ const PrescriptionEditor = ({
             >
               {testKeys.map((k) => (
                 <option key={k} value={k}>
-                  {strengthTestLabel(k)}
+                  {k === `exercise:${exercise?.id}` ? exercise?.name : strengthTestLabel(k)}
                 </option>
               ))}
             </Select>
+          )}
+        </Field>
+      ) : null}
+      {/* Une cible déjà prescrite reste modifiable si la progression est éteinte ensuite. */}
+      {intensityEnabled || value.intensityTarget ? (
+        <Field label={m.nativeBuilder.intensity} hint={m.nativeBuilder.intensityHint}>
+          {(a) => (
+            <Select
+              {...a}
+              value={value.intensityTarget?.type ?? "none"}
+              onChange={(e) => {
+                const type = e.target.value;
+                const { intensityTarget: _removed, ...rest } = value;
+                onChange(
+                  type === "rpe"
+                    ? { ...rest, intensityTarget: { type, value: 7 } }
+                    : type === "rir"
+                      ? { ...rest, intensityTarget: { type, value: 2 } }
+                      : rest,
+                );
+              }}
+            >
+              <option value="none">{m.nativeBuilder.noIntensity}</option>
+              <option value="rpe">RPE</option>
+              <option value="rir">RIR</option>
+            </Select>
+          )}
+        </Field>
+      ) : null}
+      {value.intensityTarget ? (
+        <Field label={m.nativeBuilder.intensityValue}>
+          {(a) => (
+            <Input
+              {...a}
+              type="number"
+              min={value.intensityTarget?.type === "rpe" ? 1 : 0}
+              max={10}
+              step={value.intensityTarget?.type === "rpe" ? 0.5 : 1}
+              value={value.intensityTarget?.value ?? ""}
+              onChange={(e) => {
+                if (value.intensityTarget)
+                  onChange({ ...value, intensityTarget: { ...value.intensityTarget, value: Number(e.target.value) } });
+              }}
+            />
           )}
         </Field>
       ) : null}
@@ -171,6 +235,9 @@ const PrescriptionEditor = ({
 };
 
 export const SessionBuilder = ({
+  organizationId,
+  phasesEnabled = false,
+  progressionEnabled = false,
   initial,
   exercises,
   groups,
@@ -178,9 +245,15 @@ export const SessionBuilder = ({
   templates,
   testKeys,
   defaultDate,
+  defaultGroupId,
+  returnTo,
 }: {
+  organizationId: string;
+  phasesEnabled?: boolean;
+  progressionEnabled?: boolean;
   initial: {
     id: string;
+    version: number;
     date: string;
     startTime: string | null;
     location: string | null;
@@ -190,13 +263,16 @@ export const SessionBuilder = ({
     assignments: { targetType: "group" | "athlete"; targetId: string }[];
     overrides: { athleteId: string; itemRef: string; prescription: Prescription }[];
     logCount: number;
+    phaseReview?: import("@tartan/contracts").SessionPhaseReview;
   } | null;
   exercises: ExerciseSummary[];
   groups: { id: string; name: string; athleteCount: number }[];
   athletes: { id: string; firstName: string; lastName: string }[];
-  templates: (SessionDraft & { id: string })[];
+  templates: (SessionDraft & { id: string; canDelete?: boolean })[];
   testKeys: string[];
   defaultDate: string;
+  defaultGroupId?: string;
+  returnTo?: string;
 }) => {
   const router = useRouter();
   const start = useMemo(() => split(initial?.draft ?? null), [initial]);
@@ -219,11 +295,19 @@ export const SessionBuilder = ({
   const [version, setVersion] = useState<Version>("club");
   const [selectedGroups, setSelectedGroups] = useState(
     initial?.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId) ??
-      (groups.length === 1 && groups[0] ? [groups[0].id] : []),
+      (defaultGroupId !== undefined
+        ? groups.some((group) => group.id === defaultGroupId)
+          ? [defaultGroupId]
+          : []
+        : groups.length === 1 && groups[0]
+          ? [groups[0].id]
+          : []),
   );
   const [selectedAthletes, setSelectedAthletes] = useState(
     initial?.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId) ?? [],
   );
+  const planningKey = phasePlanningKey(date, selectedGroups, selectedAthletes);
+  const [phaseReady, setPhaseReady] = useState<PhasePlanningReadiness>({ key: "", ready: false });
   const [overrides, setOverrides] = useState<Override[]>(() => attachItemKeys(initial?.overrides ?? [], start.club));
   const [chosenTemplate, setChosenTemplate] = useState("");
   const [previewing, setPreviewing] = useState(false);
@@ -232,6 +316,7 @@ export const SessionBuilder = ({
   const [editing, setEditing] = useState<{ blockKey: string; itemKey: string } | null>(null);
   const [overrideFor, setOverrideFor] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [expectedVersion, setExpectedVersion] = useState(initial?.version);
 
   const blocks = version === "club" ? club : autonomous;
   const setBlocks = version === "club" ? setClub : setAutonomous;
@@ -273,7 +358,11 @@ export const SessionBuilder = ({
     );
 
   const generateAutonomous = () => {
-    setAutonomous(club.map((b) => ({ ...b, key: newKey(), items: b.items.map((i) => ({ ...i, key: newKey() })) })));
+    setAutonomous(
+      club
+        .filter((b) => !b.shared)
+        .map((b) => ({ ...b, key: newKey(), items: b.items.map((i) => ({ ...i, key: newKey() })) })),
+    );
     setVersion("autonomous");
     toast.ok("Version autonomie générée : ajuste-la (exercices sans matériel, consignes plus détaillées).");
   };
@@ -283,9 +372,10 @@ export const SessionBuilder = ({
       list
         .filter((b) => b.items.length > 0)
         .map((b) => ({
+          ref: b.key,
           name: b.name,
-          variant,
-          items: b.items.map((i) => ({ exerciseId: i.exerciseId, prescription: i.prescription })),
+          variant: b.shared ? ("both" as const) : variant,
+          items: b.items.map((i) => ({ ref: i.key, exerciseId: i.exerciseId, prescription: i.prescription })),
         }));
     return {
       title: title.trim(),
@@ -298,6 +388,8 @@ export const SessionBuilder = ({
 
   const save = useAction(saveSessionAction, {
     onSuccess: ({ data, input }) => {
+      if (data) setExpectedVersion(data.version);
+      if (data && (input.publish || input.publishAt)) markInstallOpportunity();
       toast.ok(
         input.publishAt
           ? m.builder.scheduled
@@ -307,8 +399,8 @@ export const SessionBuilder = ({
               : m.builder.published
             : "Brouillon enregistré.",
       );
-      if (input.publish && data) router.push(`/seances/${data.id}/suivi`);
-      else if (data && !initial) router.replace(`/seances/${data.id}`);
+      if (input.publish && data) router.push(withSessionReturn(`/seances/${data.id}/suivi`, returnTo));
+      else if (data && !initial) router.replace(withSessionReturn(`/seances/${data.id}`, returnTo));
       router.refresh();
     },
     onError: ({ error }) => setFormError(error.serverError ?? m.errors.invalid),
@@ -322,12 +414,14 @@ export const SessionBuilder = ({
       setChosenTemplate("");
       router.refresh();
     },
+    onError: ({ error }) => toast.error(error.serverError ?? m.errors.invalid),
   });
   const remove = useAction(deleteSessionAction, {
     onSuccess: () => {
-      router.push("/calendrier");
+      router.push(returnTo ?? "/calendrier");
       router.refresh();
     },
+    onError: ({ error }) => setFormError(error.serverError ?? m.errors.invalid),
   });
 
   const submit = (publish: boolean, scheduleAt: string | null = null) => {
@@ -342,8 +436,17 @@ export const SessionBuilder = ({
     if ((publish || scheduleAt) && assignments.length === 0) return setFormError(m.builder.noAudience);
     if (scheduleAt && new Date(scheduleAt) <= new Date()) return setFormError(m.builder.schedulePast);
     const keptSchedule = scheduleAt ?? (!publish && scheduling ? publishAt : "");
+    if (
+      phasesEnabled &&
+      (publish || keptSchedule || initial?.publishedAt) &&
+      assignments.length &&
+      (phaseReady.key !== planningKey || !phaseReady.ready)
+    )
+      return setFormError(m.trainingPhases.reviewRequired);
     save.execute({
       id: initial?.id,
+      expectedVersion,
+      phaseReview: phaseReady.key === planningKey && phaseReady.ready ? phaseReady.review : undefined,
       date,
       startTime: startTime || null,
       location: location.trim() || null,
@@ -359,7 +462,8 @@ export const SessionBuilder = ({
   const applyTemplate = (id: string) => {
     const t = templates.find((x) => x.id === id);
     if (!t) return;
-    const parts = split(t);
+    const parts = split(copyDraftWithNewRefs(t, newKey));
+    setOverrides([]);
     setTitle(t.title);
     setType(t.type);
     setDurationMin(t.durationMin?.toString() ?? "");
@@ -368,10 +472,10 @@ export const SessionBuilder = ({
     setAutonomous(parts.autonomous);
   };
 
-  // Références calculées comme à la publication : b{bloc}-i{exercice} dans l'ordre du brouillon.
+  // Même identité à l'écran, à la publication et après un réordonnancement.
   const clubRefs = club
     .filter((b) => b.items.length > 0)
-    .flatMap((b, bi) => b.items.map((item, ii) => ({ ref: `b${bi}-i${ii}`, item })));
+    .flatMap((b) => b.items.map((item) => ({ ref: item.key, item })));
 
   const editingItem = editing
     ? blocks.find((b) => b.key === editing.blockKey)?.items.find((i) => i.key === editing.itemKey)
@@ -410,7 +514,7 @@ export const SessionBuilder = ({
                   </Select>
                 )}
               </Field>
-              {chosenTemplate ? (
+              {chosenTemplate && templates.find((t) => t.id === chosenTemplate)?.canDelete ? (
                 <ConfirmDialog
                   title={m.builder.deleteTemplate}
                   onConfirm={() => removeTemplate.execute({ id: chosenTemplate })}
@@ -470,6 +574,68 @@ export const SessionBuilder = ({
         </Field>
       </section>
 
+      <section className="desktop:col-start-2 min-w-0 flex flex-col gap-3 rounded-card on-card bg-card p-4">
+        <h2 className="t-h2">{m.builder.audience}</h2>
+        <div className="grid gap-4 tablet:grid-cols-2">
+          <fieldset>
+            <legend className="t-caption mb-1">{m.builder.entireGroup}</legend>
+            {groups.map((g) => (
+              <CheckRow
+                key={g.id}
+                label={g.name}
+                detail={`${g.athleteCount} athlète${g.athleteCount > 1 ? "s" : ""}`}
+                checked={selectedGroups.includes(g.id)}
+                onChange={(e) =>
+                  setSelectedGroups(
+                    e.target.checked ? [...selectedGroups, g.id] : selectedGroups.filter((x) => x !== g.id),
+                  )
+                }
+              />
+            ))}
+          </fieldset>
+          <fieldset>
+            <legend className="t-caption mb-1">{m.builder.pickAthletes}</legend>
+            <div className="max-h-56 overflow-y-auto">
+              {athletes.map((a) => (
+                <CheckRow
+                  key={a.id}
+                  label={`${a.firstName} ${a.lastName}`}
+                  checked={selectedAthletes.includes(a.id)}
+                  onChange={(e) =>
+                    setSelectedAthletes(
+                      e.target.checked ? [...selectedAthletes, a.id] : selectedAthletes.filter((x) => x !== a.id),
+                    )
+                  }
+                />
+              ))}
+            </div>
+          </fieldset>
+        </div>
+      </section>
+
+      {phasesEnabled ? (
+        <div className="desktop:col-start-2 min-w-0">
+          <PhasePlanningPanel
+            initialChoices={
+              initial &&
+              planningKey ===
+                phasePlanningKey(
+                  initial.date,
+                  initial.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId),
+                  initial.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId),
+                )
+                ? initial.phaseReview?.choices
+                : []
+            }
+            key={planningKey}
+            organizationId={organizationId}
+            date={date}
+            groupIds={selectedGroups}
+            athleteIds={selectedAthletes}
+            onReady={setPhaseReady}
+          />
+        </div>
+      ) : null}
       <section aria-label={m.builder.body} className="desktop:col-start-2 min-w-0 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <div role="tablist" aria-label="Version de la séance" className="flex flex-wrap items-center gap-2">
@@ -503,7 +669,16 @@ export const SessionBuilder = ({
           ) : null}
         </div>
 
-        {version === "autonomous" && autonomous.length === 0 ? (
+        {version === "autonomous" && club.some((b) => b.shared) ? (
+          <p className="text-soft">
+            {m.builder.sharedBlocksHint}{" "}
+            {club
+              .filter((b) => b.shared)
+              .map((b) => b.name)
+              .join(", ")}
+          </p>
+        ) : null}
+        {version === "autonomous" && autonomous.length === 0 && !club.some((b) => b.shared) ? (
           <EmptyState>Pas encore de version autonomie. Les absents recevraient la version club.</EmptyState>
         ) : null}
 
@@ -663,45 +838,6 @@ export const SessionBuilder = ({
           ))}
         </ul>
       </aside>
-
-      <section className="desktop:col-start-2 min-w-0 flex flex-col gap-3 rounded-card on-card bg-card p-4">
-        <h2 className="t-h2">{m.builder.audience}</h2>
-        <div className="grid gap-4 tablet:grid-cols-2">
-          <fieldset>
-            <legend className="t-caption mb-1">{m.builder.entireGroup}</legend>
-            {groups.map((g) => (
-              <CheckRow
-                key={g.id}
-                label={g.name}
-                detail={`${g.athleteCount} athlète${g.athleteCount > 1 ? "s" : ""}`}
-                checked={selectedGroups.includes(g.id)}
-                onChange={(e) =>
-                  setSelectedGroups(
-                    e.target.checked ? [...selectedGroups, g.id] : selectedGroups.filter((x) => x !== g.id),
-                  )
-                }
-              />
-            ))}
-          </fieldset>
-          <fieldset>
-            <legend className="t-caption mb-1">{m.builder.pickAthletes}</legend>
-            <div className="max-h-56 overflow-y-auto">
-              {athletes.map((a) => (
-                <CheckRow
-                  key={a.id}
-                  label={`${a.firstName} ${a.lastName}`}
-                  checked={selectedAthletes.includes(a.id)}
-                  onChange={(e) =>
-                    setSelectedAthletes(
-                      e.target.checked ? [...selectedAthletes, a.id] : selectedAthletes.filter((x) => x !== a.id),
-                    )
-                  }
-                />
-              ))}
-            </div>
-          </fieldset>
-        </div>
-      </section>
 
       {clubRefs.length > 0 && athletes.length > 0 ? (
         <details className="desktop:col-start-2 min-w-0 rounded-card on-card bg-card px-4 py-2">
@@ -865,7 +1001,13 @@ export const SessionBuilder = ({
           <ConfirmDialog
             title="Supprimer cette séance ?"
             description={initial.logCount > 0 ? m.builder.deleteLosesLogs(initial.logCount) : undefined}
-            onConfirm={() => remove.execute({ id: initial.id })}
+            onConfirm={() =>
+              remove.execute({
+                id: initial.id,
+                expectedVersion: expectedVersion ?? initial.version,
+                expectedLogCount: initial.logCount,
+              })
+            }
             trigger={
               <Button variant="danger" className={cn("ml-auto")} disabled={remove.isPending}>
                 {m.common.delete}
@@ -922,7 +1064,11 @@ export const SessionBuilder = ({
           <div className="flex flex-col gap-4">
             <PrescriptionEditor
               value={editingItem.prescription}
-              testKeys={testKeys}
+              exercise={byId.get(editingItem.exerciseId)}
+              intensityEnabled={progressionEnabled}
+              testKeys={testKeys.filter(
+                (key) => !key.startsWith("exercise:") || key === `exercise:${editingItem.exerciseId}`,
+              )}
               onChange={(p) => updateItem(editing.blockKey, editing.itemKey, p)}
             />
             <Button onClick={() => setEditing(null)}>{m.common.close}</Button>

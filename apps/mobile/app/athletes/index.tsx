@@ -7,7 +7,7 @@ import { ChevronRight, UserPlus } from "../../src/ui/icons";
 import { Button, Divider, Field, ListSurface, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
-import { scene, space } from "../../src/ui/theme";
+import { palettes, space } from "../../src/ui/theme";
 
 const folded = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
@@ -24,7 +24,7 @@ export default function Athletes() {
 
   return (
     <StackScreen
-      world="soleil"
+      world="work"
       title={m.athletes.title}
       footer={
         canInvite ? (
@@ -92,7 +92,7 @@ export default function Athletes() {
                   </View>
                   <ChevronRight
                     size={18}
-                    color={scene.textMuted}
+                    color={palettes.work.textMuted}
                     accessibilityElementsHidden
                     importantForAccessibility="no"
                   />

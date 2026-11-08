@@ -22,10 +22,12 @@ const AthleteRow = ({
   athlete,
   onRemind,
   reminding,
+  onSets,
 }: {
   athlete: Athlete;
   onRemind: () => void;
   reminding: boolean;
+  onSets?: () => void;
 }) => {
   const late = athlete.status === "missed" || athlete.status === "upcoming";
   const doneSets = athlete.sets.filter((s) => s.done).length;
@@ -68,6 +70,15 @@ const AthleteRow = ({
           </T>
         ) : null}
         {athlete.comment ? <T variant="small">{athlete.comment}</T> : null}
+        {onSets ? (
+          <Button
+            compact
+            variant="secondary"
+            label={m.progression.coachSetsTitle}
+            accessibilityLabel={`${m.progression.coachSetsTitle} · ${athlete.name}`}
+            onPress={onSets}
+          />
+        ) : null}
       </View>
       {late ? (
         <IconButton
@@ -121,7 +132,7 @@ const RollCallRow = ({
 
 export default function CoachSession() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { me, orgId } = useActiveSpace();
+  const { me, orgId, space: active } = useActiveSpace();
   const detail = useCoachSession(orgId, id);
   const router = useRouter();
   const client = useQueryClient();
@@ -167,14 +178,14 @@ export default function CoachSession() {
   if (me.data && !orgId) return <Redirect href="/" />;
   if (detail.isPending) {
     return (
-      <StackScreen world="couloir">
+      <StackScreen world="work">
         <LoadingState />
       </StackScreen>
     );
   }
   if (!detail.data) {
     return (
-      <StackScreen world="couloir">
+      <StackScreen world="work">
         <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
       </StackScreen>
     );
@@ -187,9 +198,17 @@ export default function CoachSession() {
 
   return (
     <StackScreen
-      world="couloir"
+      world="work"
       title={session.title}
       subtitle={subtitle}
+      right={
+        <Button
+          compact
+          variant="secondary"
+          label={m.common.edit}
+          onPress={() => router.push({ pathname: "/session-builder/[id]", params: { id } })}
+        />
+      }
       footer={
         rollCall ? (
           <View style={{ gap: space.sm }}>
@@ -258,6 +277,14 @@ export default function CoachSession() {
               />
             ) : null}
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+              {active?.progressionEnabled && session.canEdit && session.publishedAt ? (
+                <Button
+                  label={m.prescriptionRefresh.title}
+                  variant="secondary"
+                  compact
+                  onPress={() => router.push({ pathname: "/refresh-loads/[id]", params: { id } })}
+                />
+              ) : null}
               {late.length > 0 && session.publishedAt ? (
                 <Button
                   label={m.coach.remind}
@@ -295,7 +322,16 @@ export default function CoachSession() {
             {session.athletes.map((a, i) => (
               <View key={a.athleteId}>
                 {i > 0 ? <Divider /> : null}
-                <AthleteRow athlete={a} reminding={remind.isPending} onRemind={() => remind.mutate([a.athleteId])} />
+                <AthleteRow
+                  athlete={a}
+                  reminding={remind.isPending}
+                  onRemind={() => remind.mutate([a.athleteId])}
+                  onSets={
+                    active?.progressionEnabled && session.canEdit && session.publishedAt
+                      ? () => router.push({ pathname: "/coach-sets/[id]", params: { id, athleteId: a.athleteId } })
+                      : undefined
+                  }
+                />
               </View>
             ))}
           </ListSurface>

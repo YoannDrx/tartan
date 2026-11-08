@@ -2,7 +2,7 @@ import { addDays } from "@tartan/domain";
 import { todayIso, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { forbidden, invalid, notFound } from "@/lib/errors";
-import { correctBirthDateInput } from "@tartan/contracts";
+import { adminSpaceFeaturesInput, correctBirthDateInput } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
 import { externalDeletionHealth } from "./external-deletion.service";
@@ -66,6 +66,39 @@ export const adminRetryEmail = async (actor: { email: string; userId: string }, 
   });
 };
 
+// Activation pilote espace par espace. Chaque appel relit la colonne : l'effet est immédiat, sans redéploiement.
+export const adminSetSpaceFeatures = async (actor: { email: string; userId: string }, input: unknown) => {
+  requireAdmin(actor.email);
+  const parsed = adminSpaceFeaturesInput.safeParse(input);
+  if (!parsed.success) throw invalid();
+  const { organizationId, ...features } = parsed.data;
+  await prisma.$transaction(async (tx) => {
+    const changed = await tx.organization.updateMany({ where: { id: organizationId }, data: features });
+    if (!changed.count) throw notFound();
+    const state = (on: boolean) => (on ? "on" : "off");
+    await tx.auditLog.create({
+      data: {
+        organizationId,
+        actorId: actor.userId,
+        action: `space_features:progression=${state(features.progressionEnabled)},phases=${state(features.phasesEnabled)},ai=${state(features.aiPlannerEnabled)}`,
+        entity: "organization",
+        entityId: organizationId,
+      },
+    });
+  });
+};
+
+// Arrêt d'urgence : coupe l'IA partout sans toucher aux autres fonctions ; la réactivation reste espace par espace.
+export const adminDisableAiEverywhere = async (actor: { email: string; userId: string }) => {
+  requireAdmin(actor.email);
+  await prisma.$transaction(async (tx) => {
+    await tx.organization.updateMany({ where: { aiPlannerEnabled: true }, data: { aiPlannerEnabled: false } });
+    await tx.auditLog.create({
+      data: { actorId: actor.userId, action: "ai_disabled_everywhere", entity: "platform" },
+    });
+  });
+};
+
 export const adminOverview = async (actor: { email: string }, now: Date = new Date()) => {
   requireAdmin(actor.email);
   const weekAgo = toDbDate(addDays(todayIso(now), -7));
@@ -77,6 +110,9 @@ export const adminOverview = async (actor: { email: string }, now: Date = new Da
       name: true,
       plan: true,
       createdAt: true,
+      progressionEnabled: true,
+      phasesEnabled: true,
+      aiPlannerEnabled: true,
       owner: { select: { email: true } },
       _count: { select: { athletes: true, members: true, videos: true } },
     },
@@ -94,6 +130,9 @@ export const adminOverview = async (actor: { email: string }, now: Date = new Da
         id: org.id,
         name: org.name,
         plan: org.plan,
+        progressionEnabled: org.progressionEnabled,
+        phasesEnabled: org.phasesEnabled,
+        aiPlannerEnabled: org.aiPlannerEnabled,
         ownerEmail: org.owner.email,
         createdAt: org.createdAt.toISOString(),
         athletes: org._count.athletes,
@@ -118,6 +157,7 @@ export const adminOverview = async (actor: { email: string }, now: Date = new Da
   return {
     spaces,
     plans,
+    aiServerEnabled: env().AI_PLANNER_ENABLED === "true",
     notificationDelivery: await notificationDeliveryHealth(now),
     externalDeletions: await externalDeletionHealth(now),
     billingIssues: await prisma.organization.findMany({

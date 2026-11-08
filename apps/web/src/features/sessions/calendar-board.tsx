@@ -1,5 +1,6 @@
 "use client";
 
+import { tokens } from "@tartan/design-tokens";
 import type { CalendarResponse, CalendarSession } from "@tartan/contracts";
 import { addDays } from "@tartan/domain";
 import { capitalize, formatDateLong, formatWeekdayShort, m } from "@tartan/i18n";
@@ -15,33 +16,38 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
+import { calendarSessionHref, newSessionHref } from "@/lib/session-navigation";
 import { duplicateSessionAction, moveSessionAction } from "./session.action";
 import { DeleteRow } from "@/features/athletes/delete-row";
 
 const SessionCard = ({
   session,
+  returnTo,
   onMove,
   onDuplicate,
 }: {
   session: CalendarSession;
+  returnTo?: string;
   onMove: () => void;
   onDuplicate: () => void;
 }) => {
-  const jump = session.type === "jump";
+  const tint = tokens.activity[session.type];
   return (
     <article
       draggable
       onDragStart={(e) => e.dataTransfer.setData("text/session-id", session.id)}
       className="relative cursor-grab overflow-hidden rounded-thumb bg-card-raised p-2 pr-3 active:cursor-grabbing"
     >
-      {/* Séance de saut : la ligne d'arrivée, le rouge étant désormais le fond (DESIGN.md). */}
-      {jump ? <span aria-hidden className="absolute inset-y-0 right-0 w-[7px] bg-lane" /> : null}
-      <p className="flex items-center gap-1.5 t-caption text-soft">
+      <p
+        className="inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 t-caption"
+        style={{ backgroundColor: tint.background, color: tint.text }}
+      >
         <ActivityPicto kind={session.type} className="size-4" />
         {m.sessionType[session.type]}
       </p>
       <Link
-        href={`/seances/${session.id}/suivi`}
+        scroll={false}
+        href={calendarSessionHref(session.id, returnTo)}
         className="mt-0.5 block break-words font-semibold leading-snug text-fg no-underline hover:underline"
       >
         {session.title}
@@ -77,7 +83,19 @@ const SessionCard = ({
   );
 };
 
-export const WeekBoard = ({ week, today, data }: { week: string; today: string; data: CalendarResponse }) => {
+export const WeekBoard = ({
+  week,
+  today,
+  data,
+  returnTo,
+  groupId,
+}: {
+  week: string;
+  today: string;
+  data: CalendarResponse;
+  returnTo?: string;
+  groupId?: string;
+}) => {
   const router = useRouter();
   const [target, setTarget] = useState<{ mode: "move" | "duplicate"; session: CalendarSession } | null>(null);
   const [date, setDate] = useState("");
@@ -133,7 +151,7 @@ export const WeekBoard = ({ week, today, data }: { week: string; today: string; 
                   </span>
                 </h2>
                 <Link
-                  href={`/seances/nouvelle?date=${day}`}
+                  href={newSessionHref({ date: day, groupId, returnTo })}
                   aria-label={`${m.coach.newSession} le ${formatDateLong(day)}`}
                   className="inline-flex size-11 items-center justify-center rounded-button text-soft hover:bg-raise hover:text-fg"
                 >
@@ -154,6 +172,7 @@ export const WeekBoard = ({ week, today, data }: { week: string; today: string; 
                 <SessionCard
                   key={s.id}
                   session={s}
+                  returnTo={returnTo}
                   onMove={() => {
                     setDate(s.date);
                     setTarget({ mode: "move", session: s });
@@ -195,7 +214,17 @@ export const WeekBoard = ({ week, today, data }: { week: string; today: string; 
   );
 };
 
-export const MonthBoard = ({ month, today, data }: { month: string; today: string; data: CalendarResponse }) => {
+export const MonthBoard = ({
+  month,
+  today,
+  data,
+  returnTo,
+}: {
+  month: string;
+  today: string;
+  data: CalendarResponse;
+  returnTo?: string;
+}) => {
   const first = new Date(`${month}-01T12:00:00Z`);
   const offset = (first.getUTCDay() + 6) % 7;
   const start = addDays(`${month}-01`, -offset);
@@ -246,10 +275,14 @@ export const MonthBoard = ({ month, today, data }: { month: string; today: strin
                   .map((s) => (
                     <Link
                       key={s.id}
-                      href={`/seances/${s.id}/suivi`}
+                      scroll={false}
+                      href={calendarSessionHref(s.id, returnTo)}
+                      style={{
+                        backgroundColor: tokens.activity[s.type].background,
+                        color: tokens.activity[s.type].text,
+                      }}
                       className={cn(
                         "flex min-h-11 items-center gap-2 rounded-thumb px-2 font-medium leading-snug no-underline",
-                        s.type === "jump" ? "bg-brand text-white" : "bg-card-raised text-fg",
                       )}
                     >
                       <ActivityPicto kind={s.type} className="size-4" />
@@ -296,11 +329,12 @@ export const MonthBoard = ({ month, today, data }: { month: string; today: strin
                 {sessions.map((s) => (
                   <Link
                     key={s.id}
-                    href={`/seances/${s.id}/suivi`}
-                    title={s.title}
+                    scroll={false}
+                    href={calendarSessionHref(s.id, returnTo)}
+                    title={`${s.title} · ${m.sessionType[s.type]}`}
+                    style={{ backgroundColor: tokens.activity[s.type].background, color: tokens.activity[s.type].text }}
                     className={cn(
                       "mb-0.5 flex min-h-6 items-center gap-1 rounded px-1 text-[12px] font-medium no-underline hover:underline",
-                      s.type === "jump" ? "bg-brand text-white" : "bg-card-raised text-fg",
                     )}
                   >
                     <ActivityPicto kind={s.type} className="size-3.5" />

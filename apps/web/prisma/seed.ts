@@ -65,7 +65,8 @@ const main = async () => {
         birthDate: new Date("2004-05-12T00:00:00Z"),
         takeoffFoot: "left",
         approachSteps: 9,
-        groups: { create: { groupId: org.firstGroupId } },
+        // Arrivés avant la semaine affichée : les séances déjà passées font partie de leur programme.
+        groups: { create: { groupId: org.firstGroupId, createdAt: new Date(`${addDays(todayIso(), -30)}T00:00:00Z`) } },
       },
     });
     await setConsent(userId, "terms", true, athlete.id);

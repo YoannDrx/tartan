@@ -1,0 +1,242 @@
+import { ApiError } from "@tartan/api-client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { LogOp } from "./queue-core";
+
+const mocks = vi.hoisted(() => ({
+  disk: new Map<string, string>(),
+  failStorage: false,
+  log: vi.fn(),
+  coachLog: vi.fn(),
+  invalidate: vi.fn(),
+}));
+vi.mock("expo-crypto", () => ({ randomUUID: () => "uuid-test" }));
+vi.mock("expo-secure-store", () => ({
+  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "private",
+  getItemAsync: async (key: string) => mocks.disk.get(key) ?? null,
+  setItemAsync: async (key: string, value: string) => {
+    if (mocks.failStorage) throw new Error("storage full");
+    mocks.disk.set(key, value);
+  },
+  deleteItemAsync: async (key: string) => {
+    mocks.disk.delete(key);
+  },
+}));
+vi.mock("../api", () => ({ api: { logSession: mocks.log, logSessionForAthlete: mocks.coachLog } }));
+vi.mock("../query-client", () => ({ queryClient: { invalidateQueries: mocks.invalidate } }));
+import { replaceReviewedLogs, hydrateLastOwner, submitValidation, useOpQueue } from "./op-queue";
+
+const log = (id: string): LogOp => ({
+  id,
+  kind: "log",
+  orgId: "org",
+  sessionId: id,
+  queuedAt: new Date().toISOString(),
+  input: { clientId: id, status: "done", variantDone: "club", sets: [], expectedVersion: 0, expectedSessionVersion: 1 },
+});
+const queue = () => useOpQueue.getState();
+
+beforeEach(async () => {
+  await queue().detach();
+  mocks.disk.clear();
+  mocks.failStorage = false;
+  mocks.log.mockReset();
+  mocks.coachLog.mockReset();
+  mocks.invalidate.mockReset();
+});
+afterEach(async () => {
+  await queue().detach();
+});
+
+describe("file native persistante", () => {
+  it("retrouve un conflit après relance sans le renvoyer", async () => {
+    await queue().hydrate("first");
+    mocks.log.mockRejectedValue(new ApiError(409, undefined, "private"));
+    await queue().add(log("s1"));
+    expect(queue().items[0]?.blocked).toEqual({ status: 409 });
+    await queue().detach();
+    await queue().hydrate("first");
+    expect(queue().items[0]?.blocked).toEqual({ status: 409 });
+    mocks.log.mockClear();
+    await queue().flush();
+    expect(mocks.log).not.toHaveBeenCalled();
+  });
+
+  it("ne mélange pas les comptes lors d'un changement pendant une réponse réseau", async () => {
+    await queue().hydrate("first");
+    let resolve!: () => void;
+    mocks.log.mockImplementation(
+      () =>
+        new Promise<void>((done) => {
+          resolve = done;
+        }),
+    );
+    const flight = queue().add(log("s1"));
+    await vi.waitFor(() => expect(mocks.log).toHaveBeenCalledTimes(1));
+    await queue().add(log("s2"));
+    await queue().hydrate("second");
+    resolve();
+    await flight;
+    expect(queue().ownerId).toBe("second");
+    expect(queue().items).toEqual([]);
+    expect(mocks.log).toHaveBeenCalledTimes(1);
+    await queue().hydrate("first");
+    expect(queue().items.map((op) => op.id)).toEqual(["s1", "s2"]);
+  });
+
+  it("détache les actions à la déconnexion mais les conserve pour ce compte", async () => {
+    await queue().hydrate("first");
+    mocks.log.mockRejectedValue(new TypeError("offline"));
+    await queue().add(log("s1"));
+    await queue().detach();
+    expect(await hydrateLastOwner()).toBe(false);
+    expect(queue().items).toEqual([]);
+    await queue().hydrate("first");
+    expect(queue().items.map((op) => op.id)).toEqual(["s1"]);
+  });
+
+  it("n'envoie pas une saisie non sauvegardée et la reprend après libération du stockage", async () => {
+    await queue().hydrate("first");
+    mocks.failStorage = true;
+    await queue().add(log("s1"));
+    expect(queue().storageError).toBe(true);
+    expect(queue().items).toHaveLength(1);
+    expect(mocks.log).not.toHaveBeenCalled();
+    mocks.failStorage = false;
+    mocks.log.mockResolvedValue({});
+    await queue().flush();
+    expect(queue().storageError).toBe(false);
+    expect(queue().items).toEqual([]);
+    expect(mocks.log).toHaveBeenCalledTimes(1);
+  });
+});
+
+it("annonce seulement une action reçue ou sauvegardée, jamais un conflit ou un disque plein", async () => {
+  await queue().hydrate("first");
+  mocks.log.mockResolvedValue({ version: 1 });
+  expect(await queue().add(log("received"))).toEqual({ state: "sent", data: { version: 1 } });
+  mocks.log.mockRejectedValue(new TypeError("offline"));
+  expect(await queue().add(log("durable"))).toEqual({ state: "queued" });
+  mocks.log.mockRejectedValue(new ApiError(409, undefined, "private"));
+  expect(await queue().add(log("conflict"))).toMatchObject({ state: "error" });
+  mocks.failStorage = true;
+  expect(await queue().add(log("not-durable"))).toMatchObject({ state: "error" });
+});
+
+it("un changement de compte pendant l'envoi n'annonce pas la validation au compte suivant", async () => {
+  await queue().hydrate("first");
+  let resolve!: () => void;
+  mocks.log.mockImplementation(
+    () =>
+      new Promise<void>((done) => {
+        resolve = done;
+      }),
+  );
+  const request = queue().add(log("changing-owner"));
+  await vi.waitFor(() => expect(mocks.log).toHaveBeenCalledTimes(1));
+  await queue().hydrate("second");
+  resolve();
+  expect(await request).toMatchObject({ state: "error" });
+});
+
+it("ne multiplie pas les tentatives lorsqu'une séance attend une résolution", async () => {
+  await queue().hydrate("first");
+  mocks.log.mockRejectedValue(new ApiError(409, undefined, "private"));
+  await queue().add(log("blocked-session"));
+  const count = queue().items.length;
+  expect(
+    await submitValidation(
+      "org",
+      "blocked-session",
+      {
+        writeScope: "status",
+        expectedVersion: 0,
+        expectedSessionVersion: 1,
+        status: "done",
+        variantDone: "club",
+      },
+      "another-id",
+    ),
+  ).toMatchObject({ state: "error" });
+  expect(queue().items).toHaveLength(count);
+  expect(mocks.log).toHaveBeenCalledTimes(1);
+});
+
+it("résout un lot natif seulement après sauvegarde complète et refuse une comparaison périmée", async () => {
+  await queue().hydrate("first");
+  mocks.log.mockRejectedValue(new ApiError(409, undefined, "private"));
+  await queue().add(log("old-local"));
+  const observed = queue().items.slice();
+  const input = {
+    clientId: "new-local",
+    status: "done" as const,
+    variantDone: "club" as const,
+    expectedVersion: 3,
+    expectedSessionVersion: 2,
+    writeScope: "status" as const,
+  };
+  mocks.failStorage = true;
+  await expect(replaceReviewedLogs("first", "org", "old-local", observed, input)).rejects.toThrow();
+  expect(queue().items).toEqual(observed);
+  mocks.failStorage = false;
+  await queue().detach();
+  await queue().hydrate("first");
+  expect(queue().items).toEqual(observed);
+  await queue().add(log("other-one"));
+  await replaceReviewedLogs("first", "org", "old-local", observed, input);
+  expect(queue().items.map((op) => op.id)).toEqual(["new-local", "other-one"]);
+  await expect(replaceReviewedLogs("first", "org", "old-local", observed, null)).rejects.toThrow("REVIEW_CHANGED");
+  await queue().detach();
+  await queue().hydrate("first");
+  expect(queue().items[0]).toMatchObject({ id: "new-local", input });
+  expect(queue().items[0]?.blocked).toBeUndefined();
+});
+
+it("refuse une confirmation de résolution appartenant à un autre compte", async () => {
+  await queue().hydrate("first");
+  mocks.log.mockRejectedValue(new ApiError(409, undefined, "private"));
+  await queue().add(log("old-local"));
+  const observed = queue().items.slice();
+  await expect(replaceReviewedLogs("second", "org", "old-local", observed, null)).rejects.toThrow("REVIEW_CHANGED");
+  expect(queue().items).toEqual(observed);
+});
+
+it("retrouve les envois coach après relance et ne résout que l'athlète choisi", async () => {
+  await queue().hydrate("coach");
+  mocks.coachLog.mockRejectedValue(new ApiError(409, undefined, "conflict"));
+  const first = { ...log("first"), sessionId: "shared", athleteId: "a", athleteName: "Alice" };
+  const second = { ...log("second"), sessionId: "shared", athleteId: "b", athleteName: "Basile" };
+  await queue().add(first);
+  await queue().add(second);
+  await queue().detach();
+  await queue().hydrate("coach");
+  const observed = queue().items.filter((op) => op.kind === "log" && op.athleteId === "a");
+  expect(observed[0]).toMatchObject({ athleteId: "a", athleteName: "Alice", blocked: { status: 409 } });
+  const replacement = { ...first.input, clientId: "reviewed", expectedVersion: 1 };
+  await expect(replaceReviewedLogs("coach", "org", "shared", observed, replacement, "b")).rejects.toThrow(
+    "REVIEW_CHANGED",
+  );
+  await replaceReviewedLogs("coach", "org", "shared", observed, replacement, "a");
+  mocks.coachLog.mockResolvedValue({ version: 2 });
+  await queue().flush();
+  expect(mocks.coachLog).toHaveBeenLastCalledWith("org", "shared", "a", replacement);
+  expect(mocks.log).not.toHaveBeenCalled();
+  expect(queue().items).toHaveLength(1);
+  expect(queue().items[0]).toMatchObject({ athleteId: "b", blocked: { status: 409 } });
+  expect(mocks.invalidate).toHaveBeenCalledWith({ queryKey: ["coach-athlete-log"] });
+});
+
+it("ne restitue les records qu’à l’appel direct, sans les conserver ni les rejouer à la synchronisation", async () => {
+  await queue().hydrate("first");
+  const reply = { id: "log", version: 1, replayed: false, records: [{ eventId: "record" }] };
+  mocks.log.mockResolvedValue(reply);
+  expect(await queue().add(log("direct-record"))).toEqual({ state: "sent", data: reply });
+  expect(JSON.stringify([...mocks.disk])).not.toContain("eventId");
+  expect(mocks.invalidate).toHaveBeenCalledWith({ queryKey: ["exercise-history"] });
+  mocks.log.mockRejectedValueOnce(new TypeError("offline"));
+  expect(await queue().add(log("later-record"))).toEqual({ state: "queued" });
+  mocks.log.mockResolvedValue(reply);
+  await queue().flush();
+  expect(queue().items).toEqual([]);
+  expect(JSON.stringify(queue())).not.toContain("eventId");
+  expect(JSON.stringify([...mocks.disk])).not.toContain("eventId");
+});

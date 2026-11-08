@@ -1,5 +1,6 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 import { withGradleProperties } from "expo/config-plugins";
+import { fr } from "../../packages/i18n/src/fr.ts";
 import { type AppVariant, parseVariant, resolveApiUrl, universalHostsFor } from "./src/lib/app-variant.ts";
 
 // Lu par Node au moment de la configuration : pas de types Node dans cette app.
@@ -50,7 +51,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: variantNames[variant],
     slug: "tartan",
-    version: "1.0.0",
+    version: "1.1.0",
     // Une mise à jour à distance ne vise que les binaires de la même version native.
     runtimeVersion: { policy: "appVersion" },
     ...(projectId ? { updates: { url: `https://u.expo.dev/${projectId}` } } : {}),
@@ -69,7 +70,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSCameraUsageDescription: "Tartan utilise la caméra pour filmer les entraînements de tes athlètes.",
-        NSMicrophoneUsageDescription: "Tartan enregistre le son des vidéos quand tu filmes.",
+        NSMicrophoneUsageDescription: fr.aiPlanner.microphonePermission,
       },
     },
     android: {
@@ -104,12 +105,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     plugins: [
       "expo-router",
       "expo-font",
+      "expo-asset",
       "expo-web-browser",
       "expo-updates",
       [
-        "@sentry/react-native/expo",
-        { url: "https://de.sentry.io/", organization: "yoanns-org", project: "tartan" },
+        "expo-audio",
+        {
+          microphonePermission: fr.aiPlanner.microphonePermission,
+          recordAudioAndroid: true,
+          enableBackgroundRecording: false,
+          enableBackgroundPlayback: false,
+        },
       ],
+      ["@sentry/react-native/expo", { url: "https://de.sentry.io/", organization: "yoanns-org", project: "tartan" }],
       ...(appleSignIn ? ["expo-apple-authentication"] : []),
       ["expo-secure-store", { faceIDPermission: false }],
       [
@@ -135,7 +143,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         {
           photosPermission: "Tartan ouvre ta pellicule pour importer une vidéo que tu choisis.",
           cameraPermission: "Tartan utilise la caméra pour filmer les entraînements de tes athlètes.",
-          microphonePermission: "Tartan enregistre le son des vidéos quand tu filmes.",
+          microphonePermission: fr.aiPlanner.microphonePermission,
         },
       ],
       ["expo-video", { supportsBackgroundPlayback: false, supportsPictureInPicture: false }],

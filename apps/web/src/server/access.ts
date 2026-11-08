@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client";
 import type { OrgRole } from "@tartan/contracts";
 import { can, type Permission, scopeOf } from "@tartan/domain";
 import { forbidden, notFound } from "@/lib/errors";
@@ -17,8 +18,9 @@ export const requireOrgMember = async (
   userId: string,
   organizationId: string,
   permission?: Permission,
+  db: Prisma.TransactionClient = prisma,
 ): Promise<Access> => {
-  const member = await prisma.organizationMember.findUnique({
+  const member = await db.organizationMember.findUnique({
     where: { organizationId_userId: { organizationId, userId } },
     select: { role: true, status: true, user: { select: { profile: { select: { birthDate: true } } } } },
   });
@@ -27,7 +29,7 @@ export const requireOrgMember = async (
   if (permission && !can(member.role, permission)) throw forbidden();
   const athlete =
     member.role === "athlete"
-      ? await prisma.athlete.findUnique({
+      ? await db.athlete.findUnique({
           where: { organizationId_userId: { organizationId, userId } },
           select: { id: true },
         })
@@ -44,8 +46,8 @@ export const requireAthleteAccess = async (
   return { ...access, athleteId: access.athleteId };
 };
 
-export const coachGroupIds = async (access: Access): Promise<string[]> => {
-  const rows = await prisma.groupCoach.findMany({
+export const coachGroupIds = async (access: Access, db: Prisma.TransactionClient = prisma): Promise<string[]> => {
+  const rows = await db.groupCoach.findMany({
     where: { userId: access.userId, group: { organizationId: access.organizationId } },
     select: { groupId: true },
   });
@@ -53,18 +55,18 @@ export const coachGroupIds = async (access: Access): Promise<string[]> => {
 };
 
 // Athlètes visibles par ce membre : tout pour le propriétaire, ses groupes pour un coach.
-export const visibleAthleteIds = async (access: Access): Promise<string[]> => {
+export const visibleAthleteIds = async (access: Access, db: Prisma.TransactionClient = prisma): Promise<string[]> => {
   if (access.role === "athlete") return access.athleteId ? [access.athleteId] : [];
   if (access.role === "guardian") return [];
   if (access.role === "owner") {
-    const rows = await prisma.athlete.findMany({
+    const rows = await db.athlete.findMany({
       where: { organizationId: access.organizationId },
       select: { id: true },
     });
     return rows.map((r) => r.id);
   }
-  const groupIds = await coachGroupIds(access);
-  const rows = await prisma.groupMember.findMany({
+  const groupIds = await coachGroupIds(access, db);
+  const rows = await db.groupMember.findMany({
     where: { groupId: { in: groupIds } },
     select: { athleteId: true },
     distinct: ["athleteId"],
@@ -72,24 +74,32 @@ export const visibleAthleteIds = async (access: Access): Promise<string[]> => {
   return rows.map((r) => r.athleteId);
 };
 
-export const requireVisibleAthlete = async (access: Access, athleteId: string): Promise<void> => {
-  const athlete = await prisma.athlete.findFirst({
+export const requireVisibleAthlete = async (
+  access: Access,
+  athleteId: string,
+  db: Prisma.TransactionClient = prisma,
+): Promise<void> => {
+  const athlete = await db.athlete.findFirst({
     where: { id: athleteId, organizationId: access.organizationId },
     select: { id: true },
   });
   if (!athlete) throw notFound();
-  const ids = await visibleAthleteIds(access);
+  const ids = await visibleAthleteIds(access, db);
   if (!ids.includes(athleteId)) throw forbidden();
 };
 
-export const requireGroupInScope = async (access: Access, groupIds: string[]): Promise<void> => {
+export const requireGroupInScope = async (
+  access: Access,
+  groupIds: string[],
+  db: Prisma.TransactionClient = prisma,
+): Promise<void> => {
   if (groupIds.length === 0) return;
-  const known = await prisma.group.count({
+  const known = await db.group.count({
     where: { id: { in: groupIds }, organizationId: access.organizationId },
   });
   if (known !== new Set(groupIds).size) throw notFound();
   if (access.role === "owner") return;
-  const mine = await coachGroupIds(access);
+  const mine = await coachGroupIds(access, db);
   if (!groupIds.every((id) => mine.includes(id))) throw forbidden();
 };
 

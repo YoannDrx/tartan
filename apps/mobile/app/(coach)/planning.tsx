@@ -1,17 +1,21 @@
+import { NativeBatchPublication } from "../../src/features/batch-publication";
+import { defaultDateForWeek } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ScrollView } from "react-native";
 import { AgendaList, useWeekNavigator, WeekNav, type AgendaEntry } from "../../src/features/agenda";
+import { localIsoDate } from "../../src/lib/dates";
 import { useActiveSpace, useCoachCalendar, useGroups } from "../../src/lib/queries";
-import { Chip, T, Tag } from "../../src/ui/primitives";
+import { Button, Chip, Tag, ActivityTag } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { space } from "../../src/ui/theme";
+import { NativeCalendarPhases } from "../../src/features/training-phases";
 
-// Lecture seule : la création de séance se fait sur ordinateur (§ 6.5).
+// Le groupe et la semaine courante accompagnent la création native.
 export default function Planning() {
-  const { orgId } = useActiveSpace();
+  const { orgId, space: activeSpace } = useActiveSpace();
   const nav = useWeekNavigator();
   const [groupId, setGroupId] = useState<string | undefined>();
   const groups = useGroups(orgId);
@@ -37,12 +41,12 @@ export default function Planning() {
         detail,
         tags: (
           <>
-            <Tag label={m.sessionType[s.type]} tone={s.type === "jump" ? "jump" : "neutral"} />
+            <ActivityTag type={s.type} />
             {s.hasAutonomous ? <Tag label={m.builder.versionAutonomous} /> : null}
             {s.publishedAt ? null : <Tag label={m.mobile.agenda.draft} tone="brand" />}
           </>
         ),
-        onPress: () => router.push(`/coach-session/${s.id}`),
+        onPress: () => router.push(s.publishedAt ? `/coach-session/${s.id}` : `/session-builder/${s.id}`),
         accessibilityLabel: `${s.title}, ${detail}`,
       };
     });
@@ -51,12 +55,33 @@ export default function Planning() {
 
   return (
     <TabScreen
-      world="couloir"
+      world="work"
       title={m.nav.calendrier}
       refreshing={calendar.isRefetching}
       onRefresh={() => void calendar.refetch()}
     >
       <WeekNav {...nav} />
+      {activeSpace?.aiPlannerEnabled ? (
+        <Button
+          variant="secondary"
+          label={m.aiPlanner.title}
+          onPress={() =>
+            router.push({
+              pathname: "/planner",
+              params: { date: defaultDateForWeek(nav.week, localIsoDate()), ...(groupId ? { groupId } : {}) },
+            })
+          }
+        />
+      ) : null}
+      <Button
+        label={m.coach.newSession}
+        onPress={() =>
+          router.push({
+            pathname: "/session-builder/[id]",
+            params: { id: "new", date: defaultDateForWeek(nav.week, localIsoDate()), ...(groupId ? { groupId } : {}) },
+          })
+        }
+      />
       {groups.data && groups.data.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
           <Chip label={m.coach.allGroups} active={!groupId} onPress={() => setGroupId(undefined)} />
@@ -65,15 +90,21 @@ export default function Planning() {
           ))}
         </ScrollView>
       ) : null}
+      {calendar.data ? (
+        <NativeBatchPublication
+          key={`${orgId}:${nav.week}:${groupId ?? "all"}`}
+          orgId={orgId}
+          sessions={calendar.data.sessions}
+          refresh={() => calendar.refetch()}
+        />
+      ) : null}
+      <NativeCalendarPhases from={nav.week} to={nav.to} groupId={groupId} />
       {calendar.isPending ? <LoadingState /> : null}
       {calendar.isError && !calendar.data ? (
         <ErrorState error={calendar.error} onRetry={() => void calendar.refetch()} />
       ) : null}
       {calendar.data && entries.length === 0 ? <EmptyState body={m.mobile.agenda.empty} pose="run" /> : null}
       {entries.length > 0 ? <AgendaList entries={entries} /> : null}
-      <T variant="caption" tone="muted">
-        {m.mobile.agenda.desktopHint}
-      </T>
     </TabScreen>
   );
 }

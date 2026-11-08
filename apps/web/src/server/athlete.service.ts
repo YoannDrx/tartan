@@ -1,13 +1,8 @@
+import { performanceSelect, performanceDtos } from "./performance.service";
+import { freezeAssignedPrescriptions } from "./prescription.service";
 import { m } from "@tartan/i18n";
-import {
-  athleteInput,
-  type AthleteInput,
-  type InjuryInput,
-  performanceInput,
-  type StrengthTestInput,
-} from "@tartan/contracts";
-import { can, personalBestIds } from "@tartan/domain";
-import type { z } from "zod";
+import { athleteInput, type AthleteInput, type InjuryInput } from "@tartan/contracts";
+import { can } from "@tartan/domain";
 import { fromDbDate, fromDbDateOrNull, toDbDate } from "@/lib/dates";
 import { AppError, consentRequired, forbidden, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
@@ -82,6 +77,7 @@ export const saveAthlete = async (userId: string, organizationId: string, raw: A
   };
   if (input.id) {
     await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
       await tx.athlete.update({ where: { id: input.id }, data });
       await tx.groupMember.deleteMany({
         where: {
@@ -95,18 +91,24 @@ export const saveAthlete = async (userId: string, organizationId: string, raw: A
           skipDuplicates: true,
         });
       }
+      await freezeAssignedPrescriptions(tx, input.id!);
     });
     // Un coach peut retirer l'athlète de ses propres groupes, et donc de son périmètre.
     const stillVisible = (await visibleAthleteIds(access)).includes(input.id);
     return { id: input.id, stillVisible };
   }
   await assertWithinPlan(organizationId, "maxAthletes");
-  const created = await prisma.athlete.create({
-    data: {
-      ...data,
-      organizationId,
-      groups: { create: input.groupIds.map((groupId) => ({ groupId })) },
-    },
+  const created = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    const row = await tx.athlete.create({
+      data: {
+        ...data,
+        organizationId,
+        groups: { create: input.groupIds.map((groupId) => ({ groupId })) },
+      },
+    });
+    await freezeAssignedPrescriptions(tx, row.id);
+    return row;
   });
   return { id: created.id, stillVisible: true };
 };
@@ -147,8 +149,10 @@ export const getAthleteFile = async (userId: string, organizationId: string, ath
       particularities: true,
       userId: true,
       groups: { select: { group: { select: { id: true, name: true } } } },
-      tests: { orderBy: { date: "desc" } },
-      performances: { orderBy: { date: "desc" } },
+      tests: { orderBy: { date: "desc" }, include: { exercise: { select: { name: true } } } },
+      strengthReferences: { include: { exercise: { select: { name: true } } } },
+      organization: { select: { progressionEnabled: true } },
+      performances: { orderBy: { date: "desc" }, select: performanceSelect },
     },
   });
   if (!athlete) throw notFound();
@@ -180,6 +184,7 @@ export const getAthleteFile = async (userId: string, organizationId: string, ath
   });
   return {
     id: athlete.id,
+    progressionEnabled: athlete.organization.progressionEnabled,
     firstName: athlete.firstName,
     lastName: athlete.lastName,
     birthDate: fromDbDateOrNull(athlete.birthDate),
@@ -194,21 +199,22 @@ export const getAthleteFile = async (userId: string, organizationId: string, ath
     tests: athlete.tests.map((t) => ({
       id: t.id,
       exerciseKey: t.exerciseKey,
+      exerciseId: t.exerciseId,
+      exerciseName: t.exercise?.name ?? null,
       value: Number(t.value),
       unit: t.unit,
       kind: t.kind,
       date: fromDbDate(t.date),
     })),
-    performances: athlete.performances.map((p) => ({
-      id: p.id,
-      discipline: p.discipline,
-      mark: Number(p.mark),
-      unit: p.unit,
-      wind: p.wind === null ? null : Number(p.wind),
-      date: fromDbDate(p.date),
-      location: p.location,
-      isPb: p.isPb,
+    strengthReferences: athlete.strengthReferences.map((r) => ({
+      id: r.id,
+      exerciseId: r.exerciseId,
+      exerciseName: r.exercise.name,
+      valueKg: Number(r.valueKg),
+      kind: r.kind,
+      sourceTestId: r.sourceTestId,
     })),
+    performances: performanceDtos(athlete.performances),
     healthVisible: showHealth,
     canEditInjuries: can(access.role, "editInjuries"),
     injuries: injuries.map((i) => ({
@@ -256,10 +262,20 @@ export const getMyFile = async (userId: string, organizationId: string) => {
       particularities: true,
       takeoffFoot: true,
       approachSteps: true,
-      tests: { orderBy: { date: "desc" }, select: { exerciseKey: true, value: true, kind: true, date: true } },
+      tests: {
+        orderBy: { date: "desc" },
+        select: {
+          exerciseKey: true,
+          exerciseId: true,
+          exercise: { select: { name: true } },
+          value: true,
+          kind: true,
+          date: true,
+        },
+      },
       performances: {
         orderBy: { date: "desc" },
-        select: { discipline: true, mark: true, unit: true, date: true, location: true, isPb: true },
+        select: performanceSelect,
       },
     },
   });
@@ -283,84 +299,32 @@ export const getMyFile = async (userId: string, organizationId: string) => {
     : [];
   return {
     ...athlete,
-    tests: athlete.tests.map((t) => ({ ...t, value: Number(t.value), date: fromDbDate(t.date) })),
-    performances: athlete.performances.map((p) => ({ ...p, mark: Number(p.mark), date: fromDbDate(p.date) })),
+    tests: athlete.tests.map(({ exercise, ...t }) => ({
+      ...t,
+      exerciseName: exercise?.name ?? null,
+      value: Number(t.value),
+      date: fromDbDate(t.date),
+    })),
+    performances: performanceDtos(athlete.performances),
     healthVisible: showHealth,
     injuries: injuries.map((i) => ({ ...i, startDate: fromDbDate(i.startDate), endDate: fromDbDateOrNull(i.endDate) })),
   };
 };
 
-export const addStrengthTest = async (userId: string, organizationId: string, input: StrengthTestInput) => {
-  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
-  await requireVisibleAthlete(access, input.athleteId);
-  // Les charges étant calculées à la lecture depuis le dernier test, elles se recalculent d'elles-mêmes.
-  await prisma.strengthTest.create({
-    data: {
-      organizationId,
-      athleteId: input.athleteId,
-      exerciseKey: input.exerciseKey,
-      value: input.value,
-      kind: input.kind,
-      date: toDbDate(input.date),
-    },
-  });
-};
+export { addStrengthTest } from "./strength.service";
 
-export const addPerformance = async (
-  userId: string,
-  organizationId: string,
-  input: z.infer<typeof performanceInput>,
-) => {
-  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
-  await requireVisibleAthlete(access, input.athleteId);
-  await requireOwnedRefs(organizationId, { competitionId: input.competitionId });
-  await prisma.performance.create({
-    data: {
-      organizationId,
-      athleteId: input.athleteId,
-      discipline: input.discipline,
-      mark: input.mark,
-      unit: input.unit,
-      wind: input.wind ?? null,
-      date: toDbDate(input.date),
-      location: input.location ?? null,
-      competitionId: input.competitionId ?? null,
-    },
-  });
-  await recomputePb(input.athleteId, input.discipline);
-};
-
-// Le record se déduit des marques restantes : ajouter ou retirer une marque le recalcule.
-const recomputePb = async (athleteId: string, discipline: string): Promise<void> => {
-  const rows = await prisma.performance.findMany({
-    where: { athleteId, discipline },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, mark: true, unit: true },
-  });
-  const best = personalBestIds(rows.map((row) => ({ id: row.id, mark: Number(row.mark), unit: row.unit })));
-  await prisma.$transaction([
-    prisma.performance.updateMany({ where: { athleteId, discipline, id: { notIn: best } }, data: { isPb: false } }),
-    prisma.performance.updateMany({ where: { id: { in: best } }, data: { isPb: true } }),
-  ]);
-};
+export { addPerformance, updatePerformance, deletePerformance } from "./performance.service";
 
 export const deleteStrengthTest = async (userId: string, organizationId: string, testId: string) => {
   const access = await requireOrgMember(userId, organizationId, "manageAthletes");
   const test = await prisma.strengthTest.findFirst({ where: { id: testId, organizationId } });
   if (!test) throw notFound();
   await requireVisibleAthlete(access, test.athleteId);
-  await prisma.strengthTest.delete({ where: { id: test.id } });
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    await tx.strengthTest.delete({ where: { id: test.id } });
+  });
   return { athleteId: test.athleteId };
-};
-
-export const deletePerformance = async (userId: string, organizationId: string, performanceId: string) => {
-  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
-  const row = await prisma.performance.findFirst({ where: { id: performanceId, organizationId } });
-  if (!row) throw notFound();
-  await requireVisibleAthlete(access, row.athleteId);
-  await prisma.performance.delete({ where: { id: row.id } });
-  await recomputePb(row.athleteId, row.discipline);
-  return { athleteId: row.athleteId };
 };
 
 export const deleteCoachNote = async (userId: string, organizationId: string, noteId: string) => {

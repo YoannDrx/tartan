@@ -5,7 +5,7 @@ import { Pressable, View } from "react-native";
 import { dayNumber, localIsoDate } from "../lib/dates";
 import { ChevronLeft, ChevronRight } from "../ui/icons";
 import { Divider, IconButton, ListSurface, T } from "../ui/primitives";
-import { scene, space } from "../ui/theme";
+import { space, usePalette } from "../ui/theme";
 
 export const useWeekNavigator = () => {
   const current = startOfWeek(localIsoDate());
@@ -43,6 +43,7 @@ export type AgendaEntry = {
 
 // Le carnet de la semaine : une seule surface, la date en colonne, une ligne par séance.
 export const AgendaList = ({ entries }: { entries: AgendaEntry[] }) => {
+  const p = usePalette();
   const today = localIsoDate();
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
   return (
@@ -58,7 +59,7 @@ export const AgendaList = ({ entries }: { entries: AgendaEntry[] }) => {
               onPress={entry.onPress}
               accessibilityRole={entry.onPress ? "button" : undefined}
               accessibilityLabel={`${capitalize(formatDateLong(entry.date))}, ${entry.accessibilityLabel}`}
-              android_ripple={{ color: scene.cardLine }}
+              android_ripple={{ color: p.ripple }}
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
@@ -99,7 +100,7 @@ export const AgendaList = ({ entries }: { entries: AgendaEntry[] }) => {
               {entry.onPress ? (
                 <ChevronRight
                   size={18}
-                  color={scene.textMuted}
+                  color={p.textMuted}
                   accessibilityElementsHidden
                   importantForAccessibility="no"
                 />

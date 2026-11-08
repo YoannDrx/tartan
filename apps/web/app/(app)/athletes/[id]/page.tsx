@@ -16,12 +16,15 @@ import {
   NoteForm,
   PerformanceDialog,
   TestDialog,
+  SelectTestReference,
+  WorkingReferenceDialog,
 } from "@/features/athletes/athlete-forms";
 import { RemoveAthlete } from "@/features/athletes/remove-athlete";
 import { orNotFound, requireStaffSpace } from "@/features/shell/space";
 import { requireOrgMember } from "@/server/access";
 import { getAthleteFile } from "@/server/athlete.service";
 import { listGroups } from "@/server/org.service";
+import { listExercises } from "@/server/exercise.service";
 import { athleteWeeklyStats } from "@/server/stats.service";
 import { getBarSheet, listVideos } from "@/server/video.service";
 
@@ -34,11 +37,12 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
   const { id } = await params;
   const file = await orNotFound(() => getAthleteFile(actor.userId, organizationId, id));
   const access = await requireOrgMember(actor.userId, organizationId, "viewTracking");
-  const [groups, videos, sheet, stats] = await Promise.all([
+  const [groups, videos, sheet, stats, exercises] = await Promise.all([
     listGroups(access),
     listVideos(actor.userId, organizationId, { athleteId: id }),
     getBarSheet(actor.userId, organizationId, { athleteId: id }),
     athleteWeeklyStats(actor.userId, organizationId, id),
+    listExercises(actor.userId, organizationId),
   ]);
   const activeWeeks = stats.weeks.filter((w) => w.sessions > 0).reverse();
   const activeInjury = file.injuries.find((i) => i.status !== "resolved");
@@ -185,7 +189,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
         <div className="grid border-t border-card-line desktop:grid-cols-2 desktop:divide-x desktop:divide-card-line">
           <div className="divide-y divide-card-line">
             <SheetSection
-              title={m.athletes.records}
+              title={m.performances.title}
               action={canManage ? <PerformanceDialog athleteId={file.id} /> : null}
             >
               {file.performances.length === 0 ? <p className="text-soft">{m.athletes.noRecords}</p> : null}
@@ -195,22 +199,41 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                     <span className="min-w-0 leading-snug">
                       <span className="flex flex-wrap items-center gap-x-2 font-semibold">
                         {p.discipline}
-                        {p.isPb ? <Chip tone="brand">{m.athletes.record}</Chip> : null}
+                        {p.isBaseline ? (
+                          <Chip>{m.performances.baseline}</Chip>
+                        ) : p.isPb ? (
+                          <Chip tone="brand">{m.athletes.record}</Chip>
+                        ) : null}
                       </span>
                       <span className="t-caption block font-normal text-soft">
-                        {[year(p.date), p.location].filter(Boolean).join(", ")}
+                        {[
+                          year(p.date),
+                          p.location,
+                          p.comparisonContext,
+                          p.recordDirection === "lower"
+                            ? m.performances.lower
+                            : p.recordDirection === "higher"
+                              ? m.performances.higher
+                              : m.performances.unknown,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </span>
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex flex-wrap items-center justify-end gap-1">
                       <Mark>
                         {String(p.mark).replace(".", ",")} {p.unit}
                       </Mark>
                       {canManage ? (
-                        <DeleteRow
-                          kind="performance"
-                          id={p.id}
-                          label={`${p.discipline}, ${String(p.mark).replace(".", ",")} ${p.unit}`}
-                        />
+                        <>
+                          <PerformanceDialog key={`${p.id}-${p.version}`} athleteId={file.id} initial={p} />
+                          <DeleteRow
+                            expectedVersion={p.version}
+                            kind="performance"
+                            id={p.id}
+                            label={`${p.discipline}, ${String(p.mark).replace(".", ",")} ${p.unit}`}
+                          />
+                        </>
                       ) : null}
                     </span>
                   </li>
@@ -218,24 +241,63 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
               </Rows>
             </SheetSection>
 
-            <SheetSection title={m.athletes.tests} action={canManage ? <TestDialog athleteId={file.id} /> : null}>
+            {file.progressionEnabled ? (
+              <SheetSection
+                title={m.strength.referenceTitle}
+                action={canManage ? <WorkingReferenceDialog athleteId={file.id} exercises={exercises} /> : null}
+              >
+                {file.strengthReferences.length === 0 ? <p className="text-soft">{m.strength.noReference}</p> : null}
+                <Rows>
+                  {file.strengthReferences.map((reference) => (
+                    <li key={reference.id} className="flex items-center justify-between gap-3 py-2">
+                      <span>
+                        <span className="block font-semibold">{reference.exerciseName}</span>
+                        <span className="t-caption text-soft">
+                          {m.strength.referenceKinds[reference.kind as keyof typeof m.strength.referenceKinds]}
+                        </span>
+                      </span>
+                      <Mark>{String(reference.valueKg).replace(".", ",")} kg</Mark>
+                    </li>
+                  ))}
+                </Rows>
+              </SheetSection>
+            ) : null}
+            <SheetSection
+              title={m.athletes.tests}
+              action={
+                canManage ? (
+                  <TestDialog athleteId={file.id} exercises={exercises} progressionEnabled={file.progressionEnabled} />
+                ) : null
+              }
+            >
+              {file.progressionEnabled ? (
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={`/historique/${file.id}`}>{m.exerciseHistory.title}</Link>
+                </Button>
+              ) : null}
               {file.tests.length === 0 ? <p className="text-soft">{m.athletes.noTests}</p> : null}
               <Rows>
                 {file.tests.map((t) => (
-                  <li key={t.id} className="flex items-center justify-between gap-3 py-2">
+                  <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
                     <span className="min-w-0 leading-snug">
-                      <span className="block font-semibold">{strengthTestLabel(t.exerciseKey)}</span>
+                      <span className="block font-semibold">{t.exerciseName ?? strengthTestLabel(t.exerciseKey)}</span>
                       <span className="t-caption block font-normal text-soft">
                         {m.testKind[t.kind]}, {year(t.date)}
                       </span>
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex flex-wrap items-center gap-1">
                       <Mark>{String(t.value).replace(".", ",")} kg</Mark>
+                      {file.progressionEnabled &&
+                      canManage &&
+                      t.exerciseId &&
+                      !file.strengthReferences.some((r) => r.sourceTestId === t.id) ? (
+                        <SelectTestReference athleteId={file.id} exerciseId={t.exerciseId} testId={t.id} />
+                      ) : null}
                       {canManage ? (
                         <DeleteRow
                           kind="test"
                           id={t.id}
-                          label={`${strengthTestLabel(t.exerciseKey)}, ${String(t.value).replace(".", ",")} kg`}
+                          label={`${t.exerciseName ?? strengthTestLabel(t.exerciseKey)}, ${String(t.value).replace(".", ",")} kg`}
                         />
                       ) : null}
                     </span>

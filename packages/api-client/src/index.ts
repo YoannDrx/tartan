@@ -1,5 +1,38 @@
+import { publishSessionsResult, type PublishSessionsInput } from "@tartan/contracts";
 import {
+  plannerTranscriptionResponse,
+  plannerLoadsPreview,
+  type PreviewPlannerLoadsInput,
+  plannerProposalResponse,
+  plannerProposalList,
+  type PlannerProposalListQuery,
+  plannerDraftsResponse,
+  plannerConfirmationResult,
+  plannerUsageResponse,
+  type CreatePlannerProposalInput,
+  type ClarifyPlannerProposalInput,
+  type ConfirmPlannerProposalInput,
+  trainingAnalysisContext,
+  trainingAnalysisResponse,
+  type TrainingAnalysisQuery,
+  trainingPhaseList,
+  phasePlanningResponse,
+  type PhasePlanningQuery,
+  trainingPhaseContext,
+  trainingPhaseWriteResult,
+  type TrainingPhaseQuery,
+  type SaveTrainingPhaseInput,
+  performanceWriteResult,
+  type PerformanceInput,
+  type UpdatePerformanceInput,
   acceptInvitationResponse,
+  athleteExerciseIndex,
+  athleteHistoryContext,
+  exerciseHistoryResponse,
+  type ExerciseHistoryQuery,
+  organizationResponse,
+  type OrganizationUpdateInput,
+  type CreateOrganizationInput,
   type AcceptInvitationInput,
   type AnnotationInput,
   announcementItem,
@@ -21,6 +54,20 @@ import {
   type ProfileInput,
   type RollCallInput,
   type SessionLogInput,
+  sessionLogResult,
+  sessionSaveResult,
+  prescriptionRefreshPreview,
+  type ConfirmPrescriptionRefresh,
+  sessionEditResponse,
+  sessionBuilderContext,
+  type SaveScheduledSessionInput,
+  type DeleteSessionInput,
+  type SessionDraft,
+  strengthReferenceResponse,
+  strengthMappingReportResponse,
+  type LegacyStrengthMappingInput,
+  type ChooseStrengthReference,
+  type StrengthTestInput,
   trackingGrid,
   videoDetail,
   videoSummary,
@@ -56,18 +103,21 @@ export const createApiClient = (options: ApiClientOptions) => {
     schema: z.ZodType<T>,
     body?: unknown,
     query?: Record<string, string | undefined>,
+    signal?: AbortSignal,
   ): Promise<T> => {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(query ?? {})) if (value) params.set(key, value);
     const suffix = params.size ? `?${params.toString()}` : "";
+    const multipart = typeof FormData !== "undefined" && body instanceof FormData;
     const res = await doFetch(`${options.baseUrl}/api/v1${path}${suffix}`, {
       method,
+      signal,
       headers: {
         Accept: "application/json",
-        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+        ...(body !== undefined && !multipart ? { "Content-Type": "application/json" } : {}),
         ...(await options.headers?.()),
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: multipart ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
     const json: unknown = await res.json().catch(() => null);
     if (!res.ok) {
@@ -78,11 +128,156 @@ export const createApiClient = (options: ApiClientOptions) => {
   };
 
   return {
+    transcribePlannerAudio: (orgId: string, body: FormData, signal?: AbortSignal) =>
+      request("POST", `/orgs/${orgId}/planner/transcriptions`, plannerTranscriptionResponse, body, undefined, signal),
+    plannerTranscription: (orgId: string, transcriptionId: string, signal?: AbortSignal) =>
+      request(
+        "GET",
+        `/orgs/${orgId}/planner/transcriptions/${transcriptionId}`,
+        plannerTranscriptionResponse,
+        undefined,
+        undefined,
+        signal,
+      ),
+    plannerUsage: (orgId: string, signal?: AbortSignal) =>
+      request("GET", `/orgs/${orgId}/planner/usage`, plannerUsageResponse, undefined, undefined, signal),
+    plannerProposals: (orgId: string, query: PlannerProposalListQuery = {}, signal?: AbortSignal) =>
+      request("GET", `/orgs/${orgId}/planner/proposals`, plannerProposalList, undefined, query, signal),
+    createPlannerProposal: (orgId: string, body: CreatePlannerProposalInput, signal?: AbortSignal) =>
+      request("POST", `/orgs/${orgId}/planner`, plannerProposalResponse, body, undefined, signal),
+    plannerProposal: (orgId: string, proposalId: string, signal?: AbortSignal) =>
+      request(
+        "GET",
+        `/orgs/${orgId}/planner/proposals/${proposalId}`,
+        plannerProposalResponse,
+        undefined,
+        undefined,
+        signal,
+      ),
+    clarifyPlannerProposal: (
+      orgId: string,
+      proposalId: string,
+      body: ClarifyPlannerProposalInput,
+      signal?: AbortSignal,
+    ) =>
+      request(
+        "POST",
+        `/orgs/${orgId}/planner/proposals/${proposalId}/clarify`,
+        plannerProposalResponse,
+        body,
+        undefined,
+        signal,
+      ),
+    preparePlannerDrafts: (orgId: string, proposalId: string, expectedVersion: number, signal?: AbortSignal) =>
+      request(
+        "POST",
+        `/orgs/${orgId}/planner/proposals/${proposalId}/prepare`,
+        plannerDraftsResponse,
+        {
+          expectedVersion,
+        },
+        undefined,
+        signal,
+      ),
+    confirmPlannerProposal: (
+      orgId: string,
+      proposalId: string,
+      body: ConfirmPlannerProposalInput,
+      signal?: AbortSignal,
+    ) =>
+      request(
+        "POST",
+        `/orgs/${orgId}/planner/proposals/${proposalId}/confirm`,
+        plannerConfirmationResult,
+        body,
+        undefined,
+        signal,
+      ),
+    previewPlannerLoads: (orgId: string, proposalId: string, body: PreviewPlannerLoadsInput, signal?: AbortSignal) =>
+      request(
+        "POST",
+        `/orgs/${orgId}/planner/proposals/${proposalId}/preview`,
+        plannerLoadsPreview,
+        body,
+        undefined,
+        signal,
+      ),
+    phasePlanning: (orgId: string, query: PhasePlanningQuery) =>
+      request("POST", `/orgs/${orgId}/phases/planning`, phasePlanningResponse, query),
+    trainingPhases: (orgId: string, query: TrainingPhaseQuery) =>
+      request("GET", `/orgs/${orgId}/phases`, trainingPhaseList, undefined, query),
+    trainingPhaseContext: (orgId: string) => request("GET", `/orgs/${orgId}/phases/context`, trainingPhaseContext),
+    saveTrainingPhase: (orgId: string, body: SaveTrainingPhaseInput) =>
+      request("POST", `/orgs/${orgId}/phases`, trainingPhaseWriteResult, body),
+    setTrainingPhaseVisibility: (orgId: string, phaseId: string, expectedVersion: number, shared: boolean) =>
+      request("PUT", `/orgs/${orgId}/phases/${phaseId}/visibility`, trainingPhaseWriteResult, {
+        expectedVersion,
+        shared,
+      }),
+    deleteTrainingPhase: (orgId: string, phaseId: string, expectedVersion: number) =>
+      request("DELETE", `/orgs/${orgId}/phases/${phaseId}`, trainingPhaseWriteResult, undefined, {
+        expectedVersion: String(expectedVersion),
+      }),
     me: () => request("GET", "/me", meResponse),
     exportMyData: () => request("GET", "/me/export", z.any()),
     billing: (orgId: string) => request("GET", `/orgs/${orgId}/billing`, z.any()),
+    trainingAnalysisContext: (orgId: string) =>
+      request("GET", `/orgs/${orgId}/analysis/context`, trainingAnalysisContext),
+    trainingAnalysis: (orgId: string, query: TrainingAnalysisQuery) =>
+      request(
+        "GET",
+        `/orgs/${orgId}/analysis?${new URLSearchParams(Object.entries(query).filter((entry): entry is [string, string] => typeof entry[1] === "string"))}`,
+        trainingAnalysisResponse,
+      ),
     athleteStats: (orgId: string, athleteId: string) =>
       request("GET", `/orgs/${orgId}/athletes/${athleteId}/stats`, z.any()),
+    athleteHistoryExercises: (orgId: string, athleteId: string) =>
+      request("GET", `/orgs/${orgId}/athletes/${athleteId}/exercise-history`, athleteExerciseIndex),
+    athleteHistoryContext: (orgId: string, athleteId: string) =>
+      request("GET", `/orgs/${orgId}/athletes/${athleteId}/exercise-history/context`, athleteHistoryContext),
+    athleteExerciseHistory: (orgId: string, athleteId: string, exerciseId: string, query: ExerciseHistoryQuery) =>
+      request(
+        "GET",
+        `/orgs/${orgId}/athletes/${athleteId}/exercise-history/${exerciseId}`,
+        exerciseHistoryResponse,
+        undefined,
+        query,
+      ),
+    strengthMappings: (orgId: string) =>
+      request("GET", `/orgs/${orgId}/strength-mappings`, strengthMappingReportResponse),
+    confirmStrengthMapping: (orgId: string, body: LegacyStrengthMappingInput) =>
+      request("POST", `/orgs/${orgId}/strength-mappings`, strengthMappingReportResponse, body),
+    exerciseStrength: (orgId: string, athleteId: string, exerciseId: string) =>
+      request("GET", `/orgs/${orgId}/athletes/${athleteId}/strength/${exerciseId}`, strengthReferenceResponse),
+    selectStrengthReference: (orgId: string, athleteId: string, exerciseId: string, body: ChooseStrengthReference) =>
+      request("PUT", `/orgs/${orgId}/athletes/${athleteId}/strength/${exerciseId}`, strengthReferenceResponse, body),
+    addPerformance: (
+      orgId: string,
+      athleteId: string,
+      body: Omit<PerformanceInput, "athleteId"> & { clientId: string },
+    ) => request("POST", `/orgs/${orgId}/athletes/${athleteId}/performances`, performanceWriteResult, body),
+    updatePerformance: (
+      orgId: string,
+      athleteId: string,
+      performanceId: string,
+      body: Omit<UpdatePerformanceInput, "id" | "athleteId">,
+    ) =>
+      request(
+        "PUT",
+        `/orgs/${orgId}/athletes/${athleteId}/performances/${performanceId}`,
+        performanceWriteResult,
+        body,
+      ),
+    deletePerformance: (orgId: string, athleteId: string, performanceId: string, expectedVersion: number) =>
+      request(
+        "DELETE",
+        `/orgs/${orgId}/athletes/${athleteId}/performances/${performanceId}`,
+        z.object({ athleteId: z.string() }),
+        undefined,
+        { expectedVersion: String(expectedVersion) },
+      ),
+    addStrengthTest: (orgId: string, athleteId: string, body: Omit<StrengthTestInput, "athleteId">) =>
+      request("POST", `/orgs/${orgId}/athletes/${athleteId}/strength-tests`, z.object({ id: z.string() }), body),
     updateProfile: (body: ProfileInput) => request("PATCH", "/me", meResponse, body),
     deleteAccount: () => request("DELETE", "/me", okResponse),
     unregisterDevice: (pushToken: string) => request("DELETE", "/devices", okResponse, { pushToken }),
@@ -99,14 +294,11 @@ export const createApiClient = (options: ApiClientOptions) => {
     invitation: (token: string) => request("GET", `/invitations/${token}`, invitationPreview),
     acceptInvitation: (token: string, body: AcceptInvitationInput) =>
       request("POST", `/invitations/${token}/accept`, acceptInvitationResponse, body),
-    createOrganization: (body: {
-      name: string;
-      type: "club" | "independent";
-      firstGroupName: string;
-      disciplines?: string[];
-      referralCode?: string;
-      birthDate?: string;
-    }) => request("POST", "/orgs", z.object({ organizationId: z.string(), firstGroupId: z.string() }), body),
+    organization: (orgId: string) => request("GET", `/orgs/${orgId}`, organizationResponse),
+    updateOrganization: (orgId: string, body: OrganizationUpdateInput) =>
+      request("PATCH", `/orgs/${orgId}`, organizationResponse, body),
+    createOrganization: (body: CreateOrganizationInput) =>
+      request("POST", "/orgs", z.object({ organizationId: z.string(), firstGroupId: z.string() }), body),
     today: (orgId: string) => request("GET", `/orgs/${orgId}/athlete/today`, athleteToday),
     athleteCalendar: (orgId: string, from: string, to: string) =>
       request(
@@ -125,12 +317,11 @@ export const createApiClient = (options: ApiClientOptions) => {
     session: (orgId: string, sessionId: string) =>
       request("GET", `/orgs/${orgId}/sessions/${sessionId}/me`, athleteSessionDetail),
     logSession: (orgId: string, sessionId: string, body: SessionLogInput) =>
-      request(
-        "POST",
-        `/orgs/${orgId}/sessions/${sessionId}/log`,
-        z.object({ id: z.string(), replayed: z.boolean() }),
-        body,
-      ),
+      request("POST", `/orgs/${orgId}/sessions/${sessionId}/log`, sessionLogResult, body),
+    athleteSessionForCoach: (orgId: string, sessionId: string, athleteId: string) =>
+      request("GET", `/orgs/${orgId}/sessions/${sessionId}/athletes/${athleteId}/log`, athleteSessionDetail),
+    logSessionForAthlete: (orgId: string, sessionId: string, athleteId: string, body: SessionLogInput) =>
+      request("POST", `/orgs/${orgId}/sessions/${sessionId}/athletes/${athleteId}/log`, sessionLogResult, body),
     setAttendance: (orgId: string, sessionId: string, status: "present" | "absent") =>
       request(
         "POST",
@@ -143,6 +334,35 @@ export const createApiClient = (options: ApiClientOptions) => {
     alerts: (orgId: string) => request("GET", `/orgs/${orgId}/alerts`, z.array(coachAlert)),
     coachSession: (orgId: string, sessionId: string) =>
       request("GET", `/orgs/${orgId}/sessions/${sessionId}/coach`, z.any()),
+    sessionBuilder: (orgId: string) => request("GET", `/orgs/${orgId}/session-builder`, sessionBuilderContext),
+    saveSessionTemplate: (orgId: string, body: SessionDraft) =>
+      request("POST", `/orgs/${orgId}/session-templates`, z.object({ id: z.uuid() }), body),
+    editSession: (orgId: string, sessionId: string) =>
+      request("GET", `/orgs/${orgId}/sessions/${sessionId}`, sessionEditResponse),
+    createSession: (orgId: string, body: Omit<SaveScheduledSessionInput, "id" | "expectedVersion">) =>
+      request("POST", `/orgs/${orgId}/sessions`, sessionSaveResult, body),
+    updateSession: (
+      orgId: string,
+      sessionId: string,
+      body: Omit<SaveScheduledSessionInput, "id"> & { expectedVersion: number },
+    ) => request("PUT", `/orgs/${orgId}/sessions/${sessionId}`, sessionSaveResult, body),
+    publishSessions: (orgId: string, body: PublishSessionsInput) =>
+      request("POST", `/orgs/${orgId}/sessions/publish-batch`, publishSessionsResult, body),
+    publishSession: (orgId: string, sessionId: string, expectedVersion: number) =>
+      request("POST", `/orgs/${orgId}/sessions/${sessionId}/publish`, z.object({ id: z.string() }), {
+        expectedVersion,
+      }),
+    previewPrescriptionRefresh: (orgId: string, sessionId: string) =>
+      request("GET", `/orgs/${orgId}/sessions/${sessionId}/refresh-loads`, prescriptionRefreshPreview),
+    refreshPublishedLoads: (orgId: string, sessionId: string, body: ConfirmPrescriptionRefresh) =>
+      request("POST", `/orgs/${orgId}/sessions/${sessionId}/refresh-loads`, sessionSaveResult, body),
+    deleteSession: (orgId: string, sessionId: string, confirmation: DeleteSessionInput) =>
+      request("DELETE", `/orgs/${orgId}/sessions/${sessionId}`, okResponse, undefined, {
+        expectedVersion: String(confirmation.expectedVersion),
+        expectedLogCount: String(confirmation.expectedLogCount),
+      }),
+    deleteSessionTemplate: (orgId: string, templateId: string) =>
+      request("DELETE", `/orgs/${orgId}/session-templates/${templateId}`, okResponse),
     rollCall: (orgId: string, sessionId: string, body: RollCallInput) =>
       request(
         "POST",

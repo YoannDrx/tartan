@@ -336,7 +336,15 @@ describe("statistiques et agenda", () => {
     });
     const stats = await athleteWeeklyStats(org.owner.userId, org.organizationId, yes.athleteId);
     const last = stats.weeks[stats.weeks.length - 1];
-    expect(last).toMatchObject({ load: 420, groundContacts: 40, distanceM: 80, done: 1 });
+    // La validation simple n'affirme pas que les contacts et distances prescrits ont été réalisés.
+    expect(last).toMatchObject({
+      load: 420,
+      groundContacts: null,
+      distanceM: null,
+      tonnageKg: null,
+      done: 1,
+      coverage: { detailedSessions: 0, loadResponses: 1 },
+    });
     const hidden = await athleteWeeklyStats(org.owner.userId, org.organizationId, no.athleteId);
     expect(hidden.weeks[hidden.weeks.length - 1]?.load).toBeNull();
     expect(hidden.healthVisible).toBe(false);

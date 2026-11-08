@@ -2,12 +2,12 @@ type Block = { items: readonly { key: string }[] };
 type ReferencedOverride<P> = { athleteId: string; itemRef: string; prescription: P };
 export type KeyedOverride<P> = { athleteId: string; itemKey: string; prescription: P };
 
-// Mêmes références qu'à la publication : b{bloc}-i{exercice}, sans les blocs vides.
+// Les clés sont les références persistantes du brouillon, y compris après déplacement.
 const refsByKey = (blocks: readonly Block[]): Map<string, string> =>
   new Map(
     blocks
       .filter((block) => block.items.length > 0)
-      .flatMap((block, b) => block.items.map((item, i) => [item.key, `b${b}-i${i}`] as const)),
+      .flatMap((block) => block.items.map((item) => [item.key, item.key] as const)),
   );
 
 // À l'ouverture : une adaptation suit désormais son exercice, pas sa position.
@@ -22,7 +22,7 @@ export const attachItemKeys = <P>(
   });
 };
 
-// À l'envoi : la référence se recalcule, et l'adaptation d'un exercice retiré disparaît avec lui.
+// L'adaptation d'un exercice retiré disparaît avec lui.
 export const overridesForSubmit = <P>(
   overrides: readonly KeyedOverride<P>[],
   blocks: readonly Block[],

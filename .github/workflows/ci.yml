@@ -59,6 +59,11 @@ jobs:
           E2E_PROD: "1"
       - name: Preuve de concept vidéo
         run: pnpm --filter @tartan/web exec playwright test video-poc --project=desktop
+      - name: Planificateur activé avec prestataire simulé
+        run: pnpm --filter @tartan/web exec playwright test ai-planner
+        env:
+          E2E_PROD: "1"
+          E2E_AI_PLANNER_ENABLED: "true"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

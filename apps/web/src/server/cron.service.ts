@@ -1,6 +1,10 @@
 import { processBillingCommands } from "./billing-command.service";
+import { expirePlannerOperations } from "./ai/usage.service";
+import { purgePlannerProposals } from "./ai/proposal.service";
+import { purgePlannerTranscriptions } from "./ai/transcription.service";
 import { addDays, isOverdue, MISSED_STREAK_THRESHOLD } from "@tartan/domain";
 import { fromDbDate, todayIso, toDbDate, hourInParis } from "@/lib/dates";
+import { AppError } from "@/lib/errors";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { processReferrals, purgeExpiredVideos } from "./billing.service";
@@ -99,7 +103,13 @@ export const closeOverdueSessions = async (now: Date = new Date()): Promise<numb
 export const publishScheduledSessions = async (now: Date = new Date()): Promise<number> => {
   const due = await prisma.scheduledSession.findMany({
     where: { publishedAt: null, publishAt: { lte: now } },
-    select: { id: true, createdBy: true, organizationId: true },
+    select: {
+      id: true,
+      createdBy: true,
+      organizationId: true,
+      date: true,
+      organization: { select: { ownerId: true } },
+    },
   });
   // Un brouillon programmé sans destinataire ne doit pas bloquer les autres.
   const lots = new Map<string, { createdBy: string; organizationId: string; publications: Publication[] }>();
@@ -116,8 +126,20 @@ export const publishScheduledSessions = async (now: Date = new Date()): Promise<
       lot.publications.push(...publications);
       lots.set(key, lot);
       published += 1;
-    } catch {
+    } catch (error) {
       log.warn("scheduled_publish_skipped", { entityId: session.id });
+      // Auteur révoqué : le brouillon attend une décision du propriétaire, qui en est prévenu une seule fois.
+      if (error instanceof AppError && error.status === 403) {
+        const stopped = await prisma.scheduledSession.updateMany({
+          where: { id: session.id, publishedAt: null, publishAt: { not: null } },
+          data: { publishAt: null },
+        });
+        if (stopped.count === 1)
+          await notify([session.organization.ownerId], "scheduled_publication_blocked", {
+            date: fromDbDate(session.date),
+            link: `/seances/${session.id}`,
+          });
+      }
     }
   }
   for (const lot of lots.values()) {
@@ -178,6 +200,9 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     eve: () => sendEveQuestions(now),
     dispatched: () => dispatchPending(now),
     billingCommands: () => processBillingCommands(now),
+    aiReservations: () => expirePlannerOperations(now),
+    aiProposals: () => purgePlannerProposals(now),
+    aiTranscriptions: () => purgePlannerTranscriptions(now),
     billing: () => reconcileStripeSubscriptions(now),
     referrals: () => processReferrals(now),
     purged: () => purgeExpiredVideos(now),

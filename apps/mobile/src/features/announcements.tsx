@@ -100,7 +100,7 @@ export const AnnouncementsScreen = ({ canPublish }: { canPublish: boolean }) => 
   const [reporting, setReporting] = useState<string | null>(null);
   return (
     <TabScreen
-      world="craie"
+      world="work"
       title={m.announcements.title}
       refreshing={announcements.isRefetching}
       onRefresh={() => void announcements.refetch()}

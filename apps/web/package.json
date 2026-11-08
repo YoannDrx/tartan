@@ -16,7 +16,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "COACH_SIGNUP_MODE=public tsx --env-file-if-exists=.env prisma/seed.ts",
     "demo:fill": "tsx --env-file-if-exists=.env prisma/demo-fill.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "eval:planner": "node --conditions=react-server --import tsx scripts/planner-eval.ts"
   },
   "dependencies": {
     "@better-auth/expo": "1.7.15",
@@ -30,6 +31,7 @@
     "@react-email/render": "2.2.0",
     "@sentry/nextjs": "^11.10.0",
     "@tanstack/react-query": "5.105.1",
+    "@tartan/api-client": "workspace:*",
     "@tartan/contracts": "workspace:*",
     "@tartan/design-tokens": "workspace:*",
     "@tartan/domain": "workspace:*",
@@ -42,6 +44,7 @@
     "hls.js": "1.7.4",
     "jose": "6.2.13",
     "lucide-react": "1.66.0",
+    "mediabunny": "1.65.2",
     "next": "16.4.3",
     "next-safe-action": "8.7.3",
     "next-zod-route": "1.0.0",

@@ -1,5 +1,12 @@
 import type { JumpResult } from "@tartan/contracts";
-import { formatHeight, isHighFrameRate, MAX_FILE_SECONDS, nextAttemptNo, timeScaleFor, type Attempt } from "@tartan/domain";
+import {
+  formatHeight,
+  isHighFrameRate,
+  MAX_FILE_SECONDS,
+  nextAttemptNo,
+  timeScaleFor,
+  type Attempt,
+} from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -18,6 +25,7 @@ import {
 } from "react-native-vision-camera";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { chooseCaptureFps, type CaptureChoice } from "../src/lib/capture-fps";
+import { captureVideoInput } from "../src/lib/capture-input";
 import { useActiveSpace, useAthletes } from "../src/lib/queries";
 import { submitJumpAttempt } from "../src/lib/sync/op-queue";
 import { useUploads } from "../src/lib/upload/upload-queue";
@@ -305,6 +313,7 @@ export default function Capture() {
   const [uri, setUri] = useState<string | null>(null);
   const [fps, setFps] = useState<number | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [highJump, setHighJump] = useState(false);
   const [barCm, setBarCm] = useState(160);
   const [result, setResult] = useState<JumpResult>("O");
   const [steps, setSteps] = useState(9);
@@ -346,7 +355,7 @@ export default function Capture() {
   };
 
   const remember = () => {
-    setSaved([...saved, { barHeightCm: barCm, attemptNo, result }]);
+    if (highJump) setSaved([...saved, { barHeightCm: barCm, attemptNo, result }]);
     setAttemptOverride(null);
     setResult("O");
     setUri(null);
@@ -372,13 +381,16 @@ export default function Capture() {
         orgId,
         athleteName: athleteName(),
         sourceUri: uri,
-        input: {
-          athleteId,
-          scheduledSessionId: params.sessionId ?? null,
-          fps,
-          recordedAt: new Date().toISOString(),
-          attempt,
-        },
+        input: captureVideoInput(
+          {
+            athleteId,
+            scheduledSessionId: params.sessionId ?? null,
+            fps,
+            recordedAt: new Date().toISOString(),
+            attempt,
+          },
+          highJump,
+        ),
       });
       if (refused) {
         setMessage(m.video.tooLong(refused.tooLongSeconds));
@@ -394,6 +406,7 @@ export default function Capture() {
   };
 
   const saveOnly = () => {
+    if (!highJump) return;
     if (!athleteId) {
       setAthleteError(m.mobile.video.pickAthleteRequired);
       return;
@@ -410,14 +423,14 @@ export default function Capture() {
       footer={
         uri ? (
           <Button testID="capture-send" label={m.mobile.video.queue} loading={busy} onPress={() => void send()} />
-        ) : (
+        ) : highJump ? (
           <Button
             testID="capture-save-attempt"
             label={m.mobile.video.saveWithoutVideo}
             variant="secondary"
             onPress={saveOnly}
           />
-        )
+        ) : null
       }
     >
       {uri ? (
@@ -443,12 +456,7 @@ export default function Capture() {
           </T>
           <View style={{ flexDirection: "row", gap: space.sm }}>
             <View style={{ flex: 1 }}>
-              <Button
-                testID="capture-import"
-                label={m.video.import}
-                icon={Images}
-                onPress={() => void pick()}
-              />
+              <Button testID="capture-import" label={m.video.import} icon={Images} onPress={() => void pick()} />
             </View>
             {/* Pas de caméra (simulateur, appareil sans capteur) : un bouton qui ne ferait rien n'a pas sa place. */}
             {choice ? (
@@ -501,72 +509,77 @@ export default function Capture() {
         ) : null}
       </View>
 
-      <Stepper
-        label={m.mobile.video.barLabel}
-        value={barCm}
-        display={`${formatHeight(barCm)} m`}
-        steps={[1, 5]}
-        min={50}
-        max={700}
-        onChange={setBarCm}
-      />
-
-      <View style={{ gap: space.sm }}>
-        <T variant="smallStrong">{m.video.attempt}</T>
-        <View style={{ flexDirection: "row", gap: space.sm }}>
-          {[1, 2, 3].map((n) => (
-            <Chip
-              key={n}
-              tall
-              minWidth={64}
-              label={String(n)}
-              active={attemptNo === n}
-              accessibilityLabel={m.mobile.video.attemptN(n)}
-              onPress={() => setAttemptOverride(n)}
-            />
-          ))}
-        </View>
-      </View>
-
-      <View style={{ gap: space.sm }}>
-        <T variant="smallStrong">{m.video.result}</T>
-        <View style={{ flexDirection: "row", gap: space.sm }}>
-          <Chip
-            tall
-            minWidth={64}
-            label="O"
-            accessibilityLabel={m.video.cleared}
-            active={result === "O"}
-            onPress={() => setResult("O")}
+      <Chip label={m.video.highJumpTools} active={highJump} onPress={() => setHighJump(!highJump)} />
+      {highJump ? (
+        <>
+          <Stepper
+            label={m.mobile.video.barLabel}
+            value={barCm}
+            display={`${formatHeight(barCm)} m`}
+            steps={[1, 5]}
+            min={50}
+            max={700}
+            onChange={setBarCm}
           />
-          <Chip
-            tall
-            minWidth={64}
-            label="X"
-            accessibilityLabel={m.video.failedJump}
-            active={result === "X"}
-            onPress={() => setResult("X")}
-          />
-          <Chip
-            tall
-            minWidth={64}
-            label="–"
-            accessibilityLabel={m.video.passed}
-            active={result === "pass"}
-            onPress={() => setResult("pass")}
-          />
-        </View>
-      </View>
 
-      <Stepper
-        label={m.video.approachSteps}
-        value={steps}
-        display={String(steps)}
-        steps={[1]}
-        min={1}
-        max={40}
-        onChange={setSteps}
-      />
+          <View style={{ gap: space.sm }}>
+            <T variant="smallStrong">{m.video.attempt}</T>
+            <View style={{ flexDirection: "row", gap: space.sm }}>
+              {[1, 2, 3].map((n) => (
+                <Chip
+                  key={n}
+                  tall
+                  minWidth={64}
+                  label={String(n)}
+                  active={attemptNo === n}
+                  accessibilityLabel={m.mobile.video.attemptN(n)}
+                  onPress={() => setAttemptOverride(n)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <View style={{ gap: space.sm }}>
+            <T variant="smallStrong">{m.video.result}</T>
+            <View style={{ flexDirection: "row", gap: space.sm }}>
+              <Chip
+                tall
+                minWidth={64}
+                label="O"
+                accessibilityLabel={m.video.cleared}
+                active={result === "O"}
+                onPress={() => setResult("O")}
+              />
+              <Chip
+                tall
+                minWidth={64}
+                label="X"
+                accessibilityLabel={m.video.failedJump}
+                active={result === "X"}
+                onPress={() => setResult("X")}
+              />
+              <Chip
+                tall
+                minWidth={64}
+                label="–"
+                accessibilityLabel={m.video.passed}
+                active={result === "pass"}
+                onPress={() => setResult("pass")}
+              />
+            </View>
+          </View>
+
+          <Stepper
+            label={m.video.approachSteps}
+            value={steps}
+            display={String(steps)}
+            steps={[1]}
+            min={1}
+            max={40}
+            onChange={setSteps}
+          />
+        </>
+      ) : null}
 
       {cameraOpen && choice ? (
         <CameraModal

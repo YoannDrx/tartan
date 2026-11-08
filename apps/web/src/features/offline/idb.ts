@@ -33,3 +33,35 @@ export const idbPut = (store: StoreName, value: unknown): Promise<unknown> =>
   run(store, "readwrite", (s) => s.put(value));
 export const idbDelete = (store: StoreName, id: string): Promise<unknown> =>
   run(store, "readwrite", (s) => s.delete(id));
+
+// Lecture, comparaison et remplacement dans UNE transaction : aucun intervalle
+// pendant lequel une autre fenêtre peut ajouter une saisie qui serait effacée.
+export const idbTransform = async <T>(
+  store: StoreName,
+  transform: (rows: T[]) => { remove: string[]; put: T[] },
+): Promise<void> => {
+  const db = await open();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(store, "readwrite");
+      const table = tx.objectStore(store);
+      const request = table.getAll();
+      let failure: unknown;
+      request.onsuccess = () => {
+        try {
+          const change = transform(request.result as T[]);
+          for (const id of change.remove) table.delete(id);
+          for (const row of change.put) table.put(row);
+        } catch (error) {
+          failure = error;
+          tx.abort();
+        }
+      };
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => reject(failure ?? tx.error);
+      tx.onerror = () => reject(failure ?? tx.error);
+    });
+  } finally {
+    db.close();
+  }
+};

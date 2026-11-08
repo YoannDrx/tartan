@@ -8,6 +8,7 @@ const first = (value: string | string[] | undefined): string => (Array.isArray(v
 // « /seance/<id> » et « /seance/<id>/mode » ouvrent la même séance : l'app n'a qu'un écran pour les deux.
 export const sessionRoute = (path: string | string[] | undefined): string => {
   const id = first(path);
+  if (ID.test(id) && Array.isArray(path) && path.length === 2 && path[1] === "series") return `/session-sets/${id}`;
   return ID.test(id) ? `/session/${id}` : "/today";
 };
 

@@ -20,7 +20,7 @@ export default function CoachVideos() {
   const pending = uploads.filter((u) => u.orgId === orgId);
   return (
     <TabScreen
-      world="nuit"
+      world="work"
       title={m.video.title}
       refreshing={videos.isRefetching}
       onRefresh={() => void videos.refetch()}

@@ -29,7 +29,11 @@ model User {
   memberships OrganizationMember[]
   ownedOrgs   Organization[]       @relation("OrgOwner")
   athletes    Athlete[]
+  trainingPhases TrainingPhase[]
   devices     Device[]
+  aiPlannerOperations AiPlannerOperation[]
+  aiPlannerProposals AiPlannerProposal[]
+  aiPlannerTranscriptions AiPlannerTranscription[]
   consents    Consent[]            @relation("ConsentUser")
 
   @@map("user")
@@ -149,33 +153,42 @@ enum OrganizationPlan {
 }
 
 model Organization {
-  id          String           @id @default(uuid()) @db.Uuid
-  name        String
-  type        OrganizationType @default(independent)
-  logoUrl     String?          @map("logo_url")
-  disciplines String[]         @default([])
-  ownerId     String           @map("owner_id") @db.Uuid
-  owner       User             @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  plan        OrganizationPlan @default(discovery)
-  stripeCustomerId String?     @unique @map("stripe_customer_id")
+  id                     String           @id @default(uuid()) @db.Uuid
+  name                   String
+  type                   OrganizationType @default(independent)
+  logoUrl                String?          @map("logo_url")
+  disciplines            String[]         @default([])
+  trainingObjectives     String[]         @default([]) @map("training_objectives")
+  availableEquipment     String[]         @default([]) @map("available_equipment")
+  ownerId                String           @map("owner_id") @db.Uuid
+  owner                  User             @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  plan                   OrganizationPlan @default(discovery)
+  progressionEnabled     Boolean          @default(false) @map("progression_enabled")
+  phasesEnabled          Boolean          @default(false) @map("phases_enabled")
+  aiPlannerEnabled       Boolean          @default(false) @map("ai_planner_enabled")
+  timeZone               String           @default("Europe/Paris") @map("time_zone")
+  stripeCustomerId       String?          @unique @map("stripe_customer_id")
   // Identité du payeur : conservée au transfert, jamais assimilée au nouveau propriétaire.
-  billingOwnerId String?       @map("billing_owner_id") @db.Uuid
-  billingIssue String?         @map("billing_issue")
-  lastBusinessActivityAt DateTime? @map("last_business_activity_at")
-  retentionReviewAt DateTime? @map("retention_review_at")
-  billingRevision Int          @default(0) @map("billing_revision")
-  billingSyncedAt DateTime?     @map("billing_synced_at")
-  billingSyncAttemptedAt DateTime? @map("billing_sync_attempted_at")
+  billingOwnerId         String?          @map("billing_owner_id") @db.Uuid
+  billingIssue           String?          @map("billing_issue")
+  lastBusinessActivityAt DateTime?        @map("last_business_activity_at")
+  retentionReviewAt      DateTime?        @map("retention_review_at")
+  billingRevision        Int              @default(0) @map("billing_revision")
+  billingSyncedAt        DateTime?        @map("billing_synced_at")
+  billingSyncAttemptedAt DateTime?        @map("billing_sync_attempted_at")
   // Relance douce d'une séance non validée, réglable par le coach (§ 7.7).
-  overdueReminders Boolean     @default(true) @map("overdue_reminders")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  overdueReminders       Boolean          @default(true) @map("overdue_reminders")
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @updatedAt @map("updated_at")
 
+  trainingPhases TrainingPhase[]
+  performanceCreations PerformanceCreation[]
   members           OrganizationMember[]
   groups            Group[]
   athletes          Athlete[]
   invitations       Invitation[]
   exercises         Exercise[]
+  legacyStrengthMappings LegacyStrengthMapping[]
   templates         SessionTemplate[]
   scheduledSessions ScheduledSession[]
   competitions      Competition[]
@@ -186,6 +199,10 @@ model Organization {
   subscriptions     Subscription[]
   entitlements      Entitlement[]
   checkoutIntent    CheckoutIntent?
+  aiPlannerQuotas AiPlannerQuota[]
+  aiPlannerOperations AiPlannerOperation[]
+  aiPlannerProposals AiPlannerProposal[]
+  aiPlannerTranscriptions AiPlannerTranscription[]
 
   @@map("organizations")
 }
@@ -234,6 +251,7 @@ model Group {
   updatedAt      DateTime     @updatedAt @map("updated_at")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  trainingPhases TrainingPhase[]
   members       GroupMember[]
   coaches       GroupCoach[]
   announcements Announcement[]
@@ -302,11 +320,15 @@ model Athlete {
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  trainingPhases TrainingPhase[]
+  performanceCreations PerformanceCreation[]
   athleteConsents AthleteConsent[]
   groups       GroupMember[]
   coachNotes   CoachNote[]
   injuries     Injury[]
   tests        StrengthTest[]
+  strengthReferences StrengthReference[]
+  prescriptions SessionPrescription[]
   performances Performance[]
   jumps        JumpAttempt[]
   wellness     WellnessCheckin[]
@@ -475,21 +497,28 @@ enum ExerciseCategory {
 }
 
 model Exercise {
+  classification      Json?
   id                  String           @id @default(uuid()) @db.Uuid
   organizationId      String?          @map("organization_id") @db.Uuid
   name                String
   category            ExerciseCategory
   tags                String[]         @default([])
+  aliases             String[]         @default([])
   cues                String[]         @default([])
   defaultPrescription Json             @default("{}") @map("default_prescription")
   createdBy           String?          @map("created_by") @db.Uuid
   deletedAt           DateTime?        @map("deleted_at")
+  strengthLoadKind    String?          @map("strength_load_kind")
+  loadStepKg          Decimal          @default(1.25) @map("load_step_kg") @db.Decimal(6, 3)
   createdAt           DateTime         @default(now()) @map("created_at")
   updatedAt           DateTime         @updatedAt @map("updated_at")
   organization        Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   media ExerciseMedia[]
   items SessionItem[]
+  strengthTests StrengthTest[]
+  strengthReferences StrengthReference[]
+  legacyStrengthMappings LegacyStrengthMapping[]
 
   @@index([organizationId])
   @@map("exercises")
@@ -680,6 +709,7 @@ model SessionItem {
 
 model ScheduledSession {
   id             String       @id @default(uuid()) @db.Uuid
+  version        Int          @default(1)
   organizationId String       @map("organization_id") @db.Uuid
   createdBy      String       @map("created_by") @db.Uuid
   date           DateTime     @db.Date
@@ -691,11 +721,14 @@ model ScheduledSession {
   title          String
   type           SessionType
   publishedAt    DateTime?    @map("published_at")
+  prescriptionFrozenAt DateTime? @map("prescription_frozen_at")
+  phaseContext Json? @map("phase_context")
   publishAt      DateTime?    @map("publish_at")
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  prescriptions SessionPrescription[]
   assignments Assignment[]
   overrides   AthleteOverride[]
   attendance  Attendance[]
@@ -705,6 +738,26 @@ model ScheduledSession {
 
   @@index([organizationId, date])
   @@map("scheduled_sessions")
+}
+
+// Copie individuelle immuable par version, hors données de santé.
+model SessionPrescription {
+  id                 String @id @default(uuid()) @db.Uuid
+  scheduledSessionId String @map("scheduled_session_id") @db.Uuid
+  athleteId          String @map("athlete_id") @db.Uuid
+  sessionVersion     Int @map("session_version")
+  snapshot           Json
+  origin             String
+  phaseId            String? @map("phase_id") @db.Uuid
+  phaseVersion       Int? @map("phase_version")
+  frozenAt           DateTime @default(now()) @map("frozen_at")
+  session            ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
+  athlete            Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledSessionId, athleteId, sessionVersion])
+  @@index([athleteId])
+  @@index([phaseId])
+  @@map("session_prescriptions")
 }
 
 enum AssignmentTarget {
@@ -790,43 +843,69 @@ enum SessionVariant {
 }
 
 model SessionLog {
-  id                 String           @id @default(uuid()) @db.Uuid
-  scheduledSessionId String           @map("scheduled_session_id") @db.Uuid
-  athleteId          String           @map("athlete_id") @db.Uuid
-  clientId           String?          @map("client_id")
-  status             LogStatus
-  variantDone        SessionVariant?  @map("variant_done")
-  rpe                Int?
-  durationMin        Int?             @map("duration_min")
-  comment            String?
-  pain               Json?
-  completedAt        DateTime?        @map("completed_at")
-  reminderSentAt     DateTime?        @map("reminder_sent_at")
-  createdAt          DateTime         @default(now()) @map("created_at")
-  updatedAt          DateTime         @updatedAt @map("updated_at")
-  session            ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
-  athlete            Athlete          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  id                   String           @id @default(uuid()) @db.Uuid
+  version              Int              @default(0)
+  sessionVersion       Int?             @map("session_version")
+  prescriptionSnapshot Json?            @map("prescription_snapshot")
+  recordedBy           String?          @map("recorded_by") @db.Uuid
+  scheduledSessionId   String           @map("scheduled_session_id") @db.Uuid
+  athleteId            String           @map("athlete_id") @db.Uuid
+  clientId             String?          @map("client_id")
+  status               LogStatus
+  variantDone          SessionVariant?  @map("variant_done")
+  rpe                  Int?
+  durationMin          Int?             @map("duration_min")
+  comment              String?
+  pain                 Json?
+  completedAt          DateTime?        @map("completed_at")
+  celebrationClaimedAt DateTime? @map("celebration_claimed_at")
+  reminderSentAt       DateTime?        @map("reminder_sent_at")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+  session              ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
+  athlete              Athlete          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
 
-  sets SetLog[]
+  sets      SetLog[]
+  mutations SessionLogMutation[]
 
   @@unique([scheduledSessionId, athleteId])
   @@index([athleteId])
   @@map("session_logs")
 }
 
-model SetLog {
+// Le rejeu d'une ancienne mutation après une correction ne doit jamais restaurer l'ancien contenu.
+model SessionLogMutation {
   id           String     @id @default(uuid()) @db.Uuid
   sessionLogId String     @map("session_log_id") @db.Uuid
-  itemRef      String     @map("item_ref")
-  setIndex     Int        @map("set_index")
-  reps         Int?
-  loadKg       Decimal?   @map("load_kg") @db.Decimal(7, 2)
-  distanceM    Decimal?   @map("distance_m") @db.Decimal(9, 2)
-  timeS        Decimal?   @map("time_s") @db.Decimal(9, 2)
-  done         Boolean    @default(true)
+  clientId     String     @map("client_id")
+  version      Int
   createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
   log          SessionLog @relation(fields: [sessionLogId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionLogId, clientId])
+  @@map("session_log_mutations")
+}
+
+model SetLog {
+  id              String     @id @default(uuid()) @db.Uuid
+  sessionLogId    String     @map("session_log_id") @db.Uuid
+  itemRef         String     @map("item_ref")
+  setIndex        Int        @map("set_index")
+  reps            Int?
+  loadKg          Decimal?   @map("load_kg") @db.Decimal(7, 2)
+  distanceM       Decimal?   @map("distance_m") @db.Decimal(9, 2)
+  timeS           Decimal?   @map("time_s") @db.Decimal(9, 2)
+  done            Boolean    @default(true)
+  // NULL pour les anciennes cases : aucune convention de charge inventée à la migration.
+  exerciseId      String?    @map("exercise_id") @db.Uuid
+  setKind         String?    @map("set_kind")
+  loadKind        String?    @map("load_kind")
+  repetitionScope String?    @map("repetition_scope")
+  sideCount       Int?       @map("side_count")
+  groundContacts  Int?       @map("ground_contacts")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  log             SessionLog @relation(fields: [sessionLogId], references: [id], onDelete: Cascade)
 
   @@unique([sessionLogId, itemRef, setIndex])
   @@map("set_logs")
@@ -900,6 +979,8 @@ model StrengthTest {
   organizationId String           @map("organization_id") @db.Uuid
   athleteId      String           @map("athlete_id") @db.Uuid
   exerciseKey    String           @map("exercise_key")
+  exerciseId     String?          @map("exercise_id") @db.Uuid
+  loadKind       String?          @map("load_kind")
   value          Decimal          @db.Decimal(7, 2)
   unit           String           @default("kg")
   kind           StrengthTestKind
@@ -907,9 +988,47 @@ model StrengthTest {
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
   athlete        Athlete          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  exercise       Exercise?        @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+  selectedReferences StrengthReference[]
 
   @@index([athleteId, exerciseKey])
+  @@index([athleteId, exerciseId])
   @@map("strength_tests")
+}
+
+model StrengthReference {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  athleteId      String @map("athlete_id") @db.Uuid
+  exerciseId     String @map("exercise_id") @db.Uuid
+  sourceTestId   String? @map("source_test_id") @db.Uuid
+  valueKg        Decimal @map("value_kg") @db.Decimal(7, 2)
+  kind           String
+  loadKind       String @map("load_kind")
+  selectedBy     String? @map("selected_by") @db.Uuid
+  selectedAt     DateTime @default(now()) @map("selected_at")
+  athlete        Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  exercise       Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  sourceTest     StrengthTest? @relation(fields: [sourceTestId], references: [id], onDelete: Cascade)
+
+  @@unique([athleteId, exerciseId])
+  @@index([organizationId])
+  @@map("strength_references")
+}
+
+model LegacyStrengthMapping {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  legacyKey      String @map("legacy_key")
+  exerciseId     String @map("exercise_id") @db.Uuid
+  confirmedBy    String? @map("confirmed_by") @db.Uuid
+  reason         String
+  createdAt      DateTime @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  exercise       Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, legacyKey])
+  @@map("legacy_strength_mappings")
 }
 
 model Competition {
@@ -955,6 +1074,11 @@ model Performance {
   location       String?
   competitionId  String?      @map("competition_id") @db.Uuid
   isPb           Boolean      @default(false) @map("is_pb")
+  measurementType String? @map("measurement_type")
+  recordDirection String? @map("record_direction")
+  comparisonContext String @default("") @map("comparison_context")
+  version Int @default(1)
+  creation PerformanceCreation?
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   athlete        Athlete      @relation(fields: [athleteId], references: [id], onDelete: Cascade)
@@ -962,6 +1086,19 @@ model Performance {
 
   @@index([athleteId])
   @@map("performances")
+}
+
+model PerformanceCreation {
+  id String @id @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  athleteId String @map("athlete_id") @db.Uuid
+  performanceId String? @unique @map("performance_id") @db.Uuid
+  fingerprint String
+  createdAt DateTime @default(now()) @map("created_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  athlete Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  performance Performance? @relation(fields: [performanceId], references: [id], onDelete: SetNull)
+  @@map("performance_creations")
 }
 
 enum JumpResult {
@@ -1404,4 +1541,126 @@ model SatisfactionAnswer {
   @@index([userId, createdAt])
   @@index([organizationId, createdAt])
   @@map("satisfaction_answers")
+}
+
+model TrainingPhase {
+  id String @id @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  groupId String? @map("group_id") @db.Uuid
+  athleteId String? @map("athlete_id") @db.Uuid
+  createdBy String? @map("created_by") @db.Uuid
+  name String
+  kind String
+  startDate DateTime @map("start_date") @db.Date
+  endDate DateTime @map("end_date") @db.Date
+  objective String @default("")
+  description String @default("")
+  privateNote String @default("") @map("private_note")
+  publishedAt DateTime? @map("published_at")
+  deletedAt DateTime? @map("deleted_at")
+  version Int @default(1)
+  creationFingerprint String @map("creation_fingerprint")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  group Group? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  athlete Athlete? @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  @@index([organizationId, startDate, endDate])
+  @@index([groupId])
+  @@index([athleteId])
+  @@map("training_phases")
+}
+
+// Compteurs agrégés sans texte ni identité personnelle. Une réservation et son
+// opération sont écrites sous le même verrou d’espace, hors appel fournisseur.
+model AiPlannerQuota {
+  organizationId String @map("organization_id") @db.Uuid
+  month String @db.VarChar(7)
+  reservedProposals Int @default(0) @map("reserved_proposals")
+  usedProposals Int @default(0) @map("used_proposals")
+  reservedAudioSeconds Int @default(0) @map("reserved_audio_seconds")
+  usedAudioSeconds Int @default(0) @map("used_audio_seconds")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  @@id([organizationId, month])
+  @@map("ai_planner_quotas")
+}
+
+model AiPlannerOperation {
+  organizationId String @map("organization_id") @db.Uuid
+  id String @db.Uuid
+  actorId String? @map("actor_id") @db.Uuid
+  kind String
+  fingerprint String
+  proposalId String? @map("proposal_id") @db.Uuid
+  month String @db.VarChar(7)
+  proposalCost Int @map("proposal_cost")
+  audioSeconds Int @map("audio_seconds")
+  state String @default("pending")
+  leaseToken String? @map("lease_token") @db.Uuid
+  leaseUntil DateTime @map("lease_until")
+  // Référence de résultat seulement, jamais de transcription ni texte du coach.
+  result Json?
+  failureCode String? @map("failure_code")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  @@id([organizationId, id])
+  @@index([state, leaseUntil])
+  @@index([expiresAt])
+  @@index([actorId])
+  @@map("ai_planner_operations")
+}
+
+// Contenu privé de travail, purgé au plus tard après sept jours ou sous 24 h
+// après conversion. Le registre de quota ne conserve que sa référence.
+model AiPlannerProposal {
+  id String @id @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  actorId String @map("actor_id") @db.Uuid
+  creationFingerprint String @map("creation_fingerprint")
+  state String @default("processing")
+  version Int @default(1)
+  clarificationCount Int @default(0) @map("clarification_count")
+  selection Json
+  bindings Json
+  messages Json
+  interpretation Json?
+  activeOperationId String @map("active_operation_id") @db.Uuid
+  pendingMessage String? @map("pending_message")
+  committedAt DateTime? @map("committed_at")
+  commitFingerprint String? @map("commit_fingerprint")
+  draftIds Json? @map("draft_ids")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  @@index([organizationId, actorId, createdAt])
+  @@index([expiresAt])
+  @@map("ai_planner_proposals")
+}
+
+// Texte brut à relire, jamais l’audio. Conservation courte de 24 heures au plus,
+// indépendante des propositions relues qui ont leur propre échéance.
+model AiPlannerTranscription {
+  id String @id @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  actorId String @map("actor_id") @db.Uuid
+  state String @default("processing")
+  version Int @default(1)
+  text String?
+  audioSeconds Int @map("audio_seconds")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  @@index([organizationId, actorId])
+  @@index([expiresAt])
+  @@map("ai_planner_transcriptions")
 }

@@ -1,14 +1,15 @@
 import { m } from "@tartan/i18n";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, usePathname, useRouter } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { RefreshControl, ScrollView, View, type ScrollViewProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIsOnline } from "../lib/network";
 import { useOpQueue } from "../lib/sync/op-queue";
+import { reviewRequiredOps } from "../lib/sync/queue-core";
 import { useUploads } from "../lib/upload/upload-queue";
-import { ArrowLeft, CloudOff, CloudUpload, Settings, X } from "./icons";
-import { IconButton, LaneLine, ListSurface, ScreenTitle, T } from "./primitives";
+import { ArrowLeft, CloudOff, CloudUpload, Repeat, Settings, X } from "./icons";
+import { Button, IconButton, LaneLine, ListSurface, ScreenTitle, T } from "./primitives";
 import { SpaceSwitcher } from "./space-switcher";
 import { Scene, scene, space, usePagePad, usePalette, type WorldName } from "./theme";
 
@@ -24,13 +25,19 @@ export const useSceneStatusBar = () => {
 
 // Hors ligne ou envois en attente : l'état se lit sans chercher.
 export const SyncBanner = () => {
+  const router = useRouter();
+  const p = usePalette();
+  const pathname = usePathname();
   const online = useIsOnline();
-  const ops = useOpQueue((s) => s.items.length);
+  const ops = useOpQueue((s) => s.items.length - reviewRequiredOps(s.items).length);
+  const blocked = useOpQueue((s) => reviewRequiredOps(s.items).length);
+  const storageError = useOpQueue((s) => s.storageError);
+  const flush = useOpQueue((s) => s.flush);
   const rejected = useOpQueue((s) => s.rejectedCount);
   const dismiss = useOpQueue((s) => s.dismissRejected);
   const uploads = useUploads((s) => s.items.length);
   const pending = ops + uploads;
-  if (rejected > 0) {
+  if (rejected > 0 && !storageError && blocked === 0) {
     return (
       <ListSurface style={{ flexDirection: "row", alignItems: "center", gap: space.sm, paddingLeft: space.lg }}>
         <T variant="caption" style={{ flex: 1 }} accessibilityLiveRegion="polite">
@@ -40,11 +47,13 @@ export const SyncBanner = () => {
       </ListSurface>
     );
   }
-  if (online && pending === 0) return null;
+  if (online && pending === 0 && blocked === 0 && !storageError) return null;
   const Icon = online ? CloudUpload : CloudOff;
   const parts = [
     online ? null : m.mobile.offline.banner,
     pending > 0 ? m.mobile.offline.pending(pending) : null,
+    blocked > 0 ? m.offline.reviewPending(blocked) : null,
+    storageError ? m.offline.deviceStorageError : null,
   ].filter(Boolean);
   return (
     <ListSurface
@@ -56,10 +65,14 @@ export const SyncBanner = () => {
         paddingVertical: space.md,
       }}
     >
-      <Icon size={18} color={scene.status.partial} accessibilityElementsHidden importantForAccessibility="no" />
+      <Icon size={18} color={p.status.partial} accessibilityElementsHidden importantForAccessibility="no" />
       <T variant="caption" accessibilityLiveRegion="polite" style={{ flex: 1 }}>
         {parts.join(" ")}
       </T>
+      {blocked > 0 && pathname !== "/sync-review" ? (
+        <Button compact variant="secondary" label={m.syncReview.open} onPress={() => router.push("/sync-review")} />
+      ) : null}
+      {storageError ? <IconButton icon={Repeat} label={m.offline.retry} onPress={() => void flush()} /> : null}
     </ListSurface>
   );
 };
@@ -251,7 +264,7 @@ const StackInner = ({
 };
 
 // `dark` : l'encre des écrans de tâche (vidéo, capture, mode séance), prioritaire sur le monde.
-export const StackScreen = ({ dark, world = "piste", ...rest }: StackScreenProps) => (
+export const StackScreen = ({ dark, world = "work", ...rest }: StackScreenProps) => (
   <Scene scene={dark ? "encre" : world}>
     <StackInner {...rest} />
   </Scene>

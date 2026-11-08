@@ -3,6 +3,7 @@ import { todayIso } from "@/lib/dates";
 import { requireOrgMember } from "./access";
 import { getAthleteCalendar } from "./athlete-view.service";
 import { listCalendar } from "./session.service";
+import { prisma } from "@/lib/prisma";
 
 export const OFFLINE_DAYS = 7;
 
@@ -24,13 +25,21 @@ export const offlineUrls = async (userId: string, organizationId: string, now: D
     };
   }
   const { sessions } = await getAthleteCalendar(userId, organizationId, { from, to }, now);
+  const org = await prisma.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: { progressionEnabled: true },
+  });
   return {
     urls: [
       "/accueil",
       "/aujourdhui",
       "/calendrier",
       "/annonces",
-      ...sessions.flatMap((s) => [`/seance/${s.id}`, `/seance/${s.id}/mode`]),
+      ...sessions.flatMap((s) => [
+        `/seance/${s.id}`,
+        `/seance/${s.id}/mode`,
+        ...(org.progressionEnabled ? [`/seance/${s.id}/series`] : []),
+      ]),
     ],
   };
 };
