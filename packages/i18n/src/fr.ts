@@ -295,12 +295,45 @@ export const fr = {
     more: "Afficher les séances suivantes",
     calculator: "Calculer les charges de cet exercice",
     tests: "Tests de force enregistrés",
+    viewTests: (count: number) => `Consulter les tests (${count})`,
     selectedOn: (date: string) => `Choisie le ${date}`,
     updatedOn: (date: string) => `Dernière saisie le ${date}`,
     recordOf: (name: string) => `Historique de ${name}`,
     noMeasurements: "Aucune mesure renseignée pour cette unité sur la période.",
     summary: (count: number, total: string) => `${count} journées renseignées · somme des valeurs : ${total}`,
     perSide: (count: number) => `par côté, ${count} côté${count > 1 ? "s" : ""}`,
+  },
+  strengthHistory: {
+    title: "Évolution de la force",
+    choose: "Courbe de force",
+    change: "Choisir une autre courbe",
+    empty:
+      "Renseigne des séries de travail avec charge et répétitions, ou un test de force lié à cet exercice, pour suivre son évolution.",
+    sources: {
+      test_one_rm: "1RM testé",
+      test_three_rm: "3RM testé",
+      work_load: "Charge réalisée",
+      work_epley: "1RM estimé depuis les séries",
+      test_estimated: "Estimation renseignée par le coach",
+    },
+    atReps: (reps: number) => `${reps} répétition${reps > 1 ? "s" : ""}`,
+    method: "Comment lire cette courbe",
+    commonHint:
+      "La meilleure valeur de chaque journée est affichée, à conventions égales. Les valeurs manquantes ne sont pas interpolées. Ces courbes ne modifient pas la référence choisie par le coach.",
+    estimateHint:
+      "Epley à partir des seules séries de travail confirmées de 2 à 10 répétitions, en charge externe totale. Ce résultat reste une estimation, distincte d’un test maximal.",
+    loadHint:
+      "Charges réellement renseignées pour ce nombre de répétitions. Une série à une répétition ne signifie pas nécessairement qu’un maximum a été testé.",
+    testHint:
+      "Tests enregistrés par le coach, séparés par type et convention. Un 3RM reste un 3RM ; une estimation renseignée ne devient pas un maximum testé.",
+    testScope:
+      "Le comptage par côté n’est pas enregistré pour les tests : ils restent séparés des courbes de séries réalisées.",
+    coverageTests: "Tests retenus / tests du jour",
+    coverageWork: "Validations retenues / validations du jour",
+    summary: (first: string, last: string) => `Première valeur : ${first} kg · dernière valeur : ${last} kg`,
+    value: "Charge (kg)",
+    table: "Valeurs de la courbe de force",
+    dates: (count: number) => `${count} journée${count > 1 ? "s" : ""} renseignée${count > 1 ? "s" : ""}`,
   },
   prescriptionRefresh: {
     title: "Actualiser les charges",

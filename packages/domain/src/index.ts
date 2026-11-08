@@ -30,3 +30,4 @@ export * from "./video-context";
 export * from "./exercise-history";
 export * from "./strength-calculator";
 export * from "./history-chart";
+export * from "./strength-curves";

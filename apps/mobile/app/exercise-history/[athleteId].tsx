@@ -21,12 +21,14 @@ import { Button, Card, Field, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { space, usePalette } from "../../src/ui/theme";
+import { StrengthHistory } from "../../src/features/strength-history";
 import { StrengthCalculator } from "../../src/features/strength-calculator";
 
 const t = m.exerciseHistory;
 function HistoryDetail({ history }: { history: ExerciseHistory }) {
   const [metric, setMetric] = useState<VolumeMetric>("tonnageKg");
   const [showTable, setShowTable] = useState(false);
+  const [showTests, setShowTests] = useState(false);
   const [showMethod, setShowMethod] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -64,16 +66,25 @@ function HistoryDetail({ history }: { history: ExerciseHistory }) {
           {history.tests.length ? (
             <>
               <SectionTitle>{t.tests}</SectionTitle>
-              {history.tests.map((test) => (
-                <T key={test.id}>
-                  {historyDate(test.date)} · {historyNumber(test.value)} kg ·{" "}
-                  {m.testKind[test.kind as keyof typeof m.testKind] ?? test.kind}
-                </T>
-              ))}
+              <Button
+                label={t.viewTests(history.tests.length)}
+                expanded={showTests}
+                variant="ghost"
+                onPress={() => setShowTests((old) => !old)}
+              />
+              {showTests
+                ? history.tests.map((test) => (
+                    <T key={test.id}>
+                      {historyDate(test.date)} · {historyNumber(test.value)} kg ·{" "}
+                      {m.testKind[test.kind as keyof typeof m.testKind] ?? test.kind}
+                    </T>
+                  ))
+                : null}
             </>
           ) : null}
         </View>
       </Card>
+      <StrengthHistory history={history} />
       <SectionTitle>{t.volumes}</SectionTitle>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
         {volumeMetrics.map((key) => (

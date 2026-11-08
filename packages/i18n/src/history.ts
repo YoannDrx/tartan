@@ -3,6 +3,26 @@ import { fr } from "./fr";
 export const historyNumber = (value: number) => value.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
 export const historyDate = (iso: string) =>
   new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(iso));
+
+export const strengthCurveLabel = (curve: {
+  source: keyof typeof fr.strengthHistory.sources;
+  convention: "external_total" | "added_weight";
+  reps: number | null;
+  repetitionScope: "total" | "per_side" | null;
+  sideCount: number | null;
+}) =>
+  [
+    fr.strengthHistory.sources[curve.source],
+    curve.reps === null ? null : fr.strengthHistory.atReps(curve.reps),
+    fr.strength.conventions[curve.convention],
+    curve.repetitionScope === "per_side"
+      ? fr.exerciseHistory.perSide(curve.sideCount ?? 1)
+      : curve.repetitionScope === "total"
+        ? fr.progression.totalReps.toLowerCase()
+        : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 export const realizedSetLabel = (
   set: {
     done: boolean;

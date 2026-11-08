@@ -16,6 +16,7 @@ import { m, historyDate, historyNumber, realizedSetLabel } from "@tartan/i18n";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { Field, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { StrengthHistory } from "./strength-history";
 import { StrengthCalculator } from "./strength-calculator";
 
 const t = m.exerciseHistory;
@@ -119,19 +120,26 @@ export function ExerciseHistoryView({
             </SheetSection>
             {history.tests.length > 0 ? (
               <SheetSection title={t.tests}>
-                <ul className="divide-y divide-card-line">
-                  {history.tests.map((test) => (
-                    <li key={test.id} className="flex flex-wrap justify-between gap-2 py-2">
-                      <span>{historyDate(test.date)}</span>
-                      <span>
-                        {historyNumber(test.value)} kg · {m.testKind[test.kind as keyof typeof m.testKind] ?? test.kind}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <details>
+                  <summary className="min-h-11 cursor-pointer py-3 font-semibold">
+                    {t.viewTests(history.tests.length)}
+                  </summary>
+                  <ul className="divide-y divide-card-line">
+                    {history.tests.map((test) => (
+                      <li key={test.id} className="flex flex-wrap justify-between gap-2 py-2">
+                        <span>{historyDate(test.date)}</span>
+                        <span>
+                          {historyNumber(test.value)} kg ·{" "}
+                          {m.testKind[test.kind as keyof typeof m.testKind] ?? test.kind}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               </SheetSection>
             ) : null}
           </Sheet>
+          <StrengthHistory history={history} />
           <Sheet>
             <SheetSection title={t.volumes}>
               <div className="flex flex-col gap-3">

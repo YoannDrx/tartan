@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { Client } from "pg";
-import { m, historyDate } from "@tartan/i18n";
+import { m, historyDate, strengthCurveLabel } from "@tartan/i18n";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 
 test("historique réel, référence manuelle, calculateur et courbes accessibles", async ({ page }, info) => {
@@ -98,6 +98,27 @@ test("historique réel, référence manuelle, calculateur et courbes accessibles
       });
       expect(logged.ok(), await logged.text()).toBe(true);
     }
+    for (const [index, date] of [dates[0], dates[1], dates[3], dates[4]].entries()) {
+      const response = await page.request.post(`${root}/athletes/${athleteId}/strength-tests`, {
+        data: {
+          exerciseId: exercise.id,
+          exerciseKey: `exercise:${exercise.id}`,
+          kind: "one_rm",
+          value: 90 + index * 5,
+          date,
+        },
+      });
+      expect(response.ok(), await response.text()).toBe(true);
+    }
+    for (const [kind, value] of [
+      ["three_rm", 85],
+      ["estimated", 110],
+    ] as const) {
+      const response = await page.request.post(`${root}/athletes/${athleteId}/strength-tests`, {
+        data: { exerciseId: exercise.id, exerciseKey: `exercise:${exercise.id}`, kind, value, date: dates[2] },
+      });
+      expect(response.ok(), await response.text()).toBe(true);
+    }
     const targetResponse = await page.request.post(`${root}/sessions`, {
       data: {
         date: context.today,
@@ -133,6 +154,42 @@ test("historique réel, référence manuelle, calculateur et courbes accessibles
     await sql.query("UPDATE exercises SET name = 'Squat archivé', deleted_at = now() WHERE id = $1", [exercise.id]);
     await page.reload();
     await expect(page.getByLabel(m.exerciseHistory.exercise, { exact: true })).toContainText("Squat archivé");
+    const tests = page.getByRole("region", { name: m.exerciseHistory.tests, exact: true });
+    await expect(tests.getByRole("list")).toBeHidden();
+    await tests.getByText(m.exerciseHistory.viewTests(6), { exact: true }).click();
+    await expect(tests.getByRole("listitem")).toHaveCount(6);
+    await tests.getByText(m.exerciseHistory.viewTests(6), { exact: true }).click();
+    const force = page.getByRole("region", { name: m.strengthHistory.title, exact: true });
+    const chooseCurve = force.getByLabel(m.strengthHistory.choose, { exact: true });
+    await expect(force.getByText(m.strengthHistory.summary("90", "105"))).toBeVisible();
+    await expect(force.locator("svg circle")).toHaveCount(4);
+    await force.getByText(m.strengthHistory.table, { exact: true }).click();
+    const forceTable = force.getByRole("table");
+    await expect(forceTable.getByRole("row")).toHaveCount(6);
+    await expect(forceTable.getByRole("row").filter({ hasText: historyDate(dates[2]!) })).toContainText(
+      m.exerciseHistory.missing,
+    );
+    const curveLabel = (source: "work_load" | "work_epley" | "test_three_rm" | "test_estimated") =>
+      strengthCurveLabel({
+        source,
+        convention: "external_total",
+        reps: source === "work_load" ? 4 : null,
+        repetitionScope: source.startsWith("work_") ? "total" : null,
+        sideCount: source.startsWith("work_") ? 1 : null,
+      });
+    await chooseCurve.selectOption({ label: curveLabel("test_three_rm") });
+    await expect(force.getByText(m.strengthHistory.summary("85", "85"))).toBeVisible();
+    await chooseCurve.selectOption({ label: curveLabel("test_estimated") });
+    await expect(force.getByText(m.strengthHistory.summary("110", "110"))).toBeVisible();
+    await chooseCurve.selectOption({ label: curveLabel("work_load") });
+    await expect(force.getByText(m.strengthHistory.summary("40", "40"))).toBeVisible();
+    await expect(forceTable.getByRole("row").filter({ hasText: historyDate(dates[2]!) })).toContainText(
+      m.exerciseHistory.missing,
+    );
+    await chooseCurve.selectOption({ label: curveLabel("work_epley") });
+    await expect(force.getByText(m.strengthHistory.summary("45,33", "45,33"))).toBeVisible();
+    await force.getByText(m.strengthHistory.method, { exact: true }).click();
+    await expect(force.getByText(m.strengthHistory.estimateHint)).toBeVisible();
     await expect(page.getByText(m.exerciseHistory.summary(4, "1 280"))).toBeVisible();
     await page.getByLabel(m.exerciseHistory.metric, { exact: true }).selectOption("distanceM");
     await expect(page.getByText(m.exerciseHistory.noMeasurements)).toBeVisible();
