@@ -402,20 +402,23 @@ const fillCoachSpace = async (coachId: string, organizationId: string) => {
       { groupId: second.id, userId: coachId, role: "lead" },
     ],
   });
-  await prisma.exercise.createMany({
-    data: STARTER_LIBRARY.map((e) => ({
-      organizationId,
-      createdBy: coachId,
-      name: e.name,
-      aliases: e.aliases ?? [],
-      classification: e.classification,
-      category: e.category,
-      tags: e.tags,
-      strengthLoadKind: e.strengthLoadKind,
-      cues: e.cues,
-      defaultPrescription: e.prescription,
-    })),
-  });
+  // La création d'espace copie déjà la bibliothèque : seul un espace ancien, resté vide, la reçoit ici.
+  if ((await prisma.exercise.count({ where: { organizationId } })) === 0) {
+    await prisma.exercise.createMany({
+      data: STARTER_LIBRARY.map((e) => ({
+        organizationId,
+        createdBy: coachId,
+        name: e.name,
+        aliases: e.aliases ?? [],
+        classification: e.classification,
+        category: e.category,
+        tags: e.tags,
+        strengthLoadKind: e.strengthLoadKind,
+        cues: e.cues,
+        defaultPrescription: e.prescription,
+      })),
+    });
+  }
 
   const enrollAll = async (groupId: string, people: Person[]) => {
     const roster: Roster[] = [];

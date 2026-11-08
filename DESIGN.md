@@ -20,7 +20,7 @@ Sur desktop, les comparaisons peuvent utiliser plusieurs colonnes et les détail
 
 ### Expression et immersion
 
-Le site et l’accueil athlète peuvent garder les aplats et la mascotte, avec une représentation équilibrée de la préparation physique. Le parcours présenté est « préparer → individualiser → réaliser → progresser ». Les captures représentent les fonctions réellement disponibles. La hauteur ne constitue plus l’unique récit du produit.
+Le site et l’accueil athlète peuvent garder les aplats et la mascotte, avec une représentation équilibrée de la préparation physique. Le parcours présenté est « préparer → individualiser → réaliser → progresser ». Les captures représentent les fonctions réellement disponibles. La hauteur ne constitue plus l’unique récit du produit. Sur le site, et seulement là, le film du personnage piloté par le défilement raconte ce que l’athlète y gagne (voir ce qui arrive, savoir ce qu’il travaille, savoir sur quoi s’appliquer) : c’est une illustration, sans vocabulaire propre au saut en hauteur. Tout écran présenté sur le site est une vraie capture du produit, sur des données fictives indiquées comme telles ; aucune maquette recomposée.
 
 La lecture/analyse vidéo, la capture et le mode séance restent encre : la couleur du fond ne doit pas distraire du geste. La célébration de validation reste citron. Une route historique conserve son adresse tant qu’une redirection compatible n’a pas été ajoutée.
 
@@ -62,7 +62,7 @@ La couleur des séances et catégories sert la lecture du calendrier ; une spéc
 
 ## Mouvement et mascotte
 
-**Un seul grand moment animé : la validation d’une séance faite.** La célébration peut intégrer les records confirmés de cette séance. Pas de seconde animation dans l’historique, de son ni de rejeu après synchronisation. Une validation partielle ne déclenche pas cette célébration. Réduction des animations respectée.
+**Un seul grand moment animé dans l’application : la validation d’une séance faite.** La célébration peut intégrer les records confirmés de cette séance. Pas de seconde animation dans l’historique, de son ni de rejeu après synchronisation. Une validation partielle ne déclenche pas cette célébration. Réduction des animations respectée.
 
 Pas d’animation d’apparition dans les écrans de travail. Transitions de 150 à 250 ms lorsqu’elles expliquent une interaction. La mascotte reste décorative dans les accueils, états vides et la validation ; elle ne remplace jamais une information ou une action.
 

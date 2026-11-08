@@ -103,13 +103,7 @@ const main = async () => {
   await saveExercise(coachId, org.id, {
     name: "Mobilité des hanches",
     category: "mobility",
-    media: {
-      kind: "youtube",
-      url: "https://youtu.be/dQw4w9WgXcQ",
-      customTitle: "Routine hanches",
-      startS: 10,
-      endS: 70,
-    },
+    cues: ["Bassin stable", "Amplitude sans douleur"],
   });
 
   const makeDraft = (title: string, type: "strength" | "plyo" | "jump", withAuto: boolean) => ({
