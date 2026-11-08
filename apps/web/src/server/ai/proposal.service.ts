@@ -7,6 +7,7 @@ import {
   plannerInterpretation,
   plannerSelection,
   confirmPlannerProposalInput,
+  plannerProposalResponse,
   type ConfirmPlannerProposalInput,
   type SaveScheduledSessionInput,
   type PlannerReviewedDraft,
@@ -86,7 +87,7 @@ export async function getPlannerProposal(userId: string, organizationId: string,
   const selection = plannerSelection.parse(row.selection),
     bindings = plannerBindings.parse(row.bindings);
   await assertPlannerTargets(prisma, access, selection);
-  return {
+  return plannerProposalResponse.parse({
     id: row.id,
     version: row.version,
     state: await effectiveState(row, now),
@@ -100,7 +101,7 @@ export async function getPlannerProposal(userId: string, organizationId: string,
     exercises: bindings.exercises,
     phaseReviews: bindings.phaseReviews,
     draftIds: row.draftIds,
-  };
+  });
 }
 type Execution = { provider?: PlannerProvider; clock?: () => Date };
 async function executeProposal(

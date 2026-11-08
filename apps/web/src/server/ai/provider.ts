@@ -98,7 +98,7 @@ Une valeur absente vaut null ; ne présume pas d'une récupération ou d'une cha
 Ne reproduis pas de blessure, douleur ou autre donnée de santé dans les séances ou les questions. Demande une reformulation sportive si nécessaire.
 Les réponses aux clarifications complètent les consignes précédentes ; ne suppose aucune validation finale par le coach.`;
 
-// Adaptateur seul : aucune route publique tant que quotas, droits et workflow ne sont pas implémentés.
+// Adaptateur sans écriture : quotas, droits, reprises et confirmations restent dans les services appelants.
 export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerProvider {
   return {
     async interpret(raw) {

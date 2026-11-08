@@ -270,3 +270,54 @@ it("Découverte ne réserve rien et le départ d’un coach n’empêche pas le 
     usedProposals: 0,
   });
 });
+
+it("borne les traitements simultanés sous verrou et laisse relire une opération existante", async () => {
+  const a = await setup();
+  const inputs = Array.from({ length: 5 }, () => proposal());
+  const attempts = await Promise.allSettled(inputs.map((input) => a.reserve(input)));
+  expect(attempts.filter((r) => r.status === "fulfilled")).toHaveLength(3);
+  expect(attempts.filter((r) => r.status === "rejected")).toHaveLength(2);
+  for (const r of attempts.filter((r) => r.status === "rejected"))
+    expect(r.reason).toMatchObject({ status: 429, code: "planner_rate_limited" });
+  const index = attempts.findIndex((r) => r.status === "fulfilled");
+  expect(await a.reserve(inputs[index]!)).toEqual({ state: "pending" });
+  // Les expirations libèrent simultanément le quota et la limite de concurrence.
+  expect(await a.reserve(proposal(), later)).toMatchObject({ state: "claimed" });
+});
+
+it("compte les échecs dans le rythme, sans les facturer ni bloquer leur rejeu", async () => {
+  const a = await setup();
+  const inputs = Array.from({ length: 12 }, () => proposal());
+  for (const input of inputs) {
+    const claim = await a.reserve(input);
+    if (claim.state !== "claimed") throw new Error("claim missing");
+    await failPlannerOperation(a.owner.userId, a.organizationId, input.id, claim.leaseToken);
+  }
+  await expect(a.reserve()).rejects.toMatchObject({ code: "planner_rate_limited" });
+  expect(await a.reserve(inputs[0]!)).toEqual({ state: "refunded" });
+  expect(await prisma.aiPlannerQuota.findUniqueOrThrow({ where: qwhere(a.organizationId) })).toMatchObject({
+    usedProposals: 0,
+    reservedProposals: 0,
+  });
+  expect(await a.reserve(proposal(), new Date(now.getTime() + 60000))).toMatchObject({ state: "claimed" });
+});
+
+it("expose les quotas du mois local sans texte ni bail expiré et contrôle les accès", async () => {
+  const { getPlannerUsage } = await import("@/server/ai/usage.service");
+  const a = await setup();
+  await a.reserve();
+  expect(await getPlannerUsage(a.owner.userId, a.organizationId, now)).toEqual({
+    month: "2030-06",
+    timeZone: "Europe/Paris",
+    limit: { proposals: 30, audioSeconds: 3600 },
+    used: { proposals: 0, audioSeconds: 0 },
+    reserved: { proposals: 1, audioSeconds: 0 },
+  });
+  expect((await getPlannerUsage(a.owner.userId, a.organizationId, later)).reserved.proposals).toBe(0);
+  const other = await makeOrg("AutreQuotaLecture");
+  await expect(getPlannerUsage(other.owner.userId, a.organizationId, now)).rejects.toMatchObject({ status: 403 });
+  settings.AI_PLANNER_ENABLED = "false";
+  await expect(getPlannerUsage(a.owner.userId, a.organizationId, now)).rejects.toMatchObject({
+    code: "planner_disabled",
+  });
+});

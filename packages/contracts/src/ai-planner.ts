@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { clockTime, isoDate, uuid, sessionPhaseChoice, saveScheduledSessionInput } from "./session";
+import { clockTime, isoDate, uuid, sessionPhaseChoice, sessionPhaseReview, saveScheduledSessionInput } from "./session";
 import { sessionType } from "./enums";
 
 // Schéma du prestataire : toutes les clés sont requises, les absences sont explicites.
@@ -133,3 +133,46 @@ export const confirmPlannerProposalInput = z
   })
   .strict();
 export type ConfirmPlannerProposalInput = z.infer<typeof confirmPlannerProposalInput>;
+
+export const preparePlannerDraftsInput = z.object({ expectedVersion: z.number().int().positive() }).strict();
+const plannerCreatedSessions = z
+  .array(z.object({ id: uuid, version: z.number().int().positive() }))
+  .min(1)
+  .max(14);
+export const plannerConfirmationResult = z.object({ sessions: plannerCreatedSessions });
+export const plannerDraftsResponse = z.object({
+  proposalId: uuid,
+  version: z.number().int().positive(),
+  sessions: z.array(plannerReviewedDraft).min(1).max(14),
+});
+export type PlannerDraftsResponse = z.infer<typeof plannerDraftsResponse>;
+export const plannerProposalResponse = z.object({
+  id: uuid,
+  version: z.number().int().positive(),
+  state: z.enum(["processing", "clarification", "proposal", "failed", "committed"]),
+  clarificationCount: z.number().int().min(0).max(5),
+  expiresAt: z.iso.datetime(),
+  selection: plannerSelection,
+  messages: z.array(z.string()).min(1).max(6),
+  pendingText: z.string().nullable(),
+  interpretation: plannerInterpretation.nullable(),
+  targets: z.array(z.object({ token: z.string(), id: uuid, type: z.enum(["group", "athlete"]), label: z.string() })),
+  exercises: z.array(
+    z.object({ token: z.string(), id: uuid, name: z.string(), category: z.string(), updatedAt: z.iso.datetime() }),
+  ),
+  phaseReviews: z.array(z.object({ date: isoDate, review: sessionPhaseReview })),
+  draftIds: plannerCreatedSessions.nullable(),
+});
+export type PlannerProposalResponse = z.infer<typeof plannerProposalResponse>;
+const plannerUsageCounts = z.object({
+  proposals: z.number().int().nonnegative(),
+  audioSeconds: z.number().int().nonnegative(),
+});
+export const plannerUsageResponse = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/),
+  timeZone: z.string(),
+  limit: plannerUsageCounts,
+  used: plannerUsageCounts,
+  reserved: plannerUsageCounts,
+});
+export type PlannerUsageResponse = z.infer<typeof plannerUsageResponse>;

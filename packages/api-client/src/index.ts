@@ -1,5 +1,12 @@
 import { publishSessionsResult, type PublishSessionsInput } from "@tartan/contracts";
 import {
+  plannerProposalResponse,
+  plannerDraftsResponse,
+  plannerConfirmationResult,
+  plannerUsageResponse,
+  type CreatePlannerProposalInput,
+  type ClarifyPlannerProposalInput,
+  type ConfirmPlannerProposalInput,
   trainingAnalysisContext,
   trainingAnalysisResponse,
   type TrainingAnalysisQuery,
@@ -113,6 +120,19 @@ export const createApiClient = (options: ApiClientOptions) => {
   };
 
   return {
+    plannerUsage: (orgId: string) => request("GET", `/orgs/${orgId}/planner/usage`, plannerUsageResponse),
+    createPlannerProposal: (orgId: string, body: CreatePlannerProposalInput) =>
+      request("POST", `/orgs/${orgId}/planner`, plannerProposalResponse, body),
+    plannerProposal: (orgId: string, proposalId: string) =>
+      request("GET", `/orgs/${orgId}/planner/proposals/${proposalId}`, plannerProposalResponse),
+    clarifyPlannerProposal: (orgId: string, proposalId: string, body: ClarifyPlannerProposalInput) =>
+      request("POST", `/orgs/${orgId}/planner/proposals/${proposalId}/clarify`, plannerProposalResponse, body),
+    preparePlannerDrafts: (orgId: string, proposalId: string, expectedVersion: number) =>
+      request("POST", `/orgs/${orgId}/planner/proposals/${proposalId}/prepare`, plannerDraftsResponse, {
+        expectedVersion,
+      }),
+    confirmPlannerProposal: (orgId: string, proposalId: string, body: ConfirmPlannerProposalInput) =>
+      request("POST", `/orgs/${orgId}/planner/proposals/${proposalId}/confirm`, plannerConfirmationResult, body),
     phasePlanning: (orgId: string, query: PhasePlanningQuery) =>
       request("POST", `/orgs/${orgId}/phases/planning`, phasePlanningResponse, query),
     trainingPhases: (orgId: string, query: TrainingPhaseQuery) =>

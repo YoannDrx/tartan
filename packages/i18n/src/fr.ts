@@ -644,6 +644,7 @@ export const fr = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
   aiPlanner: {
+    rateLimited: "Plusieurs demandes sont déjà en cours. Patiente un instant avant de réessayer.",
     contextChanged:
       "Les destinataires, exercices ou phases ont changé. Relis le contexte avant de préparer une nouvelle proposition.",
     libraryLimit: "Choisis entre un et 500 exercices de ta bibliothèque pour cette demande.",

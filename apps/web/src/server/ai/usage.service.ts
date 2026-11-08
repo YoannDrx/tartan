@@ -1,8 +1,8 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { uuid } from "@tartan/contracts";
-import { plannerQuotaFits, PLANNER_MAX_AUDIO_SECONDS } from "@tartan/domain";
+import { uuid, plannerUsageResponse } from "@tartan/contracts";
+import { plannerQuotaFits, plannerLimits, PLANNER_MAX_AUDIO_SECONDS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
@@ -141,6 +141,13 @@ export async function reservePlannerOperation(
         }
         return stateOf(previous);
       }
+      // Sous le même verrou que la réservation : les requêtes concurrentes ne
+      // contournent pas ces bornes. Un rejeu connu ne consomme aucun nouvel essai.
+      const pending = await tx.aiPlannerOperation.count({ where: { organizationId, state: "pending" } });
+      const recent = await tx.aiPlannerOperation.count({
+        where: { organizationId, actorId: userId, createdAt: { gt: new Date(now.getTime() - 60000) } },
+      });
+      if (pending >= 3 || recent >= 12) throw new AppError(429, "planner_rate_limited", m.aiPlanner.rateLimited);
       let month = monthAt(now, organization.timeZone);
       if (input.kind === "clarification") {
         const parent = await tx.aiPlannerProposal.findFirst({
@@ -199,6 +206,7 @@ export async function reservePlannerOperation(
           leaseToken,
           leaseUntil: new Date(now.getTime() + 5 * 60000),
           expiresAt,
+          createdAt: now,
         },
       });
       await tx.aiPlannerQuota.update({
@@ -212,6 +220,34 @@ export async function reservePlannerOperation(
     },
     { timeout: 15000 },
   );
+}
+
+// Lecture sans consommation : les baux déjà expirés ne sont pas présentés comme
+// des réservations actives, même si le cron ne les a pas encore restitués.
+export async function getPlannerUsage(userId: string, organizationId: string, now = new Date()) {
+  await requireOrgMember(userId, organizationId, "manageSessions");
+  return prisma.$transaction(async (tx) => {
+    await lock(tx, organizationId);
+    await requireOrgMember(userId, organizationId, "manageSessions", tx);
+    const org = await tx.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { aiPlannerEnabled: true, plan: true, timeZone: true },
+    });
+    if (!enabled(org)) throw disabled();
+    const month = monthAt(now, org.timeZone);
+    const quota = await tx.aiPlannerQuota.findUnique({ where: { organizationId_month: { organizationId, month } } });
+    const pending = await tx.aiPlannerOperation.aggregate({
+      where: { organizationId, month, state: "pending", leaseUntil: { gt: now } },
+      _sum: { proposalCost: true, audioSeconds: true },
+    });
+    return plannerUsageResponse.parse({
+      month,
+      timeZone: org.timeZone,
+      limit: plannerLimits(org.plan),
+      used: { proposals: quota?.usedProposals ?? 0, audioSeconds: quota?.usedAudioSeconds ?? 0 },
+      reserved: { proposals: pending._sum.proposalCost ?? 0, audioSeconds: pending._sum.audioSeconds ?? 0 },
+    });
+  });
 }
 
 // La création/mise à jour du résultat et la consommation sont dans la même transaction.

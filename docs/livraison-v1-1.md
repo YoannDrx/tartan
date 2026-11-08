@@ -14,7 +14,7 @@ Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil s
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
 | C — historique et records | Historique web/natif, API sécurisée, courbes de volumes et de force avec provenance, références séparées, rappel des séries comparables, calculateur, records de séries, célébration unique confirmée par le serveur et performances athlé typées avec correction web/native | Recette native et physique globale |
 | D — phases et analyses | Phases web/native, choix du constructeur conservé/revalidé et référence figée par prescription ; analyse prévu/réalisé, couverture, courbes hebdomadaires de volumes et charge ressentie avec consentement, diversité, catégories et classement mouvement/matériel figé et intensités par exercice/unité avec couverture, filtres 4/12 semaines/un an/phase conservée avec fenêtre de dates ; période partagée séparée pour athlète/adjoint | Recette globale et physique |
-| E — planificateur IA | Contrats stricts, validation métier, adaptateur OpenAI serveur et réservations de quotas atomiques ajoutés ; drapeau global désactivé, sans route ni interface | Persistance des propositions, clarifications incluses, dictée/transcription, brouillons, purge des textes et corpus d’évaluation |
+| E — planificateur IA | Contrats stricts, adaptateur OpenAI, quotas et limites de rythme atomiques, propositions privées, cinq clarifications, purge, confirmation de brouillons, API et SDK communs ; premier appel réel fictif réussi ; drapeau global désactivé | Interfaces web/natives, dictée/transcription, alias contrôlés, corpus d’évaluation et recette utilisateur |
 
 Les recettes réelles Stripe/e-mails/push/vidéo, les configurations externes encore absentes, les démarches commerciales et juridiques et la publication stores restent ouvertes. Les preuves locales et exports Hermes ne les remplacent pas.
 
@@ -91,7 +91,7 @@ Projet Vercel `tartan`, équipe `team_3XXL1abz5SsLVR9IW9gUU0Sv`, projet `prj_Tg2
 - E-mail en échec : la reprise console recontrôle destinataire et état métier. Un doublon reste possible si une réponse d’envoi s’est perdue au-delà de la fenêtre d’idempotence du prestataire ; la confirmation de reprise le précise. Ne pas rejouer un message obsolète.
 - Espace actif sans repreneur : traiter la file support dans les 30 jours, organiser une reprise vérifiée, puis supprimer le compte inactif. Le mécanisme de protection ne clôt pas cette obligation de traitement.
 
-## PR 2 — lots restant à implémenter
+## Journal initial de la PR 2 — état historique avant les lots ci-dessous
 
 | Lot | Contenu autorisé                                                                                                                   | État                                                                                                         |
 | --- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -378,3 +378,7 @@ Preuves : **608 tests serveur** réussis, dont 13 de quotas ; 35 tests ciblés q
 Persistance versionnée, cinq clarifications incluses, recontrôle des accès/bibliothèque/phases et création atomique de brouillons après confirmation explicite. Les propositions abandonnées sont purgées sous sept jours, les échanges confirmés sous 24 heures ; aucun envoi ni publication automatique. **621 tests serveur**, types et lint réussis. Preview et base locale à 35 migrations, production inchangée.
 
 Premier appel OpenAI réel sur une séance entièrement fictive : sortie stricte, date, destinataire, 3 × 4 × 40 kg et repos 120 s corrects en 4,888 s. Il reste à brancher les endpoints, contrôles de rythme, transcription et interfaces, puis le corpus et les essais utilisateurs. [Preuves et limites](preuves-v1-1/lot-e-propositions-ia.md).
+
+### API du planificateur et protection des appels
+
+Six routes authentifiées et contrats de réponse partagés avec le SDK web/natif. Trois traitements simultanés maximum par espace, douze nouvelles opérations par minute et par coach, sans bloquer les rejeux. Quotas consommés et réservés distincts. **626 tests serveur**, dont deux parcours SDK/routes/Postgres avec modèle simulé ; types et lint réussis. Aucune interface ni dictée livrée par ce lot. [Preuves](preuves-v1-1/lot-e-api-ia.md).
