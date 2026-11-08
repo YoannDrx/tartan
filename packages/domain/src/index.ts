@@ -27,3 +27,4 @@ export * from "./performed-sets";
 export * from "./session-log-review";
 
 export * from "./video-context";
+export * from "./exercise-history";

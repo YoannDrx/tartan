@@ -1,5 +1,8 @@
 import {
   acceptInvitationResponse,
+  athleteExerciseIndex,
+  exerciseHistoryResponse,
+  type ExerciseHistoryQuery,
   organizationResponse,
   type OrganizationUpdateInput,
   type CreateOrganizationInput,
@@ -100,6 +103,16 @@ export const createApiClient = (options: ApiClientOptions) => {
     billing: (orgId: string) => request("GET", `/orgs/${orgId}/billing`, z.any()),
     athleteStats: (orgId: string, athleteId: string) =>
       request("GET", `/orgs/${orgId}/athletes/${athleteId}/stats`, z.any()),
+    athleteHistoryExercises: (orgId: string, athleteId: string) =>
+      request("GET", `/orgs/${orgId}/athletes/${athleteId}/exercise-history`, athleteExerciseIndex),
+    athleteExerciseHistory: (orgId: string, athleteId: string, exerciseId: string, query: ExerciseHistoryQuery) =>
+      request(
+        "GET",
+        `/orgs/${orgId}/athletes/${athleteId}/exercise-history/${exerciseId}`,
+        exerciseHistoryResponse,
+        undefined,
+        query,
+      ),
     strengthMappings: (orgId: string) =>
       request("GET", `/orgs/${orgId}/strength-mappings`, strengthMappingReportResponse),
     confirmStrengthMapping: (orgId: string, body: LegacyStrengthMappingInput) =>
