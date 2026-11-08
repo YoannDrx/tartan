@@ -35,6 +35,7 @@ export default defineConfig({
     env: {
       TARTAN_E2E_BUILD: process.env.E2E_PROD ? "true" : "false",
       E2E_DISABLE_RATE_LIMIT: "true",
+      E2E_DISABLE_ADMIN_STEP_UP: "true",
       COACH_SIGNUP_MODE: "public",
       ADMIN_EMAILS: "support-desktop@e2e.tartan.test,support-mobile@e2e.tartan.test",
       DATABASE_URL,

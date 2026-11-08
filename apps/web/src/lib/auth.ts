@@ -3,6 +3,7 @@ import { m } from "@tartan/i18n";
 import { expo } from "@better-auth/expo";
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
+import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins";
@@ -15,6 +16,11 @@ import { sendEmail } from "./mail";
 import { prisma } from "./prisma";
 
 const e = env();
+
+const isAdminEmail = (email: string) =>
+  e.ADMIN_EMAILS.split(",")
+    .map((value) => value.trim().toLowerCase())
+    .includes(email.trim().toLowerCase());
 
 const socialProviders = {
   ...(e.GOOGLE_CLIENT_ID && e.GOOGLE_CLIENT_SECRET
@@ -108,6 +114,32 @@ export const auth = betterAuth({
     },
   },
   socialProviders,
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== "/passkey/generate-register-options") return;
+      const session = await getSessionFromCtx(ctx);
+      if (!session || !isAdminEmail(session.user.email)) return;
+      // Un accès à la boîte mail ne doit pas suffire à enrôler une clé sur le compte administrateur.
+      const existing = await prisma.passkey.count({ where: { userId: session.user.id } });
+      const stepUp = await prisma.adminStepUp.findUnique({ where: { sessionId: session.session.id } });
+      const bootstrap = ctx.headers?.get("x-admin-bootstrap");
+      const allowed =
+        (existing > 0 && stepUp !== null && Date.now() - stepUp.verifiedAt.getTime() < 600_000) ||
+        (existing === 0 && Boolean(e.ADMIN_BOOTSTRAP_TOKEN) && bootstrap === e.ADMIN_BOOTSTRAP_TOKEN);
+      if (!allowed) throw new APIError("FORBIDDEN", { message: m.admin.stepUpRequired });
+    }),
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== "/passkey/verify-authentication") return;
+      const created = ctx.context.newSession;
+      if (created && isAdminEmail(created.user.email)) {
+        await prisma.adminStepUp.upsert({
+          where: { sessionId: created.session.id },
+          create: { sessionId: created.session.id, method: "passkey", verifiedAt: new Date() },
+          update: { verifiedAt: new Date() },
+        });
+      }
+    }),
+  },
   rateLimit: {
     // Désactivable pour les tests de navigateur, jamais sur la vraie production.
     enabled:
@@ -127,6 +159,11 @@ export const auth = betterAuth({
     session: {
       // La date d'activité décide de la suppression d'un compte inactif, et lever le préavis en découle.
       create: {
+        // Une suspension empêche toute nouvelle session, quel que soit le moyen de connexion.
+        before: async (session) => {
+          const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { suspendedAt: true } });
+          return user?.suspendedAt ? false : undefined;
+        },
         after: async (session) => {
           await prisma.profile.updateMany({
             where: { id: session.userId },
@@ -167,7 +204,7 @@ export const auth = betterAuth({
         });
       },
     }),
-    passkey({ rpName: "Tartan" }),
+    passkey({ rpName: "Tartan", ...(e.PASSKEY_RP_ID ? { rpID: e.PASSKEY_RP_ID } : {}) }),
     expo(),
     nextCookies(),
   ],

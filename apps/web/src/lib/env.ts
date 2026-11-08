@@ -28,6 +28,9 @@ const schema = z.object({
   COACH_SIGNUP_EMAILS: z.string().default(""),
   // Accès à la console de l'éditeur.
   ADMIN_EMAILS: z.string().default(""),
+  // Enrôlement de la première passkey du compte administrateur ; à retirer une fois la clé créée.
+  ADMIN_BOOTSTRAP_TOKEN: optional,
+  PASSKEY_RP_ID: optional,
   MUX_TOKEN_ID: optional,
   MUX_TOKEN_SECRET: optional,
   MUX_WEBHOOK_SECRET: optional,

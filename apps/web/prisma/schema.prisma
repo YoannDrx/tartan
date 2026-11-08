@@ -36,6 +36,7 @@ model User {
   aiPlannerTranscriptions AiPlannerTranscription[]
   consents    Consent[]            @relation("ConsentUser")
 
+  suspendedAt DateTime? @map("suspended_at")
   clientInstallations ClientInstallation[]
 
   @@map("user")
@@ -51,6 +52,8 @@ model Session {
   userAgent String?  @map("user_agent")
   userId    String   @map("user_id") @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  adminStepUp AdminStepUp?
 
   @@index([userId])
   @@map("session")
@@ -1411,12 +1414,16 @@ model AuditLog {
   action         String
   entity         String
   entityId       String?       @map("entity_id")
+  // Valeurs fermées (montant, motif, offre) : aucun texte libre, aucune donnée de santé.
+  metadata       Json?
   at             DateTime      @default(now())
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, at])
+  @@index([at])
+  @@index([actorId, at])
   @@map("audit_log")
 }
 
@@ -1486,6 +1493,14 @@ model Subscription {
   paidSince        DateTime?            @map("paid_since")
   currentPeriodEnd DateTime?            @map("current_period_end")
   cancelAt         DateTime?            @map("cancel_at")
+  // Revenu mensuel hors taxes, recalculé à chaque rapprochement avec Stripe.
+  interval           String?   @map("billing_interval")
+  listMrrCents       Int?      @map("list_mrr_cents")
+  discountedMrrCents Int?      @map("discounted_mrr_cents")
+  discountEndsAt     DateTime? @map("discount_ends_at")
+  trialEndsAt        DateTime? @map("trial_ends_at")
+  canceledAt         DateTime? @map("canceled_at")
+  startedAt          DateTime? @map("started_at")
   createdAt        DateTime             @default(now()) @map("created_at")
   updatedAt        DateTime             @updatedAt @map("updated_at")
   organization     Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -1734,4 +1749,110 @@ model AiPlannerTranscription {
   @@index([organizationId, actorId])
   @@index([expiresAt])
   @@map("ai_planner_transcriptions")
+}
+
+// Miroir local des factures : listes et agrégats. Tout geste sur l'argent relit Stripe.
+model BillingInvoice {
+  id                   String    @id
+  livemode             Boolean
+  // Sans clé étrangère : une facture se conserve après la suppression de l'espace.
+  organizationId       String?   @map("organization_id") @db.Uuid
+  stripeCustomerId     String    @map("stripe_customer_id")
+  stripeSubscriptionId String?   @map("stripe_subscription_id")
+  paymentIntentId      String?   @map("payment_intent_id")
+  chargeId             String?   @map("charge_id")
+  number               String?
+  status               String
+  currency             String
+  totalCents           Int       @map("total_cents")
+  amountPaidCents      Int       @map("amount_paid_cents")
+  taxCents             Int       @default(0) @map("tax_cents")
+  discountCents        Int       @default(0) @map("discount_cents")
+  refundedCents        Int       @default(0) @map("refunded_cents")
+  periodStart          DateTime? @map("period_start")
+  periodEnd            DateTime? @map("period_end")
+  paidAt               DateTime? @map("paid_at")
+  stripeCreatedAt      DateTime  @map("stripe_created_at")
+  syncedAt             DateTime  @map("synced_at")
+
+  @@index([stripeCreatedAt])
+  @@index([organizationId])
+  @@index([chargeId])
+  @@index([paidAt])
+  @@map("billing_invoices")
+}
+
+model BillingDispute {
+  id             String    @id
+  livemode       Boolean
+  chargeId       String    @map("charge_id")
+  organizationId String?   @map("organization_id") @db.Uuid
+  amountCents    Int       @map("amount_cents")
+  status         String
+  reason         String
+  dueBy          DateTime? @map("due_by")
+  syncedAt       DateTime  @map("synced_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("billing_disputes")
+}
+
+// Commande de remboursement : requête exacte conservée, reprise possible avec la même clé.
+model BillingRefund {
+  id                    String    @id @default(uuid()) @db.Uuid
+  invoiceId             String    @map("invoice_id")
+  organizationId        String?   @map("organization_id") @db.Uuid
+  livemode              Boolean
+  amountCents           Int       @map("amount_cents")
+  reasonCode            String    @map("reason_code")
+  // Lue dans la console seulement : jamais envoyée à Stripe ni écrite au journal.
+  note                  String?
+  withdrawal            Boolean   @default(false)
+  source                String
+  state                 String
+  confirmationHash      String?   @map("confirmation_hash")
+  confirmationExpiresAt DateTime? @map("confirmation_expires_at")
+  expectedRefundedCents Int       @map("expected_refunded_cents")
+  inFlightInvoiceId     String?   @unique @map("in_flight_invoice_id")
+  request               Json?
+  attemptedAt           DateTime? @map("attempted_at")
+  attempts              Int       @default(0)
+  leaseToken            String?   @map("lease_token")
+  leaseUntil            DateTime? @map("lease_until")
+  lastErrorCode         String?   @map("last_error_code")
+  stripeRefundId        String?   @unique @map("stripe_refund_id")
+  stripeCreditNoteId    String?   @unique @map("stripe_credit_note_id")
+  preparedBy            String    @map("prepared_by") @db.Uuid
+  confirmedAt           DateTime? @map("confirmed_at")
+  completedAt           DateTime? @map("completed_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  @@index([state, attemptedAt])
+  @@index([invoiceId])
+  @@map("billing_refunds")
+}
+
+model AdminStepUp {
+  sessionId  String   @id @map("session_id") @db.Uuid
+  method     String
+  verifiedAt DateTime @map("verified_at")
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("admin_step_ups")
+}
+
+model PlatformDailyStat {
+  day           DateTime @id @db.Date
+  mrrCents      Int      @map("mrr_cents")
+  payingOrgs    Int      @map("paying_orgs")
+  trialing      Int
+  pastDue       Int      @map("past_due")
+  canceled      Int
+  newPaid       Int      @map("new_paid")
+  users         Int
+  activeUsers7d Int      @map("active_users_7d")
+  refundedCents Int      @map("refunded_cents")
+
+  @@map("platform_daily_stats")
 }
