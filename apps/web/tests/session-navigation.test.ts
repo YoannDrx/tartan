@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { newSessionHref, sessionReturnTo, withSessionReturn } from "@/lib/session-navigation";
+import { calendarSessionHref, newSessionHref, sessionReturnTo, withSessionReturn } from "@/lib/session-navigation";
 
 const group = "11111111-1111-4111-8111-111111111111";
 describe("contexte de navigation des séances", () => {
@@ -23,6 +23,17 @@ describe("contexte de navigation des séances", () => {
     expect(sessionReturnTo("/calendrier?semaine=2026-02-30&vue=mois&mois=2026-13&groupe=inconnu&token=secret")).toBe(
       "/calendrier?vue=mois",
     );
+  });
+  it("ouvre le détail dans la période et retire une ancienne sélection au retour", () => {
+    const context = `/calendrier?semaine=2026-12-07&groupe=${group}&seance=ancienne`;
+    const target = new URL(calendarSessionHref(group, context), "https://tartan.invalid");
+    expect(target.pathname).toBe("/calendrier");
+    expect(target.searchParams.get("seance")).toBe(group);
+    expect(sessionReturnTo(`${target.pathname}${target.search}`)).toBe(
+      `/calendrier?semaine=2026-12-07&groupe=${group}`,
+    );
+    expect(calendarSessionHref(group)).toBe(`/seances/${group}/suivi`);
+    expect(calendarSessionHref(group, "https://example.org")).toBe(`/seances/${group}/suivi`);
   });
   it("transmet le contexte sans perdre l'ancre de l'athlète", () => {
     const target = new URL(

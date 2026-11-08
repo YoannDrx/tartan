@@ -16,7 +16,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
-import { newSessionHref, withSessionReturn } from "@/lib/session-navigation";
+import { calendarSessionHref, newSessionHref } from "@/lib/session-navigation";
 import { duplicateSessionAction, moveSessionAction } from "./session.action";
 import { DeleteRow } from "@/features/athletes/delete-row";
 
@@ -46,7 +46,8 @@ const SessionCard = ({
         {m.sessionType[session.type]}
       </p>
       <Link
-        href={withSessionReturn(`/seances/${session.id}/suivi`, returnTo)}
+        scroll={false}
+        href={calendarSessionHref(session.id, returnTo)}
         className="mt-0.5 block break-words font-semibold leading-snug text-fg no-underline hover:underline"
       >
         {session.title}
@@ -274,7 +275,8 @@ export const MonthBoard = ({
                   .map((s) => (
                     <Link
                       key={s.id}
-                      href={withSessionReturn(`/seances/${s.id}/suivi`, returnTo)}
+                      scroll={false}
+                      href={calendarSessionHref(s.id, returnTo)}
                       style={{
                         backgroundColor: tokens.activity[s.type].background,
                         color: tokens.activity[s.type].text,
@@ -327,7 +329,8 @@ export const MonthBoard = ({
                 {sessions.map((s) => (
                   <Link
                     key={s.id}
-                    href={withSessionReturn(`/seances/${s.id}/suivi`, returnTo)}
+                    scroll={false}
+                    href={calendarSessionHref(s.id, returnTo)}
                     title={`${s.title} · ${m.sessionType[s.type]}`}
                     style={{ backgroundColor: tokens.activity[s.type].background, color: tokens.activity[s.type].text }}
                     className={cn(

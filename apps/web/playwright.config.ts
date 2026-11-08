@@ -33,6 +33,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,
     env: {
+      TARTAN_E2E_BUILD: process.env.E2E_PROD ? "true" : "false",
       E2E_DISABLE_RATE_LIMIT: "true",
       COACH_SIGNUP_MODE: "public",
       ADMIN_EMAILS: "support-desktop@e2e.tartan.test,support-mobile@e2e.tartan.test",

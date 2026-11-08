@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // La recette de production ne remplace pas le build utilisé par un serveur local existant.
+  distDir: process.env.TARTAN_E2E_BUILD === "true" ? ".next-e2e" : ".next",
   poweredByHeader: false,
   experimental: { serverActions: { bodySizeLimit: "5mb" } },
   transpilePackages: [

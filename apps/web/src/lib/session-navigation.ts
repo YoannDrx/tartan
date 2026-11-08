@@ -33,3 +33,11 @@ export const newSessionHref = ({ date, groupId, returnTo }: { date?: string; gro
   if (uuid.safeParse(groupId).success) query.set("groupe", groupId!);
   return withSessionReturn(`/seances/nouvelle${query.size ? `?${query}` : ""}`, returnTo);
 };
+
+export const calendarSessionHref = (sessionId: string, returnTo?: string): string => {
+  const context = sessionReturnTo(returnTo);
+  if (!context?.startsWith("/calendrier")) return withSessionReturn(`/seances/${sessionId}/suivi`, returnTo);
+  const url = new URL(context, "https://tartan.invalid");
+  url.searchParams.set("seance", sessionId);
+  return `${url.pathname}${url.search}`;
+};

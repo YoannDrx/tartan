@@ -10,7 +10,7 @@ Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil s
 
 | Lot | État actuel | Reste principal |
 | --- | --- | --- |
-| A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles, vidéo générique, profil sportif web/native, 49 fiches initiales et publication groupée atomique ajoutés ; accueil préparation physique avec captures réelles et disponibilité V1.1 explicite ; contexte groupe/période conservé dans les parcours de séance | Panneau de détail desktop, bannière contextuelle, suite de la recette du constructeur/onboarding, médias de bibliothèque et recette physique |
+| A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles, vidéo générique, profil sportif web/native, 49 fiches initiales et publication groupée atomique ajoutés ; accueil préparation physique avec captures réelles et disponibilité V1.1 explicite ; contexte groupe/période conservé dans les parcours de séance ; détail latéral desktop/plein écran mobile avec appel et retour clavier testés sur build de production | Bannière contextuelle, suite de la recette du constructeur/onboarding, médias de bibliothèque et recette physique |
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
 | C — historique et records | Historique web/natif, API sécurisée, courbes de volumes et de force avec provenance, références séparées, rappel des séries comparables, calculateur, records de séries, célébration unique confirmée par le serveur et performances athlé typées avec correction web/native | Recette native et physique globale |
 | D — phases et analyses | Phases web/native, choix du constructeur conservé/revalidé et référence figée par prescription ; analyse prévu/réalisé, couverture, courbes hebdomadaires de volumes et charge ressentie avec consentement, diversité, catégories et classement mouvement/matériel figé et intensités par exercice/unité avec couverture, filtres 4/12 semaines/un an/phase conservée avec fenêtre de dates ; période partagée séparée pour athlète/adjoint | Recette globale et physique |
@@ -18,7 +18,7 @@ Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil s
 
 Les recettes réelles Stripe/e-mails/push/vidéo, les configurations externes encore absentes, les démarches commerciales et juridiques et la publication stores restent ouvertes. Les preuves locales et exports Hermes ne les remplacent pas.
 
-Dernière preuve de parcours : [contexte groupe/période et retours](preuves-v1-1/lot-a-contexte-navigation.md).
+Dernière preuve de parcours : [panneau de séance, appel et navigation](preuves-v1-1/lot-a-panneau-calendrier.md), après [contexte groupe/période et retours](preuves-v1-1/lot-a-contexte-navigation.md).
 
 Dernière preuve de positionnement : [accueil préparation physique, captures et limites](preuves-v1-1/lot-a-landing-preparation.md).
 

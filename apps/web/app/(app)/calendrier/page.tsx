@@ -1,4 +1,6 @@
-import { isoDate } from "@tartan/contracts";
+import { CalendarDetailPanel } from "@/features/sessions/calendar-detail-panel";
+import { SessionFollowupContent } from "@/features/tracking/session-detail";
+import { isoDate, uuid } from "@tartan/contracts";
 import { newSessionHref } from "@/lib/session-navigation";
 import { BatchPublication } from "@/features/sessions/batch-publication";
 import { Medal, Plus } from "lucide-react";
@@ -24,7 +26,7 @@ import { CalendarPhases } from "@/features/phases/calendar-phases";
 
 export const metadata: Metadata = { title: m.nav.calendrier };
 
-type Search = { vue?: string; semaine?: string; mois?: string; groupe?: string };
+type Search = { vue?: string; semaine?: string; mois?: string; groupe?: string; seance?: string };
 
 const AthleteCalendar = async ({ ctx }: { ctx: SpaceContext }) => {
   const today = todayIso();
@@ -214,6 +216,18 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
         </nav>
       </div>
       <CalendarPhases ctx={ctx} from={from} to={to} today={today} groupId={params.groupe} />
+      <CalendarDetailPanel
+        sessionId={uuid.safeParse(params.seance).success ? params.seance : undefined}
+        returnTo={href({})}
+      >
+        {uuid.safeParse(params.seance).success ? (
+          <SessionFollowupContent
+            params={Promise.resolve({ id: params.seance! })}
+            searchParams={Promise.resolve({ retour: href({}) })}
+            compact
+          />
+        ) : null}
+      </CalendarDetailPanel>
       {isMonth ? (
         <MonthBoard month={month} today={today} data={data} returnTo={href({})} />
       ) : (
