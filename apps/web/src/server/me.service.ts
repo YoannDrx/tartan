@@ -1,4 +1,5 @@
 import type { MeResponse, ProfileInput, SpaceSummary } from "@tartan/contracts";
+import { can } from "@tartan/domain";
 import { put } from "@vercel/blob";
 import { fromDbDateOrNull, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
@@ -14,7 +15,16 @@ export const listSpaces = async (userId: string): Promise<SpaceSummary[]> => {
     orderBy: { createdAt: "asc" },
     select: {
       role: true,
-      organization: { select: { id: true, name: true, progressionEnabled: true, phasesEnabled: true } },
+      organization: {
+        select: {
+          id: true,
+          name: true,
+          progressionEnabled: true,
+          phasesEnabled: true,
+          aiPlannerEnabled: true,
+          plan: true,
+        },
+      },
     },
   });
   const athletes = await prisma.athlete.findMany({ where: { userId }, select: { id: true, organizationId: true } });
@@ -23,6 +33,11 @@ export const listSpaces = async (userId: string): Promise<SpaceSummary[]> => {
     organizationName: r.organization.name,
     progressionEnabled: r.organization.progressionEnabled,
     phasesEnabled: r.organization.phasesEnabled,
+    aiPlannerEnabled:
+      env().AI_PLANNER_ENABLED === "true" &&
+      r.organization.aiPlannerEnabled &&
+      r.organization.plan !== "discovery" &&
+      can(r.role, "manageSessions"),
     role: r.role,
     athleteId: r.role === "athlete" ? (athletes.find((a) => a.organizationId === r.organization.id)?.id ?? null) : null,
   }));

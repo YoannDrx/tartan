@@ -8,27 +8,40 @@ import {
   plannerSelection,
   confirmPlannerProposalInput,
   plannerProposalResponse,
+  previewPlannerLoadsInput,
+  plannerLoadsPreview,
+  type PreviewPlannerLoadsInput,
   type ConfirmPlannerProposalInput,
   type SaveScheduledSessionInput,
   type PlannerReviewedDraft,
   type ClarifyPlannerProposalInput,
   type CreatePlannerProposalInput,
 } from "@tartan/contracts";
-import { validatePlannerInterpretation, plannerPrescriptionToSession, plannerRetentionDeadline } from "@tartan/domain";
+import {
+  validatePlannerInterpretation,
+  plannerPrescriptionToSession,
+  plannerRetentionDeadline,
+  plannerPhaseChoicesForDate,
+  freezePrescription,
+  isSessionAssigned,
+} from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
-import { AppError, forbidden, notFound } from "@/lib/errors";
+import { AppError, forbidden, notFound, invalid } from "@/lib/errors";
+import { todayIso } from "@/lib/dates";
 import type { AiPlannerProposal, Prisma } from "@/generated/prisma/client";
 import { requireOrgMember } from "../access";
 import { preparePhasePlanning } from "../training-phases.service";
-import { createReviewedPlannerDraft } from "../session.service";
+import { createReviewedPlannerDraft, buildSnapshot } from "../session.service";
+import { strengthResolutionInputsForAthletes } from "../strength.service";
 import {
   assertPlannerTargets,
   buildPlannerBindings,
   plannerBindings,
   providerContextFor,
   recheckPlannerBindings,
+  type PlannerBindings,
 } from "./context";
 import { openAiPlannerProvider, type PlannerProvider } from "./provider";
 import {
@@ -201,6 +214,9 @@ export async function createPlannerProposal(
   input.selection.athleteIds.sort();
   input.selection.exerciseIds.sort();
   input.selection.phaseChoices.sort((a, b) => a.athleteId.localeCompare(b.athleteId));
+  input.selection.phaseChoicesByDate?.sort((a, b) => a.date.localeCompare(b.date));
+  for (const day of input.selection.phaseChoicesByDate ?? [])
+    day.choices.sort((a, b) => a.athleteId.localeCompare(b.athleteId));
   const fingerprint = plannerFingerprint(input);
   const claim = await reservePlannerOperation(
     userId,
@@ -314,7 +330,9 @@ export async function preparePlannerDrafts(
             athleteIds: assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId),
           };
           const preliminary = await preparePhasePlanning(access, { ...targets, choices: [] }, tx);
-          const choices = selection.phaseChoices.filter((c) => preliminary.athletes.some((a) => a.id === c.athleteId));
+          const choices = plannerPhaseChoicesForDate(selection, session.date).filter((c) =>
+            preliminary.athletes.some((a) => a.id === c.athleteId),
+          );
           const phases = choices.length ? await preparePhasePlanning(access, { ...targets, choices }, tx) : preliminary;
           if (phases.athletes.some((a) => a.result.kind === "choose_group")) throw conflict();
           phaseReview = { token: phases.token, choices };
@@ -355,6 +373,127 @@ export async function preparePlannerDrafts(
   );
 }
 
+function assertReviewedScope(
+  draft: PlannerReviewedDraft,
+  selection: ReturnType<typeof plannerSelection.parse>,
+  bindings: PlannerBindings,
+) {
+  const targets = new Set(bindings.targets.map((t) => `${t.type}:${t.id}`));
+  const exercises = new Set(bindings.exercises.map((e) => e.id));
+  const allItems = draft.draft.blocks.flatMap((b) => b.items);
+  const items = new Map(allItems.map((i) => [i.ref, i] as const));
+  if (
+    draft.date < selection.period.from ||
+    draft.date > selection.period.to ||
+    !draft.assignments.length ||
+    draft.assignments.some((a) => !targets.has(`${a.targetType}:${a.targetId}`)) ||
+    allItems.some((i) => !i.ref) ||
+    items.size !== allItems.length ||
+    allItems.some(
+      (i) =>
+        !exercises.has(i.exerciseId) ||
+        (i.prescription.load?.type === "pct_1rm" && i.prescription.load.test !== `exercise:${i.exerciseId}`),
+    ) ||
+    draft.overrides.some(
+      (o) =>
+        !items.has(o.itemRef) ||
+        (o.prescription.load?.type === "pct_1rm" &&
+          o.prescription.load.test !== `exercise:${items.get(o.itemRef)?.exerciseId}`),
+    ) ||
+    new Set(draft.overrides.map((o) => `${o.athleteId}:${o.itemRef}`)).size !== draft.overrides.length
+  )
+    throw conflict();
+}
+
+async function reviewedAudience(tx: Prisma.TransactionClient, organizationId: string, draft: PlannerReviewedDraft) {
+  const direct = draft.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId);
+  const groups = draft.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId);
+  const rows = await tx.athlete.findMany({
+    where: { organizationId, OR: [{ id: { in: direct } }, { groups: { some: { groupId: { in: groups } } } }] },
+    select: { id: true, firstName: true, lastName: true, groups: { select: { groupId: true, createdAt: true } } },
+    orderBy: { id: "asc" },
+  });
+  const athletes = rows.filter((a) =>
+    isSessionAssigned({
+      date: draft.date,
+      assignments: draft.assignments,
+      athleteId: a.id,
+      hasLog: false,
+      groups: a.groups.map((g) => ({ groupId: g.groupId, joinedOn: todayIso(g.createdAt) })),
+    }),
+  );
+  if (draft.overrides.some((o) => !athletes.some((a) => a.id === o.athleteId))) throw forbidden();
+  return athletes;
+}
+
+// Aperçu local au serveur, sans appel IA, sans quota et sans écriture de séance.
+// Dix athlètes par page pour borner les réponses avec des groupes de 120 personnes.
+export async function previewPlannerLoads(
+  userId: string,
+  organizationId: string,
+  proposalId: string,
+  raw: PreviewPlannerLoadsInput,
+  now = new Date(),
+) {
+  const input = previewPlannerLoadsInput.parse(raw);
+  await accessFor(userId, organizationId);
+  return prisma.$transaction(
+    async (tx) => {
+      await lock(tx, organizationId);
+      const access = await accessFor(userId, organizationId, tx),
+        row = await owned(userId, organizationId, proposalId, now, tx);
+      if (row.version !== input.expectedVersion || row.state !== "proposal") throw conflict();
+      const selection = plannerSelection.parse(row.selection),
+        bindings = plannerBindings.parse(row.bindings);
+      await recheckPlannerBindings(tx, access, selection, bindings);
+      assertReviewedScope(input.session, selection, bindings);
+      const athletes = await reviewedAudience(tx, organizationId, input.session);
+      const start = input.afterAthleteId ? athletes.findIndex((a) => a.id === input.afterAthleteId) + 1 : 0;
+      if (input.afterAthleteId && !start) throw invalid();
+      const itemCount = input.session.draft.blocks.reduce((sum, block) => sum + block.items.length, 0);
+      const pageSize = Math.min(10, Math.max(1, Math.floor(1500 / Math.max(1, itemCount))));
+      const page = athletes.slice(start, start + pageSize);
+      const [snapshot, references] = await Promise.all([
+        buildSnapshot(organizationId, input.session.draft, tx),
+        strengthResolutionInputsForAthletes(
+          tx,
+          page.map((a) => a.id),
+        ),
+      ]);
+      return plannerLoadsPreview.parse({
+        athleteCount: athletes.length,
+        offset: start,
+        nextCursor: start + page.length < athletes.length ? page.at(-1)!.id : null,
+        athletes: page.map((a) => ({
+          id: a.id,
+          name: `${a.firstName} ${a.lastName}`,
+          items: freezePrescription(
+            snapshot,
+            references.get(a.id) ?? [],
+            input.session.overrides.filter((o) => o.athleteId === a.id),
+          ).blocks.flatMap((b) =>
+            b.items.map((item) => ({
+              ref: item.ref,
+              exerciseId: item.exerciseId,
+              name: item.name,
+              prescription: item.prescription,
+              resolvedLoadKg: item.resolvedLoadKg ?? null,
+              source: item.strengthReference
+                ? {
+                    value: item.strengthReference.value,
+                    kind: item.strengthReference.originKind ?? item.strengthReference.kind,
+                    date: item.strengthReference.date,
+                  }
+                : null,
+            })),
+          ),
+        })),
+      });
+    },
+    { timeout: 30000 },
+  );
+}
+
 export async function confirmPlannerProposal(
   userId: string,
   organizationId: string,
@@ -381,18 +520,10 @@ export async function confirmPlannerProposal(
       }
       if (row.version !== input.expectedVersion || row.state !== "proposal") throw conflict();
       await recheckPlannerBindings(tx, access, selection, bindings);
-      const allowedTargets = new Set(bindings.targets.map((t) => `${t.type}:${t.id}`)),
-        allowedExercises = new Set(bindings.exercises.map((e) => e.id));
       const sessions: { id: string; version: number }[] = [];
       for (const draft of input.sessions) {
-        if (
-          draft.date < selection.period.from ||
-          draft.date > selection.period.to ||
-          !draft.assignments.length ||
-          draft.assignments.some((a) => !allowedTargets.has(`${a.targetType}:${a.targetId}`)) ||
-          draft.draft.blocks.some((b) => b.items.some((i) => !allowedExercises.has(i.exerciseId)))
-        )
-          throw conflict();
+        assertReviewedScope(draft, selection, bindings);
+        await reviewedAudience(tx, organizationId, draft);
         sessions.push(await createReviewedPlannerDraft(tx, userId, organizationId, draft));
       }
       await tx.aiPlannerProposal.update({

@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { clockTime, isoDate, uuid, sessionPhaseChoice, sessionPhaseReview, saveScheduledSessionInput } from "./session";
+import {
+  clockTime,
+  isoDate,
+  uuid,
+  sessionPhaseChoice,
+  sessionPhaseReview,
+  saveScheduledSessionInput,
+  prescriptionSchema,
+} from "./session";
 import { sessionType } from "./enums";
 
 // Schéma du prestataire : toutes les clés sont requises, les absences sont explicites.
@@ -90,6 +98,18 @@ export const plannerSelection = z
     athleteIds: z.array(uuid).max(200),
     exerciseIds: z.array(uuid).max(500),
     phaseChoices: z.array(sessionPhaseChoice).max(500),
+    // Additif : les anciennes demandes conservent le choix commun à la période.
+    phaseChoicesByDate: z
+      .array(
+        z
+          .object({
+            date: isoDate,
+            choices: z.array(sessionPhaseChoice).max(500),
+          })
+          .strict(),
+      )
+      .max(7)
+      .optional(),
   })
   .strict()
   .refine(
@@ -97,7 +117,14 @@ export const plannerSelection = z
       s.groupIds.length + s.athleteIds.length > 0 &&
       s.groupIds.length + s.athleteIds.length <= 200 &&
       [s.groupIds, s.athleteIds, s.exerciseIds].every((ids) => new Set(ids).size === ids.length) &&
-      new Set(s.phaseChoices.map((c) => c.athleteId)).size === s.phaseChoices.length,
+      new Set(s.phaseChoices.map((c) => c.athleteId)).size === s.phaseChoices.length &&
+      new Set(s.phaseChoicesByDate?.map((c) => c.date)).size === (s.phaseChoicesByDate?.length ?? 0) &&
+      (s.phaseChoicesByDate ?? []).every(
+        (day) =>
+          day.date >= s.period.from &&
+          day.date <= s.period.to &&
+          new Set(day.choices.map((c) => c.athleteId)).size === day.choices.length,
+      ),
   );
 export type PlannerSelection = z.infer<typeof plannerSelection>;
 export const createPlannerProposalInput = z
@@ -146,6 +173,38 @@ export const plannerDraftsResponse = z.object({
   sessions: z.array(plannerReviewedDraft).min(1).max(14),
 });
 export type PlannerDraftsResponse = z.infer<typeof plannerDraftsResponse>;
+export const previewPlannerLoadsInput = z
+  .object({
+    expectedVersion: z.number().int().positive(),
+    session: plannerReviewedDraft,
+    afterAthleteId: uuid.optional(),
+  })
+  .strict();
+export type PreviewPlannerLoadsInput = z.infer<typeof previewPlannerLoadsInput>;
+export const plannerLoadsPreview = z.object({
+  athleteCount: z.number().int().nonnegative(),
+  offset: z.number().int().nonnegative(),
+  nextCursor: uuid.nullable(),
+  athletes: z
+    .array(
+      z.object({
+        id: uuid,
+        name: z.string(),
+        items: z.array(
+          z.object({
+            ref: z.string(),
+            exerciseId: uuid,
+            name: z.string(),
+            prescription: prescriptionSchema,
+            resolvedLoadKg: z.number().nonnegative().nullable(),
+            source: z.object({ value: z.number(), kind: z.string(), date: isoDate }).nullable(),
+          }),
+        ),
+      }),
+    )
+    .max(10),
+});
+export type PlannerLoadsPreview = z.infer<typeof plannerLoadsPreview>;
 export const plannerProposalResponse = z.object({
   id: uuid,
   version: z.number().int().positive(),

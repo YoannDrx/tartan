@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { addDays, trainingPhaseProgress } from "@tartan/domain";
+import { addDays, trainingPhaseProgress, plannerPhaseChoicesForDate } from "@tartan/domain";
 import { plannerSelection, type PlannerSelection, sessionPhaseReview, uuid } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { AppError, forbidden, notFound, invalid } from "@/lib/errors";
@@ -98,14 +98,15 @@ export async function buildPlannerBindings(
     phaseCalendar: NonNullable<PlannerBindings["phaseCalendar"]> = [];
   if (org.phasesEnabled)
     for (let date = selection.period.from; date <= selection.period.to; date = addDays(date, 1)) {
+      const choices = plannerPhaseChoicesForDate(selection, date);
       const phases = await preparePhasePlanning(
         access,
-        { date, groupIds: selection.groupIds, athleteIds: selection.athleteIds, choices: selection.phaseChoices },
+        { date, groupIds: selection.groupIds, athleteIds: selection.athleteIds, choices },
         tx,
       );
       if (phases.athletes.some((a) => a.result.kind === "choose_group"))
         throw new AppError(409, "phase_choice_required", m.trainingPhases.reviewRequired);
-      phaseReviews.push({ date, review: { token: phases.token, choices: selection.phaseChoices } });
+      phaseReviews.push({ date, review: { token: phases.token, choices } });
       for (const target of targets) {
         const athlete = phases.athletes.find((a) => a.id === target.id);
         const phase =

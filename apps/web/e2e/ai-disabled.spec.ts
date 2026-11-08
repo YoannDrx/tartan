@@ -15,6 +15,7 @@ test("le build de production refuse l'IA désactivée sans perturber le construc
   await createCoachSpace(page, "PlanificateurFerme");
   const me = await (await page.request.get("/api/v1/me")).json();
   const orgId = me.spaces[0].organizationId;
+  expect(me.spaces[0].aiPlannerEnabled).toBe(false);
   const api = createApiClient({
     baseUrl: new URL(page.url()).origin,
     headers: async () => ({ Cookie: (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join("; ") }),

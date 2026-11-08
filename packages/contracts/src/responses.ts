@@ -19,6 +19,7 @@ export const spaceSummary = z.object({
   organizationName: z.string(),
   progressionEnabled: z.boolean().optional(),
   phasesEnabled: z.boolean().optional(),
+  aiPlannerEnabled: z.boolean().optional(),
   role: orgRole,
   athleteId: z.string().nullable(),
 });

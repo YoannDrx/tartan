@@ -5,12 +5,15 @@ import {
   type PlannerInterpretation,
   type PlannerPrescription,
   type Prescription,
+  type PlannerSelection,
 } from "@tartan/contracts";
 import type { PlanKey } from "./plans";
 
 export const PLANNER_MAX_AUDIO_BYTES = 3 * 1024 * 1024;
 export const PLANNER_MAX_AUDIO_SECONDS = 180;
 export const PLANNER_MAX_CLARIFICATIONS = 5;
+export const plannerPhaseChoicesForDate = (selection: PlannerSelection, date: string) =>
+  selection.phaseChoicesByDate?.find((day) => day.date === date)?.choices ?? selection.phaseChoices;
 export const plannerLimits = (plan: PlanKey) =>
   plan === "discovery"
     ? { proposals: 0, audioSeconds: 0 }

@@ -9,11 +9,13 @@ import {
   purgePlannerProposals,
   preparePlannerDrafts,
   confirmPlannerProposal,
+  previewPlannerLoads,
 } from "@/server/ai/proposal.service";
 import { pseudonymizePlannerText, type PlannerBindings } from "@/server/ai/context";
 import type { PlannerProvider, PlannerProviderContext } from "@/server/ai/provider";
 import { expirePlannerOperations } from "@/server/ai/usage.service";
 import { saveTrainingPhase } from "@/server/training-phases.service";
+import { selectStrengthReference } from "@/server/strength.service";
 import { addStaff, addAthlete, makeOrg } from "./helpers";
 const flags = vi.hoisted(() => ({ AI_PLANNER_ENABLED: "true" }));
 vi.mock("@/lib/env", async (original) => {
@@ -405,6 +407,226 @@ it("un contexte de phase ambigu exige un choix et aucune note privée ne part au
   const draft = await prisma.scheduledSession.findUniqueOrThrow({ where: { id: confirmed.sessions[0]!.id } });
   expect(draft.phaseContext).not.toBeNull();
   expect(draft.publishedAt).toBeNull();
+});
+
+it("une semaine conserve un choix par date quand un cycle de groupe se termine en cours de période", async () => {
+  const a = await setup();
+  await prisma.organization.update({ where: { id: a.organizationId }, data: { phasesEnabled: true } });
+  const other = await prisma.group.create({ data: { organizationId: a.organizationId, name: "Second contexte" } });
+  const athlete = await addAthlete(a.organizationId, a.groupId, "Athlète fictif");
+  await prisma.groupMember.create({
+    data: { groupId: other.id, athleteId: athlete.athleteId, createdAt: new Date("2020-01-01") },
+  });
+  for (const [groupId, endDate, kind] of [
+    [a.groupId, "2030-06-03", "development"],
+    [other.id, "2030-06-09", "recovery"],
+  ] as const)
+    await saveTrainingPhase(a.owner.userId, a.organizationId, {
+      id: randomUUID(),
+      expectedVersion: 0,
+      name: "Phase",
+      kind,
+      target: { type: "group", id: groupId },
+      startDate: "2030-06-03",
+      endDate,
+      objective: "",
+      description: "",
+      privateNote: "",
+    });
+  const input = structuredClone(a.input);
+  input.selection.groupIds = [];
+  input.selection.athleteIds = [athlete.athleteId];
+  input.selection.phaseChoicesByDate = [
+    { date: "2030-06-03", choices: [{ athleteId: athlete.athleteId, groupId: a.groupId }] },
+  ];
+  const p = provider((context) => {
+    const result = proposal(context);
+    return { ...result, sessions: [result.sessions[0]!, { ...result.sessions[0]!, date: "2030-06-04" }] };
+  });
+  const created = await a.create(p, input);
+  expect(p.interpret.mock.calls[0]![0].phaseCalendar?.map((day) => day.phase?.kind)).toEqual([
+    "development",
+    "recovery",
+    "recovery",
+    "recovery",
+    "recovery",
+    "recovery",
+    "recovery",
+  ]);
+  const review = await preparePlannerDrafts(a.owner.userId, a.organizationId, input.id, created.version, now);
+  expect(review.sessions[0]?.phaseReview?.choices).toEqual(input.selection.phaseChoicesByDate[0]!.choices);
+  expect(review.sessions[1]?.phaseReview?.choices).toEqual([]);
+  const confirmed = await confirmPlannerProposal(
+    a.owner.userId,
+    a.organizationId,
+    input.id,
+    { expectedVersion: created.version, confirmed: true, sessions: review.sessions },
+    now,
+  );
+  expect(confirmed.sessions).toHaveLength(2);
+  const rows = await prisma.scheduledSession.findMany({
+    where: { id: { in: confirmed.sessions.map((s) => s.id) } },
+    orderBy: { date: "asc" },
+  });
+  expect(rows.every((row) => row.publishedAt === null)).toBe(true);
+  expect(rows.map((row) => (row.phaseContext as { review: { choices: unknown[] } }).review.choices)).toEqual([
+    input.selection.phaseChoicesByDate[0]!.choices,
+    [],
+  ]);
+});
+
+it("prévisualise les charges réelles de référence par pages, sans envoyer les maxima au modèle ni écrire de séance", async () => {
+  const a = await setup();
+  await prisma.organization.update({ where: { id: a.organizationId }, data: { progressionEnabled: true } });
+  await prisma.exercise.update({
+    where: { id: a.exercise.id },
+    data: { strengthLoadKind: "external_total", loadStepKg: 2.5 },
+  });
+  const athletes: Awaited<ReturnType<typeof addAthlete>>[] = [];
+  for (let i = 0; i < 12; i++) athletes.push(await addAthlete(a.organizationId, a.groupId, `Fictif ${i}`));
+  await selectStrengthReference(a.owner.userId, a.organizationId, athletes[0]!.athleteId, a.exercise.id, {
+    source: "working",
+    valueKg: 100,
+  });
+  const p = provider(),
+    created = await a.create(p);
+  const review = await preparePlannerDrafts(a.owner.userId, a.organizationId, a.input.id, created.version, now);
+  const session = review.sessions[0]!,
+    item = session.draft.blocks[0]!.items[0]!;
+  item.prescription.load = { type: "pct_1rm", value: 80, test: `exercise:${a.exercise.id}` };
+  session.overrides = [
+    { athleteId: athletes[1]!.athleteId, itemRef: item.ref!, prescription: { load: { type: "kg", value: 35 } } },
+  ];
+  const args = { expectedVersion: created.version, session };
+  const first = await previewPlannerLoads(a.owner.userId, a.organizationId, a.input.id, args, now);
+  expect(first.athletes).toHaveLength(10);
+  expect(first.athleteCount).toBe(12);
+  const second = await previewPlannerLoads(
+    a.owner.userId,
+    a.organizationId,
+    a.input.id,
+    { ...args, afterAthleteId: first.nextCursor! },
+    now,
+  );
+  expect(second.athletes).toHaveLength(2);
+  expect(second.nextCursor).toBeNull();
+  const rows = [...first.athletes, ...second.athletes];
+  expect(new Set(rows.map((r) => r.id)).size).toBe(12);
+  expect(rows.find((r) => r.id === athletes[0]!.athleteId)?.items[0]).toMatchObject({
+    resolvedLoadKg: 80,
+    source: { value: 100, kind: "working" },
+  });
+  expect(rows.find((r) => r.id === athletes[1]!.athleteId)?.items[0]).toMatchObject({
+    resolvedLoadKg: 35,
+    source: null,
+  });
+  expect(rows.find((r) => r.id === athletes[2]!.athleteId)?.items[0]).toMatchObject({
+    resolvedLoadKg: null,
+    source: null,
+  });
+  expect(p.interpret).toHaveBeenCalledTimes(1);
+  expect(JSON.stringify(p.interpret.mock.calls[0]![0])).not.toContain("valueKg");
+  expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
+  expect(await prisma.aiPlannerOperation.count({ where: { organizationId: a.organizationId } })).toBe(1);
+  const large = structuredClone(session);
+  large.overrides = [];
+  large.draft.blocks = Array.from({ length: 12 }, (_, b) => ({
+    ref: `large-b${b}`,
+    name: "Bloc",
+    variant: "club" as const,
+    items: Array.from({ length: 60 }, (_, i) => ({
+      ref: `large-b${b}-i${i}`,
+      exerciseId: a.exercise.id,
+      prescription: { sets: 3, reps: 4, load: { type: "kg" as const, value: 40 }, notes: "n".repeat(500) },
+    })),
+  }));
+  const bounded = await previewPlannerLoads(
+    a.owner.userId,
+    a.organizationId,
+    a.input.id,
+    { expectedVersion: created.version, session: large },
+    now,
+  );
+  expect(bounded.athletes).toHaveLength(2);
+  expect(bounded.offset).toBe(0);
+  expect(bounded.athletes.flatMap((athlete) => athlete.items)).toHaveLength(1440);
+  expect(JSON.stringify(bounded).length).toBeLessThan(3 * 1024 * 1024);
+  const late = await addAthlete(a.organizationId, a.groupId, "Arrivée tardive", { joinedAt: new Date("2030-06-04") });
+  const same = await previewPlannerLoads(a.owner.userId, a.organizationId, a.input.id, args, now);
+  expect(same.athleteCount).toBe(12);
+  await expect(
+    previewPlannerLoads(a.owner.userId, a.organizationId, a.input.id, { ...args, afterAthleteId: late.athleteId }, now),
+  ).rejects.toMatchObject({ code: "invalid" });
+});
+
+it("refuse un aperçu d'un autre auteur et une adaptation d'athlète hors destinataires, y compris à la confirmation", async () => {
+  const a = await setup();
+  const outside = await addAthlete(a.organizationId, null, "Hors destinataires");
+  const colleague = await addStaff(a.organizationId, "Autre coach", "coach", [a.groupId]);
+  const created = await a.create(),
+    review = await preparePlannerDrafts(a.owner.userId, a.organizationId, a.input.id, created.version, now);
+  const session = review.sessions[0]!;
+  const missingRef = structuredClone(session);
+  delete missingRef.draft.blocks[0]!.items[0]!.ref;
+  await expect(
+    previewPlannerLoads(
+      a.owner.userId,
+      a.organizationId,
+      a.input.id,
+      { expectedVersion: created.version, session: missingRef },
+      now,
+    ),
+  ).rejects.toMatchObject({ code: "planner_proposal_conflict" });
+  const unrelatedReference = structuredClone(session);
+  unrelatedReference.draft.blocks[0]!.items[0]!.prescription.load = {
+    type: "pct_1rm",
+    value: 80,
+    test: "unrelated_legacy_max",
+  };
+  await expect(
+    previewPlannerLoads(
+      a.owner.userId,
+      a.organizationId,
+      a.input.id,
+      { expectedVersion: created.version, session: unrelatedReference },
+      now,
+    ),
+  ).rejects.toMatchObject({ code: "planner_proposal_conflict" });
+  await expect(
+    previewPlannerLoads(
+      colleague.userId,
+      a.organizationId,
+      a.input.id,
+      { expectedVersion: created.version, session },
+      now,
+    ),
+  ).rejects.toMatchObject({ code: "forbidden" });
+  session.overrides = [
+    {
+      athleteId: outside.athleteId,
+      itemRef: session.draft.blocks[0]!.items[0]!.ref!,
+      prescription: { load: { type: "kg", value: 20 } },
+    },
+  ];
+  await expect(
+    previewPlannerLoads(
+      a.owner.userId,
+      a.organizationId,
+      a.input.id,
+      { expectedVersion: created.version, session },
+      now,
+    ),
+  ).rejects.toMatchObject({ code: "forbidden" });
+  await expect(
+    confirmPlannerProposal(
+      a.owner.userId,
+      a.organizationId,
+      a.input.id,
+      { expectedVersion: created.version, confirmed: true, sessions: [session] },
+      now,
+    ),
+  ).rejects.toMatchObject({ code: "forbidden" });
+  expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
 });
 
 it("la suppression du compte retire ses textes et la confirmation ne prolonge pas une demande déjà ancienne", async () => {

@@ -12,9 +12,11 @@ import { GET as read } from "../app/api/v1/orgs/[orgId]/planner/proposals/[propo
 import { POST as clarify } from "../app/api/v1/orgs/[orgId]/planner/proposals/[proposalId]/clarify/route";
 import { POST as prepare } from "../app/api/v1/orgs/[orgId]/planner/proposals/[proposalId]/prepare/route";
 import { POST as confirm } from "../app/api/v1/orgs/[orgId]/planner/proposals/[proposalId]/confirm/route";
+import { POST as preview } from "../app/api/v1/orgs/[orgId]/planner/proposals/[proposalId]/preview/route";
 import { POST as transcribe } from "../app/api/v1/orgs/[orgId]/planner/transcriptions/route";
 import { GET as readTranscription } from "../app/api/v1/orgs/[orgId]/planner/transcriptions/[transcriptionId]/route";
 import { addAthlete, makeOrg } from "./helpers";
+import { listSpaces } from "@/server/me.service";
 const mocks = vi.hoisted(() => ({ enabled: "true", interpret: vi.fn(), transcribe: vi.fn() }));
 vi.mock("@/lib/session", () => ({
   getActorFrom: async (headers: Headers) => {
@@ -43,6 +45,21 @@ beforeEach(() => {
     suggestions: [],
     questions: [{ id: "repos", field: "rest", question: "Quel repos ?", options: [] }],
   }));
+});
+
+it("n'annonce le planificateur qu'avec le rôle, l'offre et les deux drapeaux actifs", async () => {
+  const org = await makeOrg();
+  const enabled = async () => (await listSpaces(org.owner.userId))[0]?.aiPlannerEnabled;
+  expect(await enabled()).toBe(false);
+  await prisma.organization.update({ where: { id: org.organizationId }, data: { aiPlannerEnabled: true } });
+  expect(await enabled()).toBe(true);
+  const athlete = await addAthlete(org.organizationId, org.groupId, "Athlète fictif");
+  expect((await listSpaces(athlete.userId))[0]?.aiPlannerEnabled).toBe(false);
+  mocks.enabled = "false";
+  expect(await enabled()).toBe(false);
+  mocks.enabled = "true";
+  await prisma.organization.update({ where: { id: org.organizationId }, data: { plan: "discovery" } });
+  expect(await enabled()).toBe(false);
 });
 
 it("le client transmet l'annulation de la dictée au transport multipart sans renvoi automatique", async () => {
@@ -89,7 +106,9 @@ const transport = (userId?: string) =>
                   ? prepare
                   : parts[8] === "confirm"
                     ? confirm
-                    : read;
+                    : parts[8] === "preview"
+                      ? preview
+                      : read;
       const response = await handler(request, ctx);
       if (response.ok) expect(response.headers.get("cache-control")).toBe("private, no-store");
       if (parts[6] === "transcriptions" && [401, 403].includes(response.status)) expect(request.bodyUsed).toBe(false);
@@ -181,6 +200,16 @@ it("fait passer le parcours SDK et routes par les mêmes contrôles jusqu'aux br
     text: "Deux minutes de repos.",
   });
   const draft = await a.api.preparePlannerDrafts(a.organizationId, first.id, ready.version);
+  const previewInput = { expectedVersion: ready.version, session: draft.sessions[0]! };
+  expect((await a.api.previewPlannerLoads(a.organizationId, first.id, previewInput)).athleteCount).toBe(0);
+  await expect(transport().previewPlannerLoads(a.organizationId, first.id, previewInput)).rejects.toMatchObject({
+    status: 401,
+  });
+  mocks.enabled = "false";
+  await expect(a.api.previewPlannerLoads(a.organizationId, first.id, previewInput)).rejects.toMatchObject({
+    status: 403,
+  });
+  mocks.enabled = "true";
   const body = { expectedVersion: ready.version, confirmed: true as const, sessions: draft.sessions };
   const saved = await a.api.confirmPlannerProposal(a.organizationId, first.id, body);
   expect(await a.api.confirmPlannerProposal(a.organizationId, first.id, body)).toEqual(saved);

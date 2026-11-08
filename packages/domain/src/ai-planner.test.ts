@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { plannerInterpretation, type PlannerInterpretation, type PlannerPrescription } from "@tartan/contracts";
+import {
+  plannerInterpretation,
+  plannerSelection,
+  type PlannerSelection,
+  type PlannerInterpretation,
+  type PlannerPrescription,
+} from "@tartan/contracts";
 import {
   plannerAudioIsWithinLimits,
   plannerLimits,
@@ -7,9 +13,38 @@ import {
   plannerQuotaFits,
   plannerRetentionDeadline,
   validatePlannerInterpretation,
+  plannerPhaseChoicesForDate,
 } from "./ai-planner";
 
 const exerciseId = "00000000-0000-4000-8000-000000000001";
+it("les choix de phase datés remplacent le choix commun uniquement au jour explicitement relu", () => {
+  const selection: PlannerSelection = {
+    period: { from: "2030-06-03", to: "2030-06-09" },
+    groupIds: [exerciseId],
+    athleteIds: [],
+    exerciseIds: [],
+    phaseChoices: [{ athleteId: exerciseId, groupId: exerciseId }],
+    phaseChoicesByDate: [{ date: "2030-06-04", choices: [] }],
+  };
+  expect(plannerSelection.safeParse(selection).success).toBe(true);
+  expect(plannerPhaseChoicesForDate(selection, "2030-06-03")).toEqual(selection.phaseChoices);
+  expect(plannerPhaseChoicesForDate(selection, "2030-06-04")).toEqual([]);
+  expect(
+    plannerSelection.safeParse({ ...selection, phaseChoicesByDate: [{ date: "2030-06-10", choices: [] }] }).success,
+  ).toBe(false);
+  expect(
+    plannerSelection.safeParse({
+      ...selection,
+      phaseChoicesByDate: [selection.phaseChoicesByDate![0], selection.phaseChoicesByDate![0]],
+    }).success,
+  ).toBe(false);
+  expect(
+    plannerSelection.safeParse({
+      ...selection,
+      phaseChoicesByDate: [{ date: "2030-06-04", choices: [...selection.phaseChoices, ...selection.phaseChoices] }],
+    }).success,
+  ).toBe(false);
+});
 const instruction = "Vendredi, groupe vitesse : squat, trois séries de quatre à 40 kg, repos deux minutes.";
 const prescription: PlannerPrescription = {
   sets: 3,

@@ -1,6 +1,8 @@
 import { publishSessionsResult, type PublishSessionsInput } from "@tartan/contracts";
 import {
   plannerTranscriptionResponse,
+  plannerLoadsPreview,
+  type PreviewPlannerLoadsInput,
   plannerProposalResponse,
   plannerDraftsResponse,
   plannerConfirmationResult,
@@ -135,19 +137,67 @@ export const createApiClient = (options: ApiClientOptions) => {
         undefined,
         signal,
       ),
-    plannerUsage: (orgId: string) => request("GET", `/orgs/${orgId}/planner/usage`, plannerUsageResponse),
-    createPlannerProposal: (orgId: string, body: CreatePlannerProposalInput) =>
-      request("POST", `/orgs/${orgId}/planner`, plannerProposalResponse, body),
-    plannerProposal: (orgId: string, proposalId: string) =>
-      request("GET", `/orgs/${orgId}/planner/proposals/${proposalId}`, plannerProposalResponse),
-    clarifyPlannerProposal: (orgId: string, proposalId: string, body: ClarifyPlannerProposalInput) =>
-      request("POST", `/orgs/${orgId}/planner/proposals/${proposalId}/clarify`, plannerProposalResponse, body),
-    preparePlannerDrafts: (orgId: string, proposalId: string, expectedVersion: number) =>
-      request("POST", `/orgs/${orgId}/planner/proposals/${proposalId}/prepare`, plannerDraftsResponse, {
-        expectedVersion,
-      }),
-    confirmPlannerProposal: (orgId: string, proposalId: string, body: ConfirmPlannerProposalInput) =>
-      request("POST", `/orgs/${orgId}/planner/proposals/${proposalId}/confirm`, plannerConfirmationResult, body),
+    plannerUsage: (orgId: string, signal?: AbortSignal) =>
+      request("GET", `/orgs/${orgId}/planner/usage`, plannerUsageResponse, undefined, undefined, signal),
+    createPlannerProposal: (orgId: string, body: CreatePlannerProposalInput, signal?: AbortSignal) =>
+      request("POST", `/orgs/${orgId}/planner`, plannerProposalResponse, body, undefined, signal),
+    plannerProposal: (orgId: string, proposalId: string, signal?: AbortSignal) =>
+      request(
+        "GET",
+        `/orgs/${orgId}/planner/proposals/${proposalId}`,
+        plannerProposalResponse,
+        undefined,
+        undefined,
+        signal,
+      ),
+    clarifyPlannerProposal: (
+      orgId: string,
+      proposalId: string,
+      body: ClarifyPlannerProposalInput,
+      signal?: AbortSignal,
+    ) =>
+      request(
+        "POST",
+        `/orgs/${orgId}/planner/proposals/${proposalId}/clarify`,
+        plannerProposalResponse,
+        body,
+        undefined,
+        signal,
+      ),
+    preparePlannerDrafts: (orgId: string, proposalId: string, expectedVersion: number, signal?: AbortSignal) =>
+      request(
+        "POST",
+        `/orgs/${orgId}/planner/proposals/${proposalId}/prepare`,
+        plannerDraftsResponse,
+        {
+          expectedVersion,
+        },
+        undefined,
+        signal,
+      ),
+    confirmPlannerProposal: (
+      orgId: string,
+      proposalId: string,
+      body: ConfirmPlannerProposalInput,
+      signal?: AbortSignal,
+    ) =>
+      request(
+        "POST",
+        `/orgs/${orgId}/planner/proposals/${proposalId}/confirm`,
+        plannerConfirmationResult,
+        body,
+        undefined,
+        signal,
+      ),
+    previewPlannerLoads: (orgId: string, proposalId: string, body: PreviewPlannerLoadsInput, signal?: AbortSignal) =>
+      request(
+        "POST",
+        `/orgs/${orgId}/planner/proposals/${proposalId}/preview`,
+        plannerLoadsPreview,
+        body,
+        undefined,
+        signal,
+      ),
     phasePlanning: (orgId: string, query: PhasePlanningQuery) =>
       request("POST", `/orgs/${orgId}/phases/planning`, phasePlanningResponse, query),
     trainingPhases: (orgId: string, query: TrainingPhaseQuery) =>
