@@ -1,5 +1,7 @@
 "use client";
 
+import { withSessionReturn } from "@/lib/session-navigation";
+
 import type { ExerciseSummary, Prescription, SessionDraft, SessionType } from "@tartan/contracts";
 import { copyDraftWithNewRefs, formatPrescription, withSessionRefs } from "@tartan/domain";
 import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
@@ -235,6 +237,8 @@ export const SessionBuilder = ({
   templates,
   testKeys,
   defaultDate,
+  defaultGroupId,
+  returnTo,
 }: {
   organizationId: string;
   phasesEnabled?: boolean;
@@ -258,6 +262,8 @@ export const SessionBuilder = ({
   templates: (SessionDraft & { id: string; canDelete?: boolean })[];
   testKeys: string[];
   defaultDate: string;
+  defaultGroupId?: string;
+  returnTo?: string;
 }) => {
   const router = useRouter();
   const start = useMemo(() => split(initial?.draft ?? null), [initial]);
@@ -280,7 +286,13 @@ export const SessionBuilder = ({
   const [version, setVersion] = useState<Version>("club");
   const [selectedGroups, setSelectedGroups] = useState(
     initial?.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId) ??
-      (groups.length === 1 && groups[0] ? [groups[0].id] : []),
+      (defaultGroupId !== undefined
+        ? groups.some((group) => group.id === defaultGroupId)
+          ? [defaultGroupId]
+          : []
+        : groups.length === 1 && groups[0]
+          ? [groups[0].id]
+          : []),
   );
   const [selectedAthletes, setSelectedAthletes] = useState(
     initial?.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId) ?? [],
@@ -377,8 +389,8 @@ export const SessionBuilder = ({
               : m.builder.published
             : "Brouillon enregistré.",
       );
-      if (input.publish && data) router.push(`/seances/${data.id}/suivi`);
-      else if (data && !initial) router.replace(`/seances/${data.id}`);
+      if (input.publish && data) router.push(withSessionReturn(`/seances/${data.id}/suivi`, returnTo));
+      else if (data && !initial) router.replace(withSessionReturn(`/seances/${data.id}`, returnTo));
       router.refresh();
     },
     onError: ({ error }) => setFormError(error.serverError ?? m.errors.invalid),
@@ -396,7 +408,7 @@ export const SessionBuilder = ({
   });
   const remove = useAction(deleteSessionAction, {
     onSuccess: () => {
-      router.push("/calendrier");
+      router.push(returnTo ?? "/calendrier");
       router.refresh();
     },
     onError: ({ error }) => setFormError(error.serverError ?? m.errors.invalid),

@@ -1430,6 +1430,8 @@ export const fr = {
     past: "Passées",
   },
   calendar: {
+    groupUnavailable: "Le groupe sélectionné n’est plus disponible. Choisis les destinataires avant de publier.",
+    backToContext: "Revenir à la période sélectionnée",
     emptyMonth: "Aucune séance ce mois-ci.",
     week: "Semaine",
     month: "Mois",

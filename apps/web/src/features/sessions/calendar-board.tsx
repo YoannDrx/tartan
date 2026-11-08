@@ -16,15 +16,18 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
+import { newSessionHref, withSessionReturn } from "@/lib/session-navigation";
 import { duplicateSessionAction, moveSessionAction } from "./session.action";
 import { DeleteRow } from "@/features/athletes/delete-row";
 
 const SessionCard = ({
   session,
+  returnTo,
   onMove,
   onDuplicate,
 }: {
   session: CalendarSession;
+  returnTo?: string;
   onMove: () => void;
   onDuplicate: () => void;
 }) => {
@@ -43,7 +46,7 @@ const SessionCard = ({
         {m.sessionType[session.type]}
       </p>
       <Link
-        href={`/seances/${session.id}/suivi`}
+        href={withSessionReturn(`/seances/${session.id}/suivi`, returnTo)}
         className="mt-0.5 block break-words font-semibold leading-snug text-fg no-underline hover:underline"
       >
         {session.title}
@@ -79,7 +82,19 @@ const SessionCard = ({
   );
 };
 
-export const WeekBoard = ({ week, today, data }: { week: string; today: string; data: CalendarResponse }) => {
+export const WeekBoard = ({
+  week,
+  today,
+  data,
+  returnTo,
+  groupId,
+}: {
+  week: string;
+  today: string;
+  data: CalendarResponse;
+  returnTo?: string;
+  groupId?: string;
+}) => {
   const router = useRouter();
   const [target, setTarget] = useState<{ mode: "move" | "duplicate"; session: CalendarSession } | null>(null);
   const [date, setDate] = useState("");
@@ -135,7 +150,7 @@ export const WeekBoard = ({ week, today, data }: { week: string; today: string; 
                   </span>
                 </h2>
                 <Link
-                  href={`/seances/nouvelle?date=${day}`}
+                  href={newSessionHref({ date: day, groupId, returnTo })}
                   aria-label={`${m.coach.newSession} le ${formatDateLong(day)}`}
                   className="inline-flex size-11 items-center justify-center rounded-button text-soft hover:bg-raise hover:text-fg"
                 >
@@ -156,6 +171,7 @@ export const WeekBoard = ({ week, today, data }: { week: string; today: string; 
                 <SessionCard
                   key={s.id}
                   session={s}
+                  returnTo={returnTo}
                   onMove={() => {
                     setDate(s.date);
                     setTarget({ mode: "move", session: s });
@@ -197,7 +213,17 @@ export const WeekBoard = ({ week, today, data }: { week: string; today: string; 
   );
 };
 
-export const MonthBoard = ({ month, today, data }: { month: string; today: string; data: CalendarResponse }) => {
+export const MonthBoard = ({
+  month,
+  today,
+  data,
+  returnTo,
+}: {
+  month: string;
+  today: string;
+  data: CalendarResponse;
+  returnTo?: string;
+}) => {
   const first = new Date(`${month}-01T12:00:00Z`);
   const offset = (first.getUTCDay() + 6) % 7;
   const start = addDays(`${month}-01`, -offset);
@@ -248,7 +274,7 @@ export const MonthBoard = ({ month, today, data }: { month: string; today: strin
                   .map((s) => (
                     <Link
                       key={s.id}
-                      href={`/seances/${s.id}/suivi`}
+                      href={withSessionReturn(`/seances/${s.id}/suivi`, returnTo)}
                       style={{
                         backgroundColor: tokens.activity[s.type].background,
                         color: tokens.activity[s.type].text,
@@ -301,7 +327,7 @@ export const MonthBoard = ({ month, today, data }: { month: string; today: strin
                 {sessions.map((s) => (
                   <Link
                     key={s.id}
-                    href={`/seances/${s.id}/suivi`}
+                    href={withSessionReturn(`/seances/${s.id}/suivi`, returnTo)}
                     title={`${s.title} · ${m.sessionType[s.type]}`}
                     style={{ backgroundColor: tokens.activity[s.type].background, color: tokens.activity[s.type].text }}
                     className={cn(

@@ -1,3 +1,5 @@
+import { isoDate } from "@tartan/contracts";
+import { newSessionHref } from "@/lib/session-navigation";
 import { BatchPublication } from "@/features/sessions/batch-publication";
 import { Medal, Plus } from "lucide-react";
 import type { Metadata } from "next";
@@ -104,8 +106,13 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
   const params = await searchParams;
   const today = todayIso();
   const isMonth = params.vue === "mois";
-  const week = startOfWeek(params.semaine && /^\d{4}-\d{2}-\d{2}$/.test(params.semaine) ? params.semaine : today);
-  const month = params.mois && /^\d{4}-\d{2}$/.test(params.mois) ? params.mois : today.slice(0, 7);
+  const selectedWeek = isoDate.safeParse(params.semaine).success ? params.semaine : undefined;
+  const selectedMonth =
+    params.mois && /^\d{4}-\d{2}$/.test(params.mois) && isoDate.safeParse(`${params.mois}-01`).success
+      ? params.mois
+      : undefined;
+  const month = selectedMonth ?? (selectedWeek ?? today).slice(0, 7);
+  const week = startOfWeek(selectedWeek ?? (isMonth && selectedMonth ? `${selectedMonth}-01` : today));
   const monthDate = new Date(`${month}-15T12:00:00Z`);
   const shiftMonth = (delta: number) => {
     const d = new Date(Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth() + delta, 15));
@@ -159,7 +166,13 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
               </Button>
             ) : null}
             <Button asChild size="sm" className="order-first desktop:order-none">
-              <Link href="/seances/nouvelle">
+              <Link
+                href={newSessionHref({
+                  date: isMonth ? `${month}-01` : week,
+                  groupId: params.groupe,
+                  returnTo: href({}),
+                })}
+              >
                 <Plus aria-hidden className="size-5" />
                 {m.coach.newSession}
               </Link>
@@ -202,9 +215,9 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
       </div>
       <CalendarPhases ctx={ctx} from={from} to={to} today={today} groupId={params.groupe} />
       {isMonth ? (
-        <MonthBoard month={month} today={today} data={data} />
+        <MonthBoard month={month} today={today} data={data} returnTo={href({})} />
       ) : (
-        <WeekBoard week={week} today={today} data={data} />
+        <WeekBoard week={week} today={today} data={data} returnTo={href({})} groupId={params.groupe} />
       )}
     </div>
   );

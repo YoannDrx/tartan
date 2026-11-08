@@ -1,3 +1,4 @@
+import { sessionReturnTo, withSessionReturn } from "@/lib/session-navigation";
 import { CoachLog } from "@/features/tracking/coach-log";
 import { Pencil, TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
@@ -21,13 +22,25 @@ const painLabel = (pain: { bodyArea: string; side: string; intensity: number }) 
   return `Douleur : ${area}${side}, ${pain.intensity}/10`;
 };
 
-export default async function SessionFollowupPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SessionFollowupPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ retour?: string }>;
+}) {
   const { actor, organizationId, space } = await requireStaffSpace();
   const { id } = await params;
+  const returnTo = sessionReturnTo((await searchParams).retour);
   const session = await orNotFound(() => getSessionDetailForCoach(actor.userId, organizationId, id));
   const comments = await orNotFound(() => listComments(actor.userId, organizationId, "session", id));
   return (
     <div className="flex flex-col gap-4">
+      {returnTo ? (
+        <Link href={returnTo} className="inline-flex min-h-11 items-center font-semibold">
+          {m.calendar.backToContext}
+        </Link>
+      ) : null}
       <PageHeader
         title={session.title}
         detail={`${capitalize(formatDateLong(session.date))}${session.startTime ? ` à ${session.startTime.replace(":", " h ")}` : ""}${session.location ? `, ${session.location}` : ""}`}
@@ -35,7 +48,7 @@ export default async function SessionFollowupPage({ params }: { params: Promise<
           <>
             {session.canEdit ? (
               <Button asChild size="sm" variant="secondary">
-                <Link href={`/seances/${id}`}>
+                <Link href={withSessionReturn(`/seances/${id}`, returnTo)}>
                   <Pencil aria-hidden className="size-4" />
                   {m.common.edit}
                 </Link>
@@ -43,7 +56,7 @@ export default async function SessionFollowupPage({ params }: { params: Promise<
             ) : null}
             {space.progressionEnabled && session.canEdit && session.publishedAt ? (
               <Button asChild size="sm" variant="secondary">
-                <Link href={`/seances/${id}/charges`}>{m.prescriptionRefresh.title}</Link>
+                <Link href={withSessionReturn(`/seances/${id}/charges`, returnTo)}>{m.prescriptionRefresh.title}</Link>
               </Button>
             ) : null}
             {session.publishedAt ? <RemindButton sessionId={id} label={m.coach.remindAll} /> : null}
@@ -110,7 +123,7 @@ export default async function SessionFollowupPage({ params }: { params: Promise<
                       {space.progressionEnabled && session.canEdit ? (
                         <Button asChild variant="secondary" size="sm" className="mt-2">
                           <Link
-                            href={`/seances/${id}/athletes/${a.athleteId}/series`}
+                            href={withSessionReturn(`/seances/${id}/athletes/${a.athleteId}/series`, returnTo)}
                             aria-label={`${m.progression.coachSetsTitle} · ${a.name}`}
                           >
                             {m.progression.coachSetsTitle}
