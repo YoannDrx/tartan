@@ -23,7 +23,7 @@ export default async function SuiviPage({
 }: {
   searchParams: Promise<{ semaine?: string; groupe?: string }>;
 }) {
-  const { actor, organizationId } = await requireStaffSpace();
+  const { actor, organizationId, space } = await requireStaffSpace();
   const { semaine, groupe } = await searchParams;
   const week = startOfWeek(semaine && /^\d{4}-\d{2}-\d{2}$/.test(semaine) ? semaine : todayIso());
   const access = await requireOrgMember(actor.userId, organizationId, "viewTracking");
@@ -50,6 +50,11 @@ export default async function SuiviPage({
         title={m.coach.trackingTitle}
         actions={
           <>
+            {space.progressionEnabled ? (
+              <Button asChild size="sm" variant="secondary">
+                <Link href={`/analyse${groupe ? `?target=group:${groupe}` : ""}`}>{m.analysis.title}</Link>
+              </Button>
+            ) : null}
             <Button asChild size="sm" variant="secondary">
               <a
                 href={`/api/v1/orgs/${organizationId}/tracking/export?from=${week}&to=${addDays(week, 6)}${groupe ? `&groupId=${groupe}` : ""}`}

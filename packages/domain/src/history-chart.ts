@@ -36,9 +36,9 @@ export const historyVolumePoints = (
 };
 
 // Coordonnées communes SVG web/natif : abscisse temporelle et zéro visible, sans pont au-dessus d'un manque.
-export const historyChartGeometry = (points: readonly HistoryPoint[]) => {
+export const historyChartGeometry = (points: readonly HistoryPoint[], scaleMax = 0) => {
   const known = points.filter((point) => point.value !== null);
-  const max = Math.max(1, ...known.map((point) => point.value!));
+  const max = Math.max(1, Number.isFinite(scaleMax) ? scaleMax : 0, ...known.map((point) => point.value!));
   const first = Date.parse(points[0]?.date ?? "1970-01-01");
   const span = Math.max(86_400_000, Date.parse(points.at(-1)?.date ?? "1970-01-01") - first);
   const dots = points.map((point) => ({

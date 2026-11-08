@@ -1,4 +1,7 @@
 import {
+  trainingAnalysisContext,
+  trainingAnalysisResponse,
+  type TrainingAnalysisQuery,
   trainingPhaseList,
   phasePlanningResponse,
   type PhasePlanningQuery,
@@ -128,6 +131,14 @@ export const createApiClient = (options: ApiClientOptions) => {
     me: () => request("GET", "/me", meResponse),
     exportMyData: () => request("GET", "/me/export", z.any()),
     billing: (orgId: string) => request("GET", `/orgs/${orgId}/billing`, z.any()),
+    trainingAnalysisContext: (orgId: string) =>
+      request("GET", `/orgs/${orgId}/analysis/context`, trainingAnalysisContext),
+    trainingAnalysis: (orgId: string, query: TrainingAnalysisQuery) =>
+      request(
+        "GET",
+        `/orgs/${orgId}/analysis?${new URLSearchParams(Object.entries(query).filter((entry): entry is [string, string] => typeof entry[1] === "string"))}`,
+        trainingAnalysisResponse,
+      ),
     athleteStats: (orgId: string, athleteId: string) =>
       request("GET", `/orgs/${orgId}/athletes/${athleteId}/stats`, z.any()),
     athleteHistoryExercises: (orgId: string, athleteId: string) =>

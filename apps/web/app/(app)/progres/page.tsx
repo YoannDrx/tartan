@@ -33,6 +33,9 @@ export default async function ProgresPage() {
           space.progressionEnabled ? (
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="secondary">
+                <Link href="/analyse">{m.analysis.title}</Link>
+              </Button>
+              <Button asChild variant="secondary">
                 <Link href={`/historique/${file.id}`}>{m.exerciseHistory.title}</Link>
               </Button>
               <Button asChild variant="secondary">

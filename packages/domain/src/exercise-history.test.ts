@@ -139,6 +139,10 @@ describe("courbes du réalisé", () => {
     expect(chart.dots[2]!.x - 20).toBeCloseTo(560 / 3);
     expect(historyChartGeometry(points.slice(0, 3)).showChart).toBe(false);
     expect(historyChartGeometry([]).path).toBe("");
+    const aligned = historyChartGeometry(points, chart.max * 2);
+    expect(aligned.max).toBe(chart.max * 2);
+    expect(aligned.dots[0]!.y).toBe(100);
+    expect(historyChartGeometry(points, Number.NaN).max).toBe(chart.max);
   });
   it("emploie des jours calendaires inclusifs indépendants du fuseau et du changement d'heure", () => {
     expect(historyRange("2026-11-08", 28)).toEqual({ from: "2026-10-12", to: "2026-11-08" });

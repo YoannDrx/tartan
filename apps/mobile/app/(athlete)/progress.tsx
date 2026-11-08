@@ -36,6 +36,7 @@ export default function Progress() {
       {file.isError && !file.data ? <ErrorState error={file.error} onRetry={() => void file.refetch()} /> : null}
       {active?.progressionEnabled ? (
         <>
+          <Button label={m.analysis.title} variant="secondary" onPress={() => router.push("/training-analysis")} />
           <Button label={m.calculator.title} variant="secondary" onPress={() => router.push("/load-calculator")} />
           {file.data && !file.isError ? (
             <Button

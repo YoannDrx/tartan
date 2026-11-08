@@ -441,6 +441,9 @@ export default function Tracking() {
 
   return (
     <TabScreen world="work" title={m.coach.trackingTitle} refreshing={tracking.isRefetching} onRefresh={refresh}>
+      {active?.progressionEnabled ? (
+        <Button label={m.analysis.title} variant="secondary" onPress={() => router.push("/training-analysis")} />
+      ) : null}
       <WeekNav {...nav} />
 
       {groups.data && groups.data.length > 1 ? (

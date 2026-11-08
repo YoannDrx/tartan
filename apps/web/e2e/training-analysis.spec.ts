@@ -1,0 +1,139 @@
+import { randomUUID } from "node:crypto";
+import { expect, test } from "@playwright/test";
+import { Client } from "pg";
+import { createApiClient } from "../../../packages/api-client/src/index";
+import { addDays } from "@tartan/domain";
+import { m } from "@tartan/i18n";
+import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
+
+test("analyse web et transport natif : volumes distincts, filtres, couverture et accessibilité", async ({
+  page,
+}, info) => {
+  await createCoachSpace(page, "Analyse");
+  const me = await (await page.request.get("/api/v1/me")).json();
+  const orgId = me.spaces[0].organizationId;
+  const api = createApiClient({
+    baseUrl: new URL(page.url()).origin,
+    headers: async () => ({ Cookie: (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join("; ") }),
+  });
+  const group = (await api.sessionBuilder(orgId)).groups[0]!;
+  const athleteId = randomUUID(),
+    exerciseId = randomUUID();
+  const sql = new Client({
+    connectionString: process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e",
+  });
+  await sql.connect();
+  try {
+    await sql.query("UPDATE organizations SET progression_enabled = true, phases_enabled = true WHERE id = $1", [
+      orgId,
+    ]);
+    await sql.query(
+      "INSERT INTO athletes (id, organization_id, first_name, last_name, updated_at) VALUES ($1,$2,'Camille','Analyse',now())",
+      [athleteId, orgId],
+    );
+    await sql.query(
+      "INSERT INTO group_members (group_id, athlete_id, created_at, updated_at) VALUES ($1,$2,'2020-01-01',now())",
+      [group.id, athleteId],
+    );
+    await sql.query(
+      "INSERT INTO exercises (id, organization_id, name, category, strength_load_kind, updated_at) VALUES ($1,$2,'Squat analyse','strength','external_total',now())",
+      [exerciseId, orgId],
+    );
+  } finally {
+    await sql.end();
+  }
+  const context = await api.trainingAnalysisContext(orgId);
+  const today = context.today;
+  for (let index = 0; index < 4; index++) {
+    const session = await api.createSession(orgId, {
+      date: addDays(today, -21 + index * 7),
+      startTime: null,
+      location: null,
+      publishAt: null,
+      assignments: [{ targetType: "group", targetId: group.id }],
+      overrides: [],
+      draft: {
+        title: `Force ${index}`,
+        type: "strength",
+        durationMin: 45,
+        coachNote: null,
+        blocks: [
+          {
+            name: "Force",
+            variant: "club",
+            items: [{ exerciseId, prescription: { sets: 3, reps: 4, load: { type: "kg", value: 40 } } }],
+          },
+        ],
+      },
+    });
+    await api.publishSession(orgId, session.id, session.version);
+    if (index < 3) {
+      const detail = await api.athleteSessionForCoach(orgId, session.id, athleteId);
+      await api.logSessionForAthlete(orgId, session.id, athleteId, {
+        clientId: randomUUID(),
+        status: "partial",
+        variantDone: "club",
+        expectedVersion: 0,
+        expectedSessionVersion: detail.sessionVersion,
+        detailedSets: [0, 1].map((setIndex) => ({
+          itemRef: "b0-i0",
+          setIndex,
+          done: true,
+          setKind: "work",
+          loadKind: "external",
+          repetitionScope: "total",
+          sideCount: 1,
+          reps: 4,
+          loadKg: 40,
+        })),
+      });
+    }
+  }
+  const phase = await api.saveTrainingPhase(orgId, {
+    id: randomUUID(),
+    expectedVersion: 0,
+    name: "Cycle de force",
+    kind: "development",
+    target: { type: "group", id: group.id },
+    startDate: addDays(today, -27),
+    endDate: today,
+    objective: "",
+    description: "",
+    privateNote: "SECRET_PHASE_ANALYSE",
+  });
+  const data = await api.trainingAnalysis(orgId, { from: addDays(today, -27), to: today });
+  expect(data.totals).toMatchObject({
+    assignedSessions: 4,
+    completedSessions: 3,
+    planned: { tonnageKg: 1920 },
+    actual: { tonnageKg: 960 },
+    detailedSessions: 3,
+  });
+  expect(JSON.stringify(await api.trainingAnalysisContext(orgId))).not.toContain("SECRET_PHASE_ANALYSE");
+  await page.goto("/suivi");
+  await page.getByRole("link", { name: m.analysis.title, exact: true }).click();
+  await expect(page.getByRole("heading", { name: m.analysis.title, exact: true })).toBeVisible();
+  await expect(page.getByText("960", { exact: true })).toBeVisible();
+  await page.getByText(m.analysis.table, { exact: true }).click();
+  await expect(page.getByRole("table")).toBeVisible();
+  await expectAccessible(page);
+  await expectNoHorizontalScroll(page);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: `/tmp/tartan-analysis-${info.project.name}.png`, fullPage: true });
+  await page.getByLabel(m.trainingPhases.target, { exact: true }).selectOption(`athlete:${athleteId}`);
+  await page.getByLabel(m.analysis.period, { exact: true }).selectOption(`phase:${phase.id}`);
+  await page.getByRole("button", { name: m.analysis.apply, exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: m.analysis.phaseScope })).toBeVisible();
+  await expect(page.getByText("960", { exact: true })).toBeVisible();
+  await page.getByLabel(m.analysis.chooseMetric, { exact: true }).selectOption("distanceM");
+  await expect(page.getByText(m.analysis.missing, { exact: true }).first()).toBeVisible();
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expectNoHorizontalScroll(page);
+  }
+  await page.evaluate(() => {
+    document.documentElement.style.zoom = "2";
+  });
+  await expectNoHorizontalScroll(page);
+  await expectAccessible(page);
+});

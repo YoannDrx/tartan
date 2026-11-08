@@ -37,3 +37,4 @@ export * from "./strength-records";
 export * from "./athletic-records";
 
 export * from "./training-phases";
+export * from "./training-analysis";
