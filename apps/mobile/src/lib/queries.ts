@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { addDays } from "@tartan/domain";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { addDays, monthRange, shiftMonthKey } from "@tartan/domain";
 import { useEffect } from "react";
 import { api, fetchCoachAthleteFile } from "./api";
 import { localIsoDate } from "./dates";
@@ -35,14 +35,38 @@ export const useAthleteCalendar = (orgId: string, from: string, to: string) =>
     queryKey: ["athlete-calendar", orgId, from, to],
     queryFn: () => api.athleteCalendar(orgId, from, to),
     enabled: Boolean(orgId),
+    placeholderData: keepPreviousData,
   });
 
-export const useCoachCalendar = (orgId: string, from: string, to: string, groupId?: string) =>
+export const useCoachCalendar = (orgId: string, from: string, to: string, groupId?: string, summary = false) =>
   useQuery({
-    queryKey: ["coach-calendar", orgId, from, to, groupId ?? "all"],
-    queryFn: () => api.calendar(orgId, from, to, groupId),
+    queryKey: ["coach-calendar", orgId, from, to, groupId ?? "all", summary],
+    queryFn: () => api.calendar(orgId, from, to, groupId, summary),
     enabled: Boolean(orgId),
+    placeholderData: keepPreviousData,
   });
+
+// Les mois voisins arrivent d'avance : changer de mois reste immédiat, y compris au stade.
+export const usePrefetchMonths = (orgId: string, month: string, enabled: boolean, groupId?: string, coach = false) => {
+  const client = useQueryClient();
+  useEffect(() => {
+    if (!enabled || !orgId) return;
+    for (const delta of [-1, 1]) {
+      const { from, to } = monthRange(shiftMonthKey(month, delta));
+      if (coach) {
+        void client.prefetchQuery({
+          queryKey: ["coach-calendar", orgId, from, to, groupId ?? "all", true],
+          queryFn: () => api.calendar(orgId, from, to, groupId, true),
+        });
+      } else {
+        void client.prefetchQuery({
+          queryKey: ["athlete-calendar", orgId, from, to],
+          queryFn: () => api.athleteCalendar(orgId, from, to),
+        });
+      }
+    }
+  }, [client, coach, enabled, groupId, month, orgId]);
+};
 
 export const useAnnouncements = (orgId: string) =>
   useQuery({ queryKey: ["announcements", orgId], queryFn: () => api.announcements(orgId), enabled: Boolean(orgId) });

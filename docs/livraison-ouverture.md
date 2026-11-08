@@ -7,7 +7,7 @@ Ce document distingue trois états : code livré dans la PR, testé automatiquem
 | Lot | Contenu | État |
 | --- | --- | --- |
 | 0 | Remise à plat des documents et des données de démonstration | Livré dans la branche |
-| 1 | Vues Liste et Mois, coach et athlète | À faire |
+| 1 | Vues Liste et Mois, coach et athlète | Livré dans la branche ; tests automatiques verts, simulateur iOS à éprouver avec le lot 6 |
 | 2 | Centre de notifications, notes de version, mises à jour | À faire |
 | 3 | Console d'administration, remboursements | À faire |
 | 4 | Lien vidéo-exercice, « À travailler », bibliothèque, mobile terrain | À faire |
