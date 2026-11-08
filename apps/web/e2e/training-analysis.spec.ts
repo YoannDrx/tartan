@@ -117,8 +117,6 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
         variantDone: "club",
         expectedVersion: 0,
         expectedSessionVersion: detail.sessionVersion,
-        rpe: index === 1 ? null : index + 5,
-        durationMin: 40,
         detailedSets: [0, 1].map((setIndex) => ({
           itemRef: "b0-i0",
           setIndex,
@@ -133,6 +131,18 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
       });
     }
   }
+  // Le retour de séance appartient à l'athlète : ce compte de test sans connexion le reçoit en base.
+  const feedback = new Client({
+    connectionString: process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e",
+  });
+  await feedback.connect();
+  await feedback.query(
+    `UPDATE session_logs l SET duration_min = 40,
+       rpe = CASE s.title WHEN 'Force 0' THEN 5 WHEN 'Force 2' THEN 7 ELSE NULL END
+     FROM scheduled_sessions s WHERE s.id = l.scheduled_session_id AND l.athlete_id = $1`,
+    [athleteId],
+  );
+  await feedback.end();
   const data = await api.trainingAnalysis(orgId, { from: addDays(today, -27), to: today });
   expect(data.totals).toMatchObject({
     assignedSessions: 4,

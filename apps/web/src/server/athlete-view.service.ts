@@ -433,8 +433,10 @@ export const logSessionForAthlete = async (
     if (session.createdBy !== userId) throw forbidden();
   }
   // Le staff corrige les séries réalisées ; effort, douleur et commentaire restent ceux de l'athlète.
-  if (raw.writeScope !== undefined && raw.writeScope !== "sets") throw forbidden();
-  const staffWrite = { ...raw, writeScope: "sets" as const };
+  // Une relecture de conflit renvoie la saisie complète : seules ses séries sont retenues.
+  if (raw.writeScope === "status" || raw.writeScope === "feedback") throw forbidden();
+  const { rpe: _rpe, pain: _pain, durationMin: _durationMin, comment: _comment, ...performed } = raw;
+  const staffWrite = { ...performed, writeScope: "sets" as const };
   if (!sessionLogInput.safeParse(staffWrite).success) throw invalid();
   return persistSessionLog(userId, organizationId, sessionId, athleteId, staffWrite, false);
 };

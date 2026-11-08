@@ -157,9 +157,9 @@ it("le staff ne peut ni inventer ni effacer le retour santé d'un athlète", asy
     });
   await expect(write({ writeScope: "feedback", rpe: null })).rejects.toBeTruthy();
   await expect(write({ writeScope: "status" })).rejects.toBeTruthy();
-  await expect(write({ detailedSets: [], rpe: 2 })).rejects.toBeTruthy();
   expect((await prisma.sessionLog.findFirstOrThrow({ where: { scheduledSessionId: session.id } })).rpe).toBe(8);
-  await write({ detailedSets: [] });
+  // Même forme qu'une relecture de conflit : les séries passent, le retour de l'athlète ne bouge pas.
+  await write({ writeScope: "all", detailedSets: [], rpe: 2, comment: "Écrit par le coach" });
   expect((await prisma.sessionLog.findFirstOrThrow({ where: { scheduledSessionId: session.id } })).rpe).toBe(8);
 });
 
