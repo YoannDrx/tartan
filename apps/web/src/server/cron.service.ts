@@ -13,6 +13,8 @@ import { firstNameOf } from "./me.service";
 import { dispatchPending, notify, notifyPublications } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
 import { runReleaseJobs } from "./releases.service";
+import { retryPendingRefunds } from "./billing-refund.service";
+import { snapshotPlatformDay } from "./admin-console.service";
 import { activeAudienceIds, audienceAthleteIds, publishRow, type Publication } from "./session.service";
 import { runCronJobs } from "./cron-runner";
 import { purgeRevokedConsentVideos } from "./consent.service";
@@ -201,6 +203,8 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     eve: () => sendEveQuestions(now),
     dispatched: () => dispatchPending(now),
     releases: () => runReleaseJobs(now),
+    refunds: () => retryPendingRefunds(now),
+    platformStats: async () => (hourInParis(now) === 2 ? snapshotPlatformDay(now) : null),
     billingCommands: () => processBillingCommands(now),
     aiReservations: () => expirePlannerOperations(now),
     aiProposals: () => purgePlannerProposals(now),

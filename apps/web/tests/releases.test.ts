@@ -43,7 +43,7 @@ describe("versions et mises à jour", () => {
     await clean();
     sent = [];
     vi.spyOn(transport, "sendExpoNotification").mockImplementation(async (message) => {
-      sent.push(String(message.to));
+      sent.push(String((message as { to: string }).to));
       return { state: "accepted" };
     });
   });

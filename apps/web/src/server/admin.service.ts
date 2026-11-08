@@ -104,7 +104,8 @@ export const adminOverview = async (actor: { email: string }, now: Date = new Da
   const weekAgo = toDbDate(addDays(todayIso(now), -7));
   const orgs = await prisma.organization.findMany({
     orderBy: { createdAt: "desc" },
-    take: 200,
+    // Les indicateurs du pilote se calculent espace par espace : seuls les plus récents ici, la liste complète a son écran.
+    take: 30,
     select: {
       id: true,
       name: true,
@@ -153,9 +154,11 @@ export const adminOverview = async (actor: { email: string }, now: Date = new Da
     }),
   ]);
   const count = (recommend: boolean) => answers.find((a) => a.recommend === recommend)?._count._all ?? 0;
-  const plans = spaces.reduce<Record<string, number>>((all, s) => ({ ...all, [s.plan]: (all[s.plan] ?? 0) + 1 }), {});
+  const planGroups = await prisma.organization.groupBy({ by: ["plan"], _count: { _all: true } });
+  const plans = Object.fromEntries(planGroups.map((row) => [row.plan, row._count._all]));
   return {
     spaces,
+    spaceCount: planGroups.reduce((total, row) => total + row._count._all, 0),
     plans,
     aiServerEnabled: env().AI_PLANNER_ENABLED === "true",
     notificationDelivery: await notificationDeliveryHealth(now),
