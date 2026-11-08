@@ -40,7 +40,10 @@ export const makeOrg = async (coachName = "Thomas") => {
     firstGroupName: "Hauteur Élite",
   });
   // Les tests d'accès ne portent pas sur les offres : espace sans limite, sauf test dédié.
-  await prisma.organization.update({ where: { id: org.id }, data: { plan: "pilot" } });
+  await prisma.organization.update({
+    where: { id: org.id },
+    data: { plan: "pilot", progressionEnabled: false, phasesEnabled: false, aiPlannerEnabled: false },
+  });
   await syncEntitlements(org.id, "pilot");
   return { owner, organizationId: org.id, groupId: org.firstGroupId };
 };

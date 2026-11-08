@@ -177,9 +177,9 @@ model Organization {
   ownerId                String           @map("owner_id") @db.Uuid
   owner                  User             @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   plan                   OrganizationPlan @default(discovery)
-  progressionEnabled     Boolean          @default(false) @map("progression_enabled")
-  phasesEnabled          Boolean          @default(false) @map("phases_enabled")
-  aiPlannerEnabled       Boolean          @default(false) @map("ai_planner_enabled")
+  progressionEnabled     Boolean          @default(true) @map("progression_enabled")
+  phasesEnabled          Boolean          @default(true) @map("phases_enabled")
+  aiPlannerEnabled       Boolean          @default(true) @map("ai_planner_enabled")
   timeZone               String           @default("Europe/Paris") @map("time_zone")
   stripeCustomerId       String?          @unique @map("stripe_customer_id")
   // Identité du payeur : conservée au transfert, jamais assimilée au nouveau propriétaire.
