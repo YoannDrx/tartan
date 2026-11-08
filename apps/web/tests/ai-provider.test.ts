@@ -247,3 +247,25 @@ it.each(["date", "target"] as const)("transforme un %s hors périmètre en clari
   });
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+it("accepte uniquement les métadonnées sportives connues, sans notes ni champ privé imbriqué", async () => {
+  const fetcher = transport();
+  const exercise = {
+    ...context.exercises[0]!,
+    classification: { movement: "squat" as const, equipment: ["barbell" as const] },
+    strengthLoadKind: "external_total" as const,
+  };
+  await openAiPlannerProvider(fetcher).interpret({ ...context, exercises: [exercise] });
+  const sent = JSON.parse(JSON.parse(String(fetcher.mock.calls[0]![1]?.body)).input);
+  expect(sent.exercises).toEqual([exercise]);
+  for (const invalid of [
+    { ...exercise, classification: { ...exercise.classification, privateNotes: "secret" } },
+    { ...exercise, classification: { ...exercise.classification, equipment: ["unknown"] } },
+    { ...exercise, strengthLoadKind: "unknown" },
+  ]) {
+    await expect(
+      openAiPlannerProvider(fetcher).interpret({ ...context, exercises: [invalid] } as PlannerProviderContext),
+    ).rejects.toMatchObject({ code: "configuration" });
+  }
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});

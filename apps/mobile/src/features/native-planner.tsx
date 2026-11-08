@@ -9,7 +9,7 @@ import {
   type PlannerSelection,
   type PlannerUsageResponse,
 } from "@tartan/contracts";
-import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
+import { plannerDisplayText, phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { usePreventRemove } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
@@ -50,6 +50,7 @@ export function NativePlanner({
   const [text, setText] = useState("");
   const [reviewed, setReviewed] = useState(false);
   const [proposal, setProposal] = useState(initial);
+  const displayText = (value: string) => plannerDisplayText(value, proposal);
   const [usage, setUsage] = useState(initialUsage);
   const [reply, setReply] = useState("");
   const [replyReviewed, setReplyReviewed] = useState(false);
@@ -346,12 +347,12 @@ export function NativePlanner({
           <Divider />
           <SectionTitle>{t.instructions}</SectionTitle>
           {proposal.messages.map((message, i) => (
-            <T key={i}>{message}</T>
+            <T key={i}>{displayText(message)}</T>
           ))}
           {proposal.pendingText ? (
             <>
               <SectionTitle>{t.pendingAnswer}</SectionTitle>
-              <T selectable>{proposal.pendingText}</T>
+              <T selectable>{displayText(proposal.pendingText)}</T>
             </>
           ) : null}
           <T variant="small" tone="muted">
@@ -365,15 +366,15 @@ export function NativePlanner({
               <T>{t.clarificationCount(proposal.clarificationCount)}</T>
               {proposal.interpretation?.questions.map((q) => (
                 <View key={q.id} style={{ gap: space.sm }}>
-                  <T variant="bodyStrong">{q.question}</T>
+                  <T variant="bodyStrong">{displayText(q.question)}</T>
                   {q.options.map((option, i) => (
                     <Button
                       key={i}
                       variant="secondary"
                       disabled={disabled || replySent}
-                      label={option}
+                      label={displayText(option)}
                       onPress={() => {
-                        setReply((old) => `${old}${old ? "\n" : ""}${q.question} ${option}`);
+                        setReply((old) => `${old}${old ? "\n" : ""}${displayText(q.question)} ${displayText(option)}`);
                         setReplyReviewed(false);
                       }}
                     />
@@ -418,7 +419,7 @@ export function NativePlanner({
             <>
               <SectionTitle>{t.assumptions}</SectionTitle>
               {proposal.interpretation.assumptions.map((value, i) => (
-                <T key={i}>{value}</T>
+                <T key={i}>{displayText(value)}</T>
               ))}
             </>
           ) : null}
@@ -426,7 +427,7 @@ export function NativePlanner({
             <>
               <SectionTitle>{t.suggestions}</SectionTitle>
               {proposal.interpretation.suggestions.map((value, i) => (
-                <T key={i}>{value}</T>
+                <T key={i}>{displayText(value)}</T>
               ))}
             </>
           ) : null}
@@ -435,7 +436,7 @@ export function NativePlanner({
               {proposal.interpretation?.sessions.map((session, i) => (
                 <View key={i} style={{ gap: space.sm }}>
                   <T variant="bodyStrong">
-                    {session.date} · {session.title}
+                    {session.date} · {displayText(session.title)}
                   </T>
                   <T>
                     {session.targetTokens
@@ -449,7 +450,7 @@ export function NativePlanner({
                     .flatMap((block) => block.items)
                     .map((item, j) => (
                       <T key={j}>
-                        {t.quotedInstruction} : {item.instruction}
+                        {t.quotedInstruction} : {displayText(item.instruction)}
                       </T>
                     ))}
                 </View>

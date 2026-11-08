@@ -94,7 +94,12 @@ test("contexte, clarification, reprise, aperçu, correction et confirmation perd
         assumptions: [],
         suggestions: [],
         questions: [
-          { id: "repos", field: "rest", question: "Quel repos entre les séries ?", options: ["Deux minutes"] },
+          {
+            id: "repos",
+            field: "rest",
+            question: "Quel repos pour exercise_1 de group_1 ?",
+            options: ["Deux minutes"],
+          },
         ],
       };
       await a.sql.query(
@@ -178,7 +183,14 @@ test("contexte, clarification, reprise, aperçu, correction et confirmation perd
     await page.reload();
     await expect(page.getByRole("heading", { name: t.clarifyTitle })).toBeVisible();
     expect(generations).toBe(1);
+    await expect(
+      page.getByText(`Quel repos pour ${a.exercise.name} de ${a.group.name} ?`, { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("Quel repos pour exercise_1 de group_1 ?", { exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Deux minutes", exact: true }).click();
+    await expect(page.getByLabel(t.clarificationAnswer, { exact: true })).toHaveValue(
+      `Quel repos pour ${a.exercise.name} de ${a.group.name} ? Deux minutes`,
+    );
     await page.getByRole("checkbox", { name: t.reviewed, exact: true }).check();
     await page.getByRole("button", { name: t.clarify, exact: true }).click();
     await page.getByRole("button", { name: t.prepareReview, exact: true }).click();

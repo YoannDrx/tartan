@@ -1997,6 +1997,1161 @@
           "expectedExercises": 0
         }
       ]
+    },
+    {
+      "label": "Matériel et conventions — contexte révisé, attendus inchangés",
+      "model": "gpt-4.1-mini",
+      "commit": "efaba9c66a8393cd28b1a9dafc9599aaa2344d92",
+      "dirty": true,
+      "signature": "e1c21bb115183017a71e13bdef20ab6c92e81c8538845bf8963e1d070a363b0b",
+      "corpusHash": "ea3674ef9144613c33f6fa8c14445a544b3c32571cdb6643bc6aa9688dfa89ed",
+      "implementationHash": "d2fba5234b5e9acd44c78ec902c206e75b93c3bbfca7fe58f5a0f1447b2f4af8",
+      "createdAt": "2026-11-08T07:32:58.864Z",
+      "evaluated": 60,
+      "passed": 52,
+      "cases": [
+        {
+          "id": "P01",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1917,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P02",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1587,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P03",
+          "passed": false,
+          "differences": [],
+          "error": "invalid_output",
+          "durationMs": 17639,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "P04",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2027,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P05",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2892,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P06",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2019,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P07",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1849,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P08",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2187,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P09",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2045,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P10",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1952,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P11",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1506,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P12",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1405,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P13",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2305,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P14",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1756,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P15",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2095,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P16",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1607,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P17",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2299,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P18",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1639,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P19",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2024,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P20",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1771,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P21",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2156,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P22",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1559,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P23",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1838,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P24",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1633,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P25",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1672,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P26",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1978,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P27",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1447,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P28",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1640,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P29",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2226,
+          "exerciseMatches": 2,
+          "expectedExercises": 2
+        },
+        {
+          "id": "P30",
+          "passed": false,
+          "differences": [],
+          "error": "invalid_output",
+          "durationMs": 2918,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C01",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1753,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C02",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1716,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C03",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1236,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C04",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 912,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C05",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1155,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C06",
+          "passed": false,
+          "differences": [
+            "status",
+            "sessions_must_be_empty",
+            "question_missing",
+            "question_field"
+          ],
+          "error": null,
+          "durationMs": 1567,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C07",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1288,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C08",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1603,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C09",
+          "passed": false,
+          "differences": [
+            "status",
+            "sessions_must_be_empty",
+            "question_missing",
+            "question_field"
+          ],
+          "error": null,
+          "durationMs": 1567,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C10",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1203,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C11",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2001,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C12",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 846,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C13",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1589,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C14",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1898,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C15",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1433,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C16",
+          "passed": false,
+          "differences": [
+            "status",
+            "sessions_must_be_empty",
+            "question_missing",
+            "question_field"
+          ],
+          "error": null,
+          "durationMs": 1786,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C17",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1320,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C18",
+          "passed": false,
+          "differences": [
+            "status",
+            "sessions_must_be_empty",
+            "question_missing",
+            "question_field"
+          ],
+          "error": null,
+          "durationMs": 2053,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C19",
+          "passed": false,
+          "differences": [
+            "question_field"
+          ],
+          "error": null,
+          "durationMs": 1960,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C20",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1473,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C21",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1474,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C22",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1600,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C23",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1102,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C24",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1288,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C25",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1222,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C26",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1610,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C27",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1381,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C28",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1590,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C29",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1105,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C30",
+          "passed": false,
+          "differences": [
+            "question_field"
+          ],
+          "error": null,
+          "durationMs": 2809,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        }
+      ]
+    },
+    {
+      "label": "Matériel et conventions — contexte révisé, attendus inchangés",
+      "model": "gpt-5.4-mini-2026-03-17",
+      "commit": "efaba9c66a8393cd28b1a9dafc9599aaa2344d92",
+      "dirty": true,
+      "signature": "22e053498293eeaa3df54258ecf3e1b1d10799d8a0e46ce2175ff74ca6aeb723",
+      "corpusHash": "ea3674ef9144613c33f6fa8c14445a544b3c32571cdb6643bc6aa9688dfa89ed",
+      "implementationHash": "d2fba5234b5e9acd44c78ec902c206e75b93c3bbfca7fe58f5a0f1447b2f4af8",
+      "createdAt": "2026-11-08T07:31:49.986Z",
+      "evaluated": 60,
+      "passed": 49,
+      "cases": [
+        {
+          "id": "P01",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2480,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P03",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1790,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P11",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1627,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P21",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2742,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "C03",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1556,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C07",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1256,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C09",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1620,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C12",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1148,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C14",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1392,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C19",
+          "passed": false,
+          "differences": [
+            "question_field"
+          ],
+          "error": null,
+          "durationMs": 1429,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C22",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1621,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C30",
+          "passed": false,
+          "differences": [
+            "question_field"
+          ],
+          "error": null,
+          "durationMs": 1428,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "P02",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2229,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P04",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1389,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P05",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1783,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P06",
+          "passed": false,
+          "differences": [],
+          "error": "invalid_output",
+          "durationMs": 1728,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "P07",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1636,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P08",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1505,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P09",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1964,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P10",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1617,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P12",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1830,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P13",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1833,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P14",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1787,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P15",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1514,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P16",
+          "passed": false,
+          "differences": [
+            "status",
+            "unexpected_question",
+            "session_count",
+            "sessions.0.missing"
+          ],
+          "error": null,
+          "durationMs": 1495,
+          "exerciseMatches": 0,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P17",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1490,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P18",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1684,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P19",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1733,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P20",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1864,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P22",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1870,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P23",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1875,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P24",
+          "passed": false,
+          "differences": [],
+          "error": "invalid_output",
+          "durationMs": 1743,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "P25",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1477,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P26",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1396,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P27",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1669,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P28",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1483,
+          "exerciseMatches": 1,
+          "expectedExercises": 1
+        },
+        {
+          "id": "P29",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 2110,
+          "exerciseMatches": 2,
+          "expectedExercises": 2
+        },
+        {
+          "id": "P30",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1869,
+          "exerciseMatches": 2,
+          "expectedExercises": 2
+        },
+        {
+          "id": "C01",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1331,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C02",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1255,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C04",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1515,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C05",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1604,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C06",
+          "passed": false,
+          "differences": [
+            "status",
+            "sessions_must_be_empty",
+            "question_missing",
+            "question_field"
+          ],
+          "error": null,
+          "durationMs": 2098,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C08",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1522,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C10",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1206,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C11",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1438,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C13",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1284,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C15",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1360,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C16",
+          "passed": false,
+          "differences": [
+            "status",
+            "sessions_must_be_empty",
+            "question_missing",
+            "question_field"
+          ],
+          "error": null,
+          "durationMs": 1848,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C17",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1197,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C18",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1800,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C20",
+          "passed": false,
+          "differences": [],
+          "error": "invalid_output",
+          "durationMs": 1961,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C21",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1161,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C23",
+          "passed": false,
+          "differences": [
+            "question_field"
+          ],
+          "error": null,
+          "durationMs": 1841,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C24",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1169,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C25",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 916,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C26",
+          "passed": false,
+          "differences": [],
+          "error": "invalid_output",
+          "durationMs": 1782,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C27",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1711,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C28",
+          "passed": true,
+          "differences": [],
+          "error": null,
+          "durationMs": 1360,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        },
+        {
+          "id": "C29",
+          "passed": false,
+          "differences": [
+            "question_field"
+          ],
+          "error": null,
+          "durationMs": 1243,
+          "exerciseMatches": 0,
+          "expectedExercises": 0
+        }
+      ]
     }
   ]
 }

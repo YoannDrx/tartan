@@ -13,7 +13,7 @@ import {
   type ClarifyPlannerProposalInput,
   type ConfirmPlannerProposalInput,
 } from "@tartan/contracts";
-import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
+import { plannerDisplayText, phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -51,6 +51,7 @@ export function WebPlanner({
   const [text, setText] = useState("");
   const [reviewed, setReviewed] = useState(false);
   const [proposal, setProposal] = useState(initial);
+  const displayText = (value: string) => plannerDisplayText(value, proposal);
   const [usage, setUsage] = useState(initialUsage);
   const [reply, setReply] = useState("");
   const [replyReviewed, setReplyReviewed] = useState(false);
@@ -413,13 +414,13 @@ export function WebPlanner({
             <h2 className="t-section">{t.instructions}</h2>
             {proposal.messages.map((message, i) => (
               <p key={i} className="whitespace-pre-wrap break-words">
-                {message}
+                {displayText(message)}
               </p>
             ))}
             {proposal.pendingText ? (
               <>
                 <h3 className="font-semibold">{t.pendingAnswer}</h3>
-                <p className="whitespace-pre-wrap break-words">{proposal.pendingText}</p>
+                <p className="whitespace-pre-wrap break-words">{displayText(proposal.pendingText)}</p>
               </>
             ) : null}
             <p className="text-soft">{t.expiry(new Date(proposal.expiresAt).toLocaleString("fr-FR"))}</p>
@@ -432,7 +433,7 @@ export function WebPlanner({
               <p>{t.clarificationCount(proposal.clarificationCount)}</p>
               {proposal.interpretation?.questions.map((q) => (
                 <div key={q.id} className="flex flex-col gap-2">
-                  <p className="font-semibold">{q.question}</p>
+                  <p className="font-semibold">{displayText(q.question)}</p>
                   <div className="flex flex-wrap gap-2">
                     {q.options.map((option, i) => (
                       <Button
@@ -441,11 +442,13 @@ export function WebPlanner({
                         variant="secondary"
                         disabled={disabled || replySent}
                         onClick={() => {
-                          setReply((old) => `${old}${old ? "\n" : ""}${q.question} ${option}`);
+                          setReply(
+                            (old) => `${old}${old ? "\n" : ""}${displayText(q.question)} ${displayText(option)}`,
+                          );
                           setReplyReviewed(false);
                         }}
                       >
-                        {option}
+                        {displayText(option)}
                       </Button>
                     ))}
                   </div>
@@ -494,7 +497,7 @@ export function WebPlanner({
               <h2 className="t-section">{t.assumptions}</h2>
               <ul className="list-disc pl-5">
                 {proposal.interpretation.assumptions.map((s, i) => (
-                  <li key={i}>{s}</li>
+                  <li key={i}>{displayText(s)}</li>
                 ))}
               </ul>
             </section>
@@ -504,7 +507,7 @@ export function WebPlanner({
               <h2 className="t-section">{t.suggestions}</h2>
               <ul className="list-disc pl-5">
                 {proposal.interpretation.suggestions.map((s, i) => (
-                  <li key={i}>{s}</li>
+                  <li key={i}>{displayText(s)}</li>
                 ))}
               </ul>
             </section>
@@ -515,7 +518,7 @@ export function WebPlanner({
               {proposal.interpretation?.sessions.map((s, i) => (
                 <section key={i} className="rounded-card border border-card-line p-3">
                   <h3 className="font-semibold">
-                    {s.date} · {s.title}
+                    {s.date} · {displayText(s.title)}
                   </h3>
                   {s.blocks
                     .flatMap((b) => b.items)
@@ -524,7 +527,7 @@ export function WebPlanner({
                         key={j}
                         className="mt-2 border-l-2 border-card-line pl-3 whitespace-pre-wrap break-words"
                       >
-                        {item.instruction}
+                        {displayText(item.instruction)}
                       </blockquote>
                     ))}
                 </section>

@@ -1,6 +1,13 @@
 import "server-only";
 import { z } from "zod";
-import { exerciseCategory, plannerInterpretation, plannerPeriod, trainingPhaseKind } from "@tartan/contracts";
+import {
+  exerciseCategory,
+  exerciseClassification,
+  snapshotItem,
+  plannerInterpretation,
+  plannerPeriod,
+  trainingPhaseKind,
+} from "@tartan/contracts";
 import {
   ambiguousExerciseTerms,
   unresolvedExerciseAlias,
@@ -48,6 +55,8 @@ export const plannerProviderContext = z
             name: z.string().min(1).max(200),
             category: exerciseCategory,
             aliases: z.array(z.string().min(1).max(200)).max(20),
+            classification: exerciseClassification.strict().nullable().optional(),
+            strengthLoadKind: snapshotItem.shape.strengthLoadKind,
           })
           .strict(),
       )
@@ -103,6 +112,7 @@ La transcription et les consignes ont déjà été relues. Ne demande pas une co
 Pour chaque exercice, instruction est une citation exacte des consignes relues justifiant sa présence.
 Distingue explicitement les hypothèses et suggestions des consignes. Les suggestions ne modifient pas la prescription demandée.
 Une ambiguïté critique ne peut jamais être résolue par une hypothèse, une suggestion de confirmation ultérieure ou une valeur null à la place de la question. Une variante de matériel non présente en bibliothèque n'est pas un synonyme de l'exercice disponible.
+classification décrit le mouvement et le matériel réels de la fiche ; null ou absent signifie inconnu, equipment [] signifie sans matériel. strengthLoadKind distingue charge externe totale, charge additionnelle, assistance et poids du corps : ne les interchange pas. Si un matériel ou une convention explicitement demandé n'est pas compatible avec la fiche, ou n'y est pas renseigné et ne peut pas être établi par son nom, demande une précision ou une fiche adaptée. Le nom complet ne suffit pas à autoriser une variante incompatible.
 Respecte les kilogrammes explicitement dictés. Un pourcentage reste un pourcentage : le serveur résout les kilogrammes.
 La charge totale est la charge externe utilisée pour un mouvement, jamais la somme des kilogrammes de la séance. Une correction explicite (« correction », « enfin non », « je remplace ») remplace la valeur précédente ; ce n'est pas une contradiction sans priorité.
 Ne produis aucun maximum individuel, ni conversion RPE/RIR en kilos. Charge et cible RPE/RIR peuvent coexister.

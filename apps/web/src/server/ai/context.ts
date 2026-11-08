@@ -1,7 +1,14 @@
 import "server-only";
 import { z } from "zod";
 import { addDays, trainingPhaseProgress, plannerPhaseChoicesForDate } from "@tartan/domain";
-import { plannerSelection, type PlannerSelection, sessionPhaseReview, uuid } from "@tartan/contracts";
+import {
+  plannerSelection,
+  type PlannerSelection,
+  sessionPhaseReview,
+  exerciseClassification,
+  snapshotItem,
+  uuid,
+} from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { AppError, forbidden, notFound, invalid } from "@/lib/errors";
 import type { Prisma } from "@/generated/prisma/client";
@@ -29,6 +36,8 @@ export const plannerBindings = z.object({
       category: z.string(),
       updatedAt: z.string(),
       aliases: z.array(z.string()).optional(),
+      classification: exerciseClassification.strict().nullable().optional(),
+      strengthLoadKind: snapshotItem.shape.strengthLoadKind,
     }),
   ),
   phaseReviews: z.array(z.object({ date: z.iso.date(), review: sessionPhaseReview })),
@@ -71,7 +80,15 @@ export async function buildPlannerBindings(
         deletedAt: null,
         ...(selection.exerciseIds.length ? { id: { in: selection.exerciseIds } } : {}),
       },
-      select: { id: true, name: true, category: true, updatedAt: true, aliases: true },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        updatedAt: true,
+        aliases: true,
+        classification: true,
+        strengthLoadKind: true,
+      },
       orderBy: { id: "asc" },
       take: 501,
     }),
@@ -177,6 +194,8 @@ export function providerContextFor(
       name: e.name,
       category: e.category,
       aliases: e.aliases ?? [],
+      classification: e.classification ?? null,
+      strengthLoadKind: e.strengthLoadKind ?? null,
     })),
     phaseCalendar: bindings.phaseCalendar,
     instructions: messages.map((text) => pseudonymizePlannerText(text, bindings)),

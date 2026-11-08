@@ -27,8 +27,22 @@ Après ces changements : **36 tests ciblés** de prestataire, propositions et é
 
 ## Travail restant
 
-La projection sportive doit inclure le matériel et la convention de charge déjà disponibles sur les fiches, afin de distinguer les variantes. Les questions doivent afficher les noms de l’espace au lieu des jetons techniques. Il faut ensuite reprendre une comparaison complète de modèles sur le même protocole, conserver les preuves de régression et revoir les étiquettes de clarification.
+Le contexte de matériel/convention et la résolution locale des noms dans les questions et citations sont désormais implémentés : voir [la preuve complémentaire](lot-e-contexte-exercices.md). La précision reste insuffisante : poursuivre les contrôles de fidélité, les questions réellement utiles et le traitement des dates/périodes. La copie des titres et notes vers les brouillons demande encore une résolution des jetons ; aucun texte ne doit être tronqué pour rentrer artificiellement dans un contrat.
 
 Il reste aussi les trente dictées consenties/scénarisées effectivement enregistrées, la transcription avec bruit et interruptions, les essais sur téléphones et le nombre de corrections mesuré par les coachs. Les notes, titres et suggestions demandent une revue sémantique, dont la recherche d’une force individuelle inventée dans le texte libre. L’absence de champ « maximum individuel » dans le JSON ne suffit pas à prouver cette absence partout.
 
 Le modèle alternatif a été essayé uniquement dans le processus d’évaluation. Sa compatibilité avec Responses et les sorties structurées a été vérifiée dans la [documentation OpenAI](https://developers.openai.com/api/docs/models/gpt-5.4-mini) ; aucun changement de modèle, de tarif ou de drapeau n’a été appliqué à un espace utilisateur.
+
+
+## Complément — contexte matériel et conventions
+
+Le contexte synthétique a été enrichi des classifications et conventions de ses onze fiches. **Les soixante consignes et leurs attendus restent inchangés.** L'empreinte du corpus change explicitement ; les résultats suivants mesurent ce nouveau contexte et ne sont pas présentés comme une simple répétition à entrée identique.
+
+| Modèle | Cas strictement réussis | Rattachements réussis | Clarifications avec état et champ attendus |
+| --- | ---: | ---: | ---: |
+| gpt-4.1-mini | 52 / 60 | 29 / 32 | 24 / 30 |
+| gpt-5.4-mini-2026-03-17 | 49 / 60 | 29 / 32 | 22 / 30 |
+
+Un passage complet par modèle, sans réessai sélectif des échecs. Pour le second modèle, douze cas ont été joués, puis les quarante-huit restants par reprise du même rapport et de la même signature. Le cas C03 (machine guidée absente de la bibliothèque) demande une précision dans les deux passes. Le modèle initial est conservé et l'IA demeure désactivée.
+
+Échecs substantiels encore observés : récupération/charge habituelles laissées indéfinies sans question, mauvaise résolution de « hier », demande quotidienne sur huit jours tronquée. Des citations altérées sont rejetées par le validateur, et quelques questions sémantiquement pertinentes sont classées dans un champ différent de l'attendu. La convention additionnelle de la fiche « Tractions » suscite aussi une question pour la demande au poids du corps : ce cas doit être traité explicitement, sans assimiler assistance, charge additionnelle et poids corporel. Les textes libres restent à examiner ; le score ne prouve pas la fidélité complète d'une séance.

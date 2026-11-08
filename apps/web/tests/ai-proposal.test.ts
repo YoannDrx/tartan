@@ -125,6 +125,53 @@ it("fige les alias autorisés dans le contexte et invalide la revue après leur 
     preparePlannerDrafts(a.owner.userId, a.organizationId, a.input.id, created.version, now),
   ).rejects.toMatchObject({ code: "planner_context_changed" });
 });
+it("transmet le matériel et la convention sans données privées et relit les anciennes propositions", async () => {
+  const a = await setup();
+  await saveExercise(a.owner.userId, a.organizationId, {
+    id: a.exercise.id,
+    name: a.exercise.name,
+    category: a.exercise.category,
+    classification: { movement: "squat", equipment: ["barbell", "rack"] },
+    strengthLoadKind: "external_total",
+  });
+  const p = provider(clarification);
+  const created = await a.create(p);
+  expect(p.interpret.mock.calls[0]![0].exercises).toEqual([
+    {
+      token: "exercise_1",
+      name: a.exercise.name,
+      category: a.exercise.category,
+      aliases: [],
+      classification: { movement: "squat", equipment: ["barbell", "rack"] },
+      strengthLoadKind: "external_total",
+    },
+  ]);
+  const row = await prisma.aiPlannerProposal.findUniqueOrThrow({ where: { id: a.input.id } });
+  const bindings = row.bindings as unknown as PlannerBindings;
+  expect(bindings.exercises[0]).toMatchObject({
+    classification: { movement: "squat", equipment: ["barbell", "rack"] },
+    strengthLoadKind: "external_total",
+  });
+  // Ancienne proposition : pas de rétro-inférence à partir d'une fiche actuelle.
+  for (const exercise of bindings.exercises) {
+    delete exercise.classification;
+    delete exercise.strengthLoadKind;
+  }
+  await prisma.aiPlannerProposal.update({ where: { id: a.input.id }, data: { bindings } });
+  await clarifyPlannerProposal(
+    a.owner.userId,
+    a.organizationId,
+    a.input.id,
+    {
+      operationId: randomUUID(),
+      expectedVersion: created.version,
+      reviewed: true,
+      text: "Deux minutes de repos.",
+    },
+    { provider: p, clock },
+  );
+  expect(p.interpret.mock.calls[1]![0].exercises[0]).toMatchObject({ classification: null, strengthLoadKind: null });
+});
 it("retrouve les propositions privées par pages stables, sans texte, quota ni appel IA supplémentaire", async () => {
   const a = await setup(),
     p = provider();
