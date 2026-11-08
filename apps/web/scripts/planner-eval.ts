@@ -19,6 +19,9 @@ type CaseResult = {
   score?: PlannerScore;
   coachCorrections: number | null;
   humanAudio: null;
+  // Réponse brute uniquement des scénarios fictifs, pour diagnostiquer un refus
+  // du contrat sans journaliser les consignes privées de l'application.
+  providerText?: string;
 };
 type Report = {
   signature: string;
@@ -83,6 +86,7 @@ async function main() {
       "packages/domain/src/exercise-aliases.ts",
       "packages/contracts/src/ai-planner.ts",
       "apps/web/evals/planner-score.ts",
+      "apps/web/scripts/planner-eval.ts",
     ]
       .map((p) => readFileSync(resolve(root, p), "utf8"))
       .join("\n"),
@@ -122,7 +126,6 @@ async function main() {
     writeFileSync(`${path}.tmp`, `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
     renameSync(`${path}.tmp`, path);
   };
-  const provider = openAiPlannerProvider();
   for (const test of selected) {
     if (report.cases.some((r) => r.id === test.id)) continue;
     const started = Date.now();
@@ -133,6 +136,23 @@ async function main() {
       coachCorrections: null,
       humanAudio: null,
     };
+    const provider = openAiPlannerProvider(async (url, options) => {
+      const response = await fetch(url, options);
+      if (response.ok) {
+        const body = await response
+          .clone()
+          .json()
+          .catch(() => null);
+        if (Array.isArray(body?.output))
+          row.providerText = body.output
+            .flatMap((item: { content?: { type?: string; text?: string }[] }) => item.content ?? [])
+            .filter((part: { type?: string; text?: string }) => part.type === "output_text")
+            .map((part: { text?: string }) => part.text ?? "")
+            .join("\n")
+            .slice(0, 100000);
+      }
+      return response;
+    });
     try {
       row.result = await provider.interpret({
         ...corpusContext,

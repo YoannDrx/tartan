@@ -644,6 +644,10 @@ export const fr = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
   aiPlanner: {
+    clarifyAllowedDate: (from: string, to: string) =>
+      `La date obtenue est hors de la période choisie (${from} au ${to}). Quelle date de cette période souhaites-tu ? Tu peux aussi recommencer avec une autre période.`,
+    clarifyAllowedTarget:
+      "Le destinataire obtenu ne fait pas partie de la sélection autorisée. Quel groupe ou athlète sélectionné doit recevoir cette séance ?",
     ambiguousAlias: (term: string) =>
       `« ${term} » désigne plusieurs fiches. Quel exercice souhaites-tu ? Précise son nom complet ou sa variante.`,
     createdDraft: (index: number) => `Brouillon ${index}`,

@@ -76,6 +76,21 @@ it("transmet les collisions de termes sans choisir arbitrairement une variante",
     ambiguousExerciseTerms: [{ term: "Squat", exerciseTokens: ["exercise_1", "exercise_2"] }],
   });
 });
+it("n'annonce pas une ambiguïté absente ou déjà résolue par le nom complet", async () => {
+  const exercises: PlannerProviderContext["exercises"] = [
+    { token: "exercise_1", name: "Squat arrière", category: "strength", aliases: ["Squat", "Back squat"] },
+    { token: "exercise_2", name: "Squat avant", category: "strength", aliases: ["squat"] },
+    { token: "exercise_3", name: "Accélérations", category: "running_drill", aliases: [] },
+  ];
+  for (const instruction of [
+    "Back squat, 3 séries de 4 à 40 kg, repos 120 secondes.",
+    "Accélérations : 4 fois 30 mètres, repos 120 secondes.",
+  ]) {
+    const fetcher = transport();
+    await openAiPlannerProvider(fetcher).interpret({ ...context, exercises, instructions: [instruction] });
+    expect(JSON.parse(JSON.parse(String(fetcher.mock.calls[0]![1]?.body)).input).ambiguousExerciseTerms).toEqual([]);
+  }
+});
 it("remplace une attribution ambiguë du modèle par une question, sans nouvelle génération", async () => {
   const input: PlannerProviderContext = {
     ...context,
@@ -181,4 +196,54 @@ it("neutralise les erreurs HTTP et réseau sans rejouer automatiquement une gén
   await expect(openAiPlannerProvider(fetcher).interpret(context)).rejects.toMatchObject({
     message: "planner_unavailable",
   });
+});
+it.each(["date", "target"] as const)("transforme un %s hors périmètre en clarification sans séance", async (field) => {
+  const result = {
+    status: "proposal",
+    questions: [],
+    assumptions: [],
+    suggestions: [],
+    sessions: [
+      {
+        date: field === "date" ? "2026-11-08" : "2026-11-09",
+        startTime: null,
+        title: "Force",
+        type: "strength",
+        durationMin: null,
+        targetTokens: [field === "target" ? "athlete_999" : "group_1"],
+        blocks: [
+          {
+            name: "Force",
+            items: [
+              {
+                exerciseToken: "exercise_1",
+                instruction: context.instructions[0],
+                prescription: {
+                  sets: 3,
+                  reps: 4,
+                  restS: 120,
+                  load: { type: "kg", value: 40 },
+                  intensityTarget: null,
+                  distanceM: null,
+                  durationS: null,
+                  contacts: null,
+                  tempo: null,
+                  notes: null,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const fetcher = transport(completed(result));
+  expect(await openAiPlannerProvider(fetcher).interpret(context)).toMatchObject({
+    status: "clarification",
+    sessions: [],
+    questions: [{ field }],
+    assumptions: [],
+    suggestions: [],
+  });
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });

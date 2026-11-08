@@ -16,10 +16,18 @@ const nullableNumber = (min: number, max: number) => z.number().min(min).max(max
 const nullableInt = (min: number, max: number) => z.number().int().min(min).max(max).nullable();
 export const plannerPrescription = z
   .object({
-    sets: nullableInt(1, 50),
-    reps: nullableInt(1, 500),
-    distanceM: nullableNumber(0, 20000),
-    durationS: nullableInt(0, 14400),
+    sets: nullableInt(1, 50).describe(
+      "Nombre de séries, ou nombre de passages pour une course ou un exercice chronométré.",
+    ),
+    reps: nullableInt(1, 500).describe(
+      "Répétitions de mouvement par série. Null pour une course exprimée en passages × distance ou durée.",
+    ),
+    distanceM: nullableNumber(0, 20000).describe(
+      "Distance en mètres de chaque passage ; le total est sets × distanceM.",
+    ),
+    durationS: nullableInt(0, 14400).describe(
+      "Durée en secondes de chaque série ou passage, pas de la séance entière.",
+    ),
     restS: nullableInt(0, 3600),
     load: z
       .object({ type: z.enum(["kg", "pct_1rm"]), value: z.number().min(0).max(1000) })
@@ -30,7 +38,7 @@ export const plannerPrescription = z
       .strict()
       .nullable(),
     tempo: z.string().max(20).nullable(),
-    contacts: nullableInt(0, 2000),
+    contacts: nullableInt(0, 2000).describe("Contacts au sol totaux sur cet exercice, toutes séries comprises."),
     notes: z.string().max(500).nullable(),
   })
   .strict();
