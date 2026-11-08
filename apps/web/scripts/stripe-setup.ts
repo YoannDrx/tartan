@@ -141,6 +141,17 @@ const enabledEvents: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
+  "invoice.created",
+  "invoice.finalized",
+  "invoice.paid",
+  "invoice.payment_failed",
+  "invoice.updated",
+  "invoice.voided",
+  "charge.refunded",
+  "refund.failed",
+  "charge.dispute.created",
+  "charge.dispute.updated",
+  "charge.dispute.closed",
 ];
 if (existingHook) {
   await client.webhookEndpoints.update(existingHook.id, { enabled_events: enabledEvents, disabled: false });
