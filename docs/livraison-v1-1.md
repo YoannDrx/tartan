@@ -14,7 +14,7 @@ Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil s
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
 | C — historique et records | Historique web/natif, API sécurisée, courbes de volumes et de force avec provenance, références séparées, rappel des séries comparables, calculateur, records de séries, célébration unique confirmée par le serveur et performances athlé typées avec correction web/native | Recette native et physique globale |
 | D — phases et analyses | Phases web/native, choix du constructeur conservé/revalidé et référence figée par prescription ; analyse prévu/réalisé, couverture, courbes hebdomadaires de volumes et charge ressentie avec consentement, diversité, catégories et classement mouvement/matériel figé et intensités par exercice/unité avec couverture, filtres 4/12 semaines/un an/phase conservée avec fenêtre de dates ; période partagée séparée pour athlète/adjoint | Recette globale et physique |
-| E — planificateur IA | Contrats stricts, adaptateur OpenAI, quotas atomiques, propositions privées et clarifications, purge, API/SDK et transcription durable ; parcours natif raccordé avec dictée, phases datées, revue et aperçu de charges individuelles calculé au serveur, adaptations et création de brouillons ; premiers essais réels fictifs réussis ; drapeau global désactivé | Interface/dictée web, recette interactive de reprise après fermeture, alias contrôlés, corpus, recette visuelle/native et bêta utilisateur |
+| E — planificateur IA | Contrats stricts, adaptateur OpenAI, quotas atomiques, propositions privées et clarifications, purge, API/SDK et transcription durable ; parcours natif raccordé avec dictée, phases datées, revue et aperçu de charges individuelles calculé au serveur, adaptations et création de brouillons ; premiers essais réels fictifs réussis ; drapeau global désactivé | Interface web et raccordement du composant de dictée web, recette interactive de reprise après fermeture, alias contrôlés, corpus, recette visuelle/native et bêta utilisateur |
 
 Les recettes réelles Stripe/e-mails/push/vidéo, les configurations externes encore absentes, les démarches commerciales et juridiques et la publication stores restent ouvertes. Les preuves locales et exports Hermes ne les remplacent pas.
 
@@ -392,3 +392,8 @@ Inspection des octets WAV/M4A/WebM, durée calculée depuis les paquets, refus d
 ### Transcription : récupération, quota et conservation
 
 La route multipart autorise avant de lire l’audio, mesure sa durée et réserve les secondes atomiquement. Réponse perdue récupérable, auteur privé, échecs restitués, résultats tardifs refusés ; texte brut purgé sous 24 heures même IA coupée. API et SDK communs, sans stockage audio serveur. **662 tests serveur** et deux parcours navigateur de production réussis ; Preview à 36 migrations, production inchangée. Enregistrement et interfaces restent à intégrer. [Preuves détaillées](preuves-v1-1/lot-e-transcription-workflow.md).
+
+
+### Capture web du planificateur
+
+Contrôleur et composant de dictée web ajoutés : WebM/MP4, borne de durée et taille, arrêt du micro, annulations et récupération sans nouvel envoi. Neuf tests de cycle simulé passent. Le composant n’est pas encore monté dans le parcours web ; aucune recette navigateur/voix réelle acquise. [Preuves et limites](preuves-v1-1/lot-e-dictee-web.md).

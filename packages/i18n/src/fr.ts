@@ -647,6 +647,19 @@ export const fr = {
     recent: "Mes propositions récentes",
     recentRefresh: "Actualiser la liste",
     pendingAnswer: "Précisions envoyées : résultat à vérifier",
+    browserAudioUnavailable:
+      "La dictée n’est pas disponible dans ce navigateur. Écris ta consigne, ou utilise un navigateur compatible sur une connexion sécurisée.",
+    dictationResponseUnknown:
+      "La réponse de transcription n’est pas confirmée. Vérifie le résultat de la demande avant de dicter à nouveau.",
+    dictationCheckingAccess: "Vérification de l’accès à la dictée…",
+    dictationCheckingResult: "Vérification de la transcription…",
+    dictationInterrupted:
+      "La dictée a été interrompue en quittant la page. Le micro est arrêté ; si l’envoi avait commencé, vérifie son résultat.",
+    browserDictationNotice:
+      "L’audio est transmis à OpenAI tel que tu le prononces. Ne cite ni nom d’athlète, ni blessure, douleur ou autre donnée de santé. Tartan ne sauvegarde pas cet enregistrement dans le navigateur et ne l’ajoute pas à tes vidéos.",
+    browserMicrophoneDenied:
+      "Le micro n’est pas autorisé pour ce site. Tu peux écrire ta consigne ou modifier l’autorisation du micro dans les réglages de ton navigateur.",
+    dictationFinalizing: "Finalisation de l’enregistrement…",
     recentHint:
       "Retrouve uniquement tes demandes envoyées. Ouvrir un résultat ne consomme pas de nouvelle proposition. Les saisies non envoyées ne sont pas conservées ici.",
     recentEmpty: "Aucune proposition accessible sur cette page.",
