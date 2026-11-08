@@ -23,7 +23,7 @@ export type ReleaseNote = {
 export const releases: readonly ReleaseNote[] = [
   {
     id: "2026-11-ouverture",
-    date: "2026-11-09",
+    date: "2026-11-08",
     title: "Ton mois d'un coup d'œil",
     coach: [
       "Calendrier au mois complet ou en liste, ton choix suit d'un appareil à l'autre.",

@@ -140,7 +140,11 @@ export default function LandingPage() {
           <h2 className={sectionTitle}>{t.content.title}</h2>
           <p className={`mt-4 ${body}`}>{t.content.body}</p>
         </div>
-        <ul className="mt-8 flex snap-x gap-4 overflow-x-auto px-4 pb-2 desktop:grid desktop:grid-cols-4 desktop:overflow-visible desktop:px-0">
+        <ul
+          tabIndex={0}
+          aria-label={t.content.title}
+          className="mt-8 flex snap-x gap-4 overflow-x-auto px-4 pb-2 desktop:grid desktop:grid-cols-4 desktop:overflow-visible desktop:px-0"
+        >
           {t.content.items.map((item, index) => (
             <li
               key={item.label}
