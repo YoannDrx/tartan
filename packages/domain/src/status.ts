@@ -56,6 +56,10 @@ export const addDays = (isoDate: string, days: number): string => {
   return toIsoDate(d);
 };
 
+// Dans la semaine en cours, une nouvelle séance part d'aujourd'hui plutôt que d'un lundi déjà passé.
+export const defaultDateForWeek = (weekStart: string, today: string): string =>
+  startOfWeek(today) === weekStart ? today : weekStart;
+
 export const startOfWeek = (isoDate: string): string => {
   const d = new Date(`${isoDate}T12:00:00.000Z`);
   const day = (d.getUTCDay() + 6) % 7;

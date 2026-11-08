@@ -24,6 +24,7 @@ import {
   performedNumberFields,
   proposedSet,
   type PerformedSetIssue,
+  chooseLoadKind,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useEffect, useState } from "react";
@@ -291,9 +292,13 @@ export const PerformedSetsEditor = ({
                             {...props}
                             value={row.loadKind}
                             onChange={(event) =>
-                              patch(index, {
-                                loadKind: event.target.value as PerformedSetDraftRow["loadKind"],
-                                ...(event.target.value === "bodyweight" ? { loadKg: "" } : {}),
+                              updateDraft({
+                                ...draft,
+                                rows: chooseLoadKind(
+                                  draft.rows,
+                                  index,
+                                  event.target.value as PerformedSetDraftRow["loadKind"],
+                                ),
                               })
                             }
                           >

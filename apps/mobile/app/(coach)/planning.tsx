@@ -1,9 +1,11 @@
 import { NativeBatchPublication } from "../../src/features/batch-publication";
+import { defaultDateForWeek } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ScrollView } from "react-native";
 import { AgendaList, useWeekNavigator, WeekNav, type AgendaEntry } from "../../src/features/agenda";
+import { localIsoDate } from "../../src/lib/dates";
 import { useActiveSpace, useCoachCalendar, useGroups } from "../../src/lib/queries";
 import { Button, Chip, Tag, ActivityTag } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
@@ -64,7 +66,10 @@ export default function Planning() {
           variant="secondary"
           label={m.aiPlanner.title}
           onPress={() =>
-            router.push({ pathname: "/planner", params: { date: nav.week, ...(groupId ? { groupId } : {}) } })
+            router.push({
+              pathname: "/planner",
+              params: { date: defaultDateForWeek(nav.week, localIsoDate()), ...(groupId ? { groupId } : {}) },
+            })
           }
         />
       ) : null}
@@ -73,7 +78,7 @@ export default function Planning() {
         onPress={() =>
           router.push({
             pathname: "/session-builder/[id]",
-            params: { id: "new", date: nav.week, ...(groupId ? { groupId } : {}) },
+            params: { id: "new", date: defaultDateForWeek(nav.week, localIsoDate()), ...(groupId ? { groupId } : {}) },
           })
         }
       />

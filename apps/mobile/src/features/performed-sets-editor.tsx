@@ -18,6 +18,7 @@ import {
   draftFromSession,
   performedNumberFields,
   proposedSet,
+  chooseLoadKind,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useEffect, useRef, useState } from "react";
@@ -26,7 +27,7 @@ import { newClientId, submitValidation, useOpQueue } from "../lib/sync/op-queue"
 import { reviewRequiredOps } from "../lib/sync/queue-core";
 import { Button, Field, T } from "../ui/primitives";
 import { SyncBanner } from "../ui/screen";
-import { space } from "../ui/theme";
+import { radius, space, usePalette } from "../ui/theme";
 import { PerformedDraftReview } from "../ui/performed-draft-review";
 import { Check } from "../ui/icons";
 import { PreviousSets } from "./previous-sets";
@@ -63,6 +64,54 @@ const Choice = ({
     </View>
   </View>
 );
+
+const SetCheck = ({
+  label,
+  hint,
+  checked,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) => {
+  const p = usePalette();
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityLabel={`${label} · ${hint}`}
+      accessibilityState={{ checked, disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={{ minHeight: 48, flexDirection: "row", alignItems: "center", gap: space.md }}
+    >
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: radius.thumb,
+          borderWidth: 2,
+          borderColor: p.text,
+          backgroundColor: checked ? p.accent : "transparent",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {checked ? <Check size={18} color={p.accentText} /> : null}
+      </View>
+      <T variant="smallStrong">{label}</T>
+    </Pressable>
+  );
+};
+
+const prescribedField = {
+  distanceM: "distance_m",
+  timeS: "duration_s",
+  groundContacts: "ground_contacts",
+} as const;
 
 export const PerformedSetsEditor = ({
   session: initialSession,
@@ -142,6 +191,10 @@ export const PerformedSetsEditor = ({
     !locked && (draft.sessionVersion !== session.sessionVersion || draft.logVersion !== (session.log?.version ?? 0));
   const disabled = !ready || locked || saving || reviewing || (Boolean(athleteId) && session.canRecordSets !== true);
   const checked = confirmedSets(draft);
+  // Les réglages rares restent repliés, sauf sur la série qu'il faut corriger.
+  const details = (index: number, row: PerformedSetDraftRow) =>
+    Boolean(expanded[index]) ||
+    (showIssues && checked.issues.some((issue) => issue.itemRef === row.itemRef && issue.setIndex === row.setIndex));
   const patch = (index: number, change: Partial<PerformedSetDraftRow>) =>
     setDraft((old) => ({ ...old, rows: old.rows.map((row, i) => (i === index ? { ...row, ...change } : row)) }));
   const save = async () => {
@@ -266,18 +319,13 @@ export const PerformedSetsEditor = ({
             {draft.rows.map((row, index) =>
               row.itemRef !== item.ref ? null : (
                 <View key={`${row.itemRef}-${row.setIndex}`} style={{ gap: space.md, paddingVertical: space.md }}>
-                  <T variant="smallStrong">{m.progression.setNumber(row.setIndex + 1)}</T>
-                  <Pressable
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: row.done, disabled }}
+                  <SetCheck
+                    label={m.progression.setNumber(row.setIndex + 1)}
+                    hint={m.progression.confirmSet}
+                    checked={row.done}
                     disabled={disabled}
                     onPress={() => patch(index, { done: !row.done })}
-                    style={{ minHeight: 48, justifyContent: "center" }}
-                  >
-                    <T>
-                      {m.progression.confirmSet} : {row.done ? m.common.yes : m.common.no}
-                    </T>
-                  </Pressable>
+                  />
                   <View style={{ flexDirection: "row", gap: space.sm }}>
                     {performedNumberFields.slice(0, 2).map((field) => (
                       <Field
@@ -292,45 +340,50 @@ export const PerformedSetsEditor = ({
                       />
                     ))}
                   </View>
-                  <Choice
-                    disabled={disabled}
-                    label={m.progression.loadKind}
-                    value={row.loadKind}
-                    options={[
-                      ["external", m.progression.external],
-                      ["bodyweight", m.progression.bodyweight],
-                      ["assisted", m.progression.assisted],
-                    ]}
-                    onChange={(value) =>
-                      patch(index, {
-                        loadKind: value as PerformedSetDraftRow["loadKind"],
-                        ...(value === "bodyweight" ? { loadKg: "" } : {}),
-                      })
-                    }
-                  />
+                  {!row.loadKind || details(index, row) ? (
+                    <Choice
+                      disabled={disabled}
+                      label={m.progression.loadKind}
+                      value={row.loadKind}
+                      options={[
+                        ["external", m.progression.external],
+                        ["bodyweight", m.progression.bodyweight],
+                        ["assisted", m.progression.assisted],
+                      ]}
+                      onChange={(value) =>
+                        setDraft((old) => ({
+                          ...old,
+                          rows: chooseLoadKind(old.rows, index, value as PerformedSetDraftRow["loadKind"]),
+                        }))
+                      }
+                    />
+                  ) : null}
+                  {performedNumberFields
+                    .slice(2)
+                    .filter(
+                      (field) =>
+                        details(index, row) ||
+                        item.prescription[prescribedField[field as keyof typeof prescribedField]] !== undefined,
+                    )
+                    .map((field) => (
+                      <Field
+                        key={field}
+                        label={m.progression.fields[field]}
+                        accessibilityLabel={`${m.progression.fields[field]} · ${item.name} · ${row.setIndex + 1}`}
+                        value={row[field]}
+                        keyboardType="decimal-pad"
+                        editable={!disabled}
+                        onChangeText={(value) => patch(index, { [field]: value })}
+                      />
+                    ))}
                   <Button
                     compact
                     variant="secondary"
                     label={m.progression.advancedSet}
                     onPress={() => setExpanded((old) => ({ ...old, [index]: !old[index] }))}
                   />
-                  {expanded[index] ||
-                  showIssues ||
-                  item.prescription.distance_m !== undefined ||
-                  item.prescription.duration_s !== undefined ||
-                  item.prescription.ground_contacts !== undefined ? (
+                  {details(index, row) ? (
                     <>
-                      {performedNumberFields.slice(2).map((field) => (
-                        <Field
-                          key={field}
-                          label={m.progression.fields[field]}
-                          accessibilityLabel={`${m.progression.fields[field]} · ${item.name} · ${row.setIndex + 1}`}
-                          value={row[field]}
-                          keyboardType="decimal-pad"
-                          editable={!disabled}
-                          onChangeText={(value) => patch(index, { [field]: value })}
-                        />
-                      ))}
                       <Choice
                         disabled={disabled}
                         label={m.progression.setKind}

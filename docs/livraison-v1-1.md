@@ -37,6 +37,8 @@ Relecture indépendante du code de la PR 2, puis correctifs avec tests d’abord
 - Bannière d’installation : téléphone uniquement, après une action utile, sur les écrans de synthèse.
 - Console d’administration : activation de la progression, des phases et de l’IA par espace, avec trace, et coupure de l’IA pour tous les espaces sans redéploiement. La variable `AI_PLANNER_ENABLED` reste requise pour ouvrir l’IA.
 
+Recette native sur simulateur iOS et défauts corrigés : [preuve détaillée](preuves-v1-1/recette-ios-simulateur.md). La génération du planificateur, la dictée et les téléphones physiques restent à éprouver.
+
 Laissés volontairement : les refus visant d’anciennes applications, aucune build n’étant distribuée, et les migrations qui rafraîchissent la date d’activité, sans effet notable sur les deux espaces de production. À reprendre avant toute distribution native pour le premier point.
 
 ## PR 1 — état du code

@@ -4,6 +4,7 @@ import {
   confirmedSets,
   draftFromSession,
   proposedSet,
+  chooseLoadKind,
   performedDraftContent,
   resolvedDraftReceipt,
   isResolvedDraft,
@@ -36,6 +37,21 @@ describe("séries proposées et réalisées", () => {
     expect(confirmedSets(draft).sets[0]).toMatchObject({ reps: 4, loadKg: 40, timeS: null, distanceM: null });
     expect(confirmedSets(draft).sets).toHaveLength(1);
   });
+  it("étend un type de charge aux séries sans convention du même exercice, sans écraser les autres", () => {
+    const blank = proposedSet({ ...item, strengthLoadKind: null }, 0);
+    const other = { ...proposedSet({ ...item, strengthLoadKind: null }, 0), itemRef: "autre" };
+    const chosen = { ...blank, setIndex: 2, loadKind: "assisted" as const };
+    const rows = chooseLoadKind([blank, { ...blank, setIndex: 1 }, chosen, other], 0, "external");
+    expect(rows.map((row) => row.loadKind)).toEqual(["external", "external", "assisted", ""]);
+  });
+
+  it("répartit les contacts prescrits sur les séries et ne devine pas une division inexacte", () => {
+    const contacts = (sets: number, ground_contacts: number) =>
+      proposedSet({ ...item, prescription: { ...item.prescription, sets, ground_contacts } }, 0).groundContacts;
+    expect(contacts(5, 30)).toBe("6");
+    expect(contacts(4, 30)).toBe("");
+  });
+
   it("exige une convention explicite pour une ancienne fiche non classée", () => {
     const row = { ...proposedSet({ ...item, strengthLoadKind: null }, 0), done: true };
     expect(confirmedSets({ ...draftFromSession(session), rows: [row] }).issues).toContainEqual(

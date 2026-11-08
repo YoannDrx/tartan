@@ -14,6 +14,13 @@ export const performedSetsKey = (userId: string, orgId: string, sessionId: strin
 export type PerformedNumberField = (typeof performedNumberFields)[number];
 const text = (value: number | null | undefined): string => (value == null ? "" : String(value));
 
+// Le coach prescrit les contacts de tout l'exercice ; chaque série n'en propose que sa part.
+const contactsPerSet = ({ ground_contacts: total, sets }: ResolvedItem["prescription"]): number | null => {
+  if (total == null) return null;
+  const perSet = total / Math.max(sets ?? 1, 1);
+  return Number.isInteger(perSet) ? perSet : null;
+};
+
 export const proposedSet = (item: ResolvedItem, setIndex: number): PerformedSetDraftRow => ({
   itemRef: item.ref,
   setIndex,
@@ -33,8 +40,24 @@ export const proposedSet = (item: ResolvedItem, setIndex: number): PerformedSetD
   loadKg: text(item.resolvedLoadKg),
   distanceM: text(item.prescription.distance_m),
   timeS: text(item.prescription.duration_s),
-  groundContacts: text(item.prescription.ground_contacts),
+  groundContacts: text(contactsPerSet(item.prescription)),
 });
+
+// Un choix vaut pour les séries du même exercice encore sans convention, jamais pour une série déjà renseignée.
+export const chooseLoadKind = (
+  rows: PerformedSetDraftRow[],
+  index: number,
+  loadKind: PerformedSetDraftRow["loadKind"],
+): PerformedSetDraftRow[] => {
+  const source = rows[index];
+  if (!source) return rows;
+  const applied = (row: PerformedSetDraftRow) => ({
+    ...row,
+    loadKind,
+    ...(loadKind === "bodyweight" ? { loadKg: "" } : {}),
+  });
+  return rows.map((row, i) => (i === index || (row.itemRef === source.itemRef && !row.loadKind) ? applied(row) : row));
+};
 
 export const draftFromSession = (session: AthleteSessionDetail): PerformedSetsDraft => ({
   format: 1,

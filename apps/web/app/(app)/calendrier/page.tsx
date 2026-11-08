@@ -6,7 +6,7 @@ import { BatchPublication } from "@/features/sessions/batch-publication";
 import { Medal, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { addDays, startOfWeek } from "@tartan/domain";
+import { addDays, startOfWeek, defaultDateForWeek } from "@tartan/domain";
 import { capitalize, formatDateLong, formatDayMonth, m } from "@tartan/i18n";
 import { FilterPill } from "@/components/filter-pill";
 import { Sheet } from "@/components/sheet";
@@ -170,7 +170,7 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
             <Button asChild size="sm" className="order-first desktop:order-none">
               <Link
                 href={newSessionHref({
-                  date: isMonth ? `${month}-01` : week,
+                  date: isMonth ? `${month}-01` : defaultDateForWeek(week, todayIso()),
                   groupId: params.groupe,
                   returnTo: href({}),
                 })}

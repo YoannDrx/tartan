@@ -4,7 +4,7 @@ import { StatusIcon } from "@/components/status-cell";
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { addDays, startOfWeek } from "@tartan/domain";
+import { addDays, startOfWeek, defaultDateForWeek } from "@tartan/domain";
 import { formatDayMonth, m } from "@tartan/i18n";
 import { FilterPill } from "@/components/filter-pill";
 import { EmptyState, PageHeader, PeriodStepper } from "@/components/states";
@@ -66,7 +66,13 @@ export default async function SuiviPage({
               </a>
             </Button>
             <Button asChild size="sm" className="order-first desktop:order-none">
-              <Link href={newSessionHref({ date: week, groupId: groupe, returnTo: query({ semaine: week, groupe }) })}>
+              <Link
+                href={newSessionHref({
+                  date: defaultDateForWeek(week, todayIso()),
+                  groupId: groupe,
+                  returnTo: query({ semaine: week, groupe }),
+                })}
+              >
                 <Plus aria-hidden className="size-5" />
                 {m.coach.newSession}
               </Link>
