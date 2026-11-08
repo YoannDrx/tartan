@@ -1,6 +1,8 @@
 "use client";
 
-import type { AthleteSessionDetail, PainInput } from "@tartan/contracts";
+import { celebrationFromResponse } from "@tartan/domain";
+import { ConfirmedRecords } from "../progression/confirmed-records";
+import type { AthleteSessionDetail, PainInput, StrengthRecordValue } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -74,6 +76,7 @@ export const QuickValidate = ({
   const [pain, setPain] = useState<PainInput>(session.log?.pain ?? { bodyArea: "knee", side: "left", intensity: 5 });
   const [sending, setSending] = useState(false);
   const [victory, setVictory] = useState(0);
+  const [records, setRecords] = useState<StrengthRecordValue[]>([]);
 
   const send = async (next: Status, extra: { withDetails: boolean }) => {
     if (busy.current) return false;
@@ -114,6 +117,11 @@ export const QuickValidate = ({
       toast.error(res.message);
       return false;
     }
+    const celebration = res.state === "sent" ? celebrationFromResponse(res.data) : null;
+    if (celebration) {
+      setRecords(celebration.records);
+      setVictory((old) => old + 1);
+    } else if (!extra.withDetails) setRecords([]);
     // Le complément dépend de cette mutation, même si les deux attendent le réseau.
     // Ne jamais remplacer cette version par celle d'un autre appareil après un conflit.
     version.current = expectedVersion + 1;
@@ -134,7 +142,6 @@ export const QuickValidate = ({
     if (await send(value, { withDetails: false })) {
       setStatus(value);
       setDetails(true);
-      if (value === "done") setVictory((count) => count + 1);
     }
   };
 
@@ -148,7 +155,7 @@ export const QuickValidate = ({
 
   return (
     <>
-      <Victory play={victory} />
+      <Victory play={victory} recordCount={records.length} />
       <Button size="lg" variant="primary" className="w-full" disabled={sending} onClick={() => validate("done")}>
         {m.today.quickDone}
       </Button>
@@ -181,6 +188,7 @@ export const QuickValidate = ({
           <Button size="lg" onClick={() => closeDetails(false)}>
             {m.validation.finish}
           </Button>
+          <ConfirmedRecords records={records} />
           {healthConsent ? <RpeScale value={rpe} onChange={setRpe} /> : null}
           <Field label={m.validation.duration}>
             {(a) => (

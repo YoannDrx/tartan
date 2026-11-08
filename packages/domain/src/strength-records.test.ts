@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  celebrationFromResponse,
   confirmedRecordsFromResponse,
   confirmedStrengthImprovements,
   createStrengthRecordAccumulator,
@@ -119,4 +120,14 @@ it("ne présente aucun badge à partir d’une réponse rejouée, invalide ou d�
   expect(confirmedRecordsFromResponse({ ...response, id: "other" })).toEqual([]);
   expect(confirmedRecordsFromResponse({ ...response, records: [{ ...value, baseline: true }] })).toEqual([]);
   expect(confirmedRecordsFromResponse(null)).toEqual([]);
+});
+
+it("une célébration exige une réponse directe, une version cohérente et un identifiant lié à la validation", () => {
+  const reply = { id: "log", version: 1, replayed: false, celebration: { id: "log:1", logVersion: 1, records: [] } };
+  expect(celebrationFromResponse(reply)).toEqual(reply.celebration);
+  expect(celebrationFromResponse({ ...reply, replayed: true })).toBeNull();
+  expect(celebrationFromResponse({ ...reply, version: 2 })).toBeNull();
+  expect(celebrationFromResponse({ ...reply, id: "another" })).toBeNull();
+  expect(celebrationFromResponse({ ...reply, celebration: null })).toBeNull();
+  expect(celebrationFromResponse({ id: "old-server", replayed: false })).toBeNull();
 });

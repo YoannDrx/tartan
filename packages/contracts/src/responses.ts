@@ -1,4 +1,4 @@
-import { confirmedStrengthRecord } from "./strength-records";
+import { confirmedStrengthRecord, sessionCelebration } from "./strength-records";
 import { z } from "zod";
 import {
   attendanceStatus,
@@ -140,6 +140,7 @@ export const athleteSessionDetail = athleteSessionCard.extend({
 export type AthleteSessionDetail = z.infer<typeof athleteSessionDetail>;
 
 export const sessionLogResult = z.object({
+  celebration: sessionCelebration.nullable().optional(),
   records: z.array(confirmedStrengthRecord).optional(),
   id: z.string(),
   replayed: z.boolean(),

@@ -1,5 +1,6 @@
 "use client";
 
+import { Victory } from "@/components/victory";
 import { ConfirmedRecords } from "../progression/confirmed-records";
 import { sessionLogPaths } from "@/features/athlete-view/session-log-paths";
 
@@ -9,8 +10,10 @@ import {
   type AthleteSessionDetail,
   type PerformedSetDraftRow,
   type PerformedSetsDraft,
+  type StrengthRecordValue,
 } from "@tartan/contracts";
 import {
+  celebrationFromResponse,
   confirmedRecordsFromResponse,
   confirmedSets,
   performedDraftContent,
@@ -52,7 +55,8 @@ export const PerformedSetsEditor = ({
   const [saving, setSaving] = useState(false);
   const [issues, setIssues] = useState<PerformedSetIssue[]>([]);
   const [message, setMessage] = useState("");
-  const [records, setRecords] = useState<ReturnType<typeof confirmedRecordsFromResponse>>([]);
+  const [records, setRecords] = useState<StrengthRecordValue[]>([]);
+  const [victory, setVictory] = useState(0);
   const [storageError, setStorageError] = useState(false);
   const [locked, setLocked] = useState(false);
   const [unreadableDraft, setUnreadableDraft] = useState(false);
@@ -152,7 +156,11 @@ export const PerformedSetsEditor = ({
             ? m.progression.queuedSets
             : result.message,
       );
-      if (result.state === "sent" && getQueueOwner() === userId) setRecords(confirmedRecordsFromResponse(result.data));
+      if (result.state === "sent" && getQueueOwner() === userId) {
+        const celebration = celebrationFromResponse(result.data);
+        setRecords(celebration?.records ?? confirmedRecordsFromResponse(result.data));
+        if (celebration && !athleteId) setVictory((old) => old + 1);
+      }
       // La relecture serveur est nécessaire avant une autre correction, également après un envoi différé.
       if (result.state !== "error") setLocked(true);
       if (result.state === "sent") localStorage.removeItem(key);
@@ -164,6 +172,7 @@ export const PerformedSetsEditor = ({
   };
   return (
     <div className="flex flex-col gap-4">
+      <Victory play={victory} recordCount={records.length} />
       <p>{m.progression.setsHint}</p>
       <p className="t-caption">{m.progression.loadHint}</p>
       {stale ? <p role="alert">{m.progression.draftStale}</p> : null}

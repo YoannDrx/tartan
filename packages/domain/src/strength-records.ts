@@ -135,3 +135,19 @@ export function confirmedRecordsFromResponse(raw: unknown) {
     (record) => !record.baseline && record.logId === result.data.id && record.logVersion === result.data.version,
   );
 }
+
+export function celebrationFromResponse(raw: unknown) {
+  const result = sessionLogResult.safeParse(raw);
+  if (
+    !result.success ||
+    result.data.replayed ||
+    !result.data.celebration ||
+    result.data.celebration.logVersion !== result.data.version ||
+    result.data.celebration.id !== `${result.data.id}:${result.data.version}`
+  )
+    return null;
+  return {
+    ...result.data.celebration,
+    records: result.data.celebration.records.filter((record) => !record.baseline && record.logId === result.data.id),
+  };
+}

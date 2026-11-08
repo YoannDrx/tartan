@@ -180,3 +180,61 @@ it("parcourt toutes les pages et ne perd pas le maximum placé après les 500 pr
     itemRef: "record-item-5",
   });
 });
+
+it("célèbre une seule validation complète et retrouve les records saisis avant celle-ci", async () => {
+  const a = await setup();
+  const initial = await a.create("2021-01-01", 40);
+  const baseline = sessionLogResult.parse(await initial.write());
+  expect(baseline.celebration).toMatchObject({ id: `${baseline.id}:1`, logVersion: 1, records: [] });
+  const current = await a.create("2030-06-12", 60);
+  const partial = sessionLogResult.parse(await current.write({ status: "partial" }));
+  expect(partial.celebration).toBeNull();
+  expect(partial.records).toHaveLength(2);
+  const input = {
+    clientId: randomUUID(),
+    status: "done" as const,
+    writeScope: "status" as const,
+    comment: undefined,
+    detailedSets: undefined,
+    expectedVersion: 1,
+  };
+  const first = sessionLogResult.parse(await current.write(input));
+  expect(first.records).toEqual([]);
+  expect(first.celebration?.records).toHaveLength(2);
+  expect(first.celebration?.records.find((record) => record.kind === "load_at_reps")).toMatchObject({
+    value: 60,
+    baseline: false,
+  });
+  expect((await prisma.sessionLog.findUniqueOrThrow({ where: { id: first.id } })).celebrationClaimedAt).not.toBeNull();
+  expect(sessionLogResult.parse(await current.write(input)).celebration).toBeNull();
+  expect(
+    sessionLogResult.parse(await current.write({ ...input, clientId: randomUUID(), expectedVersion: 2 })).celebration,
+  ).toBeNull();
+  await current.write({ ...input, clientId: randomUUID(), status: "partial", expectedVersion: 3 });
+  expect(
+    sessionLogResult.parse(await current.write({ ...input, clientId: randomUUID(), expectedVersion: 4 })).celebration,
+  ).toBeNull();
+});
+
+it("une validation coach ne provoque pas de fête ; une action simple sans progression reste compatible", async () => {
+  const a = await setup();
+  const coach = await a.create("2030-06-12", 50);
+  expect(
+    sessionLogResult.parse(
+      await logSessionForAthlete(a.owner.userId, a.organizationId, coach.session.id, a.athlete.athleteId, coach.input),
+    ).celebration,
+  ).toBeNull();
+  expect(
+    sessionLogResult.parse(await coach.write({ clientId: randomUUID(), expectedVersion: 1 })).celebration,
+  ).toBeNull();
+  const simple = await a.create("2030-06-13", 40);
+  await prisma.organization.update({ where: { id: a.organizationId }, data: { progressionEnabled: false } });
+  const results = await Promise.all([
+    simple.write({ detailedSets: undefined }),
+    simple.write({ detailedSets: undefined }),
+  ]);
+  expect(results.map((result) => sessionLogResult.parse(result)).filter((result) => result.celebration)).toHaveLength(
+    1,
+  );
+  expect(results.find((result) => result.replayed)).toMatchObject({ celebration: null });
+});

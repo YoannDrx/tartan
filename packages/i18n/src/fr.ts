@@ -306,6 +306,7 @@ export const fr = {
   strengthRecords: {
     title: "Records de séries",
     confirmed: "Records confirmés",
+    celebration: (count: number) => `${count} record${count > 1 ? "s" : ""} confirmé${count > 1 ? "s" : ""}`,
     confirmedHint:
       "Ces séries améliorent les meilleures valeurs précédemment enregistrées. Elles ne changent pas la référence de travail.",
     scope:

@@ -1,3 +1,5 @@
+import { m } from "@tartan/i18n";
+import { T } from "../ui/primitives";
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
 import { Check } from "../ui/icons";
@@ -82,16 +84,24 @@ const Confetto = ({ piece, clock }: { piece: Piece; clock: Animated.Value }) => 
 };
 
 // Le seul grand moment de l'app : la validation d'une séance. Rien n'attend sa fin, rien ne le touche.
-export const ValidationBurst = () => {
+export const ValidationBurst = ({ recordCount = 0 }: { recordCount?: number }) => {
   const clock = useRef(new Animated.Value(0)).current;
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    let stoppedForMotion = false;
+    const motion = AccessibilityInfo.addEventListener("reduceMotionChanged", (reduced) => {
+      if (reduced) {
+        stoppedForMotion = true;
+        clock.stopAnimation();
+        setPlaying(false);
+      }
+    });
     void AccessibilityInfo.isReduceMotionEnabled()
       .catch(() => true)
       .then((reduced) => {
-        if (cancelled || reduced) return;
+        if (cancelled || reduced || stoppedForMotion) return;
         setPlaying(true);
         Animated.timing(clock, {
           toValue: 1,
@@ -104,6 +114,7 @@ export const ValidationBurst = () => {
       });
     return () => {
       cancelled = true;
+      motion.remove();
       clock.stopAnimation();
     };
   }, [clock]);
@@ -127,6 +138,14 @@ export const ValidationBurst = () => {
         },
       ]}
     >
+      {recordCount > 0 ? (
+        <T
+          variant="section"
+          style={{ position: "absolute", top: "15%", color: color.ink, textAlign: "center", paddingHorizontal: 24 }}
+        >
+          {m.strengthRecords.celebration(recordCount)}
+        </T>
+      ) : null}
       <View style={{ position: "absolute", alignItems: "center", justifyContent: "center" }}>
         {PIECES.map((piece, i) => (
           <Confetto key={i} piece={piece} clock={clock} />

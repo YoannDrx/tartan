@@ -409,7 +409,7 @@ export const getMyRegularity = async (userId: string, organizationId: string, no
 
 export const logSession = async (userId: string, organizationId: string, sessionId: string, raw: SessionLogInput) => {
   const access = await requireAthleteAccess(userId, organizationId);
-  return persistSessionLog(userId, organizationId, sessionId, access.athleteId, raw);
+  return persistSessionLog(userId, organizationId, sessionId, access.athleteId, raw, true);
 };
 
 export const logSessionForAthlete = async (
@@ -429,7 +429,7 @@ export const logSessionForAthlete = async (
     if (!session) throw notFound();
     if (session.createdBy !== userId) throw forbidden();
   }
-  return persistSessionLog(userId, organizationId, sessionId, athleteId, raw);
+  return persistSessionLog(userId, organizationId, sessionId, athleteId, raw, false);
 };
 
 const persistSessionLog = async (
@@ -438,6 +438,7 @@ const persistSessionLog = async (
   sessionId: string,
   athleteId: string,
   raw: SessionLogInput,
+  athleteValidation: boolean,
 ) => {
   const input = sessionLogInput.parse(raw);
   const access = { athleteId };
@@ -573,7 +574,9 @@ const persistSessionLog = async (
             })),
           }
         : undefined;
+    const claimCelebration = input.status === "done" && !existing?.celebrationClaimedAt;
     const versioned = {
+      ...(claimCelebration ? { celebrationClaimedAt: new Date() } : {}),
       ...data,
       ...(input.expectedVersion !== undefined && existing?.completedAt ? { completedAt: existing.completedAt } : {}),
       ...(input.writeScope === "sets" || input.writeScope === "status"
@@ -661,9 +664,17 @@ const persistSessionLog = async (
       version,
       clientId: input.clientId,
     });
-    return { ...row, replayed: false, records };
+    const celebration =
+      claimCelebration && athleteValidation
+        ? {
+            id: `${row.id}:${version}`,
+            logVersion: version,
+            records: afterRecords.filter((record) => record.logId === row.id && !record.baseline),
+          }
+        : null;
+    return { ...row, replayed: false, records, celebration };
   });
-  if (saved.replayed) return { id: saved.id, version: saved.version, replayed: true, records: [] };
+  if (saved.replayed) return { id: saved.id, version: saved.version, replayed: true, records: [], celebration: null };
   log.info("session_validated", { organizationId, entityId: sessionId });
 
   if (pain) {
@@ -675,7 +686,13 @@ const persistSessionLog = async (
       link: `/athletes/${access.athleteId}`,
     });
   }
-  return { id: saved.id, version: saved.version, replayed: false, records: "records" in saved ? saved.records : [] };
+  return {
+    id: saved.id,
+    version: saved.version,
+    replayed: false,
+    records: "records" in saved ? saved.records : [],
+    celebration: "celebration" in saved ? saved.celebration : null,
+  };
 };
 
 export const setMyAttendance = async (

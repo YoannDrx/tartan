@@ -26,3 +26,10 @@ export const confirmedStrengthRecord = strengthRecordValue.extend({
   previousValue: z.number().finite().nonnegative(),
 });
 export type ConfirmedStrengthRecord = z.infer<typeof confirmedStrengthRecord>;
+
+export const sessionCelebration = z.object({
+  id: z.string(),
+  logVersion: z.number().int().positive(),
+  records: z.array(strengthRecordValue),
+});
+export type SessionCelebration = z.infer<typeof sessionCelebration>;

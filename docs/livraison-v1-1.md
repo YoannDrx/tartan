@@ -12,7 +12,7 @@ Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil s
 | --- | --- | --- |
 | A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles, vidéo générique, profil sportif web/native et 49 fiches initiales ajoutés | Suite de la recette du constructeur, publication groupée, recette complète de l’onboarding, médias de bibliothèque, landing et recette physique |
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
-| C — historique et records | Historique web/natif, API sécurisée, courbes de volumes et de force avec provenance, références séparées, rappel des séries comparables, calculateur et records de séries confirmés par le serveur | Célébration unique enrichie, performances athlé typées et recette native |
+| C — historique et records | Historique web/natif, API sécurisée, courbes de volumes et de force avec provenance, références séparées, rappel des séries comparables, calculateur, records de séries et célébration unique confirmée par le serveur | Performances athlé typées et recette native |
 | D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |
 | E — planificateur IA | Non implémenté ; clé locale disponible | Dictée, transcription, clarifications, brouillons, quotas, purge et corpus d’évaluation |
 

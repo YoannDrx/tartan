@@ -1,3 +1,5 @@
+import { celebrationFromResponse } from "@tartan/domain";
+import type { SessionCelebration } from "@tartan/contracts";
 import { capitalize, formatDateLong, m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
@@ -36,6 +38,7 @@ export default function Today() {
     status: "done" | "partial";
     justRecorded: boolean;
     target: ValidationTarget;
+    celebration?: SessionCelebration | null;
   } | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const submitting = useRef(false);
@@ -65,7 +68,13 @@ export default function Today() {
       return;
     }
     setSaveError(null);
-    setSheet({ card, status, justRecorded: true, target: { ...target, logVersion: result.nextVersion } });
+    setSheet({
+      card,
+      status,
+      justRecorded: true,
+      celebration: result.state === "sent" ? celebrationFromResponse(result.data) : null,
+      target: { ...target, logVersion: result.nextVersion },
+    });
   };
   const edit = (card: AthleteSessionCard) =>
     setSheet({
@@ -234,6 +243,7 @@ export default function Today() {
           }
           status={sheet.status}
           justRecorded={sheet.justRecorded}
+          celebration={sheet.celebration}
           existing={sheetDetail.data.log}
           healthConsent={view?.healthConsent ?? false}
           onClose={() => setSheet(null)}

@@ -1,10 +1,10 @@
 import { View } from "react-native";
-import type { ConfirmedStrengthRecord } from "@tartan/contracts";
+import type { StrengthRecordValue } from "@tartan/contracts";
 import { historyNumber, m, strengthRecordConvention, strengthRecordLabel } from "@tartan/i18n";
 import { Card, SectionTitle, T } from "../ui/primitives";
 import { space } from "../ui/theme";
 
-export function ConfirmedRecords({ records }: { records: ConfirmedStrengthRecord[] }) {
+export function ConfirmedRecords({ records }: { records: StrengthRecordValue[] }) {
   if (!records.length) return null;
   return (
     <Card>
@@ -12,7 +12,7 @@ export function ConfirmedRecords({ records }: { records: ConfirmedStrengthRecord
         <SectionTitle>{m.strengthRecords.confirmed}</SectionTitle>
         <T tone="muted">{m.strengthRecords.confirmedHint}</T>
         {records.map((record) => (
-          <View key={record.eventId} accessible style={{ gap: space.xs }}>
+          <View key={record.comparisonKey} accessible style={{ gap: space.xs }}>
             <T variant="smallStrong">
               {record.exerciseName} · {strengthRecordLabel(record)} :{" "}
               {record.kind === "reps_at_load"

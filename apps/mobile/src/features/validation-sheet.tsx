@@ -1,4 +1,6 @@
-import type { BodyArea, BodySide, PainInput, SessionLogInput } from "@tartan/contracts";
+import { celebrationFromResponse } from "@tartan/domain";
+import { ConfirmedRecords } from "./confirmed-records";
+import type { SessionCelebration, BodyArea, BodySide, PainInput, SessionLogInput } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, View } from "react-native";
@@ -79,6 +81,7 @@ type Props = {
   status: Status;
   // Vrai juste après l'enregistrement ; faux quand on revient modifier une séance déjà validée.
   justRecorded: boolean;
+  celebration?: SessionCelebration | null;
   existing?: ExistingLog | null;
   healthConsent: boolean;
   dark?: boolean;
@@ -89,6 +92,7 @@ export const ValidationSheet = ({
   target,
   status: initialStatus,
   justRecorded,
+  celebration,
   existing,
   healthConsent,
   dark,
@@ -136,7 +140,8 @@ export const ValidationSheet = ({
   const [intensity, setIntensity] = useState(initialFeedback.pain?.intensity ?? 5);
   const [painError, setPainError] = useState<string | null>(null);
   // Seule une séance faite en entier déclenche le grand moment : jamais une validation partielle.
-  const [burst, setBurst] = useState(justRecorded && initialStatus === "done" ? 1 : 0);
+  const [receipt, setReceipt] = useState(celebration ?? null);
+  const [burst, setBurst] = useState(celebration && initialStatus === "done" ? 1 : 0);
   const [announce, setAnnounce] = useState(justRecorded);
 
   // L'état reste annoncé aux lecteurs d'écran, avec ou sans animation.
@@ -193,6 +198,11 @@ export const ValidationSheet = ({
       setSendError(result.message);
       return false;
     }
+    const nextCelebration = result.state === "sent" ? celebrationFromResponse(result.data) : null;
+    if (nextCelebration) {
+      setReceipt(nextCelebration);
+      setBurst((old) => old + 1);
+    }
     version.current += 1;
     setBaseline({ rpe, duration, comment: comment.trim(), pain: currentPain });
     return true;
@@ -214,7 +224,10 @@ export const ValidationSheet = ({
     if (!(await send(next))) return;
     setStatus(next);
     setAnnounce(true);
-    setBurst(next === "done" ? burst + 1 : 0);
+    if (next !== "done") {
+      setBurst(0);
+      setReceipt(null);
+    }
   };
 
   return (
@@ -227,7 +240,7 @@ export const ValidationSheet = ({
           <StatusGlyph status={status} size={28} />
         </View>
       }
-      overlay={burst > 0 ? <ValidationBurst key={burst} /> : null}
+      overlay={burst > 0 ? <ValidationBurst key={burst} recordCount={receipt?.records.length ?? 0} /> : null}
       onClose={finish}
       headerAction={
         <Button disabled={sending} testID="validation-finish" label={m.validation.finish} onPress={finish} />
@@ -238,6 +251,7 @@ export const ValidationSheet = ({
           {sendError}
         </T>
       ) : null}
+      <ConfirmedRecords records={receipt?.records ?? []} />
       {healthConsent ? (
         <View style={{ gap: space.sm }}>
           <View

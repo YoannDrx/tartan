@@ -1,3 +1,5 @@
+import { ValidationSheet } from "./validation-sheet";
+import type { SessionCelebration } from "@tartan/contracts";
 import { ConfirmedRecords } from "./confirmed-records";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -10,6 +12,7 @@ import {
   performedDraftContent,
   performedSetsKey,
   isResolvedDraft,
+  celebrationFromResponse,
   confirmedRecordsFromResponse,
   confirmedSets,
   draftFromSession,
@@ -81,6 +84,7 @@ export const PerformedSetsEditor = ({
   const [locked, setLocked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [celebration, setCelebration] = useState<SessionCelebration | null>(null);
   const [records, setRecords] = useState<ReturnType<typeof confirmedRecordsFromResponse>>([]);
   const [storageError, setStorageError] = useState(false);
   const [showIssues, setShowIssues] = useState(false);
@@ -185,7 +189,10 @@ export const PerformedSetsEditor = ({
         setMessage(m.offline.needsReview);
         return;
       }
-      if (result.state === "sent") setRecords(confirmedRecordsFromResponse(result.data));
+      if (result.state === "sent") {
+        setRecords(confirmedRecordsFromResponse(result.data));
+        if (!athleteId) setCelebration(celebrationFromResponse(result.data));
+      }
       setLocked(true);
       setMessage(pending ? m.progression.queuedSets : m.progression.savedSets);
       if (!pending) {
@@ -424,6 +431,24 @@ export const PerformedSetsEditor = ({
       />
       {message ? <T accessibilityLiveRegion="polite">{message}</T> : null}
       {locked ? <ConfirmedRecords records={records} /> : null}
+      {celebration ? (
+        <ValidationSheet
+          target={{
+            orgId,
+            sessionId: session.id,
+            variant: draft.variant,
+            plannedMinutes: session.durationMin,
+            sessionVersion: draft.sessionVersion,
+            logVersion: celebration.logVersion,
+          }}
+          status="done"
+          justRecorded
+          celebration={celebration}
+          existing={session.log}
+          healthConsent={session.healthConsent ?? false}
+          onClose={() => setCelebration(null)}
+        />
+      ) : null}
     </>
   );
 };

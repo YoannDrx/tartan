@@ -1,3 +1,5 @@
+import { celebrationFromResponse } from "@tartan/domain";
+import type { SessionCelebration } from "@tartan/contracts";
 import type { ResolvedItem } from "@tartan/contracts";
 import { countSets, formatDuration } from "@tartan/domain";
 import { m } from "@tartan/i18n";
@@ -134,6 +136,7 @@ export default function SessionMode() {
   const [finished, setFinished] = useState<{
     status: "done" | "partial";
     target: ValidationTarget;
+    celebration?: SessionCelebration | null;
   } | null>(null);
   const validating = finished !== null;
   const sending = useRef(false);
@@ -256,7 +259,11 @@ export default function SessionMode() {
                 }
                 setSaveError(null);
                 clearProgress(id);
-                setFinished({ status, target: { ...target, logVersion: result.nextVersion } });
+                setFinished({
+                  status,
+                  celebration: result.state === "sent" ? celebrationFromResponse(result.data) : null,
+                  target: { ...target, logVersion: result.nextVersion },
+                });
               }}
             />
           ) : (
@@ -376,6 +383,7 @@ export default function SessionMode() {
           existing={session.log}
           status={finished.status}
           justRecorded
+          celebration={finished.celebration}
           healthConsent={today.data?.healthConsent ?? false}
           onClose={() => router.replace("/today")}
         />

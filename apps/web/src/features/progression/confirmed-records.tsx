@@ -1,7 +1,7 @@
-import type { ConfirmedStrengthRecord } from "@tartan/contracts";
+import type { StrengthRecordValue } from "@tartan/contracts";
 import { historyNumber, m, strengthRecordConvention, strengthRecordLabel } from "@tartan/i18n";
 
-export function ConfirmedRecords({ records }: { records: ConfirmedStrengthRecord[] }) {
+export function ConfirmedRecords({ records }: { records: StrengthRecordValue[] }) {
   if (!records.length) return null;
   return (
     <aside role="status" className="rounded-card border border-card-line bg-card p-4 on-card">
@@ -9,7 +9,7 @@ export function ConfirmedRecords({ records }: { records: ConfirmedStrengthRecord
       <p className="mt-2 text-soft">{m.strengthRecords.confirmedHint}</p>
       <ul className="mt-3 space-y-3">
         {records.map((record) => (
-          <li key={record.eventId}>
+          <li key={record.comparisonKey}>
             <p>
               <strong>{record.exerciseName}</strong> · {strengthRecordLabel(record)} :{" "}
               {record.kind === "reps_at_load"
