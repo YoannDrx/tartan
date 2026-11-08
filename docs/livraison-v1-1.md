@@ -372,3 +372,9 @@ Ce socle ne constitue pas une fonction disponible : aucun endpoint, quota persis
 Migration additive 34 : compteurs mensuels par espace, opérations dédupliquées et bail de cinq minutes, fuseau de l’espace par défaut Europe/Paris. Le résultat et sa consommation se confirment dans la même transaction ; le fournisseur est appelé en dehors. Les pannes et résultats tardifs ne doublent pas les consommations. Les réservations expirées sont restituées lors d’une nouvelle demande ou par le cron, même IA désactivée.
 
 Preuves : **608 tests serveur** réussis, dont 13 de quotas ; 35 tests ciblés quotas/adaptateur/cron/isolation réussis, types monorepo et lint ciblé verts. Migration 33 → 34 en **0,024 s** sur schéma ancien synthétique, en **3,34 s** sur Preview Neon ; zéro compte, permissions applicatives vérifiées, aucune activation et aucune modification de production. [Preuve détaillée](preuves-v1-1/lot-e-quotas-ia.md). Le workflow des propositions et les interfaces restent à brancher ; aucune consommation réelle OpenAI n’a été effectuée pour cette recette.
+
+### Propositions IA privées et brouillons confirmés
+
+Persistance versionnée, cinq clarifications incluses, recontrôle des accès/bibliothèque/phases et création atomique de brouillons après confirmation explicite. Les propositions abandonnées sont purgées sous sept jours, les échanges confirmés sous 24 heures ; aucun envoi ni publication automatique. **621 tests serveur**, types et lint réussis. Preview et base locale à 35 migrations, production inchangée.
+
+Premier appel OpenAI réel sur une séance entièrement fictive : sortie stricte, date, destinataire, 3 × 4 × 40 kg et repos 120 s corrects en 4,888 s. Il reste à brancher les endpoints, contrôles de rythme, transcription et interfaces, puis le corpus et les essais utilisateurs. [Preuves et limites](preuves-v1-1/lot-e-propositions-ia.md).

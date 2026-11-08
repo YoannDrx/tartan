@@ -1,5 +1,6 @@
 import { processBillingCommands } from "./billing-command.service";
 import { expirePlannerOperations } from "./ai/usage.service";
+import { purgePlannerProposals } from "./ai/proposal.service";
 import { addDays, isOverdue, MISSED_STREAK_THRESHOLD } from "@tartan/domain";
 import { fromDbDate, todayIso, toDbDate, hourInParis } from "@/lib/dates";
 import { log } from "@/lib/logger";
@@ -180,6 +181,7 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     dispatched: () => dispatchPending(now),
     billingCommands: () => processBillingCommands(now),
     aiReservations: () => expirePlannerOperations(now),
+    aiProposals: () => purgePlannerProposals(now),
     billing: () => reconcileStripeSubscriptions(now),
     referrals: () => processReferrals(now),
     purged: () => purgeExpiredVideos(now),

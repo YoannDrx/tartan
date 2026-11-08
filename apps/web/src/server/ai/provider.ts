@@ -48,6 +48,25 @@ export const plannerProviderContext = z
       .min(1)
       .max(500),
     instructions: z.array(z.string().trim().min(1).max(12000)).min(1).max(6),
+    phaseCalendar: z
+      .array(
+        z
+          .object({
+            date: z.iso.date(),
+            targetToken: token,
+            phase: z
+              .object({
+                kind: trainingPhaseKind,
+                week: z.number().int().positive(),
+                weeks: z.number().int().positive(),
+              })
+              .strict()
+              .nullable(),
+          })
+          .strict(),
+      )
+      .max(1400)
+      .optional(),
   })
   .strict();
 export type PlannerProviderContext = z.infer<typeof plannerProviderContext>;

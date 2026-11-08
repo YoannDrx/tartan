@@ -8,6 +8,7 @@ import {
   confirmPrescriptionRefresh,
   type ConfirmPrescriptionRefresh,
   type SaveScheduledSessionInput,
+  saveScheduledSessionInput,
   type SessionDraft,
   type SessionSnapshot,
   prescriptionSchema,
@@ -152,6 +153,54 @@ const checkAudience = async (
   await requireGroupInScope(access, groups, db);
   await requireAthletesInScope(access, [...athletes, ...input.overrides.map((o) => o.athleteId)], db);
 };
+
+// Création interne des brouillons relus du planificateur. L’appelant détient le
+// verrou d’espace et inclut ces écritures dans la confirmation de proposition.
+// Aucun chemin de publication, de programmation ou de notification ici.
+export async function createReviewedPlannerDraft(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  organizationId: string,
+  raw: Omit<SaveScheduledSessionInput, "id" | "expectedVersion">,
+) {
+  const input = saveScheduledSessionInput.omit({ id: true, expectedVersion: true }).strict().parse(raw);
+  if (input.publishAt !== null) throw invalid();
+  const access = await requireOrgMember(userId, organizationId, "manageSessions", tx);
+  await checkAudience(access, input, tx);
+  const snapshot = await buildSnapshot(organizationId, input.draft, tx);
+  const items = new Map(snapshot.blocks.flatMap((b) => b.items.map((i) => [i.ref, i.exerciseId] as const)));
+  for (const override of input.overrides) {
+    if (!items.has(override.itemRef)) throw invalid();
+    const load = override.prescription.load;
+    if (
+      load?.type === "pct_1rm" &&
+      load.test.startsWith("exercise:") &&
+      load.test !== `exercise:${items.get(override.itemRef)}`
+    )
+      throw invalid(m.strength.prescriptionMismatch);
+  }
+  const phaseContext = await reviewSessionPhases(tx, access, input, null, true);
+  const row = await tx.scheduledSession.create({
+    data: {
+      organizationId,
+      createdBy: userId,
+      date: toDbDate(input.date),
+      startTime: input.startTime,
+      location: input.location,
+      title: input.draft.title,
+      type: input.draft.type,
+      draft: input.draft,
+      phaseContext: phaseContext ?? Prisma.DbNull,
+    },
+  });
+  await tx.assignment.createMany({
+    data: input.assignments.map((a) => ({ scheduledSessionId: row.id, ...a })),
+    skipDuplicates: true,
+  });
+  if (input.overrides.length)
+    await tx.athleteOverride.createMany({ data: input.overrides.map((o) => ({ scheduledSessionId: row.id, ...o })) });
+  return { id: row.id, version: row.version };
+}
 
 export const saveScheduledSession = async (
   userId: string,

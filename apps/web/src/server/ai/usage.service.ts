@@ -11,6 +11,14 @@ import type { AiPlannerOperation, Prisma } from "@/generated/prisma/client";
 import { requireOrgMember } from "../access";
 
 const inputSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      id: uuid,
+      kind: z.literal("clarification"),
+      proposalId: uuid,
+      fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+    })
+    .strict(),
   z.object({ id: uuid, kind: z.literal("proposal"), fingerprint: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
   z
     .object({
@@ -102,83 +110,108 @@ export async function reservePlannerOperation(
   organizationId: string,
   raw: OperationInput,
   now = new Date(),
+  onClaim?: (tx: Prisma.TransactionClient) => Promise<void>,
 ): Promise<PlannerOperationClaim> {
   const input = inputSchema.parse(raw);
   await requireOrgMember(userId, organizationId, "manageSessions");
   if (env().AI_PLANNER_ENABLED !== "true") throw disabled();
-  return prisma.$transaction(async (tx) => {
-    await lock(tx, organizationId);
-    await requireOrgMember(userId, organizationId, "manageSessions", tx);
-    const organization = await tx.organization.findUniqueOrThrow({
-      where: { id: organizationId },
-      select: { aiPlannerEnabled: true, plan: true, timeZone: true },
-    });
-    if (!enabled(organization)) throw disabled();
-    await refundExpired(tx, organizationId, now);
-    const previous = await tx.aiPlannerOperation.findUnique({ where: where(organizationId, input.id) });
-    if (previous) {
-      if (previous.actorId !== userId) throw forbidden();
-      if (
-        previous.fingerprint !== input.fingerprint ||
-        previous.kind !== input.kind ||
-        previous.audioSeconds !== (input.kind === "transcription" ? input.audioSeconds : 0)
-      )
-        throw conflict();
-      if (previous.state === "pending" && previous.leaseUntil <= now) {
-        await refund(tx, previous, "lease_expired");
-        return { state: "refunded" };
+  return prisma.$transaction(
+    async (tx) => {
+      await lock(tx, organizationId);
+      await requireOrgMember(userId, organizationId, "manageSessions", tx);
+      const organization = await tx.organization.findUniqueOrThrow({
+        where: { id: organizationId },
+        select: { aiPlannerEnabled: true, plan: true, timeZone: true },
+      });
+      if (!enabled(organization)) throw disabled();
+      await refundExpired(tx, organizationId, now);
+      const previous = await tx.aiPlannerOperation.findUnique({ where: where(organizationId, input.id) });
+      if (previous) {
+        if (previous.actorId !== userId) throw forbidden();
+        if (
+          previous.fingerprint !== input.fingerprint ||
+          previous.kind !== input.kind ||
+          previous.proposalId !== (input.kind === "clarification" ? input.proposalId : null) ||
+          previous.audioSeconds !== (input.kind === "transcription" ? input.audioSeconds : 0)
+        )
+          throw conflict();
+        if (previous.state === "pending" && previous.leaseUntil <= now) {
+          await refund(tx, previous, "lease_expired");
+          return { state: "refunded" };
+        }
+        return stateOf(previous);
       }
-      return stateOf(previous);
-    }
-    const month = monthAt(now, organization.timeZone);
-    const cost = {
-      proposals: input.kind === "proposal" ? 1 : 0,
-      audioSeconds: input.kind === "transcription" ? input.audioSeconds : 0,
-    };
-    const quota = await tx.aiPlannerQuota.upsert({
-      where: { organizationId_month: { organizationId, month } },
-      create: { organizationId, month },
-      update: {},
-    });
-    if (
-      !plannerQuotaFits(
-        organization.plan,
-        {
-          proposals: quota.usedProposals + quota.reservedProposals,
-          audioSeconds: quota.usedAudioSeconds + quota.reservedAudioSeconds,
-        },
-        cost,
+      let month = monthAt(now, organization.timeZone);
+      if (input.kind === "clarification") {
+        const parent = await tx.aiPlannerProposal.findFirst({
+          where: { id: input.proposalId, organizationId, actorId: userId, expiresAt: { gt: now } },
+        });
+        const paid = await tx.aiPlannerOperation.findUnique({ where: where(organizationId, input.proposalId) });
+        if (
+          !parent ||
+          !paid ||
+          paid.actorId !== userId ||
+          paid.kind !== "proposal" ||
+          paid.state !== "succeeded" ||
+          parent.clarificationCount >= 5 ||
+          !onClaim
+        )
+          throw conflict();
+        month = paid.month;
+      }
+      const cost = {
+        proposals: input.kind === "proposal" ? 1 : 0,
+        audioSeconds: input.kind === "transcription" ? input.audioSeconds : 0,
+      };
+      const quota = await tx.aiPlannerQuota.upsert({
+        where: { organizationId_month: { organizationId, month } },
+        create: { organizationId, month },
+        update: {},
+      });
+      if (
+        input.kind !== "clarification" &&
+        !plannerQuotaFits(
+          organization.plan,
+          {
+            proposals: quota.usedProposals + quota.reservedProposals,
+            audioSeconds: quota.usedAudioSeconds + quota.reservedAudioSeconds,
+          },
+          cost,
+        )
       )
-    )
-      throw new AppError(429, "planner_quota_exceeded", m.aiPlanner.quotaExceeded);
-    const leaseToken = randomUUID();
-    const [year, monthNumber] = month.split("-").map(Number);
-    // Tombstone technique jusqu’au neuvième jour du mois suivant ; aucun texte personnel.
-    const expiresAt = new Date(Date.UTC(year!, monthNumber!, 9));
-    await tx.aiPlannerOperation.create({
-      data: {
-        organizationId,
-        id: input.id,
-        actorId: userId,
-        kind: input.kind,
-        fingerprint: input.fingerprint,
-        month,
-        proposalCost: cost.proposals,
-        audioSeconds: cost.audioSeconds,
-        leaseToken,
-        leaseUntil: new Date(now.getTime() + 5 * 60000),
-        expiresAt,
-      },
-    });
-    await tx.aiPlannerQuota.update({
-      where: { organizationId_month: { organizationId, month } },
-      data: {
-        reservedProposals: { increment: cost.proposals },
-        reservedAudioSeconds: { increment: cost.audioSeconds },
-      },
-    });
-    return { state: "claimed", leaseToken };
-  });
+        throw new AppError(429, "planner_quota_exceeded", m.aiPlanner.quotaExceeded);
+      const leaseToken = randomUUID();
+      await onClaim?.(tx);
+      const [year, monthNumber] = month.split("-").map(Number);
+      // Tombstone technique jusqu’au neuvième jour du mois suivant ; aucun texte personnel.
+      const expiresAt = new Date(Date.UTC(year!, monthNumber!, 9));
+      await tx.aiPlannerOperation.create({
+        data: {
+          organizationId,
+          id: input.id,
+          actorId: userId,
+          kind: input.kind,
+          fingerprint: input.fingerprint,
+          proposalId: input.kind === "clarification" ? input.proposalId : null,
+          month,
+          proposalCost: cost.proposals,
+          audioSeconds: cost.audioSeconds,
+          leaseToken,
+          leaseUntil: new Date(now.getTime() + 5 * 60000),
+          expiresAt,
+        },
+      });
+      await tx.aiPlannerQuota.update({
+        where: { organizationId_month: { organizationId, month } },
+        data: {
+          reservedProposals: { increment: cost.proposals },
+          reservedAudioSeconds: { increment: cost.audioSeconds },
+        },
+      });
+      return { state: "claimed", leaseToken };
+    },
+    { timeout: 15000 },
+  );
 }
 
 // La création/mise à jour du résultat et la consommation sont dans la même transaction.

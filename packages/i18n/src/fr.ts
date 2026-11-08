@@ -644,6 +644,12 @@ export const fr = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
   aiPlanner: {
+    contextChanged:
+      "Les destinataires, exercices ou phases ont changé. Relis le contexte avant de préparer une nouvelle proposition.",
+    libraryLimit: "Choisis entre un et 500 exercices de ta bibliothèque pour cette demande.",
+    proposalConflict: "Cette proposition a changé. Recharge-la avant de continuer.",
+    proposalFailed:
+      "La proposition n’a pas pu être préparée. Aucun quota supplémentaire n’est consommé sans résultat exploitable.",
     disabled: "Le planificateur IA n’est pas activé pour cet espace.",
     quotaExceeded: "Le quota IA de ce mois est atteint. Aucun dépassement payant n’est déclenché.",
     requestConflict:

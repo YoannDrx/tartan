@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { clockTime, isoDate } from "./session";
+import { clockTime, isoDate, uuid, sessionPhaseChoice, saveScheduledSessionInput } from "./session";
 import { sessionType } from "./enums";
 
 // Schéma du prestataire : toutes les clés sont requises, les absences sont explicites.
@@ -82,3 +82,54 @@ export const plannerPeriod = z
   .object({ from: isoDate, to: isoDate })
   .strict()
   .refine((p) => p.from <= p.to && Date.parse(`${p.to}T00:00:00Z`) - Date.parse(`${p.from}T00:00:00Z`) <= 6 * 86400000);
+
+export const plannerSelection = z
+  .object({
+    period: plannerPeriod,
+    groupIds: z.array(uuid).max(100),
+    athleteIds: z.array(uuid).max(200),
+    exerciseIds: z.array(uuid).max(500),
+    phaseChoices: z.array(sessionPhaseChoice).max(500),
+  })
+  .strict()
+  .refine(
+    (s) =>
+      s.groupIds.length + s.athleteIds.length > 0 &&
+      s.groupIds.length + s.athleteIds.length <= 200 &&
+      [s.groupIds, s.athleteIds, s.exerciseIds].every((ids) => new Set(ids).size === ids.length) &&
+      new Set(s.phaseChoices.map((c) => c.athleteId)).size === s.phaseChoices.length,
+  );
+export type PlannerSelection = z.infer<typeof plannerSelection>;
+export const createPlannerProposalInput = z
+  .object({
+    id: uuid,
+    requestedAt: z.iso.datetime(),
+    selection: plannerSelection,
+    text: z.string().trim().min(1).max(12000),
+    reviewed: z.literal(true),
+  })
+  .strict();
+export type CreatePlannerProposalInput = z.infer<typeof createPlannerProposalInput>;
+export const clarifyPlannerProposalInput = z
+  .object({
+    operationId: uuid,
+    expectedVersion: z.number().int().positive(),
+    text: z.string().trim().min(1).max(12000),
+    reviewed: z.literal(true),
+  })
+  .strict();
+export type ClarifyPlannerProposalInput = z.infer<typeof clarifyPlannerProposalInput>;
+
+export const plannerReviewedDraft = saveScheduledSessionInput
+  .omit({ id: true, expectedVersion: true })
+  .extend({ publishAt: z.null() })
+  .strict();
+export type PlannerReviewedDraft = z.infer<typeof plannerReviewedDraft>;
+export const confirmPlannerProposalInput = z
+  .object({
+    expectedVersion: z.number().int().positive(),
+    confirmed: z.literal(true),
+    sessions: z.array(plannerReviewedDraft).min(1).max(14),
+  })
+  .strict();
+export type ConfirmPlannerProposalInput = z.infer<typeof confirmPlannerProposalInput>;

@@ -32,6 +32,7 @@ model User {
   trainingPhases TrainingPhase[]
   devices     Device[]
   aiPlannerOperations AiPlannerOperation[]
+  aiPlannerProposals AiPlannerProposal[]
   consents    Consent[]            @relation("ConsentUser")
 
   @@map("user")
@@ -199,6 +200,7 @@ model Organization {
   checkoutIntent    CheckoutIntent?
   aiPlannerQuotas AiPlannerQuota[]
   aiPlannerOperations AiPlannerOperation[]
+  aiPlannerProposals AiPlannerProposal[]
 
   @@map("organizations")
 }
@@ -1589,6 +1591,7 @@ model AiPlannerOperation {
   actorId String? @map("actor_id") @db.Uuid
   kind String
   fingerprint String
+  proposalId String? @map("proposal_id") @db.Uuid
   month String @db.VarChar(7)
   proposalCost Int @map("proposal_cost")
   audioSeconds Int @map("audio_seconds")
@@ -1608,4 +1611,33 @@ model AiPlannerOperation {
   @@index([expiresAt])
   @@index([actorId])
   @@map("ai_planner_operations")
+}
+
+// Contenu privé de travail, purgé au plus tard après sept jours ou sous 24 h
+// après conversion. Le registre de quota ne conserve que sa référence.
+model AiPlannerProposal {
+  id String @id @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  actorId String @map("actor_id") @db.Uuid
+  creationFingerprint String @map("creation_fingerprint")
+  state String @default("processing")
+  version Int @default(1)
+  clarificationCount Int @default(0) @map("clarification_count")
+  selection Json
+  bindings Json
+  messages Json
+  interpretation Json?
+  activeOperationId String @map("active_operation_id") @db.Uuid
+  pendingMessage String? @map("pending_message")
+  committedAt DateTime? @map("committed_at")
+  commitFingerprint String? @map("commit_fingerprint")
+  draftIds Json? @map("draft_ids")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  @@index([organizationId, actorId, createdAt])
+  @@index([expiresAt])
+  @@map("ai_planner_proposals")
 }
