@@ -98,6 +98,38 @@ test("historique réel, référence manuelle, calculateur et courbes accessibles
       });
       expect(logged.ok(), await logged.text()).toBe(true);
     }
+    const targetResponse = await page.request.post(`${root}/sessions`, {
+      data: {
+        date: context.today,
+        startTime: "18:00",
+        location: null,
+        publishAt: null,
+        assignments: [{ targetType: "athlete", targetId: athleteId }],
+        overrides: [],
+        draft: {
+          title: "Rappel sans remplacement",
+          type: "strength",
+          durationMin: 30,
+          coachNote: null,
+          blocks: [
+            {
+              name: "Force",
+              variant: "club",
+              items: [
+                { exerciseId: exercise.id, prescription: { sets: 1, reps: 4, load: { type: "kg", value: 100 } } },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    expect(targetResponse.ok()).toBe(true);
+    const target = await targetResponse.json();
+    expect(
+      (
+        await page.request.post(`${root}/sessions/${target.id}/publish`, { data: { expectedVersion: target.version } })
+      ).ok(),
+    ).toBe(true);
     await sql.query("UPDATE exercises SET name = 'Squat archivé', deleted_at = now() WHERE id = $1", [exercise.id]);
     await page.reload();
     await expect(page.getByLabel(m.exerciseHistory.exercise, { exact: true })).toContainText("Squat archivé");
@@ -147,6 +179,28 @@ test("historique réel, référence manuelle, calculateur et courbes accessibles
     await page.getByLabel(m.exerciseHistory.period, { exact: true }).selectOption("84");
     await expect(page).toHaveURL(/days=84/);
     await expect(page.getByLabel(m.exerciseHistory.exercise, { exact: true })).toHaveValue(exercise.id);
+    await page.goto(`/seances/${target.id}/athletes/${athleteId}/series`);
+    const reminder = page.getByRole("complementary");
+    await expect(reminder.getByRole("heading", { name: m.exerciseHistory.lastTime, exact: true })).toBeVisible();
+    await expect(reminder).toContainText("40 kg");
+    await expect(reminder).toContainText(historyDate(dates[4]!));
+    const row = page.getByRole("group", { name: m.progression.setNumber(1), exact: true });
+    await expect(row.getByLabel(m.progression.fields.loadKg, { exact: true })).toHaveValue("100");
+    await row.getByText(m.progression.advancedSet, { exact: true }).click();
+    await row.getByLabel(m.progression.repetitionScope, { exact: true }).selectOption("per_side");
+    await expect(reminder.getByText(m.exerciseHistory.noComparable)).toBeVisible();
+    await row.getByLabel(m.progression.repetitionScope, { exact: true }).selectOption("total");
+    await expect(reminder).toContainText("40 kg");
+    await expect(row.getByLabel(m.progression.fields.loadKg, { exact: true })).toHaveValue("100");
+    await expectAccessible(page);
+    await expectNoHorizontalScroll(page);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: `/tmp/tartan-reminder-${info.project.name}.png`, fullPage: true });
+    await reminder.getByRole("link", { name: m.exerciseHistory.openExercise }).click();
+    await expect(page).toHaveURL(new RegExp(`to=${dates[4]}`));
+    await expect(page.getByLabel(m.exerciseHistory.exercise, { exact: true })).toHaveValue(exercise.id);
+    await page.getByRole("button", { name: m.exerciseHistory.untilToday }).click();
+    await expect(page).toHaveURL(new RegExp(`to=${context.today}`));
     await sql.query("UPDATE organizations SET progression_enabled = false WHERE id = $1", [orgId]);
     await page.reload();
     await expect(page.getByText(m.progression.disabled)).toBeVisible();

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { uuid } from "@tartan/contracts";
+import { isoDate, uuid } from "@tartan/contracts";
 import { historyRange, type HistoryPeriod } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { PageHeader } from "@/components/states";
@@ -13,7 +13,7 @@ export default async function HistoryPage({
   searchParams,
 }: {
   params: Promise<{ athleteId: string }>;
-  searchParams: Promise<{ exercise?: string; days?: string }>;
+  searchParams: Promise<{ exercise?: string; days?: string; to?: string }>;
 }) {
   const { actor, organizationId, space } = await requireSpace();
   const [{ athleteId }, query] = await Promise.all([params, searchParams]);
@@ -22,16 +22,12 @@ export default async function HistoryPage({
   const context = await orNotFound(() => getAthleteHistoryContext(actor.userId, organizationId, athleteId));
   const exerciseId = query.exercise ?? context.exercises[0]?.id;
   if (exerciseId && !uuid.safeParse(exerciseId).success) notFound();
+  if (query.to && !isoDate.safeParse(query.to).success) notFound();
+  const until = query.to ?? context.today;
   const days: HistoryPeriod = query.days === "84" ? 84 : query.days === "365" ? 365 : 28;
   const history = exerciseId
     ? await orNotFound(() =>
-        getAthleteExerciseHistory(
-          actor.userId,
-          organizationId,
-          athleteId,
-          exerciseId,
-          historyRange(context.today, days),
-        ),
+        getAthleteExerciseHistory(actor.userId, organizationId, athleteId, exerciseId, historyRange(until, days)),
       )
     : null;
   // Un lien direct reste consultable même après effacement des dernières séries.
@@ -46,10 +42,11 @@ export default async function HistoryPage({
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
       <PageHeader title={m.exerciseHistory.title} detail={`${context.athlete.firstName} ${context.athlete.lastName}`} />
       <ExerciseHistoryView
-        key={`${organizationId}:${athleteId}:${exerciseId}:${days}`}
+        key={`${organizationId}:${athleteId}:${exerciseId}:${days}:${until}`}
         exercises={exercises}
         history={history}
         days={days}
+        today={context.today}
       />
     </div>
   );

@@ -26,6 +26,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field, Input, Select, CheckRow } from "@/components/ui/field";
 import { sendValidation, newClientId } from "./validation-queue";
 import { PerformedDraftReview } from "./performed-draft-review";
+import { PreviousSets } from "./previous-sets";
 import { getQueueOwner, pendingOps, reviewRequiredOps } from "@/features/offline/op-queue";
 
 export const PerformedSetsEditor = ({
@@ -211,6 +212,12 @@ export const PerformedSetsEditor = ({
             <section key={item.ref} className="on-card rounded-card bg-card p-4">
               <h2 className="t-h2">{item.name}</h2>
               <p className="t-caption mb-3 text-soft">{item.summary}</p>
+              <PreviousSets
+                item={item}
+                rows={draft.rows}
+                previous={session.previousExerciseSets}
+                athleteId={session.historyAthleteId}
+              />
               <div className="divide-y divide-card-line">
                 {draft.rows.map((row, index) =>
                   row.itemRef !== item.ref ? null : (

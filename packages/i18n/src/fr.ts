@@ -243,6 +243,16 @@ export const fr = {
   exerciseHistory: {
     title: "Historique par exercice",
     refresh: "Actualiser l’historique",
+    lastTime: "La dernière fois",
+    untilToday: "Revenir à la période actuelle",
+    lastTimeHint:
+      "Séries de travail confirmées avant cette séance, avec les mêmes conventions. Ce rappel ne change pas la prescription.",
+    noComparable: "Aucune réalisation antérieure comparable avec les conventions choisies.",
+    moreSets: "Voir les autres séries du rappel",
+    limitedSets: (shown: number, total: number) =>
+      `${shown} séries affichées sur ${total}. L’historique contient le détail complet.`,
+    openExercise: "Ouvrir l’historique de cet exercice",
+    previousOn: (date: string, time: string | null) => `Le ${date}${time ? ` à ${time}` : ""}`,
     intro: "Retrouve les séries enregistrées, leur prescription et ta référence actuelle.",
     exercise: "Exercice",
     period: "Période",

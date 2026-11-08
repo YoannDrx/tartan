@@ -1,4 +1,10 @@
-import type { DetailedSetInput, ExerciseHistorySession } from "@tartan/contracts";
+import type {
+  DetailedSetInput,
+  ExerciseHistorySession,
+  PerformedSetDraftRow,
+  PreviousExerciseSets,
+  ResolvedItem,
+} from "@tartan/contracts";
 import { estimateOneRm } from "./progression";
 
 export type StrengthRecord = {
@@ -17,8 +23,31 @@ export type StrengthRecord = {
 };
 
 // Le même exercice ne rend pas deux conventions interchangeables.
-export const setComparisonKey = (set: DetailedSetInput, convention: string | null | undefined): string =>
-  JSON.stringify([set.loadKind, convention ?? null, set.repetitionScope, set.sideCount]);
+export const setComparisonKey = (
+  set: Pick<DetailedSetInput, "loadKind" | "repetitionScope" | "sideCount">,
+  convention: string | null | undefined,
+): string => JSON.stringify([set.loadKind, convention ?? null, set.repetitionScope, set.sideCount]);
+
+// Le rappel suit les conventions effectivement choisies dans la saisie, sans modifier les valeurs proposées.
+export const previousSetsForItem = (
+  item: ResolvedItem,
+  rows: readonly PerformedSetDraftRow[],
+  previous: readonly PreviousExerciseSets[],
+) => {
+  const keys = new Set(
+    rows
+      .filter((row) => row.itemRef === item.ref && row.setKind === "work" && row.loadKind !== "")
+      .map((row) =>
+        setComparisonKey({ ...row, loadKind: row.loadKind as DetailedSetInput["loadKind"] }, item.strengthLoadKind),
+      ),
+  );
+  return previous.filter(
+    (group) =>
+      group.exerciseId === item.exerciseId &&
+      group.sets[0] &&
+      keys.has(setComparisonKey(group.sets[0], group.convention)),
+  );
+};
 
 const candidates = (session: ExerciseHistorySession): StrengthRecord[] =>
   session.items.flatMap((item) =>

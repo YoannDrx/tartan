@@ -3,7 +3,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
-import { uuid, type ExerciseHistory } from "@tartan/contracts";
+import { isoDate, uuid, type ExerciseHistory } from "@tartan/contracts";
 import {
   formatPrescription,
   historyChartGeometry,
@@ -209,9 +209,22 @@ function HistoryDetail({ history }: { history: ExerciseHistory }) {
   );
 }
 
-function HistoryScreen({ orgId, athleteId }: { orgId: string; athleteId: string }) {
-  const [selected, setSelected] = useState<string | null>(null);
-  const [days, setDays] = useState<HistoryPeriod>(28);
+function HistoryScreen({
+  orgId,
+  athleteId,
+  initialExercise,
+  initialDays,
+  initialUntil,
+}: {
+  orgId: string;
+  athleteId: string;
+  initialExercise?: string;
+  initialDays?: string;
+  initialUntil?: string;
+}) {
+  const [selected, setSelected] = useState<string | null>(initialExercise ?? null);
+  const [days, setDays] = useState<HistoryPeriod>(initialDays === "365" ? 365 : initialDays === "84" ? 84 : 28);
+  const [until, setUntil] = useState<string | undefined>(initialUntil);
   const [search, setSearch] = useState("");
   const [choosing, setChoosing] = useState(false);
   const context = useQuery({
@@ -220,8 +233,9 @@ function HistoryScreen({ orgId, athleteId }: { orgId: string; athleteId: string 
   });
   const exerciseId = selected ?? context.data?.exercises[0]?.id;
   const history = useQuery({
-    queryKey: ["exercise-history", orgId, athleteId, exerciseId, days, context.data?.today],
-    queryFn: () => api.athleteExerciseHistory(orgId, athleteId, exerciseId!, historyRange(context.data!.today, days)),
+    queryKey: ["exercise-history", orgId, athleteId, exerciseId, days, until ?? context.data?.today],
+    queryFn: () =>
+      api.athleteExerciseHistory(orgId, athleteId, exerciseId!, historyRange(until ?? context.data!.today, days)),
     enabled: Boolean(context.data && !context.isError && exerciseId),
   });
   const name = context.data ? `${context.data.athlete.firstName} ${context.data.athlete.lastName}` : undefined;
@@ -275,6 +289,9 @@ function HistoryScreen({ orgId, athleteId }: { orgId: string; athleteId: string 
                     ))}
                 </>
               ) : null}
+              {until && until !== context.data.today ? (
+                <Button label={t.untilToday} variant="secondary" onPress={() => setUntil(undefined)} />
+              ) : null}
               <T variant="smallStrong">{t.period}</T>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
                 {historyPeriods.map((period) => (
@@ -293,7 +310,7 @@ function HistoryScreen({ orgId, athleteId }: { orgId: string; athleteId: string 
               ) : history.isError ? (
                 <ErrorState error={history.error} onRetry={() => void history.refetch()} />
               ) : (
-                <HistoryDetail key={`${exerciseId}:${days}`} history={history.data} />
+                <HistoryDetail key={`${exerciseId}:${days}:${until}`} history={history.data} />
               )}
             </>
           )}
@@ -303,7 +320,12 @@ function HistoryScreen({ orgId, athleteId }: { orgId: string; athleteId: string 
   );
 }
 export default function ExerciseHistoryScreen() {
-  const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
+  const { athleteId, exercise, days, to } = useLocalSearchParams<{
+    athleteId: string;
+    exercise?: string;
+    days?: string;
+    to?: string;
+  }>();
   const { orgId, space: active, me } = useActiveSpace();
   if (me.isPending)
     return (
@@ -317,11 +339,25 @@ export default function ExerciseHistoryScreen() {
         <ErrorState error={me.error} onRetry={() => void me.refetch()} />
       </StackScreen>
     );
-  if (!active?.progressionEnabled || !uuid.safeParse(athleteId).success)
+  if (
+    !active?.progressionEnabled ||
+    !uuid.safeParse(athleteId).success ||
+    (exercise !== undefined && !uuid.safeParse(exercise).success) ||
+    (to !== undefined && !isoDate.safeParse(to).success)
+  )
     return (
       <StackScreen title={t.title}>
         <T>{active?.progressionEnabled ? m.common.forbidden : m.progression.disabled}</T>
       </StackScreen>
     );
-  return <HistoryScreen key={`${me.data?.id}:${orgId}:${athleteId}`} orgId={orgId} athleteId={athleteId} />;
+  return (
+    <HistoryScreen
+      key={`${me.data?.id}:${orgId}:${athleteId}:${exercise}:${days}:${to}`}
+      orgId={orgId}
+      athleteId={athleteId}
+      initialExercise={exercise}
+      initialDays={days}
+      initialUntil={to}
+    />
+  );
 }

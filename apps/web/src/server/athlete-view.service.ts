@@ -41,6 +41,7 @@ import { notify } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
 import { athleteAssignedWhere as assignedWhere } from "./session-audience.service";
 import { strengthResolutionInputs } from "./strength.service";
+import { loadPreviousExerciseSets } from "./previous-exercise-sets";
 
 const loadTests = async (athleteId: string): Promise<StrengthTest[]> => {
   return strengthResolutionInputs(prisma, athleteId);
@@ -323,8 +324,19 @@ const readAthleteSession = async (
       items: await Promise.all(block.items.map(async (item) => ({ ...item, media: await withStream(item.media) }))),
     })),
   );
+  const previousExerciseSets = session.organization.progressionEnabled
+    ? await loadPreviousExerciseSets({
+        organizationId,
+        athleteId,
+        sessionId,
+        date: session.date,
+        startTime: session.startTime,
+        items: blocks.flatMap((block) => block.items),
+      })
+    : undefined;
   return {
     ...card,
+    ...(previousExerciseSets ? { previousExerciseSets, historyAthleteId: athleteId } : {}),
     sessionVersion: session.version,
     progressionEnabled: session.organization.progressionEnabled,
     healthConsent,

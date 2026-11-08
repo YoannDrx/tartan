@@ -103,7 +103,20 @@ export const resolvedItem = z.object({
 });
 export type ResolvedItem = z.infer<typeof resolvedItem>;
 
+export const previousExerciseSets = z.object({
+  exerciseId: uuid,
+  convention: snapshotItem.shape.strengthLoadKind,
+  date: z.string(),
+  startTime: z.string().nullable(),
+  sessionId: uuid,
+  totalSets: z.number().int().nonnegative(),
+  sets: z.array(detailedSetInput),
+});
+export type PreviousExerciseSets = z.infer<typeof previousExerciseSets>;
+
 export const athleteSessionDetail = athleteSessionCard.extend({
+  historyAthleteId: uuid.optional(),
+  previousExerciseSets: z.array(previousExerciseSets).optional(),
   athlete: z.object({ id: z.string(), name: z.string() }).optional(),
   canRecordSets: z.boolean().optional(),
   progressionEnabled: z.boolean().optional(),

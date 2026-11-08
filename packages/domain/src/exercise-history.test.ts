@@ -1,8 +1,9 @@
+import { proposedSet } from "./performed-sets";
 import { describe, expect, it } from "vitest";
-import type { DetailedSetInput, ExerciseHistorySession } from "@tartan/contracts";
+import type { DetailedSetInput, ExerciseHistorySession, ResolvedItem, PreviousExerciseSets } from "@tartan/contracts";
 import { historyChartGeometry, historyRange, historyVolumePoints } from "./history-chart";
 import { actualSetVolumes } from "./progression";
-import { lastComparableSets, strengthHistoryRecords } from "./exercise-history";
+import { lastComparableSets, strengthHistoryRecords, previousSetsForItem } from "./exercise-history";
 
 const set = (extra: Partial<DetailedSetInput> = {}): DetailedSetInput => ({
   itemRef: "item",
@@ -143,4 +144,44 @@ describe("courbes du réalisé", () => {
     expect(historyRange("2026-11-08", 28)).toEqual({ from: "2026-10-12", to: "2026-11-08" });
     expect(historyRange("2028-03-01", 365)).toEqual({ from: "2027-03-03", to: "2028-03-01" });
   });
+});
+
+it("le rappel suit les conventions du brouillon sans modifier ses valeurs ni mélanger les exercices", () => {
+  const item: ResolvedItem = {
+    ref: "item",
+    exerciseId: "exercise",
+    name: "Squat",
+    category: "strength",
+    cues: [],
+    media: null,
+    prescription: { sets: 3, reps: 4 },
+    strengthLoadKind: "external_total",
+    resolvedLoadKg: 100,
+    summary: "",
+  };
+  const rows = [proposedSet(item, 0), proposedSet(item, 1)];
+  const before = JSON.stringify(rows);
+  const total: PreviousExerciseSets = {
+    exerciseId: "exercise",
+    convention: "external_total",
+    date: "2026-01-01",
+    startTime: null,
+    sessionId: "old",
+    totalSets: 1,
+    sets: [set()],
+  };
+  const side: PreviousExerciseSets = {
+    ...total,
+    sessionId: "side",
+    sets: [set({ repetitionScope: "per_side", sideCount: 2 })],
+  };
+  const wrongExercise = { ...total, exerciseId: "other" };
+  const addedWeight = { ...total, convention: "added_weight" as const };
+  expect(previousSetsForItem(item, rows, [side, total, wrongExercise, addedWeight])).toEqual([total]);
+  expect(JSON.stringify(rows)).toBe(before);
+  expect(
+    previousSetsForItem(item, [{ ...rows[0]!, repetitionScope: "per_side", sideCount: 2 }], [total, side]),
+  ).toEqual([side]);
+  expect(previousSetsForItem(item, [{ ...rows[0]!, loadKind: "" }], [total])).toEqual([]);
+  expect(previousSetsForItem(item, [{ ...rows[0]!, setKind: "warmup" }], [total])).toEqual([]);
 });

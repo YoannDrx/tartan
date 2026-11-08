@@ -12,7 +12,7 @@ Au 8 novembre 2026, après les lots constructeur, vidéo générique et profil s
 | --- | --- | --- |
 | A — positionnement et expérience | Socle visuel clair et constructeur natif implémentés ; reprise chiffrée, modification, sauvegarde et publication testées sur simulateur iOS ; suppression séances/modèles, vidéo générique, profil sportif web/native et 49 fiches initiales ajoutés | Suite de la recette du constructeur, publication groupée, recette complète de l’onboarding, médias de bibliothèque, landing et recette physique |
 | B — données réalisées | Références liées, prescriptions figées, saisie athlète/coach web/native, hors ligne et conflits, rapprochement historique et actualisation explicite des charges publiées implémentés | Recette native physique et validation globale |
-| C — historique et records | Historique web/natif, API sécurisée, courbes de volumes renseignés, références séparées, règles de comparaison et calculateur raccordé à l’exercice | Rappel dans la séance, courbes de force, confirmation des records et célébration unique |
+| C — historique et records | Historique web/natif, API sécurisée, courbes de volumes renseignés, références séparées, rappel des séries comparables dans la séance et calculateur raccordé à l’exercice | Courbes de force, confirmation des records et célébration unique |
 | D — phases et analyses | Volumes réalisés avec couverture dans le socle statistique | Phases groupe/athlète, visibilité et analyses complètes |
 | E — planificateur IA | Non implémenté ; clé locale disponible | Dictée, transcription, clarifications, brouillons, quotas, purge et corpus d’évaluation |
 
@@ -325,3 +325,8 @@ Epley, saisie française, estimation distincte de la référence du tableau, cho
 ### Historique par exercice — interfaces et volumes
 
 Sélection d’exercice et de période, références actuelles distinctes des prescriptions figées, séries détaillées, courbes par unité et tableau accessible sur web/natif. Références manuelles seules incluses ; archive, manque et troncature explicites. [Preuves et portée de la couverture](preuves-v1-1/lot-c-historique-interface.md). Les records/célébrations et analyses complètes ne sont pas déclarés terminés.
+
+
+### Rappel des réalisations comparables
+
+Rappel web/natif dans les séries athlète/coach, séparé de la prescription et recalculé après correction/suppression. Recherche par convention sur l’historique, horaires explicites pour le même jour, douze séries maximum avec total affiché et accès au détail contextualisé. [Preuves et limites](preuves-v1-1/lot-c-rappel-series.md). Le test de confirmation d’âge responsable de l’échec CI de `7764dfd` est corrigé dans `4782ebc` et repasse localement ; une nouvelle CI distante reste nécessaire.

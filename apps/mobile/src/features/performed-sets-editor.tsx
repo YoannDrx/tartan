@@ -24,6 +24,7 @@ import { SyncBanner } from "../ui/screen";
 import { space } from "../ui/theme";
 import { PerformedDraftReview } from "../ui/performed-draft-review";
 import { Check } from "../ui/icons";
+import { PreviousSets } from "./previous-sets";
 
 const Choice = ({
   label,
@@ -244,6 +245,12 @@ export const PerformedSetsEditor = ({
           <View key={item.ref} style={{ gap: space.lg }}>
             <T variant="title2">{item.name}</T>
             <T variant="caption">{item.summary}</T>
+            <PreviousSets
+              item={item}
+              rows={draft.rows}
+              previous={session.previousExerciseSets}
+              athleteId={session.historyAthleteId}
+            />
             {draft.rows.map((row, index) =>
               row.itemRef !== item.ref ? null : (
                 <View key={`${row.itemRef}-${row.setIndex}`} style={{ gap: space.md, paddingVertical: space.md }}>

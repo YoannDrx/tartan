@@ -23,19 +23,23 @@ export function ExerciseHistoryView({
   exercises,
   history,
   days,
+  today,
 }: {
   exercises: { id: string; name: string; archived: boolean }[];
   history: ExerciseHistory | null;
   days: HistoryPeriod;
+  today: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
   const [metric, setMetric] = useState<VolumeMetric>("tonnageKg");
   const [limit, setLimit] = useState(10);
-  const change = (exercise: string, period: number) =>
+  const change = (exercise: string, period: number, until = history?.to ?? today) =>
     startTransition(() =>
-      router.replace(`${pathname}?${new URLSearchParams({ exercise, days: String(period) })}`, { scroll: false }),
+      router.replace(`${pathname}?${new URLSearchParams({ exercise, days: String(period), to: until })}`, {
+        scroll: false,
+      }),
     );
   const points = historyVolumePoints(history?.sessions ?? [], metric);
   const geometry = historyChartGeometry(points);
@@ -85,6 +89,16 @@ export function ExerciseHistoryView({
           <p className="text-soft">
             {historyDate(history.from)} – {historyDate(history.to)}
           </p>
+          {history.to !== today ? (
+            <Button
+              variant="secondary"
+              className="self-start"
+              disabled={pending}
+              onClick={() => change(history.exercise.id, days, today)}
+            >
+              {t.untilToday}
+            </Button>
+          ) : null}
           <Sheet>
             <SheetSection title={m.strength.currentReference}>
               {history.reference ? (
