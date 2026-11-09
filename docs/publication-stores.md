@@ -16,6 +16,11 @@ Analyse complète, règles et sources : [Tartan, publication sur l'App Store et 
 - Archive iOS signée 1.1.0 (12), commit `8e9f9a3`, construite en local : `.local/stores/tartan-1.1.0-12.ipa` à la racine du dépôt principal.
 - Build Android de production lancé sur EAS, encore en file d'attente à 18 h.
 
+- App Store Connect : fiche 1.1.0, nom, sous-titre, catégories, classification 18+, prix gratuit, disponibilité France, URL de confidentialité. Publication réglée sur manuelle.
+- App Privacy : 12 types de données saisis, non publiés. Apple demande à ce moment de garantir leur exactitude.
+- Captures iPhone 1320 × 2868 dans `apps/mobile/store/ios`, dont la grille du coach. La capture de l'analyse vidéo manque : il faut un clip de démonstration.
+- Écrans natifs du coach ouverts dans le thème Tartan sur simulateur : Suivi, Calendrier, Exercices, Annonces.
+
 ## Gestes réservés au fondateur
 
 Compte, mot de passe, paiement ou engagement légal : Claude ne les fait pas.
@@ -58,7 +63,7 @@ Compte, mot de passe, paiement ou engagement légal : Claude ne les fait pas.
 
 ## Reste à faire côté Claude, après ces gestes
 
-- Captures iPhone : autoriser l'accès au simulateur iPhone 17 Pro Max dans le panneau.
-- Écrans natifs du coach à ouvrir dans le thème Tartan, sur le même simulateur.
+- Envoyer les captures sur App Store Connect, par clé API ou glisser-déposer.
 - Captures Android en 1080 × 1920 : installer un émulateur.
-- Comprendre l'échec du build iOS sur EAS à l'étape « Read app config » : le même commit se construit en local. Journal lisible sur expo.dev, build `007b06c9`.
+- Comprendre l'échec des builds iOS et Android sur EAS à l'étape « Read app config » : le même commit se construit en local en iOS. Journal lisible sur expo.dev, builds `a865c35b` et `72fbbe05`. Sans cela, pas d'AAB Android.
+- Changement de compte par lien magique sans déconnexion : le simulateur est resté sur l'accueil de l'ancien rôle.

@@ -106,7 +106,7 @@ Description longue :
 
 > L'app de préparation physique du coach et de son groupe, pour l'athlétisme et les athlètes majeurs.
 >
-> Pour le coach : voyez qui a fait quoi, semaine par semaine. Faites l'appel, relancez un athlète, invitez votre groupe par lien ou QR code, consultez charges et feuille de barres. La création des séances se fait sur ordinateur.
+> Pour le coach : voyez qui a fait quoi, semaine par semaine. Faites l'appel, relancez un athlète, invitez votre groupe par lien ou QR code, consultez charges et feuille de barres.
 >
 > Pour l'athlète : ta séance du jour, tes exercices, leurs consignes et leurs vidéos. Tu valides en quelques secondes, même sans réseau : l'envoi part au retour de la connexion.
 >
@@ -136,8 +136,7 @@ Coach: [email] / [password]
 Second coach: [email] / [password]
 Athlete: [email] / [password]
 
-Sessions are created on the web and followed here. Video capture needs
-the camera; sound is optional.
+Video capture needs the camera; sound is optional.
 
 AI planner (coach, Calendrier tab): the coach dictates or types training
 instructions. Before anything is sent, the app names OpenAI, lists the
