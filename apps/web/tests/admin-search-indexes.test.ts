@@ -15,7 +15,8 @@ traced.$on("query", (event) => {
 
 afterAll(() => traced.$disconnect());
 
-// Le jeu de test est minuscule : sans ce réglage, le planificateur préfère lire la table entière.
+// Le jeu de test est minuscule : sans ces réglages, le planificateur préfère lire la table entière ou suivre l'index
+// de tri. Seul un parcours par bitmap reste possible, et il ne peut s'appuyer que sur un index qui sert le filtre.
 const planOf = async (run: () => Promise<unknown>): Promise<string> => {
   statements.length = 0;
   await run();
@@ -23,6 +24,8 @@ const planOf = async (run: () => Promise<unknown>): Promise<string> => {
   if (!statement) throw new Error(`Aucun ILIKE dans : ${statements.map((row) => row.query).join(" | ")}`);
   const rows = await prisma.$transaction(async (tx) => {
     await tx.$executeRawUnsafe("SET LOCAL enable_seqscan = off");
+    await tx.$executeRawUnsafe("SET LOCAL enable_indexscan = off");
+    await tx.$executeRawUnsafe("SET LOCAL enable_indexonlyscan = off");
     return tx.$queryRawUnsafe<{ "QUERY PLAN": string }[]>(`EXPLAIN ${statement.query}`, ...statement.params);
   });
   return rows.map((row) => row["QUERY PLAN"]).join("\n");
