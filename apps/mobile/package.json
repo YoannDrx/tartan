@@ -66,6 +66,7 @@
     "zustand": "5.0.8"
   },
   "devDependencies": {
+    "@sentry/cli": "2.58.4",
     "@types/react": "~19.2.2",
     "typescript": "5.9.3",
     "vitest": "5.0.5"
