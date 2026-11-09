@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: m.admin.title, robots: { index: false
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const { actor } = await requireSpace();
-  if (!isAdmin(actor.email)) redirect("/accueil");
+  if (!(await isAdmin(actor.email))) redirect("/accueil");
   if (!(await hasFreshStepUp(actor.sessionId, STEP_UP_READ_MS))) redirect("/verification-admin");
   return children;
 }

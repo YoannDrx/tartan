@@ -28,7 +28,7 @@ const Totals = ({ items }: { items: { label: string; value: number | string }[] 
 
 export default async function AdminPage() {
   const { actor } = await requireSpace();
-  if (!isAdmin(actor.email)) redirect("/accueil");
+  if (!(await isAdmin(actor.email))) redirect("/accueil");
   const [data, reports] = await Promise.all([adminOverview(actor), listAllReports(actor)]);
   const totals = [
     { label: m.admin.spaces, value: data.spaceCount },

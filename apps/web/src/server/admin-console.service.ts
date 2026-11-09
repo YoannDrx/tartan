@@ -33,7 +33,7 @@ const cursorArgs = (cursor?: string): { cursor?: { id: string }; skip?: number }
   cursor ? { cursor: { id: cursor }, skip: 1 } : {};
 
 export const revenueOverview = async (actor: Admin, now: Date = new Date()) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const yearStart = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
   const [subscriptions, year, month, refundedMonth, history, trialsStarted, trialsConverted] = await Promise.all([
@@ -75,7 +75,7 @@ export const revenueOverview = async (actor: Admin, now: Date = new Date()) => {
 };
 
 export const accountingCsv = async (actor: Admin, year: number) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const invoices = await prisma.billingInvoice.findMany({
     where: { paidAt: { gte: new Date(Date.UTC(year, 0, 1)), lt: new Date(Date.UTC(year + 1, 0, 1)) }, livemode: true },
     orderBy: { paidAt: "asc" },
@@ -96,7 +96,7 @@ export const accountingCsv = async (actor: Admin, year: number) => {
 };
 
 export const searchUsers = async (actor: Admin, query: { q?: string; cursor?: string }) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const q = query.q?.trim();
   const rows = await prisma.user.findMany({
     where: q
@@ -122,7 +122,7 @@ export const searchUsers = async (actor: Admin, query: { q?: string; cursor?: st
 
 // Fiche support : identité, rôles et appareils. Jamais de santé, de notes privées ni de contenu d'entraînement.
 export const userCard = async (actor: Admin, userId: string) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -149,7 +149,7 @@ export const userCard = async (actor: Admin, userId: string) => {
 };
 
 export const adminResendVerification = async (actor: Admin, userId: string) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
   if (!user) throw notFound();
   await auth.api.sendVerificationEmail({ body: { email: user.email } });
@@ -157,7 +157,7 @@ export const adminResendVerification = async (actor: Admin, userId: string) => {
 };
 
 export const adminSetSuspended = async (actor: Admin, userId: string, suspended: boolean, now: Date = new Date()) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   if (userId === actor.userId) throw forbidden();
   await prisma.$transaction(async (tx) => {
     const changed = await tx.user.updateMany({ where: { id: userId }, data: { suspendedAt: suspended ? now : null } });
@@ -169,14 +169,14 @@ export const adminSetSuspended = async (actor: Admin, userId: string, suspended:
 };
 
 export const adminDeleteUser = async (actor: Admin, userId: string) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   if (userId === actor.userId) throw forbidden();
   await audit(actor, "user_deletion_requested", "user", userId);
   await deleteAccount(userId);
 };
 
 export const listSpaces = async (actor: Admin, query: { q?: string; cursor?: string }) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const q = query.q?.trim();
   const rows = await prisma.organization.findMany({
     where: q ? { name: { contains: q, mode: "insensitive" } } : {},
@@ -196,7 +196,7 @@ export const listSpaces = async (actor: Admin, query: { q?: string; cursor?: str
 };
 
 export const spaceCard = async (actor: Admin, organizationId: string) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const org = await prisma.organization.findUnique({
     where: { id: organizationId },
     select: {
@@ -232,8 +232,8 @@ export const spaceCard = async (actor: Admin, organizationId: string) => {
 };
 
 // Offre accordée à la main : refusée tant qu'un abonnement payant est en cours chez un prestataire.
-export const adminGrantPlan = async (actor: Admin, organizationId: string, plan: PlanKey) => {
-  requireAdmin(actor.email);
+export const adminGrantPlan = async (actor: Admin, organizationId: string, plan: PlanKey, days?: number) => {
+  await requireAdmin(actor.email);
   const current = await prisma.subscription.findFirst({
     where: { organizationId, provider: { in: ["stripe", "revenuecat"] }, status: { not: "canceled" } },
     select: { id: true },
@@ -245,10 +245,31 @@ export const adminGrantPlan = async (actor: Admin, organizationId: string, plan:
     status: "active",
     provider: "manual",
     providerRef: null,
-    currentPeriodEnd: null,
+    currentPeriodEnd: days ? new Date(Date.now() + days * 86_400_000) : null,
     cancelAt: null,
   });
-  await audit(actor, "plan_granted", "organization", organizationId, organizationId, { plan });
+  await audit(actor, "plan_granted", "organization", organizationId, organizationId, { plan, days: days ?? 0 });
+};
+
+// Une offre offerte pour une durée s'arrête seule : l'espace repasse en Découverte.
+export const expireGrantedPlans = async (now: Date = new Date()) => {
+  const due = await prisma.subscription.findMany({
+    where: { provider: "manual", status: "active", currentPeriodEnd: { lt: now }, planKey: { not: "discovery" } },
+    select: { organizationId: true },
+    take: 100,
+  });
+  for (const row of due) {
+    await applySubscription({
+      organizationId: row.organizationId,
+      plan: "discovery",
+      status: "active",
+      provider: "manual",
+      providerRef: null,
+      currentPeriodEnd: null,
+      cancelAt: null,
+    });
+  }
+  return due.length;
 };
 
 const stripeSubscriptionOf = async (subscriptionId: string) => {
@@ -259,14 +280,14 @@ const stripeSubscriptionOf = async (subscriptionId: string) => {
 };
 
 export const adminCancelAtPeriodEnd = async (actor: Admin, subscriptionId: string) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const subscription = await stripeSubscriptionOf(subscriptionId);
   await stripe().subscriptions.update(subscription.providerRef, { cancel_at_period_end: true });
   await audit(actor, "subscription_cancel_at_period_end", "subscription", subscription.id, subscription.organizationId);
 };
 
 export const adminExtendTrial = async (actor: Admin, subscriptionId: string, days: number, now: Date = new Date()) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   if (!Number.isInteger(days) || days < 1 || days > 60) throw invalid();
   const subscription = await stripeSubscriptionOf(subscriptionId);
   const from = subscription.trialEndsAt && subscription.trialEndsAt > now ? subscription.trialEndsAt : now;
@@ -278,10 +299,10 @@ export const adminExtendTrial = async (actor: Admin, subscriptionId: string, day
 };
 
 export const listSubscriptions = async (actor: Admin, query: { status?: string; cursor?: string }) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const rows = await prisma.subscription.findMany({
     where: {
-      provider: { in: ["stripe", "revenuecat"] },
+      provider: { in: ["stripe", "revenuecat", "manual"] },
       ...(query.status ? { status: query.status as "active" } : {}),
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -306,7 +327,7 @@ export const listSubscriptions = async (actor: Admin, query: { status?: string; 
 };
 
 export const listInvoices = async (actor: Admin, query: { cursor?: string }) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const rows = await prisma.billingInvoice.findMany({
     orderBy: [{ stripeCreatedAt: "desc" }, { id: "desc" }],
     take: PAGE + 1,
@@ -324,7 +345,7 @@ export const listInvoices = async (actor: Admin, query: { cursor?: string }) => 
 };
 
 export const invoiceCard = async (actor: Admin, invoiceId: string) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const invoice = await prisma.billingInvoice.findUnique({ where: { id: invoiceId } });
   if (!invoice) throw notFound();
   const [subscription, remote] = await Promise.all([
@@ -345,12 +366,12 @@ export const invoiceCard = async (actor: Admin, invoiceId: string) => {
 };
 
 export const listDisputes = async (actor: Admin) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   return prisma.billingDispute.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
 };
 
 export const usageOverview = async (actor: Admin, now: Date = new Date()) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const days = (count: number) => new Date(now.getTime() - count * 86_400_000);
   const weekAgoDate = toDbDate(addDays(todayIso(now), -7));
   const [
@@ -403,7 +424,7 @@ export const usageOverview = async (actor: Admin, now: Date = new Date()) => {
 };
 
 export const releasesConsole = async (actor: Admin) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const [targets, configs, devices] = await Promise.all([
     prisma.appReleaseTarget.findMany({ orderBy: { createdAt: "desc" }, take: 40 }),
     prisma.appPlatformConfig.findMany(),
@@ -421,13 +442,13 @@ export const releasesConsole = async (actor: Admin) => {
 };
 
 export const adminConfirmStore = async (actor: Admin, targetId: string) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   await confirmStoreAvailability(targetId);
   await audit(actor, "store_availability_confirmed", "app_release_target", targetId);
 };
 
 export const adminStopRollout = async (actor: Admin, targetId: string) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   await stopRollout(targetId);
   await audit(actor, "rollout_stopped", "app_release_target", targetId);
 };
@@ -436,7 +457,7 @@ export const adminSetMinimumVersion = async (
   actor: Admin,
   input: { platform: "ios" | "android"; minimumVersion: string | null; reason: string | null },
 ) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const accepted = await setMinimumVersion(input.platform, input.minimumVersion, input.reason, actor.userId);
   if (!accepted) throw invalid();
   await audit(actor, "minimum_version_set", "platform", input.platform, null, {
@@ -445,7 +466,7 @@ export const adminSetMinimumVersion = async (
 };
 
 export const auditTrail = async (actor: Admin, query: { action?: string; cursor?: string }) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const rows = await prisma.auditLog.findMany({
     where: query.action ? { action: { contains: query.action, mode: "insensitive" } } : {},
     orderBy: [{ at: "desc" }, { id: "desc" }],

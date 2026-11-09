@@ -101,7 +101,7 @@ export default function PlannerProposalsScreen() {
   if (!activeSpace?.aiPlannerEnabled || !orgId)
     return (
       <StackScreen title={t.recent}>
-        <T>{activeSpace?.aiPlannerUpgrade ? t.paidOnly : t.disabled}</T>
+        <T>{t.disabled}</T>
       </StackScreen>
     );
   return <ProposalList key={`${me.data.id}:${orgId}`} orgId={orgId} userId={me.data.id} />;

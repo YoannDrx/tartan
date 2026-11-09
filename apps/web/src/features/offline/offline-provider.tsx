@@ -3,6 +3,7 @@
 import { CloudOff } from "lucide-react";
 import { m } from "@tartan/i18n";
 import Link from "next/link";
+import { refreshPushSubscription } from "@/features/shell/push";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "@/components/ui/toast";
@@ -81,6 +82,7 @@ export const OfflineProvider = ({
     };
     void flush();
     void syncOfflinePages(organizationId);
+    void refreshPushSubscription().catch(() => undefined);
     const visible = () => {
       if (document.visibilityState === "visible") void flush();
     };

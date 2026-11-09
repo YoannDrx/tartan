@@ -26,6 +26,7 @@ const sections = [
   { href: "/admin/usage", label: () => m.admin.nav.usage },
   { href: "/admin/versions", label: () => m.admin.nav.versions },
   { href: "/admin/journal", label: () => m.admin.nav.audit },
+  { href: "/admin/configuration", label: () => m.admin.nav.configuration },
 ];
 
 export const AdminNav = ({ current }: { current: string }) => (

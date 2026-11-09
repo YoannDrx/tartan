@@ -6,7 +6,7 @@ import {
   SubscriptionCancelledEmail,
   SubscriptionConfirmedEmail,
   SubscriptionEndedEmail,
-  BillingNoticeEmail,
+  BillingNoticeEmail, RenewalNoticeEmail,
 } from "@email/billing";
 import { AccountDeletedEmail, SpaceTransferredEmail } from "@email/auth";
 import type { Prisma } from "@/generated/prisma/client";
@@ -168,6 +168,19 @@ const render = async (kind: string, payload: unknown, organizationId: string | n
       }),
     };
   }
+  if (kind === "renewal_notice") {
+    const copy = m.email.renewalNotice;
+    return {
+      subject: copy.subject,
+      react: createElement(RenewalNoticeEmail, {
+        title: copy.subject,
+        body: copy.body(p.space),
+        deadline: copy.deadline(dateInParis((p as Payload & { renewalAt: string }).renewalAt)),
+        cta: copy.cta,
+        url,
+      }),
+    };
+  }
   if (kind === "payment_failed" || kind === "recovered" || kind === "trial_ending") {
     const copy =
       kind === "payment_failed"
@@ -240,6 +253,54 @@ export const flushEmailOutbox = async (now: Date = new Date()): Promise<number> 
     }
   }
   return sent;
+};
+
+// Article L.215-1 : entre trois mois et un mois avant l'échéance d'une formule annuelle.
+export const queueRenewalNotices = async (now: Date = new Date()): Promise<number> => {
+  const subscriptions = await prisma.subscription.findMany({
+    where: {
+      provider: "stripe",
+      status: "active",
+      cancelAt: null,
+      interval: "year",
+      currentPeriodEnd: { gt: new Date(now.getTime() + 32 * 86_400_000), lte: new Date(now.getTime() + 45 * 86_400_000) },
+    },
+    select: {
+      providerRef: true,
+      planKey: true,
+      currentPeriodEnd: true,
+      organization: {
+        select: { id: true, name: true, billingOwnerId: true, ownerId: true, owner: { select: { email: true } } },
+      },
+    },
+  });
+  let queued = 0;
+  for (const sub of subscriptions) {
+    const org = sub.organization;
+    if (!sub.providerRef || (org.billingOwnerId && org.billingOwnerId !== org.ownerId)) continue;
+    const created = await prisma.emailOutbox.createMany({
+      data: [
+        {
+          organizationId: org.id,
+          toEmail: org.owner.email,
+          kind: "renewal_notice",
+          dedupeKey: `${sub.providerRef}:renewal:${sub.currentPeriodEnd!.toISOString().slice(0, 10)}`,
+          payload: {
+            space: org.name,
+            plan: sub.planKey,
+            interval: "year",
+            renewalAt: sub.currentPeriodEnd!.toISOString(),
+            trialEnd: null,
+            cancelAt: null,
+            unpaid: false,
+          },
+        },
+      ],
+      skipDuplicates: true,
+    });
+    queued += created.count;
+  }
+  return queued;
 };
 
 // Rappel avant le premier prélèvement : la date d'essai est suivie à chaque rapprochement avec Stripe.
@@ -322,6 +383,7 @@ export const isEmailRelevant = async (
     return sub.cancelAt?.toISOString() === payload.cancelAt && sub.cancelAt > now && sub.status !== "canceled";
   if (row.kind === "payment_failed") return sub.status === "past_due";
   if (row.kind === "recovered") return sub.status === "active";
+  if (row.kind === "renewal_notice") return sub.status === "active" && !sub.cancelAt;
   if (row.kind === "trial_ending")
     return sub.status === "trialing" && Boolean(sub.trialEndsAt && sub.trialEndsAt > now);
   return row.kind === "ended" && sub.status === "canceled";

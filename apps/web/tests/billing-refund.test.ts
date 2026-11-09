@@ -1,3 +1,4 @@
+import Stripe from "stripe";
 import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { env } from "@/lib/env";
@@ -120,6 +121,20 @@ describe("remboursements depuis la console", () => {
     await expect(confirmRefund(actor, prepared, NOW)).rejects.toThrow();
     expect(creditNotes).not.toHaveBeenCalled();
     expect((await prisma.billingRefund.findUnique({ where: { id: prepared.refundId } }))?.state).toBe("expired");
+  });
+
+  it("reconnaît un refus définitif de Stripe avec la vraie classe d'erreur", async () => {
+    const { actor, invoiceId, creditNotes } = await setup();
+    creditNotes.mockRejectedValueOnce(
+      new Stripe.errors.StripeInvalidRequestError({ type: "invalid_request_error", message: "refus" }),
+    );
+    const prepared = await prepareFull(actor, invoiceId, 900);
+    expect(await confirmRefund(actor, prepared, NOW)).toEqual({ state: "failed" });
+    expect(await prisma.billingRefund.findUnique({ where: { id: prepared.refundId } })).toMatchObject({
+      state: "failed",
+      inFlightInvoiceId: null,
+      lastErrorCode: "StripeInvalidRequestError",
+    });
   });
 
   it("reprend une réponse perdue avec la même clé, puis passe en vérification après 23 h", async () => {

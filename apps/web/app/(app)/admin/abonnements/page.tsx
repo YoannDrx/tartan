@@ -42,7 +42,7 @@ export default async function AdminSubscriptionsPage({
           <Link key="name" href={`/admin/espaces/${row.organization.id}`}>
             {row.organization.name}
           </Link>,
-          `${row.planKey}${row.interval ? ` (${row.interval})` : ""}`,
+          `${row.planKey}${row.interval ? ` (${row.interval})` : ""}${row.provider === "manual" ? ", offerte" : ""}`,
           row.cancelAt ? `${statusLabel(row.status)}, fin le ${day(row.cancelAt)}` : statusLabel(row.status),
           euros(row.discountedMrrCents ?? row.listMrrCents),
           day(row.trialEndsAt),

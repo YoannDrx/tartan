@@ -11,6 +11,7 @@ import {
 import { type PlanKey, referralCodeFor, STARTER_LIBRARY, STARTER_TEMPLATES } from "@tartan/domain";
 import { randomId } from "@/lib/tokens";
 import { prisma } from "@/lib/prisma";
+import { platformSettings } from "./platform-settings.service";
 import { m } from "@tartan/i18n";
 import { put } from "@vercel/blob";
 import { env } from "@/lib/env";
@@ -47,9 +48,9 @@ export const ensureReferralCode = async (userId: string): Promise<string> => {
   throw new Error("referral_code_collision");
 };
 
-export const canCreateCoachSpace = (email: string): boolean => {
-  const { COACH_SIGNUP_MODE, COACH_SIGNUP_EMAILS } = env();
-  if (COACH_SIGNUP_MODE === "public") return true;
+export const canCreateCoachSpace = async (email: string): Promise<boolean> => {
+  const { COACH_SIGNUP_EMAILS } = env();
+  if ((await platformSettings()).signupMode === "public") return true;
   const allowed = COACH_SIGNUP_EMAILS.split(",").map((e) => e.trim().toLowerCase());
   return allowed.includes(email.trim().toLowerCase());
 };
@@ -59,7 +60,7 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
     where: { id: userId },
     select: { email: true, profile: { select: { birthDate: true } } },
   });
-  if (!canCreateCoachSpace(user.email)) throw new AppError(403, "signup_closed", m.onboarding.closed);
+  if (!(await canCreateCoachSpace(user.email))) throw new AppError(403, "signup_closed", m.onboarding.closed);
   // La date déjà enregistrée prime : ce contrôle couvre aussi POST /api/v1/orgs.
   const knownBirthDate = fromDbDateOrNull(user.profile?.birthDate);
   if (!knownBirthDate && input.birthDate) {

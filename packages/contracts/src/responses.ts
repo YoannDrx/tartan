@@ -39,6 +39,7 @@ export const meResponse = z.object({
   spaces: z.array(spaceSummary),
   preferences: z
     .object({
+      aiConsent: z.boolean().optional(),
       calendarView: z.enum(["list", "month", "week"]).nullable(),
       calendarViewUpdatedAt: z.string().nullable().optional(),
       notifications: z

@@ -26,6 +26,8 @@ import { selectStrengthReference } from "@/server/strength.service";
 import { saveExercise } from "@/server/exercise.service";
 import { addStaff, addAthlete, makeOrg } from "./helpers";
 const flags = vi.hoisted(() => ({ AI_PLANNER_ENABLED: "true" }));
+vi.mock("@/server/ai/consent.service", () => ({ requireAiConsent: async () => undefined, hasAiConsent: async () => true }));
+
 vi.mock("@/lib/env", async (original) => {
   const actual = await original<typeof import("@/lib/env")>();
   return { ...actual, env: () => ({ ...actual.env(), ...flags }) };
@@ -89,6 +91,11 @@ const provider = (
 async function setup() {
   const a = await makeOrg("PropositionIA");
   await prisma.organization.update({ where: { id: a.organizationId }, data: { aiPlannerEnabled: true } });
+  await prisma.profile.upsert({
+    where: { id: a.owner.userId },
+    create: { id: a.owner.userId, aiConsentAt: new Date() },
+    update: { aiConsentAt: new Date() },
+  });
   await prisma.group.update({ where: { id: a.groupId }, data: { name: "Vitesse (A)" } });
   const exercise = await prisma.exercise.findFirstOrThrow({ where: { organizationId: a.organizationId } });
   const input: CreatePlannerProposalInput = {

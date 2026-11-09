@@ -71,7 +71,14 @@ export const prepareRefund = async (
   return { refundId: refund.id, token, amountCents: input.amountCents, refundableCents: fresh.paid - fresh.refunded };
 };
 
-const isDefinitive = (error: unknown): boolean => error instanceof Error && error.name === "StripeInvalidRequestError";
+// Le SDK Stripe nomme ses erreurs dans `type` : `name` reste « Error ».
+const errorType = (error: unknown): string =>
+  typeof error === "object" && error !== null && "type" in error && typeof error.type === "string"
+    ? error.type
+    : error instanceof Error
+      ? error.name
+      : "unknown";
+const isDefinitive = (error: unknown): boolean => errorType(error) === "StripeInvalidRequestError";
 
 // La requête exacte est conservée : une reprise renvoie la même, avec la même clé.
 const execute = async (refundId: string, leaseToken: string, now: Date) => {
@@ -115,7 +122,7 @@ const execute = async (refundId: string, leaseToken: string, now: Date) => {
         ...(definitive ? { inFlightInvoiceId: null } : {}),
         leaseToken: null,
         leaseUntil: null,
-        lastErrorCode: error instanceof Error ? error.name.slice(0, 60) : "unknown",
+        lastErrorCode: errorType(error).slice(0, 60),
       },
     });
     log.warn("refund_failed", { entityId: refund.id, code: definitive ? "definitive" : "retryable" });
@@ -216,7 +223,7 @@ export const retryPendingRefunds = async (now: Date = new Date()): Promise<numbe
 };
 
 export const listRefunds = async (actor: { email: string }) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   return prisma.billingRefund.findMany({
     where: { state: { not: "prepared" } },
     orderBy: { createdAt: "desc" },

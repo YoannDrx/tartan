@@ -131,6 +131,8 @@ model Profile {
   lastName  String?   @map("last_name")
   birthDate DateTime? @map("birth_date") @db.Date
   avatarUrl String?   @map("avatar_url")
+  // Accord explicite avant tout envoi au planificateur IA (OpenAI).
+  aiConsentAt DateTime? @map("ai_consent_at")
   locale    String    @default("fr")
   units     String    @default("kg")
   // Envois coupables d'un clic : résumé hebdomadaire et replis de notification.
@@ -1395,6 +1397,29 @@ model AppReleaseTarget {
   @@unique([releaseId, platform])
   @@index([delivery, state])
   @@map("app_release_targets")
+}
+
+// Réglages de la plateforme, modifiables depuis la console sans redéploiement.
+model PlatformSetting {
+  key         String   @id
+  value       Json
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
+}
+
+// Administrateurs ajoutés depuis la console ; ADMIN_EMAILS reste la racine non révocable.
+model PlatformAdmin {
+  email       String    @id
+  addedById   String?   @map("added_by_id") @db.Uuid
+  // Fenêtre d'enrôlement de la première passkey, sans jeton.
+  enrollUntil DateTime? @map("enroll_until")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("platform_admins")
 }
 
 model AppPlatformConfig {

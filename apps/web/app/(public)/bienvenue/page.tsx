@@ -32,7 +32,7 @@ export default async function BienvenuePage({
     redirect(offerQuery ? `/abonnement${offerQuery}` : "/accueil");
   }
   if ((await ageStatusOfUser(actor.userId)) === "minor") redirect("/confirmer-age");
-  if (!canCreateCoachSpace(actor.email)) {
+  if (!(await canCreateCoachSpace(actor.email))) {
     return (
       <PublicPage title={m.onboarding.closedTitle}>
         <div className="on-card flex flex-col gap-3 rounded-card bg-card p-5">

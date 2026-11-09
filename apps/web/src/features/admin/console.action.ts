@@ -37,9 +37,15 @@ export const deleteUserAction = adminAction.inputSchema(userId).action(async ({ 
 });
 
 export const grantPlanAction = adminAction
-  .inputSchema(z.object({ organizationId: uuid, plan: z.enum(["discovery", "coach", "club", "pilot"]) }))
+  .inputSchema(
+    z.object({
+      organizationId: uuid,
+      plan: z.enum(["discovery", "coach", "club", "pilot"]),
+      days: z.number().int().min(1).max(730).optional(),
+    }),
+  )
   .action(async ({ ctx, parsedInput }) => {
-    await adminGrantPlan(ctx.actor, parsedInput.organizationId, parsedInput.plan);
+    await adminGrantPlan(ctx.actor, parsedInput.organizationId, parsedInput.plan, parsedInput.days);
     revalidatePath(`/admin/espaces/${parsedInput.organizationId}`);
   });
 

@@ -17,10 +17,17 @@ import { prisma } from "./prisma";
 
 const e = env();
 
-const isAdminEmail = (email: string) =>
-  e.ADMIN_EMAILS.split(",")
-    .map((value) => value.trim().toLowerCase())
-    .includes(email.trim().toLowerCase());
+const isAdminEmail = async (email: string) => {
+  const normalized = email.trim().toLowerCase();
+  if (
+    e.ADMIN_EMAILS.split(",")
+      .map((value) => value.trim().toLowerCase())
+      .includes(normalized)
+  ) {
+    return true;
+  }
+  return Boolean(await prisma.platformAdmin.findUnique({ where: { email: normalized }, select: { email: true } }));
+};
 
 const socialProviders = {
   ...(e.GOOGLE_CLIENT_ID && e.GOOGLE_CLIENT_SECRET
@@ -118,20 +125,25 @@ export const auth = betterAuth({
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path !== "/passkey/generate-register-options") return;
       const session = await getSessionFromCtx(ctx);
-      if (!session || !isAdminEmail(session.user.email)) return;
+      if (!session || !(await isAdminEmail(session.user.email))) return;
       // Un accès à la boîte mail ne doit pas suffire à enrôler une clé sur le compte administrateur.
       const existing = await prisma.passkey.count({ where: { userId: session.user.id } });
       const stepUp = await prisma.adminStepUp.findUnique({ where: { sessionId: session.session.id } });
       const bootstrap = ctx.headers?.get("x-admin-bootstrap");
+      const invited = await prisma.platformAdmin.findUnique({
+        where: { email: session.user.email.trim().toLowerCase() },
+        select: { enrollUntil: true },
+      });
       const allowed =
         (existing > 0 && stepUp !== null && Date.now() - stepUp.verifiedAt.getTime() < 600_000) ||
-        (existing === 0 && Boolean(e.ADMIN_BOOTSTRAP_TOKEN) && bootstrap === e.ADMIN_BOOTSTRAP_TOKEN);
+        (existing === 0 && Boolean(e.ADMIN_BOOTSTRAP_TOKEN) && bootstrap === e.ADMIN_BOOTSTRAP_TOKEN) ||
+        (existing === 0 && Boolean(invited?.enrollUntil && invited.enrollUntil > new Date()));
       if (!allowed) throw new APIError("FORBIDDEN", { message: m.admin.stepUpRequired });
     }),
     after: createAuthMiddleware(async (ctx) => {
       if (ctx.path !== "/passkey/verify-authentication") return;
       const created = ctx.context.newSession;
-      if (created && isAdminEmail(created.user.email)) {
+      if (created && (await isAdminEmail(created.user.email))) {
         await prisma.adminStepUp.upsert({
           where: { sessionId: created.session.id },
           create: { sessionId: created.session.id, method: "passkey", verifiedAt: new Date() },

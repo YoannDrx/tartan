@@ -24,7 +24,7 @@ export const hasFreshStepUp = async (
 };
 
 export const requireStepUp = async (actor: AdminActor, maxAgeMs: number, now: Date = new Date()): Promise<void> => {
-  if (!isAdmin(actor.email)) throw forbidden();
+  if (!(await isAdmin(actor.email))) throw forbidden();
   if (!(await hasFreshStepUp(actor.sessionId, maxAgeMs, now))) {
     throw new AppError(403, "step_up_required", m.admin.stepUpRequired);
   }

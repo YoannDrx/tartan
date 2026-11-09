@@ -311,7 +311,7 @@ const QrPreview = ({ link, groupName }: { link: string; groupName: string }) => 
       margin: 1,
       width: 320,
       color: { dark: tokens.color.ink, light: tokens.color.surface },
-    }).then(setSvg);
+    }).then(setSvg, () => setSvg(null));
   }, [link]);
   return svg ? (
     <div

@@ -25,6 +25,7 @@ import { videoEnabled } from "@/lib/mux";
 import { drainExternalDeletions } from "./external-deletion.service";
 import { reconcileStripeSubscription, subscriptionsForCustomer } from "./stripe-subscriptions.service";
 import { prisma } from "@/lib/prisma";
+import { platformSettings } from "./platform-settings.service";
 import { billingEnabled, priceIdFor, stripe } from "@/lib/stripe";
 import { audit, requireOrgMember } from "./access";
 import { applySubscription } from "./subscription-state.service";
@@ -119,7 +120,7 @@ export const getBillingOverview = async (userId: string, organizationId: string)
       (pendingCommands > 0 || (subscription?.provider === "stripe" && subscription.status !== "canceled")),
     ),
     billingReview: Boolean(org.billingIssue),
-    billingEnabled: billingEnabled() && env().BILLING_CHECKOUT_ENABLED === "true",
+    billingEnabled: billingEnabled() && (await platformSettings()).checkoutEnabled,
     hasCustomer:
       Boolean(org.stripeCustomerId) && (!org.billingOwnerId || org.billingOwnerId === userId) && !org.billingIssue,
   };
@@ -137,7 +138,7 @@ export const createCheckout = async (
 ): Promise<{ url: string }> => {
   await requireOrgMember(userId, organizationId, "manageSubscription");
   const price = priceIdFor(input.plan, input.interval);
-  if (!billingEnabled() || !price || env().BILLING_CHECKOUT_ENABLED === "false")
+  if (!billingEnabled() || !price || !(await platformSettings()).checkoutEnabled)
     throw new AppError(503, "billing_disabled", m.billing.disabled);
   return withCheckoutIntent(organizationId, input, async (intent, leaseToken) => {
     let org = await prisma.organization.findUniqueOrThrow({ where: { id: organizationId } });

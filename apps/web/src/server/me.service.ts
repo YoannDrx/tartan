@@ -73,6 +73,7 @@ export const getMe = async (userId: string): Promise<MeResponse> => {
     locale: user.profile?.locale ?? "fr",
     spaces: await listSpaces(userId),
     preferences: {
+      aiConsent: Boolean(user.profile?.aiConsentAt),
       calendarView: parseCalendarView(user.profile?.calendarView),
       calendarViewUpdatedAt: user.profile?.calendarViewUpdatedAt?.toISOString() ?? null,
       notifications: {
@@ -115,6 +116,10 @@ export const updatePreferences = async (userId: string, input: PreferencesInput)
       ...(product !== undefined ? { pushProductUpdates: product } : {}),
     };
     await prisma.profile.upsert({ where: { id: userId }, create: { id: userId, ...data }, update: data });
+  }
+  if (input.aiConsent !== undefined) {
+    const aiConsentAt = input.aiConsent ? new Date() : null;
+    await prisma.profile.upsert({ where: { id: userId }, create: { id: userId, aiConsentAt }, update: { aiConsentAt } });
   }
   if (!input.calendarView) return;
   const at = input.calendarViewUpdatedAt ? new Date(input.calendarViewUpdatedAt) : new Date();

@@ -9,6 +9,7 @@ import {
 import { plannerServerEnabled } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
+import { requireAiConsent } from "./consent.service";
 import { env } from "@/lib/env";
 import { AppError, forbidden, notFound } from "@/lib/errors";
 import type { Prisma } from "@/generated/prisma/client";
@@ -75,6 +76,7 @@ export async function transcribePlannerAudio(
     clock = execution.clock ?? (() => new Date()),
     now = clock();
   await requirePlannerTranscriptionAccess(userId, organizationId);
+  await requireAiConsent(userId);
   const requestedAt = new Date(input.requestedAt);
   if (requestedAt.getTime() > now.getTime() + 5 * 60000 || requestedAt.getTime() + 86400000 <= now.getTime())
     throw expired();

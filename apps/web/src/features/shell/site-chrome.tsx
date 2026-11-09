@@ -12,9 +12,9 @@ export const SiteHeader = () => (
       <Wordmark />
     </a>
     <div className="flex items-center gap-4">
-      <Link href="/tarifs" className="inline-flex min-h-11 items-center font-semibold">
+      <a href={`${SITE_HOME}#tarifs`} className="inline-flex min-h-11 items-center font-semibold">
         {m.billing.pricing}
-      </Link>
+      </a>
       {/* La connexion vit sur app.tartan.coach : une vraie navigation, car la CSP bloque le préchargement vers ce domaine. */}
       <a
         href="/connexion"

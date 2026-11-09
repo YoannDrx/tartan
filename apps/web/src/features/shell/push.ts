@@ -42,6 +42,18 @@ export const currentPushSubscription = async (): Promise<PushSubscription | null
   return (await registration?.pushManager.getSubscription()) ?? null;
 };
 
+// Le navigateur peut renouveler l'abonnement sans prévenir : on renvoie le courant à chaque ouverture.
+export const refreshPushSubscription = async (): Promise<void> => {
+  if (!pushSupported() || Notification.permission !== "granted") return;
+  const subscription = await currentPushSubscription();
+  if (!subscription) return;
+  await fetch("/api/v1/devices", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pushToken: JSON.stringify(subscription), platform: "web" }),
+  });
+};
+
 // Coupe réellement cet appareil : côté navigateur et côté serveur.
 export const disablePush = async (): Promise<void> => {
   const subscription = await currentPushSubscription();

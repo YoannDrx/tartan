@@ -28,6 +28,7 @@ async function setup(page: Page) {
     "UPDATE organizations SET ai_planner_enabled=true, progression_enabled=true, phases_enabled=true, plan='coach' WHERE id=$1",
     [orgId],
   );
+  await sql.query("UPDATE profiles SET ai_consent_at=now() WHERE id=$1", [me.id]);
   const context = await api.sessionBuilder(orgId);
   const group = context.groups[0]!;
   const exercise = context.exercises.find((e) => e.name === "Squat arrière")!;

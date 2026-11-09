@@ -11,19 +11,23 @@ import { notificationDeliveryHealth } from "./notification-delivery.service";
 import { isEmailRelevant } from "./email-outbox.service";
 
 // La console de l'éditeur : réservée aux adresses listées, jamais de donnée de santé ni de contenu d'entraînement.
-export const isAdmin = (email: string): boolean =>
+export const isRootAdmin = (email: string): boolean =>
   env()
     .ADMIN_EMAILS.split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean)
     .includes(email.trim().toLowerCase());
 
-export const requireAdmin = (email: string): void => {
-  if (!isAdmin(email)) throw forbidden();
+export const isAdmin = async (email: string): Promise<boolean> =>
+  isRootAdmin(email) ||
+  Boolean(await prisma.platformAdmin.findUnique({ where: { email: email.trim().toLowerCase() }, select: { email: true } }));
+
+export const requireAdmin = async (email: string): Promise<void> => {
+  if (!(await isAdmin(email))) throw forbidden();
 };
 
 export const adminCorrectBirthDate = async (actor: { email: string; userId: string }, input: unknown) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const parsed = correctBirthDateInput.safeParse(input);
   if (!parsed.success) throw invalid();
   const { userId, birthDate, reason } = parsed.data;
@@ -44,7 +48,7 @@ export const adminCorrectBirthDate = async (actor: { email: string; userId: stri
 };
 
 export const adminRetryEmail = async (actor: { email: string; userId: string }, id: string) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const row = await prisma.emailOutbox.findUnique({ where: { id } });
   if (!row || row.sentAt || !row.failedAt) throw notFound();
   if (!(await isEmailRelevant(row))) throw invalid(m.admin.obsoleteEmail);
@@ -68,7 +72,7 @@ export const adminRetryEmail = async (actor: { email: string; userId: string }, 
 
 // Activation pilote espace par espace. Chaque appel relit la colonne : l'effet est immédiat, sans redéploiement.
 export const adminSetSpaceFeatures = async (actor: { email: string; userId: string }, input: unknown) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const parsed = adminSpaceFeaturesInput.safeParse(input);
   if (!parsed.success) throw invalid();
   const { organizationId, ...features } = parsed.data;
@@ -90,7 +94,7 @@ export const adminSetSpaceFeatures = async (actor: { email: string; userId: stri
 
 // Arrêt d'urgence : coupe l'IA partout sans toucher aux autres fonctions ; la réactivation reste espace par espace.
 export const adminDisableAiEverywhere = async (actor: { email: string; userId: string }) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   await prisma.$transaction(async (tx) => {
     await tx.organization.updateMany({ where: { aiPlannerEnabled: true }, data: { aiPlannerEnabled: false } });
     await tx.auditLog.create({
@@ -100,7 +104,7 @@ export const adminDisableAiEverywhere = async (actor: { email: string; userId: s
 };
 
 export const adminOverview = async (actor: { email: string }, now: Date = new Date()) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const weekAgo = toDbDate(addDays(todayIso(now), -7));
   const orgs = await prisma.organization.findMany({
     orderBy: { createdAt: "desc" },

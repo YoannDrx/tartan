@@ -8,6 +8,7 @@ import { AppError } from "@/lib/errors";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { processReferrals, purgeExpiredVideos } from "./billing.service";
+import { expireGrantedPlans } from "./admin-console.service";
 import { reconcileStuckVideos } from "./video.service";
 import { sendWeeklyDigests } from "./digest.service";
 import { firstNameOf } from "./me.service";
@@ -15,7 +16,7 @@ import { dispatchPending, notify, notifyPublications } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
 import { runReleaseJobs } from "./releases.service";
 import { retryPendingRefunds } from "./billing-refund.service";
-import { queueTrialReminders } from "./email-outbox.service";
+import { queueRenewalNotices, queueTrialReminders } from "./email-outbox.service";
 import { snapshotPlatformDay } from "./admin-console.service";
 import { activeAudienceIds, audienceAthleteIds, publishRow, type Publication } from "./session.service";
 import { runCronJobs } from "./cron-runner";
@@ -207,7 +208,9 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     releases: () => runReleaseJobs(now),
     refunds: () => retryPendingRefunds(now),
     trialReminders: async () => (hourInParis(now) === 9 ? queueTrialReminders(now) : null),
-    platformStats: async () => (hourInParis(now) === 2 ? snapshotPlatformDay(now) : null),
+    renewalNotices: async () => (hourInParis(now) === 9 ? queueRenewalNotices(now) : null),
+    // 1 h, pas 2 h : 2 h n'existe pas le jour du passage à l'heure d'été.
+    platformStats: async () => (hourInParis(now) === 1 ? snapshotPlatformDay(now) : null),
     billingCommands: () => processBillingCommands(now),
     aiReservations: () => expirePlannerOperations(now),
     aiProposals: () => purgePlannerProposals(now),
@@ -215,6 +218,7 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     billing: () => reconcileStripeSubscriptions(now),
     referrals: () => processReferrals(now),
     videosReconciled: () => reconcileStuckVideos(now),
+    grantsExpired: () => expireGrantedPlans(now),
     purged: () => purgeExpiredVideos(now),
     digests: () => sendWeeklyDigests(now),
     // D'abord les lignes : leur suppression met les fichiers en file, traitée juste après.

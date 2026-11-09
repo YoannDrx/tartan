@@ -22,6 +22,7 @@ export default function MentionsLegalesPage() {
       </p>
       <p>Base de données : Neon (neon.com), région Union européenne (Francfort).</p>
       <p>Stockage et diffusion des vidéos : Mux, Inc., 88 Stevenson Street, San Francisco, CA 94105, États-Unis.</p>
+      <p>Planificateur IA : OpenAI, États-Unis, uniquement après l'accord de la personne qui l'utilise.</p>
       <h2>Propriété intellectuelle</h2>
       <p>
         La marque, le logo et l'application Tartan appartiennent à leur éditeur. Les contenus publiés par les coachs et

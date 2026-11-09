@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image, { type StaticImageData } from "next/image";
-import Link from "next/link";
-import { formatPrice, PLANS, TRIAL_DAYS } from "@tartan/domain";
+import { PLANS, TRIAL_DAYS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Marked } from "@/components/marked";
 import iosHome from "@/features/landing/images/ios-accueil.png";
@@ -18,7 +17,9 @@ import webTracking from "@/features/landing/images/web-suivi.png";
 import { JumpFilm } from "@/features/landing/jump-film";
 import { LapBend } from "@/features/landing/lap";
 import { SiteFooter, SiteHeader } from "@/features/shell/site-chrome";
-import { env } from "@/lib/env";
+import { PricingGrid } from "@/features/billing/pricing";
+import { billingEnabled } from "@/lib/stripe";
+import { platformSettings } from "@/server/platform-settings.service";
 
 export const metadata: Metadata = {
   title: { absolute: m.brand.storeName },
@@ -58,8 +59,12 @@ const Capture = ({
 
 const strength = [iosStrength, iosPlyo, iosRunning, iosCones];
 
-export default function LandingPage() {
-  const signupOpen = env().COACH_SIGNUP_MODE === "public";
+// Réglable depuis la console : la page se recalcule au plus tard chaque minute.
+export const revalidate = 60;
+
+export default async function LandingPage() {
+  const settings = await platformSettings();
+  const signupOpen = settings.signupMode === "public";
   const cta = (
     // Une vraie navigation : la création d'espace vit sur app.tartan.coach, hors de portée du préchargement.
     <a
@@ -194,6 +199,18 @@ export default function LandingPage() {
               </div>
             ))}
           </dl>
+
+          <section id="tarifs" className="mt-16 scroll-mt-6 desktop:mt-28">
+            <h2 className={sectionTitle}>
+              <Marked text={t.pricing.title} />
+            </h2>
+            <p className={`mb-8 mt-4 ${body}`}>{t.pricing.body}</p>
+            <PricingGrid
+              billingEnabled={billingEnabled() && settings.checkoutEnabled}
+              signupOpen={signupOpen}
+              initialInterval="month"
+            />
+          </section>
         </div>
         {/* La ligne d'arrivée coupe la piste, une seule fois (DESIGN.md). */}
         <span
@@ -206,15 +223,7 @@ export default function LandingPage() {
         <h2 className="text-balance font-display text-[60px] font-bold leading-[0.95] desktop:text-[116px]">
           <Marked text={t.finish.title} />
         </h2>
-        <p className="mt-5 max-w-[52ch] text-[18px] leading-[26px]">
-          {t.finish.prices(formatPrice(PLANS.coach.prices?.month ?? 0), formatPrice(PLANS.club.prices?.month ?? 0))}
-        </p>
-        <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
-          {cta}
-          <Link href="/tarifs" className="inline-flex min-h-11 items-center font-semibold">
-            {t.finish.pricing}
-          </Link>
-        </div>
+        <div className="mt-8">{cta}</div>
       </section>
 
       <div className="mx-auto max-w-[1200px] px-4 desktop:px-6">

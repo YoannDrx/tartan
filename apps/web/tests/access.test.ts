@@ -1063,13 +1063,13 @@ describe("ouverture aux coachs", () => {
   it("réserve la création d'espace à la liste quand les inscriptions sont fermées", async () => {
     const stranger = await makeUser("Inconnu");
     const invited = await makeUser("Invite");
-    expect(canCreateCoachSpace(stranger.email)).toBe(true);
+    expect(await canCreateCoachSpace(stranger.email)).toBe(true);
     vi.resetModules();
     vi.stubEnv("COACH_SIGNUP_MODE", "closed");
     vi.stubEnv("COACH_SIGNUP_EMAILS", ` ${invited.email.toUpperCase()} , autre@test.fr`);
     const fresh = await import("@/server/org.service");
-    expect(fresh.canCreateCoachSpace(stranger.email)).toBe(false);
-    expect(fresh.canCreateCoachSpace(invited.email)).toBe(true);
+    expect(await fresh.canCreateCoachSpace(stranger.email)).toBe(false);
+    expect(await fresh.canCreateCoachSpace(invited.email)).toBe(true);
     await expect(
       fresh.createOrganization(stranger.userId, {
         name: "X",

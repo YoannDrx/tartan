@@ -4,10 +4,12 @@ import { isoDate, uuid } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { PageHeader } from "@/components/states";
 import { Button } from "@/components/ui/button";
+import { PlannerConsent, PlannerConsentWithdraw } from "@/features/planner/planner-consent";
 import { PlannerUnavailable } from "@/features/planner/planner-unavailable";
 import { WebPlanner } from "@/features/planner/web-planner";
 import { requireSpace, orNotFound } from "@/features/shell/space";
 import { AppError } from "@/lib/errors";
+import { hasAiConsent } from "@/server/ai/consent.service";
 import { getPlannerProposal } from "@/server/ai/proposal.service";
 import { getPlannerUsage } from "@/server/ai/usage.service";
 import { getSessionBuilderContext } from "@/server/session-builder.service";
@@ -20,6 +22,7 @@ export default async function PlannerPage({
 }) {
   const { actor, organizationId, space } = await requireSpace();
   if (!space.aiPlannerEnabled) return <PlannerUnavailable space={space} />;
+  if (!(await hasAiConsent(actor.userId))) return <PlannerConsent />;
   const params = await searchParams;
   if (
     (params.proposition && !uuid.safeParse(params.proposition).success) ||
@@ -75,6 +78,7 @@ export default async function PlannerPage({
           phaseChoices: [],
         }}
       />
+      <PlannerConsentWithdraw />
     </div>
   );
 }
