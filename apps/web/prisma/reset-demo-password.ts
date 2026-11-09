@@ -15,7 +15,8 @@ const main = async () => {
     where: { providerId: "credential", userId: { in: users.map((user) => user.id) } },
     data: { password: hash },
   });
-  if (count !== users.length) throw new Error(`Comptes mis à jour : ${count} sur ${users.length}.`);
+  // Certains athlètes fictifs n'ont pas de mot de passe : seuls les comptes qui se connectent changent.
+  if (count === 0) throw new Error("Aucun compte de revue avec mot de passe.");
   console.log(`Mot de passe remplacé pour ${count} comptes de revue.`);
 };
 
