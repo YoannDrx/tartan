@@ -21,6 +21,9 @@ Analyse complète, règles et sources : [Tartan, publication sur l'App Store et 
 - Captures iPhone 1320 × 2868 dans `apps/mobile/store/ios`, dont la grille du coach. La capture de l'analyse vidéo manque : il faut un clip de démonstration.
 - Écrans natifs du coach ouverts dans le thème Tartan sur simulateur : Suivi, Calendrier, Exercices, Annonces.
 
+- Clé API « Tartan EAS Submit » (`C55W628W32`, Gestionnaire d'apps), rangée dans `~/.appstoreconnect/private_keys`, hors du dépôt.
+- Archive 1.1.0 (12) envoyée à Apple le 9 novembre 2026 avec `xcrun altool`. 8 captures iPhone envoyées par l'API.
+
 ## Gestes réservés au fondateur
 
 Compte, mot de passe, paiement ou engagement légal : Claude ne les fait pas.
@@ -42,14 +45,8 @@ Compte, mot de passe, paiement ou engagement légal : Claude ne les fait pas.
 
 ### Apple
 
-1. Envoyer l'archive sur TestFlight, en te connectant à Apple quand EAS le demande. La commande crée aussi la clé API :
-
-   ```bash
-   cd apps/mobile && APP_VARIANT=production EXPO_PUBLIC_API_URL=https://app.tartan.coach EXPO_PUBLIC_WEB_URL=https://tartan.coach eas submit -p ios --profile production --path /Users/yoannandrieux/Projets/tartan/.local/stores/tartan-1.1.0-12.ipa
-   ```
-
-   Puis `eas credentials -p ios` pour créer la clé APNs.
-2. App Store Connect : App Privacy, classification 18+, statut de commerçant, fiche, notes de revue. Textes dans `docs/fiches-stores.md`.
+1. `eas credentials -p ios` : créer la clé APNs. Sans elle, pas de notification iOS.
+2. App Store Connect : publier les réponses App Privacy, Apple y demande ta garantie. Puis notes de revue, identifiants et coordonnées. Textes dans `docs/fiches-stores.md`.
 3. Essayer le build TestFlight sur un iPhone, puis lancer « Soumettre pour vérification ».
 
 ### Google
@@ -63,7 +60,6 @@ Compte, mot de passe, paiement ou engagement légal : Claude ne les fait pas.
 
 ## Reste à faire côté Claude, après ces gestes
 
-- Envoyer les captures sur App Store Connect, par clé API ou glisser-déposer.
 - Captures Android en 1080 × 1920 : installer un émulateur.
 - Comprendre l'échec des builds iOS et Android sur EAS à l'étape « Read app config » : le même commit se construit en local en iOS. Journal lisible sur expo.dev, builds `a865c35b` et `72fbbe05`. Sans cela, pas d'AAB Android.
 - Changement de compte par lien magique sans déconnexion : le simulateur est resté sur l'accueil de l'ancien rôle.
