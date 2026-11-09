@@ -20,6 +20,7 @@ import { useMemo, useRef, useState } from "react";
 import { AccessibilityActionEvent, Alert, PanResponder, Pressable, ScrollView, View } from "react-native";
 import { CommentsSection } from "../../src/features/comments";
 import { BarSheetRow, resultLabel } from "../../src/features/video-bits";
+import { VideoExerciseLink } from "../../src/features/video-exercise-link";
 import { api } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
 import { PHASE_ORDER, phaseSegments, preciseTimecode, segmentAt, type PhaseSegment } from "../../src/lib/phases";
@@ -581,6 +582,15 @@ export default function VideoAnalysis() {
           <SectionTitle>{m.video.barSheet}</SectionTitle>
           <BarSheetRow rows={v.barSheet} currentCm={v.barHeightCm} />
         </View>
+      ) : null}
+
+      {canAnnotate ? (
+        <VideoExerciseLink
+          orgId={orgId}
+          videoId={v.id}
+          current={v.exerciseId ?? null}
+          currentName={v.exerciseName ?? null}
+        />
       ) : null}
 
       {canAnnotate ? (

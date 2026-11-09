@@ -53,6 +53,31 @@ export const mediaSnapshot = (media: MediaRow | undefined) => {
   return { kind: "upload" as const, muxPlaybackId: media.muxPlaybackId, title: media.customTitle };
 };
 
+type ExerciseRow = Prisma.ExerciseGetPayload<{ include: { media: true } }>;
+
+const exerciseSummary = async (e: ExerciseRow): Promise<ExerciseSummary> => {
+  const media = mediaSnapshot(e.media[0]);
+  // Vidéos du coach privées : lecture par jeton signé, comme dans une séance.
+  const stream =
+    media?.kind === "upload" && media.muxPlaybackId && env().MUX_SIGNING_KEY_ID
+      ? await signedPlayback(media.muxPlaybackId)
+      : null;
+  return {
+    id: e.id,
+    classification: e.classification ? exerciseClassification.parse(e.classification) : null,
+    name: e.name,
+    category: e.category,
+    tags: e.tags,
+    aliases: e.aliases,
+    cues: e.cues,
+    defaultPrescription: prescriptionSchema.parse(e.defaultPrescription),
+    strengthLoadKind: e.strengthLoadKind as ExerciseSummary["strengthLoadKind"],
+    loadStepKg: Number(e.loadStepKg),
+    media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
+    shared: e.organizationId === null,
+  };
+};
+
 export const listExercises = async (userId: string, organizationId: string): Promise<ExerciseSummary[]> => {
   await requireOrgMember(userId, organizationId, "editExercises");
   const rows = await prisma.exercise.findMany({
@@ -60,30 +85,22 @@ export const listExercises = async (userId: string, organizationId: string): Pro
     orderBy: { name: "asc" },
     include: { media: { orderBy: { createdAt: "desc" }, take: 1 } },
   });
-  return Promise.all(
-    rows.map(async (e) => {
-      const media = mediaSnapshot(e.media[0]);
-      // Vidéos du coach privées : lecture par jeton signé, comme dans une séance.
-      const stream =
-        media?.kind === "upload" && media.muxPlaybackId && env().MUX_SIGNING_KEY_ID
-          ? await signedPlayback(media.muxPlaybackId)
-          : null;
-      return {
-        id: e.id,
-        classification: e.classification ? exerciseClassification.parse(e.classification) : null,
-        name: e.name,
-        category: e.category,
-        tags: e.tags,
-        aliases: e.aliases,
-        cues: e.cues,
-        defaultPrescription: prescriptionSchema.parse(e.defaultPrescription),
-        strengthLoadKind: e.strengthLoadKind as ExerciseSummary["strengthLoadKind"],
-        loadStepKg: Number(e.loadStepKg),
-        media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
-        shared: e.organizationId === null,
-      };
-    }),
-  );
+  return Promise.all(rows.map(exerciseSummary));
+};
+
+// Fiche d'un exercice : réservée à l'encadrement, comme la bibliothèque.
+export const getExercise = async (
+  userId: string,
+  organizationId: string,
+  exerciseId: string,
+): Promise<ExerciseSummary> => {
+  await requireOrgMember(userId, organizationId, "editExercises");
+  const row = await prisma.exercise.findFirst({
+    where: { id: exerciseId, deletedAt: null, OR: [{ organizationId }, { organizationId: null }] },
+    include: { media: { orderBy: { createdAt: "desc" }, take: 1 } },
+  });
+  if (!row) throw notFound();
+  return exerciseSummary(row);
 };
 
 export const saveExercise = async (userId: string, organizationId: string, raw: ExerciseInput) => {

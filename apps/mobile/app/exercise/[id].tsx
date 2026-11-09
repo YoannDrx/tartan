@@ -6,11 +6,12 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { parseMedia } from "../../src/features/media";
+import { VideoRow } from "../../src/features/video-bits";
 import { saveExercise } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
 import { buildExerciseInput, type ExerciseDraft, NUMBER_FIELDS, type NumberField } from "../../src/lib/exercise-form";
-import { useActiveSpace, useExercises } from "../../src/lib/queries";
-import { Button, Card, Chip, Field, SectionTitle, T } from "../../src/ui/primitives";
+import { useActiveSpace, useExercises, useExerciseVideos } from "../../src/lib/queries";
+import { Button, Card, Chip, Divider, Field, ListSurface, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { space } from "../../src/ui/theme";
@@ -55,6 +56,36 @@ const draftFrom = (exercise: ExerciseSummary | null): ExerciseDraft => {
     startS: text(youtube?.startS),
     endS: text(youtube?.endS),
   };
+};
+
+// Mêmes règles que la liste des vidéos : le serveur ne renvoie que les athlètes visibles par ce membre.
+const LinkedVideos = ({ orgId, exerciseId }: { orgId: string; exerciseId: string }) => {
+  const router = useRouter();
+  const videos = useExerciseVideos(orgId, exerciseId);
+  return (
+    <View style={{ gap: space.sm }}>
+      <SectionTitle>{m.exercises.linkedVideos}</SectionTitle>
+      {videos.isPending ? <LoadingState /> : null}
+      {videos.isError && !videos.data ? (
+        <ErrorState error={videos.error} onRetry={() => void videos.refetch()} />
+      ) : null}
+      {videos.data?.length === 0 ? (
+        <T variant="small" tone="muted">
+          {m.exercises.linkedVideosEmpty}
+        </T>
+      ) : null}
+      {videos.data && videos.data.length > 0 ? (
+        <ListSurface>
+          {videos.data.map((video, i) => (
+            <View key={video.id}>
+              {i > 0 ? <Divider /> : null}
+              <VideoRow video={video} showAthlete onPress={() => router.push(`/video/${video.id}`)} />
+            </View>
+          ))}
+        </ListSurface>
+      ) : null}
+    </View>
+  );
 };
 
 const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSummary | null }) => {
@@ -311,6 +342,8 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
           ) : null}
         </Card>
       </View>
+
+      {exercise ? <LinkedVideos orgId={orgId} exerciseId={exercise.id} /> : null}
     </StackScreen>
   );
 };

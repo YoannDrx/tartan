@@ -437,8 +437,8 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("POST", `/orgs/${orgId}/groups/${groupId}/link`, z.object({ id: z.string(), link: z.string() })),
     createInvitation: (orgId: string, body: CreateInvitationInput) =>
       request("POST", `/orgs/${orgId}/invitations`, z.object({ id: z.string(), link: z.string() }), body),
-    videos: (orgId: string, athleteId?: string) =>
-      request("GET", `/orgs/${orgId}/videos`, z.array(videoSummary), undefined, { athleteId }),
+    videos: (orgId: string, athleteId?: string, exerciseId?: string) =>
+      request("GET", `/orgs/${orgId}/videos`, z.array(videoSummary), undefined, { athleteId, exerciseId }),
     video: (orgId: string, videoId: string) => request("GET", `/orgs/${orgId}/videos/${videoId}`, videoDetail),
     createVideo: (orgId: string, body: CreateVideoInput) =>
       request("POST", `/orgs/${orgId}/videos`, createVideoResponse, body),
@@ -448,6 +448,8 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("DELETE", `/orgs/${orgId}/videos/${videoId}/annotations/${annotationId}`, okResponse),
     addAnnotation: (orgId: string, videoId: string, body: AnnotationInput) =>
       request("POST", `/orgs/${orgId}/videos/${videoId}/annotations`, z.object({ id: z.string() }), body),
+    linkVideoExercise: (orgId: string, videoId: string, exerciseId: string | null) =>
+      request("POST", `/orgs/${orgId}/videos/${videoId}/exercise`, okResponse, { exerciseId }),
     shareVideo: (orgId: string, videoId: string, withAthlete: boolean) =>
       request("POST", `/orgs/${orgId}/videos/${videoId}/share`, okResponse, { withAthlete }),
     addJumpAttempt: (orgId: string, body: JumpAttemptInput) =>

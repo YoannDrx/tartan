@@ -93,6 +93,13 @@ export const useExercises = (orgId: string) =>
 export const useVideos = (orgId: string) =>
   useQuery({ queryKey: ["videos", orgId], queryFn: () => api.videos(orgId), enabled: Boolean(orgId) });
 
+export const useExerciseVideos = (orgId: string, exerciseId: string) =>
+  useQuery({
+    queryKey: ["videos", orgId, "exercise", exerciseId],
+    queryFn: () => api.videos(orgId, undefined, exerciseId),
+    enabled: Boolean(orgId),
+  });
+
 export const useVideo = (orgId: string, videoId: string | undefined) =>
   useQuery({
     queryKey: ["videos", orgId, videoId],
