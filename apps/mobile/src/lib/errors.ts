@@ -13,6 +13,7 @@ export const errorMessage = (error: unknown): string => {
     if (error.code === "plan_limit") {
       return error.message === m.billing.limitJoinAthlete ? error.message : m.mobile.errors.planLimit;
     }
+    if (error.code === "discovery_limit") return m.mobile.errors.discoveryLimit;
     if (error.status === 403 && !error.code) return m.common.forbidden;
     if (error.status === 404) return m.common.notFound;
     if (error.status === 429) return m.errors.rateLimited;

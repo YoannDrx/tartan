@@ -2491,6 +2491,7 @@ export const fr = {
       unknownSpace: "Cet espace n'est plus accessible.",
       noSpace: "Aucun espace disponible pour ce compte.",
       planLimit: "Cet espace a atteint sa limite pour l'instant. Tout ce qui existe reste accessible.",
+      discoveryLimit: "Ce compte a déjà un espace Découverte. Continue depuis celui-ci.",
     },
     agenda: {
       thisWeek: "Cette semaine",
