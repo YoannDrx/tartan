@@ -354,7 +354,7 @@ const main = async () => {
   if (wantsWeb) await captureWeb(options, runner, baseUrl);
   // Le manifeste décrit les images du site, pas celles des stores.
   if (!options.store) updateManifest(options, runner, device);
-  console.log(options.dryRun ? "Fin de la simulation : rien n'a été écrit." : "Captures écrites et provenance à jour.");
+  console.log(options.dryRun ? "Fin de la simulation : rien n'a été écrit." : options.store ? "Captures des stores écrites." : "Captures écrites et provenance à jour.");
 };
 
 await main();
