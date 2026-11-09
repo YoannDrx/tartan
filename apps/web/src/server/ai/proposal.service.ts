@@ -32,6 +32,7 @@ import {
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
+import { requireAiConsent } from "./consent.service";
 import { env } from "@/lib/env";
 import { AppError, forbidden, notFound, invalid } from "@/lib/errors";
 import { todayIso } from "@/lib/dates";
@@ -263,6 +264,7 @@ export async function createPlannerProposal(
     clock = execution.clock ?? (() => new Date());
   const now = clock();
   await accessFor(userId, organizationId);
+  await requireAiConsent(userId);
   const requestedAt = new Date(input.requestedAt);
   if (requestedAt.getTime() > now.getTime() + 5 * 60000 || requestedAt.getTime() + 7 * 86400000 <= now.getTime())
     throw expired();
@@ -314,6 +316,7 @@ export async function clarifyPlannerProposal(
     clock = execution.clock ?? (() => new Date());
   const now = clock();
   await accessFor(userId, organizationId);
+  await requireAiConsent(userId);
   await owned(userId, organizationId, proposalId, now);
   const claim = await reservePlannerOperation(
     userId,

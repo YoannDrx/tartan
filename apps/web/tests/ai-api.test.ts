@@ -53,6 +53,11 @@ it("n'annonce le planificateur qu'avec le rôle, l'offre et les deux drapeaux ac
   const enabled = async () => (await listSpaces(org.owner.userId))[0]?.aiPlannerEnabled;
   expect(await enabled()).toBe(false);
   await prisma.organization.update({ where: { id: org.organizationId }, data: { aiPlannerEnabled: true } });
+  await prisma.profile.upsert({
+    where: { id: org.owner.userId },
+    create: { id: org.owner.userId, aiConsentAt: new Date() },
+    update: { aiConsentAt: new Date() },
+  });
   expect(await enabled()).toBe(true);
   const athlete = await addAthlete(org.organizationId, org.groupId, "Athlète fictif");
   expect((await listSpaces(athlete.userId))[0]?.aiPlannerEnabled).toBe(false);
@@ -121,6 +126,11 @@ const transport = (userId?: string) =>
 async function setup() {
   const a = await makeOrg("ApiPlanner");
   await prisma.organization.update({ where: { id: a.organizationId }, data: { aiPlannerEnabled: true } });
+  await prisma.profile.upsert({
+    where: { id: a.owner.userId },
+    create: { id: a.owner.userId, aiConsentAt: new Date() },
+    update: { aiConsentAt: new Date() },
+  });
   const exercise = await prisma.exercise.findFirstOrThrow({ where: { organizationId: a.organizationId } });
   const input: CreatePlannerProposalInput = {
     id: randomUUID(),

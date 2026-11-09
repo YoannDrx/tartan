@@ -11,7 +11,7 @@ const price = (plan: "coach" | "club") => {
 
 export default function CgvPage() {
   return (
-    <LegalPage title="Conditions de vente" updated="4 novembre 2026">
+    <LegalPage title="Conditions de vente" updated="9 novembre 2026">
       <h2>Vendeur</h2>
       <p>
         Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130 Franconville.
@@ -31,7 +31,8 @@ export default function CgvPage() {
       <p>
         Le premier abonnement d'un espace commence par {TRIAL_DAYS} jours d'essai. Sans résiliation avant la fin de
         l'essai, le premier paiement est prélevé à cette date. L'abonnement se renouvelle ensuite tacitement chaque mois
-        ou chaque année, selon la formule choisie.
+        ou chaque année, selon la formule choisie. Pour une formule annuelle, un e-mail rappelle, entre trois mois et un
+        mois avant l'échéance, la possibilité de ne pas reconduire et la date limite pour le faire.
       </p>
       <h2>Paiement et factures</h2>
       <p>
@@ -62,6 +63,18 @@ export default function CgvPage() {
         À l'attention de Yodev, 7 allée des Jonquilles, 95130 Franconville, hello@tartan.coach. Je vous notifie par la
         présente ma rétractation du contrat portant sur l'abonnement Tartan suivant : offre et espace concernés, date de
         souscription, nom, adresse, date, signature si le formulaire est envoyé sur papier.
+      </p>
+      <h2>Remboursement</h2>
+      <p>
+        En cas de rétractation dans les 14 jours, le montant payé est remboursé sous 14 jours, déduction faite du service
+        déjà fourni. En dehors de ce cas, une période commencée n'est pas remboursée, sauf manquement de notre part ou
+        disposition légale contraire.
+      </p>
+      <h2>Planificateur IA</h2>
+      <p>
+        Les offres Coach et Club comprennent un planificateur en version bêta, avec un quota mensuel. Il prépare des
+        brouillons de séance à partir de ta demande, transmise à OpenAI après ton accord. Ces brouillons peuvent contenir
+        des erreurs : tu les relis et tu restes responsable des séances publiées.
       </p>
       <h2>Parrainage</h2>
       <p>

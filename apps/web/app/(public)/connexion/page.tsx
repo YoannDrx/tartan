@@ -7,6 +7,7 @@ import { m } from "@tartan/i18n";
 import { PublicPage } from "@/features/shell/public-page";
 import { enabledSocialProviders } from "@/lib/auth";
 import { env } from "@/lib/env";
+import { platformSettings } from "@/server/platform-settings.service";
 import { getActor } from "@/lib/session";
 import { SignInForm } from "@/features/auth/sign-in-form";
 
@@ -20,7 +21,7 @@ export default async function ConnexionPage({
   const { next, creer, lien } = await searchParams;
   const callbackURL = safeReturnPath(next);
   if (await getActor()) redirect(callbackURL);
-  const signupOpen = env().COACH_SIGNUP_MODE === "public";
+  const signupOpen = (await platformSettings()).signupMode === "public";
   // On arrive ici depuis « Créer mon espace » : même formulaire, mais la page dit ce qu'on est venu faire.
   const creating = signupOpen && creer !== undefined;
   const otherHref = `/connexion${creating ? "" : "?creer=1"}${next ? `${creating ? "?" : "&"}next=${encodeURIComponent(next)}` : ""}`;

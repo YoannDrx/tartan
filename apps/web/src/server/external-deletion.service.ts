@@ -18,12 +18,19 @@ const PASSTHROUGH = /^(video|exercise):([0-9a-f-]{36})$/;
 
 class ProviderUnconfigured extends Error {}
 
-const isNotFound = (error: unknown): boolean =>
-  typeof error === "object" && error !== null && "status" in error && error.status === 404;
+// Mux écrit `status`, Stripe `statusCode`.
+const httpStatus = (error: unknown): number | null => {
+  if (typeof error !== "object" || error === null) return null;
+  const { status, statusCode } = error as { status?: unknown; statusCode?: unknown };
+  return typeof status === "number" ? status : typeof statusCode === "number" ? statusCode : null;
+};
+
+const isNotFound = (error: unknown): boolean => httpStatus(error) === 404;
 
 const errorCode = (error: unknown): string => {
   if (error instanceof ProviderUnconfigured) return "provider_unconfigured";
-  if (typeof error === "object" && error !== null && "status" in error) return `http_${String(error.status)}`;
+  const status = httpStatus(error);
+  if (status !== null) return `http_${status}`;
   return "provider_error";
 };
 

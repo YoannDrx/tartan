@@ -28,7 +28,7 @@ const onError = ({ error }: { error: { serverError?: string } }) =>
   toast.error(error.serverError ?? m.common.genericError);
 
 // Toute action sensible passe par une confirmation qui répète ce qu'elle va faire.
-const Confirm = ({
+export const Confirm = ({
   label,
   detail,
   disabled,
@@ -92,6 +92,7 @@ export const UserActions = ({ userId, suspended, self }: { userId: string; suspe
 export const GrantPlan = ({ organizationId, plan }: { organizationId: string; plan: string }) => {
   const router = useRouter();
   const [value, setValue] = useState(plan);
+  const [days, setDays] = useState("");
   const grant = useAction(grantPlanAction, { onSuccess: () => router.refresh(), onError });
   return (
     <div className="flex flex-wrap items-end gap-2">
@@ -106,11 +107,25 @@ export const GrantPlan = ({ organizationId, plan }: { organizationId: string; pl
           </Select>
         )}
       </Field>
+      <Field label={m.admin.grantDuration}>
+        {(a) => (
+          <Select {...a} value={days} onChange={(e) => setDays(e.target.value)}>
+            <option value="">{m.admin.grantForever}</option>
+            {[30, 90, 365].map((count) => (
+              <option key={count} value={count}>
+                {m.admin.grantDays(count)}
+              </option>
+            ))}
+          </Select>
+        )}
+      </Field>
       <Confirm
         label={m.admin.grantPlan}
         detail={m.admin.grantPlanDetail}
         disabled={grant.isPending}
-        onConfirm={() => grant.execute({ organizationId, plan: value as "coach" })}
+        onConfirm={() =>
+          grant.execute({ organizationId, plan: value as "coach", ...(days ? { days: Number(days) } : {}) })
+        }
       />
     </div>
   );
@@ -283,7 +298,15 @@ export const MinimumVersionForm = ({ platform, current }: { platform: "ios" | "a
   );
 };
 
-export const PasskeyGate = ({ hasPasskey, next }: { hasPasskey: boolean; next: string }) => {
+export const PasskeyGate = ({
+  hasPasskey,
+  next,
+  invited = false,
+}: {
+  hasPasskey: boolean;
+  next: string;
+  invited?: boolean;
+}) => {
   const router = useRouter();
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
@@ -319,9 +342,11 @@ export const PasskeyGate = ({ hasPasskey, next }: { hasPasskey: boolean; next: s
         });
       }}
     >
-      <Field label={m.admin.bootstrapToken}>
-        {(a) => <Input {...a} type="password" value={token} onChange={(e) => setToken(e.target.value)} required />}
-      </Field>
+      {invited ? null : (
+        <Field label={m.admin.bootstrapToken}>
+          {(a) => <Input {...a} type="password" value={token} onChange={(e) => setToken(e.target.value)} required />}
+        </Field>
+      )}
       <div>
         <Button type="submit" disabled={busy}>
           {m.admin.passkeyCreate}

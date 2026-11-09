@@ -1,6 +1,6 @@
 "use client";
 
-import { formatPrice, PLANS, TRIAL_DAYS, type BillingInterval, type PlanKey } from "@tartan/domain";
+import { formatPrice, plannerLimits, PLANS, TRIAL_DAYS, type BillingInterval, type PlanKey } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useAction } from "next-safe-action/hooks";
 import Link from "next/link";
@@ -27,6 +27,13 @@ const ROWS: { label: string; value: (plan: PlanKey) => string }[] = [
     value: (plan) => {
       const days = PLANS[plan].limits.videoRetentionDays;
       return days === null ? m.billing.compare.retentionForever : m.billing.compare.retentionDays(days);
+    },
+  },
+  {
+    label: m.billing.compare.ai,
+    value: (plan) => {
+      const { proposals } = plannerLimits(plan);
+      return proposals ? m.billing.compare.aiProposals(proposals) : m.billing.compare.aiNone;
     },
   },
   {
@@ -140,10 +147,10 @@ export const PricingGrid = ({
                 const price = PLANS[key].prices?.[interval] ?? null;
                 return (
                   <th key={key} scope="col" className={cn(cellClass(key), "pb-3 pt-4 align-top font-normal")}>
-                    <span className="block font-display text-[18px] font-semibold leading-6 tablet:text-[24px] tablet:leading-7 desktop:text-[26px] desktop:leading-[30px]">
+                    <span className="block whitespace-nowrap font-display text-[14px] font-semibold leading-5 min-[400px]:text-[16px] tablet:text-[24px] tablet:leading-7 desktop:text-[26px] desktop:leading-[30px]">
                       {m.billing.plans[key]}
                     </span>
-                    <span className="t-num mt-2 block text-[26px] leading-8 tablet:text-[34px] tablet:leading-10 desktop:text-[48px] desktop:leading-[52px]">
+                    <span className="t-num mt-2 block whitespace-nowrap text-[20px] leading-7 min-[400px]:text-[24px] tablet:text-[34px] tablet:leading-10 desktop:text-[48px] desktop:leading-[52px]">
                       {price === null ? m.billing.free : formatPrice(price)}
                     </span>
                     <span className="t-caption block font-normal text-soft">
@@ -162,7 +169,7 @@ export const PricingGrid = ({
                   {row.label}
                 </th>
                 {SOLD.map((key) => (
-                  <td key={key} className={cn(cellClass(key), "border-t py-2.5 font-medium")}>
+                  <td key={key} className={cn(cellClass(key), "border-t py-2.5 text-[13px] font-medium leading-[18px] tablet:text-base tablet:leading-6")}>
                     {row.value(key)}
                   </td>
                 ))}

@@ -434,6 +434,19 @@ export default function Settings() {
               />
             </>
           ) : null}
+          {active?.aiPlannerEnabled ? (
+            <>
+              <Divider />
+              <ConsentRow
+                testID="ai-consent"
+                title={m.aiPlanner.consentSetting}
+                detail={m.aiPlanner.consentSettingDetail}
+                value={me.data?.preferences?.aiConsent ?? false}
+                disabled={saveCategories.isPending}
+                onChange={(on) => saveCategories.mutate({ aiConsent: on })}
+              />
+            </>
+          ) : null}
         </ListSurface>
         <ListSurface>
           <LinkRow label={m.inbox.title} onPress={() => router.push("/notifications")} />

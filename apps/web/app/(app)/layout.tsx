@@ -26,7 +26,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           spaces={spaces}
           space={space}
           account={{ name, email: me.email }}
-          admin={isAdmin(actor.email)}
+          admin={await isAdmin(actor.email)}
           askSatisfaction={askSatisfaction}
           unseenRelease={unseen}
         >

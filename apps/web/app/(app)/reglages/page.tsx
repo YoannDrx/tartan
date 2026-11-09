@@ -245,7 +245,7 @@ export default async function ReglagesPage() {
       title: m.inbox.categories,
       content: <NotificationCategories {...notificationPreferences} />,
     },
-    isAdmin(actor.email)
+    (await isAdmin(actor.email))
       ? {
           id: "console",
           title: m.admin.title,

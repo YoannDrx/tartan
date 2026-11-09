@@ -1,4 +1,6 @@
 import { m } from "@tartan/i18n";
+import { Section, Text } from "@react-email/components";
+import { tokens } from "@tartan/design-tokens";
 import { Layout, Paragraph, PrimaryLink, Title } from "./layout";
 
 export const PurgeNoticeEmail = ({
@@ -94,6 +96,30 @@ export const BillingNoticeEmail = ({
   <Layout preview={title}>
     <Title>{title}</Title>
     <Paragraph>{body}</Paragraph>
+    <PrimaryLink href={url}>{cta}</PrimaryLink>
+  </Layout>
+);
+
+// Article L.215-1 du code de la consommation : la date limite figure dans un encadré apparent.
+export const RenewalNoticeEmail = ({
+  title,
+  body,
+  deadline,
+  cta,
+  url,
+}: {
+  title: string;
+  body: string;
+  deadline: string;
+  cta: string;
+  url: string;
+}) => (
+  <Layout preview={title}>
+    <Title>{title}</Title>
+    <Paragraph>{body}</Paragraph>
+    <Section style={{ border: `2px solid ${tokens.band.background}`, borderRadius: 12, margin: "0 0 20px" }}>
+      <Text style={{ fontSize: 16, fontWeight: 700, margin: 0, padding: "14px 16px" }}>{deadline}</Text>
+    </Section>
     <PrimaryLink href={url}>{cta}</PrimaryLink>
   </Layout>
 );

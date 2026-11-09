@@ -1,5 +1,6 @@
 // Crée ou retrouve les produits et prix Tartan sur le compte Stripe de la clé utilisée, sans doublon.
 // Mode test d'abord : STRIPE_SECRET_KEY=sk_test_... ; en production, relancer avec la clé live.
+import { STRIPE_WEBHOOK_EVENTS } from "../src/lib/stripe-webhook-events";
 import { PLANS } from "@tartan/domain";
 import { existsSync, writeFileSync } from "node:fs";
 import Stripe from "stripe";
@@ -137,22 +138,7 @@ const webhookUrl = `${origin}/api/webhooks/stripe`;
 const hooks = await client.webhookEndpoints.list({ limit: 100 });
 let webhookSecret: string | null = null;
 const existingHook = hooks.data.find((h) => h.url === webhookUrl);
-const enabledEvents: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
-  "customer.subscription.created",
-  "customer.subscription.updated",
-  "customer.subscription.deleted",
-  "invoice.created",
-  "invoice.finalized",
-  "invoice.paid",
-  "invoice.payment_failed",
-  "invoice.updated",
-  "invoice.voided",
-  "charge.refunded",
-  "refund.failed",
-  "charge.dispute.created",
-  "charge.dispute.updated",
-  "charge.dispute.closed",
-];
+const enabledEvents = [...STRIPE_WEBHOOK_EVENTS];
 if (existingHook) {
   await client.webhookEndpoints.update(existingHook.id, { enabled_events: enabledEvents, disabled: false });
 } else {

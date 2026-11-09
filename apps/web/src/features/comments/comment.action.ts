@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { blockUserInput, commentInput, reportContentInput, uuid } from "@tartan/contracts";
 import { z } from "zod";
-import { authAction } from "@/lib/safe-action";
+import { adminAction, authAction } from "@/lib/safe-action";
 import { spaceAction } from "@/features/shell/space-action";
 import {
   addComment,
@@ -29,7 +29,7 @@ export const unblockUserAction = authAction
     revalidatePath("/reglages");
   });
 
-export const adminResolveReportAction = authAction
+export const adminResolveReportAction = adminAction
   .inputSchema(z.object({ id: uuid, removeContent: z.boolean() }))
   .action(async ({ parsedInput, ctx }) => {
     await adminResolveReport(ctx.actor, parsedInput);

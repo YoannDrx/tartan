@@ -84,7 +84,7 @@ export default function Planning() {
     >
       <CalendarViewSwitch view={view} onChange={setView} />
       {isMonth ? <MonthNav {...monthNav} /> : <WeekNav {...nav} />}
-      {activeSpace?.aiPlannerEnabled || activeSpace?.aiPlannerUpgrade ? (
+      {activeSpace?.aiPlannerEnabled ? (
         <Button
           variant="secondary"
           label={m.aiPlanner.title}

@@ -354,7 +354,7 @@ export const resolveReport = async (
 
 // Console de l'éditeur : la promesse des 48 heures se tient depuis un seul écran, tous espaces confondus.
 export const listAllReports = async (actor: { email: string }) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const reports = await prisma.contentReport.findMany({
     where: { resolvedAt: null },
     orderBy: { createdAt: "asc" },
@@ -384,7 +384,7 @@ export const adminResolveReport = async (
   actor: { userId: string; email: string },
   input: { id: string; removeContent: boolean },
 ) => {
-  requireAdmin(actor.email);
+  await requireAdmin(actor.email);
   const report = await prisma.contentReport.findUnique({ where: { id: input.id } });
   if (!report) throw notFound();
   await applyReportResolution(report, actor.userId, input.removeContent);

@@ -12,6 +12,7 @@ const pages = [
   ["/admin/usage", m.admin.nav.usage],
   ["/admin/versions", m.admin.nav.versions],
   ["/admin/journal", m.admin.nav.audit],
+  ["/admin/configuration", m.admin.nav.configuration],
 ] as const;
 
 test("la console s'ouvre à l'éditeur, lisible sur chaque écran, et reste fermée aux autres", async ({ page }, info) => {

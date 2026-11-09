@@ -308,7 +308,8 @@ export const reconcileStuckVideos = async (now: Date = new Date()) => {
       take: RECONCILE_BATCH,
     }),
     prisma.exerciseMedia.findMany({
-      where: { muxUploadId: { not: null }, muxPlaybackId: null, createdAt: { lt: stuckBefore } },
+      // Fenêtre bornée : une démonstration abandonnée ne doit pas occuper le lot pour toujours.
+      where: { muxUploadId: { not: null }, muxPlaybackId: null, createdAt: { lt: stuckBefore, gt: abandonedBefore } },
       select: { id: true, muxUploadId: true, createdAt: true },
       orderBy: { createdAt: "asc" },
       take: RECONCILE_BATCH,

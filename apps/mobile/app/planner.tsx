@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { NativePlanner } from "../src/features/native-planner";
+import { PlannerConsentNative } from "../src/features/planner-consent";
 import { api } from "../src/lib/api";
 import { useActiveSpace } from "../src/lib/queries";
 import { StackScreen } from "../src/ui/screen";
@@ -100,9 +101,10 @@ export default function PlannerScreen() {
   if (!space?.aiPlannerEnabled || !orgId)
     return (
       <StackScreen title={m.aiPlanner.title}>
-        <T>{space?.aiPlannerUpgrade ? m.aiPlanner.paidOnly : m.aiPlanner.disabled}</T>
+        <T>{m.aiPlanner.disabled}</T>
       </StackScreen>
     );
+  if (!me.data.preferences?.aiConsent) return <PlannerConsentNative />;
   if (params.proposalId && !uuid.safeParse(params.proposalId).success)
     return (
       <StackScreen title={m.aiPlanner.title}>

@@ -72,7 +72,9 @@ export const VideoAnalysis = ({
   const showJumpTools = jumpTools ?? hasHighJumpContext(video);
   const [phase, setPhase] = useState<JumpPhase | "">("");
   const [loop, setLoop] = useState<{ a: number; b: number | null } | null>(null);
-  const src = video.mp4Url ?? video.hlsUrl;
+  // Mux génère le MP4 après l'encodage : en attendant, le flux HLS prend le relais.
+  const [mp4Failed, setMp4Failed] = useState(false);
+  const src = mp4Failed ? video.hlsUrl : (video.mp4Url ?? video.hlsUrl);
   // Le fichier est étiré : tout l'écran raisonne en temps réel, seul l'élément vidéo voit le temps du fichier.
   const scale = video.timeScale;
 
@@ -80,19 +82,24 @@ export const VideoAnalysis = ({
     const el = ref.current;
     if (!el || !src) return;
     let hls: { destroy: () => void } | undefined;
+    let cancelled = false;
     if (src.includes(".m3u8") && !el.canPlayType("application/vnd.apple.mpegurl")) {
-      import("hls.js").then(({ default: Hls }) => {
-        if (Hls.isSupported()) {
+      import("hls.js")
+        .then(({ default: Hls }) => {
+          if (cancelled || !Hls.isSupported()) return;
           const instance = new Hls();
           instance.loadSource(src);
           instance.attachMedia(el);
           hls = instance;
-        }
-      });
+        })
+        .catch(() => toast.error(m.video.playbackUnavailable));
     } else {
       el.src = src;
     }
-    return () => hls?.destroy();
+    return () => {
+      cancelled = true;
+      hls?.destroy();
+    };
   }, [src]);
 
   useEffect(() => {
@@ -262,6 +269,9 @@ export const VideoAnalysis = ({
                 preload="auto"
                 muted
                 loop={loop === null}
+                onError={() => {
+                  if (!mp4Failed && video.mp4Url && video.hlsUrl) setMp4Failed(true);
+                }}
                 onLoadedMetadata={(e) => setDurationMs(toRealMs(e.currentTarget.duration, scale))}
                 onPause={() => setPlaying(false)}
                 onPlay={() => setPlaying(true)}

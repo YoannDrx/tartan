@@ -10,6 +10,8 @@ import {
 import { expirePlannerOperations, getPlannerUsage } from "@/server/ai/usage.service";
 import { addAthlete, addStaff, makeOrg } from "./helpers";
 const flags = vi.hoisted(() => ({ AI_PLANNER_ENABLED: "true" }));
+vi.mock("@/server/ai/consent.service", () => ({ requireAiConsent: async () => undefined, hasAiConsent: async () => true }));
+
 vi.mock("@/lib/env", async (original) => {
   const actual = await original<typeof import("@/lib/env")>();
   return { ...actual, env: () => ({ ...actual.env(), ...flags }) };
@@ -21,6 +23,11 @@ beforeEach(() => {
 async function setup() {
   const a = await makeOrg("TranscriptionIA");
   await prisma.organization.update({ where: { id: a.organizationId }, data: { aiPlannerEnabled: true } });
+  await prisma.profile.upsert({
+    where: { id: a.owner.userId },
+    create: { id: a.owner.userId, aiConsentAt: new Date() },
+    update: { aiConsentAt: new Date() },
+  });
   const bytes = new Uint8Array(await readFile(new URL("./fixtures/planner-audio/silence.m4a", import.meta.url)));
   const input = { id: randomUUID(), requestedAt: now.toISOString(), audioProcessingAccepted: true as const };
   const transcribe = vi.fn(async () => "Trois séries de quatre squats à 40 kg.");

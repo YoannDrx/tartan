@@ -19,7 +19,7 @@ export const appleClientSecret = async (): Promise<string> => {
 export const revokeAppleToken = async (refreshToken: string): Promise<void> => {
   const e = env();
   if (!e.APPLE_CLIENT_ID || !e.APPLE_PRIVATE_KEY) return;
-  await fetch("https://appleid.apple.com/auth/revoke", {
+  const response = await fetch("https://appleid.apple.com/auth/revoke", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -29,4 +29,5 @@ export const revokeAppleToken = async (refreshToken: string): Promise<void> => {
       token_type_hint: "refresh_token",
     }),
   });
+  if (!response.ok) throw new Error(`apple_revoke_${response.status}`);
 };

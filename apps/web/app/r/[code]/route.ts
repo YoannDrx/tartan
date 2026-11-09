@@ -5,7 +5,7 @@ import { ATTRIBUTION_WINDOW_DAYS } from "@tartan/domain";
 export async function GET(request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const host = request.headers.get("host") ?? "";
-  const onProduction = host.endsWith("tartan.coach");
+  const onProduction = ["tartan.coach", "www.tartan.coach", "app.tartan.coach"].includes(host);
   const response = NextResponse.redirect(
     new URL("/connexion", onProduction ? "https://app.tartan.coach" : request.url),
   );
