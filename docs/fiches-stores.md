@@ -132,9 +132,9 @@ The app contains no purchase, price or link to one. Coaches manage any
 paid plan on our website; athletes never pay. Nothing is sold in the app.
 
 Demo accounts (fictional data). On sign-in, tap "Utiliser un mot de passe".
-Coach: [email] / [password]
-Second coach: [email] / [password]
-Athlete: [email] / [password]
+Coach: see the sign-in information above.
+Athlete: un@demo.tartan.coach, same password as the coach.
+Please keep these accounts: deleting one would remove the demo group.
 
 Video capture needs the camera; sound is optional.
 

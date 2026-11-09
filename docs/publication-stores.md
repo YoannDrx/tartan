@@ -35,18 +35,18 @@ Compte, mot de passe, paiement ou engagement légal : Claude ne les fait pas.
 3. Faire tourner la clé OpenAI et la poser sur Vercel (`OPENAI_API_KEY`).
 4. Juriste : avis écrit sur HDS, vidéos, OpenAI. Il conditionne la soumission publique.
 5. Choisir le téléphone public, affiché avec l'adresse sur les deux stores.
-6. Créer les comptes de revue en production, depuis ta machine :
+6. Créer les comptes de revue en production, depuis `apps/web`, avec l'adresse Neon de production :
 
    ```bash
-   DEMO_PASSWORD='<mot de passe fort>' VERCEL_ENV=production pnpm --filter @tartan/web db:seed
+   DATABASE_URL='<adresse Neon de production>' VERCEL_ENV=production COACH_SIGNUP_EMAILS=coach@demo.tartan.coach DEMO_PASSWORD='<mot de passe fort>' corepack pnpm db:seed
    ```
 
-   Puis accorder l'offre Coach à l'espace « Coaching Démo » depuis l'administration.
+   Comptes créés : `coach@demo.tartan.coach`, `un@demo.tartan.coach`. Accorder ensuite l'offre Coach à « Coaching Démo » depuis l'administration, puis coller le mot de passe dans App Store Connect.
 
 ### Apple
 
-1. `eas credentials -p ios` : créer la clé APNs. Sans elle, pas de notification iOS.
-2. App Store Connect : publier les réponses App Privacy, Apple y demande ta garantie. Puis notes de revue, identifiants et coordonnées. Textes dans `docs/fiches-stores.md`.
+1. Clé APNs : elle existe (`88FNX7ST5D`, créée par EAS le 2 novembre). À confirmer par un vrai push sur TestFlight.
+2. App Store Connect : mot de passe du compte de revue et coordonnées.
 3. Essayer le build TestFlight sur un iPhone, puis lancer « Soumettre pour vérification ».
 
 ### Google
