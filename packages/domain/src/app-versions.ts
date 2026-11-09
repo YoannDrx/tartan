@@ -10,6 +10,34 @@ export const versionCode = (version: string | null | undefined): number | null =
 export const compareVersions = (a: string | null | undefined, b: string | null | undefined): number =>
   (versionCode(a) ?? 0) - (versionCode(b) ?? 0);
 
+// Google Play compte ses builds à part : seul le nom de la sortie porte la version, « 1.2.0 » ou « 12 (1.2.0) ».
+export const playReleaseVersion = (name: string | null | undefined): string | null => {
+  const trimmed = name?.trim() ?? "";
+  const match = /^(\d{1,3}\.\d{1,3}\.\d{1,3})$/.exec(trimmed) ?? /^\d+ \((\d{1,3}\.\d{1,3}\.\d{1,3})\)$/.exec(trimmed);
+  return match?.[1] ?? null;
+};
+
+export type PlayLifecycleRelease = { releaseName?: string | null; releaseLifecycleState?: string | null };
+export type PlayTrackRelease = { name?: string | null; status?: string | null };
+
+// Sorties passées en revue et publiées. null : il y en a, mais aucun nom ne permet de savoir laquelle est en ligne.
+export const publishedPlayVersions = (releases: PlayLifecycleRelease[]): string[] | null => {
+  const published = releases.filter((release) => release.releaseLifecycleState === "RELEASE_LIFECYCLE_STATE_PUBLISHED");
+  const versions = published.flatMap((release) => playReleaseVersion(release.releaseName) ?? []);
+  return published.length > 0 && versions.length === 0 ? null : versions;
+};
+
+// Publiée ne suffit pas : déploiement progressif et arrêt en font partie. Seule « completed » atteint tout le monde.
+export const servedPlayVersion = (published: string[], track: PlayTrackRelease[]): string | null =>
+  track
+    .filter((release) => release.status === "completed")
+    .flatMap((release) => playReleaseVersion(release.name) ?? [])
+    .filter((version) => published.includes(version))
+    .reduce<string | null>(
+      (best, version) => (best === null || compareVersions(version, best) > 0 ? version : best),
+      null,
+    );
+
 export type UpdateState = "current" | "optional" | "required";
 
 export const updateStateOf = (input: {

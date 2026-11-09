@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createVerify, generateKeyPairSync, randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
 import {
@@ -9,6 +9,7 @@ import {
   registerDevice,
 } from "@/server/notify.service";
 import {
+  checkAndroidAvailability,
   checkIosAvailability,
   clientCheckIn,
   markReleaseSeen,
@@ -124,6 +125,169 @@ describe("versions et mises à jour", () => {
     const live = (async () => Response.json({ results: [{ version: "1.2.0" }] })) as typeof fetch;
     await checkIosAvailability(NOON, live);
     expect((await prisma.appReleaseTarget.findUnique({ where: { id: target.id } }))?.state).toBe("available");
+  });
+
+  describe("disponibilité Google Play", () => {
+    const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      privateKeyEncoding: { type: "pkcs8", format: "pem" },
+      publicKeyEncoding: { type: "spki", format: "pem" },
+    });
+    const credentials = JSON.stringify({ client_email: "lecture@tartan.iam.test", private_key: privateKey });
+    const app = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/coach.tartan.app";
+    const published = "RELEASE_LIFECYCLE_STATE_PUBLISHED";
+
+    type Answers = {
+      token?: Response;
+      lifecycle?: { releaseName: string; releaseLifecycleState: string }[];
+      track?: { name: string; status: string }[];
+      trackStatus?: number;
+    };
+
+    const google = (answers: Answers) => {
+      const calls: { method: string; url: string; body: string }[] = [];
+      const fetcher = (async (input: string | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+        calls.push({ method, url, body: String(init?.body ?? "") });
+        if (url === "https://oauth2.googleapis.com/token") {
+          return answers.token ?? Response.json({ access_token: "jeton-de-test" });
+        }
+        expect(new Headers(init?.headers).get("authorization")).toBe("Bearer jeton-de-test");
+        if (method === "GET" && url === `${app}/tracks/production/releases`) {
+          return Response.json({ releases: answers.lifecycle ?? [] });
+        }
+        if (method === "POST" && url === `${app}/edits`) return Response.json({ id: "edit-1" });
+        if (method === "GET" && url === `${app}/edits/edit-1/tracks/production`) {
+          if (answers.trackStatus) return new Response("", { status: answers.trackStatus });
+          return Response.json({ track: "production", releases: answers.track ?? [] });
+        }
+        if (method === "DELETE" && url === `${app}/edits/edit-1`) return Response.json({});
+        throw new Error(`Appel inattendu : ${method} ${url}`);
+      }) as typeof fetch;
+      return { calls, fetcher };
+    };
+
+    const stateOf = (id: string) => prisma.appReleaseTarget.findUniqueOrThrow({ where: { id } });
+
+    it("marque disponible une version publiée et servie à tous, avec un JWT signé", async () => {
+      const target = await makeTarget("awaiting_store", "1.2.0", "android");
+      const { calls, fetcher } = google({
+        lifecycle: [{ releaseName: "12 (1.2.0)", releaseLifecycleState: published }],
+        track: [{ name: "12 (1.2.0)", status: "completed" }],
+      });
+      expect(await checkAndroidAvailability(NOON, fetcher, credentials)).toBe(1);
+      expect(await stateOf(target.id)).toMatchObject({ state: "available", lastErrorCode: null, availableAt: NOON });
+
+      const form = new URLSearchParams(calls[0]!.body);
+      expect(form.get("grant_type")).toBe("urn:ietf:params:oauth:grant-type:jwt-bearer");
+      const [header, claims, signature] = form.get("assertion")!.split(".") as [string, string, string];
+      expect(createVerify("RSA-SHA256").update(`${header}.${claims}`).verify(publicKey, signature, "base64url")).toBe(
+        true,
+      );
+      const decoded = JSON.parse(Buffer.from(claims, "base64url").toString()) as Record<string, unknown>;
+      expect(JSON.parse(Buffer.from(header, "base64url").toString())).toEqual({ alg: "RS256", typ: "JWT" });
+      expect(decoded).toMatchObject({
+        iss: "lecture@tartan.iam.test",
+        scope: "https://www.googleapis.com/auth/androidpublisher",
+        aud: "https://oauth2.googleapis.com/token",
+        iat: NOON.getTime() / 1000,
+        exp: NOON.getTime() / 1000 + 3600,
+      });
+      expect(calls.map((call) => call.method)).toEqual(["POST", "GET", "POST", "GET", "DELETE"]);
+    });
+
+    it("sans identifiants, n'appelle rien et n'écrit rien", async () => {
+      const target = await makeTarget("awaiting_store", "1.2.0", "android");
+      const { calls, fetcher } = google({});
+      expect(await checkAndroidAvailability(NOON, fetcher, undefined)).toBe(0);
+      expect(calls).toHaveLength(0);
+      expect(await stateOf(target.id)).toMatchObject({
+        state: "awaiting_store",
+        storeCheckedAt: null,
+        lastErrorCode: null,
+      });
+    });
+
+    it("n'annonce pas une version encore en revue, même si la piste la dit completed", async () => {
+      const target = await makeTarget("awaiting_store", "1.2.0", "android");
+      const { calls, fetcher } = google({
+        lifecycle: [{ releaseName: "12 (1.2.0)", releaseLifecycleState: "RELEASE_LIFECYCLE_STATE_IN_REVIEW" }],
+        track: [{ name: "12 (1.2.0)", status: "completed" }],
+      });
+      expect(await checkAndroidAvailability(NOON, fetcher, credentials)).toBe(0);
+      expect(await stateOf(target.id)).toMatchObject({ state: "awaiting_store", lastErrorCode: null });
+      // Aucune édition n'est ouverte tant que rien de publié n'atteint la version attendue.
+      expect(calls.some((call) => call.url.includes("/edits"))).toBe(false);
+    });
+
+    it("n'annonce pas un déploiement progressif ni un arrêt", async () => {
+      const target = await makeTarget("awaiting_store", "1.2.0", "android");
+      for (const status of ["inProgress", "halted"]) {
+        const { calls, fetcher } = google({
+          lifecycle: [{ releaseName: "12 (1.2.0)", releaseLifecycleState: published }],
+          track: [{ name: "12 (1.2.0)", status }],
+        });
+        expect(await checkAndroidAvailability(NOON, fetcher, credentials)).toBe(0);
+        expect(calls.at(-1)?.method).toBe("DELETE");
+      }
+      expect((await stateOf(target.id)).state).toBe("awaiting_store");
+    });
+
+    it("sur échec de lecture, garde la cible en attente, sans notification, et abandonne l'édition", async () => {
+      const target = await makeTarget("awaiting_store", "1.2.0", "android");
+      const user = await makeUser("Android");
+      await registerDevice(user.userId, `ExponentPushToken[${randomUUID()}]`, "android", { appVersion: "1.0.0" });
+      const refused = google({ token: new Response("", { status: 401 }) });
+      expect(await checkAndroidAvailability(NOON, refused.fetcher, credentials)).toBe(0);
+      expect(await stateOf(target.id)).toMatchObject({ state: "awaiting_store", lastErrorCode: "play_token_401" });
+
+      const trackDown = google({
+        lifecycle: [{ releaseName: "1.2.0", releaseLifecycleState: published }],
+        trackStatus: 503,
+      });
+      expect(await checkAndroidAvailability(NOON, trackDown.fetcher, credentials)).toBe(0);
+      expect(await stateOf(target.id)).toMatchObject({ state: "awaiting_store", lastErrorCode: "play_track_503" });
+      expect(trackDown.calls.at(-1)?.method).toBe("DELETE");
+
+      const broken = (async () => {
+        throw new Error("réseau");
+      }) as typeof fetch;
+      expect(await checkAndroidAvailability(NOON, broken, credentials)).toBe(0);
+      expect((await stateOf(target.id)).lastErrorCode).toBe("play_lookup_failed");
+
+      expect(await rolloutAppUpdates(NOON)).toBe(0);
+      expect(sent).toHaveLength(0);
+    });
+
+    it("signale des identifiants illisibles sans appeler Google ni exposer le contenu", async () => {
+      const target = await makeTarget("awaiting_store", "1.2.0", "android");
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      for (const bad of ["pas du json", JSON.stringify({ client_email: "a@b", private_key: "pas-une-cle-secrete" })]) {
+        const { calls, fetcher } = google({});
+        expect(await checkAndroidAvailability(NOON, fetcher, bad)).toBe(0);
+        expect(calls).toHaveLength(0);
+        expect((await stateOf(target.id)).lastErrorCode).toBe("play_credentials_invalid");
+      }
+      expect(JSON.stringify(warn.mock.calls)).not.toContain("pas-une-cle-secrete");
+    });
+
+    it("signale une sortie publiée dont le nom ne dit pas la version", async () => {
+      const target = await makeTarget("awaiting_store", "1.2.0", "android");
+      const { calls, fetcher } = google({ lifecycle: [{ releaseName: "Hiver", releaseLifecycleState: published }] });
+      expect(await checkAndroidAvailability(NOON, fetcher, credentials)).toBe(0);
+      expect(await stateOf(target.id)).toMatchObject({
+        state: "awaiting_store",
+        lastErrorCode: "play_version_unreadable",
+      });
+      expect(calls.some((call) => call.url.includes("/edits"))).toBe(false);
+    });
+
+    it("n'ouvre rien quand aucune version n'attend", async () => {
+      const { calls, fetcher } = google({});
+      expect(await checkAndroidAvailability(NOON, fetcher, credentials)).toBe(0);
+      expect(calls).toHaveLength(0);
+    });
   });
 
   it("refuse un minimum supérieur à la version publiée", async () => {

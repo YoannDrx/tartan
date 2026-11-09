@@ -2,11 +2,14 @@ import { compareVersions, isQuietHours, updateStateOf, versionCode } from "@tart
 import type { CheckInInput, ReleaseStatus, ReleaseView } from "@tartan/contracts";
 import { latestRelease, releases, type ReleaseNote } from "@tartan/i18n";
 import { hourInParis } from "@/lib/dates";
+import { env } from "@/lib/env";
+import { readPlayProductionVersion } from "@/lib/google-play";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { dispatchPending } from "./notification-delivery.service";
 
 const IOS_BUNDLE_ID = "coach.tartan.app";
+const ANDROID_PACKAGE = "coach.tartan.app";
 export const IOS_STORE_URL = "https://apps.apple.com/fr/app/id6829712713";
 export const ANDROID_STORE_URL = "https://play.google.com/store/apps/details?id=coach.tartan.app";
 const ROLLOUT_BATCH = 200;
@@ -52,6 +55,28 @@ export const syncReleaseManifest = async (now: Date = new Date()): Promise<numbe
   return created;
 };
 
+const recordStoreLookup = async (
+  waiting: { id: string; version: string }[],
+  published: string | null,
+  errorCode: string | null,
+  now: Date,
+): Promise<number> => {
+  let available = 0;
+  for (const target of waiting) {
+    const ready = published !== null && compareVersions(published, target.version) >= 0;
+    await prisma.appReleaseTarget.update({
+      where: { id: target.id },
+      data: {
+        storeCheckedAt: now,
+        lastErrorCode: errorCode,
+        ...(ready ? { state: "available", availableAt: now } : {}),
+      },
+    });
+    if (ready) available++;
+  }
+  return available;
+};
+
 export const checkIosAvailability = async (now: Date = new Date(), fetcher: typeof fetch = fetch): Promise<number> => {
   const waiting = await prisma.appReleaseTarget.findMany({ where: { platform: "ios", state: "awaiting_store" } });
   if (waiting.length === 0) return 0;
@@ -67,24 +92,34 @@ export const checkIosAvailability = async (now: Date = new Date(), fetcher: type
   } catch {
     errorCode = "lookup_failed";
   }
-  let available = 0;
-  for (const target of waiting) {
-    const ready = published !== null && compareVersions(published, target.version) >= 0;
-    await prisma.appReleaseTarget.update({
-      where: { id: target.id },
-      data: {
-        storeCheckedAt: now,
-        lastErrorCode: errorCode,
-        ...(ready ? { state: "available", availableAt: now } : {}),
-      },
-    });
-    if (ready) available++;
-  }
+  const available = await recordStoreLookup(waiting, published, errorCode, now);
   if (errorCode) log.warn("ios_store_lookup_failed", { code: errorCode });
   return available;
 };
 
-// Android n'a pas d'API publique de lecture : la disponibilité se confirme depuis la console.
+// Sans compte de service, rien n'est lu ni écrit : la confirmation depuis la console reste le chemin normal.
+export const checkAndroidAvailability = async (
+  now: Date = new Date(),
+  fetcher: typeof fetch = fetch,
+  credentialsJson: string | undefined = env().GOOGLE_PLAY_SERVICE_ACCOUNT_JSON,
+): Promise<number> => {
+  if (!credentialsJson) return 0;
+  const waiting = await prisma.appReleaseTarget.findMany({ where: { platform: "android", state: "awaiting_store" } });
+  const [wanted] = waiting.map((target) => target.version).sort(compareVersions);
+  if (!wanted) return 0;
+  const { version, errorCode } = await readPlayProductionVersion({
+    packageName: ANDROID_PACKAGE,
+    credentialsJson,
+    wanted,
+    now,
+    fetcher,
+  });
+  const available = await recordStoreLookup(waiting, version, errorCode, now);
+  if (errorCode) log.warn("android_store_lookup_failed", { code: errorCode });
+  return available;
+};
+
+// Repli d'Android (et recours d'iOS) : la disponibilité se confirme depuis la console.
 export const confirmStoreAvailability = async (targetId: string, now: Date = new Date()): Promise<void> => {
   await prisma.appReleaseTarget.updateMany({
     where: { id: targetId, state: "awaiting_store" },
@@ -165,6 +200,7 @@ export const rolloutAppUpdates = async (now: Date = new Date()): Promise<number>
 export const runReleaseJobs = async (now: Date = new Date()): Promise<number> => {
   await syncReleaseManifest(now);
   await checkIosAvailability(now);
+  await checkAndroidAvailability(now);
   return rolloutAppUpdates(now);
 };
 
