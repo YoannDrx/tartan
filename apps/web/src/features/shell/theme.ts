@@ -1,10 +1,10 @@
 export const THEME_COOKIE = "tartan-theme";
-export const themePreferences = ["system", "light", "dark"] as const;
+export const themePreferences = ["tartan", "system", "light", "dark"] as const;
 export type ThemePreference = (typeof themePreferences)[number];
 
-// Une valeur inconnue dans le cookie revient au réglage de l'appareil.
+// Sans choix enregistré, ou avec une valeur inconnue, l'application garde sa couleur : la piste et les cartes encre.
 export const themePreference = (value: string | undefined): ThemePreference =>
-  themePreferences.find((theme) => theme === value) ?? "system";
+  themePreferences.find((theme) => theme === value) ?? "tartan";
 
 const YEAR = 60 * 60 * 24 * 365;
 

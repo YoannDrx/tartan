@@ -30,7 +30,7 @@ import { persister, queryClient, shouldPersistQuery, WEEK_MS } from "../src/lib/
 import { useSession } from "../src/lib/session-store";
 import { useOpQueue } from "../src/lib/sync/op-queue";
 import { flushUploads } from "../src/lib/upload/upload-queue";
-import { palettes, scene, useDarkTheme, type WorldName } from "../src/ui/theme";
+import { palettes, scene, themedWorld, useWorkTheme, type WorldName } from "../src/ui/theme";
 
 const variant = (Constants.expoConfig?.extra as { appVariant?: string } | undefined)?.appVariant ?? "development";
 Sentry.init(sentryOptions(process.env.EXPO_PUBLIC_SENTRY_DSN, variant));
@@ -75,9 +75,9 @@ const AuthGuard = () => {
 };
 
 export default function RootLayout() {
-  const darkTheme = useDarkTheme();
+  const theme = useWorkTheme();
   const worldContent = (world: WorldName) => ({
-    contentStyle: { backgroundColor: palettes[world === "work" && darkTheme ? "workDark" : world].bg },
+    contentStyle: { backgroundColor: palettes[themedWorld(world, theme)].bg },
   });
   const [fontsLoaded, fontError] = useFonts({
     [tokens.font.display]: BarlowCondensed_700Bold,
@@ -131,7 +131,7 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: palettes[darkTheme ? "workDark" : "work"].bg },
+            contentStyle: { backgroundColor: palettes[themedWorld("work", theme)].bg },
             // La transition d'une rubrique à l'autre reste franche : 200 ms, sans en-tête animé.
             animation: "simple_push",
             animationDuration: 200,

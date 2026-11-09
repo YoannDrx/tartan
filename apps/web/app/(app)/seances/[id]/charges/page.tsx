@@ -1,6 +1,7 @@
 import { sessionReturnTo, withSessionReturn } from "@/lib/session-navigation";
 import Link from "next/link";
 import { m } from "@tartan/i18n";
+import { PageHeader } from "@/components/states";
 import { RefreshLoads } from "@/features/sessions/refresh-loads";
 import { orNotFound, requireStaffSpace } from "@/features/shell/space";
 import { AppError } from "@/lib/errors";
@@ -27,14 +28,18 @@ export default async function RefreshLoadsPage({
   }
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-      <Link
-        href={withSessionReturn(`/seances/${id}/suivi`, returnTo)}
-        className="inline-flex min-h-11 items-center font-semibold"
-      >
-        {m.prescriptionRefresh.back}
-      </Link>
-      <h1 className="t-h1">{m.prescriptionRefresh.title}</h1>
-      <p className="font-semibold break-words">{session.draft.title}</p>
+      <PageHeader
+        title={m.prescriptionRefresh.title}
+        detail={<span className="break-words">{session.draft.title}</span>}
+        before={
+          <Link
+            href={withSessionReturn(`/seances/${id}/suivi`, returnTo)}
+            className="inline-flex min-h-11 items-center font-semibold"
+          >
+            {m.prescriptionRefresh.back}
+          </Link>
+        }
+      />
       {preview ? (
         <RefreshLoads
           key={`${organizationId}.${id}.${actor.userId}`}

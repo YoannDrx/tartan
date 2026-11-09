@@ -37,7 +37,7 @@ export default async function AdminUsagePage() {
       <DataTable
         caption="Versions installées, 30 jours"
         columns={["Plateforme", "Version", "Installations"]}
-        rows={data.versions.map((row) => [row.platform, row.version, row.count])}
+        rows={data.versions.map((row) => [m.admin.platformName(row.platform), row.version, row.count])}
       />
     </div>
   );

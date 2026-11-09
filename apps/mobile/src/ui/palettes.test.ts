@@ -50,10 +50,18 @@ describe("palettes", () => {
 
   it("sur la piste, les liens restent blancs", () => {
     expect(palettes.piste.link).toBe("#FFFFFF");
+    expect(palettes.workTartan.link).toBe("#FFFFFF");
+  });
+
+  it("le thème Tartan pose le travail sur des cartes encre", () => {
+    expect(palettes.workTartan.bg).toBe("#C4442B");
+    expect(palettes.workTartan.work).toBe(true);
+    expect(palettes.workCardTartan.bg).toBe("#15161A");
+    expect(palettes.workCardTartan.accent).toBe("#C6F432");
   });
 
   // Sur la piste, le couloir et la nuit, les statuts ne s'affichent que dans les cartes encre.
-  it.each(["card", "encre", "nuitCard", "hero", "craie", "soleil", "work", "workCard"] as const)(
+  it.each(["card", "encre", "nuitCard", "hero", "craie", "soleil", "work", "workCard", "workCardTartan"] as const)(
     "%s : les statuts se lisent sur le fond",
     (name) => {
       const p = palettes[name];
@@ -64,7 +72,7 @@ describe("palettes", () => {
   );
 
   it("les contrôles et leur focus restent visibles sur les surfaces de travail", () => {
-    for (const p of [palettes.work, palettes.workCard]) {
+    for (const p of [palettes.work, palettes.workCard, palettes.workCardTartan]) {
       for (const surface of [p.bg, p.surface, p.surfaceAlt]) {
         expect(contrast(p.text, surface)).toBeGreaterThanOrEqual(4.5);
         expect(contrast(p.textMuted, surface)).toBeGreaterThanOrEqual(4.5);

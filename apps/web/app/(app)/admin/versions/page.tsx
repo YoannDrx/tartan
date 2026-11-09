@@ -34,7 +34,11 @@ export default async function AdminVersionsPage() {
       <DataTable
         caption="Appareils notifiables"
         columns={["Plateforme", "Version", "Appareils"]}
-        rows={data.devices.map((row) => [row.platform, row.version ?? "antérieure au suivi", row.count])}
+        rows={data.devices.map((row) => [
+          m.admin.platformName(row.platform),
+          row.version ?? "antérieure au suivi",
+          row.count,
+        ])}
       />
       <div className="on-card flex flex-col gap-4 rounded-card bg-card p-4">
         <MinimumVersionForm platform="ios" current={minimum("ios")} />

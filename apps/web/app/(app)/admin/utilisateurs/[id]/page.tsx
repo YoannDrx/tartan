@@ -38,7 +38,11 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
       <DataTable
         caption="Appareils et versions"
         columns={["Plateforme", "Version", "Vu le"]}
-        rows={user.clientInstallations.map((row) => [row.platform, row.appVersion, day(row.lastSeenAt)])}
+        rows={user.clientInstallations.map((row) => [
+          m.admin.platformName(row.platform),
+          row.appVersion,
+          day(row.lastSeenAt),
+        ])}
       />
     </div>
   );

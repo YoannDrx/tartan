@@ -6,11 +6,28 @@ import { addDays, startOfWeek } from "@tartan/domain";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 import { today } from "./journeys";
 
+test("sans choix enregistré, le travail se fait sur la piste avec des cartes encre", async ({ page }, info) => {
+  await page.setViewportSize({ width: info.project.name === "desktop" ? 1440 : 390, height: 900 });
+  await createCoachSpace(page, "Piste");
+  await page.goto("/exercices", { waitUntil: "networkidle" });
+  expect(await page.locator(".world-work").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
+    "rgb(196, 68, 43)",
+  );
+  await expectAccessible(page);
+  await page.getByRole("button", { name: m.exercises.new, exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  expect(await dialog.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(21, 22, 26)");
+  await expectAccessible(page);
+});
+
 test("le bureau clair conserve les contrôles, les dialogues et les groupes de 30 à 120 athlètes", async ({
   page,
+  baseURL,
 }, info) => {
   test.setTimeout(150_000);
   await page.setViewportSize({ width: info.project.name === "desktop" ? 1440 : 390, height: 900 });
+  await page.context().addCookies([{ name: "tartan-theme", value: "light", url: baseURL! }]);
   await createCoachSpace(page, "Bureau");
   const me = await (await page.request.get("/api/v1/me")).json();
   const orgId = me.spaces[0].organizationId;

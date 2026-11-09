@@ -273,7 +273,7 @@ export const MinimumVersionForm = ({ platform, current }: { platform: "ios" | "a
         save.execute({ platform, minimumVersion: version.trim() || null, reason: null });
       }}
     >
-      <Field label={m.admin.minimumVersion(platform)} hint={m.admin.minimumVersionHint}>
+      <Field label={m.admin.minimumVersion(m.admin.platformName(platform))} hint={m.admin.minimumVersionHint}>
         {(a) => <Input {...a} value={version} placeholder="1.2.0" onChange={(e) => setVersion(e.target.value)} />}
       </Field>
       <Button type="submit" size="sm" variant="secondary" disabled={save.isPending}>

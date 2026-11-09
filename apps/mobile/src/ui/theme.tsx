@@ -1,7 +1,7 @@
 import { tokens } from "@tartan/design-tokens";
 import { createContext, useContext, type ReactNode } from "react";
 import { useColorScheme, useWindowDimensions, type TextStyle } from "react-native";
-import { palettes, type Palette, type SceneName } from "./palettes";
+import { palettes, type Palette, type SceneName, type WorldName } from "./palettes";
 import { useThemePreference } from "./theme-preference";
 
 const c = tokens.color;
@@ -11,15 +11,24 @@ export { palettes, type Palette, type SceneName, type WorldName } from "./palett
 
 const SceneContext = createContext<Palette>(palettes.piste);
 
-export const useDarkTheme = (): boolean => {
+export type WorkTheme = "tartan" | "light" | "dark";
+
+export const useWorkTheme = (): WorkTheme => {
   const preference = useThemePreference((state) => state.preference);
   const system = useColorScheme();
-  return preference === "dark" || (preference === "system" && system === "dark");
+  return preference === "system" ? (system === "dark" ? "dark" : "light") : preference;
 };
 
+const WORK_WORLD = { tartan: "workTartan", light: "work", dark: "workDark" } as const;
+const WORK_CARD = { tartan: "workCardTartan", light: "workCard", dark: "workCardDark" } as const;
+
+// Le monde réel d'un écran : seul le monde de travail suit le thème choisi.
+export const themedWorld = (world: WorldName, theme: WorkTheme): SceneName =>
+  world === "work" ? WORK_WORLD[theme] : world;
+
 // Le thème choisi ne change que les écrans de travail ; accueil, vidéo et mode séance gardent leur scène.
-const themedScene = (scene: SceneName, dark: boolean): SceneName =>
-  !dark ? scene : scene === "work" ? "workDark" : scene === "workCard" ? "workCardDark" : scene;
+const themedScene = (scene: SceneName, theme: WorkTheme): SceneName =>
+  scene === "work" ? WORK_WORLD[theme] : scene === "workCard" ? WORK_CARD[theme] : scene;
 
 // Un monde par rubrique, l'encre pour le mode séance et la vidéo : le choix suit la scène.
 export const Scene = ({
@@ -31,9 +40,9 @@ export const Scene = ({
   dark?: boolean;
   children: ReactNode;
 }) => {
-  const darkTheme = useDarkTheme();
+  const theme = useWorkTheme();
   return (
-    <SceneContext.Provider value={palettes[themedScene(scene ?? (dark ? "encre" : "piste"), darkTheme)]}>
+    <SceneContext.Provider value={palettes[themedScene(scene ?? (dark ? "encre" : "piste"), theme)]}>
       {children}
     </SceneContext.Provider>
   );

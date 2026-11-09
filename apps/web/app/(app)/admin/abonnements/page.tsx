@@ -7,7 +7,10 @@ import { AdminNav, DataTable, day, euros, NextPage } from "@/features/admin/cons
 import { SubscriptionActions } from "@/features/admin/console-actions";
 import { listSubscriptions } from "@/server/admin-console.service";
 
-const STATUSES = ["active", "trialing", "past_due", "canceled"];
+const STATUSES = ["active", "trialing", "past_due", "canceled"] as const;
+type Status = (typeof STATUSES)[number];
+const isStatus = (value: string | undefined): value is Status => STATUSES.includes(value as Status);
+const statusLabel = (value: string) => (isStatus(value) ? m.admin.subscriptionStatus[value] : value);
 
 export default async function AdminSubscriptionsPage({
   searchParams,
@@ -16,7 +19,7 @@ export default async function AdminSubscriptionsPage({
 }) {
   const { actor } = await requireSpace();
   const { etat, apres } = await searchParams;
-  const status = STATUSES.includes(etat ?? "") ? etat : undefined;
+  const status = isStatus(etat) ? etat : undefined;
   const data = await listSubscriptions(actor, { status, cursor: apres });
   return (
     <div className="flex flex-col gap-4">
@@ -28,7 +31,7 @@ export default async function AdminSubscriptionsPage({
         </FilterPill>
         {STATUSES.map((value) => (
           <FilterPill key={value} href={`/admin/abonnements?etat=${value}`} active={status === value}>
-            {value}
+            {m.admin.subscriptionFilter[value]}
           </FilterPill>
         ))}
       </nav>
@@ -40,7 +43,7 @@ export default async function AdminSubscriptionsPage({
             {row.organization.name}
           </Link>,
           `${row.planKey}${row.interval ? ` (${row.interval})` : ""}`,
-          row.cancelAt ? `${row.status}, fin le ${day(row.cancelAt)}` : row.status,
+          row.cancelAt ? `${statusLabel(row.status)}, fin le ${day(row.cancelAt)}` : statusLabel(row.status),
           euros(row.discountedMrrCents ?? row.listMrrCents),
           day(row.trialEndsAt),
           day(row.currentPeriodEnd),

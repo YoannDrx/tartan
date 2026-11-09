@@ -131,6 +131,7 @@ export const fr = {
   nav: {
     suivi: "Suivi",
     calendrier: "Calendrier",
+    planificateur: "Planificateur",
     exercices: "Exercices",
     athletes: "Athlètes",
     videos: "Vidéos",
@@ -652,6 +653,16 @@ export const fr = {
       `La date obtenue est hors de la période choisie (${from} au ${to}). Quelle date de cette période souhaites-tu ? Tu peux aussi recommencer avec une autre période.`,
     clarifyAllowedTarget:
       "Le destinataire obtenu ne fait pas partie de la sélection autorisée. Quel groupe ou athlète sélectionné doit recevoir cette séance ?",
+    clarifyDate: (from: string, to: string) =>
+      `La date de cette demande n’est pas certaine. Quel jour de la période (du ${from} au ${to}) souhaites-tu ?`,
+    clarifyExercise:
+      "Cet exercice n’est pas identifié dans ta bibliothèque. Indique le nom exact de sa fiche, ou crée-la avant de relancer.",
+    clarifyTarget: "Plusieurs destinataires sont sélectionnés. Lesquels doivent recevoir cette séance ?",
+    clarifyRest: "Quelle récupération veux-tu, en secondes ou en minutes ? Tartan ne connaît pas ton habitude.",
+    clarifyLoad: "Quelle charge veux-tu indiquer ? Sans valeur de ta part, Tartan peut la laisser à définir.",
+    clarifySessionCount: "Une proposition compte au plus quatorze séances. Comment veux-tu réduire ta demande ?",
+    clarifyEmpty: "Aucune séance n’a pu être préparée avec cette consigne. Précise la date, le destinataire et les exercices.",
+    removedExercises: "Un exercice absent de ta consigne a été retiré de la proposition.",
     ambiguousAlias: (term: string) =>
       `« ${term} » désigne plusieurs fiches. Quel exercice souhaites-tu ? Précise son nom complet ou sa variante.`,
     createdDraft: (index: number) => `Brouillon ${index}`,
@@ -815,6 +826,15 @@ export const fr = {
     proposalFailed:
       "La proposition n’a pas pu être préparée. Aucun quota supplémentaire n’est consommé sans résultat exploitable.",
     disabled: "Le planificateur IA n’est pas activé pour cet espace.",
+    paidOnly: "Le planificateur IA est réservé aux offres Coach et Club.",
+    seeOffers: "Voir les offres",
+    noRecipients:
+      "Ajoute d’abord un groupe ou un athlète à cet espace : une proposition a besoin d’au moins un destinataire.",
+    addRecipients: "Gérer les athlètes",
+    privacyUse:
+      "Planificateur IA (offres Coach et Club) : le texte que tu écris ou dictes et le nom des exercices de ta bibliothèque sont transmis à OpenAI, aux États-Unis, pour préparer des brouillons de séance que tu relis. Avant l’envoi, les noms des groupes et athlètes sélectionnés sont remplacés par des jetons ; le texte libre peut toutefois en contenir d’autres. L’audio d’une dictée est transmis tel quel. N’y mets aucune donnée de santé. Base : le contrat.",
+    privacyRetention:
+      "Planificateur IA : propositions conservées 7 jours au plus, ou 24 heures après la création des brouillons ; transcriptions 24 heures. Tartan ne conserve pas l’audio d’une dictée.",
     quotaExceeded: "Le quota IA de ce mois est atteint. Aucun dépassement payant n’est déclenché.",
     requestConflict:
       "Cette demande a déjà été utilisée avec un autre contenu. Recharge son résultat ou crée une nouvelle demande.",
@@ -974,11 +994,7 @@ export const fr = {
     offer: (athletes: number, trialDays: number) =>
       `Gratuit jusqu'à ${athletes} athlètes. ${trialDays} jours d'essai sur les offres payantes.`,
     film: {
-      intro: {
-        title: "Ce que ça change pour ton groupe.",
-        mark: "groupe",
-        lead: "Une séance, du programme à la validation.",
-      },
+      intro: { mark: "son groupe" },
       run: {
         title: "Tu vois ce qui arrive.",
         mark: "arrive",
@@ -1499,6 +1515,10 @@ export const fr = {
     instagramPlay: "Lire la vidéo",
     instagramNotice: "La lecture charge le lecteur d'Instagram, qui peut déposer ses propres cookies.",
     instagramBlocked: "L'auteur de cette vidéo n'autorise la lecture que sur Instagram.",
+    openSheet: "Ouvrir la fiche",
+    backToLibrary: "Retour aux exercices",
+    linkedVideos: "Vidéos liées",
+    linkedVideosEmpty: "Aucune vidéo liée à ce mouvement. Rattache-la depuis l'analyse d'une vidéo.",
   },
   athletes: {
     regularityTitle: "Tes 4 dernières semaines",
@@ -1993,6 +2013,10 @@ export const fr = {
       "Le push partira vers les appareils en retard. Vérifie d'abord que la version est bien en ligne.",
     stopRollout: "Stopper la diffusion",
     stopRolloutDetail: "Plus aucun appareil ne sera notifié pour cette version.",
+    subscriptionFilter: { active: "Actifs", trialing: "En essai", past_due: "Impayés", canceled: "Résiliés" },
+    subscriptionStatus: { active: "Actif", trialing: "En essai", past_due: "Impayé", canceled: "Résilié" },
+    platformName: (platform: string) =>
+      ({ ios: "iOS", android: "Android", web: "Web" })[platform] ?? platform,
     minimumVersion: (platform: string) => `Version minimale ${platform}`,
     minimumVersionHint: "Vide : aucune. Refusée si elle dépasse la version publiée.",
     alerts: {
@@ -2017,13 +2041,13 @@ export const fr = {
       "Comparer les abonnements et sessions dans Stripe avec l’espace concerné. Vérifier les paiements avant toute résiliation ou restitution. Aucune opération financière automatique n’est lancée depuis cette liste.",
     correctionTitle: "Rectifier une date de naissance",
     featuresTitle: "Fonctions par espace",
-    featuresLead: "L’effet est immédiat et chaque changement est tracé. Ces fonctions sont éteintes par défaut.",
+    featuresLead: "L’effet est immédiat et chaque changement est tracé. Ces fonctions sont actives par défaut.",
     featuresSaved: "Fonctions de l’espace enregistrées.",
     featureProgression: "Progression",
     featurePhases: "Phases",
     featureAi: "Planificateur IA",
     aiServerOn: "Variable serveur de l’IA : activée.",
-    aiServerOff: "Variable serveur de l’IA : désactivée. Le planificateur reste fermé, même coché ici.",
+    aiServerOff: "IA serveur inactive (clé OpenAI absente ou coupe-circuit). Le planificateur reste fermé, même coché ici.",
     aiNotInDiscovery: "L’offre Découverte n’inclut pas le planificateur.",
     disableAi: "Couper l’IA partout",
     disableAiDetail:
@@ -2133,6 +2157,7 @@ export const fr = {
   appearance: {
     title: "Apparence",
     hint: "S’applique aux écrans de travail, sur cet appareil.",
+    tartan: "Tartan",
     system: "Automatique",
     light: "Clair",
     dark: "Sombre",
