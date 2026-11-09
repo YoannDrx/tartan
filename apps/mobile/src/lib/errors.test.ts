@@ -24,6 +24,12 @@ describe("errorMessage", () => {
     }
   });
 
+  it("n'incite pas à l'achat quand un compte a déjà un espace Découverte", () => {
+    const text = errorMessage(new ApiError(409, "discovery_limit", m.onboarding.discoveryLimit));
+    expect(text).toBe(m.mobile.errors.discoveryLimit);
+    expect(text).not.toMatch(/payant|abonnement|passe/i);
+  });
+
   it("garde le message neutre destiné à l'athlète qui rejoint un groupe complet", () => {
     expect(errorMessage(new ApiError(402, "plan_limit", m.billing.limitJoinAthlete))).toBe(m.billing.limitJoinAthlete);
   });

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // Refait les captures du site et des stores depuis la base de démonstration locale.
-//   pnpm captures [--dry-run] [--only=ios|web] [--build]
+//   pnpm captures [--dry-run] [--only=ios|web] [--build] [--store]
+// --store : pleine définition sur iPhone 17 Pro Max, dans apps/mobile/store/ios, sans toucher au site.
 // Mode opératoire et prérequis : docs/preuves-v1-1/captures-landing.md.
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -20,6 +21,9 @@ const COACH_EMAIL = "coach@capture.tartan.test";
 const ATHLETE_EMAIL = "athlete@capture.tartan.test";
 const DEVICE = "iPhone 17 Pro";
 const MAX_SIDE = "1600";
+// Apple n'accepte que 1260 × 2736, 1290 × 2796 ou 1320 × 2868 pour le grand format : aucune réduction.
+const STORE_DEVICE = "iPhone 17 Pro Max";
+const STORE_IMAGES = path.join(ROOT, "apps/mobile/store/ios");
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
 
 const SESSIONS = {
@@ -36,12 +40,13 @@ const fail = (message) => {
 };
 
 const parseArgs = (argv) => {
-  const options = { dryRun: false, build: false, only: null };
+  const options = { dryRun: false, build: false, only: null, store: false };
   for (const arg of argv) {
     if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "--build") options.build = true;
+    else if (arg === "--store") options.store = true;
     else if (arg === "--only=ios" || arg === "--only=web") options.only = arg.slice("--only=".length);
-    else fail(`option inconnue : ${arg}. Usage : pnpm captures [--dry-run] [--only=ios|web] [--build]`);
+    else fail(`option inconnue : ${arg}. Usage : pnpm captures [--dry-run] [--only=ios|web] [--build] [--store]`);
   }
   return options;
 };
@@ -195,7 +200,9 @@ const bootedDevice = () => {
   return null;
 };
 
-const captureIos = async ({ dryRun, build }, runner, screens) => {
+const captureIos = async ({ dryRun, build, store }, runner, screens) => {
+  const deviceName = store ? STORE_DEVICE : DEVICE;
+  const target = store ? STORE_IMAGES : IMAGES;
   if (build) {
     runner.run(
       "corepack",
@@ -209,7 +216,7 @@ const captureIos = async ({ dryRun, build }, runner, screens) => {
         "--configuration",
         "Release",
         "--device",
-        DEVICE,
+        deviceName,
         "--no-bundler",
       ],
       {
@@ -219,10 +226,11 @@ const captureIos = async ({ dryRun, build }, runner, screens) => {
       },
     );
   }
-  let device = { name: DEVICE, ios: "à lire sur le simulateur" };
+  let device = { name: deviceName, ios: "à lire sur le simulateur" };
   if (!dryRun) {
     device = bootedDevice();
-    if (!device) fail(`aucun simulateur démarré. Lance « ${DEVICE} », ou ajoute --build.`);
+    if (!device) fail(`aucun simulateur démarré. Lance « ${deviceName} », ou ajoute --build.`);
+    if (store && device.name !== STORE_DEVICE) fail(`les captures des stores exigent « ${STORE_DEVICE} ».`);
     try {
       execFileSync("xcrun", ["simctl", "get_app_container", "booted", BUNDLE_ID], { stdio: "ignore" });
     } catch {
@@ -255,7 +263,8 @@ const captureIos = async ({ dryRun, build }, runner, screens) => {
       await runner.wait(screen.settleMs ?? 4000);
       const raw = path.join(dir, `brut-${screen.file}`);
       runner.run("xcrun", ["simctl", "io", "booted", "screenshot", raw]);
-      runner.run("sips", ["-Z", MAX_SIDE, raw, "--out", path.join(dir, screen.file)]);
+      if (store) runner.run("cp", [raw, path.join(dir, screen.file)]);
+      else runner.run("sips", ["-Z", MAX_SIDE, raw, "--out", path.join(dir, screen.file)]);
     }
   } finally {
     runner.run("xcrun", ["simctl", "status_bar", "booted", "clear"]);
@@ -263,9 +272,12 @@ const captureIos = async ({ dryRun, build }, runner, screens) => {
   // Copie à la fin seulement : un écran raté ne laisse pas un jeu d'images à moitié remplacé.
   for (const screen of screens) {
     const from = path.join(dir, screen.file);
-    const to = path.join(IMAGES, screen.file);
+    const to = path.join(target, screen.file);
     if (dryRun) console.log(`[à sec] copie ${from} vers ${path.relative(ROOT, to)}`);
-    else copyFileSync(from, to);
+    else {
+      mkdirSync(target, { recursive: true });
+      copyFileSync(from, to);
+    }
   }
   if (!dryRun) rmSync(dir, { recursive: true, force: true });
   return device;
@@ -312,7 +324,7 @@ const main = async () => {
   assertLocalWeb(baseUrl);
   const runner = makeRunner(options.dryRun);
   const wantsIos = options.only !== "web";
-  const wantsWeb = options.only !== "ios";
+  const wantsWeb = options.only !== "ios" && !options.store;
 
   let screens = [];
   if (wantsIos) {
@@ -340,7 +352,8 @@ const main = async () => {
 
   const device = wantsIos ? await captureIos(options, runner, screens) : null;
   if (wantsWeb) await captureWeb(options, runner, baseUrl);
-  updateManifest(options, runner, device);
+  // Le manifeste décrit les images du site, pas celles des stores.
+  if (!options.store) updateManifest(options, runner, device);
   console.log(options.dryRun ? "Fin de la simulation : rien n'a été écrit." : "Captures écrites et provenance à jour.");
 };
 

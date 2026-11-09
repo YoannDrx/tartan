@@ -33,6 +33,7 @@ Rôle à faire confirmer : Yodev est-il responsable de traitement, ou sous-trait
 | Expo        | Notifications mobiles | États-Unis                                                    | DPA                              |
 | Stripe      | Paiement web          | UE, États-Unis                                                | DPA inclus aux conditions        |
 | Sentry      | Suivi d'erreurs       | Région Allemagne                                              | DPA                              |
+| OpenAI      | Planificateur IA      | États-Unis, journaux de contrôle jusqu'à 30 jours             | DPA, à vérifier                  |
 | GitHub      | Copie de sauvegarde   | États-Unis, chiffrée avant envoi, clé gardée par l'éditeur    | DPA, à confirmer avec le juriste |
 
 YouTube et Instagram ne sont pas des sous-traitants : les vidéos de la bibliothèque commune restent chez eux et Tartan n'en garde que la référence et l'auteur. Le lecteur Instagram ne charge qu'au clic, avec une mention. Le lecteur YouTube passe par `youtube-nocookie.com`.
