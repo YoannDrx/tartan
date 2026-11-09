@@ -13,6 +13,8 @@ Analyse complète, règles et sources : [Tartan, publication sur l'App Store et 
 - `EXPO_PUBLIC_SENTRY_DSN` sur EAS en production.
 - Clé de signature Android créée sur EAS.
 - `@sentry/cli` ajouté à `apps/mobile` : sans lui, l'archive iOS échouait.
+- Archive iOS signée 1.1.0 (12), commit `8e9f9a3`, construite en local : `.local/stores/tartan-1.1.0-12.ipa` à la racine du dépôt principal.
+- Build Android de production lancé sur EAS, encore en file d'attente à 18 h.
 
 ## Gestes réservés au fondateur
 
@@ -35,7 +37,13 @@ Compte, mot de passe, paiement ou engagement légal : Claude ne les fait pas.
 
 ### Apple
 
-1. `eas credentials -p ios` : créer ou importer la clé APNs, et une clé API App Store Connect pour l'envoi.
+1. Envoyer l'archive sur TestFlight, en te connectant à Apple quand EAS le demande. La commande crée aussi la clé API :
+
+   ```bash
+   cd apps/mobile && APP_VARIANT=production EXPO_PUBLIC_API_URL=https://app.tartan.coach EXPO_PUBLIC_WEB_URL=https://tartan.coach eas submit -p ios --profile production --path /Users/yoannandrieux/Projets/tartan/.local/stores/tartan-1.1.0-12.ipa
+   ```
+
+   Puis `eas credentials -p ios` pour créer la clé APNs.
 2. App Store Connect : App Privacy, classification 18+, statut de commerçant, fiche, notes de revue. Textes dans `docs/fiches-stores.md`.
 3. Essayer le build TestFlight sur un iPhone, puis lancer « Soumettre pour vérification ».
 
@@ -53,3 +61,4 @@ Compte, mot de passe, paiement ou engagement légal : Claude ne les fait pas.
 - Captures iPhone : autoriser l'accès au simulateur iPhone 17 Pro Max dans le panneau.
 - Écrans natifs du coach à ouvrir dans le thème Tartan, sur le même simulateur.
 - Captures Android en 1080 × 1920 : installer un émulateur.
+- Comprendre l'échec du build iOS sur EAS à l'étape « Read app config » : le même commit se construit en local. Journal lisible sur expo.dev, build `007b06c9`.
