@@ -87,7 +87,7 @@ const Note = ({ title, body }: { title: string; body: string }) => (
   </p>
 );
 
-export const JumpFilm = ({ cta }: { cta: ReactNode }) => {
+export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: ReactNode; offer: ReactNode }) => {
   const rootRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const root = rootRef.current;
@@ -358,11 +358,18 @@ export const JumpFilm = ({ cta }: { cta: ReactNode }) => {
           ))}
         </svg>
 
+        <div className="film-chrome">{header}</div>
+
         <div className="film-beat film-beat-hero is-active">
-          <h2 className="film-hero-title">
-            <Words text={f.intro.title} mark={f.intro.mark} />
-          </h2>
-          <p className="film-lead">{f.intro.lead}</p>
+          <h1 className="film-hero-title">
+            <Words text={m.landing.title} mark={f.intro.mark} />
+          </h1>
+          <p className="film-lead">{m.landing.lead}</p>
+          {/* Sur ordinateur, l'offre se range à côté du bouton : le personnage garde la place sous le texte. */}
+          <div className="film-cta desktop:flex desktop:items-center desktop:gap-5">
+            {cta}
+            <p className="t-caption mt-3 max-w-[32ch] desktop:mt-0">{offer}</p>
+          </div>
         </div>
 
         <div className="film-beat">

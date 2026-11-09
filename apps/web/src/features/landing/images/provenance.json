@@ -1,6 +1,8 @@
 {
   "dataset": "apps/web/prisma/demo-preparation.ts, base locale, personnes fictives",
   "device": "iPhone 17 Pro, iOS 26.3, simulateur, build Release de la branche ; barre d'état normalisée",
+  "capturedAt": "2026-11-09",
+  "commit": "0afa61b",
   "clip": {
     "use": "ios-video.png, lecture du clip dans l'analyse",
     "source": "https://www.pexels.com/video/athlete-sprinting-on-outdoor-track-37264421/",

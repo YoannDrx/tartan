@@ -108,6 +108,11 @@ const main = async () => {
 
   const mainAthleteUser = await account(ATHLETE_EMAIL, "Alex", "Bernard");
   const mainAthlete = await enroll(mainAthleteUser, "Alex", "Bernard");
+  // La capture du calendrier montre le mois sans toucher à l'écran.
+  await prisma.profile.update({
+    where: { id: mainAthleteUser },
+    data: { calendarView: "month", calendarViewUpdatedAt: new Date() },
+  });
   const roster = [mainAthlete];
   for (const [first, last] of ATHLETES) roster.push(await enroll(await person(first, last), first, last));
 
