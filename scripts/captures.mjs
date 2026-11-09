@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Refait les captures du site et des stores depuis la base de démonstration locale.
 //   pnpm captures [--dry-run] [--only=ios|web] [--build]
-// Mode opératoire et prérequis : docs/preuves-v1-1/captures-landing.md.
+// Mode opératoire et prérequis : docs/exploitation/captures.md.
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

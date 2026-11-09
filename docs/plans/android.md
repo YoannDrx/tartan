@@ -1,0 +1,49 @@
+# Plan : publier sur Google Play
+
+Paquet `coach.tartan.app`, API 36. Textes et formulaires : [fiches-stores](../reference/fiches-stores.md). L'avancement est dans [../ETAT.md](../ETAT.md).
+
+## Déjà en place
+
+Projet Firebase et `GOOGLE_SERVICES_JSON` sur EAS. Clé de signature Android sur EAS. Bannière 1024 × 500 dans `apps/mobile/store/android`. Icône 512 × 512. Compilation Android vérifiée en CI à chaque PR mobile. Les pages `/mobile/*` sont sans prix.
+
+## Le blocage à lever d'abord
+
+Les builds EAS échouent à l'étape « Read app config », alors que le même commit se construit en local. Sans cela, pas d'AAB.
+
+1. Ouvrir les journaux du build sur expo.dev.
+2. Reproduire avec `pnpm --filter @tartan/mobile exec eas build --profile production --platform android --local`, ou comparer l'environnement EAS à l'environnement local (`app.config.ts`, variables `production`, `pnpm` en monorepo, `@sentry/cli`).
+3. Corriger, faire passer un build de production.
+
+## Étapes
+
+| N° | Action | Qui | Vérification |
+| --- | --- | --- | --- |
+| G1 | Demander un D-U-N-S pour l'entreprise. Sans numéro le 20 novembre, compte personnel | Fondateur | Numéro reçu, jusqu'à 30 jours |
+| G2 | Créer le compte Play Console, déclarer le statut de commerçant, créer l'app | Fondateur | App visible dans la console |
+| G3 | Compte de service Firebase, importé en FCM V1 : `eas credentials -p android` | Fondateur | Push reçu sur un Android physique |
+| G4 | Compte de service Play, importé sur EAS pour `eas submit` | Fondateur | `eas submit` accepté |
+| G5 | Corriger le build (bloc ci-dessus, tâche A3 de l'état) | Agent | AAB signé |
+| G6 | Captures 1080 × 1920, au moins quatre ([procédure](../exploitation/captures.md)) | Agent | Ratio inférieur à 2:1 |
+| G7 | Envoyer l'AAB sur le canal interne | Agent, fondateur | Installable depuis Play |
+| G8 | Relever l'empreinte SHA-256 de signature Play, la poser dans `ANDROID_SHA256_FINGERPRINTS`, redéployer | Fondateur | `assetlinks.json` répond 200, lien universel ouvert dans l'app |
+| G9 | Remplir Data Safety, déclaration santé (« Activity and Fitness »), public 18 ans et plus, classification | Fondateur | Formulaires validés |
+| G10 | Vidéo de démonstration du service `dataSync` (choisir la vidéo, envoi, notification, écran éteint) | Fondateur | Déclaration acceptée |
+| G11 | Recette physique, entrée de gamme ([section 6](../tests/recette-reelle.md)) | Fondateur | Toutes les cases cochées |
+| G12 | Compte de revue : identifiants en anglais, connexion par mot de passe | Fondateur | Accès vérifié la veille |
+
+## Selon le type de compte
+
+| Compte | Suite |
+| --- | --- |
+| Organisation (D-U-N-S) | Pas de test imposé : promouvoir vers la production, revue Google, jusqu'à 7 jours |
+| Personnel récent | Test fermé avec 15 à 20 personnes pendant 14 jours sans interruption (12 restent requises), retours réels, demande d'accès à la production, puis soumission |
+
+Un testeur qui se retire avant 14 jours ne compte plus. Prévois de la marge. Google interroge ensuite sur le déroulé du test.
+
+## Pièges
+
+- Le grand côté d'une capture ne peut pas dépasser deux fois le petit : les captures du site ne conviennent pas.
+- Identifiants de revue valables partout, lien magique refusé.
+- Le statut de commerçant rend adresse et téléphone publics. Une fausse déclaration peut suspendre le compte.
+- Limite Android de 6 heures sur 24 pour un service `dataSync`.
+- Paiements : l'app de consultation seule est admise, à condition de n'avoir aucun lien vers un paiement.

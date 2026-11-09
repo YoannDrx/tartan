@@ -16,7 +16,7 @@ jobs:
       - name: Installer age
         run: sudo apt-get update -qq && sudo apt-get install -y -qq age
 
-      # La clé publique seule est ici : GitHub ne peut pas relire la copie. Clé privée et restauration : docs/sauvegarde.md.
+      # La clé publique seule est ici : GitHub ne peut pas relire la copie. Clé privée et restauration : docs/exploitation/sauvegarde.md.
       - name: Exporter et chiffrer
         env:
           NEON_BACKUP_URL: ${{ secrets.NEON_BACKUP_URL }}

@@ -1,6 +1,6 @@
 # Tartan — design system
 
-Lu à chaque session de design. Source produit : `PRODUCT.md` ; état effectivement livré : `docs/livraison-v1-1.md`.
+Lu à chaque session de design. Source produit : `PRODUCT.md` ; état effectivement livré : `docs/ETAT.md`.
 
 **Décision du fondateur du 9 novembre 2026.** Le mix d’origine revient par défaut : fond rouge piste, contenu sur des cartes encre, action citron, lignes blanches. Le thème **Tartan** est celui de tout nouvel utilisateur, sur le web et le mobile ; Automatique, Clair et Sombre restent au choix.
 
