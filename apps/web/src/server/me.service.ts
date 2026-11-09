@@ -1,5 +1,12 @@
-import type { MeResponse, ProfileInput, SpaceSummary } from "@tartan/contracts";
-import { can } from "@tartan/domain";
+import {
+  calendarView,
+  type CalendarView,
+  type MeResponse,
+  type PreferencesInput,
+  type ProfileInput,
+  type SpaceSummary,
+} from "@tartan/contracts";
+import { can, plannerServerEnabled } from "@tartan/domain";
 import { put } from "@vercel/blob";
 import { fromDbDateOrNull, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
@@ -8,6 +15,7 @@ import { ageRestricted, ageStatusOfUser, assertAdultDate, confirmBirthDate, pare
 import { AppError } from "@/lib/errors";
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
+import { setEmailPreference } from "./email-preferences.service";
 
 export const listSpaces = async (userId: string): Promise<SpaceSummary[]> => {
   const rows = await prisma.organizationMember.findMany({
@@ -34,9 +42,14 @@ export const listSpaces = async (userId: string): Promise<SpaceSummary[]> => {
     progressionEnabled: r.organization.progressionEnabled,
     phasesEnabled: r.organization.phasesEnabled,
     aiPlannerEnabled:
-      env().AI_PLANNER_ENABLED === "true" &&
+      plannerServerEnabled(env()) &&
       r.organization.aiPlannerEnabled &&
       r.organization.plan !== "discovery" &&
+      can(r.role, "manageSessions"),
+    aiPlannerUpgrade:
+      plannerServerEnabled(env()) &&
+      r.organization.aiPlannerEnabled &&
+      r.organization.plan === "discovery" &&
       can(r.role, "manageSessions"),
     role: r.role,
     athleteId: r.role === "athlete" ? (athletes.find((a) => a.organizationId === r.organization.id)?.id ?? null) : null,
@@ -59,7 +72,61 @@ export const getMe = async (userId: string): Promise<MeResponse> => {
     units: user.profile?.units ?? "kg",
     locale: user.profile?.locale ?? "fr",
     spaces: await listSpaces(userId),
+    preferences: {
+      calendarView: parseCalendarView(user.profile?.calendarView),
+      calendarViewUpdatedAt: user.profile?.calendarViewUpdatedAt?.toISOString() ?? null,
+      notifications: {
+        sessions: user.profile?.pushSessions ?? true,
+        feedback: user.profile?.pushFeedback ?? true,
+        group: user.profile?.pushGroup ?? true,
+        product: user.profile?.pushProductUpdates ?? true,
+      },
+      email: {
+        digest: user.profile?.emailDigest ?? true,
+        notifications: user.profile?.emailNotifications ?? true,
+      },
+    },
   };
+};
+
+const parseCalendarView = (value: string | null | undefined): CalendarView | null => {
+  const parsed = calendarView.safeParse(value);
+  return parsed.success ? parsed.data : null;
+};
+
+export const getCalendarView = async (userId: string): Promise<CalendarView | null> => {
+  const profile = await prisma.profile.findUnique({ where: { id: userId }, select: { calendarView: true } });
+  return parseCalendarView(profile?.calendarView);
+};
+
+// Dernier choix gagnant : un appareil revenu du hors-ligne n'écrase pas un choix plus récent.
+export const updatePreferences = async (userId: string, input: PreferencesInput): Promise<void> => {
+  if (input.email) {
+    if (input.email.digest !== undefined) await setEmailPreference(userId, "digest", input.email.digest);
+    if (input.email.notifications !== undefined)
+      await setEmailPreference(userId, "notifications", input.email.notifications);
+  }
+  if (input.notifications) {
+    const { sessions, feedback, group, product } = input.notifications;
+    const data = {
+      ...(sessions !== undefined ? { pushSessions: sessions } : {}),
+      ...(feedback !== undefined ? { pushFeedback: feedback } : {}),
+      ...(group !== undefined ? { pushGroup: group } : {}),
+      ...(product !== undefined ? { pushProductUpdates: product } : {}),
+    };
+    await prisma.profile.upsert({ where: { id: userId }, create: { id: userId, ...data }, update: data });
+  }
+  if (!input.calendarView) return;
+  const at = input.calendarViewUpdatedAt ? new Date(input.calendarViewUpdatedAt) : new Date();
+  await prisma.profile.upsert({
+    where: { id: userId },
+    create: { id: userId, calendarView: input.calendarView, calendarViewUpdatedAt: at },
+    update: {},
+  });
+  await prisma.profile.updateMany({
+    where: { id: userId, OR: [{ calendarViewUpdatedAt: null }, { calendarViewUpdatedAt: { lte: at } }] },
+    data: { calendarView: input.calendarView, calendarViewUpdatedAt: at },
+  });
 };
 
 export const updateProfile = async (userId: string, input: ProfileInput): Promise<void> => {

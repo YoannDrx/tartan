@@ -6,6 +6,7 @@ import {
   plannerTranscriptionResponse,
   type CreatePlannerTranscriptionInput,
 } from "@tartan/contracts";
+import { plannerServerEnabled } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
@@ -27,7 +28,7 @@ export async function requirePlannerTranscriptionAccess(
     where: { id: organizationId },
     select: { aiPlannerEnabled: true, plan: true },
   });
-  if (env().AI_PLANNER_ENABLED !== "true" || !org.aiPlannerEnabled || org.plan === "discovery")
+  if (!plannerServerEnabled(env()) || !org.aiPlannerEnabled || org.plan === "discovery")
     throw new AppError(403, "planner_disabled", m.aiPlanner.disabled);
 }
 async function owned(

@@ -23,9 +23,7 @@ import {
   type Pose,
 } from "./jump-film-pose";
 
-const t = m.landing;
-const f = t.film;
-const FRAMES = 480;
+const f = m.landing.film;
 const STAGE_WIDTH = 1600;
 const STAGE_HEIGHT = 900;
 // Hauteur occupée par le titre et sa remarque, et hauteur du saut au-dessus du bas de la scène.
@@ -71,13 +69,17 @@ const Words = ({ text, mark }: { text: string; mark: string }) => {
         {value}
       </span>
     );
+  // La ponctuation qui suit le marqueur reste collée à lui : un lecteur d'écran lirait sinon « groupe . ».
+  const [next = "", ...rest] = words(after);
+  const glued = /^\s/.test(next) ? "" : next;
   return (
     <>
       {words(before).map((value, i) => word(value, `b${i}`))}
-      <span className="film-word film-swipe" style={{ "--i": index++ } as React.CSSProperties}>
-        {mark}
+      <span className="film-word" style={{ "--i": index++ } as React.CSSProperties}>
+        <span className="film-swipe">{mark}</span>
+        {glued}
       </span>
-      {words(after).map((value, i) => word(value, `a${i}`))}
+      {(glued ? rest : words(after)).map((value, i) => word(value, `a${i}`))}
     </>
   );
 };
@@ -108,13 +110,11 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
     const ring = find<SVGCircleElement>("ring");
     const bloom = find<SVGCircleElement>("bloom");
     const head = find<HTMLElement>("head");
-    const frameLabel = find<HTMLElement>("frame");
     const confetti = Array.from(root.querySelectorAll<SVGGElement>("[data-confetti]"));
     const beats = Array.from(root.querySelectorAll<HTMLElement>(".film-beat"));
 
     let lastBeat = -1;
     let lastWorld = "";
-    let lastFrame = -1;
     let viewWidth = STAGE_WIDTH;
     let viewHeight = STAGE_HEIGHT;
 
@@ -196,12 +196,6 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
 
       const progress = Math.min(Math.max((time - T.run) / (T.end - T.run), 0), 1);
       head?.style.setProperty("left", `${round(progress * 100)}%`);
-      const frame = Math.round(progress * (FRAMES - 1));
-      if (frame !== lastFrame && frameLabel) {
-        const phase = PHASES.find((item) => time < item.to) ?? PHASES[PHASES.length - 1]!;
-        frameLabel.textContent = `${t.video.phases[phase.key]} · ${t.video.frame(frame + 1, FRAMES)}`;
-        lastFrame = frame;
-      }
     };
 
     let current = 0;
@@ -372,12 +366,13 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
 
         <div className="film-beat film-beat-hero is-active">
           <h1 className="film-hero-title">
-            <Words text={t.title} mark={f.titleMark} />
+            <Words text={m.landing.title} mark={f.intro.mark} />
           </h1>
-          <p className="film-lead">{t.lead}</p>
-          <div className="film-cta">
+          <p className="film-lead">{m.landing.lead}</p>
+          {/* Sur ordinateur, l'offre se range à côté du bouton : le personnage garde la place sous le texte. */}
+          <div className="film-cta desktop:flex desktop:items-center desktop:gap-5">
             {cta}
-            <p className="t-caption mt-3 max-w-[32ch]">{offer}</p>
+            <p className="t-caption mt-3 max-w-[32ch] desktop:mt-0">{offer}</p>
           </div>
         </div>
 
@@ -385,21 +380,21 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
           <h2 className="film-title">
             <Words text={f.run.title} mark={f.run.mark} />
           </h2>
-          <Note title={t.demo.sessionTitle} body={t.demo.sessionDetail} />
+          <Note title={f.run.noteTitle} body={f.run.note} />
         </div>
 
         <div className="film-beat">
           <h2 className="film-title">
             <Words text={f.plant.title} mark={f.plant.mark} />
           </h2>
-          <Note title={t.video.coachSays} body={t.video.comments.takeoff} />
+          <Note title={f.plant.noteTitle} body={f.plant.note} />
         </div>
 
         <div className="film-beat">
           <h2 className="film-title">
-            <Words text={t.video.title} mark={f.flightMark} />
+            <Words text={f.flight.title} mark={f.flight.mark} />
           </h2>
-          <Note title={t.video.coachSays} body={t.video.comments.flight} />
+          <Note title={f.flight.noteTitle} body={f.flight.note} />
         </div>
 
         <div className="film-beat">
@@ -409,7 +404,7 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
           <h2 className="film-title">
             <Words text={f.validated.title} mark={f.validated.mark} />
           </h2>
-          <p className="film-sub">{t.demo.goal}</p>
+          <p className="film-sub">{f.validated.sub}</p>
         </div>
 
         <div className="film-beat">
@@ -422,20 +417,17 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
 
         <div aria-hidden className="film-timeline">
           <div className="film-track">
-            {PHASES.map((phase) => (
+            {PHASES.map((phase, index) => (
               <span
                 key={phase.key}
                 style={{ flexGrow: Math.round((phase.to - phase.from) * 1000) }}
                 className="film-phase"
               >
-                {t.video.phases[phase.key]}
+                {f.timeline[index]}
               </span>
             ))}
             <span data-film="head" className="film-head" />
           </div>
-          <span data-film="frame" className="film-frame t-num">
-            {`${t.video.phases.approach} · ${t.video.frame(1, FRAMES)}`}
-          </span>
         </div>
       </div>
     </section>

@@ -44,6 +44,8 @@ const VIDEO_SELECT = {
   sharedWithAthlete: true,
   sharedWithGroup: true,
   scheduledSessionId: true,
+  exerciseId: true,
+  exercise: { select: { name: true } },
   athlete: { select: { firstName: true, lastName: true, userId: true } },
   jumps: { select: { barHeightCm: true, attemptNo: true, result: true }, take: 1 },
   _count: { select: { annotations: true } },
@@ -61,6 +63,8 @@ const summarize = async (
     durationMs: number | null;
     recordedAt: Date | null;
     sharedWithAthlete: boolean;
+    exerciseId?: string | null;
+    exercise?: { name: string } | null;
     athlete: { firstName: string; lastName: string };
     jumps: { barHeightCm: number; attemptNo: number; result: "O" | "X" | "pass" }[];
     _count: { annotations: number };
@@ -72,6 +76,8 @@ const summarize = async (
   if (v.muxPlaybackId && !consentRevoked && env().MUX_SIGNING_KEY_ID)
     thumbnailUrl = (await signedPlayback(v.muxPlaybackId)).thumbnailUrl;
   return {
+    exerciseId: v.exerciseId ?? null,
+    exerciseName: v.exercise?.name ?? null,
     id: v.id,
     athleteId: v.athleteId,
     athleteName: `${v.athlete.firstName} ${v.athlete.lastName}`.trim(),
@@ -104,6 +110,14 @@ const requireVideoConsent = async (athleteId: string): Promise<void> => {
   if (!consent?.video) throw consentRequired();
 };
 
+const requireUsableExercise = async (organizationId: string, exerciseId: string) => {
+  const exercise = await prisma.exercise.findFirst({
+    where: { id: exerciseId, deletedAt: null, OR: [{ organizationId }, { organizationId: null }] },
+    select: { id: true },
+  });
+  if (!exercise) throw notFound();
+};
+
 export const createVideoUpload = async (userId: string, organizationId: string, input: CreateVideoInput) => {
   const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
   await requireVisibleAthlete(access, input.athleteId);
@@ -117,9 +131,11 @@ export const createVideoUpload = async (userId: string, organizationId: string, 
     });
     if (!session) throw notFound();
   }
+  if (input.exerciseId) await requireUsableExercise(organizationId, input.exerciseId);
   const video = await prisma.video.create({
     data: {
       organizationId,
+      exerciseId: input.exerciseId ?? null,
       athleteId: input.athleteId,
       uploadedBy: userId,
       scheduledSessionId: input.scheduledSessionId ?? null,
@@ -266,7 +282,11 @@ const videoWhereFor = async (access: Access) => {
   return { organizationId: access.organizationId, athleteId: { in: await visibleAthleteIds(access) } };
 };
 
-export const listVideos = async (userId: string, organizationId: string, query: { athleteId?: string } = {}) => {
+export const listVideos = async (
+  userId: string,
+  organizationId: string,
+  query: { athleteId?: string; exerciseId?: string } = {},
+) => {
   const access = await requireOrgMember(userId, organizationId, "viewVideos");
   const rows = await prisma.video.findMany({
     // AND : le filtre demandé réduit le périmètre, il ne le remplace jamais.
@@ -274,6 +294,7 @@ export const listVideos = async (userId: string, organizationId: string, query: 
       AND: [
         await videoWhereFor(access),
         query.athleteId ? { athleteId: query.athleteId } : {},
+        query.exerciseId ? { exerciseId: query.exerciseId } : {},
         // Une vidéo déposée par quelqu'un qu'on a bloqué n'apparaît plus.
         { uploadedBy: { notIn: await blockedUserIds(userId) } },
       ],
@@ -343,6 +364,18 @@ export const getVideo = async (userId: string, organizationId: string, videoId: 
     })),
     barSheet: barSheet(attempts).map((r) => ({ heightCm: r.heightCm, label: r.label, notation: r.notation })),
   };
+};
+
+export const linkVideoExercise = async (
+  userId: string,
+  organizationId: string,
+  videoId: string,
+  exerciseId: string | null,
+): Promise<void> => {
+  const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
+  await requireVideo(access, videoId);
+  if (exerciseId) await requireUsableExercise(organizationId, exerciseId);
+  await prisma.video.update({ where: { id: videoId }, data: { exerciseId } });
 };
 
 export const addAnnotation = async (

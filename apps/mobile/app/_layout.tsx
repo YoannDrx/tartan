@@ -17,13 +17,20 @@ import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { startNetworkWatcher } from "../src/lib/network";
 import { purgeAbandonedPlannerRecordings } from "../src/lib/planner-recording-files";
-import { listenToNotificationResponses, registerPush, setupNotificationChannels } from "../src/lib/notifications";
+import {
+  listenToNotificationResponses,
+  listenToPushToken,
+  registerPush,
+  reportClientVersion,
+  setupNotificationChannels,
+} from "../src/lib/notifications";
 import { useMe } from "../src/lib/queries";
+import { UpdateGate } from "../src/features/update-gate";
 import { persister, queryClient, shouldPersistQuery, WEEK_MS } from "../src/lib/query-client";
 import { useSession } from "../src/lib/session-store";
 import { useOpQueue } from "../src/lib/sync/op-queue";
 import { flushUploads } from "../src/lib/upload/upload-queue";
-import { palettes, scene, useDarkTheme, type WorldName } from "../src/ui/theme";
+import { palettes, scene, themedWorld, useWorkTheme, type WorldName } from "../src/ui/theme";
 
 const variant = (Constants.expoConfig?.extra as { appVariant?: string } | undefined)?.appVariant ?? "development";
 Sentry.init(sentryOptions(process.env.EXPO_PUBLIC_SENTRY_DSN, variant));
@@ -46,6 +53,8 @@ const SessionEffects = () => {
     void hydrate(userId).then(flush);
     void flushUploads();
     void registerPush({ prompt: false });
+    void reportClientVersion();
+    return listenToPushToken();
   }, [userId, hydrate, flush]);
   return null;
 };
@@ -66,9 +75,9 @@ const AuthGuard = () => {
 };
 
 export default function RootLayout() {
-  const darkTheme = useDarkTheme();
+  const theme = useWorkTheme();
   const worldContent = (world: WorldName) => ({
-    contentStyle: { backgroundColor: palettes[world === "work" && darkTheme ? "workDark" : world].bg },
+    contentStyle: { backgroundColor: palettes[themedWorld(world, theme)].bg },
   });
   const [fontsLoaded, fontError] = useFonts({
     [tokens.font.display]: BarlowCondensed_700Bold,
@@ -122,7 +131,7 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: palettes[darkTheme ? "workDark" : "work"].bg },
+            contentStyle: { backgroundColor: palettes[themedWorld("work", theme)].bg },
             // La transition d'une rubrique à l'autre reste franche : 200 ms, sans en-tête animé.
             animation: "simple_push",
             animationDuration: 200,
@@ -147,6 +156,7 @@ export default function RootLayout() {
           <Stack.Screen name="athletes/[id]" options={worldContent("work")} />
           <Stack.Screen name="exercise/[id]" options={worldContent("work")} />
         </Stack>
+        <UpdateGate />
       </SafeAreaProvider>
     </PersistQueryClientProvider>
   );

@@ -41,6 +41,25 @@ export const profileInput = z.object({
 });
 export type ProfileInput = z.infer<typeof profileInput>;
 
+export const calendarView = z.enum(["list", "month", "week"]);
+export type CalendarView = z.infer<typeof calendarView>;
+
+// Écriture partielle : un champ absent ne change rien. La date permet de rejouer un choix fait hors ligne.
+export const preferencesInput = z.object({
+  calendarView: calendarView.optional(),
+  calendarViewUpdatedAt: z.string().datetime().optional(),
+  notifications: z
+    .object({
+      sessions: z.boolean().optional(),
+      feedback: z.boolean().optional(),
+      group: z.boolean().optional(),
+      product: z.boolean().optional(),
+    })
+    .optional(),
+  email: z.object({ digest: z.boolean().optional(), notifications: z.boolean().optional() }).optional(),
+});
+export type PreferencesInput = z.infer<typeof preferencesInput>;
+
 export const createOrganizationInput = z.object({
   name: required(120, "Donne un nom à ton espace"),
   type: z.enum(["club", "independent"]),
@@ -364,9 +383,12 @@ export const commentInput = z.object({
 });
 export type CommentInput = z.infer<typeof commentInput>;
 
+export const linkVideoExerciseInput = z.object({ exerciseId: uuid.nullable() });
+
 export const createVideoInput = z.object({
   athleteId: uuid,
   scheduledSessionId: uuid.nullable().optional(),
+  exerciseId: uuid.nullable().optional(),
   fps: z.number().int().min(1).max(1000).nullable().optional(),
   timeScale: z.number().int().min(1).max(64).optional(),
   recordedAt: z.iso.datetime().optional(),
@@ -411,7 +433,35 @@ export type JumpAttemptInput = z.infer<typeof jumpAttemptInput>;
 export const deviceInput = z.object({
   pushToken: z.string().min(8).max(4096),
   platform: devicePlatform,
+  appVersion: z.string().min(1).max(32).optional(),
+  updateId: z.string().min(1).max(64).nullable().optional(),
+  installationId: uuid.optional(),
 });
+
+export const checkInInput = z.object({
+  installationId: uuid,
+  platform: devicePlatform,
+  appVersion: z.string().min(1).max(32),
+  updateId: z.string().min(1).max(64).nullable().optional(),
+  pushToken: z.string().min(8).max(4096).optional(),
+});
+export type CheckInInput = z.infer<typeof checkInInput>;
+
+export const markNotificationsInput = z
+  .object({ ids: z.array(uuid).min(1).max(100).optional(), all: z.literal(true).optional() })
+  .refine((value) => Boolean(value.ids) !== Boolean(value.all), { message: "Précise les notifications" });
+
+export const notificationsQuery = z.object({
+  cursor: uuid.optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+});
+
+export const releaseStatusQuery = z.object({
+  platform: z.enum(["ios", "android"]),
+  version: z.string().min(1).max(32),
+});
+
+export const releaseSeenInput = z.object({ releaseId: z.string().min(1).max(64) });
 
 export const reportContentInput = z.object({
   entityType: z.enum(["comment", "video", "announcement"]),
@@ -427,11 +477,23 @@ export const trackingQuery = z.object({
   groupId: uuid.optional(),
 });
 
-export const rangeQuery = z.object({
-  from: isoDate,
-  to: isoDate,
-  groupId: uuid.optional(),
-});
+// Un mois complet s'affiche sur 42 jours ; la marge couvre les préchargements sans ouvrir une lecture sans borne.
+export const MAX_CALENDAR_RANGE_DAYS = 62;
+const rangeDays = (from: string, to: string) =>
+  (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000;
+
+export const rangeQuery = z
+  .object({
+    from: isoDate,
+    to: isoDate,
+    groupId: uuid.optional(),
+    // Durée, exercices et réalisation : calculés à la demande pour ne pas alourdir les petites lectures.
+    summary: z.enum(["true", "false"]).optional(),
+  })
+  .refine(({ from, to }) => rangeDays(from, to) >= 0 && rangeDays(from, to) <= MAX_CALENDAR_RANGE_DAYS, {
+    message: "Période de calendrier invalide",
+    path: ["to"],
+  });
 
 export const sessionTypeFilter = sessionType.optional();
 export const logStatusFilter = logStatus.optional();

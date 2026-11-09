@@ -1,4 +1,10 @@
-import { publishSessionsResult, type PublishSessionsInput } from "@tartan/contracts";
+import {
+  notificationsPage,
+  publishSessionsResult,
+  releasesResponse,
+  releaseStatus,
+  type PublishSessionsInput,
+} from "@tartan/contracts";
 import {
   plannerTranscriptionResponse,
   plannerLoadsPreview,
@@ -51,7 +57,9 @@ import {
   invitationPreview,
   type JumpAttemptInput,
   meResponse,
-  type ProfileInput,
+  type CheckInInput,
+  PreferencesInput,
+  ProfileInput,
   type RollCallInput,
   type SessionLogInput,
   sessionLogResult,
@@ -279,10 +287,23 @@ export const createApiClient = (options: ApiClientOptions) => {
     addStrengthTest: (orgId: string, athleteId: string, body: Omit<StrengthTestInput, "athleteId">) =>
       request("POST", `/orgs/${orgId}/athletes/${athleteId}/strength-tests`, z.object({ id: z.string() }), body),
     updateProfile: (body: ProfileInput) => request("PATCH", "/me", meResponse, body),
+    updatePreferences: (body: PreferencesInput) => request("PATCH", "/me/preferences", meResponse, body),
     deleteAccount: () => request("DELETE", "/me", okResponse),
     unregisterDevice: (pushToken: string) => request("DELETE", "/devices", okResponse, { pushToken }),
-    registerDevice: (pushToken: string, platform: "ios" | "android" | "web") =>
-      request("POST", "/devices", okResponse, { pushToken, platform }),
+    registerDevice: (
+      pushToken: string,
+      platform: "ios" | "android" | "web",
+      client: { appVersion?: string; updateId?: string | null; installationId?: string } = {},
+    ) => request("POST", "/devices", okResponse, { pushToken, platform, ...client }),
+    checkIn: (body: CheckInInput) => request("POST", "/client/check-in", okResponse, body),
+    notifications: (cursor?: string) => request("GET", "/notifications", notificationsPage, undefined, { cursor }),
+    markNotificationsRead: (body: { ids?: string[]; all?: true }) =>
+      request("POST", "/notifications/read", okResponse, body),
+    releases: (platform: "web" | "ios" | "android") =>
+      request("GET", "/releases", releasesResponse, undefined, { platform }),
+    releaseStatus: (platform: "ios" | "android", version: string) =>
+      request("GET", "/releases/status", releaseStatus, undefined, { platform, version }),
+    markReleaseSeen: (releaseId: string) => request("POST", "/releases/seen", okResponse, { releaseId }),
     confirmAge: (birthDate: string) => request("POST", "/me/age", z.unknown(), { birthDate }),
     consents: () =>
       request("GET", "/consents", z.object({ health: z.boolean(), video: z.boolean(), terms: z.boolean() })),
@@ -374,8 +395,13 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("POST", `/orgs/${orgId}/sessions/${sessionId}/remind`, z.object({ count: z.number() }), { athleteIds }),
     generateAutonomous: (orgId: string, sessionId: string) =>
       request("POST", `/orgs/${orgId}/sessions/${sessionId}/autonomous`, okResponse),
-    calendar: (orgId: string, from: string, to: string, groupId?: string) =>
-      request("GET", `/orgs/${orgId}/calendar`, calendarResponse, undefined, { from, to, groupId }),
+    calendar: (orgId: string, from: string, to: string, groupId?: string, summary?: boolean) =>
+      request("GET", `/orgs/${orgId}/calendar`, calendarResponse, undefined, {
+        from,
+        to,
+        groupId,
+        summary: summary ? "true" : undefined,
+      }),
     exercises: (orgId: string) => request("GET", `/orgs/${orgId}/exercises`, z.array(exerciseSummary)),
     athletes: (orgId: string) =>
       request(
@@ -411,8 +437,8 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("POST", `/orgs/${orgId}/groups/${groupId}/link`, z.object({ id: z.string(), link: z.string() })),
     createInvitation: (orgId: string, body: CreateInvitationInput) =>
       request("POST", `/orgs/${orgId}/invitations`, z.object({ id: z.string(), link: z.string() }), body),
-    videos: (orgId: string, athleteId?: string) =>
-      request("GET", `/orgs/${orgId}/videos`, z.array(videoSummary), undefined, { athleteId }),
+    videos: (orgId: string, athleteId?: string, exerciseId?: string) =>
+      request("GET", `/orgs/${orgId}/videos`, z.array(videoSummary), undefined, { athleteId, exerciseId }),
     video: (orgId: string, videoId: string) => request("GET", `/orgs/${orgId}/videos/${videoId}`, videoDetail),
     createVideo: (orgId: string, body: CreateVideoInput) =>
       request("POST", `/orgs/${orgId}/videos`, createVideoResponse, body),
@@ -422,6 +448,8 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("DELETE", `/orgs/${orgId}/videos/${videoId}/annotations/${annotationId}`, okResponse),
     addAnnotation: (orgId: string, videoId: string, body: AnnotationInput) =>
       request("POST", `/orgs/${orgId}/videos/${videoId}/annotations`, z.object({ id: z.string() }), body),
+    linkVideoExercise: (orgId: string, videoId: string, exerciseId: string | null) =>
+      request("POST", `/orgs/${orgId}/videos/${videoId}/exercise`, okResponse, { exerciseId }),
     shareVideo: (orgId: string, videoId: string, withAthlete: boolean) =>
       request("POST", `/orgs/${orgId}/videos/${videoId}/share`, okResponse, { withAthlete }),
     addJumpAttempt: (orgId: string, body: JumpAttemptInput) =>

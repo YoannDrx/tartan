@@ -79,3 +79,21 @@ export const SubscriptionEndedEmail = ({ space, unpaid, url }: { space: string; 
     </Layout>
   );
 };
+
+export const BillingNoticeEmail = ({
+  title,
+  body,
+  cta,
+  url,
+}: {
+  title: string;
+  body: string;
+  cta: string;
+  url: string;
+}) => (
+  <Layout preview={title}>
+    <Title>{title}</Title>
+    <Paragraph>{body}</Paragraph>
+    <PrimaryLink href={url}>{cta}</PrimaryLink>
+  </Layout>
+);

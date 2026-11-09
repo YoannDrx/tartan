@@ -20,6 +20,8 @@ export const spaceSummary = z.object({
   progressionEnabled: z.boolean().optional(),
   phasesEnabled: z.boolean().optional(),
   aiPlannerEnabled: z.boolean().optional(),
+  // Le coach d'un espace Découverte voit le planificateur et l'offre qui l'ouvre.
+  aiPlannerUpgrade: z.boolean().optional(),
   role: orgRole,
   athleteId: z.string().nullable(),
 });
@@ -35,6 +37,16 @@ export const meResponse = z.object({
   units: z.string(),
   locale: z.string(),
   spaces: z.array(spaceSummary),
+  preferences: z
+    .object({
+      calendarView: z.enum(["list", "month", "week"]).nullable(),
+      calendarViewUpdatedAt: z.string().nullable().optional(),
+      notifications: z
+        .object({ sessions: z.boolean(), feedback: z.boolean(), group: z.boolean(), product: z.boolean() })
+        .optional(),
+      email: z.object({ digest: z.boolean(), notifications: z.boolean() }).optional(),
+    })
+    .optional(),
 });
 export type MeResponse = z.infer<typeof meResponse>;
 
@@ -89,6 +101,15 @@ export const athleteToday = z.object({
   healthConsent: z.boolean(),
   videoConsent: z.boolean(),
   parentalConsentPending: z.boolean(),
+  // Facultatif : un ancien client et un cache persisté doivent continuer de passer.
+  focus: z
+    .object({
+      coachNote: z.string().nullable(),
+      cues: z.array(z.object({ exercise: z.string(), cue: z.string() })),
+      video: z.object({ id: z.string(), exerciseName: z.string().nullable(), text: z.string() }).nullable(),
+    })
+    .nullable()
+    .optional(),
 });
 export type AthleteToday = z.infer<typeof athleteToday>;
 
@@ -213,6 +234,8 @@ export const videoSummary = z.object({
   attemptNo: z.number().nullable(),
   result: jumpResult.nullable(),
   annotationCount: z.number(),
+  exerciseId: z.string().nullable().optional(),
+  exerciseName: z.string().nullable().optional(),
 });
 export type VideoSummary = z.infer<typeof videoSummary>;
 
@@ -307,6 +330,10 @@ export const calendarSession = z.object({
   publishedAt: z.string().nullable(),
   audience: z.string(),
   hasAutonomous: z.boolean(),
+  // Facultatifs : un ancien client et un cache persisté doivent continuer de passer.
+  durationMin: z.number().nullable().optional(),
+  exerciseCount: z.number().optional(),
+  completion: z.object({ done: z.number(), partial: z.number(), missed: z.number(), total: z.number() }).optional(),
 });
 export type CalendarSession = z.infer<typeof calendarSession>;
 
@@ -322,6 +349,42 @@ export const calendarResponse = z.object({
   competitions: z.array(calendarCompetition),
 });
 export type CalendarResponse = z.infer<typeof calendarResponse>;
+
+export const notificationItem = z.object({
+  id: z.string(),
+  type: z.string(),
+  text: z.string(),
+  link: z.string().nullable(),
+  organizationId: z.string().nullable(),
+  readAt: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type NotificationItem = z.infer<typeof notificationItem>;
+
+export const notificationsPage = z.object({
+  items: z.array(notificationItem),
+  nextCursor: z.string().nullable(),
+  unread: z.number(),
+});
+export type NotificationsPage = z.infer<typeof notificationsPage>;
+
+export const releaseView = z.object({
+  id: z.string(),
+  date: z.string(),
+  title: z.string(),
+  items: z.array(z.string()),
+});
+export type ReleaseView = z.infer<typeof releaseView>;
+
+export const releaseStatus = z.object({
+  state: z.enum(["current", "optional", "required"]),
+  latestVersion: z.string().nullable(),
+  minimumVersion: z.string().nullable(),
+  storeUrl: z.string(),
+});
+export type ReleaseStatus = z.infer<typeof releaseStatus>;
+
+export const releasesResponse = z.object({ releases: z.array(releaseView), unseen: releaseView.nullable() });
 
 export const okResponse = z.object({ ok: z.literal(true) });
 export const apiError = z.object({ message: z.string(), code: z.string().optional() });

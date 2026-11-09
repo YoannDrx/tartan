@@ -20,6 +20,7 @@ import { cn } from "@/lib/cn";
 import { calendarSessionHref, newSessionHref } from "@/lib/session-navigation";
 import { duplicateSessionAction, moveSessionAction } from "./session.action";
 import { DeleteRow } from "@/features/athletes/delete-row";
+import { MonthGrid, type MonthEntry } from "./month-grid";
 
 const SessionCard = ({
   session,
@@ -215,7 +216,58 @@ export const WeekBoard = ({
   );
 };
 
+const entryOf = (session: CalendarSession, returnTo?: string): MonthEntry => ({
+  id: session.id,
+  date: session.date,
+  title: session.title,
+  type: session.type,
+  href: calendarSessionHref(session.id, returnTo),
+  detail: [session.startTime?.replace(":", " h "), session.audience].filter(Boolean).join(", "),
+  draft: !session.publishedAt,
+  progress: session.completion?.total
+    ? m.calendar.progress(session.completion.done + session.completion.partial, session.completion.total)
+    : session.publishedAt
+      ? ""
+      : undefined,
+});
+
 export const MonthBoard = ({
+  month,
+  today,
+  data,
+  returnTo,
+  groupId,
+}: {
+  month: string;
+  today: string;
+  data: CalendarResponse;
+  returnTo?: string;
+  groupId?: string;
+}) => {
+  const router = useRouter();
+  const move = useAction(moveSessionAction, {
+    onSuccess: () => router.refresh(),
+    onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),
+  });
+  return (
+    <MonthGrid
+      key={month}
+      month={month}
+      today={today}
+      entries={data.sessions.map((session) => entryOf(session, returnTo))}
+      competitions={data.competitions.map((c) => ({
+        ...c,
+        action: <DeleteRow kind="competition" id={c.id} label={c.name} />,
+      }))}
+      newEntryHref={(date) => newSessionHref({ date, groupId, returnTo })}
+      newEntryLabel={(date) => `${m.coach.newSession} le ${formatDateLong(date)}`}
+      onMove={(id, date) => move.execute({ id, date })}
+    />
+  );
+};
+
+// La liste du mois : une ligne par séance, la date en colonne, le prévu et le réalisé côte à côte.
+export const ListBoard = ({
   month,
   today,
   data,
@@ -226,127 +278,80 @@ export const MonthBoard = ({
   data: CalendarResponse;
   returnTo?: string;
 }) => {
-  const first = new Date(`${month}-01T12:00:00Z`);
-  const offset = (first.getUTCDay() + 6) % 7;
-  const start = addDays(`${month}-01`, -offset);
-  const cells = Array.from({ length: 42 }, (_, i) => addDays(start, i));
-  const inMonth = cells.filter((day) => day.startsWith(month));
-  const busy = inMonth.filter(
-    (day) => data.sessions.some((s) => s.date === day) || data.competitions.some((c) => c.date === day),
-  );
+  const sessions = data.sessions.filter((s) => s.date.startsWith(month));
+  const competitions = data.competitions.filter((c) => c.date.startsWith(month));
+  const days = [...new Set([...sessions.map((s) => s.date), ...competitions.map((c) => c.date)])].sort();
+  if (days.length === 0) return <p className="on-card rounded-card bg-card p-4 text-soft">{m.calendar.emptyMonth}</p>;
   return (
-    <>
-      {/* Sur téléphone, sept colonnes seraient illisibles : l'agenda ne garde que les jours occupés. */}
-      {busy.length === 0 ? (
-        <p className="on-card rounded-card bg-card p-4 text-soft desktop:hidden">{m.calendar.emptyMonth}</p>
-      ) : (
-        <div className="divide-y divide-card-line overflow-hidden rounded-card on-card bg-card desktop:hidden">
-          {busy.map((day) => (
-            <section
-              key={day}
-              aria-label={capitalize(formatDateLong(day))}
-              className="grid grid-cols-[48px_minmax(0,1fr)] gap-x-2 px-3 py-2"
+    <div className="on-card divide-y divide-card-line overflow-hidden rounded-card bg-card">
+      {days.map((day) => (
+        <section
+          key={day}
+          aria-label={capitalize(formatDateLong(day))}
+          className="grid grid-cols-[48px_minmax(0,1fr)] gap-x-3 px-3 py-2"
+        >
+          <h2 className="flex flex-col items-center leading-snug">
+            <span className="t-caption">{formatWeekdayShort(day)}</span>
+            <span
+              className={cn(
+                "t-num flex min-w-7 items-center justify-center rounded-full text-[22px] leading-7",
+                day === today && "bg-accent px-1 text-on-accent",
+              )}
             >
-              <h2 className="flex flex-col items-center leading-snug">
-                <span className="t-caption">{formatWeekdayShort(day)}</span>
-                <span
-                  className={cn(
-                    "t-num flex min-w-7 items-center justify-center rounded-full text-[22px] leading-7",
-                    day === today && "bg-accent px-1 text-on-accent",
-                  )}
+              {Number(day.slice(8))}
+            </span>
+          </h2>
+          <ul className="flex min-w-0 flex-col gap-1">
+            {competitions
+              .filter((c) => c.date === day)
+              .map((c) => (
+                <li
+                  key={c.id}
+                  className="flex items-center gap-1.5 rounded-thumb border border-control-line p-2 t-caption"
                 >
-                  {Number(day.slice(8))}
-                </span>
-              </h2>
-              <div className="flex min-w-0 flex-col gap-1">
-                {data.competitions
-                  .filter((c) => c.date === day)
-                  .map((c) => (
-                    <div
-                      key={c.id}
-                      className="flex items-center gap-1.5 rounded-thumb border border-control-line p-2 t-caption"
-                    >
-                      <Medal aria-hidden className="size-4 shrink-0" />
-                      <span className="min-w-0 flex-1 break-words">{c.name}</span>
-                      <DeleteRow kind="competition" id={c.id} label={c.name} />
-                    </div>
-                  ))}
-                {data.sessions
-                  .filter((s) => s.date === day)
-                  .map((s) => (
+                  <Medal aria-hidden className="size-4 shrink-0" />
+                  <span className="min-w-0 flex-1 break-words">{c.name}</span>
+                  <DeleteRow kind="competition" id={c.id} label={c.name} />
+                </li>
+              ))}
+            {sessions
+              .filter((s) => s.date === day)
+              .map((s) => {
+                const tint = activityColors(s.type);
+                const summary = m.calendar.summary(s.durationMin, s.exerciseCount);
+                return (
+                  <li key={s.id}>
                     <Link
-                      key={s.id}
                       scroll={false}
                       href={calendarSessionHref(s.id, returnTo)}
-                      style={{
-                        backgroundColor: activityColors(s.type).background,
-                        color: activityColors(s.type).text,
-                      }}
-                      className={cn(
-                        "flex min-h-11 items-center gap-2 rounded-thumb px-2 font-medium leading-snug no-underline",
-                      )}
+                      className="flex min-h-11 items-center gap-3 rounded-thumb px-1 py-1 text-inherit no-underline hover:bg-raise"
                     >
-                      <ActivityPicto kind={s.type} className="size-4" />
-                      <span className="min-w-0 break-words">{s.title}</span>
+                      <span
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded px-1.5 py-0.5 t-caption"
+                        style={{ backgroundColor: tint.background, color: tint.text }}
+                      >
+                        <ActivityPicto kind={s.type} className="size-4" />
+                        {m.sessionType[s.type]}
+                      </span>
+                      <span className="min-w-0 flex-1 leading-snug">
+                        <span className="block break-words font-semibold">{s.title}</span>
+                        <span className="t-caption block font-normal text-soft">
+                          {[s.startTime?.replace(":", " h "), s.audience, summary].filter(Boolean).join(", ")}
+                        </span>
+                      </span>
+                      {!s.publishedAt ? <Chip tone="warning">{m.calendar.draft}</Chip> : null}
+                      {s.completion?.total ? (
+                        <span className="t-num shrink-0 tabular-nums">
+                          {m.calendar.progress(s.completion.done + s.completion.partial, s.completion.total)}
+                        </span>
+                      ) : null}
                     </Link>
-                  ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-      <div className="on-card overflow-hidden rounded-card bg-card max-desktop:hidden">
-        <div aria-hidden className="grid grid-cols-7 border-b border-card-line">
-          {cells.slice(0, 7).map((day) => (
-            <span key={day} className="t-col px-2 py-1.5">
-              {formatWeekdayShort(day)}
-            </span>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-px bg-card-line">
-          {cells.map((day) => {
-            const sessions = data.sessions.filter((s) => s.date === day);
-            const competitions = data.competitions.filter((c) => c.date === day);
-            const current = day.startsWith(month);
-            return (
-              <div key={day} className={cn("min-h-28 min-w-0 bg-card p-1.5", !current && "text-fg-muted")}>
-                <p
-                  className={cn(
-                    "t-num mb-1 flex size-6 items-center justify-center rounded-full text-[16px]",
-                    day === today && "bg-accent text-on-accent",
-                  )}
-                >
-                  {Number(day.slice(8))}
-                </p>
-                {competitions.map((c) => (
-                  <p
-                    key={c.id}
-                    className="mb-0.5 flex min-h-6 items-center gap-1 rounded border border-control-line px-1 text-[12px] font-semibold"
-                  >
-                    <Medal aria-hidden className="size-3 shrink-0" />
-                    <span className="truncate">{c.name}</span>
-                  </p>
-                ))}
-                {sessions.map((s) => (
-                  <Link
-                    key={s.id}
-                    scroll={false}
-                    href={calendarSessionHref(s.id, returnTo)}
-                    title={`${s.title} · ${m.sessionType[s.type]}`}
-                    style={{ backgroundColor: activityColors(s.type).background, color: activityColors(s.type).text }}
-                    className={cn(
-                      "mb-0.5 flex min-h-6 items-center gap-1 rounded px-1 text-[12px] font-medium no-underline hover:underline",
-                    )}
-                  >
-                    <ActivityPicto kind={s.type} className="size-3.5" />
-                    <span className="truncate">{s.title}</span>
-                  </Link>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </>
+                  </li>
+                );
+              })}
+          </ul>
+        </section>
+      ))}
+    </div>
   );
 };

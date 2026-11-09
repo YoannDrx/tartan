@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 
-export const themePreferences = ["system", "light", "dark"] as const;
+export const themePreferences = ["tartan", "system", "light", "dark"] as const;
 export type ThemePreference = (typeof themePreferences)[number];
 
 const KEY = "tartan.theme";
@@ -10,7 +10,7 @@ export const useThemePreference = create<{
   preference: ThemePreference;
   setPreference: (preference: ThemePreference) => void;
 }>((set) => ({
-  preference: "system",
+  preference: "tartan",
   setPreference: (preference) => {
     set({ preference });
     void AsyncStorage.setItem(KEY, preference).catch(() => undefined);

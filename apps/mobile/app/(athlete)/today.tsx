@@ -3,7 +3,7 @@ import type { SessionCelebration } from "@tartan/contracts";
 import { capitalize, formatDateLong, m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { CommentsSection } from "../../src/features/comments";
 import { ExerciseRow, parseMedia } from "../../src/features/media";
 import { AttendanceLink, AttendanceRow, SessionHero } from "../../src/features/session-hero";
@@ -175,6 +175,31 @@ export default function Today() {
                 onAnswer={(status) => void submitAttendance(orgId, (view.next as AthleteSessionCard).id, status)}
               />
             </Card>
+          ) : null}
+
+          {view.focus ? (
+            <View style={{ gap: space.sm }}>
+              <SectionTitle>{m.today.focusTitle}</SectionTitle>
+              <Card>
+                {view.focus.coachNote ? <T variant="body">{view.focus.coachNote}</T> : null}
+                {view.focus.cues.map((item) => (
+                  <T key={item.exercise} variant="small">
+                    {`${item.exercise} : ${item.cue}`}
+                  </T>
+                ))}
+                {view.focus.video ? (
+                  <Pressable
+                    accessibilityRole="link"
+                    onPress={() => router.push(`/video/${view.focus?.video?.id}`)}
+                    style={{ minHeight: 44, justifyContent: "center" }}
+                  >
+                    <T variant="smallStrong">
+                      {[view.focus.video.exerciseName, view.focus.video.text].filter(Boolean).join(" : ")}
+                    </T>
+                  </Pressable>
+                ) : null}
+              </Card>
+            </View>
           ) : null}
 
           {programCard ? (

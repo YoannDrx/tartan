@@ -13,11 +13,17 @@ import {
   type ClarifyPlannerProposalInput,
   type ConfirmPlannerProposalInput,
 } from "@tartan/contracts";
-import { plannerDisplayText, phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
-import { m } from "@tartan/i18n";
+import {
+  plannerDisplayText,
+  plannerProposalsExhausted,
+  phasePlanningKey,
+  type PhasePlanningReadiness,
+} from "@tartan/domain";
+import { historyDate, m } from "@tartan/i18n";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Chip } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CheckRow, Field, Textarea } from "@/components/ui/field";
@@ -287,6 +293,7 @@ export function WebPlanner({
       if (alive.current && !signal.aborted) setCreated(result.sessions);
     });
   const disabled = busy || recording || !online;
+  const exhausted = plannerProposalsExhausted(usage);
   const startNew = () => {
     pendingCreate.current = null;
     pendingReply.current = null;
@@ -310,8 +317,11 @@ export function WebPlanner({
     window.history.replaceState(null, "", url);
   };
   return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <p className="font-semibold">{t.beta}</p>
+    <div className="on-card flex min-w-0 flex-col gap-4 rounded-card bg-card p-4 desktop:p-6">
+      <div>
+        <Chip>{t.beta}</Chip>
+      </div>
+      {exhausted && !proposal ? <p role="status">{t.quotaExceeded}</p> : null}
       <details>
         <summary className="min-h-11 cursor-pointer py-2">{t.quotaDetails}</summary>
         <p>{t.usage(usage.used.proposals, usage.reserved.proposals, usage.limit.proposals)}</p>
@@ -338,7 +348,7 @@ export function WebPlanner({
       {!proposal && contextReady ? (
         <section className="flex min-w-0 flex-col gap-3">
           <p className="font-semibold">
-            {selection.period.from} – {selection.period.to}
+            {historyDate(selection.period.from)} – {historyDate(selection.period.to)}
           </p>
           <p className="break-words">
             {[
@@ -386,7 +396,7 @@ export function WebPlanner({
           {sent ? <p>{t.immutableRequest}</p> : null}
           <Button
             type="button"
-            disabled={disabled || !reviewed || !text.trim() || text.length > 12000}
+            disabled={disabled || exhausted || !reviewed || !text.trim() || text.length > 12000}
             onClick={() => {
               void generate();
             }}
@@ -518,7 +528,7 @@ export function WebPlanner({
               {proposal.interpretation?.sessions.map((s, i) => (
                 <section key={i} className="rounded-card border border-card-line p-3">
                   <h3 className="font-semibold">
-                    {s.date} · {displayText(s.title)}
+                    {historyDate(s.date)} · {displayText(s.title)}
                   </h3>
                   {s.blocks
                     .flatMap((b) => b.items)

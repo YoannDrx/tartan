@@ -257,33 +257,39 @@ export function PhaseManager({
       ) : null}
       {message ? <p role="status">{message}</p> : null}
       {error && !form ? <p role="alert">{error}</p> : null}
-      <PhaseTimeline
-        phases={phases}
-        from={from}
-        to={to}
-        today={today}
-        actions={
-          context
-            ? (phase) => (
-                <>
-                  <Button variant="secondary" disabled={busy} onClick={() => open(phase)}>
-                    {m.common.edit}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() => setConfirmation({ phase, action: "visibility" })}
-                  >
-                    {phase.shared ? t.unpublish : t.publish}
-                  </Button>
-                  <Button variant="quiet" disabled={busy} onClick={() => setConfirmation({ phase, action: "delete" })}>
-                    {m.common.delete}
-                  </Button>
-                </>
-              )
-            : undefined
-        }
-      />
+      <div className="on-card rounded-card bg-card p-4">
+        <PhaseTimeline
+          phases={phases}
+          from={from}
+          to={to}
+          today={today}
+          actions={
+            context
+              ? (phase) => (
+                  <>
+                    <Button variant="secondary" disabled={busy} onClick={() => open(phase)}>
+                      {m.common.edit}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      disabled={busy}
+                      onClick={() => setConfirmation({ phase, action: "visibility" })}
+                    >
+                      {phase.shared ? t.unpublish : t.publish}
+                    </Button>
+                    <Button
+                      variant="quiet"
+                      disabled={busy}
+                      onClick={() => setConfirmation({ phase, action: "delete" })}
+                    >
+                      {m.common.delete}
+                    </Button>
+                  </>
+                )
+              : undefined
+          }
+        />
+      </div>
       <Dialog
         open={Boolean(form)}
         onOpenChange={(value) => {

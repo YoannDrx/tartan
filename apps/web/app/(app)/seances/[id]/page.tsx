@@ -1,5 +1,6 @@
 import { sessionReturnTo, withSessionReturn } from "@/lib/session-navigation";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { m } from "@tartan/i18n";
 import type { Metadata } from "next";
 import { BuilderPage } from "@/features/sessions/builder-page";
@@ -20,16 +21,18 @@ export default async function EditSessionPage({
   const returnTo = sessionReturnTo((await searchParams).retour);
   const session = await orNotFound(() => getSessionForEdit(actor.userId, organizationId, id));
   return (
-    <div className="flex flex-col gap-4">
-      {space.progressionEnabled && session.publishedAt ? (
-        <Link
-          className="inline-flex min-h-11 items-center font-semibold"
-          href={withSessionReturn(`/seances/${id}/charges`, returnTo)}
-        >
-          {m.prescriptionRefresh.title}
-        </Link>
-      ) : null}
-      <BuilderPage userId={actor.userId} organizationId={organizationId} sessionId={id} returnTo={returnTo} />
-    </div>
+    <BuilderPage
+      userId={actor.userId}
+      organizationId={organizationId}
+      sessionId={id}
+      returnTo={returnTo}
+      headerActions={
+        space.progressionEnabled && session.publishedAt ? (
+          <Button asChild variant="secondary" size="sm">
+            <Link href={withSessionReturn(`/seances/${id}/charges`, returnTo)}>{m.prescriptionRefresh.title}</Link>
+          </Button>
+        ) : undefined
+      }
+    />
   );
 }

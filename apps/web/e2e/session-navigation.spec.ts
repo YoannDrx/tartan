@@ -136,8 +136,11 @@ test("garde le groupe et la période du calendrier jusqu'au brouillon, à la pub
   expect(new URL(page.url()).searchParams.get("mois")).toBe("2027-01");
   expect(new URL(page.url()).searchParams.get("groupe")).toBe(groupId);
 
-  await page.getByRole("link", { name: m.calendar.week, exact: true }).click();
-  await expect.poll(() => new URL(page.url()).searchParams.get("semaine")).toBe("2026-12-28");
+  // Sur téléphone, le choix se limite à Liste et Mois : la semaine reste une vue de bureau.
+  if (info.project.name === "desktop") {
+    await page.getByRole("link", { name: m.calendar.week, exact: true }).click();
+    await expect.poll(() => new URL(page.url()).searchParams.get("semaine")).toBe("2026-12-28");
+  }
 
   // Un ancien groupe inaccessible ne présélectionne pas silencieusement un autre groupe.
   await page.goto(`/seances/nouvelle?groupe=${randomUUID()}&retour=${encodeURIComponent("https://example.org")}`);

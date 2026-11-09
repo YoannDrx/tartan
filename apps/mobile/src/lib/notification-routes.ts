@@ -22,6 +22,7 @@ export const routeForNotification = (data: NotificationData | null | undefined):
   if (session && ID.test(session)) return data?.type === "session_reminder" ? "/today" : `/session/${session}`;
   if (link.startsWith("/seance/") || link === "/aujourdhui") return "/today";
   if (link === "/annonces") return "/annonces";
+  if (link === "/nouveautes") return "/nouveautes";
   const athlete = link.match(/^\/athletes\/([^/?#]+)/)?.[1];
   if (athlete && ID.test(athlete)) return `/athletes/${athlete}`;
   if (link.startsWith("/athletes")) return "/tracking";

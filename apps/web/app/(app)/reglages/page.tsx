@@ -28,6 +28,7 @@ import {
   RevokeOtherSessionsButton,
   SignOutButton,
   WebPushToggle,
+  NotificationCategories,
 } from "@/features/settings/settings-forms";
 import { LeaveSpace, MemberList } from "@/features/settings/members";
 import { ReportList } from "@/features/settings/reports";
@@ -71,6 +72,12 @@ export default async function ReglagesPage() {
     canManageMembers ? listReports(actor.userId, organizationId) : Promise.resolve([]),
   ]);
   const emailPreferences = await getEmailPreferences(actor.userId);
+  const notificationPreferences = me.preferences?.notifications ?? {
+    sessions: true,
+    feedback: true,
+    group: true,
+    product: true,
+  };
   const blockedUsers = await listBlockedUsers(actor.userId);
   const spaceConsents = access.athleteId ? await athleteConsentState(access.athleteId) : consents;
   const parentalPending = access.athleteId ? (effective?.get(access.athleteId)?.parentalPending ?? false) : false;
@@ -233,6 +240,11 @@ export default async function ReglagesPage() {
     vapidKey
       ? { id: "notifications", title: m.push.permissionTitle, content: <WebPushToggle vapidKey={vapidKey} /> }
       : null,
+    {
+      id: "categories",
+      title: m.inbox.categories,
+      content: <NotificationCategories {...notificationPreferences} />,
+    },
     isAdmin(actor.email)
       ? {
           id: "console",
@@ -270,6 +282,13 @@ export default async function ReglagesPage() {
                 {m.settings.exportData}
               </a>
             </Button>
+            {access.role === "owner" ? (
+              <Button asChild size="sm" variant="secondary" className="ml-2 mt-2">
+                <a href={`/api/v1/orgs/${organizationId}/export`} download="tartan-espace.json">
+                  {m.settings.exportSpace}
+                </a>
+              </Button>
+            ) : null}
           </div>
           <div className="flex flex-wrap justify-between gap-2">
             <RevokeOtherSessionsButton />

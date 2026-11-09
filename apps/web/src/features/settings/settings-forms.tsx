@@ -20,7 +20,8 @@ import { CheckRow, Field, Input, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { authClient } from "@/lib/auth-client";
 import { clearOfflinePages } from "@/features/offline/service-worker";
-import { enablePush } from "@/features/shell/push";
+import { currentPushSubscription, disablePush, enablePush } from "@/features/shell/push";
+import { saveNotificationPreferencesAction } from "@/features/notifications/notifications.action";
 import { signOut } from "@/features/shell/sign-out";
 import {
   createInvitationAction,
@@ -728,20 +729,67 @@ export const LogoForm = ({ logoUrl, name }: { logoUrl: string | null; name: stri
 
 export const WebPushToggle = ({ vapidKey }: { vapidKey: string }) => {
   const [state, setState] = useState<"idle" | "on" | "denied">("idle");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    void currentPushSubscription()
+      .then((subscription) => {
+        if (subscription) setState("on");
+      })
+      .catch(() => undefined);
+  }, []);
   const enable = async () => {
+    setBusy(true);
     const outcome = await enablePush(vapidKey).catch(() => "unavailable" as const);
+    setBusy(false);
     if (outcome === "denied") return setState("denied");
     if (outcome !== "on") return toast.error(m.common.genericError);
     setState("on");
-    toast.ok("Notifications activées sur cet appareil.");
+    toast.ok(m.push.enabled);
+  };
+  const disable = async () => {
+    setBusy(true);
+    await disablePush().catch(() => toast.error(m.common.genericError));
+    setBusy(false);
+    setState("idle");
   };
   return (
     <div className="flex flex-col items-start gap-2">
       <p>{m.push.permissionBody}</p>
       {state === "denied" ? <p className="text-alert">{m.settings.pushDenied}</p> : null}
-      <Button size="sm" variant="secondary" disabled={state === "on"} onClick={enable}>
-        {state === "on" ? "Notifications activées" : m.push.enable}
+      <Button size="sm" variant="secondary" disabled={busy} onClick={state === "on" ? disable : enable}>
+        {state === "on" ? m.push.disable : m.push.enable}
       </Button>
+    </div>
+  );
+};
+
+export const NotificationCategories = ({
+  sessions,
+  feedback,
+  group,
+  product,
+}: {
+  sessions: boolean;
+  feedback: boolean;
+  group: boolean;
+  product: boolean;
+}) => {
+  const { execute, isPending } = useAction(saveNotificationPreferencesAction, { onError: onErr });
+  const row = (key: "sessions" | "feedback" | "group" | "product", value: boolean) => (
+    <CheckRow
+      label={m.inbox[key]}
+      defaultChecked={value}
+      disabled={isPending}
+      onChange={(e) => execute({ notifications: { [key]: e.target.checked } })}
+    />
+  );
+  return (
+    <div className="flex flex-col gap-1">
+      <p>{m.inbox.categoriesDetail}</p>
+      {row("sessions", sessions)}
+      {row("feedback", feedback)}
+      {row("group", group)}
+      {row("product", product)}
     </div>
   );
 };

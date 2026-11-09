@@ -3,6 +3,7 @@ import { m } from "@tartan/i18n";
 import { AppError } from "./errors";
 import { log } from "./logger";
 import { requireActor } from "./session";
+import { requireStepUp, STEP_UP_READ_MS } from "@/server/admin-step-up.service";
 
 export const action = createSafeActionClient({
   handleServerError: (error) => {
@@ -13,3 +14,9 @@ export const action = createSafeActionClient({
 });
 
 export const authAction = action.use(async ({ next }) => next({ ctx: { actor: await requireActor() } }));
+
+// Console de l'éditeur : réservée aux adresses listées, avec une passkey vérifiée récemment.
+export const adminAction = authAction.use(async ({ next, ctx }) => {
+  await requireStepUp(ctx.actor, STEP_UP_READ_MS);
+  return next({ ctx });
+});

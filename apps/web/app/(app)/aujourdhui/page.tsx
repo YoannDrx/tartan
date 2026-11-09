@@ -1,7 +1,7 @@
 import { Play } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { AthleteSessionCard, AthleteSessionDetail } from "@tartan/contracts";
+import type { AthleteSessionCard, AthleteSessionDetail, AthleteToday } from "@tartan/contracts";
 import { capitalize, formatDateLong, formatWeekdayShort, m } from "@tartan/i18n";
 import { ActivityPicto, LaneArcs } from "@/components/pictos";
 import { EmptyState, PageHeader } from "@/components/states";
@@ -15,6 +15,32 @@ import { requireAthleteSpace } from "@/features/shell/space";
 import { getAthleteSession, getAthleteToday } from "@/server/athlete-view.service";
 
 export const metadata: Metadata = { title: m.nav.aujourdhui };
+
+const FocusBlock = ({ focus }: { focus: NonNullable<AthleteToday["focus"]> }) => (
+  <section className="on-card flex flex-col gap-2 rounded-card bg-card p-4">
+    <h2 className="t-section">{m.today.focusTitle}</h2>
+    {focus.coachNote ? <p>{focus.coachNote}</p> : null}
+    {focus.cues.length > 0 ? (
+      <ul className="flex flex-col gap-1">
+        {focus.cues.map((item) => (
+          <li key={item.exercise}>
+            <span className="font-semibold">{item.exercise} : </span>
+            {item.cue}
+          </li>
+        ))}
+      </ul>
+    ) : null}
+    {focus.video ? (
+      <Link href={`/mes-sauts/${focus.video.id}`} className="flex min-h-11 items-center gap-2 text-inherit">
+        <Play aria-hidden className="size-4 shrink-0" />
+        <span className="min-w-0">
+          {focus.video.exerciseName ? <span className="font-semibold">{focus.video.exerciseName} : </span> : null}
+          {focus.video.text}
+        </span>
+      </Link>
+    ) : null}
+  </section>
+);
 
 const WeekDots = ({ week, today }: { week: { date: string; status: string }[]; today: string }) => (
   <ol
@@ -180,6 +206,7 @@ export default async function AujourdhuiPage() {
           />
         ) : null;
       })}
+      {data.focus ? <FocusBlock focus={data.focus} /> : null}
       {data.today.length === 0 ? <EmptyState>{data.next ? m.today.empty : m.today.noneYet}</EmptyState> : null}
       {data.next ? (
         <section className="flex flex-col gap-2">

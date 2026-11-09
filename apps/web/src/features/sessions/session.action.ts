@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import {
   competitionInput,
+  preferencesInput,
   publishSessionsInput,
   deleteSessionInput,
   isoDate,
@@ -12,6 +13,7 @@ import {
 } from "@tartan/contracts";
 import { z } from "zod";
 import { spaceAction } from "@/features/shell/space-action";
+import { updatePreferences } from "@/server/me.service";
 import {
   deleteCompetition,
   deleteSession,
@@ -25,6 +27,10 @@ import {
   saveScheduledSession,
   saveTemplate,
 } from "@/server/session.service";
+
+export const saveCalendarViewAction = spaceAction
+  .inputSchema(preferencesInput)
+  .action(async ({ ctx, parsedInput }) => updatePreferences(ctx.actor.userId, parsedInput));
 
 export const saveSessionAction = spaceAction
   .inputSchema(saveScheduledSessionInput.extend({ publish: z.boolean().default(false) }))

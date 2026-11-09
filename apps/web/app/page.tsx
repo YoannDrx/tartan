@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
+import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
-import Image from "next/image";
 import { formatPrice, PLANS, TRIAL_DAYS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Marked } from "@/components/marked";
-import { JumpScrubber } from "@/features/landing/jump-scrubber";
-import calendarCapture from "@/features/landing/images/calendrier.png";
-import analysisCapture from "@/features/landing/images/analyse-v1-1.png";
+import iosHome from "@/features/landing/images/ios-accueil.png";
+import iosMonth from "@/features/landing/images/ios-mois.png";
+import iosPlyo from "@/features/landing/images/ios-plio.png";
+import iosCones from "@/features/landing/images/ios-plots.png";
+import iosProgress from "@/features/landing/images/ios-progres.png";
+import iosVideo from "@/features/landing/images/ios-video.png";
+import iosStrength from "@/features/landing/images/ios-muscu.png";
+import iosRunning from "@/features/landing/images/ios-technique.png";
+import webBuilder from "@/features/landing/images/web-constructeur.png";
+import webMonth from "@/features/landing/images/web-mois.png";
+import webTracking from "@/features/landing/images/web-suivi.png";
+import { JumpFilm } from "@/features/landing/jump-film";
 import { LapBend } from "@/features/landing/lap";
-import { RollCallDemo } from "@/features/landing/roll-call-demo";
-import { ValidationDemo } from "@/features/landing/validation-demo";
 import { SiteFooter, SiteHeader } from "@/features/shell/site-chrome";
 import { env } from "@/lib/env";
 
@@ -21,6 +28,35 @@ export const metadata: Metadata = {
 
 const t = m.landing;
 const bendPadding = "pt-[72px] pb-[88px] desktop:pt-[120px] desktop:pb-[144px]";
+// Les couloirs longent un bord : le contenu s'en écarte du côté du virage.
+const rightBend = `mx-auto max-w-[1200px] pl-4 pr-12 desktop:pl-6 desktop:pr-24 ${bendPadding}`;
+const leftBend = `mx-auto max-w-[1200px] pl-12 pr-4 desktop:pl-24 desktop:pr-6 ${bendPadding}`;
+const sectionTitle =
+  "text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[72px] desktop:leading-[72px]";
+const smallTitle =
+  "text-balance font-display text-[36px] font-bold leading-[38px] desktop:text-[52px] desktop:leading-[54px]";
+const body = "max-w-[46ch] text-[17px] leading-[25px]";
+
+// Une vraie capture dans sa carte encre : la seule surface sombre posée sur la piste.
+const Capture = ({
+  src,
+  alt,
+  sizes,
+  className,
+  priority,
+}: {
+  src: StaticImageData;
+  alt: string;
+  sizes: string;
+  className?: string;
+  priority?: boolean;
+}) => (
+  <div className={`on-card rounded-block bg-card p-2 desktop:p-3 ${className ?? ""}`}>
+    <Image src={src} alt={alt} sizes={sizes} priority={priority} className="h-auto w-full rounded-card" />
+  </div>
+);
+
+const strength = [iosStrength, iosPlyo, iosRunning, iosCones];
 
 export default function LandingPage() {
   const signupOpen = env().COACH_SIGNUP_MODE === "public";
@@ -36,124 +72,113 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-dvh overflow-x-clip">
-      <div className="mx-auto max-w-[1200px] px-4 pt-4 desktop:px-6 desktop:pt-6">
-        <SiteHeader />
-        <section className="pb-10 pt-12 desktop:pb-14 desktop:pt-16">
-          <h1 className="max-w-[22ch] text-balance font-display text-[60px] font-bold leading-[0.95] desktop:text-[88px]">
-            {t.title}
-          </h1>
-          <div className="mt-6 grid gap-6 desktop:grid-cols-2 desktop:items-end desktop:gap-14">
-            <div>
-              <p className="max-w-[52ch] text-lg leading-7">{t.lead}</p>
-              <p className="mt-4 font-semibold">{t.disciplines}</p>
-            </div>
-            <div className="desktop:justify-self-end">
-              {cta}
-              <p className="mt-3 max-w-[38ch] text-sm">
-                {t.offer(PLANS.discovery.limits.maxAthletes ?? 0, TRIAL_DAYS)}
-              </p>
-            </div>
-          </div>
-        </section>
-        <nav aria-label={t.journeyLabel} className="flex flex-wrap gap-x-6 gap-y-1 border-y border-lane py-3">
-          {t.journey.map((step, index) => (
-            <a key={step.id} href={`#${step.id}`} className="inline-flex min-h-11 items-center gap-2 font-semibold">
-              <span aria-hidden className="font-display text-2xl">
-                {index + 1}.
-              </span>{" "}
-              {step.label}
-            </a>
-          ))}
-        </nav>
-        <section id="preparer" className="scroll-mt-6 py-12 desktop:py-16">
-          <div className="grid gap-4 desktop:grid-cols-2 desktop:items-end desktop:gap-14">
-            <h2 className="font-display text-[44px] font-bold leading-none desktop:text-[64px]">{t.prepare.title}</h2>
-            <p className="max-w-[56ch] text-[17px] leading-[25px]">{t.prepare.body}</p>
-          </div>
-          <figure className="mt-8">
-            <Image
-              src={calendarCapture}
-              alt={t.prepare.alt}
-              className="h-auto w-full rounded-card"
-              sizes="(min-width: 1200px) 1152px, 100vw"
-            />
-            <figcaption className="mt-3 flex flex-wrap justify-between gap-x-6 gap-y-2 text-sm">
-              <span>{t.prepare.caption}</span>
-              <a href={calendarCapture.src} className="inline-flex min-h-11 items-center font-semibold">
-                {t.prepare.enlarge}
-              </a>
-            </figcaption>
-          </figure>
-        </section>
-      </div>
+      <JumpFilm
+        header={<SiteHeader />}
+        cta={cta}
+        offer={t.offer(PLANS.discovery.limits.maxAthletes ?? 0, TRIAL_DAYS)}
+      />
 
+      {/* Les virages se touchent : une seule piste, du film à la ligne d'arrivée. */}
       <LapBend side="right" start="bleed">
-        <div
-          id="individualiser"
-          className={`mx-auto max-w-[1200px] scroll-mt-6 pl-4 pr-12 desktop:pl-6 desktop:pr-24 ${bendPadding}`}
-        >
-          <div className="grid gap-8 desktop:grid-cols-2 desktop:items-center desktop:gap-14">
+        <div className={rightBend}>
+          <h2 className={sectionTitle}>
+            <Marked text={t.coach.title} />
+          </h2>
+          <p className={`mt-4 ${body}`}>{t.coach.body}</p>
+          <div className="relative mt-8 desktop:mt-12 desktop:pr-[150px]">
+            <Capture src={webMonth} alt={t.heroAltDesktop} sizes="(min-width: 1200px) 900px, 100vw" />
+            <figure className="mx-auto mt-4 w-[62%] max-w-[260px] desktop:absolute desktop:-bottom-12 desktop:right-0 desktop:mt-0 desktop:w-[240px]">
+              <Capture src={iosHome} alt={t.heroAltPhone} sizes="(min-width: 1024px) 240px, 62vw" />
+            </figure>
+          </div>
+          <p className="mt-4 text-sm desktop:mt-16">{t.captureNote}</p>
+        </div>
+      </LapBend>
+
+      <LapBend side="left">
+        <div className={leftBend}>
+          <div className="grid gap-8 desktop:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] desktop:items-center desktop:gap-14">
+            <Capture
+              src={webBuilder}
+              alt={t.coach.builderAlt}
+              sizes="(min-width: 1024px) 620px, 100vw"
+              className="max-desktop:order-2"
+            />
             <div>
-              <h2 className="text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[64px] desktop:leading-[64px]">
-                {t.rollCall.title}
+              <h2 className={smallTitle}>
+                <Marked text={t.coach.builderTitle} />
               </h2>
-              <p className="mt-4 max-w-[46ch] text-[17px] leading-[25px]">{t.rollCall.body}</p>
+              <p className={`mt-4 ${body}`}>{t.coach.builderBody}</p>
             </div>
-            <RollCallDemo />
+          </div>
+          <div className="mt-14 grid gap-8 desktop:mt-24 desktop:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] desktop:items-center desktop:gap-14">
+            <div>
+              <h2 className={smallTitle}>
+                <Marked text={t.coach.trackingTitle} />
+              </h2>
+              <p className={`mt-4 ${body}`}>{t.coach.trackingBody}</p>
+            </div>
+            <Capture src={webTracking} alt={t.coach.trackingAlt} sizes="(min-width: 1024px) 620px, 100vw" />
           </div>
         </div>
       </LapBend>
 
-      <section id="realiser" className="mx-auto max-w-[1200px] scroll-mt-6 px-4 py-12 desktop:px-6 desktop:py-16">
-        <h2 className="font-display text-[44px] font-bold leading-none desktop:text-[64px]">{t.realize.title}</h2>
-        <p className="mb-8 mt-4 max-w-[65ch] text-[17px] leading-[25px]">{t.realize.body}</p>
-        <ValidationDemo />
-      </section>
-
-      <section id="progresser" className="on-hero scroll-mt-6 py-12 desktop:py-16">
-        <div className="mx-auto grid max-w-[1200px] gap-8 px-4 desktop:grid-cols-2 desktop:items-start desktop:gap-14 desktop:px-6">
-          <div>
-            <h2 className="font-display text-[44px] font-bold leading-none desktop:text-[64px]">{t.progress.title}</h2>
-            <p className="mt-4 text-[17px] leading-[25px]">{t.progress.body}</p>
-            <p className="mt-6 border-t border-line pt-4 font-semibold">{t.progress.availability}</p>
-          </div>
-          <figure>
-            <a
-              href={analysisCapture.src}
-              aria-label={t.progress.enlarge}
-              className="block rounded-card focus-visible:outline-2 focus-visible:outline-offset-4"
-            >
-              <Image
-                src={analysisCapture}
-                alt={t.progress.alt}
-                className="max-h-[440px] w-full rounded-card object-cover object-top"
-                sizes="(min-width: 1024px) 550px, 100vw"
-              />
-            </a>
-            <figcaption className="mt-3 text-sm">
-              {t.progress.caption}
-              <a href={analysisCapture.src} className="mt-1 flex min-h-11 items-center font-semibold">
-                {t.progress.enlarge}
-              </a>
-            </figcaption>
-          </figure>
+      <LapBend side="right">
+        <div className={rightBend}>
+          <h2 className={sectionTitle}>
+            <Marked text={t.content.title} />
+          </h2>
+          <p className={`mt-4 ${body}`}>{t.content.body}</p>
+          <ul className="mt-8 grid grid-cols-2 gap-3 desktop:mt-12 desktop:grid-cols-4 desktop:gap-5">
+            {t.content.items.map((item, index) => (
+              <li key={item.label}>
+                <Capture src={strength[index]!} alt={item.alt} sizes="(min-width: 1024px) 260px, 42vw" />
+                <p className="mt-3 font-display text-[22px] font-semibold leading-[26px] desktop:text-[28px] desktop:leading-8">
+                  {item.label}
+                </p>
+              </li>
+            ))}
+          </ul>
         </div>
-      </section>
+      </LapBend>
 
-      <section className="mx-auto max-w-[1200px] px-4 py-12 desktop:px-6 desktop:py-16">
-        <h2 className="font-display text-[44px] font-bold leading-none desktop:text-[64px]">{t.video.title}</h2>
-        <p className="mt-4 max-w-[65ch] text-[17px] leading-[25px]">{t.video.body}</p>
-        <details className="mt-6 border-y border-lane py-3">
-          <summary className="min-h-11 cursor-pointer content-center font-semibold">{t.videoExample}</summary>
-          <div className="mx-auto max-w-[720px] py-6">
-            <JumpScrubber />
+      <LapBend side="left">
+        <div className={leftBend}>
+          <div className="grid gap-14 desktop:grid-cols-2 desktop:gap-14">
+            {[
+              { src: iosMonth, ...t.views },
+              { src: iosProgress, ...t.progress },
+            ].map((block) => (
+              <div key={block.title} className="grid grid-cols-[minmax(0,5fr)_minmax(0,6fr)] items-center gap-5">
+                <Capture src={block.src} alt={block.alt} sizes="(min-width: 1024px) 240px, 38vw" />
+                <div>
+                  <h2 className={smallTitle}>
+                    <Marked text={block.title} />
+                  </h2>
+                  <p className="mt-3 text-[17px] leading-[25px]">{block.body}</p>
+                </div>
+              </div>
+            ))}
           </div>
-        </details>
-      </section>
+        </div>
+      </LapBend>
 
       <LapBend side="right" end="bleed">
-        <div className={`mx-auto max-w-[1200px] pl-4 pr-12 desktop:pl-6 desktop:pr-24 ${bendPadding}`}>
-          <h2 className="max-w-[14ch] text-balance font-display text-[44px] font-bold leading-[46px] desktop:text-[72px] desktop:leading-[72px]">
+        <div className={rightBend}>
+          <div className="grid gap-8 desktop:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] desktop:items-center desktop:gap-14">
+            <div>
+              <h2 className={sectionTitle}>
+                <Marked text={t.video.title} />
+              </h2>
+              <p className={`mt-4 ${body}`}>{t.video.body}</p>
+            </div>
+            <figure className="mx-auto w-full max-w-[320px]">
+              <Capture src={iosVideo} alt={t.video.alt} sizes="(min-width: 1024px) 320px, 80vw" />
+              <figcaption className="mt-3 text-sm">{t.video.caption}</figcaption>
+            </figure>
+          </div>
+
+          <h2 className={`${sectionTitle} mt-16 max-w-[14ch] desktop:mt-28`}>
             <Marked text={t.field.title} />
           </h2>
           <dl className="mt-8 desktop:mt-12">

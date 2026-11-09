@@ -184,13 +184,15 @@ export const StrengthMappings = ({
   );
   return (
     <div className="flex flex-col gap-4">
-      <p>{m.strengthMapping.lead}</p>
-      <p>{m.strengthMapping.warning}</p>
-      <p>{m.strengthMapping.referenceWarning}</p>
+      <div className="on-card flex flex-col gap-3 rounded-card bg-card p-4">
+        <p>{m.strengthMapping.lead}</p>
+        <p>{m.strengthMapping.warning}</p>
+        <p>{m.strengthMapping.referenceWarning}</p>
+        <Link className="inline-flex min-h-11 w-fit items-center font-semibold" href="/athletes">
+          {m.strengthMapping.athletes}
+        </Link>
+      </div>
       {saved ? <p role="status">{m.strengthMapping.saved}</p> : null}
-      <Link className="inline-flex min-h-11 items-center font-semibold" href="/athletes">
-        {m.strengthMapping.athletes}
-      </Link>
       <h2 className="t-h2">{m.strengthMapping.pending}</h2>
       {!report.unmapped.length ? <p>{m.strengthMapping.empty}</p> : null}
       {!compatible.length && report.unmapped.length ? (

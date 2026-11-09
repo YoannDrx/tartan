@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/states";
 import { todayIso } from "@/lib/dates";
@@ -13,6 +14,7 @@ export const BuilderPage = async ({
   defaultDate,
   defaultGroupId,
   returnTo,
+  headerActions,
 }: {
   userId: string;
   organizationId: string;
@@ -20,6 +22,7 @@ export const BuilderPage = async ({
   defaultDate?: string;
   defaultGroupId?: string;
   returnTo?: string;
+  headerActions?: ReactNode;
 }) => {
   const [initial, context] = await Promise.all([
     sessionId ? getSessionForEdit(userId, organizationId, sessionId) : Promise.resolve(null),
@@ -30,6 +33,7 @@ export const BuilderPage = async ({
     <div className="flex flex-col gap-4">
       <PageHeader
         title={initial ? initial.draft.title : m.coach.newSession}
+        actions={headerActions}
         before={
           returnTo ? (
             <Link href={returnTo} className="inline-flex min-h-11 items-center font-semibold">

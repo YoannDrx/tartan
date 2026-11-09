@@ -8,7 +8,7 @@ import { View } from "react-native";
 import { api } from "../lib/api";
 import { localIsoDate } from "../lib/dates";
 import { useActiveSpace } from "../lib/queries";
-import { Button, SectionTitle, T, Tag } from "../ui/primitives";
+import { Button, Card, SectionTitle, T, Tag } from "../ui/primitives";
 import { ErrorState, LoadingState } from "../ui/states";
 import { color, space, usePalette } from "../ui/theme";
 
@@ -20,19 +20,27 @@ export function useTrainingPhases(query: TrainingPhaseQuery) {
     enabled: Boolean(orgId && active?.phasesEnabled),
   });
 }
-export function NativePhaseList({
-  phases,
-  from,
-  to,
-  today,
-  actions,
-}: {
+type PhaseListProps = {
   phases: TrainingPhaseSummary[];
   from: string;
   to: string;
   today: string;
   actions?: (phase: TrainingPhaseSummary) => ReactNode;
-}) {
+};
+
+// Posée sur un fond plein, la liste prend sa carte : la barre d'avancement y reste lisible.
+export function NativePhaseList(props: PhaseListProps) {
+  const palette = usePalette();
+  return palette.world ? (
+    <Card>
+      <PhaseRows {...props} />
+    </Card>
+  ) : (
+    <PhaseRows {...props} />
+  );
+}
+
+function PhaseRows({ phases, from, to, today, actions }: PhaseListProps) {
   const palette = usePalette();
   const t = m.trainingPhases;
   return (

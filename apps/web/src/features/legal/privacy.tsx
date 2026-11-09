@@ -1,7 +1,8 @@
+import { m } from "@tartan/i18n";
 import { LegalPage } from "@/features/shell/legal-page";
 
 export const PrivacyContent = ({ embedded = false }: { embedded?: boolean }) => (
-  <LegalPage title="Politique de confidentialité" updated="4 novembre 2026" embedded={embedded}>
+  <LegalPage title="Politique de confidentialité" updated="9 novembre 2026" embedded={embedded}>
     <p>
       Responsable du traitement : Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des
       Jonquilles, 95130 Franconville. Contact : hello@tartan.coach.
@@ -34,6 +35,7 @@ export const PrivacyContent = ({ embedded = false }: { embedded?: boolean }) => 
         Mesure d'audience (pages vues sans jeton ni identifiant, provenance, pays, appareil, navigateur) : statistiques
         agrégées pour améliorer le service, sans cookie tiers ni donnée de santé. Base : notre intérêt légitime.
       </li>
+      <li>{m.aiPlanner.privacyUse}</li>
     </ul>
     <h2>Si ton coach a créé ta fiche</h2>
     <p>
@@ -52,8 +54,8 @@ export const PrivacyContent = ({ embedded = false }: { embedded?: boolean }) => 
     <p>
       La base de données et l'exécution du service sont à Francfort. Les vidéos sont stockées et diffusées par Mux, aux
       États-Unis. Sous-traitants : Vercel, Neon, Mux, Expo, Resend, Sentry (suivi des erreurs, sans contenu
-      d'entraînement ni de santé), Stripe et GitHub (copie de sauvegarde chiffrée). Certains sont établis aux États-Unis
-      : les transferts sont encadrés par leurs clauses contractuelles types.
+      d'entraînement ni de santé), Stripe, OpenAI (planificateur IA) et GitHub (copie de sauvegarde chiffrée). Certains
+      sont établis aux États-Unis : les transferts sont encadrés par leurs clauses contractuelles types.
     </p>
     <h2>Combien de temps</h2>
     <p>
@@ -75,6 +77,7 @@ export const PrivacyContent = ({ embedded = false }: { embedded?: boolean }) => 
         et contenu compris.
       </li>
       <li>Notifications : 90 jours.</li>
+      <li>{m.aiPlanner.privacyRetention}</li>
       <li>Journaux d'accès aux données sensibles et d'audit : 1 an.</li>
       <li>Signalement traité : 1 an.</li>
       <li>Événements d'abonnement : 13 mois. Factures : 10 ans, comme la loi l'impose.</li>

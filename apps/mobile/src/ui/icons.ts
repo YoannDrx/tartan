@@ -10,6 +10,7 @@ export { default as Camera } from "lucide-react-native/icons/camera";
 export { default as Check } from "lucide-react-native/icons/check";
 export { default as ChevronLeft } from "lucide-react-native/icons/chevron-left";
 export { default as ChevronRight } from "lucide-react-native/icons/chevron-right";
+export { default as Medal } from "lucide-react-native/icons/medal";
 export { default as ChevronsUpDown } from "lucide-react-native/icons/chevrons-up-down";
 export { default as Clock } from "lucide-react-native/icons/clock";
 export { default as CloudOff } from "lucide-react-native/icons/cloud-off";

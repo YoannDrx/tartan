@@ -2,7 +2,9 @@
 
 Lu à chaque session de design. Source produit : `PRODUCT.md` ; état effectivement livré : `docs/livraison-v1-1.md`.
 
-**Décision du fondateur du 8 novembre 2026.** La couleur tartan et les lignes blanches portent toute l’application. Chaque écran de travail ouvre sur un bandeau rouge piste, avec son titre en blanc et deux lignes de couloir d’un bord à l’autre ; la navigation est posée sur la même piste. Le contenu reste lisible sur un fond clair ou sombre, au choix de l’utilisateur (Automatique, Clair, Sombre). Cette décision complète celle du 7 novembre, qui avait retiré la couleur des écrans de travail.
+**Décision du fondateur du 9 novembre 2026.** Le mix d’origine revient par défaut : fond rouge piste, contenu sur des cartes encre, action citron, lignes blanches. Le thème **Tartan** est celui de tout nouvel utilisateur, sur le web et le mobile ; Automatique, Clair et Sombre restent au choix.
+
+**Décision du fondateur du 8 novembre 2026.** La couleur tartan et les lignes blanches portent toute l’application. Chaque écran de travail ouvre sur un bandeau rouge piste, avec son titre en blanc et deux lignes de couloir d’un bord à l’autre ; la navigation est posée sur la même piste. Le contenu reste lisible dans le thème choisi. Cette décision complète celle du 7 novembre, qui avait retiré la couleur des écrans de travail.
 
 ## Deux régimes, une identité
 
@@ -10,7 +12,7 @@ Lu à chaque session de design. Source produit : `PRODUCT.md` ; état effectivem
 
 Calendrier, suivi, constructeur, bibliothèque, fiches athlètes, progrès, listes de vidéos, annonces, réglages et formulaires ouvrent sur le **bandeau piste** : fond `#C4442B`, titre blanc en Barlow Condensed, deux lignes blanches pleine largeur, action principale citron. Barre de navigation et barre d’onglets sont sur la même piste, séparées du contenu par une ligne blanche. Le bandeau ne change pas avec le thème.
 
-Sous le bandeau, le contenu suit le thème choisi. En clair : fond craie, surfaces blanches, texte encre, action rouge. En sombre : fond encre, surfaces relevées, texte blanc, action citron. Les séparations sont fines et les chiffres tabulaires. Une liste structurée est préférable à une succession de cartes décoratives. Une couleur n’est jamais le seul moyen de comprendre un état.
+Sous le bandeau, le contenu suit le thème choisi. En Tartan, par défaut : fond piste, cartes encre, texte blanc, action citron ; le texte posé directement sur la piste reste blanc, sans teinte atténuée. En clair : fond craie, surfaces blanches, texte encre, action rouge. En sombre : fond encre, surfaces relevées, texte blanc, action citron. Les séparations sont fines et les chiffres tabulaires. Une liste structurée est préférable à une succession de cartes décoratives. Une couleur n’est jamais le seul moyen de comprendre un état.
 
 Les titres de bandeau font 40 px sur téléphone et 52 px sur ordinateur, les titres de section 20–22 px, le texte 15–16 px. La navigation garde des cibles de 44 px au minimum.
 
@@ -20,7 +22,7 @@ Sur desktop, les comparaisons peuvent utiliser plusieurs colonnes et les détail
 
 ### Expression et immersion
 
-Le site et l’accueil athlète peuvent garder les aplats et la mascotte, avec une représentation équilibrée de la préparation physique. Le parcours présenté est « préparer → individualiser → réaliser → progresser ». Les captures représentent les fonctions réellement disponibles. La hauteur ne constitue plus l’unique récit du produit.
+Le site et l’accueil athlète peuvent garder les aplats et la mascotte, avec une représentation équilibrée de la préparation physique. Le parcours présenté est « préparer → individualiser → réaliser → progresser ». Les captures représentent les fonctions réellement disponibles. La hauteur ne constitue plus l’unique récit du produit. Sur le site, et seulement là, le film du personnage piloté par le défilement raconte ce que l’athlète y gagne (voir ce qui arrive, savoir ce qu’il travaille, savoir sur quoi s’appliquer) : c’est une illustration, sans vocabulaire propre au saut en hauteur. Tout écran présenté sur le site est une vraie capture du produit, sur des données fictives indiquées comme telles ; aucune maquette recomposée. Le site ouvre sur ce film, puis tout le contenu court le long d’une seule piste : les virages se touchent et aucune section ne s’intercale entre eux avant la ligne d’arrivée.
 
 La lecture/analyse vidéo, la capture et le mode séance restent encre : la couleur du fond ne doit pas distraire du geste. La célébration de validation reste citron. Une route historique conserve son adresse tant qu’une redirection compatible n’a pas été ajoutée.
 
@@ -37,7 +39,7 @@ Source unique : `packages/design-tokens/src/index.ts`. Les valeurs CSS sont un m
 | Blanc       | `#FFFFFF` | Surfaces de travail                        |
 | Citron      | `#C6F432` | Accent, célébration et sélection sur encre |
 
-Les jetons `work` et `workDark` définissent le contenu de travail dans chaque thème, `band` le bandeau piste ; `scene` conserve le contexte expressif et immersif. Les composants utilisent la palette locale : texte, texte secondaire, surface, séparateur, contour de contrôle, action, lien, focus et statut. Un composant partagé ne suppose jamais que sa surface est sombre.
+Les jetons `workTartan`, `work` et `workDark` définissent le contenu de travail dans chaque thème, `band` le bandeau piste ; `scene` conserve le contexte expressif et immersif. Les composants utilisent la palette locale : texte, texte secondaire, surface, séparateur, contour de contrôle, action, lien, focus et statut. Un composant partagé ne suppose jamais que sa surface est sombre.
 
 Les mondes historiques Piste, Couloir, Craie, Soleil et Nuit restent des palettes expressives ; ils ne dictent plus la couleur des écrans de travail. La navigation quotidienne est sur la piste, avec sélection citron et libellé explicite. L’accueil expressif peut garder sa navigation encre. Les e-mails restent clairs dans toutes les messageries : bandeau piste avec logo complet, message sur blanc, pied de page encre signé « Société Yodev ».
 
@@ -62,7 +64,7 @@ La couleur des séances et catégories sert la lecture du calendrier ; une spéc
 
 ## Mouvement et mascotte
 
-**Un seul grand moment animé : la validation d’une séance faite.** La célébration peut intégrer les records confirmés de cette séance. Pas de seconde animation dans l’historique, de son ni de rejeu après synchronisation. Une validation partielle ne déclenche pas cette célébration. Réduction des animations respectée.
+**Un seul grand moment animé dans l’application : la validation d’une séance faite.** La célébration peut intégrer les records confirmés de cette séance. Pas de seconde animation dans l’historique, de son ni de rejeu après synchronisation. Une validation partielle ne déclenche pas cette célébration. Réduction des animations respectée.
 
 Pas d’animation d’apparition dans les écrans de travail. Transitions de 150 à 250 ms lorsqu’elles expliquent une interaction. La mascotte reste décorative dans les accueils, états vides et la validation ; elle ne remplace jamais une information ou une action.
 

@@ -369,7 +369,7 @@ const sourceLink = (media: Media | null) => {
   return null;
 };
 
-const ExerciseDetail = ({ exercise }: { exercise: ExerciseSummary }) => {
+export const ExerciseDetail = ({ exercise }: { exercise: ExerciseSummary }) => {
   const media = exercise.media as Media | null;
   const source = sourceLink(media);
   const prescription = formatPrescription(exercise.defaultPrescription);
@@ -626,7 +626,14 @@ export const ExerciseLibrary = ({
         title={detail?.name ?? m.exercises.title}
         wide
       >
-        {detail ? <ExerciseDetail exercise={detail} /> : null}
+        {detail ? (
+          <div className="flex flex-col gap-4">
+            <ExerciseDetail exercise={detail} />
+            <Button asChild size="sm" variant="secondary" className="self-start">
+              <Link href={`/exercices/${detail.id}`}>{m.exercises.openSheet}</Link>
+            </Button>
+          </div>
+        ) : null}
       </Dialog>
       <Dialog
         open={dialog !== null}

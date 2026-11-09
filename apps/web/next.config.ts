@@ -1,6 +1,13 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
+// Identifiant du déploiement : compare l'onglet ouvert à ce qui est en ligne, et versionne le service worker.
+const buildId = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.TARTAN_BUILD_ID ?? "dev";
+
 const nextConfig: NextConfig = {
+  env: { NEXT_PUBLIC_BUILD_ID: buildId },
+  // Avec la protection contre les décalages de Vercel, un onglet ancien continue de charger ses propres fichiers.
+  ...(process.env.VERCEL_DEPLOYMENT_ID ? { deploymentId: process.env.VERCEL_DEPLOYMENT_ID } : {}),
   // La recette de production ne remplace pas le build utilisé par un serveur local existant.
   distDir: process.env.TARTAN_E2E_BUILD === "true" ? ".next-e2e" : ".next",
   poweredByHeader: false,
@@ -39,4 +46,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Cartes de code envoyées seulement si le jeton est présent : un build sans Sentry reste identique.
+const finalConfig: NextConfig = process.env.SENTRY_AUTH_TOKEN
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      silent: true,
+      release: { name: buildId },
+    })
+  : nextConfig;
+
+export default finalConfig;

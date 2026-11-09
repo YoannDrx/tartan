@@ -42,6 +42,23 @@ export function plannerQuotaFits(
   );
 }
 
+export const plannerProposalsExhausted = (usage: {
+  limit: { proposals: number };
+  used: { proposals: number };
+  reserved: { proposals: number };
+}) => usage.used.proposals + usage.reserved.proposals >= usage.limit.proposals;
+
+// Le planificateur s'ouvre dès qu'une clé est configurée ; "false" reste le coupe-circuit.
+// "true" sans clé conserve l'accès aux parcours avec un prestataire de remplacement.
+export function plannerServerEnabled(settings: {
+  AI_PLANNER_ENABLED?: string | undefined;
+  OPENAI_API_KEY?: string | undefined;
+  OPEN_AI_API_KEY?: string | undefined;
+}) {
+  if (settings.AI_PLANNER_ENABLED === "false") return false;
+  return settings.AI_PLANNER_ENABLED === "true" || Boolean(settings.OPENAI_API_KEY ?? settings.OPEN_AI_API_KEY);
+}
+
 export function plannerAudioIsWithinLimits(bytes: number, seconds: number) {
   return (
     Number.isSafeInteger(bytes) &&

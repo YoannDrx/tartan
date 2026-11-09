@@ -4,7 +4,7 @@ import Link from "next/link";
 import { trainingPhaseQuery } from "@tartan/contracts";
 import { addDays } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { PageHeader } from "@/components/states";
+import { EmptyState, PageHeader } from "@/components/states";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { PhaseManager } from "@/features/phases/phase-manager";
@@ -20,7 +20,13 @@ export default async function PhasesPage({
 }) {
   const { actor, organizationId, space } = await requireSpace();
   const t = m.trainingPhases;
-  if (!space.phasesEnabled) return <p>{t.disabled}</p>;
+  if (!space.phasesEnabled)
+    return (
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+        <PageHeader title={t.title} />
+        <EmptyState>{t.disabled}</EmptyState>
+      </div>
+    );
   const query = await searchParams;
   const today = todayIso();
   const [type, id] = query.target?.split(":") ?? [];

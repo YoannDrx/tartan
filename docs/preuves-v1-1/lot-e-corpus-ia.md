@@ -1,6 +1,48 @@
 # Lot E — corpus réel du prestataire, 8 novembre 2026
 
-**La bêta IA n’est pas validée.** Le code du parcours est présent et isolé, mais l’évaluation révèle encore des erreurs d’interprétation. Le drapeau global demeure désactivé et le modèle initial n’est pas changé.
+## Reprise du 9 novembre 2026 : seuils atteints sur le corpus texte
+
+**Seuils décidés : au moins 57/60, 0 date fausse, 0 charge inventée. Dernier passage : 59/60, 0, 0.** Modèle : `gpt-4.1-mini`, température 0. Les soixante consignes et leurs attendus sont inchangés (`planner-corpus.ts` non modifié). Détail par cas et empreintes : [rapport réduit](corpus-ia-2026-11-09.json), sans consigne ni réponse du modèle.
+
+| Passage | Cas réussis | Dates fausses | Charges inventées | Rattachements | Clarifications | Note |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Base (code du 8 nov.) | 48 / 60 | non mesuré | non mesuré | 31 / 32 | 19 / 30 | L’indicateur n’existait pas encore. C16 (« hier ») et C18 (huit jours tronqués) sont pourtant des dates fausses |
+| Garde-fous, 1re version | 58 / 60 | 0 | 0 | 29 / 32 | 30 / 30 | |
+| Garde-fous, 2e version | 57 / 60 | 0 | 0 | 29 / 32 | 29 / 30 | |
+| Candidat | 59 / 60 | 0 | 0 | 32 / 32 | 29 / 30 | |
+| Même code, rejoué | 58 / 60 | 0 | **1 (C26)** | 32 / 32 | 28 / 30 | **Seuil manqué** : le modèle a choisi seul entre 40 kg et 60 kg. Le passage précédent ne valait donc pas preuve |
+| **Final** | **59 / 60** | **0** | **0** | **32 / 32** | **29 / 30** | Contrôle déterministe ajouté après C26 |
+
+Six passages complets, sans réessai sélectif. Le passage final n’a pas été répété : la limite d’environ six passages était atteinte. Échec restant : C22 (athlète hors périmètre) ; le modèle renvoie une proposition vide, le serveur la refuse comme sortie invalide : aucune séance créée, quota remboursé, mais le coach reçoit une erreur et non une question.
+
+**Ce que ce chiffre ne dit pas.** Les contrôles ont été écrits en regardant les échecs de ce corpus : il n’est plus un jeu de validation indépendant. Le modèle reste variable d’un passage à l’autre, même à température 0. Seize cas fictifs supplémentaires, non versionnés, écrits avant d’en voir les réponses, donnent 13/16 sur le code final (14/16 sur les deux versions précédentes), sans date fausse ni charge inventée. Les trois échecs : deux questions de date inutiles (« comme hier », « le 8 juin » pourtant dans la période) et deux séances séparées au lieu d’une seule pour deux groupes. Le comportement attendu en production est donc plus de questions inutiles que dans le score ci-dessus.
+
+### Correctifs
+
+Contrôles déterministes côté serveur (`packages/domain/src/planner-guards.ts`, 29 tests) : ils ne complètent jamais une séance, une sortie douteuse devient une question sans séance.
+
+- Dates : jour de semaine contradictoire, intervalle hors période, relatif (« hier », « demain ») non respecté, jour cité absent de la proposition, aucun jour indiqué sur une période de plusieurs jours.
+- Charges : la valeur doit figurer dans la consigne avec son unité, chiffres et lettres compris ; deux charges pour une même prescription, habitude sans valeur (« charge habituelle ») sont une question. Un pourcentage nul devient une absence de charge.
+- Exercice : retenu seulement s’il est nommé (nom, alias, mot distinctif porté par cette seule fiche). Un exercice sans attache dans la consigne est retiré, avec une hypothèse visible. Une citation altérée est restaurée depuis la consigne au lieu de rejeter la proposition.
+- Destinataires et volume : un groupe nommé n’est jamais oublié, plus de quatorze séances est une question, trois questions au plus et une par information.
+
+Prompt et contrat : sens de chaque valeur de `field`, dates déjà calculées transmises au modèle (`dateHints`), interdiction d’ajouter un échauffement, tractions au poids du corps sans charge, « charge à définir » sans question.
+
+**Nouvelle reprise automatique, à valider par le fondateur.** Quand un jour cité manque, le serveur redemande une seule fois au modèle. Le coach ne paie qu’une proposition, mais Tartan paie un appel de plus, ce qui s’écarte de la règle « pas de rejeu facturable automatique » du [socle](lot-e-socle-ia.md). Elle sert au cas P30 ; la retirer ne ferait perdre que ce cas d’après les passages précédents.
+
+Indicateurs `falseDate` et `inventedLoad` ajoutés à l’évaluateur, sans effet sur la réussite d’un cas : une séance produite alors que la date ou la charge devait être précisée, une date hors de celles attendues, une charge différente de l’attendu.
+
+### Activation
+
+`AI_PLANNER_ENABLED` devient un coupe-circuit : absent, le planificateur s’ouvre dès qu’une clé est configurée ; `false` le coupe ; `true` reste accepté pour les recettes avec prestataire simulé. Les réservations aux offres payantes, le drapeau par espace et la coupure depuis la console sont inchangés.
+
+### Reste non prouvé
+
+Trente dictées réellement enregistrées, transcription avec bruit, essais sur téléphones physiques, nombre de corrections mesuré par des coachs, et revue des textes libres (titres, notes). La clé OpenAI utilisée reste à faire tourner.
+
+## Évaluations du 8 novembre 2026
+
+**À cette date, la bêta IA n’était pas validée.** Le code du parcours est présent et isolé, mais l’évaluation révèle encore des erreurs d’interprétation.
 
 ## Protocole et résultats
 
@@ -13,7 +55,7 @@ Le corpus de 60 consignes fictives a été figé dans `5a4e249` avant les premie
 | Conventions explicitées | gpt-4.1-mini | 60 | 47 | 29 / 32 | 20 / 30 |
 | Comparaison exploratoire | gpt-5.4-mini-2026-03-17 | 12 cas sélectionnés | 9 | 4 / 4 | 5 / 8 |
 
-La dernière ligne n’est pas comparable au taux global : elle ne couvre que douze cas sélectionnés. Les résultats et empreintes exacts sont dans [le rapport réduit](corpus-ia-2026-11-08.json). Les réponses détaillées, toutes fictives, restent dans les rapports `.local` ignorés par Git. L’évaluation ne crée aucune séance et ne contacte aucune base. Les tests de service et d’API restent les preuves des droits et des écritures.
+La dernière ligne n’est pas comparable au taux global : elle ne couvre que douze cas sélectionnés. Les résultats et empreintes exacts de ces passages sont dans `corpus-ia-2026-11-08.json`, désormais retiré du dépôt et conservé dans l’historique git. Les réponses détaillées, toutes fictives, restent dans les rapports `.local` ignorés par Git. L’évaluation ne crée aucune séance et ne contacte aucune base. Les tests de service et d’API restent les preuves des droits et des écritures.
 
 Le score est strict sur les champs : une question sémantiquement pertinente portant l’étiquette `exercise` au lieu de `unit` est comptée en échec. Plusieurs échecs portent sur cette classification, mais d’autres sont substantiels : date supposée, variante guidée assimilée à la barre libre, charge habituelle laissée indéfinie sans question, correction explicite redemandée et demande tronquée. Il serait trompeur de transformer ces résultats en promesse globale de précision.
 

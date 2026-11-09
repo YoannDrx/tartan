@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { openAiPlannerProvider, type PlannerProviderContext } from "@/server/ai/provider";
 const settings = vi.hoisted(() => ({
-  AI_PLANNER_ENABLED: "true",
+  AI_PLANNER_ENABLED: "true" as string | undefined,
   AI_PLANNER_MODEL: "gpt-4.1-mini",
   OPENAI_API_KEY: undefined as string | undefined,
   OPEN_AI_API_KEY: "test-only",
@@ -48,7 +48,30 @@ it("utilise l’alias local, une sortie stricte et store:false sans outil ni his
   });
   expect(body).not.toHaveProperty("tools");
   expect(body).not.toHaveProperty("previous_response_id");
-  expect(JSON.parse(body.input)).toEqual({ ...context, ambiguousExerciseTerms: [] });
+  expect(JSON.parse(body.input)).toEqual({
+    ...context,
+    ambiguousExerciseTerms: [],
+    dateHints: {
+      todayWeekday: "dimanche",
+      days: [
+        { date: "2026-11-09", weekday: "lundi" },
+        { date: "2026-11-10", weekday: "mardi" },
+        { date: "2026-11-11", weekday: "mercredi" },
+        { date: "2026-11-12", weekday: "jeudi" },
+        { date: "2026-11-13", weekday: "vendredi" },
+        { date: "2026-11-14", weekday: "samedi" },
+        { date: "2026-11-15", weekday: "dimanche" },
+      ],
+      relative: {
+        avantHier: "2026-11-06",
+        hier: "2026-11-07",
+        aujourdHui: "2026-11-08",
+        demain: "2026-11-09",
+        apresDemain: "2026-11-10",
+      },
+    },
+  });
+  expect(body.temperature).toBe(0);
 });
 it("le drapeau global coupe tout appel et le nom standard prend priorité sur l’alias", async () => {
   const fetcher = transport();
@@ -59,6 +82,99 @@ it("le drapeau global coupe tout appel et le nom standard prend priorité sur l�
   settings.OPENAI_API_KEY = "standard-test-only";
   await openAiPlannerProvider(fetcher).interpret(context);
   expect(new Headers(fetcher.mock.calls[0]![1]?.headers).get("Authorization")).toBe("Bearer standard-test-only");
+});
+it("sans drapeau, le planificateur dépend de la clé ; false reste un coupe-circuit", async () => {
+  settings.AI_PLANNER_ENABLED = undefined;
+  await expect(openAiPlannerProvider(transport()).interpret(context)).resolves.toMatchObject({
+    status: "clarification",
+  });
+  settings.OPEN_AI_API_KEY = undefined as unknown as string;
+  const fetcher = transport();
+  await expect(openAiPlannerProvider(fetcher).interpret(context)).rejects.toMatchObject({ code: "disabled" });
+  expect(fetcher).not.toHaveBeenCalled();
+  settings.OPEN_AI_API_KEY = "test-only";
+});
+const proposalFor = (instruction: string, sessions: { date: string; targetTokens?: string[] }[]) => ({
+  status: "proposal",
+  questions: [],
+  assumptions: [],
+  suggestions: [],
+  sessions: sessions.map((session) => ({
+    date: session.date,
+    startTime: null,
+    title: "Force",
+    type: "strength",
+    durationMin: null,
+    targetTokens: session.targetTokens ?? ["group_1"],
+    blocks: [
+      {
+        name: "Force",
+        items: [
+          {
+            exerciseToken: "exercise_1",
+            instruction,
+            prescription: {
+              sets: 3,
+              reps: 4,
+              distanceM: null,
+              durationS: null,
+              restS: 120,
+              load: { type: "kg", value: 40 },
+              intensityTarget: null,
+              tempo: null,
+              contacts: null,
+              notes: null,
+            },
+          },
+        ],
+      },
+    ],
+  })),
+});
+it("une date ou une habitude contredite par la consigne devient une question sans séance", async () => {
+  const hier = "Hier : squat, 3 séries de 4 à 40 kg, repos 120 secondes.";
+  const fetcher = transport(completed(proposalFor(hier, [{ date: "2026-11-09" }])));
+  await expect(
+    openAiPlannerProvider(fetcher).interpret({ ...context, instructions: [hier] }),
+  ).resolves.toMatchObject({ status: "clarification", sessions: [], questions: [{ field: "date" }] });
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
+it("une proposition vide devient une question, sans erreur pour le coach", async () => {
+  const fetcher = transport(completed(proposalFor("Demain : squat.", [])));
+  await expect(openAiPlannerProvider(fetcher).interpret(context)).resolves.toMatchObject({
+    status: "clarification",
+    sessions: [],
+    questions: [{ id: "empty-proposal", field: "other" }],
+  });
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
+it("restaure une citation altérée au lieu de rejeter toute la proposition", async () => {
+  const text = "Demain : Squat, 3 séries de 4 à 40 kg, repos 120 secondes.";
+  const altered = "demain : squat, 3 séries de 4 à 40 kg, repos 120 secondes";
+  const fetcher = transport(completed(proposalFor(altered, [{ date: "2026-11-09" }])));
+  const result = await openAiPlannerProvider(fetcher).interpret({ ...context, instructions: [text] });
+  expect(result.status).toBe("proposal");
+  expect(text).toContain(result.sessions[0]!.blocks[0]!.items[0]!.instruction);
+});
+it("demande une seule reprise quand un jour cité manque, puis pose la question", async () => {
+  const text = "Le 9 novembre et le 12 novembre pour group_1 : squat, 3 séries de 4 à 40 kg, repos 120 secondes.";
+  const truncated = proposalFor(text, [{ date: "2026-11-09" }]);
+  const complete = proposalFor(text, [{ date: "2026-11-09" }, { date: "2026-11-12" }]);
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(Response.json(completed(truncated)))
+    .mockResolvedValueOnce(Response.json(completed(complete)));
+  await expect(openAiPlannerProvider(fetcher).interpret({ ...context, instructions: [text] })).resolves.toMatchObject({
+    status: "proposal",
+    sessions: [{ date: "2026-11-09" }, { date: "2026-11-12" }],
+  });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(JSON.parse(JSON.parse(String(fetcher.mock.calls[1]![1]?.body)).input).correction).toBeTruthy();
+  const stillTruncated = vi.fn<typeof fetch>(async () => Response.json(completed(truncated)));
+  await expect(
+    openAiPlannerProvider(stillTruncated).interpret({ ...context, instructions: [text] }),
+  ).resolves.toMatchObject({ status: "clarification", questions: [{ field: "date" }] });
+  expect(stillTruncated).toHaveBeenCalledTimes(2);
 });
 it("transmet les collisions de termes sans choisir arbitrairement une variante", async () => {
   const fetcher = transport();

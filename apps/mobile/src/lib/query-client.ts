@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { QueryClient, type Query } from "@tanstack/react-query";
 import { ApiError } from "@tartan/api-client";
+import { isPersistedCalendarRange } from "./calendar-range";
 
 export const WEEK_MS = 7 * 24 * 3600 * 1000;
 
@@ -35,8 +36,13 @@ const PERSISTED = new Set([
   "exercises",
 ]);
 
-export const shouldPersistQuery = (query: Query): boolean =>
-  query.state.status === "success" && PERSISTED.has(String(query.queryKey[0]));
+const CALENDARS = new Set(["athlete-calendar", "coach-calendar"]);
+
+export const shouldPersistQuery = (query: Query): boolean => {
+  const name = String(query.queryKey[0]);
+  if (query.state.status !== "success" || !PERSISTED.has(name)) return false;
+  return !CALENDARS.has(name) || isPersistedCalendarRange(String(query.queryKey[2]), String(query.queryKey[3]));
+};
 
 // Effort ressenti, douleur et commentaire ne quittent pas la mémoire en clair (§ 15.2).
 const HEALTH_KEYS = new Set(["rpe", "pain", "comment"]);

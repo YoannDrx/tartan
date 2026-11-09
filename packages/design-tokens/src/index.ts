@@ -95,7 +95,25 @@ export const tokens = {
     status: { done: "#C6F432", partial: "#FFC838", missed: "#FF6B57", upcoming: "#B9BBC0" },
     onStatus: "#15161A",
   },
-  // Le bandeau piste : en tête de chaque écran de travail, dans les deux thèmes.
+  // Thème par défaut : la piste en fond, le contenu sur cartes encre, l'action citron.
+  workTartan: {
+    page: "#C4442B",
+    surface: "#15161A",
+    raised: "#24262C",
+    text: "#FFFFFF",
+    muted: "#B9BBC0",
+    border: "#3A3C43",
+    controlLine: "#8C8E94",
+    action: "#C6F432",
+    onAction: "#15161A",
+    actionHover: "#AEDB1E",
+    selection: "#3A3C43",
+    onSelection: "#C6F432",
+    link: "#C6F432",
+    status: { done: "#C6F432", partial: "#FFC838", missed: "#FF6B57", upcoming: "#B9BBC0" },
+    onStatus: "#15161A",
+  },
+  // Le bandeau piste : en tête de chaque écran de travail, dans tous les thèmes.
   band: {
     background: "#C4442B",
     deep: "#9E3320",

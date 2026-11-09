@@ -63,6 +63,8 @@ export const createCoachSpace = async (page: Page, name = "Thomas", email = uniq
 };
 
 export const expectAccessible = async (page: Page) => {
+  // Sous l'en-tête fixe, un champ à moitié recouvert compterait comme une cible trop petite : tout dépendrait du défilement.
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();

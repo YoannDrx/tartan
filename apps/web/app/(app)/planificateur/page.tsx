@@ -4,6 +4,7 @@ import { isoDate, uuid } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { PageHeader } from "@/components/states";
 import { Button } from "@/components/ui/button";
+import { PlannerUnavailable } from "@/features/planner/planner-unavailable";
 import { WebPlanner } from "@/features/planner/web-planner";
 import { requireSpace, orNotFound } from "@/features/shell/space";
 import { AppError } from "@/lib/errors";
@@ -18,7 +19,7 @@ export default async function PlannerPage({
   searchParams: Promise<{ proposition?: string; date?: string; groupe?: string }>;
 }) {
   const { actor, organizationId, space } = await requireSpace();
-  if (!space.aiPlannerEnabled) return <p>{m.aiPlanner.disabled}</p>;
+  if (!space.aiPlannerEnabled) return <PlannerUnavailable space={space} />;
   const params = await searchParams;
   if (
     (params.proposition && !uuid.safeParse(params.proposition).success) ||

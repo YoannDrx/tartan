@@ -1,5 +1,7 @@
 "use client";
 
+import { registerServiceWorker } from "@/features/offline/service-worker";
+
 export type PushOutcome = "on" | "denied" | "unavailable";
 
 export const pushSupported = (): boolean =>
@@ -20,7 +22,7 @@ export const enablePush = async (vapidKey: string): Promise<PushOutcome> => {
   if (!pushSupported()) return "unavailable";
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return "denied";
-  await navigator.serviceWorker.register("/sw.js");
+  await registerServiceWorker();
   const registration = await navigator.serviceWorker.ready;
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
@@ -32,4 +34,22 @@ export const enablePush = async (vapidKey: string): Promise<PushOutcome> => {
     body: JSON.stringify({ pushToken: JSON.stringify(subscription), platform: "web" }),
   });
   return res.ok ? "on" : "unavailable";
+};
+
+export const currentPushSubscription = async (): Promise<PushSubscription | null> => {
+  if (!pushSupported()) return null;
+  const registration = await navigator.serviceWorker.getRegistration();
+  return (await registration?.pushManager.getSubscription()) ?? null;
+};
+
+// Coupe réellement cet appareil : côté navigateur et côté serveur.
+export const disablePush = async (): Promise<void> => {
+  const subscription = await currentPushSubscription();
+  if (!subscription) return;
+  await fetch("/api/v1/devices", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pushToken: JSON.stringify(subscription) }),
+  });
+  await subscription.unsubscribe();
 };

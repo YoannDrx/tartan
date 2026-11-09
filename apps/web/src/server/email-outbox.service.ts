@@ -2,7 +2,12 @@ import { createElement } from "react";
 import type { BillingEmail } from "@tartan/domain";
 import { PLANS, isPaidPlan, type PlanKey } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { SubscriptionCancelledEmail, SubscriptionConfirmedEmail, SubscriptionEndedEmail } from "@email/billing";
+import {
+  SubscriptionCancelledEmail,
+  SubscriptionConfirmedEmail,
+  SubscriptionEndedEmail,
+  BillingNoticeEmail,
+} from "@email/billing";
 import { AccountDeletedEmail, SpaceTransferredEmail } from "@email/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { env } from "@/lib/env";
@@ -163,6 +168,23 @@ const render = async (kind: string, payload: unknown, organizationId: string | n
       }),
     };
   }
+  if (kind === "payment_failed" || kind === "recovered" || kind === "trial_ending") {
+    const copy =
+      kind === "payment_failed"
+        ? m.email.paymentFailed
+        : kind === "recovered"
+          ? m.email.paymentRecovered
+          : m.email.trialEnding;
+    return {
+      subject: copy.subject,
+      react: createElement(BillingNoticeEmail, {
+        title: copy.subject,
+        body: copy.body(p.space, p.trialEnd ? dateInParis(p.trialEnd) : ""),
+        cta: copy.cta,
+        url,
+      }),
+    };
+  }
   return {
     subject: m.email.ended.subject,
     react: createElement(SubscriptionEndedEmail, { space: p.space, unpaid: p.unpaid, url }),
@@ -220,6 +242,49 @@ export const flushEmailOutbox = async (now: Date = new Date()): Promise<number> 
   return sent;
 };
 
+// Rappel avant le premier prélèvement : la date d'essai est suivie à chaque rapprochement avec Stripe.
+export const queueTrialReminders = async (now: Date = new Date()): Promise<number> => {
+  const soon = new Date(now.getTime() + 3 * 86_400_000);
+  const subscriptions = await prisma.subscription.findMany({
+    where: { provider: "stripe", status: "trialing", cancelAt: null, trialEndsAt: { gt: now, lte: soon } },
+    select: {
+      providerRef: true,
+      planKey: true,
+      interval: true,
+      trialEndsAt: true,
+      organization: {
+        select: { id: true, name: true, billingOwnerId: true, ownerId: true, owner: { select: { email: true } } },
+      },
+    },
+  });
+  let queued = 0;
+  for (const sub of subscriptions) {
+    const org = sub.organization;
+    if (!sub.providerRef || (org.billingOwnerId && org.billingOwnerId !== org.ownerId)) continue;
+    const created = await prisma.emailOutbox.createMany({
+      data: [
+        {
+          organizationId: org.id,
+          toEmail: org.owner.email,
+          kind: "trial_ending",
+          dedupeKey: `${sub.providerRef}:trial:${sub.trialEndsAt!.toISOString().slice(0, 10)}`,
+          payload: {
+            space: org.name,
+            plan: sub.planKey,
+            interval: sub.interval === "year" ? "year" : "month",
+            trialEnd: sub.trialEndsAt!.toISOString(),
+            cancelAt: null,
+            unpaid: false,
+          },
+        },
+      ],
+      skipDuplicates: true,
+    });
+    queued += created.count;
+  }
+  return queued;
+};
+
 export const isEmailRelevant = async (
   row: { organizationId: string | null; kind: string; dedupeKey: string; payload: unknown; toEmail: string },
   now = new Date(),
@@ -255,5 +320,9 @@ export const isEmailRelevant = async (
     );
   if (row.kind === "cancel")
     return sub.cancelAt?.toISOString() === payload.cancelAt && sub.cancelAt > now && sub.status !== "canceled";
+  if (row.kind === "payment_failed") return sub.status === "past_due";
+  if (row.kind === "recovered") return sub.status === "active";
+  if (row.kind === "trial_ending")
+    return sub.status === "trialing" && Boolean(sub.trialEndsAt && sub.trialEndsAt > now);
   return row.kind === "ended" && sub.status === "canceled";
 };

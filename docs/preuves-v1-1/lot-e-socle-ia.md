@@ -9,7 +9,7 @@
 - Bornes pures des quotas Coach/pilote 30 propositions et 60 minutes, Club 150 et 300 minutes ; Découverte refusée. Audio 3 Mio et 180 secondes. Échéances sept jours ou au plus vingt-quatre heures après création des brouillons. Ces règles ne réservent ni ne purgent de données par elles-mêmes.
 - Adaptateur serveur Responses API avec modèle configurable, sortie JSON stricte, `store:false`, aucun outil ni historique distant, délai de 90 secondes. Refus, réponse incomplète, JSON invalide et incohérence métier sont rejetés. Pas de rejeu facturable automatique.
 - Projection du contexte refusant tout champ supplémentaire, sans identité de compte, maximum individuel, santé structurée ou note privée. Le texte libre reste une donnée utilisateur : cette projection ne garantit pas que le coach n’y dicte jamais de données personnelles.
-- `AI_PLANNER_ENABLED=false` par défaut ; alias local de clé supporté. Modèles configurables initiaux : `gpt-4.1-mini` pour interprétation et `gpt-4o-mini-transcribe` pour future transcription. Ce dernier n’est pas encore appelé. Le document de plan précédent ne fixait pas les modèles.
+- `AI_PLANNER_ENABLED` : à l’origine `false` par défaut ; depuis le 9 novembre 2026, coupe-circuit (absent, actif si une clé est présente ; `false` coupe). Une seule reprise automatique existe depuis cette date, pour un jour cité oublié : voir [le corpus](lot-e-corpus-ia.md). Alias local de clé supporté. Modèles configurables initiaux : `gpt-4.1-mini` pour interprétation et `gpt-4o-mini-transcribe` pour future transcription. Ce dernier n’est pas encore appelé. Le document de plan précédent ne fixait pas les modèles.
 
 ## Vérification
 

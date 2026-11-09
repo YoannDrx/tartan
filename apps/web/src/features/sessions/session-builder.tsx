@@ -13,7 +13,7 @@ import { m, strengthTestLabel, formatDateLong } from "@tartan/i18n";
 import { ArrowDown, ArrowUp, ChevronRight, GripVertical, Plus, Search, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FilterPill, pillClass } from "@/components/filter-pill";
 import { ActivityPicto } from "@/components/pictos";
 import { EmptyState } from "@/components/states";
@@ -278,6 +278,11 @@ export const SessionBuilder = ({
   const router = useRouter();
   const start = useMemo(() => split(initial?.draft ?? null), [initial]);
   const [title, setTitle] = useState(initial?.draft.title ?? "");
+  // Un titre tapé avant l'hydratation n'existe que dans le champ : le rendu suivant l'effacerait.
+  const titleField = useRef<HTMLInputElement>(null);
+  useLayoutEffect(() => {
+    if (titleField.current?.value) setTitle(titleField.current.value);
+  }, []);
   const [type, setType] = useState<SessionType>(initial?.draft.type ?? "strength");
   const [date, setDate] = useState(initial?.date ?? defaultDate);
   const [startTime, setStartTime] = useState(initial?.startTime ?? "");
@@ -490,7 +495,7 @@ export const SessionBuilder = ({
       >
         <div className="flex flex-wrap items-end gap-3">
           <Field label={m.builder.titleLabel} className="min-w-64 flex-1">
-            {(a) => <Input {...a} value={title} onChange={(e) => setTitle(e.target.value)} />}
+            {(a) => <Input {...a} ref={titleField} value={title} onChange={(e) => setTitle(e.target.value)} />}
           </Field>
           {templates.length > 0 ? (
             <div className="flex flex-col gap-1">

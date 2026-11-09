@@ -157,7 +157,7 @@ test.describe("le pilote", () => {
     await expect(menu.getByRole("menuitem", { name: "Tous les réglages" })).toBeVisible();
     await expectAccessible(page);
     await menu.getByRole("menuitem", { name: "Se déconnecter" }).click();
-    await expect(page.getByRole("heading", { name: "Prépare le groupe. Fais progresser chacun." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: m.landing.title })).toBeVisible();
     await page.goto("/suivi");
     await expect(page).toHaveURL(/\/connexion/);
   });
@@ -168,37 +168,30 @@ test.describe("le pilote", () => {
     await page.getByRole("button", { name: "Supprimer mon compte" }).click();
     await page.getByLabel("Écris SUPPRIMER pour confirmer").fill("SUPPRIMER");
     await page.getByRole("dialog").getByRole("button", { name: "Supprimer mon compte" }).click();
-    await expect(page.getByRole("heading", { name: "Prépare le groupe. Fais progresser chacun." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: m.landing.title })).toBeVisible();
     await page.goto("/suivi");
     await expect(page).toHaveURL(/\/connexion/);
   });
 });
 
 test.describe("toutes tailles d'écran", () => {
-  test("la landing se laisse essayer : validation, appel et saut image par image", async ({ page }) => {
+  test("la landing présente de vraies captures et le récit du groupe", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(m.landing.title);
-    for (const alt of [m.landing.prepare.alt, m.landing.progress.alt]) {
+    for (const alt of [m.landing.heroAltPhone, m.landing.heroAltDesktop, m.landing.views.alt, m.landing.video.alt]) {
       const image = page.getByRole("img", { name: alt, exact: true });
       await image.scrollIntoViewIfNeeded();
       await expect.poll(() => image.evaluate((el) => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
     }
-    const journey = page.getByRole("navigation", { name: m.landing.journeyLabel });
-    for (const step of m.landing.journey) {
-      await journey.getByRole("link", { name: step.label, exact: true }).click();
-      await expect(page.locator(`#${step.id}`)).toBeInViewport();
+    for (const title of [m.landing.film.run.title, m.landing.film.plant.title, m.landing.film.flight.title]) {
+      await expect(page.locator(".film-title").filter({ hasText: title })).toHaveCount(1);
     }
-    await expect(page.getByText(m.landing.progress.availability, { exact: true })).toBeVisible();
+    await expect(page.locator("body")).not.toContainText("saut en hauteur");
     const initialViewport = page.viewportSize()!;
     for (const width of [390, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await expectNoHorizontalScroll(page);
       await page.evaluate(() => window.scrollTo(0, 0));
-      await page.screenshot({
-        path: `/tmp/tartan-landing-${width}.png`,
-        fullPage: true,
-        style: "nextjs-portal { visibility: hidden; }",
-      });
     }
     await page.evaluate(() => {
       document.documentElement.style.zoom = "2";
@@ -208,20 +201,6 @@ test.describe("toutes tailles d'écran", () => {
       document.documentElement.style.zoom = "";
     });
     await page.setViewportSize(initialViewport);
-    await page.getByRole("button", { name: "J'ai fait la séance" }).click();
-    await expect(page.getByText("Séance validée, bien joué")).toBeVisible();
-    await expect(page.getByText(/^Validée en \d+,\d s\.$/)).toBeVisible();
-    await page.getByRole("button", { name: "Recommencer" }).click();
-    await expect(page.getByRole("button", { name: "J'ai fait la séance" })).toBeVisible();
-
-    await page.getByRole("group", { name: "Présence de Léa" }).getByRole("button", { name: "Absent" }).click();
-    await expect(page.getByText("En autonomie").first()).toBeVisible();
-
-    await page.getByText("Essayer un exemple en saut en hauteur", { exact: true }).click();
-    const frame = page.getByText(/^Image \d+ sur 480/);
-    const before = await frame.textContent();
-    await page.getByRole("button", { name: "Image suivante" }).click();
-    await expect(frame).not.toHaveText(before ?? "");
 
     // Le visiteur qui veut créer son espace trouve une page qui le dit.
     await page.getByRole("link", { name: "Créer mon espace coach" }).first().click();

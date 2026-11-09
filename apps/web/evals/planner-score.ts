@@ -9,6 +9,9 @@ export type PlannerScore = {
   exerciseMatches: number;
   expectedExercises: number;
   askedClarification: boolean;
+  // Seuils d'ouverture : indicateurs additifs, sans effet sur `passed`.
+  falseDate: boolean;
+  inventedLoad: boolean;
 };
 export function scorePlannerCase(test: PlannerEvalCase, raw: unknown): PlannerScore {
   const differences: string[] = [];
@@ -16,6 +19,8 @@ export function scorePlannerCase(test: PlannerEvalCase, raw: unknown): PlannerSc
   const expectedExercises =
     test.expected.status === "proposal" ? test.expected.sessions.reduce((n, s) => n + s.items.length, 0) : 0;
   const parsed = plannerInterpretation.safeParse(raw);
+  let falseDate = false,
+    inventedLoad = false;
   const result = (askedClarification = false): PlannerScore => ({
     passed: differences.length === 0,
     differences,
@@ -23,12 +28,29 @@ export function scorePlannerCase(test: PlannerEvalCase, raw: unknown): PlannerSc
     exerciseMatches,
     expectedExercises,
     askedClarification,
+    falseDate,
+    inventedLoad,
   });
   if (!parsed.success) {
     differences.push("schema");
     return result();
   }
   const actual = parsed.data;
+  const producedItems = actual.sessions.flatMap((s) => s.blocks.flatMap((b) => b.items));
+  if (test.expected.status === "clarification") {
+    // Une séance produite alors que le jour ou la charge devaient être précisés.
+    falseDate = test.expected.fields.includes("date") && actual.sessions.length > 0;
+    inventedLoad = test.expected.fields.includes("load") && producedItems.some((i) => i.prescription.load !== null);
+  } else {
+    const expectedDates = new Set(test.expected.sessions.map((s) => s.date));
+    falseDate = actual.sessions.some((s) => !expectedDates.has(s.date));
+    const expectedItems = test.expected.sessions.flatMap((s) => s.items);
+    inventedLoad = producedItems.some((item, index) => {
+      const load = item.prescription.load;
+      if (load === null) return false;
+      return JSON.stringify(load) !== JSON.stringify(expectedItems[index]?.prescription.load ?? null);
+    });
+  }
   if (actual.status !== test.expected.status) differences.push("status");
   if (test.expected.status === "clarification") {
     if (actual.sessions.length) differences.push("sessions_must_be_empty");

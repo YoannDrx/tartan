@@ -28,6 +28,9 @@ const schema = z.object({
   COACH_SIGNUP_EMAILS: z.string().default(""),
   // Accès à la console de l'éditeur.
   ADMIN_EMAILS: z.string().default(""),
+  // Enrôlement de la première passkey du compte administrateur ; à retirer une fois la clé créée.
+  ADMIN_BOOTSTRAP_TOKEN: optional,
+  PASSKEY_RP_ID: optional,
   MUX_TOKEN_ID: optional,
   MUX_TOKEN_SECRET: optional,
   MUX_WEBHOOK_SECRET: optional,
@@ -48,6 +51,8 @@ const schema = z.object({
   REVENUECAT_WEBHOOK_AUTH: optional,
   REVENUECAT_PRODUCT_COACH: z.string().default("tartan_coach_monthly,tartan_coach_yearly"),
   REVENUECAT_PRODUCT_CLUB: z.string().default("tartan_club_monthly,tartan_club_yearly"),
+  // Lecture de la disponibilité Google Play. Absent : la confirmation manuelle de la console reste le seul chemin.
+  GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: optional,
   BLOB_READ_WRITE_TOKEN: optional,
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: optional,
   VAPID_PRIVATE_KEY: optional,
@@ -56,7 +61,8 @@ const schema = z.object({
   OPENAI_API_KEY: optional,
   // Compatibilité avec le nom déjà utilisé par la configuration locale.
   OPEN_AI_API_KEY: optional,
-  AI_PLANNER_ENABLED: z.enum(["true", "false"]).default("false"),
+  // Coupe-circuit : absent, le planificateur s'ouvre dès qu'une clé est configurée ; "false" le coupe.
+  AI_PLANNER_ENABLED: z.enum(["true", "false"]).optional(),
   AI_PLANNER_MODEL: z.string().min(1).default("gpt-4.1-mini"),
   AI_TRANSCRIPTION_MODEL: z.string().min(1).default("gpt-4o-mini-transcribe"),
   CRON_SECRET: optional,

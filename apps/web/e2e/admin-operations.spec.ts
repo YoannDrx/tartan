@@ -37,17 +37,17 @@ test("le support rectifie une date avec confirmation, sans révéler l'ancienne 
     await page
       .getByRole("group", { name: `Coaching ${name}` })
       .getByLabel(m.admin.featureProgression)
-      .check();
+      .uncheck();
     await expect(page.getByText(m.admin.featuresSaved)).toBeVisible();
     const features = await sql.query(
       "select action from audit_log where entity = 'organization' and entity_id = $1::text",
       [organizationId],
     );
-    expect(features.rows.map((row) => row.action)).toContain("space_features:progression=on,phases=off,ai=off");
+    expect(features.rows.map((row) => row.action)).toContain("space_features:progression=off,phases=on,ai=on");
     const enabled = await sql.query("select progression_enabled from organizations where id = $1::uuid", [
       organizationId,
     ]);
-    expect(enabled.rows[0].progression_enabled).toBe(true);
+    expect(enabled.rows[0].progression_enabled).toBe(false);
   } finally {
     await sql.end();
   }

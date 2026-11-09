@@ -24,6 +24,8 @@ import {
   withSessionRefs,
   hasUniqueSessionRefs,
   copyDraftWithNewRefs,
+  calendarCompletion,
+  exerciseCount,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
@@ -38,7 +40,7 @@ import {
   coachGroupIds,
   type Access,
 } from "./access";
-import { activeAudienceIds, athleteAssignedWhere } from "./session-audience.service";
+import { activeAudienceIds, athleteAssignedWhere, audienceBySession } from "./session-audience.service";
 export { activeAudienceIds, audienceAthleteIds } from "./session-audience.service";
 import { reviewSessionPhases, storedPhaseContext } from "./session-phase-context";
 import { freezeSessionPrescriptions, preparePrescriptionRefresh } from "./prescription.service";
@@ -733,31 +735,97 @@ export const generateAutonomousVersion = async (userId: string, organizationId: 
   });
 };
 
+// Réalisation du mois : une lecture des journaux et une lecture d'athlètes, quel que soit le nombre de séances.
+const calendarCompletions = async (
+  organizationId: string,
+  sessions: {
+    id: string;
+    date: Date;
+    publishedAt: Date | null;
+    assignments: { targetType: "group" | "athlete"; targetId: string }[];
+  }[],
+  scopeAthletes: string[] | null,
+) => {
+  const published = sessions.filter((s) => s.publishedAt);
+  const logs = published.length
+    ? await prisma.sessionLog.findMany({
+        where: {
+          scheduledSessionId: { in: published.map((s) => s.id) },
+          ...(scopeAthletes ? { athleteId: { in: scopeAthletes } } : {}),
+        },
+        select: { scheduledSessionId: true, athleteId: true, status: true },
+      })
+    : [];
+  const logged = new Map<string, Set<string>>();
+  const statuses = new Map<string, (typeof logs)[number]["status"][]>();
+  for (const log of logs) {
+    logged.set(log.scheduledSessionId, (logged.get(log.scheduledSessionId) ?? new Set<string>()).add(log.athleteId));
+    statuses.set(log.scheduledSessionId, [...(statuses.get(log.scheduledSessionId) ?? []), log.status]);
+  }
+  const audience = await audienceBySession(organizationId, published, logged, scopeAthletes);
+  return new Map(
+    published.map((s) => [s.id, calendarCompletion(statuses.get(s.id) ?? [], audience.get(s.id)?.length ?? 0)]),
+  );
+};
+
 export const listCalendar = async (
   userId: string,
   organizationId: string,
-  query: { from: string; to: string; groupId?: string },
+  query: { from: string; to: string; groupId?: string; summary?: "true" | "false" | boolean },
 ): Promise<CalendarResponse> => {
   const access = await requireOrgMember(userId, organizationId, "viewTracking");
   const scopeGroups = access.role === "owner" ? null : await coachGroupIds(access);
   const scopeAthletes = access.role === "owner" ? null : await visibleAthleteIds(access);
   // Un athlète ne voit jamais un brouillon, ni les compétitions auxquelles il n'est pas inscrit.
   const athleteId = access.role === "athlete" ? access.athleteId : null;
+  // Un filtre de groupe garde aussi les séances attribuées individuellement à ses membres.
+  const groupMemberIds = query.groupId
+    ? (
+        await prisma.groupMember.findMany({
+          where: { groupId: query.groupId, group: { organizationId } },
+          select: { athleteId: true },
+        })
+      ).map((row) => row.athleteId)
+    : [];
   const sessions = await prisma.scheduledSession.findMany({
     where: {
       organizationId,
       date: { gte: toDbDate(query.from), lte: toDbDate(query.to) },
       ...(athleteId ? await athleteAssignedWhere(athleteId) : {}),
+      ...(query.groupId
+        ? {
+            assignments: {
+              some: {
+                OR: [
+                  { targetType: "group" as const, targetId: query.groupId },
+                  { targetType: "athlete" as const, targetId: { in: groupMemberIds } },
+                ],
+              },
+            },
+          }
+        : {}),
     },
     orderBy: [{ date: "asc" }, { startTime: "asc" }],
-    include: { assignments: true, overrides: { select: { athleteId: true } } },
+    select: {
+      id: true,
+      version: true,
+      publishAt: true,
+      title: true,
+      type: true,
+      date: true,
+      startTime: true,
+      location: true,
+      publishedAt: true,
+      createdBy: true,
+      draft: true,
+      snapshot: true,
+      assignments: { select: { targetType: true, targetId: true } },
+      overrides: { select: { athleteId: true } },
+    },
   });
   const groupRows = await prisma.group.findMany({ where: { organizationId }, select: { id: true, name: true } });
   const groupNames = new Map(groupRows.map((g) => [g.id, g.name]));
   const inScope = sessions.filter((s) => {
-    if (query.groupId && !s.assignments.some((a) => a.targetType === "group" && a.targetId === query.groupId)) {
-      return false;
-    }
     if (athleteId || !scopeGroups || !scopeAthletes) return true;
     // Chaque coach voit ses séances et celles qui concernent ses athlètes (§ 5.2).
     return (
@@ -775,9 +843,13 @@ export const listCalendar = async (
     },
     orderBy: { date: "asc" },
   });
+  const wantsSummary = query.summary === true || query.summary === "true";
+  const completionBySession =
+    wantsSummary && !athleteId ? await calendarCompletions(organizationId, inScope, scopeAthletes) : null;
   return {
     sessions: inScope.map((s) => {
       const draft = sessionDraft.safeParse(s.draft);
+      const plan = s.snapshot ? sessionSnapshot.safeParse(s.snapshot) : draft;
       const groups = s.assignments.filter((a) => a.targetType === "group").map((a) => groupNames.get(a.targetId) ?? "");
       const athletes = s.assignments.filter((a) => a.targetType === "athlete").length;
       const audience = [...groups, ...(athletes ? [`${athletes} athlète${athletes > 1 ? "s" : ""}`] : [])].join(", ");
@@ -802,6 +874,13 @@ export const listCalendar = async (
         publishedAt: s.publishedAt?.toISOString() ?? null,
         audience,
         hasAutonomous: draft.success ? hasAutonomousVersion(draft.data) : false,
+        ...(wantsSummary && plan.success
+          ? {
+              durationMin: plan.data.durationMin,
+              exerciseCount: exerciseCount<{ variant: string; items: unknown[] }>(plan.data.blocks, "club"),
+            }
+          : {}),
+        ...(completionBySession?.has(s.id) ? { completion: completionBySession.get(s.id) } : {}),
       };
     }),
     competitions: competitions.map((c) => ({ id: c.id, name: c.name, date: fromDbDate(c.date), location: c.location })),

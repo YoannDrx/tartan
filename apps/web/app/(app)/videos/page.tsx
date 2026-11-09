@@ -16,12 +16,20 @@ import { listVideos } from "@/server/video.service";
 
 export const metadata: Metadata = { title: m.video.title };
 
-export default async function VideosPage({ searchParams }: { searchParams: Promise<{ athlete?: string }> }) {
+export default async function VideosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ athlete?: string; exercice?: string }>;
+}) {
   const { actor, organizationId } = await requireStaffSpace();
-  const { athlete } = await searchParams;
+  const { athlete, exercice } = await searchParams;
+  const uuidLike = (value?: string) => /^[0-9a-f-]{36}$/.test(value ?? "");
   const today = todayIso();
   const [videos, athletes, calendar, capacity] = await Promise.all([
-    listVideos(actor.userId, organizationId, /^[0-9a-f-]{36}$/.test(athlete ?? "") ? { athleteId: athlete } : {}),
+    listVideos(actor.userId, organizationId, {
+      ...(uuidLike(athlete) ? { athleteId: athlete } : {}),
+      ...(uuidLike(exercice) ? { exerciseId: exercice } : {}),
+    }),
     listAthletes(actor.userId, organizationId),
     listCalendar(actor.userId, organizationId, { from: addDays(today, -14), to: addDays(today, 1) }),
     videoCapacity(),

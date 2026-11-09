@@ -1,5 +1,6 @@
 // Tartan hors ligne (§ 10.4) et notifications. Le contenu des notifications reste neutre : jamais de donnée de santé.
-const VERSION = "v1";
+// La version vient de l'adresse d'enregistrement : chaque déploiement installe un nouveau worker.
+const VERSION = new URL(self.location.href).searchParams.get("v") || "v1";
 const STATIC_CACHE = `tartan-static-${VERSION}`;
 const PAGES_CACHE = `tartan-pages-${VERSION}`;
 const OFFLINE_PAGE = "/hors-ligne";
@@ -53,8 +54,7 @@ self.addEventListener("install", (event) => {
           await cacheAssets(await res.text());
         }
       })
-      .catch(() => undefined)
-      .then(() => self.skipWaiting()),
+      .catch(() => undefined),
   );
 });
 
@@ -62,12 +62,19 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => ![STATIC_CACHE, PAGES_CACHE].includes(k)).map((k) => caches.delete(k))))
+      .then((keys) => {
+        // Le cache statique précédent reste : un onglet encore ouvert y trouve ses fichiers.
+        const olderStatic = keys.filter((k) => k.startsWith("tartan-static-") && k !== STATIC_CACHE);
+        const keep = new Set([STATIC_CACHE, PAGES_CACHE, ...olderStatic.slice(-1)]);
+        return Promise.all(keys.filter((k) => !keep.has(k)).map((k) => caches.delete(k)));
+      })
       .then(() => self.clients.claim()),
   );
 });
 
 self.addEventListener("message", (event) => {
+  // L'activation attend l'accord de la page : jamais pendant une séance.
+  if (event.data?.type === "skip-waiting") self.skipWaiting();
   if (event.data?.type === "cache-pages") event.waitUntil(cachePages(event.data.urls));
   if (event.data?.type === "clear-pages") event.waitUntil(caches.delete(PAGES_CACHE));
 });
@@ -79,9 +86,11 @@ const navigate = async (request) => {
   const url = new URL(request.url);
   const cache = await caches.open(PAGES_CACHE);
   const key = url.pathname;
-  const saved = OFFLINE_PATHS.test(url.pathname) ? await cache.match(key) : null;
+  // Un mois ou une semaine explicite ne remplace pas la vue courante gardée pour le stade.
+  const offlinePage = OFFLINE_PATHS.test(url.pathname) && !url.searchParams.has("mois") && !url.searchParams.has("semaine");
+  const saved = offlinePage ? await cache.match(key) : null;
   const network = fetch(request).then(async (res) => {
-    if (res.ok && OFFLINE_PATHS.test(url.pathname) && new URL(res.url).pathname !== "/connexion") {
+    if (res.ok && offlinePage && new URL(res.url).pathname !== "/connexion") {
       await cache.put(key, await storable(res));
     }
     return res;

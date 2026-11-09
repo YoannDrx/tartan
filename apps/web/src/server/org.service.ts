@@ -8,7 +8,7 @@ import {
   organizationUpdateInput,
   type OrganizationUpdateInput,
 } from "@tartan/contracts";
-import { type PlanKey, referralCodeFor, STARTER_LIBRARY } from "@tartan/domain";
+import { type PlanKey, referralCodeFor, STARTER_LIBRARY, STARTER_TEMPLATES } from "@tartan/domain";
 import { randomId } from "@/lib/tokens";
 import { prisma } from "@/lib/prisma";
 import { m } from "@tartan/i18n";
@@ -103,6 +103,37 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
       data: { organizationId: org.id, name: input.firstGroupName, goal: input.firstGroupGoal || null },
     });
     await tx.groupCoach.create({ data: { groupId: group.id, userId, role: "lead" } });
+    // Séances de départ, modifiables : le premier coach ne part pas d'une page blanche.
+    const library = await tx.exercise.findMany({
+      where: { organizationId: org.id },
+      select: { id: true, name: true },
+    });
+    const exerciseIds = new Map(library.map((exercise) => [exercise.name, exercise.id]));
+    for (const template of STARTER_TEMPLATES) {
+      await tx.sessionTemplate.create({
+        data: {
+          organizationId: org.id,
+          createdBy: userId,
+          title: template.title,
+          type: template.type,
+          durationMin: template.durationMin,
+          blocks: {
+            create: template.blocks.map((block, position) => ({
+              name: block.name,
+              variant: "club",
+              position,
+              items: {
+                create: block.items.map((item, itemPosition) => ({
+                  exerciseId: exerciseIds.get(item.exercise)!,
+                  position: itemPosition,
+                  prescription: item.prescription,
+                })),
+              },
+            })),
+          },
+        },
+      });
+    }
     return { ...org, firstGroupId: group.id };
   });
   await syncEntitlements(organization.id, plan);

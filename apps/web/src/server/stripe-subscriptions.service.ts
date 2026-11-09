@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import { handleMirrorEvent, subscriptionRevenueColumns } from "./billing-mirror.service";
 import { billingEmailsFor, isPaidPlan, type PlanKey, type SubscriptionState } from "@tartan/domain";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
@@ -37,6 +38,7 @@ export const subscriptionsForCustomer = async (customer: string): Promise<Stripe
       customer,
       status: "all",
       limit: 100,
+      expand: ["data.discounts"],
       ...(startingAfter ? { starting_after: startingAfter } : {}),
     });
     subscriptions.push(...result.data);
@@ -128,6 +130,11 @@ export const reconcileStripeSubscription = async (
           currentPeriodEnd: end,
           cancelAt,
         });
+      // Hors de la comparaison ci-dessus : une remise ou un essai changé n'altère pas les droits.
+      await tx.subscription.updateMany({
+        where: { organizationId, provider: "stripe", providerRef: selected.id },
+        data: subscriptionRevenueColumns(selected),
+      });
       // Sous le verrou : webhook et réconciliation concurrents voient la même transition une seule fois.
       const owner = await tx.user.findUniqueOrThrow({ where: { id: currentOrg.ownerId }, select: { email: true } });
       const emails = billingEmailsFor(
@@ -136,8 +143,9 @@ export const reconcileStripeSubscription = async (
           status: current?.status ?? null,
           cancelAt: current?.cancelAt ?? null,
           subscriptionId: current?.provider === "stripe" ? current.providerRef : null,
+          periodEnd: current?.currentPeriodEnd ?? null,
         },
-        { paid: isPaidPlan(plan), status, cancelAt, subscriptionId: selected.id },
+        { paid: isPaidPlan(plan), status, cancelAt, subscriptionId: selected.id, periodEnd: end },
       );
       for (const email of emails) {
         if (currentOrg.billingOwnerId && currentOrg.billingOwnerId !== currentOrg.ownerId) continue;
@@ -163,7 +171,7 @@ export const reconcileStripeSubscription = async (
 };
 
 export const handleStripeEvent = async (event: Stripe.Event): Promise<void> => {
-  if (!event.type.startsWith("customer.subscription.")) return;
+  if (!event.type.startsWith("customer.subscription.")) return handleMirrorEvent(event);
   if (await prisma.billingEvent.findUnique({ where: { id: event.id } })) return;
   const customerId = objectId((event.data.object as { customer?: unknown }).customer);
   // Le rattachement passe par le client enregistré, jamais par une métadonnée seule.

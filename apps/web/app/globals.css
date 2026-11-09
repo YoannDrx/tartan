@@ -377,6 +377,48 @@
       --color-work-on-status: #15161a;
     }
   }
+  /* Thème par défaut : la page redevient la piste, le contenu reste sur des cartes encre. */
+  html:has([data-theme="tartan"]) {
+    --work-scheme: dark;
+    --activity-strength-bg: #3a3c43;
+    --activity-strength-text: #ffffff;
+    --activity-plyo-bg: #3a2c55;
+    --activity-plyo-text: #d9c8f5;
+    --activity-running-bg: #1c3552;
+    --activity-running-text: #b5d3f5;
+    --activity-stairs-bg: #4a3312;
+    --activity-stairs-text: #f7d29a;
+    --activity-cones-bg: #473b0e;
+    --activity-cones-text: #f5de85;
+    --activity-mobility-bg: #1c3f2f;
+    --activity-mobility-text: #b0e3c6;
+    --activity-jump-bg: #5a281d;
+    --activity-jump-text: #f9c0b2;
+    --color-work-page: #c4442b;
+    --color-work-surface: #15161a;
+    --color-work-raised: #24262c;
+    --color-work-text: #ffffff;
+    --color-work-muted: #b9bbc0;
+    --color-work-border: #3a3c43;
+    --color-work-control-line: #8c8e94;
+    --color-work-action: #c6f432;
+    --color-work-on-action: #15161a;
+    --color-work-action-hover: #aedb1e;
+    --color-work-selection: #3a3c43;
+    --color-work-on-selection: #c6f432;
+    --color-work-link: #c6f432;
+    --color-work-st-done: #c6f432;
+    --color-work-st-partial: #ffc838;
+    --color-work-st-missed: #ff6b57;
+    --color-work-st-upcoming: #b9bbc0;
+    --color-work-on-status: #15161a;
+  }
+  html:has(.world-work):has([data-theme="tartan"]) {
+    --color-page-deep: var(--color-band-deep);
+    --color-lane: var(--color-band-lane);
+    --color-card-raised: var(--color-work-raised);
+    scrollbar-color: var(--color-band-text) var(--color-band-deep);
+  }
   .world-work,
   html:has(.world-work) .on-card:not(.scene-dark, .scene-dark *) {
     --color-accent: var(--color-work-action);
@@ -403,6 +445,26 @@
     color: var(--ctx-fg);
     color-scheme: var(--work-scheme);
     scrollbar-color: var(--color-work-muted) transparent;
+  }
+  /* Posé directement sur la piste, le texte reste blanc : aucune teinte atténuée n'y tiendrait 4,5:1. */
+  html:has([data-theme="tartan"]) .world-work:not(.on-card) {
+    --ctx-soft: var(--color-band-text);
+    --ctx-link: var(--color-band-text);
+    --ctx-alert: var(--color-band-text);
+    --ctx-danger: var(--color-band-text);
+    --ctx-focus: var(--color-band-text);
+    --ctx-second: transparent;
+    --ctx-second-line: var(--color-band-text);
+    --ctx-second-width: 2px;
+    --ctx-second-hover: var(--color-band-deep);
+    --ctx-raise: var(--color-band-deep);
+    --ctx-pill-off: transparent;
+    --ctx-pill-line: var(--color-band-text);
+    --ctx-select-bg: var(--color-band-action);
+    --ctx-select-fg: var(--color-on-band-action);
+  }
+  html:has([data-theme="tartan"]) .world-work .on-card {
+    --color-lane: var(--color-work-border);
   }
   /* Le bandeau piste : texte blanc, lignes blanches, action citron, quel que soit le thème. */
   .tartan-band {
@@ -942,8 +1004,8 @@
   text-wrap: balance;
 }
 .film-hero-title {
-  font-size: clamp(58px, 8.7vw, 134px);
-  line-height: 0.95;
+  font-size: clamp(50px, 6.4vw, 100px);
+  line-height: 0.98;
 }
 .film-title {
   font-size: clamp(46px, 6.2vw, 96px);

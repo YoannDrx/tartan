@@ -5,6 +5,7 @@ import { Sheet, SheetSection } from "@/components/sheet";
 import { PageHeader } from "@/components/states";
 import { requireSpace } from "@/features/shell/space";
 import { AdminReports } from "@/features/admin/admin-reports";
+import { AdminNav } from "@/features/admin/console-ui";
 import { BirthDateCorrection, DisableAiEverywhere, RetryEmail, SpaceFeaturesForm } from "@/features/admin/operations";
 import { adminOverview, isAdmin } from "@/server/admin.service";
 import { listAllReports } from "@/server/comm.service";
@@ -30,7 +31,7 @@ export default async function AdminPage() {
   if (!isAdmin(actor.email)) redirect("/accueil");
   const [data, reports] = await Promise.all([adminOverview(actor), listAllReports(actor)]);
   const totals = [
-    { label: m.admin.spaces, value: data.spaces.length },
+    { label: m.admin.spaces, value: data.spaceCount },
     { label: m.admin.users, value: data.users },
     ...Object.entries(data.plans).map(([plan, count]) => ({
       label: m.billing.plans[plan as keyof typeof m.billing.plans],
@@ -53,6 +54,7 @@ export default async function AdminPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={m.admin.title} detail={m.admin.lead} />
+      <AdminNav current="/admin" />
       <Sheet>
         <Totals items={totals} />
       </Sheet>

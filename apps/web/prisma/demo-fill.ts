@@ -41,10 +41,34 @@ type Person = {
 };
 
 const JUMPERS: Person[] = [
-  { first: "Léa", last: "Moreau", born: "2005-03-14", discipline: "high_jump", best: 178, squat: 95, goal: "1,85 m cet hiver" },
-  { first: "Tom", last: "Girard", born: "2004-07-02", discipline: "high_jump", best: 205, squat: 140, goal: "Qualification nationale" },
+  {
+    first: "Léa",
+    last: "Moreau",
+    born: "2005-03-14",
+    discipline: "high_jump",
+    best: 178,
+    squat: 95,
+    goal: "1,85 m cet hiver",
+  },
+  {
+    first: "Tom",
+    last: "Girard",
+    born: "2004-07-02",
+    discipline: "high_jump",
+    best: 205,
+    squat: 140,
+    goal: "Qualification nationale",
+  },
   { first: "Inès", last: "Benali", born: "2006-11-21", discipline: "high_jump", best: 168, squat: 80 },
-  { first: "Noah", last: "Petit", born: "2003-01-09", discipline: "high_jump", best: 212, squat: 150, goal: "Passer 2,15 m" },
+  {
+    first: "Noah",
+    last: "Petit",
+    born: "2003-01-09",
+    discipline: "high_jump",
+    best: 212,
+    squat: 150,
+    goal: "Passer 2,15 m",
+  },
   { first: "Camille", last: "Roux", born: "2005-09-30", discipline: "high_jump", best: 172, squat: 90 },
   { first: "Yanis", last: "Haddad", born: "2006-05-17", discipline: "high_jump", best: 190, squat: 110, health: false },
 ];
@@ -342,7 +366,9 @@ const addResults = async (organizationId: string, roster: Roster[], competitionI
       })),
     });
     const high = person.discipline === "high_jump";
-    const season = high ? [person.best - 8, person.best - 3, person.best] : [person.best + 0.21, person.best + 0.08, person.best];
+    const season = high
+      ? [person.best - 8, person.best - 3, person.best]
+      : [person.best + 0.21, person.best + 0.08, person.best];
     let index = 0;
     for (const mark of season) {
       await prisma.performance.create({
@@ -391,7 +417,9 @@ const fillCoachSpace = async (coachId: string, organizationId: string) => {
     where: { organizationId, role: "owner" },
     select: { userId: true },
   });
-  await prisma.organizationMember.create({ data: { organizationId, userId: coachId, role: "coach", status: "active" } });
+  await prisma.organizationMember.create({
+    data: { organizationId, userId: coachId, role: "coach", status: "active" },
+  });
   const first = await prisma.group.findFirstOrThrow({ where: { organizationId }, orderBy: { createdAt: "asc" } });
   const second = await prisma.group.create({
     data: { organizationId, name: SECOND_GROUP, goal: "Préparation de la saison en salle" },
@@ -402,20 +430,23 @@ const fillCoachSpace = async (coachId: string, organizationId: string) => {
       { groupId: second.id, userId: coachId, role: "lead" },
     ],
   });
-  await prisma.exercise.createMany({
-    data: STARTER_LIBRARY.map((e) => ({
-      organizationId,
-      createdBy: coachId,
-      name: e.name,
-      aliases: e.aliases ?? [],
-      classification: e.classification,
-      category: e.category,
-      tags: e.tags,
-      strengthLoadKind: e.strengthLoadKind,
-      cues: e.cues,
-      defaultPrescription: e.prescription,
-    })),
-  });
+  // La création d'espace copie déjà la bibliothèque : seul un espace ancien, resté vide, la reçoit ici.
+  if ((await prisma.exercise.count({ where: { organizationId } })) === 0) {
+    await prisma.exercise.createMany({
+      data: STARTER_LIBRARY.map((e) => ({
+        organizationId,
+        createdBy: coachId,
+        name: e.name,
+        aliases: e.aliases ?? [],
+        classification: e.classification,
+        category: e.category,
+        tags: e.tags,
+        strengthLoadKind: e.strengthLoadKind,
+        cues: e.cues,
+        defaultPrescription: e.prescription,
+      })),
+    });
+  }
 
   const enrollAll = async (groupId: string, people: Person[]) => {
     const roster: Roster[] = [];
@@ -521,7 +552,10 @@ const fillCoachSpace = async (coachId: string, organizationId: string) => {
     if (lastLog) {
       await prisma.sessionLog.update({
         where: { id: lastLog.id },
-        data: { pain: { bodyArea: "knee", side: "right", intensity: 5 }, comment: "Gêne au genou droit en fin de séance." },
+        data: {
+          pain: { bodyArea: "knee", side: "right", intensity: 5 },
+          comment: "Gêne au genou droit en fin de séance.",
+        },
       });
     }
   }
@@ -654,11 +688,17 @@ const remove = async (email: string) => {
     where: { userId: me.id, role: "owner" },
     orderBy: { createdAt: "asc" },
   });
+  await prisma.sessionTemplate.deleteMany({ where: { organization: { ownerId: coach.id, name: ATHLETE_SPACE } } });
   await prisma.organization.deleteMany({ where: { ownerId: coach.id, name: ATHLETE_SPACE } });
-  await prisma.organizationMember.deleteMany({ where: { userId: me.id, role: "athlete", organization: { name: ATHLETE_SPACE } } });
+  await prisma.organizationMember.deleteMany({
+    where: { userId: me.id, role: "athlete", organization: { name: ATHLETE_SPACE } },
+  });
   if (membership) {
     const organizationId = membership.organizationId;
-    const athletes = await prisma.athlete.findMany({ where: { organizationId, userId: { in: peopleIds } }, select: { id: true } });
+    const athletes = await prisma.athlete.findMany({
+      where: { organizationId, userId: { in: peopleIds } },
+      select: { id: true },
+    });
     const athleteIds = athletes.map((a) => a.id);
     await prisma.sessionTemplate.deleteMany({ where: { organizationId, createdBy: coach.id } });
     await prisma.scheduledSession.deleteMany({ where: { organizationId, createdBy: coach.id } });

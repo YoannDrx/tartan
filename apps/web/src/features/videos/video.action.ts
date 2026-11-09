@@ -12,6 +12,7 @@ import {
   deleteJumpAttempt,
   deleteVideo,
   shareVideo,
+  linkVideoExercise,
 } from "@/server/video.service";
 
 export const createVideoAction = spaceAction.inputSchema(createVideoInput).action(async ({ parsedInput, ctx }) => {
@@ -39,6 +40,12 @@ export const deleteJumpAction = spaceAction.inputSchema(z.object({ id: uuid })).
   const { athleteId } = await deleteJumpAttempt(ctx.userId, ctx.organizationId, parsedInput.id);
   revalidatePath(`/athletes/${athleteId}`);
 });
+
+export const linkVideoExerciseAction = spaceAction
+  .inputSchema(z.object({ videoId: uuid, exerciseId: uuid.nullable() }))
+  .action(async ({ parsedInput, ctx }) => {
+    await linkVideoExercise(ctx.userId, ctx.organizationId, parsedInput.videoId, parsedInput.exerciseId);
+  });
 
 export const shareVideoAction = spaceAction
   .inputSchema(shareVideoInput.extend({ videoId: uuid }))

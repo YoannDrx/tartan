@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PLANS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { env } from "@/lib/env";
 import { billingEnabled } from "@/lib/stripe";
@@ -7,7 +8,7 @@ import { PublicPage } from "@/features/shell/public-page";
 
 export const metadata: Metadata = {
   title: m.billing.pricing,
-  description: "Découverte gratuite, Coach à 19 € par mois, Club à 59 € par mois. Les athlètes ne paient jamais.",
+  description: `Découverte gratuite, Coach à ${PLANS.coach.prices?.month} € par mois, Club à ${PLANS.club.prices?.month} € par mois. Les athlètes ne paient jamais.`,
 };
 
 export default function TarifsPage() {

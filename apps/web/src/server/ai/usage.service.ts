@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { uuid, plannerUsageResponse } from "@tartan/contracts";
-import { plannerQuotaFits, plannerLimits, PLANNER_MAX_AUDIO_SECONDS } from "@tartan/domain";
+import { plannerQuotaFits, plannerLimits, plannerServerEnabled, PLANNER_MAX_AUDIO_SECONDS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
@@ -58,7 +58,7 @@ const monthAt = (now: Date, timeZone: string) => {
   return `${parts.find((p) => p.type === "year")!.value}-${parts.find((p) => p.type === "month")!.value}`;
 };
 const enabled = (organization: { aiPlannerEnabled: boolean; plan: string }) =>
-  env().AI_PLANNER_ENABLED === "true" && organization.aiPlannerEnabled && organization.plan !== "discovery";
+  plannerServerEnabled(env()) && organization.aiPlannerEnabled && organization.plan !== "discovery";
 
 async function refund(tx: Prisma.TransactionClient, row: AiPlannerOperation, code: string) {
   if (row.state !== "pending") return;
@@ -117,7 +117,7 @@ export async function reservePlannerOperation(
 ): Promise<PlannerOperationClaim> {
   const input = inputSchema.parse(raw);
   await requireOrgMember(userId, organizationId, "manageSessions");
-  if (env().AI_PLANNER_ENABLED !== "true") throw disabled();
+  if (!plannerServerEnabled(env())) throw disabled();
   return prisma.$transaction(
     async (tx) => {
       await lock(tx, organizationId);

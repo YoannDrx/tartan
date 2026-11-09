@@ -1,0 +1,50 @@
+name: Publier le mobile
+
+# Déclenchement manuel uniquement : une version n'est annoncée que si packages/i18n/src/releases.ts la déclare.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "ota : mise à jour à distance. store : nouveau binaire soumis aux stores."
+        required: true
+        type: choice
+        options: [ota, store]
+      platform:
+        description: "Plateforme visée"
+        required: true
+        type: choice
+        options: [all, ios, android]
+      message:
+        description: "Résumé interne de la publication (mode ota)"
+        required: false
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Mise à jour à distance
+        if: inputs.mode == 'ota'
+        env:
+          MESSAGE: ${{ inputs.message }}
+          PLATFORM: ${{ inputs.platform }}
+        run: eas update --channel production --platform "$PLATFORM" --message "${MESSAGE:-Publication manuelle}" --non-interactive
+      - name: Binaire et soumission
+        if: inputs.mode == 'store'
+        env:
+          PLATFORM: ${{ inputs.platform }}
+        run: eas build --profile production --platform "$PLATFORM" --auto-submit --non-interactive
