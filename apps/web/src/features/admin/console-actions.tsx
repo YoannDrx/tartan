@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
+import { passkeyClient } from "@better-auth/passkey/client";
+import { createAuthClient } from "better-auth/react";
 import { authClient } from "@/lib/auth-client";
 import {
   cancelAtPeriodEndAction,
@@ -334,9 +336,11 @@ export const PasskeyGate = ({
       onSubmit={(e) => {
         e.preventDefault();
         void run(async () => {
-          const created = await authClient.passkey.addPasskey({
+          // Le client ne transmet `fetchOptions` qu'à la seconde requête : l'en-tête doit porter sur tout le client.
+          const created = await createAuthClient({
+            plugins: [passkeyClient()],
             fetchOptions: { headers: { "x-admin-bootstrap": token } },
-          });
+          }).passkey.addPasskey();
           if (created?.error) throw new Error("passkey");
           await verify();
         });

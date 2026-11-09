@@ -41,7 +41,8 @@ export default defineConfig({
           E2E_DISABLE_ADMIN_STEP_UP: "true",
           COACH_SIGNUP_MODE: "public",
           ADMIN_EMAILS:
-            "support-desktop@e2e.tartan.test,support-mobile@e2e.tartan.test,console-desktop@e2e.tartan.test,console-mobile@e2e.tartan.test",
+            "support-desktop@e2e.tartan.test,support-mobile@e2e.tartan.test,console-desktop@e2e.tartan.test,console-mobile@e2e.tartan.test,passkey-desktop@e2e.tartan.test",
+          ADMIN_BOOTSTRAP_TOKEN: "jeton-e2e",
           DATABASE_URL,
           BETTER_AUTH_URL: `http://localhost:${PORT}`,
           NEXT_PUBLIC_APP_URL: `http://localhost:${PORT}`,
