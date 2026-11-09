@@ -78,7 +78,11 @@ export const plannerSession = z
 export const plannerQuestion = z
   .object({
     id: z.string().min(1).max(60),
-    field: z.enum(["target", "date", "exercise", "unit", "rest", "load", "other"]),
+    field: z
+      .enum(["target", "date", "exercise", "unit", "rest", "load", "other"])
+      .describe(
+        "Information manquante : target = destinataire ; date = jour ou période, y compris une période trop longue ; exercise = fiche de bibliothèque inconnue ou ambiguë ; unit = sens d'un nombre sans unité (mètres, secondes, répétitions, par jambe, par haltère) ; rest = récupération absente, habituelle ou contradictoire ; load = charge absente, habituelle, contradictoire ou conversion demandée ; other = séries, répétitions ou nombre de séances, notamment plus de quatorze séances.",
+      ),
     question: z.string().min(1).max(500),
     options: z.array(z.string().min(1).max(200)).max(5),
   })

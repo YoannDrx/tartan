@@ -22,6 +22,7 @@ import {
 } from "@tartan/contracts";
 import {
   validatePlannerInterpretation,
+  plannerServerEnabled,
   plannerPrescriptionToSession,
   plannerDisplayText,
   plannerRetentionDeadline,
@@ -72,7 +73,7 @@ async function accessFor(userId: string, organizationId: string, db: Prisma.Tran
     where: { id: organizationId },
     select: { aiPlannerEnabled: true, plan: true },
   });
-  if (env().AI_PLANNER_ENABLED !== "true" || !org.aiPlannerEnabled || org.plan === "discovery")
+  if (!plannerServerEnabled(env()) || !org.aiPlannerEnabled || org.plan === "discovery")
     throw new AppError(403, "planner_disabled", m.aiPlanner.disabled);
   return access;
 }

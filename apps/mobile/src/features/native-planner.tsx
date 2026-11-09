@@ -9,8 +9,13 @@ import {
   type PlannerSelection,
   type PlannerUsageResponse,
 } from "@tartan/contracts";
-import { plannerDisplayText, phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
-import { m } from "@tartan/i18n";
+import {
+  plannerDisplayText,
+  plannerProposalsExhausted,
+  phasePlanningKey,
+  type PhasePlanningReadiness,
+} from "@tartan/domain";
+import { historyDate, m } from "@tartan/i18n";
 import { usePreventRemove } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
@@ -242,10 +247,12 @@ export function NativePlanner({
     confirmPlannerProposalInput.safeParse({ expectedVersion: proposal.version, sessions: drafts, confirmed: true })
       .success;
   const disabled = busy || recording || !online;
+  const exhausted = plannerProposalsExhausted(usage);
   return (
     <StackScreen title={t.title}>
       <T variant="smallStrong">{t.beta}</T>
       <T>{t.lead}</T>
+      {exhausted && !proposal ? <T accessibilityLiveRegion="polite">{t.quotaExceeded}</T> : null}
       <T variant="small" tone="muted">
         {t.usage(usage.used.proposals, usage.reserved.proposals, usage.limit.proposals)}
       </T>
@@ -277,7 +284,7 @@ export function NativePlanner({
       {!proposal && contextReady ? (
         <View style={{ gap: space.md }}>
           <T variant="bodyStrong">
-            {selection.period.from} – {selection.period.to}
+            {historyDate(selection.period.from)} – {historyDate(selection.period.to)}
           </T>
           <T>
             {[
@@ -327,7 +334,7 @@ export function NativePlanner({
           <Button
             label={t.propose}
             loading={busy}
-            disabled={disabled || !reviewed || !text.trim() || text.length > 12000}
+            disabled={disabled || exhausted || !reviewed || !text.trim() || text.length > 12000}
             onPress={() => {
               void generate();
             }}
@@ -395,6 +402,7 @@ export function NativePlanner({
                       setReplyReviewed(false);
                     }}
                   />
+                  {reply.length > 12000 ? <T tone="danger">{t.textTooLong}</T> : null}
                   <Button
                     label={t.reviewed}
                     variant="secondary"
@@ -438,7 +446,7 @@ export function NativePlanner({
               {proposal.interpretation?.sessions.map((session, i) => (
                 <View key={i} style={{ gap: space.sm }}>
                   <T variant="bodyStrong">
-                    {session.date} · {displayText(session.title)}
+                    {historyDate(session.date)} · {displayText(session.title)}
                   </T>
                   <T>
                     {session.targetTokens
@@ -496,6 +504,7 @@ export function NativePlanner({
                 />
               ))}
               <T>{t.noPublication}</T>
+              {!draftsValid ? <T accessibilityLiveRegion="polite">{t.draftsInvalid}</T> : null}
               {drafts.some((draft, i) => !loadsReady[i]?.ready || loadsReady[i]?.key !== JSON.stringify(draft)) ? (
                 <T>{t.previewRequired}</T>
               ) : null}

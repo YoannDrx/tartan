@@ -6,7 +6,7 @@ import {
   type ProfileInput,
   type SpaceSummary,
 } from "@tartan/contracts";
-import { can } from "@tartan/domain";
+import { can, plannerServerEnabled } from "@tartan/domain";
 import { put } from "@vercel/blob";
 import { fromDbDateOrNull, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
@@ -42,9 +42,14 @@ export const listSpaces = async (userId: string): Promise<SpaceSummary[]> => {
     progressionEnabled: r.organization.progressionEnabled,
     phasesEnabled: r.organization.phasesEnabled,
     aiPlannerEnabled:
-      env().AI_PLANNER_ENABLED === "true" &&
+      plannerServerEnabled(env()) &&
       r.organization.aiPlannerEnabled &&
       r.organization.plan !== "discovery" &&
+      can(r.role, "manageSessions"),
+    aiPlannerUpgrade:
+      plannerServerEnabled(env()) &&
+      r.organization.aiPlannerEnabled &&
+      r.organization.plan === "discovery" &&
       can(r.role, "manageSessions"),
     role: r.role,
     athleteId: r.role === "athlete" ? (athletes.find((a) => a.organizationId === r.organization.id)?.id ?? null) : null,

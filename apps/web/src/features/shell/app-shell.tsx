@@ -6,6 +6,7 @@ import {
   Dumbbell,
   House,
   Megaphone,
+  Sparkles,
   TrendingUp,
   UsersRound,
   Video,
@@ -100,7 +101,12 @@ export const AppShell = ({
   const work = worldFor(pathname) === "world-work";
   const selectedClass = "bg-accent text-on-accent";
   const barClass = work ? "tartan-band" : "on-card bg-card";
-  const items = staff ? coachItems : athleteItems;
+  const plannerItem: Item = { href: "/planificateur", label: m.nav.planificateur, icon: Sparkles, mobile: false };
+  const items = staff
+    ? space.aiPlannerEnabled || space.aiPlannerUpgrade
+      ? [...coachItems.slice(0, 2), plannerItem, ...coachItems.slice(2)]
+      : coachItems
+    : athleteItems;
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   // Le mode séance et l'analyse vidéo prennent tout l'écran, en sombre.
   const immersive = /^\/(seance\/[^/]+\/mode|videos\/[^/]+|mes-sauts\/[^/]+)/.test(pathname);

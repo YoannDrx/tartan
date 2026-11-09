@@ -100,7 +100,7 @@ export default function PlannerScreen() {
   if (!space?.aiPlannerEnabled || !orgId)
     return (
       <StackScreen title={m.aiPlanner.title}>
-        <T>{m.aiPlanner.disabled}</T>
+        <T>{space?.aiPlannerUpgrade ? m.aiPlanner.paidOnly : m.aiPlanner.disabled}</T>
       </StackScreen>
     );
   if (params.proposalId && !uuid.safeParse(params.proposalId).success)

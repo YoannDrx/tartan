@@ -4,6 +4,7 @@ import { DateInput } from "@/components/ui/date-input";
 import { plannerPeriod, plannerSelection, type PlannerSelection } from "@tartan/contracts";
 import { addDays, phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
 import { m, historyDate } from "@tartan/i18n";
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import type { getSessionBuilderContext } from "@/server/session-builder.service";
 import { Button } from "@/components/ui/button";
@@ -142,6 +143,14 @@ export function PlannerSelectionForm({
         </Field>
       </fieldset>
       {!dates.length ? <p role="status">{t.periodInvalid}</p> : null}
+      {!context.groups.length && !context.athletes.length ? (
+        <p role="status">
+          {t.noRecipients}{" "}
+          <Link href="/athletes" className="underline underline-offset-4">
+            {t.addRecipients}
+          </Link>
+        </p>
+      ) : null}
       <fieldset className="min-w-0">
         <legend className="t-section">{m.trainingPhases.group}</legend>
         <div className="grid gap-x-4 tablet:grid-cols-2">

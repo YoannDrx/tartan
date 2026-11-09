@@ -4,6 +4,7 @@ import { uuid } from "@tartan/contracts";
 import { m, historyDate } from "@tartan/i18n";
 import { PageHeader } from "@/components/states";
 import { Button } from "@/components/ui/button";
+import { PlannerUnavailable } from "@/features/planner/planner-unavailable";
 import { requireSpace, orNotFound } from "@/features/shell/space";
 import { listPlannerProposals } from "@/server/ai/proposal.service";
 import { getPlannerUsage } from "@/server/ai/usage.service";
@@ -12,7 +13,7 @@ export const metadata = { title: m.aiPlanner.recent };
 export default async function PlannerProposalsPage({ searchParams }: { searchParams: Promise<{ avant?: string }> }) {
   const { actor, organizationId, space } = await requireSpace();
   const t = m.aiPlanner;
-  if (!space.aiPlannerEnabled) return <p>{t.disabled}</p>;
+  if (!space.aiPlannerEnabled) return <PlannerUnavailable space={space} />;
   const { avant } = await searchParams;
   if (avant && !uuid.safeParse(avant).success) notFound();
   const usage = await orNotFound(() => getPlannerUsage(actor.userId, organizationId));

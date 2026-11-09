@@ -143,6 +143,7 @@ export function NativePlannerSelection({
         </T>
       ) : null}
       <SectionTitle>{m.builder.audience}</SectionTitle>
+      {!context.groups.length && !context.athletes.length ? <T>{t.noRecipients}</T> : null}
       <T variant="smallStrong">{m.trainingPhases.group}</T>
       {context.groups.map((g) => (
         <Button

@@ -1,4 +1,4 @@
-import { addDays } from "@tartan/domain";
+import { addDays, plannerServerEnabled } from "@tartan/domain";
 import { todayIso, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { forbidden, invalid, notFound } from "@/lib/errors";
@@ -160,7 +160,7 @@ export const adminOverview = async (actor: { email: string }, now: Date = new Da
     spaces,
     spaceCount: planGroups.reduce((total, row) => total + row._count._all, 0),
     plans,
-    aiServerEnabled: env().AI_PLANNER_ENABLED === "true",
+    aiServerEnabled: plannerServerEnabled(env()),
     notificationDelivery: await notificationDeliveryHealth(now),
     externalDeletions: await externalDeletionHealth(now),
     billingIssues: await prisma.organization.findMany({

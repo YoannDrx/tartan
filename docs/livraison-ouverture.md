@@ -11,17 +11,17 @@ Ce document distingue trois états : code livré dans la PR, testé automatiquem
 | 2   | Centre de notifications, notes de version, mises à jour                                           | Livré dans la branche ; tests serveur verts. Skew Protection à activer dans Vercel. Android : disponibilité store confirmée à la main depuis la console. Push réels à éprouver |
 | 3   | Console d'administration, remboursements                                                          | Livré dans la branche ; tests verts. À faire avant usage : `ADMIN_EMAILS`, `ADMIN_BOOTSTRAP_TOKEN`, `PASSKEY_RP_ID`, webhooks Stripe élargis, vrai remboursement éprouvé       |
 | 4   | Lien vidéo-exercice, « À travailler », bibliothèque, modèles de départ, préférences e-mail mobile | Livré dans la branche ; tests verts. Le lien se pose depuis l'analyse web                                                                                                      |
-| 5   | Activation, IA bêta, relances, export d'espace, Sentry                                            | Livré dans la branche ; tests verts. IA : corpus à rejouer avec une nouvelle clé avant `AI_PLANNER_ENABLED=true`                                                               |
+| 5   | Activation, IA bêta, relances, export d'espace, Sentry                                            | Livré dans la branche ; tests verts. IA : corpus 59/60 sur texte fictif, active dès qu'une clé est configurée                                                               |
 | 6   | Landing, vraies captures                                                                          | Livré dans la branche ; captures iOS Release et web sur données fictives, procédure dans `preuves-v1-1/captures-landing.md`                                                    |
 
 ## Écarts au plan
 
-- Captures iOS prises par `simctl` et liens profonds sur un build Release, sans Maestro ni script `pnpm captures` unique.
-- Android : la disponibilité sur le store se confirme à la main dans la console d'administration, sans API Play.
-- Recherche d'administration en `contains`, sans index trigrammes.
-- Lien vidéo-exercice posé depuis l'analyse web, filtre `?exercice=` sur `/videos`, pas de fiche exercice web.
-- Corpus IA non rejoué : la clé OpenAI doit d'abord être remplacée. `AI_PLANNER_ENABLED` reste à `false`.
-- Passes UI/UX Pro Max et Frontend Design non effectuées sur la landing : seule la grille de qualité d'Impeccable a été appliquée.
+- `pnpm captures` remplace Maestro et a produit les captures iOS du site le 9 novembre 2026, sur simulateur et build Release. La connexion de l'athlète dans l'app reste manuelle (`docs/preuves-v1-1/captures-landing.md`).
+- Android : `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` active la lecture de Google Play, testée sur des réponses simulées, jamais contre Google. Une version n'est annoncée que publiée après revue et servie à 100 % : un déploiement progressif se confirme à la main, comme tout échec de lecture ou absence d'identifiants. Le nom de la sortie doit porter la version (`1.2.0` ou `12 (1.2.0)`). Les droits exacts du compte de service dans la Play Console restent à établir à la création du compte.
+- Index trigrammes de la recherche d'administration vérifiés en local sur PostgreSQL 17, y compris avec un rôle non superutilisateur. `CREATE EXTENSION pg_trgm` n'a jamais été joué sur Neon ni sur la CI : à surveiller à la première migration.
+- Fiche exercice web et lien vidéo-exercice natif : services et rendu testés, fiche web revue en thème Tartan, écran natif non ouvert sur un appareil.
+- Corpus IA rejoué le 9 novembre 2026 : 59/60, 0 date fausse, 0 charge inventée (`gpt-4.1-mini`, détail dans `preuves-v1-1/lot-e-corpus-ia.md`). Texte fictif seulement : dictées réelles, téléphones physiques et corrections par des coachs restent à mesurer. L'IA s'ouvre dès qu'une clé est configurée ; `AI_PLANNER_ENABLED=false` la coupe. La clé OpenAI reste à faire tourner.
+- Passes UI/UX Pro Max, Frontend Design et Impeccable faites le 9 novembre 2026 sur la landing et toutes les pages web : 126 vues à 1440 et 390 px, relues à l'œil, axe sans violation, aucun débordement. Écrans natifs de l'athlète revus sur simulateur ; écrans natifs du coach couverts seulement par les tests de contraste des palettes, jamais ouverts dans ce thème.
 
 ## Ce que les tests ne prouvent pas
 

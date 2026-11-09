@@ -20,6 +20,8 @@ export const spaceSummary = z.object({
   progressionEnabled: z.boolean().optional(),
   phasesEnabled: z.boolean().optional(),
   aiPlannerEnabled: z.boolean().optional(),
+  // Le coach d'un espace Découverte voit le planificateur et l'offre qui l'ouvre.
+  aiPlannerUpgrade: z.boolean().optional(),
   role: orgRole,
   athleteId: z.string().nullable(),
 });

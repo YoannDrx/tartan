@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { env } from "@/lib/env";
-import { plannerAudioIsWithinLimits } from "@tartan/domain";
+import { plannerAudioIsWithinLimits, plannerServerEnabled } from "@tartan/domain";
 import type { PlannerAudio } from "./audio";
 import { PlannerProviderError } from "./provider";
 
@@ -31,7 +31,7 @@ export function openAiTranscriptionProvider(fetcher: typeof fetch = fetch): Plan
   return {
     async transcribe(audio) {
       const settings = env();
-      if (settings.AI_PLANNER_ENABLED !== "true") throw new PlannerProviderError("disabled");
+      if (!plannerServerEnabled(settings)) throw new PlannerProviderError("disabled");
       const key = settings.OPENAI_API_KEY ?? settings.OPEN_AI_API_KEY;
       if (!key || !plannerAudioIsWithinLimits(audio.bytes.byteLength, audio.durationSeconds))
         throw new PlannerProviderError("configuration");
