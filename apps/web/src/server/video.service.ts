@@ -10,7 +10,7 @@ import { m } from "@tartan/i18n";
 import { fromDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { AppError, consentRequired, forbidden, invalid, notFound } from "@/lib/errors";
-import { createDirectUpload, signedPlayback, unwrapWebhook, videoEnabled } from "@/lib/mux";
+import { createDirectUpload, signedPlayback, unwrapWebhook, videoEnabled, readUpload } from "@/lib/mux";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireOwnedRefs, requireVisibleAthlete, visibleAthleteIds, type Access } from "./access";
@@ -177,34 +177,34 @@ export const renewVideoUpload = async (userId: string, organizationId: string, v
   return { videoId, uploadUrl: upload.url };
 };
 
-// Mux prévient : la vidéo passe à « prête », avec sa fréquence et sa durée (§ 11.5).
-export const handleMuxWebhook = async (rawBody: string, headers: Headers): Promise<void> => {
-  const event = unwrapWebhook(rawBody, headers) as unknown as {
-    type: string;
-    data: {
-      id: string;
-      passthrough?: string;
-      duration?: number;
-      playback_ids?: { id: string }[];
-      upload_id?: string;
-      tracks?: { type: string; max_frame_rate?: number }[];
-    };
-  };
-  await applyMuxEvent(event);
-};
+// Signature absente ou fausse : à distinguer d'une panne de notre côté, que Mux doit pouvoir réessayer.
+export class MuxSignatureError extends Error {}
 
-export const applyMuxEvent = async (event: {
+type MuxEvent = {
   type: string;
   data: {
     id: string;
     passthrough?: string;
     duration?: number;
     playback_ids?: { id: string }[];
-    tracks?: { type: string; max_frame_rate?: number }[];
+    tracks?: { type?: string; max_frame_rate?: number }[];
   };
-}): Promise<void> => {
+};
+
+// Mux prévient : la vidéo passe à « prête », avec sa fréquence et sa durée (§ 11.5).
+export const handleMuxWebhook = async (rawBody: string, headers: Headers): Promise<void> => {
+  let event: MuxEvent;
+  try {
+    event = (await unwrapWebhook(rawBody, headers)) as MuxEvent;
+  } catch {
+    throw new MuxSignatureError();
+  }
+  await applyMuxEvent(event);
+};
+
+export const applyMuxEvent = async (event: MuxEvent): Promise<void> => {
   // Un envoi interrompu ne laisse pas la vidéo « en cours d'envoi » pour toujours.
-  if (event.type === "video.upload.errored") {
+  if (event.type === "video.upload.errored" || event.type === "video.upload.cancelled") {
     await prisma.video.updateMany({ where: { muxUploadId: event.data.id }, data: { status: "error" } });
     return;
   }
@@ -239,7 +239,11 @@ export const applyMuxEvent = async (event: {
     }
   }
   if (event.type === "video.asset.created") {
-    await prisma.video.updateMany({ where: { id }, data: { status: "processing", muxAssetId: event.data.id } });
+    // Mux ne garantit pas l'ordre : un « créé » tardif ne fait pas reculer une vidéo déjà prête.
+    await prisma.video.updateMany({
+      where: { id, status: "uploading" },
+      data: { status: "processing", muxAssetId: event.data.id },
+    });
   } else if (event.type === "video.asset.ready") {
     const track = event.data.tracks?.find((t) => t.type === "video");
     const video = await prisma.video.findUnique({ where: { id }, select: { fps: true, timeScale: true } });
@@ -269,6 +273,78 @@ export const applyMuxEvent = async (event: {
     await prisma.video.updateMany({ where: { id }, data: { status: "error" } });
     log.error("video_encoding_failed", { entityId: id });
   }
+};
+
+const assetEvent = (status: string): string | null =>
+  status === "ready"
+    ? "video.asset.ready"
+    : status === "errored"
+      ? "video.asset.errored"
+      : status === "preparing"
+        ? "video.asset.created"
+        : null;
+
+const STUCK_AFTER_MS = 10 * 60 * 1000;
+// Une adresse expire après 24 h, mais la file locale peut la renouveler : un téléphone resté sans réseau n'est pas un échec.
+const ABANDONED_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+const RECONCILE_BATCH = 50;
+
+// Filet du webhook : relit chez Mux les vidéos restées en chemin, y compris les démonstrations d'exercices.
+export const reconcileStuckVideos = async (now: Date = new Date()) => {
+  const result = { checked: 0, repaired: 0, failed: 0 };
+  if (!videoEnabled()) return result;
+  const stuckBefore = new Date(now.getTime() - STUCK_AFTER_MS);
+  const abandonedBefore = new Date(now.getTime() - ABANDONED_AFTER_MS);
+  const lost = await prisma.video.updateMany({
+    where: { status: "uploading", muxUploadId: null, createdAt: { lt: abandonedBefore } },
+    data: { status: "error" },
+  });
+  result.failed += lost.count;
+  const [videos, media] = await Promise.all([
+    prisma.video.findMany({
+      where: { status: { in: ["uploading", "processing"] }, muxUploadId: { not: null }, updatedAt: { lt: stuckBefore } },
+      select: { id: true, muxUploadId: true, createdAt: true },
+      orderBy: { updatedAt: "asc" },
+      take: RECONCILE_BATCH,
+    }),
+    prisma.exerciseMedia.findMany({
+      where: { muxUploadId: { not: null }, muxPlaybackId: null, createdAt: { lt: stuckBefore } },
+      select: { id: true, muxUploadId: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+      take: RECONCILE_BATCH,
+    }),
+  ]);
+  const rows = [
+    ...videos.map((row) => ({ ...row, passthrough: `video:${row.id}`, isVideo: true })),
+    ...media.map((row) => ({ ...row, passthrough: `exercise:${row.id}`, isVideo: false })),
+  ];
+  for (const row of rows) {
+    result.checked += 1;
+    try {
+      const upload = await readUpload(row.muxUploadId!);
+      if (upload.state === "asset") {
+        const type = assetEvent(upload.asset.status);
+        if (!type) continue;
+        await applyMuxEvent({ type, data: { ...upload.asset, passthrough: row.passthrough } });
+        if (upload.asset.status === "ready") result.repaired += 1;
+        continue;
+      }
+      if (!row.isVideo) continue;
+      const gaveUp =
+        upload.state === "failed" ||
+        upload.state === "missing" ||
+        (upload.state === "expired" && row.createdAt < abandonedBefore);
+      if (gaveUp) {
+        await prisma.video.updateMany({ where: { id: row.id, status: "uploading" }, data: { status: "error" } });
+        result.failed += 1;
+      }
+    } catch {
+      // Une panne Mux ponctuelle n'arrête pas le lot : la ligne sera relue au prochain passage.
+      log.warn("video_reconcile_failed", { entityId: row.id });
+    }
+  }
+  if (result.repaired || result.failed) log.info("video_reconciled", { count: result.repaired + result.failed });
+  return result;
 };
 
 const videoWhereFor = async (access: Access) => {

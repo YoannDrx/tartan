@@ -37,6 +37,7 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { reportContentAction } from "@/features/comments/comment.action";
 import { CommentThread } from "@/features/comments/thread";
+import { RefreshWhilePending } from "./refresh-while-pending";
 import { groupMarkers } from "./timeline-markers";
 import { VideoExerciseLink } from "./video-exercise-link";
 import { addAnnotationAction, deleteAnnotationAction, shareVideoAction } from "./video.action";
@@ -269,6 +270,7 @@ export const VideoAnalysis = ({
               />
             ) : (
               <div className="flex aspect-video w-full items-center justify-center p-6 text-center text-soft">
+                {video.status === "uploading" || video.status === "processing" ? <RefreshWhilePending /> : null}
                 {video.consentRevoked
                   ? m.video.consentRevoked
                   : video.status === "error"

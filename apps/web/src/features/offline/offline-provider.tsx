@@ -10,6 +10,7 @@ import {
   processUploads,
   setUploadOwner,
   UPLOAD_EVENT,
+  UPLOAD_SETTLED_EVENT,
   uploadProgress,
   type UploadProgress,
 } from "@/features/videos/upload-queue";
@@ -73,6 +74,11 @@ export const OfflineProvider = ({
       for (const message of videos.refused) toast.error(message);
       if (ops.sent > 0 || videos.finished > 0) router.refresh();
     };
+    const settled = (event: Event) => {
+      const { refused, finished } = (event as CustomEvent<{ refused: string[]; finished: number }>).detail;
+      for (const message of refused) toast.error(message);
+      if (finished > 0) router.refresh();
+    };
     void flush();
     void syncOfflinePages(organizationId);
     const visible = () => {
@@ -83,6 +89,7 @@ export const OfflineProvider = ({
     window.addEventListener("offline", flush);
     window.addEventListener(QUEUE_EVENT, refreshCounts);
     window.addEventListener(UPLOAD_EVENT, refreshCounts);
+    window.addEventListener(UPLOAD_SETTLED_EVENT, settled);
     document.addEventListener("visibilitychange", visible);
     return () => {
       clearInterval(timer);
@@ -90,6 +97,7 @@ export const OfflineProvider = ({
       window.removeEventListener("offline", flush);
       window.removeEventListener(QUEUE_EVENT, refreshCounts);
       window.removeEventListener(UPLOAD_EVENT, refreshCounts);
+      window.removeEventListener(UPLOAD_SETTLED_EVENT, settled);
       document.removeEventListener("visibilitychange", visible);
     };
   }, [organizationId, userId, router]);

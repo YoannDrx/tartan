@@ -7,6 +7,7 @@ import Link from "next/link";
 import { JumpMark } from "@/components/bar-sheet";
 import { Sheet } from "@/components/sheet";
 import { Chip } from "@/components/states";
+import { RefreshWhilePending } from "./refresh-while-pending";
 
 const statusLabel = (v: VideoSummary) =>
   v.status === "uploading"
@@ -43,6 +44,7 @@ export const VideoList = ({
   }
   return (
     <Sheet>
+      {videos.some((v) => v.status === "uploading" || v.status === "processing") ? <RefreshWhilePending /> : null}
       {[...days.entries()].map(([day, list]) => (
         <section key={day} aria-label={day}>
           <h2 className="t-col border-b border-card-line bg-card-raised px-4 py-1.5 [&:not(:first-child)]:border-t">
