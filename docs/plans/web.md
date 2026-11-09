@@ -6,7 +6,7 @@ Objectif : une web app et une PWA qu'un coach inconnu peut trouver, payer et uti
 
 | N° | Action | Qui | Vérification |
 | --- | --- | --- | --- |
-| W1 | Passkey de secours sur un second appareil, depuis `/admin/configuration` | Fondateur | Deux passkeys listées, connexion avec chacune |
+| W1 | Passkey de secours sur un second appareil, depuis `/admin/configuration` | Fondateur | Compteur à 2 dans Configuration, connexion avec chacune |
 | W2 | Créer dans Resend le webhook `https://app.tartan.coach/api/webhooks/resend` sur `email.bounced`, `email.complained`, `email.suppressed` | Fondateur | Livraison de test acceptée dans Resend |
 | W3 | Poser `RESEND_WEBHOOK_SECRET` en production, puis redéployer | Fondateur | Ligne « Webhook Resend » à En place dans Configuration |
 | W4 | Vérifier le domaine `mail.tartan.coach` dans Resend (SPF, DKIM, DMARC), puis régler `EMAIL_FROM` | Fondateur, agent pour les DNS si accès | E-mail reçu avec le bon expéditeur, non classé en indésirables |

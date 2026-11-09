@@ -11,6 +11,7 @@ Chaque sujet a un seul document. Si deux documents se contredisent, `ETAT.md` l'
 | [JOURNAL.md](JOURNAL.md) | Ce que le dernier agent a fait et laissé en suspens |
 | [../PRODUCT.md](../PRODUCT.md) | Le produit, les cibles, les décisions |
 | [../DESIGN.md](../DESIGN.md) | L'identité visuelle |
+| [prompts.md](prompts.md) | Les consignes prêtes à donner à Codex ou à Claude |
 
 ## Plans de mise en production
 
