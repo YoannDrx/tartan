@@ -69,13 +69,17 @@ const Words = ({ text, mark }: { text: string; mark: string }) => {
         {value}
       </span>
     );
+  // La ponctuation qui suit le marqueur reste collée à lui : un lecteur d'écran lirait sinon « groupe . ».
+  const [next = "", ...rest] = words(after);
+  const glued = /^\s/.test(next) ? "" : next;
   return (
     <>
       {words(before).map((value, i) => word(value, `b${i}`))}
-      <span className="film-word film-swipe" style={{ "--i": index++ } as React.CSSProperties}>
-        {mark}
+      <span className="film-word" style={{ "--i": index++ } as React.CSSProperties}>
+        <span className="film-swipe">{mark}</span>
+        {glued}
       </span>
-      {words(after).map((value, i) => word(value, `a${i}`))}
+      {(glued ? rest : words(after)).map((value, i) => word(value, `a${i}`))}
     </>
   );
 };

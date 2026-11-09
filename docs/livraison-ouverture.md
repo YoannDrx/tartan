@@ -2,7 +2,35 @@
 
 Décision du fondateur du 8 novembre 2026 : une seule PR, découpée en commits, sur la branche `feat/ouverture-commerciale`, puis ouverture de la vente sur le web et la PWA. iOS et Android suivent sans la retarder.
 
-Ce document distingue trois états : code livré dans la PR, testé automatiquement, éprouvé en réel. Rien n'est fusionné, activé ni configuré en production sans accord explicite.
+Ce document distingue trois états : code livré, testé automatiquement, éprouvé en réel. Aucune fonction n'est ouverte à la vente sans accord explicite.
+
+## Où on en est, au 9 novembre 2026
+
+Le code des lots 0 à 6 est fusionné dans `main` sur accord du fondateur (PR 47). La fusion n'ouvre pas la vente : les inscriptions restent fermées tant que `COACH_SIGNUP_MODE` n'est pas passé à `public`, ce qui suppose les portes ci-dessous.
+
+| Domaine | État |
+| --- | --- |
+| Identité | Thème Tartan par défaut (piste, cartes encre, citron), Automatique, Clair et Sombre au choix, web et mobile |
+| Site | Film du personnage en ouverture, une seule piste continue, vraies captures dans ce thème |
+| Planification | Liste, Semaine et Mois, coach et athlète, choix suivi d'un appareil à l'autre |
+| IA | Parcours complet web et mobile, éprouvé de bout en bout sur le web avec OpenAI et des données fictives. S'active dès qu'une clé est présente sur le serveur |
+| Notifications et versions | Centre de notifications, préférences, notes de version, bandeau et écran de mise à jour, version minimale |
+| Administration | Console complète derrière passkey ; à configurer avant usage |
+
+## Ce qu'il reste à faire
+
+Par ordre d'impact sur l'ouverture :
+
+1. Faire tourner la clé OpenAI, puis la poser sur Vercel : sans clé, le planificateur reste fermé ; avec une clé, il s'ouvre aux offres payantes.
+2. Consulter le juriste : HDS, vidéos, OpenAI et accord de traitement, conservation. Désigner le médiateur, compléter les CGV, retirer la mention « version de travail ».
+3. Configurer la production, une action à la fois : webhooks Stripe élargis, `RESEND_WEBHOOK_SECRET`, sonde et `CRON_HEARTBEAT_*`, `ADMIN_EMAILS`, `ADMIN_BOOTSTRAP_TOKEN`, `PASSKEY_RP_ID`, Skew Protection. Enrôler la passkey.
+4. Lever les plafonds : carte Mux et retrait de `MUX_VIDEO_LIMIT`, passage à Neon Launch.
+5. Éprouver en réel : paiement, facture, résiliation, remboursement, e-mails reçus, push, téléphones physiques, hors ligne au stade, dictées réelles, compte neuf sans aide.
+6. Ouvrir les écrans natifs du coach dans le thème Tartan sur un appareil.
+7. Publier sur les stores : clé APNs, Firebase, liens universels, build signé, TestFlight, test fermé Google, soumission.
+8. Annoncer aux deux espaces pilotes l'activation de la progression, des phases et de l'IA.
+
+## Détail par lot
 
 | Lot | Contenu                                                                                           | État                                                                                                                                                                           |
 | --- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -35,7 +63,7 @@ Push réels, vrai paiement et vrai remboursement, e-mails reçus, téléphones p
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
 | 1   | Avis écrit du juriste : HDS, vidéos, OpenAI, conservation                                                                                                                        | Fondateur                             |
 | 2   | Médiateur désigné, CGV complétées, mention « version de travail » retirée                                                                                                        | Fondateur, puis code                  |
-| 3   | Clé OpenAI révoquée et remplacée, corpus rejoué aux seuils                                                                                                                       | Fondateur, puis code                  |
+| 3   | Clé OpenAI révoquée et remplacée (corpus aux seuils le 9 novembre 2026 : 59/60)                                                                                                  | Fondateur, puis configuration         |
 | 4   | Vrai paiement, facture, résiliation, remboursement depuis l'administration                                                                                                       | Fondateur                             |
 | 5   | Webhooks Stripe élargis, `RESEND_WEBHOOK_SECRET`, sonde et `CRON_HEARTBEAT_*`, `ADMIN_EMAILS`, `ADMIN_BOOTSTRAP_TOKEN`, `PASSKEY_RP_ID`, passkey enrôlée, Skew Protection Vercel | Configuration, accord à chaque action |
 | 6   | Carte Mux et retrait de `MUX_VIDEO_LIMIT`, passage à Neon Launch                                                                                                                 | Fondateur, puis configuration         |
