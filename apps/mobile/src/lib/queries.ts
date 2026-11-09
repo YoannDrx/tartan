@@ -91,7 +91,14 @@ export const useExercises = (orgId: string) =>
   useQuery({ queryKey: ["exercises", orgId], queryFn: () => api.exercises(orgId), enabled: Boolean(orgId) });
 
 export const useVideos = (orgId: string) =>
-  useQuery({ queryKey: ["videos", orgId], queryFn: () => api.videos(orgId), enabled: Boolean(orgId) });
+  useQuery({
+    queryKey: ["videos", orgId],
+    queryFn: () => api.videos(orgId),
+    enabled: Boolean(orgId),
+    // Mux finit l'encodage après l'envoi : la liste se met à jour tant qu'une vidéo est en chemin.
+    refetchInterval: (query) =>
+      query.state.data?.some((video) => video.status === "uploading" || video.status === "processing") ? 15_000 : false,
+  });
 
 export const useExerciseVideos = (orgId: string, exerciseId: string) =>
   useQuery({

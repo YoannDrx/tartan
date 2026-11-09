@@ -32,6 +32,35 @@ export const createDirectUpload = async (passthrough: string): Promise<{ uploadI
 
 export const unwrapWebhook = (rawBody: string, headers: Headers) => client().webhooks.unwrap(rawBody, headers);
 
+export type MuxUploadState =
+  | { state: "missing" | "waiting" | "failed" | "expired" }
+  | {
+      state: "asset";
+      asset: {
+        id: string;
+        status: string;
+        duration?: number;
+        playback_ids?: { id: string }[];
+        tracks?: { type?: string; max_frame_rate?: number }[];
+      };
+    };
+
+// Rattrapage : l'état réel d'un envoi direct, quand le webhook ne l'a pas transmis.
+export const readUpload = async (uploadId: string): Promise<MuxUploadState> => {
+  const mux = client();
+  let upload;
+  try {
+    upload = await mux.video.uploads.retrieve(uploadId);
+  } catch (error) {
+    if (error instanceof Mux.NotFoundError) return { state: "missing" };
+    throw error;
+  }
+  if (upload.asset_id) return { state: "asset", asset: await mux.video.assets.retrieve(upload.asset_id) };
+  if (upload.status === "errored" || upload.status === "cancelled") return { state: "failed" };
+  if (upload.status === "timed_out") return { state: "expired" };
+  return { state: "waiting" };
+};
+
 export const deleteAsset = async (assetId: string): Promise<void> => {
   await client().video.assets.delete(assetId);
 };

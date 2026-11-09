@@ -28,6 +28,7 @@ export type QueuedUpload = {
 };
 
 export const UPLOAD_EVENT = "tartan:upload";
+export const UPLOAD_SETTLED_EVENT = "tartan:upload-settled";
 export type UploadProgress = { waiting: number; pct: number | null };
 
 let owner: string | null = null;
@@ -99,7 +100,8 @@ export const enqueueVideo = async (organizationId: string, input: CreateVideoInp
     offset: 0,
     createdAt: Date.now(),
   });
-  void processUploads();
+  // L'écran n'attend pas la fin de l'envoi : le refus ou la réussite remonte par un événement.
+  void processUploads().then((detail) => window.dispatchEvent(new CustomEvent(UPLOAD_SETTLED_EVENT, { detail })));
 };
 
 const json = (body: unknown): RequestInit => ({

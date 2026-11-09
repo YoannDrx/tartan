@@ -8,6 +8,7 @@ import { AppError } from "@/lib/errors";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { processReferrals, purgeExpiredVideos } from "./billing.service";
+import { reconcileStuckVideos } from "./video.service";
 import { sendWeeklyDigests } from "./digest.service";
 import { firstNameOf } from "./me.service";
 import { dispatchPending, notify, notifyPublications } from "./notify.service";
@@ -213,6 +214,7 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     aiTranscriptions: () => purgePlannerTranscriptions(now),
     billing: () => reconcileStripeSubscriptions(now),
     referrals: () => processReferrals(now),
+    videosReconciled: () => reconcileStuckVideos(now),
     purged: () => purgeExpiredVideos(now),
     digests: () => sendWeeklyDigests(now),
     // D'abord les lignes : leur suppression met les fichiers en file, traitée juste après.
