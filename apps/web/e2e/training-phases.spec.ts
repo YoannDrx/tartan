@@ -30,11 +30,11 @@ test("phases : brouillon privé, partage, chevauchement, conflit et transport na
   const query = { from: "2030-01-01", to: "2030-04-01" };
   await page.goto(`/phases?${new URLSearchParams(query)}`);
   expect(await page.locator(".world-work").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
-    "rgb(242, 243, 241)",
+    "rgb(196, 68, 43)",
   );
   await page.getByRole("button", { name: t.add, exact: true }).click();
   const dialog = page.getByRole("dialog");
-  expect(await dialog.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(255, 255, 255)");
+  expect(await dialog.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(21, 22, 26)");
   await dialog.getByLabel(t.target, { exact: true }).selectOption(`group:${target.id}`);
   await dialog.getByLabel(t.name, { exact: true }).fill("Préparation générale de printemps");
   await dialog.getByLabel(t.end, { exact: true }).fill("2030-03-25");
