@@ -1,9 +1,10 @@
 # Tartan
 
-Le carnet d'entraînement partagé du coach d'athlé et de son groupe : séances, suivi et vidéo.
-Monorepo pnpm : `apps/web` (Next.js 16, site, app et API), `apps/mobile` (Expo, iOS et Android), `packages/*` (contrats, règles métier, client d'API, jetons, textes).
+La préparation physique du coach et de son groupe, ancrée dans l'athlétisme : séances, suivi, charges, vidéo.
 
-Produit : [PRODUCT.md](PRODUCT.md). Identité : [DESIGN.md](DESIGN.md). Ce qu'il reste à faire de ton côté : [docs/lancement.md](docs/lancement.md).
+Monorepo pnpm : `apps/web` (Next.js 16 : site, application et API), `apps/mobile` (Expo : iOS et Android), `packages/*` (contrats, règles métier, client d'API, jetons, textes).
+
+Produit : [PRODUCT.md](PRODUCT.md). Identité : [DESIGN.md](DESIGN.md). Règles de développement : [AGENTS.md](AGENTS.md). État et plans : [docs/README.md](docs/README.md).
 
 ## Démarrer en local
 
@@ -15,7 +16,7 @@ pnpm install
 cp apps/web/.env.example apps/web/.env   # puis renseigner BETTER_AUTH_SECRET
 pnpm db:start
 pnpm db:migrate
-DEMO_PASSWORD=choisir-un-mot-de-passe pnpm --filter @tartan/web exec tsx --env-file=.env prisma/seed.ts
+DEMO_PASSWORD=choisir-un-mot-de-passe pnpm db:seed
 pnpm dev
 ```
 
@@ -23,9 +24,11 @@ Sans clé Resend, les liens de connexion s'affichent dans le terminal. Sans clé
 
 ## Vérifier
 
-| Commande                      | Rôle                                                              |
-| ----------------------------- | ----------------------------------------------------------------- |
-| `pnpm test`                   | Règles métier et contrôles d'accès, sur une base Postgres jetable |
-| `pnpm test:e2e`               | Parcours web de bout en bout (Playwright), accessibilité comprise |
-| `pnpm typecheck`, `pnpm lint` | Typage et lint                                                    |
-| `pnpm design:check`           | Détecteur d'anti-patterns d'Impeccable                            |
+| Commande | Rôle |
+| --- | --- |
+| `pnpm test` | Règles métier et contrôles d'accès, sur une base Postgres jetable |
+| `E2E_PROD=1 pnpm test:e2e` | Parcours web de bout en bout, sur build de production |
+| `pnpm typecheck`, `pnpm lint` | Typage et lint |
+| `pnpm design:check` | Détecteur d'anti-patterns visuels |
+
+Le détail est dans [docs/tests/README.md](docs/tests/README.md).

@@ -2,7 +2,7 @@
 // Refait les captures du site et des stores depuis la base de démonstration locale.
 //   pnpm captures [--dry-run] [--only=ios|web] [--build] [--store]
 // --store : pleine définition sur iPhone 17 Pro Max, dans apps/mobile/store/ios, sans toucher au site.
-// Mode opératoire et prérequis : docs/preuves-v1-1/captures-landing.md.
+// Mode opératoire et prérequis : docs/exploitation/captures.md.
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
