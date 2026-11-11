@@ -56,10 +56,16 @@ export const EMAIL_KEYS = Object.keys(EMAILS) as EmailKey[];
 
 export const categoryOf = (key: EmailKey): EmailCategory => EMAILS[key].category;
 
+// Le genre de la file pour cet e-mail, ou null s'il part en direct.
+export const outboxKindOf = (key: EmailKey): string | null => {
+  const definition: EmailDefinition = EMAILS[key];
+  return definition.outbox ?? null;
+};
+
 const BY_OUTBOX_KIND = new Map<string, EmailKey>(
   EMAIL_KEYS.flatMap((key) => {
-    const definition: EmailDefinition = EMAILS[key];
-    return definition.outbox ? [[definition.outbox, key] as const] : [];
+    const kind = outboxKindOf(key);
+    return kind ? [[kind, key] as const] : [];
   }),
 );
 

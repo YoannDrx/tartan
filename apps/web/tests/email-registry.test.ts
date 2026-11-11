@@ -10,7 +10,7 @@ import * as mail from "@/lib/mail";
 import { outbox, sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 import { flushEmailOutbox } from "@/server/email-outbox.service";
-import { EMAIL_KEYS, EMAILS, categoryOf, emailForOutboxKind, isBlockedBy } from "@/server/email-registry";
+import { EMAIL_KEYS, categoryOf, emailForOutboxKind, isBlockedBy, outboxKindOf } from "@/server/email-registry";
 import { assertEmailDeliverable, suppressEmail } from "@/server/email-suppression.service";
 import { createInvitation, resendInvitation, revokeInvitation } from "@/server/invitation.service";
 import { makeOrg } from "./helpers";
@@ -37,10 +37,7 @@ describe("registre des e-mails", () => {
   });
 
   it("chaque genre de la file renvoie à un seul e-mail", () => {
-    const kinds = EMAIL_KEYS.flatMap((key) => {
-      const definition: { outbox?: string } = EMAILS[key];
-      return definition.outbox ? [definition.outbox] : [];
-    });
+    const kinds = EMAIL_KEYS.flatMap((key) => outboxKindOf(key) ?? []);
     expect(new Set(kinds).size).toBe(kinds.length);
     expect(emailForOutboxKind("started")).toBe("subscription_started");
     expect(emailForOutboxKind("genre_inconnu")).toBeNull();
