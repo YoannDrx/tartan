@@ -1,0 +1,23 @@
+{
+  "name": "@tartan/mascot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./skeleton": "./src/skeleton.ts",
+    "./poses": "./src/poses.ts",
+    "./clip": "./src/clip.ts",
+    "./high-jump": "./src/high-jump.ts",
+    "./svg": "./src/svg.ts",
+    "./canvas": "./src/canvas.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "5.0.5"
+  }
+}
