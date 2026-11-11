@@ -44,6 +44,6 @@ Progression, phases et IA : cases dans `/admin`, ou `UPDATE organizations SET pr
 
 Sandbox dédiée, identifiant dans `apps/web/tests-sandbox/stripe-cli.ts`. Cartes de test dans [stripe.md](../plans/stripe.md).
 
-## Personas à construire
+## Personas
 
-Pour tester toutes les fonctions avec chaque rôle, `apps/web/e2e/personas.ts` (à créer, tâche T04) doit fournir en un appel : un propriétaire Découverte, Coach et Club, un coach invité, un adjoint limité à un groupe, deux athlètes de groupes différents, un athlète sans consentement, un compte présent dans deux espaces, un administrateur. Détail dans [automatisation.md](automatisation.md).
+Pour tester une fonction avec chaque rôle, un appel construit en base les comptes, espaces, groupes et offres : `apps/web/tests/personas.ts` pour Vitest (une persona se connecte par `sessionCookie(email)`, sans simuler la session) et `apps/web/e2e/personas.ts` pour Playwright. La matrice d'accès de toutes les routes s'appuie dessus : `apps/web/tests/api-authz.matrix.ts`. Une route ajoutée sans ligne dans cette matrice fait échouer `pnpm test`.
