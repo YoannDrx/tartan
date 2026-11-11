@@ -39,7 +39,7 @@ Mis à jour le 11 novembre 2026. Toute PR qui change un état met ce fichier à 
 | Versions et mises à jour | Oui | Oui | Non |
 | Abonnements Stripe | Oui | Simulé, et sandbox sans paiement | **Aucun vrai paiement** |
 | Remboursements, factures, litiges | Oui | Simulé | Non |
-| E-mails | 24 gabarits | Rendu | Seul le lien magique a été reçu |
+| E-mails | 25 e-mails | Rendu, déclencheurs de facturation | Seul le lien magique a été reçu |
 | Export, suppression de compte | Oui | Oui | Sur le web |
 | Console d'administration | Oui | Partiel | Accès passkey éprouvé |
 | Hors ligne, PWA | Oui | Oui | Pas au stade |
@@ -82,7 +82,7 @@ Un lot, une branche, une PR. Détail des lots : [web](plans/web.md).
 | A1 | Personas, matrice d'accès T04 | À faire |
 | A2 | T01 webhook Stripe, T02 RevenueCat | À faire |
 | A3 | Garde-fous : couleurs et textes en dur refusés par le lint | Codé, testé. 274 textes d'avant la règle restent gelés dans 48 fichiers |
-| A4 | Finitions du paiement : action bancaire requise, bandeau d'impayé, plafond atteint, factures | À faire |
+| A4 | Finitions du paiement : action bancaire requise, bandeau d'impayé, plafond atteint, factures | Codé, testé. Webhook de production à compléter par F14 |
 | A5 | T05 actions d'administration, T06 export comptable | À faire |
 | A6 | T07 suppression de compte, T08 connexion Apple et Google | À faire |
 | A7 | T03 paiement de bout en bout en sandbox | À faire, après F16 |
@@ -144,7 +144,8 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 - **Skew Protection** Vercel refusée par l'API : à activer à la main si l'offre l'inclut.
 - **iPhone, PWA** : les notifications exigent l'ajout à l'écran d'accueil, d'où l'intérêt de l'app native.
 - **Textes en dur hérités** : 274 textes gelés dans 48 fichiers (`apps/web/eslint-suppressions.json`), dont les pages légales et les objets d'e-mail. La règle ne voit pas les messages d'erreur ni les métadonnées de page. Les hexadécimaux de `globals.css` ne sont contrôlés qu'en partie, jusqu'au lot B1.
-- **Défauts de vente connus dans le code** : validation bancaire 3-D Secure non gérée, impayé signalé seulement sur `/abonnement`, e-mails de connexion bloqués après une plainte ou une désinscription. Corrigés par les lots A4 et A8.
+- **Défaut de vente connu dans le code** : e-mails de connexion bloqués après une plainte ou une désinscription. Corrigé par le lot A8.
+- **Webhook Stripe de production incomplet** tant que F14 n'est pas faite : l'événement `invoice.payment_action_required` n'y est pas encore abonné, et la console l'affiche.
 - **Jeu public** : le rejeu serveur prouve qu'un score découle d'appuis valides, pas qu'un humain a joué. Le classement demande une modération.
 
 ## Hors périmètre de la V1

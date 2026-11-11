@@ -56,7 +56,7 @@
   },
   "app/(public)/cgv/page.tsx": {
     "tartan/no-hardcoded-text": {
-      "count": 31
+      "count": 26
     }
   },
   "app/(public)/i/[token]/page.tsx": {

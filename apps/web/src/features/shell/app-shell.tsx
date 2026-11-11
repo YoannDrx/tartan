@@ -86,6 +86,7 @@ export const AppShell = ({
   admin,
   askSatisfaction = false,
   unseenRelease = null,
+  billingAlert = null,
   children,
 }: {
   staff: boolean;
@@ -95,6 +96,7 @@ export const AppShell = ({
   admin: boolean;
   askSatisfaction?: boolean;
   unseenRelease?: ReleaseView | null;
+  billingAlert?: "past_due" | null;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -163,7 +165,22 @@ export const AppShell = ({
       </header>
 
       <main className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pb-8 pt-5 desktop:px-6 desktop:pt-8">
-        {/* Le contenu d'abord, l'athlète vient pour sa séance : les bandeaux passent dessous. */}
+        {/* Un paiement à régulariser passe devant : sans lui, l'espace retombe en offre gratuite. */}
+        {billingAlert && !isActive("/abonnement") ? (
+          <p
+            role="status"
+            className="on-card flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-card bg-card px-4 py-3"
+          >
+            <span>{m.billing.pastDueBanner}</span>
+            <Link
+              href="/abonnement"
+              className="flex min-h-11 items-center font-semibold text-ctx-link underline underline-offset-4"
+            >
+              {m.billing.pastDueAction}
+            </Link>
+          </p>
+        ) : null}
+        {/* Le contenu d'abord, l'athlète vient pour sa séance : les autres bandeaux passent dessous. */}
         <div>{children}</div>
         <UpdateWatcher unseen={unseenRelease} />
         <InstallBanner />

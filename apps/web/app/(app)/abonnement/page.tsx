@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { z } from "zod";
-import { isPaidPlan, type LimitKey } from "@tartan/domain";
+import { formatPrice, isPaidPlan, type LimitKey } from "@tartan/domain";
 import { m, withFirstOfMonth } from "@tartan/i18n";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { Chip, PageHeader } from "@/components/states";
 import { ManageSubscriptionButton, PricingGrid } from "@/features/billing/pricing";
 import { requireStaffSpace } from "@/features/shell/space";
-import { getBillingOverview, syncAfterCheckout } from "@/server/billing.service";
+import { getBillingOverview, listInvoices, syncAfterCheckout } from "@/server/billing.service";
 
 export const metadata: Metadata = { title: m.billing.title };
 
@@ -16,6 +16,12 @@ const longDate = (iso: string) =>
   withFirstOfMonth(
     new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(new Date(iso)),
   );
+
+// Un état que Stripe ajouterait un jour s'affiche tel quel plutôt que de casser la page.
+const invoiceStatus = (status: string): string =>
+  status in m.billing.invoices.status
+    ? m.billing.invoices.status[status as keyof typeof m.billing.invoices.status]
+    : status;
 
 const offerSchema = z.object({
   offre: z.enum(["coach", "club"]).optional().catch(undefined),
@@ -36,6 +42,8 @@ export default async function AbonnementPage({
   const confirming = Boolean(merci) && !isPaidPlan(billing.plan);
   const paid = isPaidPlan(billing.plan);
   const store = billing.provider === "revenuecat";
+  const invoices =
+    billing.canManage && billing.hasCustomer && !store ? await listInvoices(actor.userId, organizationId) : null;
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={m.billing.title} detail={m.billing.planLead[billing.plan]} />
@@ -85,6 +93,31 @@ export default async function AbonnementPage({
             })}
           </dl>
         </SheetSection>
+        {invoices ? (
+          <SheetSection title={m.billing.invoices.title} action={<ManageSubscriptionButton />}>
+            {invoices.length === 0 ? (
+              <p className="text-soft">{m.billing.invoices.empty}</p>
+            ) : (
+              <>
+                <ul className="divide-y divide-card-line">
+                  {invoices.map((invoice) => (
+                    <li key={invoice.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3">
+                      <span className="min-w-0">
+                        <span className="block font-semibold">{invoice.number ?? m.billing.invoices.pending}</span>
+                        <span className="t-caption text-soft">{longDate(invoice.date)}</span>
+                      </span>
+                      <span className="flex items-baseline gap-3">
+                        <span className="t-num">{formatPrice(invoice.totalCents)}</span>
+                        <Chip>{invoiceStatus(invoice.status)}</Chip>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="t-caption font-normal text-soft">{m.billing.invoices.hint}</p>
+              </>
+            )}
+          </SheetSection>
+        ) : null}
       </Sheet>
       {billing.plan !== "pilot" &&
       billing.canManage &&

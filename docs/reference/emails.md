@@ -16,9 +16,9 @@ Tous les e-mails que Tartan envoie, leur déclencheur et la façon de s'en dési
 | Préférences et désinscription | `email-preferences.service.ts`, page `/e-mails/[kind]/[token]` |
 | Envois d'essai | `/admin/configuration` → E-mails de test |
 
-Sans clé Resend, les messages restent en mémoire, sauf en production où l'envoi échoue. Les adresses `@demo.tartan.coach` ne reçoivent rien. Un e-mail ne contient jamais de donnée de santé.
+Un incident de paiement ne donne qu'un e-mail : « paiement échoué » et « validation demandée » ne se cumulent pas dans la même heure. Sans clé Resend, les messages restent en mémoire, sauf en production où l'envoi échoue. Les adresses `@demo.tartan.coach` ne reçoivent rien. Un e-mail ne contient jamais de donnée de santé.
 
-## Les 24 e-mails en place
+## Les 25 e-mails en place
 
 | Clé du catalogue | Destinataire | Déclencheur | Envoi | Désinscription |
 | --- | --- | --- | --- | --- |
@@ -41,6 +41,7 @@ Sans clé Resend, les messages restent en mémoire, sauf en production où l'env
 | `subscription_cancelled` | Propriétaire | Résiliation programmée | File | Non |
 | `subscription_ended` | Propriétaire | Abonnement terminé, impayé ou non | File | Non |
 | `payment_failed` | Propriétaire | Prélèvement échoué | File | Non |
+| `payment_action_required` | Propriétaire | La banque demande une validation (`invoice.payment_action_required`), tant que la facture reste ouverte | File | Non |
 | `payment_recovered` | Propriétaire | Paiement rétabli | File | Non |
 | `trial_ending` | Propriétaire | Trois jours avant la fin de l'essai | File, tâche de 9 h | Non |
 | `renewal_notice` | Propriétaire | Avant le renouvellement annuel (art. L. 215-1) | File | Non |
@@ -58,11 +59,10 @@ Après A8 : un registre unique (`apps/web/src/server/email-registry.ts`) décrit
 
 ## Ajouts prévus
 
-Décidés le 11 novembre 2026, lots A4, A10 et A11 de [web.md](../plans/web.md). Chacun a son gabarit, ses textes, son entrée au registre, un test de rendu et un test de déclencheur.
+Décidés le 11 novembre 2026, lots A10 et A11 de [web.md](../plans/web.md). Chacun a son gabarit, ses textes, son entrée au registre, un test de rendu et un test de déclencheur.
 
 | E-mail | Destinataire | Déclencheur | Désinscription |
 | --- | --- | --- | --- |
-| Action bancaire requise | Propriétaire | `invoice.payment_action_required` | Non |
 | Activation, J+1, J+3, J+7 | Propriétaire | Prochaine étape manquante : inviter, créer, publier, première validation | Oui, « conseils » |
 | Essai sans activation | Propriétaire | Essai en cours, aucun athlète ni séance | Oui, « conseils » |
 | Plafond presque atteint | Propriétaire | Athlètes ou vidéos du mois proches de la limite de l'offre | Non |

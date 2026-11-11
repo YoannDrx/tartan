@@ -24,7 +24,7 @@ Un lot, une branche, une PR. L'état de chaque lot est dans [../ETAT.md](../ETAT
 
 Parallèles sans fichier commun : A1 avec A2, A5 avec A6, A8 avec A9. Le détail des e-mails est dans [emails.md](../reference/emails.md), celui des parcours dans [onboarding.md](../reference/onboarding.md).
 
-Après A4, le fondateur relance `stripe-setup` en production pour ajouter l'événement au webhook : la console affiche le webhook incomplet d'ici là.
+Après A4, le fondateur relance `stripe-setup` en production pour ajouter l'événement au webhook : la console affiche le webhook incomplet d'ici là. Le rattrapage horaire des abonnements traite jusqu'à 200 espaces en 40 secondes au plus, les plus anciennement vérifiés d'abord.
 
 ## Étape 1 : finir la configuration
 
