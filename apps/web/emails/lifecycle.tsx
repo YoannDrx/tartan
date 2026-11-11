@@ -34,3 +34,53 @@ export const TipEmail = ({
     <PrimaryLink href={url}>{cta}</PrimaryLink>
   </Layout>
 );
+
+// Après l'invitation acceptée : où arrivent les séances, et les deux gestes qui évitent d'en manquer une.
+export const AthleteWelcomeEmail = ({
+  title,
+  body,
+  tip,
+  cta,
+  url,
+}: {
+  title: string;
+  body: string;
+  tip: string;
+  cta: string;
+  url: string;
+}) => (
+  <Layout preview={title}>
+    <Title>{title}</Title>
+    <Paragraph>{body}</Paragraph>
+    <Paragraph muted>{tip}</Paragraph>
+    <PrimaryLink href={url}>{cta}</PrimaryLink>
+  </Layout>
+);
+
+// Un seul rappel, signé du coach. Le pied permet à qui ne veut pas venir de ne plus rien recevoir.
+export const InvitationReminderEmail = ({
+  title,
+  body,
+  cta,
+  url,
+  optOut,
+}: {
+  title: string;
+  body: string;
+  cta: string;
+  url: string;
+  optOut: string;
+}) => (
+  <Layout
+    preview={title}
+    footerNote={
+      <>
+        {m.email.invitationReminder.footer} <Link href={optOut}>{m.email.invitationReminder.optOut}</Link>
+      </>
+    }
+  >
+    <Title>{title}</Title>
+    <Paragraph>{body}</Paragraph>
+    <PrimaryLink href={url}>{cta}</PrimaryLink>
+  </Layout>
+);

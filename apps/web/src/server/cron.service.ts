@@ -17,6 +17,7 @@ import { coachesOfAthlete } from "./org.service";
 import { runReleaseJobs } from "./releases.service";
 import { retryPendingRefunds } from "./billing-refund.service";
 import { queueRenewalNotices, queueTrialReminders } from "./email-outbox.service";
+import { queueInvitationReminders } from "./athlete-email";
 import { queueActivationEmails } from "./lifecycle-email.service";
 import { snapshotPlatformDay } from "./admin-console.service";
 import { activeAudienceIds, audienceAthleteIds, publishRow, type Publication } from "./session.service";
@@ -211,6 +212,7 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     trialReminders: async () => (hourInParis(now) === 9 ? queueTrialReminders(now) : null),
     renewalNotices: async () => (hourInParis(now) === 9 ? queueRenewalNotices(now) : null),
     activationEmails: async () => (hourInParis(now) === 9 ? queueActivationEmails(now) : null),
+    invitationReminders: async () => (hourInParis(now) === 9 ? queueInvitationReminders(now) : null),
     planLimitNotices: async () => (hourInParis(now) === 9 ? queuePlanLimitNotices(now) : null),
     // 1 h, pas 2 h : 2 h n'existe pas le jour du passage à l'heure d'été.
     platformStats: async () => (hourInParis(now) === 1 ? snapshotPlatformDay(now) : null),

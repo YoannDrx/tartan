@@ -26,7 +26,7 @@ import {
   SubscriptionEndedEmail,
 } from "./billing";
 import { WeeklyDigestEmail } from "./digest";
-import { TipEmail } from "./lifecycle";
+import { AthleteWelcomeEmail, InvitationReminderEmail, TipEmail } from "./lifecycle";
 
 export type EmailSample = { key: EmailKey; subject: string; react: ReactElement };
 
@@ -143,6 +143,32 @@ export const emailCatalog = (appUrl: string): EmailSample[] => {
         <BillingNoticeEmail title={copy.subject} body={copy.body(SPACE, "23 novembre 2026")} cta={copy.cta} url={url} />
       ),
     })),
+    {
+      key: "invitation_reminder",
+      subject: m.email.invitationReminder.subject(INVITER, SPACE),
+      react: (
+        <InvitationReminderEmail
+          title={m.email.invitationReminder.subject(INVITER, SPACE)}
+          body={m.email.invitationReminder.body("23 novembre 2026")}
+          cta={m.email.invitationReminder.cta}
+          url={url}
+          optOut={url}
+        />
+      ),
+    },
+    {
+      key: "athlete_welcome",
+      subject: m.email.athleteWelcome.subject(SPACE),
+      react: (
+        <AthleteWelcomeEmail
+          title={m.email.athleteWelcome.subject(SPACE)}
+          body={m.email.athleteWelcome.body("Léa", INVITER)}
+          tip={m.email.athleteWelcome.tip}
+          cta={m.email.athleteWelcome.cta}
+          url={url}
+        />
+      ),
+    },
     {
       key: "activation",
       subject: m.email.activation.steps.invite.subject,

@@ -19,6 +19,7 @@ import { emailForOutboxKind } from "./email-registry";
 import { EmailSuppressedError } from "./email-suppression.service";
 import { isInvitationEmailRelevant, isInvitationOutboxKind, renderInvitationEmail } from "./invitation-email";
 import { isActivationEmailRelevant, renderActivationEmail, renderNearLimitEmail } from "./lifecycle-email.service";
+import { isAthleteWelcomeRelevant, renderAthleteWelcome, renderInvitationReminder } from "./athlete-email";
 
 const RETRY_WINDOW_MS = 24 * 60 * 60 * 1000;
 const LEASE_MS = 5 * 60 * 1000;
@@ -145,6 +146,8 @@ const INCIDENT_WINDOW_MS = 60 * 60 * 1000;
 
 const render = async (kind: string, payload: unknown, organizationId: string | null, now: Date) => {
   if (isInvitationOutboxKind(kind)) return renderInvitationEmail(payload);
+  if (kind === "invitation_reminder") return renderInvitationReminder(payload);
+  if (kind === "athlete_welcome") return renderAthleteWelcome(payload);
   if (kind === "activation" && organizationId) return renderActivationEmail(organizationId, payload);
   if (kind === "plan_near_limit" && organizationId) return renderNearLimitEmail(organizationId, payload);
   if (kind === "account_deleted") {
@@ -422,7 +425,10 @@ export const isEmailRelevant = async (
   row: { organizationId: string | null; kind: string; dedupeKey: string; payload: unknown; toEmail: string },
   now = new Date(),
 ) => {
-  if (isInvitationOutboxKind(row.kind)) return isInvitationEmailRelevant(row.payload, row.toEmail, now);
+  // Le rappel suit la même règle que l'invitation : acceptée, révoquée ou expirée, il ne part plus.
+  if (isInvitationOutboxKind(row.kind) || row.kind === "invitation_reminder")
+    return isInvitationEmailRelevant(row.payload, row.toEmail, now);
+  if (row.kind === "athlete_welcome") return isAthleteWelcomeRelevant(row.payload, row.toEmail);
   if (row.kind === "account_deleted") {
     const payload = row.payload as AccountPayload;
     // Une réinscription rendrait cette ancienne confirmation trompeuse.

@@ -1172,6 +1172,12 @@ export const fr = {
     resend: "Relancer mon parent",
     resent: "C'est renvoyé. Préviens ton parent de regarder ses e-mails.",
   },
+  athleteWelcome: {
+    title: (group: string) => `Bienvenue dans ${group}`,
+    body: (coach: string) =>
+      `${coach} t'envoie tes séances ici. Tu vois ce qui t'attend, et tu valides d'un geste quand c'est fait.`,
+    dismiss: "C'est parti",
+  },
   today: {
     focusTitle: "À travailler",
     greeting: (name: string) => `Salut ${name}`,
@@ -1916,6 +1922,22 @@ export const fr = {
         `Le paiement pour ${space} attend ta validation : ta banque demande une confirmation. Ouvre ton abonnement, puis l'espace de paiement, pour valider et garder ton offre.`,
       cta: "Valider mon paiement",
     },
+    athleteWelcome: {
+      subject: (target: string) => `Bienvenue dans ${target}`,
+      body: (firstName: string, coach: string) =>
+        `${firstName}, ${coach} t'a ajouté à son groupe. Tes séances arrivent dans Tartan : tu vois ce qui t'attend, et tu valides d'un geste quand c'est fait.`,
+      tip: "Ajoute Tartan à l'écran d'accueil de ton téléphone et active les notifications : tu seras prévenu à chaque nouvelle séance.",
+      cta: "Ouvrir Tartan",
+    },
+    invitationReminder: {
+      subject: (inviter: string, target: string) => `${inviter} t'attend dans ${target}`,
+      body: (date: string) =>
+        `Ton invitation est toujours valable, jusqu'au ${date}. Rejoins le groupe pour recevoir tes séances dans Tartan.`,
+      bodyOpen: "Ton invitation est toujours valable. Rejoins le groupe pour recevoir tes séances dans Tartan.",
+      cta: "Rejoindre le groupe",
+      footer: "C'est le seul rappel pour cette invitation.",
+      optOut: "Ne plus recevoir d'e-mail de Tartan",
+    },
     activation: {
       footer: (space: string) => `Tu reçois ces conseils parce que tu viens de créer ${space}.`,
       help: "Un doute, une question ? Réponds simplement à cet e-mail.",
@@ -2016,6 +2038,8 @@ export const fr = {
     unsubscribeConfirm: "Ne plus les recevoir",
     unsubscribeDone: "C'est fait. Tu peux les réactiver à tout moment dans tes réglages.",
     unsubscribeKinds: {
+      invitation:
+        "Les e-mails de Tartan à cette adresse : invitations et rappels. Tu ne recevras plus rien, sauf si tu crées un compte.",
       tips: "Les conseils pour démarrer, envoyés dans les jours qui suivent la création de ton espace.",
       digest: "Le récapitulatif de ta semaine, chaque dimanche soir.",
       notifications:

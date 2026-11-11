@@ -34,25 +34,21 @@ Une étape avancée prouve les précédentes : une séance supprimée après une
 
 Reste à faire, hors du lot A9 : inviter et publier une première séance dès la création de l'espace, sans passer par les réglages ; refermer le guide à la main ; l'afficher en tour de piste (lot B3).
 
-## L'athlète, aujourd'hui
+## L'athlète
 
-1. Invitation nominative par e-mail, lien de groupe ou QR. Le coach peut renvoyer, révoquer, régénérer.
+1. Invitation nominative par e-mail, lien de groupe ou QR. Le coach peut renvoyer, révoquer, régénérer. Une invitation nominative sans réponse reçoit un seul rappel, trois jours plus tard.
 2. `/i/[token]` : création du compte, acceptation des conditions, accords santé et vidéo facultatifs et propres à la fiche. Le plafond d'athlètes de l'offre est contrôlé à ce moment.
-3. Arrivée dans l'application.
+3. E-mail de bienvenue, à la première arrivée dans l'espace.
+4. Arrivée sur `/aujourdhui`.
 
 Retirer l'accord santé efface les données de santé. Le parcours des mineurs est dormant.
 
-## L'athlète, après le lot A11
+### L'accueil sur `/aujourdhui`
 
-Après l'acceptation, trois écrans courts, tous passables, en moins de 30 secondes.
+Pendant la première semaine, et jusqu'à la première séance validée, un encart nomme le groupe et le coach qui le suit, et dit en une phrase ce qui va se passer ici (`apps/web/src/features/athlete-view/athlete-welcome.tsx`, `getAthleteWelcome` dans `athlete-view.service.ts`). Il se referme d'un geste, sur l'appareil.
 
-| Écran | Contenu |
-| --- | --- |
-| Bienvenue | Signée du coach, avec le nom du groupe |
-| Installer | Ajout à l'écran d'accueil, avec la marche à suivre de l'appareil |
-| Notifications | Demandées par un bouton explicite, jamais à l'ouverture |
-
-Puis la première séance, ou un état vide qui dit quand elle arrivera. Si une séance est due, elle passe devant ces écrans. Un e-mail de bienvenue reprend les mêmes repères.
+- Une séance du jour passe devant : l'encart ne s'affiche pas tant qu'il y a une séance à faire.
+- L'installation sur l'écran d'accueil et les notifications ne sont pas un écran de plus : l'encart déclenche tout de suite le bandeau existant (`install-banner.tsx`), qui attendait jusque-là une première action utile. Les notifications se demandent toujours par un bouton, jamais à l'ouverture.
 
 ## Ce qui se mesure
 

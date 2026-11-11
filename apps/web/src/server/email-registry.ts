@@ -30,6 +30,8 @@ export const EMAILS = {
   password_changed: { category: "security" },
   invitation_athlete: { category: "invitation", outbox: "invitation_athlete" },
   invitation_staff: { category: "invitation", outbox: "invitation_staff" },
+  invitation_reminder: { category: "invitation", outbox: "invitation_reminder" },
+  athlete_welcome: { category: "account", outbox: "athlete_welcome" },
   parental_consent: { category: "invitation" },
   welcome: { category: "account" },
   weekly_digest: { category: "activity" },
