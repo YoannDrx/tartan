@@ -472,6 +472,11 @@ export default function Settings() {
         />
         <Divider />
         <LinkRow
+          label={m.help.title}
+          onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).help)}
+        />
+        <Divider />
+        <LinkRow
           label={m.legal.contact}
           onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).contact)}
         />

@@ -50,7 +50,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Diagnostic Expo
         working-directory: apps/mobile
-        run: pnpm dlx expo-doctor
+        # Version fixée : la 1.21.7, publiée le 11 novembre 2026, ne démarre pas (« @expo/env » introuvable).
+        run: pnpm dlx expo-doctor@1.21.6
       - name: Configuration de production
         working-directory: apps/mobile
         run: pnpm exec expo config --json > /dev/null

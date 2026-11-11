@@ -264,6 +264,7 @@ test.describe("toutes tailles d'écran", () => {
       "/conditions",
       "/tarifs",
       "/contact",
+      "/aide",
       "/cgv",
       "/mentions-legales",
       "/mot-de-passe-oublie",

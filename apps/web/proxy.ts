@@ -29,6 +29,7 @@ const SITE_PATHS = [
   "/cgv",
   "/mentions-legales",
   "/contact",
+  "/aide",
   "/suppression-compte",
   "/robots.txt",
   "/sitemap.xml",

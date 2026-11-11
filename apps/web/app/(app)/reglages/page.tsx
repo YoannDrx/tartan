@@ -263,7 +263,10 @@ export default async function ReglagesPage() {
       content: (
         <div className="flex flex-col gap-2">
           <p>{m.settings.helpDetail}</p>
-          <div>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="secondary">
+              <a href="/aide">{m.help.center}</a>
+            </Button>
             <Button asChild size="sm" variant="secondary">
               <a href="/contact">{m.settings.helpContact}</a>
             </Button>

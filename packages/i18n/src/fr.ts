@@ -991,6 +991,281 @@ export const fr = {
     closedTitle: "Tartan ouvre bientôt aux coachs",
     joinHint: "Tu es athlète ? Ouvre le lien d'invitation de ton coach pour rejoindre ton groupe.",
   },
+  help: {
+    title: "Aide",
+    description:
+      "Les réponses aux questions fréquentes sur Tartan : démarrer, inviter son groupe, séances, vidéos, compte, abonnement et données.",
+    lead: "Les réponses aux questions qu'on nous pose le plus, couloir par couloir.",
+    themesLabel: "Thèmes",
+    notFoundTitle: "Tu n'as pas trouvé ta réponse ?",
+    notFoundBody: "Écris-nous : une personne te répond par e-mail.",
+    write: "Écrire à l'équipe",
+    center: "Centre d'aide",
+    screen: {
+      open: "Aide",
+      title: "Aide sur cet écran",
+      all: "Toutes les questions",
+      newTab: "(nouvel onglet)",
+    },
+    links: {
+      pricing: "Comparer les offres",
+      sales: "Lire les conditions générales de vente",
+      privacy: "Lire la politique de confidentialité",
+      deleteAccount: "Supprimer mon compte",
+    },
+    themes: {
+      demarrer: {
+        title: "Démarrer",
+        questions: {
+          pourQui: {
+            q: "À qui s'adresse Tartan ?",
+            a: "Aux coachs de préparation physique et d'athlétisme, et à leur groupe. Tartan est réservé aux personnes majeures, en France.",
+          },
+          creerEspace: {
+            q: "Comment créer mon espace ?",
+            a: "Crée ton compte, confirme ton adresse depuis l'e-mail reçu, puis nomme ton espace et ton premier groupe. L'espace arrive avec une bibliothèque d'exercices et des modèles de séance, prêts à modifier.",
+          },
+          premiersPas: {
+            q: "Par quoi commencer ?",
+            a: "Quatre étapes, rappelées sur l'écran Suivi tant que tu débutes : inviter tes athlètes, créer une séance, la publier, puis recevoir une première validation.",
+          },
+          telephone: {
+            q: "Tartan marche-t-il sur téléphone ?",
+            a: "Oui. Tartan s'ouvre dans le navigateur du téléphone et s'ajoute à l'écran d'accueil. L'ordinateur reste plus confortable pour construire les séances.",
+          },
+        },
+      },
+      groupe: {
+        title: "Groupe et invitations",
+        questions: {
+          inviter: {
+            q: "Comment inviter un athlète ?",
+            a: "Dans Réglages, sous Invitations : par e-mail pour une personne, ou avec le lien ou le QR code du groupe. L'athlète crée son compte en ouvrant l'invitation.",
+          },
+          invitationPerdue: {
+            q: "Mon athlète n'a pas reçu l'invitation",
+            a: "Demande-lui de regarder ses indésirables. Tu peux la relancer depuis Réglages ; sans réponse, Tartan envoie un seul rappel au bout de trois jours. Le lien du groupe et le QR code marchent aussi, sans e-mail.",
+          },
+          inviterCoach: {
+            q: "Comment inviter un autre coach ?",
+            a: "De la même façon, en choisissant le rôle de coach dans l'invitation.",
+          },
+          depart: {
+            q: "Un athlète quitte le groupe",
+            a: "Retire sa fiche depuis Athlètes : ses données d'entraînement dans ton espace sont supprimées.",
+          },
+        },
+      },
+      seances: {
+        title: "Séances et calendrier",
+        questions: {
+          publier: {
+            q: "Comment créer et publier une séance ?",
+            a: "Depuis le Calendrier, crée une séance à partir de ta bibliothèque d'exercices ou d'un modèle, choisis un groupe ou des athlètes, puis publie. Un brouillon reste invisible pour tes athlètes.",
+          },
+          programmer: {
+            q: "Puis-je préparer une séance à l'avance ?",
+            a: "Oui. Choisis une date de publication : la séance arrive chez tes athlètes à ce moment-là.",
+          },
+          autonomie: {
+            q: "À quoi sert la version en autonomie ?",
+            a: "Une séance peut avoir une version au club et une version en autonomie. Quand tu fais l'appel, les absents reçoivent la version en autonomie.",
+          },
+          charges: {
+            q: "Les charges sont-elles individualisées ?",
+            a: "Oui, quand l'exercice est lié à une référence de force : chaque athlète reçoit ses charges, calculées sur ses propres références.",
+          },
+          suivi: {
+            q: "Comment savoir qui a fait la séance ?",
+            a: "L'écran Suivi croise tes athlètes et tes séances : fait, partiel, manqué ou sans retour. La grille se remplit à mesure que le groupe valide.",
+          },
+        },
+      },
+      athlete: {
+        title: "Côté athlète",
+        questions: {
+          rejoindre: {
+            q: "Comment rejoindre mon groupe ?",
+            a: "Ouvre l'invitation de ton coach, reçue par e-mail, par lien ou par QR code. Crée ton compte, accepte les conditions : tu arrives sur ta page Aujourd'hui.",
+          },
+          valider: {
+            q: "Comment valider ma séance ?",
+            a: "Ouvre la séance depuis Aujourd'hui et valide-la, en entier ou en partie. Le détail des séries est facultatif : quelques secondes suffisent.",
+          },
+          installer: {
+            q: "Comment installer Tartan sur mon téléphone ?",
+            a: "Sur iPhone, dans Safari : touche Partager, puis « Sur l'écran d'accueil ». Sur Android : touche Installer quand Tartan le propose.",
+          },
+          notifications: {
+            q: "Je ne reçois pas les notifications",
+            a: "Active-les depuis Réglages, ou depuis le bandeau que Tartan affiche. Sur iPhone, il faut d'abord ajouter Tartan à l'écran d'accueil.",
+          },
+          horsLigne: {
+            q: "Et sans réseau, au stade ?",
+            a: "Les séances déjà chargées restent lisibles. Ce que tu valides hors ligne part dès que le réseau revient.",
+          },
+        },
+      },
+      videos: {
+        title: "Vidéos",
+        questions: {
+          quiVoit: {
+            q: "Qui peut filmer et voir une vidéo ?",
+            a: "Le coach filme ou importe la vidéo d'un athlète qui a donné son accord. Elle n'est visible que par ses coachs et par l'athlète.",
+          },
+          commenter: {
+            q: "Comment analyser un geste ?",
+            a: "Ouvre la vidéo, revois le geste au ralenti et pose tes commentaires sur la timeline, à l'instant qui compte.",
+          },
+          conservation: {
+            q: "Combien de temps les vidéos sont-elles gardées ?",
+            a: "La durée dépend de l'offre de l'espace. Le propriétaire reçoit un e-mail avant tout retrait.",
+          },
+          lecture: {
+            q: "Une vidéo ne se lit pas",
+            a: "Elle est peut-être encore en cours d'envoi : laisse-lui quelques minutes, avec du réseau. Si elle reste bloquée, écris-nous en indiquant l'heure de l'envoi.",
+          },
+        },
+      },
+      compte: {
+        title: "Compte et connexion",
+        questions: {
+          emailConnexion: {
+            q: "Je ne reçois pas l'e-mail de connexion",
+            a: "Regarde dans tes indésirables et vérifie l'adresse saisie. Si le formulaire indique que ton adresse ne reçoit plus nos e-mails, écris-nous.",
+          },
+          changerEmail: {
+            q: "Comment changer mon adresse e-mail ?",
+            a: "L'application ne le permet pas encore. Écris-nous depuis l'adresse actuelle de ton compte.",
+          },
+          naissance: {
+            q: "Ma date de naissance est fausse",
+            a: "Elle sert à vérifier ta majorité et ne se modifie pas dans l'application. Écris-nous pour la corriger.",
+          },
+          moinsEmails: {
+            q: "Comment recevoir moins d'e-mails ?",
+            a: "Dans Réglages, sous E-mails : le récapitulatif de la semaine, les conseils et les e-mails de notification se coupent un par un. Les messages liés à ton compte continuent d'arriver.",
+          },
+          supprimer: {
+            q: "Comment supprimer mon compte ?",
+            a: "Depuis Réglages. Si tu es le seul coach d'un espace, il disparaît avec ses données ; sinon il revient au coach suivant. C'est définitif.",
+          },
+        },
+      },
+      abonnement: {
+        title: "Abonnement et factures",
+        questions: {
+          quiPaie: {
+            q: "Qui paie ?",
+            a: "Le coach ou le club, propriétaire de l'espace. Les athlètes ne paient jamais.",
+          },
+          limites: {
+            q: "Qu'est-ce qui change d'une offre à l'autre ?",
+            a: "Le nombre d'athlètes, de groupes et de coachs, le nombre de vidéos par mois et leur durée de conservation.",
+          },
+          factures: {
+            q: "Où trouver mes factures ?",
+            a: "Sur l'écran Abonnement, ouvert au propriétaire de l'espace.",
+          },
+          paiementEchoue: {
+            q: "Mon paiement a échoué",
+            a: "Un bandeau te le signale dans l'application. Mets à jour ton moyen de paiement depuis Abonnement. Si ta banque demande une validation, suis le lien de l'e-mail reçu.",
+          },
+          resilier: {
+            q: "Comment résilier ?",
+            a: "Depuis Abonnement. Ton offre reste active jusqu'à la fin de la période payée, puis l'espace repasse en offre gratuite.",
+          },
+          remboursement: {
+            q: "Puis-je être remboursé ?",
+            a: "Écris-nous. Le droit de rétractation est décrit dans les conditions générales de vente.",
+          },
+        },
+      },
+      donnees: {
+        title: "Données personnelles",
+        questions: {
+          devenir: {
+            q: "Que deviennent mes données ?",
+            a: "La politique de confidentialité dit ce qui est collecté, pourquoi, et pour combien de temps.",
+          },
+          sante: {
+            q: "Et mes données de santé ?",
+            a: "Effort ressenti, douleurs et blessures ne sont enregistrés qu'avec ton accord, facultatif. Tu le retires quand tu veux depuis Réglages : ces données sont alors effacées.",
+          },
+          exporter: {
+            q: "Comment récupérer mes données ?",
+            a: "Depuis Réglages, exporte les données de ton compte. Le propriétaire peut aussi exporter celles de son espace.",
+          },
+          signaler: {
+            q: "Comment signaler un contenu ?",
+            a: "Avec « Signaler », sur l'annonce, le commentaire ou la vidéo en cause. Chaque signalement est examiné sous 48 heures ouvrées.",
+          },
+        },
+      },
+    },
+    // Aide courte par écran : deux repères, jamais un mode d'emploi.
+    screens: {
+      fallback: ["Les réponses sont classées par thème dans le centre d'aide.", "Rien ne correspond ? Écris-nous."],
+      suivi: [
+        "La grille croise tes athlètes et tes séances. Elle se remplit à mesure que le groupe valide.",
+        "Tant que tu débutes, le guide « Pour démarrer » montre la prochaine étape.",
+      ],
+      calendrierCoach: [
+        "Crée une séance sur un jour, depuis ta bibliothèque ou un modèle.",
+        "Un brouillon reste invisible pour tes athlètes : publie pour qu'ils le reçoivent.",
+      ],
+      seances: [
+        "Une séance peut avoir une version au club et une version en autonomie.",
+        "Attribue-la à un groupe ou à des athlètes, puis publie.",
+      ],
+      exercices: [
+        "Ta bibliothèque arrive avec des exercices prêts à modifier.",
+        "Lie un exercice à une référence de force pour individualiser les charges.",
+      ],
+      athletes: [
+        "Chaque fiche réunit les séances et les progrès d'un athlète.",
+        "Pour ajouter quelqu'un, passe par Invitations, dans Réglages.",
+      ],
+      videosCoach: [
+        "Filme ou importe la vidéo d'un athlète qui a donné son accord.",
+        "Revois le geste au ralenti et commente-le sur la timeline.",
+      ],
+      planificateur: [
+        "Le planificateur prépare des brouillons de séance à partir de ta consigne.",
+        "Rien n'est publié sans toi : relis, corrige, puis publie.",
+      ],
+      annoncesCoach: [
+        "Une annonce prévient un groupe entier d'un coup.",
+        "Épingle celle qui doit rester en haut de la liste.",
+      ],
+      reglages: [
+        "Profil, invitations, e-mails et accords se règlent ici.",
+        "L'export de tes données et la suppression du compte sont en bas de l'écran.",
+      ],
+      abonnement: [
+        "Ton offre, tes factures et ton moyen de paiement sont ici.",
+        "Une résiliation prend effet à la fin de la période payée.",
+      ],
+      aujourdhui: [
+        "Ta séance du jour s'affiche ici dès que ton coach la publie.",
+        "Une fois la séance faite, valide-la : quelques secondes suffisent.",
+      ],
+      seance: ["Lis la séance, puis valide-la quand elle est faite.", "Le détail des séries est facultatif."],
+      calendrierAthlete: ["Tes séances passées et à venir, jour par jour.", "Touche une séance pour l'ouvrir."],
+      progres: [
+        "Tes records et ton historique, exercice par exercice.",
+        "Seul ce que tu as saisi compte : rien n'est supposé.",
+      ],
+      mesVideos: [
+        "Les vidéos de tes gestes, visibles par tes coachs et par toi.",
+        "Elles demandent ton accord, à donner ou à retirer dans Réglages.",
+      ],
+      annoncesAthlete: [
+        "Les annonces de ton coach arrivent ici.",
+        "Celles qu'il a épinglées restent en haut de la liste.",
+      ],
+    },
+  },
   contact: {
     title: "Contact",
     lead: "Une question, une demande sur tes données, un contenu à signaler : écris-nous.",

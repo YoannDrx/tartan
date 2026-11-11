@@ -90,7 +90,7 @@ Un lot, une branche, une PR. Détail des lots : [web](plans/web.md).
 | A9 | Onboarding du coach en trois temps, guide « Pour démarrer » en quatre étapes sur une règle partagée | Codé, testé |
 | A10 | E-mails d'activation (J+1, J+3, J+7), plafond presque atteint, préférence « conseils » | Codé, testé. Reconquête non construite, en attente de F4 |
 | A11 | Accueil de l'athlète sur sa page, e-mail de bienvenue, rappel d'invitation avec opposition par adresse | Codé, testé |
-| A12 | Centre d'aide et contact | À faire |
+| A12 | Centre d'aide `/aide` en huit thèmes, « Aide » par écran dans le menu Réglages, contact | Codé, testé |
 | A13 | Sauvegardes hors de GitHub, sondes de disponibilité et des notifications | À faire, après F2, F3, F15 |
 
 ### Agents : direction artistique, ajouts et jeu
