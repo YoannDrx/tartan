@@ -46,6 +46,8 @@ Volume actuel : environ 700 tests serveur, 240 de domaine, 190 mobile, 80 parcou
 
 Hors CI : Maestro, sandbox Stripe, `eval:planner --live`, captures, compilation iOS sur PR.
 
+`ci.yml` s'arrête au bout de 45 minutes (une exécution saine en prend 30) et l'installation des navigateurs au bout de 10. Si les dépôts Ubuntu ne se résolvent plus depuis le serveur GitHub, une étape de secours demande leur adresse à un résolveur public avant l'installation. Une CI qui dépasse ces durées est figée, pas lente : lis le journal de l'étape en cours avant de relancer.
+
 ## Drapeaux
 
 | Variable | Effet |
