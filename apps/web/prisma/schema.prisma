@@ -489,7 +489,7 @@ model Consent {
 
 // Santé et vidéo s'accordent par fiche : un sportif peut suivre un club et un préparateur sans tout mélanger.
 model AthleteConsent {
-  id        String      @id @default(uuid()) @db.Uuid
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   athleteId String      @map("athlete_id") @db.Uuid
   kind      ConsentKind
   version   String
@@ -557,7 +557,7 @@ enum MediaKind {
 
 // Mails liés à une transition d'abonnement : écrits dans la transaction, envoyés après, repris pendant 24 h.
 model EmailOutbox {
-  id             String    @id @default(uuid()) @db.Uuid
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organizationId String?   @map("organization_id") @db.Uuid
   toEmail        String    @map("to_email")
   kind           String
@@ -591,7 +591,7 @@ model CheckoutIntent {
   leaseUntil     DateTime? @map("lease_until")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("checkout_intents")
 }
@@ -618,7 +618,7 @@ model BillingCommand {
 
 // File d'effacement chez les prestataires. Les triggers SQL de la migration la remplissent à chaque suppression.
 model ExternalDeletion {
-  id            String    @id @default(uuid()) @db.Uuid
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   provider      String
   externalRef   String    @map("external_ref")
   reason        String
