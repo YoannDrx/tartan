@@ -12,10 +12,10 @@ Le compte de production et la sandbox ont chacun leurs clés, tarifs, portail et
 | Écriture de l'état | `subscription-state.service.ts` (`applySubscription`, point unique) |
 | Factures, remboursements, litiges | `billing-mirror.service.ts`, `billing-refund.service.ts` |
 | Webhook | `apps/web/app/api/webhooks/stripe/route.ts` |
-| Liste des événements | `apps/web/src/lib/stripe-webhook-events.ts` (14) |
+| Liste des événements | `apps/web/src/lib/stripe-webhook-events.ts` (15) |
 | Vente coupée | `/admin/configuration`, ou `BILLING_CHECKOUT_ENABLED=false` |
 
-La console affiche si le webhook couvre les 14 événements. La version d'API d'un webhook existant n'est jamais changée silencieusement.
+La console affiche si le webhook couvre les 15 événements. Après l'ajout d'un événement dans le code, relance `stripe-setup` dans l'environnement visé. La version d'API d'un webhook existant n'est jamais changée silencieusement.
 
 ## Configurer un environnement
 

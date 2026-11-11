@@ -7,6 +7,7 @@ export const STRIPE_WEBHOOK_EVENTS = [
   "invoice.finalized",
   "invoice.paid",
   "invoice.payment_failed",
+  "invoice.payment_action_required",
   "invoice.updated",
   "invoice.voided",
   "charge.refunded",

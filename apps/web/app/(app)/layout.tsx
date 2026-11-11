@@ -5,16 +5,18 @@ import { OfflineProvider } from "@/features/offline/offline-provider";
 import { AppShell } from "@/features/shell/app-shell";
 import { requireSpace } from "@/features/shell/space";
 import { isAdmin } from "@/server/admin.service";
+import { getBillingAlert } from "@/server/billing.service";
 import { getMe } from "@/server/me.service";
 import { unseenRelease } from "@/server/releases.service";
 import { shouldAskSatisfaction } from "@/server/satisfaction.service";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const { actor, spaces, space, staff } = await requireSpace();
-  const [askSatisfaction, me, unseen] = await Promise.all([
+  const [askSatisfaction, me, unseen, billingAlert] = await Promise.all([
     shouldAskSatisfaction(actor.userId),
     getMe(actor.userId),
     unseenRelease(actor.userId, "web", staff ? "coach" : "athlete"),
+    staff ? getBillingAlert(actor.userId, space.organizationId) : null,
   ]);
   const name = `${me.firstName ?? ""} ${me.lastName ?? ""}`.trim() || null;
   const theme = themePreference((await cookies()).get(THEME_COOKIE)?.value);
@@ -29,6 +31,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           admin={await isAdmin(actor.email)}
           askSatisfaction={askSatisfaction}
           unseenRelease={unseen}
+          billingAlert={billingAlert}
         >
           {children}
         </AppShell>
