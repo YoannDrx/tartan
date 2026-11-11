@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
+import { createCoachSpace, expectAccessible, expectNoHorizontalScroll, expectNoMotion } from "./helpers";
 
 const t = m.help;
 
@@ -36,11 +36,7 @@ test("le centre d'aide s'ouvre au clavier et sans mouvement", async ({ page }) =
   await page.getByText(question.q, { exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByText(question.a)).toBeVisible();
-  const transition = await page
-    .getByText(question.q, { exact: true })
-    .locator("svg")
-    .evaluate((icon) => getComputedStyle(icon).transitionDuration);
-  expect(transition).toBe("0s");
+  await expectNoMotion(page);
 });
 
 test("l'aide de l'écran est à la même place partout, sans quitter l'écran", async ({ page }, info) => {

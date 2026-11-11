@@ -49,6 +49,13 @@ const UTILITY = [
 ].join("|");
 const DEFAULT_PALETTE = new RegExp(`(?:^|[\\s:])(?:${UTILITY})-(?:${PALETTE})(?:-\\d{2,3})?(?:/\\d+)?(?=$|\\s)`);
 
+// Durée, délai ou courbe écrits à la main dans une classe : `duration-200`, `delay-[80ms]`, `ease-out`.
+// Les jetons passent par `duration-(--duration-enter)`, `delay-(--duration-instant)` et `ease-reception`.
+const RAW_MOTION = new RegExp(
+  "(?:^|[\\s:])(?:(?:duration|delay)-(?:\\d|\\[)|ease-(?:in-out|in|out|linear|\\[)|animate-(?:spin|ping|pulse|bounce|\\[))",
+);
+const RAW_CURVE = /cubic-bezier\(|steps\(/;
+
 const TEXT_ATTRIBUTES = new Set(["title", "aria-label", "alt", "placeholder", "label", "lead"]);
 const HAS_LETTER = /\p{L}/u;
 
@@ -94,6 +101,20 @@ const noDefaultPalette = {
     schema: [],
   },
   create: (context) => stringVisitor(context, (text) => DEFAULT_PALETTE.test(text), "palette"),
+};
+
+/** @type {import("eslint").Rule.RuleModule} */
+const noRawMotion = {
+  meta: {
+    type: "problem",
+    docs: { description: "Aucune durée ni courbe écrite en dur : elles viennent de packages/design-tokens." },
+    messages: {
+      motion:
+        "Durée ou courbe en dur. Utilise un jeton de mouvement : duration-(--duration-enter), ease-reception, motion.duration.*.",
+    },
+    schema: [],
+  },
+  create: (context) => stringVisitor(context, (text) => RAW_MOTION.test(text) || RAW_CURVE.test(text), "motion"),
 };
 
 // Les valeurs texte possibles d'une expression JSX : "a", `a`, cond ? "a" : "b", x && "a".
@@ -142,6 +163,7 @@ const plugin = {
     "no-raw-color": noRawColor,
     "no-default-palette": noDefaultPalette,
     "no-hardcoded-text": noHardcodedText,
+    "no-raw-motion": noRawMotion,
   },
 };
 

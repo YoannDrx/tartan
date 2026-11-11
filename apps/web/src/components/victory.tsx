@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -31,7 +32,7 @@ export const Victory = ({
     const ended = setTimeout(() => {
       setRun(0);
       onDone?.();
-    }, 1150);
+    }, motion.duration.celebration);
     const motionChanged = (event: MediaQueryListEvent) => {
       if (event.matches) {
         clearTimeout(started);

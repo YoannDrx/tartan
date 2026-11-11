@@ -83,3 +83,40 @@ export const expectNoHorizontalScroll = async (page: Page) => {
   );
   expect(overflow).toBeLessThanOrEqual(0);
 };
+
+// Ce qui bouge encore sur la page : une animation en cours, ou une durée d'animation ou de transition non nulle.
+export const motionOn = (page: Page) =>
+  page.evaluate(async () => {
+    // Une animation ramenée à une durée nulle met une image à se terminer : on la laisse finir avant de juger.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const seconds = (list: string) =>
+      list.split(",").map((part) => (part.trim().endsWith("ms") ? parseFloat(part) / 1000 : parseFloat(part)));
+    const longer = (list: string) => seconds(list).some((duration) => duration > 0.001);
+    const name = (element: Element, pseudo: string) => {
+      const first = typeof element.className === "string" ? element.className.split(/\s+/)[0] : "";
+      return `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}${first ? `.${first}` : ""}${pseudo}`;
+    };
+    const found = new Set<string>();
+    for (const element of document.querySelectorAll("*")) {
+      for (const pseudo of ["", "::before", "::after"]) {
+        const style = getComputedStyle(element, pseudo || null);
+        if (pseudo && style.content === "none") continue;
+        if (style.animationName !== "none" && longer(style.animationDuration)) found.add(name(element, pseudo));
+        if (style.transitionProperty !== "none" && longer(style.transitionDuration)) found.add(name(element, pseudo));
+      }
+    }
+    for (const animation of document.getAnimations()) {
+      if (animation.playState !== "running") continue;
+      const target = animation.effect instanceof KeyframeEffect ? animation.effect.target : null;
+      found.add(`en cours : ${target ? name(target, "") : "sans cible"}`);
+    }
+    return [...found];
+  });
+
+// En mouvement réduit, rien ne bouge : ni animation, ni transition, quel que soit le composant.
+export const expectNoMotion = async (page: Page) => {
+  const reduced = await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches);
+  expect(reduced, "la page doit être émulée en mouvement réduit").toBe(true);
+  expect(await motionOn(page)).toEqual([]);
+};

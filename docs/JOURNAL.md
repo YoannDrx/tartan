@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-11, Claude, lot B1 : jetons de mouvement
+
+Fait : `packages/design-tokens/src/motion.ts` (huit durées, trois courbes, pas de cascade) et son miroir dans `globals.css` ; toutes les animations de la feuille de styles lisent ces jetons et sont déclarées sous `no-preference` ; filet de mouvement réduit en fin de feuille ; règle de lint `tartan/no-raw-motion` ; aide `expectNoMotion` ; miroir des couleurs étendu à toute la feuille ; CSS mort retiré (`demo-*`, `jump-range`, `film-frame`) (PR `feat/jetons-mouvement`).
+Vérifié : `tests/design-tokens.test.ts` (28 cas) rapproche chaque couleur d'un jeton, refuse une durée ou une courbe en dur, une animation hors `no-preference`, une classe ou une animation sans usage ; `e2e/reduced-motion.spec.ts` sur téléphone et ordinateur ; sans le filet, trois de ses quatre parcours échouent ; types, lint, design, suite web et e2e. Non vérifié : rien en production ; aucun essai avec le réglage « réduire les animations » d'un vrai téléphone.
+À savoir : Tailwind n'émet que les variables de thème utilisées : les jetons de mouvement sont dans un bloc `@theme static`, sinon `--ease-elan` manquait à l'exécution. Le navigateur réécrit `200ms` en `.2s` : comparer des millisecondes. Une animation ramenée à 0,01 ms reste « en cours » une image : `motionOn` attend deux images avant de juger. Les durées du film ont bougé de 40 ms au plus (460 vers 420, 220 et 240 vers 260) ; la célébration garde ses 1 150 ms, lus aussi par `victory.tsx`. Sans mouvement, `.victory` est en `display: none` : elle ne peut pas rester posée sur l'écran. Les classes composées dans le code (`world-${…}`, `victory-piece-${…}`) sont reconnues par le test du CSS mort à leur préfixe suivi d'une interpolation. Le détecteur de design refuse une courbe qui dépasse sa cible (`bounce-easing`) : « impulsion » est une courbe d'entrée et de sortie, sans rebond. Les jetons ne sont pas encore lus par l'application mobile.
+Suite conseillée : B3 (six épreuves et composants de piste), qui modifie `globals.css` et les jetons à la suite de ce lot ; B4 pour les transitions de page, déjà couvertes par le filet.
+
 ## 2026-11-11, Claude, lot A7 : paiement de bout en bout en sandbox
 
 Fait : T03. `tests-sandbox/payment-cycle.test.ts` joue le cycle de vente contre la sandbox Stripe : Checkout ouvert, carte de test, essai, premier prélèvement, facture, e-mails, remboursement partiel depuis la console, résiliation, retour en Découverte ; et la fin d'essai avec validation bancaire. `tests-sandbox/sdk-over-cli.ts` fait passer le réseau du SDK Stripe par la CLI et sert la vraie route du webhook à `stripe listen` (PR `test/stripe-sandbox`).

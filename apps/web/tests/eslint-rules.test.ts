@@ -59,6 +59,27 @@ tester.run("no-hardcoded-text", plugin.rules["no-hardcoded-text"], {
   ],
 });
 
+tester.run("no-raw-motion", plugin.rules["no-raw-motion"], {
+  valid: [
+    `const a = <div className="transition-colors" />;`,
+    `const a = <div className="motion-safe:transition-transform duration-(--duration-enter) ease-reception" />;`,
+    `const a = <div className="delay-(--duration-instant) ease-impulsion" />;`,
+    `const wait = motion.duration.celebration;`,
+    `const label = "une release-out of band";`,
+  ],
+  invalid: [
+    { code: `const a = <div className="transition duration-200" />;`, errors: [{ messageId: "motion" }] },
+    { code: `const a = <div className="hover:delay-[80ms]" />;`, errors: [{ messageId: "motion" }] },
+    { code: `const a = <div className="transition ease-out" />;`, errors: [{ messageId: "motion" }] },
+    { code: `const a = <div className="animate-spin" />;`, errors: [{ messageId: "motion" }] },
+    { code: "const c = cn(`ease-[cubic-bezier(0.2,0,0,1)] ${x}`);", errors: [{ messageId: "motion" }] },
+    {
+      code: `const style = { transition: "opacity 1s cubic-bezier(0.16, 1, 0.3, 1)" };`,
+      errors: [{ messageId: "motion" }],
+    },
+  ],
+});
+
 // Les textes en dur d'avant la règle sont gelés ; cette base ne peut que rétrécir.
 describe("base des textes en dur", () => {
   const suppressions = JSON.parse(

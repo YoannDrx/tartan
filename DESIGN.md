@@ -98,11 +98,24 @@ Un athlète accompagne un accueil, un état vide, un chargement long, une erreur
 
 **Règle d'or : l'animation suit l'état, elle ne le précède jamais.** Rien ne retarde une action : l'écran est utilisable dès la première image, tout mouvement est interruptible, et le chemin de validation de l'athlète ne porte aucune animation de plus de 200 ms avant le résultat.
 
-- **Jetons.** Durées et courbes vivent dans `packages/design-tokens/src/motion.ts` (créé par le lot B1), en miroir dans le CSS. Aucune durée ni courbe écrite en dur dans un composant. Trois courbes, nommées d'après le geste : élan, impulsion, réception.
+- **Jetons.** Durées et courbes vivent dans `packages/design-tokens/src/motion.ts`, en miroir dans `globals.css`. Aucune durée ni courbe écrite en dur : le lint le refuse dans les composants (`tartan/no-raw-motion`), un test dans la feuille de styles.
+
+  | Durée | Valeur | Usage |
+  | --- | --- | --- |
+  | `instant` | 80 ms | Retour d'un geste : pression, survol |
+  | `quick` | 150 ms | Changement d'état d'un contrôle. Valeur par défaut de toute transition |
+  | `base` | 200 ms | Plafond sur le chemin de validation de l'athlète |
+  | `enter` | 260 ms | Entrée d'une feuille, d'un menu, d'un dialogue. Plafond des écrans de travail |
+  | `trace` | 320 ms | Tracé d'une ligne ou d'une coche |
+  | `expressive` | 420 ms | Apparition sur le site, les accueils, les états vides |
+  | `celebration` | 1 150 ms | Grand moment |
+  | `ambient` | 4 400 ms | Période d'un mouvement d'ambiance qui boucle |
+
+  Trois courbes, nommées d'après le geste : **élan** (prise de vitesse, ce qui quitte l'écran), **impulsion** (départ et arrivée marqués, ce qui se déplace d'un point à un autre), **réception** (amorti, ce qui arrive ; courbe par défaut). Aucune courbe ne dépasse sa cible : pas de rebond. La cascade avance de 34 ms par élément. Dans un composant : `duration-(--duration-enter)`, `ease-reception`, ou `motion.duration.*` en JavaScript.
 - **Écrans de travail.** Les lignes de l'en-tête se tracent à l'arrivée ; l'onglet actif glisse ; les compteurs défilent ; feuilles, menus et dialogues entrent et sortent ; une carte de séance s'ouvre en écran de séance ; le bandeau piste reste en place d'une page à l'autre. Entrées de 260 ms au plus, cascade limitée à six éléments. Pas d'apparition déclenchée par le défilement dans un écran de travail.
 - **Site, connexion, onboarding, accueils, états vides.** Effets au défilement, athlètes animés, parallaxe légère des captures.
 - **Grands moments.** La validation d’une séance faite, qui peut intégrer les records confirmés de cette séance ; un record ; la fin des premiers pas ; la fin d'une épreuve du jeu. Pas de rejeu après synchronisation ni dans l’historique. Une validation partielle ne déclenche pas la célébration. Pas de son.
-- **Mouvement réduit.** `prefers-reduced-motion` coupe tout mouvement non essentiel, transitions de page comprises. Toute animation est déclarée sous `no-preference`, et un test le vérifie. Le jeu reste jouable, sans tremblement, parallaxe ni confettis.
+- **Mouvement réduit.** `prefers-reduced-motion` coupe tout mouvement non essentiel, transitions de page comprises. Toute animation de la feuille de styles est déclarée sous `no-preference`, et un test le vérifie. Un filet en fin de `globals.css` ramène à zéro toute animation ou transition qu'un composant déclarerait quand même ; les parcours le contrôlent avec `expectNoMotion`. Le jeu reste jouable, sans tremblement, parallaxe ni confettis.
 - **Technique.** CSS et View Transitions ; pas de bibliothèque d'animation sans décision explicite.
 
 ## Le jeu
