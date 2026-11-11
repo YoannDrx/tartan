@@ -37,6 +37,7 @@
     "@tartan/design-tokens": "workspace:*",
     "@tartan/domain": "workspace:*",
     "@tartan/i18n": "workspace:*",
+    "@tartan/mascot": "workspace:*",
     "@vercel/analytics": "2.0.1",
     "@vercel/blob": "2.8.2",
     "better-auth": "1.7.15",

@@ -1,26 +1,27 @@
 "use client";
 
 import { m } from "@tartan/i18n";
+import { smooth } from "@tartan/mascot/clip";
+import { STACK, type Paint } from "@tartan/mascot/skeleton";
+import { boneTransform, rootTransform } from "@tartan/mascot/svg";
 import { Check } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
+import { JumperFigure } from "@/components/jumper";
 import {
   BAR,
   barWobble,
   BEAT_AT,
-  BODY,
   CONFETTI,
   confettiAt,
   GROUND,
   IMPACT,
   MAT_TOP,
   poseAt,
-  smooth,
   T,
   TRAIL_LENGTH,
   TRAIL_PATH,
   trailAt,
   WORLD_AT,
-  type Pose,
 } from "./jump-film-pose";
 
 const f = m.landing.film;
@@ -39,22 +40,16 @@ const PHASES = [
 
 const round = (value: number) => Math.round(value * 100) / 100;
 
-const transforms = (p: Pose) => ({
-  root: `translate(${round(p.x)} ${round(p.y)}) rotate(${round(p.rot)}) scale(${round(p.flip * p.sx)} ${round(p.sy)})`,
-  lean: `rotate(${round(p.lean)})`,
-  leanFront: `rotate(${round(p.lean)})`,
-  head: `translate(0 ${-BODY.neck}) rotate(${round(p.head)})`,
-  armA: `rotate(${round(-p.armA)})`,
-  elbowA: `translate(0 ${BODY.arm}) rotate(${round(-p.elbowA)})`,
-  armB: `rotate(${round(-p.armB)})`,
-  elbowB: `translate(0 ${BODY.arm}) rotate(${round(-p.elbowB)})`,
-  legA: `rotate(${round(-p.legA)})`,
-  kneeA: `translate(0 ${BODY.thigh}) rotate(${round(p.kneeA)})`,
-  legB: `rotate(${round(-p.legB)})`,
-  kneeB: `translate(0 ${BODY.thigh}) rotate(${round(p.kneeB)})`,
-});
-type Part = keyof ReturnType<typeof transforms>;
-const START = transforms(poseAt(0));
+// Le personnage change de couleurs avec le monde traversé (globals.css).
+const PAINT: Paint = {
+  skin: "var(--color-film-skin)",
+  tee: "var(--film-tee)",
+  shorts: "var(--film-shorts)",
+  shoe: "var(--film-shoe)",
+  hair: "var(--film-hair)",
+  eye: "var(--color-ink)",
+};
+const START = poseAt(0);
 
 // Un titre dont les mots rebondissent l'un après l'autre, avec un mot surligné au marqueur.
 const Words = ({ text, mark }: { text: string; mark: string }) => {
@@ -101,15 +96,17 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
 
     // Les éléments animés sont repérés au montage : le rendu React ne les touche plus ensuite.
     const find = <E extends Element>(name: string) => root.querySelector<E>(`[data-film="${name}"]`);
-    const parts = Object.fromEntries(
-      (Object.keys(START) as Part[]).map((name) => [name, find<SVGGElement>(name)]),
-    ) as Record<Part, SVGGElement | null>;
+    const figure = find<SVGGElement>("root");
+    const bones = STACK.map((bone) => ({
+      bone,
+      node: figure?.querySelector<SVGGElement>(`[data-bone="${bone.id}"]`) ?? null,
+    }));
     const trail = find<SVGPathElement>("trail");
     const bar = find<SVGGElement>("bar");
     const stripes = find<SVGGElement>("stripes");
     const ring = find<SVGCircleElement>("ring");
     const bloom = find<SVGCircleElement>("bloom");
-    const head = find<HTMLElement>("head");
+    const cursor = find<HTMLElement>("cursor");
     const confetti = Array.from(root.querySelectorAll<SVGGElement>("[data-confetti]"));
     const beats = Array.from(root.querySelectorAll<HTMLElement>(".film-beat"));
 
@@ -140,8 +137,9 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
 
     const render = (time: number) => {
       const pose = poseAt(time);
-      const next = transforms(pose);
-      for (const name of Object.keys(next) as Part[]) parts[name]?.setAttribute("transform", next[name]);
+      // La pose du film porte aussi la position du bassin : elle place le corps, puis l'oriente.
+      figure?.setAttribute("transform", rootTransform(pose, pose));
+      for (const { bone, node } of bones) node?.setAttribute("transform", boneTransform(bone, pose));
       frameView(pose.x);
 
       trail?.setAttribute("stroke-dasharray", `${round(trailAt(time))} ${TRAIL_LENGTH + 100}`);
@@ -195,7 +193,7 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
       }
 
       const progress = Math.min(Math.max((time - T.run) / (T.end - T.run), 0), 1);
-      head?.style.setProperty("left", `${round(progress * 100)}%`);
+      cursor?.style.setProperty("left", `${round(progress * 100)}%`);
     };
 
     let current = 0;
@@ -330,22 +328,7 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
             />
           </g>
 
-          <g data-film="root" transform={START.root}>
-            <g data-film="legB" transform={START.legB}>
-              <Leg name="kneeB" knee={START.kneeB} />
-            </g>
-            <g data-film="lean" transform={START.lean}>
-              <g transform={`translate(0 ${-BODY.shoulder})`}>
-                <g data-film="armB" transform={START.armB}>
-                  <Arm name="elbowB" elbow={START.elbowB} />
-                </g>
-              </g>
-            </g>
-            <g data-film="legA" transform={START.legA}>
-              <Leg name="kneeA" knee={START.kneeA} />
-            </g>
-            <JumperTorso />
-          </g>
+          <JumperFigure data-film="root" pose={START} at={START} paint={PAINT} classes={{ eyes: "film-eyes" }} />
 
           {CONFETTI.map((piece, index) => (
             <g key={index} display="none" data-confetti="" fill={`var(--film-confetti-${piece.color})`}>
@@ -426,74 +409,10 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
                 {f.timeline[index]}
               </span>
             ))}
-            <span data-film="head" className="film-head" />
+            <span data-film="cursor" className="film-head" />
           </div>
         </div>
       </div>
     </section>
   );
 };
-
-const Leg = ({ name, knee }: { name: Part; knee: string }) => (
-  <>
-    <line x1="0" y1="0" x2="0" y2={BODY.thigh} stroke="var(--color-film-skin)" strokeWidth="32" strokeLinecap="round" />
-    <line
-      x1="0"
-      y1="0"
-      x2="0"
-      y2={BODY.thigh * 0.56}
-      stroke="var(--film-shorts)"
-      strokeWidth="38"
-      strokeLinecap="round"
-    />
-    <g data-film={name} transform={knee}>
-      <line
-        x1="0"
-        y1="0"
-        x2="0"
-        y2={BODY.shin}
-        stroke="var(--color-film-skin)"
-        strokeWidth="30"
-        strokeLinecap="round"
-      />
-      <rect x="-18" y={BODY.shin - 8} width="66" height="30" rx="15" fill="var(--film-shoe)" />
-    </g>
-  </>
-);
-
-const Arm = ({ name, elbow }: { name: Part; elbow: string }) => (
-  <>
-    <line x1="0" y1="0" x2="0" y2={BODY.arm} stroke="var(--color-film-skin)" strokeWidth="26" strokeLinecap="round" />
-    <g data-film={name} transform={elbow}>
-      <line
-        x1="0"
-        y1="0"
-        x2="0"
-        y2={BODY.forearm}
-        stroke="var(--color-film-skin)"
-        strokeWidth="24"
-        strokeLinecap="round"
-      />
-    </g>
-  </>
-);
-
-const JumperTorso = () => (
-  <g data-film="leanFront" transform={START.leanFront}>
-    <rect x="-36" y={-BODY.torso - 8} width="72" height={BODY.torso + 24} rx="28" fill="var(--film-tee)" />
-    <rect x="-37" y="-14" width="74" height="34" rx="16" fill="var(--film-shorts)" />
-    <g data-film="head" transform={START.head}>
-      <circle r="44" fill="var(--color-film-skin)" />
-      <path d="M -43 -10 A 44 44 0 0 1 43 -10 Z" fill="var(--film-hair)" />
-      <g className="film-eyes">
-        <circle cx="15" cy="6" r="6" fill="var(--color-ink)" />
-        <circle cx="31" cy="6" r="6" fill="var(--color-ink)" />
-      </g>
-    </g>
-    <g transform={`translate(0 ${-BODY.shoulder})`}>
-      <g data-film="armA" transform={START.armA}>
-        <Arm name="elbowA" elbow={START.elbowA} />
-      </g>
-    </g>
-  </g>
-);

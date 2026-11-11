@@ -1,54 +1,57 @@
-import { BODY, JUMPER_POSES, type JumperPoseName } from "@tartan/design-tokens";
-import type { ComponentProps } from "react";
+import { POSES, type PoseName } from "@tartan/mascot/poses";
+import type { BoneId, Paint, Point, Pose } from "@tartan/mascot/skeleton";
+import { svgFigure } from "@tartan/mascot/svg";
+import { createElement, type ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
-const Leg = ({ leg, knee }: { leg: number; knee: number }) => (
-  <g transform={`rotate(${-leg})`}>
-    <line y2={BODY.thigh} stroke="var(--color-film-skin)" strokeWidth="32" strokeLinecap="round" />
-    <line y2={BODY.thigh * 0.56} stroke="var(--j-shorts)" strokeWidth="38" strokeLinecap="round" />
-    <g transform={`translate(0 ${BODY.thigh}) rotate(${knee})`}>
-      <line y2={BODY.shin} stroke="var(--color-film-skin)" strokeWidth="30" strokeLinecap="round" />
-      <rect x="-18" y={BODY.shin - 8} width="66" height="30" rx="15" fill="var(--j-shoe)" />
-    </g>
-  </g>
-);
+// La mascotte prend les couleurs qui ressortent sur le fond où elle est posée (globals.css).
+const PAINT: Paint = {
+  skin: "var(--color-film-skin)",
+  tee: "var(--j-tee)",
+  shorts: "var(--j-shorts)",
+  shoe: "var(--j-shoe)",
+  hair: "var(--j-hair)",
+  eye: "var(--color-ink)",
+};
 
-const Arm = ({ arm, elbow }: { arm: number; elbow: number }) => (
-  <g transform={`translate(0 ${-BODY.shoulder}) rotate(${-arm})`}>
-    <line y2={BODY.arm} stroke="var(--color-film-skin)" strokeWidth="26" strokeLinecap="round" />
-    <g transform={`translate(0 ${BODY.arm}) rotate(${-elbow})`}>
-      <line y2={BODY.forearm} stroke="var(--color-film-skin)" strokeWidth="24" strokeLinecap="round" />
+// Le personnage dans un SVG : un groupe par os, du fond vers le devant, tous à plat sous le groupe du corps.
+// `at` le place dans une scène. `classes` habille les formes d'un os : son groupe porte déjà la transformation.
+export const JumperFigure = ({
+  pose,
+  paint,
+  at,
+  classes,
+  ...group
+}: {
+  pose: Pose;
+  paint: Paint;
+  at?: Point;
+  classes?: Partial<Record<BoneId, string>>;
+} & Omit<ComponentProps<"g">, "transform" | "children">) => {
+  const figure = svgFigure(pose, paint, at);
+  return (
+    <g transform={figure.root} {...group}>
+      {figure.bones.map((bone) => {
+        const shapes = bone.shapes.map(({ tag, ...attributes }, index) =>
+          createElement(tag, { key: index, ...attributes }),
+        );
+        return (
+          <g key={bone.id} data-bone={bone.id} transform={bone.transform}>
+            {classes?.[bone.id] ? <g className={classes[bone.id]}>{shapes}</g> : shapes}
+          </g>
+        );
+      })}
     </g>
-  </g>
-);
+  );
+};
 
 // La mascotte, en aplats. Décorative : le texte voisin porte le sens.
 export const Jumper = ({
   pose = "stand",
   className,
   ...svg
-}: { pose?: JumperPoseName } & Omit<ComponentProps<"svg">, "viewBox">) => {
-  const p = JUMPER_POSES[pose];
-  return (
-    <svg aria-hidden viewBox="-250 -270 500 500" className={cn("jumper", className)} {...svg}>
-      <g transform={`rotate(${p.rot}) scale(${p.flip * p.sx} ${p.sy})`}>
-        <Leg leg={p.legB} knee={p.kneeB} />
-        <g transform={`rotate(${p.lean})`}>
-          <Arm arm={p.armB} elbow={p.elbowB} />
-        </g>
-        <Leg leg={p.legA} knee={p.kneeA} />
-        <g transform={`rotate(${p.lean})`}>
-          <rect x="-36" y={-BODY.torso - 8} width="72" height={BODY.torso + 24} rx="28" fill="var(--j-tee)" />
-          <rect x="-37" y="-14" width="74" height="34" rx="16" fill="var(--j-shorts)" />
-          <g transform={`translate(0 ${-BODY.neck}) rotate(${p.head})`}>
-            <circle r="44" fill="var(--color-film-skin)" />
-            <path d="M -43 -10 A 44 44 0 0 1 43 -10 Z" fill="var(--j-hair)" />
-            <circle cx="15" cy="6" r="6" fill="var(--color-ink)" />
-            <circle cx="31" cy="6" r="6" fill="var(--color-ink)" />
-          </g>
-          <Arm arm={p.armA} elbow={p.elbowA} />
-        </g>
-      </g>
-    </svg>
-  );
-};
+}: { pose?: PoseName } & Omit<ComponentProps<"svg">, "viewBox">) => (
+  <svg aria-hidden viewBox="-250 -270 500 500" className={cn("jumper", className)} {...svg}>
+    <JumperFigure pose={POSES[pose]} paint={PAINT} />
+  </svg>
+);

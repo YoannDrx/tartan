@@ -27,6 +27,7 @@
     "@tartan/design-tokens": "workspace:*",
     "@tartan/domain": "workspace:*",
     "@tartan/i18n": "workspace:*",
+    "@tartan/mascot": "workspace:*",
     "better-auth": "1.7.15",
     "expo": "55.0.32",
     "expo-apple-authentication": "~55.0.16",

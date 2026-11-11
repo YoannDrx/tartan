@@ -9,6 +9,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@tartan/mascot": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "5.9.3"
   }

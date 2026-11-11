@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
     "@tartan/design-tokens",
     "@tartan/domain",
     "@tartan/i18n",
+    "@tartan/mascot",
   ],
   serverExternalPackages: ["pg", "@prisma/adapter-pg"],
   images: {
