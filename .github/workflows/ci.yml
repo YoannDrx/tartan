@@ -55,6 +55,22 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm design:check
+      - name: Dépôts Ubuntu, résolution de secours
+        # Le 11 novembre 2026, une panne DNS de Canonical a privé tous les
+        # serveurs GitHub des dépôts Ubuntu pendant des heures, alors qu'un
+        # résolveur public les trouvait encore. Ne fait rien quand la
+        # résolution normale répond. apt vérifie la signature des paquets,
+        # quelle que soit l'adresse d'où ils viennent.
+        run: |
+          for host in azure.archive.ubuntu.com archive.ubuntu.com security.ubuntu.com; do
+            if getent hosts "$host" > /dev/null; then continue; fi
+            ip=$(dig +short +time=3 +tries=2 @1.1.1.1 "$host" A | grep -E '^[0-9]+(\.[0-9]+){3}$' | head -n 1 || true)
+            if [ -n "$ip" ]; then
+              echo "$ip $host" | sudo tee -a /etc/hosts
+            else
+              echo "::warning::$host ne se résout par aucun serveur"
+            fi
+          done
       - name: Navigateurs des parcours
         run: pnpm --filter @tartan/web exec playwright install --with-deps chromium webkit
         # Une minute d'ordinaire. apt réessaie sans fin quand le réseau du
