@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { drawMascot, type MascotCanvas } from "./canvas";
 import { POSES } from "./poses";
+import { rig } from "./rig";
 import { BODY, jointPositions, STACK, type Paint } from "./skeleton";
 
 const PAINT: Paint = { skin: "skin", tee: "tee", shorts: "shorts", shoe: "shoe", hair: "hair", eye: "eye" };
@@ -63,7 +64,7 @@ describe("rendu canvas", () => {
     drawMascot(ctx, POSES.run, { paint: PAINT });
     expect(ctx.depth).toBe(0);
     expect(drawn.map((item) => item.color)).toEqual(
-      STACK.flatMap((bone) => bone.shapes.map((shape) => PAINT[shape.paint])),
+      STACK.flatMap((bone) => bone.shapes.map((shape) => PAINT[shape.paint as keyof Paint])),
     );
     expect(drawn.filter((item) => item.op === "stroke")).toHaveLength(10);
     expect(ctx.lineCap).toBe("round");
@@ -102,5 +103,36 @@ describe("rendu canvas", () => {
     expect(to!.x).toBeCloseTo(43, 9);
     expect(from!.y).toBeCloseTo(-BODY.neck - 10, 9);
     expect(to!.y).toBeCloseTo(-BODY.neck - 10, 9);
+  });
+
+  it("dessine un athlète du groupe avec ses propres os, et remet son dossard à l'endroit", () => {
+    const bones = rig({ hair: "ponytail", face: "joy", bib: 3 });
+    const paint = { ...PAINT, bib: "bib", mark: "mark" };
+    const shapes = bones.flatMap((bone) => bone.shapes);
+    for (const flip of [1, -1]) {
+      const { ctx, drawn } = recorder();
+      drawMascot(ctx, { ...POSES.stand, lean: 0, flip }, { paint, bones });
+      expect(ctx.depth).toBe(0);
+      expect(drawn.map((item) => item.color)).toEqual(shapes.map((shape) => shape.paint));
+      // Le 3 a ses barres à gauche de sa hampe, que le corps soit de face ou retourné.
+      const marks = drawn.filter((item) => item.color === "mark").flatMap((item) => item.path.map((point) => point.x));
+      const spine = Math.max(...marks);
+      expect(marks.filter((x) => Math.abs(x - spine) < 1e-9).length).toBeGreaterThan(marks.length / 2 - 1);
+      expect(Math.min(...marks)).toBeLessThan(spine);
+    }
+  });
+
+  it("ferme la bouche ouverte sur sa corde et trace les yeux plissés d'un point à l'autre", () => {
+    const { ctx, drawn } = recorder();
+    const bones = rig({ hair: "crop", face: "joy", bib: null });
+    drawMascot(ctx, { ...POSES.stand, lean: 0, head: 0 }, { paint: { ...PAINT, bib: "bib", mark: "mark" }, bones });
+    const eyes = drawn.filter((item) => item.color === "eye");
+    // Quatre traits pour les deux yeux en chevrons, puis la bouche : une demi-lune sous sa corde.
+    expect(eyes.filter((item) => item.op === "stroke")).toHaveLength(4);
+    const [from, to] = eyes.find((item) => item.op === "fill")!.path;
+    expect(from!.x).toBeCloseTo(24 + 11, 9);
+    expect(to!.x).toBeCloseTo(24 - 11, 9);
+    expect(from!.y).toBeCloseTo(-BODY.neck + 19, 9);
+    expect(to!.y).toBeCloseTo(from!.y, 9);
   });
 });

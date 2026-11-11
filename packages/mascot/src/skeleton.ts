@@ -26,8 +26,11 @@ export type Point = { x: number; y: number };
 export type Angle = Exclude<keyof Pose, "rot" | "flip" | "sx" | "sy">;
 
 // Ce qu'un rendu doit colorer. Les couleurs elles-mêmes viennent de l'hôte, donc des jetons de design.
-export type PaintRole = "skin" | "tee" | "shorts" | "shoe" | "hair" | "eye";
-export type Paint = Record<PaintRole, string>;
+export type BasePaintRole = "skin" | "tee" | "shorts" | "shoe" | "hair" | "eye";
+// Un athlète du groupe porte en plus un dossard : son fond, puis son numéro.
+export type PaintRole = BasePaintRole | "bib" | "mark";
+export type Paint = Record<BasePaintRole, string>;
+export type AthletePaint = Record<PaintRole, string>;
 
 export type Shape =
   // Un trait à bouts ronds, de l'articulation vers le bas de l'os.
@@ -35,7 +38,11 @@ export type Shape =
   | { kind: "box"; x: number; y: number; width: number; height: number; radius: number; paint: PaintRole }
   | { kind: "disc"; x: number; y: number; radius: number; paint: PaintRole }
   // Une calotte : le haut d'un disque centré sur l'os, coupé par une corde horizontale.
-  | { kind: "cap"; radius: number; chord: Point; paint: PaintRole };
+  | { kind: "cap"; radius: number; chord: Point; paint: PaintRole }
+  // Un trait à bouts ronds entre deux points : un œil plissé, une mèche, un chiffre de dossard.
+  | { kind: "stroke"; from: Point; to: Point; width: number; paint: PaintRole }
+  // Une part de disque, entre deux angles en degrés (sens horaire depuis la droite), fermée par sa corde.
+  | { kind: "segment"; x: number; y: number; radius: number; from: number; to: number; paint: PaintRole };
 
 export type BoneId =
   | "torso"
@@ -48,7 +55,10 @@ export type BoneId =
   | "thighA"
   | "shinA"
   | "thighB"
-  | "shinB";
+  | "shinB"
+  // Ce qu'un athlète du groupe ajoute au corps de base (rig.ts).
+  | "hairBack"
+  | "bib";
 
 export type Bone = {
   id: BoneId;
@@ -61,6 +71,8 @@ export type Bone = {
   shapes: Shape[];
   // Ordre d'empilement : le plus petit est dessiné en premier, donc derrière.
   z: number;
+  // Ses formes se lisent : quand le corps se retourne, elles ne passent pas en miroir.
+  upright?: boolean;
 };
 
 const ORIGIN: Point = { x: 0, y: 0 };
@@ -156,12 +168,15 @@ export const STACK: readonly Bone[] = [...SKELETON].sort((a, b) => a.z - b.z);
 const BY_ID = new Map(SKELETON.map((bone) => [bone.id, bone]));
 
 // Le chemin du bassin jusqu'à un os : une suite de décalages et de rotations, à appliquer dans l'ordre.
-export type Step = { move: Point } | { turn: number };
+// `mirror` retourne l'os sur lui-même, pour qu'un numéro reste lisible sur un corps vu de dos.
+export type Step = { move: Point } | { turn: number } | { mirror: true };
 
-export const chain = (bone: Bone, pose: Pose): Step[] => {
-  const steps: Step[] = bone.parent ? chain(BY_ID.get(bone.parent)!, pose) : [];
+// `among` : les os où chercher le parent. Par défaut le corps de base ; un athlète du groupe donne les siens.
+export const chain = (bone: Bone, pose: Pose, among: ReadonlyMap<BoneId, Bone> = BY_ID): Step[] => {
+  const steps: Step[] = bone.parent ? chain(among.get(bone.parent)!, pose, among) : [];
   if (bone.offset.x !== 0 || bone.offset.y !== 0) steps.push({ move: bone.offset });
   if (bone.turn) steps.push({ turn: bone.turn.sign * pose[bone.turn.by] });
+  if (bone.upright && pose.flip < 0) steps.push({ mirror: true });
   return steps;
 };
 
@@ -202,7 +217,10 @@ export const jointPositions = (pose: Pose, root: Point = ORIGIN): Record<Anchor,
   for (const name of Object.keys(ANCHORS) as Anchor[]) {
     const { bone, at } = ANCHORS[name];
     const steps = bone ? chain(BY_ID.get(bone)!, pose) : [];
-    const matrix = steps.reduce((m, step) => ("move" in step ? moved(m, step.move) : turned(m, step.turn)), body);
+    const matrix = steps.reduce(
+      (m, step) => ("move" in step ? moved(m, step.move) : "turn" in step ? turned(m, step.turn) : m),
+      body,
+    );
     out[name] = place(matrix, at);
   }
   return out;

@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-11, Claude, lot B3 : six gestes, six athlètes, motifs de piste
+
+Fait : `packages/mascot` porte le corps des athlètes (`rig.ts` : mains, trois visages, quatre coiffures, dossard), les accessoires (`props.ts`) et un geste complet par épreuve (`hurdles`, `pole-vault`, `triple-jump`, `discus`, `long-jump`, `high-jump-event`, réunis dans `events.ts`) ; `packages/design-tokens/src/athletes.ts` porte les teints, les cheveux, les tenues et la règle qui habille chaque athlète selon le fond ; côté web, `Athlete`, `EventScene`, les motifs de `track.tsx` et la planche `/admin/mascotte` (PR `feat/gestes-epreuves`).
+Vérifié : 87 tests dans le paquet (aucun saut d'une image à l'autre, pieds au-dessus du sol, appel sans mordre, appuis du triple saut sur le bon pied, perche qui plie sans s'allonger, bassin au-dessus de la barre, disque dans la main jusqu'au lâcher) ; `tests/athlete-colors.test.ts` sur les dix-huit couples athlète et fond ; `e2e/mascot-board.spec.ts` sur téléphone et ordinateur (axe, pas de défilement horizontal, lecture à la demande, mouvement réduit, refus d'un coach ordinaire) ; planche regardée rendue à 390, 768 et 1440 px. Non vérifié : rien en production ; aucun geste vu sur un vrai téléphone ; les gestes n'ont été jugés qu'à l'œil, sur des planches-contact, par l'agent.
+À savoir : le squelette de base (`SKELETON`) n'a pas bougé, donc le film, la mascotte actuelle et le mobile dessinent le même personnage qu'avant ; un athlète du groupe passe par `rig()` puis `svgAthlete` ou `drawMascot({ bones })`. Entre deux clés, un pied posé glisse ou s'enfonce : `planted` et `sandFrame` déduisent le bassin du pied à chaque image, et les tests l'exigent. Les haies ne sont pas des clés dans le temps mais dans l'espace : la foulée avance avec le corps, donc les pieds ne patinent pas. Mesurer une couleur contre un fond par la luminance ne suffit pas : le premier teint hâlé avait la clarté de la piste ; la règle est un écart Oklab d'au moins 0,12. Dans un parcours, un compte administrateur ne s'inscrit qu'une fois : la planche a ses deux adresses dans `ADMIN_EMAILS` de `playwright.config.ts` et un seul test par écran. Choix à faire valider : prénoms, cheveux blonds de Malo, chiffres du dossard en traits droits.
+Suite conseillée : la revue de la planche par le fondateur (F17), puis B4 ou B5 ; J2 peut dessiner les haies avec `CLIPS.hurdles` et `drawMascot`.
+
 ## 2026-11-11, Claude, CI : délai maximal et dépôts Ubuntu
 
 Fait : `ci.yml` plafonne la tâche `quality` à 45 minutes et l'installation des navigateurs à 10 ; une étape « Dépôts Ubuntu, résolution de secours » précède cette installation (PR `fix/delai-ci`).
