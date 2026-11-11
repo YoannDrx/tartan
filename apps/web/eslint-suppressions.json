@@ -1,0 +1,242 @@
+{
+  "app/(app)/admin/abonnements/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 2
+    }
+  },
+  "app/(app)/admin/factures/[id]/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "app/(app)/admin/factures/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "app/(app)/admin/litiges/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "app/(app)/admin/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 2
+    }
+  },
+  "app/(app)/admin/revenus/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "app/(app)/athletes/[id]/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 8
+    }
+  },
+  "app/(app)/aujourdhui/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "app/(app)/progres/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 3
+    }
+  },
+  "app/(app)/suivi/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "app/(public)/bienvenue/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "app/(public)/cgv/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 31
+    }
+  },
+  "app/(public)/i/[token]/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "app/(public)/mentions-legales/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 11
+    }
+  },
+  "app/(public)/suppression-compte/page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 13
+    }
+  },
+  "app/not-found.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "emails/auth.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 25
+    }
+  },
+  "emails/digest.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 3
+    }
+  },
+  "emails/layout.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "src/components/logo.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 2
+    }
+  },
+  "src/features/announcements/announcements.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 2
+    }
+  },
+  "src/features/athlete-view/session-mode.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "src/features/athlete-view/validation.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 2
+    }
+  },
+  "src/features/athletes/athlete-forms.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 19
+    }
+  },
+  "src/features/auth/sign-in-form.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 5
+    }
+  },
+  "src/features/exercises/exercise-library.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 4
+    }
+  },
+  "src/features/legal/privacy.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 29
+    }
+  },
+  "src/features/legal/terms.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 14
+    }
+  },
+  "src/features/planner/planner-loads.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "src/features/progression/confirmed-records.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "src/features/progression/exercise-history.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 2
+    }
+  },
+  "src/features/progression/strength-calculator.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "src/features/progression/strength-records.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "src/features/sessions/calendar-board.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 7
+    }
+  },
+  "src/features/sessions/calendar-tools.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 5
+    }
+  },
+  "src/features/sessions/refresh-loads.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "src/features/sessions/session-builder.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 22
+    }
+  },
+  "src/features/settings/settings-forms.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 16
+    }
+  },
+  "src/features/shell/app-shell.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 3
+    }
+  },
+  "src/features/shell/legal-page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "src/features/shell/public-page.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "src/features/shell/site-chrome.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 1
+    }
+  },
+  "src/features/tracking/session-detail.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 2
+    }
+  },
+  "src/features/tracking/session-followup.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 3
+    }
+  },
+  "src/features/tracking/tracking-grid.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 2
+    }
+  },
+  "src/features/videos/video-analysis.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 10
+    }
+  },
+  "src/features/videos/video-list.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 3
+    }
+  },
+  "src/features/videos/video-tools.tsx": {
+    "tartan/no-hardcoded-text": {
+      "count": 5
+    }
+  }
+}

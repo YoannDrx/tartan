@@ -37,6 +37,7 @@
   --color-page: #c4442b;
   --color-on-page: #ffffff;
   --color-lane: #ffffff;
+  --color-on-ink: #ffffff;
   --color-card: #15161a;
   --color-card-raised: #24262c;
   --color-card-line: #3a3c43;
@@ -100,6 +101,10 @@
   --radius-card: 20px;
   --radius-block: 24px;
   --radius-hero: 28px;
+
+  /* Éléments flottants : feuilles, menus, messages. Encre à 16 % et 32 %. */
+  --shadow-float: 0 8px 24px rgb(21 22 26 / 0.16);
+  --shadow-float-strong: 0 8px 24px rgb(21 22 26 / 0.32);
 
   --breakpoint-tablet: 600px;
   --breakpoint-desktop: 1024px;

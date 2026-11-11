@@ -15,7 +15,7 @@ const InstagramPlayer = ({ code, title }: { code: string; title: string }) => {
         title={title}
         src={instagramEmbedUrl(code)}
         allow="autoplay; encrypted-media; picture-in-picture"
-        className="mx-auto h-[min(78dvh,650px)] w-full max-w-[360px] rounded-card bg-white"
+        className="mx-auto h-[min(78dvh,650px)] w-full max-w-[360px] rounded-card bg-surface"
       />
     );
   }

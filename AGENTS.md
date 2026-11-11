@@ -46,7 +46,7 @@ Le détail, les comptes de test et les pièges sont dans [docs/tests/README.md](
 - Aucune requête Prisma hors de `apps/web/src/server/*` et `src/lib`. Tout passe par un service qui appelle `requireOrgMember`. Seule exception : un service public qui ne lit aucune donnée d'espace (jeu, aide), limité à ses propres tables, avec une ligne explicite dans la matrice d'accès.
 - Les notes privées du coach ne sont jamais sélectionnées pour un athlète.
 - Les règles métier pures vont dans `packages/domain`, avec tests. Les contrats vont dans `packages/contracts`.
-- Aucun texte en dur : `packages/i18n`. Aucune couleur en dur : `packages/design-tokens`.
+- Aucun texte en dur : `packages/i18n`. Aucune couleur en dur : `packages/design-tokens`. Le lint le refuse (`apps/web/eslint-rules`). Les textes d'avant la règle sont gelés dans `apps/web/eslint-suppressions.json` : quand tu touches un de ces fichiers, déplace ses textes, puis lance `pnpm --filter @tartan/web lint:prune`. N'ajoute jamais une entrée à cette base.
 - Aucune donnée de santé dans les journaux, les notifications ou les analyses d'usage. Effort ressenti, douleurs et blessures exigent le consentement santé.
 - Migrations additives uniquement. On n'enlève pas une colonne encore lue par un client en circulation.
 - Un appel à un SDK asynchrone est toujours attendu, sans `as unknown as`. Le webhook Mux est resté inopérant une semaine à cause de cela.
