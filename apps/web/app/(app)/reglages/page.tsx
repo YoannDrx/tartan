@@ -233,6 +233,7 @@ export default async function ReglagesPage() {
         <EmailPreferences
           digest={emailPreferences.digest}
           notifications={emailPreferences.notifications}
+          tips={emailPreferences.tips}
           showDigest={access.role === "owner"}
         />
       ),

@@ -215,10 +215,12 @@ export const DeleteAccount = ({ detail }: { detail: string }) => {
 export const EmailPreferences = ({
   digest,
   notifications,
+  tips,
   showDigest,
 }: {
   digest: boolean;
   notifications: boolean;
+  tips: boolean;
   showDigest: boolean;
 }) => {
   const { execute, isPending } = useAction(setEmailPreferenceAction, { onError: onErr });
@@ -237,6 +239,14 @@ export const EmailPreferences = ({
           defaultChecked={digest}
           disabled={isPending}
           onChange={(e) => execute({ kind: "digest", on: e.target.checked })}
+        />
+      ) : null}
+      {showDigest ? (
+        <CheckRow
+          label={m.settings.emailTips}
+          defaultChecked={tips}
+          disabled={isPending}
+          onChange={(e) => execute({ kind: "tips", on: e.target.checked })}
         />
       ) : null}
     </div>

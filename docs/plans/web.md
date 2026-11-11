@@ -17,7 +17,7 @@ Un lot, une branche, une PR. L'état de chaque lot est dans [../ETAT.md](../ETAT
 | A7 | `test/stripe-sandbox` | T03, avec une session Stripe CLI du fondateur | Cycle complet en sandbox |
 | A8 | `feat/email-registry` | Registre unique des e-mails, catégorie obligatoire à l'envoi, e-mails de sécurité exemptés des plaintes et désinscriptions, invitations par la file, objets dans `packages/i18n` | Rendu de chaque genre, aucun nouvel e-mail |
 | A9 | `feat/premiers-pas-coach` | Onboarding en trois temps, liste « Premiers pas » sur `/suivi` | E2E d'un coach neuf à 390 px |
-| A10 | `feat/emails-cycle-de-vie` | Séquences d'activation, essai, plafond, reconquête ; préférences | Tests à horloge figée |
+| A10 | `feat/emails-cycle-de-vie` | Séquence d'activation, plafond presque atteint, préférence « conseils ». La reconquête attend l'avis du juriste | Tests à horloge figée |
 | A11 | `feat/accueil-athlete` | Accueil après invitation, e-mail de bienvenue, relance d'invitation | E2E et axe à 390 px |
 | A12 | `feat/aide` | Page `/aide`, aide courte par écran, contact dans l'application | E2E et axe |
 | A13 | `feat/exploitation-vente` | W8 et W9 ci-dessous | Copie restaurée, panne simulée reçue |

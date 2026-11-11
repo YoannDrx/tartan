@@ -3,11 +3,11 @@ import { notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { deriveToken, idFromToken, tokenMatches } from "@/lib/tokens";
 
-export const EMAIL_KINDS = ["digest", "notifications"] as const;
+export const EMAIL_KINDS = ["digest", "notifications", "tips"] as const;
 export type EmailKind = (typeof EMAIL_KINDS)[number];
 
 const purpose = (kind: EmailKind): string => `email-unsubscribe:${kind}`;
-const columns = { digest: "emailDigest", notifications: "emailNotifications" } as const;
+const columns = { digest: "emailDigest", notifications: "emailNotifications", tips: "emailTips" } as const;
 
 export const isEmailKind = (value: string): value is EmailKind => (EMAIL_KINDS as readonly string[]).includes(value);
 
@@ -34,9 +34,13 @@ export const applyUnsubscribe = async (kind: string, token: string): Promise<voi
 export const getEmailPreferences = async (userId: string) => {
   const profile = await prisma.profile.findUnique({
     where: { id: userId },
-    select: { emailDigest: true, emailNotifications: true },
+    select: { emailDigest: true, emailNotifications: true, emailTips: true },
   });
-  return { digest: profile?.emailDigest ?? true, notifications: profile?.emailNotifications ?? true };
+  return {
+    digest: profile?.emailDigest ?? true,
+    notifications: profile?.emailNotifications ?? true,
+    tips: profile?.emailTips ?? true,
+  };
 };
 
 export const setEmailPreference = async (userId: string, kind: EmailKind, on: boolean): Promise<void> => {

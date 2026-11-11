@@ -19,7 +19,7 @@ Tous les e-mails que Tartan envoie, leur déclencheur et la façon de s'en dési
 
 Un incident de paiement ne donne qu'un e-mail : « paiement échoué » et « validation demandée » ne se cumulent pas dans la même heure. Sans clé Resend, les messages restent en mémoire, sauf en production où l'envoi échoue. Les adresses `@demo.tartan.coach` ne reçoivent rien. Un e-mail ne contient jamais de donnée de santé.
 
-## Les 25 e-mails en place
+## Les 27 e-mails en place
 
 | Clé du catalogue | Destinataire | Déclencheur | Envoi | Désinscription |
 | --- | --- | --- | --- | --- |
@@ -46,6 +46,8 @@ Un incident de paiement ne donne qu'un e-mail : « paiement échoué » et « va
 | `payment_recovered` | Propriétaire | Paiement rétabli | File | Non |
 | `trial_ending` | Propriétaire | Trois jours avant la fin de l'essai | File, tâche de 9 h | Non |
 | `renewal_notice` | Propriétaire | Avant le renouvellement annuel (art. L. 215-1) | File | Non |
+| `activation` | Propriétaire | Un, trois et sept jours après la création de l'espace, sur la prochaine étape manquante des premiers pas | File, tâche de 9 h | Oui, « conseils » |
+| `plan_near_limit` | Propriétaire | Athlètes ou vidéos du mois à 80 % de la limite de l'offre | File, tâche de 9 h | Non |
 | `account_deleted` | Ancien compte | Compte supprimé | File | Non |
 | `space_transferred` | Nouveau propriétaire | Espace transmis | File | Non |
 
@@ -59,27 +61,37 @@ Un incident de paiement ne donne qu'un e-mail : « paiement échoué » et « va
 - **Genre inconnu.** Une ligne de la file dont le genre n'est pas au registre est marquée en échec `unknown_kind` et signalée, au lieu de partir sous un autre gabarit.
 - **Objets.** Dans `packages/i18n`, sous `m.email` ; le catalogue lit les mêmes.
 
+## Séquence d'activation
+
+Trois rappels au plus, décidés par une règle pure (`packages/domain/src/lifecycle-emails.ts`) à partir des faits des premiers pas (`packages/domain/src/onboarding.ts`). Service : `apps/web/src/server/lifecycle-email.service.ts`.
+
+| Échéance | Fenêtre depuis la création | Contenu |
+| --- | --- | --- |
+| J+1 | De 1 à 2 jours | La prochaine étape manquante : inviter, créer, publier, ou faire valider |
+| J+3 | De 3 à 5 jours | Idem |
+| J+7 | De 7 à 10 jours | Idem, avec une invitation à répondre pour être aidé |
+
+- Un message est mis en file le matin où il est dû, jamais à l'avance : la file expire tout message de plus de 24 heures.
+- Passé la fenêtre, rien ne part : après une panne de la tâche, un rappel en retard n'aurait plus de sens.
+- La pertinence est revérifiée à l'envoi : le coach qui vient de faire l'étape, ou qui a coupé les conseils, ne reçoit rien.
+- Un coach qui a reçu sa première validation ne reçoit plus rien.
+- Il n'y a pas d'e-mail distinct pour un essai sans activation : la séquence le couvre déjà, et le rappel de fin d'essai suit.
+
+## Plafond presque atteint
+
+Le matin, le payeur est prévenu quand les athlètes ou les vidéos du mois atteignent 80 % de la limite de son offre, sans l'avoir atteinte. Une fois par limite d'athlètes, une fois par mois pour les vidéos. Les offres sans limite et les limites inférieures à cinq ne préviennent pas.
+
 ## Ajouts prévus
 
-Décidés le 11 novembre 2026, lots A10 et A11 de [web.md](../plans/web.md). Chacun a son gabarit, ses textes, son entrée au registre, un test de rendu et un test de déclencheur.
+Lot A11 de [web.md](../plans/web.md).
 
 | E-mail | Destinataire | Déclencheur | Désinscription |
 | --- | --- | --- | --- |
-| Activation, J+1, J+3, J+7 | Propriétaire | Prochaine étape manquante : inviter, créer, publier, première validation | Oui, « conseils » |
-| Essai sans activation | Propriétaire | Essai en cours, aucun athlète ni séance | Oui, « conseils » |
-| Plafond presque atteint | Propriétaire | Athlètes ou vidéos du mois proches de la limite de l'offre | Non |
 | Bienvenue de l'athlète | Athlète | Invitation acceptée | Non |
 | Relance d'invitation | Athlète invité | Invitation sans réponse à J+3, une seule fois, signée du coach | Opposition par adresse |
-| Reconquête | Ancien abonné | Trente jours après une fin d'abonnement non impayée, une seule fois | Oui, « offres » |
 
-Règles de ces séquences :
-
-- La décision d'envoyer est une fonction pure de `packages/domain/src/lifecycle-emails.ts`, sur le modèle de `billing-emails.ts`.
-- Un message est mis en file le jour où il est dû, jamais à l'avance : la file expire tout message de plus de 24 heures.
-- Chaque échéance a une fenêtre : J+1 entre un et deux jours, J+3 entre trois et cinq, J+7 entre sept et dix. Après une panne, rien ne part en retard.
-- La pertinence est revérifiée à l'envoi : pas de relance « invite ton groupe » à un coach qui vient d'inviter.
-- L'e-mail de reconquête est de la prospection : il attend l'avis du juriste.
+Non construit, en attente de l'avis du juriste : l'e-mail de reconquête, trente jours après une fin d'abonnement. C'est de la prospection.
 
 ## Préférences
 
-Aujourd'hui : deux interrupteurs sur le profil, `emailDigest` et `emailNotifications`, et une désinscription en un clic par en-tête `List-Unsubscribe`. Le lot A10 ajoute « conseils » et « offres ». Ne se désactivent pas : sécurité du compte, facturation, invitations, bienvenue de l'athlète, préavis de suppression.
+Trois interrupteurs sur le profil, réglables dans Réglages et par une désinscription en un clic (en-tête `List-Unsubscribe`, page `/e-mails/[kind]/[token]`) : `emailDigest` (résumé), `emailNotifications` (replis de notification), `emailTips` (conseils d'activation). Ne se désactivent pas : sécurité du compte, facturation, invitations, préavis de suppression.

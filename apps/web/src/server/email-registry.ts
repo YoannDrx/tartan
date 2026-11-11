@@ -12,6 +12,8 @@ export type EmailCategory =
   | "account"
   // Résumés et notifications, que chacun peut couper.
   | "activity"
+  // Conseils d'activation du coach, que chacun peut couper.
+  | "tips"
   // Alertes adressées à l'éditeur.
   | "internal";
 
@@ -46,6 +48,8 @@ export const EMAILS = {
   payment_recovered: { category: "billing", outbox: "recovered" },
   trial_ending: { category: "billing", outbox: "trial_ending" },
   renewal_notice: { category: "billing", outbox: "renewal_notice" },
+  activation: { category: "tips", outbox: "activation" },
+  plan_near_limit: { category: "billing", outbox: "plan_near_limit" },
   account_deleted: { category: "account", outbox: "account_deleted" },
   space_transferred: { category: "account", outbox: "space_transferred" },
 } as const satisfies Record<string, EmailDefinition>;

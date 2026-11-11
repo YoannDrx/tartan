@@ -18,6 +18,7 @@ import { prisma } from "@/lib/prisma";
 import { emailForOutboxKind } from "./email-registry";
 import { EmailSuppressedError } from "./email-suppression.service";
 import { isInvitationEmailRelevant, isInvitationOutboxKind, renderInvitationEmail } from "./invitation-email";
+import { isActivationEmailRelevant, renderActivationEmail, renderNearLimitEmail } from "./lifecycle-email.service";
 
 const RETRY_WINDOW_MS = 24 * 60 * 60 * 1000;
 const LEASE_MS = 5 * 60 * 1000;
@@ -144,6 +145,8 @@ const INCIDENT_WINDOW_MS = 60 * 60 * 1000;
 
 const render = async (kind: string, payload: unknown, organizationId: string | null, now: Date) => {
   if (isInvitationOutboxKind(kind)) return renderInvitationEmail(payload);
+  if (kind === "activation" && organizationId) return renderActivationEmail(organizationId, payload);
+  if (kind === "plan_near_limit" && organizationId) return renderNearLimitEmail(organizationId, payload);
   if (kind === "account_deleted") {
     return {
       subject: m.email.accountDeleted.subject,
@@ -296,13 +299,15 @@ export const flushEmailOutbox = async (now: Date = new Date(), only?: { dedupeKe
         await prisma.emailOutbox.update({ where: { id: row.id }, data: { failedAt: now, failureCode: "obsolete" } });
         continue;
       }
-      const { subject, react } = await render(row.kind, row.payload, row.organizationId, now);
+      const rendered = await render(row.kind, row.payload, row.organizationId, now);
       await sendEmail({
         kind: emailKey,
         to: row.toEmail,
-        subject,
-        react,
+        subject: rendered.subject,
+        react: rendered.react,
         idempotencyKey: `outbox/${row.dedupeKey}`,
+        // Les conseils se coupent d'un clic depuis le client de messagerie.
+        ...("unsubscribeUrl" in rendered ? { unsubscribeUrl: rendered.unsubscribeUrl } : {}),
       });
       await prisma.emailOutbox.update({ where: { id: row.id }, data: { sentAt: now } });
       sent += 1;
@@ -424,6 +429,7 @@ export const isEmailRelevant = async (
     return !(await prisma.user.count({ where: { OR: [{ id: payload.userId }, { email: row.toEmail }] } }));
   }
   if (!row.organizationId) return false;
+  if (row.kind === "activation") return isActivationEmailRelevant(row.organizationId, row.payload, row.toEmail);
   const org = await prisma.organization.findUnique({
     where: { id: row.organizationId },
     include: { owner: { select: { email: true } } },
@@ -434,6 +440,8 @@ export const isEmailRelevant = async (
   }
   if (!org || org.owner.email !== row.toEmail || (org.billingOwnerId && org.billingOwnerId !== org.ownerId))
     return false;
+  // Le plafond a été mesuré à la mise en file, le matin même : le payeur reste le seul contrôle.
+  if (row.kind === "plan_near_limit") return true;
   const sub = await prisma.subscription.findFirst({
     where: { organizationId: org.id },
     orderBy: { createdAt: "desc" },
