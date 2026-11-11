@@ -1950,7 +1950,7 @@ export const fr = {
       member_joined: "Voir l'athlète",
     },
     reportCta: "Voir le signalement",
-    publisher: "Tartan est édité par la Société Yodev.",
+    publisher: "Tartan est édité par Yodev, entreprise individuelle.",
     legal: "Mentions légales",
     privacy: "Confidentialité",
     contact: "Contact",

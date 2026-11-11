@@ -57,6 +57,23 @@ Prouve : session unique sous concurrence, réponse perdue, expiration avant chan
 
 Cartes de test Stripe (mode test uniquement) : `4242 4242 4242 4242` accepte, `4000 0000 0000 0341` échoue au prélèvement après ajout, `4000 0025 0000 3155` demande 3-D Secure. Date future, CVC quelconque.
 
+## Passer en réel
+
+À faire par le fondateur dans le tableau de bord Stripe, avant le premier vrai paiement. Aucune de ces valeurs ne s'écrit dans le dépôt.
+
+| Réglage | Attendu |
+| --- | --- |
+| Compte activé, virements | Compte bancaire vérifié, calendrier de virement choisi |
+| Libellé bancaire | « TARTAN » ou « YODEV TARTAN », reconnaissable sur un relevé |
+| Reçus et factures par e-mail | Activés : Tartan n'envoie pas de reçu lui-même |
+| Relances d'impayé | Nouvelles tentatives automatiques activées ; fin d'abonnement après la dernière. Tartan envoie un seul e-mail par échéance |
+| Portail client | Factures, moyen de paiement, changement d'offre avec prorata, résiliation en fin de période : posé par `stripe-setup` |
+| Webhook | Couvre tous les événements de `stripe-webhook-events.ts`. Après l'ajout d'un événement dans le code, relancer `stripe-setup` en production |
+| Radar | Règles par défaut ; 3-D Secure demandé quand la banque l'exige |
+| Mentions de facture | Identité du vendeur, « TVA non applicable, art. 293 B du CGI » |
+
+Décision ouverte : un compte Stripe propre à Tartan, ou le compte actuel qui sert plusieurs produits. Voir [../ETAT.md](../ETAT.md).
+
 ## Recette manuelle complète (en sandbox)
 
 1. Créer un espace, ouvrir deux demandes d'abonnement simultanées : une seule session chez Stripe.
