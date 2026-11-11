@@ -980,8 +980,9 @@ export const ROUTES_PUBLIQUES: PublicRow[] = [
   { route: "GET /api/cron/notifications", pourquoi: "Jeton CRON_SECRET en en-tête.", anonyme: 401 },
   {
     route: "POST /api/webhooks/stripe",
-    pourquoi: "Signature Stripe du corps brut. Sans elle : 400. Détail dans T01.",
-    anonyme: 400,
+    pourquoi:
+      "Signature Stripe du corps brut. Sans secret configuré, comme ici : 503, pour que Stripe renvoie. Avec secret et sans signature : 400. Détail dans T01.",
+    anonyme: 503,
     call: () => ({ body: {} }),
   },
   {
