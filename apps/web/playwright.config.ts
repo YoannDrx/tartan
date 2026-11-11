@@ -17,13 +17,16 @@ export default defineConfig({
   projects: [
     {
       name: "desktop",
-      testIgnore: /terrain/,
+      testIgnore: /terrain|game-determinism/,
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
     },
-    { name: "mobile", testIgnore: /terrain/, use: { ...devices["Pixel 7"] } },
+    { name: "mobile", testIgnore: /terrain|game-determinism/, use: { ...devices["Pixel 7"] } },
     // Au bord de la piste, sur téléphone : le coach aussi, et le moteur de l'iPhone.
     { name: "terrain", testMatch: /terrain/, use: { ...devices["Pixel 7"] } },
     { name: "terrain-webkit", testMatch: /terrain/, use: { ...devices["iPhone 13"] } },
+    // Le jeu : la simulation doit donner le même score sur les deux moteurs, dans une page vide.
+    { name: "game-chromium", testMatch: /game-determinism/, use: { ...devices["Desktop Chrome"] } },
+    { name: "game-webkit", testMatch: /game-determinism/, use: { ...devices["Desktop Safari"] } },
   ],
   webServer: process.env.CAPTURE_BASE_URL
     ? undefined
