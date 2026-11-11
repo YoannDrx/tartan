@@ -71,6 +71,7 @@ Hors CI : Maestro, sandbox Stripe, `eval:planner --live`, captures, compilation 
 - Sans `RESEND_API_KEY`, `next dev` écrit le lien de chaque e-mail dans la console.
 - Tests hors ligne de `terrain.spec.ts` : `E2E_PROD` obligatoire.
 - Les webhooks se testent avec une **vraie signature** : modèle dans `tests/mux-webhook.test.ts`.
+- Mouvement réduit : `await page.emulateMedia({ reducedMotion: "reduce" })`, puis `expectNoMotion(page)` de `e2e/helpers.ts`. Tout écran animé y passe ; modèle dans `e2e/reduced-motion.spec.ts`.
 
 ## Maestro
 

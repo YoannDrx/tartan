@@ -110,6 +110,26 @@
   --breakpoint-desktop: 1024px;
 }
 
+/* Toujours émis, même sans usage : un composant peut lire n'importe quel jeton de mouvement. */
+@theme static {
+  /* Miroir de packages/design-tokens/src/motion.ts : aucune durée ni courbe ne s'écrit ailleurs. */
+  --duration-instant: 80ms;
+  --duration-quick: 150ms;
+  --duration-base: 200ms;
+  --duration-enter: 260ms;
+  --duration-trace: 320ms;
+  --duration-expressive: 420ms;
+  --duration-celebration: 1150ms;
+  --duration-ambient: 4400ms;
+  --ease-elan: cubic-bezier(0.4, 0, 1, 1);
+  --ease-impulsion: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-reception: cubic-bezier(0.16, 1, 0.3, 1);
+  --stagger-step: 34ms;
+  /* Les transitions sans durée ni courbe précisées prennent le changement d'état et l'amorti. */
+  --default-transition-duration: var(--duration-quick);
+  --default-transition-timing-function: var(--ease-reception);
+}
+
 /* Couleurs qui dépendent du fond : la même classe s'adapte au rouge, à l'encre ou à la craie. */
 @theme inline {
   --color-soft: var(--ctx-soft);
@@ -759,7 +779,7 @@
   }
   @media (prefers-reduced-motion: no-preference) {
     .marked::before {
-      animation: film-swipe-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: film-swipe-in var(--duration-enter) var(--ease-reception) both;
     }
   }
   /* La barre d'état reste visible au défilement : l'en-tête se pose dessous. */
@@ -832,67 +852,7 @@
     }
   }
 }
-/* Le signal part de l'athlète et arrive chez le coach. */
-@keyframes demo-signal {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(var(--signal-distance, 0));
-  }
-}
-.demo-signal {
-  animation: demo-signal 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-@keyframes demo-cell {
-  from {
-    transform: scale(0.4);
-  }
-  to {
-    transform: scale(1);
-  }
-}
-.demo-cell {
-  animation: demo-cell 320ms cubic-bezier(0.16, 1, 0.3, 1) 280ms both;
-}
-@media (prefers-reduced-motion: reduce) {
-  .demo-signal,
-  .demo-cell {
-    animation: none;
-  }
-}
-/* Curseur image par image : même tête de lecture que la timeline vidéo. */
-.jump-range {
-  appearance: none;
-  width: 100%;
-  height: 44px;
-  background: transparent;
-}
-.jump-range::-webkit-slider-runnable-track {
-  height: 3px;
-  background: var(--color-card-line);
-}
-.jump-range::-moz-range-track {
-  height: 3px;
-  background: var(--color-card-line);
-}
-.jump-range::-webkit-slider-thumb {
-  appearance: none;
-  width: 8px;
-  height: 32px;
-  margin-top: -14px;
-  border-radius: 4px;
-  background: var(--color-fg);
-}
-.jump-range::-moz-range-thumb {
-  width: 8px;
-  height: 32px;
-  border: 0;
-  border-radius: 4px;
-  background: var(--color-fg);
-}
-
-/* Un seul moment animé : la coche de validation (§ 9.11). */
+/* La coche de validation se trace : sans mouvement, elle est simplement là. */
 @keyframes tartan-check {
   from {
     stroke-dashoffset: 24;
@@ -903,11 +863,10 @@
 }
 .validation-check {
   stroke-dasharray: 24;
-  animation: tartan-check 320ms ease-out both;
 }
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: no-preference) {
   .validation-check {
-    animation: none;
+    animation: tartan-check var(--duration-trace) var(--ease-reception) both;
   }
 }
 
@@ -1146,12 +1105,12 @@
     display: inline;
     transform-box: fill-box;
     transform-origin: center;
-    animation: film-pop-in 420ms both;
+    animation: film-pop-in var(--duration-expressive) both;
   }
   .film-eyes {
     transform-box: fill-box;
     transform-origin: center;
-    animation: film-blink 4.4s infinite;
+    animation: film-blink var(--duration-ambient) infinite;
   }
   .film-chrome {
     position: absolute;
@@ -1180,18 +1139,18 @@
   }
   .film-beat.is-active .film-word {
     display: inline-block;
-    animation: film-word-in 460ms calc(var(--i) * 34ms) both;
+    animation: film-word-in var(--duration-expressive) calc(var(--i) * var(--stagger-step)) both;
   }
   .film-beat-hero.is-active .film-word {
     animation-name: film-hero-word-in;
   }
   .film-beat.is-active .film-swipe::before {
     transform-origin: left;
-    animation: film-swipe-in 240ms calc(var(--i) * 34ms + 200ms) both;
+    animation: film-swipe-in var(--duration-enter) calc(var(--i) * var(--stagger-step) + var(--duration-base)) both;
   }
   .film-beat.is-active .film-note,
   .film-beat.is-active .film-check {
-    animation: film-pop-in 420ms 280ms both;
+    animation: film-pop-in var(--duration-expressive) var(--duration-enter) both;
   }
   .film-timeline {
     position: absolute;
@@ -1234,17 +1193,6 @@
     border-radius: 2px;
     background: var(--color-lane);
     box-shadow: 0 0 0 2px var(--color-ink);
-  }
-  /* Sur son aplat : une ligne de couloir passe derrière le compteur. */
-  .film-frame {
-    display: block;
-    width: fit-content;
-    margin-top: 6px;
-    padding: 1px 8px;
-    border-radius: 6px;
-    font-size: 15px;
-    color: var(--color-lane);
-    background: var(--color-ink);
   }
   /* Écran bas : la remarque du coach céderait sa place au saut, c'est elle qui s'efface. */
   @media (max-height: 620px) {
@@ -1302,12 +1250,12 @@
   position: fixed;
   z-index: 100;
   inset: 0;
-  display: grid;
+  /* Sans mouvement, la célébration n'a pas lieu : elle ne doit jamais rester posée sur l'écran. */
+  display: none;
   place-items: center;
   overflow: hidden;
   pointer-events: none;
   background: var(--color-film-lime);
-  animation: victory-world 1150ms both;
 }
 .victory-check {
   display: grid;
@@ -1317,7 +1265,6 @@
   border-radius: 999px;
   color: var(--color-film-lime);
   background: var(--color-ink);
-  animation: film-pop-in 420ms 60ms both;
 }
 .victory-check svg {
   width: 62%;
@@ -1330,7 +1277,6 @@
   position: absolute;
   bottom: -2vmin;
   width: min(46vmin, 280px);
-  animation: victory-jump 700ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .victory-piece {
   position: absolute;
@@ -1338,7 +1284,6 @@
   left: 50%;
   width: 14px;
   height: 14px;
-  animation: victory-burst 950ms 80ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .victory-piece-0 {
   border-radius: 999px;
@@ -1390,5 +1335,40 @@
   }
   to {
     transform: translate(var(--x), var(--y)) rotate(420deg);
+  }
+}
+/* La célébration tient dans sa durée : la mascotte saute sur les six premiers dixièmes, les confettis sur huit. */
+@media (prefers-reduced-motion: no-preference) {
+  .victory {
+    display: grid;
+    animation: victory-world var(--duration-celebration) both;
+  }
+  .victory-check {
+    animation: film-pop-in var(--duration-expressive) var(--duration-instant) both;
+  }
+  .victory-jumper {
+    animation: victory-jump calc(var(--duration-celebration) * 0.6) var(--duration-quick) var(--ease-reception) both;
+  }
+  .victory-piece {
+    animation: victory-burst calc(var(--duration-celebration) * 0.8) var(--duration-instant) var(--ease-reception) both;
+  }
+}
+
+/* Filet : quoi qu'un composant déclare, le mouvement réduit coupe animations, transitions et transitions de page. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

@@ -99,7 +99,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 
 | Lot | Contenu | État |
 | --- | --- | --- |
-| B1 | Jetons de mouvement, filet de mouvement réduit, miroir complet des couleurs | À faire |
+| B1 | Jetons de mouvement, filet de mouvement réduit, miroir complet des couleurs, CSS mort retiré | Codé, testé |
 | B2 | Squelette unique de la mascotte, paquet `packages/mascot` | Codé, testé. Film vu en production ; mobile non regardé sur appareil |
 | B3 | Six épreuves, six athlètes, composants de piste | À faire |
 | B4 | Transitions de page | À faire |
@@ -145,7 +145,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 - **Sentry gratuit** : une seule sonde de crons active. La sonde de disponibilité et celle des notifications attendent une place.
 - **Skew Protection** Vercel refusée par l'API : à activer à la main si l'offre l'inclut.
 - **iPhone, PWA** : les notifications exigent l'ajout à l'écran d'accueil, d'où l'intérêt de l'app native.
-- **Textes en dur hérités** : 274 textes gelés dans 48 fichiers (`apps/web/eslint-suppressions.json`), dont les pages légales et les objets d'e-mail. La règle ne voit pas les messages d'erreur ni les métadonnées de page. Les hexadécimaux de `globals.css` ne sont contrôlés qu'en partie, jusqu'au lot B1.
+- **Textes en dur hérités** : 267 textes gelés dans 46 fichiers (`apps/web/eslint-suppressions.json`), dont les pages légales et les objets d'e-mail. La règle ne voit pas les messages d'erreur ni les métadonnées de page. Depuis le lot B1, chaque couleur de `globals.css` est rapprochée d'un jeton par un test.
 - **Jeu public** : le rejeu serveur prouve qu'un score découle d'appuis valides, pas qu'un humain a joué. Le classement demande une modération.
 
 ## Hors périmètre de la V1

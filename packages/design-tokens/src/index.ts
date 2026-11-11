@@ -1,4 +1,5 @@
 export * from "./jumper";
+export * from "./motion";
 // Jetons du design system Tartan (cahier des charges, § 9.3 à 9.6 et § 9.14).
 // Source unique pour le web et le mobile. Ne pas ajouter de couleur ailleurs.
 export const tokens = {

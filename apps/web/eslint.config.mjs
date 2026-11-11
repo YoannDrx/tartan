@@ -13,6 +13,7 @@ const config = [
       "tartan/no-raw-color": "error",
       "tartan/no-default-palette": "error",
       "tartan/no-hardcoded-text": "error",
+      "tartan/no-raw-motion": "error",
     },
   },
   // Le catalogue d'essai porte des données fictives, pas des textes du produit.
