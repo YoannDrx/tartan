@@ -75,6 +75,6 @@ describe("base des textes en dur", () => {
       (sum, entry) => sum + (entry["tartan/no-hardcoded-text"]?.count ?? 0),
       0,
     );
-    expect(total).toBeLessThanOrEqual(274);
+    expect(total).toBeLessThanOrEqual(267);
   });
 });

@@ -2344,6 +2344,21 @@ export const fr = {
     contact: "Contact",
   },
   admin: {
+    revenue: {
+      mrr: "MRR",
+      arr: "ARR",
+      paying: "Payants",
+      trialing: "En essai",
+      conversion: "Conversion des essais",
+      churn: "Churn du mois",
+      pastDue: "Impayés",
+      collected: "Encaissé ce mois",
+      refunded: "Remboursé ce mois",
+      yearNet: "CA de l'année, net",
+      exportCsv: (year: number) => `Télécharger l'export comptable ${year} (CSV)`,
+      historyCaption: "Évolution du revenu",
+      day: "Jour",
+    },
     nav: {
       operations: "Opérations",
       revenue: "Revenus",

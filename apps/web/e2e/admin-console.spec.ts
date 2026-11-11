@@ -24,6 +24,20 @@ test("la console s'ouvre à l'éditeur, lisible sur chaque écran, et reste ferm
     await expectNoHorizontalScroll(page);
     await expectAccessible(page);
   }
+  // L'export comptable n'est demandé qu'au clic, et part en téléchargement.
+  const exports: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/admin/revenus/export")) exports.push(request.url());
+  });
+  await page.goto("/admin/revenus", { waitUntil: "networkidle" });
+  expect(exports).toEqual([]);
+  const year = new Date().getUTCFullYear();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("link", { name: m.admin.revenue.exportCsv(year), exact: true }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe(`tartan-factures-${year}.csv`);
+
   await page.goto("/admin/utilisateurs");
   await page.getByRole("link", { name: `console-${info.project.name}@e2e.tartan.test` }).click();
   await expect(page.getByRole("button", { name: m.admin.resendVerification })).toBeVisible();

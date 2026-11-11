@@ -4,7 +4,7 @@ Mis à jour le 11 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 **En une phrase :** le code de la V1 et de la V1.1 est en production et testé automatiquement, mais rien n'est encore vendu, car ni le paiement réel, ni les téléphones, ni l'avis juridique ne sont faits.
 
-**Portes d'ouverture franchies : 0 sur 10** ([commercialisation](plans/commercialisation.md)). Huit dépendent du fondateur en tout ou partie. La porte 10 avance : T01, T02 et T04 sont verts, T03 et T05 à T08 restent à écrire.
+**Portes d'ouverture franchies : 0 sur 10** ([commercialisation](plans/commercialisation.md)). Huit dépendent du fondateur en tout ou partie. La porte 10 avance : T01, T02, T04, T05 et T06 sont verts, T03, T07 et T08 restent à écrire.
 
 **Ordre décidé le 11 novembre 2026 :** vendre la web app, puis refondre la direction artistique, puis livrer le jeu. Les stores suivent.
 
@@ -81,9 +81,9 @@ Un lot, une branche, une PR. Détail des lots : [web](plans/web.md).
 | --- | --- | --- |
 | A1 | Personas, matrice d'accès T04 | Codé, testé. Toute nouvelle route doit recevoir sa ligne dans `tests/api-authz.matrix.ts` |
 | A2 | T01 webhook Stripe, T02 RevenueCat | Codé, testé. La route Stripe répond 503 sans secret et 500 en cas de panne |
-| A3 | Garde-fous : couleurs et textes en dur refusés par le lint | Codé, testé. 274 textes d'avant la règle restent gelés dans 48 fichiers |
+| A3 | Garde-fous : couleurs et textes en dur refusés par le lint | Codé, testé. 267 textes d'avant la règle restent gelés dans 46 fichiers |
 | A4 | Finitions du paiement : action bancaire requise, bandeau d'impayé, plafond atteint, factures | Codé, testé. Webhook de production à compléter par F14 |
-| A5 | T05 actions d'administration, T06 export comptable | À faire |
+| A5 | T05 actions d'administration, T06 export comptable | Codé, testé. L'export répondait 500 à un refus : corrigé en 401 et 403 |
 | A6 | T07 suppression de compte, T08 connexion Apple et Google | À faire |
 | A7 | T03 paiement de bout en bout en sandbox | À faire, après F16 |
 | A8 | Registre des e-mails, exemption des e-mails de sécurité, invitations par la file | Codé, testé |

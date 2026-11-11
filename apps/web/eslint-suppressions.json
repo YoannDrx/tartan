@@ -24,11 +24,6 @@
       "count": 2
     }
   },
-  "app/(app)/admin/revenus/page.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 1
-    }
-  },
   "app/(app)/athletes/[id]/page.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 8
