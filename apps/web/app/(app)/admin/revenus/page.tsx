@@ -1,39 +1,43 @@
 import { m } from "@tartan/i18n";
-import Link from "next/link";
 import { PageHeader } from "@/components/states";
 import { requireSpace } from "@/features/shell/space";
 import { AdminNav, DataTable, euros, Metrics } from "@/features/admin/console-ui";
 import { revenueOverview } from "@/server/admin-console.service";
 
+const t = m.admin.revenue;
 const pct = (value: number | null) => (value === null ? "–" : `${value} %`);
 
 export default async function AdminRevenuePage() {
   const { actor } = await requireSpace();
   const data = await revenueOverview(actor);
+  const year = new Date().getUTCFullYear();
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={m.admin.nav.revenue} />
       <AdminNav current="/admin/revenus" />
       <Metrics
         items={[
-          { label: "MRR", value: euros(data.mrrCents) },
-          { label: "ARR", value: euros(data.arrCents) },
-          { label: "Payants", value: data.paying },
-          { label: "En essai", value: data.trialing },
-          { label: "Conversion des essais", value: pct(data.conversionPercent) },
-          { label: "Churn du mois", value: pct(data.churnPercent) },
-          { label: "Impayés", value: `${data.pastDue} (${euros(data.atRiskCents)})` },
-          { label: "Encaissé ce mois", value: euros(data.monthRevenueCents) },
-          { label: "Remboursé ce mois", value: euros(data.monthRefundedCents) },
-          { label: "CA de l'année, net", value: euros(data.yearRevenueCents) },
+          { label: t.mrr, value: euros(data.mrrCents) },
+          { label: t.arr, value: euros(data.arrCents) },
+          { label: t.paying, value: data.paying },
+          { label: t.trialing, value: data.trialing },
+          { label: t.conversion, value: pct(data.conversionPercent) },
+          { label: t.churn, value: pct(data.churnPercent) },
+          { label: t.pastDue, value: `${data.pastDue} (${euros(data.atRiskCents)})` },
+          { label: t.collected, value: euros(data.monthRevenueCents) },
+          { label: t.refunded, value: euros(data.monthRefundedCents) },
+          { label: t.yearNet, value: euros(data.yearRevenueCents) },
         ]}
       />
       <p>
-        <Link href={`/admin/revenus/export?annee=${new Date().getUTCFullYear()}`}>Export comptable CSV</Link>
+        {/* Un lien simple : un lien Next préchargerait l'export à chaque visite de la page. */}
+        <a href={`/admin/revenus/export?annee=${year}`} download>
+          {t.exportCsv(year)}
+        </a>
       </p>
       <DataTable
-        caption="Évolution du revenu"
-        columns={["Jour", "MRR", "Payants"]}
+        caption={t.historyCaption}
+        columns={[t.day, t.mrr, t.paying]}
         rows={data.history
           .slice(-30)
           .reverse()

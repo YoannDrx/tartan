@@ -32,8 +32,8 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 | T02 | Webhook RevenueCat | Handler : sans en-tête 401, charge invalide 400, nominal, rejeu | Les quatre cas |
 | T03 | Paiement de bout en bout | Étendre `tests-sandbox/` : carte de test, `stripe listen --forward-to`, offre, facture, e-mail, remboursement, résiliation | Le cycle passe en sandbox |
 | T04 | Matrice d'accès HTTP | `e2e/api-authz.spec.ts` ou table Vitest, sur les personas. Priorité : `me/export`, `o/export`, `o/tracking/export`, `o/athlete/*`, `o/videos*`, `o/comments`, `o/billing` | Toute route figure dans la matrice |
-| T05 | Actions d'administration | `tests/admin-console-actions.test.ts` : accorder, expiration, suspendre, supprimer, résilier, prolonger l'essai. Refus, step-up, journal, effet | Six actions couvertes, remboursement en e2e avec Stripe simulé |
-| T06 | Export comptable | Handler de `admin/revenus/export` : non admin refusé, step-up, aucune donnée de santé | Trois assertions |
+| T05 | Actions d'administration | Fait. `tests/admin-console-actions.test.ts` appelle les actions serveur de la console avec une vraie session : accorder, expiration, suspendre, supprimer, résilier, prolonger l'essai, rembourser. Refus, step-up, journal, effet | Six actions couvertes. Le remboursement passe par le SDK Stripe réel, réseau remplacé, et non par Playwright : le serveur e2e ne peut pas simuler Stripe |
+| T06 | Export comptable | Fait. `tests/admin-accounting-export.test.ts` sur le handler de `admin/revenus/export` : non admin refusé, step-up, aucune donnée de santé ni personnelle. La route figure aussi dans la matrice d'accès | Trois assertions |
 | T07 | Suppression de compte | E2E `DELETE /api/v1/me` via `api-client`, flux Maestro sur compte jetable | Compte effacé, sessions coupées |
 | T08 | Connexion Apple et Google | `tests/auth-social.test.ts` : activation par variables, liaison de comptes. Corriger la révocation (M6) si la connexion Apple s'active | Tests verts, recette notée |
 

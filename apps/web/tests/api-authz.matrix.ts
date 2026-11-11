@@ -359,6 +359,9 @@ const sessionParams = (w: World): Call => ({ params: { sessionId: w.sessionId } 
 const videoParams = (w: World): Call => ({ params: { videoId: w.videoId } });
 
 export const MATRICE: Row[] = [
+  // Console de l'éditeur : même l'administrateur est refusé tant que sa passkey n'est pas vérifiée dans la session.
+  // Le cas accepté et le contenu du fichier sont dans tests/admin-accounting-export.test.ts.
+  { route: "GET /admin/revenus/export", ...compte(403) },
   // Compte : chacun n'agit que sur lui-même.
   { route: "GET /api/v1/me", ...compte() },
   { route: "PATCH /api/v1/me", ...compte(), call: () => ({ body: { firstName: "Prénom", lastName: "Test" } }) },
@@ -1040,13 +1043,7 @@ export const ROUTES_PUBLIQUES: PublicRow[] = [
 ];
 
 // Routes protégées dont l'exécution demande un autre banc : la raison renvoie au test qui les couvre.
-export const ROUTES_REPORTEES: { route: string; pourquoi: string }[] = [
-  {
-    route: "GET /admin/revenus/export",
-    pourquoi:
-      "Export comptable de la console : session administrateur et passkey récente, lues par next/headers. Couvert par T06.",
-  },
-];
+export const ROUTES_REPORTEES: { route: string; pourquoi: string }[] = [];
 
 function expectPresent(texte: string, attendu: string) {
   if (!texte.includes(attendu)) throw new Error(`La réponse devait contenir « ${attendu} ».`);
