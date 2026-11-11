@@ -4,7 +4,7 @@ Mis à jour le 11 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 **En une phrase :** le code de la V1 et de la V1.1 est en production et testé automatiquement, mais rien n'est encore vendu, car ni le paiement réel, ni les téléphones, ni l'avis juridique ne sont faits.
 
-**Portes d'ouverture franchies : 0 sur 10** ([commercialisation](plans/commercialisation.md)). Huit dépendent du fondateur en tout ou partie. La porte 10 avance : T01, T02 et T04 à T08 sont verts ; il reste T03, le paiement de bout en bout en sandbox.
+**Portes d'ouverture franchies : 1 sur 10** ([commercialisation](plans/commercialisation.md)). La porte 10 est franchie le 11 novembre 2026 : les tests critiques T01 à T08 sont verts. Deux réserves : T03 tourne contre la sandbox Stripe, hors de la CI, à la demande ; le flux Maestro de T07 est écrit, jamais exécuté. Huit des neuf portes restantes dépendent du fondateur en tout ou partie.
 
 **Ordre décidé le 11 novembre 2026 :** vendre la web app, puis refondre la direction artistique, puis livrer le jeu. Les stores suivent.
 
@@ -37,7 +37,7 @@ Mis à jour le 11 novembre 2026. Toute PR qui change un état met ce fichier à 
 | Planificateur IA | Oui, clé en place | Oui, prestataire simulé | Un essai réel sur le web. Corpus réel 59/60 |
 | Notifications, centre, préférences | Oui | Oui | Push réels jamais joués |
 | Versions et mises à jour | Oui | Oui | Non |
-| Abonnements Stripe | Oui | Simulé, et sandbox sans paiement | **Aucun vrai paiement** |
+| Abonnements Stripe | Oui | Simulé, et cycle complet en sandbox : carte de test, facture payée, webhooks signés reçus en HTTP, e-mails, remboursement, résiliation | **Aucun vrai paiement**. La saisie de carte sur la page Checkout n'est pas automatisée |
 | Remboursements, factures, litiges | Oui | Simulé | Non |
 | E-mails | 29 e-mails | Rendu, déclencheurs de facturation et d'activation | Seul le lien magique a été reçu |
 | Export, suppression de compte | Oui | Oui | Sur le web |
@@ -70,7 +70,7 @@ Les numéros renvoient aux étapes des plans. Trié par impact sur l'ouverture.
 | F13 | Prévenir les deux espaces pilotes des fonctions activées | [commercialisation](plans/commercialisation.md) | Confiance |
 | F14 | Régler le compte Stripe pour le réel. Le webhook de production écoute les 15 événements depuis le 11 novembre (constaté par l'API Stripe) | [Stripe](plans/stripe.md) | Vrai paiement |
 | F15 | Choisir où stocker les sauvegardes, hors de GitHub | [sauvegarde](exploitation/sauvegarde.md) | Lot A13 |
-| F16 | Ouvrir une session Stripe CLI sur la sandbox pour le lot A7 | [Stripe](plans/stripe.md) | T03 |
+| F16 | Fait le 11 novembre : la session Stripe CLI est ouverte sur la sandbox | [Stripe](plans/stripe.md) | — |
 | F17 | Valider les six athlètes sur la planche `/admin/mascotte`, après le lot B3 | [direction artistique](plans/direction-artistique.md) | Refonte des écrans |
 
 ### Agents : vendre la web app
@@ -85,7 +85,7 @@ Un lot, une branche, une PR. Détail des lots : [web](plans/web.md).
 | A4 | Finitions du paiement : action bancaire requise, bandeau d'impayé, plafond atteint, factures | Codé, testé. Webhook de production à compléter par F14 |
 | A5 | T05 actions d'administration, T06 export comptable | Codé, testé. L'export répondait 500 à un refus : corrigé en 401 et 403 |
 | A6 | T07 suppression de compte, T08 connexion Apple et Google | Codé, testé. Le flux Maestro de suppression est écrit, jamais exécuté. La connexion Apple et Google reste éteinte en production |
-| A7 | T03 paiement de bout en bout en sandbox | À faire, après F16 |
+| A7 | T03 paiement de bout en bout en sandbox | Codé, passé en sandbox le 11 novembre. Hors CI : à relancer à la main avant l'ouverture |
 | A8 | Registre des e-mails, exemption des e-mails de sécurité, invitations par la file | Codé, testé |
 | A9 | Onboarding du coach en trois temps, guide « Pour démarrer » en quatre étapes sur une règle partagée | Codé, testé |
 | A10 | E-mails d'activation (J+1, J+3, J+7), plafond presque atteint, préférence « conseils » | Codé, testé. Reconquête non construite, en attente de F4 |
@@ -140,7 +140,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 
 - **HDS** : la question la plus lourde. Une réponse défavorable peut imposer de changer d'hébergeur.
 - **Refus Apple 3.1.1** : l'exception 3.1.3(f) ne vise pas un outil de coaching.
-- **Tests à écrire sur le webhook Stripe** : T01 couvre `customer.subscription.*` ; les événements de facture, de remboursement et de litige ne passent encore par aucun test de la route. La route RevenueCat ne répond pas explicitement en cas de panne.
+- **Webhook Stripe** : T01 couvre `customer.subscription.*` en CI ; les événements de facture et de remboursement ne passent par la route que dans la recette sandbox (T03), hors CI. Les litiges ne passent par aucun test de la route. La route RevenueCat ne répond pas explicitement en cas de panne.
 - **Connexion aux prestataires jamais éprouvée** : le bug vidéo vient d'un code jamais exercé avec un vrai webhook. Considère tout ce qui n'est pas « éprouvé » ci-dessus comme suspect.
 - **Sentry gratuit** : une seule sonde de crons active. La sonde de disponibilité et celle des notifications attendent une place.
 - **Skew Protection** Vercel refusée par l'API : à activer à la main si l'offre l'inclut.

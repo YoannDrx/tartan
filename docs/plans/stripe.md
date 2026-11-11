@@ -43,14 +43,21 @@ Prérequis : Node 22, Postgres local, base `tartan_v11_sandbox` créée, session
 RUN_STRIPE_SANDBOX=1 TEST_DATABASE_URL=postgresql://tartan@localhost:54329/tartan_v11_sandbox corepack pnpm --filter @tartan/web exec vitest run --config vitest.sandbox.config.mts
 ```
 
-Prouve : session unique sous concurrence, réponse perdue, expiration avant changement d'offre, transfert avec panne, portail de l'ancien payeur refusé, nouveau client du repreneur. **Ne prouve pas** le paiement par carte, la facture payée, le webhook signé livré en HTTP, ni l'e-mail. Ce manque est la tâche T03.
+Deux fichiers, quatre tests, environ une minute et demie.
+
+- `billing.test.ts` prouve : session unique sous concurrence, réponse perdue, expiration avant changement d'offre, transfert avec panne, portail de l'ancien payeur refusé, nouveau client du repreneur.
+- `payment-cycle.test.ts` (T03) prouve le cycle de vente. Un espace ouvre un vrai Checkout ; la carte de test de Stripe est posée sur le client ; l'abonnement démarre en essai, puis l'essai se termine et Stripe prélève. Les événements signés arrivent par `stripe listen` sur la vraie route du webhook, servie en HTTP local. Sont vérifiés : offre et limites appliquées, facture payée dans le miroir et dans la liste du propriétaire, e-mails « démarré », « résiliation » et « terminé » partis une fois chacun, remboursement partiel par avoir depuis la console et relu chez Stripe, résiliation à l'échéance, retour en Découverte. Un second test joue la fin d'essai avec une carte qui exige 3-D Secure : facture ouverte, abonnement en impayé, accès conservé, bandeau d'impayé, un seul e-mail pour l'incident.
+
+Le SDK Stripe est celui de la production ; son réseau passe par la CLI (`tests-sandbox/sdk-over-cli.ts`), qui garde les clés. Le secret de signature de `stripe listen` reste en mémoire, jamais affiché. Le nettoyage ne supprime que les clients et abonnements créés par le test.
+
+**Ne prouve pas** : la saisie d'une carte par une personne sur la page Checkout hébergée (la carte est posée par l'API), le portail client, la TVA, un litige, ni la réception réelle d'un e-mail. Un premier paiement refusé ou à valider se règle sur la page Checkout elle-même : ce cas n'est pas joué. Ces points restent à la [recette réelle](../tests/recette-reelle.md).
 
 ## Tâches restantes
 
 | N° | Action | Qui |
 | --- | --- | --- |
-| S1 | Test de la route webhook avec vraie signature (T01) | Agent |
-| S2 | Paiement en sandbox de bout en bout, webhooks transmis par `stripe listen` (T03) | Agent |
+| S1 | Fait : test de la route webhook avec vraie signature (T01) | Agent |
+| S2 | Fait : paiement en sandbox de bout en bout, webhooks transmis par `stripe listen` (T03) | Agent |
 | S3 | Vrai paiement, facture, résiliation, remboursement ([recette, section 5](../tests/recette-reelle.md)) | Fondateur |
 | S4 | Confirmer le régime de TVA avec un comptable, seuil de franchise inclus | Fondateur |
 | S5 | Expliquer dans l'aide que le portail met fin à l'essai lors d'un changement d'offre | Agent, après vérification en sandbox |

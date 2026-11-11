@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-11, Claude, lot A7 : paiement de bout en bout en sandbox
+
+Fait : T03. `tests-sandbox/payment-cycle.test.ts` joue le cycle de vente contre la sandbox Stripe : Checkout ouvert, carte de test, essai, premier prélèvement, facture, e-mails, remboursement partiel depuis la console, résiliation, retour en Découverte ; et la fin d'essai avec validation bancaire. `tests-sandbox/sdk-over-cli.ts` fait passer le réseau du SDK Stripe par la CLI et sert la vraie route du webhook à `stripe listen` (PR `test/stripe-sandbox`).
+Vérifié : les quatre tests de la recette sandbox passent le 11 novembre 2026, trois fois de suite pour le nouveau fichier ; aucun événement signé refusé ni en erreur ; types et lint. Non vérifié : rien en production, aucun vrai paiement ; la page Checkout hébergée, le portail, la TVA et les litiges ne sont pas joués.
+À savoir : cette recette est hors de `pnpm test` et de la CI ; commande dans `docs/plans/stripe.md`. Le Checkout réel ouvre un essai de 14 jours : pour obtenir une facture payée, le test termine l'essai par `trial_end: now`. Un abonnement créé « incomplet » par l'API n'est jamais rattaché à l'espace, donc son e-mail de validation bancaire est écarté comme obsolète : ce n'est pas un défaut, Checkout traite ce cas sur sa propre page ; le cas réel est la fin d'essai, qui est celui du test. Les e-mails de facturation partent dès la mise en file : ne pas vider la boîte de test avant de les compter. `tests-sandbox/stripe-cli.ts` porte l'identifiant du compte sandbox en clair, ce que les règles du dépôt public interdisent : il est dans l'historique depuis la V1.1, à décider par le fondateur (le passer en variable ne l'efface pas de l'historique). Aucun défaut de l'application trouvé dans ce lot.
+Suite conseillée : la porte 10 est franchie. Côté agent il reste A13 (après F15) ; sinon la direction artistique (B1, B3) et le jeu (J2). Côté fondateur : F1 à F9, puis la recette réelle (A14).
+
 ## 2026-11-11, Claude, lot A6 : suppression de compte et connexion Apple et Google
 
 Fait : T07 et T08. `e2e/account-deletion.spec.ts` supprime un compte par le client de l'app native, sur un vrai serveur ; `tests/auth-social.test.ts` (13 cas) couvre l'activation par variables, le parcours OAuth Google de bout en bout et la révocation Apple ; flux Maestro `apps/mobile/.maestro/destructive/account-delete.yml` et son identifiant `delete-confirm-word` sur le champ de confirmation (PR `test/compte-social`).
