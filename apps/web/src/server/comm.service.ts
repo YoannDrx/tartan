@@ -250,7 +250,7 @@ export const reportContent = async (
     select: { name: true, ownerId: true },
   });
   const owner = await prisma.user.findUniqueOrThrow({ where: { id: organization.ownerId }, select: { email: true } });
-  const subject = `Contenu signalé dans ${organization.name}`;
+  const subject = m.email.subjects.contentReport(organization.name);
   const editor = env().EMAIL_CONTACT;
   const appUrl = env().NEXT_PUBLIC_APP_URL;
   const mails = [
@@ -264,6 +264,7 @@ export const reportContent = async (
   ].filter((mail, index) => index === 1 || mail.to !== editor);
   for (const mail of mails) {
     await sendEmail({
+      kind: "content_report",
       to: mail.to,
       subject,
       react: createElement(NotificationEmail, {

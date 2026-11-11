@@ -13,6 +13,7 @@ import { MagicLinkEmail, VerifyEmail, ResetPasswordEmail, PasswordChangedEmail }
 import { appleClientSecret } from "./apple";
 import { env } from "./env";
 import { sendEmail } from "./mail";
+import { EmailSuppressedError } from "@/server/email-suppression.service";
 import { prisma } from "./prisma";
 
 const e = env();
@@ -62,6 +63,16 @@ const splitName = (
   return { firstName: parts[0] ?? null, lastName: parts.slice(1).join(" ") || null };
 };
 
+// Une adresse qui rebondit ne recevra jamais le lien : le dire vaut mieux qu'une erreur muette.
+const sendAuthEmail = async (input: Parameters<typeof sendEmail>[0]): Promise<void> => {
+  try {
+    await sendEmail(input);
+  } catch (error) {
+    if (!(error instanceof EmailSuppressedError)) throw error;
+    throw new APIError("UNPROCESSABLE_ENTITY", { message: m.auth.emailUnreachable, code: "EMAIL_UNREACHABLE" });
+  }
+};
+
 export const auth = betterAuth({
   baseURL: e.BETTER_AUTH_URL,
   secret: e.BETTER_AUTH_SECRET,
@@ -90,9 +101,10 @@ export const auth = betterAuth({
     sendOnSignIn: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      await sendEmail({
+      await sendAuthEmail({
+        kind: "verify",
         to: user.email,
-        subject: "Confirme ton adresse pour Tartan",
+        subject: m.email.subjects.verify,
         react: createElement(VerifyEmail, { url }),
       });
     },
@@ -107,16 +119,23 @@ export const auth = betterAuth({
     onPasswordReset: async ({ user }) => {
       // Une alerte qui échoue ne doit pas annuler le nouveau mot de passe.
       await sendEmail({
+        kind: "password_changed",
         to: user.email,
         subject: m.email.passwordChanged.subject,
         react: createElement(PasswordChangedEmail, { url: `${e.NEXT_PUBLIC_APP_URL}/mot-de-passe-oublie` }),
       }).catch(() => log.warn("password_changed_email_failed"));
     },
     sendResetPassword: async ({ user, url }) => {
+      // La demande répond toujours la même chose, compte existant ou non : une adresse qui rebondit
+      // ne doit pas révéler qu'un compte existe.
       await sendEmail({
+        kind: "reset_password",
         to: user.email,
-        subject: "Réinitialise ton mot de passe Tartan",
+        subject: m.email.subjects.resetPassword,
         react: createElement(ResetPasswordEmail, { url }),
+      }).catch((error: unknown) => {
+        if (!(error instanceof EmailSuppressedError)) throw error;
+        log.warn("reset_password_email_unreachable");
       });
     },
   },
@@ -209,9 +228,10 @@ export const auth = betterAuth({
       expiresIn: 60 * 15,
       storeToken: "hashed",
       sendMagicLink: async ({ email, url }) => {
-        await sendEmail({
+        await sendAuthEmail({
+          kind: "magic_link",
           to: email,
-          subject: "Ton lien de connexion Tartan",
+          subject: m.email.subjects.magicLink,
           react: createElement(MagicLinkEmail, { url }),
         });
       },

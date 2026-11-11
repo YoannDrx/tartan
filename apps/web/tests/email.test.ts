@@ -9,6 +9,7 @@ import { makeUser } from "./helpers";
 const send = (extra: { unsubscribeUrl?: string } = {}) => {
   const to = `socle-${Math.random()}@test.tartan.coach`;
   return sendEmail({
+    kind: "magic_link",
     to,
     subject: "Essai",
     react: createElement(MagicLinkEmail, { url: "https://app.tartan.coach/lien" }),
@@ -53,7 +54,7 @@ describe("socle e-mail", () => {
       [createElement(MagicLinkEmail, { url }), "15 minutes"],
     ] as const) {
       const to = `duree-${Math.random()}@test.tartan.coach`;
-      await sendEmail({ to, subject: "Essai", react });
+      await sendEmail({ kind: "magic_link", to, subject: "Essai", react });
       const mail = outbox.find((entry) => entry.to === to)!;
       expect(mail.html).toContain(duration);
       expect(mail.html.split(url).length).toBeGreaterThan(2);
@@ -63,6 +64,7 @@ describe("socle e-mail", () => {
     const to = `repli-${Math.random()}@test.tartan.coach`;
     const body = "Ta séance de lundi est annulée";
     await sendEmail({
+      kind: "notification_fallback",
       to,
       subject: body,
       react: createElement(NotificationEmail, { body, url: "https://app.tartan.coach/x", cta: "Voir mes séances" }),

@@ -3,12 +3,15 @@ import type { ReactElement } from "react";
 import { Resend } from "resend";
 import { env } from "./env";
 import { log } from "./logger";
+import { categoryOf, type EmailKey } from "@/server/email-registry";
 import { assertEmailDeliverable } from "@/server/email-suppression.service";
 
 export const outbox: { to: string; subject: string; html: string; text: string; headers: Record<string, string> }[] =
   [];
 
 export const sendEmail = async (input: {
+  // L'e-mail tel qu'il figure au registre : sa catégorie décide de ce qu'une liste de blocage arrête.
+  kind: EmailKey;
   to: string;
   subject: string;
   react: ReactElement;
@@ -16,6 +19,8 @@ export const sendEmail = async (input: {
   // Envois coupables seulement : un clic dans le client de messagerie les arrête, sans session.
   unsubscribeUrl?: string;
 }): Promise<void> => {
+  // Avant tout rendu, et en local comme en production : le blocage se teste sans prestataire.
+  await assertEmailDeliverable(input.to, categoryOf(input.kind));
   const [html, text] = await Promise.all([render(input.react), render(input.react, { plainText: true })]);
   const { RESEND_API_KEY, EMAIL_FROM } = env();
   const headers: Record<string, string> = input.unsubscribeUrl
@@ -37,7 +42,6 @@ export const sendEmail = async (input: {
   }
   // Comptes de démonstration : ces adresses n'existent pas, un envoi nuirait à la réputation du domaine.
   if (input.to.endsWith("@demo.tartan.coach")) return;
-  await assertEmailDeliverable(input.to);
   const { error } = await new Resend(RESEND_API_KEY).emails.send(
     {
       from: EMAIL_FROM,

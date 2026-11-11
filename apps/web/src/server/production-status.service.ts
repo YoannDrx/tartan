@@ -130,7 +130,7 @@ export const sendTestEmails = async (actor: Admin, input: { to: string; key: str
   if (!samples.length) throw invalid();
   let sent = 0;
   for (const sample of samples) {
-    await sendEmail({ to: input.to, subject: `[Essai] ${sample.subject}`, react: sample.react });
+    await sendEmail({ kind: sample.key, to: input.to, subject: `[Essai] ${sample.subject}`, react: sample.react });
     sent += 1;
     await new Promise((resolve) => setTimeout(resolve, 600));
   }

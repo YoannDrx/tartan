@@ -7,29 +7,25 @@ import {
 } from "@tartan/contracts";
 import { invitationDefaults, invitationStateOf, requiresParentalConsent } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { createElement } from "react";
-import { InvitationEmail, StaffInvitationEmail } from "@email/auth";
 import { fromDbDate, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { AppError, forbidden, invalid, notFound } from "@/lib/errors";
 import { assertAdultDate, assertMemberAge, confirmBirthDate, parentalFlowEnabled } from "./age.service";
 import { log } from "@/lib/logger";
-import { sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { deriveToken, sha256, tokenMatches } from "@/lib/tokens";
 import { audit, requireGroupInScope, requireOrgMember, requireVisibleAthlete } from "./access";
 import { assertWithinPlan } from "./billing.service";
 import { setConsent, startParentalConsent } from "./consent.service";
+import { flushEmailOutbox } from "./email-outbox.service";
+import { INVITATION_PURPOSE as PURPOSE, invitationLink, invitationOutboxKind } from "./invitation-email";
 import { displayName, namesFor } from "./me.service";
 import { notify } from "./notify.service";
 import { ensureReferralCode } from "./org.service";
 import { attributeReferral } from "./referral.service";
 
-const PURPOSE = "invitation";
-
-export const invitationLink = (invitationId: string): string =>
-  `${env().NEXT_PUBLIC_APP_URL}/i/${deriveToken(PURPOSE, invitationId)}`;
+export { invitationLink };
 
 export const createInvitation = async (userId: string, organizationId: string, rawInput: CreateInvitationInput) => {
   const input = createInvitationInput.parse(rawInput);
@@ -64,34 +60,30 @@ export const createInvitation = async (userId: string, organizationId: string, r
   return { id: invitation.id, link: invitationLink(invitation.id) };
 };
 
+// L'envoi passe par la file : une panne du prestataire ne perd plus l'invitation, la tâche de
+// notifications la reprend pendant 24 h. La file ne porte que l'identifiant, le lien est dérivé au rendu.
 const sendInvitationEmail = async (invitationId: string): Promise<void> => {
   const inv = await prisma.invitation.findUnique({
     where: { id: invitationId },
-    include: { organization: { select: { name: true } } },
+    select: { id: true, email: true, role: true, organizationId: true },
   });
   if (!inv?.email) return;
-  const names = await namesFor([inv.invitedBy]);
-  const groups = await prisma.group.findMany({ where: { id: { in: inv.groupIds } }, select: { name: true } });
-  const target = groups[0]?.name ?? inv.organization.name;
-  const inviter = names.get(inv.invitedBy) ?? inv.organization.name;
-  if (inv.role !== "athlete") {
-    await sendEmail({
-      to: inv.email,
-      subject: `${inviter} t'invite dans l'espace ${inv.organization.name} sur Tartan`,
-      react: createElement(StaffInvitationEmail, {
-        url: invitationLink(inv.id),
-        inviter,
-        organization: inv.organization.name,
-        role: inv.role,
-      }),
-    });
-    return;
-  }
-  await sendEmail({
-    to: inv.email,
-    subject: `${inviter} t'invite à rejoindre ${target}`,
-    react: createElement(InvitationEmail, { url: invitationLink(inv.id), inviter, target }),
+  // Un renvoi est un nouvel e-mail voulu par le coach : sa clé diffère de celle du premier envoi.
+  const dedupeKey = `invitation:${inv.id}:${Date.now().toString(36)}`;
+  await prisma.emailOutbox.createMany({
+    data: [
+      {
+        organizationId: inv.organizationId,
+        toEmail: inv.email,
+        kind: invitationOutboxKind(inv.role),
+        dedupeKey,
+        payload: { invitationId: inv.id },
+      },
+    ],
+    skipDuplicates: true,
   });
+  // Tentative immédiate, limitée à cette ligne : le coach n'attend pas le reste de la file.
+  await flushEmailOutbox(new Date(), { dedupeKey }).catch(() => log.warn("email_outbox_flush_failed"));
 };
 
 export const listInvitations = async (userId: string, organizationId: string) => {

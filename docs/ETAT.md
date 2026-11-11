@@ -86,7 +86,7 @@ Un lot, une branche, une PR. Détail des lots : [web](plans/web.md).
 | A5 | T05 actions d'administration, T06 export comptable | À faire |
 | A6 | T07 suppression de compte, T08 connexion Apple et Google | À faire |
 | A7 | T03 paiement de bout en bout en sandbox | À faire, après F16 |
-| A8 | Registre des e-mails, exemption des e-mails de sécurité, invitations par la file | À faire |
+| A8 | Registre des e-mails, exemption des e-mails de sécurité, invitations par la file | Codé, testé |
 | A9 | Onboarding du coach en trois temps, liste « Premiers pas » | À faire |
 | A10 | E-mails de cycle de vie et préférences | À faire |
 | A11 | Accueil de l'athlète, bienvenue, relance d'invitation | À faire |
@@ -144,7 +144,6 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 - **Skew Protection** Vercel refusée par l'API : à activer à la main si l'offre l'inclut.
 - **iPhone, PWA** : les notifications exigent l'ajout à l'écran d'accueil, d'où l'intérêt de l'app native.
 - **Textes en dur hérités** : 274 textes gelés dans 48 fichiers (`apps/web/eslint-suppressions.json`), dont les pages légales et les objets d'e-mail. La règle ne voit pas les messages d'erreur ni les métadonnées de page. Les hexadécimaux de `globals.css` ne sont contrôlés qu'en partie, jusqu'au lot B1.
-- **Défaut de vente connu dans le code** : e-mails de connexion bloqués après une plainte ou une désinscription. Corrigé par le lot A8.
 - **Webhook Stripe de production incomplet** tant que F14 n'est pas faite : l'événement `invoice.payment_action_required` n'y est pas encore abonné, et la console l'affiche.
 - **Jeu public** : le rejeu serveur prouve qu'un score découle d'appuis valides, pas qu'un humain a joué. Le classement demande une modération.
 

@@ -1,6 +1,6 @@
 import type { CellStatus } from "@tartan/contracts";
 import { addDays, completionPct, cellStatusOf, startOfWeek } from "@tartan/domain";
-import { formatDayMonth } from "@tartan/i18n";
+import { formatDayMonth, m } from "@tartan/i18n";
 import { createElement } from "react";
 import { WeeklyDigestEmail } from "@email/digest";
 import { fromDbDate, hourInParis, todayIso, toDbDate } from "@/lib/dates";
@@ -65,8 +65,9 @@ export const sendWeeklyDigests = async (now: Date = new Date()): Promise<number>
         }
       }
       await sendEmail({
+        kind: "weekly_digest",
         to: org.owner.email,
-        subject: `Ta semaine sur Tartan : ${org.name}`,
+        subject: m.email.subjects.weeklyDigest(org.name),
         idempotencyKey: `digest/${org.id}/${monday}`,
         unsubscribeUrl: unsubscribeUrl(org.owner.id, "digest"),
         react: createElement(WeeklyDigestEmail, {

@@ -22,6 +22,7 @@ export const sendFounderAlert = async (subject: string): Promise<void> => {
   await Promise.all(
     recipients.map((to) =>
       sendEmail({
+        kind: "founder_alert",
         to,
         subject,
         react: createElement(NotificationEmail, { body: subject, url: `${env().NEXT_PUBLIC_APP_URL}/admin` }),

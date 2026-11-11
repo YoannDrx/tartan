@@ -1,6 +1,7 @@
 import { PLANS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import type { ReactElement } from "react";
+import type { EmailKey } from "@/server/email-registry";
 import {
   AccountDeletedEmail,
   InactivityNoticeEmail,
@@ -26,7 +27,7 @@ import {
 } from "./billing";
 import { WeeklyDigestEmail } from "./digest";
 
-export type EmailSample = { key: string; subject: string; react: ReactElement };
+export type EmailSample = { key: EmailKey; subject: string; react: ReactElement };
 
 const SPACE = "Club fictif";
 const INVITER = "Camille Martin";
@@ -43,29 +44,29 @@ export const emailCatalog = (appUrl: string): EmailSample[] => {
     ["trial_ending", m.email.trialEnding],
   ] as const;
   return [
-    { key: "verify", subject: "Confirme ton adresse pour Tartan", react: <VerifyEmail url={url} /> },
-    { key: "magic_link", subject: "Ton lien de connexion Tartan", react: <MagicLinkEmail url={url} /> },
-    { key: "reset_password", subject: "Réinitialise ton mot de passe Tartan", react: <ResetPasswordEmail url={url} /> },
+    { key: "verify", subject: m.email.subjects.verify, react: <VerifyEmail url={url} /> },
+    { key: "magic_link", subject: m.email.subjects.magicLink, react: <MagicLinkEmail url={url} /> },
+    { key: "reset_password", subject: m.email.subjects.resetPassword, react: <ResetPasswordEmail url={url} /> },
     { key: "password_changed", subject: m.email.passwordChanged.subject, react: <PasswordChangedEmail url={url} /> },
     {
       key: "invitation_athlete",
-      subject: `${INVITER} t'invite à rejoindre ${SPACE}`,
+      subject: m.email.subjects.invitationAthlete(INVITER, SPACE),
       react: <InvitationEmail url={url} inviter={INVITER} target={SPACE} />,
     },
     {
       key: "invitation_staff",
-      subject: `${INVITER} t'invite dans l'espace ${SPACE} sur Tartan`,
+      subject: m.email.subjects.invitationStaff(INVITER, SPACE),
       react: <StaffInvitationEmail url={url} inviter={INVITER} organization={SPACE} role="coach" />,
     },
     {
       key: "parental_consent",
-      subject: `Ton accord est demandé pour ${ATHLETE}`,
+      subject: m.email.subjects.parentalConsent(ATHLETE),
       react: <ParentalConsentEmail url={url} athlete={ATHLETE} coach={INVITER} />,
     },
     { key: "welcome", subject: m.email.welcome.subject(SPACE), react: <WelcomeEmail space={SPACE} url={url} /> },
     {
       key: "weekly_digest",
-      subject: `Ta semaine sur Tartan : ${SPACE}`,
+      subject: m.email.subjects.weeklyDigest(SPACE),
       react: (
         <WeeklyDigestEmail
           organization={SPACE}

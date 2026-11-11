@@ -221,8 +221,9 @@ export const startParentalConsent = async (input: {
   const token = deriveToken(GUARDIAN_PURPOSE, guardian.id);
   await prisma.guardian.update({ where: { id: guardian.id }, data: { tokenHash: sha256(token) } });
   await sendEmail({
+    kind: "parental_consent",
     to: input.guardianEmail,
-    subject: `Ton accord est demandé pour ${input.athleteName}`,
+    subject: m.email.subjects.parentalConsent(input.athleteName),
     react: createElement(ParentalConsentEmail, {
       url: `${env().NEXT_PUBLIC_APP_URL}/accord-parental/${token}`,
       athlete: input.athleteName,
@@ -250,8 +251,9 @@ export const resendParentalConsent = async (userId: string, organizationId: stri
     data: { tokenExpiresAt: new Date(Date.now() + 30 * 86400 * 1000) },
   });
   await sendEmail({
+    kind: "parental_consent",
     to: guardian.guardianEmail,
-    subject: `Ton accord est demandé pour ${athlete.firstName}`,
+    subject: m.email.subjects.parentalConsent(athlete.firstName),
     react: createElement(ParentalConsentEmail, {
       url: `${env().NEXT_PUBLIC_APP_URL}/accord-parental/${deriveToken(GUARDIAN_PURPOSE, guardian.id)}`,
       athlete: athlete.firstName,
