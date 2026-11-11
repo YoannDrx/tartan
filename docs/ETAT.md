@@ -4,7 +4,7 @@ Mis à jour le 11 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 **En une phrase :** le code de la V1 et de la V1.1 est en production et testé automatiquement, mais rien n'est encore vendu, car ni le paiement réel, ni les téléphones, ni l'avis juridique ne sont faits.
 
-**Portes d'ouverture franchies : 0 sur 10** ([commercialisation](plans/commercialisation.md)). Huit dépendent du fondateur en tout ou partie.
+**Portes d'ouverture franchies : 0 sur 10** ([commercialisation](plans/commercialisation.md)). Huit dépendent du fondateur en tout ou partie. La porte 10 avance : T01, T02 et T04 sont verts, T03 et T05 à T08 restent à écrire.
 
 **Ordre décidé le 11 novembre 2026 :** vendre la web app, puis refondre la direction artistique, puis livrer le jeu. Les stores suivent.
 
@@ -79,8 +79,8 @@ Un lot, une branche, une PR. Détail des lots : [web](plans/web.md).
 
 | Lot | Contenu | État |
 | --- | --- | --- |
-| A1 | Personas, matrice d'accès T04 | À faire |
-| A2 | T01 webhook Stripe, T02 RevenueCat | À faire |
+| A1 | Personas, matrice d'accès T04 | Codé, testé. Toute nouvelle route doit recevoir sa ligne dans `tests/api-authz.matrix.ts` |
+| A2 | T01 webhook Stripe, T02 RevenueCat | Codé, testé. La route Stripe répond 503 sans secret et 500 en cas de panne |
 | A3 | Garde-fous : couleurs et textes en dur refusés par le lint | Codé, testé. 274 textes d'avant la règle restent gelés dans 48 fichiers |
 | A4 | Finitions du paiement : action bancaire requise, bandeau d'impayé, plafond atteint, factures | Codé, testé. Webhook de production à compléter par F14 |
 | A5 | T05 actions d'administration, T06 export comptable | À faire |
@@ -100,13 +100,14 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | Lot | Contenu | État |
 | --- | --- | --- |
 | B1 | Jetons de mouvement, filet de mouvement réduit, miroir complet des couleurs | À faire |
-| B2 | Squelette unique de la mascotte, paquet `packages/mascot` | À faire |
+| B2 | Squelette unique de la mascotte, paquet `packages/mascot` | Codé, testé. Film vu en production ; mobile non regardé sur appareil |
 | B3 | Six épreuves, six athlètes, composants de piste | À faire |
 | B4 | Transitions de page | À faire |
 | B5 | Page d'accueil et site | À faire |
 | B6 à B9 | Application : ossature, athlète, coach, finitions | À faire |
 | C1 à C3 | Absence signalée, série de régularité, carte de record | À faire |
-| J1 à J10 | Jeu « Tartan Meeting » : simulation, page, classement, aperçu, épreuves, combiné | À faire |
+| J1 | Jeu « Tartan Meeting » : noyau de simulation et 110 m haies, paquet `packages/game` | Codé, testé. Mêmes scores sous Node, Chromium et WebKit. Ni rendu ni serveur |
+| J2 à J10 | Page, classement, aperçu, cinq autres épreuves, combiné | À faire |
 
 ### Agents : mobile, IA et suite des tests
 
@@ -139,6 +140,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 
 - **HDS** : la question la plus lourde. Une réponse défavorable peut imposer de changer d'hébergeur.
 - **Refus Apple 3.1.1** : l'exception 3.1.3(f) ne vise pas un outil de coaching.
+- **Tests à écrire sur le webhook Stripe** : T01 couvre `customer.subscription.*` ; les événements de facture, de remboursement et de litige ne passent encore par aucun test de la route. La route RevenueCat ne répond pas explicitement en cas de panne.
 - **Connexion aux prestataires jamais éprouvée** : le bug vidéo vient d'un code jamais exercé avec un vrai webhook. Considère tout ce qui n'est pas « éprouvé » ci-dessus comme suspect.
 - **Sentry gratuit** : une seule sonde de crons active. La sonde de disponibilité et celle des notifications attendent une place.
 - **Skew Protection** Vercel refusée par l'API : à activer à la main si l'offre l'inclut.
