@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-11, Claude, CI : délai maximal et dépôts Ubuntu
+
+Fait : `ci.yml` plafonne la tâche `quality` à 45 minutes et l'installation des navigateurs à 10 ; une étape « Dépôts Ubuntu, résolution de secours » précède cette installation (PR `fix/delai-ci`).
+Vérifié : sur un serveur GitHub, pendant la panne, l'étape de secours suivie de `playwright install --with-deps chromium webkit` aboutit en 64 secondes ; sans elle, la même commande ne finit pas. Non vérifié : le plafond de 45 minutes n'a jamais eu à se déclencher.
+À savoir : le 11 novembre 2026, à partir de 13 h 48 UTC environ, une panne DNS de Canonical a privé tous les serveurs GitHub des dépôts Ubuntu (ticket 15296 de `actions/runner-images`). apt réessaie alors chaque paquet pendant des heures sans échouer : la CI de la PR du lot B1 est restée figée 1 h 27, puis de nouveau après relance. Le résolveur d'Azure ne répondait plus pour ces trois noms, un résolveur public si : l'étape de secours écrit leur adresse dans `/etc/hosts`, et seulement quand la résolution normale échoue. apt vérifie la signature des paquets, donc l'adresse d'origine ne change rien à leur intégrité. Relancer une CI figée ne sert à rien tant que la cause dure : lire d'abord le journal de l'étape. Les autres workflows n'installent rien par apt.
+Suite conseillée : aucune. Si l'étape de secours affiche un avertissement, c'est qu'aucun serveur ne résout plus les dépôts : attendre.
+
 ## 2026-11-11, Claude, lot B1 : jetons de mouvement
 
 Fait : `packages/design-tokens/src/motion.ts` (huit durées, trois courbes, pas de cascade) et son miroir dans `globals.css` ; toutes les animations de la feuille de styles lisent ces jetons et sont déclarées sous `no-preference` ; filet de mouvement réduit en fin de feuille ; règle de lint `tartan/no-raw-motion` ; aide `expectNoMotion` ; miroir des couleurs étendu à toute la feuille ; CSS mort retiré (`demo-*`, `jump-range`, `film-frame`) (PR `feat/jetons-mouvement`).
