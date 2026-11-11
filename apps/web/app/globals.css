@@ -911,6 +911,21 @@
     transition: stroke-dasharray var(--duration-trace) var(--ease-reception);
   }
 }
+/* Site public : une capture glisse à sa place en entrant dans l'écran. Sans prise en charge, elle y est déjà. */
+@keyframes capture-glide {
+  from {
+    transform: translateY(40px);
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .capture-glide {
+      animation: capture-glide linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
+  }
+}
 /* La coche de validation se trace : sans mouvement, elle est simplement là. */
 @keyframes tartan-check {
   from {
@@ -1144,8 +1159,14 @@
   }
 }
 @media (prefers-reduced-motion: no-preference) and (scripting: enabled) and (min-height: 560px) {
+  /* Trois écrans de défilement sur téléphone, quatre et demi sur ordinateur : le produit arrive vite. */
   .film {
-    height: 680svh;
+    height: 300svh;
+  }
+  @media (min-width: 1024px) {
+    .film {
+      height: 450svh;
+    }
   }
   .film-stage {
     position: sticky;

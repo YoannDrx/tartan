@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image, { type StaticImageData } from "next/image";
 import { PLANS, TRIAL_DAYS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import Link from "next/link";
 import { Marked } from "@/components/marked";
 import iosHome from "@/features/landing/images/ios-accueil.png";
 import iosMonth from "@/features/landing/images/ios-mois.png";
@@ -14,6 +15,9 @@ import iosRunning from "@/features/landing/images/ios-technique.png";
 import webBuilder from "@/features/landing/images/web-constructeur.png";
 import webMonth from "@/features/landing/images/web-mois.png";
 import webTracking from "@/features/landing/images/web-suivi.png";
+import { landingQuestions } from "@/features/help/content";
+import { HelpQuestions } from "@/features/help/questions";
+import { GroupBand } from "@/features/landing/group-band";
 import { JumpFilm } from "@/features/landing/jump-film";
 import { LapBend } from "@/features/landing/lap";
 import { SiteFooter, SiteHeader } from "@/features/shell/site-chrome";
@@ -52,7 +56,7 @@ const Capture = ({
   className?: string;
   priority?: boolean;
 }) => (
-  <div className={`on-card rounded-block bg-card p-2 desktop:p-3 ${className ?? ""}`}>
+  <div className={`capture-glide on-card rounded-block bg-card p-2 desktop:p-3 ${className ?? ""}`}>
     <Image src={src} alt={alt} sizes={sizes} priority={priority} className="h-auto w-full rounded-card" />
   </div>
 );
@@ -103,12 +107,7 @@ export default async function LandingPage() {
       <LapBend side="left">
         <div className={leftBend}>
           <div className="grid gap-8 desktop:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] desktop:items-center desktop:gap-14">
-            <Capture
-              src={webBuilder}
-              alt={t.coach.builderAlt}
-              sizes="(min-width: 1024px) 620px, 100vw"
-              className="max-desktop:order-2"
-            />
+            <Capture src={webBuilder} alt={t.coach.builderAlt} sizes="(min-width: 1024px) 620px, 100vw" />
             <div>
               <h2 className={smallTitle}>
                 <Marked text={t.coach.builderTitle} />
@@ -117,7 +116,8 @@ export default async function LandingPage() {
             </div>
           </div>
           <div className="mt-14 grid gap-8 desktop:mt-24 desktop:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] desktop:items-center desktop:gap-14">
-            <div>
+            {/* Sur téléphone, la capture d'abord, puis ce qu'elle montre. */}
+            <div className="max-desktop:order-2">
               <h2 className={smallTitle}>
                 <Marked text={t.coach.trackingTitle} />
               </h2>
@@ -154,8 +154,16 @@ export default async function LandingPage() {
               { src: iosMonth, ...t.views },
               { src: iosProgress, ...t.progress },
             ].map((block) => (
-              <div key={block.title} className="grid grid-cols-[minmax(0,5fr)_minmax(0,6fr)] items-center gap-5">
-                <Capture src={block.src} alt={block.alt} sizes="(min-width: 1024px) 240px, 38vw" />
+              <div
+                key={block.title}
+                className="grid gap-5 tablet:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] tablet:items-center"
+              >
+                <Capture
+                  src={block.src}
+                  alt={block.alt}
+                  sizes="(min-width: 1024px) 240px, (min-width: 768px) 38vw, 70vw"
+                  className="mx-auto w-[70%] max-w-[280px] tablet:w-full"
+                />
                 <div>
                   <h2 className={smallTitle}>
                     <Marked text={block.title} />
@@ -200,6 +208,14 @@ export default async function LandingPage() {
             ))}
           </dl>
 
+          <section aria-labelledby="groupe" className="mt-16 desktop:mt-28">
+            <h2 id="groupe" className={sectionTitle}>
+              <Marked text={t.group.title} />
+            </h2>
+            <p className={`mb-8 mt-4 ${body}`}>{t.group.body}</p>
+            <GroupBand />
+          </section>
+
           <section id="tarifs" className="mt-16 scroll-mt-6 desktop:mt-28">
             <h2 className={sectionTitle}>
               <Marked text={t.pricing.title} />
@@ -218,6 +234,24 @@ export default async function LandingPage() {
           className="absolute bottom-[-3px] left-[11%] h-[calc(var(--lap-gap)*3+24px)] w-[7px] bg-lane"
         />
       </LapBend>
+
+      <section
+        aria-labelledby="questions"
+        className="mx-auto max-w-[1200px] px-4 pt-16 desktop:grid desktop:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] desktop:gap-14 desktop:px-6 desktop:pt-24"
+      >
+        <div>
+          <h2 id="questions" className={smallTitle}>
+            <Marked text={t.faq.title} />
+          </h2>
+          <Link
+            href="/aide"
+            className="mt-2 inline-flex min-h-11 items-center font-semibold underline underline-offset-4"
+          >
+            {t.faq.more}
+          </Link>
+        </div>
+        <HelpQuestions questions={landingQuestions()} className="mt-4 desktop:mt-0" />
+      </section>
 
       <section className="mx-auto max-w-[1200px] px-4 pb-14 pt-16 desktop:px-6 desktop:pb-20 desktop:pt-24">
         <h2 className="text-balance font-display text-[60px] font-bold leading-[0.95] desktop:text-[116px]">

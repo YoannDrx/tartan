@@ -75,6 +75,16 @@ export const HELP_OUTLINE: ThemeSpec[] = [
   },
 ];
 
+// Les questions qu'un visiteur se pose avant de s'inscrire, reprises telles quelles sur la page d'accueil.
+export const LANDING_QUESTIONS: Array<[HelpThemeId, string]> = [
+  ["demarrer", "pourQui"],
+  ["demarrer", "telephone"],
+  ["seances", "charges"],
+  ["athlete", "horsLigne"],
+  ["abonnement", "quiPaie"],
+  ["donnees", "devenir"],
+];
+
 export type HelpQuestion = { id: string; q: string; a: string; link: { href: string; label: string } | null };
 export type HelpTheme = { id: HelpThemeId; title: string; questions: HelpQuestion[] };
 
@@ -97,3 +107,12 @@ export const helpThemes = (embedded = false): HelpTheme[] =>
         }),
     };
   });
+
+export const landingQuestions = (): HelpQuestion[] => {
+  const all = helpThemes();
+  return LANDING_QUESTIONS.map(([theme, id]) => {
+    const question = all.find((item) => item.id === theme)?.questions.find((item) => item.id === id);
+    if (!question) throw new Error(`Question d'aide introuvable : ${theme}.${id}`);
+    return question;
+  });
+};

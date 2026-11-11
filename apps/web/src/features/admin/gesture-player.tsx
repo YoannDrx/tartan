@@ -4,22 +4,10 @@ import { m } from "@tartan/i18n";
 import { phaseAt, type EventId } from "@tartan/mascot/event";
 import { CLIPS } from "@tartan/mascot/events";
 import { Pause, Play } from "lucide-react";
-import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useState } from "react";
 import { EventScene } from "@/components/event-scene";
 import { Button } from "@/components/ui/button";
-
-const REDUCED = "(prefers-reduced-motion: reduce)";
-const watchMotion = (notify: () => void) => {
-  const query = matchMedia(REDUCED);
-  query.addEventListener("change", notify);
-  return () => query.removeEventListener("change", notify);
-};
-const useReducedMotion = () =>
-  useSyncExternalStore(
-    watchMotion,
-    () => matchMedia(REDUCED).matches,
-    () => false,
-  );
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 // Le geste reste sur sa dernière image un instant, puis repart du début.
 const HOLD = 0.18;

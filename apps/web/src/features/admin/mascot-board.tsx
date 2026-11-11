@@ -21,6 +21,8 @@ const ON: Record<Surface, { text: string; lane: string; mark: string }> = {
   piste: { text: scene.onPage, lane: scene.lane, mark: color.ink },
   ink: { text: scene.text, lane: scene.lane, mark: color.ink },
   chalk: { text: color.ink, lane: color.ink, mark: color.bg },
+  lane: { text: scene.onPage, lane: scene.lane, mark: color.ink },
+  lime: { text: color.ink, lane: color.ink, mark: color.film.lime },
 };
 const surfaceStyle = (surface: Surface) =>
   ({
@@ -30,6 +32,8 @@ const surfaceStyle = (surface: Surface) =>
     "--track-mark": ON[surface].mark,
   }) as CSSProperties;
 const SURFACE_NAMES = Object.keys(SURFACES) as Surface[];
+// Les motifs de piste ne vivent que sur les trois fonds de la direction artistique.
+const MOTIF_SURFACES = ["piste", "ink", "chalk"] as const;
 
 const Section = ({ title, lead, children }: { title: string; lead: string; children: ReactNode }) => (
   <section className="flex flex-col gap-3">
@@ -252,7 +256,7 @@ export const MascotBoard = () => (
       <Gestures />
     </Section>
     <Section title={m.admin.mascot.motifs} lead={m.admin.mascot.motifsLead}>
-      {SURFACE_NAMES.map((surface) => (
+      {MOTIF_SURFACES.map((surface) => (
         <Motifs key={surface} surface={surface} />
       ))}
       <Sheet className="p-4">

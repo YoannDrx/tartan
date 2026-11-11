@@ -12,7 +12,7 @@ Mis à jour le 12 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 | Élément | État |
 | --- | --- |
-| Site | `tartan.coach` : film, piste continue, tarifs intégrés, vraies captures |
+| Site | `tartan.coach` : film en relais de trois athlètes, piste continue, bande du groupe, tarifs intégrés, questions fréquentes, vraies captures |
 | Application | `app.tartan.coach` : coach, athlète, API, console d'administration |
 | Inscriptions | Fermées : création d'espace coach sur invitation |
 | Espaces en production | 2 espaces pilotes, comptes presque tous fictifs |
@@ -71,7 +71,7 @@ Les numéros renvoient aux étapes des plans. Trié par impact sur l'ouverture.
 | F14 | Régler le compte Stripe pour le réel. Le webhook de production écoute les 15 événements depuis le 11 novembre (constaté par l'API Stripe) | [Stripe](plans/stripe.md) | Vrai paiement |
 | F15 | Choisir où stocker les sauvegardes, hors de GitHub | [sauvegarde](exploitation/sauvegarde.md) | Lot A13 |
 | F16 | Fait le 11 novembre : la session Stripe CLI est ouverte sur la sandbox | [Stripe](plans/stripe.md) | — |
-| F17 | Valider les six athlètes sur la planche `/admin/mascotte`, après le lot B3 | [direction artistique](plans/direction-artistique.md) | Refonte des écrans |
+| F17 | Valider les six athlètes sur la planche `/admin/mascotte`. Ils sont déjà sur le site depuis le lot B5, par décision du 12 novembre | [direction artistique](plans/direction-artistique.md) | Refonte des écrans |
 
 ### Agents : vendre la web app
 
@@ -103,7 +103,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | B2 | Squelette unique de la mascotte, paquet `packages/mascot` | Codé, testé. Film vu en production ; mobile non regardé sur appareil |
 | B3 | Six épreuves, six athlètes, composants de piste, planche `/admin/mascotte` | Codé, testé. Planche regardée rendue en local à 390, 768 et 1440 px. Aucun écran ne s'en sert encore : la revue du fondateur (F17) décide de la suite |
 | B4 | Transitions de page | Codé, testé : fondu du contenu, bandeau piste et en-tête du site qui restent en place, onglet actif qui glisse. La carte de séance qui s'ouvre en écran de séance n'est pas faite : elle passe au lot B7 |
-| B5 | Page d'accueil et site | À faire |
+| B5 | Page d'accueil et site | Codé, testé : film ramené à 3 hauteurs d'écran sur téléphone et 4,5 sur ordinateur, en relais de trois athlètes ; captures en une colonne ; bande du groupe ; tarifs en cartes sur téléphone ; six questions du centre d'aide ; athlètes sur la page introuvable et la page hors ligne. L'aperçu du jeu attend le lot J4 |
 | B6 à B9 | Application : ossature, athlète, coach, finitions | À faire |
 | C1 à C3 | Absence signalée, série de régularité, carte de record | À faire |
 | J1 | Jeu « Tartan Meeting » : noyau de simulation et 110 m haies, paquet `packages/game` | Codé, testé. Mêmes scores sous Node, Chromium et WebKit. Ni rendu ni serveur |
