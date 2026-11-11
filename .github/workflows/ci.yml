@@ -23,6 +23,9 @@ env:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    # Une CI saine dure une demi-heure. Sans plafond, un serveur en panne
+    # garde la PR en attente jusqu'aux six heures de GitHub.
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:17
@@ -52,7 +55,11 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm design:check
-      - run: pnpm --filter @tartan/web exec playwright install --with-deps chromium webkit
+      - name: Navigateurs des parcours
+        run: pnpm --filter @tartan/web exec playwright install --with-deps chromium webkit
+        # Une minute d'ordinaire. apt réessaie sans fin quand le réseau du
+        # serveur tombe : mieux vaut échouer et relancer.
+        timeout-minutes: 10
       - name: Parcours sur le build de production (CSP et en-têtes réels)
         run: pnpm test:e2e
         env:
