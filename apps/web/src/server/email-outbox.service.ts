@@ -6,7 +6,8 @@ import {
   SubscriptionCancelledEmail,
   SubscriptionConfirmedEmail,
   SubscriptionEndedEmail,
-  BillingNoticeEmail, RenewalNoticeEmail,
+  BillingNoticeEmail,
+  RenewalNoticeEmail,
 } from "@email/billing";
 import { AccountDeletedEmail, SpaceTransferredEmail } from "@email/auth";
 import type { Prisma } from "@/generated/prisma/client";
@@ -103,6 +104,42 @@ export const enqueueBillingEmail = async (
   });
 };
 
+// Validation bancaire demandée : une ligne par facture, rattachée à l'abonnement comme les autres avis.
+export const enqueuePaymentActionRequired = async (organizationId: string, invoiceId: string): Promise<void> => {
+  const [org, invoice] = await Promise.all([
+    prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true, plan: true, ownerId: true, billingOwnerId: true, owner: { select: { email: true } } },
+    }),
+    prisma.billingInvoice.findUnique({ where: { id: invoiceId }, select: { stripeSubscriptionId: true } }),
+  ]);
+  if (!org || !invoice?.stripeSubscriptionId) return;
+  if (org.billingOwnerId && org.billingOwnerId !== org.ownerId) return;
+  await prisma.emailOutbox.createMany({
+    data: [
+      {
+        organizationId,
+        toEmail: org.owner.email,
+        kind: "payment_action_required",
+        dedupeKey: `${invoice.stripeSubscriptionId}:action_required:${invoiceId}`,
+        payload: {
+          space: org.name,
+          plan: org.plan,
+          interval: "month",
+          trialEnd: null,
+          cancelAt: null,
+          unpaid: false,
+          invoiceId,
+        } satisfies Payload & { invoiceId: string },
+      },
+    ],
+    skipDuplicates: true,
+  });
+};
+
+// Un incident de paiement ne donne qu'un e-mail : « échoué » et « validation demandée » ne se cumulent pas.
+const INCIDENT_WINDOW_MS = 60 * 60 * 1000;
+
 const render = async (kind: string, payload: unknown, organizationId: string | null, now: Date) => {
   if (kind === "account_deleted") {
     return {
@@ -181,13 +218,20 @@ const render = async (kind: string, payload: unknown, organizationId: string | n
       }),
     };
   }
-  if (kind === "payment_failed" || kind === "recovered" || kind === "trial_ending") {
+  if (
+    kind === "payment_failed" ||
+    kind === "payment_action_required" ||
+    kind === "recovered" ||
+    kind === "trial_ending"
+  ) {
     const copy =
       kind === "payment_failed"
         ? m.email.paymentFailed
-        : kind === "recovered"
-          ? m.email.paymentRecovered
-          : m.email.trialEnding;
+        : kind === "payment_action_required"
+          ? m.email.paymentActionRequired
+          : kind === "recovered"
+            ? m.email.paymentRecovered
+            : m.email.trialEnding;
     return {
       subject: copy.subject,
       react: createElement(BillingNoticeEmail, {
@@ -263,7 +307,10 @@ export const queueRenewalNotices = async (now: Date = new Date()): Promise<numbe
       status: "active",
       cancelAt: null,
       interval: "year",
-      currentPeriodEnd: { gt: new Date(now.getTime() + 32 * 86_400_000), lte: new Date(now.getTime() + 45 * 86_400_000) },
+      currentPeriodEnd: {
+        gt: new Date(now.getTime() + 32 * 86_400_000),
+        lte: new Date(now.getTime() + 45 * 86_400_000),
+      },
     },
     select: {
       providerRef: true,
@@ -381,7 +428,33 @@ export const isEmailRelevant = async (
     );
   if (row.kind === "cancel")
     return sub.cancelAt?.toISOString() === payload.cancelAt && sub.cancelAt > now && sub.status !== "canceled";
-  if (row.kind === "payment_failed") return sub.status === "past_due";
+  if (row.kind === "payment_failed") {
+    if (sub.status !== "past_due") return false;
+    const actionRequired = await prisma.emailOutbox.count({
+      where: {
+        organizationId: org.id,
+        kind: "payment_action_required",
+        failedAt: null,
+        createdAt: { gte: new Date(now.getTime() - INCIDENT_WINDOW_MS) },
+      },
+    });
+    return actionRequired === 0;
+  }
+  if (row.kind === "payment_action_required") {
+    const invoiceId = (row.payload as { invoiceId?: string }).invoiceId;
+    const invoice = invoiceId
+      ? await prisma.billingInvoice.findUnique({ where: { id: invoiceId }, select: { status: true } })
+      : null;
+    if (invoice?.status !== "open") return false;
+    const alreadyTold = await prisma.emailOutbox.count({
+      where: {
+        organizationId: org.id,
+        kind: "payment_failed",
+        sentAt: { gte: new Date(now.getTime() - INCIDENT_WINDOW_MS) },
+      },
+    });
+    return alreadyTold === 0;
+  }
   if (row.kind === "recovered") return sub.status === "active";
   if (row.kind === "renewal_notice") return sub.status === "active" && !sub.cancelAt;
   if (row.kind === "trial_ending")

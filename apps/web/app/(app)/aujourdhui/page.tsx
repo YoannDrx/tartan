@@ -96,7 +96,7 @@ const Hero = ({
         <LaneArcs weight={3} className="pointer-events-none absolute -bottom-2 right-0 h-3/4 w-1/2 text-surface-sunk" />
         <div className="relative flex flex-col gap-3">
           <p className="flex flex-wrap items-center gap-2 t-caption font-semibold">
-            <span className="rounded-full bg-ink px-2.5 py-1 text-white">{m.sessionType[card.type]}</span>
+            <span className="rounded-full bg-ink px-2.5 py-1 text-on-ink">{m.sessionType[card.type]}</span>
             <span className="rounded-full border-2 border-ink px-2.5 py-0.5">{m.variant[card.variant]}</span>
           </p>
           <div>

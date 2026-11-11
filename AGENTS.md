@@ -43,10 +43,10 @@ Le détail, les comptes de test et les pièges sont dans [docs/tests/README.md](
 
 ## Règles du code
 
-- Aucune requête Prisma hors de `apps/web/src/server/*` et `src/lib`. Tout passe par un service qui appelle `requireOrgMember`.
+- Aucune requête Prisma hors de `apps/web/src/server/*` et `src/lib`. Tout passe par un service qui appelle `requireOrgMember`. Seule exception : un service public qui ne lit aucune donnée d'espace (jeu, aide), limité à ses propres tables, avec une ligne explicite dans la matrice d'accès.
 - Les notes privées du coach ne sont jamais sélectionnées pour un athlète.
 - Les règles métier pures vont dans `packages/domain`, avec tests. Les contrats vont dans `packages/contracts`.
-- Aucun texte en dur : `packages/i18n`. Aucune couleur en dur : `packages/design-tokens`.
+- Aucun texte en dur : `packages/i18n`. Aucune couleur en dur : `packages/design-tokens`. Le lint le refuse (`apps/web/eslint-rules`). Les textes d'avant la règle sont gelés dans `apps/web/eslint-suppressions.json` : quand tu touches un de ces fichiers, déplace ses textes, puis lance `pnpm --filter @tartan/web lint:prune`. N'ajoute jamais une entrée à cette base.
 - Aucune donnée de santé dans les journaux, les notifications ou les analyses d'usage. Effort ressenti, douleurs et blessures exigent le consentement santé.
 - Migrations additives uniquement. On n'enlève pas une colonne encore lue par un client en circulation.
 - Un appel à un SDK asynchrone est toujours attendu, sans `as unknown as`. Le webhook Mux est resté inopérant une semaine à cause de cela.
@@ -55,8 +55,8 @@ Dans le code, les commentaires « § 11.4 » renvoient à l'ancien cahier des ch
 
 ## Règles de l'interface
 
-- `DESIGN.md` prime. Thème Tartan par défaut : fond piste, cartes encre, accent citron, lignes blanches.
-- Tout écran modifié est regardé rendu à 390, 768 et 1440 px, sans débordement ni erreur axe.
+- `DESIGN.md` est la seule source : motifs du stade, groupe d'athlètes, mouvement, interdits. Lis-le avant de toucher un écran.
+- Téléphone d'abord : tout écran modifié est conçu à 390 px, puis regardé rendu à 390, 768 et 1440 px, sans débordement, sans erreur axe, et en mouvement réduit.
 - Sur iOS et Android, aucune mention de prix, d'offre payante ou de lien d'achat (règles Apple 3.1.1 et Google sur les paiements).
 
 ## Règles de sécurité
@@ -65,11 +65,11 @@ Dans le code, les commentaires « § 11.4 » renvoient à l'ancien cahier des ch
 - Les secrets vivent sur Vercel, EAS et GitHub. Un agent ne les lit pas et ne les saisit pas : il donne au fondateur la commande à lancer.
 - Hors production, la base de production et une clé Stripe réelle sont refusées au démarrage (`assertEnvIsolation`). Ne contourne pas cette garde.
 - Pas d'essai sur la production avec des comptes créés pour l'occasion. Les essais se font en local ou sur la Preview.
-- Toute action payante, légale, ou engageant un compte du fondateur lui revient. Voir la colonne « Qui » de `docs/ETAT.md`.
+- Toute action payante, légale, ou engageant un compte du fondateur lui revient. Voir le tableau « Fondateur » de `docs/ETAT.md`.
 
 ## Méthode de travail
 
-1. Prends une tâche identifiée dans `docs/ETAT.md` ou un plan. Une tâche, une branche, une PR.
+1. Prends un lot identifié dans `docs/ETAT.md` ou un plan. Un lot, une branche, une PR.
 2. Nomme la branche `feat/…`, `fix/…`, `docs/…`, `test/…`. Message de commit en anglais, au format conventionnel.
 3. Ne reprends jamais une branche ouverte par un autre agent sans le dire dans le journal.
 4. Avant la PR : `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm design:check`, et `E2E_PROD=1 pnpm test:e2e` dès qu'un parcours web change.

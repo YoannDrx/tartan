@@ -12,10 +12,10 @@ Le compte de production et la sandbox ont chacun leurs clés, tarifs, portail et
 | Écriture de l'état | `subscription-state.service.ts` (`applySubscription`, point unique) |
 | Factures, remboursements, litiges | `billing-mirror.service.ts`, `billing-refund.service.ts` |
 | Webhook | `apps/web/app/api/webhooks/stripe/route.ts` |
-| Liste des événements | `apps/web/src/lib/stripe-webhook-events.ts` (14) |
+| Liste des événements | `apps/web/src/lib/stripe-webhook-events.ts` (15) |
 | Vente coupée | `/admin/configuration`, ou `BILLING_CHECKOUT_ENABLED=false` |
 
-La console affiche si le webhook couvre les 14 événements. La version d'API d'un webhook existant n'est jamais changée silencieusement.
+La console affiche si le webhook couvre les 15 événements. Après l'ajout d'un événement dans le code, relance `stripe-setup` dans l'environnement visé. La version d'API d'un webhook existant n'est jamais changée silencieusement.
 
 ## Configurer un environnement
 
@@ -56,6 +56,23 @@ Prouve : session unique sous concurrence, réponse perdue, expiration avant chan
 | S5 | Expliquer dans l'aide que le portail met fin à l'essai lors d'un changement d'offre | Agent, après vérification en sandbox |
 
 Cartes de test Stripe (mode test uniquement) : `4242 4242 4242 4242` accepte, `4000 0000 0000 0341` échoue au prélèvement après ajout, `4000 0025 0000 3155` demande 3-D Secure. Date future, CVC quelconque.
+
+## Passer en réel
+
+À faire par le fondateur dans le tableau de bord Stripe, avant le premier vrai paiement. Aucune de ces valeurs ne s'écrit dans le dépôt.
+
+| Réglage | Attendu |
+| --- | --- |
+| Compte activé, virements | Compte bancaire vérifié, calendrier de virement choisi |
+| Libellé bancaire | « TARTAN » ou « YODEV TARTAN », reconnaissable sur un relevé |
+| Reçus et factures par e-mail | Activés : Tartan n'envoie pas de reçu lui-même |
+| Relances d'impayé | Nouvelles tentatives automatiques activées ; fin d'abonnement après la dernière. Tartan envoie un seul e-mail par échéance |
+| Portail client | Factures, moyen de paiement, changement d'offre avec prorata, résiliation en fin de période : posé par `stripe-setup` |
+| Webhook | Couvre tous les événements de `stripe-webhook-events.ts`. Après l'ajout d'un événement dans le code, relancer `stripe-setup` en production |
+| Radar | Règles par défaut ; 3-D Secure demandé quand la banque l'exige |
+| Mentions de facture | Identité du vendeur, « TVA non applicable, art. 293 B du CGI » |
+
+Décision ouverte : un compte Stripe propre à Tartan, ou le compte actuel qui sert plusieurs produits. Voir [../ETAT.md](../ETAT.md).
 
 ## Recette manuelle complète (en sandbox)
 

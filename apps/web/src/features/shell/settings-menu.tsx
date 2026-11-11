@@ -50,7 +50,7 @@ export const SettingsMenu = ({
           align="end"
           sideOffset={6}
           collisionPadding={8}
-          className="on-card z-50 w-[272px] max-w-[calc(100vw-16px)] rounded-card border border-card-line bg-card p-1.5 shadow-[0_8px_24px_rgba(21,22,26,0.32)]"
+          className="on-card z-50 w-[272px] max-w-[calc(100vw-16px)] rounded-card border border-card-line bg-card p-1.5 shadow-float-strong"
         >
           <div className="px-3 pb-2 pt-1.5 leading-snug">
             {account.name ? <p className="truncate font-semibold">{account.name}</p> : null}

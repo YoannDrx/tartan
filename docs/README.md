@@ -17,11 +17,12 @@ Chaque sujet a un seul document. Si deux documents se contredisent, `ETAT.md` l'
 
 | Document | Contenu |
 | --- | --- |
-| [plans/web.md](plans/web.md) | Mettre la web app en état de vendre, puis l'ouvrir |
+| [plans/web.md](plans/web.md) | Lots de code, configuration, recette, ouverture de la web app |
 | [plans/ios.md](plans/ios.md) | De l'archive à l'App Store |
 | [plans/android.md](plans/android.md) | Du compte Google à Google Play |
 | [plans/commercialisation.md](plans/commercialisation.md) | Portes d'ouverture, offres, lancement, premiers clients |
-| [plans/stripe.md](plans/stripe.md) | Abonnements, webhooks, sandbox, remboursements, fiscalité |
+| [plans/stripe.md](plans/stripe.md) | Abonnements, webhooks, sandbox, passage en réel, remboursements, fiscalité |
+| [plans/direction-artistique.md](plans/direction-artistique.md) | Refonte « Le stade », groupe d'athlètes, jeu « Tartan Meeting » |
 
 ## Tests
 
@@ -37,6 +38,8 @@ Chaque sujet a un seul document. Si deux documents se contredisent, `ETAT.md` l'
 | Document | Contenu |
 | --- | --- |
 | [exploitation/README.md](exploitation/README.md) | Environnements, variables, déploiement, retour arrière, surveillance |
+| [exploitation/incident.md](exploitation/incident.md) | Conduire un incident, fuite de données comprise |
+| [exploitation/support.md](exploitation/support.md) | Canaux, demandes fréquentes, signalements |
 | [exploitation/sauvegarde.md](exploitation/sauvegarde.md) | Sauvegarde et restauration de la base |
 | [exploitation/notifications.md](exploitation/notifications.md) | Livraison des notifications, notes de version |
 | [exploitation/captures.md](exploitation/captures.md) | Refaire les captures du site et des stores |
@@ -45,7 +48,9 @@ Chaque sujet a un seul document. Si deux documents se contredisent, `ETAT.md` l'
 
 | Document | Contenu |
 | --- | --- |
-| [reference/conformite.md](reference/conformite.md) | Données traitées, sous-traitants, questions juridiques |
+| [reference/conformite.md](reference/conformite.md) | Données traitées, sous-traitants, exercice des droits, questions juridiques |
+| [reference/emails.md](reference/emails.md) | Tous les e-mails, leurs déclencheurs, la désinscription |
+| [reference/onboarding.md](reference/onboarding.md) | Parcours d'arrivée du coach et de l'athlète |
 | [reference/fiches-stores.md](reference/fiches-stores.md) | Textes et formulaires App Store et Google Play |
 | [reference/planificateur-ia.md](reference/planificateur-ia.md) | Fonctionnement, quotas, évaluation du planificateur IA |
 | [reference/references-force.md](reference/references-force.md) | Références de force et rapprochement des exercices |

@@ -4,7 +4,7 @@ La vente ouvre sur le web et la PWA. iOS et Android suivent sans la retarder. L'
 
 ## Offres
 
-Source unique : `packages/domain/src/plans.ts`. Pas de chiffre recopié ailleurs dans le code.
+Source unique : `packages/domain/src/plans.ts`, et `packages/domain/src/ai-planner.ts` pour les quotas du planificateur. Pas de chiffre recopié ailleurs dans le code : la page des CGV recopie encore les plafonds, ce que corrige le lot A4.
 
 | Offre | Prix mois / an | Athlètes | Groupes | Coachs | Vidéos par mois | Conservation | IA par mois |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -58,13 +58,15 @@ Questions à poser au coach : taille du groupe et part d'Android ; séances par 
 
 ## Après l'ouverture : priorités produit
 
-1. Premier résultat en quelques minutes : séance modèle, publication et invitation dans le même parcours.
-2. Constructeur plus progressif : titre, date, groupe et contenu d'abord, le reste ensuite.
+1. Premier résultat en quelques minutes : séance modèle, publication et invitation dans le même parcours. Avancé avant l'ouverture, lot A9.
+2. Constructeur plus progressif : titre, date, groupe et contenu d'abord, le reste ensuite. Lot B8.
 3. État fiable après chaque action : enregistré sur l'appareil, en attente, reçu, erreur.
-4. Page Aujourd'hui plus contextuelle : revoir une séance validée, repos clair les jours vides.
+4. Page Aujourd'hui plus contextuelle : revoir une séance validée, repos clair les jours vides. Lot B7.
 5. Coaching au téléphone : l'appel aussi évident que sur ordinateur.
-6. Aide contextuelle courte et contact visible dans l'app.
+6. Aide contextuelle courte et contact visible dans l'app. Avancé avant l'ouverture, lot A12.
+
+Les lots sont décrits dans [web.md](web.md) et [direction-artistique.md](direction-artistique.md).
 
 ## Support
 
-Boîte `hello@tartan.coach`. Signalements examinés sous 48 h ouvrées (promesse des conditions). Procédure de rapprochement facturation : [stripe.md](stripe.md).
+Boîte `hello@tartan.coach`. Signalements examinés sous 48 h ouvrées (promesse des conditions). Marche à suivre : [support.md](../exploitation/support.md). Procédure de rapprochement facturation : [stripe.md](stripe.md).

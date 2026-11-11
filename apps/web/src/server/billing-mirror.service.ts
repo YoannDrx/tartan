@@ -8,6 +8,7 @@ import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
+import { enqueuePaymentActionRequired } from "./email-outbox.service";
 
 const fromUnix = (value: number | null | undefined) => (value ? new Date(value * 1000) : null);
 const idOf = (value: string | { id: string } | null | undefined) =>
@@ -101,6 +102,8 @@ export const handleMirrorEvent = async (event: Stripe.Event): Promise<void> => {
       if (event.type === "invoice.payment_failed") {
         await sendFounderAlert(m.admin.alerts.paymentFailed(org.name)).catch(() => undefined);
       }
+      // La banque demande une validation : le payeur est prévenu, la file reprend l'envoi s'il échoue.
+      if (event.type === "invoice.payment_action_required") await enqueuePaymentActionRequired(org.id, invoice.id);
     }
   } else if (event.type === "charge.refunded") {
     const charge = event.data.object as Stripe.Charge;

@@ -37,6 +37,7 @@ describe("jetons de design", () => {
     page: tokens.scene.page,
     "on-page": tokens.scene.onPage,
     lane: tokens.scene.lane,
+    "on-ink": tokens.color.white,
     card: tokens.scene.card,
     "card-raised": tokens.scene.cardRaised,
     "card-line": tokens.scene.cardLine,

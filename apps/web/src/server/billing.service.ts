@@ -13,6 +13,7 @@ import {
   type PlanLimits,
   TRIAL_DAYS,
 } from "@tartan/domain";
+import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import { createElement } from "react";
 import { PurgeNoticeEmail } from "@email/billing";
@@ -89,6 +90,44 @@ const LIMIT_MESSAGES: Record<LimitKey, string> = {
 export const assertWithinPlan = async (organizationId: string, key: LimitKey): Promise<void> => {
   const [limits, usage] = await Promise.all([limitsOf(organizationId), usageOf(organizationId)]);
   if (!isWithinLimit(limits[key], usage[key])) throw new AppError(402, "plan_limit", LIMIT_MESSAGES[key]);
+};
+
+// Bandeau de l'espace coach : seul le payeur est prévenu d'un paiement à régulariser.
+export const getBillingAlert = async (userId: string, organizationId: string): Promise<"past_due" | null> => {
+  const access = await requireOrgMember(userId, organizationId);
+  if (access.role !== "owner") return null;
+  const [org, subscription] = await Promise.all([
+    prisma.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { ownerId: true, billingOwnerId: true },
+    }),
+    prisma.subscription.findFirst({
+      where: { organizationId },
+      orderBy: { createdAt: "desc" },
+      select: { status: true, provider: true },
+    }),
+  ]);
+  if (org.billingOwnerId && org.billingOwnerId !== org.ownerId) return null;
+  return subscription?.provider === "stripe" && subscription.status === "past_due" ? "past_due" : null;
+};
+
+// Les factures de l'espace, lues dans la copie locale : le PDF reste dans l'espace de paiement.
+export const listInvoices = async (userId: string, organizationId: string) => {
+  const access = await requireOrgMember(userId, organizationId);
+  if (access.role !== "owner") throw forbidden();
+  const rows = await prisma.billingInvoice.findMany({
+    where: { organizationId, status: { not: "draft" } },
+    orderBy: { stripeCreatedAt: "desc" },
+    take: 24,
+    select: { id: true, number: true, status: true, totalCents: true, stripeCreatedAt: true },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    number: row.number,
+    status: row.status,
+    totalCents: row.totalCents,
+    date: row.stripeCreatedAt.toISOString(),
+  }));
 };
 
 export const getBillingOverview = async (userId: string, organizationId: string) => {
@@ -241,8 +280,8 @@ export const createCheckout = async (
         // Le compte Stripe sert plusieurs produits : la page de paiement doit afficher Tartan.
         branding_settings: {
           display_name: "Tartan",
-          button_color: "#C4442B",
-          background_color: "#15161A",
+          button_color: tokens.color.brand,
+          background_color: tokens.color.ink,
           icon: { type: "url", url: `${appUrl}/icon-512.png` },
         },
         custom_text: {

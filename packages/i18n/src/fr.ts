@@ -670,7 +670,8 @@ export const fr = {
     clarifyRest: "Quelle récupération veux-tu, en secondes ou en minutes ? Tartan ne connaît pas ton habitude.",
     clarifyLoad: "Quelle charge veux-tu indiquer ? Sans valeur de ta part, Tartan peut la laisser à définir.",
     clarifySessionCount: "Une proposition compte au plus quatorze séances. Comment veux-tu réduire ta demande ?",
-    clarifyEmpty: "Aucune séance n’a pu être préparée avec cette consigne. Précise la date, le destinataire et les exercices.",
+    clarifyEmpty:
+      "Aucune séance n’a pu être préparée avec cette consigne. Précise la date, le destinataire et les exercices.",
     removedExercises: "Un exercice absent de ta consigne a été retiré de la proposition.",
     ambiguousAlias: (term: string) =>
       `« ${term} » désigne plusieurs fiches. Quel exercice souhaites-tu ? Précise son nom complet ou sa variante.`,
@@ -1769,6 +1770,15 @@ export const fr = {
     switchSpace: "Changer d'espace",
   },
   legal: {
+    cgvOffers: {
+      price: (month: string, year: string) => `${month} par mois ou ${year} par an`,
+      discovery: (groups: number, athletes: number, videos: number, days: number) =>
+        `Découverte : gratuite, ${groups} groupe, ${athletes} athlètes, ${videos} vidéos par mois conservées ${days} jours.`,
+      coach: (price: string, athletes: number, coaches: number, videos: number, retention: string) =>
+        `Coach : ${price}, jusqu'à ${athletes} athlètes, ${coaches} coachs, ${videos} vidéos par mois conservées ${retention}.`,
+      club: (price: string, videos: number, retention: string) =>
+        `Club : ${price}, coachs et athlètes illimités, ${videos} vidéos par mois conservées ${retention}.`,
+    },
     privacy: "Politique de confidentialité",
     terms: "Conditions d'utilisation",
     contact: "Contact",
@@ -1871,6 +1881,12 @@ export const fr = {
         `Le dernier prélèvement pour ${space} a échoué. Mets à jour ta carte pour garder ton offre : Stripe retentera le paiement automatiquement.`,
       cta: "Mettre à jour mon paiement",
     },
+    paymentActionRequired: {
+      subject: "Ta banque demande une validation pour Tartan",
+      body: (space: string, _date: string) =>
+        `Le paiement pour ${space} attend ta validation : ta banque demande une confirmation. Ouvre ton abonnement, puis l'espace de paiement, pour valider et garder ton offre.`,
+      cta: "Valider mon paiement",
+    },
     paymentRecovered: {
       subject: "Ton paiement Tartan est régularisé",
       body: (space: string, _date: string) => `Le paiement pour ${space} est passé. Ton offre continue normalement.`,
@@ -1950,7 +1966,7 @@ export const fr = {
       member_joined: "Voir l'athlète",
     },
     reportCta: "Voir le signalement",
-    publisher: "Tartan est édité par la Société Yodev.",
+    publisher: "Tartan est édité par Yodev, entreprise individuelle.",
     legal: "Mentions légales",
     privacy: "Confidentialité",
     contact: "Contact",
@@ -2020,7 +2036,10 @@ export const fr = {
       linksTitle: "Tableaux de bord",
       linksLead: "Les secrets se changent chez leur prestataire et sur Vercel. Ils ne s'affichent jamais ici.",
       links: [
-        { label: "Variables Vercel", href: "https://vercel.com/yoanndrxs-projects/tartan/settings/environment-variables" },
+        {
+          label: "Variables Vercel",
+          href: "https://vercel.com/yoanndrxs-projects/tartan/settings/environment-variables",
+        },
         { label: "Webhooks Stripe", href: "https://dashboard.stripe.com/webhooks" },
         { label: "Mux", href: "https://dashboard.mux.com" },
         { label: "Resend", href: "https://resend.com/emails" },
@@ -2048,12 +2067,14 @@ export const fr = {
       addAdminHint: "Elle aura 24 h pour créer sa passkey.",
       addAdminButton: "Ajouter",
       backupTitle: "Passkey de secours",
-      backupLead: "Sur un second appareil, au moins 10 minutes après ta dernière vérification. Sans passkey, plus d'accès à la console.",
+      backupLead:
+        "Sur un second appareil, au moins 10 minutes après ta dernière vérification. Sans passkey, plus d'accès à la console.",
       backupPasskey: "Ajouter une passkey",
       backupPasskeyDone: "Passkey ajoutée",
       backupPasskeyFailed: "Échec. Revérifie ta passkey sur la console, puis réessaie.",
       testTitle: "E-mails de test",
-      testLead: "Les vrais gabarits, avec des données fictives, envoyés par le vrai service. L'envoi complet prend environ 15 secondes.",
+      testLead:
+        "Les vrais gabarits, avec des données fictives, envoyés par le vrai service. L'envoi complet prend environ 15 secondes.",
       testTo: "Destinataire",
       testKey: "E-mail",
       testAll: (count: number) => `Tous (${count})`,
@@ -2063,7 +2084,8 @@ export const fr = {
       reconcileTitle: "Vidéos en chemin",
       reconcileLead: "Relit leur état chez Mux. Cela tourne déjà toutes les heures.",
       reconcile: "Relancer maintenant",
-      reconcileDone: (repaired: number, failed: number) => `${repaired} réparée${repaired > 1 ? "s" : ""}, ${failed} en échec`,
+      reconcileDone: (repaired: number, failed: number) =>
+        `${repaired} réparée${repaired > 1 ? "s" : ""}, ${failed} en échec`,
     },
     cancelAtEnd: "Résilier à l'échéance",
     cancelAtEndDetail: "L'accès reste ouvert jusqu'à la fin de la période payée, puis l'abonnement s'arrête.",
@@ -2109,8 +2131,7 @@ export const fr = {
     stopRolloutDetail: "Plus aucun appareil ne sera notifié pour cette version.",
     subscriptionFilter: { active: "Actifs", trialing: "En essai", past_due: "Impayés", canceled: "Résiliés" },
     subscriptionStatus: { active: "Actif", trialing: "En essai", past_due: "Impayé", canceled: "Résilié" },
-    platformName: (platform: string) =>
-      ({ ios: "iOS", android: "Android", web: "Web" })[platform] ?? platform,
+    platformName: (platform: string) => ({ ios: "iOS", android: "Android", web: "Web" })[platform] ?? platform,
     minimumVersion: (platform: string) => `Version minimale ${platform}`,
     minimumVersionHint: "Vide : aucune. Refusée si elle dépasse la version publiée.",
     alerts: {
@@ -2141,7 +2162,8 @@ export const fr = {
     featurePhases: "Phases",
     featureAi: "Planificateur IA",
     aiServerOn: "Variable serveur de l’IA : activée.",
-    aiServerOff: "IA serveur inactive (clé OpenAI absente ou coupe-circuit). Le planificateur reste fermé, même coché ici.",
+    aiServerOff:
+      "IA serveur inactive (clé OpenAI absente ou coupe-circuit). Le planificateur reste fermé, même coché ici.",
     aiNotInDiscovery: "L’offre Découverte n’inclut pas le planificateur.",
     disableAi: "Couper l’IA partout",
     disableAiDetail:
@@ -2346,7 +2368,24 @@ export const fr = {
     status: { trialing: "Essai en cours", active: "Active", past_due: "Paiement à régulariser", canceled: "Résiliée" },
     until: (date: string) => `Jusqu'au ${date}`,
     endsOn: (date: string) => `Se termine le ${date}`,
-    pastDueHint: "Le dernier paiement a échoué. Mets à jour ton moyen de paiement pour garder ton offre.",
+    pastDueHint:
+      "Le dernier paiement n'est pas passé : ta banque l'a refusé ou demande une validation. Ouvre l'espace de paiement pour le régulariser et garder ton offre.",
+    pastDueBanner: "Le dernier paiement n'est pas passé : ta banque l'a refusé ou demande une validation.",
+    pastDueAction: "Régulariser",
+    limitAction: "Voir les offres",
+    invoices: {
+      title: "Factures",
+      empty: "Aucune facture pour l'instant.",
+      hint: "Télécharge tes factures depuis l'espace de paiement.",
+      pending: "En préparation",
+      status: {
+        paid: "Payée",
+        open: "À régler",
+        void: "Annulée",
+        uncollectible: "Impayée",
+        draft: "En préparation",
+      },
+    },
     athleteFree: "Les athlètes ne paient jamais.",
     safetyFree:
       "Suppression de compte, export, consentements et signalement de douleur restent gratuits, à toute offre.",

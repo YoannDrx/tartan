@@ -15,8 +15,8 @@ Application `coach.tartan.app`, iPhone seul, version 1.1.0, Expo 55. Textes et f
 
 | N° | Action | Qui | Vérification |
 | --- | --- | --- | --- |
-| I1 | Corriger le changement de compte par lien magique, sans déconnexion (A7) | Agent | Flux Maestro dédié |
-| I2 | Repli HLS du lecteur natif quand le MP4 n'est pas prêt (A8) | Agent | Vidéo lue juste après l'encodage |
+| I1 | Corriger le changement de compte par lien magique, sans déconnexion (M4) | Agent | Flux Maestro dédié |
+| I2 | Repli HLS du lecteur natif quand le MP4 n'est pas prêt (M5) | Agent | Vidéo lue juste après l'encodage |
 | I3 | Rendre les flux Maestro non conditionnels (T09) | Agent | Échec si aucune séance |
 | I4 | Compléter les captures, dont l'analyse vidéo ([procédure](../exploitation/captures.md)) | Agent | `pnpm captures --store` |
 | I5 | Confirmer la clé APNs par un vrai push sur TestFlight | Fondateur, agent | Notification reçue, lien vers la bonne séance |
@@ -46,7 +46,7 @@ Risque réel : l'exception 3.1.3(f) vise la VoIP, le stockage, l'e-mail et l'hé
 ## Pièges
 
 - `EXPO_PUBLIC_OAUTH_GOOGLE_ENABLED` ne se pose jamais sans l'option Apple (règle 4.8).
-- Connexion Apple : la révocation à la suppression du compte est incomplète (A9). Ne l'active pas avant.
+- Connexion Apple : la révocation à la suppression du compte est incomplète (M6). Ne l'active pas avant.
 - Une mise à jour à distance ne vise que les binaires de la même version native.
 - Apple interdit les fonctions dormantes (2.5.19) : l'autorisation micro parle de dictée, l'IA doit donc être accessible au relecteur.
 - Écran du coach : un relecteur peut supprimer le compte de revue. Garde un second compte.

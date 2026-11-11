@@ -20,7 +20,7 @@ Opération réservée au propriétaire de l’espace, après vérification de la
 4. Relire le rapport. Le rapprochement est idempotent ; les futures saisies d’un ancien client avec cette clé sont liées à cette fiche. Deux confirmations concurrentes de variantes différentes ne peuvent pas réussir.
 5. Choisir ensuite la référence pour chaque athlète. Le rapprochement seul ne sélectionne pas automatiquement un ancien maximum. Jusqu’à ce choix, une ancienne prescription utilisant cette clé n’a pas de charge calculable. Organiser le rapprochement et les choix de références dans la même recette avant activation pour les utilisateurs.
 
-Une correspondance confirmée ne peut pas être réattribuée silencieusement. Le journal d’audit enregistre l’opération, son auteur et son espace, sans valeur de force ni données de santé. Depuis le lot `7519866`, le propriétaire dispose de ce parcours dans les réglages web (`/reglages/references-force`) et natifs. Il exige une fiche choisie explicitement, un motif, une vérification cochée et une confirmation récapitulative. Les clés inconnues restent visibles sans action. Voir `docs/preuves-v1-1/lot-b-rapprochement-force.md` pour les preuves et limites.
+Une correspondance confirmée ne peut pas être réattribuée silencieusement. Le journal d’audit enregistre l’opération, son auteur et son espace, sans valeur de force ni données de santé. Depuis le lot `7519866`, le propriétaire dispose de ce parcours dans les réglages web (`/reglages/references-force`) et natifs. Il exige une fiche choisie explicitement, un motif, une vérification cochée et une confirmation récapitulative. Les clés inconnues restent visibles sans action.
 
 ## API commune web et applications natives
 
@@ -32,6 +32,6 @@ Ces opérations contrôlent l’espace, le rôle et le groupe. Les athlètes peu
 
 Supprimer le test source retire la référence actuelle qui en dépend ; aucun autre test n’est choisi automatiquement. Une référence manuelle n’est pas affectée par la suppression d’un test indépendant. Les réalisations détaillées déjà enregistrées conservent la copie de la référence utilisée, même après correction de la série ou suppression du test source.
 
-## Limites de ce lot
+## Fonctions liées
 
-Le gel dès publication est désormais implémenté pour les séances avec progression activée ; voir [prescriptions-figees.md](prescriptions-figees.md) pour les révisions et les anciennes séances. Le choix de référence est utilisable sur le web et les applications natives depuis `9ad481b`. Les formulaires natifs permettent aussi d’ajouter les tests et de préciser la convention et le pas de charge des exercices. Leur recette sur téléphone physique reste à réaliser. L’historique complet des séries, les courbes et les records ne sont pas terminés par ce lot.
+Le gel des charges à la publication est décrit dans [prescriptions-figees.md](prescriptions-figees.md). Le choix de référence, l'ajout de tests, la convention et le pas de charge sont disponibles sur le web et dans les applications natives. L'historique par exercice (`athletes/{athleteId}/exercise-history`), la page `/progres` et les records (`packages/domain/src/records.ts`) s'appuient sur ces références. Le niveau de preuve de chacun se lit dans [ETAT.md](../ETAT.md).

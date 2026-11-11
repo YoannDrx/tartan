@@ -6,7 +6,7 @@ Le bug du webhook Mux montre la méthode à suivre : **teste la frontière réel
 
 ## Mode d'emploi pour un agent
 
-1. Prends les tâches dans l'ordre. Une tâche, une PR.
+1. Prends les tâches dans l'ordre. Une frontière, une PR : les tests critiques se livrent en cinq PR (personas et T04 ; T01 et T02 ; T05 et T06 ; T07 et T08 ; T03), dans l'ordre des lots A1 à A7 de [web.md](../plans/web.md).
 2. Lis un test voisin avant d'écrire. Modèles : `tests/mux-webhook.test.ts` (webhook signé), `tests/resend-webhook.test.ts` (route), `e2e/admin-passkey.spec.ts` (Chromium et authentificateur virtuel), `e2e/ai-disabled.spec.ts` (client natif dans Playwright), `tests/helpers.ts`, `e2e/helpers.ts`, `e2e/journeys.ts`.
 3. Une tâche est finie quand son test échoue sans le code, passe avec, et tourne en CI.
 4. Si un test révèle un bug, corrige-le dans la même PR, et mets à jour [ETAT.md](../ETAT.md).
@@ -35,7 +35,7 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 | T05 | Actions d'administration | `tests/admin-console-actions.test.ts` : accorder, expiration, suspendre, supprimer, résilier, prolonger l'essai. Refus, step-up, journal, effet | Six actions couvertes, remboursement en e2e avec Stripe simulé |
 | T06 | Export comptable | Handler de `admin/revenus/export` : non admin refusé, step-up, aucune donnée de santé | Trois assertions |
 | T07 | Suppression de compte | E2E `DELETE /api/v1/me` via `api-client`, flux Maestro sur compte jetable | Compte effacé, sessions coupées |
-| T08 | Connexion Apple et Google | `tests/auth-social.test.ts` : activation par variables, liaison de comptes. Corriger la révocation (A9) si la connexion Apple s'active | Tests verts, recette notée |
+| T08 | Connexion Apple et Google | `tests/auth-social.test.ts` : activation par variables, liaison de comptes. Corriger la révocation (M6) si la connexion Apple s'active | Tests verts, recette notée |
 
 ## Élevé
 

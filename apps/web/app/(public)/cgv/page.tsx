@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 import { PLANS, TRIAL_DAYS, formatPrice } from "@tartan/domain";
+import { m } from "@tartan/i18n";
 import { LegalPage } from "@/features/shell/legal-page";
 
 export const metadata: Metadata = { title: "Conditions de vente" };
 
 const price = (plan: "coach" | "club") => {
   const prices = PLANS[plan].prices;
-  return prices ? `${formatPrice(prices.month)} par mois ou ${formatPrice(prices.year)} par an` : "";
+  return prices ? m.legal.cgvOffers.price(formatPrice(prices.month), formatPrice(prices.year)) : "";
 };
+
+// Les plafonds viennent des offres : la page ne peut pas diverger de ce qui est vendu.
+const { discovery, coach, club } = PLANS;
+const retention = (days: number | null) => m.billing.compare.retentionDays(days ?? 0);
 
 export default function CgvPage() {
   return (
@@ -19,9 +24,30 @@ export default function CgvPage() {
       </p>
       <h2>Offres et prix</h2>
       <ul>
-        <li>Découverte : gratuite, 1 groupe, 5 athlètes, 10 vidéos par mois conservées 30 jours.</li>
-        <li>Coach : {price("coach")}, jusqu'à 30 athlètes, 2 coachs, 100 vidéos par mois conservées 1 an.</li>
-        <li>Club : {price("club")}, coachs et athlètes illimités, 500 vidéos par mois conservées 3 ans.</li>
+        <li>
+          {m.legal.cgvOffers.discovery(
+            discovery.limits.maxGroups ?? 0,
+            discovery.limits.maxAthletes ?? 0,
+            discovery.limits.maxVideosPerMonth ?? 0,
+            discovery.limits.videoRetentionDays ?? 0,
+          )}
+        </li>
+        <li>
+          {m.legal.cgvOffers.coach(
+            price("coach"),
+            coach.limits.maxAthletes ?? 0,
+            coach.limits.maxCoaches ?? 0,
+            coach.limits.maxVideosPerMonth ?? 0,
+            retention(coach.limits.videoRetentionDays),
+          )}
+        </li>
+        <li>
+          {m.legal.cgvOffers.club(
+            price("club"),
+            club.limits.maxVideosPerMonth ?? 0,
+            retention(club.limits.videoRetentionDays),
+          )}
+        </li>
       </ul>
       <p>
         Prix en euros. TVA non applicable, article 293 B du Code général des impôts. L'abonnement est payé par le coach
@@ -66,15 +92,15 @@ export default function CgvPage() {
       </p>
       <h2>Remboursement</h2>
       <p>
-        En cas de rétractation dans les 14 jours, le montant payé est remboursé sous 14 jours, déduction faite du service
-        déjà fourni. En dehors de ce cas, une période commencée n'est pas remboursée, sauf manquement de notre part ou
-        disposition légale contraire.
+        En cas de rétractation dans les 14 jours, le montant payé est remboursé sous 14 jours, déduction faite du
+        service déjà fourni. En dehors de ce cas, une période commencée n'est pas remboursée, sauf manquement de notre
+        part ou disposition légale contraire.
       </p>
       <h2>Planificateur IA</h2>
       <p>
         Les offres Coach et Club comprennent un planificateur en version bêta, avec un quota mensuel. Il prépare des
-        brouillons de séance à partir de ta demande, transmise à OpenAI après ton accord. Ces brouillons peuvent contenir
-        des erreurs : tu les relis et tu restes responsable des séances publiées.
+        brouillons de séance à partir de ta demande, transmise à OpenAI après ton accord. Ces brouillons peuvent
+        contenir des erreurs : tu les relis et tu restes responsable des séances publiées.
       </p>
       <h2>Parrainage</h2>
       <p>

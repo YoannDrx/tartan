@@ -38,6 +38,7 @@ export const emailCatalog = (appUrl: string): EmailSample[] => {
   const url = `${appUrl}/connexion`;
   const notices = [
     ["payment_failed", m.email.paymentFailed],
+    ["payment_action_required", m.email.paymentActionRequired],
     ["payment_recovered", m.email.paymentRecovered],
     ["trial_ending", m.email.trialEnding],
   ] as const;

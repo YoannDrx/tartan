@@ -10,9 +10,23 @@ Tartan est l'app de préparation physique du coach et de son groupe, ancrée dan
 
 **Le principal risque.** Les athlètes ne rempliront rien si valider demande plus de quelques secondes. Chaque décision côté athlète se juge à l'aune de ce critère.
 
-**Décision V1.1 du 7 novembre 2026.** Le fondateur autorise explicitement l'extension à la saisie des séries réalisées, aux références de force liées aux exercices, aux records, aux phases partagées et aux statistiques avec provenance. La saisie détaillée reste facultative : une validation simple reste possible, sans transformer une prescription en réalisation supposée. Le planificateur IA prépare des brouillons à relire, sans publication autonome ; sa bêta ne conditionne pas l'ouverture commerciale des autres fonctions. Livraison en deux PR selon `docs/ETAT.md`. Les états de ce document de livraison font foi sur ce qui est effectivement disponible.
+**Décision V1.1 du 7 novembre 2026.** Le fondateur autorise explicitement l'extension à la saisie des séries réalisées, aux références de force liées aux exercices, aux records, aux phases partagées et aux statistiques avec provenance. La saisie détaillée reste facultative : une validation simple reste possible, sans transformer une prescription en réalisation supposée. Le planificateur IA prépare des brouillons à relire, sans publication autonome ; sa bêta ne conditionne pas l'ouverture commerciale des autres fonctions. Ce qui est effectivement disponible se lit dans `docs/ETAT.md`.
 
-**Décision d'ouverture du 8 novembre 2026.** Le fondateur retient le positionnement « préparation physique, l'app du coach et de son groupe », avec l'athlétisme en phrase secondaire et en référencement. À l'ouverture, progression et phases sont actives pour tous les espaces ; le planificateur IA sort en bêta sur les offres payantes, sous seuils de qualité. La vente s'ouvre d'abord sur le web et la PWA, iOS et Android suivent sans la retarder. Ajouts autorisés : vues Liste et Mois, centre de notifications, notes de version, console d'administration complète avec remboursements, lien vidéo-exercice. Tout tient dans une seule PR, selon le plan consigné dans `docs/ETAT.md`.
+**Décision d'ouverture du 8 novembre 2026.** Le fondateur retient le positionnement « préparation physique, l'app du coach et de son groupe », avec l'athlétisme en phrase secondaire et en référencement. À l'ouverture, progression et phases sont actives pour tous les espaces ; le planificateur IA sort en bêta sur les offres payantes, sous seuils de qualité. La vente s'ouvre d'abord sur le web et la PWA, iOS et Android suivent sans la retarder. Ajouts autorisés : vues Liste et Mois, centre de notifications, notes de version, console d'administration complète avec remboursements, lien vidéo-exercice.
+
+**Décision du 11 novembre 2026.** Le fondateur fixe l'ordre : vendre la web app d'abord (paiement, suite d'e-mails complète, onboarding du coach et de l'athlète), refondre ensuite la direction artistique partout, puis livrer le jeu. Les stores iOS et Android suivent. Ajouts autorisés au périmètre :
+
+- un centre d'aide, avec une aide courte par écran et un contact visible dans l'application ;
+- l'absence signalée par l'athlète, en un geste, sans donnée de santé ;
+- la carte de record à partager ;
+- la série de régularité de l'athlète ;
+- un jeu d'athlétisme sur le site, « Tartan Meeting » : aperçu jouable sur la page d'accueil, jeu complet sur `/jeu`, classement public avec pseudo et sans compte. Le disque y figure comme épreuve de jeu et comme illustration ; cela n'ouvre pas les lancers dans le produit.
+
+Les animations sont autorisées partout, écrans de travail compris, sous les règles de `DESIGN.md`. Le bonhomme devient un groupe de six athlètes, un par épreuve. Le déroulé est dans `docs/plans/web.md` et `docs/plans/direction-artistique.md`.
+
+## Offres
+
+Découverte (gratuite), Coach et Club. Les prix et les plafonds ont une seule source, `packages/domain/src/plans.ts` ; le tableau lisible est dans `docs/plans/commercialisation.md`. Les athlètes ne paient jamais.
 
 ## Utilisateurs
 
@@ -33,3 +47,10 @@ Côté athlète : tutoiement, phrases courtes, encourageant sans infantiliser (�
 ## Principes
 
 10 secondes côté athlète. Le contexte avant la discussion (échanges sous une séance ou une vidéo, pas de chat). Mobile d'abord, desktop pour construire. Le coach reste la voix. Lisible sur le terrain. Pensé pour plusieurs. Respect des données.
+
+## Hors périmètre
+
+Tout ajout passe par une décision explicite du fondateur, consignée ici.
+
+- V2 : parents et mineurs, dessin et comparaison vidéo, statistiques de saut, planification de saison, bilan du matin, biométrie, PDF, tablettes, anglais.
+- V3 : messagerie, lancers, demi-fond, montres, bibliothèque communautaire, commentaire vocal.

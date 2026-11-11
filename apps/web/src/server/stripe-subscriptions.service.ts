@@ -190,6 +190,10 @@ export const handleStripeEvent = async (event: Stripe.Event): Promise<void> => {
   });
 };
 
+// La tâche horaire enchaîne d'autres travaux : ce rattrapage s'arrête au bout de son budget de temps.
+const RECONCILE_BATCH = 200;
+const RECONCILE_BUDGET_MS = 40_000;
+
 // Rattrape un webhook perdu : les espaces les plus anciennement vérifiés passent d'abord.
 export const reconcileStripeSubscriptions = async (now = new Date()): Promise<{ synced: number; failed: number }> => {
   if (!billingEnabled()) return { synced: 0, failed: 0 };
@@ -200,11 +204,13 @@ export const reconcileStripeSubscriptions = async (now = new Date()): Promise<{ 
     },
     orderBy: [{ billingSyncAttemptedAt: { sort: "asc", nulls: "first" } }, { id: "asc" }],
     select: { id: true },
-    take: 20,
+    take: RECONCILE_BATCH,
   });
   let synced = 0;
   let failed = 0;
-  for (let i = 0; i < orgs.length; i += 5) {
+  const deadline = Date.now() + RECONCILE_BUDGET_MS;
+  // Les espaces non atteints gardent leur ancienneté : ils passent en tête à l'heure suivante.
+  for (let i = 0; i < orgs.length && Date.now() < deadline; i += 5) {
     await Promise.all(
       orgs.slice(i, i + 5).map(async (org) => {
         try {

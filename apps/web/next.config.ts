@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
     "@tartan/contracts",
     "@tartan/design-tokens",
     "@tartan/domain",
+    "@tartan/game",
     "@tartan/i18n",
     "@tartan/mascot",
   ],

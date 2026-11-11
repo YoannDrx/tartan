@@ -22,7 +22,7 @@ Les builds EAS échouent à l'étape « Read app config », alors que le même c
 | G2 | Créer le compte Play Console, déclarer le statut de commerçant, créer l'app | Fondateur | App visible dans la console |
 | G3 | Compte de service Firebase, importé en FCM V1 : `eas credentials -p android` | Fondateur | Push reçu sur un Android physique |
 | G4 | Compte de service Play, importé sur EAS pour `eas submit` | Fondateur | `eas submit` accepté |
-| G5 | Corriger le build (bloc ci-dessus, tâche A3 de l'état) | Agent | AAB signé |
+| G5 | Corriger le build (bloc ci-dessus, tâche M1 de l'état) | Agent | AAB signé |
 | G6 | Captures 1080 × 1920, au moins quatre ([procédure](../exploitation/captures.md)) | Agent | Ratio inférieur à 2:1 |
 | G7 | Envoyer l'AAB sur le canal interne | Agent, fondateur | Installable depuis Play |
 | G8 | Relever l'empreinte SHA-256 de signature Play, la poser dans `ANDROID_SHA256_FINGERPRINTS`, redéployer | Fondateur | `assetlinks.json` répond 200, lien universel ouvert dans l'app |

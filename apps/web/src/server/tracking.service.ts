@@ -38,6 +38,19 @@ const scopedAthletes = async (access: Access, groupId?: string) => {
   return visible.filter((id) => inGroup.has(id));
 };
 
+// Une séance hors de la portée d'un encadrant n'existe pas pour lui : ni lecture, ni appel, ni relance.
+const requireSessionInScope = async (
+  access: Access,
+  session: { id: string; createdBy: string },
+  visibleAudience: number,
+): Promise<void> => {
+  if (access.role === "owner" || session.createdBy === access.userId || visibleAudience > 0) return;
+  const assigned = await prisma.assignment.count({
+    where: { scheduledSessionId: session.id, targetType: "group", targetId: { in: await coachGroupIds(access) } },
+  });
+  if (assigned === 0) throw notFound();
+};
+
 // Une vue d'ensemble lit la santé de tout un groupe : une seule ligne suffit, sans détail.
 const logAggregatedHealthRead = async (
   access: Access,
@@ -265,12 +278,7 @@ export const getSessionDetailForCoach = async (
   if (!session) throw notFound();
   const visible = new Set(await visibleAthleteIds(access));
   const audience = (await audienceAthleteIds(sessionId)).filter((id) => visible.has(id));
-  if (access.role !== "owner" && session.createdBy !== userId && audience.length === 0) {
-    const assigned = await prisma.assignment.count({
-      where: { scheduledSessionId: sessionId, targetType: "group", targetId: { in: await coachGroupIds(access) } },
-    });
-    if (assigned === 0) throw notFound();
-  }
+  await requireSessionInScope(access, session, audience.length);
   const [athletes, logs, attendance] = await Promise.all([
     prisma.athlete.findMany({
       where: { id: { in: audience } },
@@ -345,6 +353,7 @@ export const takeRollCall = async (userId: string, organizationId: string, sessi
   if (!session?.snapshot) throw notFound();
   const visible = new Set(await visibleAthleteIds(access));
   const audience = new Set(await activeAudienceIds(sessionId));
+  await requireSessionInScope(access, session, [...audience].filter((id) => visible.has(id)).length);
   const entries = input.entries.filter((e) => visible.has(e.athleteId) && audience.has(e.athleteId));
   await prisma.$transaction(
     entries.map((e) =>
@@ -439,6 +448,7 @@ export const remindAthletes = async (
   if (!session) throw notFound();
   const visible = new Set(await visibleAthleteIds(access));
   const audience = (await activeAudienceIds(sessionId)).filter((id) => visible.has(id));
+  await requireSessionInScope(access, session, audience.length);
   const logs = await prisma.sessionLog.findMany({
     where: { scheduledSessionId: sessionId, athleteId: { in: audience } },
     select: { athleteId: true, status: true },
