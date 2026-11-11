@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-11, Claude, lot A6 : suppression de compte et connexion Apple et Google
+
+Fait : T07 et T08. `e2e/account-deletion.spec.ts` supprime un compte par le client de l'app native, sur un vrai serveur ; `tests/auth-social.test.ts` (13 cas) couvre l'activation par variables, le parcours OAuth Google de bout en bout et la révocation Apple ; flux Maestro `apps/mobile/.maestro/destructive/account-delete.yml` et son identifiant `delete-confirm-word` sur le champ de confirmation (PR `test/compte-social`).
+Vérifié : parcours de suppression sur téléphone et ordinateur (compte, sessions des deux appareils et espace effacés, ancien mot de passe refusé, l'athlète garde son compte) ; le test de liaison échoue quand on coupe la liaison dans `auth.ts` ; types, lint, suite web. Non vérifié : le flux Maestro n'a jamais été exécuté ; aucune connexion Apple ou Google réelle, les deux sont éteintes en production.
+À savoir : aucun défaut trouvé dans ce lot. La configuration de Better Auth se lit au chargement du module : pour la tester sous d'autres variables, `vi.stubEnv`, `vi.resetModules`, puis import dynamique de `@/lib/auth`. Dans le parcours par code, Better Auth lit le jeton d'identité de Google sans en vérifier la signature, car il vient de l'échange serveur à serveur : le test remplace donc seulement cet échange. Un compte au mot de passe jamais vérifié n'est pas rejoint par Google (`requireLocalEmailVerified`, valeur par défaut de la bibliothèque) : c'est ce qui empêche de piéger l'adresse d'un autre ; un test le fige. La révocation Apple ne part que si un jeton de rafraîchissement est conservé, ce que la connexion native ne fait pas (M6).
+Suite conseillée : A7 (T03), qui demande la session Stripe CLI du fondateur (F16). Sinon A13 après F15, ou la direction artistique (B1).
+
 ## 2026-11-11, Claude, lot A5 : actions d'administration et export comptable
 
 Fait : T05 et T06. `tests/admin-console-actions.test.ts` (24 cas) appelle les actions serveur de la console ; `tests/admin-accounting-export.test.ts` (6 cas) appelle le handler de l'export. Deux défauts corrigés : la route d'export laissait remonter le refus, donc répondait 500 au lieu de 401 ou 403 ; la page des revenus préchargeait l'export à chaque visite par un lien Next, remplacé par un lien de téléchargement (PR `test/admin-actions`).
