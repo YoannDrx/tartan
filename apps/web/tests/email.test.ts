@@ -21,7 +21,7 @@ afterEach(() => vi.unstubAllEnvs());
 describe("socle e-mail", () => {
   it("le pied de page nomme l'éditeur", async () => {
     const mail = await send();
-    expect(mail.html).toContain("Société Yodev");
+    expect(mail.html).toContain("Yodev, entreprise individuelle");
     expect(mail.html).not.toContain("Andrieux");
     expect(mail.html).not.toContain("803 272 590");
     expect(mail.html).toContain("https://tartan.coach/mentions-legales");

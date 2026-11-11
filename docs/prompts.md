@@ -8,10 +8,18 @@
 Lis AGENTS.md, puis docs/ETAT.md et docs/JOURNAL.md. Résume en dix lignes où en est le projet et propose la prochaine tâche d'agent la plus utile, sans rien modifier. Attends mon accord.
 ```
 
+## Faire un lot
+
+```text
+Lis AGENTS.md, docs/ETAT.md et docs/JOURNAL.md. Fais le lot A3 décrit dans docs/plans/web.md, puis arrête-toi. Une branche, une PR. Lance les contrôles d'AGENTS.md, mets à jour docs/ETAT.md et docs/JOURNAL.md, et dis-moi ce qui est codé, testé et éprouvé.
+```
+
+Remplace A3 par le lot voulu. Les lots B et J sont dans `docs/plans/direction-artistique.md` ; pour eux, fais lire aussi `DESIGN.md`.
+
 ## Écrire les tests critiques
 
 ```text
-Lis AGENTS.md et docs/tests/automatisation.md. Fais la tâche T01, puis arrête-toi. Une branche, une PR. Le test doit échouer sans le code et passer avec. Mets à jour docs/ETAT.md et docs/JOURNAL.md. Si le test révèle un bug, corrige-le dans la même PR.
+Lis AGENTS.md et docs/tests/automatisation.md. Fais la tâche T01, puis arrête-toi. Une frontière, une PR. Le test doit échouer sans le code et passer avec. Mets à jour docs/ETAT.md et docs/JOURNAL.md. Si le test révèle un bug, corrige-le dans la même PR.
 ```
 
 Remplace T01 par la tâche suivante à chaque fois. T04 (matrice d'accès) demande d'abord la fondation « personas ».
