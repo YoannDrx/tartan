@@ -31,6 +31,12 @@ export const tokens = {
       sunLight: "#FFE08A",
       skin: "#E8A87C",
     },
+    // Le groupe des six athlètes : quatre teints et trois couleurs de cheveux (DESIGN.md, « Le groupe »).
+    // Chaque teinte se distingue de la piste, de l'encre et de la craie : `tests/athlete-colors.test.ts`.
+    athlete: {
+      tone: { light: "#EDC29C", peach: "#E8A87C", tan: "#B5804E", deep: "#6E4330" },
+      hair: { brown: "#5A3A26", chestnut: "#7A4E2E", blond: "#DDAE4C" },
+    },
     status: {
       done: "#1E5FA8",
       partial: "#E08A1E",

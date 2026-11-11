@@ -10,7 +10,12 @@
     "./clip": "./src/clip.ts",
     "./high-jump": "./src/high-jump.ts",
     "./svg": "./src/svg.ts",
-    "./canvas": "./src/canvas.ts"
+    "./canvas": "./src/canvas.ts",
+    "./rig": "./src/rig.ts",
+    "./props": "./src/props.ts",
+    "./event": "./src/event.ts",
+    "./events": "./src/events.ts",
+    "./athletes": "./src/athletes.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

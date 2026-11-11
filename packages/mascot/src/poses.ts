@@ -64,6 +64,8 @@ export const POSES = {
     legB: 92,
     kneeB: 14,
   },
+  // Aligné au départ : les bras écartés du buste, pour que le dossard se lise.
+  lineup: { ...STAND, armA: -34, elbowA: 8, armB: 30, elbowB: 16 },
   cheer: {
     ...STAND,
     lean: -2,

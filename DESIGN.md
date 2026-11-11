@@ -32,16 +32,16 @@ La lecture/analyse vidéo, la capture et le mode séance restent encre : la coul
 
 ## Les motifs du stade
 
-Ces motifs sont des composants partagés, jamais redessinés à la main dans un écran.
+Ces motifs sont des composants partagés, jamais redessinés à la main dans un écran : `src/components/track.tsx`, `lane-number.tsx`, `athlete.tsx` et `event-scene.tsx`. Ils prennent la couleur des lignes du fond où ils sont posés (`--color-lane`).
 
-| Motif | Rôle |
-| --- | --- |
-| Ligne droite, en double ligne de couloir | En-tête de chaque écran, séparateurs, rails de progression. Elle se trace de gauche à droite à l'arrivée sur l'écran |
-| Virage, en couloirs concentriques | Transitions entre sections du site, fonds d'accueil et d'états vides |
-| Tour de piste, en ovale | Progression : premiers pas du coach, semaine de l'athlète, série de régularité, chargements longs |
-| Numéros de couloir, de 1 à 8 | Numérotation des étapes (onboarding, tarifs, aide), en Barlow Condensed |
-| Ligne de départ, ligne d'arrivée, planche d'appel | Début et fin de parcours, zone de l'action principale |
-| Le groupe | Six athlètes, un par épreuve et par rubrique |
+| Motif | Composant | Rôle |
+| --- | --- | --- |
+| Ligne droite, en double ligne de couloir | `TrackLine` | En-tête de chaque écran, séparateurs, rails de progression. Elle se trace de gauche à droite à l'arrivée sur l'écran |
+| Virage, en couloirs concentriques | `TrackBend` | Transitions entre sections du site, fonds d'accueil et d'états vides |
+| Tour de piste, en ovale | `TrackLap` | Progression : premiers pas du coach, semaine de l'athlète, série de régularité, chargements longs. La part courue se dit aussi en toutes lettres |
+| Numéros de couloir, de 1 à 8 | `LaneNumber` | Numérotation des étapes (onboarding, tarifs, aide), en Barlow Condensed |
+| Ligne de départ, ligne d'arrivée, planche d'appel | `StartLine`, `FinishLine`, `TakeoffBoard` | Début et fin de parcours, zone de l'action principale |
+| Le groupe | `Athlete`, `EventScene` | Six athlètes, un par épreuve et par rubrique |
 
 ## Palette et rôles
 
@@ -83,14 +83,20 @@ La couleur des séances et catégories sert la lecture du calendrier ; une spéc
 
 Six athlètes aux prénoms fictifs, un seul squelette et un seul trait : membres à bouts ronds, aplats, mains, trois expressions (neutre, effort, joie), dossard. Une seule morphologie, pour que les appuis et les prises d'accessoire restent justes ; les teints, les coiffures et les tenues varient, femmes et hommes. Source unique : le paquet `packages/mascot` (créé par le lot B2), partagé par le site, l'application, le jeu et le mobile. Chaque teint est vérifié contre la piste, l'encre et la craie.
 
-| Épreuve | Accessoire | Rubrique associée |
-| --- | --- | --- |
-| Haies | Haie | Calendrier |
-| Perche | Perche qui fléchit, barre | Progrès |
-| Triple saut | Planche, sable | Constructeur et séances |
-| Disque | Disque, secteur | Exercices |
-| Longueur | Planche, sable | Suivi |
-| Hauteur | Barre, tapis | Vidéos |
+| Couloir | Prénom | Épreuve | Accessoire | Rubrique associée | Coiffure, teint |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Inès | Haies | Haie | Calendrier | Queue de cheval, clair |
+| 2 | Malo | Perche | Perche qui fléchit, barre, tapis | Progrès | Afro, profond |
+| 3 | Awa | Triple saut | Planche, sable | Constructeur et séances | Chignon, hâlé |
+| 4 | Mehdi | Disque | Disque, cercle, secteur | Exercices | Coupe courte, hâlé |
+| 5 | Lila | Longueur | Planche, sable | Suivi | Queue de cheval, pêche |
+| 6 | Noé | Hauteur | Barre, tapis | Vidéos | Coupe courte, pêche. Le personnage d'origine |
+
+Le dossard porte le numéro de couloir et reste lisible quand le corps se retourne. Chaque épreuve a son geste complet, de la mise en place à la réussite (`@tartan/mascot/events`) : un film, un écran ou le jeu choisit l'instant, rien ne dépend d'une horloge. Le visage suit le geste : neutre avant, à l'effort pendant, joyeux une fois réussi.
+
+Les couleurs du groupe vivent dans `packages/design-tokens/src/athletes.ts`. Deux aplats voisins (un teint et son fond, un bras et un maillot, des cheveux et un visage) sont séparés d'au moins 0,12 dans l'espace Oklab, sur la piste, l'encre et la craie : un contraste de luminance ne suffit pas, un brun et le rouge de la piste ont la même clarté. Conséquences assumées : aucun cheveu n'est noir, il se perdrait sur l'encre ; les cheveux de Malo sont blonds, pour se détacher de son teint ; un maillot blanc ou encre change de couleur sur le fond qui l'effacerait.
+
+La planche de contrôle `/admin/mascotte` montre le groupe sur les trois fonds, les visages, les poses, les six gestes et les motifs. Un athlète n'entre dans un écran qu'après la revue du fondateur sur cette planche.
 
 Un athlète accompagne un accueil, un état vide, un chargement long, une erreur, une célébration, un e-mail. Il ne remplace jamais une information ou une action, et ne s'interpose pas entre l'utilisateur et sa tâche.
 

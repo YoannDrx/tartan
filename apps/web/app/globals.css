@@ -852,6 +852,21 @@
     }
   }
 }
+/* Les motifs du stade (src/components/track.tsx). La ligne droite se trace de gauche à droite, la part courue
+   du tour de piste s'allonge. Sans mouvement, elles sont simplement là. */
+@keyframes track-trace {
+  from {
+    transform: scaleX(0);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .track-trace {
+    animation: track-trace var(--duration-trace) var(--ease-reception) both;
+  }
+  .track-lap-done {
+    transition: stroke-dasharray var(--duration-trace) var(--ease-reception);
+  }
+}
 /* La coche de validation se trace : sans mouvement, elle est simplement là. */
 @keyframes tartan-check {
   from {

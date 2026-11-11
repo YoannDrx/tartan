@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { POSES } from "./poses";
 import { BODY, SKELETON, type Paint } from "./skeleton";
-import { boneTransform, rootTransform, svgFigure } from "./svg";
+import { boneTransform, rootTransform, svgFigure, svgShape } from "./svg";
 
 // Des noms de rôle à la place des couleurs : les vraies viennent des jetons de design, chez l'hôte.
 const PAINT: Paint = { skin: "skin", tee: "tee", shorts: "shorts", shoe: "shoe", hair: "hair", eye: "eye" };
@@ -51,5 +51,30 @@ describe("rendu SVG", () => {
       { tag: "circle", cx: 0, cy: 0, r: 44, fill: "skin" },
       { tag: "path", d: "M -43 -10 A 44 44 0 0 1 43 -10 Z", fill: "hair" },
     ]);
+  });
+
+  it("trace un trait entre deux points et une part de disque fermée par sa corde", () => {
+    expect(
+      svgShape({ kind: "stroke", from: { x: 9, y: 2 }, to: { x: 20, y: 8 }, width: 5, paint: "eye" }, "ink"),
+    ).toEqual({
+      tag: "line",
+      x1: 9,
+      y1: 2,
+      x2: 20,
+      y2: 8,
+      stroke: "ink",
+      strokeWidth: 5,
+      strokeLinecap: "round",
+    });
+    // La moitié basse d'un disque : de la droite à la gauche, en passant par le bas.
+    expect(svgShape({ kind: "segment", x: 24, y: 19, radius: 11, from: 0, to: 180, paint: "eye" }, "ink")).toEqual({
+      tag: "path",
+      d: "M 35 19 A 11 11 0 0 1 13 19 Z",
+      fill: "ink",
+    });
+    // Au-delà d'un demi-tour, l'arc prend le grand côté.
+    expect(svgShape({ kind: "segment", x: 0, y: 0, radius: 10, from: 0, to: 270, paint: "eye" }, "ink")).toMatchObject({
+      d: "M 10 0 A 10 10 0 1 1 0 -10 Z",
+    });
   });
 });
