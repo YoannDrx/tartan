@@ -9,10 +9,11 @@ import { StatusIcon } from "@/components/status-cell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { todayIso } from "@/lib/dates";
+import { AthleteWelcome } from "@/features/athlete-view/athlete-welcome";
 import { AttendanceQuestion, TodayAbsence } from "@/features/athlete-view/attendance-question";
 import { QuickValidate } from "@/features/athlete-view/validation";
 import { requireAthleteSpace } from "@/features/shell/space";
-import { getAthleteSession, getAthleteToday } from "@/server/athlete-view.service";
+import { getAthleteSession, getAthleteToday, getAthleteWelcome } from "@/server/athlete-view.service";
 
 export const metadata: Metadata = { title: m.nav.aujourdhui };
 
@@ -176,7 +177,10 @@ const Hero = ({
 export default async function AujourdhuiPage() {
   const { actor, organizationId } = await requireAthleteSpace();
   const today = todayIso();
-  const data = await getAthleteToday(actor.userId, organizationId);
+  const [data, welcome] = await Promise.all([
+    getAthleteToday(actor.userId, organizationId),
+    getAthleteWelcome(actor.userId, organizationId),
+  ]);
   const details = await Promise.all(data.today.map((c) => getAthleteSession(actor.userId, organizationId, c.id)));
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
@@ -186,6 +190,10 @@ export default async function AujourdhuiPage() {
       />
       {data.parentalConsentPending ? (
         <p className="on-card rounded-card bg-card p-3 text-st-partial">{m.parental.pendingBanner}</p>
+      ) : null}
+      {/* Une séance du jour passe devant : l'athlète vient d'abord pour elle. */}
+      {welcome && data.today.length === 0 ? (
+        <AthleteWelcome organizationId={organizationId} group={welcome.group} coach={welcome.coach} />
       ) : null}
       <WeekDots week={data.week} today={today} />
       {data.pinnedAnnouncement ? (

@@ -27,6 +27,8 @@ import { attributeReferral } from "./referral.service";
 
 export { invitationLink };
 
+const welcomeKey = (athleteId: string): string => `welcome:${athleteId}`;
+
 export const createInvitation = async (userId: string, organizationId: string, rawInput: CreateInvitationInput) => {
   const input = createInvitationInput.parse(rawInput);
   const permission = input.role === "athlete" ? "inviteAthlete" : "inviteCoach";
@@ -355,8 +357,29 @@ export const acceptInvitation = async (
       skipDuplicates: true,
     });
     await freezeAssignedPrescriptions(tx, athlete.id);
+    // Première arrivée dans l'espace : la bienvenue est mise en file dans la même transaction, une seule fois.
+    if (!existing) {
+      await tx.emailOutbox.createMany({
+        data: [
+          {
+            organizationId: inv.organizationId,
+            toEmail: actor.email,
+            kind: "athlete_welcome",
+            dedupeKey: welcomeKey(athlete.id),
+            payload: { athleteId: athlete.id, invitedBy: inv.invitedBy, groupId: groupIds[0] ?? null },
+          },
+        ],
+        skipDuplicates: true,
+      });
+    }
     return athlete.id;
   });
+  if (isAthlete && athleteId) {
+    // Envoi tout de suite, limité à cette ligne ; en cas de panne, la tâche de notifications reprend.
+    await flushEmailOutbox(new Date(), { dedupeKey: welcomeKey(athleteId) }).catch(() =>
+      log.warn("email_outbox_flush_failed"),
+    );
+  }
 
   await setConsent(actor.userId, "terms", true, athleteId);
   // Rejoindre un espace n'enlève jamais un accord donné à un autre, ni à celui-ci : cocher accorde, c'est tout.

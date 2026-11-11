@@ -39,7 +39,7 @@ Mis à jour le 11 novembre 2026. Toute PR qui change un état met ce fichier à 
 | Versions et mises à jour | Oui | Oui | Non |
 | Abonnements Stripe | Oui | Simulé, et sandbox sans paiement | **Aucun vrai paiement** |
 | Remboursements, factures, litiges | Oui | Simulé | Non |
-| E-mails | 27 e-mails | Rendu, déclencheurs de facturation et d'activation | Seul le lien magique a été reçu |
+| E-mails | 29 e-mails | Rendu, déclencheurs de facturation et d'activation | Seul le lien magique a été reçu |
 | Export, suppression de compte | Oui | Oui | Sur le web |
 | Console d'administration | Oui | Partiel | Accès passkey éprouvé |
 | Hors ligne, PWA | Oui | Oui | Pas au stade |
@@ -68,7 +68,7 @@ Les numéros renvoient aux étapes des plans. Trié par impact sur l'ouverture.
 | F11 | Demande de D-U-N-S, puis compte Google Play. Passer en compte personnel sans numéro le 20 novembre | [Android](plans/android.md) | Android |
 | F12 | Passkey de secours sur un second appareil | [web](plans/web.md) | Risque de blocage de la console |
 | F13 | Prévenir les deux espaces pilotes des fonctions activées | [commercialisation](plans/commercialisation.md) | Confiance |
-| F14 | Régler le compte Stripe pour le réel ; relancer `stripe-setup` en production après le lot A4 | [Stripe](plans/stripe.md) | Vrai paiement |
+| F14 | Régler le compte Stripe pour le réel. Le webhook de production écoute les 15 événements depuis le 11 novembre (constaté par l'API Stripe) | [Stripe](plans/stripe.md) | Vrai paiement |
 | F15 | Choisir où stocker les sauvegardes, hors de GitHub | [sauvegarde](exploitation/sauvegarde.md) | Lot A13 |
 | F16 | Ouvrir une session Stripe CLI sur la sandbox pour le lot A7 | [Stripe](plans/stripe.md) | T03 |
 | F17 | Valider les six athlètes sur la planche `/admin/mascotte`, après le lot B3 | [direction artistique](plans/direction-artistique.md) | Refonte des écrans |
@@ -89,7 +89,7 @@ Un lot, une branche, une PR. Détail des lots : [web](plans/web.md).
 | A8 | Registre des e-mails, exemption des e-mails de sécurité, invitations par la file | Codé, testé |
 | A9 | Onboarding du coach en trois temps, guide « Pour démarrer » en quatre étapes sur une règle partagée | Codé, testé |
 | A10 | E-mails d'activation (J+1, J+3, J+7), plafond presque atteint, préférence « conseils » | Codé, testé. Reconquête non construite, en attente de F4 |
-| A11 | Accueil de l'athlète, bienvenue, relance d'invitation | À faire |
+| A11 | Accueil de l'athlète sur sa page, e-mail de bienvenue, rappel d'invitation avec opposition par adresse | Codé, testé |
 | A12 | Centre d'aide et contact | À faire |
 | A13 | Sauvegardes hors de GitHub, sondes de disponibilité et des notifications | À faire, après F2, F3, F15 |
 
@@ -146,7 +146,6 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 - **Skew Protection** Vercel refusée par l'API : à activer à la main si l'offre l'inclut.
 - **iPhone, PWA** : les notifications exigent l'ajout à l'écran d'accueil, d'où l'intérêt de l'app native.
 - **Textes en dur hérités** : 274 textes gelés dans 48 fichiers (`apps/web/eslint-suppressions.json`), dont les pages légales et les objets d'e-mail. La règle ne voit pas les messages d'erreur ni les métadonnées de page. Les hexadécimaux de `globals.css` ne sont contrôlés qu'en partie, jusqu'au lot B1.
-- **Webhook Stripe de production incomplet** tant que F14 n'est pas faite : l'événement `invoice.payment_action_required` n'y est pas encore abonné, et la console l'affiche.
 - **Jeu public** : le rejeu serveur prouve qu'un score découle d'appuis valides, pas qu'un humain a joué. Le classement demande une modération.
 
 ## Hors périmètre de la V1

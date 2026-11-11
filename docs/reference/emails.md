@@ -19,7 +19,7 @@ Tous les e-mails que Tartan envoie, leur déclencheur et la façon de s'en dési
 
 Un incident de paiement ne donne qu'un e-mail : « paiement échoué » et « validation demandée » ne se cumulent pas dans la même heure. Sans clé Resend, les messages restent en mémoire, sauf en production où l'envoi échoue. Les adresses `@demo.tartan.coach` ne reçoivent rien. Un e-mail ne contient jamais de donnée de santé.
 
-## Les 27 e-mails en place
+## Les 29 e-mails en place
 
 | Clé du catalogue | Destinataire | Déclencheur | Envoi | Désinscription |
 | --- | --- | --- | --- | --- |
@@ -29,6 +29,8 @@ Un incident de paiement ne donne qu'un e-mail : « paiement échoué » et « va
 | `password_changed` | Compte | Mot de passe modifié | Direct | Non |
 | `invitation_athlete` | Athlète invité | Invitation nominative par le coach, ou renvoi | File, tentative immédiate | Non |
 | `invitation_staff` | Coach invité | Invitation dans un espace, ou renvoi | File, tentative immédiate | Non |
+| `invitation_reminder` | Athlète invité | Invitation nominative sans réponse depuis trois à cinq jours, une seule fois | File, tâche de 9 h | Oui, par adresse |
+| `athlete_welcome` | Athlète | Première arrivée dans un espace, à l'acceptation de l'invitation | File, tentative immédiate | Non |
 | `parental_consent` | Parent | Parcours parental, dormant (`PARENTAL_FLOW_ENABLED`) | Direct | Non |
 | `welcome` | Propriétaire | Création de son premier espace | Direct | Non |
 | `weekly_digest` | Coach | Dimanche à 18 h | Tâche horaire | Oui, « résumé » |
@@ -81,17 +83,18 @@ Trois rappels au plus, décidés par une règle pure (`packages/domain/src/lifec
 
 Le matin, le payeur est prévenu quand les athlètes ou les vidéos du mois atteignent 80 % de la limite de son offre, sans l'avoir atteinte. Une fois par limite d'athlètes, une fois par mois pour les vidéos. Les offres sans limite et les limites inférieures à cinq ne préviennent pas.
 
-## Ajouts prévus
+## Arrivée de l'athlète
 
-Lot A11 de [web.md](../plans/web.md).
+Service : `apps/web/src/server/athlete-email.ts`.
 
-| E-mail | Destinataire | Déclencheur | Désinscription |
-| --- | --- | --- | --- |
-| Bienvenue de l'athlète | Athlète | Invitation acceptée | Non |
-| Relance d'invitation | Athlète invité | Invitation sans réponse à J+3, une seule fois, signée du coach | Opposition par adresse |
+- **Bienvenue.** Mise en file dans la transaction qui accepte l'invitation, pour une première arrivée seulement : rouvrir un lien de groupe ne la renvoie pas. Elle nomme le groupe et le coach, et rappelle d'installer l'application et d'activer les notifications.
+- **Rappel d'invitation.** Un seul par invitation nominative d'athlète, quand elle reste sans réponse trois à cinq jours après la dernière action dessus : un renvoi par le coach repousse donc le rappel. Il ne part pas si l'invitation a été acceptée, révoquée ou a expiré entre-temps.
+- **Opposition par adresse.** La personne invitée n'a pas de compte : le lien du rappel et son en-tête `List-Unsubscribe` portent un jeton tiré de l'invitation. L'adresse rejoint alors la liste de blocage : plus d'invitation ni de rappel, les e-mails de connexion restent. Limite : le coach qui réinvite cette adresse n'en est pas averti.
 
-Non construit, en attente de l'avis du juriste : l'e-mail de reconquête, trente jours après une fin d'abonnement. C'est de la prospection.
+## Non construit
+
+L'e-mail de reconquête, trente jours après une fin d'abonnement : c'est de la prospection, il attend l'avis du juriste.
 
 ## Préférences
 
-Trois interrupteurs sur le profil, réglables dans Réglages et par une désinscription en un clic (en-tête `List-Unsubscribe`, page `/e-mails/[kind]/[token]`) : `emailDigest` (résumé), `emailNotifications` (replis de notification), `emailTips` (conseils d'activation). Ne se désactivent pas : sécurité du compte, facturation, invitations, préavis de suppression.
+Trois interrupteurs sur le profil, réglables dans Réglages et par une désinscription en un clic (en-tête `List-Unsubscribe`, page `/e-mails/[kind]/[token]`, qui sert aussi à l'opposition d'une personne invitée) : `emailDigest` (résumé), `emailNotifications` (replis de notification), `emailTips` (conseils d'activation). Ne se désactivent pas : sécurité du compte, facturation, invitations, préavis de suppression.

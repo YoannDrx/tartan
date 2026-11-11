@@ -161,6 +161,44 @@ const athleteFocus = async (athleteId: string, card: AthleteSessionCard | null, 
   return coachNote || cues.length > 0 || video ? { coachNote, cues, video } : null;
 };
 
+// L'accueil d'un athlète qui vient d'arriver : il s'efface à la première séance validée, ou après une semaine.
+const WELCOME_DAYS = 7;
+
+export const getAthleteWelcome = async (
+  userId: string,
+  organizationId: string,
+  now: Date = new Date(),
+): Promise<{ group: string; coach: string } | null> => {
+  const access = await requireAthleteAccess(userId, organizationId);
+  const member = await prisma.organizationMember.findUnique({
+    where: { organizationId_userId: { organizationId, userId } },
+    select: { createdAt: true, organization: { select: { name: true, ownerId: true } } },
+  });
+  if (!member || now.getTime() - member.createdAt.getTime() > WELCOME_DAYS * 86_400_000) return null;
+  const [validated, membership, leads] = await Promise.all([
+    prisma.sessionLog.count({ where: { athleteId: access.athleteId, status: { in: ["done", "partial"] } } }),
+    prisma.groupMember.findFirst({
+      where: { athleteId: access.athleteId },
+      orderBy: { createdAt: "asc" },
+      select: { groupId: true, group: { select: { name: true } } },
+    }),
+    prisma.groupCoach.findMany({
+      where: { role: "lead", group: { organizationId, members: { some: { athleteId: access.athleteId } } } },
+      orderBy: { createdAt: "asc" },
+      select: { userId: true },
+      take: 1,
+    }),
+  ]);
+  if (validated > 0) return null;
+  // Le coach qui suit le groupe signe l'accueil ; à défaut, le responsable de l'espace.
+  const coachId = leads[0]?.userId ?? member.organization.ownerId;
+  const names = await namesFor([coachId]);
+  return {
+    group: membership?.group.name ?? member.organization.name,
+    coach: (names.get(coachId) ?? member.organization.name).split(" ")[0] ?? member.organization.name,
+  };
+};
+
 export const getAthleteToday = async (
   userId: string,
   organizationId: string,
