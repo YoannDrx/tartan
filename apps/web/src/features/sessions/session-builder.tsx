@@ -941,7 +941,7 @@ export const SessionBuilder = ({
           {formError}
         </p>
       ) : null}
-      <div className="on-card desktop:col-start-2 min-w-0 z-10 flex flex-wrap items-center gap-2 rounded-card bg-card p-3 desktop:sticky desktop:bottom-4 desktop:border desktop:border-control-line desktop:shadow-[0_8px_24px_rgba(21,22,26,0.16)]">
+      <div className="on-card desktop:col-start-2 min-w-0 z-10 flex flex-wrap items-center gap-2 rounded-card bg-card p-3 desktop:sticky desktop:bottom-4 desktop:border desktop:border-control-line desktop:shadow-float">
         <Button disabled={save.isPending} onClick={() => submit(true)}>
           {initial?.publishedAt ? "Enregistrer et prévenir les athlètes" : m.builder.publish}
         </Button>

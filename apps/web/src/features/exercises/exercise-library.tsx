@@ -382,7 +382,7 @@ export const ExerciseDetail = ({ exercise }: { exercise: ExerciseSummary }) => {
           src={media.streamUrl}
           controls
           playsInline
-          className="aspect-video w-full rounded-card bg-black"
+          className="aspect-video w-full rounded-card bg-ink"
           aria-label={exercise.name}
         />
       ) : null}

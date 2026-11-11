@@ -13,6 +13,7 @@ import {
   type PlanLimits,
   TRIAL_DAYS,
 } from "@tartan/domain";
+import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import { createElement } from "react";
 import { PurgeNoticeEmail } from "@email/billing";
@@ -241,8 +242,8 @@ export const createCheckout = async (
         // Le compte Stripe sert plusieurs produits : la page de paiement doit afficher Tartan.
         branding_settings: {
           display_name: "Tartan",
-          button_color: "#C4442B",
-          background_color: "#15161A",
+          button_color: tokens.color.brand,
+          background_color: tokens.color.ink,
           icon: { type: "url", url: `${appUrl}/icon-512.png` },
         },
         custom_text: {

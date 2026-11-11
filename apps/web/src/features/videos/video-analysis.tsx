@@ -193,7 +193,7 @@ export const VideoAnalysis = ({
   );
 
   return (
-    <div className="scene-dark min-h-dvh bg-ink text-white [&_a]:text-link">
+    <div className="scene-dark min-h-dvh bg-ink text-fg [&_a]:text-link">
       <div className="mx-auto grid max-w-[1200px] gap-4 p-4 desktop:grid-cols-[minmax(0,1fr)_360px] desktop:p-6">
         <div className="flex min-w-0 flex-col gap-3">
           <header className="flex items-center gap-3">
@@ -261,7 +261,7 @@ export const VideoAnalysis = ({
             <VideoExerciseLink videoId={video.id} current={video.exerciseId ?? null} exercises={exercises} />
           ) : null}
 
-          <div className="relative overflow-hidden rounded-card bg-black">
+          <div className="relative overflow-hidden rounded-card bg-ink">
             {src ? (
               <video
                 ref={ref}
@@ -336,7 +336,7 @@ export const VideoAnalysis = ({
                   onClick={() => setSpeed(s)}
                   className={cn(
                     "min-h-11 min-w-11 rounded-button px-2 text-[14px] font-semibold",
-                    speed === s ? "bg-accent text-on-accent" : "bg-card-raised text-white",
+                    speed === s ? "bg-accent text-on-accent" : "bg-card-raised text-fg",
                   )}
                 >
                   {speedLabel(s)}
@@ -353,7 +353,7 @@ export const VideoAnalysis = ({
               }}
               className={cn(
                 "inline-flex min-h-11 items-center gap-1.5 rounded-button px-3 text-[14px] font-semibold",
-                loop ? "bg-accent text-on-accent" : "bg-card-raised text-white",
+                loop ? "bg-accent text-on-accent" : "bg-card-raised text-fg",
               )}
             >
               <Repeat aria-hidden className="size-4" />
@@ -391,7 +391,7 @@ export const VideoAnalysis = ({
               <span
                 aria-hidden
                 style={{ left: `${pct(timeMs)}%` }}
-                className="absolute top-1 h-7 w-[3px] -translate-x-1/2 rounded-sm bg-white"
+                className="absolute top-1 h-7 w-[3px] -translate-x-1/2 rounded-sm bg-fg"
               />
               <input
                 id="timeline"
@@ -410,7 +410,7 @@ export const VideoAnalysis = ({
                   <span
                     key={r.phase}
                     style={{ flexGrow: Math.max(r.endMs - r.startMs, 1) }}
-                    className={cn("min-w-0 truncate", currentPhase === r.phase && "font-semibold text-white")}
+                    className={cn("min-w-0 truncate", currentPhase === r.phase && "font-semibold text-fg")}
                   >
                     {m.jumpPhase[r.phase]}
                   </span>
@@ -470,7 +470,7 @@ export const VideoAnalysis = ({
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder={m.video.remarkAt(formatTimecode(timeMs))}
-                  className="min-h-11 w-full rounded-full border border-control-line bg-transparent px-4 text-[16px] text-white placeholder:text-fg-muted"
+                  className="min-h-11 w-full rounded-full border border-control-line bg-transparent px-4 text-[16px] text-fg placeholder:text-fg-muted"
                 />
                 <CheckRow
                   label={m.video.highJumpTools}

@@ -81,7 +81,7 @@ Un lot, une branche, une PR. Détail des lots : [web](plans/web.md).
 | --- | --- | --- |
 | A1 | Personas, matrice d'accès T04 | À faire |
 | A2 | T01 webhook Stripe, T02 RevenueCat | À faire |
-| A3 | Garde-fous : couleurs et textes en dur refusés par le lint | À faire |
+| A3 | Garde-fous : couleurs et textes en dur refusés par le lint | Codé, testé. 274 textes d'avant la règle restent gelés dans 48 fichiers |
 | A4 | Finitions du paiement : action bancaire requise, bandeau d'impayé, plafond atteint, factures | À faire |
 | A5 | T05 actions d'administration, T06 export comptable | À faire |
 | A6 | T07 suppression de compte, T08 connexion Apple et Google | À faire |
@@ -143,7 +143,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 - **Sentry gratuit** : une seule sonde de crons active. La sonde de disponibilité et celle des notifications attendent une place.
 - **Skew Protection** Vercel refusée par l'API : à activer à la main si l'offre l'inclut.
 - **iPhone, PWA** : les notifications exigent l'ajout à l'écran d'accueil, d'où l'intérêt de l'app native.
-- **Règles sans contrôle** : textes en dur dans environ 76 fichiers, palette brute dans les écrans immersifs. Rien ne l'empêche avant le lot A3.
+- **Textes en dur hérités** : 274 textes gelés dans 48 fichiers (`apps/web/eslint-suppressions.json`), dont les pages légales et les objets d'e-mail. La règle ne voit pas les messages d'erreur ni les métadonnées de page. Les hexadécimaux de `globals.css` ne sont contrôlés qu'en partie, jusqu'au lot B1.
 - **Défauts de vente connus dans le code** : validation bancaire 3-D Secure non gérée, impayé signalé seulement sur `/abonnement`, e-mails de connexion bloqués après une plainte ou une désinscription. Corrigés par les lots A4 et A8.
 - **Jeu public** : le rejeu serveur prouve qu'un score découle d'appuis valides, pas qu'un humain a joué. Le classement demande une modération.
 

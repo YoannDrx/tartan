@@ -34,7 +34,7 @@ const Demo = ({ item, speed }: { item: ResolvedItem; speed: number }) => {
         muted
         playsInline
         controls
-        className="aspect-video w-full rounded-card bg-black"
+        className="aspect-video w-full rounded-card bg-ink"
         aria-label={`Démonstration : ${item.name}`}
       />
     );
@@ -95,7 +95,7 @@ export const SessionMode = ({
 
   if (!item) {
     return (
-      <main className="scene-dark flex min-h-dvh flex-col items-start gap-4 bg-ink p-4 text-white">
+      <main className="scene-dark flex min-h-dvh flex-col items-start gap-4 bg-ink p-4 text-fg">
         <p>{m.today.empty}</p>
         <Button variant="darkSecondary" onClick={() => router.back()}>
           {m.common.back}
@@ -107,7 +107,7 @@ export const SessionMode = ({
   const doneCount = Array.from({ length: setCount }, (_, i) => checked[`${item.ref}#${i}`]).filter(Boolean).length;
   const last = index === items.length - 1;
   return (
-    <main className="scene-dark min-h-dvh bg-ink text-white">
+    <main className="scene-dark min-h-dvh bg-ink text-fg">
       <div className="mx-auto flex min-h-dvh max-w-xl flex-col gap-4 p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-3">
           <ConfirmDialog
@@ -147,7 +147,7 @@ export const SessionMode = ({
                 onClick={() => setSpeed(s)}
                 className={cn(
                   "min-h-11 min-w-16 rounded-full px-3 font-semibold",
-                  speed === s ? "bg-accent text-on-accent" : "border border-control-line text-white",
+                  speed === s ? "bg-accent text-on-accent" : "border border-control-line text-fg",
                 )}
               >
                 {String(s).replace(".", ",")}×
