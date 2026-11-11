@@ -1,0 +1,48 @@
+# T07 : suppression réelle d'un compte, sur un compte jetable créé pour ce seul parcours.
+# Hors du lot habituel (`maestro test .maestro` ne lit pas ce dossier) : ce parcours détruit le compte.
+#   maestro test -e APP_ID=coach.tartan.app.dev -e DISPOSABLE_EMAIL=… -e PASSWORD=… .maestro/destructive/account-delete.yml
+# Ne jamais y passer COACH_EMAIL ni ATHLETE_EMAIL, ni un compte de production.
+appId: ${APP_ID}
+env:
+  EMAIL: ${DISPOSABLE_EMAIL}
+---
+- runFlow: ../flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: open-settings
+    timeout: 30000
+- tapOn:
+    id: open-settings
+- scrollUntilVisible:
+    element:
+      id: delete-account
+- tapOn:
+    id: delete-account
+- assertVisible:
+    id: delete-confirm
+- tapOn:
+    id: delete-confirm-word
+- inputText: "SUPPRIMER"
+- hideKeyboard
+- tapOn:
+    id: delete-confirm
+# Le compte n'existe plus : l'app revient à la connexion.
+- extendedWaitUntil:
+    visible:
+      id: sign-in-email
+    timeout: 30000
+# Les anciens identifiants n'ouvrent plus rien.
+- tapOn:
+    id: sign-in-email
+- inputText: ${DISPOSABLE_EMAIL}
+- hideKeyboard
+- tapOn:
+    id: sign-in-use-password
+- tapOn:
+    id: sign-in-password
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: sign-in-submit
+- assertNotVisible:
+    id: open-settings

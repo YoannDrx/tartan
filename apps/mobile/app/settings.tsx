@@ -517,6 +517,7 @@ export default function Settings() {
         >
           <T>{m.settings.deleteDetail}</T>
           <Field
+            testID="delete-confirm-word"
             label={m.settings.deleteConfirmLabel}
             value={confirmWord}
             onChangeText={setConfirmWord}

@@ -78,6 +78,12 @@ Non installé par défaut, absent de la CI. Depuis `apps/mobile`, après `pnpm d
 maestro test -e APP_ID=coach.tartan.app.dev -e COACH_EMAIL=… -e ATHLETE_EMAIL=… -e NO_AGE_EMAIL=… -e PASSWORD=… .maestro
 ```
 
+Le dossier `.maestro/destructive/` n'est pas lu par cette commande. Il contient `account-delete.yml`, qui supprime réellement le compte donné : à lancer seul, sur un compte jetable créé pour l'occasion, jamais avec `COACH_EMAIL`, `ATHLETE_EMAIL` ni un compte de production.
+
+```sh
+maestro test -e APP_ID=coach.tartan.app.dev -e DISPOSABLE_EMAIL=… -e PASSWORD=… .maestro/destructive/account-delete.yml
+```
+
 Le script `maestro:test` ne transmet pas ces variables. `athlete-validate` et `athlete-session-mode` passent au vert si aucune séance n'est visible, et `coach-tracking` n'ouvre pas l'appel : voir T09.
 
 ## Couverture par domaine
