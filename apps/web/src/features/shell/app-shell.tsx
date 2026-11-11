@@ -19,6 +19,8 @@ import type { ReleaseView, SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { Logo } from "@/components/logo";
 import { Select } from "@/components/ui/field";
+import { RouteTransition } from "@/components/ui/route-transition";
+import { ACTIVE_TAB } from "@/components/ui/view-transition";
 import { cn } from "@/lib/cn";
 import { worldFor } from "@/lib/world";
 import { NotificationBell } from "@/features/notifications/notification-bell";
@@ -129,7 +131,7 @@ export const AppShell = ({
                 aria-current={isActive(item.href) ? "page" : undefined}
                 className={cn(
                   "inline-flex min-h-11 items-center rounded-full px-3.5 font-medium no-underline transition-colors",
-                  isActive(item.href) ? `${selectedClass} font-semibold` : "text-fg hover:bg-raise",
+                  isActive(item.href) ? `${selectedClass} ${ACTIVE_TAB} font-semibold` : "text-fg hover:bg-raise",
                 )}
               >
                 {item.label}
@@ -151,7 +153,7 @@ export const AppShell = ({
                     aria-current={isActive(item.href) ? "page" : undefined}
                     className={cn(
                       "inline-flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-raise desktop:hidden",
-                      isActive(item.href) ? selectedClass : "text-fg",
+                      isActive(item.href) ? `${selectedClass} ${ACTIVE_TAB}` : "text-fg",
                     )}
                   >
                     <Icon aria-hidden className="size-5" />
@@ -181,7 +183,7 @@ export const AppShell = ({
           </p>
         ) : null}
         {/* Le contenu d'abord, l'athlète vient pour sa séance : les autres bandeaux passent dessous. */}
-        <div>{children}</div>
+        <RouteTransition>{children}</RouteTransition>
         <UpdateWatcher unseen={unseenRelease} />
         <InstallBanner />
         {askSatisfaction ? <SatisfactionQuestion /> : null}
@@ -207,7 +209,7 @@ export const AppShell = ({
                 className={cn(
                   "my-1 flex min-h-[60px] min-w-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-button text-[11px] leading-none no-underline",
                   active
-                    ? `${selectedClass} font-semibold`
+                    ? `${selectedClass} ${ACTIVE_TAB} font-semibold`
                     : work
                       ? "font-medium text-fg"
                       : "font-medium text-fg-muted",
