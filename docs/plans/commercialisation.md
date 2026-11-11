@@ -29,7 +29,7 @@ Les inscriptions restent fermées tant qu'une porte n'est pas franchie. L'ouvert
 | 7 | E-mails reçus sur Gmail, Outlook, Apple Mail | Fondateur |
 | 8 | Recette iPhone et Android (PWA, push web), hors ligne au stade | Fondateur |
 | 9 | Compte neuf : de l'inscription au paiement, sans aide | Fondateur |
-| 10 | Tests critiques T01 à T08 verts | Agent |
+| 10 | Tests critiques T01 à T08 verts. Franchie le 11 novembre 2026 ; T03 se relance à la main en sandbox avant l'ouverture | Agent |
 
 **« Commercialisable » veut dire :** aucun défaut bloquant ouvert, fonctions annoncées disponibles, livraison des notifications observable, paiement et résiliation éprouvés, récupération des données testée, confidentialité et support opérationnels, validation par de vrais utilisateurs.
 
