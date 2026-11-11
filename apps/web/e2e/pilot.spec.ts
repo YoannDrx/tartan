@@ -187,6 +187,38 @@ test.describe("toutes tailles d'écran", () => {
       await expect(page.locator(".film-title").filter({ hasText: title })).toHaveCount(1);
     }
     await expect(page.locator("body")).not.toContainText("saut en hauteur");
+    // Le curseur de la frise avance avec le défilement, et revient avec lui.
+    const cursor = page.locator('[data-film="cursor"]');
+    await expect(cursor).toHaveCount(1);
+    const cursorAt = async (part: number) => {
+      await page.evaluate((share) => {
+        const film = document.querySelector(".film")!.getBoundingClientRect();
+        window.scrollTo(0, film.top + window.scrollY + share * (film.height - window.innerHeight));
+      }, part);
+      // Le film rattrape le défilement en douceur : on attend que le curseur ne bouge plus.
+      let last = Number.NaN;
+      await expect
+        .poll(async () => {
+          const now = await cursor.evaluate((el) => Number.parseFloat((el as HTMLElement).style.left));
+          const settled = now === last;
+          last = now;
+          return settled;
+        })
+        .toBe(true);
+      return last;
+    };
+    const early = await cursorAt(0.3);
+    await expect(cursor).toBeVisible();
+    const late = await cursorAt(0.6);
+    expect(early).toBeGreaterThan(15);
+    expect(early).toBeLessThan(35);
+    expect(late).toBeGreaterThan(early + 25);
+    expect(late).toBeLessThan(75);
+    const cursorBox = await cursor.boundingBox();
+    const trackBox = await page.locator(".film-track").boundingBox();
+    expect(cursorBox!.x - trackBox!.x).toBeGreaterThan(trackBox!.width * 0.5);
+    expect(await cursorAt(0.3)).toBeCloseTo(early, 0);
+    await page.evaluate(() => window.scrollTo(0, 0));
     const initialViewport = page.viewportSize()!;
     for (const width of [390, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 });
