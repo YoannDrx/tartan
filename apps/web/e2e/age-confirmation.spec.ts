@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { Client } from "pg";
 import { m } from "@tartan/i18n";
-import { expectAccessible, signUp, uniqueEmail } from "./helpers";
+import { expectAccessible, nextOnboardingStep, signUp, uniqueEmail } from "./helpers";
 
 test("l'onboarding permet de corriger la date avant de créer l'espace", async ({ page }) => {
   const email = uniqueEmail("date-onboarding");
@@ -9,8 +9,10 @@ test("l'onboarding permet de corriger la date avant de créer l'espace", async (
   await page.getByLabel("Prénom").fill("Camille");
   await page.getByLabel("Nom", { exact: true }).fill("Coach");
   await page.getByLabel(m.invite.birthDate).fill("2015-01-01");
+  await nextOnboardingStep(page);
   await page.getByLabel(m.onboarding.orgName).fill("Recette physique");
   await page.getByLabel(m.onboarding.firstGroup, { exact: true }).fill("Sprint");
+  await nextOnboardingStep(page);
   await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
   await page.getByRole("button", { name: m.onboarding.createSpace, exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -27,7 +29,10 @@ test("l'onboarding permet de corriger la date avant de créer l'espace", async (
     );
     expect(rows[0]?.birth_date ?? null).toBeNull();
     expect(rows[0]?.spaces).toBe(0);
+    // « Corriger » ramène au premier temps, où se trouve la date.
     await page.getByLabel(m.invite.birthDate).fill("1990-01-01");
+    await nextOnboardingStep(page);
+    await nextOnboardingStep(page);
     await page.getByRole("button", { name: m.onboarding.createSpace, exact: true }).click();
     await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
     await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();

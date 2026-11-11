@@ -49,11 +49,6 @@
       "count": 1
     }
   },
-  "app/(public)/bienvenue/page.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 1
-    }
-  },
   "app/(public)/cgv/page.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 26

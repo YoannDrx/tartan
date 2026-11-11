@@ -20,6 +20,7 @@ export * from "./referrals";
 export * from "./plans";
 export * from "./starter-library";
 export * from "./starter-templates";
+export * from "./onboarding";
 export * from "./training-load";
 export * from "./progression";
 export * from "./session-identity";

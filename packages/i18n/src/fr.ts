@@ -963,6 +963,18 @@ export const fr = {
   onboarding: {
     discoveryLimit: "Tu as déjà un espace Découverte. Passe-le à une offre payante pour en ouvrir un autre.",
     createOwnSpace: "Créer mon espace coach",
+    title: "Crée ton espace coach",
+    stepsLabel: "Étapes de création de l'espace",
+    steps: { start: "À vos marques", ready: "Prêts", go: "Partez" },
+    stepStatus: (step: number, total: number, name: string) => `Étape ${step} sur ${total} : ${name}`,
+    next: "Continuer",
+    back: "Retour",
+    errors: {
+      firstName: "Indique ton prénom",
+      lastName: "Indique ton nom",
+      name: "Donne un nom à ton espace",
+      firstGroupName: "Donne un nom à ton premier groupe",
+    },
     profileTitle: "Ton profil",
     orgTitle: "Ton espace",
     firstName: "Prénom",
@@ -1115,6 +1127,10 @@ export const fr = {
     createExerciseDetail: "Vidéo du coach, lien YouTube ou Instagram.",
     createSession: "Créer une première séance",
     createSessionDetail: "Une fois, pour tout le groupe.",
+    publishSession: "Publier la séance",
+    publishSessionDetail: "Tant qu'elle reste en brouillon, ton groupe ne la voit pas.",
+    guidedProgress: (done: number, total: number) =>
+      done > 1 ? `${done} étapes faites sur ${total}` : `${done} étape faite sur ${total}`,
   },
   invite: {
     alreadyStaff: "Tu fais déjà partie de l'équipe de cet espace. Ce lien est destiné aux athlètes : partage-le-leur.",

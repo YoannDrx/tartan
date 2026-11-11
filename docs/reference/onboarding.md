@@ -2,36 +2,37 @@
 
 Ce que vit un nouvel utilisateur, de l'inscription à sa première action utile. Le critère du produit : un coach publie une première séance en quelques minutes, un athlète valide en moins de 10 secondes. Le niveau de preuve est dans [../ETAT.md](../ETAT.md).
 
-## Le coach, aujourd'hui
+## Le coach
 
 1. `/connexion?creer=1` : inscription, puis e-mail de vérification.
 2. `/bienvenue` : contrôle de l'âge et de l'ouverture des inscriptions. Inscriptions fermées : écran d'attente.
-3. Un formulaire unique (`apps/web/src/features/onboarding/onboarding-form.tsx`) crée l'espace en offre Découverte, avec la bibliothèque d'exercices, des modèles de séance (`packages/domain/src/starter-library.ts`, `starter-templates.ts`) et un premier groupe. Un compte ne possède qu'un espace gratuit.
+3. Création de l'espace en trois temps (`apps/web/src/features/onboarding/onboarding-form.tsx`), sur une seule action serveur :
+
+| Temps | Contenu | Requis |
+| --- | --- | --- |
+| 1. À vos marques | Prénom, nom, date de naissance | Oui |
+| 2. Prêts | Club ou indépendant, nom de l'espace, premier groupe, objectif du groupe | Nom et groupe |
+| 3. Partez | Disciplines, objectifs et matériel ; conditions d'utilisation | Conditions |
+
+Chaque « Continuer » valide le temps affiché et porte le focus sur le titre du suivant. Entrée fait avancer d'un temps. Une erreur dans un temps précédent y ramène, comme « Corriger » sur la confirmation de la date. L'espace naît en offre Découverte, avec la bibliothèque d'exercices, des modèles de séance (`packages/domain/src/starter-library.ts`, `starter-templates.ts`) et son premier groupe. Un compte ne possède qu'un espace gratuit.
+
 4. Arrivée sur `/suivi`, ou sur `/abonnement` si le coach venait de `/tarifs`.
 5. E-mail de bienvenue.
 
-Rien ne guide ensuite : le coach trouve des états vides.
+### Le guide « Pour démarrer »
 
-## Le coach, après le lot A9
+Sur `/suivi`, jusqu'à la première validation reçue. Les étapes ne sont pas stockées : elles se déduisent de l'état réel de l'espace, par une règle pure que les e-mails d'activation liront aussi (`packages/domain/src/onboarding.ts`). Les faits viennent de `onboardingProgress`, dans `apps/web/src/server/tracking.service.ts`.
 
-**Trois temps au lieu d'un formulaire**, sur la même action serveur. Chacun peut être passé.
+| Étape | Faite quand | Mène à |
+| --- | --- | --- |
+| Inviter des athlètes | Une invitation existe ou un athlète a rejoint | Réglages, invitations |
+| Créer une première séance | Une séance existe | Nouvelle séance |
+| Publier la séance | Une séance est publiée | Calendrier |
+| Recevoir une première validation | Un athlète a validé | Calendrier |
 
-| Temps | Contenu |
-| --- | --- |
-| 1. À vos marques | Nom de l'espace, disciplines, logo facultatif |
-| 2. Prêts | Premier groupe, puis invitation par lien, QR ou adresses collées |
-| 3. Partez | Première séance à partir d'un modèle, publication |
+Une étape avancée prouve les précédentes : une séance supprimée après une validation ne fait pas reculer le guide. Le guide affiche le nombre d'étapes faites et marque la prochaine.
 
-**Liste « Premiers pas » sur `/suivi`**, présentée en tour de piste et refermable. Les étapes ne sont pas stockées : elles se déduisent de l'état réel de l'espace (`packages/domain/src/onboarding.ts`, `apps/web/src/server/onboarding.service.ts`).
-
-| Étape | Faite quand |
-| --- | --- |
-| Inviter un athlète | Une invitation existe ou un athlète a rejoint |
-| Créer une séance | Une séance existe |
-| Publier | Une séance est publiée |
-| Recevoir une première validation | Un athlète a validé |
-
-Deux dates sont gardées sur l'espace, la fermeture de la liste et sa complétion, pour cesser de la calculer et mesurer l'activation sous 7 jours. Les e-mails d'activation s'appuient sur la même fonction : voir [emails.md](emails.md).
+Reste à faire, hors du lot A9 : inviter et publier une première séance dès la création de l'espace, sans passer par les réglages ; refermer le guide à la main ; l'afficher en tour de piste (lot B3).
 
 ## L'athlète, aujourd'hui
 

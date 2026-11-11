@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { expectAccessible, expectNoHorizontalScroll, signUp, uniqueEmail } from "./helpers";
+import { expectAccessible, expectNoHorizontalScroll, nextOnboardingStep, signUp, uniqueEmail } from "./helpers";
 import { groupLink, joinAsAthlete } from "./journeys";
 
 test("le coach choisit son contexte sportif, le retrouve et le modifie sur web et API native", async ({
@@ -13,9 +13,11 @@ test("le coach choisit son contexte sportif, le retrouve et le modifie sur web e
   await page.getByLabel("Prénom", { exact: true }).fill("Coach");
   await page.getByLabel("Nom", { exact: true }).fill("Athlé");
   await page.getByLabel("Date de naissance").fill("1985-03-14");
+  await nextOnboardingStep(page);
   await page.getByLabel(m.onboarding.orgName).fill("Préparation athlé");
   await page.getByLabel(m.onboarding.firstGroup, { exact: true }).fill("Sprint U18");
   await page.getByLabel(m.trainingProfile.firstGroupGoal).fill("Préparer la saison estivale");
+  await nextOnboardingStep(page);
   await page
     .locator("summary")
     .filter({ hasText: /^Disciplines/ })
