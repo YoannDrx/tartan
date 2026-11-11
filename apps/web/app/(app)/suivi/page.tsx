@@ -4,7 +4,16 @@ import { StatusIcon } from "@/components/status-cell";
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { addDays, startOfWeek, defaultDateForWeek } from "@tartan/domain";
+import {
+  addDays,
+  coachChecklist,
+  coachNextStep,
+  coachOnboardingDone,
+  coachProgress,
+  defaultDateForWeek,
+  startOfWeek,
+  type CoachStepKey,
+} from "@tartan/domain";
 import { formatDayMonth, m } from "@tartan/i18n";
 import { FilterPill } from "@/components/filter-pill";
 import { EmptyState, PageHeader, PeriodStepper } from "@/components/states";
@@ -19,6 +28,14 @@ import { getAlerts, getTrackingGrid, onboardingProgress } from "@/server/trackin
 import { listAthletes } from "@/server/athlete.service";
 
 export const metadata: Metadata = { title: m.coach.trackingTitle };
+
+// Chaque étape des premiers pas mène à l'écran où elle se fait.
+const GUIDE: Record<CoachStepKey, { href: string; title: string; detail: string }> = {
+  invite: { href: "/reglages#invitations", title: m.home.inviteAthletes, detail: m.home.inviteAthletesDetail },
+  create: { href: "/seances/nouvelle", title: m.home.createSession, detail: m.home.createSessionDetail },
+  publish: { href: "/calendrier", title: m.home.publishSession, detail: m.home.publishSessionDetail },
+  validate: { href: "/calendrier", title: m.home.firstValidation, detail: m.home.firstValidationDetail },
+};
 
 export default async function SuiviPage({
   searchParams,
@@ -44,7 +61,9 @@ export default async function SuiviPage({
     return text ? `/suivi?${text}` : "/suivi";
   };
   // Le guide reste jusqu'à la première validation reçue : c'est elle qui prouve que tout marche.
-  const firstRun = progress.validations === 0;
+  const firstRun = !coachOnboardingDone(progress);
+  const steps = coachProgress(progress);
+  const nextStep = coachNextStep(progress);
 
   return (
     <div className="flex flex-col gap-4">
@@ -104,45 +123,30 @@ export default async function SuiviPage({
 
       {firstRun ? (
         <section aria-labelledby="demarrer" className="rounded-card on-card bg-card">
-          <h2 id="demarrer" className="t-h2 px-4 pt-4">
-            {m.home.guidedTitle}
-          </h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 pt-4">
+            <h2 id="demarrer" className="t-h2">
+              {m.home.guidedTitle}
+            </h2>
+            <p className="t-caption font-normal text-soft">{m.home.guidedProgress(steps.done, steps.total)}</p>
+          </div>
           <ol className="divide-y divide-card-line">
-            {[
-              {
-                href: "/reglages#invitations",
-                title: m.home.inviteAthletes,
-                detail: m.home.inviteAthletesDetail,
-                done: progress.athletes > 0,
-              },
-              {
-                href: "/seances/nouvelle",
-                title: m.home.createSession,
-                detail: m.home.createSessionDetail,
-                done: progress.publishedSessions > 0,
-              },
-              {
-                href: "/calendrier",
-                title: m.home.firstValidation,
-                detail: m.home.firstValidationDetail,
-                done: false,
-              },
-            ].map((step, i) => (
-              <li key={step.href}>
+            {coachChecklist(progress).map((step, i) => (
+              <li key={step.key}>
                 <Link
-                  href={step.href}
+                  href={GUIDE[step.key].href}
+                  aria-current={step.key === nextStep ? "step" : undefined}
                   className="flex min-h-11 items-center gap-4 px-4 py-3 text-inherit no-underline hover:bg-raise"
                 >
                   {step.done ? (
                     <StatusIcon status="done" size={28} />
                   ) : (
-                    <span aria-hidden className="t-num text-[28px]">
+                    <span aria-hidden className="t-num w-7 text-center text-[28px]">
                       {i + 1}
                     </span>
                   )}
                   <span className="flex flex-col">
-                    <span className="font-semibold">{step.title}</span>
-                    <span className="t-caption font-normal text-soft">{step.detail}</span>
+                    <span className="font-semibold">{GUIDE[step.key].title}</span>
+                    <span className="t-caption font-normal text-soft">{GUIDE[step.key].detail}</span>
                   </span>
                 </Link>
               </li>

@@ -42,6 +42,10 @@ export const signUp = async (page: Page, email: string, next = "/connexion") => 
   await page.waitForLoadState("networkidle");
 };
 
+// L'onboarding du coach se fait en trois temps : chaque « Continuer » valide le temps affiché.
+export const nextOnboardingStep = async (page: Page) =>
+  page.getByRole("button", { name: m.onboarding.next, exact: true }).click();
+
 export const createCoachSpace = async (page: Page, name = "Thomas", email = uniqueEmail(name.toLowerCase())) => {
   await signUp(page, email);
   // En développement, la première compilation d'une page peut prendre longtemps.
@@ -52,8 +56,10 @@ export const createCoachSpace = async (page: Page, name = "Thomas", email = uniq
   await page.getByLabel("Prénom").fill(name);
   await page.getByLabel("Nom", { exact: true }).fill("Coach");
   await page.getByLabel("Date de naissance").fill("1985-03-14");
+  await nextOnboardingStep(page);
   await page.getByLabel("Nom du club ou de ton coaching").fill(`Coaching ${name}`);
   await page.getByLabel("Premier groupe", { exact: true }).fill("Hauteur Élite");
+  await nextOnboardingStep(page);
   await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
   await page.getByRole("button", { name: "Créer mon espace" }).click();
   await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
