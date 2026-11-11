@@ -29,7 +29,7 @@ Constats du 11 novembre, dans le code et sur le site à 375 px.
 | B4 | `feat/view-transitions` | Enveloppe `src/components/ui/view-transition.tsx`, transitions du site et de l'application | E2E, mouvement réduit |
 | B5 | `feat/landing-stade` | Page d'accueil refondue, `/tarifs`, `/contact`, pages légales, 404, hors ligne | 390, 768, 1440 px ; axe ; chargement non dégradé |
 | B6 | `feat/da-ossature` | En-tête coach allégé sur téléphone, barre basse, chargements, états vides et erreurs avec les athlètes, feuilles, dialogues, messages | 390, 768, 1440 px ; axe |
-| B7 | `feat/da-athlete` | Accueil et écran de séance ramenés dans le système commun, mode séance, progrès, calendrier, vidéos | Idem |
+| B7 | `feat/da-athlete` | Accueil et écran de séance ramenés dans le système commun, carte de séance qui s'ouvre en écran de séance, mode séance, progrès, calendrier, vidéos | Idem |
 | B8 | `feat/da-coach` | Suivi, calendrier, constructeur, exercices, athlètes, vidéos, planificateur, analyse, phases, abonnement, réglages | Idem |
 | B9 | `feat/da-finitions` | Connexion, onboarding, console d'administration, écrans immersifs passés aux jetons, illustrations des e-mails | Idem |
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Jumper } from "@/components/jumper";
 import { Marked } from "@/components/marked";
+import { Stay } from "@/components/ui/view-transition";
 import { cn } from "@/lib/cn";
 
 // Un vide invite à agir : du texte, une action, et la mascotte qui attend la suite.
@@ -39,19 +40,21 @@ export const PageHeader = ({
   actions?: ReactNode;
   before?: ReactNode;
 }) => (
-  <header className="page-band tartan-band flex flex-col gap-4 bg-transparent">
-    {before}
-    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-      <div className="min-w-0">
-        <h1 className="t-display text-balance">
-          <Marked text={title} />
-        </h1>
-        {detail ? <p className="mt-1 text-[16px] font-medium">{detail}</p> : null}
+  <Stay name="page-band">
+    <header className="page-band tartan-band flex flex-col gap-4 bg-transparent">
+      {before}
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="t-display text-balance">
+            <Marked text={title} />
+          </h1>
+          {detail ? <p className="mt-1 text-[16px] font-medium">{detail}</p> : null}
+        </div>
+        {actions ? <div className="flex flex-wrap items-center gap-2 pb-1">{actions}</div> : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2 pb-1">{actions}</div> : null}
-    </div>
-    <div aria-hidden className="lane" />
-  </header>
+      <div aria-hidden className="lane" />
+    </header>
+  </Stay>
 );
 
 const stepClass =
@@ -112,13 +115,19 @@ export const Spinner = ({ label }: { label: string }) => (
 );
 
 // Le squelette reprend la forme d'une feuille : la page ne saute pas à l'arrivée des données.
+// Son bandeau est celui d'un titre d'écran, au même endroit et de la même hauteur : d'une page à l'autre,
+// le bandeau piste ne quitte pas l'écran pendant le chargement.
 export const SheetSkeleton = ({ label, rows = 7 }: { label: string; rows?: number }) => (
-  <div role="status" aria-busy className="flex flex-col gap-5">
+  <div role="status" aria-busy className="flex flex-col gap-4">
+    <Stay name="page-band">
+      <div aria-hidden className="page-band tartan-band flex flex-col gap-4 bg-transparent">
+        <p className="t-display">
+          <span className="inline-block h-[0.72em] w-64 max-w-full rounded-button bg-page-deep desktop:w-96" />
+        </p>
+        <div className="lane" />
+      </div>
+    </Stay>
     <span className="sr-only">{label}</span>
-    <div aria-hidden className="flex flex-col gap-4">
-      <div className="h-[52px] w-64 max-w-full rounded-button bg-page-deep desktop:h-20 desktop:w-96" />
-      <div className="lane" />
-    </div>
     <div aria-hidden className="on-card divide-y divide-card-line overflow-hidden rounded-card bg-card">
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex min-h-14 items-center gap-3 px-4">

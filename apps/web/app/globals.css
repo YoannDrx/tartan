@@ -852,6 +852,50 @@
     }
   }
 }
+/* Transitions de page (src/components/ui/view-transition.tsx). D'une page à l'autre, le contenu s'efface
+   pendant que le suivant apparaît ; le bandeau piste et l'en-tête du site restent à leur place ; l'onglet
+   actif glisse. Rien ne dépasse le plafond des écrans de travail. Sans mouvement, la page change d'un coup. */
+::view-transition {
+  /* Pendant la transition, la page reste cliquable. */
+  pointer-events: none;
+}
+.vt-active-tab {
+  view-transition-name: active-tab;
+  view-transition-class: vt-glide;
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(.vt-page) {
+    animation: vt-out var(--duration-quick) var(--ease-elan) both;
+  }
+  ::view-transition-new(.vt-page) {
+    animation: vt-in var(--duration-quick) var(--ease-reception) both;
+  }
+  ::view-transition-group(.vt-stay),
+  ::view-transition-group(.vt-glide) {
+    animation-duration: var(--duration-base);
+    animation-timing-function: var(--ease-impulsion);
+  }
+  /* Tout ce qui n'est pas nommé (la barre de navigation, le fond) passe d'une image à l'autre dans le même temps. */
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  ::view-transition-old(.vt-stay),
+  ::view-transition-new(.vt-stay),
+  ::view-transition-old(.vt-glide),
+  ::view-transition-new(.vt-glide) {
+    animation-duration: var(--duration-quick);
+  }
+}
+
 /* Les motifs du stade (src/components/track.tsx). La ligne droite se trace de gauche à droite, la part courue
    du tour de piste s'allonge. Sans mouvement, elles sont simplement là. */
 @keyframes track-trace {

@@ -69,6 +69,9 @@ export const createCoachSpace = async (page: Page, name = "Thomas", email = uniq
 };
 
 export const expectAccessible = async (page: Page) => {
+  // Après un changement de page, le titre de l'onglet peut arriver à la fin de la transition, donc jusqu'à
+  // 200 ms après le contenu : on juge la page installée, pas l'image d'entre-deux.
+  await expect(page).toHaveTitle(/\S/);
   // Sous l'en-tête fixe, un champ à moitié recouvert compterait comme une cible trop petite : tout dépendrait du défilement.
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   const results = await new AxeBuilder({ page })

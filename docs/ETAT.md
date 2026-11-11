@@ -1,6 +1,6 @@
 # État du projet
 
-Mis à jour le 11 novembre 2026. Toute PR qui change un état met ce fichier à jour.
+Mis à jour le 12 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
 **En une phrase :** le code de la V1 et de la V1.1 est en production et testé automatiquement, mais rien n'est encore vendu, car ni le paiement réel, ni les téléphones, ni l'avis juridique ne sont faits.
 
@@ -102,7 +102,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | B1 | Jetons de mouvement, filet de mouvement réduit, miroir complet des couleurs, CSS mort retiré | Codé, testé |
 | B2 | Squelette unique de la mascotte, paquet `packages/mascot` | Codé, testé. Film vu en production ; mobile non regardé sur appareil |
 | B3 | Six épreuves, six athlètes, composants de piste, planche `/admin/mascotte` | Codé, testé. Planche regardée rendue en local à 390, 768 et 1440 px. Aucun écran ne s'en sert encore : la revue du fondateur (F17) décide de la suite |
-| B4 | Transitions de page | À faire |
+| B4 | Transitions de page | Codé, testé : fondu du contenu, bandeau piste et en-tête du site qui restent en place, onglet actif qui glisse. La carte de séance qui s'ouvre en écran de séance n'est pas faite : elle passe au lot B7 |
 | B5 | Page d'accueil et site | À faire |
 | B6 à B9 | Application : ossature, athlète, coach, finitions | À faire |
 | C1 à C3 | Absence signalée, série de régularité, carte de record | À faire |
