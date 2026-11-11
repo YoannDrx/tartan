@@ -632,6 +632,8 @@ export const fr = {
     passwordLabel: "Mot de passe",
     verifySent: "Compte créé. Ouvre le lien reçu par e-mail pour l'activer, puis reviens ici.",
     verifyFirst: "Confirme d'abord ton adresse : le lien vient de repartir par e-mail.",
+    emailUnreachable:
+      "Cette adresse ne reçoit plus nos e-mails : le dernier envoi est revenu. Vérifie-la, ou écris-nous à hello@tartan.coach.",
     forgotPassword: "Mot de passe oublié",
     forgotLead: "Indique ton adresse : tu recevras un lien pour en choisir un nouveau.",
     resetSend: "Recevoir le lien",
@@ -1846,6 +1848,16 @@ export const fr = {
     parentalClosed: "L'accord parental n'est pas ouvert : Tartan est réservé aux personnes majeures.",
   },
   email: {
+    subjects: {
+      verify: "Confirme ton adresse pour Tartan",
+      magicLink: "Ton lien de connexion Tartan",
+      resetPassword: "Réinitialise ton mot de passe Tartan",
+      invitationAthlete: (inviter: string, target: string) => `${inviter} t'invite à rejoindre ${target}`,
+      invitationStaff: (inviter: string, space: string) => `${inviter} t'invite dans l'espace ${space} sur Tartan`,
+      parentalConsent: (athlete: string) => `Ton accord est demandé pour ${athlete}`,
+      weeklyDigest: (space: string) => `Ta semaine sur Tartan : ${space}`,
+      contentReport: (space: string) => `Contenu signalé dans ${space}`,
+    },
     workspaceInactivity: {
       subject: (space: string) => `Préparer la reprise de l’espace ${space}`,
       body: (days: number) =>

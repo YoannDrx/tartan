@@ -158,6 +158,7 @@ const send = async (delivery: Delivery): Promise<DeliveryResult | { state: "skip
       return { state: "retry", code: "email_unconfigured" };
     try {
       await sendEmail({
+        kind: "notification_fallback",
         to: user.email,
         subject: text.body,
         idempotencyKey: `notification/${delivery.id}`,

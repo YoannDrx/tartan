@@ -12,6 +12,7 @@ Tous les e-mails que Tartan envoie, leur déclencheur et la façon de s'en dési
 | Envoi | `apps/web/src/lib/mail.tsx` |
 | File avec nouvelles tentatives | `apps/web/src/server/email-outbox.service.ts`, vidée toutes les 15 minutes par `/api/cron/notifications` |
 | Transitions de facturation | `packages/domain/src/billing-emails.ts` |
+| Registre et catégories | `apps/web/src/server/email-registry.ts` |
 | Liste de blocage, rebonds et plaintes | `email-suppression.service.ts`, webhook `/api/webhooks/resend` |
 | Préférences et désinscription | `email-preferences.service.ts`, page `/e-mails/[kind]/[token]` |
 | Envois d'essai | `/admin/configuration` → E-mails de test |
@@ -26,13 +27,13 @@ Un incident de paiement ne donne qu'un e-mail : « paiement échoué » et « va
 | `magic_link` | Compte | Demande de lien de connexion | Direct | Non |
 | `reset_password` | Compte | Mot de passe oublié | Direct | Non |
 | `password_changed` | Compte | Mot de passe modifié | Direct | Non |
-| `invitation_athlete` | Athlète invité | Invitation nominative par le coach | Direct | Non |
-| `invitation_staff` | Coach invité | Invitation dans un espace | Direct | Non |
+| `invitation_athlete` | Athlète invité | Invitation nominative par le coach, ou renvoi | File, tentative immédiate | Non |
+| `invitation_staff` | Coach invité | Invitation dans un espace, ou renvoi | File, tentative immédiate | Non |
 | `parental_consent` | Parent | Parcours parental, dormant (`PARENTAL_FLOW_ENABLED`) | Direct | Non |
 | `welcome` | Propriétaire | Création de son premier espace | Direct | Non |
 | `weekly_digest` | Coach | Dimanche à 18 h | Tâche horaire | Oui, « résumé » |
 | `notification_fallback` | Membre | Notification non livrée en push | Livraison des notifications | Oui, « notifications » |
-| `content_report` | Fondateur | Contenu signalé | Direct | Non |
+| `content_report` | Responsable de l'espace et éditeur | Contenu signalé | Direct | Non |
 | `founder_alert` | Fondateur | Impayé, litige, remboursement en échec | Direct | Non |
 | `inactivity` | Compte | Préavis avant suppression pour inactivité | Tâche horaire | Non |
 | `workspace_inactivity` | Propriétaire | Préavis avant suppression de l'espace | Tâche horaire | Non |
@@ -48,14 +49,15 @@ Un incident de paiement ne donne qu'un e-mail : « paiement échoué » et « va
 | `account_deleted` | Ancien compte | Compte supprimé | File | Non |
 | `space_transferred` | Nouveau propriétaire | Espace transmis | File | Non |
 
-## Défauts connus, corrigés par le lot A8
+## Règles d'envoi
 
-- La liste de blocage s'applique aussi aux e-mails de connexion : une adresse qui s'est plainte ou désinscrite ne reçoit plus ni vérification ni réinitialisation.
-- Les invitations partent en direct, sans nouvelle tentative.
-- Un genre inconnu de la file est rendu comme « abonnement terminé ».
-- Plusieurs objets d'e-mail sont écrits en dur dans `apps/web/src/lib/auth.ts` et recopiés dans le catalogue.
-
-Après A8 : un registre unique (`apps/web/src/server/email-registry.ts`) décrit chaque e-mail (catégorie, rendu, pertinence au moment de l'envoi, préférence, exemple), et le catalogue en sort. Un rebond définitif bloque tout ; une plainte ou une désinscription ne bloque pas les e-mails de sécurité. Les liens de connexion restent envoyés en direct, pour ne jamais écrire un lien valide dans la file.
+- **Registre.** `apps/web/src/server/email-registry.ts` liste chaque e-mail avec sa catégorie : sécurité, invitation, facturation, compte, activité, interne. `sendEmail` exige la clé du registre. Deux tests échouent si le catalogue d'essai ou cette page oublient un e-mail.
+- **Liste de blocage.** Un rebond définitif bloque tout, et l'emporte sur une plainte déjà notée. Une plainte ou une désinscription bloque tout sauf la catégorie sécurité : personne ne perd l'accès à son compte pour avoir signalé un résumé.
+- **Adresse qui rebondit à la connexion.** Le formulaire le dit (« Cette adresse ne reçoit plus nos e-mails »). La demande de réinitialisation, elle, répond toujours la même chose, pour ne pas révéler qu'un compte existe.
+- **Liens de connexion.** Envoyés en direct, jamais par la file : un lien valide ne s'écrit pas dans une table.
+- **Invitations.** Elles passent par la file, qui ne garde que l'identifiant de l'invitation ; le lien est dérivé au rendu. L'envoi est tenté tout de suite, puis repris pendant 24 heures. Une invitation acceptée, révoquée ou expirée entre-temps ne part plus. Limite : si l'adresse est en liste de blocage, le coach n'en est pas averti à l'écran.
+- **Genre inconnu.** Une ligne de la file dont le genre n'est pas au registre est marquée en échec `unknown_kind` et signalée, au lieu de partir sous un autre gabarit.
+- **Objets.** Dans `packages/i18n`, sous `m.email` ; le catalogue lit les mêmes.
 
 ## Ajouts prévus
 

@@ -560,6 +560,7 @@ const sendPurgeNotice = async (
   const subject = m.billing.purge.subject(videos.length, org.name);
   try {
     await sendEmail({
+      kind: "video_purge",
       to: org.owner.email,
       subject,
       idempotencyKey: `purge-notice/${org.id}/${todayIso(now)}`,

@@ -15,7 +15,9 @@ import { env } from "@/lib/env";
 import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
+import { emailForOutboxKind } from "./email-registry";
 import { EmailSuppressedError } from "./email-suppression.service";
+import { isInvitationEmailRelevant, isInvitationOutboxKind, renderInvitationEmail } from "./invitation-email";
 
 const RETRY_WINDOW_MS = 24 * 60 * 60 * 1000;
 const LEASE_MS = 5 * 60 * 1000;
@@ -141,6 +143,7 @@ export const enqueuePaymentActionRequired = async (organizationId: string, invoi
 const INCIDENT_WINDOW_MS = 60 * 60 * 1000;
 
 const render = async (kind: string, payload: unknown, organizationId: string | null, now: Date) => {
+  if (isInvitationOutboxKind(kind)) return renderInvitationEmail(payload);
   if (kind === "account_deleted") {
     return {
       subject: m.email.accountDeleted.subject,
@@ -242,14 +245,18 @@ const render = async (kind: string, payload: unknown, organizationId: string | n
       }),
     };
   }
-  return {
-    subject: m.email.ended.subject,
-    react: createElement(SubscriptionEndedEmail, { space: p.space, unpaid: p.unpaid, url }),
-  };
+  if (kind === "ended") {
+    return {
+      subject: m.email.ended.subject,
+      react: createElement(SubscriptionEndedEmail, { space: p.space, unpaid: p.unpaid, url }),
+    };
+  }
+  // Un genre sans gabarit ne doit jamais partir sous l'habit d'un autre.
+  throw new Error("unknown_kind");
 };
 
 // Après la validation, puis à chaque passage de la tâche de notifications, pendant 24 h.
-export const flushEmailOutbox = async (now: Date = new Date()): Promise<number> => {
+export const flushEmailOutbox = async (now: Date = new Date(), only?: { dedupeKey: string }): Promise<number> => {
   const expired = await prisma.emailOutbox.updateMany({
     where: {
       sentAt: null,
@@ -263,6 +270,7 @@ export const flushEmailOutbox = async (now: Date = new Date()): Promise<number> 
   if (expired.count) log.error("email_outbox_expired", { count: expired.count });
   const due = await prisma.emailOutbox.findMany({
     where: {
+      ...(only ? { dedupeKey: only.dedupeKey } : {}),
       sentAt: null,
       failedAt: null,
       nextAttemptAt: { lte: now },
@@ -277,13 +285,25 @@ export const flushEmailOutbox = async (now: Date = new Date()): Promise<number> 
       data: { nextAttemptAt: new Date(now.getTime() + LEASE_MS), attempts: { increment: 1 } },
     });
     if (!claimed.count) continue;
+    const emailKey = emailForOutboxKind(row.kind);
+    if (!emailKey) {
+      await prisma.emailOutbox.update({ where: { id: row.id }, data: { failedAt: now, failureCode: "unknown_kind" } });
+      log.error("email_outbox_unknown_kind", { code: row.kind, entityId: row.id });
+      continue;
+    }
     try {
       if (!(await isEmailRelevant(row, now))) {
         await prisma.emailOutbox.update({ where: { id: row.id }, data: { failedAt: now, failureCode: "obsolete" } });
         continue;
       }
       const { subject, react } = await render(row.kind, row.payload, row.organizationId, now);
-      await sendEmail({ to: row.toEmail, subject, react, idempotencyKey: `outbox/${row.dedupeKey}` });
+      await sendEmail({
+        kind: emailKey,
+        to: row.toEmail,
+        subject,
+        react,
+        idempotencyKey: `outbox/${row.dedupeKey}`,
+      });
       await prisma.emailOutbox.update({ where: { id: row.id }, data: { sentAt: now } });
       sent += 1;
     } catch (error) {
@@ -397,6 +417,7 @@ export const isEmailRelevant = async (
   row: { organizationId: string | null; kind: string; dedupeKey: string; payload: unknown; toEmail: string },
   now = new Date(),
 ) => {
+  if (isInvitationOutboxKind(row.kind)) return isInvitationEmailRelevant(row.payload, row.toEmail, now);
   if (row.kind === "account_deleted") {
     const payload = row.payload as AccountPayload;
     // Une réinscription rendrait cette ancienne confirmation trompeuse.

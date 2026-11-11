@@ -118,6 +118,7 @@ const handleInactiveAccounts = async (now: Date): Promise<{ warned: number; dele
       for (const space of spaces)
         for (const member of space.members) {
           await sendEmail({
+            kind: "workspace_inactivity",
             to: member.user.email,
             subject: m.email.workspaceInactivity.subject(space.name),
             idempotencyKey: `workspace-inactivity/${space.id}/${profile.id}/${member.userId}`,
@@ -129,6 +130,7 @@ const handleInactiveAccounts = async (now: Date): Promise<{ warned: number; dele
           });
         }
       await sendEmail({
+        kind: "inactivity",
         to: profile.user.email,
         subject: m.email.inactivity.subject,
         idempotencyKey: `inactivity/${profile.id}`,

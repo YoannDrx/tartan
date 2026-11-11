@@ -143,6 +143,7 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
   const owned = await prisma.organization.count({ where: { ownerId: userId } });
   if (owned === 1) {
     await sendEmail({
+      kind: "welcome",
       to: user.email,
       subject: m.email.welcome.subject(input.name),
       idempotencyKey: `welcome/${userId}`,

@@ -39,7 +39,7 @@ export const SignInForm = ({
         callbackURL,
         errorCallbackURL: `/connexion?lien=expire&next=${encodeURIComponent(callbackURL)}`,
       });
-      if (res.error) setError(m.common.genericError);
+      if (res.error) setError(res.error.code === "EMAIL_UNREACHABLE" ? m.auth.emailUnreachable : m.common.genericError);
       else setSent("magic");
       return;
     }
@@ -53,7 +53,8 @@ export const SignInForm = ({
             callbackURL,
           });
     if (res.error) {
-      if (res.error.status === 403) setError(m.auth.verifyFirst);
+      if (res.error.code === "EMAIL_UNREACHABLE") setError(m.auth.emailUnreachable);
+      else if (res.error.status === 403) setError(m.auth.verifyFirst);
       else setError(mode === "signin" ? m.auth.invalidCredentials : (res.error.message ?? m.common.genericError));
       return;
     }

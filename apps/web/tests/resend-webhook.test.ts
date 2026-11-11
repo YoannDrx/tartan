@@ -32,8 +32,11 @@ it.each(["Permanent", "Transient", "Undetermined"])(
       }),
     );
     expect(response.status).toBe(200);
-    if (type === "Permanent") await expect(assertEmailDeliverable(email)).rejects.toThrow("email_suppressed");
-    else await expect(assertEmailDeliverable(email)).resolves.toBeUndefined();
+    if (type === "Permanent") {
+      // Une adresse qui n'existe plus ne reçoit rien, pas même un lien de connexion.
+      await expect(assertEmailDeliverable(email, "activity")).rejects.toThrow("email_suppressed");
+      await expect(assertEmailDeliverable(email, "security")).rejects.toThrow("email_suppressed");
+    } else await expect(assertEmailDeliverable(email, "activity")).resolves.toBeUndefined();
   },
 );
 
@@ -59,8 +62,11 @@ it("vérifie la signature brute, bloque un destinataire plaintif et supporte le 
       }),
     );
   expect((await call("invalid")).status).toBe(400);
-  await expect(assertEmailDeliverable(email)).resolves.toBeUndefined();
+  await expect(assertEmailDeliverable(email, "activity")).resolves.toBeUndefined();
   expect((await call(signature)).status).toBe(200);
   expect((await call(signature)).status).toBe(200);
-  await expect(assertEmailDeliverable(email.toUpperCase())).rejects.toThrow("email_suppressed");
+  await expect(assertEmailDeliverable(email.toUpperCase(), "activity")).rejects.toThrow("email_suppressed");
+  await expect(assertEmailDeliverable(email, "billing")).rejects.toThrow("email_suppressed");
+  // Une plainte ne coupe pas l'accès au compte : connexion et réinitialisation partent toujours.
+  await expect(assertEmailDeliverable(email, "security")).resolves.toBeUndefined();
 });
