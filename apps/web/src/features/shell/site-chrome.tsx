@@ -43,6 +43,9 @@ export const SiteFooter = () => (
     <Link href="/mentions-legales" className="min-h-11 content-center">
       {m.landing.footer.notice}
     </Link>
+    <Link href="/aide" className="min-h-11 content-center">
+      {m.help.title}
+    </Link>
     <Link href="/contact" className="min-h-11 content-center">
       {m.legal.contact}
     </Link>

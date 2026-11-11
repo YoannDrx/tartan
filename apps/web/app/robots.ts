@@ -5,7 +5,17 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/$", "/tarifs", "/contact", "/confidentialite", "/conditions", "/cgv", "/mentions-legales", "/brand/"],
+      allow: [
+        "/$",
+        "/tarifs",
+        "/contact",
+        "/aide",
+        "/confidentialite",
+        "/conditions",
+        "/cgv",
+        "/mentions-legales",
+        "/brand/",
+      ],
       disallow: ["/"],
     },
     sitemap: "https://tartan.coach/sitemap.xml",

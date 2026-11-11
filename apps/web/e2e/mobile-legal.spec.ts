@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 // Modèle d'app compagnon : aucun prix ni lien de vente ne doit être atteignable depuis l'app.
-for (const path of ["/mobile/conditions", "/mobile/confidentialite", "/mobile/contact"]) {
+for (const path of ["/mobile/conditions", "/mobile/confidentialite", "/mobile/contact", "/mobile/aide"]) {
   test(`${path} ne mène ni aux tarifs, ni à la vente, ni à la connexion`, async ({ page }) => {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();

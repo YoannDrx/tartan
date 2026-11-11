@@ -3,4 +3,5 @@ export const legalLinks = (webUrl: string) => ({
   terms: `${webUrl}/mobile/conditions`,
   privacy: `${webUrl}/mobile/confidentialite`,
   contact: `${webUrl}/mobile/contact`,
+  help: `${webUrl}/mobile/aide`,
 });

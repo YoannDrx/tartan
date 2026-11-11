@@ -159,7 +159,7 @@ export const AppShell = ({
                 );
               })}
             <NotificationBell />
-            <SettingsMenu account={account} space={space} active={isActive("/reglages")} admin={admin} />
+            <SettingsMenu account={account} space={space} active={isActive("/reglages")} admin={admin} staff={staff} />
           </div>
         </div>
       </header>
