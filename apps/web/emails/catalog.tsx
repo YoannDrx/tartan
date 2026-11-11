@@ -26,6 +26,7 @@ import {
   SubscriptionEndedEmail,
 } from "./billing";
 import { WeeklyDigestEmail } from "./digest";
+import { TipEmail } from "./lifecycle";
 
 export type EmailSample = { key: EmailKey; subject: string; react: ReactElement };
 
@@ -142,6 +143,32 @@ export const emailCatalog = (appUrl: string): EmailSample[] => {
         <BillingNoticeEmail title={copy.subject} body={copy.body(SPACE, "23 novembre 2026")} cta={copy.cta} url={url} />
       ),
     })),
+    {
+      key: "activation",
+      subject: m.email.activation.steps.invite.subject,
+      react: (
+        <TipEmail
+          title={m.email.activation.steps.invite.subject}
+          body={m.email.activation.steps.invite.body(SPACE)}
+          cta={m.email.activation.steps.invite.cta}
+          url={url}
+          space={SPACE}
+          unsubscribe={url}
+        />
+      ),
+    },
+    {
+      key: "plan_near_limit",
+      subject: m.email.nearLimit.maxAthletes.subject,
+      react: (
+        <BillingNoticeEmail
+          title={m.email.nearLimit.maxAthletes.subject}
+          body={m.email.nearLimit.maxAthletes.body(SPACE, 25, 30)}
+          cta={m.email.nearLimit.cta}
+          url={url}
+        />
+      ),
+    },
     {
       key: "renewal_notice",
       subject: m.email.renewalNotice.subject,

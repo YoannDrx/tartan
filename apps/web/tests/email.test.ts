@@ -89,7 +89,8 @@ describe("socle e-mail", () => {
     const done = await POST(request.clone(), params("digest", token));
     expect(done.status).toBe(200);
     const after = await getEmailPreferences(user.userId);
-    expect(after).toEqual({ digest: false, notifications: true });
+    // Couper le résumé ne touche ni aux replis de notification ni aux conseils.
+    expect(after).toEqual({ digest: false, notifications: true, tips: true });
   });
   it("le formulaire de la page revient sur la page", async () => {
     const user = await makeUser("Page");

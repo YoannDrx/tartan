@@ -7,7 +7,7 @@ import { fromDbDate, todayIso, toDbDate, hourInParis } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { processReferrals, purgeExpiredVideos } from "./billing.service";
+import { processReferrals, purgeExpiredVideos, queuePlanLimitNotices } from "./billing.service";
 import { expireGrantedPlans } from "./admin-console.service";
 import { reconcileStuckVideos } from "./video.service";
 import { sendWeeklyDigests } from "./digest.service";
@@ -17,6 +17,7 @@ import { coachesOfAthlete } from "./org.service";
 import { runReleaseJobs } from "./releases.service";
 import { retryPendingRefunds } from "./billing-refund.service";
 import { queueRenewalNotices, queueTrialReminders } from "./email-outbox.service";
+import { queueActivationEmails } from "./lifecycle-email.service";
 import { snapshotPlatformDay } from "./admin-console.service";
 import { activeAudienceIds, audienceAthleteIds, publishRow, type Publication } from "./session.service";
 import { runCronJobs } from "./cron-runner";
@@ -209,6 +210,8 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     refunds: () => retryPendingRefunds(now),
     trialReminders: async () => (hourInParis(now) === 9 ? queueTrialReminders(now) : null),
     renewalNotices: async () => (hourInParis(now) === 9 ? queueRenewalNotices(now) : null),
+    activationEmails: async () => (hourInParis(now) === 9 ? queueActivationEmails(now) : null),
+    planLimitNotices: async () => (hourInParis(now) === 9 ? queuePlanLimitNotices(now) : null),
     // 1 h, pas 2 h : 2 h n'existe pas le jour du passage à l'heure d'été.
     platformStats: async () => (hourInParis(now) === 1 ? snapshotPlatformDay(now) : null),
     billingCommands: () => processBillingCommands(now),

@@ -1732,6 +1732,7 @@ export const fr = {
     emails: "E-mails",
     emailsDetail: "Les messages liés à ton compte et à ton abonnement continuent d'arriver.",
     emailDigest: "Récapitulatif de la semaine, le dimanche soir",
+    emailTips: "Conseils pour démarrer, les premiers jours d'un espace",
     emailNotifications: "E-mail quand une notification n'a pas pu arriver",
     consentPerSpace: "Tu suis plusieurs espaces : donne ton accord depuis les réglages de chacun d'eux.",
     healthRevokeTitle: "Retirer ton accord pour la santé ?",
@@ -1915,6 +1916,49 @@ export const fr = {
         `Le paiement pour ${space} attend ta validation : ta banque demande une confirmation. Ouvre ton abonnement, puis l'espace de paiement, pour valider et garder ton offre.`,
       cta: "Valider mon paiement",
     },
+    activation: {
+      footer: (space: string) => `Tu reçois ces conseils parce que tu viens de créer ${space}.`,
+      help: "Un doute, une question ? Réponds simplement à cet e-mail.",
+      steps: {
+        invite: {
+          subject: "Invite ton groupe sur Tartan",
+          body: (space: string) =>
+            `${space} est prêt, il lui manque tes athlètes. Partage le lien du groupe ou un QR code à la piste : ils rejoignent en une minute, sans rien installer.`,
+          cta: "Inviter mes athlètes",
+        },
+        create: {
+          subject: "Crée ta première séance",
+          body: (space: string) =>
+            `Ton groupe est invité dans ${space}. Pars d'un modèle de ta bibliothèque ou d'une feuille blanche : la séance se crée une fois, pour tout le groupe.`,
+          cta: "Créer une séance",
+        },
+        publish: {
+          subject: "Ta séance attend d'être publiée",
+          body: (space: string) =>
+            `Une séance de ${space} est encore en brouillon : ton groupe ne la voit pas. Publie-la pour qu'elle arrive sur leur téléphone.`,
+          cta: "Ouvrir le calendrier",
+        },
+        validate: {
+          subject: "Ton groupe n'a pas encore validé",
+          body: (space: string) =>
+            `La séance de ${space} est publiée, mais personne ne l'a validée. Depuis le suivi, relance les retardataires d'un geste.`,
+          cta: "Ouvrir le suivi",
+        },
+      },
+    },
+    nearLimit: {
+      cta: "Voir les offres",
+      maxAthletes: {
+        subject: "Ton offre arrive à son plafond d'athlètes",
+        body: (space: string, used: number, limit: number) =>
+          `${space} compte ${used} athlètes sur les ${limit} de ton offre. Une fois le plafond atteint, les nouvelles arrivées seront refusées. Tu peux changer d'offre quand tu veux, sans rien perdre.`,
+      },
+      maxVideosPerMonth: {
+        subject: "Ton offre arrive à son plafond de vidéos ce mois-ci",
+        body: (space: string, used: number, limit: number) =>
+          `${space} a envoyé ${used} vidéos sur les ${limit} de ton offre ce mois-ci. Une fois le plafond atteint, les envois reprendront le mois prochain. Tu peux changer d'offre quand tu veux.`,
+      },
+    },
     paymentRecovered: {
       subject: "Ton paiement Tartan est régularisé",
       body: (space: string, _date: string) => `Le paiement pour ${space} est passé. Ton offre continue normalement.`,
@@ -1972,6 +2016,7 @@ export const fr = {
     unsubscribeConfirm: "Ne plus les recevoir",
     unsubscribeDone: "C'est fait. Tu peux les réactiver à tout moment dans tes réglages.",
     unsubscribeKinds: {
+      tips: "Les conseils pour démarrer, envoyés dans les jours qui suivent la création de ton espace.",
       digest: "Le récapitulatif de ta semaine, chaque dimanche soir.",
       notifications:
         "Les e-mails envoyés quand une notification n'a pas pu arriver sur ton téléphone ou ton navigateur.",

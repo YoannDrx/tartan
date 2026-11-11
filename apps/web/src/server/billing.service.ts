@@ -2,6 +2,7 @@ import { withCheckoutIntent, intentCheckout } from "./checkout-intent.service";
 import { todayIso } from "@/lib/dates";
 import {
   type BillingInterval,
+  isNearLimit,
   isPaidPlan,
   isReferralQualified,
   isStaff,
@@ -90,6 +91,42 @@ const LIMIT_MESSAGES: Record<LimitKey, string> = {
 export const assertWithinPlan = async (organizationId: string, key: LimitKey): Promise<void> => {
   const [limits, usage] = await Promise.all([limitsOf(organizationId), usageOf(organizationId)]);
   if (!isWithinLimit(limits[key], usage[key])) throw new AppError(402, "plan_limit", LIMIT_MESSAGES[key]);
+};
+
+// Chaque matin : prévenir le payeur avant le refus, quand une limite de l'offre est presque atteinte.
+export const queuePlanLimitNotices = async (now: Date = new Date()): Promise<number> => {
+  const spaces = await prisma.organization.findMany({
+    where: { plan: { in: ["discovery", "coach"] } },
+    select: { id: true, name: true, ownerId: true, billingOwnerId: true, owner: { select: { email: true } } },
+  });
+  const month = now.toISOString().slice(0, 7);
+  let queued = 0;
+  for (const space of spaces) {
+    if (space.billingOwnerId && space.billingOwnerId !== space.ownerId) continue;
+    const [limits, usage] = await Promise.all([limitsOf(space.id), usageOf(space.id, now)]);
+    for (const key of ["maxAthletes", "maxVideosPerMonth"] as const) {
+      const limit = limits[key];
+      if (limit === null || !isNearLimit(limit, usage[key])) continue;
+      const created = await prisma.emailOutbox.createMany({
+        data: [
+          {
+            organizationId: space.id,
+            toEmail: space.owner.email,
+            kind: "plan_near_limit",
+            // Les vidéos se comptent par mois ; les athlètes, une fois par plafond d'offre.
+            dedupeKey:
+              key === "maxVideosPerMonth"
+                ? `near_limit:${space.id}:${key}:${month}`
+                : `near_limit:${space.id}:${key}:${limit}`,
+            payload: { space: space.name, key, used: usage[key], limit },
+          },
+        ],
+        skipDuplicates: true,
+      });
+      queued += created.count;
+    }
+  }
+  return queued;
 };
 
 // Bandeau de l'espace coach : seul le payeur est prévenu d'un paiement à régulariser.

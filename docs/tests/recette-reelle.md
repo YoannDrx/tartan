@@ -24,7 +24,7 @@ Le plafond est de 10 vidéos pour tout Tartan tant que la carte Mux n'est pas po
 
 ## 3. E-mails
 
-- [ ] Configuration → E-mails de test → Tous, vers Gmail, Outlook, iCloud : 25 messages `[Essai]`, en boîte de réception.
+- [ ] Configuration → E-mails de test → Tous, vers Gmail, Outlook, iCloud : 27 messages `[Essai]`, en boîte de réception.
 - [ ] Sur téléphone et ordinateur, en thème clair et sombre : texte lisible, bouton visible, accents corrects, date limite encadrée dans le rappel annuel.
 - [ ] Un bouton de chaque type ouvre Tartan sans erreur.
 - [ ] Webhook Resend en place : un envoi à `bounced@resend.dev` supprime l'adresse des envois suivants.
