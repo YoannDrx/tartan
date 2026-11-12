@@ -134,6 +134,21 @@ test("le saut à la perche : la barre part de 4,20 m, trois refus arrêtent le c
   await expectAccessible(page);
 });
 
+test("le disque : tenir pour tourner, puis une marque, un mordu ou une sortie du cercle", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/jeu", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: m.game.events.discus.play, exact: true }).click();
+  await expect(page.getByRole("img", { name: m.game.events.discus.canvas })).toBeVisible();
+  await page.getByRole("button", { name: m.game.start, exact: true }).click();
+  await page.keyboard.down(" ");
+  await page.waitForTimeout(1_400);
+  await page.keyboard.up(" ");
+  const outcome = page.getByRole("status").filter({ hasText: /Lancer mesuré à|mordu|Sorti du cercle/ });
+  await expect(outcome).toBeVisible({ timeout: 30_000 });
+  await expectNoHorizontalScroll(page);
+  await expectAccessible(page);
+});
+
 test("la page du jeu est au plan du site et ouverte aux robots", async ({ request }) => {
   expect(await (await request.get("/sitemap.xml")).text()).toContain("https://tartan.coach/jeu");
   expect(await (await request.get("/robots.txt")).text()).toContain("Allow: /jeu");
