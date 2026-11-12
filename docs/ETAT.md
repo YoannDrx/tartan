@@ -102,10 +102,11 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | B1 | Jetons de mouvement, filet de mouvement réduit, miroir complet des couleurs, CSS mort retiré | Codé, testé |
 | B2 | Squelette unique de la mascotte, paquet `packages/mascot` | Codé, testé. Film vu en production ; mobile non regardé sur appareil |
 | B3 | Six épreuves, six athlètes, composants de piste, planche `/admin/mascotte` | Codé, testé. Planche regardée rendue en local à 390, 768 et 1440 px. Aucun écran ne s'en sert encore : la revue du fondateur (F17) décide de la suite |
-| B4 | Transitions de page | Codé, testé : fondu du contenu, bandeau piste et en-tête du site qui restent en place, onglet actif qui glisse. La carte de séance qui s'ouvre en écran de séance n'est pas faite : elle passe au lot B7 |
+| B4 | Transitions de page | Codé, testé : fondu du contenu, bandeau piste et en-tête du site qui restent en place, onglet actif qui glisse. La carte de séance qui s'ouvre en écran de séance est venue avec le lot B7 |
 | B5 | Page d'accueil et site | Codé, testé : film ramené à 3 hauteurs d'écran sur téléphone et 4,5 sur ordinateur, en relais de trois athlètes ; captures en une colonne ; bande du groupe ; tarifs en cartes sur téléphone ; six questions du centre d'aide ; athlètes sur la page introuvable et la page hors ligne. L'aperçu du jeu attend le lot J4 |
 | B6 | Ossature de l'application | Codé, testé : en-tête du téléphone sans le nom d'espace tronqué, libellés de la barre basse et pastille de notifications à 12 px, athlète de la rubrique dans les seize états vides et sur la page d'erreur, feuilles, menus et messages qui entrent et sortent. Les deux rubriques en icône seule de l'en-tête du coach restent : les déplacer change la navigation, donc revient au fondateur |
-| B7 à B9 | Application : athlète, coach, finitions | À faire |
+| B7 | Écrans de l'athlète | Codé, testé : l'accueil et l'écran de séance ouvrent sur le bandeau piste, dans les trois thèmes ; l'écran de séance tient en un bandeau et une feuille ; la carte du jour s'ouvre en feuille de séance ; en thème clair, la carte du jour se détache du fond. Mode séance, progrès, calendrier et vidéos de l'athlète : regardés à 390 px, sans défaut relevé hors de ceux des lots B8 et B9 |
+| B8, B9 | Application : coach, finitions | À faire |
 | C1 à C3 | Absence signalée, série de régularité, carte de record | À faire |
 | J1 | Jeu « Tartan Meeting » : noyau de simulation et 110 m haies, paquet `packages/game` | Codé, testé. Mêmes scores sous Node, Chromium et WebKit. Ni rendu ni serveur |
 | J2 à J10 | Page, classement, aperçu, cinq autres épreuves, combiné | À faire |

@@ -141,3 +141,43 @@ export const expectNoMotion = async (page: Page) => {
   expect(reduced, "la page doit être émulée en mouvement réduit").toBe(true);
   expect(await motionOn(page)).toEqual([]);
 };
+
+// Les transitions de vue : ce que le navigateur anime réellement, lu au moment où la transition est prête.
+export type Played = { pseudo: string; name: string; duration: number };
+type Recorded = { animations?: Played[]; finished?: boolean };
+type Probed = Window & { __transitions: Recorded[] };
+
+// Note chaque transition de vue que la page démarre, et ce que le navigateur anime une fois qu'elle est prête.
+export const recordTransitions = (page: Page) =>
+  page.evaluate(() => {
+    const log: Recorded[] = [];
+    (window as unknown as Probed).__transitions = log;
+    const start = document.startViewTransition.bind(document);
+    document.startViewTransition = ((update: never) => {
+      const transition = start(update);
+      const entry: Recorded = {};
+      log.push(entry);
+      void transition.ready.then(() => {
+        entry.animations = document
+          .getAnimations()
+          .map((animation) => {
+            const effect = animation.effect as KeyframeEffect;
+            return {
+              pseudo: effect.pseudoElement ?? "",
+              name: (animation as CSSAnimation).animationName ?? "",
+              duration: Number(effect.getComputedTiming().duration),
+            };
+          })
+          .filter((item) => item.pseudo.startsWith("::view-transition"));
+      });
+      void transition.finished.then(() => (entry.finished = true));
+      return transition;
+    }) as typeof document.startViewTransition;
+  });
+export const recordedTransitions = (page: Page) => page.evaluate(() => (window as unknown as Probed).__transitions);
+// La première transition, une fois terminée : celle du changement de page.
+export const firstTransition = async (page: Page) => {
+  await expect.poll(async () => (await recordedTransitions(page))[0]?.finished).toBe(true);
+  return (await recordedTransitions(page))[0]!.animations!;
+};
+export const durationOf = (played: Played[], pseudo: string) => played.find((item) => item.pseudo === pseudo)?.duration;
