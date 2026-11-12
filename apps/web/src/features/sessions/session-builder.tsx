@@ -685,7 +685,9 @@ export const SessionBuilder = ({
           </p>
         ) : null}
         {version === "autonomous" && autonomous.length === 0 && !club.some((b) => b.shared) ? (
-          <EmptyState>Pas encore de version autonomie. Les absents recevraient la version club.</EmptyState>
+          <EmptyState rubric="seances">
+            Pas encore de version autonomie. Les absents recevraient la version club.
+          </EmptyState>
         ) : null}
 
         {blocks.map((block) => (

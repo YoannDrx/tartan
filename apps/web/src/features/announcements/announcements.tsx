@@ -77,7 +77,7 @@ export const AnnouncementList = ({ items, canManage }: { items: AnnouncementItem
   const pin = useAction(pinAnnouncementAction);
   const remove = useAction(deleteAnnouncementAction);
   const report = useAction(reportContentAction, { onSuccess: () => toast.ok(m.comments.reported) });
-  if (items.length === 0) return <EmptyState>{m.announcements.empty}</EmptyState>;
+  if (items.length === 0) return <EmptyState rubric="annonces">{m.announcements.empty}</EmptyState>;
   return (
     <ul className="divide-y divide-card-line rounded-card on-card bg-card">
       {items.map((a) => (

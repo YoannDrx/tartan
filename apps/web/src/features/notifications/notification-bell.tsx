@@ -35,7 +35,7 @@ export const NotificationBell = () => {
       {unread > 0 ? (
         <span
           aria-hidden
-          className="t-num absolute right-0.5 top-0.5 flex min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[11px] leading-4 text-on-accent"
+          className="t-num absolute right-0 top-0 flex min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[12px] leading-[18px] text-on-accent"
         >
           {unread > 9 ? "9+" : unread}
         </span>

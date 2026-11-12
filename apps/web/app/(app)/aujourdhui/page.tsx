@@ -215,7 +215,9 @@ export default async function AujourdhuiPage() {
         ) : null;
       })}
       {data.focus ? <FocusBlock focus={data.focus} /> : null}
-      {data.today.length === 0 ? <EmptyState>{data.next ? m.today.empty : m.today.noneYet}</EmptyState> : null}
+      {data.today.length === 0 ? (
+        <EmptyState rubric="aujourdhui">{data.next ? m.today.empty : m.today.noneYet}</EmptyState>
+      ) : null}
       {data.next ? (
         <section className="flex flex-col gap-2">
           <h2 className="t-section">{m.today.next}</h2>

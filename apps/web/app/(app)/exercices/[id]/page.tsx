@@ -37,7 +37,7 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
       <section className="flex flex-col gap-2">
         <h2 className="t-section">{m.exercises.linkedVideos}</h2>
         {videos.length === 0 ? (
-          <EmptyState>{m.exercises.linkedVideosEmpty}</EmptyState>
+          <EmptyState rubric="exercices">{m.exercises.linkedVideosEmpty}</EmptyState>
         ) : (
           <VideoList videos={videos} basePath="/videos" showAthlete />
         )}

@@ -104,7 +104,8 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | B3 | Six épreuves, six athlètes, composants de piste, planche `/admin/mascotte` | Codé, testé. Planche regardée rendue en local à 390, 768 et 1440 px. Aucun écran ne s'en sert encore : la revue du fondateur (F17) décide de la suite |
 | B4 | Transitions de page | Codé, testé : fondu du contenu, bandeau piste et en-tête du site qui restent en place, onglet actif qui glisse. La carte de séance qui s'ouvre en écran de séance n'est pas faite : elle passe au lot B7 |
 | B5 | Page d'accueil et site | Codé, testé : film ramené à 3 hauteurs d'écran sur téléphone et 4,5 sur ordinateur, en relais de trois athlètes ; captures en une colonne ; bande du groupe ; tarifs en cartes sur téléphone ; six questions du centre d'aide ; athlètes sur la page introuvable et la page hors ligne. L'aperçu du jeu attend le lot J4 |
-| B6 à B9 | Application : ossature, athlète, coach, finitions | À faire |
+| B6 | Ossature de l'application | Codé, testé : en-tête du téléphone sans le nom d'espace tronqué, libellés de la barre basse et pastille de notifications à 12 px, athlète de la rubrique dans les seize états vides et sur la page d'erreur, feuilles, menus et messages qui entrent et sortent. Les deux rubriques en icône seule de l'en-tête du coach restent : les déplacer change la navigation, donc revient au fondateur |
+| B7 à B9 | Application : athlète, coach, finitions | À faire |
 | C1 à C3 | Absence signalée, série de régularité, carte de record | À faire |
 | J1 | Jeu « Tartan Meeting » : noyau de simulation et 110 m haies, paquet `packages/game` | Codé, testé. Mêmes scores sous Node, Chromium et WebKit. Ni rendu ni serveur |
 | J2 à J10 | Page, classement, aperçu, cinq autres épreuves, combiné | À faire |

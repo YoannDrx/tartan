@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot B6 : ossature de l'application
+
+Fait : en-tête du téléphone sans le nom d'espace quand il n'y en a qu'un (il est dans le menu Réglages) ; libellés de la barre basse et pastille de notifications passés de 11 à 12 px ; `TrackTile` et `EmptyState` avec l'athlète de la rubrique (`src/lib/rubric-athlete.ts`) dans les seize états vides et sur la page d'erreur ; feuilles, dialogues, menu et messages animés à l'entrée et à la sortie (PR `feat/da-ossature`).
+Vérifié : `tests/rubric-athlete.test.ts` (table de `DESIGN.md`, chaque état vide a sa rubrique, plus d'ancienne mascotte) ; `e2e/shell.spec.ts` sur téléphone et ordinateur (nom d'espace, animation du menu et de la feuille lue dans le navigateur, cibles de 44 px, aucun libellé sous 12 px, athlète de la rubrique, axe). Non vérifié : rien en production ; aucun vrai téléphone ; thèmes clair et sombre non regardés pour les états vides.
+À savoir : `EmptyState` exige désormais `rubric` : le typage refuse un état vide sans athlète. La tuile est rouge piste dans tous les thèmes, exprès : une tenue réglée sur un fond ne tient pas sur une carte dont la couleur change avec le thème. Tailwind 4 pose ses `translate-*` sur la propriété `translate`, pas `transform` : une animation de `transform` s'ajoute donc au centrage du dialogue sans le casser. Non fait, par choix : les rubriques Athlètes et Planificateur restent en icône seule dans l'en-tête du coach sur téléphone ; les mettre dans la barre basse ou sous un menu « Plus » change la navigation.
+Suite conseillée : B7.
+
 ## 2026-11-12, Claude, lot B5 : page d'accueil et site
 
 Fait : le film passe de 680 à 300 svh sur téléphone et 450 sur ordinateur, et devient un relais (`jump-film-pose.ts`, `jump-film.tsx`) : Inès aux haies, Malo à la perche, Noé à la hauteur, chacun dans son monde ; captures en une colonne sur téléphone, qui glissent à leur place au défilement ; bande du groupe (`group-band.tsx`) ; tarifs en cartes sur téléphone et tableau replié sous « Tout comparer » (`pricing.tsx`, donc aussi `/tarifs` et `/abonnement`) ; six questions du centre d'aide sur la page d'accueil (`help/questions.tsx`) ; athlètes du groupe sur la page introuvable et la page hors ligne (PR `feat/landing-stade`).

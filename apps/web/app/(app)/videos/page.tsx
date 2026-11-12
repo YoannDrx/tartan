@@ -70,7 +70,7 @@ export default async function VideosPage({
         <p className="t-caption font-normal text-soft">{m.video.storage(capacity.used, capacity.limit)}</p>
       ) : null}
       {videos.length === 0 ? (
-        <EmptyState>
+        <EmptyState rubric="videos">
           {m.video.empty} {m.video.slowHint}
         </EmptyState>
       ) : (

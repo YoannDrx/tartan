@@ -52,8 +52,9 @@ const athleteItems: Item[] = [
 const SpaceSwitcher = ({ spaces, current }: { spaces: SpaceSummary[]; current: SpaceSummary }) => {
   const router = useRouter();
   const [pending, start] = useTransition();
+  // Un seul espace : sur téléphone, son nom tronqué n'apprend rien. Il est dans le menu des réglages.
   if (spaces.length < 2) {
-    return <span className="truncate text-[14px] text-fg-muted max-tablet:max-w-32">{current.organizationName}</span>;
+    return <span className="hidden truncate text-[14px] text-fg-muted tablet:inline">{current.organizationName}</span>;
   }
   return (
     <label className="block w-40 min-w-0 text-[14px] tablet:w-56">
@@ -120,7 +121,7 @@ export const AppShell = ({
     <div className={cn(worldFor(pathname), "min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0")}>
       <header className={cn("app-header sticky z-30", barClass)}>
         <div className="mx-auto flex min-h-14 max-w-[1440px] items-center gap-4 px-4 desktop:px-6">
-          <Link href="/accueil" aria-label="Tartan, accueil" className="inline-flex shrink-0 items-center">
+          <Link href="/accueil" aria-label="Tartan, accueil" className="inline-flex min-h-11 shrink-0 items-center">
             <Logo height={28} onDark />
           </Link>
           <nav aria-label="Navigation principale" className="hidden flex-1 items-center gap-1 desktop:flex">
@@ -207,7 +208,7 @@ export const AppShell = ({
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "my-1 flex min-h-[60px] min-w-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-button text-[11px] leading-none no-underline",
+                  "my-1 flex min-h-[60px] min-w-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-button text-[12px] leading-none no-underline",
                   active
                     ? `${selectedClass} ${ACTIVE_TAB} font-semibold`
                     : work

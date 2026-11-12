@@ -457,6 +457,7 @@ export const ExerciseLibrary = ({
       />
       {exercises.length === 0 ? (
         <EmptyState
+          rubric="exercices"
           action={
             <Button size="sm" variant="secondary" onClick={() => setDialog({ exercise: null })}>
               {m.exercises.new}
@@ -527,7 +528,7 @@ export const ExerciseLibrary = ({
             </div>
           </div>
           {list.length === 0 ? (
-            <EmptyState>{m.exercises.noMatch}</EmptyState>
+            <EmptyState rubric="exercices">{m.exercises.noMatch}</EmptyState>
           ) : (
             <Sheet>
               {(Object.keys(m.exerciseCategory) as Category[]).map((c) => {

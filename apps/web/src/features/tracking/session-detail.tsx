@@ -62,7 +62,7 @@ export async function SessionFollowupContent({
           </>
         }
       />
-      {!session.publishedAt ? <EmptyState>{m.coach.draftHidden}</EmptyState> : null}
+      {!session.publishedAt ? <EmptyState rubric="suivi">{m.coach.draftHidden}</EmptyState> : null}
       {session.publishedAt && session.athletes.length > 0 ? (
         <div
           className={compact ? "flex flex-col gap-6" : "grid items-start gap-6 desktop:grid-cols-[minmax(0,1fr)_380px]"}
@@ -164,7 +164,9 @@ export async function SessionFollowupContent({
           </div>
         </div>
       ) : null}
-      {session.publishedAt && session.athletes.length === 0 ? <EmptyState>{m.coach.noAthletes}</EmptyState> : null}
+      {session.publishedAt && session.athletes.length === 0 ? (
+        <EmptyState rubric="suivi">{m.coach.noAthletes}</EmptyState>
+      ) : null}
     </div>
   );
 }

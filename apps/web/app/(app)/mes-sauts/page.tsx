@@ -21,7 +21,7 @@ export default async function MesSautsPage() {
         <p className="rounded-thumb bg-card-raised p-3 text-st-partial">{m.video.consentMissingAthlete}</p>
       ) : null}
       {videos.length === 0 ? (
-        <EmptyState>{m.video.emptyAthlete}</EmptyState>
+        <EmptyState rubric="videos">{m.video.emptyAthlete}</EmptyState>
       ) : (
         <VideoList videos={videos} basePath="/mes-sauts" showAthlete={false} />
       )}

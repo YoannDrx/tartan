@@ -24,7 +24,7 @@ export default async function PhasesPage({
     return (
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
         <PageHeader title={t.title} />
-        <EmptyState>{t.disabled}</EmptyState>
+        <EmptyState rubric="phases">{t.disabled}</EmptyState>
       </div>
     );
   const query = await searchParams;
