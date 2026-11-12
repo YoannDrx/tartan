@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot J4 : aperçu du jeu sur la page d'accueil
+
+Fait : `src/features/landing/warm-up.tsx`, entre la ligne d'arrivée et les questions fréquentes : Inès sur sa ligne de départ, « Jouer au 110 m haies ici », un lien vers `/jeu`. Le clic charge le moteur de partie et le 110 m haies (`import()`), puis la course se joue dans la page (PR `feat/jeu-encart`).
+Vérifié : `e2e/landing.spec.ts` lit le contenu de chaque script chargé par la page : aucun ne contient le code de la simulation avant le clic (repère : le message « invalid seed » du noyau), un au moins après ; la course démarre sur la page.
+À savoir : pas d'événement d'audience sur mesure (la mesure actuelle ne compte que les pages vues) : l'effet de l'aperçu se lira sur les visites de `/jeu` et de la création d'espace.
+Suite conseillée : J3, construit mais éteint.
+
 ## 2026-11-12, Claude, lot J10 : combiné
 
 Fait : `packages/game/src/combined.ts` convertit chaque marque en points, par épreuve, sur une droite entière : 0 point à la marque basse (18,00 s aux haies, 3 m en longueur, 9 m au triple, 1,50 m en hauteur, 4 m à la perche, 15 m au disque), 1 000 à la marque haute (13,00 s, 7,50 m, 15 m, 2 m, 5,70 m, 45 m), 1 200 au plus, 0 pour un essai nul. Sur `/jeu`, « Jouer le combiné » charge les six épreuves et les enchaîne, un essai chacune ; le moteur de partie accepte un rappel en fin d'épreuve et remplace « Rejouer » par « Épreuve suivante » (PR `feat/jeu-combine`).
