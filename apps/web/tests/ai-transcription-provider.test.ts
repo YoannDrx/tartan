@@ -3,7 +3,7 @@ import { openAiTranscriptionProvider } from "@/server/ai/transcription-provider"
 import type { PlannerAudio } from "@/server/ai/audio";
 const settings = vi.hoisted(() => ({
   AI_PLANNER_ENABLED: "true",
-  AI_TRANSCRIPTION_MODEL: "gpt-4o-mini-transcribe",
+  AI_TRANSCRIPTION_MODEL: "gpt-transcribe",
   OPENAI_API_KEY: undefined as string | undefined,
   OPEN_AI_API_KEY: "test-only",
 }));
@@ -17,11 +17,13 @@ const audio: PlannerAudio = {
 };
 beforeEach(() => {
   settings.AI_PLANNER_ENABLED = "true";
-  settings.AI_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
+  settings.AI_TRANSCRIPTION_MODEL = "gpt-transcribe";
   settings.OPENAI_API_KEY = undefined;
   settings.OPEN_AI_API_KEY = "test-only";
 });
 it("envoie le fichier borné sans nom personnel, avec la clé serveur et une réponse relisible", async () => {
+  // Un modèle historique, encore accepté jusqu'à son arrêt le 26 février 2027.
+  settings.AI_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
   const fetcher = vi.fn<typeof fetch>(async () => Response.json({ text: " Trois séries de quatre à 40 kg. " }));
   const provider = openAiTranscriptionProvider(fetcher);
   expect(await provider.transcribe(audio)).toBe("Trois séries de quatre à 40 kg.");
@@ -40,7 +42,7 @@ it("envoie le fichier borné sans nom personnel, avec la clé serveur et une ré
   expect(new Uint8Array(await file.arrayBuffer())).toEqual(audio.bytes);
   expect(body.get("language")).toBe("fr");
 });
-it("accepte le modèle configurable actuel sans mélanger language et languages", async () => {
+it("utilise gpt-transcribe par défaut, sans mélanger language et languages", async () => {
   settings.AI_TRANSCRIPTION_MODEL = "gpt-transcribe";
   settings.OPENAI_API_KEY = "standard-test-only";
   const fetcher = vi.fn<typeof fetch>(async () =>
@@ -51,6 +53,9 @@ it("accepte le modèle configurable actuel sans mélanger language et languages"
   expect((init.body as FormData).get("languages[]")).toBe("fr");
   expect((init.body as FormData).has("language")).toBe(false);
   expect((init.body as FormData).getAll("keywords[]")).toContain("squat arrière");
+  // Le contexte libre reste court : le vocabulaire passe par keywords[], sans chevron ni retour à la ligne.
+  expect((init.body as FormData).get("prompt")).toBe("Dictée d'une séance de préparation physique pour l'athlétisme.");
+  for (const word of (init.body as FormData).getAll("keywords[]")) expect(String(word)).not.toMatch(/[<>\r\n]/);
   expect(new Headers(init.headers).get("Authorization")).toBe("Bearer standard-test-only");
 });
 it("arrêt global, absence de clé et durée excessive coupent tout appel", async () => {

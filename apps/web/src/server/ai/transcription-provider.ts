@@ -25,6 +25,8 @@ const vocabulary = [
   "répétitions",
   "récupération",
 ];
+const CONTEXT = "Dictée d'une séance de préparation physique pour l'athlétisme.";
+
 // Le workflow réserve le quota avant cet appel. Aucun stockage audio, aucune
 // consigne privée ajoutée au prompt et aucune relance payante automatique.
 export function openAiTranscriptionProvider(fetcher: typeof fetch = fetch): PlannerTranscriptionProvider {
@@ -39,16 +41,15 @@ export function openAiTranscriptionProvider(fetcher: typeof fetch = fetch): Plan
       body.set("file", new Blob([audio.bytes], { type: audio.mimeType }), `dictee.${audio.extension}`);
       body.set("model", settings.AI_TRANSCRIPTION_MODEL);
       body.set("response_format", "json");
-      // Les modèles historiques utilisent language ; le nouveau modèle utilise languages[].
+      // gpt-transcribe, le défaut, prend la langue dans languages[], les termes attendus dans keywords[] et le
+      // contexte libre dans prompt. Les modèles historiques, arrêtés le 26 février 2027, n'ont que language et prompt.
       if (settings.AI_TRANSCRIPTION_MODEL.startsWith("gpt-transcribe")) {
         body.set("languages[]", "fr");
         for (const word of vocabulary) body.append("keywords[]", word);
+        body.set("prompt", CONTEXT);
       } else {
         body.set("language", "fr");
-        body.set(
-          "prompt",
-          `Dictée d'une séance de préparation physique pour l'athlétisme. Vocabulaire possible : ${vocabulary.join(", ")}.`,
-        );
+        body.set("prompt", `${CONTEXT} Vocabulaire possible : ${vocabulary.join(", ")}.`);
       }
       let response: Response;
       try {
