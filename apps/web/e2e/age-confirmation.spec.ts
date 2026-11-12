@@ -76,3 +76,23 @@ test("la date ne s'enregistre qu'après confirmation et peut être corrigée ava
     await sql.end();
   }
 });
+
+test("un temps de l'onboarding prend le focus au moment même où il s'affiche", async ({ page }) => {
+  await signUp(page, uniqueEmail("focus-onboarding"));
+  await page.getByLabel("Prénom").fill("Camille");
+  await page.getByLabel("Nom", { exact: true }).fill("Coach");
+  await page.getByLabel(m.invite.birthDate).fill("1990-01-01");
+  // Ce qui a le focus à l'instant où le temps suivant apparaît : un focus donné plus tard arracherait
+  // la saisie à qui remplit déjà le premier champ.
+  await page.evaluate(() => {
+    const next = document.querySelectorAll("form fieldset")[1]!;
+    new MutationObserver((_, observer) => {
+      if (next.hasAttribute("hidden")) return;
+      observer.disconnect();
+      (window as unknown as { __focused: string }).__focused = document.activeElement?.textContent ?? "";
+    }).observe(next, { attributes: true, attributeFilter: ["hidden"] });
+  });
+  await nextOnboardingStep(page);
+  await expect(page.getByLabel(m.onboarding.orgName)).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { __focused: string }).__focused)).toBe(m.onboarding.orgTitle);
+});
