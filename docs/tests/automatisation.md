@@ -56,7 +56,7 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 | N° | Sujet | Test à écrire |
 | --- | --- | --- |
 | T18 | Centre de notifications | Fait. `e2e/notification-center.spec.ts` : compteur de la cloche, ligne ouverte puis lue, tout marquer comme lu, demande sans cible refusée ; nouveautés annoncées une fois, identifiant inconnu sans effet. Le test a révélé une cloche figée après « Tout marquer comme lu », corrigée |
-| T19 | Pages sans e2e | `/mes-sauts*`, `/progres`, `/seances/[id]/charges`, avec données et axe |
+| T19 | Pages sans e2e | Fait. `e2e/filled-pages.spec.ts` : compte rempli par `demo:fill`, vidéo partagée posée en base ; `/mes-sauts`, `/mes-sauts/[id]` avec la remarque du coach, `/progres`, `/seances/[id]/charges`, sans débordement ni erreur axe à 390 px. Projet mobile seul : le remplissage ne tourne qu'une fois par base |
 | T20 | Console | `espaces/[id]` et `factures/[id]` dans `admin-console.spec.ts` |
 | T21 | Worker | Fait. `tests/service-worker.test.ts` charge le vrai `public/sw.js` dans un faux worker : notification affichée telle quelle ou neutre sans contenu, clic qui réutilise une fenêtre, réponse depuis la notification, API et autres sites jamais interceptés, page gardée puis page hors ligne sans réseau |
 | T22 | Routes techniques | Fait. Même fichier : `health` à 200 puis 503 base coupée, `live` sans base, `version` sans cache, flux `ical` d'un athlète (séance, lieu, fin, sans le mot du coach), jeton faux et lien révoqué refusés |
