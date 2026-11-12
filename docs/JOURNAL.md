@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, M4 : changement de compte par lien magique sur mobile
+
+Fait : l'écran de retour (`app/(auth)/callback.tsx`) vidait le cache avant de poser le nouveau cookie. Un écran encore monté de l'ancien compte pouvait donc relire `/me` avec l'ancien cookie, et l'aiguillage retrouvait l'ancien rôle, ce que le simulateur avait montré le 9 novembre. Le cookie était aussi fusionné avec l'ancien, et l'espace actif mémorisé restait celui de l'ancien compte. `src/lib/account-switch.ts` fixe l'ordre : arrêter les requêtes, effacer puis poser le cookie, vider les données et l'espace mémorisé, relire la session, repartir de l'aiguillage (PR `fix/mobile-changement-compte`, empilée sur M5).
+Vérifié : deux tests de l'ordre, typecheck du mobile.
+Non vérifié : sur simulateur, et pas de flux Maestro dédié (Maestro n'est pas installé sur ce poste). La cause reste donc « probable » tant que l'essai réel n'est pas fait.
+
 ## 2026-11-12, Claude, M5 : repli HLS du lecteur mobile
 
 Fait : `apps/mobile/src/lib/playback-source.ts` choisit la source (MP4 d'abord, HLS s'il manque), et `app/video/[id].tsx` repart une fois sur le HLS quand le lecteur échoue sur le MP4, comme le web (PR `feat/mobile-hls-repli`, empilée sur P1).
