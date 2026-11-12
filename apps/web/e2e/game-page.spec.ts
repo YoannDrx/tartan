@@ -68,9 +68,35 @@ test("le saut en longueur : l'élan, l'appel tenu, puis une marque ou un essai m
   await page.keyboard.down(" ");
   await page.waitForTimeout(500);
   await page.keyboard.up(" ");
+  const outcome = page.getByRole("status").filter({ hasText: /Saut mesuré à|Mordu|Retombé avant le sable/ });
+  await expect(outcome).toBeVisible({ timeout: 30_000 });
+  await expectNoHorizontalScroll(page);
+  await expectAccessible(page);
+});
+
+test("le triple saut : élan, appel, puis les réceptions en rythme", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/jeu", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: m.game.events.tripleJump.play, exact: true }).click();
+  await expect(page.getByRole("img", { name: m.game.events.tripleJump.canvas })).toBeVisible();
+  await page.getByRole("button", { name: m.game.start, exact: true }).click();
+  for (let i = 0; i < 38; i += 1) {
+    await page.keyboard.down(" ");
+    await page.waitForTimeout(25);
+    await page.keyboard.up(" ");
+    await page.waitForTimeout(60);
+  }
+  await page.keyboard.down(" ");
+  await page.waitForTimeout(300);
+  await page.keyboard.up(" ");
+  // Deux appuis pendant les bonds : justes ou non, l'essai se termine.
+  for (let i = 0; i < 2; i += 1) {
+    await page.waitForTimeout(550);
+    await page.keyboard.press(" ");
+  }
   const outcome = page
     .getByRole("status")
-    .filter({ hasText: /Saut mesuré à|Mordu|Retombé avant le sable/ });
+    .filter({ hasText: /Saut mesuré à|Mordu|Retombé avant le sable|Rythme cassé/ });
   await expect(outcome).toBeVisible({ timeout: 30_000 });
   await expectNoHorizontalScroll(page);
   await expectAccessible(page);

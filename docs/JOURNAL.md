@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot J6 : triple saut
+
+Fait : `packages/game/src/events/triple-jump.ts`, sur l'élan et l'appel de la longueur. Le cloche-pied part à 24° au plus, la foulée à 12°, le saut à 18°. À chacune des deux réceptions, un appui à ±3 pas du contact garde 95 % de l'élan, à ±7 pas 92 %, à ±12 pas 88 % ; au-delà, ou sans appui, le rythme est cassé (score nul). Le sable commence à 9 m de la planche ; plafond théorique 15,596 m. Sur `/jeu`, Awa suit les trois temps du geste de `packages/mascot`, et un repère citron marque sur la piste où le pied va toucher (PR `feat/jeu-triple-saut`).
+Vérifié : `triple-jump.test.ts` (rythme, coût de chaque pas d'écart, rythme cassé, mordu, essai nul, plafond), références et 300 journaux sous Node, Chromium et WebKit, `e2e/game-page.spec.ts` (une partie au clavier) ; cloche-pied et rythme cassé regardés à 390 px.
+À savoir : deux réceptions parfaites à huit appuis par seconde donnent environ 12,5 m ; à douze appuis par seconde et vent favorable, environ 13,4 m. Le repère du contact a été ajouté après coup : sans lui, on ne peut pas anticiper la réception.
+Suite conseillée : J7.
+
 ## 2026-11-12, Claude, lot J5 : saut en longueur
 
 Fait : `packages/game/src/events/long-jump.ts`. Chaque appui bref ajoute 800 mm/s d'élan, le frottement en reprend 0,34 % par pas ; un appui tenu plus de 10 pas devient l'appel, l'angle monte d'un degré tous les deux pas (frottement quatre fois moindre pendant l'appel) ; relâcher lance le saut. Vol en entiers, sinus et cosinus figés en table ; marque mesurée depuis la planche ; mordu au-delà de la planche, essai nul avant le sable (un mètre après la planche) ; plafond théorique 9,378 m. Le jeu devient générique : `game-runner.tsx` fait tourner toute épreuve décrite par un `EventUi` (`hurdles-ui.ts`, `long-jump-ui.ts`) ; `/jeu` propose le choix de l'épreuve, chargée au premier geste. Les références de toutes les épreuves passent par `REFERENCES`, rejouées par les tests du paquet et la preuve inter-navigateurs (PR `feat/jeu-longueur`).

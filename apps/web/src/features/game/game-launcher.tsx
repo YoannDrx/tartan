@@ -12,6 +12,11 @@ import type { EventUi } from "./event-ui";
 const EVENTS = [
   { id: "hurdles", athlete: "hurdles", load: () => import("./hurdles-ui").then((module) => module.hurdlesUi) },
   { id: "longJump", athlete: "longJump", load: () => import("./long-jump-ui").then((module) => module.longJumpUi) },
+  {
+    id: "tripleJump",
+    athlete: "tripleJump",
+    load: () => import("./triple-jump-ui").then((module) => module.tripleJumpUi),
+  },
 ] as const;
 
 type Loaded = { Runner: React.ComponentType<{ ui: EventUi<SimState> }>; ui: EventUi<SimState> };
@@ -38,7 +43,7 @@ export const GameLauncher = () => {
     );
   }
   return (
-    <ul aria-label={m.game.chooseLabel} className="grid gap-4 tablet:grid-cols-2">
+    <ul aria-label={m.game.chooseLabel} className="grid gap-4 tablet:grid-cols-2 desktop:grid-cols-3">
       {EVENTS.map((event) => (
         <li key={event.id} className="flex items-end gap-4">
           <StartScene className="w-28 shrink-0">

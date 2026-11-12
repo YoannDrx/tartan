@@ -114,7 +114,8 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | J1 | Jeu « Tartan Meeting » : noyau de simulation et 110 m haies, paquet `packages/game` | Codé, testé. Mêmes scores sous Node, Chromium et WebKit. Ni rendu ni serveur |
 | J2 | Jeu : la page `/jeu` | Codé, testé : le 110 m haies se joue au clavier (Espace, Entrée, Échap) et au pouce (bouton de 64 px) ; rendu canvas qui suit la simulation de J1 ; rien du jeu n'est chargé avant le premier geste ; record sur l'appareil, rien n'est envoyé ; page au plan du site et ouverte aux robots ; image de partage tirée une fois (`pnpm --filter @tartan/web og:jeu`). Vu en production le 12 novembre : une course lancée sur tartan.coach/jeu dans Chromium en format téléphone, chrono qui court, aucune erreur ni blocage de la politique de sécurité. Non vérifié : partie jouée sur un vrai téléphone, fluidité sur un téléphone d'entrée de gamme |
 | J5 | Jeu : saut en longueur | Codé, testé : épreuve `longJump` de `packages/game` (élan aux appuis brefs, appel tenu dont l'angle monte, mordu au-delà de la planche, essai nul avant le sable), parties de référence et 300 journaux aléatoires identiques sous Node, Chromium et WebKit ; jouable sur `/jeu`, qui propose désormais le choix de l'épreuve. Non vérifié : partie sur un vrai téléphone |
-| J3, J4, J6 à J10 | Classement, aperçu, quatre autres épreuves, combiné | À faire |
+| J6 | Jeu : triple saut | Codé, testé : épreuve `tripleJump` (élan et appel de la longueur, cloche-pied rasant, puis un appui à chaque réception : juste, l'élan est gardé ; hors de la fenêtre de ±12 pas, rythme cassé), références et 300 journaux identiques sous Node, Chromium et WebKit ; jouable sur `/jeu`, avec un repère citron au point de contact. Non vérifié : partie sur un vrai téléphone |
+| J3, J4, J7 à J10 | Classement, aperçu, trois autres épreuves, combiné | À faire |
 
 ### Agents : mobile, IA et suite des tests
 
