@@ -28,7 +28,7 @@ Rôle à faire confirmer : Yodev est-il responsable de traitement, ou sous-trait
 | Mesure d'audience | Pages vues, sans cookie ni identifiant | Visiteurs | Intérêt légitime, à confirmer | Selon Vercel |
 | Sauvegardes | Copie chiffrée de la base | Tous | Intérêt légitime, sécurité | 30 jours |
 | Signalements | Contenu signalé, auteur, décision | Membres d'un espace | Obligation légale, intérêt légitime | Durée du compte |
-| Jeu du site (lot J3, à venir) | Pseudo, score, empreinte d'appareil, empreinte d'adresse IP | Visiteurs, mineurs possibles | Intérêt légitime, à confirmer | Empreinte IP : 30 jours ; scores : jusqu'à effacement |
+| Jeu du site : classement (J3) | Pseudo, score, date, empreinte salée d'appareil, empreinte salée d'adresse IP | Visiteurs, mineurs possibles | Intérêt légitime, relu par le juriste le 12 novembre 2026 | Empreinte IP : 30 jours ; jetons d'essai : un jour ; scores : jusqu'à effacement par l'appareil ou masquage par la console |
 
 ## Sous-traitants
 
@@ -78,7 +78,7 @@ Règle à faire valider en plus : suppression après 24 mois d'inactivité, prop
 7. **CGV** : plafonds de l'offre Club, préavis de 14 jours avant retrait des vidéos, droit de rétractation d'un professionnel ou d'un consommateur.
 8. **Bénévole de club** : un coach bénévole est-il un consommateur (médiateur obligatoire) ?
 9. **Vidéos de tiers** : la bibliothèque commune intègre 24 vidéos publiques d'autres auteurs dans un service payant, sans les copier. Est-ce permis sans leur accord ? Une copie de secours, puis une diffusion si le lien disparaît, l'est-elle ? Une de ces vidéos montre un enfant : faut-il la retirer ?
-10. **Jeu public** : le site propose un jeu avec classement public et pseudo, sans compte, accessible à des mineurs alors que l'application est réservée aux majeurs. Quelles mentions, quelle base légale, quelle durée de conservation ? L'empreinte d'adresse IP gardée 30 jours contre les abus est-elle acceptable ?
+10. **Jeu public** : le site propose un jeu avec classement public et pseudo, sans compte, accessible à des mineurs alors que l'application est réservée aux majeurs. Quelles mentions, quelle base légale, quelle durée de conservation ? L'empreinte d'adresse IP gardée 30 jours contre les abus est-elle acceptable ? **Réponse** : le fondateur rapporte le 12 novembre 2026 que le juriste a relu et donné son accord ; la mention est ajoutée à la politique de confidentialité (« Le jeu du site »).
 11. **E-mail de reconquête** : un message unique, trente jours après la fin d'un abonnement, relève-t-il de la prospection permise envers un ancien client ? Même question pour les e-mails de conseils pendant l'essai.
 12. **Analyse d'impact** : est-elle requise, et qui la rédige ?
 13. **Suppression après 24 mois d'inactivité** : la politique de confidentialité la présente déjà comme une règle. Faut-il la retirer du texte en attendant la validation ?

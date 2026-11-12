@@ -486,6 +486,34 @@ export const fr = {
     newRecord: "Nouveau record !",
     noRecord: "Pas encore de record sur cet appareil.",
     recordNote: "Ton record reste sur cet appareil. Rien n'est envoyé.",
+    // Le classement public : pseudo seul, sans compte ni adresse. Éteint tant que le juriste n'a pas répondu.
+    leaderboard: {
+      title: "Classement",
+      week: "Cette semaine",
+      all: "Depuis toujours",
+      empty: "Personne n'est encore classé. À toi de jouer.",
+      rank: "Rang",
+      pseudo: "Pseudo",
+      mark: "Marque",
+      submit: "Entrer au classement",
+      pseudoHint: "3 à 16 caractères : lettres, chiffres, espace, point, tiret.",
+      saved: "Ton score est au classement.",
+      notSaved: "Une marque nulle n'entre pas au classement.",
+      closed: "Le classement est fermé pour le moment.",
+      invalid: "Ce score n'a pas pu être vérifié.",
+      pseudoRefused: "Ce pseudo n'est pas accepté. Choisis-en un autre.",
+      tokenUsed: "Cet essai a déjà été envoyé, ou il a expiré.",
+      privacy:
+        "Le classement garde ton pseudo, ton score, sa date, une empreinte de ton appareil et, 30 jours, une empreinte de ton adresse IP. Ni compte, ni e-mail.",
+      // La mention de la politique de confidentialité, relue par le juriste le 12 novembre 2026.
+      policyTitle: "Le jeu du site",
+      policyBody:
+        "Tartan Meeting se joue sans compte, et ton record reste sur ton appareil. Si tu entres au classement public, Tartan garde ton pseudo, ton score et sa date, une empreinte de ton appareil et une empreinte de ton adresse IP, pour vérifier les scores et empêcher les abus. Ton pseudo et ton score sont publics : choisis un pseudo qui ne permet pas de t'identifier. Base : notre intérêt légitime.",
+      policyRetention:
+        "Classement du jeu : empreinte d'adresse IP effacée après 30 jours ; scores gardés jusqu'à ce que tu les effaces, depuis le jeu, sur l'appareil qui a joué.",
+      erase: "Effacer mes scores de cet appareil",
+      erased: (n: number) => `${n} score${n > 1 ? "s" : ""} effacé${n > 1 ? "s" : ""}.`,
+    },
     // Le combiné : les six épreuves à la suite, un essai chacune, en points.
     combined: {
       play: "Jouer le combiné des six épreuves",
@@ -2578,6 +2606,23 @@ export const fr = {
     contact: "Contact",
   },
   admin: {
+    game: {
+      lead: "Les derniers scores du classement du jeu. Un appareil banni ne peut plus y entrer.",
+      empty: "Aucun score pour le moment.",
+      pseudo: "Pseudo",
+      event: "Épreuve",
+      score: "Marque",
+      date: "Date",
+      state: "État",
+      actions: "Actions",
+      visible: "Visible",
+      hidden: "Masqué",
+      hide: "Masquer",
+      show: "Afficher",
+      ban: "Bannir l'appareil",
+      banDetail: "Tous les scores de cet appareil seront masqués, et il ne pourra plus entrer au classement.",
+      banned: "Appareil banni.",
+    },
     revenue: {
       mrr: "MRR",
       arr: "ARR",
@@ -2606,6 +2651,7 @@ export const fr = {
       audit: "Journal",
       configuration: "Configuration",
       mascot: "Mascotte",
+      game: "Jeu",
     },
     // La planche de contrôle du groupe : ce que le fondateur relit avant que les athlètes entrent dans les écrans.
     mascot: {
@@ -2725,6 +2771,11 @@ export const fr = {
       checkoutOff: "Coupée",
       videoLimit: "Plafond de vidéos stockées",
       videoLimitHint: "Tous espaces confondus. Vide : aucun plafond.",
+      gameLeaderboard: "Classement du jeu",
+      gameLeaderboardHint:
+        "À n'ouvrir qu'après l'avis du juriste, et la mention ajoutée à la politique de confidentialité.",
+      gameLeaderboardOff: "Fermé",
+      gameLeaderboardOn: "Ouvert",
       confirmSettings: "Ces réglages s'appliquent à toute la plateforme.",
       confirmPublic: "Tout le monde pourra créer un espace coach et s'abonner, dès maintenant.",
       saved: "Réglages enregistrés",

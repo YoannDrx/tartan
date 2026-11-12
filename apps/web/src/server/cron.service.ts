@@ -1,5 +1,6 @@
 import { processBillingCommands } from "./billing-command.service";
 import { expirePlannerOperations } from "./ai/usage.service";
+import { purgeGameData } from "./game.service";
 import { purgePlannerProposals } from "./ai/proposal.service";
 import { purgePlannerTranscriptions } from "./ai/transcription.service";
 import { addDays, isOverdue, MISSED_STREAK_THRESHOLD } from "@tartan/domain";
@@ -233,6 +234,8 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     externalDeletions: () => processExternalDeletions(now),
     // Une fois par jour, au creux de la nuit.
     reconciled: async () => (hourInParis(now) === 4 ? reconcileExternalAssets(now) : null),
+    // Le jeu : empreintes d'adresse IP effacées à 30 jours, jetons d'essai inutilisés à une journée.
+    gameData: async () => (hourInParis(now) === 5 ? purgeGameData(now) : null),
   });
   await sendHeartbeat("hourly", result.errors);
   return result;

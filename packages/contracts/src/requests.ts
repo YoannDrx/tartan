@@ -506,5 +506,7 @@ export const platformSettingsInput = z.object({
   signupMode: z.enum(["closed", "public"]),
   checkoutEnabled: z.boolean(),
   muxVideoLimit: z.number().int().positive().nullable(),
+  // Classement public du jeu : éteint tant que le juriste n'a pas répondu (docs/reference/conformite.md).
+  gameLeaderboardEnabled: z.boolean().default(false),
 });
 export type PlatformSettings = z.infer<typeof platformSettingsInput>;

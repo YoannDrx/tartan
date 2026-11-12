@@ -1,11 +1,12 @@
 "use client";
 
-import { type SimState, TICK_HZ } from "@tartan/game";
+import { encodeLog, type SimState, TICK_HZ, type Transition } from "@tartan/game";
 import { m } from "@tartan/i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { EventUi, Item } from "./event-ui";
+import { Leaderboard, ScoreEntry, fetchLeaderboard, startRankedRun } from "./leaderboard";
 
 // La partie, quelle que soit l'épreuve : la simulation avance par pas fixes de 1/120 s, quelle que soit la cadence
 // d'affichage. Le rendu lit l'état, il ne le modifie jamais. Un seul canal : appuyer.
@@ -35,11 +36,14 @@ export default function GameRunner<S extends SimState>({
   ui,
   onFinish,
   finishAction,
+  ranked = false,
 }: {
   ui: EventUi<S>;
   // Au combiné : la marque est remise au parent, qui propose l'épreuve suivante à la place de « Rejouer ».
   onFinish?: (score: number) => void;
   finishAction?: React.ReactNode;
+  // Sur /jeu : le classement, quand il est ouvert. Le combiné et l'aperçu de la page d'accueil n'y entrent pas.
+  ranked?: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const jump = useRef<HTMLButtonElement>(null);
@@ -52,6 +56,22 @@ export default function GameRunner<S extends SimState>({
   const [result, setResult] = useState<{ headline: string; details: Item[]; isRecord: boolean } | null>(null);
   // Le jeu n'est chargé qu'au premier geste, dans le navigateur : le stockage local est lisible dès le départ.
   const [record, setRecord] = useState<number | null>(() => readRecord(ui.recordKey));
+
+  // Le classement : ouvert ou non, le jeton de l'essai en cours, et le journal de ses appuis.
+  const [rankingOpen, setRankingOpen] = useState(false);
+  const [refresh, setRefresh] = useState(0);
+  const runToken = useRef<string | null>(null);
+  const transitions = useRef<Transition[]>([]);
+  const lastHeld = useRef(0);
+  const [entry, setEntry] = useState<{ token: string; log: number[] } | null>(null);
+  useEffect(() => {
+    if (!ranked) return;
+    let live = true;
+    void fetchLeaderboard(ui.id, "week").then((data) => live && setRankingOpen(data.enabled));
+    return () => {
+      live = false;
+    };
+  }, [ranked, ui.id]);
 
   const setStatus = useCallback((next: Status) => {
     statusRef.current = next;
@@ -84,6 +104,11 @@ export default function GameRunner<S extends SimState>({
         spare += Math.min(now - last, 250);
         const before = sim.current.tick;
         while (spare >= STEP_MS && !sim.current.finished) {
+          // Chaque changement d'appui est daté du pas où il s'applique : c'est le journal que le serveur rejoue.
+          if (held.current !== lastHeld.current) {
+            transitions.current.push({ tick: sim.current.tick, channel: 0, press: held.current === 1 });
+            lastHeld.current = held.current;
+          }
           sim.current = ui.sim.step(sim.current, held.current);
           spare -= STEP_MS;
         }
@@ -99,6 +124,8 @@ export default function GameRunner<S extends SimState>({
           setResult({ headline: ui.headline(state), details: ui.details(state), isRecord });
           setStatus("finished");
           onFinish?.(state.score);
+          if (runToken.current && state.score > 0)
+            setEntry({ token: runToken.current, log: encodeLog(transitions.current) });
         }
       }
       last = now;
@@ -114,14 +141,20 @@ export default function GameRunner<S extends SimState>({
     };
   }, [paint, setStatus, ui, onFinish]);
 
-  const start = useCallback(() => {
-    sim.current = ui.sim.init(randomSeed());
+  const start = useCallback(async () => {
+    // Classement ouvert : la graine vient du serveur, avec un jeton à usage unique.
+    const run = ranked && rankingOpen ? await startRankedRun(ui.id) : null;
+    runToken.current = run?.token ?? null;
+    transitions.current = [];
+    lastHeld.current = 0;
+    setEntry(null);
+    sim.current = ui.sim.init(run?.seed ?? randomSeed());
     held.current = 0;
     setHud(ui.hud(sim.current));
     setResult(null);
     setStatus("running");
     requestAnimationFrame(() => jump.current?.focus());
-  }, [setStatus, ui]);
+  }, [setStatus, ui, ranked, rankingOpen]);
 
   const togglePause = useCallback(() => {
     if (statusRef.current === "running") {
@@ -239,9 +272,15 @@ export default function GameRunner<S extends SimState>({
         ) : null}
       </div>
 
+      {entry ? (
+        <ScoreEntry token={entry.token} log={entry.log} onSaved={() => setRefresh((value) => value + 1)} />
+      ) : null}
+
       <p className="text-soft">
         {record === null ? m.game.noRecord : m.game.recordValue(ui.formatScore(record))} {m.game.recordNote}
       </p>
+
+      {ranked && rankingOpen ? <Leaderboard event={ui.id} format={ui.formatScore} refresh={refresh} /> : null}
     </div>
   );
 }
