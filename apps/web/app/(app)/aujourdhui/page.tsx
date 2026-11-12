@@ -222,7 +222,6 @@ export default async function AujourdhuiPage() {
         <AthleteWelcome organizationId={organizationId} group={welcome.group} coach={welcome.coach} />
       ) : null}
       <WeekDots week={data.week} today={today} />
-      {data.regularity ? <Regularity {...data.regularity} /> : null}
       {data.pinnedAnnouncement ? (
         <Link href="/annonces" className="rounded-card on-card bg-card p-3 text-inherit no-underline hover:bg-raise">
           <span className="font-semibold">{data.pinnedAnnouncement.authorName} : </span>
@@ -265,6 +264,8 @@ export default async function AujourdhuiPage() {
           <AttendanceQuestion sessionId={data.next.id} current={data.next.attendance} />
         </section>
       ) : null}
+      {/* La série vient après les séances : l'athlète vient d'abord pour elles. */}
+      {data.regularity ? <Regularity {...data.regularity} /> : null}
     </div>
   );
 }
