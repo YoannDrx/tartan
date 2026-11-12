@@ -101,7 +101,8 @@ export default function GameRunner<S extends SimState>({
     let spare = 0;
     const loop = (now: number) => {
       if (statusRef.current === "running") {
-        spare += Math.min(now - last, 250);
+        // Au ralenti, le temps réel nourrit moins de pas : le geste dure plus longtemps à l'écran.
+        spare += Math.min(now - last, 250) * (ui.timeScale?.(sim.current) ?? 1);
         const before = sim.current.tick;
         while (spare >= STEP_MS && !sim.current.finished) {
           // Chaque changement d'appui est daté du pas où il s'applique : c'est le journal que le serveur rejoue.

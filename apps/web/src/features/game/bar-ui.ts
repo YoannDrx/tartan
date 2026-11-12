@@ -12,7 +12,8 @@ export const barUi = (options: {
   sim: GameEvent<BarState>;
   recordKey: string;
   texts: BarTexts;
-  draw: (ctx: CanvasRenderingContext2D, size: SceneSize, state: BarState) => void;
+  draw: (ctx: CanvasRenderingContext2D, size: SceneSize, state: BarState, family: string) => void;
+  timeScale?: (state: BarState) => number;
 }): EventUi<BarState> => {
   const t = options.texts;
   const outcome = (value: number) =>
@@ -29,7 +30,7 @@ export const barUi = (options: {
     recordKey: options.recordKey,
     action: t.action,
     canvasLabel: t.canvas,
-    draw: (ctx, size, state) => options.draw(ctx, size, state),
+    draw: options.draw,
     hud: (state) => [
       { label: t.bar, value: m.game.distance(state.bar) },
       { label: t.attempt, value: t.attemptValue(Math.min(MAX_FAILS, state.fails + 1)) },
@@ -39,5 +40,6 @@ export const barUi = (options: {
     details: (state) => [{ label: t.attempts, value: String(state.attempts) }],
     formatScore: (score) => m.game.distance(score),
     counts: (score) => score > 0,
+    ...(options.timeScale ? { timeScale: options.timeScale } : {}),
   };
 };

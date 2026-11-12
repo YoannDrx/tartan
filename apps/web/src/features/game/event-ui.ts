@@ -21,4 +21,7 @@ export type EventUi<S extends SimState> = {
   formatScore: (score: number) => string;
   // Un essai mordu (score nul) ne peut pas être un record.
   counts: (score: number) => boolean;
+  // Le ralenti : la part du temps réel donnée à la simulation, 1 par défaut. Il ne change que l'affichage : le journal
+  // des appuis est daté en pas de simulation, et le serveur rejoue la même partie.
+  timeScale?: (state: S) => number;
 };

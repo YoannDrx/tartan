@@ -1483,9 +1483,9 @@ export const fr = {
   landing: {
     // L'échauffement : l'aperçu jouable du jeu, après la ligne d'arrivée.
     warmUp: {
-      title: "Échauffe-toi sur les haies.",
-      body: "Avant de t'y mettre, un 110 m haies au pouce. Appuie pour sauter : au sommet du saut, tu ne perds rien.",
-      play: "Jouer au 110 m haies ici",
+      title: "Échauffe-toi sur la barre.",
+      body: "Avant de t'y mettre, un concours de hauteur au pouce. Appuie pour l'appel, tiens pour le cambré, relâche pour dégager les jambes. La barre monte à chaque hauteur franchie.",
+      play: "Jouer au saut en hauteur ici",
       all: "Voir les six épreuves de Tartan Meeting",
     },
     title: "La préparation physique du coach et de son groupe.",

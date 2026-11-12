@@ -20,6 +20,11 @@ Fait : job `maestro` dans `.github/workflows/mobile-native.yml`, sur macOS : Pos
 Vérifié en local : l'app de développement se compile pour le simulateur (Xcode 26.2), s'ouvre sur l'écran de connexion et joint le serveur local ; la graine et le compte sans date de naissance se créent comme dans le job.
 Non conclu : un lien de retour fabriqué à la main (`tartan-dev://callback?cookie=…`, cookie obtenu par `sign-in/email`) est refusé par l'écran de retour, avec l'ancienne version comme avec celle de M4. Ce lien n'est pas celui du serveur ; le vrai lien magique reste à essayer, et c'est un bon candidat pour le flux Maestro de M4.
 Suite conseillée : les flux de T24, puis ceux de M4 (changement de compte) et M5 (vidéo juste encodée).
+## 2026-11-12, Claude, page d'accueil : film ralenti, échauffement au saut en hauteur
+
+Fait : à la demande du fondateur, le film des disciplines passe à 750svh sur téléphone et 1000svh sur ordinateur (au lieu de 300 et 450svh). L'échauffement de la page d'accueil devient le saut en hauteur. Pour cette épreuve : la barre et les poteaux montent à chaque hauteur, l'arc du sauteur aussi ; ralentis à l'appel, au franchissement et à la réception ; confettis et hauteur affichée pour une barre franchie. Le moteur de partie accepte un `timeScale` par épreuve, qui ne change que l'affichage (PR `feat/landing-hauteur`).
+Vérifié : `tests/high-jump-scene.test.ts` ; partie jouée dans le build de production avec des appuis minutés, regardée en captures à 390, 768 et 1440 px et en mouvement réduit (pas de confettis).
+À savoir : le ralenti allonge le temps réel d'une partie, jamais le nombre de pas : le rejeu du serveur et le contrôle de cadence du classement ne bougent pas. Les sons (applaudissements) restent hors périmètre : le jeu n'a pas de son.
 ## 2026-11-12, Claude, M6 : révocation Apple pour la connexion native
 
 Fait : l'app iOS envoie le code d'autorisation d'Apple à `POST /api/v1/me/apple-authorization`. Le serveur l'échange auprès d'Apple avec le bundle de l'app (`APPLE_APP_BUNDLE_IDENTIFIER`), vérifie que le sujet du jeton est le compte Apple relié, puis garde le jeton de rafraîchissement et l'identifiant qui l'a délivré (colonne additive `account.apple_client_id`). La suppression du compte révoque avec cet identifiant (PR `feat/apple-revocation`).

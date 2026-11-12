@@ -186,7 +186,9 @@ test.describe("toutes tailles d'écran", () => {
     for (const title of [m.landing.film.run.title, m.landing.film.plant.title, m.landing.film.flight.title]) {
       await expect(page.locator(".film-title").filter({ hasText: title })).toHaveCount(1);
     }
-    await expect(page.locator("body")).not.toContainText("saut en hauteur");
+    // Le récit du produit parle de préparation physique pour tout le groupe, pas d'une seule épreuve. Le jeu
+    // d'échauffement, après la ligne d'arrivée, nomme le saut en hauteur : c'est une épreuve, pas le produit.
+    await expect(page.locator(".film")).not.toContainText("saut en hauteur");
     // Le curseur de la frise avance avec le défilement, et revient avec lui.
     const cursor = page.locator('[data-film="cursor"]');
     await expect(cursor).toHaveCount(1);
