@@ -142,9 +142,12 @@ jobs:
           SENTRY_DISABLE_AUTO_UPLOAD: "true"
         run: |
           pnpm exec expo prebuild --platform ios
+          # Signature ad hoc, sans compte Apple : sans signature, l'app n'a pas accès au trousseau, où la session
+          # est rangée, et toute connexion échoue.
           xcodebuild -workspace ios/TartanDev.xcworkspace -scheme TartanDev -configuration Release \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "$RUNNER_TEMP/build" CODE_SIGNING_ALLOWED=NO -quiet
+            -derivedDataPath "$RUNNER_TEMP/build" -quiet \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=
       - name: Simulateur
         run: |
           device=$(xcrun simctl list devices available | grep -m1 -E "^ +iPhone [0-9]+ \(" | grep -oE "[0-9A-F-]{36}")
