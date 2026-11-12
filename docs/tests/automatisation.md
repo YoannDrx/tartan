@@ -55,7 +55,7 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 
 | N° | Sujet | Test à écrire |
 | --- | --- | --- |
-| T18 | Centre de notifications | E2E : notification insérée, lue, compteur. `/notifications/read`, `/releases/seen` |
+| T18 | Centre de notifications | Fait. `e2e/notification-center.spec.ts` : compteur de la cloche, ligne ouverte puis lue, tout marquer comme lu, demande sans cible refusée ; nouveautés annoncées une fois, identifiant inconnu sans effet. Le test a révélé une cloche figée après « Tout marquer comme lu », corrigée |
 | T19 | Pages sans e2e | `/mes-sauts*`, `/progres`, `/seances/[id]/charges`, avec données et axe |
 | T20 | Console | `espaces/[id]` et `factures/[id]` dans `admin-console.spec.ts` |
 | T21 | Worker | Fait. `tests/service-worker.test.ts` charge le vrai `public/sw.js` dans un faux worker : notification affichée telle quelle ou neutre sans contenu, clic qui réutilise une fenêtre, réponse depuis la notification, API et autres sites jamais interceptés, page gardée puis page hors ligne sans réseau |

@@ -7,6 +7,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 
+// Une lecture faite sur la page des notifications ne change pas d'adresse : la liste prévient la cloche.
+export const NOTIFICATIONS_READ_EVENT = "tartan:notifications-read";
+
 export const NotificationBell = () => {
   const pathname = usePathname();
   const [unread, setUnread] = useState(0);
@@ -18,7 +21,11 @@ export const NotificationBell = () => {
     };
     void refresh();
     window.addEventListener("focus", refresh);
-    return () => window.removeEventListener("focus", refresh);
+    window.addEventListener(NOTIFICATIONS_READ_EVENT, refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener(NOTIFICATIONS_READ_EVENT, refresh);
+    };
   }, [pathname]);
   const active = pathname === "/notifications";
   return (
