@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, test T21 : le worker du site
+
+Fait : `apps/web/tests/service-worker.test.ts` exécute le vrai `public/sw.js` avec `node:vm`, dans un faux contexte de worker (notifications, fenêtres, caches, réseau) (PR `test/worker`).
+Vérifié : cinq tests verts : notification, clic, réponse depuis la notification, filtres de `fetch`, repli hors ligne.
+À savoir : le worker reste du JavaScript sans module : on le charge tel quel, rien n'est extrait pour le test.
+
 ## 2026-11-12, Claude, tests T15, T16 et T17 : gardes d'accès
 
 Fait : `apps/web/tests/access-guards.test.ts` : lien de parrainage `r/[code]`, limiteur de connexion de Better Auth, vérification renforcée de la console (PR `test/garde-acces`). La règle d'activation du limiteur devient la fonction `rateLimitEnabled` de `src/lib/auth.ts`, sans changement de comportement.

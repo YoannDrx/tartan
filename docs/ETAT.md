@@ -132,7 +132,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | M4 | Corriger le changement de compte par lien magique sur mobile, sans déconnexion | [iOS](plans/ios.md) | Avant soumission |
 | M5 | Repli HLS sur le lecteur mobile si le MP4 n'est pas prêt (le web l'a) | [iOS](plans/ios.md) | Avant soumission |
 | M6 | Connexion Apple : envoyer `authorizationCode` et stocker le jeton, pour la révocation | [iOS](plans/ios.md) | Seulement si activée |
-| T-suite | Tests élevés, moyens et faibles : T09 à T26. Fait : T10 (vidéo en HTTP, file d'envoi), T11, T22, T25 (routes techniques), T15, T16, T17 (gardes d'accès) | [automatisation](tests/automatisation.md) | Après l'ouverture web |
+| T-suite | Tests élevés, moyens et faibles : T09 à T26. Fait : T10 (vidéo en HTTP, file d'envoi), T11, T22, T25 (routes techniques), T15, T16, T17 (gardes d'accès), T21 (worker) | [automatisation](tests/automatisation.md) | Après l'ouverture web |
 | P1 | Remplacer le modèle de transcription avant son arrêt annoncé le 26 février 2027 | [IA](reference/planificateur-ia.md) | Échéance |
 | P2 | Enregistrer les 30 dictées réelles du corpus IA | [IA](reference/planificateur-ia.md) | Qualité IA |
 
