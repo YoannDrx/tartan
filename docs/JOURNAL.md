@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, tests T11, T22 et T25 : routes techniques
+
+Fait : `apps/web/tests/technical-routes.test.ts` appelle les vrais handlers de la tâche horaire, de `health`, `live`, `version`, du flux `ical`, ainsi que `manifest`, `robots` et `sitemap` (PR `test/routes-techniques`).
+Vérifié : neuf tests verts. Seuls le secret de la tâche, une tâche en panne (`processReferrals`) et une base coupée (`$queryRaw`) sont simulés.
+À savoir : le mock de `@/lib/env` étend le vrai environnement, sinon la base de test n'est plus joignable ; ses constantes passent par `vi.hoisted`.
+Suite conseillée : T12 à T21.
+
 ## 2026-11-12, Claude, tests T10 : la vidéo en HTTP
 
 Fait : `tests/video-http.test.ts` passe par les vrais handlers des routes vidéo, avec une vraie session, Mux seul simulé : création d'une adresse d'envoi, renouvellement d'une adresse expirée, liste du coach, vidéo invisible de l'athlète avant partage, remarque, partage et notification, partage au groupe refusé, remarque retirée ; un coach d'un autre espace ne crée, ne lit ni ne partage rien. `tests/upload-queue.test.ts` fait tourner la vraie file d'envoi du navigateur contre un faux serveur qui suit le protocole reprenable de Mux : envoi en morceaux de 4 Mio, reprise après coupure sans renvoyer ce qui est reçu, adresse expirée renouvelée, refus définitif abandonné, envoi hors ligne gardé (PR `test/video-http`).

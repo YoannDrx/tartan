@@ -43,7 +43,7 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 | --- | --- | --- |
 | T09 | Mobile sans rendu | Job macOS : build simulateur et Maestro sur API locale. Retirer les `runFlow: when`, jeu de données dédié, `coach-tracking` ouvre vraiment l'appel |
 | T10 | Vidéo en HTTP | Handlers de `o/videos`, `/upload`, `/share`, `/annotations*` avec `@/lib/mux` simulé, reprise de `upload-queue.ts` |
-| T11 | Cron horaire | Handler de `cron/hourly` avec jeton valide, horloge figée, clés de résultat, 500 si erreur |
+| T11 | Cron horaire | Fait. `tests/technical-routes.test.ts` : jeton absent ou faux refusé, horloge figée et clés de résultat, une tâche en panne rend 500 avec son seul nom, sans le message d'erreur, et les autres tournent |
 | T12 | Invitation nominative | `e2e/staff-invitation.spec.ts` : lien récupéré, droits vérifiés |
 | T13 | Changement d'espace | Compte double rôle, cookie `tartan_space`, aucune fuite entre espaces |
 | T14 | `/abonnement` | E2E avec Stripe simulé : boutons selon offre et rôle, vente coupée, blocage du 6e athlète |
@@ -59,7 +59,7 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 | T19 | Pages sans e2e | `/mes-sauts*`, `/progres`, `/seances/[id]/charges`, avec données et axe |
 | T20 | Console | `espaces/[id]` et `factures/[id]` dans `admin-console.spec.ts` |
 | T21 | Worker | Faux `self` pour `public/sw.js` : push au contenu neutre, clic |
-| T22 | Routes techniques | `health` (base coupée), `live`, `version`, `ical/*` |
+| T22 | Routes techniques | Fait. Même fichier : `health` à 200 puis 503 base coupée, `live` sans base, `version` sans cache, flux `ical` d'un athlète (séance, lieu, fin, sans le mot du coach), jeton faux et lien révoqué refusés |
 | T23 | IA réelle | `eval:planner --live` planifié hors CI, seuils de [planificateur-ia](../reference/planificateur-ia.md) |
 | T24 | Écrans natifs | Un flux Maestro par écran : planificateur, constructeur, capture, synchronisation, phases |
 
@@ -67,7 +67,7 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 
 | N° | Sujet | Test à écrire |
 | --- | --- | --- |
-| T25 | `manifest`, `robots`, `sitemap` | Vérification de réponse dans `e2e/pilot.spec.ts` |
+| T25 | `manifest`, `robots`, `sitemap` | Fait. Même fichier, sans navigateur : chaque page du plan du site existe et est permise aux robots, l'application reste fermée, icônes et raccourcis du manifeste existent |
 | T26 | Parcours parental | Seulement si `PARENTAL_FLOW_ENABLED` est activé un jour |
 
 ## Une fois la vente ouverte
