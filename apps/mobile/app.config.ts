@@ -1,3 +1,6 @@
+// Les fichiers TypeScript importés ci-dessous ne doivent pas dépendre du support natif de Node, absent sur les
+// machines de build EAS : « Unexpected token » à l'étape « Read app config ». tsx les transpile, partout.
+import "tsx/cjs";
 import type { ConfigContext, ExpoConfig } from "expo/config";
 import { withGradleProperties } from "expo/config-plugins";
 import { fr } from "../../packages/i18n/src/fr.ts";

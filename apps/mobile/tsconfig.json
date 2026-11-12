@@ -7,5 +7,5 @@
     "noUncheckedIndexedAccess": true
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "ios", "android", "dist", "src/lib/upload/stretch.test.ts"]
+  "exclude": ["node_modules", "ios", "android", "dist", "src/lib/upload/stretch.test.ts", "src/lib/app-config.test.ts"]
 }

@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, M1 : l'échec des builds EAS à « Read app config »
+
+Fait : cause trouvée dans le journal du build Android du 9 novembre sur expo.dev : `expo config` échoue sur `app.config.ts` (« Unexpected token '{' »). La configuration importe deux fichiers TypeScript que seule la lecture native de Node savait charger. Correction : `import "tsx/cjs"` en tête de la configuration, et `tsx` en dépendance de développement du mobile (PR `fix/eas-app-config`).
+Vérifié : `src/lib/app-config.test.ts` lit la configuration de production avec et sans le TypeScript natif de Node ; il échoue sans la correction.
+Non vérifié : un build EAS réel. Il engage le compte du fondateur, qui le lance (commande dans `docs/plans/android.md`).
+À savoir : les variables EAS de production ne sont pas en cause (`GOOGLE_SERVICES_JSON` sous forme de texte a été testé localement avec une valeur factice).
+
 ## 2026-11-12, Claude, test T20 : fiches de la console
 
 Fait : `apps/web/e2e/admin-console.spec.ts` ouvre aussi `admin/espaces/[id]` et `admin/factures/[id]` (PR `test/console`).
