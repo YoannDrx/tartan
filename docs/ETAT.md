@@ -17,7 +17,7 @@ Mis à jour le 12 novembre 2026. Toute PR qui change un état met ce fichier à 
 | Inscriptions | Fermées : création d'espace coach sur invitation |
 | Espaces en production | 2 espaces pilotes, comptes presque tous fictifs |
 | Administrateur | Le fondateur, passkey enrôlée |
-| CI | Verte. Plafonnée à 45 minutes depuis la panne des dépôts Ubuntu du 11 novembre 2026. Le dépôt est public pour disposer des minutes GitHub Actions |
+| CI | Verte. Job `quality` plafonné à 60 minutes depuis le 12 novembre 2026 (les parcours en prennent près de 30). Job `maestro` (macOS) : les flux natifs sur simulateur iOS, contre un serveur local. Le dépôt est public pour disposer des minutes GitHub Actions |
 | iOS | Archive 1.1.0 (12) envoyée à App Store Connect, non soumise à la revue |
 | Android | Rien de publié, build EAS en échec, compte Play à créer |
 
