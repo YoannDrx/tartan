@@ -19,11 +19,6 @@
       "count": 1
     }
   },
-  "app/(app)/admin/page.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 2
-    }
-  },
   "app/(app)/athletes/[id]/page.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 8

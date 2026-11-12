@@ -1513,3 +1513,14 @@
     animation: none !important;
   }
 }
+
+/* La création de l'espace : l'athlète de la scène prend la pose du temps affiché par le formulaire. */
+.step-pose:not([data-step-pose="0"]),
+main:has(form[data-step="1"]) .step-pose[data-step-pose="0"],
+main:has(form[data-step="2"]) .step-pose[data-step-pose="0"] {
+  display: none;
+}
+main:has(form[data-step="1"]) .step-pose[data-step-pose="1"],
+main:has(form[data-step="2"]) .step-pose[data-step-pose="2"] {
+  display: block;
+}

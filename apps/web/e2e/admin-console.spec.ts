@@ -40,6 +40,10 @@ test("la console s'ouvre à l'éditeur, lisible sur chaque écran, et reste ferm
   expect(download.suggestedFilename()).toBe(`tartan-factures-${year}.csv`);
 
   await page.goto("/admin/utilisateurs");
+  // Sur téléphone, une carte par ligne ; dès la tablette, la table.
+  const phone = (page.viewportSize()?.width ?? 0) < 768;
+  await expect(page.getByRole("list", { name: m.admin.nav.users })).toBeVisible({ visible: phone });
+  await expect(page.getByRole("table", { name: m.admin.nav.users })).toBeVisible({ visible: !phone });
   await page.getByRole("link", { name: `console-${info.project.name}@e2e.tartan.test` }).click();
   await expect(page.getByRole("button", { name: m.admin.resendVerification })).toBeVisible();
   await expect(page.getByRole("button", { name: m.admin.suspend })).toHaveCount(0);

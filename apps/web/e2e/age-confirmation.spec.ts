@@ -96,3 +96,23 @@ test("un temps de l'onboarding prend le focus au moment même où il s'affiche",
   await expect(page.getByLabel(m.onboarding.orgName)).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as { __focused: string }).__focused)).toBe(m.onboarding.orgTitle);
 });
+
+test("à la création de l'espace, l'athlète de la scène suit les trois temps", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signUp(page, uniqueEmail("scene-onboarding"));
+  const pose = (step: number) => page.locator(`[data-step-pose="${step}"]`);
+  const shown = async () =>
+    Promise.all(
+      [0, 1, 2].map(async (step) => (await pose(step).evaluate((el) => getComputedStyle(el).display)) !== "none"),
+    );
+  expect(await shown()).toEqual([true, false, false]);
+  await page.getByLabel("Prénom").fill("Camille");
+  await page.getByLabel("Nom", { exact: true }).fill("Coach");
+  await page.getByLabel(m.invite.birthDate).fill("1990-01-01");
+  await nextOnboardingStep(page);
+  await expect.poll(shown).toEqual([false, true, false]);
+  await page.getByLabel(m.onboarding.orgName).fill("Préparation athlé");
+  await page.getByLabel(m.onboarding.firstGroup, { exact: true }).fill("Sprint");
+  await nextOnboardingStep(page);
+  await expect.poll(shown).toEqual([false, false, true]);
+});

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { m } from "@tartan/i18n";
 import { PublicPage } from "@/features/shell/public-page";
+import { OnboardingScene } from "@/features/shell/start-scene";
 import { getActor } from "@/lib/session";
 import { OnboardingForm } from "@/features/onboarding/onboarding-form";
 import { env } from "@/lib/env";
@@ -48,7 +49,7 @@ export default async function BienvenuePage({
   // Les comptes créés avant le correctif de `splitName` ont le début de leur adresse comme prénom.
   const firstName = me.firstName && me.firstName !== actor.email.split("@")[0] ? me.firstName : "";
   return (
-    <PublicPage title={m.onboarding.title}>
+    <PublicPage title={m.onboarding.title} scene={<OnboardingScene />} scenePhone={false}>
       <div className="on-card flex flex-col gap-5 rounded-card bg-card p-5">
         <OnboardingForm
           firstName={firstName}

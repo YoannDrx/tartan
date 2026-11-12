@@ -1,7 +1,21 @@
-import { Body, Button, Container, Head, Html, Img, Link, Preview, Section, Text } from "@react-email/components";
+import {
+  Body,
+  Button,
+  Column,
+  Container,
+  Head,
+  Html,
+  Img,
+  Link,
+  Preview,
+  Row,
+  Section,
+  Text,
+} from "@react-email/components";
 import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import type { ReactNode } from "react";
+import { EMAIL_ATHLETE_HEIGHT, emailAthletePath, type EmailAthlete } from "./athletes";
 
 const font = "Barlow, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
 const SITE = "https://tartan.coach";
@@ -29,13 +43,16 @@ const Lanes = () => (
 );
 
 // Identité Tartan : bandeau piste et logo complet, message sur blanc, pied de page encre. Clair dans tous les clients.
+// Un athlète du groupe peut se tenir à droite du logo, les pieds sur les lignes de la piste (athletes.ts).
 export const Layout = ({
   preview,
   footerNote,
+  athlete,
   children,
 }: {
   preview: string;
   footerNote?: ReactNode;
+  athlete?: EmailAthlete;
   children: ReactNode;
 }) => (
   <Html lang="fr">
@@ -46,15 +63,31 @@ export const Layout = ({
     <Preview>{preview}</Preview>
     <Body style={{ backgroundColor: tokens.color.bg, fontFamily: font, margin: 0, padding: "24px 12px" }}>
       <Container style={{ borderRadius: 20, maxWidth: 560, overflow: "hidden" }}>
-        <Section style={{ backgroundColor: tokens.band.background, padding: "24px 32px 20px" }}>
-          <Link href={SITE}>
-            <Img
-              src={`${SITE}/brand/logo-email.png`}
-              alt="Tartan"
-              height={36}
-              style={{ display: "block", border: 0 }}
-            />
-          </Link>
+        <Section
+          style={{ backgroundColor: tokens.band.background, padding: athlete ? "16px 32px 0" : "24px 32px 20px" }}
+        >
+          <Row>
+            <Column style={{ verticalAlign: athlete ? "top" : "middle", paddingTop: athlete ? 8 : 0 }}>
+              <Link href={SITE}>
+                <Img
+                  src={`${SITE}/brand/logo-email.png`}
+                  alt="Tartan"
+                  height={36}
+                  style={{ display: "block", border: 0 }}
+                />
+              </Link>
+            </Column>
+            {athlete ? (
+              <Column align="right" style={{ verticalAlign: "bottom", width: 72 }}>
+                <Img
+                  src={`${SITE}${emailAthletePath(athlete)}`}
+                  alt=""
+                  height={EMAIL_ATHLETE_HEIGHT}
+                  style={{ display: "block", border: 0 }}
+                />
+              </Column>
+            ) : null}
+          </Row>
         </Section>
         <Lanes />
         <Section style={{ backgroundColor: tokens.color.surface, padding: "32px 32px 16px" }}>{children}</Section>

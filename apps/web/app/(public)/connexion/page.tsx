@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { PLANS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { PublicPage } from "@/features/shell/public-page";
+import { SignInScene } from "@/features/shell/start-scene";
 import { enabledSocialProviders } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { platformSettings } from "@/server/platform-settings.service";
@@ -29,6 +30,7 @@ export default async function ConnexionPage({
     <PublicPage
       title={creating ? m.auth.createTitle : m.auth.signInTitle}
       lead={creating ? m.auth.createLead(PLANS.discovery.limits.maxAthletes ?? 0) : m.auth.signInLead}
+      scene={<SignInScene />}
     >
       <div className="on-card flex flex-col gap-4 rounded-card bg-card p-5">
         {lien === "expire" ? <p role="alert">{m.auth.resetInvalid}</p> : null}

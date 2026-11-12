@@ -26,8 +26,16 @@ export const AthleteFigure = ({
   <FigureGroup figure={svgAthlete(athleteRig(id, face), pose, athletePaint(id, on), at)} {...group} />
 );
 
-// Le cadre : le corps entier quelle que soit la pose, le corps debout au plus près, ou la tête seule.
-const VIEW = { body: "-250 -270 500 500", standing: "-105 -212 210 372", head: "-78 -212 156 156" };
+// Le cadre : le corps entier quelle que soit la pose, le corps debout au plus près, la course posée au sol (même
+// échelle que debout, pieds sur le bord bas), debout bras levés, ou la tête seule.
+const VIEW = {
+  body: "-250 -270 500 500",
+  standing: "-105 -212 210 372",
+  stride: "-160 -212 320 380",
+  // Debout, bras levés compris.
+  raised: "-140 -262 280 422",
+  head: "-78 -212 156 156",
+};
 
 // Un athlète du groupe, en aplats. Décoratif par défaut : le texte voisin porte le sens.
 export const Athlete = ({

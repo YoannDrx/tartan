@@ -2585,6 +2585,8 @@ export const fr = {
       dispute: (space: string) => `Litige ouvert pour ${space}`,
     },
     retentionReviews: "Espaces actifs sans repreneur",
+    // Numéro de génération d'une session de paiement, dans la liste des revues.
+    generation: (n: number) => `v${n}`,
     retentionProcedure:
       "Contacter les membres pour organiser une reprise dans les 30 jours. Après vérification du repreneur, transférer l’espace puis supprimer le compte inactif. Le report protège l’espace ; il ne justifie pas de conserver indéfiniment le compte du partant.",
     billingIssues: "Anomalies de facturation",
