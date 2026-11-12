@@ -102,6 +102,24 @@ test("le triple saut : élan, appel, puis les réceptions en rythme", async ({ p
   await expectAccessible(page);
 });
 
+test("le saut en hauteur : la barre monte après un franchissement, et le concours s'arrête après trois échecs", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await page.goto("/jeu", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: m.game.events.highJump.play, exact: true }).click();
+  await expect(page.getByRole("img", { name: m.game.events.highJump.canvas })).toBeVisible();
+  await page.getByRole("button", { name: m.game.start, exact: true }).click();
+  await expect(page.getByText(m.game.distance(1_600), { exact: true })).toBeVisible();
+  // Aucun appui : trois refus, et le concours s'arrête sans barre franchie.
+  await expect(page.getByRole("status").filter({ hasText: m.game.events.highJump.none })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.getByText(m.game.events.highJump.outcomes.balked, { exact: true })).toBeVisible();
+  await expectNoHorizontalScroll(page);
+  await expectAccessible(page);
+});
+
 test("la page du jeu est au plan du site et ouverte aux robots", async ({ request }) => {
   expect(await (await request.get("/sitemap.xml")).text()).toContain("https://tartan.coach/jeu");
   expect(await (await request.get("/robots.txt")).text()).toContain("Allow: /jeu");
