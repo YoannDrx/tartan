@@ -126,6 +126,8 @@ jobs:
             -d "{\"email\":\"$NO_AGE_EMAIL\",\"password\":\"$DEMO_PASSWORD\",\"name\":\"Sans Âge\"}" > /dev/null
           psql "$DATABASE_URL" -c "update \"user\" set email_verified = true where email = '$NO_AGE_EMAIL'"
           psql "$DATABASE_URL" -c "update profiles set birth_date = null where id = (select id from \"user\" where email = '$NO_AGE_EMAIL')"
+          # L'écran d'âge vient après l'espace : le compte rejoint l'espace de démonstration comme athlète.
+          psql "$DATABASE_URL" -c "insert into organization_members (organization_id, user_id, role, updated_at) select o.id, u.id, 'athlete', now() from organizations o, \"user\" u where o.owner_id = (select id from \"user\" where email = 'coach@demo.tartan.coach') and u.email = '$NO_AGE_EMAIL'"
       - name: Xcode 26
         # Expo SDK 55 exige le Swift de Xcode 26 ; l'image du runner garde Xcode 16 par défaut.
         run: |
