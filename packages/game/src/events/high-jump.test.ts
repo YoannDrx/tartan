@@ -13,7 +13,7 @@ import {
   TAKEOFF_WINDOW,
   highJump,
 } from "./high-jump";
-import { playAttempts } from "./high-jump.bots";
+import { playAttempts } from "./bar.bots";
 
 const play = (seed: number, attempts: Parameters<typeof playAttempts>[1]) => {
   const { log, state } = playAttempts(seed, attempts);

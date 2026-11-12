@@ -120,6 +120,20 @@ test("le saut en hauteur : la barre monte après un franchissement, et le concou
   await expectAccessible(page);
 });
 
+test("le saut à la perche : la barre part de 4,20 m, trois refus arrêtent le concours", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/jeu", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: m.game.events.poleVault.play, exact: true }).click();
+  await expect(page.getByRole("img", { name: m.game.events.poleVault.canvas })).toBeVisible();
+  await page.getByRole("button", { name: m.game.start, exact: true }).click();
+  await expect(page.getByText(m.game.distance(4_200), { exact: true })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: m.game.events.poleVault.none })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expectNoHorizontalScroll(page);
+  await expectAccessible(page);
+});
+
 test("la page du jeu est au plan du site et ouverte aux robots", async ({ request }) => {
   expect(await (await request.get("/sitemap.xml")).text()).toContain("https://tartan.coach/jeu");
   expect(await (await request.get("/robots.txt")).text()).toContain("Allow: /jeu");
