@@ -72,6 +72,24 @@ export const expectAccessible = async (page: Page) => {
   // Après un changement de page, le titre de l'onglet peut arriver à la fin de la transition, donc jusqu'à
   // 200 ms après le contenu : on juge la page installée, pas l'image d'entre-deux.
   await expect(page).toHaveTitle(/\S/);
+  // Un dialogue ou un menu qui entre ou qui sort est à demi transparent le temps de son animation : là aussi,
+  // on attend qu'il soit posé. Les animations sans fin et celles que pilote le défilement ne comptent pas.
+  await page.evaluate(() =>
+    Promise.race([
+      Promise.all(
+        document
+          .getAnimations()
+          .filter(
+            (animation) =>
+              animation.timeline instanceof DocumentTimeline &&
+              animation.playState === "running" &&
+              animation.effect?.getComputedTiming().iterations !== Infinity,
+          )
+          .map((animation) => animation.finished.catch(() => undefined)),
+      ),
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]),
+  );
   // Sous l'en-tête fixe, un champ à moitié recouvert compterait comme une cible trop petite : tout dépendrait du défilement.
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   const results = await new AxeBuilder({ page })
