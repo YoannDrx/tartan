@@ -15,7 +15,6 @@ import { dataUri, figureSvg } from "@/lib/figure-svg";
 // son téléphone. Le prénom, la discipline, la marque, la date, et l'athlète de l'épreuve qui lève les bras.
 export const CARD = { width: 1080, height: 1350 } as const;
 
-const asset = (...parts: string[]) => readFile(path.join(process.cwd(), ...parts));
 
 export const formatMark = (mark: number, unit: string) => `${String(mark).replace(".", ",")} ${unit}`;
 
@@ -27,9 +26,10 @@ export const recordCardImage = async (card: {
   date: string;
 }) => {
   const [condensed, barlow, logo] = await Promise.all([
-    asset("assets", "fonts", "BarlowCondensed_700Bold.ttf"),
-    asset("assets", "fonts", "Barlow_600SemiBold.ttf"),
-    asset("public", "brand", "logo-on-dark.svg"),
+    // Des chemins écrits en entier : le traçage du déploiement n'embarque que ces fichiers.
+    readFile(path.join(process.cwd(), "assets/fonts/BarlowCondensed_700Bold.ttf")),
+    readFile(path.join(process.cwd(), "assets/fonts/Barlow_600SemiBold.ttf")),
+    readFile(path.join(process.cwd(), "public/brand/logo-on-dark.svg")),
   ]);
   const id = disciplineAthlete(card.discipline);
   const athlete = figureSvg(
