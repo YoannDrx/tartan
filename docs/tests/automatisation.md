@@ -60,8 +60,8 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 | T20 | Console | Fait. `e2e/admin-console.spec.ts` ouvre la fiche de l'espace de l'éditeur et celle d'une facture d'essai posée en base : titre, mode test, montant, sans débordement ni erreur axe |
 | T21 | Worker | Fait. `tests/service-worker.test.ts` charge le vrai `public/sw.js` dans un faux worker : notification affichée telle quelle ou neutre sans contenu, clic qui réutilise une fenêtre, réponse depuis la notification, API et autres sites jamais interceptés, page gardée puis page hors ligne sans réseau |
 | T22 | Routes techniques | Fait. Même fichier : `health` à 200 puis 503 base coupée, `live` sans base, `version` sans cache, flux `ical` d'un athlète (séance, lieu, fin, sans le mot du coach), jeton faux et lien révoqué refusés |
-| T23 | IA réelle | `eval:planner --live` planifié hors CI, seuils de [planificateur-ia](../reference/planificateur-ia.md) |
-| T24 | Écrans natifs | Un flux Maestro par écran : planificateur, constructeur, capture, synchronisation, phases |
+| T23 | IA réelle | Hors CI, par choix : chaque passage appelle OpenAI et coûte. Le fondateur le lance avant chaque changement de modèle ou de consigne, et une fois par mois tant que l'IA est ouverte : `corepack pnpm --filter @tartan/web eval:planner --live --output .local/planner-eval-AAAA-MM.json`, avec la clé de production dans `.env.local`. Seuils de [planificateur-ia](../reference/planificateur-ia.md) : 57/60, aucune date fausse, aucune charge inventée. Premier passage dû après F6 et le passage à `gpt-transcribe` |
+| T24 | Écrans natifs | Hors CI tant que M2 n'existe pas : un flux Maestro par écran (planificateur, constructeur, capture, synchronisation, phases), joué sur simulateur avec un build de développement et l'API locale. Maestro n'est pas installé sur le poste de développement : l'installer (`curl -Ls "https://get.maestro.mobile.dev" \| bash`) relève du fondateur. Les flux de M4 (changement de compte) et de M5 (vidéo juste encodée) s'ajoutent à cette liste |
 
 ## Faible
 
