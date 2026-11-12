@@ -25,6 +25,7 @@ import { api } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
 import { PHASE_ORDER, phaseSegments, preciseTimecode, segmentAt, type PhaseSegment } from "../../src/lib/phases";
 import { defaultSpeed, playerRate, speedsFor } from "../../src/lib/playback";
+import { playbackSource, shouldFallBackToHls } from "../../src/lib/playback-source";
 import { useActiveSpace, useVideo } from "../../src/lib/queries";
 import { ArrowUp, Flag, Pause, Play, Repeat, Share, SkipBack, SkipForward, Trash } from "../../src/ui/icons";
 import { Button, Chip, Field, IconButton, SectionTitle, T } from "../../src/ui/primitives";
@@ -167,8 +168,10 @@ const Player = ({
   orgId,
   videoId,
   onRetry,
+  onSourceError,
 }: {
   onRetry: () => void;
+  onSourceError: () => void;
   uri: string;
   fps: number | null;
   // Tout l'écran raisonne en temps réel : seuls les échanges avec le lecteur passent par le temps du fichier étiré.
@@ -196,6 +199,9 @@ const Player = ({
   });
   const { isPlaying } = useEvent(player, "playingChange", { isPlaying: player.playing });
   const { status } = useEvent(player, "statusChange", { status: player.status });
+  useEventListener(player, "statusChange", ({ status: next }) => {
+    if (next === "error") onSourceError();
+  });
   const playable = status !== "error";
   const [positionMs, setPositionMs] = useState(0);
   const [durationMs, setDurationMs] = useState(knownDurationMs ?? 0);
@@ -496,6 +502,7 @@ export default function VideoAnalysis() {
   const video = useVideo(orgId, id);
   const client = useQueryClient();
   const [attempt, setAttempt] = useState(0);
+  const [mp4Failed, setMp4Failed] = useState(false);
   const canAnnotate = active ? isStaff(active.role) : false;
 
   const share = useMutation({
@@ -523,7 +530,8 @@ export default function VideoAnalysis() {
   }
   const v = video.data;
   // Le MP4 de Mux est plafonné à 30 i/s : c'est l'étirement à l'envoi qui y garde chaque image d'un ralenti.
-  const uri = v.mp4Url ?? v.hlsUrl;
+  // Il arrive après le HLS : s'il n'est pas encore lisible, le lecteur repart une fois sur le HLS.
+  const uri = playbackSource(v, mp4Failed);
   const title = v.barHeightCm ? m.mobile.video.saut(v.athleteName, formatHeight(v.barHeightCm)) : v.athleteName;
   const subtitle = [
     v.recordedAt ? capitalize(formatDayMonth(v.recordedAt.slice(0, 10))) : null,
@@ -540,6 +548,9 @@ export default function VideoAnalysis() {
         <Player
           key={`${uri}-${attempt}`}
           onRetry={() => setAttempt((n) => n + 1)}
+          onSourceError={() => {
+            if (shouldFallBackToHls(v, mp4Failed)) setMp4Failed(true);
+          }}
           uri={uri}
           fps={v.fps}
           timeScale={v.timeScale}

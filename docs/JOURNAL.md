@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, M5 : repli HLS du lecteur mobile
+
+Fait : `apps/mobile/src/lib/playback-source.ts` choisit la source (MP4 d'abord, HLS s'il manque), et `app/video/[id].tsx` repart une fois sur le HLS quand le lecteur échoue sur le MP4, comme le web (PR `feat/mobile-hls-repli`, empilée sur P1).
+Vérifié : trois tests de la règle, typecheck du mobile.
+Non vérifié : sur un téléphone, une vidéo ouverte juste après l'encodage. Il faut un build de développement et une vidéo Mux réelle.
+
 ## 2026-11-12, Claude, P1 : la dictée passe à gpt-transcribe
 
 Fait : `AI_TRANSCRIPTION_MODEL` vaut `gpt-transcribe` par défaut. La requête envoie `languages[]`, `keywords[]` et un `prompt` de contexte court, jamais `language` (PR `feat/gpt-transcribe`). Source : la documentation d'OpenAI, pages « Transcription » et « GPT-Transcribe » (recherche externe du 12 novembre 2026). L'ancien modèle reste accepté jusqu'à son arrêt.
