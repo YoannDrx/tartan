@@ -13,6 +13,11 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, tests T10 : la vidéo en HTTP
+
+Fait : `tests/video-http.test.ts` passe par les vrais handlers des routes vidéo, avec une vraie session, Mux seul simulé : création d'une adresse d'envoi, renouvellement d'une adresse expirée, liste du coach, vidéo invisible de l'athlète avant partage, remarque, partage et notification, partage au groupe refusé, remarque retirée ; un coach d'un autre espace ne crée, ne lit ni ne partage rien. `tests/upload-queue.test.ts` fait tourner la vraie file d'envoi du navigateur contre un faux serveur qui suit le protocole reprenable de Mux : envoi en morceaux de 4 Mio, reprise après coupure sans renvoyer ce qui est reçu, adresse expirée renouvelée, refus définitif abandonné, envoi hors ligne gardé (PR `test/video-http`).
+À savoir : la fin du traitement par Mux (webhook) est posée en base dans ce test ; elle a son propre test signé, `mux-webhook.test.ts`.
+Suite conseillée : T11 et T22.
 ## 2026-11-12, Claude, lot J3 : classement du jeu, construit et fermé
 
 Fait : trois tables additives (`game_runs`, `game_scores`, `game_bans`). `src/server/game.service.ts`, service public limité à ces tables : le départ d'un essai tire la graine côté serveur et rend un jeton à usage unique (15 min) ; l'envoi consomme le jeton, rejoue le journal des appuis avec `packages/game`, refuse un score impossible (plafond), une partie arrivée plus vite que son horloge (90 % de sa durée), un pseudo filtré (3 à 16 caractères, mots refusés), un appareil banni, et limite le débit par empreinte d'adresse ; une marque nulle n'est pas classée. Classement par épreuve, semaine en cours ou depuis toujours, meilleur score par appareil. Effacement sans compte par l'appareil. Tâche quotidienne : empreintes IP effacées à 30 jours, jetons inutilisés à un jour. Routes `/api/v1/game/runs`, `/scores` (POST et DELETE), `/leaderboard`. Console `/admin/jeu` (masquer, bannir). Réglage « Classement du jeu » dans `/admin/configuration`, fermé par défaut ; sur `/jeu`, rien ne change tant qu'il est fermé (PR `feat/jeu-classement`).

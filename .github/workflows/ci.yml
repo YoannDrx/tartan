@@ -23,9 +23,9 @@ env:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    # Une CI saine dure une demi-heure. Sans plafond, un serveur en panne
+    # Une CI saine dure 35 à 40 minutes, parcours compris. Sans plafond, un serveur en panne
     # garde la PR en attente jusqu'aux six heures de GitHub.
-    timeout-minutes: 45
+    timeout-minutes: 60
     services:
       postgres:
         image: postgres:17
