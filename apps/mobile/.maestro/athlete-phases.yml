@@ -1,0 +1,15 @@
+# T24, phases : depuis son calendrier, l'athlète ouvre les phases de préparation de son groupe.
+appId: ${APP_ID}
+env:
+  EMAIL: ${ATHLETE_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: session-hero
+    timeout: 30000
+- tapOn: "Calendrier"
+- tapOn: "Phases de préparation"
+- extendedWaitUntil:
+    visible: "Aucune phase sur cette période."
+    timeout: 15000

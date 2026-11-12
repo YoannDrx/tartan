@@ -1,4 +1,5 @@
 # Sous-parcours : connexion par e-mail et mot de passe. Variables : EMAIL, PASSWORD.
+# Le clavier d'adresse d'iOS n'a pas de touche pour se fermer : on le ferme en touchant le titre, hors des champs.
 appId: ${APP_ID}
 ---
 - launchApp:
@@ -11,12 +12,14 @@ appId: ${APP_ID}
 - tapOn:
     id: sign-in-email
 - inputText: ${EMAIL}
-- hideKeyboard
+- tapOn:
+    id: sign-in-title
 - tapOn:
     id: sign-in-use-password
 - tapOn:
     id: sign-in-password
 - inputText: ${PASSWORD}
-- hideKeyboard
+- tapOn:
+    id: sign-in-title
 - tapOn:
     id: sign-in-submit
