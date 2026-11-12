@@ -1,7 +1,7 @@
 import { highJump } from "@tartan/game/events/high-jump";
 import { m } from "@tartan/i18n";
 import { barUi } from "./bar-ui";
-import { drawHighJump } from "./high-jump-scene";
+import { drawHighJump, highJumpTimeScale } from "./high-jump-scene";
 
 export const highJumpUi = barUi({
   id: "highJump",
@@ -9,4 +9,5 @@ export const highJumpUi = barUi({
   recordKey: "tartan.jeu.hauteur.record",
   texts: m.game.events.highJump,
   draw: drawHighJump,
+  timeScale: highJumpTimeScale,
 });

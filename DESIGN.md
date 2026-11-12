@@ -136,7 +136,7 @@ Dans un e-mail, un athlète se tient à droite du logo, les pieds sur les lignes
 
 ## Le jeu
 
-« Tartan Meeting » vit sur le site : un aperçu jouable après la ligne d'arrivée de la page d'accueil, le jeu complet sur `/jeu`. Il se joue au pouce, d'un seul geste (appuyer, tenir, relâcher), et au clavier. La scène est encre et piste, avec les athlètes du groupe ; l'affichage tête haute, les résultats et le classement sont en HTML, dans les composants partagés. Le jeu ne retarde jamais le chargement de la page d'accueil. Sur iOS et Android, aucune mention de prix n'y figure.
+« Tartan Meeting » vit sur le site : un aperçu jouable après la ligne d'arrivée de la page d'accueil (le saut en hauteur), le jeu complet sur `/jeu`. Au saut en hauteur, la barre monte à chaque hauteur franchie, l'appel, le franchissement et la réception passent au ralenti, et une barre franchie se fête (confettis, hauteur en grand). Le ralenti ne touche que l'image, jamais la simulation ni le journal des appuis ; en mouvement réduit, ni confettis ni montée animée. Il se joue au pouce, d'un seul geste (appuyer, tenir, relâcher), et au clavier. La scène est encre et piste, avec les athlètes du groupe ; l'affichage tête haute, les résultats et le classement sont en HTML, dans les composants partagés. Le jeu ne retarde jamais le chargement de la page d'accueil. Sur iOS et Android, aucune mention de prix n'y figure.
 
 ## Recette
 

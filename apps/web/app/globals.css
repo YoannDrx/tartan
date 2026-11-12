@@ -1222,13 +1222,14 @@
   }
 }
 @media (prefers-reduced-motion: no-preference) and (scripting: enabled) and (min-height: 560px) {
-  /* Trois écrans de défilement sur téléphone, quatre et demi sur ordinateur : le produit arrive vite. */
+  /* Sept écrans et demi de défilement sur téléphone, dix sur ordinateur : chaque épreuve a le temps d'aller au bout
+     de son geste, sans filer sous le pouce. */
   .film {
-    height: 300svh;
+    height: 750svh;
   }
   @media (min-width: 1024px) {
     .film {
-      height: 450svh;
+      height: 1000svh;
     }
   }
   .film-stage {
