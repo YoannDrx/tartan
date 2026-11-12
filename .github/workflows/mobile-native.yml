@@ -163,6 +163,9 @@ jobs:
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
       - name: Parcours natifs
         working-directory: apps/mobile
+        env:
+          # Le pilote iOS de Maestro démarre parfois lentement sur les runners partagés.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: "600000"
         run: |
           maestro test .maestro --format junit --output "$RUNNER_TEMP/maestro.xml" --debug-output "$RUNNER_TEMP/maestro" --flatten-debug-output \
             -e APP_ID=coach.tartan.app.dev \
