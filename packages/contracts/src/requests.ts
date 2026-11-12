@@ -132,6 +132,7 @@ const birthDateInput = isoDate.refine((value) => {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value && date <= new Date();
 }, "Indique une date de naissance valide");
 export const confirmAgeInput = z.object({ birthDate: birthDateInput });
+export const appleAuthorizationInput = z.object({ code: z.string().min(1).max(2048) });
 export const adminSpaceFeaturesInput = z
   .object({
     organizationId: uuid,

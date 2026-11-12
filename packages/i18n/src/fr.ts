@@ -3195,6 +3195,8 @@ export const fr = {
     videoDisabled: "L'envoi vidéo n'est pas encore configuré sur ce serveur.",
     videoStorageFull: "L'espace vidéo est plein. Supprime une ancienne vidéo, ou demande à ton coach de le faire.",
     consentRequired: "L'accord de l'athlète est nécessaire pour cette action.",
+    appleNotLinked: "Ce compte n'est pas relié à Apple.",
+    appleUnavailable: "Apple ne répond pas pour l'instant. Réessaie plus tard.",
   },
   // Textes propres à l'app mobile (apps/mobile).
   mobile: {

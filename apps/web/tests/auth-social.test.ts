@@ -18,7 +18,9 @@ const APPLE = {
     .privateKey.export({ type: "pkcs8", format: "pem" })
     .toString(),
 };
-const SOCIAL_KEYS = [...Object.keys(GOOGLE), ...Object.keys(APPLE)];
+// L'app iOS : son bundle reçoit le code d'autorisation, et c'est lui qui révoque le jeton obtenu.
+const APPLE_NATIVE = { ...APPLE, APPLE_APP_BUNDLE_IDENTIFIER: "coach.tartan.app.factice" };
+const SOCIAL_KEYS = [...Object.keys(GOOGLE), ...Object.keys(APPLE_NATIVE)];
 
 // La configuration se lit au chargement du module : chaque cas recharge l'application avec ses variables.
 const load = async (variables: Record<string, string>) => {
@@ -302,7 +304,7 @@ describe("révocation Apple à la suppression du compte", () => {
     expect(await prisma.user.count({ where: { id: user.userId } })).toBe(0);
   });
 
-  it("sans jeton conservé, rien n'est révoqué : c'est la limite M6, tant que la connexion Apple reste éteinte", async () => {
+  it("sans jeton conservé, rien n'est révoqué, et la suppression a lieu", async () => {
     await load(APPLE);
     const { deleteAccount } = await import("@/server/account.service");
     const user = await appleAccount(null);
@@ -312,5 +314,80 @@ describe("révocation Apple à la suppression du compte", () => {
     await deleteAccount(user.userId);
     expect(revocations()).toEqual([]);
     expect(await prisma.user.count({ where: { id: user.userId } })).toBe(0);
+  });
+});
+
+describe("code d'autorisation de l'app iOS (M6)", () => {
+  // Le jeton d'identité que renvoie Apple : seul son sujet compte ici.
+  const idToken = (subject: string) =>
+    new SignJWT({})
+      .setProtectedHeader({ alg: "HS256" })
+      .setSubject(subject)
+      .sign(new TextEncoder().encode("cle-factice-de-test-apple"));
+  const sentTo = (path: string) =>
+    network.mock.calls
+      .filter(([input]) => urlOf(input) === `https://appleid.apple.com${path}`)
+      .map(([, init]) => Object.fromEntries(new URLSearchParams(String(init?.body))));
+  const linked = async () => {
+    const user = await makeUser("AppleNatif");
+    const subject = `apple-${randomUUID()}`;
+    await prisma.account.create({ data: { accountId: subject, providerId: "apple", userId: user.userId } });
+    return { ...user, subject };
+  };
+  const apple = (subject: string) =>
+    network.mockImplementation(async (input) =>
+      urlOf(input).endsWith("/auth/token")
+        ? Response.json({ refresh_token: "jeton-de-l-app", id_token: await idToken(subject) })
+        : new Response(null, { status: 200 }),
+    );
+
+  it("échange le code pour le bundle de l'app, garde le jeton, et la suppression le révoque avec le même", async () => {
+    await load(APPLE_NATIVE);
+    const { storeAppleAuthorization } = await import("@/server/apple-authorization.service");
+    const { deleteAccount } = await import("@/server/account.service");
+    const user = await linked();
+    apple(user.subject);
+    vi.stubGlobal("fetch", network);
+
+    await expect(storeAppleAuthorization(user.userId, { code: "code-de-l-app" })).resolves.toEqual({ stored: true });
+    const [exchange] = sentTo("/auth/token");
+    expect(exchange).toMatchObject({
+      client_id: APPLE_NATIVE.APPLE_APP_BUNDLE_IDENTIFIER,
+      code: "code-de-l-app",
+      grant_type: "authorization_code",
+    });
+    expect(decodeJwt(exchange!.client_secret!).sub).toBe(APPLE_NATIVE.APPLE_APP_BUNDLE_IDENTIFIER);
+
+    await deleteAccount(user.userId);
+    expect(sentTo("/auth/revoke")).toEqual([
+      expect.objectContaining({ client_id: APPLE_NATIVE.APPLE_APP_BUNDLE_IDENTIFIER, token: "jeton-de-l-app" }),
+    ]);
+  });
+
+  it("refuse le code d'un autre compte Apple, un compte sans liaison Apple, et une configuration absente", async () => {
+    await load(APPLE_NATIVE);
+    const { storeAppleAuthorization } = await import("@/server/apple-authorization.service");
+    const user = await linked();
+    apple("un-autre-compte-apple");
+    vi.stubGlobal("fetch", network);
+    await expect(storeAppleAuthorization(user.userId, { code: "code" })).rejects.toMatchObject({ status: 403 });
+    expect((await prisma.account.findFirstOrThrow({ where: { userId: user.userId } })).refreshToken).toBeNull();
+
+    const alone = await makeUser("SansApple");
+    await expect(storeAppleAuthorization(alone.userId, { code: "code" })).rejects.toMatchObject({ status: 409 });
+
+    await load(APPLE);
+    const { storeAppleAuthorization: webOnly } = await import("@/server/apple-authorization.service");
+    await expect(webOnly(user.userId, { code: "code" })).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("une panne d'Apple répond 502 sans rien garder", async () => {
+    await load(APPLE_NATIVE);
+    const { storeAppleAuthorization } = await import("@/server/apple-authorization.service");
+    const user = await linked();
+    network.mockImplementation(async () => new Response(null, { status: 503 }));
+    vi.stubGlobal("fetch", network);
+    await expect(storeAppleAuthorization(user.userId, { code: "code" })).rejects.toMatchObject({ status: 502 });
+    expect((await prisma.account.findFirstOrThrow({ where: { userId: user.userId } })).refreshToken).toBeNull();
   });
 });
