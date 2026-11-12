@@ -1,4 +1,5 @@
-# Critère n°1 du produit : valider en deux touches depuis Aujourd'hui.
+# Critère n°1 du produit : valider en deux touches depuis Aujourd'hui. Le jeu de données garantit une séance du jour
+# non validée (prisma/seed.ts) ; ce flux passe après le mode séance, qui ne valide rien.
 appId: ${APP_ID}
 env:
   EMAIL: ${ATHLETE_EMAIL}
@@ -8,19 +9,14 @@ env:
     visible:
       id: session-hero
     timeout: 30000
-- runFlow:
-    when:
-      visible:
-        id: validate-done
-    commands:
-      - tapOn:
-          id: validate-done
-      - extendedWaitUntil:
-          visible:
-            id: validation-finish
-          timeout: 5000
-      - tapOn:
-          id: validation-finish
+- tapOn:
+    id: validate-done
+- extendedWaitUntil:
+    visible:
+      id: validation-finish
+    timeout: 5000
+- tapOn:
+    id: validation-finish
 - assertVisible:
     id: session-hero
 - assertNotVisible:

@@ -41,7 +41,7 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 
 | N° | Sujet | Test à écrire |
 | --- | --- | --- |
-| T09 | Mobile sans rendu | Job macOS : build simulateur et Maestro sur API locale. Retirer les `runFlow: when`, jeu de données dédié, `coach-tracking` ouvre vraiment l'appel |
+| T09 | Mobile sans rendu | Job `maestro` de `.github/workflows/mobile-native.yml` (macOS) : Postgres local, graine de démonstration et compte sans date de naissance, serveur web local, app de développement compilée pour le simulateur iOS, puis tous les flux de `apps/mobile/.maestro`. Les `runFlow: when` sont retirés : la graine garantit la séance du jour. `coach-tracking` ouvre la séance du jour et enregistre l'appel |
 | T10 | Vidéo en HTTP | Handlers de `o/videos`, `/upload`, `/share`, `/annotations*` avec `@/lib/mux` simulé, reprise de `upload-queue.ts` |
 | T11 | Cron horaire | Fait. `tests/technical-routes.test.ts` : jeton absent ou faux refusé, horloge figée et clés de résultat, une tâche en panne rend 500 avec son seul nom, sans le message d'erreur, et les autres tournent |
 | T12 | Invitation nominative | Fait. `e2e/staff-invitation.spec.ts` : invitation depuis les réglages, e-mail en file au gabarit du staff, lien lu dans la liste, compte créé depuis le lien, droits d'un coach (lecture oui, invitation d'un coach et rôle non), lien à usage unique |

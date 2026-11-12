@@ -13,6 +13,14 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, M2 et T09 : Maestro sur simulateur en CI
+
+Fait : job `maestro` dans `.github/workflows/mobile-native.yml`, sur macOS : Postgres installé par Homebrew, migrations, graine de démonstration, compte sans date de naissance pour `age-gate`, serveur web local (`next start`), app de développement compilée pour le simulateur iOS (`TartanDev`, en Release, l'API sur `http://localhost:3000`), puis `maestro test .maestro`. Les flux de l'athlète n'ont plus de `runFlow: when` ; `coach-tracking` ouvre la séance du jour et enregistre l'appel (PR `test/maestro-ci`).
+À savoir : aucun secret, tout naît et meurt dans le job. En local, CocoaPods exige `LANG=en_US.UTF-8`. Les artefacts du job (rapport JUnit, captures de Maestro, journal du serveur) aident à comprendre un échec.
+Vérifié en local : l'app de développement se compile pour le simulateur (Xcode 26.2), s'ouvre sur l'écran de connexion et joint le serveur local ; la graine et le compte sans date de naissance se créent comme dans le job.
+Non conclu : un lien de retour fabriqué à la main (`tartan-dev://callback?cookie=…`, cookie obtenu par `sign-in/email`) est refusé par l'écran de retour, avec l'ancienne version comme avec celle de M4. Ce lien n'est pas celui du serveur ; le vrai lien magique reste à essayer, et c'est un bon candidat pour le flux Maestro de M4.
+Suite conseillée : les flux de T24, puis ceux de M4 (changement de compte) et M5 (vidéo juste encodée).
+
 ## 2026-11-12, Claude, fin de la file du 12 novembre : bilan
 
 Fait et fusionné : B5 à B9, C1 à C3, J2 à J10, retouche du film et des tapis, puis les tests T10 à T22 et T25, M1, M4, M5, P1 (une PR par lot, empilées pour éviter les conflits de `ETAT.md` et `JOURNAL.md`). T23 et T24 sont documentés comme hors CI, dans `docs/tests/automatisation.md` (PR `docs/tests-hors-ci`).

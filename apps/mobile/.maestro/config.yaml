@@ -1,4 +1,5 @@
 # Parcours critiques (§ 14). Lancer avec un build de développement ou de préversion et le serveur local :
-#   maestro test -e APP_ID=coach.tartan.app.dev -e COACH_EMAIL=… -e ATHLETE_EMAIL=… -e PASSWORD=… .maestro
+#   maestro test -e APP_ID=coach.tartan.app.dev -e COACH_EMAIL=… -e ATHLETE_EMAIL=… -e NO_AGE_EMAIL=… -e PASSWORD=… .maestro
+# En CI : job « maestro » de .github/workflows/mobile-native.yml, sur la graine et un compte sans date de naissance.
 flows:
   - "*.yml"

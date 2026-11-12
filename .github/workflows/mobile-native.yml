@@ -63,6 +63,108 @@ jobs:
         # Une seule architecture : assez pour prouver que le natif compile, sans dépasser le temps alloué.
         run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
 
+  # Les parcours natifs (T09) : l'app de développement, compilée pour le simulateur iOS, contre un serveur web local
+  # et la graine de démonstration. Aucun secret : la base, le serveur et les comptes n'existent que dans ce job.
+  maestro:
+    if: github.event_name != 'schedule'
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+      DATABASE_URL: postgresql://tartan@localhost:5432/tartan_maestro
+      DEMO_PASSWORD: maestro-mot-de-passe-de-test
+      NO_AGE_EMAIL: sans-age@e2e.tartan.test
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: secret-maestro-secret-maestro-secret-maestro
+      CRON_SECRET: maestro-cron
+      COACH_SIGNUP_MODE: public
+      E2E_DISABLE_RATE_LIMIT: "true"
+      RESEND_API_KEY: ""
+      MUX_TOKEN_ID: ""
+      MUX_TOKEN_SECRET: ""
+      OPENAI_API_KEY: ""
+      AI_PLANNER_ENABLED: "false"
+      APPLE_TEAM_ID: TESTTEAM00
+      ANDROID_SHA256_FINGERPRINTS: "AA:BB:CC"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Postgres
+        run: |
+          brew install postgresql@17
+          echo "$(brew --prefix postgresql@17)/bin" >> "$GITHUB_PATH"
+          brew services start postgresql@17
+          export PATH="$(brew --prefix postgresql@17)/bin:$PATH"
+          for i in $(seq 1 30); do pg_isready -h localhost && break; sleep 1; done
+          createuser -h localhost -s tartan
+          createdb -h localhost -O tartan tartan_maestro
+      - run: pnpm install --frozen-lockfile
+      - name: Base et graine de démonstration
+        working-directory: apps/web
+        run: |
+          pnpm exec prisma migrate deploy
+          pnpm exec tsx prisma/seed.ts
+      - name: Serveur web local
+        working-directory: apps/web
+        run: |
+          pnpm exec next build
+          nohup pnpm exec next start -p 3000 > "$RUNNER_TEMP/web.log" 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/api/health && break; sleep 2; done
+          curl -sf http://localhost:3000/api/health
+      - name: Compte sans date de naissance (age-gate)
+        run: |
+          curl -sf -X POST http://localhost:3000/api/auth/sign-up/email \
+            -H "Content-Type: application/json" -H "Origin: http://localhost:3000" \
+            -d "{\"email\":\"$NO_AGE_EMAIL\",\"password\":\"$DEMO_PASSWORD\",\"name\":\"Sans Âge\"}" > /dev/null
+          psql "$DATABASE_URL" -c "update \"user\" set email_verified = true where email = '$NO_AGE_EMAIL'"
+          psql "$DATABASE_URL" -c "update profiles set birth_date = null where id = (select id from \"user\" where email = '$NO_AGE_EMAIL')"
+      - name: App iOS pour le simulateur
+        working-directory: apps/mobile
+        env:
+          APP_VARIANT: development
+          EXPO_PUBLIC_API_URL: http://localhost:3000
+          EXPO_PUBLIC_WEB_URL: http://localhost:3000
+          SENTRY_DISABLE_AUTO_UPLOAD: "true"
+        run: |
+          pnpm exec expo prebuild --platform ios
+          xcodebuild -workspace ios/TartanDev.xcworkspace -scheme TartanDev -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/build" CODE_SIGNING_ALLOWED=NO -quiet
+      - name: Simulateur
+        run: |
+          device=$(xcrun simctl list devices available | grep -m1 -E "iPhone 1[5-7] " | grep -oE "[0-9A-F-]{36}")
+          xcrun simctl boot "$device"
+          xcrun simctl bootstatus "$device" -b
+          xcrun simctl install "$device" "$RUNNER_TEMP/build/Build/Products/Release-iphonesimulator/TartanDev.app"
+      - name: Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Parcours natifs
+        working-directory: apps/mobile
+        run: |
+          maestro test .maestro --format junit --output "$RUNNER_TEMP/maestro.xml" --debug-output "$RUNNER_TEMP/maestro" \
+            -e APP_ID=coach.tartan.app.dev \
+            -e COACH_EMAIL=coach@demo.tartan.coach \
+            -e ATHLETE_EMAIL=un@demo.tartan.coach \
+            -e NO_AGE_EMAIL="$NO_AGE_EMAIL" \
+            -e PASSWORD="$DEMO_PASSWORD"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maestro
+          path: |
+            ${{ runner.temp }}/maestro.xml
+            ${{ runner.temp }}/maestro
+            ${{ runner.temp }}/web.log
+          if-no-files-found: ignore
+
   eas:
     if: github.event_name == 'schedule' || inputs.eas == true
     runs-on: ubuntu-latest

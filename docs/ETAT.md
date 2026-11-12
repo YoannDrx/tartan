@@ -127,7 +127,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | N° | Tâche | Plan | Priorité |
 | --- | --- | --- | --- |
 | M1 | Échec EAS à « Read app config » : cause trouvée et corrigée (TypeScript importé par la configuration). Reste un build de production réel à lancer | [Android](plans/android.md) | Bloque Android |
-| M2 | Maestro sur simulateur en CI, flux non conditionnels : T09 | [automatisation](tests/automatisation.md) | Avant soumission |
+| M2 | Maestro sur simulateur en CI (T09) : job `maestro` de la CI mobile, flux non conditionnels sur la graine. Reste à y ajouter les flux de T24 (planificateur, constructeur, capture, synchronisation, phases) et ceux de M4 et M5 | [automatisation](tests/automatisation.md) | Avant soumission |
 | M3 | Captures Android 1080 × 1920, capture de l'analyse vidéo iOS | [captures](exploitation/captures.md) | Avant soumission |
 | M4 | Changement de compte par lien magique sur mobile : cause probable corrigée (ordre cookie, cache, espace actif), codé et testé. Reste le flux Maestro dédié et l'essai sur simulateur | [iOS](plans/ios.md) | Avant soumission |
 | M5 | Repli HLS du lecteur mobile si le MP4 n'est pas prêt : codé et testé (`src/lib/playback-source.ts`). Reste à voir une vidéo lue juste après l'encodage, sur téléphone | [iOS](plans/ios.md) | Avant soumission |

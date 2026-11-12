@@ -1,4 +1,4 @@
-# Mode séance : un exercice, une série cochée, sortie avec confirmation.
+# Mode séance : un exercice, une série cochée, sortie avec confirmation. Le jeu de données garantit une séance du jour.
 appId: ${APP_ID}
 env:
   EMAIL: ${ATHLETE_EMAIL}
@@ -8,22 +8,17 @@ env:
     visible:
       id: session-hero
     timeout: 30000
-- runFlow:
-    when:
-      visible:
-        id: start-session
-    commands:
-      - tapOn:
-          id: start-session
-      - extendedWaitUntil:
-          visible:
-            id: set-0
-          timeout: 10000
-      - tapOn:
-          id: set-0
-      - assertVisible: "Série 1 faite"
-      - tapOn: "Quitter la séance"
-      - assertVisible: "Quitter le mode séance.*"
-      - tapOn: "Continuer la séance"
-      - assertVisible:
-          id: set-0
+- tapOn:
+    id: start-session
+- extendedWaitUntil:
+    visible:
+      id: set-0
+    timeout: 10000
+- tapOn:
+    id: set-0
+- assertVisible: "Série 1 faite"
+- tapOn: "Quitter la séance"
+- assertVisible: "Quitter le mode séance.*"
+- tapOn: "Continuer la séance"
+- assertVisible:
+    id: set-0
