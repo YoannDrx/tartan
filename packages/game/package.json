@@ -12,6 +12,7 @@
     "./events/triple-jump": "./src/events/triple-jump.ts",
     "./events/high-jump": "./src/events/high-jump.ts",
     "./events/pole-vault": "./src/events/pole-vault.ts",
+    "./events/discus": "./src/events/discus.ts",
     "./reference": "./src/reference/index.ts"
   },
   "scripts": {

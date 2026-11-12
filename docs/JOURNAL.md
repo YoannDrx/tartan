@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot J9 : lancer du disque
+
+Fait : `packages/game/src/events/discus.ts`. Tenir l'appui lance la volte : la rotation gagne 1/16° par pas à chaque pas, jusqu'à 6° par pas (720° par seconde). Relâcher lâche le disque dans la direction du bras : dans le secteur (±17°), sa vitesse (230 mm/s par seizième de degré et par pas) donne la distance, angle d'envol fixe à 35° ; hors du secteur, mordu ; au-delà de trois tours, sorti du cercle. Forme du jour ±40 cm ; plafond 47,099 m. Sur `/jeu`, Mehdi rejoue le geste de `packages/mascot` ; un cadran vu de dessus montre le secteur en citron et le bras qui tourne (PR `feat/jeu-disque`).
+Vérifié : `discus.test.ts` (rotation, secteur, sortie du cercle, plafond), références et 300 journaux sous Node, Chromium et WebKit, `e2e/game-page.spec.ts` ; volte et mordu regardés à 390 px. Non vérifié : un lancer valable regardé à l'image.
+À savoir : les six épreuves sont jouables ; restent le classement (J3), l'aperçu sur la page d'accueil (J4) et le combiné (J10).
+Suite conseillée : J10.
+
 ## 2026-11-12, Claude, lot J8 : saut à la perche
 
 Fait : la règle des concours à barre passe dans `packages/game/src/events/bar-event.ts` (`defineBarEvent`), que la hauteur et la perche paramètrent ; les références de la hauteur restent identiques au chiffre près. `pole-vault.ts` : barre de 4,20 m, +15 cm ; planté à ±3, ±8, ±18 pas (5,80, 5,40, 4,95 m atteignables), renversement à ±4, ±9, ±15 pas (0, 8, 18 cm perdus) ; forme du jour ±5 cm ; plafond 5,85 m. Les temps d'un essai (270 pas) font tenir un concours, même avec deux échecs à chaque hauteur, dans les 90 s d'une partie. Sur `/jeu`, Malo rejoue le geste de `packages/mascot`, perche qui plie comprise ; la description des deux concours est commune (`bar-ui.ts`) ; le robot de test aussi (`bar.bots.ts`) (PR `feat/jeu-perche`).
