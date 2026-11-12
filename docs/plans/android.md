@@ -8,11 +8,17 @@ Projet Firebase et `GOOGLE_SERVICES_JSON` sur EAS. Clé de signature Android sur
 
 ## Le blocage à lever d'abord
 
-Les builds EAS échouent à l'étape « Read app config », alors que le même commit se construit en local. Sans cela, pas d'AAB.
+Les builds EAS échouaient à l'étape « Read app config » (`expo config --json --full --type public` : « Unexpected token '{' »), alors que le même commit se construisait en local.
 
-1. Ouvrir les journaux du build sur expo.dev.
-2. Reproduire avec `pnpm --filter @tartan/mobile exec eas build --profile production --platform android --local`, ou comparer l'environnement EAS à l'environnement local (`app.config.ts`, variables `production`, `pnpm` en monorepo, `@sentry/cli`).
-3. Corriger, faire passer un build de production.
+**Cause, trouvée le 12 novembre 2026.** `app.config.ts` importe deux fichiers TypeScript (`packages/i18n/src/fr.ts`, `src/lib/app-variant.ts`). Ils n'étaient lisibles que grâce au support natif du TypeScript de Node, présent en local et en CI, absent sur la machine de build EAS. Reproduit en local avec `NODE_OPTIONS="--no-experimental-strip-types"`.
+
+**Correction.** `import "tsx/cjs"` en tête de `app.config.ts` (méthode documentée par Expo), `tsx` en dépendance de développement du mobile. `src/lib/app-config.test.ts` relit la configuration de production sans le support natif : il échoue sans la correction.
+
+**Reste à faire.** Lancer un build de production (geste du fondateur, voir G5) et vérifier qu'il dépasse « Read app config » :
+
+```sh
+corepack pnpm --filter @tartan/mobile exec eas build --profile production --platform android
+```
 
 ## Étapes
 
