@@ -58,7 +58,7 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 | T18 | Centre de notifications | E2E : notification insérée, lue, compteur. `/notifications/read`, `/releases/seen` |
 | T19 | Pages sans e2e | `/mes-sauts*`, `/progres`, `/seances/[id]/charges`, avec données et axe |
 | T20 | Console | `espaces/[id]` et `factures/[id]` dans `admin-console.spec.ts` |
-| T21 | Worker | Faux `self` pour `public/sw.js` : push au contenu neutre, clic |
+| T21 | Worker | Fait. `tests/service-worker.test.ts` charge le vrai `public/sw.js` dans un faux worker : notification affichée telle quelle ou neutre sans contenu, clic qui réutilise une fenêtre, réponse depuis la notification, API et autres sites jamais interceptés, page gardée puis page hors ligne sans réseau |
 | T22 | Routes techniques | Fait. Même fichier : `health` à 200 puis 503 base coupée, `live` sans base, `version` sans cache, flux `ical` d'un athlète (séance, lieu, fin, sans le mot du coach), jeton faux et lien révoqué refusés |
 | T23 | IA réelle | `eval:planner --live` planifié hors CI, seuils de [planificateur-ia](../reference/planificateur-ia.md) |
 | T24 | Écrans natifs | Un flux Maestro par écran : planificateur, constructeur, capture, synchronisation, phases |
