@@ -9,6 +9,7 @@
     "./events": "./src/events/index.ts",
     "./events/hurdles": "./src/events/hurdles.ts",
     "./events/long-jump": "./src/events/long-jump.ts",
+    "./events/triple-jump": "./src/events/triple-jump.ts",
     "./reference": "./src/reference/index.ts"
   },
   "scripts": {

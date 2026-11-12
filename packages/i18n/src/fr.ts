@@ -461,7 +461,7 @@ export const fr = {
   game: {
     title: "Tartan Meeting",
     description:
-      "Le jeu d'athlétisme de Tartan : 110 m haies et saut en longueur au pouce, dans le navigateur, sans compte.",
+      "Le jeu d'athlétisme de Tartan : 110 m haies, longueur et triple saut au pouce, dans le navigateur, sans compte.",
     lead: "Le meeting au pouce : un seul geste, appuyer au bon moment. Choisis ton épreuve.",
     chooseLabel: "Les épreuves",
     loading: "Préparation de la piste…",
@@ -529,6 +529,24 @@ export const fr = {
         takeoff: "Angle d'envol",
         board: "Avant la planche",
         boardValue: (cm: number) => `${cm} cm`,
+      },
+      tripleJump: {
+        title: "Triple saut",
+        play: "Jouer au triple saut",
+        action: "Appuyer",
+        canvas: "Le triple saut : Awa sur la piste d'élan, la planche, puis le sable loin devant.",
+        how: [
+          "Prends ton élan comme à la longueur : des appuis brefs et rapides.",
+          "Tiens l'appui, puis relâche avant la planche : c'est l'appel du cloche-pied, qui part rasant.",
+          "À chaque réception, appuie au moment où le pied touche la piste : juste, tu gardes ton élan pour le bond suivant.",
+          "Trop tôt, trop tard ou pas d'appui : le rythme est cassé et l'essai ne compte pas.",
+        ],
+        speed: "Vitesse",
+        phase: "Temps",
+        phases: { run: "Élan", hop: "Cloche-pied", step: "Foulée", jump: "Saut" },
+        landings: "Réceptions",
+        grades: { perfect: "parfaite", good: "bonne", ok: "juste" },
+        broken: "Rythme cassé : l'essai ne compte pas.",
       },
     },
   },
