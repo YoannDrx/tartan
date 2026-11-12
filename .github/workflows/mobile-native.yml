@@ -124,6 +124,13 @@ jobs:
             -d "{\"email\":\"$NO_AGE_EMAIL\",\"password\":\"$DEMO_PASSWORD\",\"name\":\"Sans Âge\"}" > /dev/null
           psql "$DATABASE_URL" -c "update \"user\" set email_verified = true where email = '$NO_AGE_EMAIL'"
           psql "$DATABASE_URL" -c "update profiles set birth_date = null where id = (select id from \"user\" where email = '$NO_AGE_EMAIL')"
+      - name: Xcode 26
+        # Expo SDK 55 exige le Swift de Xcode 26 ; l'image du runner garde Xcode 16 par défaut.
+        run: |
+          xcode=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$xcode" ]; then echo "Aucun Xcode 26 sur ce runner"; ls -d /Applications/Xcode*.app; exit 1; fi
+          sudo xcode-select -s "$xcode/Contents/Developer"
+          xcodebuild -version
       - name: App iOS pour le simulateur
         working-directory: apps/mobile
         env:
@@ -138,7 +145,8 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/build" CODE_SIGNING_ALLOWED=NO -quiet
       - name: Simulateur
         run: |
-          device=$(xcrun simctl list devices available | grep -m1 -E "iPhone 1[5-7] " | grep -oE "[0-9A-F-]{36}")
+          device=$(xcrun simctl list devices available | grep -m1 -E "^ +iPhone [0-9]+ \(" | grep -oE "[0-9A-F-]{36}")
+          echo "Simulateur : $(xcrun simctl list devices available | grep "$device")"
           xcrun simctl boot "$device"
           xcrun simctl bootstatus "$device" -b
           xcrun simctl install "$device" "$RUNNER_TEMP/build/Build/Products/Release-iphonesimulator/TartanDev.app"
