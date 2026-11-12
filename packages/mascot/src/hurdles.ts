@@ -3,7 +3,7 @@ import { blend, clamp, mix, runRise, samplePose, smooth, type Frame, type Key } 
 import { cruise, faceBy, hipOn, laneLine, runFrame, STEP, timeWhen, type EventClip, type Phase } from "./event";
 import { POSES } from "./poses";
 import type { PropShape } from "./props";
-import type { Pose } from "./skeleton";
+import { jointPositions, type Pose } from "./skeleton";
 
 const STAGE = { width: 1400, height: 800, ground: 740 };
 const HIP = hipOn(STAGE.ground);
@@ -157,3 +157,26 @@ export const HURDLES_CLIP: EventClip = {
   props: () => PROPS,
   face: faceBy(AT.run, AT.stand),
 };
+
+// Pour le jeu (packages/game) : le coureur sans décor. `distance` est le chemin parcouru en pixels de la scène, qui
+// règle la foulée ; `flight` va de 0 à 1 pendant un saut, `null` au sol. Le saut reprend les clés du geste, avec un
+// fondu aux deux bords pour que l'appel et la réception partent de la foulée en cours.
+const GAME_KEYS = clearance(HURDLES[0]);
+
+export const hurdlerPose = (distance: number, flight: number | null): Pose => {
+  const running = run(START + distance).pose;
+  if (flight === null || flight <= 0 || flight >= 1) return running;
+  const u = 0.1 + 0.8 * flight;
+  const inside = smooth(0, 0.18, flight) * (1 - smooth(0.82, 1, flight));
+  return blend(running, { ...samplePose(GAME_KEYS, u), sx: 1, sy: 1 }, inside);
+};
+
+// Le bassin, mesuré depuis le pied le plus bas, en pixels de la scène : posé à cette hauteur au-dessus du sol, le
+// coureur a toujours un pied sur la piste, quelle que soit la foulée.
+const SOLE = 6;
+export const hurdlerHipAbove = (pose: Pose) => {
+  const joints = jointPositions(pose);
+  return Math.max(joints.footA.y, joints.footB.y) + SOLE;
+};
+// L'échelle de la scène : la latte d'une haie de 1,067 m est à 118 pixels du sol.
+export const HURDLE_PX_PER_M = 118 / 1.067;

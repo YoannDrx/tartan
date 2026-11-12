@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot J2 : la page du jeu
+
+Fait : `/jeu` (`app/(public)/jeu/page.tsx`) montre une affiche ; « Jouer au 110 m haies » charge alors le jeu (`hurdles-game.tsx`), qui fait avancer la simulation de `packages/game` par pas fixes de 1/120 s et dessine chaque image en canvas (`hurdles-scene.ts`). Inès court avec la foulée de `packages/mascot` (nouveau `hurdlerPose`, le pied le plus bas posé sur la piste) et saute à la hauteur que calcule la simulation. Record local, pause sur Échap et quand la page est cachée, résultats en HTML annoncés aux lecteurs d'écran. `/jeu` entre dans `SITE_PATHS`, le plan du site et les robots ; image de partage `public/brand/og-jeu.png`. La sérialisation SVG d'un athlète passe dans `src/lib/figure-svg.ts`, partagée avec la carte de record (PR `feat/jeu-page`).
+Vérifié : `e2e/game-page.spec.ts` (affiche sans jeu chargé, pause, sauts au clavier, course jusqu'à l'arrivée, record gardé au rechargement, plan du site et robots), `packages/mascot/src/hurdler.test.ts` ; course et saut regardés à 390 px.
+À savoir : un canvas ne lit pas les variables CSS : la police est lue sur la page et passée au dessin. Le contrôle du mouvement réduit (`motionOn`) ne compte plus une animation ramenée à 0,01 ms par le filet : sur une machine chargée, elle pouvait être saisie « en cours » et faire échouer le parcours du site (aléa vu à B9 et ici). Le journal des appuis n'est pas encore gardé : il le sera avec le classement (J3).
+Suite conseillée : J5.
+
 ## 2026-11-12, Claude, lot C3 : carte de record
 
 Fait : `GET /api/v1/orgs/[orgId]/athletes/[athleteId]/performances/[performanceId]/carte` rend une image PNG 1080 × 1350 (`next/og`, polices Barlow embarquées dans `apps/web/assets/fonts`) ; `performanceCard` (`performance.service.ts`) n'en donne que le prénom, la discipline, la marque et la date, et seulement pour un record battu. Sur la page Progrès, « Partager » remet l'image au menu de partage du téléphone, ou l'enregistre sur un ordinateur (PR `feat/carte-record`).
