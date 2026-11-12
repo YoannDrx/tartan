@@ -149,6 +149,24 @@ test("le disque : tenir pour tourner, puis une marque, un mordu ou une sortie du
   await expectAccessible(page);
 });
 
+test("le combiné : une épreuve, ses points, puis l'épreuve suivante", async ({ page }, info) => {
+  test.setTimeout(120_000);
+  await page.goto("/jeu", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: m.game.combined.play, exact: true }).click();
+  await expect(page.getByText(m.game.combined.step(1, 6, m.game.events.hurdles.title))).toBeVisible();
+  await page.getByRole("button", { name: m.game.start, exact: true }).click();
+  // Sans appui, la course va à son terme, haies percutées : une marque, des points.
+  const next = page.getByRole("button", { name: m.game.combined.next(m.game.events.longJump.title), exact: true });
+  await expect(next).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText(/Total provisoire : \d+ points\./)).toBeVisible();
+  await page.screenshot({ path: info.outputPath("combine.png"), fullPage: true });
+  await next.click();
+  await expect(page.getByText(m.game.combined.step(2, 6, m.game.events.longJump.title))).toBeVisible();
+  await expect(page.getByRole("img", { name: m.game.events.longJump.canvas })).toBeVisible();
+  await expectNoHorizontalScroll(page);
+  await expectAccessible(page);
+});
+
 test("la page du jeu est au plan du site et ouverte aux robots", async ({ request }) => {
   expect(await (await request.get("/sitemap.xml")).text()).toContain("https://tartan.coach/jeu");
   expect(await (await request.get("/robots.txt")).text()).toContain("Allow: /jeu");

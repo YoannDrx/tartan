@@ -22,7 +22,14 @@ const EVENTS = [
   { id: "discus", athlete: "discus", load: () => import("./discus-ui").then((module) => module.discusUi) },
 ] as const;
 
-type Loaded = { Runner: React.ComponentType<{ ui: EventUi<SimState> }>; ui: EventUi<SimState> };
+type Loaded =
+  | { kind: "single"; Runner: React.ComponentType<{ ui: EventUi<SimState> }>; ui: EventUi<SimState> }
+  | {
+      kind: "combined";
+      Combined: React.ComponentType<{ Runner: never; uis: EventUi<SimState>[] }>;
+      Runner: never;
+      uis: EventUi<SimState>[];
+    };
 
 export const GameLauncher = () => {
   const [game, setGame] = useState<Loaded | null>(null);
@@ -30,13 +37,33 @@ export const GameLauncher = () => {
   const open = async (event: (typeof EVENTS)[number]) => {
     setLoading(event.id);
     const [runner, ui] = await Promise.all([import("./game-runner"), event.load()]);
-    setGame({ Runner: runner.default as Loaded["Runner"], ui: ui as unknown as EventUi<SimState> });
+    setGame({ kind: "single", Runner: runner.default as never, ui: ui as unknown as EventUi<SimState> });
+    setLoading(null);
+  };
+  // Le combiné charge les six épreuves d'un coup, au premier geste.
+  const openCombined = async () => {
+    setLoading("combined");
+    const [runner, combined, ...uis] = await Promise.all([
+      import("./game-runner"),
+      import("./combined-runner"),
+      ...EVENTS.map((event) => event.load()),
+    ]);
+    setGame({
+      kind: "combined",
+      Combined: combined.default as never,
+      Runner: runner.default as never,
+      uis: uis as unknown as EventUi<SimState>[],
+    });
     setLoading(null);
   };
   if (game) {
     return (
       <div className="flex flex-col gap-4">
-        <game.Runner key={game.ui.id} ui={game.ui} />
+        {game.kind === "single" ? (
+          <game.Runner key={game.ui.id} ui={game.ui} />
+        ) : (
+          <game.Combined Runner={game.Runner} uis={game.uis} />
+        )}
         <div>
           <Button type="button" variant="secondary" onClick={() => setGame(null)}>
             {m.game.other}
@@ -46,22 +73,33 @@ export const GameLauncher = () => {
     );
   }
   return (
-    <ul aria-label={m.game.chooseLabel} className="grid gap-4 tablet:grid-cols-2 desktop:grid-cols-3">
-      {EVENTS.map((event) => (
-        <li key={event.id} className="flex items-end gap-4">
-          <StartScene className="w-28 shrink-0">
-            <Athlete id={event.athlete} pose="lineup" on="piste" view="standing" className="h-32 w-auto" />
-          </StartScene>
-          <Button
-            type="button"
-            onClick={() => open(event)}
-            disabled={loading !== null}
-            className="mb-2 min-h-16 flex-1 text-[18px]"
-          >
-            {loading === event.id ? m.game.loading : m.game.events[event.id].play}
-          </Button>
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-6">
+      <ul aria-label={m.game.chooseLabel} className="grid gap-4 tablet:grid-cols-2 desktop:grid-cols-3">
+        {EVENTS.map((event) => (
+          <li key={event.id} className="flex items-end gap-4">
+            <StartScene className="w-28 shrink-0">
+              <Athlete id={event.athlete} pose="lineup" on="piste" view="standing" className="h-32 w-auto" />
+            </StartScene>
+            <Button
+              type="button"
+              onClick={() => open(event)}
+              disabled={loading !== null}
+              className="mb-2 min-h-16 flex-1 text-[18px]"
+            >
+              {loading === event.id ? m.game.loading : m.game.events[event.id].play}
+            </Button>
+          </li>
+        ))}
+      </ul>
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={openCombined}
+        disabled={loading !== null}
+        className="min-h-16 self-start text-[18px]"
+      >
+        {loading === "combined" ? m.game.loading : m.game.combined.play}
+      </Button>
+    </div>
   );
 };

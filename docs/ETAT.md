@@ -118,7 +118,8 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | J7 | Jeu : saut en hauteur | Codé, testé : épreuve `highJump`, en concours (barre de 1,60 m, +5 cm après chaque hauteur franchie, trois échecs de suite arrêtent tout) ; appui pour l'appel, tenu pour le cambré, relâché pour les jambes ; références et 300 journaux identiques sous Node, Chromium et WebKit ; jouable sur `/jeu`, avec un repère citron au point d'appel. Non vérifié : partie sur un vrai téléphone |
 | J8 | Jeu : saut à la perche | Codé, testé : épreuve `poleVault`, sur la règle des concours à barre mise en commun avec la hauteur (`bar-event.ts`, références de la hauteur inchangées) ; barre de 4,20 m, +15 cm ; appui au planté, tenu pendant la flexion, relâché au renversement ; un concours tient toujours dans les 90 s d'une partie ; références et 300 journaux identiques sous Node, Chromium et WebKit ; jouable sur `/jeu`. Non vérifié : partie sur un vrai téléphone |
 | J9 | Jeu : lancer du disque | Codé, testé : épreuve `discus` (tenir pour la volte qui accélère jusqu'à 720° par seconde, relâcher dans le secteur de ±17°, mordu hors du secteur, sorti du cercle au-delà de trois tours), références et 300 journaux identiques sous Node, Chromium et WebKit ; jouable sur `/jeu`, avec un cadran vu de dessus (secteur et bras). Non vérifié : un lancer valable regardé à l'image ; partie sur un vrai téléphone |
-| J3, J4, J10 | Classement, aperçu, combiné | À faire |
+| J10 | Jeu : combiné | Codé, testé : les six épreuves à la suite, un essai chacune ; barème entier et linéaire dans `packages/game/src/combined.ts` (0 à 1 000 points par épreuve, 1 200 au plus, une marque nulle vaut 0) ; total et record sur l'appareil. Le classement du combiné viendra avec J3. Non vérifié : un combiné complet joué à la main |
+| J3, J4 | Classement, aperçu sur la page d'accueil | À faire |
 
 ### Agents : mobile, IA et suite des tests
 

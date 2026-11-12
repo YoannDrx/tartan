@@ -486,6 +486,17 @@ export const fr = {
     newRecord: "Nouveau record !",
     noRecord: "Pas encore de record sur cet appareil.",
     recordNote: "Ton record reste sur cet appareil. Rien n'est envoyé.",
+    // Le combiné : les six épreuves à la suite, un essai chacune, en points.
+    combined: {
+      play: "Jouer le combiné des six épreuves",
+      step: (n: number, total: number, event: string) => `Épreuve ${n} sur ${total} : ${event}`,
+      next: (event: string) => `Épreuve suivante : ${event}`,
+      again: "Recommencer le combiné",
+      points: "Points du combiné",
+      running: (points: number) => `Total provisoire : ${points} points.`,
+      total: (points: number) => `Combiné terminé : ${points} points.`,
+      record: (points: number) => `Ton record au combiné : ${points} points.`,
+    },
     events: {
       hurdles: {
         title: "110 m haies",

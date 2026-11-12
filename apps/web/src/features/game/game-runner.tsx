@@ -31,7 +31,16 @@ const writeRecord = (key: string, value: number) => {
 
 const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0]!;
 
-export default function GameRunner<S extends SimState>({ ui }: { ui: EventUi<S> }) {
+export default function GameRunner<S extends SimState>({
+  ui,
+  onFinish,
+  finishAction,
+}: {
+  ui: EventUi<S>;
+  // Au combiné : la marque est remise au parent, qui propose l'épreuve suivante à la place de « Rejouer ».
+  onFinish?: (score: number) => void;
+  finishAction?: React.ReactNode;
+}) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const jump = useRef<HTMLButtonElement>(null);
   const [first] = useState(() => ui.sim.init(randomSeed()));
@@ -89,6 +98,7 @@ export default function GameRunner<S extends SimState>({ ui }: { ui: EventUi<S> 
           setRecord(isRecord ? state.score : previous);
           setResult({ headline: ui.headline(state), details: ui.details(state), isRecord });
           setStatus("finished");
+          onFinish?.(state.score);
         }
       }
       last = now;
@@ -102,7 +112,7 @@ export default function GameRunner<S extends SimState>({ ui }: { ui: EventUi<S> 
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", resize);
     };
-  }, [paint, setStatus, ui]);
+  }, [paint, setStatus, ui, onFinish]);
 
   const start = useCallback(() => {
     sim.current = ui.sim.init(randomSeed());
@@ -199,6 +209,8 @@ export default function GameRunner<S extends SimState>({ ui }: { ui: EventUi<S> 
               {status === "paused" ? m.game.resume : m.game.pause}
             </Button>
           </>
+        ) : status === "finished" && finishAction ? (
+          finishAction
         ) : (
           <Button type="button" onClick={start} className="min-h-16 min-w-40 text-[20px]">
             {status === "finished" ? m.game.again : m.game.start}

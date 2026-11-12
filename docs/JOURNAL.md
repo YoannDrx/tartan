@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot J10 : combiné
+
+Fait : `packages/game/src/combined.ts` convertit chaque marque en points, par épreuve, sur une droite entière : 0 point à la marque basse (18,00 s aux haies, 3 m en longueur, 9 m au triple, 1,50 m en hauteur, 4 m à la perche, 15 m au disque), 1 000 à la marque haute (13,00 s, 7,50 m, 15 m, 2 m, 5,70 m, 45 m), 1 200 au plus, 0 pour un essai nul. Sur `/jeu`, « Jouer le combiné » charge les six épreuves et les enchaîne, un essai chacune ; le moteur de partie accepte un rappel en fin d'épreuve et remplace « Rejouer » par « Épreuve suivante » (PR `feat/jeu-combine`).
+Vérifié : `combined.test.ts` (bornes, sens des épreuves, plafond, total), `e2e/game-page.spec.ts` (une épreuve, ses points, l'épreuve suivante).
+À savoir : le barème est celui du jeu, sans rapport avec les tables officielles. Le classement du combiné, comme celui des épreuves, attend J3 (éteint tant que le juriste n'a pas répondu sur le classement public).
+Suite conseillée : J4.
+
 ## 2026-11-12, Claude, lot J9 : lancer du disque
 
 Fait : `packages/game/src/events/discus.ts`. Tenir l'appui lance la volte : la rotation gagne 1/16° par pas à chaque pas, jusqu'à 6° par pas (720° par seconde). Relâcher lâche le disque dans la direction du bras : dans le secteur (±17°), sa vitesse (230 mm/s par seizième de degré et par pas) donne la distance, angle d'envol fixe à 35° ; hors du secteur, mordu ; au-delà de trois tours, sorti du cercle. Forme du jour ±40 cm ; plafond 47,099 m. Sur `/jeu`, Mehdi rejoue le geste de `packages/mascot` ; un cadran vu de dessus montre le secteur en citron et le bras qui tourne (PR `feat/jeu-disque`).
