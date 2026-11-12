@@ -305,6 +305,7 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("GET", "/releases/status", releaseStatus, undefined, { platform, version }),
     markReleaseSeen: (releaseId: string) => request("POST", "/releases/seen", okResponse, { releaseId }),
     confirmAge: (birthDate: string) => request("POST", "/me/age", z.unknown(), { birthDate }),
+    storeAppleAuthorization: (code: string) => request("POST", "/me/apple-authorization", z.unknown(), { code }),
     consents: () =>
       request("GET", "/consents", z.object({ health: z.boolean(), video: z.boolean(), terms: z.boolean() })),
     setConsent: (kind: "health" | "video" | "terms", granted: boolean) =>

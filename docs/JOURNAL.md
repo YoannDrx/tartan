@@ -18,6 +18,11 @@ Suite conseillée : numéro de tâche
 Fait : à la demande du fondateur, le film des disciplines passe à 750svh sur téléphone et 1000svh sur ordinateur (au lieu de 300 et 450svh). L'échauffement de la page d'accueil devient le saut en hauteur. Pour cette épreuve : la barre et les poteaux montent à chaque hauteur, l'arc du sauteur aussi ; ralentis à l'appel, au franchissement et à la réception ; confettis et hauteur affichée pour une barre franchie. Le moteur de partie accepte un `timeScale` par épreuve, qui ne change que l'affichage (PR `feat/landing-hauteur`).
 Vérifié : `tests/high-jump-scene.test.ts` ; partie jouée dans le build de production avec des appuis minutés, regardée en captures à 390, 768 et 1440 px et en mouvement réduit (pas de confettis).
 À savoir : le ralenti allonge le temps réel d'une partie, jamais le nombre de pas : le rejeu du serveur et le contrôle de cadence du classement ne bougent pas. Les sons (applaudissements) restent hors périmètre : le jeu n'a pas de son.
+## 2026-11-12, Claude, M6 : révocation Apple pour la connexion native
+
+Fait : l'app iOS envoie le code d'autorisation d'Apple à `POST /api/v1/me/apple-authorization`. Le serveur l'échange auprès d'Apple avec le bundle de l'app (`APPLE_APP_BUNDLE_IDENTIFIER`), vérifie que le sujet du jeton est le compte Apple relié, puis garde le jeton de rafraîchissement et l'identifiant qui l'a délivré (colonne additive `account.apple_client_id`). La suppression du compte révoque avec cet identifiant (PR `feat/apple-revocation`).
+Vérifié : `tests/auth-social.test.ts` (échange, révocation avec le bundle, autre compte Apple refusé, compte sans Apple, configuration absente, panne d'Apple), ligne de la matrice d'accès.
+Non vérifié : un échange réel avec Apple. La connexion Apple reste éteinte ; le jour où elle s'allume, poser `APPLE_APP_BUNDLE_IDENTIFIER` sur Vercel.
 
 ## 2026-11-12, Claude, fin de la file du 12 novembre : bilan
 

@@ -376,6 +376,8 @@ export const MATRICE: Row[] = [
   },
   // La date de naissance ne s'écrit qu'une fois : le compte connecté reçoit 409, jamais une réécriture.
   { route: "POST /api/v1/me/age", ...compte(409), call: () => ({ body: { birthDate: "2000-01-01" } }) },
+  // Sans connexion Apple configurée (cas des tests), la route n'existe pas ; le cas configuré est dans auth-social.
+  { route: "POST /api/v1/me/apple-authorization", ...compte(404), call: () => ({ body: { code: "code-factice" } }) },
   { route: "PATCH /api/v1/me/preferences", ...compte(), call: () => ({ body: { calendarView: "week" } }) },
   { route: "GET /api/v1/consents", ...compte() },
   { route: "PUT /api/v1/consents", ...compte(), call: () => ({ body: { kind: "video", granted: true } }) },

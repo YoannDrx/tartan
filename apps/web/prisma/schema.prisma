@@ -75,6 +75,9 @@ model Account {
   refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
   scope                 String?
   password              String?
+  // Identifiant Apple qui a délivré le jeton de rafraîchissement : le service web, ou l'app iOS (son bundle).
+  // La révocation doit présenter le même.
+  appleClientId         String?   @map("apple_client_id")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 

@@ -14,10 +14,10 @@ import { audit } from "./access";
 import { deleteAthleteAssignments } from "./session-audience.service";
 import { enqueueAccountEmails, flushEmailOutbox } from "./email-outbox.service";
 
-const revokeWithRetries = async (refreshToken: string): Promise<void> => {
+const revokeWithRetries = async (refreshToken: string, clientId: string | null): Promise<void> => {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
-      await revokeAppleToken(refreshToken);
+      await revokeAppleToken(refreshToken, clientId);
       return;
     } catch {
       if (attempt === 3) log.error("apple_revoke_failed");
@@ -31,11 +31,11 @@ export const deleteAccount = async (userId: string, options: { inactiveBefore?: 
   const leaving = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
   const accounts = await prisma.account.findMany({
     where: { userId },
-    select: { providerId: true, refreshToken: true },
+    select: { providerId: true, refreshToken: true, appleClientId: true },
   });
   for (const account of accounts) {
     if (account.providerId === "apple" && account.refreshToken) {
-      await revokeWithRetries(account.refreshToken);
+      await revokeWithRetries(account.refreshToken, account.appleClientId);
     }
   }
 
