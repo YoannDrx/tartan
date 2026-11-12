@@ -114,9 +114,11 @@ jobs:
         working-directory: apps/web
         run: |
           pnpm exec next build
-          nohup pnpm exec next start -p 3000 > "$RUNNER_TEMP/web.log" 2>&1 &
+          # « :: » écoute en IPv6 et en IPv4 : dans le simulateur, localhost peut se résoudre d'abord en ::1.
+          nohup pnpm exec next start -H :: -p 3000 > "$RUNNER_TEMP/web.log" 2>&1 &
           for i in $(seq 1 60); do curl -sf http://localhost:3000/api/health && break; sleep 2; done
-          curl -sf http://localhost:3000/api/health
+          curl -sf -4 http://localhost:3000/api/health
+          curl -sf -6 http://localhost:3000/api/health
       - name: Compte sans date de naissance (age-gate)
         run: |
           curl -sf -X POST http://localhost:3000/api/auth/sign-up/email \
@@ -163,6 +165,13 @@ jobs:
             -e ATHLETE_EMAIL=un@demo.tartan.coach \
             -e NO_AGE_EMAIL="$NO_AGE_EMAIL" \
             -e PASSWORD="$DEMO_PASSWORD"
+      - name: Journaux de l'app
+        if: always()
+        run: |
+          xcrun simctl spawn booted log show --last 90m --style compact \
+            --predicate 'process == "TartanDev" AND (eventMessage CONTAINS[c] "error" OR eventMessage CONTAINS[c] "Transport Security" OR eventMessage CONTAINS[c] "NSURL")' \
+            > "$RUNNER_TEMP/app.log" 2>&1 || true
+          tail -40 "$RUNNER_TEMP/app.log" || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -171,6 +180,7 @@ jobs:
             ${{ runner.temp }}/maestro.xml
             ${{ runner.temp }}/maestro
             ${{ runner.temp }}/web.log
+            ${{ runner.temp }}/app.log
             ~/.maestro/tests
           if-no-files-found: ignore
 
