@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, tests T12 et T13 : invitation nominative et changement d'espace
+
+Fait : `apps/web/e2e/staff-invitation.spec.ts` et `apps/web/e2e/space-switch.spec.ts` (PR `test/espaces`).
+Vérifié : quatre parcours verts en build de production, ordinateur et téléphone.
+À savoir : un espace neuf est en Découverte, plafonnée à un coach : sans `setOffre(…, "pilot")`, l'invitation d'un coach est refusée par l'offre, en silence pour un test qui attend un toast de succès. Pour un cookie forgé, prendre un espace dont le compte n'est vraiment pas membre.
+
 ## 2026-11-12, Claude, test T21 : le worker du site
 
 Fait : `apps/web/tests/service-worker.test.ts` exécute le vrai `public/sw.js` avec `node:vm`, dans un faux contexte de worker (notifications, fenêtres, caches, réseau) (PR `test/worker`).
