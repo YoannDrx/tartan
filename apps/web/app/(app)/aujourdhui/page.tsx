@@ -7,10 +7,12 @@ import { ActivityPicto, LaneArcs } from "@/components/pictos";
 import { EmptyState, PageHeader } from "@/components/states";
 import { StatusIcon } from "@/components/status-cell";
 import { Button } from "@/components/ui/button";
+import { Stay } from "@/components/ui/view-transition";
 import { cn } from "@/lib/cn";
 import { todayIso } from "@/lib/dates";
 import { AthleteWelcome } from "@/features/athlete-view/athlete-welcome";
 import { AttendanceQuestion, TodayAbsence } from "@/features/athlete-view/attendance-question";
+import { sessionCardName } from "@/features/athlete-view/session-card";
 import { QuickValidate } from "@/features/athlete-view/validation";
 import { requireAthleteSpace } from "@/features/shell/space";
 import { getAthleteSession, getAthleteToday, getAthleteWelcome } from "@/server/athlete-view.service";
@@ -92,53 +94,58 @@ const Hero = ({
   const exercises = detail.blocks.flatMap((b) => b.items);
   return (
     <>
-      {/* Carte héros en rouge piste : les arcs reprennent le virage de l'élan. */}
-      <section aria-labelledby={`seance-${card.id}`} className="on-hero relative overflow-hidden rounded-hero p-5">
-        <LaneArcs weight={3} className="pointer-events-none absolute -bottom-2 right-0 h-3/4 w-1/2 text-surface-sunk" />
-        <div className="relative flex flex-col gap-3">
-          <p className="flex flex-wrap items-center gap-2 t-caption font-semibold">
-            <span className="rounded-full bg-ink px-2.5 py-1 text-on-ink">{m.sessionType[card.type]}</span>
-            <span className="rounded-full border-2 border-ink px-2.5 py-0.5">{m.variant[card.variant]}</span>
-          </p>
-          <div>
-            <h2 id={`seance-${card.id}`} className="t-h1 text-balance">
-              {card.title}
-            </h2>
-            <p>
-              {[
-                card.startTime?.replace(":", " h "),
-                card.durationMin ? `${card.durationMin} min` : null,
-                `${card.exerciseCount} exercice${card.exerciseCount > 1 ? "s" : ""}`,
-                card.coachName ? m.today.sentBy(card.coachName.split(" ")[0] ?? card.coachName) : null,
-              ]
-                .filter(Boolean)
-                .join(", ")}
+      {/* La carte de la séance du jour : en l'ouvrant, elle devient la feuille de l'écran de séance. */}
+      <Stay name={sessionCardName(card.id)}>
+        <section aria-labelledby={`seance-${card.id}`} className="on-hero relative overflow-hidden rounded-hero p-5">
+          <LaneArcs
+            weight={3}
+            className="pointer-events-none absolute -bottom-2 right-0 h-3/4 w-1/2 text-surface-sunk"
+          />
+          <div className="relative flex flex-col gap-3">
+            <p className="flex flex-wrap items-center gap-2 t-caption font-semibold">
+              <span className="rounded-full bg-ink px-2.5 py-1 text-on-ink">{m.sessionType[card.type]}</span>
+              <span className="rounded-full border-2 border-ink px-2.5 py-0.5">{m.variant[card.variant]}</span>
             </p>
-          </div>
-          {validated ? (
-            <p className="flex items-center gap-2 font-semibold">
-              <StatusIcon status={card.status} /> {m.status[card.status as "done" | "partial"]} :{" "}
-              {m.today.validated.toLowerCase()}
-            </p>
-          ) : (
-            <QuickValidate session={detail} organizationId={organizationId} healthConsent={healthConsent} onDark />
-          )}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button asChild size="md" variant="secondary">
-              <Link href={`/seance/${card.id}/mode`}>
-                <Play aria-hidden className="size-4 fill-current" />
-                {validated ? m.today.review : m.today.start}
-              </Link>
-            </Button>
-            {/* La validation peut se refaire : c'est aussi le moyen de retirer une douleur saisie par erreur. */}
+            <div>
+              <h2 id={`seance-${card.id}`} className="t-h1 text-balance">
+                {card.title}
+              </h2>
+              <p>
+                {[
+                  card.startTime?.replace(":", " h "),
+                  card.durationMin ? `${card.durationMin} min` : null,
+                  `${card.exerciseCount} exercice${card.exerciseCount > 1 ? "s" : ""}`,
+                  card.coachName ? m.today.sentBy(card.coachName.split(" ")[0] ?? card.coachName) : null,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+              </p>
+            </div>
             {validated ? (
-              <Button asChild size="md" variant="quiet">
-                <Link href={`/seance/${card.id}/mode`}>{m.today.correct}</Link>
+              <p className="flex items-center gap-2 font-semibold">
+                <StatusIcon status={card.status} /> {m.status[card.status as "done" | "partial"]} :{" "}
+                {m.today.validated.toLowerCase()}
+              </p>
+            ) : (
+              <QuickValidate session={detail} organizationId={organizationId} healthConsent={healthConsent} onDark />
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild size="md" variant="secondary">
+                <Link href={`/seance/${card.id}/mode`}>
+                  <Play aria-hidden className="size-4 fill-current" />
+                  {validated ? m.today.review : m.today.start}
+                </Link>
               </Button>
-            ) : null}
+              {/* La validation peut se refaire : c'est aussi le moyen de retirer une douleur saisie par erreur. */}
+              {validated ? (
+                <Button asChild size="md" variant="quiet">
+                  <Link href={`/seance/${card.id}/mode`}>{m.today.correct}</Link>
+                </Button>
+              ) : null}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </Stay>
       {card.coachNote ? (
         <p>
           <span className="font-semibold">{m.today.coachWord} : </span>
@@ -221,18 +228,20 @@ export default async function AujourdhuiPage() {
       {data.next ? (
         <section className="flex flex-col gap-2">
           <h2 className="t-section">{m.today.next}</h2>
-          <Link
-            href={`/seance/${data.next.id}`}
-            className="on-card flex items-center gap-3 rounded-card bg-card p-3 no-underline hover:bg-card-raised"
-          >
-            <ActivityPicto kind={data.next.type} className="size-5 text-fg-muted" />
-            <span className="flex min-w-0 flex-col gap-0.5 text-fg">
-              <span className="font-semibold">{data.next.title}</span>
-              <span className="t-caption font-normal text-fg-muted">
-                {capitalize(formatDateLong(data.next.date))}, {m.variant[data.next.variant].toLowerCase()}
+          <Stay name={sessionCardName(data.next.id)}>
+            <Link
+              href={`/seance/${data.next.id}`}
+              className="on-card flex items-center gap-3 rounded-card bg-card p-3 no-underline hover:bg-card-raised"
+            >
+              <ActivityPicto kind={data.next.type} className="size-5 text-fg-muted" />
+              <span className="flex min-w-0 flex-col gap-0.5 text-fg">
+                <span className="font-semibold">{data.next.title}</span>
+                <span className="t-caption font-normal text-fg-muted">
+                  {capitalize(formatDateLong(data.next.date))}, {m.variant[data.next.variant].toLowerCase()}
+                </span>
               </span>
-            </span>
-          </Link>
+            </Link>
+          </Stay>
           <AttendanceQuestion sessionId={data.next.id} current={data.next.attendance} />
         </section>
       ) : null}

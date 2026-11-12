@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot B7 : écrans de l'athlète
+
+Fait : `/aujourdhui` et `/seance/[id]` entrent dans le monde de travail (`src/lib/world.ts`) : bandeau piste, barre de navigation sur la piste, thème suivi ; l'écran de séance tient en un bandeau (retour, titre, date) et une feuille (état, type, validation, démarrage) ; la carte du jour s'ouvre en feuille de séance (`sessionCardName`, `seance/[id]/loading.tsx`) ; en thème clair, la carte héros passe au blanc des surfaces (PR `feat/da-athlete`).
+Vérifié : `e2e/session-open.spec.ts` sur téléphone et ordinateur : bandeau sur l'accueil, groupe de transition au nom de la séance lu dans le navigateur, 200 ms, feuille et validation sur l'écran de séance, retour, carte distincte du fond en thème clair, axe ; quatre essais sur quatre sur le build de production ; accueil et écran de séance regardés à 390 px dans les trois thèmes, transition regardée au ralenti. Non vérifié : rien en production ; aucun vrai téléphone ; mode séance, progrès, calendrier et vidéos seulement regardés, pas modifiés.
+À savoir : un élément partagé ne se retrouve que s'il existe dans la page d'arrivée au moment de la navigation, donc dans son écran d'attente : celui de la séance est un composant client qui lit l'identifiant par `useParams` et nomme sa feuille comme la carte. En développement, cet écran d'attente se compile à la première visite et le lien ne se fait pas : le parcours visite la séance une fois avant de mesurer ; en production il est préchargé avec le lien. Mettre l'accueil dans le monde de travail a révélé que la carte héros, craie, se confondait avec la page craie du thème clair. `BandSkeleton` est sorti de `SheetSkeleton` pour servir aux écrans d'attente propres à une route. `recordTransitions` et `firstTransition` sont dans `e2e/helpers.ts`.
+Suite conseillée : B8.
+
 ## 2026-11-12, Claude, lot B6 : ossature de l'application
 
 Fait : en-tête du téléphone sans le nom d'espace quand il n'y en a qu'un (il est dans le menu Réglages) ; libellés de la barre basse et pastille de notifications passés de 11 à 12 px ; `TrackTile` et `EmptyState` avec l'athlète de la rubrique (`src/lib/rubric-athlete.ts`) dans les seize états vides et sur la page d'erreur ; feuilles, dialogues, menu et messages animés à l'entrée et à la sortie (PR `feat/da-ossature`).

@@ -278,6 +278,16 @@
     color: var(--ctx-fg);
     color-scheme: light;
   }
+  /* En thème clair, la page de travail est déjà craie : la carte héros passe au blanc des surfaces, sans quoi
+     elle se confond avec le fond. */
+  html:has([data-theme="light"]) .world-work .on-hero {
+    background: var(--color-work-surface);
+  }
+  @media (prefers-color-scheme: light) {
+    html:has([data-theme="system"]) .world-work .on-hero {
+      background: var(--color-work-surface);
+    }
+  }
   html:has(.world-couloir) {
     background: var(--color-film-electric);
   }

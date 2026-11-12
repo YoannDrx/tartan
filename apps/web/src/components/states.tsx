@@ -143,16 +143,20 @@ export const Spinner = ({ label }: { label: string }) => (
 // Le squelette reprend la forme d'une feuille : la page ne saute pas à l'arrivée des données.
 // Son bandeau est celui d'un titre d'écran, au même endroit et de la même hauteur : d'une page à l'autre,
 // le bandeau piste ne quitte pas l'écran pendant le chargement.
+export const BandSkeleton = () => (
+  <Stay name="page-band">
+    <div aria-hidden className="page-band tartan-band flex flex-col gap-4 bg-transparent">
+      <p className="t-display">
+        <span className="inline-block h-[0.72em] w-64 max-w-full rounded-button bg-page-deep desktop:w-96" />
+      </p>
+      <div className="lane" />
+    </div>
+  </Stay>
+);
+
 export const SheetSkeleton = ({ label, rows = 7 }: { label: string; rows?: number }) => (
   <div role="status" aria-busy className="flex flex-col gap-4">
-    <Stay name="page-band">
-      <div aria-hidden className="page-band tartan-band flex flex-col gap-4 bg-transparent">
-        <p className="t-display">
-          <span className="inline-block h-[0.72em] w-64 max-w-full rounded-button bg-page-deep desktop:w-96" />
-        </p>
-        <div className="lane" />
-      </div>
-    </Stay>
+    <BandSkeleton />
     <span className="sr-only">{label}</span>
     <div aria-hidden className="on-card divide-y divide-card-line overflow-hidden rounded-card bg-card">
       {Array.from({ length: rows }, (_, i) => (
