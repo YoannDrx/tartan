@@ -26,3 +26,5 @@ export {
   isPlausibleScore,
   isValidSeed,
 } from "./core/sim";
+
+export { COMBINED_ORDER, MAX_POINTS, SCALE, combinedTotal, pointsFor } from "./combined";
