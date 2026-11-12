@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot C1 : absence signalée par l'athlète
+
+Fait : l'athlète qui répond « je ne viens pas » prévient ses coachs (notification `absence_reported`, « Léa ne viendra pas jeudi »), une fois et pour une séance à venir ; il peut ensuite dire pourquoi, d'un geste de plus, parmi travail, études, transport, famille, autre raison. Le motif est enregistré dans `attendance.absence_reason` (migration additive), lu par le coach dans le suivi de la séance, effacé par « je viens » (PR `feat/absence-athlete`).
+Vérifié : `tests/absence.test.ts` (liste fermée sans santé, une seule notification sans motif, motif effacé, séance passée muette), `packages/domain` (texte de la notification), `e2e/absence.spec.ts` (l'athlète sur téléphone, le coach lit la notification et le motif). Non vérifié : notification sur un vrai téléphone.
+À savoir : la réponse existait déjà (elle bascule l'athlète en autonomie) ; le coach n'en était simplement pas prévenu. Le motif choisi n'est pas réaffiché à l'athlète quand il revient sur l'écran : seul le coach le relit. L'application mobile envoie `status` sans motif, ce que le contrat accepte toujours.
+Suite conseillée : C2.
+
 ## 2026-11-12, Claude, lot B9 : finitions de l'application
 
 Fait : la table commune de la console (`DataTable`, `console-ui.tsx`) devient une carte par ligne sur téléphone, première cellule en titre, les autres en paires libellé et valeur ; le tableau des espaces de `/admin` passe par elle ; son dernier texte en dur est déplacé. Connexion et création de l'espace : le groupe sur une ligne de piste (`start-scene.tsx`, option `scene` de `PublicPage`). Cinq e-mails portent un athlète dans leur bandeau, en PNG tirés par `pnpm --filter @tartan/web email:athletes` (PR `feat/da-finitions`).
