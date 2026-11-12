@@ -297,6 +297,7 @@ const performanceInput = () => ({
   unit: "m" as const,
   date: TODAY,
 });
+let cardMark = 3;
 const freshPerformance = (w: World) =>
   addPerformance(w.owner, w.org, { ...performanceInput(), athleteId: w.athleteId, clientId: randomUUID() });
 
@@ -553,6 +554,23 @@ export const MATRICE: Row[] = [
         params: { athleteId: w.athleteId, performanceId: performance.id },
         query: { expectedVersion: String(performance.version) },
       };
+    },
+  },
+  {
+    // La carte d'un record battu : l'athlète, et les coachs qui le suivent. Chaque appel bat le record précédent.
+    route: "GET /api/v1/orgs/[orgId]/athletes/[athleteId]/performances/[performanceId]/carte",
+    ...membres,
+    adjoint: 403,
+    call: async (w) => {
+      await freshPerformance(w);
+      cardMark += 0.01;
+      const record = await addPerformance(w.owner, w.org, {
+        ...performanceInput(),
+        mark: Math.round(cardMark * 1000) / 1000,
+        athleteId: w.athleteId,
+        clientId: randomUUID(),
+      });
+      return { params: { athleteId: w.athleteId, performanceId: record.id } };
     },
   },
   {

@@ -102,6 +102,8 @@ Un athlète accompagne un accueil, un état vide, un chargement long, une erreur
 
 Les pages d'entrée posent le groupe sur une ligne de piste (`src/features/shell/start-scene.tsx`), à droite du formulaire sur ordinateur, à la place des virages. La connexion aligne les trois athlètes du relais de la page d'accueil, aussi sous le formulaire sur téléphone. La création de l'espace montre Inès sur ordinateur seulement, le formulaire gardant tout l'écran du téléphone : sa pose suit le temps affiché (à vos marques, elle se place ; prêts, elle se concentre ; partez, elle s'élance), lue en CSS sur l'attribut `data-step` du formulaire.
 
+La carte de record (`src/features/progress/record-card.tsx`) est une image portrait de 1080 × 1350 sur la piste : la marque en encre sur un bloc citron, en Barlow Condensed, l'athlète de l'épreuve qui lève les bras sur les deux lignes du couloir. Une discipline hors des six épreuves prend Malo, l'athlète des progrès (`src/lib/discipline-athlete.ts`).
+
 Dans un e-mail, un athlète se tient à droite du logo, les pieds sur les lignes du bandeau, pour un accueil ou une bonne nouvelle : bienvenue du coach, invitation, bienvenue de l'athlète, conseils d'activation, abonnement confirmé. Les e-mails de sécurité, de paiement et d'avertissement restent sans illustration. Les messageries n'affichent pas le SVG : les images sont des PNG tirés du groupe par `pnpm --filter @tartan/web email:athletes`, déclarés dans `apps/web/emails/athletes.ts`.
 
 ## Mouvement

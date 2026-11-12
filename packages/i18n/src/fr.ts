@@ -457,6 +457,18 @@ export const fr = {
       custom: "Personnalisé",
     },
   },
+  // La carte de record, que l'athlète partage depuis son téléphone. Ni lieu, ni vent, ni donnée de santé.
+  recordCard: {
+    label: "Record personnel",
+    byline: (firstName: string, date: string) => `${firstName}, le ${date}`,
+    site: "tartan.coach",
+    share: "Partager",
+    shareLabel: (discipline: string) => `Partager mon record en ${discipline}`,
+    shareTitle: (discipline: string) => `Mon record en ${discipline}`,
+    downloaded: "Image enregistrée : tu peux la partager depuis tes photos.",
+    failed: "L'image n'a pas pu être préparée. Réessaie dans un instant.",
+    filename: (discipline: string) => `record-${discipline}.png`,
+  },
   performances: {
     title: "Performances athlé",
     add: "Ajouter une performance",
