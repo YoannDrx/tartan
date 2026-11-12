@@ -109,6 +109,7 @@ export const OnboardingForm = ({
   return (
     <form
       noValidate
+      data-step={step}
       className="flex flex-col gap-6"
       onSubmit={(event) => {
         // Entrée dans un champ fait avancer d'un temps ; seul le dernier crée l'espace.

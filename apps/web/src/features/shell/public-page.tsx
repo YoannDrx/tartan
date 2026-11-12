@@ -14,6 +14,8 @@ export const PublicPage = ({
   site = false,
   world = "piste",
   embedded = false,
+  scene,
+  scenePhone = true,
 }: {
   title?: string;
   lead?: ReactNode;
@@ -24,13 +26,20 @@ export const PublicPage = ({
   world?: "piste" | "couloir" | "craie" | "soleil" | "nuit";
   // Ouverte depuis l'app : ni navigation, ni pied de page, ni logo. Rien ne doit mener aux tarifs.
   embedded?: boolean;
+  // Des athlètes du groupe sur la piste : à droite du formulaire sur ordinateur, sous lui sur téléphone.
+  scene?: ReactNode;
+  // Un formulaire long garde tout l'écran du téléphone : la scène n'y apparaît que sur ordinateur.
+  scenePhone?: boolean;
 }) => (
   <main className={cn(`world-${world}`, "relative flex min-h-dvh flex-col overflow-x-clip pb-10")}>
-    {width === "form" && !site ? (
+    {width === "form" && !site && !scene ? (
       <LaneArcs
         weight={3}
         className="pointer-events-none absolute bottom-0 right-0 hidden h-[70dvh] w-[46vw] text-lane desktop:block"
       />
+    ) : null}
+    {scene ? (
+      <div className="pointer-events-none absolute bottom-[14dvh] right-0 hidden w-[44vw] desktop:flex">{scene}</div>
     ) : null}
     <div className="relative mx-auto flex w-full max-w-[1200px] flex-1 flex-col gap-4 px-4 pt-5 desktop:px-6 desktop:pt-6">
       {embedded ? null : site ? (
@@ -58,6 +67,7 @@ export const PublicPage = ({
       <div className={cn("mt-2 w-full", width === "form" ? "max-w-md" : width === "text" ? "max-w-3xl" : "")}>
         {children}
       </div>
+      {scene && scenePhone ? <div className="mt-6 w-full max-w-md desktop:hidden">{scene}</div> : null}
       {site && !embedded ? (
         <div className="mt-auto pt-8">
           <SiteFooter />

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { FilterPill } from "@/components/filter-pill";
 import { Sheet } from "@/components/sheet";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 
 export const euros = (cents: number | null | undefined) =>
   cents === null || cents === undefined
@@ -53,24 +54,46 @@ export const Metrics = ({ items }: { items: { label: string; value: ReactNode }[
   </Sheet>
 );
 
-// Table lisible au clavier et sur téléphone : elle défile dans son propre cadre.
-export const DataTable = ({
-  caption,
-  columns,
-  rows,
-  empty,
-}: {
+// Sur ordinateur et tablette, une table qui défile dans son propre cadre. Sur téléphone, une carte par ligne :
+// la première cellule en titre, les autres en paires libellé et valeur, sans défilement de côté.
+type DataProps = {
   caption: string;
   columns: string[];
   rows: ReactNode[][];
   empty?: string;
-}) => (
-  <Sheet>
-    {rows.length === 0 ? (
-      <p className="p-4 text-soft">{empty ?? m.admin.empty}</p>
-    ) : (
-      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={caption}>
-        <table className="w-full min-w-[640px] border-collapse text-left">
+  // Largeur minimale de la table, pour les tables de plus de six colonnes.
+  wide?: boolean;
+  // Colonnes de chiffres, en chiffres tabulaires.
+  numeric?: number[];
+};
+
+// Le contenu seul, pour une feuille qui porte déjà son titre.
+export const DataRows = ({ caption, columns, rows, empty, wide, numeric = [] }: DataProps) =>
+  rows.length === 0 ? (
+    <p className="p-4 text-soft">{empty ?? m.admin.empty}</p>
+  ) : (
+    <>
+      <ul aria-label={caption} className="divide-y divide-card-line tablet:hidden">
+        {rows.map((row, index) => (
+          <li key={index} className="flex flex-col gap-2 px-4 py-3">
+            <div className="font-semibold break-words">{row[0]}</div>
+            {row.length > 1 ? (
+              <dl className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-x-3 gap-y-1">
+                {row.slice(1).map((cell, cellIndex) => (
+                  <div key={cellIndex} className="contents">
+                    <dt className="t-caption self-baseline text-soft">{columns[cellIndex + 1]}</dt>
+                    <dd className={cn("min-w-0 self-baseline break-words", numeric.includes(cellIndex + 1) && "t-num")}>
+                      {cell}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      <div className="overflow-x-auto max-tablet:hidden" tabIndex={0} role="region" aria-label={caption}>
+        <table className={`w-full border-collapse text-left ${wide ? "min-w-[840px]" : "min-w-[640px]"}`}>
           <caption className="sr-only">{caption}</caption>
           <thead>
             <tr className="border-b border-card-line">
@@ -85,7 +108,7 @@ export const DataTable = ({
             {rows.map((row, index) => (
               <tr key={index}>
                 {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-3 py-2 align-top">
+                  <td key={cellIndex} className={cn("px-3 py-2 align-top", numeric.includes(cellIndex) && "t-num")}>
                     {cell}
                   </td>
                 ))}
@@ -94,7 +117,12 @@ export const DataTable = ({
           </tbody>
         </table>
       </div>
-    )}
+    </>
+  );
+
+export const DataTable = (props: DataProps) => (
+  <Sheet>
+    <DataRows {...props} />
   </Sheet>
 );
 

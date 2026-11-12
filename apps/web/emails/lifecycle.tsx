@@ -22,6 +22,7 @@ export const TipEmail = ({
 }) => (
   <Layout
     preview={title}
+    athlete="tip"
     footerNote={
       <>
         {m.email.activation.footer(space)} <Link href={unsubscribe}>{m.email.unsubscribeLink}</Link>
@@ -49,7 +50,7 @@ export const AthleteWelcomeEmail = ({
   cta: string;
   url: string;
 }) => (
-  <Layout preview={title}>
+  <Layout preview={title} athlete="athleteWelcome">
     <Title>{title}</Title>
     <Paragraph>{body}</Paragraph>
     <Paragraph muted>{tip}</Paragraph>

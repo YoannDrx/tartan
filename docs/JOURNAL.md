@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot B9 : finitions de l'application
+
+Fait : la table commune de la console (`DataTable`, `console-ui.tsx`) devient une carte par ligne sur téléphone, première cellule en titre, les autres en paires libellé et valeur ; le tableau des espaces de `/admin` passe par elle ; son dernier texte en dur est déplacé. Connexion et création de l'espace : le groupe sur une ligne de piste (`start-scene.tsx`, option `scene` de `PublicPage`). Cinq e-mails portent un athlète dans leur bandeau, en PNG tirés par `pnpm --filter @tartan/web email:athletes` (PR `feat/da-finitions`).
+Vérifié : `e2e/admin-console.spec.ts` (cartes sur téléphone, table dès la tablette), `e2e/age-confirmation.spec.ts` (la pose suit les trois temps), `tests/email-athletes.test.ts` (chaque image existe à la bonne taille, aucune dans un e-mail de sécurité) ; connexion, création de l'espace et deux e-mails regardés à 390, 768 et 1440 px. Non vérifié : aucun e-mail reçu dans une vraie messagerie avec son illustration ; aucun vrai téléphone.
+À savoir : les composants web sont compilés en JSX « preserve » pour Next ; un script `tsx` qui les rend doit passer par `tsconfig.scripts.json`. Les images des e-mails ne sont servies par `tartan.coach` qu'après le déploiement. « Écrans immersifs passés aux jetons » était déjà fait : le lint refuse couleurs et durées en dur depuis A3 et B1, une recherche n'en trouve aucune.
+Suite conseillée : C1.
+
 ## 2026-11-12, Claude, lot B8 : écrans du coach
 
 Fait : dans le constructeur de séance, « Publier » reste collé au-dessus de la barre de navigation sur téléphone, les autres actions au bout du formulaire (`session-builder.tsx`) ; dans tous les bandeaux, les actions tiennent sur une ligne qui défile de côté sur téléphone (`PageHeader`) ; le « +N » de la grille du mois passe de 10 à 12 px ; `tests/text-size.test.ts` refuse tout texte sous 12 px (PR `feat/da-coach`).

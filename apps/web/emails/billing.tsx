@@ -38,7 +38,7 @@ export const SubscriptionConfirmedEmail = ({
 }) => {
   const t = m.email.confirmed;
   return (
-    <Layout preview={t.subject(plan)}>
+    <Layout preview={t.subject(plan)} athlete="subscribed">
       <Title>{t.subject(plan)}</Title>
       {price !== null ? <Paragraph>{t.price(space, plan, price, interval)}</Paragraph> : null}
       {trialEnd ? <Paragraph>{t.trial(trialEnd)}</Paragraph> : null}

@@ -100,6 +100,10 @@ La planche de contrôle `/admin/mascotte` montre le groupe sur ses cinq fonds, l
 
 Un athlète accompagne un accueil, un état vide, un chargement long, une erreur, une célébration, un e-mail. Il ne remplace jamais une information ou une action, et ne s'interpose pas entre l'utilisateur et sa tâche. Dans un écran de travail, il se tient sur un bout de piste (`TrackTile`) : le rouge et la ligne blanche ne changent pas avec le thème, donc sa tenue reste lisible sur une carte claire comme sur une carte encre. Chaque état vide porte l'athlète de sa rubrique (`src/lib/rubric-athlete.ts`) ; les rubriques que la table ne nomme pas prennent celui de la rubrique la plus proche.
 
+Les pages d'entrée posent le groupe sur une ligne de piste (`src/features/shell/start-scene.tsx`), à droite du formulaire sur ordinateur, à la place des virages. La connexion aligne les trois athlètes du relais de la page d'accueil, aussi sous le formulaire sur téléphone. La création de l'espace montre Inès sur ordinateur seulement, le formulaire gardant tout l'écran du téléphone : sa pose suit le temps affiché (à vos marques, elle se place ; prêts, elle se concentre ; partez, elle s'élance), lue en CSS sur l'attribut `data-step` du formulaire.
+
+Dans un e-mail, un athlète se tient à droite du logo, les pieds sur les lignes du bandeau, pour un accueil ou une bonne nouvelle : bienvenue du coach, invitation, bienvenue de l'athlète, conseils d'activation, abonnement confirmé. Les e-mails de sécurité, de paiement et d'avertissement restent sans illustration. Les messageries n'affichent pas le SVG : les images sont des PNG tirés du groupe par `pnpm --filter @tartan/web email:athletes`, déclarés dans `apps/web/emails/athletes.ts`.
+
 ## Mouvement
 
 **Règle d'or : l'animation suit l'état, elle ne le précède jamais.** Rien ne retarde une action : l'écran est utilisable dès la première image, tout mouvement est interruptible, et le chemin de validation de l'athlète ne porte aucune animation de plus de 200 ms avant le résultat.

@@ -5,7 +5,7 @@ import { Sheet, SheetSection } from "@/components/sheet";
 import { PageHeader } from "@/components/states";
 import { requireSpace } from "@/features/shell/space";
 import { AdminReports } from "@/features/admin/admin-reports";
-import { AdminNav } from "@/features/admin/console-ui";
+import { AdminNav, DataRows } from "@/features/admin/console-ui";
 import { BirthDateCorrection, DisableAiEverywhere, RetryEmail, SpaceFeaturesForm } from "@/features/admin/operations";
 import { adminOverview, isAdmin } from "@/server/admin.service";
 import { listAllReports } from "@/server/comm.service";
@@ -121,7 +121,7 @@ export default async function AdminPage() {
           <ul>
             {data.checkoutReviewItems.map((item) => (
               <li key={item.id} className="break-all py-2">
-                {item.organizationId} · {item.id} · v{item.generation} · {item.sessionId ?? "–"}
+                {item.organizationId} · {item.id} · {m.admin.generation(item.generation)} · {item.sessionId ?? "–"}
               </li>
             ))}
           </ul>
@@ -151,53 +151,40 @@ export default async function AdminPage() {
       </Sheet>
       <Sheet>
         <SheetSection title={m.admin.spaces} flush>
-          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={m.admin.spaces}>
-            <table className="w-full min-w-[840px] text-left">
-              <thead>
-                <tr>
-                  {[
-                    m.admin.space,
-                    m.admin.plan,
-                    m.admin.athletes,
-                    m.admin.sessionsWeek,
-                    m.admin.validation,
-                    m.admin.delay,
-                    m.admin.active,
-                    m.admin.activation,
-                    m.admin.videos,
-                    m.admin.reports,
-                  ].map((label) => (
-                    <th key={label} scope="col" className="t-col px-3 py-2 first:pl-4">
-                      {label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-card-line">
-                {data.spaces.map((space) => (
-                  <tr key={space.id}>
-                    <th scope="row" className="px-3 py-2 pl-4 text-left font-semibold">
-                      {space.name}
-                      <span className="t-caption block font-normal text-soft">{space.ownerEmail}</span>
-                    </th>
-                    <td className="px-3 py-2">{m.billing.plans[space.plan]}</td>
-                    <td className="t-num px-3 py-2">{space.athletes}</td>
-                    <td className="t-num px-3 py-2">{space.sessionsThisWeek}</td>
-                    <td className="t-num px-3 py-2">{pct(space.metrics.validationRatePct)}</td>
-                    <td className="t-num px-3 py-2">
-                      {space.metrics.medianValidationHours === null
-                        ? "–"
-                        : `${Math.round(space.metrics.medianValidationHours)} h`}
-                    </td>
-                    <td className="t-num px-3 py-2">{pct(space.metrics.activeAthletesPct)}</td>
-                    <td className="t-num px-3 py-2">{pct(space.metrics.activationPct)}</td>
-                    <td className="t-num px-3 py-2">{space.metrics.sharedVideosLast7Days}</td>
-                    <td className="t-num px-3 py-2">{space.openReports}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataRows
+            caption={m.admin.spaces}
+            wide
+            numeric={[2, 3, 4, 5, 6, 7, 8, 9]}
+            columns={[
+              m.admin.space,
+              m.admin.plan,
+              m.admin.athletes,
+              m.admin.sessionsWeek,
+              m.admin.validation,
+              m.admin.delay,
+              m.admin.active,
+              m.admin.activation,
+              m.admin.videos,
+              m.admin.reports,
+            ]}
+            rows={data.spaces.map((space) => [
+              <>
+                {space.name}
+                <span className="t-caption block font-normal text-soft">{space.ownerEmail}</span>
+              </>,
+              m.billing.plans[space.plan],
+              space.athletes,
+              space.sessionsThisWeek,
+              pct(space.metrics.validationRatePct),
+              space.metrics.medianValidationHours === null
+                ? "–"
+                : `${Math.round(space.metrics.medianValidationHours)} h`,
+              pct(space.metrics.activeAthletesPct),
+              pct(space.metrics.activationPct),
+              space.metrics.sharedVideosLast7Days,
+              space.openReports,
+            ])}
+          />
         </SheetSection>
       </Sheet>
       {data.satisfaction.comments.length > 0 ? (

@@ -54,7 +54,7 @@ export const ResetPasswordEmail = ({ url }: { url: string }) => (
 );
 
 export const InvitationEmail = ({ url, inviter, target }: { url: string; inviter: string; target: string }) => (
-  <Layout preview={`${inviter} t'invite à rejoindre ${target}`}>
+  <Layout preview={`${inviter} t'invite à rejoindre ${target}`} athlete="invitation">
     <Title>{`${inviter} t'invite à rejoindre ${target}`}</Title>
     <Paragraph>
       Tes séances arriveront directement dans Tartan. Ce lien est personnel, sert une seule fois et reste valable 7
@@ -102,7 +102,7 @@ export const ParentalConsentEmail = ({ url, athlete, coach }: { url: string; ath
 export const WelcomeEmail = ({ space, url }: { space: string; url: string }) => {
   const t = m.email.welcome;
   return (
-    <Layout preview={t.subject(space)}>
+    <Layout preview={t.subject(space)} athlete="welcome">
       <Title>{t.subject(space)}</Title>
       <Paragraph>{t.body}</Paragraph>
       <PrimaryLink href={url}>{t.cta}</PrimaryLink>
