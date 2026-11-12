@@ -20,6 +20,11 @@ Fait : job `maestro` dans `.github/workflows/mobile-native.yml`, sur macOS : Pos
 Vérifié en local : l'app de développement se compile pour le simulateur (Xcode 26.2), s'ouvre sur l'écran de connexion et joint le serveur local ; la graine et le compte sans date de naissance se créent comme dans le job.
 Non conclu : un lien de retour fabriqué à la main (`tartan-dev://callback?cookie=…`, cookie obtenu par `sign-in/email`) est refusé par l'écran de retour, avec l'ancienne version comme avec celle de M4. Ce lien n'est pas celui du serveur ; le vrai lien magique reste à essayer, et c'est un bon candidat pour le flux Maestro de M4.
 Suite conseillée : les flux de T24, puis ceux de M4 (changement de compte) et M5 (vidéo juste encodée).
+## 2026-11-12, Claude, M6 : révocation Apple pour la connexion native
+
+Fait : l'app iOS envoie le code d'autorisation d'Apple à `POST /api/v1/me/apple-authorization`. Le serveur l'échange auprès d'Apple avec le bundle de l'app (`APPLE_APP_BUNDLE_IDENTIFIER`), vérifie que le sujet du jeton est le compte Apple relié, puis garde le jeton de rafraîchissement et l'identifiant qui l'a délivré (colonne additive `account.apple_client_id`). La suppression du compte révoque avec cet identifiant (PR `feat/apple-revocation`).
+Vérifié : `tests/auth-social.test.ts` (échange, révocation avec le bundle, autre compte Apple refusé, compte sans Apple, configuration absente, panne d'Apple), ligne de la matrice d'accès.
+Non vérifié : un échange réel avec Apple. La connexion Apple reste éteinte ; le jour où elle s'allume, poser `APPLE_APP_BUNDLE_IDENTIFIER` sur Vercel.
 
 ## 2026-11-12, Claude, fin de la file du 12 novembre : bilan
 
