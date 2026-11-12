@@ -1453,6 +1453,13 @@ export const fr = {
     pricing: "Comparer les offres",
   },
   landing: {
+    // L'échauffement : l'aperçu jouable du jeu, après la ligne d'arrivée.
+    warmUp: {
+      title: "Échauffe-toi sur les haies.",
+      body: "Avant de t'y mettre, un 110 m haies au pouce. Appuie pour sauter : au sommet du saut, tu ne perds rien.",
+      play: "Jouer au 110 m haies ici",
+      all: "Voir les six épreuves de Tartan Meeting",
+    },
     title: "La préparation physique du coach et de son groupe.",
     lead: "Tu construis les séances. Ton groupe sait ce qui arrive et sur quoi s’appliquer. Tu vois ce qui a vraiment été fait. Pensé pour l’athlétisme, du bureau au bord de la piste.",
     description:

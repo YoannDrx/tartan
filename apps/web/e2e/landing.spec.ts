@@ -125,3 +125,32 @@ test("la page introuvable et la page hors ligne portent un athlète du groupe", 
   await expectNoHorizontalScroll(page);
   await expectAccessible(page);
 });
+
+// L'échauffement : le jeu ne pèse rien tant qu'on n'y touche pas. Le code de la simulation porte le message
+// « invalid seed » : aucun script chargé avant le clic ne le contient, un script chargé après, si.
+test("l'échauffement ne charge le jeu qu'au premier geste, puis la course se joue sur la page", async ({ page }) => {
+  test.setTimeout(90_000);
+  const scriptsWith = (needle: string) =>
+    page.evaluate(async (text) => {
+      const urls = performance
+        .getEntriesByType("resource")
+        .map((entry) => entry.name)
+        .filter((url) => url.endsWith(".js") || url.includes(".js?"));
+      const bodies = await Promise.all(urls.map((url) => fetch(url).then((response) => response.text())));
+      return bodies.filter((body) => body.includes(text)).length;
+    }, needle);
+  await page.goto("/", { waitUntil: "networkidle" });
+  await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+  const section = page.getByRole("region", { name: m.landing.warmUp.title });
+  await section.scrollIntoViewIfNeeded();
+  await page.waitForLoadState("networkidle");
+  expect(await scriptsWith("invalid seed")).toBe(0);
+  await expect(section.getByRole("link", { name: m.landing.warmUp.all })).toHaveAttribute("href", "/jeu");
+
+  await section.getByRole("button", { name: m.landing.warmUp.play, exact: true }).click();
+  await expect(section.getByRole("img", { name: m.game.events.hurdles.canvas })).toBeVisible();
+  expect(await scriptsWith("invalid seed")).toBeGreaterThan(0);
+  await section.getByRole("button", { name: m.game.start, exact: true }).click();
+  await expect(section.getByRole("button", { name: m.game.events.hurdles.action, exact: true })).toBeVisible();
+  await expectNoHorizontalScroll(page);
+});
