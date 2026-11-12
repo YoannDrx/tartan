@@ -8,6 +8,7 @@ import {
 } from "@tartan/design-tokens/athletes";
 import { tokens } from "@tartan/design-tokens";
 import { ATHLETE_IDS } from "@tartan/mascot/athletes";
+import { CLIPS } from "@tartan/mascot/events";
 import { describe, expect, it } from "vitest";
 
 const SURFACE_NAMES = Object.keys(SURFACES) as Surface[];
@@ -101,10 +102,25 @@ describe("les accessoires", () => {
     for (const surface of ["ink", "piste"] as const) {
       const paint = stagePaint(surface);
       for (const [role, value] of Object.entries(paint)) {
+        // Le dessus rouge du sautoir, comme ceux des stades, ne se détache pas du rouge de la piste : c'est son liseré
+        // blanc (« board ») qui l'en sépare. Il se détache en revanche du corps bleu du tapis.
+        if (role === "matTop" && surface === "piste") {
+          expect(colorDistance(paint.board, SURFACES.piste)).toBeGreaterThanOrEqual(DISTINCT);
+          expect(colorDistance(value, paint.mat)).toBeGreaterThanOrEqual(DISTINCT);
+          continue;
+        }
         expect(colorDistance(value, SURFACES[surface]), `${role} sur ${surface}`).toBeGreaterThanOrEqual(DISTINCT);
       }
       // Le sable et le tapis ne se confondent pas avec la peau la plus claire.
       expect(colorDistance(paint.sand, tokens.color.athlete.tone.light)).toBeGreaterThan(0.05);
+    }
+  });
+
+  it("donnent au dessus de chaque sautoir son liseré blanc", () => {
+    for (const id of ["highJump", "poleVault"] as const) {
+      const shapes = CLIPS[id].props(0.5);
+      expect(shapes.some((shape) => shape.paint === "matTop")).toBe(true);
+      expect(shapes.some((shape) => shape.paint === "board" && shape.kind === "line")).toBe(true);
     }
   });
 });

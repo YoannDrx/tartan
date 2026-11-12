@@ -305,6 +305,15 @@ const GROUND: PropShape[] = [
     paint: "post",
   },
   { kind: "rect", x: mat.from + 18, y: mat.top, width: mat.to - mat.from - 18, height: 44, radius: 8, paint: "matTop" },
+  // Le liseré blanc du dessus : il détache le sautoir de la piste rouge.
+  {
+    kind: "line",
+    from: { x: mat.from + 26, y: mat.top + 2 },
+    to: { x: mat.to - 8, y: mat.top + 2 },
+    width: 5,
+    cap: "butt",
+    paint: "board",
+  },
   { kind: "rect", x: mat.from, y: mat.top + 38, width: mat.to - mat.from, height: 172, radius: 8, paint: "mat" },
   { kind: "line", from: bar.far, to: bar.near, width: 9, paint: "bar" },
 ];

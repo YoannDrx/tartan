@@ -20,6 +20,15 @@ const PROPS: PropShape[] = [
   laneLine(STAGE, 0, 800),
   { kind: "line", from: { x: far.x, y: matTop + 10 }, to: { x: far.x, y: far.y - 22 }, width: 12, paint: "post" },
   { kind: "rect", x: 818, y: matTop, width: 582, height: 44, radius: 8, paint: "matTop" },
+  // Le liseré blanc du dessus : il détache le sautoir de la piste rouge.
+  {
+    kind: "line",
+    from: { x: 826, y: matTop + 2 },
+    to: { x: 1392, y: matTop + 2 },
+    width: 5,
+    cap: "butt",
+    paint: "board",
+  },
   { kind: "rect", x: 800, y: matTop + 38, width: 600, height: 172, radius: 8, paint: "mat" },
   { kind: "line", from: far, to: near, width: 10, paint: "bar" },
   // Le poteau proche passe devant le sauteur : il est entre lui et nous.

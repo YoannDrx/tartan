@@ -77,16 +77,16 @@ describe("le relais du film", () => {
     expect(frameAt(FILM_STILL).scene).toBe("highJump");
   });
 
-  it("passe le relais avant que le perchiste ne se retourne", () => {
-    for (const t of times.filter((value) => value >= FILM.poleVault && value < FILM.highJump)) {
-      // Vu par la tranche, le corps ne se lit plus : la scène s'arrête avant.
-      expect(frameAt(t).pose.flip, `t = ${t}`).toBeGreaterThan(0.7);
-    }
-    const last = frameAt(FILM.highJump - 1e-6).pose;
-    // Il quitte le film renversé, les pieds au-dessus de la tête, plus haut que la barre.
-    const joints = jointPositions(last, last);
-    expect(joints.footA.y).toBeLessThan(joints.head.y);
-    expect(last.y).toBeLessThan(GROUND - 300);
+  it("mène chaque geste à son terme avant le relais : la course au bord de la scène, le perchiste sur le tapis", () => {
+    // Inès finit sa course au bout de la piste, à droite de la seconde haie.
+    const runner = frameAt(FILM.poleVault - 1e-6).pose;
+    expect(runner.x).toBeGreaterThan(1_200);
+    // Malo est retombé sur le tapis, et s'y relève : le bassin est au-dessus du tapis, plus haut que rien.
+    const vaulter = frameAt(FILM.highJump - 1e-6).pose;
+    const lift = GROUND - (POLE_VAULT.box.y - 8);
+    expect(vaulter.x).toBeGreaterThan(POLE_VAULT.mat.from);
+    expect(vaulter.y).toBeLessThan(POLE_VAULT.mat.top + lift);
+    expect(vaulter.y).toBeGreaterThan(POLE_VAULT.mat.top + lift - 200);
   });
 
   it("pose le sautoir de la perche sur le sol du film, et plante la perche dans le butoir", () => {
@@ -98,7 +98,9 @@ describe("le relais du film", () => {
       if (pole?.kind !== "curve") throw new Error("La perche manque à la scène.");
       const { pose } = frameAt(t);
       const hand = jointPositions(pose, pose).handB;
-      expect(Math.hypot(pole.to.x - hand.x, pole.to.y - hand.y), `t = ${t}`).toBeLessThan(1e-6);
+      // La perche reste en main jusqu'au lâcher, au-dessus de la barre.
+      if (t < FILM.poleVault + (FILM.highJump - FILM.poleVault) * 0.5)
+        expect(Math.hypot(pole.to.x - hand.x, pole.to.y - hand.y), `t = ${t}`).toBeLessThan(1e-6);
       if (t > FILM.poleVault + 0.1) expect(pole.from).toEqual({ x: POLE_VAULT.box.x, y: POLE_VAULT.box.y + lift });
     }
     expect(sceneProps("hurdles", FILM.hurdles).filter((shape) => shape.paint === "hurdle")).toHaveLength(2);

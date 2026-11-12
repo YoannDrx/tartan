@@ -30,6 +30,9 @@ export const tokens = {
       sunDeep: "#EFB21C",
       sunLight: "#FFE08A",
       skin: "#E8A87C",
+      // Les sautoirs de hauteur et de perche, comme ceux des stades : corps bleu, dessus rouge, liseré blanc.
+      matBlue: "#1E4FBF",
+      matRed: "#E0242D",
     },
     // Le groupe des six athlètes : quatre teints et trois couleurs de cheveux (DESIGN.md, « Le groupe »).
     // Chaque teinte se distingue de la piste, de l'encre et de la craie : `tests/athlete-colors.test.ts`.
