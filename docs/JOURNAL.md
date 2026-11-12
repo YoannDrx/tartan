@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, test T20 : fiches de la console
+
+Fait : `apps/web/e2e/admin-console.spec.ts` ouvre aussi `admin/espaces/[id]` et `admin/factures/[id]` (PR `test/console`).
+Vérifié : quatre parcours verts en build de production, ordinateur et téléphone.
+À savoir : les deux projets créent chacun un espace « Coaching Console » dans la même base. Cibler une ligne par son identifiant, pas par son nom.
+
 ## 2026-11-12, Claude, test T19 : les pages sans parcours, avec données
 
 Fait : `apps/web/e2e/filled-pages.spec.ts` (PR `test/pages-donnees`) remplit un compte neuf avec `prisma/demo-fill.ts`, puis visite `/mes-sauts`, une vidéo, `/progres` et `/seances/[id]/charges`.
