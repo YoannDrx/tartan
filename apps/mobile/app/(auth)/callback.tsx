@@ -3,10 +3,12 @@ import * as Linking from "expo-linking";
 import { useNavigationContainerRef, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
+import { switchAccount } from "../../src/lib/account-switch";
 import { paramFromUrl } from "../../src/lib/auth-callback";
-import { storeSessionCookie } from "../../src/lib/auth-client";
-import { clearPersistedData } from "../../src/lib/query-client";
+import { clearSessionCookie, storeSessionCookie } from "../../src/lib/auth-client";
+import { clearPersistedData, queryClient } from "../../src/lib/query-client";
 import { useSession } from "../../src/lib/session-store";
+import { useSpaceStore } from "../../src/lib/space-store";
 import { Button, T } from "../../src/ui/primitives";
 import { LoadingState } from "../../src/ui/states";
 import { GUTTER, scene, space } from "../../src/ui/theme";
@@ -28,14 +30,16 @@ export default function AuthCallback() {
       return;
     }
     setFailed(false);
-    void (async () => {
-      // Un autre compte était peut-être ouvert sur ce téléphone : rien de lui ne doit rester à l'écran.
-      await clearPersistedData();
-      await storeSessionCookie(cookie);
-      await refresh();
-      // La pile de l'ancien compte disparaît aussi : pas de retour possible vers ses écrans.
-      navigation.reset({ index: 0, routes: [{ name: "index" }] });
-    })().catch(() => setFailed(true));
+    // Un autre compte était peut-être ouvert sur ce téléphone : rien de lui ne doit rester à l'écran, ni dans la pile.
+    switchAccount(cookie, {
+      cancelQueries: () => queryClient.cancelQueries(),
+      clearCookie: clearSessionCookie,
+      storeCookie: storeSessionCookie,
+      clearData: clearPersistedData,
+      forgetActiveSpace: () => useSpaceStore.setState({ activeOrgId: null }),
+      refreshSession: refresh,
+      resetNavigation: () => navigation.reset({ index: 0, routes: [{ name: "index" }] }),
+    }).catch(() => setFailed(true));
     // Une seule exécution par lien reçu.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);

@@ -129,7 +129,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | M1 | Échec EAS à « Read app config » : cause trouvée et corrigée (TypeScript importé par la configuration). Reste un build de production réel à lancer | [Android](plans/android.md) | Bloque Android |
 | M2 | Maestro sur simulateur en CI, flux non conditionnels : T09 | [automatisation](tests/automatisation.md) | Avant soumission |
 | M3 | Captures Android 1080 × 1920, capture de l'analyse vidéo iOS | [captures](exploitation/captures.md) | Avant soumission |
-| M4 | Corriger le changement de compte par lien magique sur mobile, sans déconnexion | [iOS](plans/ios.md) | Avant soumission |
+| M4 | Changement de compte par lien magique sur mobile : cause probable corrigée (ordre cookie, cache, espace actif), codé et testé. Reste le flux Maestro dédié et l'essai sur simulateur | [iOS](plans/ios.md) | Avant soumission |
 | M5 | Repli HLS du lecteur mobile si le MP4 n'est pas prêt : codé et testé (`src/lib/playback-source.ts`). Reste à voir une vidéo lue juste après l'encodage, sur téléphone | [iOS](plans/ios.md) | Avant soumission |
 | M6 | Connexion Apple : envoyer `authorizationCode` et stocker le jeton, pour la révocation | [iOS](plans/ios.md) | Seulement si activée |
 | T-suite | Tests élevés, moyens et faibles : T09 à T26. Fait : T10 (vidéo en HTTP, file d'envoi), T11, T22, T25 (routes techniques), T15, T16, T17 (gardes d'accès), T21 (worker), T12, T13 (invitation nominative, changement d'espace), T14 (page abonnement), T18 (centre de notifications), T19 (pages remplies), T20 (fiches de la console) | [automatisation](tests/automatisation.md) | Après l'ouverture web |
