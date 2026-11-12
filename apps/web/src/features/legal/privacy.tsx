@@ -2,7 +2,7 @@ import { m } from "@tartan/i18n";
 import { LegalPage } from "@/features/shell/legal-page";
 
 export const PrivacyContent = ({ embedded = false }: { embedded?: boolean }) => (
-  <LegalPage title="Politique de confidentialité" updated="9 novembre 2026" embedded={embedded}>
+  <LegalPage title="Politique de confidentialité" updated="12 novembre 2026" embedded={embedded}>
     <p>
       Responsable du traitement : Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des
       Jonquilles, 95130 Franconville. Contact : hello@tartan.coach.
@@ -82,7 +82,10 @@ export const PrivacyContent = ({ embedded = false }: { embedded?: boolean }) => 
       <li>Signalement traité : 1 an.</li>
       <li>Événements d'abonnement : 13 mois. Factures : 10 ans, comme la loi l'impose.</li>
       <li>Copies de sauvegarde : 30 jours. Une donnée effacée peut y rester jusqu'à leur expiration.</li>
+      <li>{m.game.leaderboard.policyRetention}</li>
     </ul>
+    <h2>{m.game.leaderboard.policyTitle}</h2>
+    <p>{m.game.leaderboard.policyBody}</p>
     <h2>Tes droits</h2>
     <p>
       Accès, rectification, export, opposition, retrait du consentement, suppression. L'export de tes données se fait

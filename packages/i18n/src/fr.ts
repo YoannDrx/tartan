@@ -505,6 +505,12 @@ export const fr = {
       tokenUsed: "Cet essai a déjà été envoyé, ou il a expiré.",
       privacy:
         "Le classement garde ton pseudo, ton score, sa date, une empreinte de ton appareil et, 30 jours, une empreinte de ton adresse IP. Ni compte, ni e-mail.",
+      // La mention de la politique de confidentialité, relue par le juriste le 12 novembre 2026.
+      policyTitle: "Le jeu du site",
+      policyBody:
+        "Tartan Meeting se joue sans compte, et ton record reste sur ton appareil. Si tu entres au classement public, Tartan garde ton pseudo, ton score et sa date, une empreinte de ton appareil et une empreinte de ton adresse IP, pour vérifier les scores et empêcher les abus. Ton pseudo et ton score sont publics : choisis un pseudo qui ne permet pas de t'identifier. Base : notre intérêt légitime.",
+      policyRetention:
+        "Classement du jeu : empreinte d'adresse IP effacée après 30 jours ; scores gardés jusqu'à ce que tu les effaces, depuis le jeu, sur l'appareil qui a joué.",
       erase: "Effacer mes scores de cet appareil",
       erased: (n: number) => `${n} score${n > 1 ? "s" : ""} effacé${n > 1 ? "s" : ""}.`,
     },
