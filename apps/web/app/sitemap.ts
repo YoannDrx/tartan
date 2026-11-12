@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const PAGES = ["", "/tarifs", "/contact", "/aide", "/confidentialite", "/conditions", "/cgv", "/mentions-legales"];
+const PAGES = ["", "/tarifs", "/contact", "/aide", "/jeu", "/confidentialite", "/conditions", "/cgv", "/mentions-legales"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return PAGES.map((path) => ({ url: `https://tartan.coach${path}` }));

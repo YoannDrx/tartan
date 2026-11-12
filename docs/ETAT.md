@@ -112,7 +112,8 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | C2 | Série de régularité | Codé, testé : règle pure `packages/domain/src/regularity.ts` (une semaine compte quand chaque séance due est rendue, en entier ou en partie ; une absence signalée excuse ; une semaine sans séance ne casse rien ; une séance manquée arrête la série) ; tour de piste sur l'accueil de l'athlète (la semaine en cours, le nombre de semaines au centre), valeur sur la fiche côté coach. Non vérifié : aucun vrai téléphone ; l'application mobile ne l'affiche pas encore |
 | C3 | Carte de record | Codé, testé : image PNG 1080 × 1350 générée à la demande (`next/og`), avec le prénom, la discipline, la marque, la date et l'athlète de l'épreuve ; ni lieu, ni vent, ni santé ; seul un record battu a sa carte ; l'athlète et ses coachs y ont accès ; partage par le menu du téléphone, enregistrement à défaut, depuis la page Progrès. Non vérifié : partage sur un vrai téléphone (iOS, Android), rendu des polices sur Vercel |
 | J1 | Jeu « Tartan Meeting » : noyau de simulation et 110 m haies, paquet `packages/game` | Codé, testé. Mêmes scores sous Node, Chromium et WebKit. Ni rendu ni serveur |
-| J2 à J10 | Page, classement, aperçu, cinq autres épreuves, combiné | À faire |
+| J2 | Jeu : la page `/jeu` | Codé, testé : le 110 m haies se joue au clavier (Espace, Entrée, Échap) et au pouce (bouton de 64 px) ; rendu canvas qui suit la simulation de J1 ; rien du jeu n'est chargé avant le premier geste ; record sur l'appareil, rien n'est envoyé ; page au plan du site et ouverte aux robots ; image de partage tirée une fois (`pnpm --filter @tartan/web og:jeu`). Non vérifié : partie jouée sur un vrai téléphone, fluidité sur un téléphone d'entrée de gamme |
+| J3 à J10 | Classement, aperçu, cinq autres épreuves, combiné | À faire |
 
 ### Agents : mobile, IA et suite des tests
 

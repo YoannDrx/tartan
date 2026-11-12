@@ -129,6 +129,9 @@ export const motionOn = (page: Page) =>
     }
     for (const animation of document.getAnimations()) {
       if (animation.playState !== "running") continue;
+      // Une animation que le filet a ramenée à 0,01 ms ne déplace rien, même saisie en cours de route sur une
+      // machine chargée : seules comptent celles qui durent vraiment.
+      if (!(Number(animation.effect?.getComputedTiming().duration) > 1)) continue;
       const target = animation.effect instanceof KeyframeEffect ? animation.effect.target : null;
       found.add(`en cours : ${target ? name(target, "") : "sans cible"}`);
     }

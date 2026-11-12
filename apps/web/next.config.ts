@@ -22,6 +22,13 @@ const nextConfig: NextConfig = {
     "@tartan/mascot",
   ],
   serverExternalPackages: ["pg", "@prisma/adapter-pg"],
+  // La carte de record lit ses polices et le logo sur le disque au moment du rendu : ils partent avec la fonction.
+  outputFileTracingIncludes: {
+    "/api/v1/orgs/[orgId]/athletes/[athleteId]/performances/[performanceId]/carte": [
+      "./assets/fonts/*.ttf",
+      "./public/brand/logo-on-dark.svg",
+    ],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "image.mux.com" },

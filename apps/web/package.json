@@ -20,6 +20,7 @@
     "demo:preparation": "tsx --env-file-if-exists=.env prisma/demo-preparation.ts",
     "postinstall": "prisma generate",
     "email:athletes": "tsx --tsconfig tsconfig.scripts.json scripts/build-email-athletes.ts",
+    "og:jeu": "tsx --tsconfig tsconfig.scripts.json scripts/build-game-og.tsx",
     "eval:planner": "node --conditions=react-server --import tsx scripts/planner-eval.ts"
   },
   "dependencies": {

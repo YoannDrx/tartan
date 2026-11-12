@@ -6,37 +6,15 @@ import { tokens } from "@tartan/design-tokens";
 import { formatDayMonth, m } from "@tartan/i18n";
 import { athleteRig } from "@tartan/mascot/athletes";
 import { POSES } from "@tartan/mascot/poses";
-import { svgAthlete, type SvgFigure } from "@tartan/mascot/svg";
+import { svgAthlete } from "@tartan/mascot/svg";
 import { ImageResponse } from "next/og";
 import { disciplineAthlete } from "@/lib/discipline-athlete";
+import { dataUri, figureSvg } from "@/lib/figure-svg";
 
 // La carte de record : une image portrait, au format des stories et des messageries, que l'athlète partage depuis
 // son téléphone. Le prénom, la discipline, la marque, la date, et l'athlète de l'épreuve qui lève les bras.
 export const CARD = { width: 1080, height: 1350 } as const;
 
-const kebab = (name: string) => name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
-
-// Un athlète en SVG autonome, sans React : l'image est rendue par Satori, qui lit le SVG comme une image.
-const figureSvg = (figure: SvgFigure, viewBox: string) => {
-  const bones = figure.bones
-    .map((bone) => {
-      const shapes = bone.shapes
-        .map(({ tag, ...attributes }) => {
-          const attrs = Object.entries(attributes)
-            .map(([key, value]) => `${kebab(key)}="${String(value)}"`)
-            .join(" ");
-          return `<${tag} ${attrs}/>`;
-        })
-        .join("");
-      return `<g transform="${bone.transform}">${shapes}</g>`;
-    })
-    .join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}"><g transform="${figure.root}">${bones}</g></svg>`;
-};
-
-const dataUri = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
-
-const asset = (...parts: string[]) => readFile(path.join(process.cwd(), ...parts));
 
 export const formatMark = (mark: number, unit: string) => `${String(mark).replace(".", ",")} ${unit}`;
 
@@ -48,9 +26,10 @@ export const recordCardImage = async (card: {
   date: string;
 }) => {
   const [condensed, barlow, logo] = await Promise.all([
-    asset("assets", "fonts", "BarlowCondensed_700Bold.ttf"),
-    asset("assets", "fonts", "Barlow_600SemiBold.ttf"),
-    asset("public", "brand", "logo-on-dark.svg"),
+    // Des chemins écrits en entier : le traçage du déploiement n'embarque que ces fichiers.
+    readFile(path.join(process.cwd(), "assets/fonts/BarlowCondensed_700Bold.ttf")),
+    readFile(path.join(process.cwd(), "assets/fonts/Barlow_600SemiBold.ttf")),
+    readFile(path.join(process.cwd(), "public/brand/logo-on-dark.svg")),
   ]);
   const id = disciplineAthlete(card.discipline);
   const athlete = figureSvg(
