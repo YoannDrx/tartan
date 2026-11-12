@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, test T19 : les pages sans parcours, avec données
+
+Fait : `apps/web/e2e/filled-pages.spec.ts` (PR `test/pages-donnees`) remplit un compte neuf avec `prisma/demo-fill.ts`, puis visite `/mes-sauts`, une vidéo, `/progres` et `/seances/[id]/charges`.
+Vérifié : parcours vert en build de production, projet mobile.
+À savoir : le script de démonstration refuse un second remplissage dans la même base. Le parcours ne tourne donc que sur le projet mobile, sans nouvelle tentative. Dans un fichier de parcours, `__dirname` n'existe pas : utiliser `import.meta.dirname`.
+
 ## 2026-11-12, Claude, test T18 : centre de notifications, et cloche corrigée
 
 Fait : `apps/web/e2e/notification-center.spec.ts` (PR `test/notifications`). Correction : après « Tout marquer comme lu », la cloche gardait son ancien compteur, car elle ne relisait qu'au changement d'adresse. La liste émet désormais `NOTIFICATIONS_READ_EVENT` après chaque lecture, et la cloche relit.
