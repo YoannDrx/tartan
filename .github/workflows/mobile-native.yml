@@ -157,7 +157,7 @@ jobs:
       - name: Parcours natifs
         working-directory: apps/mobile
         run: |
-          maestro test .maestro --format junit --output "$RUNNER_TEMP/maestro.xml" --debug-output "$RUNNER_TEMP/maestro" \
+          maestro test .maestro --format junit --output "$RUNNER_TEMP/maestro.xml" --debug-output "$RUNNER_TEMP/maestro" --flatten-debug-output \
             -e APP_ID=coach.tartan.app.dev \
             -e COACH_EMAIL=coach@demo.tartan.coach \
             -e ATHLETE_EMAIL=un@demo.tartan.coach \
@@ -171,6 +171,7 @@ jobs:
             ${{ runner.temp }}/maestro.xml
             ${{ runner.temp }}/maestro
             ${{ runner.temp }}/web.log
+            ~/.maestro/tests
           if-no-files-found: ignore
 
   eas:
