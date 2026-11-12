@@ -14,6 +14,8 @@ env:
 - inputText: "12052015"
 - tapOn:
     id: age-confirm
+# La date se confirme avant d'être enregistrée : une fois écrite, seule l'équipe peut la corriger.
+- tapOn: "Confirmer cette date"
 - extendedWaitUntil:
     visible: "Tartan est réservé aux majeurs"
     timeout: 15000

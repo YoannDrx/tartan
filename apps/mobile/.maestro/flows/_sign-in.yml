@@ -11,6 +11,8 @@ appId: ${APP_ID}
     timeout: 20000
 - tapOn:
     id: sign-in-email
+# Le clavier s'ouvre encore : taper trop tôt perd les premières lettres.
+- waitForAnimationToEnd
 - inputText: ${EMAIL}
 - tapOn:
     id: sign-in-title
@@ -18,6 +20,7 @@ appId: ${APP_ID}
     id: sign-in-use-password
 - tapOn:
     id: sign-in-password
+- waitForAnimationToEnd
 - inputText: ${PASSWORD}
 - tapOn:
     id: sign-in-title
