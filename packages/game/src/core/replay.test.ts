@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { hurdles } from "../events/hurdles";
-import { HURDLES_FUZZ, HURDLES_REFERENCE_RUNS, fuzzLog, fuzzSummary } from "../reference";
+import { HURDLES_REFERENCE_RUNS, REFERENCES, fuzzLog, fuzzSummary } from "../reference";
 import { MAX_LOG_EVENTS, MAX_TICKS, SIM_VERSION } from "./constants";
 import { MAX_ENTRY, decodeLog, encodeEntry } from "./log";
 import { replay } from "./replay";
-import { type SimState, defineEvent, isPlausibleScore } from "./sim";
+import { type GameEvent, type SimState, defineEvent, isPlausibleScore } from "./sim";
 
 // Épreuve d'essai à deux canaux : elle compte les changements d'appui et s'arrête au pas voulu.
 interface ProbeState extends SimState {
@@ -32,8 +32,12 @@ const probe = (lastTick: number) =>
   });
 
 describe("parties de référence", () => {
-  it.each(HURDLES_REFERENCE_RUNS)("$name : graine et journal figés, score figé", (run) => {
-    const result = replay(hurdles, run.seed, run.inputs);
+  const cases = REFERENCES.flatMap(({ event, runs }) =>
+    runs.map((run) => ({ ...run, event: event as GameEvent<SimState>, label: `${event.id} ${run.name}` })),
+  );
+
+  it.each(cases)("$label : graine et journal figés, score figé", (run) => {
+    const result = replay(run.event, run.seed, run.inputs);
     expect(result).toMatchObject({
       ok: true,
       version: SIM_VERSION,
@@ -43,13 +47,13 @@ describe("parties de référence", () => {
     });
   });
 
-  it.each(HURDLES_REFERENCE_RUNS)("$name : rejouée deux fois, même résultat au champ près", (run) => {
-    expect(replay(hurdles, run.seed, run.inputs)).toEqual(replay(hurdles, run.seed, [...run.inputs]));
+  it.each(cases)("$label : rejouée deux fois, même résultat au champ près", (run) => {
+    expect(replay(run.event, run.seed, run.inputs)).toEqual(replay(run.event, run.seed, [...run.inputs]));
   });
 
-  it.each(HURDLES_REFERENCE_RUNS)("$name : pas à pas ou en relecture, même état final", (run) => {
+  it.each(cases)("$label : pas à pas ou en relecture, même état final", (run) => {
     const transitions = decodeLog(run.inputs);
-    let state = hurdles.init(run.seed);
+    let state = run.event.init(run.seed);
     let held = 0;
     let cursor = 0;
     while (!state.finished) {
@@ -57,15 +61,18 @@ describe("parties de référence", () => {
         held = transitions[cursor]?.press ? 1 : 0;
         cursor += 1;
       }
-      state = hurdles.step(state, held);
+      state = run.event.step(state, held);
     }
-    const result = replay(hurdles, run.seed, run.inputs);
+    const result = replay(run.event, run.seed, run.inputs);
     expect(result.ok && result.state).toEqual(state);
   });
 
-  it("300 journaux pseudo-aléatoires donnent le résumé figé", () => {
-    expect(fuzzSummary(hurdles, HURDLES_FUZZ.from, HURDLES_FUZZ.count)).toBe(HURDLES_FUZZ.summary);
-  });
+  it.each(REFERENCES.map((entry) => ({ ...entry, id: entry.event.id })))(
+    "$id : 300 journaux pseudo-aléatoires donnent le résumé figé",
+    ({ event, fuzz }) => {
+      expect(fuzzSummary(event as GameEvent<SimState>, fuzz.from, fuzz.count)).toBe(fuzz.summary);
+    },
+  );
 
   it("un autre journal ou une autre graine donnent une autre empreinte", () => {
     const [run] = HURDLES_REFERENCE_RUNS;

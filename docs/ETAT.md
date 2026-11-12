@@ -113,7 +113,8 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | C3 | Carte de record | Codé, testé : image PNG 1080 × 1350 générée à la demande (`next/og`), avec le prénom, la discipline, la marque, la date et l'athlète de l'épreuve ; ni lieu, ni vent, ni santé ; seul un record battu a sa carte ; l'athlète et ses coachs y ont accès ; partage par le menu du téléphone, enregistrement à défaut, depuis la page Progrès. Non vérifié : partage sur un vrai téléphone (iOS, Android), rendu des polices sur Vercel |
 | J1 | Jeu « Tartan Meeting » : noyau de simulation et 110 m haies, paquet `packages/game` | Codé, testé. Mêmes scores sous Node, Chromium et WebKit. Ni rendu ni serveur |
 | J2 | Jeu : la page `/jeu` | Codé, testé : le 110 m haies se joue au clavier (Espace, Entrée, Échap) et au pouce (bouton de 64 px) ; rendu canvas qui suit la simulation de J1 ; rien du jeu n'est chargé avant le premier geste ; record sur l'appareil, rien n'est envoyé ; page au plan du site et ouverte aux robots ; image de partage tirée une fois (`pnpm --filter @tartan/web og:jeu`). Non vérifié : partie jouée sur un vrai téléphone, fluidité sur un téléphone d'entrée de gamme |
-| J3 à J10 | Classement, aperçu, cinq autres épreuves, combiné | À faire |
+| J5 | Jeu : saut en longueur | Codé, testé : épreuve `longJump` de `packages/game` (élan aux appuis brefs, appel tenu dont l'angle monte, mordu au-delà de la planche, essai nul avant le sable), parties de référence et 300 journaux aléatoires identiques sous Node, Chromium et WebKit ; jouable sur `/jeu`, qui propose désormais le choix de l'épreuve. Non vérifié : partie sur un vrai téléphone |
+| J3, J4, J6 à J10 | Classement, aperçu, quatre autres épreuves, combiné | À faire |
 
 ### Agents : mobile, IA et suite des tests
 

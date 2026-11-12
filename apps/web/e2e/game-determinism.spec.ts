@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { SIM_VERSION, replay } from "@tartan/game";
-import { hurdles } from "@tartan/game/events/hurdles";
-import { HURDLES_FUZZ, HURDLES_REFERENCE_RUNS, fuzzSummary } from "@tartan/game/reference";
+import { type GameEvent, SIM_VERSION, type SimState, replay } from "@tartan/game";
+import { REFERENCES, fuzzSummary } from "@tartan/game/reference";
 import { build } from "esbuild";
 
 // Preuve inter-navigateurs du jeu. Le classement repose sur une relecture côté serveur : le score
@@ -12,7 +11,7 @@ import { build } from "esbuild";
 interface BrowserReport {
   version: number;
   runs: { name: string; ok: boolean; score: number | null; ticks: number; digest: number; state: unknown }[];
-  fuzz: number;
+  fuzz: Record<string, number>;
 }
 
 declare global {
@@ -21,18 +20,20 @@ declare global {
 
 const ENTRY = `
   import { SIM_VERSION, replay } from "@tartan/game";
-  import { hurdles } from "@tartan/game/events/hurdles";
-  import { HURDLES_FUZZ, HURDLES_REFERENCE_RUNS, fuzzSummary } from "@tartan/game/reference";
+  import { REFERENCES, fuzzSummary } from "@tartan/game/reference";
 
   export const run = () => ({
     version: SIM_VERSION,
-    runs: HURDLES_REFERENCE_RUNS.map((reference) => {
-      const result = replay(hurdles, reference.seed, reference.inputs);
-      return result.ok
-        ? { name: reference.name, ok: true, score: result.score, ticks: result.ticks, digest: result.digest, state: result.state }
-        : { name: reference.name, ok: false, score: null, ticks: 0, digest: 0, state: result.error };
-    }),
-    fuzz: fuzzSummary(hurdles, HURDLES_FUZZ.from, HURDLES_FUZZ.count),
+    runs: REFERENCES.flatMap(({ event, runs }) =>
+      runs.map((reference) => {
+        const name = event.id + "/" + reference.name;
+        const result = replay(event, reference.seed, reference.inputs);
+        return result.ok
+          ? { name, ok: true, score: result.score, ticks: result.ticks, digest: result.digest, state: result.state }
+          : { name, ok: false, score: null, ticks: 0, digest: 0, state: result.error };
+      }),
+    ),
+    fuzz: Object.fromEntries(REFERENCES.map(({ event, fuzz }) => [event.id, fuzzSummary(event, fuzz.from, fuzz.count)])),
   });
 `;
 
@@ -62,12 +63,16 @@ test("les parties de référence donnent le même score dans le navigateur que s
   const report = await page.evaluate(() => globalThis.TartanGameProof.run());
 
   expect(report.version).toBe(SIM_VERSION);
-  expect(report.runs).toHaveLength(HURDLES_REFERENCE_RUNS.length);
-  for (const reference of HURDLES_REFERENCE_RUNS) {
-    const underNode = replay(hurdles, reference.seed, reference.inputs);
-    if (!underNode.ok) throw new Error(`${reference.name} : ${underNode.error}`);
-    const inBrowser = report.runs.find((run) => run.name === reference.name);
-    const label = `${reference.name} (${browserName})`;
+  const cases = REFERENCES.flatMap(({ event, runs }) =>
+    runs.map((reference) => ({ event: event as GameEvent<SimState>, reference })),
+  );
+  expect(report.runs).toHaveLength(cases.length);
+  for (const { event, reference } of cases) {
+    const name = `${event.id}/${reference.name}`;
+    const underNode = replay(event, reference.seed, reference.inputs);
+    if (!underNode.ok) throw new Error(`${name} : ${underNode.error}`);
+    const inBrowser = report.runs.find((run) => run.name === name);
+    const label = `${name} (${browserName})`;
     // Le navigateur, Node et la valeur figée dans le paquet : trois fois le même résultat.
     expect(inBrowser, label).toMatchObject({
       ok: true,
@@ -86,6 +91,8 @@ test("300 journaux pseudo-aléatoires se rejouent à l'identique dans le navigat
   await page.addScriptTag({ content: bundle });
   const report = await page.evaluate(() => globalThis.TartanGameProof.run());
 
-  expect(report.fuzz).toBe(HURDLES_FUZZ.summary);
-  expect(report.fuzz).toBe(fuzzSummary(hurdles, HURDLES_FUZZ.from, HURDLES_FUZZ.count));
+  for (const { event, fuzz } of REFERENCES) {
+    expect(report.fuzz[event.id], event.id).toBe(fuzz.summary);
+    expect(report.fuzz[event.id], event.id).toBe(fuzzSummary(event as GameEvent<SimState>, fuzz.from, fuzz.count));
+  }
 });

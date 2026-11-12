@@ -22,18 +22,28 @@ export default function GamePage() {
     <PublicPage title={m.game.title} lead={m.game.lead} site width="wide">
       <div className="flex max-w-[960px] flex-col gap-10">
         <GameLauncher />
-        <section aria-labelledby="regles" className="flex max-w-[640px] flex-col gap-3">
+        <section aria-labelledby="regles" className="flex max-w-[960px] flex-col gap-4">
           <h2 id="regles" className="t-h2">
             {m.game.howTitle}
           </h2>
-          <ol className="flex flex-col gap-2">
-            {m.game.how.map((line, index) => (
-              <li key={line} className="flex items-baseline gap-3">
-                <LaneNumber n={index + 1} className="text-[24px]" />
-                <span>{line}</span>
-              </li>
+          <div className="grid gap-8 tablet:grid-cols-2">
+            {(["hurdles", "longJump"] as const).map((id) => (
+              <section key={id} aria-labelledby={`regles-${id}`} className="flex flex-col gap-3">
+                <h3 id={`regles-${id}`} className="t-section">
+                  {m.game.events[id].title}
+                </h3>
+                <ol className="flex flex-col gap-2">
+                  {m.game.events[id].how.map((line, index) => (
+                    <li key={line} className="flex items-baseline gap-3">
+                      <LaneNumber n={index + 1} className="text-[24px]" />
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
             ))}
-          </ol>
+          </div>
+          <p className="text-soft">{m.game.pauseHint}</p>
         </section>
       </div>
     </PublicPage>
