@@ -164,6 +164,7 @@ export default async function SuiviPage({
         <div className="flex min-w-0 flex-col gap-4 max-desktop:order-2">
           {grid.rows.length === 0 && !firstRun ? (
             <EmptyState
+              rubric="suivi"
               action={
                 <Button asChild variant="secondary" size="sm">
                   <Link href="/reglages#invitations">{m.home.inviteAthletes}</Link>
@@ -175,6 +176,7 @@ export default async function SuiviPage({
           ) : null}
           {grid.rows.length > 0 && grid.sessions.length === 0 ? (
             <EmptyState
+              rubric="suivi"
               action={
                 <Button asChild variant="secondary" size="sm">
                   <Link href="/calendrier">{m.nav.calendrier}</Link>

@@ -55,6 +55,7 @@ export default async function AthletesPage() {
       />
       {athletes.length === 0 ? (
         <EmptyState
+          rubric="athletes"
           action={
             <Button asChild size="sm" variant="secondary">
               <Link href="/reglages#invitations">{m.home.inviteAthletes}</Link>

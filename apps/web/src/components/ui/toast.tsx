@@ -48,7 +48,7 @@ export const ToastHost = () => {
         <div
           key={t.id}
           role={t.tone === "error" ? "alert" : "status"}
-          className="pointer-events-auto flex max-w-md items-center gap-2 on-card rounded-card border border-control-line bg-card px-4 py-3 shadow-float"
+          className="toast-enter pointer-events-auto flex max-w-md items-center gap-2 on-card rounded-card border border-control-line bg-card px-4 py-3 shadow-float"
         >
           {t.tone === "ok" ? (
             <Check aria-hidden className="size-5 shrink-0" />

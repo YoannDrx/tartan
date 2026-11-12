@@ -896,6 +896,57 @@
   }
 }
 
+/* Feuilles, dialogues, menus et messages : ils entrent en montant de quelques pixels et sortent plus vite
+   qu'ils ne sont entrés. Radix attend la fin de la sortie avant de retirer l'élément. Sans mouvement, ils
+   apparaissent et disparaissent d'un coup. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+@keyframes rise-out {
+  to {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sheet-enter[data-state="open"],
+  .toast-enter {
+    animation: rise-in var(--duration-enter) var(--ease-reception) both;
+  }
+  .sheet-enter[data-state="closed"] {
+    animation: rise-out var(--duration-quick) var(--ease-elan) both;
+  }
+  .overlay-enter[data-state="open"] {
+    animation: fade-in var(--duration-enter) var(--ease-reception) both;
+  }
+  .overlay-enter[data-state="closed"],
+  .menu-enter[data-state="closed"] {
+    animation: fade-out var(--duration-quick) var(--ease-elan) both;
+  }
+  .menu-enter[data-state="open"] {
+    animation: drop-in var(--duration-quick) var(--ease-reception) both;
+  }
+}
+
 /* Les motifs du stade (src/components/track.tsx). La ligne droite se trace de gauche à droite, la part courue
    du tour de piste s'allonge. Sans mouvement, elles sont simplement là. */
 @keyframes track-trace {

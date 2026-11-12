@@ -26,10 +26,10 @@ export const Dialog = ({
   <Radix.Root open={open} onOpenChange={onOpenChange}>
     {trigger ? <Radix.Trigger asChild>{trigger}</Radix.Trigger> : null}
     <Radix.Portal>
-      <Radix.Overlay className="fixed inset-0 z-40 bg-ink/70" />
+      <Radix.Overlay className="overlay-enter fixed inset-0 z-40 bg-ink/70" />
       <Radix.Content
         className={cn(
-          "fixed z-50 flex max-h-[92dvh] flex-col overflow-y-auto on-card bg-card shadow-float",
+          "sheet-enter fixed z-50 flex max-h-[92dvh] flex-col overflow-y-auto on-card bg-card shadow-float",
           "inset-x-0 bottom-0 rounded-t-hero p-4 pb-[max(16px,env(safe-area-inset-bottom))]",
           "tablet:inset-auto tablet:left-1/2 tablet:top-1/2 tablet:w-full tablet:-translate-x-1/2 tablet:-translate-y-1/2 tablet:rounded-hero tablet:p-6",
           wide ? "tablet:max-w-[720px]" : "tablet:max-w-[480px]",

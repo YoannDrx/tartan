@@ -18,6 +18,8 @@ test("l'onboarding permet de corriger la date avant de créer l'espace", async (
   await expect(page.getByRole("dialog")).toBeVisible();
   await expectAccessible(page);
   await page.getByRole("button", { name: m.age.correct, exact: true }).click();
+  // Le dialogue sort en 150 ms : tant qu'il est là, la page compte deux champs de date.
+  await expect(page.getByRole("dialog")).toBeHidden();
   const sql = new Client({
     connectionString: process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e",
   });
@@ -49,6 +51,8 @@ test("la date ne s'enregistre qu'après confirmation et peut être corrigée ava
   await expect(page.getByRole("dialog")).toBeVisible();
   await expectAccessible(page);
   await page.getByRole("button", { name: m.age.correct, exact: true }).click();
+  // Le dialogue sort en 150 ms : tant qu'il est là, la page compte deux champs de date.
+  await expect(page.getByRole("dialog")).toBeHidden();
   const sql = new Client({
     connectionString: process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e",
   });

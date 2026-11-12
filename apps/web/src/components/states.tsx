@@ -1,28 +1,54 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Jumper } from "@/components/jumper";
+import type { AthleteId } from "@tartan/mascot/athletes";
+import type { PoseName } from "@tartan/mascot/poses";
+import { Athlete } from "@/components/athlete";
 import { Marked } from "@/components/marked";
 import { Stay } from "@/components/ui/view-transition";
 import { cn } from "@/lib/cn";
+import { RUBRIC_ATHLETE, type Rubric } from "@/lib/rubric-athlete";
 
-// Un vide invite à agir : du texte, une action, et la mascotte qui attend la suite.
+// L'athlète d'une rubrique sur son bout de piste : le rouge et la ligne blanche ne changent pas avec le thème,
+// donc sa tenue reste lisible sur une carte claire comme sur une carte encre. Décoratif.
+export const TrackTile = ({ athlete, pose, className }: { athlete: AthleteId; pose: PoseName; className?: string }) => (
+  <span aria-hidden data-athlete={athlete} className={cn("block overflow-hidden rounded-button bg-page", className)}>
+    <span className="relative block size-full">
+      <span className="absolute inset-x-0 bottom-[14%] h-0.5 bg-on-page" />
+      {/* Le cadre de l'athlète laisse de la place à toutes les poses : dans la tuile, on le rapproche. */}
+      <Athlete
+        id={athlete}
+        pose={pose}
+        on="piste"
+        className="absolute left-1/2 top-1/2 size-[170%] max-w-none -translate-x-1/2 -translate-y-[47%]"
+      />
+    </span>
+  </span>
+);
+
+// Un vide invite à agir : du texte, une action, et l'athlète de la rubrique qui attend la suite.
 export const EmptyState = ({
   children,
   action,
+  rubric,
   className,
 }: {
   children: ReactNode;
   action?: ReactNode;
+  rubric: Rubric;
   className?: string;
 }) => (
   <div
     className={cn(
-      "relative flex min-h-36 flex-col items-start gap-3 overflow-hidden rounded-card on-card bg-card p-6 pr-28 tablet:pr-40",
+      "relative flex min-h-36 flex-col items-start gap-3 overflow-hidden rounded-card on-card bg-card p-6 pr-32 tablet:pr-44",
       className,
     )}
   >
-    <Jumper pose="run" className="pointer-events-none absolute -right-2 bottom-0 size-28 tablet:size-36" />
+    <TrackTile
+      athlete={RUBRIC_ATHLETE[rubric]}
+      pose="run"
+      className="pointer-events-none absolute inset-y-3 right-3 w-24 tablet:w-36"
+    />
     <p className="relative max-w-prose">{children}</p>
     {action ? <div className="relative">{action}</div> : null}
   </div>

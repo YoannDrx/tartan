@@ -12,6 +12,7 @@ export function PlannerUnavailable({ space }: { space: SpaceSummary }) {
       <PageHeader title={t.title} />
       {space.aiPlannerUpgrade ? (
         <EmptyState
+          rubric="planificateur"
           action={
             <Button asChild>
               <Link href="/abonnement">{t.seeOffers}</Link>
@@ -21,7 +22,7 @@ export function PlannerUnavailable({ space }: { space: SpaceSummary }) {
           {t.paidOnly}
         </EmptyState>
       ) : (
-        <EmptyState>{t.disabled}</EmptyState>
+        <EmptyState rubric="planificateur">{t.disabled}</EmptyState>
       )}
     </div>
   );

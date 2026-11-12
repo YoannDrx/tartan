@@ -55,11 +55,12 @@ export const SettingsMenu = ({
             align="end"
             sideOffset={6}
             collisionPadding={8}
-            className="on-card z-50 w-[272px] max-w-[calc(100vw-16px)] rounded-card border border-card-line bg-card p-1.5 shadow-float-strong"
+            className="menu-enter on-card z-50 w-[272px] max-w-[calc(100vw-16px)] rounded-card border border-card-line bg-card p-1.5 shadow-float-strong"
           >
             <div className="px-3 pb-2 pt-1.5 leading-snug">
               {account.name ? <p className="truncate font-semibold">{account.name}</p> : null}
               <p className="t-caption truncate font-normal text-soft">{account.email}</p>
+              <p className="t-caption mt-1 truncate font-normal text-soft">{space.organizationName}</p>
             </div>
             <DropdownMenu.Separator className="my-1 h-px bg-card-line" />
             {links.map((link) => (
