@@ -1,31 +1,29 @@
 "use client";
 
-import { TICK_HZ } from "@tartan/game";
-import { GRADE, clockMs, hurdles, type HurdlesState } from "@tartan/game/events/hurdles";
+import { type SimState, TICK_HZ } from "@tartan/game";
 import { m } from "@tartan/i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { drawHurdles } from "./hurdles-scene";
+import type { EventUi, Item } from "./event-ui";
 
-// La partie : la simulation avance par pas fixes de 1/120 s, quelle que soit la cadence d'affichage. Le rendu
-// lit l'état, il ne le modifie jamais. Un seul canal : appuyer, c'est sauter.
+// La partie, quelle que soit l'épreuve : la simulation avance par pas fixes de 1/120 s, quelle que soit la cadence
+// d'affichage. Le rendu lit l'état, il ne le modifie jamais. Un seul canal : appuyer.
 
 const STEP_MS = 1000 / TICK_HZ;
-const RECORD_KEY = "tartan.jeu.haies.record";
 type Status = "ready" | "running" | "paused" | "finished";
 
-const readRecord = (): number | null => {
+const readRecord = (key: string): number | null => {
   try {
-    const value = Number(window.localStorage.getItem(RECORD_KEY));
+    const value = Number(window.localStorage.getItem(key));
     return Number.isInteger(value) && value > 0 ? value : null;
   } catch {
     return null;
   }
 };
-const writeRecord = (value: number) => {
+const writeRecord = (key: string, value: number) => {
   try {
-    window.localStorage.setItem(RECORD_KEY, String(value));
+    window.localStorage.setItem(key, String(value));
   } catch {
     // Navigation privée ou stockage bloqué : le record vaut pour la partie seulement.
   }
@@ -33,29 +31,18 @@ const writeRecord = (value: number) => {
 
 const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0]!;
 
-const tally = (state: HurdlesState) => ({
-  perfect: state.hurdles.filter((g) => g === GRADE.perfect).length,
-  good: state.hurdles.filter((g) => g === GRADE.good).length,
-  touched: state.hurdles.filter((g) => g === GRADE.early || g === GRADE.late).length,
-  down: state.hurdles.filter((g) => g === GRADE.clipped || g === GRADE.crashed).length,
-});
-
-export default function HurdlesGame() {
+export default function GameRunner<S extends SimState>({ ui }: { ui: EventUi<S> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const jump = useRef<HTMLButtonElement>(null);
-  const [first] = useState(() => hurdles.init(randomSeed()));
-  const sim = useRef<HurdlesState>(first);
+  const [first] = useState(() => ui.sim.init(randomSeed()));
+  const sim = useRef<S>(first);
   const held = useRef(0);
   const statusRef = useRef<Status>("ready");
   const [status, setStatusState] = useState<Status>("ready");
-  const [hud, setHud] = useState({ tick: 0, next: 0, wind: first.wind });
-  const [result, setResult] = useState<{
-    score: number;
-    isRecord: boolean;
-    counts: ReturnType<typeof tally>;
-  } | null>(null);
+  const [hud, setHud] = useState<Item[]>(() => ui.hud(first));
+  const [result, setResult] = useState<{ headline: string; details: Item[]; isRecord: boolean } | null>(null);
   // Le jeu n'est chargé qu'au premier geste, dans le navigateur : le stockage local est lisible dès le départ.
-  const [record, setRecord] = useState<number | null>(readRecord);
+  const [record, setRecord] = useState<number | null>(() => readRecord(ui.recordKey));
 
   const setStatus = useCallback((next: Status) => {
     statusRef.current = next;
@@ -75,8 +62,8 @@ export default function HurdlesGame() {
     }
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     const family = getComputedStyle(document.documentElement).getPropertyValue("--font-barlow").trim() || "sans-serif";
-    drawHurdles(ctx, { width, height }, sim.current, m.game.metres, family);
-  }, []);
+    ui.draw(ctx, { width, height }, sim.current, family);
+  }, [ui]);
 
   // La boucle : on rattrape le temps écoulé pas par pas, puis on dessine une fois.
   useEffect(() => {
@@ -88,19 +75,19 @@ export default function HurdlesGame() {
         spare += Math.min(now - last, 250);
         const before = sim.current.tick;
         while (spare >= STEP_MS && !sim.current.finished) {
-          sim.current = hurdles.step(sim.current, held.current);
+          sim.current = ui.sim.step(sim.current, held.current);
           spare -= STEP_MS;
         }
         const state = sim.current;
         // Le bandeau se met à jour une dizaine de fois par seconde, pas à chaque pas.
-        if (Math.floor(state.tick / 12) !== Math.floor(before / 12) || state.finished)
-          setHud({ tick: state.tick, next: state.next, wind: state.wind });
+        if (Math.floor(state.tick / 12) !== Math.floor(before / 12) || state.finished) setHud(ui.hud(state));
         if (state.finished && state.score !== null) {
-          const previous = readRecord();
-          const isRecord = previous === null || state.score < previous;
-          if (isRecord) writeRecord(state.score);
+          const previous = readRecord(ui.recordKey);
+          const better = ui.sim.lowerIsBetter ? state.score < (previous ?? Infinity) : state.score > (previous ?? 0);
+          const isRecord = ui.counts(state.score) && better;
+          if (isRecord) writeRecord(ui.recordKey, state.score);
           setRecord(isRecord ? state.score : previous);
-          setResult({ score: state.score, isRecord, counts: tally(state) });
+          setResult({ headline: ui.headline(state), details: ui.details(state), isRecord });
           setStatus("finished");
         }
       }
@@ -115,16 +102,16 @@ export default function HurdlesGame() {
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", resize);
     };
-  }, [paint, setStatus]);
+  }, [paint, setStatus, ui]);
 
   const start = useCallback(() => {
-    sim.current = hurdles.init(randomSeed());
+    sim.current = ui.sim.init(randomSeed());
     held.current = 0;
-    setHud({ tick: 0, next: 0, wind: sim.current.wind });
+    setHud(ui.hud(sim.current));
     setResult(null);
     setStatus("running");
     requestAnimationFrame(() => jump.current?.focus());
-  }, [setStatus]);
+  }, [setStatus, ui]);
 
   const togglePause = useCallback(() => {
     if (statusRef.current === "running") {
@@ -169,11 +156,7 @@ export default function HurdlesGame() {
     <div className="flex flex-col gap-4">
       <div className="on-card overflow-hidden rounded-card bg-card">
         <dl className="grid grid-cols-3 divide-x divide-card-line border-b border-card-line">
-          {[
-            { label: m.game.clock, value: m.game.seconds(clockMs(hud.tick)) },
-            { label: m.game.wind, value: m.game.windValue(hud.wind) },
-            { label: m.game.cleared, value: m.game.clearedValue(hud.next) },
-          ].map((item) => (
+          {hud.map((item) => (
             <div key={item.label} className="px-3 py-2">
               <dt className="t-caption font-normal text-soft">{item.label}</dt>
               <dd className="t-num text-[20px] leading-7">{item.value}</dd>
@@ -183,7 +166,7 @@ export default function HurdlesGame() {
         <canvas
           ref={canvas}
           role="img"
-          aria-label={m.game.canvas}
+          aria-label={ui.canvasLabel}
           className="block aspect-[16/9] w-full touch-none select-none tablet:aspect-[21/9]"
           onPointerDown={pressDown}
           onPointerUp={pressUp}
@@ -210,7 +193,7 @@ export default function HurdlesGame() {
                 "bg-accent text-[22px] font-semibold text-on-accent disabled:opacity-50 tablet:flex-none",
               )}
             >
-              {m.game.jump}
+              {ui.action}
             </button>
             <Button type="button" variant="secondary" onClick={togglePause} className="min-h-16">
               {status === "paused" ? m.game.resume : m.game.pause}
@@ -228,22 +211,24 @@ export default function HurdlesGame() {
         {result ? (
           <>
             <p className="t-h2">
-              {m.game.result(m.game.seconds(result.score))} {result.isRecord ? m.game.newRecord : null}
+              {result.headline} {result.isRecord ? m.game.newRecord : null}
             </p>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 tablet:grid-cols-4">
-              {(["perfect", "good", "touched", "down"] as const).map((key) => (
-                <div key={key}>
-                  <dt className="t-caption font-normal text-soft">{m.game.grades[key]}</dt>
-                  <dd className="t-num text-[20px]">{result.counts[key]}</dd>
-                </div>
-              ))}
-            </dl>
+            {result.details.length > 0 ? (
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-1 tablet:grid-cols-4">
+                {result.details.map((item) => (
+                  <div key={item.label}>
+                    <dt className="t-caption font-normal text-soft">{item.label}</dt>
+                    <dd className="t-num text-[20px]">{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
           </>
         ) : null}
       </div>
 
       <p className="text-soft">
-        {record === null ? m.game.noRecord : m.game.recordValue(m.game.seconds(record))} {m.game.recordNote}
+        {record === null ? m.game.noRecord : m.game.recordValue(ui.formatScore(record))} {m.game.recordNote}
       </p>
     </div>
   );

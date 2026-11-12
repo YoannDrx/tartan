@@ -7,15 +7,15 @@ test("le 110 m haies se joue jusqu'à l'arrivée, et le record reste sur l'appar
   test.setTimeout(120_000);
   await page.goto("/jeu", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Tartan");
-  await expect(page.getByRole("img", { name: m.game.canvas })).toHaveCount(0);
+  await expect(page.getByRole("img", { name: m.game.events.hurdles.canvas })).toHaveCount(0);
   await expectNoHorizontalScroll(page);
   await expectAccessible(page);
 
-  await page.getByRole("button", { name: m.game.play, exact: true }).click();
-  const canvas = page.getByRole("img", { name: m.game.canvas });
+  await page.getByRole("button", { name: m.game.events.hurdles.play, exact: true }).click();
+  const canvas = page.getByRole("img", { name: m.game.events.hurdles.canvas });
   await expect(canvas).toBeVisible();
   await page.getByRole("button", { name: m.game.start, exact: true }).click();
-  const jump = page.getByRole("button", { name: m.game.jump, exact: true });
+  const jump = page.getByRole("button", { name: m.game.events.hurdles.action, exact: true });
   await expect(jump).toBeVisible();
   // Le chrono court pendant la course.
   await expect(page.getByText(m.game.seconds(0), { exact: true })).toHaveCount(0, { timeout: 5_000 });
@@ -45,8 +45,35 @@ test("le 110 m haies se joue jusqu'à l'arrivée, et le record reste sur l'appar
 
   // Le record survit au rechargement.
   await page.reload();
-  await page.getByRole("button", { name: m.game.play, exact: true }).click();
+  await page.getByRole("button", { name: m.game.events.hurdles.play, exact: true }).click();
   await expect(page.getByText(/Ton record : \d+,\d\d s\./)).toBeVisible();
+});
+
+test("le saut en longueur : l'élan, l'appel tenu, puis une marque ou un essai mordu", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/jeu", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: m.game.events.longJump.play, exact: true }).click();
+  await expect(page.getByRole("img", { name: m.game.events.longJump.canvas })).toBeVisible();
+  await page.getByRole("button", { name: m.game.start, exact: true }).click();
+  const press = page.getByRole("button", { name: m.game.events.longJump.action, exact: true });
+  await expect(press).toBeVisible();
+  // Une trentaine d'appuis brefs, puis l'appel tenu un demi-seconde.
+  for (let i = 0; i < 30; i += 1) {
+    await page.keyboard.down(" ");
+    await page.waitForTimeout(30);
+    await page.keyboard.up(" ");
+    await page.waitForTimeout(70);
+  }
+  await expect(page.getByText(/^\d+,\d m\/s$/).first()).not.toHaveText("0,0 m/s");
+  await page.keyboard.down(" ");
+  await page.waitForTimeout(500);
+  await page.keyboard.up(" ");
+  const outcome = page
+    .getByRole("status")
+    .filter({ hasText: /Saut mesuré à|Mordu|Retombé avant le sable/ });
+  await expect(outcome).toBeVisible({ timeout: 30_000 });
+  await expectNoHorizontalScroll(page);
+  await expectAccessible(page);
 });
 
 test("la page du jeu est au plan du site et ouverte aux robots", async ({ request }) => {

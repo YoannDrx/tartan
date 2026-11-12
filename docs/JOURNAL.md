@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot J5 : saut en longueur
+
+Fait : `packages/game/src/events/long-jump.ts`. Chaque appui bref ajoute 800 mm/s d'élan, le frottement en reprend 0,34 % par pas ; un appui tenu plus de 10 pas devient l'appel, l'angle monte d'un degré tous les deux pas (frottement quatre fois moindre pendant l'appel) ; relâcher lance le saut. Vol en entiers, sinus et cosinus figés en table ; marque mesurée depuis la planche ; mordu au-delà de la planche, essai nul avant le sable (un mètre après la planche) ; plafond théorique 9,378 m. Le jeu devient générique : `game-runner.tsx` fait tourner toute épreuve décrite par un `EventUi` (`hurdles-ui.ts`, `long-jump-ui.ts`) ; `/jeu` propose le choix de l'épreuve, chargée au premier geste. Les références de toutes les épreuves passent par `REFERENCES`, rejouées par les tests du paquet et la preuve inter-navigateurs (PR `feat/jeu-longueur`).
+Vérifié : `long-jump.test.ts` (élan, appel, mordu, essai nul, marque depuis la planche, plafond), parties de référence et résumé de 300 journaux sous Node, Chromium et WebKit (`e2e/game-determinism.spec.ts`), `e2e/game-page.spec.ts` (une partie de longueur au clavier) ; élan, vol, mordu et réception regardés à 390 px.
+À savoir : réglages choisis pour des cadences humaines : 8 appuis par seconde et la planche au plus près donnent environ 7,4 m, 6 par seconde environ 6,4 m, 5 par seconde environ 5,7 m. Un essai nul vaut 0 et n'est jamais un record. L'épreuve n'étant pas encore publiée, SIM_VERSION ne change pas.
+Suite conseillée : J6.
+
 ## 2026-11-12, Claude, lot J2 : la page du jeu
 
 Fait : `/jeu` (`app/(public)/jeu/page.tsx`) montre une affiche ; « Jouer au 110 m haies » charge alors le jeu (`hurdles-game.tsx`), qui fait avancer la simulation de `packages/game` par pas fixes de 1/120 s et dessine chaque image en canvas (`hurdles-scene.ts`). Inès court avec la foulée de `packages/mascot` (nouveau `hurdlerPose`, le pied le plus bas posé sur la piste) et saute à la hauteur que calcule la simulation. Record local, pause sur Échap et quand la page est cachée, résultats en HTML annoncés aux lecteurs d'écran. `/jeu` entre dans `SITE_PATHS`, le plan du site et les robots ; image de partage `public/brand/og-jeu.png`. La sérialisation SVG d'un athlète passe dans `src/lib/figure-svg.ts`, partagée avec la carte de record (PR `feat/jeu-page`).

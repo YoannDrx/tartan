@@ -33,7 +33,7 @@ const image = new ImageResponse(
         <div style={{ display: "flex", fontFamily: "Barlow Condensed", fontSize: 112, lineHeight: 1, marginTop: 40 }}>
           {m.game.title}
         </div>
-        <div style={{ display: "flex", fontFamily: "Barlow", fontSize: 36 }}>{m.game.event}</div>
+        <div style={{ display: "flex", fontFamily: "Barlow", fontSize: 36 }}>{m.game.events.hurdles.title}</div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "flex-end" }}>
         <div style={{ display: "flex", justifyContent: "center" }}>
