@@ -943,79 +943,85 @@ export const SessionBuilder = ({
           {formError}
         </p>
       ) : null}
-      <div className="on-card desktop:col-start-2 min-w-0 z-10 flex flex-wrap items-center gap-2 rounded-card bg-card p-3 desktop:sticky desktop:bottom-4 desktop:border desktop:border-control-line desktop:shadow-float">
-        <Button disabled={save.isPending} onClick={() => submit(true)}>
-          {initial?.publishedAt ? "Enregistrer et prévenir les athlètes" : m.builder.publish}
-        </Button>
-        {!initial?.publishedAt ? (
-          <Button variant="secondary" disabled={save.isPending} onClick={() => submit(false)}>
-            {m.builder.saveDraft}
+      {/* Sur ordinateur, une seule barre d'actions collée en bas. Sur téléphone, le formulaire est long : l'action
+          principale reste collée au-dessus de la barre de navigation, les autres attendent au bout du formulaire. */}
+      <div className="on-card z-10 min-w-0 flex-wrap items-center gap-2 rounded-card bg-card p-3 max-desktop:contents desktop:sticky desktop:bottom-4 desktop:col-start-2 desktop:flex desktop:border desktop:border-control-line desktop:shadow-float">
+        <div className="max-desktop:sticky max-desktop:bottom-[calc(84px+env(safe-area-inset-bottom))] max-desktop:z-10 max-desktop:rounded-card max-desktop:border max-desktop:border-control-line max-desktop:bg-card max-desktop:p-2 max-desktop:shadow-float desktop:contents">
+          <Button className="max-desktop:w-full" disabled={save.isPending} onClick={() => submit(true)}>
+            {initial?.publishedAt ? "Enregistrer et prévenir les athlètes" : m.builder.publish}
           </Button>
-        ) : null}
-        {!initial?.publishedAt ? (
-          scheduling ? (
-            <div className="flex flex-wrap items-end gap-2">
-              <Field label={m.builder.scheduleAt} hint={m.builder.scheduleHint}>
-                {(a) => <DateTimeInput {...a} value={publishAt} onChange={(e) => setPublishAt(e.target.value)} />}
-              </Field>
-              <Button
-                variant="secondary"
-                disabled={save.isPending || !publishAt}
-                onClick={() => submit(false, publishAt)}
-              >
+        </div>
+        <div className="max-desktop:flex max-desktop:flex-wrap max-desktop:items-center max-desktop:gap-2 max-desktop:rounded-card max-desktop:bg-card max-desktop:p-3 desktop:contents">
+          {!initial?.publishedAt ? (
+            <Button variant="secondary" disabled={save.isPending} onClick={() => submit(false)}>
+              {m.builder.saveDraft}
+            </Button>
+          ) : null}
+          {!initial?.publishedAt ? (
+            scheduling ? (
+              <div className="flex flex-wrap items-end gap-2">
+                <Field label={m.builder.scheduleAt} hint={m.builder.scheduleHint}>
+                  {(a) => <DateTimeInput {...a} value={publishAt} onChange={(e) => setPublishAt(e.target.value)} />}
+                </Field>
+                <Button
+                  variant="secondary"
+                  disabled={save.isPending || !publishAt}
+                  onClick={() => submit(false, publishAt)}
+                >
+                  {m.builder.schedule}
+                </Button>
+                {initial?.publishAt ? (
+                  <Button
+                    variant="quiet"
+                    disabled={save.isPending}
+                    onClick={() => {
+                      setScheduling(false);
+                      setPublishAt("");
+                    }}
+                  >
+                    {m.builder.scheduleCancel}
+                  </Button>
+                ) : null}
+              </div>
+            ) : (
+              <Button variant="secondary" onClick={() => setScheduling(true)}>
                 {m.builder.schedule}
               </Button>
-              {initial?.publishAt ? (
-                <Button
-                  variant="quiet"
-                  disabled={save.isPending}
-                  onClick={() => {
-                    setScheduling(false);
-                    setPublishAt("");
-                  }}
-                >
-                  {m.builder.scheduleCancel}
+            )
+          ) : null}
+          <Button
+            variant="quiet"
+            disabled={template.isPending}
+            onClick={() => {
+              const draft = buildDraft();
+              if (draft.title && draft.blocks.length) template.execute(draft);
+              else setFormError("Une séance avec un titre et un exercice est nécessaire pour créer un modèle.");
+            }}
+          >
+            {m.builder.saveTemplate}
+          </Button>
+          <Button variant="secondary" onClick={() => setPreviewing(true)}>
+            {m.builder.preview}
+          </Button>
+          {initial ? (
+            <ConfirmDialog
+              title="Supprimer cette séance ?"
+              description={initial.logCount > 0 ? m.builder.deleteLosesLogs(initial.logCount) : undefined}
+              onConfirm={() =>
+                remove.execute({
+                  id: initial.id,
+                  expectedVersion: expectedVersion ?? initial.version,
+                  expectedLogCount: initial.logCount,
+                })
+              }
+              trigger={
+                <Button variant="danger" className={cn("ml-auto")} disabled={remove.isPending}>
+                  {m.common.delete}
                 </Button>
-              ) : null}
-            </div>
-          ) : (
-            <Button variant="secondary" onClick={() => setScheduling(true)}>
-              {m.builder.schedule}
-            </Button>
-          )
-        ) : null}
-        <Button
-          variant="quiet"
-          disabled={template.isPending}
-          onClick={() => {
-            const draft = buildDraft();
-            if (draft.title && draft.blocks.length) template.execute(draft);
-            else setFormError("Une séance avec un titre et un exercice est nécessaire pour créer un modèle.");
-          }}
-        >
-          {m.builder.saveTemplate}
-        </Button>
-        <Button variant="secondary" onClick={() => setPreviewing(true)}>
-          {m.builder.preview}
-        </Button>
-        {initial ? (
-          <ConfirmDialog
-            title="Supprimer cette séance ?"
-            description={initial.logCount > 0 ? m.builder.deleteLosesLogs(initial.logCount) : undefined}
-            onConfirm={() =>
-              remove.execute({
-                id: initial.id,
-                expectedVersion: expectedVersion ?? initial.version,
-                expectedLogCount: initial.logCount,
-              })
-            }
-            trigger={
-              <Button variant="danger" className={cn("ml-auto")} disabled={remove.isPending}>
-                {m.common.delete}
-              </Button>
-            }
-          />
-        ) : null}
+              }
+            />
+          ) : null}
+        </div>
       </div>
       {/* Ce que l'athlète verra, avant de publier : aucune surprise sur le terrain. */}
       <Dialog open={previewing} onOpenChange={setPreviewing} title={title.trim() || m.builder.preview} wide>

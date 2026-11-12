@@ -152,7 +152,7 @@ export const MonthGrid = ({
                         style={{ backgroundColor: activityColors(entry.type).text }}
                       />
                     ))}
-                    {hidden > 0 ? <span className="text-[10px] leading-none">+{hidden}</span> : null}
+                    {hidden > 0 ? <span className="text-[12px] leading-none">+{hidden}</span> : null}
                   </span>
                 </button>
               );

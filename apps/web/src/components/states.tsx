@@ -76,7 +76,12 @@ export const PageHeader = ({
           </h1>
           {detail ? <p className="mt-1 text-[16px] font-medium">{detail}</p> : null}
         </div>
-        {actions ? <div className="flex flex-wrap items-center gap-2 pb-1">{actions}</div> : null}
+        {/* Sur téléphone, les actions tiennent sur une ligne qui défile de côté : le bandeau reste court. */}
+        {actions ? (
+          <div className="flex max-w-full items-center gap-2 py-1 max-tablet:-mr-4 max-tablet:overflow-x-auto max-tablet:pr-4 max-tablet:[&>*]:shrink-0 tablet:flex-wrap">
+            {actions}
+          </div>
+        ) : null}
       </div>
       <div aria-hidden className="lane" />
     </header>

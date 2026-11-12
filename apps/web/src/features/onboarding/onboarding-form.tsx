@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Check } from "lucide-react";
 import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { ageAt } from "@tartan/domain";
 import { confirmAgeInput, trainingProfileSchema } from "@tartan/contracts";
 import { z } from "zod";
@@ -82,12 +83,12 @@ export const OnboardingForm = ({
   });
   const prenom = form.watch("firstName") || "Thomas";
   // Le titre du temps affiché reçoit le focus : le lecteur d'écran l'annonce, le clavier repart du haut.
+  // Le temps s'affiche et prend le focus d'un seul geste : un focus donné une image plus tard arrachait
+  // la saisie à un champ déjà rempli.
   const goTo = (target: number) => {
-    setStep(target);
-    requestAnimationFrame(() => {
-      headings.current[target]?.focus();
-      headings.current[target]?.scrollIntoView({ block: "start" });
-    });
+    flushSync(() => setStep(target));
+    headings.current[target]?.focus();
+    headings.current[target]?.scrollIntoView({ block: "start" });
   };
   const next = async () => {
     if (await form.trigger(STEPS[step]!.fields, { shouldFocus: true })) goTo(step + 1);

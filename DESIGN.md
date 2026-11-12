@@ -16,7 +16,7 @@ Calendrier, suivi, constructeur, bibliothèque, fiches athlètes, progrès, list
 
 Sous le bandeau, le contenu suit le thème choisi. En Tartan, par défaut : fond piste, cartes encre, texte blanc, action citron ; le texte posé directement sur la piste reste blanc, sans teinte atténuée. En clair : fond craie, surfaces blanches, texte encre, action rouge. En sombre : fond encre, surfaces relevées, texte blanc, action citron. Les séparations sont fines et les chiffres tabulaires. Une liste structurée est préférable à une succession de cartes décoratives. Une couleur n’est jamais le seul moyen de comprendre un état.
 
-Les titres de bandeau font 40 px sur téléphone et 52 px sur ordinateur, les titres de section 20–22 px, le texte 15–16 px. Aucun texte sous 12 px ; les libellés de navigation font au moins 12 px. La navigation garde des cibles de 44 px au minimum.
+Les titres de bandeau font 40 px sur téléphone et 52 px sur ordinateur, les titres de section 20–22 px, le texte 15–16 px. Sur téléphone, les actions du bandeau tiennent sur une seule ligne qui défile de côté, l'action principale en premier. Aucun texte sous 12 px, ce qu'un test vérifie dans les composants comme dans la feuille de styles ; les libellés de navigation font au moins 12 px. La navigation garde des cibles de 44 px au minimum.
 
 Les dates s’affichent et se saisissent toujours en JJ/MM/AAAA, avec le calendrier maison : en-tête piste à deux lignes blanches, jour choisi dans la couleur d’action, année accessible d’un geste. Le serveur et les contrats conservent l’ISO.
 
