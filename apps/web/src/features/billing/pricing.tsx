@@ -2,6 +2,7 @@
 
 import { formatPrice, plannerLimits, PLANS, TRIAL_DAYS, type BillingInterval, type PlanKey } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import { ChevronDown } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
@@ -42,6 +43,9 @@ const ROWS: { label: string; value: (plan: PlanKey) => string }[] = [
   },
 ];
 
+// Sur téléphone, chaque offre a sa carte : ce qui la distingue d'abord, le reste sous « Tout comparer ».
+const HIGHLIGHTS = [ROWS[0]!, ROWS[2]!, ROWS[3]!, ROWS[5]!];
+
 const cellClass = (plan: PlanKey) =>
   cn(
     "px-1.5 hyphens-auto [overflow-wrap:anywhere] tablet:px-4",
@@ -73,11 +77,13 @@ export const PricingGrid = ({
     onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),
   });
 
-  const action = (key: (typeof SOLD)[number]): ReactNode => {
+  // `roomy` : le bouton d'une carte, à sa pleine taille. Dans la table, il se serre dans sa colonne.
+  const action = (key: (typeof SOLD)[number], roomy = false): ReactNode => {
     const label = m.billing.plans[key];
     const variant = key === (suggested ?? HIGHLIGHTED) ? "primary" : "secondary";
-    const buttonClass =
-      "w-full whitespace-normal px-0.5 text-[13px] leading-4 tablet:px-4 tablet:text-[15px] tablet:leading-5";
+    const buttonClass = roomy
+      ? "w-full"
+      : "w-full whitespace-normal px-0.5 text-[13px] leading-4 tablet:px-4 tablet:text-[15px] tablet:leading-5";
     if (current === key) return <p className="flex min-h-11 items-center font-semibold">{m.billing.current}</p>;
     if (canBuy && key === "discovery") return null;
     if (canBuy && billingEnabled && key !== "discovery") {
@@ -134,7 +140,83 @@ export const PricingGrid = ({
         ))}
         <span className="font-medium">{m.billing.twoMonthsFree}</span>
       </div>
-      <Sheet>
+      <div className="flex flex-col gap-3 tablet:hidden">
+        {SOLD.map((key) => {
+          const price = PLANS[key].prices?.[interval] ?? null;
+          const highlighted = key === HIGHLIGHTED;
+          return (
+            <section
+              key={key}
+              aria-label={m.billing.plans[key]}
+              className={cn("rounded-card p-4", highlighted ? "on-hero bg-hero text-on-hero" : "on-card bg-card")}
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                <p className="font-display text-[26px] font-semibold leading-8">{m.billing.plans[key]}</p>
+                <p className="t-num text-[34px] leading-10">
+                  {price === null ? m.billing.free : formatPrice(price)}
+                  {price === null ? null : (
+                    <span className="t-caption ml-1.5 font-normal text-soft">
+                      {interval === "month" ? m.billing.perMonth : m.billing.perYear}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <p className="t-caption mt-1 font-normal text-soft">{m.billing.planLead[key]}</p>
+              <dl className={cn("mt-3 divide-y", highlighted ? "divide-border" : "divide-card-line")}>
+                {HIGHLIGHTS.map((row) => (
+                  <div key={row.label} className="flex items-baseline justify-between gap-4 py-2">
+                    <dt className="text-soft">{row.label}</dt>
+                    <dd className="text-right font-semibold">{row.value(key)}</dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="mt-3">{action(key, true)}</div>
+            </section>
+          );
+        })}
+        <details className="group on-card rounded-card bg-card">
+          <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-4 font-semibold [&::-webkit-details-marker]:hidden">
+            {m.billing.compare.all}
+            <ChevronDown
+              aria-hidden
+              className="size-5 shrink-0 group-open:rotate-180 motion-safe:transition-transform"
+            />
+          </summary>
+          <table className="w-full table-fixed border-collapse text-left">
+            <caption className="sr-only">{m.billing.compare.caption}</caption>
+            <thead>
+              <tr>
+                {SOLD.map((key) => (
+                  <th key={key} scope="col" className="t-col px-4 pb-2 first:pr-1 last:pl-1">
+                    {m.billing.plans[key]}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            {/* Le critère sur toute la largeur, puis ses trois valeurs : aucun mot coupé dans une colonne étroite. */}
+            {ROWS.map((row) => (
+              <tbody key={row.label} className="border-t border-card-line">
+                <tr>
+                  <th scope="rowgroup" colSpan={SOLD.length} className="t-caption px-4 pt-2.5 font-normal text-soft">
+                    {row.label}
+                  </th>
+                </tr>
+                <tr>
+                  {SOLD.map((key) => (
+                    <td
+                      key={key}
+                      className="px-4 pb-2.5 align-top text-[14px] font-medium leading-5 first:pr-1 last:pl-1"
+                    >
+                      {row.value(key)}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            ))}
+          </table>
+        </details>
+      </div>
+      <Sheet className="hidden tablet:block">
         <table className="w-full table-fixed border-collapse text-left">
           <caption className="sr-only">{m.billing.compare.caption}</caption>
           <colgroup>
@@ -169,7 +251,13 @@ export const PricingGrid = ({
                   {row.label}
                 </th>
                 {SOLD.map((key) => (
-                  <td key={key} className={cn(cellClass(key), "border-t py-2.5 text-[13px] font-medium leading-[18px] tablet:text-base tablet:leading-6")}>
+                  <td
+                    key={key}
+                    className={cn(
+                      cellClass(key),
+                      "border-t py-2.5 text-[13px] font-medium leading-[18px] tablet:text-base tablet:leading-6",
+                    )}
+                  >
                     {row.value(key)}
                   </td>
                 ))}

@@ -15,7 +15,13 @@
     "./props": "./src/props.ts",
     "./event": "./src/event.ts",
     "./events": "./src/events.ts",
-    "./athletes": "./src/athletes.ts"
+    "./athletes": "./src/athletes.ts",
+    "./hurdles": "./src/hurdles.ts",
+    "./pole-vault": "./src/pole-vault.ts",
+    "./triple-jump": "./src/triple-jump.ts",
+    "./discus": "./src/discus.ts",
+    "./long-jump": "./src/long-jump.ts",
+    "./high-jump-event": "./src/high-jump-event.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

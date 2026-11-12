@@ -1,10 +1,11 @@
-import { ChevronDown, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import Link from "next/link";
 import { m } from "@tartan/i18n";
 import { LaneNumber } from "@/components/lane-number";
 import { Button } from "@/components/ui/button";
 import { PublicPage } from "@/features/shell/public-page";
 import { helpThemes } from "./content";
+import { HelpQuestions } from "./questions";
 
 const t = m.help;
 
@@ -37,30 +38,7 @@ export const HelpCenter = ({ embedded = false }: { embedded?: boolean }) => {
                 <LaneNumber n={index + 1} className="text-[34px]" />
                 {theme.title}
               </h2>
-              <div className="on-card mt-3 divide-y divide-card-line overflow-hidden rounded-card bg-card">
-                {theme.questions.map((question) => (
-                  <details key={question.id} className="group">
-                    <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 font-semibold hover:bg-raise [&::-webkit-details-marker]:hidden">
-                      {question.q}
-                      <ChevronDown
-                        aria-hidden
-                        className="size-5 shrink-0 group-open:rotate-180 motion-safe:transition-transform"
-                      />
-                    </summary>
-                    <div className="max-w-[62ch] px-4 pb-4">
-                      <p>{question.a}</p>
-                      {question.link ? (
-                        <Link
-                          href={question.link.href}
-                          className="mt-1 inline-flex min-h-11 items-center font-semibold text-ctx-link underline underline-offset-4"
-                        >
-                          {question.link.label}
-                        </Link>
-                      ) : null}
-                    </div>
-                  </details>
-                ))}
-              </div>
+              <HelpQuestions questions={theme.questions} className="mt-3" />
             </section>
           ))}
 

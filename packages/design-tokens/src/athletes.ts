@@ -6,8 +6,15 @@ import { tokens } from "./index";
 
 const { color, scene } = tokens;
 
-// Les trois fonds de la direction artistique.
-export const SURFACES = { piste: scene.page, ink: color.ink, chalk: color.bg } as const;
+// Les fonds où un athlète peut être posé : les trois de la direction artistique, puis les deux autres mondes
+// que traverse le film de la page d'accueil (le bleu du couloir, le citron de la validation).
+export const SURFACES = {
+  piste: scene.page,
+  ink: color.ink,
+  chalk: color.bg,
+  lane: color.film.electric,
+  lime: color.film.lime,
+} as const;
 export type Surface = keyof typeof SURFACES;
 
 // L'écart entre deux couleurs, dans l'espace Oklab : 0 pour deux couleurs identiques, 1 du noir au blanc.
@@ -48,13 +55,19 @@ type Choice = readonly [string, ...string[]];
 type Kit = { skin: string; hair: string; tee: Choice; shorts: Choice; shoe: Choice };
 
 const KITS: Record<AthleteId, Kit> = {
-  hurdles: { skin: tone.light, hair: hair.brown, tee: [lime], shorts: [electric], shoe: [white, ink] },
-  poleVault: { skin: tone.deep, hair: hair.blond, tee: [electric], shorts: [sun], shoe: [white, ink] },
-  tripleJump: { skin: tone.tan, hair: hair.brown, tee: [sun], shorts: [electric], shoe: [lime] },
-  discus: { skin: tone.tan, hair: hair.brown, tee: [ink, white], shorts: [lime], shoe: [white, ink] },
-  longJump: { skin: tone.peach, hair: hair.chestnut, tee: [electric], shorts: [lime], shoe: [white, ink] },
+  hurdles: { skin: tone.light, hair: hair.brown, tee: [lime, white], shorts: [electric, ink], shoe: [white, ink] },
+  poleVault: { skin: tone.deep, hair: hair.blond, tee: [electric, white], shorts: [sun, ink], shoe: [white, ink] },
+  tripleJump: { skin: tone.tan, hair: hair.brown, tee: [sun, ink], shorts: [electric, ink], shoe: [lime, white] },
+  discus: { skin: tone.tan, hair: hair.brown, tee: [ink, white], shorts: [lime, sun], shoe: [white, ink] },
+  longJump: { skin: tone.peach, hair: hair.chestnut, tee: [electric, white], shorts: [lime, sun], shoe: [white, ink] },
   // Le personnage d'origine : maillot blanc, short bleu, pointes citron. Sur la craie, son maillot passe au rouge piste.
-  highJump: { skin: tone.peach, hair: hair.brown, tee: [white, color.brand], shorts: [electric], shoe: [lime] },
+  highJump: {
+    skin: tone.peach,
+    hair: hair.brown,
+    tee: [white, color.brand],
+    shorts: [electric, ink],
+    shoe: [lime, ink],
+  },
 };
 
 const first = (choice: readonly string[], ...against: string[]) =>
@@ -79,7 +92,7 @@ export const athletePaint = (id: AthleteId, surface: Surface): AthletePaint => {
 };
 
 // Les couleurs des accessoires. La scène des gestes est encre ou piste : pas de sautoir sur la craie.
-export const stagePaint = (surface: Exclude<Surface, "chalk">): PropPaint => ({
+export const stagePaint = (surface: "ink" | "piste"): PropPaint => ({
   lane: scene.lane,
   bar: lime,
   post: surface === "ink" ? color.mutedOnInk : white,

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { m } from "@tartan/i18n";
 import robots from "../app/robots";
 import sitemap from "../app/sitemap";
-import { HELP_OUTLINE, helpThemes } from "@/features/help/content";
+import { HELP_OUTLINE, helpThemes, LANDING_QUESTIONS, landingQuestions } from "@/features/help/content";
 import { SCREEN_HELP_KEYS, screenHelpFor } from "@/features/help/screen-help";
 
 const themeIds = Object.keys(m.help.themes);
@@ -41,6 +41,30 @@ describe("centre d'aide", () => {
     expect(sitemap().map((entry) => entry.url)).toContain("https://tartan.coach/aide");
     const rules = robots().rules;
     expect((Array.isArray(rules) ? rules[0] : rules)?.allow).toContain("/aide");
+  });
+});
+
+describe("questions de la page d'accueil", () => {
+  it("reprend six questions du centre d'aide, mot pour mot", () => {
+    const questions = landingQuestions();
+    expect(questions).toHaveLength(LANDING_QUESTIONS.length);
+    expect(LANDING_QUESTIONS).toHaveLength(6);
+    const all = helpThemes().flatMap((theme) => theme.questions);
+    for (const question of questions) expect(all).toContainEqual(question);
+    expect(new Set(questions.map((question) => question.q)).size).toBe(questions.length);
+  });
+
+  it("parle à qui n'a pas encore de compte : pour qui, sur quoi, qui paie, quelles données", () => {
+    expect(LANDING_QUESTIONS.map(([theme]) => theme)).toEqual([
+      "demarrer",
+      "demarrer",
+      "seances",
+      "athlete",
+      "abonnement",
+      "donnees",
+    ]);
+    // Le lien d'une réponse reste celui du site, jamais celui de l'app native.
+    expect(landingQuestions().at(-1)!.link).toEqual({ href: "/confidentialite", label: m.help.links.privacy });
   });
 });
 

@@ -1388,6 +1388,15 @@ export const fr = {
       title: "Une offre pour chaque groupe.",
       body: "Les athlètes ne paient jamais. Tu changes d'offre ou tu résilies quand tu veux.",
     },
+    group: {
+      title: "Six athlètes, six épreuves.",
+      body: "Haies, perche, triple saut, disque, longueur, hauteur : la préparation physique sert toutes les épreuves, pas une seule.",
+      label: "Les six athlètes du groupe, chacun dans son épreuve",
+    },
+    faq: {
+      title: "Avant de te lancer.",
+      more: "Toutes les réponses",
+    },
     finish: {
       title: "Ta prochaine séance part d'ici.",
     },
@@ -2382,7 +2391,13 @@ export const fr = {
       startList: "Liste de départ",
       lane: (n: number) => `Couloir ${n}`,
       rubric: (name: string) => `Rubrique ${name}`,
-      surfaces: { piste: "Sur la piste", ink: "Sur l'encre", chalk: "Sur la craie" },
+      surfaces: {
+        piste: "Sur la piste",
+        ink: "Sur l'encre",
+        chalk: "Sur la craie",
+        lane: "Sur le bleu du couloir",
+        lime: "Sur le citron",
+      },
       surfaceLabel: (surface: string) => `Les six athlètes, ${surface.toLowerCase()}`,
       faces: "Visages",
       facesLead: "Neutre avant le geste, à l'effort pendant, joyeux une fois le geste réussi.",
@@ -2805,6 +2820,7 @@ export const fr = {
     trial: (days: number) => `${days} jours d'essai`,
     compare: {
       caption: "Comparer les offres",
+      all: "Tout comparer",
       athletes: "Athlètes",
       groups: "Groupes",
       coaches: "Coachs",
