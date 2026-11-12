@@ -44,8 +44,8 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 | T09 | Mobile sans rendu | Job macOS : build simulateur et Maestro sur API locale. Retirer les `runFlow: when`, jeu de données dédié, `coach-tracking` ouvre vraiment l'appel |
 | T10 | Vidéo en HTTP | Handlers de `o/videos`, `/upload`, `/share`, `/annotations*` avec `@/lib/mux` simulé, reprise de `upload-queue.ts` |
 | T11 | Cron horaire | Fait. `tests/technical-routes.test.ts` : jeton absent ou faux refusé, horloge figée et clés de résultat, une tâche en panne rend 500 avec son seul nom, sans le message d'erreur, et les autres tournent |
-| T12 | Invitation nominative | `e2e/staff-invitation.spec.ts` : lien récupéré, droits vérifiés |
-| T13 | Changement d'espace | Compte double rôle, cookie `tartan_space`, aucune fuite entre espaces |
+| T12 | Invitation nominative | Fait. `e2e/staff-invitation.spec.ts` : invitation depuis les réglages, e-mail en file au gabarit du staff, lien lu dans la liste, compte créé depuis le lien, droits d'un coach (lecture oui, invitation d'un coach et rôle non), lien à usage unique |
+| T13 | Changement d'espace | Fait. `e2e/space-switch.spec.ts` : compte coach chez lui et athlète ailleurs, sélecteur et cookie `tartan_space`, rôle propre à chaque espace, cookie forgé vers un espace étranger sans effet ni fuite |
 | T14 | `/abonnement` | E2E avec Stripe simulé : boutons selon offre et rôle, vente coupée, blocage du 6e athlète |
 | T15 | Parrainage | Fait. `tests/access-guards.test.ts` sur le handler `r/[code]` : cookie de 30 jours en majuscules, domaine `.tartan.coach` et connexion sur l'application en production, code mal formé sans cookie |
 | T16 | Limiteur Better Auth | Fait. Même fichier : `rateLimitEnabled` (actif sur Vercel en production même si un test demande de le couper), stockage en base, règles serrées sur `sign-in`, `sign-up` et `magic-link` |
