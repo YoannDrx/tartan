@@ -23,7 +23,7 @@ const EVENTS = [
 ] as const;
 
 type Loaded =
-  | { kind: "single"; Runner: React.ComponentType<{ ui: EventUi<SimState> }>; ui: EventUi<SimState> }
+  | { kind: "single"; Runner: React.ComponentType<{ ui: EventUi<SimState>; ranked?: boolean }>; ui: EventUi<SimState> }
   | {
       kind: "combined";
       Combined: React.ComponentType<{ Runner: never; uis: EventUi<SimState>[] }>;
@@ -60,7 +60,7 @@ export const GameLauncher = () => {
     return (
       <div className="flex flex-col gap-4">
         {game.kind === "single" ? (
-          <game.Runner key={game.ui.id} ui={game.ui} />
+          <game.Runner key={game.ui.id} ui={game.ui} ranked />
         ) : (
           <game.Combined Runner={game.Runner} uis={game.uis} />
         )}

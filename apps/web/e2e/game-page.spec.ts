@@ -1,6 +1,19 @@
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
+import { Client } from "pg";
 import { expectAccessible, expectNoHorizontalScroll } from "./helpers";
+
+const DB = process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e";
+const setLeaderboard = async (open: boolean) => {
+  const sql = new Client({ connectionString: DB });
+  await sql.connect();
+  await sql.query(
+    `insert into platform_settings (key, value, updated_at) values ('gameLeaderboardEnabled', $1, now())
+     on conflict (key) do update set value = $1, updated_at = now()`,
+    [JSON.stringify(open)],
+  );
+  await sql.end();
+};
 
 // Tartan Meeting : l'affiche ne charge rien du jeu ; un geste lance la course, qui se joue au clavier ou au pouce.
 test("le 110 m haies se joue jusqu'à l'arrivée, et le record reste sur l'appareil", async ({ page }, info) => {
@@ -165,6 +178,40 @@ test("le combiné : une épreuve, ses points, puis l'épreuve suivante", async (
   await expect(page.getByRole("img", { name: m.game.events.longJump.canvas })).toBeVisible();
   await expectNoHorizontalScroll(page);
   await expectAccessible(page);
+});
+
+test("classement ouvert : la course jouée est rejouée par le serveur, puis classée sous un pseudo", async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== "desktop", "Un seul passage : le classement est commun aux deux projets.");
+  test.setTimeout(150_000);
+  await setLeaderboard(true);
+  try {
+    // Les réglages sont gardés 30 s en mémoire par le serveur : on attend qu'il voie le classement ouvert.
+    await expect
+      .poll(async () => (await (await page.request.get("/api/v1/game/leaderboard?event=hurdles")).json()).enabled, {
+        timeout: 45_000,
+        intervals: [2_000],
+      })
+      .toBe(true);
+    await page.goto("/jeu", { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: m.game.events.hurdles.play, exact: true }).click();
+    await expect(page.getByRole("heading", { name: m.game.leaderboard.title })).toBeVisible();
+    await page.getByRole("button", { name: m.game.start, exact: true }).click();
+    // Sans appui, la course va au bout en temps réel : le serveur vérifie qu'elle n'a pas été plus vite.
+    const pseudo = page.getByLabel(m.game.leaderboard.pseudo);
+    await expect(pseudo).toBeVisible({ timeout: 60_000 });
+    await pseudo.fill("Coureur E2E");
+    await page.getByRole("button", { name: m.game.leaderboard.submit, exact: true }).click();
+    await expect(page.getByText(m.game.leaderboard.saved)).toBeVisible();
+    await expect(page.getByRole("region", { name: m.game.leaderboard.title }).getByText("Coureur E2E")).toBeVisible();
+    await expectAccessible(page);
+    // L'effacement, sans compte.
+    await page.getByRole("button", { name: m.game.leaderboard.erase, exact: true }).click();
+    await expect(page.getByRole("region", { name: m.game.leaderboard.title }).getByText("Coureur E2E")).toHaveCount(0);
+  } finally {
+    await setLeaderboard(false);
+  }
 });
 
 test("la page du jeu est au plan du site et ouverte aux robots", async ({ request }) => {

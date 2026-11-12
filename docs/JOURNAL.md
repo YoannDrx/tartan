@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot J3 : classement du jeu, construit et fermé
+
+Fait : trois tables additives (`game_runs`, `game_scores`, `game_bans`). `src/server/game.service.ts`, service public limité à ces tables : le départ d'un essai tire la graine côté serveur et rend un jeton à usage unique (15 min) ; l'envoi consomme le jeton, rejoue le journal des appuis avec `packages/game`, refuse un score impossible (plafond), une partie arrivée plus vite que son horloge (90 % de sa durée), un pseudo filtré (3 à 16 caractères, mots refusés), un appareil banni, et limite le débit par empreinte d'adresse ; une marque nulle n'est pas classée. Classement par épreuve, semaine en cours ou depuis toujours, meilleur score par appareil. Effacement sans compte par l'appareil. Tâche quotidienne : empreintes IP effacées à 30 jours, jetons inutilisés à un jour. Routes `/api/v1/game/runs`, `/scores` (POST et DELETE), `/leaderboard`. Console `/admin/jeu` (masquer, bannir). Réglage « Classement du jeu » dans `/admin/configuration`, fermé par défaut ; sur `/jeu`, rien ne change tant qu'il est fermé (PR `feat/jeu-classement`).
+Vérifié : `tests/game-leaderboard.test.ts` (fermé, score classé, jeton rejoué, journal falsifié, partie trop rapide, pseudo refusé, débit, effacement, bannissement, purge), quatre lignes de la matrice d'accès, `e2e/game-page.spec.ts` (classement ouvert : une course réelle classée sous un pseudo, puis effacée), `/admin/jeu` dans le parcours de la console.
+À savoir : sur un POST, next-zod-route lit déjà le corps ; les routes le valident donc elles-mêmes (`route.body`). Le rejeu prouve qu'un score découle d'appuis valides, pas qu'un humain a joué. Ouvrir le classement revient au fondateur : avis du juriste (mineurs) et mention dans la politique de confidentialité d'abord.
+Suite conseillée : tests T10 à T25.
+
 ## 2026-11-12, Claude, lot J4 : aperçu du jeu sur la page d'accueil
 
 Fait : `src/features/landing/warm-up.tsx`, entre la ligne d'arrivée et les questions fréquentes : Inès sur sa ligne de départ, « Jouer au 110 m haies ici », un lien vers `/jeu`. Le clic charge le moteur de partie et le 110 m haies (`import()`), puis la course se joue dans la page (PR `feat/jeu-encart`).

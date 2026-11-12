@@ -28,7 +28,7 @@ Rôle à faire confirmer : Yodev est-il responsable de traitement, ou sous-trait
 | Mesure d'audience | Pages vues, sans cookie ni identifiant | Visiteurs | Intérêt légitime, à confirmer | Selon Vercel |
 | Sauvegardes | Copie chiffrée de la base | Tous | Intérêt légitime, sécurité | 30 jours |
 | Signalements | Contenu signalé, auteur, décision | Membres d'un espace | Obligation légale, intérêt légitime | Durée du compte |
-| Jeu du site (lot J3, à venir) | Pseudo, score, empreinte d'appareil, empreinte d'adresse IP | Visiteurs, mineurs possibles | Intérêt légitime, à confirmer | Empreinte IP : 30 jours ; scores : jusqu'à effacement |
+| Jeu du site : classement (J3, construit, fermé) | Pseudo, score, date, empreinte salée d'appareil, empreinte salée d'adresse IP | Visiteurs, mineurs possibles | Intérêt légitime, à confirmer par le juriste | Empreinte IP : 30 jours ; jetons d'essai : un jour ; scores : jusqu'à effacement par l'appareil ou masquage par la console |
 
 ## Sous-traitants
 

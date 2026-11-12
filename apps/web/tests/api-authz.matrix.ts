@@ -976,6 +976,32 @@ export const ROUTES_PUBLIQUES: PublicRow[] = [
   { route: "GET /api/health", pourquoi: "Sonde de la base : un statut, aucune donnée.", anonyme: 200 },
   { route: "GET /api/v1/version", pourquoi: "Identifiant du build, lu par tout onglet ouvert.", anonyme: 200 },
   {
+    route: "GET /api/v1/game/leaderboard",
+    pourquoi: "Classement public du jeu : pseudos et marques, rien d'autre. Fermé, il répond sans aucune ligne.",
+    anonyme: 200,
+    call: () => ({ query: { event: "hurdles", period: "week" } }),
+  },
+  {
+    route: "POST /api/v1/game/runs",
+    pourquoi: "Départ d'un essai classé, sans compte : refusé tant que le classement est fermé.",
+    anonyme: 404,
+    call: () => ({ body: { event: "hurdles", device: "appareil-de-test-0001" } }),
+  },
+  {
+    route: "POST /api/v1/game/scores",
+    pourquoi: "Envoi d'un score, rejoué par le serveur : refusé tant que le classement est fermé.",
+    anonyme: 404,
+    call: () => ({
+      body: { token: randomUUID(), device: "appareil-de-test-0001", pseudo: "Inès", log: [] },
+    }),
+  },
+  {
+    route: "DELETE /api/v1/game/scores",
+    pourquoi: "Effacement sans compte : l'appareil efface ses propres scores, et rien d'autre.",
+    anonyme: 200,
+    call: () => ({ body: { device: "appareil-de-test-0001" } }),
+  },
+  {
     route: "GET /api/v1/releases/status",
     pourquoi: "Version minimale de l'application, lue avant la connexion.",
     anonyme: 200,

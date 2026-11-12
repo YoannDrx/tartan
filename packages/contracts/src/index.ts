@@ -21,3 +21,5 @@ export * from "./training-intensity";
 
 export * from "./session-publication";
 export * from "./ai-planner";
+
+export * from "./game";

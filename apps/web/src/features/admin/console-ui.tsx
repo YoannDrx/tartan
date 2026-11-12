@@ -29,6 +29,7 @@ const sections = [
   { href: "/admin/journal", label: () => m.admin.nav.audit },
   { href: "/admin/configuration", label: () => m.admin.nav.configuration },
   { href: "/admin/mascotte", label: () => m.admin.nav.mascot },
+  { href: "/admin/jeu", label: () => m.admin.nav.game },
 ];
 
 export const AdminNav = ({ current }: { current: string }) => (
