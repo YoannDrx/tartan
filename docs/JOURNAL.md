@@ -96,6 +96,12 @@ Vérifié : `e2e/admin-console.spec.ts` (cartes sur téléphone, table dès la t
 À savoir : les composants web sont compilés en JSX « preserve » pour Next ; un script `tsx` qui les rend doit passer par `tsconfig.scripts.json`. Les images des e-mails ne sont servies par `tartan.coach` qu'après le déploiement. « Écrans immersifs passés aux jetons » était déjà fait : le lint refuse couleurs et durées en dur depuis A3 et B1, une recherche n'en trouve aucune.
 Suite conseillée : C1.
 
+## 2026-11-12, Claude, retouche du film et des sautoirs
+
+Fait, à la demande du fondateur : dans le film de la page d'accueil, Inès court jusqu'au bout de sa course, au bord de la scène, et Malo va jusqu'à sa retombée sur le tapis et s'y relève avant le relais (`jump-film-pose.ts` : `HURDLES_END` à l'arrêt de la course, `POLE_VAULT_RANGE` jusqu'au relevé ; la perche passe de 0,28–0,48 à 0,27–0,52 du film, pris sur la hauteur, pour rester fluide). Les sautoirs de hauteur et de perche prennent les couleurs des tapis de stade, à la manière des sautoirs DIMA : corps bleu (`film.matBlue`), dessus rouge (`film.matRed`), liseré blanc au bord du dessus ; dans le film, les gestes de `packages/mascot`, la planche et le jeu (PR `fix/landing-tapis`).
+Vérifié : `tests/jump-film-relay.test.ts` (Inès au bord de la scène, Malo sur le tapis, continuité des images), `tests/athlete-colors.test.ts` (liseré présent sur les deux sautoirs, dessus distinct du corps), 200 poses de référence du saut inchangées.
+À savoir : aucun rouge n'atteint l'écart minimal avec la piste (0,087 au mieux pour 0,12) : un dessus rouge sur fond rouge ne se lirait pas, d'où le liseré blanc, que le test exige à la place de l'écart. Le test qui imposait de passer le relais avant le retournement du perchiste est remplacé : le corps vu par la tranche passe vite au défilement.
+
 ## 2026-11-12, Claude, lot B8 : écrans du coach
 
 Fait : dans le constructeur de séance, « Publier » reste collé au-dessus de la barre de navigation sur téléphone, les autres actions au bout du formulaire (`session-builder.tsx`) ; dans tous les bandeaux, les actions tiennent sur une ligne qui défile de côté sur téléphone (`PageHeader`) ; le « +N » de la grille du mois passe de 10 à 12 px ; `tests/text-size.test.ts` refuse tout texte sous 12 px (PR `feat/da-coach`).

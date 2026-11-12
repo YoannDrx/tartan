@@ -6,6 +6,7 @@ import { clamp, mix, smooth } from "@tartan/mascot/clip";
 import { phaseAt } from "@tartan/mascot/event";
 import { CLIPS } from "@tartan/mascot/events";
 import { HIGH_JUMP_STAGE, highJumpAt, type HighJumpPhase } from "@tartan/mascot/high-jump";
+import { HURDLES_TIMES } from "@tartan/mascot/hurdles";
 import { POLE_VAULT_TIMES } from "@tartan/mascot/pole-vault";
 import type { PropShape } from "@tartan/mascot/props";
 import type { Face } from "@tartan/mascot/rig";
@@ -116,8 +117,8 @@ export const confettiAt = (piece: (typeof CONFETTI)[number], t: number) => {
 export const FILM = {
   // Le titre de la page, l'athlète sur sa ligne.
   hurdles: 0.06,
-  poleVault: 0.28,
-  highJump: 0.48,
+  poleVault: 0.27,
+  highJump: 0.52,
   // La réception dans le tapis : la séance est validée.
   impact: 0.8,
   finish: 0.9,
@@ -135,11 +136,10 @@ export const highJumpTime = (t: number) => {
 
 const HURDLES = CLIPS.hurdles;
 const POLE_VAULT = CLIPS.poleVault;
-// Les haies : du départ à la reprise d'appui après la seconde haie.
-const HURDLES_END = HURDLES.phases.filter((phase) => phase.name === "clearance").at(-1)!.to;
-// La perche : de la course perche en main jusqu'au corps renversé le long de la perche. Le relais passe avant
-// le retournement, où le corps, vu par la tranche, ne se lit plus.
-const POLE_VAULT_RANGE = [0.2, POLE_VAULT_TIMES.invert + 0.02] as const;
+// Les haies : du départ jusqu'au bout de la course, au bord de la scène.
+const HURDLES_END = HURDLES_TIMES.stop;
+// La perche : de la course perche en main jusqu'à la retombée sur le tapis, et le perchiste qui s'y relève.
+const POLE_VAULT_RANGE = [0.2, POLE_VAULT_TIMES.up] as const;
 // Le sol de la perche est plus bas que celui du film : la scène remonte d'autant.
 const POLE_VAULT_LIFT = GROUND - POLE_VAULT.stage.ground;
 

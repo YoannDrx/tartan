@@ -32,6 +32,8 @@
   --color-film-sun-deep: #efb21c;
   --color-film-sun-light: #ffe08a;
   --color-film-skin: #e8a87c;
+  --color-film-mat-blue: #1e4fbf;
+  --color-film-mat-red: #e0242d;
 
   /* Rôles à l'écran : miroir de tokens.scene. */
   --color-page: #c4442b;

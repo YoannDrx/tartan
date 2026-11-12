@@ -69,8 +69,8 @@ const PROP: PropPaint = {
   lane: "var(--film-line)",
   bar: "var(--film-bar)",
   post: "var(--film-post)",
-  mat: "var(--color-film-sun)",
-  matTop: "var(--color-film-sun-light)",
+  mat: "var(--color-film-mat-blue)",
+  matTop: "var(--color-film-mat-red)",
   sand: "var(--color-film-sun-light)",
   board: "var(--film-line)",
   foul: "var(--film-mark)",
@@ -419,9 +419,10 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
             />
             <polygon
               points={`800,${MAT_TOP + 38} 836,${MAT_TOP} 1800,${MAT_TOP} 1800,${MAT_TOP + 38}`}
-              fill="var(--color-film-sun-light)"
+              fill="var(--color-film-mat-red)"
             />
-            <rect x="800" y={MAT_TOP + 38} width="1000" height="172" fill="var(--color-film-sun)" />
+            <line x1="836" y1={MAT_TOP + 2} x2="1800" y2={MAT_TOP + 2} stroke="var(--color-lane)" strokeWidth="5" />
+            <rect x="800" y={MAT_TOP + 38} width="1000" height="172" fill="var(--color-film-mat-blue)" />
           </g>
 
           <path

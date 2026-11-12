@@ -96,8 +96,8 @@ export const stagePaint = (surface: "ink" | "piste"): PropPaint => ({
   lane: scene.lane,
   bar: lime,
   post: surface === "ink" ? color.mutedOnInk : white,
-  mat: sun,
-  matTop: color.film.sunLight,
+  mat: color.film.matBlue,
+  matTop: color.film.matRed,
   sand: color.film.sunLight,
   board: white,
   // La plasticine : rouge piste, sauf sur la piste, où elle disparaîtrait.
