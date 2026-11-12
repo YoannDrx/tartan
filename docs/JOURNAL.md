@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot J7 : saut en hauteur
+
+Fait : `packages/game/src/events/high-jump.ts`. Chaque essai : course automatique de 150 pas ; un appui à ±3 pas de l'instant juste donne 2,05 m atteignables, ±8 pas 1,96 m, ±18 pas 1,82 m (au-delà, refus) ; tenir pendant le vol, puis relâcher à ±3, ±8 ou ±14 pas du bon moment coûte 0, 3 ou 7 cm (relâcher trop tôt ou trop tard fait tomber la barre) ; forme du jour tirée de la graine, ±2 cm. Concours : barre de 1,60 m, +5 cm après chaque hauteur franchie, trois échecs de suite arrêtent tout ; marque, la plus haute barre franchie ; plafond 2,05 m. Sur `/jeu`, Noé rejoue le geste de `packages/mascot` cadré dans le canvas, la barre tombe sur le tapis en cas d'échec, un repère citron marque le point d'appel (PR `feat/jeu-hauteur`).
+Vérifié : `high-jump.test.ts` (montée de la barre, trois échecs, refus, coût des écarts, barre tombée, plafond), références et 300 journaux sous Node, Chromium et WebKit, `e2e/game-page.spec.ts` ; élan, appel et vol regardés à 390 px.
+À savoir : le repère d'appel a été ajouté après coup, faute de quoi l'instant de l'appel ne se devine pas. J5 vérifié en production le même jour (un saut joué sur tartan.coach/jeu).
+Suite conseillée : J8.
+
 ## 2026-11-12, Claude, lot J6 : triple saut
 
 Fait : `packages/game/src/events/triple-jump.ts`, sur l'élan et l'appel de la longueur. Le cloche-pied part à 24° au plus, la foulée à 12°, le saut à 18°. À chacune des deux réceptions, un appui à ±3 pas du contact garde 95 % de l'élan, à ±7 pas 92 %, à ±12 pas 88 % ; au-delà, ou sans appui, le rythme est cassé (score nul). Le sable commence à 9 m de la planche ; plafond théorique 15,596 m. Sur `/jeu`, Awa suit les trois temps du geste de `packages/mascot`, et un repère citron marque sur la piste où le pied va toucher (PR `feat/jeu-triple-saut`).

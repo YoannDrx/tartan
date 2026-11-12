@@ -27,7 +27,7 @@ export default function GamePage() {
             {m.game.howTitle}
           </h2>
           <div className="grid gap-8 tablet:grid-cols-2 desktop:grid-cols-3">
-            {(["hurdles", "longJump", "tripleJump"] as const).map((id) => (
+            {(["hurdles", "longJump", "tripleJump", "highJump"] as const).map((id) => (
               <section key={id} aria-labelledby={`regles-${id}`} className="flex flex-col gap-3">
                 <h3 id={`regles-${id}`} className="t-section">
                   {m.game.events[id].title}
