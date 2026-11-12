@@ -37,7 +37,7 @@ B1 et B2 ne touchent à aucun fichier de la mise en vente et peuvent avancer en 
 
 ### La page d'accueil, téléphone d'abord
 
-1. Départ : titre, promesse et bouton visibles tout de suite ; film d'environ 300svh sur téléphone et 450svh sur ordinateur, en relais entre trois athlètes.
+1. Départ : titre, promesse et bouton visibles tout de suite ; film de 750svh sur téléphone et 1000svh sur ordinateur, en relais entre trois athlètes. Ramené d'abord à 300 et 450svh, il défilait trop vite : le fondateur l'a fait ralentir le 12 novembre 2026.
 2. Le long de la piste : coach, constructeur, contenus, mois et progrès, vidéo, terrain. Sur téléphone, capture puis texte, en une colonne.
 3. Le groupe : bande à défilement horizontal des six athlètes.
 4. Tarifs : une carte par offre sur téléphone, tableau complet replié ; tableau sur ordinateur.

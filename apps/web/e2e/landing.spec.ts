@@ -11,7 +11,7 @@ const phone = (page: Page) => page.viewportSize()!.width < 768;
 const filmScreens = (page: Page) =>
   page.evaluate(() => document.querySelector(".film")!.getBoundingClientRect().height / window.innerHeight);
 
-test("la page d'accueil montre le titre et le bouton d'emblée, puis un film court", async ({ page }) => {
+test("la page d'accueil montre le titre et le bouton d'emblée, puis un film qui prend son temps", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
   // Sans défiler : le titre, la promesse et le bouton tiennent dans le premier écran.
   const viewport = page.viewportSize()!;
@@ -25,7 +25,7 @@ test("la page d'accueil montre le titre et le bouton d'emblée, puis un film cou
     expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
   }
   const screens = await filmScreens(page);
-  expect(screens).toBeCloseTo(viewport.width < 1024 ? 3 : 4.5, 1);
+  expect(screens).toBeCloseTo(viewport.width < 1024 ? 7.5 : 10, 1);
 
   // Le film est un relais : le premier athlète est en scène, les deux autres attendent leur tour.
   const athletes = page.locator("[data-film-athlete]");
@@ -148,9 +148,9 @@ test("l'échauffement ne charge le jeu qu'au premier geste, puis la course se jo
   await expect(section.getByRole("link", { name: m.landing.warmUp.all })).toHaveAttribute("href", "/jeu");
 
   await section.getByRole("button", { name: m.landing.warmUp.play, exact: true }).click();
-  await expect(section.getByRole("img", { name: m.game.events.hurdles.canvas })).toBeVisible();
+  await expect(section.getByRole("img", { name: m.game.events.highJump.canvas })).toBeVisible();
   expect(await scriptsWith("invalid seed")).toBeGreaterThan(0);
   await section.getByRole("button", { name: m.game.start, exact: true }).click();
-  await expect(section.getByRole("button", { name: m.game.events.hurdles.action, exact: true })).toBeVisible();
+  await expect(section.getByRole("button", { name: m.game.events.highJump.action, exact: true })).toBeVisible();
   await expectNoHorizontalScroll(page);
 });
