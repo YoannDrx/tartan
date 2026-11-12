@@ -35,7 +35,7 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 | T05 | Actions d'administration | Fait. `tests/admin-console-actions.test.ts` appelle les actions serveur de la console avec une vraie session : accorder, expiration, suspendre, supprimer, résilier, prolonger l'essai, rembourser. Refus, step-up, journal, effet | Six actions couvertes. Le remboursement passe par le SDK Stripe réel, réseau remplacé, et non par Playwright : le serveur e2e ne peut pas simuler Stripe |
 | T06 | Export comptable | Fait. `tests/admin-accounting-export.test.ts` sur le handler de `admin/revenus/export` : non admin refusé, step-up, aucune donnée de santé ni personnelle. La route figure aussi dans la matrice d'accès | Trois assertions |
 | T07 | Suppression de compte | Fait côté web : `e2e/account-deletion.spec.ts` supprime le compte par `api-client`, avec un second appareil connecté. Flux Maestro `apps/mobile/.maestro/destructive/account-delete.yml` écrit, à exécuter avec T09 | Compte effacé, sessions coupées |
-| T08 | Connexion Apple et Google | Fait. `tests/auth-social.test.ts` : activation par variables, parcours OAuth Google complet avec liaison de comptes, révocation Apple à la suppression. La révocation reste incomplète pour une connexion native (M6) : ne pas activer Apple avant | Tests verts. Recette réelle à faire le jour où un fournisseur est activé |
+| T08 | Connexion Apple et Google | Fait. `tests/auth-social.test.ts` : activation par variables, parcours OAuth Google complet avec liaison de comptes, révocation Apple à la suppression. La révocation d'une connexion native passe par le code d'autorisation (M6, même fichier de test) | Tests verts. Recette réelle à faire le jour où un fournisseur est activé |
 
 ## Élevé
 

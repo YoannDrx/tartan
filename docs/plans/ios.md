@@ -46,7 +46,7 @@ Risque réel : l'exception 3.1.3(f) vise la VoIP, le stockage, l'e-mail et l'hé
 ## Pièges
 
 - `EXPO_PUBLIC_OAUTH_GOOGLE_ENABLED` ne se pose jamais sans l'option Apple (règle 4.8).
-- Connexion Apple : la révocation à la suppression du compte est incomplète (M6). Ne l'active pas avant.
+- Connexion Apple : depuis le 12 novembre 2026 (M6), l'app transmet le code d'autorisation, le serveur garde le jeton et le révoque à la suppression du compte avec l'identifiant de l'app. Avant d'activer, poser `APPLE_APP_BUNDLE_IDENTIFIER` (le bundle de l'app) sur Vercel, et essayer une suppression de compte réelle.
 - Une mise à jour à distance ne vise que les binaires de la même version native.
 - Apple interdit les fonctions dormantes (2.5.19) : l'autorisation micro parle de dictée, l'IA doit donc être accessible au relecteur.
 - Écran du coach : un relecteur peut supprimer le compte de revue. Garde un second compte.

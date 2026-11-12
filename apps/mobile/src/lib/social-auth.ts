@@ -2,6 +2,7 @@ import { m } from "@tartan/i18n";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import { Platform } from "react-native";
+import { api } from "./api";
 import { authClient } from "./auth-client";
 import { config } from "./config";
 
@@ -49,7 +50,12 @@ export const signInWithApple = async (): Promise<SocialResult> => {
           : {}),
       },
     });
-    return result.error ? "failed" : "signed-in";
+    if (result.error) return "failed";
+    // Le code d'autorisation permet au serveur de révoquer l'accès Apple si le compte est supprimé. Une panne ne bloque
+    // pas la connexion : le code est renvoyé à la connexion Apple suivante.
+    if (credential.authorizationCode)
+      await api.storeAppleAuthorization(credential.authorizationCode).catch(() => undefined);
+    return "signed-in";
   } catch (error) {
     return isCancelled(error) ? "cancelled" : "failed";
   }

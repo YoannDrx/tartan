@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, M6 : révocation Apple pour la connexion native
+
+Fait : l'app iOS envoie le code d'autorisation d'Apple à `POST /api/v1/me/apple-authorization`. Le serveur l'échange auprès d'Apple avec le bundle de l'app (`APPLE_APP_BUNDLE_IDENTIFIER`), vérifie que le sujet du jeton est le compte Apple relié, puis garde le jeton de rafraîchissement et l'identifiant qui l'a délivré (colonne additive `account.apple_client_id`). La suppression du compte révoque avec cet identifiant (PR `feat/apple-revocation`).
+Vérifié : `tests/auth-social.test.ts` (échange, révocation avec le bundle, autre compte Apple refusé, compte sans Apple, configuration absente, panne d'Apple), ligne de la matrice d'accès.
+Non vérifié : un échange réel avec Apple. La connexion Apple reste éteinte ; le jour où elle s'allume, poser `APPLE_APP_BUNDLE_IDENTIFIER` sur Vercel.
+
 ## 2026-11-12, Claude, fin de la file du 12 novembre : bilan
 
 Fait et fusionné : B5 à B9, C1 à C3, J2 à J10, retouche du film et des tapis, puis les tests T10 à T22 et T25, M1, M4, M5, P1 (une PR par lot, empilées pour éviter les conflits de `ETAT.md` et `JOURNAL.md`). T23 et T24 sont documentés comme hors CI, dans `docs/tests/automatisation.md` (PR `docs/tests-hors-ci`).
