@@ -31,11 +31,21 @@ describe("console de la plateforme", () => {
       create: { email: admin.email },
       update: {},
     });
-    await updatePlatformSettings(admin, { signupMode: "closed", checkoutEnabled: false, muxVideoLimit: 12 });
-    expect(await platformSettings()).toEqual({ signupMode: "closed", checkoutEnabled: false, muxVideoLimit: 12 });
-    expect(await prisma.auditLog.count({ where: { action: "platform_settings_updated" } })).toBeGreaterThan(0);
-    await prisma.platformSetting.deleteMany();
-    await prisma.platformAdmin.deleteMany({ where: { email: admin.email } });
+    // Le nettoyage passe même si une assertion échoue : des inscriptions restées fermées feraient tomber les
+    // tests suivants, qui créent des espaces.
+    try {
+      await updatePlatformSettings(admin, { signupMode: "closed", checkoutEnabled: false, muxVideoLimit: 12 });
+      expect(await platformSettings()).toEqual({
+        signupMode: "closed",
+        checkoutEnabled: false,
+        muxVideoLimit: 12,
+        gameLeaderboardEnabled: false,
+      });
+      expect(await prisma.auditLog.count({ where: { action: "platform_settings_updated" } })).toBeGreaterThan(0);
+    } finally {
+      await prisma.platformSetting.deleteMany();
+      await prisma.platformAdmin.deleteMany({ where: { email: admin.email } });
+    }
   });
 
   it("une adresse hors de la racine ne nomme personne", async () => {
