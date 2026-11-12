@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot J8 : saut à la perche
+
+Fait : la règle des concours à barre passe dans `packages/game/src/events/bar-event.ts` (`defineBarEvent`), que la hauteur et la perche paramètrent ; les références de la hauteur restent identiques au chiffre près. `pole-vault.ts` : barre de 4,20 m, +15 cm ; planté à ±3, ±8, ±18 pas (5,80, 5,40, 4,95 m atteignables), renversement à ±4, ±9, ±15 pas (0, 8, 18 cm perdus) ; forme du jour ±5 cm ; plafond 5,85 m. Les temps d'un essai (270 pas) font tenir un concours, même avec deux échecs à chaque hauteur, dans les 90 s d'une partie. Sur `/jeu`, Malo rejoue le geste de `packages/mascot`, perche qui plie comprise ; la description des deux concours est commune (`bar-ui.ts`) ; le robot de test aussi (`bar.bots.ts`) (PR `feat/jeu-perche`).
+Vérifié : `pole-vault.test.ts` (montée de la barre, coût du renversement, durée d'un concours, plafond), tests de la hauteur inchangés, références et 300 journaux sous Node, Chromium et WebKit, `e2e/game-page.spec.ts` ; flexion et réception regardées à 390 px.
+Suite conseillée : J9.
+
 ## 2026-11-12, Claude, lot J7 : saut en hauteur
 
 Fait : `packages/game/src/events/high-jump.ts`. Chaque essai : course automatique de 150 pas ; un appui à ±3 pas de l'instant juste donne 2,05 m atteignables, ±8 pas 1,96 m, ±18 pas 1,82 m (au-delà, refus) ; tenir pendant le vol, puis relâcher à ±3, ±8 ou ±14 pas du bon moment coûte 0, 3 ou 7 cm (relâcher trop tôt ou trop tard fait tomber la barre) ; forme du jour tirée de la graine, ±2 cm. Concours : barre de 1,60 m, +5 cm après chaque hauteur franchie, trois échecs de suite arrêtent tout ; marque, la plus haute barre franchie ; plafond 2,05 m. Sur `/jeu`, Noé rejoue le geste de `packages/mascot` cadré dans le canvas, la barre tombe sur le tapis en cas d'échec, un repère citron marque le point d'appel (PR `feat/jeu-hauteur`).

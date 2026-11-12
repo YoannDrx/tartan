@@ -18,6 +18,7 @@ const EVENTS = [
     load: () => import("./triple-jump-ui").then((module) => module.tripleJumpUi),
   },
   { id: "highJump", athlete: "highJump", load: () => import("./high-jump-ui").then((module) => module.highJumpUi) },
+  { id: "poleVault", athlete: "poleVault", load: () => import("./pole-vault-ui").then((module) => module.poleVaultUi) },
 ] as const;
 
 type Loaded = { Runner: React.ComponentType<{ ui: EventUi<SimState> }>; ui: EventUi<SimState> };
