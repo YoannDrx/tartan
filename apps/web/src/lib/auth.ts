@@ -73,6 +73,10 @@ const sendAuthEmail = async (input: Parameters<typeof sendEmail>[0]): Promise<vo
   }
 };
 
+// Le limiteur de connexion : désactivable pour les tests de navigateur, jamais sur la vraie production.
+export const rateLimitEnabled = (vars: NodeJS.ProcessEnv = process.env): boolean =>
+  vars.VERCEL_ENV === "production" || (vars.NODE_ENV === "production" && vars.E2E_DISABLE_RATE_LIMIT !== "true");
+
 export const auth = betterAuth({
   baseURL: e.BETTER_AUTH_URL,
   secret: e.BETTER_AUTH_SECRET,
@@ -172,10 +176,7 @@ export const auth = betterAuth({
     }),
   },
   rateLimit: {
-    // Désactivable pour les tests de navigateur, jamais sur la vraie production.
-    enabled:
-      process.env.VERCEL_ENV === "production" ||
-      (process.env.NODE_ENV === "production" && process.env.E2E_DISABLE_RATE_LIMIT !== "true"),
+    enabled: rateLimitEnabled(),
     storage: "database",
     modelName: "rateLimit",
     window: 60,

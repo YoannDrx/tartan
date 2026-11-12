@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, tests T15, T16 et T17 : gardes d'accès
+
+Fait : `apps/web/tests/access-guards.test.ts` : lien de parrainage `r/[code]`, limiteur de connexion de Better Auth, vérification renforcée de la console (PR `test/garde-acces`). La règle d'activation du limiteur devient la fonction `rateLimitEnabled` de `src/lib/auth.ts`, sans changement de comportement.
+Vérifié : dix tests verts. Le test de la console lit les fichiers : une action de `src/features/admin/*.action.ts` qui ne serait pas une `adminAction`, ou une route de `/admin` sans `requireStepUp`, le fait échouer.
+Suite conseillée : T12, T13, T14 (parcours e2e), T18 à T21.
+
 ## 2026-11-12, Claude, tests T11, T22 et T25 : routes techniques
 
 Fait : `apps/web/tests/technical-routes.test.ts` appelle les vrais handlers de la tâche horaire, de `health`, `live`, `version`, du flux `ical`, ainsi que `manifest`, `robots` et `sitemap` (PR `test/routes-techniques`).

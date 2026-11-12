@@ -47,9 +47,9 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 | T12 | Invitation nominative | `e2e/staff-invitation.spec.ts` : lien récupéré, droits vérifiés |
 | T13 | Changement d'espace | Compte double rôle, cookie `tartan_space`, aucune fuite entre espaces |
 | T14 | `/abonnement` | E2E avec Stripe simulé : boutons selon offre et rôle, vente coupée, blocage du 6e athlète |
-| T15 | Parrainage | Handler `r/[code]` : cookie, code invalide, domaine de production |
-| T16 | Limiteur Better Auth | Test de configuration, ou passe `E2E_PROD` sans `E2E_DISABLE_RATE_LIMIT` |
-| T17 | Step-up | Vitest sur `requireStepUp`, pour chaque page d'administration |
+| T15 | Parrainage | Fait. `tests/access-guards.test.ts` sur le handler `r/[code]` : cookie de 30 jours en majuscules, domaine `.tartan.coach` et connexion sur l'application en production, code mal formé sans cookie |
+| T16 | Limiteur Better Auth | Fait. Même fichier : `rateLimitEnabled` (actif sur Vercel en production même si un test demande de le couper), stockage en base, règles serrées sur `sign-in`, `sign-up` et `magic-link` |
+| T17 | Step-up | Fait. Même fichier : `requireStepUp` (non-admin, sans passkey, 12 h pour lire, 10 min pour l'argent, contournement inopérant sur Vercel), mise en page de la console, chaque action en `adminAction`, chaque route avec `requireStepUp` |
 
 ## Moyen
 
