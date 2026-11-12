@@ -153,7 +153,8 @@ jobs:
       - name: Simulateur
         run: |
           # Le simulateur suit le fuseau de la machine ; la graine date la séance du jour à Paris.
-          sudo systemsetup -settimezone Europe/Paris > /dev/null
+          sudo systemsetup -settimezone Europe/Paris > /dev/null 2>&1 || sudo ln -sf /usr/share/zoneinfo/Europe/Paris /etc/localtime
+          date
           device=$(xcrun simctl list devices available | grep -m1 -E "^ +iPhone [0-9]+ \(" | grep -oE "[0-9A-F-]{36}")
           echo "Simulateur : $(xcrun simctl list devices available | grep "$device")"
           xcrun simctl boot "$device"
