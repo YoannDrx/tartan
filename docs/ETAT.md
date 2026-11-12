@@ -132,7 +132,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | M4 | Changement de compte par lien magique sur mobile : cause probable corrigée (ordre cookie, cache, espace actif), codé et testé. Reste le flux Maestro dédié et l'essai sur simulateur | [iOS](plans/ios.md) | Avant soumission |
 | M5 | Repli HLS du lecteur mobile si le MP4 n'est pas prêt : codé et testé (`src/lib/playback-source.ts`). Reste à voir une vidéo lue juste après l'encodage, sur téléphone | [iOS](plans/ios.md) | Avant soumission |
 | M6 | Connexion Apple : envoyer `authorizationCode` et stocker le jeton, pour la révocation | [iOS](plans/ios.md) | Seulement si activée |
-| T-suite | Tests élevés, moyens et faibles : T09 à T26. Fait : T10 (vidéo en HTTP, file d'envoi), T11, T22, T25 (routes techniques), T15, T16, T17 (gardes d'accès), T21 (worker), T12, T13 (invitation nominative, changement d'espace), T14 (page abonnement), T18 (centre de notifications), T19 (pages remplies), T20 (fiches de la console) | [automatisation](tests/automatisation.md) | Après l'ouverture web |
+| T-suite | Tests élevés, moyens et faibles : T09 à T26. Fait : T10 (vidéo en HTTP, file d'envoi), T11, T22, T25 (routes techniques), T15, T16, T17 (gardes d'accès), T21 (worker), T12, T13 (invitation nominative, changement d'espace), T14 (page abonnement), T18 (centre de notifications), T19 (pages remplies), T20 (fiches de la console). Hors CI, documentés : T23 (IA réelle, payante), T24 (Maestro). Restent : T09 avec M2, T26 si le parcours parental s'ouvre | [automatisation](tests/automatisation.md) | Après l'ouverture web |
 | P1 | Modèle de transcription : `gpt-transcribe` par défaut depuis le 12 novembre 2026 (codé, testé). Reste une vraie dictée, après F6, et le contrôle de `AI_TRANSCRIPTION_MODEL` sur Vercel | [IA](reference/planificateur-ia.md) | Échéance |
 | P2 | Enregistrer les 30 dictées réelles du corpus IA | [IA](reference/planificateur-ia.md) | Qualité IA |
 
@@ -147,7 +147,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | Durée de la bêta IA | À fixer | Après 30 jours de vrais usages |
 | Suppression après 24 mois d'inactivité | À valider par le juriste | Voir [conformité](reference/conformite.md) |
 | Compte Stripe | Compte propre à Tartan, ou compte actuel qui sert plusieurs produits | Compte propre, avant le premier vrai paiement |
-| Classement du jeu ouvert à tous | Ouvrir avec le jeu, ou attendre l'avis du juriste sur les mineurs | Livrer le jeu avec records sur l'appareil, ouvrir le classement après l'avis |
+| Classement du jeu ouvert à tous | Avis du juriste rapporté favorable le 12 novembre 2026 ; classement en production, éteint | Le fondateur l'ouvre dans `/admin/configuration` quand il le souhaite |
 
 ## Risques à garder en tête
 

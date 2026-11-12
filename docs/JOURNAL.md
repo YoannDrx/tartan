@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, fin de la file du 12 novembre : bilan
+
+Fait et fusionné : B5 à B9, C1 à C3, J2 à J10, retouche du film et des tapis, puis les tests T10 à T22 et T25, M1, M4, M5, P1 (une PR par lot, empilées pour éviter les conflits de `ETAT.md` et `JOURNAL.md`). T23 et T24 sont documentés comme hors CI, dans `docs/tests/automatisation.md` (PR `docs/tests-hors-ci`).
+À savoir : les PR de tests touchent toutes la ligne T-suite d'`ETAT.md` et le haut du journal. Les empiler (chaque branche part de la précédente) évite de relancer une CI par conflit. Le job `quality` a désormais 60 minutes : les parcours en prennent près de 30.
+Reste au fondateur : ouvrir le classement du jeu dans `/admin/configuration` s'il le souhaite ; lancer un build EAS de production (M1) ; la clé OpenAI (F6), puis une vraie dictée et `eval:planner --live` (T23) ; vérifier `AI_TRANSCRIPTION_MODEL` sur Vercel ; installer Maestro pour T24 ; les autres lignes du tableau « Fondateur ».
+Suite conseillée : M2 et T09 (Maestro en CI), M3 (captures), M6 si la connexion Apple doit ouvrir.
+
 ## 2026-11-12, Claude, M4 : changement de compte par lien magique sur mobile
 
 Fait : l'écran de retour (`app/(auth)/callback.tsx`) vidait le cache avant de poser le nouveau cookie. Un écran encore monté de l'ancien compte pouvait donc relire `/me` avec l'ancien cookie, et l'aiguillage retrouvait l'ancien rôle, ce que le simulateur avait montré le 9 novembre. Le cookie était aussi fusionné avec l'ancien, et l'espace actif mémorisé restait celui de l'ancien compte. `src/lib/account-switch.ts` fixe l'ordre : arrêter les requêtes, effacer puis poser le cookie, vider les données et l'espace mémorisé, relire la session, repartir de l'aiguillage (PR `fix/mobile-changement-compte`, empilée sur M5).
