@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, test T18 : centre de notifications, et cloche corrigée
+
+Fait : `apps/web/e2e/notification-center.spec.ts` (PR `test/notifications`). Correction : après « Tout marquer comme lu », la cloche gardait son ancien compteur, car elle ne relisait qu'au changement d'adresse. La liste émet désormais `NOTIFICATIONS_READ_EVENT` après chaque lecture, et la cloche relit.
+Vérifié : quatre parcours verts en build de production, ordinateur et téléphone.
+Non vérifié : sur un vrai téléphone.
+
 ## 2026-11-12, Claude, test T14 : la page abonnement
 
 Fait : `apps/web/e2e/subscription.spec.ts` (PR `test/abonnement`).

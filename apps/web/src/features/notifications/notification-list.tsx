@@ -6,13 +6,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { NOTIFICATIONS_READ_EVENT } from "./notification-bell";
 import { markNotificationsReadAction } from "./notifications.action";
 
 export type InboxRow = { id: string; text: string; href: string | null; when: string; unread: boolean };
 
 export const NotificationList = ({ rows, unread }: { rows: InboxRow[]; unread: number }) => {
   const router = useRouter();
-  const mark = useAction(markNotificationsReadAction, { onSuccess: () => router.refresh() });
+  const mark = useAction(markNotificationsReadAction, {
+    onSuccess: () => {
+      window.dispatchEvent(new Event(NOTIFICATIONS_READ_EVENT));
+      router.refresh();
+    },
+  });
   return (
     <div className="flex flex-col gap-3">
       {unread > 0 ? (
