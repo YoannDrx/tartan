@@ -8,6 +8,7 @@ import { EmptyState, PageHeader } from "@/components/states";
 import { StatusIcon } from "@/components/status-cell";
 import { Button } from "@/components/ui/button";
 import { Stay } from "@/components/ui/view-transition";
+import { TrackLap } from "@/components/track";
 import { cn } from "@/lib/cn";
 import { todayIso } from "@/lib/dates";
 import { AthleteWelcome } from "@/features/athlete-view/athlete-welcome";
@@ -45,20 +46,38 @@ const FocusBlock = ({ focus }: { focus: NonNullable<AthleteToday["focus"]> }) =>
   </section>
 );
 
+// La série de régularité : le tour de piste se court au fil des séances rendues de la semaine, le chiffre au centre
+// compte les semaines de suite (packages/domain/src/regularity.ts).
+const Regularity = ({ weeks, planned, validated }: { weeks: number; planned: number; validated: number }) => (
+  <section aria-labelledby="regularite" className="on-card flex items-center gap-4 rounded-card bg-card p-3">
+    <TrackLap
+      value={planned === 0 ? 0 : validated / planned}
+      label={m.today.regularity.lap(validated, planned)}
+      className="w-24 shrink-0"
+    >
+      <span aria-hidden className="t-num text-[28px] leading-none">
+        {weeks}
+      </span>
+    </TrackLap>
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <h2 id="regularite" className="t-h2">
+        {m.today.regularity.title}
+      </h2>
+      <p className="font-semibold">
+        {weeks > 0 ? `${weeks} ${m.today.regularity.weeks(weeks)}` : m.today.regularity.weeks(0)}
+      </p>
+      <p className="t-caption font-normal text-soft">{m.today.regularity.rule}</p>
+    </div>
+  </section>
+);
+
 const WeekDots = ({ week, today }: { week: { date: string; status: string }[]; today: string }) => (
   <ol
-    aria-label="Ta semaine"
+    aria-label={m.today.weekLabel}
     className="on-card grid grid-cols-7 divide-x divide-card-line overflow-hidden rounded-card bg-card"
   >
     {week.map((d) => {
-      const label: Record<string, string> = {
-        done: "séance faite",
-        partial: "séance partielle",
-        missed: "séance manquée",
-        today: "séance du jour",
-        planned: "séance prévue",
-        rest: "repos",
-      };
+      const label: Record<string, string> = m.today.weekStatus;
       return (
         <li key={d.date} className={cn("flex flex-col items-center gap-1 py-2", d.date === today && "bg-card-raised")}>
           <span className="t-caption font-normal text-soft">{formatWeekdayShort(d.date)}</span>
@@ -245,6 +264,8 @@ export default async function AujourdhuiPage() {
           <AttendanceQuestion sessionId={data.next.id} current={data.next.attendance} />
         </section>
       ) : null}
+      {/* La série vient après les séances : l'athlète vient d'abord pour elles. */}
+      {data.regularity ? <Regularity {...data.regularity} /> : null}
     </div>
   );
 }

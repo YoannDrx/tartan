@@ -41,6 +41,7 @@ import { audit, requireAthleteAccess, requireOrgMember, requireVisibleAthlete } 
 import { consentForAthletes } from "./consent.service";
 import { displayName, namesFor } from "./me.service";
 import { notify } from "./notify.service";
+import { regularityOf } from "./stats.service";
 import { coachesOfAthlete } from "./org.service";
 import { athleteAssignedWhere as assignedWhere } from "./session-audience.service";
 import { strengthResolutionInputs } from "./strength.service";
@@ -234,9 +235,13 @@ export const getAthleteToday = async (
   const authors = pinned ? await namesFor([pinned.authorId]) : new Map<string, string>();
   const consent = (await consentForAthletes([access.athleteId])).get(access.athleteId);
   const profile = await prisma.profile.findUnique({ where: { id: userId }, select: { firstName: true } });
-  const focus = await athleteFocus(access.athleteId, todays[0] ?? next, consent?.video ?? false);
+  const [focus, streak] = await Promise.all([
+    athleteFocus(access.athleteId, todays[0] ?? next, consent?.video ?? false),
+    regularityOf(access.athleteId, now),
+  ]);
   return {
     focus,
+    regularity: streak,
     firstName: profile?.firstName ?? null,
     today: todays,
     next,
