@@ -64,7 +64,7 @@ const schema = z.object({
   // Coupe-circuit : absent, le planificateur s'ouvre dès qu'une clé est configurée ; "false" le coupe.
   AI_PLANNER_ENABLED: z.enum(["true", "false"]).optional(),
   AI_PLANNER_MODEL: z.string().min(1).default("gpt-4.1-mini"),
-  AI_TRANSCRIPTION_MODEL: z.string().min(1).default("gpt-4o-mini-transcribe"),
+  AI_TRANSCRIPTION_MODEL: z.string().min(1).default("gpt-transcribe"),
   CRON_SECRET: optional,
   CRON_HEARTBEAT_URL: optional,
   CRON_HEARTBEAT_NOTIFICATIONS_URL: optional,

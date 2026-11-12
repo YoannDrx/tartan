@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, P1 : la dictée passe à gpt-transcribe
+
+Fait : `AI_TRANSCRIPTION_MODEL` vaut `gpt-transcribe` par défaut. La requête envoie `languages[]`, `keywords[]` et un `prompt` de contexte court, jamais `language` (PR `feat/gpt-transcribe`). Source : la documentation d'OpenAI, pages « Transcription » et « GPT-Transcribe » (recherche externe du 12 novembre 2026). L'ancien modèle reste accepté jusqu'à son arrêt.
+Vérifié : tests du fournisseur de transcription, de l'API et du flux de dictée.
+Non vérifié : une vraie dictée. Elle attend la nouvelle clé OpenAI (F6). Le fondateur doit aussi vérifier si `AI_TRANSCRIPTION_MODEL` est défini sur Vercel avec l'ancien nom.
+
 ## 2026-11-12, Claude, M1 : l'échec des builds EAS à « Read app config »
 
 Fait : cause trouvée dans le journal du build Android du 9 novembre sur expo.dev : `expo config` échoue sur `app.config.ts` (« Unexpected token '{' »). La configuration importe deux fichiers TypeScript que seule la lecture native de Node savait charger. Correction : `import "tsx/cjs"` en tête de la configuration, et `tsx` en dépendance de développement du mobile (PR `fix/eas-app-config`).
