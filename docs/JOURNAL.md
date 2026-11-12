@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, test T14 : la page abonnement
+
+Fait : `apps/web/e2e/subscription.spec.ts` (PR `test/abonnement`).
+Vérifié : quatre parcours verts en build de production, ordinateur et téléphone.
+À savoir : le serveur e2e n'a pas de clé Stripe, la vente y est donc coupée, comme en production avant l'ouverture. Le parcours vérifie qu'aucun bouton n'y lance un paiement ; le paiement lui-même reste couvert par T03 en sandbox.
+
 ## 2026-11-12, Claude, tests T12 et T13 : invitation nominative et changement d'espace
 
 Fait : `apps/web/e2e/staff-invitation.spec.ts` et `apps/web/e2e/space-switch.spec.ts` (PR `test/espaces`).
