@@ -74,6 +74,7 @@ export const notificationCategory = (type: NotificationType): NotificationCatego
       return "group";
     case "pain_alert":
     case "missed_streak":
+    case "absence_reported":
       return "alerts";
     case "app_update":
       return "product";

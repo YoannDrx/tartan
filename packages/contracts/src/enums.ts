@@ -43,6 +43,11 @@ export type CellStatus = z.infer<typeof cellStatus>;
 export const attendanceStatus = z.enum(["present", "absent", "unknown"]);
 export type AttendanceStatus = z.infer<typeof attendanceStatus>;
 
+// Pourquoi un athlète ne vient pas : une liste fermée, sans aucune donnée de santé. Ni blessure, ni maladie, ni
+// douleur : celles-ci passent par le suivi de santé, qui exige un consentement.
+export const absenceReason = z.enum(["work", "studies", "transport", "family", "other"]);
+export type AbsenceReason = z.infer<typeof absenceReason>;
+
 export const bodySide = z.enum(["left", "right", "both", "none"]);
 export type BodySide = z.infer<typeof bodySide>;
 

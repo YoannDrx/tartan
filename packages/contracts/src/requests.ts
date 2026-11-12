@@ -1,6 +1,7 @@
 import { exerciseClassification } from "./exercise-classification";
 import { z } from "zod";
 import {
+  absenceReason,
   attendanceStatus,
   bodyArea,
   bodySide,
@@ -352,8 +353,10 @@ export const sessionLogInput = z
   });
 export type SessionLogInput = z.input<typeof sessionLogInput>;
 
+// Le motif est facultatif, et n'a de sens qu'avec une absence : il est ignoré avec « je viens ».
 export const attendanceInput = z.object({
   status: z.enum(["present", "absent"]),
+  reason: absenceReason.optional(),
 });
 
 export const rollCallInput = z.object({

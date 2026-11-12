@@ -7,5 +7,5 @@ export const POST = authRoute
   .params(sessionParams)
   .body(attendanceInput)
   .handler(async (_req, { ctx, params, body }) =>
-    setMyAttendance(ctx.actor.userId, params.orgId, params.sessionId, body.status),
+    setMyAttendance(ctx.actor.userId, params.orgId, params.sessionId, body.status, body.reason),
   );

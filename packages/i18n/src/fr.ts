@@ -1485,6 +1485,17 @@ export const fr = {
     attendanceYes: "Je viens",
     attendanceNo: "Je ne viens pas",
     switchedAutonomous: "Tu feras la version autonomie. Ton coach est au courant.",
+    coachInformed: "Ton coach est au courant.",
+    // Le motif d'une absence : facultatif, en liste fermée, jamais une donnée de santé.
+    absenceReasonLegend: "Pourquoi ? C'est facultatif",
+    absenceReasonSaved: "Motif transmis à ton coach.",
+    absenceReasons: {
+      work: "Travail",
+      studies: "Études",
+      transport: "Transport",
+      family: "Famille",
+      other: "Autre raison",
+    },
     loadMissing: "Charge à voir avec ton coach",
   },
   sessionMode: {
@@ -1570,6 +1581,7 @@ export const fr = {
   },
   coach: {
     absent: "Absent",
+    absentBecause: (reason: string) => `Absent : ${reason.toLowerCase()}`,
     draftHidden: "Cette séance est encore un brouillon : tes athlètes ne la voient pas.",
     athleteReturns: "Retours des athlètes",
     exportCsv: "Exporter la semaine (CSV)",
@@ -2345,6 +2357,7 @@ export const fr = {
       missed_streak: "Voir l'athlète",
       announcement: "Lire l'annonce",
       member_joined: "Voir l'athlète",
+      absence_reported: "Voir la séance",
     },
     reportCta: "Voir le signalement",
     publisher: "Tartan est édité par Yodev, entreprise individuelle.",

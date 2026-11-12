@@ -98,7 +98,13 @@ export async function SessionFollowupContent({
                           {a.name}
                         </Link>
                         {a.variant ? <Chip>{m.variant[a.variant]}</Chip> : null}
-                        {a.attendance === "absent" ? <Chip tone="warning">{m.coach.absent}</Chip> : null}
+                        {a.attendance === "absent" ? (
+                          <Chip tone="warning">
+                            {a.absenceReason
+                              ? m.coach.absentBecause(m.today.absenceReasons[a.absenceReason])
+                              : m.coach.absent}
+                          </Chip>
+                        ) : null}
                       </p>
                       {a.rpe || a.durationMin ? (
                         <p className="t-num mt-0.5 text-[17px] leading-5">

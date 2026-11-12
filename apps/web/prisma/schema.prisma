@@ -834,12 +834,24 @@ enum AttendanceSource {
   @@map("attendance_source")
 }
 
+// Pourquoi un athlète ne vient pas, s'il le dit : jamais une donnée de santé.
+enum AbsenceReason {
+  work
+  studies
+  transport
+  family
+  other
+
+  @@map("absence_reason")
+}
+
 model Attendance {
   id                 String           @id @default(uuid()) @db.Uuid
   scheduledSessionId String           @map("scheduled_session_id") @db.Uuid
   athleteId          String           @map("athlete_id") @db.Uuid
   status             AttendanceStatus @default(unknown)
   source             AttendanceSource
+  absenceReason      AbsenceReason?   @map("absence_reason")
   createdAt          DateTime         @default(now()) @map("created_at")
   updatedAt          DateTime         @updatedAt @map("updated_at")
   session            ScheduledSession @relation(fields: [scheduledSessionId], references: [id], onDelete: Cascade)
