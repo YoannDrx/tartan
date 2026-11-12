@@ -13,6 +13,7 @@ import {
   prescriptionSchema,
   detailedSetInput,
   painInput,
+  type AbsenceReason,
 } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import {
@@ -794,6 +795,8 @@ export const setMyAttendance = async (
   organizationId: string,
   sessionId: string,
   status: "present" | "absent",
+  reason?: AbsenceReason,
+  now: Date = new Date(),
 ) => {
   const access = await requireAthleteAccess(userId, organizationId);
   const session = await prisma.scheduledSession.findFirst({
@@ -801,11 +804,33 @@ export const setMyAttendance = async (
     select: { id: true, snapshot: true, createdBy: true, date: true },
   });
   if (!session) throw notFound();
-  await prisma.attendance.upsert({
-    where: { scheduledSessionId_athleteId: { scheduledSessionId: sessionId, athleteId: access.athleteId } },
-    create: { scheduledSessionId: sessionId, athleteId: access.athleteId, status, source: "athlete" },
-    update: { status, source: "athlete" },
+  const key = { scheduledSessionId: sessionId, athleteId: access.athleteId };
+  const before = await prisma.attendance.findUnique({
+    where: { scheduledSessionId_athleteId: key },
+    select: { status: true },
   });
+  // Le motif ne vaut que pour une absence ; « je viens » l'efface.
+  const absenceReason = status === "absent" ? (reason ?? null) : null;
+  await prisma.attendance.upsert({
+    where: { scheduledSessionId_athleteId: key },
+    create: { ...key, status, source: "athlete", absenceReason },
+    update: { status, source: "athlete", absenceReason },
+  });
+  // Le coach apprend l'absence une fois, quand elle est déclarée pour une séance à venir. Un motif ajouté ensuite
+  // ne le dérange pas de nouveau : il le lit dans le suivi de la séance.
+  const date = fromDbDate(session.date);
+  if (status === "absent" && before?.status !== "absent" && date >= todayIso(now)) {
+    const [coaches, athlete] = await Promise.all([
+      coachesOfAthlete(organizationId, access.athleteId),
+      prisma.athlete.findUniqueOrThrow({ where: { id: access.athleteId }, select: { firstName: true } }),
+    ]);
+    await notify(
+      coaches,
+      "absence_reported",
+      { athlete: athlete.firstName, date, organizationId, link: `/seances/${sessionId}/suivi` },
+      now,
+    );
+  }
   const snapshot = sessionSnapshot.parse(session.snapshot);
   return { variant: resolveVariant(status, snapshot), hasAutonomous: hasAutonomousVersion(snapshot) };
 };

@@ -8,7 +8,13 @@ import { setMyAttendance } from "@/server/athlete-view.service";
 export const attendanceAction = spaceAction
   .inputSchema(attendanceInput.extend({ sessionId: uuid }))
   .action(async ({ parsedInput, ctx }) => {
-    const res = await setMyAttendance(ctx.userId, ctx.organizationId, parsedInput.sessionId, parsedInput.status);
+    const res = await setMyAttendance(
+      ctx.userId,
+      ctx.organizationId,
+      parsedInput.sessionId,
+      parsedInput.status,
+      parsedInput.reason,
+    );
     revalidatePath("/aujourdhui");
     revalidatePath(`/seance/${parsedInput.sessionId}`);
     return res;

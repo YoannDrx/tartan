@@ -327,6 +327,7 @@ export const getSessionDetailForCoach = async (
           status: cellStatusOf(entry, date, now, Boolean(a.userId)),
           hasAccount: Boolean(a.userId),
           attendance: attendance.find((t) => t.athleteId === a.id)?.status ?? ("unknown" as const),
+          absenceReason: attendance.find((t) => t.athleteId === a.id)?.absenceReason ?? null,
           variant: entry?.variantDone ?? null,
           rpe: health ? (entry?.rpe ?? null) : null,
           durationMin: entry?.durationMin ?? null,

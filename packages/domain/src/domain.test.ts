@@ -439,6 +439,11 @@ describe("notifications", () => {
       "Thomas t'a envoyé une séance pour jeudi",
     );
   });
+  it("annonce une absence au coach sans son motif", () => {
+    expect(renderNotification("absence_reported", { athlete: "Léa", date: "2026-10-29" }).body).toBe(
+      "Léa ne viendra pas jeudi",
+    );
+  });
   it("n'expose aucun détail de santé", () => {
     const { body } = renderNotification("pain_alert", { athlete: "Léa" });
     expect(body).toBe("Nouvelle alerte de Léa");

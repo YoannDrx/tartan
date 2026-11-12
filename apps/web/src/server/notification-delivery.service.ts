@@ -55,6 +55,7 @@ const CHANNELS: Record<NotificationType, string> = {
   comment: "videos",
   pain_alert: "alertes-coach",
   missed_streak: "alertes-coach",
+  absence_reported: "alertes-coach",
   member_joined: "seances",
   app_update: "mises-a-jour",
 };

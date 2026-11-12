@@ -19,7 +19,8 @@ export type NotificationType =
   | "member_joined"
   | "session_cancelled"
   | "scheduled_publication_blocked"
-  | "app_update";
+  | "app_update"
+  | "absence_reported";
 
 export const bypassesQuietHours = (type: NotificationType): boolean => type === "pain_alert";
 
@@ -78,6 +79,9 @@ export const renderNotification = (
       return { title: "Tartan", body: `${v.athlete ?? "Un athlète"} a rejoint ton espace` };
     case "app_update":
       return { title: "Tartan", body: `La version ${v.version ?? "récente"} de Tartan est disponible` };
+    // Le motif n'y figure pas : il reste dans le suivi de la séance, pas sur un écran verrouillé.
+    case "absence_reported":
+      return { title: "Tartan", body: `${v.athlete ?? "Un athlète"} ne viendra pas ${day}` };
     default:
       // Après un retour arrière, une notification d'un type plus récent reste lisible.
       return { title: "Tartan", body: "Nouvelle notification" };
