@@ -102,6 +102,8 @@ export const athleteToday = z.object({
   healthConsent: z.boolean(),
   videoConsent: z.boolean(),
   parentalConsentPending: z.boolean(),
+  // La série de régularité et la semaine en cours. Facultative : un ancien client et un cache persisté passent.
+  regularity: z.object({ weeks: z.number(), planned: z.number(), validated: z.number() }).optional(),
   // Facultatif : un ancien client et un cache persisté doivent continuer de passer.
   focus: z
     .object({

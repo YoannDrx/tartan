@@ -25,10 +25,10 @@ import { requireOrgMember } from "@/server/access";
 import { getAthleteFile } from "@/server/athlete.service";
 import { listGroups } from "@/server/org.service";
 import { listExercises } from "@/server/exercise.service";
-import { athleteWeeklyStats } from "@/server/stats.service";
+import { athleteRegularity, athleteWeeklyStats } from "@/server/stats.service";
 import { getBarSheet, listVideos } from "@/server/video.service";
 
-export const metadata: Metadata = { title: "Fiche athlète" };
+export const metadata: Metadata = { title: m.athletes.fileTitle };
 
 const year = (iso: string) => `${formatDayMonth(iso)} ${iso.slice(0, 4)}`;
 
@@ -37,12 +37,13 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
   const { id } = await params;
   const file = await orNotFound(() => getAthleteFile(actor.userId, organizationId, id));
   const access = await requireOrgMember(actor.userId, organizationId, "viewTracking");
-  const [groups, videos, sheet, stats, exercises] = await Promise.all([
+  const [groups, videos, sheet, stats, exercises, streak] = await Promise.all([
     listGroups(access),
     listVideos(actor.userId, organizationId, { athleteId: id }),
     getBarSheet(actor.userId, organizationId, { athleteId: id }),
     athleteWeeklyStats(actor.userId, organizationId, id),
     listExercises(actor.userId, organizationId),
+    athleteRegularity(actor.userId, organizationId, id),
   ]);
   const activeWeeks = stats.weeks.filter((w) => w.sessions > 0).reverse();
   const activeInjury = file.injuries.find((i) => i.status !== "resolved");
@@ -109,19 +110,31 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
       ) : null}
 
       <Sheet>
-        <dl className="grid grid-cols-2 gap-px bg-card-line tablet:grid-cols-4">
+        <dl className="flex flex-wrap gap-px bg-card-line">
           {[
             { label: m.athletes.takeoffFoot, value: file.takeoffFoot ? m.bodySide[file.takeoffFoot] : null },
             { label: m.athletes.approachSteps, value: file.approachSteps },
             { label: m.athletes.bestBar, value: best ? `${formatHeight(best)} m` : null },
             { label: m.athletes.doneRate, value: rate !== null ? `${rate}\u00a0%` : null },
+            { label: m.athletes.streak, value: m.athletes.streakWeeks(streak.weeks), text: true },
           ]
             // Pied d'appel, foulées et barre n'ont de sens que pour un sauteur : vides, ils disparaissent.
-            .filter((item, index) => index === 3 || item.value)
+            .filter((item, index) => index >= 3 || item.value)
             .map((item) => (
-              <div key={item.label} className="bg-card px-4 py-2">
+              <div
+                key={item.label}
+                className="min-w-[calc(50%-1px)] flex-1 bg-card px-4 py-2 tablet:min-w-[calc(20%-1px)]"
+              >
                 <dt className="t-caption font-normal text-soft">{item.label}</dt>
-                <dd className={item.value === null ? "leading-7 text-soft" : "t-num text-[24px] leading-7"}>
+                <dd
+                  className={
+                    item.value === null
+                      ? "leading-7 text-soft"
+                      : "text" in item
+                        ? "text-[17px] font-semibold leading-7"
+                        : "t-num text-[24px] leading-7"
+                  }
+                >
                   {item.value ?? m.athletes.notSet}
                 </dd>
               </div>
@@ -148,12 +161,12 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                   {sheet.attempts.map((a) => (
                     <li key={a.id} className="flex items-center justify-between gap-3 py-1">
                       <span className="t-num">
-                        {formatHeight(a.heightCm)} m, {m.athletes.attempt(a.attemptNo)}, {a.result}
+                        {m.athletes.barAttempt(formatHeight(a.heightCm), m.athletes.attempt(a.attemptNo))}, {a.result}
                       </span>
                       <DeleteRow
                         kind="jump"
                         id={a.id}
-                        label={`${formatHeight(a.heightCm)} m, ${m.athletes.attempt(a.attemptNo)}`}
+                        label={m.athletes.barAttempt(formatHeight(a.heightCm), m.athletes.attempt(a.attemptNo))}
                       />
                     </li>
                   ))}
@@ -256,7 +269,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                           {m.strength.referenceKinds[reference.kind as keyof typeof m.strength.referenceKinds]}
                         </span>
                       </span>
-                      <Mark>{String(reference.valueKg).replace(".", ",")} kg</Mark>
+                      <Mark>{m.athletes.kg(String(reference.valueKg).replace(".", ","))}</Mark>
                     </li>
                   ))}
                 </Rows>
@@ -286,7 +299,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                       </span>
                     </span>
                     <span className="flex flex-wrap items-center gap-1">
-                      <Mark>{String(t.value).replace(".", ",")} kg</Mark>
+                      <Mark>{m.athletes.kg(String(t.value).replace(".", ","))}</Mark>
                       {file.progressionEnabled &&
                       canManage &&
                       t.exerciseId &&
@@ -297,7 +310,10 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                         <DeleteRow
                           kind="test"
                           id={t.id}
-                          label={`${t.exerciseName ?? strengthTestLabel(t.exerciseKey)}, ${String(t.value).replace(".", ",")} kg`}
+                          label={m.athletes.namedKg(
+                            t.exerciseName ?? strengthTestLabel(t.exerciseKey),
+                            String(t.value).replace(".", ","),
+                          )}
                         />
                       ) : null}
                     </span>
@@ -335,8 +351,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                         <Chip tone={i.status === "resolved" ? "neutral" : "warning"}>{m.injuryStatus[i.status]}</Chip>
                       </p>
                       <p className="t-caption font-normal text-soft">
-                        Depuis le {year(i.startDate)}
-                        {i.endDate ? `, jusqu'au ${year(i.endDate)}` : ""}
+                        {m.athletes.injurySince(year(i.startDate), i.endDate ? year(i.endDate) : null)}
                       </p>
                       {i.restrictions ? <p className="mt-1">{i.restrictions}</p> : null}
                     </div>
@@ -392,7 +407,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
                       </span>
                       {h.rpe ? (
                         <span className="t-num text-[17px]">
-                          <span className="sr-only">Effort </span>
+                          <span className="sr-only">{m.athletes.effortPrefix}</span>
                           {h.rpe}/10
                         </span>
                       ) : null}

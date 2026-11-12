@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot C2 : série de régularité
+
+Fait : `regularity()` dans `packages/domain` compte les semaines de suite où l'athlète a rendu chacune de ses séances ; `regularityOf` et `athleteRegularity` (`stats.service.ts`) la lisent sur un an. L'accueil de l'athlète montre un tour de piste : la part courue est la semaine en cours, le chiffre au centre la série. La fiche de l'athlète côté coach porte « Série de régularité ». Les textes gelés de ces deux pages sont passés dans `packages/i18n` (PR `feat/regularite`).
+Vérifié : `packages/domain/src/regularity.test.ts` (six cas), `tests/regularity.test.ts` (série lue en base, accès refusé à un autre espace), `e2e/regularity.spec.ts` (une séance rendue lance la série, le coach la lit) ; accueil et fiche regardés à 390 px. Non vérifié : aucun vrai téléphone.
+À savoir : règle décidée par moi, à confirmer par le fondateur. Une séance partielle compte comme rendue, c'est un retour au coach. Une absence signalée excuse la séance, pour que dire « je ne viens pas » ne coûte jamais rien (lien avec C1). Une séance encore dans son délai de saisie (24 h après sa journée) ne casse rien. La clé `m.athletes.regularity` existait déjà pour une autre mesure (les quatre dernières semaines, page Progrès) : la série s'appelle `streak` dans les textes.
+Suite conseillée : C3.
+
 ## 2026-11-12, Claude, lot C1 : absence signalée par l'athlète
 
 Fait : l'athlète qui répond « je ne viens pas » prévient ses coachs (notification `absence_reported`, « Léa ne viendra pas jeudi »), une fois et pour une séance à venir ; il peut ensuite dire pourquoi, d'un geste de plus, parmi travail, études, transport, famille, autre raison. Le motif est enregistré dans `attendance.absence_reason` (migration additive), lu par le coach dans le suivi de la séance, effacé par « je viens » (PR `feat/absence-athlete`).

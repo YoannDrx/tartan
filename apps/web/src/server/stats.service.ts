@@ -1,11 +1,22 @@
 import { detailedSetInput } from "@tartan/contracts";
-import { addDays, actualSetVolumes, sessionLoad, startOfWeek, toCsv, weekTrendPct } from "@tartan/domain";
+import {
+  addDays,
+  actualSetVolumes,
+  cellStatusOf,
+  regularity,
+  type Regularity,
+  sessionLoad,
+  startOfWeek,
+  toCsv,
+  weekTrendPct,
+} from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
 import { forbidden } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireVisibleAthlete, visibleAthleteIds } from "./access";
 import { consentForAthletes } from "./consent.service";
+import { athleteAssignedWhere } from "./session-audience.service";
 
 export type WeekStat = {
   weekStart: string;
@@ -164,4 +175,48 @@ export const exportTrackingCsv = async (
       l.comment,
     ]),
   );
+};
+
+// La série de régularité (packages/domain/src/regularity.ts), sur un an de séances au plus. Sans contrôle
+// d'accès : réservé aux services qui l'ont déjà fait (l'accueil de l'athlète, athleteRegularity).
+export const regularityOf = async (athleteId: string, now: Date = new Date()): Promise<Regularity> => {
+  const today = todayIso(now);
+  const sessions = await prisma.scheduledSession.findMany({
+    where: {
+      ...(await athleteAssignedWhere(athleteId)),
+      date: { gte: toDbDate(addDays(startOfWeek(today), -7 * 52)), lte: toDbDate(addDays(startOfWeek(today), 6)) },
+    },
+    select: {
+      date: true,
+      attendance: { where: { athleteId }, select: { status: true } },
+      logs: { where: { athleteId }, select: { status: true } },
+    },
+  });
+  return regularity(
+    sessions.map((s) => {
+      const date = fromDbDate(s.date);
+      return {
+        date,
+        status: cellStatusOf(s.logs[0] ?? null, date, now),
+        excused: s.attendance[0]?.status === "absent",
+      };
+    }),
+    today,
+  );
+};
+
+// La même série, lue par le coach sur la fiche de l'athlète, ou par l'athlète lui-même.
+export const athleteRegularity = async (
+  userId: string,
+  organizationId: string,
+  athleteId: string,
+  now: Date = new Date(),
+): Promise<Regularity> => {
+  const access = await requireOrgMember(userId, organizationId, "viewTracking");
+  if (access.role === "athlete") {
+    if (access.athleteId !== athleteId) throw forbidden();
+  } else {
+    await requireVisibleAthlete(access, athleteId);
+  }
+  return regularityOf(athleteId, now);
 };

@@ -1463,6 +1463,25 @@ export const fr = {
     dismiss: "C'est parti",
   },
   today: {
+    weekLabel: "Ta semaine",
+    weekStatus: {
+      done: "séance faite",
+      partial: "séance partielle",
+      missed: "séance manquée",
+      today: "séance du jour",
+      planned: "séance prévue",
+      rest: "repos",
+    },
+    regularity: {
+      title: "Ta régularité",
+      weeks: (n: number) =>
+        n === 0 ? "Ta série commence à ta prochaine séance rendue." : `semaine${n > 1 ? "s" : ""} de suite`,
+      lap: (done: number, planned: number) =>
+        planned === 0
+          ? "Aucune séance prévue cette semaine"
+          : `${done} séance${done > 1 ? "s" : ""} rendue${done > 1 ? "s" : ""} sur ${planned} cette semaine`,
+      rule: "Une semaine compte quand chaque séance est rendue. Une absence signalée ne casse rien.",
+    },
     focusTitle: "À travailler",
     greeting: (name: string) => `Salut ${name}`,
     sessionOfDay: "Séance du jour",
@@ -1852,6 +1871,15 @@ export const fr = {
     linkedVideosEmpty: "Aucune vidéo liée à ce mouvement. Rattache-la depuis l'analyse d'une vidéo.",
   },
   athletes: {
+    fileTitle: "Fiche athlète",
+    barAttempt: (height: string, attempt: string) => `${height} m, ${attempt}`,
+    kg: (value: string) => `${value} kg`,
+    namedKg: (name: string, value: string) => `${name}, ${value} kg`,
+    injurySince: (start: string, end: string | null) => `Depuis le ${start}${end ? `, jusqu'au ${end}` : ""}`,
+    effortPrefix: "Effort ",
+    // La série de régularité : les semaines de suite où l'athlète a rendu chacune de ses séances.
+    streak: "Série de régularité",
+    streakWeeks: (n: number) => (n === 0 ? "Aucune série" : `${n} semaine${n > 1 ? "s" : ""} de suite`),
     regularityTitle: "Tes 4 dernières semaines",
     regularity: (done: number, total: number) =>
       `${done} séance${done > 1 ? "s" : ""} faite${done > 1 ? "s" : ""} sur ${total}`,

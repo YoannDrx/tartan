@@ -19,16 +19,6 @@
       "count": 1
     }
   },
-  "app/(app)/athletes/[id]/page.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 8
-    }
-  },
-  "app/(app)/aujourdhui/page.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 1
-    }
-  },
   "app/(app)/progres/page.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 3
