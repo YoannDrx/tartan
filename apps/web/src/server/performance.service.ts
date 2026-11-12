@@ -10,7 +10,7 @@ import { athleticRecordStates, performanceRule } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import type { Prisma } from "@/generated/prisma/client";
 import { fromDbDate, toDbDate } from "@/lib/dates";
-import { AppError, notFound, invalid } from "@/lib/errors";
+import { AppError, forbidden, notFound, invalid } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireOwnedRefs, requireVisibleAthlete } from "./access";
 
@@ -164,4 +164,35 @@ export const deletePerformance = async (
     await recompute(tx, organizationId, current.athleteId);
     return { athleteId: current.athleteId };
   });
+};
+
+// La carte de record : ce que l'image partagée montre, et rien d'autre. Le prénom, la discipline, la marque et la
+// date ; ni lieu, ni vent, ni aucune donnée de santé. Seul un record battu a sa carte. L'athlète lit la sienne,
+// ses coachs celles des athlètes qu'ils suivent.
+export const performanceCard = async (
+  userId: string,
+  organizationId: string,
+  athleteId: string,
+  performanceId: string,
+) => {
+  const access = await requireOrgMember(userId, organizationId, "viewTracking");
+  if (access.role === "athlete") {
+    if (access.athleteId !== athleteId) throw forbidden();
+  } else {
+    await requireVisibleAthlete(access, athleteId);
+  }
+  const [athlete, rows] = await Promise.all([
+    prisma.athlete.findFirst({ where: { id: athleteId, organizationId }, select: { firstName: true } }),
+    prisma.performance.findMany({ where: { organizationId, athleteId }, select: performanceSelect }),
+  ]);
+  const entry = performanceDtos(rows).find((row) => row.id === performanceId);
+  // La référence initiale (la première marque) n'est pas un record : seul un progrès a sa carte.
+  if (!athlete || !entry?.isPb || entry.isBaseline) throw notFound();
+  return {
+    firstName: athlete.firstName,
+    discipline: entry.discipline,
+    mark: entry.mark,
+    unit: entry.unit,
+    date: entry.date,
+  };
 };

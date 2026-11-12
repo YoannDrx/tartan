@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, lot C3 : carte de record
+
+Fait : `GET /api/v1/orgs/[orgId]/athletes/[athleteId]/performances/[performanceId]/carte` rend une image PNG 1080 × 1350 (`next/og`, polices Barlow embarquées dans `apps/web/assets/fonts`) ; `performanceCard` (`performance.service.ts`) n'en donne que le prénom, la discipline, la marque et la date, et seulement pour un record battu. Sur la page Progrès, « Partager » remet l'image au menu de partage du téléphone, ou l'enregistre sur un ordinateur (PR `feat/carte-record`).
+Vérifié : `tests/record-card.test.ts` (référence initiale sans carte, ni lieu ni vent, accès refusé à un coéquipier et à un autre espace, PNG au bon format), `tests/discipline-athlete.test.ts`, ligne de la matrice d'accès, `e2e/record-card.spec.ts` (menu de partage remplacé par un témoin qui reçoit le fichier) ; cartes et page Progrès regardées. Non vérifié : partage sur un vrai téléphone ; rendu sur Vercel (lecture des polices par `process.cwd()`, à confirmer après déploiement).
+À savoir : Satori lit le SVG comme une image : l'athlète est sérialisé à la main (`figureSvg`), sans React. La première marque d'une discipline est la référence initiale, pas un record battu : elle n'a pas de carte.
+Suite conseillée : J2.
+
 ## 2026-11-12, Claude, lot C2 : série de régularité
 
 Fait : `regularity()` dans `packages/domain` compte les semaines de suite où l'athlète a rendu chacune de ses séances ; `regularityOf` et `athleteRegularity` (`stats.service.ts`) la lisent sur un an. L'accueil de l'athlète montre un tour de piste : la part courue est la semaine en cours, le chiffre au centre la série. La fiche de l'athlète côté coach porte « Série de régularité ». Les textes gelés de ces deux pages sont passés dans `packages/i18n` (PR `feat/regularite`).

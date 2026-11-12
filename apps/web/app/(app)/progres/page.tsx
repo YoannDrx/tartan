@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { InjuryDialog } from "@/features/athletes/athlete-forms";
 import { requireAthleteSpace } from "@/features/shell/space";
 import { getMyFile } from "@/server/athlete.service";
+import { ShareRecord } from "@/features/progress/share-record";
 import { CalendarPhases } from "@/features/phases/calendar-phases";
 import { todayIso } from "@/lib/dates";
 import { addDays } from "@tartan/domain";
@@ -92,9 +93,17 @@ export default async function ProgresPage() {
                       .join(" · ")}
                   </span>
                 </span>
-                <Mark>
-                  {String(p.mark).replace(".", ",")} {p.unit}
-                </Mark>
+                <span className="flex shrink-0 flex-col items-end gap-1">
+                  <Mark>
+                    {String(p.mark).replace(".", ",")} {p.unit}
+                  </Mark>
+                  {p.isPb && !p.isBaseline ? (
+                    <ShareRecord
+                      discipline={p.discipline}
+                      href={`/api/v1/orgs/${organizationId}/athletes/${file.id}/performances/${p.id}/carte`}
+                    />
+                  ) : null}
+                </span>
               </li>
             ))}
           </Rows>
