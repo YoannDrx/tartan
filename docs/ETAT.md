@@ -126,7 +126,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 
 | N° | Tâche | Plan | Priorité |
 | --- | --- | --- | --- |
-| M1 | Comprendre l'échec des builds EAS à l'étape « Read app config » | [Android](plans/android.md) | Bloque Android |
+| M1 | Échec EAS à « Read app config » : cause trouvée et corrigée (TypeScript importé par la configuration). Reste un build de production réel à lancer | [Android](plans/android.md) | Bloque Android |
 | M2 | Maestro sur simulateur en CI, flux non conditionnels : T09 | [automatisation](tests/automatisation.md) | Avant soumission |
 | M3 | Captures Android 1080 × 1920, capture de l'analyse vidéo iOS | [captures](exploitation/captures.md) | Avant soumission |
 | M4 | Corriger le changement de compte par lien magique sur mobile, sans déconnexion | [iOS](plans/ios.md) | Avant soumission |
