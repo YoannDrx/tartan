@@ -344,7 +344,8 @@ export const SessionBuilder = ({
   const [overrideFor, setOverrideFor] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
   const [expectedVersion, setExpectedVersion] = useState(initial?.version);
-  const [dirty, setDirty] = useState(!initial);
+  // Ouvrir un formulaire vide ne crée pas une copie à reprendre au prochain passage.
+  const [dirty, setDirty] = useState(false);
   const submitting = useRef(false);
   const [saving, setSaving] = useState(false);
   const [uncertainSave, setUncertainSave] = useState(false);
