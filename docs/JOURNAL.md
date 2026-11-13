@@ -13,6 +13,11 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Claude, T24 : le planificateur dans les parcours natifs
+
+Fait : prestataire factice `src/server/ai/fake-provider.ts`, choisi par le service de proposition quand `AI_PLANNER_FAKE_PROVIDER=true`, jamais sur Vercel, et refusé en production par `assertEnvIsolation`. Flux Maestro `coach-planner` : accord, destinataires, consigne relue, proposition, relecture, brouillon créé. Le job `maestro` ouvre le planificateur dans l'espace de démonstration (offre pilote, drapeau IA) (PR `test/maestro-planificateur`).
+Vérifié : `tests/ai-proposal.test.ts` (la proposition factice passe la validation réelle et n'écrit aucune séance), `tests/env-isolation.test.ts`.
+
 ## 2026-11-13, Claude, M2 vert, et ce qui reste du plan
 
 Fait : le job `maestro` passe (PR `test/maestro-ci`, fusionnée) : dix flux natifs sur simulateur iOS à chaque PR mobile. Les causes trouvées en chemin, à garder en tête : Xcode 26 exigé par Expo SDK 55 ; signature ad hoc obligatoire (sinon pas de trousseau, donc pas de session) ; clavier d'adresse d'iOS que Maestro ne ferme pas (toucher le titre) ; premières lettres perdues si l'on tape pendant l'ouverture du clavier (`waitForAnimationToEnd`) ; fuseau Europe/Paris, sinon la séance du jour disparaît autour de minuit ; serveur à chauffer avant le premier flux ; build en arm64 seul (15 minutes au lieu de 48).

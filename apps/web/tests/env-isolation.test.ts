@@ -25,6 +25,7 @@ describe("garde d'environnement", () => {
     const base = { VERCEL_ENV: "production", DATABASE_URL: url, STRIPE_SECRET_KEY: "sk_live_abc" };
     expect(() => assertEnvIsolation(base)).not.toThrow();
     expect(() => assertEnvIsolation({ ...base, E2E_DISABLE_RATE_LIMIT: "true" })).toThrow(/E2E_DISABLE_RATE_LIMIT/);
+    expect(() => assertEnvIsolation({ ...base, AI_PLANNER_FAKE_PROVIDER: "true" })).toThrow(/AI_PLANNER_FAKE_PROVIDER/);
     expect(() => assertEnvIsolation({ ...base, VIDEO_DEV_MP4_URL: "https://x" })).toThrow(/VIDEO_DEV_MP4_URL/);
   });
   it("le message d'erreur ne contient jamais le secret", () => {

@@ -29,6 +29,10 @@ Conservation : transcription 24 h, proposition abandonnée 7 jours, 24 h après 
 
 `gpt-4.1-mini` pour la planification, `gpt-transcribe` pour la dictée (`AI_PLANNER_MODEL`, `AI_TRANSCRIPTION_MODEL`). Depuis le 12 novembre 2026, `gpt-transcribe` remplace `gpt-4o-mini-transcribe`, arrêté par OpenAI le 26 février 2027. Il reçoit la langue dans `languages[]`, le vocabulaire dans `keywords[]` et un contexte court dans `prompt`. Prix annoncé : 0,0045 $ la minute, contre 0,003 $ pour l'ancien. Si `AI_TRANSCRIPTION_MODEL` est défini sur Vercel avec l'ancien nom, il faut le retirer ou le mettre à jour. Non éprouvé sur une vraie dictée : la clé OpenAI de production reste à remplacer (F6).
 
+## Essais de l'app native
+
+Le job `maestro` de la CI mobile joue le planificateur de l'app contre un serveur local : `AI_PLANNER_FAKE_PROVIDER=true` y remplace OpenAI par `src/server/ai/fake-provider.ts`, qui propose une séance à partir du contexte reçu. Ce réglage est sans effet sur Vercel et refusé en production par `assertEnvIsolation`.
+
 ## Déploiement
 
 Migrer avant de déployer le code : le cron lit les tables IA même coupées. En retour arrière, conserver les tables.

@@ -49,6 +49,7 @@ import {
   recheckPlannerBindings,
   type PlannerBindings,
 } from "./context";
+import { fakePlannerEnabled, fakePlannerProvider } from "./fake-provider";
 import { openAiPlannerProvider, type PlannerProvider } from "./provider";
 import {
   completePlannerOperation,
@@ -193,7 +194,8 @@ async function executeProposal(
     await assertPlannerTargets(prisma, access, selection);
     const messages = [...messagesSchema.parse(row.messages), ...(row.pendingMessage ? [row.pendingMessage] : [])];
     const context = providerContextFor(selection, bindings, messages);
-    const raw = await (execution.provider ?? openAiPlannerProvider()).interpret(context);
+    const provider = execution.provider ?? (fakePlannerEnabled() ? fakePlannerProvider() : openAiPlannerProvider());
+    const raw = await provider.interpret(context);
     const checked = validatePlannerInterpretation(raw, {
       period: selection.period,
       reviewedInstructions: context.instructions,

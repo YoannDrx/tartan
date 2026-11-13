@@ -301,6 +301,7 @@ export function NativePlanner({
             onPress={() => setContextReady(false)}
           />
           <Field
+            testID="planner-instructions"
             label={t.instructions}
             hint={t.instructionsHint}
             multiline
