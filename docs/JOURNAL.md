@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+
+## 2026-11-13, Claude, e-mails dans le mélange Tartan
+
+Fait : à la demande du fondateur, le gabarit commun (`apps/web/emails/layout.tsx`) passe à la piste en fond, aux deux lignes blanches, à une carte encre au texte blanc, à l'action et aux liens citron, et à une ligne blanche d'arrivée avant le pied de page sur la piste. Encadré `Highlight` (encre relevée, bordure citron) pour les échéances ; liens de désinscription en `FooterLink`, y compris le repli des notifications (PR `feat/emails-stade`).
+Vérifié : les 29 e-mails du catalogue rendus et regardés à 600 et 375 px. Non vérifié : rendu dans Gmail, Outlook et Apple Mail réels (F1).
+
 ## 2026-11-13, Claude, l'agent peut agir sur les comptes du fondateur
 
 Fait : à la demande écrite du fondateur, `AGENTS.md` autorise l'agent à créer des ressources et à poser des secrets sur Vercel, GitHub, EAS et Neon, sans jamais les afficher (PR `docs/regles-agent`). Restent au fondateur : paiements et offres payantes, engagements légaux, ouverture des inscriptions et du classement, essais sur ses téléphones. Le dépôt public, la garde `assertEnvIsolation` et l'interdiction d'essayer sur la production avec des comptes de passage ne changent pas.

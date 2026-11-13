@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { Link } from "@react-email/components";
 import { createElement, Fragment } from "react";
 import { notificationCategory, renderNotification, type NotificationType } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { NotificationEmail } from "@email/auth";
+import { FooterLink } from "@email/layout";
 import { unsubscribePageUrl, unsubscribeUrl } from "./email-preferences.service";
 import type { Notification, NotificationDelivery } from "@/generated/prisma/client";
 import { env } from "@/lib/env";
@@ -171,7 +171,10 @@ const send = async (delivery: Delivery): Promise<DeliveryResult | { state: "skip
             Fragment,
             null,
             `${m.email.fallbackFooter} `,
-            createElement(Link, { href: unsubscribePageUrl(n.userId, "notifications") }, m.email.unsubscribeLink),
+            createElement(FooterLink, {
+              href: unsubscribePageUrl(n.userId, "notifications"),
+              children: m.email.unsubscribeLink,
+            }),
           ),
           url: `${env().NEXT_PUBLIC_APP_URL}${webLink(payload.link, payload.organizationId) ?? "/accueil"}`,
         }),

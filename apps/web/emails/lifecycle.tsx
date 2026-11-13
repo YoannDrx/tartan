@@ -1,6 +1,5 @@
-import { Link } from "@react-email/components";
 import { m } from "@tartan/i18n";
-import { Layout, Paragraph, PrimaryLink, Title } from "./layout";
+import { FooterLink, Layout, Paragraph, PrimaryLink, Title } from "./layout";
 
 // Un conseil : un titre, ce qu'il manque, un seul geste. Le pied rappelle pourquoi il arrive et comment l'arrêter.
 export const TipEmail = ({
@@ -25,7 +24,7 @@ export const TipEmail = ({
     athlete="tip"
     footerNote={
       <>
-        {m.email.activation.footer(space)} <Link href={unsubscribe}>{m.email.unsubscribeLink}</Link>
+        {m.email.activation.footer(space)} <FooterLink href={unsubscribe}>{m.email.unsubscribeLink}</FooterLink>
       </>
     }
   >
@@ -76,7 +75,7 @@ export const InvitationReminderEmail = ({
     preview={title}
     footerNote={
       <>
-        {m.email.invitationReminder.footer} <Link href={optOut}>{m.email.invitationReminder.optOut}</Link>
+        {m.email.invitationReminder.footer} <FooterLink href={optOut}>{m.email.invitationReminder.optOut}</FooterLink>
       </>
     }
   >
