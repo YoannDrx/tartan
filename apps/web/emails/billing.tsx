@@ -1,7 +1,5 @@
 import { m } from "@tartan/i18n";
-import { Section, Text } from "@react-email/components";
-import { tokens } from "@tartan/design-tokens";
-import { Layout, Paragraph, PrimaryLink, Title } from "./layout";
+import { Highlight, Layout, Paragraph, PrimaryLink, Title } from "./layout";
 
 export const PurgeNoticeEmail = ({
   subject,
@@ -117,9 +115,7 @@ export const RenewalNoticeEmail = ({
   <Layout preview={title}>
     <Title>{title}</Title>
     <Paragraph>{body}</Paragraph>
-    <Section style={{ border: `2px solid ${tokens.band.background}`, borderRadius: 12, margin: "0 0 20px" }}>
-      <Text style={{ fontSize: 16, fontWeight: 700, margin: 0, padding: "14px 16px" }}>{deadline}</Text>
-    </Section>
+    <Highlight>{deadline}</Highlight>
     <PrimaryLink href={url}>{cta}</PrimaryLink>
   </Layout>
 );
