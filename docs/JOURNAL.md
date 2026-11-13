@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, F1 : isolation des rebonds et instrumentation
+
+Codé sur `fix/operational-delivery`, basée sur les sauvegardes privées : le webhook Resend vérifie l'expéditeur exact, ignore les autres applications et accepte une liste explicite d'anciens expéditeurs pour les événements retardés. PostgreSQL explicite `verify-full` pour conserver le contrôle du certificat et du nom d'hôte lors de l'évolution de node-postgres. Sentry : hooks de tracing ESM désactivés puisque le tracing est déjà coupé ; capture d'erreurs conservée.
+Vérifié : 25 tests ciblés réussis ; types/lint/design verts (quatre avertissements existants). Matrice HTTP sur build de production : un parcours réussi, un ignoré car doublon mobile. Suite unitaire complète rejouée après stabilisation : 1 900 web, 257 domaine, 243 mobile, 247 jeu et 90 mascotte réussis. Une première exécution chevauchait l’ajout de la compatibilité des anciens expéditeurs et avait chargé des versions différentes du handler et du test ; reprise ciblée puis complète verte. Pas de nouvelle recette exhaustive des écrans sur ce lot technique.
+Exploitation : domaine d'envoi Tartan vérifié chez Resend (DKIM et SPF), trois enregistrements ajoutés chez OVH sur autorisation du fondateur. Clé dédiée à l’envoi créée après autorisation et saisie du code par le fondateur ; clé, expéditeur et adresse précédente installés dans Vercel production. Jeton Sentry de compilation `org:ci` autorisé, créé et posé sur Vercel avec organisation/projet. Effet au prochain déploiement ; envoi réel et lecture des sources encore à prouver. Paire VAPID Preview régénérée séparément, redéploiement lancé ; production inchangée. Aucune donnée réelle ni secret dans le dépôt.
+Fusions : autorisation explicite reçue pour les PR 117–120. PR 116 déjà fusionnée entre-temps : ses e-mails et son journal sont conservés dans les quatre branches, avec relance de CI. PR 121 vidéo séparée, aucune autorisation de fusion pour celle-ci. Inscriptions fermées.
+
 ## 2026-11-13, Codex, F1 : sauvegarde privée obligatoire et main protégé
 
 Fait : protection de `main` activée puis relue via API (PR, contrôle `quality`, branche à jour, discussions résolues, pas de force-push ni suppression, administrateurs inclus). Zéro approbateur imposé par GitHub pour éviter l'auto-approbation impossible du compte unique ; l'accord du fondateur avant fusion reste la règle.
