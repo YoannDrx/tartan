@@ -31,7 +31,8 @@ env:
 # Le clavier s'ouvre encore : taper trop tôt perd les premières lettres.
 - waitForAnimationToEnd
 - inputText: "SUPPRIMER"
-- hideKeyboard
+# Le clavier en majuscules d'iOS ne se ferme pas par `hideKeyboard` : on touche le titre de la feuille.
+- tapOn: "Supprimer ton compte"
 - tapOn:
     id: delete-confirm
 # Le compte n'existe plus : l'app revient à la connexion.
