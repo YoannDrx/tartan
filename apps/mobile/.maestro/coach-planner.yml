@@ -16,14 +16,23 @@ env:
     timeout: 15000
 - tapOn:
     id: ai-consent-accept
+# L'écran de sélection est long : le groupe et le bouton sont sous le bas de l'écran.
+- scrollUntilVisible:
+    element: "Hauteur Démo.*"
 - tapOn: "Hauteur Démo.*"
+- scrollUntilVisible:
+    element: "Continuer avec ces destinataires"
 - tapOn: "Continuer avec ces destinataires"
 - tapOn:
     id: planner-instructions
 - waitForAnimationToEnd
 - inputText: "Trois series de huit, deux minutes de repos"
 - tapOn: "Planificateur IA.*"
+- scrollUntilVisible:
+    element: "J.ai relu la consigne et ses valeurs"
 - tapOn: "J.ai relu la consigne et ses valeurs"
+- scrollUntilVisible:
+    element: "Préparer une proposition"
 - tapOn: "Préparer une proposition"
 - extendedWaitUntil:
     visible: "Relire et ajuster les brouillons"

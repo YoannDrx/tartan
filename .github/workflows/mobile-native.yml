@@ -134,7 +134,7 @@ jobs:
           done
       - name: Planificateur ouvert dans l'espace de démonstration
         run: |
-          psql "$DATABASE_URL" -c "update organizations set plan = 'pilot', ai_planner_enabled = true where owner_id = (select id from \"user\" where email = 'coach@demo.tartan.coach')"
+          psql "$DATABASE_URL" -c "update organizations set plan = 'pilot', ai_planner_enabled = true, progression_enabled = true where owner_id = (select id from \"user\" where email = 'coach@demo.tartan.coach')"
       - name: Compte sans date de naissance (age-gate)
         run: |
           curl -sf -X POST http://localhost:3000/api/auth/sign-up/email \
