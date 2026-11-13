@@ -1,0 +1,19 @@
+# T24, capture : depuis ses vidéos, le coach ouvre l'écran de capture. Le simulateur n'a pas de caméra : seul
+# l'import est proposé, et le bouton « Filmer » n'apparaît pas.
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- tapOn: "Vidéos.*"
+- tapOn:
+    id: open-capture
+- extendedWaitUntil:
+    visible:
+      id: capture-import
+    timeout: 15000
+- assertNotVisible:
+    id: capture-film
