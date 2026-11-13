@@ -190,6 +190,8 @@ jobs:
             -e APP_ID=coach.tartan.app.dev \
             -e COACH_EMAIL=coach@demo.tartan.coach \
             -e ATHLETE_EMAIL=un@demo.tartan.coach \
+            -e ATHLETE2_EMAIL=deux@demo.tartan.coach \
+            -e API_URL=http://localhost:3000 \
             -e NO_AGE_EMAIL="$NO_AGE_EMAIL" \
             -e PASSWORD="$DEMO_PASSWORD"
       - name: Journaux de l'app

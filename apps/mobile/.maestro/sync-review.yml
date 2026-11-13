@@ -1,0 +1,33 @@
+# T24, synchronisation : une saisie faite sur une séance que le coach vient de modifier est refusée par le serveur
+# (conflit de version). Elle n'est pas perdue : l'app propose « Vérifier mes saisies ». Le conflit est fabriqué par
+# scripts/bump-session.js. Ce flux passe en dernier, avec un autre athlète que la validation simple.
+appId: ${APP_ID}
+env:
+  EMAIL: ${ATHLETE2_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: session-hero
+    timeout: 30000
+- runScript:
+    file: scripts/bump-session.js
+    env:
+      API_URL: ${API_URL}
+      COACH_EMAIL: ${COACH_EMAIL}
+      PASSWORD: ${PASSWORD}
+- tapOn:
+    id: validate-done
+- extendedWaitUntil:
+    visible:
+      id: validation-finish
+    timeout: 5000
+- tapOn:
+    id: validation-finish
+- extendedWaitUntil:
+    visible: "Vérifier mes saisies"
+    timeout: 30000
+- tapOn: "Vérifier mes saisies"
+- extendedWaitUntil:
+    visible: "Saisies à vérifier"
+    timeout: 15000
