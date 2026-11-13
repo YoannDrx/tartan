@@ -5,6 +5,9 @@ env:
   EMAIL: ${COACH_EMAIL}
 ---
 - runFlow: flows/_sign-in.yml
+- tapOn:
+    text: "Plus tard|Not Now"
+    optional: true
 - extendedWaitUntil:
     visible: "Suivi du groupe"
     timeout: 30000
