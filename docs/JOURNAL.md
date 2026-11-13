@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Claude, gestes sur les comptes : sauvegarde éprouvée, M1, variable Apple
+
+Fait : copie de production envoyée dans le store Vercel Blob privé (créé par le fondateur), désormais relue depuis le store et comparée par empreinte après chaque envoi ; `APPLE_APP_BUNDLE_IDENTIFIER=coach.tartan.app` posé sur Vercel (production) ; `AI_TRANSCRIPTION_MODEL` absent, donc `gpt-transcribe` ; premier build EAS Android de production réussi (1.1.0, build 3) (PR `feat/sauvegarde-relecture`).
+À savoir : relier un second store Blob au projet `tartan` écraserait `BLOB_READ_WRITE_TOKEN` des images ; le store des sauvegardes n'est relié à aucun projet. Un projet Vercel `tartan-sauvegardes` créé par erreur a été supprimé aussitôt.
+Reste : restauration chronométrée depuis le store (le jeton n'existe qu'en secret GitHub), retrait des anciens artefacts, envoi sur Google Play.
+
 ## 2026-11-13, Claude, l'agent peut agir sur les comptes du fondateur
 
 Fait : à la demande écrite du fondateur, `AGENTS.md` autorise l'agent à créer des ressources et à poser des secrets sur Vercel, GitHub, EAS et Neon, sans jamais les afficher (PR `docs/regles-agent`). Restent au fondateur : paiements et offres payantes, engagements légaux, ouverture des inscriptions et du classement, essais sur ses téléphones. Le dépôt public, la garde `assertEnvIsolation` et l'interdiction d'essayer sur la production avec des comptes de passage ne changent pas.
