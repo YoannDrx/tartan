@@ -23,6 +23,10 @@ env:
 - scrollUntilVisible:
     element: "Continuer avec ces destinataires"
 - tapOn: "Continuer avec ces destinataires"
+- scrollUntilVisible:
+    element:
+      id: planner-instructions
+    centerElement: true
 - tapOn:
     id: planner-instructions
 - waitForAnimationToEnd
@@ -40,9 +44,19 @@ env:
     timeout: 30000
 - tapOn: "Relire et ajuster les brouillons"
 - scrollUntilVisible:
+    element: "Vérifier les charges individuelles"
+    centerElement: true
+- tapOn: "Vérifier les charges individuelles"
+- extendedWaitUntil:
+    visible: "Page jusqu.à l.athlète.*"
+    timeout: 30000
+- scrollUntilVisible:
     element: "J.ai vérifié les dates.*"
 - tapOn: "J.ai vérifié les dates.*"
+- assertVisible:
+    text: "Créer 1 brouillon"
+    enabled: true
 - tapOn: "Créer 1 brouillon"
 - extendedWaitUntil:
-    visible: "Préparer une nouvelle proposition"
+    visible: "Les brouillons sont créés.*"
     timeout: 30000

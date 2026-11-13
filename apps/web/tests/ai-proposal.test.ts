@@ -866,6 +866,55 @@ it("le prestataire factice des parcours natifs n'existe jamais sur Vercel, et sa
   expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
 });
 
+it("le parcours natif factice attend la création puis réutilise exactement la fiche privée", async () => {
+  const a = await setup();
+  const movement = "Mouvement natif de recette 123456";
+  const input = { ...a.input, text: `${movement}, trois séries de huit, repos 90 secondes` };
+  const dependencies = { provider: fakePlannerProvider(), clock };
+  const pending = await createPlannerProposal(a.owner.userId, a.organizationId, input, dependencies);
+  expect(pending.state).toBe("clarification");
+  const linked = await resolvePlannerExercise(
+    a.owner.userId,
+    a.organizationId,
+    pending.id,
+    {
+      operationId: randomUUID(),
+      expectedVersion: pending.version,
+      questionId: "native-exercise",
+      requestedName: movement,
+      choice: {
+        kind: "create",
+        reviewed: true,
+        exercise: {
+          name: movement,
+          category: "strength",
+          tags: [],
+          cues: ["Appuis stables"],
+          defaultPrescription: {},
+          strengthLoadKind: "bodyweight",
+        },
+      },
+    },
+    now,
+  );
+  const resumed = await clarifyPlannerProposal(
+    a.owner.userId,
+    a.organizationId,
+    pending.id,
+    {
+      operationId: randomUUID(),
+      expectedVersion: linked.version,
+      text: "Trois séries de huit, repos 90 secondes.",
+      reviewed: true,
+    },
+    dependencies,
+  );
+  expect(resumed.state).toBe("proposal");
+  const draft = await preparePlannerDrafts(a.owner.userId, a.organizationId, pending.id, resumed.version, now);
+  expect(JSON.stringify(draft.sessions)).toContain(linked.exerciseResolutions![0]!.exerciseId);
+  expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
+});
+
 it("rattache une création privée une seule fois et reprend la proposition sans perdre ses réponses", async () => {
   const a = await setup();
   const pending = await a.create(

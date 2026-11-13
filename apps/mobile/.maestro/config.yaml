@@ -20,6 +20,7 @@ executionOrder:
     - coach-builder-circuit
     - coach-capture
     - coach-planner
+    - coach-planner-resolution
     - coach-exercise-guide
     - athlete-circuit-guide
     - athlete-video-capture
