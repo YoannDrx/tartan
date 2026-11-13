@@ -471,6 +471,8 @@ test("exercice inconnu : création privée rejouée, reprise et circuit relu ava
       if (resolutions === 1) await route.abort("failed");
       else await route.fulfill({ response });
     });
+    const browserErrors: string[] = [];
+    page.on("pageerror", (error) => browserErrors.push(error.message));
     await page.goto(`/planificateur?proposition=${id}`);
     await page
       .getByLabel(t.clarificationAnswer, { exact: true })
@@ -500,6 +502,7 @@ test("exercice inconnu : création privée rejouée, reprise et circuit relu ava
     await expect(page.getByLabel(t.clarificationAnswer, { exact: true })).toHaveValue(
       "Conserve mes précisions : deux tours, 60 secondes entre tours.",
     );
+    expect(browserErrors).toEqual([]);
     expect(
       (
         await a.sql.query(

@@ -573,7 +573,9 @@ export function WebPlanner({
                 <p className="whitespace-pre-wrap break-words">{displayText(proposal.pendingText)}</p>
               </>
             ) : null}
-            <p className="text-soft">{t.expiry(new Date(proposal.expiresAt).toLocaleString("fr-FR"))}</p>
+            <p className="text-soft">
+              {t.expiry(new Date(proposal.expiresAt).toLocaleString("fr-FR", { timeZone: usage.timeZone }))}
+            </p>
           </section>
           {proposal.state === "processing" ? <p role="status">{t.processing}</p> : null}
           {proposal.state === "failed" ? <p role="alert">{t.proposalFailed}</p> : null}

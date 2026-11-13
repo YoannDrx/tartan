@@ -13,11 +13,25 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+
 ## 2026-11-13, Codex, F9 : guides et exécution native des circuits
 
 Codé sur `feat/native-completion`, depuis F5 : guides dans la bibliothèque, fiche et séance, recherche par famille ; cache des textes et préchargement des illustrations disponibles des sept jours à venir. Aucun visuel en préparation n’est chargé ni déclaré validé. Récupérations explicites avec minuteur, tours visibles, saisies distinctes par occurrence, repos final explicite respecté. Séries locales redimensionnées après modification, récupérations exclues de la saisie détaillée, accès refusé par le serveur masqué même avec un cache.
 Vérifié : types/lint/design, 1 945 tests web, 289 domaine, 249 mobile après ajout du dernier test de cache (247 jeu, 90 mascotte). Deux parcours Maestro locaux réussis sur iPhone 16e/iOS 26.3, 390 px : synonyme « back squat » vers le guide, puis circuit A/repos/B/repos de tour/A/repos/B et guide athlète. Captures relues. Binaire simulateur existant avec nouveau bundle Hermes exporté ; ce n’est pas un nouveau build signé. Le premier essai a été arrêté par la proposition iOS d’enregistrer le mot de passe : refus facultatif ajouté, parcours complet rejoué. Tests locaux sur base jetable dédiée, aucun compte de production.
 Non vérifié : matrice native complète des tailles/thèmes, téléphone physique, SVG technique réel (encore absent), stores. Suite web complète non rejouée : aucun parcours web modifié ; CI et compilation native fraîche attendues. F9 reste partiel : constructeur natif, modes IA et collaboration vidéo à porter.
+
+## 2026-11-13, Codex, F6 : intégration du correctif de recette F4
+
+Reprise de `feat/collaborative-video` pour intégrer `db52511` sans changer le comportement applicatif ; journaux conservés. États F0/F1/F6 réconciliés avec les preuves récentes. CI à rejouer sur cette fusion avant de fusionner la PR 121 déjà autorisée.
+
+## 2026-11-13, Codex, F4 : stabilisation de la recette native du suivi
+
+CI qualité verte sur `427793a`, Android compilé ; douze parcours Maestro réussis, suivi coach en échec. La trace montre la grille visée à y=320 puis déplacée à y=497 par l'arrivée des alertes, sans navigation. Le test attend désormais le titre des alertes présentes dans la graine et la fin de leur animation avant de toucher la séance ; les assertions de l'appel restent identiques. Aucun changement applicatif. Rejeu natif requis avant fusion ; accord du fondateur déjà reçu, aucune fusion pendant cet échec.
+## 2026-11-13, Codex, F5 : préserver la saisie pendant l’hydratation
+
+Corrigé : la date d’expiration utilise explicitement le fuseau de l’espace. En CI, le serveur UTC et le navigateur Paris produisaient deux textes différents ; React reconstruisait le formulaire et perdait la précision saisie avant la fin de l’hydratation. Les traces des deux parcours en échec établissent cette cause.
+Vérifié : serveur de recette désormais forcé en UTC ; huit parcours IA simulés réussis, dont création/reprise avec contrôle des erreurs navigateur et conservation du texte. Types, lint (quatre avertissements existants), 1 945 tests web, 284 domaine, 243 mobile et design vérifiés sous Node 22/pnpm 10. Aucun changement de modèle ni nouvelle qualification réelle dans ce correctif.
+Suite : CI de la PR 124, qualification réelle toujours insuffisante à 67/80 ; dictées et relecture humaines attendues.
 
 ## 2026-11-13, Codex, F5 : vérification intégrée et PR en brouillon
 
@@ -28,6 +42,13 @@ F5 reste en brouillon : seuil de 95 % non atteint, catalogue et dictées humaine
 
 Éprouvé le 13 novembre sur serveur local isolé, commit `937b130`, modèle configuré `gpt-4.1-mini` : exercice inconnu → question nommée → création privée relue → reprise → brouillon → publication séparée → lecture athlète. Prescription conservée : trois séries de cinq, repos 60 s, aucune charge. Aucun résultat prestataire ni proposition injecté ; seules les données de comptes fictifs et leur vérification d’e-mail sont préparées. Capture de l’athlète relue ; axe sans violation. Un premier essai avait une assertion erronée sur le nom du champ `rest_s` ; correction et rejeu complet réussis, 1/1 en 45 s build compris. Ce n’est ni une dictée humaine ni une recette sur téléphone.
 Corpus réel sur cette version : 67/80, aucune erreur critique acceptée selon le correcteur, seuil toujours non atteint. Ajout suivant : refus d’un circuit dont les tours explicites ont disparu, avec une reprise technique bornée. Contrôles d’intégration et PR F5 en préparation. Fusion de la branche F3 intégrée ; journaux conservés et deux lignes périmées du tableau fondateur corrigées (expéditeur et webhook Resend).
+
+## 2026-11-13, Codex, F3 — relecture humaine et annotations locales
+
+Le fondateur se charge de la relecture technique des 150 textes ; il ne les a pas encore approuvés. Générateur reproductible `exercise:review` : document autonome, recherche/famille/état, remarques par fiche, conservation locale et export JSON avec empreintes du catalogue et de chaque fiche. Un contenu modifié revient à « À relire » sans perdre les remarques ; stockage corrompu préservé et erreur annoncée. Aucun statut saisi ne modifie l’application, aucun visuel n’est validé par cette relecture.
+Vérifié : parcours local navigateur, 150 fiches, persistance après rechargement, filtres, export, avis périmé et stockage illisible ; neuf combinaisons thème/taille, mouvement réduit, zéro violation axe ni débordement. Premier passage : titre de niveau manquant corrigé puis recette entièrement rejouée. Aucun écran applicatif modifié ; recette des guides applicatifs déjà consignée ci-dessous. Types, lint (quatre avertissements hérités), design et suites complètes réussis sous Node 22/pnpm 10 : 1 920 tests web, 270 domaine, 243 mobile, 247 jeu et 90 mascotte. La suite E2E applicative complète n’est pas rejouée pour cet outil autonome sans changement du produit.
+Android : D-U-N-S déclaré « à obtenir » par le fondateur ; recherche officielle en attente de sa connexion Apple. Aucun numéro supposé, compte Play non créé.
+Suite : recevoir la relecture, corriger les fiches puis produire et faire valider les illustrations séparément. Les fichiers et exports nominatifs restent dans `.local`, ignoré par Git.
 
 ## 2026-11-13, Codex, F3 — régression navigateur du catalogue
 
@@ -60,6 +81,7 @@ Vérifié : six parcours navigateur F5 avec prestataire simulé ; création apr�
 Exploitation : PR 118 puis 122 fusionnées sur autorisation ; production `88d76e2` vérifiée, webhook Resend activé après le filtre. Les accès Mux Preview autorisés sont installés seulement en Preview. Une première copie du secret de webhook était masquée : corrigée depuis le prestataire ; les événements ont ensuite été rejoués et le premier asset est devenu disponible. Deuxième upload, lecture effective, annotation coach, réponse athlète, partage et révocation éprouvés sur un clip synthétique. Refus inter-athlètes et inter-espaces vérifiés. Fichier temporaire des secrets Mux supprimé ; aucun secret dans Git.
 Limites : lecture signée déjà délivrée valable jusqu'à une heure ; aucun téléphone physique, réseau dégradé, suppression Mux ni paiement réel éprouvé. Les inscriptions et le classement restent fermés. Ne pas relancer la graine Preview : le fichier de mot de passe local serait renouvelé alors que les comptes déjà présents sont ignorés.
 Suite : terminer F5, relever ses limites sans modifier les attendus figés ; intégrer 119–121 après CI verte, puis poursuivre illustrations/relecture coach, recette web et native.
+
 
 ## 2026-11-13, Codex, F3 : catalogue éditorial et diffusion des guides
 

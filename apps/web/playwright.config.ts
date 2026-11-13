@@ -43,6 +43,8 @@ export default defineConfig({
           reuseExistingServer: !process.env.CI,
           timeout: 300_000,
           env: {
+            // Comme en CI/Vercel : le rendu serveur ne partage pas le fuseau du navigateur.
+            TZ: "UTC",
             TARTAN_E2E_BUILD: process.env.E2E_PROD ? "true" : "false",
             E2E_DISABLE_RATE_LIMIT: "true",
             E2E_DISABLE_ADMIN_STEP_UP: "true",
