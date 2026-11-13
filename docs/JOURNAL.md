@@ -5,11 +5,6 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 Modèle :
 
 ```text
-## 2026-11-13, Codex, F3 — régression navigateur du catalogue
-
-Vérifié sous Node 22/pnpm 10 : suite web complète 223 réussis, 20 ignorés, un délai dépassé sur la première connexion à froid ; parcours d’absence repris seul avec le seuil original, réussi. Total : 224 parcours ordinaires distincts réussis, puis quatre parcours IA dédiés avec prestataire simulé. Les deux parcours de guides vérifient également les trois thèmes aux largeurs 390/768/1440, axe et mouvement réduit. Types, lint (quatre avertissements préexistants), tests des paquets et design restent verts sur le code F3.
-Limites : les 150 fiches restent à faire valider par un coach compétent, les illustrations ne sont pas produites. Aucune approbation technique humaine n’est déduite des tests. PR préparée en brouillon ; aucune fusion F3 autorisée à ce stade.
-
 ## AAAA-MM-JJ, agent, sujet
 Fait : … (PR)
 Vérifié : … / Non vérifié : …
@@ -17,6 +12,18 @@ En cours ou abandonné : branche, raison
 À savoir : piège découvert, décision prise
 Suite conseillée : numéro de tâche
 ```
+
+## 2026-11-13, Codex, F3 — relecture humaine et annotations locales
+
+Le fondateur se charge de la relecture technique des 150 textes ; il ne les a pas encore approuvés. Générateur reproductible `exercise:review` : document autonome, recherche/famille/état, remarques par fiche, conservation locale et export JSON avec empreintes du catalogue et de chaque fiche. Un contenu modifié revient à « À relire » sans perdre les remarques ; stockage corrompu préservé et erreur annoncée. Aucun statut saisi ne modifie l’application, aucun visuel n’est validé par cette relecture.
+Vérifié : parcours local navigateur, 150 fiches, persistance après rechargement, filtres, export, avis périmé et stockage illisible ; neuf combinaisons thème/taille, mouvement réduit, zéro violation axe ni débordement. Premier passage : titre de niveau manquant corrigé puis recette entièrement rejouée. Aucun écran applicatif modifié ; recette des guides applicatifs déjà consignée ci-dessous. Types, lint (quatre avertissements hérités), design et suites complètes réussis sous Node 22/pnpm 10 : 1 920 tests web, 270 domaine, 243 mobile, 247 jeu et 90 mascotte. La suite E2E applicative complète n’est pas rejouée pour cet outil autonome sans changement du produit.
+Android : D-U-N-S déclaré « à obtenir » par le fondateur ; recherche officielle en attente de sa connexion Apple. Aucun numéro supposé, compte Play non créé.
+Suite : recevoir la relecture, corriger les fiches puis produire et faire valider les illustrations séparément. Les fichiers et exports nominatifs restent dans `.local`, ignoré par Git.
+
+## 2026-11-13, Codex, F3 — régression navigateur du catalogue
+
+Vérifié sous Node 22/pnpm 10 : suite web complète 223 réussis, 20 ignorés, un délai dépassé sur la première connexion à froid ; parcours d’absence repris seul avec le seuil original, réussi. Total : 224 parcours ordinaires distincts réussis, puis quatre parcours IA dédiés avec prestataire simulé. Les deux parcours de guides vérifient également les trois thèmes aux largeurs 390/768/1440, axe et mouvement réduit. Types, lint (quatre avertissements préexistants), tests des paquets et design restent verts sur le code F3.
+Limites : les 150 fiches restent à faire valider par un coach compétent, les illustrations ne sont pas produites. Aucune approbation technique humaine n’est déduite des tests. PR préparée en brouillon ; aucune fusion F3 autorisée à ce stade.
 
 ## 2026-11-13, Codex, F3 : catalogue éditorial et diffusion des guides
 
