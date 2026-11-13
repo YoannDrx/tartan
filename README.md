@@ -8,17 +8,19 @@ Produit : [PRODUCT.md](PRODUCT.md). Identité : [DESIGN.md](DESIGN.md). Règles 
 
 ## Démarrer en local
 
-Prérequis : Node 22, Corepack, Postgres 17 (`brew install postgresql@17`).
+Prérequis : Node indiqué par `.nvmrc`, Corepack, Postgres 17 (`brew install postgresql@17`).
 
 ```bash
 corepack enable
-pnpm install
+corepack pnpm install --frozen-lockfile
 cp apps/web/.env.example apps/web/.env   # puis renseigner BETTER_AUTH_SECRET
 pnpm db:start
 pnpm db:migrate
 DEMO_PASSWORD=choisir-un-mot-de-passe pnpm db:seed
 pnpm dev
 ```
+
+Le workspace fixe aussi la version Node utilisée par les scripts et vérifie la version exacte de pnpm de `package.json`. Les scripts racine passent par Corepack, y compris leurs sous-commandes. Vérifier `node -v`, `corepack pnpm -v` et `corepack pnpm exec node -v` avant la recette.
 
 Sans clé Resend, les liens de connexion s'affichent dans le terminal. Sans clé Mux, l'envoi vidéo est désactivé proprement.
 

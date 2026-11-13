@@ -1,6 +1,6 @@
 # Tester Tartan
 
-Volume actuel : environ 700 tests serveur, 240 de domaine, 190 mobile, 80 parcours Playwright (multipliés par projet), 8 parcours Maestro. Les comptes sont dans [comptes.md](comptes.md), les tests à écrire dans [automatisation.md](automatisation.md).
+Les volumes et résultats datés vivent dans [ETAT.md](../ETAT.md), avec le commit, le runtime et les limites de preuve ; ils ne sont pas une garantie de couverture exhaustive. Les comptes sont dans [comptes.md](comptes.md), les tests à écrire dans [automatisation.md](automatisation.md).
 
 ## Les niveaux
 
@@ -39,14 +39,14 @@ Volume actuel : environ 700 tests serveur, 240 de domaine, 190 mobile, 80 parcou
 | Workflow | Quand | Contenu |
 | --- | --- | --- |
 | `ci.yml` | PR, push sur `main` | Lint, types, tests, design, Playwright sur build de production, preuve vidéo, planificateur simulé |
-| `mobile-native.yml` | PR mobile, lundi, manuel | `expo-doctor`, prebuild, build Android Release, EAS |
+| `mobile-native.yml`  | PR mobile, lundi, manuel | `expo-doctor`, prebuild, build Android Release, Maestro sur simulateur iOS, EAS selon le déclencheur |
 | `release-mobile.yml` | Manuel | `eas update` ou `eas build --auto-submit` |
 | `sauvegarde.yml` | Chaque nuit | Copie chiffrée de la base |
 | `surveillance.yml` | Toutes les 6 h | Contrôle de `/api/health` et du site |
 
-Hors CI : Maestro, sandbox Stripe, `eval:planner --live`, captures, compilation iOS sur PR.
+Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette sur téléphones physiques. Maestro compile une app iOS de développement signée ad hoc sur simulateur.
 
-`ci.yml` s'arrête au bout de 45 minutes (une exécution saine en prend 30) et l'installation des navigateurs au bout de 10. Si les dépôts Ubuntu ne se résolvent plus depuis le serveur GitHub, une étape de secours demande leur adresse à un résolveur public avant l'installation. Une CI qui dépasse ces durées est figée, pas lente : lis le journal de l'étape en cours avant de relancer.
+`ci.yml` s'arrête au bout de 60 minutes (une exécution saine peut en prendre 35 à 40) et l'installation des navigateurs au bout de 10. Si les dépôts Ubuntu ne se résolvent plus depuis le serveur GitHub, une étape de secours demande leur adresse à un résolveur public avant l'installation. Une CI qui dépasse ces durées est figée, pas lente : lis le journal de l'étape en cours avant de relancer.
 
 ## Drapeaux
 
@@ -75,7 +75,7 @@ Hors CI : Maestro, sandbox Stripe, `eval:planner --live`, captures, compilation 
 
 ## Maestro
 
-Non installé par défaut, absent de la CI. Depuis `apps/mobile`, après `pnpm db:start`, migration, `DEMO_PASSWORD=… pnpm db:seed`, `pnpm dev` et un build de développement sur simulateur :
+Installé par le job `maestro` de la CI mobile ; installation locale nécessaire pour le rejouer. Depuis `apps/mobile`, après `pnpm db:start`, migration, `DEMO_PASSWORD=… pnpm db:seed`, `pnpm dev` et un build de développement sur simulateur :
 
 ```sh
 maestro test -e APP_ID=coach.tartan.app.dev -e COACH_EMAIL=… -e ATHLETE_EMAIL=… -e NO_AGE_EMAIL=… -e PASSWORD=… .maestro
@@ -87,7 +87,7 @@ Le dossier `.maestro/destructive/` n'est pas lu par cette commande. Il contient 
 maestro test -e APP_ID=coach.tartan.app.dev -e DISPOSABLE_EMAIL=… -e PASSWORD=… .maestro/destructive/account-delete.yml
 ```
 
-Le script `maestro:test` ne transmet pas ces variables. `athlete-validate` et `athlete-session-mode` passent au vert si aucune séance n'est visible, et `coach-tracking` n'ouvre pas l'appel : voir T09.
+Le script `maestro:test` ne transmet pas ces variables. Les parcours exigent des séances issues de la graine ; l'absence de données ne doit pas les faire passer. Le job exécute treize flux puis la suppression d'un compte jetable, vérifiée en base.
 
 ## Couverture par domaine
 
@@ -96,18 +96,18 @@ Le script `maestro:test` ne transmet pas ces variables. `athlete-validate` et `a
 | Domaine | Web | API native | Mobile natif | Manque principal |
 | --- | --- | --- | --- | --- |
 | Connexion, âge | Complet | Complet | Maestro | Google et Apple sans test |
-| Invitations | Lien de groupe complet | Service | Refus de lien seulement | Invitation nominative de coach (T12) |
-| Séances, calendrier | Complet | Complet | Modules purs | Écrans natifs (T24) |
-| Suivi, athlète | Complet | Partiel | Maestro conditionnel | Routes `athlete/*`, `tracking` (T04) |
-| Force, progression | Complet, sauf `/progres` | Partiel | Rien | T19 |
-| Phases | Complet | Complet | Module pur | T24 |
-| Vidéo | Parcours avec clip simulé | Service | Modules purs | T10 |
-| Planificateur IA | Parcours, génération simulée | Handler | Écrans non joués | T23, T24 |
-| Notifications | Service | Service | Modules purs | T18, T21 |
-| Facturation | Accessibilité seulement | Service | Sans objet | T01, T03, T14 |
-| Suppression, export | Web complet | Service | Avant confirmation | T07 |
-| Administration | Lecture et accès | Sans objet | Sans objet | T05, T06, T20 |
+| Invitations | Groupe et invitation nominative | Service | Lien testé sur simulateur | Réception réelle des invitations |
+| Séances, calendrier | Parcours automatisés | Routes testées | Constructeur sur simulateur | Terrain et nouveau constructeur F4 |
+| Suivi, athlète      | Complet                      | Partiel    | Maestro                 | Routes `athlete/*`, `tracking` (T04) |
+| Force, progression | Services et pages remplies | Routes et permissions | Modules purs | Valeurs et provenance en recette réelle |
+| Phases | Parcours automatisés | Routes testées | Maestro | Appareil physique |
+| Vidéo | Parcours avec clip simulé | Services et webhook signé | Capture sur simulateur | Mux réel, upload athlète F6 |
+| Planificateur IA | Parcours, génération simulée | Handler | Maestro avec fournisseur factice | Qualification réelle F5 |
+| Notifications | Centre et services | Services | Modules purs | Livraison et push physiques |
+| Facturation | Page abonnement, services et sandbox séparée | Webhooks signés | Sans objet | Checkout navigateur et paiement réel |
+| Suppression, export | Parcours et services | Routes testées | Suppression jetable en CI | Prestataires et appareil physique |
+| Administration | Actions, accès et fiches | Sans objet | Sans objet | Opérations réelles contrôlées |
 | Site, légal | Complet | Sans objet | Pages `/mobile/*` | T25 |
 | Hors ligne | Complet en `E2E_PROD` | Sans objet | File, simulateur | Stade réel |
 
-Point structurel : les server actions (`*.action.ts`) ne sont couvertes que par l'interface, et aucun écran natif n'a de test de rendu.
+Point structurel : les server actions (`*.action.ts`) ne sont couvertes que par l'interface, et les parcours Maestro ne remplacent pas la recette sur appareil physique.

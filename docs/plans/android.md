@@ -18,7 +18,7 @@ Les builds EAS échouaient à l'étape « Read app config » (`expo config --jso
 
 **Correction.** `import "tsx/cjs"` en tête de `app.config.ts` (méthode documentée par Expo), `tsx` en dépendance de développement du mobile. `src/lib/app-config.test.ts` relit la configuration de production sans le support natif : il échoue sans la correction.
 
-**Reste à faire.** Lancer un build de production (geste du fondateur, voir G5) et vérifier qu'il dépasse « Read app config » :
+**Régression.** Le résultat des builds vit dans ETAT.md. Pour reconstruire le commit validé et vérifier que « Read app config » reste fonctionnel :
 
 ```sh
 corepack pnpm --filter @tartan/mobile exec eas build --profile production --platform android
@@ -28,7 +28,7 @@ corepack pnpm --filter @tartan/mobile exec eas build --profile production --plat
 
 | N° | Action | Qui | Vérification |
 | --- | --- | --- | --- |
-| G1 | Demander un D-U-N-S pour l'entreprise. Sans numéro le 20 novembre, compte personnel | Fondateur | Numéro reçu, jusqu'à 30 jours |
+| G1  | Demander un D-U-N-S pour l'entreprise. Compte organisation retenu ; aucun repli personnel                | Fondateur        | Numéro reçu, jusqu'à 30 jours                                  |
 | G2 | Créer le compte Play Console, déclarer le statut de commerçant, créer l'app | Fondateur | App visible dans la console |
 | G3 | Compte de service Firebase, importé en FCM V1 : `eas credentials -p android` | Fondateur | Push reçu sur un Android physique |
 | G4 | Compte de service Play, importé sur EAS pour `eas submit` | Fondateur | `eas submit` accepté |
@@ -45,7 +45,7 @@ corepack pnpm --filter @tartan/mobile exec eas build --profile production --plat
 
 | Compte | Suite |
 | --- | --- |
-| Organisation (D-U-N-S) | Pas de test imposé : promouvoir vers la production, revue Google, jusqu'à 7 jours |
+| Organisation (D-U-N-S) | Canal interne puis bêta sur invitation ; recette physique avant toute demande de production, revue et délais selon Google                                   |
 | Personnel récent | Test fermé avec 15 à 20 personnes pendant 14 jours sans interruption (12 restent requises), retours réels, demande d'accès à la production, puis soumission |
 
 Un testeur qui se retire avant 14 jours ne compte plus. Prévois de la marge. Google interroge ensuite sur le déroulé du test.

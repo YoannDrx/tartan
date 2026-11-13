@@ -27,7 +27,7 @@ Conservation : transcription 24 h, proposition abandonnée 7 jours, 24 h après 
 
 ## Modèles
 
-`gpt-4.1-mini` pour la planification, `gpt-transcribe` pour la dictée (`AI_PLANNER_MODEL`, `AI_TRANSCRIPTION_MODEL`). Depuis le 12 novembre 2026, `gpt-transcribe` remplace `gpt-4o-mini-transcribe`, arrêté par OpenAI le 26 février 2027. Il reçoit la langue dans `languages[]`, le vocabulaire dans `keywords[]` et un contexte court dans `prompt`. Prix annoncé : 0,0045 $ la minute, contre 0,003 $ pour l'ancien. Si `AI_TRANSCRIPTION_MODEL` est défini sur Vercel avec l'ancien nom, il faut le retirer ou le mettre à jour. Non éprouvé sur une vraie dictée : la clé OpenAI de production reste à remplacer (F6).
+`gpt-4.1-mini` pour la planification, `gpt-transcribe` pour la dictée (`AI_PLANNER_MODEL`, `AI_TRANSCRIPTION_MODEL`). Depuis le 12 novembre 2026, `gpt-transcribe` remplace `gpt-4o-mini-transcribe`, arrêté par OpenAI le 26 février 2027. Il reçoit la langue dans `languages[]`, le vocabulaire dans `keywords[]` et un contexte court dans `prompt`. Prix annoncé : 0,0045 $ la minute, contre 0,003 $ pour l'ancien. Si `AI_TRANSCRIPTION_MODEL` est défini sur Vercel avec l'ancien nom, il faut le retirer ou le mettre à jour. Non éprouvé sur une vraie dictée. Le fondateur conserve la clé actuelle (décision du 13 novembre) ; la qualification réelle reste à faire.
 
 ## Essais de l'app native
 

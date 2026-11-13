@@ -1,12 +1,12 @@
-# Conformité : dossier à relire avec un juriste
+# Conformité : référence des traitements
 
-Brouillon préparé d'après ce que l'application fait réellement, pour gagner du temps à la relecture. Ce n'est pas un avis juridique. Le dossier complet remis au juriste reste hors de ce dépôt public. Tant qu'il n'est pas relu, les pages légales gardent la mention « version de travail ».
+Le fondateur déclare le 13 novembre 2026 la validation du dossier existant par son juriste (HDS, rôles RGPD, analyse d'impact, transferts, santé, vidéo, conservation, CGV et e-mails). L'avis et ses annexes restent hors de ce dépôt public ; aucune conclusion détaillée absente de cet avis n'est inventée ici. La signature effective des accords prestataires reste à confirmer. Les nouveaux médias et le partage vidéo au groupe requièrent une vérification ciblée des ajouts.
 
 ## Responsable de traitement
 
 Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590. Contact : hello@tartan.coach.
 
-Rôle à faire confirmer : Yodev est-il responsable de traitement, ou sous-traitant du coach ou du club pour les données de ses athlètes ? La réponse change les contrats et les mentions.
+Les rôles de responsable de traitement et de sous-traitant suivent l'avis validé conservé hors dépôt ; les mentions et contrats doivent rester cohérents avec celui-ci.
 
 ## Registre des traitements
 
@@ -17,13 +17,13 @@ Rôle à faire confirmer : Yodev est-il responsable de traitement, ou sous-trait
 | Carte de record | Prénom, discipline, marque, date d'un record battu, en image | Athlètes | Contrat ; partage à l'initiative de l'athlète | Générée à la demande, jamais conservée par Tartan |
 | Présence et absence | Réponse « je viens » ou « je ne viens pas », motif facultatif en liste fermée (travail, études, transport, famille, autre), jamais de santé | Athlètes | Contrat | Avec la séance ; la notification au coach ne porte pas le motif |
 | Santé                                  | Blessures, douleurs, effort ressenti                           | Athlètes                 | Consentement explicite, art. 9 | Jusqu'au retrait ou à la suppression   |
-| Vidéos                                 | Sauts filmés, annotations                                      | Athlètes majeurs         | Consentement                   | Selon l'offre : 30 jours, 1 an, 3 ans  |
+| Vidéos                                 | Gestes sportifs filmés, annotations                                                                                                         | Athlètes majeurs             | Consentement                                                  | Selon l'offre : 30 jours, 1 an, 3 ans                                                                                                                                                     |
 | Notifications                          | Jeton d'appareil, texte neutre                                 | Tous                     | Intérêt légitime               | Jusqu'à la déconnexion                 |
 | Facturation                            | Client Stripe, abonnement                                      | Coachs                   | Contrat, obligation légale     | 10 ans pour les factures               |
 | Parrainage                             | Code, attribution                                              | Coachs, athlètes majeurs | Intérêt légitime               | Durée du compte                        |
 | Journaux                               | Événements techniques, accès santé                             | Tous                     | Intérêt légitime               | 1 an pour les accès sensibles          |
 | Suivi d'erreurs (si Sentry est activé) | Message et pile d'erreur, sans utilisateur ni corps de requête | Tous                     | Intérêt légitime               | Selon Sentry                           |
-| Planificateur IA | Demandes et dictées du coach, brouillons de séance | Coachs | Contrat, accord préalable à l'envoi vers OpenAI | Durée du compte ; jusqu'à 30 jours chez OpenAI |
+| Planificateur IA                       | Demandes et dictées du coach, brouillons de séance                                                                                          | Coachs                       | Contrat, accord préalable à l'envoi vers OpenAI               | Transcription : 24 h ; proposition abandonnée : 7 jours ; proposition confirmée : 24 h après création des brouillons. Aucun audio conservé par Tartan ; rétention OpenAI selon le contrat |
 | E-mails | Adresse, type de message, rebonds et plaintes | Tous | Contrat ; intérêt légitime pour les conseils, avec opposition | Durée du compte ; liste de blocage conservée |
 | Mesure d'audience | Pages vues, sans cookie ni identifiant | Visiteurs | Intérêt légitime, à confirmer | Selon Vercel |
 | Sauvegardes | Copie chiffrée de la base | Tous | Intérêt légitime, sécurité | 30 jours |
@@ -51,7 +51,7 @@ Le suivi des accords signés (date, version, lieu de conservation) se tient hors
 
 ## Analyse d'impact
 
-Tartan traite des données de santé (blessures, douleurs, effort ressenti) et des vidéos de personnes identifiables. Une analyse d'impact relative à la protection des données est très probablement requise : elle reste à faire, avec le juriste, avant d'accueillir de vrais athlètes. Elle décrit les traitements, leur nécessité, les risques pour les personnes et les mesures : consentement par fiche, effacement au retrait, journal des accès santé, absence de donnée de santé dans les journaux, les notifications et les e-mails.
+Tartan traite des données de santé (blessures, douleurs, effort ressenti) et des vidéos de personnes identifiables. Le fondateur inclut l'analyse d'impact dans le dossier validé le 13 novembre ; conserver son résultat et ses justifications hors dépôt et l'actualiser lors des nouveaux traitements. Elle décrit les traitements, leur nécessité, les risques pour les personnes et les mesures : consentement par fiche, effacement au retrait, journal des accès santé, absence de donnée de santé dans les journaux, les notifications et les e-mails.
 
 ## Exercice des droits
 
@@ -65,9 +65,9 @@ Tartan traite des données de santé (blessures, douleurs, effort ressenti) et d
 
 Une demande reçue par e-mail est traitée sous un mois, après vérification que l'adresse est celle du compte. Le déroulé côté support est dans [support.md](../exploitation/support.md). La conduite en cas de fuite est dans [incident.md](../exploitation/incident.md).
 
-## Questions à poser au juriste
+## Questions du dossier existant, déclarées validées le 13 novembre
 
-Règle à faire valider en plus : suppression après 24 mois d'inactivité, propriétaire seul prévenu.
+Les questions ci-dessous conservent le périmètre du dossier relu. Elles ne sont plus une liste de treize validations en attente ; l'avis détaillé fait foi. La validation juridique ne prouve pas l'adhésion à un médiateur ni la signature des DPA.
 
 1. **HDS** : un outil de coaching sportif qui garde blessures et douleurs relève-t-il de la certification ?
 2. **Mux** : un hébergement de vidéos d'athlètes aux États-Unis est-il acceptable, avec quelles garanties ? Sinon, faut-il changer de prestataire avant d'ouvrir ?

@@ -1,12 +1,52 @@
 # État du projet
 
-Mis à jour le 12 novembre 2026. Toute PR qui change un état met ce fichier à jour.
+Mis à jour le 13 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
-**En une phrase :** le code de la V1 et de la V1.1 est en production et testé automatiquement, mais rien n'est encore vendu, car ni le paiement réel, ni les téléphones, ni l'avis juridique ne sont faits.
+**En une phrase :** le socle web fonctionne et dispose de tests étendus ; la finalisation autorisée le 13 novembre ajoute constructeur imbriqué, 150 guides d'exercices, deux modes IA et vidéo collaborative avant la vente. Paiement réel, restauration Blob et téléphones restent à éprouver.
 
-**Portes d'ouverture franchies : 1 sur 10** ([commercialisation](plans/commercialisation.md)). La porte 10 est franchie le 11 novembre 2026 : les tests critiques T01 à T08 sont verts. Une réserve : T03 tourne contre la sandbox Stripe, hors de la CI, à la demande. Le flux Maestro de T07 (suppression de compte) tourne en CI depuis le 13 novembre 2026. Huit des neuf portes restantes dépendent du fondateur en tout ou partie.
+**Décisions du fondateur :** avis juridique du dossier existant déclaré obtenu ; Mux à la demande ; ouverture souhaitée sans attendre le médiateur et maintien volontaire de la clé OpenAI actuelle. Ces deux réserves ne valent pas validation de conformité ou résolution du risque. Accords de traitement effectivement acceptés : non confirmés. Compte Google Play organisation. Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur.
 
-**Ordre décidé le 11 novembre 2026 :** vendre la web app, puis refondre la direction artistique, puis livrer le jeu. Les stores suivent.
+## Finalisation autorisée le 13 novembre
+
+Un lot, une branche, une PR. Spécification et critères : [plan web](plans/web.md#finalisation-du-13-novembre-2026). Codé, testé et éprouvé sont trois états distincts.
+
+| Lot | Résultat attendu                                                                | État / prochaine preuve                                                                   |
+| --- | --- | --- |
+| F0  | Documentation cohérente, Node 22 et pnpm 10 reproductibles                      | Codé et testé sur `docs/completion-baseline` ; Node 22.23.5/pnpm 10.34.9, types/lint/tests/design réussis. Pas de nouveau parcours web modifié. |
+| F1  | Exploitation, Preview, protection GitHub/Neon, sauvegarde et alertes            | À faire ; Blob a reçu une copie mais restauration de cette destination non prouvée        |
+| F2  | Structure commune de séances imbriquées et compatibilité                        | À faire ; contrats actuels plats                                                          |
+| F3  | 150 exercices avec guides et visuels validés, disponibles aux espaces existants | À faire ; 55 fiches de départ                                                             |
+| F4  | Constructeur circuits et supersets, deux niveaux maximum                        | À faire                                                                                   |
+| F5  | Deux modes IA, résolution/création d'exercice, qualification indépendante       | À faire ; essais historiques insuffisants pour qualifier la nouvelle version              |
+| F6  | Vidéo athlète privée, collaboration et partage choisi                           | À faire ; upload réservé au staff actuellement                                            |
+| F7  | Recette web exhaustive et paiement                                              | À faire ; aucune transaction réelle contrôlée démontrée                                   |
+| F8  | Site/aide cohérents, ouverture et surveillance                                  | Après F1 à F7 ; ouverture réservée au fondateur                                           |
+| F9  | Mise à niveau native, TestFlight et Play sur invitation                         | Après contrats/produit ; compte Play et appareils physiques nécessaires                   |
+
+### Vérifications F0 du 13 novembre
+
+Sous Node 22.23.5/pnpm 10.34.9, après modification des scripts : `corepack pnpm typecheck`, `lint`, `test` (tous les paquets, dont 1 879 web, 257 domaine et 243 mobile), `design:check` réussis. Quatre avertissements lint préexistants ; E2E complet non relancé pour ce lot sans changement de parcours. La CI de la PR reste la preuve du commit publié.
+
+### Preuves de l'audit du 13 novembre
+
+Code applicatif inspecté : `9e1fb12` ; production observée : `3bb8099` (règles documentaires ajoutées). Aucun nouveau compte de test créé en production. Aucun secret relu pour cet audit.
+
+| Environnement / preuve         | Résultat observé                                                                    | Limite / suite                                                           |
+| --- | --- | --- |
+| Local, tests web               | 1 879 tests / 118 fichiers réussis                                                  | Node 24 local ; à rejouer sous Node 22 ; prestataires simulés            |
+| Local, domaine / mobile        | 257 / 243 tests réussis                                                             | Modules métier, pas appareils physiques                                  |
+| Local, types / lint / design   | Réussis ; quatre avertissements lint                                                | Pas une recette visuelle exhaustive                                      |
+| Local, navigateur IA           | Quatre parcours réussis, ordinateur et téléphone simulé                             | OpenAI simulé                                                            |
+| Local, corpus IA               | 60 cas valides, 30 scripts audio                                                    | Aucun appel réseau, aucun enregistrement humain                          |
+| CI, commit applicatif inspecté | Qualité, parcours web, Maestro et build Android consultés verts                     | Ne prouve pas les prestataires ni les téléphones                         |
+| Production, santé/version      | Réponses saines ; version identifiée                                                | Ne couvre pas chaque parcours                                            |
+| EAS Android                    | Build production 1.1.0 (3) réussi le 13 novembre, code `9e1fb12`                    | Pas installé depuis Play sur téléphone                                   |
+| GitHub / Blob                  | Sauvegarde chiffrée envoyée dans Blob ; artefact GitHub ignoré                      | Restauration Blob à faire ; anciens artefacts à retirer après validation |
+| Stripe                         | Compte dédié, encaissements/virements activés, webhook actif avec les 15 événements | Checkout navigateur, portail et vrai paiement à éprouver                 |
+| Neon                           | Région européenne, offre gratuite, restauration six heures, production non protégée | Protection et fenêtre sept jours à mettre en place                       |
+| Vercel                         | Production disponible ; variables de sondes présentes                               | Preview mobile sans DNS ; réception des alertes non prouvée              |
+
+Les preuves nominatives ou contenant des identifiants prestataires restent hors du dépôt public. Chaque lot ajoute son commit, environnement, résultat et limite, sans transformer une configuration présente en preuve de fonctionnement.
 
 ## Ce qui tourne
 
@@ -19,7 +59,7 @@ Mis à jour le 12 novembre 2026. Toute PR qui change un état met ce fichier à 
 | Administrateur | Le fondateur, passkey enrôlée |
 | CI | Verte. Job `quality` plafonné à 60 minutes depuis le 12 novembre 2026 (les parcours en prennent près de 30). Job `maestro` (macOS) : les flux natifs sur simulateur iOS, contre un serveur local. Le dépôt est public pour disposer des minutes GitHub Actions |
 | iOS | Archive 1.1.0 (12) envoyée à App Store Connect, non soumise à la revue |
-| Android | Rien de publié, build EAS en échec, compte Play à créer |
+| Android               | AAB de production 1.1.0 (3) construit le 13 novembre ; rien de publié, compte Play organisation à créer                                                                                                                                                        |
 
 ## Niveau de preuve par domaine
 
@@ -43,7 +83,7 @@ Mis à jour le 12 novembre 2026. Toute PR qui change un état met ce fichier à 
 | Export, suppression de compte | Oui | Oui | Sur le web |
 | Console d'administration | Oui | Partiel | Accès passkey éprouvé |
 | Hors ligne, PWA | Oui | Oui | Pas au stade |
-| Mobile natif | Oui | Modules purs seulement, aucun rendu d'écran | Simulateur, jamais sur téléphone physique |
+| Mobile natif                                      | Oui               | Modules purs et parcours Maestro sur simulateur                                                                                        | Aucun téléphone physique                                                               |
 
 Le détail par écran et par route est dans [tests/README.md](tests/README.md).
 
@@ -58,18 +98,18 @@ Les numéros renvoient aux étapes des plans. Trié par impact sur l'ouverture.
 | F1 | Lancer « E-mails de test → Tous » dans `/admin/configuration`, sur Gmail, Outlook, iCloud. À refaire après le lot A10 et le gabarit Tartan du 13 novembre 2026 (piste, carte encre, action citron) | [recette](tests/recette-reelle.md) | Preuve des e-mails |
 | F2 | Créer le webhook Resend et poser `RESEND_WEBHOOK_SECRET` | [web](plans/web.md) | Rebonds et plaintes |
 | F3 | Décider de l'expéditeur : `tartan@yodev.fr` aujourd'hui, `tartan.coach` recommandé | [web](plans/web.md) | Image, délivrabilité |
-| F4 | Avis écrit du juriste, HDS d'abord. Dossier prêt, treize questions | [conformité](reference/conformite.md) | Vente, soumission stores, classement du jeu, e-mail de reconquête |
-| F5 | Adhérer à un médiateur, CM2C recommandé | [commercialisation](plans/commercialisation.md) | CGV, vente |
-| F6 | Remplacer la clé OpenAI anciennement exposée, signer l'accord de traitement | [web](plans/web.md) | Vrais athlètes |
-| F7 | Carte Mux, puis lever le plafond de 10 vidéos dans Configuration | [web](plans/web.md) | Revue stores, vente |
+| F4  | Validation du dossier existant déclarée le 13 novembre ; conserver la preuve hors dépôt                                                   | [conformité](reference/conformite.md)                 | Vente, soumission stores, classement du jeu, e-mail de reconquête |
+| F5  | Adhésion différée par décision du fondateur ; réserve de conformité conservée                                                             | [commercialisation](plans/commercialisation.md)       | CGV, vente                                                        |
+| F6  | Clé conservée par décision du fondateur ; accord de traitement effectivement accepté à confirmer                                          | [web](plans/web.md)                                   | Vrais athlètes                                                    |
+| F7  | Mux à la demande confirmé ; vérifier puis lever le plafond technique effectif, sans changer les quotas des offres                         | [web](plans/web.md)                                   | Revue stores, vente                                               |
 | F8 | Neon payant, pour la restauration à 7 jours | [web](plans/web.md) | Vente |
 | F9 | Dérouler la recette réelle | [recette](tests/recette-reelle.md) | Vente |
 | F10 | Téléphone public professionnel, statut de commerçant sur les deux stores | [iOS](plans/ios.md) | Stores |
-| F11 | Demande de D-U-N-S, puis compte Google Play. Passer en compte personnel sans numéro le 20 novembre | [Android](plans/android.md) | Android |
+| F11 | D-U-N-S puis compte Google Play organisation ; aucun repli personnel                                                                      | [Android](plans/android.md)                           | Android                                                           |
 | F12 | Passkey de secours sur un second appareil | [web](plans/web.md) | Risque de blocage de la console |
 | F13 | Prévenir les deux espaces pilotes des fonctions activées | [commercialisation](plans/commercialisation.md) | Confiance |
 | F14 | Régler le compte Stripe pour le réel. Le webhook de production écoute les 15 événements depuis le 11 novembre (constaté par l'API Stripe) | [Stripe](plans/stripe.md) | Vrai paiement |
-| F15 | Fait le 13 novembre 2026 : store Vercel Blob privé `tartan-sauvegardes` et secret GitHub `BACKUP_BLOB_TOKEN` | [sauvegarde](exploitation/sauvegarde.md) | Lot A13 |
+| F15 | Store Vercel Blob privé et secret GitHub configurés le 13 novembre ; sauvegarde relue à l’identique, restauration chronométrée restante | [sauvegarde](exploitation/sauvegarde.md) | Lot A13 |
 | F16 | Fait le 11 novembre : la session Stripe CLI est ouverte sur la sandbox | [Stripe](plans/stripe.md) | — |
 | F17 | Valider les six athlètes sur la planche `/admin/mascotte`. Ils sont déjà sur le site depuis le lot B5, par décision du 12 novembre | [direction artistique](plans/direction-artistique.md) | Refonte des écrans |
 

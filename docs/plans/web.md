@@ -2,6 +2,65 @@
 
 Objectif : une web app et une PWA qu'un coach inconnu peut trouver, payer et utiliser sans aide. Le mobile natif suit sans retarder cette ouverture. L'avancement est dans [../ETAT.md](../ETAT.md).
 
+## Finalisation du 13 novembre 2026
+
+Ce périmètre autorisé remplace l'ancien ordre « vente, puis améliorations ». Les lots A/B/C déjà livrés restent l'historique des capacités à préserver. Une branche et une PR par lot F ; l'état des preuves vit uniquement dans ETAT.md.
+
+| Lot | Dépendances | Livrable et critère de fin                                                                                                                                                                                       |
+| --- | --- | --- |
+| F0  | —           | Documentation réconciliée, runtime Node 22 et pnpm 10 reproductible. Toute preuve distingue code, test et usage réel.                                                                                            |
+| F1  | F0          | Main protégé, Preview isolée accessible au mobile, récupération Neon sept jours après souscription, sauvegarde privée sans repli public, restauration chronométrée, alertes reçues, Resend signé, Mux configuré. |
+| F2  | F0          | Structure versionnée exercice/récupération/groupe répété, deux niveaux maximum ; règles partagées, identifiants stables, anciennes séances et prescriptions préservées.                                          |
+| F3  | F0          | Catalogue de 150 fiches distinctes, guides/visuels contrôlés et versionnés, mise à disposition des espaces existants sans écraser leurs variantes.                                                               |
+| F4  | F2          | Constructeur progressif de circuits/supersets, duplication/déplacement/regroupement/annulation, aperçu athlète, sauvegarde explicite, clavier et trois thèmes.                                                   |
+| F5  | F2, F3      | Modes « Mettre en forme » et « Proposer », résolution/création privée d'exercice sans perte de contexte, dictée et qualification indépendante.                                                                   |
+| F6  | F0          | Upload athlète privé par défaut, feedback horodaté, partage volontaire révocable, quotas et isolation serveur, reprise d'envoi.                                                                                  |
+| F7  | F1 à F6     | Matrice écrans/routes/rôles et recette complète ; sandbox navigateur puis paiement réel accompagné ; aucun défaut critique ou majeur connu.                                                                      |
+| F8  | F7          | Site/aide/captures cohérents, support prêt, ouverture décidée par le fondateur avec réserves visibles, surveillance 72 h.                                                                                        |
+| F9  | F2 à F6     | Contrats et parcours natifs à niveau, binaires du commit validé, installation physique par TestFlight et Play organisation sur invitation. Ne retarde pas F8.                                                    |
+
+### Contrats, historique et constructeur (F2, F4)
+
+Ajouter la structure de séance sans retirer les champs encore lus par des clients. Exercices, récupérations explicites et groupes répétés conservent leurs identifiants ; l'exécution produit des occurrences distinctes dans l'ordre exact A/B/A/B. Deux niveaux de répétitions maximum, taille d'exécution bornée côté serveur. Séparer récupération entre séries, entre exercices et entre tours ; aucune récupération finale implicite.
+
+Les copies à la publication, charges résolues, adaptations individuelles et réalisations passées restent figées. L'ancien client lit une projection fidèle mais ne peut pas réenregistrer une séance complexe aplatie : refus explicite et mise à jour demandée. Même règle pour modèles, IA, suivi et mode séance. Toute conversion est idempotente.
+
+Le constructeur commence par titre/date/destinataires/contenu. Ajouts : exercice, récupération, groupe à répéter. Séries compactes, circuit contenant les exercices, tours et repos ; variantes club/autonomie sans duplication obligatoire. Aperçu du déroulé, duplication, déplacement, regroupement/dissociation, annulation et état du brouillon. Couleurs sémantiques par jetons, jamais seules porteuses du sens ; commandes clavier en plus du glisser-déposer. Vérifier 390/768/1440 px, trois thèmes et mouvement réduit.
+
+### Catalogue et guides (F3)
+
+Répartition : 40 musculation, 15 haltérophilie/éducatifs, 20 mobilité, 20 pliométrie/sauts/explosivité, 15 course/accélération, 10 gainage, 10 coordination/plots, 10 escaliers, 10 échauffement. Reprendre les 55 fiches existantes sans doublons artificiels. Garder les catégories historiques et ajouter les facettes nécessaires.
+
+Chaque fiche : nom et synonymes FR/EN, objectif/matériel/niveau, installation, étapes, respiration pertinente, repères, erreurs, régression/progression, convention de charge et comptage par côté, positions illustrées et alternative textuelle, source/licence/attribution et statut de validation par un coach. Inclure arraché, épaulé, jeté et épaulé-jeté avec variantes réellement distinctes.
+
+Illustrations originales ou licence de chaque média vérifiée (wger possible). Ne pas reprendre en masse les images aux droits contestés de free-exercise-db. Pas d'API externe nécessaire pour lire une fiche. Identifiant et version de catalogue ; import aux espaces existants sans écraser les personnalisations ni les références historiques. Les créations de coach restent privées. Guide accessible à l'athlète depuis sa séance autorisée ; cache des guides/visuels de ses séances téléchargées, disponibilité vidéo annoncée séparément.
+
+### Planificateur (F5)
+
+Reformater fidèlement une consigne ou proposer une séance à partir d'objectif/durée/niveau/matériel/destinataires/date : deux modes explicites. Afficher source, hypothèses et suggestions ; demander une clarification plutôt qu'inventer date, maximum ou donnée de santé. Proposition spontanée fondée sur le catalogue contrôlé. Uniquement des brouillons après validation du coach.
+
+Exercice inconnu : noms/synonymes/variantes, correspondances proposées, choix ou reformulation ou création privée vérifiée. Reprendre la proposition sans perdre les réponses ; créations et confirmations idempotentes. Le contrat distingue résolu/à clarifier/à créer. Recherche pertinente au-delà de 500 fiches, sans tronquer arbitrairement le catalogue. Destinataire hors périmètre : clarification utile, pas erreur générique. Une proposition logique consomme un quota, reprises techniques bornées. Consentement et purge vérifiés, aucun audio conservé ni contenu sensible journalisé.
+
+Conserver les modèles configurés jusqu'à comparaison mesurée. Garder les 60 cas historiques en régression, figer 80 nouveaux cas avant réglage, rejouer trois fois : au moins 95 % conformes et zéro date/charge inventée ou substitution silencieuse acceptée. Trente enregistrements humains, avec bruit, iOS et Android, vérification des nombres/unités/exercices/repos ; revue par des coachs. Le faux prestataire et les scripts audio ne qualifient pas la fonction en réel.
+
+### Vidéo collaborative (F6)
+
+Athlète identifié par la session serveur ; dépôt pour lui-même et une séance autorisée. Visible à l'auteur et au staff habilité, restrictions de groupes conservées. Partage au groupe explicite et révocable. Démonstration d'exercice distincte d'une vidéo personnelle, aucune promotion implicite. Commentaires horodatés/réponses, vue coach à examiner, pagination et filtres athlète/séance/exercice/traitement.
+
+État d'envoi/encodage/reprise compréhensible ; même quota d'espace pour coach et athlète. Réservations concurrentes, doublons, fichiers refusés, erreurs d'encodage, assets orphelins et webhooks hors ordre couverts. Lecture signée avec durée résiduelle documentée à la révocation. Retrait de membre/consentement, suppression et signalements couverts ; notifications neutres. Le forfait Mux à la demande ne supprime pas les quotas commerciaux.
+
+### Recette et ouverture (F7, F8)
+
+Matrice de tous les écrans/routes : rôle, données accessibles, parcours nominal, erreur, état vide et preuve. Parcours : coach neuf/invitation/athlète ; constructeur/publication/adaptation ; charges historiques ; deux modes IA et exercice inconnu ; vidéo collaborative ; hors ligne/fermeture/conflit ; absence/progression/phases/records ; notifications/heures calmes ; abonnement/portail/facture/impayé/résiliation/remboursement ; droits/export/suppression/transfert ; administration/aide/signalements/versions.
+
+Node 22/pnpm 10 : types, lint, tests, design, E2E_PROD ; tests de compatibilité et de concurrence. Prestataires réels séparément : sandbox Stripe dans le navigateur avec carte et 3DS, paiement réel accompagné sur compte pilote autorisé, livraison Gmail/Outlook/iCloud, Mux, push et alertes, restauration isolée, dictées humaines. Pas de nouveau compte de test créé en production. Toute fonction vendue doit être disponible et prouvée ; aucun P0/P1 ouvert. Validation simple toujours sous dix secondes. Recette terrain et téléphones distincte des émulateurs.
+
+Mise à jour des textes/captures/aide selon les fonctions disponibles, support et incident opérationnels. Avis juridique existant déclaré validé, DPA effectivement acceptés à confirmer ; médiateur différé et clé actuelle conservée par décision du fondateur, réserves non closes. Ouverture uniquement par le fondateur puis surveillance 72 h des erreurs, invitations, paiements, notifications, uploads et coûts. Le pilote mesure ensuite l'adoption.
+
+### Natif (F9)
+
+Porter contrats/constructeur/guides/IA/vidéo, puis traiter les écarts absence/régularité/record. Builds du commit validé ; caméra/micro/photothèque/HEVC/HLS, interruptions/réseau faible/arrière-plan, liens et push, mise à jour avec données en attente sur téléphones physiques. Aucun prix/lien d'achat dans les parcours natifs. TestFlight externe après revue ; Play organisation avec D-U-N-S, signature, déclarations santé/données/dataSync, installation depuis le canal invité. Un binaire construit ou une soumission en brouillon ne prouve pas la distribution. Détails dans les plans iOS/Android.
+
 ## Étape 0 : finir le code de vente
 
 Un lot, une branche, une PR. L'état de chaque lot est dans [../ETAT.md](../ETAT.md).
@@ -34,7 +93,7 @@ Après A4, le fondateur relance `stripe-setup` en production pour ajouter l'év�
 | W2 | Créer dans Resend le webhook `https://app.tartan.coach/api/webhooks/resend` sur `email.bounced`, `email.complained`, `email.suppressed` | Fondateur | Livraison de test acceptée dans Resend |
 | W3 | Poser `RESEND_WEBHOOK_SECRET` en production, puis redéployer | Fondateur | Ligne « Webhook Resend » à En place dans Configuration |
 | W4 | Vérifier le domaine `mail.tartan.coach` dans Resend (SPF, DKIM, DMARC), puis régler `EMAIL_FROM` | Fondateur, agent pour les DNS si accès | E-mail reçu avec le bon expéditeur, non classé en indésirables |
-| W5 | Remplacer la clé OpenAI, signer l'accord de traitement OpenAI | Fondateur | Planificateur toujours fonctionnel |
+| W5  | Conserver la clé selon décision du fondateur ; confirmer l'accord de traitement OpenAI                                                  | Fondateur                              | Planificateur toujours fonctionnel                             |
 | W6 | Ajouter une carte Mux, puis lever le plafond vidéo dans Configuration | Fondateur | Le message « espace vidéo plein » ne peut plus survenir |
 | W7 | Passer Neon en offre payante, protéger la branche de production | Fondateur | Restauration à 7 jours disponible |
 | W8 | Sortir les sauvegardes de GitHub ([procédure](../exploitation/sauvegarde.md)) | Agent, après choix du stockage | Copie chiffrée restaurée depuis la nouvelle destination |
@@ -45,7 +104,7 @@ Après A4, le fondateur relance `stripe-setup` en production pour ajouter l'év�
 
 1. Écrire et faire passer les tests critiques T01 à T08 de [automatisation.md](../tests/automatisation.md).
 2. Dérouler [recette-reelle.md](../tests/recette-reelle.md), sections 1 à 5 et 7.
-3. Corriger chaque écart, puis rejouer l'étape concernée. Un écart n'est clos qu'une fois rejoué en production.
+3. Corriger chaque écart, puis rejouer l'étape concernée. Un écart est testé sur environnement isolé ; la preuve du prestataire réel et le contrôle de déploiement sont consignés séparément.
 
 ## Étape 3 : conformité
 
@@ -58,7 +117,7 @@ Après A4, le fondateur relance `stripe-setup` en production pour ajouter l'év�
 ## Étape 4 : retirer les données fictives et répéter
 
 1. `pnpm --filter @tartan/web demo:fill <e-mail> --retirer` pour le compte du fondateur.
-2. Répétition complète en production avec un compte neuf : landing, création d'espace, invitation, séance, validation, paiement, résiliation, suppression du compte.
+2. Répétition complète en local ou Preview avec un compte neuf : landing, création d'espace, invitation, séance, validation, paiement, résiliation, suppression du compte.
 3. Vérifier que `/admin/configuration` n'indique plus aucun « À faire ».
 
 ## Étape 5 : ouvrir

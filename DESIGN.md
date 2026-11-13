@@ -26,7 +26,7 @@ Les dates s’affichent et se saisissent toujours en JJ/MM/AAAA, avec le calendr
 
 Le site, la connexion, l'onboarding, les accueils et les états vides portent les aplats, les athlètes et les effets au défilement, avec une représentation équilibrée de la préparation physique. Le parcours présenté est « préparer → individualiser → réaliser → progresser ». Tout écran présenté sur le site est une vraie capture du produit, sur des données fictives indiquées comme telles ; aucune maquette recomposée.
 
-Le site ouvre sur le film piloté par le défilement, qui raconte ce que l’athlète y gagne (voir ce qui arrive, savoir ce qu’il travaille, savoir sur quoi s’appliquer). Le film se joue en relais entre plusieurs athlètes et plusieurs épreuves : aucune spécialité n'est l'unique récit du produit. Il laisse le titre, la promesse et le bouton visibles dès l'ouverture, et reste court : trois hauteurs d'écran sur téléphone, quatre et demie sur ordinateur. Inès court les haies pour « voir ce qui arrive », Malo monte à la perche pour « savoir ce qu'il travaille », Noé franchit la barre pour « savoir sur quoi s'appliquer », jusqu'à la validation ; chacun traverse son monde, et le passage de relais est un changement de monde franc. Tout le contenu court ensuite le long d’une seule piste : les virages se touchent et aucune section ne s’intercale entre eux avant la ligne d’arrivée. Le jeu, les questions fréquentes (six questions du centre d'aide, reprises mot pour mot) et l'appel final viennent après la ligne d'arrivée. Sur téléphone, une capture précède toujours le texte qui la commente, en une colonne ; les tarifs se lisent en une carte par offre, le tableau complet replié sous « Tout comparer ».
+Le site ouvre sur le film piloté par le défilement, qui raconte ce que l’athlète y gagne (voir ce qui arrive, savoir ce qu’il travaille, savoir sur quoi s’appliquer). Le film se joue en relais entre plusieurs athlètes et plusieurs épreuves : aucune spécialité n'est l'unique récit du produit. Il laisse le titre, la promesse et le bouton visibles dès l'ouverture, et reste court : 7,5 hauteurs d'écran sur téléphone, 10 sur ordinateur (décision du 12 novembre 2026). Inès court les haies pour « voir ce qui arrive », Malo monte à la perche pour « savoir ce qu'il travaille », Noé franchit la barre pour « savoir sur quoi s'appliquer », jusqu'à la validation ; chacun traverse son monde, et le passage de relais est un changement de monde franc. Tout le contenu court ensuite le long d’une seule piste : les virages se touchent et aucune section ne s’intercale entre eux avant la ligne d’arrivée. Le jeu, les questions fréquentes (six questions du centre d'aide, reprises mot pour mot) et l'appel final viennent après la ligne d'arrivée. Sur téléphone, une capture précède toujours le texte qui la commente, en une colonne ; les tarifs se lisent en une carte par offre, le tableau complet replié sous « Tout comparer ».
 
 La lecture/analyse vidéo, la capture et le mode séance restent encre : la couleur du fond ne doit pas distraire du geste. La célébration de validation reste citron. Une route historique conserve son adresse tant qu’une redirection compatible n’a pas été ajoutée.
 
@@ -35,7 +35,7 @@ La lecture/analyse vidéo, la capture et le mode séance restent encre : la coul
 Ces motifs sont des composants partagés, jamais redessinés à la main dans un écran : `src/components/track.tsx`, `lane-number.tsx`, `athlete.tsx` et `event-scene.tsx`. Ils prennent la couleur des lignes du fond où ils sont posés (`--color-lane`).
 
 | Motif | Composant | Rôle |
-| --- | --- | --- |
+| ----------- | --------- | ------------------------------------------ |
 | Ligne droite, en double ligne de couloir | `TrackLine` | En-tête de chaque écran, séparateurs, rails de progression. Elle se trace de gauche à droite à l'arrivée sur l'écran |
 | Virage, en couloirs concentriques | `TrackBend` | Transitions entre sections du site, fonds d'accueil et d'états vides |
 | Tour de piste, en ovale | `TrackLap` | Progression : premiers pas du coach, semaine de l'athlète, série de régularité, chargements longs. La part courue se dit aussi en toutes lettres |
@@ -64,7 +64,7 @@ Les mondes historiques Piste, Couloir, Craie, Soleil et Nuit restent des palette
 
 Barlow pour le texte ; Barlow Condensed pour les titres et chiffres. Titres de travail courts et alignés à gauche, sans mot isolé au marqueur. Le marqueur peut rester sur les titres expressifs du site et de l’accueil.
 
-Grille de 4 px ; espacements de 4 à 64 px. Marge latérale mobile 16 px, desktop 24 px. Rayons cohérents : boutons 14 px, cartes 20 px ; pas de carte dans une carte. Cibles tactiles de 44 × 44 px. Aplats et bordures plutôt qu’ombres, sauf éléments flottants.
+Grille de 4 px ; espacements de 4 à 64 px. Marge latérale mobile 16 px, desktop 24 px. Rayons cohérents : boutons 14 px, cartes 20 px ; pas de carte dans une carte décorative. Exception décidée le 13 novembre : les cartes du constructeur représentent la structure réelle d'un circuit ou superset, avec deux niveaux de groupes répétés au maximum. Les couleurs sémantiques de préparation, force, vitesse/pliométrie et récupération passent par les jetons ; libellés et structure restent compréhensibles sans couleur. Le contenant « à répéter » montre les tours et les récupérations, sans bordure colorée épaisse à gauche. Cibles tactiles de 44 × 44 px. Aplats et bordures plutôt qu’ombres, sauf éléments flottants.
 
 La couleur des séances et catégories sert la lecture du calendrier ; une spécialité ne bénéficie pas systématiquement d’un poids visuel supérieur. Les volumes et intensités conservent leurs unités et leur couverture de données.
 
@@ -150,7 +150,7 @@ Un écran qui contient l'un de ces travers n'est pas terminé.
 
 - Dégradés, texte en dégradé, halos colorés.
 - Verre dépoli et flou décoratif.
-- Grilles de cartes identiques (icône + titre + texte), cartes imbriquées.
+- Grilles de cartes identiques (icône + titre + texte), cartes imbriquées décoratives (exception fonctionnelle du constructeur décrite ci-dessus).
 - Gabarit « gros chiffre + petit libellé + statistiques ».
 - Surtitre en capitales au-dessus d'un titre.
 - Bordure colorée épaisse à gauche des cartes et alertes.

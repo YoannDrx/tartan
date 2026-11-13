@@ -2,6 +2,12 @@ packages:
   - "apps/*"
   - "packages/*"
 
+# Même runtime pour les scripts locaux, leurs sous-processus et la CI.
+useNodeVersion: 22.23.5
+engineStrict: true
+packageManagerStrictVersion: true
+managePackageManagerVersions: true
+
 onlyBuiltDependencies:
   - "@prisma/client"
   - "@prisma/engines"

@@ -24,6 +24,14 @@ Tartan est l'app de préparation physique du coach et de son groupe, ancrée dan
 
 Les animations sont autorisées partout, écrans de travail compris, sous les règles de `DESIGN.md`. Le bonhomme devient un groupe de six athlètes, un par épreuve. Le déroulé est dans `docs/plans/web.md` et `docs/plans/direction-artistique.md`.
 
+## Décision de finalisation du 13 novembre 2026
+
+Cette décision remplace l'ordre d'ouverture du 11 novembre et le caractère non bloquant de la bêta IA du 7 novembre. Avant la vente web/PWA : constructeur à circuits et supersets (deux niveaux de répétition au maximum), banque de 150 exercices distincts avec guides et visuels contrôlés, planificateur avec deux modes (« Mettre en forme ma séance », « Proposer une séance ») et résolution des exercices inconnus, vidéos déposées par les athlètes comme par les coachs. L'IA ne publie jamais seule et une création d'exercice reste privée à l'espace jusqu'à une éventuelle décision éditoriale distincte.
+
+Les vidéos athlètes sont privées à l'athlète et aux coachs habilités ; le partage au groupe est volontaire et révocable. Les guides sont accessibles depuis la séance attribuée. Les illustrations fixes précèdent les animations techniques et les futures vidéos maison. Les offres et quotas restent inchangés, même avec Mux à la demande.
+
+La vente web précède les stores ; les bêtas natives sur invitation suivent la mise à niveau et la recette physique. Android utilise un compte organisation, sans repli automatique vers un compte personnel. Adultes en France, sans messagerie générale, montres, mineurs ni bibliothèque communautaire publique. Le déroulé et les critères de fin sont dans `docs/plans/web.md`, l'état des preuves et les réserves dans `docs/ETAT.md`.
+
 ## Offres
 
 Découverte (gratuite), Coach et Club. Les prix et les plafonds ont une seule source, `packages/domain/src/plans.ts` ; le tableau lisible est dans `docs/plans/commercialisation.md`. Les athlètes ne paient jamais.
