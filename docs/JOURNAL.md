@@ -5,6 +5,11 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 Modèle :
 
 ```text
+## 2026-11-13, Codex, F3 — régression navigateur du catalogue
+
+Vérifié sous Node 22/pnpm 10 : suite web complète 223 réussis, 20 ignorés, un délai dépassé sur la première connexion à froid ; parcours d’absence repris seul avec le seuil original, réussi. Total : 224 parcours ordinaires distincts réussis, puis quatre parcours IA dédiés avec prestataire simulé. Les deux parcours de guides vérifient également les trois thèmes aux largeurs 390/768/1440, axe et mouvement réduit. Types, lint (quatre avertissements préexistants), tests des paquets et design restent verts sur le code F3.
+Limites : les 150 fiches restent à faire valider par un coach compétent, les illustrations ne sont pas produites. Aucune approbation technique humaine n’est déduite des tests. PR préparée en brouillon ; aucune fusion F3 autorisée à ce stade.
+
 ## AAAA-MM-JJ, agent, sujet
 Fait : … (PR)
 Vérifié : … / Non vérifié : …
