@@ -27,7 +27,8 @@ env:
     id: planner-instructions
 - waitForAnimationToEnd
 - inputText: "Trois series de huit, deux minutes de repos"
-- tapOn: "Planificateur IA.*"
+# Champ multiligne : toucher ailleurs ne ferme pas ce clavier, mais il a une commande pour se fermer.
+- hideKeyboard
 - scrollUntilVisible:
     element: "J.ai relu la consigne et ses valeurs"
 - tapOn: "J.ai relu la consigne et ses valeurs"

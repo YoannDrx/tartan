@@ -17,8 +17,11 @@ env:
     visible: "Mes séries réalisées"
     timeout: 15000
 - tapOn: "Mes séries réalisées"
+# L'éditeur liste chaque série de chaque exercice : le bouton est loin en bas.
 - scrollUntilVisible:
     element: "Enregistrer mes séries"
+    timeout: 90000
+    speed: 90
 - runScript:
     file: scripts/bump-session.js
     env:
