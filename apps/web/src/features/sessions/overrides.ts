@@ -1,4 +1,6 @@
-type Block = { items: readonly { key: string }[] };
+import type { SequenceNode } from "@tartan/contracts";
+import { occurrenceRef, sequenceOccurrences } from "@tartan/domain";
+type Block = { items: readonly { key: string }[]; sequence?: SequenceNode[] };
 type ReferencedOverride<P> = { athleteId: string; itemRef: string; prescription: P };
 export type KeyedOverride<P> = { athleteId: string; itemKey: string; prescription: P };
 
@@ -7,7 +9,14 @@ const refsByKey = (blocks: readonly Block[]): Map<string, string> =>
   new Map(
     blocks
       .filter((block) => block.items.length > 0)
-      .flatMap((block) => block.items.map((item) => [item.key, item.key] as const)),
+      .flatMap((block) => [
+        ...block.items.map((item) => [item.key, item.key] as const),
+        ...sequenceOccurrences(block.sequence ?? []).flatMap(({ node, rounds }) =>
+          node.kind === "exercise"
+            ? [[occurrenceRef(node.itemRef, rounds), occurrenceRef(node.itemRef, rounds)] as const]
+            : [],
+        ),
+      ]),
   );
 
 // À l'ouverture : une adaptation suit désormais son exercice, pas sa position.

@@ -26,7 +26,7 @@ export const BuilderPage = async ({
 }) => {
   const [initial, context] = await Promise.all([
     sessionId ? getSessionForEdit(userId, organizationId, sessionId) : Promise.resolve(null),
-    getSessionBuilderContext(userId, organizationId),
+    getSessionBuilderContext(userId, organizationId, true),
   ]);
   const groupUnavailable = defaultGroupId !== undefined && !context.groups.some((group) => group.id === defaultGroupId);
   return (
@@ -44,6 +44,7 @@ export const BuilderPage = async ({
       />
       {groupUnavailable ? <p role="status">{m.calendar.groupUnavailable}</p> : null}
       <SessionBuilder
+        userId={userId}
         organizationId={organizationId}
         initial={initial}
         {...context}

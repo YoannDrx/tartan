@@ -65,7 +65,10 @@ export const syncOfflinePages = async (organizationId: string): Promise<void> =>
 // À la déconnexion : plus aucune page personnelle sur cet appareil.
 export const clearOfflinePages = async (): Promise<void> => {
   try {
+    window.dispatchEvent(new Event("tartan:clear-builder-drafts"));
     localStorage.removeItem(LAST_SYNC);
+    for (const key of Object.keys(localStorage))
+      if (key.startsWith("tartan.builder.web.")) localStorage.removeItem(key);
     const registration = await navigator.serviceWorker?.getRegistration();
     registration?.active?.postMessage({ type: "clear-pages" });
   } catch {
