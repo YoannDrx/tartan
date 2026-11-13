@@ -14,6 +14,11 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-13, Codex, F5 : comparaison réelle des modèles après les gardes
+
+Sur le même code `42eaf34`, même corpus figé et mêmes attentes : GPT-4.1 mini 66/80 (82,5 %), GPT-4.1 72/80 (90 %), un passage de chaque modèle. Aucun cas critique détecté automatiquement sur ces deux passages ; relecture humaine toujours absente. Un résultat GPT-4.1 incomplet reste compté comme échec. Les gardes de date et de variante sont actives. Le seuil de 95 % n'est atteint par aucun modèle ; cette comparaison ne vaut ni qualification en trois passages ni autorisation d'ouverture.
+Les divergences restantes incluent des clarifications de mouvements ambigus et des champs de question différents, ainsi que des récupérations et un ordre de circuit pour le modèle mini. Les attentes figées n'ont pas été réécrites pour améliorer les scores. Aucun modèle ni secret de production modifié. Rapports détaillés conservés localement, sans contenu utilisateur réel.
+
 ## 2026-11-13, Codex, F5 : qualification négative et refus des substitutions
 
 Résultat OpenAI réel sur `9d09b5c`, 80 cas inchangés rejoués trois fois : 65/80, 64/80, 65/80. Seuil de 95 % non atteint. Relecture : les passages 1 et 3 acceptaient un lundi pour une demande du mercredi (F5-45) ; le passage 2 acceptait un épaulé au lieu du power clean (F5-13). Le correcteur masquait la date fausse derrière la clarification attendue d’un autre champ : corrigé et anciens résultats reclassés sans nouvel appel, consignes/attendus figés inchangés. Aucun « zéro erreur critique » revendiqué pour cette version.
