@@ -75,6 +75,7 @@ jobs:
       DATABASE_URL: postgresql://tartan@localhost:5432/tartan_maestro
       DEMO_PASSWORD: maestro-mot-de-passe-de-test
       NO_AGE_EMAIL: sans-age@e2e.tartan.test
+      DISPOSABLE_EMAIL: jetable@e2e.tartan.test
       BETTER_AUTH_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       BETTER_AUTH_SECRET: secret-maestro-secret-maestro-secret-maestro
@@ -144,6 +145,14 @@ jobs:
           psql "$DATABASE_URL" -c "update profiles set birth_date = null where id = (select id from \"user\" where email = '$NO_AGE_EMAIL')"
           # L'écran d'âge vient après l'espace : le compte rejoint l'espace de démonstration comme athlète.
           psql "$DATABASE_URL" -c "insert into organization_members (organization_id, user_id, role, updated_at) select o.id, u.id, 'athlete', now() from organizations o, \"user\" u where o.owner_id = (select id from \"user\" where email = 'coach@demo.tartan.coach') and u.email = '$NO_AGE_EMAIL'"
+      - name: Compte jetable (suppression de compte, T07)
+        run: |
+          curl -sf -X POST http://localhost:3000/api/auth/sign-up/email \
+            -H "Content-Type: application/json" -H "Origin: http://localhost:3000" \
+            -d "{\"email\":\"$DISPOSABLE_EMAIL\",\"password\":\"$DEMO_PASSWORD\",\"name\":\"Compte Jetable\"}" > /dev/null
+          psql "$DATABASE_URL" -c "update \"user\" set email_verified = true where email = '$DISPOSABLE_EMAIL'"
+          psql "$DATABASE_URL" -c "update profiles set birth_date = '1990-01-01' where id = (select id from \"user\" where email = '$DISPOSABLE_EMAIL')"
+          psql "$DATABASE_URL" -c "insert into organization_members (organization_id, user_id, role, updated_at) select o.id, u.id, 'athlete', now() from organizations o, \"user\" u where o.owner_id = (select id from \"user\" where email = 'coach@demo.tartan.coach') and u.email = '$DISPOSABLE_EMAIL'"
       - name: Xcode 26
         # Expo SDK 55 exige le Swift de Xcode 26 ; l'image du runner garde Xcode 16 par défaut.
         run: |
@@ -194,6 +203,22 @@ jobs:
             -e API_URL=http://localhost:3000 \
             -e NO_AGE_EMAIL="$NO_AGE_EMAIL" \
             -e PASSWORD="$DEMO_PASSWORD"
+      - name: Suppression de compte (T07)
+        # Après les autres : ce parcours détruit son compte jetable. Il tourne même si un flux a échoué avant lui.
+        if: ${{ !cancelled() }}
+        working-directory: apps/mobile
+        env:
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: "600000"
+        run: |
+          maestro test .maestro/destructive/account-delete.yml --format junit --output "$RUNNER_TEMP/maestro-destructive.xml" \
+            --debug-output "$RUNNER_TEMP/maestro" --flatten-debug-output \
+            -e APP_ID=coach.tartan.app.dev \
+            -e DISPOSABLE_EMAIL="$DISPOSABLE_EMAIL" \
+            -e PASSWORD="$DEMO_PASSWORD"
+          # Le compte est vraiment effacé côté serveur.
+          left=$(psql "$DATABASE_URL" -tAc "select count(*) from \"user\" where email = '$DISPOSABLE_EMAIL'")
+          echo "Comptes restants : $left"
+          test "$left" = "0"
       - name: Journaux de l'app
         if: always()
         run: |
@@ -207,6 +232,7 @@ jobs:
           name: maestro
           path: |
             ${{ runner.temp }}/maestro.xml
+            ${{ runner.temp }}/maestro-destructive.xml
             ${{ runner.temp }}/maestro
             ${{ runner.temp }}/web.log
             ${{ runner.temp }}/app.log
