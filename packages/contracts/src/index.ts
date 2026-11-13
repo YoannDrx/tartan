@@ -1,5 +1,6 @@
 export * from "./enums";
 export * from "./session";
+export * from "./session-sequence";
 export * from "./requests";
 export * from "./responses";
 export * from "./strength";

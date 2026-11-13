@@ -117,6 +117,10 @@ export const athleteToday = z.object({
 export type AthleteToday = z.infer<typeof athleteToday>;
 
 export const resolvedItem = z.object({
+  kind: snapshotItem.shape.kind,
+  sourceRef: snapshotItem.shape.sourceRef,
+  rounds: snapshotItem.shape.rounds,
+  restAfterLastSetS: snapshotItem.shape.restAfterLastSetS,
   ref: z.string(),
   exerciseId: z.string().nullable().optional(),
   name: z.string(),

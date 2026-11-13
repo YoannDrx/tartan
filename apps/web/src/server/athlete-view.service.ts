@@ -437,12 +437,16 @@ const readAthleteSession = async (
       items: block.items.map((item) => {
         const prescription = individualized
           ? item.prescription
-          : applyOverride(item.prescription, overrides.get(item.ref));
+          : applyOverride(item.prescription, overrides.get(item.ref) ?? overrides.get(item.sourceRef ?? ""));
         const resolvedLoadKg =
           item.resolvedLoadKg !== undefined ? item.resolvedLoadKg : resolveLoadKg(prescription, tests);
         return {
           ref: item.ref,
           exerciseId: item.exerciseId,
+          kind: item.kind,
+          sourceRef: item.sourceRef,
+          rounds: item.rounds,
+          restAfterLastSetS: item.restAfterLastSetS,
           name: item.name,
           category: item.category,
           cues: item.cues,
@@ -622,7 +626,9 @@ const persistSessionLog = async (
           : currentSession.snapshot),
     );
     const items = new Map(
-      blocksForVariant(snapshot.blocks, input.variantDone).flatMap((b) => b.items.map((i) => [i.ref, i] as const)),
+      blocksForVariant(snapshot.blocks, input.variantDone).flatMap((b) =>
+        b.items.filter((i) => i.kind !== "recovery").map((i) => [i.ref, i] as const),
+      ),
     );
     if (input.detailedSets?.some((set) => !items.has(set.itemRef))) throw invalid(m.progression.unknownItem);
     // Une case cochée sur un exercice retiré depuis ne doit pas faire perdre la validation.
@@ -644,7 +650,8 @@ const persistSessionLog = async (
                   ? item.prescription
                   : applyOverride(
                       item.prescription,
-                      currentSession.overrides.find((o) => o.itemRef === item.ref)?.prescription as object | undefined,
+                      currentSession.overrides.find((o) => o.itemRef === item.ref || o.itemRef === item.sourceRef)
+                        ?.prescription as object | undefined,
                     );
                 const referenceKey = prescription.load?.type === "pct_1rm" ? prescription.load.test : null;
                 const row = references.find((t) => t.exerciseKey === referenceKey);

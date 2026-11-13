@@ -21,4 +21,12 @@ export const generateAutonomousBlocks = <T extends { variant: string }>(blocks: 
 export const exerciseCount = <T extends { variant: string; items: unknown[] }>(
   blocks: T[],
   variant: SessionVariant,
-): number => blocksForVariant(blocks, variant).reduce((n, b) => n + b.items.length, 0);
+): number =>
+  blocksForVariant(blocks, variant).reduce(
+    (n, b) =>
+      n +
+      b.items.filter(
+        (item) => !(item !== null && typeof item === "object" && "kind" in item && item.kind === "recovery"),
+      ).length,
+    0,
+  );

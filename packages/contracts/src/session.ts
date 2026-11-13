@@ -1,6 +1,7 @@
 import { exerciseClassification } from "./exercise-classification";
 import { z } from "zod";
 import { blockVariant, exerciseCategory, sessionType } from "./enums";
+import { executionRound, sequenceRef, sessionSequence } from "./session-sequence";
 
 export const uuid = z.uuid();
 export const isoDate = z.iso.date({ error: "Choisis une date valide au format AAAA-MM-JJ" });
@@ -66,6 +67,12 @@ export const exerciseMediaSnapshot = z.discriminatedUnion("kind", [
 export type ExerciseMediaSnapshot = z.infer<typeof exerciseMediaSnapshot>;
 
 export const snapshotItem = z.object({
+  kind: z.enum(["exercise", "recovery"]).optional(),
+  sourceRef: sequenceRef.optional(),
+  rounds: z.array(executionRound).max(2).optional(),
+  // Les anciens clients gardent leur affichage. Les nouveaux distinguent le
+  // repos entre séries du repos explicite qui suit l'exercice.
+  restAfterLastSetS: z.number().int().min(0).max(3600).optional(),
   classification: exerciseClassification.nullable().optional(),
   ref: z.string(),
   exerciseId: z.string().nullable(),
@@ -104,6 +111,7 @@ export type SnapshotBlock = z.infer<typeof snapshotBlock>;
 
 // Copie figée de la séance au moment de la publication.
 export const sessionSnapshot = z.object({
+  structureVersion: z.literal(2).optional(),
   title: z.string(),
   type: sessionType,
   durationMin: z.number().int().nullable(),
@@ -119,6 +127,7 @@ export const sessionDraftItem = z.object({
 });
 
 export const sessionDraftBlock = z.object({
+  sequence: sessionSequence.optional(),
   ref: z.string().min(1).max(100).optional(),
   name: z.string().trim().min(1).max(sessionTextLimits.blockName),
   variant: blockVariant,
@@ -126,6 +135,7 @@ export const sessionDraftBlock = z.object({
 });
 
 export const sessionDraft = z.object({
+  structureVersion: z.literal(2).optional(),
   title: z.string().trim().min(1, "Donne un titre à la séance").max(sessionTextLimits.title),
   type: sessionType,
   durationMin: z.number().int().min(1).max(600).nullable(),

@@ -1,4 +1,5 @@
 import type { SessionDraft } from "@tartan/contracts";
+import { remapSequence } from "./session-sequence";
 
 // Les anciennes références sont conservées exactement. Une lecture ne réécrit pas la base.
 // Une fois ces références enregistrées, elles suivent l'item, jamais sa position.
@@ -21,9 +22,13 @@ export const hasUniqueSessionRefs = (draft: SessionDraft): boolean => {
 // Le générateur est fourni par l'appelant (crypto natif/web/serveur).
 export const copyDraftWithNewRefs = (draft: SessionDraft, newRef: () => string): SessionDraft => ({
   ...draft,
-  blocks: draft.blocks.map((block) => ({
-    ...block,
-    ref: newRef(),
-    items: block.items.map((item) => ({ ...item, ref: newRef() })),
-  })),
+  blocks: draft.blocks.map((block) => {
+    const refs = new Map(block.items.map((item) => [item.ref ?? "", newRef()]));
+    return {
+      ...block,
+      ref: newRef(),
+      items: block.items.map((item) => ({ ...item, ref: item.ref ? refs.get(item.ref)! : newRef() })),
+      ...(block.sequence ? { sequence: remapSequence(block.sequence, refs, newRef) } : {}),
+    };
+  }),
 });

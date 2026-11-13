@@ -27,8 +27,12 @@ export const freezePrescription = (
     blocks: snapshot.blocks.map((block) => ({
       ...block,
       items: block.items.map((item) => {
-        const prescription = applyOverride(item.prescription, adapted.get(item.ref));
-        const old = oldItems.get(item.ref);
+        const prescription = applyOverride(
+          item.prescription,
+          adapted.get(item.ref) ?? adapted.get(item.sourceRef ?? ""),
+        );
+        const old =
+          oldItems.get(item.ref) ?? (previous?.structureVersion !== 2 ? oldItems.get(item.sourceRef ?? "") : undefined);
         if (
           old &&
           old.exerciseId === item.exerciseId &&
