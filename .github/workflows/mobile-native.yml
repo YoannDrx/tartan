@@ -119,6 +119,17 @@ jobs:
           for i in $(seq 1 60); do curl -sf http://localhost:3000/api/health && break; sleep 2; done
           curl -sf -4 http://localhost:3000/api/health
           curl -sf -6 http://localhost:3000/api/health
+      - name: Serveur chauffé
+        # La première requête charge les modules et ouvre la base : sans cela, le premier parcours attend trop.
+        run: |
+          for who in coach@demo.tartan.coach un@demo.tartan.coach; do
+            jar="$RUNNER_TEMP/warm-$who.txt"
+            curl -sf -c "$jar" -X POST http://localhost:3000/api/auth/sign-in/email \
+              -H "Content-Type: application/json" -H "Origin: http://localhost:3000" \
+              -d "{\"email\":\"$who\",\"password\":\"$DEMO_PASSWORD\"}" > /dev/null
+            curl -sf -b "$jar" http://localhost:3000/api/v1/me > /dev/null
+            rm -f "$jar"
+          done
       - name: Compte sans date de naissance (age-gate)
         run: |
           curl -sf -X POST http://localhost:3000/api/auth/sign-up/email \

@@ -4,10 +4,11 @@ env:
   EMAIL: ${ATHLETE_EMAIL}
 ---
 - runFlow: flows/_sign-in.yml
+# Premier parcours de la série : l'app et le serveur démarrent, l'attente est plus longue.
 - extendedWaitUntil:
     visible:
       id: session-hero
-    timeout: 30000
+    timeout: 60000
 - tapOn: "Calendrier.*"
 - tapOn: "Phases de préparation"
 # Le calendrier dit déjà « Aucune phase » : on attend un repère propre à l'écran des phases.
