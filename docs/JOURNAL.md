@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, F1 : sauvegarde privée obligatoire et main protégé
+
+Fait : protection de `main` activée puis relue via API (PR, contrôle `quality`, branche à jour, discussions résolues, pas de force-push ni suppression, administrateurs inclus). Zéro approbateur imposé par GitHub pour éviter l'auto-approbation impossible du compte unique ; l'accord du fondateur avant fusion reste la règle.
+Codé : `fix/private-backup-required`, empilée sur F0/PR 117 ; secret Blob obligatoire avant export, aucun upload-artifact ni repli public, échec explicite. La PR 115 de l'autre agent améliore la relecture Blob : son script et ses tests ne sont pas repris ni écrasés.
+Vérifié : actionlint et exécution du contrôle avec jeton absent/fictif, diff propre ; types/lint/tests/design déjà verts sur la base inchangée, aucun parcours modifié. Non vérifié : workflow déployé, réception d'alerte et restauration Blob.
+Blocage externe : Neon MCP refuse l'authentification (401), reconnexion demandée ; CLI installée ancienne. Suite : poursuivre F1 après reconnexion et F2 indépendamment.
+
 ## 2026-11-13, Codex, F0 : finalisation autorisée et preuves réconciliées
 
 Fait : plan F0–F9 intégré au plan web existant ; décisions produit et exception de cartes imbriquées ; audit daté dans ETAT, états Android/Blob/Stripe et tests réconciliés, compte Play organisation, réserves médiateur/clé conservées sans les déclarer résolues.

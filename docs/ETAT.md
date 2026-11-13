@@ -13,7 +13,7 @@ Un lot, une branche, une PR. Spécification et critères : [plan web](plans/web.
 | Lot | Résultat attendu                                                                | État / prochaine preuve                                                                   |
 | --- | --- | --- |
 | F0  | Documentation cohérente, Node 22 et pnpm 10 reproductibles                      | Codé et testé sur `docs/completion-baseline` ; Node 22.23.5/pnpm 10.34.9, types/lint/tests/design réussis. Pas de nouveau parcours web modifié. |
-| F1  | Exploitation, Preview, protection GitHub/Neon, sauvegarde et alertes            | À faire ; Blob a reçu une copie mais restauration de cette destination non prouvée        |
+| F1  | Exploitation, Preview, protection GitHub/Neon, sauvegarde et alertes            | Partiel : protection GitHub active et relue ; suppression du repli public codée/testée sur `fix/private-backup-required`. Restauration Blob non prouvée ; connecteur Neon actuellement en erreur 401.        |
 | F2  | Structure commune de séances imbriquées et compatibilité                        | À faire ; contrats actuels plats                                                          |
 | F3  | 150 exercices avec guides et visuels validés, disponibles aux espaces existants | À faire ; 55 fiches de départ                                                             |
 | F4  | Constructeur circuits et supersets, deux niveaux maximum                        | À faire                                                                                   |
@@ -131,7 +131,7 @@ Un lot, une branche, une PR. Détail des lots : [web](plans/web.md).
 | A10 | E-mails d'activation (J+1, J+3, J+7), plafond presque atteint, préférence « conseils » | Codé, testé. Reconquête non construite, en attente de F4 |
 | A11 | Accueil de l'athlète sur sa page, e-mail de bienvenue, rappel d'invitation avec opposition par adresse | Codé, testé |
 | A12 | Centre d'aide `/aide` en huit thèmes, « Aide » par écran dans le menu Réglages, contact | Codé, testé |
-| A13 | Sauvegardes hors de GitHub, sondes de disponibilité et des notifications | Sauvegardes : éprouvé le 13 novembre 2026, copie de production envoyée dans le store Vercel Blob privé, relue à l'identique (empreinte SHA-256), purge à 30 jours. Reste une restauration chronométrée depuis le store, puis le retrait des anciens artefacts GitHub. Sondes : attendent l'offre Sentry (F2, F3) |
+| A13 | Sauvegardes hors de GitHub, sondes de disponibilité et des notifications | Sauvegardes : éprouvé le 13 novembre 2026, copie de production envoyée dans le store Vercel Blob privé, relue à l'identique (empreinte SHA-256), purge à 30 jours. Le correctif F1 supprime le repli vers GitHub. Reste une restauration chronométrée depuis le store, puis le retrait des anciens artefacts GitHub. Sondes : attendent l'offre Sentry (F2, F3) |
 
 ### Agents : direction artistique, ajouts et jeu
 
