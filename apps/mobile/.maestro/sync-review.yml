@@ -22,6 +22,7 @@ env:
     element: "Enregistrer mes séries"
     timeout: 90000
     speed: 90
+    centerElement: true
 - runScript:
     file: scripts/bump-session.js
     env:
@@ -29,9 +30,15 @@ env:
       COACH_EMAIL: ${COACH_EMAIL}
       PASSWORD: ${PASSWORD}
 - tapOn: "Enregistrer mes séries"
+# Le serveur refuse : la saisie est gardée sur l'appareil, et l'écran le dit.
 - extendedWaitUntil:
-    visible: "Vérifier mes saisies"
+    visible: "L.enregistrement a été refusé.*"
     timeout: 30000
+- scrollUntilVisible:
+    element: "Vérifier mes saisies"
+    direction: UP
+    timeout: 90000
+    speed: 90
 - tapOn: "Vérifier mes saisies"
 - extendedWaitUntil:
     visible: "Saisies à vérifier"
