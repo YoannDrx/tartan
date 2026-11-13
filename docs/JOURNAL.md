@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, incident de production et rectification de la preuve Neon
+
+Constaté : après fusion autorisée de la PR 120, déploiement `0d9c4ef` en échec sur la connexion de migration ; `/api/health` retourne 503, version servie `75d3cbe`. Les journaux du cron signalent `P1000` (authentification refusée), notamment à 19 h 15 et 19 h 30 UTC. Connexion réseau/TLS disponible et requêtes techniques Neon réussies sur les deux branches.
+Rectification de l’entrée précédente : l’API montre la restauration finalisée avec déplacement du calcul et de la protection vers la branche restaurée. L’affirmation « production inchangée » n’est donc pas une preuve valide. Ne supprimer aucune branche ni snapshot ; la demande de nettoyage antérieure est retirée. Les écritures récentes restent à rapprocher, sans conclusion de perte ou d’absence de perte.
+En cours : checkout dédié pour corriger les preuves de la PR 125 ; fusions supplémentaires suspendues. Origine de la finalisation demandée au fondateur ; autorisation ciblée de transférer les identifiants valides vers Vercel puis redéployer demandée conformément à sa règle sur les secrets. Aucun accès communiqué dans le dépôt.
+Suite : établir la branche de référence, rétablir l’authentification, vérifier santé/version/journaux, puis consigner la cause et l’impact réels avant reprise des fusions.
+
 ## 2026-11-13, Codex, F2 déployé et recette navigateur Stripe
 
 Fait : fusion autorisée de la PR 119 après qualité et natif verts sur `2bea4fa`. Production `75d3cbe` READY, version vérifiée sur les deux domaines, aucun avertissement/erreur dans les journaux du déploiement consultés. La PR 120 est réactualisée sur main, nouvelle CI nécessaire ; accord de fusion déjà reçu pour 120 et 121.

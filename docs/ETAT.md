@@ -2,7 +2,9 @@
 
 Mis à jour le 13 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
-**En une phrase :** le socle web fonctionne et dispose de tests étendus ; la finalisation autorisée le 13 novembre ajoute constructeur imbriqué, 150 guides d'exercices, deux modes IA et vidéo collaborative avant la vente. Paiement réel, restauration Blob et téléphones restent à éprouver.
+**Incident en cours au 13 novembre, constaté à 19 h 28 UTC :** la santé de production renvoie 503 et les journaux Vercel signalent un refus d’authentification PostgreSQL. Le déploiement de la PR 120 (`0d9c4ef`) a échoué ; la version servie reste `75d3cbe`. Aucune nouvelle fusion ni suppression Neon avant rétablissement et rapprochement des branches.
+
+**En une phrase :** le socle web dispose de tests étendus ; la finalisation autorisée le 13 novembre ajoute constructeur imbriqué, 150 guides d'exercices, deux modes IA et vidéo collaborative avant la vente. Paiement réel, restauration Blob et téléphones restent à éprouver.
 
 **Décisions du fondateur :** avis juridique du dossier existant déclaré obtenu ; Mux à la demande ; ouverture souhaitée sans attendre le médiateur et maintien volontaire de la clé OpenAI actuelle. Ces deux réserves ne valent pas validation de conformité ou résolution du risque. Accords de traitement effectivement acceptés : non confirmés. Compte Google Play organisation. Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur.
 
@@ -46,7 +48,7 @@ Code applicatif inspecté : `9e1fb12` ; production observée : `3bb8099` (règle
 | Neon                           | Région européenne, offre gratuite, restauration six heures, production non protégée | Protection et fenêtre sept jours à mettre en place                       |
 | Vercel                         | Production disponible ; variables de sondes présentes                               | Preview mobile sans DNS ; réception des alertes non prouvée              |
 
-Complément de restauration Neon du 13 novembre : snapshot demandé au point 17 h 35 UTC, restauré dans une nouvelle branche isolée. Lecture réelle réussie : 83 tables, 49 migrations terminées, aucune incomplète ; empreinte des migrations et volumes des exercices, modèles, blocs, éléments, suivis et vidéos identiques à la source contrôlée. Endpoint de production resté rattaché à sa branche. Calcul de recette borné à 0,25 unité, suspension après 300 s ; snapshot temporaire expirant le lendemain. Ne prouve pas une reprise de Vercel sur cette branche ni la disponibilité des assets Mux.
+Rectification de la recette Neon du 13 novembre : les contrôles de lecture ont trouvé 83 tables et 49 migrations terminées, mais **l’isolation annoncée précédemment n’est pas acquise**. L’API révèle que la restauration est finalisée, que la branche restaurée porte désormais le nom et la protection de production et que le calcul initial de production lui est rattaché. L’ancienne branche existe encore. Les requêtes techniques Neon réussissent sur les deux branches ; Vercel reçoit un refus d’authentification. L’origine exacte de la finalisation et l’impact sur les écritures récentes restent à établir. Les deux branches et le snapshot sont conservés ; la précédente demande de suppression est caduque. Cette recette ne constitue pas une preuve de reprise réussie.
 
 Les preuves nominatives ou contenant des identifiants prestataires restent hors du dépôt public. Chaque lot ajoute son commit, environnement, résultat et limite, sans transformer une configuration présente en preuve de fonctionnement.
 
