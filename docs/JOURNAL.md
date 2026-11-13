@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, F0 : finalisation autorisée et preuves réconciliées
+
+Fait : plan F0–F9 intégré au plan web existant ; décisions produit et exception de cartes imbriquées ; audit daté dans ETAT, états Android/Blob/Stripe et tests réconciliés, compte Play organisation, réserves médiateur/clé conservées sans les déclarer résolues.
+En cours : `docs/completion-baseline`, depuis `main` à jour (`3bb8099`), aucune branche d'un autre agent reprise. Node 22.23.5/pnpm 10.34.9 verrouillés ; types, lint (quatre avertissements existants), tous les tests et design passent. E2E non relancé : aucun parcours modifié.
+À savoir : l'audit précédent avait utilisé Node 24 ; ses tests verts ne sont pas une preuve sous le runtime prescrit. Aucun écran, paiement ou téléphone réel ajouté à la preuve par cette documentation.
+Suite : F1 exploitation puis F2 contrats, en conservant une branche/PR par lot.
+
 ## 2026-11-13, Claude, l'agent peut agir sur les comptes du fondateur
 
 Fait : à la demande écrite du fondateur, `AGENTS.md` autorise l'agent à créer des ressources et à poser des secrets sur Vercel, GitHub, EAS et Neon, sans jamais les afficher (PR `docs/regles-agent`). Restent au fondateur : paiements et offres payantes, engagements légaux, ouverture des inscriptions et du classement, essais sur ses téléphones. Le dépôt public, la garde `assertEnvIsolation` et l'interdiction d'essayer sur la production avec des comptes de passage ne changent pas.
@@ -49,11 +56,13 @@ Vérifié en local : l'app de développement se compile pour le simulateur (Xcod
 Cause des échecs : compilée avec `CODE_SIGNING_ALLOWED=NO`, l'app n'a pas accès au trousseau, où `SecureStore` range la session ; la connexion et le lien de retour échouaient pour cette seule raison. Le job signe désormais en ad hoc (`CODE_SIGN_IDENTITY=-`), sans compte Apple.
 Éprouvé sur simulateur, avec l'app signée en ad hoc et le serveur local : le lien de retour (`tartan-dev://callback?cookie=…`) ouvre la session du coach, puis celui de l'athlète fait passer l'app à son accueil, sans rien garder du coach (M4).
 Suite conseillée : les flux de T24, puis ceux de M4 (changement de compte) et M5 (vidéo juste encodée).
+
 ## 2026-11-12, Claude, page d'accueil : film ralenti, échauffement au saut en hauteur
 
 Fait : à la demande du fondateur, le film des disciplines passe à 750svh sur téléphone et 1000svh sur ordinateur (au lieu de 300 et 450svh). L'échauffement de la page d'accueil devient le saut en hauteur. Pour cette épreuve : la barre et les poteaux montent à chaque hauteur, l'arc du sauteur aussi ; ralentis à l'appel, au franchissement et à la réception ; confettis et hauteur affichée pour une barre franchie. Le moteur de partie accepte un `timeScale` par épreuve, qui ne change que l'affichage (PR `feat/landing-hauteur`).
 Vérifié : `tests/high-jump-scene.test.ts` ; partie jouée dans le build de production avec des appuis minutés, regardée en captures à 390, 768 et 1440 px et en mouvement réduit (pas de confettis).
 À savoir : le ralenti allonge le temps réel d'une partie, jamais le nombre de pas : le rejeu du serveur et le contrôle de cadence du classement ne bougent pas. Les sons (applaudissements) restent hors périmètre : le jeu n'a pas de son.
+
 ## 2026-11-12, Claude, M6 : révocation Apple pour la connexion native
 
 Fait : l'app iOS envoie le code d'autorisation d'Apple à `POST /api/v1/me/apple-authorization`. Le serveur l'échange auprès d'Apple avec le bundle de l'app (`APPLE_APP_BUNDLE_IDENTIFIER`), vérifie que le sujet du jeton est le compte Apple relié, puis garde le jeton de rafraîchissement et l'identifiant qui l'a délivré (colonne additive `account.apple_client_id`). La suppression du compte révoque avec cet identifiant (PR `feat/apple-revocation`).
@@ -146,6 +155,7 @@ Suite conseillée : T12 à T21.
 Fait : `tests/video-http.test.ts` passe par les vrais handlers des routes vidéo, avec une vraie session, Mux seul simulé : création d'une adresse d'envoi, renouvellement d'une adresse expirée, liste du coach, vidéo invisible de l'athlète avant partage, remarque, partage et notification, partage au groupe refusé, remarque retirée ; un coach d'un autre espace ne crée, ne lit ni ne partage rien. `tests/upload-queue.test.ts` fait tourner la vraie file d'envoi du navigateur contre un faux serveur qui suit le protocole reprenable de Mux : envoi en morceaux de 4 Mio, reprise après coupure sans renvoyer ce qui est reçu, adresse expirée renouvelée, refus définitif abandonné, envoi hors ligne gardé (PR `test/video-http`).
 À savoir : la fin du traitement par Mux (webhook) est posée en base dans ce test ; elle a son propre test signé, `mux-webhook.test.ts`.
 Suite conseillée : T11 et T22.
+
 ## 2026-11-12, Claude, lot J3 : classement du jeu, construit et fermé
 
 Fait : trois tables additives (`game_runs`, `game_scores`, `game_bans`). `src/server/game.service.ts`, service public limité à ces tables : le départ d'un essai tire la graine côté serveur et rend un jeton à usage unique (15 min) ; l'envoi consomme le jeton, rejoue le journal des appuis avec `packages/game`, refuse un score impossible (plafond), une partie arrivée plus vite que son horloge (90 % de sa durée), un pseudo filtré (3 à 16 caractères, mots refusés), un appareil banni, et limite le débit par empreinte d'adresse ; une marque nulle n'est pas classée. Classement par épreuve, semaine en cours ou depuis toujours, meilleur score par appareil. Effacement sans compte par l'appareil. Tâche quotidienne : empreintes IP effacées à 30 jours, jetons inutilisés à un jour. Routes `/api/v1/game/runs`, `/scores` (POST et DELETE), `/leaderboard`. Console `/admin/jeu` (masquer, bannir). Réglage « Classement du jeu » dans `/admin/configuration`, fermé par défaut ; sur `/jeu`, rien ne change tant qu'il est fermé (PR `feat/jeu-classement`).

@@ -79,7 +79,7 @@ Cartes de test Stripe (mode test uniquement) : `4242 4242 4242 4242` accepte, `4
 | Radar | Règles par défaut ; 3-D Secure demandé quand la banque l'exige |
 | Mentions de facture | Identité du vendeur, « TVA non applicable, art. 293 B du CGI » |
 
-Décision ouverte : un compte Stripe propre à Tartan, ou le compte actuel qui sert plusieurs produits. Voir [../ETAT.md](../ETAT.md).
+Utiliser les comptes dédiés Tartan de production et sandbox, dont le constat est dans [ETAT.md](../ETAT.md). Vérifier le compte cible avant toute opération.
 
 ## Recette manuelle complète (en sandbox)
 

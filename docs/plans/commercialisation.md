@@ -16,13 +16,13 @@ Essai de 14 jours au premier abonnement d'un espace. Les athlètes ne paient jam
 
 ## Portes de l'ouverture
 
-Les inscriptions restent fermées tant qu'une porte n'est pas franchie. L'ouverture est une décision du fondateur.
+Les inscriptions restent fermées jusqu'à la décision du fondateur. Depuis le 13 novembre, les lots F1 à F7 du plan web précèdent l'ouverture. Le fondateur souhaite différer le médiateur et conserve la clé OpenAI actuelle : ces réserves restent visibles, elles ne sont pas des contrôles réussis.
 
 | # | Condition | Qui |
 | --- | --- | --- |
 | 1 | Avis écrit du juriste : HDS, vidéos, OpenAI, conservation | Fondateur |
 | 2 | Médiateur désigné, CGV validées, « version de travail » retirée | Fondateur, puis agent |
-| 3 | Clé OpenAI remplacée, accord de traitement signé | Fondateur |
+| 3   | Clé actuelle conservée par décision explicite ; risque non clos, accord de traitement effectivement accepté à confirmer | Fondateur             |
 | 4 | Vrai paiement, facture, résiliation, remboursement depuis la console | Fondateur |
 | 5 | Configuration verte : webhooks, sondes, passkey de secours | Fondateur, agent |
 | 6 | Plafond Mux levé, Neon payant, sauvegardes hors de GitHub | Fondateur, agent |
@@ -51,7 +51,7 @@ Questions à poser au coach : taille du groupe et part d'Android ; séances par 
 
 ## Le jour de l'ouverture
 
-1. Fin du plan [web](web.md), étape 4.
+1. Fin des lots F1 à F7 du plan [web](web.md), preuves et réserves relues.
 2. Prévenir les deux espaces pilotes des fonctions activées.
 3. Ouvrir les inscriptions dans Configuration, vérifier la landing et un compte neuf.
 4. Surveiller 72 heures (plan web, étape 6).
