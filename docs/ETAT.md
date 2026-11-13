@@ -4,7 +4,7 @@ Mis à jour le 12 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 **En une phrase :** le code de la V1 et de la V1.1 est en production et testé automatiquement, mais rien n'est encore vendu, car ni le paiement réel, ni les téléphones, ni l'avis juridique ne sont faits.
 
-**Portes d'ouverture franchies : 1 sur 10** ([commercialisation](plans/commercialisation.md)). La porte 10 est franchie le 11 novembre 2026 : les tests critiques T01 à T08 sont verts. Deux réserves : T03 tourne contre la sandbox Stripe, hors de la CI, à la demande ; le flux Maestro de T07 est écrit, jamais exécuté. Huit des neuf portes restantes dépendent du fondateur en tout ou partie.
+**Portes d'ouverture franchies : 1 sur 10** ([commercialisation](plans/commercialisation.md)). La porte 10 est franchie le 11 novembre 2026 : les tests critiques T01 à T08 sont verts. Une réserve : T03 tourne contre la sandbox Stripe, hors de la CI, à la demande. Le flux Maestro de T07 (suppression de compte) tourne en CI depuis le 13 novembre 2026. Huit des neuf portes restantes dépendent du fondateur en tout ou partie.
 
 **Ordre décidé le 11 novembre 2026 :** vendre la web app, puis refondre la direction artistique, puis livrer le jeu. Les stores suivent.
 
@@ -84,7 +84,7 @@ Un lot, une branche, une PR. Détail des lots : [web](plans/web.md).
 | A3 | Garde-fous : couleurs et textes en dur refusés par le lint | Codé, testé. 267 textes d'avant la règle restent gelés dans 46 fichiers |
 | A4 | Finitions du paiement : action bancaire requise, bandeau d'impayé, plafond atteint, factures | Codé, testé. Webhook de production à compléter par F14 |
 | A5 | T05 actions d'administration, T06 export comptable | Codé, testé. L'export répondait 500 à un refus : corrigé en 401 et 403 |
-| A6 | T07 suppression de compte, T08 connexion Apple et Google | Codé, testé. Le flux Maestro de suppression est écrit, jamais exécuté. La connexion Apple et Google reste éteinte en production |
+| A6 | T07 suppression de compte, T08 connexion Apple et Google | Codé, testé. Le flux Maestro de suppression tourne dans le job `maestro`, sur un compte jetable. La connexion Apple et Google reste éteinte en production |
 | A7 | T03 paiement de bout en bout en sandbox | Codé, passé en sandbox le 11 novembre. Hors CI : à relancer à la main avant l'ouverture |
 | A8 | Registre des e-mails, exemption des e-mails de sécurité, invitations par la file | Codé, testé |
 | A9 | Onboarding du coach en trois temps, guide « Pour démarrer » en quatre étapes sur une règle partagée | Codé, testé |
@@ -127,7 +127,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | N° | Tâche | Plan | Priorité |
 | --- | --- | --- | --- |
 | M1 | Échec EAS à « Read app config » : cause trouvée et corrigée (TypeScript importé par la configuration). Reste un build de production réel à lancer | [Android](plans/android.md) | Bloque Android |
-| M2 | Maestro sur simulateur en CI (T09) : fait. Job `maestro` de la CI mobile, vert le 13 novembre 2026 : dix flux (connexion, mot de passe oublié, lien d'invitation, écran d'âge, validation et mode séance de l'athlète, réglages, suivi et appel du coach, constructeur, phases). Le 13 novembre, trois de plus (T24) : planificateur (prestataire IA factice, jamais sur Vercel), capture vidéo, conflit de synchronisation jusqu'à « Vérifier mes saisies » | [automatisation](tests/automatisation.md) | Avant soumission |
+| M2 | Maestro sur simulateur en CI (T09) : fait. Job `maestro` de la CI mobile, vert le 13 novembre 2026 : dix flux (connexion, mot de passe oublié, lien d'invitation, écran d'âge, validation et mode séance de l'athlète, réglages, suivi et appel du coach, constructeur, phases). Le 13 novembre, trois de plus (T24) : planificateur (prestataire IA factice, jamais sur Vercel), capture vidéo, conflit de synchronisation jusqu'à « Vérifier mes saisies ». Puis la suppression d'un compte jetable (T07), vérifiée aussi en base | [automatisation](tests/automatisation.md) | Avant soumission |
 | M3 | Captures Android 1080 × 1920, capture de l'analyse vidéo iOS. Demande deux téléchargements à accorder par le fondateur : une image système Android pour l'émulateur, et le clip Pexels de l'écran d'analyse | [captures](exploitation/captures.md) | Avant soumission |
 | M4 | Changement de compte par lien magique sur mobile : corrigé (ordre cookie, cache, espace actif) et éprouvé sur simulateur le 12 novembre (coach connecté, lien de l'athlète, l'app passe à l'accueil de l'athlète). Reste un essai sur téléphone | [iOS](plans/ios.md) | Avant soumission |
 | M5 | Repli HLS du lecteur mobile si le MP4 n'est pas prêt : codé et testé (`src/lib/playback-source.ts`). Reste à voir une vidéo lue juste après l'encodage, sur téléphone | [iOS](plans/ios.md) | Avant soumission |

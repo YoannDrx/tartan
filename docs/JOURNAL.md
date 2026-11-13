@@ -13,6 +13,11 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Claude, T07 sur simulateur, et le refus d'enregistrement visible
+
+Fait : le job `maestro` crée un compte jetable (athlète de l'espace de démonstration), lance `.maestro/destructive/account-delete.yml` après les treize flux, puis vérifie en base que le compte a disparu. Le flux suit les gestes sûrs d'iOS (attente du clavier, connexion par `flows/_sign-in.yml`). Dans l'éditeur de séries du mobile, le message d'enregistrement passe au-dessus du bouton : après un refus, le bandeau de synchronisation pousse l'écran vers le bas et le message, sous le bouton, sortait de l'écran (PR `test/maestro-suppression`).
+À savoir : le dossier `destructive` reste hors de `maestro test .maestro` ; ne jamais y passer un compte de démonstration.
+
 ## 2026-11-13, Claude, T24 : planificateur, capture et synchronisation dans les parcours natifs
 
 Fait : prestataire factice `src/server/ai/fake-provider.ts`, choisi par le service de proposition quand `AI_PLANNER_FAKE_PROVIDER=true`, jamais sur Vercel, et refusé en production par `assertEnvIsolation`. Flux Maestro `coach-planner` : accord, destinataires, consigne relue, proposition, relecture, brouillon créé. Le job `maestro` ouvre le planificateur dans l'espace de démonstration (offre pilote, drapeau IA) (PR `test/maestro-planificateur`).

@@ -1,6 +1,7 @@
 # T07 : suppression réelle d'un compte, sur un compte jetable créé pour ce seul parcours.
 # Hors du lot habituel (`maestro test .maestro` ne lit pas ce dossier) : ce parcours détruit le compte.
 #   maestro test -e APP_ID=coach.tartan.app.dev -e DISPOSABLE_EMAIL=… -e PASSWORD=… .maestro/destructive/account-delete.yml
+# En CI, le job « maestro » crée ce compte (athlète de l'espace de démonstration) et lance ce flux après les autres.
 # Ne jamais y passer COACH_EMAIL ni ATHLETE_EMAIL, ni un compte de production.
 appId: ${APP_ID}
 env:
@@ -16,14 +17,22 @@ env:
 - scrollUntilVisible:
     element:
       id: delete-account
+    timeout: 60000
+    speed: 90
+    centerElement: true
 - tapOn:
     id: delete-account
-- assertVisible:
-    id: delete-confirm
+- extendedWaitUntil:
+    visible:
+      id: delete-confirm-word
+    timeout: 10000
 - tapOn:
     id: delete-confirm-word
+# Le clavier s'ouvre encore : taper trop tôt perd les premières lettres.
+- waitForAnimationToEnd
 - inputText: "SUPPRIMER"
-- hideKeyboard
+# Le clavier en majuscules d'iOS ne se ferme pas par `hideKeyboard` : on touche le titre de la feuille.
+- tapOn: "Supprimer ton compte"
 - tapOn:
     id: delete-confirm
 # Le compte n'existe plus : l'app revient à la connexion.
@@ -31,18 +40,12 @@ env:
     visible:
       id: sign-in-email
     timeout: 30000
-# Les anciens identifiants n'ouvrent plus rien.
-- tapOn:
-    id: sign-in-email
-- inputText: ${DISPOSABLE_EMAIL}
-- hideKeyboard
-- tapOn:
-    id: sign-in-use-password
-- tapOn:
-    id: sign-in-password
-- inputText: ${PASSWORD}
-- hideKeyboard
-- tapOn:
-    id: sign-in-submit
+# Les anciens identifiants n'ouvrent plus rien : l'app reste sur la connexion.
+- runFlow: ../flows/_sign-in.yml
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: sign-in-submit
+    timeout: 15000
 - assertNotVisible:
     id: open-settings

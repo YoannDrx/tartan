@@ -469,6 +469,9 @@ export const PerformedSetsEditor = ({
         ]}
         onChange={(value) => setDraft((old) => ({ ...old, status: value as "done" | "partial" }))}
       />
+      {/* Au-dessus du bouton : un refus fait apparaître le bandeau de synchronisation en haut, qui pousse l'écran
+          vers le bas ; sous le bouton, le message sortait de l'écran. */}
+      {message ? <T accessibilityLiveRegion="polite">{message}</T> : null}
       <Button
         label={athleteId ? m.progression.saveCoachSets : m.progression.saveSets}
         loading={saving}
@@ -482,7 +485,6 @@ export const PerformedSetsEditor = ({
           else void save();
         }}
       />
-      {message ? <T accessibilityLiveRegion="polite">{message}</T> : null}
       {locked ? <ConfirmedRecords records={records} /> : null}
       {celebration ? (
         <ValidationSheet
