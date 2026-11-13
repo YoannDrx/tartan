@@ -13,6 +13,14 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-12, Claude, M2 et T09 : Maestro sur simulateur en CI
+
+Fait : job `maestro` dans `.github/workflows/mobile-native.yml`, sur macOS : Postgres installé par Homebrew, migrations, graine de démonstration, compte sans date de naissance pour `age-gate`, serveur web local (`next start`), app de développement compilée pour le simulateur iOS (`TartanDev`, en Release, l'API sur `http://localhost:3000`), puis `maestro test .maestro`. Les flux de l'athlète n'ont plus de `runFlow: when` ; `coach-tracking` ouvre la séance du jour et enregistre l'appel (PR `test/maestro-ci`).
+À savoir : aucun secret, tout naît et meurt dans le job. En local, CocoaPods exige `LANG=en_US.UTF-8`. Les artefacts du job (rapport JUnit, captures de Maestro, journal du serveur) aident à comprendre un échec.
+Vérifié en local : l'app de développement se compile pour le simulateur (Xcode 26.2), s'ouvre sur l'écran de connexion et joint le serveur local ; la graine et le compte sans date de naissance se créent comme dans le job.
+Cause des échecs : compilée avec `CODE_SIGNING_ALLOWED=NO`, l'app n'a pas accès au trousseau, où `SecureStore` range la session ; la connexion et le lien de retour échouaient pour cette seule raison. Le job signe désormais en ad hoc (`CODE_SIGN_IDENTITY=-`), sans compte Apple.
+Éprouvé sur simulateur, avec l'app signée en ad hoc et le serveur local : le lien de retour (`tartan-dev://callback?cookie=…`) ouvre la session du coach, puis celui de l'athlète fait passer l'app à son accueil, sans rien garder du coach (M4).
+Suite conseillée : les flux de T24, puis ceux de M4 (changement de compte) et M5 (vidéo juste encodée).
 ## 2026-11-12, Claude, page d'accueil : film ralenti, échauffement au saut en hauteur
 
 Fait : à la demande du fondateur, le film des disciplines passe à 750svh sur téléphone et 1000svh sur ordinateur (au lieu de 300 et 450svh). L'échauffement de la page d'accueil devient le saut en hauteur. Pour cette épreuve : la barre et les poteaux montent à chaque hauteur, l'arc du sauteur aussi ; ralentis à l'appel, au franchissement et à la réception ; confettis et hauteur affichée pour une barre franchie. Le moteur de partie accepte un `timeScale` par épreuve, qui ne change que l'affichage (PR `feat/landing-hauteur`).

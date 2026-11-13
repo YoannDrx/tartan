@@ -17,7 +17,7 @@ Mis à jour le 12 novembre 2026. Toute PR qui change un état met ce fichier à 
 | Inscriptions | Fermées : création d'espace coach sur invitation |
 | Espaces en production | 2 espaces pilotes, comptes presque tous fictifs |
 | Administrateur | Le fondateur, passkey enrôlée |
-| CI | Verte. Plafonnée à 45 minutes depuis la panne des dépôts Ubuntu du 11 novembre 2026. Le dépôt est public pour disposer des minutes GitHub Actions |
+| CI | Verte. Job `quality` plafonné à 60 minutes depuis le 12 novembre 2026 (les parcours en prennent près de 30). Job `maestro` (macOS) : les flux natifs sur simulateur iOS, contre un serveur local. Le dépôt est public pour disposer des minutes GitHub Actions |
 | iOS | Archive 1.1.0 (12) envoyée à App Store Connect, non soumise à la revue |
 | Android | Rien de publié, build EAS en échec, compte Play à créer |
 
@@ -127,9 +127,9 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | N° | Tâche | Plan | Priorité |
 | --- | --- | --- | --- |
 | M1 | Échec EAS à « Read app config » : cause trouvée et corrigée (TypeScript importé par la configuration). Reste un build de production réel à lancer | [Android](plans/android.md) | Bloque Android |
-| M2 | Maestro sur simulateur en CI, flux non conditionnels : T09 | [automatisation](tests/automatisation.md) | Avant soumission |
+| M2 | Maestro sur simulateur en CI (T09) : job `maestro` de la CI mobile, flux non conditionnels sur la graine. Reste à y ajouter les flux de T24 (planificateur, constructeur, capture, synchronisation, phases) et ceux de M4 et M5 | [automatisation](tests/automatisation.md) | Avant soumission |
 | M3 | Captures Android 1080 × 1920, capture de l'analyse vidéo iOS | [captures](exploitation/captures.md) | Avant soumission |
-| M4 | Changement de compte par lien magique sur mobile : cause probable corrigée (ordre cookie, cache, espace actif), codé et testé. Reste le flux Maestro dédié et l'essai sur simulateur | [iOS](plans/ios.md) | Avant soumission |
+| M4 | Changement de compte par lien magique sur mobile : corrigé (ordre cookie, cache, espace actif) et éprouvé sur simulateur le 12 novembre (coach connecté, lien de l'athlète, l'app passe à l'accueil de l'athlète). Reste un essai sur téléphone | [iOS](plans/ios.md) | Avant soumission |
 | M5 | Repli HLS du lecteur mobile si le MP4 n'est pas prêt : codé et testé (`src/lib/playback-source.ts`). Reste à voir une vidéo lue juste après l'encodage, sur téléphone | [iOS](plans/ios.md) | Avant soumission |
 | M6 | Connexion Apple native : le code d'autorisation est échangé et le jeton gardé pour la révocation (codé, testé). Reste `APPLE_APP_BUNDLE_IDENTIFIER` sur Vercel et un essai réel le jour où Apple est activé | [iOS](plans/ios.md) | Seulement si activée |
 | T-suite | Tests élevés, moyens et faibles : T09 à T26. Fait : T10 (vidéo en HTTP, file d'envoi), T11, T22, T25 (routes techniques), T15, T16, T17 (gardes d'accès), T21 (worker), T12, T13 (invitation nominative, changement d'espace), T14 (page abonnement), T18 (centre de notifications), T19 (pages remplies), T20 (fiches de la console). Hors CI, documentés : T23 (IA réelle, payante), T24 (Maestro). Restent : T09 avec M2, T26 si le parcours parental s'ouvre | [automatisation](tests/automatisation.md) | Après l'ouverture web |

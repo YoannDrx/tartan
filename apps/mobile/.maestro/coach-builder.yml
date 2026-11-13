@@ -1,0 +1,15 @@
+# T24, constructeur : depuis le calendrier du coach, « Nouvelle séance » ouvre le constructeur, avec son titre et ses destinataires.
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- tapOn: "Calendrier.*"
+- tapOn: "Nouvelle séance"
+- extendedWaitUntil:
+    visible: "Titre"
+    timeout: 15000
+- assertVisible: "Pour qui ?"

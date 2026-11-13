@@ -10,7 +10,7 @@ env:
     timeout: 30000
 - tapOn:
     id: open-settings
-- assertVisible: "Données de santé"
+- assertVisible: "Données de santé.*"
 - scrollUntilVisible:
     element:
       id: delete-account

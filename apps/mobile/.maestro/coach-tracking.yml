@@ -1,4 +1,4 @@
-# Suivi coach : la grille s'affiche, et l'appel d'une séance s'ouvre.
+# Suivi coach : la grille s'affiche, la séance du jour s'ouvre, et l'appel s'enregistre.
 appId: ${APP_ID}
 env:
   EMAIL: ${COACH_EMAIL}
@@ -7,8 +7,18 @@ env:
 - extendedWaitUntil:
     visible: "Suivi du groupe"
     timeout: 30000
-- assertVisible: "Vidéos"
-- assertVisible: "Exercices"
-- tapOn: "Vidéos"
-- assertVisible:
-    id: open-capture
+- tapOn: "Force et pliométrie.*"
+- extendedWaitUntil:
+    visible:
+      id: open-roll-call
+    timeout: 15000
+- tapOn:
+    id: open-roll-call
+- tapOn:
+    id: "roll-present-.*Un"
+- tapOn:
+    id: roll-save
+- extendedWaitUntil:
+    visible:
+      id: open-roll-call
+    timeout: 15000

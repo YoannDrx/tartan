@@ -41,7 +41,7 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 
 | N° | Sujet | Test à écrire |
 | --- | --- | --- |
-| T09 | Mobile sans rendu | Job macOS : build simulateur et Maestro sur API locale. Retirer les `runFlow: when`, jeu de données dédié, `coach-tracking` ouvre vraiment l'appel |
+| T09 | Mobile sans rendu | Job `maestro` de `.github/workflows/mobile-native.yml` (macOS) : Postgres local, graine de démonstration et compte sans date de naissance, serveur web local, app de développement compilée pour le simulateur iOS, puis tous les flux de `apps/mobile/.maestro`. Les `runFlow: when` sont retirés : la graine garantit la séance du jour. `coach-tracking` ouvre la séance du jour et enregistre l'appel |
 | T10 | Vidéo en HTTP | Handlers de `o/videos`, `/upload`, `/share`, `/annotations*` avec `@/lib/mux` simulé, reprise de `upload-queue.ts` |
 | T11 | Cron horaire | Fait. `tests/technical-routes.test.ts` : jeton absent ou faux refusé, horloge figée et clés de résultat, une tâche en panne rend 500 avec son seul nom, sans le message d'erreur, et les autres tournent |
 | T12 | Invitation nominative | Fait. `e2e/staff-invitation.spec.ts` : invitation depuis les réglages, e-mail en file au gabarit du staff, lien lu dans la liste, compte créé depuis le lien, droits d'un coach (lecture oui, invitation d'un coach et rôle non), lien à usage unique |
@@ -61,7 +61,7 @@ Le test parcourt `app/api/**/route.ts` et échoue pour toute route absente du ta
 | T21 | Worker | Fait. `tests/service-worker.test.ts` charge le vrai `public/sw.js` dans un faux worker : notification affichée telle quelle ou neutre sans contenu, clic qui réutilise une fenêtre, réponse depuis la notification, API et autres sites jamais interceptés, page gardée puis page hors ligne sans réseau |
 | T22 | Routes techniques | Fait. Même fichier : `health` à 200 puis 503 base coupée, `live` sans base, `version` sans cache, flux `ical` d'un athlète (séance, lieu, fin, sans le mot du coach), jeton faux et lien révoqué refusés |
 | T23 | IA réelle | Hors CI, par choix : chaque passage appelle OpenAI et coûte. Le fondateur le lance avant chaque changement de modèle ou de consigne, et une fois par mois tant que l'IA est ouverte : `corepack pnpm --filter @tartan/web eval:planner --live --output .local/planner-eval-AAAA-MM.json`, avec la clé de production dans `.env.local`. Seuils de [planificateur-ia](../reference/planificateur-ia.md) : 57/60, aucune date fausse, aucune charge inventée. Premier passage dû après F6 et le passage à `gpt-transcribe` |
-| T24 | Écrans natifs | Hors CI tant que M2 n'existe pas : un flux Maestro par écran (planificateur, constructeur, capture, synchronisation, phases), joué sur simulateur avec un build de développement et l'API locale. Maestro n'est pas installé sur le poste de développement : l'installer (`curl -Ls "https://get.maestro.mobile.dev" \| bash`) relève du fondateur. Les flux de M4 (changement de compte) et de M5 (vidéo juste encodée) s'ajoutent à cette liste |
+| T24 | Écrans natifs | En partie : `coach-builder` (le constructeur s'ouvre depuis le calendrier) et `athlete-phases` (les phases depuis le calendrier de l'athlète) tournent dans le job `maestro`. Restent le planificateur (IA coupée en CI, il faudrait un prestataire simulé), la capture (pas de caméra sur le simulateur, une vidéo à importer) et la synchronisation (un conflit hors ligne à fabriquer), ainsi que les flux de M4 et M5 |
 
 ## Faible
 
