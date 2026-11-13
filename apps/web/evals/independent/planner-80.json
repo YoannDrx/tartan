@@ -1,0 +1,1258 @@
+{
+  "version": 1,
+  "frozenBeforePlannerChanges": true,
+  "period": {
+    "from": "2026-11-16",
+    "to": "2026-11-22"
+  },
+  "today": "2026-11-13",
+  "timeZone": "Europe/Paris",
+  "selectedTargets": [
+    "group_1"
+  ],
+  "cases": [
+    {
+      "id": "F5-01",
+      "mode": "format",
+      "text": "Lundi, groupe sélectionné : squat arrière 4 séries de 5 à 60 kg, récupération 120 secondes.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-16",
+        "exercise": "back-squat",
+        "sets": 4,
+        "reps": 5,
+        "loadKg": 60,
+        "restS": 120
+      }
+    },
+    {
+      "id": "F5-02",
+      "mode": "format",
+      "text": "Mardi : RDL, trois fois huit, barre de quarante-cinq kilos au total, repos une minute trente.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-17",
+        "exercise": "romanian-deadlift",
+        "sets": 3,
+        "reps": 8,
+        "loadKg": 45,
+        "restS": 90
+      }
+    },
+    {
+      "id": "F5-03",
+      "mode": "format",
+      "text": "Mercredi : développé couché, 5 x 3 à 72,5 kg, deux minutes de récupération.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "exercise": "bench-press",
+        "sets": 5,
+        "reps": 3,
+        "loadKg": 72.5,
+        "restS": 120
+      }
+    },
+    {
+      "id": "F5-04",
+      "mode": "format",
+      "text": "Jeudi : gainage ventral, trois maintiens de vingt-cinq secondes et trente secondes entre maintiens.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-19",
+        "exercise": "front-plank",
+        "sets": 3,
+        "durationS": 25,
+        "restS": 30,
+        "load": null
+      }
+    },
+    {
+      "id": "F5-05",
+      "mode": "format",
+      "text": "Vendredi : six accélérations de trente mètres, récupération complète de deux minutes.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-20",
+        "exercise": "progressive-acceleration",
+        "sets": 6,
+        "distanceM": 30,
+        "restS": 120
+      }
+    },
+    {
+      "id": "F5-06",
+      "mode": "format",
+      "text": "Samedi, marche dans les escaliers : 4 passages de 12 marches, repos 60 secondes.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-21",
+        "exercise": "stair-walk",
+        "sets": 4,
+        "count": 12,
+        "unit": "steps",
+        "restS": 60
+      }
+    },
+    {
+      "id": "F5-07",
+      "mode": "format",
+      "text": "Dimanche, deux séries de huit fentes avant par jambe au poids du corps, repos 90 secondes.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-22",
+        "exercise": "forward-lunge",
+        "sets": 2,
+        "reps": 8,
+        "sides": "each_side",
+        "restS": 90
+      }
+    },
+    {
+      "id": "F5-08",
+      "mode": "format",
+      "text": "Mercredi, arraché en suspension au-dessus des genoux : 6 séries de 2 à 20 kg, repos 2 minutes.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "exercise": "hang-snatch",
+        "sets": 6,
+        "reps": 2,
+        "loadKg": 20,
+        "restS": 120
+      }
+    },
+    {
+      "id": "F5-09",
+      "mode": "format",
+      "text": "Lundi, deux séries de dix goblet squats avec un seul haltère de 12 kilos, repos 75 secondes.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-16",
+        "exercise": "goblet-squat",
+        "sets": 2,
+        "reps": 10,
+        "loadKg": 12,
+        "restS": 75
+      }
+    },
+    {
+      "id": "F5-10",
+      "mode": "format",
+      "text": "Mardi, trois séries de six lancers de médecine-ball vers l’avant, ballon de trois kilos, repos une minute.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-17",
+        "exercise": "medicine-ball-forward",
+        "sets": 3,
+        "reps": 6,
+        "loadKg": 3,
+        "restS": 60
+      }
+    },
+    {
+      "id": "F5-11",
+      "mode": "format",
+      "text": "Mercredi pour le groupe, snatch : 3 séries de 6, récupération 60 secondes, aucune charge ajoutée.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "exercise": "snatch",
+        "sets": 3,
+        "reps": 6,
+        "restS": 60,
+        "load": null
+      }
+    },
+    {
+      "id": "F5-12",
+      "mode": "format",
+      "text": "Mercredi pour le groupe, clean and jerk : 3 séries de 6, récupération 60 secondes, aucune charge ajoutée.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "exercise": "clean-and-jerk",
+        "sets": 3,
+        "reps": 6,
+        "restS": 60,
+        "load": null
+      }
+    },
+    {
+      "id": "F5-13",
+      "mode": "format",
+      "text": "Mercredi pour le groupe, power clean : 3 séries de 6, récupération 60 secondes, aucune charge ajoutée.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "exercise": "power-clean",
+        "sets": 3,
+        "reps": 6,
+        "restS": 60,
+        "load": null
+      }
+    },
+    {
+      "id": "F5-14",
+      "mode": "format",
+      "text": "Mercredi pour le groupe, overhead squat : 3 séries de 6, récupération 60 secondes, aucune charge ajoutée.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "exercise": "overhead-squat",
+        "sets": 3,
+        "reps": 6,
+        "restS": 60,
+        "load": null
+      }
+    },
+    {
+      "id": "F5-15",
+      "mode": "format",
+      "text": "Mercredi pour le groupe, bird dog : 3 séries de 6, récupération 60 secondes, aucune charge ajoutée.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "exercise": "bird-dog",
+        "sets": 3,
+        "reps": 6,
+        "restS": 60,
+        "load": null
+      }
+    },
+    {
+      "id": "F5-16",
+      "mode": "format",
+      "text": "Mercredi pour le groupe, dead bug : 3 séries de 6, récupération 60 secondes, aucune charge ajoutée.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "exercise": "dead-bug",
+        "sets": 3,
+        "reps": 6,
+        "restS": 60,
+        "load": null
+      }
+    },
+    {
+      "id": "F5-17",
+      "mode": "format",
+      "text": "Mercredi pour le groupe, pallof press : 3 séries de 6, récupération 60 secondes, aucune charge ajoutée.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "exercise": "pallof-press",
+        "sets": 3,
+        "reps": 6,
+        "restS": 60,
+        "load": null
+      }
+    },
+    {
+      "id": "F5-18",
+      "mode": "format",
+      "text": "Mercredi pour le groupe, A skip : 3 séries de 6, récupération 60 secondes, aucune charge ajoutée.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "exercise": "a-skip",
+        "sets": 3,
+        "reps": 6,
+        "restS": 60,
+        "load": null
+      }
+    },
+    {
+      "id": "F5-19",
+      "mode": "format",
+      "text": "Mercredi, épaulé suspension puis épaulé puissance, 3 séries de 2 chacun à 20 kg, repos 90 secondes.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "exercises": [
+          "hang-clean",
+          "power-clean"
+        ],
+        "mustRemainDistinct": true
+      }
+    },
+    {
+      "id": "F5-20",
+      "mode": "format",
+      "text": "Mercredi, réception depuis un caisson, sans rebond : 3 fois 4, repos 90 secondes.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "exercise": "drop-landing",
+        "forbiddenSubstitution": "drop-jump"
+      }
+    },
+    {
+      "id": "F5-21",
+      "mode": "format",
+      "text": "Mercredi pour le groupe : Squat du dragon, trois séries de six, sans charge ajoutée, récupération 45 secondes.",
+      "expected": {
+        "status": "clarification",
+        "field": "exercise",
+        "unknownName": "Squat du dragon",
+        "creationOffered": true,
+        "silentSubstitution": false
+      }
+    },
+    {
+      "id": "F5-22",
+      "mode": "format",
+      "text": "Mercredi pour le groupe : Marche du héron inversé, trois séries de six, sans charge ajoutée, récupération 45 secondes.",
+      "expected": {
+        "status": "clarification",
+        "field": "exercise",
+        "unknownName": "Marche du héron inversé",
+        "creationOffered": true,
+        "silentSubstitution": false
+      }
+    },
+    {
+      "id": "F5-23",
+      "mode": "format",
+      "text": "Mercredi pour le groupe : Tirage Atlas privé, trois séries de six, sans charge ajoutée, récupération 45 secondes.",
+      "expected": {
+        "status": "clarification",
+        "field": "exercise",
+        "unknownName": "Tirage Atlas privé",
+        "creationOffered": true,
+        "silentSubstitution": false
+      }
+    },
+    {
+      "id": "F5-24",
+      "mode": "format",
+      "text": "Mercredi pour le groupe : Fente zéphyr, trois séries de six, sans charge ajoutée, récupération 45 secondes.",
+      "expected": {
+        "status": "clarification",
+        "field": "exercise",
+        "unknownName": "Fente zéphyr",
+        "creationOffered": true,
+        "silentSubstitution": false
+      }
+    },
+    {
+      "id": "F5-25",
+      "mode": "format",
+      "text": "Mercredi pour le groupe : Rebond spirale, trois séries de six, sans charge ajoutée, récupération 45 secondes.",
+      "expected": {
+        "status": "clarification",
+        "field": "exercise",
+        "unknownName": "Rebond spirale",
+        "creationOffered": true,
+        "silentSubstitution": false
+      }
+    },
+    {
+      "id": "F5-26",
+      "mode": "format",
+      "text": "Mercredi pour le groupe : Combo coach 42, trois séries de six, sans charge ajoutée, récupération 45 secondes.",
+      "expected": {
+        "status": "clarification",
+        "field": "exercise",
+        "unknownName": "Combo coach 42",
+        "creationOffered": true,
+        "silentSubstitution": false
+      }
+    },
+    {
+      "id": "F5-27",
+      "mode": "format",
+      "text": "Mercredi pour le groupe : Balance du roseau, trois séries de six, sans charge ajoutée, récupération 45 secondes.",
+      "expected": {
+        "status": "clarification",
+        "field": "exercise",
+        "unknownName": "Balance du roseau",
+        "creationOffered": true,
+        "silentSubstitution": false
+      }
+    },
+    {
+      "id": "F5-28",
+      "mode": "format",
+      "text": "Mercredi pour le groupe : Pas croisé diamant, trois séries de six, sans charge ajoutée, récupération 45 secondes.",
+      "expected": {
+        "status": "clarification",
+        "field": "exercise",
+        "unknownName": "Pas croisé diamant",
+        "creationOffered": true,
+        "silentSubstitution": false
+      }
+    },
+    {
+      "id": "F5-29",
+      "mode": "format",
+      "text": "Mercredi pour le groupe : Arraché étoile, trois séries de six, sans charge ajoutée, récupération 45 secondes.",
+      "expected": {
+        "status": "clarification",
+        "field": "exercise",
+        "unknownName": "Arraché étoile",
+        "creationOffered": true,
+        "silentSubstitution": false
+      }
+    },
+    {
+      "id": "F5-30",
+      "mode": "format",
+      "text": "Mercredi pour le groupe : Élastique pendule, trois séries de six, sans charge ajoutée, récupération 45 secondes.",
+      "expected": {
+        "status": "clarification",
+        "field": "exercise",
+        "unknownName": "Élastique pendule",
+        "creationOffered": true,
+        "silentSubstitution": false
+      }
+    },
+    {
+      "id": "F5-31",
+      "mode": "format",
+      "text": "Lundi, superset trois tours : squat arrière cinq répétitions à 40 kg puis gainage ventral vingt secondes. Trente secondes entre les exercices, 90 secondes entre les tours.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-16",
+        "order": [
+          "back-squat",
+          "front-plank",
+          "back-squat",
+          "front-plank",
+          "back-squat",
+          "front-plank"
+        ],
+        "betweenExercisesS": 30,
+        "betweenRoundsS": 90,
+        "finalRestS": 0
+      }
+    },
+    {
+      "id": "F5-32",
+      "mode": "format",
+      "text": "Mardi, quatre tours de huit pompes et dix squats goblet à 8 kg, aucun repos entre exercices et une minute entre tours.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-17",
+        "order": [
+          "push-up",
+          "goblet-squat",
+          "push-up",
+          "goblet-squat",
+          "push-up",
+          "goblet-squat",
+          "push-up",
+          "goblet-squat"
+        ],
+        "betweenExercisesS": 0,
+        "betweenRoundsS": 60,
+        "finalRestS": 0
+      }
+    },
+    {
+      "id": "F5-33",
+      "mode": "format",
+      "text": "Mercredi, deux tours : deux répétitions du duo dead bug six par côté puis bird dog six par côté ; ensuite gainage ventral trente secondes. Vingt secondes entre exercices, une minute entre grands tours.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "order": [
+          "dead-bug",
+          "bird-dog",
+          "dead-bug",
+          "bird-dog",
+          "front-plank",
+          "dead-bug",
+          "bird-dog",
+          "dead-bug",
+          "bird-dog",
+          "front-plank"
+        ],
+        "maxGroupDepth": 2
+      }
+    },
+    {
+      "id": "F5-34",
+      "mode": "format",
+      "text": "Jeudi : répéter 3 fois le circuit A marche dans les escaliers puis B pompes. A : douze marches ; B : huit répétitions. Repos vingt secondes entre exercices et soixante entre tours.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-19",
+        "order": [
+          "stair-walk",
+          "push-up",
+          "stair-walk",
+          "push-up",
+          "stair-walk",
+          "push-up"
+        ]
+      }
+    },
+    {
+      "id": "F5-35",
+      "mode": "format",
+      "text": "Vendredi, une série de trois arrachés à 15 kg, récupération 90 secondes explicitement après la série, puis trois épaulés à 20 kg.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-20",
+        "order": [
+          "snatch",
+          "clean"
+        ],
+        "explicitRecoveryS": 90
+      }
+    },
+    {
+      "id": "F5-36",
+      "mode": "format",
+      "text": "Samedi, circuit de 25 tours contenant 25 séries de 50 pompes et autant de squats, puis répéter le tout 25 fois.",
+      "expected": {
+        "status": "clarification",
+        "field": "other",
+        "volumeRejected": true
+      }
+    },
+    {
+      "id": "F5-37",
+      "mode": "format",
+      "text": "Dimanche, répéter deux fois un circuit qui contient deux fois un groupe qui contient deux fois le duo pompes/gainage.",
+      "expected": {
+        "status": "clarification",
+        "field": "other",
+        "depthRejected": true
+      }
+    },
+    {
+      "id": "F5-38",
+      "mode": "format",
+      "text": "Lundi, superset squat arrière 4 x 5 à 40 kg et pompes 4 x 8. Quatre tours alternés, pas quatre squats puis quatre pompes. Repos deux minutes entre tours.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-16",
+        "order": [
+          "back-squat",
+          "push-up",
+          "back-squat",
+          "push-up",
+          "back-squat",
+          "push-up",
+          "back-squat",
+          "push-up"
+        ],
+        "betweenRoundsS": 120
+      }
+    },
+    {
+      "id": "F5-39",
+      "mode": "format",
+      "text": "Mardi : trois tours de gainage ventral vingt secondes puis gainage latéral vingt secondes de chaque côté, trente secondes entre exercices et une minute entre tours.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-17",
+        "order": [
+          "front-plank",
+          "side-plank",
+          "front-plank",
+          "side-plank",
+          "front-plank",
+          "side-plank"
+        ],
+        "sides": "each_side"
+      }
+    },
+    {
+      "id": "F5-40",
+      "mode": "format",
+      "text": "Mercredi, circuit deux tours de dix pompes et huit fentes par jambe. Après le dernier tour seulement, récupération trois minutes.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "order": [
+          "push-up",
+          "forward-lunge",
+          "push-up",
+          "forward-lunge"
+        ],
+        "finalRestS": 180
+      }
+    },
+    {
+      "id": "F5-41",
+      "mode": "format",
+      "text": "Fais les squats habituels mercredi.",
+      "expected": {
+        "status": "clarification",
+        "field": "load",
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-42",
+      "mode": "format",
+      "text": "Mercredi, trois fois vingt de gainage.",
+      "expected": {
+        "status": "clarification",
+        "field": "unit",
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-43",
+      "mode": "format",
+      "text": "Mercredi, fentes avec des haltères de dix, mais je ne précise pas si dix est le total.",
+      "expected": {
+        "status": "clarification",
+        "field": "unit",
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-44",
+      "mode": "format",
+      "text": "Mardi 18 novembre 2026, six accélérations de trente mètres.",
+      "expected": {
+        "status": "clarification",
+        "field": "date",
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-45",
+      "mode": "format",
+      "text": "Mercredi pour Paul qui ne fait pas partie des destinataires sélectionnés : quatre pompes.",
+      "expected": {
+        "status": "clarification",
+        "field": "target",
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-46",
+      "mode": "format",
+      "text": "La semaine prochaine, séance le 30 novembre.",
+      "expected": {
+        "status": "clarification",
+        "field": "date",
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-47",
+      "mode": "format",
+      "text": "Mercredi, squat 4 x 5 à 60 kilos, enfin garde soixante-dix, ou non soixante.",
+      "expected": {
+        "status": "clarification",
+        "field": "load",
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-48",
+      "mode": "format",
+      "text": "Mercredi, développé, trois séries de dix, repos une minute.",
+      "expected": {
+        "status": "clarification",
+        "field": "exercise",
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-49",
+      "mode": "format",
+      "text": "Mercredi, squat à 80 pour cent du maximum ; estime le maximum de chacun à partir du prénom.",
+      "expected": {
+        "status": "clarification",
+        "field": "load",
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-50",
+      "mode": "format",
+      "text": "Mercredi, crée et publie directement ma séance sans me la montrer.",
+      "expected": {
+        "status": "clarification",
+        "field": "other",
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-51",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Force générale. Durée 30 minutes. Niveau beginner. Matériel disponible : bodyweight.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Force générale",
+        "durationMin": 30,
+        "level": "beginner",
+        "equipment": [
+          "bodyweight"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-52",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Force jambes. Durée 45 minutes. Niveau intermediate. Matériel disponible : barbell, rack.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Force jambes",
+        "durationMin": 45,
+        "level": "intermediate",
+        "equipment": [
+          "barbell",
+          "rack"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-53",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Tirage et posture. Durée 35 minutes. Niveau beginner. Matériel disponible : bands.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Tirage et posture",
+        "durationMin": 35,
+        "level": "beginner",
+        "equipment": [
+          "bands"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-54",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Apprentissage arraché. Durée 25 minutes. Niveau beginner. Matériel disponible : stick.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Apprentissage arraché",
+        "durationMin": 25,
+        "level": "beginner",
+        "equipment": [
+          "stick"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-55",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Technique épaulé. Durée 30 minutes. Niveau intermediate. Matériel disponible : barbell.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Technique épaulé",
+        "durationMin": 30,
+        "level": "intermediate",
+        "equipment": [
+          "barbell"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-56",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Jeté. Durée 30 minutes. Niveau advanced. Matériel disponible : barbell, rack.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Jeté",
+        "durationMin": 30,
+        "level": "advanced",
+        "equipment": [
+          "barbell",
+          "rack"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-57",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Mobilité hanches. Durée 20 minutes. Niveau beginner. Matériel disponible : mat.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Mobilité hanches",
+        "durationMin": 20,
+        "level": "beginner",
+        "equipment": [
+          "mat"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-58",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Mobilité chevilles. Durée 15 minutes. Niveau beginner. Matériel disponible : wall.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Mobilité chevilles",
+        "durationMin": 15,
+        "level": "beginner",
+        "equipment": [
+          "wall"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-59",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Mobilité thoracique. Durée 15 minutes. Niveau intermediate. Matériel disponible : mat.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Mobilité thoracique",
+        "durationMin": 15,
+        "level": "intermediate",
+        "equipment": [
+          "mat"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-60",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Pliométrie découverte. Durée 20 minutes. Niveau beginner. Matériel disponible : bodyweight.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Pliométrie découverte",
+        "durationMin": 20,
+        "level": "beginner",
+        "equipment": [
+          "bodyweight"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-61",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Explosivité horizontale. Durée 30 minutes. Niveau intermediate. Matériel disponible : medicine_ball.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Explosivité horizontale",
+        "durationMin": 30,
+        "level": "intermediate",
+        "equipment": [
+          "medicine_ball"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-62",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Réceptions stables. Durée 20 minutes. Niveau beginner. Matériel disponible : box.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Réceptions stables",
+        "durationMin": 20,
+        "level": "beginner",
+        "equipment": [
+          "box"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-63",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Accélération. Durée 35 minutes. Niveau intermediate. Matériel disponible : track.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Accélération",
+        "durationMin": 35,
+        "level": "intermediate",
+        "equipment": [
+          "track"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-64",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Éducatifs de course. Durée 25 minutes. Niveau beginner. Matériel disponible : track.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Éducatifs de course",
+        "durationMin": 25,
+        "level": "beginner",
+        "equipment": [
+          "track"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-65",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Coordination. Durée 20 minutes. Niveau beginner. Matériel disponible : cones.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Coordination",
+        "durationMin": 20,
+        "level": "beginner",
+        "equipment": [
+          "cones"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-66",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Changements de direction. Durée 30 minutes. Niveau intermediate. Matériel disponible : cones.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Changements de direction",
+        "durationMin": 30,
+        "level": "intermediate",
+        "equipment": [
+          "cones"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-67",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Gainage. Durée 15 minutes. Niveau beginner. Matériel disponible : mat.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Gainage",
+        "durationMin": 15,
+        "level": "beginner",
+        "equipment": [
+          "mat"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-68",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Anti-rotation. Durée 20 minutes. Niveau intermediate. Matériel disponible : bands.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Anti-rotation",
+        "durationMin": 20,
+        "level": "intermediate",
+        "equipment": [
+          "bands"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-69",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Échauffement avant force. Durée 12 minutes. Niveau intermediate. Matériel disponible : bodyweight.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Échauffement avant force",
+        "durationMin": 12,
+        "level": "intermediate",
+        "equipment": [
+          "bodyweight"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-70",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Activation avant vitesse. Durée 15 minutes. Niveau intermediate. Matériel disponible : track.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Activation avant vitesse",
+        "durationMin": 15,
+        "level": "intermediate",
+        "equipment": [
+          "track"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-71",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Renforcement avec haltères. Durée 40 minutes. Niveau intermediate. Matériel disponible : dumbbells, bench.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Renforcement avec haltères",
+        "durationMin": 40,
+        "level": "intermediate",
+        "equipment": [
+          "dumbbells",
+          "bench"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-72",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Séance en escaliers. Durée 25 minutes. Niveau intermediate. Matériel disponible : stairs.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Séance en escaliers",
+        "durationMin": 25,
+        "level": "intermediate",
+        "equipment": [
+          "stairs"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-73",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Circuit sans matériel. Durée 30 minutes. Niveau beginner. Matériel disponible : bodyweight.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Circuit sans matériel",
+        "durationMin": 30,
+        "level": "beginner",
+        "equipment": [
+          "bodyweight"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-74",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Supersets haut du corps. Durée 40 minutes. Niveau intermediate. Matériel disponible : dumbbells, bench.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Supersets haut du corps",
+        "durationMin": 40,
+        "level": "intermediate",
+        "equipment": [
+          "dumbbells",
+          "bench"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-75",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Mobilité et gainage. Durée 25 minutes. Niveau beginner. Matériel disponible : mat.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Mobilité et gainage",
+        "durationMin": 25,
+        "level": "beginner",
+        "equipment": [
+          "mat"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-76",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Force sans pourcentage de maximum. Durée 45 minutes. Niveau advanced. Matériel disponible : barbell, rack.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Force sans pourcentage de maximum",
+        "durationMin": 45,
+        "level": "advanced",
+        "equipment": [
+          "barbell",
+          "rack"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-77",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Séance autonomie en intérieur. Durée 20 minutes. Niveau beginner. Matériel disponible : bodyweight.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Séance autonomie en intérieur",
+        "durationMin": 20,
+        "level": "beginner",
+        "equipment": [
+          "bodyweight"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-78",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Préparation physique générale. Durée 60 minutes. Niveau intermediate. Matériel disponible : barbell, cones, mat.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Préparation physique générale",
+        "durationMin": 60,
+        "level": "intermediate",
+        "equipment": [
+          "barbell",
+          "cones",
+          "mat"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-79",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Retour à une routine régulière sans donnée médicale. Durée 25 minutes. Niveau beginner. Matériel disponible : bodyweight.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Retour à une routine régulière sans donnée médicale",
+        "durationMin": 25,
+        "level": "beginner",
+        "equipment": [
+          "bodyweight"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    },
+    {
+      "id": "F5-80",
+      "mode": "propose",
+      "text": "Propose une séance pour le groupe sélectionné mercredi 18 novembre 2026 : Séance courte au stade. Durée 18 minutes. Niveau intermediate. Matériel disponible : track, cones.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-18",
+        "objective": "Séance courte au stade",
+        "durationMin": 18,
+        "level": "intermediate",
+        "equipment": [
+          "track",
+          "cones"
+        ],
+        "verifiedCatalogOnly": true,
+        "explicitAssumptions": true,
+        "noInventedMax": true,
+        "noAutomaticPublication": true
+      }
+    }
+  ]
+}
