@@ -62,10 +62,11 @@ Dans le code, les commentaires « § 11.4 » renvoient à l'ancien cahier des ch
 ## Règles de sécurité
 
 - **Le dépôt est public.** Aucun secret, identifiant de compte, adresse de base ou donnée réelle dans le code, les docs, les commits, les PR ou les journaux de CI.
-- Les secrets vivent sur Vercel, EAS et GitHub. Un agent ne les lit pas et ne les saisit pas : il donne au fondateur la commande à lancer.
+- Les secrets vivent sur Vercel, EAS et GitHub. Un agent peut en créer, en poser ou en renouveler par la ligne de commande déjà connectée (`gh secret set`, `vercel env add`, `eas env:create`), en les passant d'un outil à l'autre sans jamais les afficher, les écrire dans un fichier suivi ou les recopier dans un message.
 - Hors production, la base de production et une clé Stripe réelle sont refusées au démarrage (`assertEnvIsolation`). Ne contourne pas cette garde.
 - Pas d'essai sur la production avec des comptes créés pour l'occasion. Les essais se font en local ou sur la Preview.
-- Toute action payante, légale, ou engageant un compte du fondateur lui revient. Voir le tableau « Fondateur » de `docs/ETAT.md`.
+- Depuis le 13 novembre 2026, le fondateur autorise l'agent à agir sur ses comptes Vercel, GitHub, EAS et Neon pour mener un lot : créer une ressource (store, variable, build, branche de base), lancer un atelier, un build ou une sauvegarde. L'agent dit ce qu'il a fait et où.
+- Restent au fondateur : tout paiement ou changement d'offre payante, tout engagement légal (juriste, médiateur, CGV signées), l'ouverture des inscriptions et du classement du jeu, et les essais sur ses téléphones. Voir le tableau « Fondateur » de `docs/ETAT.md`.
 
 ## Méthode de travail
 

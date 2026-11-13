@@ -13,6 +13,10 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Claude, l'agent peut agir sur les comptes du fondateur
+
+Fait : à la demande écrite du fondateur, `AGENTS.md` autorise l'agent à créer des ressources et à poser des secrets sur Vercel, GitHub, EAS et Neon, sans jamais les afficher (PR `docs/regles-agent`). Restent au fondateur : paiements et offres payantes, engagements légaux, ouverture des inscriptions et du classement, essais sur ses téléphones. Le dépôt public, la garde `assertEnvIsolation` et l'interdiction d'essayer sur la production avec des comptes de passage ne changent pas.
+
 ## 2026-11-13, Claude, M3 (captures Android et iOS) et A13 (sauvegardes vers Vercel Blob)
 
 Fait : `pnpm captures --android` (émulateur Pixel 1080 × 1920, image `android-36;default;arm64-v8a`, mode démo de la barre d'état) ; huit captures Android et les huit iOS de l'App Store, analyse vidéo comprise, sur le clip Pexels autorisé par le fondateur (`apps/web/public/dev/`, ignoré par Git). La variante de développement autorise le HTTP en clair sur Android, pour le serveur local. Sauvegardes : `apps/web/scripts/sauvegarde-blob.mjs` (envoyer, purger, lister, télécharger) branché dans `sauvegarde.yml` derrière le secret `BACKUP_BLOB_TOKEN` (PR `feat/captures-android`).
