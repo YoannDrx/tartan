@@ -1,6 +1,5 @@
-import { Link } from "@react-email/components";
 import { m } from "@tartan/i18n";
-import { Layout, Paragraph, PrimaryLink, Title } from "./layout";
+import { FooterLink, Layout, Paragraph, PrimaryLink, Title } from "./layout";
 
 export const WeeklyDigestEmail = ({
   organization,
@@ -21,7 +20,7 @@ export const WeeklyDigestEmail = ({
     preview={`Ta semaine du ${weekLabel}`}
     footerNote={
       <>
-        {m.email.digestFooter(organization)} <Link href={unsubscribe}>{m.email.unsubscribeLink}</Link>
+        {m.email.digestFooter(organization)} <FooterLink href={unsubscribe}>{m.email.unsubscribeLink}</FooterLink>
       </>
     }
   >
