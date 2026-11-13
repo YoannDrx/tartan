@@ -13,7 +13,15 @@ appId: ${APP_ID}
     id: sign-in-email
 # Le clavier s'ouvre encore : taper trop tôt perd les premières lettres.
 - waitForAnimationToEnd
-- inputText: ${EMAIL}
+# Le pilote iOS peut perdre le préfixe d'une saisie en rafale dans un champ contrôlé.
+# La lecture exacte empêche de diagnostiquer ensuite à tort l'écran de majorité.
+- runFlow:
+    file: _type-stable.yml
+    env:
+      VALUE: ${EMAIL}
+- copyTextFrom:
+    id: sign-in-email
+- assertTrue: ${maestro.copiedText === EMAIL}
 - tapOn:
     id: sign-in-title
 - tapOn:
@@ -21,7 +29,10 @@ appId: ${APP_ID}
 - tapOn:
     id: sign-in-password
 - waitForAnimationToEnd
-- inputText: ${PASSWORD}
+- runFlow:
+    file: _type-stable.yml
+    env:
+      VALUE: ${PASSWORD}
 - tapOn:
     id: sign-in-title
 - tapOn:

@@ -1,0 +1,10 @@
+# Une commande par caractère laisse le champ natif confirmer chaque mise à jour.
+# Les variables reçues sont exclusivement les identifiants fictifs du scénario.
+appId: ${APP_ID}
+---
+- evalScript: ${output.inputIndex = 0}
+- repeat:
+    times: ${VALUE.length}
+    commands:
+      - inputText: ${VALUE.charAt(output.inputIndex)}
+      - evalScript: ${output.inputIndex = output.inputIndex + 1}

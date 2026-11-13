@@ -13,6 +13,10 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, F2 : diagnostic de la saisie Maestro avant fusion
+
+Les deux exécutions natives de la PR 119 échouent avant l'écran d'âge : le pilote a saisi seulement une partie de l'adresse et aucun mot de passe. Les traces confirment les valeurs de test complètes envoyées au pilote, les captures montrent la saisie incomplète. Le sous-parcours saisit désormais caractère par caractère et relit l'adresse exacte avant de continuer ; les assertions de majorité restent inchangées. `pasteText` n'aurait rien corrigé : il appelle la même méthode `inputText` dans Maestro. Vérification native à reprendre en CI ; aucune preuve de téléphone physique. Branche F2 mise à jour avec `main` après fusion autorisée de 118.
+
 ## 2026-11-13, Codex, F2 : contrats de circuits et compatibilité
 
 Codé : `feat/session-sequences`, empilée sur F1 ; exercices, récupérations et répétitions bornées à deux niveaux, expansion A/B/A/B, références d'occurrences, adaptations source/occurrence, conservation des charges figées, modèles V2 et garde contre les anciens éditeurs. Migration nullable seulement, appliquée aux bases locales de test ; pas en production.
