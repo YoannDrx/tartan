@@ -95,7 +95,7 @@ Les numéros renvoient aux étapes des plans. Trié par impact sur l'ouverture.
 
 | N° | Action | Plan | Bloque |
 | --- | --- | --- | --- |
-| F1 | Lancer « E-mails de test → Tous » dans `/admin/configuration`, sur Gmail, Outlook, iCloud. À refaire après le lot A10 | [recette](tests/recette-reelle.md) | Preuve des e-mails |
+| F1 | Lancer « E-mails de test → Tous » dans `/admin/configuration`, sur Gmail, Outlook, iCloud. À refaire après le lot A10 et le gabarit Tartan du 13 novembre 2026 (piste, carte encre, action citron) | [recette](tests/recette-reelle.md) | Preuve des e-mails |
 | F2 | Créer le webhook Resend et poser `RESEND_WEBHOOK_SECRET` | [web](plans/web.md) | Rebonds et plaintes |
 | F3 | Décider de l'expéditeur : `tartan@yodev.fr` aujourd'hui, `tartan.coach` recommandé | [web](plans/web.md) | Image, délivrabilité |
 | F4  | Validation du dossier existant déclarée le 13 novembre ; conserver la preuve hors dépôt                                                   | [conformité](reference/conformite.md)                 | Vente, soumission stores, classement du jeu, e-mail de reconquête |
