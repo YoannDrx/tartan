@@ -1,5 +1,22 @@
 # Parcours critiques (§ 14). Lancer avec un build de développement ou de préversion et le serveur local :
-#   maestro test -e APP_ID=coach.tartan.app.dev -e COACH_EMAIL=… -e ATHLETE_EMAIL=… -e NO_AGE_EMAIL=… -e PASSWORD=… .maestro
+#   maestro test -e APP_ID=coach.tartan.app.dev -e COACH_EMAIL=… -e ATHLETE_EMAIL=… -e ATHLETE2_EMAIL=… -e NO_AGE_EMAIL=… -e PASSWORD=… -e API_URL=http://localhost:3000 .maestro
 # En CI : job « maestro » de .github/workflows/mobile-native.yml, sur la graine et un compte sans date de naissance.
 flows:
   - "*.yml"
+# L'ordre compte : le mode séance passe avant la validation, et le conflit de synchronisation en dernier.
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - sign-in-smoke
+    - invite-link-paste
+    - password-reset
+    - age-gate
+    - settings-privacy
+    - athlete-phases
+    - athlete-session-mode
+    - athlete-validate
+    - coach-tracking
+    - coach-builder
+    - coach-capture
+    - coach-planner
+    - sync-review

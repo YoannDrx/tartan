@@ -1,0 +1,48 @@
+# T24, planificateur : le coach dicte une consigne, relit la proposition et crée le brouillon. En CI, le serveur
+# répond avec un prestataire factice (AI_PLANNER_FAKE_PROVIDER), qui n'existe jamais sur Vercel.
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- tapOn: "Calendrier.*"
+- tapOn: "Planificateur IA.*"
+- extendedWaitUntil:
+    visible:
+      id: ai-consent-accept
+    timeout: 15000
+- tapOn:
+    id: ai-consent-accept
+# L'écran de sélection est long : le groupe et le bouton sont sous le bas de l'écran.
+- scrollUntilVisible:
+    element: "Hauteur Démo.*"
+- tapOn: "Hauteur Démo.*"
+- scrollUntilVisible:
+    element: "Continuer avec ces destinataires"
+- tapOn: "Continuer avec ces destinataires"
+- tapOn:
+    id: planner-instructions
+- waitForAnimationToEnd
+- inputText: "Trois series de huit, deux minutes de repos"
+# Champ multiligne : toucher ailleurs ne ferme pas ce clavier, mais il a une commande pour se fermer.
+- hideKeyboard
+- scrollUntilVisible:
+    element: "J.ai relu la consigne et ses valeurs"
+- tapOn: "J.ai relu la consigne et ses valeurs"
+- scrollUntilVisible:
+    element: "Préparer une proposition"
+- tapOn: "Préparer une proposition"
+- extendedWaitUntil:
+    visible: "Relire et ajuster les brouillons"
+    timeout: 30000
+- tapOn: "Relire et ajuster les brouillons"
+- scrollUntilVisible:
+    element: "J.ai vérifié les dates.*"
+- tapOn: "J.ai vérifié les dates.*"
+- tapOn: "Créer 1 brouillon"
+- extendedWaitUntil:
+    visible: "Préparer une nouvelle proposition"
+    timeout: 30000

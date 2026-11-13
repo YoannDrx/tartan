@@ -85,7 +85,9 @@ jobs:
       MUX_TOKEN_ID: ""
       MUX_TOKEN_SECRET: ""
       OPENAI_API_KEY: ""
-      AI_PLANNER_ENABLED: "false"
+      AI_PLANNER_ENABLED: "true"
+      # Le planificateur répond par un prestataire factice : aucune clé, aucun appel à OpenAI.
+      AI_PLANNER_FAKE_PROVIDER: "true"
       APPLE_TEAM_ID: TESTTEAM00
       ANDROID_SHA256_FINGERPRINTS: "AA:BB:CC"
     steps:
@@ -130,6 +132,9 @@ jobs:
             curl -sf -b "$jar" http://localhost:3000/api/v1/me > /dev/null
             rm -f "$jar"
           done
+      - name: Planificateur ouvert dans l'espace de démonstration
+        run: |
+          psql "$DATABASE_URL" -c "update organizations set plan = 'pilot', ai_planner_enabled = true, progression_enabled = true where owner_id = (select id from \"user\" where email = 'coach@demo.tartan.coach')"
       - name: Compte sans date de naissance (age-gate)
         run: |
           curl -sf -X POST http://localhost:3000/api/auth/sign-up/email \
@@ -185,6 +190,8 @@ jobs:
             -e APP_ID=coach.tartan.app.dev \
             -e COACH_EMAIL=coach@demo.tartan.coach \
             -e ATHLETE_EMAIL=un@demo.tartan.coach \
+            -e ATHLETE2_EMAIL=deux@demo.tartan.coach \
+            -e API_URL=http://localhost:3000 \
             -e NO_AGE_EMAIL="$NO_AGE_EMAIL" \
             -e PASSWORD="$DEMO_PASSWORD"
       - name: Journaux de l'app

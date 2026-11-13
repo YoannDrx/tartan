@@ -19,6 +19,7 @@ import {
   previewPlannerLoads,
 } from "@/server/ai/proposal.service";
 import { pseudonymizePlannerText, type PlannerBindings } from "@/server/ai/context";
+import { fakePlannerEnabled, fakePlannerProvider } from "@/server/ai/fake-provider";
 import type { PlannerProvider, PlannerProviderContext } from "@/server/ai/provider";
 import { expirePlannerOperations } from "@/server/ai/usage.service";
 import { saveTrainingPhase } from "@/server/training-phases.service";
@@ -26,7 +27,10 @@ import { selectStrengthReference } from "@/server/strength.service";
 import { saveExercise } from "@/server/exercise.service";
 import { addStaff, addAthlete, makeOrg } from "./helpers";
 const flags = vi.hoisted(() => ({ AI_PLANNER_ENABLED: "true" }));
-vi.mock("@/server/ai/consent.service", () => ({ requireAiConsent: async () => undefined, hasAiConsent: async () => true }));
+vi.mock("@/server/ai/consent.service", () => ({
+  requireAiConsent: async () => undefined,
+  hasAiConsent: async () => true,
+}));
 
 vi.mock("@/lib/env", async (original) => {
   const actual = await original<typeof import("@/lib/env")>();
@@ -845,4 +849,18 @@ it("la suppression du compte retire ses textes et la confirmation ne prolonge pa
   );
   await prisma.user.delete({ where: { id: coach.userId } });
   expect(await prisma.aiPlannerProposal.count({ where: { id: input.id } })).toBe(0);
+});
+
+it("le prestataire factice des parcours natifs n'existe jamais sur Vercel, et sa proposition passe la validation", async () => {
+  expect(fakePlannerEnabled({ AI_PLANNER_FAKE_PROVIDER: "true" } as never)).toBe(true);
+  expect(fakePlannerEnabled({ AI_PLANNER_FAKE_PROVIDER: "true", VERCEL: "1" } as never)).toBe(false);
+  expect(fakePlannerEnabled({} as never)).toBe(false);
+  const a = await setup();
+  const result = await createPlannerProposal(a.owner.userId, a.organizationId, a.input, {
+    provider: fakePlannerProvider(),
+    clock,
+  });
+  expect(result).toMatchObject({ state: "proposal" });
+  // Une proposition reste privée : aucune séance n'est écrite avant la confirmation du coach.
+  expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
 });
