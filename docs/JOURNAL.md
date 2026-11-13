@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Claude, M2 vert, et ce qui reste du plan
+
+Fait : le job `maestro` passe (PR `test/maestro-ci`, fusionnée) : dix flux natifs sur simulateur iOS à chaque PR mobile. Les causes trouvées en chemin, à garder en tête : Xcode 26 exigé par Expo SDK 55 ; signature ad hoc obligatoire (sinon pas de trousseau, donc pas de session) ; clavier d'adresse d'iOS que Maestro ne ferme pas (toucher le titre) ; premières lettres perdues si l'on tape pendant l'ouverture du clavier (`waitForAnimationToEnd`) ; fuseau Europe/Paris, sinon la séance du jour disparaît autour de minuit ; serveur à chauffer avant le premier flux ; build en arm64 seul (15 minutes au lieu de 48).
+En production depuis le 12 novembre : film ralenti et échauffement au saut en hauteur sur la page d'accueil (PR 107), révocation Apple de la connexion native (M6, PR 109).
+Reste, à décider ou à fournir par le fondateur : M3 (deux téléchargements : image Android, clip Pexels), le faux prestataire IA côté serveur pour le flux natif du planificateur, A13 (stockage des sauvegardes, F15 ; offre Sentry), les lignes F du tableau « Fondateur ».
+
 ## 2026-11-12, Claude, M2 et T09 : Maestro sur simulateur en CI
 
 Fait : job `maestro` dans `.github/workflows/mobile-native.yml`, sur macOS : Postgres installé par Homebrew, migrations, graine de démonstration, compte sans date de naissance pour `age-gate`, serveur web local (`next start`), app de développement compilée pour le simulateur iOS (`TartanDev`, en Release, l'API sur `http://localhost:3000`), puis `maestro test .maestro`. Les flux de l'athlète n'ont plus de `runFlow: when` ; `coach-tracking` ouvre la séance du jour et enregistre l'appel (PR `test/maestro-ci`).
