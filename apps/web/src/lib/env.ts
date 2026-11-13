@@ -21,6 +21,7 @@ const schema = z.object({
   ANDROID_SHA256_FINGERPRINTS: optional,
   RESEND_API_KEY: optional,
   RESEND_WEBHOOK_SECRET: optional,
+  RESEND_PREVIOUS_SENDERS: optional,
   EMAIL_FROM: z.string().default("Tartan <tartan@mail.tartan.coach>"),
   EMAIL_CONTACT: z.string().default("hello@tartan.coach"),
   // Ouverture commerciale : « closed » réserve la création d'espace coach à la liste ci-dessous.
