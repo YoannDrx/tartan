@@ -34,6 +34,9 @@ test("un brouillon garde son ordre et un onglet ancien ne peut pas écraser sa c
   await expect(body.getByRole("listitem").first()).toContainText("Foulées bondissantes");
   await expectNoHorizontalScroll(page);
   // Une nouvelle sauvegarde depuis ce même écran utilise bien la version retournée.
+  await page.getByRole("button", { name: m.nativeBuilder.discardLocal, exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: m.common.delete, exact: true }).click();
+  await page.getByText(m.builder.sequence.advanced, { exact: true }).click();
   await page.getByLabel("Mot du coach", { exact: true }).fill("Prescriptions confirmées");
   await page.getByRole("button", { name: m.builder.saveDraft, exact: true }).click();
   await expect(page.getByText("Brouillon enregistré.", { exact: true })).toBeVisible();

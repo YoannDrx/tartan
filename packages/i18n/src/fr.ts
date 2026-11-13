@@ -1746,7 +1746,7 @@ export const fr = {
     startRest: "Lancer",
     stopRest: "Arrêter",
     previous: "Précédent",
-    next: "Exercice suivant",
+    next: "Étape suivante",
     finish: "Terminer",
     playDemo: "Lire la démonstration",
     noVideo: "Pas de vidéo pour cet exercice",

@@ -346,6 +346,8 @@ export const SessionBuilder = ({
   const [expectedVersion, setExpectedVersion] = useState(initial?.version);
   const [dirty, setDirty] = useState(!initial);
   const submitting = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [uncertainSave, setUncertainSave] = useState(false);
   const [history, setHistory] = useState<
     {
       club: BlockState[];
@@ -482,7 +484,7 @@ export const SessionBuilder = ({
     setClub(parts.club);
     setAutonomous(parts.autonomous);
     setOverrides(attachItemKeys(f.overrides, [...parts.club, ...parts.autonomous]));
-    // Le fondateur relit explicitement la copie si la version du serveur a changé.
+    // Le coach relit explicitement la copie si la version du serveur a changé.
     setExpectedVersion(initial?.version ?? f.expectedVersion);
     setDirty(true);
     recovery.accept();
@@ -490,9 +492,10 @@ export const SessionBuilder = ({
 
   const save = useAction(saveSessionAction, {
     onSuccess: async ({ data, input }) => {
-      submitting.current = false;
       setDirty(false);
       await recovery.saved();
+      submitting.current = false;
+      setSaving(false);
       if (data) setExpectedVersion(data.version);
       if (data && (input.publish || input.publishAt)) markInstallOpportunity();
       toast.ok(
@@ -510,7 +513,10 @@ export const SessionBuilder = ({
     },
     onError: ({ error }) => {
       submitting.current = false;
-      setFormError(error.serverError ?? m.errors.invalid);
+      setSaving(false);
+      const uncertain = !error.serverError && !error.validationErrors;
+      setUncertainSave(uncertain);
+      setFormError(error.serverError ?? (uncertain ? m.nativeBuilder.pendingReply : m.errors.invalid));
     },
   });
   const template = useAction(saveTemplateAction, {
@@ -533,7 +539,7 @@ export const SessionBuilder = ({
   });
 
   const submit = async (publish: boolean, scheduleAt: string | null = null) => {
-    if (submitting.current || recovery.candidate) return;
+    if (submitting.current || uncertainSave || recovery.candidate) return;
     setFormError(null);
     const draft = buildDraft();
     if (!draft.title) return setFormError(m.builder.sequence.titleRequired);
@@ -554,6 +560,7 @@ export const SessionBuilder = ({
     )
       return setFormError(m.trainingPhases.reviewRequired);
     submitting.current = true;
+    setSaving(true);
     await recovery.beforeSubmit();
     save.execute({
       id: initial?.id,
@@ -595,9 +602,11 @@ export const SessionBuilder = ({
     : null;
 
   return (
-    <div
+    <fieldset
+      disabled={saving || uncertainSave}
+      aria-label={m.builder.body}
       onChangeCapture={() => setDirty(true)}
-      className="grid gap-4 desktop:grid-cols-[300px_minmax(0,1fr)] desktop:gap-x-6"
+      className="grid min-w-0 gap-4 desktop:grid-cols-[300px_minmax(0,1fr)] desktop:gap-x-6"
     >
       {recovery.candidate ? (
         <section
@@ -841,7 +850,7 @@ export const SessionBuilder = ({
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p role="status" className="text-sm">
-            {save.isPending ? m.builder.sequence.saving : dirty ? m.builder.sequence.unsaved : m.builder.sequence.saved}
+            {saving ? m.builder.sequence.saving : dirty ? m.builder.sequence.unsaved : m.builder.sequence.saved}
           </p>
           {dirty ? (
             <p role="status" className="w-full text-sm">
@@ -1130,7 +1139,7 @@ export const SessionBuilder = ({
         <div className="max-desktop:sticky max-desktop:bottom-[calc(84px+env(safe-area-inset-bottom))] max-desktop:z-10 max-desktop:rounded-card max-desktop:border max-desktop:border-control-line max-desktop:bg-card max-desktop:p-2 max-desktop:shadow-float desktop:contents">
           <Button
             className="max-desktop:w-full"
-            disabled={save.isPending || Boolean(recovery.candidate)}
+            disabled={saving || Boolean(recovery.candidate)}
             onClick={() => submit(true)}
           >
             {initial?.publishedAt ? m.builder.sequence.updatePublished : m.builder.publish}
@@ -1138,11 +1147,7 @@ export const SessionBuilder = ({
         </div>
         <div className="max-desktop:flex max-desktop:flex-wrap max-desktop:items-center max-desktop:gap-2 max-desktop:rounded-card max-desktop:bg-card max-desktop:p-3 desktop:contents">
           {!initial?.publishedAt ? (
-            <Button
-              variant="secondary"
-              disabled={save.isPending || Boolean(recovery.candidate)}
-              onClick={() => submit(false)}
-            >
+            <Button variant="secondary" disabled={saving || Boolean(recovery.candidate)} onClick={() => submit(false)}>
               {m.builder.saveDraft}
             </Button>
           ) : null}
@@ -1152,17 +1157,13 @@ export const SessionBuilder = ({
                 <Field label={m.builder.scheduleAt} hint={m.builder.scheduleHint}>
                   {(a) => <DateTimeInput {...a} value={publishAt} onChange={(e) => setPublishAt(e.target.value)} />}
                 </Field>
-                <Button
-                  variant="secondary"
-                  disabled={save.isPending || !publishAt}
-                  onClick={() => submit(false, publishAt)}
-                >
+                <Button variant="secondary" disabled={saving || !publishAt} onClick={() => submit(false, publishAt)}>
                   {m.builder.schedule}
                 </Button>
                 {initial?.publishAt ? (
                   <Button
                     variant="quiet"
-                    disabled={save.isPending || Boolean(recovery.candidate)}
+                    disabled={saving || Boolean(recovery.candidate)}
                     onClick={() => {
                       setScheduling(false);
                       setPublishAt("");
@@ -1300,6 +1301,6 @@ export const SessionBuilder = ({
           </div>
         ) : null}
       </Dialog>
-    </div>
+    </fieldset>
   );
 };

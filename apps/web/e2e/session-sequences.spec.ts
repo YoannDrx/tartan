@@ -142,3 +142,61 @@ test("l'athlète suit A/B/A/B et lance la récupération sans créer de série f
     await context.close();
   }
 });
+
+test("deux onglets ne remplacent pas silencieusement la copie locale du constructeur", async ({ page, context }) => {
+  await createCoachSpace(page, "Copie");
+  await page.goto("/seances/nouvelle", { waitUntil: "networkidle" });
+  await page.getByLabel(m.builder.titleLabel, { exact: true }).fill("Séance commune");
+  await page.getByRole("button", { name: "Ajouter Accélérations à la séance", exact: true }).click();
+  await page.getByRole("button", { name: m.builder.saveDraft, exact: true }).click();
+  await expect(page).toHaveURL(/\/seances\/[a-f0-9-]+$/);
+  await page.reload({ waitUntil: "networkidle" });
+  const other = await context.newPage();
+  try {
+    await other.goto(page.url(), { waitUntil: "networkidle" });
+    await page.getByLabel(m.builder.titleLabel, { exact: true }).fill("Première copie à conserver");
+    await expect(page.getByText(m.nativeBuilder.localSaved, { exact: true })).toBeVisible();
+    await other.getByLabel(m.builder.titleLabel, { exact: true }).fill("Deuxième copie concurrente");
+    await expect(other.getByText(m.nativeBuilder.localError, { exact: true })).toBeVisible();
+    await page.reload({ waitUntil: "networkidle" });
+    const recovery = page.getByRole("region", { name: m.nativeBuilder.recoveredTitle, exact: true });
+    await expect(recovery).toContainText("Première copie à conserver");
+    await expect(recovery).not.toContainText("Deuxième copie concurrente");
+  } finally {
+    await other.close();
+  }
+});
+
+test("une réponse perdue laisse la création en attente de vérification et bloque son rejeu", async ({ page }) => {
+  await createCoachSpace(page, "Interruption");
+  await page.goto("/seances/nouvelle", { waitUntil: "networkidle" });
+  await page.getByLabel(m.builder.titleLabel, { exact: true }).fill("Séance envoyée une fois");
+  await page.getByRole("button", { name: "Ajouter Accélérations à la séance", exact: true }).click();
+  let sent = 0;
+  let confirmLoss!: () => void;
+  const lostResponse = new Promise<void>((resolve) => {
+    confirmLoss = resolve;
+  });
+  await page.route("**/seances/nouvelle", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    sent += 1;
+    // Le serveur termine réellement l'écriture, mais le navigateur n'en reçoit pas la réponse.
+    const response = await route.fetch();
+    expect(response.ok()).toBe(true);
+    await route.abort("failed");
+    confirmLoss();
+  });
+  await page.getByRole("button", { name: m.builder.saveDraft, exact: true }).click();
+  await lostResponse;
+  await expect(page.getByRole("alert").filter({ hasText: m.nativeBuilder.pendingReply })).toBeVisible();
+  await expect(page.getByRole("button", { name: m.builder.saveDraft, exact: true })).toBeDisabled();
+  await page.unroute("**/seances/nouvelle");
+  await page.reload({ waitUntil: "networkidle" });
+  const recovery = page.getByRole("region", { name: m.nativeBuilder.recoveredTitle, exact: true });
+  await expect(recovery).toContainText(m.nativeBuilder.pendingReply);
+  await expect(recovery.getByRole("button", { name: m.nativeBuilder.restore, exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: m.builder.saveDraft, exact: true })).toBeDisabled();
+  expect(sent).toBe(1);
+  await page.goto("/calendrier", { waitUntil: "networkidle" });
+  await expect(page.getByRole("link", { name: /Séance envoyée une fois/ })).toHaveCount(1);
+});
