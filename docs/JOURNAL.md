@@ -13,6 +13,11 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Claude, e-mails dans le mélange Tartan
+
+Fait : à la demande du fondateur, le gabarit commun (`apps/web/emails/layout.tsx`) passe à la piste en fond, aux deux lignes blanches, à une carte encre au texte blanc, à l'action et aux liens citron, et à une ligne blanche d'arrivée avant le pied de page sur la piste. Encadré `Highlight` (encre relevée, bordure citron) pour les échéances ; liens de désinscription en `FooterLink`, y compris le repli des notifications (PR `feat/emails-stade`).
+Vérifié : les 29 e-mails du catalogue rendus et regardés à 600 et 375 px. Non vérifié : rendu dans Gmail, Outlook et Apple Mail réels (F1).
+
 ## 2026-11-13, Claude, gestes sur les comptes : sauvegarde éprouvée, M1, variable Apple
 
 Fait : copie de production envoyée dans le store Vercel Blob privé (créé par le fondateur), désormais relue depuis le store et comparée par empreinte après chaque envoi ; `APPLE_APP_BUNDLE_IDENTIFIER=coach.tartan.app` posé sur Vercel (production) ; `AI_TRANSCRIPTION_MODEL` absent, donc `gpt-transcribe` ; premier build EAS Android de production réussi (1.1.0, build 3) (PR `feat/sauvegarde-relecture`).
