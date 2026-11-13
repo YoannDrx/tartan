@@ -3,7 +3,7 @@
 import type { JumpResult } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { Upload } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -14,7 +14,7 @@ import { submitOp } from "@/features/offline/op-queue";
 import { enqueueVideo, prepareVideo } from "./upload-queue";
 
 type Athlete = { id: string; firstName: string; lastName: string };
-export type LinkableSession = { id: string; label: string; today: boolean };
+export type LinkableSession = { id: string; label: string; today: boolean; exercises?: { id: string; name: string }[] };
 
 const JumpFields = ({
   value,
@@ -124,18 +124,26 @@ export const UploadVideoDialog = ({
   athletes,
   sessions,
   enabled,
+  self = false,
+  exercises = [],
 }: {
   athletes: Athlete[];
   sessions: LinkableSession[];
   enabled: boolean;
+  self?: boolean;
+  exercises?: { id: string; name: string }[];
 }) => {
   const organizationId = useSpaceId();
   const [open, setOpen] = useState(false);
   const [athleteId, setAthleteId] = useState(athletes[0]?.id ?? "");
   const [sessionId, setSessionId] = useState(sessions.find((s) => s.today)?.id ?? "");
   const [file, setFile] = useState<File | null>(null);
+  const camera = useRef<HTMLInputElement>(null);
+  const [exerciseId, setExerciseId] = useState("");
+  const availableExercises = self ? (sessions.find((s) => s.id === sessionId)?.exercises ?? []) : exercises;
   const [jump, setJump] = useState({ height: "", attemptNo: 1, result: "O" as JumpResult, steps: "" });
   const [isPending, setPending] = useState(false);
+  const submitting = useRef(false);
   const [error, setError] = useState<string | null>(null);
   return (
     <Dialog
@@ -158,48 +166,64 @@ export const UploadVideoDialog = ({
           onSubmit={async (e) => {
             e.preventDefault();
             setError(null);
-            if (!file) return setError("Choisis une vidéo.");
+            if (submitting.current) return;
+            if (!file) return setError(m.videoCollaboration.chooseFile);
+            if (!file.type.startsWith("video/") || file.size > 1_000_000_000)
+              return setError(m.videoCollaboration.invalidFile);
+            submitting.current = true;
             setPending(true);
-            const video = await prepareVideo(file);
-            if ("tooLongSeconds" in video) {
+            try {
+              const video = await prepareVideo(file);
+              if ("tooLongSeconds" in video) {
+                setPending(false);
+                return setError(m.video.tooLong(video.tooLongSeconds));
+              }
+              await enqueueVideo(
+                organizationId,
+                {
+                  athleteId: self ? undefined : athleteId,
+                  exerciseId: exerciseId || null,
+                  scheduledSessionId: sessionId || null,
+                  recordedAt: new Date().toISOString(),
+                  attempt: jump.height
+                    ? {
+                        barHeightCm: Number(jump.height),
+                        attemptNo: jump.attemptNo,
+                        result: jump.result,
+                        approachSteps: jump.steps ? Number(jump.steps) : null,
+                      }
+                    : null,
+                },
+                video,
+              );
               setPending(false);
-              return setError(m.video.tooLong(video.tooLongSeconds));
+              setOpen(false);
+              setFile(null);
+              toast.ok(m.offline.uploadQueued);
+            } catch {
+              setError(m.common.genericError);
+            } finally {
+              submitting.current = false;
+              setPending(false);
             }
-            await enqueueVideo(
-              organizationId,
-              {
-                athleteId,
-                scheduledSessionId: sessionId || null,
-                recordedAt: new Date().toISOString(),
-                attempt: jump.height
-                  ? {
-                      barHeightCm: Number(jump.height),
-                      attemptNo: jump.attemptNo,
-                      result: jump.result,
-                      approachSteps: jump.steps ? Number(jump.steps) : null,
-                    }
-                  : null,
-              },
-              video,
-            );
-            setPending(false);
-            setOpen(false);
-            setFile(null);
-            toast.ok(m.offline.uploadQueued);
           }}
         >
-          <Field label="Athlète">
-            {(a) => (
-              <Select {...a} value={athleteId} onChange={(e) => setAthleteId(e.target.value)}>
-                {athletes.map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {x.firstName} {x.lastName}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-          <Field label="Vidéo">
+          {self ? (
+            <p className="text-soft">{m.videoCollaboration.private}</p>
+          ) : (
+            <Field label={m.videoCollaboration.athlete}>
+              {(a) => (
+                <Select {...a} value={athleteId} onChange={(e) => setAthleteId(e.target.value)}>
+                  {athletes.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.firstName} {x.lastName}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+          )}
+          <Field label={m.videoCollaboration.file}>
             {(a) => (
               <Input
                 {...a}
@@ -210,7 +234,43 @@ export const UploadVideoDialog = ({
               />
             )}
           </Field>
-          <SessionField sessions={sessions} value={sessionId} onChange={setSessionId} />
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={camera}
+              type="file"
+              accept="video/*"
+              capture="environment"
+              className="hidden"
+              aria-label={m.video.capture}
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+            <Button variant="secondary" size="sm" onClick={() => camera.current?.click()}>
+              {m.video.capture}
+            </Button>
+            {file ? <span className="min-w-0 break-all text-sm">{file.name}</span> : null}
+          </div>
+          <SessionField
+            sessions={sessions}
+            value={sessionId}
+            onChange={(id) => {
+              setSessionId(id);
+              setExerciseId("");
+            }}
+          />
+          {availableExercises.length ? (
+            <Field label={m.video.exerciseLink}>
+              {(a) => (
+                <Select {...a} value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
+                  <option value="">{m.video.exerciseNone}</option>
+                  {availableExercises.map((exercise) => (
+                    <option key={exercise.id} value={exercise.id}>
+                      {exercise.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+          ) : null}
           {/* La barre ne concerne que les sauteurs : repliée pour tous les autres. */}
           <details>
             <summary className="inline-flex min-h-11 cursor-pointer items-center font-semibold">
@@ -260,7 +320,7 @@ export const JumpEntryDialog = ({ athletes, sessions }: { athletes: Athlete[]; s
     });
     setPending(false);
     if (res.state === "error") return toast.error(res.message);
-    toast.ok(res.state === "queued" ? m.offline.attemptQueued : "Essai noté.");
+    toast.ok(res.state === "queued" ? m.offline.attemptQueued : m.videoCollaboration.attemptSaved);
     setJump((j) => ({ ...j, attemptNo: j.result === "X" ? Math.min(j.attemptNo + 1, 3) : 1 }));
   };
   return (
@@ -268,7 +328,7 @@ export const JumpEntryDialog = ({ athletes, sessions }: { athletes: Athlete[]; s
       open={open}
       onOpenChange={setOpen}
       title={m.video.barSheet}
-      description="Note chaque essai, avec ou sans vidéo."
+      description={m.videoCollaboration.attemptDescription}
       trigger={
         <Button size="sm" variant="secondary">
           {m.video.barSheet}
@@ -279,11 +339,11 @@ export const JumpEntryDialog = ({ athletes, sessions }: { athletes: Athlete[]; s
         className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!jump.height) return toast.error("Indique la hauteur de la barre.");
+          if (!jump.height) return toast.error(m.videoCollaboration.heightRequired);
           void note();
         }}
       >
-        <Field label="Athlète">
+        <Field label={m.videoCollaboration.athlete}>
           {(a) => (
             <Select {...a} value={athleteId} onChange={(e) => setAthleteId(e.target.value)}>
               {athletes.map((x) => (
@@ -297,7 +357,7 @@ export const JumpEntryDialog = ({ athletes, sessions }: { athletes: Athlete[]; s
         <SessionField sessions={sessions} value={sessionId} onChange={setSessionId} />
         <JumpFields value={jump} onChange={setJump} />
         <Button type="submit" disabled={isPending}>
-          Noter l'essai
+          {m.videoCollaboration.noteAttempt}
         </Button>
       </form>
     </Dialog>

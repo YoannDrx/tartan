@@ -391,7 +391,8 @@ export type CommentInput = z.infer<typeof commentInput>;
 export const linkVideoExerciseInput = z.object({ exerciseId: uuid.nullable() });
 
 export const createVideoInput = z.object({
-  athleteId: uuid,
+  clientId: uuid.optional(),
+  athleteId: uuid.optional(),
   scheduledSessionId: uuid.nullable().optional(),
   exerciseId: uuid.nullable().optional(),
   fps: z.number().int().min(1).max(1000).nullable().optional(),
@@ -410,6 +411,7 @@ export const createVideoInput = z.object({
 export type CreateVideoInput = z.infer<typeof createVideoInput>;
 
 export const annotationInput = z.object({
+  parentId: uuid.optional(),
   tMs: z.number().int().min(0),
   phase: jumpPhase.nullable().optional(),
   text: required(500, "Écris ta remarque"),
@@ -417,6 +419,7 @@ export const annotationInput = z.object({
 export type AnnotationInput = z.infer<typeof annotationInput>;
 
 export const shareVideoInput = z.object({
+  groupIds: z.array(uuid).max(50).optional(),
   withAthlete: z.boolean(),
   withGroup: z.boolean().default(false),
 });

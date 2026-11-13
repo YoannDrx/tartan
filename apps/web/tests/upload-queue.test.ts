@@ -34,7 +34,10 @@ const mux = () => {
     // Interrogation de reprise : « bytes */total ».
     if (range.startsWith("bytes */")) {
       if (state.expired) return new Response(null, { status: 410 });
-      return new Response(null, { status: 308, headers: state.received ? { Range: `bytes=0-${state.received - 1}` } : {} });
+      return new Response(null, {
+        status: 308,
+        headers: state.received ? { Range: `bytes=0-${state.received - 1}` } : {},
+      });
     }
     state.puts += 1;
     if (state.puts === state.cutAt) throw new TypeError("network down");
@@ -49,7 +52,10 @@ const mux = () => {
 };
 
 const load = async (handler: Handler) => {
-  vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit = {}) => handler(url, init)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init: RequestInit = {}) => handler(url, init)),
+  );
   const queue = await import("@/features/videos/upload-queue");
   queue.setUploadOwner("coach-1");
   return queue;
@@ -128,4 +134,53 @@ describe("file d'envoi des vidéos", () => {
     await settled();
     expect(store.size).toBe(1);
   });
+});
+
+it("rejoue la même clé après une réponse de création perdue", async () => {
+  const keys: string[] = [];
+  const queue = await load((url, init) => {
+    if (url.endsWith("/videos")) {
+      keys.push(JSON.parse(String(init.body)).clientId);
+      if (keys.length === 1) throw new TypeError("response lost");
+      return Response.json({ videoId: "same-video", uploadUrl: "https://mux.invalid/same" });
+    }
+    return new Response(null, { status: 201 });
+  });
+  await queue.enqueueVideo(ORG, input, video(100));
+  await settled();
+  expect(store.size).toBe(1);
+  expect(await queue.processUploads()).toEqual({ finished: 1, refused: [] });
+  expect(keys).toHaveLength(2);
+  expect(keys[0]).toBeTruthy();
+  expect(new Set(keys).size).toBe(1);
+});
+
+it("un envoi déjà reçu est terminé sans nouvel asset ni refus", async () => {
+  const queue = await load(() => Response.json({ code: "video_already_uploaded" }, { status: 409 }));
+  vi.stubGlobal("navigator", { onLine: false });
+  await queue.enqueueVideo(ORG, input, video(100));
+  await settled();
+  vi.stubGlobal("navigator", { onLine: true });
+  expect(await queue.processUploads()).toEqual({ finished: 1, refused: [] });
+  expect(store.size).toBe(0);
+});
+
+it("un changement de compte pendant la création arrête l'envoi du fichier", async () => {
+  let resolve!: (response: Response) => void;
+  const pending = new Promise<Response>((done) => {
+    resolve = done;
+  });
+  let puts = 0;
+  const queue = await load((url) => {
+    if (url.endsWith("/videos")) return pending;
+    puts += 1;
+    return new Response(null, { status: 201 });
+  });
+  await queue.enqueueVideo(ORG, input, video(100));
+  await settled();
+  queue.setUploadOwner("another-user");
+  resolve(Response.json({ videoId: "first-user-video", uploadUrl: "https://mux.invalid/first" }));
+  await settled();
+  expect(puts).toBe(0);
+  expect(store.size).toBe(1);
 });

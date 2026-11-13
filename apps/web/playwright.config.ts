@@ -30,38 +30,45 @@ export default defineConfig({
   ],
   webServer: process.env.CAPTURE_BASE_URL
     ? undefined
-    : {
-        // E2E_PROD=1 : build de production, pour vérifier aussi la CSP et les en-têtes réels.
-        command: process.env.E2E_PROD
-          ? `corepack pnpm exec next build && corepack pnpm exec next start -p ${PORT}`
-          : `corepack pnpm exec next dev --turbopack -p ${PORT}`,
-        url: `http://localhost:${PORT}/connexion`,
-        reuseExistingServer: !process.env.CI,
-        timeout: 300_000,
-        env: {
-          TARTAN_E2E_BUILD: process.env.E2E_PROD ? "true" : "false",
-          E2E_DISABLE_RATE_LIMIT: "true",
-          E2E_DISABLE_ADMIN_STEP_UP: "true",
-          COACH_SIGNUP_MODE: "public",
-          ADMIN_EMAILS:
-            "support-desktop@e2e.tartan.test,support-mobile@e2e.tartan.test,console-desktop@e2e.tartan.test,console-mobile@e2e.tartan.test,passkey-desktop@e2e.tartan.test,mascotte-desktop@e2e.tartan.test,mascotte-mobile@e2e.tartan.test",
-          ADMIN_BOOTSTRAP_TOKEN: "jeton-e2e",
-          DATABASE_URL,
-          BETTER_AUTH_URL: `http://localhost:${PORT}`,
-          NEXT_PUBLIC_APP_URL: `http://localhost:${PORT}`,
-          BETTER_AUTH_SECRET: "secret-e2e-secret-e2e-secret-e2e-secret-e2e",
-          CRON_SECRET: "e2e-cron",
-          APPLE_TEAM_ID: "TESTTEAM00",
-          ANDROID_SHA256_FINGERPRINTS: "AA:BB:CC",
-          RESEND_API_KEY: "",
-          MUX_TOKEN_ID: "",
-          MUX_TOKEN_SECRET: "",
-          // Les tests IA actifs simulent le prestataire, jamais les écritures finales.
-          // Aucune clé du poste ne doit être utilisée par un parcours automatisé.
-          AI_PLANNER_ENABLED: process.env.E2E_AI_PLANNER_ENABLED === "true" ? "true" : "false",
-          OPENAI_API_KEY: "",
-          OPEN_AI_API_KEY: "",
-          VIDEO_DEV_MP4_URL: `http://localhost:${PORT}/dev-clip.webm`,
+    : [
+        ...(process.env.E2E_VIDEO_ENABLED === "true"
+          ? [{ command: "node e2e/mux-server.mjs", url: "http://127.0.0.1:3103/health", reuseExistingServer: false }]
+          : []),
+        {
+          // E2E_PROD=1 : build de production, pour vérifier aussi la CSP et les en-têtes réels.
+          command: process.env.E2E_PROD
+            ? `corepack pnpm exec next build && corepack pnpm exec next start -p ${PORT}`
+            : `corepack pnpm exec next dev --turbopack -p ${PORT}`,
+          url: `http://localhost:${PORT}/connexion`,
+          reuseExistingServer: !process.env.CI,
+          timeout: 300_000,
+          env: {
+            TARTAN_E2E_BUILD: process.env.E2E_PROD ? "true" : "false",
+            E2E_DISABLE_RATE_LIMIT: "true",
+            E2E_DISABLE_ADMIN_STEP_UP: "true",
+            COACH_SIGNUP_MODE: "public",
+            ADMIN_EMAILS:
+              "support-desktop@e2e.tartan.test,support-mobile@e2e.tartan.test,console-desktop@e2e.tartan.test,console-mobile@e2e.tartan.test,passkey-desktop@e2e.tartan.test,mascotte-desktop@e2e.tartan.test,mascotte-mobile@e2e.tartan.test",
+            ADMIN_BOOTSTRAP_TOKEN: "jeton-e2e",
+            DATABASE_URL,
+            BETTER_AUTH_URL: `http://localhost:${PORT}`,
+            NEXT_PUBLIC_APP_URL: `http://localhost:${PORT}`,
+            BETTER_AUTH_SECRET: "secret-e2e-secret-e2e-secret-e2e-secret-e2e",
+            CRON_SECRET: "e2e-cron",
+            APPLE_TEAM_ID: "TESTTEAM00",
+            ANDROID_SHA256_FINGERPRINTS: "AA:BB:CC",
+            RESEND_API_KEY: "",
+            MUX_TOKEN_ID: process.env.E2E_VIDEO_ENABLED === "true" ? "mux-local-test" : "",
+            MUX_TOKEN_SECRET: process.env.E2E_VIDEO_ENABLED === "true" ? "mux-local-test" : "",
+            MUX_BASE_URL: process.env.E2E_VIDEO_ENABLED === "true" ? "http://127.0.0.1:3103" : "",
+            MUX_WEBHOOK_SECRET: process.env.E2E_VIDEO_ENABLED === "true" ? "mux-webhook-local-test" : "",
+            // Les tests IA actifs simulent le prestataire, jamais les écritures finales.
+            // Aucune clé du poste ne doit être utilisée par un parcours automatisé.
+            AI_PLANNER_ENABLED: process.env.E2E_AI_PLANNER_ENABLED === "true" ? "true" : "false",
+            OPENAI_API_KEY: "",
+            OPEN_AI_API_KEY: "",
+            VIDEO_DEV_MP4_URL: `http://localhost:${PORT}/dev-clip.webm`,
+          },
         },
-      },
+      ],
 });

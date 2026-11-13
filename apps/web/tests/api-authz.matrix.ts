@@ -786,6 +786,7 @@ export const MATRICE: Row[] = [
   {
     route: "POST /api/v1/orgs/[orgId]/videos",
     ...encadrantsDuGroupe,
+    athlete: 400,
     coach: 503,
     proprietaire: 503,
     call: (w) => ({ body: { athleteId: w.athleteId } }),
@@ -795,36 +796,42 @@ export const MATRICE: Row[] = [
   {
     route: "POST /api/v1/orgs/[orgId]/videos/[videoId]/upload",
     ...encadrants,
+    athlete: 404,
     adjoint: 404,
-    coach: 503,
+    coach: 404,
     proprietaire: 503,
     call: (w) => ({ params: { videoId: w.pendingVideoId } }),
   },
   {
     route: "POST /api/v1/orgs/[orgId]/videos/[videoId]/share",
-    ...encadrants,
+    ...membres,
     adjoint: 404,
     call: (w) => ({ ...videoParams(w), body: { withAthlete: true } }),
   },
   {
     route: "POST /api/v1/orgs/[orgId]/videos/[videoId]/exercise",
-    ...encadrants,
+    ...membres,
     adjoint: 404,
     call: (w) => ({ ...videoParams(w), body: { exerciseId: w.exerciseId } }),
   },
   {
     route: "POST /api/v1/orgs/[orgId]/videos/[videoId]/annotations",
-    ...encadrants,
+    ...membres,
     adjoint: 404,
     call: (w) => ({ ...videoParams(w), body: { tMs: 1200, text: "Remarque de la matrice" } }),
   },
   {
     route: "DELETE /api/v1/orgs/[orgId]/videos/[videoId]/annotations/[annotationId]",
-    ...encadrants,
+    ...membres,
     adjoint: 404,
     call: async (w, qui) => {
       const annotation = await prisma.videoAnnotation.create({
-        data: { videoId: w.videoId, authorId: authorOf(w, qui), tMs: 500, text: "À retirer" },
+        data: {
+          videoId: w.videoId,
+          authorId: qui === "athlete" ? w.userIds.athlete : authorOf(w, qui),
+          tMs: 500,
+          text: "À retirer",
+        },
         select: { id: true },
       });
       return { params: { videoId: w.videoId, annotationId: annotation.id } };

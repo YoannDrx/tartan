@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 import { buildPersonas, PERSONAS, sql, type PersonaKey, type Personas } from "./personas";
 
 // Matrice d'accès sur le build réel (T04) : routage Next, cookie de session et réponses HTTP.
@@ -53,27 +54,28 @@ const MATRICE: Row[] = [
     ...athleteSeul,
   },
   { route: "GET /api/v1/orgs/:org/videos", path: (w) => org(w, "videos"), ...membres },
-  // 503 : accès accordé, puis Mux absent de la configuration e2e. L'envoi réel relève de T10.
+  // Les membres peuvent envoyer pour eux-mêmes ; le SDK local remplace Mux si activé.
   {
     route: "POST /api/v1/orgs/:org/videos",
     path: (w) => org(w, "videos"),
-    data: (w) => ({ athleteId: w.main.athleteId }),
-    ...encadrants,
-    coach: 503,
-    proprietaire: 503,
+    data: (w) => ({ athleteId: w.main.athleteId, clientId: randomUUID() }),
+    ...membres,
+    athlete: process.env.E2E_VIDEO_ENABLED === "true" ? 200 : 503,
+    coach: process.env.E2E_VIDEO_ENABLED === "true" ? 200 : 503,
+    proprietaire: process.env.E2E_VIDEO_ENABLED === "true" ? 200 : 503,
   },
   { route: "GET /api/v1/orgs/:org/videos/:video", path: (w) => org(w, `videos/${w.videoId}`), ...membres },
   {
     route: "POST /api/v1/orgs/:org/videos/:video/share",
     path: (w) => org(w, `videos/${w.videoId}/share`),
     data: () => ({ withAthlete: true }),
-    ...encadrants,
+    ...membres,
   },
   {
     route: "POST /api/v1/orgs/:org/videos/:video/annotations",
     path: (w) => org(w, `videos/${w.videoId}/annotations`),
     data: () => ({ tMs: 1200, text: "Remarque de la matrice" }),
-    ...encadrants,
+    ...membres,
   },
   {
     route: "GET /api/v1/orgs/:org/comments",

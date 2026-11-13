@@ -802,22 +802,25 @@ describe("vidéos", () => {
     expect(notif).toBeTruthy();
   });
 
-  it("refuse le partage au groupe en V1", async () => {
+  it("refuse au coach de décider du partage au groupe", async () => {
     const id = await makeVideo(false);
     await expect(
       shareVideo(a.owner.userId, a.organizationId, id, { withAthlete: true, withGroup: true }),
     ).rejects.toMatchObject({ status: 403 });
   });
 
-  it("l'athlète répond mais n'annote pas", async () => {
+  it("l'athlète commente et annote sa vidéo partagée", async () => {
     const id = await makeVideo(true);
     await addAnnotation(a.owner.userId, a.organizationId, id, { tMs: 2400, phase: "takeoff", text: "Pied à plat" });
-    await expect(addAnnotation(a.lea.userId, a.organizationId, id, { tMs: 100, text: "Moi" })).rejects.toMatchObject({
-      status: 403,
-    });
+    await addAnnotation(a.lea.userId, a.organizationId, id, { tMs: 100, text: "Moi" });
     await addComment(a.lea.userId, a.organizationId, { entityType: "video", entityId: id, body: "Merci coach" });
     const detail = await getVideo(a.lea.userId, a.organizationId, id);
-    expect(detail.annotations[0]).toMatchObject({ tMs: 2400, phase: "takeoff" });
+    expect(detail.annotations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ tMs: 2400, phase: "takeoff" }),
+        expect.objectContaining({ tMs: 100, text: "Moi" }),
+      ]),
+    );
     expect(detail.comments[0]?.body).toBe("Merci coach");
     await expect(
       addComment(a.hugo.userId, a.organizationId, { entityType: "video", entityId: id, body: "Coucou" }),
@@ -914,8 +917,11 @@ describe("vidéos", () => {
 
   it("une vidéo déjà envoyée ne redemande pas d'adresse d'envoi", async () => {
     const id = await makeVideo(false);
-    await expect(renewVideoUpload(a.owner.userId, a.organizationId, id)).rejects.toMatchObject({ status: 400 });
-    await expect(renewVideoUpload(a.lea.userId, a.organizationId, id)).rejects.toMatchObject({ status: 403 });
+    await expect(renewVideoUpload(a.owner.userId, a.organizationId, id)).rejects.toMatchObject({
+      status: 409,
+      code: "video_already_uploaded",
+    });
+    await expect(renewVideoUpload(a.lea.userId, a.organizationId, id)).rejects.toMatchObject({ status: 404 });
   });
 
   it("note la feuille de barres", async () => {
@@ -1041,6 +1047,7 @@ describe("plafond de l'offre gratuite de Mux", () => {
           athleteId: athlete.athleteId,
           uploadedBy: org.owner.userId,
           ...data,
+          quotaReservedAt: data.createdAt ?? new Date(),
         },
       });
     const service = await withLimit("100000");
