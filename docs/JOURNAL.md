@@ -13,6 +13,11 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, F5 : vérification intégrée et PR en brouillon
+
+Vérifié sur `ebb8dea` : types, lint (quatre avertissements hérités), 1 945 tests web / 123 fichiers, 284 tests domaine, 243 mobile, 247 jeu, 90 mascotte et design réussis. Huit parcours navigateur IA simulés rejoués après intégration F3/F1 ; le parcours OpenAI réel est décrit ci-dessous sur `937b130`. La dernière garde sur les tours omis passe son test de reprise et de refus, sans qualification supplémentaire du corpus revendiquée. Les 80 réponses du passage réel à 67/80 sont disponibles dans un document HTML de relecture local, hors dépôt public.
+F5 reste en brouillon : seuil de 95 % non atteint, catalogue et dictées humaines non validés. Aucun changement de modèle ni ouverture des inscriptions.
+
 ## 2026-11-13, Codex, F5 : parcours navigateur OpenAI réel
 
 Éprouvé le 13 novembre sur serveur local isolé, commit `937b130`, modèle configuré `gpt-4.1-mini` : exercice inconnu → question nommée → création privée relue → reprise → brouillon → publication séparée → lecture athlète. Prescription conservée : trois séries de cinq, repos 60 s, aucune charge. Aucun résultat prestataire ni proposition injecté ; seules les données de comptes fictifs et leur vérification d’e-mail sont préparées. Capture de l’athlète relue ; axe sans violation. Un premier essai avait une assertion erronée sur le nom du champ `rest_s` ; correction et rejeu complet réussis, 1/1 en 45 s build compris. Ce n’est ni une dictée humaine ni une recette sur téléphone.
