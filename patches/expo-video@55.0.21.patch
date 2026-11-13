@@ -1,0 +1,18 @@
+diff --git a/android/src/main/java/expo/modules/video/player/DefaultLoadControl.java b/android/src/main/java/expo/modules/video/player/DefaultLoadControl.java
+index 9ac55d6a8a24c53c5f1a8e1c2aaba06639464bad..9f404450a37900f5e9f7e7db6f741e494b5e2435 100644
+--- a/android/src/main/java/expo/modules/video/player/DefaultLoadControl.java
++++ b/android/src/main/java/expo/modules/video/player/DefaultLoadControl.java
+@@ -393,6 +393,13 @@ public class DefaultLoadControl implements LoadControl {
+     return allocator;
+   }
+ 
++  // Tartan : CameraX (react-native-vision-camera) hisse media3 en 1.9, qui appelle getAllocator(PlayerId). Sans
++  // cette méthode, toute lecture vidéo ferme l'app (AbstractMethodError). Pas d'@Override : le module compile
++  // encore contre media3 1.8.
++  public Allocator getAllocator(PlayerId playerId) {
++    return allocator;
++  }
++
+   @Override
+   public long getBackBufferDurationUs(PlayerId playerId) {
+     return backBufferDurationUs;

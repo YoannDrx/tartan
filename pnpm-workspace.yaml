@@ -9,3 +9,5 @@ onlyBuiltDependencies:
   - prisma
   - sharp
   - unrs-resolver
+patchedDependencies:
+  expo-video@55.0.21: patches/expo-video@55.0.21.patch

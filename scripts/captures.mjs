@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Refait les captures du site et des stores depuis la base de démonstration locale.
-//   pnpm captures [--dry-run] [--only=ios|web] [--build] [--store]
+//   pnpm captures [--dry-run] [--only=ios|web] [--build] [--store] [--android]
 // --store : pleine définition sur iPhone 17 Pro Max, dans apps/mobile/store/ios, sans toucher au site.
+// --android : 1080 × 1920 sur l'émulateur Android démarré, dans apps/mobile/store/android, sans toucher au site.
 // Mode opératoire et prérequis : docs/exploitation/captures.md.
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -24,6 +25,8 @@ const MAX_SIDE = "1600";
 // Apple n'accepte que 1260 × 2736, 1290 × 2796 ou 1320 × 2868 pour le grand format : aucune réduction.
 const STORE_DEVICE = "iPhone 17 Pro Max";
 const STORE_IMAGES = path.join(ROOT, "apps/mobile/store/ios");
+const ANDROID_IMAGES = path.join(ROOT, "apps/mobile/store/android");
+const ANDROID_SIZE = "1080x1920";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
 
 const SESSIONS = {
@@ -40,13 +43,14 @@ const fail = (message) => {
 };
 
 const parseArgs = (argv) => {
-  const options = { dryRun: false, build: false, only: null, store: false };
+  const options = { dryRun: false, build: false, only: null, store: false, android: false };
   for (const arg of argv) {
     if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "--build") options.build = true;
     else if (arg === "--store") options.store = true;
+    else if (arg === "--android") options.android = true;
     else if (arg === "--only=ios" || arg === "--only=web") options.only = arg.slice("--only=".length);
-    else fail(`option inconnue : ${arg}. Usage : pnpm captures [--dry-run] [--only=ios|web] [--build] [--store]`);
+    else fail(`option inconnue : ${arg}. Usage : pnpm captures [--dry-run] [--only=ios|web] [--build] [--store] [--android]`);
   }
   return options;
 };
@@ -283,6 +287,65 @@ const captureIos = async ({ dryRun, build, store }, runner, screens) => {
   return device;
 };
 
+const adbPath = () => {
+  const sdk = process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT ?? path.join(process.env.HOME ?? "", "Library/Android/sdk");
+  return path.join(sdk, "platform-tools/adb");
+};
+
+// Mêmes écrans que sur iOS, nommés pour Android. La barre d'état passe en mode démo : 9:41, batterie pleine.
+const captureAndroid = async ({ dryRun }, runner, screens) => {
+  const adb = adbPath();
+  if (!dryRun) {
+    const devices = execFileSync(adb, ["devices"], { encoding: "utf8" });
+    if (!/emulator-\d+\s+device/.test(devices)) fail("aucun émulateur Android démarré (adb devices).");
+    const size = execFileSync(adb, ["shell", "wm", "size"], { encoding: "utf8" });
+    if (!size.includes(ANDROID_SIZE)) fail(`l'émulateur doit mesurer ${ANDROID_SIZE} (wm size : ${size.trim()}).`);
+    const packages = execFileSync(adb, ["shell", "pm", "list", "packages", BUNDLE_ID], { encoding: "utf8" });
+    if (!packages.includes(BUNDLE_ID)) fail(`${BUNDLE_ID} n'est pas installée sur l'émulateur.`);
+  }
+  console.log(`Session attendue sur l'émulateur : ${ATHLETE_EMAIL}.`);
+  // L'émulateur joint le serveur local du Mac par la même adresse que le simulateur iOS.
+  runner.run(adb, ["reverse", "tcp:3000", "tcp:3000"]);
+  const demo = (command, extras = []) =>
+    runner.run(adb, ["shell", "am", "broadcast", "-a", "com.android.systemui.demo", "-e", "command", command, ...extras]);
+  runner.run(adb, ["shell", "settings", "put", "global", "sysui_demo_allowed", "1"]);
+  demo("enter");
+  demo("clock", ["-e", "hhmm", "0941"]);
+  demo("battery", ["-e", "level", "100", "-e", "plugged", "false"]);
+  demo("network", ["-e", "mobile", "hide"]);
+  demo("network", ["-e", "wifi", "show", "-e", "level", "4", "-e", "fully", "true"]);
+  demo("notifications", ["-e", "visible", "false"]);
+  const dir = dryRun ? path.join(tmpdir(), "captures-a-sec") : mkdtempSync(path.join(tmpdir(), "tartan-captures-"));
+  const files = screens.map((screen) => ({ ...screen, file: screen.file.replace(/^ios-/, "android-") }));
+  const home = files[0].url;
+  const open = (url) => runner.run(adb, ["shell", "am", "start", "-W", "-a", "android.intent.action.VIEW", "-d", url, BUNDLE_ID]);
+  try {
+    for (const screen of files) {
+      if (screen.url !== home) {
+        open(home);
+        await runner.wait(1500);
+      }
+      open(screen.url);
+      await runner.wait(screen.settleMs ?? 4000);
+      runner.run(adb, ["shell", "screencap", "-p", "/sdcard/tartan-capture.png"]);
+      runner.run(adb, ["pull", "/sdcard/tartan-capture.png", path.join(dir, screen.file)]);
+    }
+  } finally {
+    runner.run(adb, ["shell", "rm", "-f", "/sdcard/tartan-capture.png"]);
+    demo("exit");
+  }
+  for (const screen of files) {
+    const from = path.join(dir, screen.file);
+    const to = path.join(ANDROID_IMAGES, screen.file);
+    if (dryRun) console.log(`[à sec] copie ${from} vers ${path.relative(ROOT, to)}`);
+    else {
+      mkdirSync(ANDROID_IMAGES, { recursive: true });
+      copyFileSync(from, to);
+    }
+  }
+  if (!dryRun) rmSync(dir, { recursive: true, force: true });
+};
+
 const captureWeb = async ({ dryRun }, runner, baseUrl) => {
   if (!dryRun) {
     const ok = await fetch(`${baseUrl}/connexion`, { signal: AbortSignal.timeout(10_000) })
@@ -324,7 +387,7 @@ const main = async () => {
   assertLocalWeb(baseUrl);
   const runner = makeRunner(options.dryRun);
   const wantsIos = options.only !== "web";
-  const wantsWeb = options.only !== "ios" && !options.store;
+  const wantsWeb = options.only !== "ios" && !options.store && !options.android;
 
   let screens = [];
   if (wantsIos) {
@@ -350,6 +413,11 @@ const main = async () => {
     assertCoversManifest(screens);
   }
 
+  if (options.android) {
+    await captureAndroid(options, runner, screens);
+    console.log(options.dryRun ? "Fin de la simulation : rien n'a été écrit." : "Captures Android écrites.");
+    return;
+  }
   const device = wantsIos ? await captureIos(options, runner, screens) : null;
   if (wantsWeb) await captureWeb(options, runner, baseUrl);
   // Le manifeste décrit les images du site, pas celles des stores.

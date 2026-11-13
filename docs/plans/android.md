@@ -6,6 +6,10 @@ Paquet `coach.tartan.app`, API 36. Textes et formulaires : [fiches-stores](../re
 
 Projet Firebase et `GOOGLE_SERVICES_JSON` sur EAS. Clé de signature Android sur EAS. Bannière 1024 × 500 dans `apps/mobile/store/android`. Icône 512 × 512. Compilation Android vérifiée en CI à chaque PR mobile. Les pages `/mobile/*` sont sans prix.
 
+## Lecture vidéo : media3 et CameraX
+
+`react-native-vision-camera` tire CameraX 1.7 (alpha), qui hisse toutes les bibliothèques media3 en 1.9. `expo-video` 55 est compilé contre media3 1.8 : sans correctif, la première vidéo lue ferme l'app (`AbstractMethodError` sur `LoadControl.getAllocator(PlayerId)`). Le patch `patches/expo-video@55.0.21.patch` ajoute cette méthode, et `expo-video` est compilé depuis ses sources sur Android (`buildFromSource` dans `apps/mobile/package.json`). À chaque montée d'`expo-video`, pnpm refuse le patch : vérifier alors si la nouvelle version vise media3 1.9, et retirer patch et `buildFromSource` si oui. Vérifié sur émulateur le 13 novembre 2026, pas encore sur un téléphone.
+
 ## Le blocage à lever d'abord
 
 Les builds EAS échouaient à l'étape « Read app config » (`expo config --json --full --type public` : « Unexpected token '{' »), alors que le même commit se construisait en local.
