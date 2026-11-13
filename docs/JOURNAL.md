@@ -13,6 +13,11 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, intégration F2 après exploitation
+
+Vérifié : CI qualité et native vertes au commit `3f32fd0`, Android compilé, treize parcours Maestro puis suppression du compte jetable réussis. Le correctif de saisie conserve les assertions de majorité. Aucun appareil physique testé.
+Intégration : `main` mis à jour après la fusion autorisée de la PR 122 ; les deux entrées concurrentes du journal sont conservées. Nouvelle CI requise pour ce commit de fusion avant la PR 119, accord du fondateur déjà reçu.
+
 ## 2026-11-13, Codex, F2 : diagnostic de la saisie Maestro avant fusion
 
 Les deux exécutions natives de la PR 119 échouent avant l'écran d'âge : le pilote a saisi seulement une partie de l'adresse et aucun mot de passe. Les traces confirment les valeurs de test complètes envoyées au pilote, les captures montrent la saisie incomplète. Le sous-parcours saisit désormais caractère par caractère et relit l'adresse exacte avant de continuer ; les assertions de majorité restent inchangées. `pasteText` n'aurait rien corrigé : il appelle la même méthode `inputText` dans Maestro. Vérification native à reprendre en CI ; aucune preuve de téléphone physique. Branche F2 mise à jour avec `main` après fusion autorisée de 118.
@@ -23,6 +28,12 @@ Codé : `feat/session-sequences`, empilée sur F1 ; exercices, récupérations e
 Vérifié : types, lint (quatre avertissements existants), design, 265 tests domaine et 1 884 tests web ; les 243 tests mobile restent verts. La suite initiale a détecté le rejet d'un brouillon historique vide : validation V2 restreinte et suite web intégralement rejouée avec succès. Parcours navigateur sur build de production : 208 réussis, 20 ignorés selon les drapeaux, quatre échecs de traces causés par deux suites partageant le même dossier de résultats ; les quatre concernés et quatre parcours terrain associés passent ensuite (8/8), avec sortie isolée. Aucun échec applicatif restant observé.
 Limites : aucun écran de construction ni minuteur encore raccordé, aucun essai prestataire ou téléphone réel. La lecture API fournit déjà l'ordre développé ; les modèles V2 exigent la capacité `structureVersion=2`.
 Suite : F3 catalogue, F4 constructeur et mode séance, F5 planificateur puis F9 natif. Ne pas déclarer F2 éprouvé avant ces consommateurs.
+## 2026-11-13, Codex, F1 : isolation des rebonds et instrumentation
+
+Codé sur `fix/operational-delivery`, basée sur les sauvegardes privées : le webhook Resend vérifie l'expéditeur exact, ignore les autres applications et accepte une liste explicite d'anciens expéditeurs pour les événements retardés. PostgreSQL explicite `verify-full` pour conserver le contrôle du certificat et du nom d'hôte lors de l'évolution de node-postgres. Sentry : hooks de tracing ESM désactivés puisque le tracing est déjà coupé ; capture d'erreurs conservée.
+Vérifié : 25 tests ciblés réussis ; types/lint/design verts (quatre avertissements existants). Matrice HTTP sur build de production : un parcours réussi, un ignoré car doublon mobile. Suite unitaire complète rejouée après stabilisation : 1 900 web, 257 domaine, 243 mobile, 247 jeu et 90 mascotte réussis. Une première exécution chevauchait l’ajout de la compatibilité des anciens expéditeurs et avait chargé des versions différentes du handler et du test ; reprise ciblée puis complète verte. Pas de nouvelle recette exhaustive des écrans sur ce lot technique.
+Exploitation : domaine d'envoi Tartan vérifié chez Resend (DKIM et SPF), trois enregistrements ajoutés chez OVH sur autorisation du fondateur. Clé dédiée à l’envoi créée après autorisation et saisie du code par le fondateur ; clé, expéditeur et adresse précédente installés dans Vercel production. Jeton Sentry de compilation `org:ci` autorisé, créé et posé sur Vercel avec organisation/projet. Effet au prochain déploiement ; envoi réel et lecture des sources encore à prouver. Paire VAPID Preview régénérée séparément, redéploiement lancé ; production inchangée. Aucune donnée réelle ni secret dans le dépôt.
+Fusions : autorisation explicite reçue pour les PR 117–120. PR 116 déjà fusionnée entre-temps : ses e-mails et son journal sont conservés dans les quatre branches, avec relance de CI. PR 121 vidéo séparée, aucune autorisation de fusion pour celle-ci. Inscriptions fermées.
 
 ## 2026-11-13, Codex, F1 : sauvegarde privée obligatoire et main protégé
 
