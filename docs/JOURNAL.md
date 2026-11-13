@@ -14,6 +14,12 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-13, Codex, F9 : constructeur natif de séances imbriquées
+
+Codé sur `feat/native-session-sequences`, après la vidéo native : cartes d’exercices, de récupération et de répétition, deux niveaux maximum ; ajout, ordre, duplication, dissociation, déplacement entre phases et annulation du dernier changement de contenu. Séries et adaptations existantes conservées. Aperçu utilisant les occurrences du domaine. Contrat d’édition local partagé avec le web : un groupe incomplet survit à la fermeture, mais ne passe pas le contrat serveur. Déplacement métier conservant les identifiants et prescriptions, suppression des groupes devenus vides.
+Vérifié sous Node 22/pnpm 10 : types, lint (quatre avertissements hérités), design et suites complètes : 1 960 web, 290 domaine, 252 mobile, 247 jeu, 90 mascotte. Maestro local réussi sur iPhone 16e/iOS 26.3 : édition de deux à trois tours d’un circuit publié, aperçu, enregistrement, puis ajout d’un groupe imbriqué de trois tours ; lecture API vérifiant structure, ordre, pauses, références et prescriptions. 1/1 en 132 s, captures 390 px relues. L’échec intermédiaire cliquait sous l’en-tête ; centrage du bouton ajouté, assertions conservées.
+Limites : bundle Hermes intégré au binaire simulateur existant, pas de nouvelle compilation native locale ; CI attendue. Autres tailles/thèmes, Android, appareils physiques et stores non prouvés. Aucun parcours web produit modifié : seule l’extraction du contrat local d’édition conserve son comportement. IA native encore à porter. Aucun statut commercial acquis ; incident d’authentification de production traité séparément, fusions suspendues.
+
 ## 2026-11-13, Codex, F9 : vidéo collaborative native
 
 Codé sur `feat/native-video-collaboration`, après le lot guides : bibliothèque paginée commune, filtres athlète/traitement/revue, capture privée sans identité athlète fournie par le client et rattachement depuis la séance. Clé idempotente conservée dans la file durable, y compris après migration des anciennes entrées. Réponses horodatées, partage explicite au groupe et révocation, revue coach et suppression selon les permissions renvoyées par le serveur. Nouvelles routes natives réutilisant les services existants ; refus d'accès masquant les anciennes données en cache.

@@ -1,0 +1,73 @@
+# Modifier un circuit publié sans aplatir sa structure ni changer ses prescriptions.
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+---
+- runScript: scripts/create-circuit.js
+- runFlow: flows/_sign-in.yml
+- tapOn:
+    text: "Plus tard|Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- openLink: ${output.circuitBuilderUrl}
+- extendedWaitUntil:
+    visible:
+      id: builder-title
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: sequence-rounds-native-round
+    direction: DOWN
+- tapOn:
+    id: sequence-rounds-native-round
+- eraseText
+- inputText: "3"
+- tapOn:
+    id: sequence-heading-native-round
+- takeScreenshot: coach-circuit-editor
+- scrollUntilVisible:
+    element:
+      id: builder-review
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: builder-review
+- assertVisible: "Relire avant publication"
+- assertVisible: "Circuit · tour 1 sur 3"
+- takeScreenshot: coach-circuit-preview
+- tapOn:
+    id: builder-confirm
+- extendedWaitUntil:
+    notVisible:
+      id: builder-confirm
+    timeout: 15000
+- runScript: scripts/verify-circuit-edit.js
+- scrollUntilVisible:
+    element:
+      id: sequence-group-all-native-round
+    direction: UP
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: sequence-group-all-native-round
+- scrollUntilVisible:
+    element:
+      id: builder-review
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: builder-review
+- assertVisible: "Relire avant publication"
+- takeScreenshot: coach-nested-circuit-preview
+- tapOn:
+    id: builder-confirm
+- extendedWaitUntil:
+    notVisible:
+      id: builder-confirm
+    timeout: 15000
+- runScript:
+    file: scripts/verify-circuit-edit.js
+    env:
+      EXPECT_NESTED: "true"

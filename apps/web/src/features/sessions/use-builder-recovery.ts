@@ -1,25 +1,14 @@
 "use client";
 
-import { sessionDraft, sessionDraftBlock, sessionSequence, athleteOverrideInput } from "@tartan/contracts";
+import { sessionDraft, sessionDraftBlock, editableSessionSequence, athleteOverrideInput } from "@tartan/contracts";
 import { z } from "zod";
 import { useEffect, useRef, useState } from "react";
 
-// Une saisie incomplète se conserve aussi : les exigences de publication restent
-// dans le contrat serveur. La profondeur et la taille restent bornées ici.
-const [exercise, recovery, repeat] = sessionSequence.element.options;
-const editableRecovery = recovery.extend({ durationS: z.number().min(0).max(3600) });
-const repeatFields = { name: z.string().max(80), rounds: z.number().min(0).max(50) };
-const inner = repeat.extend({ ...repeatFields, children: z.array(z.union([exercise, editableRecovery])).max(60) });
-const outer = repeat.extend({
-  ...repeatFields,
-  children: z.array(z.union([exercise, editableRecovery, inner])).max(60),
-});
-const editableSequence = z.array(z.union([exercise, editableRecovery, outer])).max(60);
 export const recoveryForm = z.object({
   draft: sessionDraft.extend({
     title: z.string().max(120),
     blocks: z
-      .array(sessionDraftBlock.extend({ name: z.string().max(80), sequence: editableSequence.optional() }))
+      .array(sessionDraftBlock.extend({ name: z.string().max(80), sequence: editableSessionSequence.optional() }))
       .max(12),
   }),
   date: z.string().max(40),

@@ -9,7 +9,15 @@ import {
   type SessionDraft,
   type SessionEditResponse,
 } from "@tartan/contracts";
-import { copyDraftWithNewRefs, formatPrescription, withSessionRefs } from "@tartan/domain";
+import {
+  copyDraftWithNewRefs,
+  formatPrescription,
+  withSessionRefs,
+  withSessionSequences,
+  moveSequenceExercise,
+  sessionExerciseReferences,
+  validSessionStructure,
+} from "@tartan/domain";
 import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
 import { NativePhasePlanning } from "../phase-planning";
 import { m } from "@tartan/i18n";
@@ -20,7 +28,7 @@ import { Alert, AppState, View } from "react-native";
 import { api } from "../../lib/api";
 import { errorMessage } from "../../lib/errors";
 import { useIsOnline } from "../../lib/network";
-import { Button, Card, Chip, Divider, Field, T } from "../../ui/primitives";
+import { Button, Card, Chip, Field, T } from "../../ui/primitives";
 import { StackScreen } from "../../ui/screen";
 import { Sheet } from "../../ui/sheet";
 import { space } from "../../ui/theme";
@@ -35,6 +43,7 @@ import { builderDraftStore } from "./draft-store";
 import { BuilderSaveFailure, persistBuilderSession } from "./save";
 import { BuilderSummary } from "./summary";
 import { PrescriptionEditor } from "./prescription-editor";
+import { NativeSequenceEditor } from "./sequence-editor";
 
 type Context = Awaited<ReturnType<typeof api.sessionBuilder>>;
 type Item = SessionDraft["blocks"][number]["items"][number];
@@ -134,8 +143,7 @@ export const NativeSessionBuilder = ({
   const [busy, setBusy] = useState(false);
   const pending = useRef(false);
   const mounted = useRef(true);
-  const [libraryBlock, setLibraryBlock] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [undo, setUndo] = useState<Pick<SaveScheduledSessionInput, "draft" | "overrides"> | null>(null);
   const [templates, setTemplates] = useState(false);
   const [availableTemplates, setAvailableTemplates] = useState(context.templates);
   const [deleted, setDeleted] = useState(false);
@@ -283,14 +291,23 @@ export const NativeSessionBuilder = ({
   };
   const draft = (patch: Partial<SessionDraft>) => {
     setMessage("");
+    setUndo(null);
     setForm((v) => ({ ...v, draft: { ...v.draft, ...patch } }));
   };
   const blocks = (next: SessionDraft["blocks"]) => {
-    const refs = new Set(next.flatMap((b) => b.items.map((i) => i.ref)));
+    const nextDraft = withSessionSequences({ ...form.draft, blocks: next });
+    let refs: Set<string>;
+    try {
+      refs = new Set(sessionExerciseReferences(nextDraft).keys());
+    } catch {
+      setError(m.builder.sequence.invalid);
+      return;
+    }
+    setUndo({ draft: form.draft, overrides: form.overrides });
     if (editing && !refs.has(editing.itemRef)) setEditing(null);
     setForm((v) => ({
       ...v,
-      draft: { ...v.draft, blocks: next },
+      draft: nextDraft,
       overrides: v.overrides.filter((o) => refs.has(o.itemRef)),
     }));
   };
@@ -362,6 +379,10 @@ export const NativeSessionBuilder = ({
       },
       duration,
     );
+    if (parsed.success && !validSessionStructure(parsed.data.draft)) {
+      setError(m.builder.sequence.invalid);
+      return;
+    }
     if (!parsed.success) {
       setError(builderErrors(parsed.error.issues));
       return;
@@ -611,14 +632,14 @@ export const NativeSessionBuilder = ({
   };
   if (deleted)
     return (
-      <StackScreen title={m.nativeBuilder.deleted}>
+      <StackScreen world="work" title={m.nativeBuilder.deleted}>
         {error ? <T accessibilityRole="alert">{error}</T> : null}
         <Button label={m.nav.calendrier} onPress={() => router.replace("/(coach)/planning")} />
       </StackScreen>
     );
   if (!ready && stored)
     return (
-      <StackScreen title={m.nativeBuilder.recoveredTitle}>
+      <StackScreen world="work" title={m.nativeBuilder.recoveredTitle}>
         {stored.value.pending ? <T accessibilityRole="alert">{m.nativeBuilder.pendingReply}</T> : null}
         {!verified ? <T accessibilityRole="alert">{m.nativeBuilder.serverUnverified}</T> : null}
         {verified && initial && stored.value.form.expectedVersion !== initial.version ? (
@@ -677,7 +698,7 @@ export const NativeSessionBuilder = ({
       </StackScreen>
     );
   return (
-    <StackScreen title={form.id ? m.common.edit + " · " + m.builder.title : m.coach.newSession}>
+    <StackScreen world="work" title={form.id ? m.common.edit + " · " + m.builder.title : m.coach.newSession}>
       {!online || !verified ? <T accessibilityRole="alert">{m.nativeBuilder.serverUnverified}</T> : null}
       {localState === "conflict" ? (
         <Button
@@ -764,6 +785,16 @@ export const NativeSessionBuilder = ({
             onReady={acceptPhaseReview}
           />
         ) : null}
+        {undo ? (
+          <Button
+            variant="secondary"
+            label={m.builder.sequence.undo}
+            onPress={() => {
+              setForm((current) => ({ ...current, ...undo }));
+              setUndo(null);
+            }}
+          />
+        ) : null}
         {form.draft.blocks.map((block, bi) => (
           <Card key={block.ref}>
             <View style={{ gap: space.md }}>
@@ -794,94 +825,19 @@ export const NativeSessionBuilder = ({
                   />
                 ))}
               </View>
-              {block.items.map((item, ii) => (
-                <View key={item.ref} style={{ gap: space.sm }}>
-                  <Divider />
-                  <T variant="bodyStrong">{exerciseFor(item)?.name ?? m.common.notFound}</T>
-                  <T variant="small">{formatPrescription(item.prescription)}</T>
-                  {item.prescription.notes ? <T variant="caption">{item.prescription.notes}</T> : null}
-                  <Button
-                    compact
-                    variant="secondary"
-                    label={m.builder.setPrescription}
-                    accessibilityLabel={`${m.builder.setPrescription} · ${exerciseFor(item)?.name ?? ""}`}
-                    onPress={() => openPrescription({ itemRef: item.ref! })}
-                  />
-                  <Button
-                    compact
-                    variant="secondary"
-                    label={m.nativeBuilder.moveTo}
-                    disabled={form.draft.blocks.length < 2}
-                    onPress={() => setMoving(item.ref!)}
-                  />
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
-                    <Button
-                      compact
-                      variant="secondary"
-                      label={m.nativeBuilder.up}
-                      accessibilityLabel={`${m.nativeBuilder.up} · ${exerciseFor(item)?.name ?? ""}`}
-                      disabled={ii === 0}
-                      onPress={() =>
-                        blocks(
-                          form.draft.blocks.map((b) =>
-                            b.ref === block.ref ? { ...b, items: move(b.items, ii, -1) } : b,
-                          ),
-                        )
-                      }
-                    />
-                    <Button
-                      compact
-                      variant="secondary"
-                      label={m.nativeBuilder.down}
-                      accessibilityLabel={`${m.nativeBuilder.down} · ${exerciseFor(item)?.name ?? ""}`}
-                      disabled={ii === block.items.length - 1}
-                      onPress={() =>
-                        blocks(
-                          form.draft.blocks.map((b) =>
-                            b.ref === block.ref ? { ...b, items: move(b.items, ii, 1) } : b,
-                          ),
-                        )
-                      }
-                    />
-                    <Button
-                      compact
-                      variant="secondary"
-                      label={m.common.delete}
-                      accessibilityLabel={`${m.common.delete} · ${exerciseFor(item)?.name ?? ""}`}
-                      onPress={() =>
-                        confirm(
-                          m.nativeBuilder.removeExercise,
-                          () =>
-                            blocks(
-                              form.draft.blocks.map((b) => ({
-                                ...b,
-                                items: b.items.filter((i) => i.ref !== item.ref),
-                              })),
-                            ),
-                          true,
-                        )
-                      }
-                    />
-                  </View>
-                  <Button
-                    compact
-                    variant="secondary"
-                    label={`${m.builder.adjustments} (${form.overrides.filter((o) => o.itemRef === item.ref).length})`}
-                    onPress={() => {
-                      setAthleteSearch("");
-                      setAdjusting(item.ref!);
-                    }}
-                  />
-                </View>
-              ))}
-              <Button
-                variant="secondary"
-                label={m.nativeBuilder.addExercise}
-                disabled={block.items.length >= 60}
-                onPress={() => {
-                  setSearch("");
-                  setLibraryBlock(block.ref!);
+              <NativeSequenceEditor
+                block={block}
+                exercises={context.exercises}
+                onChange={(next) =>
+                  blocks(form.draft.blocks.map((current) => (current.ref === block.ref ? next : current)))
+                }
+                onEdit={(itemRef) => openPrescription({ itemRef })}
+                onAdjust={(itemRef) => {
+                  setAthleteSearch("");
+                  setAdjusting(itemRef);
                 }}
+                onMove={setMoving}
+                canMove={form.draft.blocks.length > 1}
               />
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
                 <Button
@@ -1022,6 +978,7 @@ export const NativeSessionBuilder = ({
         <Button
           label={publishedAt ? m.common.save : m.builder.publish}
           disabled={busy || stale || !online || !verified || localState === "conflict"}
+          testID="builder-review"
           onPress={review}
         />
         {!publishedAt ? (
@@ -1054,38 +1011,6 @@ export const NativeSessionBuilder = ({
           />
         ) : null}
       </View>
-      {libraryBlock ? (
-        <Sheet visible title={m.builder.library} onClose={() => setLibraryBlock(null)}>
-          <Field label={m.exercises.search} value={search} onChangeText={setSearch} />
-          {context.exercises
-            .filter((e) =>
-              `${e.name} ${e.tags.join(" ")}`.toLocaleLowerCase("fr").includes(search.toLocaleLowerCase("fr")),
-            )
-            .map((e) => (
-              <Button
-                key={e.id}
-                variant="secondary"
-                label={e.name}
-                onPress={() => {
-                  draft({
-                    blocks: form.draft.blocks.map((b) =>
-                      b.ref === libraryBlock
-                        ? {
-                            ...b,
-                            items: [
-                              ...b.items,
-                              { ref: randomUUID(), exerciseId: e.id, prescription: e.defaultPrescription },
-                            ],
-                          }
-                        : b,
-                    ),
-                  });
-                  setLibraryBlock(null);
-                }}
-              />
-            ))}
-        </Sheet>
-      ) : null}
       {moving ? (
         <Sheet visible title={m.nativeBuilder.moveTo} onClose={() => setMoving(null)}>
           {form.draft.blocks.map((block) => (
@@ -1095,14 +1020,7 @@ export const NativeSessionBuilder = ({
               variant="secondary"
               disabled={block.items.some((i) => i.ref === moving) || block.items.length >= 60}
               onPress={() => {
-                const item = allItems.find((i) => i.ref === moving);
-                if (item)
-                  blocks(
-                    form.draft.blocks.map((b) => ({
-                      ...b,
-                      items: b.ref === block.ref ? [...b.items, item] : b.items.filter((i) => i.ref !== moving),
-                    })),
-                  );
+                blocks(moveSequenceExercise(form.draft, moving, block.ref!).blocks);
                 setMoving(null);
               }}
             />
@@ -1221,6 +1139,7 @@ export const NativeSessionBuilder = ({
               label={publishedAt ? m.common.save : m.builder.publish}
               loading={busy}
               disabled={!online || !verified || stale || localState === "conflict"}
+              testID="builder-confirm"
               onPress={() => void submit(true)}
             />
           }

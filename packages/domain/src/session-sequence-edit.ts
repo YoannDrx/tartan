@@ -83,3 +83,39 @@ export function editSessionSequence(
   if (!found) throw new Error("sequence_parent_missing");
   return { ...block, items, sequence };
 }
+
+/** Upgrade editing structure without changing the order or prescription of legacy content. */
+export function withSessionSequences(draft: SessionDraft): SessionDraft {
+  return {
+    ...draft,
+    structureVersion: 2,
+    blocks: draft.blocks.map((block) => ({
+      ...block,
+      sequence: block.sequence ?? block.items.map((item) => ({ kind: "exercise" as const, itemRef: item.ref! })),
+    })),
+  };
+}
+
+/** Move a definition to another phase, preserving its ref and removing empty groups left behind. */
+export function moveSequenceExercise(draft: SessionDraft, itemRef: string, targetBlockRef: string): SessionDraft {
+  const source = draft.blocks.find((block) => block.items.some((item) => item.ref === itemRef));
+  const target = draft.blocks.find((block) => block.ref === targetBlockRef);
+  const item = source?.items.find((item) => item.ref === itemRef);
+  if (!item || !target || source === target || target.items.length >= 60) return draft;
+  const remove = (nodes: SequenceNode[]): SequenceNode[] =>
+    nodes.flatMap((node): SequenceNode[] => {
+      if (node.kind === "exercise") return node.itemRef === itemRef ? [] : [node];
+      if (node.kind === "recovery") return [node];
+      const children = remove(node.children);
+      return children.length ? [{ ...node, children } as SequenceNode] : [];
+    });
+  const structured = withSessionSequences(draft);
+  return {
+    ...structured,
+    blocks: structured.blocks.map((block) =>
+      block.ref === targetBlockRef
+        ? { ...block, items: [...block.items, item], sequence: [...block.sequence!, { kind: "exercise", itemRef }] }
+        : { ...block, items: block.items.filter((entry) => entry.ref !== itemRef), sequence: remove(block.sequence!) },
+    ),
+  };
+}
