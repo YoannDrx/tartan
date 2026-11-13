@@ -23,7 +23,7 @@ Exploitation indépendante : branche stable `preview` créée depuis le main pub
 ## 2026-11-13, Codex, F2 : contrats de circuits et compatibilité
 
 Codé : `feat/session-sequences`, empilée sur F1 ; exercices, récupérations et répétitions bornées à deux niveaux, expansion A/B/A/B, références d'occurrences, adaptations source/occurrence, conservation des charges figées, modèles V2 et garde contre les anciens éditeurs. Migration nullable seulement, appliquée aux bases locales de test ; pas en production.
-Vérifié : types, lint (quatre avertissements existants), design, 265 tests domaine et 1 884 tests web ; les 243 tests mobile restent verts. La suite initiale a détecté le rejet d'un brouillon historique vide : validation V2 restreinte et suite web intégralement rejouée avec succès. Parcours navigateur complets en cours au moment de ce commit.
+Vérifié : types, lint (quatre avertissements existants), design, 265 tests domaine et 1 884 tests web ; les 243 tests mobile restent verts. La suite initiale a détecté le rejet d'un brouillon historique vide : validation V2 restreinte et suite web intégralement rejouée avec succès. Parcours navigateur sur build de production : 208 réussis, 20 ignorés selon les drapeaux, quatre échecs de traces causés par deux suites partageant le même dossier de résultats ; les quatre concernés et quatre parcours terrain associés passent ensuite (8/8), avec sortie isolée. Aucun échec applicatif restant observé.
 Limites : aucun écran de construction ni minuteur encore raccordé, aucun essai prestataire ou téléphone réel. La lecture API fournit déjà l'ordre développé ; les modèles V2 exigent la capacité `structureVersion=2`.
 Suite : F3 catalogue, F4 constructeur et mode séance, F5 planificateur puis F9 natif. Ne pas déclarer F2 éprouvé avant ces consommateurs.
 
@@ -40,6 +40,12 @@ Fait : plan F0–F9 intégré au plan web existant ; décisions produit et excep
 En cours : `docs/completion-baseline`, depuis `main` à jour (`3bb8099`), aucune branche d'un autre agent reprise. Node 22.23.5/pnpm 10.34.9 verrouillés ; types, lint (quatre avertissements existants), tous les tests et design passent. E2E non relancé : aucun parcours modifié.
 À savoir : l'audit précédent avait utilisé Node 24 ; ses tests verts ne sont pas une preuve sous le runtime prescrit. Aucun écran, paiement ou téléphone réel ajouté à la preuve par cette documentation.
 Suite : F1 exploitation puis F2 contrats, en conservant une branche/PR par lot.
+
+## 2026-11-13, Claude, gestes sur les comptes : sauvegarde éprouvée, M1, variable Apple
+
+Fait : copie de production envoyée dans le store Vercel Blob privé (créé par le fondateur), désormais relue depuis le store et comparée par empreinte après chaque envoi ; `APPLE_APP_BUNDLE_IDENTIFIER=coach.tartan.app` posé sur Vercel (production) ; `AI_TRANSCRIPTION_MODEL` absent, donc `gpt-transcribe` ; premier build EAS Android de production réussi (1.1.0, build 3) (PR `feat/sauvegarde-relecture`).
+À savoir : relier un second store Blob au projet `tartan` écraserait `BLOB_READ_WRITE_TOKEN` des images ; le store des sauvegardes n'est relié à aucun projet. Un projet Vercel `tartan-sauvegardes` créé par erreur a été supprimé aussitôt.
+Reste : restauration chronométrée depuis le store (le jeton n'existe qu'en secret GitHub), retrait des anciens artefacts, envoi sur Google Play.
 
 ## 2026-11-13, Claude, l'agent peut agir sur les comptes du fondateur
 
