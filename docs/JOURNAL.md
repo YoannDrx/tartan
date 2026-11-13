@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+
+## 2026-11-13, Codex, F5 : préserver la saisie pendant l’hydratation
+
+Corrigé : la date d’expiration utilise explicitement le fuseau de l’espace. En CI, le serveur UTC et le navigateur Paris produisaient deux textes différents ; React reconstruisait le formulaire et perdait la précision saisie avant la fin de l’hydratation. Les traces des deux parcours en échec établissent cette cause.
+Vérifié : serveur de recette désormais forcé en UTC ; huit parcours IA simulés réussis, dont création/reprise avec contrôle des erreurs navigateur et conservation du texte. Types, lint (quatre avertissements existants), 1 945 tests web, 284 domaine, 243 mobile et design vérifiés sous Node 22/pnpm 10. Aucun changement de modèle ni nouvelle qualification réelle dans ce correctif.
+Suite : CI de la PR 124, qualification réelle toujours insuffisante à 67/80 ; dictées et relecture humaines attendues.
+
 ## 2026-11-13, Codex, F5 : vérification intégrée et PR en brouillon
 
 Vérifié sur `ebb8dea` : types, lint (quatre avertissements hérités), 1 945 tests web / 123 fichiers, 284 tests domaine, 243 mobile, 247 jeu, 90 mascotte et design réussis. Huit parcours navigateur IA simulés rejoués après intégration F3/F1 ; le parcours OpenAI réel est décrit ci-dessous sur `937b130`. La dernière garde sur les tours omis passe son test de reprise et de refus, sans qualification supplémentaire du corpus revendiquée. Les 80 réponses du passage réel à 67/80 sont disponibles dans un document HTML de relecture local, hors dépôt public.
