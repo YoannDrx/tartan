@@ -13,6 +13,14 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, F2 déployé et recette navigateur Stripe
+
+Fait : fusion autorisée de la PR 119 après qualité et natif verts sur `2bea4fa`. Production `75d3cbe` READY, version vérifiée sur les deux domaines, aucun avertissement/erreur dans les journaux du déploiement consultés. La PR 120 est réactualisée sur main, nouvelle CI nécessaire ; accord de fusion déjà reçu pour 120 et 121.
+Codé : réutilisation du checkout F2 propre, nouvelle branche `test/stripe-browser-recipe` depuis main pour F7. Recette explicite des pages Checkout et portail hébergées, transport CLI et webhook réel, base locale jetable seulement ; compte sandbox fourni localement, retiré du dépôt public.
+Vérifié : six tests sandbox réels passent (194 s), dont les deux parcours navigateur. Carte standard et 3-D Secure, première facture, demande d’authentification après essai puis règlement depuis la facture hébergée, résiliation à l’échéance et maintien des droits. Les quatre tests API historiques sont rejoués. Reprise des deux parcours navigateur après renforcement du nettoyage : 2/2 (94 s). Types/lint/design verts (quatre avertissements existants), 1 905 tests web, 265 métier, 243 mobile, 247 jeu et 90 mascotte passent. Absence du compte sandbox refusée avant tout appel CLI (contrôle direct ; le formateur d’erreurs Vite masque cette exception dans le globalSetup). Suite Playwright ordinaire non relancée localement : aucun parcours applicatif modifié. Retour Tartan intercepté : aucune preuve de cet écran, d’un vrai paiement ou de la fiscalité.
+À savoir : les formulaires Stripe sont dans des cadres intégrés ; sélectionner Carte bancaire avant les champs. Les captures pleine page perturbent le rendu, garder le viewport. La validation au clavier évite les clics prématurés pendant l’animation 3-D Secure. Le portail demande le motif avant la confirmation, et peut fixer `cancel_at` sans lever `cancel_at_period_end` : vérifier la date réelle et le miroir.
+Exploitation : snapshot Neon au point demandé 17 h 35 UTC restauré dans une nouvelle branche isolée ; 83 tables et 49 migrations, empreinte des migrations et volumes fonctionnels identiques à la source. Production inchangée. Calcul temporaire borné à 0,25 unité avec suspension après 300 s (60 s refusé par Launch) ; snapshot expire le lendemain. Identifiants conservés uniquement dans une preuve locale ignorée.
+
 ## 2026-11-13, Codex, intégration F2 après exploitation
 
 Vérifié : CI qualité et native vertes au commit `3f32fd0`, Android compilé, treize parcours Maestro puis suppression du compte jetable réussis. Le correctif de saisie conserve les assertions de majorité. Aucun appareil physique testé.
@@ -28,6 +36,7 @@ Codé : `feat/session-sequences`, empilée sur F1 ; exercices, récupérations e
 Vérifié : types, lint (quatre avertissements existants), design, 265 tests domaine et 1 884 tests web ; les 243 tests mobile restent verts. La suite initiale a détecté le rejet d'un brouillon historique vide : validation V2 restreinte et suite web intégralement rejouée avec succès. Parcours navigateur sur build de production : 208 réussis, 20 ignorés selon les drapeaux, quatre échecs de traces causés par deux suites partageant le même dossier de résultats ; les quatre concernés et quatre parcours terrain associés passent ensuite (8/8), avec sortie isolée. Aucun échec applicatif restant observé.
 Limites : aucun écran de construction ni minuteur encore raccordé, aucun essai prestataire ou téléphone réel. La lecture API fournit déjà l'ordre développé ; les modèles V2 exigent la capacité `structureVersion=2`.
 Suite : F3 catalogue, F4 constructeur et mode séance, F5 planificateur puis F9 natif. Ne pas déclarer F2 éprouvé avant ces consommateurs.
+
 ## 2026-11-13, Codex, F1 : isolation des rebonds et instrumentation
 
 Codé sur `fix/operational-delivery`, basée sur les sauvegardes privées : le webhook Resend vérifie l'expéditeur exact, ignore les autres applications et accepte une liste explicite d'anciens expéditeurs pour les événements retardés. PostgreSQL explicite `verify-full` pour conserver le contrôle du certificat et du nom d'hôte lors de l'évolution de node-postgres. Sentry : hooks de tracing ESM désactivés puisque le tracing est déjà coupé ; capture d'erreurs conservée.
@@ -49,6 +58,7 @@ En cours : `docs/completion-baseline`, depuis `main` à jour (`3bb8099`), aucune
 À savoir : l'audit précédent avait utilisé Node 24 ; ses tests verts ne sont pas une preuve sous le runtime prescrit. Aucun écran, paiement ou téléphone réel ajouté à la preuve par cette documentation.
 Suite : F1 exploitation puis F2 contrats, en conservant une branche/PR par lot.
 Intégration : PR 116 des e-mails conservée intégralement lors de la mise à jour avec `main` ; les deux passations du journal sont gardées. Fusions 117 à 120 autorisées explicitement par le fondateur le 13 novembre, uniquement après contrôles verts.
+
 ## 2026-11-13, Claude, e-mails dans le mélange Tartan
 
 Fait : à la demande du fondateur, le gabarit commun (`apps/web/emails/layout.tsx`) passe à la piste en fond, aux deux lignes blanches, à une carte encre au texte blanc, à l'action et aux liens citron, et à une ligne blanche d'arrivée avant le pied de page sur la piste. Encadré `Highlight` (encre relevée, bordure citron) pour les échéances ; liens de désinscription en `FooterLink`, y compris le repli des notifications (PR `feat/emails-stade`).

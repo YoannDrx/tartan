@@ -14,12 +14,12 @@ Un lot, une branche, une PR. Spécification et critères : [plan web](plans/web.
 | --- | --- | --- |
 | F0  | Documentation cohérente, Node 22 et pnpm 10 reproductibles                      | Codé et testé sur `docs/completion-baseline` ; Node 22.23.5/pnpm 10.34.9, types/lint/tests/design réussis. Pas de nouveau parcours web modifié. |
 | F1  | Exploitation, Preview, protection GitHub/Neon, sauvegarde et alertes            | Partiel : protection GitHub active et relue ; suppression du repli public codée/testée sur `fix/private-backup-required`. Restauration Blob non prouvée ; connecteur Neon actuellement en erreur 401.        |
-| F2  | Structure commune de séances imbriquées et compatibilité                        | Socle codé : structure V2 bornée, projection ordonnée, modèles et refus des écritures anciennes ; 265 tests domaine et 1 884 web réussis ; 212 parcours navigateur réussis au total après relance des quatre collisions de traces, 20 ignorés. Raccordement des écrans F4/F9 et recette réelle encore à faire.                                                          |
+| F2 | Structure commune de séances imbriquées et compatibilité | PR 119 fusionnée après CI qualité et native vertes sur `2bea4fa` ; production `75d3cbe` vérifiée le 13 novembre sur les deux domaines (`/api/v1/version`), aucun avertissement/erreur dans la fenêtre de journaux consultée. Contrat codé et testé ; constructeur F4 et clients natifs F9 encore à raccorder et éprouver. |
 | F3  | 150 exercices avec guides et visuels validés, disponibles aux espaces existants | À faire ; 55 fiches de départ                                                             |
 | F4  | Constructeur circuits et supersets, deux niveaux maximum                        | À faire                                                                                   |
 | F5  | Deux modes IA, résolution/création d'exercice, qualification indépendante       | À faire ; essais historiques insuffisants pour qualifier la nouvelle version              |
 | F6  | Vidéo athlète privée, collaboration et partage choisi                           | À faire ; upload réservé au staff actuellement                                            |
-| F7  | Recette web exhaustive et paiement                                              | À faire ; aucune transaction réelle contrôlée démontrée                                   |
+| F7 | Recette web exhaustive et paiement | Six tests Stripe réussis en sandbox réelle sur `test/stripe-browser-recipe` (194 s), dont deux parcours navigateur : saisie de carte, essai, 3-D Secure, première facture, reprise après authentification demandée et résiliation au portail ; SDK et webhooks réels. Retour vers Tartan intercepté, pas de paiement réel ni de validation fiscale. Recette exhaustive de la web app encore à terminer. |
 | F8  | Site/aide cohérents, ouverture et surveillance                                  | Après F1 à F7 ; ouverture réservée au fondateur                                           |
 | F9  | Mise à niveau native, TestFlight et Play sur invitation                         | Après contrats/produit ; compte Play et appareils physiques nécessaires                   |
 
@@ -42,9 +42,11 @@ Code applicatif inspecté : `9e1fb12` ; production observée : `3bb8099` (règle
 | Production, santé/version      | Réponses saines ; version identifiée                                                | Ne couvre pas chaque parcours                                            |
 | EAS Android                    | Build production 1.1.0 (3) réussi le 13 novembre, code `9e1fb12`                    | Pas installé depuis Play sur téléphone                                   |
 | GitHub / Blob                  | Sauvegarde chiffrée envoyée dans Blob ; artefact GitHub ignoré                      | Restauration Blob à faire ; anciens artefacts à retirer après validation |
-| Stripe                         | Compte dédié, encaissements/virements activés, webhook actif avec les 15 événements | Checkout navigateur, portail et vrai paiement à éprouver                 |
+| Stripe                         | Compte dédié, encaissements/virements activés, webhook actif avec les 15 événements | Checkout/3-D Secure/portail éprouvés en sandbox ; vrai paiement accompagné restant                 |
 | Neon                           | Région européenne, offre gratuite, restauration six heures, production non protégée | Protection et fenêtre sept jours à mettre en place                       |
 | Vercel                         | Production disponible ; variables de sondes présentes                               | Preview mobile sans DNS ; réception des alertes non prouvée              |
+
+Complément de restauration Neon du 13 novembre : snapshot demandé au point 17 h 35 UTC, restauré dans une nouvelle branche isolée. Lecture réelle réussie : 83 tables, 49 migrations terminées, aucune incomplète ; empreinte des migrations et volumes des exercices, modèles, blocs, éléments, suivis et vidéos identiques à la source contrôlée. Endpoint de production resté rattaché à sa branche. Calcul de recette borné à 0,25 unité, suspension après 300 s ; snapshot temporaire expirant le lendemain. Ne prouve pas une reprise de Vercel sur cette branche ni la disponibilité des assets Mux.
 
 Les preuves nominatives ou contenant des identifiants prestataires restent hors du dépôt public. Chaque lot ajoute son commit, environnement, résultat et limite, sans transformer une configuration présente en preuve de fonctionnement.
 
@@ -79,7 +81,7 @@ Complément F1 sur `fix/operational-delivery` : isolation du webhook Resend par 
 | Planificateur IA | Oui, clé en place | Oui, prestataire simulé | Un essai réel sur le web. Corpus réel 59/60 |
 | Notifications, centre, préférences | Oui | Oui | Push réels jamais joués |
 | Versions et mises à jour | Oui | Oui | Non |
-| Abonnements Stripe | Oui | Simulé, et cycle complet en sandbox : carte de test, facture payée, webhooks signés reçus en HTTP, e-mails, remboursement, résiliation | **Aucun vrai paiement**. La saisie de carte sur la page Checkout n'est pas automatisée |
+| Abonnements Stripe | Oui | Simulé, et cycle complet en sandbox : carte de test, facture payée, webhooks signés reçus en HTTP, e-mails, remboursement, résiliation | **Aucun vrai paiement**. Saisie de carte, 3-D Secure, facture et portail automatisés contre la sandbox ; retour applicatif non couvert par cette recette |
 | Remboursements, factures, litiges | Oui | Simulé | Non |
 | E-mails | 29 e-mails | Rendu, déclencheurs de facturation et d'activation | Seul le lien magique a été reçu |
 | Export, suppression de compte | Oui | Oui | Sur le web |

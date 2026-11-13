@@ -2,7 +2,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import Stripe from "stripe";
 
-export const SANDBOX_ACCOUNT = "acct_1UXJsn7nmxxw9EFI";
+// Identifiant fourni localement : le dépôt public ne décrit aucun compte du fondateur.
+export const SANDBOX_ACCOUNT = process.env.STRIPE_SANDBOX_ACCOUNT ?? "";
 const exec = promisify(execFile);
 
 const encode = (value: unknown, prefix = ""): string[] => {
@@ -21,6 +22,7 @@ export const stripeCli = async <T>(
   key?: string,
 ): Promise<T> => {
   if (process.env.RUN_STRIPE_SANDBOX !== "1") throw new Error("sandbox_opt_in_required");
+  if (!/^acct_[A-Za-z0-9]+$/.test(SANDBOX_ACCOUNT)) throw new Error("sandbox_account_required");
   const args = [method, path, "--stripe-context", SANDBOX_ACCOUNT, "--stripe-version", Stripe.API_VERSION];
   if (method !== "get") args.push("--confirm");
   for (const field of encode(params)) args.push("-d", field);
