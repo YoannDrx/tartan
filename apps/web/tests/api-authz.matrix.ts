@@ -793,6 +793,19 @@ export const MATRICE: Row[] = [
   },
   // 404 pour l'adjoint : une vidéo hors de sa portée n'existe pas pour lui.
   { route: "GET /api/v1/orgs/[orgId]/videos/[videoId]", ...membres, adjoint: 404, call: videoParams },
+  { route: "POST /api/v1/orgs/[orgId]/videos/[videoId]/review", ...encadrants, adjoint: 404, call: videoParams },
+  {
+    route: "DELETE /api/v1/orgs/[orgId]/videos/[videoId]",
+    ...membres,
+    adjoint: 404,
+    call: async (w) => {
+      const video = await prisma.video.create({
+        data: { organizationId: w.org, athleteId: w.athleteId, uploadedBy: w.owner, sharedWithAthlete: true },
+        select: { id: true },
+      });
+      return { params: { videoId: video.id } };
+    },
+  },
   {
     route: "POST /api/v1/orgs/[orgId]/videos/[videoId]/upload",
     ...encadrants,

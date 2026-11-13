@@ -91,8 +91,8 @@ export const useAlerts = (orgId: string) =>
 export const useGroups = (orgId: string) =>
   useQuery({ queryKey: ["groups", orgId], queryFn: () => api.groups(orgId), enabled: Boolean(orgId) });
 
-export const useAthletes = (orgId: string) =>
-  useQuery({ queryKey: ["athletes", orgId], queryFn: () => api.athletes(orgId), enabled: Boolean(orgId) });
+export const useAthletes = (orgId: string, enabled = true) =>
+  useQuery({ queryKey: ["athletes", orgId], queryFn: () => api.athletes(orgId), enabled: Boolean(orgId) && enabled });
 
 export const useExercises = (orgId: string) =>
   useQuery({ queryKey: ["exercises", orgId], queryFn: () => api.exercises(orgId), enabled: Boolean(orgId) });

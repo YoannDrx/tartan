@@ -60,3 +60,17 @@ env:
     id: session-finish
 - assertNotVisible:
     id: rest-toggle
+- scrollUntilVisible:
+    element:
+      id: session-video-upload
+    direction: UP
+- tapOn:
+    id: session-video-upload
+- extendedWaitUntil:
+    visible:
+      id: capture-import
+    timeout: 15000
+- assertVisible: "Circuit natif de recette"
+- assertVisible: "Visible par toi et tes coachs habilités"
+- assertNotVisible: "^Athlète$"
+- takeScreenshot: circuit-video-capture

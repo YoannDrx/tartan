@@ -14,6 +14,12 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-13, Codex, F9 : vidéo collaborative native
+
+Codé sur `feat/native-video-collaboration`, après le lot guides : bibliothèque paginée commune, filtres athlète/traitement/revue, capture privée sans identité athlète fournie par le client et rattachement depuis la séance. Clé idempotente conservée dans la file durable, y compris après migration des anciennes entrées. Réponses horodatées, partage explicite au groupe et révocation, revue coach et suppression selon les permissions renvoyées par le serveur. Nouvelles routes natives réutilisant les services existants ; refus d'accès masquant les anciennes données en cache.
+Vérifié : types/lint (quatre avertissements hérités)/design, 1 960 tests web, 289 domaine, 251 mobile, 247 jeu et 90 mascotte. Matrice HTTP et tests vidéo ciblés : 811 réussis. Deux parcours Maestro locaux réussis sur iPhone 16e/iOS 26.3 (390 px), captures relues : capture privée et capture liée au circuit ; aucun sélecteur d'identité athlète. Bundle Hermes intégré au binaire simulateur existant, compilation native fraîche attendue en CI.
+Non éprouvé : upload Mux depuis le natif, reprise sur téléphone, partage/commentaires dans l'interface native, thèmes/tailles restants, Android physique. Pas de parcours web visuel modifié ; suite navigateur complète laissée à la CI. PR en brouillon, aucune nouvelle fusion autorisée par ce travail.
+
 ## 2026-11-13, Codex, F9 : guides et exécution native des circuits
 
 Codé sur `feat/native-completion`, depuis F5 : guides dans la bibliothèque, fiche et séance, recherche par famille ; cache des textes et préchargement des illustrations disponibles des sept jours à venir. Aucun visuel en préparation n’est chargé ni déclaré validé. Récupérations explicites avec minuteur, tours visibles, saisies distinctes par occurrence, repos final explicite respecté. Séries locales redimensionnées après modification, récupérations exclues de la saisie détaillée, accès refusé par le serveur masqué même avec un cache.
