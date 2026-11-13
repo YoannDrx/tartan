@@ -40,6 +40,11 @@ Fait : plan F0–F9 intégré au plan web existant ; décisions produit et excep
 En cours : `docs/completion-baseline`, depuis `main` à jour (`3bb8099`), aucune branche d'un autre agent reprise. Node 22.23.5/pnpm 10.34.9 verrouillés ; types, lint (quatre avertissements existants), tous les tests et design passent. E2E non relancé : aucun parcours modifié.
 À savoir : l'audit précédent avait utilisé Node 24 ; ses tests verts ne sont pas une preuve sous le runtime prescrit. Aucun écran, paiement ou téléphone réel ajouté à la preuve par cette documentation.
 Suite : F1 exploitation puis F2 contrats, en conservant une branche/PR par lot.
+Intégration : PR 116 des e-mails conservée intégralement lors de la mise à jour avec `main` ; les deux passations du journal sont gardées. Fusions 117 à 120 autorisées explicitement par le fondateur le 13 novembre, uniquement après contrôles verts.
+## 2026-11-13, Claude, e-mails dans le mélange Tartan
+
+Fait : à la demande du fondateur, le gabarit commun (`apps/web/emails/layout.tsx`) passe à la piste en fond, aux deux lignes blanches, à une carte encre au texte blanc, à l'action et aux liens citron, et à une ligne blanche d'arrivée avant le pied de page sur la piste. Encadré `Highlight` (encre relevée, bordure citron) pour les échéances ; liens de désinscription en `FooterLink`, y compris le repli des notifications (PR `feat/emails-stade`).
+Vérifié : les 29 e-mails du catalogue rendus et regardés à 600 et 375 px. Non vérifié : rendu dans Gmail, Outlook et Apple Mail réels (F1).
 
 ## 2026-11-13, Claude, gestes sur les comptes : sauvegarde éprouvée, M1, variable Apple
 
