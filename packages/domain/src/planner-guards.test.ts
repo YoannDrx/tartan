@@ -365,3 +365,18 @@ it("refuse un superset dont les tours disparaissent dans des séries séparées"
     "volume",
   );
 });
+
+it("refuse une pause V2 placée après une série unique dans restS, qui serait perdue", () => {
+  const value = proposal(session(today));
+  const block = value.sessions[0]!.blocks[0]!;
+  block.items[0]!.ref = "squat";
+  block.items[0]!.prescription.sets = 1;
+  block.sequence = [{ kind: "exercise", itemRef: "squat" }];
+  expect(plannerGuardIssues(value, context(single))).toContain("rest");
+  block.items[0]!.prescription.sets = 3;
+  expect(plannerGuardIssues(value, context(single))).not.toContain("rest");
+  block.items[0]!.prescription.sets = 1;
+  block.items[0]!.prescription.restS = null;
+  block.sequence.push({ kind: "recovery", ref: "pause", durationS: 120 });
+  expect(plannerGuardIssues(value, context(single))).not.toContain("rest");
+});

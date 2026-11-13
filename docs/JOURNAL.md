@@ -14,6 +14,12 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-13, Codex, F5 : trois passages réels et récupération conservée
+
+Corpus figé inchangé de 80 cas, OpenAI réel avec le modèle configuré, commit `4abf974` : 67/80, 67/80 et 68/80. Aucune erreur critique acceptée selon l'évaluateur automatique, relecture humaine toujours attendue ; seuil de 95 % non atteint. Les réponses révèlent notamment des erreurs d'ordre et de pauses dans les circuits et des clarifications incomplètes. Les attendus n'ont pas été modifiés.
+Corrigé ensuite : un bloc de récupération seule était refusé par le contrat IA et supprimé par le nettoyage des citations. Il est désormais accepté avec une séquence valide, sans exercice fictif ; un bloc entièrement vide reste refusé. Consignes de structure renforcées : groupe sans copie préalable, petits groupes réellement imbriqués, pause explicite distincte du repos entre séries, ambiguïtés multiples et refus de maximum estimé à partir d'un prénom.
+Vérifié sous Node 22/pnpm 10 : types/lint, 286 tests domaine, 243 mobile ; suite web 1 946 réussis et un ancien scénario corrigé qui plaçait aussi la pause entre tours dans le repos d’une série unique. Après correction de cette fixture, les 30 tests prestataire passent, soit 1 947 tests web distincts réussis. Garde supplémentaire : une pause V2 dans restS après une série unique est reprise une fois, puis transformée en clarification si elle resterait perdue. Rejeu navigateur en cours, nouvelle qualification complète requise. Les rapports bruts restent hors du dépôt public ; aucune dictée humaine ni approbation de coach déduite de ces exécutions.
+
 ## 2026-11-13, Codex, F6 : intégration du correctif de recette F4
 
 Reprise de `feat/collaborative-video` pour intégrer `db52511` sans changer le comportement applicatif ; journaux conservés. États F0/F1/F6 réconciliés avec les preuves récentes. CI à rejouer sur cette fusion avant de fusionner la PR 121 déjà autorisée.

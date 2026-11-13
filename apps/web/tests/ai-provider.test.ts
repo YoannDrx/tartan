@@ -433,6 +433,48 @@ it("corrige une structure invalide une seule fois sans multiplier les séries", 
   expect(repeated).toHaveBeenCalledTimes(2);
 });
 
+it("préserve un bloc de récupération après validation et réattachement des citations", async () => {
+  const instruction = "Demain : squat, 3 séries de 4 à 40 kg, repos 120 secondes. Puis récupération 75 secondes.";
+  const value = plannerInterpretation.parse(proposalFor(instruction, [{ date: "2026-11-09" }]));
+  value.sessions[0]!.blocks.push({
+    name: "Récupération finale",
+    items: [],
+    sequence: [{ kind: "recovery", ref: "final-rest", durationS: 75 }],
+  });
+  const fetcher = transport(completed(value));
+  const result = await openAiPlannerProvider(fetcher).interpret({ ...context, instructions: [instruction] });
+  expect(result.status).toBe("proposal");
+  expect(result.sessions[0]!.blocks).toHaveLength(2);
+  expect(result.sessions[0]!.blocks[1]).toEqual(value.sessions[0]!.blocks[1]);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
+
+it("reprend une pause V2 perdue après une série unique puis refuse une seconde erreur", async () => {
+  const instruction = "Demain : squat, une série de quatre à 40 kg, puis récupération 120 secondes.";
+  const wrong = plannerInterpretation.parse(proposalFor(instruction, [{ date: "2026-11-09" }]));
+  const block = wrong.sessions[0]!.blocks[0]!;
+  block.items[0]!.ref = "squat";
+  block.items[0]!.prescription.sets = 1;
+  block.sequence = [{ kind: "exercise", itemRef: "squat" }];
+  const corrected = structuredClone(wrong);
+  corrected.sessions[0]!.blocks[0]!.items[0]!.prescription.restS = null;
+  corrected.sessions[0]!.blocks[0]!.sequence!.push({ kind: "recovery", ref: "pause", durationS: 120 });
+  const fetcher = transport(completed(wrong));
+  fetcher
+    .mockResolvedValueOnce(Response.json(completed(wrong)))
+    .mockResolvedValueOnce(Response.json(completed(corrected)));
+  const input = { ...context, instructions: [instruction] };
+  expect(await openAiPlannerProvider(fetcher).interpret(input)).toEqual(corrected);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  const repeated = transport(completed(wrong));
+  expect(await openAiPlannerProvider(repeated).interpret(input)).toMatchObject({
+    status: "clarification",
+    sessions: [],
+    questions: [{ field: "rest" }],
+  });
+  expect(repeated).toHaveBeenCalledTimes(2);
+});
+
 it("propose avec le matériel disponible, une charge nulle dans le schéma et une explication générée", async () => {
   const result = plannerInterpretation.parse(
     proposalFor("Choix proposé pour renforcer les jambes.", [{ date: "2026-11-09" }]),
@@ -599,7 +641,11 @@ it("reprend une seule fois un circuit dont les tours ont été omis", async () =
       ...session,
       blocks: session.blocks.map((block) => ({
         ...block,
-        items: block.items.map((item) => ({ ...item, ref: "squat" })),
+        items: block.items.map((item) => ({
+          ...item,
+          ref: "squat",
+          prescription: { ...item.prescription, restS: null },
+        })),
         sequence: [
           {
             kind: "repeat",

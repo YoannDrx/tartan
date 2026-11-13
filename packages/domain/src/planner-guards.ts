@@ -371,7 +371,13 @@ export function plannerGuardIssues(value: PlannerInterpretation, context: Planne
       }
   };
   for (const session of value.sessions)
-    for (const block of session.blocks) if (block.sequence) checkRounds(block.sequence);
+    for (const block of session.blocks)
+      if (block.sequence) {
+        checkRounds(block.sequence);
+        // V2 never applies restS after the last set. Such a pause would vanish during execution.
+        if (block.items.some((item) => (item.prescription.sets ?? 1) === 1 && (item.prescription.restS ?? 0) > 0))
+          issues.add("rest");
+      }
   if (context.instructions.length === 1 && !CORRECTION.test(plain(text)) && /\b(?:circuit|superset)\b/.test(plain(text)))
     for (const mention of numberMentions(text))
       if (mention.value > 1 && /^\s*tours?\b/.test(mention.after) && !representedRounds.has(mention.value))
@@ -506,7 +512,7 @@ export function groundPlannerCitations(
             return [];
           }),
         }))
-        .filter((block) => block.items.length > 0),
+        .filter((block) => block.items.length > 0 || Boolean(block.sequence?.length)),
     }))
     .filter((session) => session.blocks.length > 0);
   return { value: { ...value, sessions }, removed };
