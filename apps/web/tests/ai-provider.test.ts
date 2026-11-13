@@ -449,6 +449,33 @@ it("préserve un bloc de récupération après validation et réattachement des 
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
 
+it("refuse un lundi inventé pour une consigne du mercredi même si sa citation omet le jour", async () => {
+  const instruction = "Mercredi : squat, 3 séries de 4 à 40 kg, repos 120 secondes.";
+  const wrong = proposalFor(instruction, [{ date: "2026-11-09" }]);
+  wrong.sessions[0]!.blocks[0]!.items[0]!.instruction = "squat, 3 séries de 4 à 40 kg, repos 120 secondes.";
+  const result = await openAiPlannerProvider(transport(completed(wrong))).interpret({
+    ...context,
+    instructions: [instruction],
+  });
+  expect(result).toMatchObject({ status: "clarification", sessions: [], questions: [{ field: "date" }] });
+});
+
+it("refuse de remplacer un power clean par le clean dont l’alias est plus court", async () => {
+  const instruction = "Mercredi : power clean, 3 séries de 4 à 40 kg, repos 120 secondes.";
+  const wrong = proposalFor(instruction, [{ date: "2026-11-11" }]);
+  const fetcher = transport(completed(wrong));
+  const result = await openAiPlannerProvider(fetcher).interpret({
+    ...context,
+    instructions: [instruction],
+    exercises: [
+      { token: "exercise_1", name: "Épaulé", category: "strength", aliases: ["clean"] },
+      { token: "exercise_2", name: "Épaulé puissance", category: "strength", aliases: ["power clean"] },
+    ],
+  });
+  expect(result).toMatchObject({ status: "clarification", sessions: [], questions: [{ field: "exercise" }] });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
 it("reprend une pause V2 perdue après une série unique puis refuse une seconde erreur", async () => {
   const instruction = "Demain : squat, une série de quatre à 40 kg, puis récupération 120 secondes.";
   const wrong = plannerInterpretation.parse(proposalFor(instruction, [{ date: "2026-11-09" }]));

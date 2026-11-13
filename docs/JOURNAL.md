@@ -14,6 +14,12 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-13, Codex, F5 : qualification négative et refus des substitutions
+
+Résultat OpenAI réel sur `9d09b5c`, 80 cas inchangés rejoués trois fois : 65/80, 64/80, 65/80. Seuil de 95 % non atteint. Relecture : les passages 1 et 3 acceptaient un lundi pour une demande du mercredi (F5-45) ; le passage 2 acceptait un épaulé au lieu du power clean (F5-13). Le correcteur masquait la date fausse derrière la clarification attendue d’un autre champ : corrigé et anciens résultats reclassés sans nouvel appel, consignes/attendus figés inchangés. Aucun « zéro erreur critique » revendiqué pour cette version.
+Corrigé : garde sur le seul jour de semaine nommé, nom long prioritaire sur l’alias court contenu dans ce nom ; une réponse refusée devient une clarification, sans remplacement automatique. Cette garde a révélé une double lecture de « trente-sept virgule cinq kilos » comme deux charges : partie décimale consommée une seule fois. Tests de refus au niveau domaine et adaptateur prestataire.
+Vérifié sous Node 22/pnpm 10 : types, lint (quatre avertissements hérités), 1 949 tests web, 288 domaine, 243 mobile, 247 jeu, 90 mascotte ; design sans écart. Les huit parcours navigateur IA simulés du correctif précédent passent (174 s). Pas de nouvelle preuve de dictée, d’approbation coach ou de téléphone. Prochaine comparaison sur le même corpus et la même implémentation, modèle configuré conservé en production.
+
 ## 2026-11-13, Codex, F5 : trois passages réels et récupération conservée
 
 Corpus figé inchangé de 80 cas, OpenAI réel avec le modèle configuré, commit `4abf974` : 67/80, 67/80 et 68/80. Aucune erreur critique acceptée selon l'évaluateur automatique, relecture humaine toujours attendue ; seuil de 95 % non atteint. Les réponses révèlent notamment des erreurs d'ordre et de pauses dans les circuits et des clarifications incomplètes. Les attendus n'ont pas été modifiés.
