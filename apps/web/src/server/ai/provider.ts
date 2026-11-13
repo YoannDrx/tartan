@@ -385,6 +385,15 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
           throw new PlannerProviderError("invalid_output");
         }
         const guarded = context.mode === "propose" ? [] : plannerGuardIssues(checked.value, context);
+        if (guarded.includes("volume") && !correction) {
+          try {
+            return await attempt(
+              "Le nombre de tours demandé dans un circuit ou superset n’est pas représenté correctement. Utilise repeat avec les tours explicitement demandés et les exercices dans l’ordre, chacun avec sets 1 par tour. Ne remplace pas A/B/A/B par A/A/B/B. Aucun nombre de tours inventé ; si le volume est ambigu, demande une clarification.",
+            );
+          } catch (cause) {
+            if (!(cause instanceof PlannerProviderError)) throw cause;
+          }
+        }
         // Une substitution refusée doit permettre de choisir/créer la fiche en conservant son nom.
         if (guarded.includes("exercise") && !correction) {
           try {

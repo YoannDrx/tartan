@@ -355,3 +355,13 @@ it("refuse des tours inventés, y compris dans un groupe imbriqué", () => {
   expect(plannerGuardIssues(value, context(single))).toContain("volume");
   expect(plannerGuardIssues(value, context(`${single} Répéter dix fois chaque groupe.`))).not.toContain("volume");
 });
+
+it("refuse un superset dont les tours disparaissent dans des séries séparées", () => {
+  const value = proposal(session("2030-06-03"));
+  expect(
+    plannerGuardIssues(value, context("Le 3 juin, superset trois tours : squat arrière à 40 kg puis gainage ventral.")),
+  ).toContain("volume");
+  expect(plannerGuardIssues(value, context("Le 3 juin, circuit un tour : squat arrière à 40 kg."))).not.toContain(
+    "volume",
+  );
+});

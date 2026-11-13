@@ -13,6 +13,11 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, F5 : parcours navigateur OpenAI réel
+
+Éprouvé le 13 novembre sur serveur local isolé, commit `937b130`, modèle configuré `gpt-4.1-mini` : exercice inconnu → question nommée → création privée relue → reprise → brouillon → publication séparée → lecture athlète. Prescription conservée : trois séries de cinq, repos 60 s, aucune charge. Aucun résultat prestataire ni proposition injecté ; seules les données de comptes fictifs et leur vérification d’e-mail sont préparées. Capture de l’athlète relue ; axe sans violation. Un premier essai avait une assertion erronée sur le nom du champ `rest_s` ; correction et rejeu complet réussis, 1/1 en 45 s build compris. Ce n’est ni une dictée humaine ni une recette sur téléphone.
+Corpus réel sur cette version : 67/80, aucune erreur critique acceptée selon le correcteur, seuil toujours non atteint. Ajout suivant : refus d’un circuit dont les tours explicites ont disparu, avec une reprise technique bornée. Contrôles d’intégration et PR F5 en préparation. Fusion de la branche F3 intégrée ; journaux conservés et deux lignes périmées du tableau fondateur corrigées (expéditeur et webhook Resend).
+
 ## 2026-11-13, Codex, F3 — régression navigateur du catalogue
 
 Vérifié sous Node 22/pnpm 10 : suite web complète 223 réussis, 20 ignorés, un délai dépassé sur la première connexion à froid ; parcours d’absence repris seul avec le seuil original, réussi. Total : 224 parcours ordinaires distincts réussis, puis quatre parcours IA dédiés avec prestataire simulé. Les deux parcours de guides vérifient également les trois thèmes aux largeurs 390/768/1440, axe et mouvement réduit. Types, lint (quatre avertissements préexistants), tests des paquets et design restent verts sur le code F3.

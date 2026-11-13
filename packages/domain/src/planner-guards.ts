@@ -361,15 +361,21 @@ export function plannerGuardIssues(value: PlannerInterpretation, context: Planne
   const text = context.instructions.join("\n");
   const items = value.sessions.flatMap((session) => session.blocks.flatMap((block) => block.items));
   const stated = plannerTextNumbers(text);
+  const representedRounds = new Set<number>();
   const checkRounds = (nodes: NonNullable<PlannerInterpretation["sessions"][number]["blocks"][number]["sequence"]>) => {
     for (const node of nodes)
       if (node.kind === "repeat") {
+        representedRounds.add(node.rounds);
         if (!stated.has(node.rounds)) issues.add("volume");
         checkRounds(node.children);
       }
   };
   for (const session of value.sessions)
     for (const block of session.blocks) if (block.sequence) checkRounds(block.sequence);
+  if (context.instructions.length === 1 && !CORRECTION.test(plain(text)) && /\b(?:circuit|superset)\b/.test(plain(text)))
+    for (const mention of numberMentions(text))
+      if (mention.value > 1 && /^\s*tours?\b/.test(mention.after) && !representedRounds.has(mention.value))
+        issues.add("volume");
 
   for (const item of items) {
     if (item.prescription.load && !stated.has(item.prescription.load.value)) issues.add("load");
