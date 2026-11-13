@@ -30,10 +30,12 @@ env:
       COACH_EMAIL: ${COACH_EMAIL}
       PASSWORD: ${PASSWORD}
 - tapOn: "Enregistrer mes séries"
-# Le serveur refuse : la saisie est gardée sur l'appareil, et l'écran le dit.
-- extendedWaitUntil:
-    visible: "L.enregistrement a été refusé.*"
+# Le serveur refuse : la saisie est gardée sur l'appareil, et l'écran le dit, sous le bouton. Le bandeau de
+# synchronisation qui apparaît en haut pousse l'écran vers le bas : on descend jusqu'au message.
+- scrollUntilVisible:
+    element: "L.enregistrement a été refusé.*"
     timeout: 30000
+    speed: 90
 - scrollUntilVisible:
     element: "Vérifier mes saisies"
     direction: UP
