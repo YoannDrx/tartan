@@ -1853,6 +1853,9 @@ export const fr = {
     activeInjury: "Blessure active",
   },
   builder: {
+    sequenceRecovery: "Récupération",
+    structureUpgrade:
+      "Cette séance contient un circuit. Mets l'application à jour pour la modifier sans perdre son organisation.",
     versionConflict:
       "Cette séance a changé. Recharge-la avant d’enregistrer pour conserver les modifications de chacun.",
     legacyConflict:

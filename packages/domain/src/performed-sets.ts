@@ -67,6 +67,7 @@ export const draftFromSession = (session: AthleteSessionDetail): PerformedSetsDr
   status: session.log?.status === "done" ? "done" : "partial",
   rows: session.blocks.flatMap((block) =>
     block.items.flatMap((item) => {
+      if (item.kind === "recovery") return [];
       const saved = (session.log?.detailedSets ?? []).filter((row) => row.itemRef === item.ref);
       const count = Math.max(item.prescription.sets ?? 1, ...saved.map((row) => row.setIndex + 1));
       return Array.from({ length: count }, (_, setIndex) => {

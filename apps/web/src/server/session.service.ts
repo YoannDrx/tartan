@@ -26,6 +26,9 @@ import {
   copyDraftWithNewRefs,
   calendarCompletion,
   exerciseCount,
+  expandSessionSnapshot,
+  validSessionStructure,
+  validExecutionBudget,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { fromDbDate, todayIso, toDbDate } from "@/lib/dates";
@@ -49,6 +52,21 @@ import { firstNameOf } from "./me.service";
 import { notify, notifyPublications, queueNotifications, dispatchPending } from "./notify.service";
 
 const sessionConflict = () => new AppError(409, "session_version_conflict", m.builder.versionConflict);
+
+const checkExecutionBudgets = (snapshot: SessionSnapshot, overrides: SaveScheduledSessionInput["overrides"]) => {
+  const athletes = new Set(overrides.map((override) => override.athleteId));
+  if (
+    !validExecutionBudget(snapshot) ||
+    [...athletes].some(
+      (id) =>
+        !validExecutionBudget(
+          snapshot,
+          overrides.filter((override) => override.athleteId === id),
+        ),
+    )
+  )
+    throw invalid();
+};
 
 const requireAthletesInScope = async (access: Access, ids: string[], db: Prisma.TransactionClient = prisma) => {
   const unique = [...new Set(ids)];
@@ -97,14 +115,14 @@ export const buildSnapshot = async (
   draft: SessionDraft,
   db: Prisma.TransactionClient = prisma,
 ): Promise<SessionSnapshot> => {
-  if (!hasUniqueSessionRefs(draft)) throw invalid();
+  if (!hasUniqueSessionRefs(draft) || !validSessionStructure(draft)) throw invalid();
   const ids = draft.blocks.flatMap((b) => b.items.map((i) => i.exerciseId));
   const exercises = await db.exercise.findMany({
     where: { id: { in: ids }, OR: [{ organizationId }, { organizationId: null }] },
     include: { media: { orderBy: { createdAt: "desc" }, take: 1 } },
   });
   const byId = new Map(exercises.map((e) => [e.id, e]));
-  return sessionSnapshot.parse({
+  const snapshot = sessionSnapshot.parse({
     title: draft.title,
     type: draft.type,
     durationMin: draft.durationMin,
@@ -134,6 +152,7 @@ export const buildSnapshot = async (
       }),
     })),
   });
+  return expandSessionSnapshot(draft, snapshot, m.builder.sequenceRecovery);
 };
 
 const audienceUsers = async (sessionId: string, db: Prisma.TransactionClient = prisma): Promise<string[]> => {
@@ -170,7 +189,20 @@ export async function createReviewedPlannerDraft(
   const access = await requireOrgMember(userId, organizationId, "manageSessions", tx);
   await checkAudience(access, input, tx);
   const snapshot = await buildSnapshot(organizationId, input.draft, tx);
-  const items = new Map(snapshot.blocks.flatMap((b) => b.items.map((i) => [i.ref, i.exerciseId] as const)));
+  checkExecutionBudgets(snapshot, input.overrides);
+  const items = new Map(
+    snapshot.blocks.flatMap((b) =>
+      b.items
+        .filter((i) => i.kind !== "recovery")
+        .flatMap(
+          (i) =>
+            [
+              [i.ref, i.exerciseId],
+              [i.sourceRef ?? i.ref, i.exerciseId],
+            ] as const,
+        ),
+    ),
+  );
   for (const override of input.overrides) {
     if (!items.has(override.itemRef)) throw invalid();
     const load = override.prescription.load;
@@ -212,12 +244,23 @@ export const saveScheduledSession = async (
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   await checkAudience(access, input);
   const snapshot = await buildSnapshot(organizationId, input.draft);
+  checkExecutionBudgets(snapshot, input.overrides);
   const existing = input.id ? await requireSessionWrite(access, input.id) : null;
   const currentItems = existing
     ? withSessionRefs(sessionDraft.parse(existing.draft)).blocks.flatMap((b) => b.items)
     : [];
   const snapshotItems = snapshot.blocks.flatMap((b) => b.items);
-  const itemIds = new Map(snapshotItems.map((i) => [i.ref, i.exerciseId]));
+  const itemIds = new Map(
+    snapshotItems
+      .filter((i) => i.kind !== "recovery")
+      .flatMap(
+        (i) =>
+          [
+            [i.ref, i.exerciseId],
+            [i.sourceRef ?? i.ref, i.exerciseId],
+          ] as const,
+      ),
+  );
   if (input.overrides.some((o) => !itemIds.has(o.itemRef))) throw invalid();
   for (const override of input.overrides) {
     const load = override.prescription.load;
@@ -258,6 +301,8 @@ export const saveScheduledSession = async (
       // apparaître entre le contrôle de compatibilité et la modification de séance.
       await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${existing.id}::uuid FOR UPDATE`;
       const storedDraft = sessionDraft.parse(existing.draft);
+      if (storedDraft.structureVersion === 2 && input.draft.structureVersion !== 2)
+        throw new AppError(409, "session_structure_upgrade_required", m.builder.structureUpgrade);
       const hasPersistentRefs = storedDraft.blocks.some((b) => b.ref || b.items.some((i) => i.ref));
       const hasLogs = await tx.sessionLog.count({ where: { scheduledSessionId: existing.id } });
       if ((hasPersistentRefs || hasLogs > 0 || existing.prescriptionFrozenAt) && input.expectedVersion === undefined)
@@ -723,6 +768,7 @@ export const generateAutonomousVersion = async (userId: string, organizationId: 
     randomUUID,
   );
   const next = { ...draft, blocks: [...generated.filter((b) => b.variant !== "autonomous"), ...copied.blocks] };
+  if (!validSessionStructure(next)) throw invalid();
   const snapshot = session.publishedAt ? await buildSnapshot(organizationId, next) : null;
   await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
@@ -889,6 +935,7 @@ export const listCalendar = async (
 
 export const saveTemplate = async (userId: string, organizationId: string, draft: SessionDraft) => {
   await requireOrgMember(userId, organizationId, "manageSessions");
+  if (!validSessionStructure(draft)) throw invalid();
   // Un exercice d'un autre espace ne doit pas entrer par un modèle.
   const exerciseIds = [...new Set(draft.blocks.flatMap((block) => block.items.map((item) => item.exerciseId)))];
   const known = await prisma.exercise.count({
@@ -903,6 +950,7 @@ export const saveTemplate = async (userId: string, organizationId: string, draft
       type: draft.type,
       durationMin: draft.durationMin,
       coachNote: draft.coachNote,
+      ...(draft.structureVersion === 2 ? { draft } : {}),
       blocks: {
         create: draft.blocks.map((block, position) => ({
           name: block.name,
@@ -925,10 +973,11 @@ export const saveTemplate = async (userId: string, organizationId: string, draft
 export const listTemplates = async (
   userId: string,
   organizationId: string,
+  supportsSequences = false,
 ): Promise<(SessionDraft & { id: string; canDelete: boolean })[]> => {
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   const rows = await prisma.sessionTemplate.findMany({
-    where: { organizationId },
+    where: { organizationId, ...(!supportsSequences ? { draft: { equals: Prisma.DbNull } } : {}) },
     orderBy: { updatedAt: "desc" },
     include: {
       blocks: {
@@ -944,14 +993,17 @@ export const listTemplates = async (
     type: t.type,
     durationMin: t.durationMin,
     coachNote: t.coachNote,
-    blocks: t.blocks.map((b) => ({
-      name: b.name,
-      variant: b.variant,
-      items: b.items.map((i) => ({
-        exerciseId: i.exerciseId,
-        prescription: i.prescription as SessionDraft["blocks"][number]["items"][number]["prescription"],
-      })),
-    })),
+    ...(t.draft ? sessionDraft.parse(t.draft) : {}),
+    blocks: t.draft
+      ? sessionDraft.parse(t.draft).blocks
+      : t.blocks.map((b) => ({
+          name: b.name,
+          variant: b.variant,
+          items: b.items.map((i) => ({
+            exerciseId: i.exerciseId,
+            prescription: i.prescription as SessionDraft["blocks"][number]["items"][number]["prescription"],
+          })),
+        })),
   }));
 };
 

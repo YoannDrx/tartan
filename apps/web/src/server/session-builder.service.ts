@@ -8,13 +8,13 @@ import { listGroups } from "./org.service";
 import { listTemplates, listTestKeys } from "./session.service";
 
 // Le constructeur reçoit seulement les destinataires nécessaires, sans notes ni santé.
-export const getSessionBuilderContext = async (userId: string, organizationId: string) => {
+export const getSessionBuilderContext = async (userId: string, organizationId: string, supportsSequences = false) => {
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   const [exercises, groups, athletes, templates, keys, space] = await Promise.all([
     listExercises(userId, organizationId),
     listGroups(access),
     listAthletes(userId, organizationId),
-    listTemplates(userId, organizationId),
+    listTemplates(userId, organizationId, supportsSequences),
     listTestKeys(userId, organizationId),
     prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
