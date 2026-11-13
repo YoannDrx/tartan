@@ -25,7 +25,7 @@ const SITE = "https://tartan.coach";
 const { scene } = tokens;
 
 // Liens du pied de page et des mentions de désinscription : blancs et soulignés sur la piste.
-export const FooterLink = ({ href, children }: { href: string; children: ReactNode }) => (
+export const FooterLink = ({ href, children }: { href: string; children?: ReactNode }) => (
   <Link href={href} style={{ color: scene.onPage, textDecoration: "underline" }}>
     {children}
   </Link>

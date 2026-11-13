@@ -171,10 +171,7 @@ const send = async (delivery: Delivery): Promise<DeliveryResult | { state: "skip
             Fragment,
             null,
             `${m.email.fallbackFooter} `,
-            createElement(FooterLink, {
-              href: unsubscribePageUrl(n.userId, "notifications"),
-              children: m.email.unsubscribeLink,
-            }),
+            createElement(FooterLink, { href: unsubscribePageUrl(n.userId, "notifications") }, m.email.unsubscribeLink),
           ),
           url: `${env().NEXT_PUBLIC_APP_URL}${webLink(payload.link, payload.organizationId) ?? "/accueil"}`,
         }),
