@@ -13,6 +13,10 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, F4 : stabilisation de la recette native du suivi
+
+CI qualité verte sur `427793a`, Android compilé ; douze parcours Maestro réussis, suivi coach en échec. La trace montre la grille visée à y=320 puis déplacée à y=497 par l'arrivée des alertes, sans navigation. Le test attend désormais le titre des alertes présentes dans la graine et la fin de leur animation avant de toucher la séance ; les assertions de l'appel restent identiques. Aucun changement applicatif. Rejeu natif requis avant fusion ; accord du fondateur déjà reçu, aucune fusion pendant cet échec.
+
 ## 2026-11-13, Codex, F4 : constructeur et réalisation des circuits
 
 En cours : `feat/session-builder-sequences`, empilée sur F2. Cartes de répétition à deux niveaux, récupérations, duplication, déplacement au clavier, dissociation, annulation du contenu, phases communes club/autonomie. Aperçu et mode séance utilisent les occurrences du domaine ; le dernier tour n'ajoute pas de repos implicite. Tous les textes des deux écrans touchés sortis de la base de suppressions lint.
