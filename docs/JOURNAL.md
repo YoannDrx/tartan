@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, F6 : intégration du correctif de recette F4
+
+Reprise de `feat/collaborative-video` pour intégrer `db52511` sans changer le comportement applicatif ; journaux conservés. États F0/F1/F6 réconciliés avec les preuves récentes. CI à rejouer sur cette fusion avant de fusionner la PR 121 déjà autorisée.
+
+## 2026-11-13, Codex, F4 : stabilisation de la recette native du suivi
+
+CI qualité verte sur `427793a`, Android compilé ; douze parcours Maestro réussis, suivi coach en échec. La trace montre la grille visée à y=320 puis déplacée à y=497 par l'arrivée des alertes, sans navigation. Le test attend désormais le titre des alertes présentes dans la graine et la fin de leur animation avant de toucher la séance ; les assertions de l'appel restent identiques. Aucun changement applicatif. Rejeu natif requis avant fusion ; accord du fondateur déjà reçu, aucune fusion pendant cet échec.
 ## 2026-11-13, Codex, F6 : vidéo collaborative et preuves d’exploitation
 
 En cours : `feat/collaborative-video`, empilée sur F4. Migration additive : identifiant de requête et génération d’upload, réservation de quota, groupes choisis, revue coach et réponses d’annotation. Upload athlète lié côté serveur à son identité, privé par défaut ; séance/exercice vérifiés avant création et renouvellement. Reprises idempotentes, quotas communs aux coachs/athlètes/démonstrations, webhooks tardifs et orphelins, filtre des groupes et retrait d’accès. Interface web : filmer/importer, contexte séance, filtres/pagination, réponses horodatées, revue et partage volontaire avec confirmation et avertissement sur les URL signées valables une heure. Aucun média personnel rendu commun automatiquement.

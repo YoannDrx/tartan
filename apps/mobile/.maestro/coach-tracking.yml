@@ -7,6 +7,12 @@ env:
 - extendedWaitUntil:
     visible: "Suivi du groupe"
     timeout: 30000
+# La requête d'alertes arrive après la grille et la décale vers le bas.
+# La graine contient des alertes : attendre leur insertion avant de viser la séance.
+- extendedWaitUntil:
+    visible: "Alertes"
+    timeout: 30000
+- waitForAnimationToEnd
 - tapOn: "Force et pliométrie.*"
 - extendedWaitUntil:
     visible:
