@@ -14,6 +14,13 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-13, Codex, F6 : intégration du correctif de recette F4
+
+Reprise de `feat/collaborative-video` pour intégrer `db52511` sans changer le comportement applicatif ; journaux conservés. États F0/F1/F6 réconciliés avec les preuves récentes. CI à rejouer sur cette fusion avant de fusionner la PR 121 déjà autorisée.
+
+## 2026-11-13, Codex, F4 : stabilisation de la recette native du suivi
+
+CI qualité verte sur `427793a`, Android compilé ; douze parcours Maestro réussis, suivi coach en échec. La trace montre la grille visée à y=320 puis déplacée à y=497 par l'arrivée des alertes, sans navigation. Le test attend désormais le titre des alertes présentes dans la graine et la fin de leur animation avant de toucher la séance ; les assertions de l'appel restent identiques. Aucun changement applicatif. Rejeu natif requis avant fusion ; accord du fondateur déjà reçu, aucune fusion pendant cet échec.
 ## 2026-11-13, Codex, F5 : préserver la saisie pendant l’hydratation
 
 Corrigé : la date d’expiration utilise explicitement le fuseau de l’espace. En CI, le serveur UTC et le navigateur Paris produisaient deux textes différents ; React reconstruisait le formulaire et perdait la précision saisie avant la fin de l’hydratation. Les traces des deux parcours en échec établissent cette cause.
