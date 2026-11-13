@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, F9 : guides et exécution native des circuits
+
+Codé sur `feat/native-completion`, depuis F5 : guides dans la bibliothèque, fiche et séance, recherche par famille ; cache des textes et préchargement des illustrations disponibles des sept jours à venir. Aucun visuel en préparation n’est chargé ni déclaré validé. Récupérations explicites avec minuteur, tours visibles, saisies distinctes par occurrence, repos final explicite respecté. Séries locales redimensionnées après modification, récupérations exclues de la saisie détaillée, accès refusé par le serveur masqué même avec un cache.
+Vérifié : types/lint/design, 1 945 tests web, 289 domaine, 249 mobile après ajout du dernier test de cache (247 jeu, 90 mascotte). Deux parcours Maestro locaux réussis sur iPhone 16e/iOS 26.3, 390 px : synonyme « back squat » vers le guide, puis circuit A/repos/B/repos de tour/A/repos/B et guide athlète. Captures relues. Binaire simulateur existant avec nouveau bundle Hermes exporté ; ce n’est pas un nouveau build signé. Le premier essai a été arrêté par la proposition iOS d’enregistrer le mot de passe : refus facultatif ajouté, parcours complet rejoué. Tests locaux sur base jetable dédiée, aucun compte de production.
+Non vérifié : matrice native complète des tailles/thèmes, téléphone physique, SVG technique réel (encore absent), stores. Suite web complète non rejouée : aucun parcours web modifié ; CI et compilation native fraîche attendues. F9 reste partiel : constructeur natif, modes IA et collaboration vidéo à porter.
+
 ## 2026-11-13, Codex, F5 : vérification intégrée et PR en brouillon
 
 Vérifié sur `ebb8dea` : types, lint (quatre avertissements hérités), 1 945 tests web / 123 fichiers, 284 tests domaine, 243 mobile, 247 jeu, 90 mascotte et design réussis. Huit parcours navigateur IA simulés rejoués après intégration F3/F1 ; le parcours OpenAI réel est décrit ci-dessous sur `937b130`. La dernière garde sur les tours omis passe son test de reprise et de refus, sans qualification supplémentaire du corpus revendiquée. Les 80 réponses du passage réel à 67/80 sont disponibles dans un document HTML de relecture local, hors dépôt public.

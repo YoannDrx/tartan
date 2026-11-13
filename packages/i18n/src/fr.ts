@@ -2159,6 +2159,7 @@ export const fr = {
     pending: "Guide en préparation : validation technique par un coach encore attendue.",
     approved: "Guide validé techniquement",
     illustrationNotReady: "Illustration technique en préparation.",
+    illustrationUnavailable: "Illustration indisponible pour le moment. Les consignes restent consultables.",
     illustrationPending: "Illustration de travail — validation technique attendue",
     original: "Illustration originale Tartan",
     version: (n: number) => `Guide Tartan · version ${n}`,

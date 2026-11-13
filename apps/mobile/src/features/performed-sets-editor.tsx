@@ -306,8 +306,16 @@ export const PerformedSetsEditor = ({
       ) : null}
       {session.blocks
         .flatMap((block) => block.items)
+        .filter((item) => item.kind !== "recovery")
         .map((item) => (
           <View key={item.ref} style={{ gap: space.lg }}>
+            {item.rounds?.length ? (
+              <T variant="small" tone="muted">
+                {item.rounds
+                  .map((round) => m.builder.sequence.round(round.name, round.round, round.rounds))
+                  .join(" · ")}
+              </T>
+            ) : null}
             <T variant="title2">{item.name}</T>
             <T variant="caption">{item.summary}</T>
             <PreviousSets

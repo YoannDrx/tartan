@@ -1,10 +1,11 @@
-import type { ExerciseSummary } from "@tartan/contracts";
+import type { ExerciseSummary, ExerciseFamily } from "@tartan/contracts";
 import { can, formatPrescription } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { ExerciseRow, ExerciseVideo, parseMedia } from "../../src/features/media";
+import { MovementGuide } from "../../src/features/exercise-guide";
 import { useActiveSpace, useExercises } from "../../src/lib/queries";
 import { Pencil, Plus } from "../../src/ui/icons";
 import { Button, Chip, Divider, Field, ListSurface, T } from "../../src/ui/primitives";
@@ -22,17 +23,23 @@ export default function Exercises() {
   const canEdit = active ? can(active.role, "editExercises") : false;
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [family, setFamily] = useState<ExerciseFamily | null>(null);
   const [open, setOpen] = useState<ExerciseSummary | null>(null);
 
   const categories = useMemo(() => [...new Set((exercises.data ?? []).map((e) => e.category))], [exercises.data]);
+  const families = useMemo(
+    () => [...new Set((exercises.data ?? []).flatMap((e) => (e.guide ? [e.guide.family] : [])))],
+    [exercises.data],
+  );
   const list = useMemo(() => {
     const query = folded(search.trim());
     return (exercises.data ?? []).filter(
       (e) =>
         (!category || e.category === category) &&
+        (!family || e.guide?.family === family) &&
         (!query || [e.name, ...e.tags, ...(e.aliases ?? [])].some((term) => folded(term).includes(query))),
     );
-  }, [exercises.data, search, category]);
+  }, [exercises.data, search, category, family]);
 
   return (
     <TabScreen
@@ -75,6 +82,22 @@ export default function Exercises() {
                 />
               ))}
             </ScrollView>
+          ) : null}
+          {families.length > 0 ? (
+            <View style={{ gap: space.sm }}>
+              <T variant="smallStrong">{m.exerciseGuide.family}</T>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
+                <Chip label={m.exerciseGuide.allFamilies} active={!family} onPress={() => setFamily(null)} />
+                {families.map((value) => (
+                  <Chip
+                    key={value}
+                    label={m.exerciseGuide.families[value]}
+                    active={family === value}
+                    onPress={() => setFamily(value)}
+                  />
+                ))}
+              </ScrollView>
+            </View>
           ) : null}
         </>
       ) : null}
@@ -124,6 +147,7 @@ export default function Exercises() {
           }
         >
           {parseMedia(open.media) ? <ExerciseVideo media={parseMedia(open.media)} rate={1} /> : null}
+          {open.guide ? <MovementGuide key={open.guide.catalogKey} guide={open.guide} /> : null}
           {open.cues.length > 0 ? (
             <View style={{ gap: space.xs }}>
               <T variant="smallStrong">{m.exercises.cues}</T>
