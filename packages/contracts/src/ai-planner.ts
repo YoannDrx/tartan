@@ -12,6 +12,8 @@ import {
   sessionDraftItem,
 } from "./session";
 import { sessionType } from "./enums";
+import { exerciseInput } from "./requests";
+import { sequenceRef, sessionSequence } from "./session-sequence";
 
 // Schéma du prestataire : toutes les clés sont requises, les absences sont explicites.
 // Aucun identifiant de personne, maximum individuel ou outil d’écriture dans ce contrat.
@@ -48,6 +50,7 @@ export const plannerPrescription = z
 export const plannerItem = z
   .object({
     // Jeton de la bibliothèque autorisée ; le service le traduit en exerciseId après validation.
+    ref: sequenceRef.nullable().optional(),
     exerciseToken: z.string().min(1).max(60),
     prescription: plannerPrescription,
     // Citation de la consigne ; hypothèses et suggestions sont affichées séparément.
@@ -67,6 +70,7 @@ export const plannerSession = z
         z
           .object({
             name: z.string().min(1).max(80),
+            sequence: sessionSequence.nullable().optional(),
             items: z.array(plannerItem).min(1).max(60),
           })
           .strict(),
@@ -84,6 +88,8 @@ export const plannerQuestion = z
         "Information manquante : target = destinataire ; date = jour ou période, y compris une période trop longue ; exercise = fiche de bibliothèque inconnue ou ambiguë ; unit = sens d'un nombre sans unité (mètres, secondes, répétitions, par jambe, par haltère) ; rest = récupération absente, habituelle ou contradictoire ; load = charge absente, habituelle, contradictoire ou conversion demandée ; other = séries, répétitions ou nombre de séances, notamment plus de quatorze séances.",
       ),
     question: z.string().min(1).max(500),
+    // Additif : citation exacte du mouvement non résolu ; jamais une création automatique.
+    exerciseName: z.string().trim().min(1).max(120).nullable().optional(),
     options: z.array(z.string().min(1).max(200)).max(5),
   })
   .strict();
@@ -98,16 +104,71 @@ export const plannerInterpretation = z
     suggestions: z.array(z.string().min(1).max(500)).max(20),
   })
   .strict();
+export const plannerProviderInterpretation = plannerInterpretation.extend({
+  sessions: z
+    .array(
+      plannerSession.extend({
+        blocks: z
+          .array(
+            plannerSession.shape.blocks.element.extend({
+              sequence: sessionSequence.nullable(),
+              items: z
+                .array(plannerItem.extend({ ref: plannerItem.shape.ref.unwrap() }))
+                .min(1)
+                .max(60),
+            }),
+          )
+          .min(1)
+          .max(12),
+      }),
+    )
+    .max(14),
+  questions: z.array(plannerQuestion.extend({ exerciseName: plannerQuestion.shape.exerciseName.unwrap() })).max(10),
+});
+
 export type PlannerInterpretation = z.infer<typeof plannerInterpretation>;
 export type PlannerPrescription = z.infer<typeof plannerPrescription>;
+
+export const resolvePlannerExerciseInput = z
+  .object({
+    operationId: uuid,
+    expectedVersion: z.number().int().positive(),
+    questionId: z.string().min(1).max(60),
+    requestedName: z.string().trim().min(1).max(120),
+    choice: z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("existing"), exerciseId: uuid }).strict(),
+      z
+        .object({
+          kind: z.literal("create"),
+          exercise: exerciseInput.omit({ id: true, media: true }).strict(),
+          reviewed: z.literal(true),
+        })
+        .strict(),
+    ]),
+  })
+  .strict();
+export type ResolvePlannerExerciseInput = z.infer<typeof resolvePlannerExerciseInput>;
 
 export const plannerPeriod = z
   .object({ from: isoDate, to: isoDate })
   .strict()
   .refine((p) => p.from <= p.to && Date.parse(`${p.to}T00:00:00Z`) - Date.parse(`${p.from}T00:00:00Z`) <= 6 * 86400000);
 
+export const plannerBrief = z
+  .object({
+    objective: z.string().trim().min(1).max(1000),
+    date: isoDate,
+    durationMin: z.number().int().min(5).max(180),
+    level: z.enum(["beginner", "intermediate", "advanced"]),
+    equipment: z.array(z.string().trim().min(1).max(80)).max(20),
+  })
+  .strict();
+export type PlannerBrief = z.infer<typeof plannerBrief>;
+
 export const plannerSelection = z
   .object({
+    mode: z.enum(["format", "propose"]).optional(),
+    brief: plannerBrief.optional(),
     period: plannerPeriod,
     groupIds: z.array(uuid).max(100),
     athleteIds: z.array(uuid).max(200),
@@ -129,6 +190,7 @@ export const plannerSelection = z
   .strict()
   .refine(
     (s) =>
+      (s.mode !== "propose" || (Boolean(s.brief) && s.brief!.date >= s.period.from && s.brief!.date <= s.period.to)) &&
       s.groupIds.length + s.athleteIds.length > 0 &&
       s.groupIds.length + s.athleteIds.length <= 200 &&
       [s.groupIds, s.athleteIds, s.exerciseIds].every((ids) => new Set(ids).size === ids.length) &&
@@ -258,6 +320,7 @@ export const plannerProposalResponse = z.object({
   exercises: z.array(
     z.object({ token: z.string(), id: uuid, name: z.string(), category: z.string(), updatedAt: z.iso.datetime() }),
   ),
+  exerciseResolutions: z.array(z.object({ questionId: z.string(), exerciseId: uuid, name: z.string() })).optional(),
   phaseReviews: z.array(z.object({ date: isoDate, review: sessionPhaseReview })),
   draftIds: plannerCreatedSessions.nullable(),
 });

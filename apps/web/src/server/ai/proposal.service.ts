@@ -2,9 +2,12 @@ import "server-only";
 import { createHmac } from "node:crypto";
 import { z } from "zod";
 import {
+  resolvePlannerExerciseInput,
+  type ResolvePlannerExerciseInput,
   clarifyPlannerProposalInput,
   createPlannerProposalInput,
   plannerInterpretation,
+  exerciseClassification,
   plannerSelection,
   confirmPlannerProposalInput,
   plannerProposalResponse,
@@ -23,11 +26,14 @@ import {
 import {
   validatePlannerInterpretation,
   plannerServerEnabled,
-  plannerPrescriptionToSession,
+  sessionExerciseReferences,
+  validSessionStructure,
+  plannerSessionToDraft,
   plannerDisplayText,
   plannerRetentionDeadline,
   plannerPhaseChoicesForDate,
   freezePrescription,
+  cleanExerciseAliases,
   isSessionAssigned,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
@@ -119,6 +125,9 @@ export async function getPlannerProposal(userId: string, organizationId: string,
     interpretation: row.interpretation ? plannerInterpretation.parse(row.interpretation) : null,
     targets: bindings.targets.map(({ aliases: _aliases, ...target }) => target),
     exercises: bindings.exercises,
+    exerciseResolutions: bindings.resolutions
+      ?.filter((r) => r.clarificationCount === row.clarificationCount)
+      .map(({ questionId, exerciseId, name }) => ({ questionId, exerciseId, name })),
     phaseReviews: bindings.phaseReviews,
     draftIds: row.draftIds,
   });
@@ -197,9 +206,11 @@ async function executeProposal(
     const provider = execution.provider ?? (fakePlannerEnabled() ? fakePlannerProvider() : openAiPlannerProvider());
     const raw = await provider.interpret(context);
     const checked = validatePlannerInterpretation(raw, {
+      mode: selection.mode,
+      brief: selection.brief,
       period: selection.period,
       reviewedInstructions: context.instructions,
-      exercises: new Map(bindings.exercises.map((e) => [e.token, { id: e.id }])),
+      exercises: new Map(bindings.exercises.map((e) => [e.token, { id: e.id, classification: e.classification }])),
       targetTokens: new Set(bindings.targets.map((t) => t.token)),
     });
     if (!checked.ok) throw new Error("planner_invalid_output");
@@ -287,7 +298,7 @@ export async function createPlannerProposal(
     async (tx) => {
       const access = await accessFor(userId, organizationId, tx);
       if (await tx.aiPlannerProposal.findUnique({ where: { id: input.id }, select: { id: true } })) throw conflict();
-      const bindings = await buildPlannerBindings(tx, access, input.selection, now);
+      const bindings = await buildPlannerBindings(tx, access, input.selection, now, input.text);
       await tx.aiPlannerProposal.create({
         data: {
           id: input.id,
@@ -355,6 +366,110 @@ export async function clarifyPlannerProposal(
   return executeProposal(userId, organizationId, proposalId, input.operationId, claim, execution);
 }
 
+// A coach resolves a named movement explicitly. No model call, quota charge or session publication.
+export async function resolvePlannerExercise(
+  userId: string,
+  organizationId: string,
+  proposalId: string,
+  raw: ResolvePlannerExerciseInput,
+  now = new Date(),
+) {
+  const input = resolvePlannerExerciseInput.parse(raw);
+  await accessFor(userId, organizationId);
+  await requireAiConsent(userId);
+  const fingerprint = plannerFingerprint({
+    questionId: input.questionId,
+    requestedName: input.requestedName,
+    choice: input.choice,
+  });
+  await prisma.$transaction(async (tx) => {
+    await lock(tx, organizationId);
+    const access = await accessFor(userId, organizationId, tx);
+    await requireOrgMember(userId, organizationId, "editExercises", tx);
+    const row = await owned(userId, organizationId, proposalId, now, tx);
+    const bindings = plannerBindings.parse(row.bindings),
+      selection = plannerSelection.parse(row.selection);
+    await recheckPlannerBindings(tx, access, selection, bindings);
+    const previous = bindings.resolutions?.find(
+      (r) =>
+        r.operationId === input.operationId ||
+        (r.questionId === input.questionId && r.clarificationCount === row.clarificationCount),
+    );
+    if (previous) {
+      if (previous.fingerprint !== fingerprint) throw conflict();
+      return;
+    }
+    if (row.version !== input.expectedVersion || row.state !== "clarification") throw conflict();
+    const interpretation = plannerInterpretation.parse(row.interpretation);
+    const question = interpretation.questions.find((q) => q.id === input.questionId && q.field === "exercise");
+    if (!question || (question.exerciseName && question.exerciseName !== input.requestedName)) throw conflict();
+    const choice = input.choice;
+    if (selection.mode === "propose" && choice.kind === "create") throw invalid(m.aiPlanner.verifiedCatalogRequired);
+    const exercise =
+      choice.kind === "existing"
+        ? await tx.exercise.findFirst({
+            where: { id: choice.exerciseId, deletedAt: null, OR: [{ organizationId }, { organizationId: null }] },
+          })
+        : await tx.exercise.create({
+            data: {
+              organizationId,
+              createdBy: userId,
+              name: choice.exercise.name,
+              category: choice.exercise.category,
+              aliases: cleanExerciseAliases(choice.exercise.name, choice.exercise.aliases ?? []),
+              tags: choice.exercise.tags,
+              cues: choice.exercise.cues,
+              defaultPrescription: choice.exercise.defaultPrescription,
+              classification: choice.exercise.classification ?? undefined,
+              strengthLoadKind: choice.exercise.strengthLoadKind,
+              loadStepKg: choice.exercise.loadStepKg,
+            },
+          });
+    if (!exercise) throw notFound();
+    if (
+      selection.mode === "propose" &&
+      (!exercise.catalogKey ||
+        !exercise.guide ||
+        typeof exercise.guide !== "object" ||
+        Array.isArray(exercise.guide) ||
+        exercise.guide.technicalReview !== "approved")
+    )
+      throw invalid(m.aiPlanner.verifiedCatalogRequired);
+    const current = bindings.exercises.find((e) => e.id === exercise.id);
+    if (current) current.aliases = [...new Set([input.requestedName, ...(current.aliases ?? [])])].slice(0, 20);
+    else {
+      if (bindings.exercises.length >= 500) throw invalid(m.aiPlanner.libraryLimit);
+      bindings.exercises.push({
+        token: `exercise_${Math.max(0, ...bindings.exercises.map((e) => Number(e.token.split("_")[1]) || 0)) + 1}`,
+        id: exercise.id,
+        name: exercise.name,
+        category: exercise.category,
+        aliases: [...new Set([input.requestedName, ...exercise.aliases])].slice(0, 20),
+        classification: exerciseClassification.nullable().parse(exercise.classification ?? null),
+        updatedAt: exercise.updatedAt.toISOString(),
+        strengthLoadKind: exercise.strengthLoadKind as (typeof bindings.exercises)[number]["strengthLoadKind"],
+      });
+    }
+    bindings.resolutions = [
+      ...(bindings.resolutions ?? []),
+      {
+        operationId: input.operationId,
+        questionId: input.questionId,
+        requestedName: input.requestedName,
+        clarificationCount: row.clarificationCount,
+        fingerprint,
+        exerciseId: exercise.id,
+        name: exercise.name,
+      },
+    ];
+    await tx.aiPlannerProposal.update({
+      where: { id: proposalId },
+      data: { bindings: bindings as Prisma.InputJsonValue, version: { increment: 1 } },
+    });
+  });
+  return getPlannerProposal(userId, organizationId, proposalId, now);
+}
+
 export async function preparePlannerDrafts(
   userId: string,
   organizationId: string,
@@ -407,31 +522,30 @@ export async function preparePlannerDrafts(
           assignments,
           overrides: [],
           ...(phaseReview ? { phaseReview } : {}),
-          draft: {
-            title: plannerDisplayText(session.title, bindings),
-            type: session.type,
-            durationMin: session.durationMin,
-            coachNote: null,
-            blocks: session.blocks.map((block, b) => ({
-              ref: `ai-${proposalId}-${index}-b${b}`,
-              name: plannerDisplayText(block.name, bindings),
-              variant: "club",
-              items: block.items.map((item, i) => {
-                const exercise = bindings.exercises.find((e) => e.token === item.exerciseToken);
-                if (!exercise) throw conflict();
-                return {
-                  ref: `ai-${proposalId}-${index}-b${b}-i${i}`,
-                  exerciseId: exercise.id,
+          draft: (() => {
+            const draft = plannerSessionToDraft(
+              session,
+              new Map(bindings.exercises.map((entry) => [entry.token, { id: entry.id }])),
+              `ai-${proposalId}-${index}`,
+            );
+            return {
+              ...draft,
+              title: plannerDisplayText(draft.title, bindings),
+              blocks: draft.blocks.map((block) => ({
+                ...block,
+                name: plannerDisplayText(block.name, bindings),
+                items: block.items.map((item) => ({
+                  ...item,
                   prescription: {
-                    ...plannerPrescriptionToSession(item.prescription, exercise.id),
-                    ...(item.prescription.notes !== null
+                    ...item.prescription,
+                    ...(item.prescription.notes
                       ? { notes: plannerDisplayText(item.prescription.notes, bindings) }
                       : {}),
                   },
-                };
-              }),
-            })),
-          },
+                })),
+              })),
+            };
+          })(),
         });
       }
       return { proposalId, version: row.version, sessions };
@@ -448,14 +562,15 @@ function assertReviewedScope(
   const targets = new Set(bindings.targets.map((t) => `${t.type}:${t.id}`));
   const exercises = new Set(bindings.exercises.map((e) => e.id));
   const allItems = draft.draft.blocks.flatMap((b) => b.items);
-  const items = new Map(allItems.map((i) => [i.ref, i] as const));
+  if (!validSessionStructure(draft.draft)) throw conflict();
+  const items = sessionExerciseReferences(draft.draft);
   if (
     draft.date < selection.period.from ||
     draft.date > selection.period.to ||
     !draft.assignments.length ||
     draft.assignments.some((a) => !targets.has(`${a.targetType}:${a.targetId}`)) ||
     allItems.some((i) => !i.ref) ||
-    items.size !== allItems.length ||
+    new Set(allItems.map((i) => i.ref)).size !== allItems.length ||
     allItems.some(
       (i) =>
         !exercises.has(i.exerciseId) ||
@@ -517,7 +632,7 @@ export async function previewPlannerLoads(
       const athletes = await reviewedAudience(tx, organizationId, input.session);
       const start = input.afterAthleteId ? athletes.findIndex((a) => a.id === input.afterAthleteId) + 1 : 0;
       if (input.afterAthleteId && !start) throw invalid();
-      const itemCount = input.session.draft.blocks.reduce((sum, block) => sum + block.items.length, 0);
+      const itemCount = sessionExerciseReferences(input.session.draft).size;
       const pageSize = Math.min(10, Math.max(1, Math.floor(1500 / Math.max(1, itemCount))));
       const page = athletes.slice(start, start + pageSize);
       const [snapshot, references] = await Promise.all([
@@ -539,20 +654,24 @@ export async function previewPlannerLoads(
             references.get(a.id) ?? [],
             input.session.overrides.filter((o) => o.athleteId === a.id),
           ).blocks.flatMap((b) =>
-            b.items.map((item) => ({
-              ref: item.ref,
-              exerciseId: item.exerciseId,
-              name: item.name,
-              prescription: item.prescription,
-              resolvedLoadKg: item.resolvedLoadKg ?? null,
-              source: item.strengthReference
-                ? {
-                    value: item.strengthReference.value,
-                    kind: item.strengthReference.originKind ?? item.strengthReference.kind,
-                    date: item.strengthReference.date,
-                  }
-                : null,
-            })),
+            b.items
+              .filter((item) => item.kind !== "recovery")
+              .map((item) => ({
+                ref: item.ref,
+                exerciseId: item.exerciseId,
+                name: item.rounds?.length
+                  ? `${item.name} · ${item.rounds.map((r) => m.builder.sequence.round(r.name, r.round, r.rounds)).join(" · ")}`
+                  : item.name,
+                prescription: item.prescription,
+                resolvedLoadKg: item.resolvedLoadKg ?? null,
+                source: item.strengthReference
+                  ? {
+                      value: item.strengthReference.value,
+                      kind: item.strengthReference.originKind ?? item.strengthReference.kind,
+                      date: item.strengthReference.date,
+                    }
+                  : null,
+              })),
           ),
         })),
       });

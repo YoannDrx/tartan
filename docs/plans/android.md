@@ -24,6 +24,14 @@ Les builds EAS échouaient à l'étape « Read app config » (`expo config --jso
 corepack pnpm --filter @tartan/mobile exec eas build --profile production --platform android
 ```
 
+## Préparer le D-U-N-S et le compte organisation
+
+1. Vérifier d’abord si un numéro existe : partir du [parcours officiel D&B](https://www.dnb.com/en-us/smb/duns/get-a-duns.html), choisir entreprise internationale puis développeur Google, France. Le parcours dirige vers [Altares](https://www.altares.com/fr/nos-data/duns-number/). Rechercher par SIRET pour éviter les homonymes ; une fiche publique sans numéro visible n’est pas la preuve d’une absence de D-U-N-S.
+2. Faire correspondre la dénomination légale et l’adresse de l’établissement entre D&B, le justificatif d’entreprise et le profil de paiement Google. Un ancien nom commercial sur la fiche peut nécessiter une mise à jour avant validation.
+3. Récupérer le numéro existant ou demander sa création auprès du prestataire. Préparer nom légal, adresse, téléphone professionnel, représentant, forme juridique, année de création, activité et effectif ; conserver ces éléments hors du dépôt. Aucun rapport de crédit payant n’est nécessairement requis pour demander son propre numéro.
+4. Prévoir le délai avant Play Console : Google annonce jusqu’à 30 jours ; D&B indique jusqu’à 30 jours ouvrés dans son parcours standard. La demande du numéro est gratuite, l’accélération commerciale facultative. Sources : [Google Play](https://support.google.com/googleplay/android-developer/answer/13628312?hl=fr), [D&B](https://www.dnb.com/en-us/smb/duns/get-a-duns.html), consultées le 13 novembre 2026.
+5. Après réception : créer Play Console organisation, valider e-mail/téléphone, identité et profil de paiement, puis configurer Play App Signing et le compte de service EAS. Les paiements et acceptations contractuelles restent au fondateur ; l’agent prépare et configure les étapes techniques autorisées.
+
 ## Étapes
 
 | N° | Action | Qui | Vérification |

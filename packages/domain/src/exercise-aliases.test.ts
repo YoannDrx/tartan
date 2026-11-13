@@ -39,3 +39,18 @@ it("conserve toutes les cibles d'un terme ambigu, y compris alias contre nom", (
     { term: "Power clean", exerciseTokens: ["exercise_1", "exercise_2"] },
   ]);
 });
+
+it("une résolution explicite lève uniquement le terme choisi et refuse une réponse qui le contredit", () => {
+  const exercises = [
+    { token: "exercise_1", name: "Squat arrière", aliases: ["squat"] },
+    { token: "exercise_2", name: "Squat avant", aliases: ["squat"] },
+  ];
+  const choices = [{ term: "squat", token: "exercise_2" }];
+  expect(unresolvedExerciseAlias("Squat 3 × 5", "exercise_2", exercises, choices)).toBeNull();
+  expect(unresolvedExerciseAlias("Squat 3 × 5", "exercise_1", exercises, choices)).toMatchObject({
+    term: "squat",
+    exerciseTokens: ["exercise_2"],
+  });
+  expect(unresolvedExerciseAlias("Squat arrière 3 × 5", "exercise_1", exercises, choices)).toBeNull();
+  expect(unresolvedExerciseAlias("Squat 3 × 5", "exercise_2", exercises)).not.toBeNull();
+});

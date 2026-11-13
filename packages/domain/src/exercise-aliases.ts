@@ -48,6 +48,7 @@ export function unresolvedExerciseAlias(
   instruction: string,
   selectedToken: string,
   exercises: readonly { token: string; name: string; aliases: readonly string[] }[],
+  resolutions: readonly { term: string; token: string }[] = [],
 ) {
   const text = normalizeExerciseTerm(instruction);
   const terms = new Map<string, Set<string>>();
@@ -56,6 +57,9 @@ export function unresolvedExerciseAlias(
       const key = normalizeExerciseTerm(label);
       if (key) terms.set(key, new Set([...(terms.get(key) ?? []), e.token]));
     }
+  const resolved = new Map(resolutions.map((choice) => [normalizeExerciseTerm(choice.term), choice.token]));
+  for (const [term, token] of resolved)
+    if (exercises.some((exercise) => exercise.token === token)) terms.set(term, new Set([token]));
   const matches: { start: number; end: number; term: string; tokens: Set<string> }[] = [];
   for (const [term, tokens] of terms) {
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -69,6 +73,8 @@ export function unresolvedExerciseAlias(
         (other) => other.start <= hit.start && other.end >= hit.end && other.end - other.start > hit.end - hit.start,
       ),
   );
+  const contradicted = specific.find((hit) => resolved.has(hit.term) && !hit.tokens.has(selectedToken));
+  if (contradicted) return { term: contradicted.term, exerciseTokens: [...contradicted.tokens] };
   if (specific.some((hit) => hit.tokens.size === 1 && hit.tokens.has(selectedToken))) return null;
   const ambiguous = specific.find((hit) => hit.tokens.size > 1 && hit.tokens.has(selectedToken));
   return ambiguous ? { term: ambiguous.term, exerciseTokens: [...ambiguous.tokens].sort() } : null;

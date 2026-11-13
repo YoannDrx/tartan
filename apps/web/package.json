@@ -21,7 +21,8 @@
     "postinstall": "prisma generate",
     "email:athletes": "tsx --tsconfig tsconfig.scripts.json scripts/build-email-athletes.ts",
     "og:jeu": "tsx --tsconfig tsconfig.scripts.json scripts/build-game-og.tsx",
-    "eval:planner": "node --conditions=react-server --import tsx scripts/planner-eval.ts"
+    "eval:planner": "node --conditions=react-server --import tsx scripts/planner-eval.ts",
+    "eval:planner:independent": "node --conditions=react-server --import tsx scripts/planner-independent-eval.ts"
   },
   "dependencies": {
     "@better-auth/expo": "1.7.15",

@@ -9,6 +9,7 @@ import {
 } from "@tartan/contracts";
 import { prisma } from "@/lib/prisma";
 import {
+  resolvePlannerExercise,
   createPlannerProposal,
   clarifyPlannerProposal,
   getPlannerProposal,
@@ -863,4 +864,270 @@ it("le prestataire factice des parcours natifs n'existe jamais sur Vercel, et sa
   expect(result).toMatchObject({ state: "proposal" });
   // Une proposition reste privée : aucune séance n'est écrite avant la confirmation du coach.
   expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
+});
+
+it("rattache une création privée une seule fois et reprend la proposition sans perdre ses réponses", async () => {
+  const a = await setup();
+  const pending = await a.create(
+    provider(() => ({
+      ...clarification(),
+      questions: [
+        { id: "unknown", field: "exercise", exerciseName: "Bond maison", question: "Quel mouvement ?", options: [] },
+      ],
+    })),
+  );
+  const before = await prisma.exercise.count({ where: { organizationId: a.organizationId } });
+  const choice = {
+    operationId: randomUUID(),
+    expectedVersion: pending.version,
+    questionId: "unknown",
+    requestedName: "Bond maison",
+    choice: {
+      kind: "create" as const,
+      reviewed: true as const,
+      exercise: {
+        name: "Bond maison",
+        category: "plyo" as const,
+        tags: [],
+        cues: ["Atterrir avec contrôle"],
+        defaultPrescription: {},
+        strengthLoadKind: "bodyweight" as const,
+      },
+    },
+  };
+  const [first, replay] = await Promise.all([
+    resolvePlannerExercise(a.owner.userId, a.organizationId, pending.id, choice, now),
+    resolvePlannerExercise(a.owner.userId, a.organizationId, pending.id, choice, now),
+  ]);
+  expect(first.exerciseResolutions).toEqual(replay.exerciseResolutions);
+  expect(await prisma.exercise.count({ where: { organizationId: a.organizationId } })).toBe(before + 1);
+  const exerciseId = first.exerciseResolutions![0]!.exerciseId;
+  expect(await prisma.exercise.findUnique({ where: { id: exerciseId } })).toMatchObject({
+    organizationId: a.organizationId,
+    catalogKey: null,
+    createdBy: a.owner.userId,
+  });
+  const next = provider((context) => {
+    expect(context.exercises.some((e) => e.name === "Bond maison")).toBe(true);
+    return clarification();
+  });
+  const resumed = await clarifyPlannerProposal(
+    a.owner.userId,
+    a.organizationId,
+    pending.id,
+    {
+      operationId: randomUUID(),
+      expectedVersion: first.version,
+      text: "Utilise la fiche choisie, récupération 60 secondes.",
+      reviewed: true,
+    },
+    { provider: next, clock },
+  );
+  expect(resumed.messages[0]).toBe(a.input.text);
+  expect(resumed.messages.at(-1)).toContain("récupération 60 secondes");
+  await expect(
+    resolvePlannerExercise(
+      a.owner.userId,
+      a.organizationId,
+      pending.id,
+      { ...choice, requestedName: "Autre geste" },
+      now,
+    ),
+  ).rejects.toMatchObject({ status: 409 });
+});
+
+it("ne rattache jamais un exercice d’un autre espace ou une question qui n’existe pas", async () => {
+  const a = await setup(),
+    b = await setup();
+  const pending = await a.create(
+    provider(() => ({
+      ...clarification(),
+      questions: [
+        { id: "unknown", field: "exercise", exerciseName: "Bond maison", question: "Quel mouvement ?", options: [] },
+      ],
+    })),
+  );
+  const input = {
+    operationId: randomUUID(),
+    expectedVersion: pending.version,
+    questionId: "unknown",
+    requestedName: "Bond maison",
+    choice: { kind: "existing" as const, exerciseId: b.exercise.id },
+  };
+  await expect(resolvePlannerExercise(a.owner.userId, a.organizationId, pending.id, input, now)).rejects.toMatchObject({
+    status: 404,
+  });
+  await expect(
+    resolvePlannerExercise(
+      a.owner.userId,
+      a.organizationId,
+      pending.id,
+      { ...input, questionId: "missing", choice: { kind: "existing", exerciseId: a.exercise.id } },
+      now,
+    ),
+  ).rejects.toMatchObject({ status: 409 });
+  await expect(resolvePlannerExercise(b.owner.userId, a.organizationId, pending.id, input, now)).rejects.toMatchObject({
+    status: 403,
+  });
+});
+
+it("sélectionne des candidats pertinents dans une bibliothèque de plus de 500 exercices", async () => {
+  const a = await setup();
+  await prisma.exercise.createMany({
+    data: Array.from({ length: 550 }, (_, i) => ({
+      organizationId: a.organizationId,
+      name: `Mouvement privé ${i}`,
+      category: "strength" as const,
+    })),
+  });
+  const special = await prisma.exercise.create({
+    data: {
+      organizationId: a.organizationId,
+      name: "Épaulé suspendu personnel",
+      aliases: ["Mon hang clean"],
+      category: "strength",
+    },
+  });
+  const p = provider(() => clarification());
+  await a.create(p, {
+    ...a.input,
+    selection: { ...a.input.selection, exerciseIds: [] },
+    text: "Lundi mon hang clean, 4 séries de 5, 40 kg, repos 90 secondes.",
+  });
+  expect(p.interpret.mock.calls[0]![0].exercises[0]!.name).toBe(special.name);
+  expect(p.interpret.mock.calls[0]![0].exercises.length).toBeLessThanOrEqual(150);
+});
+
+it("réutilise un identifiant de question dans un nouveau tour sans réutiliser l'ancien choix", async () => {
+  const a = await setup();
+  const question = (name: string) => ({
+    ...clarification(),
+    questions: [
+      { id: "unknown", field: "exercise" as const, exerciseName: name, question: "Quel mouvement ?", options: [] },
+    ],
+  });
+  const pending = await a.create(provider(() => question("Premier geste")));
+  const first = await resolvePlannerExercise(
+    a.owner.userId,
+    a.organizationId,
+    pending.id,
+    {
+      operationId: randomUUID(),
+      expectedVersion: pending.version,
+      questionId: "unknown",
+      requestedName: "Premier geste",
+      choice: { kind: "existing", exerciseId: a.exercise.id },
+    },
+    now,
+  );
+  const next = await clarifyPlannerProposal(
+    a.owner.userId,
+    a.organizationId,
+    pending.id,
+    { operationId: randomUUID(), expectedVersion: first.version, text: "Puis un deuxième geste", reviewed: true },
+    { provider: provider(() => question("Deuxième geste")), clock },
+  );
+  expect(next.exerciseResolutions).toEqual([]);
+  const resolved = await resolvePlannerExercise(
+    a.owner.userId,
+    a.organizationId,
+    pending.id,
+    {
+      operationId: randomUUID(),
+      expectedVersion: next.version,
+      questionId: "unknown",
+      requestedName: "Deuxième geste",
+      choice: { kind: "existing", exerciseId: a.exercise.id },
+    },
+    now,
+  );
+  expect(resolved.exerciseResolutions).toHaveLength(1);
+});
+
+it("propose seulement à partir du catalogue approuvé et refuse les charges inventées", async () => {
+  const a = await setup();
+  const input: CreatePlannerProposalInput = {
+    ...a.input,
+    selection: {
+      ...a.input.selection,
+      exerciseIds: [],
+      mode: "propose",
+      brief: {
+        objective: "Force générale",
+        date: "2030-06-03",
+        durationMin: 45,
+        level: "beginner",
+        equipment: ["Poids du corps"],
+      },
+    },
+  };
+  const p = provider();
+  await expect(a.create(p, input)).rejects.toMatchObject({ status: 400 });
+  expect(p.interpret).not.toHaveBeenCalled();
+  const exercise = await prisma.exercise.create({
+    data: {
+      name: "Mouvement approuvé fictif",
+      classification: { movement: "squat", equipment: [] },
+      category: "strength",
+      catalogKey: `test-${randomUUID()}`,
+      guide: { technicalReview: "approved" },
+    },
+  });
+  const noLoad = provider((context) => {
+    expect(context.mode).toBe("propose");
+    expect(context.exercises.map((e) => e.name)).toEqual([exercise.name]);
+    const result = proposal(context);
+    result.sessions[0]!.blocks[0]!.items[0]!.prescription.load = null;
+    return result;
+  });
+  const created = await a.create(noLoad, { ...input, id: randomUUID() });
+  expect(created.state).toBe("proposal");
+  await expect(a.create(provider(), { ...input, id: randomUUID() })).rejects.toMatchObject({
+    code: "planner_generation_failed",
+  });
+  expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
+});
+
+it("conserve les occurrences du circuit dans les charges et accepte une adaptation du deuxième tour seulement", async () => {
+  const a = await setup();
+  await addAthlete(a.organizationId, a.groupId, "Circuit");
+  const created = await a.create(
+    provider((context) => {
+      const result = proposal(context);
+      const block = result.sessions[0]!.blocks[0]!;
+      block.items[0]!.ref = "squat";
+      block.items[0]!.prescription.sets = 1;
+      block.sequence = [
+        {
+          kind: "repeat",
+          ref: "rounds",
+          name: "Circuit",
+          rounds: 2,
+          restBetweenRoundsS: 60,
+          children: [{ kind: "exercise", itemRef: "squat" }],
+        },
+      ];
+      return result;
+    }),
+  );
+  const reviewed = await preparePlannerDrafts(a.owner.userId, a.organizationId, a.input.id, created.version, now);
+  const session = reviewed.sessions[0]!;
+  const args = { expectedVersion: created.version, session };
+  const loads = await previewPlannerLoads(a.owner.userId, a.organizationId, a.input.id, args, now);
+  const athlete = loads.athletes[0]!;
+  expect(athlete.items).toHaveLength(2);
+  expect(athlete.items[0]!.ref).not.toBe(athlete.items[1]!.ref);
+  session.overrides = [
+    { athleteId: athlete.id, itemRef: athlete.items[1]!.ref, prescription: { load: { type: "kg", value: 30 } } },
+  ];
+  const adapted = await previewPlannerLoads(a.owner.userId, a.organizationId, a.input.id, args, now);
+  expect(adapted.athletes[0]!.items.map((i) => i.resolvedLoadKg)).toEqual([40, 30]);
+  const result = await confirmPlannerProposal(
+    a.owner.userId,
+    a.organizationId,
+    a.input.id,
+    { expectedVersion: created.version, confirmed: true, sessions: [session] },
+    now,
+  );
+  expect(result.sessions).toHaveLength(1);
 });

@@ -111,7 +111,7 @@ export function PlannerSelectionForm({
           setError(t.periodInvalid);
           return;
         }
-        if (!context.exercises.length || (!selection.exerciseIds.length && context.exercises.length > 500)) {
+        if (!context.exercises.length) {
           setError(t.libraryLimit);
           return;
         }

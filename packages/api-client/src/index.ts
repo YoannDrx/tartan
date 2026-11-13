@@ -16,6 +16,7 @@ import {
   plannerConfirmationResult,
   plannerUsageResponse,
   type CreatePlannerProposalInput,
+  type ResolvePlannerExerciseInput,
   type ClarifyPlannerProposalInput,
   type ConfirmPlannerProposalInput,
   trainingAnalysisContext,
@@ -153,6 +154,20 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("GET", `/orgs/${orgId}/planner/proposals`, plannerProposalList, undefined, query, signal),
     createPlannerProposal: (orgId: string, body: CreatePlannerProposalInput, signal?: AbortSignal) =>
       request("POST", `/orgs/${orgId}/planner`, plannerProposalResponse, body, undefined, signal),
+    resolvePlannerExercise: (
+      orgId: string,
+      proposalId: string,
+      body: ResolvePlannerExerciseInput,
+      signal?: AbortSignal,
+    ) =>
+      request(
+        "POST",
+        `/orgs/${orgId}/planner/proposals/${proposalId}/resolve-exercise`,
+        plannerProposalResponse,
+        body,
+        undefined,
+        signal,
+      ),
     plannerProposal: (orgId: string, proposalId: string, signal?: AbortSignal) =>
       request(
         "GET",

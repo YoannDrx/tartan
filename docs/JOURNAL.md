@@ -5,6 +5,16 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 Modèle :
 
 ```text
+## 2026-11-13, Codex, F1 : rebond et plainte Resend reçus
+
+Éprouvé sur le prestataire réel, production `88d76e2` : deux gabarits de bienvenue à données fictives envoyés depuis la console aux adresses officielles de simulation Resend, une pour le rebond définitif, une pour la plainte. Tableau des webhooks : deux succès ; détail du rebond HTTP 200 en une tentative. Contrôle SQL ciblé en lecture seule : une empreinte pour chaque adresse synthétique, motifs `bounce` et `complaint` attendus. Aucun compte de passage créé en production et aucun message envoyé à un destinataire humain pour ce contrôle. Capture de preuve conservée localement hors dépôt. Ce test prouve la réception et la mise en liste de blocage ; les messageries Outlook/iCloud restent à éprouver.
+
+## 2026-11-13, Codex, F5 : qualification réelle et corrections ciblées
+
+Premier corpus figé exécuté trois fois avec OpenAI réel : 49/80, 49/80 et 47/80. Le correcteur assimilait un même exercice défini deux fois à une substitution : classement corrigé, résultats recalculés sans nouvel appel dans un rapport distinct ; aucun cas critique accepté selon ces contrôles, mais les défauts de structure et quantités restent comptés. Ces scores sont insuffisants. Le corpus devient une régression après ce réglage ; aucune validation humaine ni dictée physique n’est revendiquée.
+Codé : matériel de proposition filtré avant sélection des candidats, revalidation serveur, charge nulle imposée dans le schéma, explication générée distinguée d’une citation en mode proposition. Les choix explicites de fiches lèvent seulement l’alias concerné et sont conservés ; les listes d’alias restent bornées. Une substitution détectée peut demander une clarification avec le nom inconnu, dans la limite globale de deux appels et 100 secondes pour la même opération. Tests ciblés, types et règles métier vérifiés ; régression complète et nouveau passage réel en cours.
+Décisions reçues : le fondateur relira les 150 guides ; ce n’est pas encore leur approbation. D-U-N-S à récupérer : procédure du compte Play organisation préparée, fiche de l’entreprise retrouvée sans numéro visible ; aucune demande externe, souscription ou création de compte Play effectuée.
+
 ## AAAA-MM-JJ, agent, sujet
 Fait : … (PR)
 Vérifié : … / Non vérifié : …
@@ -12,6 +22,14 @@ En cours ou abandonné : branche, raison
 À savoir : piège découvert, décision prise
 Suite conseillée : numéro de tâche
 ```
+
+## 2026-11-13, Codex, F5 en cours et recette réelle Mux/Resend
+
+En cours : `feat/planner-resolution`, depuis F3 ; corpus indépendant de 80 cas figé dans le commit `2f2daba` avant le réglage. Deux modes, résolution explicite avec création privée et reprise idempotente, sélection de candidats, circuits partagés avec le constructeur et charges par occurrence. Aucune publication automatique. La proposition spontanée reste bloquée tant que le catalogue commun n'a pas été approuvé techniquement ; les essais du prestataire avec catalogue fictif ne lèvent pas ce verrou.
+Vérifié : six parcours navigateur F5 avec prestataire simulé ; création après réponse perdue sans doublon, précisions conservées, circuit modifiable et charges prévisualisées. Appels OpenAI réels : schéma `oneOf` refusé, projection en `anyOf` des unions discriminées corrigée puis testée ; répétition technique bornée à deux appels au plus. Régression historique 58/60, zéro date fausse/charge inventée sur ce passage ; échecs de séries et repos conservés. Le corpus de 80 cas est en cours de mesure, pas encore qualifié.
+Exploitation : PR 118 puis 122 fusionnées sur autorisation ; production `88d76e2` vérifiée, webhook Resend activé après le filtre. Les accès Mux Preview autorisés sont installés seulement en Preview. Une première copie du secret de webhook était masquée : corrigée depuis le prestataire ; les événements ont ensuite été rejoués et le premier asset est devenu disponible. Deuxième upload, lecture effective, annotation coach, réponse athlète, partage et révocation éprouvés sur un clip synthétique. Refus inter-athlètes et inter-espaces vérifiés. Fichier temporaire des secrets Mux supprimé ; aucun secret dans Git.
+Limites : lecture signée déjà délivrée valable jusqu'à une heure ; aucun téléphone physique, réseau dégradé, suppression Mux ni paiement réel éprouvé. Les inscriptions et le classement restent fermés. Ne pas relancer la graine Preview : le fichier de mot de passe local serait renouvelé alors que les comptes déjà présents sont ignorés.
+Suite : terminer F5, relever ses limites sans modifier les attendus figés ; intégrer 119–121 après CI verte, puis poursuivre illustrations/relecture coach, recette web et native.
 
 ## 2026-11-13, Codex, F3 : catalogue éditorial et diffusion des guides
 

@@ -912,6 +912,26 @@ export const MATRICE: Row[] = [
     },
   },
   {
+    route: "POST /api/v1/orgs/[orgId]/planner/proposals/[proposalId]/resolve-exercise",
+    ...encadrants,
+    adjoint: 409,
+    coach: 409,
+    proprietaire: 409,
+    call: async (w, qui) => {
+      const proposal = await readyProposal(w, qui);
+      return {
+        params: { proposalId: proposal.id },
+        body: {
+          operationId: randomUUID(),
+          expectedVersion: proposal.version,
+          questionId: "missing",
+          requestedName: "Mouvement",
+          choice: { kind: "existing", exerciseId: randomUUID() },
+        },
+      };
+    },
+  },
+  {
     route: "POST /api/v1/orgs/[orgId]/planner/proposals/[proposalId]/prepare",
     ...encadrants,
     call: async (w, qui) => {

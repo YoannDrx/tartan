@@ -2,6 +2,7 @@
 
 import { createApiClient } from "@tartan/api-client";
 import {
+  plannerBrief,
   createPlannerProposalInput,
   clarifyPlannerProposalInput,
   confirmPlannerProposalInput,
@@ -26,9 +27,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Chip } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { CheckRow, Field, Textarea } from "@/components/ui/field";
+import { CheckRow, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { PlannerSelectionForm, type PlannerContext } from "./planner-selection";
 import { PlannerDraftReview } from "./planner-review";
+import { DateInput } from "@/components/ui/date-input";
+import { PlannerExerciseResolution } from "./planner-exercise-resolution";
 import { WebPlannerDictation } from "./web-dictation";
 
 const api = createApiClient({ baseUrl: "" });
@@ -41,7 +44,7 @@ const proposalUrl = (id: string) => {
 
 export function WebPlanner({
   orgId,
-  context,
+  context: initialContext,
   initial,
   initialUsage,
   initialSelection,
@@ -52,11 +55,14 @@ export function WebPlanner({
   initialUsage: PlannerUsageResponse;
   initialSelection: PlannerSelection;
 }) {
+  const [context, setContext] = useState(initialContext);
   const [selection, setSelection] = useState(initial?.selection ?? initialSelection);
   const [contextReady, setContextReady] = useState(Boolean(initial));
   const [text, setText] = useState("");
+  const [equipmentText, setEquipmentText] = useState(initial?.selection.brief?.equipment.join(", ") ?? "");
   const [reviewed, setReviewed] = useState(false);
   const [proposal, setProposal] = useState(initial);
+  const verifiedCatalogAvailable = context.exercises.some((exercise) => exercise.guide?.technicalReview === "approved");
   const displayText = (value: string) => plannerDisplayText(value, proposal);
   const [usage, setUsage] = useState(initialUsage);
   const [reply, setReply] = useState("");
@@ -180,7 +186,10 @@ export function WebPlanner({
         createPlannerProposalInput.parse({
           id: crypto.randomUUID(),
           requestedAt: new Date().toISOString(),
-          selection,
+          selection:
+            selection.mode === "propose"
+              ? { ...selection, brief: { ...selection.brief!, objective: text } }
+              : selection,
           text,
           reviewed,
         });
@@ -361,7 +370,126 @@ export function WebPlanner({
           <Button type="button" variant="secondary" disabled={disabled || sent} onClick={() => setContextReady(false)}>
             {t.changeContext}
           </Button>
-          <Field label={t.instructions} hint={t.instructionsHint}>
+          <Field label={t.mode}>
+            {(a) => (
+              <Select
+                {...a}
+                value={selection.mode ?? "format"}
+                disabled={disabled || sent}
+                onChange={(e) => {
+                  const mode = e.target.value as "format" | "propose";
+                  setSelection((old) => ({
+                    ...old,
+                    mode,
+                    ...(mode === "propose" ? { exerciseIds: [] } : {}),
+                    brief:
+                      mode === "propose"
+                        ? (old.brief ?? {
+                            objective: text,
+                            date: old.period.from,
+                            durationMin: 45,
+                            level: "intermediate",
+                            equipment: [],
+                          })
+                        : undefined,
+                  }));
+                  setReviewed(false);
+                }}
+              >
+                <option value="format">{t.formatMode}</option>
+                <option value="propose">{t.proposeMode}</option>
+              </Select>
+            )}
+          </Field>
+          {selection.mode === "propose" && selection.brief ? (
+            <>
+              <p>{t.proposalNotice}</p>
+              {!verifiedCatalogAvailable ? <p role="status">{t.verifiedCatalogRequired}</p> : null}
+              <Field label={t.proposalDate}>
+                {(a) => (
+                  <DateInput
+                    {...a}
+                    value={selection.brief!.date}
+                    disabled={disabled || sent}
+                    min={selection.period.from}
+                    max={selection.period.to}
+                    onChange={(value) => {
+                      setSelection((old) => ({ ...old, brief: { ...old.brief!, date: value.target.value } }));
+                      setReviewed(false);
+                    }}
+                  />
+                )}
+              </Field>
+              <Field label={t.proposalDuration}>
+                {(a) => (
+                  <Input
+                    {...a}
+                    type="number"
+                    min={5}
+                    max={180}
+                    value={selection.brief!.durationMin}
+                    disabled={disabled || sent}
+                    onChange={(e) => {
+                      setSelection((old) => ({
+                        ...old,
+                        brief: { ...old.brief!, durationMin: Number(e.target.value) },
+                      }));
+                      setReviewed(false);
+                    }}
+                  />
+                )}
+              </Field>
+              <Field label={t.proposalLevel}>
+                {(a) => (
+                  <Select
+                    {...a}
+                    value={selection.brief!.level}
+                    disabled={disabled || sent}
+                    onChange={(e) => {
+                      setSelection((old) => ({
+                        ...old,
+                        brief: { ...old.brief!, level: e.target.value as "beginner" | "intermediate" | "advanced" },
+                      }));
+                      setReviewed(false);
+                    }}
+                  >
+                    {(["beginner", "intermediate", "advanced"] as const).map((level) => (
+                      <option key={level} value={level}>
+                        {t.proposalLevels[level]}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+              <Field label={t.proposalEquipment}>
+                {(a) => (
+                  <Input
+                    {...a}
+                    value={equipmentText}
+                    disabled={disabled || sent}
+                    onChange={(e) => {
+                      setSelection((old) => ({
+                        ...old,
+                        brief: {
+                          ...old.brief!,
+                          equipment: e.target.value
+                            .split(",")
+                            .map((value) => value.trim())
+                            .filter(Boolean),
+                        },
+                      }));
+                      setEquipmentText(e.target.value);
+                      setReviewed(false);
+                    }}
+                  />
+                )}
+              </Field>
+            </>
+          ) : null}
+          <Field
+            label={selection.mode === "propose" ? t.objective : t.instructions}
+            hint={selection.mode === "propose" ? t.objectiveHint : t.instructionsHint}
+          >
             {(a) => (
               <Textarea
                 {...a}
@@ -369,12 +497,16 @@ export function WebPlanner({
                 disabled={disabled || sent}
                 onChange={(e) => {
                   setText(e.target.value);
+                  if (selection.mode === "propose")
+                    setSelection((old) => ({ ...old, brief: { ...old.brief!, objective: e.target.value } }));
                   setReviewed(false);
                 }}
               />
             )}
           </Field>
-          {text.length > 12000 ? <p role="alert">{t.textTooLong}</p> : null}
+          {text.length > (selection.mode === "propose" ? 1000 : 12000) ? (
+            <p role="alert">{t.textLimit(text.length, selection.mode === "propose" ? 1000 : 12000)}</p>
+          ) : null}
           {!sent ? (
             <WebPlannerDictation
               key={orgId}
@@ -396,7 +528,15 @@ export function WebPlanner({
           {sent ? <p>{t.immutableRequest}</p> : null}
           <Button
             type="button"
-            disabled={disabled || exhausted || !reviewed || !text.trim() || text.length > 12000}
+            disabled={
+              disabled ||
+              exhausted ||
+              !reviewed ||
+              !text.trim() ||
+              text.length > 12000 ||
+              (selection.mode === "propose" &&
+                (!verifiedCatalogAvailable || !plannerBrief.safeParse({ ...selection.brief, objective: text }).success))
+            }
             onClick={() => {
               void generate();
             }}
@@ -442,8 +582,32 @@ export function WebPlanner({
               <h2 className="t-section">{t.clarifyTitle}</h2>
               <p>{t.clarificationCount(proposal.clarificationCount)}</p>
               {proposal.interpretation?.questions.map((q) => (
-                <div key={q.id} className="flex flex-col gap-2">
+                <div key={`${proposal.clarificationCount}-${q.id}`} className="flex flex-col gap-2">
                   <p className="font-semibold">{displayText(q.question)}</p>
+                  {q.field === "exercise" ? (
+                    <PlannerExerciseResolution
+                      questionId={q.id}
+                      requestedName={q.exerciseName}
+                      version={proposal.version}
+                      exercises={
+                        proposal.selection.mode === "propose"
+                          ? context.exercises.filter((exercise) => exercise.guide?.technicalReview === "approved")
+                          : context.exercises
+                      }
+                      allowCreate={proposal.selection.mode !== "propose"}
+                      disabled={disabled || replySent}
+                      resolved={proposal.exerciseResolutions?.find((entry) => entry.questionId === q.id)?.name}
+                      onResolve={(input) =>
+                        run(async (signal) => {
+                          const updated = await api.resolvePlannerExercise(orgId, proposal.id, input, signal);
+                          setProposal(updated);
+                          setReplyReviewed(false);
+                          const exercises = await api.exercises(orgId);
+                          if (alive.current && !signal.aborted) setContext((old) => ({ ...old, exercises }));
+                        })
+                      }
+                    />
+                  ) : null}
                   <div className="flex flex-wrap gap-2">
                     {q.options.map((option, i) => (
                       <Button
