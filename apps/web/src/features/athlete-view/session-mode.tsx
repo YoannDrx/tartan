@@ -35,7 +35,7 @@ const Demo = ({ item, speed }: { item: ResolvedItem; speed: number }) => {
         playsInline
         controls
         className="aspect-video w-full rounded-card bg-ink"
-        aria-label={`Démonstration : ${item.name}`}
+        aria-label={m.builder.sequence.demo(item.name)}
       />
     );
   }
@@ -103,6 +103,8 @@ export const SessionMode = ({
       </main>
     );
   }
+  const recovery = item.kind === "recovery";
+  const restDuration = recovery ? item.prescription.duration_s : item.prescription.rest_s;
   const setCount = item.prescription.sets ?? 1;
   const doneCount = Array.from({ length: setCount }, (_, i) => checked[`${item.ref}#${i}`]).filter(Boolean).length;
   const last = index === items.length - 1;
@@ -124,7 +126,7 @@ export const SessionMode = ({
             }
           />
           <div className="flex flex-1 flex-col gap-1.5">
-            <span className="t-caption font-normal text-soft">{m.sessionMode.exerciseOf(index + 1, items.length)}</span>
+            <span className="t-caption font-normal text-soft">{m.builder.sequence.stage(index + 1, items.length)}</span>
             <div className="flex gap-1" aria-hidden>
               {items.map((it, i) => (
                 <span key={it.ref} className={cn("h-1 flex-1 rounded-sm", i <= index ? "bg-accent" : "bg-card-line")} />
@@ -133,6 +135,11 @@ export const SessionMode = ({
           </div>
         </div>
 
+        {item.rounds?.length ? (
+          <p className="text-soft">
+            {item.rounds.map((r) => m.builder.sequence.round(r.name, r.round, r.rounds)).join(" · ")}
+          </p>
+        ) : null}
         <h1 className="t-display">{item.name}</h1>
 
         <Demo item={item} speed={speed} />
@@ -170,53 +177,59 @@ export const SessionMode = ({
           </ul>
         ) : null}
 
-        <section className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between">
-            <h2 className="t-section text-soft">{m.sessionMode.sets}</h2>
-            <span className="t-num text-[20px]">
-              {doneCount} / {setCount}
-            </span>
-          </div>
-          <div className="grid grid-cols-5 gap-2">
-            {Array.from({ length: setCount }, (_, i) => {
-              const key = `${item.ref}#${i}`;
-              const done = Boolean(checked[key]);
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  aria-pressed={done}
-                  aria-label={done ? m.sessionMode.setDone(i + 1) : m.sessionMode.setTodo(i + 1)}
-                  onClick={() => {
-                    setChecked({ ...checked, [key]: !done });
-                    if (!done && item.prescription.rest_s) setRestLeft(item.prescription.rest_s);
-                  }}
-                  className={cn(
-                    "flex h-[60px] flex-col items-center justify-center rounded-card",
-                    done ? "bg-st-done" : "border border-control-line bg-card-raised",
-                  )}
-                >
-                  {done ? (
-                    <Check aria-hidden className="size-5" strokeWidth={2.6} />
-                  ) : (
-                    <span className="t-num text-[20px]">{i + 1}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </section>
+        {!recovery ? (
+          <section className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between">
+              <h2 className="t-section text-soft">{m.sessionMode.sets}</h2>
+              <span className="t-num text-[20px]">
+                {doneCount} / {setCount}
+              </span>
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {Array.from({ length: setCount }, (_, i) => {
+                const key = `${item.ref}#${i}`;
+                const done = Boolean(checked[key]);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={done}
+                    aria-label={done ? m.sessionMode.setDone(i + 1) : m.sessionMode.setTodo(i + 1)}
+                    onClick={() => {
+                      setChecked({ ...checked, [key]: !done });
+                      const seconds =
+                        i === setCount - 1
+                          ? (item.restAfterLastSetS ?? item.prescription.rest_s)
+                          : item.prescription.rest_s;
+                      if (!done) setRestLeft(seconds || null);
+                    }}
+                    className={cn(
+                      "flex h-[60px] flex-col items-center justify-center rounded-card",
+                      done ? "bg-st-done" : "border border-control-line bg-card-raised",
+                    )}
+                  >
+                    {done ? (
+                      <Check aria-hidden className="size-5" strokeWidth={2.6} />
+                    ) : (
+                      <span className="t-num text-[20px]">{i + 1}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
 
-        {item.prescription.rest_s ? (
+        {restDuration ? (
           <div className="flex items-center gap-3 rounded-card bg-card-raised py-2.5 pl-4 pr-2.5">
             <Timer aria-hidden className="size-5 shrink-0 text-link" />
-            <span className="flex-1">{m.sessionMode.rest}</span>
+            <span className="flex-1">{recovery ? m.builder.sequenceRecovery : m.sessionMode.rest}</span>
             <span role="timer" className="t-num text-[22px]">
-              {formatDuration(restLeft ?? item.prescription.rest_s)}
+              {formatDuration(restLeft ?? restDuration)}
             </span>
             <button
               type="button"
-              onClick={() => setRestLeft(restLeft === null ? (item.prescription.rest_s ?? 0) : null)}
+              onClick={() => setRestLeft(restLeft === null ? (restDuration ?? 0) : null)}
               className="min-h-11 rounded-full bg-accent px-4 font-semibold text-on-accent"
             >
               {restLeft === null ? m.sessionMode.startRest : m.sessionMode.stopRest}
@@ -243,13 +256,24 @@ export const SessionMode = ({
               variant="darkSecondary"
               className="flex-1"
               disabled={index === 0}
-              onClick={() => setIndex(index - 1)}
+              onClick={() => {
+                setRestLeft(null);
+                setIndex(index - 1);
+              }}
             >
               {m.sessionMode.previous}
             </Button>
             {!last ? (
-              <Button size="lg" variant="darkPrimary" className="flex-[2]" onClick={() => setIndex(index + 1)}>
-                {m.sessionMode.next}
+              <Button
+                size="lg"
+                variant="darkPrimary"
+                className="flex-[2]"
+                onClick={() => {
+                  setRestLeft(null);
+                  setIndex(index + 1);
+                }}
+              >
+                {m.builder.sequence.next}
                 <ArrowRight aria-hidden className="size-5" />
               </Button>
             ) : null}

@@ -79,11 +79,6 @@
       "count": 2
     }
   },
-  "src/features/athlete-view/session-mode.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 1
-    }
-  },
   "src/features/athlete-view/validation.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 2
@@ -152,11 +147,6 @@
   "src/features/sessions/refresh-loads.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 1
-    }
-  },
-  "src/features/sessions/session-builder.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 22
     }
   },
   "src/features/settings/settings-forms.tsx": {

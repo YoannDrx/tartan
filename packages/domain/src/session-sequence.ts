@@ -53,6 +53,30 @@ export function validSessionStructure(draft: SessionDraft): boolean {
 export const occurrenceRef = (ref: string, rounds: ExecutionRound[]) =>
   `seq:${ref}:${rounds.map((r) => r.round).join(".") || "0"}`;
 
+export function sequenceOccurrences(nodes: SequenceNode[]) {
+  const occurrences: { node: Exclude<SequenceNode, { kind: "repeat" }>; rounds: ExecutionRound[] }[] = [];
+  const add = (node: Exclude<SequenceNode, { kind: "repeat" }>, rounds: ExecutionRound[]) => {
+    if (occurrences.length >= MAX_SESSION_EXECUTION_STEPS) throw new Error("sequence_budget_exceeded");
+    occurrences.push({ node, rounds });
+  };
+  const walk = (entries: SequenceNode[], rounds: ExecutionRound[]) => {
+    for (const node of entries) {
+      if (node.kind !== "repeat") add(node, rounds);
+      else {
+        if (rounds.length >= 2) throw new Error("sequence_depth_exceeded");
+        for (let round = 1; round <= node.rounds; round++) {
+          const path = [...rounds, { ref: node.ref, name: node.name, round, rounds: node.rounds }];
+          walk(node.children, path);
+          if (round < node.rounds && node.restBetweenRoundsS)
+            add({ kind: "recovery", ref: node.ref, durationS: node.restBetweenRoundsS }, path);
+        }
+      }
+    }
+  };
+  walk(nodes, []);
+  return occurrences;
+}
+
 export function validExecutionBudget(
   snapshot: SessionSnapshot,
   overrides: { itemRef: string; prescription: { sets?: number } }[] = [],
@@ -105,29 +129,21 @@ export function expandSessionSnapshot(
           prescription: { sets: 1, duration_s: durationS, rest_s: 0 },
           restAfterLastSetS: 0,
         });
-      const walk = (nodes: SequenceNode[], rounds: ExecutionRound[]) => {
-        for (const node of nodes) {
-          if (node.kind === "exercise") {
-            const source = sources.get(node.itemRef);
-            if (!source) throw new Error("missing_sequence_exercise");
-            items.push({
-              ...source,
-              ref: occurrenceRef(source.ref, rounds),
-              sourceRef: source.ref,
-              kind: "exercise",
-              rounds,
-              restAfterLastSetS: 0,
-            });
-          } else if (node.kind === "recovery") rest(node.ref, node.durationS, rounds);
-          else
-            for (let round = 1; round <= node.rounds; round++) {
-              const path = [...rounds, { ref: node.ref, name: node.name, round, rounds: node.rounds }];
-              walk(node.children, path);
-              if (round < node.rounds && node.restBetweenRoundsS) rest(node.ref, node.restBetweenRoundsS, path);
-            }
+      for (const { node, rounds } of sequenceOccurrences(draft.blocks[index]!.sequence!)) {
+        if (node.kind === "recovery") rest(node.ref, node.durationS, rounds);
+        else {
+          const source = sources.get(node.itemRef);
+          if (!source) throw new Error("missing_sequence_exercise");
+          items.push({
+            ...source,
+            ref: occurrenceRef(source.ref, rounds),
+            sourceRef: source.ref,
+            kind: "exercise",
+            rounds,
+            restAfterLastSetS: 0,
+          });
         }
-      };
-      walk(draft.blocks[index]!.sequence!, []);
+      }
       return { ...block, items };
     }),
   };

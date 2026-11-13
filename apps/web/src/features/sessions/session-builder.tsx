@@ -5,12 +5,25 @@ import { markInstallOpportunity } from "@/features/shell/install-opportunity";
 
 import { withSessionReturn } from "@/lib/session-navigation";
 
-import type { ExerciseSummary, Prescription, SessionDraft, SessionType } from "@tartan/contracts";
-import { copyDraftWithNewRefs, formatPrescription, withSessionRefs } from "@tartan/domain";
+import {
+  exerciseCategory,
+  type ExerciseSummary,
+  type Prescription,
+  type SessionDraft,
+  type SessionType,
+} from "@tartan/contracts";
+import {
+  copyDraftWithNewRefs,
+  expandSessionSnapshot,
+  formatPrescription,
+  normalizeExerciseTerm,
+  validSessionStructure,
+  withSessionRefs,
+} from "@tartan/domain";
 import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
 import { PhasePlanningPanel } from "@/features/phases/phase-planning";
 import { m, strengthTestLabel, formatDateLong } from "@tartan/i18n";
-import { ArrowDown, ArrowUp, ChevronRight, GripVertical, Plus, Search, Trash2 } from "lucide-react";
+import { ChevronRight, GripVertical, Plus, Search, Undo2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -23,6 +36,8 @@ import { CheckRow, Field, Input, Select, Textarea } from "@/components/ui/field"
 import { Dialog } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
+import { useBuilderRecovery } from "./use-builder-recovery";
+import { SequenceEditor } from "./sequence-editor";
 import { attachItemKeys, overridesForSubmit, type KeyedOverride } from "./overrides";
 import { deleteSessionAction, deleteTemplateAction, saveSessionAction, saveTemplateAction } from "./session.action";
 
@@ -30,6 +45,7 @@ type BlockState = {
   key: string;
   name: string;
   shared?: boolean;
+  sequence?: SessionDraft["blocks"][number]["sequence"];
   items: { key: string; exerciseId: string; prescription: Prescription }[];
 };
 type Version = "club" | "autonomous";
@@ -53,6 +69,7 @@ const split = (draft: SessionDraft | null) => {
         key: b.ref!,
         name: b.name,
         shared: b.variant === "both",
+        sequence: b.sequence ?? b.items.map((i) => ({ kind: "exercise" as const, itemRef: i.ref! })),
         items: b.items.map((i) => ({
           key: i.ref!,
           exerciseId: i.exerciseId,
@@ -101,7 +118,7 @@ export const PrescriptionEditor = ({
       {numberField("reps", m.builder.reps)}
       {numberField("distance_m", m.builder.distance)}
       {numberField("duration_s", m.builder.durationS)}
-      {numberField("rest_s", m.builder.rest)}
+      {numberField("rest_s", m.builder.sequence.betweenSets)}
       {numberField("ground_contacts", m.builder.contacts)}
       <Field label={m.builder.load}>
         {(a) => (
@@ -125,14 +142,14 @@ export const PrescriptionEditor = ({
                 });
             }}
           >
-            <option value="none">Aucune</option>
+            <option value="none">{m.builder.sequence.none}</option>
             <option value="kg">{m.builder.loadKg}</option>
             <option value="pct_1rm">{m.builder.loadPct}</option>
           </Select>
         )}
       </Field>
       {value.load ? (
-        <Field label={value.load.type === "kg" ? "Charge (kg)" : "% du max"}>
+        <Field label={value.load.type === "kg" ? m.builder.sequence.loadKg : m.builder.loadPct}>
           {(a) => (
             <Input
               {...a}
@@ -188,8 +205,8 @@ export const PrescriptionEditor = ({
               }}
             >
               <option value="none">{m.nativeBuilder.noIntensity}</option>
-              <option value="rpe">RPE</option>
-              <option value="rir">RIR</option>
+              <option value="rpe">{m.builder.sequence.rpe}</option>
+              <option value="rir">{m.builder.sequence.rir}</option>
             </Select>
           )}
         </Field>
@@ -236,6 +253,7 @@ export const PrescriptionEditor = ({
 };
 
 export const SessionBuilder = ({
+  userId,
   organizationId,
   phasesEnabled = false,
   progressionEnabled = false,
@@ -249,6 +267,7 @@ export const SessionBuilder = ({
   defaultGroupId,
   returnTo,
 }: {
+  userId: string;
   organizationId: string;
   phasesEnabled?: boolean;
   progressionEnabled?: boolean;
@@ -314,7 +333,9 @@ export const SessionBuilder = ({
   );
   const planningKey = phasePlanningKey(date, selectedGroups, selectedAthletes);
   const [phaseReady, setPhaseReady] = useState<PhasePlanningReadiness>({ key: "", ready: false });
-  const [overrides, setOverrides] = useState<Override[]>(() => attachItemKeys(initial?.overrides ?? [], start.club));
+  const [overrides, setOverrides] = useState<Override[]>(() =>
+    attachItemKeys(initial?.overrides ?? [], [...start.club, ...start.autonomous]),
+  );
   const [chosenTemplate, setChosenTemplate] = useState("");
   const [previewing, setPreviewing] = useState(false);
   const [search, setSearch] = useState("");
@@ -323,67 +344,94 @@ export const SessionBuilder = ({
   const [overrideFor, setOverrideFor] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
   const [expectedVersion, setExpectedVersion] = useState(initial?.version);
+  const [dirty, setDirty] = useState(!initial);
+  const submitting = useRef(false);
+  const [history, setHistory] = useState<
+    {
+      club: BlockState[];
+      autonomous: BlockState[];
+      title: string;
+      type: SessionType;
+      coachNote: string;
+      durationMin: string;
+      overrides: Override[];
+    }[]
+  >([]);
+  const remember = () => {
+    setHistory((h) => [...h.slice(-19), { club, autonomous, title, type, coachNote, durationMin, overrides }]);
+    setDirty(true);
+  };
+  const changeBlocks = (next: BlockState[]) => {
+    remember();
+    setBlocks(next);
+  };
 
   const blocks = version === "club" ? club : autonomous;
   const setBlocks = version === "club" ? setClub : setAutonomous;
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises]);
   const library = exercises.filter(
-    (e) => (!category || e.category === category) && e.name.toLowerCase().includes(search.trim().toLowerCase()),
+    (e) =>
+      (!category || e.category === category) &&
+      [e.name, ...(e.aliases ?? [])].some((term) =>
+        normalizeExerciseTerm(term).includes(normalizeExerciseTerm(search)),
+      ),
   );
 
   const addExercise = (exerciseId: string, blockKey?: string) => {
     const exercise = byId.get(exerciseId);
     if (!exercise) return;
     const targetKey = blockKey ?? blocks[Math.min(1, blocks.length - 1)]?.key;
-    setBlocks(
+    const key = newKey();
+    changeBlocks(
       blocks.map((b) =>
         b.key === targetKey
-          ? { ...b, items: [...b.items, { key: newKey(), exerciseId, prescription: exercise.defaultPrescription }] }
+          ? {
+              ...b,
+              items: [...b.items, { key, exerciseId, prescription: exercise.defaultPrescription }],
+              sequence: [
+                ...(b.sequence ?? b.items.map((i) => ({ kind: "exercise" as const, itemRef: i.key }))),
+                { kind: "exercise", itemRef: key },
+              ],
+            }
           : b,
       ),
     );
   };
-  const moveItem = (blockKey: string, index: number, delta: number) => {
-    setBlocks(
-      blocks.map((b) => {
-        if (b.key !== blockKey) return b;
-        const items = [...b.items];
-        const [item] = items.splice(index, 1);
-        if (item) items.splice(index + delta, 0, item);
-        return { ...b, items };
-      }),
-    );
-  };
-  const removeItem = (blockKey: string, itemKey: string) =>
-    setBlocks(blocks.map((b) => (b.key === blockKey ? { ...b, items: b.items.filter((i) => i.key !== itemKey) } : b)));
   const updateItem = (blockKey: string, itemKey: string, prescription: Prescription) =>
-    setBlocks(
+    changeBlocks(
       blocks.map((b) =>
         b.key === blockKey ? { ...b, items: b.items.map((i) => (i.key === itemKey ? { ...i, prescription } : i)) } : b,
       ),
     );
 
   const generateAutonomous = () => {
-    setAutonomous(
-      club
-        .filter((b) => !b.shared)
-        .map((b) => ({ ...b, key: newKey(), items: b.items.map((i) => ({ ...i, key: newKey() })) })),
+    remember();
+    const source = buildDraft();
+    const copied = copyDraftWithNewRefs(
+      {
+        ...source,
+        blocks: source.blocks.filter((b) => b.variant === "club").map((b) => ({ ...b, variant: "autonomous" })),
+      },
+      newKey,
     );
+    setAutonomous(split(copied).autonomous);
     setVersion("autonomous");
-    toast.ok("Version autonomie générée : ajuste-la (exercices sans matériel, consignes plus détaillées).");
+    toast.ok(m.builder.sequence.autonomousGenerated);
   };
 
-  const buildDraft = (): SessionDraft => {
+  const buildDraft = (includeEmpty = false): SessionDraft => {
     const toBlocks = (list: BlockState[], variant: Version) =>
       list
-        .filter((b) => b.items.length > 0)
+        .filter((b) => includeEmpty || b.items.length > 0 || b.sequence?.length)
         .map((b) => ({
           ref: b.key,
           name: b.name,
+          sequence: b.sequence ?? b.items.map((i) => ({ kind: "exercise" as const, itemRef: i.key })),
           variant: b.shared ? ("both" as const) : variant,
           items: b.items.map((i) => ({ ref: i.key, exerciseId: i.exerciseId, prescription: i.prescription })),
         }));
     return {
+      structureVersion: 2,
       title: title.trim(),
       type,
       durationMin: durationMin ? Number(durationMin) : null,
@@ -392,8 +440,59 @@ export const SessionBuilder = ({
     };
   };
 
+  const recovery = useBuilderRecovery(
+    userId,
+    organizationId,
+    initial?.id,
+    {
+      draft: buildDraft(true),
+      date,
+      startTime,
+      location,
+      duration: durationMin,
+      scheduling,
+      publishAt,
+      groups: selectedGroups,
+      athletes: selectedAthletes,
+      overrides: overrides.map(({ athleteId, itemKey, prescription }) => ({
+        athleteId,
+        itemRef: itemKey,
+        prescription,
+      })),
+      expectedVersion,
+    },
+    dirty,
+  );
+  const restoreDraft = () => {
+    const stored = recovery.candidate;
+    if (!stored || (stored.pending && !initial)) return;
+    const f = stored.form;
+    const parts = split(f.draft);
+    setTitle(f.draft.title);
+    setType(f.draft.type);
+    setDate(f.date);
+    setStartTime(f.startTime);
+    setLocation(f.location);
+    setDurationMin(f.duration);
+    setCoachNote(f.draft.coachNote ?? "");
+    setScheduling(f.scheduling);
+    setPublishAt(f.publishAt);
+    setSelectedGroups(f.groups);
+    setSelectedAthletes(f.athletes);
+    setClub(parts.club);
+    setAutonomous(parts.autonomous);
+    setOverrides(attachItemKeys(f.overrides, [...parts.club, ...parts.autonomous]));
+    // Le fondateur relit explicitement la copie si la version du serveur a changé.
+    setExpectedVersion(initial?.version ?? f.expectedVersion);
+    setDirty(true);
+    recovery.accept();
+  };
+
   const save = useAction(saveSessionAction, {
-    onSuccess: ({ data, input }) => {
+    onSuccess: async ({ data, input }) => {
+      submitting.current = false;
+      setDirty(false);
+      await recovery.saved();
       if (data) setExpectedVersion(data.version);
       if (data && (input.publish || input.publishAt)) markInstallOpportunity();
       toast.ok(
@@ -403,16 +502,19 @@ export const SessionBuilder = ({
             ? initial?.publishedAt
               ? m.builder.updated
               : m.builder.published
-            : "Brouillon enregistré.",
+            : m.builder.sequence.draftSaved,
       );
       if (input.publish && data) router.push(withSessionReturn(`/seances/${data.id}/suivi`, returnTo));
       else if (data && !initial) router.replace(withSessionReturn(`/seances/${data.id}`, returnTo));
       router.refresh();
     },
-    onError: ({ error }) => setFormError(error.serverError ?? m.errors.invalid),
+    onError: ({ error }) => {
+      submitting.current = false;
+      setFormError(error.serverError ?? m.errors.invalid);
+    },
   });
   const template = useAction(saveTemplateAction, {
-    onSuccess: () => toast.ok("Modèle enregistré."),
+    onSuccess: () => toast.ok(m.builder.sequence.templateSaved),
     onError: ({ error }) => toast.error(error.serverError ?? m.errors.invalid),
   });
   const removeTemplate = useAction(deleteTemplateAction, {
@@ -430,11 +532,13 @@ export const SessionBuilder = ({
     onError: ({ error }) => setFormError(error.serverError ?? m.errors.invalid),
   });
 
-  const submit = (publish: boolean, scheduleAt: string | null = null) => {
+  const submit = async (publish: boolean, scheduleAt: string | null = null) => {
+    if (submitting.current || recovery.candidate) return;
     setFormError(null);
     const draft = buildDraft();
-    if (!draft.title) return setFormError("Donne un titre à la séance.");
-    if (draft.blocks.length === 0) return setFormError("Ajoute au moins un exercice.");
+    if (!draft.title) return setFormError(m.builder.sequence.titleRequired);
+    if (draft.blocks.length === 0) return setFormError(m.builder.sequence.exerciseRequired);
+    if (!validSessionStructure(draft)) return setFormError(m.builder.sequence.invalid);
     const assignments = [
       ...selectedGroups.map((targetId) => ({ targetType: "group" as const, targetId })),
       ...selectedAthletes.map((targetId) => ({ targetType: "athlete" as const, targetId })),
@@ -449,6 +553,8 @@ export const SessionBuilder = ({
       (phaseReady.key !== planningKey || !phaseReady.ready)
     )
       return setFormError(m.trainingPhases.reviewRequired);
+    submitting.current = true;
+    await recovery.beforeSubmit();
     save.execute({
       id: initial?.id,
       expectedVersion,
@@ -458,7 +564,7 @@ export const SessionBuilder = ({
       location: location.trim() || null,
       draft,
       assignments,
-      overrides: overridesForSubmit(overrides, club),
+      overrides: overridesForSubmit(overrides, [...club, ...autonomous]),
       // Enregistrer un brouillon programmé ne doit pas annuler sa programmation en silence.
       publishAt: keptSchedule ? new Date(keptSchedule).toISOString() : null,
       publish,
@@ -468,6 +574,7 @@ export const SessionBuilder = ({
   const applyTemplate = (id: string) => {
     const t = templates.find((x) => x.id === id);
     if (!t) return;
+    remember();
     const parts = split(copyDraftWithNewRefs(t, newKey));
     setOverrides([]);
     setTitle(t.title);
@@ -488,7 +595,42 @@ export const SessionBuilder = ({
     : null;
 
   return (
-    <div className="grid gap-4 desktop:grid-cols-[300px_minmax(0,1fr)] desktop:gap-x-6">
+    <div
+      onChangeCapture={() => setDirty(true)}
+      className="grid gap-4 desktop:grid-cols-[300px_minmax(0,1fr)] desktop:gap-x-6"
+    >
+      {recovery.candidate ? (
+        <section
+          className="desktop:col-start-2 rounded-card on-card bg-card p-4"
+          aria-label={m.nativeBuilder.recoveredTitle}
+        >
+          <h2 className="t-h2">{m.nativeBuilder.recoveredTitle}</h2>
+          <p>
+            {recovery.candidate.pending && !initial
+              ? m.nativeBuilder.pendingReply
+              : recovery.candidate.form.expectedVersion !== initial?.version
+                ? m.nativeBuilder.restoreChanged
+                : m.nativeBuilder.restoreConfirm}
+          </p>
+          <p className="my-2 font-semibold">{recovery.candidate.form.draft.title || m.builder.sequence.untitled}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={recovery.candidate.pending && !initial} onClick={restoreDraft}>
+              {m.nativeBuilder.restore}
+            </Button>
+            <ConfirmDialog
+              title={m.nativeBuilder.discardLocalConfirm}
+              onConfirm={async () => {
+                try {
+                  await recovery.discard();
+                } catch {
+                  setFormError(m.nativeBuilder.localError);
+                }
+              }}
+              trigger={<Button variant="secondary">{m.nativeBuilder.discardLocal}</Button>}
+            />
+          </div>
+        </section>
+      ) : null}
       <section
         aria-label={m.builder.details}
         className="desktop:col-start-2 min-w-0 flex flex-col gap-4 rounded-card on-card bg-card p-4"
@@ -510,7 +652,7 @@ export const SessionBuilder = ({
                     }}
                   >
                     <option value="" disabled>
-                      Choisir
+                      {m.builder.sequence.choose}
                     </option>
                     {templates.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -534,7 +676,7 @@ export const SessionBuilder = ({
             </div>
           ) : null}
         </div>
-        <div className="grid grid-cols-2 gap-3 desktop:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3">
           <Field label={m.builder.type}>
             {(a) => (
               <Select {...a} value={type} onChange={(e) => setType(e.target.value as SessionType)}>
@@ -549,35 +691,40 @@ export const SessionBuilder = ({
           <Field label={m.builder.date}>
             {(a) => <DateInput {...a} value={date} onChange={(e) => setDate(e.target.value)} />}
           </Field>
-          <Field label={m.builder.time}>
-            {(a) => <Input {...a} type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />}
-          </Field>
-          <Field label={m.builder.location}>
-            {(a) => <Input {...a} value={location} onChange={(e) => setLocation(e.target.value)} />}
-          </Field>
-          <Field label={m.builder.duration}>
+        </div>
+        <details open={Boolean(initial?.startTime || initial?.location || initial?.draft.coachNote)}>
+          <summary className="min-h-11 cursor-pointer py-2 font-semibold">{m.builder.sequence.advanced}</summary>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={m.builder.time}>
+              {(a) => <Input {...a} type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />}
+            </Field>
+            <Field label={m.builder.location}>
+              {(a) => <Input {...a} value={location} onChange={(e) => setLocation(e.target.value)} />}
+            </Field>
+            <Field label={m.builder.duration}>
+              {(a) => (
+                <Input
+                  {...a}
+                  type="number"
+                  min={1}
+                  value={durationMin}
+                  onChange={(e) => setDurationMin(e.target.value)}
+                />
+              )}
+            </Field>
+          </div>
+          <Field label={m.builder.coachNote} className="mt-3">
             {(a) => (
-              <Input
+              <Textarea
                 {...a}
-                type="number"
-                min={1}
-                value={durationMin}
-                onChange={(e) => setDurationMin(e.target.value)}
+                className="min-h-11"
+                maxLength={280}
+                value={coachNote}
+                onChange={(e) => setCoachNote(e.target.value)}
               />
             )}
           </Field>
-        </div>
-        <Field label={m.builder.coachNote}>
-          {(a) => (
-            <Textarea
-              {...a}
-              className="min-h-11"
-              maxLength={280}
-              value={coachNote}
-              onChange={(e) => setCoachNote(e.target.value)}
-            />
-          )}
-        </Field>
+        </details>
       </section>
 
       <section className="desktop:col-start-2 min-w-0 flex flex-col gap-3 rounded-card on-card bg-card p-4">
@@ -589,7 +736,7 @@ export const SessionBuilder = ({
               <CheckRow
                 key={g.id}
                 label={g.name}
-                detail={`${g.athleteCount} athlète${g.athleteCount > 1 ? "s" : ""}`}
+                detail={m.builder.sequence.athleteCount(g.athleteCount)}
                 checked={selectedGroups.includes(g.id)}
                 onChange={(e) =>
                   setSelectedGroups(
@@ -644,7 +791,11 @@ export const SessionBuilder = ({
       ) : null}
       <section aria-label={m.builder.body} className="desktop:col-start-2 min-w-0 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div role="tablist" aria-label="Version de la séance" className="flex flex-wrap items-center gap-2">
+          <div
+            role="tablist"
+            aria-label={m.builder.sequence.versionLabel}
+            className="flex flex-wrap items-center gap-2"
+          >
             {(["club", "autonomous"] as const).map((v) => (
               <button
                 key={v}
@@ -670,7 +821,7 @@ export const SessionBuilder = ({
           ) : null}
           {version === "autonomous" && autonomous.length === 0 ? (
             <Button size="sm" variant="quiet" onClick={() => setAutonomous(defaultBlocks(newKey()))}>
-              Partir de zéro
+              {m.builder.sequence.fromScratch}
             </Button>
           ) : null}
         </div>
@@ -685,11 +836,47 @@ export const SessionBuilder = ({
           </p>
         ) : null}
         {version === "autonomous" && autonomous.length === 0 && !club.some((b) => b.shared) ? (
-          <EmptyState rubric="seances">
-            Pas encore de version autonomie. Les absents recevraient la version club.
-          </EmptyState>
+          <EmptyState rubric="seances">{m.builder.sequence.noAutonomous}</EmptyState>
         ) : null}
 
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p role="status" className="text-sm">
+            {save.isPending ? m.builder.sequence.saving : dirty ? m.builder.sequence.unsaved : m.builder.sequence.saved}
+          </p>
+          {dirty ? (
+            <p role="status" className="w-full text-sm">
+              {recovery.state === "saved"
+                ? m.nativeBuilder.localSaved
+                : recovery.state === "error"
+                  ? m.nativeBuilder.localError
+                  : recovery.state === "saving"
+                    ? m.nativeBuilder.localSaving
+                    : m.builder.sequence.unsaved}
+            </p>
+          ) : null}
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={!history.length}
+            onClick={() => {
+              const previous = history.at(-1);
+              if (previous) {
+                setClub(previous.club);
+                setAutonomous(previous.autonomous);
+                setTitle(previous.title);
+                setType(previous.type);
+                setCoachNote(previous.coachNote);
+                setDurationMin(previous.durationMin);
+                setOverrides(previous.overrides);
+                setHistory(history.slice(0, -1));
+                setDirty(true);
+              }
+            }}
+          >
+            <Undo2 aria-hidden className="size-4" />
+            {m.builder.sequence.undo}
+          </Button>
+        </div>
         {blocks.map((block) => (
           <section
             key={block.key}
@@ -702,61 +889,55 @@ export const SessionBuilder = ({
             className="overflow-hidden rounded-card on-card bg-card"
           >
             <label className="sr-only" htmlFor={`block-${block.key}`}>
-              Nom du bloc
+              {m.builder.sequence.blockName}
             </label>
             <input
               id={`block-${block.key}`}
               value={block.name}
-              onChange={(e) => setBlocks(blocks.map((b) => (b.key === block.key ? { ...b, name: e.target.value } : b)))}
+              onChange={(e) =>
+                changeBlocks(blocks.map((b) => (b.key === block.key ? { ...b, name: e.target.value } : b)))
+              }
               className="t-h2 min-h-11 w-full border-b border-card-line bg-card-raised px-4 hover:bg-raise"
             />
-            {block.items.length === 0 ? <p className="px-4 py-3 text-soft">{m.builder.dropHere}</p> : null}
-            <ul className="divide-y divide-card-line">
-              {block.items.map((item, index) => {
-                const exercise = byId.get(item.exerciseId);
-                return (
-                  <li key={item.key} className="flex flex-wrap items-center gap-x-1 gap-y-1 px-2 py-1">
-                    <button
-                      type="button"
-                      onClick={() => setEditing({ blockKey: block.key, itemKey: item.key })}
-                      className="flex min-h-11 min-w-48 flex-1 items-center gap-3 rounded-button px-2 py-1 text-left leading-snug hover:bg-raise"
-                    >
-                      <ActivityPicto kind={exercise?.category ?? "strength"} className="size-5 text-soft" />
-                      <span className="flex min-w-0 flex-col desktop:flex-1 desktop:flex-row desktop:items-center desktop:gap-4">
-                        <span className="break-words font-semibold desktop:w-1/2">
-                          {exercise?.name ?? "Exercice supprimé"}
-                        </span>
-                        {formatPrescription(item.prescription) ? (
-                          <span className="t-num text-[17px] desktop:w-1/2">
-                            {formatPrescription(item.prescription)}
-                          </span>
-                        ) : (
-                          <span className="t-caption font-normal text-alert desktop:w-1/2">
-                            {m.builder.setPrescription}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                    <IconButton label="Monter" disabled={index === 0} onClick={() => moveItem(block.key, index, -1)}>
-                      <ArrowUp aria-hidden className="size-4" />
-                    </IconButton>
-                    <IconButton
-                      label="Descendre"
-                      disabled={index === block.items.length - 1}
-                      onClick={() => moveItem(block.key, index, 1)}
-                    >
-                      <ArrowDown aria-hidden className="size-4" />
-                    </IconButton>
-                    <IconButton
-                      label={`Retirer ${exercise?.name ?? ""}`}
-                      onClick={() => removeItem(block.key, item.key)}
-                    >
-                      <Trash2 aria-hidden className="size-4" />
-                    </IconButton>
-                  </li>
-                );
-              })}
-            </ul>
+            {version === "club" ? (
+              <div className="px-3">
+                <CheckRow
+                  label={m.builder.sequence.sharedPhase}
+                  checked={Boolean(block.shared)}
+                  onChange={(e) =>
+                    changeBlocks(blocks.map((b) => (b.key === block.key ? { ...b, shared: e.target.checked } : b)))
+                  }
+                />
+              </div>
+            ) : null}
+            <SequenceEditor
+              block={{
+                ref: block.key,
+                name: block.name,
+                variant: block.shared ? "both" : version,
+                items: block.items.map((i) => ({ ref: i.key, exerciseId: i.exerciseId, prescription: i.prescription })),
+                sequence: block.sequence,
+              }}
+              exercises={exercises}
+              onEdit={(itemKey) => setEditing({ blockKey: block.key, itemKey })}
+              onChange={(next) =>
+                changeBlocks(
+                  blocks.map((b) =>
+                    b.key === block.key
+                      ? {
+                          ...b,
+                          sequence: next.sequence,
+                          items: next.items.map((i) => ({
+                            key: i.ref!,
+                            exerciseId: i.exerciseId,
+                            prescription: i.prescription,
+                          })),
+                        }
+                      : b,
+                  ),
+                )
+              }
+            />
           </section>
         ))}
         {blocks.length > 0 ? (
@@ -764,7 +945,7 @@ export const SessionBuilder = ({
             size="sm"
             variant="quiet"
             className="self-start"
-            onClick={() => setBlocks([...blocks, { key: newKey(), name: "Nouveau bloc", items: [] }])}
+            onClick={() => changeBlocks([...blocks, { key: newKey(), name: m.builder.sequence.newBlock, items: [] }])}
           >
             <Plus aria-hidden className="size-4" />
             {m.builder.addBlock}
@@ -799,7 +980,7 @@ export const SessionBuilder = ({
             aria-pressed={category === null}
             onClick={() => setCategory(null)}
           >
-            Tout
+            {m.builder.sequence.all}
           </button>
           {(Object.keys(m.exerciseCategory) as (keyof typeof m.exerciseCategory)[]).map((c) => (
             <button
@@ -823,7 +1004,7 @@ export const SessionBuilder = ({
             </FilterPill>
           </p>
         ) : null}
-        <ul className="-mx-1 flex flex-col divide-y divide-card-line">
+        <ul className="-mx-1 flex max-h-80 flex-col divide-y divide-card-line overflow-y-auto desktop:max-h-none">
           {library.map((e) => (
             <li
               key={e.id}
@@ -839,7 +1020,7 @@ export const SessionBuilder = ({
                   {m.exerciseCategory[e.category as keyof typeof m.exerciseCategory]}
                 </span>
               </span>
-              <IconButton label={`Ajouter ${e.name} à la séance`} onClick={() => addExercise(e.id)}>
+              <IconButton label={m.builder.sequence.addToSession(e.name)} onClick={() => addExercise(e.id)}>
                 <Plus aria-hidden className="size-5" />
               </IconButton>
             </li>
@@ -854,10 +1035,10 @@ export const SessionBuilder = ({
             {m.builder.adjustments}
           </summary>
           <div className="mb-2 mt-1 flex flex-col gap-3">
-            <Field label="Athlète">
+            <Field label={m.builder.sequence.athlete}>
               {(a) => (
                 <Select {...a} value={overrideFor} onChange={(e) => setOverrideFor(e.target.value)}>
-                  <option value="">Choisir</option>
+                  <option value="">{m.builder.sequence.choose}</option>
                   {athletes.map((x) => (
                     <option key={x.id} value={x.id}>
                       {x.firstName} {x.lastName}
@@ -884,7 +1065,7 @@ export const SessionBuilder = ({
                     <div key={ref} className="border-t border-card-line pt-3">
                       <p className="font-semibold">{byId.get(item.exerciseId)?.name}</p>
                       <p className="t-caption mb-2 font-normal text-soft">
-                        Groupe : {formatPrescription(item.prescription)}
+                        {m.builder.sequence.commonPrescription(formatPrescription(item.prescription))}
                       </p>
                       <div className="grid grid-cols-3 gap-2">
                         <Field label={m.builder.sets}>
@@ -909,7 +1090,7 @@ export const SessionBuilder = ({
                             />
                           )}
                         </Field>
-                        <Field label="Charge (kg)">
+                        <Field label={m.builder.sequence.loadKg}>
                           {(a) => (
                             <Input
                               {...a}
@@ -947,13 +1128,21 @@ export const SessionBuilder = ({
           principale reste collée au-dessus de la barre de navigation, les autres attendent au bout du formulaire. */}
       <div className="on-card z-10 min-w-0 flex-wrap items-center gap-2 rounded-card bg-card p-3 max-desktop:contents desktop:sticky desktop:bottom-4 desktop:col-start-2 desktop:flex desktop:border desktop:border-control-line desktop:shadow-float">
         <div className="max-desktop:sticky max-desktop:bottom-[calc(84px+env(safe-area-inset-bottom))] max-desktop:z-10 max-desktop:rounded-card max-desktop:border max-desktop:border-control-line max-desktop:bg-card max-desktop:p-2 max-desktop:shadow-float desktop:contents">
-          <Button className="max-desktop:w-full" disabled={save.isPending} onClick={() => submit(true)}>
-            {initial?.publishedAt ? "Enregistrer et prévenir les athlètes" : m.builder.publish}
+          <Button
+            className="max-desktop:w-full"
+            disabled={save.isPending || Boolean(recovery.candidate)}
+            onClick={() => submit(true)}
+          >
+            {initial?.publishedAt ? m.builder.sequence.updatePublished : m.builder.publish}
           </Button>
         </div>
         <div className="max-desktop:flex max-desktop:flex-wrap max-desktop:items-center max-desktop:gap-2 max-desktop:rounded-card max-desktop:bg-card max-desktop:p-3 desktop:contents">
           {!initial?.publishedAt ? (
-            <Button variant="secondary" disabled={save.isPending} onClick={() => submit(false)}>
+            <Button
+              variant="secondary"
+              disabled={save.isPending || Boolean(recovery.candidate)}
+              onClick={() => submit(false)}
+            >
               {m.builder.saveDraft}
             </Button>
           ) : null}
@@ -973,7 +1162,7 @@ export const SessionBuilder = ({
                 {initial?.publishAt ? (
                   <Button
                     variant="quiet"
-                    disabled={save.isPending}
+                    disabled={save.isPending || Boolean(recovery.candidate)}
                     onClick={() => {
                       setScheduling(false);
                       setPublishAt("");
@@ -995,7 +1184,7 @@ export const SessionBuilder = ({
             onClick={() => {
               const draft = buildDraft();
               if (draft.title && draft.blocks.length) template.execute(draft);
-              else setFormError("Une séance avec un titre et un exercice est nécessaire pour créer un modèle.");
+              else setFormError(m.builder.sequence.templateRequiresContent);
             }}
           >
             {m.builder.saveTemplate}
@@ -1005,7 +1194,7 @@ export const SessionBuilder = ({
           </Button>
           {initial ? (
             <ConfirmDialog
-              title="Supprimer cette séance ?"
+              title={m.builder.sequence.deleteSession}
               description={initial.logCount > 0 ? m.builder.deleteLosesLogs(initial.logCount) : undefined}
               onConfirm={() =>
                 remove.execute({
@@ -1027,7 +1216,12 @@ export const SessionBuilder = ({
       <Dialog open={previewing} onOpenChange={setPreviewing} title={title.trim() || m.builder.preview} wide>
         <div className="flex flex-col gap-4">
           <p className="t-caption font-normal text-soft">
-            {[formatDateLong(date), startTime, location.trim(), durationMin ? `${durationMin} min` : ""]
+            {[
+              formatDateLong(date),
+              startTime,
+              location.trim(),
+              durationMin ? m.builder.sequence.minutes(durationMin) : "",
+            ]
               .filter(Boolean)
               .join(", ")}
           </p>
@@ -1035,36 +1229,60 @@ export const SessionBuilder = ({
           {club.every((block) => block.items.length === 0) ? (
             <p className="text-soft">{m.builder.previewEmpty}</p>
           ) : null}
-          {club
-            .filter((block) => block.items.length > 0)
-            .map((block) => (
-              <section key={block.key} className="flex flex-col gap-2">
-                <h3 className="t-section">{block.name}</h3>
-                <ul className="divide-y divide-card-line">
-                  {block.items.map((item) => {
-                    const exercise = byId.get(item.exerciseId);
-                    return (
-                      <li key={item.key} className="py-2">
-                        <p className="font-semibold">{exercise?.name}</p>
-                        {formatPrescription(item.prescription) ? (
-                          <p className="t-num">{formatPrescription(item.prescription)}</p>
+          {(() => {
+            const draft = buildDraft();
+            if (!validSessionStructure(draft)) return <p role="status">{m.builder.sequence.invalid}</p>;
+            const snapshot = expandSessionSnapshot(
+              draft,
+              {
+                ...draft,
+                blocks: draft.blocks.map((b) => ({
+                  ...b,
+                  ref: b.ref!,
+                  items: b.items.map((i) => {
+                    const e = byId.get(i.exerciseId);
+                    return {
+                      ...i,
+                      ref: i.ref!,
+                      name: e?.name ?? m.builder.sequence.deletedExercise,
+                      category: exerciseCategory.parse(e?.category ?? "strength"),
+                      cues: e?.cues ?? [],
+                      media: null,
+                    };
+                  }),
+                })),
+              },
+              m.builder.sequenceRecovery,
+            );
+            return snapshot.blocks
+              .filter((b) => b.variant === "both" || b.variant === version)
+              .map((block) => (
+                <section key={block.ref} className="flex flex-col gap-2">
+                  <h3 className="t-section">{block.name}</h3>
+                  <ol className="divide-y divide-card-line">
+                    {block.items.map((item) => (
+                      <li key={item.ref} className="py-2">
+                        {item.rounds?.length ? (
+                          <p className="text-sm text-soft">
+                            {item.rounds.map((r) => m.builder.sequence.round(r.name, r.round, r.rounds)).join(" · ")}
+                          </p>
                         ) : null}
-                        {exercise?.cues.length ? (
-                          <p className="t-caption font-normal text-soft">{exercise.cues.join(", ")}</p>
-                        ) : null}
+                        <p className="font-semibold">{item.name}</p>
+                        <p className="t-num">{formatPrescription(item.prescription)}</p>
+                        {item.cues.length ? <p className="text-sm text-soft">{item.cues.join(", ")}</p> : null}
                       </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            ))}
+                    ))}
+                  </ol>
+                </section>
+              ));
+          })()}
         </div>
       </Dialog>
       <Dialog
         open={editing !== null}
         onOpenChange={(open) => !open && setEditing(null)}
         title={editingItem ? (byId.get(editingItem.exerciseId)?.name ?? "") : ""}
-        description="Prescription"
+        description={m.builder.sequence.prescription}
         wide
       >
         {editing && editingItem ? (
