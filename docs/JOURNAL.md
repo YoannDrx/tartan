@@ -13,6 +13,11 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Codex, F6 : diagnostic de la suppression native
+
+Reprise de `feat/collaborative-video` : la CI native atteint la suppression finale mais le serveur retourne une erreur Prisma et conserve le compte. La capture confirme une saisie complète ; ce n'est pas un clic manqué. Le journal HTTP conserve désormais uniquement le code Prisma normalisé, sans message, requête ni métadonnées, afin de distinguer contrainte et expiration de transaction. Réponse publique inchangée. Neuf tests ciblés et suites complètes passent sous Node 22/pnpm 10 (1 918 web, 267 domaine, 243 mobile, 247 jeu, 90 mascotte) ; types, lint et design réussis, quatre avertissements lint hérités. Recette native à rejouer pour identifier la cause exacte. Aucune correction métier ni réussite de suppression déduite de cette instrumentation.
+Exploitation : incident de production en cours, authentification PostgreSQL refusée et santé HTTP 503. La restauration Neon précédemment décrite comme isolée a été finalisée ; cette preuve d'isolation est retirée. Préserver les deux branches, aucune suppression ni fusion supplémentaire avant clarification et rétablissement. Détails techniques et identifiants conservés hors du dépôt public.
+
 ## 2026-11-13, Codex, F6 : intégration du correctif de recette F4
 
 Reprise de `feat/collaborative-video` pour intégrer `db52511` sans changer le comportement applicatif ; journaux conservés. États F0/F1/F6 réconciliés avec les preuves récentes. CI à rejouer sur cette fusion avant de fusionner la PR 121 déjà autorisée.
