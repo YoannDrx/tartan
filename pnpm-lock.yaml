@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  expo-video@55.0.21:
+    hash: 487e763046e119c1c092938ac20ea5ef9cbbd11bf749e683238011471877f462
+    path: patches/expo-video@55.0.21.patch
+
 importers:
 
   .:
@@ -145,7 +150,7 @@ importers:
         version: 55.0.33(expo@55.0.32)(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)
       expo-video:
         specifier: ~55.0.20
-        version: 55.0.21(expo@55.0.32)(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)
+        version: 55.0.21(patch_hash=487e763046e119c1c092938ac20ea5ef9cbbd11bf749e683238011471877f462)(expo@55.0.32)(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)
       expo-web-browser:
         specifier: ~55.0.19
         version: 55.0.20(expo@55.0.32)(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))
@@ -14681,7 +14686,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  expo-video@55.0.21(expo@55.0.32)(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0):
+  expo-video@55.0.21(patch_hash=487e763046e119c1c092938ac20ea5ef9cbbd11bf749e683238011471877f462)(expo@55.0.32)(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0):
     dependencies:
       expo: 55.0.32(@babel/core@7.29.7)(@expo/dom-webview@55.0.6)(@expo/metro-runtime@55.0.12)(expo-router@55.0.18)(react-dom@19.2.0(react@19.2.0))(react-native-webview@13.16.0(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0))(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
       react: 19.2.0

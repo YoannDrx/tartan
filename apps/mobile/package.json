@@ -79,6 +79,11 @@
         "exclude": [
           "@react-native-google-signin/google-signin"
         ]
+      },
+      "android": {
+        "buildFromSource": [
+          "expo-video"
+        ]
       }
     }
   }

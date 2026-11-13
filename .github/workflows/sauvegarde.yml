@@ -13,6 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: apps/web/scripts/sauvegarde-blob.mjs
+          sparse-checkout-cone-mode: false
+
       - name: Installer age
         run: sudo apt-get update -qq && sudo apt-get install -y -qq age
 
@@ -29,7 +34,27 @@ jobs:
             | age --recipient "$AGE_RECIPIENT" --output tartan.dump.age
           test -s tartan.dump.age
 
+      # Hors de GitHub : un store Vercel Blob privé, réservé aux sauvegardes (docs/exploitation/sauvegarde.md).
+      # Tant que BACKUP_BLOB_TOKEN n'existe pas, la copie reste en artefact, comme avant.
+      - name: Envoyer dans Vercel Blob et purger au-delà de 30 jours
+        id: blob
+        env:
+          BACKUP_BLOB_TOKEN: ${{ secrets.BACKUP_BLOB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$BACKUP_BLOB_TOKEN" ]; then
+            echo "BACKUP_BLOB_TOKEN absent : la copie part en artefact."
+            echo "sent=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          npm install --prefix "$RUNNER_TEMP/blob" --no-save --no-audit --no-fund @vercel/blob@2.8.2 > /dev/null
+          cp apps/web/scripts/sauvegarde-blob.mjs "$RUNNER_TEMP/blob/"
+          node "$RUNNER_TEMP/blob/sauvegarde-blob.mjs" envoyer tartan.dump.age
+          node "$RUNNER_TEMP/blob/sauvegarde-blob.mjs" purger 30
+          echo "sent=true" >> "$GITHUB_OUTPUT"
+
       - uses: actions/upload-artifact@v4
+        if: steps.blob.outputs.sent != 'true'
         with:
           name: tartan-${{ github.run_number }}
           path: tartan.dump.age

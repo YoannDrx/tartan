@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-13, Claude, M3 (captures Android et iOS) et A13 (sauvegardes vers Vercel Blob)
+
+Fait : `pnpm captures --android` (émulateur Pixel 1080 × 1920, image `android-36;default;arm64-v8a`, mode démo de la barre d'état) ; huit captures Android et les huit iOS de l'App Store, analyse vidéo comprise, sur le clip Pexels autorisé par le fondateur (`apps/web/public/dev/`, ignoré par Git). La variante de développement autorise le HTTP en clair sur Android, pour le serveur local. Sauvegardes : `apps/web/scripts/sauvegarde-blob.mjs` (envoyer, purger, lister, télécharger) branché dans `sauvegarde.yml` derrière le secret `BACKUP_BLOB_TOKEN` (PR `feat/captures-android`).
+Trouvé : toute lecture vidéo fermait l'app Android (media3 1.9 tiré par CameraX, `expo-video` compilé contre 1.8). Patch d'`expo-video` et compilation depuis les sources : voir `docs/plans/android.md`. La CI mobile ne lit aucune vidéo sur Android : ce défaut n'y était pas visible.
+Reste au fondateur : créer le store Blob privé et poser le secret (procédure dans `docs/exploitation/sauvegarde.md`), puis une restauration chronométrée.
+
 ## 2026-11-13, Claude, T07 sur simulateur, et le refus d'enregistrement visible
 
 Fait : le job `maestro` crée un compte jetable (athlète de l'espace de démonstration), lance `.maestro/destructive/account-delete.yml` après les treize flux, puis vérifie en base que le compte a disparu. Le flux suit les gestes sûrs d'iOS (attente du clavier, connexion par `flows/_sign-in.yml`). Dans l'éditeur de séries du mobile, le message d'enregistrement passe au-dessus du bouton : après un refus, le bandeau de synchronisation pousse l'écran vers le bas et le message, sous le bouton, sortait de l'écran (PR `test/maestro-suppression`).

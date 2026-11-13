@@ -22,3 +22,6 @@ test-results
 playwright-report
 apps/web/src/generated
 .env*
+
+# Clip de démonstration pour les captures (VIDEO_DEV_MP4_URL), jamais versionné
+apps/web/public/dev/

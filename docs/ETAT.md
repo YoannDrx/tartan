@@ -69,7 +69,7 @@ Les numéros renvoient aux étapes des plans. Trié par impact sur l'ouverture.
 | F12 | Passkey de secours sur un second appareil | [web](plans/web.md) | Risque de blocage de la console |
 | F13 | Prévenir les deux espaces pilotes des fonctions activées | [commercialisation](plans/commercialisation.md) | Confiance |
 | F14 | Régler le compte Stripe pour le réel. Le webhook de production écoute les 15 événements depuis le 11 novembre (constaté par l'API Stripe) | [Stripe](plans/stripe.md) | Vrai paiement |
-| F15 | Choisir où stocker les sauvegardes, hors de GitHub | [sauvegarde](exploitation/sauvegarde.md) | Lot A13 |
+| F15 | Choisi le 13 novembre 2026 : Vercel Blob privé. Reste à créer le store `tartan-sauvegardes` et à poser le secret GitHub `BACKUP_BLOB_TOKEN` | [sauvegarde](exploitation/sauvegarde.md) | Lot A13 |
 | F16 | Fait le 11 novembre : la session Stripe CLI est ouverte sur la sandbox | [Stripe](plans/stripe.md) | — |
 | F17 | Valider les six athlètes sur la planche `/admin/mascotte`. Ils sont déjà sur le site depuis le lot B5, par décision du 12 novembre | [direction artistique](plans/direction-artistique.md) | Refonte des écrans |
 
@@ -91,7 +91,7 @@ Un lot, une branche, une PR. Détail des lots : [web](plans/web.md).
 | A10 | E-mails d'activation (J+1, J+3, J+7), plafond presque atteint, préférence « conseils » | Codé, testé. Reconquête non construite, en attente de F4 |
 | A11 | Accueil de l'athlète sur sa page, e-mail de bienvenue, rappel d'invitation avec opposition par adresse | Codé, testé |
 | A12 | Centre d'aide `/aide` en huit thèmes, « Aide » par écran dans le menu Réglages, contact | Codé, testé |
-| A13 | Sauvegardes hors de GitHub, sondes de disponibilité et des notifications | À faire, après F2, F3, F15 |
+| A13 | Sauvegardes hors de GitHub, sondes de disponibilité et des notifications | Sauvegardes : codé, testé (envoi vers Vercel Blob privé, purge à 30 jours, téléchargement ; `apps/web/scripts/sauvegarde-blob.mjs`). L'atelier garde l'artefact GitHub tant que le store et son secret n'existent pas (F15). Sondes : attendent l'offre Sentry (F2, F3) |
 
 ### Agents : direction artistique, ajouts et jeu
 
@@ -128,7 +128,7 @@ Détail : [direction artistique](plans/direction-artistique.md) et [web](plans/w
 | --- | --- | --- | --- |
 | M1 | Échec EAS à « Read app config » : cause trouvée et corrigée (TypeScript importé par la configuration). Reste un build de production réel à lancer | [Android](plans/android.md) | Bloque Android |
 | M2 | Maestro sur simulateur en CI (T09) : fait. Job `maestro` de la CI mobile, vert le 13 novembre 2026 : dix flux (connexion, mot de passe oublié, lien d'invitation, écran d'âge, validation et mode séance de l'athlète, réglages, suivi et appel du coach, constructeur, phases). Le 13 novembre, trois de plus (T24) : planificateur (prestataire IA factice, jamais sur Vercel), capture vidéo, conflit de synchronisation jusqu'à « Vérifier mes saisies ». Puis la suppression d'un compte jetable (T07), vérifiée aussi en base | [automatisation](tests/automatisation.md) | Avant soumission |
-| M3 | Captures Android 1080 × 1920, capture de l'analyse vidéo iOS. Demande deux téléchargements à accorder par le fondateur : une image système Android pour l'émulateur, et le clip Pexels de l'écran d'analyse | [captures](exploitation/captures.md) | Avant soumission |
+| M3 | Fait le 13 novembre 2026 : huit captures Android 1080 × 1920 (`pnpm captures --android`, émulateur) et les huit captures iOS de l'App Store refaites, analyse vidéo comprise. En chemin, un plantage Android corrigé : toute lecture vidéo fermait l'app (media3 hissé en 1.9 par CameraX, patch d'`expo-video`), vérifié sur émulateur | [captures](exploitation/captures.md) | Avant soumission |
 | M4 | Changement de compte par lien magique sur mobile : corrigé (ordre cookie, cache, espace actif) et éprouvé sur simulateur le 12 novembre (coach connecté, lien de l'athlète, l'app passe à l'accueil de l'athlète). Reste un essai sur téléphone | [iOS](plans/ios.md) | Avant soumission |
 | M5 | Repli HLS du lecteur mobile si le MP4 n'est pas prêt : codé et testé (`src/lib/playback-source.ts`). Reste à voir une vidéo lue juste après l'encodage, sur téléphone | [iOS](plans/ios.md) | Avant soumission |
 | M6 | Connexion Apple native : le code d'autorisation est échangé et le jeton gardé pour la révocation (codé, testé). Reste `APPLE_APP_BUNDLE_IDENTIFIER` sur Vercel et un essai réel le jour où Apple est activé | [iOS](plans/ios.md) | Seulement si activée |

@@ -2,7 +2,7 @@
 // machines de build EAS : « Unexpected token » à l'étape « Read app config ». tsx les transpile, partout.
 import "tsx/cjs";
 import type { ConfigContext, ExpoConfig } from "expo/config";
-import { withGradleProperties } from "expo/config-plugins";
+import { withAndroidManifest, withGradleProperties } from "expo/config-plugins";
 import { fr } from "../../packages/i18n/src/fr.ts";
 import { type AppVariant, parseVariant, resolveApiUrl, universalHostsFor } from "./src/lib/app-variant.ts";
 
@@ -33,6 +33,15 @@ const withGradleMemory = (config: ExpoConfig): ExpoConfig =>
     return next;
   });
 
+// L'app de développement joint le serveur local en HTTP (émulateur Android, `adb reverse`) ; Android refuse le
+// trafic en clair d'une version Release sans cette ligne. Jamais pour la préversion ni la production.
+const withDevCleartext = (config: ExpoConfig): ExpoConfig =>
+  withAndroidManifest(config, (next) => {
+    const application = next.modResults.manifest.application?.[0];
+    if (application) application.$["android:usesCleartextTraffic"] = "true";
+    return next;
+  });
+
 export default ({ config }: ConfigContext): ExpoConfig => {
   const variant = parseVariant(process.env.APP_VARIANT);
   const suffix = variant === "production" ? "" : variant === "preview" ? ".preview" : ".dev";
@@ -50,7 +59,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const appleSignIn = flag(process.env.EXPO_PUBLIC_OAUTH_APPLE_ENABLED);
   const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() || undefined;
 
-  return withGradleMemory({
+  const withVariant = (next: ExpoConfig) => (variant === "development" ? withDevCleartext(next) : next);
+  return withVariant(withGradleMemory({
     ...config,
     name: variantNames[variant],
     slug: "tartan",
@@ -161,5 +171,5 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       googleWebClientId,
       ...(projectId ? { eas: { projectId } } : {}),
     },
-  });
+  }));
 };
