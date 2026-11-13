@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { backupName, expiredBackups, PREFIX } from "../scripts/sauvegarde-blob.mjs";
+import { Readable } from "node:stream";
+import { backupName, expiredBackups, PREFIX, sha256 } from "../scripts/sauvegarde-blob.mjs";
 
 const now = new Date("2026-11-13T02:30:00Z");
 const daysAgo = (days: number) => new Date(now.getTime() - days * 86_400_000).toISOString();
@@ -25,5 +26,12 @@ describe("sauvegardes dans Vercel Blob", () => {
 
   it("ne touche à rien hors du dossier des sauvegardes", () => {
     expect(expiredBackups([{ pathname: "autre/x", url: "u", uploadedAt: daysAgo(90) }], now, 30)).toEqual([]);
+  });
+
+  it("calcule la même empreinte, quel que soit le découpage du flux", async () => {
+    const whole = await sha256(Readable.from([Buffer.from("tartan-sauvegarde")]));
+    const parts = await sha256(Readable.from([Buffer.from("tartan-"), Buffer.from("sauvegarde")]));
+    expect(parts).toBe(whole);
+    expect(whole).toHaveLength(64);
   });
 });

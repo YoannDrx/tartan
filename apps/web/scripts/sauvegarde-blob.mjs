@@ -6,6 +6,7 @@
 //   node scripts/sauvegarde-blob.mjs telecharger <nom> <fichier de sortie>
 // Jeton : BACKUP_BLOB_TOKEN, celui du seul store des sauvegardes, jamais celui de l'application. Il n'est jamais affiché.
 // La copie est chiffrée par age avant l'envoi : le store ne voit qu'un fichier illisible sans la clé privée.
+import { createHash } from "node:crypto";
 import { createReadStream, createWriteStream, statSync } from "node:fs";
 import { basename } from "node:path";
 import { Readable } from "node:stream";
@@ -25,6 +26,13 @@ export const expiredBackups = (blobs, now, days) => {
   const newest = ours.reduce((a, b) => (new Date(a.uploadedAt) >= new Date(b.uploadedAt) ? a : b));
   const limit = now.getTime() - days * DAY_MS;
   return ours.filter((blob) => blob !== newest && new Date(blob.uploadedAt).getTime() < limit);
+};
+
+// Empreinte d'un flux d'octets : la copie relue depuis Blob doit être identique à celle envoyée.
+export const sha256 = async (stream) => {
+  const hash = createHash("sha256");
+  for await (const chunk of stream) hash.update(chunk);
+  return hash.digest("hex");
 };
 
 const fail = (message) => {
@@ -69,7 +77,13 @@ const main = async () => {
     });
     const check = await blob.head(name, { token: auth });
     if (check.size !== size) fail(`taille relue ${check.size} au lieu de ${size}.`);
-    console.log(`Envoyée : ${name} (${size} octets).`);
+    // Aller-retour : la copie est relue depuis le store et comparée octet par octet, sans la déchiffrer.
+    const local = await sha256(createReadStream(file));
+    const back = await blob.get(name, { access: "private", token: auth, useCache: false });
+    if (!back || !back.stream) fail(`${name} introuvable à la relecture.`);
+    const remote = await sha256(Readable.fromWeb(back.stream));
+    if (remote !== local) fail(`${name} relue différente de la copie envoyée.`);
+    console.log(`Envoyée et relue à l'identique : ${name} (${size} octets, sha256 ${local.slice(0, 12)}…).`);
   } else if (command === "purger") {
     const days = Number(args[0] ?? 30);
     if (!Number.isInteger(days) || days < 7) fail("garder au moins 7 jours de copies.");
