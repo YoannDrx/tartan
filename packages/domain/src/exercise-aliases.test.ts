@@ -54,3 +54,15 @@ it("une résolution explicite lève uniquement le terme choisi et refuse une ré
   expect(unresolvedExerciseAlias("Squat arrière 3 × 5", "exercise_1", exercises, choices)).toBeNull();
   expect(unresolvedExerciseAlias("Squat 3 × 5", "exercise_2", exercises)).not.toBeNull();
 });
+
+it("garde les collisions au pluriel et les qualificatifs de variante", () => {
+  const exercises = [
+    { token: "exercise_1", name: "Arraché suspension au-dessus des genoux", aliases: ["Arraché"] },
+    { token: "exercise_2", name: "Arraché suspension au-dessous des genoux", aliases: ["Arrachés"] },
+  ];
+  expect(ambiguousExerciseTerms(exercises)).toMatchObject([{ exerciseTokens: ["exercise_1", "exercise_2"] }]);
+  expect(unresolvedExerciseAlias("Trois arrachés", "exercise_1", exercises)).not.toBeNull();
+  expect(unresolvedExerciseAlias("Arrachés en suspension au-dessus des genoux", "exercise_1", exercises)).toBeNull();
+  const choices = [{ term: "Arrachés", token: "exercise_1" }];
+  expect(unresolvedExerciseAlias("Arraché", "exercise_2", exercises, choices)).not.toBeNull();
+});

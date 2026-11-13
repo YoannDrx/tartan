@@ -9,6 +9,16 @@ export const normalizeExerciseTerm = (value: string) =>
     .trim()
     .replace(/\s+/g, " ");
 
+// Inflections used only to recognize mentions, never to merge catalog records.
+// Keep all movement qualifiers (direction, height, grip and equipment).
+export const normalizeExerciseMention = (value: string) =>
+  normalizeExerciseTerm(value)
+    .replace(/['-]/g, " ")
+    .replace(/\ben\s+/g, "")
+    .replace(/[\p{L}]+/gu, (word) => (word.length > 3 ? word.replace(/s$/, "") : word))
+    .replace(/\s+/g, " ")
+    .trim();
+
 export function cleanExerciseAliases(name: string, aliases: readonly string[]): string[] {
   const seen = new Set([normalizeExerciseTerm(name)]);
   return aliases
@@ -29,7 +39,7 @@ export function ambiguousExerciseTerms(
   const terms = new Map<string, { label: string; tokens: Set<string> }>();
   for (const exercise of exercises)
     for (const label of [exercise.name, ...exercise.aliases]) {
-      const key = normalizeExerciseTerm(label);
+      const key = normalizeExerciseMention(label);
       if (!key) continue;
       const entry = terms.get(key) ?? { label, tokens: new Set<string>() };
       entry.tokens.add(exercise.token);
@@ -50,14 +60,14 @@ export function unresolvedExerciseAlias(
   exercises: readonly { token: string; name: string; aliases: readonly string[] }[],
   resolutions: readonly { term: string; token: string }[] = [],
 ) {
-  const text = normalizeExerciseTerm(instruction);
+  const text = normalizeExerciseMention(instruction);
   const terms = new Map<string, Set<string>>();
   for (const e of exercises)
     for (const label of [e.name, ...e.aliases]) {
-      const key = normalizeExerciseTerm(label);
+      const key = normalizeExerciseMention(label);
       if (key) terms.set(key, new Set([...(terms.get(key) ?? []), e.token]));
     }
-  const resolved = new Map(resolutions.map((choice) => [normalizeExerciseTerm(choice.term), choice.token]));
+  const resolved = new Map(resolutions.map((choice) => [normalizeExerciseMention(choice.term), choice.token]));
   for (const [term, token] of resolved)
     if (exercises.some((exercise) => exercise.token === token)) terms.set(term, new Set([token]));
   const matches: { start: number; end: number; term: string; tokens: Set<string> }[] = [];

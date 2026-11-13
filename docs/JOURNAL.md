@@ -5,6 +5,21 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 Modèle :
 
 ```text
+## AAAA-MM-JJ, agent, sujet
+Fait : … (PR)
+Vérifié : … / Non vérifié : …
+En cours ou abandonné : branche, raison
+À savoir : piège découvert, décision prise
+Suite conseillée : numéro de tâche
+```
+
+## 2026-11-13, Codex, F5 : génération ordonnée et qualification non acquise
+
+Codé : contrat prestataire en arbre exercice/récupération/répétition ; les références et la projection compatible sont calculées côté serveur. Les tours absents de la consigne sont refusés ; une citation sans attache ne permet plus de conserver silencieusement une séance amputée. Reconnaissance des flexions grammaticales sans effacer direction, hauteur ou matériel, collisions d’alias conservées. Aucun modèle de production remplacé.
+Vérifié : 1 924 tests web, 283 domaine, 243 mobile, 247 jeu et 90 mascotte réussis sous Node 22/pnpm 10 ; types verts. 224 parcours navigateur ordinaires, puis huit IA simulés réussis. Captures proposition relues en Tartan/390, sombre/768 et clair/1440 ; matrices axe, débordement et mouvement réduit dans les tests. Une relance unitaire a été invalidée par deux resets concurrents de la même base ; relance complète séquentielle verte, ne pas lancer deux suites web sur tartan_test.
+OpenAI réel : après le premier réglage, 53/80, 54/80 et 56/80, sans cas critique accepté selon le correcteur. Comparaison en arbre : GPT-4.1, un passage, 66/80 ; GPT-5.5, un passage, 65/80. Les attendus restent figés ; certains cas exigent une séance malgré un nom ou une charge ambiguë et nécessitent une relecture humaine, sans reclassement opportuniste. Recette navigateur réelle séparée en préparation ; ni ces essais ni les tests simulés ne qualifient les dictées humaines.
+Suite : terminer la recette réelle, comparer sur la même version, faire relire le corpus et les propositions ; ne pas ouvrir le mode proposition sans approbation du catalogue.
+
 ## 2026-11-13, Codex, F1 : rebond et plainte Resend reçus
 
 Éprouvé sur le prestataire réel, production `88d76e2` : deux gabarits de bienvenue à données fictives envoyés depuis la console aux adresses officielles de simulation Resend, une pour le rebond définitif, une pour la plainte. Tableau des webhooks : deux succès ; détail du rebond HTTP 200 en une tentative. Contrôle SQL ciblé en lecture seule : une empreinte pour chaque adresse synthétique, motifs `bounce` et `complaint` attendus. Aucun compte de passage créé en production et aucun message envoyé à un destinataire humain pour ce contrôle. Capture de preuve conservée localement hors dépôt. Ce test prouve la réception et la mise en liste de blocage ; les messageries Outlook/iCloud restent à éprouver.
@@ -15,13 +30,6 @@ Premier corpus figé exécuté trois fois avec OpenAI réel : 49/80, 49/80 et 47
 Codé : matériel de proposition filtré avant sélection des candidats, revalidation serveur, charge nulle imposée dans le schéma, explication générée distinguée d’une citation en mode proposition. Les choix explicites de fiches lèvent seulement l’alias concerné et sont conservés ; les listes d’alias restent bornées. Une substitution détectée peut demander une clarification avec le nom inconnu, dans la limite globale de deux appels et 100 secondes pour la même opération. Tests ciblés, types et règles métier vérifiés ; régression complète et nouveau passage réel en cours.
 Décisions reçues : le fondateur relira les 150 guides ; ce n’est pas encore leur approbation. D-U-N-S à récupérer : procédure du compte Play organisation préparée, fiche de l’entreprise retrouvée sans numéro visible ; aucune demande externe, souscription ou création de compte Play effectuée.
 
-## AAAA-MM-JJ, agent, sujet
-Fait : … (PR)
-Vérifié : … / Non vérifié : …
-En cours ou abandonné : branche, raison
-À savoir : piège découvert, décision prise
-Suite conseillée : numéro de tâche
-```
 
 ## 2026-11-13, Codex, F5 en cours et recette réelle Mux/Resend
 

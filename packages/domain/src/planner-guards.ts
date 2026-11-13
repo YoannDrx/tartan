@@ -1,10 +1,11 @@
 import type { PlannerInterpretation } from "@tartan/contracts";
-import { normalizeExerciseTerm } from "./exercise-aliases";
+import { normalizeExerciseMention, normalizeExerciseTerm } from "./exercise-aliases";
 import { addDays } from "./status";
 
 // Contrôles déterministes appliqués à la réponse du modèle, côté serveur.
 // Ils ne complètent jamais une séance : une sortie douteuse devient une question.
-export type PlannerGuardIssue = "date" | "missing_date" | "exercise" | "target" | "rest" | "load" | "session_count";
+export type PlannerGuardIssue =
+  "date" | "missing_date" | "exercise" | "target" | "rest" | "load" | "session_count" | "volume";
 export type PlannerGuardExercise = { token: string; name: string; aliases: readonly string[] };
 export type PlannerGuardContext = {
   period: { from: string; to: string };
@@ -338,11 +339,10 @@ export function plannerExerciseIsNamed(
   const exercise = exercises.find((candidate) => candidate.token === token);
   if (!exercise) return false;
   const normalized = plain(text).replace(/-/g, " ");
+  const inflectedText = normalizeExerciseMention(text);
   const named = namesOf(exercise).some((label) => {
-    const term = plain(label)
-      .replace(/-/g, " ")
-      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return term.length > 0 && new RegExp(`(?<![\\p{L}\\p{N}_])${term}s?(?![\\p{L}\\p{N}_])`, "u").test(normalized);
+    const term = normalizeExerciseMention(label).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return term.length > 0 && new RegExp(`(?<![\\p{L}\\p{N}_])${term}(?![\\p{L}\\p{N}_])`, "u").test(inflectedText);
   });
   if (named) return true;
   const textWords = new Set(normalized.split(/[^a-z0-9]+/).map(singular));
@@ -361,6 +361,16 @@ export function plannerGuardIssues(value: PlannerInterpretation, context: Planne
   const text = context.instructions.join("\n");
   const items = value.sessions.flatMap((session) => session.blocks.flatMap((block) => block.items));
   const stated = plannerTextNumbers(text);
+  const checkRounds = (nodes: NonNullable<PlannerInterpretation["sessions"][number]["blocks"][number]["sequence"]>) => {
+    for (const node of nodes)
+      if (node.kind === "repeat") {
+        if (!stated.has(node.rounds)) issues.add("volume");
+        checkRounds(node.children);
+      }
+  };
+  for (const session of value.sessions)
+    for (const block of session.blocks) if (block.sequence) checkRounds(block.sequence);
+
   for (const item of items) {
     if (item.prescription.load && !stated.has(item.prescription.load.value)) issues.add("load");
     if (!plannerExerciseIsNamed(text, item.exerciseToken, context.exercises)) issues.add("exercise");

@@ -864,7 +864,7 @@ export const fr = {
     proposalNotice: "L’IA propose des choix à relire : ce n’est pas une séance dictée ni une publication automatique.",
     objective: "Objectif de la séance",
     objectiveHint:
-      "Décris ce que tu veux travailler. La durée, le niveau et le matériel ci-dessous encadrent la proposition.",
+      "Décris ce que tu veux travailler. La durée, le niveau et le matériel renseignés encadrent la proposition.",
     proposalDate: "Date de la proposition",
     proposalDuration: "Durée disponible (minutes)",
     proposalLevel: "Niveau du groupe",
@@ -909,6 +909,8 @@ export const fr = {
       "Le destinataire obtenu ne fait pas partie de la sélection autorisée. Quel groupe ou athlète sélectionné doit recevoir cette séance ?",
     clarifyDate: (from: string, to: string) =>
       `La date de cette demande n’est pas certaine. Quel jour de la période (du ${from} au ${to}) souhaites-tu ?`,
+    clarifyVolume:
+      "Combien de tours souhaites-tu pour chaque groupe d’exercices ? La proposition contient un nombre absent de ta consigne.",
     clarifyEquipment:
       "Aucun exercice vérifié ne correspond au matériel indiqué. Précise le matériel disponible ou modifie l’objectif de la proposition.",
     clarifyExercise:

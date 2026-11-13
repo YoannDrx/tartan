@@ -221,6 +221,16 @@ describe("contrôles d'une proposition", () => {
 });
 
 describe("désignation d'un exercice", () => {
+  it("reconnaît les pluriels du nom complet sans confondre le sens du lancer", () => {
+    const catalog = [
+      { token: "exercise_1", name: "Lancer de médecine-ball vers l’avant", aliases: [] },
+      { token: "exercise_2", name: "Lancer de médecine-ball vers l’arrière", aliases: [] },
+    ];
+    const text = "Trois séries de six lancers de médecine-ball vers l’avant.";
+    expect(plannerExerciseIsNamed(text, "exercise_1", catalog)).toBe(true);
+    expect(plannerExerciseIsNamed(text, "exercise_2", catalog)).toBe(false);
+    expect(plannerExerciseIsNamed("Lancers de médecine-ball", "exercise_1", catalog)).toBe(false);
+  });
   it("exige un nom, un alias ou un mot distinctif", () => {
     expect(plannerExerciseIsNamed("back squat", "exercise_1", exercises)).toBe(true);
     expect(plannerExerciseIsNamed("gainage, 3 séries", "exercise_3", exercises)).toBe(true);
@@ -317,4 +327,31 @@ it("le planificateur s'ouvre avec une clé et se coupe avec false", () => {
   expect(plannerServerEnabled({ OPEN_AI_API_KEY: "k" })).toBe(true);
   expect(plannerServerEnabled({ OPENAI_API_KEY: "k", AI_PLANNER_ENABLED: "false" })).toBe(false);
   expect(plannerServerEnabled({ AI_PLANNER_ENABLED: "true" })).toBe(true);
+});
+
+it("refuse des tours inventés, y compris dans un groupe imbriqué", () => {
+  const value = proposal(session(today));
+  const block = value.sessions[0]!.blocks[0]!;
+  block.items[0]!.ref = "squat";
+  block.sequence = [
+    {
+      kind: "repeat",
+      ref: "outer",
+      name: "Circuit",
+      rounds: 3,
+      restBetweenRoundsS: 0,
+      children: [
+        {
+          kind: "repeat",
+          ref: "inner",
+          name: "Ajout",
+          rounds: 10,
+          restBetweenRoundsS: 0,
+          children: [{ kind: "exercise", itemRef: "squat" }],
+        },
+      ],
+    },
+  ];
+  expect(plannerGuardIssues(value, context(single))).toContain("volume");
+  expect(plannerGuardIssues(value, context(`${single} Répéter dix fois chaque groupe.`))).not.toContain("volume");
 });

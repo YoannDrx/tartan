@@ -292,7 +292,7 @@ export function PlannerDraftReview({
                               .join(" · ")}
                           </p>
                         ) : null}
-                        <p className="font-semibold">{name}</p>
+                        <p className="font-semibold break-words">{name}</p>
                         <p>
                           {formatPrescription(
                             node.kind === "recovery" ? { duration_s: node.durationS } : item!.prescription,

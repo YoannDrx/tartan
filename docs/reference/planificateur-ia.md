@@ -17,7 +17,7 @@ Une clarification peut contenir `exerciseName`, le nom inconnu conservé depuis 
 
 La bibliothèque entière peut servir à rechercher des candidats ; 150 candidats pertinents sont transmis par défaut. Une sélection explicite reste bornée à 500 fiches. La recherche ne décide jamais seule qu’un mouvement voisin est un synonyme.
 
-Les exercices portent des références stables. Une structure partagée décrit exercices, récupérations et groupes répétés, avec deux niveaux de groupes maximum. Les séries appartiennent à l’exercice ; les tours appartiennent au groupe. La projection vers les brouillons et leurs occurrences utilise `packages/domain`, notamment pour conserver A/B/A/B et les adaptations de charge de chaque tour. Les anciens clients ne peuvent pas enregistrer une version aplatie qui effacerait cette structure.
+Le prestataire renvoie un seul arbre ordonné : chaque exercice contient sa prescription, une récupération ne contient que sa durée, et un groupe contient ses enfants. Le serveur en dérive les références stables et la structure partagée, avec deux niveaux de groupes maximum. Cela évite de demander au modèle de maintenir une liste d’exercices et une liste de références en parallèle. Les séries appartiennent à l’exercice ; les tours appartiennent au groupe. La projection vers les brouillons et leurs occurrences utilise `packages/domain`, notamment pour conserver A/B/A/B et les adaptations de charge de chaque tour. Les anciens clients ne peuvent pas enregistrer une version aplatie qui effacerait cette structure.
 
 ## Accès
 
@@ -95,4 +95,14 @@ Une réussite automatique ne clôt pas la qualification : 30 dictées humaines s
 
 ## Reprises et coût
 
-Une opération logique consomme une proposition du quota utilisateur. Une date omise, une structure invalide ou une substitution détectée peut déclencher une seule reprise technique. Les deux appels partagent un délai de 100 secondes et le plafond est contrôlé globalement : plusieurs motifs d’erreur ne multiplient pas les reprises. Tartan supporte le coût du second appel. Le modèle configuré reste inchangé tant qu’une comparaison documentée n’a pas justifié son remplacement.
+Une opération logique consomme une proposition du quota utilisateur. Une citation sans attache, une date omise, une structure invalide ou une substitution détectée peut déclencher une seule reprise technique. Les deux appels partagent un délai de 100 secondes et le plafond est contrôlé globalement : plusieurs motifs d’erreur ne multiplient pas les reprises. Tartan supporte le coût du second appel. Le modèle configuré reste inchangé tant qu’une comparaison documentée n’a pas justifié son remplacement.
+
+## Recette navigateur avec OpenAI réel
+
+Après autorisation des appels réels, avec la clé déjà disponible dans l’environnement local :
+
+```sh
+RUN_PLANNER_LIVE=1 corepack pnpm --filter @tartan/web test:e2e:planner:live
+```
+
+Cette recette est distincte de la CI ordinaire et la refuse. Elle reconstruit le serveur sur le port 3104, remet à zéro uniquement la base locale jetable `tartan_e2e` sur 54329, crée un coach et un athlète fictifs, puis exerce clarification, création privée, reprise, brouillon, publication et lecture athlète. Aucun résultat OpenAI ni aucune proposition ne sont injectés. La validation d’adresse e-mail et les droits du compte synthétique sont préparés en base ; la livraison e-mail n’est donc pas prouvée. Ne pas la lancer en parallèle d’un autre parcours utilisant cette base ou le dossier de build web. La clé reste hors du dépôt et des sorties ; aucun paramètre de production n’est modifié.

@@ -103,7 +103,15 @@ async function main() {
   });
   const files = execFileSync(
     "git",
-    ["ls-files", "apps/web/src/server/ai", "packages/domain/src", "packages/contracts/src"],
+    [
+      "ls-files",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "apps/web/src/server/ai",
+      "packages/domain/src",
+      "packages/contracts/src",
+    ],
     { cwd: root, encoding: "utf8" },
   )
     .trim()

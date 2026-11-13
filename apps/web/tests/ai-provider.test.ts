@@ -49,7 +49,7 @@ it("utilise l’alias local, une sortie stricte et store:false sans outil ni his
   });
   expect(JSON.stringify(body.text.format.schema)).not.toContain('"oneOf"');
   expect(
-    body.text.format.schema.properties.sessions.items.properties.blocks.items.properties.sequence.anyOf[0].items.anyOf,
+    body.text.format.schema.properties.sessions.items.properties.blocks.items.properties.content.items.anyOf,
   ).toHaveLength(3);
   expect(body).not.toHaveProperty("tools");
   expect(body).not.toHaveProperty("previous_response_id");
@@ -425,7 +425,7 @@ it("corrige une structure invalide une seule fois sans multiplier les séries", 
   expect(result.sessions[0]?.blocks[0]?.items[0]?.prescription.sets).toBe(3);
   expect(fetcher).toHaveBeenCalledTimes(2);
   expect(fetcher.mock.calls[0]![1]?.signal).toBe(fetcher.mock.calls[1]![1]?.signal);
-  expect(JSON.parse(JSON.parse(String(fetcher.mock.calls[1]![1]?.body)).input).correction).toContain("itemRef");
+  expect(JSON.parse(JSON.parse(String(fetcher.mock.calls[1]![1]?.body)).input).correction).toContain("content");
   const repeated = transport(completed(malformed));
   await expect(
     openAiPlannerProvider(repeated).interpret({ ...context, instructions: [instruction] }),
@@ -465,7 +465,11 @@ it("propose avec le matériel disponible, une charge nulle dans le schéma et un
   expect((await openAiPlannerProvider(fetcher).interpret(proposedContext)).status).toBe("proposal");
   const body = JSON.parse(String(fetcher.mock.calls[0]![1]?.body));
   expect(JSON.parse(body.input).exercises.map((e: { token: string }) => e.token)).toEqual(["exercise_1"]);
-  const item = body.text.format.schema.properties.sessions.items.properties.blocks.items.properties.items.items;
+  const item =
+    body.text.format.schema.properties.sessions.items.properties.blocks.items.properties.content.items.anyOf.find(
+      (node: { properties: { kind: { const: string } } }) => node.properties.kind.const === "exercise",
+    );
+  expect(Object.keys(item.properties)[0]).toBe("kind");
   expect(item.properties.prescription.properties.load).toEqual({ type: "null" });
   expect(item.properties.exerciseToken.enum).toEqual(["exercise_1"]);
   const wrong = structuredClone(result);
@@ -528,5 +532,57 @@ it("après un exercice substitué, redemande une clarification nommée avec une 
     status: "clarification",
     questions: [{ exerciseName: "marche du dragon" }],
   });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it("convertit la réponse ordonnée du modèle en circuit sans fabriquer un exercice pour le repos", async () => {
+  const instruction = "Demain : squat, 2 tours de 4 à 40 kg avec 120 secondes entre les tours, sans repos final.";
+  const legacy = proposalFor(instruction, [{ date: "2026-11-09" }]);
+  const item = legacy.sessions[0]!.blocks[0]!.items[0]!;
+  const generated = {
+    ...legacy,
+    sessions: [
+      {
+        ...legacy.sessions[0],
+        blocks: [
+          {
+            name: "Force",
+            content: [
+              {
+                kind: "repeat",
+                name: "Tours",
+                rounds: 2,
+                restBetweenRoundsS: 120,
+                children: [{ ...item, kind: "exercise", prescription: { ...item.prescription, sets: 1, restS: 0 } }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const result = await openAiPlannerProvider(transport(completed(generated))).interpret({
+    ...context,
+    instructions: [instruction],
+  });
+  expect(result.status).toBe("proposal");
+  expect(result.sessions[0]!.blocks[0]!.items).toHaveLength(1);
+  expect(result.sessions[0]!.blocks[0]!.sequence).toMatchObject([
+    { kind: "repeat", rounds: 2, restBetweenRoundsS: 120, children: [{ kind: "exercise" }] },
+  ]);
+});
+
+it("ne conserve jamais une séance amputée après une citation sans attache", async () => {
+  const instruction = "Demain : squat, 3 séries de 4 à 40 kg, repos 120 secondes, puis marche du dragon.";
+  const wrong = proposalFor(instruction, [{ date: "2026-11-09" }]);
+  const block = wrong.sessions[0]!.blocks[0]!;
+  block.items.push({ ...block.items[0]!, exerciseToken: "exercise_2", instruction: "Mouvement ajouté sans source" });
+  const fetcher = transport(completed(wrong));
+  const result = await openAiPlannerProvider(fetcher).interpret({
+    ...context,
+    instructions: [instruction],
+    exercises: [...context.exercises, { token: "exercise_2", name: "Pompes", category: "strength", aliases: [] }],
+  });
+  expect(result).toMatchObject({ status: "clarification", sessions: [], questions: [{ field: "exercise" }] });
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
