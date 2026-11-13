@@ -13,10 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
-## 2026-11-13, Claude, T24 : le planificateur dans les parcours natifs
+## 2026-11-13, Claude, T24 : planificateur, capture et synchronisation dans les parcours natifs
 
 Fait : prestataire factice `src/server/ai/fake-provider.ts`, choisi par le service de proposition quand `AI_PLANNER_FAKE_PROVIDER=true`, jamais sur Vercel, et refusé en production par `assertEnvIsolation`. Flux Maestro `coach-planner` : accord, destinataires, consigne relue, proposition, relecture, brouillon créé. Le job `maestro` ouvre le planificateur dans l'espace de démonstration (offre pilote, drapeau IA) (PR `test/maestro-planificateur`).
 Vérifié : `tests/ai-proposal.test.ts` (la proposition factice passe la validation réelle et n'écrit aucune séance), `tests/env-isolation.test.ts`.
+Aussi : `coach-capture` (écran de capture ouvert depuis les vidéos du coach) et `sync-review` (le coach réenregistre la séance pendant que l'athlète saisit ses séries détaillées, `scripts/bump-session.js` ; le serveur refuse, l'app garde la saisie et mène à « Vérifier mes saisies »). Les flux passent dans un ordre fixé (`config.yaml`).
+À savoir : seules les séries détaillées portent la version de la séance, la validation simple ne crée pas de conflit. Le message de refus s'affiche sous le bouton, et le bandeau de synchronisation qui apparaît en haut le pousse hors de l'écran : le flux descend jusqu'à lui.
 
 ## 2026-11-13, Claude, M2 vert, et ce qui reste du plan
 
