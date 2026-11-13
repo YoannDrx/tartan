@@ -48,6 +48,8 @@ Code applicatif inspecté : `9e1fb12` ; production observée : `3bb8099` (règle
 
 Les preuves nominatives ou contenant des identifiants prestataires restent hors du dépôt public. Chaque lot ajoute son commit, environnement, résultat et limite, sans transformer une configuration présente en preuve de fonctionnement.
 
+Complément F1 sur `fix/operational-delivery` : isolation du webhook Resend par expéditeur, maintien explicite de la vérification TLS PostgreSQL et correction de l'instrumentation Sentry codés ; 25 tests ciblés, matrice HTTP et suite unitaire complète réussis (1 900 web). Domaine d’envoi Tartan vérifié (DKIM/SPF) ; clé dédiée, expéditeur, ancien expéditeur et jeton Sentry de compilation installés sur Vercel production, à déployer. Paire VAPID Preview séparée et redéploiement en cours. Envoi réel avec ce domaine et cartes de sources Sentry non encore éprouvés.
+
 ## Ce qui tourne
 
 | Élément | État |
