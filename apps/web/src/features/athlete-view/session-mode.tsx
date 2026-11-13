@@ -10,6 +10,7 @@ import { Button, IconButton } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ExternalVideo } from "@/features/exercises/exercise-video";
 import { cn } from "@/lib/cn";
+import { MovementGuideDisclosure } from "@/features/exercises/exercise-guide";
 import { QuickValidate } from "./validation";
 
 const SPEEDS = [0.25, 0.5, 1];
@@ -176,6 +177,8 @@ export const SessionMode = ({
             ))}
           </ul>
         ) : null}
+
+        {item.guide ? <MovementGuideDisclosure guide={item.guide} /> : null}
 
         {!recovery ? (
           <section className="flex flex-col gap-2">
