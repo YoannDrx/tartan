@@ -50,7 +50,7 @@ Mis à jour le 14 novembre 2026, après l'audit du travail de finalisation. Tout
 | Notifications, e-mails | Oui | Gmail seulement ; aucun push réel | — |
 | Abonnements Stripe | Oui, et six tests sandbox réels dans le navigateur | Aucun vrai paiement | Retour vers Tartan après paiement non prouvé |
 | Hors ligne, PWA | Oui | Pas au stade | — |
-| Mobile natif | Oui, et parcours Maestro iOS sur simulateur | Aucun téléphone physique | Corrigé le 14 novembre : file d'envoi vidéo rattachée au compte, arrêt sur session expirée. Reste : motif d'absence, régularité et carte de record absents ; pas de lint ni de Maestro Android ; OTA sans variante ni environnement |
+| Mobile natif | Oui, et parcours Maestro iOS sur simulateur | Aucun téléphone physique | Corrigé le 14 novembre : file d'envoi vidéo rattachée au compte, arrêt sur session expirée. G1 (PR `feat/mobile-g1`) : mise à jour à distance avec la variante, l'API et le canal du profil (`scripts/profile-env.mjs`), canal `beta` séparé, version d'exécution par empreinte native, `webcredentials` iOS, lint mobile (textes et couleurs en dur, hooks). Reste : motif d'absence, régularité et carte de record ; Maestro Android ; cartes de sources Sentry (jeton à créer) |
 
 ## Portes d'ouverture
 
@@ -72,6 +72,7 @@ Détail : [commercialisation](plans/commercialisation.md).
 ## Ce qui revient au fondateur
 
 1. Créer un jeton robot Expo et le poser : `gh secret set EXPO_TOKEN`.
+1. Créer un jeton Sentry (portée `project:releases`) et le poser sur EAS (`eas env:create --name SENTRY_AUTH_TOKEN --visibility secret`), pour envoyer les cartes de sources des binaires ; l'agent retirera ensuite `SENTRY_DISABLE_AUTO_UPLOAD`.
 2. Poser un plafond de dépense mensuel sur le projet OpenAI.
 3. Créer une passkey de secours sur un second appareil, avant le retrait de `ADMIN_BOOTSTRAP_TOKEN`.
 4. Recevoir le D-U-N-S, puis créer le compte Google Play organisation (identité, paiement, contrat).

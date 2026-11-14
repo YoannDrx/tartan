@@ -121,7 +121,7 @@ export default function Progress() {
                     </T>
                   </View>
                   <T variant="figure" style={{ fontSize: 24, lineHeight: 28 }}>
-                    {`${String(test.value).replace(".", ",")} kg`}
+                    {m.units.kg(String(test.value).replace(".", ","))}
                   </T>
                 </View>
               </View>

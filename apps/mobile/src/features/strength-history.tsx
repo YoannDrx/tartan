@@ -96,7 +96,7 @@ export function StrengthHistory({ history }: { history: ExerciseHistory }) {
                   <View key={point.date} accessible style={{ gap: space.xs }}>
                     <T variant="smallStrong">
                       {historyDate(point.date)} ·{" "}
-                      {point.value === null ? m.exerciseHistory.missing : `${historyNumber(point.value)} kg`}
+                      {point.value === null ? m.exerciseHistory.missing : m.units.kg(historyNumber(point.value))}
                     </T>
                     <T>
                       {tests ? t.coverageTests : t.coverageWork} :{" "}

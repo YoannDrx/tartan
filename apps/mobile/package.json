@@ -9,7 +9,9 @@
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "maestro:test": "maestro test .maestro"
+    "maestro:test": "maestro test .maestro",
+    "lint": "eslint . --pass-on-unpruned-suppressions",
+    "lint:prune": "eslint . --prune-suppressions"
   },
   "dependencies": {
     "@better-auth/expo": "1.7.15",
@@ -69,8 +71,11 @@
   "devDependencies": {
     "@sentry/cli": "2.58.4",
     "@types/react": "~19.2.2",
+    "eslint": "9.39.1",
+    "eslint-plugin-react-hooks": "7.1.1",
     "tsx": "4.23.15",
     "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1",
     "vitest": "5.0.5"
   },
   "expo": {

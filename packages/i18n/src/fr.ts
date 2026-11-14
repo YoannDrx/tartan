@@ -1,6 +1,14 @@
 // Textes français de Tartan. Côté athlète : tutoiement, phrases courtes.
 // Côté coach : sobre et précis, vocabulaire du métier (§ 4.5).
 export const fr = {
+  // Les unités affichées après une valeur déjà mise en forme.
+  units: {
+    kg: (value: string | number) => `${value} kg`,
+    seconds: "s",
+    // Les marques d'un essai de saut, comme sur une feuille de concours.
+    cleared: "O",
+    failed: "X",
+  },
   brand: {
     name: "Tartan",
     storeName: "Tartan – Préparation physique",

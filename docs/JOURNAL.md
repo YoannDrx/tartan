@@ -14,6 +14,13 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-15, Claude, G1 (configuration mobile)
+Fait (PR `feat/mobile-g1`) : `scripts/profile-env.mjs` (variables et canal d'un profil EAS, héritage compris) chargé par `release-mobile.yml` avant `eas update`, qui partait sans `APP_VARIANT` et visait donc `http://localhost:3000` ; profil et canal `beta` (soumission Play en test fermé `alpha`) ; `runtimeVersion` par empreinte ; `webcredentials` pour les deux domaines ; `/mes-videos` dans les liens Android ; lint mobile (`eslint.config.mjs`, règles maison du web et des hooks) et unités passées dans `m.units`.
+Vérifié : types, lint mobile (0 erreur, 10 avertissements), tests du profil et de la variante, configuration Expo produite (`expo config`).
+Non vérifié : une vraie publication OTA (pas d'`EXPO_TOKEN`) ; un build avec l'empreinte.
+À savoir : EAS n'a pas de `SENTRY_AUTH_TOKEN` : l'envoi des cartes de sources reste coupé (`SENTRY_DISABLE_AUTO_UPLOAD`).
+Suite : parité mobile (motif d'absence, régularité, carte de record), puis Maestro Android.
+
 ## 2026-11-14, Claude, CI web parallèle
 Fait (PR `ci/parcours-repartis`) : `ci.yml` découpé en « contrôles », trois parts de parcours Playwright (`--shard`), « vidéo et planificateur », et un job `quality` qui résume les autres (le nom du contrôle exigé ne change pas). Avant : un job unique d'environ 50 minutes dont 36 de parcours joués un par un.
 À savoir : chaque part refait son build de production (la config Playwright le lance) ; Maestro iOS reste à environ 1 heure quand le mobile est touché (compilation 19 minutes, 18 parcours en série).

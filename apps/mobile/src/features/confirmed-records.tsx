@@ -17,7 +17,7 @@ export function ConfirmedRecords({ records }: { records: StrengthRecordValue[] }
               {record.exerciseName} · {strengthRecordLabel(record)} :{" "}
               {record.kind === "reps_at_load"
                 ? m.strengthRecords.repsValue(historyNumber(record.value))
-                : `${historyNumber(record.value)} kg`}
+                : m.units.kg(historyNumber(record.value))}
             </T>
             <T tone="muted">{strengthRecordConvention(record)}</T>
           </View>

@@ -44,7 +44,7 @@ export function StrengthRecords({ records }: { records: StrengthRecordValue[] | 
                 {strengthRecordLabel(record)} ·{" "}
                 {record.kind === "reps_at_load"
                   ? t.repsValue(historyNumber(record.value))
-                  : `${historyNumber(record.value)} kg`}
+                  : m.units.kg(historyNumber(record.value))}
               </T>
               <T>
                 {record.baseline ? t.baseline : t.record} · {historyDate(record.date)}

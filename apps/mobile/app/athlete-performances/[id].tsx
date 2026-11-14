@@ -136,7 +136,7 @@ const Form = ({
           editable={!saving && !saved}
         />
         {unit === "s" ? (
-          <T>s</T>
+          <T>{m.units.seconds}</T>
         ) : (
           <View style={{ flexDirection: "row", gap: space.sm }}>
             {(["m", "cm"] as const).map((value) => (

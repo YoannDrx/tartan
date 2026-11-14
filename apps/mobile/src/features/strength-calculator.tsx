@@ -37,7 +37,7 @@ export const StrengthCalculator = ({ referenceKg, stepKg = 1.25 }: { referenceKg
       <T accessibilityLiveRegion="polite">
         {result.estimate === null
           ? m.calculator.estimateEmpty
-          : `${result.measured ? m.calculator.measured : m.calculator.estimate} : ${number(result.estimate, 2)} kg`}
+          : `${result.measured ? m.calculator.measured : m.calculator.estimate} : ${m.units.kg(number(result.estimate, 2))}`}
       </T>
       <Button
         variant="secondary"
