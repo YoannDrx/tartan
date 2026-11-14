@@ -144,18 +144,24 @@ it("révise un circuit après contention sans perdre la prescription précédent
   await publishRow(saved.id, a.owner.userId, new Date(), { silent: true });
   const edit = await getSessionForEdit(a.owner.userId, a.organizationId, saved.id);
   const before = await prisma.sessionPrescription.findMany({ where: { scheduledSessionId: saved.id } });
-  const locked = Promise.withResolvers<number>();
-  const release = Promise.withResolvers<void>();
+  let markLocked!: (pid: number) => void;
+  let unlock!: () => void;
+  const locked = new Promise<number>((resolve) => {
+    markLocked = resolve;
+  });
+  const released = new Promise<void>((resolve) => {
+    unlock = resolve;
+  });
   const blocker = prisma.$transaction(
     async (tx) => {
       await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${a.organizationId}::uuid FOR UPDATE`;
       const [connection] = await tx.$queryRaw<{ pid: number }[]>`SELECT pg_backend_pid() AS pid`;
-      locked.resolve(connection!.pid);
-      await release.promise;
+      markLocked(connection!.pid);
+      await released;
     },
     { timeout: 15000 },
   );
-  const pid = await locked.promise;
+  const pid = await locked;
   const write = saveScheduledSession(a.owner.userId, a.organizationId, {
     ...edit,
     draft: { ...edit.draft, title: "Circuit révisé" },
@@ -176,7 +182,7 @@ it("révise un circuit après contention sans perdre la prescription précédent
     // Dépasse réellement les cinq secondes de la transaction Prisma par défaut.
     await delay(5500);
   } finally {
-    release.resolve();
+    unlock();
     await blocker;
   }
   const result = await write;
