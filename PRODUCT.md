@@ -32,6 +32,16 @@ Les vidéos athlètes sont privées à l'athlète et aux coachs habilités ; le 
 
 La vente web précède les stores ; les bêtas natives sur invitation suivent la mise à niveau et la recette physique. Android utilise un compte organisation, sans repli automatique vers un compte personnel. Adultes en France, sans messagerie générale, montres, mineurs ni bibliothèque communautaire publique. Le déroulé et les critères de fin sont dans `docs/plans/web.md`, l'état des preuves et les réserves dans `docs/ETAT.md`.
 
+## Décision du 14 novembre 2026
+
+Après l'audit du 14 novembre, le fondateur confirme :
+
+- **Ouverture sans médiateur de la consommation**, pour l'instant. Le risque est accepté par le fondateur ; les CGV seront complétées dès l'adhésion.
+- **Accords de traitement** acceptés chez tous les prestataires. **Avis du juriste** obtenu sur l'ensemble du dossier, hébergement de données de santé, Mux aux États-Unis et partage des vidéos au groupe compris.
+- **Fiscalité** : micro-entreprise non assujettie à la TVA (article 293 B du CGI), mention déjà portée sur les factures ; Stripe Tax reste coupé.
+- **Guides d'exercices** : ils portent la mention « consignes indicatives, le coach reste responsable de la prescription ».
+- **Tracés sur vidéo** (ligne, flèche, angle) : ils entrent dans le périmètre de cette version. La comparaison de deux vidéos reste en V2.
+
 ## Offres
 
 Découverte (gratuite), Coach et Club. Les prix et les plafonds ont une seule source, `packages/domain/src/plans.ts` ; le tableau lisible est dans `docs/plans/commercialisation.md`. Les athlètes ne paient jamais.
@@ -60,5 +70,5 @@ Côté athlète : tutoiement, phrases courtes, encourageant sans infantiliser (�
 
 Tout ajout passe par une décision explicite du fondateur, consignée ici.
 
-- V2 : parents et mineurs, dessin et comparaison vidéo, statistiques de saut, planification de saison, bilan du matin, biométrie, PDF, tablettes, anglais.
+- V2 : parents et mineurs, comparaison de deux vidéos, statistiques de saut, planification de saison, bilan du matin, biométrie, PDF, tablettes, anglais.
 - V3 : messagerie, lancers, demi-fond, montres, bibliothèque communautaire, commentaire vocal.

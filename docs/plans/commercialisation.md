@@ -20,9 +20,9 @@ Les inscriptions restent fermées jusqu'à la décision du fondateur. Depuis le 
 
 | # | Condition | Qui |
 | --- | --- | --- |
-| 1 | Avis écrit du juriste : HDS, vidéos, OpenAI, conservation | Fondateur |
-| 2 | Médiateur désigné, CGV validées, « version de travail » retirée | Fondateur, puis agent |
-| 3   | Clé actuelle conservée par décision explicite ; risque non clos, accord de traitement effectivement accepté à confirmer | Fondateur             |
+| 1 | Avis écrit du juriste : HDS, vidéos, OpenAI, conservation. Obtenu selon le fondateur le 14 novembre 2026, preuve hors du dépôt | Fondateur |
+| 2 | CGV validées, « version de travail » retirée. Médiateur différé par décision du fondateur du 14 novembre 2026, risque accepté | Fondateur, puis agent |
+| 3 | Clé actuelle conservée par décision explicite ; risque non clos, plafond de dépense à poser. Accord de traitement accepté (14 novembre 2026) | Fondateur |
 | 4 | Vrai paiement, facture, résiliation, remboursement depuis la console | Fondateur |
 | 5 | Configuration verte : webhooks, sondes, passkey de secours | Fondateur, agent |
 | 6 | Plafond Mux levé, Neon payant, sauvegardes hors de GitHub | Fondateur, agent |

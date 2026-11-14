@@ -22,6 +22,9 @@ export const scrubEvent = (event: ErrorEvent): ErrorEvent => {
   return event;
 };
 
+// Une transition de page interrompue (onglet passé en arrière-plan) est sans effet pour l'utilisateur.
+export const ignoredErrors = [/Transition was aborted because of invalid state/];
+
 export const sentryOptions = {
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   enabled: Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN),
@@ -29,5 +32,6 @@ export const sentryOptions = {
   release: process.env.NEXT_PUBLIC_BUILD_ID,
   sendDefaultPii: false,
   tracesSampleRate: 0,
+  ignoreErrors: ignoredErrors,
   beforeSend: scrubEvent,
 };

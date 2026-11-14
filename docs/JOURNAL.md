@@ -14,6 +14,12 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Claude, audit de la finalisation et phase A
+Fait : audit des PR 119 à 129, des prestataires et du code ; constats et plan en phases A à G dans `ETAT.md` et `plans/web.md`. Phase A (PR `fix/phase-a-exploitation`) : analyse des secrets, protection à l'envoi et Dependabot activés ; `LICENSE` propriétaire ; job `mobile-gate` toujours présent, à exiger sur `main` ; transition de page interrompue ignorée par Sentry ; incident du 13 novembre consigné ; décisions du fondateur du 14 novembre dans `PRODUCT.md`.
+Prestataires : calcul Neon de production relevé de 0,25 CU fixe à 0,25–2 CU (réglage de recette hérité de la restauration) ; branches de recette et ancienne production supprimées sur accord, après contrôle d'absence d'écriture postérieure au point restauré ; `preview` reconstruite sans donnée de production (schéma, historique des migrations, graine), variables Preview de Vercel repointées, branche Git `preview` avancée sur `main`.
+À savoir : l'avertissement `sslmode` des journaux venait de la Preview, construite sur un ancien commit, pas de la production. `sslrootcert=system` sert à `psql`/`pg_dump`, jamais à node-postgres (ENOENT). `neonctl cs` exige `--role-name tartan_owner` (deux rôles). Mot de passe démo Preview : `.local/preview-demo-password`, hors dépôt.
+Suite : `EXPO_TOKEN` et plafond OpenAI (fondateur), puis phase B.
+
 ## 2026-11-14, Codex, F9 : attente de la feuille de validation
 La PR 127 échoue sur l'attente de cinq secondes du bouton de fermeture, après validation réussie. Capture et arbre d'accessibilité montrent ensuite la feuille « Séance validée » et le bouton `validation-finish` visible et actif ; aucune erreur serveur. Attente conditionnelle portée à quinze secondes, sans deuxième soumission ni assertion retirée. Cette marge du pilote ne prouve pas le critère de dix secondes sur téléphone, qui reste à mesurer. Rejeu ciblé réussi sur iPhone 16e simulé en 1 min 20 ; types/lint/design réussis (quatre avertissements hérités). Nouvelle CI de la tête requise.
 
