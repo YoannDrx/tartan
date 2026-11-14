@@ -466,7 +466,7 @@ export async function resolvePlannerExercise(
       where: { id: proposalId },
       data: { bindings: bindings as Prisma.InputJsonValue, version: { increment: 1 } },
     });
-  });
+  }, { timeout: 30000, maxWait: 10000 });
   return getPlannerProposal(userId, organizationId, proposalId, now);
 }
 
