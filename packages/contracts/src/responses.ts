@@ -1,4 +1,5 @@
 import { exerciseClassification } from "./exercise-classification";
+import { exerciseGuide } from "./exercise-guide";
 import { confirmedStrengthRecord, sessionCelebration } from "./strength-records";
 import { z } from "zod";
 import {
@@ -117,6 +118,7 @@ export const athleteToday = z.object({
 export type AthleteToday = z.infer<typeof athleteToday>;
 
 export const resolvedItem = z.object({
+  guide: snapshotItem.shape.guide,
   kind: snapshotItem.shape.kind,
   sourceRef: snapshotItem.shape.sourceRef,
   rounds: snapshotItem.shape.rounds,
@@ -309,6 +311,7 @@ export const commentItem = z.object({
 export type CommentItem = z.infer<typeof commentItem>;
 
 export const exerciseSummary = z.object({
+  guide: exerciseGuide.nullable().optional(),
   aliases: z.array(z.string()).optional(),
   classification: exerciseClassification.nullable().optional(),
   id: z.string(),

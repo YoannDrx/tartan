@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  exerciseFamily,
+  type ExerciseFamily,
   exerciseMovement,
   exerciseEquipment,
   type ExerciseClassification,
@@ -33,6 +35,8 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { deleteExerciseAction, exerciseUploadAction, saveExerciseAction } from "./exercise.action";
 import { ExternalVideo } from "./exercise-video";
+
+import { MovementGuide } from "./exercise-guide";
 
 type Category = keyof typeof m.exerciseCategory;
 type Source = "shared" | "mine";
@@ -92,7 +96,7 @@ const ExerciseForm = ({
         sending.on("progress", (ev) => setProgress(Math.round(ev.detail)));
         sending.on("error", () => {
           setProgress(null);
-          setError("L'envoi a échoué. L'exercice est enregistré : réessaie d'ajouter la vidéo.");
+          setError(m.exercises.uploadFailed);
         });
         sending.on("success", () => {
           setProgress(null);
@@ -235,10 +239,10 @@ const ExerciseForm = ({
           </fieldset>
         </div>
       </details>
-      <Field label={m.exercises.cues} hint={`${m.exercises.cuesHint} Une par ligne.`}>
+      <Field label={m.exercises.cues} hint={m.exercises.cuesLinesHint}>
         {(a) => <Textarea {...a} value={cues} onChange={(e) => setCues(e.target.value)} />}
       </Field>
-      <Field label={m.exercises.tags} hint="Séparées par des virgules.">
+      <Field label={m.exercises.tags} hint={m.exercises.tagsHint}>
         {(a) => <Input {...a} value={tags} onChange={(e) => setTags(e.target.value)} />}
       </Field>
       <div className="grid gap-4 tablet:grid-cols-2">
@@ -301,7 +305,7 @@ const ExerciseForm = ({
         </div>
       </fieldset>
       <fieldset className="flex flex-col gap-3 border-t border-card-line pt-4">
-        <legend className="t-section pr-2">Vidéo</legend>
+        <legend className="t-section pr-2">{m.exercises.videoTitle}</legend>
         <Field label={m.exercises.videoUrl}>
           {(a) => (
             <Input
@@ -309,7 +313,7 @@ const ExerciseForm = ({
               inputMode="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://youtu.be/…"
+              placeholder={m.exercises.urlPlaceholder}
             />
           )}
         </Field>
@@ -354,7 +358,7 @@ const ExerciseForm = ({
         </p>
       ) : null}
       {progress !== null ? (
-        <progress value={progress} max={100} className="w-full accent-brand" aria-label="Progression de l'envoi" />
+        <progress value={progress} max={100} className="w-full accent-brand" aria-label={m.exercises.uploadProgress} />
       ) : null}
       <Button type="submit" disabled={save.isPending || progress !== null}>
         {m.common.save}
@@ -386,6 +390,7 @@ export const ExerciseDetail = ({ exercise }: { exercise: ExerciseSummary }) => {
           aria-label={exercise.name}
         />
       ) : null}
+      {exercise.guide ? <MovementGuide guide={exercise.guide} /> : null}
       {prescription ? <p className="t-num text-[20px]">{prescription}</p> : null}
       {exercise.cues.length > 0 ? (
         <section>
@@ -426,12 +431,14 @@ export const ExerciseLibrary = ({
   );
   const [detail, setDetail] = useState<ExerciseSummary | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
+  const [family, setFamily] = useState<ExerciseFamily | "">("");
   const [source, setSource] = useState<Source | null>(null);
   const [search, setSearch] = useState("");
   const remove = useAction(deleteExerciseAction, { onSuccess: () => router.refresh() });
   const list = exercises.filter(
     (e) =>
       (!category || e.category === category) &&
+      (!family || e.guide?.family === family) &&
       (!source || e.shared === (source === "shared")) &&
       [e.name, ...(e.aliases ?? [])].some((term) =>
         normalizeExerciseTerm(term).includes(normalizeExerciseTerm(search)),
@@ -504,6 +511,22 @@ export const ExerciseLibrary = ({
               ))}
             </div>
           </div>
+          <Field label={m.exerciseGuide.family}>
+            {(props) => (
+              <Select
+                {...props}
+                value={family}
+                onChange={(event) => setFamily(event.target.value as ExerciseFamily | "")}
+              >
+                <option value="">{m.exerciseGuide.allFamilies}</option>
+                {exerciseFamily.options.map((key) => (
+                  <option key={key} value={key}>
+                    {m.exerciseGuide.families[key]}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
           <div role="group" aria-label={m.exercises.category} className="-mt-1">
             <div className="flex flex-wrap gap-1.5">
               <button
@@ -598,7 +621,7 @@ export const ExerciseLibrary = ({
                                     <Pencil aria-hidden className="size-4" />
                                   </IconButton>
                                   <ConfirmDialog
-                                    title={`Supprimer « ${e.name} » ?`}
+                                    title={m.exercises.deleteTitle(e.name)}
                                     description={m.exercises.deleteNotice}
                                     onConfirm={() => remove.execute({ id: e.id })}
                                     trigger={

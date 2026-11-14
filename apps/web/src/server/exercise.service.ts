@@ -14,6 +14,7 @@ import { createDirectUpload, signedPlayback, videoEnabled } from "@/lib/mux";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "./access";
+import { ensureExerciseCatalog, readExerciseGuide, retainedExerciseGuide } from "./exercise-catalog.service";
 import { assertVideoReservation, withVideoReservation } from "./video-capacity.service";
 
 type MediaRow = {
@@ -74,17 +75,22 @@ const exerciseSummary = async (e: ExerciseRow): Promise<ExerciseSummary> => {
     loadStepKg: Number(e.loadStepKg),
     media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
     shared: e.organizationId === null,
+    guide: readExerciseGuide(e.guide),
   };
 };
 
 export const listExercises = async (userId: string, organizationId: string): Promise<ExerciseSummary[]> => {
   await requireOrgMember(userId, organizationId, "editExercises");
+  await ensureExerciseCatalog(userId, organizationId);
   const rows = await prisma.exercise.findMany({
     where: { OR: [{ organizationId }, { organizationId: null }], deletedAt: null },
     orderBy: { name: "asc" },
     include: { media: { orderBy: { createdAt: "desc" }, take: 1 } },
   });
-  return Promise.all(rows.map(exerciseSummary));
+  const represented = new Set(
+    rows.filter((row) => row.organizationId === organizationId).map((row) => row.sourceCatalogKey),
+  );
+  return Promise.all(rows.filter((row) => !row.catalogKey || !represented.has(row.catalogKey)).map(exerciseSummary));
 };
 
 // Fiche d'un exercice : réservée à l'encadrement, comme la bibliothèque.
@@ -159,7 +165,7 @@ export const saveExercise = async (userId: string, organizationId: string, raw: 
         if (tests + references + sets > 0)
           throw new AppError(409, "exercise_convention_locked", m.strength.conventionLocked);
       }
-      await tx.exercise.update({ where: { id }, data });
+      await tx.exercise.update({ where: { id }, data: { ...data, guide: retainedExerciseGuide(existing, input) } });
     } else {
       id = (await tx.exercise.create({ data: { ...data, organizationId, createdBy: userId } })).id;
     }

@@ -1,3 +1,4 @@
+import { MovementGuideDisclosure } from "@/features/exercises/exercise-guide";
 import { ChevronLeft, Play } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -15,7 +16,7 @@ import { orNotFound, requireAthleteSpace } from "@/features/shell/space";
 import { getAthleteSession, getAthleteToday } from "@/server/athlete-view.service";
 import { listComments } from "@/server/comm.service";
 
-export const metadata: Metadata = { title: "Séance" };
+export const metadata: Metadata = { title: m.sessionMode.title };
 
 export default async function SeancePage({ params }: { params: Promise<{ id: string }> }) {
   const { actor, organizationId } = await requireAthleteSpace();
@@ -87,6 +88,7 @@ export default async function SeancePage({ params }: { params: Promise<{ id: str
                 {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg === null ? (
                   <p className="t-caption text-st-partial">{m.today.loadMissing}</p>
                 ) : null}
+                {item.guide ? <MovementGuideDisclosure guide={item.guide} /> : null}
                 {item.cues.length ? <p className="t-caption mt-1 font-normal">{item.cues.join(". ")}</p> : null}
               </li>
             ))}

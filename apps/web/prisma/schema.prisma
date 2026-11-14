@@ -522,6 +522,10 @@ enum ExerciseCategory {
 }
 
 model Exercise {
+  catalogKey          String?          @unique @map("catalog_key")
+  sourceCatalogKey    String?          @map("source_catalog_key")
+  catalogVersion     Int?             @map("catalog_version")
+  guide              Json?
   classification      Json?
   id                  String           @id @default(uuid()) @db.Uuid
   organizationId      String?          @map("organization_id") @db.Uuid

@@ -1,4 +1,5 @@
 import { exerciseClassification } from "./exercise-classification";
+import { exerciseGuide } from "./exercise-guide";
 import { z } from "zod";
 import { blockVariant, exerciseCategory, sessionType } from "./enums";
 import { executionRound, sequenceRef, sessionSequence } from "./session-sequence";
@@ -67,6 +68,7 @@ export const exerciseMediaSnapshot = z.discriminatedUnion("kind", [
 export type ExerciseMediaSnapshot = z.infer<typeof exerciseMediaSnapshot>;
 
 export const snapshotItem = z.object({
+  guide: exerciseGuide.nullable().optional(),
   kind: z.enum(["exercise", "recovery"]).optional(),
   sourceRef: sequenceRef.optional(),
   rounds: z.array(executionRound).max(2).optional(),

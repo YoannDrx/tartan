@@ -31,6 +31,12 @@ Les volumes et résultats datés vivent dans [ETAT.md](../ETAT.md), avec le comm
 | Évaluation IA hors réseau         | `pnpm --filter @tartan/web eval:planner`                                                           |
 | Sandbox Stripe                    | Voir [stripe.md](../plans/stripe.md)                                                               |
 
+## Relecture technique du catalogue
+
+`corepack pnpm --filter @tartan/web exercise:review` génère `.local/exercise-catalog-review.html` et son manifeste, hors Git. Ouvrir le HTML dans un navigateur : les 150 textes sont consultables sans réseau, filtrables par nom, famille et état de relecture. Le coach indique son nom, choisit « Texte acceptable » ou « Corrections demandées » et saisit ses remarques. Les illustrations sont une validation distincte.
+
+Les annotations restent dans le stockage de ce navigateur, pas dans le dépôt ni dans l'application. Garder le même chemin de fichier et le même navigateur pour reprendre. Exporter régulièrement les avis JSON : le mode privé, le nettoyage du navigateur ou un changement d'ordinateur peuvent effacer le stockage local. Un avertissement apparaît si ce stockage est inaccessible ou illisible. Le JSON contient le nom du relecteur, les remarques et les empreintes des contenus : conserver ce fichier hors du dépôt public. Après modification d'une fiche, son avis revient à « À relire » et ses remarques restent disponibles. L'export ne publie ni n'approuve automatiquement une fiche ; il sert à intégrer et vérifier les corrections avant une décision éditoriale explicite.
+
 ## Bases locales
 
 `pnpm db:start` crée `tartan` (développement), `tartan_test` (Vitest), `tartan_e2e` (Playwright). À créer et migrer à la main : `tartan_capture` (captures), `tartan_v11_sandbox` (sandbox Stripe). Les suites réinitialisent leur base à chaque lancement.

@@ -450,6 +450,7 @@ const readAthleteSession = async (
           name: item.name,
           category: item.category,
           cues: item.cues,
+          guide: item.guide,
           media: item.media,
           prescription,
           strengthLoadKind: item.strengthLoadKind,
