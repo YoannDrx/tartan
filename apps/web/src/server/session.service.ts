@@ -285,6 +285,7 @@ export const saveScheduledSession = async (
     publishAt: input.publishAt ? new Date(input.publishAt) : null,
     ...(existing?.publishedAt ? { snapshot } : {}),
   };
+  // La révision fige aussi les prescriptions sous verrou, comme une publication groupée.
   const saved = await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
     const currentAccess = await requireOrgMember(userId, organizationId, "manageSessions", tx);
@@ -343,7 +344,7 @@ export const saveScheduledSession = async (
     });
     if (row.publishedAt) await freezeSessionPrescriptions(tx, row.id, "revision");
     return row;
-  });
+  }, { timeout: 30000 });
   // Modifier une séance déjà publiée notifie les athlètes concernés (§ 7.5).
   if (existing?.publishedAt) {
     await notify(await audienceUsers(saved.id), "session_updated", {

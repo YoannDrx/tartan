@@ -14,6 +14,10 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, F9 : sauvegarde de circuit sous contention
+Reprise autorisée de `feat/native-planner-modes`. La CI montre un constructeur encore en chargement au seuil de 15 s et une révision réellement refusée par Prisma (`P2028`). La sauvegarde dispose désormais de 30 s, comme la publication groupée, sans retirer les verrous, le contrôle de version ni le gel historique. Test PostgreSQL avec verrou concurrent : échec reproduit sur l’ancien délai (5 509 ms), réussite après correction et prescriptions précédentes inchangées. Les 39 tests ciblés circuits/identité/prescriptions passent. Attentes natives bornées à 30 s au chargement et 45 s après sauvegarde, assertions et contrôle serveur conservés. Suite complète et CI à rejouer ; aucun gain de performance sur téléphone revendiqué.
+
+
 ## 2026-11-14, Codex, état du plan et dépendances des PR
 Réconciliation d’ETAT : distinction des lots de finalisation et des anciennes actions F1–F17, retirant les lignes de produit copiées par erreur dans le tableau du fondateur. Statut actuel des guides approuvés, D-U-N-S envoyé, incident réparé et qualification IA encore insuffisante. Historique du journal conservé. PR 123–129 prêtes à revue, toutes autorisées à fusionner CI verte ; vérifications en cours. Aucun statut « éprouvé » déduit d’un test simulé. Après rétablissement, l’accès lecture seule de sauvegarde GitHub a également été corrigé ; export Blob relancé, résultat à confirmer.
 

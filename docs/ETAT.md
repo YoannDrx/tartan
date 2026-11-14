@@ -2,6 +2,8 @@
 
 Mis à jour le 14 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
+Révision de circuit : expiration sous verrou concurrent reproduite puis corrigée par un budget de transaction borné à 30 s ; 39 tests ciblés réussis, prescriptions historiques préservées. CI finale requise.
+
 **En une phrase :** le socle web fonctionne et dispose de tests étendus ; la finalisation autorisée le 13 novembre ajoute constructeur imbriqué, 150 guides d'exercices, deux modes IA et vidéo collaborative avant la vente. Paiement réel et téléphones restent à éprouver ; restauration Blob locale et alerte Sentry reçue sur Gmail sont démontrées.
 
 **Décisions du fondateur :** avis juridique du dossier existant déclaré obtenu ; Mux à la demande ; ouverture souhaitée sans attendre le médiateur et maintien volontaire de la clé OpenAI actuelle. Ces deux réserves ne valent pas validation de conformité ou résolution du risque. Accords de traitement effectivement acceptés : non confirmés. Compte Google Play organisation. Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur.
