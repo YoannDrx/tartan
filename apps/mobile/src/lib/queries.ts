@@ -7,6 +7,7 @@ import { pickSpace, useSpaceStore } from "./space-store";
 import { athleteFile, athleteStats, coachAthleteFile, coachSessionDetail } from "./schemas";
 import { queryClient, WEEK_MS } from "./query-client";
 import { useSession } from "./session-store";
+import { prefetchSessionIllustrations } from "./exercise-guide-media";
 
 export const useMe = (enabled = true) => {
   const signedIn = useSession((s) => s.status === "signed-in");
@@ -23,12 +24,18 @@ export const useActiveSpace = () => {
 export const useToday = (orgId: string) =>
   useQuery({ queryKey: ["today", orgId], queryFn: () => api.today(orgId), enabled: Boolean(orgId) });
 
-export const useSessionDetail = (orgId: string, sessionId: string | null | undefined) =>
-  useQuery({
+export const useSessionDetail = (orgId: string, sessionId: string | null | undefined) => {
+  const client = useQueryClient();
+  const query = useQuery({
     queryKey: ["session", orgId, sessionId],
     queryFn: () => api.session(orgId, sessionId as string),
     enabled: Boolean(orgId && sessionId),
   });
+  useEffect(() => {
+    if (query.data) void prefetchSessionIllustrations(client, query.data);
+  }, [client, query.data]);
+  return query;
+};
 
 export const useAthleteCalendar = (orgId: string, from: string, to: string) =>
   useQuery({
@@ -84,8 +91,8 @@ export const useAlerts = (orgId: string) =>
 export const useGroups = (orgId: string) =>
   useQuery({ queryKey: ["groups", orgId], queryFn: () => api.groups(orgId), enabled: Boolean(orgId) });
 
-export const useAthletes = (orgId: string) =>
-  useQuery({ queryKey: ["athletes", orgId], queryFn: () => api.athletes(orgId), enabled: Boolean(orgId) });
+export const useAthletes = (orgId: string, enabled = true) =>
+  useQuery({ queryKey: ["athletes", orgId], queryFn: () => api.athletes(orgId), enabled: Boolean(orgId) && enabled });
 
 export const useExercises = (orgId: string) =>
   useQuery({ queryKey: ["exercises", orgId], queryFn: () => api.exercises(orgId), enabled: Boolean(orgId) });
@@ -192,12 +199,13 @@ export const usePrefetchUpcomingSessions = (orgId: string) => {
       await Promise.all(
         calendar.sessions.map((s) =>
           queryClient
-            .prefetchQuery({
+            .fetchQuery({
               queryKey: ["session", orgId, s.id],
               queryFn: () => api.session(orgId, s.id),
               staleTime: 5 * 60 * 1000,
               gcTime: WEEK_MS,
             })
+            .then((session) => (cancelled ? undefined : prefetchSessionIllustrations(queryClient, session)))
             .catch(() => undefined),
         ),
       );

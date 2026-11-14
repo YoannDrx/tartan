@@ -11,10 +11,12 @@ env:
     timeout: 30000
 - tapOn:
     id: validate-done
+# Le runner partagé peut exposer la feuille à l'accessibilité après cinq secondes.
+# Attendre son vrai bouton sans rejouer la validation ; la mesure terrain reste distincte.
 - extendedWaitUntil:
     visible:
       id: validation-finish
-    timeout: 5000
+    timeout: 15000
 - tapOn:
     id: validation-finish
 - assertVisible:

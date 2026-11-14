@@ -6,7 +6,13 @@ import {
   type PlannerPrescription,
   type Prescription,
   type PlannerSelection,
+  type PlannerBrief,
+  type ExerciseClassification,
+  type SessionDraft,
+  type SequenceNode,
 } from "@tartan/contracts";
+import { validSessionStructure } from "./session-sequence";
+import { plannerEquipmentAvailable } from "./planner-equipment";
 import type { PlanKey } from "./plans";
 
 export const PLANNER_MAX_AUDIO_BYTES = 3 * 1024 * 1024;
@@ -94,8 +100,10 @@ export function plannerPrescriptionToSession(input: PlannerPrescription, exercis
 }
 
 export type PlannerValidationContext = {
+  mode?: "format" | "propose";
+  brief?: PlannerBrief;
   period: { from: string; to: string };
-  exercises: ReadonlyMap<string, { id: string }>;
+  exercises: ReadonlyMap<string, { id: string; classification?: ExerciseClassification | null }>;
   targetTokens: ReadonlySet<string>;
   // Seulement les consignes et réponses relues ; jamais de notes privées ou santé structurée.
   reviewedInstructions: readonly string[];
@@ -114,18 +122,48 @@ export function validatePlannerInterpretation(
     if (!value.questions.length || value.sessions.length) issues.add("state");
   } else if (value.questions.length || !value.sessions.length) issues.add("state");
   if (new Set(value.questions.map((q) => q.id)).size !== value.questions.length) issues.add("state");
+  if (context.mode === "propose" && (!context.brief || (value.status === "proposal" && value.sessions.length !== 1)))
+    issues.add("state");
   for (const session of value.sessions) {
+    if (session.blocks.some((block) => !block.items.length && !block.sequence?.length)) issues.add("shape");
+    if (
+      context.mode === "propose" &&
+      (session.date !== context.brief?.date ||
+        session.durationMin === null ||
+        session.durationMin > context.brief.durationMin)
+    )
+      issues.add("date");
     if (session.date < context.period.from || session.date > context.period.to) issues.add("date");
     if (
       new Set(session.targetTokens).size !== session.targetTokens.length ||
       session.targetTokens.some((token) => !context.targetTokens.has(token))
     )
       issues.add("target");
+    if (session.blocks.some((block) => block.sequence))
+      try {
+        const shape = plannerSessionToDraft(
+          session,
+          new Map(
+            [...context.exercises.keys()].map((token) => [token, { id: "00000000-0000-4000-8000-000000000001" }]),
+          ),
+          "validation",
+        );
+        if (!validSessionStructure(shape)) issues.add("shape");
+      } catch {
+        issues.add("shape");
+      }
     for (const block of session.blocks)
       for (const item of block.items) {
         const exercise = context.exercises.get(item.exerciseToken);
-        if (!exercise) issues.add("exercise");
-        if (!context.reviewedInstructions.some((text) => text.includes(item.instruction))) issues.add("instruction");
+        if (
+          !exercise ||
+          (context.mode === "propose" &&
+            !plannerEquipmentAvailable(exercise.classification, context.brief?.equipment ?? []))
+        )
+          issues.add("exercise");
+        if (context.mode === "propose" && item.prescription.load !== null) issues.add("prescription");
+        if (context.mode !== "propose" && !context.reviewedInstructions.some((text) => text.includes(item.instruction)))
+          issues.add("instruction");
         try {
           // Validation du contrat métier existant : pas de valeur de force ni conversion RPE → kg.
           plannerPrescriptionToSession(item.prescription, exercise?.id ?? "unresolved");
@@ -135,4 +173,57 @@ export function validatePlannerInterpretation(
       }
   }
   return issues.size ? { ok: false, issues: [...issues] } : { ok: true, value };
+}
+
+/** One conversion shared by validation and draft creation, preserving the real circuit order. */
+export function plannerSessionToDraft(
+  session: PlannerInterpretation["sessions"][number],
+  exercises: ReadonlyMap<string, { id: string }>,
+  prefix: string,
+): SessionDraft {
+  const structured = session.blocks.some((block) => block.sequence != null);
+  return {
+    title: session.title,
+    type: session.type,
+    durationMin: session.durationMin,
+    coachNote: null,
+    ...(structured ? { structureVersion: 2 as const } : {}),
+    blocks: session.blocks.map((block, b) => {
+      const refs = new Map<string, string>();
+      block.items.forEach((item, i) => {
+        if (item.ref) refs.set(item.ref, `${prefix}-b${b}-i${i}`);
+      });
+      let nodeIndex = 0;
+      const mapNodes = (nodes: SequenceNode[]): SequenceNode[] =>
+        nodes.map((node) => {
+          if (node.kind === "exercise") return { ...node, itemRef: refs.get(node.itemRef) ?? "missing" };
+          const ref = `${prefix}-b${b}-n${nodeIndex++}`;
+          return node.kind === "recovery"
+            ? { ...node, ref }
+            : ({ ...node, ref, children: mapNodes(node.children) } as SequenceNode);
+        });
+      const items = block.items.map((item, i) => {
+        const exercise = exercises.get(item.exerciseToken);
+        if (!exercise) throw new Error("planner_exercise_unresolved");
+        return {
+          ref: `${prefix}-b${b}-i${i}`,
+          exerciseId: exercise.id,
+          prescription: plannerPrescriptionToSession(item.prescription, exercise.id),
+        };
+      });
+      return {
+        ref: `${prefix}-b${b}`,
+        name: block.name,
+        variant: "club" as const,
+        items,
+        ...(structured
+          ? {
+              sequence: block.sequence
+                ? mapNodes(block.sequence)
+                : items.map((item) => ({ kind: "exercise" as const, itemRef: item.ref })),
+            }
+          : {}),
+      };
+    }),
+  };
 }

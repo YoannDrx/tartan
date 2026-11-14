@@ -17,6 +17,11 @@ executionOrder:
     - athlete-validate
     - coach-tracking
     - coach-builder
+    - coach-builder-circuit
     - coach-capture
     - coach-planner
+    - coach-planner-resolution
+    - coach-exercise-guide
+    - athlete-circuit-guide
+    - athlete-video-capture
     - sync-review

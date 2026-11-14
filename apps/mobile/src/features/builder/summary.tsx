@@ -1,4 +1,5 @@
-import type { Prescription, SaveScheduledSessionInput } from "@tartan/contracts";
+import type { Prescription, SaveScheduledSessionInput, SessionDraft } from "@tartan/contracts";
+import { sequenceOccurrences, occurrenceRef, formatPrescription } from "@tartan/domain";
 import { m, strengthTestLabel } from "@tartan/i18n";
 import { View } from "react-native";
 import type { BuilderDraft } from "./draft-storage";
@@ -51,6 +52,73 @@ const PrescriptionSummary = ({ value, context }: { value: Prescription; context:
     </View>
   );
 };
+function BlockSummary({
+  block,
+  context,
+  overrides,
+  athleteName,
+}: {
+  block: SessionDraft["blocks"][number];
+  context: Context;
+  overrides: SaveScheduledSessionInput["overrides"];
+  athleteName: (id: string) => string;
+}) {
+  let steps: ReturnType<typeof sequenceOccurrences>;
+  try {
+    steps = block.sequence
+      ? sequenceOccurrences(block.sequence)
+      : block.items.map((item) => ({ node: { kind: "exercise" as const, itemRef: item.ref! }, rounds: [] }));
+  } catch {
+    return <T tone="danger">{m.builder.sequence.invalid}</T>;
+  }
+  return (
+    <>
+      {steps.map(({ node, rounds }, index) => {
+        const ref = occurrenceRef(node.kind === "exercise" ? node.itemRef : node.ref, rounds);
+        const item = node.kind === "exercise" ? block.items.find((item) => item.ref === node.itemRef) : undefined;
+        return (
+          <View key={`${ref}-${index}`} style={{ gap: space.sm }}>
+            {rounds.map((round) => (
+              <T key={round.ref} variant="caption" tone="muted">
+                {m.builder.sequence.round(round.name, round.round, round.rounds)}
+              </T>
+            ))}
+            {node.kind === "recovery" ? (
+              <T variant="smallStrong">
+                {m.builder.sequenceRecovery} · {formatPrescription({ duration_s: node.durationS })}
+              </T>
+            ) : item ? (
+              <>
+                <T variant="smallStrong">
+                  {context.exercises.find((exercise) => exercise.id === item.exerciseId)?.name ?? m.common.notFound}
+                </T>
+                <PrescriptionSummary value={item.prescription} context={context} />
+                {overrides
+                  .filter(
+                    (override) =>
+                      override.itemRef === ref ||
+                      (override.itemRef === item.ref &&
+                        !overrides.some(
+                          (specific) => specific.itemRef === ref && specific.athleteId === override.athleteId,
+                        )),
+                  )
+                  .map((override) => (
+                    <View key={override.athleteId}>
+                      <T variant="smallStrong">
+                        {m.builder.adjustments} · {athleteName(override.athleteId)}
+                      </T>
+                      <PrescriptionSummary value={override.prescription} context={context} />
+                    </View>
+                  ))}
+              </>
+            ) : null}
+          </View>
+        );
+      })}
+    </>
+  );
+}
+
 export const BuilderSummary = ({
   form,
   duration,
@@ -113,24 +181,7 @@ export const BuilderSummary = ({
                 ? m.builder.versionAutonomous
                 : m.nativeBuilder.both}
           </T>
-          {b.items.map((item) => (
-            <View key={item.ref} style={{ gap: space.sm }}>
-              <T variant="smallStrong">
-                {context.exercises.find((e) => e.id === item.exerciseId)?.name ?? m.common.notFound}
-              </T>
-              <PrescriptionSummary value={item.prescription} context={context} />
-              {form.overrides
-                .filter((o) => o.itemRef === item.ref)
-                .map((o) => (
-                  <View key={o.athleteId}>
-                    <T variant="smallStrong">
-                      {m.builder.adjustments} · {athleteName(o.athleteId)}
-                    </T>
-                    <PrescriptionSummary value={o.prescription} context={context} />
-                  </View>
-                ))}
-            </View>
-          ))}
+          <BlockSummary block={b} context={context} overrides={form.overrides} athleteName={athleteName} />
         </View>
       ))}
       {pendingPrescription ? (

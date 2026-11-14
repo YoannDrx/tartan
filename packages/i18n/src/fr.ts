@@ -856,6 +856,44 @@ export const fr = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
   },
   aiPlanner: {
+    targetOutOfScope:
+      "Un destinataire n’est plus accessible dans ton périmètre. Reviens à la sélection des groupes et athlètes.",
+    mode: "Que veux-tu préparer ?",
+    formatMode: "Mettre en forme ma séance",
+    proposeMode: "Proposer une séance",
+    proposalNotice: "L’IA propose des choix à relire : ce n’est pas une séance dictée ni une publication automatique.",
+    objective: "Objectif de la séance",
+    objectiveHint:
+      "Décris ce que tu veux travailler. La durée, le niveau et le matériel renseignés encadrent la proposition.",
+    proposalDate: "Date de la proposition",
+    proposalDuration: "Durée disponible (minutes)",
+    proposalLevel: "Niveau du groupe",
+    proposalLevels: { beginner: "Débutant", intermediate: "Intermédiaire", advanced: "Avancé" },
+    proposalEquipment: "Matériel disponible (séparé par des virgules ; vide pour aucun matériel)",
+    verifiedCatalogRequired:
+      "Le mode proposition attend la validation technique du catalogue par un coach. Tu peux déjà mettre en forme ta propre séance.",
+
+    resolveExerciseHelp:
+      "Choisis explicitement une fiche ou crée un exercice privé. Aucune correspondance proche ne sera choisie à ta place.",
+    requestedMovement: "Mouvement demandé",
+    possibleExercises: "Fiches possibles à vérifier",
+    createPrivateExercise: "Créer un exercice privé",
+    rephraseExercise: "Tu peux aussi reformuler le mouvement dans ta réponse ci-dessous.",
+    privateExerciseReview: "Vérifie la fiche avant de l’ajouter à ta bibliothèque privée.",
+    movementCues: "Consignes techniques (une par ligne, cinq maximum)",
+    movementLoadConvention: "Convention de charge",
+    movementLoadKinds: {
+      external_total: "Charge externe totale",
+      added_weight: "Charge ajoutée au poids du corps",
+      assistance: "Charge d’assistance",
+      bodyweight: "Poids du corps",
+    },
+    privateExerciseReviewed: "J’ai vérifié le mouvement, les consignes et la convention de charge.",
+    savePrivateExercise: "Enregistrer et rattacher cet exercice",
+    retryExerciseResolution: "Reprendre le rattachement",
+    exerciseResolved: (name: string) =>
+      `Exercice rattaché : ${name}. Complète ta réponse puis relance l’interprétation.`,
+
     consentTitle: "Avant ta première demande",
     consentBody:
       "Ce que tu écris ou dictes et le nom des exercices de ta bibliothèque sont envoyés à OpenAI, aux États-Unis, pour préparer des brouillons de séance que tu relis. Les noms des groupes et athlètes sélectionnés sont remplacés par des jetons.",
@@ -871,6 +909,10 @@ export const fr = {
       "Le destinataire obtenu ne fait pas partie de la sélection autorisée. Quel groupe ou athlète sélectionné doit recevoir cette séance ?",
     clarifyDate: (from: string, to: string) =>
       `La date de cette demande n’est pas certaine. Quel jour de la période (du ${from} au ${to}) souhaites-tu ?`,
+    clarifyVolume:
+      "Combien de tours souhaites-tu pour chaque groupe d’exercices ? La proposition contient un nombre absent de ta consigne.",
+    clarifyEquipment:
+      "Aucun exercice vérifié ne correspond au matériel indiqué. Précise le matériel disponible ou modifie l’objectif de la proposition.",
     clarifyExercise:
       "Cet exercice n’est pas identifié dans ta bibliothèque. Indique le nom exact de sa fiche, ou crée-la avant de relancer.",
     clarifyTarget: "Plusieurs destinataires sont sélectionnés. Lesquels doivent recevoir cette séance ?",
@@ -2138,6 +2180,7 @@ export const fr = {
     pending: "Guide en préparation : validation technique par un coach encore attendue.",
     approved: "Guide validé techniquement",
     illustrationNotReady: "Illustration technique en préparation.",
+    illustrationUnavailable: "Illustration indisponible pour le moment. Les consignes restent consultables.",
     illustrationPending: "Illustration de travail — validation technique attendue",
     original: "Illustration originale Tartan",
     version: (n: number) => `Guide Tartan · version ${n}`,

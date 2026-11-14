@@ -1,3 +1,4 @@
+import { plannerInterpretation } from "@tartan/contracts";
 import { beforeEach, expect, it, vi } from "vitest";
 import { openAiPlannerProvider, type PlannerProviderContext } from "@/server/ai/provider";
 const settings = vi.hoisted(() => ({
@@ -46,6 +47,10 @@ it("utilise l’alias local, une sortie stricte et store:false sans outil ni his
     store: false,
     text: { format: { type: "json_schema", strict: true } },
   });
+  expect(JSON.stringify(body.text.format.schema)).not.toContain('"oneOf"');
+  expect(
+    body.text.format.schema.properties.sessions.items.properties.blocks.items.properties.content.items.anyOf,
+  ).toHaveLength(3);
   expect(body).not.toHaveProperty("tools");
   expect(body).not.toHaveProperty("previous_response_id");
   expect(JSON.parse(body.input)).toEqual({
@@ -134,9 +139,11 @@ const proposalFor = (instruction: string, sessions: { date: string; targetTokens
 it("une date ou une habitude contredite par la consigne devient une question sans séance", async () => {
   const hier = "Hier : squat, 3 séries de 4 à 40 kg, repos 120 secondes.";
   const fetcher = transport(completed(proposalFor(hier, [{ date: "2026-11-09" }])));
-  await expect(
-    openAiPlannerProvider(fetcher).interpret({ ...context, instructions: [hier] }),
-  ).resolves.toMatchObject({ status: "clarification", sessions: [], questions: [{ field: "date" }] });
+  await expect(openAiPlannerProvider(fetcher).interpret({ ...context, instructions: [hier] })).resolves.toMatchObject({
+    status: "clarification",
+    sessions: [],
+    questions: [{ field: "date" }],
+  });
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
 it("une proposition vide devient une question, sans erreur pour le coach", async () => {
@@ -169,6 +176,7 @@ it("demande une seule reprise quand un jour cité manque, puis pose la question"
     sessions: [{ date: "2026-11-09" }, { date: "2026-11-12" }],
   });
   expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher.mock.calls[0]![1]?.signal).toBe(fetcher.mock.calls[1]![1]?.signal);
   expect(JSON.parse(JSON.parse(String(fetcher.mock.calls[1]![1]?.body)).input).correction).toBeTruthy();
   const stillTruncated = vi.fn<typeof fetch>(async () => Response.json(completed(truncated)));
   await expect(
@@ -384,4 +392,313 @@ it("accepte uniquement les métadonnées sportives connues, sans notes ni champ 
     ).rejects.toMatchObject({ code: "configuration" });
   }
   expect(fetcher).toHaveBeenCalledTimes(1);
+});
+
+it("corrige une structure invalide une seule fois sans multiplier les séries", async () => {
+  const instruction = "Demain : squat, 3 séries de 4 à 40 kg, repos 120 secondes.";
+  const valid = proposalFor(instruction, [{ date: "2026-11-09" }]);
+  const block = valid.sessions[0]!.blocks[0]!;
+  const malformed = {
+    ...valid,
+    sessions: [
+      {
+        ...valid.sessions[0],
+        blocks: [
+          {
+            ...block,
+            items: block.items.map((item) => ({ ...item, ref: "squat" })),
+            sequence: [
+              { kind: "exercise", itemRef: "squat" },
+              { kind: "exercise", itemRef: "squat" },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const fetcher = transport(completed(malformed));
+  fetcher
+    .mockResolvedValueOnce(Response.json(completed(malformed)))
+    .mockResolvedValueOnce(Response.json(completed(valid)));
+  const result = await openAiPlannerProvider(fetcher).interpret({ ...context, instructions: [instruction] });
+  expect(result.status).toBe("proposal");
+  expect(result.sessions[0]?.blocks[0]?.items[0]?.prescription.sets).toBe(3);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher.mock.calls[0]![1]?.signal).toBe(fetcher.mock.calls[1]![1]?.signal);
+  expect(JSON.parse(JSON.parse(String(fetcher.mock.calls[1]![1]?.body)).input).correction).toContain("content");
+  const repeated = transport(completed(malformed));
+  await expect(
+    openAiPlannerProvider(repeated).interpret({ ...context, instructions: [instruction] }),
+  ).rejects.toMatchObject({ code: "invalid_output" });
+  expect(repeated).toHaveBeenCalledTimes(2);
+});
+
+it("préserve un bloc de récupération après validation et réattachement des citations", async () => {
+  const instruction = "Demain : squat, 3 séries de 4 à 40 kg, repos 120 secondes. Puis récupération 75 secondes.";
+  const value = plannerInterpretation.parse(proposalFor(instruction, [{ date: "2026-11-09" }]));
+  value.sessions[0]!.blocks.push({
+    name: "Récupération finale",
+    items: [],
+    sequence: [{ kind: "recovery", ref: "final-rest", durationS: 75 }],
+  });
+  const fetcher = transport(completed(value));
+  const result = await openAiPlannerProvider(fetcher).interpret({ ...context, instructions: [instruction] });
+  expect(result.status).toBe("proposal");
+  expect(result.sessions[0]!.blocks).toHaveLength(2);
+  expect(result.sessions[0]!.blocks[1]).toEqual(value.sessions[0]!.blocks[1]);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
+
+it("refuse un lundi inventé pour une consigne du mercredi même si sa citation omet le jour", async () => {
+  const instruction = "Mercredi : squat, 3 séries de 4 à 40 kg, repos 120 secondes.";
+  const wrong = proposalFor(instruction, [{ date: "2026-11-09" }]);
+  wrong.sessions[0]!.blocks[0]!.items[0]!.instruction = "squat, 3 séries de 4 à 40 kg, repos 120 secondes.";
+  const result = await openAiPlannerProvider(transport(completed(wrong))).interpret({
+    ...context,
+    instructions: [instruction],
+  });
+  expect(result).toMatchObject({ status: "clarification", sessions: [], questions: [{ field: "date" }] });
+});
+
+it("refuse de remplacer un power clean par le clean dont l’alias est plus court", async () => {
+  const instruction = "Mercredi : power clean, 3 séries de 4 à 40 kg, repos 120 secondes.";
+  const wrong = proposalFor(instruction, [{ date: "2026-11-11" }]);
+  const fetcher = transport(completed(wrong));
+  const result = await openAiPlannerProvider(fetcher).interpret({
+    ...context,
+    instructions: [instruction],
+    exercises: [
+      { token: "exercise_1", name: "Épaulé", category: "strength", aliases: ["clean"] },
+      { token: "exercise_2", name: "Épaulé puissance", category: "strength", aliases: ["power clean"] },
+    ],
+  });
+  expect(result).toMatchObject({ status: "clarification", sessions: [], questions: [{ field: "exercise" }] });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it("reprend une pause V2 perdue après une série unique puis refuse une seconde erreur", async () => {
+  const instruction = "Demain : squat, une série de quatre à 40 kg, puis récupération 120 secondes.";
+  const wrong = plannerInterpretation.parse(proposalFor(instruction, [{ date: "2026-11-09" }]));
+  const block = wrong.sessions[0]!.blocks[0]!;
+  block.items[0]!.ref = "squat";
+  block.items[0]!.prescription.sets = 1;
+  block.sequence = [{ kind: "exercise", itemRef: "squat" }];
+  const corrected = structuredClone(wrong);
+  corrected.sessions[0]!.blocks[0]!.items[0]!.prescription.restS = null;
+  corrected.sessions[0]!.blocks[0]!.sequence!.push({ kind: "recovery", ref: "pause", durationS: 120 });
+  const fetcher = transport(completed(wrong));
+  fetcher
+    .mockResolvedValueOnce(Response.json(completed(wrong)))
+    .mockResolvedValueOnce(Response.json(completed(corrected)));
+  const input = { ...context, instructions: [instruction] };
+  expect(await openAiPlannerProvider(fetcher).interpret(input)).toEqual(corrected);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  const repeated = transport(completed(wrong));
+  expect(await openAiPlannerProvider(repeated).interpret(input)).toMatchObject({
+    status: "clarification",
+    sessions: [],
+    questions: [{ field: "rest" }],
+  });
+  expect(repeated).toHaveBeenCalledTimes(2);
+});
+
+it("propose avec le matériel disponible, une charge nulle dans le schéma et une explication générée", async () => {
+  const result = plannerInterpretation.parse(
+    proposalFor("Choix proposé pour renforcer les jambes.", [{ date: "2026-11-09" }]),
+  );
+  result.sessions[0]!.durationMin = 30;
+  result.sessions[0]!.blocks[0]!.items[0]!.prescription.load = null;
+  const proposedContext: PlannerProviderContext = {
+    ...context,
+    mode: "propose",
+    brief: {
+      objective: "Force générale",
+      date: "2026-11-09",
+      durationMin: 40,
+      level: "beginner",
+      equipment: ["haltères"],
+    },
+    exercises: [
+      { ...context.exercises[0]!, classification: { movement: "squat", equipment: [] } },
+      {
+        token: "exercise_2",
+        name: "Développé sur banc",
+        aliases: [],
+        category: "strength",
+        classification: { movement: "push", equipment: ["dumbbells", "bench"] },
+      },
+      { token: "exercise_3", name: "Fiche inconnue", aliases: [], category: "strength", classification: null },
+    ],
+  };
+  const fetcher = transport(completed(result));
+  expect((await openAiPlannerProvider(fetcher).interpret(proposedContext)).status).toBe("proposal");
+  const body = JSON.parse(String(fetcher.mock.calls[0]![1]?.body));
+  expect(JSON.parse(body.input).exercises.map((e: { token: string }) => e.token)).toEqual(["exercise_1"]);
+  const item =
+    body.text.format.schema.properties.sessions.items.properties.blocks.items.properties.content.items.anyOf.find(
+      (node: { properties: { kind: { const: string } } }) => node.properties.kind.const === "exercise",
+    );
+  expect(Object.keys(item.properties)[0]).toBe("kind");
+  expect(item.properties.prescription.properties.load).toEqual({ type: "null" });
+  expect(item.properties.exerciseToken.enum).toEqual(["exercise_1"]);
+  const wrong = structuredClone(result);
+  wrong.sessions[0]!.blocks[0]!.items[0]!.exerciseToken = "exercise_2";
+  await expect(openAiPlannerProvider(transport(completed(wrong))).interpret(proposedContext)).rejects.toMatchObject({
+    code: "invalid_output",
+  });
+});
+it("demande du matériel précis sans appel au modèle si aucune fiche n’est compatible", async () => {
+  const fetcher = transport();
+  const result = await openAiPlannerProvider(fetcher).interpret({
+    ...context,
+    mode: "propose",
+    brief: { objective: "Force", date: "2026-11-09", durationMin: 30, level: "beginner", equipment: [] },
+  });
+  expect(result).toMatchObject({ status: "clarification", sessions: [], questions: [{ id: "equipment" }] });
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+it("respecte une correspondance choisie explicitement sans boucler sur l’alias ambigu", async () => {
+  const instruction = "Demain : squat, 3 séries de 4 à 40 kg, repos 120 secondes.";
+  const resolved: PlannerProviderContext = {
+    ...context,
+    instructions: [instruction],
+    exercises: [
+      { token: "exercise_1", name: "Squat arrière", category: "strength", aliases: ["squat"] },
+      { token: "exercise_2", name: "Squat avant", category: "strength", aliases: ["squat"] },
+    ],
+    resolvedExercises: [{ term: "squat", token: "exercise_1" }],
+  };
+  const valid = proposalFor(instruction, [{ date: "2026-11-09" }]);
+  expect((await openAiPlannerProvider(transport(completed(valid))).interpret(resolved)).status).toBe("proposal");
+  valid.sessions[0]!.blocks[0]!.items[0]!.exerciseToken = "exercise_2";
+  expect(await openAiPlannerProvider(transport(completed(valid))).interpret(resolved)).toMatchObject({
+    status: "clarification",
+    questions: [{ field: "exercise" }],
+  });
+});
+
+it("après un exercice substitué, redemande une clarification nommée avec une seule reprise", async () => {
+  const instruction = "Demain : marche du dragon, 3 séries de 4 à 40 kg, repos 120 secondes.";
+  const wrong = proposalFor(instruction, [{ date: "2026-11-09" }]);
+  const unknown = {
+    ...clarification,
+    questions: [
+      {
+        id: "unknown",
+        field: "exercise",
+        question: "Quelle fiche correspond à la marche du dragon ?",
+        exerciseName: "marche du dragon",
+        options: [],
+      },
+    ],
+  };
+  const fetcher = transport(completed(wrong));
+  fetcher
+    .mockResolvedValueOnce(Response.json(completed(wrong)))
+    .mockResolvedValueOnce(Response.json(completed(unknown)));
+  expect(await openAiPlannerProvider(fetcher).interpret({ ...context, instructions: [instruction] })).toMatchObject({
+    status: "clarification",
+    questions: [{ exerciseName: "marche du dragon" }],
+  });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it("convertit la réponse ordonnée du modèle en circuit sans fabriquer un exercice pour le repos", async () => {
+  const instruction = "Demain : squat, 2 tours de 4 à 40 kg avec 120 secondes entre les tours, sans repos final.";
+  const legacy = proposalFor(instruction, [{ date: "2026-11-09" }]);
+  const item = legacy.sessions[0]!.blocks[0]!.items[0]!;
+  const generated = {
+    ...legacy,
+    sessions: [
+      {
+        ...legacy.sessions[0],
+        blocks: [
+          {
+            name: "Force",
+            content: [
+              {
+                kind: "repeat",
+                name: "Tours",
+                rounds: 2,
+                restBetweenRoundsS: 120,
+                children: [{ ...item, kind: "exercise", prescription: { ...item.prescription, sets: 1, restS: 0 } }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const result = await openAiPlannerProvider(transport(completed(generated))).interpret({
+    ...context,
+    instructions: [instruction],
+  });
+  expect(result.status).toBe("proposal");
+  expect(result.sessions[0]!.blocks[0]!.items).toHaveLength(1);
+  expect(result.sessions[0]!.blocks[0]!.sequence).toMatchObject([
+    { kind: "repeat", rounds: 2, restBetweenRoundsS: 120, children: [{ kind: "exercise" }] },
+  ]);
+});
+
+it("ne conserve jamais une séance amputée après une citation sans attache", async () => {
+  const instruction = "Demain : squat, 3 séries de 4 à 40 kg, repos 120 secondes, puis marche du dragon.";
+  const wrong = proposalFor(instruction, [{ date: "2026-11-09" }]);
+  const block = wrong.sessions[0]!.blocks[0]!;
+  block.items.push({ ...block.items[0]!, exerciseToken: "exercise_2", instruction: "Mouvement ajouté sans source" });
+  const fetcher = transport(completed(wrong));
+  const result = await openAiPlannerProvider(fetcher).interpret({
+    ...context,
+    instructions: [instruction],
+    exercises: [...context.exercises, { token: "exercise_2", name: "Pompes", category: "strength", aliases: [] }],
+  });
+  expect(result).toMatchObject({ status: "clarification", sessions: [], questions: [{ field: "exercise" }] });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it("reprend une seule fois un circuit dont les tours ont été omis", async () => {
+  const instruction =
+    "Demain : circuit trois tours de squat, quatre répétitions à 40 kg, repos 120 secondes entre tours.";
+  const flat = proposalFor(instruction, [{ date: "2026-11-09" }]);
+  const corrected = structuredClone(flat);
+  corrected.sessions[0]!.blocks[0]!.items[0]!.prescription.sets = 1;
+  const repeated = {
+    ...corrected,
+    sessions: corrected.sessions.map((session) => ({
+      ...session,
+      blocks: session.blocks.map((block) => ({
+        ...block,
+        items: block.items.map((item) => ({
+          ...item,
+          ref: "squat",
+          prescription: { ...item.prescription, restS: null },
+        })),
+        sequence: [
+          {
+            kind: "repeat",
+            ref: "rounds",
+            name: "Circuit",
+            rounds: 3,
+            restBetweenRoundsS: 120,
+            children: [{ kind: "exercise", itemRef: "squat" }],
+          },
+        ],
+      })),
+    })),
+  };
+  const fetcher = transport(completed(flat));
+  fetcher
+    .mockResolvedValueOnce(Response.json(completed(flat)))
+    .mockResolvedValueOnce(Response.json(completed(repeated)));
+  expect(await openAiPlannerProvider(fetcher).interpret({ ...context, instructions: [instruction] })).toMatchObject({
+    status: "proposal",
+    sessions: [{ blocks: [{ sequence: [{ rounds: 3 }] }] }],
+  });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  const missing = transport(completed(flat));
+  expect(await openAiPlannerProvider(missing).interpret({ ...context, instructions: [instruction] })).toMatchObject({
+    status: "clarification",
+    sessions: [],
+  });
+  expect(missing).toHaveBeenCalledTimes(2);
 });

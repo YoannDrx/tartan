@@ -1,0 +1,29 @@
+appId: ${APP_ID}
+env:
+  EMAIL: ${ATHLETE_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- tapOn:
+    text: "Plus tard|Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: session-hero
+    timeout: 30000
+- tapOn: "Mes vidéos.*"
+- extendedWaitUntil:
+    visible:
+      id: athlete-video-upload
+    timeout: 15000
+- assertVisible: "Visible par toi et tes coachs habilités"
+- tapOn:
+    id: athlete-video-upload
+- extendedWaitUntil:
+    visible:
+      id: capture-import
+    timeout: 15000
+- assertVisible: "Visible par toi et tes coachs habilités"
+- assertNotVisible: "^Athlète$"
+- assertNotVisible:
+    id: capture-film
+- takeScreenshot: athlete-private-capture

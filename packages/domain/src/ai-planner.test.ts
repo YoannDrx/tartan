@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   plannerInterpretation,
+  plannerProviderInterpretation,
   plannerSelection,
   type PlannerSelection,
   type PlannerInterpretation,
@@ -9,6 +10,7 @@ import {
 import {
   plannerAudioIsWithinLimits,
   plannerLimits,
+  plannerSessionToDraft,
   plannerPrescriptionToSession,
   plannerQuotaFits,
   plannerRetentionDeadline,
@@ -190,7 +192,7 @@ describe("frontière de confiance du planificateur", () => {
     ).toBe(false);
   });
   it("génère un schéma sans clé facultative ni objet ouvert pour le fournisseur", () => {
-    const schema = plannerInterpretation.toJSONSchema();
+    const schema = plannerProviderInterpretation.toJSONSchema();
     function inspect(value: unknown) {
       if (!value || typeof value !== "object") return;
       const object = value as Record<string, unknown>;
@@ -248,4 +250,75 @@ describe("bornes et conservation du planificateur", () => {
       "2026-10-31T23:00:00.000Z",
     );
   });
+});
+
+it("convertit un superset en A/B/A/B et refuse une expansion excessive", () => {
+  const input = proposal();
+  const block = input.sessions[0]!.blocks[0]!;
+  const item = block.items[0]!;
+  block.items = [
+    { ...item, ref: "a", prescription: { ...item.prescription, sets: 1 } },
+    { ...item, ref: "b", prescription: { ...item.prescription, sets: 1 } },
+  ];
+  block.sequence = [
+    {
+      kind: "repeat",
+      ref: "r",
+      name: "Superset",
+      rounds: 2,
+      restBetweenRoundsS: 60,
+      children: [
+        { kind: "exercise", itemRef: "a" },
+        { kind: "exercise", itemRef: "b" },
+      ],
+    },
+  ];
+  expect(validatePlannerInterpretation(input, context).ok).toBe(true);
+  const draft = plannerSessionToDraft(input.sessions[0]!, context.exercises, "ai");
+  expect(draft.structureVersion).toBe(2);
+  expect(draft.blocks[0]!.sequence).toMatchObject([
+    { kind: "repeat", children: [{ itemRef: "ai-b0-i0" }, { itemRef: "ai-b0-i1" }] },
+  ]);
+  block.items[0]!.prescription.sets = 50;
+  block.sequence[0] = { ...block.sequence[0]!, rounds: 50 } as (typeof block.sequence)[0];
+  expect(validatePlannerInterpretation(input, context).ok).toBe(false);
+});
+it("le mode proposition respecte le brief et refuse les charges inventées", () => {
+  const input = proposal();
+  const proposalContext = {
+    ...context,
+    mode: "propose" as const,
+    exercises: new Map(
+      [...context.exercises].map(([key, value]) => [
+        key,
+        { ...value, classification: { movement: null, equipment: [] } },
+      ]),
+    ),
+    brief: {
+      objective: "Force générale",
+      date: "2026-11-13",
+      durationMin: 45,
+      level: "intermediate" as const,
+      equipment: ["barre"],
+    },
+  };
+  input.sessions[0]!.durationMin = 40;
+  expect(validatePlannerInterpretation(input, proposalContext).ok).toBe(false);
+  input.sessions[0]!.blocks[0]!.items[0]!.prescription.load = null;
+  expect(validatePlannerInterpretation(input, proposalContext).ok).toBe(true);
+  input.sessions[0]!.blocks[0]!.items[0]!.instruction = "Un choix proposé pour cet objectif.";
+  expect(validatePlannerInterpretation(input, proposalContext).ok).toBe(true);
+  expect(
+    validatePlannerInterpretation(input, {
+      ...proposalContext,
+      exercises: new Map(
+        [...context.exercises].map(([key, value]) => [
+          key,
+          { ...value, classification: { movement: null, equipment: ["bench"] } },
+        ]),
+      ),
+    }).ok,
+  ).toBe(false);
+  input.sessions[0]!.date = "2026-11-14";
+  expect(validatePlannerInterpretation(input, proposalContext).ok).toBe(false);
 });

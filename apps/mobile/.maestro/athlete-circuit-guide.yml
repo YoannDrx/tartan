@@ -1,0 +1,78 @@
+# Contrat partagé : A, récupération, B, repos de tour, A, récupération, B.
+appId: ${APP_ID}
+env:
+  EMAIL: ${ATHLETE_EMAIL}
+---
+- runScript: scripts/create-circuit.js
+- runFlow: flows/_sign-in.yml
+- tapOn:
+    text: "Plus tard|Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: session-hero
+    timeout: 30000
+- openLink: ${output.circuitUrl}
+- runFlow: flows/_accept-deep-link.yml
+- extendedWaitUntil:
+    visible: "Étape 1 sur 7"
+    # Le premier lien iOS peut reprendre après plus de 15 s sur le simulateur CI.
+    timeout: 30000
+- tapOn:
+    id: exercise-guide-open
+- assertVisible: "Guide validé techniquement"
+- scrollUntilVisible:
+    element:
+      text: "Installation"
+    direction: DOWN
+- takeScreenshot: circuit-guide
+- tapOn:
+    id: session-next
+- assertVisible: "Étape 2 sur 7"
+- assertVisible:
+    id: rest-toggle
+- assertNotVisible:
+    id: set-0
+- tapOn:
+    id: rest-toggle
+- assertVisible: "Arrêter"
+- tapOn:
+    id: session-next
+- assertVisible: "Étape 3 sur 7"
+- assertVisible:
+    id: set-0
+- tapOn:
+    id: session-next
+- assertVisible: "Étape 4 sur 7"
+- assertNotVisible:
+    id: set-0
+- tapOn:
+    id: session-next
+- assertVisible: "Étape 5 sur 7"
+- assertVisible: "Circuit · tour 2 sur 2"
+- tapOn:
+    id: session-next
+- assertVisible: "Étape 6 sur 7"
+- assertNotVisible:
+    id: set-0
+- tapOn:
+    id: session-next
+- assertVisible: "Étape 7 sur 7"
+- assertVisible:
+    id: session-finish
+- assertNotVisible:
+    id: rest-toggle
+- scrollUntilVisible:
+    element:
+      id: session-video-upload
+    direction: UP
+- tapOn:
+    id: session-video-upload
+- extendedWaitUntil:
+    visible:
+      id: capture-import
+    timeout: 15000
+- assertVisible: "Circuit natif de recette"
+- assertVisible: "Visible par toi et tes coachs habilités"
+- assertNotVisible: "^Athlète$"
+- takeScreenshot: circuit-video-capture

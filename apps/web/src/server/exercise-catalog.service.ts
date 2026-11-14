@@ -47,6 +47,7 @@ export const ensureExerciseCatalog = async (userId: string, organizationId: stri
       await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
       const existing = await tx.exercise.findMany({ where: { catalogKey: { not: null } } });
       const byKey = new Map(existing.map((row) => [row.catalogKey, row]));
+      const additions: Prisma.ExerciseCreateManyInput[] = [];
       for (const entry of EXERCISE_CATALOG) {
         const current = byKey.get(entry.catalogKey);
         if (current && (current.catalogVersion ?? 0) >= entry.catalogVersion) continue;
@@ -63,12 +64,12 @@ export const ensureExerciseCatalog = async (userId: string, organizationId: stri
           guide: entry.guide,
           deletedAt: null,
         };
-        await tx.exercise.upsert({
-          where: { catalogKey: entry.catalogKey },
-          create: { ...data, catalogKey: entry.catalogKey },
-          update: data,
-        });
+        if (!current) additions.push({ ...data, catalogKey: entry.catalogKey });
+        else await tx.exercise.update({ where: { id: current.id }, data });
       }
+      // The first visit installs the catalogue in one statement, under the same lock.
+      // Sequential inserts otherwise delay the first builder on constrained servers.
+      if (additions.length) await tx.exercise.createMany({ data: additions });
       // Approval is a catalogue revision, not a change to the coach's exercise or a historical snapshot.
       for (const row of await tx.exercise.findMany({ where: outdatedWhere })) {
         const entry = EXERCISE_CATALOG.find((item) => item.catalogKey === row.sourceCatalogKey);

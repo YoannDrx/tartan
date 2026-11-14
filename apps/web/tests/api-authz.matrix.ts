@@ -793,6 +793,19 @@ export const MATRICE: Row[] = [
   },
   // 404 pour l'adjoint : une vidéo hors de sa portée n'existe pas pour lui.
   { route: "GET /api/v1/orgs/[orgId]/videos/[videoId]", ...membres, adjoint: 404, call: videoParams },
+  { route: "POST /api/v1/orgs/[orgId]/videos/[videoId]/review", ...encadrants, adjoint: 404, call: videoParams },
+  {
+    route: "DELETE /api/v1/orgs/[orgId]/videos/[videoId]",
+    ...membres,
+    adjoint: 404,
+    call: async (w) => {
+      const video = await prisma.video.create({
+        data: { organizationId: w.org, athleteId: w.athleteId, uploadedBy: w.owner, sharedWithAthlete: true },
+        select: { id: true },
+      });
+      return { params: { videoId: video.id } };
+    },
+  },
   {
     route: "POST /api/v1/orgs/[orgId]/videos/[videoId]/upload",
     ...encadrants,
@@ -908,6 +921,26 @@ export const MATRICE: Row[] = [
       return {
         params: { proposalId: asked.id },
         body: { operationId: randomUUID(), expectedVersion: asked.version, reviewed: true, text: "Deux minutes." },
+      };
+    },
+  },
+  {
+    route: "POST /api/v1/orgs/[orgId]/planner/proposals/[proposalId]/resolve-exercise",
+    ...encadrants,
+    adjoint: 409,
+    coach: 409,
+    proprietaire: 409,
+    call: async (w, qui) => {
+      const proposal = await readyProposal(w, qui);
+      return {
+        params: { proposalId: proposal.id },
+        body: {
+          operationId: randomUUID(),
+          expectedVersion: proposal.version,
+          questionId: "missing",
+          requestedName: "Mouvement",
+          choice: { kind: "existing", exerciseId: randomUUID() },
+        },
       };
     },
   },

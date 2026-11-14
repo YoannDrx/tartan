@@ -10,7 +10,26 @@ export const fakePlannerEnabled = (vars: NodeJS.ProcessEnv = process.env): boole
 // bibliothèque autorisée. La consigne relue est recopiée telle quelle, comme l'exige la validation.
 export const fakePlannerProvider = (): PlannerProvider => ({
   async interpret(context: PlannerProviderContext) {
-    const exercise = context.exercises[0]!;
+    const fixtureMovement = context.instructions[0]?.match(/Mouvement natif de recette(?: \d+)?/)?.[0];
+    const unknownFixture = Boolean(fixtureMovement);
+    const resolved = context.exercises.find((exercise) => exercise.name === fixtureMovement);
+    if (unknownFixture && !resolved)
+      return {
+        status: "clarification" as const,
+        sessions: [],
+        assumptions: [],
+        suggestions: [],
+        questions: [
+          {
+            id: "native-exercise",
+            field: "exercise" as const,
+            question: `Quel exercice correspond au ${fixtureMovement} ?`,
+            exerciseName: fixtureMovement,
+            options: [],
+          },
+        ],
+      };
+    const exercise = (unknownFixture ? resolved : context.exercises[0])!;
     const target = context.targets[0]!;
     const instruction = context.instructions[0]!.slice(0, 2000);
     return {
@@ -20,11 +39,11 @@ export const fakePlannerProvider = (): PlannerProvider => ({
       suggestions: [],
       sessions: [
         {
-          date: context.period.from,
+          date: context.mode === "propose" ? context.brief!.date : context.period.from,
           startTime: null,
           title: instruction.slice(0, 120),
           type: "strength" as const,
-          durationMin: 45,
+          durationMin: context.mode === "propose" ? context.brief!.durationMin : 45,
           targetTokens: [target.token],
           blocks: [
             {

@@ -34,6 +34,7 @@ const PERSISTED = new Set([
   "groups",
   "coach-calendar",
   "exercises",
+  "exercise-guide-illustration",
 ]);
 
 const CALENDARS = new Set(["athlete-calendar", "coach-calendar"]);

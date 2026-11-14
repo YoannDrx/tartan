@@ -1,6 +1,12 @@
 import "server-only";
 import { z } from "zod";
-import { addDays, trainingPhaseProgress, plannerPhaseChoicesForDate } from "@tartan/domain";
+import {
+  addDays,
+  trainingPhaseProgress,
+  plannerPhaseChoicesForDate,
+  rankPlannerCandidates,
+  plannerEquipmentAvailable,
+} from "@tartan/domain";
 import {
   plannerSelection,
   type PlannerSelection,
@@ -10,13 +16,27 @@ import {
   uuid,
 } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
-import { AppError, forbidden, notFound, invalid } from "@/lib/errors";
+import { AppError, notFound, invalid } from "@/lib/errors";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireGroupInScope, visibleAthleteIds, type Access } from "../access";
 import { preparePhasePlanning } from "../training-phases.service";
 import { plannerProviderContext, type PlannerProviderContext } from "./provider";
 
 export const plannerBindings = z.object({
+  resolutions: z
+    .array(
+      z.object({
+        operationId: uuid,
+        questionId: z.string(),
+        requestedName: z.string().max(120).optional(),
+        clarificationCount: z.number().int().min(0).default(0),
+        fingerprint: z.string(),
+        exerciseId: uuid,
+        name: z.string(),
+      }),
+    )
+    .max(50)
+    .optional(),
   today: z.iso.date(),
   timeZone: z.string(),
   targets: z.array(
@@ -46,9 +66,16 @@ export const plannerBindings = z.object({
 export type PlannerBindings = z.infer<typeof plannerBindings>;
 const changed = () => new AppError(409, "planner_context_changed", m.aiPlanner.contextChanged);
 export async function assertPlannerTargets(tx: Prisma.TransactionClient, access: Access, selection: PlannerSelection) {
-  await requireGroupInScope(access, selection.groupIds, tx);
+  try {
+    await requireGroupInScope(access, selection.groupIds, tx);
+  } catch (error) {
+    if (error instanceof AppError && error.status === 403)
+      throw new AppError(403, "planner_target_out_of_scope", m.aiPlanner.targetOutOfScope);
+    throw error;
+  }
   const athletes = await visibleAthleteIds(access, tx);
-  if (!selection.athleteIds.every((id) => athletes.includes(id))) throw forbidden();
+  if (!selection.athleteIds.every((id) => athletes.includes(id)))
+    throw new AppError(403, "planner_target_out_of_scope", m.aiPlanner.targetOutOfScope);
 }
 
 export async function buildPlannerBindings(
@@ -56,6 +83,7 @@ export async function buildPlannerBindings(
   access: Access,
   raw: PlannerSelection,
   now: Date,
+  text = "",
 ): Promise<PlannerBindings> {
   const selection = plannerSelection.parse(raw);
   await assertPlannerTargets(tx, access, selection);
@@ -79,6 +107,13 @@ export async function buildPlannerBindings(
         OR: [{ organizationId: access.organizationId }, { organizationId: null }],
         deletedAt: null,
         ...(selection.exerciseIds.length ? { id: { in: selection.exerciseIds } } : {}),
+        ...(selection.mode === "propose"
+          ? {
+              organizationId: null,
+              catalogKey: { not: null },
+              guide: { path: ["technicalReview"], equals: "approved" },
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -88,13 +123,16 @@ export async function buildPlannerBindings(
         aliases: true,
         classification: true,
         strengthLoadKind: true,
+        catalogKey: true,
+        sourceCatalogKey: true,
+        organizationId: true,
       },
       orderBy: { id: "asc" },
-      take: 501,
     }),
   ]);
   if (groups.length !== selection.groupIds.length || athletes.length !== selection.athleteIds.length) throw notFound();
-  if (!exercises.length || exercises.length > 500) throw invalid(m.aiPlanner.libraryLimit);
+  if (!exercises.length)
+    throw invalid(selection.mode === "propose" ? m.aiPlanner.verifiedCatalogRequired : m.aiPlanner.libraryLimit);
   if (selection.exerciseIds.length && exercises.length !== selection.exerciseIds.length) throw notFound();
   const targets: PlannerBindings["targets"] = [
     ...groups.map((group, i) => ({
@@ -147,11 +185,29 @@ export async function buildPlannerBindings(
         });
       }
     }
+  const represented = new Set(
+    exercises.filter((entry) => entry.organizationId === access.organizationId).map((entry) => entry.sourceCatalogKey),
+  );
+  const eligible =
+    selection.mode === "propose"
+      ? exercises.filter((entry) => {
+          const classification = exerciseClassification.nullable().safeParse(entry.classification);
+          return (
+            classification.success && plannerEquipmentAvailable(classification.data, selection.brief?.equipment ?? [])
+          );
+        })
+      : exercises;
+  if (!eligible.length) throw invalid(m.aiPlanner.clarifyEquipment);
+  const available = eligible.filter((entry) => !entry.catalogKey || !represented.has(entry.catalogKey));
   return plannerBindings.parse({
     today: new Intl.DateTimeFormat("en-CA", { timeZone: org.timeZone }).format(now),
     timeZone: org.timeZone,
     targets,
-    exercises: exercises.map((e, i) => ({ ...e, token: `exercise_${i + 1}`, updatedAt: e.updatedAt.toISOString() })),
+    exercises: (selection.exerciseIds.length ? eligible : rankPlannerCandidates(available, text)).map((e, i) => ({
+      ...e,
+      token: `exercise_${i + 1}`,
+      updatedAt: e.updatedAt.toISOString(),
+    })),
     phaseReviews,
     phaseCalendar,
   });
@@ -179,6 +235,14 @@ export function providerContextFor(
   messages: string[],
 ): PlannerProviderContext {
   return plannerProviderContext.parse({
+    mode: selection.mode ?? "format",
+    resolvedExercises: (bindings.resolutions ?? []).flatMap((resolution) => {
+      const exercise = bindings.exercises.find((entry) => entry.id === resolution.exerciseId);
+      return resolution.requestedName && exercise ? [{ term: resolution.requestedName, token: exercise.token }] : [];
+    }),
+    brief: selection.brief
+      ? { ...selection.brief, objective: pseudonymizePlannerText(selection.brief.objective, bindings) }
+      : undefined,
     period: selection.period,
     today: bindings.today,
     timeZone: bindings.timeZone,

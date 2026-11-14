@@ -1,0 +1,27 @@
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- tapOn:
+    text: "Plus tard|Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- tapOn: "Exercices.*"
+- extendedWaitUntil:
+    visible: "Rechercher un exercice"
+    timeout: 15000
+- tapOn: "Rechercher un exercice"
+- inputText: "back squat"
+- hideKeyboard
+- tapOn: "Squat arrière.*"
+- tapOn:
+    id: exercise-guide-open
+- assertVisible: "Guide validé techniquement"
+- scrollUntilVisible:
+    element:
+      text: "Installation"
+    direction: DOWN
+- takeScreenshot: coach-exercise-guide

@@ -3,6 +3,7 @@ import {
   sessionBuilderContext,
   sessionDraft,
   sessionDraftBlock,
+  editableSessionSequence,
   sessionEditResponse,
 } from "@tartan/contracts";
 import { prescriptionFieldsSchema } from "./form";
@@ -18,7 +19,7 @@ const editable = saveScheduledSessionInput.extend({
   draft: sessionDraft.extend({
     title: z.string().max(120),
     blocks: z
-      .array(sessionDraftBlock.extend({ name: z.string().max(80) }))
+      .array(sessionDraftBlock.extend({ name: z.string().max(80), sequence: editableSessionSequence.optional() }))
       .min(1)
       .max(12),
   }),

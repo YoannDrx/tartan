@@ -157,3 +157,18 @@ export function remapSequence(nodes: SequenceNode[], refs: Map<string, string>, 
     return { ...node, ref: newRef(), children: remapSequence(node.children, refs, newRef) } as SequenceNode;
   });
 }
+
+// References accepted for an individual adaptation: a definition or one executed occurrence.
+export function sessionExerciseReferences(draft: SessionDraft) {
+  const entries = new Map<string, SessionDraft["blocks"][number]["items"][number]>();
+  for (const block of draft.blocks) {
+    const items = new Map(block.items.map((item) => [item.ref, item]));
+    for (const item of block.items) if (item.ref) entries.set(item.ref, item);
+    if (draft.structureVersion === 2)
+      for (const { node, rounds } of sequenceOccurrences(block.sequence ?? [])) {
+        const item = node.kind === "exercise" ? items.get(node.itemRef) : undefined;
+        if (item && node.kind === "exercise") entries.set(occurrenceRef(node.itemRef, rounds), item);
+      }
+  }
+  return entries;
+}

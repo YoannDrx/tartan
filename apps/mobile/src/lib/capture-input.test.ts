@@ -1,5 +1,19 @@
 import { expect, it } from "vitest";
-import { captureVideoInput } from "./capture-input";
+import { captureVideoInput, queuedVideoInput } from "./capture-input";
+
+it("la capture personnelle laisse le serveur choisir l’identité de l’athlète", () => {
+  expect(captureVideoInput({ athleteId: "autre", scheduledSessionId: "séance" }, false, true)).toEqual({
+    scheduledSessionId: "séance",
+    attempt: null,
+  });
+});
+
+it("une reprise d’envoi conserve la même clé, même pour une ancienne file persistée", () => {
+  const oldInput = { athleteId: "athlete", recordedAt: "2026-11-13T10:00:00Z" };
+  expect(queuedVideoInput("queue-id", oldInput)).toEqual(queuedVideoInput("queue-id", oldInput));
+  expect(queuedVideoInput("queue-id", oldInput).clientId).toBe("queue-id");
+  expect(queuedVideoInput("queue-id", { ...oldInput, clientId: "already-sent" }).clientId).toBe("already-sent");
+});
 
 it("écarte la barre conservée dans le formulaire quand le coach filme un autre geste", () => {
   const fields = {

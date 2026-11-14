@@ -392,3 +392,263 @@ test("micro navigateur : annulation, audio réel synthétique, relecture avant g
     await a.sql.end();
   }
 });
+
+test("exercice inconnu : création privée rejouée, reprise et circuit relu avant brouillon", async ({ page }, info) => {
+  test.setTimeout(240_000);
+  const a = await setup(page);
+  const id = randomUUID();
+  const name = "Bond maison fictif";
+  const selection = {
+    period: { from: a.today, to: a.today },
+    groupIds: [a.group.id],
+    athleteIds: [],
+    exerciseIds: [a.exercise.id],
+    phaseChoices: [],
+  };
+  try {
+    await a.sql.query("UPDATE organizations SET phases_enabled=false WHERE id=$1", [a.orgId]);
+    const athlete = randomUUID();
+    await a.sql.query(
+      "INSERT INTO athletes (id,organization_id,first_name,last_name,updated_at) VALUES ($1,$2,'Circuit','Fictif',now())",
+      [athlete, a.orgId],
+    );
+    await a.sql.query(
+      "INSERT INTO group_members (group_id,athlete_id,created_at,updated_at) VALUES ($1,$2,'2020-01-01',now())",
+      [a.group.id, athlete],
+    );
+    const updated = (
+      await a.sql.query("SELECT updated_at AT TIME ZONE 'UTC' AS updated_at FROM exercises WHERE id=$1", [
+        a.exercise.id,
+      ])
+    ).rows[0].updated_at as Date;
+    const bindings = {
+      today: a.today,
+      timeZone: "Europe/Paris",
+      targets: [{ token: "group_1", id: a.group.id, type: "group", label: a.group.name, aliases: [a.group.name] }],
+      exercises: [
+        {
+          token: "exercise_1",
+          id: a.exercise.id,
+          name: a.exercise.name,
+          category: a.exercise.category,
+          updatedAt: updated.toISOString(),
+        },
+      ],
+      phaseReviews: [],
+      phaseCalendar: [],
+    };
+    const pending = {
+      status: "clarification",
+      sessions: [],
+      assumptions: [],
+      suggestions: [],
+      questions: [
+        {
+          id: "unknown",
+          field: "exercise",
+          exerciseName: name,
+          question: "Quel exercice correspond au bond maison fictif ?",
+          options: [],
+        },
+      ],
+    };
+    await a.sql.query(
+      `INSERT INTO ai_planner_proposals (id,organization_id,actor_id,creation_fingerprint,state,version,selection,bindings,messages,interpretation,active_operation_id,expires_at,created_at,updated_at) VALUES ($1,$2,$3,'frontiere-prestataire-simulee','clarification',2,$4::jsonb,$5::jsonb,$6::jsonb,$7::jsonb,$1,now()+interval '7 days',now(),now())`,
+      [
+        id,
+        a.orgId,
+        a.userId,
+        JSON.stringify(selection),
+        JSON.stringify(bindings),
+        JSON.stringify([`Aujourd’hui : ${name} puis squat arrière, deux tours, 60 secondes entre tours.`]),
+        JSON.stringify(pending),
+      ],
+    );
+    let resolutions = 0;
+    await page.route(`**/planner/proposals/${id}/resolve-exercise`, async (route) => {
+      resolutions++;
+      const response = await route.fetch();
+      if (resolutions === 1) await route.abort("failed");
+      else await route.fulfill({ response });
+    });
+    const browserErrors: string[] = [];
+    page.on("pageerror", (error) => browserErrors.push(error.message));
+    await page.goto(`/planificateur?proposition=${id}`);
+    await page
+      .getByLabel(t.clarificationAnswer, { exact: true })
+      .fill("Conserve mes précisions : deux tours, 60 secondes entre tours.");
+    await page.getByRole("button", { name: t.createPrivateExercise, exact: true }).click();
+    await page.getByLabel(t.movementCues, { exact: true }).fill("Réception contrôlée, appuis stables.");
+    await page.getByLabel(m.exercises.category, { exact: true }).selectOption("plyo");
+    await page.getByRole("checkbox", { name: t.privateExerciseReviewed, exact: true }).check();
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    for (const width of [390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const theme of ["tartan", "light", "dark"]) {
+        await page.evaluate(
+          (value) => document.querySelector("[data-theme]")?.setAttribute("data-theme", value),
+          theme,
+        );
+        await expectNoHorizontalScroll(page);
+        await expectAccessible(page);
+        if (info.project.name === "desktop")
+          await page.screenshot({ path: `/tmp/tartan-planner-create-${theme}-${width}.png`, fullPage: true });
+      }
+    }
+    await page.getByRole("button", { name: t.savePrivateExercise, exact: true }).click();
+    await expect(page.getByRole("button", { name: t.retryExerciseResolution, exact: true })).toBeEnabled();
+    await page.getByRole("button", { name: t.retryExerciseResolution, exact: true }).click();
+    await expect(page.getByText(t.exerciseResolved(name), { exact: true })).toBeVisible();
+    await expect(page.getByLabel(t.clarificationAnswer, { exact: true })).toHaveValue(
+      "Conserve mes précisions : deux tours, 60 secondes entre tours.",
+    );
+    expect(browserErrors).toEqual([]);
+    expect(
+      (
+        await a.sql.query(
+          "SELECT count(*) FROM exercises WHERE organization_id=$1 AND name=$2 AND catalog_key IS NULL",
+          [a.orgId, name],
+        )
+      ).rows[0].count,
+    ).toBe("1");
+    const resolved = await a.api.plannerProposal(a.orgId, id);
+    const newExercise = resolved.exercises.find((e) => e.name === name)!;
+    await page.route(`**/planner/proposals/${id}/clarify`, async (route) => {
+      const body = route.request().postDataJSON();
+      const prescription = {
+        sets: 1,
+        reps: 5,
+        restS: 0,
+        load: null,
+        intensityTarget: null,
+        tempo: null,
+        distanceM: null,
+        durationS: null,
+        contacts: null,
+        notes: null,
+      };
+      const interpretation: PlannerInterpretation = {
+        status: "proposal",
+        questions: [],
+        assumptions: [],
+        suggestions: [],
+        sessions: [
+          {
+            date: a.today,
+            startTime: null,
+            title: "Circuit relu",
+            type: "strength",
+            durationMin: 20,
+            targetTokens: ["group_1"],
+            blocks: [
+              {
+                name: "Circuit",
+                items: [
+                  { ref: "a", exerciseToken: newExercise.token, instruction: resolved.messages[0]!, prescription },
+                  { ref: "b", exerciseToken: "exercise_1", instruction: resolved.messages[0]!, prescription },
+                ],
+                sequence: [
+                  {
+                    kind: "repeat",
+                    ref: "rounds",
+                    name: "Superset",
+                    rounds: 2,
+                    restBetweenRoundsS: 60,
+                    children: [
+                      { kind: "exercise", itemRef: "a" },
+                      { kind: "exercise", itemRef: "b" },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      await a.sql.query(
+        "UPDATE ai_planner_proposals SET state='proposal',version=version+1,clarification_count=1,messages=$2::jsonb,interpretation=$3::jsonb WHERE id=$1",
+        [id, JSON.stringify([...resolved.messages, body.text]), JSON.stringify(interpretation)],
+      );
+      await route.fulfill({ status: 200, json: await a.api.plannerProposal(a.orgId, id) });
+    });
+    await page.getByRole("checkbox", { name: t.reviewed, exact: true }).check();
+    await page.getByRole("button", { name: t.clarify, exact: true }).click();
+    await page.getByRole("button", { name: t.prepareReview, exact: true }).click();
+    await expect(page.getByLabel(m.builder.sequence.rounds, { exact: true })).toHaveValue("2");
+    await expect(page.getByRole("button", { name: new RegExp(name) }).first()).toBeVisible();
+    await page.getByLabel(m.builder.sequence.rounds, { exact: true }).fill("3");
+    await page.getByRole("button", { name: m.builder.sequence.undo, exact: true }).click();
+    await expect(page.getByLabel(m.builder.sequence.rounds, { exact: true })).toHaveValue("2");
+    for (const width of [390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const theme of ["tartan", "light", "dark"]) {
+        await page.evaluate(
+          (value) => document.querySelector("[data-theme]")?.setAttribute("data-theme", value),
+          theme,
+        );
+        await expectNoHorizontalScroll(page);
+        await expectAccessible(page);
+        if (info.project.name === "desktop")
+          await page.screenshot({ path: `/tmp/tartan-planner-circuit-${theme}-${width}.png`, fullPage: true });
+      }
+    }
+    await page.getByText(m.builder.preview, { exact: true }).click();
+    const execution = page.getByRole("list", { name: m.builder.preview, exact: true });
+    await expect(execution.getByRole("listitem")).toHaveCount(5);
+    await expect(execution.getByRole("listitem").nth(0)).toContainText(name);
+    await expect(execution.getByRole("listitem").nth(1)).toContainText(a.exercise.name);
+    await expect(execution.getByRole("listitem").nth(2)).toContainText(m.builder.sequenceRecovery);
+    await expect(execution.getByRole("listitem").nth(3)).toContainText(name);
+    await expect(execution.getByRole("listitem").nth(4)).toContainText(a.exercise.name);
+    await page.getByRole("button", { name: t.previewLoads, exact: true }).click();
+    await expect(page.getByText(t.previewCoverage(1, 1), { exact: true })).toBeVisible();
+    await page.getByRole("checkbox", { name: t.reviewedDrafts, exact: true }).check();
+    await page.getByRole("button", { name: t.confirmDrafts(1), exact: true }).click();
+    await expect(page.getByText(t.draftsCreated, { exact: true })).toBeVisible();
+    const done = await a.api.plannerProposal(a.orgId, id);
+    const saved = (await a.sql.query("SELECT draft FROM scheduled_sessions WHERE id=$1", [done.draftIds![0]!.id]))
+      .rows[0].draft;
+    expect(saved.structureVersion).toBe(2);
+    expect(saved.blocks[0].sequence[0].rounds).toBe(2);
+  } finally {
+    await a.sql.end();
+  }
+});
+
+test("le mode proposition utilise le catalogue approuvé et conserve le brief", async ({ page }) => {
+  const a = await setup(page);
+  try {
+    await page.goto(`/calendrier?semaine=${a.today}&groupe=${a.group.id}`);
+    await page.getByRole("link", { name: t.title, exact: true }).click();
+    await page.getByLabel(m.trainingPhases.start, { exact: true }).fill(a.today);
+    await page.getByLabel(m.trainingPhases.end, { exact: true }).fill(a.today);
+    await page.getByRole("button", { name: t.chooseContext, exact: true }).click();
+    await page.getByLabel(t.mode, { exact: true }).selectOption("propose");
+    await expect(page.getByText(t.verifiedCatalogRequired, { exact: true })).toHaveCount(0);
+    await page.getByLabel(t.objective, { exact: true }).fill("Préparation physique générale sans charge ajoutée");
+    await page.getByLabel(t.proposalDuration, { exact: true }).fill("30");
+    await page.getByRole("checkbox", { name: t.reviewed, exact: true }).check();
+    await expect(page.getByRole("button", { name: t.propose, exact: true })).toBeEnabled();
+    await page.getByRole("button", { name: t.changeContext, exact: true }).click();
+    await page.getByRole("button", { name: t.chooseContext, exact: true }).click();
+    await expect(page.getByLabel(t.objective, { exact: true })).toHaveValue(
+      "Préparation physique générale sans charge ajoutée",
+    );
+    await expect(page.getByLabel(t.proposalDuration, { exact: true })).toHaveValue("30");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    for (const width of [390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const theme of ["tartan", "light", "dark"]) {
+        await page.evaluate(
+          (value) => document.querySelector("[data-theme]")?.setAttribute("data-theme", value),
+          theme,
+        );
+        await expectAccessible(page);
+        await expectNoHorizontalScroll(page);
+        await page.screenshot({ path: `/tmp/tartan-planner-propose-${theme}-${width}.png`, fullPage: true });
+      }
+    }
+  } finally {
+    await a.sql.end();
+  }
+});

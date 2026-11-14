@@ -26,7 +26,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { chooseCaptureFps, type CaptureChoice } from "../src/lib/capture-fps";
 import { captureVideoInput } from "../src/lib/capture-input";
-import { useActiveSpace, useAthletes } from "../src/lib/queries";
+import { deniesCachedAccess } from "../src/lib/errors";
+import { useActiveSpace, useAthletes, useSessionDetail } from "../src/lib/queries";
 import { submitJumpAttempt } from "../src/lib/sync/op-queue";
 import { useUploads } from "../src/lib/upload/upload-queue";
 import { Camera as CameraIcon, Images, Minus, Plus, Square, X } from "../src/ui/icons";
@@ -304,9 +305,18 @@ const CameraModal = ({
 };
 
 export default function Capture() {
-  const params = useLocalSearchParams<{ sessionId?: string }>();
-  const { orgId } = useActiveSpace();
-  const athletes = useAthletes(orgId);
+  const params = useLocalSearchParams<{ sessionId?: string; exerciseId?: string }>();
+  const { me, orgId, space: active } = useActiveSpace();
+  const ownVideo = active?.role === "athlete";
+  const athletes = useAthletes(orgId, Boolean(active) && !ownVideo);
+  const linkedSession = useSessionDetail(ownVideo ? orgId : "", params.sessionId);
+  const accessError = deniesCachedAccess(me.error)
+    ? me.error
+    : deniesCachedAccess(linkedSession.error)
+      ? linkedSession.error
+      : deniesCachedAccess(athletes.error)
+        ? athletes.error
+        : null;
   const addUpload = useUploads((s) => s.add);
   const router = useRouter();
   const [athleteId, setAthleteId] = useState<string | null>(null);
@@ -322,6 +332,7 @@ export default function Capture() {
   const [attemptOverride, setAttemptOverride] = useState<number | null>(null);
   const [athleteError, setAthleteError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const sending = useRef(false);
 
   const device = useCameraDevice("back");
   const choice = useMemo(() => (device ? chooseCaptureFps((fps) => device.supportsFPS(fps)) : null), [device]);
@@ -363,6 +374,7 @@ export default function Capture() {
   };
 
   const athleteName = () => {
+    if (ownVideo) return [me.data?.firstName, me.data?.lastName].filter(Boolean).join(" ");
     const a = athletes.data?.find((x) => x.id === athleteId);
     return a ? `${a.firstName} ${a.lastName}`.trim() : "";
   };
@@ -370,11 +382,13 @@ export default function Capture() {
   const attempt = { barHeightCm: barCm, attemptNo, result, approachSteps: steps };
 
   const send = async () => {
-    if (!athleteId) {
+    if (sending.current || !active || accessError) return;
+    if (!ownVideo && !athleteId) {
       setAthleteError(m.mobile.video.pickAthleteRequired);
       return;
     }
     if (!uri) return;
+    sending.current = true;
     setBusy(true);
     try {
       const refused = await addUpload({
@@ -383,13 +397,15 @@ export default function Capture() {
         sourceUri: uri,
         input: captureVideoInput(
           {
-            athleteId,
+            athleteId: athleteId ?? undefined,
             scheduledSessionId: params.sessionId ?? null,
+            exerciseId: params.exerciseId ?? null,
             fps,
             recordedAt: new Date().toISOString(),
             attempt,
           },
           highJump,
+          ownVideo,
         ),
       });
       if (refused) {
@@ -401,6 +417,7 @@ export default function Capture() {
     } catch {
       setMessage(m.mobile.video.cameraFail);
     } finally {
+      sending.current = false;
       setBusy(false);
     }
   };
@@ -416,6 +433,21 @@ export default function Capture() {
     remember();
   };
 
+  if (accessError) {
+    return (
+      <StackScreen dark title={m.video.capture}>
+        <ErrorState
+          error={accessError}
+          onRetry={() => {
+            void me.refetch();
+            if (ownVideo && params.sessionId) void linkedSession.refetch();
+            if (!ownVideo) void athletes.refetch();
+          }}
+        />
+      </StackScreen>
+    );
+  }
+
   return (
     <StackScreen
       dark
@@ -423,7 +455,7 @@ export default function Capture() {
       footer={
         uri ? (
           <Button testID="capture-send" label={m.mobile.video.queue} loading={busy} onPress={() => void send()} />
-        ) : highJump ? (
+        ) : highJump && !ownVideo ? (
           <Button
             testID="capture-save-attempt"
             label={m.mobile.video.saveWithoutVideo}
@@ -480,34 +512,54 @@ export default function Capture() {
         </T>
       ) : null}
 
-      <View style={{ gap: space.sm }}>
-        <T variant="smallStrong">{m.mobile.video.pickAthlete}</T>
-        {athletes.isPending ? <LoadingState inline /> : null}
-        {athletes.isError && !athletes.data ? (
-          <ErrorState error={athletes.error} onRetry={() => void athletes.refetch()} />
-        ) : null}
-        {athletes.data?.length === 0 ? <EmptyState body={m.mobile.video.noAthletes} /> : null}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-          {athletes.data?.map((a) => (
-            <Chip
-              key={a.id}
-              tall
-              label={`${a.firstName} ${a.lastName}`.trim()}
-              active={athleteId === a.id}
-              onPress={() => {
-                setAthleteId(a.id);
-                setAthleteError(null);
-                setSaved([]);
-              }}
-            />
-          ))}
-        </ScrollView>
-        {athleteError ? (
-          <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
-            {athleteError}
-          </T>
-        ) : null}
-      </View>
+      {ownVideo && linkedSession.data ? (
+        <View style={{ gap: space.xs }}>
+          <T variant="smallStrong">{linkedSession.data.title}</T>
+          {params.exerciseId ? (
+            <T variant="small">
+              {
+                linkedSession.data.blocks
+                  .flatMap((block) => block.items)
+                  .find((item) => item.exerciseId === params.exerciseId)?.name
+              }
+            </T>
+          ) : null}
+        </View>
+      ) : null}
+      {ownVideo ? (
+        <T variant="small" tone="muted">
+          {m.videoCollaboration.private}
+        </T>
+      ) : (
+        <View style={{ gap: space.sm }}>
+          <T variant="smallStrong">{m.mobile.video.pickAthlete}</T>
+          {athletes.isPending ? <LoadingState inline /> : null}
+          {athletes.isError && !athletes.data ? (
+            <ErrorState error={athletes.error} onRetry={() => void athletes.refetch()} />
+          ) : null}
+          {athletes.data?.length === 0 ? <EmptyState body={m.mobile.video.noAthletes} /> : null}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
+            {athletes.data?.map((a) => (
+              <Chip
+                key={a.id}
+                tall
+                label={`${a.firstName} ${a.lastName}`.trim()}
+                active={athleteId === a.id}
+                onPress={() => {
+                  setAthleteId(a.id);
+                  setAthleteError(null);
+                  setSaved([]);
+                }}
+              />
+            ))}
+          </ScrollView>
+          {athleteError ? (
+            <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
+              {athleteError}
+            </T>
+          ) : null}
+        </View>
+      )}
 
       <Chip label={m.video.highJumpTools} active={highJump} onPress={() => setHighJump(!highJump)} />
       {highJump ? (

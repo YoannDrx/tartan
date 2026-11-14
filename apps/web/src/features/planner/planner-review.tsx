@@ -9,7 +9,15 @@ import {
   type PlannerProposalResponse,
   type Prescription,
 } from "@tartan/contracts";
-import { formatPrescription, phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
+import {
+  sessionExerciseReferences,
+  sequenceOccurrences,
+  occurrenceRef,
+  validSessionStructure,
+  formatPrescription,
+  phasePlanningKey,
+  type PhasePlanningReadiness,
+} from "@tartan/domain";
 import { historyDate, m } from "@tartan/i18n";
 import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +25,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { CheckRow, Field, Input, Select } from "@/components/ui/field";
 import { PhasePlanningPanel } from "@/features/phases/phase-planning";
+import { SequenceEditor } from "@/features/sessions/sequence-editor";
 import { PrescriptionEditor } from "@/features/sessions/session-builder";
 import type { PlannerContext } from "./planner-selection";
 import { PlannerLoads } from "./planner-loads";
@@ -47,6 +56,8 @@ export function PlannerDraftReview({
   onPhaseReady: (index: number, state: PhasePlanningReadiness) => void;
   onLoadsReady: (index: number, key: string, ready: boolean) => void;
 }) {
+  const [editingRef, setEditingRef] = useState<string | null>(null);
+  const [previousDraft, setPreviousDraft] = useState<PlannerReviewedDraft | null>(null);
   const [replacement, setReplacement] = useState<string | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -199,6 +210,18 @@ export function PlannerDraftReview({
             })}
           </fieldset>
         </details>
+        {previousDraft ? (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              onUpdate(index, () => previousDraft);
+              setPreviousDraft(null);
+            }}
+          >
+            {m.builder.sequence.undo}
+          </Button>
+        ) : null}
         {session.draft.blocks.map((block) => (
           <section key={block.ref} className="mt-3 border-t border-card-line pt-3">
             <Field
@@ -226,40 +249,101 @@ export function PlannerDraftReview({
                 />
               )}
             </Field>
-            {block.items.map((item) => {
-              const exercise = context.exercises.find((e) => e.id === item.exerciseId);
-              return (
-                <div key={item.ref} className="flex min-w-0 flex-col gap-2 py-3">
-                  <p className="font-semibold break-words">{exercise?.name ?? m.common.notFound}</p>
-                  <p>{formatPrescription(item.prescription)}</p>
-                  {(item.prescription.notes?.length ?? 0) > sessionTextLimits.notes ? (
-                    <p role="alert">
-                      {m.builder.notes} : {t.textLimit(item.prescription.notes!.length, sessionTextLimits.notes)}
+            {session.draft.structureVersion === 2 ? (
+              <SequenceEditor
+                block={block}
+                exercises={context.exercises.filter((e) => proposal.exercises.some((p) => p.id === e.id))}
+                onEdit={setEditingRef}
+                onChange={(next) => {
+                  setPreviousDraft(session);
+                  const draft = {
+                    ...session.draft,
+                    blocks: session.draft.blocks.map((b) => (b.ref === block.ref ? next : b)),
+                  };
+                  const refs = validSessionStructure(draft) ? sessionExerciseReferences(draft) : null;
+                  change({
+                    draft,
+                    overrides: refs ? session.overrides.filter((o) => refs.has(o.itemRef)) : session.overrides,
+                  });
+                }}
+              />
+            ) : null}
+            {session.draft.structureVersion === 2 && validSessionStructure(session.draft) ? (
+              <details className="min-w-0">
+                <summary className="min-h-11 cursor-pointer py-2 font-semibold">{m.builder.preview}</summary>
+                <ol className="divide-y divide-card-line" aria-label={m.builder.preview}>
+                  {sequenceOccurrences(block.sequence ?? []).map(({ node, rounds }) => {
+                    const item =
+                      node.kind === "exercise" ? block.items.find((entry) => entry.ref === node.itemRef) : undefined;
+                    const name = item
+                      ? (context.exercises.find((entry) => entry.id === item.exerciseId)?.name ??
+                        proposal.exercises.find((entry) => entry.id === item.exerciseId)?.name ??
+                        m.common.notFound)
+                      : m.builder.sequenceRecovery;
+                    return (
+                      <li
+                        key={occurrenceRef(node.kind === "exercise" ? node.itemRef : node.ref, rounds)}
+                        className="py-2"
+                      >
+                        {rounds.length ? (
+                          <p className="text-sm text-soft">
+                            {rounds
+                              .map((round) => m.builder.sequence.round(round.name, round.round, round.rounds))
+                              .join(" · ")}
+                          </p>
+                        ) : null}
+                        <p className="font-semibold break-words">{name}</p>
+                        <p>
+                          {formatPrescription(
+                            node.kind === "recovery" ? { duration_s: node.durationS } : item!.prescription,
+                          )}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </details>
+            ) : null}
+            {block.items
+              .filter((item) => session.draft.structureVersion !== 2 || item.ref === editingRef)
+              .map((item) => {
+                const exercise = context.exercises.find((e) => e.id === item.exerciseId);
+                return (
+                  <div key={item.ref} className="flex min-w-0 flex-col gap-2 py-3">
+                    <p className="font-semibold break-words">
+                      {exercise?.name ??
+                        proposal.exercises.find((e) => e.id === item.exerciseId)?.name ??
+                        m.common.notFound}
                     </p>
-                  ) : null}
-                  <details>
-                    <summary className="min-h-11 cursor-pointer py-2">{m.builder.setPrescription}</summary>
-                    <PrescriptionEditor
-                      intensityEnabled
-                      value={item.prescription}
-                      exercise={exercise}
-                      testKeys={[`exercise:${item.exerciseId}`]}
-                      onChange={(value) => updatePrescription(item.ref!, value)}
-                    />
-                  </details>
-                  <Button
-                    type="button"
-                    variant="quiet"
-                    onClick={() => {
-                      setReplacement(item.ref!);
-                      setSearch("");
-                    }}
-                  >
-                    {t.replaceExercise}
-                  </Button>
-                </div>
-              );
-            })}
+                    <p>{formatPrescription(item.prescription)}</p>
+                    {(item.prescription.notes?.length ?? 0) > sessionTextLimits.notes ? (
+                      <p role="alert">
+                        {m.builder.notes} : {t.textLimit(item.prescription.notes!.length, sessionTextLimits.notes)}
+                      </p>
+                    ) : null}
+                    <details open={session.draft.structureVersion === 2 || undefined}>
+                      <summary className="min-h-11 cursor-pointer py-2">{m.builder.setPrescription}</summary>
+                      <PrescriptionEditor
+                        intensityEnabled
+                        value={item.prescription}
+                        exercise={exercise}
+                        testKeys={[`exercise:${item.exerciseId}`]}
+                        onChange={(value) => updatePrescription(item.ref!, value)}
+                      />
+                    </details>
+                    <Button
+                      type="button"
+                      variant="quiet"
+                      onClick={() => {
+                        setReplacement(item.ref!);
+                        setSearch("");
+                      }}
+                    >
+                      {t.replaceExercise}
+                    </Button>
+                  </div>
+                );
+              })}
           </section>
         ))}
       </fieldset>
@@ -341,7 +425,9 @@ export function PlannerDraftReview({
             prescription.load = { ...prescription.load, test: `exercise:${exercise.id}` };
           onUpdate(index, (old) => ({
             ...old,
-            overrides: old.overrides.filter((o) => o.itemRef !== replacement),
+            overrides: old.overrides.filter(
+              (o) => sessionExerciseReferences(old.draft).get(o.itemRef)?.ref !== replacement,
+            ),
             draft: {
               ...old.draft,
               blocks: old.draft.blocks.map((b) => ({
