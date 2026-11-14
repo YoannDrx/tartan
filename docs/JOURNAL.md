@@ -14,6 +14,10 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, F9 : réactivation après confirmation iOS
+La seconde trace (PR 127) précise le problème du premier lien : l’app reste sur son accueil après « Open » ; dans la PR 126, SpringBoard ne livre UIOpenURLAction qu’à la réactivation suivante. Après cette confirmation uniquement, Maestro remet désormais l’app au premier plan sans l’arrêter ni effacer sa session (`launchApp`, `stopApp: false`). Rejeu sur simulateur iPhone 16e neuf réussi en 1 min 49, avec confirmation « Open » et réactivation effectivement exécutées, puis les mêmes assertions des sept étapes et du guide. Aucun changement applicatif ni preuve sur appareil physique.
+
+
 ## 2026-11-14, Codex, F9 : délai du premier lien iOS
 Reprise autorisée de `feat/native-completion`. La trace CI montre le dialogue système accepté, puis une requête de séance démarrant environ 20 s après l’appui, au-delà de l’attente de 15 s ; l’assertion échoue avant ce démarrage. Attente conditionnelle de la première étape portée à 30 s, sans pause fixe, reprise ni retrait des sept étapes vérifiées. Le même parcours passe déjà sur la PR 128. Rejeu ciblé local réussi en 1 min 46 : sept étapes et guide vérifiés ; CI du correctif requise. Aucune preuve de performance sur téléphone déduite du simulateur.
 
