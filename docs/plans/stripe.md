@@ -5,7 +5,7 @@ Le compte de production et la sandbox ont chacun leurs clés, tarifs, portail et
 ## Fonctionnement
 
 | Élément | Où |
-| --- | --- |
+| --------------------------------- | ------------------------------------------------------------------- |
 | Offres et prix | `packages/domain/src/plans.ts` |
 | Achat, portail | `apps/web/src/server/billing.service.ts` |
 | Réconciliation d'un abonnement | `stripe-subscriptions.service.ts` |
@@ -37,25 +37,39 @@ Le secret de signature n'est rendu par Stripe qu'à la création du webhook. Une
 
 `apps/web/tests-sandbox/billing.test.ts` appelle les services via un transport Stripe CLI. Réponses réelles, seules la perte de réponse et la panne sont injectées. Hors de `pnpm test` et de la CI.
 
-Prérequis : Node 22, Postgres local, base `tartan_v11_sandbox` créée, session Stripe CLI connectée à la sandbox, quatre tarifs configurés.
+Prérequis : Node 22, Postgres local, base `tartan_v11_sandbox` créée, session Stripe CLI connectée à la sandbox, quatre tarifs configurés. Fournir localement `STRIPE_SANDBOX_ACCOUNT` avec l’identifiant de la sandbox attendue ; la recette refuse son absence et relit le compte. Cet identifiant ne figure pas dans le dépôt public.
 
 ```sh
 RUN_STRIPE_SANDBOX=1 TEST_DATABASE_URL=postgresql://tartan@localhost:54329/tartan_v11_sandbox corepack pnpm --filter @tartan/web exec vitest run --config vitest.sandbox.config.mts
 ```
 
-Deux fichiers, quatre tests, environ une minute et demie.
+Deux fichiers de recette API, quatre tests. La recette navigateur est ignorée sans son opt-in explicite.
 
 - `billing.test.ts` prouve : session unique sous concurrence, réponse perdue, expiration avant changement d'offre, transfert avec panne, portail de l'ancien payeur refusé, nouveau client du repreneur.
 - `payment-cycle.test.ts` (T03) prouve le cycle de vente. Un espace ouvre un vrai Checkout ; la carte de test de Stripe est posée sur le client ; l'abonnement démarre en essai, puis l'essai se termine et Stripe prélève. Les événements signés arrivent par `stripe listen` sur la vraie route du webhook, servie en HTTP local. Sont vérifiés : offre et limites appliquées, facture payée dans le miroir et dans la liste du propriétaire, e-mails « démarré », « résiliation » et « terminé » partis une fois chacun, remboursement partiel par avoir depuis la console et relu chez Stripe, résiliation à l'échéance, retour en Découverte. Un second test joue la fin d'essai avec une carte qui exige 3-D Secure : facture ouverte, abonnement en impayé, accès conservé, bandeau d'impayé, un seul e-mail pour l'incident.
 
 Le SDK Stripe est celui de la production ; son réseau passe par la CLI (`tests-sandbox/sdk-over-cli.ts`), qui garde les clés. Le secret de signature de `stripe listen` reste en mémoire, jamais affiché. Le nettoyage ne supprime que les clients et abonnements créés par le test.
 
-**Ne prouve pas** : la saisie d'une carte par une personne sur la page Checkout hébergée (la carte est posée par l'API), le portail client, la TVA, un litige, ni la réception réelle d'un e-mail. Un premier paiement refusé ou à valider se règle sur la page Checkout elle-même : ce cas n'est pas joué. Ces points restent à la [recette réelle](../tests/recette-reelle.md).
+**Limites de ces deux fichiers API** : la carte y est posée par API ; ils ne prouvent pas sa saisie sur Checkout ni le portail. La recette navigateur ci-dessous les complète. La fiscalité, le litige, un paiement réel accompagné et la réception des e-mails restent distincts, dans la [recette réelle](../tests/recette-reelle.md).
+
+### Pages Checkout et portail dans un navigateur
+
+La recette complémentaire `tests-sandbox/checkout-browser.test.ts` lance un Google Chrome installé (canal `chrome`) contre les pages Stripe hébergées. Le navigateur est visible ; `STRIPE_BROWSER_HEADLESS=1` le masque si nécessaire. Elle réutilise les services d’achat et de portail, le SDK et la route webhook de Tartan. Les clés restent dans la session CLI ; le secret de signature reste en mémoire. Elle est refusée en CI.
+
+```sh
+RUN_STRIPE_BROWSER=1 RUN_STRIPE_SANDBOX=1 TEST_DATABASE_URL=postgresql://tartan@localhost:54329/tartan_v11_sandbox corepack pnpm --filter @tartan/web exec vitest run --config vitest.sandbox.config.mts tests-sandbox/checkout-browser.test.ts
+```
+
+`STRIPE_SANDBOX_ACCOUNT` doit déjà être exporté localement. Ne pas exécuter deux suites sur cette base en parallèle. Les captures et diagnostics restent dans `.local/stripe-browser`, hors du dépôt ; aucun artefact de paiement n’est publié en CI. Seuls les clients, sessions et abonnements créés par la recette sont nettoyés.
+
+Deux parcours saisissent une carte dans Checkout : carte standard et carte 3-D Secure. Après ouverture de l’essai, sa fin est accélérée par API. Une authentification bancaire demandée à cette échéance est reprise dans la facture hébergée ; le paiement, l’état actif et les droits sont relus. Le portail affiche la facture et programme la résiliation après le motif et la confirmation ; la date est vérifiée chez Stripe et dans le miroir Tartan. Les captures sont limitées au viewport pour ne pas perturber les cadres intégrés.
+
+Le retour vers `/abonnement` est intercepté par une page locale de constat : la recette ne prouve pas le rendu de cette page Tartan. L’ouverture des droits et la résiliation sont contrôlées dans la base par les événements signés, jamais simulées par la page de succès. Aucun transfert de fonds réels, aucune validation fiscale ni réception d’e-mail humain ne sont prouvés.
 
 ## Tâches restantes
 
 | N° | Action | Qui |
-| --- | --- | --- |
+| --- | ----------------------------------------------------------------------------------------------------- | ------------------------------------ |
 | S1 | Fait : test de la route webhook avec vraie signature (T01) | Agent |
 | S2 | Fait : paiement en sandbox de bout en bout, webhooks transmis par `stripe listen` (T03) | Agent |
 | S3 | Vrai paiement, facture, résiliation, remboursement ([recette, section 5](../tests/recette-reelle.md)) | Fondateur |
@@ -69,7 +83,7 @@ Cartes de test Stripe (mode test uniquement) : `4242 4242 4242 4242` accepte, `4
 À faire par le fondateur dans le tableau de bord Stripe, avant le premier vrai paiement. Aucune de ces valeurs ne s'écrit dans le dépôt.
 
 | Réglage | Attendu |
-| --- | --- |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Compte activé, virements | Compte bancaire vérifié, calendrier de virement choisi |
 | Libellé bancaire | « TARTAN » ou « YODEV TARTAN », reconnaissable sur un relevé |
 | Reçus et factures par e-mail | Activés : Tartan n'envoie pas de reçu lui-même |
