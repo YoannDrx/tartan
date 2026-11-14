@@ -2,6 +2,20 @@
 
 Objectif : une web app et une PWA qu'un coach inconnu peut trouver, payer et utiliser sans aide. Le mobile natif suit sans retarder cette ouverture. L'avancement est dans [../ETAT.md](../ETAT.md).
 
+## Audit et reprise du 14 novembre 2026
+
+L'audit du 14 novembre a relu la finalisation (PR 119 à 129), les prestataires et le code. Ses constats sont dans [../ETAT.md](../ETAT.md). Les lots ci-dessous complètent la finalisation du 13 novembre sans la remplacer : ses critères de fin restent valables. Un lot, une branche, une PR ; chaque écran modifié passe par UI/UX Pro Max, Frontend Design puis Impeccable, à 390, 768 et 1440 px, avec axe et mouvement réduit.
+
+| Phase | Contenu | Critère de fin |
+| --- | --- | --- |
+| A, exploitation | Sécurité du dépôt (secrets, Dependabot, licence, `mobile-gate` exigé), Neon borné et branches de recette retirées, Preview sans donnée de production, `EXPO_TOKEN`, plafond OpenAI, `ETAT.md` réécrit, incident consigné | Réglages relus par API ; journaux sans avertissement ni `cron_job_failed` sur 24 h |
+| B, bloquants | B1 récupérations hors de la saisie des séries (web, mobile) ; B2 ordre des blocs communs en autonomie ; B3 pas de conversion silencieuse en V2 ; B4 tri des séries précédentes ; B5 droits vidéo (camarades, « À travailler », suppression, essai, signalement) et quota par athlète une fois confirmé ; B6 file vidéo mobile par compte ; B7 corrections des guides et mention « consignes indicatives » ; B8 contrôles IA permanents et mode « Proposer » contrôlé | Un test qui échoue avant chaque correctif |
+| C, constructeur | Sélecteur unique à chaque emplacement ; glisser-déposer et « Déplacer vers… » dans et hors des groupes ; regrouper une sélection ; superset, circuit, répéter ; une série par tour à l'entrée d'un groupe et résumé « tours × séries » ; couleurs par catégorie, rôle de bloc et type de groupe ; prescription en ligne et séries détaillées ; variante par nœud au lieu de deux listes ; mode séance au minuteur calé sur l'horloge, enchaînement, son, écran allumé | Maquette validée par le fondateur avant le code ; parcours « superset 3 tours → publication → saisie → records » |
+| D, planificateur | Passe déterministe avant le modèle ; deux appels ; « Ajuster » ; exercices visibles avant relecture ; « Remplacer » qui garde la prescription ; dictée avec les noms de la bibliothèque ; corpus de 40 consignes écrites par un coach | Zéro erreur critique sur trois passages, au moins 90 % d'issues utiles, 30 dictées, relecture coach |
+| E, illustrations | Contrat accepté pour un clip animé, média lu depuis la fiche commune ; accessoires et clips de profil dans `packages/mascot` ; atelier `/admin/mouvements` ; 60 gestes d'abord ; 25 variantes manquantes | Validation du fondateur par famille de gestes |
+| F, recette et ouverture | Matrice écran par rôle ; tracés sur vidéo ; `/mes-sauts` devient `/mes-videos` ; e-mails Outlook et iCloud ; paiement réel ; pilote sans guidage | Décision d'ouverture du fondateur, surveillance 72 h |
+| G, mobile et bêtas | Parité (absence, régularité, record), lint et Maestro Android, Sentry, `fingerprint`, OTA corrigée, canal bêta ; TestFlight externe ; Play organisation après D-U-N-S | Testeurs invités qui installent et font les parcours critiques |
+
 ## Finalisation du 13 novembre 2026
 
 Ce périmètre autorisé remplace l'ancien ordre « vente, puis améliorations ». Les lots A/B/C déjà livrés restent l'historique des capacités à préserver. Une branche et une PR par lot F ; l'état des preuves vit uniquement dans ETAT.md.

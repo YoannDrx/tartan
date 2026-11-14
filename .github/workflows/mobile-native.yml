@@ -2,13 +2,10 @@ name: Mobile natif
 
 # Une vraie compilation Android à chaque changement mobile, sans brûler les crédits EAS.
 # Les builds EAS, eux, n'ont lieu que le lundi si le mobile a changé, ou à la demande.
+# Le workflow part sur chaque PR : le job `changes` décide si le mobile est concerné, et `mobile-gate`
+# donne toujours une réponse, ce qui permet de l'exiger dans la protection de main.
 on:
   pull_request:
-    paths:
-      - "apps/mobile/**"
-      - "packages/**"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/mobile-native.yml"
   schedule:
     - cron: "0 5 * * 1"
   workflow_dispatch:
@@ -26,8 +23,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      mobile: ${{ steps.filter.outputs.mobile }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            mobile:
+              - "apps/mobile/**"
+              - "packages/**"
+              - "pnpm-lock.yaml"
+              - ".github/workflows/mobile-native.yml"
+
   android:
-    if: github.event_name != 'schedule'
+    needs: changes
+    if: always() && github.event_name != 'schedule' && (needs.changes.result == 'skipped' || needs.changes.outputs.mobile == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 75
     env:
@@ -66,7 +84,8 @@ jobs:
   # Les parcours natifs (T09) : l'app de développement, compilée pour le simulateur iOS, contre un serveur web local
   # et la graine de démonstration. Aucun secret : la base, le serveur et les comptes n'existent que dans ce job.
   maestro:
-    if: github.event_name != 'schedule'
+    needs: changes
+    if: always() && github.event_name != 'schedule' && (needs.changes.result == 'skipped' || needs.changes.outputs.mobile == 'true')
     runs-on: macos-15
     timeout-minutes: 90
     env:
@@ -238,6 +257,25 @@ jobs:
             ${{ runner.temp }}/app.log
             ~/.maestro/tests
           if-no-files-found: ignore
+
+  # Réponse unique, exigée par la protection de main : verte si le mobile n'est pas concerné,
+  # sinon verte seulement si la compilation Android et les parcours Maestro le sont.
+  mobile-gate:
+    if: always() && github.event_name == 'pull_request'
+    needs: [changes, android, maestro]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Résultat des contrôles mobiles
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          MOBILE: ${{ needs.changes.outputs.mobile }}
+          ANDROID: ${{ needs.android.result }}
+          MAESTRO: ${{ needs.maestro.result }}
+        run: |
+          if [ "$CHANGES" != "success" ]; then echo "Détection des changements : $CHANGES"; exit 1; fi
+          if [ "$MOBILE" != "true" ]; then echo "Mobile non concerné."; exit 0; fi
+          echo "Android : $ANDROID, Maestro : $MAESTRO"
+          [ "$ANDROID" = "success" ] && [ "$MAESTRO" = "success" ]
 
   eas:
     if: github.event_name == 'schedule' || inputs.eas == true
