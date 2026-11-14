@@ -71,7 +71,8 @@ export const plannerSession = z
           .object({
             name: z.string().min(1).max(80),
             sequence: sessionSequence.nullable().optional(),
-            items: z.array(plannerItem).min(1).max(60),
+            // A V2 block may contain only explicit recovery; the domain checks its sequence.
+            items: z.array(plannerItem).max(60),
           })
           .strict(),
       )
@@ -114,7 +115,6 @@ export const plannerProviderInterpretation = plannerInterpretation.extend({
               sequence: sessionSequence.nullable(),
               items: z
                 .array(plannerItem.extend({ ref: plannerItem.shape.ref.unwrap() }))
-                .min(1)
                 .max(60),
             }),
           )

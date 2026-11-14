@@ -59,6 +59,19 @@ it("détecte les dates, charges et substitutions erronées au lieu de compter se
     ],
   };
   expect(scoreIndependentCase(test, value).passed).toBe(true);
+  const targetClarification = {
+    ...test,
+    text: "Mercredi pour un destinataire qui ne fait pas partie de la sélection.",
+    expected: { status: "clarification" as const, field: "target" },
+  };
+  expect(scoreIndependentCase(targetClarification, value).critical).toContain("false_date");
+  const correctlyDated = structuredClone(value);
+  correctlyDated.sessions[0]!.date = "2026-11-18";
+  expect(scoreIndependentCase(targetClarification, correctlyDated).critical).not.toContain("false_date");
+  expect(scoreIndependentCase(targetClarification, correctlyDated).passed).toBe(false);
+  expect(
+    scoreIndependentCase({ ...targetClarification, text: "Lundi ou mercredi, pour ce destinataire." }, value).critical,
+  ).not.toContain("false_date");
   const duplicated = structuredClone(value);
   duplicated.sessions[0]!.blocks[0]!.items.push(structuredClone(duplicated.sessions[0]!.blocks[0]!.items[0]!));
   expect(scoreIndependentCase(test, duplicated).differences).toContain("exercise");

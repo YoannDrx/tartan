@@ -125,6 +125,7 @@ export function validatePlannerInterpretation(
   if (context.mode === "propose" && (!context.brief || (value.status === "proposal" && value.sessions.length !== 1)))
     issues.add("state");
   for (const session of value.sessions) {
+    if (session.blocks.some((block) => !block.items.length && !block.sequence?.length)) issues.add("shape");
     if (
       context.mode === "propose" &&
       (session.date !== context.brief?.date ||

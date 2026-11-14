@@ -19,7 +19,17 @@ export const handleRouteError = (error: unknown) => {
   if (error instanceof AppError) {
     return NextResponse.json({ message: error.message, code: error.code }, { status: error.status });
   }
-  log.error("route_failed", { code: error instanceof Error ? error.name : "unknown" });
+  // Keep the stable database error code, never its message, query or metadata.
+  // Otherwise a transaction timeout and a constraint failure look identical in CI.
+  const databaseCode =
+    error instanceof Error &&
+    error.name === "PrismaClientKnownRequestError" &&
+    "code" in error &&
+    typeof error.code === "string" &&
+    /^P\d{4}$/.test(error.code)
+      ? error.code
+      : null;
+  log.error("route_failed", { code: databaseCode ?? (error instanceof Error ? error.name : "unknown") });
   return NextResponse.json({ message: m.common.genericError, code: "server_error" }, { status: 500 });
 };
 

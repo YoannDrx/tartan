@@ -116,6 +116,18 @@ export function scoreIndependentCase(test: IndependentCase, value: unknown) {
   const items = actual.sessions.flatMap((s) => s.blocks.flatMap((b) => b.items));
   if (actual.status !== expected.status) differences.push("status");
   if (expected.status === "clarification") {
+    // A rejected proposal can contain several independent defects. Do not hide
+    // a false date merely because the expected question concerns another field.
+    const weekdays = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+    const mentionedDays = weekdays.filter((day) => new RegExp(`\\b${day}\\b`, "i").test(test.text));
+    const falseDate = actual.sessions.some(
+      (session) =>
+        session.date < independentCorpus.period.from ||
+        session.date > independentCorpus.period.to ||
+        (mentionedDays.length === 1 &&
+          weekdays[new Date(`${session.date}T12:00:00Z`).getUTCDay()] !== mentionedDays[0]),
+    );
+    if (falseDate) differences.push("date");
     if (actual.sessions.length) differences.push("sessions_must_be_empty");
     if (!actual.questions.some((q) => q.field === expected.field)) differences.push("question_field");
     if (
@@ -128,7 +140,7 @@ export function scoreIndependentCase(test: IndependentCase, value: unknown) {
     )
       differences.push("unknown_exercise_name");
     if (items.length && expected.field === "exercise") critical.push("silent_substitution");
-    if (actual.sessions.length && expected.field === "date") critical.push("false_date");
+    if (falseDate || (actual.sessions.length && expected.field === "date")) critical.push("false_date");
     if (items.some((i) => i.prescription.load !== null) && ["load", "unit"].includes(expected.field ?? ""))
       critical.push("invented_load");
     return result();
