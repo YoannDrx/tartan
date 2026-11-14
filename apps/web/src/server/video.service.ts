@@ -418,7 +418,10 @@ export const getVideo = async (userId: string, organizationId: string, videoId: 
         : [],
     hlsUrl: signed?.hlsUrl ?? null,
     mp4Url: signed?.mp4Url ?? devMp4 ?? null,
-    annotations: annotations.map((a) => ({
+    // Une réponse dont la remarque d'origine est masquée n'aurait plus de contexte : elle l'est aussi.
+    annotations: annotations
+      .filter((a) => !a.parentId || annotations.some((root) => root.id === a.parentId))
+      .map((a) => ({
       id: a.id,
       authorId: a.authorId,
       parentId: a.parentId,

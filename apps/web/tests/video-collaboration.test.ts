@@ -291,7 +291,11 @@ it("un camarade regarde la vidéo partagée sans lire ni écrire de remarque, et
   const athlete = await addAthlete(org.organizationId, org.groupId, "Lina");
   const peer = await addAthlete(org.organizationId, org.groupId, "Alex");
   const { videoId } = await createVideoUpload(athlete.userId, org.organizationId, { clientId: randomUUID() });
-  await addAnnotation(org.owner.userId, org.organizationId, videoId, { tMs: 500, text: "Remarque du coach" });
+  const coachRemark = await addAnnotation(org.owner.userId, org.organizationId, videoId, {
+    tMs: 500,
+    text: "Remarque du coach",
+  });
+  await addAnnotation(athlete.userId, org.organizationId, videoId, { tMs: 0, parentId: coachRemark.id, text: "Compris" });
   await addAnnotation(athlete.userId, org.organizationId, videoId, { tMs: 900, text: "Mon ressenti" });
   await shareVideo(athlete.userId, org.organizationId, videoId, {
     withAthlete: true,
@@ -304,7 +308,7 @@ it("un camarade regarde la vidéo partagée sans lire ni écrire de remarque, et
   await expect(
     addAnnotation(peer.userId, org.organizationId, videoId, { tMs: 100, text: "Bravo" }),
   ).rejects.toMatchObject({ status: 403 });
-  expect((await getVideo(athlete.userId, org.organizationId, videoId)).annotations).toHaveLength(2);
+  expect((await getVideo(athlete.userId, org.organizationId, videoId)).annotations).toHaveLength(3);
 
   const filmed = await createVideoUpload(org.owner.userId, org.organizationId, {
     clientId: randomUUID(),
