@@ -102,6 +102,11 @@ describe("contrôles d'une proposition", () => {
       plannerGuardIssues(proposal(session("2030-06-03")), context(`Mardi 3 juin : squat arrière 40 kg`)),
     ).toContain("date");
   });
+  it("ne remplace pas le seul jour nommé par le début de période", () => {
+    const text = "Mercredi pour un destinataire hors sélection : squat arrière 40 kg.";
+    expect(plannerGuardIssues(proposal(session("2030-06-03")), context(text))).toContain("date");
+    expect(plannerGuardIssues(proposal(session("2030-06-05")), context(text))).not.toContain("date");
+  });
   it("refuse un intervalle qui dépasse la période, sans troncature", () => {
     expect(
       plannerGuardIssues(proposal(session("2030-06-03")), context("du 3 au 10 juin : squat arrière 40 kg")),
@@ -236,6 +241,17 @@ describe("désignation d'un exercice", () => {
     expect(plannerExerciseIsNamed("gainage, 3 séries", "exercise_3", exercises)).toBe(true);
     expect(plannerExerciseIsNamed("le tirage habituel", "exercise_4", exercises)).toBe(false);
   });
+  it("un alias court contenu dans un autre geste ne permet pas sa substitution", () => {
+    const catalog = [
+      { token: "clean", name: "Épaulé", aliases: ["clean"] },
+      { token: "power", name: "Épaulé puissance", aliases: ["power clean"] },
+    ];
+    expect(plannerExerciseIsNamed("power clean, trois séries", "clean", catalog)).toBe(false);
+    expect(plannerExerciseIsNamed("power clean, trois séries", "power", catalog)).toBe(true);
+    expect(plannerExerciseIsNamed("clean puis power clean", "clean", catalog)).toBe(true);
+    expect(plannerExerciseIsNamed("front squat", "exercise_1", exercises)).toBe(false);
+    expect(plannerExerciseIsNamed("front squat", "exercise_2", exercises)).toBe(true);
+  });
   it("le plan refuse un exercice non nommé", () => {
     expect(
       plannerGuardIssues(
@@ -364,4 +380,19 @@ it("refuse un superset dont les tours disparaissent dans des séries séparées"
   expect(plannerGuardIssues(value, context("Le 3 juin, circuit un tour : squat arrière à 40 kg."))).not.toContain(
     "volume",
   );
+});
+
+it("refuse une pause V2 placée après une série unique dans restS, qui serait perdue", () => {
+  const value = proposal(session(today));
+  const block = value.sessions[0]!.blocks[0]!;
+  block.items[0]!.ref = "squat";
+  block.items[0]!.prescription.sets = 1;
+  block.sequence = [{ kind: "exercise", itemRef: "squat" }];
+  expect(plannerGuardIssues(value, context(single))).toContain("rest");
+  block.items[0]!.prescription.sets = 3;
+  expect(plannerGuardIssues(value, context(single))).not.toContain("rest");
+  block.items[0]!.prescription.sets = 1;
+  block.items[0]!.prescription.restS = null;
+  block.sequence.push({ kind: "recovery", ref: "pause", durationS: 120 });
+  expect(plannerGuardIssues(value, context(single))).not.toContain("rest");
 });

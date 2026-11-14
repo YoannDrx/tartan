@@ -32,13 +32,14 @@ describe("catalogue éditorial", () => {
       expect(current.category).toBe(old.category);
     }
   });
-  it("fournit des guides structurés sans prétendre à une validation humaine", () => {
+  it("publie les textes approuvés sans prétendre à une validation des illustrations", () => {
     for (const entry of EXERCISE_CATALOG) {
       expect(exerciseGuide.safeParse(entry.guide).success, entry.name).toBe(true);
       expect(exerciseInput.safeParse({ ...entry, defaultPrescription: entry.prescription }).success, entry.name).toBe(
         true,
       );
-      expect(entry.guide.technicalReview).toBe("pending");
+      expect(entry.guide.technicalReview).toBe("approved");
+      expect(entry.guide.illustration.status).toBe("draft");
       expect(entry.guide.counting.explanation).toBeTruthy();
       expect(entry.guide.loadExplanation).toBeTruthy();
     }

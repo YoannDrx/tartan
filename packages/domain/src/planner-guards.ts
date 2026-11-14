@@ -66,11 +66,13 @@ function numberFromWords(words: readonly string[]): number {
 function numberMentions(text: string): { value: number; after: string }[] {
   const mentions: { value: number; after: string }[] = [];
   const normalized = plain(text);
-  for (const match of normalized.matchAll(/\d+(?:[.,]\d+)?/g))
+  for (const match of normalized.matchAll(/\d+(?:[.,]\d+)?/g)) {
+    if (/\bvirgule\s*$/.test(normalized.slice(0, match.index))) continue;
     mentions.push({
       value: Number(match[0].replace(",", ".")),
       after: normalized.slice(match.index + match[0].length, match.index + match[0].length + 16),
     });
+  }
   // Une ponctuation sépare toujours deux nombres : « cent vingt, soixante » n'en forme pas un seul.
   for (const segment of normalized.replace(/%/g, " pourcent ").split(/[,;:.!?()\n]+/)) {
     const tokens = segment.split(/[^a-z0-9]+/).filter(Boolean);
@@ -91,6 +93,7 @@ function numberMentions(text: string): { value: number; after: string }[] {
         const decimal = tokens[i + 1]!;
         const digits = /^\d+$/.test(decimal) ? decimal : String(numberFromWords([decimal]));
         mentions.push({ value: Number(`${whole}.${digits}`), after: tokens.slice(i + 2).join(" ") });
+        i += 2;
       }
       if (tokens[i] === "et" && tokens[i + 1] === "demi")
         mentions.push({ value: whole + 0.5, after: tokens.slice(i + 2).join(" ") });
@@ -268,11 +271,17 @@ function dateIssue(
   references: PlannerDateReferences,
   period: { from: string; to: string },
   corrected: boolean,
+  text: string,
 ) {
   const { explicit, ranges, relative, weekdayOnly } = references;
   const dates = value.sessions.map((session) => session.date);
   if (explicit.some((date) => date.weekdayMismatch)) return "date" as const;
   if (ranges.some((range) => range.from < period.from || range.to > period.to)) return "date" as const;
+  if (weekdayOnly && !explicit.length && !relative.length && !ranges.length) {
+    const days = WEEKDAYS.filter((day) => new RegExp(`\\b${day}s?\\b`).test(plain(text)));
+    // A single stated weekday must not silently become the period's first day.
+    if (days.length === 1 && dates.some((date) => WEEKDAYS[weekdayOf(date)] !== days[0])) return "date" as const;
+  }
   if (weekdayOnly || ranges.length) return null;
   if (relative.length && explicit.length) return null;
   const stated = relative.length ? relative : explicit.map((date) => date.iso);
@@ -340,11 +349,25 @@ export function plannerExerciseIsNamed(
   if (!exercise) return false;
   const normalized = plain(text).replace(/-/g, " ");
   const inflectedText = normalizeExerciseMention(text);
-  const named = namesOf(exercise).some((label) => {
-    const term = normalizeExerciseMention(label).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return term.length > 0 && new RegExp(`(?<![\\p{L}\\p{N}_])${term}(?![\\p{L}\\p{N}_])`, "u").test(inflectedText);
-  });
-  if (named) return true;
+  const matches = exercises.flatMap((candidate) =>
+    namesOf(candidate).flatMap((label) => {
+      const term = normalizeExerciseMention(label).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (!term.length) return [];
+      return [...inflectedText.matchAll(new RegExp(`(?<![\\p{L}\\p{N}_])${term}(?![\\p{L}\\p{N}_])`, "gu"))].map(
+        (match) => ({ token: candidate.token, start: match.index, end: match.index + match[0].length }),
+      );
+    }),
+  );
+  const specific = matches.filter(
+    (hit) =>
+      !matches.some(
+        (other) => other.start <= hit.start && other.end >= hit.end && other.end - other.start > hit.end - hit.start,
+      ),
+  );
+  if (specific.some((hit) => hit.token === token)) return true;
+  // A short alias contained in a different, fully named movement is not evidence
+  // for this exercise (clean inside power clean, squat inside front squat).
+  if (matches.some((hit) => hit.token === token)) return false;
   const textWords = new Set(normalized.split(/[^a-z0-9]+/).map(singular));
   return namesOf(exercise)
     .flatMap(significantWords)
@@ -371,8 +394,18 @@ export function plannerGuardIssues(value: PlannerInterpretation, context: Planne
       }
   };
   for (const session of value.sessions)
-    for (const block of session.blocks) if (block.sequence) checkRounds(block.sequence);
-  if (context.instructions.length === 1 && !CORRECTION.test(plain(text)) && /\b(?:circuit|superset)\b/.test(plain(text)))
+    for (const block of session.blocks)
+      if (block.sequence) {
+        checkRounds(block.sequence);
+        // V2 never applies restS after the last set. Such a pause would vanish during execution.
+        if (block.items.some((item) => (item.prescription.sets ?? 1) === 1 && (item.prescription.restS ?? 0) > 0))
+          issues.add("rest");
+      }
+  if (
+    context.instructions.length === 1 &&
+    !CORRECTION.test(plain(text)) &&
+    /\b(?:circuit|superset)\b/.test(plain(text))
+  )
     for (const mention of numberMentions(text))
       if (mention.value > 1 && /^\s*tours?\b/.test(mention.after) && !representedRounds.has(mention.value))
         issues.add("volume");
@@ -391,7 +424,13 @@ export function plannerGuardIssues(value: PlannerInterpretation, context: Planne
       if (load && !hasUnit(mentions, load.value, load.type === "kg" ? KG_UNIT : PERCENT_UNIT)) issues.add("load");
     }
     if (items.some((item) => item.prescription.load) && contradictoryLoads(text, context.exercises)) issues.add("load");
-    const dated = dateIssue(value, plannerDateReferences(text, context), context.period, CORRECTION.test(plain(text)));
+    const dated = dateIssue(
+      value,
+      plannerDateReferences(text, context),
+      context.period,
+      CORRECTION.test(plain(text)),
+      text,
+    );
     if (dated) issues.add(dated);
     if (requestedSessions(text) > 14) issues.add("session_count");
     for (const issue of habitualIssues(text)) issues.add(issue);
@@ -506,7 +545,7 @@ export function groundPlannerCitations(
             return [];
           }),
         }))
-        .filter((block) => block.items.length > 0),
+        .filter((block) => block.items.length > 0 || Boolean(block.sequence?.length)),
     }))
     .filter((session) => session.blocks.length > 0);
   return { value: { ...value, sessions }, removed };
