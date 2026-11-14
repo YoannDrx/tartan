@@ -19,7 +19,7 @@ env:
 - tapOn: "Squat arrière.*"
 - tapOn:
     id: exercise-guide-open
-- assertVisible: "Guide en préparation.*"
+- assertVisible: "Guide validé techniquement"
 - scrollUntilVisible:
     element:
       text: "Installation"
