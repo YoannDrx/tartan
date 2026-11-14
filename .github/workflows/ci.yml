@@ -29,7 +29,8 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_PASSWORD: postgres
+          # Base jetable du serveur de CI, joignable seulement depuis le job : pas de mot de passe.
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: tartan
         options: >-
           --health-cmd pg_isready
@@ -75,7 +76,8 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_PASSWORD: postgres
+          # Base jetable du serveur de CI, joignable seulement depuis le job : pas de mot de passe.
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: tartan
         options: >-
           --health-cmd pg_isready
