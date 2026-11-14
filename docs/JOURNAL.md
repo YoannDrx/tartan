@@ -587,3 +587,6 @@ Vérifié : lint, types, tests, design, Playwright sur build de production ; pas
 Non vérifié : e-mails reçus, paiement réel, push, téléphones physiques.
 À savoir : les variables Vercel de type Secret ne se relisent pas, même avec `vercel env run`. Une variable modifiée n'agit qu'après un nouveau déploiement. La bibliothèque de passkeys n'envoie pas `fetchOptions` à sa première requête.
 Suite conseillée : A1, à commencer par T01.
+
+## 2026-11-14, Codex, F5 : rétablir la précondition de relecture
+La CI navigateur a révélé deux assertions modifiées trop largement lors de l’approbation du catalogue : avant relecture, le bouton doit rester désactivé, après dictée comme après saisie. Les deux attentes sont rétablies ; le scénario proposition avec catalogue approuvé et relecture cochée garde son attente activée. Aucun comportement applicatif assoupli. Traces CI relues ; les huit parcours IA ciblés passent sous Node 22/pnpm 10 et build de production, en 2 min. Prestataire simulé, aucune nouvelle qualification OpenAI déduite.
