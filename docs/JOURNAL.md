@@ -14,6 +14,9 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, F9 : catalogue approuvé dans les recettes natives
+Intégration des branches parentes et des 150 guides approuvés. Le scénario IA vérifie le brief accessible au lieu de l’ancien blocage éditorial ; création privée et confirmation réelle du brouillon restent exigées. Le constructeur simple passe en local (84 s) après traitement du dialogue de sauvegarde du mot de passe, sans modification du délai de chargement. Rejeux circuits et CI complète en cours ; aucun résultat de téléphone physique ajouté.
+
 ## 2026-11-13, Codex, F9 : modes IA et exercices inconnus sur le natif
 
 Codé sur `feat/native-planner-modes` depuis le constructeur natif : choix mise en forme/proposition, objectif/durée/niveau/matériel/date, blocage explicite du mode proposition tant que le catalogue n'a pas de fiches techniquement validées. Questions d’exercice : candidats pertinents, création privée relue et convention de charge, rattachement idempotent avec reprise de la même demande après erreur ; texte de réponse préservé. Recherche par synonymes et suppression de l'ancien blocage à 500 fiches. Les choix et relectures affichent une coche visible en plus de leur état accessible.

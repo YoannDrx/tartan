@@ -1,4 +1,4 @@
-# Deux modes visibles ; proposition bloquée tant que les guides ne sont pas validés.
+# Deux modes visibles ; le catalogue approuvé ouvre le brief de proposition.
 # Exercice inconnu → fiche privée relue → reprise → brouillon, prestataire factice local.
 appId: ${APP_ID}
 env:
@@ -28,8 +28,9 @@ env:
 - tapOn:
     id: planner-mode-propose
 - assertVisible: "L.IA propose des choix.*"
-- assertVisible: "Le mode proposition attend.*"
-- takeScreenshot: planner-proposal-gate
+- assertNotVisible: "Le mode proposition attend.*"
+- assertVisible: "Durée disponible.*"
+- takeScreenshot: planner-proposal-brief
 - scrollUntilVisible:
     element:
       id: planner-mode-format
