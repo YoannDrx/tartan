@@ -3,6 +3,7 @@ import type { AthleteSessionDetail, ResolvedItem } from "@tartan/contracts";
 import {
   confirmedSets,
   draftFromSession,
+  loggableItems,
   proposedSet,
   chooseLoadKind,
   performedDraftContent,
@@ -30,6 +31,12 @@ const session = {
 } as unknown as AthleteSessionDetail;
 
 describe("séries proposées et réalisées", () => {
+  it("ne propose jamais de saisir une récupération de circuit", () => {
+    const recovery = { ...item, ref: "seq:rest:0", kind: "recovery", name: "Récupération", prescription: { duration_s: 90 } };
+    const circuit = { ...session, blocks: [{ items: [item, recovery] }] } as unknown as AthleteSessionDetail;
+    expect(loggableItems(circuit).map((i) => i.ref)).toEqual(["item"]);
+    expect(draftFromSession(circuit).rows.every((row) => row.itemRef === "item")).toBe(true);
+  });
   it("ne compte pas les séries proposées et ne transforme pas un manque en zéro", () => {
     const draft = draftFromSession(session);
     expect(confirmedSets(draft)).toEqual({ sets: [], issues: [] });

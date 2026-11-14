@@ -16,6 +16,7 @@ import {
   copyDraftWithNewRefs,
   expandSessionSnapshot,
   formatPrescription,
+  mergeVariantBlocks,
   normalizeExerciseTerm,
   validSessionStructure,
   withSessionRefs,
@@ -439,7 +440,7 @@ export const SessionBuilder = ({
       type,
       durationMin: durationMin ? Number(durationMin) : null,
       coachNote: coachNote.trim() || null,
-      blocks: [...toBlocks(club, "club"), ...toBlocks(autonomous, "autonomous")],
+      blocks: mergeVariantBlocks(toBlocks(club, "club"), toBlocks(autonomous, "autonomous")),
     };
   };
 

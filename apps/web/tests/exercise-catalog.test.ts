@@ -1,4 +1,5 @@
 import { exerciseInput } from "@tartan/contracts";
+import { EXERCISE_CATALOG_VERSION } from "@tartan/domain/exercise-catalog";
 import { expect, it } from "vitest";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -87,7 +88,7 @@ it("diffuse l'approbation aux copies existantes sans modifier prescriptions, per
     technicalReview: "pending" as const,
     illustration: {
       ...entry.guide!.illustration,
-      path: entry.guide!.illustration.path.replace(/-v2\.svg$/, "-v1.svg"),
+      path: entry.guide!.illustration.path.replace(`-v${EXERCISE_CATALOG_VERSION}.svg`, "-v1.svg"),
     },
   };
   await prisma.exercise.update({
@@ -125,7 +126,7 @@ it("diffuse l'approbation aux copies existantes sans modifier prescriptions, per
     id: before.id,
     defaultPrescription: before.defaultPrescription,
     loadStepKg: before.loadStepKg,
-    catalogVersion: 2,
+    catalogVersion: EXERCISE_CATALOG_VERSION,
     guide: { technicalReview: "approved", illustration: { status: "draft" } },
   });
   expect(snapshot.blocks[0]!.items[0]!.guide).toEqual(oldGuide);

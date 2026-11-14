@@ -57,6 +57,10 @@ export async function loadPreviousExerciseSets(input: {
         s.load_kg::float8 AS "loadKg", s.distance_m::float8 AS "distanceM", s.time_s::float8 AS "timeS",
         s.ground_contacts AS "groundContacts", s.load_kind AS "loadKind",
         s.repetition_scope AS "repetitionScope", s.side_count AS "sideCount",
+        -- Rang de l'occurrence dans la copie figée : l'ordre réel d'exécution, tours compris
+        -- (un tri sur la référence placerait le tour 10 avant le tour 2).
+        (SELECT min(f.pos) FROM jsonb_path_query(l.prescription_snapshot, '$.blocks[*].items[*]')
+          WITH ORDINALITY AS f(item, pos) WHERE f.item->>'ref' = s.item_ref) AS "itemPos",
         DENSE_RANK() OVER (
           PARTITION BY s.exercise_id, w.convention, s.load_kind, s.repetition_scope, s.side_count
           ORDER BY ss.date DESC, ss.start_time DESC NULLS LAST, l.created_at DESC, l.id DESC
@@ -85,11 +89,12 @@ export async function loadPreviousExerciseSets(input: {
         (COUNT(*) OVER (PARTITION BY "exerciseId", convention, "loadKind", "repetitionScope", "sideCount"))::int AS "totalSets",
         ROW_NUMBER() OVER (
           PARTITION BY "exerciseId", convention, "loadKind", "repetitionScope", "sideCount"
-          ORDER BY "itemRef", "setIndex"
+          ORDER BY "itemPos", "setIndex"
         ) AS "setRank"
       FROM candidates WHERE rank = 1
     )
-    SELECT * FROM latest WHERE "setRank" <= 12 ORDER BY date DESC, "sessionId", "itemRef", "setIndex"
+    SELECT * FROM latest WHERE "setRank" <= 12
+    ORDER BY date DESC, "sessionId", "itemPos", "setIndex"
   `;
   const groups = new Map<string, PreviousExerciseSets>();
   for (const row of rows) {

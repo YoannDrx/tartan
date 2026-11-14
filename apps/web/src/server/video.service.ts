@@ -369,9 +369,12 @@ export const listVideoPage = async (userId: string, organizationId: string, quer
 export const getVideo = async (userId: string, organizationId: string, videoId: string): Promise<VideoDetail> => {
   const access = await requireOrgMember(userId, organizationId, "viewVideos");
   const video = await requireVideo(access, videoId);
+  // Un camarade du groupe regarde la vidéo partagée et ce qu'en dit son auteur, jamais les remarques du coach.
+  const peer = access.role === "athlete" && access.athleteId !== video.athleteId;
+  const visibleAuthors = peer ? { in: video.athlete.userId ? [video.athlete.userId] : [] } : {};
   const [annotations, comments, attempts] = await Promise.all([
     prisma.videoAnnotation.findMany({
-      where: { videoId, authorId: { notIn: await blockedUserIds(userId) } },
+      where: { videoId, authorId: { notIn: await blockedUserIds(userId), ...visibleAuthors } },
       orderBy: { tMs: "asc" },
     }),
     prisma.comment.findMany({
@@ -379,11 +382,11 @@ export const getVideo = async (userId: string, organizationId: string, videoId: 
         organizationId,
         entityType: "video",
         entityId: videoId,
-        authorId: { notIn: await blockedUserIds(userId) },
+        authorId: { notIn: await blockedUserIds(userId), ...visibleAuthors },
       },
       orderBy: { createdAt: "asc" },
     }),
-    video.scheduledSessionId
+    video.scheduledSessionId && !peer
       ? prisma.jumpAttempt.findMany({
           where: { athleteId: video.athleteId, scheduledSessionId: video.scheduledSessionId },
         })
@@ -398,9 +401,10 @@ export const getVideo = async (userId: string, organizationId: string, videoId: 
   const devMp4 = process.env.NODE_ENV !== "production" && !consentRevoked ? env().VIDEO_DEV_MP4_URL : undefined;
   return {
     ...(await summarize(video, consentRevoked)),
-    canAnnotate: Boolean((await consentForAthletes([video.athleteId])).get(video.athleteId)?.video),
+    canAnnotate: !peer && Boolean((await consentForAthletes([video.athleteId])).get(video.athleteId)?.video),
     canHideFromAthlete: video.uploadedBy !== video.athlete.userId && video.sharedGroupIds.length === 0,
-    canManage: access.role !== "athlete" || access.athleteId === video.athleteId,
+    // L'athlète gère ce qu'il a envoyé ; une vidéo filmée par le coach reste gérée par l'encadrement.
+    canManage: access.role !== "athlete" || (access.athleteId === video.athleteId && video.uploadedBy === userId),
     canShareGroups: access.role === "athlete" && access.athleteId === video.athleteId,
     sharedGroupIds: access.athleteId === video.athleteId ? video.sharedGroupIds : [],
     availableShareGroups:
@@ -464,6 +468,7 @@ export const addAnnotation = async (
 ) => {
   const access = await requireOrgMember(userId, organizationId, "replyVideos");
   const video = await requireVideo(access, videoId);
+  if (access.role === "athlete" && access.athleteId !== video.athleteId) throw forbidden();
   await requireVideoConsent(video.athleteId);
   const parent = input.parentId
     ? await prisma.videoAnnotation.findFirst({
@@ -581,7 +586,9 @@ export const markVideoReviewed = async (userId: string, organizationId: string, 
 export const deleteVideo = async (userId: string, organizationId: string, videoId: string) => {
   const access = await requireOrgMember(userId, organizationId, "uploadVideos");
   const video = await requireVideo(access, videoId);
-  if (access.role === "athlete" && access.athleteId !== video.athleteId) throw forbidden();
+  // Une vidéo filmée par le coach porte ses remarques : l'athlète peut la masquer, pas l'effacer.
+  if (access.role === "athlete" && (access.athleteId !== video.athleteId || video.uploadedBy !== userId))
+    throw forbidden();
   await prisma.video.delete({ where: { id: videoId } });
   await drainExternalDeletions();
 };

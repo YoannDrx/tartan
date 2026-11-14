@@ -182,3 +182,58 @@ it("borne le rappel sans masquer le nombre total de séries de la réalisation r
   expect(reminder.sets).toHaveLength(12);
   expect(reminder.sets.map((set) => set.setIndex)).toEqual(Array.from({ length: 12 }, (_, index) => index));
 });
+
+it("rappelle les séries d'un circuit dans l'ordre des tours, le dixième après le deuxième", async () => {
+  const a = await setup();
+  const previous = await saveScheduledSession(a.owner.userId, a.organizationId, {
+    date: "2029-06-01",
+    startTime: null,
+    location: null,
+    publishAt: null,
+    assignments: [{ targetType: "group", targetId: a.groupId }],
+    overrides: [],
+    draft: {
+      structureVersion: 2,
+      title: "Circuit",
+      type: "strength",
+      durationMin: 45,
+      coachNote: null,
+      blocks: [
+        {
+          ref: "bloc",
+          name: "Travail",
+          variant: "club",
+          items: [{ ref: "squat", exerciseId: a.exercise.id, prescription: { sets: 1, reps: 4 } }],
+          sequence: [
+            { kind: "repeat", ref: "tours", name: "Circuit", rounds: 12, restBetweenRoundsS: 0, children: [{ kind: "exercise", itemRef: "squat" }] },
+          ],
+        },
+      ],
+    },
+  });
+  await publishRow(previous.id, a.owner.userId, new Date("2020-01-01T10:00:00Z"), { silent: true });
+  const detail = await a.read(previous.id);
+  const occurrences = detail.blocks[0]!.items;
+  await logSession(a.athlete.userId, a.organizationId, previous.id, {
+    clientId: randomUUID(),
+    status: "partial",
+    variantDone: "club",
+    expectedVersion: 0,
+    expectedSessionVersion: detail.sessionVersion,
+    detailedSets: occurrences.map((item, round) => ({
+      itemRef: item.ref,
+      setIndex: 0,
+      reps: 4,
+      loadKg: 50 + round,
+      done: true,
+      setKind: "work",
+      loadKind: "external",
+      repetitionScope: "total",
+      sideCount: 1,
+    })),
+  });
+  const target = await a.create("2030-06-01");
+  const reminder = (await a.read(target.id)).previousExerciseSets![0]!;
+  expect(reminder.totalSets).toBe(12);
+  expect(reminder.sets.map((set) => set.loadKg)).toEqual(Array.from({ length: 12 }, (_, round) => 50 + round));
+});

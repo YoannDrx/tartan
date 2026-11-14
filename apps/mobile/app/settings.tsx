@@ -15,7 +15,7 @@ import { useActiveSpace } from "../src/lib/queries";
 import { useSession } from "../src/lib/session-store";
 import { homeFor, useSpaceStore } from "../src/lib/space-store";
 import { useOpQueue } from "../src/lib/sync/op-queue";
-import { useUploads } from "../src/lib/upload/upload-queue";
+import { useOwnUploads } from "../src/lib/upload/upload-queue";
 import { Check, ChevronRight } from "../src/ui/icons";
 import { Button, Card, Chip, Divider, Field, ListSurface, SectionTitle, T, MutedChevron } from "../src/ui/primitives";
 import { StackScreen } from "../src/ui/screen";
@@ -110,7 +110,7 @@ export default function Settings() {
   const activeSpaceId = useSpaceStore((s) => s.activeOrgId);
   const setActive = useSpaceStore((s) => s.setActive);
   const pendingOps = useOpQueue((s) => s.items.length);
-  const pendingUploads = useUploads((s) => s.items.length);
+  const pendingUploads = useOwnUploads().length;
   const hasAthleteSpace = me.data?.spaces.some((s) => s.role === "athlete") ?? false;
 
   const [firstName, setFirstName] = useState("");

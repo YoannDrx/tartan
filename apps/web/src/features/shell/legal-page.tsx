@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { m } from "@tartan/i18n";
 import { PublicPage } from "./public-page";
 
 // Le texte long se lit sur la craie : encre sur fond clair, sans carte.
@@ -15,7 +16,7 @@ export const LegalPage = ({
 }) => (
   <PublicPage
     title={title}
-    lead={`Version de travail du ${updated}, à faire relire par un juriste avant publication.`}
+    lead={m.legal.updated(updated)}
     width="text"
     site
     embedded={embedded}

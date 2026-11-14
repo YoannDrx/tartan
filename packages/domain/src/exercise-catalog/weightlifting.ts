@@ -12,7 +12,7 @@ const lifts: Lift[] = [
     aliases: ["Snatch", "Squat snatch"],
     objective: "Amener la barre du sol au-dessus de la tête en un seul mouvement avec réception fléchie.",
     setup:
-      "Sur une plateforme dégagée, utilise une barre technique ; règle une prise large avec le coach et place la barre près des tibias.",
+      "Sur une plateforme dégagée, utilise une barre technique ; règle une prise large avec le coach et place la barre près des tibias. En cas d'échec, lâche la barre et écarte-toi : disques en caoutchouc et plateforme dégagée, jamais de barre retenue à bout de bras.",
     steps: [
       "Pousse le sol en gardant la barre proche et les bras longs jusqu'à l'extension des jambes et des hanches.",
       "Passe rapidement sous la barre et reçois-la bras tendus au-dessus de la tête, en flexion de jambes.",
@@ -22,7 +22,7 @@ const lifts: Lift[] = [
       "Tirer avec les bras avant la poussée des jambes.",
       "Recevoir la barre trop en avant ou poursuivre une réception instable.",
     ],
-    easier: "Arraché en force au bâton puis apprentissage séparé de la réception.",
+    easier: "Arraché musclé au bâton puis apprentissage séparé de la réception.",
     progression: "Relier les phases avec une barre légère sous observation du coach.",
   },
   {
@@ -30,7 +30,8 @@ const lifts: Lift[] = [
     name: "Épaulé",
     aliases: ["Clean", "Squat clean"],
     objective: "Amener la barre du sol sur l'avant des épaules avec une réception fléchie.",
-    setup: "Sur une plateforme dégagée, place la barre près des tibias et les mains juste à l'extérieur des jambes.",
+    setup:
+      "Sur une plateforme dégagée, place la barre près des tibias et les mains juste à l'extérieur des jambes. En cas d'échec, lâche la barre et écarte-toi : disques en caoutchouc et plateforme dégagée, jamais de barre retenue à bout de bras.",
     steps: [
       "Pousse le sol en gardant la barre proche, puis termine l'extension des jambes et des hanches.",
       "Passe sous la barre et tourne les coudes vers l'avant pour la recevoir sur les épaules en flexion de jambes.",
@@ -49,7 +50,7 @@ const lifts: Lift[] = [
     aliases: ["Split jerk", "Jeté"],
     objective: "Propulser une barre des épaules au-dessus de la tête puis la stabiliser en fente.",
     setup:
-      "Prends la barre sur l'avant des épaules depuis un rack, mains en prise de jeté ; prépare une zone dégagée devant et derrière.",
+      "Prends la barre sur l'avant des épaules depuis un rack, mains en prise de jeté ; prépare une zone dégagée devant et derrière. En cas d'échec, lâche la barre et écarte-toi : disques en caoutchouc et plateforme dégagée, jamais de barre retenue à bout de bras.",
     steps: [
       "Effectue une courte flexion verticale puis pousse vivement avec les jambes.",
       "Passe sous la barre bras tendus en décalant les pieds en fente, bassin sous la charge.",
@@ -68,7 +69,7 @@ const lifts: Lift[] = [
     aliases: ["Clean and jerk", "Clean & jerk"],
     objective: "Enchaîner un épaulé puis un jeté avec une stabilisation entre les deux mouvements.",
     setup:
-      "Prépare une plateforme et une barre adaptée à la maîtrise des deux gestes ; la zone de réception doit être libre.",
+      "Prépare une plateforme et une barre adaptée à la maîtrise des deux gestes ; la zone de réception doit être libre. En cas d'échec, lâche la barre et écarte-toi : disques en caoutchouc et plateforme dégagée, jamais de barre retenue à bout de bras.",
     steps: [
       "Épaule la barre et relève-toi complètement avec la barre soutenue par les épaules.",
       "Retrouve l'équilibre, ajuste la prise si nécessaire et prépare une flexion verticale.",
@@ -84,9 +85,10 @@ const lifts: Lift[] = [
   {
     key: "power-snatch",
     name: "Arraché puissance",
-    aliases: ["Power snatch", "Arraché debout"],
+    aliases: ["Power snatch", "Arraché debout", "Arraché force"],
     objective: "Amener la barre au-dessus de la tête avec une réception au-dessus de la position accroupie.",
-    setup: "Place une barre légère au sol, prise large réglée et pieds en position de tirage.",
+    setup:
+      "Place une barre légère au sol, prise large réglée et pieds en position de tirage. En cas d'échec, lâche la barre et écarte-toi : disques en caoutchouc et plateforme dégagée, jamais de barre retenue à bout de bras.",
     steps: [
       "Pousse le sol en gardant la barre proche jusqu'à l'extension.",
       "Passe sous la barre avec une flexion limitée des jambes et verrouille les bras.",
@@ -96,15 +98,16 @@ const lifts: Lift[] = [
       "Écarter excessivement les pieds pour éviter de fléchir.",
       "Confondre réception haute et absence totale de passage sous la barre.",
     ],
-    easier: "Arraché en force au bâton.",
+    easier: "Arraché musclé au bâton.",
     progression: "Départ en suspension puis départ du sol à trajectoire maîtrisée.",
   },
   {
     key: "power-clean",
     name: "Épaulé puissance",
-    aliases: ["Power clean", "Épaulé debout"],
+    aliases: ["Power clean", "Épaulé debout", "Épaulé force"],
     objective: "Recevoir la barre sur les épaules avec une flexion limitée des jambes.",
-    setup: "Barre légère proche des tibias, mains à l'extérieur des jambes et espace de réception dégagé.",
+    setup:
+      "Barre légère proche des tibias, mains à l'extérieur des jambes et espace de réception dégagé. En cas d'échec, lâche la barre et écarte-toi : disques en caoutchouc et plateforme dégagée, jamais de barre retenue à bout de bras.",
     steps: [
       "Pousse avec les jambes puis termine l'extension des hanches sans tirer tôt avec les bras.",
       "Tourne rapidement les coudes et passe légèrement sous la barre.",
@@ -187,8 +190,8 @@ const lifts: Lift[] = [
   },
   {
     key: "muscle-snatch",
-    name: "Arraché en force",
-    aliases: ["Muscle snatch"],
+    name: "Arraché musclé",
+    aliases: ["Muscle snatch", "Arraché bras"],
     objective: "Apprendre la trajectoire de la barre et la rotation des bras sans nouvelle flexion de réception.",
     setup: "Utilise un bâton ou une barre très légère, prise large, départ en suspension haute.",
     steps: [

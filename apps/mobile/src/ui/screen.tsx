@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIsOnline } from "../lib/network";
 import { useOpQueue } from "../lib/sync/op-queue";
 import { reviewRequiredOps } from "../lib/sync/queue-core";
-import { useUploads } from "../lib/upload/upload-queue";
+import { useOwnUploads } from "../lib/upload/upload-queue";
 import { ArrowLeft, CloudOff, CloudUpload, Repeat, Settings, X } from "./icons";
 import { Button, IconButton, LaneLine, ListSurface, ScreenTitle, T } from "./primitives";
 import { SpaceSwitcher } from "./space-switcher";
@@ -49,7 +49,7 @@ export const SyncBanner = () => {
   const flush = useOpQueue((s) => s.flush);
   const rejected = useOpQueue((s) => s.rejectedCount);
   const dismiss = useOpQueue((s) => s.dismissRejected);
-  const uploads = useUploads((s) => s.items.length);
+  const uploads = useOwnUploads().length;
   const pending = ops + uploads;
   if (rejected > 0 && !storageError && blocked === 0) {
     return (

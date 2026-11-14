@@ -3,7 +3,9 @@ import { PLANS, TRIAL_DAYS, formatPrice } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { LegalPage } from "@/features/shell/legal-page";
 
-export const metadata: Metadata = { title: "Conditions de vente" };
+const t = m.legal.cgvPage;
+
+export const metadata: Metadata = { title: t.metaTitle };
 
 const price = (plan: "coach" | "club") => {
   const prices = PLANS[plan].prices;
@@ -16,13 +18,10 @@ const retention = (days: number | null) => m.billing.compare.retentionDays(days 
 
 export default function CgvPage() {
   return (
-    <LegalPage title="Conditions de vente" updated="9 novembre 2026">
-      <h2>Vendeur</h2>
-      <p>
-        Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130 Franconville.
-        Contact : hello@tartan.coach.
-      </p>
-      <h2>Offres et prix</h2>
+    <LegalPage title={t.title} updated={t.updated}>
+      <h2>{t.sellerTitle}</h2>
+      <p>{t.seller}</p>
+      <h2>{t.offersTitle}</h2>
       <ul>
         <li>
           {m.legal.cgvOffers.discovery(
@@ -49,70 +48,15 @@ export default function CgvPage() {
           )}
         </li>
       </ul>
-      <p>
-        Prix en euros. TVA non applicable, article 293 B du Code général des impôts. L'abonnement est payé par le coach
-        ou le club ; les athlètes ne paient jamais.
-      </p>
-      <h2>Essai et durée</h2>
-      <p>
-        Le premier abonnement d'un espace commence par {TRIAL_DAYS} jours d'essai. Sans résiliation avant la fin de
-        l'essai, le premier paiement est prélevé à cette date. L'abonnement se renouvelle ensuite tacitement chaque mois
-        ou chaque année, selon la formule choisie. Pour une formule annuelle, un e-mail rappelle, entre trois mois et un
-        mois avant l'échéance, la possibilité de ne pas reconduire et la date limite pour le faire.
-      </p>
-      <h2>Paiement et factures</h2>
-      <p>
-        L'abonnement s'achète uniquement sur le web. Le paiement est traité par Stripe, et les factures sont disponibles
-        dans la gestion de l'abonnement. Les applications mobiles sont gratuites et ne proposent aucun achat.
-      </p>
-      <h2>Résiliation</h2>
-      <p>
-        La résiliation se fait à tout moment depuis la page Abonnement. Elle prend effet à la fin de la période payée ;
-        l'espace repasse alors en offre Découverte. Les athlètes et les données existants sont conservés ; seul l'ajout
-        au-delà des limites est bloqué, et les vidéos plus anciennes que la durée de conservation de l'offre sont
-        retirées, après un préavis par e-mail de 14 jours.
-      </p>
-      <h2>Impayé</h2>
-      <p>
-        En cas d'échec de paiement, l'accès est maintenu pendant les nouvelles tentatives de prélèvement. Sans
-        régularisation, l'abonnement est résilié.
-      </p>
-      <h2>Droit de rétractation</h2>
-      <p>
-        Le client consommateur dispose de 14 jours à compter de la souscription pour se rétracter, sans motif, en
-        écrivant à hello@tartan.coach. Au moment du paiement, il demande expressément que le service commence sans
-        attendre la fin de ce délai : s'il se rétracte ensuite, le montant correspondant au service déjà fourni reste
-        dû.
-      </p>
-      <p>Il peut utiliser le modèle suivant, sans y être obligé :</p>
-      <p>
-        À l'attention de Yodev, 7 allée des Jonquilles, 95130 Franconville, hello@tartan.coach. Je vous notifie par la
-        présente ma rétractation du contrat portant sur l'abonnement Tartan suivant : offre et espace concernés, date de
-        souscription, nom, adresse, date, signature si le formulaire est envoyé sur papier.
-      </p>
-      <h2>Remboursement</h2>
-      <p>
-        En cas de rétractation dans les 14 jours, le montant payé est remboursé sous 14 jours, déduction faite du
-        service déjà fourni. En dehors de ce cas, une période commencée n'est pas remboursée, sauf manquement de notre
-        part ou disposition légale contraire.
-      </p>
-      <h2>Planificateur IA</h2>
-      <p>
-        Les offres Coach et Club comprennent un planificateur en version bêta, avec un quota mensuel. Il prépare des
-        brouillons de séance à partir de ta demande, transmise à OpenAI après ton accord. Ces brouillons peuvent
-        contenir des erreurs : tu les relis et tu restes responsable des séances publiées.
-      </p>
-      <h2>Parrainage</h2>
-      <p>
-        Un mois offert au parrain et au filleul, une fois le filleul abonné depuis 30 jours après son essai. Pas
-        d'auto-parrainage, 12 récompenses par an au maximum.
-      </p>
-      <h2>Médiation et litiges</h2>
-      <p>
-        En cas de litige, écris d'abord à hello@tartan.coach. Le client consommateur peut recourir gratuitement à un
-        médiateur de la consommation : [À DÉFINIR : médiateur désigné avant toute vente aux particuliers]. Droit
-        français.
-      </p>
+      <p>{t.pricesNote}</p>
+      {t.sections(TRIAL_DAYS).map((section) => (
+        <section key={section.title} className="flex flex-col gap-4">
+          <h2>{section.title}</h2>
+          {section.paragraphs.map((paragraph) => (
+            <p key={paragraph}>{paragraph}</p>
+          ))}
+        </section>
+      ))}
     </LegalPage>
   );
 }

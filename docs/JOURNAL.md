@@ -14,6 +14,12 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Claude, phase B : correctifs bloquants
+Fait (PR `fix/phase-b-seances`, empilée sur la phase A) : `loggableItems` (domaine) écarte les récupérations de la saisie des séries, web et mobile ; `mergeVariantBlocks` remet les blocs communs de fin après le corps de séance en autonomie ; `occurrenceRef` garde la référence d'origine hors de tout groupe (aucune séance V2 en production, donc rien à migrer) ; séries précédentes triées par position dans la copie figée. Vidéo : camarades sans remarques du coach ni annotation, « À travailler » limité aux coachs, suppression réservée à l'auteur, essai de saut refusé à l'athlète. Mobile : file vidéo par compte (`ownership.ts`), arrêt sur 401. Catalogue version 3, CGV et conditions déplacées dans i18n (`lint:prune`), bannière « version de travail » retirée. IA : contrôles actifs après une question, sur la seule part du coach (`plannerCoachText`) ; destinataires couverts en mode « Proposer ».
+Vérifié : chaque correctif a un test qui échoue avant ; suite web complète, domaine et mobile.
+À savoir : renommer une fiche de l'ancienne bibliothèque casse son rattachement (`buildEntry` compare les noms) ; ne pas renommer « Mobilité des hanches » et consorts sans migrer ce lien. Le mode « Proposer » contrôlait déjà date, durée et nombre de séances (`ai-planner.ts`), contrairement à ce que disait l'audit.
+Suite : quota vidéo par athlète après confirmation du fondateur, puis phase C.
+
 ## 2026-11-14, Claude, audit de la finalisation et phase A
 Fait : audit des PR 119 à 129, des prestataires et du code ; constats et plan en phases A à G dans `ETAT.md` et `plans/web.md`. Phase A (PR `fix/phase-a-exploitation`) : analyse des secrets, protection à l'envoi et Dependabot activés ; `LICENSE` propriétaire ; job `mobile-gate` toujours présent, à exiger sur `main` ; transition de page interrompue ignorée par Sentry ; incident du 13 novembre consigné ; décisions du fondateur du 14 novembre dans `PRODUCT.md`.
 Prestataires : calcul Neon de production relevé de 0,25 CU fixe à 0,25–2 CU (réglage de recette hérité de la restauration) ; branches de recette et ancienne production supprimées sur accord, après contrôle d'absence d'écriture postérieure au point restauré ; `preview` reconstruite sans donnée de production (schéma, historique des migrations, graine), variables Preview de Vercel repointées, branche Git `preview` avancée sur `main`.

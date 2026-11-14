@@ -61,6 +61,15 @@ describe("ce que l'athlète doit travailler", () => {
     expect(today.focus?.cues[0]?.exercise).toBe("Squat arrière");
   });
 
+  it("ne présente comme conseil que la remarque d'un coach, jamais la sienne", async () => {
+    const a = await prepare();
+    await prisma.videoAnnotation.create({
+      data: { videoId: a.video.id, authorId: a.athlete.userId, tMs: 2000, text: "J'avais mal dormi" },
+    });
+    const today = await getAthleteToday(a.athlete.userId, a.organizationId, NOW);
+    expect(today.focus?.video?.text).toBe("Pousse dans le sol");
+  });
+
   it("ne montre pas une vidéo non partagée ni après retrait de l'accord vidéo", async () => {
     const a = await prepare();
     await prisma.video.update({ where: { id: a.video.id }, data: { sharedWithAthlete: false } });

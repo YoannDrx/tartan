@@ -19,7 +19,7 @@ env:
 - tapOn: "Squat arrière.*"
 - tapOn:
     id: exercise-guide-open
-- assertVisible: "Guide validé techniquement"
+- assertVisible: "Consignes indicatives relues par Tartan.*"
 - scrollUntilVisible:
     element:
       text: "Installation"

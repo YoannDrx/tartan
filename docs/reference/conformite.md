@@ -91,7 +91,7 @@ Les questions ci-dessous conservent le périmètre du dossier relu. Elles ne son
 
 ## Médiateur
 
-Recommandation : CM2C, 48 € pour 3 ans jusqu'à 10 personnes, 36 € par litige à distance ([tarifs](https://www.cm2c.net/tarifs.php), [inscription](https://www.cm2c.net/inscription-professionnel.php)). Référencement à revérifier sur la liste officielle, restée inaccessible lors du relevé. Une fois l'adhésion faite, remplacer le repère `[À DÉFINIR]` de `apps/web/app/(public)/cgv/page.tsx`.
+Recommandation : CM2C, 48 € pour 3 ans jusqu'à 10 personnes, 36 € par litige à distance ([tarifs](https://www.cm2c.net/tarifs.php), [inscription](https://www.cm2c.net/inscription-professionnel.php)). Référencement à revérifier sur la liste officielle, restée inaccessible lors du relevé. Ouverture sans médiateur décidée par le fondateur le 14 novembre 2026, risque accepté. Une fois l'adhésion faite, remplacer la phrase « Médiation et litiges » de `m.legal.cgvPage` (`packages/i18n/src/fr.ts`) par le nom et les coordonnées du médiateur.
 
 ## Comptes de stores
 

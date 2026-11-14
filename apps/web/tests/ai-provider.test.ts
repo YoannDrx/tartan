@@ -547,6 +547,31 @@ it("propose avec le matériel disponible, une charge nulle dans le schéma et un
     code: "invalid_output",
   });
 });
+it("corrige une fois une proposition qui oublie un destinataire, puis en fait une question", async () => {
+  settings.OPENAI_API_KEY = "standard-test-only";
+  const brief = { objective: "Force générale", date: "2026-11-09", durationMin: 40, level: "beginner" as const, equipment: [] };
+  const proposedContext: PlannerProviderContext = {
+    ...context,
+    mode: "propose",
+    brief,
+    targets: [...context.targets, { token: "athlete_1", kind: "athlete", phase: null }],
+    exercises: [{ ...context.exercises[0]!, classification: { movement: "squat", equipment: [] } }],
+  };
+  const offBrief = plannerInterpretation.parse(proposalFor("Choix proposé.", [{ date: "2026-11-09" }]));
+  offBrief.sessions[0]!.durationMin = 30;
+  offBrief.sessions[0]!.blocks[0]!.items[0]!.prescription.load = null;
+  const repeated = transport(completed(offBrief));
+  const result = await openAiPlannerProvider(repeated).interpret(proposedContext);
+  expect(result).toMatchObject({ status: "clarification", sessions: [] });
+  expect(repeated).toHaveBeenCalledTimes(2);
+  const fixed = structuredClone(offBrief);
+  fixed.sessions[0]!.targetTokens = ["group_1", "athlete_1"];
+  const corrected = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(Response.json(completed(offBrief)))
+    .mockResolvedValueOnce(Response.json(completed(fixed)));
+  expect((await openAiPlannerProvider(corrected).interpret(proposedContext)).status).toBe("proposal");
+});
 it("demande du matériel précis sans appel au modèle si aucune fiche n’est compatible", async () => {
   const fetcher = transport();
   const result = await openAiPlannerProvider(fetcher).interpret({

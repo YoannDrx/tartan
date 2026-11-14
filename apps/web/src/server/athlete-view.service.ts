@@ -141,15 +141,28 @@ const athleteFocus = async (athleteId: string, card: AthleteSessionCard | null, 
         .flatMap((item) => (item.cues[0] ? [{ exercise: item.name, cue: item.cues[0] }] : []))
         .slice(0, 3)
     : [];
+  // Seule une remarque d'un coach de l'espace devient un conseil : ni la sienne, ni celle d'un camarade.
+  const staff = videoConsent
+    ? (
+        await prisma.organizationMember.findMany({
+          where: {
+            role: { in: ["owner", "coach", "assistant"] },
+            organization: { athletes: { some: { id: athleteId } } },
+          },
+          select: { userId: true },
+        })
+      ).map((member) => member.userId)
+    : [];
+  const fromStaff = { text: { not: null }, authorId: { in: staff } };
   const latest = videoConsent
     ? await prisma.video.findFirst({
-        where: { athleteId, sharedWithAthlete: true, annotations: { some: { text: { not: null } } } },
+        where: { athleteId, sharedWithAthlete: true, annotations: { some: fromStaff } },
         orderBy: { createdAt: "desc" },
         select: {
           id: true,
           exercise: { select: { name: true } },
           annotations: {
-            where: { text: { not: null } },
+            where: fromStaff,
             orderBy: { createdAt: "desc" },
             take: 1,
             select: { text: true },

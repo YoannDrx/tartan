@@ -9,6 +9,7 @@ import {
   shareVideo,
   addAnnotation,
   deleteAnnotation,
+  deleteVideo,
   applyMuxEvent,
 } from "@/server/video.service";
 import { createExerciseVideoUpload } from "@/server/exercise.service";
@@ -283,4 +284,37 @@ it("la pagination garde l'isolation même avec un curseur d'un autre espace", as
   });
   const page = await listVideoPage(athlete.userId, org.organizationId, { cursor: row.id });
   expect(page.videos.every((v) => v.athleteId === athlete.athleteId)).toBe(true);
+});
+
+it("un camarade regarde la vidéo partagée sans lire ni écrire de remarque, et l'athlète n'efface pas une vidéo du coach", async () => {
+  const org = await makeOrg("Camarades");
+  const athlete = await addAthlete(org.organizationId, org.groupId, "Lina");
+  const peer = await addAthlete(org.organizationId, org.groupId, "Alex");
+  const { videoId } = await createVideoUpload(athlete.userId, org.organizationId, { clientId: randomUUID() });
+  await addAnnotation(org.owner.userId, org.organizationId, videoId, { tMs: 500, text: "Remarque du coach" });
+  await addAnnotation(athlete.userId, org.organizationId, videoId, { tMs: 900, text: "Mon ressenti" });
+  await shareVideo(athlete.userId, org.organizationId, videoId, {
+    withAthlete: true,
+    withGroup: true,
+    groupIds: [org.groupId],
+  });
+  const seen = await getVideo(peer.userId, org.organizationId, videoId);
+  expect(seen.annotations.map((a) => a.text)).toEqual(["Mon ressenti"]);
+  expect(seen.canAnnotate).toBe(false);
+  await expect(
+    addAnnotation(peer.userId, org.organizationId, videoId, { tMs: 100, text: "Bravo" }),
+  ).rejects.toMatchObject({ status: 403 });
+  expect((await getVideo(athlete.userId, org.organizationId, videoId)).annotations).toHaveLength(2);
+
+  const filmed = await createVideoUpload(org.owner.userId, org.organizationId, {
+    clientId: randomUUID(),
+    athleteId: athlete.athleteId,
+  });
+  await shareVideo(org.owner.userId, org.organizationId, filmed.videoId, {
+    withAthlete: true,
+    withGroup: false,
+    groupIds: [],
+  });
+  await expect(deleteVideo(athlete.userId, org.organizationId, filmed.videoId)).rejects.toMatchObject({ status: 403 });
+  await deleteVideo(athlete.userId, org.organizationId, videoId);
 });

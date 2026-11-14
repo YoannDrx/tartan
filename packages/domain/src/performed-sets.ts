@@ -59,15 +59,17 @@ export const chooseLoadKind = (
   return rows.map((row, i) => (i === index || (row.itemRef === source.itemRef && !row.loadKind) ? applied(row) : row));
 };
 
+// Les éléments qui se saisissent en séries : une récupération se respecte, elle ne se saisit pas.
+export const loggableItems = (session: Pick<AthleteSessionDetail, "blocks">) =>
+  session.blocks.flatMap((block) => block.items).filter((item) => item.kind !== "recovery");
+
 export const draftFromSession = (session: AthleteSessionDetail): PerformedSetsDraft => ({
   format: 1,
   sessionVersion: session.sessionVersion ?? 1,
   logVersion: session.log?.version ?? 0,
   variant: session.variant,
   status: session.log?.status === "done" ? "done" : "partial",
-  rows: session.blocks.flatMap((block) =>
-    block.items.flatMap((item) => {
-      if (item.kind === "recovery") return [];
+  rows: loggableItems(session).flatMap((item) => {
       const saved = (session.log?.detailedSets ?? []).filter((row) => row.itemRef === item.ref);
       const count = Math.max(item.prescription.sets ?? 1, ...saved.map((row) => row.setIndex + 1));
       return Array.from({ length: count }, (_, setIndex) => {
@@ -84,7 +86,6 @@ export const draftFromSession = (session: AthleteSessionDetail): PerformedSetsDr
           : proposedSet(item, setIndex);
       });
     }),
-  ),
 });
 
 export type PerformedSetIssue = {

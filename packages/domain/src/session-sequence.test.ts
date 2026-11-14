@@ -199,6 +199,19 @@ describe("séquences de séance", () => {
     expect(validSessionStructure({ ...d, blocks: [] })).toBe(true);
   });
 
+  it("garde la référence d'origine d'un exercice hors de tout groupe, pour les coches déjà posées", () => {
+    const flat = draft();
+    flat.blocks[0]!.sequence = [
+      { kind: "exercise", itemRef: "a" },
+      { kind: "recovery", ref: "pause", durationS: 60 },
+      { kind: "exercise", itemRef: "b" },
+    ];
+    const items = expand(flat).blocks[0]!.items;
+    expect(items.filter((item) => item.kind === "exercise").map((item) => item.ref)).toEqual(["a", "b"]);
+    expect(new Set(items.map((item) => item.ref)).size).toBe(items.length);
+    expect(expand().blocks[0]!.items[0]!.ref).toBe("seq:a:1");
+  });
+
   it("préserve la charge lors du passage d'une ancienne séance à une séquence", () => {
     const next = expand();
     const old: SessionSnapshot = {

@@ -20,7 +20,7 @@ env:
     timeout: 30000
 - tapOn:
     id: exercise-guide-open
-- assertVisible: "Guide validé techniquement"
+- assertVisible: "Consignes indicatives relues par Tartan.*"
 - scrollUntilVisible:
     element:
       text: "Installation"

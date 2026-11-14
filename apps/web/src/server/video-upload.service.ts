@@ -148,7 +148,8 @@ export const createVideoUpload = async (userId: string, organizationId: string, 
         fps: input.fps ?? null,
         timeScale: input.timeScale ?? 1,
         recordedAt: input.recordedAt ? new Date(input.recordedAt) : new Date(),
-        ...(input.attempt
+        // Un essai de saut se note par l'encadrement : l'athlète ne déclare pas lui-même sa barre.
+        ...(input.attempt && current.role !== "athlete"
           ? {
               jumps: {
                 create: {

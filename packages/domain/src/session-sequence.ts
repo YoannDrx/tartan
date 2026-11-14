@@ -50,8 +50,10 @@ export function validSessionStructure(draft: SessionDraft): boolean {
   return true;
 }
 
+// Hors de tout groupe, une occurrence garde la référence de son élément : une séance V1 réenregistrée
+// en V2 conserve ainsi ses coches, ses séries saisies et ses charges figées.
 export const occurrenceRef = (ref: string, rounds: ExecutionRound[]) =>
-  `seq:${ref}:${rounds.map((r) => r.round).join(".") || "0"}`;
+  rounds.length ? `seq:${ref}:${rounds.map((r) => r.round).join(".")}` : ref;
 
 export function sequenceOccurrences(nodes: SequenceNode[]) {
   const occurrences: { node: Exclude<SequenceNode, { kind: "repeat" }>; rounds: ExecutionRound[] }[] = [];

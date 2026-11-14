@@ -9,6 +9,7 @@ import {
   plannerDropEmptyPercentages,
   plannerExerciseIsNamed,
   plannerGuardIssues,
+  plannerProposalIssues,
   plannerTextNumbers,
   type PlannerGuardContext,
 } from "./planner-guards";
@@ -223,6 +224,21 @@ describe("contrôles d'une proposition", () => {
       }),
     ).toEqual([]);
   });
+  it("après une réponse du coach, une date fausse est encore refusée", () => {
+    const answered = {
+      ...context("Squat arrière 3 x 4 à 40 kg."),
+      instructions: ["Squat arrière 3 x 4 à 40 kg.", "Quel jour ?\nMercredi"],
+    };
+    expect(plannerGuardIssues(proposal(session("2030-06-03")), answered)).toContain("date");
+    expect(plannerGuardIssues(proposal(session("2030-06-05")), answered)).toEqual([]);
+  });
+  it("une unité proposée dans la question du modèle ne confirme pas la charge", () => {
+    const answered = {
+      ...context("Le 3 juin : squat arrière 3 x 4 à 40."),
+      instructions: ["Le 3 juin : squat arrière 3 x 4 à 40.", "Est-ce 40 kg ou 40 % ?\nComme d'habitude"],
+    };
+    expect(plannerGuardIssues(proposal(session("2030-06-03")), answered)).toContain("load");
+  });
 });
 
 describe("désignation d'un exercice", () => {
@@ -395,4 +411,26 @@ it("refuse une pause V2 placée après une série unique dans restS, qui serait 
   block.items[0]!.prescription.restS = null;
   block.sequence.push({ kind: "recovery", ref: "pause", durationS: 120 });
   expect(plannerGuardIssues(value, context(single))).not.toContain("rest");
+});
+
+describe("mode « Proposer une séance »", () => {
+  const brief = { date: "2030-06-05", durationMin: 45 };
+  const targets = [{ token: "group_1" }];
+  const proposed = (date: string, durationMin: number | null, load: PlannerPrescription["load"] = null) =>
+    proposal({ ...session(date, { load }), durationMin } as unknown as ReturnType<typeof session>);
+  it("accepte une séance unique, à la date et dans la durée du brief, sans charge", () => {
+    expect(plannerProposalIssues(proposed("2030-06-05", 40), { brief, targets })).toEqual([]);
+  });
+  it("refuse une autre date, une durée dépassée, une charge inventée ou un destinataire oublié", () => {
+    expect(plannerProposalIssues(proposed("2030-06-04", 40), { brief, targets })).toContain("date");
+    expect(plannerProposalIssues(proposed("2030-06-05", 60), { brief, targets })).toContain("volume");
+    expect(
+      plannerProposalIssues(proposed("2030-06-05", 40, { type: "kg", value: 60 }), { brief, targets }),
+    ).toContain("load");
+    expect(
+      plannerProposalIssues(proposed("2030-06-05", 40), { brief, targets: [...targets, { token: "group_2" }] }),
+    ).toContain("target");
+    const two = proposal(session("2030-06-05"), session("2030-06-05"));
+    expect(plannerProposalIssues(two, { brief, targets })).toContain("session_count");
+  });
 });

@@ -21,6 +21,7 @@ import {
   plannerDistinctQuestions,
   plannerDropEmptyPercentages,
   plannerGuardIssues,
+  plannerProposalIssues,
   plannerServerEnabled,
   unresolvedExerciseAlias,
   validatePlannerInterpretation,
@@ -386,7 +387,28 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
             );
           throw new PlannerProviderError("invalid_output");
         }
-        const guarded = context.mode === "propose" ? [] : plannerGuardIssues(checked.value, context);
+        const guarded =
+          context.mode === "propose"
+            ? plannerProposalIssues(checked.value, { brief: context.brief, targets: context.targets })
+            : plannerGuardIssues(checked.value, context);
+        // Une proposition hors du brief est corrigée une fois ; si elle reste hors du brief, le coach tranche.
+        if (context.mode === "propose" && guarded.length && !correction && context.brief) {
+          try {
+            return await attempt(
+              `La proposition doit respecter le brief : exactement une séance le ${context.brief.date}, durationMin au plus ${context.brief.durationMin}, tous les destinataires fournis dans targetTokens, et aucune charge (load null). Corrige uniquement ces points.`,
+            );
+          } catch (cause) {
+            if (!(cause instanceof PlannerProviderError)) throw cause;
+          }
+        }
+        if (context.mode === "propose" && guarded.length)
+          return {
+            status: "clarification",
+            sessions: [],
+            assumptions: [],
+            suggestions: [],
+            questions: plannerDistinctQuestions(guarded.map((issue) => guardQuestion(issue, context.period))),
+          };
         if (guarded.includes("volume") && !correction) {
           try {
             return await attempt(
