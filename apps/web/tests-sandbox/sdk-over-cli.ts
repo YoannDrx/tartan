@@ -27,6 +27,7 @@ const statusOf = (error: { type?: string; code?: string }): number => {
 // de la sandbox et lève ses propres classes d'erreur, sans jamais détenir de clé.
 export const cliFetch: typeof fetch = async (input, init) => {
   if (process.env.RUN_STRIPE_SANDBOX !== "1") throw new Error("sandbox_opt_in_required");
+  if (!/^acct_[A-Za-z0-9]+$/.test(SANDBOX_ACCOUNT)) throw new Error("sandbox_account_required");
   const url = new URL(input instanceof Request ? input.url : String(input));
   const method = (init?.method ?? "GET").toLowerCase();
   const pairs =
