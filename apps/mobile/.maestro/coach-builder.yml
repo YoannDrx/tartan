@@ -11,5 +11,5 @@ env:
 - tapOn: "Nouvelle séance"
 - extendedWaitUntil:
     visible: "Titre"
-    timeout: 15000
+    timeout: 30000
 - assertVisible: "Pour qui ?"

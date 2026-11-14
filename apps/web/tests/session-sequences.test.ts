@@ -1,3 +1,4 @@
+import { setTimeout as delay } from "node:timers/promises";
 import { expect, it } from "vitest";
 import { sessionDraft, sessionSnapshot, type SaveScheduledSessionInput } from "@tartan/contracts";
 import { draftFromSession } from "@tartan/domain";
@@ -135,4 +136,64 @@ it("génère l'autonomie avec de nouvelles identités de circuit et des liens va
   expect(edit.draft.blocks).toHaveLength(2);
   expect(edit.draft.blocks[1]!.sequence).toHaveLength(1);
   await expect(saveScheduledSession(a.owner.userId, a.organizationId, edit)).resolves.toMatchObject({ id: saved.id });
+});
+
+it("révise un circuit après contention sans perdre la prescription précédente", async () => {
+  const a = await setup();
+  const saved = await saveScheduledSession(a.owner.userId, a.organizationId, a.input);
+  await publishRow(saved.id, a.owner.userId, new Date(), { silent: true });
+  const edit = await getSessionForEdit(a.owner.userId, a.organizationId, saved.id);
+  const before = await prisma.sessionPrescription.findMany({ where: { scheduledSessionId: saved.id } });
+  let markLocked!: (pid: number) => void;
+  let unlock!: () => void;
+  const locked = new Promise<number>((resolve) => {
+    markLocked = resolve;
+  });
+  const released = new Promise<void>((resolve) => {
+    unlock = resolve;
+  });
+  const blocker = prisma.$transaction(
+    async (tx) => {
+      await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${a.organizationId}::uuid FOR UPDATE`;
+      const [connection] = await tx.$queryRaw<{ pid: number }[]>`SELECT pg_backend_pid() AS pid`;
+      markLocked(connection!.pid);
+      await released;
+    },
+    { timeout: 15000 },
+  );
+  const pid = await locked;
+  const write = saveScheduledSession(a.owner.userId, a.organizationId, {
+    ...edit,
+    draft: { ...edit.draft, title: "Circuit révisé" },
+  }).then(
+    (value) => ({ value, error: null }),
+    (error: unknown) => ({ value: null, error }),
+  );
+  try {
+    let waiting = false;
+    for (let attempt = 0; attempt < 40 && !waiting; attempt++) {
+      const [state] = await prisma.$queryRaw<{ waiting: boolean }[]>`
+        SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE ${pid}::int = ANY(pg_blocking_pids(pid))) AS waiting
+      `;
+      waiting = state!.waiting;
+      if (!waiting) await delay(100);
+    }
+    expect(waiting).toBe(true);
+    // Dépasse réellement les cinq secondes de la transaction Prisma par défaut.
+    await delay(5500);
+  } finally {
+    unlock();
+    await blocker;
+  }
+  const result = await write;
+  if (result.error) throw result.error;
+  expect(result.value).toEqual({ id: saved.id, version: edit.version + 1 });
+  for (const prescription of before) {
+    expect(await prisma.sessionPrescription.findUnique({ where: { id: prescription.id } })).toEqual(prescription);
+  }
+  const current = await getAthleteSession(a.athlete.userId, a.organizationId, saved.id);
+  expect(current.title).toBe("Circuit révisé");
+  expect(
+    current.blocks[0]!.items.filter((item) => item.sourceRef === "item-0").map((item) => item.prescription.reps),
+  ).toEqual([7, 7, 7]);
 });
