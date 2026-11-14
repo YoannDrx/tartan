@@ -26,8 +26,8 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   const me = await (await page.request.get("/api/v1/me")).json();
   const root = `/api/v1/orgs/${me.spaces[0].organizationId}`;
   const library: ExerciseSummary[] = await (await page.request.get(`${root}/exercises`)).json();
-  expect(library.filter((e) => e.guide)).toHaveLength(150);
-  expect(library.filter((e) => e.guide).every((e) => e.guide?.technicalReview === "approved")).toBe(true);
+  expect(library.filter((e) => e.guide)).toHaveLength(173);
+  expect(library.filter((e) => e.guide?.technicalReview === "approved")).toHaveLength(150);
   const snatch = library.find((e) => e.name === "Arraché")!;
   await page.goto("/exercices", { waitUntil: "networkidle" });
   await page.getByLabel(m.exerciseGuide.family, { exact: true }).selectOption("weightlifting");

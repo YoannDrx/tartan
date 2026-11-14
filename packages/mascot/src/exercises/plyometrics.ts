@@ -334,7 +334,53 @@ const highJump = (key: string): ExerciseClip =>
     view: `200 0 ${1200} ${800}`,
   });
 
+// --- Version 5 du catalogue -----------------------------------------------------------------------
+
+const tuckJump = jump({
+  key: "tuck-jump",
+  positions: [
+    calm(stand),
+    effort({ lean: 20, ...arms(-40, 20), ...legs(44, 60) }),
+    effort({ lean: 10, head: 4, ...arms(60, 60), ...legs(120, 130) }, { root: air(120) }),
+    calm(landed),
+  ],
+});
+
+// Le skipping en hauteur : une poussée par appui, le genou libre et les bras montent haut.
+const powerSkip = motion({
+  key: "power-skip",
+  athlete: ATHLETE,
+  duration: 3600,
+  frame: (t) => {
+    const phase = t * 3 * TAU;
+    const knee = Math.max(0, Math.sin(phase));
+    const kneeB = Math.max(0, -Math.sin(phase));
+    return {
+      pose: {
+        ...POSES.stand,
+        lean: 0,
+        head: -6,
+        legA: 4 + 96 * knee,
+        kneeA: 8 + 100 * knee,
+        legB: 4 + 96 * kneeB,
+        kneeB: 8 + 100 * kneeB,
+        armA: 40 - 140 * Math.sin(phase),
+        elbowA: 40,
+        armB: 40 + 140 * Math.sin(phase),
+        elbowB: 40,
+      },
+      root: { x: MIDDLE, y: HIP - 10 - 70 * Math.abs(Math.sin(phase)) },
+    };
+  },
+  face: () => "effort",
+  gear: (_, __, t) => marks(t, 960),
+  stills: cycleStills(3),
+});
+
 export const PLYOMETRICS: readonly ExerciseClip[] = [
+  tuckJump,
+  hops("triple-hop", 3, true, false),
+  powerSkip,
   alternatingBounds,
   curvedApproach,
   threeStep,

@@ -9,9 +9,10 @@ import { RUNNING_CATALOG } from "./exercise-catalog/running";
 import { CORE_CATALOG } from "./exercise-catalog/core";
 import { COORDINATION_CATALOG } from "./exercise-catalog/coordination";
 import { STAIRS_CATALOG } from "./exercise-catalog/stairs";
+import { VARIANTS_CATALOG } from "./exercise-catalog/variants";
 import { WARMUP_CATALOG } from "./exercise-catalog/warmup";
 
-export const EXERCISE_CATALOG_VERSION = 4;
+export const EXERCISE_CATALOG_VERSION = 5;
 export type CatalogExercise = StarterExercise & { catalogKey: string; catalogVersion: number; guide: ExerciseGuide };
 
 const familyTags: Record<ExerciseFamily, string[]> = {
@@ -91,7 +92,7 @@ const buildEntry = (entry: CatalogueDraft): CatalogExercise => {
       source: "tartan-original",
       rights: "Tartan",
     },
-    technicalReview: "approved",
+    technicalReview: entry.review ?? "approved",
   });
   return {
     catalogKey: entry.key,
@@ -118,6 +119,7 @@ export const EXERCISE_CATALOG: CatalogExercise[] = [
   ...COORDINATION_CATALOG,
   ...STAIRS_CATALOG,
   ...WARMUP_CATALOG,
+  ...VARIANTS_CATALOG,
 ].map(buildEntry);
 
 export const catalogExerciseByKey = (key: string) => EXERCISE_CATALOG.find((exercise) => exercise.catalogKey === key);

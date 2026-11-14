@@ -111,7 +111,43 @@ const suitcase = hold({
   gear: (_, at) => dumbbell(at.handA),
 });
 
+// --- Version 5 du catalogue -----------------------------------------------------------------------
+
+const BAR = { x: MIDDLE, y: 30 };
+const hangingBar = { on: "handA" as const, at: { x: BAR.x, y: BAR.y + 15 } };
+const kneeRaise = hold({
+  key: "hanging-knee-raise",
+  positions: [
+    calm({ lean: 0, ...arms(176, 0, 2), ...legs(6, 20) }, hangingBar),
+    effort({ lean: -4, ...arms(172, 0, 2), ...legs(70, 90) }, hangingBar),
+    effort({ lean: -12, ...arms(168, 0, 2), ...legs(110, 110) }, hangingBar),
+    calm({ lean: -2, ...arms(174, 0, 2), ...legs(30, 50) }, hangingBar),
+  ],
+  gear: () => [
+    { kind: "rect", x: MIDDLE + 60, y: 20, width: 12, height: 384, radius: 3, paint: "iron" },
+    { kind: "line", from: { x: MIDDLE + 66, y: BAR.y }, to: { x: BAR.x, y: BAR.y }, width: 8, paint: "iron" },
+    { kind: "disc", x: BAR.x, y: BAR.y, radius: 7, paint: "iron", front: true },
+  ],
+});
+
+// À genoux, mains sur la roulette au sol : le corps s'allonge vers l'avant, aligné des genoux aux épaules.
+const rollout = (reach: number) =>
+  settle(
+    (rot) => ({ rot, lean: 0, head: -10, ...arms(rot + reach, 0, 0), legA: 0, kneeA: 90 - rot, legB: 0, kneeB: 90 - rot }),
+    [0, 100],
+    "footA",
+    "handA",
+    0,
+  );
+const abWheel = hold({
+  key: "ab-wheel-rollout",
+  positions: [calm(rollout(0)), effort(rollout(30)), effort(rollout(60)), calm(rollout(20))].map((p) => ({ ...p, x: -80 })),
+  gear: (_, at) => [{ kind: "disc", x: at.handA.x, y: at.handA.y + 2, radius: 16, paint: "iron", front: true }],
+});
+
 export const CORE: readonly ExerciseClip[] = [
+  kneeRaise,
+  abWheel,
   frontPlank,
   deadBug,
   birdDog,

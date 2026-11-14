@@ -14,6 +14,12 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-15, Claude, phase E3 (variantes du catalogue)
+Fait (PR `feat/catalogue-variantes`, empilée sur la phase E) : catalogue version 5, 23 variantes dans `exercise-catalog/variants.ts` (`review: "pending"` : guide « en préparation » jusqu'à la relecture du fondateur), un geste pour chacune ; `retainedExerciseGuide` garde le guide d'une copie du catalogue renommée ou aux consignes changées, et ne le détache que si le type de mouvement change.
+Vérifié : domaine (310), mascotte (710), web (1 982), types, lint, design.
+À savoir : les comptes de fiches figés dans les tests (173, dont 118 communes) changent à chaque ajout au catalogue ; une nouvelle fiche se diffuse aux espaces à leur prochaine visite, sans migration.
+Suite : fusion des PR 134, 136 puis celle-ci ; phase F.
+
 ## 2026-11-14, Claude, phase E (gestes animés des guides)
 Fait (PR `feat/illustrations`) : `@tartan/mascot/exercise` (moteur : une position par ligne du guide, appui tenu sans glissement, sol qui repousse, boucles cycliques, sol qui défile, inclinaison de scène) et `exercises/*` (133 fiches, une par famille et par athlète) ; lecteur web et mobile (`guide-motion.tsx`), frise en mouvement réduit ; `withMotion` annote `illustration.motion` à la lecture (bibliothèque, vue athlète), jamais enregistré (`readExerciseGuide` le retire) ; validation par famille dans `PlatformSetting` (`motionFamilies`), atelier `/admin/mouvements`.
 Vérifié : 532 tests de gestes (boucle, une position par ligne, rien sous le sol, cadre 3:2), web 1982, domaine, mobile, types, lint, design ; rendu local à 375 et 1024 px ; parcours `exercise-guides` rejoué sur le build de production.
