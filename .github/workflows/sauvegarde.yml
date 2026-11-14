@@ -38,7 +38,12 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$NEON_BACKUP_URL"
-          docker run --rm -e NEON_BACKUP_URL postgres:17 \
+          # The postgres image does not guarantee a populated CA trust store.
+          test -s /etc/ssl/certs/ca-certificates.crt
+          docker run --rm -e NEON_BACKUP_URL \
+            -e SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+            -v /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro \
+            postgres:17 \
             sh -c 'pg_dump --format=custom --no-owner --no-privileges "$NEON_BACKUP_URL"' \
             | age --recipient "$AGE_RECIPIENT" --output tartan.dump.age
           test -s tartan.dump.age

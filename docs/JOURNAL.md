@@ -493,3 +493,6 @@ Vérifié : lint, types, tests, design, Playwright sur build de production ; pas
 Non vérifié : e-mails reçus, paiement réel, push, téléphones physiques.
 À savoir : les variables Vercel de type Secret ne se relisent pas, même avec `vercel env run`. Une variable modifiée n'agit qu'après un nouveau déploiement. La bibliothèque de passkeys n'envoie pas `fetchOptions` à sa première requête.
 Suite conseillée : A1, à commencer par T01.
+
+## 2026-11-14, Codex, F1 : rétablissement de la sauvegarde après changement de connexion
+Reprise de la branche de recette/exploitation : secret GitHub de sauvegarde mis à jour avec le rôle dédié, droits de lecture seule contrôlés. Le rejeu distingue une authentification périmée puis un magasin de certificats absent dans le conteneur PostgreSQL. Le workflow monte désormais le bundle Ubuntu en lecture seule et conserve verify-full. Validation par export chiffré et dépôt Blob privé en cours ; aucune réussite déduite du seul changement de secret.
