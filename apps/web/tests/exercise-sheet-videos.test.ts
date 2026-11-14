@@ -108,11 +108,11 @@ describe("fiche d'exercice", () => {
     await expect(getExercise(lea.userId, org.organizationId, exercise.id)).rejects.toMatchObject({ status: 403 });
   });
 
-  it("réserve la pose du lien à l'encadrement et aux exercices de l'espace", async () => {
+  it("limite le lien athlète aux exercices de sa séance attribuée", async () => {
     const { org, lea, exercise } = await setting();
     const video = await makeVideo(org.organizationId, lea.athleteId, org.owner.userId, null, true);
     await expect(linkVideoExercise(lea.userId, org.organizationId, video.id, exercise.id)).rejects.toMatchObject({
-      status: 403,
+      status: 404,
     });
     const elsewhere = await makeOrg("Étranger");
     const foreign = await makeExercise(elsewhere.organizationId, "Étranger");

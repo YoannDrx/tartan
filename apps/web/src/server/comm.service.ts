@@ -1,3 +1,4 @@
+import { requireVideoAccess } from "./video-access.service";
 import {
   type AnnouncementInput,
   type AnnouncementItem,
@@ -102,15 +103,7 @@ export const deleteAnnouncement = async (userId: string, organizationId: string,
 const resolveThread = async (access: Access, entityType: CommentInput["entityType"], entityId: string) => {
   const staffIds = isStaff(access.role) ? await visibleAthleteIds(access) : [];
   if (entityType === "video") {
-    const video = await prisma.video.findFirst({
-      where: { id: entityId, organizationId: access.organizationId },
-      select: { athleteId: true, sharedWithAthlete: true, uploadedBy: true, athlete: { select: { userId: true } } },
-    });
-    if (!video) throw notFound();
-    const allowed = isStaff(access.role)
-      ? staffIds.includes(video.athleteId)
-      : access.athleteId === video.athleteId && video.sharedWithAthlete;
-    if (!allowed) throw notFound();
+    const video = await requireVideoAccess(access, entityId);
     return { athleteIds: [video.athleteId], link: `/videos/${entityId}`, athleteLink: `/mes-sauts/${entityId}` };
   }
   if (entityType === "log") {
@@ -191,7 +184,10 @@ export const addComment = async (userId: string, organizationId: string, input: 
   });
   const author = await firstNameOf(userId);
   if (access.role === "athlete" && access.athleteId) {
-    const coaches = await coachesOfAthlete(organizationId, access.athleteId);
+    const target = input.entityType === "video" ? (thread.athleteIds[0] ?? access.athleteId) : access.athleteId;
+    const coaches = await coachesOfAthlete(organizationId, target);
+    if (input.entityType === "video")
+      await prisma.video.update({ where: { id: input.entityId }, data: { reviewedAt: null, reviewedBy: null } });
     await notify(coaches, "comment", { athlete: author, organizationId, link: thread.link });
   } else {
     const athletes = await prisma.athlete.findMany({
@@ -226,7 +222,8 @@ export const reportContent = async (
   input: z.infer<typeof reportContentInput>,
 ) => {
   await enforceRateLimit(`report:${userId}`, 30, 3600);
-  await requireOrgMember(userId, organizationId);
+  const access = await requireOrgMember(userId, organizationId);
+  if (input.entityType === "video") await requireVideoAccess(access, input.entityId);
   await prisma.contentReport.create({
     data: {
       organizationId,

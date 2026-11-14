@@ -29,3 +29,25 @@ describe("adaptations d'un athlète", () => {
     expect(attachItemKeys([{ athleteId: "a", itemRef: "b9-i9", prescription: load }], blocks(["squat"]))).toEqual([]);
   });
 });
+
+it("préserve les adaptations par occurrence et retire seulement les tours supprimés", () => {
+  const blocks = [
+    {
+      items: [{ key: "a" }],
+      sequence: [
+        {
+          kind: "repeat" as const,
+          ref: "g",
+          name: "Circuit",
+          rounds: 2,
+          restBetweenRoundsS: 0,
+          children: [{ kind: "exercise" as const, itemRef: "a" }],
+        },
+      ],
+    },
+  ];
+  const overrides = [{ athleteId: "athlete", itemRef: "seq:a:2", prescription: { reps: 6 } }];
+  const attached = attachItemKeys(overrides, blocks);
+  expect(overridesForSubmit(attached, blocks)).toEqual(overrides);
+  expect(overridesForSubmit(attached, [{ ...blocks[0]!, sequence: [{ kind: "exercise", itemRef: "a" }] }])).toEqual([]);
+});

@@ -4,31 +4,32 @@ Les volumes et résultats datés vivent dans [ETAT.md](../ETAT.md), avec le comm
 
 ## Les niveaux
 
-| Niveau | Outil | Prouve | Ne prouve pas |
-| --- | --- | --- | --- |
-| Règle pure | Vitest, `packages/domain` | Le calcul | Rien du reste |
-| Service | Vitest + Postgres réel, `apps/web/tests` | Droits, écritures, transactions | La route, la validation HTTP |
-| Handler | Vitest, `route.ts` importé | Authentification et format | Le serveur réel |
-| Parcours | Playwright, build de production | L'écran, la CSP, l'accessibilité | Le prestataire, simulé |
-| Natif | Vitest (modules purs), Maestro (simulateur) | Logique, parcours simulés | Le téléphone physique |
-| Prestataire | Sandbox Stripe, `eval:planner --live`, `mux-poc.ts` | L'API réelle | Le parcours complet |
-| Réel | [Recette manuelle](recette-reelle.md) | Tout | C'est du temps humain |
+| Niveau      | Outil                                               | Prouve                           | Ne prouve pas                |
+| ----------- | --------------------------------------------------- | -------------------------------- | ---------------------------- |
+| Règle pure  | Vitest, `packages/domain`                           | Le calcul                        | Rien du reste                |
+| Service     | Vitest + Postgres réel, `apps/web/tests`            | Droits, écritures, transactions  | La route, la validation HTTP |
+| Handler     | Vitest, `route.ts` importé                          | Authentification et format       | Le serveur réel              |
+| Parcours    | Playwright, build de production                     | L'écran, la CSP, l'accessibilité | Le prestataire, simulé       |
+| Natif       | Vitest (modules purs), Maestro (simulateur)         | Logique, parcours simulés        | Le téléphone physique        |
+| Prestataire | Sandbox Stripe, `eval:planner --live`, `mux-poc.ts` | L'API réelle                     | Le parcours complet          |
+| Réel        | [Recette manuelle](recette-reelle.md)               | Tout                             | C'est du temps humain        |
 
 ## Commandes
 
-| But | Commande |
-| --- | --- |
-| Tout l'unitaire | `pnpm test` |
-| Un fichier web | `pnpm --filter @tartan/web exec vitest run tests/auth.test.ts` |
-| Mobile | `pnpm --filter @tartan/mobile test` |
-| Qualité | `pnpm typecheck`, `pnpm lint`, `pnpm design:check`, `pnpm format:check` |
-| Navigateurs Playwright | `pnpm --filter @tartan/web exec playwright install --with-deps chromium webkit` |
-| Parcours en développement | `pnpm test:e2e` |
-| Parcours comme la CI | `E2E_PROD=1 pnpm test:e2e` |
-| Preuve vidéo | `pnpm --filter @tartan/web exec playwright test video-poc --project=desktop` (sans `E2E_PROD`) |
+| But                               | Commande                                                                                           |
+| --------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Tout l'unitaire                   | `pnpm test`                                                                                        |
+| Un fichier web                    | `pnpm --filter @tartan/web exec vitest run tests/auth.test.ts`                                     |
+| Mobile                            | `pnpm --filter @tartan/mobile test`                                                                |
+| Qualité                           | `pnpm typecheck`, `pnpm lint`, `pnpm design:check`, `pnpm format:check`                            |
+| Navigateurs Playwright            | `pnpm --filter @tartan/web exec playwright install --with-deps chromium webkit`                    |
+| Parcours en développement         | `pnpm test:e2e`                                                                                    |
+| Parcours comme la CI              | `E2E_PROD=1 pnpm test:e2e`                                                                         |
+| Preuve vidéo                      | `pnpm --filter @tartan/web exec playwright test video-poc --project=desktop` (sans `E2E_PROD`)     |
+| Collaboration vidéo, Mux simulé   | `E2E_PROD=1 E2E_VIDEO_ENABLED=true pnpm test:e2e e2e/video-collaboration.spec.ts`                  |
 | Planificateur, prestataire simulé | `E2E_PROD=1 E2E_AI_PLANNER_ENABLED=true pnpm --filter @tartan/web exec playwright test ai-planner` |
-| Évaluation IA hors réseau | `pnpm --filter @tartan/web eval:planner` |
-| Sandbox Stripe | Voir [stripe.md](../plans/stripe.md) |
+| Évaluation IA hors réseau         | `pnpm --filter @tartan/web eval:planner`                                                           |
+| Sandbox Stripe                    | Voir [stripe.md](../plans/stripe.md)                                                               |
 
 ## Bases locales
 
@@ -36,13 +37,13 @@ Les volumes et résultats datés vivent dans [ETAT.md](../ETAT.md), avec le comm
 
 ## CI (`.github/workflows`)
 
-| Workflow | Quand | Contenu |
-| --- | --- | --- |
-| `ci.yml` | PR, push sur `main` | Lint, types, tests, design, Playwright sur build de production, preuve vidéo, planificateur simulé |
+| Workflow             | Quand                    | Contenu                                                                                              |
+| -------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `ci.yml`             | PR, push sur `main`      | Lint, types, tests, design, Playwright sur build de production, preuve vidéo, planificateur simulé   |
 | `mobile-native.yml`  | PR mobile, lundi, manuel | `expo-doctor`, prebuild, build Android Release, Maestro sur simulateur iOS, EAS selon le déclencheur |
-| `release-mobile.yml` | Manuel | `eas update` ou `eas build --auto-submit` |
-| `sauvegarde.yml` | Chaque nuit | Copie chiffrée de la base |
-| `surveillance.yml` | Toutes les 6 h | Contrôle de `/api/health` et du site |
+| `release-mobile.yml` | Manuel                   | `eas update` ou `eas build --auto-submit`                                                            |
+| `sauvegarde.yml`     | Chaque nuit              | Copie chiffrée de la base                                                                            |
+| `surveillance.yml`   | Toutes les 6 h           | Contrôle de `/api/health` et du site                                                                 |
 
 Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette sur téléphones physiques. Maestro compile une app iOS de développement signée ad hoc sur simulateur.
 
@@ -61,6 +62,7 @@ Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette s
 | `RUN_STRIPE_BROWSER=1` | Ajoute les deux parcours Chrome sur Checkout, facture et portail réels de sandbox, hors CI |
 | `CAPTURE_BASE_URL` | Mode captures : sans serveur ni réinitialisation |
 | `VIDEO_DEV_MP4_URL` | Clip local à la place de Mux, inerte en production |
+| `E2E_VIDEO_ENABLED=true` | Lance le SDK Mux simulé et les webhooks de recette locale ; activé dans la CI principale. |
 
 ## Pièges
 
@@ -94,21 +96,21 @@ Le script `maestro:test` ne transmet pas ces variables. Les parcours exigent des
 
 « Complet » : parcours ou handler réel. « Service » : seul le service est testé.
 
-| Domaine | Web | API native | Mobile natif | Manque principal |
-| --- | --- | --- | --- | --- |
-| Connexion, âge | Complet | Complet | Maestro | Google et Apple sans test |
-| Invitations | Groupe et invitation nominative | Service | Lien testé sur simulateur | Réception réelle des invitations |
-| Séances, calendrier | Parcours automatisés | Routes testées | Constructeur sur simulateur | Terrain et nouveau constructeur F4 |
-| Suivi, athlète      | Complet                      | Partiel    | Maestro                 | Routes `athlete/*`, `tracking` (T04) |
-| Force, progression | Services et pages remplies | Routes et permissions | Modules purs | Valeurs et provenance en recette réelle |
-| Phases | Parcours automatisés | Routes testées | Maestro | Appareil physique |
-| Vidéo | Parcours avec clip simulé | Services et webhook signé | Capture sur simulateur | Mux réel, upload athlète F6 |
-| Planificateur IA | Parcours, génération simulée | Handler | Maestro avec fournisseur factice | Qualification réelle F5 |
-| Notifications | Centre et services | Services | Modules purs | Livraison et push physiques |
-| Facturation | Page abonnement, services et sandbox séparée | Webhooks signés | Sans objet | Checkout navigateur et paiement réel |
-| Suppression, export | Parcours et services | Routes testées | Suppression jetable en CI | Prestataires et appareil physique |
-| Administration | Actions, accès et fiches | Sans objet | Sans objet | Opérations réelles contrôlées |
-| Site, légal | Complet | Sans objet | Pages `/mobile/*` | T25 |
-| Hors ligne | Complet en `E2E_PROD` | Sans objet | File, simulateur | Stade réel |
+| Domaine             | Web                                          | API native                | Mobile natif                     | Manque principal                        |
+| ------------------- | -------------------------------------------- | ------------------------- | -------------------------------- | --------------------------------------- |
+| Connexion, âge      | Complet                                      | Complet                   | Maestro                          | Google et Apple sans test               |
+| Invitations         | Groupe et invitation nominative              | Service                   | Lien testé sur simulateur        | Réception réelle des invitations        |
+| Séances, calendrier | Parcours automatisés                         | Routes testées            | Constructeur sur simulateur      | Terrain et nouveau constructeur F4      |
+| Suivi, athlète      | Complet                                      | Partiel                   | Maestro                          | Routes `athlete/*`, `tracking` (T04)    |
+| Force, progression  | Services et pages remplies                   | Routes et permissions     | Modules purs                     | Valeurs et provenance en recette réelle |
+| Phases              | Parcours automatisés                         | Routes testées            | Maestro                          | Appareil physique                       |
+| Vidéo               | Parcours avec clip simulé                    | Services et webhook signé | Capture sur simulateur           | Mux réel, upload athlète F6             |
+| Planificateur IA    | Parcours, génération simulée                 | Handler                   | Maestro avec fournisseur factice | Qualification réelle F5                 |
+| Notifications       | Centre et services                           | Services                  | Modules purs                     | Livraison et push physiques             |
+| Facturation         | Page abonnement, services et sandbox séparée | Webhooks signés           | Sans objet                       | Checkout navigateur et paiement réel    |
+| Suppression, export | Parcours et services                         | Routes testées            | Suppression jetable en CI        | Prestataires et appareil physique       |
+| Administration      | Actions, accès et fiches                     | Sans objet                | Sans objet                       | Opérations réelles contrôlées           |
+| Site, légal         | Complet                                      | Sans objet                | Pages `/mobile/*`                | T25                                     |
+| Hors ligne          | Complet en `E2E_PROD`                        | Sans objet                | File, simulateur                 | Stade réel                              |
 
 Point structurel : les server actions (`*.action.ts`) ne sont couvertes que par l'interface, et les parcours Maestro ne remplacent pas la recette sur appareil physique.

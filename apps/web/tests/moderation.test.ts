@@ -26,7 +26,12 @@ describe("modération", () => {
   it("un commentaire insultant est refusé, un texte normal passe", async () => {
     const { a, athlete } = await prepare();
     const thread = await prisma.video.create({
-      data: { organizationId: a.organizationId, athleteId: athlete.athleteId, uploadedBy: a.owner.userId },
+      data: {
+        organizationId: a.organizationId,
+        athleteId: athlete.athleteId,
+        uploadedBy: a.owner.userId,
+        sharedWithAthlete: true,
+      },
     });
     await expect(
       addComment(a.owner.userId, a.organizationId, { entityType: "video", entityId: thread.id, body: "Quel connard" }),
@@ -83,7 +88,12 @@ describe("modération", () => {
   it("l'éditeur traite un signalement depuis sa console, un autre compte non", async () => {
     const { a, athlete } = await prepare();
     const video = await prisma.video.create({
-      data: { organizationId: a.organizationId, athleteId: athlete.athleteId, uploadedBy: a.owner.userId },
+      data: {
+        organizationId: a.organizationId,
+        athleteId: athlete.athleteId,
+        uploadedBy: a.owner.userId,
+        sharedWithAthlete: true,
+      },
     });
     await reportContent(athlete.userId, a.organizationId, {
       entityType: "video",

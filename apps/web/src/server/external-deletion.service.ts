@@ -14,7 +14,7 @@ const LEASE_MS = 2 * 60 * 1000;
 const MAX_ATTEMPTS = 14;
 const HOUR_MS = 60 * 60 * 1000;
 const RECONCILE_AGE_MS = 48 * HOUR_MS;
-const PASSTHROUGH = /^(video|exercise):([0-9a-f-]{36})$/;
+const PASSTHROUGH = /^(video|exercise):([0-9a-f-]{36})(?::([0-9]+))?$/;
 
 class ProviderUnconfigured extends Error {}
 
@@ -173,10 +173,10 @@ export const reconcileExternalAssets = async (now: Date = new Date()) => {
       continue;
     }
     if (now.getTime() - asset.createdAt.getTime() < RECONCILE_AGE_MS) continue;
-    const [, kind, id] = match;
+    const [, kind, id, generation] = match;
     const exists =
       kind === "video"
-        ? await prisma.video.count({ where: { id } })
+        ? await prisma.video.count({ where: { id, uploadGeneration: Number(generation ?? 0) } })
         : await prisma.exerciseMedia.count({ where: { id } });
     if (exists) continue;
     result.orphans += 1;

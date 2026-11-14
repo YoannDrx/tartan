@@ -642,6 +642,7 @@ model ExternalDeletion {
 }
 
 model ExerciseMedia {
+  quotaReservedAt DateTime @default(now()) @map("quota_reserved_at")
   id             String    @id @default(uuid()) @db.Uuid
   exerciseId     String    @map("exercise_id") @db.Uuid
   kind           MediaKind
@@ -1186,6 +1187,13 @@ enum VideoStatus {
 }
 
 model Video {
+  uploadRequestHash  String?           @map("upload_request_hash")
+  uploadClientId     String?           @map("upload_client_id")
+  uploadGeneration   Int               @default(0) @map("upload_generation")
+  quotaReservedAt    DateTime          @default(now()) @map("quota_reserved_at")
+  sharedGroupIds     String[]          @default([]) @map("shared_group_ids") @db.Uuid
+  reviewedAt         DateTime?         @map("reviewed_at")
+  reviewedBy         String?           @map("reviewed_by") @db.Uuid
   id                 String            @id @default(uuid()) @db.Uuid
   organizationId     String            @map("organization_id") @db.Uuid
   athleteId          String            @map("athlete_id") @db.Uuid
@@ -1220,6 +1228,7 @@ model Video {
   @@index([organizationId])
   @@index([exerciseId])
   @@index([athleteId])
+  @@unique([organizationId, uploadedBy, uploadClientId])
   @@index([muxUploadId])
   @@index([muxAssetId])
   @@index([organizationId, createdAt])
@@ -1246,6 +1255,9 @@ enum AnnotationKind {
 }
 
 model VideoAnnotation {
+  parentId  String? @map("parent_id") @db.Uuid
+  parent    VideoAnnotation? @relation("VideoReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   VideoAnnotation[] @relation("VideoReplies")
   id        String         @id @default(uuid()) @db.Uuid
   videoId   String         @map("video_id") @db.Uuid
   authorId  String         @map("author_id") @db.Uuid

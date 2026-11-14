@@ -2,7 +2,8 @@ import { isAdmin } from "@/server/admin.service";
 import type { Metadata } from "next";
 import { addDays } from "@tartan/domain";
 import { formatDayMonth, m } from "@tartan/i18n";
-import { FilterPill } from "@/components/filter-pill";
+import { VideoFilters, VideoPagination, videoQuery, type VideoSearch } from "@/features/videos/video-filters";
+import { listExercises } from "@/server/exercise.service";
 import { EmptyState, PageHeader } from "@/components/states";
 import { todayIso } from "@/lib/dates";
 import { videoEnabled } from "@/lib/mux";
@@ -12,27 +13,21 @@ import { JumpEntryDialog, UploadVideoDialog } from "@/features/videos/video-tool
 import { listAthletes } from "@/server/athlete.service";
 import { listCalendar } from "@/server/session.service";
 import { videoCapacity } from "@/server/video-capacity.service";
-import { listVideos } from "@/server/video.service";
+import { listVideoPage } from "@/server/video.service";
 
 export const metadata: Metadata = { title: m.video.title };
 
-export default async function VideosPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ athlete?: string; exercice?: string }>;
-}) {
+export default async function VideosPage({ searchParams }: { searchParams: Promise<VideoSearch> }) {
   const { actor, organizationId } = await requireStaffSpace();
-  const { athlete, exercice } = await searchParams;
-  const uuidLike = (value?: string) => /^[0-9a-f-]{36}$/.test(value ?? "");
+  const search = await searchParams;
+  const { athlete } = search;
   const today = todayIso();
-  const [videos, athletes, calendar, capacity] = await Promise.all([
-    listVideos(actor.userId, organizationId, {
-      ...(uuidLike(athlete) ? { athleteId: athlete } : {}),
-      ...(uuidLike(exercice) ? { exerciseId: exercice } : {}),
-    }),
+  const [{ videos, nextCursor }, athletes, calendar, capacity, exercises] = await Promise.all([
+    listVideoPage(actor.userId, organizationId, videoQuery(search)),
     listAthletes(actor.userId, organizationId),
     listCalendar(actor.userId, organizationId, { from: addDays(today, -14), to: addDays(today, 1) }),
     videoCapacity(),
+    listExercises(actor.userId, organizationId),
   ]);
   const sessions = calendar.sessions
     .filter((s) => s.publishedAt)
@@ -48,23 +43,23 @@ export default async function VideosPage({
           athletes.length > 0 ? (
             <>
               <JumpEntryDialog athletes={athletes} sessions={sessions} />
-              <UploadVideoDialog athletes={athletes} sessions={sessions} enabled={videoEnabled()} />
+              <UploadVideoDialog
+                athletes={athletes}
+                sessions={sessions}
+                enabled={videoEnabled()}
+                exercises={exercises}
+              />
             </>
           ) : null
         }
       />
-      {athletes.length > 1 ? (
-        <nav aria-label={m.video.filterLabel} className="flex max-w-full gap-2 overflow-x-auto py-1">
-          <FilterPill href="/videos" active={!filtered}>
-            {m.video.allAthletes}
-          </FilterPill>
-          {athletes.map((a) => (
-            <FilterPill key={a.id} href={`/videos?athlete=${a.id}`} active={filtered?.id === a.id}>
-              {`${a.firstName} ${a.lastName}`.trim()}
-            </FilterPill>
-          ))}
-        </nav>
-      ) : null}
+      <VideoFilters
+        search={search}
+        staff
+        athletes={athletes.map((a) => ({ id: a.id, name: `${a.firstName} ${a.lastName}`.trim() }))}
+        sessions={sessions}
+        exercises={exercises}
+      />
       {/* Le total global concerne tout Tartan : il ne regarde que l'éditeur. */}
       {capacity && (await isAdmin(actor.email)) ? (
         <p className="t-caption font-normal text-soft">{m.video.storage(capacity.used, capacity.limit)}</p>
@@ -76,6 +71,7 @@ export default async function VideosPage({
       ) : (
         <VideoList videos={videos} basePath="/videos" showAthlete />
       )}
+      <VideoPagination search={search} nextCursor={nextCursor} basePath="/videos" />
     </div>
   );
 }

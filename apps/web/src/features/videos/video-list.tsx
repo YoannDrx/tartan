@@ -57,9 +57,9 @@ export const VideoList = ({
                 <li key={v.id}>
                   <Link
                     href={`${basePath}/${v.id}`}
-                    className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-x-3 gap-y-1 px-4 py-2 text-inherit no-underline hover:bg-raise tablet:grid-cols-[112px_minmax(0,1fr)_minmax(0,auto)] desktop:grid-cols-[112px_minmax(0,1fr)_200px_96px_128px_176px]"
+                    className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-x-3 gap-y-1 px-4 py-2 text-inherit no-underline hover:bg-raise tablet:grid-cols-[112px_minmax(0,1fr)_minmax(0,auto)]"
                   >
-                    <span className="relative row-span-3 flex aspect-video w-full items-center justify-center self-start overflow-hidden rounded-thumb bg-ink-2 text-on-ink tablet:row-span-2 desktop:row-span-1 desktop:self-center">
+                    <span className="relative row-span-3 flex aspect-video w-full items-center justify-center self-start overflow-hidden rounded-thumb bg-ink-2 text-on-ink tablet:row-span-2">
                       {v.thumbnailUrl ? (
                         <Image src={v.thumbnailUrl} alt="" fill sizes="112px" className="object-cover" unoptimized />
                       ) : v.status === "error" ? (
@@ -80,7 +80,7 @@ export const VideoList = ({
                           ? `${m.video.attempt} ${v.attemptNo}`
                           : m.video.analysis}
                     </span>
-                    <span className="flex min-w-0 flex-wrap items-center gap-x-2 max-tablet:col-start-2 tablet:justify-end desktop:justify-start">
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-2 max-tablet:col-start-2 tablet:justify-end">
                       {v.barHeightCm ? (
                         <>
                           <span className="t-num text-[22px] leading-7">{formatHeight(v.barHeightCm)} m</span>
@@ -92,19 +92,25 @@ export const VideoList = ({
                           ) : null}
                         </>
                       ) : (
-                        <span className="t-caption font-normal text-soft desktop:hidden">{m.video.analysis}</span>
+                        <span className="t-caption font-normal text-soft">{m.video.analysis}</span>
                       )}
                     </span>
-                    <span className="t-num text-[17px] text-soft max-desktop:hidden">
-                      {v.fps ? `${v.fps} i/s` : ""}
-                    </span>
-                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 max-desktop:[grid-column:2/-1] desktop:contents">
+                    <span className="col-start-2 col-end-[-1] flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                      {v.fps ? (
+                        <span className="t-caption font-normal text-soft">
+                          {m.videoCollaboration.framesPerSecond(v.fps)}
+                        </span>
+                      ) : null}
                       <span className="t-caption font-normal text-soft">
-                        {v.annotationCount ? `${v.annotationCount} remarque${v.annotationCount > 1 ? "s" : ""}` : ""}
+                        {v.annotationCount ? m.videoCollaboration.remarkCount(v.annotationCount) : ""}
                       </span>
-                      <span className="flex items-center desktop:justify-end">
+                      <span className="flex items-center">
                         {status ? (
                           <Chip tone={v.status === "error" ? "missed" : "warning"}>{status}</Chip>
+                        ) : v.sharedWithGroup ? (
+                          <Chip>{m.videoCollaboration.groupShared}</Chip>
+                        ) : showAthlete && !v.reviewedAt ? (
+                          <Chip tone="warning">{m.videoCollaboration.awaitingReview}</Chip>
                         ) : v.sharedWithAthlete && showAthlete ? (
                           <Chip>{m.video.shared}</Chip>
                         ) : null}

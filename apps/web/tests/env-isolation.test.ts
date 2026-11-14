@@ -27,6 +27,7 @@ describe("garde d'environnement", () => {
     expect(() => assertEnvIsolation({ ...base, E2E_DISABLE_RATE_LIMIT: "true" })).toThrow(/E2E_DISABLE_RATE_LIMIT/);
     expect(() => assertEnvIsolation({ ...base, AI_PLANNER_FAKE_PROVIDER: "true" })).toThrow(/AI_PLANNER_FAKE_PROVIDER/);
     expect(() => assertEnvIsolation({ ...base, VIDEO_DEV_MP4_URL: "https://x" })).toThrow(/VIDEO_DEV_MP4_URL/);
+    expect(() => assertEnvIsolation({ ...base, MUX_BASE_URL: "http://localhost:3103" })).toThrow(/MUX_BASE_URL/);
   });
   it("le message d'erreur ne contient jamais le secret", () => {
     const url = `postgresql://role:motdepasse@${PRODUCTION_HOST}/tartan`;

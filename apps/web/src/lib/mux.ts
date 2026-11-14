@@ -16,18 +16,32 @@ const client = (): Mux => {
 
 // Envoi direct : le téléphone parle à Mux sans passer par nos serveurs (§ 11.5).
 export const createDirectUpload = async (passthrough: string): Promise<{ uploadId: string; url: string }> => {
-  const upload = await client().video.uploads.create({
-    cors_origin: env().NEXT_PUBLIC_APP_URL,
-    timeout: 60 * 60 * 24,
-    new_asset_settings: {
-      passthrough,
-      playback_policy: ["signed"],
-      // MP4 pour l'analyse image par image : plafonné à 30 i/s par Mux, d'où l'étirement avant l'envoi (video-stretch).
-      static_renditions: [{ resolution: "highest" }],
+  const upload = await client().video.uploads.create(
+    {
+      cors_origin: env().NEXT_PUBLIC_APP_URL,
+      timeout: 60 * 60 * 24,
+      new_asset_settings: {
+        passthrough,
+        playback_policy: ["signed"],
+        // MP4 pour l'analyse image par image : plafonné à 30 i/s par Mux, d'où l'étirement avant l'envoi (video-stretch).
+        static_renditions: [{ resolution: "highest" }],
+      },
     },
-  });
+    { timeout: 8_000, maxRetries: 0 },
+  );
   if (!upload.url) throw new Error("mux_upload_url_missing");
   return { uploadId: upload.id, url: upload.url };
+};
+
+// Relire une réservation dont la réponse a été perdue, sans créer un second envoi.
+export const readDirectUpload = async (id: string) => {
+  try {
+    const upload = await client().video.uploads.retrieve(id, { timeout: 5_000, maxRetries: 0 });
+    return { url: upload.url ?? null, status: upload.status, assetId: upload.asset_id ?? null };
+  } catch (error) {
+    if (error instanceof Mux.NotFoundError) return null;
+    throw error;
+  }
 };
 
 export const unwrapWebhook = (rawBody: string, headers: Headers) => client().webhooks.unwrap(rawBody, headers);

@@ -89,11 +89,12 @@ export const prepareVideo = async (file: File): Promise<PreparedVideo | { tooLon
 };
 
 export const enqueueVideo = async (organizationId: string, input: CreateVideoInput, video: PreparedVideo) => {
+  const clientId = crypto.randomUUID();
   await save({
-    id: crypto.randomUUID(),
+    id: clientId,
     ownerId: owner ?? "",
     organizationId,
-    input: { ...input, fps: video.fps, timeScale: video.timeScale },
+    input: { ...input, clientId, fps: video.fps, timeScale: video.timeScale },
     file: video.file,
     videoId: null,
     uploadUrl: null,
@@ -111,21 +112,28 @@ const json = (body: unknown): RequestInit => ({
 });
 
 class Permanent extends Error {}
+class AlreadyUploaded extends Error {}
 
 // Adresse d'envoi : créée à la première connexion, renouvelée si elle a expiré.
 const ensureAddress = async (item: QueuedUpload, renew: boolean): Promise<QueuedUpload> => {
+  if (owner !== item.ownerId) throw new Error("upload_account_changed");
   if (item.videoId && item.uploadUrl && !renew) return item;
   const path = item.videoId
     ? `/api/v1/orgs/${item.organizationId}/videos/${item.videoId}/upload`
     : `/api/v1/orgs/${item.organizationId}/videos`;
-  const res = await fetch(path, item.videoId ? { method: "POST" } : json(item.input));
+  const res = await fetch(
+    path,
+    item.videoId ? { method: "POST" } : json({ ...item.input, clientId: item.input.clientId ?? item.id }),
+  );
   // Session expirée ou serveur occupé : on réessaiera. Un refus (offre, accord retiré) est définitif.
   if (res.status === 401 || res.status >= 500) throw new Error("upload_address_unavailable");
   if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { message?: string } | null;
+    const body = (await res.json().catch(() => null)) as { message?: string; code?: string } | null;
+    if (body?.code === "video_already_uploaded") throw new AlreadyUploaded();
     throw new Permanent(body?.message ?? m.video.failed);
   }
   const { videoId, uploadUrl } = (await res.json()) as { videoId: string; uploadUrl: string };
+  if (owner !== item.ownerId) throw new Error("upload_account_changed");
   const next = { ...item, videoId, uploadUrl, offset: 0 };
   await save(next);
   return next;
@@ -141,18 +149,24 @@ const probeOffset = async (url: string, total: number): Promise<number | "comple
 
 const sendFile = async (initial: QueuedUpload, onProgress: (pct: number) => void): Promise<void> => {
   let item = await ensureAddress(initial, false);
+  let renewals = 0;
+  const renewAddress = () => {
+    if (++renewals > 3) throw new Error("upload_renewal_limit");
+    return ensureAddress(item, true);
+  };
   const total = item.file.size;
   // Reprise après une coupure ou une fermeture : on demande à Mux où il en est.
   let offset: number;
   const probe = item.offset > 0 ? await probeOffset(item.uploadUrl as string, total) : 0;
   if (probe === "complete") return;
   if (probe === "expired") {
-    item = await ensureAddress(item, true);
+    item = await renewAddress();
     offset = 0;
   } else {
     offset = probe;
   }
   for (;;) {
+    if (owner !== item.ownerId) throw new Error("upload_account_changed");
     const range = nextChunk(offset, total);
     if (!range) return;
     onProgress(progressPct(offset, total));
@@ -164,7 +178,7 @@ const sendFile = async (initial: QueuedUpload, onProgress: (pct: number) => void
     const outcome = classifyResponse(res.status);
     if (outcome === "complete") return;
     if (outcome === "expired") {
-      item = await ensureAddress(item, true);
+      item = await renewAddress();
       offset = 0;
       continue;
     }
@@ -197,6 +211,11 @@ export const processUploads = async (): Promise<UploadOutcome> => {
         await sendFile(item, (pct) => publish({ waiting: items.length, pct }));
         outcome.finished += 1;
       } catch (error) {
+        if (error instanceof AlreadyUploaded) {
+          outcome.finished += 1;
+          await remove(item.id);
+          continue;
+        }
         if (!(error instanceof Permanent)) {
           // Réseau coupé ou page suspendue : la vidéo reste en attente, on reprendra.
           publish({ waiting: items.length, pct: null });

@@ -167,3 +167,12 @@ export const tokens = {
 export type Tokens = typeof tokens;
 
 export type SessionStatusKey = keyof typeof tokens.color.status;
+
+// Rôles du constructeur : mêmes palettes sémantiques dans les trois thèmes.
+export const sequenceRoles = {
+  preparation: "mobility",
+  force: "strength",
+  speed: "plyo",
+  recovery: "running",
+  repeat: "cones",
+} as const;

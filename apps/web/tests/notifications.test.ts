@@ -155,6 +155,7 @@ describe("signalements", () => {
         athleteId: a.lea.athleteId,
         uploadedBy: a.owner.userId,
         status: "ready",
+        sharedWithAthlete: true,
       },
     });
     await reportContent(a.lea.userId, a.organizationId, {

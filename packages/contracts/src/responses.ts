@@ -224,6 +224,9 @@ export const coachAlert = z.object({
 export type CoachAlert = z.infer<typeof coachAlert>;
 
 export const videoSummary = z.object({
+  sharedWithGroup: z.boolean().optional(),
+  reviewedAt: z.string().nullable().optional(),
+  scheduledSessionId: z.string().nullable().optional(),
   id: z.string(),
   athleteId: z.string(),
   athleteName: z.string(),
@@ -247,12 +250,20 @@ export const videoSummary = z.object({
 export type VideoSummary = z.infer<typeof videoSummary>;
 
 export const videoDetail = videoSummary.extend({
+  canAnnotate: z.boolean().optional(),
+  canHideFromAthlete: z.boolean().optional(),
+  canManage: z.boolean().optional(),
+  canShareGroups: z.boolean().optional(),
+  sharedGroupIds: z.array(z.string()).optional(),
+  availableShareGroups: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
   hlsUrl: z.string().nullable(),
   mp4Url: z.string().nullable(),
   annotations: z.array(
     z.object({
       id: z.string(),
       tMs: z.number(),
+      authorId: z.string().optional(),
+      parentId: z.string().nullable().optional(),
       phase: jumpPhase.nullable(),
       text: z.string().nullable(),
       authorName: z.string().nullable(),

@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { withCheckoutIntent, intentCheckout } from "./checkout-intent.service";
 import { todayIso } from "@/lib/dates";
 import {
@@ -42,9 +43,9 @@ export const ensurePlans = async (): Promise<void> => {
   });
 };
 
-export const limitsOf = async (organizationId: string): Promise<PlanLimits> => {
-  const org = await prisma.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { plan: true } });
-  const rows = await prisma.entitlement.findMany({ where: { organizationId } });
+export const limitsOf = async (organizationId: string, db: Prisma.TransactionClient = prisma): Promise<PlanLimits> => {
+  const org = await db.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { plan: true } });
+  const rows = await db.entitlement.findMany({ where: { organizationId } });
   const limits = { ...PLANS[org.plan].limits };
   for (const row of rows) {
     if (row.key in limits) limits[row.key as keyof PlanLimits] = (row.value as { limit: number | null }).limit;
@@ -54,26 +55,30 @@ export const limitsOf = async (organizationId: string): Promise<PlanLimits> => {
 
 const startOfMonth = (now: Date): Date => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
-export const usageOf = async (organizationId: string, now: Date = new Date()) => {
+export const usageOf = async (
+  organizationId: string,
+  now: Date = new Date(),
+  db: Prisma.TransactionClient = prisma,
+) => {
   // Un envoi sans fichier n'occupe rien : abandonné depuis 24 h, il ne compte plus dans le quota.
   const abandonedBefore = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const [maxAthletes, maxGroups, maxCoaches, videos, demonstrations] = await Promise.all([
-    prisma.athlete.count({ where: { organizationId } }),
-    prisma.group.count({ where: { organizationId } }),
-    prisma.organizationMember.count({ where: { organizationId, role: { in: ["owner", "coach", "assistant"] } } }),
-    prisma.video.count({
+    db.athlete.count({ where: { organizationId } }),
+    db.group.count({ where: { organizationId } }),
+    db.organizationMember.count({ where: { organizationId, role: { in: ["owner", "coach", "assistant"] } } }),
+    db.video.count({
       where: {
         organizationId,
-        createdAt: { gte: startOfMonth(now) },
-        NOT: { muxAssetId: null, createdAt: { lt: abandonedBefore } },
+        quotaReservedAt: { gte: startOfMonth(now) },
+        NOT: { muxAssetId: null, quotaReservedAt: { lt: abandonedBefore } },
       },
     }),
-    prisma.exerciseMedia.count({
+    db.exerciseMedia.count({
       where: {
         kind: "upload",
         exercise: { organizationId },
-        createdAt: { gte: startOfMonth(now) },
-        NOT: { muxAssetId: null, createdAt: { lt: abandonedBefore } },
+        quotaReservedAt: { gte: startOfMonth(now) },
+        NOT: { muxAssetId: null, quotaReservedAt: { lt: abandonedBefore } },
       },
     }),
   ]);
@@ -88,8 +93,12 @@ const LIMIT_MESSAGES: Record<LimitKey, string> = {
 };
 
 // Dépasser une offre bloque l'ajout, jamais l'accès à ce qui existe déjà.
-export const assertWithinPlan = async (organizationId: string, key: LimitKey): Promise<void> => {
-  const [limits, usage] = await Promise.all([limitsOf(organizationId), usageOf(organizationId)]);
+export const assertWithinPlan = async (
+  organizationId: string,
+  key: LimitKey,
+  db: Prisma.TransactionClient = prisma,
+): Promise<void> => {
+  const [limits, usage] = await Promise.all([limitsOf(organizationId, db), usageOf(organizationId, new Date(), db)]);
   if (!isWithinLimit(limits[key], usage[key])) throw new AppError(402, "plan_limit", LIMIT_MESSAGES[key]);
 };
 
