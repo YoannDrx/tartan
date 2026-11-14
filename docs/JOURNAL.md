@@ -496,3 +496,5 @@ Suite conseillée : A1, à commencer par T01.
 
 ## 2026-11-14, Codex, F1 : rétablissement de la sauvegarde après changement de connexion
 Reprise de la branche de recette/exploitation : secret GitHub de sauvegarde mis à jour avec le rôle dédié, droits de lecture seule contrôlés. Le rejeu distingue une authentification périmée puis un magasin de certificats absent dans le conteneur PostgreSQL. Le workflow monte désormais le bundle Ubuntu en lecture seule et conserve verify-full. Validation par export chiffré et dépôt Blob privé en cours ; aucune réussite déduite du seul changement de secret.
+
+Preuve complétée : export privé du 14 novembre à 02 h 10 UTC réussi et relu à l’identique (334 190 octets), puis restauration locale isolée en 0,31 s, 83 tables/50 migrations sans erreur ni contrainte non validée. Base et secrets temporaires retirés. Les erreurs brutes de pg_dump sont désormais capturées puis supprimées : elles contiennent le nom de connexion et ne doivent pas paraître dans les journaux publics. Rejeu du workflow et fusion encore requis.

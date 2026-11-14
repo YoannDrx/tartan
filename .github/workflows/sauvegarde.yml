@@ -40,12 +40,19 @@ jobs:
           test -n "$NEON_BACKUP_URL"
           # The postgres image does not guarantee a populated CA trust store.
           test -s /etc/ssl/certs/ca-certificates.crt
-          docker run --rm -e NEON_BACKUP_URL \
+          if ! docker run --rm -e NEON_BACKUP_URL \
             -e SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
             -v /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro \
             postgres:17 \
             sh -c 'pg_dump --format=custom --no-owner --no-privileges "$NEON_BACKUP_URL"' \
-            | age --recipient "$AGE_RECIPIENT" --output tartan.dump.age
+            2>"$RUNNER_TEMP/pg-dump-error.log" \
+            | age --recipient "$AGE_RECIPIENT" --output tartan.dump.age; then
+            # pg_dump errors include the private database hostname; never publish them.
+            echo "::error::Export PostgreSQL ou chiffrement échoué. Vérifier connexion, certificats et droits du rôle de sauvegarde."
+            rm -f tartan.dump.age "$RUNNER_TEMP/pg-dump-error.log"
+            exit 1
+          fi
+          rm -f "$RUNNER_TEMP/pg-dump-error.log"
           test -s tartan.dump.age
 
       # Hors de GitHub : un store Vercel Blob privé, réservé aux sauvegardes (docs/exploitation/sauvegarde.md).

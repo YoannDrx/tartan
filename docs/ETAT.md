@@ -10,6 +10,8 @@ Mis à jour le 14 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 **Décisions du 14 novembre :** les PR en cours peuvent être fusionnées après CI verte puis leurs branches Git supprimées. Le fondateur valide les 150 guides textuels ; publication en préparation, illustrations encore à produire. Demande D-U-N-S envoyée et en traitement chez Apple/Dun & Bradstreet ; compte Play pas encore créé.
 
+**Sauvegarde du 14 novembre :** copie chiffrée vers Blob privé réussie avec TLS verify-full, relue à l’identique puis restaurée localement en 0,31 s (83 tables, 50 migrations, aucune erreur). Le workflow masque les erreurs brutes de connexion, qui pourraient révéler le nom de la base dans les journaux publics. Rejeu depuis main après fusion du correctif.
+
 ## Finalisation autorisée le 13 novembre
 
 Un lot, une branche, une PR. Spécification et critères : [plan web](plans/web.md#finalisation-du-13-novembre-2026). Codé, testé et éprouvé sont trois états distincts.
