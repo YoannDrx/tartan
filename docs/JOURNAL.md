@@ -14,6 +14,13 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-15, Claude, parité mobile
+Fait (PR `feat/mobile-parite`, empilée sur G1) : motif d'absence (file `attendance` avec `reason`, client `setAttendance` qui ne l'envoie qu'avec une absence, pastilles après « Je ne viens pas ») ; `Regularity` sur l'écran du jour (champ `regularity` déjà servi) ; `ShareRecord` télécharge la carte du record avec les en-têtes de session (`sessionHeaders`) puis ouvre la feuille de partage.
+Vérifié : types, lint, 259 tests mobiles dont l'envoi du motif.
+Non vérifié : rendu sur simulateur et téléphone ; partage réel d'une image ; les flux Maestro existants avec le nouveau bloc de régularité (la CI les rejoue).
+À savoir : `expo-sharing` est un module natif : un binaire construit avant cette PR ne le contient pas, une mise à jour à distance ne suffit pas (l'empreinte native change).
+Suite : Maestro Android, puis la publication des bêtas quand `EXPO_TOKEN` sera posé.
+
 ## 2026-11-15, Claude, G1 (configuration mobile)
 Fait (PR `feat/mobile-g1`) : `scripts/profile-env.mjs` (variables et canal d'un profil EAS, héritage compris) chargé par `release-mobile.yml` avant `eas update`, qui partait sans `APP_VARIANT` et visait donc `http://localhost:3000` ; profil et canal `beta` (soumission Play en test fermé `alpha`) ; `runtimeVersion` par empreinte ; `webcredentials` pour les deux domaines ; `/mes-videos` dans les liens Android ; lint mobile (`eslint.config.mjs`, règles maison du web et des hooks) et unités passées dans `m.units`.
 Vérifié : types, lint mobile (0 erreur, 10 avertissements), tests du profil et de la variante, configuration Expo produite (`expo config`).

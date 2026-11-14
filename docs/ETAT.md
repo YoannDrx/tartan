@@ -50,7 +50,7 @@ Mis à jour le 14 novembre 2026, après l'audit du travail de finalisation. Tout
 | Notifications, e-mails | Oui | Gmail seulement ; aucun push réel | — |
 | Abonnements Stripe | Oui, et six tests sandbox réels dans le navigateur | Aucun vrai paiement | Retour vers Tartan après paiement non prouvé |
 | Hors ligne, PWA | Oui | Pas au stade | — |
-| Mobile natif | Oui, et parcours Maestro iOS sur simulateur | Aucun téléphone physique | Corrigé le 14 novembre : file d'envoi vidéo rattachée au compte, arrêt sur session expirée. G1 (PR `feat/mobile-g1`) : mise à jour à distance avec la variante, l'API et le canal du profil (`scripts/profile-env.mjs`), canal `beta` séparé, version d'exécution par empreinte native, `webcredentials` iOS, lint mobile (textes et couleurs en dur, hooks). Reste : motif d'absence, régularité et carte de record ; Maestro Android ; cartes de sources Sentry (jeton à créer) |
+| Mobile natif | Oui, et parcours Maestro iOS sur simulateur | Aucun téléphone physique | Corrigé le 14 novembre : file d'envoi vidéo rattachée au compte, arrêt sur session expirée. G1 (PR `feat/mobile-g1`) : mise à jour à distance avec la variante, l'API et le canal du profil (`scripts/profile-env.mjs`), canal `beta` séparé, version d'exécution par empreinte native, `webcredentials` iOS, lint mobile (textes et couleurs en dur, hooks). Parité (PR `feat/mobile-parite`) : motif d'absence facultatif, série de régularité, partage de la carte de record (`expo-sharing`, nouveau module natif : il faut un nouveau binaire). Reste : Maestro Android ; cartes de sources Sentry (jeton à créer) |
 
 ## Portes d'ouverture
 

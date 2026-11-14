@@ -1,10 +1,11 @@
-import type { AthleteSessionCard } from "@tartan/contracts";
+import type { AbsenceReason, AthleteSessionCard } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
+import { useState } from "react";
 import { View } from "react-native";
 import { BarGlyph } from "../ui/glyphs";
 import { Check, Play } from "../ui/icons";
 import { StatusGlyph } from "../ui/status";
-import { Button, T, Tag } from "../ui/primitives";
+import { Button, Chip, T, Tag } from "../ui/primitives";
 import { radius, scene, Scene, space, usePalette } from "../ui/theme";
 
 type HeroProps = {
@@ -25,13 +26,48 @@ const metaLine = (card: AthleteSessionCard) =>
     .filter(Boolean)
     .join(" · ");
 
+const REASONS: AbsenceReason[] = ["work", "studies", "transport", "family", "other"];
+
+// Après « Je ne viens pas » : le motif, facultatif, en liste fermée. Jamais une donnée de santé.
+const AbsenceReasons = ({ onReason }: { onReason: (reason: AbsenceReason) => void }) => {
+  const [chosen, setChosen] = useState<AbsenceReason | null>(null);
+  return (
+    <View style={{ gap: space.xs }}>
+      <T variant="caption" tone="muted">
+        {m.today.absenceReasonLegend}
+      </T>
+      <View accessibilityRole="radiogroup" style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
+        {REASONS.map((reason) => (
+          <Chip
+            key={reason}
+            testID={`absence-reason-${reason}`}
+            label={m.today.absenceReasons[reason]}
+            active={chosen === reason}
+            onPress={() => {
+              setChosen(reason);
+              onReason(reason);
+            }}
+          />
+        ))}
+      </View>
+      {chosen ? (
+        <T variant="caption" tone="muted" accessibilityLiveRegion="polite">
+          {m.today.absenceReasonSaved}
+        </T>
+      ) : null}
+    </View>
+  );
+};
+
 // Question posée pour une séance à venir ; pour celle du jour, voir AttendanceLink.
 export const AttendanceRow = ({
   card,
   onAnswer,
+  onReason,
 }: {
   card: AthleteSessionCard;
   onAnswer: (status: "present" | "absent") => void;
+  onReason?: (reason: AbsenceReason) => void;
 }) => {
   const answered = card.attendance !== "unknown";
   if (answered) {
@@ -55,6 +91,7 @@ export const AttendanceRow = ({
             {m.today.switchedAutonomous}
           </T>
         ) : null}
+        {!present && onReason ? <AbsenceReasons onReason={onReason} /> : null}
       </View>
     );
   }
@@ -87,9 +124,11 @@ export const AttendanceRow = ({
 export const AttendanceLink = ({
   card,
   onAnswer,
+  onReason,
 }: {
   card: AthleteSessionCard;
   onAnswer: (status: "present" | "absent") => void;
+  onReason?: (reason: AbsenceReason) => void;
 }) => {
   if (!card.hasAutonomous) return null;
   const absent = card.attendance === "absent";
@@ -108,6 +147,7 @@ export const AttendanceLink = ({
           {m.today.switchedAutonomous}
         </T>
       ) : null}
+      {absent && onReason ? <AbsenceReasons onReason={onReason} /> : null}
     </View>
   );
 };

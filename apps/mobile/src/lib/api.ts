@@ -17,13 +17,16 @@ const fetchWithSession: typeof fetch = async (input, init) => {
   return response;
 };
 
+// Les en-têtes de la session : aussi pour un téléchargement de fichier, hors du client d'API.
+export const sessionHeaders = async (): Promise<Record<string, string>> => ({
+  Cookie: await authClient.getCookie(),
+  ...(appVersion ? { "X-Tartan-App-Version": appVersion } : {}),
+  "X-Tartan-Platform": nativePlatform,
+});
+
 export const api = createApiClient({
   baseUrl: config.apiUrl,
-  headers: async () => ({
-    Cookie: await authClient.getCookie(),
-    ...(appVersion ? { "X-Tartan-App-Version": appVersion } : {}),
-    "X-Tartan-Platform": nativePlatform,
-  }),
+  headers: sessionHeaders,
   fetch: fetchWithSession,
 });
 
