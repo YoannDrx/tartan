@@ -14,6 +14,12 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Claude, phase C : constructeur et mode séance (web)
+Fait (PR `feat/constructeur-v2`, empilée sur la phase B) : domaine `insert`, `moveSequenceNode`, `groupSequenceSelection`, `prescriptionForGroup`, `sequenceGroupSummary`, `findSequenceNode`, `sequenceGroups` (testés) ; `exercise-picker.tsx` (recherche, familles nommées) ; `sequence-editor.tsx` réécrit selon la maquette validée (cartes colorées par famille, cadre de groupe « × n », récupération en ligne pointillée, menu « Autres actions » : dupliquer, déplacer, dissocier, retirer ; sélection puis « Regrouper ») ; destination de la bibliothèque dans `session-builder.tsx` ; mode séance au minuteur calé sur l'horloge, enchaînement, son, vibration, réveil d'écran, aperçu de l'étape suivante.
+Vérifié : domaine (304), `session-sequences.spec.ts` (4 parcours, axe à 390, 768 et 1440 px dans les trois thèmes), essai manuel local du sélecteur, du déplacement et du minuteur.
+À savoir : le service worker de la PWA sert d'anciens fichiers en développement ; le désinscrire avant un essai local (`navigator.serviceWorker.getRegistrations()`).
+Suite : glisser-déposer, séries détaillées, variante par nœud, portage mobile (phase G), puis phase D.
+
 ## 2026-11-14, Claude, phase B : correctifs bloquants
 Fait (PR `fix/phase-b-seances`, empilée sur la phase A) : `loggableItems` (domaine) écarte les récupérations de la saisie des séries, web et mobile ; `mergeVariantBlocks` remet les blocs communs de fin après le corps de séance en autonomie ; `occurrenceRef` garde la référence d'origine hors de tout groupe (aucune séance V2 en production, donc rien à migrer) ; séries précédentes triées par position dans la copie figée. Vidéo : camarades sans remarques du coach ni annotation, « À travailler » limité aux coachs, suppression réservée à l'auteur, essai de saut refusé à l'athlète. Mobile : file vidéo par compte (`ownership.ts`), arrêt sur 401. Catalogue version 3, CGV et conditions déplacées dans i18n (`lint:prune`), bannière « version de travail » retirée. IA : contrôles actifs après une question, sur la seule part du coach (`plannerCoachText`) ; destinataires couverts en mode « Proposer ».
 Vérifié : chaque correctif a un test qui échoue avant ; suite web complète, domaine et mobile.

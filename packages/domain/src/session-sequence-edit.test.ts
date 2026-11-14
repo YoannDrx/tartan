@@ -62,3 +62,48 @@ it("déplace une définition imbriquée sans laisser de référence orpheline ni
   expect(moveSequenceExercise(draft, "missing", "target")).toBe(draft);
   expect(moveSequenceExercise(draft, "a", "phase")).toBe(draft);
 });
+
+it("insère à l'emplacement choisi, au milieu d'un niveau", () => {
+  const source = block();
+  const inserted = editSessionSequence(
+    source,
+    null,
+    { kind: "insert", at: 1, node: { kind: "recovery", ref: "pause", durationS: 30 } },
+    id,
+  );
+  expect(inserted.sequence!.map(sequenceNodeRef)).toEqual(["a", "pause", "b"]);
+});
+
+it("un exercice qui entre dans un groupe passe à une série par tour, sans repos entre séries", async () => {
+  const { groupSequenceSelection, moveSequenceNode, sequenceGroupSummary, findSequenceNode } = await import(
+    "./session-sequence-edit"
+  );
+  const source = block();
+  source.items = [
+    { ref: "a", exerciseId: "a", prescription: { sets: 4, reps: 5, rest_s: 150 } },
+    { ref: "b", exerciseId: "b", prescription: { sets: 3, reps: 8 } },
+    { ref: "c", exerciseId: "c", prescription: { sets: 2, reps: 10, rest_s: 60 } },
+  ];
+  const grouped = groupSequenceSelection(source, null, ["a", "b"], { ref: "g", name: "Superset" });
+  expect(grouped.sequence!.map(sequenceNodeRef)).toEqual(["g", "c"]);
+  expect(grouped.items.find((i) => i.ref === "a")!.prescription).toEqual({ sets: 1, reps: 5 });
+  expect(grouped.items.find((i) => i.ref === "c")!.prescription).toEqual(source.items[2]!.prescription);
+  const group = grouped.sequence![0]! as Extract<NonNullable<typeof grouped.sequence>[number], { kind: "repeat" }>;
+  expect(sequenceGroupSummary(group, grouped.items)).toEqual({ rounds: 3, setsPerRound: 1, totalSets: 6 });
+
+  const moved = moveSequenceNode(grouped, "c", "g");
+  expect(findSequenceNode(moved, "c")).toEqual({ parent: "g", index: 2 });
+  expect(moved.items.find((i) => i.ref === "c")!.prescription).toEqual({ sets: 1, reps: 10 });
+  const out = moveSequenceNode(moved, "a", null);
+  expect(out.sequence!.map(sequenceNodeRef)).toEqual(["g", "a"]);
+  expect(source.items[0]!.prescription).toEqual({ sets: 4, reps: 5, rest_s: 150 });
+});
+
+it("refuse un déplacement qui dépasserait deux niveaux ou ferait entrer un groupe en lui-même", async () => {
+  const { groupSequenceSelection, moveSequenceNode } = await import("./session-sequence-edit");
+  const inner = groupSequenceSelection(block(), null, ["a"], { ref: "inner", name: "A" });
+  const outer = groupSequenceSelection(inner, null, ["inner"], { ref: "outer", name: "B" });
+  expect(() => moveSequenceNode(outer, "outer", "inner")).toThrow();
+  const other = groupSequenceSelection(outer, null, ["b"], { ref: "other", name: "C" });
+  expect(() => moveSequenceNode(other, "outer", "other")).toThrow("sequence_depth_exceeded");
+});

@@ -14,9 +14,11 @@ import {
 } from "@tartan/contracts";
 import {
   copyDraftWithNewRefs,
+  editSessionSequence,
   expandSessionSnapshot,
   formatPrescription,
   mergeVariantBlocks,
+  prescriptionForGroup,
   normalizeExerciseTerm,
   validSessionStructure,
   withSessionRefs,
@@ -342,6 +344,10 @@ export const SessionBuilder = ({
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ blockKey: string; itemKey: string } | null>(null);
+  // Le dernier « Ajouter ici » choisi : la bibliothèque y ajoute aussi, groupe compris.
+  const [destination, setDestination] = useState<{ blockKey: string; parent: string | null; label: string } | null>(
+    null,
+  );
   const [overrideFor, setOverrideFor] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
   const [expectedVersion, setExpectedVersion] = useState(initial?.version);
@@ -384,7 +390,45 @@ export const SessionBuilder = ({
   const addExercise = (exerciseId: string, blockKey?: string) => {
     const exercise = byId.get(exerciseId);
     if (!exercise) return;
-    const targetKey = blockKey ?? blocks[Math.min(1, blocks.length - 1)]?.key;
+    const aimed = !blockKey && destination && blocks.some((b) => b.key === destination.blockKey) ? destination : null;
+    if (aimed?.parent) {
+      const target = blocks.find((b) => b.key === aimed.blockKey)!;
+      const ref = newKey();
+      try {
+        const next = editSessionSequence(
+          {
+            ref: target.key,
+            name: target.name,
+            variant: "club",
+            items: target.items.map((i) => ({ ref: i.key, exerciseId: i.exerciseId, prescription: i.prescription })),
+            sequence: target.sequence,
+          },
+          aimed.parent,
+          {
+            kind: "append",
+            node: { kind: "exercise", itemRef: ref },
+            item: { ref, exerciseId, prescription: prescriptionForGroup(exercise.defaultPrescription) },
+          },
+          newKey,
+        );
+        changeBlocks(
+          blocks.map((b) =>
+            b.key === target.key
+              ? {
+                  ...b,
+                  sequence: next.sequence,
+                  items: next.items.map((i) => ({ key: i.ref!, exerciseId: i.exerciseId, prescription: i.prescription })),
+                }
+              : b,
+          ),
+        );
+        return;
+      } catch {
+        // Le groupe visé n'existe plus : l'exercice va à la phase, et la destination se réinitialise.
+        setDestination(null);
+      }
+    }
+    const targetKey = blockKey ?? aimed?.blockKey ?? blocks[Math.min(1, blocks.length - 1)]?.key;
     const key = newKey();
     changeBlocks(
       blocks.map((b) =>
@@ -931,6 +975,7 @@ export const SessionBuilder = ({
               }}
               exercises={exercises}
               onEdit={(itemKey) => setEditing({ blockKey: block.key, itemKey })}
+              onDestination={(aimed) => setDestination({ blockKey: block.key, ...aimed })}
               onChange={(next) =>
                 changeBlocks(
                   blocks.map((b) =>
@@ -969,6 +1014,14 @@ export const SessionBuilder = ({
         className="flex min-w-0 flex-col gap-3 rounded-card on-card bg-card p-4 desktop:sticky desktop:top-20 desktop:col-start-1 desktop:row-span-6 desktop:row-start-1 desktop:max-h-[calc(100dvh-100px)] desktop:self-start desktop:overflow-y-auto"
       >
         <h2 className="t-h2">{m.builder.library}</h2>
+        {destination ? (
+          <p className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-semibold">{m.builder.sequence.destination(destination.label)}</span>
+            <button type="button" className="min-h-11 underline" onClick={() => setDestination(null)}>
+              {m.builder.sequence.destinationReset}
+            </button>
+          </p>
+        ) : null}
         <div className="relative">
           <Search aria-hidden className="pointer-events-none absolute left-3 top-3 size-5 text-soft" />
           <Field label={m.exercises.search} labelHidden>
