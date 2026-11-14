@@ -14,6 +14,9 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, F9 : dialogue de sauvegarde du mot de passe
+Rejeu local du constructeur interrompu après connexion : capture montrant le dialogue iOS d’enregistrement du mot de passe devant le suivi. Refus optionnel ajouté au sous-parcours commun de connexion, pour tous les scénarios ; aucune assertion applicative supprimée. Le chargement observé en CI reste distinct de ce dialogue et n’est pas déclaré corrigé sans rejeu.
+
 ## 2026-11-14, Codex, F9 : confirmation des liens iOS dans la CI
 Reprise autorisée de `feat/native-completion` pour réparer les PR ouvertes. L’artefact de la CI montre la boîte système « Open in Tartan Dev? » devant la séance ; les échecs de connexion suivants sont consécutifs à cette boîte restée ouverte. Le parcours accepte explicitement cette confirmation quand elle apparaît, sans retirer l’assertion des sept étapes ni les contrôles de guide/récupération. Rejeu requis en CI ; aucun défaut du circuit déduit de ce blocage système.
 
