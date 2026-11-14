@@ -438,7 +438,9 @@ describe("quotas vidéo", () => {
     return { org, exercise, athlete };
   };
   const uploaded = (exerciseId: string, createdAt: Date, muxAssetId: string | null) =>
-    prisma.exerciseMedia.create({ data: { exerciseId, kind: "upload", createdAt, muxAssetId } });
+    prisma.exerciseMedia.create({
+      data: { exerciseId, kind: "upload", createdAt, quotaReservedAt: createdAt, muxAssetId },
+    });
 
   it("une démonstration d'exercice compte dans le quota du mois", async () => {
     const { org, exercise } = await prepare();
@@ -455,6 +457,7 @@ describe("quotas vidéo", () => {
         athleteId: athlete.athleteId,
         uploadedBy: org.owner.userId,
         createdAt: new Date("2030-06-13T11:00:00Z"),
+        quotaReservedAt: new Date("2030-06-13T11:00:00Z"),
       },
     });
     expect((await usageOf(org.organizationId, NOW)).maxVideosPerMonth).toBe(1);

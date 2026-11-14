@@ -58,7 +58,7 @@ export const renderNotification = (
     case "video_shared":
       return {
         title: "Tartan",
-        body: v.height ? `${coach} a commenté ton saut à ${v.height} m` : `${coach} a partagé un saut avec toi`,
+        body: "Une vidéo est disponible dans ton espace",
       };
     case "comment":
       return { title: "Tartan", body: `${v.athlete ?? coach} a ajouté un commentaire` };

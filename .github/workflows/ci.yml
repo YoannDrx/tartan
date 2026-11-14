@@ -80,6 +80,7 @@ jobs:
         run: pnpm test:e2e
         env:
           E2E_PROD: "1"
+          E2E_VIDEO_ENABLED: "true"
       - name: Preuve de concept vidéo
         run: pnpm --filter @tartan/web exec playwright test video-poc --project=desktop
       - name: Planificateur activé avec prestataire simulé

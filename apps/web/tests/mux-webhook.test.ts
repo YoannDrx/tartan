@@ -81,7 +81,7 @@ describe("webhook Mux avec une vraie signature", () => {
   });
 
   it("une panne de traitement répond 500 pour que Mux réessaie", async () => {
-    const spy = vi.spyOn(prisma.video, "count").mockRejectedValueOnce(new Error("base indisponible"));
+    const spy = vi.spyOn(prisma, "$transaction").mockRejectedValueOnce(new Error("base indisponible"));
     const response = await deliver({
       type: "video.asset.created",
       data: { id: "asset-panne", passthrough: `video:${randomUUID()}` },

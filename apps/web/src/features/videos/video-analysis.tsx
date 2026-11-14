@@ -31,7 +31,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BarSheet } from "@/components/bar-sheet";
-import { IconButton } from "@/components/ui/button";
+import { Button, IconButton } from "@/components/ui/button";
 import { CheckRow, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
@@ -39,6 +39,7 @@ import { reportContentAction } from "@/features/comments/comment.action";
 import { CommentThread } from "@/features/comments/thread";
 import { RefreshWhilePending } from "./refresh-while-pending";
 import { groupMarkers } from "./timeline-markers";
+import { VideoCollaborationTools } from "./video-collaboration-tools";
 import { VideoExerciseLink } from "./video-exercise-link";
 import { addAnnotationAction, deleteAnnotationAction, shareVideoAction } from "./video.action";
 
@@ -49,6 +50,7 @@ const speedLabel = (s: number) => `${String(s).replace(".", ",")}×`;
 export const VideoAnalysis = ({
   video,
   canAnnotate,
+  staff = true,
   currentUserId,
   backHref,
   path,
@@ -56,6 +58,7 @@ export const VideoAnalysis = ({
 }: {
   video: VideoDetail;
   canAnnotate: boolean;
+  staff?: boolean;
   currentUserId: string;
   backHref: string;
   path: string;
@@ -68,6 +71,7 @@ export const VideoAnalysis = ({
   const [timeMs, setTimeMs] = useState(0);
   const [durationMs, setDurationMs] = useState(video.durationMs ?? 0);
   const [text, setText] = useState("");
+  const [replyTo, setReplyTo] = useState<VideoDetail["annotations"][number] | null>(null);
   const [jumpTools, setJumpTools] = useState<boolean | null>(null);
   const showJumpTools = jumpTools ?? hasHighJumpContext(video);
   const [phase, setPhase] = useState<JumpPhase | "">("");
@@ -157,6 +161,7 @@ export const VideoAnalysis = ({
   const add = useAction(addAnnotationAction, {
     onSuccess: () => {
       setText("");
+      setReplyTo(null);
       router.refresh();
     },
     onError: ({ error }) => toast.error(error.serverError ?? m.errors.invalid),
@@ -165,7 +170,9 @@ export const VideoAnalysis = ({
   const share = useAction(shareVideoAction, {
     onSuccess: ({ input }) => {
       toast.ok(
-        input.withAthlete ? `${m.video.shared}. ${video.athleteName.split(" ")[0]} est prévenu.` : "Partage retiré.",
+        input.withAthlete
+          ? m.videoCollaboration.notified(video.athleteName.split(" ")[0] ?? video.athleteName)
+          : m.videoCollaboration.unshared,
       );
       router.refresh();
     },
@@ -207,7 +214,7 @@ export const VideoAnalysis = ({
             <div className="min-w-0 flex-1">
               <h1 className="t-h2 truncate">
                 {video.athleteName}
-                {video.attemptNo ? `, essai ${video.attemptNo}` : ""}
+                {video.attemptNo ? m.videoCollaboration.attemptNumber(video.attemptNo) : ""}
               </h1>
               <p className="t-caption font-normal text-soft">
                 {video.recordedAt
@@ -228,7 +235,7 @@ export const VideoAnalysis = ({
             >
               <Flag aria-hidden className="size-4" />
             </IconButton>
-            {canAnnotate ? (
+            {staff && (video.canHideFromAthlete ?? true) ? (
               <IconButton
                 tone="darkRound"
                 label={video.sharedWithAthlete ? m.video.unshare : m.video.share}
@@ -257,7 +264,9 @@ export const VideoAnalysis = ({
             ) : null}
           </header>
 
-          {canAnnotate && exercises.length > 0 ? (
+          <VideoCollaborationTools video={video} staff={staff} backHref={backHref} />
+
+          {video.canManage && exercises.length > 0 ? (
             <VideoExerciseLink videoId={video.id} current={video.exerciseId ?? null} exercises={exercises} />
           ) : null}
 
@@ -327,7 +336,7 @@ export const VideoAnalysis = ({
               <SkipForward aria-hidden className="size-5" />
             </IconButton>
             <span className="t-num min-w-16 text-[20px]">{formatTimecode(timeMs)}</span>
-            <div role="group" aria-label="Vitesse de lecture" className="flex gap-1">
+            <div role="group" aria-label={m.videoCollaboration.playbackSpeed} className="flex gap-1">
               {SPEEDS.map((s) => (
                 <button
                   key={s}
@@ -357,7 +366,11 @@ export const VideoAnalysis = ({
               )}
             >
               <Repeat aria-hidden className="size-4" />
-              {!loop ? "Boucle : début" : loop.b === null ? "Boucle : fin" : "Retirer la boucle"}
+              {!loop
+                ? m.videoCollaboration.loopStart
+                : loop.b === null
+                  ? m.videoCollaboration.loopEnd
+                  : m.videoCollaboration.loopRemove}
             </button>
           </div>
 
@@ -428,7 +441,7 @@ export const VideoAnalysis = ({
             </section>
           ) : null}
 
-          <section aria-label="Remarques sur la vidéo" className="flex flex-col gap-2">
+          <section aria-label={m.videoCollaboration.remarks} className="flex flex-col gap-2">
             {video.annotations.map((a) => (
               <div key={a.id} className="flex items-start gap-2.5 rounded-card bg-card-raised p-2.5">
                 <button
@@ -440,9 +453,24 @@ export const VideoAnalysis = ({
                 </button>
                 <div className="min-w-0 flex-1 py-1.5">
                   {a.phase ? <p className="t-caption font-semibold text-soft">{m.jumpPhase[a.phase]}</p> : null}
+                  <p className="t-caption text-soft">{a.authorName ?? m.videoCollaboration.unknownAuthor}</p>
+                  {a.parentId ? <p className="text-sm text-soft">{m.videoCollaboration.replyTo}</p> : null}
                   <p className="break-words">{a.text}</p>
+                  {canAnnotate && !a.parentId ? (
+                    <Button
+                      variant="quiet"
+                      size="sm"
+                      onClick={() => {
+                        setReplyTo(a);
+                        seek(a.tMs);
+                        document.getElementById("annotation")?.focus();
+                      }}
+                    >
+                      {m.videoCollaboration.reply}
+                    </Button>
+                  ) : null}
                 </div>
-                {canAnnotate ? (
+                {staff || a.authorId === currentUserId ? (
                   <IconButton
                     tone="dark"
                     label={m.common.delete}
@@ -458,10 +486,24 @@ export const VideoAnalysis = ({
                 className="flex flex-col gap-2"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (text.trim())
-                    add.execute({ videoId: video.id, tMs: Math.round(timeMs), phase: phase || null, text });
+                  if (text.trim() && !add.isPending)
+                    add.execute({
+                      videoId: video.id,
+                      tMs: replyTo?.tMs ?? Math.round(timeMs),
+                      parentId: replyTo?.id,
+                      phase: phase || null,
+                      text,
+                    });
                 }}
               >
+                {replyTo ? (
+                  <div className="border-l-2 border-control-line pl-3">
+                    <p>{replyTo.text}</p>
+                    <Button size="sm" variant="quiet" onClick={() => setReplyTo(null)}>
+                      {m.common.cancel}
+                    </Button>
+                  </div>
+                ) : null}
                 <label htmlFor="annotation" className="sr-only">
                   {m.video.remarkAt(formatTimecode(timeMs))}
                 </label>

@@ -13,6 +13,7 @@ const matrix = {
   viewInjuries: { owner: "all", coach: "own_groups", assistant: "read", athlete: "self" },
   editInjuries: { owner: "all", coach: "own_groups", athlete: "self" },
   privateNotes: { owner: "all", coach: "own_groups" },
+  uploadVideos: { owner: "all", coach: "own_groups", assistant: "own_groups", athlete: "self" },
   filmAndAnnotate: { owner: "all", coach: "all", assistant: "all" },
   viewVideos: { owner: "all", coach: "own_groups", assistant: "own_groups", athlete: "self" },
   replyVideos: { owner: "all", coach: "all", assistant: "all", athlete: "self" },

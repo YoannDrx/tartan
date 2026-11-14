@@ -1,27 +1,21 @@
-import {
-  type AnnotationInput,
-  type CreateVideoInput,
-  type JumpAttemptInput,
-  type VideoDetail,
-  type VideoSummary,
-} from "@tartan/contracts";
+import { validateVideoUploadRefs } from "./video-upload.service";
+import { VIDEO_SELECT, videoWhereFor, requireVideoAccess as requireVideo } from "./video-access.service";
+import { type AnnotationInput, type JumpAttemptInput, type VideoDetail, type VideoSummary } from "@tartan/contracts";
 import { barSheet } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { fromDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { AppError, consentRequired, forbidden, invalid, notFound } from "@/lib/errors";
-import { createDirectUpload, signedPlayback, unwrapWebhook, videoEnabled, readUpload } from "@/lib/mux";
+import { signedPlayback, unwrapWebhook, videoEnabled, readUpload } from "@/lib/mux";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireOwnedRefs, requireVisibleAthlete, visibleAthleteIds, type Access } from "./access";
-import { assertWithinPlan } from "./billing.service";
 import { blockedUserIds } from "./blocks.service";
 import { drainExternalDeletions, enqueueExternalDeletion } from "./external-deletion.service";
 import { consentForAthletes } from "./consent.service";
 import { firstNameOf, namesFor } from "./me.service";
-import { notify } from "./notify.service";
+import { notify, queueNotifications } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
-import { assertVideoCapacity } from "./video-capacity.service";
 import {
   bestClearedHeight,
   deliveredFps,
@@ -30,26 +24,6 @@ import {
   MAX_FILE_SECONDS,
   toRealMs,
 } from "@tartan/domain";
-
-const VIDEO_SELECT = {
-  id: true,
-  athleteId: true,
-  uploadedBy: true,
-  status: true,
-  muxPlaybackId: true,
-  fps: true,
-  timeScale: true,
-  durationMs: true,
-  recordedAt: true,
-  sharedWithAthlete: true,
-  sharedWithGroup: true,
-  scheduledSessionId: true,
-  exerciseId: true,
-  exercise: { select: { name: true } },
-  athlete: { select: { firstName: true, lastName: true, userId: true } },
-  jumps: { select: { barHeightCm: true, attemptNo: true, result: true }, take: 1 },
-  _count: { select: { annotations: true } },
-} as const;
 
 const summarize = async (
   v: {
@@ -63,6 +37,9 @@ const summarize = async (
     durationMs: number | null;
     recordedAt: Date | null;
     sharedWithAthlete: boolean;
+    sharedWithGroup?: boolean;
+    reviewedAt?: Date | null;
+    scheduledSessionId?: string | null;
     exerciseId?: string | null;
     exercise?: { name: string } | null;
     athlete: { firstName: string; lastName: string };
@@ -91,6 +68,9 @@ const summarize = async (
     durationMs: v.durationMs,
     recordedAt: v.recordedAt?.toISOString() ?? null,
     sharedWithAthlete: v.sharedWithAthlete,
+    sharedWithGroup: v.sharedWithGroup ?? false,
+    reviewedAt: v.reviewedAt?.toISOString() ?? null,
+    scheduledSessionId: v.scheduledSessionId ?? null,
     barHeightCm: jump?.barHeightCm ?? null,
     attemptNo: jump?.attemptNo ?? null,
     result: jump?.result ?? null,
@@ -118,64 +98,7 @@ const requireUsableExercise = async (organizationId: string, exerciseId: string)
   if (!exercise) throw notFound();
 };
 
-export const createVideoUpload = async (userId: string, organizationId: string, input: CreateVideoInput) => {
-  const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
-  await requireVisibleAthlete(access, input.athleteId);
-  await requireVideoConsent(input.athleteId);
-  await assertWithinPlan(organizationId, "maxVideosPerMonth");
-  if (!videoEnabled()) throw new AppError(503, "video_disabled", m.errors.videoDisabled);
-  await assertVideoCapacity();
-  if (input.scheduledSessionId) {
-    const session = await prisma.scheduledSession.findFirst({
-      where: { id: input.scheduledSessionId, organizationId },
-    });
-    if (!session) throw notFound();
-  }
-  if (input.exerciseId) await requireUsableExercise(organizationId, input.exerciseId);
-  const video = await prisma.video.create({
-    data: {
-      organizationId,
-      exerciseId: input.exerciseId ?? null,
-      athleteId: input.athleteId,
-      uploadedBy: userId,
-      scheduledSessionId: input.scheduledSessionId ?? null,
-      fps: input.fps ?? null,
-      timeScale: input.timeScale ?? 1,
-      recordedAt: input.recordedAt ? new Date(input.recordedAt) : new Date(),
-      ...(input.attempt
-        ? {
-            jumps: {
-              create: {
-                organizationId,
-                athleteId: input.athleteId,
-                scheduledSessionId: input.scheduledSessionId ?? null,
-                barHeightCm: input.attempt.barHeightCm,
-                attemptNo: input.attempt.attemptNo,
-                result: input.attempt.result,
-                approachSteps: input.attempt.approachSteps ?? null,
-              },
-            },
-          }
-        : {}),
-    },
-  });
-  const upload = await createDirectUpload(`video:${video.id}`);
-  await prisma.video.update({ where: { id: video.id }, data: { muxUploadId: upload.uploadId } });
-  log.info("video_upload_created", { organizationId, entityId: video.id });
-  return { videoId: video.id, uploadUrl: upload.url };
-};
-
-// Une adresse d'envoi expire : la file locale en redemande une sans recréer la vidéo ni l'essai.
-export const renewVideoUpload = async (userId: string, organizationId: string, videoId: string) => {
-  const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
-  const video = await requireVideo(access, videoId);
-  if (video.status !== "uploading") throw invalid("Cette vidéo est déjà envoyée.");
-  await requireVideoConsent(video.athleteId);
-  if (!videoEnabled()) throw new AppError(503, "video_disabled", m.errors.videoDisabled);
-  const upload = await createDirectUpload(`video:${videoId}`);
-  await prisma.video.update({ where: { id: videoId }, data: { muxUploadId: upload.uploadId } });
-  return { videoId, uploadUrl: upload.url };
-};
+export { createVideoUpload, renewVideoUpload } from "./video-upload.service";
 
 // Signature absente ou fausse : à distinguer d'une panne de notre côté, que Mux doit pouvoir réessayer.
 export class MuxSignatureError extends Error {}
@@ -185,6 +108,7 @@ type MuxEvent = {
   data: {
     id: string;
     passthrough?: string;
+    upload_id?: string;
     duration?: number;
     playback_ids?: { id: string }[];
     tracks?: { type?: string; max_frame_rate?: number }[];
@@ -205,11 +129,15 @@ export const handleMuxWebhook = async (rawBody: string, headers: Headers): Promi
 export const applyMuxEvent = async (event: MuxEvent): Promise<void> => {
   // Un envoi interrompu ne laisse pas la vidéo « en cours d'envoi » pour toujours.
   if (event.type === "video.upload.errored" || event.type === "video.upload.cancelled") {
-    await prisma.video.updateMany({ where: { muxUploadId: event.data.id }, data: { status: "error" } });
+    await prisma.video.updateMany({
+      where: { muxUploadId: event.data.id, status: "uploading" },
+      data: { status: "error" },
+    });
     return;
   }
-  const [kind, id] = (event.data.passthrough ?? "").split(":");
-  if (!id) return;
+  const match = /^(video|exercise):([0-9a-f-]{36})(?::([0-9]+))?$/.exec(event.data.passthrough ?? "");
+  if (!match) return;
+  const [, kind, id, generation] = match;
   if (kind === "exercise") {
     if (event.type === "video.asset.ready") {
       // Mêmes limites que les vidéos d'athlètes : une démonstration trop longue ne reste pas.
@@ -230,49 +158,89 @@ export const applyMuxEvent = async (event: MuxEvent): Promise<void> => {
     return;
   }
   if (kind !== "video") return;
-  // La vidéo a été supprimée avant l'arrivée du fichier : ce fichier ne doit pas rester chez Mux.
-  if (id && (event.type === "video.asset.created" || event.type === "video.asset.ready")) {
-    const known = await prisma.video.count({ where: { id } });
-    if (!known) {
-      await enqueueExternalDeletion({ provider: "mux_asset", ref: event.data.id, reason: "late_webhook" });
-      return;
-    }
-  }
-  if (event.type === "video.asset.created") {
-    // Mux ne garantit pas l'ordre : un « créé » tardif ne fait pas reculer une vidéo déjà prête.
-    await prisma.video.updateMany({
-      where: { id, status: "uploading" },
-      data: { status: "processing", muxAssetId: event.data.id },
-    });
-  } else if (event.type === "video.asset.ready") {
-    const track = event.data.tracks?.find((t) => t.type === "video");
-    const video = await prisma.video.findUnique({ where: { id }, select: { fps: true, timeScale: true } });
-    const timeScale = video?.timeScale ?? 1;
-    // Le client refuse déjà les fichiers trop longs : ici, seul un envoi qui l'aurait contourné est arrêté.
-    if ((event.data.duration ?? 0) > MAX_FILE_SECONDS * 1.1) {
-      await prisma.video.updateMany({ where: { id }, data: { status: "error" } });
-      await enqueueExternalDeletion({ provider: "mux_asset", ref: event.data.id, reason: "video_oversized" });
-      log.warn("video_oversized", { entityId: id });
-      return;
-    }
-    await prisma.video.updateMany({
+  await prisma.$transaction(async (db) => {
+    await db.$queryRaw`SELECT id FROM videos WHERE id = ${id}::uuid FOR UPDATE`;
+    const current = await db.video.findUnique({
       where: { id },
-      data: {
-        status: "ready",
-        muxAssetId: event.data.id,
-        muxPlaybackId: event.data.playback_ids?.[0]?.id ?? null,
-        durationMs: event.data.duration ? Math.round(toRealMs(event.data.duration, timeScale)) : null,
-        fps: deliveredFps({
-          declaredFps: video?.fps ?? null,
-          encodedFps: track?.max_frame_rate ?? null,
-          timeScale,
-        }),
+      select: {
+        uploadGeneration: true,
+        muxUploadId: true,
+        muxAssetId: true,
+        status: true,
+        organizationId: true,
+        athleteId: true,
+        uploadedBy: true,
+        athlete: { select: { userId: true } },
       },
     });
-  } else if (event.type === "video.asset.errored") {
-    await prisma.video.updateMany({ where: { id }, data: { status: "error" } });
-    log.error("video_encoding_failed", { entityId: id });
-  }
+    const stale =
+      !current ||
+      current.uploadGeneration !== Number(generation ?? 0) ||
+      (event.data.upload_id && current.muxUploadId !== event.data.upload_id) ||
+      (current.muxAssetId && current.muxAssetId !== event.data.id);
+    if (stale) {
+      if (["video.asset.created", "video.asset.ready", "video.asset.errored"].includes(event.type))
+        await enqueueExternalDeletion({ provider: "mux_asset", ref: event.data.id, reason: "late_webhook" }, db);
+      return;
+    }
+    if (event.type === "video.asset.created") {
+      // Mux ne garantit pas l'ordre : un « créé » tardif ne fait pas reculer une vidéo déjà prête.
+      await db.video.updateMany({
+        where: { id, status: "uploading" },
+        data: { status: "processing", muxAssetId: event.data.id },
+      });
+    } else if (event.type === "video.asset.ready") {
+      const track = event.data.tracks?.find((t) => t.type === "video");
+      const video = await db.video.findUnique({ where: { id }, select: { fps: true, timeScale: true } });
+      const timeScale = video?.timeScale ?? 1;
+      // Le client refuse déjà les fichiers trop longs : ici, seul un envoi qui l'aurait contourné est arrêté.
+      if ((event.data.duration ?? 0) > MAX_FILE_SECONDS * 1.1) {
+        await db.video.updateMany({ where: { id }, data: { status: "error" } });
+        await enqueueExternalDeletion({ provider: "mux_asset", ref: event.data.id, reason: "video_oversized" }, db);
+        log.warn("video_oversized", { entityId: id });
+        return;
+      }
+      await db.video.updateMany({
+        where: { id },
+        data: {
+          status: "ready",
+          muxAssetId: event.data.id,
+          muxPlaybackId: event.data.playback_ids?.[0]?.id ?? null,
+          durationMs: event.data.duration ? Math.round(toRealMs(event.data.duration, timeScale)) : null,
+          fps: deliveredFps({
+            declaredFps: video?.fps ?? null,
+            encodedFps: track?.max_frame_rate ?? null,
+            timeScale,
+          }),
+        },
+      });
+      if (current.status !== "ready" && current.uploadedBy === current.athlete.userId) {
+        const ids = await coachesOfAthlete(current.organizationId, current.athleteId);
+        const members = await db.organizationMember.findMany({
+          where: {
+            organizationId: current.organizationId,
+            userId: { in: ids, not: current.uploadedBy },
+            status: "active",
+            role: { in: ["owner", "coach", "assistant"] },
+          },
+          select: { userId: true },
+        });
+        await queueNotifications(
+          db,
+          members.map((member) => member.userId),
+          "video_shared",
+          {
+            organizationId: current.organizationId,
+            videoId: id,
+            link: `/videos/${id}`,
+          },
+        );
+      }
+    } else if (event.type === "video.asset.errored") {
+      await db.video.updateMany({ where: { id, status: { not: "ready" } }, data: { status: "error" } });
+      log.error("video_encoding_failed", { entityId: id });
+    }
+  });
 };
 
 const assetEvent = (status: string): string | null =>
@@ -302,8 +270,12 @@ export const reconcileStuckVideos = async (now: Date = new Date()) => {
   result.failed += lost.count;
   const [videos, media] = await Promise.all([
     prisma.video.findMany({
-      where: { status: { in: ["uploading", "processing"] }, muxUploadId: { not: null }, updatedAt: { lt: stuckBefore } },
-      select: { id: true, muxUploadId: true, createdAt: true },
+      where: {
+        status: { in: ["uploading", "processing"] },
+        muxUploadId: { not: null },
+        updatedAt: { lt: stuckBefore },
+      },
+      select: { id: true, muxUploadId: true, createdAt: true, uploadGeneration: true },
       orderBy: { updatedAt: "asc" },
       take: RECONCILE_BATCH,
     }),
@@ -316,7 +288,7 @@ export const reconcileStuckVideos = async (now: Date = new Date()) => {
     }),
   ]);
   const rows = [
-    ...videos.map((row) => ({ ...row, passthrough: `video:${row.id}`, isVideo: true })),
+    ...videos.map((row) => ({ ...row, passthrough: `video:${row.id}:${row.uploadGeneration}`, isVideo: true })),
     ...media.map((row) => ({ ...row, passthrough: `exercise:${row.id}`, isVideo: false })),
   ];
   for (const row of rows) {
@@ -348,22 +320,16 @@ export const reconcileStuckVideos = async (now: Date = new Date()) => {
   return result;
 };
 
-const videoWhereFor = async (access: Access) => {
-  if (access.role === "athlete") {
-    // Athlète : ses vidéos partagées, et celles partagées au groupe explicitement.
-    return {
-      organizationId: access.organizationId,
-      OR: [{ athleteId: access.athleteId ?? "00000000-0000-0000-0000-000000000000", sharedWithAthlete: true }],
-    };
-  }
-  return { organizationId: access.organizationId, athleteId: { in: await visibleAthleteIds(access) } };
+export type VideoQuery = {
+  athleteId?: string;
+  exerciseId?: string;
+  sessionId?: string;
+  status?: VideoSummary["status"];
+  needsReview?: boolean;
+  cursor?: string;
 };
 
-export const listVideos = async (
-  userId: string,
-  organizationId: string,
-  query: { athleteId?: string; exerciseId?: string } = {},
-) => {
+const readVideoRows = async (userId: string, organizationId: string, query: VideoQuery = {}, take = 100) => {
   const access = await requireOrgMember(userId, organizationId, "viewVideos");
   const rows = await prisma.video.findMany({
     // AND : le filtre demandé réduit le périmètre, il ne le remplace jamais.
@@ -372,12 +338,16 @@ export const listVideos = async (
         await videoWhereFor(access),
         query.athleteId ? { athleteId: query.athleteId } : {},
         query.exerciseId ? { exerciseId: query.exerciseId } : {},
+        query.sessionId ? { scheduledSessionId: query.sessionId } : {},
+        query.status ? { status: query.status } : {},
+        query.needsReview ? { reviewedAt: null, status: "ready" } : {},
         // Une vidéo déposée par quelqu'un qu'on a bloqué n'apparaît plus.
         { uploadedBy: { notIn: await blockedUserIds(userId) } },
       ],
     },
-    orderBy: { createdAt: "desc" },
-    take: 100,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    take,
     select: VIDEO_SELECT,
   });
   const revoked = await revokedAthletes(
@@ -387,13 +357,13 @@ export const listVideos = async (
   return Promise.all(rows.map((row) => summarize(row, revoked.has(row.athleteId))));
 };
 
-const requireVideo = async (access: Access, videoId: string) => {
-  const video = await prisma.video.findFirst({
-    where: { id: videoId, ...(await videoWhereFor(access)) },
-    select: VIDEO_SELECT,
-  });
-  if (!video) throw notFound();
-  return video;
+export const listVideos = (userId: string, organizationId: string, query: VideoQuery = {}) =>
+  readVideoRows(userId, organizationId, query);
+
+export const listVideoPage = async (userId: string, organizationId: string, query: VideoQuery = {}) => {
+  const rows = await readVideoRows(userId, organizationId, query, 41);
+  const videos = rows.slice(0, 40);
+  return { videos, nextCursor: rows.length > 40 ? videos.at(-1)!.id : null };
 };
 
 export const getVideo = async (userId: string, organizationId: string, videoId: string): Promise<VideoDetail> => {
@@ -405,7 +375,12 @@ export const getVideo = async (userId: string, organizationId: string, videoId: 
       orderBy: { tMs: "asc" },
     }),
     prisma.comment.findMany({
-      where: { organizationId, entityType: "video", entityId: videoId },
+      where: {
+        organizationId,
+        entityType: "video",
+        entityId: videoId,
+        authorId: { notIn: await blockedUserIds(userId) },
+      },
       orderBy: { createdAt: "asc" },
     }),
     video.scheduledSessionId
@@ -423,10 +398,26 @@ export const getVideo = async (userId: string, organizationId: string, videoId: 
   const devMp4 = process.env.NODE_ENV !== "production" && !consentRevoked ? env().VIDEO_DEV_MP4_URL : undefined;
   return {
     ...(await summarize(video, consentRevoked)),
+    canAnnotate: Boolean((await consentForAthletes([video.athleteId])).get(video.athleteId)?.video),
+    canHideFromAthlete: video.uploadedBy !== video.athlete.userId && video.sharedGroupIds.length === 0,
+    canManage: access.role !== "athlete" || access.athleteId === video.athleteId,
+    canShareGroups: access.role === "athlete" && access.athleteId === video.athleteId,
+    sharedGroupIds: access.athleteId === video.athleteId ? video.sharedGroupIds : [],
+    availableShareGroups:
+      access.athleteId === video.athleteId
+        ? (
+            await prisma.groupMember.findMany({
+              where: { athleteId: video.athleteId, group: { organizationId } },
+              select: { group: { select: { id: true, name: true } } },
+            })
+          ).map((g) => g.group)
+        : [],
     hlsUrl: signed?.hlsUrl ?? null,
     mp4Url: signed?.mp4Url ?? devMp4 ?? null,
     annotations: annotations.map((a) => ({
       id: a.id,
+      authorId: a.authorId,
+      parentId: a.parentId,
       tMs: a.tMs,
       phase: a.phase,
       text: a.text,
@@ -449,9 +440,19 @@ export const linkVideoExercise = async (
   videoId: string,
   exerciseId: string | null,
 ): Promise<void> => {
-  const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
-  await requireVideo(access, videoId);
-  if (exerciseId) await requireUsableExercise(organizationId, exerciseId);
+  const access = await requireOrgMember(userId, organizationId, "uploadVideos");
+  const video = await requireVideo(access, videoId);
+  if (access.role === "athlete" && access.athleteId !== video.athleteId) throw forbidden();
+  if (exerciseId) {
+    if (access.role === "athlete")
+      await validateVideoUploadRefs(
+        access,
+        video.athleteId,
+        { exerciseId, scheduledSessionId: video.scheduledSessionId },
+        prisma,
+      );
+    else await requireUsableExercise(organizationId, exerciseId);
+  }
   await prisma.video.update({ where: { id: videoId }, data: { exerciseId } });
 };
 
@@ -461,22 +462,66 @@ export const addAnnotation = async (
   videoId: string,
   input: AnnotationInput,
 ) => {
-  const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
-  await requireVideo(access, videoId);
-  return prisma.videoAnnotation.create({
-    data: { videoId, authorId: userId, tMs: input.tMs, phase: input.phase ?? null, kind: "comment", text: input.text },
-    select: { id: true },
+  const access = await requireOrgMember(userId, organizationId, "replyVideos");
+  const video = await requireVideo(access, videoId);
+  await requireVideoConsent(video.athleteId);
+  const parent = input.parentId
+    ? await prisma.videoAnnotation.findFirst({
+        where: { id: input.parentId, videoId, parentId: null },
+        select: { id: true, tMs: true },
+      })
+    : null;
+  if (input.parentId && !parent) throw notFound();
+  const tMs = parent?.tMs ?? input.tMs;
+  if (video.durationMs !== null && tMs > video.durationMs) throw invalid(m.errors.invalid);
+  const targets =
+    access.role === "athlete"
+      ? await coachesOfAthlete(organizationId, video.athleteId)
+      : video.sharedWithAthlete && video.athlete.userId
+        ? [video.athlete.userId]
+        : [];
+  const members = await prisma.organizationMember.findMany({
+    where: { organizationId, status: "active", userId: { in: targets, not: userId } },
+    select: { userId: true },
+  });
+  return prisma.$transaction(async (db) => {
+    await db.video.update({ where: { id: videoId }, data: { reviewedAt: null, reviewedBy: null } });
+    const annotation = await db.videoAnnotation.create({
+      data: {
+        videoId,
+        authorId: userId,
+        tMs,
+        parentId: parent?.id ?? null,
+        phase: input.phase ?? null,
+        kind: "comment",
+        text: input.text,
+      },
+      select: { id: true },
+    });
+    await queueNotifications(
+      db,
+      members.map((member) => member.userId),
+      "comment",
+      {
+        organizationId,
+        videoId,
+        link: access.role === "athlete" ? `/videos/${videoId}` : `/mes-sauts/${videoId}`,
+        ...(access.role === "athlete" ? { athlete: await firstNameOf(userId) } : { coach: await firstNameOf(userId) }),
+      },
+    );
+    return annotation;
   });
 };
 
 export const deleteAnnotation = async (userId: string, organizationId: string, annotationId: string) => {
-  const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
+  const access = await requireOrgMember(userId, organizationId, "replyVideos");
   const annotation = await prisma.videoAnnotation.findFirst({
     where: { id: annotationId, video: { organizationId } },
-    select: { id: true, videoId: true },
+    select: { id: true, videoId: true, authorId: true },
   });
   if (!annotation) throw notFound();
   await requireVideo(access, annotation.videoId);
+  if (access.role === "athlete" && annotation.authorId !== userId) throw forbidden();
   await prisma.videoAnnotation.delete({ where: { id: annotation.id } });
 };
 
@@ -484,21 +529,41 @@ export const shareVideo = async (
   userId: string,
   organizationId: string,
   videoId: string,
-  input: { withAthlete: boolean; withGroup?: boolean },
+  input: { withAthlete: boolean; withGroup?: boolean; groupIds?: string[] },
 ) => {
-  const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
+  const access = await requireOrgMember(userId, organizationId, "replyVideos");
   const video = await requireVideo(access, videoId);
-  if (input.withGroup) {
-    // Vidéos de mineurs : jamais partagées au groupe (§ 15.3). Le partage au groupe reste hors V1.
-    throw forbidden();
+  if (access.role === "athlete" && access.athleteId !== video.athleteId) throw forbidden();
+  const requestedGroups = input.groupIds === undefined ? undefined : [...new Set(input.groupIds)];
+  if (input.withGroup || requestedGroups?.length) {
+    if (access.role !== "athlete" || access.athleteId !== video.athleteId) throw forbidden();
+    if (!input.withGroup || !requestedGroups?.length) throw invalid(m.videoCollaboration.chooseGroup);
+    const known = await prisma.groupMember.count({
+      where: { athleteId: video.athleteId, groupId: { in: requestedGroups }, group: { organizationId } },
+    });
+    if (known !== requestedGroups.length) throw notFound();
+    await requireVideoConsent(video.athleteId);
   }
-  if (input.withAthlete) await requireVideoConsent(video.athleteId);
-  await prisma.video.update({ where: { id: videoId }, data: { sharedWithAthlete: input.withAthlete } });
-  if (input.withAthlete && !video.sharedWithAthlete && video.athlete.userId) {
-    const jump = video.jumps[0];
+  // Un ancien client qui ne connaît pas les groupes ne peut pas effacer ce choix.
+  const groupIds = requestedGroups ?? video.sharedGroupIds;
+  const withAthlete = video.uploadedBy === video.athlete.userId || groupIds.length > 0 || input.withAthlete;
+  const revokingOwnGroups =
+    access.role === "athlete" &&
+    requestedGroups !== undefined &&
+    requestedGroups.every((id) => video.sharedGroupIds.includes(id)) &&
+    (video.sharedWithAthlete || video.uploadedBy === userId);
+  if (withAthlete && !revokingOwnGroups) await requireVideoConsent(video.athleteId);
+  await prisma.video.update({
+    where: { id: videoId },
+    data: {
+      sharedWithAthlete: withAthlete,
+      sharedWithGroup: groupIds.length > 0,
+      sharedGroupIds: groupIds,
+    },
+  });
+  if (withAthlete && !video.sharedWithAthlete && video.athlete.userId && video.athlete.userId !== userId) {
     await notify([video.athlete.userId], "video_shared", {
       coach: await firstNameOf(userId),
-      height: jump ? formatHeight(jump.barHeightCm) : undefined,
       organizationId,
       videoId,
       link: `/mes-sauts/${videoId}`,
@@ -506,9 +571,17 @@ export const shareVideo = async (
   }
 };
 
-export const deleteVideo = async (userId: string, organizationId: string, videoId: string) => {
+export const markVideoReviewed = async (userId: string, organizationId: string, videoId: string) => {
   const access = await requireOrgMember(userId, organizationId, "filmAndAnnotate");
-  await requireVideo(access, videoId);
+  const video = await requireVideo(access, videoId);
+  await requireVideoConsent(video.athleteId);
+  await prisma.video.update({ where: { id: videoId }, data: { reviewedAt: new Date(), reviewedBy: userId } });
+};
+
+export const deleteVideo = async (userId: string, organizationId: string, videoId: string) => {
+  const access = await requireOrgMember(userId, organizationId, "uploadVideos");
+  const video = await requireVideo(access, videoId);
+  if (access.role === "athlete" && access.athleteId !== video.athleteId) throw forbidden();
   await prisma.video.delete({ where: { id: videoId } });
   await drainExternalDeletions();
 };
