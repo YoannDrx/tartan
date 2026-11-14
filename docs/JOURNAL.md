@@ -13,6 +13,9 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-14, Codex, F3 : approbation et diffusion des 150 guides
+Le fondateur déclare avoir relu et validé les 150 textes et autorise leur publication. Reprise de `feat/exercise-catalog-guides` : catalogue version 2 approuvé ; illustrations toujours brouillons, non produites ni approuvées. Mise à niveau des guides hérités au contenu identique, sans toucher prescriptions, personnalisation ou instantanés historiques. Trois tests domaine et cinq tests de service réussis, dont concurrence/idempotence et diffusion aux copies anciennes ; contrôles globaux en cours. Cette décision n’atteste ni les médias manquants ni la qualification du planificateur.
+
 ## 2026-11-13, Codex, F6 : intégration du correctif de recette F4
 
 Reprise de `feat/collaborative-video` pour intégrer `db52511` sans changer le comportement applicatif ; journaux conservés. États F0/F1/F6 réconciliés avec les preuves récentes. CI à rejouer sur cette fusion avant de fusionner la PR 121 déjà autorisée.

@@ -11,7 +11,7 @@ import { COORDINATION_CATALOG } from "./exercise-catalog/coordination";
 import { STAIRS_CATALOG } from "./exercise-catalog/stairs";
 import { WARMUP_CATALOG } from "./exercise-catalog/warmup";
 
-export const EXERCISE_CATALOG_VERSION = 1;
+export const EXERCISE_CATALOG_VERSION = 2;
 export type CatalogExercise = StarterExercise & { catalogKey: string; catalogVersion: number; guide: ExerciseGuide };
 
 const familyTags: Record<ExerciseFamily, string[]> = {
@@ -91,7 +91,7 @@ const buildEntry = (entry: CatalogueDraft): CatalogExercise => {
       source: "tartan-original",
       rights: "Tartan",
     },
-    technicalReview: "pending",
+    technicalReview: "approved",
   });
   return {
     catalogKey: entry.key,

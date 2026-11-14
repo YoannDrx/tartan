@@ -1,10 +1,14 @@
 # État du projet
 
-Mis à jour le 13 novembre 2026. Toute PR qui change un état met ce fichier à jour.
+Mis à jour le 14 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
 **En une phrase :** le socle web fonctionne et dispose de tests étendus ; la finalisation autorisée le 13 novembre ajoute constructeur imbriqué, 150 guides d'exercices, deux modes IA et vidéo collaborative avant la vente. Paiement réel et téléphones restent à éprouver ; restauration Blob locale et alerte Sentry reçue sur Gmail sont démontrées.
 
 **Décisions du fondateur :** avis juridique du dossier existant déclaré obtenu ; Mux à la demande ; ouverture souhaitée sans attendre le médiateur et maintien volontaire de la clé OpenAI actuelle. Ces deux réserves ne valent pas validation de conformité ou résolution du risque. Accords de traitement effectivement acceptés : non confirmés. Compte Google Play organisation. Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur.
+
+**Approbation du 14 novembre :** le fondateur a relu et approuvé les 150 guides textuels et autorisé leur publication. Catalogue version 2 ; illustrations encore à produire et valider. Les PR en cours sont autorisées à fusionner après CI verte, puis leurs branches Git à être supprimées. La publication des guides ne vaut pas ouverture des inscriptions.
+
+**Exploitation du 14 novembre :** après l’incident PostgreSQL, secrets de connexion de production corrigés vers la branche actuelle, avec contrôle TLS complet. Déploiement `0d9c4ef` READY, santé OK et version vérifiée ; aucun journal d’erreur sur ce nouveau déploiement lors du contrôle. Deux branches Neon conservées ; comparaison agrégée antérieure sur 76 tables sans différence, mais pas de preuve exhaustive d’absence de perte. La restauration finalisée ne compte pas comme restauration isolée. PR 121 fusionnée après CI entièrement verte.
 
 ## Finalisation autorisée le 13 novembre
 
