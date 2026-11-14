@@ -14,6 +14,9 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, F9 : reprise des PR natives
+Reprise autorisée de `feat/native-session-sequences`, avec les corrections de sa branche parente. La capture CI du constructeur de circuit confirme la même boîte système iOS que le parcours athlète : sous-parcours commun ajouté après l’ouverture du lien. Le premier test de création affichait encore le chargement, diagnostic et rejeu local en cours ; aucun délai augmenté ni assertion retirée.
+
 ## 2026-11-13, Codex, F9 : constructeur natif de séances imbriquées
 
 Codé sur `feat/native-session-sequences`, après la vidéo native : cartes d’exercices, de récupération et de répétition, deux niveaux maximum ; ajout, ordre, duplication, dissociation, déplacement entre phases et annulation du dernier changement de contenu. Séries et adaptations existantes conservées. Aperçu utilisant les occurrences du domaine. Contrat d’édition local partagé avec le web : un groupe incomplet survit à la fermeture, mais ne passe pas le contrat serveur. Déplacement métier conservant les identifiants et prescriptions, suppression des groupes devenus vides.

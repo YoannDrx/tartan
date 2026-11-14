@@ -12,6 +12,7 @@ env:
     visible: "Suivi du groupe"
     timeout: 30000
 - openLink: ${output.circuitBuilderUrl}
+- runFlow: flows/_accept-deep-link.yml
 - extendedWaitUntil:
     visible:
       id: builder-title
