@@ -177,7 +177,7 @@ test("contexte, clarification, reprise, aperçu, correction et confirmation perd
     await page
       .getByLabel(t.instructions, { exact: true })
       .fill("Squat arrière, trois séries de quatre à 80 % pour le groupe.");
-    await expect(page.getByRole("button", { name: t.propose, exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: t.propose, exact: true })).toBeEnabled();
     await page.getByRole("checkbox", { name: t.reviewed, exact: true }).check();
     await page.getByRole("button", { name: t.propose, exact: true }).click();
     await expect(page.getByRole("heading", { name: t.clarifyTitle })).toBeVisible();
@@ -376,7 +376,7 @@ test("micro navigateur : annulation, audio réel synthétique, relecture avant g
       "Squat arrière : trois séries de quatre à quarante kilos.",
     );
     await expect(page.getByRole("checkbox", { name: t.reviewed, exact: true })).not.toBeChecked();
-    await expect(page.getByRole("button", { name: t.propose, exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: t.propose, exact: true })).toBeEnabled();
     expect(uploads).toBe(1);
     await expect
       .poll(() =>
@@ -615,7 +615,7 @@ test("exercice inconnu : création privée rejouée, reprise et circuit relu ava
   }
 });
 
-test("le mode proposition conserve le brief et attend un catalogue techniquement validé", async ({ page }) => {
+test("le mode proposition utilise le catalogue approuvé et conserve le brief", async ({ page }) => {
   const a = await setup(page);
   try {
     await page.goto(`/calendrier?semaine=${a.today}&groupe=${a.group.id}`);
@@ -624,11 +624,11 @@ test("le mode proposition conserve le brief et attend un catalogue techniquement
     await page.getByLabel(m.trainingPhases.end, { exact: true }).fill(a.today);
     await page.getByRole("button", { name: t.chooseContext, exact: true }).click();
     await page.getByLabel(t.mode, { exact: true }).selectOption("propose");
-    await expect(page.getByText(t.verifiedCatalogRequired, { exact: true })).toBeVisible();
+    await expect(page.getByText(t.verifiedCatalogRequired, { exact: true })).toHaveCount(0);
     await page.getByLabel(t.objective, { exact: true }).fill("Préparation physique générale sans charge ajoutée");
     await page.getByLabel(t.proposalDuration, { exact: true }).fill("30");
     await page.getByRole("checkbox", { name: t.reviewed, exact: true }).check();
-    await expect(page.getByRole("button", { name: t.propose, exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: t.propose, exact: true })).toBeEnabled();
     await page.getByRole("button", { name: t.changeContext, exact: true }).click();
     await page.getByRole("button", { name: t.chooseContext, exact: true }).click();
     await expect(page.getByLabel(t.objective, { exact: true })).toHaveValue(

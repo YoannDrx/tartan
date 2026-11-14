@@ -100,3 +100,25 @@ it("borne la profondeur dans le contrat et le volume développé dans le domaine
     }),
   ).toEqual({ ok: false, issues: ["shape"] });
 });
+
+it("conserve un bloc de récupération seul après le travail sans inventer de mouvement", () => {
+  const input = response([exercise("exercise_1")]);
+  input.sessions[0]!.blocks.push({ name: "Retour au calme", content: [{ kind: "recovery", durationS: 75 }] });
+  const result = plannerGenerationToInterpretation(plannerGeneration.parse(input));
+  const context = {
+    period: { from: "2026-11-16", to: "2026-11-22" },
+    exercises,
+    targetTokens: new Set(["group_1"]),
+    reviewedInstructions: ["Circuit demandé"],
+  };
+  expect(validatePlannerInterpretation(result, context).ok).toBe(true);
+  const draft = plannerSessionToDraft(result.sessions[0]!, exercises, "recovery");
+  expect(validSessionStructure(draft)).toBe(true);
+  expect(draft.blocks[1]!.items).toEqual([]);
+  expect(sequenceOccurrences(draft.blocks[1]!.sequence!).map((step) => step.node)).toEqual([
+    { kind: "recovery", ref: "recovery-b1-n0", durationS: 75 },
+  ]);
+  const empty = structuredClone(result);
+  empty.sessions[0]!.blocks[1]!.sequence = null;
+  expect(validatePlannerInterpretation(empty, context)).toEqual({ ok: false, issues: ["shape"] });
+});
