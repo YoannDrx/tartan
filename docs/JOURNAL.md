@@ -14,6 +14,9 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, F9 : confirmation des liens iOS dans la CI
+Reprise autorisée de `feat/native-completion` pour réparer les PR ouvertes. L’artefact de la CI montre la boîte système « Open in Tartan Dev? » devant la séance ; les échecs de connexion suivants sont consécutifs à cette boîte restée ouverte. Le parcours accepte explicitement cette confirmation quand elle apparaît, sans retirer l’assertion des sept étapes ni les contrôles de guide/récupération. Rejeu requis en CI ; aucun défaut du circuit déduit de ce blocage système.
+
 ## 2026-11-13, Codex, F9 : guides et exécution native des circuits
 
 Codé sur `feat/native-completion`, depuis F5 : guides dans la bibliothèque, fiche et séance, recherche par famille ; cache des textes et préchargement des illustrations disponibles des sept jours à venir. Aucun visuel en préparation n’est chargé ni déclaré validé. Récupérations explicites avec minuteur, tours visibles, saisies distinctes par occurrence, repos final explicite respecté. Séries locales redimensionnées après modification, récupérations exclues de la saisie détaillée, accès refusé par le serveur masqué même avec un cache.
