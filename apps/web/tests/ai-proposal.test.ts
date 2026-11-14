@@ -1110,31 +1110,47 @@ it("propose seulement à partir du catalogue approuvé et refuse les charges inv
       },
     },
   };
-  const p = provider();
-  await expect(a.create(p, input)).rejects.toMatchObject({ status: 400 });
-  expect(p.interpret).not.toHaveBeenCalled();
-  const exercise = await prisma.exercise.create({
-    data: {
-      name: "Mouvement approuvé fictif",
-      classification: { movement: "squat", equipment: [] },
-      category: "strength",
-      catalogKey: `test-${randomUUID()}`,
-      guide: { technicalReview: "approved" },
-    },
+  // Other service files can already have installed the shared catalogue in this database.
+  // Make the missing-approval precondition explicit and restore it for subsequent tests.
+  const approvedCatalog = await prisma.exercise.findMany({
+    where: { organizationId: null, guide: { path: ["technicalReview"], equals: "approved" } },
+    select: { id: true, guide: true },
   });
-  const noLoad = provider((context) => {
-    expect(context.mode).toBe("propose");
-    expect(context.exercises.map((e) => e.name)).toEqual([exercise.name]);
-    const result = proposal(context);
-    result.sessions[0]!.blocks[0]!.items[0]!.prescription.load = null;
-    return result;
+  await prisma.exercise.updateMany({
+    where: { id: { in: approvedCatalog.map((row) => row.id) } },
+    data: { guide: { technicalReview: "pending" } },
   });
-  const created = await a.create(noLoad, { ...input, id: randomUUID() });
-  expect(created.state).toBe("proposal");
-  await expect(a.create(provider(), { ...input, id: randomUUID() })).rejects.toMatchObject({
-    code: "planner_generation_failed",
-  });
-  expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
+  try {
+    const p = provider();
+    await expect(a.create(p, input)).rejects.toMatchObject({ status: 400 });
+    expect(p.interpret).not.toHaveBeenCalled();
+    const exercise = await prisma.exercise.create({
+      data: {
+        name: "Mouvement approuvé fictif",
+        classification: { movement: "squat", equipment: [] },
+        category: "strength",
+        catalogKey: `test-${randomUUID()}`,
+        guide: { technicalReview: "approved" },
+      },
+    });
+    const noLoad = provider((context) => {
+      expect(context.mode).toBe("propose");
+      expect(context.exercises.map((e) => e.name)).toEqual([exercise.name]);
+      const result = proposal(context);
+      result.sessions[0]!.blocks[0]!.items[0]!.prescription.load = null;
+      return result;
+    });
+    const created = await a.create(noLoad, { ...input, id: randomUUID() });
+    expect(created.state).toBe("proposal");
+    await expect(a.create(provider(), { ...input, id: randomUUID() })).rejects.toMatchObject({
+      code: "planner_generation_failed",
+    });
+    expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
+  } finally {
+    for (const row of approvedCatalog) {
+      await prisma.$executeRaw`UPDATE exercises SET guide = ${JSON.stringify(row.guide)}::jsonb WHERE id = ${row.id}::uuid`;
+    }
+  }
 });
 
 it("conserve les occurrences du circuit dans les charges et accepte une adaptation du deuxième tour seulement", async () => {
