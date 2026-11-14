@@ -505,6 +505,7 @@ export function NativePlanner({
           ) : null}
           {proposal.state === "proposal" ? (
             <>
+              <SectionTitle>{t.proposedSessions}</SectionTitle>
               {proposal.interpretation?.sessions.map((session, i) => (
                 <View key={i} style={{ gap: space.sm }}>
                   <T variant="bodyStrong">
@@ -539,6 +540,16 @@ export function NativePlanner({
                   ))}
                 </View>
               ))}
+              {!drafts ? (
+                <Button
+                  label={t.prepareReview}
+                  testID="planner-prepare-review"
+                  disabled={disabled}
+                  onPress={() => {
+                    void prepare();
+                  }}
+                />
+              ) : null}
               {!drafts && proposal.clarificationCount < 5 ? (
                 <>
                   <SectionTitle>{t.adjustTitle}</SectionTitle>
@@ -575,15 +586,6 @@ export function NativePlanner({
                     }}
                   />
                 </>
-              ) : null}
-              {!drafts ? (
-                <Button
-                  label={t.prepareReview}
-                  disabled={disabled}
-                  onPress={() => {
-                    void prepare();
-                  }}
-                />
               ) : null}
             </>
           ) : null}

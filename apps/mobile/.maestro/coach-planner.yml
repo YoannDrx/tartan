@@ -43,9 +43,15 @@ env:
     element: "Préparer une proposition"
 - tapOn: "Préparer une proposition"
 - extendedWaitUntil:
-    visible: "Relire et ajuster les brouillons"
+    visible: "Séances proposées"
     timeout: 30000
-- tapOn: "Relire et ajuster les brouillons"
+# La liste des exercices proposés précède le bouton : le faire venir à l'écran.
+- scrollUntilVisible:
+    element:
+      id: planner-prepare-review
+    centerElement: true
+- tapOn:
+    id: planner-prepare-review
 - scrollUntilVisible:
     element: "Vérifier les charges individuelles"
     centerElement: true

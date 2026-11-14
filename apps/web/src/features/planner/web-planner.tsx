@@ -719,6 +719,15 @@ export function WebPlanner({
                   ))}
                 </section>
               ))}
+              <Button
+                type="button"
+                disabled={disabled}
+                onClick={() => {
+                  void prepare();
+                }}
+              >
+                {t.prepareReview}
+              </Button>
               {proposal.clarificationCount < 5 ? (
                 <section className="flex flex-col gap-3">
                   <h2 className="t-section">{t.adjustTitle}</h2>
@@ -756,15 +765,6 @@ export function WebPlanner({
                   </Button>
                 </section>
               ) : null}
-              <Button
-                type="button"
-                disabled={disabled}
-                onClick={() => {
-                  void prepare();
-                }}
-              >
-                {t.prepareReview}
-              </Button>
             </>
           ) : null}
           {!drafts || confirmationPending ? (
