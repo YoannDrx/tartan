@@ -598,3 +598,6 @@ Vérifié : lint, types, tests, design, Playwright sur build de production ; pas
 Non vérifié : e-mails reçus, paiement réel, push, téléphones physiques.
 À savoir : les variables Vercel de type Secret ne se relisent pas, même avec `vercel env run`. Une variable modifiée n'agit qu'après un nouveau déploiement. La bibliothèque de passkeys n'envoie pas `fetchOptions` à sa première requête.
 Suite conseillée : A1, à commencer par T01.
+
+## 2026-11-14, Codex, F9 : rejeu natif après validation du catalogue
+Sous Node 22/pnpm 10, les 1 952 tests serveur passent avec la précondition de catalogue non approuvé isolée dans le test concerné. Sur simulateur iPhone 16e, le constructeur simple passe (1 min 24), les circuits coach et athlète passent ensemble (4 min 16) et le parcours modes IA/exercice inconnu/création privée/brouillons passe (3 min 37). Les dialogues iOS sont traités explicitement ; aucune assertion métier retirée. Ces preuves locales utilisent le prestataire IA simulé et ne qualifient ni OpenAI réel ni un téléphone physique.
