@@ -2,11 +2,11 @@
 
 Ce qu'un humain doit éprouver lui-même : vrais paiements, vrais e-mails, vrais téléphones. Note chaque écart avec une capture et l'heure, puis ouvre une tâche. Compter une demi-journée, plus 3 h pour le terrain et les téléphones. Coût réel : un abonnement à 19 €, remboursé, moins les frais Stripe.
 
-**Prépare :** une carte bancaire, deux comptes (administrateur et coach neuf), une adresse Outlook et une iCloud, un iPhone et un Android, si possible hors Wi-Fi, une vidéo de moins de 30 s d'un adulte d'accord pour être filmé.
+**Prépare :** une carte bancaire, des comptes de recette Preview, et un compte pilote autorisé pour le paiement réel accompagné, une adresse Outlook et une iCloud, un iPhone et un Android, si possible hors Wi-Fi, une vidéo de moins de 30 s d'un adulte d'accord pour être filmé.
 
 ## 1. Administration
 
-- [ ] Ouvrir `https://app.tartan.coach/admin`, valider avec la passkey. La console s'ouvre.
+- [ ] Ouvrir `https://tartan.coach/admin`, valider avec la passkey. La console s'ouvre.
 - [ ] Onglet Configuration : chaque service indique En place, À faire ou À vérifier, sans valeur secrète.
 - [ ] Ajouter une passkey de secours sur un second appareil.
 - [ ] Espaces : l'offre offerte apparaît aussi dans Abonnements.
@@ -14,7 +14,7 @@ Ce qu'un humain doit éprouver lui-même : vrais paiements, vrais e-mails, vrais
 
 ## 2. Vidéo
 
-Le plafond est de 10 vidéos pour tout Tartan tant que la carte Mux n'est pas posée.
+Mux est désormais à la demande. Vérifier le plafond technique effectif et les quotas de l’offre ; le forfait prestataire ne signifie pas vidéo illimitée. Éprouver d’abord les parcours sur la Preview avec ses propres identifiants Mux.
 
 - [ ] Envoyer une vidéo depuis le web : pourcentage, traitement, puis lecture sans recharger, en moins de 2 minutes environ.
 - [ ] Ralenti, image par image, annotation : pas d'erreur de lecture.
@@ -31,16 +31,18 @@ Le plafond est de 10 vidéos pour tout Tartan tant que la carte Mux n'est pas po
 
 ## 4. Compte neuf, sans aide
 
-Note chaque hésitation, pas seulement les pannes.
+Sur la Preview isolée uniquement, note chaque hésitation, pas seulement les pannes. Aucun compte créé pour la recette en production.
 
-- [ ] Configuration : inscriptions ouvertes. Après une minute, la landing affiche le bouton de création. À refermer à la fin de la section 5.
-- [ ] Depuis `tartan.coach` en navigation privée, les trois offres se lisent sur téléphone sans défilement horizontal.
+- [ ] Configuration Preview : inscriptions de recette autorisées ; le site et le formulaire restent cohérents. Les inscriptions de production restent fermées, leur ouverture appartient au fondateur.
+- [ ] Depuis `preview.tartan.coach` en navigation privée, les trois offres se lisent sur téléphone sans défilement horizontal.
 - [ ] Créer un espace : e-mail de vérification puis de bienvenue, en moins de 2 minutes.
 - [ ] Inviter un athlète, accepter depuis un téléphone : e-mail reçu, accords santé et vidéo demandés.
 - [ ] Créer une séance et la publier : l'athlète la voit et peut la valider.
 - [ ] Lien de connexion et réinitialisation du mot de passe : deux e-mails distincts, liens valables une fois.
 
 ## 5. Paiement réel
+
+Après recette navigateur sandbox verte, avec le fondateur et un compte pilote explicitement autorisé. Ne pas créer de client de production pour les tests automatisés. Les réglages fiscaux et mentions de facture doivent être confirmés par le comptable ; ne pas présumer le régime applicable.
 
 Le premier abonnement commence par 14 jours d'essai : aucun débit au départ.
 
@@ -52,7 +54,7 @@ Le premier abonnement commence par 14 jours d'essai : aucun débit au départ.
 - [ ] Résilier depuis Abonnement : e-mail, date de fin affichée, offre maintenue jusqu'à cette date.
 - [ ] Rembourser depuis la facture, motif rétractation : double confirmation, passkey récente, avoir émis, alerte e-mail.
 - [ ] Stripe : aucune livraison de webhook en échec.
-- [ ] Refermer les inscriptions : la landing revient à « Rejoindre le pilote ».
+- [ ] Confirmer que les inscriptions de production restent fermées après cette transaction pilote.
 
 ## 6. Notifications et téléphones
 
@@ -82,7 +84,7 @@ Uniquement des demandes fictives, sans nom ni donnée de santé.
 - [ ] L'accord mentionne OpenAI et les États-Unis, avant toute saisie.
 - [ ] Séance simple avec charge chiffrée : brouillon conforme, ni date ni charge inventée.
 - [ ] Semaine entière sans jours précisés : une question, pas une proposition au hasard.
-- [ ] Trois dictées sur iPhone, Android et ordinateur, dans un endroit bruyant : texte éditable avant envoi.
+- [ ] Trente dictées humaines enregistrées sur iOS et Android, dont des situations bruitées : nombres, unités, mouvements, récupérations et ambiguïtés relus ; texte éditable avant envoi. Les phrases synthétiques ne comptent pas comme dictées humaines.
 - [ ] Brouillons relus : aucune séance publiée sans action de ta part.
 - [ ] Retirer l'accord : le planificateur le redemande.
 - [ ] Espace Découverte sur l'app native : aucune entrée IA, aucune mention d'offre payante.

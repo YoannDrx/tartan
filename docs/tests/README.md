@@ -57,17 +57,18 @@ Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette s
 
 ## Drapeaux
 
-| Variable                                              | Effet                                                                                                                                               |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `E2E_PROD`                                            | `next build` puis `next start`. Active CSP et hors ligne, désactive `video-poc`                                                                     |
-| `E2E_DATABASE_URL`                                    | Base des parcours, défaut `tartan_e2e`                                                                                                              |
-| `TEST_DATABASE_URL`                                   | Base de Vitest, défaut `tartan_test`                                                                                                                |
-| `E2E_AI_PLANNER_ENABLED=true`                         | Ouvre le planificateur simulé                                                                                                                       |
-| `E2E_VIDEO_ENABLED=true`                              | Lance un serveur SDK Mux local, ouvre l'envoi et teste les webhooks signés ; aucun appel au prestataire réel. Activé dans la recette CI principale. |
-| `E2E_DISABLE_ADMIN_STEP_UP`, `E2E_DISABLE_RATE_LIMIT` | Posées par la configuration de Playwright, interdites en production                                                                                 |
-| `RUN_STRIPE_SANDBOX=1`                                | Autorise la suite sandbox                                                                                                                           |
-| `CAPTURE_BASE_URL`                                    | Mode captures : sans serveur ni réinitialisation                                                                                                    |
-| `VIDEO_DEV_MP4_URL`                                   | Clip local à la place de Mux, inerte en production                                                                                                  |
+| Variable | Effet |
+| --- | --- |
+| `E2E_PROD` | `next build` puis `next start`. Active CSP et hors ligne, désactive `video-poc` |
+| `E2E_DATABASE_URL` | Base des parcours, défaut `tartan_e2e` |
+| `TEST_DATABASE_URL` | Base de Vitest, défaut `tartan_test` |
+| `E2E_AI_PLANNER_ENABLED=true` | Ouvre le planificateur simulé |
+| `E2E_DISABLE_ADMIN_STEP_UP`, `E2E_DISABLE_RATE_LIMIT` | Posées par la configuration de Playwright, interdites en production |
+| `RUN_STRIPE_SANDBOX=1` | Autorise la suite sandbox ; `STRIPE_SANDBOX_ACCOUNT` doit désigner localement le compte attendu |
+| `RUN_STRIPE_BROWSER=1` | Ajoute les deux parcours Chrome sur Checkout, facture et portail réels de sandbox, hors CI |
+| `CAPTURE_BASE_URL` | Mode captures : sans serveur ni réinitialisation |
+| `VIDEO_DEV_MP4_URL` | Clip local à la place de Mux, inerte en production |
+| `E2E_VIDEO_ENABLED=true` | Lance le SDK Mux simulé et les webhooks de recette locale ; activé dans la CI principale. |
 
 ## Pièges
 

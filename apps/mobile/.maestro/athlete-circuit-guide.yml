@@ -16,7 +16,8 @@ env:
 - runFlow: flows/_accept-deep-link.yml
 - extendedWaitUntil:
     visible: "Étape 1 sur 7"
-    timeout: 15000
+    # Le premier lien iOS peut reprendre après plus de 15 s sur le simulateur CI.
+    timeout: 30000
 - tapOn:
     id: exercise-guide-open
 - assertVisible: "Guide validé techniquement"
