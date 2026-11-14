@@ -65,6 +65,20 @@ export async function getPlannerTranscription(userId: string, organizationId: st
   });
 }
 
+// Noms de la bibliothèque de l'espace, fiches créées par le coach d'abord : ce sont
+// celles qu'un modèle de transcription a le moins de chances de connaître.
+async function plannerVocabulary(organizationId: string) {
+  const rows = await prisma.exercise.findMany({
+    where: { organizationId, deletedAt: null },
+    orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+    select: { name: true, catalogKey: true },
+    take: 400,
+  });
+  return [...rows.filter((row) => !row.catalogKey), ...rows.filter((row) => row.catalogKey)]
+    .map((row) => row.name)
+    .slice(0, 40);
+}
+
 export async function transcribePlannerAudio(
   userId: string,
   organizationId: string,
@@ -120,7 +134,12 @@ export async function transcribePlannerAudio(
       .trim()
       .min(1)
       .max(12000)
-      .parse(await (execution.provider ?? openAiTranscriptionProvider()).transcribe(audio));
+      .parse(
+        await (execution.provider ?? openAiTranscriptionProvider()).transcribe(
+          audio,
+          await plannerVocabulary(organizationId),
+        ),
+      );
     const complete = await completePlannerOperation(
       userId,
       organizationId,

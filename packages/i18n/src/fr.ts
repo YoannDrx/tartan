@@ -880,7 +880,8 @@ export const fr = {
     createPrivateExercise: "Créer un exercice privé",
     rephraseExercise: "Tu peux aussi reformuler le mouvement dans ta réponse ci-dessous.",
     privateExerciseReview: "Vérifie la fiche avant de l’ajouter à ta bibliothèque privée.",
-    movementCues: "Consignes techniques (une par ligne, cinq maximum)",
+    movementCues: "Consignes techniques, facultatives (une par ligne, cinq maximum)",
+    searchLibrary: "Chercher une autre fiche",
     movementLoadConvention: "Convention de charge",
     movementLoadKinds: {
       external_total: "Charge externe totale",
@@ -915,6 +916,16 @@ export const fr = {
       "Aucun exercice vérifié ne correspond au matériel indiqué. Précise le matériel disponible ou modifie l’objectif de la proposition.",
     clarifyExercise:
       "Cet exercice n’est pas identifié dans ta bibliothèque. Indique le nom exact de sa fiche, ou crée-la avant de relancer.",
+    adjustmentPrefix: "Ajustement du coach : ",
+    proposedSessions: "Séances proposées",
+    quotedFrom: (quote: string) => `D’après : « ${quote} »`,
+    adjustTitle: "Ajuster la proposition",
+    adjustHint:
+      "Décris seulement ce qui change : un exercice, un volume, une récupération. L’ajustement ne consomme pas de quota.",
+    adjustLabel: "Ce qui change",
+    adjust: "Ajuster",
+    unknownExercise: (name: string) =>
+      `« ${name} » n’est pas dans ta bibliothèque : quelle fiche lui correspond, ou faut-il la créer ?`,
     clarifyTarget: "Plusieurs destinataires sont sélectionnés. Lesquels doivent recevoir cette séance ?",
     clarifyRest: "Quelle récupération veux-tu, en secondes ou en minutes ? Tartan ne connaît pas ton habitude.",
     clarifyLoad: "Quelle charge veux-tu indiquer ? Sans valeur de ta part, Tartan peut la laisser à définir.",
@@ -965,7 +976,7 @@ export const fr = {
     },
     replaceExercise: "Remplacer l’exercice",
     replacementReset:
-      "Le remplacement utilise la prescription par défaut du nouvel exercice et retire les adaptations de cet item. Tu devras relire ses valeurs et son aperçu individuel.",
+      "Le remplacement garde les séries, les répétitions, le repos et la charge ; un pourcentage se rapporte au maximum du nouvel exercice. Les adaptations individuelles de cet item sont retirées : relis son aperçu individuel.",
     phaseReady: "Contexte prêt",
     phaseReview: "Phases à vérifier",
     previewRequired:
@@ -1024,7 +1035,6 @@ export const fr = {
     prepareReview: "Relire et ajuster les brouillons",
     assumptions: "Hypothèses à vérifier",
     suggestions: "Suggestions facultatives",
-    quotedInstruction: "Consigne interprétée",
     reviewedDrafts: "J’ai vérifié les dates, destinataires, exercices et prescriptions de chaque séance",
     confirmDrafts: (n: number) => `Créer ${n} brouillon${n > 1 ? "s" : ""}`,
     draftsCreated:

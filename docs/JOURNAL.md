@@ -14,6 +14,13 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Claude, phase D (première partie) : planificateur
+Fait (PR `feat/planificateur-fiable`) : `planner-mentions.ts` (domaine) repère les fiches nommées et les noms inconnus placés devant une prescription ; `executeProposal` pose alors une question nommée (`named-exercise-n`) sans appeler le modèle, en mode « Mettre en forme » seulement. `plannerExerciseIsNamed` n'accepte plus un mot isolé de cinq lettres. « Ajuster » réutilise la clarification après une proposition (préfixe « Ajustement du coach : », gratuit, cinq relances au total). Exercices et prescriptions visibles avant « Relire » ; `replacedExercisePrescription` garde la prescription ; recherche libre et consignes facultatives dans la question d'exercice (web et mobile) ; choisir une fiche existante ne demande plus `editExercises` ; la dictée reçoit 40 noms de la bibliothèque (fiches du coach d'abord). Catalogue version 4 (synonymes « Marche dans les escaliers »). Transactions de rattachement et de suppression de compte à 30 s : la CI Maestro dépassait les 5 s par défaut (P2028).
+Vérifié : passe déterministe mesurée hors ligne sur les 80 + 60 cas figés (10 inconnus sur 10, aucun faux positif sur les cas « proposition », zéro sur les 150 noms et alias du catalogue) ; domaine (307), web (1978), types, lint, design.
+Non vérifié : aucun appel réel au modèle (pas de clé hors production) ; la consigne d'ajustement ajoutée aux instructions n'est pas qualifiée.
+À savoir : le texte de la question nommée finit par « ? » pour que `plannerCoachText` l'écarte des contrôles.
+Suite : D2 (deux appels) et D5 (corpus écrit par un coach, trois passages réels) dès qu'une clé plafonnée est disponible ; puis phase E.
+
 ## 2026-11-14, Claude, phase C : constructeur et mode séance (web)
 Fait (PR `feat/constructeur-v2`, empilée sur la phase B) : domaine `insert`, `moveSequenceNode`, `groupSequenceSelection`, `prescriptionForGroup`, `sequenceGroupSummary`, `findSequenceNode`, `sequenceGroups` (testés) ; `exercise-picker.tsx` (recherche, familles nommées) ; `sequence-editor.tsx` réécrit selon la maquette validée (cartes colorées par famille, cadre de groupe « × n », récupération en ligne pointillée, menu « Autres actions » : dupliquer, déplacer, dissocier, retirer ; sélection puis « Regrouper ») ; destination de la bibliothèque dans `session-builder.tsx` ; mode séance au minuteur calé sur l'horloge, enchaînement, son, vibration, réveil d'écran, aperçu de l'étape suivante.
 Vérifié : domaine (304), `session-sequences.spec.ts` (4 parcours, axe à 390, 768 et 1440 px dans les trois thèmes), essai manuel local du sélecteur, du déplacement et du minuteur.

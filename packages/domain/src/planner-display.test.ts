@@ -1,5 +1,5 @@
-import { expect, it } from "vitest";
-import { plannerDisplayText } from "./planner-display";
+import { describe, expect, it } from "vitest";
+import { plannerDisplayText, replacedExercisePrescription } from "./planner-display";
 const context = {
   targets: [
     { token: "group_1", label: "Vitesse (A)" },
@@ -21,4 +21,14 @@ it("ne résout ni une sous-chaîne ni un jeton absent du contexte autorisé", ()
 it("préserve les libellés entiers et ne réinterprète ni dollar ni jeton inclus", () => {
   const label = "A".repeat(300) + " $& athlete_1";
   expect(plannerDisplayText("group_1", { ...context, targets: [{ token: "group_1", label }] })).toBe(label);
+});
+
+describe("remplacement d'un exercice proposé", () => {
+  it("garde la prescription et rattache le pourcentage au nouvel exercice", () => {
+    const kept = replacedExercisePrescription({ sets: 4, reps: 5, restS: 120, load: { type: "kg", value: 60 } }, "b");
+    expect(kept).toEqual({ sets: 4, reps: 5, restS: 120, load: { type: "kg", value: 60 } });
+    expect(
+      replacedExercisePrescription({ sets: 3, load: { type: "pct_1rm", value: 80, test: "exercise:a" } }, "b"),
+    ).toEqual({ sets: 3, load: { type: "pct_1rm", value: 80, test: "exercise:b" } });
+  });
 });
