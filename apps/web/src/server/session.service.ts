@@ -48,6 +48,7 @@ export { activeAudienceIds, audienceAthleteIds } from "./session-audience.servic
 import { reviewSessionPhases, storedPhaseContext } from "./session-phase-context";
 import { freezeSessionPrescriptions, preparePrescriptionRefresh } from "./prescription.service";
 import { mediaSnapshot } from "./exercise.service";
+import { readExerciseGuide } from "./exercise-catalog.service";
 import { firstNameOf } from "./me.service";
 import { notify, notifyPublications, queueNotifications, dispatchPending } from "./notify.service";
 
@@ -144,6 +145,7 @@ export const buildSnapshot = async (
           category: exercise.category,
           classification: exercise.classification,
           cues: exercise.cues,
+          guide: readExerciseGuide(exercise.guide),
           media: mediaSnapshot(exercise.media[0]),
           prescription: item.prescription,
           strengthLoadKind: exercise.strengthLoadKind,

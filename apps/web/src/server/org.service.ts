@@ -9,6 +9,7 @@ import {
   type OrganizationUpdateInput,
 } from "@tartan/contracts";
 import { type PlanKey, referralCodeFor, STARTER_LIBRARY, STARTER_TEMPLATES } from "@tartan/domain";
+import { EXERCISE_CATALOG } from "@tartan/domain/exercise-catalog";
 import { randomId } from "@/lib/tokens";
 import { prisma } from "@/lib/prisma";
 import { platformSettings } from "./platform-settings.service";
@@ -88,6 +89,9 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
         exercises: {
           create: STARTER_LIBRARY.map((e) => ({
             name: e.name,
+            sourceCatalogKey: EXERCISE_CATALOG.find((entry) => entry.name === e.name)?.catalogKey,
+            catalogVersion: EXERCISE_CATALOG.find((entry) => entry.name === e.name)?.catalogVersion,
+            guide: EXERCISE_CATALOG.find((entry) => entry.name === e.name)?.guide,
             aliases: e.aliases ?? [],
             classification: e.classification,
             category: e.category,

@@ -94,11 +94,6 @@
       "count": 5
     }
   },
-  "src/features/exercises/exercise-library.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 4
-    }
-  },
   "src/features/legal/privacy.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 29
