@@ -1,15 +1,17 @@
 import { celebrationFromResponse } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
 import type { ResolvedItem } from "@tartan/contracts";
-import { countSets, formatDuration } from "@tartan/domain";
+import { executionProgress, executionRestSeconds, executionSetProgress, formatDuration } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, BackHandler, Pressable, Vibration, View } from "react-native";
 import { ExerciseVideo, parseMedia, SPEEDS } from "../../src/features/media";
+import { MovementGuide } from "../../src/features/exercise-guide";
 import { recordValidation, ValidationSheet, type ValidationTarget } from "../../src/features/validation-sheet";
 import { useActiveSpace, useSessionDetail, useToday } from "../../src/lib/queries";
 import { useSessionProgress } from "../../src/lib/session-progress";
+import { deniesCachedAccess } from "../../src/lib/errors";
 import { ArrowRight, Check, Timer } from "../../src/ui/icons";
 import { Button, Chip, T, Tag } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
@@ -167,6 +169,19 @@ export default function SessionMode() {
   );
 
   if (me.data && !orgId) return <Redirect href="/" />;
+  if (deniesCachedAccess(detail.error) || deniesCachedAccess(me.error)) {
+    return (
+      <StackScreen dark backIcon="close" onBack={leave}>
+        <ErrorState
+          error={detail.error ?? me.error}
+          onRetry={() => {
+            void me.refetch();
+            void detail.refetch();
+          }}
+        />
+      </StackScreen>
+    );
+  }
   if (detail.isPending) {
     return (
       <StackScreen dark backIcon="close" onBack={leave}>
@@ -192,12 +207,13 @@ export default function SessionMode() {
     );
   }
 
-  const total = countSets(item);
-  const sets = progress[item.ref] ?? Array.from({ length: total }, () => false);
+  const recovery = item.kind === "recovery";
+  const sets = executionSetProgress(item, progress);
+  const total = sets.length;
   const doneCount = sets.filter(Boolean).length;
   const last = index >= items.length - 1;
-  const restSeconds = item.prescription.rest_s;
-  const allSetsDone = items.every((it) => (progress[it.ref] ?? []).filter(Boolean).length >= countSets(it));
+  const restSeconds = executionRestSeconds(item, progress);
+  const { complete: allSetsDone, sets: setLogs } = executionProgress(items, progress);
 
   const target = {
     orgId,
@@ -207,12 +223,10 @@ export default function SessionMode() {
     sessionVersion: session.sessionVersion,
     logVersion: session.log?.version ?? session.logVersion ?? 0,
   };
-  const setLogs = items.flatMap((it) =>
-    (progress[it.ref] ?? []).map((done, setIndex) => ({ itemRef: it.ref, setIndex, done })),
-  );
 
   return (
     <StackScreen
+      key={item.ref}
       dark
       right={
         session.progressionEnabled ? (
@@ -227,7 +241,7 @@ export default function SessionMode() {
       backIcon="close"
       backLabel={m.sessionMode.quit}
       onBack={confirmQuit}
-      subtitle={m.sessionMode.exerciseOf(index + 1, items.length)}
+      subtitle={m.builder.sequence.stage(index + 1, items.length)}
       footer={
         <View style={{ flexDirection: "row", gap: space.sm }}>
           <Button
@@ -302,11 +316,18 @@ export default function SessionMode() {
       </View>
 
       <View style={{ gap: space.sm }}>
+        {item.rounds?.length ? (
+          <T variant="small" tone="muted">
+            {item.rounds.map((round) => m.builder.sequence.round(round.name, round.round, round.rounds)).join(" · ")}
+          </T>
+        ) : null}
         <T variant="display" heading>
           {item.name}
         </T>
         <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: space.sm }}>
-          <Tag label={(m.exerciseCategory as Record<string, string>)[item.category] ?? item.category} />
+          {!recovery ? (
+            <Tag label={(m.exerciseCategory as Record<string, string>)[item.category] ?? item.category} />
+          ) : null}
           {item.summary ? (
             <T variant="small" tone="muted" style={{ flexShrink: 1 }}>
               {item.summary}
@@ -321,6 +342,7 @@ export default function SessionMode() {
       </View>
 
       {parseMedia(item.media) ? <ExerciseVideo key={item.ref} media={parseMedia(item.media)} rate={rate} /> : null}
+      {item.guide && !recovery ? <MovementGuide key={item.ref} guide={item.guide} /> : null}
 
       {parseMedia(item.media) ? (
         <View
@@ -358,23 +380,25 @@ export default function SessionMode() {
         </View>
       ) : null}
 
-      <View style={{ gap: space.sm }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-          <T variant="section" heading>
-            {m.sessionMode.sets}
-          </T>
-          <T variant="figure" accessibilityLabel={m.mobile.sessionMode.setsCount(doneCount, total)}>
-            {doneCount} / {total}
-          </T>
+      {!recovery ? (
+        <View style={{ gap: space.sm }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
+            <T variant="section" heading>
+              {m.sessionMode.sets}
+            </T>
+            <T variant="figure" accessibilityLabel={m.mobile.sessionMode.setsCount(doneCount, total)}>
+              {doneCount} / {total}
+            </T>
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+            {sets.map((done, n) => (
+              <SetButton key={n} index={n} done={done} onPress={() => toggle(id, item.ref, n, total)} />
+            ))}
+          </View>
         </View>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
-          {sets.map((done, n) => (
-            <SetButton key={n} index={n} done={done} onPress={() => toggle(id, item.ref, n, total)} />
-          ))}
-        </View>
-      </View>
+      ) : null}
 
-      {restSeconds ? <RestTimer key={`${item.ref}-rest`} seconds={restSeconds} /> : null}
+      {restSeconds ? <RestTimer key={`${item.ref}-${restSeconds}-rest`} seconds={restSeconds} /> : null}
 
       {finished ? (
         <ValidationSheet

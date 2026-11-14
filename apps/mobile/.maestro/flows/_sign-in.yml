@@ -37,3 +37,8 @@ appId: ${APP_ID}
     id: sign-in-title
 - tapOn:
     id: sign-in-submit
+
+# iOS can cover the destination with its password-save prompt after successful sign-in.
+- tapOn:
+    text: "Plus tard|Not Now"
+    optional: true

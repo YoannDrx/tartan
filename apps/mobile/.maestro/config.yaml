@@ -19,4 +19,6 @@ executionOrder:
     - coach-builder
     - coach-capture
     - coach-planner
+    - coach-exercise-guide
+    - athlete-circuit-guide
     - sync-review
