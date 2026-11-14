@@ -27,12 +27,13 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   const root = `/api/v1/orgs/${me.spaces[0].organizationId}`;
   const library: ExerciseSummary[] = await (await page.request.get(`${root}/exercises`)).json();
   expect(library.filter((e) => e.guide)).toHaveLength(150);
+  expect(library.filter((e) => e.guide).every((e) => e.guide?.technicalReview === "approved")).toBe(true);
   const snatch = library.find((e) => e.name === "Arraché")!;
   await page.goto("/exercices", { waitUntil: "networkidle" });
   await page.getByLabel(m.exerciseGuide.family, { exact: true }).selectOption("weightlifting");
   await page.getByLabel(m.exercises.search, { exact: true }).fill("Squat snatch");
   await page.getByRole("button", { name: /^Arraché Bibliothèque/ }).click();
-  await expect(page.getByRole("dialog").getByText(m.exerciseGuide.pending)).toBeVisible();
+  await expect(page.getByRole("dialog").getByText(m.exerciseGuide.approved)).toBeVisible();
   await expect(page.getByRole("dialog").getByText(snatch.guide!.loadExplanation)).toBeVisible();
   await inspect(page, "library");
   await page.keyboard.press("Escape");
@@ -75,7 +76,7 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
     await athlete.page.goto(`/seance/${session.id}`, { waitUntil: "networkidle" });
     await athlete.page.getByText(m.exerciseGuide.open, { exact: true }).click();
     await expect(athlete.page.getByText(snatch.guide!.loadExplanation)).toBeVisible();
-    await expect(athlete.page.getByText(m.exerciseGuide.pending)).toBeVisible();
+    await expect(athlete.page.getByText(m.exerciseGuide.approved)).toBeVisible();
     await inspect(athlete.page, "session");
     await athlete.page.goto(`/seance/${session.id}/mode`, { waitUntil: "networkidle" });
     await athlete.page.getByText(m.exerciseGuide.open, { exact: true }).click();

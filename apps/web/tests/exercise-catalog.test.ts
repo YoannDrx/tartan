@@ -21,7 +21,7 @@ it("distribue 150 fiches sans doublonner les 55 copies, même avec deux premièr
   expect(list.filter((e) => e.guide)).toHaveLength(150);
   expect(list.filter((e) => e.shared && e.guide)).toHaveLength(95);
   expect(new Set(list.filter((e) => e.guide).map((e) => e.name)).size).toBe(150);
-  expect(list.filter((e) => e.guide).every((e) => e.guide?.technicalReview === "pending")).toBe(true);
+  expect(list.filter((e) => e.guide).every((e) => e.guide?.technicalReview === "approved")).toBe(true);
   expect(
     await prisma.exercise.findMany({ where: { organizationId: a.organizationId }, orderBy: { id: "asc" } }),
   ).toEqual(before);
@@ -73,4 +73,70 @@ it("refuse l'initialisation aux athlètes, aux autres espaces et la modification
   await expect(
     saveExercise(a.owner.userId, a.organizationId, exerciseInput.parse({ ...entry, media: null, name: "Écrasement" })),
   ).rejects.toMatchObject({ status: 404 });
+});
+
+it("diffuse l'approbation aux copies existantes sans modifier prescriptions, personnalisations ou instantanés", async () => {
+  const a = await makeOrg("CatalogueApprobation");
+  const b = await makeOrg("CatalogueAutreEspace");
+  const initial = await listExercises(a.owner.userId, a.organizationId);
+  const entry = initial.find((e) => !e.shared && e.guide)!;
+  const detached = initial.find((e) => !e.shared && e.guide && e.id !== entry.id)!;
+  const oldGuide = {
+    ...entry.guide!,
+    version: 1,
+    technicalReview: "pending" as const,
+    illustration: {
+      ...entry.guide!.illustration,
+      path: entry.guide!.illustration.path.replace(/-v2\.svg$/, "-v1.svg"),
+    },
+  };
+  await prisma.exercise.update({
+    where: { id: entry.id },
+    data: { catalogVersion: 1, guide: oldGuide, defaultPrescription: { reps: 8, sets: 4 }, loadStepKg: 2.5 },
+  });
+  await prisma.exercise.update({
+    where: { id: detached.id },
+    data: {
+      catalogVersion: 1,
+      guide: Prisma.DbNull,
+      name: "Mon mouvement privé",
+      cues: ["Personnalisation à conserver"],
+    },
+  });
+  const before = await prisma.exercise.findUniqueOrThrow({ where: { id: entry.id } });
+  const snapshot = await buildSnapshot(a.organizationId, {
+    title: "Historique avant approbation",
+    type: "strength",
+    durationMin: null,
+    coachNote: null,
+    blocks: [{ name: "Force", variant: "club", items: [{ exerciseId: entry.id, prescription: { reps: 4 } }] }],
+  });
+  const foreignBefore = await prisma.exercise.findMany({
+    where: { organizationId: b.organizationId },
+    orderBy: { id: "asc" },
+  });
+  // The common catalogue is already up to date: old private copies still need this revision.
+  await Promise.all([
+    ensureExerciseCatalog(a.owner.userId, a.organizationId),
+    ensureExerciseCatalog(a.owner.userId, a.organizationId),
+  ]);
+  const after = await prisma.exercise.findUniqueOrThrow({ where: { id: entry.id } });
+  expect(after).toMatchObject({
+    id: before.id,
+    defaultPrescription: before.defaultPrescription,
+    loadStepKg: before.loadStepKg,
+    catalogVersion: 2,
+    guide: { technicalReview: "approved", illustration: { status: "draft" } },
+  });
+  expect(snapshot.blocks[0]!.items[0]!.guide).toEqual(oldGuide);
+  expect(await prisma.exercise.findUniqueOrThrow({ where: { id: detached.id } })).toMatchObject({
+    name: "Mon mouvement privé",
+    cues: ["Personnalisation à conserver"],
+    guide: null,
+  });
+  expect(
+    await prisma.exercise.findMany({ where: { organizationId: b.organizationId }, orderBy: { id: "asc" } }),
+  ).toEqual(foreignBefore);
+  await ensureExerciseCatalog(a.owner.userId, a.organizationId);
+  expect(await prisma.exercise.findUniqueOrThrow({ where: { id: entry.id } })).toEqual(after);
 });

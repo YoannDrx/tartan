@@ -20,7 +20,13 @@ export const ensureExerciseCatalog = async (userId: string, organizationId: stri
     deletedAt: null,
     name: { in: STARTER_LIBRARY.map((entry) => entry.name) },
   };
-  const [ready, legacy] = await Promise.all([
+  const outdatedWhere = {
+    organizationId,
+    sourceCatalogKey: { not: null },
+    catalogVersion: { lt: EXERCISE_CATALOG_VERSION },
+    deletedAt: null,
+  };
+  const [ready, legacy, outdated] = await Promise.all([
     prisma.exercise.count({
       where: {
         organizationId: null,
@@ -30,8 +36,9 @@ export const ensureExerciseCatalog = async (userId: string, organizationId: stri
       },
     }),
     prisma.exercise.count({ where: legacyWhere }),
+    prisma.exercise.count({ where: outdatedWhere }),
   ]);
-  if (ready === EXERCISE_CATALOG.length && legacy === 0) return;
+  if (ready === EXERCISE_CATALOG.length && legacy === 0 && outdated === 0) return;
   await prisma.$transaction(
     async (tx) => {
       // Shared catalogue updates and concurrent first visits must serialize across spaces.
@@ -60,6 +67,28 @@ export const ensureExerciseCatalog = async (userId: string, organizationId: stri
           where: { catalogKey: entry.catalogKey },
           create: { ...data, catalogKey: entry.catalogKey },
           update: data,
+        });
+      }
+      // Approval is a catalogue revision, not a change to the coach's exercise or a historical snapshot.
+      for (const row of await tx.exercise.findMany({ where: outdatedWhere })) {
+        const entry = EXERCISE_CATALOG.find((item) => item.catalogKey === row.sourceCatalogKey);
+        if (!entry) continue;
+        const oldGuide = readExerciseGuide(row.guide);
+        // Only upgrade the exact reviewed text. Detached or customized guides stay untouched.
+        const sameContent =
+          oldGuide &&
+          isDeepStrictEqual(
+            {
+              ...oldGuide,
+              version: entry.guide.version,
+              technicalReview: entry.guide.technicalReview,
+              illustration: { ...oldGuide.illustration, path: entry.guide.illustration.path },
+            },
+            entry.guide,
+          );
+        await tx.exercise.update({
+          where: { id: row.id },
+          data: { catalogVersion: entry.catalogVersion, ...(sameContent ? { guide: entry.guide } : {}) },
         });
       }
       // Only untouched starter copies can inherit an editorial guide automatically.
