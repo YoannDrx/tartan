@@ -14,6 +14,14 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, F9 vidéo : intégration du setup complet
+Reprise de la PR 127 avec le correctif commun de la PR 126 : catalogue groupé, graine complète et attente bornée du constructeur. La dernière CI échouait uniquement sur ce premier constructeur. Aucun contrôle vidéo retiré ; nouvelle CI de la tête requise.
+
+
+## 2026-11-14, Codex, reprise F9 après diagnostic du catalogue
+Reprise autorisée de la PR 126. La trace du premier constructeur montre une réponse lente et, dans l’assemblage final, une expiration P2028 de l’installation initiale du catalogue. Ajouts communs groupés dans la même transaction ; graine complétée avec les 150 fiches avant les parcours. Attente de l’écran bornée à 30 s ; aucun clic automatique de reprise ni assertion supprimée. Les contrôles du code commun et l’installation/reprise de la graine passent ; CI de cette tête requise avant fusion.
+
+
 ## 2026-11-14, Codex, diagnostic final des deux échecs natifs
 La trace finale confirme un HTTP 500 P2028 après 27,3 s sur le contexte du constructeur : l’installation initiale du catalogue, encore séquentielle, expire. L’insertion groupée et la graine complète corrigent ce chemin ; aucun délai de transaction supplémentaire ajouté. Le second échec est propre à la recette IA : le bouton final est entièrement visible et actif dans la capture et l’arbre d’accessibilité, mais `centerElement` exige une position impossible en bas de page. Centrage retiré de cette seule recherche, clic et création effective du brouillon toujours exigés. Rejeu ciblé local réussi en 3 min 12 sur iPhone simulé, création effective du brouillon vérifiée par le parcours ; CI complète encore requise.
 
