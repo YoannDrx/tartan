@@ -2,7 +2,7 @@
 
 Mis à jour le 14 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
-Recette native : délai du premier lien iOS ajusté à 30 s après trace d’une reprise de 20 s sur le simulateur CI ; assertions du circuit conservées, rejeu local réussi en 1 min 46 ; CI requise.
+Recette native : première confirmation iOS suivie d’une remise au premier plan sans arrêt de l’app ; attente bornée à 30 s et assertions du circuit conservées. Trace de livraison du lien à la réactivation suivante ; rejeu sur simulateur neuf réussi en 1 min 49, confirmation système effectivement parcourue ; CI requise.
 
 **En une phrase :** le socle web fonctionne et dispose de tests étendus ; la finalisation autorisée le 13 novembre ajoute constructeur imbriqué, 150 guides d'exercices, deux modes IA et vidéo collaborative avant la vente. Paiement réel et téléphones restent à éprouver ; restauration Blob locale et alerte Sentry reçue sur Gmail sont démontrées.
 

@@ -6,3 +6,6 @@ appId: ${APP_ID}
       visible: 'Open in .*Tartan.*|Ouvrir dans .*Tartan.*'
     commands:
       - tapOn: '^Open$|^Ouvrir$'
+      # SpringBoard peut différer le lien tant que l’app n’est pas réactivée.
+      - launchApp:
+          stopApp: false
