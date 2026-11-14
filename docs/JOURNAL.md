@@ -14,6 +14,11 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Claude, CI web parallèle
+Fait (PR `ci/parcours-repartis`) : `ci.yml` découpé en « contrôles », trois parts de parcours Playwright (`--shard`), « vidéo et planificateur », et un job `quality` qui résume les autres (le nom du contrôle exigé ne change pas). Avant : un job unique d'environ 50 minutes dont 36 de parcours joués un par un.
+À savoir : chaque part refait son build de production (la config Playwright le lance) ; Maestro iOS reste à environ 1 heure quand le mobile est touché (compilation 19 minutes, 18 parcours en série).
+Suite : mettre en cache l'app iOS compilée quand le code natif ne change pas.
+
 ## 2026-11-14, Claude, phase C : constructeur et mode séance (web)
 Fait (PR `feat/constructeur-v2`, empilée sur la phase B) : domaine `insert`, `moveSequenceNode`, `groupSequenceSelection`, `prescriptionForGroup`, `sequenceGroupSummary`, `findSequenceNode`, `sequenceGroups` (testés) ; `exercise-picker.tsx` (recherche, familles nommées) ; `sequence-editor.tsx` réécrit selon la maquette validée (cartes colorées par famille, cadre de groupe « × n », récupération en ligne pointillée, menu « Autres actions » : dupliquer, déplacer, dissocier, retirer ; sélection puis « Regrouper ») ; destination de la bibliothèque dans `session-builder.tsx` ; mode séance au minuteur calé sur l'horloge, enchaînement, son, vibration, réveil d'écran, aperçu de l'étape suivante.
 Vérifié : domaine (304), `session-sequences.spec.ts` (4 parcours, axe à 390, 768 et 1440 px dans les trois thèmes), essai manuel local du sélecteur, du déplacement et du minuteur.
