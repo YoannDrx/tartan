@@ -53,7 +53,7 @@ Les annotations restent dans le stockage de ce navigateur, pas dans le dépôt n
 
 Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette sur téléphones physiques. Maestro compile une app iOS de développement signée ad hoc sur simulateur.
 
-`ci.yml` s'arrête au bout de 60 minutes (une exécution saine peut en prendre 35 à 40) et l'installation des navigateurs au bout de 10. Si les dépôts Ubuntu ne se résolvent plus depuis le serveur GitHub, une étape de secours demande leur adresse à un résolveur public avant l'installation. Une CI qui dépasse ces durées est figée, pas lente : lis le journal de l'étape en cours avant de relancer.
+`ci.yml` répartit le travail sur des machines parallèles : « contrôles » (lint, types, tests, design, 30 minutes au plus), trois parts des parcours web (`--shard`, 40 minutes au plus chacune, base et build propres) et « vidéo et planificateur ». Le job `quality`, exigé par la protection de `main`, n'est vert que si tous les autres le sont. L'installation des navigateurs s'arrête au bout de 10 minutes. Si les dépôts Ubuntu ne se résolvent plus depuis le serveur GitHub, une étape de secours demande leur adresse à un résolveur public avant l'installation. Une CI qui dépasse ces durées est figée, pas lente : lis le journal de l'étape en cours avant de relancer.
 
 ## Drapeaux
 

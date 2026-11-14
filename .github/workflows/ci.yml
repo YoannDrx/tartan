@@ -21,16 +21,16 @@ env:
   NEXT_PUBLIC_APP_URL: http://localhost:3000
 
 jobs:
-  quality:
+  checks:
+    name: contrôles
     runs-on: ubuntu-latest
-    # Une CI saine dure 35 à 40 minutes, parcours compris. Sans plafond, un serveur en panne
-    # garde la PR en attente jusqu'aux six heures de GitHub.
-    timeout-minutes: 60
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_PASSWORD: postgres
+          # Base jetable du serveur de CI, joignable seulement depuis le job : pas de mot de passe.
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: tartan
         options: >-
           --health-cmd pg_isready
@@ -47,14 +47,55 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Bases de test
-        run: |
-          psql "$DATABASE_URL" -c 'create database tartan_test'
-          psql "$DATABASE_URL" -c 'create database tartan_e2e'
+      - name: Base de test
+        run: psql "$DATABASE_URL" -c 'create database tartan_test'
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm design:check
+
+  # Les parcours tournent avec un seul navigateur à la fois (état partagé de la base) :
+  # on les répartit sur plusieurs machines, chacune avec sa propre base et son build.
+  e2e:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: parcours 1/3
+            shard: 1/3
+          - name: parcours 2/3
+            shard: 2/3
+          - name: parcours 3/3
+            shard: 3/3
+          - name: vidéo et planificateur
+            extras: true
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Base jetable du serveur de CI, joignable seulement depuis le job : pas de mot de passe.
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: tartan
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Base des parcours
+        run: psql "$DATABASE_URL" -c 'create database tartan_e2e'
       - name: Dépôts Ubuntu, résolution de secours
         # Le 11 novembre 2026, une panne DNS de Canonical a privé tous les
         # serveurs GitHub des dépôts Ubuntu pendant des heures, alors qu'un
@@ -77,13 +118,16 @@ jobs:
         # serveur tombe : mieux vaut échouer et relancer.
         timeout-minutes: 10
       - name: Parcours sur le build de production (CSP et en-têtes réels)
-        run: pnpm test:e2e
+        if: ${{ !matrix.extras }}
+        run: pnpm --filter @tartan/web exec playwright test --shard=${{ matrix.shard }}
         env:
           E2E_PROD: "1"
           E2E_VIDEO_ENABLED: "true"
       - name: Preuve de concept vidéo
+        if: ${{ matrix.extras }}
         run: pnpm --filter @tartan/web exec playwright test video-poc --project=desktop
       - name: Planificateur activé avec prestataire simulé
+        if: ${{ matrix.extras }}
         run: pnpm --filter @tartan/web exec playwright test ai-planner
         env:
           E2E_PROD: "1"
@@ -91,6 +135,17 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright
+          name: playwright-${{ strategy.job-index }}
           path: apps/web/test-results
           if-no-files-found: ignore
+
+  # Contrôle exigé par la protection de main : vert seulement si tout le reste l'est.
+  quality:
+    runs-on: ubuntu-latest
+    needs: [checks, e2e]
+    if: always()
+    steps:
+      - name: Contrôles et parcours
+        run: |
+          test "${{ needs.checks.result }}" = success
+          test "${{ needs.e2e.result }}" = success
