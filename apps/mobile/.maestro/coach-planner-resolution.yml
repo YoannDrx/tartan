@@ -13,6 +13,7 @@ env:
     visible: "Suivi du groupe"
     timeout: 30000
 - openLink: ${output.plannerUrl}
+- runFlow: flows/_accept-deep-link.yml
 - tapOn:
     id: ai-consent-accept
     optional: true
