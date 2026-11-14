@@ -98,6 +98,12 @@ maestro test -e APP_ID=coach.tartan.app.dev -e DISPOSABLE_EMAIL=… -e PASSWORD=
 
 Le script `maestro:test` ne transmet pas ces variables. Les parcours exigent des séances issues de la graine ; l'absence de données ne doit pas les faire passer. Le job exécute treize flux puis la suppression d'un compte jetable, vérifiée en base.
 
+## Matrice des écrans
+
+`apps/web/e2e/screens.ts` liste chaque page, les rôles qui l'ouvrent et les parcours ou tests qui la prouvent. `tests/screen-matrix.test.ts` échoue pour toute page absente de la liste, ou pour un écran à paramètre sans preuve qui l'ouvre : une nouvelle page s'ajoute à la matrice dans la même PR. `e2e/screen-matrix.spec.ts` visite chaque écran sans paramètre, en visiteur, coach puis athlète, à 390, 768 et 1440 px, en mouvement réduit : aucune erreur, aucun débordement, axe vert. La console d'administration reste prouvée par `admin-console.spec.ts` (passkey requise).
+
+Pour la règle de taille des cibles, `expectAccessible` ignore une cible recouverte à cet instant par une barre fixe ou collante (navigation du bas, barre de publication) : elle n'est pas trop petite, elle est sous la barre. Toutes les autres règles la contrôlent.
+
 ## Couverture par domaine
 
 « Complet » : parcours ou handler réel. « Service » : seul le service est testé.

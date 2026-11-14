@@ -14,6 +14,12 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-15, Claude, F1 (matrice des écrans)
+Fait (PR `test/matrice-ecrans`, empilée sur les tracés) : `e2e/screens.ts`, `tests/screen-matrix.test.ts` (toute page listée, preuve qui ouvre chaque écran à paramètre), `e2e/screen-matrix.spec.ts` (balayage à trois largeurs, projet desktop seul) ; `expectAccessible` passe la règle `target-size` à part et ignore les cibles recouvertes par une barre fixe ou collante.
+Vérifié : balayage et `exercise-guides` sur le build de production en local (3,1 min) ; test de matrice.
+À savoir : le premier balayage a échoué sur `/seances/nouvelle` à 768 px : le bouton « Réessayer » du contexte de préparation tombait sous la navigation fixe du bas ; axe compte la part visible seulement. Ce n'est pas une cible trop petite : d'où la passe séparée.
+Suite : ajouter `/admin/mouvements` à la matrice quand la PR 136 sera sur `main` ; phase G.
+
 ## 2026-11-15, Claude, tracés sur vidéo
 Fait (PR `feat/traces-video`, empilée sur F2) : `video-drawing.ts` (domaine : points par tracé, angle mesuré dans les proportions de l'image), contrat `videoDrawing` (points relatifs, `aspect`), `annotationInput` accepte un tracé sans texte (jamais dans une réponse), `annotation_kind` reçoit `circle` (migration additive), `shape` garde `{ points, aspect }` ; calque web posé avec le même cadrage que la vidéo (`preserveAspectRatio` « meet » sur la taille réelle de l'image), outils Ligne, Flèche, Angle, Cercle ; calque mobile en lecture seule.
 Vérifié : domaine 309, web 1 977, mobile, types, lint, design ; essai local à 375 px sur une vidéo en portrait : angle tracé, enregistré sans texte, relu « Angle de 82° » et réaffiché à son instant.

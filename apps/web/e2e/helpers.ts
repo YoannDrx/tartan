@@ -92,10 +92,32 @@ export const expectAccessible = async (page: Page) => {
   );
   // Sous l'en-tête fixe, un champ à moitié recouvert compterait comme une cible trop petite : tout dépendrait du défilement.
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    .analyze();
-  expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`)).toEqual([]);
+  // Même chose en bas : une cible que la barre de navigation fixe ou une barre d'action collante recouvre à cet
+  // instant n'est pas trop petite, elle est sous la barre. On la marque, et seule la règle de taille l'ignore.
+  await page.evaluate(() => {
+    for (const marked of document.querySelectorAll("[data-axe-obscured]")) marked.removeAttribute("data-axe-obscured");
+    const chrome = (element: Element | null) => {
+      for (let node = element; node; node = node.parentElement) {
+        const position = getComputedStyle(node).position;
+        if (position === "fixed" || position === "sticky") return node;
+      }
+      return null;
+    };
+    for (const target of document.querySelectorAll("a[href], button, input, select, textarea, summary, [role=button]")) {
+      const box = target.getBoundingClientRect();
+      if (!box.width || !box.height || box.bottom <= 0 || box.top >= innerHeight) continue;
+      const cover = document.elementFromPoint(box.left + box.width / 2, Math.min(box.top + box.height / 2, innerHeight - 1));
+      if (!cover || cover === target || target.contains(cover) || cover.contains(target)) continue;
+      const bar = chrome(cover);
+      if (bar && !bar.contains(target)) target.setAttribute("data-axe-obscured", "");
+    }
+  });
+  const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+  // Deux passes l'une après l'autre : axe ne tourne pas deux fois en même temps dans une page.
+  const results = await new AxeBuilder({ page }).withTags(tags).disableRules(["target-size"]).analyze();
+  const sizes = await new AxeBuilder({ page }).withRules(["target-size"]).exclude("[data-axe-obscured]").analyze();
+  const violations = [...results.violations, ...sizes.violations];
+  expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`)).toEqual([]);
 };
 
 export const expectNoHorizontalScroll = async (page: Page) => {
