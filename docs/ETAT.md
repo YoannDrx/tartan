@@ -2,7 +2,9 @@
 
 Mis à jour le 14 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
-Premier chargement du constructeur natif : la dernière trace confirme une expiration P2028 de l’installation du catalogue. Installation initiale du catalogue groupée pour réduire les écritures successives ; graine de démonstration alignée sur les 150 fiches communes. Installation neuve, rejeu inchangé et tests de concurrence/conservation réussis, validation iOS finale encore attendue dans la PR 124.
+Validation athlète native : attente du bouton de fermeture portée à quinze secondes après une trace CI où la feuille validée et son bouton actif apparaissent après le délai initial de cinq secondes. Aucun deuxième envoi ni contrôle supprimé ; rejeu local réussi en 1 min 20. La performance sur téléphone reste à éprouver.
+
+Premier chargement du constructeur natif : expiration P2028 de l’installation du catalogue corrigée par insertion groupée ; graine de démonstration alignée sur les 150 fiches communes. Installation neuve, rejeu inchangé et tests de concurrence/conservation réussis ; constructeurs simple et circuit réussis dans la CI du 14 novembre. Le job de l’assemblage a ensuite été interrompu et relancé ; validation complète de la dernière tête encore requise dans la PR 124.
 
 Révision de circuit : expiration sous verrou concurrent reproduite puis corrigée par un budget de transaction borné à 30 s ; 39 tests ciblés réussis, prescriptions historiques préservées. Résultat de la CI finale et preuve de déploiement suivis dans la PR 124.
 
