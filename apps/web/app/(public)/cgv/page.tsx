@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PLANS, TRIAL_DAYS, formatPrice } from "@tartan/domain";
+import { ATHLETE_VIDEOS_PER_MONTH, PLANS, TRIAL_DAYS, formatPrice } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { LegalPage } from "@/features/shell/legal-page";
 
@@ -29,6 +29,7 @@ export default function CgvPage() {
             discovery.limits.maxAthletes ?? 0,
             discovery.limits.maxVideosPerMonth ?? 0,
             discovery.limits.videoRetentionDays ?? 0,
+            ATHLETE_VIDEOS_PER_MONTH.discovery ?? 0,
           )}
         </li>
         <li>
@@ -38,6 +39,7 @@ export default function CgvPage() {
             coach.limits.maxCoaches ?? 0,
             coach.limits.maxVideosPerMonth ?? 0,
             retention(coach.limits.videoRetentionDays),
+            ATHLETE_VIDEOS_PER_MONTH.coach ?? 0,
           )}
         </li>
         <li>
@@ -45,6 +47,7 @@ export default function CgvPage() {
             price("club"),
             club.limits.maxVideosPerMonth ?? 0,
             retention(club.limits.videoRetentionDays),
+            ATHLETE_VIDEOS_PER_MONTH.club ?? 0,
           )}
         </li>
       </ul>

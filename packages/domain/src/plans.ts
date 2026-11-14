@@ -43,6 +43,15 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
   },
 };
 
+// Vidéos qu'un athlète envoie lui-même, par mois, en plus du quota de l'espace (décision du 14 novembre 2026).
+// Elles ne comptent pas dans le quota de l'espace : un athlète ne peut pas bloquer son coach.
+export const ATHLETE_VIDEOS_PER_MONTH: Record<PlanKey, number | null> = {
+  pilot: null,
+  discovery: 8,
+  coach: 20,
+  club: 20,
+};
+
 export type LimitKey = keyof Omit<PlanLimits, "videoRetentionDays">;
 
 export const isWithinLimit = (limit: number | null, used: number): boolean => limit === null || used < limit;

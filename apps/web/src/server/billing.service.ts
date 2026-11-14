@@ -2,6 +2,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { withCheckoutIntent, intentCheckout } from "./checkout-intent.service";
 import { todayIso } from "@/lib/dates";
 import {
+  ATHLETE_VIDEOS_PER_MONTH,
   type BillingInterval,
   isNearLimit,
   isPaidPlan,
@@ -62,17 +63,17 @@ export const usageOf = async (
 ) => {
   // Un envoi sans fichier n'occupe rien : abandonné depuis 24 h, il ne compte plus dans le quota.
   const abandonedBefore = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const [maxAthletes, maxGroups, maxCoaches, videos, demonstrations] = await Promise.all([
+  const [maxAthletes, maxGroups, maxCoaches, [videos], demonstrations] = await Promise.all([
     db.athlete.count({ where: { organizationId } }),
     db.group.count({ where: { organizationId } }),
     db.organizationMember.count({ where: { organizationId, role: { in: ["owner", "coach", "assistant"] } } }),
-    db.video.count({
-      where: {
-        organizationId,
-        quotaReservedAt: { gte: startOfMonth(now) },
-        NOT: { muxAssetId: null, quotaReservedAt: { lt: abandonedBefore } },
-      },
-    }),
+    // Les vidéos qu'un athlète envoie lui-même relèvent de son propre quota, pas de celui de l'espace.
+    db.$queryRaw<[{ n: number }]>`
+      SELECT count(*)::int AS n FROM videos v JOIN athletes a ON a.id = v.athlete_id
+      WHERE v.organization_id = ${organizationId}::uuid
+        AND v.quota_reserved_at >= ${startOfMonth(now)}
+        AND NOT (v.mux_asset_id IS NULL AND v.quota_reserved_at < ${abandonedBefore})
+        AND (a.user_id IS NULL OR v.uploaded_by <> a.user_id)`,
     db.exerciseMedia.count({
       where: {
         kind: "upload",
@@ -82,7 +83,35 @@ export const usageOf = async (
       },
     }),
   ]);
-  return { maxAthletes, maxGroups, maxCoaches, maxVideosPerMonth: videos + demonstrations };
+  return { maxAthletes, maxGroups, maxCoaches, maxVideosPerMonth: videos!.n + demonstrations };
+};
+
+// Quota propre à l'athlète qui envoie lui-même sa vidéo : même fenêtre mensuelle et même règle d'abandon.
+export const athleteVideosThisMonth = async (
+  athleteId: string,
+  athleteUserId: string,
+  now: Date = new Date(),
+  db: Prisma.TransactionClient = prisma,
+): Promise<number> =>
+  db.video.count({
+    where: {
+      athleteId,
+      uploadedBy: athleteUserId,
+      quotaReservedAt: { gte: startOfMonth(now) },
+      NOT: { muxAssetId: null, quotaReservedAt: { lt: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
+    },
+  });
+
+export const assertAthleteVideoQuota = async (
+  organizationId: string,
+  athleteId: string,
+  athleteUserId: string,
+  db: Prisma.TransactionClient = prisma,
+): Promise<void> => {
+  const space = await db.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { plan: true } });
+  const limit = ATHLETE_VIDEOS_PER_MONTH[space.plan as PlanKey];
+  if (limit !== null && (await athleteVideosThisMonth(athleteId, athleteUserId, new Date(), db)) >= limit)
+    throw new AppError(402, "athlete_video_limit", m.videoCollaboration.athleteLimit(limit));
 };
 
 const LIMIT_MESSAGES: Record<LimitKey, string> = {

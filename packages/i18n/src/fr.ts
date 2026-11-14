@@ -2313,6 +2313,8 @@ export const fr = {
     allVideos: (n: number) => (n > 1 ? `Voir ses ${n} vidéos` : "Voir sa vidéo"),
   },
   videoCollaboration: {
+    athleteLimit: (limit: number) =>
+      `Tu as envoyé tes ${limit} vidéos du mois. Le compteur repart le 1er ; ton coach peut toujours te filmer.`,
     applyFilters: "Appliquer les filtres",
     ready: "Prête à lire",
     framesPerSecond: (n: number) => `${n} i/s`,
@@ -2553,12 +2555,19 @@ export const fr = {
   legal: {
     cgvOffers: {
       price: (month: string, year: string) => `${month} par mois ou ${year} par an`,
-      discovery: (groups: number, athletes: number, videos: number, days: number) =>
-        `Découverte : gratuite, ${groups} groupe, ${athletes} athlètes, ${videos} vidéos par mois conservées ${days} jours.`,
-      coach: (price: string, athletes: number, coaches: number, videos: number, retention: string) =>
-        `Coach : ${price}, jusqu'à ${athletes} athlètes, ${coaches} coachs, ${videos} vidéos par mois conservées ${retention}.`,
-      club: (price: string, videos: number, retention: string) =>
-        `Club : ${price}, coachs et athlètes illimités, ${videos} vidéos par mois conservées ${retention}.`,
+      discovery: (groups: number, athletes: number, videos: number, days: number, athleteVideos: number) =>
+        `Découverte : gratuite, ${groups} groupe, ${athletes} athlètes, ${videos} vidéos du coach par mois et ${athleteVideos} par athlète, conservées ${days} jours.`,
+      coach: (
+        price: string,
+        athletes: number,
+        coaches: number,
+        videos: number,
+        retention: string,
+        athleteVideos: number,
+      ) =>
+        `Coach : ${price}, jusqu'à ${athletes} athlètes, ${coaches} coachs, ${videos} vidéos du coach par mois et ${athleteVideos} par athlète, conservées ${retention}.`,
+      club: (price: string, videos: number, retention: string, athleteVideos: number) =>
+        `Club : ${price}, coachs et athlètes illimités, ${videos} vidéos du coach par mois et ${athleteVideos} par athlète, conservées ${retention}.`,
     },
     privacy: "Politique de confidentialité",
     terms: "Conditions d'utilisation",
@@ -3425,7 +3434,8 @@ export const fr = {
       athletes: "Athlètes",
       groups: "Groupes",
       coaches: "Coachs",
-      videos: "Vidéos par mois",
+      videos: "Vidéos du coach par mois",
+      athleteVideos: "Vidéos envoyées par chaque athlète, par mois",
       retention: "Vidéos conservées",
       trial: "Essai",
       ai: "Planificateur IA",

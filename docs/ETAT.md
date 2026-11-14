@@ -17,6 +17,7 @@ Mis à jour le 14 novembre 2026, après l'audit du travail de finalisation. Tout
 | 14 nov. | Accords de traitement acceptés chez tous les prestataires ; avis du juriste obtenu (HDS, Mux aux États-Unis, partage au groupe compris), preuve gardée hors du dépôt |
 | 14 nov. | Micro-entreprise non assujettie à la TVA (293 B) ; Stripe Tax reste coupé |
 | 14 nov. | Guides marqués « consignes indicatives » ; tracés sur vidéo dans le périmètre de cette version |
+| 14 nov. | Quota vidéo propre à chaque athlète : 8 par mois en Découverte, 20 en Coach et Club, hors du quota de l'espace ; maquette du constructeur validée |
 | 14 nov. | Les 150 guides textuels relus et approuvés par le fondateur ; illustrations à produire |
 
 ## Ce qui tourne
@@ -26,7 +27,7 @@ Mis à jour le 14 novembre 2026, après l'audit du travail de finalisation. Tout
 | Production | `app.tartan.coach` et `tartan.coach`, commit `8b64713`, santé 200. Inscriptions et classement du jeu fermés |
 | Preview | `preview.tartan.coach`, branche Git `preview` remise sur `main` ; base `preview` reconstruite le 14 novembre avec la seule graine de démonstration (4 comptes fictifs, 150 fiches communes), sans donnée de production |
 | Neon | Offre Launch, restauration 7 jours, branche `production` protégée, calcul 0,25–2 CU ; branche `preview` 0,25–1 CU. Plus aucune branche de recette |
-| GitHub | Dépôt public, `LICENSE` propriétaire ; analyse des secrets, protection à l'envoi et alertes Dependabot actives depuis le 14 novembre (aucun secret détecté, 10 alertes sur des dépendances indirectes). `main` exige `quality` ; `mobile-gate` à exiger après la fusion de la PR de phase A |
+| GitHub | Dépôt public, `LICENSE` propriétaire ; analyse des secrets, protection à l'envoi et alertes Dependabot actives depuis le 14 novembre (aucun secret détecté, 10 alertes sur des dépendances indirectes). `main` exige `quality` et `mobile-gate` (toujours présent, vert quand le mobile n'est pas concerné) |
 | Sauvegardes | Copie chiffrée chaque nuit vers un store Vercel Blob privé, relue par empreinte ; restauration locale chronométrée réussie les 13 et 14 novembre ([sauvegarde](exploitation/sauvegarde.md)) |
 | Stripe | Compte dédié Tartan, prix 19/190 € et 59/590 €, webhook de production sur 15 événements, portail configuré. Aucun vrai paiement |
 | iOS | Archive 1.1.0 (12) ancienne, à reconstruire ; aucune bêta TestFlight externe |
@@ -44,7 +45,7 @@ Mis à jour le 14 novembre 2026, après l'audit du travail de finalisation. Tout
 | Mode séance | Oui | Non | Minuteur qui dérive et s'arrête en arrière-plan, pas d'enchaînement automatique ni d'aperçu de l'étape suivante |
 | Catalogue et guides | Oui | 150 fiches comptées en production | Corrigé le 14 novembre (catalogue version 3, à relire par le fondateur) : « Arraché musclé » au lieu d'« Arraché en force », consigne de lâcher de barre sur six mouvements olympiques, dos arrondi au soulevé de terre, mention « consignes indicatives » sur chaque guide et dans les conditions d'utilisation. Reste : aucune illustration ; guide figé dans les séances publiées (phase E) |
 | Planificateur IA | Oui, prestataire simulé | Un parcours réel complet sur serveur isolé | Corrigé le 14 novembre : contrôles de date, d'unité et de destinataires actifs après une question, sur la seule part du coach ; mode « Proposer » qui couvre tous les destinataires. Reste : 82,5 % sur un corpus qui a servi au réglage, pas d'« Ajuster », dictée sans les noms de la bibliothèque (phase D) |
-| Vidéo collaborative | Oui | Uploads, lecture et droits sur Mux Preview | Corrigé le 14 novembre : un camarade voit la vidéo partagée et les remarques de son auteur seulement, sans pouvoir annoter ; « À travailler » ne reprend qu'une remarque de coach ; l'athlète ne supprime que ce qu'il a envoyé ; plus d'essai de saut déclaré par l'athlète. Reste : quota par athlète à confirmer, tracés (phase F) |
+| Vidéo collaborative | Oui | Uploads, lecture et droits sur Mux Preview | Corrigé le 14 novembre : un camarade voit la vidéo partagée et les remarques de son auteur seulement, sans pouvoir annoter ; « À travailler » ne reprend qu'une remarque de coach ; l'athlète ne supprime que ce qu'il a envoyé ; plus d'essai de saut déclaré par l'athlète. Quota propre à chaque athlète (8 ou 20 par mois), ses envois hors du quota de l'espace. Reste : tracés (phase F) |
 | Charges, records, progression, phases | Oui | Partiel, sur le web | — |
 | Notifications, e-mails | Oui | Gmail seulement ; aucun push réel | — |
 | Abonnements Stripe | Oui, et six tests sandbox réels dans le navigateur | Aucun vrai paiement | Retour vers Tartan après paiement non prouvé |
@@ -84,7 +85,6 @@ Le mot de passe des comptes de démonstration de la Preview est dans `.local/pre
 
 | Sujet | Recommandation |
 | --- | --- |
-| Quota vidéo par athlète en plus du quota d'espace | Proposé : 8 par mois en Découverte, 20 en Coach et Club. À confirmer avant le lot B5 |
 | Abonnement web face à Apple (3.1.1) | Soumettre sans achat intégré, repli préparé |
 | IA à la première revue Apple | Ouverte, compte de revue en offre Coach (2.5.19) |
 | Choix du modèle IA | Après la qualification de la phase D, coût compris |
