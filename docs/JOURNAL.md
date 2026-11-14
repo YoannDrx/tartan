@@ -14,6 +14,10 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, F9 : délai du premier lien iOS
+Reprise autorisée de `feat/native-completion`. La trace CI montre le dialogue système accepté, puis une requête de séance démarrant environ 20 s après l’appui, au-delà de l’attente de 15 s ; l’assertion échoue avant ce démarrage. Attente conditionnelle de la première étape portée à 30 s, sans pause fixe, reprise ni retrait des sept étapes vérifiées. Le même parcours passe déjà sur la PR 128. Rejeu ciblé local réussi en 1 min 46 : sept étapes et guide vérifiés ; CI du correctif requise. Aucune preuve de performance sur téléphone déduite du simulateur.
+
+
 ## 2026-11-14, Codex, F9 : dialogue de sauvegarde du mot de passe
 Rejeu local du constructeur interrompu après connexion : capture montrant le dialogue iOS d’enregistrement du mot de passe devant le suivi. Refus optionnel ajouté au sous-parcours commun de connexion, pour tous les scénarios ; aucune assertion applicative supprimée. Le chargement observé en CI reste distinct de ce dialogue et n’est pas déclaré corrigé sans rejeu.
 
