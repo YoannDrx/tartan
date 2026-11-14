@@ -41,6 +41,8 @@ Après l'audit du 14 novembre, le fondateur confirme :
 - **Fiscalité** : micro-entreprise non assujettie à la TVA (article 293 B du CGI), mention déjà portée sur les factures ; Stripe Tax reste coupé.
 - **Guides d'exercices** : ils portent la mention « consignes indicatives, le coach reste responsable de la prescription ».
 - **Tracés sur vidéo** (ligne, flèche, angle) : ils entrent dans le périmètre de cette version. La comparaison de deux vidéos reste en V2.
+- **Quota vidéo par athlète** : chaque athlète envoie jusqu'à 8 vidéos par mois en Découverte et 20 en Coach et Club ; ces envois ne comptent pas dans le quota de l'espace (`ATHLETE_VIDEOS_PER_MONTH`, `packages/domain/src/plans.ts`).
+- **Constructeur** : la maquette du 14 novembre (cartes imbriquées colorées par famille, ajout à l'emplacement exact, ordre de l'athlète) est validée.
 
 ## Offres
 

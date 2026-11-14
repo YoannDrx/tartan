@@ -21,6 +21,7 @@ import {
   performedSetsKey,
   isResolvedDraft,
   draftFromSession,
+  loggableItems,
   performedNumberFields,
   proposedSet,
   type PerformedSetIssue,
@@ -225,11 +226,14 @@ export const PerformedSetsEditor = ({
         }
         className="flex min-w-0 flex-col gap-4"
       >
-        {session.blocks
-          .flatMap((block) => block.items)
-          .map((item) => (
+        {loggableItems(session).map((item) => (
             <section key={item.ref} className="on-card rounded-card bg-card p-4">
               <h2 className="t-h2">{item.name}</h2>
+              {item.rounds?.length ? (
+                <p className="t-caption text-soft">
+                  {item.rounds.map((r) => m.builder.sequence.round(r.name, r.round, r.rounds)).join(" · ")}
+                </p>
+              ) : null}
               <p className="t-caption mb-3 text-soft">{item.summary}</p>
               <PreviousSets
                 item={item}

@@ -9,6 +9,7 @@ import {
   shareVideo,
   addAnnotation,
   deleteAnnotation,
+  deleteVideo,
   applyMuxEvent,
 } from "@/server/video.service";
 import { createExerciseVideoUpload } from "@/server/exercise.service";
@@ -72,7 +73,7 @@ it("réserve une seule vidéo privée pour des confirmations concurrentes et dé
   await expect(createVideoUpload(athlete.userId, org.organizationId, {})).rejects.toMatchObject({ status: 400 });
 });
 
-it("le même quota arbitre atomiquement les envois coach, athlète et démonstration", async () => {
+it("le quota de l'espace arbitre atomiquement les envois du coach et les démonstrations, sans compter l'athlète", async () => {
   const org = await makeOrg("Quota commun");
   const athlete = await addAthlete(org.organizationId, org.groupId, "Lina");
   await prisma.entitlement.update({
@@ -81,17 +82,30 @@ it("le même quota arbitre atomiquement les envois coach, athlète et démonstra
   });
   const exercise = await prisma.exercise.findFirstOrThrow({ where: { organizationId: org.organizationId } });
   const results = await Promise.allSettled([
-    createVideoUpload(athlete.userId, org.organizationId, { clientId: randomUUID() }),
     createVideoUpload(org.owner.userId, org.organizationId, { clientId: randomUUID(), athleteId: athlete.athleteId }),
     createExerciseVideoUpload(org.owner.userId, org.organizationId, exercise.id),
   ]);
   expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
   for (const r of results) if (r.status === "rejected") expect(r.reason).toMatchObject({ code: "plan_limit" });
-  const videos = await prisma.video.count({ where: { organizationId: org.organizationId } });
-  const media = await prisma.exerciseMedia.count({
-    where: { exercise: { organizationId: org.organizationId }, kind: "upload" },
-  });
-  expect(videos + media).toBe(1);
+  // L'envoi de l'athlète relève de son propre quota : il passe même quand l'espace est plein.
+  await expect(
+    createVideoUpload(athlete.userId, org.organizationId, { clientId: randomUUID() }),
+  ).resolves.toMatchObject({ videoId: expect.any(String) });
+});
+
+it("chaque athlète a son quota mensuel, qui ne bloque ni le coach ni ses camarades", async () => {
+  const org = await makeOrg("Quota athlète");
+  await prisma.organization.update({ where: { id: org.organizationId }, data: { plan: "discovery" } });
+  const lina = await addAthlete(org.organizationId, org.groupId, "Lina");
+  const tom = await addAthlete(org.organizationId, org.groupId, "Tom");
+  for (let i = 0; i < 8; i++) await createVideoUpload(lina.userId, org.organizationId, { clientId: randomUUID() });
+  await expect(
+    createVideoUpload(lina.userId, org.organizationId, { clientId: randomUUID() }),
+  ).rejects.toMatchObject({ code: "athlete_video_limit", status: 402 });
+  await expect(createVideoUpload(tom.userId, org.organizationId, { clientId: randomUUID() })).resolves.toBeTruthy();
+  await expect(
+    createVideoUpload(org.owner.userId, org.organizationId, { clientId: randomUUID(), athleteId: lina.athleteId }),
+  ).resolves.toBeTruthy();
 });
 
 it("le partage choisi est révoqué par le retrait du partage, du groupe, de l'espace ou du consentement", async () => {
@@ -283,4 +297,41 @@ it("la pagination garde l'isolation même avec un curseur d'un autre espace", as
   });
   const page = await listVideoPage(athlete.userId, org.organizationId, { cursor: row.id });
   expect(page.videos.every((v) => v.athleteId === athlete.athleteId)).toBe(true);
+});
+
+it("un camarade regarde la vidéo partagée sans lire ni écrire de remarque, et l'athlète n'efface pas une vidéo du coach", async () => {
+  const org = await makeOrg("Camarades");
+  const athlete = await addAthlete(org.organizationId, org.groupId, "Lina");
+  const peer = await addAthlete(org.organizationId, org.groupId, "Alex");
+  const { videoId } = await createVideoUpload(athlete.userId, org.organizationId, { clientId: randomUUID() });
+  const coachRemark = await addAnnotation(org.owner.userId, org.organizationId, videoId, {
+    tMs: 500,
+    text: "Remarque du coach",
+  });
+  await addAnnotation(athlete.userId, org.organizationId, videoId, { tMs: 0, parentId: coachRemark.id, text: "Compris" });
+  await addAnnotation(athlete.userId, org.organizationId, videoId, { tMs: 900, text: "Mon ressenti" });
+  await shareVideo(athlete.userId, org.organizationId, videoId, {
+    withAthlete: true,
+    withGroup: true,
+    groupIds: [org.groupId],
+  });
+  const seen = await getVideo(peer.userId, org.organizationId, videoId);
+  expect(seen.annotations.map((a) => a.text)).toEqual(["Mon ressenti"]);
+  expect(seen.canAnnotate).toBe(false);
+  await expect(
+    addAnnotation(peer.userId, org.organizationId, videoId, { tMs: 100, text: "Bravo" }),
+  ).rejects.toMatchObject({ status: 403 });
+  expect((await getVideo(athlete.userId, org.organizationId, videoId)).annotations).toHaveLength(3);
+
+  const filmed = await createVideoUpload(org.owner.userId, org.organizationId, {
+    clientId: randomUUID(),
+    athleteId: athlete.athleteId,
+  });
+  await shareVideo(org.owner.userId, org.organizationId, filmed.videoId, {
+    withAthlete: true,
+    withGroup: false,
+    groupIds: [],
+  });
+  await expect(deleteVideo(athlete.userId, org.organizationId, filmed.videoId)).rejects.toMatchObject({ status: 403 });
+  await deleteVideo(athlete.userId, org.organizationId, videoId);
 });

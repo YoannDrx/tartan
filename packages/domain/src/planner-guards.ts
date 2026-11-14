@@ -266,6 +266,16 @@ function contradictoryLoads(text: string, exercises: readonly PlannerGuardExerci
 
 const CORRECTION = /\b(non pardon|enfin non|pardon|plutot|correction|je corrige|finalement)\b/;
 
+function hasDateReference(text: string, context: { today: string; period: { from: string; to: string } }) {
+  const references = plannerDateReferences(text, context);
+  return (
+    references.explicit.length > 0 ||
+    references.ranges.length > 0 ||
+    references.relative.length > 0 ||
+    Boolean(references.weekdayOnly)
+  );
+}
+
 function dateIssue(
   value: PlannerInterpretation,
   references: PlannerDateReferences,
@@ -378,10 +388,22 @@ export function plannerExerciseIsNamed(
     );
 }
 
+// Une réponse du coach est enregistrée après les questions du modèle, une par ligne et terminées par
+// « ? ». Les contrôles ne lisent que ce que le coach a écrit : une date, une unité ou un nom
+// d'exercice proposés dans une question ne valent pas confirmation.
+export const plannerCoachText = (instruction: string, index: number): string =>
+  index === 0
+    ? instruction
+    : instruction
+        .split("\n")
+        .filter((line) => !line.trim().endsWith("?"))
+        .join("\n");
+
 export function plannerGuardIssues(value: PlannerInterpretation, context: PlannerGuardContext): PlannerGuardIssue[] {
   if (value.status !== "proposal") return [];
   const issues = new Set<PlannerGuardIssue>();
-  const text = context.instructions.join("\n");
+  const coach = context.instructions.map(plannerCoachText);
+  const text = coach.join("\n");
   const items = value.sessions.flatMap((session) => session.blocks.flatMap((block) => block.items));
   const stated = plannerTextNumbers(text);
   const representedRounds = new Set<number>();
@@ -414,35 +436,62 @@ export function plannerGuardIssues(value: PlannerInterpretation, context: Planne
     if (item.prescription.load && !stated.has(item.prescription.load.value)) issues.add("load");
     if (!plannerExerciseIsNamed(text, item.exerciseToken, context.exercises)) issues.add("exercise");
   }
-  // Après une réponse du coach, la conversation peut corriger la consigne initiale
-  // (« hier » puis « demain ») : seules les vérifications ci-dessus restent valables.
-  if (context.instructions.length === 1) {
-    const mentions = numberMentions(text);
-    for (const { prescription } of items) {
-      const load = prescription.load;
-      // Une charge sans unité dictée (« à 70 ») reste une question : kilos ou pourcentage changent tout.
-      if (load && !hasUnit(mentions, load.value, load.type === "kg" ? KG_UNIT : PERCENT_UNIT)) issues.add("load");
-    }
-    if (items.some((item) => item.prescription.load) && contradictoryLoads(text, context.exercises)) issues.add("load");
-    const dated = dateIssue(
-      value,
-      plannerDateReferences(text, context),
-      context.period,
-      CORRECTION.test(plain(text)),
-      text,
-    );
-    if (dated) issues.add(dated);
-    if (requestedSessions(text) > 14) issues.add("session_count");
-    for (const issue of habitualIssues(text)) issues.add(issue);
-    if (context.targets.length > 1) {
-      const normalized = plain(text);
-      const designated = context.targets.filter((target) => normalized.includes(target.token));
-      const served = new Set(value.sessions.flatMap((session) => session.targetTokens));
-      const everyone = value.sessions.every((session) => session.targetTokens.length === context.targets.length);
-      // Un destinataire nommé n'est jamais oublié ; sans nom, seul « tout le monde » est sûr.
-      if (designated.length ? designated.some((t) => !served.has(t.token)) : !everyone) issues.add("target");
-    }
+  // Après une réponse du coach, la conversation peut corriger la consigne initiale (« hier » puis
+  // « demain ») : la date se lit alors dans le dernier message qui en donne une. Unités, nombre
+  // de séances et destinataires restent contrôlés sur toute la conversation.
+  const datedInstruction = [...coach].reverse().find((instruction) => hasDateReference(instruction, context)) ?? coach[0] ?? "";
+  const dated = dateIssue(
+    value,
+    plannerDateReferences(datedInstruction, context),
+    context.period,
+    CORRECTION.test(plain(datedInstruction)),
+    datedInstruction,
+  );
+  if (dated) issues.add(dated);
+  const mentions = numberMentions(text);
+  for (const { prescription } of items) {
+    const load = prescription.load;
+    // Une charge sans unité dictée (« à 70 ») reste une question : kilos ou pourcentage changent tout.
+    if (load && !hasUnit(mentions, load.value, load.type === "kg" ? KG_UNIT : PERCENT_UNIT)) issues.add("load");
   }
+  // Une correction de charge ou une habitude précisée dans une réponse lève ces deux contrôles.
+  if (context.instructions.length === 1) {
+    if (items.some((item) => item.prescription.load) && contradictoryLoads(text, context.exercises))
+      issues.add("load");
+    for (const issue of habitualIssues(text)) issues.add(issue);
+  }
+  if (requestedSessions(text) > 14) issues.add("session_count");
+  if (context.targets.length > 1) {
+    const normalized = plain(text);
+    const designated = context.targets.filter((target) => normalized.includes(target.token));
+    const served = new Set(value.sessions.flatMap((session) => session.targetTokens));
+    const everyone = value.sessions.every((session) => session.targetTokens.length === context.targets.length);
+    // Un destinataire nommé n'est jamais oublié ; sans nom, seul « tout le monde » est sûr.
+    if (designated.length ? designated.some((t) => !served.has(t.token)) : !everyone) issues.add("target");
+  }
+  return [...issues];
+}
+
+// Mode « Proposer une séance » : le brief fixe la date, la durée et les destinataires. Une proposition
+// qui s'en écarte est corrigée une fois, puis devient une question ; jamais acceptée telle quelle.
+export function plannerProposalIssues(
+  value: PlannerInterpretation,
+  context: { brief?: { date: string; durationMin: number } | null; targets: readonly { token: string }[] },
+): PlannerGuardIssue[] {
+  if (value.status !== "proposal" || !context.brief) return [];
+  const issues = new Set<PlannerGuardIssue>();
+  if (value.sessions.length !== 1) issues.add("session_count");
+  if (value.sessions.some((session) => session.date !== context.brief!.date)) issues.add("date");
+  if (value.sessions.some((session) => (session.durationMin ?? 0) > context.brief!.durationMin)) issues.add("volume");
+  const tokens = context.targets.map((target) => target.token);
+  if (value.sessions.some((session) => tokens.some((token) => !session.targetTokens.includes(token))))
+    issues.add("target");
+  if (
+    value.sessions.some((session) =>
+      session.blocks.some((block) => block.items.some((item) => item.prescription.load !== null)),
+    )
+  )
+    issues.add("load");
   return [...issues];
 }
 

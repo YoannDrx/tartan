@@ -6,12 +6,14 @@ import * as Crypto from "expo-crypto";
 import { fetch as expoFetch } from "expo/fetch";
 import { Directory, File, Paths } from "expo-file-system";
 import * as LegacyFS from "expo-file-system/legacy";
+import { useMemo } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { api } from "../api";
 import { errorMessage } from "../errors";
 import { queryClient } from "../query-client";
 import { queuedVideoInput } from "../capture-input";
+import { useOpQueue } from "../sync/op-queue";
 import {
   classifyResponse,
   contentRange,
@@ -29,10 +31,14 @@ import {
   startUploadService,
   stopUploadService,
 } from "./progress-notification";
+import { isOwnUpload } from "./ownership";
 import { stretchInPlace, type StretchOutcome } from "./stretch";
 
 export type UploadItem = {
   id: string;
+  // Le compte qui a mis la vidéo en file : elle ne part et ne s'affiche que pour lui,
+  // même si un autre compte se connecte ensuite sur le téléphone.
+  ownerId?: string | null;
   orgId: string;
   athleteName: string;
   fileUri: string;
@@ -101,6 +107,13 @@ const stretchCopy = async (uri: string): Promise<StretchOutcome> => {
   }
 };
 
+// Les vidéos en file du compte connecté, pour l'affichage et les compteurs.
+export const useOwnUploads = (): UploadItem[] => {
+  const owner = useOpQueue((s) => s.ownerId);
+  const items = useUploads((s) => s.items);
+  return useMemo(() => items.filter((item) => isOwnUpload(item, owner)), [items, owner]);
+};
+
 export const useUploads = create<UploadState>()(
   persist(
     (set, get) => ({
@@ -125,6 +138,7 @@ export const useUploads = create<UploadState>()(
         }
         const item: UploadItem = {
           id,
+          ownerId: useOpQueue.getState().ownerId,
           orgId,
           athleteName,
           fileUri: target.uri,
@@ -329,7 +343,8 @@ export const flushUploads = async (): Promise<void> => {
   store.setRunning(true);
   try {
     for (;;) {
-      const next = useUploads.getState().items.find((i) => i.state === "queued");
+      const owner = useOpQueue.getState().ownerId;
+      const next = useUploads.getState().items.find((i) => i.state === "queued" && isOwnUpload(i, owner));
       if (!next) return;
       // Android : le service au premier plan garde l'envoi en vie quand l'écran s'éteint.
       startUploadService(next.athleteName);
@@ -342,6 +357,12 @@ export const flushUploads = async (): Promise<void> => {
         useUploads.setState((s) => ({ items: s.items.filter((i) => i.id !== next.id) }));
         void queryClient.invalidateQueries({ queryKey: ["videos"] });
       } catch (error) {
+        // Session expirée : l'envoi attend la reconnexion du même compte, sans réessayer en boucle.
+        if (error instanceof ApiError && error.status === 401) {
+          useUploads.getState().patch(next.id, { state: "queued" });
+          clearUploadProgress();
+          return;
+        }
         const definitive =
           error instanceof ApiError && error.status < 500 && error.status !== 401 && error.status !== 429;
         const disabled = error instanceof ApiError && error.code === "video_disabled";

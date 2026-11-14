@@ -29,11 +29,6 @@
       "count": 1
     }
   },
-  "app/(public)/cgv/page.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 26
-    }
-  },
   "app/(public)/i/[token]/page.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 1
@@ -99,11 +94,6 @@
       "count": 29
     }
   },
-  "src/features/legal/terms.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 14
-    }
-  },
   "src/features/planner/planner-loads.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 1
@@ -152,11 +142,6 @@
   "src/features/shell/app-shell.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 3
-    }
-  },
-  "src/features/shell/legal-page.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 1
     }
   },
   "src/features/shell/public-page.tsx": {

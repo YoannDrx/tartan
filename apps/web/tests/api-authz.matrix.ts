@@ -798,6 +798,8 @@ export const MATRICE: Row[] = [
     route: "DELETE /api/v1/orgs/[orgId]/videos/[videoId]",
     ...membres,
     adjoint: 404,
+    // Vidéo filmée par le coach : l'athlète la regarde, il ne l'efface pas.
+    athlete: 403,
     call: async (w) => {
       const video = await prisma.video.create({
         data: { organizationId: w.org, athleteId: w.athleteId, uploadedBy: w.owner, sharedWithAthlete: true },

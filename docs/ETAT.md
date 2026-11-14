@@ -2,7 +2,7 @@
 
 Mis à jour le 14 novembre 2026, après l'audit du travail de finalisation. Toute PR qui change un état met ce fichier à jour. Ce fichier est une photographie : l'historique des lots vit dans Git (`git log -p docs/ETAT.md`), les passations dans [JOURNAL.md](JOURNAL.md).
 
-**En une phrase :** la production sert `8b64713` et la CI est verte ; constructeur à circuits, 150 guides, deux modes IA et vidéo collaborative sont codés et testés, mais neuf défauts bloquent encore la vente, l'IA n'est pas qualifiée, aucun vrai paiement ni aucun téléphone physique n'a été éprouvé, et aucun binaire mobile ne peut partir tant que `EXPO_TOKEN` manque.
+**En une phrase :** la production sert `8b64713` et la CI est verte ; constructeur à circuits, 150 guides, deux modes IA et vidéo collaborative sont codés et testés, mais plusieurs défauts bloquent encore la vente (la phase B en corrige l'essentiel), l'IA n'est pas qualifiée, aucun vrai paiement ni aucun téléphone physique n'a été éprouvé, et aucun binaire mobile ne peut partir tant que `EXPO_TOKEN` manque.
 
 **Plan en cours :** [audit et reprise du 14 novembre](plans/web.md#audit-et-reprise-du-14-novembre-2026), phases A à G. Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur.
 
@@ -17,6 +17,7 @@ Mis à jour le 14 novembre 2026, après l'audit du travail de finalisation. Tout
 | 14 nov. | Accords de traitement acceptés chez tous les prestataires ; avis du juriste obtenu (HDS, Mux aux États-Unis, partage au groupe compris), preuve gardée hors du dépôt |
 | 14 nov. | Micro-entreprise non assujettie à la TVA (293 B) ; Stripe Tax reste coupé |
 | 14 nov. | Guides marqués « consignes indicatives » ; tracés sur vidéo dans le périmètre de cette version |
+| 14 nov. | Quota vidéo propre à chaque athlète : 8 par mois en Découverte, 20 en Coach et Club, hors du quota de l'espace ; maquette du constructeur validée |
 | 14 nov. | Les 150 guides textuels relus et approuvés par le fondateur ; illustrations à produire |
 
 ## Ce qui tourne
@@ -26,7 +27,7 @@ Mis à jour le 14 novembre 2026, après l'audit du travail de finalisation. Tout
 | Production | `app.tartan.coach` et `tartan.coach`, commit `8b64713`, santé 200. Inscriptions et classement du jeu fermés |
 | Preview | `preview.tartan.coach`, branche Git `preview` remise sur `main` ; base `preview` reconstruite le 14 novembre avec la seule graine de démonstration (4 comptes fictifs, 150 fiches communes), sans donnée de production |
 | Neon | Offre Launch, restauration 7 jours, branche `production` protégée, calcul 0,25–2 CU ; branche `preview` 0,25–1 CU. Plus aucune branche de recette |
-| GitHub | Dépôt public, `LICENSE` propriétaire ; analyse des secrets, protection à l'envoi et alertes Dependabot actives depuis le 14 novembre (aucun secret détecté, 10 alertes sur des dépendances indirectes). `main` exige `quality` ; `mobile-gate` à exiger après la fusion de la PR de phase A |
+| GitHub | Dépôt public, `LICENSE` propriétaire ; analyse des secrets, protection à l'envoi et alertes Dependabot actives depuis le 14 novembre (aucun secret détecté, 10 alertes sur des dépendances indirectes). `main` exige `quality` et `mobile-gate` (toujours présent, vert quand le mobile n'est pas concerné) |
 | Sauvegardes | Copie chiffrée chaque nuit vers un store Vercel Blob privé, relue par empreinte ; restauration locale chronométrée réussie les 13 et 14 novembre ([sauvegarde](exploitation/sauvegarde.md)) |
 | Stripe | Compte dédié Tartan, prix 19/190 € et 59/590 €, webhook de production sur 15 événements, portail configuré. Aucun vrai paiement |
 | iOS | Archive 1.1.0 (12) ancienne, à reconstruire ; aucune bêta TestFlight externe |
@@ -39,17 +40,17 @@ Mis à jour le 14 novembre 2026, après l'audit du travail de finalisation. Tout
 | Fonction | Testé | Éprouvé | Défauts connus (audit du 14 novembre) |
 | --- | --- | --- | --- |
 | Connexion, onboarding, espaces, invitations | Oui | Lien magique et e-mail de bienvenue reçus sur Gmail | Compte neuf et invitation jamais joués par une vraie personne ; Outlook et iCloud non éprouvés |
-| Séances V2 (circuits, groupes, récupérations) | Oui | Sur le web, par l'agent | Récupérations proposées à la saisie des séries (rejet de l'enregistrement) ; séries × tours sans aide ; conversion silencieuse d'une ancienne séance en V2 ; ordre des blocs communs en autonomie ; séries précédentes mal triées au-delà de 9 tours |
+| Séances V2 (circuits, groupes, récupérations) | Oui | Sur le web, par l'agent | Corrigé le 14 novembre (phase B) : récupérations hors de la saisie des séries, ordre des blocs communs en autonomie, références conservées hors des groupes (une ancienne séance réenregistrée garde ses coches), séries précédentes dans l'ordre des tours. Reste : séries × tours sans aide dans le constructeur (phase C) |
 | Constructeur web | Oui | Non | Pas de regroupement d'une sélection ni de déplacement dans ou hors d'un groupe ; le « + » de la bibliothèque ignore le groupe visé ; liste de 175 exercices sans recherche dans un groupe ; cartes sans couleur de catégorie |
 | Mode séance | Oui | Non | Minuteur qui dérive et s'arrête en arrière-plan, pas d'enchaînement automatique ni d'aperçu de l'étape suivante |
-| Catalogue et guides | Oui | 150 fiches comptées en production | Aucune illustration ; « Guide validé techniquement » affiché quand même ; « Arraché en force » mal nommé ; dos arrondi et lâcher de barre absents ; guide figé dans les séances publiées |
-| Planificateur IA | Oui, prestataire simulé | Un parcours réel complet sur serveur isolé | 82,5 % sur un corpus de 80 cas qui a servi au réglage ; mode « Proposer » sans contrôle ; contrôles coupés après une question ; pas d'« Ajuster » ; dictée sans les noms de la bibliothèque |
-| Vidéo collaborative | Oui | Uploads, lecture et droits sur Mux Preview | Quota commun à l'espace ; camarades qui annotent et lisent les remarques du coach ; « À travailler » qui reprend toute remarque ; l'athlète peut supprimer une vidéo du coach ; tracés non exposés |
+| Catalogue et guides | Oui | 150 fiches comptées en production | Corrigé le 14 novembre (catalogue version 3, à relire par le fondateur) : « Arraché musclé » au lieu d'« Arraché en force », consigne de lâcher de barre sur six mouvements olympiques, dos arrondi au soulevé de terre, mention « consignes indicatives » sur chaque guide et dans les conditions d'utilisation. Reste : aucune illustration ; guide figé dans les séances publiées (phase E) |
+| Planificateur IA | Oui, prestataire simulé | Un parcours réel complet sur serveur isolé | Corrigé le 14 novembre : contrôles de date, d'unité et de destinataires actifs après une question, sur la seule part du coach ; mode « Proposer » qui couvre tous les destinataires. Reste : 82,5 % sur un corpus qui a servi au réglage, pas d'« Ajuster », dictée sans les noms de la bibliothèque (phase D) |
+| Vidéo collaborative | Oui | Uploads, lecture et droits sur Mux Preview | Corrigé le 14 novembre : un camarade voit la vidéo partagée et les remarques de son auteur seulement, sans pouvoir annoter ; « À travailler » ne reprend qu'une remarque de coach ; l'athlète ne supprime que ce qu'il a envoyé ; plus d'essai de saut déclaré par l'athlète. Quota propre à chaque athlète (8 ou 20 par mois), ses envois hors du quota de l'espace. Reste : tracés (phase F) |
 | Charges, records, progression, phases | Oui | Partiel, sur le web | — |
 | Notifications, e-mails | Oui | Gmail seulement ; aucun push réel | — |
 | Abonnements Stripe | Oui, et six tests sandbox réels dans le navigateur | Aucun vrai paiement | Retour vers Tartan après paiement non prouvé |
 | Hors ligne, PWA | Oui | Pas au stade | — |
-| Mobile natif | Oui, et parcours Maestro iOS sur simulateur | Aucun téléphone physique | File d'envoi vidéo non rattachée au compte ; motif d'absence, régularité et carte de record absents ; pas de lint ni de Maestro Android ; OTA sans variante ni environnement |
+| Mobile natif | Oui, et parcours Maestro iOS sur simulateur | Aucun téléphone physique | Corrigé le 14 novembre : file d'envoi vidéo rattachée au compte, arrêt sur session expirée. Reste : motif d'absence, régularité et carte de record absents ; pas de lint ni de Maestro Android ; OTA sans variante ni environnement |
 
 ## Portes d'ouverture
 
@@ -58,7 +59,7 @@ Détail : [commercialisation](plans/commercialisation.md).
 | Porte | État |
 | --- | --- |
 | 1. Juriste | Franchie sur déclaration du fondateur (14 nov.) |
-| 2. Médiateur, CGV | Médiateur différé par décision du fondateur ; mention « version de travail » et repère `[À DÉFINIR]` des CGV encore à traiter |
+| 2. Médiateur, CGV | Médiateur différé par décision du fondateur ; depuis la phase B, ni mention « version de travail » ni repère `[À DÉFINIR]` : les CGV disent que les coordonnées du médiateur viendront à l'adhésion |
 | 3. OpenAI | Accord de traitement accepté ; clé conservée par décision, plafond de dépense à poser |
 | 4. Vrai paiement | Ouverte |
 | 5. Configuration | Webhooks Stripe et Resend éprouvés ; sondes et passkey de secours restantes |
@@ -84,7 +85,6 @@ Le mot de passe des comptes de démonstration de la Preview est dans `.local/pre
 
 | Sujet | Recommandation |
 | --- | --- |
-| Quota vidéo par athlète en plus du quota d'espace | Proposé : 8 par mois en Découverte, 20 en Coach et Club. À confirmer avant le lot B5 |
 | Abonnement web face à Apple (3.1.1) | Soumettre sans achat intégré, repli préparé |
 | IA à la première revue Apple | Ouverte, compte de revue en offre Coach (2.5.19) |
 | Choix du modèle IA | Après la qualification de la phase D, coût compris |

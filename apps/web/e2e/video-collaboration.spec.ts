@@ -136,7 +136,9 @@ test("vidéo privée : envoi athlète, remarque coach, réponse et partage révo
       .poll(async () => (await peer.page.request.get(`/api/v1/orgs/${organizationId}/videos/${videoId}`)).status())
       .toBe(200);
     await peer.page.goto(`/mes-sauts/${videoId}`);
-    await expect(peer.page.getByText("Place les appuis sous le bassin", { exact: true })).toBeVisible();
+    // Le camarade regarde la vidéo partagée, jamais la remarque du coach ni la réponse qui s'y rattache.
+    await expect(peer.page.getByText("Place les appuis sous le bassin", { exact: true })).toHaveCount(0);
+    await expect(peer.page.getByText("Je corrige à la prochaine série", { exact: true })).toHaveCount(0);
     await expect(peer.page.getByText(m.videoCollaboration.shareGroups, { exact: true })).toHaveCount(0);
 
     await inspectLayout(athlete.page, "collaboration");

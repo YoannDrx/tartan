@@ -8,7 +8,7 @@ import { api } from "../lib/api";
 import { deniesCachedAccess } from "../lib/errors";
 import { useIsOnline } from "../lib/network";
 import { useActiveSpace, useAthletes, useToday } from "../lib/queries";
-import { useUploads } from "../lib/upload/upload-queue";
+import { useOwnUploads } from "../lib/upload/upload-queue";
 import { Button, Chip, Divider, ListSurface, SectionTitle, T } from "../ui/primitives";
 import { TabScreen } from "../ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../ui/states";
@@ -31,7 +31,7 @@ export function VideoLibrary({ staff }: { staff: boolean }) {
   const [status, setStatus] = useState<VideoSummary["status"]>();
   const [needsReview, setNeedsReview] = useState(false);
   const router = useRouter();
-  const uploads = useUploads((s) => s.items);
+  const uploads = useOwnUploads();
   const online = useIsOnline();
   const filter = {
     athleteId: staff ? athleteId : undefined,

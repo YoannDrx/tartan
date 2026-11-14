@@ -8,7 +8,7 @@ import { createDirectUpload, readDirectUpload, videoEnabled } from "@/lib/mux";
 import { requireOrgMember, requireVisibleAthlete, type Access } from "./access";
 import { consentForAthletes } from "./consent.service";
 import { athleteAssignedWhere } from "./session-audience.service";
-import { assertVideoReservation, withVideoReservation } from "./video-capacity.service";
+import { assertUploadReservation, withVideoReservation } from "./video-capacity.service";
 import { enqueueExternalDeletion } from "./external-deletion.service";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -128,13 +128,13 @@ export const createVideoUpload = async (userId: string, organizationId: string, 
           throw new AppError(409, "video_request_changed", m.videoCollaboration.requestChanged);
         if (existing.status !== "uploading" || existing.muxAssetId) throw alreadyUploaded();
         if (existing.quotaReservedAt.getTime() < Date.now() - DAY) {
-          await assertVideoReservation(organizationId, db);
+          await assertUploadReservation(current, organizationId, db);
           return db.video.update({ where: { id: existing.id }, data: { quotaReservedAt: new Date() } });
         }
         return existing;
       }
     }
-    await assertVideoReservation(organizationId, db);
+    await assertUploadReservation(current, organizationId, db);
     return db.video.create({
       data: {
         organizationId,
@@ -148,7 +148,8 @@ export const createVideoUpload = async (userId: string, organizationId: string, 
         fps: input.fps ?? null,
         timeScale: input.timeScale ?? 1,
         recordedAt: input.recordedAt ? new Date(input.recordedAt) : new Date(),
-        ...(input.attempt
+        // Un essai de saut se note par l'encadrement : l'athlète ne déclare pas lui-même sa barre.
+        ...(input.attempt && current.role !== "athlete"
           ? {
               jumps: {
                 create: {
@@ -186,7 +187,7 @@ export const renewVideoUpload = async (userId: string, organizationId: string, v
     if (video.status !== "uploading" || video.muxAssetId) throw alreadyUploaded();
     if (!videoEnabled()) throw new AppError(503, "video_disabled", m.errors.videoDisabled);
     if (video.quotaReservedAt.getTime() < Date.now() - DAY) {
-      await assertVideoReservation(organizationId, db);
+      await assertUploadReservation(access, organizationId, db);
       await db.video.update({ where: { id: videoId }, data: { quotaReservedAt: new Date() } });
     }
   });

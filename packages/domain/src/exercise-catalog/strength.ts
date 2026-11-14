@@ -222,7 +222,11 @@ const entries: FamilyDraft[] = [
       "Pousse le sol puis redresse les hanches et le buste ensemble.",
       "Repose la barre près des jambes en reculant les hanches, puis en fléchissant les genoux.",
     ],
-    mistakes: ["Arracher la barre avec un à-coup.", "Se pencher en arrière au verrouillage ou éloigner la barre."],
+    mistakes: [
+      "Arrondir le bas du dos au départ ou pendant la descente : arrête la série et allège la charge.",
+      "Arracher la barre avec un à-coup.",
+      "Se pencher en arrière au verrouillage ou éloigner la barre.",
+    ],
     easier: "Départ de la barre sur des cales stables.",
     progression: "Repartir du sol à chaque répétition, puis augmenter la charge.",
   },

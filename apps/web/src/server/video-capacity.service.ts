@@ -1,5 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { assertWithinPlan } from "./billing.service";
+import { assertAthleteVideoQuota, assertWithinPlan } from "./billing.service";
 import { m } from "@tartan/i18n";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
@@ -41,4 +41,16 @@ export const withVideoReservation = <T>(operation: (db: Prisma.TransactionClient
 export const assertVideoReservation = async (organizationId: string, db: Prisma.TransactionClient): Promise<void> => {
   await assertWithinPlan(organizationId, "maxVideosPerMonth", db);
   await assertVideoCapacity(db);
+};
+
+// L'athlète qui envoie sa propre vidéo consomme son quota personnel ; l'encadrement, celui de l'espace.
+export const assertUploadReservation = async (
+  access: { role: string; athleteId: string | null; userId: string },
+  organizationId: string,
+  db: Prisma.TransactionClient,
+): Promise<void> => {
+  if (access.role === "athlete" && access.athleteId) {
+    await assertAthleteVideoQuota(organizationId, access.athleteId, access.userId, db);
+    await assertVideoCapacity(db);
+  } else await assertVideoReservation(organizationId, db);
 };

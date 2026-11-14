@@ -182,7 +182,7 @@ export const deleteAccount = async (userId: string, options: { inactiveBefore?: 
         })),
       });
     }
-  });
+  }, { timeout: 30000, maxWait: 10000 });
 
   await drainExternalDeletions();
   await audit({ action: "account_deleted", entity: "user" });

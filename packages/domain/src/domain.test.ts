@@ -27,6 +27,8 @@ import {
   formatTimecode,
   frameStepMs,
   generateAutonomousBlocks,
+  mergeVariantBlocks,
+  blocksForVariant,
   groupPublications,
   invitationDefaults,
   invitationStateOf,
@@ -177,6 +179,25 @@ describe("versions de séance", () => {
   it("génère la version autonomie depuis la version club", () => {
     const out = generateAutonomousBlocks(blocks);
     expect(out.map((b) => b.variant)).toEqual(["club", "both", "autonomous"]);
+  });
+
+  it("garde les blocs communs de fin après le corps de séance, en autonomie comme au club", () => {
+    const club = [
+      { name: "Échauffement", variant: "both" },
+      { name: "Corps club", variant: "club" },
+      { name: "Retour au calme", variant: "both" },
+    ];
+    const merged = mergeVariantBlocks(club, [{ name: "Corps autonomie", variant: "autonomous" }]);
+    expect(blocksForVariant(merged, "autonomous").map((b) => b.name)).toEqual([
+      "Échauffement",
+      "Corps autonomie",
+      "Retour au calme",
+    ]);
+    expect(blocksForVariant(merged, "club").map((b) => b.name)).toEqual(["Échauffement", "Corps club", "Retour au calme"]);
+    expect(mergeVariantBlocks([{ variant: "both" }], [{ variant: "autonomous" }]).map((b) => b.variant)).toEqual([
+      "both",
+      "autonomous",
+    ]);
   });
 });
 

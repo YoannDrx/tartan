@@ -1,6 +1,14 @@
 "use client";
 
-import { formatPrice, plannerLimits, PLANS, TRIAL_DAYS, type BillingInterval, type PlanKey } from "@tartan/domain";
+import {
+  ATHLETE_VIDEOS_PER_MONTH,
+  formatPrice,
+  plannerLimits,
+  PLANS,
+  TRIAL_DAYS,
+  type BillingInterval,
+  type PlanKey,
+} from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { ChevronDown } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
@@ -23,6 +31,7 @@ const ROWS: { label: string; value: (plan: PlanKey) => string }[] = [
   { label: m.billing.compare.groups, value: (plan) => count(PLANS[plan].limits.maxGroups) },
   { label: m.billing.compare.coaches, value: (plan) => count(PLANS[plan].limits.maxCoaches) },
   { label: m.billing.compare.videos, value: (plan) => count(PLANS[plan].limits.maxVideosPerMonth) },
+  { label: m.billing.compare.athleteVideos, value: (plan) => count(ATHLETE_VIDEOS_PER_MONTH[plan]) },
   {
     label: m.billing.compare.retention,
     value: (plan) => {

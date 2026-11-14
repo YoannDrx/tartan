@@ -16,6 +16,7 @@ import {
   confirmedRecordsFromResponse,
   confirmedSets,
   draftFromSession,
+  loggableItems,
   performedNumberFields,
   proposedSet,
   chooseLoadKind,
@@ -304,10 +305,7 @@ export const PerformedSetsEditor = ({
           }}
         />
       ) : null}
-      {session.blocks
-        .flatMap((block) => block.items)
-        .filter((item) => item.kind !== "recovery")
-        .map((item) => (
+      {loggableItems(session).map((item) => (
           <View key={item.ref} style={{ gap: space.lg }}>
             {item.rounds?.length ? (
               <T variant="small" tone="muted">

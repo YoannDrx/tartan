@@ -2178,7 +2178,7 @@ export const fr = {
     family: "Famille de mouvements",
     allFamilies: "Toutes les familles",
     pending: "Guide en préparation : validation technique par un coach encore attendue.",
-    approved: "Guide validé techniquement",
+    approved: "Consignes indicatives relues par Tartan : ton coach reste responsable de ta prescription.",
     illustrationNotReady: "Illustration technique en préparation.",
     illustrationUnavailable: "Illustration indisponible pour le moment. Les consignes restent consultables.",
     illustrationPending: "Illustration de travail — validation technique attendue",
@@ -2313,6 +2313,8 @@ export const fr = {
     allVideos: (n: number) => (n > 1 ? `Voir ses ${n} vidéos` : "Voir sa vidéo"),
   },
   videoCollaboration: {
+    athleteLimit: (limit: number) =>
+      `Tu as envoyé tes ${limit} vidéos du mois. Le compteur repart le 1er ; ton coach peut toujours te filmer.`,
     applyFilters: "Appliquer les filtres",
     ready: "Prête à lire",
     framesPerSecond: (n: number) => `${n} i/s`,
@@ -2553,16 +2555,126 @@ export const fr = {
   legal: {
     cgvOffers: {
       price: (month: string, year: string) => `${month} par mois ou ${year} par an`,
-      discovery: (groups: number, athletes: number, videos: number, days: number) =>
-        `Découverte : gratuite, ${groups} groupe, ${athletes} athlètes, ${videos} vidéos par mois conservées ${days} jours.`,
-      coach: (price: string, athletes: number, coaches: number, videos: number, retention: string) =>
-        `Coach : ${price}, jusqu'à ${athletes} athlètes, ${coaches} coachs, ${videos} vidéos par mois conservées ${retention}.`,
-      club: (price: string, videos: number, retention: string) =>
-        `Club : ${price}, coachs et athlètes illimités, ${videos} vidéos par mois conservées ${retention}.`,
+      discovery: (groups: number, athletes: number, videos: number, days: number, athleteVideos: number) =>
+        `Découverte : gratuite, ${groups} groupe, ${athletes} athlètes, ${videos} vidéos du coach par mois et ${athleteVideos} par athlète, conservées ${days} jours.`,
+      coach: (
+        price: string,
+        athletes: number,
+        coaches: number,
+        videos: number,
+        retention: string,
+        athleteVideos: number,
+      ) =>
+        `Coach : ${price}, jusqu'à ${athletes} athlètes, ${coaches} coachs, ${videos} vidéos du coach par mois et ${athleteVideos} par athlète, conservées ${retention}.`,
+      club: (price: string, videos: number, retention: string, athleteVideos: number) =>
+        `Club : ${price}, coachs et athlètes illimités, ${videos} vidéos du coach par mois et ${athleteVideos} par athlète, conservées ${retention}.`,
     },
     privacy: "Politique de confidentialité",
     terms: "Conditions d'utilisation",
     contact: "Contact",
+    updated: (date: string) => `Mise à jour du ${date}.`,
+    cgvPage: {
+      metaTitle: "Conditions de vente",
+      title: "Conditions de vente",
+      updated: "14 novembre 2026",
+      sellerTitle: "Vendeur",
+      seller:
+        "Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130 Franconville. Contact : hello@tartan.coach.",
+      offersTitle: "Offres et prix",
+      pricesNote:
+        "Prix en euros. TVA non applicable, article 293 B du Code général des impôts. L'abonnement est payé par le coach ou le club ; les athlètes ne paient jamais.",
+      sections: (trialDays: number) => [
+        {
+          title: "Essai et durée",
+          paragraphs: [
+            `Le premier abonnement d'un espace commence par ${trialDays} jours d'essai. Sans résiliation avant la fin de l'essai, le premier paiement est prélevé à cette date. L'abonnement se renouvelle ensuite tacitement chaque mois ou chaque année, selon la formule choisie. Pour une formule annuelle, un e-mail rappelle, entre trois mois et un mois avant l'échéance, la possibilité de ne pas reconduire et la date limite pour le faire.`,
+          ],
+        },
+        {
+          title: "Paiement et factures",
+          paragraphs: [
+            "L'abonnement s'achète uniquement sur le web. Le paiement est traité par Stripe, et les factures sont disponibles dans la gestion de l'abonnement. Les applications mobiles sont gratuites et ne proposent aucun achat.",
+          ],
+        },
+        {
+          title: "Résiliation",
+          paragraphs: [
+            "La résiliation se fait à tout moment depuis la page Abonnement. Elle prend effet à la fin de la période payée ; l'espace repasse alors en offre Découverte. Les athlètes et les données existants sont conservés ; seul l'ajout au-delà des limites est bloqué, et les vidéos plus anciennes que la durée de conservation de l'offre sont retirées, après un préavis par e-mail de 14 jours.",
+          ],
+        },
+        {
+          title: "Impayé",
+          paragraphs: [
+            "En cas d'échec de paiement, l'accès est maintenu pendant les nouvelles tentatives de prélèvement. Sans régularisation, l'abonnement est résilié.",
+          ],
+        },
+        {
+          title: "Droit de rétractation",
+          paragraphs: [
+            "Le client consommateur dispose de 14 jours à compter de la souscription pour se rétracter, sans motif, en écrivant à hello@tartan.coach. Au moment du paiement, il demande expressément que le service commence sans attendre la fin de ce délai : s'il se rétracte ensuite, le montant correspondant au service déjà fourni reste dû.",
+            "Il peut utiliser le modèle suivant, sans y être obligé :",
+            "À l'attention de Yodev, 7 allée des Jonquilles, 95130 Franconville, hello@tartan.coach. Je vous notifie par la présente ma rétractation du contrat portant sur l'abonnement Tartan suivant : offre et espace concernés, date de souscription, nom, adresse, date, signature si le formulaire est envoyé sur papier.",
+          ],
+        },
+        {
+          title: "Remboursement",
+          paragraphs: [
+            "En cas de rétractation dans les 14 jours, le montant payé est remboursé sous 14 jours, déduction faite du service déjà fourni. En dehors de ce cas, une période commencée n'est pas remboursée, sauf manquement de notre part ou disposition légale contraire.",
+          ],
+        },
+        {
+          title: "Planificateur IA",
+          paragraphs: [
+            "Les offres Coach et Club comprennent un planificateur en version bêta, avec un quota mensuel. Il prépare des brouillons de séance à partir de ta demande, transmise à OpenAI après ton accord. Ces brouillons peuvent contenir des erreurs : tu les relis et tu restes responsable des séances publiées.",
+          ],
+        },
+        {
+          title: "Parrainage",
+          paragraphs: [
+            "Un mois offert au parrain et au filleul, une fois le filleul abonné depuis 30 jours après son essai. Pas d'auto-parrainage, 12 récompenses par an au maximum.",
+          ],
+        },
+        {
+          title: "Médiation et litiges",
+          paragraphs: [
+            "En cas de litige, écris d'abord à hello@tartan.coach. Le client consommateur peut recourir gratuitement à un médiateur de la consommation, dont les coordonnées figureront ici dès l'adhésion de Tartan à un dispositif de médiation. Droit français.",
+          ],
+        },
+      ],
+    },
+    termsPage: {
+      title: "Conditions d'utilisation",
+      updated: "14 novembre 2026",
+      publisher:
+        "Éditeur : Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130 Franconville.",
+      sections: [
+        {
+          title: "Le service",
+          body: "Tartan aide un coach d'athlétisme et ses athlètes à planifier, suivre et analyser l'entraînement. Les offres payantes relèvent des conditions de vente.",
+        },
+        {
+          title: "Qui peut l'utiliser",
+          body: "Tartan est réservé aux personnes majeures, en France. En créant un compte, tu déclares avoir 18 ans révolus. Un compte qui ne remplit pas cette condition est fermé.",
+        },
+        {
+          title: "Ce que Tartan n'est pas",
+          body: "Tartan n'est pas un dispositif médical. Les indicateurs sont des aides à la décision, pas des diagnostics. En cas de douleur, consulte un professionnel de santé.",
+        },
+        {
+          title: "Les guides d'exercices",
+          body: "Les guides d'exercices de Tartan donnent des consignes indicatives. Ils ne remplacent ni l'enseignement d'un coach ni un avis médical : le coach reste responsable de la prescription et de son adaptation à chaque athlète, et chacun s'entraîne dans la limite de ses capacités.",
+        },
+        {
+          title: "Les contenus",
+          body: "Tu restes responsable de ce que tu publies. Tu dois avoir l'accord de chaque personne que tu filmes. Tartan ne tolère aucun contenu abusif : harcèlement, discrimination, nudité, violence ou contenu illicite. Tout contenu peut être signalé depuis l'app, et tout utilisateur bloqué. Les signalements sont examinés sous 48 heures ouvrées ; un contenu abusif est retiré et son auteur est exclu.",
+        },
+        {
+          title: "Ton compte",
+          body: "Tu peux supprimer ton compte à tout moment depuis les réglages. Si tu es le seul coach de ton espace, l'espace et ses données sont supprimés avec lui ; sinon, il revient au coach suivant.",
+        },
+        { title: "Droit applicable", body: "Droit français." },
+      ],
+    },
   },
   inbox: {
     title: "Notifications",
@@ -3322,7 +3434,8 @@ export const fr = {
       athletes: "Athlètes",
       groups: "Groupes",
       coaches: "Coachs",
-      videos: "Vidéos par mois",
+      videos: "Vidéos du coach par mois",
+      athleteVideos: "Vidéos envoyées par chaque athlète, par mois",
       retention: "Vidéos conservées",
       trial: "Essai",
       ai: "Planificateur IA",

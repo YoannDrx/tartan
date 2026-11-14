@@ -271,13 +271,15 @@ export const UploadVideoDialog = ({
               )}
             </Field>
           ) : null}
-          {/* La barre ne concerne que les sauteurs : repliée pour tous les autres. */}
-          <details>
-            <summary className="inline-flex min-h-11 cursor-pointer items-center font-semibold">
-              {m.video.barFields}
-            </summary>
-            <JumpFields value={jump} onChange={setJump} />
-          </details>
+          {/* La barre ne concerne que les sauteurs, et seul l'encadrement la note : repliée, jamais côté athlète. */}
+          {self ? null : (
+            <details>
+              <summary className="inline-flex min-h-11 cursor-pointer items-center font-semibold">
+                {m.video.barFields}
+              </summary>
+              <JumpFields value={jump} onChange={setJump} />
+            </details>
+          )}
           {error ? (
             <p role="alert" className="text-alert">
               {error}
