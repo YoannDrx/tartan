@@ -19,7 +19,7 @@ env:
     optional: true
 - scrollUntilVisible:
     element: "Continuer avec ces destinataires"
-    centerElement: true
+# Dernier bouton : entièrement visible, mais impossible à centrer davantage en bas de page.
 - tapOn: "Continuer avec ces destinataires"
 - scrollUntilVisible:
     element:

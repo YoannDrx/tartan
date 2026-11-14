@@ -14,6 +14,9 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, diagnostic final des deux échecs natifs
+La trace finale confirme un HTTP 500 P2028 après 27,3 s sur le contexte du constructeur : l’installation initiale du catalogue, encore séquentielle, expire. L’insertion groupée et la graine complète corrigent ce chemin ; aucun délai de transaction supplémentaire ajouté. Le second échec est propre à la recette IA : le bouton final est entièrement visible et actif dans la capture et l’arbre d’accessibilité, mais `centerElement` exige une position impossible en bas de page. Centrage retiré de cette seule recherche, clic et création effective du brouillon toujours exigés. Rejeu ciblé local réussi en 3 min 12 sur iPhone simulé, création effective du brouillon vérifiée par le parcours ; CI complète encore requise.
+
 ## 2026-11-14, Codex, premier chargement du catalogue
 La CI native reste rouge sur l’ouverture du constructeur simple, y compris après une attente de 30 s ; aucun correctif déclaré éprouvé sur cette seule hausse. La trace réseau d’une exécution précédente montre une réponse du contexte en 16,5 s. L’installation initiale des fiches communes utilisait 150 écritures successives ; les ajouts passent désormais par une insertion groupée, sous les mêmes verrous et avec mises à jour éditoriales séparées. Le setup de démonstration installe aussi les 150 fiches dès la graine, au lieu de les laisser à la première ouverture ; création neuve et rejeu inchangé vérifiés sur base jetable, ensuite supprimée. Les cinq tests de catalogue et la suite locale complète passent (1 969 web, 294 domaine, 252 mobile, types/lint/design). La validation finale iOS reste requise ; les fusions attendent un assemblage vert.
 

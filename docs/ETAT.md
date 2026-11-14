@@ -2,7 +2,7 @@
 
 Mis à jour le 14 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
-Premier chargement du constructeur natif : l’attente de 30 s ne suffit pas dans la dernière CI. Installation initiale du catalogue groupée pour réduire les écritures successives ; graine de démonstration alignée sur les 150 fiches communes. Installation neuve, rejeu inchangé et tests de concurrence/conservation réussis, validation iOS finale encore attendue dans la PR 124.
+Premier chargement du constructeur natif : la dernière trace confirme une expiration P2028 de l’installation du catalogue. Installation initiale du catalogue groupée pour réduire les écritures successives ; graine de démonstration alignée sur les 150 fiches communes. Installation neuve, rejeu inchangé et tests de concurrence/conservation réussis, validation iOS finale encore attendue dans la PR 124.
 
 Révision de circuit : expiration sous verrou concurrent reproduite puis corrigée par un budget de transaction borné à 30 s ; 39 tests ciblés réussis, prescriptions historiques préservées. Résultat de la CI finale et preuve de déploiement suivis dans la PR 124.
 
