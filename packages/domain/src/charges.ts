@@ -41,7 +41,7 @@ export const formatPrescription = (p: Prescription, resolvedLoadKg: number | nul
   else if (p.count) parts.push(`${sets}${p.count} ${p.unit ?? ""}`.trim());
   else if (p.distance_m) parts.push(`${sets}${formatNumber(p.distance_m)} m`);
   else if (p.duration_s) parts.push(`${sets}${formatDuration(p.duration_s)}`);
-  else if (p.sets) parts.push(`${p.sets} séries`);
+  else if (p.sets) parts.push(p.sets > 1 ? `${p.sets} séries` : "1 série");
   if (resolvedLoadKg !== null) parts.push(`${formatNumber(resolvedLoadKg)} kg`);
   else if (p.load?.type === "kg") parts.push(`${formatNumber(p.load.value)} kg`);
   else if (p.load?.type === "pct_1rm") parts.push(`${p.load.value} % du max`);

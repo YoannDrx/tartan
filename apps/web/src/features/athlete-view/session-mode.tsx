@@ -5,7 +5,7 @@ import { formatDuration } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { ArrowRight, Check, Timer, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, IconButton } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ExternalVideo } from "@/features/exercises/exercise-video";
@@ -58,7 +58,21 @@ export const SessionMode = ({
   const [index, setIndex] = useState(0);
   const [speed, setSpeed] = useState(0.5);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
-  const [restLeft, setRestLeft] = useState<number | null>(null);
+  // La fin du repos est une heure, pas un compte à rebours : un onglet en arrière-plan ne le fait pas dériver.
+  const [restEnd, setRestEnd] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const [announce, setAnnounce] = useState("");
+  const heading = useRef<HTMLHeadingElement>(null);
+  const audio = useRef<AudioContext | null>(null);
+  const restLeft = restEnd === null ? null : Math.max(0, Math.ceil((restEnd - now) / 1000));
+  const startRest = (seconds: number | null | undefined) => setRestEnd(seconds ? Date.now() + seconds * 1000 : null);
+  const go = useCallback(
+    (next: number) => {
+      setRestEnd(null);
+      setIndex(Math.max(0, Math.min(next, items.length - 1)));
+    },
+    [items.length],
+  );
 
   useEffect(() => {
     try {
@@ -78,13 +92,62 @@ export const SessionMode = ({
     }
   }, [checked, storageKey]);
   useEffect(() => {
-    if (restLeft === null) return;
-    const timer = setTimeout(() => {
-      if (restLeft <= 1) navigator.vibrate?.(300);
-      setRestLeft(restLeft <= 1 ? null : restLeft - 1);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [restLeft]);
+    if (restEnd === null) return;
+    const tick = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(tick);
+  }, [restEnd]);
+  // Fin du repos : vibration, signal court et annonce ; une récupération de circuit enchaîne sur l'étape suivante.
+  useEffect(() => {
+    if (restEnd === null || now < restEnd) return;
+    navigator.vibrate?.(300);
+    try {
+      const context = audio.current;
+      if (context) {
+        const tone = context.createOscillator();
+        tone.frequency.value = 880;
+        tone.connect(context.destination);
+        tone.start();
+        tone.stop(context.currentTime + 0.2);
+      }
+    } catch {
+      // Son indisponible : la vibration et l'annonce suffisent.
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- la fin du repos est un événement du minuteur
+    setAnnounce(m.sessionMode.restOver);
+    setRestEnd(null);
+    if (items[index]?.kind === "recovery" && index < items.length - 1) go(index + 1);
+  }, [now, restEnd, index, items, go]);
+  // L'écran reste allumé pendant la séance, quand le navigateur le permet.
+  useEffect(() => {
+    let lock: { release: () => Promise<void> } | null = null;
+    const request = () =>
+      (navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<typeof lock> } }).wakeLock
+        ?.request("screen")
+        .then((granted) => (lock = granted))
+        .catch(() => undefined);
+    void request();
+    const again = () => (document.visibilityState === "visible" ? void request() : undefined);
+    document.addEventListener("visibilitychange", again);
+    return () => {
+      document.removeEventListener("visibilitychange", again);
+      void lock?.release().catch(() => undefined);
+    };
+  }, []);
+  // Chaque étape annonce son titre ; une récupération démarre seule.
+  useEffect(() => {
+    heading.current?.focus();
+    const step = items[index];
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- démarrage voulu à l'arrivée sur l'étape
+    if (step?.kind === "recovery") startRest(step.prescription.duration_s);
+  }, [index, items]);
+  const unlockSound = () => {
+    if (audio.current) return;
+    try {
+      audio.current = new AudioContext();
+    } catch {
+      audio.current = null;
+    }
+  };
 
   const item = items[index];
   const sets = Object.entries(checked)
@@ -128,10 +191,15 @@ export const SessionMode = ({
           />
           <div className="flex flex-1 flex-col gap-1.5">
             <span className="t-caption font-normal text-soft">{m.builder.sequence.stage(index + 1, items.length)}</span>
-            <div className="flex gap-1" aria-hidden>
-              {items.map((it, i) => (
-                <span key={it.ref} className={cn("h-1 flex-1 rounded-sm", i <= index ? "bg-accent" : "bg-card-line")} />
-              ))}
+            <div
+              role="progressbar"
+              aria-label={m.sessionMode.progress(index + 1, items.length)}
+              aria-valuemin={1}
+              aria-valuemax={items.length}
+              aria-valuenow={index + 1}
+              className="h-1 overflow-hidden rounded-sm bg-card-line"
+            >
+              <span className="block h-full bg-accent" style={{ width: `${((index + 1) / items.length) * 100}%` }} />
             </div>
           </div>
         </div>
@@ -141,7 +209,9 @@ export const SessionMode = ({
             {item.rounds.map((r) => m.builder.sequence.round(r.name, r.round, r.rounds)).join(" · ")}
           </p>
         ) : null}
-        <h1 className="t-display">{item.name}</h1>
+        <h1 ref={heading} tabIndex={-1} className="t-display outline-none">
+          {item.name}
+        </h1>
 
         <Demo item={item} speed={speed} />
         {(item.media as Media | null)?.kind === "upload" ? (
@@ -199,12 +269,16 @@ export const SessionMode = ({
                     aria-pressed={done}
                     aria-label={done ? m.sessionMode.setDone(i + 1) : m.sessionMode.setTodo(i + 1)}
                     onClick={() => {
+                      unlockSound();
                       setChecked({ ...checked, [key]: !done });
-                      const seconds =
-                        i === setCount - 1
-                          ? (item.restAfterLastSetS ?? item.prescription.rest_s)
-                          : item.prescription.rest_s;
-                      if (!done) setRestLeft(seconds || null);
+                      if (done) return;
+                      const lastSet = doneCount + 1 >= setCount;
+                      const seconds = lastSet
+                        ? (item.restAfterLastSetS ?? item.prescription.rest_s)
+                        : item.prescription.rest_s;
+                      // Dernière série sans repos : l'étape suivante vient d'elle-même, comme dans un circuit.
+                      if (lastSet && !seconds && !last) setTimeout(() => go(index + 1), 600);
+                      else startRest(seconds);
                     }}
                     className={cn(
                       "flex h-[60px] flex-col items-center justify-center rounded-card",
@@ -232,7 +306,11 @@ export const SessionMode = ({
             </span>
             <button
               type="button"
-              onClick={() => setRestLeft(restLeft === null ? (restDuration ?? 0) : null)}
+              onClick={() => {
+                unlockSound();
+                if (restLeft === null) startRest(restDuration);
+                else setRestEnd(null);
+              }}
               className="min-h-11 rounded-full bg-accent px-4 font-semibold text-on-accent"
             >
               {restLeft === null ? m.sessionMode.startRest : m.sessionMode.stopRest}
@@ -240,6 +318,16 @@ export const SessionMode = ({
           </div>
         ) : null}
 
+        <p className="sr-only" aria-live="polite">
+          {announce}
+        </p>
+        {!last && items[index + 1] ? (
+          <p className="text-soft">
+            {m.sessionMode.upNext(
+              [items[index + 1]!.name, ...(items[index + 1]!.rounds ?? []).map((r) => `${r.round}/${r.rounds}`)].join(" · "),
+            )}
+          </p>
+        ) : null}
         <div className="mt-auto flex flex-col gap-2 pt-2">
           {last ? (
             <>
@@ -259,10 +347,7 @@ export const SessionMode = ({
               variant="darkSecondary"
               className="flex-1"
               disabled={index === 0}
-              onClick={() => {
-                setRestLeft(null);
-                setIndex(index - 1);
-              }}
+              onClick={() => go(index - 1)}
             >
               {m.sessionMode.previous}
             </Button>
@@ -271,10 +356,7 @@ export const SessionMode = ({
                 size="lg"
                 variant="darkPrimary"
                 className="flex-[2]"
-                onClick={() => {
-                  setRestLeft(null);
-                  setIndex(index + 1);
-                }}
+                onClick={() => go(index + 1)}
               >
                 {m.builder.sequence.next}
                 <ArrowRight aria-hidden className="size-5" />
