@@ -177,7 +177,7 @@ test("contexte, clarification, reprise, aperçu, correction et confirmation perd
     await page
       .getByLabel(t.instructions, { exact: true })
       .fill("Squat arrière, trois séries de quatre à 80 % pour le groupe.");
-    await expect(page.getByRole("button", { name: t.propose, exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: t.propose, exact: true })).toBeDisabled();
     await page.getByRole("checkbox", { name: t.reviewed, exact: true }).check();
     await page.getByRole("button", { name: t.propose, exact: true }).click();
     await expect(page.getByRole("heading", { name: t.clarifyTitle })).toBeVisible();
@@ -376,7 +376,7 @@ test("micro navigateur : annulation, audio réel synthétique, relecture avant g
       "Squat arrière : trois séries de quatre à quarante kilos.",
     );
     await expect(page.getByRole("checkbox", { name: t.reviewed, exact: true })).not.toBeChecked();
-    await expect(page.getByRole("button", { name: t.propose, exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: t.propose, exact: true })).toBeDisabled();
     expect(uploads).toBe(1);
     await expect
       .poll(() =>
