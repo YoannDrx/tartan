@@ -280,16 +280,16 @@ function NodeCard(props: LevelProps & { node: SequenceNode; index: number }) {
     const exercise = item ? byId.get(item.exerciseId) : undefined;
     const tone = categoryColors(exercise?.category);
     return (
-      <div
-        className="flex min-w-0 items-center gap-2 rounded-button bg-card-raised py-1 pl-3 pr-1"
-        style={{ borderLeft: `6px solid ${tone.text}` }}
-      >
+      <div className="flex min-w-0 items-center gap-2 rounded-button bg-card-raised py-1 pl-1.5 pr-1">
         <button
           type="button"
           className="flex min-h-11 min-w-0 flex-1 items-center gap-2 py-1 text-left"
           onClick={() => item && onEdit(item.ref!)}
         >
-          <span className="shrink-0" style={{ color: tone.text }}>
+          <span
+            className="flex size-10 shrink-0 items-center justify-center rounded-button"
+            style={{ backgroundColor: tone.background, color: tone.text }}
+          >
             <ActivityPicto kind={exercise?.category ?? "strength"} className="size-5" />
           </span>
           <span className="min-w-0 break-words leading-snug">

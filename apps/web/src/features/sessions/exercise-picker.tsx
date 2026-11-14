@@ -96,10 +96,15 @@ export function ExercisePicker({
           {found.map((exercise) => (
             <li
               key={exercise.id}
-              className="flex items-center gap-3 rounded-button bg-card-raised py-1.5 pl-3 pr-1.5"
-              style={{ borderLeft: `6px solid ${categoryColors(exercise.category).text}` }}
+              className="flex items-center gap-3 rounded-button bg-card-raised py-1.5 pl-1.5 pr-1.5"
             >
-              <span style={{ color: categoryColors(exercise.category).text }}>
+              <span
+                className="flex size-10 shrink-0 items-center justify-center rounded-button"
+                style={{
+                  backgroundColor: categoryColors(exercise.category).background,
+                  color: categoryColors(exercise.category).text,
+                }}
+              >
                 <ActivityPicto kind={exercise.category} className="size-5" />
               </span>
               <span className="flex min-w-0 flex-1 flex-col leading-snug">
