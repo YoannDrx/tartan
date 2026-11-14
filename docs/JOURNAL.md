@@ -14,6 +14,9 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, premier chargement du catalogue
+La CI native reste rouge sur l’ouverture du constructeur simple, y compris après une attente de 30 s ; aucun correctif déclaré éprouvé sur cette seule hausse. La trace réseau d’une exécution précédente montre une réponse du contexte en 16,5 s. L’installation initiale des fiches communes utilisait 150 écritures successives ; les ajouts passent désormais par une insertion groupée, sous les mêmes verrous et avec mises à jour éditoriales séparées. Le setup de démonstration installe aussi les 150 fiches dès la graine, au lieu de les laisser à la première ouverture ; création neuve et rejeu inchangé vérifiés sur base jetable, ensuite supprimée. Les cinq tests de catalogue et la suite locale complète passent (1 969 web, 294 domaine, 252 mobile, types/lint/design). La validation finale iOS reste requise ; les fusions attendent un assemblage vert.
+
 ## 2026-11-14, Codex, assemblage final des PR 124 et 126–129
 Les quatre lots natifs sont réunis dans la PR 124 avec main, sans conflit de code ; les journaux et les preuves d’exploitation sont conservés. Les PR d’origine ciblent main et restent ouvertes jusqu’à leur validation et à l’intégration finale. Autorisation de fusion et nettoyage Git déjà donnée par le fondateur ; aucune protection désactivée. Derniers correctifs : première confirmation de lien iOS éprouvée sur simulateur neuf, révision de circuit sous contention reproduite puis corrigée. CI complète de chaque tête et de l’assemblage suivie dans les PR ; preuve de déploiement à ajouter dans la PR 124 après observation. Inscriptions fermées, aucune qualification IA ni validation de téléphone déduite de ces fusions.
 

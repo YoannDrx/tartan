@@ -2,6 +2,8 @@
 
 Mis à jour le 14 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
+Premier chargement du constructeur natif : l’attente de 30 s ne suffit pas dans la dernière CI. Installation initiale du catalogue groupée pour réduire les écritures successives ; graine de démonstration alignée sur les 150 fiches communes. Installation neuve, rejeu inchangé et tests de concurrence/conservation réussis, validation iOS finale encore attendue dans la PR 124.
+
 Révision de circuit : expiration sous verrou concurrent reproduite puis corrigée par un budget de transaction borné à 30 s ; 39 tests ciblés réussis, prescriptions historiques préservées. Résultat de la CI finale et preuve de déploiement suivis dans la PR 124.
 
 Recette native : première confirmation iOS suivie d’une remise au premier plan sans arrêt de l’app ; attente bornée à 30 s et assertions du circuit conservées. Trace de livraison du lien à la réactivation suivante ; rejeu sur simulateur neuf réussi en 1 min 49, confirmation système effectivement parcourue ; validation CI du commit final suivie dans la PR 124.
