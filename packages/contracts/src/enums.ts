@@ -85,7 +85,19 @@ export const JUMP_PHASES = ["approach", "penultimate", "takeoff", "clearance", "
 export const MOVEMENT_PHASES = ["preparation", "execution", "finish"] as const;
 export type JumpPhase = z.infer<typeof jumpPhase>;
 
-export const annotationKind = z.enum(["comment", "line", "arrow", "angle"]);
+export const annotationKind = z.enum(["comment", "line", "arrow", "angle", "circle"]);
+
+// Un tracé sur l'image : points relatifs (0 à 1), deux pour une ligne, une flèche ou un cercle, trois pour un angle.
+const drawingPoint = z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) });
+export const videoDrawing = z
+  .object({
+    kind: z.enum(["line", "arrow", "circle", "angle"]),
+    points: z.array(drawingPoint).min(2).max(3),
+    // Largeur sur hauteur de l'image tracée : un angle se mesure et se replace juste sur n'importe quel écran.
+    aspect: z.number().positive().max(10).optional(),
+  })
+  .refine((d) => d.points.length === (d.kind === "angle" ? 3 : 2), "Tracé incomplet");
+export type VideoDrawing = z.infer<typeof videoDrawing>;
 export const commentEntity = z.enum(["session", "log", "video"]);
 export type CommentEntity = z.infer<typeof commentEntity>;
 

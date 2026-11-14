@@ -14,6 +14,13 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-15, Claude, tracés sur vidéo
+Fait (PR `feat/traces-video`, empilée sur F2) : `video-drawing.ts` (domaine : points par tracé, angle mesuré dans les proportions de l'image), contrat `videoDrawing` (points relatifs, `aspect`), `annotationInput` accepte un tracé sans texte (jamais dans une réponse), `annotation_kind` reçoit `circle` (migration additive), `shape` garde `{ points, aspect }` ; calque web posé avec le même cadrage que la vidéo (`preserveAspectRatio` « meet » sur la taille réelle de l'image), outils Ligne, Flèche, Angle, Cercle ; calque mobile en lecture seule.
+Vérifié : domaine 309, web 1 977, mobile, types, lint, design ; essai local à 375 px sur une vidéo en portrait : angle tracé, enregistré sans texte, relu « Angle de 82° » et réaffiché à son instant.
+Non vérifié : tracés sur un vrai téléphone ; saisie au clavier (les points se posent au toucher, la remarque écrite reste l'alternative).
+À savoir : pour un essai local, `VIDEO_DEV_MP4_URL` sert une vidéo de développement quand la ligne n'a pas d'identifiant Mux ; ne jamais committer la vidéo posée dans `public/`.
+Suite : F1 (matrice écran par écran), puis phase G.
+
 ## 2026-11-15, Claude, phase F2 (vidéos)
 Fait (PR `feat/mes-videos`) : route `/mes-videos` (redirection 308 depuis `/mes-sauts` dans `next.config.ts`, les deux chemins dans l'association Apple et dans `notification-routes.ts`) ; énumération `jump_phase` étendue de `preparation`, `execution`, `finish` (migration additive) avec `JUMP_PHASES` et `MOVEMENT_PHASES` dans les contrats ; `video_shared` nomme l'athlète ou le coach ; filtre `groupe` sur `/videos`.
 Vérifié : types, lint, design, domaine, mobile, web (dont filtre par groupe et payload de notification).
