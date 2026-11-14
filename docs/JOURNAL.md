@@ -14,6 +14,9 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, état du plan et dépendances des PR
+Réconciliation d’ETAT : distinction des lots de finalisation et des anciennes actions F1–F17, retirant les lignes de produit copiées par erreur dans le tableau du fondateur. Statut actuel des guides approuvés, D-U-N-S envoyé, incident réparé et qualification IA encore insuffisante. Historique du journal conservé. PR 123–129 prêtes à revue, toutes autorisées à fusionner CI verte ; vérifications en cours. Aucun statut « éprouvé » déduit d’un test simulé. Après rétablissement, l’accès lecture seule de sauvegarde GitHub a également été corrigé ; export Blob relancé, résultat à confirmer.
+
 ## 2026-11-14, Codex, F9 : catalogue approuvé dans les recettes natives
 Intégration des branches parentes et des 150 guides approuvés. Le scénario IA vérifie le brief accessible au lieu de l’ancien blocage éditorial ; création privée et confirmation réelle du brouillon restent exigées. Le constructeur simple passe en local (84 s) après traitement du dialogue de sauvegarde du mot de passe, sans modification du délai de chargement. Rejeux circuits et CI complète en cours ; aucun résultat de téléphone physique ajouté.
 
