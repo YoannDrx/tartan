@@ -14,6 +14,9 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, F5 : isoler le cas de catalogue non approuvé
+La suite CI complète révèle une dépendance d’ordre : le test de refus du mode proposition supposait le catalogue partagé absent, alors que d’autres fichiers ont installé les 150 guides désormais approuvés. Le scénario rend sa précondition explicite, restaure les guides en fin de test et conserve les assertions de refus avant tout appel IA ainsi que celles des charges inventées. Ce défaut n’apparaissait pas au lancement isolé du fichier ; rejeu conjoint puis suite complète requis.
+
 ## 2026-11-14, Codex, F5 : intégration du catalogue approuvé
 Reprise autorisée de la PR 124 avec le catalogue version 2 approuvé par le fondateur. Le parcours navigateur vérifie désormais l’accès au mode proposition et la conservation du brief ; les refus du service en l’absence de catalogue approuvé restent testés séparément. Cette approbation éditoriale ne change ni les résultats du corpus IA ni ses seuils. Contrôles ciblés et CI à rejouer avant fusion.
 
