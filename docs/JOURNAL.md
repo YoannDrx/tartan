@@ -13,6 +13,24 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-14, Codex, reprise du service et intégration Stripe
+Reprise autorisée de `test/stripe-browser-recipe` et intégration de `main`, en conservant les recettes et journaux des autres lots. Connexion de production corrigée vers la branche actuelle avec TLS verify-full ; déploiement `0d9c4ef` puis fusion vidéo `56d0fff` vérifiés READY, santé OK et versions attendues. Aucun journal d’erreur sur ces nouveaux déploiements lors du contrôle. Les deux branches Neon restent conservées ; comparaison agrégée concordante sur 76 tables, sans conclure à l’égalité des lignes. La restauration finalisée ne compte pas comme preuve isolée. PR 121 fusionnée CI verte sur accord du fondateur ; branches Git locale et distante supprimées après vérification d’ascendance. Demande D-U-N-S envoyée après accord spécifique ; Apple confirme le traitement et annonce un e-mail, numéro pas encore attribué.
+
+## 2026-11-13, Codex, incident de production et rectification de la preuve Neon
+
+Constaté : après fusion autorisée de la PR 120, déploiement `0d9c4ef` en échec sur la connexion de migration ; `/api/health` retourne 503, version servie `75d3cbe`. Les journaux du cron signalent `P1000` (authentification refusée), notamment à 19 h 15 et 19 h 30 UTC. Connexion réseau/TLS disponible et requêtes techniques Neon réussies sur les deux branches.
+Rectification de l’entrée précédente : l’API montre la restauration finalisée avec déplacement du calcul et de la protection vers la branche restaurée. L’affirmation « production inchangée » n’est donc pas une preuve valide. Ne supprimer aucune branche ni snapshot ; la demande de nettoyage antérieure est retirée. Les écritures récentes restent à rapprocher, sans conclusion de perte ou d’absence de perte.
+En cours : checkout dédié pour corriger les preuves de la PR 125 ; fusions supplémentaires suspendues. Origine de la finalisation demandée au fondateur ; autorisation ciblée de transférer les identifiants valides vers Vercel puis redéployer demandée conformément à sa règle sur les secrets. Aucun accès communiqué dans le dépôt.
+Suite : établir la branche de référence, rétablir l’authentification, vérifier santé/version/journaux, puis consigner la cause et l’impact réels avant reprise des fusions.
+
+## 2026-11-13, Codex, F2 déployé et recette navigateur Stripe
+
+Fait : fusion autorisée de la PR 119 après qualité et natif verts sur `2bea4fa`. Production `75d3cbe` READY, version vérifiée sur les deux domaines, aucun avertissement/erreur dans les journaux du déploiement consultés. La PR 120 est réactualisée sur main, nouvelle CI nécessaire ; accord de fusion déjà reçu pour 120 et 121.
+Codé : réutilisation du checkout F2 propre, nouvelle branche `test/stripe-browser-recipe` depuis main pour F7. Recette explicite des pages Checkout et portail hébergées, transport CLI et webhook réel, base locale jetable seulement ; compte sandbox fourni localement, retiré du dépôt public.
+Vérifié : six tests sandbox réels passent (194 s), dont les deux parcours navigateur. Carte standard et 3-D Secure, première facture, demande d’authentification après essai puis règlement depuis la facture hébergée, résiliation à l’échéance et maintien des droits. Les quatre tests API historiques sont rejoués. Reprise des deux parcours navigateur après renforcement du nettoyage : 2/2 (94 s). Types/lint/design verts (quatre avertissements existants), 1 905 tests web, 265 métier, 243 mobile, 247 jeu et 90 mascotte passent. Absence du compte sandbox refusée avant tout appel CLI (contrôle direct ; le formateur d’erreurs Vite masque cette exception dans le globalSetup). Suite Playwright ordinaire non relancée localement : aucun parcours applicatif modifié. Retour Tartan intercepté : aucune preuve de cet écran, d’un vrai paiement ou de la fiscalité.
+À savoir : les formulaires Stripe sont dans des cadres intégrés ; sélectionner Carte bancaire avant les champs. Les captures pleine page perturbent le rendu, garder le viewport. La validation au clavier évite les clics prématurés pendant l’animation 3-D Secure. Le portail demande le motif avant la confirmation, et peut fixer `cancel_at` sans lever `cancel_at_period_end` : vérifier la date réelle et le miroir.
+Exploitation : snapshot Neon au point demandé 17 h 35 UTC restauré dans une nouvelle branche isolée ; 83 tables et 49 migrations, empreinte des migrations et volumes fonctionnels identiques à la source. Production inchangée. Calcul temporaire borné à 0,25 unité avec suspension après 300 s (60 s refusé par Launch) ; snapshot expire le lendemain. Identifiants conservés uniquement dans une preuve locale ignorée.
+
 ## 2026-11-14, Codex, F3 : approbation et diffusion des 150 guides
 Le fondateur déclare avoir relu et validé les 150 textes et autorise leur publication. Reprise de `feat/exercise-catalog-guides` : catalogue version 2 approuvé ; illustrations toujours brouillons, non produites ni approuvées. Mise à niveau des guides hérités au contenu identique, sans toucher prescriptions, personnalisation ou instantanés historiques. Trois tests domaine et cinq tests de service réussis, dont concurrence/idempotence et diffusion aux copies anciennes ; contrôles globaux en cours. Cette décision n’atteste ni les médias manquants ni la qualification du planificateur.
 ## 2026-11-13, Codex, F6 : diagnostic de la suppression native
@@ -75,6 +93,7 @@ Codé : `feat/session-sequences`, empilée sur F1 ; exercices, récupérations e
 Vérifié : types, lint (quatre avertissements existants), design, 265 tests domaine et 1 884 tests web ; les 243 tests mobile restent verts. La suite initiale a détecté le rejet d'un brouillon historique vide : validation V2 restreinte et suite web intégralement rejouée avec succès. Parcours navigateur sur build de production : 208 réussis, 20 ignorés selon les drapeaux, quatre échecs de traces causés par deux suites partageant le même dossier de résultats ; les quatre concernés et quatre parcours terrain associés passent ensuite (8/8), avec sortie isolée. Aucun échec applicatif restant observé.
 Limites : aucun écran de construction ni minuteur encore raccordé, aucun essai prestataire ou téléphone réel. La lecture API fournit déjà l'ordre développé ; les modèles V2 exigent la capacité `structureVersion=2`.
 Suite : F3 catalogue, F4 constructeur et mode séance, F5 planificateur puis F9 natif. Ne pas déclarer F2 éprouvé avant ces consommateurs.
+
 ## 2026-11-13, Codex, F1 : isolation des rebonds et instrumentation
 
 Codé sur `fix/operational-delivery`, basée sur les sauvegardes privées : le webhook Resend vérifie l'expéditeur exact, ignore les autres applications et accepte une liste explicite d'anciens expéditeurs pour les événements retardés. PostgreSQL explicite `verify-full` pour conserver le contrôle du certificat et du nom d'hôte lors de l'évolution de node-postgres. Sentry : hooks de tracing ESM désactivés puisque le tracing est déjà coupé ; capture d'erreurs conservée.
@@ -96,6 +115,7 @@ En cours : `docs/completion-baseline`, depuis `main` à jour (`3bb8099`), aucune
 À savoir : l'audit précédent avait utilisé Node 24 ; ses tests verts ne sont pas une preuve sous le runtime prescrit. Aucun écran, paiement ou téléphone réel ajouté à la preuve par cette documentation.
 Suite : F1 exploitation puis F2 contrats, en conservant une branche/PR par lot.
 Intégration : PR 116 des e-mails conservée intégralement lors de la mise à jour avec `main` ; les deux passations du journal sont gardées. Fusions 117 à 120 autorisées explicitement par le fondateur le 13 novembre, uniquement après contrôles verts.
+
 ## 2026-11-13, Claude, e-mails dans le mélange Tartan
 
 Fait : à la demande du fondateur, le gabarit commun (`apps/web/emails/layout.tsx`) passe à la piste en fond, aux deux lignes blanches, à une carte encre au texte blanc, à l'action et aux liens citron, et à une ligne blanche d'arrivée avant le pied de page sur la piste. Encadré `Highlight` (encre relevée, bordure citron) pour les échéances ; liens de désinscription en `FooterLink`, y compris le repli des notifications (PR `feat/emails-stade`).
@@ -495,3 +515,11 @@ Vérifié : lint, types, tests, design, Playwright sur build de production ; pas
 Non vérifié : e-mails reçus, paiement réel, push, téléphones physiques.
 À savoir : les variables Vercel de type Secret ne se relisent pas, même avec `vercel env run`. Une variable modifiée n'agit qu'après un nouveau déploiement. La bibliothèque de passkeys n'envoie pas `fetchOptions` à sa première requête.
 Suite conseillée : A1, à commencer par T01.
+
+## 2026-11-14, Codex, F1 : rétablissement de la sauvegarde après changement de connexion
+Reprise de la branche de recette/exploitation : secret GitHub de sauvegarde mis à jour avec le rôle dédié, droits de lecture seule contrôlés. Le rejeu distingue une authentification périmée puis un magasin de certificats absent dans le conteneur PostgreSQL. Le workflow monte désormais le bundle Ubuntu en lecture seule et conserve verify-full. Validation par export chiffré et dépôt Blob privé en cours ; aucune réussite déduite du seul changement de secret.
+
+Preuve complétée : export privé du 14 novembre à 02 h 10 UTC réussi et relu à l’identique (334 190 octets), puis restauration locale isolée en 0,31 s, 83 tables/50 migrations sans erreur ni contrainte non validée. Base et secrets temporaires retirés. Les erreurs brutes de pg_dump sont désormais capturées puis supprimées : elles contiennent le nom de connexion et ne doivent pas paraître dans les journaux publics. Rejeu du workflow et fusion encore requis.
+
+## 2026-11-14, Codex, intégration du catalogue
+PR 123 fusionnée après contrôles verts : qualité 50 min 19, Maestro 43 min 34 et Android 17 min 47. Régression locale : 222 parcours réussis, 22 ignorés selon options, aucun échec. PR 125 remise à jour depuis main ; résolution documentaire en conservant la distinction des lots et des interventions du fondateur. Publication et nettoyage Git suivis après vérification du déploiement.
