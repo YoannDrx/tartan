@@ -15,6 +15,10 @@ Suite conseillée : numéro de tâche
 
 ## 2026-11-14, Codex, F3 : approbation et diffusion des 150 guides
 Le fondateur déclare avoir relu et validé les 150 textes et autorise leur publication. Reprise de `feat/exercise-catalog-guides` : catalogue version 2 approuvé ; illustrations toujours brouillons, non produites ni approuvées. Mise à niveau des guides hérités au contenu identique, sans toucher prescriptions, personnalisation ou instantanés historiques. Trois tests domaine et cinq tests de service réussis, dont concurrence/idempotence et diffusion aux copies anciennes ; contrôles globaux en cours. Cette décision n’atteste ni les médias manquants ni la qualification du planificateur.
+## 2026-11-13, Codex, F6 : diagnostic de la suppression native
+
+Reprise de `feat/collaborative-video` : la CI native atteint la suppression finale mais le serveur retourne une erreur Prisma et conserve le compte. La capture confirme une saisie complète ; ce n'est pas un clic manqué. Le journal HTTP conserve désormais uniquement le code Prisma normalisé, sans message, requête ni métadonnées, afin de distinguer contrainte et expiration de transaction. Réponse publique inchangée. Neuf tests ciblés et suites complètes passent sous Node 22/pnpm 10 (1 918 web, 267 domaine, 243 mobile, 247 jeu, 90 mascotte) ; types, lint et design réussis, quatre avertissements lint hérités. Recette native à rejouer pour identifier la cause exacte. Aucune correction métier ni réussite de suppression déduite de cette instrumentation.
+Exploitation : incident de production en cours, authentification PostgreSQL refusée et santé HTTP 503. La restauration Neon précédemment décrite comme isolée a été finalisée ; cette preuve d'isolation est retirée. Préserver les deux branches, aucune suppression ni fusion supplémentaire avant clarification et rétablissement. Détails techniques et identifiants conservés hors du dépôt public.
 
 ## 2026-11-13, Codex, F6 : intégration du correctif de recette F4
 
