@@ -925,7 +925,7 @@ export const fr = {
     adjustLabel: "Ce qui change",
     adjust: "Ajuster",
     unknownExercise: (name: string) =>
-      `« ${name} » n’est pas dans ta bibliothèque. Choisis la fiche qui correspond, ou crée-la.`,
+      `« ${name} » n’est pas dans ta bibliothèque : quelle fiche lui correspond, ou faut-il la créer ?`,
     clarifyTarget: "Plusieurs destinataires sont sélectionnés. Lesquels doivent recevoir cette séance ?",
     clarifyRest: "Quelle récupération veux-tu, en secondes ou en minutes ? Tartan ne connaît pas ton habitude.",
     clarifyLoad: "Quelle charge veux-tu indiquer ? Sans valeur de ta part, Tartan peut la laisser à définir.",
