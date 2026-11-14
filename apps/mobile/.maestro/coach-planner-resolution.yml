@@ -84,7 +84,7 @@ env:
 - copyTextFrom:
     id: planner-exercise-cues
 - assertTrue: ${maestro.copiedText === "Garder les appuis stables."}
-- tapOn: "Consignes techniques .*"
+- tapOn: "Consignes techniques.*"
 - scrollUntilVisible:
     element:
       id: planner-exercise-reviewed
