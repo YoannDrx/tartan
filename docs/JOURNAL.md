@@ -14,6 +14,10 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, F1 : sauvegarde de main et restauration vérifiées
+Après fusion de la PR 125, production `4b2004b` saine, version attendue et journaux ciblés sans erreur. Workflow de sauvegarde main `43552436123` réussi : copie privée de 03 h 36 UTC, 382 745 octets relus à l’identique. Restauration locale isolée en 0,37 s : 83 tables, 51 migrations et 150 guides approuvés, aucune migration échouée ni contrainte non validée. Base, fichier chiffré et secrets temporaires retirés ; preuves conservées hors dépôt public. Cette recette Blob ne remplace pas la restauration Neon isolée encore attendue.
+
+
 ## 2026-11-14, Codex, F5 : isoler le cas de catalogue non approuvé
 La suite CI complète révèle une dépendance d’ordre : le test de refus du mode proposition supposait le catalogue partagé absent, alors que d’autres fichiers ont installé les 150 guides désormais approuvés. Le scénario rend sa précondition explicite, restaure les guides en fin de test et conserve les assertions de refus avant tout appel IA ainsi que celles des charges inventées. Ce défaut n’apparaissait pas au lancement isolé du fichier ; rejeu conjoint puis suite complète requis.
 
