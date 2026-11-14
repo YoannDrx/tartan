@@ -29,6 +29,7 @@ const routes = {
   share: () => import("../app/api/v1/orgs/[orgId]/videos/[videoId]/share/route"),
   annotations: () => import("../app/api/v1/orgs/[orgId]/videos/[videoId]/annotations/route"),
   annotation: () => import("../app/api/v1/orgs/[orgId]/videos/[videoId]/annotations/[annotationId]/route"),
+  review: () => import("../app/api/v1/orgs/[orgId]/videos/[videoId]/review/route"),
 };
 
 const call = async (
@@ -68,6 +69,37 @@ beforeAll(async () => {
 }, 60_000);
 
 describe("vidéo en HTTP", () => {
+  it("le coach examine, l’auteur supprime ; un autre athlète ne supprime pas une vidéo partagée", async () => {
+    const orgId = org.organizationId;
+    const other = await addAthlete(orgId, org.groupId, "Voisin");
+    const otherCookie = await sessionCookie(other.email);
+    const video = await prisma.video.create({
+      data: {
+        organizationId: orgId,
+        athleteId: athlete.athleteId,
+        uploadedBy: athlete.userId,
+        sharedWithAthlete: true,
+        sharedWithGroup: true,
+        sharedGroupIds: [org.groupId],
+      },
+    });
+    const params = { orgId, videoId: video.id };
+    expect(
+      (await call((await routes.review()).POST as Handler, params, athleteCookie, { method: "POST" })).status,
+    ).toBe(403);
+    expect((await call((await routes.review()).POST as Handler, params, coach, { method: "POST" })).status).toBe(200);
+    expect((await prisma.video.findUniqueOrThrow({ where: { id: video.id } })).reviewedAt).not.toBeNull();
+    expect(
+      (await call((await routes.video()).DELETE as Handler, params, otherCookie, { method: "DELETE" })).status,
+    ).toBe(403);
+    expect((await call((await routes.video()).DELETE as Handler, params, stranger, { method: "DELETE" })).status).toBe(
+      403,
+    );
+    expect(
+      (await call((await routes.video()).DELETE as Handler, params, athleteCookie, { method: "DELETE" })).status,
+    ).toBe(200);
+    expect(await prisma.video.findUnique({ where: { id: video.id } })).toBeNull();
+  });
   it("de l'envoi à la vue de l'athlète : adresse, renouvellement, liste, partage, annotations", async () => {
     const orgId = org.organizationId;
     // Le coach crée la vidéo : une adresse d'envoi Mux, la vidéo en cours d'envoi.

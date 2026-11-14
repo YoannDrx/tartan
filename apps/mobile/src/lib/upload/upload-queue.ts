@@ -11,6 +11,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { api } from "../api";
 import { errorMessage } from "../errors";
 import { queryClient } from "../query-client";
+import { queuedVideoInput } from "../capture-input";
 import {
   classifyResponse,
   contentRange,
@@ -22,7 +23,12 @@ import {
   settleProbe,
   statusProbeRange,
 } from "./chunks";
-import { clearUploadProgress, showUploadProgress, startUploadService, stopUploadService } from "./progress-notification";
+import {
+  clearUploadProgress,
+  showUploadProgress,
+  startUploadService,
+  stopUploadService,
+} from "./progress-notification";
 import { stretchInPlace, type StretchOutcome } from "./stretch";
 
 export type UploadItem = {
@@ -124,7 +130,11 @@ export const useUploads = create<UploadState>()(
           fileUri: target.uri,
           size: target.size,
           // Dans la file persistante : une reprise après fermeture crée la vidéo avec le bon `timeScale`.
-          input: { ...input, fps: stretch.fps ?? input.fps ?? null, timeScale: stretch.timeScale },
+          input: queuedVideoInput(id, {
+            ...input,
+            fps: stretch.fps ?? input.fps ?? null,
+            timeScale: stretch.timeScale,
+          }),
           videoId: null,
           uploadUrl: null,
           started: false,
@@ -272,7 +282,7 @@ const uploadOne = async (id: string): Promise<void> => {
   patch(id, { state: "uploading", error: null });
 
   if (!item.uploadUrl) {
-    const created = await api.createVideo(item.orgId, item.input);
+    const created = await api.createVideo(item.orgId, queuedVideoInput(item.id, item.input));
     patch(id, { videoId: created.videoId, uploadUrl: created.uploadUrl });
     item = current();
     if (!item) return;

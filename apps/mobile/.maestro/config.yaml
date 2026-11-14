@@ -21,4 +21,5 @@ executionOrder:
     - coach-planner
     - coach-exercise-guide
     - athlete-circuit-guide
+    - athlete-video-capture
     - sync-review

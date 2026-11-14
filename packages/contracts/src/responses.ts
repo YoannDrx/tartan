@@ -250,6 +250,8 @@ export const videoSummary = z.object({
   exerciseName: z.string().nullable().optional(),
 });
 export type VideoSummary = z.infer<typeof videoSummary>;
+export const videoPage = z.object({ videos: z.array(videoSummary), nextCursor: z.string().nullable() });
+export type VideoPage = z.infer<typeof videoPage>;
 
 export const videoDetail = videoSummary.extend({
   canAnnotate: z.boolean().optional(),

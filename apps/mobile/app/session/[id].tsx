@@ -343,6 +343,23 @@ export default function SessionMode() {
 
       {parseMedia(item.media) ? <ExerciseVideo key={item.ref} media={parseMedia(item.media)} rate={rate} /> : null}
       {item.guide && !recovery ? <MovementGuide key={item.ref} guide={item.guide} /> : null}
+      {!recovery ? (
+        <Button
+          label={m.videoCollaboration.upload}
+          variant="secondary"
+          testID="session-video-upload"
+          disabled={!today.data?.videoConsent}
+          onPress={() =>
+            router.push({
+              pathname: "/capture",
+              params: {
+                sessionId: session.id,
+                ...(item.exerciseId ? { exerciseId: item.exerciseId } : {}),
+              },
+            })
+          }
+        />
+      ) : null}
 
       {parseMedia(item.media) ? (
         <View

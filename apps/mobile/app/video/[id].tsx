@@ -1,7 +1,7 @@
 import { ModerationSheet } from "../../src/features/comments";
 import { tokens } from "@tartan/design-tokens";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { JumpPhase } from "@tartan/contracts";
+import type { JumpPhase, VideoDetail } from "@tartan/contracts";
 import {
   formatHeight,
   hasHighJumpContext,
@@ -17,17 +17,26 @@ import { useEvent, useEventListener } from "expo";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useMemo, useRef, useState } from "react";
-import { AccessibilityActionEvent, Alert, PanResponder, Pressable, ScrollView, View } from "react-native";
+import {
+  AccessibilityActionEvent,
+  Alert,
+  PanResponder,
+  Pressable,
+  ScrollView,
+  View,
+  type TextInput,
+} from "react-native";
 import { CommentsSection } from "../../src/features/comments";
 import { BarSheetRow, resultLabel } from "../../src/features/video-bits";
 import { VideoExerciseLink } from "../../src/features/video-exercise-link";
+import { VideoSharing } from "../../src/features/video-sharing";
 import { api } from "../../src/lib/api";
-import { errorMessage } from "../../src/lib/errors";
+import { deniesCachedAccess, errorMessage } from "../../src/lib/errors";
 import { PHASE_ORDER, phaseSegments, preciseTimecode, segmentAt, type PhaseSegment } from "../../src/lib/phases";
 import { defaultSpeed, playerRate, speedsFor } from "../../src/lib/playback";
 import { playbackSource, shouldFallBackToHls } from "../../src/lib/playback-source";
 import { useActiveSpace, useVideo } from "../../src/lib/queries";
-import { ArrowUp, Flag, Pause, Play, Repeat, Share, SkipBack, SkipForward, Trash } from "../../src/ui/icons";
+import { ArrowUp, Flag, MessageSquare, Pause, Play, Repeat, SkipBack, SkipForward, Trash } from "../../src/ui/icons";
 import { Button, Chip, Field, IconButton, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
@@ -164,6 +173,8 @@ const Player = ({
   knownDurationMs,
   annotations,
   canAnnotate,
+  actorId,
+  staff,
   highJump,
   orgId,
   videoId,
@@ -177,8 +188,10 @@ const Player = ({
   // Tout l'écran raisonne en temps réel : seuls les échanges avec le lecteur passent par le temps du fichier étiré.
   timeScale: number;
   knownDurationMs: number | null;
-  annotations: { id: string; tMs: number; phase: JumpPhase | null; text: string | null; authorName: string | null }[];
+  annotations: VideoDetail["annotations"];
   canAnnotate: boolean;
+  actorId: string;
+  staff: boolean;
   highJump: boolean;
   orgId: string;
   videoId: string;
@@ -208,6 +221,8 @@ const Player = ({
   const [rate, setRate] = useState<number>(startSpeed);
   const [loop, setLoop] = useState<PhaseSegment | null>(null);
   const [text, setText] = useState("");
+  const [replyTo, setReplyTo] = useState<{ id: string; tMs: number } | null>(null);
+  const annotationField = useRef<TextInput>(null);
   const [showJumpTools, setShowJumpTools] = useState(highJump);
   const [phase, setPhase] = useState<JumpPhase | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -232,12 +247,26 @@ const Player = ({
   };
 
   const segments = useMemo(() => phaseSegments(annotations, durationMs), [annotations, durationMs]);
+  const threads = useMemo(
+    () =>
+      annotations
+        .filter((annotation) => !annotation.parentId)
+        .flatMap((root) => [root, ...annotations.filter((reply) => reply.parentId === root.id)]),
+    [annotations],
+  );
   const currentSegment = segmentAt(segments, positionMs);
 
   const add = useMutation({
-    mutationFn: () => api.addAnnotation(orgId, videoId, { tMs: Math.round(positionMs), phase, text: text.trim() }),
+    mutationFn: () =>
+      api.addAnnotation(orgId, videoId, {
+        tMs: replyTo?.tMs ?? Math.round(positionMs),
+        phase: replyTo ? null : phase,
+        text: text.trim(),
+        ...(replyTo ? { parentId: replyTo.id } : {}),
+      }),
     onSuccess: () => {
       setText("");
+      setReplyTo(null);
       setFormError(null);
       void client.invalidateQueries({ queryKey: ["videos", orgId, videoId] });
     },
@@ -364,13 +393,13 @@ const Player = ({
         positionMs={positionMs}
         durationMs={durationMs}
         segments={segments}
-        markers={annotations.map((a) => a.tMs)}
+        markers={[...new Set(annotations.map((a) => a.tMs))]}
         onSeek={seek}
       />
 
       {annotations.length > 0 ? (
         <View style={{ gap: space.sm }}>
-          {annotations.map((a) => (
+          {threads.map((a) => (
             <View
               key={a.id}
               style={{
@@ -419,6 +448,11 @@ const Player = ({
                   </T>
                 </View>
                 <View style={{ flex: 1, gap: 1 }}>
+                  {a.parentId ? (
+                    <T variant="caption" tone="muted">
+                      {m.videoCollaboration.replyTo}
+                    </T>
+                  ) : null}
                   {a.phase ? (
                     <T variant="caption" tone="muted">
                       {m.jumpPhase[a.phase]}
@@ -427,7 +461,18 @@ const Player = ({
                   <T variant="small">{a.text}</T>
                 </View>
               </Pressable>
-              {canAnnotate ? (
+              {canAnnotate && !a.parentId ? (
+                <IconButton
+                  icon={MessageSquare}
+                  label={m.videoCollaboration.reply}
+                  onPress={() => {
+                    player.pause();
+                    setReplyTo({ id: a.id, tMs: a.tMs });
+                    annotationField.current?.focus();
+                  }}
+                />
+              ) : null}
+              {staff || a.authorId === actorId ? (
                 <IconButton
                   testID={`annotation-delete-${a.id}`}
                   icon={Trash}
@@ -447,6 +492,14 @@ const Player = ({
 
       {canAnnotate && playable ? (
         <View style={{ gap: space.sm }}>
+          {replyTo ? (
+            <View style={{ gap: space.sm }}>
+              <T variant="small">
+                {m.videoCollaboration.replyTo} · {formatTimecode(replyTo.tMs)}
+              </T>
+              <Button label={m.common.cancel} compact variant="secondary" onPress={() => setReplyTo(null)} />
+            </View>
+          ) : null}
           <Chip
             label={m.video.highJumpTools}
             active={showJumpTools}
@@ -470,11 +523,12 @@ const Player = ({
           ) : null}
           <View style={{ flexDirection: "row", gap: space.sm, alignItems: "flex-end" }}>
             <Field
+              ref={annotationField}
               testID="annotation-input"
               onFocus={() => player.pause()}
-              label={m.video.remarkAt(formatTimecode(positionMs))}
+              label={m.video.remarkAt(formatTimecode(replyTo?.tMs ?? positionMs))}
               hideLabel
-              placeholder={m.video.remarkAt(formatTimecode(positionMs))}
+              placeholder={m.video.remarkAt(formatTimecode(replyTo?.tMs ?? positionMs))}
               value={text}
               onChangeText={setText}
               maxLength={500}
@@ -500,17 +554,10 @@ export default function VideoAnalysis() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { me, orgId, space: active } = useActiveSpace();
   const video = useVideo(orgId, id);
-  const client = useQueryClient();
   const [attempt, setAttempt] = useState(0);
   const [mp4Failed, setMp4Failed] = useState(false);
-  const canAnnotate = active ? isStaff(active.role) : false;
-
-  const share = useMutation({
-    mutationFn: (withAthlete: boolean) => api.shareVideo(orgId, id, withAthlete),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ["videos", orgId] });
-    },
-  });
+  const staff = active ? isStaff(active.role) : false;
+  const canAnnotate = video.data?.canAnnotate ?? staff;
   const [moderating, setModerating] = useState(false);
 
   if (me.data && !orgId) return <Redirect href="/" />;
@@ -521,7 +568,7 @@ export default function VideoAnalysis() {
       </StackScreen>
     );
   }
-  if (!video.data) {
+  if (!video.data || deniesCachedAccess(video.error) || deniesCachedAccess(me.error)) {
     return (
       <StackScreen dark>
         <ErrorState message={m.mobile.video.detailError} onRetry={() => void video.refetch()} />
@@ -557,6 +604,8 @@ export default function VideoAnalysis() {
           knownDurationMs={v.durationMs}
           annotations={v.annotations}
           canAnnotate={canAnnotate}
+          actorId={me.data?.id ?? ""}
+          staff={staff}
           highJump={hasHighJumpContext(v)}
           orgId={orgId}
           videoId={v.id}
@@ -595,7 +644,7 @@ export default function VideoAnalysis() {
         </View>
       ) : null}
 
-      {canAnnotate ? (
+      {staff ? (
         <VideoExerciseLink
           orgId={orgId}
           videoId={v.id}
@@ -604,25 +653,7 @@ export default function VideoAnalysis() {
         />
       ) : null}
 
-      {canAnnotate ? (
-        <View style={{ gap: space.xs }}>
-          <Button
-            testID="video-share"
-            label={v.sharedWithAthlete ? m.video.unshare : m.video.share}
-            icon={Share}
-            variant={v.sharedWithAthlete ? "secondary" : "primary"}
-            loading={share.isPending}
-            onPress={() => share.mutate(!v.sharedWithAthlete)}
-          />
-          <T variant="caption" tone={share.isError ? "danger" : "muted"}>
-            {share.isError
-              ? errorMessage(share.error)
-              : v.sharedWithAthlete
-                ? m.video.shared
-                : m.mobile.video.notShared}
-          </T>
-        </View>
-      ) : null}
+      <VideoSharing key={`${v.id}-${(v.sharedGroupIds ?? []).join(",")}`} orgId={orgId} video={v} staff={staff} />
 
       <View style={{ gap: space.sm }}>
         <SectionTitle>{m.mobile.video.replies}</SectionTitle>

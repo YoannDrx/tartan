@@ -52,6 +52,8 @@ import {
   type CommentInput,
   type CreateInvitationInput,
   type CreateVideoInput,
+  videoPage,
+  type VideoSummary,
   createVideoResponse,
   coachAlert,
   exerciseSummary,
@@ -455,7 +457,21 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("POST", `/orgs/${orgId}/invitations`, z.object({ id: z.string(), link: z.string() }), body),
     videos: (orgId: string, athleteId?: string, exerciseId?: string) =>
       request("GET", `/orgs/${orgId}/videos`, z.array(videoSummary), undefined, { athleteId, exerciseId }),
+    videoPage: (
+      orgId: string,
+      filter: {
+        athleteId?: string;
+        exerciseId?: string;
+        sessionId?: string;
+        status?: VideoSummary["status"];
+        cursor?: string;
+        review?: "pending";
+      } = {},
+    ) => request("GET", `/orgs/${orgId}/videos`, videoPage, undefined, { ...filter, page: "1" }),
     video: (orgId: string, videoId: string) => request("GET", `/orgs/${orgId}/videos/${videoId}`, videoDetail),
+    deleteVideo: (orgId: string, videoId: string) => request("DELETE", `/orgs/${orgId}/videos/${videoId}`, okResponse),
+    reviewVideo: (orgId: string, videoId: string) =>
+      request("POST", `/orgs/${orgId}/videos/${videoId}/review`, okResponse),
     createVideo: (orgId: string, body: CreateVideoInput) =>
       request("POST", `/orgs/${orgId}/videos`, createVideoResponse, body),
     renewVideoUpload: (orgId: string, videoId: string) =>
@@ -466,8 +482,11 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("POST", `/orgs/${orgId}/videos/${videoId}/annotations`, z.object({ id: z.string() }), body),
     linkVideoExercise: (orgId: string, videoId: string, exerciseId: string | null) =>
       request("POST", `/orgs/${orgId}/videos/${videoId}/exercise`, okResponse, { exerciseId }),
-    shareVideo: (orgId: string, videoId: string, withAthlete: boolean) =>
-      request("POST", `/orgs/${orgId}/videos/${videoId}/share`, okResponse, { withAthlete }),
+    shareVideo: (orgId: string, videoId: string, withAthlete: boolean, groupIds?: string[]) =>
+      request("POST", `/orgs/${orgId}/videos/${videoId}/share`, okResponse, {
+        withAthlete,
+        ...(groupIds === undefined ? {} : { groupIds, withGroup: groupIds.length > 0 }),
+      }),
     addJumpAttempt: (orgId: string, body: JumpAttemptInput) =>
       request("POST", `/orgs/${orgId}/jump-attempts`, z.object({ id: z.string() }), body),
     barSheet: (orgId: string, athleteId: string, scheduledSessionId?: string) =>
