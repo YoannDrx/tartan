@@ -10,18 +10,23 @@ test("un circuit imbriqué garde son ordre, ses récupérations et ses identité
   await page.getByRole("button", { name: "Ajouter Foulées bondissantes à la séance", exact: true }).click();
   const phase = page.getByRole("region", { name: m.builder.blocks.main, exact: true });
   await phase.getByRole("button", { name: m.builder.sequence.groupAll, exact: true }).click();
+  await phase.getByLabel(m.builder.sequence.select("Accélérations"), { exact: true }).check();
+  await phase.getByLabel(m.builder.sequence.select("Foulées bondissantes"), { exact: true }).check();
+  await phase.getByRole("button", { name: m.builder.sequence.groupSelection(2), exact: true }).click();
   await phase.getByLabel(m.builder.sequence.groupName, { exact: true }).fill("Superset");
   await phase.getByLabel(m.builder.sequence.betweenRounds, { exact: true }).fill("60");
   // Envelopper le superset : deux niveaux, sans changer les identités des exercices.
   await phase.getByRole("button", { name: m.builder.sequence.groupAll, exact: true }).last().click();
+  await phase.getByLabel(m.builder.sequence.select("Superset"), { exact: true }).check();
+  await phase.getByRole("button", { name: m.builder.sequence.groupSelection(1), exact: true }).click();
   await phase.getByLabel(m.builder.sequence.groupName, { exact: true }).first().fill("Deux passages");
   await phase.getByLabel(m.builder.sequence.rounds, { exact: true }).first().fill("2");
   await expect(phase.getByLabel(m.builder.sequence.rounds, { exact: true })).toHaveCount(2);
-  await phase.getByRole("button", { name: m.builder.sequence.remove("Foulées bondissantes"), exact: true }).click();
+  await phase.getByRole("button", { name: m.builder.sequence.moreActions("Foulées bondissantes"), exact: true }).click();
+  await page.getByRole("menuitem", { name: m.builder.sequence.remove("Foulées bondissantes"), exact: true }).click();
+  await expect(phase.getByText("Foulées bondissantes", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: m.builder.sequence.undo, exact: true }).click();
-  await expect(
-    phase.getByRole("button", { name: m.builder.sequence.remove("Foulées bondissantes"), exact: true }),
-  ).toBeVisible();
+  await expect(phase.getByText("Foulées bondissantes", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: m.builder.preview, exact: true }).click();
   const preview = page.getByRole("dialog");
   await expect(preview.getByText("Accélérations", { exact: true })).toHaveCount(6);
@@ -121,14 +126,13 @@ test("l'athlète suit A/B/A/B et lance la récupération sans créer de série f
     ).toBe(true);
     await athlete.goto(`/seance/${saved.id}/mode`, { waitUntil: "networkidle" });
     await expect(athlete.getByRole("heading", { level: 1 })).toHaveText(exercises[0].name);
+    // Dernière série d'un tour sans repos : l'étape suivante arrive d'elle-même.
     await athlete.getByRole("button", { name: m.sessionMode.setTodo(1), exact: true }).click();
-    await expect(athlete.getByRole("button", { name: m.sessionMode.stopRest, exact: true })).toHaveCount(0);
-    await athlete.getByRole("button", { name: m.builder.sequence.next, exact: true }).click();
     await expect(athlete.getByRole("heading", { level: 1 })).toHaveText(exercises[1].name);
     await athlete.getByRole("button", { name: m.builder.sequence.next, exact: true }).click();
     await expect(athlete.getByRole("heading", { level: 1 })).toHaveText(m.builder.sequenceRecovery);
     await expect(athlete.getByRole("button", { name: m.sessionMode.setTodo(1), exact: true })).toHaveCount(0);
-    await athlete.getByRole("button", { name: m.sessionMode.startRest, exact: true }).click();
+    // Une récupération de circuit démarre seule à l'arrivée sur l'étape.
     await expect(athlete.getByRole("button", { name: m.sessionMode.stopRest, exact: true })).toBeVisible();
     await expectAccessible(athlete);
     await athlete.getByRole("button", { name: m.builder.sequence.next, exact: true }).click();
