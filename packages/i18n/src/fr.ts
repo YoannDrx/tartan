@@ -2226,7 +2226,7 @@ export const fr = {
     approved: "Consignes indicatives relues par Tartan : ton coach reste responsable de ta prescription.",
     illustrationNotReady: "Illustration technique en préparation.",
     illustrationUnavailable: "Illustration indisponible pour le moment. Les consignes restent consultables.",
-    illustrationPending: "Illustration de travail — validation technique attendue",
+    illustrationPending: "Illustration de travail, en attente de validation technique",
     original: "Illustration originale Tartan",
     version: (n: number) => `Guide Tartan · version ${n}`,
     motion: {

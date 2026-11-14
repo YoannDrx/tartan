@@ -54,7 +54,9 @@ it("fige le guide dans la séance et détache celui d'un exercice privé modifi�
     coachNote: null,
     blocks: [{ name: "Force", variant: "club", items: [{ exerciseId: entry.id, prescription: { reps: 4 } }] }],
   });
-  expect(snapshot.blocks[0]!.items[0]!.guide).toEqual(entry.guide);
+  // La liste annote le geste animé ; la séance garde le guide tel qu'enregistré.
+  const { motion: _motion, ...illustration } = entry.guide!.illustration;
+  expect(snapshot.blocks[0]!.items[0]!.guide).toEqual({ ...entry.guide, illustration });
   await saveExercise(
     a.owner.userId,
     a.organizationId,
@@ -88,6 +90,8 @@ it("diffuse l'approbation aux copies existantes sans modifier prescriptions, per
     technicalReview: "pending" as const,
     illustration: {
       ...entry.guide!.illustration,
+      // La liste annote le geste animé ; une copie enregistrée ne le porte jamais.
+      motion: undefined,
       path: entry.guide!.illustration.path.replace(`-v${EXERCISE_CATALOG_VERSION}.svg`, "-v1.svg"),
     },
   };

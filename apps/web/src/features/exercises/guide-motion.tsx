@@ -3,6 +3,7 @@
 import type { ExerciseGuide } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { positionAt, type ExerciseClip } from "@tartan/mascot/exercise";
+import { exerciseClip } from "@tartan/mascot/exercises";
 import { Pause, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ExerciseScene } from "@/components/exercise-scene";
@@ -14,15 +15,13 @@ const t = m.exerciseGuide.motion;
 
 // Le geste du guide : il tourne en boucle, une pastille par ligne du guide montre où il en est, et la ligne
 // en cours s'affiche dessous. Arrêté, on choisit la position à regarder. En mouvement réduit : la frise des positions.
-export const GuideMotion = ({
-  guide,
-  clip,
-  autoPlay = true,
-}: {
-  guide: ExerciseGuide;
-  clip: ExerciseClip;
-  autoPlay?: boolean;
-}) => {
+// Le geste se retrouve ici, côté client, d'après la clé du catalogue : une page serveur ne transmet que le guide.
+export const GuideMotion = ({ guide, autoPlay = true }: { guide: ExerciseGuide; autoPlay?: boolean }) => {
+  const clip = exerciseClip(guide.catalogKey);
+  return clip ? <Player guide={guide} clip={clip} autoPlay={autoPlay} /> : null;
+};
+
+const Player = ({ guide, clip, autoPlay }: { guide: ExerciseGuide; clip: ExerciseClip; autoPlay: boolean }) => {
   const reduced = useReducedMotion();
   const [time, setTime] = useState(clip.stills[0]!);
   const [playing, setPlaying] = useState(autoPlay);
@@ -97,7 +96,7 @@ export const GuideMotion = ({
       </div>
       {/* Lue seulement une fois le geste arrêté : en lecture, la ligne change toutes les secondes. */}
       <p aria-live={running ? "off" : "polite"} className="min-h-12">
-        <span className="font-semibold">{t.position(current)} · </span>
+        <span className="font-semibold">{t.position(current)} : </span>
         {lines[current]}
       </p>
       <figcaption className="t-caption text-soft">{caption}</figcaption>

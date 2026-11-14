@@ -20,11 +20,16 @@ export const ExerciseScene = ({
 }: { gesture: ExerciseClip; t: number } & Omit<ComponentProps<"svg">, "viewBox">) => {
   const { pose, root } = clip.frame(t);
   const gear = clip.gear(t);
+  const [x, y, width, height] = clip.view.split(" ").map(Number) as [number, number, number, number];
+  // Une côte : toute la scène tourne autour du centre du cadre.
+  const tilt = clip.tilt ? `rotate(${clip.tilt} ${x + width / 2} ${y + height / 2})` : undefined;
   return (
     <svg viewBox={clip.view} className={cn("block", className)} style={{ backgroundColor: SURFACES.ink }} {...svg}>
-      <Gear shapes={gear.filter((shape) => !shape.front)} />
-      <AthleteFigure id={clip.athlete} pose={pose} face={clip.face(t)} on="ink" at={root} />
-      <Gear shapes={gear.filter((shape) => shape.front)} />
+      <g transform={tilt}>
+        <Gear shapes={gear.filter((shape) => !shape.front)} />
+        <AthleteFigure id={clip.athlete} pose={pose} face={clip.face(t)} on="ink" at={root} />
+        <Gear shapes={gear.filter((shape) => shape.front)} />
+      </g>
     </svg>
   );
 };

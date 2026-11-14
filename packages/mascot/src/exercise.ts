@@ -306,9 +306,10 @@ export const positionAt = (clip: ExerciseClip, t: number) => {
 export const GEAR = { plate: 30, hub: 7, dumbbell: 13, kettlebell: 17, ball: 22, bench: 52, box: 70 };
 
 // Une barre vue de profil : le disque côté spectateur, centré sur la main, et le manchon.
-// Près de la tête (barre sur les épaules, bras tendus au-dessus), il passe derrière : le visage reste lisible.
+// Devant le visage (barre devant les épaules, bras tendus au-dessus), il passe derrière la tête pour que le visage
+// reste lisible. Sur la nuque (squat arrière), il reste devant : derrière, la tête le cacherait entièrement.
 export const barbell = (hand: Point, head?: Point): GearShape[] => {
-  const front = !head || Math.hypot(hand.x - head.x, hand.y - head.y) > 44 + GEAR.plate;
+  const front = !head || Math.hypot(hand.x - head.x, hand.y - head.y) > 44 + GEAR.plate || hand.x < head.x - 8;
   return [
     { kind: "disc", x: hand.x, y: hand.y, radius: GEAR.plate, paint: "plate", front },
     { kind: "disc", x: hand.x, y: hand.y, radius: GEAR.hub, paint: "iron", front },

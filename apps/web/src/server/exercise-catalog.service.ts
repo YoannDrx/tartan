@@ -6,9 +6,12 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "./access";
 
+// Le geste animé (`illustration.motion`) se pose à la lecture : il n'est jamais enregistré, ni comparé.
 export const readExerciseGuide = (value: unknown) => {
   const parsed = exerciseGuide.safeParse(value);
-  return parsed.success ? parsed.data : null;
+  if (!parsed.success) return null;
+  const { motion: _motion, ...illustration } = parsed.data.illustration;
+  return { ...parsed.data, illustration };
 };
 
 /** Add catalogue versions without changing a coach's prescriptions or historical IDs. */

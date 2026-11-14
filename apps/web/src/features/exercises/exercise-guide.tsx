@@ -4,8 +4,7 @@ import { exerciseClip } from "@tartan/mascot/exercises";
 import { GuideMotion } from "./guide-motion";
 
 const Illustration = ({ guide }: { guide: ExerciseGuide }) => {
-  const clip = exerciseClip(guide.catalogKey);
-  if (clip) return <GuideMotion guide={guide} clip={clip} />;
+  if (exerciseClip(guide.catalogKey)) return <GuideMotion guide={guide} />;
   return guide.illustration.status === "ready" ? (
     <figure className="min-w-0">
       {/* Versioned local SVGs remain available with the downloaded session. */}
@@ -27,7 +26,7 @@ export const MovementGuide = ({ guide }: { guide: ExerciseGuide }) => (
       <span>{m.exerciseGuide.levels[guide.level]}</span>
       <span>{m.exerciseGuide.version(guide.version)}</span>
     </div>
-    <p className="border-l-4 border-accent pl-3 font-semibold">
+    <p className="font-semibold">
       {guide.technicalReview === "approved" ? m.exerciseGuide.approved : m.exerciseGuide.pending}
     </p>
     <p>{guide.objective}</p>

@@ -3,6 +3,7 @@ import { mix, runPose, runRise, smooth } from "../clip";
 import { accumulate, cycleStills, GYM, motion, STAND_ROOT, track, type ExerciseClip, type GearShape } from "../exercise";
 import { POSES } from "../poses";
 import type { Face } from "../rig";
+import type { EventId } from "../event";
 import type { Pose } from "../skeleton";
 
 const ATHLETE = "hurdles" as const;
@@ -14,7 +15,7 @@ const lane = (offset: number): GearShape[] => [
 ];
 
 // Une allure, de 0 (trottiner) à 1 (vitesse maximale) : l'amplitude, l'inclinaison et l'envol suivent.
-const stride = (phase: number, pace: number): Pose => {
+export const stride = (phase: number, pace: number): Pose => {
   const run = runPose(phase);
   const k = 0.5 + 0.5 * pace;
   return {
@@ -36,8 +37,11 @@ const paceAt = (paces: readonly [number, number, number, number]) => (t: number)
   return mix(paces[i]!, next, smooth(0.8, 1, t * 4 - i));
 };
 
-type Drill = {
+export type Drill = {
   key: string;
+  athlete?: EventId;
+  // Du matériel qui défile avec la piste (des plots), placé d'après le chemin parcouru.
+  extra?: (travelled: number) => GearShape[];
   // Foulées complètes (deux appuis) par boucle, et chemin parcouru en une boucle.
   cycles: number;
   distance: number;
@@ -49,13 +53,25 @@ type Drill = {
   tilt?: number;
 };
 
-const drill = ({ key, cycles, distance, duration = 4000, pace = [0.5, 0.5, 0.5, 0.5], pose = stride, rise, face, tilt }: Drill) => {
+export const drill = ({
+  key,
+  athlete = ATHLETE,
+  extra,
+  cycles,
+  distance,
+  duration = 4000,
+  pace = [0.5, 0.5, 0.5, 0.5],
+  pose = stride,
+  rise,
+  face,
+  tilt,
+}: Drill) => {
   const speed = paceAt(pace);
   const phaseAt = accumulate((t) => 0.6 + 0.6 * speed(t), cycles * TAU);
   const travel = accumulate((t) => 0.3 + speed(t), distance);
   return motion({
     key,
-    athlete: ATHLETE,
+    athlete,
     duration,
     frame: (t) => {
       const phase = phaseAt(t);
@@ -63,14 +79,14 @@ const drill = ({ key, cycles, distance, duration = 4000, pace = [0.5, 0.5, 0.5, 
       const lift = rise ? rise(phase, k) : runRise(phase) * (0.6 + 0.5 * k);
       return { pose: pose(phase, k, t), root: { x: STAND_ROOT.x, y: HIP - lift } };
     },
-    gear: (_, __, t) => lane(travel(t)),
+    gear: (_, __, t) => [...lane(travel(t)), ...(extra?.(travel(t)) ?? [])],
     face: face ?? ((t) => (speed(t) > 0.7 ? "effort" : "neutral")),
     stills: cycleStills(cycles),
     tilt,
   });
 };
 
-const up = (value: number) => Math.max(0, value);
+export const up = (value: number) => Math.max(0, value);
 
 // Montées de genoux : la cuisse monte à l'horizontale, peu d'avancée.
 const highKnees = drill({

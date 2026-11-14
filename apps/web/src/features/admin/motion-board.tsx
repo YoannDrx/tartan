@@ -60,7 +60,6 @@ export const MotionFamily = ({
                 {clip ? (
                   <GuideMotion
                     guide={{ ...entry.guide, illustration: { ...entry.guide.illustration, motion: approved ? "approved" : "review" } }}
-                    clip={clip}
                     autoPlay={false}
                   />
                 ) : (
