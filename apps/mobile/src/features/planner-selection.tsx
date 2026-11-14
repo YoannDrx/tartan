@@ -76,7 +76,7 @@ export function NativePlannerSelection({
   const [phases, setPhases] = useState<Record<string, PhasePlanningReadiness>>({});
   const [athleteSearch, setAthleteSearch] = useState("");
   const [exerciseSearch, setExerciseSearch] = useState("");
-  const [libraryOpen, setLibraryOpen] = useState(context.exercises.length > 500);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [error, setError] = useState("");
   const dates: string[] = [];
   if (plannerPeriod.safeParse(selection.period).success)
@@ -103,7 +103,9 @@ export function NativePlannerSelection({
     `${a.firstName} ${a.lastName}`.toLocaleLowerCase("fr").includes(athleteSearch.trim().toLocaleLowerCase("fr")),
   );
   const exercises = context.exercises.filter((e) =>
-    e.name.toLocaleLowerCase("fr").includes(exerciseSearch.trim().toLocaleLowerCase("fr")),
+    `${e.name} ${e.aliases?.join(" ") ?? ""}`
+      .toLocaleLowerCase("fr")
+      .includes(exerciseSearch.trim().toLocaleLowerCase("fr")),
   );
   const proceed = () => {
     const parsed = plannerSelection.safeParse({
@@ -115,10 +117,6 @@ export function NativePlannerSelection({
     });
     if (!ready || !parsed.success) {
       setError(t.periodInvalid);
-      return;
-    }
-    if (!selection.exerciseIds.length && context.exercises.length > 500) {
-      setError(t.libraryLimit);
       return;
     }
     onContinue(parsed.data);

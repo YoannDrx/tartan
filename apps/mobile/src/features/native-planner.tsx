@@ -1,7 +1,9 @@
+import { Check } from "lucide-react-native";
 import {
   createPlannerProposalInput,
   clarifyPlannerProposalInput,
   confirmPlannerProposalInput,
+  plannerBrief,
   type CreatePlannerProposalInput,
   type ClarifyPlannerProposalInput,
   type PlannerProposalResponse,
@@ -31,13 +33,15 @@ import { space } from "../ui/theme";
 import { PlannerDictation } from "./planner-dictation";
 import { PlannerDraftReview } from "./planner-draft-review";
 import { NativePlannerSelection } from "./planner-selection";
+import { NativePlannerMode } from "./planner-mode";
+import { NativePlannerExerciseResolution } from "./planner-exercise-resolution";
 
 type Context = Awaited<ReturnType<typeof api.sessionBuilder>>;
 const t = m.aiPlanner;
 
 export function NativePlanner({
   orgId,
-  context,
+  context: initialContext,
   initial,
   initialUsage,
   initialSelection,
@@ -50,6 +54,7 @@ export function NativePlanner({
   initialSelection: PlannerSelection;
   onNew: (selection: PlannerSelection) => void;
 }) {
+  const [context, setContext] = useState(initialContext);
   const [selection, setSelection] = useState(initial?.selection ?? initialSelection);
   const [contextReady, setContextReady] = useState(Boolean(initial));
   const [text, setText] = useState("");
@@ -142,7 +147,10 @@ export function NativePlanner({
         createPlannerProposalInput.parse({
           id: randomUUID(),
           requestedAt: new Date().toISOString(),
-          selection,
+          selection:
+            selection.mode === "propose"
+              ? { ...selection, brief: { ...selection.brief!, objective: text } }
+              : selection,
           text,
           reviewed,
         });
@@ -247,6 +255,7 @@ export function NativePlanner({
     confirmPlannerProposalInput.safeParse({ expectedVersion: proposal.version, sessions: drafts, confirmed: true })
       .success;
   const disabled = busy || recording || !online;
+  const verifiedCatalogAvailable = context.exercises.some((exercise) => exercise.guide?.technicalReview === "approved");
   const exhausted = plannerProposalsExhausted(usage);
   return (
     <StackScreen title={t.title}>
@@ -300,10 +309,20 @@ export function NativePlanner({
             disabled={disabled || sent}
             onPress={() => setContextReady(false)}
           />
+          <NativePlannerMode
+            selection={selection}
+            objective={text}
+            disabled={disabled || sent}
+            verifiedCatalogAvailable={verifiedCatalogAvailable}
+            onChange={(next) => {
+              setSelection(next);
+              setReviewed(false);
+            }}
+          />
           <Field
             testID="planner-instructions"
-            label={t.instructions}
-            hint={t.instructionsHint}
+            label={selection.mode === "propose" ? t.objective : t.instructions}
+            hint={selection.mode === "propose" ? t.objectiveHint : t.instructionsHint}
             multiline
             value={text}
             editable={!disabled && !sent}
@@ -327,7 +346,9 @@ export function NativePlanner({
           <Button
             variant="secondary"
             label={t.reviewed}
+            testID="planner-reviewed"
             selected={reviewed}
+            icon={reviewed ? Check : undefined}
             disabled={disabled || sent}
             onPress={() => setReviewed(!reviewed)}
           />
@@ -335,7 +356,16 @@ export function NativePlanner({
           <Button
             label={t.propose}
             loading={busy}
-            disabled={disabled || exhausted || !reviewed || !text.trim() || text.length > 12000}
+            testID="planner-generate"
+            disabled={
+              disabled ||
+              exhausted ||
+              !reviewed ||
+              !text.trim() ||
+              text.length > 12000 ||
+              (selection.mode === "propose" &&
+                (!verifiedCatalogAvailable || !plannerBrief.safeParse({ ...selection.brief, objective: text }).success))
+            }
             onPress={() => {
               void generate();
             }}
@@ -366,7 +396,7 @@ export function NativePlanner({
             </>
           ) : null}
           <T variant="small" tone="muted">
-            {t.expiry(new Date(proposal.expiresAt).toLocaleString("fr-FR"))}
+            {t.expiry(new Date(proposal.expiresAt).toLocaleString("fr-FR", { timeZone: usage.timeZone }))}
           </T>
           {proposal.state === "processing" ? <T>{t.processing}</T> : null}
           {proposal.state === "failed" ? <T tone="danger">{t.proposalFailed}</T> : null}
@@ -375,8 +405,33 @@ export function NativePlanner({
               <SectionTitle>{t.clarifyTitle}</SectionTitle>
               <T>{t.clarificationCount(proposal.clarificationCount)}</T>
               {proposal.interpretation?.questions.map((q) => (
-                <View key={q.id} style={{ gap: space.sm }}>
+                <View key={`${proposal.clarificationCount}-${q.id}`} style={{ gap: space.sm }}>
                   <T variant="bodyStrong">{displayText(q.question)}</T>
+                  {q.field === "exercise" ? (
+                    <NativePlannerExerciseResolution
+                      questionId={q.id}
+                      requestedName={q.exerciseName}
+                      version={proposal.version}
+                      exercises={
+                        proposal.selection.mode === "propose"
+                          ? context.exercises.filter((exercise) => exercise.guide?.technicalReview === "approved")
+                          : context.exercises
+                      }
+                      allowCreate={proposal.selection.mode !== "propose"}
+                      disabled={disabled || replySent}
+                      resolved={proposal.exerciseResolutions?.find((entry) => entry.questionId === q.id)?.name}
+                      onResolve={(input) =>
+                        run(async (signal) => {
+                          const updated = await api.resolvePlannerExercise(orgId, proposal.id, input, signal);
+                          if (!alive.current || signal.aborted) return;
+                          setProposal(updated);
+                          setReplyReviewed(false);
+                          const exercises = await api.exercises(orgId);
+                          if (alive.current && !signal.aborted) setContext((old) => ({ ...old, exercises }));
+                        })
+                      }
+                    />
+                  ) : null}
                   {q.options.map((option, i) => (
                     <Button
                       key={i}
@@ -395,6 +450,7 @@ export function NativePlanner({
                 <>
                   <Field
                     label={t.clarificationAnswer}
+                    testID="planner-reply"
                     multiline
                     value={reply}
                     editable={!disabled && !replySent}
@@ -406,14 +462,17 @@ export function NativePlanner({
                   {reply.length > 12000 ? <T tone="danger">{t.textTooLong}</T> : null}
                   <Button
                     label={t.reviewed}
+                    testID="planner-reply-reviewed"
                     variant="secondary"
                     selected={replyReviewed}
+                    icon={replyReviewed ? Check : undefined}
                     disabled={disabled || replySent}
                     onPress={() => setReplyReviewed(!replyReviewed)}
                   />
                   {replySent ? <T>{t.immutableRequest}</T> : null}
                   <Button
                     label={t.clarify}
+                    testID="planner-clarify"
                     loading={busy}
                     disabled={disabled || !replyReviewed || !reply.trim() || reply.length > 12000}
                     onPress={() => {
@@ -513,6 +572,7 @@ export function NativePlanner({
                 label={t.reviewedDrafts}
                 variant="secondary"
                 selected={draftsReviewed}
+                icon={draftsReviewed ? Check : undefined}
                 disabled={disabled}
                 onPress={() => setDraftsReviewed(!draftsReviewed)}
               />

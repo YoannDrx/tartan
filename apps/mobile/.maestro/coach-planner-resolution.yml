@@ -1,0 +1,137 @@
+# Deux modes visibles ; le catalogue approuvé ouvre le brief de proposition.
+# Exercice inconnu → fiche privée relue → reprise → brouillon, prestataire factice local.
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+---
+- runScript: scripts/planner-resolution-fixture.js
+- runFlow: flows/_sign-in.yml
+- tapOn:
+    text: "Plus tard|Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- openLink: ${output.plannerUrl}
+- runFlow: flows/_accept-deep-link.yml
+- tapOn:
+    id: ai-consent-accept
+    optional: true
+- scrollUntilVisible:
+    element: "Continuer avec ces destinataires"
+    centerElement: true
+- tapOn: "Continuer avec ces destinataires"
+- scrollUntilVisible:
+    element:
+      id: planner-mode-propose
+    centerElement: true
+- tapOn:
+    id: planner-mode-propose
+- assertVisible: "L.IA propose des choix.*"
+- assertNotVisible: "Le mode proposition attend.*"
+- assertVisible: "Durée disponible.*"
+- takeScreenshot: planner-proposal-brief
+- scrollUntilVisible:
+    element:
+      id: planner-mode-format
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: planner-mode-format
+- assertNotVisible: "Le mode proposition attend.*"
+- scrollUntilVisible:
+    element:
+      id: planner-instructions
+    centerElement: true
+- tapOn:
+    id: planner-instructions
+- inputText: ${output.plannerInstruction}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: planner-reviewed
+    centerElement: true
+- tapOn:
+    id: planner-reviewed
+- tapOn:
+    id: planner-generate
+- extendedWaitUntil:
+    visible: "Précisions nécessaires"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: planner-create-exercise
+    centerElement: true
+- tapOn:
+    id: planner-create-exercise
+- scrollUntilVisible:
+    element:
+      id: planner-exercise-cues
+    centerElement: true
+# Le champ multiligne peut intercepter le centrage du pilote sous le bandeau.
+# Glisser depuis la marge extérieure pour replacer le champ dans le contenu.
+- swipe:
+    start: "98%, 25%"
+    end: "98%, 60%"
+    duration: 500
+- tapOn:
+    id: planner-exercise-cues
+- inputText: "Garder les appuis stables."
+- copyTextFrom:
+    id: planner-exercise-cues
+- assertTrue: ${maestro.copiedText === "Garder les appuis stables."}
+- tapOn: "Consignes techniques .*"
+- scrollUntilVisible:
+    element:
+      id: planner-exercise-reviewed
+    centerElement: true
+- tapOn:
+    id: planner-exercise-reviewed
+- assertVisible:
+    id: planner-exercise-save
+    enabled: true
+- tapOn:
+    id: planner-exercise-save
+- extendedWaitUntil:
+    visible: "Exercice rattaché.*"
+    timeout: 30000
+- takeScreenshot: planner-private-exercise-linked
+- scrollUntilVisible:
+    element:
+      id: planner-reply
+    centerElement: true
+- tapOn:
+    id: planner-reply
+- inputText: "Trois series de huit, repos 90 secondes."
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: planner-reply-reviewed
+    centerElement: true
+- tapOn:
+    id: planner-reply-reviewed
+- tapOn:
+    id: planner-clarify
+- extendedWaitUntil:
+    visible: "Relire et ajuster les brouillons"
+    timeout: 30000
+- tapOn: "Relire et ajuster les brouillons"
+- scrollUntilVisible:
+    element: "Vérifier les charges individuelles"
+    centerElement: true
+- tapOn: "Vérifier les charges individuelles"
+- extendedWaitUntil:
+    visible: "Page jusqu.à l.athlète.*"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "J.ai vérifié les dates.*"
+    centerElement: true
+- tapOn: "J.ai vérifié les dates.*"
+- assertVisible:
+    text: "Créer 1 brouillon"
+    enabled: true
+- tapOn: "Créer 1 brouillon"
+- extendedWaitUntil:
+    visible: "Les brouillons sont créés.*"
+    timeout: 30000
+- takeScreenshot: planner-private-exercise-draft
