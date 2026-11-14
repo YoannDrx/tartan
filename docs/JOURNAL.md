@@ -14,6 +14,9 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, F9 : attente de la feuille de validation
+La PR 127 échoue sur l'attente de cinq secondes du bouton de fermeture, après validation réussie. Capture et arbre d'accessibilité montrent ensuite la feuille « Séance validée » et le bouton `validation-finish` visible et actif ; aucune erreur serveur. Attente conditionnelle portée à quinze secondes, sans deuxième soumission ni assertion retirée. Cette marge du pilote ne prouve pas le critère de dix secondes sur téléphone, qui reste à mesurer. Rejeu ciblé réussi sur iPhone 16e simulé en 1 min 20 ; types/lint/design réussis (quatre avertissements hérités). Nouvelle CI de la tête requise.
+
 ## 2026-11-14, Codex, F9 vidéo : intégration du setup complet
 Reprise de la PR 127 avec le correctif commun de la PR 126 : catalogue groupé, graine complète et attente bornée du constructeur. La dernière CI échouait uniquement sur ce premier constructeur. Aucun contrôle vidéo retiré ; nouvelle CI de la tête requise.
 

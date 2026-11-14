@@ -2,6 +2,8 @@
 
 Mis à jour le 14 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
+Validation athlète native : attente du bouton de fermeture portée à quinze secondes après une trace CI où la feuille validée et son bouton actif apparaissent après le délai initial de cinq secondes. Aucun deuxième envoi ni contrôle supprimé ; la performance sur téléphone reste à éprouver.
+
 PR 126 : premier chargement du catalogue optimisé et graine de démonstration complétée ; installation et rejeu vérifiés, CI native finale attendue.
 
 Recette native : première confirmation iOS suivie d’une remise au premier plan sans arrêt de l’app ; attente bornée à 30 s et assertions du circuit conservées. Trace de livraison du lien à la réactivation suivante ; rejeu sur simulateur neuf réussi en 1 min 49, confirmation système effectivement parcourue ; CI requise.
