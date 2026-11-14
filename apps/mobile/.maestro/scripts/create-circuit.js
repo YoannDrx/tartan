@@ -52,3 +52,7 @@ var published = http.post(base + "/api/v1/orgs/" + org + "/sessions/" + session.
 });
 if (!published.ok) throw new Error("publication du circuit refusée : " + published.status);
 output.circuitUrl = "tartan-dev:///session/" + session.id;
+
+output.circuitBuilderUrl = "tartan-dev:///session-builder/" + session.id;
+output.circuitId = session.id;
+output.circuitOrg = org;

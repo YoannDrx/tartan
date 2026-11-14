@@ -17,6 +17,14 @@ Suite conseillée : numéro de tâche
 ## 2026-11-14, Codex, F1 : sauvegarde de main et restauration vérifiées
 Après fusion de la PR 125, production `4b2004b` saine, version attendue et journaux ciblés sans erreur. Workflow de sauvegarde main `43552436123` réussi : copie privée de 03 h 36 UTC, 382 745 octets relus à l’identique. Restauration locale isolée en 0,37 s : 83 tables, 51 migrations et 150 guides approuvés, aucune migration échouée ni contrainte non validée. Base, fichier chiffré et secrets temporaires retirés ; preuves conservées hors dépôt public. Cette recette Blob ne remplace pas la restauration Neon isolée encore attendue.
 
+## 2026-11-14, Codex, F9 : reprise des PR natives
+Reprise autorisée de `feat/native-session-sequences`, avec les corrections de sa branche parente. La capture CI du constructeur de circuit confirme la même boîte système iOS que le parcours athlète : sous-parcours commun ajouté après l’ouverture du lien. Le premier test de création affichait encore le chargement, diagnostic et rejeu local en cours ; aucun délai augmenté ni assertion retirée.
+
+## 2026-11-13, Codex, F9 : constructeur natif de séances imbriquées
+
+Codé sur `feat/native-session-sequences`, après la vidéo native : cartes d’exercices, de récupération et de répétition, deux niveaux maximum ; ajout, ordre, duplication, dissociation, déplacement entre phases et annulation du dernier changement de contenu. Séries et adaptations existantes conservées. Aperçu utilisant les occurrences du domaine. Contrat d’édition local partagé avec le web : un groupe incomplet survit à la fermeture, mais ne passe pas le contrat serveur. Déplacement métier conservant les identifiants et prescriptions, suppression des groupes devenus vides.
+Vérifié sous Node 22/pnpm 10 : types, lint (quatre avertissements hérités), design et suites complètes : 1 960 web, 290 domaine, 252 mobile, 247 jeu, 90 mascotte. Maestro local réussi sur iPhone 16e/iOS 26.3 : édition de deux à trois tours d’un circuit publié, aperçu, enregistrement, puis ajout d’un groupe imbriqué de trois tours ; lecture API vérifiant structure, ordre, pauses, références et prescriptions. 1/1 en 132 s, captures 390 px relues. L’échec intermédiaire cliquait sous l’en-tête ; centrage du bouton ajouté, assertions conservées.
+Limites : bundle Hermes intégré au binaire simulateur existant, pas de nouvelle compilation native locale ; CI attendue. Autres tailles/thèmes, Android, appareils physiques et stores non prouvés. Aucun parcours web produit modifié : seule l’extraction du contrat local d’édition conserve son comportement. IA native encore à porter. Aucun statut commercial acquis ; incident d’authentification de production traité séparément, fusions suspendues.
 
 ## 2026-11-13, Codex, F9 : vidéo collaborative native
 

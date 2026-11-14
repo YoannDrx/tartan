@@ -40,3 +40,18 @@ export const executionRound = z.object({
 });
 export type ExecutionRound = z.infer<typeof executionRound>;
 export const MAX_SESSION_EXECUTION_STEPS = 500;
+
+// Une saisie incomplète se conserve aussi : les exigences de publication restent
+// dans le contrat serveur. La profondeur et la taille restent bornées ici.
+const [editableExercise, strictRecovery, editableRepeat] = sessionSequence.element.options;
+const editableRecovery = strictRecovery.extend({ durationS: z.number().min(0).max(3600) });
+const editableRepeatFields = { name: z.string().max(80), rounds: z.number().min(0).max(50) };
+const inner = editableRepeat.extend({
+  ...editableRepeatFields,
+  children: z.array(z.union([editableExercise, editableRecovery])).max(60),
+});
+const outer = editableRepeat.extend({
+  ...editableRepeatFields,
+  children: z.array(z.union([editableExercise, editableRecovery, inner])).max(60),
+});
+export const editableSessionSequence = z.array(z.union([editableExercise, editableRecovery, outer])).max(60);

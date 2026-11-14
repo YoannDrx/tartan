@@ -179,3 +179,23 @@ it("un envoi de création interrompu ne devient jamais une nouvelle création de
   expect(() => recoveredBuilderDraft(value, null, true, value.context)).toThrow("UNCONFIRMED_CREATION");
   expect(() => recoveredBuilderDraft(value, null, false, value.context)).toThrow("UNCONFIRMED_CREATION");
 });
+
+it("conserve un groupe vide en cours de saisie sans l'autoriser à l'enregistrement serveur", async () => {
+  const { saveScheduledSessionInput } = await import("@tartan/contracts");
+  const { store } = setup();
+  const value = draft();
+  value.form.draft.structureVersion = 2;
+  value.form.draft.blocks[0]!.sequence = [
+    { kind: "repeat", ref: "new-group", name: "", rounds: 0, restBetweenRoundsS: 0, children: [] },
+  ];
+  await store.write("circuit", value, null);
+  expect((await store.read("circuit"))?.value).toEqual(value);
+  expect(
+    saveScheduledSessionInput.safeParse({
+      ...value.form,
+      date: "2030-02-12",
+      startTime: null,
+      draft: { ...value.form.draft, title: "Circuit" },
+    }).success,
+  ).toBe(false);
+});
