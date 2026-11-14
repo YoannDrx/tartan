@@ -1,5 +1,24 @@
 import type { ExerciseGuide } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
+import { exerciseClip } from "@tartan/mascot/exercises";
+import { GuideMotion } from "./guide-motion";
+
+const Illustration = ({ guide }: { guide: ExerciseGuide }) => {
+  const clip = exerciseClip(guide.catalogKey);
+  if (clip) return <GuideMotion guide={guide} clip={clip} />;
+  return guide.illustration.status === "ready" ? (
+    <figure className="min-w-0">
+      {/* Versioned local SVGs remain available with the downloaded session. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={guide.illustration.path} alt={guide.illustration.alt} width={960} height={480} className="h-auto w-full" />
+      <figcaption className="mt-2 text-sm text-soft">
+        {guide.technicalReview === "approved" ? m.exerciseGuide.original : m.exerciseGuide.illustrationPending}
+      </figcaption>
+    </figure>
+  ) : (
+    <p className="text-sm text-soft">{m.exerciseGuide.illustrationNotReady}</p>
+  );
+};
 
 export const MovementGuide = ({ guide }: { guide: ExerciseGuide }) => (
   <section aria-label={m.exerciseGuide.title} className="flex min-w-0 flex-col gap-4">
@@ -12,24 +31,7 @@ export const MovementGuide = ({ guide }: { guide: ExerciseGuide }) => (
       {guide.technicalReview === "approved" ? m.exerciseGuide.approved : m.exerciseGuide.pending}
     </p>
     <p>{guide.objective}</p>
-    {guide.illustration.status === "ready" ? (
-      <figure className="min-w-0">
-        {/* Versioned local SVGs remain available with the downloaded session. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={guide.illustration.path}
-          alt={guide.illustration.alt}
-          width={960}
-          height={480}
-          className="h-auto w-full"
-        />
-        <figcaption className="mt-2 text-sm text-soft">
-          {guide.technicalReview === "approved" ? m.exerciseGuide.original : m.exerciseGuide.illustrationPending}
-        </figcaption>
-      </figure>
-    ) : (
-      <p className="text-sm text-soft">{m.exerciseGuide.illustrationNotReady}</p>
-    )}
+    <Illustration guide={guide} />
     {(
       [
         [m.exerciseGuide.setup, guide.setup],
