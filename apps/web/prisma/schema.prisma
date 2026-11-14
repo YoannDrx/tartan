@@ -1245,6 +1245,10 @@ enum JumpPhase {
   takeoff
   clearance
   landing
+  // Phases génériques, pour un geste qui n'est pas un saut.
+  preparation
+  execution
+  finish
 
   @@map("jump_phase")
 }

@@ -104,7 +104,7 @@ const resolveThread = async (access: Access, entityType: CommentInput["entityTyp
   const staffIds = isStaff(access.role) ? await visibleAthleteIds(access) : [];
   if (entityType === "video") {
     const video = await requireVideoAccess(access, entityId);
-    return { athleteIds: [video.athleteId], link: `/videos/${entityId}`, athleteLink: `/mes-sauts/${entityId}` };
+    return { athleteIds: [video.athleteId], link: `/videos/${entityId}`, athleteLink: `/mes-videos/${entityId}` };
   }
   if (entityType === "log") {
     const entry = await prisma.sessionLog.findFirst({

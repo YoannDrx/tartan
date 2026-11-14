@@ -41,9 +41,9 @@ export default async function MesSautsPage({ searchParams }: { searchParams: Pro
       {videos.length === 0 ? (
         <EmptyState rubric="videos">{m.video.emptyAthlete}</EmptyState>
       ) : (
-        <VideoList videos={videos} basePath="/mes-sauts" showAthlete />
+        <VideoList videos={videos} basePath="/mes-videos" showAthlete />
       )}
-      <VideoPagination search={search} nextCursor={nextCursor} basePath="/mes-sauts" />
+      <VideoPagination search={search} nextCursor={nextCursor} basePath="/mes-videos" />
     </div>
   );
 }

@@ -60,7 +60,8 @@ export const frameStepMs = (fps: number | null | undefined): number => 1000 / (f
 
 export const isHighFrameRate = (fps: number | null | undefined): boolean => (fps ?? 0) >= 100;
 
-const PHASE_ORDER = ["approach", "penultimate", "takeoff", "clearance", "landing"] as const;
+// Les phases du saut, puis celles d'un geste quelconque : la frise suit l'ordre du temps, pas cette liste.
+const PHASE_ORDER = ["approach", "penultimate", "takeoff", "clearance", "landing", "preparation", "execution", "finish"] as const;
 export type Phase = (typeof PHASE_ORDER)[number];
 
 export type PhaseRange = { phase: Phase; startMs: number; endMs: number };

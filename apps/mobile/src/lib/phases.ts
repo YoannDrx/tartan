@@ -1,6 +1,15 @@
 import type { JumpPhase } from "@tartan/contracts";
 
-export const PHASE_ORDER: JumpPhase[] = ["approach", "penultimate", "takeoff", "clearance", "landing"];
+export const PHASE_ORDER: JumpPhase[] = [
+  "approach",
+  "penultimate",
+  "takeoff",
+  "clearance",
+  "landing",
+  "preparation",
+  "execution",
+  "finish",
+];
 
 export type PhaseSegment = { phase: JumpPhase; startMs: number; endMs: number };
 
