@@ -19,3 +19,12 @@ export function plannerDisplayText(
     (token) => labels.get(token) ?? token,
   );
 }
+
+// Remplacer un exercice garde ce que le coach a prescrit (séries, répétitions, repos,
+// charge). Une charge en pourcentage se rapporte désormais au maximum du nouvel exercice.
+export function replacedExercisePrescription<P extends { load?: unknown }>(previous: P, exerciseId: string): P {
+  const load = previous.load as { type?: string } | null | undefined;
+  if (load && typeof load === "object" && load.type === "pct_1rm")
+    return { ...previous, load: { ...load, test: `exercise:${exerciseId}` } };
+  return { ...previous };
+}

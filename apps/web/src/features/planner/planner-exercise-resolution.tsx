@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { exerciseCategory, resolvePlannerExerciseInput, type ResolvePlannerExerciseInput } from "@tartan/contracts";
-import { rankPlannerCandidates } from "@tartan/domain";
+import { normalizeExerciseTerm, rankPlannerCandidates } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Button } from "@/components/ui/button";
 import { CheckRow, Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -29,6 +29,7 @@ export function PlannerExerciseResolution({
   onResolve: (input: ResolvePlannerExerciseInput) => Promise<void>;
 }) {
   const [name, setName] = useState(requestedName ?? "");
+  const [search, setSearch] = useState("");
   const [create, setCreate] = useState(false);
   const [category, setCategory] = useState<(typeof exerciseCategory.options)[number]>("strength");
   const [cues, setCues] = useState("");
@@ -38,7 +39,15 @@ export function PlannerExerciseResolution({
   const [reviewed, setReviewed] = useState(false);
   const [sent, setSent] = useState(false);
   const pending = useRef<ResolvePlannerExerciseInput | null>(null);
-  const candidates = rankPlannerCandidates(exercises, name, 5);
+  // Recherche libre dans toute la bibliothèque ; sans recherche, les fiches proches du nom demandé.
+  const term = normalizeExerciseTerm(search);
+  const candidates = term
+    ? exercises
+        .filter((exercise) =>
+          [exercise.name, ...(exercise.aliases ?? [])].some((label) => normalizeExerciseTerm(label).includes(term)),
+        )
+        .slice(0, 8)
+    : rankPlannerCandidates(exercises, name, 5);
   const submit = async (choice: ResolvePlannerExerciseInput["choice"]) => {
     if (!pending.current) {
       const parsed = resolvePlannerExerciseInput.safeParse({
@@ -76,6 +85,17 @@ export function PlannerExerciseResolution({
       </Field>
       {!create ? (
         <>
+          <Field label={t.searchLibrary}>
+            {(a) => (
+              <Input
+                {...a}
+                type="search"
+                value={search}
+                disabled={disabled || sent}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            )}
+          </Field>
           <p className="font-semibold">{t.possibleExercises}</p>
           <div className="flex flex-wrap gap-2">
             {candidates.map((exercise) => (
@@ -150,7 +170,6 @@ export function PlannerExerciseResolution({
               sent ||
               !reviewed ||
               !name.trim() ||
-              !cues.trim() ||
               cues.split("\n").filter(Boolean).length > 5 ||
               cues.split("\n").some((line) => line.length > 120)
             }

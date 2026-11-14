@@ -339,17 +339,10 @@ const requestedSessions = (text: string) => {
   return highest;
 };
 
-const singular = (word: string) => (word.length > 3 ? word.replace(/[sx]$/, "") : word);
-const significantWords = (label: string) =>
-  plain(label)
-    .replace(/-/g, " ")
-    .split(/\s+/)
-    .filter((word) => word.length >= 5 && !["avant", "arriere", "barre", "lourd", "libre"].includes(word))
-    .map(singular);
 const namesOf = (exercise: PlannerGuardExercise) => [exercise.name, ...exercise.aliases];
 
-// Un exercice ne peut être retenu que s'il est désigné : nom complet, alias, ou mot
-// distinctif porté par cette seule fiche. Jamais par proximité de mouvement.
+// Un exercice ne peut être retenu que s'il est désigné par son nom complet ou un alias.
+// Jamais par un mot isolé ni par proximité de mouvement : le doute devient une question.
 export function plannerExerciseIsNamed(
   text: string,
   token: string,
@@ -374,18 +367,8 @@ export function plannerExerciseIsNamed(
         (other) => other.start <= hit.start && other.end >= hit.end && other.end - other.start > hit.end - hit.start,
       ),
   );
-  if (specific.some((hit) => hit.token === token)) return true;
-  // A short alias contained in a different, fully named movement is not evidence
-  // for this exercise (clean inside power clean, squat inside front squat).
-  if (matches.some((hit) => hit.token === token)) return false;
-  const textWords = new Set(normalized.split(/[^a-z0-9]+/).map(singular));
-  return namesOf(exercise)
-    .flatMap(significantWords)
-    .some(
-      (word) =>
-        textWords.has(word) &&
-        !exercises.some((other) => other.token !== token && namesOf(other).flatMap(significantWords).includes(word)),
-    );
+  // Un alias court contenu dans un autre mouvement nommé (clean dans power clean) ne compte pas.
+  return specific.some((hit) => hit.token === token);
 }
 
 // Une réponse du coach est enregistrée après les questions du modèle, une par ligne et terminées par

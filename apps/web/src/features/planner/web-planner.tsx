@@ -15,7 +15,9 @@ import {
   type ConfirmPlannerProposalInput,
 } from "@tartan/contracts";
 import {
+  formatPrescription,
   plannerDisplayText,
+  plannerPrescriptionToSession,
   plannerProposalsExhausted,
   phasePlanningKey,
   type PhasePlanningReadiness,
@@ -690,24 +692,70 @@ export function WebPlanner({
           ) : null}
           {proposal.state === "proposal" && !drafts ? (
             <>
-              <h2 className="t-section">{t.quotedInstruction}</h2>
+              <h2 className="t-section">{t.proposedSessions}</h2>
               {proposal.interpretation?.sessions.map((s, i) => (
-                <section key={i} className="rounded-card border border-card-line p-3">
+                <section key={i} className="flex flex-col gap-2 rounded-card border border-card-line p-3">
                   <h3 className="font-semibold">
                     {historyDate(s.date)} · {displayText(s.title)}
                   </h3>
-                  {s.blocks
-                    .flatMap((b) => b.items)
-                    .map((item, j) => (
-                      <blockquote
-                        key={j}
-                        className="mt-2 border-l-2 border-card-line pl-3 whitespace-pre-wrap break-words"
-                      >
-                        {displayText(item.instruction)}
-                      </blockquote>
-                    ))}
+                  {s.blocks.map((block, b) => (
+                    <div key={b} className="flex flex-col gap-1">
+                      <p className="t-caption text-soft">{displayText(block.name)}</p>
+                      <ul className="flex flex-col gap-2">
+                        {block.items.map((item, j) => (
+                          <li key={j} className="flex flex-col">
+                            <span className="font-semibold">
+                              {proposal.exercises.find((e) => e.token === item.exerciseToken)?.name ??
+                                displayText(item.exerciseToken)}
+                            </span>
+                            <span>{formatPrescription(plannerPrescriptionToSession(item.prescription, item.exerciseToken))}</span>
+                            <span className="t-caption whitespace-pre-wrap break-words text-soft">
+                              {t.quotedFrom(displayText(item.instruction))}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </section>
               ))}
+              {proposal.clarificationCount < 5 ? (
+                <section className="flex flex-col gap-3">
+                  <h2 className="t-section">{t.adjustTitle}</h2>
+                  <p className="text-soft">{t.adjustHint}</p>
+                  <Field label={t.adjustLabel}>
+                    {(a) => (
+                      <Textarea
+                        {...a}
+                        value={reply}
+                        disabled={disabled || replySent}
+                        onChange={(e) => {
+                          setReply(e.target.value);
+                          setReplyReviewed(false);
+                        }}
+                      />
+                    )}
+                  </Field>
+                  {reply.length > 12000 ? <p role="alert">{t.textTooLong}</p> : null}
+                  <CheckRow
+                    label={t.reviewed}
+                    checked={replyReviewed}
+                    disabled={disabled || replySent}
+                    onChange={(e) => setReplyReviewed(e.target.checked)}
+                  />
+                  {replySent ? <p>{t.immutableRequest}</p> : null}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={disabled || !replyReviewed || !reply.trim() || reply.length > 12000}
+                    onClick={() => {
+                      void clarify();
+                    }}
+                  >
+                    {t.adjust}
+                  </Button>
+                </section>
+              ) : null}
               <Button
                 type="button"
                 disabled={disabled}

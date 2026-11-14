@@ -8,7 +8,7 @@ const entries: Stair[] = [
   {
     key: "stair-walk",
     name: "Montées d'escaliers",
-    aliases: ["Stair walk"],
+    aliases: ["Stair walk", "Marche dans les escaliers", "Marche en escaliers"],
     objective: "Monter régulièrement en poussant sur chaque appui.",
     setup: "Choisis un escalier régulier, sec, libre de passage et muni d'une rampe accessible.",
     steps: [

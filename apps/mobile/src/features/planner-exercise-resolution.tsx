@@ -5,7 +5,7 @@ import {
   type ExerciseSummary,
   type ResolvePlannerExerciseInput,
 } from "@tartan/contracts";
-import { rankPlannerCandidates } from "@tartan/domain";
+import { normalizeExerciseTerm, rankPlannerCandidates } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { randomUUID } from "expo-crypto";
 import { useRef, useState } from "react";
@@ -34,6 +34,7 @@ export function NativePlannerExerciseResolution({
   onResolve: (input: ResolvePlannerExerciseInput) => Promise<void>;
 }) {
   const [name, setName] = useState(requestedName ?? "");
+  const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
   const [category, setCategory] = useState<(typeof exerciseCategory.options)[number]>("strength");
   const [cues, setCues] = useState("");
@@ -44,6 +45,15 @@ export function NativePlannerExerciseResolution({
   const [sent, setSent] = useState(false);
   const pending = useRef<ResolvePlannerExerciseInput | null>(null);
   const frozen = disabled || sent;
+  // Recherche libre dans toute la bibliothèque ; sans recherche, les fiches proches du nom demandé.
+  const term = normalizeExerciseTerm(search);
+  const candidates = term
+    ? exercises
+        .filter((exercise) =>
+          [exercise.name, ...(exercise.aliases ?? [])].some((label) => normalizeExerciseTerm(label).includes(term)),
+        )
+        .slice(0, 8)
+    : rankPlannerCandidates(exercises, name, 5);
   const submit = async (choice: ResolvePlannerExerciseInput["choice"]) => {
     if (!pending.current) {
       const parsed = resolvePlannerExerciseInput.safeParse({
@@ -72,8 +82,15 @@ export function NativePlannerExerciseResolution({
       />
       {!creating ? (
         <>
+          <Field
+            label={t.searchLibrary}
+            testID="planner-exercise-search"
+            value={search}
+            editable={!frozen}
+            onChangeText={setSearch}
+          />
           <T variant="smallStrong">{t.possibleExercises}</T>
-          {rankPlannerCandidates(exercises, name, 5).map((exercise) => (
+          {candidates.map((exercise) => (
             <Button
               key={exercise.id}
               variant="secondary"
@@ -153,7 +170,6 @@ export function NativePlannerExerciseResolution({
               frozen ||
               !reviewed ||
               !name.trim() ||
-              !cues.trim() ||
               cues.split("\n").filter(Boolean).length > 5 ||
               cues.split("\n").some((line) => line.length > 120)
             }
