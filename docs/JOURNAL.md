@@ -14,6 +14,9 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-14, Codex, F9 vidéo : intégration du setup complet
+Reprise de la PR 127 avec le correctif commun de la PR 126 : catalogue groupé, graine complète et attente bornée du constructeur. La dernière CI échouait uniquement sur ce premier constructeur. Aucun contrôle vidéo retiré ; nouvelle CI de la tête requise.
+
 ## 2026-11-14, Codex, F9 : reprise de la branche vidéo native
 Reprise autorisée de `feat/native-video-collaboration` pour intégrer le correctif de première ouverture iOS de la PR 126 et main. La trace de la PR 127 échoue au même endroit, avant livraison du lien ; toutes les autres étapes de sa recette passent. Aucun changement de vidéo, nouvelle CI requise.
 
@@ -23,6 +26,9 @@ Reprise autorisée de `feat/native-video-collaboration` pour intégrer le correc
 Codé sur `feat/native-video-collaboration`, après le lot guides : bibliothèque paginée commune, filtres athlète/traitement/revue, capture privée sans identité athlète fournie par le client et rattachement depuis la séance. Clé idempotente conservée dans la file durable, y compris après migration des anciennes entrées. Réponses horodatées, partage explicite au groupe et révocation, revue coach et suppression selon les permissions renvoyées par le serveur. Nouvelles routes natives réutilisant les services existants ; refus d'accès masquant les anciennes données en cache.
 Vérifié : types/lint (quatre avertissements hérités)/design, 1 960 tests web, 289 domaine, 251 mobile, 247 jeu et 90 mascotte. Matrice HTTP et tests vidéo ciblés : 811 réussis. Deux parcours Maestro locaux réussis sur iPhone 16e/iOS 26.3 (390 px), captures relues : capture privée et capture liée au circuit ; aucun sélecteur d'identité athlète. Bundle Hermes intégré au binaire simulateur existant, compilation native fraîche attendue en CI.
 Non éprouvé : upload Mux depuis le natif, reprise sur téléphone, partage/commentaires dans l'interface native, thèmes/tailles restants, Android physique. Pas de parcours web visuel modifié ; suite navigateur complète laissée à la CI. PR en brouillon, aucune nouvelle fusion autorisée par ce travail.
+## 2026-11-14, Codex, reprise F9 après diagnostic du catalogue
+Reprise autorisée de la PR 126. La trace du premier constructeur montre une réponse lente et, dans l’assemblage final, une expiration P2028 de l’installation initiale du catalogue. Ajouts communs groupés dans la même transaction ; graine complétée avec les 150 fiches avant les parcours. Attente de l’écran bornée à 30 s ; aucun clic automatique de reprise ni assertion supprimée. Les contrôles du code commun et l’installation/reprise de la graine passent ; CI de cette tête requise avant fusion.
+
 ## 2026-11-14, Codex, F9 : réactivation après confirmation iOS
 La seconde trace (PR 127) précise le problème du premier lien : l’app reste sur son accueil après « Open » ; dans la PR 126, SpringBoard ne livre UIOpenURLAction qu’à la réactivation suivante. Après cette confirmation uniquement, Maestro remet désormais l’app au premier plan sans l’arrêter ni effacer sa session (`launchApp`, `stopApp: false`). Rejeu sur simulateur iPhone 16e neuf réussi en 1 min 49, avec confirmation « Open » et réactivation effectivement exécutées, puis les mêmes assertions des sept étapes et du guide. Aucun changement applicatif ni preuve sur appareil physique.
 

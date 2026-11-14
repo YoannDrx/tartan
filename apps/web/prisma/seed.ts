@@ -10,6 +10,7 @@ import { addStrengthTest, saveInjury } from "@/server/athlete.service";
 import { logSession } from "@/server/athlete-view.service";
 import { setConsent } from "@/server/consent.service";
 import { saveExercise } from "@/server/exercise.service";
+import { ensureExerciseCatalog } from "@/server/exercise-catalog.service";
 import { createOrganization } from "@/server/org.service";
 import { publishSession, saveScheduledSession } from "@/server/session.service";
 import { publishAnnouncement } from "@/server/comm.service";
@@ -35,7 +36,10 @@ const signUp = async (email: string, name: string): Promise<string> => {
 };
 
 const main = async () => {
-  if (await prisma.user.findUnique({ where: { email: "coach@demo.tartan.coach" } })) {
+  const existingCoach = await prisma.user.findUnique({ where: { email: "coach@demo.tartan.coach" } });
+  if (existingCoach) {
+    const existingOrg = await prisma.organization.findFirst({ where: { ownerId: existingCoach.id } });
+    if (existingOrg) await ensureExerciseCatalog(existingCoach.id, existingOrg.id);
     console.log("Démonstration déjà en place.");
     return;
   }
@@ -46,6 +50,7 @@ const main = async () => {
     disciplines: ["high_jump"],
     firstGroupName: "Hauteur Démo",
   });
+  await ensureExerciseCatalog(coachId, org.id);
 
   const athletes = [];
   for (const [first, last] of [
