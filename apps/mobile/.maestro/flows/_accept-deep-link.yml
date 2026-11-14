@@ -1,0 +1,8 @@
+# iOS asks once per simulator before opening a custom-scheme link.
+appId: ${APP_ID}
+---
+- runFlow:
+    when:
+      visible: 'Open in .*Tartan.*|Ouvrir dans .*Tartan.*'
+    commands:
+      - tapOn: '^Open$|^Ouvrir$'
