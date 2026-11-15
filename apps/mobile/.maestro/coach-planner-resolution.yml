@@ -125,7 +125,7 @@ env:
     timeout: 30000
 - scrollUntilVisible:
     element: "J.ai vérifié les dates.*"
-    centerElement: true
+# Avant-dernier bouton du pied de page : visible en entier, mais impossible à centrer en bas de page.
 - tapOn: "J.ai vérifié les dates.*"
 - assertVisible:
     text: "Créer 1 brouillon"
