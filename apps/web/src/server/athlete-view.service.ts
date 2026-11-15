@@ -25,6 +25,8 @@ import {
   formatPrescription,
   freezePrescription,
   hasAutonomousVersion,
+  latestTest,
+  plannedSetLoadKg,
   resolveLoadKg,
   resolveVariant,
   startOfWeek,
@@ -456,6 +458,12 @@ const readAthleteSession = async (
           : applyOverride(item.prescription, overrides.get(item.ref) ?? overrides.get(item.sourceRef ?? ""));
         const resolvedLoadKg =
           item.resolvedLoadKg !== undefined ? item.resolvedLoadKg : resolveLoadKg(prescription, tests);
+        // Série par série, chaque pourcentage se calcule sur la référence figée avec l'exercice.
+        const testKey = prescription.load?.type === "pct_1rm" ? prescription.load.test : null;
+        const reference = item.strengthReference ?? (testKey ? latestTest(tests, testKey) : null);
+        const setLoadsKg = prescription.setPlan?.map((set) =>
+          plannedSetLoadKg(set, prescription, resolvedLoadKg, reference),
+        );
         return {
           ref: item.ref,
           exerciseId: item.exerciseId,
@@ -472,7 +480,8 @@ const readAthleteSession = async (
           strengthLoadKind: item.strengthLoadKind,
           loadStepKg: item.loadStepKg,
           resolvedLoadKg,
-          summary: formatPrescription(prescription, resolvedLoadKg),
+          ...(setLoadsKg ? { setLoadsKg } : {}),
+          summary: formatPrescription(prescription, resolvedLoadKg, reference),
         };
       }),
     })),

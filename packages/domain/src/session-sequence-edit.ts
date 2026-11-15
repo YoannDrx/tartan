@@ -128,8 +128,9 @@ type Prescription = Block["items"][number]["prescription"];
 
 // Dans un groupe à répéter, les tours font les séries : un exercice y entre à une série par tour,
 // sans repos entre séries (la récupération du groupe ou un nœud de récupération en tient lieu).
+// Le détail série par série n'a plus de sens à une série par tour : il cède la place à la première série de travail.
 export const prescriptionForGroup = (prescription: Prescription): Prescription => {
-  const { rest_s: _rest, ...rest } = prescription;
+  const { rest_s: _rest, setPlan: _plan, ...rest } = prescription;
   return { ...rest, sets: 1 };
 };
 

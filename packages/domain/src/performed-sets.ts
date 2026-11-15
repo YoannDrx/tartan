@@ -7,6 +7,7 @@ import {
   type PerformedDraftResolution,
   type ResolvedItem,
 } from "@tartan/contracts";
+import { plannedSetLoadKg, prescribedSetCount } from "./set-plan";
 
 export const performedNumberFields = ["reps", "loadKg", "distanceM", "timeS", "groundContacts"] as const;
 export const performedSetsKey = (userId: string, orgId: string, sessionId: string, athleteId?: string): string =>
@@ -21,11 +22,17 @@ const contactsPerSet = ({ ground_contacts: total, sets }: ResolvedItem["prescrip
   return Number.isInteger(perSet) ? perSet : null;
 };
 
-export const proposedSet = (item: ResolvedItem, setIndex: number): PerformedSetDraftRow => ({
+export const proposedSet = (item: ResolvedItem, setIndex: number): PerformedSetDraftRow => {
+  // Une série détaillée propose ses propres répétitions et sa charge, et se range en échauffement si besoin.
+  const planned = item.prescription.setPlan?.[setIndex];
+  const plannedKg = planned
+    ? (item.setLoadsKg?.[setIndex] ?? plannedSetLoadKg(planned, item.prescription, item.resolvedLoadKg ?? null))
+    : null;
+  return {
   itemRef: item.ref,
   setIndex,
   done: false,
-  setKind: "work",
+  setKind: planned?.warmup ? "warmup" : "work",
   loadKind:
     item.strengthLoadKind === "bodyweight"
       ? "bodyweight"
@@ -36,12 +43,13 @@ export const proposedSet = (item: ResolvedItem, setIndex: number): PerformedSetD
           : "",
   repetitionScope: "total",
   sideCount: 1,
-  reps: text(item.prescription.reps),
-  loadKg: text(item.resolvedLoadKg),
+  reps: text(planned ? planned.reps : item.prescription.reps),
+  loadKg: text(planned ? plannedKg : item.resolvedLoadKg),
   distanceM: text(item.prescription.distance_m),
   timeS: text(item.prescription.duration_s),
   groundContacts: text(contactsPerSet(item.prescription)),
-});
+  };
+};
 
 // Un choix vaut pour les séries du même exercice encore sans convention, jamais pour une série déjà renseignée.
 export const chooseLoadKind = (
@@ -71,7 +79,7 @@ export const draftFromSession = (session: AthleteSessionDetail): PerformedSetsDr
   status: session.log?.status === "done" ? "done" : "partial",
   rows: loggableItems(session).flatMap((item) => {
       const saved = (session.log?.detailedSets ?? []).filter((row) => row.itemRef === item.ref);
-      const count = Math.max(item.prescription.sets ?? 1, ...saved.map((row) => row.setIndex + 1));
+      const count = Math.max(prescribedSetCount(item.prescription), ...saved.map((row) => row.setIndex + 1));
       return Array.from({ length: count }, (_, setIndex) => {
         const row = saved.find((set) => set.setIndex === setIndex);
         return row

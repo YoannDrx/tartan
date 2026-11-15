@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-15, Claude, lot 2 : séries détaillées
+Fait (PR `feat/series-detaillees`) : `prescription.setPlan` (contrat additif, 30 séries au plus : répétitions, charge, échauffement) ; `set-plan.ts` dans le domaine (format « Échauffement 8 rép. à 40 kg · 2 × 5 rép. à 60 kg », kilos par série sur la référence figée ou en proportion, synchronisation de `sets`, `reps` et `load` sur la première série de travail pour les anciens clients) ; `countSets`, volume, proposition de saisie (`setKind` échauffement) et `setLoadsKg` côté serveur ; éditeur « Détailler série par série » ; mode séance web série par série.
+Vérifié : domaine (`set-plan.test.ts`), parcours `set-plan.spec.ts` (constructeur, sauvegarde, mode séance de l'athlète, axe), desktop et mobile ; rendu à 390 px.
+À savoir : un exercice détaillé qui entre dans un groupe perd son détail (`prescriptionForGroup`). Le mobile n'édite pas encore le détail : modifier les séries d'un exercice détaillé sur le mobile laisse `setPlan` faire foi.
+Suite : variante par exercice (`feat/variante-par-exercice`), puis le constructeur mobile (lot 3).
+
 ## 2026-11-15, Claude, recette en production (lot 1)
 Fait : recette avec les comptes du fondateur (coach dans un espace créé le 3 novembre, athlète invité par le lien du groupe). Joués : superset de 3 tours publié, mode séance (tours, aperçu, récupération lancée, validation, effort, mot au coach), suivi coach, vidéo envoyée par l'athlète (encodage Mux, notification nommée), angle tracé par le coach et vu par l'athlète, planificateur réel (un appel et une précision). Corrigé (PR `fix/recette-production`) : les anciennes fiches de départ sont rattachées à leur fiche commune, même enrichies depuis (30 doublons dans l'espace du fondateur, 88 dans deux autres, qui bloquaient le planificateur sur « Hip thrust ») ; le compte d'exercices et « Au programme » montrent chaque exercice une fois avec ses passages (web et mobile) ; « À travailler » ne répète plus une consigne ; le sélecteur repart d'une recherche vide.
 Vérifié : domaine, suite web (1982), types et lint mobile. Non vérifié : le rattachement sur la production avant la prochaine visite de chaque espace (il se fait à l'ouverture de la bibliothèque).

@@ -19,9 +19,20 @@ export const loadSchema = z.discriminatedUnion("type", [
 
 export const sessionTextLimits = { title: 120, blockName: 80, notes: 500 } as const;
 
-// Prescription souple, stockée en JSONB (cahier des charges § 12.3).
+// Une série détaillée (pyramide, échauffement) : ses répétitions et sa charge propres.
+export const plannedSetSchema = z.object({
+  reps: z.number().int().min(1).max(500).optional(),
+  load: loadSchema.optional(),
+  warmup: z.boolean().optional(),
+});
+export type PlannedSet = z.infer<typeof plannedSetSchema>;
+
+// Prescription souple, stockée en JSONB.
 export const prescriptionSchema = z.object({
   sets: z.number().int().min(1).max(50).optional(),
+  // Série par série. `sets`, `reps` et `load` restent renseignés (nombre de séries, première série de travail) :
+  // un client qui ne connaît pas ce champ affiche toujours une prescription juste dans les grandes lignes.
+  setPlan: z.array(plannedSetSchema).min(1).max(30).optional(),
   reps: z.number().int().min(1).max(500).optional(),
   unit: z.string().max(30).optional(),
   count: z.number().int().min(0).max(1000).optional(),
