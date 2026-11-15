@@ -12,7 +12,7 @@ import "./globals.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://tartan.coach"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://tartan.coach"),
   title: { default: m.brand.storeName, template: "%s · Tartan" },
   description: m.brand.tagline,
   manifest: "/manifest.webmanifest",

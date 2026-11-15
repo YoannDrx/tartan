@@ -104,16 +104,20 @@ export const assertEnvIsolation = (vars: Record<string, string | undefined>): vo
 
 let cached: Env | undefined;
 
-// En preview, l'adresse vient du déploiement Vercel.
-const previewUrl =
-  process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
+// Une variable vide vaut une variable absente : `.env.example` se copie tel quel, chaque défaut s'applique.
+export const parseEnv = (source: Record<string, string | undefined>): Env => {
+  const vars = Object.fromEntries(Object.entries(source).filter(([, value]) => value !== ""));
+  // En preview, l'adresse vient du déploiement Vercel.
+  const previewUrl = vars.VERCEL_ENV === "preview" && vars.VERCEL_URL ? `https://${vars.VERCEL_URL}` : undefined;
+  return schema.parse({
+    ...vars,
+    BETTER_AUTH_URL: vars.BETTER_AUTH_URL ?? previewUrl,
+    NEXT_PUBLIC_APP_URL: vars.NEXT_PUBLIC_APP_URL ?? previewUrl,
+  });
+};
 
 export const env = (): Env => {
   if (!cached) assertEnvIsolation(process.env);
-  cached ??= schema.parse({
-    ...process.env,
-    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? previewUrl,
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? previewUrl,
-  });
+  cached ??= parseEnv(process.env);
   return cached;
 };
