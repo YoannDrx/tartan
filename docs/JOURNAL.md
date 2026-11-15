@@ -14,6 +14,13 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-15, Claude, phase F2 (vidéos)
+Fait (PR `feat/mes-videos`) : route `/mes-videos` (redirection 308 depuis `/mes-sauts` dans `next.config.ts`, les deux chemins dans l'association Apple et dans `notification-routes.ts`) ; énumération `jump_phase` étendue de `preparation`, `execution`, `finish` (migration additive) avec `JUMP_PHASES` et `MOVEMENT_PHASES` dans les contrats ; `video_shared` nomme l'athlète ou le coach ; filtre `groupe` sur `/videos`.
+Vérifié : types, lint, design, domaine, mobile, web (dont filtre par groupe et payload de notification).
+Non vérifié : parcours Playwright vidéo en local (la CI les rejoue) ; notifications reçues sur un téléphone.
+À savoir : les notifications déjà enregistrées gardent `/mes-sauts/…` : la redirection et la route mobile les servent toujours, ne pas les retirer.
+Suite : tracés sur vidéo, puis F1 (matrice écran par écran).
+
 ## 2026-11-15, Claude, G1 (configuration mobile)
 Fait (PR `feat/mobile-g1`) : `scripts/profile-env.mjs` (variables et canal d'un profil EAS, héritage compris) chargé par `release-mobile.yml` avant `eas update`, qui partait sans `APP_VARIANT` et visait donc `http://localhost:3000` ; profil et canal `beta` (soumission Play en test fermé `alpha`) ; `runtimeVersion` par empreinte ; `webcredentials` pour les deux domaines ; `/mes-videos` dans les liens Android ; lint mobile (`eslint.config.mjs`, règles maison du web et des hooks) et unités passées dans `m.units`.
 Vérifié : types, lint mobile (0 erreur, 10 avertissements), tests du profil et de la variante, configuration Expo produite (`expo config`).

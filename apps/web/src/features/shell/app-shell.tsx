@@ -45,7 +45,7 @@ const athleteItems: Item[] = [
   { href: "/aujourdhui", label: m.nav.aujourdhui, icon: House, mobile: true },
   { href: "/calendrier", label: m.nav.calendrier, icon: CalendarDays, mobile: true },
   { href: "/progres", label: m.nav.progres, icon: TrendingUp, mobile: true },
-  { href: "/mes-sauts", label: m.nav.mesSauts, icon: Video, mobile: true },
+  { href: "/mes-videos", label: m.nav.mesSauts, icon: Video, mobile: true },
   { href: "/annonces", label: m.nav.annonces, icon: Megaphone, mobile: true },
 ];
 
@@ -114,7 +114,7 @@ export const AppShell = ({
     : athleteItems;
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   // Le mode séance et l'analyse vidéo prennent tout l'écran, en sombre.
-  const immersive = /^\/(seance\/[^/]+\/mode|videos\/[^/]+|mes-sauts\/[^/]+)/.test(pathname);
+  const immersive = /^\/(seance\/[^/]+\/mode|videos\/[^/]+|mes-videos\/[^/]+)/.test(pathname);
   if (immersive) return <div className="overflow-x-clip">{children}</div>;
 
   return (

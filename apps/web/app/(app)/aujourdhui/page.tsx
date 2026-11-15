@@ -35,7 +35,7 @@ const FocusBlock = ({ focus }: { focus: NonNullable<AthleteToday["focus"]> }) =>
       </ul>
     ) : null}
     {focus.video ? (
-      <Link href={`/mes-sauts/${focus.video.id}`} className="flex min-h-11 items-center gap-2 text-inherit">
+      <Link href={`/mes-videos/${focus.video.id}`} className="flex min-h-11 items-center gap-2 text-inherit">
         <Play aria-hidden className="size-4 shrink-0" />
         <span className="min-w-0">
           {focus.video.exerciseName ? <span className="font-semibold">{focus.video.exerciseName} : </span> : null}

@@ -79,7 +79,10 @@ export type JumpResult = z.infer<typeof jumpResult>;
 export const videoStatus = z.enum(["uploading", "processing", "ready", "error"]);
 export type VideoStatus = z.infer<typeof videoStatus>;
 
-export const jumpPhase = z.enum(["approach", "penultimate", "takeoff", "clearance", "landing"]);
+// Les phases d'une vidéo : celles du saut, puis trois phases génériques pour tout autre geste.
+export const jumpPhase = z.enum(["approach", "penultimate", "takeoff", "clearance", "landing", "preparation", "execution", "finish"]);
+export const JUMP_PHASES = ["approach", "penultimate", "takeoff", "clearance", "landing"] as const;
+export const MOVEMENT_PHASES = ["preparation", "execution", "finish"] as const;
 export type JumpPhase = z.infer<typeof jumpPhase>;
 
 export const annotationKind = z.enum(["comment", "line", "arrow", "angle"]);

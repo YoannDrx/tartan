@@ -13,7 +13,7 @@ import { markReleaseSeenAction } from "@/features/notifications/notifications.ac
 
 const CHECK_EVERY_MS = 15 * 60 * 1000;
 // Un rechargement au milieu d'une séance perdrait le mode séance : la proposition attend la fin.
-const isBusyPath = (pathname: string) => /^\/seance\/[^/]+\/(mode|series)|^\/videos\/|^\/mes-sauts\//.test(pathname);
+const isBusyPath = (pathname: string) => /^\/seance\/[^/]+\/(mode|series)|^\/videos\/|^\/mes-videos\//.test(pathname);
 
 export const UpdateWatcher = ({ unseen }: { unseen: ReleaseView | null }) => {
   const pathname = usePathname();
