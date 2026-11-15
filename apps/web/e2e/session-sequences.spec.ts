@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { m } from "@tartan/i18n";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll, expectNoMotion } from "./helpers";
 
@@ -64,6 +64,52 @@ test("un circuit imbriqué garde son ordre, ses récupérations et ses identité
   }
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expectNoMotion(page);
+});
+
+test("glisser une carte dans un groupe, l'y réordonner puis l'en sortir", async ({ page }) => {
+  await createCoachSpace(page, "Glisser");
+  const width = page.viewportSize()!.width;
+  await page.setViewportSize({ width, height: 1600 });
+  await page.goto("/seances/nouvelle", { waitUntil: "networkidle" });
+  await page.getByLabel(m.builder.titleLabel, { exact: true }).fill("Séance glissée");
+  await page.getByRole("button", { name: "Ajouter Accélérations à la séance", exact: true }).click();
+  await page.getByRole("button", { name: "Ajouter Foulées bondissantes à la séance", exact: true }).click();
+  const phase = page.getByRole("region", { name: m.builder.blocks.main, exact: true });
+  await phase.getByRole("button", { name: m.builder.sequence.addGroup, exact: true }).click();
+  const group = phase.getByRole("group", { name: /^Superset/ });
+  // La carte la plus intérieure qui porte ce nom, et sa propre poignée.
+  const card = (name: string) =>
+    phase.locator("li[data-seq-node]").filter({ has: page.getByText(name, { exact: true }) }).last();
+  const grip = (name: string) => card(name).locator('[data-testid^="grip-"]').first();
+  const drag = async (from: Locator, to: Locator, at: "top" | "middle" = "middle") => {
+    // La barre d'actions reste fixée en bas : la destination est amenée au centre de l'écran.
+    await to.evaluate((element) => element.scrollIntoView({ block: "center" }));
+    const start = (await from.boundingBox())!;
+    await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+    await page.mouse.down();
+    const end = (await to.boundingBox())!;
+    const y = at === "top" ? end.y + 6 : end.y + end.height / 2;
+    await page.mouse.move(end.x + end.width / 2, y, { steps: 10 });
+    await expect(page.locator("li[data-seq-node] .bg-accent.h-1, ol > .bg-accent.h-1").first()).toBeVisible();
+    await page.mouse.up();
+  };
+  // Dans le groupe vide, sur son bouton d'ajout : l'exercice y entre à une série par tour.
+  await drag(grip("Accélérations"), group.getByRole("button", { name: m.builder.sequence.addInto("Superset") }));
+  await expect(group.getByText("Accélérations", { exact: true })).toBeVisible();
+  // Entre deux cartes du groupe : avant Accélérations.
+  await drag(grip("Foulées bondissantes"), card("Accélérations"), "top");
+  await expect(group.locator("li[data-seq-node]").first()).toContainText("Foulées bondissantes");
+  await expect(group.locator("li[data-seq-node]").last()).toContainText("Accélérations");
+  // Hors du groupe : sur le bas du groupe, la carte revient dans la phase, après lui.
+  await drag(grip("Accélérations"), group.getByText(/tours/).last());
+  await expect(group.getByText("Accélérations", { exact: true })).toHaveCount(0);
+  await expect(phase.locator("li[data-seq-node]").last()).toContainText("Accélérations");
+  await page.getByRole("button", { name: m.builder.saveDraft, exact: true }).click();
+  await expect(page).toHaveURL(/\/seances\/[a-f0-9-]+$/);
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(group.getByText("Foulées bondissantes", { exact: true })).toBeVisible();
+  await expect(group.getByText("Accélérations", { exact: true })).toHaveCount(0);
+  await expectNoHorizontalScroll(page);
 });
 
 test("l'athlète suit A/B/A/B et lance la récupération sans créer de série fictive", async ({ page, browser }) => {

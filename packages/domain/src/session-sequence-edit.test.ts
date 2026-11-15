@@ -107,3 +107,36 @@ it("refuse un déplacement qui dépasserait deux niveaux ou ferait entrer un gro
   const other = groupSequenceSelection(outer, null, ["b"], { ref: "other", name: "C" });
   expect(() => moveSequenceNode(other, "outer", "other")).toThrow("sequence_depth_exceeded");
 });
+
+it("glisse un élément avant un autre, dans un groupe, entre groupes et hors d'un groupe", async () => {
+  const { groupSequenceSelection, moveSequenceNode, findSequenceNode } = await import("./session-sequence-edit");
+  const source = block();
+  source.items = [
+    { ref: "a", exerciseId: "a", prescription: { sets: 4, reps: 5, rest_s: 150 } },
+    { ref: "b", exerciseId: "b", prescription: { sets: 3, reps: 8 } },
+    { ref: "c", exerciseId: "c", prescription: { sets: 2, reps: 10, rest_s: 60 } },
+  ];
+  // À la racine : c passe devant a, sans toucher aux prescriptions.
+  const root = moveSequenceNode(source, "c", null, "a");
+  expect(root.sequence!.map(sequenceNodeRef)).toEqual(["c", "a", "b"]);
+  expect(root.items).toEqual(source.items);
+  // Dans un groupe : réordonner garde la prescription du groupe.
+  const grouped = groupSequenceSelection(source, null, ["a", "b"], { ref: "g", name: "Superset" });
+  const tuned = { ...grouped, items: grouped.items.map((i) => (i.ref === "b" ? { ...i, prescription: { sets: 2, reps: 8 } } : i)) };
+  const reordered = moveSequenceNode(tuned, "b", "g", "a");
+  expect(findSequenceNode(reordered, "b")).toEqual({ parent: "g", index: 0 });
+  expect(reordered.items.find((i) => i.ref === "b")!.prescription).toEqual({ sets: 2, reps: 8 });
+  // Entrer dans un groupe à une place précise : une série par tour.
+  const entered = moveSequenceNode(grouped, "c", "g", "b");
+  expect(findSequenceNode(entered, "c")).toEqual({ parent: "g", index: 1 });
+  expect(entered.items.find((i) => i.ref === "c")!.prescription).toEqual({ sets: 1, reps: 10 });
+  // Sortir d'un groupe devant le groupe lui-même.
+  const out = moveSequenceNode(entered, "c", null, "g");
+  expect(out.sequence!.map(sequenceNodeRef)).toEqual(["c", "g"]);
+  // En fin de niveau, explicitement, même sans changer de niveau.
+  expect(moveSequenceNode(root, "c", null, null).sequence!.map(sequenceNodeRef)).toEqual(["a", "b", "c"]);
+  // Poser un élément sur lui-même ou sur une ancre absente.
+  expect(moveSequenceNode(grouped, "c", null, "c")).toBe(grouped);
+  expect(() => moveSequenceNode(grouped, "c", "g", "absent")).toThrow("sequence_anchor_missing");
+  expect(() => moveSequenceNode(grouped, "g", "g")).toThrow("sequence_move_into_itself");
+});

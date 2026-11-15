@@ -14,9 +14,9 @@ import {
   type SequenceEdit,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { ArrowDown, ArrowUp, Layers, MoreHorizontal, Plus, Repeat2, Timer, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Layers, MoreHorizontal, Plus, Repeat2, Timer, Trash2 } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
-import { useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ActivityPicto } from "@/components/pictos";
 import { Button, IconButton } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -31,7 +31,7 @@ const labels = m.builder.sequence;
 const newRef = () => crypto.randomUUID();
 const groupTone = activityColors("cones");
 const menuItem =
-  "flex min-h-11 cursor-pointer items-center rounded-button px-3 outline-none data-[highlighted]:bg-card-raised";
+  "flex min-h-11 cursor-pointer items-center rounded-button px-3 outline-none data-[highlighted]:bg-card-raised data-[disabled]:cursor-default data-[disabled]:opacity-50";
 
 export type SequenceDestination = { parent: string | null; label: string };
 
@@ -60,22 +60,149 @@ export function SequenceEditor({
   const edit = (parent: string | null, command: SequenceEdit) =>
     apply(() => editSessionSequence(block, parent, command, newRef));
   const nodes = block.sequence ?? block.items.map((item) => ({ kind: "exercise" as const, itemRef: item.ref! }));
+  const dragging = useSequenceDrag((ref, drop) => apply(() => moveSequenceNode(block, ref, drop.parent, drop.before)));
   return (
-    <Level
-      nodes={nodes}
-      parent={null}
-      parentName={block.name}
-      depth={0}
-      block={block}
-      exercises={exercises}
-      byId={byId}
-      edit={edit}
-      apply={apply}
-      onEdit={onEdit}
-      onDestination={onDestination}
-    />
+    <>
+      <Level
+        nodes={nodes}
+        parent={null}
+        parentName={block.name}
+        depth={0}
+        block={block}
+        exercises={exercises}
+        byId={byId}
+        edit={edit}
+        apply={apply}
+        onEdit={onEdit}
+        onDestination={onDestination}
+        dragging={dragging}
+      />
+      {dragging.drag ? (
+        <div
+          aria-hidden
+          className="on-card pointer-events-none fixed left-0 top-0 z-50 max-w-60 truncate rounded-button border border-card-line bg-card px-3 py-2 font-semibold shadow-float-strong"
+          style={{ transform: `translate(${dragging.drag.x + 14}px, ${dragging.drag.y + 14}px)` }}
+        >
+          {dragging.drag.name}
+        </div>
+      ) : null}
+      <p className="sr-only" aria-live="polite">
+        {dragging.announce}
+      </p>
+    </>
   );
 }
+
+type Drop = { parent: string | null; before: string | null };
+type DragState = { ref: string; name: string; x: number; y: number; drop: Drop | null; inside: Set<string> };
+type Dragging = ReturnType<typeof useSequenceDrag>;
+// La bande qui fait défiler la page, plus haute que la barre d'actions fixée en bas.
+const EDGE = 112;
+
+/**
+ * Glisser-déposer au doigt comme à la souris : la poignée capture le pointeur, la destination se lit sous le
+ * pointeur (avant la carte survolée, ou en fin de niveau). Les flèches et « Déplacer vers… » restent l'alternative.
+ */
+function useSequenceDrag(onDrop: (ref: string, drop: Drop) => void) {
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const [announce, setAnnounce] = useState("");
+  const pointer = useRef<number | null>(null);
+  const active = drag !== null;
+  const cancel = () => {
+    setDrag(null);
+    setAnnounce(labels.dragCancelled);
+  };
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && cancel();
+    // Près d'un bord, la page défile pour atteindre une destination hors de l'écran.
+    let frame = 0;
+    const scroll = () => {
+      const y = pointer.current;
+      if (y !== null) {
+        const step = y < EDGE ? -(EDGE - y) / 4 : y > window.innerHeight - EDGE ? (y - window.innerHeight + EDGE) / 4 : 0;
+        if (step) window.scrollBy(0, step);
+      }
+      frame = requestAnimationFrame(scroll);
+    };
+    frame = requestAnimationFrame(scroll);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [active]);
+  const locate = (x: number, y: number, inside: Set<string>): Drop | null => {
+    const target = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-seq-node],[data-seq-level]");
+    if (!target) return null;
+    let drop: Drop;
+    if (target.dataset.seqLevel !== undefined) drop = { parent: target.dataset.seqLevel || null, before: null };
+    else {
+      const rect = target.getBoundingClientRect();
+      const next = target.nextElementSibling as HTMLElement | null;
+      drop = {
+        parent: target.dataset.seqParent || null,
+        before: y < rect.top + rect.height / 2 ? target.dataset.seqNode! : (next?.dataset.seqNode ?? null),
+      };
+    }
+    return drop.parent !== null && inside.has(drop.parent) ? null : drop;
+  };
+  const grip = (node: SequenceNode, name: string) => {
+    const ref = sequenceNodeRef(node);
+    return {
+      onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        pointer.current = event.clientY;
+        const inside = new Set([ref, ...(node.kind === "repeat" ? descendants(node) : [])]);
+        setDrag({ ref, name, x: event.clientX, y: event.clientY, drop: null, inside });
+        setAnnounce(labels.dragging(name));
+      },
+      onPointerMove: (event: ReactPointerEvent<HTMLElement>) => {
+        if (!drag || drag.ref !== ref) return;
+        pointer.current = event.clientY;
+        setDrag({ ...drag, x: event.clientX, y: event.clientY, drop: locate(event.clientX, event.clientY, drag.inside) });
+      },
+      onPointerUp: () => {
+        if (!drag || drag.ref !== ref) return;
+        pointer.current = null;
+        setDrag(null);
+        if (drag.drop && drag.drop.before !== ref) {
+          onDrop(ref, drag.drop);
+          setAnnounce(labels.dropped(name));
+        } else setAnnounce(labels.dragCancelled);
+      },
+      onPointerCancel: () => {
+        pointer.current = null;
+        if (drag?.ref === ref) cancel();
+      },
+    };
+  };
+  return { drag, announce, grip };
+}
+
+/** Le trait qui montre où l'élément glissé va se poser. */
+const DropLine = ({ show, end }: { show: boolean; end?: boolean }) =>
+  show ? (
+    <span
+      aria-hidden
+      className={cn("pointer-events-none absolute inset-x-0 h-1 rounded-full bg-accent", end ? "-bottom-1.5" : "-top-1.5")}
+    />
+  ) : null;
+
+/** La poignée : une cible de 44 px, pour le pointeur seulement (le clavier passe par les flèches et le menu). */
+const Grip = ({ dragging, node, name }: { dragging: Dragging; node: SequenceNode; name: string }) => (
+  <span
+    aria-hidden
+    title={labels.drag(name)}
+    data-testid={`grip-${sequenceNodeRef(node)}`}
+    className="flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-button text-soft active:cursor-grabbing"
+    {...dragging.grip(node, name)}
+  >
+    <GripVertical className="size-5" />
+  </span>
+);
 
 type LevelProps = {
   nodes: SequenceNode[];
@@ -89,10 +216,13 @@ type LevelProps = {
   apply: (next: () => Block) => void;
   onEdit: (ref: string) => void;
   onDestination?: (destination: SequenceDestination) => void;
+  dragging: Dragging;
 };
 
 function Level(props: LevelProps) {
-  const { nodes, parent, parentName, depth, block, exercises, byId, edit, apply, onDestination } = props;
+  const { nodes, parent, parentName, depth, block, exercises, byId, edit, apply, onDestination, dragging } = props;
+  const drop = dragging.drag?.drop;
+  const here = drop !== undefined && drop !== null && drop.parent === parent;
   const [picking, setPicking] = useState<number | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -118,12 +248,18 @@ function Level(props: LevelProps) {
   const toggle = (ref: string) =>
     setSelected((current) => (current.includes(ref) ? current.filter((r) => r !== ref) : [...current, ref]));
   return (
-    <div className={cn("min-w-0 space-y-2", depth === 0 ? "p-3" : "p-2")}>
-      <ol className="space-y-2">
+    <div className={cn("min-w-0 space-y-2", depth === 0 ? "p-3" : "p-2")} data-seq-level={parent ?? ""}>
+      <ol className={cn("relative space-y-2", nodes.length === 0 && dragging.drag && "min-h-11")}>
         {nodes.map((node, index) => {
           const ref = sequenceNodeRef(node);
           return (
-            <li key={ref} className="min-w-0">
+            <li
+              key={ref}
+              className={cn("relative min-w-0", dragging.drag?.ref === ref && "opacity-40")}
+              data-seq-node={ref}
+              data-seq-parent={parent ?? ""}
+            >
+              <DropLine show={here && drop.before === ref} />
               {selecting ? (
                 <label className="mb-1 flex min-h-11 items-center gap-2 text-sm">
                   <input
@@ -139,6 +275,7 @@ function Level(props: LevelProps) {
             </li>
           );
         })}
+        <DropLine show={here && drop.before === null} end />
       </ol>
       {selecting ? (
         <div className="flex flex-wrap gap-2">
@@ -235,25 +372,30 @@ function NodeCard(props: LevelProps & { node: SequenceNode; index: number }) {
   const { node, index, nodes, parent, block, byId, edit, apply, onEdit } = props;
   const ref = sequenceNodeRef(node);
   const name = nodeName(node, block, byId);
+  // Sur téléphone, monter et descendre passent dans « Autres actions » : la poignée suffit à la carte.
   const actions = (
     <div className="ml-auto flex shrink-0 items-center">
-      <IconButton label={labels.up} disabled={index === 0} onClick={() => edit(parent, { kind: "move", ref, delta: -1 })}>
-        <ArrowUp aria-hidden className="size-4" />
-      </IconButton>
-      <IconButton
-        label={labels.down}
-        disabled={index === nodes.length - 1}
-        onClick={() => edit(parent, { kind: "move", ref, delta: 1 })}
-      >
-        <ArrowDown aria-hidden className="size-4" />
-      </IconButton>
+      <span className="hidden tablet:contents">
+        <IconButton label={labels.up} disabled={index === 0} onClick={() => edit(parent, { kind: "move", ref, delta: -1 })}>
+          <ArrowUp aria-hidden className="size-4" />
+        </IconButton>
+        <IconButton
+          label={labels.down}
+          disabled={index === nodes.length - 1}
+          onClick={() => edit(parent, { kind: "move", ref, delta: 1 })}
+        >
+          <ArrowDown aria-hidden className="size-4" />
+        </IconButton>
+      </span>
       <MoreActions {...props} name={name} />
     </div>
   );
+  const grip = <Grip dragging={props.dragging} node={node} name={name} />;
 
   if (node.kind === "recovery")
     return (
-      <div className="flex min-w-0 items-center gap-2 px-1 text-soft">
+      <div className="flex min-w-0 items-center gap-1 text-soft">
+        {grip}
         <Timer aria-hidden className="size-4 shrink-0" />
         <span aria-hidden className="h-px min-w-4 flex-1 border-t border-dashed border-control-line" />
         <label className="flex items-center gap-1 text-sm">
@@ -280,7 +422,8 @@ function NodeCard(props: LevelProps & { node: SequenceNode; index: number }) {
     const exercise = item ? byId.get(item.exerciseId) : undefined;
     const tone = categoryColors(exercise?.category);
     return (
-      <div className="flex min-w-0 items-center gap-2 rounded-button bg-card-raised py-1 pl-1.5 pr-1">
+      <div className="flex min-w-0 items-center gap-1 rounded-button bg-card-raised py-1 pr-1">
+        {grip}
         <button
           type="button"
           className="flex min-h-11 min-w-0 flex-1 items-center gap-2 py-1 text-left"
@@ -314,9 +457,10 @@ function NodeCard(props: LevelProps & { node: SequenceNode; index: number }) {
       style={{ borderColor: groupTone.text }}
     >
       <div
-        className="flex min-w-0 flex-wrap items-center gap-2 px-3 py-2"
+        className="flex min-w-0 flex-wrap items-center gap-2 py-2 pl-1 pr-3"
         style={{ backgroundColor: groupTone.background, color: groupTone.text }}
       >
+        {grip}
         <Repeat2 aria-hidden className="size-5 shrink-0" />
         <label className="min-w-0 flex-1">
           <span className="sr-only">{labels.groupName}</span>
@@ -399,8 +543,8 @@ function NodeCard(props: LevelProps & { node: SequenceNode; index: number }) {
   );
 }
 
-function MoreActions(props: LevelProps & { node: SequenceNode; name: string }) {
-  const { node, name, parent, block, edit, apply } = props;
+function MoreActions(props: LevelProps & { node: SequenceNode; name: string; index: number }) {
+  const { node, name, index, nodes, parent, block, edit, apply } = props;
   const ref = sequenceNodeRef(node);
   const own = node.kind === "repeat" ? descendants(node) : new Set<string>();
   const targets = sequenceGroups(block).filter((group) => group.ref !== parent && group.ref !== ref && !own.has(group.ref));
@@ -417,6 +561,20 @@ function MoreActions(props: LevelProps & { node: SequenceNode; name: string }) {
           sideOffset={4}
           className="menu-enter on-card z-50 w-64 max-w-[calc(100vw-16px)] rounded-card border border-card-line bg-card p-1.5 shadow-float-strong"
         >
+          <DropdownMenu.Item
+            className={cn(menuItem, "tablet:hidden")}
+            disabled={index === 0}
+            onSelect={() => edit(parent, { kind: "move", ref, delta: -1 })}
+          >
+            {labels.up}
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            className={cn(menuItem, "tablet:hidden")}
+            disabled={index === nodes.length - 1}
+            onSelect={() => edit(parent, { kind: "move", ref, delta: 1 })}
+          >
+            {labels.down}
+          </DropdownMenu.Item>
           <DropdownMenu.Item className={menuItem} onSelect={() => edit(parent, { kind: "duplicate", ref })}>
             {labels.duplicate(name)}
           </DropdownMenu.Item>
