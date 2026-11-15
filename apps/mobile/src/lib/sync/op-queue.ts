@@ -1,5 +1,5 @@
 import { m } from "@tartan/i18n";
-import { sessionLogInput, type JumpAttemptInput, type SessionLogInput } from "@tartan/contracts";
+import { sessionLogInput, type AbsenceReason, type JumpAttemptInput, type SessionLogInput } from "@tartan/contracts";
 import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
@@ -37,7 +37,7 @@ const send = (op: QueuedOp): Promise<unknown> => {
         ? api.logSessionForAthlete(op.orgId, op.sessionId, op.athleteId, op.input)
         : api.logSession(op.orgId, op.sessionId, op.input);
     case "attendance":
-      return api.setAttendance(op.orgId, op.sessionId, op.status);
+      return api.setAttendance(op.orgId, op.sessionId, op.status, op.reason);
     case "attempt":
       return api.addJumpAttempt(op.orgId, op.input);
   }
@@ -232,13 +232,19 @@ export const submitValidation = async (
   });
 };
 
-export const submitAttendance = (orgId: string, sessionId: string, status: "present" | "absent") =>
+export const submitAttendance = (
+  orgId: string,
+  sessionId: string,
+  status: "present" | "absent",
+  reason?: AbsenceReason,
+) =>
   useOpQueue.getState().add({
     id: newClientId(),
     kind: "attendance",
     orgId,
     sessionId,
     status,
+    ...(status === "absent" && reason ? { reason } : {}),
     queuedAt: new Date().toISOString(),
   });
 

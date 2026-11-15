@@ -7,6 +7,7 @@ import { Button, Divider, ListSurface, SectionTitle, T, Tag } from "../../src/ui
 import { TabScreen } from "../../src/ui/screen";
 import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
 import { space } from "../../src/ui/theme";
+import { ShareRecord } from "../../src/features/share-record";
 import { NativeCalendarPhases } from "../../src/features/training-phases";
 import { localIsoDate } from "../../src/lib/dates";
 
@@ -85,7 +86,17 @@ export default function Progress() {
                     {perf.isBaseline ? (
                       <Tag label={m.performances.baseline} />
                     ) : perf.isPb ? (
-                      <Tag label={m.mobile.progress.personalBest} tone="brand" />
+                      <>
+                        <Tag label={m.mobile.progress.personalBest} tone="brand" />
+                        {orgId && file.data && perf.id ? (
+                          <ShareRecord
+                            orgId={orgId}
+                            athleteId={file.data.id}
+                            performanceId={perf.id}
+                            discipline={disciplineLabel(perf.discipline)}
+                          />
+                        ) : null}
+                      </>
                     ) : null}
                   </View>
                   <T variant="figure" style={{ fontSize: 24, lineHeight: 28 }}>
