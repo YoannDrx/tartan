@@ -74,13 +74,17 @@ env:
     start: "98%, 25%"
     end: "98%, 60%"
     duration: 500
+# Selon la hauteur du formulaire, le glissement peut faire sortir le champ : le ramener.
+- scrollUntilVisible:
+    element:
+      id: planner-exercise-cues
 - tapOn:
     id: planner-exercise-cues
 - inputText: "Garder les appuis stables."
 - copyTextFrom:
     id: planner-exercise-cues
 - assertTrue: ${maestro.copiedText === "Garder les appuis stables."}
-- tapOn: "Consignes techniques .*"
+- tapOn: "Consignes techniques.*"
 - scrollUntilVisible:
     element:
       id: planner-exercise-reviewed
@@ -113,9 +117,15 @@ env:
 - tapOn:
     id: planner-clarify
 - extendedWaitUntil:
-    visible: "Relire et ajuster les brouillons"
+    visible: "Séances proposées"
     timeout: 30000
-- tapOn: "Relire et ajuster les brouillons"
+# La liste des exercices proposés précède le bouton : le faire venir à l'écran.
+- scrollUntilVisible:
+    element:
+      id: planner-prepare-review
+    centerElement: true
+- tapOn:
+    id: planner-prepare-review
 - scrollUntilVisible:
     element: "Vérifier les charges individuelles"
     centerElement: true
