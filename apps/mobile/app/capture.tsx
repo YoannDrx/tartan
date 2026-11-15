@@ -597,7 +597,7 @@ export default function Capture() {
               <Chip
                 tall
                 minWidth={64}
-                label="O"
+                label={m.units.cleared}
                 accessibilityLabel={m.video.cleared}
                 active={result === "O"}
                 onPress={() => setResult("O")}
@@ -605,7 +605,7 @@ export default function Capture() {
               <Chip
                 tall
                 minWidth={64}
-                label="X"
+                label={m.units.failed}
                 accessibilityLabel={m.video.failedJump}
                 active={result === "X"}
                 onPress={() => setResult("X")}

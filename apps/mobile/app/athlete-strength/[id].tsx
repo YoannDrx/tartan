@@ -103,7 +103,7 @@ const StrengthPanel = ({
           </T>
           {reference.data.reference ? (
             <>
-              <T variant="figure">{reference.data.reference.valueKg} kg</T>
+              <T variant="figure">{m.units.kg(reference.data.reference.valueKg)}</T>
               <T>{m.strength.referenceKinds[reference.data.reference.kind]}</T>
             </>
           ) : (
@@ -195,7 +195,7 @@ const StrengthPanel = ({
       {reference.data?.tests.map((test) => (
         <Card key={test.id}>
           <View style={{ gap: space.sm }}>
-            <T variant="figure">{test.value} kg</T>
+            <T variant="figure">{m.units.kg(test.value)}</T>
             <T>
               {m.testKind[test.kind as keyof typeof m.testKind] ?? test.kind} · {test.date.slice(0, 10)}
             </T>

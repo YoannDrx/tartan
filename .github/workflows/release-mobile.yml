@@ -9,6 +9,11 @@ on:
         required: true
         type: choice
         options: [ota, store]
+      profile:
+        description: "production : les binaires des stores. beta : TestFlight externe et test fermé Play."
+        required: true
+        type: choice
+        options: [production, beta]
       platform:
         description: "Plateforme visée"
         required: true
@@ -42,9 +47,15 @@ jobs:
         env:
           MESSAGE: ${{ inputs.message }}
           PLATFORM: ${{ inputs.platform }}
-        run: eas update --channel production --platform "$PLATFORM" --message "${MESSAGE:-Publication manuelle}" --non-interactive
+          PROFILE: ${{ inputs.profile }}
+        # La mise à jour embarque la configuration du binaire qu'elle vise : variante, adresse de l'API, canal.
+        # Sans elles, elle retomberait sur la variante de développement et viserait http://localhost:3000.
+        run: |
+          eval "$(node scripts/profile-env.mjs "$PROFILE")"
+          eas update --channel "$EAS_CHANNEL" --environment production --platform "$PLATFORM" --message "${MESSAGE:-Publication manuelle}" --non-interactive
       - name: Binaire et soumission
         if: inputs.mode == 'store'
         env:
           PLATFORM: ${{ inputs.platform }}
-        run: eas build --profile production --platform "$PLATFORM" --auto-submit --non-interactive
+          PROFILE: ${{ inputs.profile }}
+        run: eas build --profile "$PROFILE" --platform "$PLATFORM" --auto-submit --non-interactive

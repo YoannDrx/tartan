@@ -6,6 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { CommentsSection } from "../../src/features/comments";
 import { ExerciseRow, parseMedia } from "../../src/features/media";
+import { Regularity } from "../../src/features/regularity";
 import { AttendanceLink, AttendanceRow, SessionHero } from "../../src/features/session-hero";
 import { recordValidation, ValidationSheet, type ValidationTarget } from "../../src/features/validation-sheet";
 import { WeekStrip } from "../../src/features/week-strip";
@@ -131,7 +132,11 @@ export default function Today() {
           )}
 
           {main && main.status === "upcoming" ? (
-            <AttendanceLink card={main} onAnswer={(status) => void submitAttendance(orgId, main.id, status)} />
+            <AttendanceLink
+              card={main}
+              onAnswer={(status) => void submitAttendance(orgId, main.id, status)}
+              onReason={(reason) => void submitAttendance(orgId, main.id, "absent", reason)}
+            />
           ) : null}
 
           {others.map((card) => (
@@ -160,6 +165,8 @@ export default function Today() {
             </Card>
           ) : null}
 
+          {view.regularity ? <Regularity {...view.regularity} /> : null}
+
           {!main && view.next ? (
             <Card>
               <View style={{ gap: 2 }}>
@@ -173,6 +180,7 @@ export default function Today() {
               <AttendanceRow
                 card={applyPendingToCard(view.next, items)}
                 onAnswer={(status) => void submitAttendance(orgId, (view.next as AthleteSessionCard).id, status)}
+                onReason={(reason) => void submitAttendance(orgId, (view.next as AthleteSessionCard).id, "absent", reason)}
               />
             </Card>
           ) : null}

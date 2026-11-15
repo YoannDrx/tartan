@@ -28,7 +28,7 @@ const LoadValue = ({ value, label }: { value: LoadState; label: string }) => {
     <View style={{ gap: space.xs }}>
       <T variant="caption">{label}</T>
       <T variant="title2">
-        {value.kg === null ? m.prescriptionRefresh.missing : `${String(value.kg).replace(".", ",")} kg`}
+        {value.kg === null ? m.prescriptionRefresh.missing : m.units.kg(String(value.kg).replace(".", ","))}
       </T>
       {ref ? (
         <T variant="caption">{m.prescriptionRefresh.source(ref.value, kind, ref.date, ref.stepKg ?? 1.25)}</T>

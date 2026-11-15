@@ -3,6 +3,7 @@ import {
   publishSessionsResult,
   releasesResponse,
   releaseStatus,
+  type AbsenceReason,
   type PublishSessionsInput,
 } from "@tartan/contracts";
 import {
@@ -361,12 +362,13 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("GET", `/orgs/${orgId}/sessions/${sessionId}/athletes/${athleteId}/log`, athleteSessionDetail),
     logSessionForAthlete: (orgId: string, sessionId: string, athleteId: string, body: SessionLogInput) =>
       request("POST", `/orgs/${orgId}/sessions/${sessionId}/athletes/${athleteId}/log`, sessionLogResult, body),
-    setAttendance: (orgId: string, sessionId: string, status: "present" | "absent") =>
+    // Le motif, facultatif, n'accompagne qu'une absence.
+    setAttendance: (orgId: string, sessionId: string, status: "present" | "absent", reason?: AbsenceReason) =>
       request(
         "POST",
         `/orgs/${orgId}/sessions/${sessionId}/attendance`,
         z.object({ variant: z.string(), hasAutonomous: z.boolean() }),
-        { status },
+        status === "absent" && reason ? { status, reason } : { status },
       ),
     tracking: (orgId: string, query: { week?: string; groupId?: string } = {}) =>
       request("GET", `/orgs/${orgId}/tracking`, trackingGrid, undefined, query),

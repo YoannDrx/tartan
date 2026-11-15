@@ -53,7 +53,7 @@ function HistoryDetail({ history }: { history: ExerciseHistory }) {
           {history.reference ? (
             <>
               <T variant="figure">
-                {historyNumber(history.reference.valueKg)} kg · {m.strength.referenceKinds[history.reference.kind]}
+                {`${m.units.kg(historyNumber(history.reference.valueKg))} · ${m.strength.referenceKinds[history.reference.kind]}`}
               </T>
               <T tone="muted">{t.selectedOn(historyDate(history.reference.selectedAt))}</T>
             </>
@@ -76,8 +76,7 @@ function HistoryDetail({ history }: { history: ExerciseHistory }) {
               {showTests
                 ? history.tests.map((test) => (
                     <T key={test.id}>
-                      {historyDate(test.date)} · {historyNumber(test.value)} kg ·{" "}
-                      {m.testKind[test.kind as keyof typeof m.testKind] ?? test.kind}
+                      {`${historyDate(test.date)} · ${m.units.kg(historyNumber(test.value))} · ${m.testKind[test.kind as keyof typeof m.testKind] ?? test.kind}`}
                     </T>
                   ))
                 : null}

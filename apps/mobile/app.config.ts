@@ -12,7 +12,7 @@ const { existsSync } = require("node:fs") as { existsSync: (path: string) => boo
 const BRICK = "#C4442B";
 const UNIVERSAL_HOSTS = ["tartan.coach", "app.tartan.coach"];
 // Les mêmes chemins que apple-app-site-association, côté serveur.
-const UNIVERSAL_PATHS = ["/i/", "/r/", "/seance/", "/mes-sauts"];
+const UNIVERSAL_PATHS = ["/i/", "/r/", "/seance/", "/mes-videos", "/mes-sauts"];
 
 const variantNames: Record<AppVariant, string> = {
   development: "Tartan Dev",
@@ -65,8 +65,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: variantNames[variant],
     slug: "tartan",
     version: "1.1.0",
-    // Une mise à jour à distance ne vise que les binaires de la même version native.
-    runtimeVersion: { policy: "appVersion" },
+    // Une mise à jour à distance ne vise que les binaires au code natif identique : l'empreinte change dès qu'un
+    // module natif, un plugin ou une permission change, même sans nouveau numéro de version.
+    runtimeVersion: { policy: "fingerprint" },
     ...(projectId ? { updates: { url: `https://u.expo.dev/${projectId}` } } : {}),
     scheme,
     orientation: "portrait",
@@ -77,8 +78,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       supportsTablet: false,
       bundleIdentifier: `coach.tartan.app${suffix}`,
       ...(appleTeamId ? { appleTeamId } : {}),
-      // Liens universels : le serveur doit publier apple-app-site-association.
-      associatedDomains: universalHosts.map((host) => `applinks:${host}`),
+      // Liens universels et identifiants partagés (passkeys, mots de passe enregistrés) : le serveur publie
+      // apple-app-site-association avec les deux sections.
+      associatedDomains: universalHosts.flatMap((host) => [`applinks:${host}`, `webcredentials:${host}`]),
       ...(appleSignIn ? { usesAppleSignIn: true } : {}),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,

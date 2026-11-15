@@ -1,5 +1,6 @@
 import { ApiError } from "@tartan/api-client";
 import type {
+  AbsenceReason,
   AthleteSessionCard,
   AthleteSessionDetail,
   AthleteToday,
@@ -26,6 +27,7 @@ export type AttendanceOp = {
   orgId: string;
   sessionId: string;
   status: "present" | "absent";
+  reason?: AbsenceReason;
   queuedAt: string;
 };
 export type AttemptOp = {
