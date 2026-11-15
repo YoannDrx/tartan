@@ -11,6 +11,9 @@ import {
   phaseRanges,
   toFileSeconds,
   toRealMs,
+  drawingPoints,
+  type DrawingKind,
+  type DrawingPoint,
 } from "@tartan/domain";
 import { m, withFirstOfMonth } from "@tartan/i18n";
 import {
@@ -42,6 +45,10 @@ import { groupMarkers } from "./timeline-markers";
 import { VideoCollaborationTools } from "./video-collaboration-tools";
 import { VideoExerciseLink } from "./video-exercise-link";
 import { addAnnotationAction, deleteAnnotationAction, shareVideoAction } from "./video.action";
+import { DrawingLayer, DrawingTools, describeDrawing } from "./video-drawing";
+
+// Un tracé s'affiche autour de l'instant de sa remarque.
+const DRAWING_WINDOW_MS = 400;
 
 const SPEEDS = [0.1, 0.25, 0.5, 1];
 // Les phases du saut avec les outils de hauteur, sinon les trois phases d'un geste quelconque.
@@ -76,6 +83,10 @@ export const VideoAnalysis = ({
   const [jumpTools, setJumpTools] = useState<boolean | null>(null);
   const showJumpTools = jumpTools ?? hasHighJumpContext(video);
   const [phase, setPhase] = useState<JumpPhase | "">("");
+  // Le tracé en cours : un outil, les points déjà posés, et la taille réelle de l'image pour le cadrage.
+  const [tool, setTool] = useState<DrawingKind | null>(null);
+  const [draft, setDraft] = useState<DrawingPoint[]>([]);
+  const [frame, setFrame] = useState({ width: 0, height: 0 });
   const [loop, setLoop] = useState<{ a: number; b: number | null } | null>(null);
   // Mux génère le MP4 après l'encodage : en attendant, le flux HLS prend le relais.
   const [mp4Failed, setMp4Failed] = useState(false);
@@ -163,6 +174,8 @@ export const VideoAnalysis = ({
     onSuccess: () => {
       setText("");
       setReplyTo(null);
+      setTool(null);
+      setDraft([]);
       router.refresh();
     },
     onError: ({ error }) => toast.error(error.serverError ?? m.errors.invalid),
@@ -282,7 +295,10 @@ export const VideoAnalysis = ({
                 onError={() => {
                   if (!mp4Failed && video.mp4Url && video.hlsUrl) setMp4Failed(true);
                 }}
-                onLoadedMetadata={(e) => setDurationMs(toRealMs(e.currentTarget.duration, scale))}
+                onLoadedMetadata={(e) => {
+                  setDurationMs(toRealMs(e.currentTarget.duration, scale));
+                  setFrame({ width: e.currentTarget.videoWidth, height: e.currentTarget.videoHeight });
+                }}
                 onPause={() => setPlaying(false)}
                 onPlay={() => setPlaying(true)}
                 className="aspect-video w-full"
@@ -302,6 +318,20 @@ export const VideoAnalysis = ({
                         : m.video.uploading}
               </div>
             )}
+            {src ? (
+              <DrawingLayer
+                width={frame.width}
+                height={frame.height}
+                drawings={video.annotations.flatMap((a) =>
+                  a.drawing && Math.abs(a.tMs - timeMs) <= DRAWING_WINDOW_MS ? [a.drawing] : [],
+                )}
+                draft={tool ? { kind: tool, points: draft } : null}
+                tool={tool}
+                onPoint={(point) =>
+                  setDraft((current) => (tool && current.length < drawingPoints(tool) ? [...current, point] : [point]))
+                }
+              />
+            ) : null}
             {video.barHeightCm ? (
               <span className="absolute left-3 top-3 rounded-full bg-brand px-2.5 py-1 t-caption font-semibold">
                 {formatHeight(video.barHeightCm)} m,{" "}
@@ -456,7 +486,12 @@ export const VideoAnalysis = ({
                   {a.phase ? <p className="t-caption font-semibold text-soft">{m.jumpPhase[a.phase]}</p> : null}
                   <p className="t-caption text-soft">{a.authorName ?? m.videoCollaboration.unknownAuthor}</p>
                   {a.parentId ? <p className="text-sm text-soft">{m.videoCollaboration.replyTo}</p> : null}
-                  <p className="break-words">{a.text}</p>
+                  {a.text ? <p className="break-words">{a.text}</p> : null}
+                  {a.drawing ? (
+                    <p className="t-caption font-semibold text-soft">
+                      {describeDrawing(a.drawing, frame.width && frame.height ? frame.width / frame.height : 16 / 9)}
+                    </p>
+                  ) : null}
                   {canAnnotate && !a.parentId ? (
                     <Button
                       variant="quiet"
@@ -487,13 +522,18 @@ export const VideoAnalysis = ({
                 className="flex flex-col gap-2"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (text.trim() && !add.isPending)
+                  const drawing =
+                    !replyTo && tool && draft.length === drawingPoints(tool)
+                      ? { kind: tool, points: draft, aspect: frame.width / frame.height }
+                      : null;
+                  if ((text.trim() || drawing) && !add.isPending)
                     add.execute({
                       videoId: video.id,
                       tMs: replyTo?.tMs ?? Math.round(timeMs),
                       parentId: replyTo?.id,
                       phase: phase || null,
                       text,
+                      drawing,
                     });
                 }}
               >
@@ -505,6 +545,22 @@ export const VideoAnalysis = ({
                     </Button>
                   </div>
                 ) : null}
+                {replyTo || !frame.width ? null : (
+                  <DrawingTools
+                    tool={tool}
+                    draft={draft}
+                    onTool={(next) => {
+                      setTool(next);
+                      setDraft([]);
+                      // On trace sur une image arrêtée.
+                      if (next) ref.current?.pause();
+                    }}
+                    onClear={() => {
+                      setTool(null);
+                      setDraft([]);
+                    }}
+                  />
+                )}
                 <label htmlFor="annotation" className="sr-only">
                   {m.video.remarkAt(formatTimecode(timeMs))}
                 </label>
@@ -539,7 +595,7 @@ export const VideoAnalysis = ({
                   </div>
                   <button
                     type="submit"
-                    disabled={add.isPending || !text.trim()}
+                    disabled={add.isPending || (!text.trim() && !(tool && draft.length === drawingPoints(tool)))}
                     className="min-h-11 flex-1 whitespace-nowrap rounded-full bg-accent px-4 font-semibold text-on-accent disabled:opacity-50"
                   >
                     {m.video.addComment}

@@ -38,6 +38,7 @@ import { playbackSource, shouldFallBackToHls } from "../../src/lib/playback-sour
 import { useActiveSpace, useVideo } from "../../src/lib/queries";
 import { ArrowUp, Flag, MessageSquare, Pause, Play, Repeat, SkipBack, SkipForward, Trash } from "../../src/ui/icons";
 import { Button, Chip, Field, IconButton, SectionTitle, T } from "../../src/ui/primitives";
+import { DRAWING_WINDOW_MS, VideoDrawings, describeDrawing } from "../../src/features/video-drawings";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { color, radius, scene, space } from "../../src/ui/theme";
@@ -247,6 +248,9 @@ const Player = ({
   };
 
   const segments = useMemo(() => phaseSegments(annotations, durationMs), [annotations, durationMs]);
+  const drawingsAt = annotations.flatMap((a) =>
+    a.drawing && Math.abs(a.tMs - positionMs) <= DRAWING_WINDOW_MS ? [a.drawing] : [],
+  );
   const threads = useMemo(
     () =>
       annotations
@@ -298,13 +302,16 @@ const Player = ({
             <Button label={m.mobile.video.retryPlayback} variant="secondary" compact onPress={onRetry} />
           </View>
         ) : (
-          <VideoView
-            player={player}
-            nativeControls={false}
-            contentFit="contain"
-            style={{ flex: 1 }}
-            accessibilityLabel={m.mobile.a11y.videoStatus}
-          />
+          <>
+            <VideoView
+              player={player}
+              nativeControls={false}
+              contentFit="contain"
+              style={{ flex: 1 }}
+              accessibilityLabel={m.mobile.a11y.videoStatus}
+            />
+            <VideoDrawings drawings={drawingsAt} />
+          </>
         )}
       </View>
 
@@ -458,7 +465,12 @@ const Player = ({
                       {m.jumpPhase[a.phase]}
                     </T>
                   ) : null}
-                  <T variant="small">{a.text}</T>
+                  {a.text ? <T variant="small">{a.text}</T> : null}
+                  {a.drawing ? (
+                    <T variant="caption" tone="muted">
+                      {describeDrawing(a.drawing)}
+                    </T>
+                  ) : null}
                 </View>
               </Pressable>
               {canAnnotate && !a.parentId ? (
