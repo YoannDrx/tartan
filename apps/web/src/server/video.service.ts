@@ -170,7 +170,7 @@ export const applyMuxEvent = async (event: MuxEvent): Promise<void> => {
         organizationId: true,
         athleteId: true,
         uploadedBy: true,
-        athlete: { select: { userId: true } },
+        athlete: { select: { userId: true, firstName: true } },
       },
     });
     const stale =
@@ -230,6 +230,8 @@ export const applyMuxEvent = async (event: MuxEvent): Promise<void> => {
           members.map((member) => member.userId),
           "video_shared",
           {
+            // Le coach sait qui a filmé : le prénom seul, jamais le contenu de la vidéo.
+            athlete: current.athlete.firstName,
             organizationId: current.organizationId,
             videoId: id,
             link: `/videos/${id}`,
@@ -322,6 +324,8 @@ export const reconcileStuckVideos = async (now: Date = new Date()) => {
 
 export type VideoQuery = {
   athleteId?: string;
+  // Les vidéos des athlètes de ce groupe.
+  groupId?: string;
   exerciseId?: string;
   sessionId?: string;
   status?: VideoSummary["status"];
@@ -337,6 +341,7 @@ const readVideoRows = async (userId: string, organizationId: string, query: Vide
       AND: [
         await videoWhereFor(access),
         query.athleteId ? { athleteId: query.athleteId } : {},
+        query.groupId ? { athlete: { groups: { some: { groupId: query.groupId } } } } : {},
         query.exerciseId ? { exerciseId: query.exerciseId } : {},
         query.sessionId ? { scheduledSessionId: query.sessionId } : {},
         query.status ? { status: query.status } : {},
@@ -513,7 +518,7 @@ export const addAnnotation = async (
       {
         organizationId,
         videoId,
-        link: access.role === "athlete" ? `/videos/${videoId}` : `/mes-sauts/${videoId}`,
+        link: access.role === "athlete" ? `/videos/${videoId}` : `/mes-videos/${videoId}`,
         ...(access.role === "athlete" ? { athlete: await firstNameOf(userId) } : { coach: await firstNameOf(userId) }),
       },
     );
@@ -574,7 +579,7 @@ export const shareVideo = async (
       coach: await firstNameOf(userId),
       organizationId,
       videoId,
-      link: `/mes-sauts/${videoId}`,
+      link: `/mes-videos/${videoId}`,
     });
   }
 };

@@ -185,6 +185,22 @@ it("un renouvellement invalide les anciens assets et des événements tardifs ne
   await applyMuxEvent({ type: "video.asset.errored", data });
   await applyMuxEvent({ type: "video.upload.errored", data: { id: second.muxUploadId! } });
   expect((await prisma.video.findUniqueOrThrow({ where: { id: videoId } })).status).toBe("ready");
+  // Le coach apprend qui a envoyé la vidéo : le prénom, rien d'autre.
+  const notice = await prisma.notification.findFirstOrThrow({ where: { userId: org.owner.userId, type: "video_shared" } });
+  expect(notice.payload).toMatchObject({ athlete: "Lina", link: `/videos/${videoId}` });
+});
+
+it("le coach filtre les vidéos par groupe", async () => {
+  const org = await makeOrg("Groupes vidéo");
+  const sprint = await prisma.group.create({ data: { organizationId: org.organizationId, name: "Sprint" } });
+  const lina = await addAthlete(org.organizationId, org.groupId, "Lina");
+  const noe = await addAthlete(org.organizationId, sprint.id, "Noé");
+  const first = await createVideoUpload(lina.userId, org.organizationId, { clientId: randomUUID() });
+  const second = await createVideoUpload(noe.userId, org.organizationId, { clientId: randomUUID() });
+  const inSprint = await listVideos(org.owner.userId, org.organizationId, { groupId: sprint.id });
+  expect(inSprint.map((v) => v.id)).toEqual([second.videoId]);
+  const all = await listVideos(org.owner.userId, org.organizationId);
+  expect(all.map((v) => v.id).sort()).toEqual([first.videoId, second.videoId].sort());
 });
 
 it("une réponse reste horodatée sur sa remarque, et un athlète ne supprime pas la remarque du coach", async () => {

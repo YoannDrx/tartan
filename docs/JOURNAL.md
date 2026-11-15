@@ -14,6 +14,13 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-15, Claude, phase F2 (vidéos)
+Fait (PR `feat/mes-videos`) : route `/mes-videos` (redirection 308 depuis `/mes-sauts` dans `next.config.ts`, les deux chemins dans l'association Apple et dans `notification-routes.ts`) ; énumération `jump_phase` étendue de `preparation`, `execution`, `finish` (migration additive) avec `JUMP_PHASES` et `MOVEMENT_PHASES` dans les contrats ; `video_shared` nomme l'athlète ou le coach ; filtre `groupe` sur `/videos`.
+Vérifié : types, lint, design, domaine, mobile, web (dont filtre par groupe et payload de notification).
+Non vérifié : parcours Playwright vidéo en local (la CI les rejoue) ; notifications reçues sur un téléphone.
+À savoir : les notifications déjà enregistrées gardent `/mes-sauts/…` : la redirection et la route mobile les servent toujours, ne pas les retirer.
+Suite : tracés sur vidéo, puis F1 (matrice écran par écran).
+
 ## 2026-11-14, Claude, phase E (gestes animés des guides)
 Fait (PR `feat/illustrations`) : `@tartan/mascot/exercise` (moteur : une position par ligne du guide, appui tenu sans glissement, sol qui repousse, boucles cycliques, sol qui défile, inclinaison de scène) et `exercises/*` (133 fiches, une par famille et par athlète) ; lecteur web et mobile (`guide-motion.tsx`), frise en mouvement réduit ; `withMotion` annote `illustration.motion` à la lecture (bibliothèque, vue athlète), jamais enregistré (`readExerciseGuide` le retire) ; validation par famille dans `PlatformSetting` (`motionFamilies`), atelier `/admin/mouvements`.
 Vérifié : 532 tests de gestes (boucle, une position par ligne, rien sous le sol, cadre 3:2), web 1982, domaine, mobile, types, lint, design ; rendu local à 375 et 1024 px ; parcours `exercise-guides` rejoué sur le build de production.
