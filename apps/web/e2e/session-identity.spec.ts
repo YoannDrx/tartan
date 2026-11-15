@@ -19,7 +19,13 @@ test("un brouillon garde son ordre et un onglet ancien ne peut pas écraser sa c
   await stale.goto(page.url(), { waitUntil: "networkidle" });
   const body = page.getByRole("region", { name: m.builder.body, exact: true });
   const second = body.getByRole("listitem").filter({ hasText: "Foulées bondissantes" });
-  await second.getByRole("button", { name: "Monter", exact: true }).click();
+  // Sur téléphone, monter passe par « Autres actions » ; la poignée sert au glisser-déposer.
+  const up = second.getByRole("button", { name: m.builder.sequence.up, exact: true });
+  if (await up.isVisible()) await up.click();
+  else {
+    await second.getByRole("button", { name: m.builder.sequence.moreActions("Foulées bondissantes"), exact: true }).click();
+    await page.getByRole("menuitem", { name: m.builder.sequence.up, exact: true }).click();
+  }
   await page.getByLabel("Titre", { exact: true }).fill("Force corrigée");
   await page.getByRole("button", { name: m.builder.saveDraft, exact: true }).click();
   await expect(page.getByRole("heading", { name: "Force corrigée", exact: true })).toBeVisible();
