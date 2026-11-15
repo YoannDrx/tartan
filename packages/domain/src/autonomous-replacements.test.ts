@@ -3,6 +3,7 @@ import type { SessionDraft } from "@tartan/contracts";
 import { autonomousRef, withAutonomousReplacements } from "./autonomous-replacements";
 import { validSessionStructure } from "./session-sequence";
 import { hasUniqueSessionRefs } from "./session-identity";
+import { moveSequenceNode } from "./session-sequence-edit";
 import { blocksForVariant } from "./variants";
 
 const squat = "00000000-0000-4000-8000-000000000001";
@@ -88,4 +89,24 @@ it("laisse une séance sans remplacement telle quelle, et ignore un remplacement
 it("borne la référence de la copie à 64 signes", () => {
   expect(autonomousRef("a".repeat(64))).toHaveLength(64);
   expect(autonomousRef("squat")).toBe("squat-auto");
+});
+
+it("le remplacement entre dans un groupe à une série par tour, comme l'exercice qu'il remplace", () => {
+  const source = draft();
+  const block = {
+    ...source.blocks[1]!,
+    sequence: [{ kind: "exercise" as const, itemRef: "squat" }, source.blocks[1]!.sequence![0]!],
+  };
+  block.sequence[1] = {
+    ...block.sequence[1]!,
+    children: [{ kind: "exercise", itemRef: "jump" }],
+  } as (typeof block.sequence)[1];
+  block.items[0] = {
+    ...block.items[0]!,
+    prescription: { sets: 4, reps: 5, rest_s: 120 },
+    autonomous: { exerciseId: goblet, prescription: { sets: 3, reps: 10, rest_s: 90 } },
+  };
+  const moved = moveSequenceNode(block, "squat", "circuit");
+  expect(moved.items[0]!.prescription).toEqual({ sets: 1, reps: 5 });
+  expect(moved.items[0]!.autonomous!.prescription).toEqual({ sets: 1, reps: 10 });
 });
