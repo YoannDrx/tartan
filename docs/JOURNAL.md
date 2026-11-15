@@ -25,6 +25,12 @@ Vérifié : domaine (`set-plan.test.ts`), parcours `set-plan.spec.ts` (construct
 À savoir : un exercice détaillé qui entre dans un groupe perd son détail (`prescriptionForGroup`). Le mobile n'édite pas encore le détail : modifier les séries d'un exercice détaillé sur le mobile laisse `setPlan` faire foi.
 Suite : variante par exercice (`feat/variante-par-exercice`), puis le constructeur mobile (lot 3).
 
+## 2026-11-15, Claude, lot 2 : glisser-déposer du constructeur
+Fait (PR `feat/constructeur-glisser`) : `moveSequenceNode` accepte une ancre (`before`, `null` pour la fin de niveau) et ne remet pas un exercice à une série quand il ne change que de place dans son groupe ; poignée sur chaque carte de `sequence-editor.tsx` (pointeur capturé, destination lue sous le pointeur, trait citron, défilement près des bords, Échap annule, annonce polie) ; sur téléphone, « Monter » et « Descendre » passent dans « Autres actions ».
+Vérifié : domaine (nouveau test), parcours `session-sequences.spec.ts` (glisser dans, entre et hors d'un groupe) et `session-identity.spec.ts`, desktop et mobile ; rendu à 390 et 1440 px.
+À savoir : la barre d'actions fixée en bas couvre le bas de l'écran ; un parcours qui glisse doit centrer sa destination. La poignée est réservée au pointeur : le clavier passe par les flèches et le menu.
+Suite : séries détaillées (`feat/series-detaillees`), puis variante par exercice.
+
 ## 2026-11-15, Claude, recette en production (lot 1)
 Fait : recette avec les comptes du fondateur (coach dans un espace créé le 3 novembre, athlète invité par le lien du groupe). Joués : superset de 3 tours publié, mode séance (tours, aperçu, récupération lancée, validation, effort, mot au coach), suivi coach, vidéo envoyée par l'athlète (encodage Mux, notification nommée), angle tracé par le coach et vu par l'athlète, planificateur réel (un appel et une précision). Corrigé (PR `fix/recette-production`) : les anciennes fiches de départ sont rattachées à leur fiche commune, même enrichies depuis (30 doublons dans l'espace du fondateur, 88 dans deux autres, qui bloquaient le planificateur sur « Hip thrust ») ; le compte d'exercices et « Au programme » montrent chaque exercice une fois avec ses passages (web et mobile) ; « À travailler » ne répète plus une consigne ; le sélecteur repart d'une recherche vide.
 Vérifié : domaine, suite web (1982), types et lint mobile. Non vérifié : le rattachement sur la production avant la prochaine visite de chaque espace (il se fait à l'ouverture de la bibliothèque).

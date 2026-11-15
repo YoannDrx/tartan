@@ -182,12 +182,20 @@ export function sequenceGroups(block: Block): { ref: string; name: string; depth
 }
 
 /**
- * Déplace un élément dans un groupe, hors d'un groupe ou à la racine de la phase, en fin de destination.
- * L'identité ne change pas ; un exercice qui entre dans un groupe passe à une série par tour.
+ * Déplace un élément dans un groupe, hors d'un groupe ou à la racine de la phase : avant l'élément `before`
+ * de la destination, ou à la fin (`null`, ou sans `before` quand le niveau change). L'identité ne change pas ; un exercice qui entre dans un groupe passe à une
+ * série par tour, et garde sa prescription quand il ne change que de place dans le même groupe.
  */
-export function moveSequenceNode(block: Block, ref: string, target: string | null): Block {
+export function moveSequenceNode(
+  block: Block,
+  ref: string,
+  target: string | null,
+  before?: string | null,
+): Block {
   const from = findSequenceNode(block, ref);
-  if (!from || from.parent === target) return block;
+  if (!from || before === ref) return block;
+  // Même niveau sans position : rien à faire (« Déplacer vers… » vise toujours un autre niveau).
+  if (from.parent === target && before === undefined) return block;
   const found: { node: SequenceNode | null } = { node: null };
   const take = (nodes: SequenceNode[]): SequenceNode[] =>
     nodes.flatMap((node): SequenceNode[] => {
@@ -201,21 +209,31 @@ export function moveSequenceNode(block: Block, ref: string, target: string | nul
   const node = found.node;
   if (!node) return block;
   // Un groupe ne peut pas entrer dans l'un de ses propres sous-groupes.
-  if (target !== null && sequenceRefs(node).has(target)) throw new Error("sequence_move_into_itself");
+  if (target !== null && (target === ref || sequenceRefs(node).has(target))) throw new Error("sequence_move_into_itself");
+  const place = (nodes: SequenceNode[]): SequenceNode[] => {
+    const at = before == null ? -1 : nodes.findIndex((entry) => sequenceNodeRef(entry) === before);
+    if (before != null && at < 0) throw new Error("sequence_anchor_missing");
+    const next = [...nodes];
+    next.splice(at < 0 ? next.length : at, 0, node);
+    return next;
+  };
+  let placed = target === null;
   const put = (nodes: SequenceNode[], depth: number): SequenceNode[] =>
     nodes.map((entry): SequenceNode => {
       if (entry.kind !== "repeat") return entry;
       if (entry.ref === target) {
-        const children = [...entry.children, node];
+        placed = true;
+        const children = place(entry.children);
         if (depth + 1 + sequenceDepth(children) > 2) throw new Error("sequence_depth_exceeded");
         return { ...entry, children } as SequenceNode;
       }
       return { ...entry, children: put(entry.children, depth + 1) } as SequenceNode;
     });
-  const sequence = target === null ? [...without, node] : put(without, 0);
+  const sequence = target === null ? place(without) : put(without, 0);
+  if (!placed) throw new Error("sequence_parent_missing");
   if (sequenceDepth(sequence) > 2) throw new Error("sequence_depth_exceeded");
   const moved = { ...block, sequence };
-  return target === null ? moved : withGroupPrescriptions(moved, exerciseRefs([node]));
+  return target === null || from.parent === target ? moved : withGroupPrescriptions(moved, exerciseRefs([node]));
 }
 
 const sequenceRefs = (node: SequenceNode): Set<string> =>
