@@ -13,7 +13,7 @@ const ID = /^[A-Za-z0-9-]{8,64}$/;
 
 export const routeForNotification = (data: NotificationData | null | undefined): string => {
   const link = typeof data?.link === "string" ? data.link : "";
-  const video = link.match(/^\/(?:mes-sauts|videos)\/([^/?#]+)/)?.[1];
+  const video = link.match(/^\/(?:mes-videos|mes-sauts|videos)\/([^/?#]+)/)?.[1];
   if (video && ID.test(video)) return `/video/${video}`;
   const coachSession = link.match(/^\/seances\/([^/?#]+)/)?.[1];
   if (coachSession && ID.test(coachSession)) return `/coach-session/${coachSession}`;

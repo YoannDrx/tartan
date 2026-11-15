@@ -1,6 +1,6 @@
 "use client";
 
-import type { JumpPhase, VideoDetail } from "@tartan/contracts";
+import { JUMP_PHASES, MOVEMENT_PHASES, type JumpPhase, type VideoDetail } from "@tartan/contracts";
 import {
   formatHeight,
   hasHighJumpContext,
@@ -44,7 +44,8 @@ import { VideoExerciseLink } from "./video-exercise-link";
 import { addAnnotationAction, deleteAnnotationAction, shareVideoAction } from "./video.action";
 
 const SPEEDS = [0.1, 0.25, 0.5, 1];
-const PHASES = Object.keys(m.jumpPhase) as JumpPhase[];
+// Les phases du saut avec les outils de hauteur, sinon les trois phases d'un geste quelconque.
+const phasesFor = (jump: boolean): readonly JumpPhase[] => (jump ? JUMP_PHASES : MOVEMENT_PHASES);
 const speedLabel = (s: number) => `${String(s).replace(".", ",")}×`;
 
 export const VideoAnalysis = ({
@@ -523,23 +524,19 @@ export const VideoAnalysis = ({
                   }}
                 />
                 <div className="flex flex-wrap gap-2">
-                  {showJumpTools ? (
-                    <>
-                      <label htmlFor="phase" className="sr-only">
-                        {m.video.jumpPhase}
-                      </label>
-                      <div className="min-w-36 flex-1">
-                        <Select id="phase" value={phase} onChange={(e) => setPhase(e.target.value as JumpPhase | "")}>
-                          <option value="">{m.video.noPhase}</option>
-                          {PHASES.map((p) => (
-                            <option key={p} value={p}>
-                              {m.jumpPhase[p]}
-                            </option>
-                          ))}
-                        </Select>
-                      </div>
-                    </>
-                  ) : null}
+                  <label htmlFor="phase" className="sr-only">
+                    {showJumpTools ? m.video.jumpPhase : m.video.movementPhase}
+                  </label>
+                  <div className="min-w-36 flex-1">
+                    <Select id="phase" value={phase} onChange={(e) => setPhase(e.target.value as JumpPhase | "")}>
+                      <option value="">{m.video.noPhase}</option>
+                      {phasesFor(showJumpTools).map((p) => (
+                        <option key={p} value={p}>
+                          {m.jumpPhase[p]}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
                   <button
                     type="submit"
                     disabled={add.isPending || !text.trim()}

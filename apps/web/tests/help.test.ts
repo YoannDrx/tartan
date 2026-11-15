@@ -88,7 +88,7 @@ describe("aide par écran", () => {
     const written = Object.keys(m.help.screens).filter((key) => key !== "fallback");
     expect([...new Set(SCREEN_HELP_KEYS)].sort()).toEqual(written.sort());
     for (const tips of Object.values(m.help.screens)) expect(tips.length).toBeLessThanOrEqual(2);
-    for (const path of ["/suivi", "/reglages", "/abonnement", "/videos", "/mes-sauts"]) {
+    for (const path of ["/suivi", "/reglages", "/abonnement", "/videos", "/mes-videos", "/mes-sauts"]) {
       expect(themeIds).toContain(screenHelpFor(path, true).theme);
     }
   });

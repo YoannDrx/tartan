@@ -24,7 +24,7 @@ test("vidéo privée : envoi athlète, remarque coach, réponse et partage révo
         if (screen === "list") {
           await expect(target.getByText("Lina Test", { exact: true })).toBeVisible();
           const clipped = await target
-            .locator('main a[href^="/mes-sauts/"]')
+            .locator('main a[href^="/mes-videos/"]')
             .evaluateAll((links) => links.some((link) => link.scrollWidth > link.clientWidth + 1));
           expect(clipped).toBe(false);
         }
@@ -63,7 +63,7 @@ test("vidéo privée : envoi athlète, remarque coach, réponse et partage révo
         },
       });
     });
-    await athlete.page.goto("/mes-sauts");
+    await athlete.page.goto("/mes-videos");
     await athlete.page.getByRole("button", { name: m.video.import, exact: true }).press("Enter");
     await expect(athlete.page.getByText(m.videoCollaboration.private, { exact: true })).toBeVisible();
     await expect(athlete.page.getByLabel(m.videoCollaboration.athlete, { exact: true })).toHaveCount(0);
@@ -118,7 +118,7 @@ test("vidéo privée : envoi athlète, remarque coach, réponse et partage révo
     await page.getByRole("button", { name: m.videoCollaboration.review, exact: true }).click();
     await expect(page.getByText(m.videoCollaboration.reviewed, { exact: true })).toBeVisible();
 
-    await athlete.page.goto(`/mes-sauts/${videoId}`);
+    await athlete.page.goto(`/mes-videos/${videoId}`);
     await athlete.page.getByRole("button", { name: m.videoCollaboration.reply, exact: true }).click();
     await athlete.page.getByPlaceholder(/Remarque à/).fill("Je corrige à la prochaine série");
     await athlete.page.getByRole("button", { name: m.video.addComment, exact: true }).click();
@@ -135,7 +135,7 @@ test("vidéo privée : envoi athlète, remarque coach, réponse et partage révo
     await expect
       .poll(async () => (await peer.page.request.get(`/api/v1/orgs/${organizationId}/videos/${videoId}`)).status())
       .toBe(200);
-    await peer.page.goto(`/mes-sauts/${videoId}`);
+    await peer.page.goto(`/mes-videos/${videoId}`);
     // Le camarade regarde la vidéo partagée, jamais la remarque du coach ni la réponse qui s'y rattache.
     await expect(peer.page.getByText("Place les appuis sous le bassin", { exact: true })).toHaveCount(0);
     await expect(peer.page.getByText("Je corrige à la prochaine série", { exact: true })).toHaveCount(0);
@@ -151,7 +151,7 @@ test("vidéo privée : envoi athlète, remarque coach, réponse et partage révo
     await expect
       .poll(async () => (await peer.page.request.get(`/api/v1/orgs/${organizationId}/videos/${videoId}`)).status())
       .toBe(404);
-    await athlete.page.goto("/mes-sauts");
+    await athlete.page.goto("/mes-videos");
     await inspectLayout(athlete.page, "list");
   } finally {
     await sql.end();
