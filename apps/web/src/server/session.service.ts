@@ -23,6 +23,7 @@ import {
   hasAutonomousVersion,
   withSessionRefs,
   hasUniqueSessionRefs,
+  withAutonomousReplacements,
   copyDraftWithNewRefs,
   calendarCompletion,
   exerciseCount,
@@ -113,9 +114,12 @@ const requireSessionWrite = async (access: Access, sessionId: string, db: Prisma
 // Copie exercices et médias : supprimer un exercice ne change pas les séances déjà planifiées.
 export const buildSnapshot = async (
   organizationId: string,
-  draft: SessionDraft,
+  source: SessionDraft,
   db: Prisma.TransactionClient = prisma,
 ): Promise<SessionSnapshot> => {
+  if (!hasUniqueSessionRefs(source) || !validSessionStructure(source)) throw invalid();
+  // Un exercice remplacé en autonomie dédouble son bloc commun : la copie figée garde son format.
+  const draft = withAutonomousReplacements(source);
   if (!hasUniqueSessionRefs(draft) || !validSessionStructure(draft)) throw invalid();
   const ids = draft.blocks.flatMap((b) => b.items.map((i) => i.exerciseId));
   const exercises = await db.exercise.findMany({

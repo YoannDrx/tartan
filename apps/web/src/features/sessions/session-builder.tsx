@@ -6,6 +6,7 @@ import { markInstallOpportunity } from "@/features/shell/install-opportunity";
 import { withSessionReturn } from "@/lib/session-navigation";
 
 import {
+  type AutonomousReplacement,
   exerciseCategory,
   type ExerciseSummary,
   type PlannedSet,
@@ -24,6 +25,7 @@ import {
   setPlanLoadUnit,
   startSetPlan,
   validSessionStructure,
+  withAutonomousReplacements,
   withSessionRefs,
   withSetPlan,
   withoutSetPlan,
@@ -54,7 +56,7 @@ type BlockState = {
   name: string;
   shared?: boolean;
   sequence?: SessionDraft["blocks"][number]["sequence"];
-  items: { key: string; exerciseId: string; prescription: Prescription }[];
+  items: { key: string; exerciseId: string; prescription: Prescription; autonomous?: AutonomousReplacement }[];
 };
 type Version = "club" | "autonomous";
 type Override = KeyedOverride<Prescription>;
@@ -82,6 +84,7 @@ const split = (draft: SessionDraft | null) => {
           key: i.ref!,
           exerciseId: i.exerciseId,
           prescription: i.prescription,
+          ...(i.autonomous ? { autonomous: i.autonomous } : {}),
         })),
       }));
   return { club: toState("club"), autonomous: toState("autonomous") };
@@ -482,9 +485,10 @@ export const SessionBuilder = ({
   );
   const [chosenTemplate, setChosenTemplate] = useState("");
   const [previewing, setPreviewing] = useState(false);
+  const [previewVersion, setPreviewVersion] = useState<Version>("club");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
-  const [editing, setEditing] = useState<{ blockKey: string; itemKey: string } | null>(null);
+  const [editing, setEditing] = useState<{ blockKey: string; itemKey: string; autonomous?: boolean } | null>(null);
   // Le dernier « Ajouter ici » choisi : la bibliothèque y ajoute aussi, groupe compris.
   const [destination, setDestination] = useState<{ blockKey: string; parent: string | null; label: string } | null>(
     null,
@@ -590,10 +594,21 @@ export const SessionBuilder = ({
       ),
     );
   };
-  const updateItem = (blockKey: string, itemKey: string, prescription: Prescription) =>
+  const updateItem = (blockKey: string, itemKey: string, prescription: Prescription, autonomous = false) =>
     changeBlocks(
       blocks.map((b) =>
-        b.key === blockKey ? { ...b, items: b.items.map((i) => (i.key === itemKey ? { ...i, prescription } : i)) } : b,
+        b.key === blockKey
+          ? {
+              ...b,
+              items: b.items.map((i) =>
+                i.key !== itemKey
+                  ? i
+                  : autonomous && i.autonomous
+                    ? { ...i, autonomous: { ...i.autonomous, prescription } }
+                    : { ...i, prescription },
+              ),
+            }
+          : b,
       ),
     );
 
@@ -621,7 +636,13 @@ export const SessionBuilder = ({
           name: b.name,
           sequence: b.sequence ?? b.items.map((i) => ({ kind: "exercise" as const, itemRef: i.key })),
           variant: b.shared ? ("both" as const) : variant,
-          items: b.items.map((i) => ({ ref: i.key, exerciseId: i.exerciseId, prescription: i.prescription })),
+          // Un remplacement en autonomie n'a de sens que dans un bloc commun.
+          items: b.items.map((i) => ({
+            ref: i.key,
+            exerciseId: i.exerciseId,
+            prescription: i.prescription,
+            ...(b.shared && i.autonomous ? { autonomous: i.autonomous } : {}),
+          })),
         }));
     return {
       structureVersion: 2,
@@ -791,6 +812,8 @@ export const SessionBuilder = ({
   const editingItem = editing
     ? blocks.find((b) => b.key === editing.blockKey)?.items.find((i) => i.key === editing.itemKey)
     : null;
+  // La prescription ouverte : celle de l'exercice, ou celle de son remplacement en autonomie.
+  const editingTarget = editing?.autonomous ? editingItem?.autonomous : editingItem;
 
   return (
     <fieldset
@@ -1115,11 +1138,17 @@ export const SessionBuilder = ({
                 ref: block.key,
                 name: block.name,
                 variant: block.shared ? "both" : version,
-                items: block.items.map((i) => ({ ref: i.key, exerciseId: i.exerciseId, prescription: i.prescription })),
+                items: block.items.map((i) => ({
+                  ref: i.key,
+                  exerciseId: i.exerciseId,
+                  prescription: i.prescription,
+                  ...(i.autonomous ? { autonomous: i.autonomous } : {}),
+                })),
                 sequence: block.sequence,
               }}
               exercises={exercises}
               onEdit={(itemKey) => setEditing({ blockKey: block.key, itemKey })}
+              onEditAutonomous={(itemKey) => setEditing({ blockKey: block.key, itemKey, autonomous: true })}
               onDestination={(aimed) => setDestination({ blockKey: block.key, ...aimed })}
               onChange={(next) =>
                 changeBlocks(
@@ -1132,6 +1161,7 @@ export const SessionBuilder = ({
                             key: i.ref!,
                             exerciseId: i.exerciseId,
                             prescription: i.prescription,
+                            ...(i.autonomous ? { autonomous: i.autonomous } : {}),
                           })),
                         }
                       : b,
@@ -1390,7 +1420,7 @@ export const SessionBuilder = ({
           >
             {m.builder.saveTemplate}
           </Button>
-          <Button variant="secondary" onClick={() => setPreviewing(true)}>
+          <Button variant="secondary" onClick={() => (setPreviewVersion(version), setPreviewing(true))}>
             {m.builder.preview}
           </Button>
           {initial ? (
@@ -1430,8 +1460,25 @@ export const SessionBuilder = ({
           {club.every((block) => block.items.length === 0) ? (
             <p className="text-soft">{m.builder.previewEmpty}</p>
           ) : null}
+          <p id="apercu-version" className="t-caption font-normal text-soft">
+            {m.builder.sequence.previewFor}
+          </p>
+          <div role="group" aria-labelledby="apercu-version" className="-mt-2 flex flex-wrap gap-1.5">
+            {(["club", "autonomous"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={previewVersion === v}
+                onClick={() => setPreviewVersion(v)}
+                className={pillClass(previewVersion === v)}
+              >
+                {m.variant[v]}
+              </button>
+            ))}
+          </div>
           {(() => {
-            const draft = buildDraft();
+            // L'aperçu passe par le même dédoublement que la publication : exercices remplacés compris.
+            const draft = withAutonomousReplacements(buildDraft());
             if (!validSessionStructure(draft)) return <p role="status">{m.builder.sequence.invalid}</p>;
             const snapshot = expandSessionSnapshot(
               draft,
@@ -1456,7 +1503,7 @@ export const SessionBuilder = ({
               m.builder.sequenceRecovery,
             );
             return snapshot.blocks
-              .filter((b) => b.variant === "both" || b.variant === version)
+              .filter((b) => b.variant === "both" || b.variant === previewVersion)
               .map((block) => (
                 <section key={block.ref} className="flex flex-col gap-2">
                   <h3 className="t-section">{block.name}</h3>
@@ -1482,20 +1529,26 @@ export const SessionBuilder = ({
       <Dialog
         open={editing !== null}
         onOpenChange={(open) => !open && setEditing(null)}
-        title={editingItem ? (byId.get(editingItem.exerciseId)?.name ?? "") : ""}
+        title={
+          editingTarget
+            ? editing?.autonomous
+              ? m.builder.sequence.autonomousLine(byId.get(editingTarget.exerciseId)?.name ?? "")
+              : (byId.get(editingTarget.exerciseId)?.name ?? "")
+            : ""
+        }
         description={m.builder.sequence.prescription}
         wide
       >
-        {editing && editingItem ? (
+        {editing && editingTarget ? (
           <div className="flex flex-col gap-4">
             <PrescriptionEditor
-              value={editingItem.prescription}
-              exercise={byId.get(editingItem.exerciseId)}
+              value={editingTarget.prescription}
+              exercise={byId.get(editingTarget.exerciseId)}
               intensityEnabled={progressionEnabled}
               testKeys={testKeys.filter(
-                (key) => !key.startsWith("exercise:") || key === `exercise:${editingItem.exerciseId}`,
+                (key) => !key.startsWith("exercise:") || key === `exercise:${editingTarget.exerciseId}`,
               )}
-              onChange={(p) => updateItem(editing.blockKey, editing.itemKey, p)}
+              onChange={(p) => updateItem(editing.blockKey, editing.itemKey, p, editing.autonomous)}
             />
             <Button onClick={() => setEditing(null)}>{m.common.close}</Button>
           </div>

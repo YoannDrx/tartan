@@ -7,6 +7,7 @@ export * from "./app-versions";
 export * from "./mrr";
 export * from "./refunds";
 export * from "./variants";
+export * from "./autonomous-replacements";
 export * from "./consent";
 export * from "./instagram";
 export * from "./youtube";

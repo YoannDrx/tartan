@@ -143,8 +143,17 @@ const withGroupPrescriptions = (block: Block, refs: string[]): Block => {
   const inGroup = new Set(refs);
   return {
     ...block,
+    // Le remplacement en autonomie suit la même règle que l'exercice qu'il remplace.
     items: block.items.map((item) =>
-      inGroup.has(item.ref!) ? { ...item, prescription: prescriptionForGroup(item.prescription) } : item,
+      inGroup.has(item.ref!)
+        ? {
+            ...item,
+            prescription: prescriptionForGroup(item.prescription),
+            ...(item.autonomous
+              ? { autonomous: { ...item.autonomous, prescription: prescriptionForGroup(item.autonomous.prescription) } }
+              : {}),
+          }
+        : item,
     ),
   };
 };

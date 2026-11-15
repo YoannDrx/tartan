@@ -21,6 +21,7 @@ export function ExercisePicker({
   open,
   onOpenChange,
   destination,
+  title,
   inGroup,
   exercises,
   onPick,
@@ -28,6 +29,8 @@ export function ExercisePicker({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   destination: string;
+  /** Un autre titre que « Ajouter dans … », pour un remplacement. */
+  title?: string;
   inGroup: boolean;
   exercises: ExerciseSummary[];
   onPick: (exercise: ExerciseSummary) => void;
@@ -51,12 +54,15 @@ export function ExercisePicker({
       [e.name, ...(e.aliases ?? [])].some((name) => normalizeExerciseTerm(name).includes(term)),
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={labels.pickerTitle(destination)} wide>
+    <Dialog open={open} onOpenChange={onOpenChange} title={title ?? labels.pickerTitle(destination)} wide>
       <div className="flex flex-col gap-3">
         {inGroup ? <p className="t-caption text-soft">{labels.pickerGroupHint}</p> : null}
         <label className="relative block">
           <span className="sr-only">{labels.searchExercise}</span>
-          <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-soft" />
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-soft"
+          />
           <Input
             type="search"
             autoFocus
