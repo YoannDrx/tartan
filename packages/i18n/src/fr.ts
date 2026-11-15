@@ -2237,7 +2237,8 @@ export const fr = {
       pause: "Arrêter le geste",
       positions: "Positions du geste",
       position: (index: number) => (index === 0 ? "Installation" : `Étape ${index}`),
-      show: (label: string) => `Montrer la position : ${label}`,
+      // La pastille affiche son numéro : le nom accessible le reprend (WCAG 2.5.3).
+      show: (number: number, label: string) => `Position ${number} : ${label}`,
       reduced: "Mouvement réduit : les positions clés, dans l'ordre.",
     },
     families: {

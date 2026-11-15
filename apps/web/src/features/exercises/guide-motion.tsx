@@ -78,7 +78,7 @@ const Player = ({ guide, clip, autoPlay }: { guide: ExerciseGuide; clip: Exercis
             <button
               key={index}
               type="button"
-              aria-label={t.show(t.position(index))}
+              aria-label={t.show(index + 1, t.position(index))}
               aria-pressed={!running && current === index}
               onClick={() => {
                 setPlaying(false);

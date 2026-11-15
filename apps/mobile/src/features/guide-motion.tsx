@@ -98,7 +98,7 @@ export function GuideMotion({ guide, clip }: { guide: ExerciseGuide; clip: Exerc
               <Pressable
                 key={index}
                 accessibilityRole="button"
-                accessibilityLabel={t.show(t.position(index))}
+                accessibilityLabel={t.show(index + 1, t.position(index))}
                 accessibilityState={{ selected: !running && active }}
                 onPress={() => {
                   setPlaying(false);

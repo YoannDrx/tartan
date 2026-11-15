@@ -38,7 +38,7 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   // Le geste animé tourne ; une pastille l'arrête sur la ligne choisie du guide, affichée sous l'image.
   const motion = m.exerciseGuide.motion;
   await expect(page.getByRole("dialog").getByRole("button", { name: motion.pause })).toBeVisible();
-  await page.getByRole("dialog").getByRole("button", { name: motion.show(motion.position(2)) }).click();
+  await page.getByRole("dialog").getByRole("button", { name: motion.show(3, motion.position(2)) }).click();
   await expect(page.getByRole("dialog").getByRole("button", { name: motion.play })).toBeVisible();
   await expect(page.getByRole("dialog").getByText(`${motion.position(2)} :`)).toBeVisible();
   await inspect(page, "library");
