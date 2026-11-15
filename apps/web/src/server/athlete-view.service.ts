@@ -140,6 +140,8 @@ const athleteFocus = async (athleteId: string, card: AthleteSessionCard | null, 
     ? blocksForVariant(snapshot.data.blocks, card!.variant)
         .flatMap((block) => block.items)
         .flatMap((item) => (item.cues[0] ? [{ exercise: item.name, cue: item.cues[0] }] : []))
+        // Un circuit repasse par le même exercice : sa consigne ne s'affiche qu'une fois.
+        .filter((item, index, all) => all.findIndex((other) => other.exercise === item.exercise) === index)
         .slice(0, 3)
     : [];
   // Seule une remarque d'un coach de l'espace devient un conseil : ni la sienne, ni celle d'un camarade.

@@ -2,6 +2,7 @@ import { Play } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { AthleteSessionCard, AthleteSessionDetail, AthleteToday } from "@tartan/contracts";
+import { programItems } from "@tartan/domain";
 import { capitalize, formatDateLong, formatWeekdayShort, m } from "@tartan/i18n";
 import { ActivityPicto, LaneArcs } from "@/components/pictos";
 import { EmptyState, PageHeader } from "@/components/states";
@@ -110,7 +111,8 @@ const Hero = ({
   healthConsent: boolean;
 }) => {
   const validated = card.status === "done" || card.status === "partial";
-  const exercises = detail.blocks.flatMap((b) => b.items);
+  // Un circuit repasse par les mêmes exercices : le programme les montre une fois, avec leurs passages.
+  const exercises = programItems(detail.blocks.flatMap((b) => b.items));
   return (
     <>
       {/* La carte de la séance du jour : en l'ouvrant, elle devient la feuille de l'écran de séance. */}
@@ -133,7 +135,7 @@ const Hero = ({
                 {[
                   card.startTime?.replace(":", " h "),
                   card.durationMin ? `${card.durationMin} min` : null,
-                  `${card.exerciseCount} exercice${card.exerciseCount > 1 ? "s" : ""}`,
+                  m.today.exerciseCount(card.exerciseCount),
                   card.coachName ? m.today.sentBy(card.coachName.split(" ")[0] ?? card.coachName) : null,
                 ]
                   .filter(Boolean)
@@ -175,7 +177,7 @@ const Hero = ({
       <section className="flex flex-col gap-2">
         <h2 className="t-section">{m.today.program}</h2>
         <ul className="divide-y divide-card-line rounded-card on-card bg-card px-3">
-          {exercises.map((item) => (
+          {exercises.map(({ item, passes }) => (
             <li key={item.ref}>
               <Link
                 href={`/seance/${card.id}`}
@@ -189,7 +191,9 @@ const Hero = ({
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col leading-snug">
                   <span className="font-semibold">{item.name}</span>
-                  <span className="t-caption font-normal text-soft">{item.summary}</span>
+                  <span className="t-caption font-normal text-soft">
+                    {passes > 1 ? `${item.summary}, ${m.today.passes(passes)}` : item.summary}
+                  </span>
                 </span>
               </Link>
             </li>

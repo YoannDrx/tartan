@@ -1,4 +1,4 @@
-import { celebrationFromResponse } from "@tartan/domain";
+import { celebrationFromResponse, programItems as programOf } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
 import { capitalize, formatDateLong, m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
@@ -94,7 +94,11 @@ export default function Today() {
   const programCard = main ?? view?.next ?? null;
   const program = useSessionDetail(orgId, programCard?.id);
   const sheetDetail = useSessionDetail(orgId, sheet?.card.id);
-  const programItems = useMemo(() => program.data?.blocks.flatMap((b) => b.items) ?? [], [program.data?.blocks]);
+  // Un circuit repasse par les mêmes exercices : chacun une fois, avec ses passages, ouvert à son premier passage.
+  const programItems = useMemo(() => {
+    const steps = program.data?.blocks.flatMap((b) => b.items) ?? [];
+    return programOf(steps).map(({ item, passes }) => ({ ...item, passes, step: steps.indexOf(item) }));
+  }, [program.data?.blocks]);
 
   const greeting = view?.firstName ? m.today.greeting(view.firstName) : m.nav.aujourdhui;
 
@@ -226,11 +230,11 @@ export default function Today() {
                       <ExerciseRow
                         name={item.name}
                         category={item.category}
-                        summary={item.summary}
+                        summary={item.passes > 1 ? `${item.summary}, ${m.today.passes(item.passes)}` : item.summary}
                         hasVideo={Boolean(parseMedia(item.media))}
                         accessibilityHint={m.today.start}
                         onPress={() =>
-                          router.push({ pathname: "/session/[id]", params: { id: programCard.id, i: String(index) } })
+                          router.push({ pathname: "/session/[id]", params: { id: programCard.id, i: String(item.step) } })
                         }
                       />
                     </View>

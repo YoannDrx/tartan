@@ -34,6 +34,12 @@ export function ExercisePicker({
 }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category | null>(null);
+  // Chaque ouverture repart d'une recherche vide : la précédente visait un autre emplacement.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setSearch("");
+  }
   const present = useMemo(
     () => (Object.keys(m.exerciseCategory) as Category[]).filter((c) => exercises.some((e) => e.category === c)),
     [exercises],

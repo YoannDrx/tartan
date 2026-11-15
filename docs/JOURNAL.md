@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-15, Claude, recette en production (lot 1)
+Fait : recette avec les comptes du fondateur (coach dans un espace créé le 3 novembre, athlète invité par le lien du groupe). Joués : superset de 3 tours publié, mode séance (tours, aperçu, récupération lancée, validation, effort, mot au coach), suivi coach, vidéo envoyée par l'athlète (encodage Mux, notification nommée), angle tracé par le coach et vu par l'athlète, planificateur réel (un appel et une précision). Corrigé (PR `fix/recette-production`) : les anciennes fiches de départ sont rattachées à leur fiche commune, même enrichies depuis (30 doublons dans l'espace du fondateur, 88 dans deux autres, qui bloquaient le planificateur sur « Hip thrust ») ; le compte d'exercices et « Au programme » montrent chaque exercice une fois avec ses passages (web et mobile) ; « À travailler » ne répète plus une consigne ; le sélecteur repart d'une recherche vide.
+Vérifié : domaine, suite web (1982), types et lint mobile. Non vérifié : le rattachement sur la production avant la prochaine visite de chaque espace (il se fait à l'ouverture de la bibliothèque).
+À savoir : les parcours Maestro qui franchissent minuit à Paris échouent sur les données « du jour » créées au début du job ; relancer. À 386 px, le sélecteur d'espace de l'en-tête n'affiche aucun nom.
+Suite conseillée : gestes en production après la PR 136, puis lot 2.
+
 
 ## 2026-11-15, Claude, F1 (matrice des écrans)
 Fait (PR `test/matrice-ecrans`, empilée sur les tracés) : `e2e/screens.ts`, `tests/screen-matrix.test.ts` (toute page listée, preuve qui ouvre chaque écran à paramètre), `e2e/screen-matrix.spec.ts` (balayage à trois largeurs, projet desktop seul) ; `expectAccessible` passe la règle `target-size` à part et ignore les cibles recouvertes par une barre fixe ou collante.

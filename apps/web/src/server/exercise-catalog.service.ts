@@ -95,42 +95,33 @@ export const ensureExerciseCatalog = async (userId: string, organizationId: stri
           data: { catalogVersion: entry.catalogVersion, ...(sameContent ? { guide: entry.guide } : {}) },
         });
       }
-      // Only untouched starter copies can inherit an editorial guide automatically.
-      const candidates = await tx.exercise.findMany({
-        where: legacyWhere,
-        include: { media: true },
-      });
+      // A starter copy, customized or not, stands for its catalogue entry: the library never lists
+      // the same movement twice. Spaces created before the library carried tags and classification
+      // kept copies the old rule thought customized, so the shared entry showed beside them.
+      // The guide follows the movement, as for a renamed copy: the coach's own cues and
+      // prescription stay, and only a copy reclassified as another movement goes without it.
+      const candidates = await tx.exercise.findMany({ where: legacyWhere });
       for (const row of candidates) {
-        const starter = STARTER_LIBRARY.find((entry) => entry.name === row.name);
-        if (!starter || row.media.length || Number(row.loadStepKg) !== 1.25) continue;
-        const unchanged = isDeepStrictEqual(
-          [
-            row.category,
-            row.aliases,
-            row.tags,
-            row.cues,
-            row.classification,
-            row.defaultPrescription,
-            row.strengthLoadKind,
-          ],
-          [
-            starter.category,
-            starter.aliases ?? [],
-            starter.tags,
-            starter.cues,
-            starter.classification,
-            starter.prescription,
-            starter.strengthLoadKind,
-          ],
-        );
-        if (!unchanged) continue;
-        const entry = EXERCISE_CATALOG.find((item) => item.name === row.name)!;
+        const entry = EXERCISE_CATALOG.find((item) => item.name === row.name);
+        if (!entry) continue;
+        const movement = (row.classification as { movement?: string | null } | null)?.movement;
+        const starter = STARTER_LIBRARY.find((item) => item.name === row.name);
+        // The starter and the catalogue sometimes classify a movement differently: only a coach's change counts.
+        const sameMovement =
+          !movement || movement === entry.classification.movement || movement === starter?.classification?.movement;
         await tx.exercise.update({
           where: { id: row.id },
           data: {
             sourceCatalogKey: entry.catalogKey,
             catalogVersion: entry.catalogVersion,
-            guide: entry.guide,
+            ...(sameMovement ? { guide: entry.guide } : {}),
+            // Fields the starter library did not have yet: fill them, never overwrite a choice.
+            ...(row.aliases.length ? {} : { aliases: entry.aliases ?? [] }),
+            ...(row.tags.length ? {} : { tags: entry.tags }),
+            ...(row.classification === null ? { classification: entry.classification } : {}),
+            ...(row.strengthLoadKind === null && entry.strengthLoadKind
+              ? { strengthLoadKind: entry.strengthLoadKind }
+              : {}),
           },
         });
       }
