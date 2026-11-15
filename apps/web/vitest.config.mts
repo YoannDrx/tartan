@@ -17,7 +17,7 @@ export default defineConfig({
     testTimeout: 20000,
     hookTimeout: 60000,
     env: {
-      DATABASE_URL: process.env.TEST_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_test",
+      DATABASE_URL: process.env.TEST_DATABASE_URL || "postgresql://tartan@localhost:54329/tartan_test",
       BETTER_AUTH_SECRET: "secret-de-test-secret-de-test-secret-de-test",
       BETTER_AUTH_URL: "http://localhost:3000",
       NEXT_PUBLIC_APP_URL: "http://localhost:3000",

@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-15, Claude, fichiers d'environnement et EXPO_TOKEN
+Fait (PR `chore/fichiers-env`) : `.env.example` réécrit en 14 rubriques numérotées, toutes les valeurs à `""`, chaque variable avec son rôle, son défaut et les environnements Vercel où elle est posée ; `parseEnv` traite une valeur vide comme absente (défauts du code appliqués), même règle dans `prisma.config.ts`, `layout.tsx`, la graine et Vitest. Fichiers locaux ignorés rangés dans le même ordre, valeurs inchangées. `EXPO_TOKEN` posé sur GitHub (robot Expo `github-actions`, rôle Developer).
+Vérifié : test d'environnement (10), types, lint ; relevé Vercel : la production a toutes les variables que le code exige.
+À savoir : la clé App Store Connect (`SJHW52VCAC`) a été rattachée au profil `beta` par le fondateur (`eas credentials`, interactif) ; build iOS 14 envoyé à App Store Connect. En local, `eas submit` exige `eval "$(node scripts/profile-env.mjs beta)"`, sinon il vise `coach.tartan.app.dev`. Le `.env.local` de la racine n'est lu que par les évaluations du planificateur.
+Suite : fiche TestFlight externe et groupe d'invités (lot 5).
+
 ## 2026-11-15, Claude, lot 2 : glisser-déposer du constructeur
 Fait (PR `feat/constructeur-glisser`) : `moveSequenceNode` accepte une ancre (`before`, `null` pour la fin de niveau) et ne remet pas un exercice à une série quand il ne change que de place dans son groupe ; poignée sur chaque carte de `sequence-editor.tsx` (pointeur capturé, destination lue sous le pointeur, trait citron, défilement près des bords, Échap annule, annonce polie) ; sur téléphone, « Monter » et « Descendre » passent dans « Autres actions ».
 Vérifié : domaine (nouveau test), parcours `session-sequences.spec.ts` (glisser dans, entre et hors d'un groupe) et `session-identity.spec.ts`, desktop et mobile ; rendu à 390 et 1440 px.
