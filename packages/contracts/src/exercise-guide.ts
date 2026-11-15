@@ -43,6 +43,8 @@ export const exerciseGuide = z.object({
     positions: z.array(instruction).min(2).max(6),
     source: z.literal("tartan-original"),
     rights: z.literal("Tartan"),
+    // Posé à la lecture, jamais enregistré : le geste animé de la fiche existe, relu ou non par le fondateur.
+    motion: z.enum(["review", "approved"]).optional(),
   }),
   // Une fiche complète n'est pas une preuve de validation humaine du geste.
   technicalReview: z.enum(["pending", "approved"]),

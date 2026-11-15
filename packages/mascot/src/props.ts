@@ -10,18 +10,22 @@ export type PropPaint = Record<PropRole, string>;
 // `front` : dessiné devant l'athlète. Sinon derrière lui.
 type Placed = { paint: PropRole; front?: boolean };
 
-export type PropShape = Placed &
-  (
-    | { kind: "line"; from: Point; to: Point; width: number; cap?: "round" | "butt" }
-    | { kind: "rect"; x: number; y: number; width: number; height: number; radius?: number }
-    | { kind: "disc"; x: number; y: number; radius: number }
-    // Une courbe à un point de contrôle : la perche qui fléchit.
-    | { kind: "curve"; from: Point; control: Point; to: Point; width: number }
-  );
+// La forme seule, sans sa couleur : les épreuves et les exercices la partagent.
+export type Geometry =
+  | { kind: "line"; from: Point; to: Point; width: number; cap?: "round" | "butt" }
+  | { kind: "rect"; x: number; y: number; width: number; height: number; radius?: number }
+  | { kind: "disc"; x: number; y: number; radius: number }
+  // Une courbe à un point de contrôle : la perche qui fléchit.
+  | { kind: "curve"; from: Point; control: Point; to: Point; width: number }
+  // Un polygone plein : un plot, une marche.
+  | { kind: "poly"; points: readonly Point[] };
+
+// Les épreuves n'ont pas de polygone : leurs accessoires sont des barres, des tapis et des disques.
+export type PropShape = Placed & Exclude<Geometry, { kind: "poly" }>;
 
 const round = (value: number) => Math.round(value * 100) / 100;
 
-export const svgProp = (shape: PropShape, color: string): SvgShape => {
+export const svgProp = <S extends Geometry>(shape: S, color: string): SvgShape => {
   switch (shape.kind) {
     case "line":
       return {
@@ -55,6 +59,12 @@ export const svgProp = (shape: PropShape, color: string): SvgShape => {
         strokeWidth: shape.width,
         strokeLinecap: "round",
       };
+    case "poly":
+      return {
+        tag: "path",
+        d: `${shape.points.map((point, index) => `${index ? "L" : "M"} ${round(point.x)} ${round(point.y)}`).join(" ")} Z`,
+        fill: color,
+      };
   }
 };
 
@@ -76,8 +86,15 @@ export type PropCanvas = {
 
 const QUARTER = Math.PI / 2;
 
-export const drawProp = (ctx: PropCanvas, shape: PropShape, color: string) => {
+export const drawProp = <S extends Geometry>(ctx: PropCanvas, shape: S, color: string) => {
   ctx.beginPath();
+  if (shape.kind === "poly") {
+    shape.points.forEach((point, index) => (index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y)));
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    return;
+  }
   if (shape.kind === "line" || shape.kind === "curve") {
     ctx.moveTo(shape.from.x, shape.from.y);
     if (shape.kind === "line") ctx.lineTo(shape.to.x, shape.to.y);

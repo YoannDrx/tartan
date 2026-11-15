@@ -2237,9 +2237,18 @@ export const fr = {
     approved: "Consignes indicatives relues par Tartan : ton coach reste responsable de ta prescription.",
     illustrationNotReady: "Illustration technique en préparation.",
     illustrationUnavailable: "Illustration indisponible pour le moment. Les consignes restent consultables.",
-    illustrationPending: "Illustration de travail — validation technique attendue",
+    illustrationPending: "Illustration de travail, en attente de validation technique",
     original: "Illustration originale Tartan",
     version: (n: number) => `Guide Tartan · version ${n}`,
+    motion: {
+      play: "Lire le geste",
+      pause: "Arrêter le geste",
+      positions: "Positions du geste",
+      position: (index: number) => (index === 0 ? "Installation" : `Étape ${index}`),
+      // La pastille affiche son numéro : le nom accessible le reprend (WCAG 2.5.3).
+      show: (number: number, label: string) => `Position ${number} : ${label}`,
+      reduced: "Mouvement réduit : les positions clés, dans l'ordre.",
+    },
     families: {
       strength: "Musculation",
       weightlifting: "Haltérophilie",
@@ -3050,9 +3059,19 @@ export const fr = {
       audit: "Journal",
       configuration: "Configuration",
       mascot: "Mascotte",
+      movements: "Mouvements",
       game: "Jeu",
     },
     // La planche de contrôle du groupe : ce que le fondateur relit avant que les athlètes entrent dans les écrans.
+    movements: {
+      lead: "Les gestes animés des guides d'exercice, famille par famille. Une famille validée affiche « Illustration originale Tartan » ; sinon, l'athlète voit le geste avec la mention « Illustration de travail ».",
+      progress: (done: number, total: number) => `${done} gestes sur ${total}`,
+      approved: "Famille validée",
+      pending: "En attente de ta relecture",
+      approve: (family: string) => `Valider les gestes : ${family}`,
+      reopen: (family: string) => `Retirer la validation : ${family}`,
+      missing: "Geste à venir",
+    },
     mascot: {
       lead: "Les six athlètes du groupe, leurs visages, leurs gestes et les motifs de la piste. Rien de ce qui est ici n'est encore posé dans un écran : c'est le moment de dire ce qui doit changer.",
       group: "Le groupe",

@@ -1,5 +1,6 @@
 // Les couleurs du groupe : le teint, les cheveux et la tenue de chaque athlète, sur le fond où il est posé.
 import type { AthleteId } from "@tartan/mascot/athletes";
+import type { GearPaint } from "@tartan/mascot/exercise";
 import type { PropPaint } from "@tartan/mascot/props";
 import type { AthletePaint } from "@tartan/mascot/skeleton";
 import { tokens } from "./index";
@@ -106,3 +107,17 @@ export const stagePaint = (surface: "ink" | "piste"): PropPaint => ({
   hurdle: white,
   discus: surface === "ink" ? sun : ink,
 });
+
+// Les accessoires des exercices, sur l'encre des guides : la barre et ses disques, les bancs, les boîtes.
+export const gearPaint: GearPaint = {
+  ...stagePaint("ink"),
+  floor: color.ink3,
+  plate: lime,
+  iron: color.mutedOnInk,
+  bench: color.film.electric,
+  box: color.film.sunLight,
+  band: color.brandOnInk,
+  ball: sun,
+  cone: color.brand,
+  step: color.ink3,
+};

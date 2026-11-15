@@ -8,7 +8,7 @@ import { ensureExerciseCatalog } from "@/server/exercise-catalog.service";
 import { buildSnapshot } from "@/server/session.service";
 import { addAthlete, makeOrg } from "./helpers";
 
-it("distribue 150 fiches sans doublonner les 55 copies, même avec deux premières visites concurrentes", async () => {
+it("distribue 173 fiches sans doublonner les 55 copies, même avec deux premières visites concurrentes", async () => {
   const a = await makeOrg("Catalogue");
   const before = await prisma.exercise.findMany({
     where: { organizationId: a.organizationId },
@@ -19,10 +19,12 @@ it("distribue 150 fiches sans doublonner les 55 copies, même avec deux premièr
     ensureExerciseCatalog(a.owner.userId, a.organizationId),
   ]);
   const list = await listExercises(a.owner.userId, a.organizationId);
-  expect(list.filter((e) => e.guide)).toHaveLength(150);
-  expect(list.filter((e) => e.shared && e.guide)).toHaveLength(95);
-  expect(new Set(list.filter((e) => e.guide).map((e) => e.name)).size).toBe(150);
-  expect(list.filter((e) => e.guide).every((e) => e.guide?.technicalReview === "approved")).toBe(true);
+  expect(list.filter((e) => e.guide)).toHaveLength(173);
+  expect(list.filter((e) => e.shared && e.guide)).toHaveLength(118);
+  expect(new Set(list.filter((e) => e.guide).map((e) => e.name)).size).toBe(173);
+  // Les 23 variantes de la version 5 attendent la relecture du fondateur.
+  expect(list.filter((e) => e.guide?.technicalReview === "approved")).toHaveLength(150);
+  expect(list.filter((e) => e.guide?.technicalReview === "pending")).toHaveLength(23);
   expect(
     await prisma.exercise.findMany({ where: { organizationId: a.organizationId }, orderBy: { id: "asc" } }),
   ).toEqual(before);
@@ -37,14 +39,14 @@ it("rattache uniquement les anciennes copies intactes et préserve les personnal
   const changed = await prisma.exercise.findFirstOrThrow({ where: { organizationId: a.organizationId } });
   await prisma.exercise.update({ where: { id: changed.id }, data: { cues: ["Consigne personnelle du coach"] } });
   const list = await listExercises(a.owner.userId, a.organizationId);
-  expect(list.filter((e) => e.guide)).toHaveLength(150);
+  expect(list.filter((e) => e.guide)).toHaveLength(173);
   expect(list.find((e) => e.id === changed.id)).toMatchObject({ cues: ["Consigne personnelle du coach"], guide: null });
   expect(
     await prisma.exercise.count({ where: { organizationId: a.organizationId, sourceCatalogKey: { not: null } } }),
   ).toBe(54);
 });
 
-it("fige le guide dans la séance et détache celui d'un exercice privé modifié", async () => {
+it("fige le guide dans la séance, le garde au renommage et le détache quand le mouvement change", async () => {
   const a = await makeOrg("CatalogueHistorique");
   const entry = (await listExercises(a.owner.userId, a.organizationId)).find((e) => !e.shared)!;
   const snapshot = await buildSnapshot(a.organizationId, {
@@ -54,11 +56,23 @@ it("fige le guide dans la séance et détache celui d'un exercice privé modifi�
     coachNote: null,
     blocks: [{ name: "Force", variant: "club", items: [{ exerciseId: entry.id, prescription: { reps: 4 } }] }],
   });
-  expect(snapshot.blocks[0]!.items[0]!.guide).toEqual(entry.guide);
+  // La liste annote le geste animé ; la séance garde le guide tel qu'enregistré.
+  const { motion: _motion, ...illustration } = entry.guide!.illustration;
+  expect(snapshot.blocks[0]!.items[0]!.guide).toEqual({ ...entry.guide, illustration });
   await saveExercise(
     a.owner.userId,
     a.organizationId,
     exerciseInput.parse({ ...entry, media: null, name: "Mon mouvement adapté", cues: ["Une consigne différente"] }),
+  );
+  // Renommée, avec ses propres consignes, la copie décrit toujours le même geste : elle garde son guide.
+  const renamed = (await listExercises(a.owner.userId, a.organizationId)).find((e) => e.id === entry.id)!;
+  expect(renamed).toMatchObject({ name: "Mon mouvement adapté", cues: ["Une consigne différente"] });
+  expect(renamed.guide?.catalogKey).toBe(entry.guide?.catalogKey);
+  const other = entry.classification?.movement === "jump" ? "carry" : "jump";
+  await saveExercise(
+    a.owner.userId,
+    a.organizationId,
+    exerciseInput.parse({ ...renamed, media: null, classification: { ...entry.classification, movement: other } }),
   );
   expect((await listExercises(a.owner.userId, a.organizationId)).find((e) => e.id === entry.id)?.guide).toBeNull();
   expect(snapshot.blocks[0]!.items[0]!.guide?.catalogKey).toBe(entry.guide?.catalogKey);
@@ -88,6 +102,8 @@ it("diffuse l'approbation aux copies existantes sans modifier prescriptions, per
     technicalReview: "pending" as const,
     illustration: {
       ...entry.guide!.illustration,
+      // La liste annote le geste animé ; une copie enregistrée ne le porte jamais.
+      motion: undefined,
       path: entry.guide!.illustration.path.replace(`-v${EXERCISE_CATALOG_VERSION}.svg`, "-v1.svg"),
     },
   };

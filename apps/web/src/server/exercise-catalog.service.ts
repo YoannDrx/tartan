@@ -6,9 +6,12 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "./access";
 
+// Le geste animé (`illustration.motion`) se pose à la lecture : il n'est jamais enregistré, ni comparé.
 export const readExerciseGuide = (value: unknown) => {
   const parsed = exerciseGuide.safeParse(value);
-  return parsed.success ? parsed.data : null;
+  if (!parsed.success) return null;
+  const { motion: _motion, ...illustration } = parsed.data.illustration;
+  return { ...parsed.data, illustration };
 };
 
 /** Add catalogue versions without changing a coach's prescriptions or historical IDs. */
@@ -136,20 +139,31 @@ export const ensureExerciseCatalog = async (userId: string, organizationId: stri
   );
 };
 
-/** A changed private movement must not keep an unrelated inherited demonstration. */
+/**
+ * Une copie du catalogue garde son guide quand le coach la renomme ou écrit ses propres consignes : c'est le même
+ * geste. Elle le perd quand le mouvement lui-même change (un autre type de mouvement), et un exercice sans fiche
+ * d'origine modifié perd une démonstration héritée qui ne le décrit plus.
+ */
 export const retainedExerciseGuide = (
   existing: {
     name: string;
     cues: string[];
     classification: Prisma.JsonValue;
     strengthLoadKind: string | null;
+    sourceCatalogKey?: string | null;
     guide: Prisma.JsonValue;
   },
   input: { name: string; cues: string[]; classification?: unknown; strengthLoadKind?: string | null },
-) =>
-  existing.name === input.name &&
-  isDeepStrictEqual(existing.cues, input.cues) &&
-  (input.classification === undefined || isDeepStrictEqual(existing.classification, input.classification)) &&
-  (input.strengthLoadKind === undefined || existing.strengthLoadKind === input.strengthLoadKind)
+) => {
+  const movement = (value: unknown) =>
+    value && typeof value === "object" && "movement" in value ? (value as { movement: unknown }).movement : null;
+  const sameMovement =
+    input.classification === undefined || movement(existing.classification) === movement(input.classification);
+  if (existing.sourceCatalogKey) return sameMovement ? undefined : Prisma.DbNull;
+  return existing.name === input.name &&
+    isDeepStrictEqual(existing.cues, input.cues) &&
+    (input.classification === undefined || isDeepStrictEqual(existing.classification, input.classification)) &&
+    (input.strengthLoadKind === undefined || existing.strengthLoadKind === input.strengthLoadKind)
     ? undefined
     : Prisma.DbNull;
+};

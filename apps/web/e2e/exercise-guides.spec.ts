@@ -26,8 +26,8 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   const me = await (await page.request.get("/api/v1/me")).json();
   const root = `/api/v1/orgs/${me.spaces[0].organizationId}`;
   const library: ExerciseSummary[] = await (await page.request.get(`${root}/exercises`)).json();
-  expect(library.filter((e) => e.guide)).toHaveLength(150);
-  expect(library.filter((e) => e.guide).every((e) => e.guide?.technicalReview === "approved")).toBe(true);
+  expect(library.filter((e) => e.guide)).toHaveLength(173);
+  expect(library.filter((e) => e.guide?.technicalReview === "approved")).toHaveLength(150);
   const snatch = library.find((e) => e.name === "Arraché")!;
   await page.goto("/exercices", { waitUntil: "networkidle" });
   await page.getByLabel(m.exerciseGuide.family, { exact: true }).selectOption("weightlifting");
@@ -35,7 +35,15 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   await page.getByRole("button", { name: /^Arraché Bibliothèque/ }).click();
   await expect(page.getByRole("dialog").getByText(m.exerciseGuide.approved)).toBeVisible();
   await expect(page.getByRole("dialog").getByText(snatch.guide!.loadExplanation)).toBeVisible();
+  // Le geste animé tourne ; une pastille l'arrête sur la ligne choisie du guide, affichée sous l'image.
+  const motion = m.exerciseGuide.motion;
+  await expect(page.getByRole("dialog").getByRole("button", { name: motion.pause })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: motion.show(3, motion.position(2)) }).click();
+  await expect(page.getByRole("dialog").getByRole("button", { name: motion.play })).toBeVisible();
+  await expect(page.getByRole("dialog").getByText(`${motion.position(2)} :`)).toBeVisible();
   await inspect(page, "library");
+  // En mouvement réduit, la frise des quatre positions remplace la lecture.
+  await expect(page.getByRole("dialog").getByRole("list", { name: motion.positions }).getByRole("img")).toHaveCount(4);
   await page.keyboard.press("Escape");
   const link = await groupLink(page);
   const athlete = await joinAsAthlete(browser, link, "GuideAthlete");
@@ -78,6 +86,10 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
     await expect(athlete.page.getByText(snatch.guide!.loadExplanation)).toBeVisible();
     await expect(athlete.page.getByText(m.exerciseGuide.approved)).toBeVisible();
     await inspect(athlete.page, "session");
+    // Le guide figé dans la séance reçoit le geste, lu d'après la fiche commune.
+    await expect(
+      athlete.page.getByRole("list", { name: m.exerciseGuide.motion.positions }).first().getByRole("img"),
+    ).toHaveCount(4);
     await athlete.page.goto(`/seance/${session.id}/mode`, { waitUntil: "networkidle" });
     await athlete.page.getByText(m.exerciseGuide.open, { exact: true }).click();
     await expect(
