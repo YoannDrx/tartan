@@ -167,7 +167,7 @@ export function PlannerLoadPreview({
                               ) : null}
                               {item.source ? (
                                 <T variant="small" tone="muted">
-                                  {sourceLabel} : {item.source.value} kg · {item.source.date}
+                                  {`${sourceLabel} : ${m.units.kg(item.source.value)} · ${item.source.date}`}
                                 </T>
                               ) : null}
                               <Button
