@@ -30,15 +30,31 @@ export const generateAutonomousBlocks = <T extends { variant: string }>(blocks: 
   return [...others, ...club.map((b) => ({ ...b, variant: "autonomous" }))];
 };
 
+const field = (item: unknown, key: string) =>
+  item !== null && typeof item === "object" && key in item ? (item as Record<string, unknown>)[key] : undefined;
+
+/** Un exercice répété par un circuit compte une fois : ses passages partagent la référence de la fiche de séance. */
 export const exerciseCount = <T extends { variant: string; items: unknown[] }>(
   blocks: T[],
   variant: SessionVariant,
 ): number =>
-  blocksForVariant(blocks, variant).reduce(
-    (n, b) =>
-      n +
-      b.items.filter(
-        (item) => !(item !== null && typeof item === "object" && "kind" in item && item.kind === "recovery"),
-      ).length,
-    0,
-  );
+  new Set(
+    blocksForVariant(blocks, variant).flatMap((b) =>
+      b.items
+        .filter((item) => field(item, "kind") !== "recovery")
+        .map((item, index) => String(field(item, "sourceRef") ?? field(item, "ref") ?? `${b.variant}:${index}`)),
+    ),
+  ).size;
+
+/** Les exercices d'une séance dans l'ordre, une fois chacun, avec leur nombre de passages. */
+export const programItems = <T extends { ref: string; sourceRef?: string | null; kind?: string }>(items: T[]) => {
+  const byKey = new Map<string, { item: T; passes: number }>();
+  for (const item of items) {
+    if (item.kind === "recovery") continue;
+    const key = item.sourceRef ?? item.ref;
+    const seen = byKey.get(key);
+    if (seen) seen.passes += 1;
+    else byKey.set(key, { item, passes: 1 });
+  }
+  return [...byKey.values()];
+};

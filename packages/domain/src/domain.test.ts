@@ -27,6 +27,8 @@ import {
   formatTimecode,
   frameStepMs,
   generateAutonomousBlocks,
+  exerciseCount,
+  programItems,
   mergeVariantBlocks,
   blocksForVariant,
   groupPublications,
@@ -666,5 +668,24 @@ describe("filtre de mots", () => {
     expect(containsBlockedWord("Séance de computation et de députés")).toBe(false);
     expect(containsBlockedWord("Bonne séance, pédé est absent")).toBe(true);
     expect(containsBlockedWord("Pédaler 20 minutes")).toBe(false);
+  });
+});
+
+describe("programme d'une séance à circuit", () => {
+  // Un superset de 3 tours : deux exercices, une récupération entre les tours, déplié en passages.
+  const pass = (source: string, round: number) => ({ ref: `${source}@${round}`, sourceRef: source, kind: "exercise" });
+  const rest = (round: number) => ({ ref: `r@${round}`, sourceRef: "r", kind: "recovery" });
+  const items = [pass("a", 1), pass("b", 1), rest(1), pass("a", 2), pass("b", 2), rest(2), pass("a", 3), pass("b", 3)];
+
+  it("compte deux exercices, pas six passages", () => {
+    expect(exerciseCount([{ variant: "club", items }], "club")).toBe(2);
+    expect(exerciseCount([{ variant: "club", items: [{ ref: "x" }, { ref: "y" }] }], "club")).toBe(2);
+  });
+
+  it("liste chaque exercice une fois, dans l'ordre, avec ses passages, sans les récupérations", () => {
+    expect(programItems(items).map(({ item, passes }) => [item.sourceRef, passes])).toEqual([
+      ["a", 3],
+      ["b", 3],
+    ]);
   });
 });

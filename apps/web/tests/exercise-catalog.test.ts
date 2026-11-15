@@ -28,20 +28,43 @@ it("distribue 150 fiches sans doublonner les 55 copies, même avec deux premièr
   ).toEqual(before);
 });
 
-it("rattache uniquement les anciennes copies intactes et préserve les personnalisations", async () => {
+it("rattache chaque ancienne copie à sa fiche commune, sans doublon, en gardant les personnalisations", async () => {
   const a = await makeOrg("CatalogueAncien");
   await prisma.exercise.updateMany({
     where: { organizationId: a.organizationId },
     data: { sourceCatalogKey: null, catalogVersion: null, guide: Prisma.DbNull },
   });
-  const changed = await prisma.exercise.findFirstOrThrow({ where: { organizationId: a.organizationId } });
+  const copies = await prisma.exercise.findMany({
+    where: { organizationId: a.organizationId, classification: { not: Prisma.DbNull } },
+    orderBy: { name: "asc" },
+    take: 3,
+  });
+  const [changed, older, other] = [copies[0]!, copies[1]!, copies[2]!];
   await prisma.exercise.update({ where: { id: changed.id }, data: { cues: ["Consigne personnelle du coach"] } });
+  // Copie d'un espace créé avant le 8 novembre : ni étiquettes, ni classification, ni type de charge.
+  await prisma.exercise.update({
+    where: { id: older.id },
+    data: { tags: [], aliases: [], classification: Prisma.DbNull, strengthLoadKind: null },
+  });
+  // Reclassée par le coach comme un autre mouvement : elle garde son contenu, sans le guide.
+  const movement = (other.classification as { movement: string }).movement === "carry" ? "squat" : "carry";
+  await prisma.exercise.update({
+    where: { id: other.id },
+    data: { classification: { ...(other.classification as object), movement } },
+  });
   const list = await listExercises(a.owner.userId, a.organizationId);
-  expect(list.filter((e) => e.guide)).toHaveLength(150);
-  expect(list.find((e) => e.id === changed.id)).toMatchObject({ cues: ["Consigne personnelle du coach"], guide: null });
+  expect(new Set(list.map((e) => e.name)).size).toBe(list.length);
+  expect(list.filter((e) => e.guide)).toHaveLength(149);
+  expect(list.find((e) => e.id === changed.id)).toMatchObject({ cues: ["Consigne personnelle du coach"], shared: false });
+  expect(list.find((e) => e.id === changed.id)?.guide).not.toBeNull();
+  const filled = await prisma.exercise.findUniqueOrThrow({ where: { id: older.id } });
+  expect(filled.classification).not.toBeNull();
+  expect(filled.tags.length).toBeGreaterThan(0);
+  expect(list.find((e) => e.id === older.id)?.guide).not.toBeNull();
+  expect(list.find((e) => e.id === other.id)).toMatchObject({ guide: null, shared: false });
   expect(
     await prisma.exercise.count({ where: { organizationId: a.organizationId, sourceCatalogKey: { not: null } } }),
-  ).toBe(54);
+  ).toBe(55);
 });
 
 it("fige le guide dans la séance et détache celui d'un exercice privé modifié", async () => {

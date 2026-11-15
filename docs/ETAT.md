@@ -1,10 +1,10 @@
 # État du projet
 
-Mis à jour le 14 novembre 2026, après l'audit du travail de finalisation. Toute PR qui change un état met ce fichier à jour. Ce fichier est une photographie : l'historique des lots vit dans Git (`git log -p docs/ETAT.md`), les passations dans [JOURNAL.md](JOURNAL.md).
+Mis à jour le 15 novembre 2026, après la recette en production avec les comptes du fondateur. Toute PR qui change un état met ce fichier à jour. Ce fichier est une photographie : l'historique des lots vit dans Git (`git log -p docs/ETAT.md`), les passations dans [JOURNAL.md](JOURNAL.md).
 
-**En une phrase :** la production sert `236aca6` (phases A, B et C fusionnées) et la CI est verte ; constructeur à circuits, 150 guides, deux modes IA et vidéo collaborative sont codés et testés, l'IA n'est pas qualifiée, aucun vrai paiement ni aucun téléphone physique n'a été éprouvé, et aucun binaire mobile ne peut partir tant que `EXPO_TOKEN` manque.
+**En une phrase :** les phases A à G sont fusionnées (PR 131 à 142, gestes animés en dernier) ; la recette en production du 15 novembre a joué circuit, mode séance, vidéo, tracés et planificateur avec les comptes du fondateur et corrigé ce qu'elle a trouvé ; l'IA n'est pas qualifiée, aucun vrai paiement ni aucun téléphone physique n'a été éprouvé, et aucun binaire mobile ne peut partir tant que `EXPO_TOKEN` manque.
 
-**Plan en cours :** [audit et reprise du 14 novembre](plans/web.md#audit-et-reprise-du-14-novembre-2026), phases A à G. Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur.
+**Plan en cours (15 novembre), huit lots :** 1. recette en production ; 2. fin du constructeur (glisser-déposer, séries détaillées, variante par exercice) ; 3. mobile au niveau du web et Maestro Android ; 4. gestes vus de face ; 5. bêta iOS (`EXPO_TOKEN`) ; 6. IA qualifiée (plafond OpenAI, corpus du fondateur) ; 7. bêta Android (D-U-N-S) ; 8. ouverture. Les lots 1 à 4 ne dépendent que de l'agent. Plan précédent : [audit et reprise du 14 novembre](plans/web.md#audit-et-reprise-du-14-novembre-2026). Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur.
 
 ## Décisions du fondateur en vigueur
 
@@ -24,7 +24,7 @@ Mis à jour le 14 novembre 2026, après l'audit du travail de finalisation. Tout
 
 | Élément | État au 14 novembre |
 | --- | --- |
-| Production | `app.tartan.coach` et `tartan.coach`, commit `236aca6`, santé 200, aucune erreur d'exécution après les fusions des PR 132 et 133. Inscriptions et classement du jeu fermés |
+| Production | `app.tartan.coach` et `tartan.coach`, santé 200, aucune erreur d'exécution après les fusions du 15 novembre. Recette réelle le 15 novembre : circuit publié et rendu, vidéo envoyée et annotée, planificateur réel. Inscriptions et classement du jeu fermés |
 | Preview | `preview.tartan.coach`, branche Git `preview` remise sur `main` ; base `preview` reconstruite le 14 novembre avec la seule graine de démonstration (4 comptes fictifs, 150 fiches communes), sans donnée de production |
 | Neon | Offre Launch, restauration 7 jours, branche `production` protégée, calcul 0,25–2 CU ; branche `preview` 0,25–1 CU. Plus aucune branche de recette |
 | GitHub | Dépôt public, `LICENSE` propriétaire ; analyse des secrets, protection à l'envoi et alertes Dependabot actives depuis le 14 novembre (aucun secret détecté, 10 alertes sur des dépendances indirectes). `main` exige `quality` et `mobile-gate` (toujours présent, vert quand le mobile n'est pas concerné). Depuis le 14 novembre, `quality` résume des jobs parallèles (contrôles, parcours en trois parts, vidéo et planificateur) au lieu d'un job d'environ 50 minutes |

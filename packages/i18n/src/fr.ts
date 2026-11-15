@@ -1768,6 +1768,8 @@ export const fr = {
     notComing: "Je ne viens pas au club",
     comingAfterAll: "Finalement je viens au club",
     program: "Au programme",
+    exerciseCount: (count: number) => `${count} exercice${count > 1 ? "s" : ""}`,
+    passes: (count: number) => `${count} passages`,
     coachWord: "Mot du coach",
     sentBy: (coach: string) => `envoyée par ${coach}`,
     empty: "Rien de prévu aujourd'hui.",
