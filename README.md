@@ -13,7 +13,7 @@ Prérequis : Node indiqué par `.nvmrc`, Corepack, Postgres 17 (`brew install po
 ```bash
 corepack enable
 corepack pnpm install --frozen-lockfile
-cp apps/web/.env.example apps/web/.env   # puis renseigner BETTER_AUTH_SECRET
+cp apps/web/.env.example apps/web/.env   # puis renseigner DATABASE_URL et BETTER_AUTH_SECRET
 pnpm db:start
 pnpm db:migrate
 DEMO_PASSWORD=choisir-un-mot-de-passe pnpm db:seed

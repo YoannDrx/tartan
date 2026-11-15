@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-15, Claude, fichiers d'environnement et EXPO_TOKEN
+Fait (PR `chore/fichiers-env`) : `.env.example` réécrit en 14 rubriques numérotées, toutes les valeurs à `""`, chaque variable avec son rôle, son défaut et les environnements Vercel où elle est posée ; `parseEnv` traite une valeur vide comme absente (défauts du code appliqués), même règle dans `prisma.config.ts`, `layout.tsx`, la graine et Vitest. Fichiers locaux ignorés rangés dans le même ordre, valeurs inchangées. `EXPO_TOKEN` posé sur GitHub (robot Expo `github-actions`, rôle Developer).
+Vérifié : test d'environnement (10), types, lint ; relevé Vercel : la production a toutes les variables que le code exige.
+À savoir : la clé App Store Connect (`SJHW52VCAC`) a été rattachée au profil `beta` par le fondateur (`eas credentials`, interactif) ; build iOS 14 envoyé à App Store Connect. En local, `eas submit` exige `eval "$(node scripts/profile-env.mjs beta)"`, sinon il vise `coach.tartan.app.dev`. Le `.env.local` de la racine n'est lu que par les évaluations du planificateur.
+Suite : fiche TestFlight externe et groupe d'invités (lot 5).
+
 ## 2026-11-15, Claude, lot 2 : séries détaillées
 Fait (PR `feat/series-detaillees`) : `prescription.setPlan` (contrat additif, 30 séries au plus : répétitions, charge, échauffement) ; `set-plan.ts` dans le domaine (format « Échauffement 8 rép. à 40 kg · 2 × 5 rép. à 60 kg », kilos par série sur la référence figée ou en proportion, synchronisation de `sets`, `reps` et `load` sur la première série de travail pour les anciens clients) ; `countSets`, volume, proposition de saisie (`setKind` échauffement) et `setLoadsKg` côté serveur ; éditeur « Détailler série par série » ; mode séance web série par série.
 Vérifié : domaine (`set-plan.test.ts`), parcours `set-plan.spec.ts` (constructeur, sauvegarde, mode séance de l'athlète, axe), desktop et mobile ; rendu à 390 px.
