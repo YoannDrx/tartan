@@ -69,6 +69,8 @@ Détail : [commercialisation](plans/commercialisation.md).
 | 9. Compte neuf sans aide | Ouverte |
 | 10. Tests critiques | Franchie le 11 novembre |
 
+**Matrice des écrans (F1, PR `test/matrice-ecrans`)** : les 74 pages listées avec leurs rôles et leurs preuves (`apps/web/e2e/screens.ts`), un test qui refuse toute page hors matrice, et un balayage visiteur, coach et athlète à 390, 768 et 1440 px (axe, débordement, erreur). Écrans sans parcours propre avant F1, désormais couverts par le balayage : `/analyse`, `/nouveautes`, `/synchronisation`, `/reglages/references-force`, une fiche d'exercice, un historique d'athlète. L'accord parental et les liens d'e-mail ne sont prouvés que par des tests serveur.
+
 ## Ce qui revient au fondateur
 
 1. Créer un jeton robot Expo et le poser : `gh secret set EXPO_TOKEN`.
