@@ -4,7 +4,9 @@ import { useState } from "react";
 import { View } from "react-native";
 import { SvgXml } from "react-native-svg";
 import { useQuery } from "@tanstack/react-query";
+import { exerciseClip } from "@tartan/mascot/exercises";
 import { guideIllustrationQuery } from "../lib/exercise-guide-media";
+import { GuideMotion } from "./guide-motion";
 import { Button, SectionTitle, T } from "../ui/primitives";
 import { space } from "../ui/theme";
 
@@ -36,6 +38,7 @@ function GuideIllustration({ guide }: { guide: ExerciseGuide }) {
 
 export function MovementGuide({ guide }: { guide: ExerciseGuide }) {
   const [open, setOpen] = useState(false);
+  const clip = exerciseClip(guide.catalogKey);
   return (
     <View style={{ gap: space.sm }}>
       <Button
@@ -59,7 +62,9 @@ export function MovementGuide({ guide }: { guide: ExerciseGuide }) {
             {guide.technicalReview === "approved" ? m.exerciseGuide.approved : m.exerciseGuide.pending}
           </T>
           <T>{guide.objective}</T>
-          {guide.illustration.status === "ready" ? (
+          {clip ? (
+            <GuideMotion guide={guide} clip={clip} />
+          ) : guide.illustration.status === "ready" ? (
             <GuideIllustration key={guide.illustration.path} guide={guide} />
           ) : (
             <T variant="small" tone="muted">

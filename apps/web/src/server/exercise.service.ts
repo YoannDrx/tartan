@@ -2,6 +2,7 @@ import { Prisma } from "@/generated/prisma/client";
 import {
   exerciseClassification,
   exerciseInput,
+  type ExerciseFamily,
   type ExerciseInput,
   type ExerciseSummary,
   prescriptionSchema,
@@ -15,6 +16,7 @@ import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "./access";
 import { ensureExerciseCatalog, readExerciseGuide, retainedExerciseGuide } from "./exercise-catalog.service";
+import { approvedMotionFamilies, withMotion } from "./motion-review.service";
 import { assertVideoReservation, withVideoReservation } from "./video-capacity.service";
 
 type MediaRow = {
@@ -55,7 +57,7 @@ export const mediaSnapshot = (media: MediaRow | undefined) => {
 
 type ExerciseRow = Prisma.ExerciseGetPayload<{ include: { media: true } }>;
 
-const exerciseSummary = async (e: ExerciseRow): Promise<ExerciseSummary> => {
+const exerciseSummary = async (e: ExerciseRow, families: readonly ExerciseFamily[]): Promise<ExerciseSummary> => {
   const media = mediaSnapshot(e.media[0]);
   // Vidéos du coach privées : lecture par jeton signé, comme dans une séance.
   const stream =
@@ -75,7 +77,7 @@ const exerciseSummary = async (e: ExerciseRow): Promise<ExerciseSummary> => {
     loadStepKg: Number(e.loadStepKg),
     media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
     shared: e.organizationId === null,
-    guide: readExerciseGuide(e.guide),
+    guide: withMotion(readExerciseGuide(e.guide), families),
   };
 };
 
@@ -90,7 +92,10 @@ export const listExercises = async (userId: string, organizationId: string): Pro
   const represented = new Set(
     rows.filter((row) => row.organizationId === organizationId).map((row) => row.sourceCatalogKey),
   );
-  return Promise.all(rows.filter((row) => !row.catalogKey || !represented.has(row.catalogKey)).map(exerciseSummary));
+  const families = await approvedMotionFamilies();
+  return Promise.all(
+    rows.filter((row) => !row.catalogKey || !represented.has(row.catalogKey)).map((row) => exerciseSummary(row, families)),
+  );
 };
 
 // Fiche d'un exercice : réservée à l'encadrement, comme la bibliothèque.
@@ -105,7 +110,7 @@ export const getExercise = async (
     include: { media: { orderBy: { createdAt: "desc" }, take: 1 } },
   });
   if (!row) throw notFound();
-  return exerciseSummary(row);
+  return exerciseSummary(row, await approvedMotionFamilies());
 };
 
 export const saveExercise = async (userId: string, organizationId: string, raw: ExerciseInput) => {

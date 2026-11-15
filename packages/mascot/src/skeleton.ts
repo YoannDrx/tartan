@@ -202,6 +202,8 @@ const place = (m: Matrix, { x, y }: Point): Point => ({ x: m[0] * x + m[2] * y +
 export const ANCHORS = {
   pelvis: { bone: null, at: ORIGIN },
   head: { bone: "head", at: ORIGIN },
+  // Le haut du buste : ce qui repose sur un banc, ce qui passe sous une barre.
+  shoulder: { bone: "torso", at: { x: 0, y: -BODY.shoulder } },
   handA: { bone: "forearmA", at: { x: 0, y: BODY.forearm } },
   handB: { bone: "forearmB", at: { x: 0, y: BODY.forearm } },
   footA: { bone: "shinA", at: { x: 0, y: BODY.shin } },

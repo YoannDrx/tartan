@@ -21,7 +21,9 @@
     "./triple-jump": "./src/triple-jump.ts",
     "./discus": "./src/discus.ts",
     "./long-jump": "./src/long-jump.ts",
-    "./high-jump-event": "./src/high-jump-event.ts"
+    "./high-jump-event": "./src/high-jump-event.ts",
+    "./exercise": "./src/exercise.ts",
+    "./exercises": "./src/exercises/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

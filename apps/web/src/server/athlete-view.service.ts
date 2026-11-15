@@ -40,6 +40,7 @@ import { prisma } from "@/lib/prisma";
 import { audit, requireAthleteAccess, requireOrgMember, requireVisibleAthlete } from "./access";
 import { consentForAthletes } from "./consent.service";
 import { displayName, namesFor } from "./me.service";
+import { approvedMotionFamilies, withMotion } from "./motion-review.service";
 import { notify } from "./notify.service";
 import { regularityOf } from "./stats.service";
 import { coachesOfAthlete } from "./org.service";
@@ -404,7 +405,7 @@ const readAthleteSession = async (
           )
         : session.snapshot),
   );
-  const coaches = await namesFor([session.createdBy]);
+  const [coaches, motionFamilies] = await Promise.all([namesFor([session.createdBy]), approvedMotionFamilies()]);
   const card = toCard(
     session,
     snapshot,
@@ -465,7 +466,7 @@ const readAthleteSession = async (
           name: item.name,
           category: item.category,
           cues: item.cues,
-          guide: item.guide,
+          guide: withMotion(item.guide, motionFamilies),
           media: item.media,
           prescription,
           strengthLoadKind: item.strengthLoadKind,
