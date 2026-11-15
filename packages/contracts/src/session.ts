@@ -122,10 +122,15 @@ export const sessionSnapshot = z.object({
 });
 export type SessionSnapshot = z.infer<typeof sessionSnapshot>;
 
+// Dans un bloc commun au club et à l'autonomie : l'exercice que font les athlètes en autonomie à la place.
+export const autonomousReplacement = z.object({ exerciseId: uuid, prescription: prescriptionSchema });
+export type AutonomousReplacement = z.infer<typeof autonomousReplacement>;
+
 export const sessionDraftItem = z.object({
   ref: z.string().min(1).max(100).optional(),
   exerciseId: uuid,
   prescription: prescriptionSchema,
+  autonomous: autonomousReplacement.optional(),
 });
 
 export const sessionDraftBlock = z.object({

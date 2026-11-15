@@ -19,6 +19,12 @@ Vérifié : test d'environnement (10), types, lint ; relevé Vercel : la product
 À savoir : la clé App Store Connect (`SJHW52VCAC`) a été rattachée au profil `beta` par le fondateur (`eas credentials`, interactif) ; build iOS 14 envoyé à App Store Connect. En local, `eas submit` exige `eval "$(node scripts/profile-env.mjs beta)"`, sinon il vise `coach.tartan.app.dev`. Le `.env.local` de la racine n'est lu que par les évaluations du planificateur.
 Suite : fiche TestFlight externe et groupe d'invités (lot 5).
 
+## 2026-11-15, Claude, lot 2 : variante par exercice
+Fait (PR `feat/variante-par-exercice`) : `sessionDraftItem.autonomous` (contrat additif) ; `withAutonomousReplacements` (domaine) dédouble à la publication un bloc commun qui remplace un exercice en un bloc club puis un bloc autonomie aux références `…-auto` (64 signes au plus), appelé par `buildSnapshot` et par l'aperçu ; un remplacement qui entre dans un groupe passe à une série par tour ; constructeur : « Remplacer en autonomie », « Changer… », « Garder le même exercice… » dans « Autres actions » d'un bloc commun, ligne « En autonomie : … » qui ouvre sa prescription, aperçu « Au club / En autonomie ».
+Vérifié : domaine (4 tests), parcours `autonomous-replacement.spec.ts` (remplacement, aperçu, publication, appel, l'absent reçoit le remplacement), desktop et mobile ; rendu à 412 px.
+À savoir : les onglets « Au club / En autonomie » restent pour les blocs propres à une version (séances anciennes à deux listes comprises). Une adaptation individuelle posée sur un exercice d'un bloc dédoublé ne suit pas sa copie autonomie. Le constructeur mobile n'affiche ni n'édite encore le remplacement, mais le garde : il recopie les éléments du brouillon tels quels (lot 3).
+Suite : lot 3, constructeur mobile au niveau du web.
+
 ## 2026-11-15, Claude, lot 2 : glisser-déposer du constructeur
 Fait (PR `feat/constructeur-glisser`) : `moveSequenceNode` accepte une ancre (`before`, `null` pour la fin de niveau) et ne remet pas un exercice à une série quand il ne change que de place dans son groupe ; poignée sur chaque carte de `sequence-editor.tsx` (pointeur capturé, destination lue sous le pointeur, trait citron, défilement près des bords, Échap annule, annonce polie) ; sur téléphone, « Monter » et « Descendre » passent dans « Autres actions ».
 Vérifié : domaine (nouveau test), parcours `session-sequences.spec.ts` (glisser dans, entre et hors d'un groupe) et `session-identity.spec.ts`, desktop et mobile ; rendu à 390 et 1440 px.

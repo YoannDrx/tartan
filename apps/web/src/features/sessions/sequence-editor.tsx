@@ -14,7 +14,18 @@ import {
   type SequenceEdit,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { ArrowDown, ArrowUp, GripVertical, Layers, MoreHorizontal, Plus, Repeat2, Timer, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowRightLeft,
+  ArrowUp,
+  GripVertical,
+  Layers,
+  MoreHorizontal,
+  Plus,
+  Repeat2,
+  Timer,
+  Trash2,
+} from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ActivityPicto } from "@/components/pictos";
@@ -40,12 +51,15 @@ export function SequenceEditor({
   exercises,
   onChange,
   onEdit,
+  onEditAutonomous,
   onDestination,
 }: {
   block: Block;
   exercises: ExerciseSummary[];
   onChange: (block: Block) => void;
   onEdit: (ref: string) => void;
+  /** Ouvre la prescription de l'exercice fait à la place en autonomie. */
+  onEditAutonomous?: (ref: string) => void;
   onDestination?: (destination: SequenceDestination) => void;
 }) {
   const byId = new Map(exercises.map((exercise) => [exercise.id, exercise]));
@@ -74,6 +88,7 @@ export function SequenceEditor({
         edit={edit}
         apply={apply}
         onEdit={onEdit}
+        onEditAutonomous={onEditAutonomous}
         onDestination={onDestination}
         dragging={dragging}
       />
@@ -120,7 +135,8 @@ function useSequenceDrag(onDrop: (ref: string, drop: Drop) => void) {
     const scroll = () => {
       const y = pointer.current;
       if (y !== null) {
-        const step = y < EDGE ? -(EDGE - y) / 4 : y > window.innerHeight - EDGE ? (y - window.innerHeight + EDGE) / 4 : 0;
+        const step =
+          y < EDGE ? -(EDGE - y) / 4 : y > window.innerHeight - EDGE ? (y - window.innerHeight + EDGE) / 4 : 0;
         if (step) window.scrollBy(0, step);
       }
       frame = requestAnimationFrame(scroll);
@@ -162,7 +178,12 @@ function useSequenceDrag(onDrop: (ref: string, drop: Drop) => void) {
       onPointerMove: (event: ReactPointerEvent<HTMLElement>) => {
         if (!drag || drag.ref !== ref) return;
         pointer.current = event.clientY;
-        setDrag({ ...drag, x: event.clientX, y: event.clientY, drop: locate(event.clientX, event.clientY, drag.inside) });
+        setDrag({
+          ...drag,
+          x: event.clientX,
+          y: event.clientY,
+          drop: locate(event.clientX, event.clientY, drag.inside),
+        });
       },
       onPointerUp: () => {
         if (!drag || drag.ref !== ref) return;
@@ -187,7 +208,10 @@ const DropLine = ({ show, end }: { show: boolean; end?: boolean }) =>
   show ? (
     <span
       aria-hidden
-      className={cn("pointer-events-none absolute inset-x-0 h-1 rounded-full bg-accent", end ? "-bottom-1.5" : "-top-1.5")}
+      className={cn(
+        "pointer-events-none absolute inset-x-0 h-1 rounded-full bg-accent",
+        end ? "-bottom-1.5" : "-top-1.5",
+      )}
     />
   ) : null;
 
@@ -215,8 +239,11 @@ type LevelProps = {
   edit: (parent: string | null, command: SequenceEdit) => void;
   apply: (next: () => Block) => void;
   onEdit: (ref: string) => void;
+  onEditAutonomous?: (ref: string) => void;
   onDestination?: (destination: SequenceDestination) => void;
   dragging: Dragging;
+  /** Ouvre le sélecteur pour choisir l'exercice fait à la place en autonomie. */
+  onReplace?: (ref: string) => void;
 };
 
 function Level(props: LevelProps) {
@@ -224,10 +251,22 @@ function Level(props: LevelProps) {
   const drop = dragging.drag?.drop;
   const here = drop !== undefined && drop !== null && drop.parent === parent;
   const [picking, setPicking] = useState<number | null>(null);
+  const [replacing, setReplacing] = useState<string | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const inGroup = parent !== null;
   const pick = (exercise: ExerciseSummary) => {
+    if (replacing) {
+      const prescription = inGroup ? prescriptionForGroup(exercise.defaultPrescription) : exercise.defaultPrescription;
+      apply(() => ({
+        ...block,
+        items: block.items.map((item) =>
+          item.ref === replacing ? { ...item, autonomous: { exerciseId: exercise.id, prescription } } : item,
+        ),
+      }));
+      setReplacing(null);
+      return;
+    }
     const ref = newRef();
     edit(parent, {
       kind: "insert",
@@ -271,7 +310,7 @@ function Level(props: LevelProps) {
                   {labels.select(nodeName(node, block, byId))}
                 </label>
               ) : null}
-              <NodeCard {...props} node={node} index={index} />
+              <NodeCard {...props} node={node} index={index} onReplace={setReplacing} />
             </li>
           );
         })}
@@ -350,9 +389,12 @@ function Level(props: LevelProps) {
         </div>
       )}
       <ExercisePicker
-        open={picking !== null}
-        onOpenChange={(open) => (open ? null : setPicking(null))}
+        open={picking !== null || replacing !== null}
+        onOpenChange={(open) => (open ? null : (setPicking(null), setReplacing(null)))}
         destination={parentName}
+        title={
+          replacing ? labels.replaceTitle(nodeName({ kind: "exercise", itemRef: replacing }, block, byId)) : undefined
+        }
         inGroup={inGroup}
         exercises={exercises}
         onPick={pick}
@@ -376,7 +418,11 @@ function NodeCard(props: LevelProps & { node: SequenceNode; index: number }) {
   const actions = (
     <div className="ml-auto flex shrink-0 items-center">
       <span className="hidden tablet:contents">
-        <IconButton label={labels.up} disabled={index === 0} onClick={() => edit(parent, { kind: "move", ref, delta: -1 })}>
+        <IconButton
+          label={labels.up}
+          disabled={index === 0}
+          onClick={() => edit(parent, { kind: "move", ref, delta: -1 })}
+        >
           <ArrowUp aria-hidden className="size-4" />
         </IconButton>
         <IconButton
@@ -405,7 +451,9 @@ function NodeCard(props: LevelProps & { node: SequenceNode; index: number }) {
             min={1}
             max={3600}
             value={node.durationS}
-            onChange={(e) => edit(parent, { kind: "update", ref, node: { ...node, durationS: Number(e.target.value) } })}
+            onChange={(e) =>
+              edit(parent, { kind: "update", ref, node: { ...node, durationS: Number(e.target.value) } })
+            }
             className="min-h-11 w-16 rounded-button border border-control-line bg-transparent px-2 text-right"
           />
           {labels.secondsUnit}
@@ -421,29 +469,50 @@ function NodeCard(props: LevelProps & { node: SequenceNode; index: number }) {
     const item = block.items.find((entry) => entry.ref === node.itemRef);
     const exercise = item ? byId.get(item.exerciseId) : undefined;
     const tone = categoryColors(exercise?.category);
+    const replacement = block.variant === "both" && item?.autonomous ? item.autonomous : null;
+    const away = replacement ? byId.get(replacement.exerciseId) : undefined;
     return (
-      <div className="flex min-w-0 items-center gap-1 rounded-button bg-card-raised py-1 pr-1">
-        {grip}
-        <button
-          type="button"
-          className="flex min-h-11 min-w-0 flex-1 items-center gap-2 py-1 text-left"
-          onClick={() => item && onEdit(item.ref!)}
-        >
-          <span
-            className="flex size-10 shrink-0 items-center justify-center rounded-button"
-            style={{ backgroundColor: tone.background, color: tone.text }}
+      <div className="min-w-0 rounded-button bg-card-raised">
+        <div className="flex min-w-0 items-center gap-1 py-1 pr-1">
+          {grip}
+          <button
+            type="button"
+            className="flex min-h-11 min-w-0 flex-1 items-center gap-2 py-1 text-left"
+            onClick={() => item && onEdit(item.ref!)}
           >
-            <ActivityPicto kind={exercise?.category ?? "strength"} className="size-5" />
-          </span>
-          <span className="min-w-0 break-words leading-snug">
-            <span className="block font-semibold">{name}</span>
-            <span className="t-caption block font-normal text-soft">
-              {exercise ? `${m.exerciseCategory[exercise.category as keyof typeof m.exerciseCategory]} · ` : ""}
-              {(item && formatPrescription(item.prescription)) || m.builder.setPrescription}
+            <span
+              className="flex size-10 shrink-0 items-center justify-center rounded-button"
+              style={{ backgroundColor: tone.background, color: tone.text }}
+            >
+              <ActivityPicto kind={exercise?.category ?? "strength"} className="size-5" />
             </span>
-          </span>
-        </button>
-        {actions}
+            <span className="min-w-0 break-words leading-snug">
+              <span className="block font-semibold">{name}</span>
+              <span className="t-caption block font-normal text-soft">
+                {exercise ? `${m.exerciseCategory[exercise.category as keyof typeof m.exerciseCategory]} · ` : ""}
+                {(item && formatPrescription(item.prescription)) || m.builder.setPrescription}
+              </span>
+            </span>
+          </button>
+          {actions}
+        </div>
+        {replacement ? (
+          // Ce que font les athlètes en autonomie à la place : la ligne ouvre sa prescription.
+          <button
+            type="button"
+            className="flex min-h-11 w-full min-w-0 items-center gap-2 border-t border-card-line px-3 py-1.5 text-left text-sm"
+            onClick={() => item && props.onEditAutonomous?.(item.ref!)}
+          >
+            <ArrowRightLeft aria-hidden className="size-4 shrink-0 text-soft" />
+            <span className="min-w-0 break-words">
+              <span className="font-semibold">{labels.autonomousLine(away?.name ?? labels.deletedExercise)}</span>
+              <span className="text-soft">
+                {" "}
+                · {formatPrescription(replacement.prescription) || m.builder.setPrescription}
+              </span>
+            </span>
+          </button>
+        ) : null}
       </div>
     );
   }
@@ -547,7 +616,10 @@ function MoreActions(props: LevelProps & { node: SequenceNode; name: string; ind
   const { node, name, index, nodes, parent, block, edit, apply } = props;
   const ref = sequenceNodeRef(node);
   const own = node.kind === "repeat" ? descendants(node) : new Set<string>();
-  const targets = sequenceGroups(block).filter((group) => group.ref !== parent && group.ref !== ref && !own.has(group.ref));
+  const replaced = node.kind === "exercise" && block.items.some((item) => item.ref === ref && item.autonomous);
+  const targets = sequenceGroups(block).filter(
+    (group) => group.ref !== parent && group.ref !== ref && !own.has(group.ref),
+  );
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
@@ -582,7 +654,10 @@ function MoreActions(props: LevelProps & { node: SequenceNode; name: string; ind
             <>
               <DropdownMenu.Label className="t-caption px-3 pt-2 text-soft">{labels.moveTo}</DropdownMenu.Label>
               {parent !== null ? (
-                <DropdownMenu.Item className={menuItem} onSelect={() => apply(() => moveSequenceNode(block, ref, null))}>
+                <DropdownMenu.Item
+                  className={menuItem}
+                  onSelect={() => apply(() => moveSequenceNode(block, ref, null))}
+                >
                   {labels.moveOut}
                 </DropdownMenu.Item>
               ) : null}
@@ -601,6 +676,31 @@ function MoreActions(props: LevelProps & { node: SequenceNode; name: string; ind
             <DropdownMenu.Item className={menuItem} onSelect={() => edit(parent, { kind: "unwrap", ref })}>
               {labels.ungroup}
             </DropdownMenu.Item>
+          ) : null}
+          {/* Dans un bloc commun, un exercice peut changer pour les athlètes en autonomie. */}
+          {node.kind === "exercise" && block.variant === "both" ? (
+            <>
+              <DropdownMenu.Item className={menuItem} onSelect={() => props.onReplace?.(ref)}>
+                {replaced ? labels.changeAutonomous : labels.replaceAutonomous}
+              </DropdownMenu.Item>
+              {replaced ? (
+                <DropdownMenu.Item
+                  className={menuItem}
+                  onSelect={() =>
+                    apply(() => ({
+                      ...block,
+                      items: block.items.map((item) => {
+                        if (item.ref !== ref) return item;
+                        const { autonomous: _replacement, ...rest } = item;
+                        return rest;
+                      }),
+                    }))
+                  }
+                >
+                  {labels.keepAutonomous}
+                </DropdownMenu.Item>
+              ) : null}
+            </>
           ) : null}
           <DropdownMenu.Separator className="my-1 h-px bg-card-line" />
           <DropdownMenu.Item className={menuItem} onSelect={() => edit(parent, { kind: "remove", ref })}>
