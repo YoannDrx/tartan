@@ -1,6 +1,6 @@
 // Course et gammes : Inès, l'athlète des haies. Elle court au centre de la scène, la piste défile sous elle.
 import { mix, runPose, runRise, smooth } from "../clip";
-import { accumulate, cycleStills, GYM, motion, STAND_ROOT, track, type ExerciseClip, type GearShape } from "../exercise";
+import { accumulate, cycleStills, exercise, GYM, MIDDLE, motion, STAND_ROOT, track, type ExerciseClip, type GearShape, type Position } from "../exercise";
 import { POSES } from "../poses";
 import type { Face } from "../rig";
 import type { EventId } from "../event";
@@ -240,7 +240,116 @@ const sprintStart = (() => {
   });
 })();
 
+// --- Version 5 du catalogue -----------------------------------------------------------------------
+
+// Skipping B : le genou monte, puis la jambe se déplie vers l'avant avant de griffer le sol sous le bassin.
+const bSkip = drill({
+  key: "b-skip",
+  cycles: 4,
+  distance: 800,
+  pose: (phase) => {
+    const lift = up(Math.sin(phase));
+    const reach = up(Math.sin(phase - 0.9));
+    const liftB = up(-Math.sin(phase));
+    const reachB = up(-Math.sin(phase - 0.9));
+    return {
+      ...POSES.stand,
+      lean: 0,
+      head: -4,
+      legA: 6 + 84 * lift,
+      kneeA: 10 + 100 * lift * (1 - reach),
+      legB: 6 + 84 * liftB,
+      kneeB: 10 + 100 * liftB * (1 - reachB),
+      armA: -60 * Math.sin(phase),
+      elbowA: 90,
+      armB: 60 * Math.sin(phase),
+      elbowB: 90,
+    };
+  },
+  rise: (phase) => 8 + 20 * Math.abs(Math.sin(2 * phase)),
+});
+
+const calm = (pose: Partial<Pose>, extra: Omit<Position, "pose"> = {}): Position => ({ pose, ...extra });
+const effort = (pose: Partial<Pose>, extra: Omit<Position, "pose"> = {}): Position => ({ pose, face: "effort", ...extra });
+const WALL = MIDDLE + 120;
+const wall: GearShape = { kind: "rect", x: WALL, y: 40, width: 40, height: 364, paint: "step" };
+// Contre le mur : le corps incliné en appui sur les mains, une jambe puis l'autre.
+const leaning = (front: "A" | "B"): Partial<Pose> => ({
+  rot: 34,
+  lean: 0,
+  head: -6,
+  armA: 56,
+  elbowA: 0,
+  armB: 52,
+  elbowB: 0,
+  legA: front === "A" ? 92 : 4,
+  kneeA: front === "A" ? 100 : 4,
+  legB: front === "B" ? 92 : 4,
+  kneeB: front === "B" ? 100 : 4,
+});
+const wallDrive = exercise({
+  key: "wall-drive",
+  athlete: ATHLETE,
+  positions: [
+    calm({ rot: 34, lean: 0, head: -6, armA: 56, elbowA: 0, armB: 52, elbowB: 0, legA: 4, kneeA: 4, legB: 0, kneeB: 4 }, { on: "footB", x: -40 }),
+    effort(leaning("A"), { on: "footB", x: -40 }),
+    effort(leaning("B"), { on: "footA", x: -40 }),
+    calm(leaning("A"), { on: "footB", x: -40 }),
+  ],
+  gear: () => [wall],
+});
+
+// Le départ accroupi : une main au sol derrière la ligne, puis la poussée et le redressement.
+const crouchPose: Pose = { ...POSES.stand, lean: 64, head: 0, armA: 66, elbowA: 0, armB: -40, elbowB: 40, legA: 74, kneeA: 96, legB: 20, kneeB: 110 };
+const crouchStart = (() => {
+  const speed = paceAt([0, 0.75, 0.95, 0.9]);
+  const phaseAt = accumulate((t) => (t < 0.24 ? 0 : 0.6 + 0.6 * speed(t)), 5 * TAU);
+  const travel = accumulate((t) => (t < 0.24 ? 0 : 0.3 + speed(t)), 1000);
+  return motion({
+    key: "crouch-start",
+    athlete: ATHLETE,
+    duration: 4400,
+    frame: (t) => {
+      const phase = phaseAt(t);
+      const run = { ...stride(phase, speed(t)), lean: mix(40, 8, smooth(0.25, 0.9, t)) };
+      const u = smooth(0.2, 0.32, t) * (1 - smooth(0.96, 1, t));
+      const pose = Object.fromEntries(Object.keys(run).map((k) => [k, mix(crouchPose[k as keyof Pose], run[k as keyof Pose], u)])) as Pose;
+      return { pose, root: { x: STAND_ROOT.x, y: HIP + 46 * (1 - u) - runRise(phase) * u } };
+    },
+    gear: (_, __, t) => lane(travel(t)),
+    face: (t) => (t > 0.2 ? "effort" : "neutral"),
+    stills: [0.1, 0.36, 0.6, 0.85],
+  });
+})();
+
+// Les haies basses : on les enjambe en marchant, jambe d'attaque puis jambe d'esquive.
+const hurdleAt = (x: number, height = 76): GearShape[] => [
+  { kind: "line", from: { x, y: GYM.ground }, to: { x, y: GYM.ground - height }, width: 6, paint: "hurdle" },
+  { kind: "line", from: { x: x - 4, y: GYM.ground - height }, to: { x: x + 34, y: GYM.ground - height }, width: 10, paint: "hurdle" },
+];
+const overHurdle = (key: string, lead: Partial<Pose>, trail: Partial<Pose>) =>
+  exercise({
+    key,
+    athlete: ATHLETE,
+    positions: [
+      calm({ lean: 2, armA: -20, elbowA: 60, armB: 20, elbowB: 60 }, { x: -70 }),
+      calm({ lean: 4, armA: -40, elbowA: 70, armB: 30, elbowB: 70, ...lead }, { on: "footB", x: -70 }),
+      calm({ lean: 6, armA: 30, elbowA: 70, armB: -30, elbowB: 70, ...trail }, { on: "footA", x: 30 }),
+      calm({ lean: 2, armA: 10, elbowA: 60, armB: -10, elbowB: 60, legA: 10, kneeA: 6, legB: -12, kneeB: 10 }, { x: 30, hold: 0.7 }),
+    ],
+    gear: () => hurdleAt(MIDDLE - 30),
+  });
+const hurdleWalkover = overHurdle("hurdle-walkover", { legA: 96, kneeA: 100, legB: -6, kneeB: 4 }, { legA: 4, kneeA: 4, legB: 80, kneeB: 110 });
+const hurdleLead = overHurdle("hurdle-lead-leg", { legA: 88, kneeA: 14, legB: -6, kneeB: 4 }, { legA: 6, kneeA: 6, legB: 40, kneeB: 90 });
+const hurdleTrail = overHurdle("hurdle-trail-leg", { legA: 20, kneeA: 10, legB: 60, kneeB: 120 }, { legA: 4, kneeA: 4, legB: 92, kneeB: 120 });
+
 export const RUNNING: readonly ExerciseClip[] = [
+  bSkip,
+  wallDrive,
+  crouchStart,
+  hurdleWalkover,
+  hurdleLead,
+  hurdleTrail,
   highKnees,
   buttKicks,
   drill({ key: "progressive-acceleration", cycles: 6, distance: 1400, pace: [0.2, 0.6, 0.95, 0.3] }),

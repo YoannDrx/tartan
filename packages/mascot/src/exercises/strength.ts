@@ -19,6 +19,7 @@ import {
   type Position,
 } from "../exercise";
 import { arms, backRack, frontRack, hanging, legs, overhead, settle, type PosePatch } from "./base";
+import { drill, stride } from "./running";
 
 const ATHLETE = "discus" as const;
 const lift = (draft: Omit<ExerciseDraft, "athlete">): ExerciseClip => exercise({ athlete: ATHLETE, ...draft });
@@ -578,7 +579,116 @@ const tibialis = lift({
   gear: () => [{ kind: "rect", x: WALL - 40, y: 60, width: 40, height: 344, paint: "step" }],
 });
 
+// --- Version 5 du catalogue -----------------------------------------------------------------------
+
+// Le Nordic : à genoux, tibias au sol, le corps reste droit des genoux aux épaules et bascule vers l'avant.
+const nordicPose = (rot: number, patch: PosePatch = {}): PosePatch => ({
+  rot,
+  lean: 0,
+  head: -6,
+  ...arms(rot + 20, 30, 2),
+  legA: 0,
+  kneeA: 90 - rot,
+  legB: 0,
+  kneeB: 90 - rot,
+  ...patch,
+});
+const nordic = lift({
+  key: "nordic-hamstring",
+  positions: [
+    calm(nordicPose(0, arms(10, 20, 2))),
+    effort(nordicPose(28)),
+    effort(nordicPose(54, arms(90, 30, 2))),
+    calm(nordicPose(76, arms(80, 0, 2))),
+  ].map((p) => ({ ...p, x: -60 })),
+  gear: () => [{ kind: "rect", x: MIDDLE - 150, y: GYM_GROUND - 30, width: 40, height: 34, radius: 6, paint: "box" }],
+});
+
+const swing = lift({
+  key: "kettlebell-swing",
+  positions: [
+    calm({ lean: 46, head: -10, ...hanging(46), ...legs(34, 36) }),
+    effort({ lean: 56, head: -12, ...arms(20, 0, 2), ...legs(30, 32) }),
+    effort({ lean: -2, head: -4, ...arms(88, 0, 2), ...legs(2, 2) }),
+    calm({ lean: 30, ...arms(40, 0, 2), ...legs(20, 24) }),
+  ],
+  gear: (_, at) => kettlebell(at.handA),
+});
+
+const trapBar = lift({
+  key: "trap-bar-deadlift",
+  positions: [
+    calm(floorPull(80, 112, -8)),
+    effort(floorPull(76, 104, -8), { via: [{ pose: { lean: 24, ...hanging(24), ...legs(36, 44) }, face: "effort" }] }),
+    calm({ lean: 0, ...hanging(0), ...legs(4, 2) }),
+    calm({ lean: 30, ...hanging(30), ...legs(36, 44) }),
+  ],
+  gear: bar,
+});
+
+// Aux barres parallèles : les mains tiennent la barre, le corps descend entre elles.
+const DIP_BAR = 210;
+const dipAt = { on: "handA" as const, at: { x: MIDDLE, y: GYM_GROUND - DIP_BAR } };
+const dipPose = (bend: number): PosePatch => ({ lean: 10 * bend, head: -4, ...arms(10 * bend - 80 * bend, 80 * bend, 2), ...legs(-10, 80) });
+const dips = lift({
+  key: "parallel-bar-dips",
+  positions: [calm(dipPose(0), dipAt), effort(dipPose(0.6), dipAt), effort(dipPose(1), dipAt), calm(dipPose(0.3), dipAt)],
+  gear: () => [
+    { kind: "rect", x: MIDDLE - 6, y: GYM_GROUND - DIP_BAR, width: 12, height: DIP_BAR, radius: 3, paint: "iron" },
+    { kind: "disc", x: MIDDLE, y: GYM_GROUND - DIP_BAR - 15, radius: 9, paint: "iron", front: true },
+  ],
+});
+
+const pistolBottom: PosePatch = { lean: 34, ...arms(84, 4), legA: 104, kneeA: 126, legB: 84, kneeB: 4 };
+const PISTOL_SEAT = (() => {
+  const at = jointPositions({ ...POSES.stand, ...pistolBottom });
+  return { x: at.pelvis.x - at.footA.x, top: at.footA.y + 16 - at.pelvis.y - 24 };
+})();
+const pistol = lift({
+  key: "box-pistol-squat",
+  positions: [
+    calm({ lean: 4, ...arms(60, 4), legB: 50, kneeB: 4 }),
+    calm({ lean: 22, ...arms(84, 4), legA: 56, kneeA: 70, legB: 70, kneeB: 4 }),
+    effort(pistolBottom),
+    effort({ lean: 18, ...arms(80, 4), legA: 50, kneeA: 60, legB: 64, kneeB: 4 }),
+  ],
+  gear: () => box(MIDDLE + PISTOL_SEAT.x - 70, 90, PISTOL_SEAT.top),
+});
+
+const walkingLunge = lift({
+  key: "walking-lunge",
+  positions: [
+    calm({ lean: 2, ...arms(10, 20) }),
+    calm({ lean: 2, ...arms(-10, 20), legA: 42, kneeA: 8, legB: -20, kneeB: 14 }, { x: 70 }),
+    effort({ lean: 4, ...arms(-6, 20), ...splitLow }, { x: 70 }),
+    calm({ lean: 4, ...arms(20, 20), legA: -14, kneeA: 30, legB: 44, kneeB: 40 }, { x: 70 }),
+  ],
+});
+
+// La poussée du traîneau : le corps penché, les bras tendus sur les poignées, des appuis courts et puissants.
+const sledPush = drill({
+  key: "sled-push",
+  athlete: "discus",
+  cycles: 5,
+  distance: 500,
+  pose: (phase) => ({ ...stride(phase, 0.6), lean: 42, head: -16, armA: 84, elbowA: 10, armB: 80, elbowB: 10 }),
+  rise: () => 4,
+  face: () => "effort",
+  extra: () => [
+    { kind: "rect", x: MIDDLE + 86, y: GYM_GROUND - 120, width: 12, height: 120, radius: 3, paint: "iron" },
+    { kind: "rect", x: MIDDLE + 90, y: GYM_GROUND - 40, width: 110, height: 40, radius: 6, paint: "iron" },
+    { kind: "disc", x: MIDDLE + 145, y: GYM_GROUND - 62, radius: 28, paint: "plate" },
+  ],
+});
+
 export const STRENGTH: readonly ExerciseClip[] = [
+  nordic,
+  swing,
+  trapBar,
+  dips,
+  pistol,
+  walkingLunge,
+  sledPush,
   backSquat,
   frontSquat,
   gobletSquat,

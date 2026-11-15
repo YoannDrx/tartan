@@ -1,7 +1,7 @@
 // Haltérophilie : Malo, l'athlète de la perche, de profil. La barre est vue par son bout : un disque dans la main.
 import { barbell, exercise, GEAR, type ExerciseClip, type ExerciseDraft, type GearShape, type Position } from "../exercise";
 import type { Point } from "../skeleton";
-import { arms, frontRack, hanging, legs, overhead, settle, type PosePatch } from "./base";
+import { arms, backRack, frontRack, hanging, legs, overhead, settle, type PosePatch } from "./base";
 
 const lift = (draft: Omit<ExerciseDraft, "athlete">): ExerciseClip =>
   exercise({ athlete: "poleVault", duration: 4400, gear: bar, ...draft });
@@ -126,7 +126,39 @@ const pushPress = lift({
   positions: [calm(rackStand), effort(dip), effort(overStand, { via: [{ pose: drive, face: "effort" }] }), calm({ ...rackStand, ...arms(100, 80, 2) })],
 });
 
+// Version 5 du catalogue.
+const pushJerk = lift({
+  key: "push-jerk",
+  positions: [calm(rackStand), effort(dip), effort({ lean: 2, ...overhead(2), ...legs(30, 40) }, { via: [{ pose: drive, face: "effort" }] }), calm(overStand, { face: "joy" })],
+});
+const snatchBalance = lift({
+  key: "snatch-balance",
+  positions: [
+    calm({ lean: 2, ...backRack, ...legs(6, 4) }),
+    effort({ lean: 2, ...backRack, ...legs(26, 34) }),
+    effort(overLow),
+    calm(overStand, { face: "joy" }),
+  ],
+});
+const hangPowerSnatch = lift({
+  key: "hang-power-snatch",
+  positions: [calm(thigh), calm(hang), effort(extension), effort(overHigh, { via: [] })],
+});
+const hangPowerClean = lift({
+  key: "hang-power-clean",
+  positions: [calm(thigh), calm(hang), effort(extension), effort(rackHigh)],
+});
+const snatchDeadlift = lift({
+  key: "snatch-deadlift",
+  positions: [calm(floor(86, 112)), effort(floor(80, 100)), effort(knee), calm(thigh)],
+});
+
 export const WEIGHTLIFTING: readonly ExerciseClip[] = [
+  pushJerk,
+  snatchBalance,
+  hangPowerSnatch,
+  hangPowerClean,
+  snatchDeadlift,
   snatch,
   clean,
   splitJerk,

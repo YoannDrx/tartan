@@ -25,6 +25,8 @@ export type CatalogueDraft = {
   easier: string;
   progression: string;
   breathing?: string;
+  // Une fiche ajoutée après la relecture du fondateur reste « en préparation » jusqu'à la sienne.
+  review?: "pending";
 };
 
 export type FamilyDraft = Omit<CatalogueDraft, "family" | "category">;
