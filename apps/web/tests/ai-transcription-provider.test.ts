@@ -58,6 +58,18 @@ it("utilise gpt-transcribe par défaut, sans mélanger language et languages", a
   for (const word of (init.body as FormData).getAll("keywords[]")) expect(String(word)).not.toMatch(/[<>\r\n]/);
   expect(new Headers(init.headers).get("Authorization")).toBe("Bearer standard-test-only");
 });
+it("ajoute les noms de la bibliothèque au vocabulaire, nettoyés et bornés", async () => {
+  settings.AI_TRANSCRIPTION_MODEL = "gpt-transcribe";
+  settings.OPENAI_API_KEY = "standard-test-only";
+  const fetcher = vi.fn<typeof fetch>(async () => Response.json({ text: "Séance de force" }));
+  const library = ["Squat du dragon", "Tirage <b>Atlas</b>\nprivé", ...Array.from({ length: 80 }, (_, i) => `Fiche ${i}`)];
+  await openAiTranscriptionProvider(fetcher).transcribe(audio, library);
+  const keywords = (fetcher.mock.calls[0]![1]!.body as FormData).getAll("keywords[]").map(String);
+  expect(keywords[0]).toBe("Squat du dragon");
+  expect(keywords[1]).toBe("Tirage b Atlas /b privé");
+  expect(keywords).toHaveLength(60);
+  for (const word of keywords) expect(word).not.toMatch(/[<>\r\n]/);
+});
 it("arrêt global, absence de clé et durée excessive coupent tout appel", async () => {
   const fetcher = vi.fn<typeof fetch>();
   settings.AI_PLANNER_ENABLED = "false";

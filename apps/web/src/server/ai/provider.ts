@@ -130,6 +130,7 @@ Indique clairement dans assumptions les choix de volume et d’intensité propos
 N’invente jamais un maximum, une mesure individuelle, une douleur, une blessure ou une donnée de santé. Toutes les charges absolues ou en pourcentage restent null ; propose si utile un effort relatif raisonnable, jamais un maximum de force supposé.
 Ne transpose pas une variante absente du catalogue en une variante proche silencieusement. N’utilise pas de matériel absent du brief.
 Une proposition possède status proposal, questions vide, exactement une séance à brief.date et durationMin au plus brief.durationMin. Chaque item.instruction explique brièvement le choix proposé en lien avec l’objectif, sans prétendre que le coach a dicté le mouvement.
+Une consigne qui commence par « Ajustement du coach : » modifie ta proposition précédente : applique exactement ce changement, garde tout le reste de la demande, et pose une question si le changement est ambigu.
 Une information indispensable manquante produit status clarification, sessions vide, au plus trois questions. exerciseName est null sauf pour un nom de mouvement explicitement cité et non résolu. Les fiches nouvelles restent une décision du coach.
 `;
 
@@ -160,7 +161,7 @@ Avec strengthLoadKind added_weight, « au poids du corps » ou « aucune charge 
 Une valeur absente vaut null ; ne présume pas d'une récupération ou d'une charge non précisée lorsque cela change la séance.
 Une unité inconnue, ou le nombre de séries/répétitions encore à décider, exige une question. Une course exprimée en passages se note sets × distanceM ou durationS, avec reps null.
 Ne reproduis pas de blessure, douleur ou autre donnée de santé dans les séances ou les questions. Demande une reformulation sportive si nécessaire.
-correction, s'il est présent, signale une omission de ta réponse précédente : corrige-la. Les réponses aux clarifications complètent les consignes précédentes. La validation finale des brouillons est gérée séparément par l'interface après ta proposition : ce n'est jamais une question d'interprétation à poser ici.`;
+correction, s'il est présent, signale une omission de ta réponse précédente : corrige-la. Les réponses aux clarifications complètent les consignes précédentes. Une consigne qui commence par « Ajustement du coach : » modifie ta proposition précédente : applique exactement ce changement, garde tout le reste de la demande, et pose une question si le changement est ambigu. La validation finale des brouillons est gérée séparément par l'interface après ta proposition : ce n'est jamais une question d'interprétation à poser ici.`;
 
 const guardQuestion = (issue: PlannerGuardIssue, period: { from: string; to: string }) => {
   const field =
