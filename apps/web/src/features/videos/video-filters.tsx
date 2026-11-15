@@ -6,6 +6,7 @@ import type { VideoQuery } from "@/server/video.service";
 
 export type VideoSearch = {
   athlete?: string;
+  groupe?: string;
   exercice?: string;
   session?: string;
   status?: string;
@@ -16,6 +17,7 @@ const uuid = (value?: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value ?? "") ? value : undefined;
 export const videoQuery = (search: VideoSearch): VideoQuery => ({
   athleteId: uuid(search.athlete),
+  groupId: uuid(search.groupe),
   exerciseId: uuid(search.exercice),
   sessionId: uuid(search.session),
   cursor: uuid(search.cursor),
@@ -32,12 +34,14 @@ export const videoQuery = (search: VideoSearch): VideoQuery => ({
 export function VideoFilters({
   search,
   athletes = [],
+  groups = [],
   sessions = [],
   exercises = [],
   staff = false,
 }: {
   search: VideoSearch;
   athletes?: { id: string; name: string }[];
+  groups?: { id: string; name: string }[];
   sessions?: { id: string; label: string }[];
   exercises?: { id: string; name: string }[];
   staff?: boolean;
@@ -50,6 +54,20 @@ export function VideoFilters({
             <Select {...a} name="athlete" defaultValue={search.athlete ?? ""}>
               <option value="">{m.videoCollaboration.allAthletes}</option>
               {athletes.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      ) : null}
+      {groups.length > 1 ? (
+        <Field className="min-w-0 w-full tablet:w-56" label={m.videoCollaboration.group}>
+          {(a) => (
+            <Select {...a} name="groupe" defaultValue={search.groupe ?? ""}>
+              <option value="">{m.videoCollaboration.allGroups}</option>
+              {groups.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
                 </option>
@@ -120,7 +138,7 @@ export function VideoPagination({
   basePath: string;
 }) {
   const params = new URLSearchParams();
-  for (const key of ["athlete", "exercice", "session", "status", "review"] as const)
+  for (const key of ["athlete", "groupe", "exercice", "session", "status", "review"] as const)
     if (search[key]) params.set(key, search[key]);
   const first = `${basePath}?${params}`;
   if (nextCursor) params.set("cursor", nextCursor);

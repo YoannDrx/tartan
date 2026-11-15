@@ -10,6 +10,8 @@ const id = "3f2c1d7e-0000-4000-8000-000000000000";
 
 describe("routeForNotification", () => {
   it("ouvre la vidéo", () => {
+    expect(routeForNotification({ link: `/mes-videos/${id}` })).toBe(`/video/${id}`);
+    // Les notifications envoyées avant le changement d'adresse.
     expect(routeForNotification({ link: `/mes-sauts/${id}` })).toBe(`/video/${id}`);
     expect(routeForNotification({ link: `/videos/${id}` })).toBe(`/video/${id}`);
   });

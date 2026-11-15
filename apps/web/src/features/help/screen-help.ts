@@ -21,7 +21,7 @@ const RULES: Rule[] = [
   { path: /^\/aujourdhui(\/|$)/, screen: "aujourdhui", theme: "athlete" },
   { path: /^\/seance\//, staff: false, screen: "seance", theme: "athlete" },
   { path: /^\/progres(\/|$)/, staff: false, screen: "progres", theme: "athlete" },
-  { path: /^\/mes-sauts(\/|$)/, screen: "mesVideos", theme: "videos" },
+  { path: /^\/mes-videos(\/|$)/, screen: "mesVideos", theme: "videos" },
 ];
 
 export type ScreenHelp = { tips: readonly string[]; theme: HelpThemeId };
