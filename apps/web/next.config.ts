@@ -35,6 +35,13 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
   },
+  // `/mes-sauts` est devenu `/mes-videos` : les anciens liens (notifications, e-mails, favoris) y mènent toujours.
+  async redirects() {
+    return [
+      { source: "/mes-sauts", destination: "/mes-videos", permanent: true },
+      { source: "/mes-sauts/:id", destination: "/mes-videos/:id", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

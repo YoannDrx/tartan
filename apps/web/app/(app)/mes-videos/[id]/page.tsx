@@ -16,8 +16,8 @@ export default async function MonSautPage({ params }: { params: Promise<{ id: st
       canAnnotate={video.canAnnotate ?? false}
       staff={false}
       currentUserId={actor.userId}
-      backHref="/mes-sauts"
-      path={`/mes-sauts/${id}`}
+      backHref="/mes-videos"
+      path={`/mes-videos/${id}`}
     />
   );
 }

@@ -14,6 +14,13 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-15, Claude, phase F2 (vidéos)
+Fait (PR `feat/mes-videos`) : route `/mes-videos` (redirection 308 depuis `/mes-sauts` dans `next.config.ts`, les deux chemins dans l'association Apple et dans `notification-routes.ts`) ; énumération `jump_phase` étendue de `preparation`, `execution`, `finish` (migration additive) avec `JUMP_PHASES` et `MOVEMENT_PHASES` dans les contrats ; `video_shared` nomme l'athlète ou le coach ; filtre `groupe` sur `/videos`.
+Vérifié : types, lint, design, domaine, mobile, web (dont filtre par groupe et payload de notification).
+Non vérifié : parcours Playwright vidéo en local (la CI les rejoue) ; notifications reçues sur un téléphone.
+À savoir : les notifications déjà enregistrées gardent `/mes-sauts/…` : la redirection et la route mobile les servent toujours, ne pas les retirer.
+Suite : tracés sur vidéo, puis F1 (matrice écran par écran).
+
 ## 2026-11-14, Claude, phase D (première partie) : planificateur
 Fait (PR `feat/planificateur-fiable`) : `planner-mentions.ts` (domaine) repère les fiches nommées et les noms inconnus placés devant une prescription ; `executeProposal` pose alors une question nommée (`named-exercise-n`) sans appeler le modèle, en mode « Mettre en forme » seulement. `plannerExerciseIsNamed` n'accepte plus un mot isolé de cinq lettres. « Ajuster » réutilise la clarification après une proposition (préfixe « Ajustement du coach : », gratuit, cinq relances au total). Exercices et prescriptions visibles avant « Relire » ; `replacedExercisePrescription` garde la prescription ; recherche libre et consignes facultatives dans la question d'exercice (web et mobile) ; choisir une fiche existante ne demande plus `editExercises` ; la dictée reçoit 40 noms de la bibliothèque (fiches du coach d'abord). Catalogue version 4 (synonymes « Marche dans les escaliers »). Transactions de rattachement et de suppression de compte à 30 s : la CI Maestro dépassait les 5 s par défaut (P2028).
 Vérifié : passe déterministe mesurée hors ligne sur les 80 + 60 cas figés (10 inconnus sur 10, aucun faux positif sur les cas « proposition », zéro sur les 150 noms et alias du catalogue) ; domaine (307), web (1978), types, lint, design.
