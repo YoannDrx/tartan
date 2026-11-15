@@ -15,7 +15,7 @@ import { createOrganization } from "@/server/org.service";
 import { publishSession, saveScheduledSession } from "@/server/session.service";
 import { publishAnnouncement } from "@/server/comm.service";
 
-const PASSWORD = process.env.DEMO_PASSWORD ?? randomBytes(12).toString("base64url");
+const PASSWORD = process.env.DEMO_PASSWORD || randomBytes(12).toString("base64url");
 
 const signUp = async (email: string, name: string): Promise<string> => {
   const existing = await prisma.user.findUnique({ where: { email } });

@@ -73,7 +73,7 @@ Détail : [commercialisation](plans/commercialisation.md).
 
 ## Ce qui revient au fondateur
 
-1. Créer un jeton robot Expo et le poser : `gh secret set EXPO_TOKEN`.
+1. Enregistrer une clé d'API App Store Connect sur EAS (`eas credentials`, iOS, une fois, en interactif) : sans elle, la soumission automatique à TestFlight échoue. `EXPO_TOKEN` est posé depuis le 15 novembre (robot `github-actions`, rôle Developer) ; le build iOS bêta 14 a été construit avec.
 1. Créer un jeton Sentry (portée `project:releases`) et le poser sur EAS (`eas env:create --name SENTRY_AUTH_TOKEN --visibility secret`), pour envoyer les cartes de sources des binaires ; l'agent retirera ensuite `SENTRY_DISABLE_AUTO_UPLOAD`.
 2. Poser un plafond de dépense mensuel sur le projet OpenAI.
 3. Créer une passkey de secours sur un second appareil, avant le retrait de `ADMIN_BOOTSTRAP_TOKEN`.

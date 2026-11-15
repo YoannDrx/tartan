@@ -3,7 +3,7 @@ import path from "node:path";
 
 // Base Postgres jetable : schéma remis à zéro à chaque exécution (§ 14).
 export default function setup() {
-  const url = process.env.TEST_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_test";
+  const url = process.env.TEST_DATABASE_URL || "postgresql://tartan@localhost:54329/tartan_test";
   const cwd = path.resolve(import.meta.dirname, "..");
   execFileSync("corepack", ["pnpm", "exec", "prisma", "migrate", "reset", "--force"], {
     cwd,
