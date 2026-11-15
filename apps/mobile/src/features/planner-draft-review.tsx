@@ -6,7 +6,7 @@ import {
   type PlannerProposalResponse,
   type Prescription,
 } from "@tartan/contracts";
-import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
+import { phasePlanningKey, replacedExercisePrescription, type PhasePlanningReadiness } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useCallback, useState } from "react";
 import { Alert, View } from "react-native";
@@ -296,9 +296,6 @@ export function PlannerDraftReview({
                     {
                       text: m.common.yes,
                       onPress: () => {
-                        const prescription = { ...e.defaultPrescription };
-                        if (prescription.load?.type === "pct_1rm")
-                          prescription.load = { ...prescription.load, test: `exercise:${e.id}` };
                         onUpdate(index, (old) => ({
                           ...old,
                           overrides: old.overrides.filter((o) => o.itemRef !== replacement),
@@ -307,7 +304,13 @@ export function PlannerDraftReview({
                             blocks: old.draft.blocks.map((b) => ({
                               ...b,
                               items: b.items.map((item) =>
-                                item.ref === replacement ? { ...item, exerciseId: e.id, prescription } : item,
+                                item.ref === replacement
+                                  ? {
+                                      ...item,
+                                      exerciseId: e.id,
+                                      prescription: replacedExercisePrescription(item.prescription, e.id),
+                                    }
+                                  : item,
                               ),
                             })),
                           },

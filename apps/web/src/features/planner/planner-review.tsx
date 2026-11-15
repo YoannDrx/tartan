@@ -16,6 +16,7 @@ import {
   validSessionStructure,
   formatPrescription,
   phasePlanningKey,
+  replacedExercisePrescription,
   type PhasePlanningReadiness,
 } from "@tartan/domain";
 import { historyDate, m } from "@tartan/i18n";
@@ -420,9 +421,6 @@ export function PlannerDraftReview({
         onConfirm={() => {
           const exercise = context.exercises.find((e) => e.id === chosen);
           if (!exercise || !replacement || busy) return;
-          const prescription = { ...exercise.defaultPrescription };
-          if (prescription.load?.type === "pct_1rm")
-            prescription.load = { ...prescription.load, test: `exercise:${exercise.id}` };
           onUpdate(index, (old) => ({
             ...old,
             overrides: old.overrides.filter(
@@ -433,7 +431,9 @@ export function PlannerDraftReview({
               blocks: old.draft.blocks.map((b) => ({
                 ...b,
                 items: b.items.map((i) =>
-                  i.ref === replacement ? { ...i, exerciseId: exercise.id, prescription } : i,
+                  i.ref === replacement
+                    ? { ...i, exerciseId: exercise.id, prescription: replacedExercisePrescription(i.prescription, exercise.id) }
+                    : i,
                 ),
               })),
             },

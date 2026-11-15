@@ -252,9 +252,11 @@ describe("désignation d'un exercice", () => {
     expect(plannerExerciseIsNamed(text, "exercise_2", catalog)).toBe(false);
     expect(plannerExerciseIsNamed("Lancers de médecine-ball", "exercise_1", catalog)).toBe(false);
   });
-  it("exige un nom, un alias ou un mot distinctif", () => {
+  it("exige un nom ou un alias, jamais un mot isolé", () => {
     expect(plannerExerciseIsNamed("back squat", "exercise_1", exercises)).toBe(true);
-    expect(plannerExerciseIsNamed("gainage, 3 séries", "exercise_3", exercises)).toBe(true);
+    expect(plannerExerciseIsNamed("gainage ventral, 3 séries", "exercise_3", exercises)).toBe(true);
+    // « gainage » seul peut être ventral ou latéral : la fiche n'est pas choisie.
+    expect(plannerExerciseIsNamed("gainage, 3 séries", "exercise_3", exercises)).toBe(false);
     expect(plannerExerciseIsNamed("le tirage habituel", "exercise_4", exercises)).toBe(false);
   });
   it("un alias court contenu dans un autre geste ne permet pas sa substitution", () => {

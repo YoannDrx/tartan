@@ -35,6 +35,8 @@ import {
   freezePrescription,
   cleanExerciseAliases,
   isSessionAssigned,
+  plannerCoachText,
+  plannerUnknownExerciseTerms,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
@@ -185,6 +187,19 @@ export async function listPlannerProposals(
   return plannerProposalList.parse({ items, nextCursor: rows.length > 20 ? rows[19]!.id : null });
 }
 type Execution = { provider?: PlannerProvider; clock?: () => Date };
+const unknownExerciseQuestions = (names: readonly string[]) => ({
+  status: "clarification" as const,
+  sessions: [],
+  assumptions: [],
+  suggestions: [],
+  questions: names.map((name, index) => ({
+    id: `named-exercise-${index + 1}`,
+    field: "exercise" as const,
+    question: m.aiPlanner.unknownExercise(name),
+    exerciseName: name,
+    options: [],
+  })),
+});
 async function executeProposal(
   userId: string,
   organizationId: string,
@@ -204,7 +219,16 @@ async function executeProposal(
     const messages = [...messagesSchema.parse(row.messages), ...(row.pendingMessage ? [row.pendingMessage] : [])];
     const context = providerContextFor(selection, bindings, messages);
     const provider = execution.provider ?? (fakePlannerEnabled() ? fakePlannerProvider() : openAiPlannerProvider());
-    const raw = await provider.interpret(context);
+    // Un nom de mouvement absent de la bibliothèque devient une question nommée sans appel au modèle.
+    const unknown =
+      selection.mode === "propose"
+        ? []
+        : plannerUnknownExerciseTerms(
+            context.instructions.map(plannerCoachText).join("\n"),
+            context.exercises,
+            context.resolvedExercises,
+          ).slice(0, 3);
+    const raw = unknown.length ? unknownExerciseQuestions(unknown) : await provider.interpret(context);
     const checked = validatePlannerInterpretation(raw, {
       mode: selection.mode,
       brief: selection.brief,
@@ -344,9 +368,11 @@ export async function clarifyPlannerProposal(
     async (tx) => {
       const access = await accessFor(userId, organizationId, tx),
         row = await owned(userId, organizationId, proposalId, now, tx);
+      const state = await effectiveState(row, now, tx);
+      // Une réponse suit une question ; un ajustement suit une proposition. Les brouillons créés la figent.
       if (
         row.version !== input.expectedVersion ||
-        (await effectiveState(row, now, tx)) !== "clarification" ||
+        (state !== "clarification" && state !== "proposal") ||
         row.clarificationCount >= 5
       )
         throw conflict();
@@ -354,7 +380,10 @@ export async function clarifyPlannerProposal(
         bindings = plannerBindings.parse(row.bindings);
       await recheckPlannerBindings(tx, access, selection, bindings);
       const previous = plannerInterpretation.parse(row.interpretation);
-      const pendingMessage = `${previous.questions.map((q) => q.question).join("\n")}\n${input.text}`;
+      const pendingMessage =
+        state === "proposal"
+          ? `${m.aiPlanner.adjustmentPrefix}${input.text}`
+          : `${previous.questions.map((q) => q.question).join("\n")}\n${input.text}`;
       // Le contexte complet reste borné, y compris les questions conservées avec la réponse.
       if (pendingMessage.length > 12000) throw conflict();
       await tx.aiPlannerProposal.update({
@@ -385,7 +414,8 @@ export async function resolvePlannerExercise(
   await prisma.$transaction(async (tx) => {
     await lock(tx, organizationId);
     const access = await accessFor(userId, organizationId, tx);
-    await requireOrgMember(userId, organizationId, "editExercises", tx);
+    // Choisir une fiche existante ne modifie pas la bibliothèque ; seule la création l'exige.
+    if (input.choice.kind === "create") await requireOrgMember(userId, organizationId, "editExercises", tx);
     const row = await owned(userId, organizationId, proposalId, now, tx);
     const bindings = plannerBindings.parse(row.bindings),
       selection = plannerSelection.parse(row.selection);

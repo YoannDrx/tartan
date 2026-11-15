@@ -469,7 +469,11 @@ it("résout les textes des brouillons sans tronquer et refuse l'écriture avant 
     session.blocks[0]!.items[0]!.prescription.notes = Array(10).fill("exercise_1").join(" ");
     return output;
   });
-  const created = await a.create(p);
+  // La consigne cite le nom actuel de la fiche, sinon la passe déterministe le signale comme inconnu.
+  const created = await a.create(p, {
+    ...a.input,
+    text: `Vitesse (A) : ${exerciseName}, trois séries de quatre à quarante kilos, deux minutes de repos.`,
+  });
   const response = await preparePlannerDrafts(a.owner.userId, a.organizationId, a.input.id, created.version, now);
   const review = plannerDraftsResponse.parse(response),
     draft = review.sessions[0]!.draft;
@@ -873,6 +877,8 @@ it("le parcours natif factice attend la création puis réutilise exactement la 
   const dependencies = { provider: fakePlannerProvider(), clock };
   const pending = await createPlannerProposal(a.owner.userId, a.organizationId, input, dependencies);
   expect(pending.state).toBe("clarification");
+  // La passe déterministe nomme le mouvement inconnu avant tout appel au prestataire.
+  expect(pending.interpretation?.questions).toMatchObject([{ id: "named-exercise-1", exerciseName: movement }]);
   const linked = await resolvePlannerExercise(
     a.owner.userId,
     a.organizationId,
@@ -880,7 +886,7 @@ it("le parcours natif factice attend la création puis réutilise exactement la 
     {
       operationId: randomUUID(),
       expectedVersion: pending.version,
-      questionId: "native-exercise",
+      questionId: "named-exercise-1",
       requestedName: movement,
       choice: {
         kind: "create",
@@ -1195,4 +1201,36 @@ it("conserve les occurrences du circuit dans les charges et accepte une adaptati
     now,
   );
   expect(result.sessions).toHaveLength(1);
+});
+it("ajuste une proposition sans quota supplémentaire, avec la consigne du coach en tête", async () => {
+  const a = await setup(),
+    p = provider();
+  const created = await a.create(p);
+  expect(created.state).toBe("proposal");
+  const adjusted = await clarifyPlannerProposal(
+    a.owner.userId,
+    a.organizationId,
+    a.input.id,
+    { operationId: randomUUID(), expectedVersion: created.version, text: "Repos de trois minutes.", reviewed: true },
+    { provider: p, clock },
+  );
+  expect(adjusted).toMatchObject({ state: "proposal", clarificationCount: 1 });
+  expect(p.interpret.mock.calls[1]![0].instructions.at(-1)).toBe("Ajustement du coach : Repos de trois minutes.");
+  expect(
+    await prisma.aiPlannerQuota.findUniqueOrThrow({
+      where: { organizationId_month: { organizationId: a.organizationId, month: "2030-06" } },
+    }),
+  ).toMatchObject({ usedProposals: 1, reservedProposals: 0 });
+});
+it("pose directement une question nommée pour un mouvement inconnu, sans appeler le modèle", async () => {
+  const a = await setup(),
+    p = provider();
+  const asked = await a.create(p, {
+    ...a.input,
+    id: randomUUID(),
+    text: "Vitesse (A) : Squat du dragon, trois séries de six, récupération 45 secondes.",
+  });
+  expect(p.interpret).not.toHaveBeenCalled();
+  expect(asked.state).toBe("clarification");
+  expect(asked.interpretation?.questions).toMatchObject([{ field: "exercise", exerciseName: "Squat du dragon" }]);
 });

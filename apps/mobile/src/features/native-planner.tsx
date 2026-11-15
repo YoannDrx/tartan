@@ -12,7 +12,9 @@ import {
   type PlannerUsageResponse,
 } from "@tartan/contracts";
 import {
+  formatPrescription,
   plannerDisplayText,
+  plannerPrescriptionToSession,
   plannerProposalsExhausted,
   phasePlanningKey,
   type PhasePlanningReadiness,
@@ -503,6 +505,7 @@ export function NativePlanner({
           ) : null}
           {proposal.state === "proposal" ? (
             <>
+              <SectionTitle>{t.proposedSessions}</SectionTitle>
               {proposal.interpretation?.sessions.map((session, i) => (
                 <View key={i} style={{ gap: space.sm }}>
                   <T variant="bodyStrong">
@@ -516,23 +519,73 @@ export function NativePlanner({
                       )
                       .join(", ")}
                   </T>
-                  {session.blocks
-                    .flatMap((block) => block.items)
-                    .map((item, j) => (
-                      <T key={j}>
-                        {t.quotedInstruction} : {displayText(item.instruction)}
+                  {session.blocks.map((block, b) => (
+                    <View key={b} style={{ gap: space.xs }}>
+                      <T variant="small" tone="muted">
+                        {displayText(block.name)}
                       </T>
-                    ))}
+                      {block.items.map((item, j) => (
+                        <View key={j}>
+                          <T variant="bodyStrong">
+                            {proposal.exercises.find((e) => e.token === item.exerciseToken)?.name ??
+                              displayText(item.exerciseToken)}
+                          </T>
+                          <T>{formatPrescription(plannerPrescriptionToSession(item.prescription, item.exerciseToken))}</T>
+                          <T variant="small" tone="muted">
+                            {t.quotedFrom(displayText(item.instruction))}
+                          </T>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
                 </View>
               ))}
               {!drafts ? (
                 <Button
                   label={t.prepareReview}
+                  testID="planner-prepare-review"
                   disabled={disabled}
                   onPress={() => {
                     void prepare();
                   }}
                 />
+              ) : null}
+              {!drafts && proposal.clarificationCount < 5 ? (
+                <>
+                  <SectionTitle>{t.adjustTitle}</SectionTitle>
+                  <T tone="muted">{t.adjustHint}</T>
+                  <Field
+                    label={t.adjustLabel}
+                    testID="planner-adjust"
+                    multiline
+                    value={reply}
+                    editable={!disabled && !replySent}
+                    onChangeText={(value) => {
+                      setReply(value);
+                      setReplyReviewed(false);
+                    }}
+                  />
+                  {reply.length > 12000 ? <T tone="danger">{t.textTooLong}</T> : null}
+                  <Button
+                    label={t.reviewed}
+                    variant="secondary"
+                    selected={replyReviewed}
+                    icon={replyReviewed ? Check : undefined}
+                    disabled={disabled || replySent}
+                    onPress={() => setReplyReviewed(!replyReviewed)}
+                  />
+                  {replySent ? <T>{t.immutableRequest}</T> : null}
+                  <Button
+                    label={t.adjust}
+                    testID="planner-adjust-send"
+                    variant="secondary"
+                    loading={busy}
+                    disabled={disabled || !replyReviewed || !reply.trim() || reply.length > 12000}
+                    onPress={() => {
+                      void clarify();
+                    }}
+                  />
+                </>
               ) : null}
             </>
           ) : null}

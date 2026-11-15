@@ -21,6 +21,13 @@ Non vérifié : parcours Playwright vidéo en local (la CI les rejoue) ; notific
 À savoir : les notifications déjà enregistrées gardent `/mes-sauts/…` : la redirection et la route mobile les servent toujours, ne pas les retirer.
 Suite : tracés sur vidéo, puis F1 (matrice écran par écran).
 
+## 2026-11-14, Claude, phase D (première partie) : planificateur
+Fait (PR `feat/planificateur-fiable`) : `planner-mentions.ts` (domaine) repère les fiches nommées et les noms inconnus placés devant une prescription ; `executeProposal` pose alors une question nommée (`named-exercise-n`) sans appeler le modèle, en mode « Mettre en forme » seulement. `plannerExerciseIsNamed` n'accepte plus un mot isolé de cinq lettres. « Ajuster » réutilise la clarification après une proposition (préfixe « Ajustement du coach : », gratuit, cinq relances au total). Exercices et prescriptions visibles avant « Relire » ; `replacedExercisePrescription` garde la prescription ; recherche libre et consignes facultatives dans la question d'exercice (web et mobile) ; choisir une fiche existante ne demande plus `editExercises` ; la dictée reçoit 40 noms de la bibliothèque (fiches du coach d'abord). Catalogue version 4 (synonymes « Marche dans les escaliers »). Transactions de rattachement et de suppression de compte à 30 s : la CI Maestro dépassait les 5 s par défaut (P2028).
+Vérifié : passe déterministe mesurée hors ligne sur les 80 + 60 cas figés (10 inconnus sur 10, aucun faux positif sur les cas « proposition », zéro sur les 150 noms et alias du catalogue) ; domaine (307), web (1978), types, lint, design.
+Non vérifié : aucun appel réel au modèle (pas de clé hors production) ; la consigne d'ajustement ajoutée aux instructions n'est pas qualifiée.
+À savoir : le texte de la question nommée finit par « ? » pour que `plannerCoachText` l'écarte des contrôles.
+Suite : D2 (deux appels) et D5 (corpus écrit par un coach, trois passages réels) dès qu'une clé plafonnée est disponible ; puis phase E.
+
 ## 2026-11-14, Claude, CI web parallèle
 Fait (PR `ci/parcours-repartis`) : `ci.yml` découpé en « contrôles », trois parts de parcours Playwright (`--shard`), « vidéo et planificateur », et un job `quality` qui résume les autres (le nom du contrôle exigé ne change pas). Avant : un job unique d'environ 50 minutes dont 36 de parcours joués un par un.
 À savoir : chaque part refait son build de production (la config Playwright le lance) ; Maestro iOS reste à environ 1 heure quand le mobile est touché (compilation 19 minutes, 18 parcours en série).
