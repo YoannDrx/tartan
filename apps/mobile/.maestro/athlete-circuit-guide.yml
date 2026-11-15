@@ -22,6 +22,10 @@ env:
     id: exercise-guide-open
 - assertVisible: "Consignes indicatives relues par Tartan.*"
 # Le geste tourne en boucle : l'arrêter fige l'écran avant de défiler, et prouve le bouton.
+- scrollUntilVisible:
+    element:
+      id: exercise-guide-play
+    centerElement: true
 - tapOn:
     id: exercise-guide-play
 - assertVisible: "Lire le geste"
