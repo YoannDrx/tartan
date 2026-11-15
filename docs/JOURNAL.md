@@ -14,6 +14,13 @@ Suite conseillée : numéro de tâche
 ```
 
 
+## 2026-11-15, Claude, phase F2 (vidéos)
+Fait (PR `feat/mes-videos`) : route `/mes-videos` (redirection 308 depuis `/mes-sauts` dans `next.config.ts`, les deux chemins dans l'association Apple et dans `notification-routes.ts`) ; énumération `jump_phase` étendue de `preparation`, `execution`, `finish` (migration additive) avec `JUMP_PHASES` et `MOVEMENT_PHASES` dans les contrats ; `video_shared` nomme l'athlète ou le coach ; filtre `groupe` sur `/videos`.
+Vérifié : types, lint, design, domaine, mobile, web (dont filtre par groupe et payload de notification).
+Non vérifié : parcours Playwright vidéo en local (la CI les rejoue) ; notifications reçues sur un téléphone.
+À savoir : les notifications déjà enregistrées gardent `/mes-sauts/…` : la redirection et la route mobile les servent toujours, ne pas les retirer.
+Suite : tracés sur vidéo, puis F1 (matrice écran par écran).
+
 ## 2026-11-14, Claude, CI web parallèle
 Fait (PR `ci/parcours-repartis`) : `ci.yml` découpé en « contrôles », trois parts de parcours Playwright (`--shard`), « vidéo et planificateur », et un job `quality` qui résume les autres (le nom du contrôle exigé ne change pas). Avant : un job unique d'environ 50 minutes dont 36 de parcours joués un par un.
 À savoir : chaque part refait son build de production (la config Playwright le lance) ; Maestro iOS reste à environ 1 heure quand le mobile est touché (compilation 19 minutes, 18 parcours en série).

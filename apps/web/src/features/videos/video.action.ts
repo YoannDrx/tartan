@@ -27,7 +27,7 @@ export const addAnnotationAction = spaceAction
   .action(async ({ parsedInput: { videoId, ...input }, ctx }) => {
     const res = await addAnnotation(ctx.userId, ctx.organizationId, videoId, input);
     revalidatePath(`/videos/${videoId}`);
-    revalidatePath(`/mes-sauts/${videoId}`);
+    revalidatePath(`/mes-videos/${videoId}`);
     return res;
   });
 
@@ -36,7 +36,7 @@ export const deleteAnnotationAction = spaceAction
   .action(async ({ parsedInput, ctx }) => {
     await deleteAnnotation(ctx.userId, ctx.organizationId, parsedInput.id);
     revalidatePath(`/videos/${parsedInput.videoId}`);
-    revalidatePath(`/mes-sauts/${parsedInput.videoId}`);
+    revalidatePath(`/mes-videos/${parsedInput.videoId}`);
   });
 
 export const deleteJumpAction = spaceAction.inputSchema(z.object({ id: uuid })).action(async ({ parsedInput, ctx }) => {
@@ -55,7 +55,7 @@ export const shareVideoAction = spaceAction
   .action(async ({ parsedInput: { videoId, ...input }, ctx }) => {
     await shareVideo(ctx.userId, ctx.organizationId, videoId, input);
     revalidatePath(`/videos/${videoId}`);
-    revalidatePath(`/mes-sauts/${videoId}`);
+    revalidatePath(`/mes-videos/${videoId}`);
   });
 
 export const deleteVideoAction = spaceAction
@@ -63,7 +63,7 @@ export const deleteVideoAction = spaceAction
   .action(async ({ parsedInput, ctx }) => {
     await deleteVideo(ctx.userId, ctx.organizationId, parsedInput.videoId);
     revalidatePath("/videos");
-    revalidatePath("/mes-sauts");
+    revalidatePath("/mes-videos");
   });
 
 export const addJumpAction = spaceAction.inputSchema(jumpAttemptInput).action(async ({ parsedInput, ctx }) => {

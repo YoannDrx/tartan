@@ -10,7 +10,9 @@ import { videoEnabled } from "@/lib/mux";
 import { requireStaffSpace } from "@/features/shell/space";
 import { VideoList } from "@/features/videos/video-list";
 import { JumpEntryDialog, UploadVideoDialog } from "@/features/videos/video-tools";
+import { requireOrgMember } from "@/server/access";
 import { listAthletes } from "@/server/athlete.service";
+import { listGroups } from "@/server/org.service";
 import { listCalendar } from "@/server/session.service";
 import { videoCapacity } from "@/server/video-capacity.service";
 import { listVideoPage } from "@/server/video.service";
@@ -19,15 +21,17 @@ export const metadata: Metadata = { title: m.video.title };
 
 export default async function VideosPage({ searchParams }: { searchParams: Promise<VideoSearch> }) {
   const { actor, organizationId } = await requireStaffSpace();
+  const access = await requireOrgMember(actor.userId, organizationId, "viewVideos");
   const search = await searchParams;
   const { athlete } = search;
   const today = todayIso();
-  const [{ videos, nextCursor }, athletes, calendar, capacity, exercises] = await Promise.all([
+  const [{ videos, nextCursor }, athletes, calendar, capacity, exercises, groups] = await Promise.all([
     listVideoPage(actor.userId, organizationId, videoQuery(search)),
     listAthletes(actor.userId, organizationId),
     listCalendar(actor.userId, organizationId, { from: addDays(today, -14), to: addDays(today, 1) }),
     videoCapacity(),
     listExercises(actor.userId, organizationId),
+    listGroups(access),
   ]);
   const sessions = calendar.sessions
     .filter((s) => s.publishedAt)
@@ -57,6 +61,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
         search={search}
         staff
         athletes={athletes.map((a) => ({ id: a.id, name: `${a.firstName} ${a.lastName}`.trim() }))}
+        groups={groups.map((g) => ({ id: g.id, name: g.name }))}
         sessions={sessions}
         exercises={exercises}
       />

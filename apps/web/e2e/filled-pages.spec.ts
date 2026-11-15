@@ -76,12 +76,12 @@ test("pages remplies : mes vidéos, une vidéo, progrès, actualisation des char
   await page.getByLabel(m.settings.switchSpace).selectOption(club.organizationId);
   await expect(page.getByRole("heading", { name: /^Salut/ })).toBeVisible();
 
-  await page.goto("/mes-sauts");
+  await page.goto("/mes-videos");
   await expect(page.getByRole("heading", { name: m.nav.mesSauts, level: 1 })).toBeVisible();
-  await expect(page.locator(`a[href="/mes-sauts/${videoId}"]`)).toBeVisible();
+  await expect(page.locator(`a[href="/mes-videos/${videoId}"]`)).toBeVisible();
   await check(page);
 
-  await page.goto(`/mes-sauts/${videoId}`);
+  await page.goto(`/mes-videos/${videoId}`);
   await expect(page.getByText("Bras libre plus haut à l'appel")).toBeVisible();
   await check(page);
 

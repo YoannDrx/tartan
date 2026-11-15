@@ -465,6 +465,11 @@ describe("notifications", () => {
       "Léa ne viendra pas jeudi",
     );
   });
+  it("nomme qui envoie ou partage une vidéo", () => {
+    expect(renderNotification("video_shared", { athlete: "Léa" }).body).toBe("Léa a envoyé une vidéo");
+    expect(renderNotification("video_shared", { coach: "Thomas" }).body).toBe("Thomas a partagé une vidéo avec toi");
+    expect(renderNotification("video_shared", {}).body).toBe("Une vidéo est disponible dans ton espace");
+  });
   it("n'expose aucun détail de santé", () => {
     const { body } = renderNotification("pain_alert", { athlete: "Léa" });
     expect(body).toBe("Nouvelle alerte de Léa");
