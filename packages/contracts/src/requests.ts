@@ -13,6 +13,7 @@ import {
   invitationKind,
   invitationRole,
   jumpPhase,
+  videoDrawing,
   jumpResult,
   logStatus,
   reportReason,
@@ -410,12 +411,17 @@ export const createVideoInput = z.object({
 });
 export type CreateVideoInput = z.infer<typeof createVideoInput>;
 
-export const annotationInput = z.object({
-  parentId: uuid.optional(),
-  tMs: z.number().int().min(0),
-  phase: jumpPhase.nullable().optional(),
-  text: required(500, "Écris ta remarque"),
-});
+// Une remarque porte un texte, un tracé, ou les deux ; une réponse reste un texte.
+export const annotationInput = z
+  .object({
+    parentId: uuid.optional(),
+    tMs: z.number().int().min(0),
+    phase: jumpPhase.nullable().optional(),
+    text: z.string().trim().max(500).optional().default(""),
+    drawing: videoDrawing.nullable().optional(),
+  })
+  .refine((input) => input.text.length > 0 || !!input.drawing, { message: "Écris ta remarque", path: ["text"] })
+  .refine((input) => !input.parentId || !input.drawing, { message: "Une réponse ne porte pas de tracé", path: ["drawing"] });
 export type AnnotationInput = z.infer<typeof annotationInput>;
 
 export const shareVideoInput = z.object({

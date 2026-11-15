@@ -1,6 +1,13 @@
 import { validateVideoUploadRefs } from "./video-upload.service";
 import { VIDEO_SELECT, videoWhereFor, requireVideoAccess as requireVideo } from "./video-access.service";
-import { type AnnotationInput, type JumpAttemptInput, type VideoDetail, type VideoSummary } from "@tartan/contracts";
+import {
+  type AnnotationInput,
+  type JumpAttemptInput,
+  type VideoDetail,
+  type VideoDrawing,
+  type VideoSummary,
+  videoDrawing,
+} from "@tartan/contracts";
 import { barSheet } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { fromDbDate } from "@/lib/dates";
@@ -433,6 +440,7 @@ export const getVideo = async (userId: string, organizationId: string, videoId: 
       tMs: a.tMs,
       phase: a.phase,
       text: a.text,
+      drawing: drawingOf(a.kind, a.shape),
       authorName: names.get(a.authorId) ?? null,
     })),
     comments: comments.map((c) => ({
@@ -466,6 +474,14 @@ export const linkVideoExercise = async (
     else await requireUsableExercise(organizationId, exerciseId);
   }
   await prisma.video.update({ where: { id: videoId }, data: { exerciseId } });
+};
+
+// Le tracé enregistré : relu par le contrat, un enregistrement abîmé n'est simplement pas affiché.
+const drawingOf = (kind: string, shape: unknown): VideoDrawing | null => {
+  if (kind === "comment" || !shape || typeof shape !== "object") return null;
+  const { points, aspect } = shape as { points?: unknown; aspect?: unknown };
+  const parsed = videoDrawing.safeParse({ kind, points, ...(typeof aspect === "number" ? { aspect } : {}) });
+  return parsed.success ? parsed.data : null;
 };
 
 export const addAnnotation = async (
@@ -506,8 +522,10 @@ export const addAnnotation = async (
         tMs,
         parentId: parent?.id ?? null,
         phase: input.phase ?? null,
-        kind: "comment",
-        text: input.text,
+        kind: input.drawing?.kind ?? "comment",
+        text: input.text || null,
+        // Les points relatifs du tracé ; le type est déjà dans `kind`.
+        ...(input.drawing ? { shape: { points: input.drawing.points, aspect: input.drawing.aspect ?? null } } : {}),
       },
       select: { id: true },
     });
