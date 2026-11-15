@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-15, Claude, fichiers d'environnement et EXPO_TOKEN
+Fait (PR `chore/fichiers-env`) : `.env.example` réécrit en 14 rubriques numérotées, toutes les valeurs à `""`, chaque variable avec son rôle, son défaut et les environnements Vercel où elle est posée ; `parseEnv` traite une valeur vide comme absente (défauts du code appliqués), même règle dans `prisma.config.ts`, `layout.tsx`, la graine et Vitest. Fichiers locaux ignorés rangés dans le même ordre, valeurs inchangées. `EXPO_TOKEN` posé sur GitHub (robot Expo `github-actions`, rôle Developer).
+Vérifié : test d'environnement (10), types, lint ; relevé Vercel : la production a toutes les variables que le code exige.
+À savoir : la clé App Store Connect (`SJHW52VCAC`) a été rattachée au profil `beta` par le fondateur (`eas credentials`, interactif) ; build iOS 14 envoyé à App Store Connect. En local, `eas submit` exige `eval "$(node scripts/profile-env.mjs beta)"`, sinon il vise `coach.tartan.app.dev`. Le `.env.local` de la racine n'est lu que par les évaluations du planificateur.
+Suite : fiche TestFlight externe et groupe d'invités (lot 5).
+
 ## 2026-11-15, Claude, lot 2 : variante par exercice
 Fait (PR `feat/variante-par-exercice`) : `sessionDraftItem.autonomous` (contrat additif) ; `withAutonomousReplacements` (domaine) dédouble à la publication un bloc commun qui remplace un exercice en un bloc club puis un bloc autonomie aux références `…-auto` (64 signes au plus), appelé par `buildSnapshot` et par l'aperçu ; un remplacement qui entre dans un groupe passe à une série par tour ; constructeur : « Remplacer en autonomie », « Changer… », « Garder le même exercice… » dans « Autres actions » d'un bloc commun, ligne « En autonomie : … » qui ouvre sa prescription, aperçu « Au club / En autonomie ».
 Vérifié : domaine (4 tests), parcours `autonomous-replacement.spec.ts` (remplacement, aperçu, publication, appel, l'absent reçoit le remplacement), desktop et mobile ; rendu à 412 px.

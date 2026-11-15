@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertEnvIsolation } from "@/lib/env";
+import { assertEnvIsolation, parseEnv } from "@/lib/env";
 import { compareEnvironments, parseDotenv } from "../scripts/verify-env-isolation.mjs";
 
 const PRODUCTION_HOST = "ep-late-hat-b91qqvrw.c-7.eu-central-1.aws.neon.tech";
@@ -37,6 +37,36 @@ describe("garde d'environnement", () => {
   });
   it("une adresse illisible ne fait pas planter la garde", () => {
     expect(() => assertEnvIsolation({ DATABASE_URL: "pas-une-url" })).not.toThrow();
+  });
+});
+
+describe("lecture de l'environnement", () => {
+  it("traite une variable vide comme absente, pour que .env.example se copie tel quel", () => {
+    const parsed = parseEnv({
+      DATABASE_URL: local,
+      BETTER_AUTH_SECRET: "x".repeat(32),
+      BETTER_AUTH_URL: "",
+      COACH_SIGNUP_MODE: "",
+      EMAIL_FROM: "",
+      MUX_TOKEN_ID: "",
+      AI_PLANNER_ENABLED: "",
+    });
+    expect(parsed.BETTER_AUTH_URL).toBe("http://localhost:3000");
+    expect(parsed.COACH_SIGNUP_MODE).toBe("closed");
+    expect(parsed.EMAIL_FROM).toBe("Tartan <tartan@mail.tartan.coach>");
+    expect(parsed.MUX_TOKEN_ID).toBeUndefined();
+    expect(parsed.AI_PLANNER_ENABLED).toBeUndefined();
+  });
+  it("prend l'adresse du déploiement en preview quand aucune n'est posée", () => {
+    const parsed = parseEnv({
+      DATABASE_URL: local,
+      BETTER_AUTH_SECRET: "x".repeat(32),
+      BETTER_AUTH_URL: "",
+      VERCEL_ENV: "preview",
+      VERCEL_URL: "tartan-git-essai.vercel.app",
+    });
+    expect(parsed.BETTER_AUTH_URL).toBe("https://tartan-git-essai.vercel.app");
+    expect(parsed.NEXT_PUBLIC_APP_URL).toBe("https://tartan-git-essai.vercel.app");
   });
 });
 
