@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { annotationInput } from "@tartan/contracts";
 import { expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
 import {
@@ -188,6 +189,39 @@ it("un renouvellement invalide les anciens assets et des événements tardifs ne
   // Le coach apprend qui a envoyé la vidéo : le prénom, rien d'autre.
   const notice = await prisma.notification.findFirstOrThrow({ where: { userId: org.owner.userId, type: "video_shared" } });
   expect(notice.payload).toMatchObject({ athlete: "Lina", link: `/videos/${videoId}` });
+});
+
+it("une remarque porte un tracé, relu tel quel, même sans texte", async () => {
+  const org = await makeOrg("Tracés");
+  const athlete = await addAthlete(org.organizationId, org.groupId, "Lina");
+  const { videoId } = await createVideoUpload(athlete.userId, org.organizationId, { clientId: randomUUID() });
+  const angle = {
+    kind: "angle" as const,
+    aspect: 9 / 16,
+    points: [
+      { x: 0.4, y: 0.2 },
+      { x: 0.5, y: 0.5 },
+      { x: 0.7, y: 0.5 },
+    ],
+  };
+  await addAnnotation(org.owner.userId, org.organizationId, videoId, { tMs: 900, text: "", drawing: angle });
+  await addAnnotation(org.owner.userId, org.organizationId, videoId, {
+    tMs: 1200,
+    text: "Genou devant la pointe",
+    drawing: { kind: "arrow", points: [{ x: 0.2, y: 0.8 }, { x: 0.3, y: 0.6 }] },
+  });
+  const detail = await getVideo(org.owner.userId, org.organizationId, videoId);
+  expect(detail.annotations.map((a) => [a.text, a.drawing?.kind])).toEqual([
+    [null, "angle"],
+    ["Genou devant la pointe", "arrow"],
+  ]);
+  expect(detail.annotations[0]!.drawing).toEqual(angle);
+  // Ni remarque vide sans tracé, ni tracé incomplet, ni tracé dans une réponse.
+  expect(annotationInput.safeParse({ tMs: 0, text: "" }).success).toBe(false);
+  expect(annotationInput.safeParse({ tMs: 0, drawing: { kind: "angle", points: angle.points.slice(0, 2) } }).success).toBe(false);
+  expect(
+    annotationInput.safeParse({ tMs: 0, parentId: randomUUID(), text: "Oui", drawing: { ...angle } }).success,
+  ).toBe(false);
 });
 
 it("le coach filtre les vidéos par groupe", async () => {
