@@ -15,6 +15,7 @@ const pages = [
   ["/admin/journal", m.admin.nav.audit],
   ["/admin/configuration", m.admin.nav.configuration],
   ["/admin/mascotte", m.admin.nav.mascot],
+  ["/admin/mouvements", m.admin.nav.movements],
   ["/admin/jeu", m.admin.nav.game],
 ] as const;
 
