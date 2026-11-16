@@ -150,10 +150,12 @@ const main = async () => {
 
   const today = todayIso();
   const monday = startOfWeek(today);
+  // La séance du jour passe en premier : les parcours natifs la cherchent par son titre, et une séance de la semaine
+  // posée le même jour (lundi, mercredi, samedi) ne doit pas la remplacer.
   const plan = [
+    { date: today, title: "Force et pliométrie", type: "plyo" as const },
     { date: monday, title: "Force", type: "strength" as const },
     { date: addDays(monday, 2), title: "Pliométrie", type: "plyo" as const },
-    { date: today, title: "Force et pliométrie", type: "plyo" as const },
     { date: addDays(monday, 5), title: "Séance de saut", type: "jump" as const },
   ];
   const seen = new Set<string>();
