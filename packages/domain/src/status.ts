@@ -2,11 +2,37 @@ import type { CellStatus, LogStatus } from "@tartan/contracts";
 
 export const OVERDUE_HOURS = 24;
 
-// Une séance sans heure est réputée se terminer en fin de journée (heure UTC du jour).
-export const sessionDeadline = (date: string): Date => {
-  const end = new Date(`${date}T23:59:59.000Z`);
-  return new Date(end.getTime() + OVERDUE_HOURS * 3600 * 1000);
+// Le groupe est en France : une journée de séance se compte à l'heure de Paris, comme « aujourd'hui » côté serveur.
+export const TRAINING_TIME_ZONE = "Europe/Paris";
+
+const parisWallClock = new Intl.DateTimeFormat("en-GB", {
+  timeZone: TRAINING_TIME_ZONE,
+  hourCycle: "h23",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
+// Écart entre l'heure de Paris et l'UTC à cet instant, en millisecondes (une heure l'hiver, deux l'été).
+const parisOffsetMs = (instant: Date): number => {
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parisWallClock.formatToParts(instant).find((p) => p.type === type)?.value);
+  const wall = Date.UTC(part("year"), part("month") - 1, part("day"), part("hour"), part("minute"), part("second"));
+  return wall - Math.floor(instant.getTime() / 1000) * 1000;
 };
+
+// Dernière seconde de la journée à Paris. Les changements d'heure ont lieu la nuit, jamais à 23 h 59.
+export const endOfTrainingDay = (date: string): Date => {
+  const asUtc = new Date(`${date}T23:59:59.000Z`);
+  return new Date(asUtc.getTime() - parisOffsetMs(asUtc));
+};
+
+// Une séance sans heure est réputée se terminer en fin de journée, à Paris.
+export const sessionDeadline = (date: string): Date =>
+  new Date(endOfTrainingDay(date).getTime() + OVERDUE_HOURS * 3600 * 1000);
 
 export const isOverdue = (date: string, now: Date): boolean => now > sessionDeadline(date);
 

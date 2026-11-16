@@ -46,7 +46,7 @@ Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur
 
 | Élément | État au 16 novembre |
 | --- | --- |
-| Production | `app.tartan.coach` et `tartan.coach` servent `df446d0` (PR 149), santé 200, aucune erreur d'exécution sur 24 h. Recette réelle le 15 novembre : circuit publié et rendu, vidéo envoyée et annotée, planificateur réel. Inscriptions et classement du jeu fermés |
+| Production | `app.tartan.coach` et `tartan.coach` servent `e3874f0` (PR 148), santé 200, aucune erreur d'exécution sur 24 h. Recette réelle le 15 novembre : circuit publié et rendu, vidéo envoyée et annotée, planificateur réel. Inscriptions et classement du jeu fermés |
 | Preview | `preview.tartan.coach`, branche Git `preview` gardée. Base `preview` reconstruite le 14 novembre avec la seule graine de démonstration (4 comptes fictifs), sans donnée de production |
 | Neon | Offre Launch, restauration 7 jours, branche `production` protégée, calcul 0,25–2 CU ; branche `preview` 0,25–1 CU. Aucune branche de recette |
 | GitHub | Dépôt public, `LICENSE` propriétaire. Analyse des secrets, protection à l'envoi et Dependabot actifs. `main` exige des branches à jour, plus `quality` et `mobile-gate`. `mobile-gate` attend Maestro iOS et Android quand le mobile ou un paquet partagé change, soit environ une heure par mise à jour ; une PR purement web le saute. Branches fusionnées supprimées le 16 novembre, `preview` gardée |
@@ -77,7 +77,7 @@ Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur
 | Notifications, e-mails | Oui | Gmail seulement ; aucun push réel | — |
 | Abonnements Stripe | Oui, et six tests sandbox réels dans le navigateur | Aucun vrai paiement | Retour vers Tartan après paiement non prouvé |
 | Hors ligne, PWA | Oui | Pas au stade | — |
-| Mobile natif | Oui, Maestro iOS et Android (lot 3, exigés par `mobile-gate`) | Aucun téléphone physique | **Fait** : file d'envoi vidéo rattachée au compte ; mise à jour à distance par profil, canal `beta` ; version d'exécution par empreinte ; lint mobile ; motif d'absence, série de régularité, carte de record ; les parcours natifs ne dépendent plus de l'heure.<br>**Reste** : cartes de sources Sentry (jeton à créer) ; parité des lots du brief du 16 novembre |
+| Mobile natif | Oui, Maestro iOS et Android (lot 3, exigés par `mobile-gate` ; le flux du circuit reste sur iOS) | Aucun téléphone physique | **Fait** : file d'envoi vidéo rattachée au compte ; mise à jour à distance par profil, canal `beta` ; version d'exécution par empreinte ; lint mobile ; motif d'absence, série de régularité, carte de record ; les parcours natifs ne dépendent plus de l'heure.<br>**Reste** : cartes de sources Sentry (jeton à créer) ; parité des lots du brief du 16 novembre |
 | Logo et icônes | — | Visibles en production et dans le build 14 | Carré rouge, lignes de couloir, ligne d'arrivée et numéros : peu lisible à 16 px et sur l'App Store. `DESIGN.md` n'a plus de section sur le logo. `scripts/build-logo.mjs` ne produit plus `icon-maskable-512.png` ni `splash.png`. **À refaire (brief 4.6)** |
 
 ## Portes d'ouverture

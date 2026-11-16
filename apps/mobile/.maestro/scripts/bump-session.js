@@ -13,18 +13,23 @@ var auth = { headers: { Cookie: match[0], "Content-Type": "application/json", Or
 var me = json(http.get(base + "/api/v1/me", auth).body);
 var org = me.spaces[0].organizationId;
 var grid = json(http.get(base + "/api/v1/orgs/" + org + "/tracking", auth).body);
-var session = null;
-for (var i = 0; i < grid.sessions.length; i++) if (grid.sessions[i].title === "Force et pliométrie") session = grid.sessions[i];
-if (!session) throw new Error("séance du jour introuvable");
+// En CI, la séance du jour existe aussi le lendemain (le job peut franchir minuit à Paris) : on les modifie toutes,
+// celle que l'athlète a ouverte en fait partie.
+var sessions = [];
+for (var i = 0; i < grid.sessions.length; i++) if (grid.sessions[i].title === "Force et pliométrie") sessions.push(grid.sessions[i]);
+if (!sessions.length) throw new Error("séance du jour introuvable");
 
-var edit = json(http.get(base + "/api/v1/orgs/" + org + "/sessions/" + session.id, auth).body);
-var body = {};
-for (var key in edit) if (["id", "version", "publishedAt", "logCount"].indexOf(key) < 0) body[key] = edit[key];
-body.expectedVersion = edit.expectedVersion || edit.version;
-body.draft.coachNote = "Échauffement plus long ce soir";
-var saved = http.put(base + "/api/v1/orgs/" + org + "/sessions/" + session.id, {
-  headers: auth.headers,
-  body: JSON.stringify(body),
-});
-if (!saved.ok) throw new Error("modification refusée : " + saved.status + " " + saved.body);
+for (var s = 0; s < sessions.length; s++) {
+  var session = sessions[s];
+  var edit = json(http.get(base + "/api/v1/orgs/" + org + "/sessions/" + session.id, auth).body);
+  var body = {};
+  for (var key in edit) if (["id", "version", "publishedAt", "logCount"].indexOf(key) < 0) body[key] = edit[key];
+  body.expectedVersion = edit.expectedVersion || edit.version;
+  body.draft.coachNote = "Échauffement plus long ce soir";
+  var saved = http.put(base + "/api/v1/orgs/" + org + "/sessions/" + session.id, {
+    headers: auth.headers,
+    body: JSON.stringify(body),
+  });
+  if (!saved.ok) throw new Error("modification refusée : " + saved.status + " " + saved.body);
+}
 output.bumped = "oui";

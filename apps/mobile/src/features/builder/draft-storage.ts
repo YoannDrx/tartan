@@ -27,7 +27,13 @@ const editable = saveScheduledSessionInput.extend({
 export const builderDraft = z.object({
   schemaVersion: z.literal(1),
   prescription: z
-    .object({ itemRef: z.string().min(1).max(100), athleteId: z.uuid().optional(), fields: prescriptionFieldsSchema })
+    .object({
+      itemRef: z.string().min(1).max(100),
+      athleteId: z.uuid().optional(),
+      // La prescription du remplacement en autonomie, plutôt que celle de l'exercice du club.
+      autonomous: z.boolean().optional(),
+      fields: prescriptionFieldsSchema,
+    })
     .optional(),
   form: editable,
   duration: z.string().max(100),
