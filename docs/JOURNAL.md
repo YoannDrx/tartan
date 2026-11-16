@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-16, Claude, préparation des lots 5 à 7
+Fait (PR `docs/preparation-lots-5-7`, une branche pour les trois parts qui ne dépendent pas du fondateur, sans code applicatif) : `docs/reference/betas.md` (fiche TestFlight externe, « À tester », notes de revue en anglais sans identifiant ; test fermé Play : profil d'envoi, notes de version, instructions, accès à l'app, brouillons Sécurité des données, santé et classification) ; `eval:planner:founder` (`evals/planner-founder.ts`, `scripts/planner-founder-eval.ts`) : contrôle hors réseau qui n'affiche jamais une consigne, gel par empreinte (consignes, manifeste et fichiers audio), passage réel derrière `--live --confirm-cost`, critères écrits (`FOUNDER_THRESHOLDS`) ; le correcteur du corpus de 80 cas accepte un autre corpus et une demande « Proposer » explicite (`brief`).
+Vérifié : tests du corpus du fondateur et du corpus de 80 cas (13), types, lint ; `eas.json` (`beta` vers la piste `alpha` en brouillon) ; `assetlinks.json` répond 404 en production faute d'empreinte, comme prévu jusqu'à l'étape G8.
+Non fait : aucun appel OpenAI, rien envoyé à Apple ni à Google.
+À savoir : le corpus du fondateur vit dans `.local/planner-founder/`, jamais dans le dépôt ; l'agent ne doit pas l'ouvrir avant le passage réel.
+Suite : lot 8 (ouverture), au fondateur.
+
 ## 2026-11-15, Claude, fichiers d'environnement et EXPO_TOKEN
 Fait (PR `chore/fichiers-env`) : `.env.example` réécrit en 14 rubriques numérotées, toutes les valeurs à `""`, chaque variable avec son rôle, son défaut et les environnements Vercel où elle est posée ; `parseEnv` traite une valeur vide comme absente (défauts du code appliqués), même règle dans `prisma.config.ts`, `layout.tsx`, la graine et Vitest. Fichiers locaux ignorés rangés dans le même ordre, valeurs inchangées. `EXPO_TOKEN` posé sur GitHub (robot Expo `github-actions`, rôle Developer).
 Vérifié : test d'environnement (10), types, lint ; relevé Vercel : la production a toutes les variables que le code exige.

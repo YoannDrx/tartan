@@ -73,13 +73,14 @@ Détail : [commercialisation](plans/commercialisation.md).
 
 ## Ce qui revient au fondateur
 
+1. Bêtas (lots 5 et 7) : textes prêts à coller dans [betas](reference/betas.md) (fiche TestFlight externe, notes de revue sans identifiant, test fermé Play, brouillons Sécurité des données, santé et classification). Restent à toi : saisir le compte de revue, soumettre la bêta à Apple, créer le compte Play après le D-U-N-S.
 1. Installer la bêta TestFlight sur ton iPhone (build 14, version 1.1.0, envoyé à App Store Connect le 15 novembre ; `EXPO_TOKEN` et la clé App Store Connect `SJHW52VCAC` sont posés) et rejouer une séance d'athlète, notification comprise.
 1. Créer un jeton Sentry (portée `project:releases`) et le poser sur EAS (`eas env:create --name SENTRY_AUTH_TOKEN --visibility secret`), pour envoyer les cartes de sources des binaires ; l'agent retirera ensuite `SENTRY_DISABLE_AUTO_UPLOAD`.
 2. Poser un plafond de dépense mensuel sur le projet OpenAI.
 3. Créer une passkey de secours sur un second appareil, avant le retrait de `ADMIN_BOOTSTRAP_TOKEN`.
 4. Recevoir le D-U-N-S, puis créer le compte Google Play organisation (identité, paiement, contrat).
 5. Relire les retouches des guides (phase B), relire les 23 nouveaux guides de la version 5 (`packages/domain/src/exercise-catalog/variants.ts`) et valider les gestes famille par famille dans `/admin/mouvements` (phase E) : sans validation, l'athlète les voit déjà, avec la mention « Illustration de travail ».
-6. Écrire, ou faire écrire par un coach, 40 consignes de planification jamais vues par l'agent, et enregistrer 30 dictées (phase D).
+6. Écrire, ou faire écrire par un coach, 40 consignes de planification jamais vues par l'agent, et enregistrer 30 dictées (phase D, lot 6) : format, gel et commande dans [planificateur-ia](reference/planificateur-ia.md#corpus-du-fondateur-lot-6), critères écrits ; l'agent ne lance aucun appel payant.
 7. Le paiement réel accompagné, les e-mails sur Outlook et iCloud, la recette sur ses téléphones, le pilote sans guidage, puis la décision d'ouverture (phase F).
 
 Le mot de passe des comptes de démonstration de la Preview est dans `.local/preview-demo-password`, sur le poste de l'agent qui l'a créé, jamais dans le dépôt.

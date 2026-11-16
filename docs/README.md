@@ -52,6 +52,7 @@ Chaque sujet a un seul document. Si deux documents se contredisent, `ETAT.md` l'
 | [reference/emails.md](reference/emails.md) | Tous les e-mails, leurs déclencheurs, la désinscription |
 | [reference/onboarding.md](reference/onboarding.md) | Parcours d'arrivée du coach et de l'athlète |
 | [reference/fiches-stores.md](reference/fiches-stores.md) | Textes et formulaires App Store et Google Play |
+| [reference/betas.md](reference/betas.md) | Bêtas TestFlight externe et test fermé Play : textes, brouillons Sécurité des données et santé |
 | [reference/planificateur-ia.md](reference/planificateur-ia.md) | Fonctionnement, quotas, évaluation du planificateur IA |
 | [reference/references-force.md](reference/references-force.md) | Références de force et rapprochement des exercices |
 | [reference/prescriptions-figees.md](reference/prescriptions-figees.md) | Gel des prescriptions à la publication |
