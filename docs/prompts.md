@@ -8,6 +8,12 @@
 Lis AGENTS.md, puis docs/ETAT.md et docs/JOURNAL.md. Résume en dix lignes où en est le projet et propose la prochaine tâche d'agent la plus utile, sans rien modifier. Attends mon accord.
 ```
 
+## Audit et refonte de la web app (brief du 16 novembre)
+
+```text
+Lis AGENTS.md, puis docs/plans/audit-et-refonte.md en entier : c'est ta consigne. Lis ensuite docs/ETAT.md, le haut de docs/JOURNAL.md, PRODUCT.md et DESIGN.md. Commence par l'audit complet de la web app (section 4.7), rejoué dans le navigateur sur la base locale, et ajoute tes constats en bas du brief dans une PR de documentation. Enchaîne ensuite les lots de la section 5, un lot par branche et par PR, que tu fusionnes toi-même une fois la CI verte, puis vérifie la production. Ne t'arrête que pour les choix qui reviennent au fondateur (section 6) : direction du logo, prototype du personnage, partage des listes. À la fin de chaque lot, dis-moi en français ce qui est codé, testé et éprouvé.
+```
+
 ## Faire un lot
 
 ```text

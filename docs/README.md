@@ -17,6 +17,7 @@ Chaque sujet a un seul document. Si deux documents se contredisent, `ETAT.md` l'
 
 | Document | Contenu |
 | --- | --- |
+| [plans/audit-et-refonte.md](plans/audit-et-refonte.md) | Brief du 16 novembre : audit complet et refonte de la web app (mot de passe, planning, vidéo plein écran, listes d'exercices, gestes, logo) |
 | [plans/web.md](plans/web.md) | Lots de code, configuration, recette, ouverture de la web app |
 | [plans/ios.md](plans/ios.md) | De l'archive à l'App Store |
 | [plans/android.md](plans/android.md) | Du compte Google à Google Play |

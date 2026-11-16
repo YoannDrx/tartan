@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-16, Claude, état des lieux et brief de refonte
+Fait (PR `docs/etat-des-lieux`) : `ETAT.md` réécrit au 16 novembre, avec les lots 3 et 4 et la préparation des lots 5 à 7 ; nouvelle décision du fondateur dans `PRODUCT.md` ; brief complet `docs/plans/audit-et-refonte.md` pour l'agent qui mène l'audit et la refonte de la web app ; consigne courte dans `docs/prompts.md`.
+Vérifié : constats relevés dans le code sur `df446d0` (connexion, calendrier, bibliothèque, vidéo, mascotte, logo), version servie en production, erreurs Vercel sur 24 h (aucune), liste des builds EAS.
+À savoir : le mot de passe existe déjà dans Better Auth (`emailAndPassword`, adresse vérifiée exigée), seuls les parcours et les réglages manquent. À l'arraché, `via: knee` passe *après* l'extension : les clés `via` s'insèrent après la tenue, vers la position suivante ; même défaut sur six autres gestes d'haltérophilie. `splash.png` et `icon-maskable-512.png` ne sont plus produits par `scripts/build-logo.mjs`.
+Suite : l'audit (section 4.7 du brief), puis les lots de la section 5.
+
 ## 2026-11-16, Claude, lot 4 : gestes vus de face
 Fait (PR `feat/gestes-de-face`) : `View` (`side`, `front`, `back`) dans `skeleton.ts` (`FRONT_SKELETON`, `jointPositions(pose, root, view)`), `rig(look, view)` (visage centré, dossard au milieu, coiffure vue de face ; de dos, ni visage ni dossard), `facing` et `batch` sur `ExerciseClip`, `pinned` et `settle` avec le point de vue ; rendu web (`AthleteFigure facing`) et mobile (`athleteRig(…, clip.facing)`) ; `exercises/front.ts` : les 17 gestes manquants. Validation : clés « famille:face » dans `motionFamilies`, bouton à part dans `/admin/mouvements`.
 Vérifié : mascotte 782 (dont le sol avec le bon squelette, la symétrie de face, le visage), web 1 990 (dont « chaque fiche a son geste » et « un geste de face reste de travail dans une famille validée »), types, lint ; planche de travail rendue hors dépôt (`apps/web/.local/board.tsx`, positions tenues de chaque geste).
