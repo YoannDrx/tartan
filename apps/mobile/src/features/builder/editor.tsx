@@ -328,24 +328,46 @@ export const NativeSessionBuilder = ({
   const exerciseFor = (item: Item) => context.exercises.find((e) => e.id === item.exerciseId);
   const allItems = form.draft.blocks.flatMap((b) => b.items);
   const editedItem = editing ? allItems.find((i) => i.ref === editing.itemRef) : undefined;
-  const editedExercise = editedItem ? exerciseFor(editedItem) : undefined;
+  // Le remplacement en autonomie a son propre exercice et sa propre prescription.
+  const editedReplacement = editing?.autonomous ? editedItem?.autonomous : undefined;
+  const editedExercise = editedReplacement
+    ? context.exercises.find((e) => e.id === editedReplacement.exerciseId)
+    : editing?.autonomous
+      ? undefined
+      : editedItem
+        ? exerciseFor(editedItem)
+        : undefined;
   const editedValue =
     editing && editedItem
-      ? (form.overrides.find((o) => o.itemRef === editing.itemRef && o.athleteId === editing.athleteId)?.prescription ??
-        editedItem.prescription)
+      ? editing.autonomous
+        ? editedReplacement?.prescription
+        : (form.overrides.find((o) => o.itemRef === editing.itemRef && o.athleteId === editing.athleteId)
+            ?.prescription ?? editedItem.prescription)
       : undefined;
-  const openPrescription = (target: { itemRef: string; athleteId?: string }) => {
+  const openPrescription = (target: { itemRef: string; athleteId?: string; autonomous?: boolean }) => {
     const item = allItems.find((i) => i.ref === target.itemRef);
     if (!item) return;
-    const value = target.athleteId
-      ? (form.overrides.find((o) => o.athleteId === target.athleteId && o.itemRef === target.itemRef)?.prescription ??
-        item.prescription)
-      : item.prescription;
+    const value = target.autonomous
+      ? item.autonomous?.prescription
+      : target.athleteId
+        ? (form.overrides.find((o) => o.athleteId === target.athleteId && o.itemRef === target.itemRef)
+            ?.prescription ?? item.prescription)
+        : item.prescription;
+    if (!value) return;
     setEditing({ ...target, fields: prescriptionFields(value) });
   };
   const applyPrescription = (prescription: Prescription) => {
     if (!editing) return;
-    if (editing.athleteId)
+    if (editing.autonomous)
+      draft({
+        blocks: form.draft.blocks.map((b) => ({
+          ...b,
+          items: b.items.map((i) =>
+            i.ref === editing.itemRef && i.autonomous ? { ...i, autonomous: { ...i.autonomous, prescription } } : i,
+          ),
+        })),
+      });
+    else if (editing.athleteId)
       change({
         overrides: [
           ...form.overrides.filter((o) => !(o.itemRef === editing.itemRef && o.athleteId === editing.athleteId)),
@@ -838,6 +860,8 @@ export const NativeSessionBuilder = ({
                 }}
                 onMove={setMoving}
                 canMove={form.draft.blocks.length > 1}
+                onEditAutonomous={(itemRef) => openPrescription({ itemRef, autonomous: true })}
+                onError={setError}
               />
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
                 <Button
@@ -1115,8 +1139,14 @@ export const NativeSessionBuilder = ({
       ) : null}
       {editing && editedItem && editedExercise && editedValue ? (
         <PrescriptionEditor
-          key={`${editing.itemRef}-${editing.athleteId ?? "all"}`}
-          title={editing.athleteId ? m.builder.adjustments : m.builder.setPrescription}
+          key={`${editing.itemRef}-${editing.autonomous ? "autonomous" : (editing.athleteId ?? "all")}`}
+          title={
+            editing.autonomous
+              ? m.builder.sequence.autonomousLine(editedExercise.name)
+              : editing.athleteId
+                ? m.builder.adjustments
+                : m.builder.setPrescription
+          }
           exercise={editedExercise}
           value={editedValue}
           fields={editing.fields}

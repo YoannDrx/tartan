@@ -27,6 +27,8 @@ env:
 - inputText: "3"
 - tapOn:
     id: sequence-heading-native-round
+- runFlow:
+    file: flows/_hide-keyboard.yml
 - takeScreenshot: coach-circuit-editor
 - scrollUntilVisible:
     element:

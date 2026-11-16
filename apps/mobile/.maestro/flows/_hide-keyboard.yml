@@ -1,0 +1,9 @@
+# Sur Android, le clavier reste ouvert après une saisie et couvre le bas de l'écran (« Appliquer », « Relire »).
+# Sur iOS, rien : les flux ferment le clavier en touchant un titre.
+appId: ${APP_ID}
+---
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - hideKeyboard

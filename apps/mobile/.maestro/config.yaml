@@ -18,6 +18,7 @@ executionOrder:
     - coach-tracking
     - coach-builder
     - coach-builder-circuit
+    - coach-builder-detail
     - coach-capture
     - coach-planner
     - coach-planner-resolution

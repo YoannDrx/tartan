@@ -1,0 +1,20 @@
+# Parcours Android de la CI (job `maestro-android`) : ceux qui ne passent ni par la caméra ni par une feuille propre à
+# iOS. Le circuit reste sur iOS : sur l'émulateur, la saisie du nombre de tours est doublée (« 33 »). Même ordre que sur iOS : le mode séance avant la validation, le conflit de synchronisation en dernier.
+flows:
+  - sign-in-smoke.yml
+  - athlete-session-mode.yml
+  - athlete-validate.yml
+  - coach-tracking.yml
+  - coach-builder.yml
+  - coach-builder-detail.yml
+  - sync-review.yml
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - sign-in-smoke
+    - athlete-session-mode
+    - athlete-validate
+    - coach-tracking
+    - coach-builder
+    - coach-builder-detail
+    - sync-review
