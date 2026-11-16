@@ -77,15 +77,17 @@ env:
 - waitForAnimationToEnd
 - tapOn:
     id: sequence-move-out-detail-b
-# Remplacement en autonomie, dans le groupe.
+# Remplacement en autonomie, dans le groupe : C est resté au-dessus, B est parti à la fin de la phase.
 - scrollUntilVisible:
     element:
       id: sequence-advanced-detail-c
+    direction: UP
     centerElement: true
     timeout: 30000
 - waitForAnimationToEnd
 - tapOn:
     id: sequence-advanced-detail-c
+- waitForAnimationToEnd
 - scrollUntilVisible:
     element:
       id: replace-autonomous-detail-c

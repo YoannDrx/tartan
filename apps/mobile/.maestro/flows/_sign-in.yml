@@ -5,10 +5,11 @@ appId: ${APP_ID}
 - launchApp:
     clearState: true
     clearKeychain: true
+# L'émulateur Android de la CI peut mettre plus de vingt secondes à rendre le premier écran.
 - extendedWaitUntil:
     visible:
       id: sign-in-email
-    timeout: 20000
+    timeout: 45000
 - tapOn:
     id: sign-in-email
 # Le clavier s'ouvre encore : taper trop tôt perd les premières lettres.
