@@ -1,0 +1,120 @@
+# Lot 3, constructeur mobile au niveau du web : détailler série par série (échauffement compris), sortir un exercice
+# d'un groupe par le menu, remplacer un exercice en autonomie dans un bloc commun. Le serveur relit le résultat.
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+---
+- runScript: scripts/create-detail.js
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- openLink: ${output.detailBuilderUrl}
+- runFlow: flows/_accept-deep-link.yml
+- extendedWaitUntil:
+    visible:
+      id: builder-title
+    timeout: 15000
+# Séries détaillées : la première devient une série d'échauffement plus légère.
+- scrollUntilVisible:
+    element:
+      id: sequence-edit-detail-a
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: sequence-edit-detail-a
+- scrollUntilVisible:
+    element:
+      id: set-plan-toggle
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: set-plan-toggle
+- scrollUntilVisible:
+    element:
+      id: set-plan-load-0
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: set-plan-warmup-0
+- tapOn:
+    id: set-plan-reps-0
+- eraseText
+- inputText: "8"
+- tapOn:
+    id: set-plan-load-0
+- eraseText
+- runFlow:
+    file: flows/_type-stable.yml
+    env:
+      VALUE: "40"
+- takeScreenshot: coach-set-plan-editor
+- tapOn:
+    id: prescription-apply
+- extendedWaitUntil:
+    notVisible:
+      id: prescription-apply
+    timeout: 10000
+# Hors du groupe, par le menu du téléphone.
+- scrollUntilVisible:
+    element:
+      id: sequence-advanced-detail-b
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: sequence-advanced-detail-b
+- scrollUntilVisible:
+    element:
+      id: sequence-move-out-detail-b
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: sequence-move-out-detail-b
+# Remplacement en autonomie, dans le groupe.
+- scrollUntilVisible:
+    element:
+      id: sequence-advanced-detail-c
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: sequence-advanced-detail-c
+- scrollUntilVisible:
+    element:
+      id: replace-autonomous-detail-c
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: replace-autonomous-detail-c
+- tapOn:
+    id: exercise-search
+- inputText: ${output.replacementName}
+- scrollUntilVisible:
+    element:
+      id: exercise-option-${output.replacementId}
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: exercise-option-${output.replacementId}
+- scrollUntilVisible:
+    element:
+      id: autonomous-line-detail-c
+    centerElement: true
+    timeout: 20000
+- takeScreenshot: coach-autonomous-replacement
+- scrollUntilVisible:
+    element:
+      id: builder-review
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: builder-review
+- assertVisible: "Relire avant publication"
+- takeScreenshot: coach-detail-preview
+- tapOn:
+    id: builder-confirm
+- extendedWaitUntil:
+    notVisible:
+      id: builder-confirm
+    timeout: 45000
+- runScript: scripts/verify-detail-edit.js
+- assertTrue: ${output.detailVerified === "oui"}

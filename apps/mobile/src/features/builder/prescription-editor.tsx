@@ -1,17 +1,131 @@
 import type { Prescription } from "@tartan/contracts";
 import { m, strengthTestLabel } from "@tartan/i18n";
+import { Plus, Trash2 } from "lucide-react-native";
 import { useId, useState } from "react";
 import { Alert, View } from "react-native";
-import { Button, Chip, Field, T } from "../../ui/primitives";
+import { Button, Chip, Field, IconButton, T } from "../../ui/primitives";
 import { Sheet } from "../../ui/sheet";
-import { space } from "../../ui/theme";
+import { radius, space, usePalette } from "../../ui/theme";
 import {
   builderErrors,
+  MAX_PLANNED_SETS,
   numericFields,
   parsePrescriptionFields,
   prescriptionFields,
+  startSetPlanFields,
+  type PlannedSetFields,
   type PrescriptionFields,
 } from "./form";
+
+const setPlanText = m.builder.setPlan;
+
+/** Série par série : pyramide, séries d'échauffement. Chaque série a ses répétitions et sa charge. */
+const SetPlanFields = ({
+  fields,
+  onChange,
+  uid,
+}: {
+  fields: PrescriptionFields;
+  onChange: (patch: Partial<PrescriptionFields>) => void;
+  uid: string;
+}) => {
+  const p = usePalette();
+  const plan = fields.setPlan;
+  const update = (index: number, patch: Partial<PlannedSetFields>) =>
+    plan && onChange({ setPlan: plan.map((set, i) => (i === index ? { ...set, ...patch } : set)) });
+  return (
+    <View style={{ gap: space.sm }}>
+      <Chip
+        tall
+        testID="set-plan-toggle"
+        label={setPlanText.toggle}
+        active={Boolean(plan)}
+        onPress={() => {
+          if (plan) {
+            // Revenir à l'uniforme : la première série de travail devient la prescription de toutes.
+            const first = plan.find((set) => !set.warmup) ?? plan[0];
+            onChange({
+              setPlan: undefined,
+              sets: String(plan.length),
+              reps: first?.reps ?? fields.reps,
+              ...(fields.loadType !== "none" && first?.load ? { loadValue: first.load } : {}),
+            });
+          } else onChange({ setPlan: startSetPlanFields(fields) });
+        }}
+      />
+      {plan ? (
+        <>
+          <T variant="caption" tone="muted">
+            {setPlanText.hint}
+          </T>
+          {plan.map((set, index) => (
+            <View
+              key={index}
+              testID={`set-plan-${index}`}
+              accessibilityLabel={setPlanText.set(index + 1)}
+              style={{ gap: space.sm, padding: space.sm, borderRadius: radius.button, backgroundColor: p.raised }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+                <T variant="bodyStrong" style={{ fontVariant: ["tabular-nums"] }}>
+                  {setPlanText.set(index + 1)}
+                </T>
+                <Chip
+                  testID={`set-plan-warmup-${index}`}
+                  label={setPlanText.warmup}
+                  accessibilityLabel={`${setPlanText.warmup} · ${setPlanText.set(index + 1)}`}
+                  active={set.warmup}
+                  onPress={() => update(index, { warmup: !set.warmup })}
+                />
+                <View style={{ marginLeft: "auto" }}>
+                  <IconButton
+                    icon={Trash2}
+                    label={setPlanText.remove(index + 1)}
+                    disabled={plan.length === 1}
+                    onPress={() => onChange({ setPlan: plan.filter((_, i) => i !== index) })}
+                  />
+                </View>
+              </View>
+              <View style={{ flexDirection: "row", gap: space.sm }}>
+                <Field
+                  nativeID={`${uid}-set-${index}-reps`}
+                  testID={`set-plan-reps-${index}`}
+                  containerStyle={{ flex: 1 }}
+                  label={m.builder.reps}
+                  accessibilityLabel={`${m.builder.reps} · ${setPlanText.set(index + 1)}`}
+                  value={set.reps}
+                  keyboardType="number-pad"
+                  onChangeText={(reps) => update(index, { reps })}
+                />
+                {fields.loadType !== "none" ? (
+                  <Field
+                    nativeID={`${uid}-set-${index}-load`}
+                    testID={`set-plan-load-${index}`}
+                    containerStyle={{ flex: 1 }}
+                    label={fields.loadType === "kg" ? m.builder.sequence.loadKg : m.builder.loadPct}
+                    accessibilityLabel={`${fields.loadType === "kg" ? m.builder.sequence.loadKg : m.builder.loadPct} · ${setPlanText.set(index + 1)}`}
+                    value={set.load}
+                    keyboardType="decimal-pad"
+                    onChangeText={(load) => update(index, { load })}
+                  />
+                ) : null}
+              </View>
+            </View>
+          ))}
+          {plan.length < MAX_PLANNED_SETS ? (
+            <Button
+              compact
+              variant="secondary"
+              icon={Plus}
+              testID="set-plan-add"
+              label={setPlanText.add}
+              onPress={() => onChange({ setPlan: [...plan, { ...plan[plan.length - 1]!, warmup: false }] })}
+            />
+          ) : null}
+        </>
+      ) : null}
+    </View>
+  );
+};
 
 export const PrescriptionEditor = ({
   title,
@@ -70,7 +184,7 @@ export const PrescriptionEditor = ({
     ]);
   };
   return (
-    <Sheet visible title={title} onClose={close} footer={<Button label={m.nativeBuilder.apply} onPress={apply} />}>
+    <Sheet visible title={title} onClose={close} footer={<Button label={m.nativeBuilder.apply} testID="prescription-apply" onPress={apply} />}>
       <T variant="bodyStrong">{exercise.name}</T>
       {error ? (
         <T tone="danger" accessibilityRole="alert">
@@ -79,6 +193,8 @@ export const PrescriptionEditor = ({
       ) : null}
       {numericFields
         .filter((key) => advanced || (key !== "count" && key !== "height_cm"))
+        // Avec un détail série par série, le nombre de séries et les répétitions se lisent série par série.
+        .filter((key) => !fields.setPlan || (key !== "sets" && key !== "reps"))
         .map((key) => (
           <Field
             key={key}
@@ -100,7 +216,7 @@ export const PrescriptionEditor = ({
           />
         ))}
       </View>
-      {fields.loadType !== "none" ? (
+      {fields.loadType !== "none" && !fields.setPlan ? (
         <Field
           nativeID={`${uid}-load`}
           label={m.nativeBuilder.loadValue}
@@ -122,6 +238,7 @@ export const PrescriptionEditor = ({
           ))}
         </View>
       ) : null}
+      <SetPlanFields fields={fields} onChange={update} uid={uid} />
       {intensityEnabled || fields.intensityType !== "none" ? (
         <>
           <T variant="smallStrong">{m.nativeBuilder.intensity}</T>

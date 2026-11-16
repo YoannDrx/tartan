@@ -1,0 +1,22 @@
+# Parcours Android de la CI (job `maestro-android`) : ceux qui ne passent ni par la caméra ni par une feuille propre à
+# iOS. Même ordre que sur iOS : le mode séance avant la validation, le conflit de synchronisation en dernier.
+flows:
+  - sign-in-smoke.yml
+  - athlete-session-mode.yml
+  - athlete-validate.yml
+  - coach-tracking.yml
+  - coach-builder.yml
+  - coach-builder-circuit.yml
+  - coach-builder-detail.yml
+  - sync-review.yml
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - sign-in-smoke
+    - athlete-session-mode
+    - athlete-validate
+    - coach-tracking
+    - coach-builder
+    - coach-builder-circuit
+    - coach-builder-detail
+    - sync-review

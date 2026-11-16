@@ -129,6 +129,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Base et graine de démonstration
         working-directory: apps/web
+        env:
+          # Le job dure une heure : la séance du jour existe aussi le lendemain, pour franchir minuit à Paris.
+          DEMO_NEXT_DAY_SESSION: "1"
         run: |
           pnpm exec prisma migrate deploy
           pnpm exec tsx prisma/seed.ts
@@ -258,11 +261,128 @@ jobs:
             ~/.maestro/tests
           if-no-files-found: ignore
 
+  # Les mêmes parcours sur Android (émulateur x86_64, accéléré par KVM), contre le même serveur local : l'app de
+  # développement atteint localhost:3000 par `adb reverse`. Une sélection de flux : ceux qui ne dépendent ni de la
+  # caméra ni d'une feuille propre à iOS (`.maestro/config-android.yaml`).
+  maestro-android:
+    needs: changes
+    if: always() && github.event_name != 'schedule' && (needs.changes.result == 'skipped' || needs.changes.outputs.mobile == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: tartan
+          POSTGRES_PASSWORD: tartan
+          POSTGRES_DB: tartan_maestro
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tartan" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      TZ: Europe/Paris
+      DATABASE_URL: postgresql://tartan:tartan@localhost:5432/tartan_maestro
+      DEMO_PASSWORD: maestro-mot-de-passe-de-test
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: secret-maestro-secret-maestro-secret-maestro
+      CRON_SECRET: maestro-cron
+      COACH_SIGNUP_MODE: public
+      E2E_DISABLE_RATE_LIMIT: "true"
+      RESEND_API_KEY: ""
+      MUX_TOKEN_ID: ""
+      MUX_TOKEN_SECRET: ""
+      OPENAI_API_KEY: ""
+      AI_PLANNER_ENABLED: "true"
+      AI_PLANNER_FAKE_PROVIDER: "true"
+      APPLE_TEAM_ID: TESTTEAM00
+      ANDROID_SHA256_FINGERPRINTS: "AA:BB:CC"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - run: pnpm install --frozen-lockfile
+      - name: Base et graine de démonstration
+        working-directory: apps/web
+        env:
+          DEMO_NEXT_DAY_SESSION: "1"
+        run: |
+          pnpm exec prisma migrate deploy
+          pnpm exec tsx prisma/seed.ts
+      - name: Serveur web local
+        working-directory: apps/web
+        run: |
+          pnpm exec next build
+          nohup pnpm exec next start -H 0.0.0.0 -p 3000 > "$RUNNER_TEMP/web.log" 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/api/health && break; sleep 2; done
+          curl -sf http://localhost:3000/api/health
+      - name: Serveur chauffé
+        run: |
+          for who in coach@demo.tartan.coach un@demo.tartan.coach; do
+            jar="$RUNNER_TEMP/warm-$who.txt"
+            curl -sf -c "$jar" -X POST http://localhost:3000/api/auth/sign-in/email \
+              -H "Content-Type: application/json" -H "Origin: http://localhost:3000" \
+              -d "{\"email\":\"$who\",\"password\":\"$DEMO_PASSWORD\"}" > /dev/null
+            curl -sf -b "$jar" http://localhost:3000/api/v1/me > /dev/null
+            rm -f "$jar"
+          done
+      - name: App Android pour l'émulateur
+        working-directory: apps/mobile
+        env:
+          APP_VARIANT: development
+          EXPO_PUBLIC_API_URL: http://localhost:3000
+          EXPO_PUBLIC_WEB_URL: http://localhost:3000
+          SENTRY_DISABLE_AUTO_UPLOAD: "true"
+        run: |
+          pnpm exec expo prebuild --platform android --no-install
+          cd android
+          # Une seule architecture, celle de l'émulateur ; la version Release embarque le JavaScript.
+          ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86_64
+      - name: Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Parcours natifs Android
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          # Le fuseau de Paris, comme le simulateur iOS : la graine date la séance du jour à Paris.
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -timezone Europe/Paris
+          # L'action lance chaque ligne à part : tout passe par un script.
+          script: bash apps/mobile/.maestro/android.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maestro-android
+          path: |
+            ${{ runner.temp }}/maestro-android.xml
+            ${{ runner.temp }}/maestro-android
+            ${{ runner.temp }}/web.log
+            ${{ runner.temp }}/logcat.txt
+          if-no-files-found: ignore
+
   # Réponse unique, exigée par la protection de main : verte si le mobile n'est pas concerné,
   # sinon verte seulement si la compilation Android et les parcours Maestro le sont.
   mobile-gate:
     if: always() && github.event_name == 'pull_request'
-    needs: [changes, android, maestro]
+    needs: [changes, android, maestro, maestro-android]
     runs-on: ubuntu-latest
     steps:
       - name: Résultat des contrôles mobiles
@@ -271,11 +391,12 @@ jobs:
           MOBILE: ${{ needs.changes.outputs.mobile }}
           ANDROID: ${{ needs.android.result }}
           MAESTRO: ${{ needs.maestro.result }}
+          MAESTRO_ANDROID: ${{ needs.maestro-android.result }}
         run: |
           if [ "$CHANGES" != "success" ]; then echo "Détection des changements : $CHANGES"; exit 1; fi
           if [ "$MOBILE" != "true" ]; then echo "Mobile non concerné."; exit 0; fi
-          echo "Android : $ANDROID, Maestro : $MAESTRO"
-          [ "$ANDROID" = "success" ] && [ "$MAESTRO" = "success" ]
+          echo "Android : $ANDROID, Maestro iOS : $MAESTRO, Maestro Android : $MAESTRO_ANDROID"
+          [ "$ANDROID" = "success" ] && [ "$MAESTRO" = "success" ] && [ "$MAESTRO_ANDROID" = "success" ]
 
   eas:
     if: github.event_name == 'schedule' || inputs.eas == true

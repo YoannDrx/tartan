@@ -3,17 +3,21 @@ import { sequenceRoles, tokens } from "@tartan/design-tokens";
 import {
   editSessionSequence,
   formatPrescription,
+  moveSequenceNode,
+  prescriptionForGroup,
   sequenceDepth,
+  sequenceGroups,
   sequenceNodeRef,
   type SequenceEdit,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { randomUUID } from "expo-crypto";
 import { useState } from "react";
-import { View } from "react-native";
+import { ArrowRightLeft } from "lucide-react-native";
+import { Pressable, View } from "react-native";
 import { Button, Field, T } from "../../ui/primitives";
 import { Sheet } from "../../ui/sheet";
-import { radius, space, useWorkTheme } from "../../ui/theme";
+import { radius, space, usePalette, useWorkTheme } from "../../ui/theme";
 
 type Block = SessionDraft["blocks"][number];
 const labels = m.builder.sequence;
@@ -26,11 +30,24 @@ type Props = {
   onAdjust: (ref: string) => void;
   onMove: (ref: string) => void;
   canMove: boolean;
+  // La prescription de l'exercice fait en autonomie à la place de celui du club.
+  onEditAutonomous: (ref: string) => void;
+  onError: (message: string) => void;
 };
+
+type Item = Block["items"][number];
 
 export function NativeSequenceEditor(props: Props) {
   const edit = (parent: string | null, command: SequenceEdit) =>
     props.onChange(editSessionSequence(props.block, parent, command, randomUUID));
+  // Un déplacement entre groupes peut dépasser deux niveaux : le domaine refuse, l'écran le dit.
+  const apply = (next: () => Block) => {
+    try {
+      props.onChange(next());
+    } catch {
+      props.onError(labels.moveError);
+    }
+  };
   return (
     <Level
       {...props}
@@ -38,24 +55,95 @@ export function NativeSequenceEditor(props: Props) {
       depth={0}
       nodes={props.block.sequence ?? props.block.items.map((item) => ({ kind: "exercise", itemRef: item.ref! }))}
       edit={edit}
+      apply={apply}
     />
   );
 }
+
+const descendants = (node: SequenceNode): Set<string> =>
+  new Set(
+    node.kind === "repeat"
+      ? node.children.flatMap((child) => (child.kind === "repeat" ? [child.ref, ...descendants(child)] : []))
+      : [],
+  );
+
+/** La ligne « En autonomie : … » sous un exercice remplacé ; elle ouvre la prescription du remplacement. */
+const AutonomousLine = ({
+  item,
+  exercises,
+  onPress,
+}: {
+  item: Item;
+  exercises: ExerciseSummary[];
+  onPress: () => void;
+}) => {
+  const p = usePalette();
+  const away = exercises.find((exercise) => exercise.id === item.autonomous?.exerciseId);
+  const text = labels.autonomousLine(away?.name ?? labels.deletedExercise);
+  const prescription = (item.autonomous && formatPrescription(item.autonomous.prescription)) || m.builder.setPrescription;
+  return (
+    <Pressable
+      testID={`autonomous-line-${item.ref}`}
+      accessibilityRole="button"
+      accessibilityLabel={`${text} · ${prescription}`}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space.sm,
+        paddingHorizontal: space.sm,
+        borderRadius: radius.thumb,
+        backgroundColor: p.raised,
+        opacity: pressed ? 0.8 : 1,
+      })}
+    >
+      <ArrowRightLeft size={18} color={p.textMuted} accessibilityElementsHidden importantForAccessibility="no" />
+      <T variant="small" style={{ flex: 1 }}>
+        <T variant="smallStrong">{text}</T> · {prescription}
+      </T>
+    </Pressable>
+  );
+};
 
 function Level({
   nodes,
   parent,
   depth,
   edit,
+  apply,
   ...props
 }: Props & {
   nodes: SequenceNode[];
   parent: string | null;
   depth: number;
   edit: (parent: string | null, command: SequenceEdit) => void;
+  apply: (next: () => Block) => void;
 }) {
   const theme = useWorkTheme();
   const [choosing, setChoosing] = useState(false);
+  // L'exercice du club que le choix remplace en autonomie ; null pour un ajout.
+  const [replacing, setReplacing] = useState<string | null>(null);
+  const shared = props.block.variant === "both";
+  const setAutonomous = (ref: string, autonomous: Item["autonomous"]) =>
+    apply(() => ({
+      ...props.block,
+      items: props.block.items.map((entry) => {
+        if (entry.ref !== ref) return entry;
+        const { autonomous: _previous, ...rest } = entry;
+        return autonomous ? { ...rest, autonomous } : rest;
+      }),
+    }));
+  const groups = sequenceGroups(props.block);
+  // Les groupes où l'élément peut aller : ni le sien, ni lui-même, ni l'un de ses sous-groupes.
+  const targetsFor = (node: SequenceNode, ref: string) => {
+    const own = descendants(node);
+    return groups.filter((group) => group.ref !== parent && group.ref !== ref && !own.has(group.ref));
+  };
+  const nameOf = (ref: string) => {
+    const item = props.block.items.find((entry) => entry.ref === ref);
+    return props.exercises.find((exercise) => exercise.id === item?.exerciseId)?.name ?? labels.deletedExercise;
+  };
   const [expanded, setExpanded] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const append = (node: SequenceNode) => edit(parent, { kind: "append", node });
@@ -112,8 +200,12 @@ function Level({
                   variant="secondary"
                   label={m.builder.setPrescription}
                   accessibilityLabel={`${m.builder.setPrescription} · ${name}`}
+                  testID={`sequence-edit-${ref}`}
                   onPress={() => props.onEdit(ref)}
                 />
+                {shared && item.autonomous ? (
+                  <AutonomousLine item={item} exercises={props.exercises} onPress={() => props.onEditAutonomous(ref)} />
+                ) : null}
               </>
             ) : null}
             {node.kind === "recovery" ? (
@@ -148,7 +240,14 @@ function Level({
                 <T variant="caption" tone="muted">
                   {labels.noFinalRest}
                 </T>
-                <Level {...props} nodes={node.children} parent={node.ref} depth={depth + 1} edit={edit} />
+                <Level
+                  {...props}
+                  nodes={node.children}
+                  parent={node.ref}
+                  depth={depth + 1}
+                  edit={edit}
+                  apply={apply}
+                />
               </>
             ) : null}
             <Button
@@ -156,6 +255,7 @@ function Level({
               variant="secondary"
               label={expanded.includes(ref) ? m.nativeBuilder.hideAdvanced : m.nativeBuilder.advanced}
               accessibilityLabel={`${m.nativeBuilder.advanced} · ${name}`}
+              testID={`sequence-advanced-${ref}`}
               onPress={() =>
                 setExpanded((current) =>
                   current.includes(ref) ? current.filter((value) => value !== ref) : [...current, ref],
@@ -201,12 +301,67 @@ function Level({
                     onPress={() => edit(parent, { kind: "move", ref, delta: 1 })}
                   />
                 </View>
+                {/* Dans un groupe, hors d'un groupe, d'un groupe à l'autre : le menu du téléphone remplace le glisser. */}
+                {parent !== null || targetsFor(node, ref).length ? (
+                  <View style={{ gap: space.xs }}>
+                    <T variant="smallStrong">{labels.moveTo}</T>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
+                      {parent !== null ? (
+                        <Button
+                          compact
+                          variant="secondary"
+                          label={labels.moveOut}
+                          accessibilityLabel={`${labels.moveTo} · ${labels.moveOut} · ${name}`}
+                          testID={`sequence-move-out-${ref}`}
+                          onPress={() => apply(() => moveSequenceNode(props.block, ref, null))}
+                        />
+                      ) : null}
+                      {targetsFor(node, ref).map((group) => (
+                        <Button
+                          key={group.ref}
+                          compact
+                          variant="secondary"
+                          label={labels.moveInto(group.name)}
+                          accessibilityLabel={`${labels.moveTo} · ${labels.moveInto(group.name)} · ${name}`}
+                          testID={`sequence-move-into-${group.ref}-${ref}`}
+                          onPress={() => apply(() => moveSequenceNode(props.block, ref, group.ref))}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
                 <Button
                   compact
                   variant="secondary"
                   label={labels.duplicate(name)}
                   onPress={() => edit(parent, { kind: "duplicate", ref })}
                 />
+                {/* Dans un bloc commun, un exercice peut changer pour les athlètes en autonomie. */}
+                {item && shared ? (
+                  <>
+                    <Button
+                      compact
+                      variant="secondary"
+                      testID={`replace-autonomous-${ref}`}
+                      label={item.autonomous ? labels.changeAutonomous : labels.replaceAutonomous}
+                      accessibilityLabel={`${item.autonomous ? labels.changeAutonomous : labels.replaceAutonomous} · ${name}`}
+                      onPress={() => {
+                        setSearch("");
+                        setReplacing(ref);
+                        setChoosing(true);
+                      }}
+                    />
+                    {item.autonomous ? (
+                      <Button
+                        compact
+                        variant="secondary"
+                        label={labels.keepAutonomous}
+                        accessibilityLabel={`${labels.keepAutonomous} · ${name}`}
+                        onPress={() => setAutonomous(ref, undefined)}
+                      />
+                    ) : null}
+                  </>
+                ) : null}
                 {node.kind === "repeat" ? (
                   <Button
                     compact
@@ -233,6 +388,7 @@ function Level({
         disabled={props.block.items.length >= 60}
         onPress={() => {
           setSearch("");
+          setReplacing(null);
           setChoosing(true);
         }}
       />
@@ -266,8 +422,12 @@ function Level({
         />
       ) : null}
       {choosing ? (
-        <Sheet visible title={m.builder.library} onClose={() => setChoosing(false)}>
-          <Field label={m.common.search} value={search} onChangeText={setSearch} />
+        <Sheet
+          visible
+          title={replacing ? labels.replaceTitle(nameOf(replacing)) : m.builder.library}
+          onClose={() => setChoosing(false)}
+        >
+          <Field label={m.common.search} testID="exercise-search" value={search} onChangeText={setSearch} />
           {props.exercises
             .filter((exercise) =>
               `${exercise.name} ${exercise.aliases?.join(" ") ?? ""} ${exercise.tags.join(" ")}`
@@ -278,8 +438,18 @@ function Level({
               <Button
                 key={exercise.id}
                 variant="secondary"
+                testID={`exercise-option-${exercise.id}`}
                 label={exercise.name}
                 onPress={() => {
+                  if (replacing) {
+                    // Dans un groupe, le remplacement compte aussi une série par tour.
+                    const prescription =
+                      parent !== null ? prescriptionForGroup(exercise.defaultPrescription) : exercise.defaultPrescription;
+                    setAutonomous(replacing, { exerciseId: exercise.id, prescription });
+                    setReplacing(null);
+                    setChoosing(false);
+                    return;
+                  }
                   const ref = randomUUID();
                   edit(parent, {
                     kind: "append",

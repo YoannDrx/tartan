@@ -36,6 +36,7 @@ import {
   invitationStateOf,
   isAttributionFresh,
   isOverdue,
+  sessionDeadline,
   isPaidPlan,
   isQuietHours,
   isReferralQualified,
@@ -142,6 +143,17 @@ describe("statuts", () => {
     expect(isOverdue("2026-10-30", now)).toBe(false);
     expect(isOverdue("2026-10-29", now)).toBe(false);
     expect(isOverdue("2026-10-28", now)).toBe(true);
+  });
+
+  it("compte la journée de la séance à l'heure de Paris, pas en UTC", () => {
+    // Le 16 à 0 h 30 à Paris, une séance du 14 est manquée : sa journée et le délai de 24 h sont finis.
+    expect(isOverdue("2026-11-14", new Date("2026-11-15T23:30:00Z"))).toBe(true);
+    expect(cellStatusOf(null, "2026-11-14", new Date("2026-11-15T23:30:00Z"))).toBe("missed");
+    // En heure d'été, l'écart est de deux heures.
+    expect(isOverdue("2026-07-14", new Date("2026-07-15T22:30:00Z"))).toBe(true);
+    // Une minute avant la fin du délai, à Paris, elle est encore à venir.
+    expect(isOverdue("2026-11-14", new Date("2026-11-15T22:58:00Z"))).toBe(false);
+    expect(sessionDeadline("2026-11-14").toISOString()).toBe("2026-11-15T22:59:59.000Z");
   });
 
   it("calcule le statut de case", () => {
