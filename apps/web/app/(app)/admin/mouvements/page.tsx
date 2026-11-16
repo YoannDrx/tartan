@@ -17,7 +17,7 @@ export default async function AdminMovementsPage() {
         <MotionFamily
           key={family}
           family={family}
-          approved={approved.includes(family)}
+          approved={approved}
           entries={EXERCISE_CATALOG.filter((entry) => entry.guide.family === family).map((entry) => ({
             key: entry.catalogKey,
             name: entry.name,

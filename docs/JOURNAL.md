@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-16, Claude, lot 4 : gestes vus de face
+Fait (PR `feat/gestes-de-face`) : `View` (`side`, `front`, `back`) dans `skeleton.ts` (`FRONT_SKELETON`, `jointPositions(pose, root, view)`), `rig(look, view)` (visage centré, dossard au milieu, coiffure vue de face ; de dos, ni visage ni dossard), `facing` et `batch` sur `ExerciseClip`, `pinned` et `settle` avec le point de vue ; rendu web (`AthleteFigure facing`) et mobile (`athleteRig(…, clip.facing)`) ; `exercises/front.ts` : les 17 gestes manquants. Validation : clés « famille:face » dans `motionFamilies`, bouton à part dans `/admin/mouvements`.
+Vérifié : mascotte 782 (dont le sol avec le bon squelette, la symétrie de face, le visage), web 1 990 (dont « chaque fiche a son geste » et « un geste de face reste de travail dans une famille validée »), types, lint ; planche de travail rendue hors dépôt (`apps/web/.local/board.tsx`, positions tenues de chaque geste).
+Non vérifié : rendu sur un vrai téléphone ; relecture du fondateur.
+À savoir : de face, un angle positif écarte le membre des deux côtés (A à droite de l'image, B à gauche) ; couché sur le côté (`rot: -90`), le côté A est en haut. Les jambes de face passent derrière le buste : assis genoux hauts, une cuisse au-delà de 120° disparaît. La rotation de hanche sur le ventre et la rotation thoracique restent des approximations planes (le tibia ou le bras qui pointe vers le spectateur ne se raccourcit pas).
+Suite : préparation des lots 5 à 7.
+
 ## 2026-11-16, Claude, lot 3 : mobile au niveau du web
 Fait (PR `feat/constructeur-mobile`) : défaut de minuit : le web et l'API comptaient déjà « aujourd'hui » à Paris, mais `sessionDeadline` finissait la journée en UTC (statut « manquée », relances, alertes, métriques une à deux heures en retard) ; `endOfTrainingDay` (domaine) la compte à Paris, test qui échouait avant. Les échecs Maestro de la nuit venaient d'une graine posée avant minuit et de parcours joués après : `DEMO_NEXT_DAY_SESSION=1` (CI mobile) pose aussi la séance du jour le lendemain, `bump-session.js` les modifie toutes. Constructeur mobile : séries détaillées dans la feuille de prescription (`PrescriptionFields.setPlan`, `withSetPlan`), remplacement en autonomie (édition de `autonomous`, prescription à part, aperçu), « Déplacer vers » hors d'un groupe ou dans un autre (`moveSequenceNode`), erreur de profondeur annoncée ; mode séance : une ligne par série détaillée. CI : job `maestro-android` (API 34, `adb reverse`, fuseau de Paris), exigé par `mobile-gate` ; flux `coach-builder-detail`.
 Vérifié : domaine 330, web 1 988, mobile 262, types, lint, design ; Maestro iOS et Android en CI (voir la PR).

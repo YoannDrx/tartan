@@ -2,7 +2,7 @@ import { athletePaint, type Surface } from "@tartan/design-tokens/athletes";
 import { athleteRig, type AthleteId } from "@tartan/mascot/athletes";
 import { POSES, type PoseName } from "@tartan/mascot/poses";
 import type { Face } from "@tartan/mascot/rig";
-import type { Point, Pose } from "@tartan/mascot/skeleton";
+import type { Point, Pose, View } from "@tartan/mascot/skeleton";
 import { svgAthlete } from "@tartan/mascot/svg";
 import type { ComponentProps } from "react";
 import { FigureGroup } from "@/components/jumper";
@@ -15,6 +15,7 @@ export const AthleteFigure = ({
   face = "neutral",
   on,
   at,
+  facing = "side",
   ...group
 }: {
   id: AthleteId;
@@ -22,8 +23,10 @@ export const AthleteFigure = ({
   face?: Face;
   on: Surface;
   at?: Point;
+  // De profil par défaut ; de face ou de dos pour un geste qui se lit ainsi.
+  facing?: View;
 } & Omit<ComponentProps<"g">, "transform" | "children">) => (
-  <FigureGroup figure={svgAthlete(athleteRig(id, face), pose, athletePaint(id, on), at)} {...group} />
+  <FigureGroup figure={svgAthlete(athleteRig(id, face, facing), pose, athletePaint(id, on), at)} {...group} />
 );
 
 // Le cadre : le corps entier quelle que soit la pose, le corps debout au plus près, la course posée au sol (même

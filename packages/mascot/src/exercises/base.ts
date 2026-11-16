@@ -1,6 +1,6 @@
 // Les briques communes aux gestes d'exercice : les prises de barre, et un réglage qui pose un second appui au sol.
 import { POSES } from "../poses";
-import { jointPositions, type Anchor, type Pose } from "../skeleton";
+import { jointPositions, type Anchor, type Pose, type View } from "../skeleton";
 
 export type PosePatch = Partial<Pose>;
 
@@ -35,9 +35,10 @@ export const settle = (
   fixed: Anchor,
   moving: Anchor,
   dy = 0,
+  view: View = "side",
 ): PosePatch => {
   const gap = (value: number) => {
-    const at = jointPositions({ ...POSES.stand, ...build(value) });
+    const at = jointPositions({ ...POSES.stand, ...build(value) }, undefined, view);
     return at[moving].y - at[fixed].y - dy;
   };
   let [low, high] = range;
