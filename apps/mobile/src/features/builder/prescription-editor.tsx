@@ -70,6 +70,7 @@ const SetPlanFields = ({
                   {setPlanText.set(index + 1)}
                 </T>
                 <Chip
+                  tall
                   testID={`set-plan-warmup-${index}`}
                   label={setPlanText.warmup}
                   accessibilityLabel={`${setPlanText.warmup} · ${setPlanText.set(index + 1)}`}
@@ -85,11 +86,12 @@ const SetPlanFields = ({
                   />
                 </View>
               </View>
-              <View style={{ flexDirection: "row", gap: space.sm }}>
+              {/* Côte à côte sur téléphone ; l'un sous l'autre quand le texte est agrandi. */}
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
                 <Field
                   nativeID={`${uid}-set-${index}-reps`}
                   testID={`set-plan-reps-${index}`}
-                  containerStyle={{ flex: 1 }}
+                  containerStyle={{ flexGrow: 1, flexBasis: 128 }}
                   label={m.builder.reps}
                   accessibilityLabel={`${m.builder.reps} · ${setPlanText.set(index + 1)}`}
                   value={set.reps}
@@ -100,7 +102,7 @@ const SetPlanFields = ({
                   <Field
                     nativeID={`${uid}-set-${index}-load`}
                     testID={`set-plan-load-${index}`}
-                    containerStyle={{ flex: 1 }}
+                    containerStyle={{ flexGrow: 1, flexBasis: 128 }}
                     label={fields.loadType === "kg" ? m.builder.sequence.loadKg : m.builder.loadPct}
                     accessibilityLabel={`${fields.loadType === "kg" ? m.builder.sequence.loadKg : m.builder.loadPct} · ${setPlanText.set(index + 1)}`}
                     value={set.load}

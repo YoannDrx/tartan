@@ -122,7 +122,8 @@ const SetButton = ({
         ...(planned
           ? { flexBasis: "100%", flexDirection: "row" as const, paddingHorizontal: space.md, gap: space.md }
           : { flexBasis: "18%", flexGrow: 1, minWidth: 60, justifyContent: "center" as const, gap: 2 }),
-        height: 56,
+        // Une série détaillée grandit avec le texte agrandi plutôt que de le couper.
+        ...(planned ? { minHeight: 56, paddingVertical: space.sm } : { height: 56 }),
         borderRadius: radius.card,
         alignItems: "center",
         backgroundColor: done ? p.status.done : p.surface,

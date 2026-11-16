@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-16, Claude, lot 3 : mobile au niveau du web
+Fait (PR `feat/constructeur-mobile`) : défaut de minuit : le web et l'API comptaient déjà « aujourd'hui » à Paris, mais `sessionDeadline` finissait la journée en UTC (statut « manquée », relances, alertes, métriques une à deux heures en retard) ; `endOfTrainingDay` (domaine) la compte à Paris, test qui échouait avant. Les échecs Maestro de la nuit venaient d'une graine posée avant minuit et de parcours joués après : `DEMO_NEXT_DAY_SESSION=1` (CI mobile) pose aussi la séance du jour le lendemain, `bump-session.js` les modifie toutes. Constructeur mobile : séries détaillées dans la feuille de prescription (`PrescriptionFields.setPlan`, `withSetPlan`), remplacement en autonomie (édition de `autonomous`, prescription à part, aperçu), « Déplacer vers » hors d'un groupe ou dans un autre (`moveSequenceNode`), erreur de profondeur annoncée ; mode séance : une ligne par série détaillée. CI : job `maestro-android` (API 34, `adb reverse`, fuseau de Paris), exigé par `mobile-gate` ; flux `coach-builder-detail`.
+Vérifié : domaine 330, web 1 988, mobile 262, types, lint, design ; Maestro iOS et Android en CI (voir la PR).
+Non vérifié : téléphone physique ; glisser-déposer au doigt sur le mobile (non fait, le menu le remplace).
+À savoir : sur Android, l'émulateur vise `localhost:3000` par `adb reverse` ; l'action de l'émulateur lance chaque ligne de `script` à part, d'où `.maestro/android.sh`. Un exercice détaillé qui entre dans un groupe perd son détail, comme sur le web.
+Suite : lot 4 (gestes vus de face).
+
 ## 2026-11-15, Claude, fichiers d'environnement et EXPO_TOKEN
 Fait (PR `chore/fichiers-env`) : `.env.example` réécrit en 14 rubriques numérotées, toutes les valeurs à `""`, chaque variable avec son rôle, son défaut et les environnements Vercel où elle est posée ; `parseEnv` traite une valeur vide comme absente (défauts du code appliqués), même règle dans `prisma.config.ts`, `layout.tsx`, la graine et Vitest. Fichiers locaux ignorés rangés dans le même ordre, valeurs inchangées. `EXPO_TOKEN` posé sur GitHub (robot Expo `github-actions`, rôle Developer).
 Vérifié : test d'environnement (10), types, lint ; relevé Vercel : la production a toutes les variables que le code exige.
