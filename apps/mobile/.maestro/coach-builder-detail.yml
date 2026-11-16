@@ -21,6 +21,7 @@ env:
       id: sequence-edit-detail-a
     centerElement: true
     timeout: 30000
+- waitForAnimationToEnd
 - tapOn:
     id: sequence-edit-detail-a
 - scrollUntilVisible:
@@ -28,6 +29,7 @@ env:
       id: set-plan-toggle
     centerElement: true
     timeout: 20000
+- waitForAnimationToEnd
 - tapOn:
     id: set-plan-toggle
 - scrollUntilVisible:
@@ -35,6 +37,7 @@ env:
       id: set-plan-load-0
     centerElement: true
     timeout: 20000
+- waitForAnimationToEnd
 - tapOn:
     id: set-plan-warmup-0
 - tapOn:
@@ -49,6 +52,8 @@ env:
     env:
       VALUE: "40"
 - takeScreenshot: coach-set-plan-editor
+- runFlow:
+    file: flows/_hide-keyboard.yml
 - tapOn:
     id: prescription-apply
 - extendedWaitUntil:
@@ -61,6 +66,7 @@ env:
       id: sequence-advanced-detail-b
     centerElement: true
     timeout: 30000
+- waitForAnimationToEnd
 - tapOn:
     id: sequence-advanced-detail-b
 - scrollUntilVisible:
@@ -68,6 +74,7 @@ env:
       id: sequence-move-out-detail-b
     centerElement: true
     timeout: 20000
+- waitForAnimationToEnd
 - tapOn:
     id: sequence-move-out-detail-b
 # Remplacement en autonomie, dans le groupe.
@@ -76,6 +83,7 @@ env:
       id: sequence-advanced-detail-c
     centerElement: true
     timeout: 30000
+- waitForAnimationToEnd
 - tapOn:
     id: sequence-advanced-detail-c
 - scrollUntilVisible:
@@ -83,16 +91,20 @@ env:
       id: replace-autonomous-detail-c
     centerElement: true
     timeout: 20000
+- waitForAnimationToEnd
 - tapOn:
     id: replace-autonomous-detail-c
 - tapOn:
     id: exercise-search
 - inputText: ${output.replacementName}
+- runFlow:
+    file: flows/_hide-keyboard.yml
 - scrollUntilVisible:
     element:
       id: exercise-option-${output.replacementId}
     centerElement: true
     timeout: 20000
+- waitForAnimationToEnd
 - tapOn:
     id: exercise-option-${output.replacementId}
 - scrollUntilVisible:
@@ -106,6 +118,7 @@ env:
       id: builder-review
     direction: DOWN
     timeout: 30000
+- waitForAnimationToEnd
 - tapOn:
     id: builder-review
 - assertVisible: "Relire avant publication"

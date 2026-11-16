@@ -362,6 +362,8 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
+          # Un gabarit de vrai téléphone : l'émulateur par défaut (320 × 640 dp) coupe le bas des écrans.
+          profile: pixel_7
           disable-animations: true
           # Le fuseau de Paris, comme le simulateur iOS : la graine date la séance du jour à Paris.
           emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -timezone Europe/Paris
