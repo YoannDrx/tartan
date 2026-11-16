@@ -3,6 +3,7 @@
 import type { ExerciseClip } from "../exercise";
 import { CORE } from "./core";
 import { DRILLS } from "./drills";
+import { FRONT } from "./front";
 import { MOBILITY } from "./mobility";
 import { PLYOMETRICS } from "./plyometrics";
 import { RUNNING } from "./running";
@@ -10,7 +11,7 @@ import { STRENGTH } from "./strength";
 import { WEIGHTLIFTING } from "./weightlifting";
 
 export const EXERCISE_CLIPS: Readonly<Record<string, ExerciseClip>> = Object.fromEntries(
-  [...STRENGTH, ...WEIGHTLIFTING, ...PLYOMETRICS, ...RUNNING, ...CORE, ...DRILLS, ...MOBILITY].map((clip) => [clip.key, clip]),
+  [...STRENGTH, ...WEIGHTLIFTING, ...PLYOMETRICS, ...RUNNING, ...CORE, ...DRILLS, ...MOBILITY, ...FRONT].map((clip) => [clip.key, clip]),
 );
 
 export const exerciseClip = (catalogKey: string | null | undefined): ExerciseClip | null =>

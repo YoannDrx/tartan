@@ -31,7 +31,7 @@ const Shape = ({ shape }: { shape: SvgShape }) => {
 export const ExerciseScene = ({ clip, t, width }: { clip: ExerciseClip; t: number; width: number }) => {
   const { pose, root } = clip.frame(t);
   const gear = clip.gear(t);
-  const figure = svgAthlete(athleteRig(clip.athlete, clip.face(t)), pose, athletePaint(clip.athlete, "ink"), root);
+  const figure = svgAthlete(athleteRig(clip.athlete, clip.face(t), clip.facing), pose, athletePaint(clip.athlete, "ink"), root);
   const [x, y, w, h] = clip.view.split(" ").map(Number) as [number, number, number, number];
   const tilt = clip.tilt ? `rotate(${clip.tilt} ${x + w / 2} ${y + h / 2})` : undefined;
   const layer = (front: boolean) =>

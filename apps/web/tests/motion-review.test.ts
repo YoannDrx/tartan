@@ -20,10 +20,19 @@ describe("gestes animés des guides", () => {
     const squat = guideOf("back-squat");
     expect(withMotion(squat, []).illustration.motion).toBe("review");
     expect(withMotion(squat, ["strength"]).illustration.motion).toBe("approved");
-    const lateral = guideOf("lateral-raise");
-    expect(exerciseClip("lateral-raise")).toBeNull();
-    expect(withMotion(lateral, ["strength"]).illustration.motion).toBeUndefined();
     expect(withMotion(null, ["strength"])).toBeNull();
+  });
+
+  it("chaque fiche du catalogue a son geste", () => {
+    expect(EXERCISE_CATALOG.filter((entry) => !exerciseClip(entry.catalogKey)).map((entry) => entry.catalogKey)).toEqual([]);
+  });
+
+  it("un geste vu de face reste « de travail » tant que sa série n'est pas validée, même dans une famille relue", () => {
+    const lateral = guideOf("lateral-raise");
+    expect(exerciseClip("lateral-raise")!.batch).toBe("face");
+    expect(withMotion(lateral, ["strength"]).illustration.motion).toBe("review");
+    expect(withMotion(lateral, ["strength", "strength:face"]).illustration.motion).toBe("approved");
+    expect(withMotion(guideOf("back-squat"), ["strength:face"]).illustration.motion).toBe("review");
   });
 
   it("n'enregistre jamais l'annonce : la lecture d'un guide stocké la retire", () => {
@@ -40,8 +49,9 @@ describe("gestes animés des guides", () => {
       await setMotionFamilyApproval(admin, "strength", true);
       await setMotionFamilyApproval(admin, "plyometrics", true);
       await setMotionFamilyApproval(admin, "strength", false);
-      expect(await approvedMotionFamilies()).toEqual(["plyometrics"]);
-      expect(await prisma.auditLog.count({ where: { action: "motion_family_approved", actorId: admin.userId } })).toBe(2);
+      await setMotionFamilyApproval(admin, "core", true, "face");
+      expect(await approvedMotionFamilies()).toEqual(["plyometrics", "core:face"]);
+      expect(await prisma.auditLog.count({ where: { action: "motion_family_approved", actorId: admin.userId } })).toBe(3);
     } finally {
       await prisma.platformSetting.deleteMany({ where: { key: "motionFamilies" } });
       await prisma.platformAdmin.deleteMany({ where: { email: admin.email } });
