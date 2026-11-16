@@ -2,6 +2,7 @@
 
 import type { ExerciseFamily, ExerciseGuide } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
+import type { MotionBatch } from "@tartan/mascot/exercise";
 import { exerciseClip } from "@tartan/mascot/exercises";
 import { useAction } from "next-safe-action/hooks";
 import { Sheet } from "@/components/sheet";
@@ -16,7 +17,33 @@ const onError = ({ error }: { error: { serverError?: string } }) =>
 
 export type MotionEntry = { key: string; name: string; guide: ExerciseGuide };
 
+const groupOf = (family: ExerciseFamily, batch?: MotionBatch) => (batch ? `${family}:${batch}` : family);
+
+const Entries = ({ entries, approved }: { entries: MotionEntry[]; approved: boolean }) => (
+  <ul className="grid gap-3 tablet:grid-cols-2 desktop:grid-cols-3">
+    {entries.map((entry) => {
+      const clip = exerciseClip(entry.key);
+      return (
+        <li key={entry.key}>
+          <Sheet className="flex h-full flex-col gap-2 p-3">
+            <h3 className="font-semibold">{entry.name}</h3>
+            {clip ? (
+              <GuideMotion
+                guide={{ ...entry.guide, illustration: { ...entry.guide.illustration, motion: approved ? "approved" : "review" } }}
+                autoPlay={false}
+              />
+            ) : (
+              <p className="text-soft">{t.missing}</p>
+            )}
+          </Sheet>
+        </li>
+      );
+    })}
+  </ul>
+);
+
 // Une famille de gestes à relire : chacun arrêté sur son installation, lu à la demande, puis la validation.
+// Les gestes vus de face, arrivés après la première relecture, ont leur propre validation.
 export const MotionFamily = ({
   family,
   entries,
@@ -24,11 +51,15 @@ export const MotionFamily = ({
 }: {
   family: ExerciseFamily;
   entries: MotionEntry[];
-  approved: boolean;
+  approved: readonly string[];
 }) => {
   const review = useAction(approveMotionFamilyAction, { onError });
   const name = m.exerciseGuide.families[family];
-  const done = entries.filter((entry) => exerciseClip(entry.key)).length;
+  const face = entries.filter((entry) => exerciseClip(entry.key)?.batch === "face");
+  const first = entries.filter((entry) => !face.includes(entry));
+  const done = first.filter((entry) => exerciseClip(entry.key)).length;
+  const firstApproved = approved.includes(groupOf(family));
+  const faceApproved = approved.includes(groupOf(family, "face"));
   return (
     <section className="flex flex-col gap-3" aria-labelledby={`famille-${family}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -37,39 +68,44 @@ export const MotionFamily = ({
             {name}
           </h2>
           <p className="text-soft">
-            {t.progress(done, entries.length)} · {approved ? t.approved : t.pending}
+            {t.progress(done, first.length)} · {firstApproved ? t.approved : t.pending}
           </p>
         </div>
         <Button
           type="button"
           size="sm"
-          variant={approved ? "secondary" : "primary"}
+          variant={firstApproved ? "secondary" : "primary"}
           disabled={review.isPending || done === 0}
-          onClick={() => review.execute({ family, approved: !approved })}
+          onClick={() => review.execute({ family, approved: !firstApproved })}
         >
-          {approved ? t.reopen(name) : t.approve(name)}
+          {firstApproved ? t.reopen(name) : t.approve(name)}
         </Button>
       </div>
-      <ul className="grid gap-3 tablet:grid-cols-2 desktop:grid-cols-3">
-        {entries.map((entry) => {
-          const clip = exerciseClip(entry.key);
-          return (
-            <li key={entry.key}>
-              <Sheet className="flex h-full flex-col gap-2 p-3">
-                <h3 className="font-semibold">{entry.name}</h3>
-                {clip ? (
-                  <GuideMotion
-                    guide={{ ...entry.guide, illustration: { ...entry.guide.illustration, motion: approved ? "approved" : "review" } }}
-                    autoPlay={false}
-                  />
-                ) : (
-                  <p className="text-soft">{t.missing}</p>
-                )}
-              </Sheet>
-            </li>
-          );
-        })}
-      </ul>
+      <Entries entries={first} approved={firstApproved} />
+      {face.length ? (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 id={`famille-${family}-face`} className="t-h3">
+                {t.faceBatch}
+              </h3>
+              <p className="text-soft">
+                {t.progress(face.length, face.length)} · {faceApproved ? t.faceApproved : t.pending}
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant={faceApproved ? "secondary" : "primary"}
+              disabled={review.isPending}
+              onClick={() => review.execute({ family, approved: !faceApproved, batch: "face" })}
+            >
+              {faceApproved ? t.reopenFace(name) : t.approveFace(name)}
+            </Button>
+          </div>
+          <Entries entries={face} approved={faceApproved} />
+        </>
+      ) : null}
     </section>
   );
 };

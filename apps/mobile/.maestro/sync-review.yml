@@ -30,6 +30,15 @@ env:
       COACH_EMAIL: ${COACH_EMAIL}
       PASSWORD: ${PASSWORD}
 - tapOn: "Enregistrer mes séries"
+# Sur le petit émulateur Android (640 dp de haut), le bandeau de synchronisation pousse le message sous le bord :
+# on défile jusqu'à lui. Sur iOS, il doit rester visible sans défiler.
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - scrollUntilVisible:
+          element: "L.enregistrement a été refusé.*"
+          timeout: 30000
 # Le serveur refuse : la saisie est gardée sur l'appareil, et l'écran le dit, juste au-dessus du bouton. Le bandeau
 # de synchronisation qui apparaît alors en haut pousse l'écran vers le bas : le message doit rester visible sans
 # défiler (sous le bouton, il sortait de l'écran).

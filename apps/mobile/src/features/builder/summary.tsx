@@ -1,5 +1,5 @@
 import type { Prescription, SaveScheduledSessionInput, SessionDraft } from "@tartan/contracts";
-import { sequenceOccurrences, occurrenceRef, formatPrescription } from "@tartan/domain";
+import { sequenceOccurrences, occurrenceRef, formatPrescription, formatSetPlan } from "@tartan/domain";
 import { m, strengthTestLabel } from "@tartan/i18n";
 import { View } from "react-native";
 import type { BuilderDraft } from "./draft-storage";
@@ -29,7 +29,14 @@ const PrescriptionSummary = ({ value, context }: { value: Prescription; context:
       : null;
   return (
     <View style={{ gap: space.xs }}>
+      {value.setPlan ? (
+        <T variant="caption">
+          {m.builder.setPlan.title} : {formatSetPlan(value)}
+        </T>
+      ) : null}
       {Object.entries(labels).map(([key, label]) => {
+        // Avec un détail série par série, séries et répétitions se lisent dans le détail.
+        if (value.setPlan && (key === "sets" || key === "reps")) return null;
         const v = value[key as keyof typeof labels];
         return v === undefined ? null : (
           <T key={key} variant="caption">
@@ -93,6 +100,17 @@ function BlockSummary({
                   {context.exercises.find((exercise) => exercise.id === item.exerciseId)?.name ?? m.common.notFound}
                 </T>
                 <PrescriptionSummary value={item.prescription} context={context} />
+                {block.variant === "both" && item.autonomous ? (
+                  <View>
+                    <T variant="smallStrong">
+                      {m.builder.sequence.autonomousLine(
+                        context.exercises.find((exercise) => exercise.id === item.autonomous?.exerciseId)?.name ??
+                          m.builder.sequence.deletedExercise,
+                      )}
+                    </T>
+                    <PrescriptionSummary value={item.autonomous.prescription} context={context} />
+                  </View>
+                ) : null}
                 {overrides
                   .filter(
                     (override) =>
@@ -212,12 +230,19 @@ export const BuilderSummary = ({
             notes: m.builder.notes,
           }).map(([key, label]) => {
             const value = pendingPrescription.fields[key as keyof typeof pendingPrescription.fields];
-            return value ? (
+            return typeof value === "string" && value ? (
               <T key={key} variant="caption">
                 {label} : {value}
               </T>
             ) : null;
           })}
+          {pendingPrescription.fields.setPlan?.map((set, index) => (
+            <T key={index} variant="caption">
+              {m.builder.setPlan.set(index + 1)}
+              {set.warmup ? ` · ${m.builder.setPlan.warmup}` : ""} : {set.reps || "–"} {m.builder.reps}
+              {set.load ? ` · ${set.load}` : ""}
+            </T>
+          ))}
           <T variant="caption">
             {m.builder.load} :{" "}
             {pendingPrescription.fields.loadType === "none"

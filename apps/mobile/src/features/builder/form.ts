@@ -5,9 +5,11 @@ import {
   isoDate,
   prescriptionSchema,
   saveScheduledSessionInput,
+  type PlannedSet,
   type Prescription,
   type SaveScheduledSessionInput,
 } from "@tartan/contracts";
+import { withSetPlan } from "@tartan/domain";
 
 export const numericFields = [
   "sets",
@@ -19,13 +21,18 @@ export const numericFields = [
   "count",
   "height_cm",
 ] as const;
+/** Une série détaillée en cours de saisie : les nombres restent du texte tant que la saisie n'est pas validée. */
+export type PlannedSetFields = { reps: string; load: string; warmup: boolean };
 export type PrescriptionFields = Record<
   (typeof numericFields)[number] | "loadValue" | "intensityValue" | "tempo" | "notes" | "unit" | "test",
   string
 > & {
   loadType: "none" | "kg" | "pct_1rm";
   intensityType: "none" | "rpe" | "rir";
+  // Série par série (pyramide, échauffement) : absent pour une prescription uniforme.
+  setPlan?: PlannedSetFields[];
 };
+export const MAX_PLANNED_SETS = 30;
 const decimal = (text: string) => (/^\d+(?:[.,]\d+)?$/.test(text.trim()) ? Number(text.trim().replace(",", ".")) : NaN);
 export const prescriptionFields = (value: Prescription): PrescriptionFields =>
   ({
@@ -38,20 +45,62 @@ export const prescriptionFields = (value: Prescription): PrescriptionFields =>
     tempo: value.tempo ?? "",
     notes: value.notes ?? "",
     unit: value.unit ?? "",
+    ...(value.setPlan ? { setPlan: value.setPlan.map(plannedSetFields) } : {}),
   }) as PrescriptionFields;
-export const parsePrescriptionFields = (v: PrescriptionFields) =>
-  prescriptionSchema.safeParse({
-    ...Object.fromEntries(numericFields.map((key) => [key, v[key].trim() === "" ? undefined : decimal(v[key])])),
+
+export const plannedSetFields = (set: PlannedSet): PlannedSetFields => ({
+  reps: set.reps === undefined ? "" : String(set.reps),
+  load: set.load ? String(set.load.value) : "",
+  warmup: Boolean(set.warmup),
+});
+
+/** Le point de départ d'un détail : autant de séries que prescrites, toutes identiques à la saisie en cours. */
+export const startSetPlanFields = (v: PrescriptionFields): PlannedSetFields[] => {
+  const count = /^\d+$/.test(v.sets.trim()) ? Number(v.sets.trim()) : 3;
+  return Array.from({ length: Math.min(Math.max(count, 1), MAX_PLANNED_SETS) }, () => ({
+    reps: v.reps,
+    load: v.loadType === "none" ? "" : v.loadValue,
+    warmup: false,
+  }));
+};
+
+const plannedSets = (v: PrescriptionFields): PlannedSet[] | undefined =>
+  v.setPlan?.map((set) => ({
+    ...(set.reps.trim() === "" ? {} : { reps: decimal(set.reps) }),
+    ...(v.loadType === "none" || set.load.trim() === ""
+      ? {}
+      : {
+          load:
+            v.loadType === "kg"
+              ? { type: "kg" as const, value: decimal(set.load) }
+              : { type: "pct_1rm" as const, value: decimal(set.load), test: v.test },
+        }),
+    ...(set.warmup ? { warmup: true } : {}),
+  }));
+export const parsePrescriptionFields = (v: PrescriptionFields) => {
+  const plan = plannedSets(v);
+  // Avec un détail, les séries, les répétitions et la charge viennent de lui (première série de travail).
+  const detailed = new Set<string>(plan ? ["sets", "reps"] : []);
+  const unitValue = plan ? (v.setPlan?.find((set) => set.load.trim() !== "")?.load ?? "") : v.loadValue;
+  const base = {
+    ...Object.fromEntries(
+      numericFields.map((key) => [
+        key,
+        detailed.has(key) || v[key].trim() === "" ? undefined : decimal(v[key]),
+      ]),
+    ),
     load:
-      v.loadType === "none"
+      v.loadType === "none" || (plan && unitValue.trim() === "")
         ? undefined
-        : { type: v.loadType, value: decimal(v.loadValue), ...(v.loadType === "pct_1rm" ? { test: v.test } : {}) },
+        : { type: v.loadType, value: decimal(unitValue), ...(v.loadType === "pct_1rm" ? { test: v.test } : {}) },
     intensityTarget:
       v.intensityType === "none" ? undefined : { type: v.intensityType, value: decimal(v.intensityValue) },
     tempo: v.tempo || undefined,
     notes: v.notes || undefined,
     unit: v.unit || undefined,
-  });
+  } as Prescription;
+  return prescriptionSchema.safeParse(plan?.length ? withSetPlan(base, plan) : base);
+};
 
 export const localSchedule = (iso: string | null): string | null => {
   if (!iso) return null;
@@ -102,6 +151,8 @@ export const builderErrors = (issues: { path: PropertyKey[] }[]): string => {
     tempo: m.builder.tempo,
     notes: m.builder.notes,
     unit: m.nativeBuilder.unit,
+    setPlan: m.builder.setPlan.title,
+    warmup: m.builder.setPlan.warmup,
   };
   return m.nativeBuilder.invalidFields(
     [
@@ -135,4 +186,9 @@ export const prescriptionFieldsSchema = z.object({
   test: z.string().max(60),
   loadType: z.enum(["none", "kg", "pct_1rm"]),
   intensityType: z.enum(["none", "rpe", "rir"]),
+  setPlan: z
+    .array(z.object({ reps: z.string().max(100), load: z.string().max(100), warmup: z.boolean() }))
+    .min(1)
+    .max(MAX_PLANNED_SETS)
+    .optional(),
 });

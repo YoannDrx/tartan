@@ -1,4 +1,4 @@
-// Gainage : Awa, l'athlète du triple saut. Au sol, de profil ; le gainage latéral se lit de face et attend ce point de vue.
+// Gainage : Awa, l'athlète du triple saut. Au sol, de profil ; le gainage latéral se lit de face (front.ts).
 import { above, dumbbell, exercise, ground, MIDDLE, type ExerciseClip, type ExerciseDraft, type Position } from "../exercise";
 import { arms, hanging, legs, settle, type PosePatch } from "./base";
 

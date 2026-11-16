@@ -152,8 +152,12 @@ const main = async () => {
   const monday = startOfWeek(today);
   // La séance du jour passe en premier : les parcours natifs la cherchent par son titre, et une séance de la semaine
   // posée le même jour (lundi, mercredi, samedi) ne doit pas la remplacer.
+  // Les parcours natifs durent une heure : s'ils franchissent minuit à Paris, « aujourd'hui » change en cours de
+  // route. Avec DEMO_NEXT_DAY_SESSION=1 (CI mobile seulement), la séance du jour existe aussi le lendemain.
+  const nextDay = process.env.DEMO_NEXT_DAY_SESSION === "1";
   const plan = [
     { date: today, title: "Force et pliométrie", type: "plyo" as const },
+    ...(nextDay ? [{ date: addDays(today, 1), title: "Force et pliométrie", type: "plyo" as const }] : []),
     { date: monday, title: "Force", type: "strength" as const },
     { date: addDays(monday, 2), title: "Pliométrie", type: "plyo" as const },
     { date: addDays(monday, 5), title: "Séance de saut", type: "jump" as const },

@@ -1,7 +1,13 @@
 import { celebrationFromResponse } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
-import type { ResolvedItem } from "@tartan/contracts";
-import { executionProgress, executionRestSeconds, executionSetProgress, formatDuration } from "@tartan/domain";
+import type { PlannedSet, ResolvedItem } from "@tartan/contracts";
+import {
+  executionProgress,
+  executionRestSeconds,
+  executionSetProgress,
+  formatDuration,
+  formatPlannedSet,
+} from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -81,24 +87,45 @@ const RestTimer = ({ seconds }: { seconds: number }) => {
   );
 };
 
-const SetButton = ({ index, done, onPress }: { index: number; done: boolean; onPress: () => void }) => {
+// Une série détaillée prend toute la largeur : ses répétitions, sa charge, et la mention d'échauffement.
+type PlannedLine = { text: string; warmup: boolean };
+
+const plannedLines = (item: ResolvedItem): PlannedLine[] | null =>
+  item.prescription.setPlan?.map((set: PlannedSet, n) => ({
+    text: formatPlannedSet(set, item.setLoadsKg?.[n] ?? (set.load?.type === "kg" ? set.load.value : null)),
+    warmup: Boolean(set.warmup),
+  })) ?? null;
+
+const SetButton = ({
+  index,
+  done,
+  onPress,
+  planned,
+}: {
+  index: number;
+  done: boolean;
+  onPress: () => void;
+  planned?: PlannedLine;
+}) => {
   const p = usePalette();
+  const state = done ? m.sessionMode.setDone(index + 1) : m.sessionMode.setTodo(index + 1);
   return (
     <Pressable
       testID={`set-${index}`}
       onPress={onPress}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: done }}
-      accessibilityLabel={done ? m.sessionMode.setDone(index + 1) : m.sessionMode.setTodo(index + 1)}
+      accessibilityLabel={
+        planned ? `${state} · ${planned.text}${planned.warmup ? ` · ${m.sessionMode.warmupSet}` : ""}` : state
+      }
       style={({ pressed }) => ({
-        flexBasis: "18%",
-        flexGrow: 1,
-        minWidth: 60,
-        height: 56,
+        ...(planned
+          ? { flexBasis: "100%", flexDirection: "row" as const, paddingHorizontal: space.md, gap: space.md }
+          : { flexBasis: "18%", flexGrow: 1, minWidth: 60, justifyContent: "center" as const, gap: 2 }),
+        // Une série détaillée grandit avec le texte agrandi plutôt que de le couper.
+        ...(planned ? { minHeight: 56, paddingVertical: space.sm } : { height: 56 }),
         borderRadius: radius.card,
         alignItems: "center",
-        justifyContent: "center",
-        gap: 2,
         backgroundColor: done ? p.status.done : p.surface,
         borderWidth: done ? 0 : 1,
         borderColor: p.border,
@@ -118,6 +145,18 @@ const SetButton = ({ index, done, onPress }: { index: number; done: boolean; onP
           {index + 1}
         </T>
       )}
+      {planned ? (
+        <View style={{ flex: 1 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <T variant="bodyStrong" style={{ color: done ? p.onStatus : p.text, fontVariant: ["tabular-nums"] }}>
+            {planned.text}
+          </T>
+          {planned.warmup ? (
+            <T variant="caption" style={{ color: done ? p.onStatus : p.textMuted }}>
+              {m.sessionMode.warmupSet}
+            </T>
+          ) : null}
+        </View>
+      ) : null}
     </Pressable>
   );
 };
@@ -210,6 +249,7 @@ export default function SessionMode() {
   const recovery = item.kind === "recovery";
   const sets = executionSetProgress(item, progress);
   const total = sets.length;
+  const planned = plannedLines(item);
   const doneCount = sets.filter(Boolean).length;
   const last = index >= items.length - 1;
   const restSeconds = executionRestSeconds(item, progress);
@@ -409,7 +449,13 @@ export default function SessionMode() {
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
             {sets.map((done, n) => (
-              <SetButton key={n} index={n} done={done} onPress={() => toggle(id, item.ref, n, total)} />
+              <SetButton
+                key={n}
+                index={n}
+                done={done}
+                planned={planned?.[n]}
+                onPress={() => toggle(id, item.ref, n, total)}
+              />
             ))}
           </View>
         </View>
