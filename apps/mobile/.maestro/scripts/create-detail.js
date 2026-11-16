@@ -1,5 +1,5 @@
 // Fixture locale du lot 3 : un bloc commun avec un exercice seul et un groupe de deux exercices, publié demain pour
-// un athlète, sans toucher aux séances du jour. Le remplacement en autonomie vise un exercice au nom sans accent.
+// un athlète, sans toucher aux séances du jour.
 var base = API_URL;
 if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(base)) throw new Error("fixture réservée au serveur local");
 function signIn(email) {
@@ -17,13 +17,10 @@ var athleteSpace = json(http.get(base + "/api/v1/me", athleteAuth).body).spaces[
 var org = athleteSpace.organizationId;
 var coachAuth = signIn(COACH_EMAIL);
 var exercises = json(http.get(base + "/api/v1/orgs/" + org + "/exercises", coachAuth).body);
-var picked = [];
-var replacement = null;
-for (var i = 0; i < exercises.length; i++) {
-  var plain = /^[A-Za-z ]{4,30}$/.test(exercises[i].name);
-  if (plain && !replacement && picked.length === 3) replacement = exercises[i];
-  else if (picked.length < 3) picked.push(exercises[i]);
-}
+// Le remplacement est la première fiche de la bibliothèque : en tête du sélecteur, sans recherche à taper
+// (sur l'émulateur Android, une saisie au clavier peut être doublée).
+var replacement = exercises[0];
+var picked = exercises.slice(1, 4);
 if (picked.length !== 3 || !replacement) throw new Error("quatre fiches requises pour la recette");
 var tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 var body = {

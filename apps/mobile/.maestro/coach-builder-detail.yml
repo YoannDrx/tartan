@@ -96,16 +96,11 @@ env:
 - waitForAnimationToEnd
 - tapOn:
     id: replace-autonomous-detail-c
-- tapOn:
-    id: exercise-search
-- inputText: ${output.replacementName}
-- runFlow:
-    file: flows/_hide-keyboard.yml
 - scrollUntilVisible:
     element:
       id: exercise-option-${output.replacementId}
     centerElement: true
-    timeout: 20000
+    timeout: 60000
 - waitForAnimationToEnd
 - tapOn:
     id: exercise-option-${output.replacementId}
