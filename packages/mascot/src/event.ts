@@ -3,7 +3,7 @@ import { clamp, mix, runPose, runRise, sample, samplePose, smooth, type Frame, t
 import { POSES } from "./poses";
 import type { PropShape } from "./props";
 import type { Face } from "./rig";
-import { BODY, jointPositions, type Anchor, type Point, type Pose } from "./skeleton";
+import { BODY, jointPositions, type Anchor, type Point, type Pose, type View } from "./skeleton";
 
 export const EVENT_IDS = ["hurdles", "poleVault", "tripleJump", "discus", "longJump", "highJump"] as const;
 export type EventId = (typeof EVENT_IDS)[number];
@@ -107,8 +107,8 @@ export const runIn = (t: number, frame: (t: number) => Frame, lead = 0.012): Mom
 ];
 
 // Le bassin qu'il faut pour qu'une main, un pied ou la tête soit exactement à `target`.
-export const pinned = (pose: Pose, anchor: Anchor, target: Point): Point => {
-  const at = jointPositions(pose)[anchor];
+export const pinned = (pose: Pose, anchor: Anchor, target: Point, view: View = "side"): Point => {
+  const at = jointPositions(pose, undefined, view)[anchor];
   return { x: target.x - at.x, y: target.y - at.y };
 };
 

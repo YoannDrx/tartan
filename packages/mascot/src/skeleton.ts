@@ -162,10 +162,114 @@ export const SKELETON: readonly Bone[] = [
   ...leg("B", 0),
 ];
 
+// Le point de vue d'un geste : de profil (le corps regarde vers la droite), de face, ou de dos (allongé sur le
+// ventre, vu d'en haut). De face et de dos, le même squelette : les épaules et les hanches s'écartent, le côté A
+// à droite de l'image et le côté B à gauche, en miroir. Un angle positif écarte alors le membre du corps,
+// des deux côtés : `armA = armB = 90` lève les bras sur les côtés, `legA = legB = 20` écarte les pieds.
+export const VIEWS = ["side", "front", "back"] as const;
+export type View = (typeof VIEWS)[number];
+
+export const FRONT_BODY = { shoulder: 38, hip: 18 };
+
+const frontArm = (side: "A" | "B"): Bone[] => {
+  const out = side === "A" ? 1 : -1;
+  return [
+    {
+      id: `upperArm${side}`,
+      parent: "torso",
+      offset: { x: out * FRONT_BODY.shoulder, y: -BODY.shoulder + 4 },
+      turn: { by: `arm${side}`, sign: side === "A" ? -1 : 1 },
+      shapes: [{ kind: "limb", length: BODY.arm, width: 26, paint: "skin" }],
+      z: 9,
+    },
+    {
+      id: `forearm${side}`,
+      parent: `upperArm${side}`,
+      offset: { x: 0, y: BODY.arm },
+      turn: { by: `elbow${side}`, sign: side === "A" ? -1 : 1 },
+      shapes: [{ kind: "limb", length: BODY.forearm, width: 24, paint: "skin" }],
+      z: 10,
+    },
+  ];
+};
+
+const frontLeg = (side: "A" | "B"): Bone[] => {
+  const out = side === "A" ? 1 : -1;
+  return [
+    {
+      id: `thigh${side}`,
+      parent: null,
+      offset: { x: out * FRONT_BODY.hip, y: 0 },
+      turn: { by: `leg${side}`, sign: side === "A" ? -1 : 1 },
+      shapes: [
+        { kind: "limb", length: BODY.thigh, width: 32, paint: "skin" },
+        { kind: "limb", length: BODY.thigh * 0.56, width: 38, paint: "shorts" },
+      ],
+      z: 4,
+    },
+    {
+      id: `shin${side}`,
+      parent: `thigh${side}`,
+      offset: { x: 0, y: BODY.thigh },
+      turn: { by: `knee${side}`, sign: side === "A" ? 1 : -1 },
+      shapes: [
+        { kind: "limb", length: BODY.shin, width: 30, paint: "skin" },
+        // La chaussure vue de face : la pointe vers le spectateur, un peu tournée vers l'extérieur.
+        { kind: "box", x: out > 0 ? -15 : -21, y: BODY.shin - 10, width: 36, height: 28, radius: 13, paint: "shoe" },
+      ],
+      z: 5,
+    },
+  ];
+};
+
+// Vu de face : le buste plus large, les deux yeux au milieu du visage (rig.ts), les membres de part et d'autre.
+export const FRONT_SKELETON: readonly Bone[] = [
+  {
+    id: "torso",
+    parent: null,
+    offset: ORIGIN,
+    turn: { by: "lean", sign: 1 },
+    shapes: [
+      { kind: "box", x: -46, y: -BODY.torso - 8, width: 92, height: BODY.torso + 24, radius: 30, paint: "tee" },
+      { kind: "box", x: -45, y: -14, width: 90, height: 34, radius: 16, paint: "shorts" },
+    ],
+    z: 6,
+  },
+  {
+    id: "head",
+    parent: "torso",
+    offset: { x: 0, y: -BODY.neck },
+    turn: { by: "head", sign: 1 },
+    shapes: [
+      { kind: "disc", x: 0, y: 0, radius: 44, paint: "skin" },
+      { kind: "cap", radius: 44, chord: { x: 43, y: -10 }, paint: "hair" },
+    ],
+    z: 7,
+  },
+  {
+    id: "eyes",
+    parent: "head",
+    offset: ORIGIN,
+    turn: null,
+    shapes: [
+      { kind: "disc", x: -13, y: 6, radius: 6, paint: "eye" },
+      { kind: "disc", x: 13, y: 6, radius: 6, paint: "eye" },
+    ],
+    z: 8,
+  },
+  ...frontArm("A"),
+  ...frontArm("B"),
+  ...frontLeg("A"),
+  ...frontLeg("B"),
+];
+
+export const skeletonOf = (view: View = "side"): readonly Bone[] => (view === "side" ? SKELETON : FRONT_SKELETON);
+
 // Les mêmes os, dans l'ordre où les rendus les dessinent.
 export const STACK: readonly Bone[] = [...SKELETON].sort((a, b) => a.z - b.z);
 
 const BY_ID = new Map(SKELETON.map((bone) => [bone.id, bone]));
+const FRONT_BY_ID = new Map(FRONT_SKELETON.map((bone) => [bone.id, bone]));
 
 // Le chemin du bassin jusqu'à un os : une suite de décalages et de rotations, à appliquer dans l'ordre.
 // `mirror` retourne l'os sur lui-même, pour qu'un numéro reste lisible sur un corps vu de dos.
@@ -213,12 +317,14 @@ export type Anchor = keyof typeof ANCHORS;
 
 // Cinématique directe : où se trouvent les mains, les pieds, la tête et le bassin pour une pose donnée,
 // dans le repère de la scène quand `root` donne la position du bassin, autour de lui sinon.
-export const jointPositions = (pose: Pose, root: Point = ORIGIN): Record<Anchor, Point> => {
+// `view` : le squelette de profil par défaut, celui de face pour un geste vu de face ou de dos.
+export const jointPositions = (pose: Pose, root: Point = ORIGIN, view: View = "side"): Record<Anchor, Point> => {
+  const among = view === "side" ? BY_ID : FRONT_BY_ID;
   const body = then(turned(moved([1, 0, 0, 1, 0, 0], root), pose.rot), [pose.flip * pose.sx, 0, 0, pose.sy, 0, 0]);
   const out = {} as Record<Anchor, Point>;
   for (const name of Object.keys(ANCHORS) as Anchor[]) {
     const { bone, at } = ANCHORS[name];
-    const steps = bone ? chain(BY_ID.get(bone)!, pose) : [];
+    const steps = bone ? chain(among.get(bone)!, pose, among) : [];
     const matrix = steps.reduce(
       (m, step) => ("move" in step ? moved(m, step.move) : "turn" in step ? turned(m, step.turn) : m),
       body,

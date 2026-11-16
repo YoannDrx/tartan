@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-16, Claude, lot 4 : gestes vus de face
+Fait (PR `feat/gestes-de-face`) : `View` (`side`, `front`, `back`) dans `skeleton.ts` (`FRONT_SKELETON`, `jointPositions(pose, root, view)`), `rig(look, view)` (visage centré, dossard au milieu, coiffure vue de face ; de dos, ni visage ni dossard), `facing` et `batch` sur `ExerciseClip`, `pinned` et `settle` avec le point de vue ; rendu web (`AthleteFigure facing`) et mobile (`athleteRig(…, clip.facing)`) ; `exercises/front.ts` : les 17 gestes manquants. Validation : clés « famille:face » dans `motionFamilies`, bouton à part dans `/admin/mouvements`.
+Vérifié : mascotte 782 (dont le sol avec le bon squelette, la symétrie de face, le visage), web 1 990 (dont « chaque fiche a son geste » et « un geste de face reste de travail dans une famille validée »), types, lint ; planche de travail rendue hors dépôt (`apps/web/.local/board.tsx`, positions tenues de chaque geste).
+Non vérifié : rendu sur un vrai téléphone ; relecture du fondateur.
+À savoir : de face, un angle positif écarte le membre des deux côtés (A à droite de l'image, B à gauche) ; couché sur le côté (`rot: -90`), le côté A est en haut. Les jambes de face passent derrière le buste : assis genoux hauts, une cuisse au-delà de 120° disparaît. La rotation de hanche sur le ventre et la rotation thoracique restent des approximations planes (le tibia ou le bras qui pointe vers le spectateur ne se raccourcit pas).
+Suite : préparation des lots 5 à 7.
+
 ## 2026-11-15, Claude, fichiers d'environnement et EXPO_TOKEN
 Fait (PR `chore/fichiers-env`) : `.env.example` réécrit en 14 rubriques numérotées, toutes les valeurs à `""`, chaque variable avec son rôle, son défaut et les environnements Vercel où elle est posée ; `parseEnv` traite une valeur vide comme absente (défauts du code appliqués), même règle dans `prisma.config.ts`, `layout.tsx`, la graine et Vitest. Fichiers locaux ignorés rangés dans le même ordre, valeurs inchangées. `EXPO_TOKEN` posé sur GitHub (robot Expo `github-actions`, rôle Developer).
 Vérifié : test d'environnement (10), types, lint ; relevé Vercel : la production a toutes les variables que le code exige.

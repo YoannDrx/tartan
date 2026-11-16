@@ -1,6 +1,6 @@
 // Le corps d'un athlète du groupe : le squelette de base, plus des mains, un visage, une coiffure et un dossard.
 // Une seule morphologie : seuls changent ce qui se pose dessus.
-import { BODY, SKELETON, type Bone, type Point, type Shape } from "./skeleton";
+import { BODY, skeletonOf, type Bone, type Point, type Shape, type View } from "./skeleton";
 
 export const HAIRS = ["crop", "bun", "ponytail", "afro"] as const;
 export type Hair = (typeof HAIRS)[number];
@@ -44,7 +44,44 @@ const FACE: Record<Face, Shape[]> = {
   ],
 };
 
+// Le même visage, vu de face : les yeux de part et d'autre du milieu, la bouche au centre.
+const FRONT_FACE: Record<Face, Shape[]> = {
+  neutral: [
+    { kind: "disc", x: -13, y: 6, radius: EYE, paint: "eye" },
+    { kind: "disc", x: 13, y: 6, radius: EYE, paint: "eye" },
+    stroke(at(-5, 25), at(5, 25), 4),
+  ],
+  effort: [
+    stroke(at(-20, 2), at(-9, 8), 5),
+    stroke(at(20, 2), at(9, 8), 5),
+    { kind: "box", x: -8, y: 20, width: 16, height: 9, radius: 4, paint: "eye" },
+  ],
+  joy: [
+    stroke(at(-20, 9), at(-14, 3), 4.5),
+    stroke(at(-14, 3), at(-8, 9), 4.5),
+    stroke(at(8, 9), at(14, 3), 4.5),
+    stroke(at(14, 3), at(20, 9), 4.5),
+    { kind: "segment", x: 0, y: 19, radius: 11, from: 0, to: 180, paint: "eye" },
+  ],
+};
+
 const CAP: Shape = { kind: "cap", radius: 44, chord: at(43, -10), paint: "hair" };
+
+// Vu de face, ce qui dépasse derrière la tête : un chignon au sommet, une queue de cheval sur le côté.
+const FRONT_HAIR_BACK: Record<Hair, Shape[]> = {
+  crop: [],
+  bun: [{ kind: "disc", x: 0, y: -50, radius: 18, paint: "hair" }],
+  ponytail: [stroke(at(-36, -12), at(-50, 22), 15, "hair"), stroke(at(-50, 22), at(-50, 46), 12, "hair")],
+  afro: [{ kind: "disc", x: 0, y: -12, radius: 56, paint: "hair" }],
+};
+
+// Vu de dos (allongé sur le ventre, vu d'en haut) : l'arrière de la tête, sans visage.
+const BACK_HAIR: Record<Hair, Shape[]> = {
+  crop: [],
+  bun: [{ kind: "disc", x: 0, y: -26, radius: 18, paint: "hair" }],
+  ponytail: [stroke(at(0, 4), at(0, 40), 14, "hair")],
+  afro: [],
+};
 
 // Ce qui dépasse derrière la tête, dessiné sous elle.
 const HAIR_BACK: Record<Hair, Shape[]> = {
@@ -163,17 +200,38 @@ const bibShapes = (number: number): Shape[] => {
 
 const HAND: Shape = { kind: "disc", x: 0, y: BODY.forearm, radius: 15, paint: "skin" };
 
-const build = ({ hair, face, bib }: Look): Bone[] => {
-  const bones: Bone[] = SKELETON.map((bone) => {
-    if (bone.id === "head") return { ...bone, shapes: [bone.shapes[0]!, CAP] };
-    if (bone.id === "eyes") return { ...bone, shapes: FACE[face] };
+const build = ({ hair, face, bib }: Look, view: View): Bone[] => {
+  const back = view === "back";
+  const bones: Bone[] = skeletonOf(view).map((bone) => {
+    if (bone.id === "head")
+      return {
+        ...bone,
+        // De dos, la chevelure couvre la tête ; une coupe afro garde son volume.
+        shapes: back
+          ? [bone.shapes[0]!, { kind: "disc", x: 0, y: 0, radius: hair === "afro" ? 56 : 42, paint: "hair" }]
+          : [bone.shapes[0]!, CAP],
+      };
+    if (bone.id === "eyes") return { ...bone, shapes: back ? [] : view === "front" ? FRONT_FACE[face] : FACE[face] };
     if (bone.id === "forearmA" || bone.id === "forearmB") return { ...bone, shapes: [...bone.shapes, HAND] };
     return bone;
   });
-  if (HAIR_BACK[hair].length > 0) {
-    bones.push({ id: "hairBack", parent: "head", offset: at(0, 0), turn: null, shapes: HAIR_BACK[hair], z: 6.5 });
+  const behind = view === "side" ? HAIR_BACK[hair] : view === "front" ? FRONT_HAIR_BACK[hair] : BACK_HAIR[hair];
+  if (behind.length > 0) {
+    // De dos, le chignon et la queue de cheval se voient par-dessus la tête.
+    bones.push({ id: "hairBack", parent: "head", offset: at(0, 0), turn: null, shapes: behind, z: back ? 7.5 : 6.5 });
   }
-  if (bib !== null) {
+  if (bib !== null && view === "front") {
+    bones.push({
+      id: "bib",
+      parent: "torso",
+      offset: at(0, -BODY.torso * 0.58),
+      turn: null,
+      shapes: bibShapes(bib),
+      z: 6.2,
+      upright: true,
+    });
+  }
+  if (bib !== null && view === "side") {
     bones.push({
       id: "bib",
       parent: "torso",
@@ -191,11 +249,11 @@ const build = ({ hair, face, bib }: Look): Bone[] => {
 const cache = new Map<string, readonly Bone[]>();
 
 // Les os d'un athlète, du fond vers le devant : prêts pour `svgAthlete` et `drawMascot`.
-export const rig = (look: Look): readonly Bone[] => {
-  const key = `${look.hair}/${look.face}/${look.bib}`;
+export const rig = (look: Look, view: View = "side"): readonly Bone[] => {
+  const key = `${look.hair}/${look.face}/${look.bib}/${view}`;
   let bones = cache.get(key);
   if (!bones) {
-    bones = build(look);
+    bones = build(look, view);
     cache.set(key, bones);
   }
   return bones;

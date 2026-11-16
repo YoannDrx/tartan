@@ -2,7 +2,6 @@ import { Prisma } from "@/generated/prisma/client";
 import {
   exerciseClassification,
   exerciseInput,
-  type ExerciseFamily,
   type ExerciseInput,
   type ExerciseSummary,
   prescriptionSchema,
@@ -57,7 +56,7 @@ export const mediaSnapshot = (media: MediaRow | undefined) => {
 
 type ExerciseRow = Prisma.ExerciseGetPayload<{ include: { media: true } }>;
 
-const exerciseSummary = async (e: ExerciseRow, families: readonly ExerciseFamily[]): Promise<ExerciseSummary> => {
+const exerciseSummary = async (e: ExerciseRow, families: readonly string[]): Promise<ExerciseSummary> => {
   const media = mediaSnapshot(e.media[0]);
   // Vidéos du coach privées : lecture par jeton signé, comme dans une séance.
   const stream =

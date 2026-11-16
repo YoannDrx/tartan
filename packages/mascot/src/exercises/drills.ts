@@ -1,5 +1,5 @@
 // Coordination, escaliers et échauffement : Awa pour les plots et les escaliers, Lila pour l'échauffement.
-// Les déplacements de côté (pas chassés, pas croisés, jumping jacks) se lisent de face et attendent ce point de vue.
+// Les déplacements de côté (pas chassés, pas croisés, jumping jacks) se lisent de face : ils sont dans front.ts.
 import { mix, smooth } from "../clip";
 import {
   air,

@@ -27,7 +27,7 @@ export const ExerciseScene = ({
     <svg viewBox={clip.view} className={cn("block", className)} style={{ backgroundColor: SURFACES.ink }} {...svg}>
       <g transform={tilt}>
         <Gear shapes={gear.filter((shape) => !shape.front)} />
-        <AthleteFigure id={clip.athlete} pose={pose} face={clip.face(t)} on="ink" at={root} />
+        <AthleteFigure id={clip.athlete} pose={pose} face={clip.face(t)} on="ink" at={root} facing={clip.facing} />
         <Gear shapes={gear.filter((shape) => shape.front)} />
       </g>
     </svg>
