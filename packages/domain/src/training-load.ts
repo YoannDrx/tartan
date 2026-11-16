@@ -1,4 +1,5 @@
 import type { Prescription } from "@tartan/contracts";
+import { plannedSetLoadKg } from "./set-plan";
 
 // Charge de séance (session-RPE) : effort ressenti × durée. Aide à la décision, pas un diagnostic (§ 7.9).
 export const sessionLoad = (rpe: number | null, durationMin: number | null): number | null =>
@@ -13,10 +14,16 @@ export const addPrescriptionVolumes = (
   p: Prescription,
   resolvedLoadKg: number | null,
 ): WeekVolumes => {
-  const sets = p.sets ?? 1;
+  const sets = p.setPlan?.length ?? p.sets ?? 1;
+  // Série par série, chaque série compte ses propres répétitions et sa propre charge.
+  const tonnage = p.setPlan?.length
+    ? p.setPlan.reduce((total, set) => total + (set.reps ?? 0) * (plannedSetLoadKg(set, p, resolvedLoadKg) ?? 0), 0)
+    : resolvedLoadKg !== null && p.reps
+      ? sets * p.reps * resolvedLoadKg
+      : 0;
   return {
     groundContacts: into.groundContacts + (p.ground_contacts ?? 0),
-    tonnageKg: into.tonnageKg + (resolvedLoadKg !== null && p.reps ? sets * p.reps * resolvedLoadKg : 0),
+    tonnageKg: into.tonnageKg + tonnage,
     distanceM: into.distanceM + (p.distance_m ? sets * p.distance_m : 0),
     jumps: into.jumps,
   };

@@ -1,7 +1,7 @@
 "use client";
 
 import type { AthleteSessionDetail, ExerciseMediaSnapshot, ResolvedItem } from "@tartan/contracts";
-import { formatDuration } from "@tartan/domain";
+import { formatDuration, formatPlannedSet, prescribedSetCount } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { ArrowRight, Check, Timer, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -169,7 +169,8 @@ export const SessionMode = ({
   }
   const recovery = item.kind === "recovery";
   const restDuration = recovery ? item.prescription.duration_s : item.prescription.rest_s;
-  const setCount = item.prescription.sets ?? 1;
+  const setCount = prescribedSetCount(item.prescription);
+  const plan = item.prescription.setPlan;
   const doneCount = Array.from({ length: setCount }, (_, i) => checked[`${item.ref}#${i}`]).filter(Boolean).length;
   const last = index === items.length - 1;
   return (
@@ -258,16 +259,18 @@ export const SessionMode = ({
                 {doneCount} / {setCount}
               </span>
             </div>
-            <div className="grid grid-cols-5 gap-2">
+            <div className={cn("grid gap-2", plan ? "grid-cols-1 tablet:grid-cols-2" : "grid-cols-5")}>
               {Array.from({ length: setCount }, (_, i) => {
                 const key = `${item.ref}#${i}`;
                 const done = Boolean(checked[key]);
+                const planned = plan?.[i];
                 return (
                   <button
                     key={key}
                     type="button"
                     aria-pressed={done}
-                    aria-label={done ? m.sessionMode.setDone(i + 1) : m.sessionMode.setTodo(i + 1)}
+                    // Une série détaillée se nomme par son texte visible : numéro, détail, échauffement.
+                    aria-label={planned ? undefined : done ? m.sessionMode.setDone(i + 1) : m.sessionMode.setTodo(i + 1)}
                     onClick={() => {
                       unlockSound();
                       setChecked({ ...checked, [key]: !done });
@@ -281,11 +284,34 @@ export const SessionMode = ({
                       else startRest(seconds);
                     }}
                     className={cn(
-                      "flex h-[60px] flex-col items-center justify-center rounded-card",
-                      done ? "bg-st-done" : "border border-control-line bg-card-raised",
+                      "flex h-[60px] rounded-card",
+                      planned ? "items-center gap-3 px-3 text-left" : "flex-col items-center justify-center",
+                      done ? "bg-st-done text-on-status" : "border border-control-line bg-card-raised",
                     )}
                   >
-                    {done ? (
+                    {planned ? (
+                      <>
+                        <span className="flex size-8 shrink-0 items-center justify-center">
+                          {done ? (
+                            <Check aria-hidden className="size-5" strokeWidth={2.6} />
+                          ) : (
+                            <span className="t-num text-[20px]">{i + 1}</span>
+                          )}
+                        </span>
+                        <span className="flex min-w-0 flex-1 flex-col leading-snug">
+                          <span className="sr-only">{m.sessionMode.plannedSet(i + 1)}</span>
+                          <span className="t-num font-semibold">
+                            {formatPlannedSet(
+                              planned,
+                              item.setLoadsKg?.[i] ?? (planned.load?.type === "kg" ? planned.load.value : null),
+                            )}
+                          </span>
+                          {planned.warmup ? (
+                            <span className="t-caption font-normal">{m.sessionMode.warmupSet}</span>
+                          ) : null}
+                        </span>
+                      </>
+                    ) : done ? (
                       <Check aria-hidden className="size-5" strokeWidth={2.6} />
                     ) : (
                       <span className="t-num text-[20px]">{i + 1}</span>

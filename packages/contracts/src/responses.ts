@@ -134,6 +134,8 @@ export const resolvedItem = z.object({
   strengthLoadKind: snapshotItem.shape.strengthLoadKind,
   loadStepKg: snapshotItem.shape.loadStepKg,
   resolvedLoadKg: z.number().nullable(),
+  // Les kilos de chaque série détaillée, dans l'ordre (null quand la charge n'est pas calculable).
+  setLoadsKg: z.array(z.number().nullable()).optional(),
   summary: z.string(),
 });
 export type ResolvedItem = z.infer<typeof resolvedItem>;

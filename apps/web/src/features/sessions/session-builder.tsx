@@ -9,6 +9,7 @@ import {
   type AutonomousReplacement,
   exerciseCategory,
   type ExerciseSummary,
+  type PlannedSet,
   type Prescription,
   type SessionDraft,
   type SessionType,
@@ -21,14 +22,18 @@ import {
   mergeVariantBlocks,
   prescriptionForGroup,
   normalizeExerciseTerm,
+  setPlanLoadUnit,
+  startSetPlan,
   validSessionStructure,
   withAutonomousReplacements,
   withSessionRefs,
+  withSetPlan,
+  withoutSetPlan,
 } from "@tartan/domain";
 import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
 import { PhasePlanningPanel } from "@/features/phases/phase-planning";
 import { m, strengthTestLabel, formatDateLong } from "@tartan/i18n";
-import { ChevronRight, GripVertical, Plus, Search, Undo2 } from "lucide-react";
+import { ChevronRight, GripVertical, Plus, Search, Trash2, Undo2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -87,6 +92,135 @@ const split = (draft: SessionDraft | null) => {
 
 const numberOrUndefined = (v: string): number | undefined => (v === "" ? undefined : Number(v));
 
+const setPlanText = m.builder.setPlan;
+
+/** Série par série : pyramide, séries d'échauffement. Chaque ligne a ses répétitions et sa charge. */
+const SetPlanEditor = ({ value, onChange }: { value: Prescription; onChange: (p: Prescription) => void }) => {
+  const plan = value.setPlan;
+  const unit = value.load;
+  const update = (index: number, set: PlannedSet) =>
+    plan &&
+    onChange(
+      withSetPlan(
+        value,
+        plan.map((entry, i) => (i === index ? set : entry)),
+      ),
+    );
+  const removeSet = (index: number) =>
+    plan ? (
+      <IconButton
+        label={setPlanText.remove(index + 1)}
+        disabled={plan.length === 1}
+        onClick={() =>
+          onChange(
+            withSetPlan(
+              value,
+              plan.filter((_, i) => i !== index),
+            ),
+          )
+        }
+      >
+        <Trash2 aria-hidden className="size-4" />
+      </IconButton>
+    ) : null;
+  return (
+    <fieldset className="col-span-2 flex min-w-0 flex-col gap-2 tablet:col-span-3">
+      <legend className="sr-only">{setPlanText.title}</legend>
+      <label className="flex min-h-11 items-center gap-2">
+        <input
+          type="checkbox"
+          className="size-5 accent-[var(--color-accent)]"
+          checked={Boolean(plan)}
+          onChange={(e) => onChange(e.target.checked ? withSetPlan(value, startSetPlan(value)) : withoutSetPlan(value))}
+        />
+        <span className="font-semibold">{setPlanText.toggle}</span>
+      </label>
+      {plan ? (
+        <>
+          <p className="t-caption font-normal text-soft">{setPlanText.hint}</p>
+          <ol className="flex flex-col gap-2">
+            {plan.map((set, index) => (
+              <li key={index} className="min-w-0">
+                <div
+                  role="group"
+                  aria-label={setPlanText.set(index + 1)}
+                  className="flex min-w-0 flex-col gap-2 rounded-button bg-card-raised p-2 tablet:flex-row tablet:items-end"
+                >
+                  <div className="flex min-w-0 items-center gap-2 tablet:w-52 tablet:self-center">
+                    <span className="t-num shrink-0 font-semibold">{setPlanText.set(index + 1)}</span>
+                    <label className="flex min-h-11 items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="size-5 accent-[var(--color-accent)]"
+                        checked={Boolean(set.warmup)}
+                        onChange={(e) => {
+                          const { warmup: _warmup, ...rest } = set;
+                          update(index, e.target.checked ? { ...rest, warmup: true } : rest);
+                        }}
+                      />
+                      {setPlanText.warmup}
+                    </label>
+                    {/* Sur téléphone, la corbeille rejoint la ligne du titre plutôt que d'occuper une ligne. */}
+                    <span className="ml-auto tablet:hidden">{removeSet(index)}</span>
+                  </div>
+                  <div className="grid min-w-0 flex-1 grid-cols-2 gap-2">
+                    <Field label={m.builder.reps}>
+                      {(a) => (
+                        <Input
+                          {...a}
+                          type="number"
+                          min={1}
+                          inputMode="numeric"
+                          value={set.reps ?? ""}
+                          onChange={(e) => {
+                            const { reps: _reps, ...rest } = set;
+                            const reps = numberOrUndefined(e.target.value);
+                            update(index, reps ? { ...rest, reps } : rest);
+                          }}
+                        />
+                      )}
+                    </Field>
+                    {unit ? (
+                      <Field label={unit.type === "kg" ? m.builder.sequence.loadKg : m.builder.loadPct}>
+                        {(a) => (
+                          <Input
+                            {...a}
+                            type="number"
+                            min={0}
+                            step="0.25"
+                            inputMode="decimal"
+                            value={set.load?.value ?? ""}
+                            onChange={(e) => {
+                              const loaded = setPlanLoadUnit([set], unit)[0]!;
+                              update(index, { ...loaded, load: { ...loaded.load!, value: Number(e.target.value) } });
+                            }}
+                          />
+                        )}
+                      </Field>
+                    ) : null}
+                  </div>
+                  <span className="hidden self-end tablet:block">{removeSet(index)}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+          {plan.length < 30 ? (
+            <Button
+              size="sm"
+              variant="quiet"
+              className="self-start"
+              onClick={() => onChange(withSetPlan(value, [...plan, { ...plan.at(-1)!, warmup: undefined }]))}
+            >
+              <Plus aria-hidden className="size-4 text-accent" />
+              {setPlanText.add}
+            </Button>
+          ) : null}
+        </>
+      ) : null}
+    </fieldset>
+  );
+};
+
 export const PrescriptionEditor = ({
   value,
   onChange,
@@ -118,10 +252,14 @@ export const PrescriptionEditor = ({
     </Field>
   );
   const loadType = value.load?.type ?? "none";
+  const plan = value.setPlan;
+  // Avec un détail série par série, l'unité et le test de charge valent pour chaque série.
+  const withLoad = (next: Prescription): Prescription =>
+    plan ? withSetPlan(next, setPlanLoadUnit(plan, next.load)) : next;
   return (
     <div className="grid grid-cols-2 gap-3 tablet:grid-cols-3">
-      {numberField("sets", m.builder.sets)}
-      {numberField("reps", m.builder.reps)}
+      {plan ? null : numberField("sets", m.builder.sets)}
+      {plan ? null : numberField("reps", m.builder.reps)}
       {numberField("distance_m", m.builder.distance)}
       {numberField("duration_s", m.builder.durationS)}
       {numberField("rest_s", m.builder.sequence.betweenSets)}
@@ -135,17 +273,19 @@ export const PrescriptionEditor = ({
               const type = e.target.value;
               if (type === "none") {
                 const { load: _removed, ...rest } = value;
-                onChange(rest);
-              } else if (type === "kg") onChange({ ...value, load: { type: "kg", value: 0 } });
+                onChange(withLoad(rest));
+              } else if (type === "kg") onChange(withLoad({ ...value, load: { type: "kg", value: 0 } }));
               else
-                onChange({
-                  ...value,
-                  load: {
-                    type: "pct_1rm",
-                    value: 80,
-                    test: testKeys.find((key) => key === `exercise:${exercise?.id}`) ?? testKeys[0] ?? "back_squat",
-                  },
-                });
+                onChange(
+                  withLoad({
+                    ...value,
+                    load: {
+                      type: "pct_1rm",
+                      value: 80,
+                      test: testKeys.find((key) => key === `exercise:${exercise?.id}`) ?? testKeys[0] ?? "back_squat",
+                    },
+                  }),
+                );
             }}
           >
             <option value="none">{m.builder.sequence.none}</option>
@@ -154,7 +294,7 @@ export const PrescriptionEditor = ({
           </Select>
         )}
       </Field>
-      {value.load ? (
+      {value.load && !plan ? (
         <Field label={value.load.type === "kg" ? m.builder.sequence.loadKg : m.builder.loadPct}>
           {(a) => (
             <Input
@@ -179,7 +319,7 @@ export const PrescriptionEditor = ({
               value={value.load?.type === "pct_1rm" ? value.load.test : ""}
               onChange={(e) => {
                 const load = value.load;
-                if (load?.type === "pct_1rm") onChange({ ...value, load: { ...load, test: e.target.value } });
+                if (load?.type === "pct_1rm") onChange(withLoad({ ...value, load: { ...load, test: e.target.value } }));
               }}
             >
               {testKeys.map((k) => (
@@ -245,6 +385,7 @@ export const PrescriptionEditor = ({
           />
         )}
       </Field>
+      <SetPlanEditor value={value} onChange={onChange} />
       <Field label={m.builder.notes} className="col-span-2 tablet:col-span-3">
         {(a) => (
           <Input

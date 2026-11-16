@@ -1,4 +1,5 @@
 import type { Prescription, SnapshotItem, StrengthTestKind } from "@tartan/contracts";
+import { formatSetPlan, prescribedSetCount, type SetReference } from "./set-plan";
 
 export const PLATE_STEP_KG = 1.25;
 
@@ -34,15 +35,23 @@ export const applyOverride = (base: Prescription, override: Prescription | undef
 
 const formatNumber = (n: number): string => String(n).replace(".", ",");
 
-export const formatPrescription = (p: Prescription, resolvedLoadKg: number | null = null): string => {
+export const formatPrescription = (
+  p: Prescription,
+  resolvedLoadKg: number | null = null,
+  reference?: SetReference,
+): string => {
   const parts: string[] = [];
   const sets = p.sets ? `${p.sets} × ` : "";
-  if (p.reps) parts.push(`${sets}${p.reps} rép.`);
+  // Série par série, le détail remplace séries, répétitions et charge.
+  if (p.setPlan?.length) parts.push(formatSetPlan(p, resolvedLoadKg, reference));
+  else if (p.reps) parts.push(`${sets}${p.reps} rép.`);
   else if (p.count) parts.push(`${sets}${p.count} ${p.unit ?? ""}`.trim());
   else if (p.distance_m) parts.push(`${sets}${formatNumber(p.distance_m)} m`);
   else if (p.duration_s) parts.push(`${sets}${formatDuration(p.duration_s)}`);
   else if (p.sets) parts.push(p.sets > 1 ? `${p.sets} séries` : "1 série");
-  if (resolvedLoadKg !== null) parts.push(`${formatNumber(resolvedLoadKg)} kg`);
+  if (p.setPlan?.length) {
+    // La charge de chaque série est déjà dans le détail.
+  } else if (resolvedLoadKg !== null) parts.push(`${formatNumber(resolvedLoadKg)} kg`);
   else if (p.load?.type === "kg") parts.push(`${formatNumber(p.load.value)} kg`);
   else if (p.load?.type === "pct_1rm") parts.push(`${p.load.value} % du max`);
   if (p.intensityTarget)
@@ -60,4 +69,4 @@ export const formatDuration = (seconds: number): string => {
   return s === 0 ? `${m} min` : `${m} min ${String(s).padStart(2, "0")}`;
 };
 
-export const countSets = (item: Pick<SnapshotItem, "prescription">): number => item.prescription.sets ?? 1;
+export const countSets = (item: Pick<SnapshotItem, "prescription">): number => prescribedSetCount(item.prescription);
