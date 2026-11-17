@@ -46,7 +46,7 @@ Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur
 
 | Élément | État au 16 novembre |
 | --- | --- |
-| Production | `app.tartan.coach` et `tartan.coach` servent `e3874f0` (PR 148), santé 200, aucune erreur d'exécution sur 24 h. Recette réelle le 15 novembre : circuit publié et rendu, vidéo envoyée et annotée, planificateur réel. Inscriptions et classement du jeu fermés |
+| Production | `app.tartan.coach` et `tartan.coach` servent `45591c6` (PR 150), santé 200, aucune erreur d'exécution sur 24 h. Recette réelle le 15 novembre : circuit publié et rendu, vidéo envoyée et annotée, planificateur réel. Inscriptions et classement du jeu fermés |
 | Preview | `preview.tartan.coach`, branche Git `preview` gardée. Base `preview` reconstruite le 14 novembre avec la seule graine de démonstration (4 comptes fictifs), sans donnée de production |
 | Neon | Offre Launch, restauration 7 jours, branche `production` protégée, calcul 0,25–2 CU ; branche `preview` 0,25–1 CU. Aucune branche de recette |
 | GitHub | Dépôt public, `LICENSE` propriétaire. Analyse des secrets, protection à l'envoi et Dependabot actifs. `main` exige des branches à jour, plus `quality` et `mobile-gate`. `mobile-gate` attend Maestro iOS et Android quand le mobile ou un paquet partagé change, soit environ une heure par mise à jour ; une PR purement web le saute. Branches fusionnées supprimées le 16 novembre, `preview` gardée |
