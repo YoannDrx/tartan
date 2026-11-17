@@ -44,6 +44,24 @@ Après l'audit du 14 novembre, le fondateur confirme :
 - **Quota vidéo par athlète** : chaque athlète envoie jusqu'à 8 vidéos par mois en Découverte et 20 en Coach et Club ; ces envois ne comptent pas dans le quota de l'espace (`ATHLETE_VIDEOS_PER_MONTH`, `packages/domain/src/plans.ts`).
 - **Constructeur** : la maquette du 14 novembre (cartes imbriquées colorées par famille, ajout à l'emplacement exact, ordre de l'athlète) est validée.
 
+## Décision du 16 novembre 2026
+
+Le fondateur fixe la priorité : **la web app d'abord, entièrement fonctionnelle**, avant de reprendre les bêtas iOS et Android. Il ajoute au périmètre :
+
+- **Connexion par mot de passe.** Coach et athlète peuvent définir leur propre mot de passe, à l'inscription, après une invitation ou dans les réglages. Ils se reconnectent ensuite au choix par le lien reçu par e-mail ou par ce mot de passe.
+- **Listes d'exercices du coach.** La bibliothèque commune reste le fonds partagé. Chaque coach peut :
+  - mettre des fiches en favoris ;
+  - créer ses propres listes, invisibles des autres utilisateurs ;
+  - y ranger des fiches communes ou des fiches qu'il crée.
+
+  Ce ne sont pas des bibliothèques communautaires publiques, qui restent en V3. Les fiches deviennent plus claires et plus concises.
+- **Vidéo en plein écran** avec l'éditeur de remarques, de tracés et de commentaires toujours à portée, sur ordinateur comme sur téléphone.
+- **Planning.** Le glisser-déposer donne un retour visuel et animé : colonne survolée, emplacement, dépôt.
+- **Gestes des exercices.** Placements justes et vraie dynamique, par exemple l'accélération en haltérophilie, avec un personnage plus fin. Une même morphologie reste partagée par tout le produit.
+- **Nouveau logo.** Plus fort et reconnaissable en petit : onglet du navigateur, App Store.
+
+Le déroulé est dans [docs/plans/audit-et-refonte.md](docs/plans/audit-et-refonte.md).
+
 ## Offres
 
 Découverte (gratuite), Coach et Club. Les prix et les plafonds ont une seule source, `packages/domain/src/plans.ts` ; le tableau lisible est dans `docs/plans/commercialisation.md`. Les athlètes ne paient jamais.

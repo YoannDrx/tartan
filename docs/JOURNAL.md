@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-16, Claude, état des lieux et brief de refonte
+Fait (PR `docs/etat-des-lieux`) : `ETAT.md` réécrit au 16 novembre, avec les lots 3 et 4 et la préparation des lots 5 à 7 ; nouvelle décision du fondateur dans `PRODUCT.md` ; brief complet `docs/plans/audit-et-refonte.md` pour l'agent qui mène l'audit et la refonte de la web app ; consigne courte dans `docs/prompts.md`.
+Vérifié : constats relevés dans le code sur `df446d0` (connexion, calendrier, bibliothèque, vidéo, mascotte, logo), version servie en production, erreurs Vercel sur 24 h (aucune), liste des builds EAS.
+À savoir : le mot de passe existe déjà dans Better Auth (`emailAndPassword`, adresse vérifiée exigée), seuls les parcours et les réglages manquent. À l'arraché, `via: knee` passe *après* l'extension : les clés `via` s'insèrent après la tenue, vers la position suivante ; même défaut sur six autres gestes d'haltérophilie. `splash.png` et `icon-maskable-512.png` ne sont plus produits par `scripts/build-logo.mjs`.
+Suite : l'audit (section 4.7 du brief), puis les lots de la section 5.
+
 ## 2026-11-16, Claude, préparation des lots 5 à 7
 Fait (PR `docs/preparation-lots-5-7`, une branche pour les trois parts qui ne dépendent pas du fondateur, sans code applicatif) : `docs/reference/betas.md` (fiche TestFlight externe, « À tester », notes de revue en anglais sans identifiant ; test fermé Play : profil d'envoi, notes de version, instructions, accès à l'app, brouillons Sécurité des données, santé et classification) ; `eval:planner:founder` (`evals/planner-founder.ts`, `scripts/planner-founder-eval.ts`) : contrôle hors réseau qui n'affiche jamais une consigne, gel par empreinte (consignes, manifeste et fichiers audio), passage réel derrière `--live --confirm-cost`, critères écrits (`FOUNDER_THRESHOLDS`) ; le correcteur du corpus de 80 cas accepte un autre corpus et une demande « Proposer » explicite (`brief`).
 Vérifié : tests du corpus du fondateur et du corpus de 80 cas (13), types, lint ; `eas.json` (`beta` vers la piste `alpha` en brouillon) ; `assetlinks.json` répond 404 en production faute d'empreinte, comme prévu jusqu'à l'étape G8.
@@ -37,7 +43,7 @@ Suite : lot 4 (gestes vus de face).
 ## 2026-11-15, Claude, fichiers d'environnement et EXPO_TOKEN
 Fait (PR `chore/fichiers-env`) : `.env.example` réécrit en 14 rubriques numérotées, toutes les valeurs à `""`, chaque variable avec son rôle, son défaut et les environnements Vercel où elle est posée ; `parseEnv` traite une valeur vide comme absente (défauts du code appliqués), même règle dans `prisma.config.ts`, `layout.tsx`, la graine et Vitest. Fichiers locaux ignorés rangés dans le même ordre, valeurs inchangées. `EXPO_TOKEN` posé sur GitHub (robot Expo `github-actions`, rôle Developer).
 Vérifié : test d'environnement (10), types, lint ; relevé Vercel : la production a toutes les variables que le code exige.
-À savoir : la clé App Store Connect (`SJHW52VCAC`) a été rattachée au profil `beta` par le fondateur (`eas credentials`, interactif) ; build iOS 14 envoyé à App Store Connect. En local, `eas submit` exige `eval "$(node scripts/profile-env.mjs beta)"`, sinon il vise `coach.tartan.app.dev`. Le `.env.local` de la racine n'est lu que par les évaluations du planificateur.
+À savoir : la clé App Store Connect a été rattachée au profil `beta` par le fondateur (`eas credentials`, interactif) ; build iOS 14 envoyé à App Store Connect. En local, `eas submit` exige `eval "$(node scripts/profile-env.mjs beta)"`, sinon il vise `coach.tartan.app.dev`. Le `.env.local` de la racine n'est lu que par les évaluations du planificateur.
 Suite : fiche TestFlight externe et groupe d'invités (lot 5).
 
 ## 2026-11-15, Claude, lot 2 : séries détaillées
