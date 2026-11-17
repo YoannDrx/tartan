@@ -43,7 +43,7 @@ Toutes les règles d'`AGENTS.md` s'appliquent. Les plus importantes, rappelées 
 - **Un défaut corrigé = un test** qui échouait avant la correction.
 - **Dans chaque PR**, mets à jour `docs/ETAT.md` (photographie courte, pas un journal) et ajoute une entrée en haut de `docs/JOURNAL.md`.
 - **Fusion.** Tu fusionnes toi-même une PR **dont la CI est verte**. Vérifie ensuite `https://app.tartan.coach/api/v1/version` (le `build` doit être le commit de fusion), puis les erreurs d'exécution Vercel de production sur 24 h, avertissements compris. Supprime la branche distante et la branche locale.
-- **Protection de `main`.** Elle exige des branches à jour (`strict`) et les contrôles `quality` et `mobile-gate`. Une PR qui touche le mobile ou un paquet partagé qu'il consomme (`packages/mascot`, `contracts`, `domain`, `i18n`, `design-tokens`) relance Maestro iOS et Android, soit une heure environ par mise à jour. Une PR purement web saute Maestro.
+- **Protection de `main`.** Elle exige des branches à jour (`strict`) et les contrôles `quality` et `mobile-gate`. Une PR qui touche le mobile ou un paquet partagé qu'il embarque (`packages/api-client`, `contracts`, `design-tokens`, `domain`, `mascot`, et `i18n` hors de `src/web/`) relance Maestro iOS et Android, soit une heure environ par mise à jour. Une PR purement web saute Maestro, y compris quand elle ajoute des textes dans `packages/i18n/src/web/` (lot 0 du 17 novembre).
   - Ordonne les fusions pour ne pas relancer Maestro pour rien.
   - Avant de fusionner une PR empilée, passe la base de ses enfants sur `main` (`gh pr edit --base main`), sinon GitHub les ferme.
 - **Écris le niveau atteint, jamais l'intention.** Trois niveaux, à ne pas confondre :
@@ -549,7 +549,7 @@ Les six demandes du fondateur (sections 4.1 à 4.6) restent des portes d'ouvertu
 | G14 | Avatar et logo | Envoyés dans les réglages, affichés nulle part ailleurs | Lot E |
 | G15 | Invitation | Les consentements sont enregistrés après la transaction : un membre peut exister sans accord tracé | Lot G, avec test |
 | G16 | `/synchronisation` | Aucun lien n'y mène | Lot A |
-| G17 | Essais locaux | Sans prestataire d'e-mail, le journal imprime le lien du logo (`https://tartan.coach`) au lieu du lien d'action : un lien de connexion ou d'invitation ne se joue plus en local, contrairement à ce que dit `docs/tests/README.md` | Lot 0, avec test |
+| G17 | Essais locaux | Sans prestataire d'e-mail, le journal imprime le lien du logo (`https://tartan.coach`) au lieu du lien d'action : un lien de connexion ou d'invitation ne se joue plus en local, contrairement à ce que dit `docs/tests/README.md` | Corrigé au lot 0, avec test |
 
 ### 8.5 Finitions
 

@@ -47,6 +47,7 @@ Le détail, les comptes de test et les pièges sont dans [docs/tests/README.md](
 - Les notes privées du coach ne sont jamais sélectionnées pour un athlète.
 - Les règles métier pures vont dans `packages/domain`, avec tests. Les contrats vont dans `packages/contracts`.
 - Aucun texte en dur : `packages/i18n`. Aucune couleur en dur : `packages/design-tokens`. Le lint le refuse (`apps/web/eslint-rules`). Les textes d'avant la règle sont gelés dans `apps/web/eslint-suppressions.json` : quand tu touches un de ces fichiers, déplace ses textes, puis lance `pnpm --filter @tartan/web lint:prune`. N'ajoute jamais une entrée à cette base.
+- Un texte que seule la web app affiche va dans `packages/i18n/src/web/` (`import { w } from "@tartan/i18n/web"`), un fichier par domaine. L'app native ne l'importe jamais (son lint le refuse) : une PR qui ne touche que ce dossier ne relance pas Maestro. Un texte que le mobile affiche aussi reste dans `packages/i18n/src/fr.ts`.
 - Aucune donnée de santé dans les journaux, les notifications ou les analyses d'usage. Effort ressenti, douleurs et blessures exigent le consentement santé.
 - Migrations additives uniquement. On n'enlève pas une colonne encore lue par un client en circulation.
 - Un appel à un SDK asynchrone est toujours attendu, sans `as unknown as`. Le webhook Mux est resté inopérant une semaine à cause de cela.

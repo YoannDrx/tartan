@@ -6,6 +6,13 @@ import { log } from "./logger";
 import { categoryOf, type EmailKey } from "@/server/email-registry";
 import { assertEmailDeliverable } from "@/server/email-suppression.service";
 
+// Le lien à jouer en local : le premier qui mène quelque part. Celui du logo, en tête de chaque message, ne vise
+// que l'accueil du site.
+export const actionLink = (html: string): string | undefined => {
+  const links = [...html.matchAll(/href="(https?:[^"]+)"/g)].map((match) => match[1]!.replaceAll("&amp;", "&"));
+  return links.find((link) => new URL(link).pathname !== "/" || new URL(link).search !== "") ?? links[0];
+};
+
 export const outbox: { to: string; subject: string; html: string; text: string; headers: Record<string, string> }[] =
   [];
 
@@ -35,7 +42,7 @@ export const sendEmail = async (input: {
     // Sans clé (local et tests), on garde le message pour l'inspecter au lieu de l'envoyer.
     outbox.push({ to: input.to, subject: input.subject, html, text, headers });
     if (process.env.NODE_ENV === "development") {
-      const link = html.match(/href="(https?:[^"]+)"/)?.[1]?.replaceAll("&amp;", "&");
+      const link = actionLink(html);
       console.info(`[e-mail local] ${input.subject}${link ? ` → ${link}` : ""}`);
     }
     return;

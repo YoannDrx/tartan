@@ -10,7 +10,7 @@ import { sql } from "./personas";
 // Le script ne tourne qu'une fois par base : un seul projet, sans nouvelle tentative.
 
 const DB = process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e";
-const PORT = 3100;
+const PORT = Number(process.env.E2E_PORT ?? 3100);
 
 test.describe.configure({ retries: 0 });
 
