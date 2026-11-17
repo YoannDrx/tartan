@@ -104,6 +104,15 @@ env:
 - waitForAnimationToEnd
 - tapOn:
     id: exercise-option-${output.replacementId}
+- waitForAnimationToEnd
+# Le sélecteur fermé, l'écran peut rester en bas de page (Android, écran de 640 dp) : la ligne est alors au-dessus.
+- scrollUntilVisible:
+    element:
+      id: autonomous-line-detail-c
+    direction: UP
+    centerElement: true
+    timeout: 20000
+    optional: true
 - scrollUntilVisible:
     element:
       id: autonomous-line-detail-c
