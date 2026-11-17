@@ -41,12 +41,24 @@ Les annotations restent dans le stockage de ce navigateur, pas dans le dépôt n
 
 `pnpm db:start` crée `tartan` (développement), `tartan_test` (Vitest), `tartan_e2e` (Playwright). À créer et migrer à la main : `tartan_capture` (captures), `tartan_v11_sandbox` (sandbox Stripe). Les suites réinitialisent leur base à chaque lancement.
 
+**Plusieurs sessions sur le même poste.** Elles partagent le serveur Postgres (port 54329) et, par défaut, les bases et le port des parcours : une session qui lance Vitest ou Playwright vide la base de l'autre. Chaque session prend donc les siennes :
+
+```sh
+createdb -h localhost -p 54329 -U tartan tartan_<session>        # développement, à mettre dans apps/web/.env
+createdb -h localhost -p 54329 -U tartan tartan_<session>_test
+createdb -h localhost -p 54329 -U tartan tartan_<session>_e2e
+TEST_DATABASE_URL=postgresql://tartan@localhost:54329/tartan_<session>_test pnpm test
+E2E_PORT=31xx E2E_DATABASE_URL=postgresql://tartan@localhost:54329/tartan_<session>_e2e E2E_PROD=1 pnpm test:e2e
+```
+
+Le serveur de développement prend lui aussi son port (`next dev -p 32xx`, avec `BETTER_AUTH_URL` et `NEXT_PUBLIC_APP_URL` accordés).
+
 ## CI (`.github/workflows`)
 
 | Workflow             | Quand                    | Contenu                                                                                              |
 | -------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------- |
 | `ci.yml`             | PR, push sur `main`      | Lint, types, tests, design, Playwright sur build de production, preuve vidéo, planificateur simulé   |
-| `mobile-native.yml`  | PR mobile, lundi, manuel | `expo-doctor`, prebuild, build Android Release, Maestro sur simulateur iOS, EAS selon le déclencheur |
+| `mobile-native.yml`  | PR mobile, lundi, manuel | `expo-doctor`, prebuild, build Android Release, Maestro sur simulateur iOS et sur émulateur Android, EAS selon le déclencheur |
 | `release-mobile.yml` | Manuel                   | `eas update` ou `eas build --auto-submit`                                                            |
 | `sauvegarde.yml`     | Chaque nuit              | Copie chiffrée de la base                                                                            |
 | `surveillance.yml`   | Toutes les 6 h           | Contrôle de `/api/health` et du site                                                                 |
@@ -61,6 +73,7 @@ Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette s
 | --- | --- |
 | `E2E_PROD` | `next build` puis `next start`. Active CSP et hors ligne, désactive `video-poc` |
 | `E2E_DATABASE_URL` | Base des parcours, défaut `tartan_e2e` |
+| `E2E_PORT` | Port du serveur des parcours, défaut 3100 |
 | `TEST_DATABASE_URL` | Base de Vitest, défaut `tartan_test` |
 | `E2E_AI_PLANNER_ENABLED=true` | Ouvre le planificateur simulé |
 | `E2E_DISABLE_ADMIN_STEP_UP`, `E2E_DISABLE_RATE_LIMIT` | Posées par la configuration de Playwright, interdites en production |
@@ -72,12 +85,12 @@ Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette s
 
 ## Pièges
 
-- Hors CI, `reuseExistingServer` réutilise un serveur déjà lancé sur le port 3100, avec ses variables : arrête-le avant de changer de drapeau.
+- Hors CI, `reuseExistingServer` réutilise un serveur déjà lancé sur le port des parcours (3100, ou `E2E_PORT`), avec ses variables : arrête-le avant de changer de drapeau.
 - `globalSetup` fait un `prisma migrate reset --force` de la base E2E à chaque lancement.
 - `enforceRateLimit` n'a pas de contournement en E2E : utilise des adresses différentes.
 - Un test d'administration doit utiliser une adresse de `ADMIN_EMAILS` dans `playwright.config.ts`, ou compléter cette liste.
 - Les tests de passkey ne tournent que sous Chromium, avec l'authentificateur virtuel (`e2e/admin-passkey.spec.ts`).
-- Sans `RESEND_API_KEY`, `next dev` écrit le lien de chaque e-mail dans la console.
+- Sans `RESEND_API_KEY`, `next dev` écrit dans la console le sujet de chaque e-mail et son lien d'action (`[e-mail local] … → …`) : un lien de connexion, de vérification ou d'invitation se joue en le recopiant.
 - Tests hors ligne de `terrain.spec.ts` : `E2E_PROD` obligatoire.
 - Les webhooks se testent avec une **vraie signature** : modèle dans `tests/mux-webhook.test.ts`.
 - Mouvement réduit : `await page.emulateMedia({ reducedMotion: "reduce" })`, puis `expectNoMotion(page)` de `e2e/helpers.ts`. Tout écran animé y passe ; modèle dans `e2e/reduced-motion.spec.ts`.
@@ -96,7 +109,7 @@ Le dossier `.maestro/destructive/` n'est pas lu par cette commande. Il contient 
 maestro test -e APP_ID=coach.tartan.app.dev -e DISPOSABLE_EMAIL=… -e PASSWORD=… .maestro/destructive/account-delete.yml
 ```
 
-Le script `maestro:test` ne transmet pas ces variables. Les parcours exigent des séances issues de la graine ; l'absence de données ne doit pas les faire passer. Le job exécute treize flux puis la suppression d'un compte jetable, vérifiée en base.
+Le script `maestro:test` ne transmet pas ces variables. Les parcours exigent des séances issues de la graine ; l'absence de données ne doit pas les faire passer. Le job iOS exécute les flux de `.maestro/config.yaml`, le job Android ceux de `.maestro/config-android.yaml`, puis la suppression d'un compte jetable, vérifiée en base.
 
 ## Matrice des écrans
 

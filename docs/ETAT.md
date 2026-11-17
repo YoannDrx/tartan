@@ -1,6 +1,6 @@
 # État du projet
 
-Mis à jour le 16 novembre 2026. Toute PR qui change un état met ce fichier à jour.
+Mis à jour le 17 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
@@ -9,17 +9,9 @@ Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p
 - Pas encore prouvé : l'IA n'est pas qualifiée, aucun vrai paiement n'a été fait et aucun téléphone physique n'a servi.
 - Écarts relevés par le fondateur le 16 novembre : gestes imprécis, glisser-déposer du planning sans retour visuel, pas de connexion par mot de passe dans les réglages, pas de listes d'exercices, pas de plein écran vidéo, logo peu lisible.
 
-**Plan en cours, depuis le 16 novembre.** Le web d'abord, à 100 %, puis iOS et Android. Un audit complet suivi d'une refonte est confié à un agent, selon le brief [plans/audit-et-refonte.md](plans/audit-et-refonte.md) :
-1. audit de tous les écrans ;
-2. connexion par mot de passe ;
-3. glisser-déposer du planning ;
-4. vidéo en plein écran ;
-5. listes et favoris d'exercices, fiches plus claires ;
-6. logo ;
-7. personnage et gestes ;
-8. corrections de l'audit ;
-9. recette web ;
-10. parité mobile et bêtas.
+**Plan en cours, depuis le 16 novembre.** Le web d'abord, à 100 %, puis iOS et Android, selon le brief [plans/audit-et-refonte.md](plans/audit-et-refonte.md).
+- **Audit fait le 17 novembre** : 81 écrans balayés à trois largeurs sur données remplies, parcours rejoués, volume et performance mesurés. Sept défauts bloquent la vente, dix-sept gênent ([constats](plans/audit-et-refonte.md#8-constats-de-laudit-17-novembre-2026)).
+- **Ordre des lots**, fixé par l'audit ([section 8.9](plans/audit-et-refonte.md#89-lots-dans-lordre-retenu)) : lot 0 (CI web seule), réglages en rubriques, glisser-déposer du planning, mot de passe, vidéo en plein écran, photo de profil et avatars, listes et fiches d'exercices, onboarding, planificateur, logo, gestes, corrections, recette web, parité mobile et bêtas.
 
 Le plan du 15 novembre s'arrête au lot 4 :
 - les lots 5 (bêta iOS) et 7 (bêta Android) sont préparés côté textes et reprendront après la web app ;
@@ -40,16 +32,17 @@ Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur
 | 14 nov. | Guides marqués « consignes indicatives » ; tracés sur vidéo dans le périmètre de cette version |
 | 14 nov. | Quota vidéo propre à chaque athlète : 8 par mois en Découverte, 20 en Coach et Club, hors du quota de l'espace ; maquette du constructeur validée |
 | 14 nov. | Les 150 guides textuels relus et approuvés par le fondateur ; illustrations à produire |
+| 17 nov. | Gestes : moteur refait, chaque fiche de profil et de face, plus un emplacement vidéo par fiche commune. Planificateur : appels OpenAI réels autorisés pour la mesure, 30 € au plus. Production vidée après sauvegarde, sauf le compte administrateur ; essais en production avec les deux adresses du fondateur. Listes d'exercices privées, partage au choix avec les coachs de l'espace. Ajouts au périmètre : onboarding complet du coach et de l'athlète, réglages en rubriques, photo de profil et avatars, espace de démonstration ([PRODUCT.md](../PRODUCT.md#décision-du-17-novembre-2026)) |
 | 16 nov. | Le web d'abord, à 100 %, avant les bêtas natives. Ajouts au périmètre : mot de passe défini par l'utilisateur, listes et favoris d'exercices privés au coach, vidéo en plein écran avec éditeur, glisser-déposer du planning avec retour visuel, gestes plus précis et personnage plus fin, nouveau logo ([PRODUCT.md](../PRODUCT.md#décision-du-16-novembre-2026)) |
 
 ## Ce qui tourne
 
-| Élément | État au 16 novembre |
+| Élément | État au 17 novembre |
 | --- | --- |
-| Production | `app.tartan.coach` et `tartan.coach` servent `45591c6` (PR 150), santé 200, aucune erreur d'exécution sur 24 h. Recette réelle le 15 novembre : circuit publié et rendu, vidéo envoyée et annotée, planificateur réel. Inscriptions et classement du jeu fermés |
-| Preview | `preview.tartan.coach`, branche Git `preview` gardée. Base `preview` reconstruite le 14 novembre avec la seule graine de démonstration (4 comptes fictifs), sans donnée de production |
+| Production | `app.tartan.coach` et `tartan.coach` servent `b925d89` (PR 157), santé 200. Recette réelle le 15 novembre : circuit publié et rendu, vidéo envoyée et annotée, planificateur réel. Inscriptions et classement du jeu fermés |
+| Preview | `preview.tartan.coach`, branche Git `preview` gardée, en retard de plus de cent commits sur `main` : à remettre à niveau avant la recette. Base `preview` reconstruite le 14 novembre avec la seule graine de démonstration (4 comptes fictifs), sans donnée de production |
 | Neon | Offre Launch, restauration 7 jours, branche `production` protégée, calcul 0,25–2 CU ; branche `preview` 0,25–1 CU. Aucune branche de recette |
-| GitHub | Dépôt public, `LICENSE` propriétaire. Analyse des secrets, protection à l'envoi et Dependabot actifs. `main` exige des branches à jour, plus `quality` et `mobile-gate`. `mobile-gate` attend Maestro iOS et Android quand le mobile ou un paquet partagé change, soit environ une heure par mise à jour ; une PR purement web le saute. Branches fusionnées supprimées le 16 novembre, `preview` gardée |
+| GitHub | Dépôt public, `LICENSE` propriétaire. Analyse des secrets, protection à l'envoi et Dependabot actifs. `main` exige des branches à jour, plus `quality` et `mobile-gate`. `mobile-gate` attend Maestro iOS et Android quand change ce que l'app native embarque (`apps/mobile`, ses paquets, le fichier de verrouillage), soit environ une heure par mise à jour ; une PR purement web le saute, textes de `packages/i18n/src/web/` compris (un test vérifie que le filtre suit les dépendances du mobile). Branches fusionnées supprimées le 16 novembre, `preview` gardée |
 | Sauvegardes | Copie chiffrée chaque nuit vers un store Vercel Blob privé, relue par empreinte ; restauration locale chronométrée réussie les 13 et 14 novembre ([sauvegarde](exploitation/sauvegarde.md)) |
 | Stripe | Compte dédié Tartan, prix 19/190 € et 59/590 €, webhook de production sur 15 événements, portail configuré. Aucun vrai paiement |
 | iOS | Build 14 (1.1.0, profil `beta`) envoyé à App Store Connect le 15 novembre, pas encore installé sur un iPhone. Le partage de la carte de record (`expo-sharing`) et les icônes d'un futur logo exigeront un nouveau binaire |
@@ -71,7 +64,7 @@ Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur
 | Calendrier du coach | Oui | Sur le web | Vues Semaine, Mois et Liste. Glisser-déposer HTML5 natif : seul retour visuel, le curseur ; aucune surbrillance de colonne, aucune animation, pas de mise à jour optimiste ; rien au doigt ; vue Mois sans alternative au clavier ; mouvement réduit non traité. **À refaire (brief 4.2)** |
 | Catalogue et guides | Oui | 173 fiches en production | **Contenu** : catalogue version 5, 173 fiches. Les 150 premières sont relues par le fondateur ; les 23 variantes restent « en préparation » jusqu'à sa relecture. Mention « consignes indicatives ». Une copie renommée garde son guide.<br>**Manques** : aucun favori, aucune liste propre au coach, aucune action pour personnaliser une fiche commune, guide non modifiable par le coach. **À refaire (brief 4.3)** |
 | Gestes animés des guides | Oui (boucle, positions, sol, symétrie de face) | Rien n'est validé par le fondateur, tout s'affiche « Illustration de travail » | **Couverture** : 173 gestes sur 173 (156 de profil, 15 de face, 1 de dos, 1 de profil dans la série de face), web et mobile, frise en mouvement réduit, atelier `/admin/mouvements`.<br>**Défauts mesurés le 16 novembre** : en haltérophilie, enchaînement faux (passage aux genoux après l'extension) et aucune accélération ; disque jusqu'à 11 unités sous le sol ; genoux en hyperextension ; ni cheville, ni poignet, ni colonne articulée ; un seul appui fixé ; rendu React à chaque image. **À refaire (brief 4.5)** |
-| Planificateur IA | Oui, prestataire simulé | Un parcours réel complet | **Corrigé** : contrôles actifs après une question ; passe déterministe pour les noms inconnus ; « Ajuster » ; exercices visibles avant « Relire » ; « Remplacer » garde la prescription ; dictée nourrie de la bibliothèque.<br>**Prêt** (PR 150) : outil de qualification sur le corpus du fondateur, avec des critères écrits avant les réponses.<br>**Reste** : la qualification réelle, qui attend le corpus du fondateur |
+| Planificateur IA | Oui, prestataire simulé | Un parcours réel complet | **Corrigé** : contrôles actifs après une question ; passe déterministe pour les noms inconnus ; « Ajuster » ; exercices visibles avant « Relire » ; « Remplacer » garde la prescription ; dictée nourrie de la bibliothèque.<br>**Prêt** (PR 150) : outil de qualification sur le corpus du fondateur, avec des critères écrits avant les réponses.<br>**Mesure de départ du 17 novembre** (appels réels, `gpt-4.1-mini`, corpus de 80 cas, trois passages) : 66, 61 et 68 réussis sur 80 pour un seuil de 76 ; aucune date fausse ni charge inventée ; l'échec le plus fréquent est une question posée alors que la consigne suffisait (16 fois par passage) ; latence médiane 5,0 s, 11,8 s au 95e centile.<br>**Reste** : la refonte du lot H (défaut B4 de l'audit), puis la qualification sur un corpus neuf et sur celui du fondateur |
 | Vidéo collaborative | Oui | Envoi, encodage Mux, remarque et angle tracé en production le 15 novembre | **Fait** : `/mes-videos`, phases génériques, partage au groupe ; tracés (ligne, flèche, angle mesuré, cercle) ; quotas par athlète ; droits corrigés le 14 novembre.<br>**Manques** : pas de plein écran ; aucun raccourci clavier ; sous 1024 px, l'éditeur passe sous la vidéo ; tracés en lecture seule sur le mobile. **À refaire (brief 4.4)** |
 | Charges, records, progression, phases | Oui | Partiel, sur le web | — |
 | Notifications, e-mails | Oui | Gmail seulement ; aucun push réel | — |
@@ -96,7 +89,7 @@ Détail : [commercialisation](plans/commercialisation.md).
 | 8. Téléphones | Ouverte |
 | 9. Compte neuf sans aide | Ouverte |
 | 10. Tests critiques | Franchie le 11 novembre |
-| 11. Refonte du 16 novembre | Ouverte : les six demandes du brief et les corrections de l'audit |
+| 11. Refonte du 16 novembre | Ouverte : les six demandes du brief, les ajouts du 17 novembre et les sept défauts bloquants de l'audit |
 
 **Matrice des écrans.**
 - `apps/web/e2e/screens.ts` liste chaque page avec ses rôles et ses preuves.
@@ -128,7 +121,6 @@ Le mot de passe des comptes de démonstration de la Preview est dans `.local/pre
 
 | Sujet | Recommandation |
 | --- | --- |
-| Partage d'une liste d'exercices aux autres coachs de l'espace | Privée par défaut ; partage à décider par le fondateur |
 | Morphologie du personnage | Plus athlétique (6 à 7 têtes), une seule pour tout le produit, après validation d'un prototype |
 | Bibliothèque d'animation | Aucune pour l'instant ; l'agent la propose avec ses raisons s'il la juge indispensable |
 | Abonnement web face à Apple (3.1.1) | Soumettre sans achat intégré, repli préparé |
@@ -145,7 +137,8 @@ Le mot de passe des comptes de démonstration de la Preview est dans `.local/pre
 - **Refus Apple 3.1.1** : l'exception 3.1.3(f) ne vise pas un outil de coaching.
 - **Webhook Stripe** : factures, remboursements et litiges ne passent par la route que dans la recette sandbox, hors CI.
 - **Sentry gratuit** : une seule sonde de crons ; la sonde de disponibilité est assurée par `surveillance.yml`.
-- **Textes en dur hérités** : 267 textes gelés dans `apps/web/eslint-suppressions.json`.
+- **Textes en dur hérités** : 176 textes gelés dans `apps/web/eslint-suppressions.json`, sur 37 fichiers.
+- **Balayage de la CI sur un espace vide** : la matrice des écrans ne voit pas un défaut qui n'apparaît qu'avec des données, comme le débordement de `/suivi` à 390 px.
 - **Jeu public** : le rejeu serveur ne prouve pas qu'un humain a joué ; le classement demande une modération.
 
 ## Hors périmètre de la V1
