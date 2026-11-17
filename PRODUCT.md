@@ -62,6 +62,20 @@ Le fondateur fixe la priorité : **la web app d'abord, entièrement fonctionnell
 
 Le déroulé est dans [docs/plans/audit-et-refonte.md](docs/plans/audit-et-refonte.md).
 
+## Décision du 17 novembre 2026
+
+Après le plan d'exécution de l'audit, le fondateur ajoute au périmètre :
+
+- **Onboarding complet.** À l'inscription, le coach est guidé pas à pas : présentation de chaque fonction, étapes à faire, reprise possible. L'athlète qui rejoint un groupe reçoit lui aussi un accueil complet, qui ne retarde jamais sa séance.
+- **Réglages refondus**, rangés en rubriques.
+- **Photo de profil.** L'utilisateur envoie sa photo, la recadre, la zoome et la pivote avant de l'enregistrer, ou choisit un avatar : les athlètes du groupe ou une banque libre d'animaux.
+- **Espace de démonstration** proposé au coach neuf, séparé de son espace et jetable.
+- **Exercices.** Chaque fiche se voit de profil et de face, avec un moteur de gestes refait. Chaque fiche commune peut recevoir une vidéo déposée par Tartan.
+- **Listes d'exercices.** Privées par défaut, avec un partage au choix vers les coachs du même espace.
+- **Planificateur IA.** Il doit devenir réellement utilisable ; des appels réels sont autorisés pour le mesurer, 30 € au plus.
+
+Le fondateur donne carte blanche sur le design et l'expérience : `DESIGN.md` évolue avec la refonte. La base de production n'étant pas utilisée, elle est vidée après sauvegarde, sauf le compte administrateur, et les essais en production se font avec ses deux adresses. Les constats de l'audit et l'ordre des lots sont dans [docs/plans/audit-et-refonte.md](docs/plans/audit-et-refonte.md#8-constats-de-laudit-17-novembre-2026).
+
 ## Offres
 
 Découverte (gratuite), Coach et Club. Les prix et les plafonds ont une seule source, `packages/domain/src/plans.ts` ; le tableau lisible est dans `docs/plans/commercialisation.md`. Les athlètes ne paient jamais.
