@@ -1,6 +1,6 @@
 # Plan : publier sur l'App Store
 
-Application `coach.tartan.app`, iPhone seul, version 1.1.0, Expo 55. Textes et formulaires : [fiches-stores](../reference/fiches-stores.md). L'avancement est dans [../ETAT.md](../ETAT.md).
+Application `coach.tartan.app`, iPhone seul, version 1.1.0, Expo 55. Textes et formulaires : [fiches-stores](../reference/fiches-stores.md) ; bêta TestFlight externe (description, à tester, notes de revue) : [betas](../reference/betas.md). L'avancement est dans [../ETAT.md](../ETAT.md).
 
 ## Déjà en place
 

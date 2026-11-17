@@ -93,6 +93,38 @@ Seuil attendu : au moins 76/80 à chacun des trois passages, aucune date fausse,
 
 Une réussite automatique ne clôt pas la qualification : 30 dictées humaines sur appareils, des essais bruités et la relecture des propositions par des coachs restent nécessaires. La génération de propositions est évaluée avec un catalogue synthétique au niveau prestataire ; cela ne prouve ni la validation éditoriale des fiches ni tout le parcours applicatif.
 
+## Corpus du fondateur (lot 6)
+
+Le dernier jeu indépendant : **40 consignes écrites et 30 dictées** par le fondateur ou un coach, jamais vues par l'agent. Il vit hors du dépôt, dans `.local/planner-founder/`, et n'y entre jamais : seules les consignes fictives y sont admises, sans nom ni résultat d'athlète réel.
+
+| Fichier | Contenu |
+| --- | --- |
+| `consignes.json` | 40 cas `C01` à `C40`, au format du corpus de 80 cas : `mode` (`format` ou `propose`), `text`, `brief` pour « Proposer », `expected` |
+| `dictees/manifest.json` | 30 cas `D01` à `D30` : `file` (m4a, webm ou wav, 3 Mo et 3 minutes au plus), `spoken` (ce que le coach a voulu dire), `setting` (calme, extérieur, vestiaire…), `expected` |
+| `dictees/D01.m4a` … | Les enregistrements, faits sur un téléphone, dont au moins dix dans le bruit |
+
+Modèle de format, à copier puis compléter : `apps/web/evals/founder/modele/`. Les champs de `expected` sont ceux du corpus de 80 cas (`apps/web/evals/planner-independent.ts`) : `status`, `date`, `exercise` (clé du catalogue), `sets`, `reps`, `loadKg`, `restS`, `field` pour une question attendue, `unknownName` pour un exercice absent, `order` pour un circuit. **Les attendus s'écrivent avant toute exécution, et ne changent plus ensuite.**
+
+```sh
+corepack pnpm --filter @tartan/web eval:planner:founder            # contrôle, sans réseau
+corepack pnpm --filter @tartan/web eval:planner:founder --freeze   # fige le corpus, une seule fois
+corepack pnpm --filter @tartan/web eval:planner:founder --live --confirm-cost --output .local/planner-founder-1.json
+```
+
+Le contrôle n'affiche que des comptes, des empreintes et des problèmes nommés par identifiant, jamais une consigne : l'agent peut aider à corriger le format sans lire le contenu. `--freeze` écrit l'empreinte des consignes et celle des dictées (manifeste et fichiers audio) ; toute modification ultérieure est refusée. `--live` exige le corpus figé, la clé OpenAI locale (plafond de dépense posé) et `--confirm-cost` : trois passages des 40 consignes, puis une passe des 30 dictées (transcription, puis la même notation que l'écrit, avec l'écart mot à mot entre ce qui a été dit et ce qui a été transcrit). Coût estimé : environ 150 appels au modèle et 30 transcriptions.
+
+**Critères, écrits le 16 novembre 2026 avant toute réponse** (`FOUNDER_THRESHOLDS` dans `apps/web/evals/planner-founder.ts`) :
+
+| Critère | Seuil |
+| --- | --- |
+| Consignes écrites réussies, à chacun des trois passages | 38 sur 40 au moins |
+| Dictées réussies | 27 sur 30 au moins |
+| Écart de transcription médian (mots) | 10 % au plus |
+| Date fausse, charge inventée, substitution silencieuse | Aucune, sur tous les passages |
+| Relecture humaine | Les propositions du mode « Proposer » relues par un coach, avec ses corrections notées |
+
+Atteindre ces seuils qualifie le planificateur pour la bêta (`betaQualified`), pas pour l'ouverture : la relecture d'un coach et les essais sur appareils restent des preuves distinctes. Un échec ne se corrige pas en touchant le corpus : on corrige le planificateur, puis on mesure de nouveau avec un autre fichier de rapport. Après ce passage, le corpus devient une régression.
+
 ## Reprises et coût
 
 Une opération logique consomme une proposition du quota utilisateur. Une citation sans attache, une date omise, une structure invalide ou une substitution détectée peut déclencher une seule reprise technique. Les deux appels partagent un délai de 100 secondes et le plafond est contrôlé globalement : plusieurs motifs d’erreur ne multiplient pas les reprises. Tartan supporte le coût du second appel. Le modèle configuré reste inchangé tant qu’une comparaison documentée n’a pas justifié son remplacement.

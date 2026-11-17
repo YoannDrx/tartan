@@ -13,6 +13,13 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-16, Claude, préparation des lots 5 à 7
+Fait (PR `docs/preparation-lots-5-7`, une branche pour les trois parts qui ne dépendent pas du fondateur, sans code applicatif) : `docs/reference/betas.md` (fiche TestFlight externe, « À tester », notes de revue en anglais sans identifiant ; test fermé Play : profil d'envoi, notes de version, instructions, accès à l'app, brouillons Sécurité des données, santé et classification) ; `eval:planner:founder` (`evals/planner-founder.ts`, `scripts/planner-founder-eval.ts`) : contrôle hors réseau qui n'affiche jamais une consigne, gel par empreinte (consignes, manifeste et fichiers audio), passage réel derrière `--live --confirm-cost`, critères écrits (`FOUNDER_THRESHOLDS`) ; le correcteur du corpus de 80 cas accepte un autre corpus et une demande « Proposer » explicite (`brief`).
+Vérifié : tests du corpus du fondateur et du corpus de 80 cas (13), types, lint ; `eas.json` (`beta` vers la piste `alpha` en brouillon) ; `assetlinks.json` répond 404 en production faute d'empreinte, comme prévu jusqu'à l'étape G8.
+Non fait : aucun appel OpenAI, rien envoyé à Apple ni à Google.
+À savoir : le corpus du fondateur vit dans `.local/planner-founder/`, jamais dans le dépôt ; l'agent ne doit pas l'ouvrir avant le passage réel.
+Suite : lot 8 (ouverture), au fondateur.
+
 ## 2026-11-16, Claude, lot 4 : gestes vus de face
 Fait (PR `feat/gestes-de-face`) : `View` (`side`, `front`, `back`) dans `skeleton.ts` (`FRONT_SKELETON`, `jointPositions(pose, root, view)`), `rig(look, view)` (visage centré, dossard au milieu, coiffure vue de face ; de dos, ni visage ni dossard), `facing` et `batch` sur `ExerciseClip`, `pinned` et `settle` avec le point de vue ; rendu web (`AthleteFigure facing`) et mobile (`athleteRig(…, clip.facing)`) ; `exercises/front.ts` : les 17 gestes manquants. Validation : clés « famille:face » dans `motionFamilies`, bouton à part dans `/admin/mouvements`.
 Vérifié : mascotte 782 (dont le sol avec le bon squelette, la symétrie de face, le visage), web 1 990 (dont « chaque fiche a son geste » et « un geste de face reste de travail dans une famille validée »), types, lint ; planche de travail rendue hors dépôt (`apps/web/.local/board.tsx`, positions tenues de chaque geste).
