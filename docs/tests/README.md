@@ -46,7 +46,7 @@ Les annotations restent dans le stockage de ce navigateur, pas dans le dépôt n
 | Workflow             | Quand                    | Contenu                                                                                              |
 | -------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------- |
 | `ci.yml`             | PR, push sur `main`      | Lint, types, tests, design, Playwright sur build de production, preuve vidéo, planificateur simulé   |
-| `mobile-native.yml`  | PR mobile, lundi, manuel | `expo-doctor`, prebuild, build Android Release, Maestro sur simulateur iOS, EAS selon le déclencheur |
+| `mobile-native.yml`  | PR mobile, lundi, manuel | `expo-doctor`, prebuild, build Android Release, Maestro sur simulateur iOS et sur émulateur Android, EAS selon le déclencheur |
 | `release-mobile.yml` | Manuel                   | `eas update` ou `eas build --auto-submit`                                                            |
 | `sauvegarde.yml`     | Chaque nuit              | Copie chiffrée de la base                                                                            |
 | `surveillance.yml`   | Toutes les 6 h           | Contrôle de `/api/health` et du site                                                                 |
@@ -77,7 +77,7 @@ Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette s
 - `enforceRateLimit` n'a pas de contournement en E2E : utilise des adresses différentes.
 - Un test d'administration doit utiliser une adresse de `ADMIN_EMAILS` dans `playwright.config.ts`, ou compléter cette liste.
 - Les tests de passkey ne tournent que sous Chromium, avec l'authentificateur virtuel (`e2e/admin-passkey.spec.ts`).
-- Sans `RESEND_API_KEY`, `next dev` écrit le lien de chaque e-mail dans la console.
+- Sans `RESEND_API_KEY`, `next dev` écrit le sujet de chaque e-mail dans la console. Le lien qu'il imprime est aujourd'hui celui du logo, pas celui de l'action (constat G17 de l'audit) : pour un essai local, passe par le mot de passe et valide l'adresse en base.
 - Tests hors ligne de `terrain.spec.ts` : `E2E_PROD` obligatoire.
 - Les webhooks se testent avec une **vraie signature** : modèle dans `tests/mux-webhook.test.ts`.
 - Mouvement réduit : `await page.emulateMedia({ reducedMotion: "reduce" })`, puis `expectNoMotion(page)` de `e2e/helpers.ts`. Tout écran animé y passe ; modèle dans `e2e/reduced-motion.spec.ts`.
@@ -96,7 +96,7 @@ Le dossier `.maestro/destructive/` n'est pas lu par cette commande. Il contient 
 maestro test -e APP_ID=coach.tartan.app.dev -e DISPOSABLE_EMAIL=… -e PASSWORD=… .maestro/destructive/account-delete.yml
 ```
 
-Le script `maestro:test` ne transmet pas ces variables. Les parcours exigent des séances issues de la graine ; l'absence de données ne doit pas les faire passer. Le job exécute treize flux puis la suppression d'un compte jetable, vérifiée en base.
+Le script `maestro:test` ne transmet pas ces variables. Les parcours exigent des séances issues de la graine ; l'absence de données ne doit pas les faire passer. Le job iOS exécute les flux de `.maestro/config.yaml`, le job Android ceux de `.maestro/config-android.yaml`, puis la suppression d'un compte jetable, vérifiée en base.
 
 ## Matrice des écrans
 
