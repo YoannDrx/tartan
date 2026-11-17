@@ -10,6 +10,7 @@ import {
   independentHash,
   scoreIndependentCase,
 } from "../evals/planner-independent";
+import { costOf, summarizeRuns } from "../evals/planner-report";
 import { openAiPlannerProvider, plannerProviderContext, PlannerProviderError } from "../src/server/ai/provider";
 import type { PlannerInterpretation } from "@tartan/contracts";
 const option = (name: string) => {
@@ -23,6 +24,8 @@ type Row = {
   at: string;
   durationMs: number;
   calls: number;
+  inputTokens: number;
+  outputTokens: number;
   result?: PlannerInterpretation;
   score?: ReturnType<typeof scoreIndependentCase>;
   error?: string;
@@ -32,6 +35,18 @@ async function main() {
   const root = resolve(import.meta.dirname, "../../..");
   for (const test of independentCorpus.cases) plannerProviderContext.parse(independentContext(test));
   if (new Set(independentCorpus.cases.map((c) => c.id)).size !== 80) throw new Error("duplicate_case");
+  // Relire un rapport existant, sans aucun appel : réussites, questions posées à tort, latence, jetons et coût.
+  const summary = option("--summary");
+  if (summary) {
+    const runs = summarizeRuns((JSON.parse(readFileSync(resolve(root, summary), "utf8")) as { rows: Row[] }).rows);
+    const [priceIn, priceOut] = [Number(option("--price-in")), Number(option("--price-out"))];
+    const cost =
+      Number.isFinite(priceIn) && Number.isFinite(priceOut)
+        ? costOf(runs, { inputPerMillion: priceIn, outputPerMillion: priceOut })
+        : undefined;
+    console.log(JSON.stringify({ runs, ...(cost === undefined ? {} : { cost }) }, null, 2));
+    return;
+  }
   const source = option("--rescore");
   if (source) {
     const output = option("--output");
@@ -172,6 +187,8 @@ async function main() {
             at: new Date().toISOString(),
             durationMs: 0,
             calls: 0,
+            inputTokens: 0,
+            outputTokens: 0,
             providerTexts: [],
           };
           const started = Date.now();
@@ -183,6 +200,8 @@ async function main() {
                 .clone()
                 .json()
                 .catch(() => null);
+              row.inputTokens += Number(body?.usage?.input_tokens ?? 0);
+              row.outputTokens += Number(body?.usage?.output_tokens ?? 0);
               if (Array.isArray(body?.output))
                 row.providerTexts.push(
                   body.output
@@ -218,13 +237,9 @@ async function main() {
         }),
       );
     }
-    const rows = report.rows.filter((row) => row.run === run);
     console.log(
       JSON.stringify({
-        run,
-        evaluated: rows.length,
-        passed: rows.filter((r) => r.score?.passed).length,
-        critical: rows.filter((r) => r.score?.critical.length).map((r) => r.id),
+        ...summarizeRuns(report.rows.filter((row) => row.run === run))[0],
         humanReview: "pending",
       }),
     );

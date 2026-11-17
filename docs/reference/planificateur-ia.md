@@ -87,6 +87,8 @@ corepack pnpm --filter @tartan/web eval:planner:independent --live --output .loc
 corepack pnpm --filter @tartan/web eval:planner:independent --live --resume .local/planner-independent-reference.json
 ```
 
+Pour relire un rapport sans refaire un appel : `eval:planner:independent --summary .local/rapport.json` donne, par passage, les réussites, les questions posées à tort, la latence médiane et au 95e centile, les appels et les jetons ; `--price-in` et `--price-out` (prix par million de jetons) y ajoutent le coût. Un rapport d'avant le 17 novembre 2026 n'a pas de jetons : aucun coût n'est alors affiché.
+
 Sans `--live`, aucun appel externe. Par défaut, trois passages avec au plus trois cas simultanés. La reprise exige les mêmes empreintes de corpus, d’implémentation et de modèle. Le rapport local contient réponses synthétiques, écarts, durées et nombre d’appels. Aucun compte ni donnée d’athlète réel n’est utilisé. Pour corriger une erreur de notation sans refaire les appels, `--rescore .local/source.json --output .local/nouveau.json` garde le rapport original et indique l’empreinte du correcteur.
 
 Seuil attendu : au moins 76/80 à chacun des trois passages, aucune date fausse, charge inventée ou substitution silencieuse acceptée. Un défaut de structure ou de quantité reste un échec même lorsqu’il ne constitue pas une substitution. Après observation des réponses et réglage, ce corpus devient lui aussi une régression : sa provenance reste indiquée, sans le présenter comme un nouveau jeu indépendant.

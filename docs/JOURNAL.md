@@ -19,6 +19,12 @@ Vérifié : types, lint, tests, `design:check` ; `expo config` ; empreinte Expo 
 À savoir : Expo 55 est à sa dernière version et tire encore glob 13, minimatch 10 et `query-string` 7 ; retirer ces `overrides` et le correctif quand Expo les aura mis à jour. Le zod 3 d'`@expo/cli` reste dans la plage de l'avis zod, sans version 3 corrigée : outil de développement seulement. L'alerte `decode-uri-component` reste affichée par GitHub, qui ne voit que la version 0.2.2 : elle est fermée à la main avec un renvoi au correctif.
 Suite : aucune.
 
+## 2026-11-17, Claude, planificateur : outil de mesure
+Fait (PR `feat/ia-mesure`) : `evals/planner-report.ts` résume un rapport par passage (réussites, questions posées à tort, erreurs, latence médiane et 95e centile, appels, jetons) ; la mesure réelle compte les jetons de chaque appel ; `--summary` relit un rapport sans appel, `--price-in` et `--price-out` chiffrent le coût.
+Vérifié : test du résumé ; rapport de départ relu (66, 61, 68 sur 80 ; questions à tort 4, 8, 4).
+À savoir : `ETAT.md` disait « 16 fois par passage » : c'était le total des trois passages. Le rapport de départ n'a pas de jetons, son coût exact se lit chez OpenAI.
+Suite : planificateur, erreurs lisibles et sortie alignée sur le constructeur.
+
 ## 2026-11-17, Claude, lot 0 : CI web seule et isolation locale
 Fait (PR `chore/ci-web-seul`) : le filtre de `mobile-native.yml` liste ce que l'app native embarque, paquet par paquet (plus `packages/**`) ; `@tartan/i18n/web` (`packages/i18n/src/web/`) reçoit les textes propres au web, hors du filtre, interdits au mobile par son lint ; `tests/mobile-filter.test.ts` refuse un filtre qui oublierait une dépendance du mobile ; `E2E_PORT` règle le port des parcours ; le journal local des e-mails imprime le lien d'action (`actionLink`, constat G17) ; procédure d'isolation dans `docs/tests/README.md`.
 Vérifié : types, lint, design, toute la suite (web 2 000, domaine 330, mascotte 782, mobile 262, jeu 247) ; lien de connexion relu dans le journal d'un serveur local. Mesure de départ du planificateur en appels réels (80 cas, trois passages, `gpt-4.1-mini`) : 66, 61, 68 sur 80, rapport hors dépôt dans `.local/`.
