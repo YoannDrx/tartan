@@ -96,6 +96,20 @@ env:
 - waitForAnimationToEnd
 - tapOn:
     id: replace-autonomous-detail-c
+# La fiche est la première du sélecteur : attendre qu'il soit posé, sinon un défilement vers le bas la fait sortir
+# de l'écran avant qu'elle soit vue (Android).
+- extendedWaitUntil:
+    visible:
+      id: exercise-search
+    timeout: 15000
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: exercise-option-${output.replacementId}
+    direction: UP
+    centerElement: true
+    timeout: 20000
+    optional: true
 - scrollUntilVisible:
     element:
       id: exercise-option-${output.replacementId}
