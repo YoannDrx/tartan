@@ -164,7 +164,7 @@ test.describe("le pilote", () => {
 
   test("la suppression du compte se fait depuis les réglages", async ({ page }) => {
     await createCoachSpace(page, "Partant");
-    await page.goto("/reglages");
+    await page.goto("/reglages/confidentialite");
     await page.getByRole("button", { name: "Supprimer mon compte" }).click();
     await page.getByLabel("Écris SUPPRIMER pour confirmer").fill("SUPPRIMER");
     await page.getByRole("dialog").getByRole("button", { name: "Supprimer mon compte" }).click();
