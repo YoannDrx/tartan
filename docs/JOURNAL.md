@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-17, Claude, alertes Dependabot et flux Maestro Android
+Fait : PR 154 et 155 (flux `coach-builder-detail` stable sur Android : la ligne en autonomie est cherchée vers le haut, et le flux attend que le sélecteur soit posé), PR 153 (Next 16.4.5), puis PR `fix/deps-vulnerabilites` : `overrides` pnpm (node-forge 1.4.3, glob 14, minimatch 11, zod 4.6.7 pour `@vercel/blob`) et correctif local de `decode-uri-component@0.2.2` (décodage en une passe repris de la 0.5.1, gardé en CommonJS pour `query-string` 7 d'expo-router).
+Vérifié : types, lint, tests, `design:check` ; `expo config` ; empreinte Expo iOS et Android identique avant et après (les `runtimeVersion` des builds installés ne changent pas) ; la 0.2.2 d'origine dépasse 60 s sur 2 000 octets invalides, la version corrigée traite 200 000 octets en 40 ms, sans écart sur 11 cas usuels.
+À savoir : Expo 55 est à sa dernière version et tire encore glob 13, minimatch 10 et `query-string` 7 ; retirer ces `overrides` et le correctif quand Expo les aura mis à jour. Le zod 3 d'`@expo/cli` reste dans la plage de l'avis zod, sans version 3 corrigée : outil de développement seulement. L'alerte `decode-uri-component` reste affichée par GitHub, qui ne voit que la version 0.2.2 : elle est fermée à la main avec un renvoi au correctif.
+Suite : aucune.
+
 ## 2026-11-16, Claude, état des lieux et brief de refonte
 Fait (PR `docs/etat-des-lieux`) : `ETAT.md` réécrit au 16 novembre, avec les lots 3 et 4 et la préparation des lots 5 à 7 ; nouvelle décision du fondateur dans `PRODUCT.md` ; brief complet `docs/plans/audit-et-refonte.md` pour l'agent qui mène l'audit et la refonte de la web app ; consigne courte dans `docs/prompts.md`.
 Vérifié : constats relevés dans le code sur `df446d0` (connexion, calendrier, bibliothèque, vidéo, mascotte, logo), version servie en production, erreurs Vercel sur 24 h (aucune), liste des builds EAS.

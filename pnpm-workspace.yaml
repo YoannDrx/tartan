@@ -16,4 +16,14 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
 patchedDependencies:
+  # Décodage en une passe repris de la 0.5.1 (alertes Dependabot), gardé en CommonJS pour expo-router.
+  decode-uri-component@0.2.2: patches/decode-uri-component@0.2.2.patch
   expo-video@55.0.21: patches/expo-video@55.0.21.patch
+
+# Alertes Dependabot : versions corrigées imposées aux dépendances indirectes (Expo, @vercel/blob).
+# zod 3 reste pour @expo/cli, qui n'a pas de version 3 corrigée et ne sert qu'aux outils de développement.
+overrides:
+  node-forge@<1.4.3: ^1.4.3
+  glob@>=9.0.0 <14.0.2: ^14.0.2
+  minimatch@>=7.0.0 <11.0.1: ^11.0.1
+  zod@>=4.0.0 <4.6.6: ^4.6.6
