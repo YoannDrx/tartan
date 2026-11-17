@@ -41,6 +41,18 @@ Les annotations restent dans le stockage de ce navigateur, pas dans le dépôt n
 
 `pnpm db:start` crée `tartan` (développement), `tartan_test` (Vitest), `tartan_e2e` (Playwright). À créer et migrer à la main : `tartan_capture` (captures), `tartan_v11_sandbox` (sandbox Stripe). Les suites réinitialisent leur base à chaque lancement.
 
+**Plusieurs sessions sur le même poste.** Elles partagent le serveur Postgres (port 54329) et, par défaut, les bases et le port des parcours : une session qui lance Vitest ou Playwright vide la base de l'autre. Chaque session prend donc les siennes :
+
+```sh
+createdb -h localhost -p 54329 -U tartan tartan_<session>        # développement, à mettre dans apps/web/.env
+createdb -h localhost -p 54329 -U tartan tartan_<session>_test
+createdb -h localhost -p 54329 -U tartan tartan_<session>_e2e
+TEST_DATABASE_URL=postgresql://tartan@localhost:54329/tartan_<session>_test pnpm test
+E2E_PORT=31xx E2E_DATABASE_URL=postgresql://tartan@localhost:54329/tartan_<session>_e2e E2E_PROD=1 pnpm test:e2e
+```
+
+Le serveur de développement prend lui aussi son port (`next dev -p 32xx`, avec `BETTER_AUTH_URL` et `NEXT_PUBLIC_APP_URL` accordés).
+
 ## CI (`.github/workflows`)
 
 | Workflow             | Quand                    | Contenu                                                                                              |
@@ -61,6 +73,7 @@ Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette s
 | --- | --- |
 | `E2E_PROD` | `next build` puis `next start`. Active CSP et hors ligne, désactive `video-poc` |
 | `E2E_DATABASE_URL` | Base des parcours, défaut `tartan_e2e` |
+| `E2E_PORT` | Port du serveur des parcours, défaut 3100 |
 | `TEST_DATABASE_URL` | Base de Vitest, défaut `tartan_test` |
 | `E2E_AI_PLANNER_ENABLED=true` | Ouvre le planificateur simulé |
 | `E2E_DISABLE_ADMIN_STEP_UP`, `E2E_DISABLE_RATE_LIMIT` | Posées par la configuration de Playwright, interdites en production |
@@ -72,12 +85,12 @@ Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette s
 
 ## Pièges
 
-- Hors CI, `reuseExistingServer` réutilise un serveur déjà lancé sur le port 3100, avec ses variables : arrête-le avant de changer de drapeau.
+- Hors CI, `reuseExistingServer` réutilise un serveur déjà lancé sur le port des parcours (3100, ou `E2E_PORT`), avec ses variables : arrête-le avant de changer de drapeau.
 - `globalSetup` fait un `prisma migrate reset --force` de la base E2E à chaque lancement.
 - `enforceRateLimit` n'a pas de contournement en E2E : utilise des adresses différentes.
 - Un test d'administration doit utiliser une adresse de `ADMIN_EMAILS` dans `playwright.config.ts`, ou compléter cette liste.
 - Les tests de passkey ne tournent que sous Chromium, avec l'authentificateur virtuel (`e2e/admin-passkey.spec.ts`).
-- Sans `RESEND_API_KEY`, `next dev` écrit le sujet de chaque e-mail dans la console. Le lien qu'il imprime est aujourd'hui celui du logo, pas celui de l'action (constat G17 de l'audit) : pour un essai local, passe par le mot de passe et valide l'adresse en base.
+- Sans `RESEND_API_KEY`, `next dev` écrit dans la console le sujet de chaque e-mail et son lien d'action (`[e-mail local] … → …`) : un lien de connexion, de vérification ou d'invitation se joue en le recopiant.
 - Tests hors ligne de `terrain.spec.ts` : `E2E_PROD` obligatoire.
 - Les webhooks se testent avec une **vraie signature** : modèle dans `tests/mux-webhook.test.ts`.
 - Mouvement réduit : `await page.emulateMedia({ reducedMotion: "reduce" })`, puis `expectNoMotion(page)` de `e2e/helpers.ts`. Tout écran animé y passe ; modèle dans `e2e/reduced-motion.spec.ts`.
