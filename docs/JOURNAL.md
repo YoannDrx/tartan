@@ -19,6 +19,13 @@ Vérifié : types, lint, tests, `design:check` ; `expo config` ; empreinte Expo 
 À savoir : Expo 55 est à sa dernière version et tire encore glob 13, minimatch 10 et `query-string` 7 ; retirer ces `overrides` et le correctif quand Expo les aura mis à jour. Le zod 3 d'`@expo/cli` reste dans la plage de l'avis zod, sans version 3 corrigée : outil de développement seulement. L'alerte `decode-uri-component` reste affichée par GitHub, qui ne voit que la version 0.2.2 : elle est fermée à la main avec un renvoi au correctif.
 Suite : aucune.
 
+## 2026-11-17, Claude, audit complet de la web app
+Fait (PR `docs/audit-web`) : section 8 du brief `docs/plans/audit-et-refonte.md` (constats classés, mesures, les 14 parcours de la recette, décisions du fondateur du 17 novembre, ordre des lots) ; `ETAT.md`, `PRODUCT.md` et `docs/tests/README.md` mis à jour. Aucun code produit.
+Vérifié : balayage de 81 écrans à 390, 768 et 1440 px sur données remplies (axe, console, débordement, petit texte, cibles), parcours coach neuf et athlète invité rejoués à 390 px, planificateur avec prestataire simulé, 121 athlètes, performance sur build de production local.
+Non vérifié : zoom à 200 %, lecteurs d'écran, planificateur réel, limitation du réseau pendant la mesure de performance.
+À savoir : le balayage de la CI tourne sur un espace vide et ne voit pas le débordement de `/suivi` à 390 px (165 px avec neuf séances dans la semaine). Sans prestataire d'e-mail, le journal local imprime le lien du logo, pas le lien d'action : un lien magique ne se joue plus en local. Le service worker demande des `/exercise-guides/*.svg` qui n'existent pas, et `OFFLINE_PATHS` cite encore `mes-sauts`. Les scripts d'audit vivent hors dépôt (`apps/web/.local/`), sur une base `tartan_audit` et le port 3210.
+Suite : lot 0 (textes web hors du filtre Maestro, port Playwright réglable, lien d'action du journal local), production vidée sauf l'administrateur, puis la vague 1 (réglages, planning, planche logo, prototype du personnage, mesure de départ du planificateur).
+
 ## 2026-11-16, Claude, état des lieux et brief de refonte
 Fait (PR `docs/etat-des-lieux`) : `ETAT.md` réécrit au 16 novembre, avec les lots 3 et 4 et la préparation des lots 5 à 7 ; nouvelle décision du fondateur dans `PRODUCT.md` ; brief complet `docs/plans/audit-et-refonte.md` pour l'agent qui mène l'audit et la refonte de la web app ; consigne courte dans `docs/prompts.md`.
 Vérifié : constats relevés dans le code sur `df446d0` (connexion, calendrier, bibliothèque, vidéo, mascotte, logo), version servie en production, erreurs Vercel sur 24 h (aucune), liste des builds EAS.
