@@ -23,7 +23,19 @@
     "./long-jump": "./src/long-jump.ts",
     "./high-jump-event": "./src/high-jump-event.ts",
     "./exercise": "./src/exercise.ts",
-    "./exercises": "./src/exercises/index.ts"
+    "./exercises": "./src/exercises/index.ts",
+    "./v2/body": "./src/v2/body.ts",
+    "./v2/pose": "./src/v2/pose.ts",
+    "./v2/ik": "./src/v2/ik.ts",
+    "./v2/solve": "./src/v2/solve.ts",
+    "./v2/timeline": "./src/v2/timeline.ts",
+    "./v2/gesture": "./src/v2/gesture.ts",
+    "./v2/gestures": "./src/v2/gestures/index.ts",
+    "./v2/project": "./src/v2/project.ts",
+    "./v2/skin": "./src/v2/skin.ts",
+    "./v2/draw-svg": "./src/v2/draw-svg.ts",
+    "./v2/player": "./src/v2/player.ts",
+    "./v2/constraints": "./src/v2/constraints.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
