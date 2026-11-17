@@ -43,7 +43,7 @@ Suite : lot 4 (gestes vus de face).
 ## 2026-11-15, Claude, fichiers d'environnement et EXPO_TOKEN
 Fait (PR `chore/fichiers-env`) : `.env.example` réécrit en 14 rubriques numérotées, toutes les valeurs à `""`, chaque variable avec son rôle, son défaut et les environnements Vercel où elle est posée ; `parseEnv` traite une valeur vide comme absente (défauts du code appliqués), même règle dans `prisma.config.ts`, `layout.tsx`, la graine et Vitest. Fichiers locaux ignorés rangés dans le même ordre, valeurs inchangées. `EXPO_TOKEN` posé sur GitHub (robot Expo `github-actions`, rôle Developer).
 Vérifié : test d'environnement (10), types, lint ; relevé Vercel : la production a toutes les variables que le code exige.
-À savoir : la clé App Store Connect (`SJHW52VCAC`) a été rattachée au profil `beta` par le fondateur (`eas credentials`, interactif) ; build iOS 14 envoyé à App Store Connect. En local, `eas submit` exige `eval "$(node scripts/profile-env.mjs beta)"`, sinon il vise `coach.tartan.app.dev`. Le `.env.local` de la racine n'est lu que par les évaluations du planificateur.
+À savoir : la clé App Store Connect a été rattachée au profil `beta` par le fondateur (`eas credentials`, interactif) ; build iOS 14 envoyé à App Store Connect. En local, `eas submit` exige `eval "$(node scripts/profile-env.mjs beta)"`, sinon il vise `coach.tartan.app.dev`. Le `.env.local` de la racine n'est lu que par les évaluations du planificateur.
 Suite : fiche TestFlight externe et groupe d'invités (lot 5).
 
 ## 2026-11-15, Claude, lot 2 : séries détaillées
