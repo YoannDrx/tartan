@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MagicLinkEmail, NotificationEmail, ResetPasswordEmail, VerifyEmail } from "@email/auth";
-import { outbox, sendEmail } from "@/lib/mail";
+import { actionLink, outbox, sendEmail } from "@/lib/mail";
 import { getEmailPreferences, isValidUnsubscribe, unsubscribeUrl } from "@/server/email-preferences.service";
 import { POST } from "../app/api/email/desinscription/[kind]/[token]/route";
 import { makeUser } from "./helpers";
@@ -20,6 +20,18 @@ const send = (extra: { unsubscribeUrl?: string } = {}) => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("socle e-mail", () => {
+  it("le journal local donne le lien d'action, pas celui du logo", async () => {
+    const mail = await send();
+    // Le logo, en tête du message, mène à l'accueil du site : ce n'est pas le lien à jouer.
+    const first = mail.html.match(/href="(https?:[^"]+)"/)?.[1];
+    expect(first).not.toBe("https://app.tartan.coach/lien");
+    expect(actionLink(mail.html)).toBe("https://app.tartan.coach/lien");
+    expect(actionLink('<a href="https://tartan.coach">Tartan</a>')).toBe("https://tartan.coach");
+    expect(
+      actionLink('<a href="https://tartan.coach/">Tartan</a><a href="http://localhost:3000/i/abc?x=1&amp;y=2">Oui</a>'),
+    ).toBe("http://localhost:3000/i/abc?x=1&y=2");
+  });
+
   it("le pied de page nomme l'éditeur", async () => {
     const mail = await send();
     expect(mail.html).toContain("Yodev, entreprise individuelle");
