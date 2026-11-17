@@ -14,9 +14,12 @@ export const Dialog = ({
   trigger,
   children,
   wide,
+  onCloseAutoFocus,
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** À la fermeture, le focus revient à ce qui a ouvert le dialogue ; `preventDefault` pour le poser ailleurs. */
+  onCloseAutoFocus?: (event: Event) => void;
   title: string;
   description?: string;
   trigger?: ReactNode;
@@ -28,6 +31,7 @@ export const Dialog = ({
     <Radix.Portal>
       <Radix.Overlay className="overlay-enter fixed inset-0 z-40 bg-ink/70" />
       <Radix.Content
+        onCloseAutoFocus={onCloseAutoFocus}
         className={cn(
           "sheet-enter fixed z-50 flex max-h-[92dvh] flex-col overflow-y-auto on-card bg-card shadow-float",
           "inset-x-0 bottom-0 rounded-t-hero p-4 pb-[max(16px,env(safe-area-inset-bottom))]",

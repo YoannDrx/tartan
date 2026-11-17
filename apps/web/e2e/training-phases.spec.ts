@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { Client } from "pg";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { createApiClient } from "../../../packages/api-client/src/index";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 
@@ -80,9 +81,30 @@ test("phases : brouillon privé, partage, chevauchement, conflit et transport na
     await expectNoHorizontalScroll(page);
     await page.screenshot({ path: `/tmp/tartan-phases-${info.project.name}-${width}.png` });
   }
+  // Au-dessus du planning, les phases tiennent en un seul élément compact : la phase en cours et sa semaine sur
+  // la ligne repliée, un seul lien vers la page des phases, et la frise à la demande. La semaine reste en vue.
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/calendrier?semaine=2030-01-21");
-  await expect(page.getByText(t.week(3, 12))).toBeVisible();
-  await expect(page.getByText("Préparation générale de printemps", { exact: true })).toBeVisible();
+  const phases = page.locator("section").filter({ has: page.getByText(t.title, { exact: true }) });
+  // La première ligne repliable est celle des phases ; la frise en contient une autre, pour la note privée.
+  const summary = phases.locator("summary").first();
+  await expect(summary.getByText(t.week(3, 12))).toBeVisible();
+  await expect(summary.getByText("Préparation générale de printemps", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: t.title, exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: w.planning.phasesManageLabel, exact: true })).toHaveCount(1);
+  expect((await phases.boundingBox())!.height).toBeLessThan(130);
+  const firstDay = (await page.locator("[data-plan-day]").first().boundingBox())!;
+  expect(firstDay.y, "le premier jour de la semaine est dans le premier écran").toBeLessThan(844 - 120);
+  await expectAccessible(page);
+  await expectNoHorizontalScroll(page);
+  // Rien n'est retiré : la frise s'ouvre, le lien mène à la page des phases de la période.
+  await summary.click();
+  await expect(phases.getByRole("region", { name: t.timeline })).toBeVisible();
+  await expect(phases.getByText("Modifié depuis un autre appareil")).toBeVisible();
+  await expect(page.getByRole("link", { name: w.planning.phasesManageLabel, exact: true })).toHaveAttribute(
+    "href",
+    /\/phases\?from=2030-01-21&to=2030-01-27/,
+  );
   await expect(native.deleteTrainingPhase(orgId, phase.id, 1)).rejects.toMatchObject({ status: 409 });
   const removed = await native.deleteTrainingPhase(orgId, phase.id, phase.version);
   expect(await native.deleteTrainingPhase(orgId, phase.id, phase.version)).toEqual(removed);
