@@ -1,6 +1,6 @@
 # Plan : publier sur Google Play
 
-Paquet `coach.tartan.app`, API 36. Textes et formulaires : [fiches-stores](../reference/fiches-stores.md). L'avancement est dans [../ETAT.md](../ETAT.md).
+Paquet `coach.tartan.app`, API 36. Textes et formulaires : [fiches-stores](../reference/fiches-stores.md) ; test fermé (profil d'envoi, notes de version, Sécurité des données, santé, classification) : [betas](../reference/betas.md). L'avancement est dans [../ETAT.md](../ETAT.md).
 
 ## Déjà en place
 

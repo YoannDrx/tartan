@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "frozenBeforePlannerChanges": true,
+  "period": { "from": "2026-11-23", "to": "2026-11-29" },
+  "today": "2026-11-20",
+  "timeZone": "Europe/Paris",
+  "selectedTargets": ["group_1"],
+  "cases": [
+    {
+      "id": "D01",
+      "mode": "format",
+      "file": "D01.m4a",
+      "spoken": "Mardi, soulevé de terre roumain, trois séries de huit à cinquante kilos, une minute trente de repos.",
+      "setting": "calme, intérieur",
+      "expected": { "status": "proposal", "date": "2026-11-24", "exercise": "romanian-deadlift", "sets": 3, "reps": 8, "loadKg": 50, "restS": 90 }
+    }
+  ]
+}

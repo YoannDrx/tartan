@@ -37,18 +37,25 @@ const testCase = z.object({
   id: z.string(),
   mode: z.enum(["format", "propose"]),
   text: z.string(),
+  // Mode « Proposer » : la demande du coach telle que l'écran la remplit. Absente, elle est lue dans le texte
+  // (format du corpus de 80 cas).
+  brief: plannerBrief.optional(),
   expected: expectation,
 });
-const corpusSchema = z.object({
-  version: z.literal(1),
-  frozenBeforePlannerChanges: z.literal(true),
-  period: z.object({ from: z.string(), to: z.string() }),
-  today: z.string(),
-  timeZone: z.string(),
-  selectedTargets: z.array(z.string()),
-  cases: z.array(testCase).length(80),
-});
+// Un corpus figé : le jeu de 80 cas, ou celui que le fondateur écrit (40 consignes, plus 30 dictées).
+export const corpusSchemaFor = (count: number) =>
+  z.object({
+    version: z.literal(1),
+    frozenBeforePlannerChanges: z.literal(true),
+    period: z.object({ from: z.string(), to: z.string() }),
+    today: z.string(),
+    timeZone: z.string(),
+    selectedTargets: z.array(z.string()),
+    cases: z.array(testCase).length(count),
+  });
 export type IndependentCase = z.infer<typeof testCase>;
+export type PlannerCorpus = z.infer<ReturnType<typeof corpusSchemaFor>>;
+const corpusSchema = corpusSchemaFor(80);
 const raw = readFileSync(new URL("./independent/planner-80.json", import.meta.url));
 export const independentHash = createHash("sha256").update(raw).digest("hex");
 if (
@@ -65,30 +72,35 @@ export const independentCatalog = EXERCISE_CATALOG.map((e, i) => ({
 }));
 const byToken = new Map(independentCatalog.map((e) => [e.token, e]));
 
-export function independentContext(test: IndependentCase): PlannerProviderContext {
+export function independentContext(
+  test: IndependentCase,
+  corpus: PlannerCorpus = independentCorpus,
+): PlannerProviderContext {
   // Parse only the frozen user text. Never feed an expected answer to the provider.
   const briefText =
-    test.mode === "propose"
+    test.mode === "propose" && !test.brief
       ? /: (.+)\. Durée (\d+) minutes\. Niveau (\w+)\. Matériel disponible : (.+)\.$/.exec(test.text)
       : null;
   const date = /mercredi 18 novembre 2026/.test(test.text) ? "2026-11-18" : null;
   const brief =
     test.mode === "propose"
-      ? plannerBrief.parse({
-          objective: briefText?.[1],
-          date,
-          durationMin: Number(briefText?.[2]),
-          level: briefText?.[3],
-          equipment: briefText?.[4]?.split(", "),
-        })
+      ? plannerBrief.parse(
+          test.brief ?? {
+            objective: briefText?.[1],
+            date,
+            durationMin: Number(briefText?.[2]),
+            level: briefText?.[3],
+            equipment: briefText?.[4]?.split(", "),
+          },
+        )
       : undefined;
   return {
     mode: test.mode,
     brief,
-    period: independentCorpus.period,
-    today: independentCorpus.today,
-    timeZone: independentCorpus.timeZone,
-    targets: independentCorpus.selectedTargets.map((token) => ({ token, kind: "group", phase: null })),
+    period: corpus.period,
+    today: corpus.today,
+    timeZone: corpus.timeZone,
+    targets: corpus.selectedTargets.map((token) => ({ token, kind: "group", phase: null })),
     exercises: independentCatalog.map((e) => ({
       token: e.token,
       name: e.name,
@@ -101,7 +113,7 @@ export function independentContext(test: IndependentCase): PlannerProviderContex
   };
 }
 
-export function scoreIndependentCase(test: IndependentCase, value: unknown) {
+export function scoreIndependentCase(test: IndependentCase, value: unknown, corpus: PlannerCorpus = independentCorpus) {
   const differences: string[] = [];
   const critical: string[] = [];
   const humanReviewRequired = test.mode === "propose";
@@ -122,8 +134,8 @@ export function scoreIndependentCase(test: IndependentCase, value: unknown) {
     const mentionedDays = weekdays.filter((day) => new RegExp(`\\b${day}\\b`, "i").test(test.text));
     const falseDate = actual.sessions.some(
       (session) =>
-        session.date < independentCorpus.period.from ||
-        session.date > independentCorpus.period.to ||
+        session.date < corpus.period.from ||
+        session.date > corpus.period.to ||
         (mentionedDays.length === 1 &&
           weekdays[new Date(`${session.date}T12:00:00Z`).getUTCDay()] !== mentionedDays[0]),
     );
@@ -154,7 +166,7 @@ export function scoreIndependentCase(test: IndependentCase, value: unknown) {
   if (
     actual.sessions.some(
       (s) =>
-        JSON.stringify([...s.targetTokens].sort()) !== JSON.stringify([...independentCorpus.selectedTargets].sort()),
+        JSON.stringify([...s.targetTokens].sort()) !== JSON.stringify([...corpus.selectedTargets].sort()),
     )
   )
     differences.push("targets");
@@ -163,7 +175,7 @@ export function scoreIndependentCase(test: IndependentCase, value: unknown) {
     critical.push("silent_substitution");
   }
   if (test.mode === "propose") {
-    const brief = independentContext(test).brief!;
+    const brief = independentContext(test, corpus).brief!;
     if (!actual.assumptions.length) differences.push("assumptions");
     if (actual.sessions.some((s) => s.durationMin == null || s.durationMin > brief.durationMin))
       differences.push("duration");

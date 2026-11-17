@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "frozenBeforePlannerChanges": true,
+  "period": { "from": "2026-11-23", "to": "2026-11-29" },
+  "today": "2026-11-20",
+  "timeZone": "Europe/Paris",
+  "selectedTargets": ["group_1"],
+  "cases": [
+    {
+      "id": "C01",
+      "mode": "format",
+      "text": "Lundi : squat avant, 5 séries de 3 à 70 kg, 3 minutes de récupération.",
+      "expected": { "status": "proposal", "date": "2026-11-23", "exercise": "front-squat", "sets": 5, "reps": 3, "loadKg": 70, "restS": 180 }
+    },
+    {
+      "id": "C02",
+      "mode": "propose",
+      "text": "Une séance de vitesse courte pour la fin de semaine.",
+      "brief": { "objective": "Vitesse", "date": "2026-11-27", "durationMin": 45, "level": "intermediate", "equipment": ["cones"] },
+      "expected": { "status": "proposal", "date": "2026-11-27" }
+    }
+  ]
+}

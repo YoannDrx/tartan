@@ -114,12 +114,12 @@ Détail : [commercialisation](plans/commercialisation.md).
 6. **Google Play.** Recevoir le D-U-N-S, puis créer le compte organisation : identité, paiement, contrat.
 7. **Relectures.**
    - Les 23 guides de la version 5 (`packages/domain/src/exercise-catalog/variants.ts`).
-   - Les gestes refaits par la refonte, famille par famille, dans `/admin/mouvements`.
+   - Les gestes, famille par famille, dans `/admin/mouvements`, y compris les « Nouveaux gestes, vus de face » (lot 4), qui ont leur propre bouton ; sans validation, l'athlète les voit avec la mention « Illustration de travail ».
    - Les guides réécrits plus courts.
 8. **Choix visuels.**
    - Une direction de logo.
    - Le prototype du nouveau personnage.
-9. **Corpus du planificateur.** Écrire, ou faire écrire par un coach, 40 consignes jamais vues par l'agent, et enregistrer 30 dictées. Le format, le gel et la commande sont dans [planificateur-ia](reference/planificateur-ia.md).
+9. **Corpus du planificateur.** Écrire, ou faire écrire par un coach, 40 consignes jamais vues par l'agent, et enregistrer 30 dictées. Le format, le gel et la commande sont dans [planificateur-ia](reference/planificateur-ia.md#corpus-du-fondateur-lot-6) ; l'agent ne lance aucun appel payant.
 10. **Recettes et ouverture.** Paiement réel accompagné, e-mails sur Outlook et iCloud, recette sur tes téléphones, pilote sans guidage, puis décision d'ouverture.
 
 Le mot de passe des comptes de démonstration de la Preview est dans `.local/preview-demo-password`, sur le poste de l'agent qui l'a créé, jamais dans le dépôt.
