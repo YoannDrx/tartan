@@ -15,6 +15,11 @@ export default [
       "react-hooks/exhaustive-deps": "warn",
       "tartan/no-raw-color": "error",
       "tartan/no-hardcoded-text": "error",
+      // Les textes propres au web ne sont pas embarqués dans l'app : la CI ne rejoue pas Maestro quand ils changent.
+      "no-restricted-imports": [
+        "error",
+        { paths: [{ name: "@tartan/i18n/web", message: "Textes réservés au web : utilise @tartan/i18n." }] },
+      ],
     },
   },
 ];

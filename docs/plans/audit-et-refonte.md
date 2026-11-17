@@ -43,7 +43,7 @@ Toutes les règles d'`AGENTS.md` s'appliquent. Les plus importantes, rappelées 
 - **Un défaut corrigé = un test** qui échouait avant la correction.
 - **Dans chaque PR**, mets à jour `docs/ETAT.md` (photographie courte, pas un journal) et ajoute une entrée en haut de `docs/JOURNAL.md`.
 - **Fusion.** Tu fusionnes toi-même une PR **dont la CI est verte**. Vérifie ensuite `https://app.tartan.coach/api/v1/version` (le `build` doit être le commit de fusion), puis les erreurs d'exécution Vercel de production sur 24 h, avertissements compris. Supprime la branche distante et la branche locale.
-- **Protection de `main`.** Elle exige des branches à jour (`strict`) et les contrôles `quality` et `mobile-gate`. Une PR qui touche le mobile ou un paquet partagé qu'il consomme (`packages/mascot`, `contracts`, `domain`, `i18n`, `design-tokens`) relance Maestro iOS et Android, soit une heure environ par mise à jour. Une PR purement web saute Maestro.
+- **Protection de `main`.** Elle exige des branches à jour (`strict`) et les contrôles `quality` et `mobile-gate`. Une PR qui touche le mobile ou un paquet partagé qu'il embarque (`packages/api-client`, `contracts`, `design-tokens`, `domain`, `mascot`, et `i18n` hors de `src/web/`) relance Maestro iOS et Android, soit une heure environ par mise à jour. Une PR purement web saute Maestro, y compris quand elle ajoute des textes dans `packages/i18n/src/web/` (lot 0 du 17 novembre).
   - Ordonne les fusions pour ne pas relancer Maestro pour rien.
   - Avant de fusionner une PR empilée, passe la base de ses enfants sur `main` (`gh pr edit --base main`), sinon GitHub les ferme.
 - **Écris le niveau atteint, jamais l'intention.** Trois niveaux, à ne pas confondre :
@@ -490,3 +490,136 @@ Les lots 2, 3 et 4 ne touchent pas les mêmes fichiers. Tu peux les mener en par
 - Chaque fonction a son niveau de preuve écrit dans `ETAT.md`.
 - Une CI verte et une production sans erreur sur 24 h après chaque fusion.
 - Un compte rendu au fondateur, en français, qui sépare ce qui est codé, ce qui est testé et ce qui est éprouvé, et ce qui l'attend, lui.
+
+---
+
+## 8. Constats de l'audit (17 novembre 2026)
+
+Audit mené sur `main` à `072eafd`, sur une base locale dédiée (graine, puis `demo:fill`, puis 110 athlètes ajoutés pour l'essai de volume). Les captures et les rapports sont gardés hors du dépôt.
+
+### 8.1 Ce qui a été fait
+
+| Passe | Périmètre | Résultat brut |
+| --- | --- | --- |
+| Balayage outillé | 81 écrans (19 publics, 26 coach, 18 athlète, 18 console), à 390, 768 et 1440 px, en mouvement réduit, sur données remplies | axe : 0 violation ; console : 0 erreur ; aucun texte sous 12 px ; 1 débordement |
+| Parcours rejoués dans le navigateur | Coach neuf jusqu'à la première séance publiée ; athlète invité jusqu'à la validation ; planificateur (prestataire simulé) ; calendrier ; bibliothèque et fiche ; réglages | 22 étapes capturées à 390 px, gestes comptés |
+| Volume | 121 athlètes dans un groupe | `/suivi` et `/athletes` mesurés |
+| Performance | Build de production local, téléphone émulé, processeur ralenti quatre fois | LCP et poids par page |
+
+**Limites.** Le zoom à 200 % n'a pas été mesuré à part (la largeur de 768 px s'en approche sur ordinateur). La limitation du réseau n'a pas pris pendant la mesure de performance : les LCP sont ceux d'un bon réseau. Les lecteurs d'écran n'ont pas été essayés. Le planificateur n'a reçu aucun appel réel pendant l'audit.
+
+### 8.2 Ce qui tient
+
+- **Accessibilité automatique** : aucune violation axe sur les 81 écrans, aux trois largeurs, données remplies.
+- **Validation de l'athlète** : un seul geste (« J'ai fait la séance ») depuis l'écran du jour, puis une feuille facultative. La promesse des 10 secondes est tenue.
+- **Mode séance** : lisible, une étape par écran, minuteur à portée de pouce.
+- **Performance perçue** : LCP de 0,2 à 1,6 s sur toutes les pages mesurées, aucun décalage de mise en page (CLS 0).
+
+### 8.3 Défauts bloquant la vente
+
+| N° | Écran | Constat | Preuve | Correction |
+| --- | --- | --- | --- | --- |
+| B1 | `/suivi` d'un coach neuf | Après la création de l'espace, le coach arrive sur une grille vide et quatre liens. Aucune présentation des fonctions, aucun état gardé, impossible de refermer ou de rouvrir le guide. Le lien « Inviter des athlètes » vise `/reglages#invitations`, qui est la section des groupes, pas le formulaire d'invitation | Parcours, étape 9 ; `suivi/page.tsx` | Lot G |
+| B2 | `/connexion?creer=1` | Sous le titre « Crée ton espace coach », l'inscription par mot de passe demande deux clics cachés (« Utiliser un mot de passe », puis « Pas encore de compte ? ») et l'action principale affichée reste « Se connecter ». 19 gestes de l'arrivée à l'espace créé | Parcours, étapes 2 à 8 | Lot C |
+| B3 | `/aujourdhui` d'un athlète neuf | Un jour de séance, l'athlète n'a aucun accueil et la proposition d'installation n'est jamais armée. L'accueil vit dans le navigateur : il revient sur un autre appareil | Parcours, étape 22 ; `athlete-welcome.tsx` | Lot G |
+| B4 | `/planificateur` | « Continuer avec ces destinataires » demande deux clics : le premier charge le contexte sans avancer. Vocabulaire technique (« Consommation et fuseau de l'espace », « Contexte prêt », « Exercices autorisés pour cette proposition »). Trois blocs d'avertissement et une case « relu » avant de pouvoir envoyer. Le mode se choisit dans une liste déroulante. S'y ajoutent les défauts lus dans le code : appel bloquant sans retour à l'écran, erreurs du prestataire écrasées en un message générique, mode « Proposer » sans contexte, « Ajuster » qui refait une autre séance | Parcours rejoué ; `web-planner.tsx`, `provider.ts`, `context.ts` | Lot H |
+| B5 | Fiche d'exercice | À l'arraché, le personnage est replié sur lui-même, tête démesurée, la barre réduite à un disque dans une main. Toutes les fiches portent « Illustration de travail » | Capture de la fiche | Lot J |
+| B6 | `/suivi` à 390 px | La page déborde de 165 px dès que la semaine compte neuf séances. Le balayage de la CI ne le voit pas : il tourne sur un espace vide | Mesure du balayage | Lot K, avec un balayage sur données remplies ajouté à la CI |
+| B7 | `/reglages` | Une seule page de 4 586 px à 390 px, dix-sept sections, deux sections voisines « Groupes » et « Invitations » qui se confondent, aucune rubrique pour la connexion | Capture | Lot A |
+
+Les six demandes du fondateur (sections 4.1 à 4.6) restent des portes d'ouverture : les constats B2, B5 et B7 les confirment à l'écran.
+
+### 8.4 Défauts gênants
+
+| N° | Écran | Constat | Correction |
+| --- | --- | --- | --- |
+| G1 | « Lien envoyé » | L'écran ne rappelle pas l'adresse saisie, n'offre ni renvoi ni aide si rien n'arrive | Lot C |
+| G2 | `/videos` à 390 px | Cinq filtres empilés occupent tout le premier écran avant la première vidéo. « Feuille de barres », propre à la hauteur, est une action de premier rang pour tous les coachs | Lot K : filtres dans une feuille, action rangée dans le contexte hauteur |
+| G3 | `/exercices` | 16 408 px de haut à 390 px : les 311 fiches sont rendues d'un coup. Deux filtres concurrents (liste « Famille de mouvements » et pastilles de catégories). L'haltérophilie est rangée sous « Musculation ». Aucune vignette de geste. La fiche s'ouvre en dialogue, sans adresse à partager | Lot F |
+| G4 | `/suivi`, `/athletes` à 121 athlètes | 7 310 px et 13 393 nœuds, 1,7 et 2,3 Mo de HTML, aucune recherche par nom, en-tête de colonnes qui ne reste pas en vue | Lot K : recherche, en-tête collant, rendu par tranches |
+| G5 | Service worker | Il tente de mettre en cache `/exercise-guides/*.svg`, des fichiers qui n'existent pas : une rafale de 404 à chaque page mise en cache. `OFFLINE_PATHS` cite `mes-sauts` et non `mes-videos` : les vidéos de l'athlète ne se rouvrent pas hors ligne | Lot K, avec test |
+| G6 | En-tête à 390 px | Le sélecteur d'espace se réduit à un chevron, sans nom (défaut 3 confirmé) | Lot K |
+| G7 | `/calendrier`, `/progres` | Le bloc « Phases de préparation » se répète (un résumé replié et un bouton du même nom) et pousse la semaine sous le premier écran. Le glisser-déposer reste sans retour (4.2) | Lots B et K |
+| G8 | Cibles tactiles | Pastilles de filtre de 36 px de haut (calendrier, exercices, console) ; noms d'athlètes cliquables de 21 px de haut (`/athletes`, `/seances/[id]/suivi`). `DESIGN.md` demande 44 px | Lot K |
+| G9 | `/analyse` | Une colonne de 520 px au milieu d'un écran de 1440 px, des chiffres sans hiérarchie, beaucoup de « Non renseigné » | Lot K |
+| G10 | Publication | « Séance publiée. Tes athlètes reçoivent la notification. » s'affiche pour un groupe vide, juste avant « Aucun athlète dans ce groupe » | Lot K |
+| G11 | `/seances/nouvelle` | 865 Ko de HTML : toute la bibliothèque et ses guides voyagent dans la page. À 390 px, la bibliothèque est tout en bas d'une page de 3 021 px | Lot F : sélecteur chargé à la demande |
+| G12 | Connexion | La redirection vers `/connexion` perd la page demandée (défaut 7 confirmé) | Lot C |
+| G13 | États vides | `/phases` et `/progres` n'ont qu'une phrase, sans l'athlète de la rubrique que demande `DESIGN.md` | Lot K |
+| G14 | Avatar et logo | Envoyés dans les réglages, affichés nulle part ailleurs | Lot E |
+| G15 | Invitation | Les consentements sont enregistrés après la transaction : un membre peut exister sans accord tracé | Lot G, avec test |
+| G16 | `/synchronisation` | Aucun lien n'y mène | Lot A |
+| G17 | Essais locaux | Sans prestataire d'e-mail, le journal imprime le lien du logo (`https://tartan.coach`) au lieu du lien d'action : un lien de connexion ou d'invitation ne se joue plus en local, contrairement à ce que dit `docs/tests/README.md` | Corrigé au lot 0, avec test |
+
+### 8.5 Finitions
+
+- Aucun lien d'évitement « Aller au contenu » en tête de page.
+- 176 textes encore gelés dans `apps/web/eslint-suppressions.json`, répartis sur 37 fichiers (le brief en annonçait 267).
+- `/planificateur`, avant l'accord : un bandeau étroit et centré, différent de tous les autres écrans.
+- La bibliothèque de départ contient des routines nommées comme des articles (« 4 exercices pour les genoux »), proposées en tête du constructeur parce que les chiffres passent avant les lettres.
+- `/seance/[id]/series` et sa jumelle côté coach : 5 200 px de haut à 390 px.
+- `/admin/mouvements` : 68 000 px de haut à 390 px.
+- `apps/web/public/icon-maskable-512.png` n'est plus produit par aucun script.
+- Documents périmés : commit de production dans `ETAT.md`, nombre de flux Maestro et job Android dans `docs/tests/README.md`, étapes I1 à I3 de `ios.md`, 74 pages annoncées pour 75.
+
+### 8.6 Mesures de performance
+
+Build de production local, viewport de 390 px, processeur ralenti quatre fois.
+
+| Page | LCP | HTML transféré | Nœuds |
+| --- | --- | --- | --- |
+| `/` | 1,0 s | 26 Ko (379 Ko de scripts) | 1 202 |
+| `/connexion` | 0,3 s | 8 Ko | 344 |
+| `/aujourdhui` | 0,7 s | 20 Ko | 326 |
+| `/calendrier` (coach) | 0,4 s | 128 Ko | 446 |
+| `/seances/nouvelle` | 0,6 s | 865 Ko | 4 351 |
+| `/exercices` | 0,5 s | 781 Ko | 3 189 |
+| `/planificateur` | 0,4 s | 535 Ko | 762 |
+| `/suivi`, 121 athlètes | 0,8 à 1,6 s | 1 711 Ko | 8 168 |
+| `/athletes`, 121 athlètes | 0,7 s | 2 345 Ko | 13 393 |
+
+Le temps d'affichage est bon. Le poids des pages qui embarquent la bibliothèque ou un grand groupe ne l'est pas sur un réseau de stade.
+
+### 8.7 Les 14 parcours obligatoires de la recette
+
+Cette liste n'existait nulle part. Elle sert au lot de recette (section 5, lot 9).
+
+1. **Coach neuf** : inscription par lien et par mot de passe, vérification de l'adresse, création de l'espace, onboarding.
+2. **Invitation** : lien du groupe, QR code, e-mail nominatif ; l'athlète rejoint par lien et par mot de passe, avec ses consentements.
+3. **Séance** : constructeur (circuit, superset, séries détaillées, remplacement en autonomie), publication, duplication, modèle.
+4. **Planning** : semaine, mois, liste ; déplacer et dupliquer à la souris, au doigt et au clavier.
+5. **Athlète** : écran du jour, validation complète et partielle, absence, mode séance, séries réalisées, hors ligne puis synchronisation.
+6. **Suivi** : grille, alertes, relance, export, détail d'une séance, saisie des séries pour un athlète.
+7. **Exercices** : bibliothèque, fiche, favoris, listes, personnalisation, création, guide vu par l'athlète.
+8. **Vidéo** : envoi par l'athlète et par le coach, encodage, remarque, tracé, plein écran, partage au groupe, quota.
+9. **Planificateur** : mettre en forme, proposer, ajuster, exercice inconnu, dictée, brouillons.
+10. **Progression** : charges, références de force, records et carte à partager, phases, analyse.
+11. **Annonces et notifications** : annonce, centre de notifications, push web, e-mails, préférences, nouveautés.
+12. **Réglages** : profil et photo, connexion et mot de passe, espace, groupes, membres, confidentialité, export, suppression du compte.
+13. **Abonnement** : essai, paiement en bac à sable, retour vers Tartan, portail, changement d'offre, plafonds.
+14. **Console et site** : espaces, utilisateurs, configuration, mouvements ; accueil, tarifs, aide, contact, pages légales, jeu, installation de la PWA.
+
+### 8.8 Décisions du fondateur du 17 novembre
+
+- **Exercices** : moteur de gestes refait, chaque fiche de profil et de face, personnage plus fin, plus un emplacement vidéo par fiche commune.
+- **Planificateur** : appels OpenAI réels autorisés pour la mesure, 30 € au plus.
+- **Production** : la base n'est pas utilisée ; elle est vidée après sauvegarde, sauf le compte administrateur et sa passkey. Les essais en production se font avec les deux adresses du fondateur.
+- **Listes d'exercices** : privées par défaut, partage au choix avec les coachs de l'espace (question 1 de la section 6).
+- **Ajouts au périmètre** : onboarding complet du coach et de l'athlète, réglages refondus en rubriques, photo de profil avec recadrage et avatars, espace de démonstration.
+- **Design** : carte blanche ; `DESIGN.md` évolue avec la refonte.
+
+### 8.9 Lots, dans l'ordre retenu
+
+Cet ordre remplace celui de la section 5. Trois pistes avancent en même temps sur des fichiers disjoints ; les fusions se font une par une.
+
+| Vague | Piste compte | Piste séances | Piste identité et IA |
+| --- | --- | --- | --- |
+| 0 | Lot 0 : textes propres au web hors du filtre Maestro, port Playwright réglable, lien d'action dans le journal local (G17) ; production vidée | | |
+| 1 | A. Réglages en rubriques (B7, G16) | B. Glisser-déposer du planning (4.2) | Planche logo, prototype du personnage, mesure de départ du planificateur |
+| 2 | C. Mot de passe (4.1, B2, G1, G12) | D. Vidéo en plein écran (4.4) | Planificateur : erreurs lisibles, sortie alignée sur le constructeur |
+| 3 | E. Photo de profil et avatars (G14) | F. Listes, fiche et sélecteur d'exercices (4.3, G3, G11) | Moteur de gestes et lecteurs, après validation du prototype |
+| 4 | G. Onboarding du coach et de l'athlète (B1, B3, G15) | Planificateur : contexte enrichi, réponse en direct, écran en deux temps (B4) | Gestes par famille (B5), déploiement du logo |
+| 5 | K. Corrections (B6, G2, G4 à G10, G13, finitions) | Espace de démonstration | Nouvelle morphologie partout |
+| 6 | L. Recette web sur les 14 parcours | Parité mobile en quatre PR | Retrait de l'ancien moteur, bêtas |
+
+Pourquoi les réglages avant le mot de passe : le lot C écrirait sinon dans les deux gros fichiers que le lot A découpe. Pourquoi un lot 0 : tout nouveau texte va aujourd'hui dans `packages/i18n`, que le filtre mobile surveille ; sans lui, chaque PR web attend Maestro une heure.

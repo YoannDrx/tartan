@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 3100;
+// Deux sessions sur le même poste ne partagent ni le port ni la base : `E2E_PORT` et `E2E_DATABASE_URL`.
+const PORT = Number(process.env.E2E_PORT ?? 3100);
 const DATABASE_URL = process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e";
 
 export default defineConfig({
