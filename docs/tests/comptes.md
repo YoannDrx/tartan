@@ -20,7 +20,7 @@ Connexion dans le navigateur : `/connexion`, bouton « Utiliser un mot de passe 
 | Rôle | En local | Dans un test |
 | --- | --- | --- |
 | Propriétaire | `coach@demo.tartan.coach` | `createCoachSpace` (e2e), `makeOrg` (Vitest) |
-| Coach, adjoint | Invitation nominative depuis `/reglages`, lien dans la console | `addStaff(org, n, "coach" \| "assistant")` |
+| Coach, adjoint | Invitation nominative depuis `/reglages/membres`, lien dans la console | `addStaff(org, n, "coach" \| "assistant")` |
 | Athlète | `un@demo.tartan.coach` | `joinAsAthlete` (e2e), `addAthlete` (Vitest) |
 | Multi-espaces | `demo:fill <e-mail>` : propriétaire et athlète | Compte à double rôle à construire (T13) |
 | Sans date de naissance | Créer le compte, puis `UPDATE profiles SET birth_date = NULL` | Requis par `age-gate` (Maestro) |
