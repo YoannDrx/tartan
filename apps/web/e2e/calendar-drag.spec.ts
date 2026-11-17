@@ -506,6 +506,9 @@ test("la séance d'un autre coach ne se déplace pas, et le planning le dit en t
   await expect(target.locator("[data-plan-forbidden]")).toContainText(t.forbiddenDay);
   await expect(ghost(assistant)).toContainText(t.forbidden);
   await expect(target.locator("[data-plan-marker]")).toHaveCount(0);
+  // Pour la relecture à l'œil : la capture de l'état interdit, hors dépôt, seulement si un dossier est donné.
+  if (process.env.CAPTURE_DIR)
+    await assistant.screenshot({ path: `${process.env.CAPTURE_DIR}/apres-verrou-1440-glisser.png` });
   await drag.drop();
   await expect(day(assistant, monday).locator(`[data-plan-card="${id}"]`)).toBeVisible();
   await expect(announced(assistant)).toHaveText(t.forbidden);

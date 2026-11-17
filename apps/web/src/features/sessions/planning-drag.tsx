@@ -265,7 +265,11 @@ export function PlanningLayer({ planning }: { planning: Planning }) {
         <div
           aria-hidden
           data-plan-ghost
-          className="on-card pointer-events-none fixed left-0 top-0 z-50 rounded-thumb border-2 border-accent bg-card-raised p-2 shadow-float"
+          className={cn(
+            "on-card pointer-events-none fixed left-0 top-0 z-50 rounded-thumb border-2 bg-card-raised p-2 shadow-float",
+            // Le contour d'action dit « ça se pose » : il s'éteint là où la séance ne peut pas aller.
+            drop?.state === "locked" ? "border-control-line" : "border-accent",
+          )}
           style={{
             width: place.width,
             transform: `translate(${place.left}px, ${place.top}px)${place.above ? " translateY(-100%)" : ""}`,

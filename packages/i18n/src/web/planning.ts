@@ -40,5 +40,6 @@ export const planning = {
   phasesManage: "Gérer",
   phasesManageLabel: "Gérer les phases de préparation",
   phasesSeeAll: "Tout voir",
-  phasesSeeAllLabel: "Voir toutes les phases de préparation",
+  // Le nom lu commence par le texte affiché (WCAG 2.5.3).
+  phasesSeeAllLabel: "Tout voir des phases de préparation",
 } as const;
