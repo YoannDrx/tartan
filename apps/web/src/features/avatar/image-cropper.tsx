@@ -175,10 +175,11 @@ export const ImageCropper = ({
     update((s) => moveBy(bitmap, s, dx, dy, frame, fit));
   };
 
-  const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+  // Un geste interrompu (appel entrant, capture perdue) libère le doigt sans compter comme un toucher.
+  const onPointerEnd = (event: PointerEvent<HTMLDivElement>, tap: boolean) => {
     const point = pointers.current.get(event.pointerId);
     pointers.current.delete(event.pointerId);
-    if (point && bitmap && pointers.current.size === 0 && gesture.current.moved <= TAP_SLOP) {
+    if (tap && point && bitmap && pointers.current.size === 0 && gesture.current.moved <= TAP_SLOP) {
       update((s) => centerOn(bitmap, s, point, frame, fit));
     }
     const two = pair();
@@ -229,8 +230,9 @@ export const ImageCropper = ({
           data-crop={`${Math.round(state.x)},${Math.round(state.y)},${zoomPct},${state.turns}`}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
+          onPointerUp={(event) => onPointerEnd(event, true)}
+          onPointerCancel={(event) => onPointerEnd(event, false)}
+          onLostPointerCapture={(event) => onPointerEnd(event, false)}
           onKeyDown={onKeyDown}
           className={cn(
             "relative mx-auto aspect-square w-full max-w-[320px] cursor-grab touch-none select-none overflow-hidden rounded-thumb bg-card-raised active:cursor-grabbing",
