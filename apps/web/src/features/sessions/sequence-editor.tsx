@@ -27,13 +27,14 @@ import {
   Trash2,
 } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useState } from "react";
 import { ActivityPicto } from "@/components/pictos";
 import { Button, IconButton } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { categoryColors, activityColors } from "@/lib/activity-colors";
 import { cn } from "@/lib/cn";
+import { usePointerDrag, type DragPoint } from "@/lib/use-pointer-drag";
 import { ExercisePicker } from "./exercise-picker";
 
 type Block = SessionDraft["blocks"][number];
@@ -109,98 +110,54 @@ export function SequenceEditor({
 }
 
 type Drop = { parent: string | null; before: string | null };
-type DragState = { ref: string; name: string; x: number; y: number; drop: Drop | null; inside: Set<string> };
+type Grabbed = { ref: string; name: string; inside: Set<string> };
 type Dragging = ReturnType<typeof useSequenceDrag>;
-// La bande qui fait défiler la page, plus haute que la barre d'actions fixée en bas.
-const EDGE = 112;
+
+// La destination sous le pointeur : avant la carte survolée, ou en fin de niveau.
+const locate = ({ x, y }: DragPoint, { inside }: Grabbed): Drop | null => {
+  const target = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-seq-node],[data-seq-level]");
+  if (!target) return null;
+  let drop: Drop;
+  if (target.dataset.seqLevel !== undefined) drop = { parent: target.dataset.seqLevel || null, before: null };
+  else {
+    const rect = target.getBoundingClientRect();
+    const next = target.nextElementSibling as HTMLElement | null;
+    drop = {
+      parent: target.dataset.seqParent || null,
+      before: y < rect.top + rect.height / 2 ? target.dataset.seqNode! : (next?.dataset.seqNode ?? null),
+    };
+  }
+  return drop.parent !== null && inside.has(drop.parent) ? null : drop;
+};
 
 /**
- * Glisser-déposer au doigt comme à la souris : la poignée capture le pointeur, la destination se lit sous le
- * pointeur (avant la carte survolée, ou en fin de niveau). Les flèches et « Déplacer vers… » restent l'alternative.
+ * Glisser-déposer au doigt comme à la souris : la poignée capture le pointeur (mécanique partagée avec le
+ * planning, `usePointerDrag`). Les flèches et « Déplacer vers… » restent l'alternative.
  */
 function useSequenceDrag(onDrop: (ref: string, drop: Drop) => void) {
-  const [drag, setDrag] = useState<DragState | null>(null);
   const [announce, setAnnounce] = useState("");
-  const pointer = useRef<number | null>(null);
-  const active = drag !== null;
-  const cancel = () => {
-    setDrag(null);
-    setAnnounce(labels.dragCancelled);
-  };
-  useEffect(() => {
-    if (!active) return;
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && cancel();
-    // Près d'un bord, la page défile pour atteindre une destination hors de l'écran.
-    let frame = 0;
-    const scroll = () => {
-      const y = pointer.current;
-      if (y !== null) {
-        const step =
-          y < EDGE ? -(EDGE - y) / 4 : y > window.innerHeight - EDGE ? (y - window.innerHeight + EDGE) / 4 : 0;
-        if (step) window.scrollBy(0, step);
-      }
-      frame = requestAnimationFrame(scroll);
-    };
-    frame = requestAnimationFrame(scroll);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [active]);
-  const locate = (x: number, y: number, inside: Set<string>): Drop | null => {
-    const target = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-seq-node],[data-seq-level]");
-    if (!target) return null;
-    let drop: Drop;
-    if (target.dataset.seqLevel !== undefined) drop = { parent: target.dataset.seqLevel || null, before: null };
-    else {
-      const rect = target.getBoundingClientRect();
-      const next = target.nextElementSibling as HTMLElement | null;
-      drop = {
-        parent: target.dataset.seqParent || null,
-        before: y < rect.top + rect.height / 2 ? target.dataset.seqNode! : (next?.dataset.seqNode ?? null),
-      };
-    }
-    return drop.parent !== null && inside.has(drop.parent) ? null : drop;
-  };
+  const { drag, handle } = usePointerDrag<Grabbed, Drop>({
+    locate,
+    onStart: ({ name }) => setAnnounce(labels.dragging(name)),
+    onEnd: ({ ref, name }, drop) => {
+      if (drop && drop.before !== ref) {
+        onDrop(ref, drop);
+        setAnnounce(labels.dropped(name));
+      } else setAnnounce(labels.dragCancelled);
+    },
+    onCancel: () => setAnnounce(labels.dragCancelled),
+  });
+  // La poignée n'ouvre rien au clic : seul l'appui la concerne.
   const grip = (node: SequenceNode, name: string) => {
     const ref = sequenceNodeRef(node);
-    return {
-      onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
-        if (event.button !== 0) return;
-        event.preventDefault();
-        event.currentTarget.setPointerCapture(event.pointerId);
-        pointer.current = event.clientY;
-        const inside = new Set([ref, ...(node.kind === "repeat" ? descendants(node) : [])]);
-        setDrag({ ref, name, x: event.clientX, y: event.clientY, drop: null, inside });
-        setAnnounce(labels.dragging(name));
-      },
-      onPointerMove: (event: ReactPointerEvent<HTMLElement>) => {
-        if (!drag || drag.ref !== ref) return;
-        pointer.current = event.clientY;
-        setDrag({
-          ...drag,
-          x: event.clientX,
-          y: event.clientY,
-          drop: locate(event.clientX, event.clientY, drag.inside),
-        });
-      },
-      onPointerUp: () => {
-        if (!drag || drag.ref !== ref) return;
-        pointer.current = null;
-        setDrag(null);
-        if (drag.drop && drag.drop.before !== ref) {
-          onDrop(ref, drag.drop);
-          setAnnounce(labels.dropped(name));
-        } else setAnnounce(labels.dragCancelled);
-      },
-      onPointerCancel: () => {
-        pointer.current = null;
-        if (drag?.ref === ref) cancel();
-      },
-    };
+    const inside = new Set([ref, ...(node.kind === "repeat" ? descendants(node) : [])]);
+    return { onPointerDown: handle({ ref, name, inside }).onPointerDown };
   };
-  return { drag, announce, grip };
+  return {
+    drag: drag ? { ref: drag.item.ref, name: drag.item.name, x: drag.x, y: drag.y, drop: drag.drop } : null,
+    announce,
+    grip,
+  };
 }
 
 /** Le trait qui montre où l'élément glissé va se poser. */
