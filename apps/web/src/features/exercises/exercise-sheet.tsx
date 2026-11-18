@@ -47,6 +47,13 @@ export const ExerciseDetail = ({ exercise, variants }: { exercise: ExerciseSumma
         />
       ) : null}
       {prescription ? <p className="t-num text-[20px]">{prescription}</p> : null}
+      {/* Les qualités travaillées, seulement quand la fiche les nomme : rien n'est déduit. */}
+      {exercise.tags.length > 0 ? (
+        <p>
+          <span className="font-semibold">{m.exercises.tags} : </span>
+          {exercise.tags.join(", ")}
+        </p>
+      ) : null}
       {exercise.cues.length > 0 ? (
         <section>
           <h3 className="t-section">{m.exercises.cues}</h3>

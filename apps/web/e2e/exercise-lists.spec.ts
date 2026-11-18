@@ -103,7 +103,11 @@ test("listes du coach : favori, liste partagée, création dans la liste, séanc
   await page.getByRole("tab", { name: "Au club" }).click();
   await page.getByRole("button", { name: "Publier", exact: true }).click();
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
-  await expect(page.getByText(OWN).first()).toBeVisible();
+  // La séance publiée garde la fiche de la liste : le constructeur la rouvre avec elle, sans charger la bibliothèque.
+  await page.getByRole("link", { name: m.common.edit, exact: true }).click();
+  await expect(
+    page.getByRole("region", { name: m.builder.body, exact: true }).getByRole("listitem").filter({ hasText: OWN }),
+  ).toBeVisible();
 
   // « Personnaliser » une fiche commune : la copie garde le guide et prend sa place dans la liste.
   const goblet = (await lists()).find((list) => list.name === LIST)!.exerciseIds[0]!;

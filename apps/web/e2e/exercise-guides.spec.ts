@@ -54,7 +54,8 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   // L'arraché est écrit pour le nouveau moteur : la scène est vue de profil, et se redessine sans rendu de page.
   const scene = sheet.locator("svg[data-view]");
   await expect(scene).toHaveAttribute("data-view", "side");
-  const drawn = () => scene.locator("path").first().getAttribute("d");
+  // Toute la scène : une pièce immobile (un disque posé) ne dirait pas si le geste avance.
+  const drawn = () => scene.innerHTML();
   const before = await drawn();
   await expect.poll(drawn).not.toBe(before);
   // Le sélecteur de vue se manie au clavier : Face, puis retour au profil.
