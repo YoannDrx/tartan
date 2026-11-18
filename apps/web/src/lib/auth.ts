@@ -10,7 +10,10 @@ import { magicLink } from "better-auth/plugins";
 import { randomUUID } from "node:crypto";
 import { createElement } from "react";
 import { MagicLinkEmail, VerifyEmail, ResetPasswordEmail, PasswordChangedEmail } from "@email/auth";
+import { AccountExistsEmail, ConfirmPasswordSetupEmail } from "@email/credentials";
+import { w } from "@tartan/i18n/web";
 import { appleClientSecret } from "./apple";
+import { authRateLimit, rateLimitEnabled } from "./auth-rate-limit";
 import { env } from "./env";
 import { sendEmail } from "./mail";
 import { EmailSuppressedError } from "@/server/email-suppression.service";
@@ -53,6 +56,10 @@ const socialProviders = {
 
 export const enabledSocialProviders = Object.keys(socialProviders) as ("google" | "apple")[];
 
+// Ce que porte le lien de confirmation demandé avant de définir un mot de passe (credentials.service.ts) :
+// il choisit l'e-mail, rien d'autre. Le lien ouvre une session comme tout lien de connexion.
+export const PASSWORD_SETUP_PURPOSE = "password_setup";
+
 // L'inscription par mot de passe remplit `name` avec le début de l'adresse (better-auth l'exige) : ce n'est pas un prénom.
 const splitName = (
   name: string | null | undefined,
@@ -73,9 +80,7 @@ const sendAuthEmail = async (input: Parameters<typeof sendEmail>[0]): Promise<vo
   }
 };
 
-// Le limiteur de connexion : désactivable pour les tests de navigateur, jamais sur la vraie production.
-export const rateLimitEnabled = (vars: NodeJS.ProcessEnv = process.env): boolean =>
-  vars.VERCEL_ENV === "production" || (vars.NODE_ENV === "production" && vars.E2E_DISABLE_RATE_LIMIT !== "true");
+export { rateLimitEnabled };
 
 export const auth = betterAuth({
   baseURL: e.BETTER_AUTH_URL,
@@ -120,6 +125,17 @@ export const auth = betterAuth({
     minPasswordLength: 10,
     // Un mot de passe réinitialisé coupe tout accès pris avec l'ancien.
     revokeSessionsOnPasswordReset: true,
+    // Création demandée sur une adresse déjà inscrite : l'écran répond comme pour un nouveau compte, pour ne pas
+    // révéler qu'il existe. Cet e-mail dit la vérité à la seule personne qui lit la boîte ; le mot de passe saisi
+    // n'est pas enregistré.
+    onExistingUserSignUp: async ({ user }) => {
+      await sendEmail({
+        kind: "account_exists",
+        to: user.email,
+        subject: w.auth.emails.accountExists.subject,
+        react: createElement(AccountExistsEmail, { url: `${e.NEXT_PUBLIC_APP_URL}/connexion` }),
+      }).catch(() => log.warn("account_exists_email_failed"));
+    },
     onPasswordReset: async ({ user }) => {
       // Une alerte qui échoue ne doit pas annuler le nouveau mot de passe.
       await sendEmail({
@@ -175,18 +191,7 @@ export const auth = betterAuth({
       }
     }),
   },
-  rateLimit: {
-    enabled: rateLimitEnabled(),
-    storage: "database",
-    modelName: "rateLimit",
-    window: 60,
-    max: 60,
-    customRules: {
-      "/sign-in/*": { window: 60, max: 10 },
-      "/sign-up/*": { window: 60, max: 5 },
-      "/magic-link/*": { window: 60, max: 5 },
-    },
-  },
+  rateLimit: authRateLimit(),
   databaseHooks: {
     session: {
       // La date d'activité décide de la suppression d'un compte inactif, et lever le préavis en découle.
@@ -228,13 +233,24 @@ export const auth = betterAuth({
     magicLink({
       expiresIn: 60 * 15,
       storeToken: "hashed",
-      sendMagicLink: async ({ email, url }) => {
-        await sendAuthEmail({
-          kind: "magic_link",
-          to: email,
-          subject: m.email.subjects.magicLink,
-          react: createElement(MagicLinkEmail, { url }),
-        });
+      sendMagicLink: async ({ email, url, metadata }) => {
+        // Même lien, autre message : la personne a demandé à définir un mot de passe depuis une session ancienne.
+        const confirming = metadata?.purpose === PASSWORD_SETUP_PURPOSE;
+        await sendAuthEmail(
+          confirming
+            ? {
+                kind: "password_setup_confirm",
+                to: email,
+                subject: w.auth.emails.confirmSetup.subject,
+                react: createElement(ConfirmPasswordSetupEmail, { url }),
+              }
+            : {
+                kind: "magic_link",
+                to: email,
+                subject: m.email.subjects.magicLink,
+                react: createElement(MagicLinkEmail, { url }),
+              },
+        );
       },
     }),
     passkey({ rpName: "Tartan", ...(e.PASSKEY_RP_ID ? { rpID: e.PASSKEY_RP_ID } : {}) }),

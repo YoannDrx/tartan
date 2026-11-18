@@ -45,7 +45,15 @@ describe("registre des e-mails", () => {
 
   it("seuls la connexion et la protection du compte sont en catégorie sécurité", () => {
     const security = EMAIL_KEYS.filter((key) => categoryOf(key) === "security");
-    expect(security.sort()).toEqual(["magic_link", "password_changed", "reset_password", "verify"]);
+    expect(security.sort()).toEqual([
+      "account_exists",
+      "magic_link",
+      "password_changed",
+      "password_set",
+      "password_setup_confirm",
+      "reset_password",
+      "verify",
+    ]);
   });
 });
 

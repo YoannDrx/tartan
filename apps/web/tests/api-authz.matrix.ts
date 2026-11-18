@@ -379,6 +379,36 @@ export const MATRICE: Row[] = [
   // Sans connexion Apple configurée (cas des tests), la route n'existe pas ; le cas configuré est dans auth-social.
   { route: "POST /api/v1/me/apple-authorization", ...compte(404), call: () => ({ body: { code: "code-factice" } }) },
   { route: "PATCH /api/v1/me/preferences", ...compte(), call: () => ({ body: { calendarView: "week" } }) },
+  // Moyens de connexion : chacun ne lit et ne change que les siens. Les lignes se suivent dans l'ordre d'un vrai
+  // parcours : le compte, entré par un lien, définit un mot de passe, le change, puis n'a plus rien à confirmer.
+  {
+    route: "GET /api/v1/me/sign-in-methods",
+    ...compte(),
+    verifie: (texte) => {
+      expectPresent(texte, '"magicLink":true');
+      expectPresent(texte, '"password":false');
+    },
+  },
+  {
+    route: "POST /api/v1/me/password",
+    ...compte(),
+    call: () => ({ body: { newPassword: "mot-de-passe-de-la-matrice" } }),
+    // Le mot de passe ne revient jamais dans une réponse.
+    verifie: (texte) => {
+      expectPresent(texte, '"status":"set"');
+      expectAbsent(texte, "mot-de-passe-de-la-matrice");
+    },
+  },
+  {
+    route: "PATCH /api/v1/me/password",
+    ...compte(),
+    call: () => ({
+      body: { currentPassword: "mot-de-passe-de-la-matrice", newPassword: "autre-mot-de-passe-de-la-matrice" },
+    }),
+  },
+  // Le compte a maintenant un mot de passe : il n'y a plus rien à confirmer.
+  { route: "POST /api/v1/me/password/confirmation", ...compte(409) },
+  { route: "DELETE /api/v1/me/password-prompt", ...compte() },
   { route: "GET /api/v1/consents", ...compte() },
   { route: "PUT /api/v1/consents", ...compte(), call: () => ({ body: { kind: "video", granted: true } }) },
   {

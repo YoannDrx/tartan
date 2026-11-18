@@ -11,7 +11,7 @@ export const settings = {
   ],
   rubrics: {
     profil: { title: "Profil" },
-    connexion: { title: "Connexion", summary: "Appareils connectés, déconnexion" },
+    connexion: { title: "Connexion", summary: "Mot de passe, appareils, déconnexion" },
     notifications: {
       title: "Notifications",
       summary: "Push, catégories, e-mails",
@@ -54,6 +54,42 @@ export const settings = {
     avatarAlt: (name: string) => `Photo de ${name}`,
   },
   connexion: {
+    methods: "Mes moyens de connexion",
+    link: "Lien par e-mail",
+    linkState: "Toujours disponible",
+    password: "Mot de passe",
+    passwordOn: "Défini",
+    passwordOff: "Aucun",
+    google: "Google",
+    apple: "Apple",
+    linked: "Relié à ce compte",
+    notLinked: "Pas encore utilisé",
+    define: {
+      title: "Définir un mot de passe",
+      detail:
+        "Avec un mot de passe, tu te connectes tout de suite, sans passer par ta boîte mail. Le lien par e-mail reste disponible.",
+      field: "Nouveau mot de passe",
+      submit: "Définir mon mot de passe",
+      done: "Mot de passe défini.",
+      // La session n'est pas assez récente : rien n'est enregistré avant la confirmation.
+      confirmLead:
+        "Tu es connecté depuis un moment. Pour ta sécurité, confirme d'abord que c'est bien toi avec un lien reçu par e-mail : tu reviendras ici pour choisir ton mot de passe.",
+      confirmCta: "Recevoir le lien de confirmation",
+      confirmSent: (email: string) =>
+        `Le lien vient de partir vers ${email}. Ouvre-le sur cet appareil. Il reste valable 15 minutes.`,
+      confirmed: "C'est bien toi. Choisis maintenant ton mot de passe.",
+    },
+    change: {
+      title: "Changer le mot de passe",
+      current: "Mot de passe actuel",
+      next: "Nouveau mot de passe",
+      revoke: "Déconnecter mes autres appareils",
+      revokeDetail: "Cet appareil reste connecté.",
+      submit: "Changer mon mot de passe",
+      done: "Mot de passe changé.",
+      doneRevoked: "Mot de passe changé. Tes autres appareils sont déconnectés.",
+      forgot: "Mot de passe oublié ?",
+    },
     devices: "Mes appareils",
     devicesDetail:
       "Tartan reste ouvert sur chaque téléphone et chaque ordinateur où tu t'es connecté. Un appareil perdu ou prêté ? Déconnecte tous les autres : celui-ci reste connecté.",

@@ -154,6 +154,8 @@ model Profile {
   lastSeenReleaseId  String? @map("last_seen_release_id")
   lastActiveAt       DateTime? @map("last_active_at")
   inactivityNoticeAt DateTime? @map("inactivity_notice_at")
+  // La proposition « définir un mot de passe » de l'accueil, refermée : elle ne revient sur aucun appareil.
+  passwordPromptDismissedAt DateTime? @map("password_prompt_dismissed_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
