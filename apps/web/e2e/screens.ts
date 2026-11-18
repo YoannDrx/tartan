@@ -30,12 +30,12 @@ export const SCREENS: Screen[] = [
   { path: "/mobile/confidentialite", roles: ["public"], proof: ["mobile-legal.spec.ts"] },
   { path: "/mobile/contact", roles: ["public"], proof: ["mobile-legal.spec.ts"] },
   // Entrée, compte et liens reçus
-  { path: "/connexion", roles: ["public"], proof: ["age-confirmation.spec.ts"] },
+  { path: "/connexion", roles: ["public"], proof: ["password.spec.ts", "age-confirmation.spec.ts"] },
   { path: "/mot-de-passe-oublie", roles: ["public"], proof: ["pilot.spec.ts"] },
   { path: "/nouveau-mot-de-passe", roles: ["public"], proof: ["pilot.spec.ts"] },
   { path: "/confirmer-age", roles: ["public"], proof: ["terrain.spec.ts"] },
   { path: "/bienvenue", roles: ["athlete"], proof: ["age-confirmation.spec.ts", "tests/athlete-arrival.test.ts"] },
-  { path: "/i/[token]", roles: ["public"], proof: ["pilot.spec.ts"] },
+  { path: "/i/[token]", roles: ["public"], proof: ["pilot.spec.ts", "password.spec.ts"] },
   { path: "/accord-parental/[token]", roles: ["public"], proof: ["tests/access.test.ts"] },
   { path: "/e-mails/[kind]/[token]", roles: ["public"], proof: ["tests/email.test.ts"] },
   // Espace commun
@@ -45,7 +45,7 @@ export const SCREENS: Screen[] = [
   // Réglages : le sommaire, puis une page par rubrique
   { path: "/reglages", roles: both, proof: ["settings-sections.spec.ts"] },
   { path: "/reglages/profil", roles: both, proof: ["settings-sections.spec.ts"] },
-  { path: "/reglages/connexion", roles: both, proof: ["settings-sections.spec.ts"] },
+  { path: "/reglages/connexion", roles: both, proof: ["settings-sections.spec.ts", "password.spec.ts"] },
   { path: "/reglages/notifications", roles: both, proof: ["settings-sections.spec.ts"] },
   { path: "/reglages/apparence", roles: both, proof: ["settings-sections.spec.ts", "date-theme.spec.ts"] },
   { path: "/reglages/confidentialite", roles: both, proof: ["settings-sections.spec.ts", "pilot.spec.ts"] },
@@ -79,7 +79,7 @@ export const SCREENS: Screen[] = [
   { path: "/reglages/abonnement", roles: ["coach"], proof: ["settings-sections.spec.ts"] },
   { path: "/reglages/references-force", roles: ["coach"], proof: ["strength-mappings.spec.ts"] },
   // Athlète
-  { path: "/aujourdhui", roles: ["athlete"], proof: ["session-open.spec.ts", "regularity.spec.ts"] },
+  { path: "/aujourdhui", roles: ["athlete"], proof: ["session-open.spec.ts", "regularity.spec.ts", "password.spec.ts"] },
   { path: "/progres", roles: ["athlete"], proof: ["record-card.spec.ts"] },
   { path: "/mes-videos", roles: ["athlete"], proof: ["video-collaboration.spec.ts"] },
   { path: "/mes-videos/[id]", roles: ["athlete"], proof: ["video-collaboration.spec.ts"] },
