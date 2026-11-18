@@ -23,11 +23,11 @@ export type GestureEntry = {
 export const GESTURE_KEYS: readonly string[] = Object.keys(EXERCISE_CLIPS);
 
 // Un geste au sol (couché, en planche, à quatre pattes) se lit aussi de dessus : le buste est couché et le bassin
-// bas. Un buste penché debout (un soulevé de terre, un rowing) n'en fait pas un geste au sol.
+// et la tête bas. Un buste penché debout (un soulevé de terre, un rowing) n'en fait pas un geste au sol.
 const onTheGround = (clip: MotionClip) =>
   [0, 0.25, 0.5, 0.75].some((t) => {
     const body = clip.pose(t);
-    return body.pelvis.y < 105 && Math.abs(body.frames.thorax.u.y) < 0.36;
+    return body.pelvis.y < 105 && body.head.y < 150 && Math.abs(body.frames.thorax.u.y) < 0.5;
   });
 
 const viewsOf = (old: ExerciseClip, clip: MotionClip): { native: GestureView; views: GestureView[] } => {
