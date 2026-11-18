@@ -4,59 +4,60 @@ Chaque sujet a un seul document. Si deux documents se contredisent, `ETAT.md` l'
 
 ## À lire en premier
 
-| Document | Pour savoir |
-| --- | --- |
-| [../AGENTS.md](../AGENTS.md) | Les règles du dépôt et la méthode de travail |
-| [ETAT.md](ETAT.md) | Où on en est, ce qui est prouvé, ce qui reste à faire, qui agit |
-| [JOURNAL.md](JOURNAL.md) | Ce que le dernier agent a fait et laissé en suspens |
-| [../PRODUCT.md](../PRODUCT.md) | Le produit, les cibles, les décisions |
-| [../DESIGN.md](../DESIGN.md) | L'identité visuelle |
-| [prompts.md](prompts.md) | Les consignes prêtes à donner à Codex ou à Claude |
+| Document                       | Pour savoir                                                     |
+| ------------------------------ | --------------------------------------------------------------- |
+| [../AGENTS.md](../AGENTS.md)   | Les règles du dépôt et la méthode de travail                    |
+| [ETAT.md](ETAT.md)             | Où on en est, ce qui est prouvé, ce qui reste à faire, qui agit |
+| [JOURNAL.md](JOURNAL.md)       | Ce que le dernier agent a fait et laissé en suspens             |
+| [../PRODUCT.md](../PRODUCT.md) | Le produit, les cibles, les décisions                           |
+| [../DESIGN.md](../DESIGN.md)   | L'identité visuelle                                             |
+| [prompts.md](prompts.md)       | Les consignes prêtes à donner à Codex ou à Claude               |
 
 ## Plans de mise en production
 
-| Document | Contenu |
-| --- | --- |
-| [plans/audit-et-refonte.md](plans/audit-et-refonte.md) | Brief du 16 novembre : audit complet et refonte de la web app (mot de passe, planning, vidéo plein écran, listes d'exercices, gestes, logo) |
-| [plans/web.md](plans/web.md) | Lots de code, configuration, recette, ouverture de la web app |
-| [plans/ios.md](plans/ios.md) | De l'archive à l'App Store |
-| [plans/android.md](plans/android.md) | Du compte Google à Google Play |
-| [plans/commercialisation.md](plans/commercialisation.md) | Portes d'ouverture, offres, lancement, premiers clients |
-| [plans/stripe.md](plans/stripe.md) | Abonnements, webhooks, sandbox, passage en réel, remboursements, fiscalité |
-| [plans/direction-artistique.md](plans/direction-artistique.md) | Refonte « Le stade », groupe d'athlètes, jeu « Tartan Meeting » |
+| Document                                                       | Contenu                                                                                                                                     |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| [plans/audit-et-refonte.md](plans/audit-et-refonte.md)         | Brief du 16 novembre : audit complet et refonte de la web app (mot de passe, planning, vidéo plein écran, listes d'exercices, gestes, logo) |
+| [plans/web.md](plans/web.md)                                   | Lots de code, configuration, recette, ouverture de la web app                                                                               |
+| [plans/ios.md](plans/ios.md)                                   | De l'archive à l'App Store                                                                                                                  |
+| [plans/android.md](plans/android.md)                           | Du compte Google à Google Play                                                                                                              |
+| [plans/commercialisation.md](plans/commercialisation.md)       | Portes d'ouverture, offres, lancement, premiers clients                                                                                     |
+| [plans/stripe.md](plans/stripe.md)                             | Abonnements, webhooks, sandbox, passage en réel, remboursements, fiscalité                                                                  |
+| [plans/direction-artistique.md](plans/direction-artistique.md) | Refonte « Le stade », groupe d'athlètes, jeu « Tartan Meeting »                                                                             |
 
 ## Tests
 
-| Document | Contenu |
-| --- | --- |
-| [tests/README.md](tests/README.md) | Commandes, couverture par fonction, pièges |
-| [tests/comptes.md](tests/comptes.md) | Obtenir chaque rôle et chaque offre pour tester |
+| Document                                           | Contenu                                                      |
+| -------------------------------------------------- | ------------------------------------------------------------ |
+| [tests/README.md](tests/README.md)                 | Commandes, couverture par fonction, pièges                   |
+| [tests/comptes.md](tests/comptes.md)               | Obtenir chaque rôle et chaque offre pour tester              |
 | [tests/automatisation.md](tests/automatisation.md) | Les tests à écrire, classés par risque, avec critères de fin |
-| [tests/recette-reelle.md](tests/recette-reelle.md) | Ce qu'un humain doit éprouver à la main, pas à pas |
+| [tests/recette-reelle.md](tests/recette-reelle.md) | Ce qu'un humain doit éprouver à la main, pas à pas           |
 
 ## Exploitation
 
-| Document | Contenu |
-| --- | --- |
-| [exploitation/README.md](exploitation/README.md) | Environnements, variables, déploiement, retour arrière, surveillance |
-| [exploitation/incident.md](exploitation/incident.md) | Conduire un incident, fuite de données comprise |
-| [exploitation/support.md](exploitation/support.md) | Canaux, demandes fréquentes, signalements |
-| [exploitation/sauvegarde.md](exploitation/sauvegarde.md) | Sauvegarde et restauration de la base |
-| [exploitation/notifications.md](exploitation/notifications.md) | Livraison des notifications, notes de version |
-| [exploitation/captures.md](exploitation/captures.md) | Refaire les captures du site et des stores |
+| Document                                                       | Contenu                                                              |
+| -------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [exploitation/README.md](exploitation/README.md)               | Environnements, variables, déploiement, retour arrière, surveillance |
+| [exploitation/incident.md](exploitation/incident.md)           | Conduire un incident, fuite de données comprise                      |
+| [exploitation/support.md](exploitation/support.md)             | Canaux, demandes fréquentes, signalements                            |
+| [exploitation/sauvegarde.md](exploitation/sauvegarde.md)       | Sauvegarde et restauration de la base                                |
+| [exploitation/notifications.md](exploitation/notifications.md) | Livraison des notifications, notes de version                        |
+| [exploitation/captures.md](exploitation/captures.md)           | Refaire les captures du site et des stores                           |
 
 ## Référence
 
-| Document | Contenu |
-| --- | --- |
-| [reference/conformite.md](reference/conformite.md) | Données traitées, sous-traitants, exercice des droits, questions juridiques |
-| [reference/emails.md](reference/emails.md) | Tous les e-mails, leurs déclencheurs, la désinscription |
-| [reference/onboarding.md](reference/onboarding.md) | Parcours d'arrivée du coach et de l'athlète |
-| [reference/fiches-stores.md](reference/fiches-stores.md) | Textes et formulaires App Store et Google Play |
-| [reference/betas.md](reference/betas.md) | Bêtas TestFlight externe et test fermé Play : textes, brouillons Sécurité des données et santé |
-| [reference/planificateur-ia.md](reference/planificateur-ia.md) | Fonctionnement, quotas, évaluation du planificateur IA |
-| [reference/references-force.md](reference/references-force.md) | Références de force et rapprochement des exercices |
-| [reference/prescriptions-figees.md](reference/prescriptions-figees.md) | Gel des prescriptions à la publication |
+| Document                                                               | Contenu                                                                                        |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [reference/conformite.md](reference/conformite.md)                     | Données traitées, sous-traitants, exercice des droits, questions juridiques                    |
+| [reference/emails.md](reference/emails.md)                             | Tous les e-mails, leurs déclencheurs, la désinscription                                        |
+| [reference/onboarding.md](reference/onboarding.md)                     | Parcours d'arrivée du coach et de l'athlète                                                    |
+| [reference/fiches-stores.md](reference/fiches-stores.md)               | Textes et formulaires App Store et Google Play                                                 |
+| [reference/betas.md](reference/betas.md)                               | Bêtas TestFlight externe et test fermé Play : textes, brouillons Sécurité des données et santé |
+| [reference/planificateur-ia.md](reference/planificateur-ia.md)         | Fonctionnement, quotas, évaluation du planificateur IA                                         |
+| [reference/references-force.md](reference/references-force.md)         | Références de force et rapprochement des exercices                                             |
+| [reference/prescriptions-figees.md](reference/prescriptions-figees.md) | Gel des prescriptions à la publication                                                         |
+| [reference/avatars.md](reference/avatars.md)                           | Photo de profil, recadrage, avatars du groupe et animaux, logo de l'espace                     |
 
 ## Comment garder cette documentation juste
 
