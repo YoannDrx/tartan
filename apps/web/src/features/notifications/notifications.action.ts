@@ -18,7 +18,7 @@ export const saveNotificationPreferencesAction = authAction
   .inputSchema(preferencesInput)
   .action(async ({ parsedInput, ctx }) => {
     await updatePreferences(ctx.actor.userId, parsedInput);
-    revalidatePath("/reglages");
+    revalidatePath("/reglages", "layout");
   });
 
 export const markReleaseSeenAction = authAction.inputSchema(releaseSeenInput).action(async ({ parsedInput, ctx }) => {

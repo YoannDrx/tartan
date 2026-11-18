@@ -24,13 +24,13 @@ test("invitation nominative d'un coach : envoyée, lien récupéré, droits vér
   const invited = uniqueEmail("coachinvite");
 
   // Le propriétaire invite depuis ses réglages.
-  await page.goto("/reglages#inviter");
+  await page.goto("/reglages/membres");
   const section = page.locator("#inviter");
   await section.getByLabel(m.auth.emailLabel).fill(invited);
   await section.getByLabel("Rôle").selectOption("coach");
   await section.getByRole("button", { name: m.common.send, exact: true }).click();
   await expect(page.getByText("Invitation envoyée.")).toBeVisible();
-  await expect(section.getByText(invited)).toBeVisible();
+  await expect(page.locator("#invitations-envoyees").getByText(invited)).toBeVisible();
 
   // L'e-mail est dans la file, au bon destinataire, avec le gabarit du staff.
   const queued = await sql((client) =>
@@ -69,7 +69,8 @@ test("invitation nominative d'un coach : envoyée, lien récupéré, droits vér
     data: { kind: "personal_email", role: "coach", email: uniqueEmail("encore"), groupIds: [] },
   });
   expect(escalate.status()).toBe(403);
-  await coach.goto("/reglages#inviter");
+  await coach.goto("/reglages/membres");
+  await expect(coach.locator("#inviter").getByLabel(m.auth.emailLabel)).toBeVisible();
   await expect(coach.locator("#inviter").getByLabel("Rôle")).toHaveCount(0);
 
   // Le lien ne sert qu'une fois.

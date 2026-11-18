@@ -97,4 +97,4 @@ L'e-mail de reconquête, trente jours après une fin d'abonnement : c'est de la 
 
 ## Préférences
 
-Trois interrupteurs sur le profil, réglables dans Réglages et par une désinscription en un clic (en-tête `List-Unsubscribe`, page `/e-mails/[kind]/[token]`, qui sert aussi à l'opposition d'une personne invitée) : `emailDigest` (résumé), `emailNotifications` (replis de notification), `emailTips` (conseils d'activation). Ne se désactivent pas : sécurité du compte, facturation, invitations, préavis de suppression.
+Trois interrupteurs sur le profil, réglables dans Réglages, Notifications (`/reglages/notifications`), et par une désinscription en un clic (en-tête `List-Unsubscribe`, page `/e-mails/[kind]/[token]`, qui sert aussi à l'opposition d'une personne invitée) : `emailDigest` (résumé), `emailNotifications` (replis de notification), `emailTips` (conseils d'activation). Ne se désactivent pas : sécurité du compte, facturation, invitations, préavis de suppression.

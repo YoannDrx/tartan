@@ -21,7 +21,7 @@ test("la date se lit en JJ/MM/AAAA, se choisit au calendrier et le thème sombre
   await expect(calendar).toBeHidden();
   await expect(date).toHaveValue("16/03/2031");
 
-  await page.goto("/reglages", { waitUntil: "networkidle" });
+  await page.goto("/reglages/apparence", { waitUntil: "networkidle" });
   await page.getByText(m.appearance.dark, { exact: true }).click();
   await page.goto("/calendrier", { waitUntil: "networkidle" });
   expect(

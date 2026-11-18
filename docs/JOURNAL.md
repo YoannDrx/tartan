@@ -26,6 +26,13 @@ Non vérifié : simulateur iOS, onglet de Chrome réel, rendu des e-mails dans u
 À savoir : sur la piste, le carré rouge de l'icône se fond dans le fond et il reste la marque blanche et citron : c'est voulu (en-tête, e-mails). Le logotype garde sa largeur de 573 pour 160, que `components/logo.tsx` suppose. Les icônes natives changent l'empreinte : il faut un nouveau binaire, une mise à jour à distance ne suffit pas.
 Suite : la nouvelle morphologie du personnage régénérera les PNG des e-mails (`email:athletes`), pas le logo.
 
+## 2026-11-17, Claude, lot A : réglages en rubriques
+Fait (PR `feat/reglages`) : `/reglages` devient un sommaire et dix sous-pages sous `app/(app)/reglages/(rubriques)/` ; barre latérale sur ordinateur, liste puis page sous 1024 px ; une table pure (`features/settings/sections.ts`) sert à la barre, au sommaire, au menu de l'engrenage, aux droits et aux redirections des dix-huit anciennes ancres (`anchor-redirect.tsx`). `settings-forms.tsx` est découpé par rubrique ; ses textes gelés et ceux de `/suivi` et `/suppression-compte` passent dans `@tartan/i18n/web` (15 suppressions de lint retirées). Le guide, les états vides et l'e-mail d'activation mènent au formulaire d'invitation (`/reglages/membres#inviter`).
+Vérifié : types, lint, design, 2 006 tests web, 40 parcours `desktop` sur build de production (`settings-sections`, matrice des écrans, `pilot`, `help`, `date-theme` et les specs retouchées) ; captures à 390, 768 et 1440 px relues pour un propriétaire et un athlète.
+Non vérifié : projet Playwright `mobile` et suite complète en local (la CI les rejoue) ; formulaires photo et logo, section push, console (pas de jeton en local) ; thèmes sombre et automatique ; glissement de la marque de rubrique regardé à l'œil.
+À savoir : `references-force` reste hors du groupe de routes `(rubriques)`. Deux réponses du centre d'aide (`fr.ts`, partagé avec le mobile) disent encore « sous Invitations » et « sous E-mails » : à corriger dans un lot qui relance Maestro de toute façon. Le coach non propriétaire trouve le parrainage dans l'aide, faute de rubrique abonnement.
+Suite : mot de passe (rubrique Connexion), puis photo de profil et avatars.
+
 ## 2026-11-17, Claude, planificateur : outil de mesure
 Fait (PR `feat/ia-mesure`) : `evals/planner-report.ts` résume un rapport par passage (réussites, questions posées à tort, erreurs, latence médiane et 95e centile, appels, jetons) ; la mesure réelle compte les jetons de chaque appel ; `--summary` relit un rapport sans appel, `--price-in` et `--price-out` chiffrent le coût.
 Vérifié : test du résumé ; rapport de départ relu (66, 61, 68 sur 80 ; questions à tort 4, 8, 4).
