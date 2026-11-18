@@ -37,13 +37,53 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   await expect(page.getByRole("dialog").getByText(snatch.guide!.loadExplanation)).toBeVisible();
   // Le geste animé tourne ; une pastille l'arrête sur la ligne choisie du guide, affichée sous l'image.
   const motion = m.exerciseGuide.motion;
-  await expect(page.getByRole("dialog").getByRole("button", { name: motion.pause })).toBeVisible();
-  await page.getByRole("dialog").getByRole("button", { name: motion.show(3, motion.position(2)) }).click();
-  await expect(page.getByRole("dialog").getByRole("button", { name: motion.play })).toBeVisible();
-  await expect(page.getByRole("dialog").getByText(`${motion.position(2)} :`)).toBeVisible();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("button", { name: motion.pause })).toBeVisible();
+  // L'arraché est écrit pour le nouveau moteur : la scène est vue de profil, et se redessine sans rendu de page.
+  const scene = dialog.locator("svg[data-view]");
+  await expect(scene).toHaveAttribute("data-view", "side");
+  const drawn = () => scene.locator("path").first().getAttribute("d");
+  const before = await drawn();
+  await expect.poll(drawn).not.toBe(before);
+  // Le sélecteur de vue se manie au clavier : Face, puis retour au profil.
+  const views = dialog.getByRole("group", { name: motion.view });
+  await expect(views.getByRole("button", { name: motion.views.side, exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await views.getByRole("button", { name: motion.views.front, exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(scene).toHaveAttribute("data-view", "front");
+  await expect(views.getByRole("button", { name: motion.views.front, exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(dialog.getByRole("button", { name: motion.pause })).toBeVisible();
+  await expect(scene.locator("path")).not.toHaveCount(0);
+  await dialog.getByRole("button", { name: motion.show(3, motion.position(2)) }).click();
+  await expect(dialog.getByRole("button", { name: motion.play })).toBeVisible();
+  await expect(dialog.getByText(`${motion.position(2)} :`)).toBeVisible();
+  // Arrêté sur une position, le geste ne bouge plus.
+  const held = await drawn();
+  await page.waitForTimeout(300);
+  expect(await drawn()).toBe(held);
   await inspect(page, "library");
-  // En mouvement réduit, la frise des quatre positions remplace la lecture.
-  await expect(page.getByRole("dialog").getByRole("list", { name: motion.positions }).getByRole("img")).toHaveCount(4);
+  // En mouvement réduit, la frise des quatre positions remplace la lecture, dans la vue choisie.
+  const frieze = dialog.getByRole("list", { name: motion.positions });
+  await expect(frieze.getByRole("img")).toHaveCount(4);
+  await expect(frieze.locator("svg[data-view='front']")).toHaveCount(4);
+  await views.getByRole("button", { name: motion.views.side, exact: true }).focus();
+  await page.keyboard.press("Space");
+  await expect(frieze.locator("svg[data-view='side']")).toHaveCount(4);
+  await page.screenshot({ path: `/tmp/tartan-guide-library-frise-profil.png`, fullPage: true });
+  await page.keyboard.press("Escape");
+  // Un geste à reprendre garde l'ancien moteur : une seule vue, pas de sélecteur.
+  await page.getByLabel(m.exerciseGuide.family, { exact: true }).selectOption("strength");
+  await page.getByLabel(m.exercises.search, { exact: true }).fill("Good morning");
+  await page.getByRole("button", { name: /^Good morning Bibliothèque/ }).click();
+  await expect(dialog.getByRole("list", { name: motion.positions }).getByRole("img")).toHaveCount(4);
+  await expect(dialog.locator("svg[data-view]")).toHaveCount(0);
+  await expect(dialog.getByRole("group", { name: motion.view })).toHaveCount(0);
   await page.keyboard.press("Escape");
   const link = await groupLink(page);
   const athlete = await joinAsAthlete(browser, link, "GuideAthlete");
