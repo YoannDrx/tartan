@@ -149,11 +149,6 @@
       "count": 2
     }
   },
-  "src/features/videos/video-analysis.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 4
-    }
-  },
   "src/features/videos/video-list.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 1
