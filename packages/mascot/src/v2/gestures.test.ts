@@ -10,6 +10,7 @@ import {
   cleanAndJerk,
   GESTURES,
   lateralLunge,
+  OTHER_GESTURES,
   snatch,
   STRENGTH_GESTURES,
   WEIGHTLIFTING_GESTURES,
@@ -47,7 +48,9 @@ const length = (clip: MotionClip, id: string) => {
 
 describe("gestes écrits à la main", () => {
   it("couvre l'haltérophilie et la musculation, sous les clés du catalogue", () => {
-    expect(Object.keys(GESTURES)).toHaveLength(WEIGHTLIFTING_GESTURES.length + STRENGTH_GESTURES.length);
+    expect(Object.keys(GESTURES)).toHaveLength(
+      WEIGHTLIFTING_GESTURES.length + STRENGTH_GESTURES.length + OTHER_GESTURES.length,
+    );
     for (const key of ["snatch", "clean", "clean-and-jerk", "back-squat", "lateral-lunge"])
       expect(GESTURES[key], key).toBeDefined();
     for (const key of Object.keys(GESTURES)) expect(EXERCISE_CLIPS[key], key).toBeDefined();

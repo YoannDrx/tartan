@@ -15,6 +15,7 @@ import { hipThrust } from "./hip-thrust";
 import { benchPress, overheadPress } from "./presses";
 import { cleanPull, snatchDeadlift, snatchPull } from "./pulls";
 import { sidePlank } from "./side-plank";
+import { adductorRockback, cossackMobility, hip9090, proneHipRotation, toeExtensionRock } from "./mobility";
 import { snatch } from "./snatch";
 import { carioca, crossStepStairs } from "./stepping";
 import { bulgarianSquat, frontSquat } from "./squats";
@@ -77,7 +78,18 @@ export const STRENGTH_GESTURES: readonly MotionClip[] = [
 ];
 
 // Les autres familles : pliométrie, gainage, coordination, escaliers, échauffement, mobilité, course.
-export const OTHER_GESTURES: readonly MotionClip[] = [legSwings, hipCar, sidePlank, carioca, crossStepStairs];
+export const OTHER_GESTURES: readonly MotionClip[] = [
+  legSwings,
+  hipCar,
+  sidePlank,
+  carioca,
+  crossStepStairs,
+  cossackMobility,
+  adductorRockback,
+  toeExtensionRock,
+  proneHipRotation,
+  hip9090,
+];
 
 export const GESTURES: Readonly<Record<string, MotionClip>> = Object.fromEntries(
   [...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES, ...OTHER_GESTURES].map((clip) => [clip.key, clip]),

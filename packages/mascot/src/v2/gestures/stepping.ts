@@ -197,7 +197,12 @@ export const crossStepStairs = gesture({
     ...move("bring-up", firstStep, secondStep, "R", 0, "up", { guide: 2, hold: 500 }),
     ...move("down-right", secondStep, backDown, "R", 0, "down", { guide: 3 }),
     ...move("down-left", backDown, leftDown, "L", 0, "down"),
-    { id: "down-right-air", set: swingTo(leftDown, home, "R", 0), air: ["R"], move: { ms: 380, curve: "elan", phase: "down" } },
+    {
+      id: "down-right-air",
+      set: swingTo(leftDown, home, "R", 0),
+      air: ["R"],
+      move: { ms: 380, curve: "elan", phase: "down" },
+    },
   ],
   props: flight,
   // De profil, l'escalier passe devant l'athlète qui monte à côté de lui : de face, puis de dessus.

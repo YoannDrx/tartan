@@ -289,7 +289,14 @@ const ROW_BAR = 176;
 const HEELS = { x: 140, heel: -62 };
 // Le pied posé sur le talon, la pointe vers le haut : la hauteur de l'avant-pied qui pose le talon sur le sol.
 const HEEL_LIFT = (() => {
-  const shoe = { ...STAND, footRX: HEELS.x, footRHeel: HEELS.heel, footRLift: 0, footLX: HEELS.x, footLHeel: HEELS.heel };
+  const shoe = {
+    ...STAND,
+    footRX: HEELS.x,
+    footRHeel: HEELS.heel,
+    footRLift: 0,
+    footLX: HEELS.x,
+    footLHeel: HEELS.heel,
+  };
   const body = solve({ ...shoe, footLLift: 0 }, RIG);
   const part = skin(body).parts.find((candidate) => candidate.id === "shoeR")!;
   return -Math.min(...part.spheres.map(({ c, r }) => c.y - r));
@@ -324,7 +331,7 @@ const rowArms: ControlPatch = { ...elbows(-1, -0.4, 0.6), wrist: 0 };
 // En bas, bras tendus, la barre à l'aplomb des épaules ; en haut, la poitrine près de la barre.
 const rowLow = elevationFor(supine, ROW_BAR - Math.sqrt(armSpan(4) ** 2 - (ROW_GRIP - FIGURE.shoulder) ** 2));
 const ROW_HAND = vec(rowLow.shoulder.x, ROW_BAR, ROW_GRIP);
-const rowHigh = elevationFor(supine, ROW_BAR - 34).elevation;
+const rowHigh = elevationFor(supine, ROW_BAR - 24).elevation;
 const rowHalf = (rowLow.elevation + rowHigh) / 2;
 
 export const invertedRow = gesture({
@@ -333,10 +340,36 @@ export const invertedRow = gesture({
   rig: RIG,
   base: { ...rowArms, ...pinned(ROW_HAND) },
   keys: [
-    { id: "hang", guide: 0, set: supine(rowLow.elevation), hold: 600, move: { ms: 450, curve: "reception", phase: "lower" } },
-    { id: "set", guide: 1, set: { ...supine(rowLow.elevation), neck: 0 }, hold: 300, move: { ms: 250, curve: "impulsion", phase: "engage" } },
-    { id: "top", guide: 2, set: supine(rowHigh), hold: 350, face: "effort", move: { ms: 650, curve: "impulsion", phase: "pull" } },
+    {
+      id: "hang",
+      guide: 0,
+      set: supine(rowLow.elevation),
+      hold: 600,
+      move: { ms: 300, curve: "reception", phase: "lower" },
+    },
+    {
+      id: "set",
+      guide: 1,
+      set: { ...supine(rowLow.elevation), neck: 0 },
+      hold: 300,
+      move: { ms: 250, curve: "impulsion", phase: "engage" },
+    },
+    // Des positions intermédiaires : le corps pivote sur les talons, il ne se plie pas en route.
+    { id: "pulling", set: supine(rowHalf), face: "effort", move: { ms: 330, curve: "elan", phase: "pull" } },
+    {
+      id: "top",
+      guide: 2,
+      set: supine(rowHigh),
+      hold: 350,
+      face: "effort",
+      move: { ms: 320, curve: "reception", phase: "pull" },
+    },
     { id: "lowering", guide: 3, set: supine(rowHalf), still: true, move: { ms: 550, curve: "elan", phase: "lower" } },
+    {
+      id: "lowering-end",
+      set: supine((rowHalf + rowLow.elevation) / 2),
+      move: { ms: 300, curve: "linear", phase: "lower" },
+    },
   ],
   props: () => pullBar(ROW_HAND.x, ROW_BAR + 2, 120),
   views: ["side", "front"],

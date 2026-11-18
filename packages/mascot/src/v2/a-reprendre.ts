@@ -7,31 +7,7 @@ import type { Report } from "./constraints";
 export type Constraint = keyof Report;
 
 export const A_REPRENDRE: Readonly<Record<string, readonly Constraint[]>> = {
-  // Musculation.
-  // Pieds sur la pointe, corps incliné : la cheville dépasse sa flexion.
-  "incline-push-up": ["limits"],
-  // L'ancien geste déplace la barre fixe avec la main : les mains n'y tiennent pas.
-  "inverted-row": ["bar"],
-
   // Pliométrie : le saut en hauteur complet, corps retourné au-dessus de la barre.
   "high-jump-full": ["limits"],
   "high-jump-short": ["limits"],
-
-  // Gainage : couché sur le côté, les jambes se croisent au-delà de l'adduction de la hanche.
-  "side-plank": ["limits", "ground"],
-
-  // Coordination et escaliers : le pas croisé dépasse l'adduction de la hanche.
-  carioca: ["limits"],
-  "cross-step-stairs": ["limits"],
-
-  // Échauffement : le bras d'équilibre part trop loin derrière le buste.
-  "leg-swings": ["limits"],
-
-  // Mobilité : positions au sol ou en fin d'amplitude, que l'ancien dessin ne bornait pas.
-  "adductor-rockback": ["limits"],
-  "hip-car": ["limits"],
-  "toe-extension-rock": ["limits"],
-  "hip-90-90": ["limits"],
-  "cossack-mobility": ["limits"],
-  "prone-hip-rotation": ["limits"],
 };

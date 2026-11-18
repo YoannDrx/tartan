@@ -108,7 +108,14 @@ export const sidePlank = gesture({
   keys: [
     { id: "down", guide: 0, set: bottom, hold: 600, move: { ms: 700, curve: "reception", phase: "lower" } },
     { id: "lifting", set: half, still: true, face: "effort", move: { ms: 450, curve: "elan", phase: "lift" } },
-    { id: "plank", guide: 1, set: top, hold: 1600, face: "effort", move: { ms: 400, curve: "reception", phase: "lift" } },
+    {
+      id: "plank",
+      guide: 1,
+      set: top,
+      hold: 1600,
+      face: "effort",
+      move: { ms: 400, curve: "reception", phase: "lift" },
+    },
     { id: "aligned", guide: 2, set: top, hold: 300, face: "effort", move: { ms: 120, curve: "linear", phase: "hold" } },
     { id: "lowering", guide: 3, set: half, still: true, move: { ms: 700, curve: "elan", phase: "lower" } },
   ],

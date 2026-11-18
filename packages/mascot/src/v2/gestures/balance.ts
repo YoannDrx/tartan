@@ -40,7 +40,11 @@ const HIP = vec(PELVIS.x, PELVIS.y, FIGURE.hip);
 const freeLeg = (flexion: number, abduction: number, knee: number): ControlPatch => {
   const [f, a] = [rad(flexion), rad(abduction)];
   const thigh = vec(Math.sin(f) * Math.cos(a), -Math.cos(f) * Math.cos(a), Math.sin(a));
-  const kneeAt: Vec3 = vec(HIP.x + FIGURE.thigh * thigh.x, HIP.y + FIGURE.thigh * thigh.y, HIP.z + FIGURE.thigh * thigh.z);
+  const kneeAt: Vec3 = vec(
+    HIP.x + FIGURE.thigh * thigh.x,
+    HIP.y + FIGURE.thigh * thigh.y,
+    HIP.z + FIGURE.thigh * thigh.z,
+  );
   // Le tibia tourne vers l'arrière d'autant que le genou se plie, dans le plan vertical de la cuisse.
   const s = f - rad(knee);
   const shin = vec(Math.sin(s) * Math.cos(a), -Math.cos(s) * Math.cos(a), Math.sin(a) * Math.cos(s - f));
@@ -85,7 +89,7 @@ const post = (): Prop[] => [
 
 // --- Balancements de jambe ------------------------------------------------------------------------------------
 
-const swing = (flexion: number) => ({ ...standing, ...freeLeg(flexion, 0, 14 + Math.abs(flexion) / 4) });
+const swing = (flexion: number) => ({ ...standing, ...freeLeg(flexion, 0, 20 + Math.abs(flexion) / 4) });
 
 export const legSwings = gesture({
   key: "leg-swings",
@@ -94,13 +98,37 @@ export const legSwings = gesture({
   base: standing,
   keys: [
     { id: "standing", guide: 0, set: standing, hold: 600, move: { ms: 420, curve: "reception", phase: "return" } },
-    { id: "front", guide: 1, set: swing(38), still: true, air: ["R"], move: { ms: 460, curve: "impulsion", phase: "swing" } },
+    {
+      id: "front",
+      guide: 1,
+      set: swing(38),
+      still: true,
+      air: ["R"],
+      move: { ms: 460, curve: "impulsion", phase: "swing" },
+    },
     { id: "back", set: swing(-12), still: true, air: ["R"], move: { ms: 520, curve: "linear", phase: "swing" } },
-    { id: "middle", set: swing(14), air: ["R"], move: { ms: 280, curve: "linear", phase: "swing" } },
+    {
+      id: "middle",
+      set: { ...standing, ...freeLeg(6, 0, 40) },
+      air: ["R"],
+      move: { ms: 280, curve: "linear", phase: "swing" },
+    },
     { id: "pause", guide: 2, set: standing, hold: 300, move: { ms: 300, curve: "reception", phase: "swing" } },
-    { id: "front-wide", guide: 3, set: swing(62), still: true, air: ["R"], move: { ms: 520, curve: "impulsion", phase: "swing" } },
+    {
+      id: "front-wide",
+      guide: 3,
+      set: swing(62),
+      still: true,
+      air: ["R"],
+      move: { ms: 520, curve: "impulsion", phase: "swing" },
+    },
     { id: "back-wide", set: swing(-18), still: true, air: ["R"], move: { ms: 600, curve: "linear", phase: "swing" } },
-    { id: "middle-wide", set: swing(20), air: ["R"], move: { ms: 320, curve: "linear", phase: "swing" } },
+    {
+      id: "middle-wide",
+      set: { ...standing, ...freeLeg(8, 0, 40) },
+      air: ["R"],
+      move: { ms: 320, curve: "linear", phase: "swing" },
+    },
   ],
   props: post,
 });
@@ -120,12 +148,38 @@ export const hipCar = gesture({
   base: standing,
   keys: [
     { id: "standing", guide: 0, set: standing, hold: 700, move: { ms: 700, curve: "reception", phase: "return" } },
-    { id: "front", guide: 1, set: circle.front, hold: 300, air: ["R"], move: { ms: 800, curve: "impulsion", phase: "raise" } },
-    { id: "side", guide: 2, set: circle.side, still: true, air: ["R"], move: { ms: 750, curve: "linear", phase: "open" } },
+    {
+      id: "front",
+      guide: 1,
+      set: circle.front,
+      hold: 300,
+      air: ["R"],
+      move: { ms: 800, curve: "impulsion", phase: "raise" },
+    },
+    {
+      id: "side",
+      guide: 2,
+      set: circle.side,
+      still: true,
+      air: ["R"],
+      move: { ms: 750, curve: "linear", phase: "open" },
+    },
     { id: "back", set: circle.back, still: true, air: ["R"], move: { ms: 800, curve: "linear", phase: "open" } },
     { id: "reverse", guide: 3, set: standing, hold: 500, move: { ms: 700, curve: "reception", phase: "return" } },
-    { id: "back-again", set: circle.back, still: true, air: ["R"], move: { ms: 700, curve: "impulsion", phase: "reverse" } },
-    { id: "side-again", set: circle.side, still: true, air: ["R"], move: { ms: 800, curve: "linear", phase: "reverse" } },
+    {
+      id: "back-again",
+      set: circle.back,
+      still: true,
+      air: ["R"],
+      move: { ms: 700, curve: "impulsion", phase: "reverse" },
+    },
+    {
+      id: "side-again",
+      set: circle.side,
+      still: true,
+      air: ["R"],
+      move: { ms: 800, curve: "linear", phase: "reverse" },
+    },
     { id: "front-again", set: circle.front, air: ["R"], move: { ms: 750, curve: "linear", phase: "reverse" } },
   ],
   props: post,

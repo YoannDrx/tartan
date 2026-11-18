@@ -34,10 +34,10 @@ describe("choix du moteur par fiche", () => {
     }
   });
 
-  it("le compte : 159 gestes sur le nouveau moteur, 14 sur le premier, d'accord avec le registre", () => {
+  it("le compte : 171 gestes sur le nouveau moteur, 2 sur le premier, d'accord avec le registre", () => {
     const engines = GESTURE_KEYS.map((key) => motionEngine(key));
-    expect(engines.filter((engine) => engine === "v2")).toHaveLength(159);
-    expect(engines.filter((engine) => engine === "v1")).toHaveLength(14);
+    expect(engines.filter((engine) => engine === "v2")).toHaveLength(171);
+    expect(engines.filter((engine) => engine === "v1")).toHaveLength(2);
     for (const key of GESTURE_KEYS) {
       const level = motionLevel(key);
       expect(level === "ecrit" ? "ecrit" : "releve", key).toBe(gestureEntry(key)!.level);
@@ -49,11 +49,12 @@ describe("choix du moteur par fiche", () => {
     expect(REVIEW_BATCHES).toEqual(["face", "v2"]);
     expect(reviewBatch("snatch")).toBe("v2");
     expect(reviewBatch("jumping-jacks")).toBe("v2");
-    // Gainage latéral : dessiné de face par le premier moteur, à reprendre, donc toujours dans la série « face ».
-    expect(reviewBatch("side-plank")).toBe(EXERCISE_CLIPS["side-plank"]!.batch);
-    expect(reviewBatch("side-plank")).toBe("face");
+    // Gainage latéral : dessiné de face par le premier moteur, désormais écrit à la main dans le nouveau.
+    expect(EXERCISE_CLIPS["side-plank"]!.batch).toBe("face");
+    expect(reviewBatch("side-plank")).toBe("v2");
     expect(reviewBatch("good-morning")).toBe("v2");
-    expect(reviewBatch("inverted-row")).toBe(EXERCISE_CLIPS["inverted-row"]!.batch);
+    // Un geste resté sur le premier moteur garde sa série.
+    for (const key of Object.keys(A_REPRENDRE)) expect(reviewBatch(key), key).toBe(EXERCISE_CLIPS[key]!.batch);
   });
 });
 
