@@ -26,6 +26,7 @@ Les volumes et résultats datés vivent dans [ETAT.md](../ETAT.md), avec le comm
 | Parcours en développement         | `pnpm test:e2e`                                                                                    |
 | Parcours comme la CI              | `E2E_PROD=1 pnpm test:e2e`                                                                         |
 | Preuve vidéo                      | `pnpm --filter @tartan/web exec playwright test video-poc --project=desktop` (sans `E2E_PROD`)     |
+| Plein écran de l'analyse vidéo    | `pnpm --filter @tartan/web exec playwright test video-fullscreen` (sans `E2E_PROD`)                |
 | Collaboration vidéo, Mux simulé   | `E2E_PROD=1 E2E_VIDEO_ENABLED=true pnpm test:e2e e2e/video-collaboration.spec.ts`                  |
 | Planificateur, prestataire simulé | `E2E_PROD=1 E2E_AI_PLANNER_ENABLED=true pnpm --filter @tartan/web exec playwright test ai-planner` |
 | Évaluation IA hors réseau         | `pnpm --filter @tartan/web eval:planner`                                                           |
@@ -71,7 +72,7 @@ Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette s
 
 | Variable | Effet |
 | --- | --- |
-| `E2E_PROD` | `next build` puis `next start`. Active CSP et hors ligne, désactive `video-poc` |
+| `E2E_PROD` | `next build` puis `next start`. Active CSP et hors ligne, désactive `video-poc` et `video-fullscreen` |
 | `E2E_DATABASE_URL` | Base des parcours, défaut `tartan_e2e` |
 | `E2E_PORT` | Port du serveur des parcours, défaut 3100 |
 | `TEST_DATABASE_URL` | Base de Vitest, défaut `tartan_test` |
@@ -81,6 +82,7 @@ Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette s
 | `RUN_STRIPE_BROWSER=1` | Ajoute les deux parcours Chrome sur Checkout, facture et portail réels de sandbox, hors CI |
 | `CAPTURE_BASE_URL` | Mode captures : sans serveur ni réinitialisation |
 | `VIDEO_DEV_MP4_URL` | Clip local à la place de Mux, inerte en production |
+| `E2E_SHOTS_DIR` | Dossier, hors dépôt, où `video-fullscreen` range ses captures de recette ; sans elle, aucune capture |
 | `E2E_VIDEO_ENABLED=true` | Lance le SDK Mux simulé et les webhooks de recette locale ; activé dans la CI principale. |
 
 ## Pièges

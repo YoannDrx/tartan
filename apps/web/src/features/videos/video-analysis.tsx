@@ -16,23 +16,13 @@ import {
   type DrawingPoint,
 } from "@tartan/domain";
 import { m, withFirstOfMonth } from "@tartan/i18n";
-import {
-  Check,
-  ChevronLeft,
-  Flag,
-  Pause,
-  Play,
-  Repeat,
-  Share2,
-  SkipBack,
-  SkipForward,
-  Trash2,
-  Download,
-} from "lucide-react";
+import { w } from "@tartan/i18n/web";
+import { Check, ChevronLeft, Flag, Maximize, Minimize, Share2, Trash2, Download } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useMemo, useRef, useState, type CSSProperties } from "react";
+import { flushSync } from "react-dom";
 import { BarSheet } from "@/components/bar-sheet";
 import { Button, IconButton } from "@/components/ui/button";
 import { CheckRow, Select } from "@/components/ui/field";
@@ -40,20 +30,27 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { reportContentAction } from "@/features/comments/comment.action";
 import { CommentThread } from "@/features/comments/thread";
+import { growSheet, sheetForRemark, shortcutFor, shrinkSheet, type SheetHeight } from "./immersive-layout";
 import { RefreshWhilePending } from "./refresh-while-pending";
 import { groupMarkers } from "./timeline-markers";
+import { useImmersive } from "./use-immersive";
 import { VideoCollaborationTools } from "./video-collaboration-tools";
 import { VideoExerciseLink } from "./video-exercise-link";
 import { addAnnotationAction, deleteAnnotationAction, shareVideoAction } from "./video.action";
 import { DrawingLayer, DrawingTools, describeDrawing } from "./video-drawing";
+import { PanelHeader, SheetHeader, ShortcutsHelp } from "./video-editor-chrome";
+import { VideoTransport, speedLabel, type Loop } from "./video-transport";
 
 // Un tracé s'affiche autour de l'instant de sa remarque.
 const DRAWING_WINDOW_MS = 400;
 
-const SPEEDS = [0.1, 0.25, 0.5, 1];
+// Sous ces hauteurs visibles (téléphone en paysage, clavier ouvert), l'image passe avant le titre, puis avant les
+// contrôles : l'instant commenté n'est jamais masqué.
+const SHORT_VIEWPORT = 560;
+const TINY_VIEWPORT = 300;
+
 // Les phases du saut avec les outils de hauteur, sinon les trois phases d'un geste quelconque.
 const phasesFor = (jump: boolean): readonly JumpPhase[] => (jump ? JUMP_PHASES : MOVEMENT_PHASES);
-const speedLabel = (s: number) => `${String(s).replace(".", ",")}×`;
 
 export const VideoAnalysis = ({
   video,
@@ -87,7 +84,23 @@ export const VideoAnalysis = ({
   const [tool, setTool] = useState<DrawingKind | null>(null);
   const [draft, setDraft] = useState<DrawingPoint[]>([]);
   const [frame, setFrame] = useState({ width: 0, height: 0 });
-  const [loop, setLoop] = useState<{ a: number; b: number | null } | null>(null);
+  const [loop, setLoop] = useState<Loop>(null);
+  // Le plein écran : l'éditeur reste à portée, en panneau à droite (paysage, écran large) ou en feuille en bas.
+  const immersive = useImmersive();
+  const full = immersive.on;
+  const sheetLayout = full && !immersive.side;
+  const sideLayout = full && immersive.side;
+  const [sheet, setSheet] = useState<SheetHeight>("rail");
+  const [dragHeight, setDragHeight] = useState<number | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [wide, setWide] = useState(false);
+  const editorHidden = sheetLayout ? sheet === "rail" && dragHeight === null : sideLayout && collapsed;
+  const stageHidden = sheetLayout && sheet === "full";
+  const visibleHeight = full ? (immersive.viewport?.height ?? null) : null;
+  const short = visibleHeight !== null && visibleHeight < SHORT_VIEWPORT;
+  const tiny = visibleHeight !== null && visibleHeight < TINY_VIEWPORT;
+  const layerRef = useRef<SVGSVGElement>(null);
+  const drawingHelpId = useId();
   // Mux génère le MP4 après l'encodage : en attendant, le flux HLS prend le relais.
   const [mp4Failed, setMp4Failed] = useState(false);
   const src = mp4Failed ? video.hlsUrl : (video.mp4Url ?? video.hlsUrl);
@@ -152,13 +165,82 @@ export const VideoAnalysis = ({
     if (!el) return;
     if (el.paused) {
       el.playbackRate = speed * scale;
-      el.play().catch(() => toast.error("Lecture impossible sur cet appareil."));
+      el.play().catch(() => toast.error(w.video.playbackImpossible));
       setPlaying(true);
     } else {
       el.pause();
       setPlaying(false);
     }
   };
+  // Le pas part de la position réelle de l'élément : une touche tenue avance d'une image à chaque répétition.
+  const stepBy = (direction: -1 | 1) => {
+    const el = ref.current;
+    if (el) seek(toRealMs(el.currentTime, scale) + direction * step);
+  };
+  const cycleLoop = () => {
+    if (!loop) setLoop({ a: timeMs, b: null });
+    else if (loop.b === null && timeMs > loop.a) setLoop({ a: loop.a, b: timeMs });
+    else setLoop(null);
+  };
+
+  // Écrire une remarque : la feuille s'ouvre à moitié, jamais plus, pour laisser visible l'image commentée.
+  const focusComposer = () => {
+    if (full)
+      flushSync(() => {
+        setSheet(sheetForRemark);
+        setCollapsed(false);
+      });
+    document.getElementById("annotation")?.focus();
+  };
+  const addRemark = () => {
+    ref.current?.pause();
+    setPlaying(false);
+    focusComposer();
+  };
+  const clearDrawing = () => {
+    setTool(null);
+    setDraft([]);
+  };
+  // On entre en plein écran pour l'image : la feuille part repliée, le panneau ouvert.
+  const toggleImmersive = () => {
+    if (full) return immersive.exit();
+    setSheet("rail");
+    setCollapsed(false);
+    immersive.enter();
+  };
+
+  // Raccourcis : espace, flèches, F et M. Ils se taisent dans un champ, dans un dialogue et sur le calque de tracé.
+  const onShortcut = useEffectEvent((event: KeyboardEvent) => {
+    if (event.defaultPrevented) return;
+    const target = event.target instanceof Element ? event.target : null;
+    const field = target?.closest("input, textarea, select, [contenteditable='true']");
+    const passive = field instanceof HTMLInputElement && ["range", "checkbox"].includes(field.type);
+    const action = shortcutFor({
+      key: event.key,
+      repeat: event.repeat,
+      modified: event.ctrlKey || event.metaKey || event.altKey,
+      typing: Boolean(field) && !passive,
+      control: Boolean(target?.closest("button, a[href], summary, select, [role='button'], input[type='checkbox']")),
+      dialog: Boolean(target?.closest("[role='dialog'], [role='alertdialog']")),
+    });
+    if (!action) return;
+    if (action === "exit") {
+      if (!full) return;
+      immersive.exit();
+    } else if (action === "remark") {
+      if (!canAnnotate) return;
+      addRemark();
+    } else if (!src) return;
+    else if (action === "fullscreen") toggleImmersive();
+    else if (action === "toggle") toggle();
+    else stepBy(action === "next" ? 1 : -1);
+    event.preventDefault();
+  });
+  useEffect(() => {
+    const listen = (event: KeyboardEvent) => onShortcut(event);
+    window.addEventListener("keydown", listen);
+    return () => window.removeEventListener("keydown", listen);
+  }, []);
 
   const ranges = useMemo(
     () =>
@@ -174,8 +256,7 @@ export const VideoAnalysis = ({
     onSuccess: () => {
       setText("");
       setReplyTo(null);
-      setTool(null);
-      setDraft([]);
+      clearDrawing();
       router.refresh();
     },
     onError: ({ error }) => toast.error(error.serverError ?? m.errors.invalid),
@@ -213,24 +294,61 @@ export const VideoAnalysis = ({
     [video.annotations, durationMs, timelineWidth],
   );
 
+  const drawingReady = Boolean(tool) && draft.length === drawingPoints(tool!);
+  // En plein écran, la surcouche suit la partie visible de la fenêtre ; `--ih` en donne la hauteur à la feuille.
+  const overlay = full
+    ? ({
+        top: immersive.viewport?.top ?? 0,
+        height: immersive.viewport ? `${immersive.viewport.height}px` : "100dvh",
+        "--ih": immersive.viewport ? `${immersive.viewport.height}px` : "100dvh",
+      } as CSSProperties)
+    : undefined;
+
   return (
-    <div className="scene-dark min-h-dvh bg-ink text-fg [&_a]:text-link">
-      <div className="mx-auto grid max-w-[1200px] gap-4 p-4 desktop:grid-cols-[minmax(0,1fr)_360px] desktop:p-6">
-        <div className="flex min-w-0 flex-col gap-3">
-          <header className="flex items-center gap-3">
-            <Link
-              href={backHref}
-              aria-label={m.common.back}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-card-raised !text-white"
-            >
-              <ChevronLeft aria-hidden className="size-5" />
-            </Link>
+    <div
+      data-immersive={full ? (sideLayout ? "side" : "sheet") : undefined}
+      style={overlay}
+      className={cn(
+        "scene-dark bg-ink text-fg [&_a]:text-link",
+        full
+          ? "fixed inset-x-0 z-30 overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]"
+          : "min-h-dvh",
+        sheetLayout && "flex flex-col",
+        sideLayout && "grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_minmax(0,1fr)]",
+      )}
+    >
+      <div
+        className={
+          full
+            ? "contents"
+            : "mx-auto grid max-w-[1200px] gap-4 p-4 desktop:grid-cols-[minmax(0,1fr)_360px] desktop:p-6"
+        }
+      >
+        {/* Sous 1024 px, la colonne se défait : l'image, enfant direct de la page, reste collée en haut. */}
+        <div className={full ? "contents" : "flex min-w-0 flex-col gap-3 max-desktop:contents"}>
+          <header
+            className={cn(
+              "flex items-center gap-3",
+              full && "min-h-12 shrink-0 px-3",
+              sideLayout && "col-start-1 row-start-1",
+              short && "hidden",
+            )}
+          >
+            {full ? null : (
+              <Link
+                href={backHref}
+                aria-label={m.common.back}
+                className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-card-raised !text-white"
+              >
+                <ChevronLeft aria-hidden className="size-5" />
+              </Link>
+            )}
             <div className="min-w-0 flex-1">
-              <h1 className="t-h2 truncate">
+              <h1 className={cn("truncate", full ? "t-section" : "t-h2")}>
                 {video.athleteName}
                 {video.attemptNo ? m.videoCollaboration.attemptNumber(video.attemptNo) : ""}
               </h1>
-              <p className="t-caption font-normal text-soft">
+              <p className={cn("t-caption font-normal text-soft", full && "hidden")}>
                 {video.recordedAt
                   ? withFirstOfMonth(
                       new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(
@@ -241,378 +359,452 @@ export const VideoAnalysis = ({
                 {video.exerciseName && !canAnnotate ? `, ${video.exerciseName}` : ""}
               </p>
             </div>
-            <IconButton
-              tone="darkRound"
-              label={m.video.report}
-              disabled={report.isPending}
-              onClick={() => report.execute({ entityType: "video", entityId: video.id, reason: "inappropriate" })}
-            >
-              <Flag aria-hidden className="size-4" />
-            </IconButton>
-            {staff && (video.canHideFromAthlete ?? true) ? (
-              <IconButton
-                tone="darkRound"
-                label={video.sharedWithAthlete ? m.video.unshare : m.video.share}
-                aria-pressed={video.sharedWithAthlete}
-                disabled={share.isPending}
-                onClick={() => share.execute({ videoId: video.id, withAthlete: !video.sharedWithAthlete })}
-              >
-                {video.sharedWithAthlete ? (
-                  <Check aria-hidden className="size-5" />
-                ) : (
-                  <Share2 aria-hidden className="size-4" />
-                )}
-              </IconButton>
-            ) : null}
-            {video.mp4Url ? (
-              <a
-                href={video.mp4Url}
-                target="_blank"
-                rel="noreferrer"
-                download
-                className="inline-flex min-h-11 shrink-0 items-center gap-1.5 font-semibold"
-              >
-                <Download aria-hidden className="size-5" />
-                {m.video.download}
-              </a>
-            ) : null}
+            {src ? <ShortcutsHelp className="hidden tablet:inline-flex" /> : null}
+            {full ? null : (
+              <>
+                <IconButton
+                  tone="darkRound"
+                  label={m.video.report}
+                  disabled={report.isPending}
+                  onClick={() => report.execute({ entityType: "video", entityId: video.id, reason: "inappropriate" })}
+                >
+                  <Flag aria-hidden className="size-4" />
+                </IconButton>
+                {staff && (video.canHideFromAthlete ?? true) ? (
+                  <IconButton
+                    tone="darkRound"
+                    label={video.sharedWithAthlete ? m.video.unshare : m.video.share}
+                    aria-pressed={video.sharedWithAthlete}
+                    disabled={share.isPending}
+                    onClick={() => share.execute({ videoId: video.id, withAthlete: !video.sharedWithAthlete })}
+                  >
+                    {video.sharedWithAthlete ? (
+                      <Check aria-hidden className="size-5" />
+                    ) : (
+                      <Share2 aria-hidden className="size-4" />
+                    )}
+                  </IconButton>
+                ) : null}
+                {video.mp4Url ? (
+                  <a
+                    href={video.mp4Url}
+                    target="_blank"
+                    rel="noreferrer"
+                    download
+                    className="inline-flex min-h-11 shrink-0 items-center gap-1.5 font-semibold"
+                  >
+                    <Download aria-hidden className="size-5" />
+                    {m.video.download}
+                  </a>
+                ) : null}
+              </>
+            )}
           </header>
 
-          <VideoCollaborationTools video={video} staff={staff} backHref={backHref} />
+          {/* Le partage, la relecture et le mouvement lié se règlent hors plein écran. */}
+          <div className={full ? "hidden" : "contents"}>
+            <VideoCollaborationTools video={video} staff={staff} backHref={backHref} />
+            {video.canManage && exercises.length > 0 ? (
+              <VideoExerciseLink videoId={video.id} current={video.exerciseId ?? null} exercises={exercises} />
+            ) : null}
+          </div>
 
-          {video.canManage && exercises.length > 0 ? (
-            <VideoExerciseLink videoId={video.id} current={video.exerciseId ?? null} exercises={exercises} />
-          ) : null}
-
-          <div className="relative overflow-hidden rounded-card bg-ink">
-            {src ? (
-              <video
-                ref={ref}
-                playsInline
-                preload="auto"
-                muted
-                loop={loop === null}
-                onError={() => {
-                  if (!mp4Failed && video.mp4Url && video.hlsUrl) setMp4Failed(true);
-                }}
-                onLoadedMetadata={(e) => {
-                  setDurationMs(toRealMs(e.currentTarget.duration, scale));
-                  setFrame({ width: e.currentTarget.videoWidth, height: e.currentTarget.videoHeight });
-                }}
-                onPause={() => setPlaying(false)}
-                onPlay={() => setPlaying(true)}
-                className="aspect-video w-full"
-                aria-label={m.video.videoOf(video.athleteName)}
-              />
-            ) : (
-              <div className="flex aspect-video w-full items-center justify-center p-6 text-center text-soft">
-                {video.status === "uploading" || video.status === "processing" ? <RefreshWhilePending /> : null}
-                {video.consentRevoked
-                  ? m.video.consentRevoked
-                  : video.status === "error"
-                    ? m.video.failed
-                    : video.status === "ready"
-                      ? m.video.playbackUnavailable
-                      : video.status === "processing"
-                        ? m.video.processing
-                        : m.video.uploading}
-              </div>
+          {/* La scène : l'image, puis les contrôles et la frise dessous. */}
+          <div
+            className={cn(
+              full ? "flex min-h-0 min-w-0 flex-col gap-2 overflow-hidden" : "contents",
+              sheetLayout && "flex-1 transition-[visibility] duration-(--duration-enter)",
+              sideLayout && "col-start-1 row-start-2",
+              stageHidden && "invisible",
             )}
-            {src ? (
-              <DrawingLayer
-                width={frame.width}
-                height={frame.height}
-                drawings={video.annotations.flatMap((a) =>
-                  a.drawing && Math.abs(a.tMs - timeMs) <= DRAWING_WINDOW_MS ? [a.drawing] : [],
-                )}
-                draft={tool ? { kind: tool, points: draft } : null}
-                tool={tool}
-                onPoint={(point) =>
-                  setDraft((current) => (tool && current.length < drawingPoints(tool) ? [...current, point] : [point]))
-                }
-              />
-            ) : null}
-            {video.barHeightCm ? (
-              <span className="absolute left-3 top-3 rounded-full bg-brand px-2.5 py-1 t-caption font-semibold">
-                {formatHeight(video.barHeightCm)} m,{" "}
-                {video.result === "O"
-                  ? m.video.cleared.toLowerCase()
-                  : video.result === "X"
-                    ? m.video.failedJump.toLowerCase()
-                    : m.video.passed.toLowerCase()}
-              </span>
-            ) : null}
-            <span className="absolute right-3 top-3 rounded-full bg-card-raised px-2.5 py-1 t-caption font-semibold">
-              {speedLabel(speed)}
-              {video.fps ? `, ${video.fps} i/s` : ""}
-            </span>
-          </div>
-          {video.fps && !isHighFrameRate(video.fps) ? (
-            <p className="t-caption font-normal text-soft">{m.video.fpsLow}</p>
-          ) : null}
-
-          <div className="flex flex-wrap items-center gap-2">
-            <IconButton tone="dark" label={m.video.previousFrame} onClick={() => seek(timeMs - step)}>
-              <SkipBack aria-hidden className="size-5" />
-            </IconButton>
-            <button
-              type="button"
-              aria-label={playing ? m.video.pause : m.video.play}
-              onClick={toggle}
-              className="inline-flex size-[52px] items-center justify-center rounded-full bg-accent text-on-accent"
+          >
+            <div
+              className={
+                full
+                  ? "min-h-0 flex-1"
+                  : "max-desktop:sticky max-desktop:top-0 max-desktop:z-20 max-desktop:-my-2 max-desktop:bg-ink max-desktop:py-2"
+              }
             >
-              {playing ? <Pause aria-hidden className="size-5" /> : <Play aria-hidden className="size-5" />}
-            </button>
-            <IconButton tone="dark" label={m.video.nextFrame} onClick={() => seek(timeMs + step)}>
-              <SkipForward aria-hidden className="size-5" />
-            </IconButton>
-            <span className="t-num min-w-16 text-[20px]">{formatTimecode(timeMs)}</span>
-            <div role="group" aria-label={m.videoCollaboration.playbackSpeed} className="flex gap-1">
-              {SPEEDS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  aria-pressed={speed === s}
-                  onClick={() => setSpeed(s)}
-                  className={cn(
-                    "min-h-11 min-w-11 rounded-button px-2 text-[14px] font-semibold",
-                    speed === s ? "bg-accent text-on-accent" : "bg-card-raised text-fg",
-                  )}
-                >
-                  {speedLabel(s)}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              aria-pressed={loop !== null}
-              onClick={() => {
-                if (!loop) setLoop({ a: timeMs, b: null });
-                else if (loop.b === null && timeMs > loop.a) setLoop({ a: loop.a, b: timeMs });
-                else setLoop(null);
-              }}
-              className={cn(
-                "inline-flex min-h-11 items-center gap-1.5 rounded-button px-3 text-[14px] font-semibold",
-                loop ? "bg-accent text-on-accent" : "bg-card-raised text-fg",
-              )}
-            >
-              <Repeat aria-hidden className="size-4" />
-              {!loop
-                ? m.videoCollaboration.loopStart
-                : loop.b === null
-                  ? m.videoCollaboration.loopEnd
-                  : m.videoCollaboration.loopRemove}
-            </button>
-          </div>
-
-          {/* Timeline : segments par phase, repères de commentaires, tête de lecture blanche. */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="timeline" className="sr-only">
-              Position dans la vidéo
-            </label>
-            <div ref={timelineRef} className="relative h-9">
-              <div className="absolute inset-x-0 top-3 flex h-2.5 gap-0.5 overflow-hidden rounded-[3px] bg-card-line">
-                {ranges.map((r, i) => (
-                  <span
-                    key={r.phase}
-                    style={{ flexGrow: Math.max(r.endMs - r.startMs, 1) }}
-                    className={cn(currentPhase === r.phase ? "bg-accent" : i % 2 ? "bg-control-line" : "bg-card-line")}
+              <div className={cn("relative overflow-hidden bg-ink", full ? "h-full" : "rounded-card")}>
+                {src ? (
+                  <video
+                    ref={ref}
+                    playsInline
+                    preload="auto"
+                    muted
+                    loop={loop === null}
+                    onError={() => {
+                      if (!mp4Failed && video.mp4Url && video.hlsUrl) setMp4Failed(true);
+                    }}
+                    onLoadedMetadata={(e) => {
+                      setDurationMs(toRealMs(e.currentTarget.duration, scale));
+                      setFrame({ width: e.currentTarget.videoWidth, height: e.currentTarget.videoHeight });
+                    }}
+                    onPause={() => setPlaying(false)}
+                    onPlay={() => setPlaying(true)}
+                    className={full ? "size-full" : "aspect-video w-full max-desktop:max-h-[45dvh]"}
+                    aria-label={m.video.videoOf(video.athleteName)}
                   />
-                ))}
-              </div>
-              {markers.map(({ first, count }) => (
-                <button
-                  key={first.id}
-                  type="button"
-                  aria-label={`Aller à ${formatTimecode(first.tMs)}${count > 1 ? `, ${count} remarques` : ""}`}
-                  onClick={() => seek(first.tMs)}
-                  style={{ left: `${pct(first.tMs)}%` }}
-                  className="absolute -top-1 z-10 flex size-6 -translate-x-1/2 items-start justify-center pt-1"
-                >
-                  <span className="size-2 rounded-full bg-accent" />
-                </button>
-              ))}
-              <span
-                aria-hidden
-                style={{ left: `${pct(timeMs)}%` }}
-                className="absolute top-1 h-7 w-[3px] -translate-x-1/2 rounded-sm bg-fg"
-              />
-              <input
-                id="timeline"
-                type="range"
-                min={0}
-                max={Math.max(durationMs, 1)}
-                step={Math.max(step, 1)}
-                value={Math.min(timeMs, durationMs)}
-                onChange={(e) => seek(Number(e.target.value))}
-                className="absolute inset-x-0 top-1 h-7 w-full cursor-pointer opacity-0"
-              />
-            </div>
-            {ranges.length > 0 ? (
-              <div className="flex gap-0.5 text-[12px] text-soft">
-                {ranges.map((r) => (
-                  <span
-                    key={r.phase}
-                    style={{ flexGrow: Math.max(r.endMs - r.startMs, 1) }}
-                    className={cn("min-w-0 truncate", currentPhase === r.phase && "font-semibold text-fg")}
+                ) : (
+                  <div
+                    className={cn(
+                      "flex w-full items-center justify-center p-6 text-center text-soft",
+                      full ? "h-full" : "aspect-video max-desktop:max-h-[45dvh]",
+                    )}
                   >
-                    {m.jumpPhase[r.phase]}
+                    {video.status === "uploading" || video.status === "processing" ? <RefreshWhilePending /> : null}
+                    {video.consentRevoked
+                      ? m.video.consentRevoked
+                      : video.status === "error"
+                        ? m.video.failed
+                        : video.status === "ready"
+                          ? m.video.playbackUnavailable
+                          : video.status === "processing"
+                            ? m.video.processing
+                            : m.video.uploading}
+                  </div>
+                )}
+                {src ? (
+                  <DrawingLayer
+                    // Un nouvel outil repart d'un calque neuf : le repère du clavier revient au centre de l'image.
+                    key={tool ?? "none"}
+                    ref={layerRef}
+                    width={frame.width}
+                    height={frame.height}
+                    drawings={video.annotations.flatMap((a) =>
+                      a.drawing && Math.abs(a.tMs - timeMs) <= DRAWING_WINDOW_MS ? [a.drawing] : [],
+                    )}
+                    draft={tool ? draft : []}
+                    tool={tool}
+                    describedBy={drawingHelpId}
+                    onDraft={setDraft}
+                    onValidate={focusComposer}
+                    onCancel={() => {
+                      const kind = tool;
+                      clearDrawing();
+                      document.querySelector<HTMLElement>(`[data-drawing-tool="${kind}"]`)?.focus();
+                    }}
+                  />
+                ) : null}
+                {video.barHeightCm ? (
+                  <span className="absolute left-3 top-3 rounded-full bg-brand px-2.5 py-1 t-caption font-semibold">
+                    {w.video.barBadge(
+                      formatHeight(video.barHeightCm),
+                      (video.result === "O"
+                        ? m.video.cleared
+                        : video.result === "X"
+                          ? m.video.failedJump
+                          : m.video.passed
+                      ).toLowerCase(),
+                    )}
                   </span>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <aside className="flex min-w-0 flex-col gap-4">
-          {hasHighJumpContext(video) && video.barSheet.length > 0 ? (
-            <section>
-              <h2 className="t-section mb-2">{m.video.barSheet}</h2>
-              <BarSheet rows={video.barSheet} current={video.barHeightCm} />
-            </section>
-          ) : null}
-
-          <section aria-label={m.videoCollaboration.remarks} className="flex flex-col gap-2">
-            {video.annotations.map((a) => (
-              <div key={a.id} className="flex items-start gap-2.5 rounded-card bg-card-raised p-2.5">
-                <button
-                  type="button"
-                  onClick={() => seek(a.tMs)}
-                  className="t-caption inline-flex min-h-11 shrink-0 items-center rounded-full px-1 font-semibold text-link underline"
-                >
-                  {formatTimecode(a.tMs)}
-                </button>
-                <div className="min-w-0 flex-1 py-1.5">
-                  {a.phase ? <p className="t-caption font-semibold text-soft">{m.jumpPhase[a.phase]}</p> : null}
-                  <p className="t-caption text-soft">{a.authorName ?? m.videoCollaboration.unknownAuthor}</p>
-                  {a.parentId ? <p className="text-sm text-soft">{m.videoCollaboration.replyTo}</p> : null}
-                  {a.text ? <p className="break-words">{a.text}</p> : null}
-                  {a.drawing ? (
-                    <p className="t-caption font-semibold text-soft">
-                      {describeDrawing(a.drawing, frame.width && frame.height ? frame.width / frame.height : 16 / 9)}
-                    </p>
-                  ) : null}
-                  {canAnnotate && !a.parentId ? (
-                    <Button
-                      variant="quiet"
-                      size="sm"
-                      onClick={() => {
-                        setReplyTo(a);
-                        seek(a.tMs);
-                        document.getElementById("annotation")?.focus();
-                      }}
-                    >
-                      {m.videoCollaboration.reply}
-                    </Button>
-                  ) : null}
-                </div>
-                {staff || a.authorId === currentUserId ? (
+                ) : null}
+                <span className="absolute right-3 top-3 rounded-full bg-card-raised px-2.5 py-1 t-caption font-semibold">
+                  {w.video.speedBadge(speedLabel(speed), video.fps)}
+                </span>
+                {src ? (
                   <IconButton
-                    tone="dark"
-                    label={m.common.delete}
-                    onClick={() => removeAnnotation.execute({ id: a.id, videoId: video.id })}
+                    tone="darkRound"
+                    label={full ? w.video.fullscreen.exit : w.video.fullscreen.enter}
+                    aria-keyshortcuts="F"
+                    onClick={toggleImmersive}
+                    className="absolute bottom-3 right-3"
                   >
-                    <Trash2 aria-hidden className="size-4" />
+                    {full ? <Minimize aria-hidden className="size-5" /> : <Maximize aria-hidden className="size-5" />}
                   </IconButton>
                 ) : null}
               </div>
-            ))}
-            {canAnnotate ? (
-              <form
-                className="flex flex-col gap-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const drawing =
-                    !replyTo && tool && draft.length === drawingPoints(tool)
-                      ? { kind: tool, points: draft, aspect: frame.width / frame.height }
-                      : null;
-                  if ((text.trim() || drawing) && !add.isPending)
-                    add.execute({
-                      videoId: video.id,
-                      tMs: replyTo?.tMs ?? Math.round(timeMs),
-                      parentId: replyTo?.id,
-                      phase: phase || null,
-                      text,
-                      drawing,
-                    });
-                }}
-              >
-                {replyTo ? (
-                  <div className="border-l-2 border-control-line pl-3">
-                    <p>{replyTo.text}</p>
-                    <Button size="sm" variant="quiet" onClick={() => setReplyTo(null)}>
-                      {m.common.cancel}
-                    </Button>
-                  </div>
-                ) : null}
-                {replyTo || !frame.width ? null : (
-                  <DrawingTools
-                    tool={tool}
-                    draft={draft}
-                    onTool={(next) => {
-                      setTool(next);
-                      setDraft([]);
-                      // On trace sur une image arrêtée.
-                      if (next) ref.current?.pause();
+            </div>
+            {video.fps && !isHighFrameRate(video.fps) ? (
+              <p className={cn("t-caption font-normal text-soft", full && "hidden")}>{m.video.fpsLow}</p>
+            ) : null}
+
+            <VideoTransport
+              playing={playing}
+              timeMs={timeMs}
+              speed={speed}
+              loop={loop}
+              // Sur un téléphone, en portrait comme en paysage, les contrôles tiennent sur une ligne.
+              compact={sheetLayout || (sideLayout && short)}
+              className={cn(full && "shrink-0 px-3", tiny && "hidden")}
+              onToggle={toggle}
+              onStep={stepBy}
+              onSpeed={setSpeed}
+              onLoop={cycleLoop}
+            />
+
+            {/* Timeline : segments par phase, repères de commentaires, tête de lecture blanche. */}
+            <div className={cn("flex flex-col gap-1", full && "shrink-0 px-3 pb-2", tiny && "hidden")}>
+              <label htmlFor="timeline" className="sr-only">
+                {w.video.timelinePosition}
+              </label>
+              <div ref={timelineRef} className="relative h-9">
+                <div className="absolute inset-x-0 top-3 flex h-2.5 gap-0.5 overflow-hidden rounded-[3px] bg-card-line">
+                  {ranges.map((r, i) => (
+                    <span
+                      key={r.phase}
+                      style={{ flexGrow: Math.max(r.endMs - r.startMs, 1) }}
+                      className={cn(
+                        currentPhase === r.phase ? "bg-accent" : i % 2 ? "bg-control-line" : "bg-card-line",
+                      )}
+                    />
+                  ))}
+                </div>
+                {markers.map(({ first, count }) => (
+                  <button
+                    key={first.id}
+                    type="button"
+                    aria-label={w.video.goTo(formatTimecode(first.tMs), count)}
+                    onClick={() => seek(first.tMs)}
+                    style={{ left: `${pct(first.tMs)}%` }}
+                    className="absolute -top-1 z-10 flex size-6 -translate-x-1/2 items-start justify-center pt-1"
+                  >
+                    <span className="size-2 rounded-full bg-accent" />
+                  </button>
+                ))}
+                <span
+                  aria-hidden
+                  style={{ left: `${pct(timeMs)}%` }}
+                  className="absolute top-1 h-7 w-[3px] -translate-x-1/2 rounded-sm bg-fg"
+                />
+                <input
+                  id="timeline"
+                  type="range"
+                  min={0}
+                  max={Math.max(durationMs, 1)}
+                  step={Math.max(step, 1)}
+                  value={Math.min(timeMs, durationMs)}
+                  onChange={(e) => seek(Number(e.target.value))}
+                  className="absolute inset-x-0 top-1 h-7 w-full cursor-pointer opacity-0"
+                />
+              </div>
+              {ranges.length > 0 ? (
+                <div className="flex gap-0.5 text-[12px] text-soft">
+                  {ranges.map((r) => (
+                    <span
+                      key={r.phase}
+                      style={{ flexGrow: Math.max(r.endMs - r.startMs, 1) }}
+                      className={cn("min-w-0 truncate", currentPhase === r.phase && "font-semibold text-fg")}
+                    >
+                      {m.jumpPhase[r.phase]}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        {/* L'éditeur : à droite de l'image en paysage et sur écran large, en feuille à trois hauteurs en portrait. */}
+        <aside
+          aria-label={w.video.editor}
+          style={sheetLayout && dragHeight !== null ? { height: dragHeight } : undefined}
+          className={cn(
+            "flex min-w-0 flex-col",
+            !full && "gap-4 max-desktop:[&_:is(input,textarea,select)]:scroll-mt-[50dvh]",
+            full && "overflow-hidden bg-card",
+            sheetLayout && "rounded-t-hero border border-b-0 border-card-line pb-[env(safe-area-inset-bottom)]",
+            sheetLayout &&
+              (dragHeight !== null
+                ? "transition-none"
+                : sheet === "rail"
+                  ? "transition-[height] duration-(--duration-quick) ease-elan"
+                  : "transition-[height] duration-(--duration-enter) ease-reception"),
+            sheetLayout && sheet === "rail" && "h-[calc(72px+env(safe-area-inset-bottom))]",
+            sheetLayout && sheet === "half" && "h-[calc(var(--ih)/2)]",
+            sheetLayout && sheet === "full" && "h-(--ih)",
+            sideLayout &&
+              "col-start-2 row-span-2 row-start-1 min-h-0 border-l border-card-line transition-[width] duration-(--duration-enter) ease-reception",
+            sideLayout && (collapsed ? "w-14" : wide ? "w-[min(560px,50vw)]" : "w-[min(360px,45vw)]"),
+          )}
+        >
+          {sheetLayout ? (
+            <SheetHeader
+              height={sheet}
+              canAnnotate={canAnnotate}
+              onHeight={(next) =>
+                setSheet((current) =>
+                  next === "grow" ? growSheet(current) : next === "shrink" ? shrinkSheet(current) : next,
+                )
+              }
+              onDrag={setDragHeight}
+              onAddRemark={addRemark}
+            />
+          ) : null}
+          {sideLayout ? (
+            <PanelHeader
+              collapsed={collapsed}
+              wide={wide}
+              canAnnotate={canAnnotate}
+              onCollapsed={setCollapsed}
+              onWide={setWide}
+              onAddRemark={addRemark}
+            />
+          ) : null}
+          <div
+            className={cn(
+              full
+                ? "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-4 pt-2"
+                : "contents",
+              editorHidden && "hidden",
+            )}
+          >
+            <section aria-label={m.videoCollaboration.remarks} className="flex flex-col gap-2">
+              {canAnnotate ? (
+                <form
+                  className="flex flex-col gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const drawing =
+                      !replyTo && tool && drawingReady
+                        ? { kind: tool, points: draft, aspect: frame.width / frame.height }
+                        : null;
+                    if ((text.trim() || drawing) && !add.isPending)
+                      add.execute({
+                        videoId: video.id,
+                        tMs: replyTo?.tMs ?? Math.round(timeMs),
+                        parentId: replyTo?.id,
+                        phase: phase || null,
+                        text,
+                        drawing,
+                      });
+                  }}
+                >
+                  {replyTo ? (
+                    <div className="border-l-2 border-control-line pl-3">
+                      <p>{replyTo.text}</p>
+                      <Button size="sm" variant="quiet" onClick={() => setReplyTo(null)}>
+                        {m.common.cancel}
+                      </Button>
+                    </div>
+                  ) : null}
+                  <label htmlFor="annotation" className="sr-only">
+                    {m.video.remarkAt(formatTimecode(timeMs))}
+                  </label>
+                  <input
+                    id="annotation"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    onFocus={() => {
+                      if (sheetLayout) setSheet(sheetForRemark);
                     }}
-                    onClear={() => {
-                      setTool(null);
-                      setDraft([]);
+                    placeholder={m.video.remarkAt(formatTimecode(timeMs))}
+                    className="min-h-11 w-full rounded-full border border-control-line bg-transparent px-4 text-[16px] text-fg placeholder:text-fg-muted"
+                  />
+                  {replyTo || !frame.width ? null : (
+                    <DrawingTools
+                      tool={tool}
+                      draft={draft}
+                      helpId={drawingHelpId}
+                      onTool={(next, keyboard) => {
+                        // Le calque n'existe qu'avec un outil : il faut le rendre avant de lui donner le focus.
+                        flushSync(() => {
+                          setTool(next);
+                          setDraft([]);
+                        });
+                        // On trace sur une image arrêtée.
+                        if (next) ref.current?.pause();
+                        if (next && keyboard) layerRef.current?.focus();
+                      }}
+                      onClear={clearDrawing}
+                    />
+                  )}
+                  <CheckRow
+                    label={m.video.highJumpTools}
+                    checked={showJumpTools}
+                    onChange={(e) => {
+                      setJumpTools(e.target.checked);
+                      setPhase("");
                     }}
                   />
-                )}
-                <label htmlFor="annotation" className="sr-only">
-                  {m.video.remarkAt(formatTimecode(timeMs))}
-                </label>
-                <input
-                  id="annotation"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder={m.video.remarkAt(formatTimecode(timeMs))}
-                  className="min-h-11 w-full rounded-full border border-control-line bg-transparent px-4 text-[16px] text-fg placeholder:text-fg-muted"
-                />
-                <CheckRow
-                  label={m.video.highJumpTools}
-                  checked={showJumpTools}
-                  onChange={(e) => {
-                    setJumpTools(e.target.checked);
-                    setPhase("");
-                  }}
-                />
-                <div className="flex flex-wrap gap-2">
-                  <label htmlFor="phase" className="sr-only">
-                    {showJumpTools ? m.video.jumpPhase : m.video.movementPhase}
-                  </label>
-                  <div className="min-w-36 flex-1">
-                    <Select id="phase" value={phase} onChange={(e) => setPhase(e.target.value as JumpPhase | "")}>
-                      <option value="">{m.video.noPhase}</option>
-                      {phasesFor(showJumpTools).map((p) => (
-                        <option key={p} value={p}>
-                          {m.jumpPhase[p]}
-                        </option>
-                      ))}
-                    </Select>
+                  <div className="flex flex-wrap gap-2">
+                    <label htmlFor="phase" className="sr-only">
+                      {showJumpTools ? m.video.jumpPhase : m.video.movementPhase}
+                    </label>
+                    <div className="min-w-36 flex-1">
+                      <Select id="phase" value={phase} onChange={(e) => setPhase(e.target.value as JumpPhase | "")}>
+                        <option value="">{m.video.noPhase}</option>
+                        {phasesFor(showJumpTools).map((p) => (
+                          <option key={p} value={p}>
+                            {m.jumpPhase[p]}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={add.isPending || (!text.trim() && !drawingReady)}
+                      className="min-h-11 flex-1 whitespace-nowrap rounded-full bg-accent px-4 font-semibold text-on-accent disabled:opacity-50"
+                    >
+                      {m.video.addComment}
+                    </button>
                   </div>
+                </form>
+              ) : null}
+              {video.annotations.map((a) => (
+                <div key={a.id} className="flex items-start gap-2.5 rounded-card bg-card-raised p-2.5">
                   <button
-                    type="submit"
-                    disabled={add.isPending || (!text.trim() && !(tool && draft.length === drawingPoints(tool)))}
-                    className="min-h-11 flex-1 whitespace-nowrap rounded-full bg-accent px-4 font-semibold text-on-accent disabled:opacity-50"
+                    type="button"
+                    onClick={() => seek(a.tMs)}
+                    className="t-caption inline-flex min-h-11 shrink-0 items-center rounded-full px-1 font-semibold text-link underline"
                   >
-                    {m.video.addComment}
+                    {formatTimecode(a.tMs)}
                   </button>
+                  <div className="min-w-0 flex-1 py-1.5">
+                    {a.phase ? <p className="t-caption font-semibold text-soft">{m.jumpPhase[a.phase]}</p> : null}
+                    <p className="t-caption text-soft">{a.authorName ?? m.videoCollaboration.unknownAuthor}</p>
+                    {a.parentId ? <p className="text-sm text-soft">{m.videoCollaboration.replyTo}</p> : null}
+                    {a.text ? <p className="break-words">{a.text}</p> : null}
+                    {a.drawing ? (
+                      <p className="t-caption font-semibold text-soft">
+                        {describeDrawing(a.drawing, frame.width && frame.height ? frame.width / frame.height : 16 / 9)}
+                      </p>
+                    ) : null}
+                    {canAnnotate && !a.parentId ? (
+                      <Button
+                        variant="quiet"
+                        size="sm"
+                        onClick={() => {
+                          // Une réponse ne porte pas de tracé.
+                          clearDrawing();
+                          setReplyTo(a);
+                          seek(a.tMs);
+                          focusComposer();
+                        }}
+                      >
+                        {m.videoCollaboration.reply}
+                      </Button>
+                    ) : null}
+                  </div>
+                  {staff || a.authorId === currentUserId ? (
+                    <IconButton
+                      tone="dark"
+                      label={m.common.delete}
+                      onClick={() => removeAnnotation.execute({ id: a.id, videoId: video.id })}
+                    >
+                      <Trash2 aria-hidden className="size-4" />
+                    </IconButton>
+                  ) : null}
                 </div>
-              </form>
-            ) : null}
-          </section>
+              ))}
+            </section>
 
-          <CommentThread
-            entityType="video"
-            entityId={video.id}
-            comments={video.comments}
-            currentUserId={currentUserId}
-            path={path}
-            dark
-          />
+            {hasHighJumpContext(video) && video.barSheet.length > 0 ? (
+              <section>
+                <h2 className="t-section mb-2">{m.video.barSheet}</h2>
+                <BarSheet rows={video.barSheet} current={video.barHeightCm} />
+              </section>
+            ) : null}
+
+            <CommentThread
+              entityType="video"
+              entityId={video.id}
+              comments={video.comments}
+              currentUserId={currentUserId}
+              path={path}
+              dark
+            />
+          </div>
         </aside>
       </div>
     </div>

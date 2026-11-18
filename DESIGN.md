@@ -78,6 +78,7 @@ La couleur des séances et catégories sert la lecture du calendrier ; une spéc
 - Graphiques accompagnés d’une synthèse et d’un tableau ; aucun résultat manquant présenté comme mesuré.
 - Installation proposée au bon moment, refermable ; aucune action cachée sous les barres fixes.
 - Vidéo générale : « Vidéos » et « Analyse technique ». Barre, hauteur et phases techniques de saut seulement dans le contexte hauteur.
+- Analyse vidéo en plein écran : l'éditeur (remarques, tracés, commentaires) reste à portée. En paysage et sur écran large, un panneau à droite de l'image, repliable en rail et élargissable ; en portrait, une feuille en bas à trois hauteurs (repliée, moitié, entière), réglable par la poignée ou par deux boutons. Écrire une remarque ramène la feuille à moitié : l'image commentée n'est jamais masquée. Hors plein écran, sous 1024 px, l'image reste collée en haut. Raccourcis : espace, flèches, F, M, listés dans l'aide de l'écran ; un tracé se pose aussi au clavier.
 
 ## Le groupe
 
