@@ -208,3 +208,35 @@ export const crossStepStairs = gesture({
   // De profil, l'escalier passe devant l'athlète qui monte à côté de lui : de face, puis de dessus.
   views: ["front", "top"],
 });
+
+// --- Montée latérale d'escaliers ------------------------------------------------------------------------------
+
+// Sans croiser : le pied le plus proche (le droit) monte sur la marche, l'autre le rejoint sur la même marche ;
+// deux marches, puis la descente dans l'ordre inverse, le pied gauche d'abord.
+const stepOne: Placed = { R: [X, onStep(1, 6), stepTop(1)], L: ground.L };
+const stepOneBoth: Placed = { R: stepOne.R, L: [X, onStep(1, -26), stepTop(1)] };
+const stepTwo: Placed = { R: [X, onStep(2, 6), stepTop(2)], L: stepOneBoth.L };
+const stepTwoBoth: Placed = { R: stepTwo.R, L: [X, onStep(2, -26), stepTop(2)] };
+export const lateralStairWalk = gesture({
+  key: "lateral-stair-walk",
+  athlete: ATHLETE,
+  rig: RIG,
+  keys: [
+    { id: "ready", guide: 0, set: stance(home, 0), hold: 600, move: { ms: 320, curve: "reception", phase: "down" } },
+    ...move("lead-up", ground, stepOne, "R", 0, "up", { guide: 1 }),
+    ...move("follow-up", stepOne, stepOneBoth, "L", 0, "up", { guide: 2 }),
+    ...move("lead-up-again", stepOneBoth, stepTwo, "R", 0, "up"),
+    ...move("follow-up-again", stepTwo, stepTwoBoth, "L", 0, "up", { guide: 3, hold: 400 }),
+    ...move("down-left", stepTwoBoth, { R: stepTwo.R, L: stepOneBoth.L }, "L", 0, "down"),
+    ...move("down-right", { R: stepTwo.R, L: stepOneBoth.L }, stepOneBoth, "R", 0, "down"),
+    ...move("down-left-again", stepOneBoth, { R: stepOne.R, L: ground.L }, "L", 0, "down"),
+    {
+      id: "down-right-air",
+      set: swingTo({ R: stepOne.R, L: ground.L }, home, "R", 0),
+      air: ["R"],
+      move: { ms: 380, curve: "elan", phase: "down" },
+    },
+  ],
+  props: flight,
+  views: ["front", "top"],
+});

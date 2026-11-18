@@ -121,3 +121,20 @@ export const sidePlank = gesture({
   ],
   views: ["side", "top"],
 });
+
+// Les relevés de bassin : depuis l'alignement, le bassin descend un peu sans que le tronc tourne, puis remonte ;
+// deux répétitions lentes, l'épaule stable au-dessus du coude.
+const dip = placed(TOP + 9, FEET);
+export const sidePlankHipLift = gesture({
+  key: "side-plank-hip-lift",
+  athlete: "tripleJump",
+  rig: RIG,
+  base: { ...FEET, ...hand },
+  keys: [
+    { id: "plank", guide: 0, set: top, hold: 700, move: { ms: 650, curve: "reception", phase: "lift" } },
+    { id: "dip", guide: 1, set: dip, hold: 300, move: { ms: 750, curve: "impulsion", phase: "lower" } },
+    { id: "lift", guide: 2, set: top, hold: 400, face: "effort", move: { ms: 600, curve: "impulsion", phase: "lift" } },
+    { id: "dip-again", guide: 3, set: dip, hold: 300, move: { ms: 750, curve: "impulsion", phase: "lower" } },
+  ],
+  views: ["side", "top"],
+});

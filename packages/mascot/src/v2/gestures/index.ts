@@ -14,6 +14,7 @@ import {
   countermovementJump,
   dropJump,
   pogoJumps,
+  jumpingJacks,
   repeatedVerticalJumps,
   singleLegHops,
   splitJumps,
@@ -21,16 +22,18 @@ import {
   standingBroadJump,
   tuckJump,
 } from "./jumps";
+import { coneSideShuffle, lateralBandWalk, lateralRaise, lateralSkaterBound } from "./lateral";
 import { lateralLunge } from "./lateral-lunge";
 import { forwardLunge, reverseLunge } from "./lunges";
 import { overheadSquat, snatchBalance } from "./overhead";
 import { hipThrust } from "./hip-thrust";
 import { benchPress, overheadPress } from "./presses";
 import { cleanPull, snatchDeadlift, snatchPull } from "./pulls";
-import { sidePlank } from "./side-plank";
+import { bandClamshell, thoracicOpenBook } from "./side-lying";
+import { sidePlank, sidePlankHipLift } from "./side-plank";
 import { adductorRockback, cossackMobility, hip9090, proneHipRotation, toeExtensionRock } from "./mobility";
 import { snatch } from "./snatch";
-import { carioca, crossStepStairs } from "./stepping";
+import { carioca, crossStepStairs, lateralStairWalk } from "./stepping";
 import { bulgarianSquat, frontSquat } from "./squats";
 import {
   hangClean,
@@ -102,6 +105,14 @@ export const OTHER_GESTURES: readonly MotionClip[] = [
   toeExtensionRock,
   proneHipRotation,
   hip9090,
+  sidePlankHipLift,
+  lateralRaise,
+  lateralBandWalk,
+  coneSideShuffle,
+  lateralSkaterBound,
+  bandClamshell,
+  thoracicOpenBook,
+  lateralStairWalk,
 ];
 // La pliométrie.
 export const PLYOMETRIC_GESTURES: readonly MotionClip[] = [
@@ -110,6 +121,7 @@ export const PLYOMETRIC_GESTURES: readonly MotionClip[] = [
   tuckJump,
   repeatedVerticalJumps,
   pogoJumps,
+  jumpingJacks,
   splitJumps,
   standingBroadJump,
   boxJump,

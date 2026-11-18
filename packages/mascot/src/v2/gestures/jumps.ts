@@ -650,3 +650,66 @@ export const singleLegHops = gesture({
     },
   ],
 });
+
+// --- Jumping jacks ----------------------------------------------------------------------------------------------
+
+// Un petit saut écarte les pieds pendant que les bras montent sur les côtés ; un second les rapproche, bras le
+// long du corps. Les bras passent par un arc, à bout de bras : ils ne se replient pas contre l'épaule.
+const JACK_FLIGHT = 330;
+const jack = (wide: boolean, phase: "touch" | "push" | "low"): ControlPatch => {
+  const z = wide ? 46 : 16;
+  return {
+    footRX: BALL_X,
+    footRZ: z,
+    footRYaw: 12,
+    footLX: BALL_X,
+    footLZ: -z,
+    footLYaw: 12,
+    ...(phase === "push" ? heels(30) : phase === "touch" ? heels(18) : heels(4)),
+    pelvisX: -8,
+    pelvisY: phase === "push" ? 999 : phase === "touch" ? 166 : 160,
+    pelvisPitch: 3,
+    ...(wide ? hands(8, 112, 34) : hands(6, -122, 46)),
+  };
+};
+// Au milieu du vol, les mains passent loin sur les côtés.
+const ARC: ControlPatch = { handROut: 84, handLOut: 84 };
+const jackFlight = (fromWide: boolean, id: string) =>
+  airborne(BASE, RIG, {
+    from: jack(fromWide, "push"),
+    to: jack(!fromWide, "touch"),
+    ms: JACK_FLIGHT,
+    phase: "flight",
+    samples: 8,
+    id,
+    apex: ARC,
+  });
+export const jumpingJacks = gesture({
+  key: "jumping-jacks",
+  athlete: "longJump",
+  rig: RIG,
+  base: BASE,
+  keys: [
+    {
+      id: "ready",
+      guide: 0,
+      set: jack(false, "low"),
+      hold: 400,
+      move: { ms: 160, curve: "reception", phase: "landing" },
+    },
+    { id: "push-out", set: jack(false, "push"), move: { ms: 180, curve: "elan", phase: "push" } },
+    ...jackFlight(false, "out"),
+    land("wide", jack(true, "touch"), JACK_FLIGHT, { guide: 1, still: true }),
+    {
+      id: "wide-low",
+      guide: 2,
+      set: jack(true, "low"),
+      hold: 200,
+      move: { ms: 140, curve: "reception", phase: "landing" },
+    },
+    { id: "push-in", set: jack(true, "push"), move: { ms: 180, curve: "elan", phase: "push" } },
+    ...jackFlight(true, "in"),
+    land("together", jack(false, "touch"), JACK_FLIGHT, { guide: 3, still: true }),
+  ],
+  views: ["front", "side"],
+});
