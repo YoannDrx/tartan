@@ -189,13 +189,21 @@ describe("contrôles d'une proposition", () => {
       ),
     ).toEqual([]);
   });
-  it("une habitude sans valeur n'arrête pas la proposition : elle devient un point à vérifier", () => {
-    const rest = context("Le 3 juin, squat arrière 40 kg, récup comme d'habitude.");
+  it("une habitude sans séance connue est une question ; avec l'historique, un point à vérifier", () => {
+    const blind = context("Le 3 juin, squat arrière 40 kg, récup comme d'habitude.");
+    expect(plannerGuardIssues(proposal(session("2030-06-03", { restS: null })), blind)).toEqual(["rest"]);
+    expect(
+      plannerGuardIssues(
+        proposal(session("2030-06-03", { load: null })),
+        context("Le 3 juin, squat arrière, charge habituelle, repos 120 secondes."),
+      ),
+    ).toEqual(["load"]);
+    const rest = { ...blind, history: true };
     expect(plannerGuardIssues(proposal(session("2030-06-03", { restS: null })), rest)).toEqual([]);
     expect(plannerWarnings(proposal(session("2030-06-03", { restS: null })), rest)[0]).toContainEqual(
       expect.objectContaining({ code: "habit_rest", field: "rest" }),
     );
-    const load = context("Le 3 juin, squat arrière, charge habituelle, repos 120 secondes.");
+    const load = { ...context("Le 3 juin, squat arrière, charge habituelle, repos 120 secondes."), history: true };
     expect(plannerWarnings(proposal(session("2030-06-03", { load: null })), load)[0]).toContainEqual(
       expect.objectContaining({ code: "habit_load", field: "load" }),
     );
@@ -362,7 +370,6 @@ it("le planificateur s'ouvre avec une clé et se coupe avec false", () => {
   expect(plannerServerEnabled({ AI_PLANNER_ENABLED: "true" })).toBe(true);
 });
 
-
 describe("points à vérifier", () => {
   const nested = () => {
     const value = proposal(session(today));
@@ -512,5 +519,28 @@ describe("mode « Proposer une séance »", () => {
         percentTokens: new Set(["exercise_1"]),
       }),
     ).toContain("load");
+  });
+});
+
+describe("unités et désignations proches", () => {
+  it("une durée lue dans un nombre sans unité est une question ; secondes ou minutes écrites passent", () => {
+    const plank = (durationS: number) =>
+      proposal(session("2030-06-03", { durationS, reps: null, load: null, restS: null }, "exercise_3"));
+    expect(plannerGuardIssues(plank(20), context("Le 3 juin, trois fois vingt de gainage ventral."))).toContain("unit");
+    expect(plannerGuardIssues(plank(20), context("Le 3 juin, gainage ventral 3 × 20 secondes."))).toEqual([]);
+    expect(plannerGuardIssues(plank(120), context("Le 3 juin, gainage ventral 3 × 2 minutes."))).toEqual([]);
+  });
+  it("un mot partagé par plusieurs fiches ne désigne aucune d'elles", () => {
+    const catalog = [
+      { token: "bench", name: "Développé couché", aliases: [] },
+      { token: "military", name: "Développé militaire", aliases: [] },
+      { token: "hang", name: "Épaulé suspension au-dessus des genoux", aliases: [] },
+      { token: "power", name: "Épaulé puissance", aliases: [] },
+      { token: "snatch", name: "Arraché suspension au-dessus des genoux", aliases: [] },
+    ];
+    expect(plannerExerciseIsApproximate("Mercredi, développé, trois séries de dix.", "bench", catalog)).toBe(false);
+    expect(plannerExerciseIsApproximate("Mercredi, épaulé suspension puis épaulé puissance.", "hang", catalog)).toBe(
+      true,
+    );
   });
 });

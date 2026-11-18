@@ -56,6 +56,7 @@ it("utilise l’alias local, une sortie stricte et store:false sans outil ni his
   expect(JSON.parse(body.input)).toEqual({
     ...context,
     ambiguousExerciseTerms: [],
+    namedExercises: [{ term: "squat", token: "exercise_1" }],
     dateHints: {
       todayWeekday: "dimanche",
       days: [

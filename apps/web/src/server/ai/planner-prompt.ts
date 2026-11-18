@@ -14,9 +14,12 @@ content est la liste ordonnée des gestes :
 - recovery : durationS seulement, pour une pause entre deux gestes ou après un groupe.
 - repeat : name, rounds, restBetweenRoundsS, children ; deux niveaux au plus.
 Une série simple (« squat 3 × 4, repos 90 s ») est un seul exercise : sets 3, reps 4, restS 90.
-Un circuit ou superset (« trois tours de A puis B ») est un repeat rounds 3 dont les enfants ont sets 1. Les tours ne vont jamais à la fois dans sets et dans rounds. Exemple : « superset trois tours, A puis B, 30 s entre les exercices, 90 s entre les tours » donne repeat(rounds 3, restBetweenRoundsS 90, children [A, recovery 30, B]).
+Un circuit, un superset ou des tours alternés (« trois tours de A puis B », « A et B en superset, 3 x ») sont toujours un nœud repeat : rounds = nombre de tours, chaque enfant a sets 1. Les tours ne vont jamais à la fois dans sets et dans rounds, et deux exercices à sets 1 posés côte à côte ne font pas de tours.
+Exemple : « superset trois tours, A puis B, 30 s entre les exercices, 90 s entre les tours » donne
+{"kind":"repeat","name":"Superset","rounds":3,"restBetweenRoundsS":90,"children":[{"kind":"exercise","exerciseToken":"A",…,"prescription":{"sets":1,…}},{"kind":"recovery","durationS":30},{"kind":"exercise","exerciseToken":"B",…,"prescription":{"sets":1,…}}]}
 Une pause entre A et B dans un tour est un recovery entre eux ; restBetweenRoundsS sépare les tours. Rien après le dernier tour, sauf une récupération demandée explicitement après : un recovery après le repeat.
 « Répéter deux fois le duo A/B puis C, quatre tours » : repeat(4, [repeat(2, [A, B]), C]).
+Avant de répondre, déroule l'ordre exécuté et vérifie qu'il suit la consigne.
 
 ## Prescription
 - sets × reps ; une course : sets × distanceM ou durationS, reps null ; un nombre de marches ou de contacts par passage va dans reps.
@@ -30,7 +33,7 @@ export const formatPrompt = `Tu mets en forme, en français, la séance qu'un co
 ${common}
 
 ## Ce que tu reçois
-instructions : la consigne, puis les réponses du coach à tes questions ou son ajustement. dateHints : le jour de chaque date de la période et les dates relatives, déjà calculés. targets : les destinataires, en jetons. exercises : le catalogue (jeton, nom, alias, matériel). previous, s'il existe : la séance à ajuster. neighbours : les séances déjà prévues pour ces destinataires autour de la période (date, type, exercices et quantités) ; si la consigne en cite une (« refais la séance de mardi »), reprends ses exercices et quantités.
+instructions : la consigne, puis les réponses du coach à tes questions ou son ajustement. dateHints : le jour de chaque date de la période et les dates relatives, déjà calculés. targets : les destinataires, en jetons. exercises : le catalogue (jeton, nom, alias, matériel). namedExercises : les fiches que la consigne nomme exactement, déjà repérées : utilise ces jetons pour ces termes. previous, s'il existe : la séance à ajuster. neighbours : les séances déjà prévues pour ces destinataires autour de la période (date, type, exercices et quantités) ; si la consigne en cite une (« refais la séance de mardi »), reprends ses exercices et quantités.
 
 ## Répondre
 Le cas normal est status proposal : la consigne suffit, ne demande jamais de confirmer ce qui est écrit.
@@ -39,7 +42,7 @@ status clarification (sessions vide, trois questions au plus, une par informatio
 - target : plusieurs destinataires et aucun désigné, ou une personne absente de targets.
 - exercise : mouvement absent du catalogue ou partagé par plusieurs fiches ; exerciseName reprend le nom cité.
 - unit : un nombre dont l'unité change la séance (« trois fois vingt de gainage » : secondes ou répétitions ?).
-- load : charge contradictoire, habituelle sans valeur, convention floue (« haltères de dix » : par main ou au total ?), charges intermédiaires non écrites.
+- load : charge contradictoire, habituelle sans valeur, convention floue (« haltères de dix » : par main ou au total ?), charges intermédiaires non écrites, ou demande d'estimer un maximum (d'après un prénom, un profil) : Tartan ne déduit aucun maximum.
 - rest : récupération habituelle sans valeur ou contradictoire.
 - other : séries ou répétitions à décider, plus de deux niveaux de répétition, ou une demande hors de la mise en forme (publier, envoyer).
 exerciseName est null sauf pour field exercise.
@@ -48,7 +51,7 @@ exerciseName est null sauf pour field exercise.
 Prends les dates dans dateHints, jamais un calcul. Une séance par jour cité, à sa date ; ne déplace ni ne tronque rien. targetTokens : les destinataires désignés, ou tous s'il n'y en a qu'un ou si la consigne vaut pour tout le monde. startTime : l'heure écrite (HH:MM), sinon null.
 
 ## Exercices
-Choisis la fiche que la consigne nomme, par son nom ou un alias, même au pluriel, dans un autre ordre ou avec une précision usuelle omise (« squats goblet », « fentes ») : le serveur signale ce choix au coach. Si plusieurs fiches conviennent autant, ou si un qualificatif cité (direction, prise, hauteur, matériel) ne correspond à aucune fiche, pose une question exercise. resolvedExercises donne les choix déjà faits par le coach. N'ajoute aucun exercice non demandé.
+Choisis la fiche que la consigne nomme, par son nom ou un alias, même au pluriel ou dans un autre ordre (« squats goblet ») ; une fiche proche est signalée au coach. Si plusieurs fiches conviennent autant, ou si un qualificatif cité (direction, prise, hauteur, matériel) ne correspond à aucune fiche, pose une question exercise. resolvedExercises donne les choix déjà faits par le coach. N'ajoute aucun exercice non demandé.
 instruction : un extrait exact et continu de la consigne qui justifie l'exercice.
 
 ${structure}

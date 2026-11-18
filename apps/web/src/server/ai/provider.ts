@@ -36,6 +36,7 @@ import {
   plannerProposalIssues,
   plannerServerEnabled,
   plannerUnknownExerciseTerms,
+  plannerExerciseMentions,
   plannerWarnings,
   unresolvedExerciseAlias,
   validatePlannerInterpretation,
@@ -189,6 +190,8 @@ const guardQuestion = (issue: PlannerGuardIssue, period: { from: string; to: str
     target: m.aiPlanner.clarifyTarget,
     load: m.aiPlanner.clarifyLoad,
     session_count: m.aiPlanner.clarifySessionCount,
+    unit: m.aiPlanner.clarifyUnit,
+    rest: m.aiPlanner.clarifyRest,
   }[issue];
   return { id: `guard-${issue}`, field, question, exerciseName: null, options: [] };
 };
@@ -339,6 +342,12 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
             ...visible,
             ...(phaseCalendar?.length ? { phaseCalendar } : {}),
             ambiguousExerciseTerms: ambiguousTerms,
+            // Les fiches nommées exactement, repérées sans le modèle : il n'a pas à les retrouver.
+            namedExercises: plannerExerciseMentions(
+              context.instructions.map(plannerCoachText).join("\n"),
+              context.exercises,
+              context.resolvedExercises,
+            ),
             dateHints: plannerDateHints(context.today, context.period),
           };
       // Les modèles GPT-5 refusent ce réglage ; les autres gagnent en constance.
@@ -363,9 +372,10 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
       );
       const guardContext = {
         ...context,
+        history: Boolean(context.neighbours?.length),
         known: { tokens: [...previous.tokens, ...neighbourTokens], loads: [...previous.loads, ...neighbourLoads] },
       };
-      const warningContext = { ...context, known: previous };
+      const warningContext = { ...context, known: previous, history: Boolean(context.neighbours?.length) };
 
       const call = async (correction?: string): Promise<unknown> => {
         options.onProgress?.({ step: correction ? "retry" : "model" });

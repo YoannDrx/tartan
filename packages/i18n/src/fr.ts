@@ -939,6 +939,8 @@ export const fr = {
       `« ${name} » n’est pas dans ta bibliothèque : quelle fiche lui correspond, ou faut-il la créer ?`,
     clarifyTarget: "Plusieurs destinataires sont sélectionnés. Lesquels doivent recevoir cette séance ?",
     clarifyRest: "Quelle récupération veux-tu, en secondes ou en minutes ? Tartan ne connaît pas ton habitude.",
+    clarifyUnit:
+      "Un nombre de ta consigne n’a pas d’unité. S’agit-il de secondes, de minutes, de mètres ou de répétitions ?",
     clarifyLoad: "Quelle charge veux-tu indiquer ? Sans valeur de ta part, Tartan peut la laisser à définir.",
     clarifySessionCount: "Une proposition compte au plus quatorze séances. Comment veux-tu réduire ta demande ?",
     clarifyEmpty:

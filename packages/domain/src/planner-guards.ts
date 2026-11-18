@@ -6,7 +6,8 @@ import { addDays } from "./status";
 // Contrôles déterministes appliqués à la réponse du modèle, côté serveur. Ils ne complètent jamais une séance.
 // Deux familles : un défaut **bloquant** (date fausse, destinataire hors sélection, charge inventée, exercice
 // inconnu) devient une question ; un **point à vérifier** laisse la proposition passer et s'affiche sur le champ.
-export type PlannerGuardIssue = "date" | "missing_date" | "exercise" | "target" | "load" | "session_count";
+export type PlannerGuardIssue =
+  "date" | "missing_date" | "exercise" | "target" | "load" | "unit" | "rest" | "session_count";
 export type PlannerGuardExercise = { token: string; name: string; aliases: readonly string[] };
 export type PlannerGuardContext = {
   period: { from: string; to: string };
@@ -16,6 +17,8 @@ export type PlannerGuardContext = {
   exercises: readonly PlannerGuardExercise[];
   // Ce que le contexte désigne déjà (séance précédente à ajuster, séances voisines) : ni inventé ni substitué.
   known?: { tokens: readonly string[]; loads: readonly number[] };
+  // Des séances voisines sont connues : une habitude peut s'y lire, elle n'est plus une question.
+  history?: boolean;
 };
 
 const plain = (value: string) => normalizeExerciseTerm(value).replace(/'/g, " ");
@@ -107,6 +110,24 @@ function numberMentions(text: string): { value: number; after: string }[] {
 export const plannerTextNumbers = (text: string) => new Set(numberMentions(text).map((mention) => mention.value));
 
 const KG_UNIT = /^\s*(?:kg|kilos?|kilogrammes?)(?![a-z])/;
+const SECONDS = /^\s*(?:s|sec|secondes?|")(?![a-z])/;
+const MINUTES = /^\s*(?:min|minutes?|mn|')(?![a-z])/;
+const METRES = /^\s*(?:m|metres?|km|kilometres?)(?![a-z])/;
+// Une durée en secondes peut s'écrire en secondes ou en minutes ; une distance en mètres ou en kilomètres.
+function unitStated(mentions: { value: number; after: string }[], value: number, kind: "time" | "distance") {
+  if (kind === "time")
+    return (
+      mentions.some((m) => m.value === value && SECONDS.test(m.after)) ||
+      mentions.some((m) => m.value * 60 === value && MINUTES.test(m.after)) ||
+      // Les minutes et secondes mêlées (« une minute trente ») ne sont pas inventées : seul un nombre nu l'est.
+      !mentions.some((m) => m.value === value)
+    );
+  return (
+    mentions.some((m) => m.value === value && METRES.test(m.after)) ||
+    mentions.some((m) => m.value * 1000 === value && /^\s*(?:km|kilometres?)/.test(m.after)) ||
+    !mentions.some((m) => m.value === value)
+  );
+}
 const PERCENT_UNIT = /^\s*(?:%|pour ?cent)/;
 const hasUnit = (mentions: { value: number; after: string }[], value: number, unit: RegExp) =>
   mentions.some((mention) => mention.value === value && unit.test(mention.after));
@@ -391,7 +412,8 @@ const wordsOf = (value: string) =>
 function clausesOf(text: string) {
   const clauses: { text: string; start: number; end: number }[] = [];
   let start = 0;
-  for (const match of text.matchAll(/[,;:.!?\n]|\s(?:puis|ensuite|et)\s/g)) {
+  // « puis » devient « pui » une fois les pluriels retirés : les deux formes séparent deux propositions.
+  for (const match of text.matchAll(/[,;:.!?\n]|\s(?:puis?|ensuite|et)\s/g)) {
     clauses.push({ text: text.slice(start, match.index), start, end: match.index });
     start = match.index + match[0].length;
   }
@@ -399,10 +421,25 @@ function clausesOf(text: string) {
   return clauses;
 }
 // Mots qui ne désignent pas un mouvement à eux seuls.
-const WEAK = new Set(["avec", "sans", "pour", "sur", "barre", "halteres", "haltere", "bras", "jambe", "assis", "debout"]);
+const WEAK = new Set([
+  "avec",
+  "sans",
+  "pour",
+  "sur",
+  "barre",
+  "halteres",
+  "haltere",
+  "bras",
+  "jambe",
+  "assis",
+  "debout",
+]);
+const significant = (label: string) => wordsOf(label).filter((word) => word.length > 3 && !WEAK.has(word));
 /**
- * Une fiche choisie dont un mot principal figure dans la consigne (« fentes » pour « Fentes avant ») : la
- * désignation est proche, pas exacte. La proposition passe, avec un point « À vérifier » sur l'exercice.
+ * Une fiche choisie dont des mots principaux figurent dans une proposition de la consigne (« épaulé suspension »
+ * pour « Épaulé suspension au-dessus des genoux ») : la désignation est proche, pas exacte. Elle n'est admise
+ * que si cette fiche est, seule, celle qui partage le plus de mots avec cette proposition : « développé »,
+ * commun à six fiches, reste une question. La proposition passe alors avec un point « À vérifier ».
  */
 export function plannerExerciseIsApproximate(
   text: string,
@@ -411,16 +448,21 @@ export function plannerExerciseIsApproximate(
 ): boolean {
   const exercise = exercises.find((candidate) => candidate.token === token);
   if (!exercise) return false;
-  const words = new Set(wordsOf(text));
+  const normalized = normalizeExerciseMention(text);
   // Un mot qui appartient à une autre fiche nommée exactement n'est pas un indice (« clean » dans « power clean »).
-  const taken = new Set(
-    exercises
-      .filter((other) => other.token !== token && plannerExerciseIsNamed(text, other.token, exercises))
-      .flatMap((other) => namesOf(other).flatMap(wordsOf)),
-  );
-  return namesOf(exercise).some((label) =>
-    wordsOf(label).some((word) => word.length > 3 && !WEAK.has(word) && words.has(word) && !taken.has(word)),
-  );
+  const overlap = (candidate: PlannerGuardExercise, clause: Set<string>) =>
+    Math.max(...namesOf(candidate).map((label) => significant(label).filter((word) => clause.has(word)).length));
+  return clausesOf(normalized).some(({ text: clause }) => {
+    // Un mot d'une autre fiche nommée exactement ici n'est pas un indice (« clean » dans « power clean »).
+    const taken = new Set(
+      exercises
+        .filter((other) => other.token !== token && plannerExerciseIsNamed(clause, other.token, exercises))
+        .flatMap((other) => namesOf(other).flatMap(wordsOf)),
+    );
+    const words = new Set(wordsOf(clause).filter((word) => !taken.has(word)));
+    const mine = overlap(exercise, words);
+    return mine > 0 && exercises.every((other) => other.token === token || overlap(other, words) < mine);
+  });
 }
 
 // Une réponse du coach est enregistrée après les questions du modèle, une par ligne et terminées par
@@ -464,7 +506,8 @@ export function plannerGuardIssues(
   // Après une réponse du coach, la conversation peut corriger la consigne initiale (« hier » puis
   // « demain ») : la date se lit alors dans le dernier message qui en donne une. Unités, nombre
   // de séances et destinataires restent contrôlés sur toute la conversation.
-  const datedInstruction = [...coach].reverse().find((instruction) => hasDateReference(instruction, context)) ?? coach[0] ?? "";
+  const datedInstruction =
+    [...coach].reverse().find((instruction) => hasDateReference(instruction, context)) ?? coach[0] ?? "";
   const dated = dateIssue(
     value,
     plannerDateReferences(datedInstruction, context),
@@ -488,6 +531,15 @@ export function plannerGuardIssues(
   )
     issues.add("load");
   if (requestedSessions(text) > 14) issues.add("session_count");
+  // Une durée ou une distance lue dans un nombre sans unité (« trois fois vingt de gainage ») est une unité inventée.
+  for (const item of items) {
+    const { durationS, distanceM } = item.prescription;
+    if (durationS && !unitStated(mentions, durationS, "time")) issues.add("unit");
+    if (distanceM && !unitStated(mentions, distanceM, "distance")) issues.add("unit");
+  }
+  // Sans aucune séance connue, une habitude (« comme d'habitude », « habituel ») ne se devine pas : une question.
+  if (context.instructions.length === 1 && !context.history)
+    for (const issue of habitualIssues(text)) issues.add(issue);
   if (context.targets.length > 1) {
     const normalized = plain(text);
     const designated = context.targets.filter((target) => normalized.includes(target.token));
@@ -506,7 +558,7 @@ type Sequence = NonNullable<PlannerInterpretation["sessions"][number]["blocks"][
  */
 export function plannerWarnings(
   value: PlannerRichInterpretation,
-  context: Pick<PlannerGuardContext, "instructions" | "exercises" | "known">,
+  context: Pick<PlannerGuardContext, "instructions" | "exercises" | "known" | "history">,
 ): PlannerWarning[][] {
   if (value.status !== "proposal") return value.sessions.map(() => []);
   const coach = context.instructions.map(plannerCoachText);
@@ -548,8 +600,8 @@ export function plannerWarnings(
     for (const mention of numberMentions(text))
       if (mention.value > 1 && /^\s*tours?\b/.test(mention.after) && !represented.has(mention.value))
         first.push({ code: "rounds_missing", field: "rounds", block: null, item: null, detail: String(mention.value) });
-  // Aucun historique ne permet de deviner une habitude : la valeur reste à confirmer par le coach.
-  if (first && context.instructions.length === 1)
+  // Une habitude lue dans les séances voisines reste à confirmer par le coach.
+  if (first && context.instructions.length === 1 && context.history)
     for (const issue of habitualIssues(text))
       first.push({
         code: issue === "load" ? "habit_load" : "habit_rest",
