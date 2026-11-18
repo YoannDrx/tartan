@@ -1,7 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
-import { expectAccessible, expectNoHorizontalScroll, nextOnboardingStep, signUp, uniqueEmail } from "./helpers";
+import {
+  closeTour,
+  expectAccessible,
+  expectNoHorizontalScroll,
+  nextOnboardingStep,
+  signUp,
+  uniqueEmail,
+} from "./helpers";
 import { groupLink, joinAsAthlete } from "./journeys";
 
 test("le coach choisit son contexte sportif, le retrouve et le modifie sur web et API native", async ({
@@ -46,6 +53,9 @@ test("le coach choisit son contexte sportif, le retrouve et le modifie sur web e
   await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
   await page.getByRole("button", { name: m.onboarding.createSpace, exact: true }).click();
   await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
+  // Le dernier temps, facultatif, puis le tour de piste du nouveau coach : il passe l'un et referme l'autre.
+  await page.getByRole("button", { name: w.onboarding.invite.finish, exact: true }).click();
+  await closeTour(page);
   await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();
   const me = await (await page.request.get("/api/v1/me")).json();
   const url = `/api/v1/orgs/${me.spaces[0].organizationId}`;

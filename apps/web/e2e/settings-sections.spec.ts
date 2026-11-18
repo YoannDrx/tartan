@@ -201,13 +201,14 @@ test("une ancienne ancre mène à sa rubrique, et les liens internes au bon form
   const me = await (await page.request.get("/api/v1/me")).json();
   const organizationId = me.spaces[0].organizationId as string;
 
-  // Le guide des premiers pas mène au formulaire d'invitation, pas à la liste des groupes.
+  // Un suivi sans athlète mène à l'invitation sur place, pas à la liste des groupes.
   await page.goto("/suivi", { waitUntil: "networkidle" });
-  const invite = page.getByRole("link", { name: new RegExp(m.home.inviteAthletes) }).first();
-  await expect(invite).toHaveAttribute("href", "/reglages/membres#inviter");
+  const invite = page.getByRole("link", { name: w.onboarding.emptyGroupAction });
+  await expect(invite).toHaveAttribute("href", "/premiers-pas#inviter");
   await invite.click();
-  await expect(page).toHaveURL(/\/reglages\/membres#inviter$/);
-  await expect(page.locator("#inviter").getByLabel(m.auth.emailLabel)).toBeVisible();
+  await expect(page).toHaveURL(/\/premiers-pas#inviter$/);
+  await expect(page.locator("#inviter").getByLabel(w.onboarding.invite.emailsLabel)).toBeVisible();
+  await expect(page.locator("#inviter").getByLabel(w.onboarding.invite.linkLabel)).toHaveValue(/\/i\//);
 
   // Les ancres de l'ancienne page unique, telles que les portent des e-mails déjà partis.
   await page.goto("/reglages#invitations");

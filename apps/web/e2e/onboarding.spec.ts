@@ -8,6 +8,7 @@ import {
   expectNoHorizontalScroll,
   expectNoMotion,
   nextOnboardingStep,
+  savedOnboarding,
   signInWithPassword,
   signUp,
   sqlQuery,
@@ -109,7 +110,7 @@ test("un coach neuf crée son espace, invite, fait le tour et suit ses premiers 
   expect(await tour.evaluate((node) => node.contains(document.activeElement))).toBe(true);
   await closeTour(page);
   // Le repère de l'écran, une phrase sous le bandeau, à la première visite seulement.
-  const hint = page.getByRole("complementary", { name: o.hint.label });
+  const hint = page.getByRole("note", { name: o.hint.label });
   await expect(hint).toContainText(m.help.screens.suivi[0]!);
   await atWidths(page, info, "coach-3-repere");
 
@@ -183,8 +184,10 @@ test("un coach neuf crée son espace, invite, fait le tour et suit ses premiers 
   }
 
   // La fin des premiers pas se fête une fois, puis la carte s'efface.
+  const celebrated = savedOnboarding(page, "celebrated");
   await page.goto("/suivi", { waitUntil: "networkidle" });
   const party = page.getByRole("dialog", { name: o.celebration.title });
+  await celebrated;
   await expect(party).toBeVisible();
   await atWidths(page, info, "coach-6-fete");
   await party.getByRole("button", { name: o.celebration.action }).click();
@@ -202,7 +205,7 @@ test("un coach neuf crée son espace, invite, fait le tour et suit ses premiers 
     await expect(second.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();
     await expect(tourDialog(second)).toHaveCount(0);
     await expect(second.getByRole("dialog", { name: o.celebration.title })).toHaveCount(0);
-    await expect(second.getByRole("complementary", { name: o.hint.label })).toHaveCount(0);
+    await expect(second.getByRole("note", { name: o.hint.label })).toHaveCount(0);
     await expect(guideCard(second)).toHaveCount(0);
   } finally {
     await other.close();
@@ -293,9 +296,10 @@ test("un athlète neuf rejoint, est accueilli sans que rien ne retarde sa séanc
     await atWidths(athlete, info, "athlete-2-accueil-sans-seance");
 
     // Refermé d'un geste, il ne revient sur aucun appareil.
+    const welcomeSaved = savedOnboarding(athlete, "welcomeSeen");
     await welcome.getByRole("button", { name: m.athleteWelcome.dismiss }).click();
     await expect(welcome).toHaveCount(0);
-    await athlete.waitForLoadState("networkidle");
+    await welcomeSaved;
     const other = await phoneContext(browser);
     try {
       const second = await other.newPage();
@@ -354,9 +358,10 @@ test("un athlète neuf rejoint, est accueilli sans que rien ne retarde sa séanc
     await expect(extras).toBeVisible();
     await expect(extras).toContainText(m.athleteExtras.photoTitle);
     await atWidths(runner, info, "athlete-5-carte-facultative");
+    const extrasSaved = savedOnboarding(runner, "dismissed");
     await extras.getByRole("button", { name: m.athleteExtras.close }).click();
     await expect(extras).toHaveCount(0);
-    await runner.waitForLoadState("networkidle");
+    await extrasSaved;
     await runner.reload({ waitUntil: "networkidle" });
     await expect(runner.getByRole("region", { name: m.athleteExtras.title })).toHaveCount(0);
 

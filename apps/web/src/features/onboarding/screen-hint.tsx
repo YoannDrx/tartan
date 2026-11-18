@@ -27,7 +27,8 @@ export const ScreenHint = () => {
 
   if (!due || closed || !hint) return null;
   return (
-    <aside
+    <div
+      role="note"
       aria-label={t.label}
       className="on-card flex items-start gap-3 rounded-card border border-card-line bg-card py-2 pl-4 pr-1"
     >
@@ -41,6 +42,6 @@ export const ScreenHint = () => {
       >
         <X aria-hidden className="size-5" />
       </button>
-    </aside>
+    </div>
   );
 };

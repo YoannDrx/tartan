@@ -114,15 +114,19 @@ export const completeCoachOnboarding = async (page: Page, name = "Thomas") => {
   await expect(page.getByRole("heading", { name: "Pour démarrer" })).toBeVisible();
 };
 
+// L'écriture d'un état des premiers pas (`tourSeen`, `welcomeSeen`, `dismissed`…) : on l'attend avant de quitter
+// l'écran ou de recharger, comme le ferait une personne qui ne part pas dans la seconde.
+export const savedOnboarding = (page: Page, key: string) =>
+  page.waitForResponse(
+    (response) => response.request().method() === "POST" && Boolean(response.request().postData()?.includes(key)),
+  );
+
 // Le tour de piste d'un nouveau coach se referme d'Échap, à tout moment.
 export const closeTour = async (page: Page) => {
   const tour = page.getByRole("dialog", { name: w.onboarding.tour.title });
   // En développement, la première compilation du suivi peut prendre longtemps.
   await expect(tour).toBeVisible({ timeout: 60_000 });
-  const saved = page.waitForResponse(
-    (response) =>
-      response.request().method() === "POST" && Boolean(response.request().postData()?.includes("tourSeen")),
-  );
+  const saved = savedOnboarding(page, "tourSeen");
   await page.keyboard.press("Escape");
   await expect(tour).toBeHidden();
   // L'état est gardé en base : on attend son écriture avant de quitter l'écran.
@@ -169,13 +173,26 @@ export const expectAccessible = async (page: Page) => {
     )) {
       const box = target.getBoundingClientRect();
       if (!box.width || !box.height || box.bottom <= 0 || box.top >= innerHeight) continue;
-      const cover = document.elementFromPoint(
-        box.left + box.width / 2,
-        Math.min(box.top + box.height / 2, innerHeight - 1),
-      );
-      if (!cover || cover === target || target.contains(cover) || cover.contains(target)) continue;
-      const bar = chrome(cover);
-      if (bar && !bar.contains(target)) target.setAttribute("data-axe-obscured", "");
+      // Le centre et les quatre coins : une barre qui ne mord qu'un bord rogne déjà la cible aux yeux d'axe. Juste
+      // au-dessus et au-dessous : une cible qui frôle la barre fixe a la barre pour voisine, à cet instant du défilement.
+      const points = [
+        [box.left + box.width / 2, box.top + box.height / 2],
+        [box.left + 1, box.top + 1],
+        [box.right - 1, box.top + 1],
+        [box.left + 1, box.bottom - 1],
+        [box.right - 1, box.bottom - 1],
+        [box.left + box.width / 2, box.top - 12],
+        [box.left + box.width / 2, box.bottom + 12],
+      ];
+      for (const [x, y] of points) {
+        const cover = document.elementFromPoint(x!, Math.min(Math.max(y!, 0), innerHeight - 1));
+        if (!cover || cover === target || target.contains(cover) || cover.contains(target)) continue;
+        const bar = chrome(cover);
+        if (bar && !bar.contains(target)) {
+          target.setAttribute("data-axe-obscured", "");
+          break;
+        }
+      }
     }
   });
   const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
