@@ -15,7 +15,9 @@ export const BuilderPage = async ({
   defaultGroupId,
   returnTo,
   headerActions,
+  templateId,
 }: {
+  templateId?: string;
   userId: string;
   organizationId: string;
   sessionId?: string;
@@ -51,6 +53,7 @@ export const BuilderPage = async ({
         defaultDate={defaultDate ?? todayIso()}
         defaultGroupId={groupUnavailable ? "" : defaultGroupId}
         returnTo={returnTo}
+        initialTemplateId={templateId}
       />
     </div>
   );

@@ -2,7 +2,8 @@
 
 import type { SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
-import { CircleHelp, LogOut, Settings } from "lucide-react";
+import { w } from "@tartan/i18n/web";
+import { CircleHelp, Flag, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 import { DropdownMenu } from "radix-ui";
 import { useState } from "react";
@@ -10,6 +11,7 @@ import { ScreenHelpDialog } from "@/features/help/screen-help-dialog";
 import { rubricTitle } from "@/features/settings/rubric-meta";
 import { SETTINGS_ROOT, canOpenRubric, rubricPath, type SettingsRubric } from "@/features/settings/sections";
 import { cn } from "@/lib/cn";
+import { FIRST_STEPS_PATH } from "@/lib/onboarding-paths";
 import { signOut } from "./sign-out";
 
 const itemClass =
@@ -76,6 +78,15 @@ export const SettingsMenu = ({
             <DropdownMenu.Item asChild className={itemClass}>
               <Link href={SETTINGS_ROOT}>{m.nav.allSettings}</Link>
             </DropdownMenu.Item>
+            {/* Les premiers pas restent à portée après le tour : la carte refermée se retrouve ici. */}
+            {staff ? (
+              <DropdownMenu.Item asChild className={cn(itemClass, "gap-2")}>
+                <Link href={FIRST_STEPS_PATH}>
+                  <Flag aria-hidden className="size-4" />
+                  {w.onboarding.menu}
+                </Link>
+              </DropdownMenu.Item>
+            ) : null}
             {/* L'aide garde la même place sur tous les écrans, pour le coach comme pour l'athlète. */}
             <DropdownMenu.Item className={cn(itemClass, "gap-2")} onSelect={() => setHelp(true)}>
               <CircleHelp aria-hidden className="size-4" />

@@ -1007,6 +1007,29 @@
   }
 }
 
+/* Les premiers pas. Une étape du tour de piste arrive de la droite, comme on avance d'un couloir ; à la fin des
+   premiers pas, le groupe franchit la ligne d'arrivée, un athlète après l'autre. Sans mouvement : tout est en place. */
+@keyframes tour-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+@keyframes finish-cross {
+  from {
+    transform: translateX(-140%);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tour-step {
+    animation: tour-step-in var(--duration-enter) var(--ease-reception) both;
+  }
+  .finish-cross {
+    animation: finish-cross var(--duration-celebration) var(--ease-impulsion) both;
+    animation-delay: calc(var(--i, 0) * var(--stagger-step));
+  }
+}
+
 /* Film du saut (site public, DESIGN.md). Sans défilement piloté, tout s'empile sur le rouge. */
 .film {
   --film-bg: var(--color-brand);
@@ -1520,10 +1543,13 @@
 /* La création de l'espace : l'athlète de la scène prend la pose du temps affiché par le formulaire. */
 .step-pose:not([data-step-pose="0"]),
 main:has(form[data-step="1"]) .step-pose[data-step-pose="0"],
-main:has(form[data-step="2"]) .step-pose[data-step-pose="0"] {
+main:has(form[data-step="2"]) .step-pose[data-step-pose="0"],
+main:has([data-step="3"]) .step-pose[data-step-pose="0"] {
   display: none;
 }
+/* Le dernier temps, l'invitation du groupe : elle est partie, elle court encore. */
 main:has(form[data-step="1"]) .step-pose[data-step-pose="1"],
-main:has(form[data-step="2"]) .step-pose[data-step-pose="2"] {
+main:has(form[data-step="2"]) .step-pose[data-step-pose="2"],
+main:has([data-step="3"]) .step-pose[data-step-pose="2"] {
   display: block;
 }

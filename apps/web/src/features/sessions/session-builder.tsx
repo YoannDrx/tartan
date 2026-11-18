@@ -36,7 +36,7 @@ import { m, strengthTestLabel, formatDateLong } from "@tartan/i18n";
 import { ChevronRight, GripVertical, Plus, Search, Trash2, Undo2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FilterPill, pillClass } from "@/components/filter-pill";
 import { ActivityPicto } from "@/components/pictos";
 import { EmptyState } from "@/components/states";
@@ -413,9 +413,11 @@ export const SessionBuilder = ({
   defaultDate,
   defaultGroupId,
   returnTo,
+  initialTemplateId,
 }: {
   userId: string;
   organizationId: string;
+  initialTemplateId?: string;
   phasesEnabled?: boolean;
   progressionEnabled?: boolean;
   initial: {
@@ -803,6 +805,19 @@ export const SessionBuilder = ({
     setClub(parts.club);
     setAutonomous(parts.autonomous);
   };
+
+  // Un modèle choisi depuis les premiers pas (`?modele=`) : la nouvelle séance part de lui, une seule fois.
+  useEffect(() => {
+    if (initial || !initialTemplateId) return;
+    if (!templates.some((template) => template.id === initialTemplateId)) return;
+    // Après le premier rendu : les clés neuves du modèle ne naissent que dans le navigateur.
+    const first = setTimeout(() => {
+      setChosenTemplate(initialTemplateId);
+      applyTemplate(initialTemplateId);
+    }, 0);
+    return () => clearTimeout(first);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- appliqué une fois, à l'ouverture
+  }, []);
 
   // Même identité à l'écran, à la publication et après un réordonnancement.
   const clubRefs = club

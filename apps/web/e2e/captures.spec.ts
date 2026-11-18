@@ -44,4 +44,25 @@ test.describe("bureau", () => {
     const session = calendar.sessions.find((s: { type: string }) => s.type === "strength");
     await shot(page, `/seances/${session.id}`, "web-constructeur.png");
   });
+
+  // Le tour de piste du coach montre les fonctions que le site ne capture pas : même jeu de données, autre dossier
+  // (`src/features/onboarding/captures/provenance.json`). Le planificateur s'ouvre sur sa consigne, sans appel au
+  // prestataire : lancer le serveur avec AI_PLANNER_ENABLED=true, accord du coach déjà donné. L'image s'arrête sous le
+  // contenu : le tour la montre dans un cadre bas.
+  test("captures du tour de piste", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop");
+    test.setTimeout(240_000);
+    const tour = path.resolve(import.meta.dirname, "../src/features/onboarding/captures");
+    await signIn(page);
+    for (const [url, file] of [
+      ["/planificateur", "web-planificateur.png"],
+      ["/phases", "web-phases.png"],
+      ["/annonces", "web-annonces.png"],
+    ] as const) {
+      await page.goto(`${base}${url}`, { waitUntil: "networkidle" });
+      await page.addStyleTag({ content: "nextjs-portal, [data-next-badge-root] { display: none !important; }" });
+      await page.waitForTimeout(600);
+      await page.screenshot({ path: path.join(tour, file), clip: { x: 0, y: 0, width: 1440, height: 720 } });
+    }
+  });
 });

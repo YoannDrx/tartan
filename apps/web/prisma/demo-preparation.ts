@@ -11,6 +11,7 @@ import { todayIso, toDbDate } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { syncEntitlements } from "@/server/billing.service";
 import { setConsent } from "@/server/consent.service";
+import { publishAnnouncement } from "@/server/comm.service";
 import { createOrganization } from "@/server/org.service";
 import { publishRow, saveScheduledSession } from "@/server/session.service";
 
@@ -85,6 +86,8 @@ const main = async () => {
     firstGroupGoal: "Préparation hivernale",
   });
   const organizationId = org.id;
+  // Un espace rempli pour les captures n'est pas un nouveau venu : ni tour, ni carte des premiers pas, ni repères.
+  await prisma.onboardingState.updateMany({ where: { organizationId }, data: { guided: false } });
   await prisma.organization.update({ where: { id: organizationId }, data: { plan: "club" } });
   await syncEntitlements(organizationId, "club");
 
@@ -350,6 +353,17 @@ const main = async () => {
         ],
       },
     },
+  });
+  // Deux annonces du coach, pour la capture des annonces du tour de piste (personnes et contenus fictifs).
+  await publishAnnouncement(coachId, organizationId, {
+    groupId: org.firstGroupId,
+    body: "Samedi, séance au stade à 10 h : prévoyez les pointes et une tenue de pluie.",
+    pinned: true,
+  });
+  await publishAnnouncement(coachId, organizationId, {
+    groupId: org.firstGroupId,
+    body: "Tests de détente la semaine prochaine : pensez à valider vos séances d'ici là.",
+    pinned: false,
   });
   console.log(`Prêt : ${COACH_EMAIL} et ${ATHLETE_EMAIL}.`);
   await prisma.$disconnect();

@@ -2,7 +2,7 @@
 // l'athlète et son écran de séance compris. Le mode séance et l'analyse vidéo, eux, prennent tout l'écran.
 const WORLDS: Array<[RegExp, string]> = [
   [
-    /^\/(aujourdhui|seance|suivi|calendrier|seances|exercices|annonces|reglages|abonnement|admin|athletes|progres|analyse|phases|historique|outils|videos|mes-videos|mes-sauts|planificateur|notifications|nouveautes|synchronisation)(\/|$)/,
+    /^\/(aujourdhui|seance|suivi|calendrier|seances|exercices|annonces|reglages|abonnement|admin|athletes|progres|analyse|phases|historique|outils|videos|mes-videos|mes-sauts|planificateur|notifications|nouveautes|synchronisation|premiers-pas)(\/|$)/,
     "world-work",
   ],
 ];
