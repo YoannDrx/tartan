@@ -14,7 +14,7 @@ content est la liste ordonnée des gestes :
 - recovery : durationS seulement, pour une pause entre deux gestes ou après un groupe.
 - repeat : name, rounds, restBetweenRoundsS, children ; deux niveaux au plus.
 Une série simple (« squat 3 × 4, repos 90 s ») est un seul exercise : sets 3, reps 4, restS 90.
-Un circuit ou superset (« trois tours de A puis B ») est un repeat rounds 3 dont les enfants ont sets 1. Les tours ne vont jamais à la fois dans sets et dans rounds.
+Un circuit ou superset (« trois tours de A puis B ») est un repeat rounds 3 dont les enfants ont sets 1. Les tours ne vont jamais à la fois dans sets et dans rounds. Exemple : « superset trois tours, A puis B, 30 s entre les exercices, 90 s entre les tours » donne repeat(rounds 3, restBetweenRoundsS 90, children [A, recovery 30, B]).
 Une pause entre A et B dans un tour est un recovery entre eux ; restBetweenRoundsS sépare les tours. Rien après le dernier tour, sauf une récupération demandée explicitement après : un recovery après le repeat.
 « Répéter deux fois le duo A/B puis C, quatre tours » : repeat(4, [repeat(2, [A, B]), C]).
 

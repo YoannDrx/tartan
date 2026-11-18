@@ -496,7 +496,7 @@ it("refuse de remplacer un power clean par le clean dont l’alias est plus cour
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
 
-it("signale sur l'exercice une pause qui serait perdue après une série unique, sans nouvel appel", async () => {
+it("signale sur l'exercice une pause qui serait perdue après une série unique après une seule correction", async () => {
   const instruction = "Demain : squat, une série de quatre à 40 kg, puis récupération 120 secondes.";
   const wrong = plannerInterpretation.parse(proposalFor(instruction, [{ date: "2026-11-09" }]));
   const block = wrong.sessions[0]!.blocks[0]!;
@@ -509,7 +509,7 @@ it("signale sur l'exercice une pause qui serait perdue après une série unique,
     status: "proposal",
     sessions: [{ warnings: [{ code: "rest_not_executed", field: "rest", block: 0, item: 0 }] }],
   });
-  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(fetcher).toHaveBeenCalledTimes(2);
 });
 
 it("propose avec le matériel disponible, une charge nulle dans le schéma et une explication générée", async () => {
@@ -750,7 +750,7 @@ it("ne conserve jamais une séance amputée après une citation sans attache", a
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
 
-it("signale un circuit dont les tours ont été omis, sans le refuser ni rappeler le modèle", async () => {
+it("signale un circuit dont les tours ont été omis après une seule correction, sans le refuser", async () => {
   const instruction =
     "Demain : circuit trois tours de squat, quatre répétitions à 40 kg, repos 120 secondes entre tours.";
   const flat = proposalFor(instruction, [{ date: "2026-11-09" }]);
@@ -790,7 +790,18 @@ it("signale un circuit dont les tours ont été omis, sans le refuser ni rappele
     status: "proposal",
     sessions: [{ warnings: [{ code: "rounds_missing", field: "rounds", detail: "3" }] }],
   });
-  expect(missing).toHaveBeenCalledTimes(1);
+  expect(missing).toHaveBeenCalledTimes(2);
+  // La correction qui rétablit les tours remplace la première séance.
+  const fixed = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(Response.json(completed(flat)))
+    .mockResolvedValueOnce(Response.json(completed(repeated)));
+  const better = await openAiPlannerProvider(fixed).interpret({ ...context, instructions: [instruction] });
+  expect(better).toMatchObject({
+    status: "proposal",
+    sessions: [{ warnings: [], blocks: [{ sequence: [{ rounds: 3 }] }] }],
+  });
+  expect(JSON.parse(JSON.parse(String(fixed.mock.calls[1]![1]?.body)).input).correction).toContain("repeat");
 });
 
 const node = (

@@ -185,7 +185,10 @@ function withoutDateConfirmation(value: PlannerRichInterpretation, context: Plan
   return questions.length ? { ...value, questions } : value;
 }
 
+const STRUCTURAL = new Set(["rounds_missing", "rest_not_executed"]);
 const CORRECTIONS = {
+  rounds:
+    "Ta séance ne s'exécute pas comme la consigne : des tours demandés manquent, ou une pause est placée dans restS d'un exercice à une seule série. Un circuit ou superset est un repeat (rounds = nombre de tours, enfants à sets 1) ; une pause entre deux gestes est un recovery entre eux ; restBetweenRoundsS sépare les tours.",
   citation:
     "Une citation ne se rattache pas à la consigne. Pour chaque exercice, recopie un extrait exact de la consigne ; si aucune fiche ne correspond au mouvement, pose une question field exercise avec exerciseName.",
   structure:
@@ -484,10 +487,22 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
               }
         // Points « À vérifier » : la séance passe, chaque point est rattaché à son exercice.
         const warnings = propose ? value.sessions.map(() => []) : plannerWarnings(value, guardContext);
-        return plannerRichInterpretation.parse({
+        const warned = plannerRichInterpretation.parse({
           ...value,
           sessions: value.sessions.map((session, index) => ({ ...session, warnings: warnings[index] ?? [] })),
         });
+        // Des tours ou une pause qui ne s'exécuteraient pas comme écrit : une correction est tentée. Si elle
+        // n'améliore rien, la première séance reste proposée avec ses points à vérifier.
+        const structural = warnings.flat().filter((w) => STRUCTURAL.has(w.code));
+        if (!structural.length || correction) return warned;
+        try {
+          const better = await attempt(CORRECTIONS.rounds);
+          const left = better.sessions.flatMap((s) => s.warnings ?? []).filter((w) => STRUCTURAL.has(w.code));
+          return better.status === "proposal" && left.length < structural.length ? better : warned;
+        } catch (cause) {
+          if (!(cause instanceof PlannerProviderError) || cause.code !== "invalid_output") throw cause;
+          return warned;
+        }
       };
       return attempt();
     },
