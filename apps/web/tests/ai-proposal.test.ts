@@ -29,6 +29,7 @@ import { expirePlannerOperations } from "@/server/ai/usage.service";
 import { saveTrainingPhase } from "@/server/training-phases.service";
 import { selectStrengthReference } from "@/server/strength.service";
 import { saveExercise } from "@/server/exercise.service";
+import { plannerEventStream } from "@/server/ai/stream";
 import { addStaff, addAthlete, makeOrg } from "./helpers";
 const flags = vi.hoisted(() => ({ AI_PLANNER_ENABLED: "true" }));
 vi.mock("@/server/ai/consent.service", () => ({
@@ -1468,7 +1469,17 @@ it("donne au modèle le profil de l'espace, les séances voisines et la couvertu
   expect(sent.strength).toEqual([{ exerciseToken: "exercise_1", coverage: "all" }]);
   // Ce qui part chez OpenAI : ni titre, ni note, ni ressenti, ni douleur, ni maximum, ni prénom.
   const payload = JSON.stringify(sent);
-  for (const secret of ["Séance privée", "Note privée", "genou douloureux", "douleur", "ischio", "rpe", "100", "Léa", "Malik"])
+  for (const secret of [
+    "Séance privée",
+    "Note privée",
+    "genou douloureux",
+    "douleur",
+    "ischio",
+    "rpe",
+    "100",
+    "Léa",
+    "Malik",
+  ])
     expect(payload).not.toContain(secret);
   // Une référence manquante pour un seul destinataire ferme le pourcentage : couverture partielle.
   await prisma.strengthReference.deleteMany({ where: { athleteId: athletes[1]!.athleteId } });
@@ -1487,4 +1498,42 @@ it("pose directement une question nommée pour un mouvement inconnu, sans appele
   expect(p.interpret).not.toHaveBeenCalled();
   expect(asked.state).toBe("clarification");
   expect(asked.interpretation?.questions).toMatchObject([{ field: "exercise", exerciseName: "Squat du dragon" }]);
+});
+it("diffuse les étapes et le plan pendant la génération, puis la proposition enregistrée, même sans écran", async () => {
+  const a = await setup();
+  const response = plannerEventStream((hooks) =>
+    createPlannerProposal(a.owner.userId, a.organizationId, a.input, {
+      ...hooks,
+      provider: fakePlannerProvider(),
+      clock,
+    }),
+  );
+  const events = (await response.text())
+    .split("\n\n")
+    .filter(Boolean)
+    .map((chunk) => ({ event: /^event: (.+)$/m.exec(chunk)![1], data: JSON.parse(/^data: (.+)$/m.exec(chunk)![1]!) }));
+  const steps = events.filter((e) => e.event === "step").map((e) => e.data.step);
+  expect(steps).toEqual(["context", "model", "checks", "saved"]);
+  const plans = events.filter((e) => e.event === "plan");
+  expect(plans.length).toBeGreaterThan(0);
+  expect(plans.at(-1)!.data.lines).toContainEqual({ kind: "exercise", label: a.exercise.name });
+  expect(JSON.stringify(plans)).not.toContain("exercise_1");
+  expect(events.at(-1)).toMatchObject({ event: "result", data: { id: a.input.id, state: "proposal" } });
+  // Un écran fermé dès l'envoi : la génération va jusqu'au bout et se relit ensuite.
+  const second = { ...a.input, id: randomUUID() };
+  const closed = plannerEventStream((hooks) =>
+    createPlannerProposal(a.owner.userId, a.organizationId, second, {
+      ...hooks,
+      provider: fakePlannerProvider(),
+      clock,
+    }),
+  );
+  await closed.body!.cancel();
+  await vi.waitFor(
+    async () =>
+      expect(await getPlannerProposal(a.owner.userId, a.organizationId, second.id, now)).toMatchObject({
+        state: "proposal",
+      }),
+    { timeout: 10000 },
+  );
 });

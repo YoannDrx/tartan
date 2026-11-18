@@ -411,6 +411,23 @@ export const plannerProposalResponse = z.object({
   draftIds: plannerCreatedSessions.nullable(),
 });
 export type PlannerProposalResponse = z.infer<typeof plannerProposalResponse>;
+
+// Réponse diffusée (web, `Accept: text/event-stream`) : les étapes, le plan de la séance pendant qu'il s'écrit,
+// puis la proposition, ou l'erreur lisible. Le JSON d'une seule pièce reste servi aux autres clients.
+export const plannerStreamStep = z.enum(["context", "model", "checks", "retry", "saved"]);
+export type PlannerStreamStep = z.infer<typeof plannerStreamStep>;
+export const plannerStreamPlanLine = z.object({ kind: z.enum(["block", "exercise"]), label: z.string().max(200) });
+export type PlannerStreamPlanLine = z.infer<typeof plannerStreamPlanLine>;
+export const plannerStreamEvent = z.discriminatedUnion("event", [
+  z.object({ event: z.literal("step"), data: z.object({ step: plannerStreamStep }) }),
+  z.object({ event: z.literal("plan"), data: z.object({ lines: z.array(plannerStreamPlanLine).max(200) }) }),
+  z.object({ event: z.literal("result"), data: plannerProposalResponse }),
+  z.object({
+    event: z.literal("error"),
+    data: z.object({ status: z.number().int(), code: z.string(), message: z.string() }),
+  }),
+]);
+export type PlannerStreamEvent = z.infer<typeof plannerStreamEvent>;
 export const plannerProposalListQuery = z.object({ before: uuid.optional() }).strict();
 export type PlannerProposalListQuery = z.infer<typeof plannerProposalListQuery>;
 export const plannerProposalList = z.object({

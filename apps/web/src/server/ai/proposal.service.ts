@@ -25,6 +25,7 @@ import {
   plannerFailureCode,
   type PlannerFailureCode,
   type PlannerWarning,
+  type PlannerStreamPlanLine,
 } from "@tartan/contracts";
 import {
   validatePlannerInterpretation,
@@ -63,6 +64,7 @@ import {
   type PlannerBindings,
 } from "./context";
 import { fakePlannerEnabled, fakePlannerProvider } from "./fake-provider";
+import { plannerPlanLines } from "./stream";
 import {
   openAiPlannerProvider,
   plannerUnknownQuestions,
@@ -82,7 +84,8 @@ const messagesSchema = z
   .array(z.string())
   .min(1)
   .max(1 + PLANNER_MAX_CLARIFICATIONS + PLANNER_MAX_ADJUSTMENTS);
-const visibleMessages = (messages: string[]) => (messages.length > 6 ? [messages[0]!, ...messages.slice(-5)] : messages);
+const visibleMessages = (messages: string[]) =>
+  messages.length > 6 ? [messages[0]!, ...messages.slice(-5)] : messages;
 // Statut HTTP de chaque cause : 503 quand il faut attendre ou prévenir, 504 pour un délai, 422 pour un refus.
 const FAILURE_STATUS: Record<PlannerFailureCode, number> = {
   configuration: 503,
@@ -238,8 +241,22 @@ export async function listPlannerProposals(
 type Execution = {
   provider?: PlannerProvider;
   clock?: () => Date;
-  onProgress?: (progress: PlannerProgress) => void;
-  onDelta?: (characters: number) => void;
+  onProgress?: (progress: PlannerProgress | { step: "saved" }) => void;
+  // Le plan de la séance pendant qu'il s'écrit : noms de blocs et d'exercices, rien d'autre.
+  onPlan?: (lines: PlannerStreamPlanLine[]) => void;
+};
+// Le texte du modèle arrive par morceaux : à chaque morceau, les lignes du plan déjà lisibles, en noms de fiches.
+const planFollower = (bindings: PlannerBindings, onPlan: (lines: PlannerStreamPlanLine[]) => void) => {
+  let text = "";
+  const names = new Map(bindings.exercises.map((e) => [e.token, e.name]));
+  return (delta: string) => {
+    text += delta;
+    onPlan(
+      plannerPlanLines(text, (token) => names.get(token) ?? null).map((line) =>
+        line.kind === "block" ? { ...line, label: plannerDisplayText(line.label, bindings) } : line,
+      ),
+    );
+  };
 };
 const isAdjustment = (message: string | null) => Boolean(message?.startsWith(m.aiPlanner.adjustmentPrefix));
 async function executeProposal(
@@ -274,7 +291,10 @@ async function executeProposal(
     // Un nom de mouvement absent de la bibliothèque devient une question nommée sans appel au modèle.
     const raw =
       plannerUnknownQuestions(context) ??
-      (await provider.interpret(context, { onProgress: execution.onProgress, onDelta: execution.onDelta }));
+      (await provider.interpret(context, {
+        onProgress: execution.onProgress,
+        ...(execution.onPlan ? { onDelta: planFollower(bindings, execution.onPlan) } : {}),
+      }));
     const checked = validatePlannerInterpretation(raw, {
       mode: selection.mode,
       brief: selection.brief,
@@ -319,6 +339,7 @@ async function executeProposal(
       clock(),
     );
     if (completed.state === "refunded") throw new PlannerProviderError("timeout");
+    execution.onProgress?.({ step: "saved" });
   } catch (error) {
     const failure = failureOf(error);
     const settled = await failPlannerOperation(
@@ -433,7 +454,9 @@ export async function clarifyPlannerProposal(
       if (
         row.version !== input.expectedVersion ||
         (state !== "clarification" && state !== "proposal") ||
-        (state === "proposal" ? row.adjustmentCount >= PLANNER_MAX_ADJUSTMENTS : row.clarificationCount >= PLANNER_MAX_CLARIFICATIONS)
+        (state === "proposal"
+          ? row.adjustmentCount >= PLANNER_MAX_ADJUSTMENTS
+          : row.clarificationCount >= PLANNER_MAX_CLARIFICATIONS)
       )
         throw conflict();
       const selection = plannerSelection.parse(row.selection),
@@ -471,92 +494,95 @@ export async function resolvePlannerExercise(
     requestedName: input.requestedName,
     choice: input.choice,
   });
-  await prisma.$transaction(async (tx) => {
-    await lock(tx, organizationId);
-    const access = await accessFor(userId, organizationId, tx);
-    // Choisir une fiche existante ne modifie pas la bibliothèque ; seule la création l'exige.
-    if (input.choice.kind === "create") await requireOrgMember(userId, organizationId, "editExercises", tx);
-    const row = await owned(userId, organizationId, proposalId, now, tx);
-    const bindings = plannerBindings.parse(row.bindings),
-      selection = plannerSelection.parse(row.selection);
-    await recheckPlannerBindings(tx, access, selection, bindings);
-    const previous = bindings.resolutions?.find(
-      (r) =>
-        r.operationId === input.operationId ||
-        (r.questionId === input.questionId && r.clarificationCount === row.clarificationCount),
-    );
-    if (previous) {
-      if (previous.fingerprint !== fingerprint) throw conflict();
-      return;
-    }
-    if (row.version !== input.expectedVersion || row.state !== "clarification") throw conflict();
-    const interpretation = plannerRichInterpretation.parse(row.interpretation);
-    const question = interpretation.questions.find((q) => q.id === input.questionId && q.field === "exercise");
-    if (!question || (question.exerciseName && question.exerciseName !== input.requestedName)) throw conflict();
-    const choice = input.choice;
-    if (selection.mode === "propose" && choice.kind === "create") throw invalid(m.aiPlanner.verifiedCatalogRequired);
-    const exercise =
-      choice.kind === "existing"
-        ? await tx.exercise.findFirst({
-            where: { id: choice.exerciseId, deletedAt: null, OR: [{ organizationId }, { organizationId: null }] },
-          })
-        : await tx.exercise.create({
-            data: {
-              organizationId,
-              createdBy: userId,
-              name: choice.exercise.name,
-              category: choice.exercise.category,
-              aliases: cleanExerciseAliases(choice.exercise.name, choice.exercise.aliases ?? []),
-              tags: choice.exercise.tags,
-              cues: choice.exercise.cues,
-              defaultPrescription: choice.exercise.defaultPrescription,
-              classification: choice.exercise.classification ?? undefined,
-              strengthLoadKind: choice.exercise.strengthLoadKind,
-              loadStepKg: choice.exercise.loadStepKg,
-            },
-          });
-    if (!exercise) throw notFound();
-    if (
-      selection.mode === "propose" &&
-      (!exercise.catalogKey ||
-        !exercise.guide ||
-        typeof exercise.guide !== "object" ||
-        Array.isArray(exercise.guide) ||
-        exercise.guide.technicalReview !== "approved")
-    )
-      throw invalid(m.aiPlanner.verifiedCatalogRequired);
-    const current = bindings.exercises.find((e) => e.id === exercise.id);
-    if (current) current.aliases = [...new Set([input.requestedName, ...(current.aliases ?? [])])].slice(0, 20);
-    else {
-      if (bindings.exercises.length >= 500) throw invalid(m.aiPlanner.libraryLimit);
-      bindings.exercises.push({
-        token: `exercise_${Math.max(0, ...bindings.exercises.map((e) => Number(e.token.split("_")[1]) || 0)) + 1}`,
-        id: exercise.id,
-        name: exercise.name,
-        category: exercise.category,
-        aliases: [...new Set([input.requestedName, ...exercise.aliases])].slice(0, 20),
-        classification: exerciseClassification.nullable().parse(exercise.classification ?? null),
-        updatedAt: exercise.updatedAt.toISOString(),
-        strengthLoadKind: exercise.strengthLoadKind as (typeof bindings.exercises)[number]["strengthLoadKind"],
+  await prisma.$transaction(
+    async (tx) => {
+      await lock(tx, organizationId);
+      const access = await accessFor(userId, organizationId, tx);
+      // Choisir une fiche existante ne modifie pas la bibliothèque ; seule la création l'exige.
+      if (input.choice.kind === "create") await requireOrgMember(userId, organizationId, "editExercises", tx);
+      const row = await owned(userId, organizationId, proposalId, now, tx);
+      const bindings = plannerBindings.parse(row.bindings),
+        selection = plannerSelection.parse(row.selection);
+      await recheckPlannerBindings(tx, access, selection, bindings);
+      const previous = bindings.resolutions?.find(
+        (r) =>
+          r.operationId === input.operationId ||
+          (r.questionId === input.questionId && r.clarificationCount === row.clarificationCount),
+      );
+      if (previous) {
+        if (previous.fingerprint !== fingerprint) throw conflict();
+        return;
+      }
+      if (row.version !== input.expectedVersion || row.state !== "clarification") throw conflict();
+      const interpretation = plannerRichInterpretation.parse(row.interpretation);
+      const question = interpretation.questions.find((q) => q.id === input.questionId && q.field === "exercise");
+      if (!question || (question.exerciseName && question.exerciseName !== input.requestedName)) throw conflict();
+      const choice = input.choice;
+      if (selection.mode === "propose" && choice.kind === "create") throw invalid(m.aiPlanner.verifiedCatalogRequired);
+      const exercise =
+        choice.kind === "existing"
+          ? await tx.exercise.findFirst({
+              where: { id: choice.exerciseId, deletedAt: null, OR: [{ organizationId }, { organizationId: null }] },
+            })
+          : await tx.exercise.create({
+              data: {
+                organizationId,
+                createdBy: userId,
+                name: choice.exercise.name,
+                category: choice.exercise.category,
+                aliases: cleanExerciseAliases(choice.exercise.name, choice.exercise.aliases ?? []),
+                tags: choice.exercise.tags,
+                cues: choice.exercise.cues,
+                defaultPrescription: choice.exercise.defaultPrescription,
+                classification: choice.exercise.classification ?? undefined,
+                strengthLoadKind: choice.exercise.strengthLoadKind,
+                loadStepKg: choice.exercise.loadStepKg,
+              },
+            });
+      if (!exercise) throw notFound();
+      if (
+        selection.mode === "propose" &&
+        (!exercise.catalogKey ||
+          !exercise.guide ||
+          typeof exercise.guide !== "object" ||
+          Array.isArray(exercise.guide) ||
+          exercise.guide.technicalReview !== "approved")
+      )
+        throw invalid(m.aiPlanner.verifiedCatalogRequired);
+      const current = bindings.exercises.find((e) => e.id === exercise.id);
+      if (current) current.aliases = [...new Set([input.requestedName, ...(current.aliases ?? [])])].slice(0, 20);
+      else {
+        if (bindings.exercises.length >= 500) throw invalid(m.aiPlanner.libraryLimit);
+        bindings.exercises.push({
+          token: `exercise_${Math.max(0, ...bindings.exercises.map((e) => Number(e.token.split("_")[1]) || 0)) + 1}`,
+          id: exercise.id,
+          name: exercise.name,
+          category: exercise.category,
+          aliases: [...new Set([input.requestedName, ...exercise.aliases])].slice(0, 20),
+          classification: exerciseClassification.nullable().parse(exercise.classification ?? null),
+          updatedAt: exercise.updatedAt.toISOString(),
+          strengthLoadKind: exercise.strengthLoadKind as (typeof bindings.exercises)[number]["strengthLoadKind"],
+        });
+      }
+      bindings.resolutions = [
+        ...(bindings.resolutions ?? []),
+        {
+          operationId: input.operationId,
+          questionId: input.questionId,
+          requestedName: input.requestedName,
+          clarificationCount: row.clarificationCount,
+          fingerprint,
+          exerciseId: exercise.id,
+          name: exercise.name,
+        },
+      ];
+      await tx.aiPlannerProposal.update({
+        where: { id: proposalId },
+        data: { bindings: bindings as Prisma.InputJsonValue, version: { increment: 1 } },
       });
-    }
-    bindings.resolutions = [
-      ...(bindings.resolutions ?? []),
-      {
-        operationId: input.operationId,
-        questionId: input.questionId,
-        requestedName: input.requestedName,
-        clarificationCount: row.clarificationCount,
-        fingerprint,
-        exerciseId: exercise.id,
-        name: exercise.name,
-      },
-    ];
-    await tx.aiPlannerProposal.update({
-      where: { id: proposalId },
-      data: { bindings: bindings as Prisma.InputJsonValue, version: { increment: 1 } },
-    });
-  }, { timeout: 30000, maxWait: 10000 });
+    },
+    { timeout: 30000, maxWait: 10000 },
+  );
   return getPlannerProposal(userId, organizationId, proposalId, now);
 }
 
@@ -579,7 +605,12 @@ export async function preparePlannerDrafts(
       await recheckPlannerBindings(tx, access, selection, bindings);
       const output = plannerRichInterpretation.parse(row.interpretation);
       const sessions: PlannerReviewedDraft[] = [];
-      const warnings: { code: PlannerWarning["code"]; field: PlannerWarning["field"]; itemRef: string | null; detail: string | null }[][] = [];
+      const warnings: {
+        code: PlannerWarning["code"];
+        field: PlannerWarning["field"];
+        itemRef: string | null;
+        detail: string | null;
+      }[][] = [];
       for (const [index, session] of output.sessions.entries()) {
         const prefix = `ai-${proposalId}-${index}`;
         // Chaque point « À vérifier » vise l'exercice du brouillon : sa référence suit la même règle que la conversion.

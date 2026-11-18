@@ -172,7 +172,7 @@ export type PlannerProgress = { step: "context" | "model" | "checks" | "retry" }
 export interface PlannerProvider {
   interpret(
     context: PlannerProviderContext,
-    options?: { onProgress?: (progress: PlannerProgress) => void; onDelta?: (characters: number) => void },
+    options?: { onProgress?: (progress: PlannerProgress) => void; onDelta?: (text: string) => void },
   ): Promise<PlannerRichInterpretation>;
 }
 
@@ -409,6 +409,8 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
               input: JSON.stringify({ ...input, ...(correction ? { correction } : {}) }),
               max_output_tokens: 12000,
               text: { format: { type: "json_schema", name: "tartan_planner", strict: true, schema } },
+              // Diffusé quand l'écran attend : la séance apparaît pendant qu'elle s'écrit.
+              ...(options.onDelta ? { stream: true } : {}),
             }),
           });
         } catch (cause) {
@@ -416,13 +418,11 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
         }
         // Ne jamais inclure le corps d’erreur, une clé ou le texte du coach dans une exception/journal.
         if (!response.ok) throw new PlannerProviderError(plannerHttpFailure(response.status));
-        let result: {
-          status?: string;
-          output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
-        } | null;
+        let result: ProviderResult | null;
         try {
-          result = await response.json();
+          result = options.onDelta ? await readStream(response, options.onDelta) : await response.json();
         } catch (cause) {
+          if (cause instanceof PlannerProviderError) throw cause;
           if (deadline.aborted) throw new PlannerProviderError(plannerFetchFailure(cause));
           throw new PlannerProviderError("invalid_output");
         }
@@ -436,7 +436,6 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
         if (parts.some((part) => part?.type === "refusal")) throw new PlannerProviderError("refused");
         const texts = parts.filter((part) => part?.type === "output_text");
         if (texts.length !== 1 || typeof texts[0]?.text !== "string") throw new PlannerProviderError("invalid_output");
-        options.onDelta?.(texts[0].text.length);
         try {
           return JSON.parse(texts[0].text);
         } catch {
@@ -666,3 +665,49 @@ const withoutUncoveredPercent = (
         setPlan:
           prescription.setPlan?.map((set) => (set.load?.type === "pct_1rm" ? { ...set, load: null } : set)) ?? null,
       };
+
+type ProviderResult = {
+  status?: string;
+  output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
+};
+/**
+ * Lit la réponse diffusée du prestataire : chaque morceau de texte part vers l'écran, la réponse complète
+ * (statut, sortie) est rendue à la fin comme une réponse ordinaire. Aucun contenu d'erreur n'est repris.
+ */
+async function readStream(response: Response, onDelta: (text: string) => void): Promise<ProviderResult | null> {
+  if (!response.body) throw new PlannerProviderError("invalid_output");
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = "";
+  let final: ProviderResult | null = null;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (value) buffer += value;
+    const events = buffer.split("\n\n");
+    buffer = done ? "" : events.pop()!;
+    for (const event of events) {
+      const data = event
+        .split("\n")
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trim())
+        .join("");
+      if (!data || data === "[DONE]") continue;
+      let parsed: { type?: string; delta?: unknown; response?: ProviderResult; error?: { code?: string } };
+      try {
+        parsed = JSON.parse(data);
+      } catch {
+        continue;
+      }
+      if (parsed.type === "response.output_text.delta" && typeof parsed.delta === "string") onDelta(parsed.delta);
+      else if (
+        parsed.type === "response.completed" ||
+        parsed.type === "response.incomplete" ||
+        parsed.type === "response.failed"
+      )
+        final = parsed.response ?? null;
+      else if (parsed.type === "error")
+        throw new PlannerProviderError(parsed.error?.code === "rate_limit_exceeded" ? "saturated" : "unavailable");
+    }
+    if (done) break;
+  }
+  return final;
+}
