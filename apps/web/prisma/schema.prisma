@@ -669,6 +669,25 @@ model ExerciseMedia {
   @@map("exercise_media")
 }
 
+// La vidéo d'une fiche commune du catalogue, déposée par le fondateur : une par fiche et par vue (profil ou face).
+// Contenu commun, hors de tout espace. Un nouvel envoi remplace l'ancien une fois prêt.
+model CatalogMedia {
+  id            String   @id @default(uuid()) @db.Uuid
+  catalogKey    String   @map("catalog_key")
+  view          String
+  // uploading, ready ou error.
+  status        String   @default("uploading")
+  muxUploadId   String?  @map("mux_upload_id")
+  muxAssetId    String?  @map("mux_asset_id")
+  muxPlaybackId String?  @map("mux_playback_id")
+  createdBy     String?  @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([catalogKey, view])
+  @@map("catalog_media")
+}
+
 enum SessionType {
   strength
   plyo

@@ -104,6 +104,7 @@ export const SCREENS: Screen[] = [
   { path: "/admin/configuration", roles: ["admin"], proof: ["admin-console.spec.ts"] },
   { path: "/admin/mascotte", roles: ["admin"], proof: ["mascot-board.spec.ts"] },
   { path: "/admin/mouvements", roles: ["admin"], proof: ["admin-console.spec.ts"] },
+  { path: "/admin/exercices", roles: ["admin"], proof: ["catalog-video.spec.ts", "tests/catalog-media.test.ts"] },
   { path: "/admin/jeu", roles: ["admin"], proof: ["admin-console.spec.ts"] },
 ];
 

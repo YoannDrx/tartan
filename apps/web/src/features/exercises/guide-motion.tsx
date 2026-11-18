@@ -23,7 +23,7 @@ const captionOf = (guide: ExerciseGuide) =>
   guide.illustration.motion === "approved" ? m.exerciseGuide.original : m.exerciseGuide.illustrationPending;
 
 // Une pastille ou un choix de vue : une cible de 44 px, pleine quand elle est choisie.
-const chip = (chosen: boolean) =>
+export const chip = (chosen: boolean) =>
   cn(
     "grid min-h-11 min-w-11 place-items-center rounded-button border border-card-line px-3 text-sm",
     chosen && "border-transparent bg-accent text-on-accent",

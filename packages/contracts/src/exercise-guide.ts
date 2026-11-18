@@ -18,6 +18,15 @@ export const catalogueKey = z
   .max(100);
 const instruction = z.string().trim().min(1).max(600);
 
+// La vidéo d'une fiche commune : sa vue, et ses adresses de lecture signées (absentes sans clé de signature).
+export const catalogVideo = z.object({
+  view: z.enum(["side", "front"]),
+  streamUrl: z.string().url().nullable(),
+  hlsUrl: z.string().url().nullable(),
+  posterUrl: z.string().url().nullable(),
+});
+export type CatalogVideo = z.infer<typeof catalogVideo>;
+
 export const exerciseGuide = z.object({
   catalogKey: catalogueKey,
   version: z.number().int().positive(),
@@ -45,6 +54,8 @@ export const exerciseGuide = z.object({
     rights: z.literal("Tartan"),
     // Posé à la lecture, jamais enregistré : le geste animé de la fiche existe, relu ou non par le fondateur.
     motion: z.enum(["review", "approved"]).optional(),
+    // Posées à la lecture elles aussi : les vidéos de la fiche commune, déposées par le fondateur, une par vue.
+    videos: z.array(catalogVideo).max(2).optional(),
   }),
   // Une fiche complète n'est pas une preuve de validation humaine du geste.
   technicalReview: z.enum(["pending", "approved"]),

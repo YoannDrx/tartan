@@ -4,6 +4,7 @@ import {
   exerciseInput,
   type ExerciseInput,
   type ExerciseSummary,
+  type CatalogVideo,
   prescriptionSchema,
 } from "@tartan/contracts";
 import { cleanExerciseAliases, parseInstagramUrl, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
@@ -17,6 +18,7 @@ import { requireOrgMember } from "./access";
 import { ensureExerciseCatalog, readExerciseGuide, retainedExerciseGuide } from "./exercise-catalog.service";
 import { approvedMotionFamilies, withMotion } from "./motion-review.service";
 import { assertVideoReservation, withVideoReservation } from "./video-capacity.service";
+import { catalogVideos, withCatalogVideos } from "./catalog-media.service";
 
 type MediaRow = {
   kind: "upload" | "youtube" | "instagram";
@@ -55,8 +57,14 @@ export const mediaSnapshot = (media: MediaRow | undefined) => {
 };
 
 type ExerciseRow = Prisma.ExerciseGetPayload<{ include: { media: true } }>;
+// La fiche commune d'un exercice : la sienne, ou celle dont la copie du coach est tirée.
+const catalogKeyOf = (row: ExerciseRow) => row.catalogKey ?? row.sourceCatalogKey ?? "";
 
-const exerciseSummary = async (e: ExerciseRow, families: readonly string[]): Promise<ExerciseSummary> => {
+const exerciseSummary = async (
+  e: ExerciseRow,
+  families: readonly string[],
+  videos: ReadonlyMap<string, CatalogVideo[]>,
+): Promise<ExerciseSummary> => {
   const media = mediaSnapshot(e.media[0]);
   // Vidéos du coach privées : lecture par jeton signé, comme dans une séance.
   const stream =
@@ -76,7 +84,7 @@ const exerciseSummary = async (e: ExerciseRow, families: readonly string[]): Pro
     loadStepKg: Number(e.loadStepKg),
     media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
     shared: e.organizationId === null,
-    guide: withMotion(readExerciseGuide(e.guide), families),
+    guide: withCatalogVideos(withMotion(readExerciseGuide(e.guide), families), videos),
   };
 };
 
@@ -91,9 +99,11 @@ export const listExercises = async (userId: string, organizationId: string): Pro
   const represented = new Set(
     rows.filter((row) => row.organizationId === organizationId).map((row) => row.sourceCatalogKey),
   );
-  const families = await approvedMotionFamilies();
+  const [families, videos] = await Promise.all([approvedMotionFamilies(), catalogVideos(rows.map(catalogKeyOf))]);
   return Promise.all(
-    rows.filter((row) => !row.catalogKey || !represented.has(row.catalogKey)).map((row) => exerciseSummary(row, families)),
+    rows
+      .filter((row) => !row.catalogKey || !represented.has(row.catalogKey))
+      .map((row) => exerciseSummary(row, families, videos)),
   );
 };
 
@@ -109,7 +119,8 @@ export const getExercise = async (
     include: { media: { orderBy: { createdAt: "desc" }, take: 1 } },
   });
   if (!row) throw notFound();
-  return exerciseSummary(row, await approvedMotionFamilies());
+  const [families, videos] = await Promise.all([approvedMotionFamilies(), catalogVideos([catalogKeyOf(row)])]);
+  return exerciseSummary(row, families, videos);
 };
 
 export const saveExercise = async (userId: string, organizationId: string, raw: ExerciseInput) => {
