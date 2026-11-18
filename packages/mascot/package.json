@@ -39,7 +39,8 @@
     "./v2/props": "./src/v2/props.ts",
     "./v2/registry": "./src/v2/registry.ts",
     "./v2/lift-v1": "./src/v2/lift-v1.ts",
-    "./v2/a-reprendre": "./src/v2/a-reprendre.ts"
+    "./v2/a-reprendre": "./src/v2/a-reprendre.ts",
+    "./v2/engine": "./src/v2/engine.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

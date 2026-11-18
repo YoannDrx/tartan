@@ -69,14 +69,22 @@ export type MotionClip = {
   // Faux pour un geste qui finit ailleurs qu'il ne commence : la lecture repart du début d'un coup.
   loop: boolean;
   phases: readonly Phase[];
-  // Une plage de temps par ligne du guide, dans l'ordre : installation, puis étapes.
-  positions: readonly { from: number; to: number }[];
+  // Une plage de temps par ligne du guide illustrée, dans l'ordre : la ligne (0 : l'installation), la plage,
+  // et l'instant à montrer quand la lecture est arrêtée sur elle.
+  positions: readonly { guide: number; from: number; to: number; still: number }[];
   // Les positions de la frise : l'instant à montrer, son identifiant, et la ligne du guide qu'elle illustre.
   stills: readonly { t: number; id: string; guide?: number }[];
   // Le corps à l'instant `t` de la boucle, de 0 à 1.
   pose(t: number): Solved;
   face(t: number): Face;
   props(t: number, body: Solved): Prop[];
+};
+
+// La position du guide où en est la lecture à l'instant `t` : son rang dans `clip.positions`.
+export const guidePositionAt = (clip: Pick<MotionClip, "positions">, t: number) => {
+  const time = t - Math.floor(t);
+  const index = clip.positions.findIndex((position) => time >= position.from && time < position.to);
+  return index < 0 ? clip.positions.length - 1 : index;
 };
 
 const FOOT_CHANNELS = ["X", "Z", "Lift", "Yaw", "Roll"] as const;
@@ -177,13 +185,14 @@ export const gesture = (draft: GestureDraft): MotionClip => {
     return hold ? hold.from : phases.find((phase) => !phase.hold && phase.key === index)!.to % 1;
   };
   const lines = draft.keys
-    .map((key, index) => ({ guide: key.guide, from: arrival(index) }))
-    .filter((line): line is { guide: number; from: number } => line.guide !== undefined)
+    .map((key, index) => ({ guide: key.guide, from: arrival(index), still: instant(index) }))
+    .filter((line): line is { guide: number; from: number; still: number } => line.guide !== undefined)
     .sort((a, b) => a.guide - b.guide);
   const positions =
     lines.length === 0
-      ? [{ from: 0, to: 1 }]
-      : lines.map((line, index) => ({ from: line.from, to: lines[index + 1]?.from ?? 1 }));
+      ? [{ guide: 0, from: 0, to: 1, still: 0 }]
+      : // La première ligne court depuis le début de la boucle, la dernière jusqu'à sa fin.
+        lines.map((line, index) => ({ ...line, from: index === 0 ? 0 : line.from, to: lines[index + 1]?.from ?? 1 }));
 
   return {
     key: draft.key,

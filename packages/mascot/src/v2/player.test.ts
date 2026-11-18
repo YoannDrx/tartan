@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { drawClip, lookOf, sceneSvg, svgMarkup, type DrawNode, type ScenePaint } from "./draw-svg";
+import { drawClip, framing, lookOf, sceneSvg, staged, svgMarkup, type DrawNode, type ScenePaint } from "./draw-svg";
 import { backSquat, lateralLunge, snatch } from "./gestures";
 import { gestureClip } from "./registry";
 import { createMotionPlayer, svgSink, type SvgElementLike, type Ticker } from "./player";
@@ -33,11 +33,14 @@ const manual = () => {
 };
 
 // Un faux document : il compte ce que le lecteur écrit.
+interface Fake extends SvgElementLike<Fake> {
+  tag: string;
+  attributes: Map<string, string>;
+  children: Fake[];
+}
 const fakeDocument = () => {
   const log = { created: 0, attributes: 0, appended: 0 };
-  const element = (
-    tag: string,
-  ): SvgElementLike & { tag: string; attributes: Map<string, string>; children: SvgElementLike[] } => ({
+  const element = (tag: string): Fake => ({
     tag,
     attributes: new Map(),
     children: [],
@@ -129,6 +132,38 @@ describe("dessin d'une image", () => {
     expect(svg).toMatch(/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg" viewBox="-?\d+ -?\d+ \d+ \d+">/);
     expect(svg).toContain('stroke="floor"');
     expect(svg).not.toMatch(/NaN|undefined/);
+  });
+});
+
+describe("cadre d'un écran", () => {
+  it("élargit le cadre au format 3:2 sans rien couper, posé sur le sol de profil et de face", () => {
+    for (const view of ["side", "front"] as const) {
+      const box = framing(snatch, view, 14, 32);
+      const stage = staged(box, view);
+      expect(stage.width / stage.height).toBeCloseTo(1.5, 1);
+      expect(stage.x).toBeLessThanOrEqual(box.x);
+      expect(stage.x + stage.width).toBeGreaterThanOrEqual(box.x + box.width - 1);
+      expect(stage.y).toBeLessThanOrEqual(box.y);
+      expect(Math.abs(stage.y + stage.height - (box.y + box.height))).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("de dessus, le geste est centré dans le cadre", () => {
+    const box = { x: 0, y: 0, width: 300, height: 100 };
+    expect(staged(box, "top")).toEqual({ x: 0, y: -50, width: 300, height: 200 });
+    expect(staged(box, "side")).toEqual({ x: 0, y: -100, width: 300, height: 200 });
+    expect(staged({ x: 0, y: 0, width: 100, height: 200 }, "front")).toEqual({
+      x: -100,
+      y: 0,
+      width: 300,
+      height: 200,
+    });
+  });
+
+  it("un cadrage mesuré sur moins d'images reste proche du cadrage complet", () => {
+    const [full, quick] = [framing(lateralLunge, "front"), framing(lateralLunge, "front", 14, 32)];
+    expect(Math.abs(full.width - quick.width)).toBeLessThan(12);
+    expect(Math.abs(full.height - quick.height)).toBeLessThan(12);
   });
 });
 
@@ -236,10 +271,7 @@ describe("pose dans un SVG", () => {
     expect(bench).toBeDefined();
     sink.render(nodes);
     const created = fake.log.created;
-    const element = parent.children[nodes.indexOf(bench)] as unknown as {
-      tag: string;
-      attributes: Map<string, string>;
-    };
+    const element = parent.children[nodes.indexOf(bench)]!;
     expect(element.tag).toBe("rect");
     expect(element.attributes.get("fill")).toBe("bench");
     // Une image sans ce banc : l'élément reste, masqué ; il revient à l'image suivante.
@@ -258,7 +290,7 @@ describe("pose dans un SVG", () => {
       const nodes = drawClip(snatch, t, "front");
       sink.render(nodes);
       expect(parent.children).toHaveLength(nodes.length);
-      const head = parent.children.at(-1) as unknown as { tag: string };
+      const head = parent.children.at(-1)!;
       expect(["g", "path"]).toContain(head.tag);
     }
   });

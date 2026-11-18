@@ -36,13 +36,14 @@ export const backSquat = gesture({
   keys: [
     {
       id: "standing",
-      guide: 1,
+      guide: 0,
       set: standing,
       hold: 900,
       move: { ms: 480, curve: "reception", phase: "up" },
     },
     {
       id: "descent",
+      guide: 1,
       set: { ...lean(21, 3, 2, -14), barY: 216 },
       still: true,
       move: { ms: 700, curve: "elan", phase: "down" },

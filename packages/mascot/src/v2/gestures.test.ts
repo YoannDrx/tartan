@@ -50,9 +50,8 @@ describe("gestes écrits à la main", () => {
       for (const phase of clip.phases) expect(phase.id).toMatch(/^[a-z][a-z0-9-]*$/);
       for (const still of clip.stills) expect(still.id).toMatch(/^[a-z][a-z0-9-]*$/);
       const lines = clip.stills.flatMap((still) => (still.guide === undefined ? [] : [still.guide]));
-      expect(lines.length).toBeGreaterThanOrEqual(3);
-      expect(lines).toEqual([...lines].sort((a, b) => a - b));
-      expect(clip.positions).toHaveLength(lines.length);
+      expect(lines).toEqual([0, 1, 2, 3]);
+      expect(clip.positions.map((position) => position.guide)).toEqual(lines);
       expect(clip.positions[0]!.from).toBe(0);
       expect(clip.positions.at(-1)!.to).toBe(1);
     }

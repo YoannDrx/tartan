@@ -101,20 +101,25 @@ export const createMotionPlayer = (
 };
 
 // Ce qu'il faut d'un document et d'un élément SVG pour y poser un geste : le navigateur les fournit tels quels.
-export type SvgElementLike = {
+// `E` : le type d'élément de l'hôte (un `Element` du DOM, un faux élément dans un test).
+export type SvgElementLike<E> = {
   setAttribute(name: string, value: string): void;
-  appendChild(child: SvgElementLike): unknown;
-  replaceChildren(...children: SvgElementLike[]): void;
+  appendChild(child: E): unknown;
+  replaceChildren(...children: E[]): void;
 };
-export type SvgDocumentLike = { createElementNS(namespace: string, tag: string): SvgElementLike };
+export type SvgDocumentLike<E> = { createElementNS(namespace: string, tag: string): E };
 
 const SVG = "http://www.w3.org/2000/svg";
 
 // Pose un geste dans un groupe SVG. Les éléments sont créés une fois ; ensuite seuls changent le tracé d'un aplat,
 // le placement de la tête ou du dossard, la forme d'un accessoire, et l'ordre d'empilement quand un membre passe
 // devant un autre. Un élément absent d'une image (un repère sorti du cadre) est masqué, pas détruit.
-export const svgSink = (document: SvgDocumentLike, parent: SvgElementLike, paint: ScenePaint): MotionSink => {
-  type Entry = { element: SvgElementLike; value: string; content: string; shown: boolean; seen: number };
+export const svgSink = <E extends SvgElementLike<E>>(
+  document: SvgDocumentLike<E>,
+  parent: E,
+  paint: ScenePaint,
+): MotionSink => {
+  type Entry = { element: E; value: string; content: string; shown: boolean; seen: number };
   const elements = new Map<string, Entry>();
   let order = "";
   let frame = 0;

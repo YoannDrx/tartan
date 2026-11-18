@@ -231,7 +231,8 @@ export type Box = { x: number; y: number; width: number; height: number };
 
 // Le cadre qui contient tout le geste dans une vue : le corps et la barre sur toute la boucle, plus une marge.
 // De profil et de face, il s'arrête juste sous le sol.
-export const framing = (clip: MotionClip, view: GestureView, margin = 14): Box => {
+// `samples` : le nombre d'images mesurées. Moins d'images suffit à un écran qui cadre large.
+export const framing = (clip: MotionClip, view: GestureView, margin = 14, samples = 96): Box => {
   let [left, right, top, bottom] = [Infinity, -Infinity, Infinity, -Infinity];
   const include = (x: number, y: number, r: number) => {
     left = Math.min(left, x - r);
@@ -240,10 +241,10 @@ export const framing = (clip: MotionClip, view: GestureView, margin = 14): Box =
     bottom = Math.max(bottom, y + r);
   };
   const gear: Extent[] = [];
-  for (let i = 0; i < 96; i += 1) {
-    const body = clip.pose(i / 96);
+  for (let i = 0; i < samples; i += 1) {
+    const body = clip.pose(i / samples);
     const { parts, head } = skin(body);
-    for (const prop of clip.props(i / 96, body)) {
+    for (const prop of clip.props(i / samples, body)) {
       const geometry = prop.scroll ? null : seenFrom(prop, view);
       if (geometry) gear.push(extent(geometry));
     }
@@ -269,6 +270,19 @@ export const framing = (clip: MotionClip, view: GestureView, margin = 14): Box =
     y: Math.floor(top - margin),
     width: Math.ceil(right - left + 2 * margin),
     height: Math.ceil(bottom - top + margin + (view === "top" ? margin : 10)),
+  };
+};
+
+// Le même cadre, élargi au format d'un écran (3:2 par défaut) : le geste garde sa place quand la vue change.
+// De profil et de face, il reste posé sur le sol ; de dessus, il est centré.
+export const staged = (box: Box, view: GestureView, ratio = 1.5): Box => {
+  const wide = box.width / box.height >= ratio;
+  const [width, height] = wide ? [box.width, box.width / ratio] : [box.height * ratio, box.height];
+  return {
+    x: Math.round(box.x - (width - box.width) / 2),
+    y: Math.round(view === "top" ? box.y - (height - box.height) / 2 : box.y + box.height - height),
+    width: Math.round(width),
+    height: Math.round(height),
   };
 };
 
