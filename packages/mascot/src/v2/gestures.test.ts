@@ -82,6 +82,9 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
 
   it("un pied d'appui ne glisse pas", () => {
     expect(report.feet).toEqual([]);
+    // Suspendu à une barre fixe ou en appui sur des barres parallèles, le corps ne touche pas le sol : ce sont les
+    // mains qui tiennent (bodyweight.test.ts).
+    if (clip.phases.every((phase) => phase.planted.length === 0)) return;
     // Le contrôle porte bien sur des appuis : les deux pieds pendant une tenue, au moins un sur la plupart des transitions.
     for (const phase of clip.phases.filter((candidate) => candidate.hold)) expect(phase.planted).toEqual(["R", "L"]);
     const moves = clip.phases.filter((candidate) => !candidate.hold);

@@ -12,8 +12,8 @@ describe("choix du moteur par fiche", () => {
       expect(motionEngine(key), key).toBe("v2");
       expect(motionLevel(key), key).toBe("ecrit");
     }
-    expect(motionEngine("front-squat")).toBe("v2");
-    expect(motionLevel("front-squat")).toBe("releve");
+    expect(motionEngine("goblet-squat")).toBe("v2");
+    expect(motionLevel("goblet-squat")).toBe("releve");
     expect(motionEngine("easy-continuous-run")).toBe("v2");
   });
 
@@ -34,10 +34,10 @@ describe("choix du moteur par fiche", () => {
     }
   });
 
-  it("le compte : 158 gestes sur le nouveau moteur, 15 sur le premier, d'accord avec le registre", () => {
+  it("le compte : 159 gestes sur le nouveau moteur, 14 sur le premier, d'accord avec le registre", () => {
     const engines = GESTURE_KEYS.map((key) => motionEngine(key));
-    expect(engines.filter((engine) => engine === "v2")).toHaveLength(158);
-    expect(engines.filter((engine) => engine === "v1")).toHaveLength(15);
+    expect(engines.filter((engine) => engine === "v2")).toHaveLength(159);
+    expect(engines.filter((engine) => engine === "v1")).toHaveLength(14);
     for (const key of GESTURE_KEYS) {
       const level = motionLevel(key);
       expect(level === "ecrit" ? "ecrit" : "releve", key).toBe(gestureEntry(key)!.level);
@@ -51,7 +51,8 @@ describe("choix du moteur par fiche", () => {
     // Gainage latéral : dessiné de face par le premier moteur, à reprendre, donc toujours dans la série « face ».
     expect(reviewBatch("side-plank")).toBe(EXERCISE_CLIPS["side-plank"]!.batch);
     expect(reviewBatch("side-plank")).toBe("face");
-    expect(reviewBatch("good-morning")).toBeUndefined();
+    expect(reviewBatch("good-morning")).toBe("v2");
+    expect(reviewBatch("inverted-row")).toBe(EXERCISE_CLIPS["inverted-row"]!.batch);
   });
 });
 

@@ -8,8 +8,6 @@ export type Constraint = keyof Report;
 
 export const A_REPRENDRE: Readonly<Record<string, readonly Constraint[]>> = {
   // Musculation.
-  // Barre sur le dos, prise large : les coudes partent trop loin derrière le buste.
-  "good-morning": ["limits"],
   // Pieds sur la pointe, corps incliné : la cheville dépasse sa flexion.
   "incline-push-up": ["limits"],
   // L'ancien geste déplace la barre fixe avec la main : les mains n'y tiennent pas.

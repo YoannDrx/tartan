@@ -49,8 +49,9 @@ export const gestureEntry = (key: string): GestureEntry | null => {
   const old = EXERCISE_CLIPS[key];
   if (!old) return null;
   const written = GESTURES[key];
+  // Un geste écrit se lit de profil ; au sol (des pompes), de dessus plutôt que de face.
   const entry: GestureEntry = written
-    ? { key, level: "ecrit", clip: written, native: "side", views: ["side", "front"] }
+    ? { key, level: "ecrit", clip: written, native: "side", views: ["side", onTheGround(written) ? "top" : "front"] }
     : (() => {
         const clip = liftClip(old);
         return { key, level: "releve" as const, clip, ...viewsOf(old, clip) };

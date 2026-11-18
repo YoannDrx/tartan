@@ -83,7 +83,7 @@ describe("contraintes sur tout le registre", () => {
   it("le compte est connu : les gestes qui respectent tout, et ceux à reprendre", () => {
     const again = [...broken.values()].filter((constraints) => constraints.length > 0).length;
     expect(again).toBe(Object.keys(A_REPRENDRE).length);
-    expect(173 - again).toBe(158);
+    expect(173 - again).toBe(159);
   });
 
   it.each(entries.map((entry) => [entry.key, entry] as const))("%s : chaque vue se dessine", (_, entry) => {
