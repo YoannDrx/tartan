@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { MAIL_DIR } from "./e2e/mail";
 
 // Deux sessions sur le même poste ne partagent ni le port ni la base : `E2E_PORT` et `E2E_DATABASE_URL`.
 const PORT = Number(process.env.E2E_PORT ?? 3100);
@@ -61,6 +62,8 @@ export default defineConfig({
             APPLE_TEAM_ID: "TESTTEAM00",
             ANDROID_SHA256_FINGERPRINTS: "AA:BB:CC",
             RESEND_API_KEY: "",
+            // Sans prestataire, chaque e-mail est déposé dans ce dossier : le parcours suit le vrai lien.
+            E2E_MAIL_DIR: MAIL_DIR,
             MUX_TOKEN_ID: process.env.E2E_VIDEO_ENABLED === "true" ? "mux-local-test" : "",
             MUX_TOKEN_SECRET: process.env.E2E_VIDEO_ENABLED === "true" ? "mux-local-test" : "",
             MUX_BASE_URL: process.env.E2E_VIDEO_ENABLED === "true" ? "http://127.0.0.1:3103" : "",

@@ -78,6 +78,7 @@ Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette s
 | `TEST_DATABASE_URL` | Base de Vitest, défaut `tartan_test` |
 | `E2E_AI_PLANNER_ENABLED=true` | Ouvre le planificateur simulé |
 | `E2E_DISABLE_ADMIN_STEP_UP`, `E2E_DISABLE_RATE_LIMIT` | Posées par la configuration de Playwright, interdites en production |
+| `E2E_MAIL_DIR` | Posée par la configuration de Playwright : le serveur y dépose chaque e-mail (destinataire, objet, lien), le parcours suit le vrai lien avec `emailLink` de `e2e/mail.ts`. Un dossier temporaire par port, hors du dépôt. Interdite en production |
 | `RUN_STRIPE_SANDBOX=1` | Autorise la suite sandbox ; `STRIPE_SANDBOX_ACCOUNT` doit désigner localement le compte attendu |
 | `RUN_STRIPE_BROWSER=1` | Ajoute les deux parcours Chrome sur Checkout, facture et portail réels de sandbox, hors CI |
 | `CAPTURE_BASE_URL` | Mode captures : sans serveur ni réinitialisation |
@@ -90,6 +91,8 @@ Hors CI ordinaire : sandbox Stripe, `eval:planner --live`, captures et recette s
 - Hors CI, `reuseExistingServer` réutilise un serveur déjà lancé sur le port des parcours (3100, ou `E2E_PORT`), avec ses variables : arrête-le avant de changer de drapeau.
 - `globalSetup` fait un `prisma migrate reset --force` de la base E2E à chaque lancement.
 - `enforceRateLimit` n'a pas de contournement en E2E : utilise des adresses différentes.
+- Les limites de débit de la connexion sont coupées dans les parcours (tous les essais viennent de la même adresse IP) : elles sont tenues dans `tests/auth-rate-limit.test.ts`, limiteur allumé, sur le vrai serveur d'authentification.
+- Dans un parcours, le champ du mot de passe se vise par son libellé exact (`getByLabel("Mot de passe", { exact: true })`) : le bouton « Afficher le mot de passe » porte presque le même nom.
 - Un test d'administration doit utiliser une adresse de `ADMIN_EMAILS` dans `playwright.config.ts`, ou compléter cette liste.
 - Les tests de passkey ne tournent que sous Chromium, avec l'authentificateur virtuel (`e2e/admin-passkey.spec.ts`).
 - Sans `RESEND_API_KEY`, `next dev` écrit dans la console le sujet de chaque e-mail et son lien d'action (`[e-mail local] … → …`) : un lien de connexion, de vérification ou d'invitation se joue en le recopiant.

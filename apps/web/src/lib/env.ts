@@ -89,7 +89,13 @@ const isProductionDatabase = (url: string | undefined): boolean => {
 // Un essai destructif ne doit jamais atteindre la production, et un réglage de test ne doit jamais y arriver.
 export const assertEnvIsolation = (vars: Record<string, string | undefined>): void => {
   if (vars.VERCEL_ENV === "production") {
-    for (const name of ["E2E_DISABLE_RATE_LIMIT", "VIDEO_DEV_MP4_URL", "AI_PLANNER_FAKE_PROVIDER", "MUX_BASE_URL"]) {
+    for (const name of [
+      "E2E_DISABLE_RATE_LIMIT",
+      "E2E_MAIL_DIR",
+      "VIDEO_DEV_MP4_URL",
+      "AI_PLANNER_FAKE_PROVIDER",
+      "MUX_BASE_URL",
+    ]) {
       if (vars[name]) throw new Error(`${name} est interdit en production.`);
     }
     return;

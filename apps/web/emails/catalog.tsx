@@ -1,5 +1,6 @@
 import { PLANS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import type { ReactElement } from "react";
 import type { EmailKey } from "@/server/email-registry";
 import {
@@ -25,6 +26,7 @@ import {
   SubscriptionConfirmedEmail,
   SubscriptionEndedEmail,
 } from "./billing";
+import { AccountExistsEmail, ConfirmPasswordSetupEmail, PasswordSetEmail } from "./credentials";
 import { WeeklyDigestEmail } from "./digest";
 import { AthleteWelcomeEmail, InvitationReminderEmail, TipEmail } from "./lifecycle";
 
@@ -49,6 +51,13 @@ export const emailCatalog = (appUrl: string): EmailSample[] => {
     { key: "magic_link", subject: m.email.subjects.magicLink, react: <MagicLinkEmail url={url} /> },
     { key: "reset_password", subject: m.email.subjects.resetPassword, react: <ResetPasswordEmail url={url} /> },
     { key: "password_changed", subject: m.email.passwordChanged.subject, react: <PasswordChangedEmail url={url} /> },
+    { key: "password_set", subject: w.auth.emails.passwordSet.subject, react: <PasswordSetEmail url={url} /> },
+    {
+      key: "password_setup_confirm",
+      subject: w.auth.emails.confirmSetup.subject,
+      react: <ConfirmPasswordSetupEmail url={url} />,
+    },
+    { key: "account_exists", subject: w.auth.emails.accountExists.subject, react: <AccountExistsEmail url={url} /> },
     {
       key: "invitation_athlete",
       subject: m.email.subjects.invitationAthlete(INVITER, SPACE),

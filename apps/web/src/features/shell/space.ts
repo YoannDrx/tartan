@@ -1,9 +1,10 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { SpaceSummary } from "@tartan/contracts";
 import { isStaff } from "@tartan/domain";
 import { getActor, type Actor } from "@/lib/session";
 import { AppError, unauthorized } from "@/lib/errors";
+import { RETURN_PATH_HEADER, signInPath } from "@/lib/return-path";
 import { ageStatusOfUser } from "@/server/age.service";
 import { listSpaces } from "@/server/me.service";
 import { SPACE_COOKIE } from "./space-cookie";
@@ -24,7 +25,8 @@ const pick = (spaces: SpaceSummary[], wanted: string | undefined): SpaceSummary 
 // Pour les pages : renvoie vers la connexion ou l'accueil coach si besoin.
 export const requireSpace = async (): Promise<SpaceContext> => {
   const actor = await getActor();
-  if (!actor) redirect("/connexion");
+  // La page demandée suit dans `next` : après la connexion, on y revient au lieu de retomber sur l'accueil.
+  if (!actor) redirect(signInPath((await headers()).get(RETURN_PATH_HEADER)));
   const spaces = await listSpaces(actor.userId);
   const jar = await cookies();
   const space = pick(spaces, jar.get(SPACE_COOKIE)?.value);

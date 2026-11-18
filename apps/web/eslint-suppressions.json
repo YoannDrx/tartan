@@ -24,11 +24,6 @@
       "count": 3
     }
   },
-  "app/(public)/i/[token]/page.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 1
-    }
-  },
   "app/(public)/mentions-legales/page.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 11
@@ -72,11 +67,6 @@
   "src/features/athletes/athlete-forms.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 19
-    }
-  },
-  "src/features/auth/sign-in-form.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 5
     }
   },
   "src/features/legal/privacy.tsx": {

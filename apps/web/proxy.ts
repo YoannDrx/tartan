@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { SPACE_COOKIE } from "@/features/shell/space-cookie";
+import { RETURN_PATH_HEADER } from "@/lib/return-path";
 
 const buildCsp = (nonce: string): string =>
   [
@@ -82,6 +83,11 @@ export function proxy(request: NextRequest) {
   const policy = buildCsp(nonce);
   const headers = new Headers(request.headers);
   headers.set("x-nonce", nonce);
+  // La page demandée, pour y revenir après la connexion. Toujours réécrite : une valeur envoyée par le client est perdue.
+  // Le paramètre interne des navigations côté client n'appartient pas à l'adresse de la page.
+  const query = new URLSearchParams(request.nextUrl.search);
+  query.delete("_rsc");
+  headers.set(RETURN_PATH_HEADER, query.size > 0 ? `${pathname}?${query}` : pathname);
   headers.set("Content-Security-Policy", policy);
   const response = NextResponse.next({ request: { headers } });
   response.headers.set("Content-Security-Policy", policy);
