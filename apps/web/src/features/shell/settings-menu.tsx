@@ -1,13 +1,14 @@
 "use client";
 
 import type { SpaceSummary } from "@tartan/contracts";
-import { can } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { CircleHelp, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 import { DropdownMenu } from "radix-ui";
 import { useState } from "react";
 import { ScreenHelpDialog } from "@/features/help/screen-help-dialog";
+import { rubricTitle } from "@/features/settings/rubric-meta";
+import { SETTINGS_ROOT, canOpenRubric, rubricPath, type SettingsRubric } from "@/features/settings/sections";
 import { cn } from "@/lib/cn";
 import { signOut } from "./sign-out";
 
@@ -29,14 +30,18 @@ export const SettingsMenu = ({
 }) => {
   const [leaving, setLeaving] = useState(false);
   const [help, setHelp] = useState(false);
+  // Les raccourcis portent le nom des rubriques des réglages et y mènent ; l'abonnement ouvre l'offre complète.
+  const shortcuts: SettingsRubric[] =
+    space.role === "athlete" ? ["profil", "confidentialite"] : ["profil", "espace", "groupes", "abonnement"];
   const links = [
-    { href: "/reglages#profil", label: m.settings.profile, show: true },
-    { href: "/reglages#espace", label: m.settings.organization, show: can(space.role, "manageOrganization") },
-    { href: "/reglages#invitations", label: m.settings.groups, show: can(space.role, "inviteAthlete") },
-    { href: "/abonnement", label: m.settings.plan, show: can(space.role, "manageSubscription") },
-    { href: "/reglages#confidentialite", label: m.settings.privacy, show: space.role === "athlete" },
-    { href: "/admin", label: m.admin.title, show: admin },
-  ].filter((link) => link.show);
+    ...shortcuts
+      .filter((rubric) => canOpenRubric(space.role, rubric))
+      .map((rubric) => ({
+        href: rubric === "abonnement" ? "/abonnement" : rubricPath(rubric),
+        label: rubricTitle(rubric),
+      })),
+    ...(admin ? [{ href: "/admin", label: m.admin.title }] : []),
+  ];
 
   return (
     <>
@@ -69,7 +74,7 @@ export const SettingsMenu = ({
               </DropdownMenu.Item>
             ))}
             <DropdownMenu.Item asChild className={itemClass}>
-              <Link href="/reglages">{m.nav.allSettings}</Link>
+              <Link href={SETTINGS_ROOT}>{m.nav.allSettings}</Link>
             </DropdownMenu.Item>
             {/* L'aide garde la même place sur tous les écrans, pour le coach comme pour l'athlète. */}
             <DropdownMenu.Item className={cn(itemClass, "gap-2")} onSelect={() => setHelp(true)}>

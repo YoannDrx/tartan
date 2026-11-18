@@ -1,8 +1,10 @@
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import type { HelpThemeId } from "./content";
 
 type ScreenKey = Exclude<keyof typeof m.help.screens, "fallback">;
-type Rule = { path: RegExp; staff?: boolean; screen: ScreenKey; theme: HelpThemeId };
+// `tips` : un repère propre à la web app, quand celui du catalogue commun décrit un écran qu'elle organise autrement.
+type Rule = { path: RegExp; staff?: boolean; screen: ScreenKey; theme: HelpThemeId; tips?: readonly string[] };
 
 // Du plus précis au plus large. `staff` absent : la règle vaut pour le coach comme pour l'athlète.
 const RULES: Rule[] = [
@@ -16,7 +18,8 @@ const RULES: Rule[] = [
   { path: /^\/planificateur(\/|$)/, screen: "planificateur", theme: "seances" },
   { path: /^\/annonces(\/|$)/, staff: true, screen: "annoncesCoach", theme: "groupe" },
   { path: /^\/annonces(\/|$)/, staff: false, screen: "annoncesAthlete", theme: "athlete" },
-  { path: /^\/reglages(\/|$)/, screen: "reglages", theme: "compte" },
+  // Le sommaire et toutes ses rubriques : sur le web, les réglages tiennent en plusieurs pages.
+  { path: /^\/reglages(\/|$)/, screen: "reglages", theme: "compte", tips: w.settings.screenHelp },
   { path: /^\/abonnement(\/|$)/, screen: "abonnement", theme: "abonnement" },
   { path: /^\/aujourdhui(\/|$)/, screen: "aujourdhui", theme: "athlete" },
   { path: /^\/seance\//, staff: false, screen: "seance", theme: "athlete" },
@@ -30,7 +33,7 @@ export type ScreenHelp = { tips: readonly string[]; theme: HelpThemeId };
 export const screenHelpFor = (pathname: string, staff: boolean): ScreenHelp => {
   const rule = RULES.find((entry) => entry.path.test(pathname) && (entry.staff === undefined || entry.staff === staff));
   return rule
-    ? { tips: m.help.screens[rule.screen], theme: rule.theme }
+    ? { tips: rule.tips ?? m.help.screens[rule.screen], theme: rule.theme }
     : { tips: m.help.screens.fallback, theme: staff ? "demarrer" : "athlete" };
 };
 

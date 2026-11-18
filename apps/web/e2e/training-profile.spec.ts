@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { expectAccessible, expectNoHorizontalScroll, nextOnboardingStep, signUp, uniqueEmail } from "./helpers";
 import { groupLink, joinAsAthlete } from "./journeys";
 
@@ -57,8 +58,8 @@ test("le coach choisit son contexte sportif, le retrouve et le modifie sur web e
   expect(await (await page.request.get(`${url}/groups`)).json()).toMatchObject([
     { name: "Sprint U18", goal: "Préparer la saison estivale" },
   ]);
-  await page.goto("/reglages");
-  const section = page.getByRole("region", { name: "Espace", exact: true });
+  await page.goto("/reglages/espace");
+  const section = page.getByRole("region", { name: w.settings.espace.section, exact: true });
   await section
     .locator("summary")
     .filter({ hasText: /^Objectifs de préparation/ })
