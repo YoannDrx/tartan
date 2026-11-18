@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { addDays, defaultDateForWeek, monthRange, shiftMonthKey, startOfWeek } from "@tartan/domain";
 import { capitalize, formatDateLong, formatDayMonth, m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { FilterPill } from "@/components/filter-pill";
 import { Sheet } from "@/components/sheet";
 import { PageHeader, PeriodStepper } from "@/components/states";
@@ -24,7 +25,7 @@ import { requireOrgMember } from "@/server/access";
 import { getAthleteCalendar } from "@/server/athlete-view.service";
 import { listAthletes } from "@/server/athlete.service";
 import { listGroups } from "@/server/org.service";
-import { listCalendar } from "@/server/session.service";
+import { listPlanning } from "@/server/session.service";
 import { CalendarPhases } from "@/features/phases/calendar-phases";
 
 export const metadata: Metadata = { title: m.nav.calendrier };
@@ -53,7 +54,7 @@ const AthleteMonth = async ({ ctx, month, today }: { ctx: SpaceContext; month: s
         previousLabel={m.calendar.previousMonth}
         nextLabel={m.calendar.nextMonth}
       />
-      <CalendarPhases ctx={ctx} from={range.from} to={range.to} today={today} collapsed />
+      <CalendarPhases ctx={ctx} from={range.from} to={range.to} today={today} />
       <MonthGrid
         key={month}
         month={month}
@@ -124,7 +125,7 @@ const AthleteCalendar = async ({ ctx, params }: { ctx: SpaceContext; params: Sea
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
       <PageHeader title={m.nav.calendrier} />
       {switcher}
-      <CalendarPhases ctx={ctx} from={today} to={addDays(today, 42)} today={today} />
+      <CalendarPhases ctx={ctx} from={today} to={addDays(today, 42)} today={today} open />
       <Sheet>
         {competitions.length > 0 ? (
           <section>
@@ -199,8 +200,8 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
   const range = monthRange(month);
   const from = usesMonth ? range.from : week;
   const to = usesMonth ? range.to : addDays(week, 6);
-  const [data, groups, athletes] = await Promise.all([
-    listCalendar(ctx.actor.userId, ctx.organizationId, { from, to, groupId: params.groupe, summary: usesMonth }),
+  const [{ readOnly, ...data }, groups, athletes] = await Promise.all([
+    listPlanning(ctx.actor.userId, ctx.organizationId, { from, to, groupId: params.groupe, summary: usesMonth }),
     listGroups(access),
     listAthletes(ctx.actor.userId, ctx.organizationId),
   ]);
@@ -259,8 +260,8 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
           label={label}
           previous={usesMonth ? href({ mois: shiftMonthKey(month, -1) }) : href({ semaine: addDays(week, -7) })}
           next={usesMonth ? href({ mois: shiftMonthKey(month, 1) }) : href({ semaine: addDays(week, 7) })}
-          previousLabel="Période précédente"
-          nextLabel="Période suivante"
+          previousLabel={w.planning.previousPeriod}
+          nextLabel={w.planning.nextPeriod}
         />
         <nav
           aria-label={m.calendar.viewAndGroup}
@@ -300,7 +301,7 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
             : null}
         </nav>
       </div>
-      <CalendarPhases ctx={ctx} from={from} to={to} today={today} groupId={params.groupe} collapsed={isMonth} />
+      <CalendarPhases ctx={ctx} from={from} to={to} today={today} groupId={params.groupe} />
       <CalendarDetailPanel
         sessionId={uuid.safeParse(params.seance).success ? params.seance : undefined}
         returnTo={href({})}
@@ -314,11 +315,25 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
         ) : null}
       </CalendarDetailPanel>
       {isMonth ? (
-        <MonthBoard month={month} today={today} data={data} returnTo={href({})} groupId={params.groupe} />
+        <MonthBoard
+          month={month}
+          today={today}
+          data={data}
+          readOnly={readOnly}
+          returnTo={href({})}
+          groupId={params.groupe}
+        />
       ) : isList ? (
         <ListBoard month={month} today={today} data={data} returnTo={href({})} />
       ) : (
-        <WeekBoard week={week} today={today} data={data} returnTo={href({})} groupId={params.groupe} />
+        <WeekBoard
+          week={week}
+          today={today}
+          data={data}
+          readOnly={readOnly}
+          returnTo={href({})}
+          groupId={params.groupe}
+        />
       )}
     </div>
   );

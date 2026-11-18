@@ -134,7 +134,11 @@ jobs:
       - name: Preuve de concept vidéo et plein écran de l'analyse
         if: ${{ matrix.extras }}
         # Sans E2E_PROD : le clip de test n'est servi qu'en développement. Le plein écran se joue aussi sur téléphone.
-        run: pnpm --filter @tartan/web exec playwright test video-poc video-fullscreen --project=desktop --project=mobile
+        # Deux lancements : la preuve de concept garde un serveur de développement frais, comme avant le plein écran.
+        # Lancée après lui dans le même serveur, elle dépassait ses 15 secondes sur le serveur de la CI.
+        run: |
+          pnpm --filter @tartan/web exec playwright test video-poc --project=desktop
+          pnpm --filter @tartan/web exec playwright test video-fullscreen --project=desktop --project=mobile
       - name: Planificateur activé avec prestataire simulé
         if: ${{ matrix.extras }}
         run: pnpm --filter @tartan/web exec playwright test ai-planner
