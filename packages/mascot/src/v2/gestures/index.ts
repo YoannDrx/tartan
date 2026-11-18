@@ -26,6 +26,7 @@ import { coneSideShuffle, lateralBandWalk, lateralRaise, lateralSkaterBound } fr
 import { lateralLunge } from "./lateral-lunge";
 import { forwardLunge, reverseLunge } from "./lunges";
 import { overheadSquat, snatchBalance } from "./overhead";
+import { alternatingBounds, buttKicks, easyContinuousRun, flyingSprint, highKnees, trackTempo } from "./running";
 import { hipThrust } from "./hip-thrust";
 import { benchPress, overheadPress } from "./presses";
 import { cleanPull, snatchDeadlift, snatchPull } from "./pulls";
@@ -130,12 +131,20 @@ export const PLYOMETRIC_GESTURES: readonly MotionClip[] = [
   highJumpShort,
   highJumpFull,
 ];
+// La course et ses éducatifs, tirés du générateur de foulée.
+export const STRIDE_GESTURES: readonly MotionClip[] = [
+  easyContinuousRun,
+  trackTempo,
+  flyingSprint,
+  highKnees,
+  buttKicks,
+  alternatingBounds,
+];
 
 export const GESTURES: Readonly<Record<string, MotionClip>> = Object.fromEntries(
-  [...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES, ...OTHER_GESTURES, ...PLYOMETRIC_GESTURES].map((clip) => [
-    clip.key,
-    clip,
-  ]),
+  [...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES, ...OTHER_GESTURES, ...PLYOMETRIC_GESTURES, ...STRIDE_GESTURES].map(
+    (clip) => [clip.key, clip],
+  ),
 );
 
 export {

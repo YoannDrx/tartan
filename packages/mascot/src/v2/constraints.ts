@@ -5,7 +5,7 @@ import { BARBELL, FIGURE, LIMITS, type Limit } from "./body";
 import type { MotionClip, Phase } from "./gesture";
 import { volumes } from "./skin";
 import { SIDES, type Side, type Solved } from "./solve";
-import { add, cross, degrees, distance, dot, normalize, scale, sub, type Frame, type Vec3 } from "./vec";
+import { add, cross, degrees, distance, dot, normalize, scale, sub, vec, type Frame, type Vec3 } from "./vec";
 
 const angleBetween = (a: Vec3, b: Vec3) =>
   degrees(Math.acos(Math.min(1, Math.max(-1, dot(normalize(a), normalize(b))))));
@@ -155,8 +155,10 @@ export const inspect = (clip: MotionClip, samples = 240): Report => {
     for (const t of inside(24)) {
       const body = clip.pose(t);
       for (const side of phase.planted) {
-        const drift = distance(body.legs[side].ball, first.legs[side].ball);
-        const toes = distance(body.legs[side].toe, first.legs[side].toe);
+        // Sur un sol qui défile, l'appui recule avec lui : on le compare à sa place, emportée par le sol.
+        const ground = vec(-((clip.treadmill ?? 0) * (t - phase.from) * clip.duration) / 1000, 0, 0);
+        const drift = distance(body.legs[side].ball, add(first.legs[side].ball, ground));
+        const toes = distance(body.legs[side].toe, add(first.legs[side].toe, ground));
         if (Math.max(drift, toes) >= SLIP)
           report.feet.push(`le pied ${side} glisse de ${Math.max(drift, toes).toFixed(2)} à ${at(t)}`);
       }

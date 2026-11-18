@@ -12,6 +12,7 @@ import {
   lateralLunge,
   OTHER_GESTURES,
   PLYOMETRIC_GESTURES,
+  STRIDE_GESTURES,
   snatch,
   STRENGTH_GESTURES,
   WEIGHTLIFTING_GESTURES,
@@ -25,7 +26,8 @@ import { distance } from "./vec";
 const clips = Object.values(GESTURES).map((clip) => [clip.key, clip] as const);
 // Les gestes d'haltérophilie et de musculation se tiennent sur leurs deux pieds à chaque tenue.
 const TWO_FEET = new Set([...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES].map((clip) => clip.key));
-const JUMPS = new Set(PLYOMETRIC_GESTURES.map((clip) => clip.key));
+const JUMPS = new Set([...PLYOMETRIC_GESTURES, ...STRIDE_GESTURES].map((clip) => clip.key));
+const STRIDES = new Set(STRIDE_GESTURES.map((clip) => clip.key));
 // Au moins 120 images par boucle ; 240 pour ne pas manquer une phase de moins de 150 ms.
 const SAMPLES = 240;
 const reports = new Map(clips.map(([key, clip]) => [key, inspect(clip, SAMPLES)]));
@@ -51,7 +53,11 @@ const length = (clip: MotionClip, id: string) => {
 describe("gestes écrits à la main", () => {
   it("couvre l'haltérophilie et la musculation, sous les clés du catalogue", () => {
     expect(Object.keys(GESTURES)).toHaveLength(
-      WEIGHTLIFTING_GESTURES.length + STRENGTH_GESTURES.length + OTHER_GESTURES.length + PLYOMETRIC_GESTURES.length,
+      WEIGHTLIFTING_GESTURES.length +
+        STRENGTH_GESTURES.length +
+        OTHER_GESTURES.length +
+        PLYOMETRIC_GESTURES.length +
+        STRIDE_GESTURES.length,
     );
     for (const key of ["snatch", "clean", "clean-and-jerk", "back-squat", "lateral-lunge"])
       expect(GESTURES[key], key).toBeDefined();
@@ -102,7 +108,7 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
       expect(moves.filter((phase) => phase.planted.length > 0).length).toBeGreaterThan(moves.length / 2);
       return;
     }
-    expect(holds.some((phase) => phase.planted.length > 0)).toBe(true);
+    if (!clip.treadmill) expect(holds.some((phase) => phase.planted.length > 0)).toBe(true);
     expect(moves.some((phase) => phase.planted.length > 0)).toBe(true);
   });
 
@@ -112,7 +118,8 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
 
   it("une tenue est immobile", () => {
     expect(report.holds).toEqual([]);
-    expect(clip.phases.filter((phase) => phase.hold).length).toBeGreaterThanOrEqual(2);
+    // Une course sur un sol qui défile ne s'arrête pas : elle n'a pas de tenue.
+    if (!clip.treadmill) expect(clip.phases.filter((phase) => phase.hold).length).toBeGreaterThanOrEqual(2);
   });
 
   it("la boucle se referme", () => {
@@ -141,7 +148,9 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
         // Un saut va vite : le lancer des bras approche six mètres par seconde à la main, et le corps entier se
         // déplace en l'air ; une image y parcourt plus de chemin.
         expect(distance(body.arms[side].hand, previous.arms[side].hand)).toBeLessThan(JUMPS.has(clip.key) ? 42 : 30);
-        expect(distance(body.legs[side].knee, previous.legs[side].knee)).toBeLessThan(JUMPS.has(clip.key) ? 48 : 36);
+        // Le genou libre d'un sprint passe huit mètres par seconde.
+        const knee = STRIDES.has(clip.key) ? 56 : JUMPS.has(clip.key) ? 48 : 36;
+        expect(distance(body.legs[side].knee, previous.legs[side].knee)).toBeLessThan(knee);
       }
       previous = body;
     }
