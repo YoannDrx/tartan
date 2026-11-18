@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { PublicPage } from "@/features/shell/public-page";
 import { AppError } from "@/lib/errors";
 import { enabledSocialProviders } from "@/lib/auth";
@@ -11,7 +12,7 @@ import { parentalFlowEnabled } from "@/server/age.service";
 import { invitationConflictMessage, previewInvitation } from "@/server/invitation.service";
 import { getMe } from "@/server/me.service";
 
-export const metadata: Metadata = { title: "Invitation", robots: { index: false } };
+export const metadata: Metadata = { title: w.auth.inviteTitle, robots: { index: false } };
 
 const load = async (token: string) => {
   try {
@@ -46,7 +47,7 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
   return (
     <PublicPage
       title={title}
-      lead={!blocked && !(actor && me) ? "Connecte-toi pour rejoindre. Tu reviendras ici juste après." : undefined}
+      lead={!blocked && !(actor && me) ? w.auth.inviteLead : undefined}
     >
       <div className="on-card rounded-card bg-card p-5">
         {blocked || conflict ? (
@@ -65,6 +66,9 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
             callbackURL={`/i/${token}`}
             providers={enabledSocialProviders}
             defaultEmail={invitation.email ?? undefined}
+            // Un invité est le plus souvent nouveau : il crée son compte, et peut dire qu'il en a déjà un.
+            intent="create"
+            switchable
           />
         )}
       </div>

@@ -73,6 +73,7 @@ La couleur des séances et catégories sert la lecture du calendrier ; une spéc
 - Une action principale explicite par étape ; publication principale, brouillon secondaire, options avancées regroupées.
 - Boutons secondaires sobres, contours et focus visibles sur leur surface réelle.
 - Champs avec libellé permanent, erreur proche et annoncée, clavier suivant le thème ; les valeurs ne disparaissent pas sur une erreur.
+- Entrée (connexion, création de compte, invitation) : l'adresse d'abord, puis deux chemins de même taille, sans mode caché : le mot de passe en action principale, le lien reçu par e-mail juste dessous. Un champ de mot de passe se relit d'un bouton avant l'envoi. Après l'envoi d'un lien, l'écran d'attente rappelle l'adresse, propose le renvoi et le changement d'adresse, et dit quoi faire si rien n'arrive. Aucun message ne dit si un compte existe.
 - Cartes/listes de séance : titre, date, destinataires, état et catégorie avant les métadonnées secondaires.
 - Contexte groupe/athlète/semaine conservé lors d’une consultation et d’un retour.
 - Graphiques accompagnés d’une synthèse et d’un tableau ; aucun résultat manquant présenté comme mesuré.
