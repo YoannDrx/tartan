@@ -535,7 +535,7 @@ Les six demandes du fondateur (sections 4.1 à 4.6) restent des portes d'ouvertu
 | --- | --- | --- | --- |
 | G1 | « Lien envoyé » | L'écran ne rappelle pas l'adresse saisie, n'offre ni renvoi ni aide si rien n'arrive | Lot C |
 | G2 | `/videos` à 390 px | Cinq filtres empilés occupent tout le premier écran avant la première vidéo. « Feuille de barres », propre à la hauteur, est une action de premier rang pour tous les coachs | Lot K : filtres dans une feuille, action rangée dans le contexte hauteur |
-| G3 | `/exercices` | 16 408 px de haut à 390 px : les 311 fiches sont rendues d'un coup. Deux filtres concurrents (liste « Famille de mouvements » et pastilles de catégories). L'haltérophilie est rangée sous « Musculation ». Aucune vignette de geste. La fiche s'ouvre en dialogue, sans adresse à partager | Lot F |
+| G3 | `/exercices` | 16 408 px de haut à 390 px : les 311 fiches sont rendues d'un coup. Deux filtres concurrents (liste « Famille de mouvements » et pastilles de catégories). L'haltérophilie est rangée sous « Musculation ». Aucune vignette de geste. La fiche s'ouvre en dialogue, sans adresse à partager | Corrigé au lot F |
 | G4 | `/suivi`, `/athletes` à 121 athlètes | 7 310 px et 13 393 nœuds, 1,7 et 2,3 Mo de HTML, aucune recherche par nom, en-tête de colonnes qui ne reste pas en vue | Lot K : recherche, en-tête collant, rendu par tranches |
 | G5 | Service worker | Il tente de mettre en cache `/exercise-guides/*.svg`, des fichiers qui n'existent pas : une rafale de 404 à chaque page mise en cache. `OFFLINE_PATHS` cite `mes-sauts` et non `mes-videos` : les vidéos de l'athlète ne se rouvrent pas hors ligne | Lot K, avec test |
 | G6 | En-tête à 390 px | Le sélecteur d'espace se réduit à un chevron, sans nom (défaut 3 confirmé) | Lot K |
@@ -543,7 +543,7 @@ Les six demandes du fondateur (sections 4.1 à 4.6) restent des portes d'ouvertu
 | G8 | Cibles tactiles | Pastilles de filtre de 36 px de haut (calendrier, exercices, console) ; noms d'athlètes cliquables de 21 px de haut (`/athletes`, `/seances/[id]/suivi`). `DESIGN.md` demande 44 px | Lot K |
 | G9 | `/analyse` | Une colonne de 520 px au milieu d'un écran de 1440 px, des chiffres sans hiérarchie, beaucoup de « Non renseigné » | Lot K |
 | G10 | Publication | « Séance publiée. Tes athlètes reçoivent la notification. » s'affiche pour un groupe vide, juste avant « Aucun athlète dans ce groupe » | Lot K |
-| G11 | `/seances/nouvelle` | 865 Ko de HTML : toute la bibliothèque et ses guides voyagent dans la page. À 390 px, la bibliothèque est tout en bas d'une page de 3 021 px | Lot F : sélecteur chargé à la demande |
+| G11 | `/seances/nouvelle` | 865 Ko de HTML : toute la bibliothèque et ses guides voyagent dans la page. À 390 px, la bibliothèque est tout en bas d'une page de 3 021 px | Corrigé au lot F |
 | G12 | Connexion | La redirection vers `/connexion` perd la page demandée (défaut 7 confirmé) | Lot C |
 | G13 | États vides | `/phases` et `/progres` n'ont qu'une phrase, sans l'athlète de la rubrique que demande `DESIGN.md` | Lot K |
 | G14 | Avatar et logo | Envoyés dans les réglages, affichés nulle part ailleurs | Lot E |
