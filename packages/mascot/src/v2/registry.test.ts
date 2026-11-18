@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { EXERCISE_CLIPS } from "../exercises";
 import { A_REPRENDRE, type Constraint } from "./a-reprendre";
 import { inspect } from "./constraints";
-import { drawClip, framing } from "./draw-svg";
+import { HEIGHT } from "./body";
+import { BODY_WINDOW, drawClip, framing, staged } from "./draw-svg";
 import { GESTURES } from "./gestures";
 import { liftClip } from "./lift-v1";
 import { GESTURE_KEYS, gestureClip, gestureEntry } from "./registry";
@@ -102,6 +103,24 @@ describe("contraintes sur tout le registre", () => {
       expect(box.width).toBeGreaterThan(60);
       expect(box.height).toBeGreaterThan(40);
       expect(box.width).toBeLessThan(3000);
+    }
+  });
+});
+
+describe("cadrage des scènes", () => {
+  // La scène d'un écran : le cadre du geste élargi au format 3:2, avec les réglages de l'écran (exercise-scene.tsx).
+  it.each(entries.flatMap((entry) => entry.views.map((view) => [entry.key, view, entry] as const)))(
+    "%s, vue %s : un athlète debout occupe au moins 60 % de la hauteur de la scène 3:2",
+    (_, view, entry) => {
+      const box = staged(framing(entry.clip, view, 14, 32), view);
+      expect(HEIGHT / box.height).toBeGreaterThanOrEqual(0.6);
+    },
+  );
+
+  it("un élan ou un objet lancé loin ne rapetisse pas l'athlète : le cadre suit le corps, l'objet sort de l'image", () => {
+    for (const key of ["high-jump-full", "medicine-ball-forward", "medicine-ball-rotation"]) {
+      const box = framing(gestureEntry(key)!.clip, "side", 14, 32);
+      expect(box.width, key).toBeLessThanOrEqual(BODY_WINDOW + 2 * 0.3 * HEIGHT + 30);
     }
   });
 });
