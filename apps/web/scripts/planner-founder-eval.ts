@@ -66,7 +66,7 @@ async function main() {
   const local = existsSync(localPath) ? dotenv.parse(readFileSync(localPath)) : {};
   const key = process.env.OPENAI_API_KEY || local.OPENAI_API_KEY;
   if (!key) throw new Error("missing_key");
-  const model = process.env.AI_PLANNER_MODEL || local.AI_PLANNER_MODEL || "gpt-4.1-mini";
+  const model = process.env.AI_PLANNER_MODEL || local.AI_PLANNER_MODEL || "gpt-4.1";
   Object.assign(process.env, {
     OPENAI_API_KEY: key,
     AI_PLANNER_MODEL: model,

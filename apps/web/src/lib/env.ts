@@ -64,7 +64,8 @@ const schema = z.object({
   OPEN_AI_API_KEY: optional,
   // Coupe-circuit : absent, le planificateur s'ouvre dès qu'une clé est configurée ; "false" le coupe.
   AI_PLANNER_ENABLED: z.enum(["true", "false"]).optional(),
-  AI_PLANNER_MODEL: z.string().min(1).default("gpt-4.1-mini"),
+  // gpt-4.1 depuis le lot H : 75 sur 80 en un passage contre 70 à 72 pour gpt-4.1-mini, et plus rapide (docs/reference/planificateur-ia.md).
+  AI_PLANNER_MODEL: z.string().min(1).default("gpt-4.1"),
   AI_TRANSCRIPTION_MODEL: z.string().min(1).default("gpt-transcribe"),
   CRON_SECRET: optional,
   CRON_HEARTBEAT_URL: optional,
