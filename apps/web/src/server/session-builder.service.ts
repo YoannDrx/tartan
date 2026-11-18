@@ -1,17 +1,37 @@
-import { sessionBuilderContext } from "@tartan/contracts";
+import { sessionBuilderContext, type ExerciseSummary, type SessionDraft } from "@tartan/contracts";
 import { prisma } from "@/lib/prisma";
 import { m } from "@tartan/i18n";
 import { requireOrgMember } from "./access";
 import { listAthletes } from "./athlete.service";
-import { listExercises } from "./exercise.service";
+import { exerciseSummariesByIds, listExerciseIndex, listExercises } from "./exercise.service";
+import { listExerciseLists } from "./exercise-list.service";
 import { listGroups } from "./org.service";
 import { listTemplates, listTestKeys } from "./session.service";
 
+// Les fiches qu'un brouillon cite, remplacements en autonomie compris.
+const draftExerciseIds = (draft: Pick<SessionDraft, "blocks">) =>
+  draft.blocks.flatMap((block) =>
+    block.items.flatMap((item) => [item.exerciseId, ...(item.autonomous ? [item.autonomous.exerciseId] : [])]),
+  );
+
+const strengthTestKeys = (exercises: Pick<ExerciseSummary, "id" | "strengthLoadKind">[]) =>
+  exercises
+    .filter((e) => e.strengthLoadKind === "external_total" || e.strengthLoadKind === "added_weight")
+    .map((e) => `exercise:${e.id}`);
+
 // Le constructeur reçoit seulement les destinataires nécessaires, sans notes ni santé.
-export const getSessionBuilderContext = async (userId: string, organizationId: string, supportsSequences = false) => {
+// `library: "referenced"` : le constructeur du web ne reçoit que les fiches que la séance et les modèles citent,
+// sans guide ; le reste se cherche à la demande. L'API garde la bibliothèque complète pour les applications.
+export const getSessionBuilderContext = async (
+  userId: string,
+  organizationId: string,
+  supportsSequences = false,
+  options: { library?: "all" | "referenced"; draft?: Pick<SessionDraft, "blocks"> | null } = {},
+) => {
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
-  const [exercises, groups, athletes, templates, keys, space] = await Promise.all([
-    listExercises(userId, organizationId),
+  const referenced = options.library === "referenced";
+  const [index, groups, athletes, templates, keys, space] = await Promise.all([
+    referenced ? listExerciseIndex(userId, organizationId) : listExercises(userId, organizationId),
     listGroups(access),
     listAthletes(userId, organizationId),
     listTemplates(userId, organizationId, supportsSequences),
@@ -21,6 +41,12 @@ export const getSessionBuilderContext = async (userId: string, organizationId: s
       select: { progressionEnabled: true, phasesEnabled: true },
     }),
   ]);
+  const exercises = referenced
+    ? await exerciseSummariesByIds(userId, organizationId, [
+        ...(options.draft ? draftExerciseIds(options.draft) : []),
+        ...templates.flatMap(draftExerciseIds),
+      ])
+    : index;
   return sessionBuilderContext.parse({
     phasesEnabled: space.phasesEnabled,
     progressionEnabled: space.progressionEnabled,
@@ -32,12 +58,21 @@ export const getSessionBuilderContext = async (userId: string, organizationId: s
       ...new Set([
         ...keys,
         ...Object.keys(m.strengthTest),
-        ...(space.progressionEnabled
-          ? exercises
-              .filter((e) => e.strengthLoadKind === "external_total" || e.strengthLoadKind === "added_weight")
-              .map((e) => `exercise:${e.id}`)
-          : []),
+        ...(space.progressionEnabled ? strengthTestKeys(index) : []),
       ]),
     ],
   });
+};
+
+/** Le constructeur du web : les fiches citées, et les listes du coach pour le sélecteur. */
+export const getSessionBuilderPage = async (
+  userId: string,
+  organizationId: string,
+  draft: Pick<SessionDraft, "blocks"> | null,
+) => {
+  const [context, lists] = await Promise.all([
+    getSessionBuilderContext(userId, organizationId, true, { library: "referenced", draft }),
+    listExerciseLists(userId, organizationId),
+  ]);
+  return { ...context, lists };
 };

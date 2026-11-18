@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { Client } from "pg";
 import { m } from "@tartan/i18n";
 import { createApiClient } from "../../../packages/api-client/src/index";
-import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
+import { addFromLibrary, createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 
 test("le constructeur demande le contexte multi-groupes avant publication et respecte l'individuel", async ({
   page,
@@ -69,7 +69,7 @@ test("le constructeur demande le contexte multi-groupes avant publication et res
   await page.getByRole("checkbox", { name: /Hauteur Élite/ }).check();
   const panel = page.getByRole("region", { name: t.planning, exact: true });
   await expect(panel.getByText(t.chooseGroup)).toBeVisible();
-  await page.getByRole("button", { name: "Ajouter Accélérations à la séance", exact: true }).click();
+  await addFromLibrary(page, "Accélérations");
   await page.getByRole("button", { name: m.builder.publish, exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: t.reviewRequired })).toBeVisible();
   await panel.getByLabel(t.referenceFor("Camille Contexte"), { exact: true }).selectOption(second);

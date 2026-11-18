@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Client } from "pg";
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
+import { addFromLibrary, createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 
 test("garde le groupe et la période du calendrier jusqu'au brouillon, à la publication et au retour", async ({
   page,
@@ -44,7 +44,7 @@ test("garde le groupe et la période du calendrier jusqu'au brouillon, à la pub
   await expect(page.getByRole("checkbox", { name: /Force sprint/ })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: /Hauteur Élite/ })).not.toBeChecked();
   await page.getByLabel("Titre", { exact: true }).fill("Force avec contexte conservé");
-  await page.getByRole("button", { name: `Ajouter ${exercise.name} à la séance`, exact: true }).click();
+  await addFromLibrary(page, exercise.name);
   await page.getByRole("button", { name: m.builder.saveDraft, exact: true }).click();
   await expect(page).toHaveURL(/\/seances\/[a-f\d-]+\?retour=/);
   const sessionId = new URL(page.url()).pathname.split("/")[2]!;
