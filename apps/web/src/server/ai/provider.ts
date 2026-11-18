@@ -37,6 +37,7 @@ import {
   plannerServerEnabled,
   plannerUnknownExerciseTerms,
   plannerExerciseMentions,
+  plannerExerciseIsNamed,
   plannerExplicitSingleSetRest,
   plannerRequiredFields,
   plannerWarnings,
@@ -294,6 +295,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
       );
       const unknown = plannerUnknownQuestions(context);
       if (unknown) return unknown;
+      const coachText = context.instructions.map(plannerCoachText).join("\n");
       const ambiguousTerms = ambiguousExerciseTerms(context.exercises).filter((term) =>
         term.exerciseTokens.every(
           (exerciseToken) =>
@@ -350,10 +352,12 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
             ambiguousExerciseTerms: ambiguousTerms,
             ...(context.previous ? { adjustment } : {}),
             // Les fiches nommées exactement, repérées sans le modèle : il n'a pas à les retrouver.
-            namedExercises: plannerExerciseMentions(
-              context.instructions.map(plannerCoachText).join("\n"),
-              context.exercises,
-              context.resolvedExercises,
+            // Seules les fiches nommées sans qualificatif d'une autre fiche à côté (« épaulé suspension » n'est pas
+            // « Épaulé ») : le modèle ne reçoit jamais un raccourci vers une variante.
+            namedExercises: plannerExerciseMentions(coachText, context.exercises, context.resolvedExercises).filter(
+              (mention) =>
+                context.resolvedExercises?.some((r) => r.token === mention.token) ||
+                plannerExerciseIsNamed(coachText, mention.token, context.exercises),
             ),
             dateHints: plannerDateHints(context.today, context.period),
           };

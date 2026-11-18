@@ -565,3 +565,18 @@ describe("pyramides et montées de charge", () => {
     expect(plannerRequiredFields(context(text))).toEqual([]);
   });
 });
+
+it("un nom court suivi du qualificatif d'une autre fiche ne désigne pas la variante sans qualificatif", () => {
+  const catalog = [
+    { token: "clean", name: "Épaulé", aliases: ["Clean"] },
+    { token: "hang", name: "Épaulé suspension au-dessus des genoux", aliases: [] },
+    { token: "power", name: "Épaulé puissance", aliases: [] },
+    { token: "lunge", name: "Fentes avant", aliases: [] },
+    { token: "walking", name: "Fentes marchées", aliases: ["Fentes avant marchées"] },
+  ];
+  const text = "Mercredi, épaulé suspension puis épaulé puissance, 3 séries de 2.";
+  expect(plannerExerciseIsNamed(text, "clean", catalog)).toBe(false);
+  expect(plannerExerciseIsNamed(text, "power", catalog)).toBe(true);
+  expect(plannerExerciseIsNamed("Mercredi, épaulé, 3 séries de 2.", "clean", catalog)).toBe(true);
+  expect(plannerExerciseIsNamed("Mardi, fentes avant, 3 x 8.", "lunge", catalog)).toBe(true);
+});

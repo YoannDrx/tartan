@@ -396,8 +396,22 @@ export function plannerExerciseIsNamed(
         (other) => other.start <= hit.start && other.end >= hit.end && other.end - other.start > hit.end - hit.start,
       ),
   );
-  // Un alias court contenu dans un autre mouvement nommé (clean dans power clean) ne compte pas.
-  if (specific.some((hit) => hit.token === token)) return true;
+  // Un alias court contenu dans un autre mouvement nommé (clean dans power clean) ne compte pas. Un nom court
+  // suivi d'un qualificatif d'une autre fiche (« épaulé suspension » : « Épaulé » ou « Épaulé suspension au-dessus
+  // des genoux ») désigne celle qui reprend le plus de mots de la proposition, jamais la variante sans qualificatif.
+  const own = specific.filter((hit) => hit.token === token);
+  if (own.length) {
+    const clauses = clausesOf(inflectedText);
+    return own.some((hit) => {
+      const clause = clauses.find((c) => c.start <= hit.start && hit.end <= c.end);
+      if (!clause) return true;
+      const words = new Set(wordsOf(clause.text));
+      const score = (candidate: PlannerGuardExercise) =>
+        Math.max(...namesOf(candidate).map((label) => significant(label).filter((word) => words.has(word)).length));
+      const mine = score(exercise);
+      return exercises.every((other) => other.token === token || score(other) <= mine);
+    });
+  }
   // Mêmes mots dans un autre ordre (« squats goblet » pour « Goblet squat »), dans une même proposition de la
   // consigne, et sans autre fiche nommée exactement à cet endroit : c'est la même désignation.
   return clausesOf(inflectedText).some(
