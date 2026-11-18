@@ -85,9 +85,9 @@ test("listes du coach : favori, liste partagée, création dans la liste, séanc
   const library = await builderLibrary(page);
   await library.scope.getByRole("button", { name: LIST, exact: true }).click();
   await expect(library.scope.getByText(t.results(2), { exact: true })).toBeVisible();
-  await expect(library.scope.getByRole("button", { name: t.picker.preview("Accélérations") })).toHaveCount(0);
+  await expect(library.scope.getByRole("button", { name: /^Accélérations / })).toHaveCount(0);
   // L'aperçu montre la fiche concise sans quitter le constructeur.
-  await library.scope.getByRole("button", { name: t.picker.preview("Goblet squat"), exact: true }).click();
+  await library.scope.getByRole("button", { name: /^Goblet squat .*voir la fiche$/ }).click();
   await expect(library.scope.getByRole("region", { name: m.exerciseGuide.title })).toBeVisible();
   await library.scope.getByRole("button", { name: t.picker.back, exact: true }).click();
   await library.scope.getByRole("button", { name: m.builder.sequence.addToSession(OWN), exact: true }).click();

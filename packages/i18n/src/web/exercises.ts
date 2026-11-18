@@ -93,7 +93,8 @@ export const exercises = {
   picker: {
     open: "Ajouter un exercice",
     hint: "Cherche une fiche, filtre par favoris, liste ou famille, puis ajoute-la à la séance.",
-    preview: (name: string) => `Voir la fiche ${name}`,
+    // Le bouton d'une fiche dans le sélecteur : son nom, sa famille, puis ce qu'il fait.
+    previewAction: "voir la fiche",
     back: "Retour aux résultats",
     added: (name: string) => `${name} ajouté à la séance.`,
   },

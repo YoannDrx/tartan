@@ -56,6 +56,8 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   await expect(scene).toHaveAttribute("data-view", "side");
   // Toute la scène : une pièce immobile (un disque posé) ne dirait pas si le geste avance.
   const drawn = () => scene.innerHTML();
+  // Le geste ne joue que sous les yeux : on le fait venir à l'écran.
+  await scene.scrollIntoViewIfNeeded();
   const before = await drawn();
   await expect.poll(drawn).not.toBe(before);
   // Le sélecteur de vue se manie au clavier : Face, puis retour au profil.

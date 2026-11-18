@@ -184,7 +184,6 @@ export const LibraryBrowser = ({
             {draggable ? <GripVertical aria-hidden className="size-4 shrink-0 text-st-upcoming" /> : null}
             <button
               type="button"
-              aria-label={t.picker.preview(exercise.name)}
               onClick={() => setPreviewing(exercise.id)}
               className="flex min-h-12 min-w-0 flex-1 items-center gap-3 rounded-thumb text-left hover:bg-raise"
             >
@@ -193,6 +192,8 @@ export const LibraryBrowser = ({
                 <span className="break-words font-semibold">{exercise.name}</span>
                 <span className="t-caption font-normal text-soft">
                   {exercise.family ? m.exerciseGuide.families[exercise.family] : null}
+                  {/* Le nom accessible commence par ce qui se voit (WCAG 2.5.3), puis dit ce que fait le bouton. */}
+                  <span className="sr-only">, {t.picker.previewAction}</span>
                 </span>
               </span>
             </button>
