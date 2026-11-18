@@ -77,13 +77,13 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   await expect(frieze.locator("svg[data-view='side']")).toHaveCount(4);
   await page.screenshot({ path: `/tmp/tartan-guide-library-frise-profil.png`, fullPage: true });
   await page.keyboard.press("Escape");
-  // Un geste à reprendre garde l'ancien moteur : une seule vue, pas de sélecteur.
+  // Un geste repris depuis l'ancien moteur se lit lui aussi sous deux vues, avec son sélecteur.
   await page.getByLabel(m.exerciseGuide.family, { exact: true }).selectOption("strength");
   await page.getByLabel(m.exercises.search, { exact: true }).fill("Good morning");
   await page.getByRole("button", { name: /^Good morning Bibliothèque/ }).click();
   await expect(dialog.getByRole("list", { name: motion.positions }).getByRole("img")).toHaveCount(4);
-  await expect(dialog.locator("svg[data-view]")).toHaveCount(0);
-  await expect(dialog.getByRole("group", { name: motion.view })).toHaveCount(0);
+  await expect(dialog.locator("svg[data-view]")).toHaveCount(4);
+  await expect(dialog.getByRole("group", { name: motion.view })).toHaveCount(1);
   await page.keyboard.press("Escape");
   const link = await groupLink(page);
   const athlete = await joinAsAthlete(browser, link, "GuideAthlete");

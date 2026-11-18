@@ -25,7 +25,7 @@ export const admin = {
   catalogVideos: {
     lead: "Une vidéo par fiche commune et par vue, profil ou face. Une fois prête, la fiche propose le geste animé ou la vidéo, à tous les espaces. Un nouvel envoi remplace l'ancien.",
     search: "Chercher une fiche",
-    count: (shown: number, total: number) => `${shown} fiches sur ${total}`,
+    count: (shown: number, total: number) => `${shown} fiche${shown > 1 ? "s" : ""} sur ${total}`,
     withVideo: (n: number) => `${n} vidéo${n > 1 ? "s" : ""} prête${n > 1 ? "s" : ""}`,
     status: {
       none: "Aucune vidéo",

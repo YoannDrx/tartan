@@ -30,10 +30,7 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
   await createCoachSpace(page, "Catalogue vidéo", `catalogue-${info.project.name}@e2e.tartan.test`);
   await page.goto("/admin/exercices", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: m.admin.nav.exercises, exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: m.admin.nav.exercises, exact: true })).toHaveAttribute(
-    "aria-current",
-    "true",
-  );
+  await expect(page.locator(`a[href="/admin/exercices"]`)).toHaveAttribute("aria-current", "true");
   await page.getByRole("searchbox", { name: t.search }).fill("squat arriere");
   const card = page.locator(`[data-catalog-key="${KEY}"]`);
   await expect(card.getByRole("heading", { name: NAME, exact: true })).toBeVisible();
@@ -97,7 +94,7 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/exercices", { waitUntil: "networkidle" });
   await page.getByLabel(m.exercises.search, { exact: true }).fill(NAME);
-  await page.getByRole("button", { name: new RegExp(`^${NAME} Bibliothèque`) }).click();
+  await page.getByRole("button", { name: NAME, exact: true }).first().click();
   const dialog = page.getByRole("dialog");
   const choice = dialog.getByRole("group", { name: media.choice });
   await expect(choice.getByRole("button", { name: media.motion, exact: true })).toHaveAttribute("aria-pressed", "true");
