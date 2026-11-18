@@ -421,22 +421,6 @@ export const coachLogSession = async (
   });
 };
 
-// Les trois repères du guide : il reste affiché jusqu'à la première validation reçue.
-export const onboardingProgress = async (userId: string, organizationId: string) => {
-  const access = await requireOrgMember(userId, organizationId, "viewTracking");
-  const athleteIds = await visibleAthleteIds(access);
-  const [invitations, sessions, publishedSessions, validations] = await Promise.all([
-    prisma.invitation.count({ where: { organizationId, role: "athlete" } }),
-    prisma.scheduledSession.count({ where: { organizationId } }),
-    prisma.scheduledSession.count({ where: { organizationId, publishedAt: { not: null } } }),
-    prisma.sessionLog.count({
-      where: { athleteId: { in: athleteIds }, status: { in: ["done", "partial"] } },
-    }),
-  ]);
-  // Les faits des premiers pas : la règle qui en déduit les étapes est dans @tartan/domain.
-  return { invitations, athletes: athleteIds.length, sessions, publishedSessions, validations };
-};
-
 export const remindAthletes = async (
   userId: string,
   organizationId: string,

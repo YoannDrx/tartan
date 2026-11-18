@@ -29,3 +29,5 @@ export * from "./exercise-guide";
 export * from "./ai-planner-generation";
 
 export * from "./credentials";
+
+export * from "./onboarding";

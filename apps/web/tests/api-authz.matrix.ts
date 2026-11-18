@@ -481,6 +481,14 @@ export const MATRICE: Row[] = [
   },
   { route: "GET /api/v1/orgs/[orgId]/offline-urls", ...membres },
   { route: "GET /api/v1/orgs/[orgId]/groups", ...membres },
+  // Premiers pas : chaque membre ne lit et n'écrit que les siens, dans cet espace.
+  { route: "GET /api/v1/orgs/[orgId]/onboarding", ...membres },
+  {
+    route: "PATCH /api/v1/orgs/[orgId]/onboarding",
+    ...membres,
+    call: () => ({ body: { seenScreen: "suivi" } }),
+    verifie: (texte) => expectPresent(texte, '"seenScreens":["suivi"]'),
+  },
   {
     route: "POST /api/v1/orgs/[orgId]/groups/[groupId]/link",
     ...gestion,
