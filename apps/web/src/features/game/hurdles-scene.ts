@@ -11,8 +11,7 @@ import {
   jumpHeight,
   type HurdlesState,
 } from "@tartan/game/events/hurdles";
-import { athleteRig } from "@tartan/mascot/athletes";
-import { drawMascot } from "@tartan/mascot/canvas";
+import { drawPoseFigure } from "@tartan/mascot/v2/pose-figure";
 import { HURDLE_PX_PER_M, hurdlerHipAbove, hurdlerPose } from "@tartan/mascot/hurdles";
 
 // Le dessin d'une image de la course : une fonction de l'état de la simulation, sans rien garder entre deux images.
@@ -21,11 +20,6 @@ import { HURDLE_PX_PER_M, hurdlerHipAbove, hurdlerPose } from "@tartan/mascot/hu
 const UNITS_PER_M = 1_200_000;
 const PAINT = athletePaint("hurdles", "piste");
 const PROPS = stagePaint("piste");
-const BONES = {
-  neutral: athleteRig("hurdles", "neutral"),
-  effort: athleteRig("hurdles", "effort"),
-  joy: athleteRig("hurdles", "joy"),
-};
 
 export type SceneSize = { width: number; height: number };
 
@@ -113,9 +107,8 @@ export const drawHurdles = (
   const face = state.finished ? "joy" : flying && Math.abs(state.air - APEX_TICK) < 6 ? "effort" : "neutral";
   const pose = hurdlerPose(stage, flying ? state.air / FLIGHT_TICKS : null);
   // Le pied le plus bas touche la piste ; en l'air, il est à la hauteur du saut que calcule la simulation.
-  drawMascot(ctx, pose, {
+  drawPoseFigure(ctx, "hurdles", face, pose, {
     paint: PAINT,
-    bones: BONES[face],
     at: { x: toX(metres), y: ground - hurdlerHipAbove(pose) * scale - lift },
     scale,
   });

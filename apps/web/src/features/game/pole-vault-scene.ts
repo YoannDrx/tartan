@@ -8,8 +8,7 @@ import {
   TAKEOFF_TICK,
   type PoleVaultState,
 } from "@tartan/game/events/pole-vault";
-import { athleteRig } from "@tartan/mascot/athletes";
-import { drawMascot } from "@tartan/mascot/canvas";
+import { drawPoseFigure } from "@tartan/mascot/v2/pose-figure";
 import { POLE_VAULT, POLE_VAULT_CLIP, POLE_VAULT_TIMES } from "@tartan/mascot/pole-vault";
 import { drawProp } from "@tartan/mascot/props";
 import type { SceneSize } from "./hurdles-scene";
@@ -19,11 +18,6 @@ import type { SceneSize } from "./hurdles-scene";
 
 const PAINT = athletePaint("poleVault", "piste");
 const PROPS = stagePaint("piste");
-const BONES = {
-  neutral: athleteRig("poleVault", "neutral"),
-  effort: athleteRig("poleVault", "effort"),
-  joy: athleteRig("poleVault", "joy"),
-};
 const T = POLE_VAULT_TIMES;
 // Où se pose le dernier appui avant le planté : un repère citron au sol.
 const PLANT_X = POLE_VAULT_CLIP.frame(T.plant).root.x;
@@ -64,7 +58,7 @@ export const drawPoleVault = (ctx: CanvasRenderingContext2D, size: SceneSize, st
   ctx.fillStyle = tokens.band.action;
   ctx.fillRect(PLANT_X - 40, stage.ground + 16, 80, 12);
   const face = POLE_VAULT_CLIP.face(t);
-  drawMascot(ctx, pose, { paint: PAINT, bones: BONES[fallen ? "neutral" : face], at: root });
+  drawPoseFigure(ctx, "poleVault", fallen ? "neutral" : face, pose, { paint: PAINT, at: root });
   for (const shape of shapes) if (shape.front) drawProp(ctx, shape, PROPS[shape.paint]);
   ctx.restore();
 };

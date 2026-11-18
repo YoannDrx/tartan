@@ -148,7 +148,7 @@ const Frames = ({ id }: { id: AthleteId }) => {
               <EventScene
                 id={id}
                 t={(phase.from + phase.to) / 2}
-                focus={300}
+                focus={250}
                 role="img"
                 aria-label={m.group.gesture(name, event, label)}
                 className="w-full rounded-button"
