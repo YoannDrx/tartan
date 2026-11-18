@@ -104,9 +104,29 @@ export const completeCoachOnboarding = async (page: Page, name = "Thomas") => {
   await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
   await page.getByRole("button", { name: "Créer mon espace" }).click();
   await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible({ timeout: 60_000 });
+  // Le dernier temps, facultatif, propose d'inviter le groupe : on le passe.
+  await expect(page.getByRole("heading", { name: w.onboarding.invite.title })).toBeVisible({ timeout: 60_000 });
+  await page.getByRole("button", { name: w.onboarding.invite.finish, exact: true }).click();
+  // Un espace neuf ouvre le tour de piste une fois, par-dessus le suivi : on le referme, comme un coach pressé.
+  await closeTour(page);
+  await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();
   // Un espace neuf guide le coach, même avec sa bibliothèque de départ.
   await expect(page.getByRole("heading", { name: "Pour démarrer" })).toBeVisible();
+};
+
+// Le tour de piste d'un nouveau coach se referme d'Échap, à tout moment.
+export const closeTour = async (page: Page) => {
+  const tour = page.getByRole("dialog", { name: w.onboarding.tour.title });
+  // En développement, la première compilation du suivi peut prendre longtemps.
+  await expect(tour).toBeVisible({ timeout: 60_000 });
+  const saved = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" && Boolean(response.request().postData()?.includes("tourSeen")),
+  );
+  await page.keyboard.press("Escape");
+  await expect(tour).toBeHidden();
+  // L'état est gardé en base : on attend son écriture avant de quitter l'écran.
+  await saved;
 };
 
 export const expectAccessible = async (page: Page) => {
@@ -144,10 +164,15 @@ export const expectAccessible = async (page: Page) => {
       }
       return null;
     };
-    for (const target of document.querySelectorAll("a[href], button, input, select, textarea, summary, [role=button]")) {
+    for (const target of document.querySelectorAll(
+      "a[href], button, input, select, textarea, summary, [role=button]",
+    )) {
       const box = target.getBoundingClientRect();
       if (!box.width || !box.height || box.bottom <= 0 || box.top >= innerHeight) continue;
-      const cover = document.elementFromPoint(box.left + box.width / 2, Math.min(box.top + box.height / 2, innerHeight - 1));
+      const cover = document.elementFromPoint(
+        box.left + box.width / 2,
+        Math.min(box.top + box.height / 2, innerHeight - 1),
+      );
       if (!cover || cover === target || target.contains(cover) || cover.contains(target)) continue;
       const bar = chrome(cover);
       if (bar && !bar.contains(target)) target.setAttribute("data-axe-obscured", "");
