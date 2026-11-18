@@ -15,10 +15,6 @@ export const A_REPRENDRE: Readonly<Record<string, readonly Constraint[]>> = {
   // L'ancien geste déplace la barre fixe avec la main : les mains n'y tiennent pas.
   "inverted-row": ["bar"],
 
-  // Haltérophilie : la barre de l'ancien geste traverse la tête ou échappe aux mains.
-  "snatch-balance": ["bar"],
-  "muscle-snatch": ["bar"],
-
   // Pliométrie : le saut en hauteur complet, corps retourné au-dessus de la barre.
   "high-jump-full": ["limits"],
   "high-jump-short": ["limits"],

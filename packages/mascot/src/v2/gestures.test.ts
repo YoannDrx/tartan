@@ -4,7 +4,16 @@ import { BARBELL } from "./body";
 import { barAt, barPath, inspect, measure, phaseAt } from "./constraints";
 import { drawClip, framing } from "./draw-svg";
 import type { MotionClip } from "./gesture";
-import { backSquat, clean, cleanAndJerk, GESTURES, lateralLunge, snatch } from "./gestures";
+import {
+  backSquat,
+  clean,
+  cleanAndJerk,
+  GESTURES,
+  lateralLunge,
+  snatch,
+  STRENGTH_GESTURES,
+  WEIGHTLIFTING_GESTURES,
+} from "./gestures";
 import { rackPoint } from "./gestures/clean";
 import { GESTURE_VIEWS, project } from "./project";
 import { volumes } from "./skin";
@@ -35,14 +44,16 @@ const length = (clip: MotionClip, id: string) => {
 };
 
 describe("gestes écrits à la main", () => {
-  it("couvre l'arraché, l'épaulé, l'épaulé-jeté, le squat arrière et la fente latérale, sous les clés du catalogue", () => {
-    expect(Object.keys(GESTURES).sort()).toEqual(["back-squat", "clean", "clean-and-jerk", "lateral-lunge", "snatch"]);
+  it("couvre l'haltérophilie et la musculation, sous les clés du catalogue", () => {
+    expect(Object.keys(GESTURES)).toHaveLength(WEIGHTLIFTING_GESTURES.length + STRENGTH_GESTURES.length);
+    for (const key of ["snatch", "clean", "clean-and-jerk", "back-squat", "lateral-lunge"])
+      expect(GESTURES[key], key).toBeDefined();
     for (const key of Object.keys(GESTURES)) expect(EXERCISE_CLIPS[key], key).toBeDefined();
   });
 
   it("garde les athlètes de chaque famille : Malo en haltérophilie, Mehdi en musculation", () => {
-    for (const clip of [snatch, clean, cleanAndJerk]) expect(clip.athlete).toBe("poleVault");
-    for (const clip of [backSquat, lateralLunge]) expect(clip.athlete).toBe("discus");
+    for (const clip of [snatch, clean, cleanAndJerk, ...WEIGHTLIFTING_GESTURES]) expect(clip.athlete).toBe("poleVault");
+    for (const clip of [backSquat, lateralLunge, ...STRENGTH_GESTURES]) expect(clip.athlete).toBe("discus");
   });
 
   it("ne porte aucun texte : des identifiants pour les positions et les phases, les lignes du guide par leur rang", () => {

@@ -39,7 +39,7 @@ export const racked = (patch: ControlPatch): ControlPatch => {
 export const armsLength = (patch: ControlPatch, above: boolean) =>
   barAtArmsLength({ ...STAND, ...cleanBase, ...patch }, CLEAN_GRIP, above);
 
-const start: ControlPatch = {
+export const cleanStart: ControlPatch = {
   barX: 13,
   barY: 41,
   pelvisX: -44,
@@ -49,7 +49,7 @@ const start: ControlPatch = {
   neck: -28,
   head: -6,
 };
-const knees: ControlPatch = {
+export const cleanKnees: ControlPatch = {
   barX: 5,
   barY: 90,
   pelvisX: -64,
@@ -60,7 +60,15 @@ const knees: ControlPatch = {
   head: -6,
 };
 // Les genoux reviennent sous la barre, le buste se redresse : la barre arrive à mi-cuisse.
-const power: ControlPatch = { barX: 9, barY: 124, pelvisX: -15, pelvisPitch: 14, lumbar: -2, thoracic: -2, neck: -8 };
+export const cleanPower: ControlPatch = {
+  barX: 9,
+  barY: 124,
+  pelvisX: -15,
+  pelvisPitch: 14,
+  lumbar: -2,
+  thoracic: -2,
+  neck: -8,
+};
 
 // Chevilles, genoux et hanches tendus, épaules haussées, bras encore longs.
 const extended: ControlPatch = {
@@ -74,11 +82,12 @@ const extended: ControlPatch = {
   shrug: 1,
   ...heels(35),
 };
-const TOP = armsLength(extended, false);
-const extension: ControlPatch = { ...extended, barY: TOP };
+export const CLEAN_TOP = armsLength(extended, false);
+const TOP = CLEAN_TOP;
+export const cleanExtension: ControlPatch = { ...extended, barY: TOP };
 
 // Le corps commence à descendre : les coudes montent, hauts et vers l'extérieur, la barre reste contre le buste.
-const highPull: ControlPatch = {
+export const cleanHighPull: ControlPatch = {
   barX: 10,
   barY: TOP + 22,
   pelvisX: -12,
@@ -93,7 +102,7 @@ const highPull: ControlPatch = {
   ...heels(22),
 };
 // Le point haut de la barre : les pieds se déplacent, les coudes commencent à tourner autour d'elle.
-const top: ControlPatch = {
+export const cleanTop: ControlPatch = {
   ...between,
   barX: 8,
   barY: TOP + 31,
@@ -111,10 +120,26 @@ const top: ControlPatch = {
   footLLift: 4,
 };
 // Les épaules rencontrent la barre à mi-hauteur, coudes déjà devant : elle est reçue, pas lâchée.
-const meet = racked({ ...receiving, pelvisX: -31, pelvisY: 92, pelvisPitch: 13, lumbar: 4, thoracic: -2, neck: -12 });
-const bottom = racked({ ...receiving, pelvisX: -37, pelvisY: 46, pelvisPitch: 11, lumbar: 8, thoracic: -3, neck: -12 });
+export const cleanMeet = racked({
+  ...receiving,
+  pelvisX: -31,
+  pelvisY: 92,
+  pelvisPitch: 13,
+  lumbar: 4,
+  thoracic: -2,
+  neck: -12,
+});
+export const cleanBottom = racked({
+  ...receiving,
+  pelvisX: -37,
+  pelvisY: 46,
+  pelvisPitch: 11,
+  lumbar: 8,
+  thoracic: -3,
+  neck: -12,
+});
 // À mi-hauteur, hanches et épaules montent ensemble, coudes toujours hauts.
-const rising = racked({
+export const cleanRising = racked({
   ...receiving,
   pelvisX: -33,
   pelvisY: 112,
@@ -123,75 +148,116 @@ const rising = racked({
   thoracic: -2,
   neck: -12,
 });
-const standing = racked({ ...receiving, pelvisX: -17, pelvisY: 999, pelvisPitch: 2, neck: -8 });
+export const cleanStanding = racked({ ...receiving, pelvisX: -17, pelvisY: 999, pelvisPitch: 2, neck: -8 });
 
-// Le tirage et la réception, communs à l'épaulé et à l'épaulé-jeté : du sol à debout, la barre sur les épaules.
-// `lines` : la ligne du guide que le départ, l'extension, la réception et la station debout illustrent.
-export const cleanKeys = (
-  lines: { extension?: number; receive?: number; standing?: number },
-  standingHold: number,
-): KeyDraft[] => [
-  { id: "knees", set: knees, face: "effort", still: true, move: { ms: 700, curve: "elan", phase: "first-pull" } },
-  { id: "power", set: power, face: "effort", still: true, move: { ms: 240, curve: "linear", phase: "transition" } },
+const line = (guide: number | undefined) => (guide !== undefined ? { guide } : {});
+
+// La première tirée et la transition : du sol au milieu des cuisses.
+export const cleanFirstPull = (lines: { knees?: number; power?: number } = {}): KeyDraft[] => [
   {
-    id: "extension",
-    set: extension,
+    id: "knees",
+    ...line(lines.knees),
+    set: cleanKnees,
     face: "effort",
     still: true,
-    ...(lines.extension !== undefined ? { guide: lines.extension } : {}),
-    move: { ms: 160, curve: "elan", phase: "second-pull" },
+    move: { ms: 700, curve: "elan", phase: "first-pull" },
   },
   {
+    id: "power",
+    ...line(lines.power),
+    set: cleanPower,
+    face: "effort",
+    still: true,
+    move: { ms: 240, curve: "linear", phase: "transition" },
+  },
+];
+// La seconde tirée : jusqu'à l'extension, sur l'avant-pied.
+export const cleanSecondPull = (guide?: number): KeyDraft => ({
+  id: "extension",
+  set: cleanExtension,
+  face: "effort",
+  still: true,
+  ...line(guide),
+  move: { ms: 160, curve: "elan", phase: "second-pull" },
+});
+// Les coudes montent, puis le point haut de la barre, les pieds en l'air.
+export const cleanTurnover = (guide?: number): KeyDraft[] => [
+  {
     id: "high-pull",
-    set: highPull,
+    set: cleanHighPull,
     face: "effort",
     still: true,
     move: { ms: 110, curve: "linear", phase: "turnover" },
   },
   {
     id: "top",
-    set: top,
+    ...line(guide),
+    set: cleanTop,
     face: "effort",
     air: ["R", "L"],
     still: true,
     move: { ms: 130, curve: "linear", phase: "turnover" },
   },
-  { id: "meet", set: meet, face: "effort", still: true, move: { ms: 150, curve: "linear", phase: "catch" } },
+];
+// La réception en flexion complète, puis le redressement jusqu'à la station debout, la barre sur les épaules.
+export const cleanSquatCatch = (lines: { receive?: number; standing?: number }, standingHold: number): KeyDraft[] => [
+  { id: "meet", set: cleanMeet, face: "effort", still: true, move: { ms: 150, curve: "linear", phase: "catch" } },
   {
     id: "receive",
-    set: bottom,
+    set: cleanBottom,
     hold: 400,
     face: "effort",
-    ...(lines.receive !== undefined ? { guide: lines.receive } : {}),
+    ...line(lines.receive),
     move: { ms: 340, curve: "reception", phase: "catch" },
   },
-  { id: "rising", set: rising, face: "effort", move: { ms: 560, curve: "elan", phase: "recovery" } },
+  { id: "rising", set: cleanRising, face: "effort", move: { ms: 560, curve: "elan", phase: "recovery" } },
   {
     id: "racked",
-    set: standing,
+    set: cleanStanding,
     hold: standingHold,
-    ...(lines.standing !== undefined ? { guide: lines.standing } : {}),
+    ...line(lines.standing),
     move: { ms: 620, curve: "reception", phase: "recovery" },
   },
+];
+
+// Le tirage et la réception, communs à l'épaulé et à l'épaulé-jeté : du sol à debout, la barre sur les épaules.
+// `lines` : la ligne du guide que l'extension, la réception et la station debout illustrent.
+export const cleanKeys = (
+  lines: { extension?: number; receive?: number; standing?: number },
+  standingHold: number,
+): KeyDraft[] => [
+  ...cleanFirstPull(),
+  cleanSecondPull(lines.extension),
+  ...cleanTurnover(),
+  ...cleanSquatCatch(lines, standingHold),
 ];
 
 // Le départ, et le retour de la barre au sol depuis les hanches : il referme la boucle, hors technique.
 export const startKey = (guide: number | undefined, ms: number): KeyDraft => ({
   id: "start",
-  set: start,
+  set: cleanStart,
   hold: 800,
-  ...(guide !== undefined ? { guide } : {}),
+  ...line(guide),
   move: { ms, curve: "reception", phase: "return" },
 });
-const hanging: ControlPatch = { barX: 13, pelvisX: -10, pelvisY: 999, pelvisPitch: 2, ...elbows(0, 0.8, 1) };
-export const returnKeys = (): KeyDraft[] => [
+export const cleanHanging: ControlPatch = {
+  barX: 13,
+  pelvisX: -10,
+  pelvisY: 999,
+  pelvisPitch: 2,
+  ...elbows(0, 0.8, 1),
+};
+// Debout, la barre tenue bras tendus contre le haut des cuisses.
+export const cleanHips: ControlPatch = { ...cleanHanging, barY: armsLength(cleanHanging, false) };
+// La barre quitte les épaules et redescend jusqu'aux hanches.
+export const cleanLowerToHips = (): KeyDraft[] => [
   {
     // Les coudes redescendent, la barre quitte les épaules ; les pieds reviennent sous les hanches.
     id: "lowering",
     set: {
       ...between,
       barX: 14,
-      barY: armsLength(hanging, false) + 48,
+      barY: cleanHips.barY! + 48,
       pelvisX: -12,
       pelvisY: 999,
       pelvisPitch: 0,
@@ -203,13 +269,14 @@ export const returnKeys = (): KeyDraft[] => [
     air: ["R", "L"],
     move: { ms: 420, curve: "elan", phase: "return" },
   },
-  {
-    id: "hang",
-    set: { ...hanging, barY: armsLength(hanging, false) },
-    move: { ms: 300, curve: "linear", phase: "return" },
-  },
-  { id: "knees-return", set: knees, move: { ms: 480, curve: "linear", phase: "return" } },
+  { id: "hang", set: cleanHips, move: { ms: 300, curve: "linear", phase: "return" } },
 ];
+export const cleanKneesReturn = (): KeyDraft => ({
+  id: "knees-return",
+  set: cleanKnees,
+  move: { ms: 480, curve: "linear", phase: "return" },
+});
+export const returnKeys = (): KeyDraft[] => [...cleanLowerToHips(), cleanKneesReturn()];
 
 export const clean = gesture({
   key: "clean",
