@@ -21,7 +21,7 @@ export default async function StrengthMappingsPage() {
       <PageHeader
         title={m.strengthMapping.title}
         before={
-          <Link href="/reglages" className="inline-flex min-h-11 items-center font-semibold">
+          <Link href="/reglages/espace" className="inline-flex min-h-11 items-center font-semibold">
             {m.common.back}
           </Link>
         }

@@ -19,7 +19,7 @@ export const createExercise = async (page: Page, name: string) => {
 };
 
 export const groupLink = async (page: Page): Promise<string> => {
-  await page.goto("/reglages");
+  await page.goto("/reglages/groupes");
   await page.getByRole("button", { name: "Lien du groupe" }).click();
   const input = page.getByLabel("Lien d'invitation du groupe");
   await expect(input).toHaveValue(/\/i\//);

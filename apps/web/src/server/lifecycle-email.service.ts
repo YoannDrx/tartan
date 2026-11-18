@@ -77,7 +77,7 @@ export const queueActivationEmails = async (now: Date = new Date()): Promise<num
 };
 
 const STEP_PATH: Record<CoachStepKey, string> = {
-  invite: "/reglages#invitations",
+  invite: "/reglages/membres#inviter",
   create: "/seances/nouvelle",
   publish: "/calendrier",
   validate: "/suivi",

@@ -55,13 +55,17 @@ export const EmptyState = ({
 );
 
 // Le titre d'écran, grand, posé sur le monde de la rubrique et sur sa ligne de couloir.
+// `narrowTitle` : sous la largeur ordinateur, l'écran est une page à part (une rubrique des réglages) et porte ce
+// titre seul ; sur ordinateur il reste un volet du même écran, avec `title` et `detail`.
 export const PageHeader = ({
   title,
+  narrowTitle,
   detail,
   actions,
   before,
 }: {
   title: string;
+  narrowTitle?: string;
   detail?: ReactNode;
   actions?: ReactNode;
   before?: ReactNode;
@@ -72,9 +76,22 @@ export const PageHeader = ({
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
           <h1 className="t-display text-balance">
-            <Marked text={title} />
+            {narrowTitle ? (
+              <>
+                <span className="desktop:hidden">
+                  <Marked text={narrowTitle} />
+                </span>
+                <span className="max-desktop:hidden">
+                  <Marked text={title} />
+                </span>
+              </>
+            ) : (
+              <Marked text={title} />
+            )}
           </h1>
-          {detail ? <p className="mt-1 text-[16px] font-medium">{detail}</p> : null}
+          {detail ? (
+            <p className={cn("mt-1 text-[16px] font-medium", narrowTitle && "max-desktop:hidden")}>{detail}</p>
+          ) : null}
         </div>
         {/* Sur téléphone, les actions tiennent sur une ligne qui défile de côté : le bandeau reste court. */}
         {actions ? (

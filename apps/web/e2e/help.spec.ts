@@ -64,7 +64,7 @@ test("l'aide de l'écran est à la même place partout, sans quitter l'écran", 
   await expect(dialog).toContainText(t.screens.exercices[0]);
   await page.keyboard.press("Escape");
 
-  // Un écran sans repère propre renvoie au centre d'aide.
-  await page.goto("/reglages");
+  // La rubrique « Aide » des réglages mène au centre d'aide.
+  await page.goto("/reglages/aide");
   await expect(page.getByRole("link", { name: t.center, exact: true })).toHaveAttribute("href", "/aide");
 });
