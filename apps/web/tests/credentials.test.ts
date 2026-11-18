@@ -166,14 +166,14 @@ describe("définir un mot de passe", () => {
 });
 
 describe("changer le mot de passe", () => {
-  const withPassword = async (name: string) => {
+  const signedInWithCredential = async (name: string) => {
     const user = await signedIn(name);
     await definePassword(user.actor, { newPassword: PASSWORD }, user.headers);
     return user;
   };
 
   it("un mauvais mot de passe actuel est refusé et rien ne change", async () => {
-    const user = await withPassword("Mauvais");
+    const user = await signedInWithCredential("Mauvais");
     await expect(
       changePassword(user.actor, { currentPassword: "pas-le-bon-mot-de-passe", newPassword: OTHER }, user.headers),
     ).rejects.toMatchObject({ status: 400, code: "invalid_current_password", message: w.auth.errors.wrongCurrent });
@@ -182,7 +182,7 @@ describe("changer le mot de passe", () => {
   });
 
   it("le bon mot de passe actuel change le mot de passe, garde les sessions, et un e-mail prévient", async () => {
-    const user = await withPassword("Changer");
+    const user = await signedInWithCredential("Changer");
     const elsewhere = new Headers({ cookie: await sessionCookie(user.email), origin: ORIGIN });
     const before = mailsTo(user.email).length;
     await changePassword(user.actor, { currentPassword: PASSWORD, newPassword: OTHER }, user.headers);
@@ -199,7 +199,7 @@ describe("changer le mot de passe", () => {
   });
 
   it("l'option déconnecte les autres appareils et garde celui qui fait la demande", async () => {
-    const user = await withPassword("Revoquer");
+    const user = await signedInWithCredential("Revoquer");
     const elsewhere = new Headers({ cookie: await sessionCookie(user.email), origin: ORIGIN });
     await changePassword(
       user.actor,
@@ -211,7 +211,7 @@ describe("changer le mot de passe", () => {
   });
 
   it("le même mot de passe est refusé, et un compte sans mot de passe ne peut pas en changer", async () => {
-    const user = await withPassword("Meme");
+    const user = await signedInWithCredential("Meme");
     await expect(
       changePassword(user.actor, { currentPassword: PASSWORD, newPassword: PASSWORD }, user.headers),
     ).rejects.toMatchObject({ status: 400, message: w.auth.errors.sameAsCurrent });
@@ -222,7 +222,7 @@ describe("changer le mot de passe", () => {
   });
 
   it("la limite de débit tient : le sixième essai est refusé, même avec le bon mot de passe", async () => {
-    const user = await withPassword("LimiteChanger");
+    const user = await signedInWithCredential("LimiteChanger");
     for (let attempt = 0; attempt < 5; attempt += 1) {
       await expect(
         changePassword(
