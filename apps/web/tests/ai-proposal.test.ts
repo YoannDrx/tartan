@@ -21,7 +21,8 @@ import {
 } from "@/server/ai/proposal.service";
 import { pseudonymizePlannerText, type PlannerBindings } from "@/server/ai/context";
 import { fakePlannerEnabled, fakePlannerProvider } from "@/server/ai/fake-provider";
-import type { PlannerProvider, PlannerProviderContext } from "@/server/ai/provider";
+import { m } from "@tartan/i18n";
+import { PlannerProviderError, type PlannerProvider, type PlannerProviderContext } from "@/server/ai/provider";
 import { expirePlannerOperations } from "@/server/ai/usage.service";
 import { saveTrainingPhase } from "@/server/training-phases.service";
 import { selectStrengthReference } from "@/server/strength.service";
@@ -333,6 +334,50 @@ it("inclut cinq clarifications, déduplique les réponses et bloque le sixième 
     }),
   ).toMatchObject({ usedProposals: 1, reservedProposals: 0 });
 });
+it.each([
+  ["configuration", 503],
+  ["saturated", 503],
+  ["unavailable", 502],
+  ["timeout", 504],
+  ["refused", 422],
+  ["incomplete", 502],
+  ["invalid_output", 502],
+] as const)("une panne %s rend un message lisible, garde sa cause et ne décompte rien", async (code, status) => {
+  const a = await setup();
+  const failing = {
+    interpret: vi.fn(async () => {
+      throw new PlannerProviderError(code);
+    }),
+  };
+  await expect(a.create(failing)).rejects.toMatchObject({
+    status,
+    code: `planner_${code}`,
+    message: m.aiPlanner.failures[code],
+  });
+  expect(m.aiPlanner.failures[code]).toContain("n’est pas décomptée");
+  const operation = await prisma.aiPlannerOperation.findUniqueOrThrow({
+    where: { organizationId_id: { organizationId: a.organizationId, id: a.input.id } },
+  });
+  expect(operation).toMatchObject({ state: "refunded", failureCode: code });
+  expect(
+    await prisma.aiPlannerQuota.findUniqueOrThrow({
+      where: { organizationId_month: { organizationId: a.organizationId, month: "2030-06" } },
+    }),
+  ).toMatchObject({ usedProposals: 0, reservedProposals: 0 });
+  const read = await getPlannerProposal(a.owner.userId, a.organizationId, a.input.id, now);
+  expect(read).toMatchObject({ state: "failed", failure: { code, message: m.aiPlanner.failures[code] } });
+});
+it("une panne inattendue reste une réponse inexploitable, sans détail technique", async () => {
+  const a = await setup();
+  const failing = {
+    interpret: vi.fn(async () => {
+      throw new Error("sensitive internal detail");
+    }),
+  };
+  const error = await a.create(failing).catch((cause: unknown) => cause);
+  expect(error).toMatchObject({ code: "planner_invalid_output" });
+  expect(JSON.stringify(error)).not.toContain("sensitive");
+});
 it("un échec de clarification garde le résultat précédent, sans perdre un échange ni augmenter le quota", async () => {
   const a = await setup();
   const initial = await a.create(provider(clarification));
@@ -349,7 +394,7 @@ it("un échec de clarification garde le résultat précédent, sans perdre un é
   };
   await expect(
     clarifyPlannerProposal(a.owner.userId, a.organizationId, a.input.id, answer, { provider: failing, clock }),
-  ).rejects.toMatchObject({ code: "planner_generation_failed" });
+  ).rejects.toMatchObject({ code: "planner_invalid_output", message: m.aiPlanner.failures.invalid_output });
   const read = await getPlannerProposal(a.owner.userId, a.organizationId, a.input.id, now);
   expect(read).toMatchObject({ state: "clarification", version: initial.version, clarificationCount: 0 });
   expect(read.pendingText).toContain("Deux minutes");
@@ -1149,7 +1194,7 @@ it("propose seulement à partir du catalogue approuvé et refuse les charges inv
     const created = await a.create(noLoad, { ...input, id: randomUUID() });
     expect(created.state).toBe("proposal");
     await expect(a.create(provider(), { ...input, id: randomUUID() })).rejects.toMatchObject({
-      code: "planner_generation_failed",
+      code: "planner_invalid_output",
     });
     expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
   } finally {

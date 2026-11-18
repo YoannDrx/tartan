@@ -11,6 +11,7 @@ import {
   plannerPrescription,
   plannerItem,
   trainingPhaseKind,
+  type PlannerFailureCode,
 } from "@tartan/contracts";
 import {
   ambiguousExerciseTerms,
@@ -105,14 +106,19 @@ export const plannerProviderContext = z
   })
   .strict();
 export type PlannerProviderContext = z.infer<typeof plannerProviderContext>;
+export type PlannerProviderFailure = "disabled" | PlannerFailureCode;
 export class PlannerProviderError extends Error {
-  constructor(
-    readonly code: "disabled" | "configuration" | "unavailable" | "refused" | "incomplete" | "invalid_output",
-  ) {
+  constructor(readonly code: PlannerProviderFailure) {
     super(`planner_${code}`);
     this.name = "PlannerProviderError";
   }
 }
+
+// Le statut HTTP du prestataire dit quoi faire : attendre (429), réessayer plus tard (5xx), ou prévenir (clé, modèle).
+export const plannerHttpFailure = (status: number): PlannerFailureCode =>
+  status === 429 ? "saturated" : status >= 500 ? "unavailable" : [400, 401, 403, 404].includes(status) ? "configuration" : "unavailable";
+const plannerFetchFailure = (cause: unknown): PlannerFailureCode =>
+  cause instanceof Error && (cause.name === "TimeoutError" || cause.name === "AbortError") ? "timeout" : "unavailable";
 export interface PlannerProvider {
   interpret(context: PlannerProviderContext): Promise<z.infer<typeof plannerInterpretation>>;
 }
@@ -274,16 +280,24 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
               text: { format: { type: "json_schema", name: "tartan_planner", strict: true, schema } },
             }),
           });
-        } catch {
-          throw new PlannerProviderError("unavailable");
+        } catch (cause) {
+          throw new PlannerProviderError(plannerFetchFailure(cause));
         }
         // Ne jamais inclure le corps d’erreur, une clé ou le texte du coach dans une exception/journal.
-        if (!response.ok) throw new PlannerProviderError("unavailable");
-        const result = (await response.json().catch(() => null)) as {
+        if (!response.ok) throw new PlannerProviderError(plannerHttpFailure(response.status));
+        let result: {
           status?: string;
           output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
         } | null;
-        if (!result || result.status !== "completed") throw new PlannerProviderError("incomplete");
+        try {
+          result = await response.json();
+        } catch (cause) {
+          if (deadline.aborted) throw new PlannerProviderError(plannerFetchFailure(cause));
+          throw new PlannerProviderError("invalid_output");
+        }
+        if (!result) throw new PlannerProviderError("invalid_output");
+        if (result.status === "incomplete") throw new PlannerProviderError("incomplete");
+        if (result.status !== "completed") throw new PlannerProviderError("unavailable");
         if (!Array.isArray(result.output)) throw new PlannerProviderError("invalid_output");
         const parts = result.output
           .filter((item) => item?.type === "message")

@@ -306,7 +306,20 @@ export const plannerLoadsPreview = z.object({
     .max(10),
 });
 export type PlannerLoadsPreview = z.infer<typeof plannerLoadsPreview>;
+// Pourquoi une génération a échoué : chaque cause dit au coach quoi faire. Aucune n'est décomptée du quota.
+export const plannerFailureCode = z.enum([
+  "configuration",
+  "saturated",
+  "unavailable",
+  "timeout",
+  "refused",
+  "incomplete",
+  "invalid_output",
+]);
+export type PlannerFailureCode = z.infer<typeof plannerFailureCode>;
 export const plannerProposalResponse = z.object({
+  // Additif : la cause du dernier échec, lisible après un rechargement. Les anciens clients l'ignorent.
+  failure: z.object({ code: plannerFailureCode, message: z.string() }).nullable().optional(),
   id: uuid,
   version: z.number().int().positive(),
   state: z.enum(["processing", "clarification", "proposal", "failed", "committed"]),

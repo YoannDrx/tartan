@@ -306,20 +306,37 @@ it.each([
   });
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
-it("neutralise les erreurs HTTP et réseau sans rejouer automatiquement une génération facturable", async () => {
-  for (const status of [401, 429, 500]) {
+it.each([
+  [401, "configuration"],
+  [403, "configuration"],
+  [404, "configuration"],
+  [400, "configuration"],
+  [429, "saturated"],
+  [500, "unavailable"],
+  [503, "unavailable"],
+] as const)(
+  "classe l’erreur HTTP %i en %s, sans reprendre le corps ni rejouer une génération facturable",
+  async (status, code) => {
     const fetcher = transport({ error: { message: "sensitive-provider-message" } }, status);
-    await expect(openAiPlannerProvider(fetcher).interpret(context)).rejects.toMatchObject({
-      message: "planner_unavailable",
-    });
+    const failure = await openAiPlannerProvider(fetcher)
+      .interpret(context)
+      .catch((error: unknown) => error);
+    expect(failure).toMatchObject({ code, message: `planner_${code}` });
+    expect(JSON.stringify(failure)).not.toContain("sensitive");
     expect(fetcher).toHaveBeenCalledTimes(1);
-  }
-  const fetcher = vi.fn<typeof fetch>(async () => {
+  },
+);
+it("distingue une panne réseau d’un délai dépassé", async () => {
+  const network = vi.fn<typeof fetch>(async () => {
     throw new Error("sensitive-network-message");
   });
-  await expect(openAiPlannerProvider(fetcher).interpret(context)).rejects.toMatchObject({
-    message: "planner_unavailable",
+  await expect(openAiPlannerProvider(network).interpret(context)).rejects.toMatchObject({ code: "unavailable" });
+  const slow = vi.fn<typeof fetch>(async () => {
+    throw new DOMException("The operation timed out.", "TimeoutError");
   });
+  await expect(openAiPlannerProvider(slow).interpret(context)).rejects.toMatchObject({ code: "timeout" });
+  const failed = transport({ status: "failed", output: [] });
+  await expect(openAiPlannerProvider(failed).interpret(context)).rejects.toMatchObject({ code: "unavailable" });
 });
 it.each(["date", "target"] as const)("transforme un %s hors périmètre en clarification sans séance", async (field) => {
   const result = {

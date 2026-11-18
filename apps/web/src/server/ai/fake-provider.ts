@@ -1,4 +1,5 @@
-import type { PlannerProvider, PlannerProviderContext } from "./provider";
+import { plannerFailureCode } from "@tartan/contracts";
+import { PlannerProviderError, type PlannerProvider, type PlannerProviderContext } from "./provider";
 
 // Prestataire factice, pour les parcours de l'app native en CI : le web simule le planificateur dans le navigateur,
 // l'app native n'a pas cette possibilité. Il ne s'allume que sur demande explicite, et jamais sur Vercel : aucune
@@ -10,6 +11,9 @@ export const fakePlannerEnabled = (vars: NodeJS.ProcessEnv = process.env): boole
 // bibliothèque autorisée. La consigne relue est recopiée telle quelle, comme l'exige la validation.
 export const fakePlannerProvider = (): PlannerProvider => ({
   async interpret(context: PlannerProviderContext) {
+    // Recette des erreurs lisibles : « #panne-saturated » dans la consigne simule cette cause, sans réseau.
+    const failure = plannerFailureCode.safeParse(context.instructions.join("\n").match(/#panne-([a-z_]+)/)?.[1]);
+    if (failure.success) throw new PlannerProviderError(failure.data);
     const fixtureMovement = context.instructions[0]?.match(/Mouvement natif de recette(?: \d+)?/)?.[0];
     const unknownFixture = Boolean(fixtureMovement);
     const resolved = context.exercises.find((exercise) => exercise.name === fixtureMovement);

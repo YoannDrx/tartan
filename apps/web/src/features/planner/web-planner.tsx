@@ -580,7 +580,7 @@ export function WebPlanner({
             </p>
           </section>
           {proposal.state === "processing" ? <p role="status">{t.processing}</p> : null}
-          {proposal.state === "failed" ? <p role="alert">{t.proposalFailed}</p> : null}
+          {proposal.state === "failed" ? <p role="alert">{proposal.failure?.message ?? t.proposalFailed}</p> : null}
           {proposal.state === "clarification" ? (
             <section className="flex flex-col gap-3">
               <h2 className="t-section">{t.clarifyTitle}</h2>

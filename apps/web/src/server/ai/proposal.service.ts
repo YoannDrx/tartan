@@ -22,6 +22,8 @@ import {
   type PlannerReviewedDraft,
   type ClarifyPlannerProposalInput,
   type CreatePlannerProposalInput,
+  plannerFailureCode,
+  type PlannerFailureCode,
 } from "@tartan/contracts";
 import {
   validatePlannerInterpretation,
@@ -58,7 +60,7 @@ import {
   type PlannerBindings,
 } from "./context";
 import { fakePlannerEnabled, fakePlannerProvider } from "./fake-provider";
-import { openAiPlannerProvider, type PlannerProvider } from "./provider";
+import { openAiPlannerProvider, PlannerProviderError, type PlannerProvider } from "./provider";
 import {
   completePlannerOperation,
   failPlannerOperation,
@@ -67,6 +69,24 @@ import {
 } from "./usage.service";
 
 const messagesSchema = z.array(z.string()).min(1).max(6);
+// Statut HTTP de chaque cause : 503 quand il faut attendre ou prévenir, 504 pour un délai, 422 pour un refus.
+const FAILURE_STATUS: Record<PlannerFailureCode, number> = {
+  configuration: 503,
+  saturated: 503,
+  unavailable: 502,
+  timeout: 504,
+  refused: 422,
+  incomplete: 502,
+  invalid_output: 502,
+};
+export const plannerFailureError = (code: PlannerFailureCode) =>
+  new AppError(FAILURE_STATUS[code], `planner_${code}`, m.aiPlanner.failures[code]);
+// Une panne inattendue (base, code) reste une réponse inexploitable pour le coach : jamais de détail technique.
+const failureOf = (error: unknown): PlannerFailureCode | null => {
+  if (error instanceof PlannerProviderError) return error.code === "disabled" ? "configuration" : error.code;
+  if (error instanceof AppError) return null;
+  return "invalid_output";
+};
 const conflict = () => new AppError(409, "planner_proposal_conflict", m.aiPlanner.proposalConflict);
 const expired = () => new AppError(410, "planner_expired", m.aiPlanner.expiredRequest);
 export const plannerFingerprint = (input: unknown) =>
@@ -108,6 +128,15 @@ async function effectiveState(row: AiPlannerProposal, now: Date, db: Prisma.Tran
   if (operation?.state === "pending" && operation.leaseUntil > now) return "processing";
   return row.interpretation ? plannerInterpretation.parse(row.interpretation).status : "failed";
 }
+// La cause du dernier échec, s'il porte sur l'opération active : rien quand elle a réussi ou expiré sans cause connue.
+async function lastFailure(row: AiPlannerProposal) {
+  const operation = await prisma.aiPlannerOperation.findUnique({
+    where: { organizationId_id: { organizationId: row.organizationId, id: row.activeOperationId } },
+    select: { state: true, failureCode: true },
+  });
+  const code = plannerFailureCode.safeParse(operation?.state === "refunded" ? operation.failureCode : null);
+  return code.success ? { code: code.data, message: m.aiPlanner.failures[code.data] } : null;
+}
 
 export async function getPlannerProposal(userId: string, organizationId: string, id: string, now = new Date()) {
   const access = await accessFor(userId, organizationId);
@@ -116,6 +145,7 @@ export async function getPlannerProposal(userId: string, organizationId: string,
     bindings = plannerBindings.parse(row.bindings);
   await assertPlannerTargets(prisma, access, selection);
   return plannerProposalResponse.parse({
+    failure: await lastFailure(row),
     id: row.id,
     version: row.version,
     state: await effectiveState(row, now),
@@ -237,7 +267,7 @@ async function executeProposal(
       exercises: new Map(bindings.exercises.map((e) => [e.token, { id: e.id, classification: e.classification }])),
       targetTokens: new Set(bindings.targets.map((t) => t.token)),
     });
-    if (!checked.ok) throw new Error("planner_invalid_output");
+    if (!checked.ok) throw new PlannerProviderError("invalid_output");
     const completed = await completePlannerOperation(
       userId,
       organizationId,
@@ -268,9 +298,16 @@ async function executeProposal(
       },
       clock(),
     );
-    if (completed.state === "refunded") throw new Error("planner_result_expired");
+    if (completed.state === "refunded") throw new PlannerProviderError("timeout");
   } catch (error) {
-    const settled = await failPlannerOperation(userId, organizationId, operationId, claim.leaseToken).catch(() => null);
+    const failure = failureOf(error);
+    const settled = await failPlannerOperation(
+      userId,
+      organizationId,
+      operationId,
+      claim.leaseToken,
+      failure ?? undefined,
+    ).catch(() => null);
     if (settled?.state === "succeeded") return getPlannerProposal(userId, organizationId, proposalId, clock());
     // Conserver l’ancienne clarification et la réponse saisie pour une reprise explicite.
     if (settled?.state === "refunded") {
@@ -286,7 +323,7 @@ async function executeProposal(
         });
     }
     if (error instanceof AppError) throw error;
-    throw new AppError(502, "planner_generation_failed", m.aiPlanner.proposalFailed);
+    throw plannerFailureError(failure ?? "invalid_output");
   }
   return getPlannerProposal(userId, organizationId, proposalId, clock());
 }
