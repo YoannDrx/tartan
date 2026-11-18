@@ -14,6 +14,7 @@ import {
   exerciseClassification,
   snapshotItem,
   uuid,
+  clockTime,
 } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { AppError, notFound, invalid } from "@/lib/errors";
@@ -62,6 +63,8 @@ export const plannerBindings = z.object({
   ),
   phaseReviews: z.array(z.object({ date: z.iso.date(), review: sessionPhaseReview })),
   phaseCalendar: plannerProviderContext.shape.phaseCalendar,
+  // Mode « Proposer » : l'heure demandée, posée sur la séance par le serveur.
+  startTime: clockTime.nullable().optional(),
 });
 export type PlannerBindings = z.infer<typeof plannerBindings>;
 const changed = () => new AppError(409, "planner_context_changed", m.aiPlanner.contextChanged);
@@ -233,9 +236,13 @@ export function providerContextFor(
   selection: PlannerSelection,
   bindings: PlannerBindings,
   messages: string[],
+  previous?: PlannerProviderContext["previous"],
 ): PlannerProviderContext {
   return plannerProviderContext.parse({
     mode: selection.mode ?? "format",
+    ...(selection.mode === "propose" ? { startTime: bindings.startTime ?? null } : {}),
+    // Titres et noms de blocs écrits par le modèle à partir de jetons : aucun nom de personne n'y revient.
+    ...(previous ? { previous } : {}),
     resolvedExercises: (bindings.resolutions ?? []).flatMap((resolution) => {
       const exercise = bindings.exercises.find((entry) => entry.id === resolution.exerciseId);
       return resolution.requestedName && exercise ? [{ term: resolution.requestedName, token: exercise.token }] : [];

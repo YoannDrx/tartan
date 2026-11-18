@@ -4,7 +4,9 @@ import {
   plannerDraftsResponse,
   confirmPlannerProposalInput,
   previewPlannerLoadsInput,
+  plannerInterpretation,
   type PlannerInterpretation,
+  type PlannerRichInterpretation,
   type CreatePlannerProposalInput,
 } from "@tartan/contracts";
 import { prisma } from "@/lib/prisma";
@@ -1259,13 +1261,129 @@ it("ajuste une proposition sans quota supplémentaire, avec la consigne du coach
     { operationId: randomUUID(), expectedVersion: created.version, text: "Repos de trois minutes.", reviewed: true },
     { provider: p, clock },
   );
-  expect(adjusted).toMatchObject({ state: "proposal", clarificationCount: 1 });
-  expect(p.interpret.mock.calls[1]![0].instructions.at(-1)).toBe("Ajustement du coach : Repos de trois minutes.");
+  // Les ajustements ont leur propre compteur : les précisions restent toutes disponibles.
+  expect(adjusted).toMatchObject({ state: "proposal", clarificationCount: 0, adjustmentCount: 1 });
+  const sent = p.interpret.mock.calls[1]![0];
+  expect(sent.instructions.at(-1)).toBe("Ajustement du coach : Repos de trois minutes.");
+  // La proposition précédente part avec la demande : le modèle la modifie, il n'en refait pas une autre.
+  expect(sent.previous?.sessions[0]).toMatchObject({
+    date: "2030-06-03",
+    blocks: [{ content: [{ kind: "exercise", exerciseToken: "exercise_1", prescription: { sets: 3, reps: 4 } }] }],
+  });
+  expect(JSON.stringify(sent.previous)).not.toContain("Vitesse (A)");
   expect(
     await prisma.aiPlannerQuota.findUniqueOrThrow({
       where: { organizationId_month: { organizationId: a.organizationId, month: "2030-06" } },
     }),
   ).toMatchObject({ usedProposals: 1, reservedProposals: 0 });
+});
+it("borne les ajustements à cinq, sans toucher aux précisions, et garde six messages lisibles par les anciens clients", async () => {
+  const a = await setup(),
+    p = provider();
+  let current = await a.create(p);
+  for (let index = 1; index <= 5; index++) {
+    current = await clarifyPlannerProposal(
+      a.owner.userId,
+      a.organizationId,
+      a.input.id,
+      { operationId: randomUUID(), expectedVersion: current.version, text: `Ajustement ${index}.`, reviewed: true },
+      { provider: p, clock },
+    );
+    expect(current).toMatchObject({ adjustmentCount: index, clarificationCount: 0 });
+  }
+  expect(current.messages).toHaveLength(6);
+  expect(current.messages[0]).toBe(a.input.text);
+  await expect(
+    clarifyPlannerProposal(
+      a.owner.userId,
+      a.organizationId,
+      a.input.id,
+      { operationId: randomUUID(), expectedVersion: current.version, text: "Encore un.", reviewed: true },
+      { provider: p, clock },
+    ),
+  ).rejects.toMatchObject({ status: 409 });
+});
+it("prépare des brouillons avec séries détaillées, autonomie et points à vérifier, sans les montrer aux anciens clients", async () => {
+  const a = await setup();
+  const second = await prisma.exercise.findFirstOrThrow({
+    where: { organizationId: a.organizationId, id: { not: a.exercise.id } },
+  });
+  const p = provider((context) => {
+    const result = proposal(context) as PlannerRichInterpretation;
+    const item = result.sessions[0]!.blocks[0]!.items[0]!;
+    item.prescription = {
+      ...item.prescription,
+      setPlan: [
+        { reps: 4, load: { type: "kg", value: 40 }, warmup: true },
+        { reps: 2, load: { type: "kg", value: 40 }, warmup: false },
+      ],
+    };
+    item.autonomous = {
+      exerciseToken: context.exercises.find((e) => e.token !== item.exerciseToken)!.token,
+      prescription: { ...item.prescription, setPlan: null, load: null },
+    };
+    result.sessions[0]!.warnings = [
+      { code: "approximate_exercise", field: "exercise", block: 0, item: 0, detail: "group_1" },
+      { code: "habit_rest", field: "rest", block: null, item: null, detail: null },
+    ];
+    return result;
+  });
+  const input = { ...a.input, selection: { ...a.input.selection, exerciseIds: [a.exercise.id, second.id] } };
+  const created = await a.create(p, input);
+  // La réponse de l'API reste lisible par une application installée : ni détail des séries, ni autonomie.
+  expect(plannerInterpretation.safeParse(created.interpretation).success).toBe(true);
+  expect(JSON.stringify(created.interpretation)).not.toContain("setPlan");
+  const prepared = plannerDraftsResponse.parse(
+    await preparePlannerDrafts(a.owner.userId, a.organizationId, a.input.id, created.version, now),
+  );
+  const block = prepared.sessions[0]!.draft.blocks[0]!;
+  expect(block.variant).toBe("both");
+  expect(block.items[0]!.prescription).toMatchObject({ sets: 2, reps: 2, setPlan: [{ warmup: true }, { reps: 2 }] });
+  expect(block.items[0]!.autonomous).toMatchObject({ exerciseId: expect.any(String) });
+  expect(prepared.warnings![0]).toEqual([
+    { code: "approximate_exercise", field: "exercise", itemRef: block.items[0]!.ref, detail: "Vitesse (A)" },
+    { code: "habit_rest", field: "rest", itemRef: null, detail: null },
+  ]);
+});
+it("en mode « Proposer », l'heure demandée arrive sur le brouillon sans passer par le modèle", async () => {
+  const a = await setup();
+  const exercise = await prisma.exercise.create({
+    data: {
+      name: "Mouvement approuvé horaire",
+      classification: { movement: "squat", equipment: [] },
+      category: "strength",
+      catalogKey: `test-${randomUUID()}`,
+      guide: { technicalReview: "approved" },
+    },
+  });
+  try {
+    const p = provider((context) => {
+      expect(context.startTime).toBe("07:15");
+      expect(JSON.stringify(context)).not.toContain(a.input.text);
+      const result = proposal({ ...context, exercises: context.exercises.filter((e) => e.name === exercise.name) });
+      result.sessions[0]!.blocks[0]!.items[0]!.prescription.load = null;
+      result.sessions[0]!.date = context.brief!.date;
+      result.sessions[0]!.durationMin = 30;
+      return result;
+    });
+    const created = await a.create(p, {
+      ...a.input,
+      id: randomUUID(),
+      text: "Force générale",
+      startTime: "07:15",
+      selection: {
+        ...a.input.selection,
+        mode: "propose",
+        exerciseIds: [],
+        brief: { objective: "Force générale", date: "2030-06-04", durationMin: 40, level: "beginner", equipment: [] },
+      },
+    });
+    expect(created.state).toBe("proposal");
+    const prepared = await preparePlannerDrafts(a.owner.userId, a.organizationId, created.id, created.version, now);
+    expect(prepared.sessions[0]).toMatchObject({ date: "2030-06-04", startTime: "07:15" });
+  } finally {
+    await prisma.exercise.delete({ where: { id: exercise.id } });
+  }
 });
 it("pose directement une question nommée pour un mouvement inconnu, sans appeler le modèle", async () => {
   const a = await setup(),

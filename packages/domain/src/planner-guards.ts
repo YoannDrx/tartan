@@ -1,11 +1,12 @@
-import type { PlannerInterpretation } from "@tartan/contracts";
+import type { PlannerInterpretation, PlannerRichInterpretation, PlannerWarning } from "@tartan/contracts";
 import { normalizeExerciseMention, normalizeExerciseTerm } from "./exercise-aliases";
+import { plannerItemLoads, plannerLoadsAllowed } from "./ai-planner";
 import { addDays } from "./status";
 
-// Contrôles déterministes appliqués à la réponse du modèle, côté serveur.
-// Ils ne complètent jamais une séance : une sortie douteuse devient une question.
-export type PlannerGuardIssue =
-  "date" | "missing_date" | "exercise" | "target" | "rest" | "load" | "session_count" | "volume";
+// Contrôles déterministes appliqués à la réponse du modèle, côté serveur. Ils ne complètent jamais une séance.
+// Deux familles : un défaut **bloquant** (date fausse, destinataire hors sélection, charge inventée, exercice
+// inconnu) devient une question ; un **point à vérifier** laisse la proposition passer et s'affiche sur le champ.
+export type PlannerGuardIssue = "date" | "missing_date" | "exercise" | "target" | "load" | "session_count";
 export type PlannerGuardExercise = { token: string; name: string; aliases: readonly string[] };
 export type PlannerGuardContext = {
   period: { from: string; to: string };
@@ -13,6 +14,8 @@ export type PlannerGuardContext = {
   instructions: readonly string[];
   targets: readonly { token: string }[];
   exercises: readonly PlannerGuardExercise[];
+  // Ce que le contexte désigne déjà (séance précédente à ajuster, séances voisines) : ni inventé ni substitué.
+  known?: { tokens: readonly string[]; loads: readonly number[] };
 };
 
 const plain = (value: string) => normalizeExerciseTerm(value).replace(/'/g, " ");
@@ -368,7 +371,56 @@ export function plannerExerciseIsNamed(
       ),
   );
   // Un alias court contenu dans un autre mouvement nommé (clean dans power clean) ne compte pas.
-  return specific.some((hit) => hit.token === token);
+  if (specific.some((hit) => hit.token === token)) return true;
+  // Mêmes mots dans un autre ordre (« squats goblet » pour « Goblet squat »), dans une même proposition de la
+  // consigne, et sans autre fiche nommée exactement à cet endroit : c'est la même désignation.
+  return clausesOf(inflectedText).some(
+    ({ text: clause, start, end }) =>
+      !specific.some((hit) => hit.start >= start && hit.end <= end) &&
+      namesOf(exercise).some((label) => {
+        const words = wordsOf(label);
+        return words.length > 1 && words.every((word) => wordsOf(clause).includes(word));
+      }),
+  );
+}
+
+const wordsOf = (value: string) =>
+  normalizeExerciseMention(value)
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+function clausesOf(text: string) {
+  const clauses: { text: string; start: number; end: number }[] = [];
+  let start = 0;
+  for (const match of text.matchAll(/[,;:.!?\n]|\s(?:puis|ensuite|et)\s/g)) {
+    clauses.push({ text: text.slice(start, match.index), start, end: match.index });
+    start = match.index + match[0].length;
+  }
+  clauses.push({ text: text.slice(start), start, end: text.length });
+  return clauses;
+}
+// Mots qui ne désignent pas un mouvement à eux seuls.
+const WEAK = new Set(["avec", "sans", "pour", "sur", "barre", "halteres", "haltere", "bras", "jambe", "assis", "debout"]);
+/**
+ * Une fiche choisie dont un mot principal figure dans la consigne (« fentes » pour « Fentes avant ») : la
+ * désignation est proche, pas exacte. La proposition passe, avec un point « À vérifier » sur l'exercice.
+ */
+export function plannerExerciseIsApproximate(
+  text: string,
+  token: string,
+  exercises: readonly PlannerGuardExercise[],
+): boolean {
+  const exercise = exercises.find((candidate) => candidate.token === token);
+  if (!exercise) return false;
+  const words = new Set(wordsOf(text));
+  // Un mot qui appartient à une autre fiche nommée exactement n'est pas un indice (« clean » dans « power clean »).
+  const taken = new Set(
+    exercises
+      .filter((other) => other.token !== token && plannerExerciseIsNamed(text, other.token, exercises))
+      .flatMap((other) => namesOf(other).flatMap(wordsOf)),
+  );
+  return namesOf(exercise).some((label) =>
+    wordsOf(label).some((word) => word.length > 3 && !WEAK.has(word) && words.has(word) && !taken.has(word)),
+  );
 }
 
 // Une réponse du coach est enregistrée après les questions du modèle, une par ligne et terminées par
@@ -382,42 +434,32 @@ export const plannerCoachText = (instruction: string, index: number): string =>
         .filter((line) => !line.trim().endsWith("?"))
         .join("\n");
 
-export function plannerGuardIssues(value: PlannerInterpretation, context: PlannerGuardContext): PlannerGuardIssue[] {
+type Item = PlannerRichInterpretation["sessions"][number]["blocks"][number]["items"][number];
+const itemsOf = (value: PlannerInterpretation | PlannerRichInterpretation) =>
+  value.sessions.flatMap((session) => session.blocks.flatMap((block) => block.items as Item[]));
+const tokensOf = (item: Item) => [item.exerciseToken, ...(item.autonomous ? [item.autonomous.exerciseToken] : [])];
+
+/** Défauts bloquants : la proposition devient une question, jamais une séance douteuse. */
+export function plannerGuardIssues(
+  value: PlannerInterpretation | PlannerRichInterpretation,
+  context: PlannerGuardContext,
+): PlannerGuardIssue[] {
   if (value.status !== "proposal") return [];
   const issues = new Set<PlannerGuardIssue>();
   const coach = context.instructions.map(plannerCoachText);
   const text = coach.join("\n");
-  const items = value.sessions.flatMap((session) => session.blocks.flatMap((block) => block.items));
-  const stated = plannerTextNumbers(text);
-  const representedRounds = new Set<number>();
-  const checkRounds = (nodes: NonNullable<PlannerInterpretation["sessions"][number]["blocks"][number]["sequence"]>) => {
-    for (const node of nodes)
-      if (node.kind === "repeat") {
-        representedRounds.add(node.rounds);
-        if (!stated.has(node.rounds)) issues.add("volume");
-        checkRounds(node.children);
-      }
-  };
-  for (const session of value.sessions)
-    for (const block of session.blocks)
-      if (block.sequence) {
-        checkRounds(block.sequence);
-        // V2 never applies restS after the last set. Such a pause would vanish during execution.
-        if (block.items.some((item) => (item.prescription.sets ?? 1) === 1 && (item.prescription.restS ?? 0) > 0))
-          issues.add("rest");
-      }
-  if (
-    context.instructions.length === 1 &&
-    !CORRECTION.test(plain(text)) &&
-    /\b(?:circuit|superset)\b/.test(plain(text))
-  )
-    for (const mention of numberMentions(text))
-      if (mention.value > 1 && /^\s*tours?\b/.test(mention.after) && !representedRounds.has(mention.value))
-        issues.add("volume");
-
+  const items = itemsOf(value);
+  const stated = new Set([...plannerTextNumbers(text), ...(context.known?.loads ?? [])]);
+  const known = new Set(context.known?.tokens ?? []);
   for (const item of items) {
-    if (item.prescription.load && !stated.has(item.prescription.load.value)) issues.add("load");
-    if (!plannerExerciseIsNamed(text, item.exerciseToken, context.exercises)) issues.add("exercise");
+    for (const load of plannerItemLoads(item)) if (!stated.has(load.value)) issues.add("load");
+    for (const token of tokensOf(item))
+      if (
+        !known.has(token) &&
+        !plannerExerciseIsNamed(text, token, context.exercises) &&
+        !plannerExerciseIsApproximate(text, token, context.exercises)
+      )
+        issues.add("exercise");
   }
   // Après une réponse du coach, la conversation peut corriger la consigne initiale (« hier » puis
   // « demain ») : la date se lit alors dans le dernier message qui en donne une. Unités, nombre
@@ -432,17 +474,19 @@ export function plannerGuardIssues(value: PlannerInterpretation, context: Planne
   );
   if (dated) issues.add(dated);
   const mentions = numberMentions(text);
-  for (const { prescription } of items) {
-    const load = prescription.load;
-    // Une charge sans unité dictée (« à 70 ») reste une question : kilos ou pourcentage changent tout.
-    if (load && !hasUnit(mentions, load.value, load.type === "kg" ? KG_UNIT : PERCENT_UNIT)) issues.add("load");
-  }
-  // Une correction de charge ou une habitude précisée dans une réponse lève ces deux contrôles.
-  if (context.instructions.length === 1) {
-    if (items.some((item) => item.prescription.load) && contradictoryLoads(text, context.exercises))
-      issues.add("load");
-    for (const issue of habitualIssues(text)) issues.add(issue);
-  }
+  const knownLoads = new Set(context.known?.loads ?? []);
+  for (const item of items)
+    for (const load of plannerItemLoads(item))
+      // Une charge sans unité dictée (« à 70 ») reste une question : kilos ou pourcentage changent tout.
+      if (!knownLoads.has(load.value) && !hasUnit(mentions, load.value, load.type === "kg" ? KG_UNIT : PERCENT_UNIT))
+        issues.add("load");
+  // Une correction de charge précisée dans une réponse lève ce contrôle.
+  if (
+    context.instructions.length === 1 &&
+    items.some((item) => plannerItemLoads(item).length) &&
+    contradictoryLoads(text, context.exercises)
+  )
+    issues.add("load");
   if (requestedSessions(text) > 14) issues.add("session_count");
   if (context.targets.length > 1) {
     const normalized = plain(text);
@@ -455,26 +499,79 @@ export function plannerGuardIssues(value: PlannerInterpretation, context: Planne
   return [...issues];
 }
 
-// Mode « Proposer une séance » : le brief fixe la date, la durée et les destinataires. Une proposition
-// qui s'en écarte est corrigée une fois, puis devient une question ; jamais acceptée telle quelle.
+type Sequence = NonNullable<PlannerInterpretation["sessions"][number]["blocks"][number]["sequence"]>;
+/**
+ * Points « À vérifier » : la séance reste proposée, chaque point s'affiche sur le champ concerné. Ce sont des
+ * écarts de forme ou des choix proches, jamais une date, un destinataire ou une charge inventés.
+ */
+export function plannerWarnings(
+  value: PlannerRichInterpretation,
+  context: Pick<PlannerGuardContext, "instructions" | "exercises" | "known">,
+): PlannerWarning[][] {
+  if (value.status !== "proposal") return value.sessions.map(() => []);
+  const coach = context.instructions.map(plannerCoachText);
+  const text = coach.join("\n");
+  const stated = plannerTextNumbers(text);
+  const known = new Set(context.known?.tokens ?? []);
+  const nameOf = (token: string) => context.exercises.find((e) => e.token === token)?.name ?? null;
+  const represented = new Set<number>();
+  const perSession = value.sessions.map((session) => {
+    const warnings: PlannerWarning[] = [];
+    const add = (warning: Omit<PlannerWarning, "detail"> & { detail?: string | null }) => {
+      if (!warnings.some((w) => w.code === warning.code && w.block === warning.block && w.item === warning.item))
+        warnings.push({ detail: null, ...warning });
+    };
+    session.blocks.forEach((block, b) => {
+      block.items.forEach((item, i) => {
+        for (const token of tokensOf(item))
+          if (!known.has(token) && !plannerExerciseIsNamed(text, token, context.exercises))
+            add({ code: "approximate_exercise", field: "exercise", block: b, item: i, detail: nameOf(token) });
+        // Une récupération après la dernière série n'existe pas à l'exécution : elle disparaîtrait.
+        if (block.sequence && (item.prescription.sets ?? 1) === 1 && (item.prescription.restS ?? 0) > 0)
+          add({ code: "rest_not_executed", field: "rest", block: b, item: i });
+      });
+      const rounds = (nodes: Sequence) => {
+        for (const node of nodes)
+          if (node.kind === "repeat") {
+            represented.add(node.rounds);
+            if (!stated.has(node.rounds))
+              add({ code: "rounds_not_stated", field: "rounds", block: b, item: null, detail: String(node.rounds) });
+            rounds(node.children as Sequence);
+          }
+      };
+      if (block.sequence) rounds(block.sequence);
+    });
+    return warnings;
+  });
+  const first = perSession[0];
+  if (first && !CORRECTION.test(plain(text)) && /\b(?:circuit|superset)\b/.test(plain(text)))
+    for (const mention of numberMentions(text))
+      if (mention.value > 1 && /^\s*tours?\b/.test(mention.after) && !represented.has(mention.value))
+        first.push({ code: "rounds_missing", field: "rounds", block: null, item: null, detail: String(mention.value) });
+  // Aucun historique ne permet de deviner une habitude : la valeur reste à confirmer par le coach.
+  if (first && context.instructions.length === 1)
+    for (const issue of habitualIssues(text))
+      first.push({
+        code: issue === "load" ? "habit_load" : "habit_rest",
+        field: issue,
+        block: null,
+        item: null,
+        detail: null,
+      });
+  return perSession;
+}
+
+// Mode « Proposer une séance » : la date, l'heure et les destinataires sont posés par le serveur depuis la
+// demande. Reste à refuser une proposition vide ou multiple, et toute charge hors des pourcentages permis.
 export function plannerProposalIssues(
-  value: PlannerInterpretation,
-  context: { brief?: { date: string; durationMin: number } | null; targets: readonly { token: string }[] },
+  value: PlannerInterpretation | PlannerRichInterpretation,
+  context: { brief?: { date: string; durationMin: number } | null; percentTokens?: ReadonlySet<string> },
 ): PlannerGuardIssue[] {
   if (value.status !== "proposal" || !context.brief) return [];
   const issues = new Set<PlannerGuardIssue>();
   if (value.sessions.length !== 1) issues.add("session_count");
   if (value.sessions.some((session) => session.date !== context.brief!.date)) issues.add("date");
-  if (value.sessions.some((session) => (session.durationMin ?? 0) > context.brief!.durationMin)) issues.add("volume");
-  const tokens = context.targets.map((target) => target.token);
-  if (value.sessions.some((session) => tokens.some((token) => !session.targetTokens.includes(token))))
-    issues.add("target");
-  if (
-    value.sessions.some((session) =>
-      session.blocks.some((block) => block.items.some((item) => item.prescription.load !== null)),
-    )
-  )
-    issues.add("load");
+  if (itemsOf(value).some((item) => !plannerLoadsAllowed(item, context.percentTokens))) issues.add("load");
   return [...issues];
 }
 
@@ -556,12 +653,12 @@ function clauseNaming(exercise: PlannerGuardExercise | undefined, instructions: 
 // La citation doit rester un extrait exact : une variation de casse ou d'espaces est
 // restaurée depuis la consigne. Un exercice qui n'a aucune attache dans la consigne
 // est retiré au lieu d'être conservé en silence.
-export function groundPlannerCitations(
-  value: PlannerInterpretation,
+export function groundPlannerCitations<T extends PlannerInterpretation | PlannerRichInterpretation>(
+  value: T,
   context: { instructions: readonly string[]; exercises: readonly PlannerGuardExercise[] },
-): { value: PlannerInterpretation; removed: number } {
+): { value: T; removed: number } {
   let removed = 0;
-  const sessions = value.sessions
+  const sessions = (value.sessions as PlannerRichInterpretation["sessions"])
     .map((session) => ({
       ...session,
       blocks: session.blocks
@@ -580,14 +677,14 @@ export function groundPlannerCitations(
         .filter((block) => block.items.length > 0 || Boolean(block.sequence?.length)),
     }))
     .filter((session) => session.blocks.length > 0);
-  return { value: { ...value, sessions }, removed };
+  return { value: { ...value, sessions } as T, removed };
 }
 
 // Un pourcentage nul ne décrit aucune charge : c'est l'absence de charge, jamais une valeur dictée.
-export function plannerDropEmptyPercentages(value: PlannerInterpretation): PlannerInterpretation {
+export function plannerDropEmptyPercentages<T extends PlannerInterpretation | PlannerRichInterpretation>(value: T): T {
   return {
     ...value,
-    sessions: value.sessions.map((session) => ({
+    sessions: (value.sessions as PlannerRichInterpretation["sessions"]).map((session) => ({
       ...session,
       blocks: session.blocks.map((block) => ({
         ...block,
@@ -598,7 +695,7 @@ export function plannerDropEmptyPercentages(value: PlannerInterpretation): Plann
         ),
       })),
     })),
-  };
+  } as T;
 }
 
 // Une question par information : le modèle répète parfois la même demande reformulée.

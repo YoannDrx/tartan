@@ -40,6 +40,10 @@ describe("passe déterministe du planificateur", () => {
       "Squat arrière à la machine guidée",
     ]);
   });
+  it("un nom dont chaque mot existe dans la bibliothèque reste au modèle, qui choisit ou demande", () => {
+    expect(plannerUnknownExerciseTerms("Mardi, fentes par jambe, 3 séries de 8", catalog)).toEqual([]);
+    expect(plannerUnknownExerciseTerms("Mardi, fentes zéphyr, 3 séries de 8", catalog)).toEqual(["fentes zéphyr"]);
+  });
   it("un choix du coach couvre le terme", () => {
     expect(
       plannerUnknownExerciseTerms("Squat du dragon, 3 séries de 6", catalog, [

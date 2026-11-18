@@ -163,7 +163,7 @@ export async function reservePlannerOperation(
           paid.actorId !== userId ||
           paid.kind !== "proposal" ||
           paid.state !== "succeeded" ||
-          parent.clarificationCount >= 5 ||
+          (parent.state === "proposal" ? parent.adjustmentCount : parent.clarificationCount) >= 5 ||
           !onClaim
         )
           throw conflict();
