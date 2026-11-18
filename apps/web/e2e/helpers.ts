@@ -20,12 +20,16 @@ export const addFromLibrary = async (page: Page, name: string) => {
   const inSheet = await opener.isVisible();
   if (inSheet) await opener.click();
   const scope = inSheet ? page.getByRole("dialog") : aside;
-  // La recherche part au serveur : on attend son résultat, pour qu'aucune requête ne reste en vol après l'ajout.
-  const count = scope.getByText(/^(Aucune fiche|1 fiche|\d+ fiches)$/);
-  await expect(count).toBeVisible();
-  const before = await count.textContent();
-  await scope.getByPlaceholder(m.builder.sequence.searchExercise).fill(name);
-  await expect(count).not.toHaveText(before ?? "");
+  // La recherche part au serveur : on attend sa réponse, pour qu'aucune requête ne reste en vol après l'ajout.
+  const field = scope.getByPlaceholder(m.builder.sequence.searchExercise);
+  if ((await field.inputValue()) === name) await field.fill("");
+  const searched = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      (response.request().postData() ?? "").includes(`"q":${JSON.stringify(name)}`),
+  );
+  await field.fill(name);
+  await searched;
   await scope.getByRole("button", { name: m.builder.sequence.addToSession(name), exact: true }).click();
   if (inSheet) {
     await page.keyboard.press("Escape");
