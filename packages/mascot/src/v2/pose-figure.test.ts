@@ -3,17 +3,21 @@ import { ATHLETE_IDS } from "../athletes";
 import type { MascotCanvas } from "../canvas";
 import { CLIPS } from "../events";
 import { POSES } from "../poses";
+import { discusAt, DISCUS_TIMES } from "../discus";
+import { closestOnPole, poleAt, POLE_VAULT_TIMES } from "../pole-vault";
 import type { AthletePaint } from "../skeleton";
 import { FIGURE, HEIGHT } from "./body";
 import { nativeOf, oldJoints, SCALE } from "./lift-v1";
 import {
   drawPoseFigure,
   poseBody,
+  poseHands,
   poseNodes,
   POSE_SCALE,
   poseRoot,
   svgJumperFigure,
   svgPoseFigure,
+  type HeldPose,
   type PoseCanvas,
 } from "./pose-figure";
 import { SIDES } from "./solve";
@@ -50,39 +54,70 @@ describe("le corps du moteur des gestes dans les anciennes poses", () => {
     );
   });
 
-  // Une main ou une cheville se pose au point de l'ancien squelette ; un point hors d'atteinte du nouveau membre
-  // (l'ancien bras était plus long) est visé bras ou jambe tendus, et manqué d'autant.
-  it.each(ALL)("%s : les mains et les chevilles se posent aux points de l'ancien squelette", (_, pose) => {
+  // Aucun bras ne se tend dans le vide : chaque main atteint la cible que le corps lui donne. Sans prise imposée, le
+  // bras reprend les angles de l'ancien bras, dans les limites de l'épaule ; avec une prise (la main du bas sur la
+  // perche), la main y est.
+  it.each(ALL)("%s : chaque main atteint sa cible, sans se verrouiller tendue, ou sur sa prise", (_, pose) => {
     const body = poseBody(pose);
     const joints = oldJoints(pose, { x: 0, y: 0 }, "side");
     const c = body.controls;
     for (const side of SIDES) {
-      const limb = side === "R" ? "A" : "B";
       const arm = body.arms[side];
-      // La main vise l'ancienne main : dans le plan de l'image, exactement.
       const target = vec(c[`hand${side}X`], c[`hand${side}Y`], c[`hand${side}Z`]);
-      expect(gap(target, seen(joints[`hand${limb}`])), `cible ${side}`).toBeLessThan(1e-6);
-      const reach = distance(arm.shoulder, arm.elbow) + distance(arm.elbow, arm.hand);
-      const short = Math.max(0, distance(target, arm.shoulder) - reach);
-      expect(distance(arm.hand, target), `main ${side}`).toBeLessThan(short + 1.5);
-      const leg = body.legs[side];
-      // De profil, chaque cheville reste à la largeur des hanches.
-      const old = seen(joints[`ankle${limb}`]);
-      const ankle = vec(old.x, old.y, (side === "R" ? 1 : -1) * FIGURE.hip);
-      const stretch = distance(leg.hip, leg.knee) + distance(leg.knee, leg.ankle);
-      const far = Math.max(0, distance(ankle, leg.hip) - stretch);
-      expect(distance(leg.ankle, ankle), `cheville ${side}`).toBeLessThan(far + 1.5);
+      expect(distance(arm.hand, target), `main ${side}`).toBeLessThan(1);
+      const limb = side === "R" ? "A" : "B";
+      const held = (pose as HeldPose).grip?.[`hand${limb}`];
+      if (held) {
+        expect(gap(arm.hand, seen(held)), `prise ${side}`).toBeLessThan(1);
+        continue;
+      }
+      const [s, e, h] = [joints[`shoulder${limb}`], joints[`elbow${limb}`], joints[`hand${limb}`]];
+      const turn = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.atan2(b.y - a.y, b.x - a.x);
+      let old = Math.abs(((turn(e, h) - turn(s, e)) * 180) / Math.PI) % 360;
+      old = Math.min(Math.min(old, 360 - old), 146);
+      // Un ancien bras plié le reste : le nouveau ne se verrouille pas tendu vers une main hors de portée.
+      if (old >= 12) expect(arm.flexion, `coude ${side}`).toBeGreaterThan(old / 3);
     }
   });
 
-  it("les anciens bras portaient un peu plus loin : la main manque l'objet de peu, et seulement bras tendu", () => {
-    const misses = ALL.flatMap(([, pose]) => {
+  // Dans les épreuves, un pied posé sur la piste y reste exactement : la cheville du nouveau corps est sur celle de
+  // l'ancien, à une unité près, dans la scène.
+  it.each(Object.entries(CLIPS))("%s : chaque cheville au sol reste sur son appui", (_, clip) => {
+    let grounded = 0;
+    for (let i = 0; i <= 200; i += 1) {
+      const { pose, root } = clip.frame(i / 200);
       const body = poseBody(pose);
-      const joints = oldJoints(pose, { x: 0, y: 0 }, "side");
-      return SIDES.map((side) => gap(body.arms[side].hand, seen(joints[`hand${side === "R" ? "A" : "B"}`])));
-    });
-    // La plupart des mains tombent juste ; les autres, l'élan d'un bras lancé, ne tiennent rien.
-    expect(misses.filter((miss) => miss < 1.5).length / misses.length).toBeGreaterThan(0.75);
+      const joints = oldJoints(pose, root, "side");
+      for (const side of SIDES) {
+        const old = joints[`ankle${side === "R" ? "A" : "B"}`];
+        // Debout, l'ancienne cheville est 16 au-dessus du sol.
+        if (old.y < clip.stage.ground - 20) continue;
+        grounded += 1;
+        const ankle = body.legs[side].ankle;
+        const drawn = { x: root.x + ankle.x * POSE_SCALE, y: root.y - (ankle.y - LIFT) * POSE_SCALE };
+        expect(gap(drawn, old), `${i}/200 ${side}`).toBeLessThan(1);
+      }
+    }
+    expect(grounded).toBeGreaterThan(5);
+  });
+
+  // L'objet tenu suit la main du corps dessiné : la perche des deux mains jusqu'au lâcher, le disque dans la main
+  // qui le lance. À chaque image où l'ancien geste le tenait, la main est dessus, à une unité près.
+  it("la perche est dans les deux mains, et le disque dans la main qui le lance, jusqu'au lâcher", () => {
+    for (let i = 0; i <= 400; i += 1) {
+      const t = i / 400;
+      if (t <= POLE_VAULT_TIMES.release) {
+        const { pose, root } = CLIPS.poleVault.frame(t);
+        const pole = poleAt(t);
+        const hands = poseHands(pose, root);
+        expect(gap(closestOnPole(pole, hands.handB), hands.handB), `perche, main du haut, ${t}`).toBeLessThan(1);
+        expect(gap(closestOnPole(pole, hands.handA), hands.handA), `perche, main du bas, ${t}`).toBeLessThan(1);
+      }
+      if (t <= DISCUS_TIMES.release) {
+        const { pose, root } = CLIPS.discus.frame(t);
+        expect(gap(discusAt(t), poseHands(pose, root).handA), `disque, ${t}`).toBeLessThan(1);
+      }
+    }
   });
 
   it("chaque athlète se dessine dans chaque pose, de profil, de face et de dos, sans valeur manquante", () => {

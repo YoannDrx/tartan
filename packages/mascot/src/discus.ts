@@ -3,7 +3,8 @@ import { clamp, type Frame } from "./clip";
 import { arc, faceBy, hipOn, laneLine, moment, tracks, type EventClip, type Moment, type Phase } from "./event";
 import { POSES } from "./poses";
 import type { PropShape } from "./props";
-import { jointPositions, type Point, type Pose } from "./skeleton";
+import type { Point, Pose } from "./skeleton";
+import { poseHands } from "./v2/pose-figure";
 
 const STAGE = { width: 1400, height: 800, ground: 740 };
 const HIP = hipOn(STAGE.ground);
@@ -146,12 +147,13 @@ const KEYS: Moment[] = [
 const THROW = tracks(KEYS);
 const frame = (t: number): Frame => THROW.frame(clamp(t));
 
-// Le disque : dans la main tant qu'elle le tient, puis sur sa parabole, puis posé là où il est retombé.
-const RELEASED = jointPositions(frame(AT.release).pose, frame(AT.release).root).handA;
+// Le disque : dans la main du corps dessiné tant qu'elle le tient, puis sur sa parabole, puis posé là où il est
+// retombé.
+const RELEASED = poseHands(frame(AT.release).pose, frame(AT.release).root).handA;
 export const discusAt = (t: number): Point => {
   if (t <= AT.release) {
     const { pose, root } = frame(t);
-    return jointPositions(pose, root).handA;
+    return poseHands(pose, root).handA;
   }
   return arc(RELEASED, DISCUS.landing, DISCUS.rise, clamp((t - AT.release) / (AT.land - AT.release)));
 };
