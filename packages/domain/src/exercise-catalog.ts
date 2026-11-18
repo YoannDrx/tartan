@@ -1,4 +1,5 @@
-import { exerciseGuide, type ExerciseGuide, type ExerciseFamily } from "@tartan/contracts";
+import { exerciseGuide, type ExerciseConciseGuide, type ExerciseGuide, type ExerciseFamily } from "@tartan/contracts";
+import { CONCISE_APPROVED_FAMILIES, CONCISE_BY_FAMILY } from "./exercise-catalog/concise";
 import { STARTER_LIBRARY, type StarterExercise } from "./starter-library";
 import type { CatalogueDraft } from "./exercise-catalog/types";
 import { STRENGTH_CATALOG } from "./exercise-catalog/strength";
@@ -123,3 +124,46 @@ export const EXERCISE_CATALOG: CatalogExercise[] = [
 ].map(buildEntry);
 
 export const catalogExerciseByKey = (key: string) => EXERCISE_CATALOG.find((exercise) => exercise.catalogKey === key);
+
+/** La version concise du guide d'une fiche du catalogue, prête à afficher ; `null` pour une clé inconnue. */
+export const conciseGuideFor = (key: string): ExerciseConciseGuide | null => {
+  const entry = catalogExerciseByKey(key);
+  const draft = entry ? CONCISE_BY_FAMILY[entry.guide.family][key] : undefined;
+  if (!entry || !draft) return null;
+  const variant = (text: string | null, target: string | undefined) =>
+    text === null ? null : { text, catalogKey: target ?? null };
+  return {
+    objective: draft.objective,
+    setup: draft.setup,
+    steps: draft.steps,
+    mistakes: draft.mistakes,
+    easier: variant(draft.easier, draft.easierKey),
+    harder: variant(draft.harder, draft.harderKey),
+    review: CONCISE_APPROVED_FAMILIES.includes(entry.guide.family) ? "approved" : "review",
+  };
+};
+
+/**
+ * Le guide enregistré dit-il encore mot pour mot le texte du catalogue ? Seul ce texte a une version concise :
+ * un guide qu'un coach a réécrit s'affiche tel qu'il l'a écrit.
+ */
+export const guideMatchesCatalog = (
+  guide: Pick<ExerciseGuide, "catalogKey" | "objective" | "setup" | "steps" | "mistakes">,
+) => {
+  const entry = catalogExerciseByKey(guide.catalogKey);
+  if (!entry) return false;
+  const same = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((v, i) => v === b[i]);
+  return (
+    entry.guide.objective === guide.objective &&
+    same(entry.guide.setup, guide.setup) &&
+    same(entry.guide.steps, guide.steps) &&
+    same(entry.guide.mistakes, guide.mistakes)
+  );
+};
+
+export {
+  CONCISE_APPROVED_FAMILIES,
+  CONCISE_BY_FAMILY,
+  CONCISE_RULES,
+  conciseProblems,
+} from "./exercise-catalog/concise";
