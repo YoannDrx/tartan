@@ -34,10 +34,10 @@ describe("choix du moteur par fiche", () => {
     }
   });
 
-  it("le compte : 171 gestes sur le nouveau moteur, 2 sur le premier, d'accord avec le registre", () => {
+  it("le compte : les 173 gestes sur le nouveau moteur, aucun sur le premier, d'accord avec le registre", () => {
     const engines = GESTURE_KEYS.map((key) => motionEngine(key));
-    expect(engines.filter((engine) => engine === "v2")).toHaveLength(171);
-    expect(engines.filter((engine) => engine === "v1")).toHaveLength(2);
+    expect(engines.filter((engine) => engine === "v2")).toHaveLength(173);
+    expect(engines.filter((engine) => engine === "v1")).toHaveLength(0);
     for (const key of GESTURE_KEYS) {
       const level = motionLevel(key);
       expect(level === "ecrit" ? "ecrit" : "releve", key).toBe(gestureEntry(key)!.level);

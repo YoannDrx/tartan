@@ -11,6 +11,7 @@ import {
   GESTURES,
   lateralLunge,
   OTHER_GESTURES,
+  PLYOMETRIC_GESTURES,
   snatch,
   STRENGTH_GESTURES,
   WEIGHTLIFTING_GESTURES,
@@ -24,6 +25,7 @@ import { distance } from "./vec";
 const clips = Object.values(GESTURES).map((clip) => [clip.key, clip] as const);
 // Les gestes d'haltérophilie et de musculation se tiennent sur leurs deux pieds à chaque tenue.
 const TWO_FEET = new Set([...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES].map((clip) => clip.key));
+const JUMPS = new Set(PLYOMETRIC_GESTURES.map((clip) => clip.key));
 // Au moins 120 images par boucle ; 240 pour ne pas manquer une phase de moins de 150 ms.
 const SAMPLES = 240;
 const reports = new Map(clips.map(([key, clip]) => [key, inspect(clip, SAMPLES)]));
@@ -49,7 +51,7 @@ const length = (clip: MotionClip, id: string) => {
 describe("gestes écrits à la main", () => {
   it("couvre l'haltérophilie et la musculation, sous les clés du catalogue", () => {
     expect(Object.keys(GESTURES)).toHaveLength(
-      WEIGHTLIFTING_GESTURES.length + STRENGTH_GESTURES.length + OTHER_GESTURES.length,
+      WEIGHTLIFTING_GESTURES.length + STRENGTH_GESTURES.length + OTHER_GESTURES.length + PLYOMETRIC_GESTURES.length,
     );
     for (const key of ["snatch", "clean", "clean-and-jerk", "back-squat", "lateral-lunge"])
       expect(GESTURES[key], key).toBeDefined();
@@ -90,14 +92,18 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
     // Suspendu à une barre fixe ou en appui sur des barres parallèles, le corps ne touche pas le sol : ce sont les
     // mains qui tiennent (bodyweight.test.ts).
     if (clip.phases.every((phase) => phase.planted.length === 0)) return;
-    // Le contrôle porte bien sur des appuis : un pied au moins pendant une tenue (les deux pour un geste debout sur
-    // ses deux pieds), au moins un sur la plupart des transitions.
-    for (const phase of clip.phases.filter((candidate) => candidate.hold))
-      expect(phase.planted.length, phase.id).toBeGreaterThan(0);
-    if (TWO_FEET.has(clip.key))
-      for (const phase of clip.phases.filter((candidate) => candidate.hold)) expect(phase.planted).toEqual(["R", "L"]);
+    // Le contrôle porte bien sur des appuis. Un geste d'haltérophilie ou de musculation se tient sur ses deux pieds à
+    // chaque tenue et garde au moins un appui sur la plupart des transitions ; un saut, une course ou un geste au sol
+    // a au moins une tenue et une transition en appui (ses vols et ses réceptions sur un tapis n'en ont pas).
+    const holds = clip.phases.filter((candidate) => candidate.hold);
     const moves = clip.phases.filter((candidate) => !candidate.hold);
-    expect(moves.filter((phase) => phase.planted.length > 0).length).toBeGreaterThan(moves.length / 2);
+    if (TWO_FEET.has(clip.key)) {
+      for (const phase of holds) expect(phase.planted).toEqual(["R", "L"]);
+      expect(moves.filter((phase) => phase.planted.length > 0).length).toBeGreaterThan(moves.length / 2);
+      return;
+    }
+    expect(holds.some((phase) => phase.planted.length > 0)).toBe(true);
+    expect(moves.some((phase) => phase.planted.length > 0)).toBe(true);
   });
 
   it("les deux mains restent sur la barre, à largeur de prise constante, et la barre ne traverse pas la tête", () => {
@@ -126,9 +132,16 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
     let previous = clip.pose(0);
     for (let i = 1; i <= frames; i += 1) {
       const body = clip.pose(i / frames);
+      // La coupure d'un geste qui ne boucle pas est un saut voulu : la lecture repart du début.
+      if (phaseAt(clip, i / frames).cut || phaseAt(clip, (i - 1) / frames).cut) {
+        previous = body;
+        continue;
+      }
       for (const side of SIDES) {
-        expect(distance(body.arms[side].hand, previous.arms[side].hand)).toBeLessThan(30);
-        expect(distance(body.legs[side].knee, previous.legs[side].knee)).toBeLessThan(36);
+        // Un saut va vite : le lancer des bras approche six mètres par seconde à la main, et le corps entier se
+        // déplace en l'air ; une image y parcourt plus de chemin.
+        expect(distance(body.arms[side].hand, previous.arms[side].hand)).toBeLessThan(JUMPS.has(clip.key) ? 42 : 30);
+        expect(distance(body.legs[side].knee, previous.legs[side].knee)).toBeLessThan(JUMPS.has(clip.key) ? 48 : 36);
       }
       previous = body;
     }

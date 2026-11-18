@@ -3,11 +3,24 @@
 import type { MotionClip } from "../gesture";
 import { backSquat } from "./back-squat";
 import { hipCar, legSwings } from "./balance";
+import { highJumpFull, highJumpShort } from "./high-jump";
 import { clean } from "./clean";
 import { chinUp, inclinePushUp, invertedRow, parallelBarDips, pullUp, pushUp } from "./bodyweight";
 import { cleanAndJerk } from "./clean-and-jerk";
 import { barbellRow, deadlift, goodMorning, romanianDeadlift, sumoDeadlift } from "./hinges";
 import { jerkDipDrill, pushJerk, pushPress, splitJerk } from "./jerk";
+import {
+  boxJump,
+  countermovementJump,
+  dropJump,
+  pogoJumps,
+  repeatedVerticalJumps,
+  singleLegHops,
+  splitJumps,
+  squatJump,
+  standingBroadJump,
+  tuckJump,
+} from "./jumps";
 import { lateralLunge } from "./lateral-lunge";
 import { forwardLunge, reverseLunge } from "./lunges";
 import { overheadSquat, snatchBalance } from "./overhead";
@@ -90,9 +103,27 @@ export const OTHER_GESTURES: readonly MotionClip[] = [
   proneHipRotation,
   hip9090,
 ];
+// La pliométrie.
+export const PLYOMETRIC_GESTURES: readonly MotionClip[] = [
+  squatJump,
+  countermovementJump,
+  tuckJump,
+  repeatedVerticalJumps,
+  pogoJumps,
+  splitJumps,
+  standingBroadJump,
+  boxJump,
+  dropJump,
+  singleLegHops,
+  highJumpShort,
+  highJumpFull,
+];
 
 export const GESTURES: Readonly<Record<string, MotionClip>> = Object.fromEntries(
-  [...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES, ...OTHER_GESTURES].map((clip) => [clip.key, clip]),
+  [...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES, ...OTHER_GESTURES, ...PLYOMETRIC_GESTURES].map((clip) => [
+    clip.key,
+    clip,
+  ]),
 );
 
 export {

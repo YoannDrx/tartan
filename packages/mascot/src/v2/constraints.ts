@@ -120,6 +120,8 @@ export const inspect = (clip: MotionClip, samples = 240): Report => {
 
   for (let i = 0; i < samples; i += 1) {
     const t = i / samples;
+    // Une coupure (un geste qui ne boucle pas) n'est pas un mouvement : la lecture saute ce tronçon.
+    if (phaseAt(clip, t).cut) continue;
     const body = clip.pose(t);
     for (const { limit, joint, value } of measure(body)) {
       const [low, high] = LIMITS[limit];
