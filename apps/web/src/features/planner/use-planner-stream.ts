@@ -139,6 +139,6 @@ export function usePlannerStream(orgId: string, onResult: (proposal: PlannerProp
     create: (input: CreatePlannerProposalInput) => send("/planner", input, input.id),
     clarify: (proposalId: string, input: ClarifyPlannerProposalInput) =>
       send(`/planner/proposals/${proposalId}/clarify`, input, proposalId),
-    clearError: () => update({ error: null }),
+    clearError: useCallback(() => update({ error: null }), [update]),
   };
 }

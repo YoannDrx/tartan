@@ -941,7 +941,8 @@
 }
 @media (prefers-reduced-motion: no-preference) {
   .sheet-enter[data-state="open"],
-  .toast-enter {
+  .toast-enter,
+  .plan-line-enter {
     animation: rise-in var(--duration-enter) var(--ease-reception) both;
   }
   .sheet-enter[data-state="closed"] {

@@ -68,6 +68,8 @@ export default defineConfig({
             // Les tests IA actifs simulent le prestataire, jamais les écritures finales.
             // Aucune clé du poste ne doit être utilisée par un parcours automatisé.
             AI_PLANNER_ENABLED: process.env.E2E_AI_PLANNER_ENABLED === "true" ? "true" : "false",
+            // Le planificateur s'exerce contre le prestataire factice du serveur : aucune clé, aucun appel externe.
+            AI_PLANNER_FAKE_PROVIDER: process.env.E2E_AI_PLANNER_ENABLED === "true" ? "true" : "false",
             OPENAI_API_KEY: "",
             OPEN_AI_API_KEY: "",
             VIDEO_DEV_MP4_URL: `http://localhost:${PORT}/dev-clip.webm`,
