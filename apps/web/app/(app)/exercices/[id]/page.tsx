@@ -27,7 +27,10 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
     <div className="flex flex-col gap-4">
       <PageHeader
         title={exercise.name}
-        detail={[family, exercise.shared ? w.exercises.sheet.source.shared : w.exercises.sheet.source.mine]
+        detail={[
+          family,
+          (exercise.shared ? w.exercises.sheet.source.shared : w.exercises.sheet.source.mine).toLowerCase(),
+        ]
           .filter(Boolean)
           .join(", ")}
         before={

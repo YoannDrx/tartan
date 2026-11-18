@@ -83,51 +83,73 @@ export const MovementGuide = ({ guide, variants }: { guide: ExerciseGuide; varia
     ] as const
   ).filter(([, variant]) => variant);
   return (
-    <section aria-label={m.exerciseGuide.title} className="flex min-w-0 flex-col gap-5">
-      <Illustration guide={guide} />
-      <p className="text-[17px] font-semibold leading-snug">{text.objective}</p>
-      <div className="min-w-0">
-        <h3 className="t-section">{t.setup}</h3>
-        <p className="mt-1">{text.setup}</p>
-      </div>
-      <Lines title={t.steps} lines={text.steps} ordered />
-      <Lines title={t.mistakes} lines={text.mistakes} />
-      {variantRows.length > 0 ? (
-        <dl className="flex flex-col divide-y divide-card-line border-y border-card-line">
-          {variantRows.map(([label, variant, link]) => (
-            <div key={label} className="flex min-h-11 flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2">
-              <dt className="w-32 shrink-0 font-semibold">{label}</dt>
-              <dd className="min-w-0 flex-1">
-                {link ? (
-                  <Link
-                    href={`/exercices/${link.id}`}
-                    className="inline-flex min-h-11 items-center gap-1 font-semibold underline"
-                  >
-                    {link.name}
-                    <ChevronRight aria-hidden className="size-4" />
-                  </Link>
-                ) : (
-                  variant!.text
-                )}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-      <details className="min-w-0 border-b border-card-line">
-        <summary className="flex min-h-11 cursor-pointer items-center font-semibold">{t.detail}</summary>
-        <div className="flex flex-col gap-4 pb-4">
-          {concise && concise.review === "review" ? (
-            <>
-              <p className="t-caption text-soft">{t.detailHint}</p>
-              <p>{guide.objective}</p>
-              <Lines title={t.setup} lines={guide.setup} />
-              <Lines title={t.steps} lines={guide.steps} ordered />
-              <Lines title={t.mistakes} lines={guide.mistakes} />
+    // Assez large (la fiche sur ordinateur), le geste tient à gauche et le texte se lit à côté ; plus étroit (téléphone,
+    // aperçu du constructeur, séance de l'athlète), le geste passe au-dessus.
+    <section aria-label={m.exerciseGuide.title} className="@container min-w-0">
+      <div className="grid gap-5 @3xl:grid-cols-2 @3xl:items-start @3xl:gap-8">
+        <div className="min-w-0 @3xl:sticky @3xl:top-24">
+          <Illustration guide={guide} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-5">
+          <p className="text-[17px] font-semibold leading-snug">{text.objective}</p>
+          <div className="min-w-0">
+            <h3 className="t-section">{t.setup}</h3>
+            <p className="mt-1">{text.setup}</p>
+          </div>
+          <Lines title={t.steps} lines={text.steps} ordered />
+          <Lines title={t.mistakes} lines={text.mistakes} />
+          {variantRows.length > 0 ? (
+            <dl className="flex flex-col divide-y divide-card-line border-y border-card-line">
+              {variantRows.map(([label, variant, link]) => (
+                <div key={label} className="flex min-h-11 flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2">
+                  <dt className="w-32 shrink-0 font-semibold">{label}</dt>
+                  <dd className="min-w-0 flex-1">
+                    {link ? (
+                      <Link
+                        href={`/exercices/${link.id}`}
+                        className="inline-flex min-h-11 items-center gap-1 font-semibold underline"
+                      >
+                        {link.name}
+                        <ChevronRight aria-hidden className="size-4" />
+                      </Link>
+                    ) : (
+                      variant!.text
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+          <details className="min-w-0 border-b border-card-line">
+            <summary className="flex min-h-11 cursor-pointer items-center font-semibold">{t.detail}</summary>
+            <div className="flex flex-col gap-4 pb-4">
+              {concise && concise.review === "review" ? (
+                <>
+                  <p className="t-caption text-soft">{t.detailHint}</p>
+                  <p>{guide.objective}</p>
+                  <Lines title={t.setup} lines={guide.setup} />
+                  <Lines title={t.steps} lines={guide.steps} ordered />
+                  <Lines title={t.mistakes} lines={guide.mistakes} />
+                  {(
+                    [
+                      [t.easier, guide.easier],
+                      [t.harder, guide.progression],
+                    ] as const
+                  ).map(([title, line]) =>
+                    line ? (
+                      <div key={title}>
+                        <h3 className="t-section">{title}</h3>
+                        <p className="mt-1">{line}</p>
+                      </div>
+                    ) : null,
+                  )}
+                </>
+              ) : null}
               {(
                 [
-                  [t.easier, guide.easier],
-                  [t.harder, guide.progression],
+                  [t.breathing, guide.breathing],
+                  [t.counting, guide.counting.explanation],
+                  [t.load, guide.loadExplanation],
                 ] as const
               ).map(([title, line]) =>
                 line ? (
@@ -137,32 +159,18 @@ export const MovementGuide = ({ guide, variants }: { guide: ExerciseGuide; varia
                   </div>
                 ) : null,
               )}
-            </>
-          ) : null}
-          {(
-            [
-              [t.breathing, guide.breathing],
-              [t.counting, guide.counting.explanation],
-              [t.load, guide.loadExplanation],
-            ] as const
-          ).map(([title, line]) =>
-            line ? (
-              <div key={title}>
-                <h3 className="t-section">{title}</h3>
-                <p className="mt-1">{line}</p>
-              </div>
-            ) : null,
-          )}
+            </div>
+          </details>
+          <p className="t-caption text-soft">
+            {guide.author === "coach"
+              ? t.coach
+              : guide.technicalReview === "approved"
+                ? m.exerciseGuide.approved
+                : m.exerciseGuide.pending}{" "}
+            {m.exerciseGuide.families[guide.family]}, {m.exerciseGuide.levels[guide.level].toLowerCase()}.
+          </p>
         </div>
-      </details>
-      <p className="t-caption text-soft">
-        {guide.author === "coach"
-          ? t.coach
-          : guide.technicalReview === "approved"
-            ? m.exerciseGuide.approved
-            : m.exerciseGuide.pending}{" "}
-        {m.exerciseGuide.families[guide.family]}, {m.exerciseGuide.levels[guide.level].toLowerCase()}.
-      </p>
+      </div>
     </section>
   );
 };
