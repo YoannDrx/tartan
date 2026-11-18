@@ -2,8 +2,9 @@
 // Les autres gestes du catalogue sont relevés du premier moteur (registry.ts).
 import type { MotionClip } from "../gesture";
 import { backSquat } from "./back-squat";
+import { hipCar, legSwings } from "./balance";
 import { clean } from "./clean";
-import { chinUp, parallelBarDips, pullUp, pushUp } from "./bodyweight";
+import { chinUp, inclinePushUp, invertedRow, parallelBarDips, pullUp, pushUp } from "./bodyweight";
 import { cleanAndJerk } from "./clean-and-jerk";
 import { barbellRow, deadlift, goodMorning, romanianDeadlift, sumoDeadlift } from "./hinges";
 import { jerkDipDrill, pushJerk, pushPress, splitJerk } from "./jerk";
@@ -13,7 +14,9 @@ import { overheadSquat, snatchBalance } from "./overhead";
 import { hipThrust } from "./hip-thrust";
 import { benchPress, overheadPress } from "./presses";
 import { cleanPull, snatchDeadlift, snatchPull } from "./pulls";
+import { sidePlank } from "./side-plank";
 import { snatch } from "./snatch";
+import { carioca, crossStepStairs } from "./stepping";
 import { bulgarianSquat, frontSquat } from "./squats";
 import {
   hangClean,
@@ -69,10 +72,15 @@ export const STRENGTH_GESTURES: readonly MotionClip[] = [
   hipThrust,
   forwardLunge,
   reverseLunge,
+  inclinePushUp,
+  invertedRow,
 ];
 
+// Les autres familles : pliométrie, gainage, coordination, escaliers, échauffement, mobilité, course.
+export const OTHER_GESTURES: readonly MotionClip[] = [legSwings, hipCar, sidePlank, carioca, crossStepStairs];
+
 export const GESTURES: Readonly<Record<string, MotionClip>> = Object.fromEntries(
-  [...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES].map((clip) => [clip.key, clip]),
+  [...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES, ...OTHER_GESTURES].map((clip) => [clip.key, clip]),
 );
 
 export {
@@ -90,6 +98,8 @@ export {
   pullUp,
   pushUp,
   reverseLunge,
+  inclinePushUp,
+  invertedRow,
   romanianDeadlift,
   sumoDeadlift,
   backSquat,

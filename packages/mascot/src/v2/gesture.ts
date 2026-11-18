@@ -6,6 +6,7 @@ import type { AthleteId } from "../athletes";
 import type { Face } from "../rig";
 import { FIGURE } from "./body";
 import { STAND, type Controls, type ControlPatch } from "./pose";
+import type { GestureView } from "./project";
 import type { Prop } from "./props";
 import { skin } from "./skin";
 import { SIDES, solve, type Rig, type Side, type Solved } from "./solve";
@@ -43,6 +44,8 @@ export type GestureDraft = {
   // pointe d'un pied libre) remonte de ce qui manque. Pour un geste relevé, dont les clés ne sont pas écrites
   // à la main ; un geste écrit n'en a pas besoin.
   floor?: boolean;
+  // Les vues où le geste se lit, la sienne d'abord. Absentes : le registre les déduit.
+  views?: readonly GestureView[];
 };
 
 // Un tronçon de la boucle, de `from` à `to` (de 0 à 1) : une tenue ou une phase du geste.
@@ -78,6 +81,8 @@ export type MotionClip = {
   pose(t: number): Solved;
   face(t: number): Face;
   props(t: number, body: Solved): Prop[];
+  // Les vues où le geste se lit, la sienne d'abord, quand le geste les choisit (registry.ts).
+  views?: readonly GestureView[];
 };
 
 // La position du guide où en est la lecture à l'instant `t` : son rang dans `clip.positions`.
@@ -206,5 +211,6 @@ export const gesture = (draft: GestureDraft): MotionClip => {
     pose: draft.floor ? (t) => floored(track.sample(t), draft.rig) : (t) => solve(track.sample(t), draft.rig),
     face: (t) => draft.keys[track.spanAt(t).key]!.face ?? "neutral",
     props: draft.props ?? (() => []),
+    ...(draft.views ? { views: draft.views } : {}),
   };
 };

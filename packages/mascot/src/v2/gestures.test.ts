@@ -21,6 +21,8 @@ import { SIDES } from "./solve";
 import { distance } from "./vec";
 
 const clips = Object.values(GESTURES).map((clip) => [clip.key, clip] as const);
+// Les gestes d'haltérophilie et de musculation se tiennent sur leurs deux pieds à chaque tenue.
+const TWO_FEET = new Set([...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES].map((clip) => clip.key));
 // Au moins 120 images par boucle ; 240 pour ne pas manquer une phase de moins de 150 ms.
 const SAMPLES = 240;
 const reports = new Map(clips.map(([key, clip]) => [key, inspect(clip, SAMPLES)]));
@@ -85,8 +87,12 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
     // Suspendu à une barre fixe ou en appui sur des barres parallèles, le corps ne touche pas le sol : ce sont les
     // mains qui tiennent (bodyweight.test.ts).
     if (clip.phases.every((phase) => phase.planted.length === 0)) return;
-    // Le contrôle porte bien sur des appuis : les deux pieds pendant une tenue, au moins un sur la plupart des transitions.
-    for (const phase of clip.phases.filter((candidate) => candidate.hold)) expect(phase.planted).toEqual(["R", "L"]);
+    // Le contrôle porte bien sur des appuis : un pied au moins pendant une tenue (les deux pour un geste debout sur
+    // ses deux pieds), au moins un sur la plupart des transitions.
+    for (const phase of clip.phases.filter((candidate) => candidate.hold))
+      expect(phase.planted.length, phase.id).toBeGreaterThan(0);
+    if (TWO_FEET.has(clip.key))
+      for (const phase of clip.phases.filter((candidate) => candidate.hold)) expect(phase.planted).toEqual(["R", "L"]);
     const moves = clip.phases.filter((candidate) => !candidate.hold);
     expect(moves.filter((phase) => phase.planted.length > 0).length).toBeGreaterThan(moves.length / 2);
   });
@@ -101,8 +107,12 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
   });
 
   it("la boucle se referme", () => {
+    // Un geste qui ne boucle pas (un saut à la barre) repart du début d'un coup, une seule fois, à la fin.
+    if (!clip.loop) {
+      expect(clip.phases.filter((phase) => phase.cut)).toEqual([clip.phases.at(-1)]);
+      return;
+    }
     expect(report.loop).toEqual([]);
-    expect(clip.loop).toBe(true);
     expect(clip.phases[0]!.from).toBe(0);
     expect(clip.phases[clip.phases.length - 1]!.to).toBeCloseTo(1, 9);
   });

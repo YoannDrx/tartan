@@ -60,8 +60,8 @@ export const gestureEntry = (key: string): GestureEntry | null => {
         key,
         level: "ecrit",
         clip: written,
-        native: "side",
-        views: ["side", onTheGround(written) && headNearFloor(written) ? "top" : "front"],
+        native: written.views?.[0] ?? "side",
+        views: written.views ?? ["side", onTheGround(written) && headNearFloor(written) ? "top" : "front"],
       }
     : (() => {
         const clip = liftClip(old);
