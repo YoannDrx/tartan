@@ -6,7 +6,7 @@
 // Alptekin, 2014 ; Gourgoulis et al., 2000). La barre recule vers l'athlète en première tirée, repart un peu
 // vers l'avant, puis revient à la réception : une courbe en S, de faible amplitude (Everett, 2014).
 import { gesture } from "../gesture";
-import { STAND, stance, type ControlPatch } from "../pose";
+import { elbows, heels, STAND, stance, type ControlPatch } from "../pose";
 import { barAtArmsLength, type Rig } from "../solve";
 
 // Prise large : debout, bras tendus, la barre arrive au pli de l'aine.
@@ -19,10 +19,10 @@ const receiving = stance(46, 27, 12.3);
 const between = stance(36, 21, 12.7);
 
 // Coudes tournés vers l'extérieur, au-dessus de la barre.
-const base: ControlPatch = { ...pulling, elbowForward: -0.3, elbowUp: 0.2, elbowOut: 1, armsLong: 1 };
+const base: ControlPatch = { ...pulling, ...elbows(-0.3, 0.2, 1), armsLong: 1 };
 
 // Bras tendus au-dessus de la tête : les coudes verrouillés vers l'arrière, les poignets cassés, les épaules actives.
-const locked: ControlPatch = { ...receiving, elbowForward: -0.6, elbowUp: -0.3, elbowOut: 1, wrist: 40, shrug: 0.6 };
+const locked: ControlPatch = { ...receiving, ...elbows(-0.6, -0.3, 1), wrist: 40, shrug: 0.6 };
 
 // La hauteur de la barre tenue bras tendus, jambes tendues : là où ce sont les jambes qui fixent la hauteur du corps.
 const armsLength = (patch: ControlPatch, above: boolean) =>
@@ -60,8 +60,7 @@ const extended: ControlPatch = {
   thoracic: -2,
   neck: 4,
   shrug: 1,
-  footRHeel: 35,
-  footLHeel: 35,
+  ...heels(35),
 };
 // La barre monte encore après l'extension, puis redescend un peu jusqu'à la réception : ces hauteurs se comptent
 // depuis celle de l'extension.
@@ -80,11 +79,8 @@ const highPull: ControlPatch = {
   neck: 4,
   shrug: 1,
   armsLong: 0,
-  elbowForward: -0.3,
-  elbowUp: 0.9,
-  elbowOut: 1,
-  footRHeel: 22,
-  footLHeel: 22,
+  ...elbows(-0.3, 0.9, 1),
+  ...heels(22),
 };
 // Le point haut de la barre : les pieds se déplacent, les coudes tournent sous la barre.
 const under: ControlPatch = {
@@ -99,12 +95,9 @@ const under: ControlPatch = {
   neck: 0,
   shrug: 0.8,
   armsLong: 0,
-  elbowForward: -0.2,
-  elbowUp: -0.3,
-  elbowOut: 1,
+  ...elbows(-0.2, -0.3, 1),
   wrist: 15,
-  footRHeel: 12,
-  footLHeel: 12,
+  ...heels(12),
   footRLift: 4,
   footLLift: 4,
 };
@@ -152,14 +145,12 @@ const lowering: ControlPatch = {
   pelvisPitch: 0,
   neck: 4,
   armsLong: 0,
-  elbowForward: 0.8,
-  elbowUp: -0.2,
-  elbowOut: 1,
+  ...elbows(0.8, -0.2, 1),
   footRLift: 3,
   footLLift: 3,
 };
 // En redescendant, les coudes passent au-dessus de la barre, comme à la montée.
-const hanging: ControlPatch = { barX: 13, pelvisX: -10, pelvisPitch: 2, elbowForward: 0, elbowUp: 0.8 };
+const hanging: ControlPatch = { barX: 13, pelvisX: -10, pelvisPitch: 2, ...elbows(0, 0.8, 1) };
 const hips: ControlPatch = { ...hanging, barY: armsLength(hanging, false) };
 
 export const snatch = gesture({
@@ -169,89 +160,93 @@ export const snatch = gesture({
   base,
   keys: [
     {
-      name: "Départ : barre au-dessus de l'avant-pied",
+      id: "start",
+      guide: 0,
       set: start,
       hold: 800,
-      move: { ms: 520, curve: "reception", phase: "Retour au départ" },
+      move: { ms: 520, curve: "reception", phase: "return" },
     },
     {
-      name: "Barre aux genoux",
+      id: "knees",
       set: knees,
       face: "effort",
       still: true,
-      move: { ms: 700, curve: "elan", phase: "Première tirée" },
+      move: { ms: 700, curve: "elan", phase: "first-pull" },
     },
     {
-      name: "Position de puissance",
+      id: "power",
       set: power,
       face: "effort",
       still: true,
-      move: { ms: 240, curve: "linear", phase: "Transition" },
+      move: { ms: 240, curve: "linear", phase: "transition" },
     },
     {
-      name: "Extension complète",
+      id: "extension",
+      guide: 1,
       set: extension,
       face: "effort",
       still: true,
-      move: { ms: 160, curve: "elan", phase: "Seconde tirée" },
+      move: { ms: 160, curve: "elan", phase: "second-pull" },
     },
     {
-      name: "Coudes hauts",
+      id: "high-pull",
       set: highPull,
       face: "effort",
       still: true,
-      move: { ms: 120, curve: "linear", phase: "Passage sous la barre" },
+      move: { ms: 120, curve: "linear", phase: "turnover" },
     },
     {
-      name: "Sous la barre, au point haut",
+      id: "top",
       set: under,
       face: "effort",
       air: ["R", "L"],
       still: true,
-      move: { ms: 160, curve: "linear", phase: "Passage sous la barre" },
+      move: { ms: 160, curve: "linear", phase: "turnover" },
     },
     {
-      name: "Verrouillage",
+      id: "lockout",
       set: lockout,
       face: "effort",
-      move: { ms: 160, curve: "linear", phase: "Réception" },
+      move: { ms: 160, curve: "linear", phase: "catch" },
     },
     {
-      name: "Réception en squat, bras tendus",
+      id: "receive",
+      guide: 2,
       set: catching,
       hold: 400,
       face: "effort",
-      move: { ms: 320, curve: "reception", phase: "Réception" },
+      move: { ms: 320, curve: "reception", phase: "catch" },
     },
     {
-      name: "Mi-redressement",
+      id: "rising",
       set: rising,
       face: "effort",
-      move: { ms: 560, curve: "elan", phase: "Redressement" },
+      move: { ms: 560, curve: "elan", phase: "recovery" },
     },
     {
-      name: "Debout, barre au-dessus de la tête",
+      id: "overhead",
+      guide: 3,
       set: standing,
       hold: 800,
       face: "joy",
-      move: { ms: 620, curve: "reception", phase: "Redressement" },
+      move: { ms: 620, curve: "reception", phase: "recovery" },
     },
     // La barre redescend pour que la boucle reparte : ce retour ne fait pas partie de la technique.
     {
-      name: "Barre devant le visage",
+      id: "lowering",
       set: lowering,
       air: ["R", "L"],
-      move: { ms: 450, curve: "elan", phase: "Retour au départ" },
+      move: { ms: 450, curve: "elan", phase: "return" },
     },
     {
-      name: "Barre aux hanches",
+      id: "hang",
       set: hips,
-      move: { ms: 350, curve: "linear", phase: "Retour au départ" },
+      move: { ms: 350, curve: "linear", phase: "return" },
     },
     {
-      name: "Barre aux genoux, en descendant",
+      id: "knees-return",
       set: knees,
-      move: { ms: 480, curve: "linear", phase: "Retour au départ" },
+      move: { ms: 480, curve: "linear", phase: "return" },
     },
   ],
 });

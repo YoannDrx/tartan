@@ -4,7 +4,7 @@
 // buste à peu près parallèle au tibia avec une légère cambrure (Myer et al., 2014). Descente lente, remontée
 // plus rapide.
 import { gesture } from "../gesture";
-import { stance, type ControlPatch } from "../pose";
+import { elbows, stance, type ControlPatch } from "../pose";
 import type { Rig } from "../solve";
 
 const RIG: Rig = { bar: { grip: 72, hold: "back" } };
@@ -13,9 +13,7 @@ const RIG: Rig = { bar: { grip: 72, hold: "back" } };
 const base: ControlPatch = {
   ...stance(45, 25, 12.5),
   barX: 0,
-  elbowForward: -0.6,
-  elbowUp: -1,
-  elbowOut: 0.25,
+  ...elbows(-0.6, -1, 0.25),
   wrist: 25,
 };
 
@@ -37,31 +35,34 @@ export const backSquat = gesture({
   base,
   keys: [
     {
-      name: "Debout, barre sur les trapèzes",
+      id: "standing",
+      guide: 1,
       set: standing,
       hold: 900,
-      move: { ms: 480, curve: "reception", phase: "Remontée" },
+      move: { ms: 480, curve: "reception", phase: "up" },
     },
     {
-      name: "Mi-descente",
+      id: "descent",
       set: { ...lean(21, 3, 2, -14), barY: 216 },
       still: true,
-      move: { ms: 700, curve: "elan", phase: "Descente" },
+      move: { ms: 700, curve: "elan", phase: "down" },
     },
     {
-      name: "Position basse",
+      id: "bottom",
+      guide: 2,
       set: bottom,
       hold: 250,
       face: "effort",
-      move: { ms: 800, curve: "reception", phase: "Descente" },
+      move: { ms: 800, curve: "reception", phase: "down" },
     },
     {
       // Les hanches montent un peu avant les épaules : le buste reste plus incliné qu'à la descente.
-      name: "Mi-remontée",
+      id: "ascent",
+      guide: 3,
       set: { ...lean(25, 4, 2, -16), barY: 214 },
       face: "effort",
       still: true,
-      move: { ms: 420, curve: "elan", phase: "Remontée" },
+      move: { ms: 420, curve: "elan", phase: "up" },
     },
   ],
 });

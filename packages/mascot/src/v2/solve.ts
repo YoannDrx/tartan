@@ -4,7 +4,23 @@
 import { FIGURE } from "./body";
 import { liftToReach, span, twoBone } from "./ik";
 import type { Controls } from "./pose";
-import { add, along, distance, pitch, roll, scale, vec, WORLD, yaw, type Frame, type Vec3 } from "./vec";
+import {
+  add,
+  along,
+  cross,
+  distance,
+  mix,
+  normalize,
+  pitch,
+  roll,
+  scale,
+  sub,
+  vec,
+  WORLD,
+  yaw,
+  type Frame,
+  type Vec3,
+} from "./vec";
 
 export const SIDES = ["R", "L"] as const;
 export type Side = (typeof SIDES)[number];
@@ -27,9 +43,11 @@ export type Leg = {
   heel: Vec3;
   ball: Vec3;
   toe: Vec3;
-  // Le repère du pied à plat (l'avant vers la pointe), puis celui de l'arrière-pied quand le talon se lève.
+  // Le repère du pied à plat (l'avant vers la pointe), celui de l'arrière-pied quand le talon se lève, et celui
+  // de l'avant-pied et des orteils.
   flat: Frame;
   frame: Frame;
+  fore: Frame;
   flexion: number;
 };
 export type Arm = {
@@ -57,17 +75,36 @@ export type Solved = {
   controls: Controls;
 };
 
+// Un pied. Posé à plat, il n'a qu'une ouverture ; sur la pointe, l'arrière-pied pivote sur l'avant-pied, dont les
+// orteils restent au sol ; décollé ou couché, tout le pied suit le même repère.
 const foot = (c: Controls, side: Side) => {
-  const flat = yaw(WORLD, outward(side) * c[`foot${side}Yaw`]);
+  const k = outward(side);
+  const flat = roll(yaw(WORLD, k * c[`foot${side}Yaw`]), k * c[`foot${side}Roll`]);
   const frame = pitch(flat, c[`foot${side}Heel`]);
   const ball = vec(c[`foot${side}X`], c[`foot${side}Lift`], c[`foot${side}Z`]);
+  // Les orteils : à plat tant que l'avant-pied touche le sol, dans l'axe du pied dès qu'il le quitte.
+  const loose = Math.max(
+    Math.min(1, ball.y / 12),
+    Math.min(1, Math.abs(c[`foot${side}Roll`]) / 30),
+    c[`foot${side}Heel`] < 0 ? 1 : 0,
+  );
+  let toward = normalize(mix(flat.f, frame.f, loose));
+  const reach = FIGURE.foot.toe - FIGURE.foot.ball;
+  // Une pointe ne passe pas sous le sol : elle se relève juste assez.
+  if (loose < 1 && ball.y + reach * toward.y < 0) {
+    const level = normalize(vec(toward.x, 0, toward.z));
+    const sink = -ball.y / reach;
+    toward = add(scale(level, Math.sqrt(Math.max(0, 1 - sink * sink))), vec(0, sink, 0));
+  }
+  const fore: Frame = { f: toward, u: normalize(cross(flat.s, toward)), s: flat.s };
   return {
     flat,
     frame,
+    fore,
     ball,
     ankle: along(ball, frame, -FIGURE.foot.ball, FIGURE.ankle, 0),
     heel: along(ball, frame, -FIGURE.foot.ball - FIGURE.foot.heel, 0, 0),
-    toe: along(ball, flat, FIGURE.foot.toe - FIGURE.foot.ball, 0, 0),
+    toe: add(ball, scale(toward, reach)),
   };
 };
 
@@ -142,16 +179,33 @@ export const solve = (c: Controls, rig: Rig): Solved => {
 
   const leg = (side: Side): Leg => {
     const placed = feet[side];
-    const pole = yaw(WORLD, outward(side) * (c[`foot${side}Yaw`] + c[`knee${side}Out`])).f;
+    const k = outward(side);
+    const turned = yaw(WORLD, k * (c[`foot${side}Yaw`] + c[`knee${side}Out`]));
+    const pole = along(vec(0, 0, 0), turned, c[`knee${side}Forward`], c[`knee${side}Up`], k * c[`knee${side}Side`]);
     const from = at(hip(side));
     const bones = twoBone(from, placed.ankle, FIGURE.thigh, FIGURE.shin, pole, SLACK.leg);
-    return { hip: from, knee: bones.mid, ...placed, flexion: bones.flexion };
+    // Un pied hors de portée suit la jambe : rien ne s'étire. Les tests voient alors l'appui bouger.
+    const short = sub(bones.end, placed.ankle);
+    const moved = (point: Vec3) => add(point, short);
+    return {
+      hip: from,
+      knee: bones.mid,
+      ...placed,
+      ankle: bones.end,
+      heel: moved(placed.heel),
+      ball: moved(placed.ball),
+      toe: moved(placed.toe),
+      flexion: bones.flexion,
+    };
   };
 
   const arm = (side: Side): Arm => {
+    const k = outward(side);
     const from = at(shoulder(side));
-    const target = bar ? bar.grips[side] : along(at(neck), thorax, c.handForward, c.handUp, outward(side) * c.handOut);
-    const pole = along(origin, thorax, c.elbowForward, c.elbowUp, outward(side) * c.elbowOut);
+    const free = along(at(neck), thorax, c[`hand${side}Forward`], c[`hand${side}Up`], k * c[`hand${side}Out`]);
+    const pinned = vec(c[`hand${side}X`], c[`hand${side}Y`], c[`hand${side}Z`]);
+    const target = bar ? bar.grips[side] : mix(free, pinned, c[`hand${side}Pin`]);
+    const pole = along(origin, thorax, c[`elbow${side}Forward`], c[`elbow${side}Up`], k * c[`elbow${side}Out`]);
     const bones = twoBone(from, target, FIGURE.upperArm, lower, pole, SLACK.arm);
     // Le poignet, entre le coude et la prise : cassé, il sort de leur ligne vers l'avant du buste.
     const bend = twoBone(bones.mid, bones.end, FIGURE.forearm, FIGURE.hand, scale(thorax.f, c.wrist >= 0 ? 1 : -1), 0);

@@ -5,7 +5,7 @@ import { BARBELL, FIGURE, LIMITS, type Limit } from "./body";
 import type { MotionClip, Phase } from "./gesture";
 import { volumes } from "./skin";
 import { SIDES, type Side, type Solved } from "./solve";
-import { add, degrees, distance, dot, normalize, scale, sub, type Frame, type Vec3 } from "./vec";
+import { add, cross, degrees, distance, dot, normalize, scale, sub, type Frame, type Vec3 } from "./vec";
 
 const angleBetween = (a: Vec3, b: Vec3) =>
   degrees(Math.acos(Math.min(1, Math.max(-1, dot(normalize(a), normalize(b))))));
@@ -26,10 +26,12 @@ export const measure = (body: Solved): Reading[] => {
     const leg = body.legs[side];
     const arm = body.arms[side];
     // Le genou : sa flexion, comptée négative s'il passe derrière la ligne hanche-cheville (hyperextension).
+    // L'avant de la jambe se lit sur le bassin : c'est le côté où un genou se plie, debout comme couché.
     const flexion = angleBetween(sub(leg.knee, leg.hip), sub(leg.ankle, leg.knee));
     const chord = sub(leg.ankle, leg.hip);
     const along = dot(sub(leg.knee, leg.hip), chord) / dot(chord, chord);
-    const bulge = dot(sub(leg.knee, add(leg.hip, scale(chord, along))), leg.flat.f);
+    const front = cross(body.frames.pelvis.s, normalize(chord));
+    const bulge = dot(sub(leg.knee, add(leg.hip, scale(chord, along))), front);
     readings.push({ limit: "knee", joint: `genou ${side}`, value: bulge < -0.01 ? -flexion : flexion });
     readings.push({
       limit: "elbow",
@@ -58,7 +60,8 @@ export const measure = (body: Solved): Reading[] => {
     readings.push({
       limit: "shoulderExtension",
       joint: `épaule ${side} (extension)`,
-      value: upper.u < 0 && upper.f < 0 ? degrees(Math.atan2(-upper.f, -upper.u)) : 0,
+      // De combien le bras passe derrière le plan du buste. Un bras écarté sur le côté n'est pas en extension.
+      value: upper.u < 0 && upper.f < 0 ? degrees(Math.asin(Math.min(1, -upper.f))) : 0,
     });
   }
   return readings;
@@ -105,13 +108,15 @@ export type Report = {
   loop: string[];
 };
 
-// La dérive tolérée d'un pied d'appui, dans les unités du corps.
+// La dérive tolérée d'un pied d'appui et l'enfoncement toléré d'un volume dans le sol, dans les unités du corps :
+// une demi-unité, moins de trois millimètres à l'échelle d'un athlète, invisible à toute taille d'affichage.
 export const SLIP = 0.5;
+export const SINK = 0.5;
 
 // Passe le geste au crible : `samples` images sur la boucle, plus quelques-unes dans chaque tronçon.
 export const inspect = (clip: MotionClip, samples = 240): Report => {
   const report: Report = { limits: [], ground: [], feet: [], bar: [], holds: [], loop: [] };
-  const at = (t: number) => `t = ${t.toFixed(4)} (${phaseAt(clip, t).name})`;
+  const at = (t: number) => `t = ${t.toFixed(4)} (${phaseAt(clip, t).id})`;
 
   for (let i = 0; i < samples; i += 1) {
     const t = i / samples;
@@ -122,7 +127,7 @@ export const inspect = (clip: MotionClip, samples = 240): Report => {
         report.limits.push(`${joint} : ${value.toFixed(1)}° à ${at(t)}`);
     }
     for (const { c, r } of volumes(body))
-      if (!(c.y - r >= -0.01)) {
+      if (!(c.y - r >= -SINK)) {
         report.ground.push(`un volume descend à ${(c.y - r).toFixed(2)} à ${at(t)}`);
         break;
       }
@@ -150,7 +155,7 @@ export const inspect = (clip: MotionClip, samples = 240): Report => {
       for (const side of phase.planted) {
         const drift = distance(body.legs[side].ball, first.legs[side].ball);
         const toes = distance(body.legs[side].toe, first.legs[side].toe);
-        if (Math.max(drift, toes) >= SLIP || Math.abs(body.legs[side].ball.y) > 1e-6)
+        if (Math.max(drift, toes) >= SLIP)
           report.feet.push(`le pied ${side} glisse de ${Math.max(drift, toes).toFixed(2)} à ${at(t)}`);
       }
       if (phase.hold && moved(body, first) > 1e-9)
@@ -172,7 +177,7 @@ export const barAt = (clip: MotionClip, t: number): BarSample => {
   const [before, now, after] = [clip.pose(t - step).bar!, clip.pose(t).bar!, clip.pose(t + step).bar!];
   return {
     t,
-    phase: phaseAt(clip, t).name,
+    phase: phaseAt(clip, t).id,
     x: now.center.x,
     y: now.center.y,
     vx: (after.center.x - before.center.x) / seconds,

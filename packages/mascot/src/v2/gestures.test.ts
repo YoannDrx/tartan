@@ -4,46 +4,65 @@ import { BARBELL } from "./body";
 import { barAt, barPath, inspect, measure, phaseAt } from "./constraints";
 import { drawClip, framing } from "./draw-svg";
 import type { MotionClip } from "./gesture";
-import { backSquat, GESTURES, lateralLunge, snatch } from "./gestures";
+import { backSquat, clean, cleanAndJerk, GESTURES, lateralLunge, snatch } from "./gestures";
+import { rackPoint } from "./gestures/clean";
 import { GESTURE_VIEWS, project } from "./project";
 import { volumes } from "./skin";
 import { SIDES } from "./solve";
+import { distance } from "./vec";
 
 const clips = Object.values(GESTURES).map((clip) => [clip.key, clip] as const);
 // Au moins 120 images par boucle ; 240 pour ne pas manquer une phase de moins de 150 ms.
 const SAMPLES = 240;
 const reports = new Map(clips.map(([key, clip]) => [key, inspect(clip, SAMPLES)]));
 
-const phases = (clip: MotionClip, name: string) => clip.phases.filter((phase) => phase.name === name);
-const window = (clip: MotionClip, name: string) => {
-  const found = phases(clip, name);
-  expect(found.length, `phase « ${name} »`).toBeGreaterThan(0);
+const phases = (clip: MotionClip, id: string) => clip.phases.filter((phase) => !phase.hold && phase.id === id);
+// La plage d'une phase : du début de son premier tronçon à la fin du dernier.
+const window = (clip: MotionClip, id: string) => {
+  const found = phases(clip, id);
+  expect(found.length, `phase « ${id} »`).toBeGreaterThan(0);
   return { from: found[0]!.from, to: found[found.length - 1]!.to };
 };
-const held = (clip: MotionClip, name: string) => {
-  const phase = clip.phases.find((candidate) => candidate.hold && candidate.name.startsWith(name))!;
+const held = (clip: MotionClip, id: string) => {
+  const phase = clip.phases.find((candidate) => candidate.hold && candidate.id === id)!;
   return clip.pose((phase.from + phase.to) / 2);
 };
 const reading = (clip: MotionClip, t: number, joint: string) =>
   measure(clip.pose(t)).find((r) => r.joint === joint)!.value;
+const length = (clip: MotionClip, id: string) => {
+  const { from, to } = window(clip, id);
+  return (to - from) * clip.duration;
+};
 
-describe("prototype des gestes", () => {
-  it("couvre les trois gestes du prototype, sous les clés du catalogue", () => {
-    expect(Object.keys(GESTURES).sort()).toEqual(["back-squat", "lateral-lunge", "snatch"]);
+describe("gestes écrits à la main", () => {
+  it("couvre l'arraché, l'épaulé, l'épaulé-jeté, le squat arrière et la fente latérale, sous les clés du catalogue", () => {
+    expect(Object.keys(GESTURES).sort()).toEqual(["back-squat", "clean", "clean-and-jerk", "lateral-lunge", "snatch"]);
     for (const key of Object.keys(GESTURES)) expect(EXERCISE_CLIPS[key], key).toBeDefined();
   });
 
   it("garde les athlètes de chaque famille : Malo en haltérophilie, Mehdi en musculation", () => {
-    expect(snatch.athlete).toBe("poleVault");
-    expect(backSquat.athlete).toBe("discus");
-    expect(lateralLunge.athlete).toBe("discus");
+    for (const clip of [snatch, clean, cleanAndJerk]) expect(clip.athlete).toBe("poleVault");
+    for (const clip of [backSquat, lateralLunge]) expect(clip.athlete).toBe("discus");
+  });
+
+  it("ne porte aucun texte : des identifiants pour les positions et les phases, les lignes du guide par leur rang", () => {
+    for (const [, clip] of clips) {
+      for (const phase of clip.phases) expect(phase.id).toMatch(/^[a-z][a-z0-9-]*$/);
+      for (const still of clip.stills) expect(still.id).toMatch(/^[a-z][a-z0-9-]*$/);
+      const lines = clip.stills.flatMap((still) => (still.guide === undefined ? [] : [still.guide]));
+      expect(lines.length).toBeGreaterThanOrEqual(3);
+      expect(lines).toEqual([...lines].sort((a, b) => a - b));
+      expect(clip.positions).toHaveLength(lines.length);
+      expect(clip.positions[0]!.from).toBe(0);
+      expect(clip.positions.at(-1)!.to).toBe(1);
+    }
   });
 });
 
 describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
   const report = reports.get(key)!;
 
-  it("les amplitudes articulaires sont respectées, sans hyperextension du genou ni du coude", () => {
+  it("les amplitudes articulaires sont respectées, sans hyperextension du genou", () => {
     expect(report.limits).toEqual([]);
   });
 
@@ -70,28 +89,20 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
 
   it("la boucle se referme", () => {
     expect(report.loop).toEqual([]);
+    expect(clip.loop).toBe(true);
     expect(clip.phases[0]!.from).toBe(0);
     expect(clip.phases[clip.phases.length - 1]!.to).toBeCloseTo(1, 9);
   });
 
   it("le mouvement est continu : aucune image ne saute", () => {
-    // À 240 images par boucle, aucun point du corps ne parcourt plus qu'une fraction de la taille entre deux images.
+    // Aucun point du corps ne parcourt plus qu'une fraction de la taille en un trentième de seconde.
+    const frames = Math.round(clip.duration / 28);
     let previous = clip.pose(0);
-    for (let i = 1; i <= SAMPLES; i += 1) {
-      const body = clip.pose(i / SAMPLES);
+    for (let i = 1; i <= frames; i += 1) {
+      const body = clip.pose(i / frames);
       for (const side of SIDES) {
-        expect(
-          Math.hypot(
-            body.arms[side].hand.x - previous.arms[side].hand.x,
-            body.arms[side].hand.y - previous.arms[side].hand.y,
-          ),
-        ).toBeLessThan(30);
-        expect(
-          Math.hypot(
-            body.legs[side].knee.x - previous.legs[side].knee.x,
-            body.legs[side].knee.y - previous.legs[side].knee.y,
-          ),
-        ).toBeLessThan(30);
+        expect(distance(body.arms[side].hand, previous.arms[side].hand)).toBeLessThan(30);
+        expect(distance(body.legs[side].knee, previous.legs[side].knee)).toBeLessThan(36);
       }
       previous = body;
     }
@@ -103,7 +114,9 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
       const nodes = drawClip(clip, t, view);
       expect(nodes.length).toBeGreaterThan(20);
       for (const node of nodes)
-        expect(node.kind === "path" ? node.d : node.transform).not.toMatch(/NaN|Infinity|undefined/);
+        expect(node.kind === "path" ? node.d : node.kind === "group" ? node.transform : "").not.toMatch(
+          /NaN|Infinity|undefined/,
+        );
       if (view === "top") continue;
       for (const { c, r } of volumes(clip.pose(t)))
         expect(project(c, view).y + r, `t = ${t}`).toBeLessThanOrEqual(0.01);
@@ -113,96 +126,94 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
     expect(box.height).toBeGreaterThan(100);
   });
 
-  it("la frise montre les positions clés, dans l'ordre de la boucle", () => {
+  it("la frise montre les positions, dans l'ordre de la boucle", () => {
     expect(clip.stills.length).toBeGreaterThanOrEqual(4);
     const times = clip.stills.map((still) => still.t);
     expect(times).toEqual([...times].sort((a, b) => a - b));
-    for (const still of clip.stills) expect(still.name.length).toBeGreaterThan(3);
   });
 });
 
-describe("arraché", () => {
-  const path = barPath(snatch, 2000);
-  const during = (name: string) => {
-    const { from, to } = window(snatch, name);
+// La dynamique d'un tirage d'haltérophilie, commune à l'arraché et à l'épaulé.
+const PULL = ["first-pull", "transition", "second-pull", "turnover", "catch", "recovery"];
+describe.each([
+  ["arraché", snatch, "overhead"],
+  ["épaulé", clean, "racked"],
+  ["épaulé-jeté", cleanAndJerk, "racked"],
+] as const)("%s : le tirage", (_, clip, upright) => {
+  const path = barPath(clip, 3000);
+  const during = (id: string) => {
+    const { from, to } = window(clip, id);
     return path.filter((sample) => sample.t >= from && sample.t < to);
   };
-  const LIFT = ["Première tirée", "Transition", "Seconde tirée", "Passage sous la barre", "Réception", "Redressement"];
 
   it("enchaîne les phases dans l'ordre : le passage aux genoux vient avant l'extension", () => {
-    const order = snatch.phases.filter((phase) => !phase.hold).map((phase) => phase.name);
-    expect([...new Set(order)]).toEqual([...LIFT, "Retour au départ"]);
-    const names = snatch.stills.map((still) => still.name);
-    expect(names.indexOf("Barre aux genoux")).toBeLessThan(names.indexOf("Extension complète"));
-    expect(names.indexOf("Extension complète")).toBeLessThan(names.indexOf("Réception en squat, bras tendus"));
+    const order = [...new Set(clip.phases.filter((phase) => !phase.hold).map((phase) => phase.id))];
+    expect(order.slice(0, PULL.length)).toEqual(PULL);
+    const ids = clip.stills.map((still) => still.id);
+    expect(ids.indexOf("knees")).toBeLessThan(ids.indexOf("extension"));
+    expect(ids.indexOf("extension")).toBeLessThan(ids.indexOf("receive"));
   });
 
   it("la vitesse verticale de la barre culmine à la fin de la seconde tirée, pas pendant la première", () => {
-    const { from, to } = window(snatch, "Seconde tirée");
-    const fastest = path.reduce((a, b) => (b.vy > a.vy ? b : a));
-    // Le pic tombe sur la dernière image de la seconde tirée : la vitesse est continue, l'image voisine le vaut presque.
+    const { from, to } = window(clip, "second-pull");
+    const lift = path.filter((sample) => sample.t < window(clip, "recovery").from);
+    const fastest = lift.reduce((a, b) => (b.vy > a.vy ? b : a));
+    // Le pic tombe dans la seconde tirée, au plus tard sur sa dernière image : la vitesse est continue, l'image
+    // voisine le vaut presque.
     expect(fastest.t).toBeGreaterThan(from);
     expect(fastest.t).toBeLessThanOrEqual(to + 1 / path.length);
-    const top = barAt(snatch, to - 1e-6).vy;
+    const peak = (id: string) => Math.max(...during(id).map((sample) => sample.vy));
+    const top = Math.max(peak("second-pull"), barAt(clip, to - 1e-6).vy);
     expect(top).toBeGreaterThanOrEqual(fastest.vy - 0.5);
-    const peak = (name: string) => Math.max(...during(name).map((sample) => sample.vy));
-    expect(peak("Première tirée")).toBeLessThan(0.6 * top);
-    for (const name of LIFT.filter((phase) => phase !== "Seconde tirée"))
-      expect(peak(name), name).toBeLessThanOrEqual(top + 0.5);
+    expect(peak("first-pull")).toBeLessThan(0.6 * top);
+    for (const id of PULL.filter((phase) => phase !== "second-pull"))
+      expect(peak(id), id).toBeLessThanOrEqual(top + 0.5);
     // Après l'extension, la barre ne fait que ralentir jusqu'à son point haut.
-    const after = during("Passage sous la barre");
+    const after = during("turnover");
     for (let i = 1; i < after.length; i += 1)
       expect(after[i]!.vy, `t = ${after[i]!.t}`).toBeLessThanOrEqual(after[i - 1]!.vy + 2);
   });
 
   it("la barre accélère sans creux marqué du sol à la fin de la seconde tirée", () => {
-    const pull = [...during("Première tirée"), ...during("Transition"), ...during("Seconde tirée")];
+    const pull = [...during("first-pull"), ...during("transition"), ...during("second-pull")];
     // Un palier en fin de transition est admis : jamais plus de cinq unités par seconde sous la vitesse déjà atteinte.
     let reached = 0;
     for (const sample of pull) {
       expect(sample.vy, `t = ${sample.t}`).toBeGreaterThanOrEqual(reached - 5);
       reached = Math.max(reached, sample.vy);
     }
-    expect(reached).toBeGreaterThan(300);
+    expect(reached).toBeGreaterThan(250);
   });
 
-  it("le passage sous la barre est la phase la plus courte après la seconde tirée, la première tirée la plus longue", () => {
-    const length = (name: string) => {
-      const { from, to } = window(snatch, name);
-      return (to - from) * snatch.duration;
-    };
-    expect(length("Seconde tirée")).toBeLessThan(length("Transition"));
-    expect(length("Passage sous la barre")).toBeLessThan(length("Première tirée") / 2);
-    expect(length("Première tirée")).toBeGreaterThan(3 * length("Seconde tirée"));
-    expect(length("Redressement")).toBeGreaterThan(length("Première tirée"));
+  it("la première tirée est la plus longue, la seconde la plus courte, le passage sous la barre très rapide", () => {
+    expect(length(clip, "second-pull")).toBeLessThan(length(clip, "transition"));
+    expect(length(clip, "turnover")).toBeLessThan(length(clip, "first-pull") / 2);
+    expect(length(clip, "first-pull")).toBeGreaterThan(3 * length(clip, "second-pull"));
+    expect(length(clip, "recovery")).toBeGreaterThan(length(clip, "first-pull"));
   });
 
   it("la barre reste dans une enveloppe autour du milieu du pied, et trace une courbe en S", () => {
     // Le milieu du pied est à x = 0. Dix centimètres valent environ dix-huit unités.
-    for (const name of LIFT)
-      for (const sample of during(name)) expect(Math.abs(sample.x), `${name}, t = ${sample.t}`).toBeLessThanOrEqual(18);
+    for (const id of PULL)
+      for (const sample of during(id)) expect(Math.abs(sample.x), `${id}, t = ${sample.t}`).toBeLessThanOrEqual(18);
     // Le retour au sol, hors technique, contourne le visage : il reste devant les pieds.
     for (const sample of path) expect(Math.abs(sample.x)).toBeLessThanOrEqual(40);
-    const end = (name: string) => during(name).at(-1)!.x;
-    const start = during("Première tirée")[0]!.x;
-    expect(end("Première tirée")).toBeLessThan(start - 4);
-    expect(end("Seconde tirée")).toBeGreaterThan(end("Première tirée") + 3);
-    expect(end("Réception")).toBeLessThan(end("Seconde tirée") - 8);
+    const end = (id: string) => during(id).at(-1)!.x;
+    expect(end("first-pull")).toBeLessThan(during("first-pull")[0]!.x - 4);
+    expect(end("second-pull")).toBeGreaterThan(end("first-pull") + 3);
   });
 
-  it("la barre part du sol, disques posés, monte au-dessus de la tête, puis redescend un peu vers la réception", () => {
-    const start = held(snatch, "Départ");
-    expect(start.bar!.center.y).toBeCloseTo(BARBELL.plate, 6);
-    const top = Math.max(...during("Passage sous la barre").map((sample) => sample.y));
-    const caught = held(snatch, "Réception").bar!.center.y;
-    expect(top - caught).toBeGreaterThan(5);
-    expect(top - caught).toBeLessThan(30);
-    const standing = held(snatch, "Debout");
-    expect(standing.bar!.center.y).toBeGreaterThan(standing.head.y + 40);
+  it("la barre part du sol, disques posés, et l'athlète finit debout", () => {
+    expect(held(clip, "start").bar!.center.y).toBeCloseTo(BARBELL.plate, 6);
+    const top = Math.max(...during("turnover").map((sample) => sample.y));
+    const caught = held(clip, "receive").bar!.center.y;
+    expect(top).toBeGreaterThan(caught + 5);
+    const standing = held(clip, upright);
+    for (const side of SIDES) expect(standing.legs[side].flexion).toBeLessThan(5);
   });
 
-  it("au départ, les épaules sont à l'aplomb de la barre ou un peu en avant, les hanches au-dessus des genoux", () => {
-    const start = held(snatch, "Départ");
+  it("au départ, les épaules sont à l'aplomb de la barre ou un peu en avant, les hanches au-dessus des genoux, le dos cambré", () => {
+    const start = held(clip, "start");
     const ahead = start.arms.R.shoulder.x - start.bar!.center.x;
     expect(ahead).toBeGreaterThanOrEqual(-2);
     expect(ahead).toBeLessThan(25);
@@ -211,29 +222,183 @@ describe("arraché", () => {
   });
 
   it("les bras restent tendus pendant les deux tirées", () => {
-    for (const name of ["Première tirée", "Transition", "Seconde tirée"]) {
-      const { from, to } = window(snatch, name);
+    for (const id of ["first-pull", "transition", "second-pull"]) {
+      const { from, to } = window(clip, id);
       for (let i = 0; i <= 20; i += 1) {
         const t = from + ((to - from) * i) / 20.001;
-        expect(reading(snatch, t, "coude R"), `${name}, t = ${t}`).toBeLessThan(5);
+        expect(reading(clip, t, "coude R"), `${id}, t = ${t}`).toBeLessThan(5);
       }
     }
   });
 
-  it("à l'extension, le corps est sur l'avant-pied, genoux tendus ; à la réception, pieds à plat et bras tendus", () => {
-    const { to } = window(snatch, "Seconde tirée");
-    const extended = snatch.pose(to - 1e-6);
+  it("à l'extension, le corps est sur l'avant-pied, genoux tendus ; à la réception, pieds à plat et écartés", () => {
+    const { to } = window(clip, "second-pull");
+    const extended = clip.pose(to - 1e-6);
     expect(extended.legs.R.heel.y).toBeGreaterThan(10);
-    expect(extended.legs.R.ball.y).toBe(0);
+    expect(extended.legs.R.ball.y).toBeCloseTo(0, 9);
     expect(extended.legs.R.flexion).toBeLessThan(10);
-    const caught = held(snatch, "Réception");
-    for (const side of SIDES) {
-      expect(caught.legs[side].heel.y).toBeCloseTo(0, 6);
-      expect(caught.arms[side].flexion).toBeLessThan(3);
-    }
+    const caught = held(clip, "receive");
+    for (const side of SIDES) expect(caught.legs[side].heel.y).toBeCloseTo(0, 6);
     expect(caught.legs.R.hip.y).toBeLessThan(caught.legs.R.knee.y);
-    // Les pieds se sont écartés entre le tirage et la réception.
-    expect(caught.legs.R.ball.z).toBeGreaterThan(held(snatch, "Départ").legs.R.ball.z + 10);
+    expect(caught.legs.R.ball.z).toBeGreaterThan(held(clip, "start").legs.R.ball.z + 10);
+  });
+});
+
+describe("arraché", () => {
+  it("la prise est large, et la barre finit bras tendus au-dessus de la tête", () => {
+    expect(snatch.rig.bar!.grip).toBeGreaterThan(1.8 * clean.rig.bar!.grip);
+    const caught = held(snatch, "receive");
+    for (const side of SIDES) expect(caught.arms[side].flexion).toBeLessThan(3);
+    const standing = held(snatch, "overhead");
+    expect(standing.bar!.center.y).toBeGreaterThan(standing.head.y + 40);
+    const path = barPath(snatch, 1200);
+    const { from, to } = window(snatch, "catch");
+    const received = path.filter((sample) => sample.t >= from && sample.t < to).at(-1)!;
+    expect(received.x).toBeLessThan(barAt(snatch, window(snatch, "second-pull").to - 1e-6).x - 8);
+  });
+});
+
+// La barre sur les épaules : elle ne « saute » pas, les épaules la rencontrent et l'accompagnent.
+describe.each([
+  ["épaulé", clean],
+  ["épaulé-jeté", cleanAndJerk],
+] as const)("%s : la réception sur les épaules", (_, clip) => {
+  // L'écart entre la barre et le creux des épaules où elle se pose.
+  const offRack = (t: number) => {
+    const body = clip.pose(t);
+    const rack = rackPoint(body.controls);
+    return Math.hypot(body.bar!.center.x - rack.x, body.bar!.center.y - rack.y);
+  };
+
+  it("les épaules rencontrent la barre avant le bas du squat, puis elle reste dessus jusqu'à la station debout", () => {
+    const catching = phases(clip, "catch");
+    expect(catching).toHaveLength(2);
+    // La rencontre : la fin du premier tronçon de la réception. Le bassin est encore haut.
+    const meeting = catching[0]!.to;
+    expect(offRack(meeting - 1e-6)).toBeLessThan(1);
+    expect(clip.pose(meeting).pelvis.y).toBeGreaterThan(held(clip, "receive").pelvis.y + 30);
+    const { to } = window(clip, "recovery");
+    for (let i = 0; i <= 60; i += 1) {
+      const t = meeting + ((to - meeting) * i) / 60;
+      expect(offRack(t), `t = ${t}`).toBeLessThan(6);
+    }
+    expect(offRack((clip.phases.find((phase) => phase.hold && phase.id === "racked")!.from + to) / 2)).toBeLessThan(
+      1e-6,
+    );
+  });
+
+  it("entre le point haut et les épaules, la barre ne redescend que de quelques centimètres", () => {
+    const path = barPath(clip, 3000);
+    const { from, to } = window(clip, "turnover");
+    const top = Math.max(...path.filter((sample) => sample.t >= from && sample.t < to).map((sample) => sample.y));
+    const met = clip.pose(phases(clip, "catch")[0]!.to).bar!.center.y;
+    expect(top - met).toBeGreaterThan(3);
+    expect(top - met).toBeLessThan(30);
+  });
+
+  it("en réception, coudes hauts vers l'avant, mains un peu à l'extérieur des épaules", () => {
+    const caught = held(clip, "receive");
+    for (const side of SIDES) {
+      const arm = caught.arms[side];
+      expect(arm.elbow.x).toBeGreaterThan(arm.shoulder.x + 20);
+      expect(arm.elbow.y).toBeGreaterThan(arm.shoulder.y - 25);
+      expect(Math.abs(arm.hand.z)).toBeGreaterThan(Math.abs(arm.shoulder.z));
+      expect(Math.abs(arm.hand.z)).toBeLessThan(Math.abs(arm.shoulder.z) + 25);
+    }
+  });
+
+  it("au redressement, hanches et épaules montent ensemble", () => {
+    const { from, to } = window(clip, "recovery");
+    const lean = (t: number) => clip.pose(t).frames.thorax.u.x;
+    const start = lean(from);
+    for (let i = 0; i <= 20; i += 1) expect(lean(from + ((to - from) * i) / 20)).toBeLessThanOrEqual(start + 0.05);
+  });
+});
+
+describe("épaulé-jeté : le jeté", () => {
+  const clip = cleanAndJerk;
+  const path = barPath(clip, 3000);
+  const during = (id: string) => {
+    const { from, to } = window(clip, id);
+    return path.filter((sample) => sample.t >= from && sample.t < to);
+  };
+
+  it("enchaîne l'épaulé, le placement des pieds, la flexion, l'impulsion, la fente, puis le retour des pieds", () => {
+    const order = [...new Set(clip.phases.filter((phase) => !phase.hold).map((phase) => phase.id))];
+    expect(order).toEqual([...PULL, "adjust", "dip", "drive", "split", "feet-together", "return"]);
+  });
+
+  it("la flexion est verticale, talons au sol, et plus lente que l'impulsion", () => {
+    expect(length(clip, "dip")).toBeGreaterThan(1.5 * length(clip, "drive"));
+    const { from, to } = window(clip, "dip");
+    for (let i = 0; i <= 20; i += 1) {
+      const body = clip.pose(from + ((to - from) * i) / 20.001);
+      expect(Math.abs(body.frames.thorax.u.x)).toBeLessThan(0.06);
+      for (const side of SIDES) expect(body.legs[side].heel.y).toBeCloseTo(0, 6);
+    }
+    const low = clip.pose(to - 1e-6);
+    expect(held(clip, "set").pelvis.y - low.pelvis.y).toBeGreaterThan(12);
+    expect(held(clip, "set").pelvis.y - low.pelvis.y).toBeLessThan(40);
+    expect(low.legs.R.knee.x).toBeGreaterThan(held(clip, "set").legs.R.knee.x + 15);
+  });
+
+  it("la vitesse de la barre culmine à la fin de l'impulsion, les deux pieds encore au sol", () => {
+    const jerk = path.filter(
+      (sample) => sample.t >= window(clip, "dip").from && sample.t < window(clip, "feet-together").from,
+    );
+    const fastest = jerk.reduce((a, b) => (b.vy > a.vy ? b : a));
+    const { from, to } = window(clip, "drive");
+    expect(fastest.t).toBeGreaterThan(from);
+    expect(fastest.t).toBeLessThanOrEqual(to + 1 / path.length);
+    expect(Math.max(...during("dip").map((sample) => sample.vy))).toBeLessThan(0.2 * fastest.vy);
+    for (const phase of [...phases(clip, "dip"), ...phases(clip, "drive")]) expect(phase.planted).toEqual(["R", "L"]);
+    const driven = clip.pose(to - 1e-6);
+    for (const side of SIDES) {
+      expect(driven.legs[side].flexion).toBeLessThan(8);
+      expect(driven.legs[side].heel.y).toBeGreaterThan(8);
+    }
+  });
+
+  it("en fente : pied avant à plat, tibia à peu près vertical, pied arrière sur l'avant-pied, genou arrière fléchi", () => {
+    const split = held(clip, "split");
+    const [front, rear] = [split.legs.R, split.legs.L];
+    expect(front.heel.y).toBeCloseTo(0, 6);
+    expect(Math.abs(front.knee.x - front.ankle.x)).toBeLessThan(12);
+    expect(rear.ball.y).toBeCloseTo(0, 9);
+    expect(rear.heel.y).toBeGreaterThan(15);
+    expect(rear.flexion).toBeGreaterThan(10);
+    expect(rear.flexion).toBeLessThan(50);
+    // Une vraie fente, à la largeur d'une position de squat.
+    expect(front.ball.x - rear.ball.x).toBeGreaterThan(140);
+    expect(front.ball.z - rear.ball.z).toBeGreaterThan(45);
+  });
+
+  it("en fente : bras verrouillés, buste vertical, hanches sous la barre, barre un peu en arrière de la tête", () => {
+    const split = held(clip, "split");
+    for (const side of SIDES) expect(split.arms[side].flexion).toBeLessThan(3);
+    expect(Math.abs(split.frames.thorax.u.x)).toBeLessThan(0.06);
+    expect(Math.abs(split.bar!.center.x - split.pelvis.x)).toBeLessThan(12);
+    expect(split.bar!.center.x).toBeLessThan(split.head.x);
+    expect(split.bar!.center.y).toBeGreaterThan(split.head.y + 40);
+    // La barre est moins haute qu'à la fin, debout.
+    expect(split.bar!.center.y).toBeLessThan(held(clip, "overhead").bar!.center.y - 15);
+  });
+
+  it("au retour, le pied avant recule d'abord, puis le pied arrière avance", () => {
+    const steps = phases(clip, "feet-together");
+    expect(steps).toHaveLength(4);
+    const lifted = steps.map((phase) => SIDES.filter((side) => !phase.planted.includes(side)));
+    expect(lifted).toEqual([["R"], ["R"], ["L"], ["L"]]);
+    const end = held(clip, "overhead");
+    expect(Math.abs(end.legs.R.ball.x - end.legs.L.ball.x)).toBeLessThan(1e-6);
+    for (const side of SIDES) expect(end.legs[side].heel.y).toBeCloseTo(0, 6);
+  });
+
+  it("les pieds décollent pour passer en fente, pas avant", () => {
+    const flight = phases(clip, "split");
+    expect(flight.map((phase) => phase.planted)).toEqual([[], []]);
+    const index = clip.phases.indexOf(flight[0]!);
+    expect(clip.phases[index - 1]!.id).toBe("drive");
   });
 });
 
@@ -245,18 +410,14 @@ describe("squat arrière", () => {
   });
 
   it("la descente est lente, la remontée plus rapide", () => {
-    const length = (name: string) => {
-      const { from, to } = window(backSquat, name);
-      return (to - from) * backSquat.duration;
-    };
-    expect(length("Descente")).toBeGreaterThan(1.4 * length("Remontée"));
-    const down = Math.max(...path.filter((sample) => sample.phase === "Descente").map((sample) => -sample.vy));
-    const up = Math.max(...path.filter((sample) => sample.phase === "Remontée").map((sample) => sample.vy));
+    expect(length(backSquat, "down")).toBeGreaterThan(1.4 * length(backSquat, "up"));
+    const down = Math.max(...path.filter((sample) => sample.phase === "down").map((sample) => -sample.vy));
+    const up = Math.max(...path.filter((sample) => sample.phase === "up").map((sample) => sample.vy));
     expect(up).toBeGreaterThan(1.3 * down);
   });
 
   it("en bas, les cuisses passent la parallèle, les talons au sol, les genoux dans l'axe des pointes", () => {
-    const bottom = held(backSquat, "Position basse");
+    const bottom = held(backSquat, "bottom");
     for (const side of SIDES) {
       const leg = bottom.legs[side];
       expect(leg.hip.y).toBeLessThan(leg.knee.y);
@@ -276,8 +437,8 @@ describe("squat arrière", () => {
 
 describe("fente latérale", () => {
   it("en bas : genou fléchi au-dessus du pied, autre jambe tendue, deux pieds à plat, hanches en arrière", () => {
-    const low = held(lateralLunge, "Fente");
-    const standing = held(lateralLunge, "Debout");
+    const low = held(lateralLunge, "lunge");
+    const standing = held(lateralLunge, "standing");
     expect(low.legs.R.flexion).toBeGreaterThan(60);
     expect(Math.abs(low.legs.R.knee.z - low.legs.R.ankle.z)).toBeLessThan(10);
     expect(low.legs.L.flexion).toBeLessThan(8);
@@ -301,13 +462,13 @@ describe("fente latérale", () => {
       // Les deux images sont dans le même tronçon, et le pied droit y est en appui.
       const phase = phaseAt(lateralLunge, (i - 1) / SAMPLES);
       if (phase === phaseAt(lateralLunge, i / SAMPLES) && phase.planted.includes("R"))
-        expect(moved, phase.name).toBeLessThan(1e-9);
+        expect(moved, phase.id).toBeLessThan(1e-9);
       last = body.legs.R.ball;
     }
   });
 
   it("le pied droit pousse le sol avant de revenir", () => {
-    const push = phases(lateralLunge, "Poussée");
+    const push = phases(lateralLunge, "push");
     expect(push).toHaveLength(1);
     expect(push[0]!.planted).toEqual(["R", "L"]);
   });

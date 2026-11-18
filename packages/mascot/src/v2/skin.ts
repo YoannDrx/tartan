@@ -1,13 +1,15 @@
 // La peau : des volumes simples posés sur le squelette. Chaque partie du corps est l'enveloppe de quelques
 // sphères ; projetée, elle donne un aplat sans contour, juste de profil comme de face. Les membres s'affinent
 // vers leur extrémité, les articulations se lisent à la jonction de deux parties.
+import type { GearRole } from "../exercise";
 import type { PaintRole } from "../skeleton";
 import { BARBELL, FIGURE } from "./body";
 import { SIDES, type Side, type Solved } from "./solve";
 import { add, along, mix, vec, type Frame, type Vec3 } from "./vec";
 
-// Ce qu'un rendu doit colorer : les rôles d'un athlète du groupe, plus le fer et les disques de la barre.
-export type SkinPaint = PaintRole | "plate" | "iron";
+// Ce qu'un rendu doit colorer : les rôles d'un athlète du groupe, plus ceux du matériel (la barre, ses disques,
+// un banc, une boîte). Les couleurs viennent de l'hôte, donc des jetons de design.
+export type SkinPaint = PaintRole | GearRole;
 
 export type Sphere = { c: Vec3; r: number };
 export type Part = {
@@ -116,9 +118,9 @@ export const skin = (body: Solved): Skin => {
       spheres: [
         { c: leg.ankle, r: shoe.ankle },
         { c: along(leg.heel, leg.frame, shoe.heel + 0.3, shoe.heel, 0), r: shoe.heel },
-        { c: along(leg.ball, leg.flat, 0, shoe.ball, shoe.half), r: shoe.ball },
-        { c: along(leg.ball, leg.flat, 0, shoe.ball, -shoe.half), r: shoe.ball },
-        { c: along(leg.toe, leg.flat, -shoe.toe - 0.2, shoe.toe, 0), r: shoe.toe },
+        { c: along(leg.ball, leg.fore, 0, shoe.ball, shoe.half), r: shoe.ball },
+        { c: along(leg.ball, leg.fore, 0, shoe.ball, -shoe.half), r: shoe.ball },
+        { c: along(leg.toe, leg.fore, -shoe.toe - 0.2, shoe.toe, 0), r: shoe.toe },
       ],
     });
 

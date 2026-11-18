@@ -1,21 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { drawClip, lookOf, sceneSvg, svgMarkup, type DrawNode, type ScenePaint } from "./draw-svg";
 import { backSquat, lateralLunge, snatch } from "./gestures";
+import { gestureClip } from "./registry";
 import { createMotionPlayer, svgSink, type SvgElementLike, type Ticker } from "./player";
 
-const PAINT: ScenePaint = {
-  skin: "skin",
-  tee: "tee",
-  shorts: "shorts",
-  shoe: "shoe",
-  hair: "hair",
-  eye: "eye",
-  bib: "bib",
-  mark: "mark",
-  plate: "plate",
-  iron: "iron",
-  floor: "floor",
-};
+// Des couleurs qui portent le nom de leur rôle : le test lit ce que le rendu colore.
+const PAINT = new Proxy({}, { get: (_, role) => String(role) }) as ScenePaint;
 
 // Une horloge à la main : chaque `step` fait passer une image.
 const manual = () => {
@@ -97,6 +87,7 @@ describe("dessin d'une image", () => {
     ])
       expect(ids, id).toContain(id);
     for (const node of nodes) if (node.kind === "path") expect(node.d).toMatch(/^M[-\d. ]+[AaL]/);
+    expect(nodes.some((node) => node.kind === "prop")).toBe(false);
     expect(svgMarkup(nodes, PAINT)).not.toMatch(/stroke="(skin|tee|shorts)"/);
   });
 
@@ -233,6 +224,30 @@ describe("pose dans un SVG", () => {
     const after = fake.log.created;
     sink.render(drawClip(snatch, 0.215, "side"));
     expect(fake.log.created).toBe(after);
+  });
+
+  it("pose le matériel d'un geste relevé, et masque ce qui sort de l'image sans le détruire", () => {
+    const clip = gestureClip("bench-press")!;
+    const fake = fakeDocument();
+    const parent = fake.element("g");
+    const sink = svgSink(fake.document, parent, PAINT);
+    const nodes = drawClip(clip, 0.1, "side");
+    const bench = nodes.find((node) => node.kind === "prop" && node.paint === "bench")!;
+    expect(bench).toBeDefined();
+    sink.render(nodes);
+    const created = fake.log.created;
+    const element = parent.children[nodes.indexOf(bench)] as unknown as {
+      tag: string;
+      attributes: Map<string, string>;
+    };
+    expect(element.tag).toBe("rect");
+    expect(element.attributes.get("fill")).toBe("bench");
+    // Une image sans ce banc : l'élément reste, masqué ; il revient à l'image suivante.
+    sink.render(nodes.filter((node) => node !== bench));
+    expect(element.attributes.get("visibility")).toBe("hidden");
+    sink.render(nodes);
+    expect(element.attributes.get("visibility")).toBe("visible");
+    expect(fake.log.created).toBe(created);
   });
 
   it("garde l'ordre d'empilement de l'image", () => {

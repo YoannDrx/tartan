@@ -51,11 +51,12 @@ export const BARBELL = {
 // Le genou et le coude ne passent jamais sous zéro : pas d'hyperextension.
 export const LIMITS = {
   knee: [0, 155],
-  elbow: [0, 150],
+  // Le coude se replie au maximum quand la barre repose sur les épaules, coudes hauts vers l'avant.
+  elbow: [0, 160],
   // La cuisse par rapport au bassin : vers l'avant (flexion), vers l'extérieur (abduction). Le bassin n'a qu'un
   // segment : sa bascule compte dans la flexion, d'où une borne plus large que celle de la hanche seule.
   hipFlexion: [-25, 140],
-  hipAbduction: [-30, 60],
+  hipAbduction: [-35, 60],
   // Le tibia par rapport au pied : vers la pointe (flexion dorsale), puis sur le côté.
   ankle: [-55, 45],
   ankleSide: [-46, 46],

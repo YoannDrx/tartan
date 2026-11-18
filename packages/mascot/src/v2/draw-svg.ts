@@ -2,24 +2,28 @@
 // Rien ici ne dépend de React ni du navigateur : des nœuds prêts à poser, qu'un lecteur met à jour (player.ts)
 // ou qu'un script écrit en texte.
 import { ATHLETES } from "../athletes";
+import { svgProp, type Geometry } from "../props";
 import { rig, type Face, type Hair } from "../rig";
 import type { Shape } from "../skeleton";
 import { svgShape } from "../svg";
 import { FIGURE } from "./body";
 import type { MotionClip } from "./gesture";
 import { project, type GestureView } from "./project";
+import { depthIn, extent, seenFrom, type Extent, type Prop } from "./props";
 import { skin, type Anchor, type SkinPaint } from "./skin";
 import type { Solved } from "./solve";
 
 export type Look = { hair: Hair; bib: number | null; face: Face };
-export type ScenePaint = Record<SkinPaint | "floor", string>;
+export type ScenePaint = Record<SkinPaint, string>;
 
 export type DrawNode =
   // Un aplat : son tracé change à chaque image.
   | { id: string; kind: "path"; paint: SkinPaint; d: string }
   // Un dessin à plat (la tête, le dossard) : seul son placement change. `content` nomme ce qu'il contient :
   // tant qu'il ne change pas, un lecteur garde les formes déjà posées.
-  | { id: string; kind: "group"; transform: string; content: string; shapes: readonly Shape[] };
+  | { id: string; kind: "group"; transform: string; content: string; shapes: readonly Shape[] }
+  // Un accessoire : une forme simple, dans le repère de l'image.
+  | { id: string; kind: "prop"; paint: SkinPaint; geometry: Geometry };
 
 const n = (value: number) => String(Math.round(value * 10) / 10);
 
@@ -120,6 +124,8 @@ export type DrawOptions = {
   // De profil, les disques passent derrière l'athlète : devant, ils cacheraient les jambes et les mains.
   // La barre reste visible par son bout, sur la main. Faux : les disques sont dessinés à leur vraie profondeur.
   platesBehind?: boolean;
+  // Le matériel du geste à cette image.
+  props?: readonly Prop[];
 };
 
 // Une image : les nœuds à dessiner, du fond vers le devant.
@@ -163,6 +169,15 @@ export const drawBody = (body: Solved, look: Look, view: GestureView, options: D
     depth: depth + (view === "side" ? 150 : 0),
   });
 
+  (options.props ?? []).forEach((prop, index) => {
+    const geometry = seenFrom(prop, view);
+    if (geometry)
+      items.push({
+        node: { id: `prop${index}`, kind: "prop", paint: prop.paint, geometry },
+        depth: depthIn(prop, view),
+      });
+  });
+
   // Le tri est stable : à profondeur égale, l'ordre des parties décide (le cou sous la tête, la barre sous la tête).
   return items.sort((a, b) => a.depth - b.depth).map((item) => item.node);
 };
@@ -171,17 +186,30 @@ export const drawBody = (body: Solved, look: Look, view: GestureView, options: D
 export const lookOf = (clip: MotionClip, face: Face): Look => ({ ...ATHLETES[clip.athlete], face });
 
 // L'image d'un geste à l'instant `t`.
-export const drawClip = (clip: MotionClip, t: number, view: GestureView, options?: DrawOptions): DrawNode[] =>
-  drawBody(clip.pose(t), lookOf(clip, clip.face(t)), view, options);
+export const drawClip = (clip: MotionClip, t: number, view: GestureView, options?: DrawOptions): DrawNode[] => {
+  const body = clip.pose(t);
+  return drawBody(body, lookOf(clip, clip.face(t)), view, { props: clip.props(t, body), ...options });
+};
 
 const ATTRIBUTES: Record<string, string> = { strokeWidth: "stroke-width", strokeLinecap: "stroke-linecap" };
 
 // Une forme du premier dessin, en balise et attributs SVG.
-export const shapeElement = (shape: Shape, paint: ScenePaint): { tag: string; attributes: Record<string, string> } => {
-  const { tag, ...rest } = svgShape(shape, paint[shape.paint]);
+const attributesOf = (shape: Record<string, unknown>) => {
   const attributes: Record<string, string> = {};
-  for (const [name, value] of Object.entries(rest)) attributes[ATTRIBUTES[name] ?? name] = String(value);
-  return { tag, attributes };
+  for (const [name, value] of Object.entries(shape))
+    if (name !== "tag" && value !== undefined) attributes[ATTRIBUTES[name] ?? name] = String(value);
+  return attributes;
+};
+
+export const shapeElement = (shape: Shape, paint: ScenePaint): { tag: string; attributes: Record<string, string> } => {
+  const drawn = svgShape(shape, paint[shape.paint]);
+  return { tag: drawn.tag, attributes: attributesOf(drawn) };
+};
+
+// Un accessoire, en balise et attributs SVG.
+export const propElement = (geometry: Geometry, color: string): { tag: string; attributes: Record<string, string> } => {
+  const drawn = svgProp(geometry, color);
+  return { tag: drawn.tag, attributes: attributesOf(drawn) };
 };
 
 // Les nœuds d'une image, en texte SVG : pour une image fixe, une frise, un script.
@@ -189,12 +217,12 @@ export const svgMarkup = (nodes: readonly DrawNode[], paint: ScenePaint): string
   nodes
     .map((node) => {
       if (node.kind === "path") return `<path d="${node.d}" fill="${paint[node.paint]}"/>`;
-      const children = node.shapes.map((shape) => {
-        const { tag, attributes } = shapeElement(shape, paint);
-        return `<${tag} ${Object.entries(attributes)
+      const write = ({ tag, attributes }: { tag: string; attributes: Record<string, string> }) =>
+        `<${tag} ${Object.entries(attributes)
           .map(([name, value]) => `${name}="${value}"`)
           .join(" ")}/>`;
-      });
+      if (node.kind === "prop") return write(propElement(node.geometry, paint[node.paint]));
+      const children = node.shapes.map((shape) => write(shapeElement(shape, paint)));
       return `<g transform="${node.transform}">${children.join("")}</g>`;
     })
     .join("");
@@ -211,9 +239,14 @@ export const framing = (clip: MotionClip, view: GestureView, margin = 14): Box =
     top = Math.min(top, y - r);
     bottom = Math.max(bottom, y + r);
   };
+  const gear: Extent[] = [];
   for (let i = 0; i < 96; i += 1) {
     const body = clip.pose(i / 96);
     const { parts, head } = skin(body);
+    for (const prop of clip.props(i / 96, body)) {
+      const geometry = prop.scroll ? null : seenFrom(prop, view);
+      if (geometry) gear.push(extent(geometry));
+    }
     for (const part of parts)
       for (const { c, r } of part.spheres) {
         const at = project(c, view);
@@ -222,6 +255,13 @@ export const framing = (clip: MotionClip, view: GestureView, margin = 14): Box =
     // La tête, coiffure comprise : une coupe afro dépasse le crâne.
     const at = project(head.at, view);
     include(at.x, at.y, FIGURE.head * 1.4);
+  }
+  // Le matériel entre dans le cadre, mais ne l'étire pas sans fin : un ballon lancé sort de l'image.
+  const reach = 150;
+  const [bodyLeft, bodyRight, bodyTop, bodyBottom] = [left, right, top, bottom];
+  for (const seen of gear) {
+    include(Math.max(seen.left, bodyLeft - reach), Math.max(seen.top, bodyTop - reach), 0);
+    include(Math.min(seen.right, bodyRight + reach), Math.min(seen.bottom, bodyBottom + reach), 0);
   }
   if (view !== "top") bottom = 0;
   return {

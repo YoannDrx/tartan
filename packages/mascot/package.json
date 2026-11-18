@@ -35,7 +35,11 @@
     "./v2/skin": "./src/v2/skin.ts",
     "./v2/draw-svg": "./src/v2/draw-svg.ts",
     "./v2/player": "./src/v2/player.ts",
-    "./v2/constraints": "./src/v2/constraints.ts"
+    "./v2/constraints": "./src/v2/constraints.ts",
+    "./v2/props": "./src/v2/props.ts",
+    "./v2/registry": "./src/v2/registry.ts",
+    "./v2/lift-v1": "./src/v2/lift-v1.ts",
+    "./v2/a-reprendre": "./src/v2/a-reprendre.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

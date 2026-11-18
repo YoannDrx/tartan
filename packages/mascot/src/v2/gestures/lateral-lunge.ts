@@ -3,7 +3,7 @@
 // fléchi au-dessus du pied, autre jambe tendue, les deux pieds à plat, puis une poussée pour revenir (ACE,
 // « Side Lunge »).
 import { gesture } from "../gesture";
-import { BALL_X, type ControlPatch } from "../pose";
+import { BALL_X, elbows, hands, type ControlPatch } from "../pose";
 import type { Rig } from "../solve";
 
 const RIG: Rig = { bar: null };
@@ -20,12 +20,8 @@ const base: ControlPatch = {
   footRX: BALL_X,
   footRZ: HOME,
   footRYaw: 5,
-  handForward: 27,
-  handUp: -30,
-  handOut: 3,
-  elbowForward: 0,
-  elbowUp: -1,
-  elbowOut: 0.8,
+  ...hands(27, -30, 3),
+  ...elbows(0, -1, 0.8),
 };
 
 export const lateralLunge = gesture({
@@ -35,18 +31,20 @@ export const lateralLunge = gesture({
   base,
   keys: [
     {
-      name: "Debout, pieds sous les hanches",
+      id: "standing",
+      guide: 0,
       hold: 700,
-      move: { ms: 480, curve: "reception", phase: "Retour" },
+      move: { ms: 480, curve: "reception", phase: "return" },
     },
     {
-      name: "Pas de côté",
+      id: "step",
       set: { pelvisX: -10, pelvisY: 165, pelvisZ: 30, pelvisPitch: 8, neck: -4, footRZ: 118, footRLift: 10 },
       air: ["R"],
-      move: { ms: 330, curve: "elan", phase: "Pas de côté" },
+      move: { ms: 330, curve: "elan", phase: "step" },
     },
     {
-      name: "Pose du pied",
+      id: "landing",
+      guide: 1,
       set: {
         pelvisX: -15,
         pelvisY: 146,
@@ -58,10 +56,11 @@ export const lateralLunge = gesture({
         footRZ: STEP,
       },
       still: true,
-      move: { ms: 220, curve: "linear", phase: "Pas de côté" },
+      move: { ms: 220, curve: "linear", phase: "step" },
     },
     {
-      name: "Fente : hanches en arrière, jambe gauche tendue",
+      id: "lunge",
+      guide: 2,
       set: {
         pelvisX: -36,
         pelvisY: 126,
@@ -75,11 +74,12 @@ export const lateralLunge = gesture({
       },
       hold: 500,
       face: "effort",
-      move: { ms: 650, curve: "reception", phase: "Descente" },
+      move: { ms: 650, curve: "reception", phase: "down" },
     },
     {
       // Le pied droit pousse encore le sol : c'est lui qui renvoie le corps vers le centre.
-      name: "Poussée sur la jambe fléchie",
+      id: "push",
+      guide: 3,
       set: {
         pelvisX: -24,
         pelvisY: 144,
@@ -93,13 +93,13 @@ export const lateralLunge = gesture({
       },
       face: "effort",
       still: true,
-      move: { ms: 380, curve: "elan", phase: "Poussée" },
+      move: { ms: 380, curve: "elan", phase: "push" },
     },
     {
-      name: "Retour du pied",
+      id: "return-step",
       set: { pelvisX: -12, pelvisY: 164, pelvisZ: 40, pelvisPitch: 9, lumbar: 1, neck: -5, footRZ: 104, footRLift: 9 },
       air: ["R"],
-      move: { ms: 260, curve: "linear", phase: "Retour" },
+      move: { ms: 260, curve: "linear", phase: "return" },
     },
   ],
 });

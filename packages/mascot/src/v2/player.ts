@@ -1,6 +1,6 @@
 // Le lecteur d'un geste, hors de React : à chaque image, il calcule les nœuds et les pose là où on le lui dit.
 // Aucun rendu de composant pendant la lecture : sur le web, des attributs SVG mis à jour directement.
-import { drawClip, shapeElement, type DrawNode, type DrawOptions, type ScenePaint } from "./draw-svg";
+import { drawClip, propElement, shapeElement, type DrawNode, type DrawOptions, type ScenePaint } from "./draw-svg";
 import type { MotionClip } from "./gesture";
 import type { GestureView } from "./project";
 
@@ -111,22 +111,41 @@ export type SvgDocumentLike = { createElementNS(namespace: string, tag: string):
 const SVG = "http://www.w3.org/2000/svg";
 
 // Pose un geste dans un groupe SVG. Les éléments sont créés une fois ; ensuite seuls changent le tracé d'un aplat,
-// le placement de la tête ou du dossard, et l'ordre d'empilement quand un membre passe devant un autre.
+// le placement de la tête ou du dossard, la forme d'un accessoire, et l'ordre d'empilement quand un membre passe
+// devant un autre. Un élément absent d'une image (un repère sorti du cadre) est masqué, pas détruit.
 export const svgSink = (document: SvgDocumentLike, parent: SvgElementLike, paint: ScenePaint): MotionSink => {
-  const elements = new Map<string, { element: SvgElementLike; value: string; content: string }>();
+  type Entry = { element: SvgElementLike; value: string; content: string; shown: boolean; seen: number };
+  const elements = new Map<string, Entry>();
   let order = "";
+  let frame = 0;
   return {
     render(nodes) {
+      frame += 1;
       for (const node of nodes) {
         let entry = elements.get(node.id);
         if (!entry) {
-          const element = document.createElementNS(SVG, node.kind === "path" ? "path" : "g");
+          const tag = node.kind === "path" ? "path" : node.kind === "group" ? "g" : propElement(node.geometry, "").tag;
+          const element = document.createElementNS(SVG, tag);
           if (node.kind === "path") element.setAttribute("fill", paint[node.paint]);
-          entry = { element, value: "", content: "" };
+          entry = { element, value: "", content: "", shown: true, seen: 0 };
           elements.set(node.id, entry);
+        }
+        entry.seen = frame;
+        if (!entry.shown) {
+          entry.shown = true;
+          entry.element.setAttribute("visibility", "visible");
         }
         if (node.kind === "path") {
           if (entry.value !== node.d) entry.element.setAttribute("d", (entry.value = node.d));
+          continue;
+        }
+        if (node.kind === "prop") {
+          const { attributes } = propElement(node.geometry, paint[node.paint]);
+          const value = JSON.stringify(attributes);
+          if (entry.value !== value) {
+            entry.value = value;
+            for (const [name, text] of Object.entries(attributes)) entry.element.setAttribute(name, text);
+          }
           continue;
         }
         if (entry.content !== node.content) {
@@ -142,6 +161,11 @@ export const svgSink = (document: SvgDocumentLike, parent: SvgElementLike, paint
         }
         if (entry.value !== node.transform) entry.element.setAttribute("transform", (entry.value = node.transform));
       }
+      for (const entry of elements.values())
+        if (entry.shown && entry.seen !== frame) {
+          entry.shown = false;
+          entry.element.setAttribute("visibility", "hidden");
+        }
       const wanted = nodes.map((node) => node.id).join(" ");
       if (wanted !== order) {
         order = wanted;
