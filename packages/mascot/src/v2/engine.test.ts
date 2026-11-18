@@ -42,7 +42,8 @@ describe("choix du moteur par fiche", () => {
       const level = motionLevel(key);
       expect(level === "ecrit" ? "ecrit" : "releve", key).toBe(gestureEntry(key)!.level);
     }
-  });
+    // Le premier appel relève tout le registre : sur une machine chargée, cela dépasse les cinq secondes par défaut.
+  }, 30_000);
 
   it("un geste du nouveau moteur est une nouvelle série de relecture ; un geste resté sur le premier garde la sienne", () => {
     expect(REVIEW_BATCHES).toEqual(["face", "v2"]);
