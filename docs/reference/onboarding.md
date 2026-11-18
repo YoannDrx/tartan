@@ -25,7 +25,7 @@ Sur `/suivi`, jusqu'à la première validation reçue. Les étapes ne sont pas s
 
 | Étape | Faite quand | Mène à |
 | --- | --- | --- |
-| Inviter des athlètes | Une invitation existe ou un athlète a rejoint | Réglages, invitations |
+| Inviter des athlètes | Une invitation existe ou un athlète a rejoint | Réglages, Membres (`/reglages/membres#inviter`) |
 | Créer une première séance | Une séance existe | Nouvelle séance |
 | Publier la séance | Une séance est publiée | Calendrier |
 | Recevoir une première validation | Un athlète a validé | Calendrier |

@@ -26,7 +26,7 @@ export const unblockUserAction = authAction
   .inputSchema(z.object({ userId: uuid }))
   .action(async ({ parsedInput, ctx }) => {
     await unblockUser(ctx.actor.userId, parsedInput.userId);
-    revalidatePath("/reglages");
+    revalidatePath("/reglages", "layout");
   });
 
 export const adminResolveReportAction = adminAction
@@ -59,5 +59,5 @@ export const resolveReportAction = spaceAction
   .inputSchema(z.object({ id: uuid, removeContent: z.boolean() }))
   .action(async ({ parsedInput, ctx }) => {
     await resolveReport(ctx.userId, ctx.organizationId, parsedInput);
-    revalidatePath("/reglages");
+    revalidatePath("/reglages", "layout");
   });

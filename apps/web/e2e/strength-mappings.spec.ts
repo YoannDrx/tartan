@@ -49,7 +49,7 @@ test("le propriétaire rapproche une ancienne référence après vérification e
     }
     expect((await athlete.page.request.get(`${root}/strength-mappings`)).status()).toBe(403);
     const report = async () => (await page.request.get(`${root}/strength-mappings`)).json();
-    await page.goto("/reglages", { waitUntil: "networkidle" });
+    await page.goto("/reglages/espace", { waitUntil: "networkidle" });
     await page.getByRole("link", { name: m.strengthMapping.title, exact: true }).click();
     const known = page.getByRole("region", { name: m.strengthTest.back_squat, exact: true });
     const unknown = page.getByRole("region", {

@@ -9,6 +9,7 @@ import { z } from "zod";
 import { authAction } from "@/lib/safe-action";
 import { invalid } from "@/lib/errors";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { spaceAction } from "@/features/shell/space-action";
 import { SPACE_COOKIE } from "@/features/shell/space";
 import { deleteAccount } from "@/server/account.service";
@@ -23,31 +24,31 @@ export const setEmailPreferenceAction = authAction
   .inputSchema(z.object({ kind: z.enum(EMAIL_KINDS), on: z.boolean() }))
   .action(async ({ parsedInput, ctx }) => {
     await setEmailPreference(ctx.actor.userId, parsedInput.kind, parsedInput.on);
-    revalidatePath("/reglages");
+    revalidatePath("/reglages", "layout");
   });
 
 export const revokeIcalLinkAction = spaceAction.action(async ({ ctx }) => {
   await revokeIcalLink(ctx.userId, ctx.organizationId);
-  revalidatePath("/reglages");
+  revalidatePath("/reglages", "layout");
 });
 
 export const updateProfileAction = authAction.inputSchema(profileInput).action(async ({ parsedInput, ctx }) => {
   await updateProfile(ctx.actor.userId, parsedInput);
-  revalidatePath("/reglages");
+  revalidatePath("/reglages", "layout");
 });
 
 export const uploadAvatarAction = authAction
   .inputSchema(z.object({ file: z.instanceof(File) }))
   .action(async ({ parsedInput, ctx }) => {
     await saveAvatar(ctx.actor.userId, parsedInput.file);
-    revalidatePath("/reglages");
+    revalidatePath("/reglages", "layout");
   });
 
 export const uploadLogoAction = spaceAction
   .inputSchema(z.object({ file: z.instanceof(File) }))
   .action(async ({ parsedInput, ctx }) => {
     await saveOrganizationLogo(ctx.userId, ctx.organizationId, parsedInput.file);
-    revalidatePath("/reglages");
+    revalidatePath("/reglages", "layout");
   });
 
 export const setConsentAction = spaceAction.inputSchema(athleteConsentInput).action(async ({ parsedInput, ctx }) => {
@@ -61,7 +62,7 @@ export const resendParentalAction = spaceAction.action(async ({ ctx }) => {
 
 export const saveGroupAction = spaceAction.inputSchema(groupInput).action(async ({ parsedInput, ctx }) => {
   const saved = await saveGroup(ctx.userId, ctx.organizationId, parsedInput);
-  revalidatePath("/reglages");
+  revalidatePath("/reglages", "layout");
   return { id: saved.id };
 });
 
@@ -76,13 +77,13 @@ export const deleteGroupAction = spaceAction
   .inputSchema(z.object({ id: uuid }))
   .action(async ({ parsedInput, ctx }) => {
     await deleteGroup(ctx.userId, ctx.organizationId, parsedInput.id);
-    revalidatePath("/reglages");
+    revalidatePath("/reglages", "layout");
   });
 
 export const deleteAccountAction = authAction
   .inputSchema(z.object({ confirmation: z.string() }))
   .action(async ({ parsedInput, ctx }) => {
-    if (parsedInput.confirmation !== m.settings.deleteConfirmWord) throw invalid("Écris SUPPRIMER pour confirmer.");
+    if (parsedInput.confirmation !== m.settings.deleteConfirmWord) throw invalid(w.settings.confidentialite.deleteInvalid);
     await deleteAccount(ctx.actor.userId);
     const jar = await cookies();
     jar.delete(SPACE_COOKIE);
@@ -92,14 +93,14 @@ export const updateMemberAction = spaceAction
   .inputSchema(z.object({ memberId: uuid, role: z.enum(["coach", "assistant"]), groupIds: z.array(uuid) }))
   .action(async ({ parsedInput, ctx }) => {
     await updateMember(ctx.userId, ctx.organizationId, parsedInput);
-    revalidatePath("/reglages");
+    revalidatePath("/reglages", "layout");
   });
 
 export const removeCoachAction = spaceAction
   .inputSchema(z.object({ memberId: uuid }))
   .action(async ({ parsedInput, ctx }) => {
     await removeCoach(ctx.userId, ctx.organizationId, parsedInput.memberId);
-    revalidatePath("/reglages");
+    revalidatePath("/reglages", "layout");
   });
 
 export const removeAthleteAction = spaceAction
