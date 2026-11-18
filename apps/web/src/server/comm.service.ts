@@ -253,7 +253,7 @@ export const reportContent = async (
   const mails = [
     {
       to: owner.email,
-      url: `${appUrl}/reglages?espace=${organizationId}#signalements`,
+      url: `${appUrl}/reglages/espace?espace=${organizationId}#signalements`,
       detail: m.settings.reportsEmailBody,
     },
     // L'éditeur traite depuis sa console, et voit le motif sans ouvrir l'espace.

@@ -548,7 +548,7 @@ Les six demandes du fondateur (sections 4.1 à 4.6) restent des portes d'ouvertu
 | G13 | États vides | `/phases` et `/progres` n'ont qu'une phrase, sans l'athlète de la rubrique que demande `DESIGN.md` | Lot K |
 | G14 | Avatar et logo | Envoyés dans les réglages, affichés nulle part ailleurs | Lot E |
 | G15 | Invitation | Les consentements sont enregistrés après la transaction : un membre peut exister sans accord tracé | Lot G, avec test |
-| G16 | `/synchronisation` | Aucun lien n'y mène | Lot A |
+| G16 | `/synchronisation` | Aucun lien n'y mène | Corrigé au lot A (rubrique Aide) |
 | G17 | Essais locaux | Sans prestataire d'e-mail, le journal imprime le lien du logo (`https://tartan.coach`) au lieu du lien d'action : un lien de connexion ou d'invitation ne se joue plus en local, contrairement à ce que dit `docs/tests/README.md` | Corrigé au lot 0, avec test |
 
 ### 8.5 Finitions

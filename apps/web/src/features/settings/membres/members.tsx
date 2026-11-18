@@ -6,11 +6,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Rows } from "@/components/sheet";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { CheckRow, Field, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
-import { leaveOrganizationAction, removeCoachAction, updateMemberAction } from "./settings.action";
+import { removeCoachAction, updateMemberAction } from "../settings.action";
+import { onErr } from "../shared";
 
 type Member = {
   userId: string;
@@ -20,8 +20,6 @@ type Member = {
   groupIds: string[];
 };
 type Group = { id: string; name: string };
-
-const onErr = ({ error }: { error: { serverError?: string } }) => toast.error(error.serverError ?? m.errors.invalid);
 
 const MemberDialog = ({ member, groups }: { member: Member; groups: Group[] }) => {
   const router = useRouter();
@@ -123,25 +121,3 @@ export const MemberList = ({ members, groups }: { members: Member[]; groups: Gro
     ))}
   </Rows>
 );
-
-export const LeaveSpace = ({ name }: { name: string }) => {
-  const leave = useAction(leaveOrganizationAction, {
-    onSuccess: () => {
-      window.location.href = "/accueil";
-    },
-    onError: onErr,
-  });
-  return (
-    <ConfirmDialog
-      title={m.settings.leaveSpace}
-      description={m.settings.leaveDetail(name)}
-      confirmLabel={m.settings.leaveConfirm(name)}
-      onConfirm={() => leave.execute()}
-      trigger={
-        <Button size="sm" variant="danger" disabled={leave.isPending}>
-          {m.settings.leaveSpace}
-        </Button>
-      }
-    />
-  );
-};

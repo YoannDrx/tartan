@@ -55,13 +55,13 @@ Tartan traite des données de santé (blessures, douleurs, effort ressenti) et d
 
 ## Exercice des droits
 
-| Droit               | Comment il s'exerce aujourd'hui                                                                   |
-| ------------------- | ------------------------------------------------------------------------------------------------- |
-| Accès, portabilité  | Export depuis Réglages ; export de l'espace pour un propriétaire                                  |
-| Rectification       | Réglages ; la date de naissance se corrige par le support                                         |
-| Effacement          | Suppression du compte depuis Réglages ou `/suppression-compte` ; retrait de la fiche par le coach |
-| Retrait d'un accord | Accords santé et vidéo, par fiche, depuis l'application                                           |
-| Opposition          | Désinscription des e-mails ; refus du planificateur IA                                            |
+| Droit               | Comment il s'exerce aujourd'hui                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Accès, portabilité  | Export depuis Réglages, Confidentialité ; export de l'espace pour un propriétaire                                   |
+| Rectification       | Réglages ; la date de naissance se corrige par le support                                                           |
+| Effacement          | Suppression du compte depuis Réglages, Confidentialité, ou `/suppression-compte` ; retrait de la fiche par le coach |
+| Retrait d'un accord | Accords santé et vidéo, par fiche, depuis l'application                                                             |
+| Opposition          | Désinscription des e-mails ; refus du planificateur IA                                                              |
 
 Une demande reçue par e-mail est traitée sous un mois, après vérification que l'adresse est celle du compte. Le déroulé côté support est dans [support.md](../exploitation/support.md). La conduite en cas de fuite est dans [incident.md](../exploitation/incident.md).
 

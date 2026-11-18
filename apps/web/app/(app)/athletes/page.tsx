@@ -58,7 +58,7 @@ export default async function AthletesPage() {
           rubric="athletes"
           action={
             <Button asChild size="sm" variant="secondary">
-              <Link href="/reglages#invitations">{m.home.inviteAthletes}</Link>
+              <Link href="/reglages/membres#inviter">{m.home.inviteAthletes}</Link>
             </Button>
           }
         >

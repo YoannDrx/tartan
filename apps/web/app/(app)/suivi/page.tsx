@@ -15,6 +15,7 @@ import {
   type CoachStepKey,
 } from "@tartan/domain";
 import { formatDayMonth, m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { FilterPill } from "@/components/filter-pill";
 import { EmptyState, PageHeader, PeriodStepper } from "@/components/states";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ export const metadata: Metadata = { title: m.coach.trackingTitle };
 
 // Chaque étape des premiers pas mène à l'écran où elle se fait.
 const GUIDE: Record<CoachStepKey, { href: string; title: string; detail: string }> = {
-  invite: { href: "/reglages#invitations", title: m.home.inviteAthletes, detail: m.home.inviteAthletesDetail },
+  invite: { href: "/reglages/membres#inviter", title: m.home.inviteAthletes, detail: m.home.inviteAthletesDetail },
   create: { href: "/seances/nouvelle", title: m.home.createSession, detail: m.home.createSessionDetail },
   publish: { href: "/calendrier", title: m.home.publishSession, detail: m.home.publishSessionDetail },
   validate: { href: "/calendrier", title: m.home.firstValidation, detail: m.home.firstValidationDetail },
@@ -108,7 +109,7 @@ export default async function SuiviPage({
           nextLabel="Semaine suivante"
         />
         {groups.length > 1 ? (
-          <nav aria-label="Filtrer par groupe" className="flex max-w-full gap-2 overflow-x-auto py-1">
+          <nav aria-label={w.tracking.groupFilter} className="flex max-w-full gap-2 overflow-x-auto py-1">
             <FilterPill href={query({ semaine })} active={!groupe}>
               {m.coach.allGroups}
             </FilterPill>
@@ -167,7 +168,7 @@ export default async function SuiviPage({
               rubric="suivi"
               action={
                 <Button asChild variant="secondary" size="sm">
-                  <Link href="/reglages#invitations">{m.home.inviteAthletes}</Link>
+                  <Link href="/reglages/membres#inviter">{m.home.inviteAthletes}</Link>
                 </Button>
               }
             >
