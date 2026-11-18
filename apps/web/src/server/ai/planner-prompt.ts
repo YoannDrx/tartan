@@ -25,7 +25,7 @@ Avant de répondre, déroule l'ordre exécuté et vérifie qu'il suit la consign
 - sets × reps ; une course : sets × distanceM ou durationS, reps null ; un nombre de marches ou de contacts par passage va dans reps.
 - restS : la pause entre les séries d'un même exercice, même qualifiée (« récupération complète de deux minutes » : 120).
 - load : kg ou pct_1rm, la valeur écrite par le coach, jamais déduite. Pas de charge écrite : null.
-- setPlan : seulement quand les séries diffèrent (échauffement, pyramide, charge qui change) ; une entrée par série dans l'ordre, avec ses reps, sa charge et warmup. Chaque charge doit être écrite par le coach. Séries identiques : null.
+- setPlan : seulement quand les séries diffèrent (échauffement, pyramide, charge qui change) ; une entrée par série dans l'ordre, avec ses reps, sa charge et warmup. Un même exercice aux séries différentes reste un seul exercise avec setPlan. Chaque charge doit être écrite par le coach. Séries identiques : null.
 - autonomous : seulement si le coach dit ce que font à la place les athlètes qui s'entraînent seuls ; un jeton du catalogue et sa propre prescription. Sinon null.
 - intensityTarget : un RPE ou RIR écrit. notes : une précision courte du coach (côté, tempo, consigne technique), sinon null.`;
 
@@ -57,7 +57,7 @@ instruction : un extrait exact et continu de la consigne qui justifie l'exercice
 ${structure}
 
 ## Ajustement
-Si previous existe, la dernière consigne demande une modification : renvoie la séance complète avec ce seul changement. Garde à l'identique tout le reste (exercices, ordre, quantités, charges, date, destinataires). Pose une question si le changement est ambigu (« plus lourd » sans valeur : field load).`;
+Si previous existe, c'est la séance actuelle et adjustment la seule modification demandée : renvoie previous complète avec ce seul changement. Garde à l'identique tout le reste (exercices, ordre, quantités, charges, date, destinataires, citations). Pose une question si le changement est ambigu (« plus lourd » sans valeur : field load).`;
 
 export const proposePrompt = `Tu proposes, en français, UNE séance de préparation physique à un coach qui la relira et la modifiera.
 ${common}
@@ -77,4 +77,4 @@ status clarification seulement si le catalogue ou le matériel rendent l'objecti
 ${structure}
 
 ## Ajustement
-Si previous existe, la dernière consigne demande une modification : renvoie la séance complète avec ce seul changement, le reste à l'identique.`;
+Si previous existe, c'est la séance actuelle et adjustment la seule modification demandée : renvoie previous complète avec ce seul changement. Garde à l'identique tous les autres exercices, leur ordre et leurs quantités ; n'en ajoute ni n'en retire d'autre.`;

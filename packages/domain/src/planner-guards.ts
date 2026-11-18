@@ -129,8 +129,12 @@ function unitStated(mentions: { value: number; after: string }[], value: number,
   );
 }
 const PERCENT_UNIT = /^\s*(?:%|pour ?cent)/;
+// « à 40, 45 et 50 kg » : l'unité écrite après une liste vaut pour chacun de ses nombres.
+const LIST_PREFIX = /^(?:\s*(?:,|et|puis)\s*\d+(?:[.,]\d+)?)*/;
 const hasUnit = (mentions: { value: number; after: string }[], value: number, unit: RegExp) =>
-  mentions.some((mention) => mention.value === value && unit.test(mention.after));
+  mentions.some(
+    (mention) => mention.value === value && unit.test(mention.after.slice(LIST_PREFIX.exec(mention.after)![0].length)),
+  );
 
 const MONTHS = [
   "janvier",
@@ -528,6 +532,8 @@ export function plannerGuardIssues(
   if (
     context.instructions.length === 1 &&
     items.some((item) => plannerItemLoads(item).length) &&
+    // Des charges qui changent série après série (pyramide) ne se contredisent pas.
+    !items.some((item) => (item.prescription as { setPlan?: unknown[] | null }).setPlan?.length) &&
     contradictoryLoads(text, context.exercises)
   )
     issues.add("load");
@@ -780,6 +786,14 @@ export function plannerRequiredFields(
     const next = /^\s*d(?:e|u|es)?\s+([a-z]+)/.exec(mention.after)?.[1];
     if (next && next !== "chaque" && vocabulary.has(normalizeExerciseMention(next))) fields.add("unit");
   }
+  // « En montant jusqu'à 60 kg » sans les charges intermédiaires : elles ne se devinent pas.
+  const loads = new Set(
+    numberMentions(text)
+      .filter((m) => KG_UNIT.test(m.after))
+      .map((m) => m.value),
+  );
+  if (/\b(?:en montant|monter|progressivement|en augmentant)\b/.test(plain(text)) && loads.size <= 1)
+    fields.add("load");
   return [...fields];
 }
 
@@ -798,8 +812,7 @@ export function plannerExplicitSingleSetRest(value: PlannerRichInterpretation): 
         // Au premier niveau seulement : dans un circuit, la pause entre gestes relève du modèle et reste signalée.
         const top = new Set(nodes.flatMap((node) => (node.kind === "exercise" ? [node.itemRef] : [])));
         const single = block.items.filter(
-          (item) =>
-            top.has(item.ref!) && (item.prescription.sets ?? 1) === 1 && (item.prescription.restS ?? 0) > 0,
+          (item) => top.has(item.ref!) && (item.prescription.sets ?? 1) === 1 && (item.prescription.restS ?? 0) > 0,
         );
         if (!single.length) return block;
         const pauses = new Map(single.map((item) => [item.ref!, item.prescription.restS!]));

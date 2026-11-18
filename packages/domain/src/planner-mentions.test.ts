@@ -44,6 +44,18 @@ describe("passe déterministe du planificateur", () => {
     expect(plannerUnknownExerciseTerms("Mardi, fentes par jambe, 3 séries de 8", catalog)).toEqual([]);
     expect(plannerUnknownExerciseTerms("Mardi, fentes zéphyr, 3 séries de 8", catalog)).toEqual(["fentes zéphyr"]);
   });
+  it("la tournure d'un remplacement en autonomie n'est pas un nom de mouvement", () => {
+    const withPlank = [...catalog, { token: "side", name: "Gainage latéral", aliases: [] }];
+    expect(
+      plannerUnknownExerciseTerms(
+        "Ceux qui s'entraînent seuls font du gainage latéral à la place, 3 × 20 secondes.",
+        withPlank,
+      ),
+    ).toEqual([]);
+    expect(
+      plannerUnknownExerciseTerms("En autonomie, remplacer par des sauts du kangourou, 4 × 5.", withPlank),
+    ).toEqual(["sauts du kangourou"]);
+  });
   it("un choix du coach couvre le terme", () => {
     expect(
       plannerUnknownExerciseTerms("Squat du dragon, 3 séries de 6", catalog, [

@@ -322,10 +322,14 @@ export function scoreLotHCase(test: LotHCase, value: unknown, corpus = lotHCorpu
     differences.push("unrequested_load");
     critical.push("invented_load");
   }
+  // Le corpus figé nomme les familles en mots courants ; le catalogue a ses clés. Correspondance de vocabulaire
+  // ajoutée le 18 novembre après le premier passage (rapport d'origine conservé), sans toucher aux attendus.
+  const family: Record<string, string> = { running: "running_drill", plyometrics: "plyo", coordination: "cones" };
+  const wanted = (list: string[]) => list.map((c) => family[c] ?? c);
   const categories = items.map((i) => byToken.get(i.exerciseToken)?.category);
-  if (expected.categoryAny && !categories.some((c) => c && expected.categoryAny!.includes(c)))
+  if (expected.categoryAny && !categories.some((c) => c && wanted(expected.categoryAny!).includes(c)))
     differences.push("category_any");
-  if (expected.categoryNone && categories.some((c) => c && expected.categoryNone!.includes(c)))
+  if (expected.categoryNone && categories.some((c) => c && wanted(expected.categoryNone!).includes(c)))
     differences.push("category_none");
   if (test.mode === "propose") {
     if (!items.length) differences.push("empty_proposal");

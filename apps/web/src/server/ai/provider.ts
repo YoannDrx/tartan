@@ -305,6 +305,10 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
             ) !== null,
         ),
       );
+      // « Ajuster » : la modification demandée, à part, pour qu'elle ne soit pas lue comme une nouvelle séance.
+      const adjustment = context.previous
+        ? context.instructions.at(-1)!.replace(m.aiPlanner.adjustmentPrefix, "")
+        : undefined;
       const generationSchema = propose ? plannerProposeGeneration : plannerGeneration;
       const { $schema: _schema, ...schema } = generationSchema.toJSONSchema({
         override: ({ zodSchema, jsonSchema }) => {
@@ -335,7 +339,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
             targets: context.targets,
             exercises: context.exercises,
             instructions: context.instructions,
-            ...(context.previous ? { previous: context.previous } : {}),
+            ...(context.previous ? { previous: context.previous, adjustment } : {}),
             ...(context.space ? { space: context.space } : {}),
             ...(context.neighbours?.length ? { neighbours: context.neighbours } : {}),
             ...(percentTokens.size ? { percentAllowed: [...percentTokens] } : {}),
@@ -344,6 +348,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
             ...visible,
             ...(phaseCalendar?.length ? { phaseCalendar } : {}),
             ambiguousExerciseTerms: ambiguousTerms,
+            ...(context.previous ? { adjustment } : {}),
             // Les fiches nommées exactement, repérées sans le modèle : il n'a pas à les retrouver.
             namedExercises: plannerExerciseMentions(
               context.instructions.map(plannerCoachText).join("\n"),
@@ -566,7 +571,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
         // Défauts bloquants : une correction, puis une question. Jamais une séance douteuse.
         const blocking = propose
           ? plannerProposalIssues(value, { brief: context.brief, percentTokens })
-          : [...new Set([...plannerGuardIssues(value, guardContext), ...required.filter((field) => field === "unit")])];
+          : [...new Set([...plannerGuardIssues(value, guardContext), ...required])];
         if (blocking.length) {
           const reason = blocking.includes("missing_date")
             ? CORRECTIONS.missing_date

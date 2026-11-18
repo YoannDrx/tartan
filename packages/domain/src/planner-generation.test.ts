@@ -236,3 +236,29 @@ it("renvoie la séance précédente au modèle dans la forme qu'il écrit, pour 
   const back = plannerSessionToGeneration(plannerGenerationToInterpretation(generation).sessions[0]!);
   expect(back).toEqual(generation.sessions[0]);
 });
+it("deux lignes successives du même exercice deviennent un seul exercice aux séries détaillées", () => {
+  const first = exercise("exercise_1", 3);
+  first.prescription.load = { type: "pct_1rm", value: 70 } as never;
+  first.prescription.reps = 5;
+  const second = exercise("exercise_1", 1);
+  second.prescription.load = { type: "pct_1rm", value: 80 } as never;
+  second.prescription.reps = 3;
+  const result = plannerGenerationToInterpretation(plannerGeneration.parse(response([first, second])));
+  const items = result.sessions[0]!.blocks[0]!.items;
+  expect(items).toHaveLength(1);
+  expect(items[0]!.prescription).toMatchObject({
+    sets: 4,
+    reps: 5,
+    setPlan: [
+      { reps: 5, load: { type: "pct_1rm", value: 70 } },
+      { reps: 5 },
+      { reps: 5 },
+      { reps: 3, load: { type: "pct_1rm", value: 80 } },
+    ],
+  });
+  // Séparées par un autre geste, elles restent deux lignes.
+  const apart = plannerGenerationToInterpretation(
+    plannerGeneration.parse(response([first, exercise("exercise_2", 3), second])),
+  );
+  expect(apart.sessions[0]!.blocks[0]!.items).toHaveLength(3);
+});

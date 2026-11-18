@@ -11,6 +11,7 @@ import {
   plannerExerciseIsNamed,
   plannerGuardIssues,
   plannerProposalIssues,
+  plannerRequiredFields,
   plannerTextNumbers,
   plannerWarnings,
   type PlannerGuardContext,
@@ -542,5 +543,25 @@ describe("unités et désignations proches", () => {
     expect(plannerExerciseIsApproximate("Mercredi, épaulé suspension puis épaulé puissance.", "hang", catalog)).toBe(
       true,
     );
+  });
+});
+
+describe("pyramides et montées de charge", () => {
+  it("des charges différentes série après série ne se contredisent pas ; une montée sans paliers est une question", () => {
+    const text = "Le 3 juin, squat arrière en pyramide : 10, 8 puis 6 répétitions, à 40, 45 et 50 kg.";
+    const value = proposal(session("2030-06-03")) as PlannerRichInterpretation;
+    value.sessions[0]!.blocks[0]!.items[0]!.prescription = {
+      ...prescription(),
+      setPlan: [
+        { reps: 10, load: { type: "kg", value: 40 }, warmup: false },
+        { reps: 8, load: { type: "kg", value: 45 }, warmup: false },
+        { reps: 6, load: { type: "kg", value: 50 }, warmup: false },
+      ],
+    };
+    expect(plannerGuardIssues(value, context(text))).toEqual([]);
+    expect(
+      plannerRequiredFields(context("Le 3 juin, squat arrière : 5 séries de 2 en montant la charge jusqu'à 60 kg.")),
+    ).toEqual(["load"]);
+    expect(plannerRequiredFields(context(text))).toEqual([]);
   });
 });

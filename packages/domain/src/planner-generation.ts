@@ -63,7 +63,49 @@ export function plannerProposeGenerationToInterpretation(
   };
 }
 
+type ExerciseNode = Extract<PlannerGenerationNode, { kind: "exercise" }>;
+const setsOf = (node: ExerciseNode): PlannedSet[] =>
+  node.prescription.setPlan?.length
+    ? node.prescription.setPlan
+    : Array.from({ length: node.prescription.sets ?? 1 }, () => ({
+        reps: node.prescription.reps,
+        load: node.prescription.load,
+        warmup: false,
+      }));
+/**
+ * Deux lignes successives du même exercice (« 3 × 5 à 70 %, puis 1 × 3 à 80 % ») sont un seul exercice dont les
+ * séries diffèrent : elles deviennent un détail série par série, dans l'ordre, sans rien ajouter ni retirer.
+ */
+export function plannerMergeRepeatedExercise(content: PlannerGenerationNode[]): PlannerGenerationNode[] {
+  const merged: PlannerGenerationNode[] = [];
+  for (const node of content) {
+    const previous = merged.at(-1);
+    if (
+      node.kind === "exercise" &&
+      previous?.kind === "exercise" &&
+      previous.exerciseToken === node.exerciseToken &&
+      !previous.autonomous &&
+      !node.autonomous &&
+      previous.prescription.distanceM === null &&
+      node.prescription.distanceM === null &&
+      previous.prescription.durationS === null &&
+      node.prescription.durationS === null
+    ) {
+      const plan = [...setsOf(previous), ...setsOf(node)].slice(0, 30);
+      merged[merged.length - 1] = {
+        ...previous,
+        instruction: previous.instruction,
+        prescription: { ...previous.prescription, sets: plan.length, setPlan: plan },
+      };
+      continue;
+    }
+    merged.push(node);
+  }
+  return merged;
+}
+
 function convertBlock(block: { name: string; content: PlannerGenerationNode[] }) {
+  block = { ...block, content: plannerMergeRepeatedExercise(block.content) };
   const items: PlannerRichSession["blocks"][number]["items"] = [];
   let nextRef = 0;
   const convert = (nodes: readonly PlannerGenerationNode[]): unknown[] =>
