@@ -1,20 +1,21 @@
 import type { ExerciseFamily, ExerciseGuide } from "@tartan/contracts";
-import type { MotionBatch } from "@tartan/mascot/exercise";
 import { exerciseClip } from "@tartan/mascot/exercises";
+import { reviewBatch, type ReviewBatch } from "@tartan/mascot/v2/engine";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "./admin.service";
 
 // Les familles dont le fondateur a relu les gestes animés. Une clé à part : le formulaire de configuration,
-// qui réécrit ses propres réglages, ne peut pas l'effacer. Une série arrivée après coup (les gestes vus de face)
-// se valide à part, sous « famille:série » : la validation d'une famille ne couvre que les gestes qu'il a vus.
+// qui réécrit ses propres réglages, ne peut pas l'effacer. Une série arrivée après coup (les gestes vus de face,
+// puis les gestes du nouveau moteur) se valide à part, sous « famille:série » : la validation d'une famille ne
+// couvre que les gestes qu'il a vus.
 const KEY = "motionFamilies";
 const CACHE_MS = 30_000;
 const families = z.array(z.string().max(60));
 let cached: { at: number; value: string[] } | null = null;
 
-export type MotionReviewGroup = ExerciseFamily | `${ExerciseFamily}:${MotionBatch}`;
-export const motionReviewGroup = (family: ExerciseFamily, batch?: MotionBatch): MotionReviewGroup =>
+export type MotionReviewGroup = ExerciseFamily | `${ExerciseFamily}:${ReviewBatch}`;
+export const motionReviewGroup = (family: ExerciseFamily, batch?: ReviewBatch): MotionReviewGroup =>
   batch ? `${family}:${batch}` : family;
 
 export const approvedMotionFamilies = async (): Promise<string[]> => {
@@ -31,7 +32,7 @@ export const setMotionFamilyApproval = async (
   actor: { email: string; userId: string },
   family: ExerciseFamily,
   approved: boolean,
-  batch?: MotionBatch,
+  batch?: ReviewBatch,
 ) => {
   await requireAdmin(actor.email);
   const group = motionReviewGroup(family, batch);
@@ -56,7 +57,8 @@ export const setMotionFamilyApproval = async (
 };
 
 // Le geste animé se lit au moment de l'affichage, d'après la clé du catalogue : une séance déjà publiée,
-// dont le guide est figé, reçoit aussi les gestes arrivés depuis.
+// dont le guide est figé, reçoit aussi les gestes arrivés depuis. Sa série de relecture suit le moteur qui
+// l'anime : un geste passé au nouveau moteur redevient « de travail » jusqu'à la relecture de sa série.
 export const withMotion = <G extends ExerciseGuide | null | undefined>(guide: G, approved: readonly string[]): G => {
   const clip = guide ? exerciseClip(guide.catalogKey) : null;
   return guide && clip
@@ -64,7 +66,9 @@ export const withMotion = <G extends ExerciseGuide | null | undefined>(guide: G,
         ...guide,
         illustration: {
           ...guide.illustration,
-          motion: approved.includes(motionReviewGroup(guide.family, clip.batch)) ? "approved" : "review",
+          motion: approved.includes(motionReviewGroup(guide.family, reviewBatch(guide.catalogKey)))
+            ? "approved"
+            : "review",
         },
       } as G)
     : guide;

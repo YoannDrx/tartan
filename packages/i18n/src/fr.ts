@@ -2271,6 +2271,9 @@ export const fr = {
       // La pastille affiche son numéro : le nom accessible le reprend (WCAG 2.5.3).
       show: (number: number, label: string) => `Position ${number} : ${label}`,
       reduced: "Mouvement réduit : les positions clés, dans l'ordre.",
+      // Le geste se regarde sous deux angles : le sélecteur de vue, et le nom de chacune.
+      view: "Vue du geste",
+      views: { side: "Profil", front: "Face", top: "Dessus" },
     },
     families: {
       strength: "Musculation",
