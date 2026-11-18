@@ -75,6 +75,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     userInterfaceStyle: "automatic",
     backgroundColor: BRICK,
     ios: {
+      // iOS 18 : l'icône suit le mode sombre et la teinte choisie par l'utilisateur.
+      icon: {
+        light: "./assets/brand/icon-ios.png",
+        dark: "./assets/brand/icon-ios-dark.png",
+        tinted: "./assets/brand/icon-ios-tinted.png",
+      },
       supportsTablet: false,
       bundleIdentifier: `coach.tartan.app${suffix}`,
       ...(appleTeamId ? { appleTeamId } : {}),
@@ -97,6 +103,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       adaptiveIcon: {
         foregroundImage: "./assets/brand/adaptive-foreground.png",
         backgroundImage: "./assets/brand/adaptive-background.png",
+        // Android 13 : la silhouette des icônes à thème.
+        monochromeImage: "./assets/brand/adaptive-monochrome.png",
       },
       predictiveBackGestureEnabled: false,
       permissions: ["android.permission.CAMERA", "android.permission.RECORD_AUDIO"],

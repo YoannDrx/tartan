@@ -43,6 +43,20 @@ Ces motifs sont des composants partagés, jamais redessinés à la main dans un 
 | Ligne de départ, ligne d'arrivée, planche d'appel | `StartLine`, `FinishLine`, `TakeoffBoard` | Début et fin de parcours, zone de l'action principale |
 | Le groupe | `Athlete`, `EventScene` | Six athlètes, un par épreuve et par rubrique |
 
+## Logo
+
+**Décision du fondateur du 17 novembre 2026.** La marque est le « T des couloirs » : l'initiale de Tartan tracée par deux couloirs parallèles qui tournent ensemble, posée sur une ligne d'arrivée citron. Elle remplace le carré aux cinq lignes de couloir, illisible à 16 px.
+
+- **Source unique.** `scripts/build-logo.mjs` dessine la marque et produit tous les fichiers : onglet, écran d'accueil, PWA, icône masquable, iOS (claire, sombre, teintée), Android (adaptative, à thème), notification, écran de lancement, logotype, e-mail, image de partage. On ne retouche jamais un fichier à la main : on change le script, puis `node scripts/build-logo.mjs`. Un test vérifie la présence et les dimensions de chaque fichier.
+- **Formes.** Dans un carré de 160 : une barre haute, deux crochets qui descendent, séparés par une ligne de 8 ; les couloirs font 18,4 d'épaisseur. La ligne d'arrivée citron ferme le pied de la lettre. Sous 32 px, la ligne entre les couloirs disparaît : la lettre est pleine (`icon-small.svg`, onglet, notification).
+- **Couleurs.** La marque est blanche avec la ligne d'arrivée citron, sur la piste. Variantes permises : sur l'encre (mêmes couleurs), en silhouette d'une seule couleur (notification, icône à thème, icône teintée). Posée directement sur la piste, sans carré, elle garde le blanc et le citron : c'est le cas de l'en-tête de l'application et des e-mails.
+- **Logotype.** L'icône, un tiers de sa largeur de blanc, puis « Tartan » en Barlow Condensed Bold. Texte encre sur clair, blanc sur la piste et sur l'encre.
+- **Zone de protection.** Autour de l'icône, un quart de sa largeur reste vide. Dans une icône masquée (Android, PWA), la marque tient dans le cercle central.
+- **Tailles minimales.** 16 px pour l'icône (forme pleine), 24 px de haut pour le logotype.
+- **Interdits.** Pas d'autre couleur de fond que la piste, l'encre ou une silhouette. Pas de contour, d'ombre, de dégradé ni d'inclinaison. Pas de marque redessinée dans un composant : on prend les fichiers de `public/brand`. Pas de texte ajouté dans l'icône.
+
+Les icônes natives changent avec le prochain binaire : une mise à jour à distance ne les remplace pas.
+
 ## Palette et rôles
 
 Source unique : `packages/design-tokens/src/index.ts`. Les valeurs CSS sont un miroir contrôlé par les tests. Aucun hexadécimal ni classe de palette brute (`bg-black`, `text-white`) dans les composants.
@@ -78,6 +92,7 @@ La couleur des séances et catégories sert la lecture du calendrier ; une spéc
 - Graphiques accompagnés d’une synthèse et d’un tableau ; aucun résultat manquant présenté comme mesuré.
 - Installation proposée au bon moment, refermable ; aucune action cachée sous les barres fixes.
 - Vidéo générale : « Vidéos » et « Analyse technique ». Barre, hauteur et phases techniques de saut seulement dans le contexte hauteur.
+- Analyse vidéo en plein écran : l'éditeur (remarques, tracés, commentaires) reste à portée. En paysage et sur écran large, un panneau à droite de l'image, repliable en rail et élargissable ; en portrait, une feuille en bas à trois hauteurs (repliée, moitié, entière), réglable par la poignée ou par deux boutons. Écrire une remarque ramène la feuille à moitié : l'image commentée n'est jamais masquée. Hors plein écran, sous 1024 px, l'image reste collée en haut. Raccourcis : espace, flèches, F, M, listés dans l'aide de l'écran ; un tracé se pose aussi au clavier.
 
 ## Le groupe
 

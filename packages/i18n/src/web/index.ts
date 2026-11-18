@@ -6,7 +6,8 @@ import { legal } from "./legal";
 import { planning } from "./planning";
 import { settings } from "./settings";
 import { tracking } from "./tracking";
+import { video } from "./video";
 
-export const w = { admin, legal, planning, settings, tracking } as const;
+export const w = { admin, legal, planning, settings, tracking, video } as const;
 
 export type WebMessages = typeof w;
