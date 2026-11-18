@@ -29,12 +29,12 @@ Niveaux : **codé**, **testé** automatiquement, **éprouvé** en production ou 
 | A. Réglages en rubriques (constats B7, G16) | 161 | En production, testé ; pas joué avec un compte connecté | Fable |
 | B. Glisser-déposer du planning (brief 4.2, constat G7) | 162 | En production, testé ; toucher sur téléphone réel non éprouvé | Fable |
 | D. Vidéo en plein écran, raccourcis, tracés au clavier (brief 4.4) | 163 | En production, testé ; Safari iOS et Android réels non éprouvés | Codé par Fable ; fusionné par Opus |
+| Logo « le T des couloirs » (brief 4.6), direction A choisie par le fondateur | 159 | En production pour le web ; les icônes natives arriveront avec le prochain binaire ; Maestro iOS a échoué deux fois sur des parcours différents avant de passer, attribué au simulateur | Codé par Fable ; Maestro diagnostiqué et fusionné par Opus |
 
 ### En cours
 
 | Lot | Où | Niveau | Mené par |
 | --- | --- | --- | --- |
-| Logo « le T des couloirs » (brief 4.6), direction A choisie par le fondateur | PR 159 | Codé, testé ; CI web verte, Maestro iOS rejoué (deux échecs sur des parcours différents, attribués au simulateur) | Codé par Fable ; Maestro diagnostiqué par Opus |
 | C. Connexion par mot de passe (brief 4.1, constats B2, G1, G12) | PR 164 | Codé, testé (2 075 tests web, 8 parcours qui suivent les vrais e-mails) ; passe après le logo | Codé par Fable ; documenté, ouvert en PR et alerte GitGuardian traitée par Opus |
 | Gestes : moteur v2, relèvement des 173 gestes (156 respectent toutes les contraintes, 17 à reprendre), lecteurs web et mobile avec bascule Profil et Face, atelier en deux vues | Branche `feat/gestes`, pas encore poussée | Codé, testé (1 301 tests du paquet, parcours des guides) ; prototype validé par le fondateur le 17 novembre ; aucun geste regardé en mouvement | Fable |
 | Gestes : écriture à la main de l'haltérophilie restante et de la musculation de base | Agent en cours | Commencé par Fable (interrompu par la limite d'usage), repris par Opus | Opus |
@@ -83,13 +83,13 @@ Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur
 
 | Élément | État au 17 novembre |
 | --- | --- |
-| Production | `app.tartan.coach` et `tartan.coach` servent `b925d89` (PR 157), santé 200. Recette réelle le 15 novembre : circuit publié et rendu, vidéo envoyée et annotée, planificateur réel. Inscriptions et classement du jeu fermés |
+| Production | `app.tartan.coach` et `tartan.coach` servent `a90ab4f` (PR 159), santé 200. Recette réelle le 15 novembre : circuit publié et rendu, vidéo envoyée et annotée, planificateur réel. Inscriptions et classement du jeu fermés |
 | Preview | `preview.tartan.coach`, branche Git `preview` gardée, en retard de plus de cent commits sur `main` : à remettre à niveau avant la recette. Base `preview` reconstruite le 14 novembre avec la seule graine de démonstration (4 comptes fictifs), sans donnée de production |
 | Neon | Offre Launch, restauration 7 jours, branche `production` protégée, calcul 0,25–2 CU ; branche `preview` 0,25–1 CU. Aucune branche de recette |
 | GitHub | Dépôt public, `LICENSE` propriétaire. Analyse des secrets, protection à l'envoi et Dependabot actifs. `main` exige des branches à jour, plus `quality` et `mobile-gate`. `mobile-gate` attend Maestro iOS et Android quand change ce que l'app native embarque (`apps/mobile`, ses paquets, le fichier de verrouillage), soit environ une heure par mise à jour ; une PR purement web le saute, textes de `packages/i18n/src/web/` compris (un test vérifie que le filtre suit les dépendances du mobile). Branches fusionnées supprimées le 16 novembre, `preview` gardée |
 | Sauvegardes | Copie chiffrée chaque nuit vers un store Vercel Blob privé, relue par empreinte ; restauration locale chronométrée réussie les 13 et 14 novembre ([sauvegarde](exploitation/sauvegarde.md)) |
 | Stripe | Compte dédié Tartan, prix 19/190 € et 59/590 €, webhook de production sur 15 événements, portail configuré. Aucun vrai paiement |
-| iOS | Build 14 (1.1.0, profil `beta`) envoyé à App Store Connect le 15 novembre, pas encore installé sur un iPhone. Le partage de la carte de record (`expo-sharing`) et les icônes d'un futur logo exigeront un nouveau binaire |
+| iOS | Build 14 (1.1.0, profil `beta`) envoyé à App Store Connect le 15 novembre, pas encore installé sur un iPhone. Le partage de la carte de record (`expo-sharing`) et les icônes du nouveau logo exigent un nouveau binaire |
 | Android | AAB 1.1.0 (3) du 13 novembre ; build `preview` du 16 novembre pour Maestro ; aucun compte Play |
 
 ## Niveau de preuve par fonction
@@ -116,7 +116,7 @@ Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur
 | Abonnements Stripe | Oui, et six tests sandbox réels dans le navigateur | Aucun vrai paiement | Retour vers Tartan après paiement non prouvé |
 | Hors ligne, PWA | Oui | Pas au stade | — |
 | Mobile natif | Oui, Maestro iOS et Android (lot 3, exigés par `mobile-gate` ; le flux du circuit reste sur iOS) | Aucun téléphone physique | **Fait** : file d'envoi vidéo rattachée au compte ; mise à jour à distance par profil, canal `beta` ; version d'exécution par empreinte ; lint mobile ; motif d'absence, série de régularité, carte de record ; les parcours natifs ne dépendent plus de l'heure.<br>**Reste** : cartes de sources Sentry (jeton à créer) ; parité des lots du brief du 16 novembre |
-| Logo et icônes | — | Visibles en production et dans le build 14 | Carré rouge, lignes de couloir, ligne d'arrivée et numéros : peu lisible à 16 px et sur l'App Store. `DESIGN.md` n'a plus de section sur le logo. `scripts/build-logo.mjs` ne produit plus `icon-maskable-512.png` ni `splash.png`. **À refaire (brief 4.6)** |
+| Logo et icônes | Oui (présence et dimensions de chaque fichier, fichiers cités par l'app et le manifeste) | Regardé sur un serveur local ; pas sur le simulateur iOS ni dans un onglet de Chrome réel | **Fait** : le fondateur a choisi le 17 novembre le « T des couloirs » (deux couloirs qui tournent, ligne d'arrivée citron). `scripts/build-logo.mjs` produit tous les fichiers : web (onglet, PWA, masquable, logotype, e-mail, image de partage), iOS (claire, sombre, teintée), Android (adaptative, à thème), notification, écran de lancement. Section « Logo » dans `DESIGN.md`.<br>**Reste** : les icônes natives n'arrivent qu'avec le prochain binaire (le build 14 garde l'ancien logo) |
 
 ## Portes d'ouverture
 
@@ -154,9 +154,7 @@ Détail : [commercialisation](plans/commercialisation.md).
    - Les 23 guides de la version 5 (`packages/domain/src/exercise-catalog/variants.ts`).
    - Les gestes, famille par famille, dans `/admin/mouvements`, y compris les « Nouveaux gestes, vus de face » (lot 4), qui ont leur propre bouton ; sans validation, l'athlète les voit avec la mention « Illustration de travail ».
    - Les guides réécrits plus courts.
-8. **Choix visuels.**
-   - Une direction de logo.
-   - Le prototype du nouveau personnage.
+8. **Choix visuel.** Le prototype du nouveau personnage (le logo est choisi).
 9. **Corpus du planificateur.** Écrire, ou faire écrire par un coach, 40 consignes jamais vues par l'agent, et enregistrer 30 dictées. Le format, le gel et la commande sont dans [planificateur-ia](reference/planificateur-ia.md#corpus-du-fondateur-lot-6) ; l'agent ne lance aucun appel payant.
 10. **Recettes et ouverture.** Paiement réel accompagné, e-mails sur Outlook et iCloud, recette sur tes téléphones, pilote sans guidage, puis décision d'ouverture.
 

@@ -25,6 +25,13 @@ Contexte : le plan a été conduit par Claude Fable 5.2 du 17 novembre à la mat
 À savoir : les agents de Fable gardent leur travail dans leurs worktrees (`.claude/worktrees/agent-*`) ; les branches locales `feat/gestes` (moteur et lecteurs) et `feat/connexion` sont le point de départ des lots suivants. La CI mobile ne démarre pas tant qu'un ancien passage occupe le runner macOS : annuler le passage d'un commit remplacé.
 Suite : fusion du logo, puis du mot de passe et des gestes ; onboarding.
 
+## 2026-11-17, Claude, logo : le T des couloirs
+Fait (PR `feat/logo`) : le fondateur a choisi la direction A sur la planche. `scripts/build-logo.mjs` réécrit : une seule marque (`glyph`, forme pleine sous 32 px), et tous les fichiers produits d'un coup, y compris `icon-maskable-512.png`, `logo-email.png`, `og.png` (qui n'est plus une capture), les icônes iOS sombre et teintée, la silhouette Android à thème et l'écran de lancement. `app.config.ts` : `ios.icon` à trois variantes, `adaptiveIcon.monochromeImage`. Section « Logo » dans `DESIGN.md`. Test `brand-assets.test.ts`.
+Vérifié : toute la suite (web 2 022), types, lint, design, configuration Expo produite ; icônes regardées une à une ; en-tête de l'application sur un serveur local.
+Non vérifié : simulateur iOS, onglet de Chrome réel, rendu des e-mails dans une messagerie.
+À savoir : sur la piste, le carré rouge de l'icône se fond dans le fond et il reste la marque blanche et citron : c'est voulu (en-tête, e-mails). Le logotype garde sa largeur de 573 pour 160, que `components/logo.tsx` suppose. Les icônes natives changent l'empreinte : il faut un nouveau binaire, une mise à jour à distance ne suffit pas.
+Suite : la nouvelle morphologie du personnage régénérera les PNG des e-mails (`email:athletes`), pas le logo.
+
 ## 2026-11-18, Claude, lot D : vidéo en plein écran
 Fait (PR `feat/video`) : plein écran de l'analyse (`use-immersive.ts`, `immersive-layout.ts`), sur la page entière et non sur le seul conteneur, pour garder les dialogues et les messages rendus dans des portails ; vrai plein écran avec souris et clavier, surcouche ailleurs ; panneau à droite (`video-editor-chrome.tsx`) ou feuille à trois hauteurs selon l'orientation ; contrôles sortis dans `video-transport.tsx` ; raccourcis et aide ; tracés au clavier dans `video-drawing.tsx`. Aucun changement côté serveur.
 Vérifié : types, lint, design, 2 012 tests web ; `video-fullscreen` (ordinateur, sans l'API, téléphone) ; `video-collaboration`, `video-generic`, matrice des écrans et mouvement réduit sur build de production ; captures relues à 390 px (portrait et paysage), 768 et 1440 px.
