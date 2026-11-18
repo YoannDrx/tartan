@@ -20,7 +20,7 @@ import { requireOrgMember, requireOwnedRefs, requireVisibleAthlete, visibleAthle
 import { blockedUserIds } from "./blocks.service";
 import { drainExternalDeletions, enqueueExternalDeletion } from "./external-deletion.service";
 import { consentForAthletes } from "./consent.service";
-import { firstNameOf, namesFor } from "./me.service";
+import { authorAvatar, firstNameOf, peopleFor } from "./me.service";
 import { notify, queueNotifications } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
 import {
@@ -404,7 +404,7 @@ export const getVideo = async (userId: string, organizationId: string, videoId: 
         })
       : Promise.resolve([]),
   ]);
-  const names = await namesFor([...annotations.map((a) => a.authorId), ...comments.map((c) => c.authorId)]);
+  const people = await peopleFor([...annotations.map((a) => a.authorId), ...comments.map((c) => c.authorId)]);
   const consentRevoked = (await revokedAthletes(access, [video.athleteId])).has(video.athleteId);
   const signed =
     video.muxPlaybackId && !consentRevoked && env().MUX_SIGNING_KEY_ID
@@ -434,20 +434,22 @@ export const getVideo = async (userId: string, organizationId: string, videoId: 
     annotations: annotations
       .filter((a) => !a.parentId || annotations.some((root) => root.id === a.parentId))
       .map((a) => ({
-      id: a.id,
-      authorId: a.authorId,
-      parentId: a.parentId,
-      tMs: a.tMs,
-      phase: a.phase,
-      text: a.text,
-      drawing: drawingOf(a.kind, a.shape),
-      authorName: names.get(a.authorId) ?? null,
-    })),
+        id: a.id,
+        authorId: a.authorId,
+        parentId: a.parentId,
+        tMs: a.tMs,
+        phase: a.phase,
+        text: a.text,
+        drawing: drawingOf(a.kind, a.shape),
+        authorName: people.get(a.authorId)?.name ?? null,
+        ...authorAvatar(people.get(a.authorId)),
+      })),
     comments: comments.map((c) => ({
       id: c.id,
       body: c.body,
       authorId: c.authorId,
-      authorName: names.get(c.authorId) ?? null,
+      authorName: people.get(c.authorId)?.name ?? null,
+      ...authorAvatar(people.get(c.authorId)),
       createdAt: c.createdAt.toISOString(),
     })),
     barSheet: barSheet(attempts).map((r) => ({ heightCm: r.heightCm, label: r.label, notation: r.notation })),

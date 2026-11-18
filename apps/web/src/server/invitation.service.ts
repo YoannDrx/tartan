@@ -208,7 +208,10 @@ export const previewInvitation = async (token: string): Promise<InvitationPrevie
   const [inviter, groups] = await Promise.all([
     prisma.user.findUnique({
       where: { id: inv.invitedBy },
-      select: { name: true, profile: { select: { firstName: true, lastName: true, avatarUrl: true } } },
+      select: {
+        name: true,
+        profile: { select: { firstName: true, lastName: true, avatarUrl: true, avatarPreset: true } },
+      },
     }),
     prisma.group.findMany({ where: { id: { in: inv.groupIds } }, select: { name: true } }),
   ]);
@@ -216,6 +219,7 @@ export const previewInvitation = async (token: string): Promise<InvitationPrevie
     organizationName: inv.organization.name,
     inviterName: displayName(inviter?.profile) || inviter?.name || inv.organization.name,
     inviterAvatarUrl: inviter?.profile?.avatarUrl ?? null,
+    inviterAvatarPreset: inviter?.profile?.avatarPreset ?? null,
     groupNames: groups.map((g) => g.name),
     role: inv.role,
     email: inv.email,

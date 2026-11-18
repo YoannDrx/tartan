@@ -134,6 +134,8 @@ model Profile {
   lastName  String?   @map("last_name")
   birthDate DateTime? @map("birth_date") @db.Date
   avatarUrl String?   @map("avatar_url")
+  // Avatar prédéfini (`athlete:…`, `animal:…`) ; nul dès qu'une photo est envoyée, et inversement.
+  avatarPreset String? @map("avatar_preset")
   // Accord explicite avant tout envoi au planificateur IA (OpenAI).
   aiConsentAt DateTime? @map("ai_consent_at")
   locale    String    @default("fr")
