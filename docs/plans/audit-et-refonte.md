@@ -539,7 +539,7 @@ Les six demandes du fondateur (sections 4.1 à 4.6) restent des portes d'ouvertu
 | G4 | `/suivi`, `/athletes` à 121 athlètes | 7 310 px et 13 393 nœuds, 1,7 et 2,3 Mo de HTML, aucune recherche par nom, en-tête de colonnes qui ne reste pas en vue | Lot K : recherche, en-tête collant, rendu par tranches |
 | G5 | Service worker | Il tente de mettre en cache `/exercise-guides/*.svg`, des fichiers qui n'existent pas : une rafale de 404 à chaque page mise en cache. `OFFLINE_PATHS` cite `mes-sauts` et non `mes-videos` : les vidéos de l'athlète ne se rouvrent pas hors ligne | Lot K, avec test |
 | G6 | En-tête à 390 px | Le sélecteur d'espace se réduit à un chevron, sans nom (défaut 3 confirmé) | Lot K |
-| G7 | `/calendrier`, `/progres` | Le bloc « Phases de préparation » se répète (un résumé replié et un bouton du même nom) et pousse la semaine sous le premier écran. Le glisser-déposer reste sans retour (4.2) | Lots B et K |
+| G7 | `/calendrier`, `/progres` | Le bloc « Phases de préparation » se répète (un résumé replié et un bouton du même nom) et pousse la semaine sous le premier écran. Le glisser-déposer reste sans retour (4.2) | Corrigé au lot B |
 | G8 | Cibles tactiles | Pastilles de filtre de 36 px de haut (calendrier, exercices, console) ; noms d'athlètes cliquables de 21 px de haut (`/athletes`, `/seances/[id]/suivi`). `DESIGN.md` demande 44 px | Lot K |
 | G9 | `/analyse` | Une colonne de 520 px au milieu d'un écran de 1440 px, des chiffres sans hiérarchie, beaucoup de « Non renseigné » | Lot K |
 | G10 | Publication | « Séance publiée. Tes athlètes reçoivent la notification. » s'affiche pour un groupe vide, juste avant « Aucun athlète dans ce groupe » | Lot K |
