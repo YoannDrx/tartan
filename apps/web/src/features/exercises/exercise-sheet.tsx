@@ -106,11 +106,14 @@ export const SheetActions = ({
   const favorite = state.favorites ? state.isFavorite(exercise.id) : exercise.favorite;
   return (
     <>
+      {/* Seule une fiche du catalogue se personnalise : la copie garde son guide et son geste. */}
       {exercise.shared ? (
-        <Button size="sm" onClick={() => personalize.execute({ id: exercise.id })} disabled={personalize.isPending}>
-          <Copy aria-hidden className="size-4" />
-          {t.sheet.personalize}
-        </Button>
+        exercise.motionKey ? (
+          <Button size="sm" onClick={() => personalize.execute({ id: exercise.id })} disabled={personalize.isPending}>
+            <Copy aria-hidden className="size-4" />
+            {t.sheet.personalize}
+          </Button>
+        ) : null
       ) : (
         <Button size="sm" onClick={() => setEditing(true)}>
           <Pencil aria-hidden className="size-4" />

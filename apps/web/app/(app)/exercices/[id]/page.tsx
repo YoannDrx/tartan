@@ -37,7 +37,9 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
         }
         actions={<SheetActions exercise={exercise} lists={lists} videoEnabled={videoEnabled()} />}
       />
-      {exercise.shared ? <p className="text-[15px]">{w.exercises.sheet.personalizeHint}</p> : null}
+      {exercise.shared && exercise.motionKey ? (
+        <p className="text-[15px]">{w.exercises.sheet.personalizeHint}</p>
+      ) : null}
       <div className="grid gap-4 desktop:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] desktop:items-start">
         <section className="on-card min-w-0 rounded-card bg-card p-4 tablet:p-6">
           <ExerciseDetail exercise={exercise} variants={exercise.variants} />

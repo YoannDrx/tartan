@@ -131,22 +131,23 @@ test.describe("le pilote", () => {
     page.on("console", (message) => {
       if (message.text().includes("Content Security Policy")) blocked.push(message.text());
     });
+    // Une fiche commune a sa propre adresse : elle ne se modifie pas depuis un espace.
     await page.goto("/exercices");
-    await page.getByRole("button", { name: "Bibliothèque Tartan", exact: true }).click();
-    await expect(page.getByRole("button", { name: /^Modifier / })).toHaveCount(0);
-
-    await page.getByRole("button", { name: /^Routine cheville en 10 minutes/ }).click();
-    const dialog = page.getByRole("dialog");
-    await expect(dialog.getByText("Vidéo de svengirlando")).toBeVisible();
-    await expect(dialog.locator("iframe")).toHaveCount(0);
-    await dialog.getByRole("button", { name: "Lire la vidéo" }).click();
-    await expect(dialog.locator('iframe[src="https://www.instagram.com/reel/Dbq862ptfM6/embed/"]')).toBeVisible();
+    await page.getByLabel("Rechercher un exercice", { exact: true }).fill("Routine cheville");
+    await page.getByRole("link", { name: /^Routine cheville en 10 minutes/ }).click();
+    const sheet = page.getByRole("main");
+    await expect(sheet.getByRole("button", { name: "Modifier", exact: true })).toHaveCount(0);
+    await expect(sheet.getByText("Vidéo de svengirlando")).toBeVisible();
+    await expect(sheet.locator("iframe")).toHaveCount(0);
+    await sheet.getByRole("button", { name: "Lire la vidéo" }).click();
+    await expect(sheet.locator('iframe[src="https://www.instagram.com/reel/Dbq862ptfM6/embed/"]')).toBeVisible();
     expect(blocked).toEqual([]);
-    await dialog.getByRole("button", { name: "Fermer" }).click();
 
-    await page.getByRole("button", { name: /^Pliométrie en fente sur caisson/ }).click();
-    await expect(dialog.getByText("n'autorise la lecture que sur Instagram")).toBeVisible();
-    await expect(dialog.locator("iframe")).toHaveCount(0);
+    await page.goto("/exercices");
+    await page.getByLabel("Rechercher un exercice", { exact: true }).fill("Pliométrie en fente");
+    await page.getByRole("link", { name: /^Pliométrie en fente sur caisson/ }).click();
+    await expect(sheet.getByText("n'autorise la lecture que sur Instagram")).toBeVisible();
+    await expect(sheet.locator("iframe")).toHaveCount(0);
   });
 
   test("la molette regroupe les réglages et la déconnexion", async ({ page }) => {
