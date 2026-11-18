@@ -12,6 +12,9 @@ import {
   plannerItem,
   plannerRichInterpretation,
   trainingPhaseKind,
+  trainingEquipment,
+  trainingObjective,
+  sessionType,
   clockTime,
   type PlannerFailureCode,
   type PlannerGeneration,
@@ -89,6 +92,49 @@ export const plannerProviderContext = z
     phaseCalendar: z
       .array(z.object({ date: z.iso.date(), targetToken: token, phase }).strict())
       .max(1400)
+      .optional(),
+    // Profil de l'espace : disciplines, objectifs et matériel déclarés par le coach.
+    space: z
+      .object({
+        disciplines: z.array(z.string().min(1).max(40)).max(20),
+        objectives: z.array(trainingObjective).max(6),
+        equipment: z.array(trainingEquipment).max(16),
+      })
+      .strict()
+      .optional(),
+    // Séances prévues autour de la période pour ces destinataires : champs structurés seulement. Jamais de titre,
+    // de note, d'effort ressenti, de douleur, de blessure ni de séance réalisée : aucune donnée de santé ne part.
+    neighbours: z
+      .array(
+        z
+          .object({
+            date: z.iso.date(),
+            type: sessionType,
+            targetTokens: z.array(token).max(200),
+            exercises: z
+              .array(
+                z
+                  .object({
+                    exerciseToken: token.nullable(),
+                    name: z.string().min(1).max(200).optional(),
+                    sets: z.number().int().min(1).max(50).nullable(),
+                    reps: z.number().int().min(1).max(500).nullable(),
+                    distanceM: z.number().min(0).max(20000).nullable(),
+                    durationS: z.number().int().min(0).max(14400).nullable(),
+                    load: plannerPrescription.shape.load,
+                  })
+                  .strict(),
+              )
+              .max(30),
+          })
+          .strict(),
+      )
+      .max(40)
+      .optional(),
+    // Couverture des références de force : « all » ouvre le pourcentage du maximum, résolu par Tartan.
+    strength: z
+      .array(z.object({ exerciseToken: token, coverage: z.enum(["all", "some", "none"]) }).strict())
+      .max(500)
       .optional(),
     // « Ajuster » : la séance précédente, dans la forme que le modèle écrit (jetons seulement, jamais de nom).
     previous: z
@@ -237,6 +283,10 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
             },
           ]);
       }
+      // Exercices dont chaque destinataire a une référence de force : le pourcentage du maximum y est permis.
+      const percentTokens = new Set(
+        propose ? (context.strength ?? []).filter((s) => s.coverage === "all").map((s) => s.exerciseToken) : [],
+      );
       const unknown = plannerUnknownQuestions(context);
       if (unknown) return unknown;
       const ambiguousTerms = ambiguousExerciseTerms(context.exercises).filter((term) =>
@@ -253,9 +303,16 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
       const generationSchema = propose ? plannerProposeGeneration : plannerGeneration;
       const { $schema: _schema, ...schema } = generationSchema.toJSONSchema({
         override: ({ zodSchema, jsonSchema }) => {
+          // Mode « Proposer » : aucun kilo. Un pourcentage du maximum seulement si un exercice est couvert pour tous.
           if (propose && zodSchema === plannerPrescription.shape.load) {
-            for (const property of Object.keys(jsonSchema)) delete jsonSchema[property];
-            jsonSchema.type = "null";
+            const branches = (jsonSchema.anyOf ?? []) as { properties?: { type?: Record<string, unknown> } }[];
+            const object = branches.find((branch) => branch.properties?.type);
+            if (percentTokens.size && object?.properties?.type)
+              object.properties.type = { type: "string", enum: ["pct_1rm"] };
+            else {
+              for (const property of Object.keys(jsonSchema)) delete jsonSchema[property];
+              jsonSchema.type = "null";
+            }
           }
           if (zodSchema === plannerItem.shape.exerciseToken)
             jsonSchema.enum = context.exercises.map((exercise) => exercise.token);
@@ -274,6 +331,9 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
             exercises: context.exercises,
             instructions: context.instructions,
             ...(context.previous ? { previous: context.previous } : {}),
+            ...(context.space ? { space: context.space } : {}),
+            ...(context.neighbours?.length ? { neighbours: context.neighbours } : {}),
+            ...(percentTokens.size ? { percentAllowed: [...percentTokens] } : {}),
           }
         : {
             ...visible,
@@ -285,7 +345,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
       const determinism = settings.AI_PLANNER_MODEL.startsWith("gpt-4") ? { temperature: 0 } : {};
       const deadline = AbortSignal.timeout(100000);
       let attempts = 0;
-      const known = {
+      const previous = {
         tokens: (context.previous?.sessions ?? []).flatMap((session) =>
           session.blocks.flatMap((block) => tokensIn(block.content)),
         ),
@@ -293,7 +353,19 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
           session.blocks.flatMap((block) => loadsIn(block.content)),
         ),
       };
-      const guardContext = { ...context, known };
+      // Une séance voisine reprise (« refais la séance de mardi ») n'invente ni exercice ni charge ; le choix reste
+      // signalé à vérifier, contrairement à la séance précédente que le coach ajuste.
+      const neighbourTokens = (context.neighbours ?? []).flatMap((n) =>
+        n.exercises.flatMap((e) => (e.exerciseToken ? [e.exerciseToken] : [])),
+      );
+      const neighbourLoads = (context.neighbours ?? []).flatMap((n) =>
+        n.exercises.flatMap((e) => (e.load ? [e.load.value] : [])),
+      );
+      const guardContext = {
+        ...context,
+        known: { tokens: [...previous.tokens, ...neighbourTokens], loads: [...previous.loads, ...neighbourLoads] },
+      };
+      const warningContext = { ...context, known: previous };
 
       const call = async (correction?: string): Promise<unknown> => {
         options.onProgress?.({ step: correction ? "retry" : "model" });
@@ -383,6 +455,26 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
               ...session,
               ...request,
               durationMin: Math.min(session.durationMin ?? brief.durationMin, brief.durationMin),
+              // Un pourcentage sur un exercice sans référence pour tous ne serait résolu pour personne : retiré.
+              blocks: session.blocks.map((block) => ({
+                ...block,
+                items: block.items.map((item) => ({
+                  ...item,
+                  prescription: withoutUncoveredPercent(item.prescription, item.exerciseToken, percentTokens),
+                  ...(item.autonomous
+                    ? {
+                        autonomous: {
+                          ...item.autonomous,
+                          prescription: withoutUncoveredPercent(
+                            item.autonomous.prescription,
+                            item.autonomous.exerciseToken,
+                            percentTokens,
+                          ),
+                        },
+                      }
+                    : {}),
+                })),
+              })),
             })),
           };
         }
@@ -413,6 +505,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
           brief: context.brief,
           period: context.period,
           reviewedInstructions: context.instructions,
+          percentTokens,
           targetTokens: new Set(context.targets.map((target) => target.token)),
           // Seul le service sait transformer ces jetons en UUID après une nouvelle vérification des droits.
           exercises: new Map(
@@ -446,7 +539,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
         value = checked.value;
         // Défauts bloquants : une correction, puis une question. Jamais une séance douteuse.
         const blocking = propose
-          ? plannerProposalIssues(value, { brief: context.brief })
+          ? plannerProposalIssues(value, { brief: context.brief, percentTokens })
           : plannerGuardIssues(value, guardContext);
         if (blocking.length) {
           const reason = blocking.includes("missing_date")
@@ -486,7 +579,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
                   ]);
               }
         // Points « À vérifier » : la séance passe, chaque point est rattaché à son exercice.
-        const warnings = propose ? value.sessions.map(() => []) : plannerWarnings(value, guardContext);
+        const warnings = propose ? value.sessions.map(() => []) : plannerWarnings(value, warningContext);
         const warned = plannerRichInterpretation.parse({
           ...value,
           sessions: value.sessions.map((session, index) => ({ ...session, warnings: warnings[index] ?? [] })),
@@ -530,3 +623,19 @@ const loadsIn = (nodes: Content): number[] =>
       ...(p.setPlan ?? []).flatMap((set) => (set.load ? [set.load.value] : [])),
     ]);
   });
+
+type RichPrescription =
+  PlannerRichInterpretation["sessions"][number]["blocks"][number]["items"][number]["prescription"];
+const withoutUncoveredPercent = (
+  prescription: RichPrescription,
+  token: string,
+  allowed: ReadonlySet<string>,
+): RichPrescription =>
+  allowed.has(token)
+    ? prescription
+    : {
+        ...prescription,
+        load: prescription.load?.type === "pct_1rm" ? null : prescription.load,
+        setPlan:
+          prescription.setPlan?.map((set) => (set.load?.type === "pct_1rm" ? { ...set, load: null } : set)) ?? null,
+      };

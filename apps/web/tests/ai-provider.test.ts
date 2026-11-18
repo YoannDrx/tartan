@@ -947,3 +947,73 @@ it("« Ajuster » envoie la séance précédente : ses exercices et charges ne s
   const input = JSON.parse(JSON.parse(String(fetcher.mock.calls[0]![1]?.body)).input);
   expect(input.previous.sessions[0].blocks[0].content[0]).toMatchObject({ exerciseToken: "exercise_1" });
 });
+
+it("en mode « Proposer », ouvre le pourcentage aux seuls exercices couverts pour tous, jamais le kilo", async () => {
+  const brief = { objective: "Force", date: "2026-11-09", durationMin: 40, level: "advanced" as const, equipment: [] };
+  const exercises = [
+    { ...catalog[0]!, classification: { movement: "squat" as const, equipment: [] } },
+    { ...catalog[1]!, classification: { movement: "pull" as const, equipment: [] } },
+  ];
+  const proposed: PlannerProviderContext = {
+    ...context,
+    mode: "propose",
+    brief,
+    exercises,
+    space: { disciplines: ["sprint"], objectives: ["strength"], equipment: [] },
+    neighbours: [
+      {
+        date: "2026-11-08",
+        type: "strength",
+        targetTokens: ["group_1"],
+        exercises: [{ exerciseToken: "exercise_1", sets: 5, reps: 5, distanceM: null, durationS: null, load: null }],
+      },
+    ],
+    strength: [
+      { exerciseToken: "exercise_1", coverage: "all" },
+      { exerciseToken: "exercise_2", coverage: "some" },
+    ],
+  };
+  const percent = { type: "pct_1rm", value: 80 };
+  const answer = {
+    status: "proposal",
+    questions: [],
+    assumptions: ["Intensité élevée."],
+    suggestions: [],
+    sessions: [
+      {
+        title: "Force",
+        type: "strength",
+        durationMin: 40,
+        blocks: [
+          {
+            name: "Principal",
+            content: [
+              node("exercise_1", "Base.", { load: percent }),
+              node("exercise_2", "Tirage.", { load: percent }),
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const fetcher = transport(completed(answer));
+  const result = await openAiPlannerProvider(fetcher).interpret(proposed);
+  const items = result.sessions[0]!.blocks[0]!.items;
+  expect(items[0]!.prescription.load).toEqual(percent);
+  // Sans référence pour chacun, le pourcentage ne serait résolu pour personne : il est retiré.
+  expect(items[1]!.prescription.load).toBeNull();
+  const body = JSON.parse(String(fetcher.mock.calls[0]![1]?.body));
+  const input = JSON.parse(body.input);
+  expect(input).toMatchObject({ percentAllowed: ["exercise_1"], space: { disciplines: ["sprint"] } });
+  expect(input.neighbours[0].exercises[0]).toMatchObject({ exerciseToken: "exercise_1", sets: 5 });
+  expect(JSON.stringify(body.text.format.schema)).not.toContain('"kg"');
+  // Un kilo reste refusé même si le modèle l'écrivait.
+  const kilos = structuredClone(answer);
+  (kilos.sessions[0]!.blocks[0]!.content[0] as { prescription: { load: unknown } }).prescription.load = {
+    type: "kg",
+    value: 80,
+  };
+  await expect(openAiPlannerProvider(transport(completed(kilos))).interpret(proposed)).rejects.toMatchObject({
+    code: "invalid_output",
+  });
+});

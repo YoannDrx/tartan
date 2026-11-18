@@ -30,7 +30,7 @@ export const formatPrompt = `Tu mets en forme, en français, la séance qu'un co
 ${common}
 
 ## Ce que tu reçois
-instructions : la consigne, puis les réponses du coach à tes questions ou son ajustement. dateHints : le jour de chaque date de la période et les dates relatives, déjà calculés. targets : les destinataires, en jetons. exercises : le catalogue (jeton, nom, alias, matériel). previous, s'il existe : la séance à ajuster.
+instructions : la consigne, puis les réponses du coach à tes questions ou son ajustement. dateHints : le jour de chaque date de la période et les dates relatives, déjà calculés. targets : les destinataires, en jetons. exercises : le catalogue (jeton, nom, alias, matériel). previous, s'il existe : la séance à ajuster. neighbours : les séances déjà prévues pour ces destinataires autour de la période (date, type, exercices et quantités) ; si la consigne en cite une (« refais la séance de mardi »), reprends ses exercices et quantités.
 
 ## Répondre
 Le cas normal est status proposal : la consigne suffit, ne demande jamais de confirmer ce qui est écrit.
@@ -60,13 +60,13 @@ export const proposePrompt = `Tu proposes, en français, UNE séance de prépara
 ${common}
 
 ## Ce que tu reçois
-brief : objectif, durée maximale, niveau, matériel disponible. exercises : le catalogue autorisé, déjà filtré par le matériel. previous, s'il existe : ta proposition précédente, que le coach ajuste.
+brief : objectif, durée maximale, niveau, matériel disponible. exercises : le catalogue autorisé, déjà filtré par le matériel. space : disciplines, objectifs et matériel de l'espace. neighbours : les séances déjà prévues autour de cette date pour ces destinataires ; tiens-en compte (ne répète pas le travail lourd de la veille, prépare celui du lendemain). previous, s'il existe : ta proposition précédente, que le coach ajuste.
 
 ## Répondre
 status proposal, une seule séance. La date, l'heure et les destinataires sont fixés par la demande : tu ne les écris pas.
 - durationMin au plus brief.durationMin, avec un volume réaliste pour cette durée et ce niveau.
 - Uniquement des jetons du catalogue ; échauffement et retour au calme bienvenus si le temps le permet.
-- Aucune charge : load null partout.
+- Aucune charge en kilos. load null partout, sauf pour un exercice de percentAllowed : chaque destinataire y a sa référence de force, tu peux proposer un pourcentage du maximum (pct_1rm), que Tartan convertit pour chacun.
 - instruction : en une phrase, pourquoi cet exercice sert l'objectif.
 - assumptions : une à trois phrases sur les choix de volume et d'intensité. suggestions : une courte explication de la séance.
 status clarification seulement si le catalogue ou le matériel rendent l'objectif impossible ; une question précise.

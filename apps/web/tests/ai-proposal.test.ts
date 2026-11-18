@@ -1385,6 +1385,97 @@ it("en mode « Proposer », l'heure demandée arrive sur le brouillon sans passe
     await prisma.exercise.delete({ where: { id: exercise.id } });
   }
 });
+it("donne au modèle le profil de l'espace, les séances voisines et la couverture des références, jamais une donnée de santé", async () => {
+  const a = await setup();
+  await prisma.organization.update({
+    where: { id: a.organizationId },
+    data: {
+      progressionEnabled: true,
+      disciplines: ["sprint"],
+      trainingObjectives: ["speed"],
+      availableEquipment: ["cones", "track"],
+    },
+  });
+  await prisma.exercise.update({ where: { id: a.exercise.id }, data: { strengthLoadKind: "external_total" } });
+  const athletes = [
+    await addAthlete(a.organizationId, a.groupId, "Léa"),
+    await addAthlete(a.organizationId, a.groupId, "Malik"),
+  ];
+  for (const athlete of athletes)
+    await selectStrengthReference(a.owner.userId, a.organizationId, athlete.athleteId, a.exercise.id, {
+      source: "working",
+      valueKg: 100,
+    });
+  const neighbour = await prisma.scheduledSession.create({
+    data: {
+      organizationId: a.organizationId,
+      createdBy: a.owner.userId,
+      date: new Date("2030-06-01T00:00:00Z"),
+      title: "Séance privée de Léa",
+      type: "strength",
+      draft: {
+        title: "Séance privée de Léa",
+        type: "strength",
+        durationMin: 45,
+        coachNote: "Note privée du coach",
+        blocks: [
+          {
+            name: "Force",
+            variant: "club",
+            items: [
+              {
+                exerciseId: a.exercise.id,
+                prescription: { sets: 4, reps: 5, load: { type: "kg", value: 50 }, notes: "genou douloureux" },
+              },
+            ],
+          },
+        ],
+      },
+      assignments: { create: { targetType: "group", targetId: a.groupId } },
+    },
+  });
+  await prisma.sessionLog.create({
+    data: {
+      scheduledSessionId: neighbour.id,
+      athleteId: athletes[0]!.athleteId,
+      status: "done",
+      rpe: 9,
+      comment: "douleur derrière la cuisse",
+      pain: { zone: "ischio", level: 6 },
+    },
+  });
+  const p = provider();
+  await a.create(p);
+  const sent = p.interpret.mock.calls[0]![0];
+  expect(sent.space).toEqual({ disciplines: ["sprint"], objectives: ["speed"], equipment: ["cones", "track"] });
+  expect(sent.neighbours).toEqual([
+    {
+      date: "2030-06-01",
+      type: "strength",
+      targetTokens: ["group_1"],
+      exercises: [
+        {
+          exerciseToken: "exercise_1",
+          sets: 4,
+          reps: 5,
+          distanceM: null,
+          durationS: null,
+          load: { type: "kg", value: 50 },
+        },
+      ],
+    },
+  ]);
+  expect(sent.strength).toEqual([{ exerciseToken: "exercise_1", coverage: "all" }]);
+  // Ce qui part chez OpenAI : ni titre, ni note, ni ressenti, ni douleur, ni maximum, ni prénom.
+  const payload = JSON.stringify(sent);
+  for (const secret of ["Séance privée", "Note privée", "genou douloureux", "douleur", "ischio", "rpe", "100", "Léa", "Malik"])
+    expect(payload).not.toContain(secret);
+  // Une référence manquante pour un seul destinataire ferme le pourcentage : couverture partielle.
+  await prisma.strengthReference.deleteMany({ where: { athleteId: athletes[1]!.athleteId } });
+  const partial = provider();
+  await a.create(partial, { ...a.input, id: randomUUID() });
+  expect(partial.interpret.mock.calls[0]![0].strength).toEqual([{ exerciseToken: "exercise_1", coverage: "some" }]);
+});
 it("pose directement une question nommée pour un mouvement inconnu, sans appeler le modèle", async () => {
   const a = await setup(),
     p = provider();
