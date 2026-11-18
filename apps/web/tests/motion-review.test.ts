@@ -19,8 +19,9 @@ describe("gestes animés des guides", () => {
   });
 
   it("un geste du nouveau moteur illustre lui aussi chaque ligne du guide, dans l'ordre", () => {
+    // Plus aucun geste à reprendre : tout le catalogue animé tourne sur le nouveau moteur.
     const next = EXERCISE_CATALOG.filter((entry) => motionEngine(entry.catalogKey) === "v2");
-    expect(next).toHaveLength(156);
+    expect(next).toHaveLength(173);
     for (const entry of next) {
       const { clip } = gestureEntry(entry.catalogKey)!;
       expect(
@@ -31,11 +32,12 @@ describe("gestes animés des guides", () => {
   });
 
   it("annonce le geste à la lecture, relu ou non, sans toucher un guide sans geste", () => {
-    // Good morning : à reprendre, donc toujours sur l'ancien moteur et dans la première série de sa famille.
+    // Good morning : repris, il est passé au nouveau moteur et à sa série de relecture.
     const old = guideOf("good-morning");
-    expect(motionEngine("good-morning")).toBe("v1");
+    expect(motionEngine("good-morning")).toBe("v2");
     expect(withMotion(old, []).illustration.motion).toBe("review");
-    expect(withMotion(old, ["strength"]).illustration.motion).toBe("approved");
+    expect(withMotion(old, ["strength"]).illustration.motion).toBe("review");
+    expect(withMotion(old, ["strength:v2"]).illustration.motion).toBe("approved");
     expect(withMotion(null, ["strength"])).toBeNull();
   });
 
@@ -49,7 +51,7 @@ describe("gestes animés des guides", () => {
     expect(reviewBatch("lateral-raise")).toBe("v2");
     expect(withMotion(lateral, ["strength", "strength:face"]).illustration.motion).toBe("review");
     expect(withMotion(lateral, ["strength:v2"]).illustration.motion).toBe("approved");
-    expect(withMotion(guideOf("good-morning"), ["strength:v2"]).illustration.motion).toBe("review");
+    expect(withMotion(guideOf("good-morning"), ["strength:face"]).illustration.motion).toBe("review");
   });
 
   it("chaque fiche du catalogue a son geste", () => {
@@ -58,14 +60,13 @@ describe("gestes animés des guides", () => {
     ).toEqual([]);
   });
 
-  it("un geste vu de face resté sur l'ancien moteur garde sa série : « de travail » tant qu'elle n'est pas validée", () => {
-    // Gainage latéral : dessiné de face, à reprendre.
+  it("un geste vu de face par l'ancien moteur, repris dans le nouveau, quitte sa série « face »", () => {
+    // Gainage latéral : dessiné de face par l'ancien moteur, écrit depuis en trois dimensions.
     const plank = guideOf("side-plank");
     expect(exerciseClip("side-plank")!.batch).toBe("face");
-    expect(reviewBatch("side-plank")).toBe("face");
-    expect(withMotion(plank, ["core"]).illustration.motion).toBe("review");
-    expect(withMotion(plank, ["core", "core:face"]).illustration.motion).toBe("approved");
-    expect(withMotion(guideOf("good-morning"), ["strength:face"]).illustration.motion).toBe("review");
+    expect(reviewBatch("side-plank")).toBe("v2");
+    expect(withMotion(plank, ["core", "core:face"]).illustration.motion).toBe("review");
+    expect(withMotion(plank, ["core:v2"]).illustration.motion).toBe("approved");
   });
 
   it("n'enregistre jamais l'annonce : la lecture d'un guide stocké la retire", () => {
