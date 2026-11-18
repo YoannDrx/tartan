@@ -19,6 +19,12 @@ Vérifié : types, lint, tests, `design:check` ; `expo config` ; empreinte Expo 
 À savoir : Expo 55 est à sa dernière version et tire encore glob 13, minimatch 10 et `query-string` 7 ; retirer ces `overrides` et le correctif quand Expo les aura mis à jour. Le zod 3 d'`@expo/cli` reste dans la plage de l'avis zod, sans version 3 corrigée : outil de développement seulement. L'alerte `decode-uri-component` reste affichée par GitHub, qui ne voit que la version 0.2.2 : elle est fermée à la main avec un renvoi au correctif.
 Suite : aucune.
 
+## 2026-11-18, Claude Opus 5.5, état des lieux et passage de Fable à Opus
+Fait (PR `docs/etat-avancement`) : section « Avancement du plan d'audit et de refonte » dans `ETAT.md`, lot par lot, avec le niveau atteint et le modèle qui l'a mené.
+Contexte : le plan a été conduit par Claude Fable 5.2 du 17 novembre à la matinée du 18 (audit, lot 0, logo, mesure du planificateur, réglages, planning, vidéo, mot de passe, gestes jusqu'aux lecteurs), puis par Claude Opus 5.5 quand Fable a atteint sa limite d'usage. Opus a diagnostiqué l'instabilité de Maestro iOS sur le logo, fusionné la vidéo, ouvert la PR du mot de passe, traité l'alerte GitGuardian (faux positif, incidents résolus par le fondateur) et relancé trois chantiers : écriture des gestes, photo de profil et avatars, listes d'exercices.
+À savoir : les agents de Fable gardent leur travail dans leurs worktrees (`.claude/worktrees/agent-*`) ; les branches locales `feat/gestes` (moteur et lecteurs) et `feat/connexion` sont le point de départ des lots suivants. La CI mobile ne démarre pas tant qu'un ancien passage occupe le runner macOS : annuler le passage d'un commit remplacé.
+Suite : fusion du logo, puis du mot de passe et des gestes ; onboarding.
+
 ## 2026-11-17, Claude, logo : le T des couloirs
 Fait (PR `feat/logo`) : le fondateur a choisi la direction A sur la planche. `scripts/build-logo.mjs` réécrit : une seule marque (`glyph`, forme pleine sous 32 px), et tous les fichiers produits d'un coup, y compris `icon-maskable-512.png`, `logo-email.png`, `og.png` (qui n'est plus une capture), les icônes iOS sombre et teintée, la silhouette Android à thème et l'écran de lancement. `app.config.ts` : `ios.icon` à trois variantes, `adaptiveIcon.monochromeImage`. Section « Logo » dans `DESIGN.md`. Test `brand-assets.test.ts`.
 Vérifié : toute la suite (web 2 022), types, lint, design, configuration Expo produite ; icônes regardées une à une ; en-tête de l'application sur un serveur local.
