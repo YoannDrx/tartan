@@ -3,9 +3,11 @@
 // Maestro. Un texte que le mobile affiche aussi reste dans `../fr.ts`. Un fichier par domaine, assemblé ici.
 import { auth } from "./auth";
 import { legal } from "./legal";
+import { planning } from "./planning";
 import { settings } from "./settings";
 import { tracking } from "./tracking";
+import { video } from "./video";
 
-export const w = { auth, legal, settings, tracking } as const;
+export const w = { auth, legal, planning, settings, tracking, video } as const;
 
 export type WebMessages = typeof w;

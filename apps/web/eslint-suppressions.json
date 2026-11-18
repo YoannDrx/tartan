@@ -99,11 +99,6 @@
       "count": 1
     }
   },
-  "src/features/sessions/calendar-board.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 7
-    }
-  },
   "src/features/sessions/calendar-tools.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 5
@@ -142,11 +137,6 @@
   "src/features/tracking/tracking-grid.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 2
-    }
-  },
-  "src/features/videos/video-analysis.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 4
     }
   },
   "src/features/videos/video-list.tsx": {

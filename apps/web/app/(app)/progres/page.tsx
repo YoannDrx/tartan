@@ -46,7 +46,7 @@ export default async function ProgresPage() {
           ) : null
         }
       />
-      <CalendarPhases ctx={ctx} from={today} to={addDays(today, 83)} today={today} />
+      <CalendarPhases ctx={ctx} from={today} to={addDays(today, 83)} today={today} open />
       {regularity.total > 0 ? (
         <Sheet>
           <SheetSection title={m.athletes.regularityTitle}>

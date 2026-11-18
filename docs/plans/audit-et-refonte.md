@@ -520,7 +520,7 @@ Audit mené sur `main` à `072eafd`, sur une base locale dédiée (graine, puis 
 | N° | Écran | Constat | Preuve | Correction |
 | --- | --- | --- | --- | --- |
 | B1 | `/suivi` d'un coach neuf | Après la création de l'espace, le coach arrive sur une grille vide et quatre liens. Aucune présentation des fonctions, aucun état gardé, impossible de refermer ou de rouvrir le guide. Le lien « Inviter des athlètes » vise `/reglages#invitations`, qui est la section des groupes, pas le formulaire d'invitation | Parcours, étape 9 ; `suivi/page.tsx` | Lot G |
-| B2 | `/connexion?creer=1` | Sous le titre « Crée ton espace coach », l'inscription par mot de passe demande deux clics cachés (« Utiliser un mot de passe », puis « Pas encore de compte ? ») et l'action principale affichée reste « Se connecter ». 19 gestes de l'arrivée à l'espace créé | Parcours, étapes 2 à 8 | Lot C |
+| B2 | `/connexion?creer=1` | Sous le titre « Crée ton espace coach », l'inscription par mot de passe demande deux clics cachés (« Utiliser un mot de passe », puis « Pas encore de compte ? ») et l'action principale affichée reste « Se connecter ». 19 gestes de l'arrivée à l'espace créé | Parcours, étapes 2 à 8 | Corrigé au lot C |
 | B3 | `/aujourdhui` d'un athlète neuf | Un jour de séance, l'athlète n'a aucun accueil et la proposition d'installation n'est jamais armée. L'accueil vit dans le navigateur : il revient sur un autre appareil | Parcours, étape 22 ; `athlete-welcome.tsx` | Lot G |
 | B4 | `/planificateur` | « Continuer avec ces destinataires » demande deux clics : le premier charge le contexte sans avancer. Vocabulaire technique (« Consommation et fuseau de l'espace », « Contexte prêt », « Exercices autorisés pour cette proposition »). Trois blocs d'avertissement et une case « relu » avant de pouvoir envoyer. Le mode se choisit dans une liste déroulante. S'y ajoutent les défauts lus dans le code : appel bloquant sans retour à l'écran, erreurs du prestataire écrasées en un message générique, mode « Proposer » sans contexte, « Ajuster » qui refait une autre séance | Parcours rejoué ; `web-planner.tsx`, `provider.ts`, `context.ts` | Lot H |
 | B5 | Fiche d'exercice | À l'arraché, le personnage est replié sur lui-même, tête démesurée, la barre réduite à un disque dans une main. Toutes les fiches portent « Illustration de travail » | Capture de la fiche | Lot J |
@@ -533,18 +533,18 @@ Les six demandes du fondateur (sections 4.1 à 4.6) restent des portes d'ouvertu
 
 | N° | Écran | Constat | Correction |
 | --- | --- | --- | --- |
-| G1 | « Lien envoyé » | L'écran ne rappelle pas l'adresse saisie, n'offre ni renvoi ni aide si rien n'arrive | Lot C |
+| G1 | « Lien envoyé » | L'écran ne rappelle pas l'adresse saisie, n'offre ni renvoi ni aide si rien n'arrive | Corrigé au lot C |
 | G2 | `/videos` à 390 px | Cinq filtres empilés occupent tout le premier écran avant la première vidéo. « Feuille de barres », propre à la hauteur, est une action de premier rang pour tous les coachs | Lot K : filtres dans une feuille, action rangée dans le contexte hauteur |
 | G3 | `/exercices` | 16 408 px de haut à 390 px : les 311 fiches sont rendues d'un coup. Deux filtres concurrents (liste « Famille de mouvements » et pastilles de catégories). L'haltérophilie est rangée sous « Musculation ». Aucune vignette de geste. La fiche s'ouvre en dialogue, sans adresse à partager | Lot F |
 | G4 | `/suivi`, `/athletes` à 121 athlètes | 7 310 px et 13 393 nœuds, 1,7 et 2,3 Mo de HTML, aucune recherche par nom, en-tête de colonnes qui ne reste pas en vue | Lot K : recherche, en-tête collant, rendu par tranches |
 | G5 | Service worker | Il tente de mettre en cache `/exercise-guides/*.svg`, des fichiers qui n'existent pas : une rafale de 404 à chaque page mise en cache. `OFFLINE_PATHS` cite `mes-sauts` et non `mes-videos` : les vidéos de l'athlète ne se rouvrent pas hors ligne | Lot K, avec test |
 | G6 | En-tête à 390 px | Le sélecteur d'espace se réduit à un chevron, sans nom (défaut 3 confirmé) | Lot K |
-| G7 | `/calendrier`, `/progres` | Le bloc « Phases de préparation » se répète (un résumé replié et un bouton du même nom) et pousse la semaine sous le premier écran. Le glisser-déposer reste sans retour (4.2) | Lots B et K |
+| G7 | `/calendrier`, `/progres` | Le bloc « Phases de préparation » se répète (un résumé replié et un bouton du même nom) et pousse la semaine sous le premier écran. Le glisser-déposer reste sans retour (4.2) | Corrigé au lot B |
 | G8 | Cibles tactiles | Pastilles de filtre de 36 px de haut (calendrier, exercices, console) ; noms d'athlètes cliquables de 21 px de haut (`/athletes`, `/seances/[id]/suivi`). `DESIGN.md` demande 44 px | Lot K |
 | G9 | `/analyse` | Une colonne de 520 px au milieu d'un écran de 1440 px, des chiffres sans hiérarchie, beaucoup de « Non renseigné » | Lot K |
 | G10 | Publication | « Séance publiée. Tes athlètes reçoivent la notification. » s'affiche pour un groupe vide, juste avant « Aucun athlète dans ce groupe » | Lot K |
 | G11 | `/seances/nouvelle` | 865 Ko de HTML : toute la bibliothèque et ses guides voyagent dans la page. À 390 px, la bibliothèque est tout en bas d'une page de 3 021 px | Lot F : sélecteur chargé à la demande |
-| G12 | Connexion | La redirection vers `/connexion` perd la page demandée (défaut 7 confirmé) | Lot C |
+| G12 | Connexion | La redirection vers `/connexion` perd la page demandée (défaut 7 confirmé) | Corrigé au lot C |
 | G13 | États vides | `/phases` et `/progres` n'ont qu'une phrase, sans l'athlète de la rubrique que demande `DESIGN.md` | Lot K |
 | G14 | Avatar et logo | Envoyés dans les réglages, affichés nulle part ailleurs | Lot E |
 | G15 | Invitation | Les consentements sont enregistrés après la transaction : un membre peut exister sans accord tracé | Lot G, avec test |

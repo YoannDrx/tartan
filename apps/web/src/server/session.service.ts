@@ -821,11 +821,33 @@ const calendarCompletions = async (
   );
 };
 
+type CalendarQuery = { from: string; to: string; groupId?: string; summary?: "true" | "false" | boolean };
+
 export const listCalendar = async (
   userId: string,
   organizationId: string,
-  query: { from: string; to: string; groupId?: string; summary?: "true" | "false" | boolean },
-): Promise<CalendarResponse> => {
+  query: CalendarQuery,
+): Promise<CalendarResponse> => (await readCalendar(userId, organizationId, query)).calendar;
+
+/**
+ * Le planning du coach : le calendrier, plus les séances que ce membre voit sans pouvoir les modifier
+ * (celles d'un autre pour un adjoint, celles d'un groupe hors de son périmètre). Le planning les verrouille
+ * au lieu de laisser le serveur refuser le déplacement. Même règle que `requireSessionWrite`.
+ */
+export const listPlanning = async (
+  userId: string,
+  organizationId: string,
+  query: CalendarQuery,
+): Promise<CalendarResponse & { readOnly: string[] }> => {
+  const { calendar, readOnly } = await readCalendar(userId, organizationId, query);
+  return { ...calendar, readOnly };
+};
+
+const readCalendar = async (
+  userId: string,
+  organizationId: string,
+  query: CalendarQuery,
+): Promise<{ calendar: CalendarResponse; readOnly: string[] }> => {
   const access = await requireOrgMember(userId, organizationId, "viewTracking");
   const scopeGroups = access.role === "owner" ? null : await coachGroupIds(access);
   const scopeAthletes = access.role === "owner" ? null : await visibleAthleteIds(access);
@@ -899,7 +921,15 @@ export const listCalendar = async (
   const wantsSummary = query.summary === true || query.summary === "true";
   const completionBySession =
     wantsSummary && !athleteId ? await calendarCompletions(organizationId, inScope, scopeAthletes) : null;
-  return {
+  const writable = (s: (typeof inScope)[number]) =>
+    can(access.role, "manageSessions") &&
+    (access.role !== "assistant" || s.createdBy === userId) &&
+    (!scopeGroups ||
+      (s.assignments.every((a) =>
+        a.targetType === "group" ? scopeGroups.includes(a.targetId) : scopeAthletes!.includes(a.targetId),
+      ) &&
+        s.overrides.every((o) => scopeAthletes!.includes(o.athleteId))));
+  const calendar: CalendarResponse = {
     sessions: inScope.map((s) => {
       const draft = sessionDraft.safeParse(s.draft);
       const plan = s.snapshot ? sessionSnapshot.safeParse(s.snapshot) : draft;
@@ -910,15 +940,7 @@ export const listCalendar = async (
         id: s.id,
         version: s.version,
         publishAt: s.publishAt?.toISOString() ?? null,
-        canPublish:
-          can(access.role, "manageSessions") &&
-          !s.publishedAt &&
-          (access.role !== "assistant" || s.createdBy === userId) &&
-          (!scopeGroups ||
-            (s.assignments.every((a) =>
-              a.targetType === "group" ? scopeGroups.includes(a.targetId) : scopeAthletes!.includes(a.targetId),
-            ) &&
-              s.overrides.every((o) => scopeAthletes!.includes(o.athleteId)))),
+        canPublish: writable(s) && !s.publishedAt,
         title: s.title,
         type: s.type,
         date: fromDbDate(s.date),
@@ -938,6 +960,7 @@ export const listCalendar = async (
     }),
     competitions: competitions.map((c) => ({ id: c.id, name: c.name, date: fromDbDate(c.date), location: c.location })),
   };
+  return { calendar, readOnly: inScope.filter((s) => !writable(s)).map((s) => s.id) };
 };
 
 export const saveTemplate = async (userId: string, organizationId: string, draft: SessionDraft) => {
