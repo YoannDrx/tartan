@@ -123,9 +123,10 @@ jobs:
         env:
           E2E_PROD: "1"
           E2E_VIDEO_ENABLED: "true"
-      - name: Preuve de concept vidéo
+      - name: Preuve de concept vidéo et plein écran de l'analyse
         if: ${{ matrix.extras }}
-        run: pnpm --filter @tartan/web exec playwright test video-poc --project=desktop
+        # Sans E2E_PROD : le clip de test n'est servi qu'en développement. Le plein écran se joue aussi sur téléphone.
+        run: pnpm --filter @tartan/web exec playwright test video-poc video-fullscreen --project=desktop --project=mobile
       - name: Planificateur activé avec prestataire simulé
         if: ${{ matrix.extras }}
         run: pnpm --filter @tartan/web exec playwright test ai-planner
