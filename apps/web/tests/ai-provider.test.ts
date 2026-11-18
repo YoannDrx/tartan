@@ -497,7 +497,7 @@ it("refuse de remplacer un power clean par le clean dont l’alias est plus cour
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
 
-it("signale sur l'exercice une pause qui serait perdue après une série unique après une seule correction", async () => {
+it("place en récupération explicite une pause qui serait perdue après une série unique, sans nouvel appel", async () => {
   const instruction = "Demain : squat, une série de quatre à 40 kg, puis récupération 120 secondes.";
   const wrong = plannerInterpretation.parse(proposalFor(instruction, [{ date: "2026-11-09" }]));
   const block = wrong.sessions[0]!.blocks[0]!;
@@ -508,9 +508,55 @@ it("signale sur l'exercice une pause qui serait perdue après une série unique 
   const result = await openAiPlannerProvider(fetcher).interpret({ ...context, instructions: [instruction] });
   expect(result).toMatchObject({
     status: "proposal",
-    sessions: [{ warnings: [{ code: "rest_not_executed", field: "rest", block: 0, item: 0 }] }],
+    sessions: [
+      {
+        warnings: [],
+        blocks: [
+          {
+            items: [{ prescription: { sets: 1, restS: null } }],
+            sequence: [{ kind: "exercise" }, { kind: "recovery", durationS: 120 }],
+          },
+        ],
+      },
+    ],
   });
-  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  // Dans un circuit, la pause entre gestes relève du modèle : elle reste signalée après une correction.
+  const nested = structuredClone(wrong);
+  nested.sessions[0]!.blocks[0]!.sequence = [
+    {
+      kind: "repeat",
+      ref: "tours",
+      name: "Tours",
+      rounds: 2,
+      restBetweenRoundsS: 0,
+      children: [{ kind: "exercise", itemRef: "squat" }],
+    },
+  ];
+  const twice = transport(completed(nested));
+  const kept = await openAiPlannerProvider(twice).interpret({
+    ...context,
+    instructions: ["Demain : squat, deux tours d'une série de quatre à 40 kg, puis récupération 120 secondes."],
+  });
+  expect(kept.sessions[0]!.warnings).toContainEqual(expect.objectContaining({ code: "rest_not_executed" }));
+  expect(twice).toHaveBeenCalledTimes(2);
+});
+it("ajoute la question qu'aucune réponse ne peut deviner : unité absente, habitude sans historique", async () => {
+  const exerciseQuestion = {
+    ...clarification,
+    questions: [{ id: "q", field: "exercise", question: "Quel gainage ?", exerciseName: null, options: [] }],
+  };
+  const unit = await openAiPlannerProvider(transport(completed(exerciseQuestion))).interpret({
+    ...context,
+    exercises: [{ token: "exercise_1", name: "Gainage ventral", category: "strength", aliases: [] }],
+    instructions: ["Demain, trois fois vingt de gainage."],
+  });
+  expect(unit.questions.map((q) => q.field)).toEqual(["unit", "exercise"]);
+  const habit = await openAiPlannerProvider(transport(completed(exerciseQuestion))).interpret({
+    ...context,
+    instructions: ["Fais les squats habituels demain."],
+  });
+  expect(habit.questions.map((q) => q.field)).toEqual(["load", "exercise"]);
 });
 
 it("propose avec le matériel disponible, une charge nulle dans le schéma et une explication générée", async () => {
@@ -988,10 +1034,7 @@ it("en mode « Proposer », ouvre le pourcentage aux seuls exercices couverts po
         blocks: [
           {
             name: "Principal",
-            content: [
-              node("exercise_1", "Base.", { load: percent }),
-              node("exercise_2", "Tirage.", { load: percent }),
-            ],
+            content: [node("exercise_1", "Base.", { load: percent }), node("exercise_2", "Tirage.", { load: percent })],
           },
         ],
       },

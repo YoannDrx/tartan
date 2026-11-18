@@ -340,7 +340,8 @@ function habitualIssues(text: string) {
   for (const clause of plain(text).split(/[.;,:\n]+/)) {
     if (!HABIT.test(clause) || /\d/.test(clause)) continue;
     if (REST_TERM.test(clause)) issues.add("rest");
-    if (LOAD_TERM.test(clause)) issues.add("load");
+    // « Les squats habituels » : la charge (et le volume) d'habitude, que rien ne permet de connaître.
+    if (LOAD_TERM.test(clause) || !REST_TERM.test(clause)) issues.add("load");
   }
   return issues;
 }
@@ -761,4 +762,67 @@ export function plannerDistinctQuestions<T extends { field: string; question: st
     if (kept.length === 3) break;
   }
   return kept;
+}
+
+/**
+ * Informations qui manquent quoi que réponde le modèle : une habitude sans séance connue (charge ou
+ * récupération), un nombre suivi d'un mouvement sans unité (« vingt de gainage »). Une question du modèle sur
+ * un autre point ne les fait pas disparaître.
+ */
+export function plannerRequiredFields(
+  context: Pick<PlannerGuardContext, "instructions" | "exercises" | "history">,
+): ("load" | "rest" | "unit")[] {
+  if (context.instructions.length !== 1) return [];
+  const text = context.instructions.map(plannerCoachText).join("\n");
+  const fields = new Set<"load" | "rest" | "unit">(context.history ? [] : habitualIssues(text));
+  const vocabulary = new Set(context.exercises.flatMap((e) => namesOf(e).flatMap(wordsOf)));
+  for (const mention of numberMentions(text)) {
+    const next = /^\s*d(?:e|u|es)?\s+([a-z]+)/.exec(mention.after)?.[1];
+    if (next && next !== "chaque" && vocabulary.has(normalizeExerciseMention(next))) fields.add("unit");
+  }
+  return [...fields];
+}
+
+/**
+ * Une pause demandée après une série unique, au premier niveau d'un bloc, devient une récupération explicite à
+ * cette place : à l'exécution, une pause après la dernière série n'existe pas. Rien d'autre ne bouge.
+ */
+export function plannerExplicitSingleSetRest(value: PlannerRichInterpretation): PlannerRichInterpretation {
+  return {
+    ...value,
+    sessions: value.sessions.map((session) => ({
+      ...session,
+      blocks: session.blocks.map((block) => {
+        if (block.items.some((item) => !item.ref)) return block;
+        const nodes = block.sequence ?? block.items.map((item) => ({ kind: "exercise" as const, itemRef: item.ref! }));
+        // Au premier niveau seulement : dans un circuit, la pause entre gestes relève du modèle et reste signalée.
+        const top = new Set(nodes.flatMap((node) => (node.kind === "exercise" ? [node.itemRef] : [])));
+        const single = block.items.filter(
+          (item) =>
+            top.has(item.ref!) && (item.prescription.sets ?? 1) === 1 && (item.prescription.restS ?? 0) > 0,
+        );
+        if (!single.length) return block;
+        const pauses = new Map(single.map((item) => [item.ref!, item.prescription.restS!]));
+        const sequence = nodes.flatMap((node) =>
+          node.kind === "exercise" && pauses.has(node.itemRef)
+            ? [
+                node,
+                {
+                  kind: "recovery" as const,
+                  ref: `${node.itemRef}-pause`.slice(0, 64),
+                  durationS: pauses.get(node.itemRef)!,
+                },
+              ]
+            : [node],
+        );
+        return {
+          ...block,
+          sequence,
+          items: block.items.map((item) =>
+            pauses.has(item.ref!) ? { ...item, prescription: { ...item.prescription, restS: null } } : item,
+          ),
+        };
+      }),
+    })),
+  };
 }

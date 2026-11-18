@@ -37,6 +37,8 @@ import {
   plannerServerEnabled,
   plannerUnknownExerciseTerms,
   plannerExerciseMentions,
+  plannerExplicitSingleSetRest,
+  plannerRequiredFields,
   plannerWarnings,
   unresolvedExerciseAlias,
   validatePlannerInterpretation,
@@ -375,6 +377,20 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
         history: Boolean(context.neighbours?.length),
         known: { tokens: [...previous.tokens, ...neighbourTokens], loads: [...previous.loads, ...neighbourLoads] },
       };
+      // Ce qu'aucune réponse du modèle ne peut deviner : posé en question s'il ne l'a pas fait.
+      const required = propose ? [] : plannerRequiredFields(guardContext);
+      const withRequired = (value: PlannerRichInterpretation): PlannerRichInterpretation => {
+        const missing = required.filter((field) => !value.questions.some((q) => q.field === field));
+        return missing.length
+          ? {
+              ...value,
+              questions: plannerDistinctQuestions([
+                ...missing.map((field) => guardQuestion(field, context.period)),
+                ...value.questions,
+              ]),
+            }
+          : value;
+      };
       const warningContext = { ...context, known: previous, history: Boolean(context.neighbours?.length) };
 
       const call = async (correction?: string): Promise<unknown> => {
@@ -489,9 +505,10 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
           };
         }
         value = plannerDropEmptyPercentages(value);
+        if (!propose) value = plannerExplicitSingleSetRest(value);
         value = { ...value, questions: plannerDistinctQuestions(value.questions) };
         if (value.status === "clarification" && value.questions.length && !value.sessions.length)
-          return withoutDateConfirmation(value, context);
+          return withRequired(withoutDateConfirmation(value, context));
         // Une proposition sans séance ni question n'est pas une panne : le coach reçoit une question, pas une erreur.
         if (value.status === "proposal" && !value.sessions.length && !value.questions.length)
           return clarification([
@@ -550,7 +567,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
         // Défauts bloquants : une correction, puis une question. Jamais une séance douteuse.
         const blocking = propose
           ? plannerProposalIssues(value, { brief: context.brief, percentTokens })
-          : plannerGuardIssues(value, guardContext);
+          : [...new Set([...plannerGuardIssues(value, guardContext), ...required.filter((field) => field === "unit")])];
         if (blocking.length) {
           const reason = blocking.includes("missing_date")
             ? CORRECTIONS.missing_date
