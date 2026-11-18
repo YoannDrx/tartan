@@ -96,7 +96,9 @@ jobs:
     needs: changes
     if: always() && github.event_name != 'schedule' && (needs.changes.result == 'skipped' || needs.changes.outputs.mobile == 'true')
     runs-on: macos-15
-    timeout-minutes: 90
+    # Compilation (environ 18 min), parcours (environ 55 min), rejeux et suppression de compte : 90 minutes ne
+    # suffisaient plus (PR 166, job annulé à 92 minutes, toutes étapes vertes).
+    timeout-minutes: 120
     env:
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
