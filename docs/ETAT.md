@@ -1,6 +1,6 @@
 # État du projet
 
-Mis à jour le 17 novembre 2026. Toute PR qui change un état met ce fichier à jour.
+Mis à jour le 18 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
@@ -12,6 +12,50 @@ Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p
 **Plan en cours, depuis le 16 novembre.** Le web d'abord, à 100 %, puis iOS et Android, selon le brief [plans/audit-et-refonte.md](plans/audit-et-refonte.md).
 - **Audit fait le 17 novembre** : 81 écrans balayés à trois largeurs sur données remplies, parcours rejoués, volume et performance mesurés. Sept défauts bloquent la vente, dix-sept gênent ([constats](plans/audit-et-refonte.md#8-constats-de-laudit-17-novembre-2026)).
 - **Ordre des lots**, fixé par l'audit ([section 8.9](plans/audit-et-refonte.md#89-lots-dans-lordre-retenu)) : lot 0 (CI web seule), réglages en rubriques, glisser-déposer du planning, mot de passe, vidéo en plein écran, photo de profil et avatars, listes et fiches d'exercices, onboarding, planificateur, logo, gestes, corrections, recette web, parité mobile et bêtas.
+
+## Avancement du plan d'audit et de refonte (au 18 novembre 2026)
+
+Le plan a été mené par deux modèles de Claude, l'un après l'autre : **Claude Fable 5.2** du 17 novembre à la matinée du 18, jusqu'à la limite d'usage de ce modèle, puis **Claude Opus 5.5** à partir de la matinée du 18. La colonne « Mené par » dit qui a écrit le code ou la documentation du lot, et qui l'a fusionné quand ce n'est pas le même.
+
+Niveaux : **codé**, **testé** automatiquement, **éprouvé** en production ou sur appareil réel. « En production » veut dire fusionné et servi par `app.tartan.coach`, pas joué par une vraie personne.
+
+### Lots livrés
+
+| Lot | PR | Niveau | Mené par |
+| --- | --- | --- | --- |
+| Audit complet (81 écrans, parcours, volume, performance) et ordre des lots | 157 | En production (documentation) | Fable |
+| Lot 0 : Maestro seulement pour ce que l'app native embarque, textes propres au web (`@tartan/i18n/web`), port des parcours réglable, lien d'action du journal local | 158 | En production ; vérifié sur GitHub (une PR web saute Maestro) | Fable |
+| Mesure du planificateur : jetons comptés, résumé par passage ; mesure de départ en appels réels (66, 61, 68 sur 80) | 160 | En production | Fable |
+| A. Réglages en rubriques (constats B7, G16) | 161 | En production, testé ; pas joué avec un compte connecté | Fable |
+| B. Glisser-déposer du planning (brief 4.2, constat G7) | 162 | En production, testé ; toucher sur téléphone réel non éprouvé | Fable |
+| D. Vidéo en plein écran, raccourcis, tracés au clavier (brief 4.4) | 163 | En production, testé ; Safari iOS et Android réels non éprouvés | Codé par Fable ; fusionné par Opus |
+| Logo « le T des couloirs » (brief 4.6), direction A choisie par le fondateur | 159 | En production pour le web ; les icônes natives arriveront avec le prochain binaire ; Maestro iOS a échoué deux fois sur des parcours différents avant de passer, attribué au simulateur | Codé par Fable ; Maestro diagnostiqué et fusionné par Opus |
+
+### En cours
+
+| Lot | Où | Niveau | Mené par |
+| --- | --- | --- | --- |
+| C. Connexion par mot de passe (brief 4.1, constats B2, G1, G12) | PR 164 | Codé, testé (2 075 tests web, 8 parcours qui suivent les vrais e-mails) ; passe après le logo | Codé par Fable ; documenté, ouvert en PR et alerte GitGuardian traitée par Opus |
+| Gestes : moteur v2, relèvement des 173 gestes (156 respectent toutes les contraintes, 17 à reprendre), lecteurs web et mobile avec bascule Profil et Face, atelier en deux vues | Branche `feat/gestes`, pas encore poussée | Codé, testé (1 301 tests du paquet, parcours des guides) ; prototype validé par le fondateur le 17 novembre ; aucun geste regardé en mouvement | Fable |
+| Gestes : écriture à la main de l'haltérophilie restante et de la musculation de base | Agent en cours | Commencé par Fable (interrompu par la limite d'usage), repris par Opus | Opus |
+| E. Photo de profil recadrée et avatars (groupe et animaux libres) | Agent en cours | Non livré | Opus |
+| F. Listes et favoris d'exercices, fiche concise, bibliothèque et sélecteur allégés (brief 4.3, constats G3, G11) | Agent en cours | Non livré | Opus |
+
+### Restant à faire
+
+- **G. Onboarding complet** du coach et de l'athlète (constats B1, B3, G15), puis l'espace de démonstration.
+- **H. Planificateur IA** : erreurs lisibles, sortie alignée sur le constructeur (séries détaillées, remplacement en autonomie), contexte du mode « Proposer », réponse diffusée en direct et écran en deux temps (constat B4). Seule la mesure de départ est faite.
+- **Gestes** : écrire à la main 60 à 70 gestes (haltérophilie et musculation en cours, pliométrie, les 17 dessinés de face à l'origine), un générateur de foulée pour la course, la nouvelle morphologie dans le film, le jeu et les e-mails, la vidéo de catalogue par fiche, puis le retrait de l'ancien moteur.
+- **K. Corrections de l'audit** : débordement de `/suivi` à 390 px (B6) et balayage de la CI sur données remplies, filtres de `/videos` (G2), grands groupes (G4), service worker (G5), sélecteur d'espace (G6), cibles tactiles (G8), `/analyse` (G9), message de publication (G10), états vides (G13), finitions et textes gelés.
+- **Production** : la vider après sauvegarde, sauf le compte administrateur, avant les essais réels avec les deux adresses du fondateur. Pas commencé : la suppression propre d'un compte passe par la console d'administration, qui exige la passkey du fondateur.
+- **L. Recette web** sur les 14 parcours de la section 8.7 du brief, Preview remise à niveau.
+- **Parité mobile** en quatre PR, puis les bêtas iOS et Android.
+
+### Points ouverts relevés en route
+
+- Maestro iOS échoue par moments sur des parcours qui changent d'un passage à l'autre ; cause non établie.
+- `video-poc` est lent par moments en développement (réponse reçue jusqu'à 7 s après l'envoi), cause non trouvée ; les deux parcours vidéo tournent séparément en CI.
+- L'installation des navigateurs de la CI se relance jusqu'à trois fois depuis le 18 novembre.
 
 Le plan du 15 novembre s'arrête au lot 4 :
 - les lots 5 (bêta iOS) et 7 (bêta Android) sont préparés côté textes et reprendront après la web app ;
@@ -39,7 +83,7 @@ Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur
 
 | Élément | État au 17 novembre |
 | --- | --- |
-| Production | `app.tartan.coach` et `tartan.coach` servent `75d2b34` (PR 158), santé 200. Recette réelle le 15 novembre : circuit publié et rendu, vidéo envoyée et annotée, planificateur réel. Inscriptions et classement du jeu fermés |
+| Production | `app.tartan.coach` et `tartan.coach` servent `a90ab4f` (PR 159), santé 200. Recette réelle le 15 novembre : circuit publié et rendu, vidéo envoyée et annotée, planificateur réel. Inscriptions et classement du jeu fermés |
 | Preview | `preview.tartan.coach`, branche Git `preview` gardée, en retard de plus de cent commits sur `main` : à remettre à niveau avant la recette. Base `preview` reconstruite le 14 novembre avec la seule graine de démonstration (4 comptes fictifs), sans donnée de production |
 | Neon | Offre Launch, restauration 7 jours, branche `production` protégée, calcul 0,25–2 CU ; branche `preview` 0,25–1 CU. Aucune branche de recette |
 | GitHub | Dépôt public, `LICENSE` propriétaire. Analyse des secrets, protection à l'envoi et Dependabot actifs. `main` exige des branches à jour, plus `quality` et `mobile-gate`. `mobile-gate` attend Maestro iOS et Android quand change ce que l'app native embarque (`apps/mobile`, ses paquets, le fichier de verrouillage), soit environ une heure par mise à jour ; une PR purement web le saute, textes de `packages/i18n/src/web/` compris (un test vérifie que le filtre suit les dépendances du mobile). Branches fusionnées supprimées le 16 novembre, `preview` gardée |
