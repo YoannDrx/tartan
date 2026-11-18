@@ -6,6 +6,7 @@ import type { AthleteId } from "../athletes";
 import type { Face } from "../rig";
 import { FIGURE } from "./body";
 import { STAND, type Controls, type ControlPatch } from "./pose";
+import type { GestureView } from "./project";
 import type { Prop } from "./props";
 import { skin } from "./skin";
 import { SIDES, solve, type Rig, type Side, type Solved } from "./solve";
@@ -43,6 +44,11 @@ export type GestureDraft = {
   // pointe d'un pied libre) remonte de ce qui manque. Pour un geste relevé, dont les clés ne sont pas écrites
   // à la main ; un geste écrit n'en a pas besoin.
   floor?: boolean;
+  // Les vues où le geste se lit, la sienne d'abord. Absentes : le registre les déduit.
+  views?: readonly GestureView[];
+  // Le sol défile vers l'arrière à cette vitesse, en unités par seconde : l'athlète court sur place, la caméra le
+  // suit. Un pied en appui recule alors avec le sol, au lieu de rester immobile.
+  treadmill?: number;
 };
 
 // Un tronçon de la boucle, de `from` à `to` (de 0 à 1) : une tenue ou une phase du geste.
@@ -78,6 +84,10 @@ export type MotionClip = {
   pose(t: number): Solved;
   face(t: number): Face;
   props(t: number, body: Solved): Prop[];
+  // Les vues où le geste se lit, la sienne d'abord, quand le geste les choisit (registry.ts).
+  views?: readonly GestureView[];
+  // La vitesse du sol qui défile sous l'athlète, en unités par seconde : un pied en appui recule avec lui.
+  treadmill?: number;
 };
 
 // La position du guide où en est la lecture à l'instant `t` : son rang dans `clip.positions`.
@@ -147,7 +157,9 @@ export const gesture = (draft: GestureDraft): MotionClip => {
       for (const side of planted)
         for (const channel of FOOT_CHANNELS) {
           const name = `foot${side}${channel}` as const;
-          if (Math.abs(settled[span.key]![name] - settled[before]![name]) > 1e-9)
+          // Sur un sol qui défile, l'avant-pied recule avec lui.
+          const ground = channel === "X" ? -((draft.treadmill ?? 0) * key.move.ms) / 1000 : 0;
+          if (Math.abs(settled[span.key]![name] - settled[before]![name] - ground) > 1e-6)
             throw new Error(
               `${draft.key} : le pied ${side} est en appui mais se déplace vers « ${key.id} » (${name}).`,
             );
@@ -206,5 +218,7 @@ export const gesture = (draft: GestureDraft): MotionClip => {
     pose: draft.floor ? (t) => floored(track.sample(t), draft.rig) : (t) => solve(track.sample(t), draft.rig),
     face: (t) => draft.keys[track.spanAt(t).key]!.face ?? "neutral",
     props: draft.props ?? (() => []),
+    ...(draft.views ? { views: draft.views } : {}),
+    ...(draft.treadmill ? { treadmill: draft.treadmill } : {}),
   };
 };

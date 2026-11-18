@@ -97,14 +97,13 @@ test("catalogue : recherche, guide figé et consultation de la séance attribué
   await page.keyboard.press("Space");
   await expect(frieze.locator("svg[data-view='side']")).toHaveCount(4);
   await page.screenshot({ path: `/tmp/tartan-guide-library-frise-profil.png`, fullPage: true });
-  // Un geste à reprendre garde l'ancien moteur : une seule vue, pas de sélecteur.
+  // Le good morning, longtemps à reprendre, est réécrit sur le nouveau moteur : il a lui aussi ses deux vues.
   await page.goto("/exercices", { waitUntil: "networkidle" });
   await page.getByRole("button", { name: m.exerciseGuide.families.strength, exact: true }).click();
   await page.getByLabel(m.exercises.search, { exact: true }).fill("Good morning");
   await page.getByRole("link", { name: /^Good morning Musculation/ }).click();
   await expect(sheet.getByRole("list", { name: motion.positions }).getByRole("img")).toHaveCount(4);
-  await expect(sheet.locator("svg[data-view]")).toHaveCount(0);
-  await expect(sheet.getByRole("group", { name: motion.view })).toHaveCount(0);
+  await expect(sheet.getByRole("group", { name: motion.view })).toBeVisible();
   const link = await groupLink(page);
   const athlete = await joinAsAthlete(browser, link, "GuideAthlete");
   try {

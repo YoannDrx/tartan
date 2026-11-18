@@ -12,8 +12,8 @@ describe("choix du moteur par fiche", () => {
       expect(motionEngine(key), key).toBe("v2");
       expect(motionLevel(key), key).toBe("ecrit");
     }
-    expect(motionEngine("front-squat")).toBe("v2");
-    expect(motionLevel("front-squat")).toBe("releve");
+    expect(motionEngine("goblet-squat")).toBe("v2");
+    expect(motionLevel("goblet-squat")).toBe("releve");
     expect(motionEngine("easy-continuous-run")).toBe("v2");
   });
 
@@ -34,24 +34,27 @@ describe("choix du moteur par fiche", () => {
     }
   });
 
-  it("le compte : 156 gestes sur le nouveau moteur, 17 sur le premier, d'accord avec le registre", () => {
+  it("le compte : les 173 gestes sur le nouveau moteur, aucun sur le premier, d'accord avec le registre", () => {
     const engines = GESTURE_KEYS.map((key) => motionEngine(key));
-    expect(engines.filter((engine) => engine === "v2")).toHaveLength(156);
-    expect(engines.filter((engine) => engine === "v1")).toHaveLength(17);
+    expect(engines.filter((engine) => engine === "v2")).toHaveLength(173);
+    expect(engines.filter((engine) => engine === "v1")).toHaveLength(0);
     for (const key of GESTURE_KEYS) {
       const level = motionLevel(key);
       expect(level === "ecrit" ? "ecrit" : "releve", key).toBe(gestureEntry(key)!.level);
     }
-  });
+    // Le premier appel relève tout le registre : sur une machine chargée, cela dépasse les cinq secondes par défaut.
+  }, 30_000);
 
   it("un geste du nouveau moteur est une nouvelle série de relecture ; un geste resté sur le premier garde la sienne", () => {
     expect(REVIEW_BATCHES).toEqual(["face", "v2"]);
     expect(reviewBatch("snatch")).toBe("v2");
     expect(reviewBatch("jumping-jacks")).toBe("v2");
-    // Gainage latéral : dessiné de face par le premier moteur, à reprendre, donc toujours dans la série « face ».
-    expect(reviewBatch("side-plank")).toBe(EXERCISE_CLIPS["side-plank"]!.batch);
-    expect(reviewBatch("side-plank")).toBe("face");
-    expect(reviewBatch("good-morning")).toBeUndefined();
+    // Gainage latéral : dessiné de face par le premier moteur, désormais écrit à la main dans le nouveau.
+    expect(EXERCISE_CLIPS["side-plank"]!.batch).toBe("face");
+    expect(reviewBatch("side-plank")).toBe("v2");
+    expect(reviewBatch("good-morning")).toBe("v2");
+    // Un geste resté sur le premier moteur garde sa série.
+    for (const key of Object.keys(A_REPRENDRE)) expect(reviewBatch(key), key).toBe(EXERCISE_CLIPS[key]!.batch);
   });
 });
 

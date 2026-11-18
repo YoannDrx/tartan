@@ -5,30 +5,35 @@
 // explosive, passage sous la barre jusqu'au point haut de la barre, réception, redressement (Harbili et
 // Alptekin, 2014 ; Gourgoulis et al., 2000). La barre recule vers l'athlète en première tirée, repart un peu
 // vers l'avant, puis revient à la réception : une courbe en S, de faible amplitude (Everett, 2014).
-import { gesture } from "../gesture";
+// Les positions et les enchaînements sont exportés : les variantes de l'arraché (en puissance, en suspension,
+// tirage, soulevé de terre, équilibre) les reprennent (variants.ts, pulls.ts, overhead.ts).
+import { gesture, type KeyDraft } from "../gesture";
 import { elbows, heels, STAND, stance, type ControlPatch } from "../pose";
 import { barAtArmsLength, type Rig } from "../solve";
 
 // Prise large : debout, bras tendus, la barre arrive au pli de l'aine.
-const GRIP = 102;
-const RIG: Rig = { bar: { grip: GRIP, hold: "hands" } };
+export const SNATCH_GRIP = 102;
+export const SNATCH_RIG: Rig = { bar: { grip: SNATCH_GRIP, hold: "hands" } };
 
 // Les pieds du tirage, sous les hanches ; ceux de la réception, plus écartés et plus ouverts.
-const pulling = stance(24, 15, 13);
-const receiving = stance(46, 27, 12.3);
-const between = stance(36, 21, 12.7);
+export const pulling = stance(24, 15, 13);
+export const receiving = stance(46, 27, 12.3);
+export const between = stance(36, 21, 12.7);
 
 // Coudes tournés vers l'extérieur, au-dessus de la barre.
-const base: ControlPatch = { ...pulling, ...elbows(-0.3, 0.2, 1), armsLong: 1 };
+export const snatchBase: ControlPatch = { ...pulling, ...elbows(-0.3, 0.2, 1), armsLong: 1 };
 
 // Bras tendus au-dessus de la tête : les coudes verrouillés vers l'arrière, les poignets cassés, les épaules actives.
-const locked: ControlPatch = { ...receiving, ...elbows(-0.6, -0.3, 1), wrist: 40, shrug: 0.6 };
+export const locked: ControlPatch = { ...receiving, ...elbows(-0.6, -0.3, 1), wrist: 40, shrug: 0.6 };
 
-// La hauteur de la barre tenue bras tendus, jambes tendues : là où ce sont les jambes qui fixent la hauteur du corps.
+// La hauteur de la barre tenue bras tendus. `pelvisY` absent : jambes tendues, ce sont elles qui fixent la hauteur
+// du corps ; donné, le bassin est à cette hauteur (une réception en flexion partielle).
+export const snatchArmsLength = (patch: ControlPatch, above: boolean) =>
+  barAtArmsLength({ ...STAND, ...snatchBase, pelvisY: 999, ...patch }, SNATCH_GRIP, above);
 const armsLength = (patch: ControlPatch, above: boolean) =>
-  barAtArmsLength({ ...STAND, ...base, ...patch, pelvisY: 999 }, GRIP, above);
+  barAtArmsLength({ ...STAND, ...snatchBase, ...patch, pelvisY: 999 }, SNATCH_GRIP, above);
 
-const start: ControlPatch = {
+export const snatchStart: ControlPatch = {
   barX: 13,
   barY: 41,
   pelvisX: -46,
@@ -38,7 +43,7 @@ const start: ControlPatch = {
   neck: -32,
   head: -6,
 };
-const knees: ControlPatch = {
+export const snatchKnees: ControlPatch = {
   barX: 5,
   barY: 90,
   pelvisX: -68,
@@ -49,7 +54,15 @@ const knees: ControlPatch = {
   head: -6,
 };
 // Les genoux reviennent sous la barre, le buste se redresse : la barre arrive en haut des cuisses.
-const power: ControlPatch = { barX: 9, barY: 140, pelvisX: -16, pelvisPitch: 14, lumbar: -2, thoracic: -2, neck: -8 };
+export const snatchPower: ControlPatch = {
+  barX: 9,
+  barY: 140,
+  pelvisX: -16,
+  pelvisPitch: 14,
+  lumbar: -2,
+  thoracic: -2,
+  neck: -8,
+};
 
 // Chevilles, genoux et hanches tendus, épaules haussées, bras encore longs.
 const extended: ControlPatch = {
@@ -64,11 +77,12 @@ const extended: ControlPatch = {
 };
 // La barre monte encore après l'extension, puis redescend un peu jusqu'à la réception : ces hauteurs se comptent
 // depuis celle de l'extension.
-const TOP = armsLength(extended, false);
-const extension: ControlPatch = { ...extended, barY: TOP };
+export const SNATCH_TOP = armsLength(extended, false);
+export const snatchExtension: ControlPatch = { ...extended, barY: SNATCH_TOP };
+const TOP = SNATCH_TOP;
 
 // Le corps commence à descendre : les coudes montent, hauts et vers l'extérieur, la barre reste contre le buste.
-const highPull: ControlPatch = {
+export const snatchHighPull: ControlPatch = {
   barX: 10,
   barY: TOP + 36,
   pelvisX: -12,
@@ -112,7 +126,8 @@ const lockout: ControlPatch = {
   thoracic: -3,
   neck: -10,
 };
-const catching: ControlPatch = {
+// La réception en flexion complète, bras verrouillés : la position basse du squat bras tendus.
+export const snatchReceive: ControlPatch = {
   ...locked,
   barX: -5,
   barY: TOP + 49,
@@ -124,7 +139,7 @@ const catching: ControlPatch = {
   neck: -8,
 };
 // À mi-hauteur, les hanches sont encore en arrière : les genoux ne partent pas vers l'avant.
-const rising: ControlPatch = {
+export const snatchRising: ControlPatch = {
   ...locked,
   barX: -5,
   barY: TOP + 49 + 66,
@@ -135,7 +150,7 @@ const rising: ControlPatch = {
   neck: -8,
 };
 const upright: ControlPatch = { ...locked, barX: -4, pelvisX: -9, pelvisPitch: 2, lumbar: -1, thoracic: -1 };
-const standing: ControlPatch = { ...upright, barY: armsLength(upright, true) };
+export const snatchOverhead: ControlPatch = { ...upright, barY: armsLength(upright, true) };
 const lowering: ControlPatch = {
   ...between,
   barX: 32,
@@ -151,102 +166,114 @@ const lowering: ControlPatch = {
 };
 // En redescendant, les coudes passent au-dessus de la barre, comme à la montée.
 const hanging: ControlPatch = { barX: 13, pelvisX: -10, pelvisPitch: 2, ...elbows(0, 0.8, 1) };
-const hips: ControlPatch = { ...hanging, barY: armsLength(hanging, false) };
+// Debout, la barre tenue bras tendus contre le haut des cuisses.
+export const snatchHips: ControlPatch = { ...hanging, barY: armsLength(hanging, false) };
+
+// Une ligne du guide, si la variante en donne une à cette position.
+export const line = (guide: number | undefined) => (guide !== undefined ? { guide } : {});
+
+// Le départ au sol.
+export const snatchStartKey = (guide: number | undefined, ms: number): KeyDraft => ({
+  id: "start",
+  ...line(guide),
+  set: snatchStart,
+  hold: 800,
+  move: { ms, curve: "reception", phase: "return" },
+});
+
+// La première tirée et la transition : du sol au haut des cuisses.
+export const snatchFirstPull = (lines: { knees?: number; power?: number } = {}): KeyDraft[] => [
+  {
+    id: "knees",
+    ...line(lines.knees),
+    set: snatchKnees,
+    face: "effort",
+    still: true,
+    move: { ms: 700, curve: "elan", phase: "first-pull" },
+  },
+  {
+    id: "power",
+    ...line(lines.power),
+    set: snatchPower,
+    face: "effort",
+    still: true,
+    move: { ms: 240, curve: "linear", phase: "transition" },
+  },
+];
+
+// La seconde tirée : jusqu'à l'extension, sur l'avant-pied.
+export const snatchSecondPull = (guide?: number): KeyDraft => ({
+  id: "extension",
+  ...line(guide),
+  set: snatchExtension,
+  face: "effort",
+  still: true,
+  move: { ms: 160, curve: "elan", phase: "second-pull" },
+});
+
+// Le passage sous la barre et la réception en flexion complète, puis le redressement.
+export const snatchSquatCatch = (lines: { receive?: number; overhead?: number } = {}): KeyDraft[] => [
+  {
+    id: "high-pull",
+    set: snatchHighPull,
+    face: "effort",
+    still: true,
+    move: { ms: 120, curve: "linear", phase: "turnover" },
+  },
+  {
+    id: "top",
+    set: under,
+    face: "effort",
+    air: ["R", "L"],
+    still: true,
+    move: { ms: 160, curve: "linear", phase: "turnover" },
+  },
+  { id: "lockout", set: lockout, face: "effort", move: { ms: 160, curve: "linear", phase: "catch" } },
+  {
+    id: "receive",
+    ...line(lines.receive),
+    set: snatchReceive,
+    hold: 400,
+    face: "effort",
+    move: { ms: 320, curve: "reception", phase: "catch" },
+  },
+  { id: "rising", set: snatchRising, face: "effort", move: { ms: 560, curve: "elan", phase: "recovery" } },
+  {
+    id: "overhead",
+    ...line(lines.overhead),
+    set: snatchOverhead,
+    hold: 800,
+    face: "joy",
+    move: { ms: 620, curve: "reception", phase: "recovery" },
+  },
+];
+
+// La barre redescend de bras tendus au-dessus de la tête jusqu'aux hanches : hors technique.
+export const snatchLowerToHips = (): KeyDraft[] => [
+  { id: "lowering", set: lowering, air: ["R", "L"], move: { ms: 450, curve: "elan", phase: "return" } },
+  { id: "hang", set: snatchHips, move: { ms: 350, curve: "linear", phase: "return" } },
+];
+// Puis des hanches au sol, par les genoux.
+export const snatchKneesReturn = (): KeyDraft => ({
+  id: "knees-return",
+  set: snatchKnees,
+  move: { ms: 480, curve: "linear", phase: "return" },
+});
+
+export { lockout as snatchLockout, lowering as snatchLowering, under as snatchUnder };
 
 export const snatch = gesture({
   key: "snatch",
   athlete: "poleVault",
-  rig: RIG,
-  base,
+  rig: SNATCH_RIG,
+  base: snatchBase,
   keys: [
-    {
-      id: "start",
-      guide: 0,
-      set: start,
-      hold: 800,
-      move: { ms: 520, curve: "reception", phase: "return" },
-    },
-    {
-      id: "knees",
-      set: knees,
-      face: "effort",
-      still: true,
-      move: { ms: 700, curve: "elan", phase: "first-pull" },
-    },
-    {
-      id: "power",
-      set: power,
-      face: "effort",
-      still: true,
-      move: { ms: 240, curve: "linear", phase: "transition" },
-    },
-    {
-      id: "extension",
-      guide: 1,
-      set: extension,
-      face: "effort",
-      still: true,
-      move: { ms: 160, curve: "elan", phase: "second-pull" },
-    },
-    {
-      id: "high-pull",
-      set: highPull,
-      face: "effort",
-      still: true,
-      move: { ms: 120, curve: "linear", phase: "turnover" },
-    },
-    {
-      id: "top",
-      set: under,
-      face: "effort",
-      air: ["R", "L"],
-      still: true,
-      move: { ms: 160, curve: "linear", phase: "turnover" },
-    },
-    {
-      id: "lockout",
-      set: lockout,
-      face: "effort",
-      move: { ms: 160, curve: "linear", phase: "catch" },
-    },
-    {
-      id: "receive",
-      guide: 2,
-      set: catching,
-      hold: 400,
-      face: "effort",
-      move: { ms: 320, curve: "reception", phase: "catch" },
-    },
-    {
-      id: "rising",
-      set: rising,
-      face: "effort",
-      move: { ms: 560, curve: "elan", phase: "recovery" },
-    },
-    {
-      id: "overhead",
-      guide: 3,
-      set: standing,
-      hold: 800,
-      face: "joy",
-      move: { ms: 620, curve: "reception", phase: "recovery" },
-    },
+    snatchStartKey(0, 520),
+    ...snatchFirstPull(),
+    snatchSecondPull(1),
+    ...snatchSquatCatch({ receive: 2, overhead: 3 }),
     // La barre redescend pour que la boucle reparte : ce retour ne fait pas partie de la technique.
-    {
-      id: "lowering",
-      set: lowering,
-      air: ["R", "L"],
-      move: { ms: 450, curve: "elan", phase: "return" },
-    },
-    {
-      id: "hang",
-      set: hips,
-      move: { ms: 350, curve: "linear", phase: "return" },
-    },
-    {
-      id: "knees-return",
-      set: knees,
-      move: { ms: 480, curve: "linear", phase: "return" },
-    },
+    ...snatchLowerToHips(),
+    snatchKneesReturn(),
   ],
 });

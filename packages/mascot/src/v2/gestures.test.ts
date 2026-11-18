@@ -4,7 +4,19 @@ import { BARBELL } from "./body";
 import { barAt, barPath, inspect, measure, phaseAt } from "./constraints";
 import { drawClip, framing } from "./draw-svg";
 import type { MotionClip } from "./gesture";
-import { backSquat, clean, cleanAndJerk, GESTURES, lateralLunge, snatch } from "./gestures";
+import {
+  backSquat,
+  clean,
+  cleanAndJerk,
+  GESTURES,
+  lateralLunge,
+  OTHER_GESTURES,
+  PLYOMETRIC_GESTURES,
+  STRIDE_GESTURES,
+  snatch,
+  STRENGTH_GESTURES,
+  WEIGHTLIFTING_GESTURES,
+} from "./gestures";
 import { rackPoint } from "./gestures/clean";
 import { GESTURE_VIEWS, project } from "./project";
 import { volumes } from "./skin";
@@ -12,6 +24,10 @@ import { SIDES } from "./solve";
 import { distance } from "./vec";
 
 const clips = Object.values(GESTURES).map((clip) => [clip.key, clip] as const);
+// Les gestes d'haltérophilie et de musculation se tiennent sur leurs deux pieds à chaque tenue.
+const TWO_FEET = new Set([...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES].map((clip) => clip.key));
+const JUMPS = new Set([...PLYOMETRIC_GESTURES, ...STRIDE_GESTURES].map((clip) => clip.key));
+const STRIDES = new Set(STRIDE_GESTURES.map((clip) => clip.key));
 // Au moins 120 images par boucle ; 240 pour ne pas manquer une phase de moins de 150 ms.
 const SAMPLES = 240;
 const reports = new Map(clips.map(([key, clip]) => [key, inspect(clip, SAMPLES)]));
@@ -35,14 +51,22 @@ const length = (clip: MotionClip, id: string) => {
 };
 
 describe("gestes écrits à la main", () => {
-  it("couvre l'arraché, l'épaulé, l'épaulé-jeté, le squat arrière et la fente latérale, sous les clés du catalogue", () => {
-    expect(Object.keys(GESTURES).sort()).toEqual(["back-squat", "clean", "clean-and-jerk", "lateral-lunge", "snatch"]);
+  it("couvre l'haltérophilie et la musculation, sous les clés du catalogue", () => {
+    expect(Object.keys(GESTURES)).toHaveLength(
+      WEIGHTLIFTING_GESTURES.length +
+        STRENGTH_GESTURES.length +
+        OTHER_GESTURES.length +
+        PLYOMETRIC_GESTURES.length +
+        STRIDE_GESTURES.length,
+    );
+    for (const key of ["snatch", "clean", "clean-and-jerk", "back-squat", "lateral-lunge"])
+      expect(GESTURES[key], key).toBeDefined();
     for (const key of Object.keys(GESTURES)) expect(EXERCISE_CLIPS[key], key).toBeDefined();
   });
 
   it("garde les athlètes de chaque famille : Malo en haltérophilie, Mehdi en musculation", () => {
-    for (const clip of [snatch, clean, cleanAndJerk]) expect(clip.athlete).toBe("poleVault");
-    for (const clip of [backSquat, lateralLunge]) expect(clip.athlete).toBe("discus");
+    for (const clip of [snatch, clean, cleanAndJerk, ...WEIGHTLIFTING_GESTURES]) expect(clip.athlete).toBe("poleVault");
+    for (const clip of [backSquat, lateralLunge, ...STRENGTH_GESTURES]) expect(clip.athlete).toBe("discus");
   });
 
   it("ne porte aucun texte : des identifiants pour les positions et les phases, les lignes du guide par leur rang", () => {
@@ -71,10 +95,21 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
 
   it("un pied d'appui ne glisse pas", () => {
     expect(report.feet).toEqual([]);
-    // Le contrôle porte bien sur des appuis : les deux pieds pendant une tenue, au moins un sur la plupart des transitions.
-    for (const phase of clip.phases.filter((candidate) => candidate.hold)) expect(phase.planted).toEqual(["R", "L"]);
+    // Suspendu à une barre fixe ou en appui sur des barres parallèles, le corps ne touche pas le sol : ce sont les
+    // mains qui tiennent (bodyweight.test.ts).
+    if (clip.phases.every((phase) => phase.planted.length === 0)) return;
+    // Le contrôle porte bien sur des appuis. Un geste d'haltérophilie ou de musculation se tient sur ses deux pieds à
+    // chaque tenue et garde au moins un appui sur la plupart des transitions ; un saut, une course ou un geste au sol
+    // a au moins une tenue et une transition en appui (ses vols et ses réceptions sur un tapis n'en ont pas).
+    const holds = clip.phases.filter((candidate) => candidate.hold);
     const moves = clip.phases.filter((candidate) => !candidate.hold);
-    expect(moves.filter((phase) => phase.planted.length > 0).length).toBeGreaterThan(moves.length / 2);
+    if (TWO_FEET.has(clip.key)) {
+      for (const phase of holds) expect(phase.planted).toEqual(["R", "L"]);
+      expect(moves.filter((phase) => phase.planted.length > 0).length).toBeGreaterThan(moves.length / 2);
+      return;
+    }
+    if (!clip.treadmill) expect(holds.some((phase) => phase.planted.length > 0)).toBe(true);
+    expect(moves.some((phase) => phase.planted.length > 0)).toBe(true);
   });
 
   it("les deux mains restent sur la barre, à largeur de prise constante, et la barre ne traverse pas la tête", () => {
@@ -83,12 +118,17 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
 
   it("une tenue est immobile", () => {
     expect(report.holds).toEqual([]);
-    expect(clip.phases.filter((phase) => phase.hold).length).toBeGreaterThanOrEqual(2);
+    // Une course sur un sol qui défile ne s'arrête pas : elle n'a pas de tenue.
+    if (!clip.treadmill) expect(clip.phases.filter((phase) => phase.hold).length).toBeGreaterThanOrEqual(2);
   });
 
   it("la boucle se referme", () => {
+    // Un geste qui ne boucle pas (un saut à la barre) repart du début d'un coup, une seule fois, à la fin.
+    if (!clip.loop) {
+      expect(clip.phases.filter((phase) => phase.cut)).toEqual([clip.phases.at(-1)]);
+      return;
+    }
     expect(report.loop).toEqual([]);
-    expect(clip.loop).toBe(true);
     expect(clip.phases[0]!.from).toBe(0);
     expect(clip.phases[clip.phases.length - 1]!.to).toBeCloseTo(1, 9);
   });
@@ -99,9 +139,18 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
     let previous = clip.pose(0);
     for (let i = 1; i <= frames; i += 1) {
       const body = clip.pose(i / frames);
+      // La coupure d'un geste qui ne boucle pas est un saut voulu : la lecture repart du début.
+      if (phaseAt(clip, i / frames).cut || phaseAt(clip, (i - 1) / frames).cut) {
+        previous = body;
+        continue;
+      }
       for (const side of SIDES) {
-        expect(distance(body.arms[side].hand, previous.arms[side].hand)).toBeLessThan(30);
-        expect(distance(body.legs[side].knee, previous.legs[side].knee)).toBeLessThan(36);
+        // Un saut va vite : le lancer des bras approche six mètres par seconde à la main, et le corps entier se
+        // déplace en l'air ; une image y parcourt plus de chemin.
+        expect(distance(body.arms[side].hand, previous.arms[side].hand)).toBeLessThan(JUMPS.has(clip.key) ? 42 : 30);
+        // Le genou libre d'un sprint passe huit mètres par seconde.
+        const knee = STRIDES.has(clip.key) ? 56 : JUMPS.has(clip.key) ? 48 : 36;
+        expect(distance(body.legs[side].knee, previous.legs[side].knee)).toBeLessThan(knee);
       }
       previous = body;
     }
