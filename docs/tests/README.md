@@ -116,6 +116,8 @@ maestro test -e APP_ID=coach.tartan.app.dev -e DISPOSABLE_EMAIL=… -e PASSWORD=
 
 Le script `maestro:test` ne transmet pas ces variables. Les parcours exigent des séances issues de la graine ; l'absence de données ne doit pas les faire passer. Le job iOS exécute les flux de `.maestro/config.yaml`, le job Android ceux de `.maestro/config-android.yaml`, puis la suppression d'un compte jetable, vérifiée en base.
 
+Sur iOS, un flux en échec est rejoué une fois, seul, à la fin du passage : sur le simulateur partagé, un flux différent tombait à chaque passage alors qu'il passait aux autres. Le job ne reste vert que si chaque rejeu passe ; ses rapports sont dans `maestro-retry-<flux>` de l'artefact `maestro`. Un rejeu signalé en avertissement sur plusieurs PR de suite désigne un flux à rendre stable, pas un aléa.
+
 ## Matrice des écrans
 
 `apps/web/e2e/screens.ts` liste chaque page, les rôles qui l'ouvrent et les parcours ou tests qui la prouvent. `tests/screen-matrix.test.ts` échoue pour toute page absente de la liste, ou pour un écran à paramètre sans preuve qui l'ouvre : une nouvelle page s'ajoute à la matrice dans la même PR. `e2e/screen-matrix.spec.ts` visite chaque écran sans paramètre, en visiteur, coach puis athlète, à 390, 768 et 1440 px, en mouvement réduit : aucune erreur, aucun débordement, axe vert. La console d'administration reste prouvée par `admin-console.spec.ts` (passkey requise).
