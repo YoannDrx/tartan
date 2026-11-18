@@ -1,4 +1,5 @@
 import { exerciseClassification } from "./exercise-classification";
+import { exerciseGuideEdit } from "./exercise-guide";
 import { z } from "zod";
 import {
   absenceReason,
@@ -251,6 +252,10 @@ export const exerciseInput = z.object({
   strengthLoadKind: z.enum(["external_total", "added_weight", "assistance", "bodyweight"]).nullable().optional(),
   loadStepKg: z.number().min(0.01).max(100).multipleOf(0.01).optional(),
   media: exerciseMediaInput.nullable().optional(),
+  // Le guide réécrit par le coach, sur sa copie d'une fiche qui en a un.
+  guideEdit: exerciseGuideEdit.optional(),
+  // Création directe dans une liste du coach.
+  listId: uuid.optional(),
 });
 export type ExerciseInput = z.input<typeof exerciseInput>;
 
@@ -421,7 +426,10 @@ export const annotationInput = z
     drawing: videoDrawing.nullable().optional(),
   })
   .refine((input) => input.text.length > 0 || !!input.drawing, { message: "Écris ta remarque", path: ["text"] })
-  .refine((input) => !input.parentId || !input.drawing, { message: "Une réponse ne porte pas de tracé", path: ["drawing"] });
+  .refine((input) => !input.parentId || !input.drawing, {
+    message: "Une réponse ne porte pas de tracé",
+    path: ["drawing"],
+  });
 export type AnnotationInput = z.infer<typeof annotationInput>;
 
 export const shareVideoInput = z.object({
