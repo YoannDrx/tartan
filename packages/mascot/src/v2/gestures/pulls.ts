@@ -1,8 +1,8 @@
 // Les tirages et le soulevé de terre d'haltérophilie : Malo. Le tirage reprend la tirée complète de l'arraché ou
 // de l'épaulé jusqu'à l'extension, épaules haussées, bras longs, sans passer sous la barre ; puis la barre
 // redescend sous contrôle. Le soulevé de terre prise d'arraché garde la même trajectoire, lentement, jusqu'à la
-// station debout : épaules au-dessus de la barre jusqu'aux genoux, barre près des jambes (Everett, « Olympic
-// Weightlifting », 2016 ; Catalyst Athletics, « Snatch Pull », « Snatch Deadlift »).
+// station debout : épaules au-dessus de la barre jusqu'aux genoux, barre près des jambes. Réglé à l'œil d'après
+// les fiches du catalogue et la tirée de l'arraché : aucune source ouverte pour ces trois gestes.
 import { gesture, type KeyDraft } from "../gesture";
 import type { ControlPatch } from "../pose";
 import {

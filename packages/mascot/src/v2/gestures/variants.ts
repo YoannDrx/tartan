@@ -1,15 +1,16 @@
 // Les variantes de l'arraché et de l'épaulé : Malo. Elles reprennent les tirées et les réceptions des gestes
 // complets (snatch.ts, clean.ts) et n'en changent qu'une partie.
 // - En puissance : la barre monte plus haut et l'athlète la reçoit en flexion partielle, cuisses au-dessus de
-//   l'horizontale, pieds à peine plus écartés qu'au tirage (Everett, « Olympic Weightlifting », 2016 ;
-//   USA Weightlifting, « Power Snatch », « Power Clean »).
+//   l'horizontale, pieds à peine plus écartés qu'au tirage (Catalyst Athletics, « Power Snatch »,
+//   « Power Clean »).
 // - En suspension : le départ se fait debout, la barre recule avec les hanches jusqu'au-dessus des genoux, le
-//   buste penché, les épaules un peu en avant de la barre, les tibias à peu près verticaux ; puis la seconde
-//   tirée seule (Everett, « The Hang Snatch », 2009).
+//   buste penché, angle du dos tenu, la barre près des cuisses ; puis la seconde tirée seule (Catalyst Athletics,
+//   « Hang Snatch »).
 // - L'arraché musclé : extension sans repasser en flexion, les coudes montent haut et tournent, la barre passe
-//   devant le visage et finit bras tendus, jambes tendues (Everett, « Muscle Snatch », 2008).
+//   devant le visage et finit bras tendus, jambes tendues (Catalyst Athletics, « Hang Muscle Snatch »).
 // - L'épaulé sans élan : debout, sur les pieds à plat, l'athlète se tire sous la barre sans nouvelle poussée des
-//   jambes, les pieds se replacent, la barre est reçue sur les épaules (Everett, « Tall Clean », 2008).
+//   jambes, les pieds se replacent, la barre est reçue sur les épaules. Réglé à l'œil d'après la fiche du
+//   catalogue : aucune source ouverte pour ce geste.
 import { gesture, type KeyDraft } from "../gesture";
 import { elbows, heels, stance, type ControlPatch } from "../pose";
 import {

@@ -30,6 +30,10 @@ const onTheGround = (clip: MotionClip) =>
     return body.pelvis.y < 105 && body.head.y < 150 && Math.abs(body.frames.thorax.u.y) < 0.5;
   });
 
+// La tête descend près du sol à un moment de la boucle.
+const headNearFloor = (clip: MotionClip) =>
+  Array.from({ length: 24 }, (_, i) => clip.pose(i / 24)).some((body) => body.head.y < 80);
+
 const viewsOf = (old: ExerciseClip, clip: MotionClip): { native: GestureView; views: GestureView[] } => {
   const floor: GestureView[] = onTheGround(clip) ? ["top"] : [];
   // Un corps couché vu de face n'est qu'une tache : il se lit de profil et de dessus.
@@ -49,9 +53,16 @@ export const gestureEntry = (key: string): GestureEntry | null => {
   const old = EXERCISE_CLIPS[key];
   if (!old) return null;
   const written = GESTURES[key];
-  // Un geste écrit se lit de profil ; au sol (des pompes), de dessus plutôt que de face.
+  // Un geste écrit se lit de profil ; au sol (des pompes), de dessus plutôt que de face. Couché sur un banc (un
+  // développé couché, un hip thrust), la tête reste haute : il se lit de face.
   const entry: GestureEntry = written
-    ? { key, level: "ecrit", clip: written, native: "side", views: ["side", onTheGround(written) ? "top" : "front"] }
+    ? {
+        key,
+        level: "ecrit",
+        clip: written,
+        native: "side",
+        views: ["side", onTheGround(written) && headNearFloor(written) ? "top" : "front"],
+      }
     : (() => {
         const clip = liftClip(old);
         return { key, level: "releve" as const, clip, ...viewsOf(old, clip) };

@@ -3,13 +3,13 @@
 // - Tractions : départ suspendu bras allongés, épaules engagées (abaissées) avant de tirer, sans élan des jambes ;
 //   le menton passe au-dessus de la barre ; descente contrôlée jusqu'aux bras allongés. En pronation, prise un peu
 //   plus large que les épaules, coudes vers l'extérieur ; en supination, prise plus serrée, coudes vers l'avant et
-//   le bas (NSCA, « Exercise Technique Manual for Resistance Training », 2016 ; ACE, « Pull-up », « Chin-up »).
+//   le bas.
 // - Dips : appui bras tendus, épaules basses ; descente en fléchissant les coudes, buste un peu penché vers
-//   l'avant, jusqu'à un coude à peu près droit ; remontée bras tendus (ACE, « Dips » ; NSCA, 2016).
+//   l'avant, jusqu'à un coude à peu près droit ; remontée bras tendus.
 // - Pompes : mains un peu plus larges que les épaules, sous elles ; corps gainé en une ligne des chevilles aux
-//   épaules ; les coudes s'écartent d'environ quarante-cinq degrés ; la poitrine descend près du sol
-//   (ACE, « Push-up » ; ACSM, « Resistance Training for Health », 2021).
-// Descentes plus lentes que les montées ; les tenues se marquent en haut et en bas.
+//   épaules ; les coudes s'écartent d'environ quarante-cinq degrés ; la poitrine descend près du sol.
+// Descentes plus lentes que les montées ; les tenues se marquent en haut et en bas. Positions réglées à l'œil
+// d'après les fiches du catalogue : aucune source ouverte pour ces gestes.
 import { FIGURE } from "../body";
 import { gesture } from "../gesture";
 import { span } from "../ik";

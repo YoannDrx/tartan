@@ -6,8 +6,10 @@
 // arrière sur l'avant-pied, talon levé, genou arrière fléchi, hanches sous la barre, la barre un peu en arrière
 // de la tête (Everett, « The Jerk: Part 1 », 2007 ; « Improving Your Footwork in the Split Jerk », 2016). Au jeté
 // poussé, les pieds ne se décalent pas en fente : ils se replacent à peine plus écartés et le corps passe sous la
-// barre en flexion partielle ; au développé avec impulsion, il n'y a pas de seconde flexion, les bras finissent
-// le geste que les jambes ont lancé (USA Weightlifting, « Push Press, Push Jerk, Split Jerk »).
+// barre en demi-squat au-dessus de l'horizontale ; au développé avec impulsion, il n'y a pas de seconde flexion,
+// les bras finissent le geste que les jambes ont lancé. La flexion préparatoire seule : descente verticale vive,
+// arrêt net, remontée sans lancer la barre (Catalyst Athletics, « Split Jerk », « Push Jerk », « Push Press »,
+// « Jerk Dip »).
 import { gesture, type KeyDraft } from "../gesture";
 import { elbows, heels, stance, type ControlPatch } from "../pose";
 import { armsLength, CLEAN_RIG, cleanBase, racked } from "./clean";
@@ -360,9 +362,9 @@ export const jerkDipDrill = gesture({
       id: "dip",
       guide: 2,
       set: { ...jerkDip, shrug: 0.7 },
-      hold: 250,
+      hold: 150,
       face: "effort",
-      move: { ms: 420, curve: "impulsion", phase: "dip" },
+      move: { ms: 300, curve: "elan", phase: "dip" },
     },
     { id: "stand", guide: 3, set: braced, hold: 500, move: { ms: 380, curve: "impulsion", phase: "rise" } },
   ],

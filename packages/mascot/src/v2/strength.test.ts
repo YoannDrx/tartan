@@ -74,6 +74,9 @@ describe("musculation : la quinzaine de gestes de base", () => {
   it("une pompe se lit de profil et de dessus ; un geste debout, de profil et de face", () => {
     expect(gestureEntry("push-up")!.views).toEqual(["side", "top"]);
     expect(gestureEntry("deadlift")!.views).toEqual(["side", "front"]);
+    // Couché sur un banc, la tête reste haute : de face.
+    expect(gestureEntry("bench-press")!.views).toEqual(["side", "front"]);
+    expect(gestureEntry("hip-thrust")!.views).toEqual(["side", "front"]);
   });
 });
 

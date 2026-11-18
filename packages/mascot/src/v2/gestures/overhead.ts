@@ -1,10 +1,11 @@
 // Les gestes bras tendus au-dessus de la tête, en prise d'arraché : Malo.
 // - Le squat bras tendus : la barre reste au-dessus du milieu du pied, bras verrouillés, épaules actives ; le
-//   buste reste plus droit qu'au squat arrière, les hanches descendent entre les pieds (Everett, « The Overhead
-//   Squat », 2008).
+//   buste reste plus droit qu'au squat arrière, les hanches descendent entre les pieds, la barre au-dessus de la
+//   base du cou (Catalyst Athletics, « Overhead Squat »).
 // - L'équilibre d'arraché : la barre part des trapèzes ; une courte flexion, une petite impulsion pour la
 //   décoller, puis l'athlète se pousse sous elle, les pieds se replacent, et la reçoit en flexion complète bras
-//   verrouillés (Everett, « Snatch Balance », 2009). La barre passe derrière la tête, jamais à travers.
+//   verrouillés. La barre passe derrière la tête, jamais à travers. Réglé à l'œil d'après la fiche du catalogue :
+//   aucune source ouverte pour ce geste.
 import { gesture } from "../gesture";
 import { elbows, heels, STAND, type ControlPatch } from "../pose";
 import { RACK, solve } from "../solve";
