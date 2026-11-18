@@ -4,6 +4,8 @@ import { MAIL_DIR } from "./e2e/mail";
 // Deux sessions sur le même poste ne partagent ni le port ni la base : `E2E_PORT` et `E2E_DATABASE_URL`.
 const PORT = Number(process.env.E2E_PORT ?? 3100);
 const DATABASE_URL = process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e";
+// Le stockage Blob simulé des parcours (`e2e/blob-server.mjs`) : photos de profil et logos.
+const BLOB_PORT = Number(process.env.E2E_BLOB_PORT ?? 3104);
 
 export default defineConfig({
   testDir: "e2e",
@@ -33,6 +35,12 @@ export default defineConfig({
   webServer: process.env.CAPTURE_BASE_URL
     ? undefined
     : [
+        {
+          command: "node e2e/blob-server.mjs",
+          url: `http://127.0.0.1:${BLOB_PORT}/health`,
+          reuseExistingServer: false,
+          env: { E2E_BLOB_PORT: String(BLOB_PORT) },
+        },
         ...(process.env.E2E_VIDEO_ENABLED === "true"
           ? [{ command: "node e2e/mux-server.mjs", url: "http://127.0.0.1:3103/health", reuseExistingServer: false }]
           : []),
@@ -73,6 +81,9 @@ export default defineConfig({
             AI_PLANNER_ENABLED: process.env.E2E_AI_PLANNER_ENABLED === "true" ? "true" : "false",
             OPENAI_API_KEY: "",
             OPEN_AI_API_KEY: "",
+            // Le vrai SDK Blob, vers le stockage simulé : aucune image ne part chez Vercel.
+            BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_tartane2e_jeton-de-test-e2e",
+            VERCEL_BLOB_API_URL: `http://127.0.0.1:${BLOB_PORT}`,
             VIDEO_DEV_MP4_URL: `http://localhost:${PORT}/dev-clip.webm`,
           },
         },
