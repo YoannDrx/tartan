@@ -22,7 +22,7 @@ import { forbidden, invalid, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { audit, coachGroupIds, requireGroupInScope, requireOrgMember, visibleAthleteIds, type Access } from "./access";
-import { firstNameOf, namesFor } from "./me.service";
+import { authorAvatar, firstNameOf, namesFor, peopleFor } from "./me.service";
 import { notify } from "./notify.service";
 import { coachesOfAthlete } from "./org.service";
 import { audienceAthleteIds } from "./session.service";
@@ -49,7 +49,7 @@ export const listAnnouncements = async (userId: string, organizationId: string):
     take: 100,
     include: { group: { select: { name: true } } },
   });
-  const names = await namesFor(rows.map((r) => r.authorId));
+  const people = await peopleFor(rows.map((r) => r.authorId));
   return rows.map((a) => ({
     id: a.id,
     groupId: a.groupId,
@@ -57,7 +57,8 @@ export const listAnnouncements = async (userId: string, organizationId: string):
     body: a.body,
     pinned: a.pinned,
     authorId: a.authorId,
-    authorName: names.get(a.authorId) ?? null,
+    authorName: people.get(a.authorId)?.name ?? null,
+    ...authorAvatar(people.get(a.authorId)),
     createdAt: a.createdAt.toISOString(),
   }));
 };
@@ -147,12 +148,13 @@ export const listComments = async (
     where: { organizationId, entityType, entityId, authorId: { notIn: blocked } },
     orderBy: { createdAt: "asc" },
   });
-  const names = await namesFor(rows.map((r) => r.authorId));
+  const people = await peopleFor(rows.map((r) => r.authorId));
   return rows.map((c) => ({
     id: c.id,
     body: c.body,
     authorId: c.authorId,
-    authorName: names.get(c.authorId) ?? null,
+    authorName: people.get(c.authorId)?.name ?? null,
+    ...authorAvatar(people.get(c.authorId)),
     createdAt: c.createdAt.toISOString(),
   }));
 };

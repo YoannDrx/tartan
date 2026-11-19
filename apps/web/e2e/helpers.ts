@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page } from "@playwright/test";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { Client } from "pg";
 
 const DB = process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e";
@@ -16,30 +17,65 @@ const slug = (name: string) =>
 export const uniqueEmail = (name: string) =>
   `${slug(name)}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@e2e.tartan.test`;
 
-export const signUp = async (page: Page, email: string, next = "/connexion") => {
-  await page.goto(next, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Utiliser un mot de passe" }).click();
-  await page.getByRole("button", { name: /Pas encore de compte/ }).click();
-  await page.getByLabel("Adresse e-mail").fill(email);
-  await page.getByLabel("Mot de passe").fill(PASSWORD);
-  await page.getByRole("button", { name: "Créer mon compte", exact: true }).click();
-  // Le lien de confirmation part par e-mail : le test le remplace par une écriture en base.
-  await expect(page.getByText(m.auth.verifySent)).toBeVisible();
+// Une requête sur la base des parcours, pour ce que le navigateur ne peut pas faire (vieillir une session,
+// confirmer une adresse sans ouvrir l'e-mail).
+export const sqlQuery = async <Row extends Record<string, unknown>>(text: string, values: unknown[] = []) => {
   const sql = new Client({ connectionString: DB });
   await sql.connect();
-  await sql.query(`update "user" set email_verified = true where email = $1`, [email]);
-  await sql.end();
+  try {
+    return (await sql.query<Row>(text, values)).rows;
+  } finally {
+    await sql.end();
+  }
+};
+
+// Sur la page de connexion, la création de compte s'ouvre par `?creer` ; une invitation la propose d'emblée.
+const createPath = (next: string) =>
+  next.startsWith("/connexion") ? `${next}${next.includes("?") ? "&" : "?"}creer=1` : next;
+
+// Le formulaire jusqu'à l'écran d'attente : l'adresse, « Créer avec un mot de passe », le mot de passe.
+export const fillSignUp = async (page: Page, email: string, next = "/connexion", password = PASSWORD) => {
+  await page.goto(createPath(next), { waitUntil: "networkidle" });
+  await page.getByLabel(m.auth.emailLabel).fill(email);
+  await page.getByRole("button", { name: w.auth.create.withPassword, exact: true }).click();
+  await page.getByLabel(w.auth.create.passwordLabel, { exact: true }).fill(password);
+  await page.getByRole("button", { name: w.auth.create.submit, exact: true }).click();
+  await expect(page.getByRole("heading", { name: w.auth.sent.verifyTitle })).toBeVisible();
+};
+
+// La connexion par mot de passe, comme la fait une personne : l'adresse, « Continuer avec mon mot de passe »,
+// le mot de passe, « Se connecter ».
+export const signInWithPassword = async (page: Page, email: string, next = "/connexion", password = PASSWORD) => {
   await page.goto(next, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Utiliser un mot de passe" }).click();
-  await page.getByLabel("Adresse e-mail").fill(email);
-  await page.getByLabel("Mot de passe").fill(PASSWORD);
-  const signIn = page.getByRole("button", { name: m.auth.signInWithPassword, exact: true });
-  await signIn.click();
+  // Une invitation propose d'abord de créer un compte : ici, la personne en a déjà un.
+  if (!next.startsWith("/connexion")) await page.getByRole("button", { name: w.auth.haveAccount }).click();
+  await page.getByLabel(m.auth.emailLabel).fill(email);
+  await page.getByRole("button", { name: w.auth.signIn.withPassword, exact: true }).click();
+  await page.getByLabel(w.auth.signIn.passwordLabel, { exact: true }).fill(password);
+  const submit = page.getByRole("button", { name: w.auth.signIn.submit, exact: true });
+  await submit.click();
   // La connexion recharge la page : un champ rempli avant la fin serait perdu.
   // Le test vidéo utilise next dev : la première compilation de /accueil peut dépasser
   // 15 s sur le runner CI. Le build de production conserve son seuil strict.
-  await expect(signIn).toBeHidden({ timeout: process.env.E2E_PROD ? 15_000 : 60_000 });
+  await expect(submit).toBeHidden({ timeout: process.env.E2E_PROD ? 15_000 : 60_000 });
   await page.waitForLoadState("networkidle");
+};
+
+export const signUp = async (page: Page, email: string, next = "/connexion") => {
+  await fillSignUp(page, email, next);
+  // Le lien de confirmation part par e-mail : ici, le test le remplace par une écriture en base. Le vrai lien est
+  // suivi dans password.spec.ts.
+  await sqlQuery(`update "user" set email_verified = true where email = $1`, [email]);
+  await signInWithPassword(page, email, next);
+};
+
+// La déconnexion par l'écran : Réglages, rubrique Connexion.
+export const signOutFromSettings = async (page: Page) => {
+  await page.goto("/reglages/connexion", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: m.common.signOut, exact: true }).click();
+  await page.waitForURL((url) => url.pathname === "/");
+  // Plus de session : une page de l'application renvoie à la connexion.
+  await expect.poll(async () => (await page.request.get("/api/v1/me")).status()).toBe(401);
 };
 
 // L'onboarding du coach se fait en trois temps : chaque « Continuer » valide le temps affiché.
@@ -48,6 +84,11 @@ export const nextOnboardingStep = async (page: Page) =>
 
 export const createCoachSpace = async (page: Page, name = "Thomas", email = uniqueEmail(name.toLowerCase())) => {
   await signUp(page, email);
+  await completeCoachOnboarding(page, name);
+};
+
+// Du compte tout juste connecté à l'espace créé : profil, espace et premier groupe, conditions.
+export const completeCoachOnboarding = async (page: Page, name = "Thomas") => {
   // En développement, la première compilation d'une page peut prendre longtemps.
   await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible({ timeout: 60_000 });
   await page.waitForLoadState("networkidle");

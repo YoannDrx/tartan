@@ -6,6 +6,7 @@ import { Ban, Flag, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Avatar } from "@/components/avatar";
 import { Button, IconButton } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
@@ -63,7 +64,11 @@ export const CommentThread = ({
       {comments.length === 0 ? <p className="text-soft">{m.comments.empty}</p> : null}
       <ul className="flex flex-col gap-2">
         {comments.map((c) => (
-          <li key={c.id} className={cn("flex items-start gap-2 rounded-card p-3", "bg-card-raised")}>
+          <li key={c.id} className={cn("flex items-start gap-2.5 rounded-card p-3", "bg-card-raised")}>
+            <Avatar
+              person={{ name: c.authorName ?? "", avatarUrl: c.authorAvatarUrl, avatarPreset: c.authorAvatarPreset }}
+              size="sm"
+            />
             <div className="min-w-0 flex-1">
               <p className="t-caption text-soft">{c.authorName}</p>
               <p className="break-words">{c.body}</p>

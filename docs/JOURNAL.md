@@ -13,11 +13,31 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-19, Claude Opus 5.5, CI : miroir Ubuntu lent et Maestro iOS instable
+Fait (dans la PR 166) : l'installation des navigateurs arrête l'apt-get que `timeout` laissait vivant, verrou de dpkg compris, puis retente cinq fois ; les paquets système des navigateurs sont gardés en cache (`~/apt-debs`). Maestro iOS rejoue une fois, seul, chaque flux en échec, et le job a 120 minutes.
+Vérifié : rejeu testé en local avec un faux `maestro` (rejeu vert, job vert ; rejeu rouge, job rouge) ; en CI, `athlete-circuit-guide` a échoué puis passé au rejeu ; la PR 166 est passée entièrement verte.
+À savoir : sur quatre passages, un flux iOS différent a échoué à chaque fois (`coach-builder-detail`, `coach-planner`, `settings-privacy`, `athlete-circuit-guide`), chacun vert ailleurs. Cause non trouvée. Un même flux rejoué sur plusieurs PR de suite est à rendre stable.
+Suite : gestes, puis listes d'exercices.
+
 ## 2026-11-17, Claude, alertes Dependabot et flux Maestro Android
 Fait : PR 154 et 155 (flux `coach-builder-detail` stable sur Android : la ligne en autonomie est cherchée vers le haut, et le flux attend que le sélecteur soit posé), PR 153 (Next 16.4.5), puis PR `fix/deps-vulnerabilites` : `overrides` pnpm (node-forge 1.4.3, glob 14, minimatch 11, zod 4.6.7 pour `@vercel/blob`) et correctif local de `decode-uri-component@0.2.2` (décodage en une passe repris de la 0.5.1, gardé en CommonJS pour `query-string` 7 d'expo-router).
 Vérifié : types, lint, tests, `design:check` ; `expo config` ; empreinte Expo iOS et Android identique avant et après (les `runtimeVersion` des builds installés ne changent pas) ; la 0.2.2 d'origine dépasse 60 s sur 2 000 octets invalides, la version corrigée traite 200 000 octets en 40 ms, sans écart sur 11 cas usuels.
 À savoir : Expo 55 est à sa dernière version et tire encore glob 13, minimatch 10 et `query-string` 7 ; retirer ces `overrides` et le correctif quand Expo les aura mis à jour. Le zod 3 d'`@expo/cli` reste dans la plage de l'avis zod, sans version 3 corrigée : outil de développement seulement. L'alerte `decode-uri-component` reste affichée par GitHub, qui ne voit que la version 0.2.2 : elle est fermée à la main avec un renvoi au correctif.
 Suite : aucune.
+
+## 2026-11-18, Claude Opus 5.5, lot E : photo de profil et avatars
+Fait (PR `feat/avatar`) : recadrage maison sans dépendance (`features/avatar/image-cropper.tsx`, géométrie pure `crop-geometry.ts`), export WebP 512 px avec repli JPEG ; contrôle serveur du type réel, du poids et des dimensions (`lib/image-check.ts`) pour l'avatar et le logo ; galerie (`avatar-gallery.tsx`) : six athlètes et douze animaux dessinés (`components/avatar-art.tsx`, couleurs dans `design-tokens/src/avatars.ts`) ; `Profile.avatarPreset` (migration additive) ; composant `Avatar` et `initialsOf` (domaine) ; `peopleFor` dans `me.service.ts` porte nom et avatar. Constat G14 corrigé.
+Vérifié : types, lint, design, toute la suite (web 2 118) ; parcours `avatar.spec.ts` sur build de production contre un Blob simulé (`e2e/blob-server.mjs`, port 3104 en CI) ; captures relues.
+Non vérifié : vrai Vercel Blob, pincement à deux doigts, HEIC, repli JPEG.
+À savoir : aucune banque d'animaux libre ne convenait (attribution exigée ou style d'émoji, interdit par `DESIGN.md`) : détail dans `reference/avatars.md`. Sur téléphone, le suivi n'affiche pas l'avatar, la colonne des noms est trop étroite.
+Suite : listes d'exercices, onboarding.
+
+## 2026-11-18, Claude, lot C : connexion par mot de passe
+Fait (PR `feat/connexion`) : `sign-in-form.tsx` montre l'adresse puis deux chemins de même rang ; `link-sent.tsx` (adresse rappelée, renvoi après 30 s, « Rien reçu ? ») ; invitation par lien ou mot de passe ; `password-prompt.tsx` sur l'accueil de l'athlète, refus gardé dans `profiles.password_prompt_dismissed_at` (migration additive) ; rubrique Connexion (`settings/connexion/password.tsx`) ; `credentials.service.ts` (définir sur place si la session a moins d'une heure, sinon confirmation par e-mail ; changer avec le mot de passe actuel) ; retour à la page demandée (`proxy.ts` pose l'en-tête `x-tartan-path`, `requireSpace` redirige par `signInPath`) ; API `/api/v1/me/sign-in-methods`, `/password`, `/password/confirmation`, `/password-prompt` et contrats `credentials.ts` ; e-mails `password_set`, `password_setup_confirm`, `account_exists`. Constats B2, G1 et G12 corrigés.
+Vérifié : types, lint, design, toute la suite (web 2 075) ; `password.spec.ts` (8 parcours à 390 px qui suivent les vrais liens des e-mails) et les parcours qui partagent `signUp`, sur build de production ; captures relues.
+Non vérifié : réception réelle des e-mails, Google et Apple, téléphone physique, parité mobile.
+À savoir : `E2E_MAIL_DIR` dépose chaque e-mail des parcours dans un dossier, interdit en production par `assertEnvIsolation`. La demande de lien passe par `/sign-in/magic-link`, donc par la règle `/sign-in/*` (10 par minute) : gardé pour ne pas bloquer un groupe sur le même Wi-Fi. Un compte créé par mot de passe puis ouvert d'abord par un lien de connexion perd ce mot de passe (comportement de Better Auth, documenté dans `onboarding.md`). Inscriptions fermées : `/connexion` ne propose plus de création par mot de passe, l'invitation oui.
+Suite : photo de profil et avatars, listes d'exercices.
 
 ## 2026-11-18, Claude Opus 5.5, état des lieux et passage de Fable à Opus
 Fait (PR `docs/etat-avancement`) : section « Avancement du plan d'audit et de refonte » dans `ETAT.md`, lot par lot, avec le niveau atteint et le modèle qui l'a mené.

@@ -24,11 +24,6 @@
       "count": 3
     }
   },
-  "app/(public)/i/[token]/page.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 1
-    }
-  },
   "app/(public)/mentions-legales/page.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 11
@@ -59,11 +54,6 @@
       "count": 2
     }
   },
-  "src/features/announcements/announcements.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 2
-    }
-  },
   "src/features/athlete-view/validation.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 2
@@ -72,11 +62,6 @@
   "src/features/athletes/athlete-forms.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 19
-    }
-  },
-  "src/features/auth/sign-in-form.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 5
     }
   },
   "src/features/legal/privacy.tsx": {
@@ -119,11 +104,6 @@
       "count": 1
     }
   },
-  "src/features/shell/app-shell.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 3
-    }
-  },
   "src/features/shell/public-page.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 1
@@ -142,11 +122,6 @@
   "src/features/tracking/session-followup.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 3
-    }
-  },
-  "src/features/tracking/tracking-grid.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 2
     }
   },
   "src/features/videos/video-list.tsx": {

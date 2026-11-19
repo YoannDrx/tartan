@@ -10,7 +10,18 @@ export const listMembers = async (userId: string, organizationId: string) => {
     prisma.organizationMember.findMany({
       where: { organizationId, role: { in: ["owner", "coach", "assistant"] } },
       orderBy: { createdAt: "asc" },
-      select: { role: true, status: true, user: { select: { id: true, name: true, email: true } } },
+      select: {
+        role: true,
+        status: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profile: { select: { avatarUrl: true, avatarPreset: true } },
+          },
+        },
+      },
     }),
     prisma.groupCoach.findMany({ where: { group: { organizationId } }, select: { userId: true, groupId: true } }),
   ]);
@@ -18,6 +29,8 @@ export const listMembers = async (userId: string, organizationId: string) => {
     userId: r.user.id,
     name: r.user.name,
     email: r.user.email,
+    avatarUrl: r.user.profile?.avatarUrl ?? null,
+    avatarPreset: r.user.profile?.avatarPreset ?? null,
     role: r.role,
     status: r.status,
     groupIds: groupCoaches.filter((g) => g.userId === r.user.id).map((g) => g.groupId),

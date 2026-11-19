@@ -3,7 +3,8 @@ import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { env } from "@/lib/env";
-import { AvatarForm, ProfileForm } from "./profile-forms";
+import { AvatarEditor } from "@/features/avatar/avatar-editor";
+import { ProfileForm } from "./profile-forms";
 
 // La rubrique « Profil » : la page `/reglages/profil`, et le volet du sommaire sur ordinateur.
 export const ProfileSheet = ({ me }: { me: MeResponse }) => (
@@ -14,9 +15,16 @@ export const ProfileSheet = ({ me }: { me: MeResponse }) => (
           <span className="t-caption block text-soft">{m.auth.emailLabel}</span>
           <span className="break-all">{me.email}</span>
         </p>
-        {env().BLOB_READ_WRITE_TOKEN ? (
-          <AvatarForm avatarUrl={me.avatarUrl} name={`${me.firstName ?? ""} ${me.lastName ?? ""}`.trim() || me.email} />
-        ) : null}
+        <AvatarEditor
+          person={{
+            name: `${me.firstName ?? ""} ${me.lastName ?? ""}`.trim() || me.email,
+            firstName: me.firstName,
+            lastName: me.lastName,
+            avatarUrl: me.avatarUrl,
+            avatarPreset: me.avatarPreset,
+          }}
+          uploadEnabled={Boolean(env().BLOB_READ_WRITE_TOKEN)}
+        />
         <ProfileForm
           firstName={me.firstName ?? ""}
           lastName={me.lastName ?? ""}

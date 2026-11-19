@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeReturnPath } from "@/lib/return-path";
+import { safeReturnPath, signInPath } from "@/lib/return-path";
 
 describe("destination après connexion", () => {
   it.each([
@@ -19,6 +19,21 @@ describe("destination après connexion", () => {
     "conserve le chemin local %s",
     (value) => {
       expect(safeReturnPath(value)).toBe(value);
+    },
+  );
+});
+
+describe("adresse de la connexion qui ramène à la page demandée", () => {
+  it("garde la page demandée, requête comprise", () => {
+    expect(signInPath("/calendrier?vue=mois")).toBe("/connexion?next=%2Fcalendrier%3Fvue%3Dmois");
+    expect(safeReturnPath(new URLSearchParams(signInPath("/seances/abc").split("?")[1]).get("next")!)).toBe(
+      "/seances/abc",
+    );
+  });
+  it.each([null, undefined, "", "/accueil", "//evil.invalid", "https://evil.invalid/x", "/\\evil.invalid"])(
+    "n'écrit rien pour %s",
+    (value) => {
+      expect(signInPath(value)).toBe("/connexion");
     },
   );
 });

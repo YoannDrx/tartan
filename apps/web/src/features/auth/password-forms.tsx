@@ -1,10 +1,13 @@
 "use client";
 
+import { PASSWORD_MIN_LENGTH } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
+import { PasswordInput } from "@/components/ui/password-input";
 import { authClient } from "@/lib/auth-client";
 
 export const ForgotPasswordForm = () => {
@@ -25,7 +28,7 @@ export const ForgotPasswordForm = () => {
       className="flex flex-col gap-4"
       onSubmit={async (e) => {
         e.preventDefault();
-        if (!email.includes("@")) return setError("Saisis une adresse e-mail valide");
+        if (!email.includes("@")) return setError(w.auth.emailInvalid);
         setError(null);
         setPending(true);
         const res = await authClient.requestPasswordReset({ email, redirectTo: "/nouveau-mot-de-passe" });
@@ -76,7 +79,7 @@ export const NewPasswordForm = ({ token }: { token: string | null }) => {
       className="flex flex-col gap-4"
       onSubmit={async (e) => {
         e.preventDefault();
-        if (password.length < 10) return setError("10 caractères minimum");
+        if (password.length < PASSWORD_MIN_LENGTH) return setError(w.auth.passwordTooShort(PASSWORD_MIN_LENGTH));
         setError(null);
         setPending(true);
         const res = await authClient.resetPassword({ newPassword: password, token });
@@ -85,11 +88,10 @@ export const NewPasswordForm = ({ token }: { token: string | null }) => {
         else setDone(true);
       }}
     >
-      <Field label={m.auth.newPassword} hint="10 caractères minimum" error={error ?? undefined}>
+      <Field label={m.auth.newPassword} hint={w.auth.passwordHint(PASSWORD_MIN_LENGTH)} error={error ?? undefined}>
         {(a) => (
-          <Input
+          <PasswordInput
             {...a}
-            type="password"
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

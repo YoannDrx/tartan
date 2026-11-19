@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useEffectEvent, useId, useMemo, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import { BarSheet } from "@/components/bar-sheet";
+import { Avatar } from "@/components/avatar";
 import { Button, IconButton } from "@/components/ui/button";
 import { CheckRow, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
@@ -752,7 +753,17 @@ export const VideoAnalysis = ({
                   </button>
                   <div className="min-w-0 flex-1 py-1.5">
                     {a.phase ? <p className="t-caption font-semibold text-soft">{m.jumpPhase[a.phase]}</p> : null}
-                    <p className="t-caption text-soft">{a.authorName ?? m.videoCollaboration.unknownAuthor}</p>
+                    <p className="t-caption flex items-center gap-1.5 text-soft">
+                      <Avatar
+                        person={{
+                          name: a.authorName ?? "",
+                          avatarUrl: a.authorAvatarUrl,
+                          avatarPreset: a.authorAvatarPreset,
+                        }}
+                        size="xs"
+                      />
+                      {a.authorName ?? m.videoCollaboration.unknownAuthor}
+                    </p>
                     {a.parentId ? <p className="text-sm text-soft">{m.videoCollaboration.replyTo}</p> : null}
                     {a.text ? <p className="break-words">{a.text}</p> : null}
                     {a.drawing ? (

@@ -1,3 +1,6 @@
+import { randomUUID } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { render } from "@react-email/render";
 import type { ReactElement } from "react";
 import { Resend } from "resend";
@@ -41,9 +44,19 @@ export const sendEmail = async (input: {
     if (process.env.VERCEL_ENV === "production") throw new Error("email_unconfigured");
     // Sans clé (local et tests), on garde le message pour l'inspecter au lieu de l'envoyer.
     outbox.push({ to: input.to, subject: input.subject, html, text, headers });
+    const link = actionLink(html);
     if (process.env.NODE_ENV === "development") {
-      const link = actionLink(html);
       console.info(`[e-mail local] ${input.subject}${link ? ` → ${link}` : ""}`);
+    }
+    // Parcours Playwright sur build de production : le message est déposé dans un dossier que le test relit, pour
+    // suivre le vrai lien. Variable interdite en production (assertEnvIsolation), et cette branche n'y passe jamais.
+    const captureDir = process.env.E2E_MAIL_DIR;
+    if (captureDir) {
+      await mkdir(captureDir, { recursive: true });
+      await writeFile(
+        path.join(captureDir, `${Date.now()}-${randomUUID()}.json`),
+        JSON.stringify({ to: input.to, subject: input.subject, link: link ?? null }),
+      );
     }
     return;
   }

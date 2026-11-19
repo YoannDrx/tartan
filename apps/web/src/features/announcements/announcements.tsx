@@ -2,6 +2,8 @@
 
 import type { AnnouncementItem } from "@tartan/contracts";
 import { m, withFirstOfMonth } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
+import { Avatar } from "@/components/avatar";
 import { Flag, Pin, PinOff, Trash2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
@@ -81,7 +83,12 @@ export const AnnouncementList = ({ items, canManage }: { items: AnnouncementItem
   return (
     <ul className="divide-y divide-card-line rounded-card on-card bg-card">
       {items.map((a) => (
-        <li key={a.id} className="flex items-start gap-2 px-4 py-3">
+        <li key={a.id} className="flex items-start gap-3 px-4 py-3">
+          <Avatar
+            person={{ name: a.authorName ?? "", avatarUrl: a.authorAvatarUrl, avatarPreset: a.authorAvatarPreset }}
+            size="md"
+            className="mt-0.5"
+          />
           <div className="min-w-0 flex-1">
             {/* Le coach reste la voix : la signature passe avant le message. */}
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 leading-snug">
@@ -101,13 +108,13 @@ export const AnnouncementList = ({ items, canManage }: { items: AnnouncementItem
           {canManage ? (
             <div className="flex">
               <IconButton
-                label={a.pinned ? "Désépingler" : m.announcements.pin}
+                label={a.pinned ? w.comm.unpin : m.announcements.pin}
                 onClick={() => pin.execute({ id: a.id, pinned: !a.pinned })}
               >
                 {a.pinned ? <PinOff aria-hidden className="size-4" /> : <Pin aria-hidden className="size-4" />}
               </IconButton>
               <ConfirmDialog
-                title="Supprimer cette annonce ?"
+                title={w.comm.deleteAnnouncement}
                 onConfirm={() => remove.execute({ id: a.id })}
                 trigger={
                   <IconButton label={m.common.delete}>

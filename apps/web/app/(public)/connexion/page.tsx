@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PLANS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { PublicPage } from "@/features/shell/public-page";
 import { SignInScene } from "@/features/shell/start-scene";
 import { enabledSocialProviders } from "@/lib/auth";
@@ -29,12 +30,18 @@ export default async function ConnexionPage({
   return (
     <PublicPage
       title={creating ? m.auth.createTitle : m.auth.signInTitle}
-      lead={creating ? m.auth.createLead(PLANS.discovery.limits.maxAthletes ?? 0) : m.auth.signInLead}
+      lead={creating ? w.auth.create.lead(PLANS.discovery.limits.maxAthletes ?? 0) : m.auth.signInLead}
       scene={<SignInScene />}
     >
       <div className="on-card flex flex-col gap-4 rounded-card bg-card p-5">
-        {lien === "expire" ? <p role="alert">{m.auth.resetInvalid}</p> : null}
-        <SignInForm callbackURL={callbackURL} providers={enabledSocialProviders} creating={creating} />
+        {lien === "expire" ? <p role="alert">{w.auth.linkExpired}</p> : null}
+        <SignInForm
+          // Passer de la connexion à la création repart d'un formulaire neuf, dans le bon mode.
+          key={creating ? "create" : "signin"}
+          callbackURL={callbackURL}
+          providers={enabledSocialProviders}
+          intent={creating ? "create" : "signin"}
+        />
       </div>
       {signupOpen ? (
         <p className="mt-4 font-medium">

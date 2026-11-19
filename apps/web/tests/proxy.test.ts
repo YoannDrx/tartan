@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
+import { RETURN_PATH_HEADER } from "@/lib/return-path";
 import { hasBearer, safeEqual } from "@/lib/secure-compare";
 import { proxy } from "../proxy";
 
@@ -18,6 +19,25 @@ describe("redirections entre hôtes", () => {
   it("conserve la page et la requête", () => {
     const location = run("https://tartan.coach/accueil?semaine=2", "tartan.coach").headers.get("location");
     expect(location).toBe("https://app.tartan.coach/accueil?semaine=2");
+  });
+});
+
+describe("page demandée, pour y revenir après la connexion", () => {
+  // Les en-têtes transmis à la page voyagent dans la réponse du proxy sous ce préfixe.
+  const forwarded = (url: string, headers: Record<string, string> = {}) =>
+    proxy(new NextRequest(url, { headers: { host: "app.tartan.coach", ...headers } })).headers.get(
+      `x-middleware-request-${RETURN_PATH_HEADER}`,
+    );
+  it("la page et sa requête sont transmises à la page", () => {
+    expect(forwarded("https://app.tartan.coach/calendrier?vue=mois")).toBe("/calendrier?vue=mois");
+    expect(forwarded("https://app.tartan.coach/suivi")).toBe("/suivi");
+  });
+  it("le paramètre interne des navigations côté client n'en fait pas partie", () => {
+    expect(forwarded("https://app.tartan.coach/calendrier?vue=mois&_rsc=abc12")).toBe("/calendrier?vue=mois");
+    expect(forwarded("https://app.tartan.coach/suivi?_rsc=abc12")).toBe("/suivi");
+  });
+  it("une valeur envoyée par le client est écrasée", () => {
+    expect(forwarded("https://app.tartan.coach/suivi", { [RETURN_PATH_HEADER]: "//evil.invalid" })).toBe("/suivi");
   });
 });
 

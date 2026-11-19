@@ -30,12 +30,12 @@ export const SCREENS: Screen[] = [
   { path: "/mobile/confidentialite", roles: ["public"], proof: ["mobile-legal.spec.ts"] },
   { path: "/mobile/contact", roles: ["public"], proof: ["mobile-legal.spec.ts"] },
   // Entrée, compte et liens reçus
-  { path: "/connexion", roles: ["public"], proof: ["age-confirmation.spec.ts"] },
+  { path: "/connexion", roles: ["public"], proof: ["password.spec.ts", "age-confirmation.spec.ts"] },
   { path: "/mot-de-passe-oublie", roles: ["public"], proof: ["pilot.spec.ts"] },
   { path: "/nouveau-mot-de-passe", roles: ["public"], proof: ["pilot.spec.ts"] },
   { path: "/confirmer-age", roles: ["public"], proof: ["terrain.spec.ts"] },
   { path: "/bienvenue", roles: ["athlete"], proof: ["age-confirmation.spec.ts", "tests/athlete-arrival.test.ts"] },
-  { path: "/i/[token]", roles: ["public"], proof: ["pilot.spec.ts"] },
+  { path: "/i/[token]", roles: ["public"], proof: ["pilot.spec.ts", "password.spec.ts", "avatar.spec.ts"] },
   { path: "/accord-parental/[token]", roles: ["public"], proof: ["tests/access.test.ts"] },
   { path: "/e-mails/[kind]/[token]", roles: ["public"], proof: ["tests/email.test.ts"] },
   // Espace commun
@@ -44,8 +44,8 @@ export const SCREENS: Screen[] = [
   { path: "/nouveautes", roles: both, proof: [] },
   // Réglages : le sommaire, puis une page par rubrique
   { path: "/reglages", roles: both, proof: ["settings-sections.spec.ts"] },
-  { path: "/reglages/profil", roles: both, proof: ["settings-sections.spec.ts"] },
-  { path: "/reglages/connexion", roles: both, proof: ["settings-sections.spec.ts"] },
+  { path: "/reglages/profil", roles: both, proof: ["settings-sections.spec.ts", "avatar.spec.ts"] },
+  { path: "/reglages/connexion", roles: both, proof: ["settings-sections.spec.ts", "password.spec.ts"] },
   { path: "/reglages/notifications", roles: both, proof: ["settings-sections.spec.ts"] },
   { path: "/reglages/apparence", roles: both, proof: ["settings-sections.spec.ts", "date-theme.spec.ts"] },
   { path: "/reglages/confidentialite", roles: both, proof: ["settings-sections.spec.ts", "pilot.spec.ts"] },
@@ -60,7 +60,7 @@ export const SCREENS: Screen[] = [
   { path: "/planificateur", roles: ["coach"], proof: ["ai-planner.spec.ts", "ai-disabled.spec.ts"] },
   { path: "/planificateur/propositions", roles: ["coach"], proof: ["ai-disabled.spec.ts"] },
   // Coach
-  { path: "/suivi", roles: ["coach"], proof: ["absence.spec.ts", "captures.spec.ts"] },
+  { path: "/suivi", roles: ["coach"], proof: ["absence.spec.ts", "captures.spec.ts", "avatar.spec.ts"] },
   { path: "/seances/nouvelle", roles: ["coach"], proof: ["coach-screens.spec.ts", "session-sequences.spec.ts"] },
   { path: "/seances/[id]", roles: ["coach"], proof: ["coach-screens.spec.ts"] },
   { path: "/seances/[id]/suivi", roles: ["coach"], proof: ["coach-performed-sets.spec.ts"] },
@@ -73,13 +73,21 @@ export const SCREENS: Screen[] = [
   { path: "/videos", roles: ["coach"], proof: ["video-collaboration.spec.ts"] },
   { path: "/videos/[id]", roles: ["coach"], proof: ["video-collaboration.spec.ts", "video-fullscreen.spec.ts"] },
   { path: "/abonnement", roles: ["coach"], proof: ["subscription.spec.ts"] },
-  { path: "/reglages/espace", roles: ["coach"], proof: ["settings-sections.spec.ts", "training-profile.spec.ts"] },
+  {
+    path: "/reglages/espace",
+    roles: ["coach"],
+    proof: ["settings-sections.spec.ts", "training-profile.spec.ts", "avatar.spec.ts"],
+  },
   { path: "/reglages/groupes", roles: ["coach"], proof: ["settings-sections.spec.ts", "pilot.spec.ts"] },
   { path: "/reglages/membres", roles: ["coach"], proof: ["settings-sections.spec.ts", "staff-invitation.spec.ts"] },
   { path: "/reglages/abonnement", roles: ["coach"], proof: ["settings-sections.spec.ts"] },
   { path: "/reglages/references-force", roles: ["coach"], proof: ["strength-mappings.spec.ts"] },
   // Athlète
-  { path: "/aujourdhui", roles: ["athlete"], proof: ["session-open.spec.ts", "regularity.spec.ts"] },
+  {
+    path: "/aujourdhui",
+    roles: ["athlete"],
+    proof: ["session-open.spec.ts", "regularity.spec.ts", "password.spec.ts"],
+  },
   { path: "/progres", roles: ["athlete"], proof: ["record-card.spec.ts"] },
   { path: "/mes-videos", roles: ["athlete"], proof: ["video-collaboration.spec.ts"] },
   { path: "/mes-videos/[id]", roles: ["athlete"], proof: ["video-collaboration.spec.ts", "video-fullscreen.spec.ts"] },

@@ -6,6 +6,8 @@ import {
   compareTrackingRows,
   completionPct,
   hasAutonomousVersion,
+  initialsOf,
+  knownAvatarPreset,
   isSessionAssigned,
   startOfWeek,
   trailingMissedCount,
@@ -77,6 +79,7 @@ export const getTrackingGrid = async (
       userId: true,
       firstName: true,
       lastName: true,
+      user: { select: { profile: { select: { avatarUrl: true, avatarPreset: true } } } },
       groups: { select: { groupId: true, createdAt: true, group: { select: { name: true } } } },
     },
   });
@@ -126,7 +129,9 @@ export const getTrackingGrid = async (
     return {
       athleteId: a.id,
       name: `${a.firstName} ${a.lastName}`.trim(),
-      initials: `${a.firstName[0] ?? ""}${a.lastName[0] ?? ""}`.toUpperCase(),
+      initials: initialsOf(a.firstName, a.lastName),
+      avatarUrl: a.user?.profile?.avatarUrl ?? null,
+      avatarPreset: knownAvatarPreset(a.user?.profile?.avatarPreset),
       groupNames: a.groups.map((g) => g.group.name),
       activeInjury: injuries.get(a.id) ?? null,
       hasPain: cells.some((c) => c.hasPain),
