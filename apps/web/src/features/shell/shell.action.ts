@@ -1,6 +1,5 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { uuid } from "@tartan/contracts";
@@ -8,22 +7,15 @@ import { forbidden } from "@/lib/errors";
 import { authAction } from "@/lib/safe-action";
 import { listSpaces } from "@/server/me.service";
 import { answerSatisfaction } from "@/server/satisfaction.service";
-import { SPACE_COOKIE } from "./space";
+import { writeSpaceCookie } from "./space";
 import { spaceAction } from "./space-action";
 
 export const switchSpaceAction = authAction
   .inputSchema(z.object({ organizationId: uuid }))
   .action(async ({ parsedInput, ctx }) => {
-    const spaces = await listSpaces(ctx.actor.userId);
+    const spaces = await listSpaces(ctx.actor.userId, { includeDemo: true });
     if (!spaces.some((s) => s.organizationId === parsedInput.organizationId)) throw forbidden();
-    const jar = await cookies();
-    jar.set(SPACE_COOKIE, parsedInput.organizationId, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 365,
-      path: "/",
-    });
+    await writeSpaceCookie(parsedInput.organizationId);
     revalidatePath("/", "layout");
   });
 

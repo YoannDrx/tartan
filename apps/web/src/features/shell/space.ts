@@ -27,7 +27,7 @@ export const requireSpace = async (): Promise<SpaceContext> => {
   const actor = await getActor();
   // La page demandée suit dans `next` : après la connexion, on y revient au lieu de retomber sur l'accueil.
   if (!actor) redirect(signInPath((await headers()).get(RETURN_PATH_HEADER)));
-  const spaces = await listSpaces(actor.userId);
+  const spaces = await listSpaces(actor.userId, { includeDemo: true });
   const jar = await cookies();
   const space = pick(spaces, jar.get(SPACE_COOKIE)?.value);
   // Sans espace, la création d'espace demande elle-même la date et traite un compte mineur.
@@ -48,9 +48,21 @@ export const requireAthleteSpace = async (): Promise<SpaceContext> => {
   return ctx;
 };
 
+// L'espace en cours, choisi au sélecteur ou à l'entrée dans la démonstration.
+export const writeSpaceCookie = async (organizationId: string): Promise<void> => {
+  const jar = await cookies();
+  jar.set(SPACE_COOKIE, organizationId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 365,
+    path: "/",
+  });
+};
+
 // Pour les actions : l'organisation vient du cookie, le service vérifie l'appartenance.
 export const currentOrganizationId = async (actor: Actor): Promise<string> => {
-  const spaces = await listSpaces(actor.userId);
+  const spaces = await listSpaces(actor.userId, { includeDemo: true });
   const jar = await cookies();
   const space = pick(spaces, jar.get(SPACE_COOKIE)?.value);
   if (!space) throw unauthorized();

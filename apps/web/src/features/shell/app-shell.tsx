@@ -24,6 +24,7 @@ import { RouteTransition } from "@/components/ui/route-transition";
 import { ACTIVE_TAB } from "@/components/ui/view-transition";
 import { cn } from "@/lib/cn";
 import { worldFor } from "@/lib/world";
+import { DemoSpaceBanner } from "@/features/demo-space/demo-space-banner";
 import { NotificationBell } from "@/features/notifications/notification-bell";
 import { UpdateWatcher } from "./update-watcher";
 import { InstallBanner } from "./install-banner";
@@ -74,7 +75,7 @@ const SpaceSwitcher = ({ spaces, current }: { spaces: SpaceSummary[]; current: S
       >
         {spaces.map((s) => (
           <option key={s.organizationId} value={s.organizationId}>
-            {s.organizationName} ({m.roles[s.role]})
+            {s.isDemo ? w.demoSpace.switcherLabel(s.organizationName) : `${s.organizationName} (${m.roles[s.role]})`}
           </option>
         ))}
       </Select>
@@ -169,6 +170,8 @@ export const AppShell = ({
       </header>
 
       <main className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pb-8 pt-5 desktop:px-6 desktop:pt-8">
+        {/* Dans la démonstration, le bandeau passe devant tout : on sait où l'on est et comment en sortir. */}
+        {space.isDemo ? <DemoSpaceBanner expiresAt={space.demoExpiresAt ?? null} /> : null}
         {/* Un paiement à régulariser passe devant : sans lui, l'espace retombe en offre gratuite. */}
         {billingAlert && !isActive("/abonnement") ? (
           <p
@@ -188,7 +191,7 @@ export const AppShell = ({
         <RouteTransition>{children}</RouteTransition>
         <UpdateWatcher unseen={unseenRelease} />
         <InstallBanner />
-        {askSatisfaction ? <SatisfactionQuestion /> : null}
+        {askSatisfaction && !space.isDemo ? <SatisfactionQuestion /> : null}
       </main>
 
       <nav

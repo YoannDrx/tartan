@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LaneNumber } from "@/components/lane-number";
 import { PageHeader, TrackTile } from "@/components/states";
 import { Button } from "@/components/ui/button";
+import { DemoSpaceSection } from "@/features/demo-space/demo-space-section";
 import { CoachGuide } from "@/features/onboarding/coach-guide";
 import { InvitePanel } from "@/features/onboarding/invite-panel";
 import { ReopenTour } from "@/features/onboarding/reopen-tour";
@@ -11,6 +12,7 @@ import { FEATURES, type FeatureKey } from "@/features/onboarding/tour-features";
 import { requireStaffSpace } from "@/features/shell/space";
 import { DEMO_SPACE_ENABLED } from "@/lib/onboarding-paths";
 import { RUBRIC_ATHLETE } from "@/lib/rubric-athlete";
+import { getDemoSpace } from "@/server/demo-space.service";
 import { getFeatureOverview, getGuideContext, getOnboarding } from "@/server/onboarding.service";
 
 const t = w.onboarding;
@@ -21,6 +23,16 @@ export const metadata: Metadata = { title: t.page.title };
 // fonction avec son état ici. C'est la référence après le tour de piste.
 export default async function PremiersPasPage() {
   const { actor, organizationId, space } = await requireStaffSpace();
+  const demo = DEMO_SPACE_ENABLED ? await getDemoSpace(actor.userId, organizationId) : null;
+  // Depuis la démonstration, les premiers pas sont ceux de l'espace réel : seule la démonstration se gère ici.
+  if (space.isDemo) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+        <PageHeader title={t.page.title} detail={t.page.lead} />
+        <DemoSpaceSection demo={demo} />
+      </div>
+    );
+  }
   const [onboarding, guide, overview] = await Promise.all([
     getOnboarding(actor.userId, organizationId),
     getGuideContext(actor.userId, organizationId),
@@ -102,12 +114,8 @@ export default async function PremiersPasPage() {
         </p>
       </section>
 
-      {/* L'espace de démonstration viendra dans un lot suivant : son lien attend, derrière un drapeau éteint. */}
-      {DEMO_SPACE_ENABLED ? (
-        <p>
-          <Link href="/demo">{t.page.demo}</Link>
-        </p>
-      ) : null}
+      {/* Voir Tartan rempli avant d'inviter son groupe, dans un espace à part et jetable. */}
+      {DEMO_SPACE_ENABLED ? <DemoSpaceSection demo={demo} /> : null}
     </div>
   );
 }
