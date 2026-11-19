@@ -18,6 +18,7 @@ import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, requireOwnedRefs, requireVisibleAthlete, visibleAthleteIds, type Access } from "./access";
 import { blockedUserIds } from "./blocks.service";
+import { applyCatalogMuxEvent, failCatalogUpload } from "./catalog-media.service";
 import { drainExternalDeletions, enqueueExternalDeletion } from "./external-deletion.service";
 import { consentForAthletes } from "./consent.service";
 import { authorAvatar, firstNameOf, peopleFor } from "./me.service";
@@ -140,11 +141,14 @@ export const applyMuxEvent = async (event: MuxEvent): Promise<void> => {
       where: { muxUploadId: event.data.id, status: "uploading" },
       data: { status: "error" },
     });
+    await failCatalogUpload(event.data.id);
     return;
   }
-  const match = /^(video|exercise):([0-9a-f-]{36})(?::([0-9]+))?$/.exec(event.data.passthrough ?? "");
+  const match = /^(video|exercise|catalog):([0-9a-f-]{36})(?::([0-9]+))?$/.exec(event.data.passthrough ?? "");
   if (!match) return;
   const [, kind, id, generation] = match;
+  // La vidéo d'une fiche commune du catalogue : son service la range.
+  if (kind === "catalog") return applyCatalogMuxEvent(id!, event);
   if (kind === "exercise") {
     if (event.type === "video.asset.ready") {
       // Mêmes limites que les vidéos d'athlètes : une démonstration trop longue ne reste pas.

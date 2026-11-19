@@ -2,14 +2,15 @@
 
 import { athletePaint } from "@tartan/design-tokens/athletes";
 import { m } from "@tartan/i18n";
-import { athleteRig, type AthleteId } from "@tartan/mascot/athletes";
+import type { AthleteId } from "@tartan/mascot/athletes";
 import { smooth } from "@tartan/mascot/clip";
 import { svgProp, type PropPaint, type PropShape } from "@tartan/mascot/props";
-import { FACES, type Face } from "@tartan/mascot/rig";
-import type { AthletePaint, Bone, BoneId } from "@tartan/mascot/skeleton";
-import { boneTransform, rootTransform, svgAthlete, svgShape } from "@tartan/mascot/svg";
+import type { AthletePaint } from "@tartan/mascot/skeleton";
+import type { MotionSink } from "@tartan/mascot/v2/player";
+import { poseNodes, poseRoot, poseSink, svgPoseFigure } from "@tartan/mascot/v2/pose-figure";
 import { Check } from "lucide-react";
 import { createElement, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { FigureGroup } from "@/components/jumper";
 import {
   BAR,
   barWobble,
@@ -93,39 +94,18 @@ const poleOf = (time: number) => {
 };
 
 const START = frameAt(0);
-const bonesOf = (id: AthleteId) => athleteRig(id, "neutral");
-const among = (bones: readonly Bone[]) => new Map<BoneId, Bone>(bones.map((bone) => [bone.id, bone]));
 
-// Un athlète du relais : son corps au départ de sa scène, et ses trois visages, dont un seul est montré.
-const FilmAthlete = ({ id, shown }: { id: AthleteId; shown: boolean }) => {
-  const figure = svgAthlete(bonesOf(id), START.pose, VARS, START.pose);
-  const faces = Object.fromEntries(
-    FACES.map((face) => [face, athleteRig(id, face).find((bone) => bone.id === "eyes")!.shapes]),
-  ) as Record<Face, Bone["shapes"]>;
-  return (
-    <g
-      data-film-athlete={id}
-      transform={figure.root}
-      display={shown ? undefined : "none"}
-      style={Object.fromEntries(paintVars(id, "piste")) as CSSProperties}
-    >
-      {figure.bones.map((bone) => (
-        <g key={bone.id} data-bone={bone.id} transform={bone.transform}>
-          {bone.id === "eyes"
-            ? FACES.map((face) => (
-                <g key={face} data-face={face} className="film-eyes" display={face === START.face ? undefined : "none"}>
-                  {faces[face].map((shape, index) => {
-                    const { tag, ...attributes } = svgShape(shape, VARS[shape.paint]);
-                    return createElement(tag, { key: index, ...attributes });
-                  })}
-                </g>
-              ))
-            : bone.shapes.map(({ tag, ...attributes }, index) => createElement(tag, { key: index, ...attributes }))}
-        </g>
-      ))}
-    </g>
-  );
-};
+// Un athlète du relais : le corps du moteur des gestes, au départ de sa scène. Une fois le film monté, le lecteur
+// redessine ce corps à chaque image, visage compris.
+const FilmAthlete = ({ id, shown }: { id: AthleteId; shown: boolean }) => (
+  <g
+    data-film-athlete={id}
+    display={shown ? undefined : "none"}
+    style={Object.fromEntries(paintVars(id, "piste")) as CSSProperties}
+  >
+    <FigureGroup data-film-body="" figure={svgPoseFigure(id, START.face, START.pose, VARS, START.pose)} />
+  </g>
+);
 
 // Un titre dont les mots rebondissent l'un après l'autre, avec un mot surligné au marqueur.
 const Words = ({ text, mark }: { text: string; mark: string }) => {
@@ -172,33 +152,17 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
 
     // Les éléments animés sont repérés au montage : le rendu React ne les touche plus ensuite.
     const find = <E extends Element>(name: string) => root.querySelector<E>(`[data-film="${name}"]`);
+    // Le corps rendu par le serveur laisse la place au lecteur, qui le redessine image par image.
     const athletes = Object.fromEntries(
       SCENES.map(({ id, athlete }) => {
         const node = root.querySelector<SVGGElement>(`[data-film-athlete="${athlete}"]`);
-        const bones = bonesOf(athlete);
-        return [
-          id,
-          {
-            id: athlete,
-            node,
-            among: among(bones),
-            bones: bones.map((bone) => ({
-              bone,
-              node: node?.querySelector<SVGGElement>(`[data-bone="${bone.id}"]`) ?? null,
-            })),
-            faces: Array.from(node?.querySelectorAll<SVGGElement>("[data-face]") ?? []),
-          },
-        ];
+        const body = node?.querySelector<SVGGElement>("[data-film-body]") ?? null;
+        body?.replaceChildren();
+        return [id, { id: athlete, node, body, sink: body ? poseSink(document, body, VARS) : null }];
       }),
     ) as Record<
       SceneId,
-      {
-        id: AthleteId;
-        node: SVGGElement | null;
-        among: Map<BoneId, Bone>;
-        bones: Array<{ bone: Bone; node: SVGGElement | null }>;
-        faces: SVGGElement[];
-      }
+      { id: AthleteId; node: SVGGElement | null; body: SVGGElement | null; sink: MotionSink | null }
     >;
     const sets = Array.from(root.querySelectorAll<SVGGElement>("[data-scene]"));
     const pole = find<SVGPathElement>("pole");
@@ -212,7 +176,6 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
     const beats = Array.from(root.querySelectorAll<HTMLElement>(".film-beat"));
 
     let lastScene: SceneId | "" = "";
-    let lastFace = "";
     let lastBeat = -1;
     let lastWorld = "";
     let viewWidth = STAGE_WIDTH;
@@ -252,12 +215,7 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
         for (const set of sets) show(set, set.dataset.scene === scene);
         trail?.setAttribute("d", scene === "highJump" ? TRAIL_PATH : GROUND_TRAIL);
         lastScene = scene;
-        lastFace = "";
         lastWorld = "";
-      }
-      if (face !== lastFace) {
-        for (const node of athlete.faces) show(node, node.dataset.face === face);
-        lastFace = face;
       }
       if (world !== lastWorld) {
         root.dataset.world = world;
@@ -265,11 +223,9 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
         lastWorld = world;
       }
 
-      // La pose du film porte aussi la position du bassin : elle place le corps, puis l'oriente.
-      athlete.node?.setAttribute("transform", rootTransform(pose, pose));
-      for (const { bone, node } of athlete.bones) {
-        node?.setAttribute("transform", boneTransform(bone, pose, athlete.among));
-      }
+      // La pose du film porte aussi la position du bassin : elle place le corps, que le lecteur redessine.
+      athlete.body?.setAttribute("transform", poseRoot(pose));
+      athlete.sink?.render(poseNodes(athlete.id, face, pose));
       frameView(pose.x);
       if (scene === "poleVault") pole?.setAttribute("d", poleOf(time));
 

@@ -1,15 +1,25 @@
 import type { ExerciseGuide } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { exerciseClip } from "@tartan/mascot/exercises";
+import { GuideMedia } from "./guide-media";
 import { GuideMotion } from "./guide-motion";
 
 const Illustration = ({ guide }: { guide: ExerciseGuide }) => {
-  if (exerciseClip(guide.catalogKey)) return <GuideMotion guide={guide} />;
+  const motion = Boolean(exerciseClip(guide.catalogKey));
+  // La fiche commune a sa vidéo : on choisit entre le geste animé et la vidéo.
+  if (guide.illustration.videos?.length) return <GuideMedia guide={guide} motion={motion} />;
+  if (motion) return <GuideMotion guide={guide} />;
   return guide.illustration.status === "ready" ? (
     <figure className="min-w-0">
       {/* Versioned local SVGs remain available with the downloaded session. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={guide.illustration.path} alt={guide.illustration.alt} width={960} height={480} className="h-auto w-full" />
+      <img
+        src={guide.illustration.path}
+        alt={guide.illustration.alt}
+        width={960}
+        height={480}
+        className="h-auto w-full"
+      />
       <figcaption className="mt-2 text-sm text-soft">
         {guide.technicalReview === "approved" ? m.exerciseGuide.original : m.exerciseGuide.illustrationPending}
       </figcaption>

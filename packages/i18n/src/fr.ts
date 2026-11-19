@@ -2223,8 +2223,10 @@ export const fr = {
   },
   exerciseReview: {
     title: "Relecture des guides Tartan",
-    scope: "Cette relecture porte sur les textes. Les illustrations restent à produire et à valider séparément. Aucun avis saisi ici ne publie une fiche dans l’application.",
-    instructions: "Relis les consignes, le comptage et la charge. Indique les corrections nécessaires, puis exporte tes avis pour les transmettre. Les annotations restent dans ce navigateur ; conserve régulièrement un export.",
+    scope:
+      "Cette relecture porte sur les textes. Les illustrations restent à produire et à valider séparément. Aucun avis saisi ici ne publie une fiche dans l’application.",
+    instructions:
+      "Relis les consignes, le comptage et la charge. Indique les corrections nécessaires, puis exporte tes avis pour les transmettre. Les annotations restent dans ce navigateur ; conserve régulièrement un export.",
     reviewer: "Nom du coach relecteur",
     search: "Rechercher un mouvement",
     status: "État de relecture",
@@ -2234,8 +2236,10 @@ export const fr = {
     export: "Exporter mes avis",
     saved: "Annotations conservées dans ce navigateur.",
     storageFailed: "La sauvegarde locale est indisponible. Exporte tes avis avant de fermer cette page.",
-    storageInvalid: "Les annotations locales sont illisibles. Elles ne seront pas écrasées. Exporte tes nouveaux avis avant de fermer cette page.",
-    stale: "Le contenu a changé depuis ta relecture précédente : ton avis revient à « À relire », tes remarques sont conservées.",
+    storageInvalid:
+      "Les annotations locales sont illisibles. Elles ne seront pas écrasées. Exporte tes nouveaux avis avant de fermer cette page.",
+    stale:
+      "Le contenu a changé depuis ta relecture précédente : ton avis revient à « À relire », tes remarques sont conservées.",
     visible: "Fiches affichées",
     reviewed: "Fiches relues",
     total: "Total",
@@ -2274,6 +2278,14 @@ export const fr = {
       // Le geste se regarde sous deux angles : le sélecteur de vue, et le nom de chacune.
       view: "Vue du geste",
       views: { side: "Profil", front: "Face", top: "Dessus" },
+    },
+    // Une fiche commune peut avoir sa vidéo, déposée par Tartan : on choisit entre le geste animé et la vidéo.
+    media: {
+      choice: "Illustration du geste",
+      motion: "Geste animé",
+      video: "Vidéo",
+      videoOf: (name: string, view: string) => `Vidéo : ${name}, ${view.toLowerCase()}`,
+      videoUnavailable: "La vidéo n'est pas lisible pour le moment. Le geste animé reste consultable.",
     },
     families: {
       strength: "Musculation",
@@ -3086,6 +3098,7 @@ export const fr = {
       configuration: "Configuration",
       mascot: "Mascotte",
       movements: "Mouvements",
+      exercises: "Exercices",
       game: "Jeu",
     },
     // La planche de contrôle du groupe : ce que le fondateur relit avant que les athlètes entrent dans les écrans.

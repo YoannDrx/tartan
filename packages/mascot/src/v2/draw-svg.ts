@@ -6,7 +6,7 @@ import { svgProp, type Geometry } from "../props";
 import { rig, type Face, type Hair } from "../rig";
 import type { Shape } from "../skeleton";
 import { svgShape } from "../svg";
-import { FIGURE } from "./body";
+import { FIGURE, HEIGHT } from "./body";
 import type { MotionClip } from "./gesture";
 import { project, type GestureView } from "./project";
 import { depthIn, extent, seenFrom, type Extent, type Prop } from "./props";
@@ -232,7 +232,14 @@ export type Box = { x: number; y: number; width: number; height: number };
 // Le cadre qui contient tout le geste dans une vue : le corps et la barre sur toute la boucle, plus une marge.
 // De profil et de face, il s'arrête juste sous le sol.
 // `samples` : le nombre d'images mesurées. Moins d'images suffit à un écran qui cadre large.
-export const framing = (clip: MotionClip, view: GestureView, margin = 14, samples = 96): Box => {
+// La plus grande largeur que le corps occupe dans un cadre : au-delà (un élan, un saut vers l'avant), le cadre suit
+// la partie du geste où se trouvent le plus de positions de la frise, et le reste du trajet entre ou sort de
+// l'image. Le matériel, lui, dépasse le corps d'au plus `GEAR_REACH` : un ballon lancé sort de l'image.
+export const BODY_WINDOW = 2 * HEIGHT;
+const GEAR_REACH = 0.3 * HEIGHT;
+
+// L'étendue du corps dans une vue, à un instant : la tête comptée avec sa coiffure (une coupe afro dépasse le crâne).
+export const bodyExtent = (body: Solved, view: GestureView): Extent => {
   let [left, right, top, bottom] = [Infinity, -Infinity, Infinity, -Infinity];
   const include = (x: number, y: number, r: number) => {
     left = Math.min(left, x - r);
@@ -240,29 +247,63 @@ export const framing = (clip: MotionClip, view: GestureView, margin = 14, sample
     top = Math.min(top, y - r);
     bottom = Math.max(bottom, y + r);
   };
+  const { parts, head } = skin(body);
+  for (const part of parts)
+    for (const { c, r } of part.spheres) {
+      const at = project(c, view);
+      include(at.x, at.y, r);
+    }
+  const at = project(head.at, view);
+  include(at.x, at.y, FIGURE.head * 1.4);
+  return { left, right, top, bottom };
+};
+
+export const framing = (clip: MotionClip, view: GestureView, margin = 14, samples = 96): Box => {
+  const frames: Extent[] = [];
   const gear: Extent[] = [];
   for (let i = 0; i < samples; i += 1) {
     const body = clip.pose(i / samples);
-    const { parts, head } = skin(body);
     for (const prop of clip.props(i / samples, body)) {
       const geometry = prop.scroll ? null : seenFrom(prop, view);
       if (geometry) gear.push(extent(geometry));
     }
-    for (const part of parts)
-      for (const { c, r } of part.spheres) {
-        const at = project(c, view);
-        include(at.x, at.y, r);
-      }
-    // La tête, coiffure comprise : une coupe afro dépasse le crâne.
-    const at = project(head.at, view);
-    include(at.x, at.y, FIGURE.head * 1.4);
+    frames.push(bodyExtent(body, view));
   }
-  // Le matériel entre dans le cadre, mais ne l'étire pas sans fin : un ballon lancé sort de l'image.
-  const reach = 150;
+  // La fenêtre horizontale : tout le trajet du corps s'il tient dans BODY_WINDOW, sinon la fenêtre de cette
+  // largeur qui contient le plus de positions de la frise, puis le plus d'images.
+  let [left, right] = [Math.min(...frames.map((f) => f.left)), Math.max(...frames.map((f) => f.right))];
+  if (right - left > BODY_WINDOW) {
+    const stills = clip.stills.map((still) => bodyExtent(clip.pose(still.t), view));
+    const score = (from: number) => {
+      const inside = (f: Extent) => f.left >= from - 1e-6 && f.right <= from + BODY_WINDOW + 1e-6;
+      // À égalité, les dernières positions comptent un peu plus : un saut finit sur son franchissement, sa réception.
+      const weight = stills.reduce((sum, still, index) => sum + (inside(still) ? 4 * samples + index : 0), 0);
+      return weight + frames.filter(inside).length / (4 * samples);
+    };
+    const candidates = [...frames, ...stills].flatMap((f) => [f.left, f.right - BODY_WINDOW]);
+    const from = candidates.reduce((best, x) => (score(x) > score(best) ? x : best), candidates[0]!);
+    [left, right] = [from, from + BODY_WINDOW];
+  }
+  // La hauteur : celle des images dont le corps est dans la fenêtre.
+  const seen = frames.filter((f) => f.right > left && f.left < right);
+  let top = Math.min(...seen.map((f) => f.top));
+  let bottom = Math.max(...seen.map((f) => f.bottom));
+  const include = (x: number, y: number, r: number) => {
+    left = Math.min(left, x - r);
+    right = Math.max(right, x + r);
+    top = Math.min(top, y - r);
+    bottom = Math.max(bottom, y + r);
+  };
+  const reach = GEAR_REACH;
   const [bodyLeft, bodyRight, bodyTop, bodyBottom] = [left, right, top, bottom];
+  // Chaque bord de l'objet est ramené dans la marge permise autour du corps, des deux côtés : un ballon parti loin
+  // à droite n'étire pas le cadre par son bord gauche.
+  const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
   for (const seen of gear) {
-    include(Math.max(seen.left, bodyLeft - reach), Math.max(seen.top, bodyTop - reach), 0);
-    include(Math.min(seen.right, bodyRight + reach), Math.min(seen.bottom, bodyBottom + reach), 0);
+    const [x0, x1] = [bodyLeft - reach, bodyRight + reach];
+    const [y0, y1] = [bodyTop - reach, bodyBottom + reach];
+    include(clamp(seen.left, x0, x1), clamp(seen.top, y0, y1), 0);
+    include(clamp(seen.right, x0, x1), clamp(seen.bottom, y0, y1), 0);
   }
   if (view !== "top") bottom = 0;
   return {

@@ -6,9 +6,8 @@ import path from "node:path";
 import { tokens } from "@tartan/design-tokens";
 import { athletePaint } from "@tartan/design-tokens/athletes";
 import { m } from "@tartan/i18n";
-import { athleteRig } from "@tartan/mascot/athletes";
 import { hurdlerPose } from "@tartan/mascot/hurdles";
-import { svgAthlete } from "@tartan/mascot/svg";
+import { svgPoseFigure } from "@tartan/mascot/v2/pose-figure";
 import { ImageResponse } from "next/og";
 import { dataUri, figureSvg } from "../src/lib/figure-svg";
 
@@ -20,32 +19,30 @@ const [condensed, barlow, logo] = await Promise.all([
 ]);
 // Inès au-dessus d'une haie, au sommet de son saut.
 const athlete = figureSvg(
-  svgAthlete(athleteRig("hurdles", "effort"), hurdlerPose(500, 0.5), athletePaint("hurdles", "piste")),
-  "-200 -280 400 460",
+  svgPoseFigure("hurdles", "effort", hurdlerPose(500, 0.5), athletePaint("hurdles", "piste")),
+  "-160 -190 320 368",
 );
 const { band } = tokens;
 const lane = { display: "flex", width: "100%", height: 8, backgroundColor: band.lane };
 const image = new ImageResponse(
-  (
-    <div style={{ display: "flex", width: "100%", height: "100%", backgroundColor: band.background, color: band.text }}>
-      <div style={{ display: "flex", flexDirection: "column", padding: "64px 72px", gap: 20, width: 700 }}>
-        <img src={dataUri(logo.toString())} height={56} width={200} alt="" />
-        <div style={{ display: "flex", fontFamily: "Barlow Condensed", fontSize: 112, lineHeight: 1, marginTop: 40 }}>
-          {m.game.title}
-        </div>
-        <div style={{ display: "flex", fontFamily: "Barlow", fontSize: 36 }}>{m.game.events.hurdles.title}</div>
+  <div style={{ display: "flex", width: "100%", height: "100%", backgroundColor: band.background, color: band.text }}>
+    <div style={{ display: "flex", flexDirection: "column", padding: "64px 72px", gap: 20, width: 700 }}>
+      <img src={dataUri(logo.toString())} height={56} width={200} alt="" />
+      <div style={{ display: "flex", fontFamily: "Barlow Condensed", fontSize: 112, lineHeight: 1, marginTop: 40 }}>
+        {m.game.title}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "flex-end" }}>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <img src={dataUri(athlete)} width={360} height={414} alt="" />
-        </div>
-        <div style={{ ...lane }} />
-        <div style={{ display: "flex", height: 22 }} />
-        <div style={{ ...lane }} />
-        <div style={{ display: "flex", height: 60 }} />
-      </div>
+      <div style={{ display: "flex", fontFamily: "Barlow", fontSize: 36 }}>{m.game.events.hurdles.title}</div>
     </div>
-  ),
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "flex-end" }}>
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <img src={dataUri(athlete)} width={360} height={414} alt="" />
+      </div>
+      <div style={{ ...lane }} />
+      <div style={{ display: "flex", height: 22 }} />
+      <div style={{ ...lane }} />
+      <div style={{ display: "flex", height: 60 }} />
+    </div>
+  </div>,
   {
     width: 1200,
     height: 630,
