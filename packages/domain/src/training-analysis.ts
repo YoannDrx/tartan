@@ -169,7 +169,11 @@ export function analysisGaps(
   if (t.detailedSessions < t.completedSessions)
     gaps.push({ kind: "sets", missing: t.completedSessions - t.detailedSessions, total: t.completedSessions });
   if (data.healthVisible && t.loadResponses < t.healthEligibleSessions)
-    gaps.push({ kind: "feeling", missing: t.healthEligibleSessions - t.loadResponses, total: t.healthEligibleSessions });
+    gaps.push({
+      kind: "feeling",
+      missing: t.healthEligibleSessions - t.loadResponses,
+      total: t.healthEligibleSessions,
+    });
   const c = data.classification;
   if (c && c.movementKnownItems < c.items)
     gaps.push({ kind: "classification", missing: c.items - c.movementKnownItems, total: c.items });

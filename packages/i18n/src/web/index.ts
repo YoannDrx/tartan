@@ -13,6 +13,18 @@ import { shell } from "./shell";
 import { tracking } from "./tracking";
 import { video } from "./video";
 
-export const w = { analysis, auth, comm, legal, planning, profile, sessions, settings, shell, tracking, video } as const;
+export const w = {
+  analysis,
+  auth,
+  comm,
+  legal,
+  planning,
+  profile,
+  sessions,
+  settings,
+  shell,
+  tracking,
+  video,
+} as const;
 
 export type WebMessages = typeof w;

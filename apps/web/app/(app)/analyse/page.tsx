@@ -90,7 +90,10 @@ export default async function AnalysisPage({
             {m.analysis.phaseRange}
             {query.success ? ` : ${historyDate(query.data.from)} – ${historyDate(query.data.to)}` : ""}
           </summary>
-          <form aria-label={m.analysis.phaseRange} className="grid items-end gap-3 tablet:grid-cols-[1fr_1fr_auto] desktop:max-w-[880px]">
+          <form
+            aria-label={m.analysis.phaseRange}
+            className="grid items-end gap-3 tablet:grid-cols-[1fr_1fr_auto] desktop:max-w-[880px]"
+          >
             <input type="hidden" name="period" value={period} />
             <input type="hidden" name="rangePhase" value={phase.id} />
             {search.target ? <input type="hidden" name="target" value={search.target} /> : null}

@@ -21,10 +21,10 @@ test("vidéos du coach : la liste d'abord, les filtres en feuille, la feuille de
     "insert into athletes (id, organization_id, first_name, last_name, updated_at) values (gen_random_uuid(), $1, 'Inès', 'Haies', now()) returning id",
     [organizationId],
   );
-  await sqlQuery("insert into group_members (group_id, athlete_id, created_at, updated_at) values ($1, $2, now(), now())", [
-    group!.id,
-    athlete!.id,
-  ]);
+  await sqlQuery(
+    "insert into group_members (group_id, athlete_id, created_at, updated_at) values ($1, $2, now(), now())",
+    [group!.id, athlete!.id],
+  );
   await sqlQuery("update athletes set disciplines = '{hurdles}' where id=$1", [athlete!.id]);
   const [video] = await sqlQuery<{ id: string }>(
     "insert into videos (id, organization_id, athlete_id, uploaded_by, status, fps, time_scale, duration_ms, updated_at) values (gen_random_uuid(), $1, $2, $3, 'ready', 30, 1, 1000, now()) returning id",

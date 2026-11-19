@@ -319,7 +319,9 @@ export function TrainingAnalysisView({ data }: { data: TrainingAnalysis }) {
             <SheetSection title={t.health}>
               <Rows>
                 <Row label={t.healthValue}>{value(data.totals.perceivedLoad)}</Row>
-                <Row label={t.healthCoverage}>{ratio(data.totals.loadResponses, data.totals.healthEligibleSessions)}</Row>
+                <Row label={t.healthCoverage}>
+                  {ratio(data.totals.loadResponses, data.totals.healthEligibleSessions)}
+                </Row>
               </Rows>
               <details>
                 <summary className="min-h-11 cursor-pointer py-3 font-semibold">{t.healthMethod}</summary>

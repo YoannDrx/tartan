@@ -132,7 +132,11 @@ export const AppShell = ({
       <header className={cn("app-header sticky z-30", barClass)}>
         <div className="mx-auto flex min-h-14 max-w-[1440px] items-center gap-2 px-4 tablet:gap-4 desktop:px-6">
           {/* Sur téléphone, l'icône seule : la place revient au nom de l'espace (audit G6). */}
-          <Link href="/accueil" aria-label={w.shell.home} className="inline-flex min-h-11 min-w-11 shrink-0 items-center">
+          <Link
+            href="/accueil"
+            aria-label={w.shell.home}
+            className="inline-flex min-h-11 min-w-11 shrink-0 items-center"
+          >
             <span className="tablet:hidden">
               <LogoMark size={32} />
             </span>

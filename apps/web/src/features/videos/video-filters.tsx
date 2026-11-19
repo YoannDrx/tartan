@@ -168,8 +168,7 @@ export function VideoPagination({
   basePath: string;
 }) {
   const params = new URLSearchParams();
-  for (const key of FILTER_KEYS)
-    if (search[key]) params.set(key, search[key]);
+  for (const key of FILTER_KEYS) if (search[key]) params.set(key, search[key]);
   const first = `${basePath}?${params}`;
   if (nextCursor) params.set("cursor", nextCursor);
   return (
