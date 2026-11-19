@@ -55,7 +55,7 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
         .getByLabel(
           new RegExp(`${t.choose(m.exerciseGuide.motion.views.side)}|${t.replace(m.exerciseGuide.motion.views.side)}`),
         )
-        .setInputFiles(path.join(__dirname, "fixtures", "saut-240-etire.webm"));
+        .setInputFiles(path.join(import.meta.dirname, "fixtures", "saut-240-etire.webm"));
       await expect(page.getByText(t.sent)).toBeVisible({ timeout: 30_000 });
       const { rows } = await sql.query(
         "select id from catalog_media where catalog_key=$1 and view='side' order by created_at desc limit 1",
@@ -94,11 +94,13 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/exercices", { waitUntil: "networkidle" });
   await page.getByLabel(m.exercises.search, { exact: true }).fill(NAME);
-  await page.getByRole("button", { name: NAME, exact: true }).first().click();
-  const dialog = page.getByRole("dialog");
+  // La fiche a sa propre adresse : le lien de la bibliothèque porte le nom puis la famille.
+  await page.getByRole("link", { name: new RegExp(`^${NAME} `) }).first().click();
+  await expect(page).toHaveURL(/\/exercices\/[0-9a-f-]+$/);
+  const dialog = page.getByRole("region", { name: m.exerciseGuide.title });
   const choice = dialog.getByRole("group", { name: media.choice });
   await expect(choice.getByRole("button", { name: media.motion, exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(dialog.locator("svg[data-view]")).toBeVisible();
+  await expect(dialog.locator("svg[data-view]").first()).toBeVisible();
   await choice.getByRole("button", { name: media.video, exact: true }).click();
   await expect(choice.getByRole("button", { name: media.video, exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(dialog.locator("svg[data-view]")).toHaveCount(0);
