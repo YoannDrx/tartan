@@ -2223,8 +2223,10 @@ export const fr = {
   },
   exerciseReview: {
     title: "Relecture des guides Tartan",
-    scope: "Cette relecture porte sur les textes. Les illustrations restent à produire et à valider séparément. Aucun avis saisi ici ne publie une fiche dans l’application.",
-    instructions: "Relis les consignes, le comptage et la charge. Indique les corrections nécessaires, puis exporte tes avis pour les transmettre. Les annotations restent dans ce navigateur ; conserve régulièrement un export.",
+    scope:
+      "Cette relecture porte sur les textes. Les illustrations restent à produire et à valider séparément. Aucun avis saisi ici ne publie une fiche dans l’application.",
+    instructions:
+      "Relis les consignes, le comptage et la charge. Indique les corrections nécessaires, puis exporte tes avis pour les transmettre. Les annotations restent dans ce navigateur ; conserve régulièrement un export.",
     reviewer: "Nom du coach relecteur",
     search: "Rechercher un mouvement",
     status: "État de relecture",
@@ -2234,8 +2236,10 @@ export const fr = {
     export: "Exporter mes avis",
     saved: "Annotations conservées dans ce navigateur.",
     storageFailed: "La sauvegarde locale est indisponible. Exporte tes avis avant de fermer cette page.",
-    storageInvalid: "Les annotations locales sont illisibles. Elles ne seront pas écrasées. Exporte tes nouveaux avis avant de fermer cette page.",
-    stale: "Le contenu a changé depuis ta relecture précédente : ton avis revient à « À relire », tes remarques sont conservées.",
+    storageInvalid:
+      "Les annotations locales sont illisibles. Elles ne seront pas écrasées. Exporte tes nouveaux avis avant de fermer cette page.",
+    stale:
+      "Le contenu a changé depuis ta relecture précédente : ton avis revient à « À relire », tes remarques sont conservées.",
     visible: "Fiches affichées",
     reviewed: "Fiches relues",
     total: "Total",
@@ -2287,6 +2291,13 @@ export const fr = {
       warmup: "Échauffement",
     },
     levels: { beginner: "Débutant", intermediate: "Intermédiaire", advanced: "Avancé" },
+  },
+  // Les listes d'exercices du coach : le nom de la liste système et les refus que l'API renvoie aussi au mobile.
+  exerciseLists: {
+    favorites: "Favoris",
+    favoritesLocked:
+      "Les Favoris restent ta liste personnelle : ils ne se renomment, ne se partagent ni ne se suppriment.",
+    guideWithoutBase: "Seule une fiche personnalisée depuis la bibliothèque commune a un guide à modifier.",
   },
   exercises: {
     uploadFailed: "L'envoi a échoué. L'exercice est enregistré : réessaie d'ajouter la vidéo.",

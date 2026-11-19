@@ -1,4 +1,7 @@
 import {
+  exerciseList,
+  exerciseSearchResult,
+  exerciseSheet,
   notificationsPage,
   publishSessionsResult,
   releasesResponse,
@@ -423,6 +426,43 @@ export const createApiClient = (options: ApiClientOptions) => {
         summary: summary ? "true" : undefined,
       }),
     exercises: (orgId: string) => request("GET", `/orgs/${orgId}/exercises`, z.array(exerciseSummary)),
+    // Bibliothèque cherchée côté serveur, fiche complète, étoile, personnalisation et listes du coach.
+    searchExercises: (
+      orgId: string,
+      query: {
+        q?: string;
+        filter?: "all" | "favorites" | "mine" | "family" | "list";
+        family?: string;
+        listId?: string;
+      },
+      page: { offset?: number; limit?: number } = {},
+    ) =>
+      request("GET", `/orgs/${orgId}/exercises/search`, exerciseSearchResult, undefined, {
+        ...query,
+        offset: page.offset?.toString(),
+        limit: page.limit?.toString(),
+      }),
+    exerciseSheet: (orgId: string, exerciseId: string) =>
+      request("GET", `/orgs/${orgId}/exercises/${exerciseId}`, exerciseSheet),
+    setFavorite: (orgId: string, exerciseId: string, favorite: boolean) =>
+      request("PUT", `/orgs/${orgId}/exercises/${exerciseId}/favorite`, okResponse, { favorite }),
+    personalizeExercise: (orgId: string, exerciseId: string) =>
+      request(
+        "POST",
+        `/orgs/${orgId}/exercises/${exerciseId}/personalize`,
+        z.object({ id: z.string(), created: z.boolean() }),
+      ),
+    exerciseLists: (orgId: string) => request("GET", `/orgs/${orgId}/exercise-lists`, z.array(exerciseList)),
+    createExerciseList: (orgId: string, name: string) =>
+      request("POST", `/orgs/${orgId}/exercise-lists`, z.object({ id: z.string() }), { name }),
+    updateExerciseList: (orgId: string, listId: string, body: { name?: string; sharedWithCoaches?: boolean }) =>
+      request("PATCH", `/orgs/${orgId}/exercise-lists/${listId}`, okResponse, body),
+    deleteExerciseList: (orgId: string, listId: string) =>
+      request("DELETE", `/orgs/${orgId}/exercise-lists/${listId}`, okResponse),
+    reorderExerciseLists: (orgId: string, listIds: string[]) =>
+      request("PUT", `/orgs/${orgId}/exercise-lists/order`, okResponse, { listIds }),
+    setListMembership: (orgId: string, listId: string, exerciseId: string, member: boolean) =>
+      request(member ? "PUT" : "DELETE", `/orgs/${orgId}/exercise-lists/${listId}/items/${exerciseId}`, okResponse),
     athletes: (orgId: string) =>
       request(
         "GET",

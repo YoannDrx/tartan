@@ -27,6 +27,7 @@ export * from "./game";
 export * from "./exercise-guide";
 
 export * from "./ai-planner-generation";
+export * from "./exercise-lists";
 
 export * from "./credentials";
 

@@ -1,5 +1,5 @@
 import { exerciseClassification } from "./exercise-classification";
-import { exerciseGuide } from "./exercise-guide";
+import { exerciseFamily, exerciseGuide } from "./exercise-guide";
 import { confirmedStrengthRecord, sessionCelebration } from "./strength-records";
 import { z } from "zod";
 import { avatarFields } from "./avatar";
@@ -344,6 +344,9 @@ export const exerciseSummary = z.object({
   media: z.unknown().nullable(),
   // Bibliothèque commune de Tartan : lisible par tous, modifiable par personne depuis un espace.
   shared: z.boolean().default(false),
+  // Famille et geste de la fiche, lus même quand le guide n'est pas transmis (résultats de recherche).
+  family: exerciseFamily.nullable().optional(),
+  motionKey: z.string().nullable().optional(),
 });
 export type ExerciseSummary = z.infer<typeof exerciseSummary>;
 
