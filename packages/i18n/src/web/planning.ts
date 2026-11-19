@@ -42,4 +42,8 @@ export const planning = {
   phasesSeeAll: "Tout voir",
   // Le nom lu commence par le texte affiché (WCAG 2.5.3).
   phasesSeeAllLabel: "Tout voir des phases de préparation",
+  // La page des phases, sans phase sur la période : l'athlète de la rubrique et ce qu'on peut faire.
+  phasesEmptyCoach:
+    "Aucune phase sur cette période. Une phase (foncier, force, affûtage) donne son cadre aux séances : pose la première.",
+  phasesEmptyAthlete: "Aucune phase sur cette période. Ton coach les partage ici quand il prépare ta saison.",
 } as const;

@@ -4,15 +4,31 @@
 import { admin } from "./admin";
 import { auth } from "./auth";
 import { comm } from "./comm";
+import { common } from "./common";
 import { legal } from "./legal";
 import { onboarding } from "./onboarding";
 import { planning } from "./planning";
 import { profile } from "./profile";
+import { progress } from "./progress";
 import { settings } from "./settings";
 import { shell } from "./shell";
 import { tracking } from "./tracking";
 import { video } from "./video";
 
-export const w = { admin, auth, comm, legal, onboarding, planning, profile, settings, shell, tracking, video } as const;
+export const w = {
+  admin,
+  auth,
+  comm,
+  common,
+  legal,
+  onboarding,
+  planning,
+  profile,
+  progress,
+  settings,
+  shell,
+  tracking,
+  video,
+} as const;
 
 export type WebMessages = typeof w;
