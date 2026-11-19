@@ -41,9 +41,9 @@ export default async function AnalysisPage({
       ? await orNotFound(() => getTrainingAnalysis(actor.userId, organizationId, query.data))
       : null;
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+    <div className="flex w-full min-w-0 flex-col gap-4">
       <PageHeader title={m.analysis.title} />
-      <form className="grid items-end gap-3 sm:grid-cols-3">
+      <form className="grid items-end gap-3 tablet:grid-cols-[1fr_1fr_auto] desktop:max-w-[880px]">
         {phase ? (
           <>
             <input type="hidden" name="rangePhase" value={phase.id} />
@@ -90,11 +90,11 @@ export default async function AnalysisPage({
             {m.analysis.phaseRange}
             {query.success ? ` : ${historyDate(query.data.from)} – ${historyDate(query.data.to)}` : ""}
           </summary>
-          <form aria-label={m.analysis.phaseRange} className="grid items-end gap-3 sm:grid-cols-3">
+          <form aria-label={m.analysis.phaseRange} className="grid items-end gap-3 tablet:grid-cols-[1fr_1fr_auto] desktop:max-w-[880px]">
             <input type="hidden" name="period" value={period} />
             <input type="hidden" name="rangePhase" value={phase.id} />
             {search.target ? <input type="hidden" name="target" value={search.target} /> : null}
-            <p className="text-soft sm:col-span-3">{m.analysis.phaseRangeHint}</p>
+            <p className="text-soft tablet:col-span-3">{m.analysis.phaseRangeHint}</p>
             <Field label={m.analysis.rangeFrom}>
               {(props) => <DateInput {...props} name="from" required defaultValue={from} />}
             </Field>

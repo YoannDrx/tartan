@@ -150,6 +150,32 @@ export function analysisPerceivedLoadPoints(data: Pick<TrainingAnalysis, "health
   }));
 }
 
+/**
+ * Ce qui manque à l'analyse, regroupé : une invitation à compléter plutôt qu'un « Non renseigné » sous chaque chiffre.
+ * Chaque manque dit combien d'éléments sont concernés et sur combien ; rien n'est déduit ni estimé.
+ */
+export type AnalysisGap =
+  | { kind: "responses"; missing: number; total: number }
+  | { kind: "sets"; missing: number; total: number }
+  | { kind: "feeling"; missing: number; total: number }
+  | { kind: "classification"; missing: number; total: number };
+export function analysisGaps(
+  data: Pick<TrainingAnalysis, "totals" | "healthVisible" | "classification">,
+): AnalysisGap[] {
+  const t = data.totals;
+  const gaps: AnalysisGap[] = [];
+  if (t.loggedSessions < t.assignedSessions)
+    gaps.push({ kind: "responses", missing: t.assignedSessions - t.loggedSessions, total: t.assignedSessions });
+  if (t.detailedSessions < t.completedSessions)
+    gaps.push({ kind: "sets", missing: t.completedSessions - t.detailedSessions, total: t.completedSessions });
+  if (data.healthVisible && t.loadResponses < t.healthEligibleSessions)
+    gaps.push({ kind: "feeling", missing: t.healthEligibleSessions - t.loadResponses, total: t.healthEligibleSessions });
+  const c = data.classification;
+  if (c && c.movementKnownItems < c.items)
+    gaps.push({ kind: "classification", missing: c.items - c.movementKnownItems, total: c.items });
+  return gaps;
+}
+
 export function scopeAnalysisEntries<T extends { date: string; athleteId: string; phaseId: string | null }>(
   entries: readonly T[],
   input: { from: string; to: string; previousFrom: string; previousTo: string; phaseId?: string },
