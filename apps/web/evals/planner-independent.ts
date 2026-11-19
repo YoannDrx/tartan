@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { plannerInterpretation, plannerBrief } from "@tartan/contracts";
+import { plannerRichInterpretation, plannerBrief } from "@tartan/contracts";
 import { plannerSessionToDraft, sequenceOccurrences } from "@tartan/domain";
 import { EXERCISE_CATALOG } from "@tartan/domain/exercise-catalog";
 import type { PlannerProviderContext } from "../src/server/ai/provider";
@@ -118,7 +118,8 @@ export function scoreIndependentCase(test: IndependentCase, value: unknown, corp
   const critical: string[] = [];
   const humanReviewRequired = test.mode === "propose";
   const result = () => ({ passed: differences.length === 0, differences, critical, humanReviewRequired });
-  const parsed = plannerInterpretation.safeParse(value);
+  // La forme enrichie (séries détaillées, autonomie, points à vérifier) ne change aucun critère de ce corpus.
+  const parsed = plannerRichInterpretation.safeParse(value);
   if (!parsed.success) {
     differences.push("schema");
     return result();

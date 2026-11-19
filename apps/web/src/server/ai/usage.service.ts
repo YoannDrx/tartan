@@ -163,7 +163,7 @@ export async function reservePlannerOperation(
           paid.actorId !== userId ||
           paid.kind !== "proposal" ||
           paid.state !== "succeeded" ||
-          parent.clarificationCount >= 5 ||
+          (parent.state === "proposal" ? parent.adjustmentCount : parent.clarificationCount) >= 5 ||
           !onClaim
         )
           throw conflict();
@@ -303,7 +303,14 @@ export async function completePlannerOperation(
   );
 }
 
-export async function failPlannerOperation(userId: string, organizationId: string, id: string, leaseToken: string) {
+// `code` garde la cause en base (aucun texte du coach) : la reprise affiche le même message qu'au premier échec.
+export async function failPlannerOperation(
+  userId: string,
+  organizationId: string,
+  id: string,
+  leaseToken: string,
+  code = "no_usable_result",
+) {
   await requireOrgMember(userId, organizationId, "manageSessions");
   return prisma.$transaction(async (tx) => {
     await lock(tx, organizationId);
@@ -313,7 +320,7 @@ export async function failPlannerOperation(userId: string, organizationId: strin
     if (row.actorId !== userId) throw forbidden();
     if (row.state !== "pending") return stateOf(row);
     if (row.leaseToken !== leaseToken) throw conflict();
-    await refund(tx, row, "no_usable_result");
+    await refund(tx, row, code);
     return { state: "refunded" } as const;
   });
 }

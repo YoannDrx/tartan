@@ -6,7 +6,7 @@ import {
   type ResolvePlannerExerciseInput,
   clarifyPlannerProposalInput,
   createPlannerProposalInput,
-  plannerInterpretation,
+  plannerRichInterpretation,
   exerciseClassification,
   plannerSelection,
   confirmPlannerProposalInput,
@@ -22,6 +22,10 @@ import {
   type PlannerReviewedDraft,
   type ClarifyPlannerProposalInput,
   type CreatePlannerProposalInput,
+  plannerFailureCode,
+  type PlannerFailureCode,
+  type PlannerWarning,
+  type PlannerStreamPlanLine,
 } from "@tartan/contracts";
 import {
   validatePlannerInterpretation,
@@ -35,8 +39,11 @@ import {
   freezePrescription,
   cleanExerciseAliases,
   isSessionAssigned,
-  plannerCoachText,
-  plannerUnknownExerciseTerms,
+  plannerLegacyInterpretation,
+  plannerSessionToGeneration,
+  plannerDropUncoveredPercent,
+  PLANNER_MAX_ADJUSTMENTS,
+  PLANNER_MAX_CLARIFICATIONS,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
@@ -58,7 +65,14 @@ import {
   type PlannerBindings,
 } from "./context";
 import { fakePlannerEnabled, fakePlannerProvider } from "./fake-provider";
-import { openAiPlannerProvider, type PlannerProvider } from "./provider";
+import { plannerPlanLines } from "./stream";
+import {
+  openAiPlannerProvider,
+  plannerUnknownQuestions,
+  PlannerProviderError,
+  type PlannerProgress,
+  type PlannerProvider,
+} from "./provider";
 import {
   completePlannerOperation,
   failPlannerOperation,
@@ -66,7 +80,31 @@ import {
   type PlannerOperationClaim,
 } from "./usage.service";
 
-const messagesSchema = z.array(z.string()).min(1).max(6);
+// La consigne, cinq réponses aux questions et cinq ajustements au plus.
+const messagesSchema = z
+  .array(z.string())
+  .min(1)
+  .max(1 + PLANNER_MAX_CLARIFICATIONS + PLANNER_MAX_ADJUSTMENTS);
+const visibleMessages = (messages: string[]) =>
+  messages.length > 6 ? [messages[0]!, ...messages.slice(-5)] : messages;
+// Statut HTTP de chaque cause : 503 quand il faut attendre ou prévenir, 504 pour un délai, 422 pour un refus.
+const FAILURE_STATUS: Record<PlannerFailureCode, number> = {
+  configuration: 503,
+  saturated: 503,
+  unavailable: 502,
+  timeout: 504,
+  refused: 422,
+  incomplete: 502,
+  invalid_output: 502,
+};
+export const plannerFailureError = (code: PlannerFailureCode) =>
+  new AppError(FAILURE_STATUS[code], `planner_${code}`, m.aiPlanner.failures[code]);
+// Une panne inattendue (base, code) reste une réponse inexploitable pour le coach : jamais de détail technique.
+const failureOf = (error: unknown): PlannerFailureCode | null => {
+  if (error instanceof PlannerProviderError) return error.code === "disabled" ? "configuration" : error.code;
+  if (error instanceof AppError) return null;
+  return "invalid_output";
+};
 const conflict = () => new AppError(409, "planner_proposal_conflict", m.aiPlanner.proposalConflict);
 const expired = () => new AppError(410, "planner_expired", m.aiPlanner.expiredRequest);
 export const plannerFingerprint = (input: unknown) =>
@@ -106,7 +144,16 @@ async function effectiveState(row: AiPlannerProposal, now: Date, db: Prisma.Tran
     where: { organizationId_id: { organizationId: row.organizationId, id: row.activeOperationId } },
   });
   if (operation?.state === "pending" && operation.leaseUntil > now) return "processing";
-  return row.interpretation ? plannerInterpretation.parse(row.interpretation).status : "failed";
+  return row.interpretation ? plannerRichInterpretation.parse(row.interpretation).status : "failed";
+}
+// La cause du dernier échec, s'il porte sur l'opération active : rien quand elle a réussi ou expiré sans cause connue.
+async function lastFailure(row: AiPlannerProposal) {
+  const operation = await prisma.aiPlannerOperation.findUnique({
+    where: { organizationId_id: { organizationId: row.organizationId, id: row.activeOperationId } },
+    select: { state: true, failureCode: true },
+  });
+  const code = plannerFailureCode.safeParse(operation?.state === "refunded" ? operation.failureCode : null);
+  return code.success ? { code: code.data, message: m.aiPlanner.failures[code.data] } : null;
 }
 
 export async function getPlannerProposal(userId: string, organizationId: string, id: string, now = new Date()) {
@@ -116,15 +163,21 @@ export async function getPlannerProposal(userId: string, organizationId: string,
     bindings = plannerBindings.parse(row.bindings);
   await assertPlannerTargets(prisma, access, selection);
   return plannerProposalResponse.parse({
+    failure: await lastFailure(row),
     id: row.id,
     version: row.version,
     state: await effectiveState(row, now),
     clarificationCount: row.clarificationCount,
+    adjustmentCount: row.adjustmentCount,
     expiresAt: row.expiresAt.toISOString(),
     selection,
-    messages: messagesSchema.parse(row.messages),
+    // Les applications installées lisent six messages au plus : la consigne, puis les cinq derniers échanges.
+    messages: visibleMessages(messagesSchema.parse(row.messages)),
     pendingText: row.pendingMessage,
-    interpretation: row.interpretation ? plannerInterpretation.parse(row.interpretation) : null,
+    // Projection stricte que les applications installées savent lire ; le détail passe par les brouillons préparés.
+    interpretation: row.interpretation
+      ? plannerLegacyInterpretation(plannerRichInterpretation.parse(row.interpretation))
+      : null,
     targets: bindings.targets.map(({ aliases: _aliases, ...target }) => target),
     exercises: bindings.exercises,
     exerciseResolutions: bindings.resolutions
@@ -186,20 +239,27 @@ export async function listPlannerProposals(
   }
   return plannerProposalList.parse({ items, nextCursor: rows.length > 20 ? rows[19]!.id : null });
 }
-type Execution = { provider?: PlannerProvider; clock?: () => Date };
-const unknownExerciseQuestions = (names: readonly string[]) => ({
-  status: "clarification" as const,
-  sessions: [],
-  assumptions: [],
-  suggestions: [],
-  questions: names.map((name, index) => ({
-    id: `named-exercise-${index + 1}`,
-    field: "exercise" as const,
-    question: m.aiPlanner.unknownExercise(name),
-    exerciseName: name,
-    options: [],
-  })),
-});
+type Execution = {
+  provider?: PlannerProvider;
+  clock?: () => Date;
+  onProgress?: (progress: PlannerProgress | { step: "saved" }) => void;
+  // Le plan de la séance pendant qu'il s'écrit : noms de blocs et d'exercices, rien d'autre.
+  onPlan?: (lines: PlannerStreamPlanLine[]) => void;
+};
+// Le texte du modèle arrive par morceaux : à chaque morceau, les lignes du plan déjà lisibles, en noms de fiches.
+const planFollower = (bindings: PlannerBindings, onPlan: (lines: PlannerStreamPlanLine[]) => void) => {
+  let text = "";
+  const names = new Map(bindings.exercises.map((e) => [e.token, e.name]));
+  return (delta: string) => {
+    text += delta;
+    onPlan(
+      plannerPlanLines(text, (token) => names.get(token) ?? null).map((line) =>
+        line.kind === "block" ? { ...line, label: plannerDisplayText(line.label, bindings) } : line,
+      ),
+    );
+  };
+};
+const isAdjustment = (message: string | null) => Boolean(message?.startsWith(m.aiPlanner.adjustmentPrefix));
 async function executeProposal(
   userId: string,
   organizationId: string,
@@ -217,18 +277,33 @@ async function executeProposal(
       bindings = plannerBindings.parse(row.bindings);
     await assertPlannerTargets(prisma, access, selection);
     const messages = [...messagesSchema.parse(row.messages), ...(row.pendingMessage ? [row.pendingMessage] : [])];
-    const context = providerContextFor(selection, bindings, messages);
+    const adjusting = isAdjustment(row.pendingMessage) && Boolean(row.interpretation);
+    // « Ajuster » envoie la séance précédente : le modèle la modifie au lieu d'en refaire une autre.
+    const previous = adjusting
+      ? {
+          sessions: plannerRichInterpretation
+            .parse(row.interpretation)
+            .sessions.map((session) => plannerSessionToGeneration(session)),
+        }
+      : undefined;
+    const context = providerContextFor(selection, bindings, messages, previous);
+    execution.onProgress?.({ step: "context" });
     const provider = execution.provider ?? (fakePlannerEnabled() ? fakePlannerProvider() : openAiPlannerProvider());
     // Un nom de mouvement absent de la bibliothèque devient une question nommée sans appel au modèle.
-    const unknown =
+    // Mode « Proposer » : le pourcentage n'est permis que là où chaque destinataire a sa référence de force.
+    const percentTokens = new Set(
       selection.mode === "propose"
-        ? []
-        : plannerUnknownExerciseTerms(
-            context.instructions.map(plannerCoachText).join("\n"),
-            context.exercises,
-            context.resolvedExercises,
-          ).slice(0, 3);
-    const raw = unknown.length ? unknownExerciseQuestions(unknown) : await provider.interpret(context);
+        ? (bindings.strength ?? []).filter((s) => s.coverage === "all").map((s) => s.exerciseToken)
+        : [],
+    );
+    const generated =
+      plannerUnknownQuestions(context) ??
+      (await provider.interpret(context, {
+        onProgress: execution.onProgress,
+        ...(execution.onPlan ? { onDelta: planFollower(bindings, execution.onPlan) } : {}),
+      }));
+    // Le même retrait que l'adaptateur, quel que soit le prestataire : rien ne passe sans référence pour tous.
+    const raw = selection.mode === "propose" ? plannerDropUncoveredPercent(generated, percentTokens) : generated;
     const checked = validatePlannerInterpretation(raw, {
       mode: selection.mode,
       brief: selection.brief,
@@ -236,8 +311,9 @@ async function executeProposal(
       reviewedInstructions: context.instructions,
       exercises: new Map(bindings.exercises.map((e) => [e.token, { id: e.id, classification: e.classification }])),
       targetTokens: new Set(bindings.targets.map((t) => t.token)),
+      percentTokens,
     });
-    if (!checked.ok) throw new Error("planner_invalid_output");
+    if (!checked.ok) throw new PlannerProviderError("invalid_output");
     const completed = await completePlannerOperation(
       userId,
       organizationId,
@@ -261,16 +337,28 @@ async function executeProposal(
             messages,
             pendingMessage: null,
             version: { increment: 1 },
-            ...(row.pendingMessage ? { clarificationCount: { increment: 1 } } : {}),
+            ...(row.pendingMessage
+              ? adjusting
+                ? { adjustmentCount: { increment: 1 } }
+                : { clarificationCount: { increment: 1 } }
+              : {}),
           },
         });
         return { proposalId, version: saved.version };
       },
       clock(),
     );
-    if (completed.state === "refunded") throw new Error("planner_result_expired");
+    if (completed.state === "refunded") throw new PlannerProviderError("timeout");
+    execution.onProgress?.({ step: "saved" });
   } catch (error) {
-    const settled = await failPlannerOperation(userId, organizationId, operationId, claim.leaseToken).catch(() => null);
+    const failure = failureOf(error);
+    const settled = await failPlannerOperation(
+      userId,
+      organizationId,
+      operationId,
+      claim.leaseToken,
+      failure ?? undefined,
+    ).catch(() => null);
     if (settled?.state === "succeeded") return getPlannerProposal(userId, organizationId, proposalId, clock());
     // Conserver l’ancienne clarification et la réponse saisie pour une reprise explicite.
     if (settled?.state === "refunded") {
@@ -281,12 +369,12 @@ async function executeProposal(
         await prisma.aiPlannerProposal.updateMany({
           where: { id: row.id, organizationId, actorId: userId, activeOperationId: operationId, state: "processing" },
           data: {
-            state: row.interpretation ? plannerInterpretation.parse(row.interpretation).status : "failed",
+            state: row.interpretation ? plannerRichInterpretation.parse(row.interpretation).status : "failed",
           },
         });
     }
     if (error instanceof AppError) throw error;
-    throw new AppError(502, "planner_generation_failed", m.aiPlanner.proposalFailed);
+    throw plannerFailureError(failure ?? "invalid_output");
   }
   return getPlannerProposal(userId, organizationId, proposalId, clock());
 }
@@ -323,6 +411,8 @@ export async function createPlannerProposal(
       const access = await accessFor(userId, organizationId, tx);
       if (await tx.aiPlannerProposal.findUnique({ where: { id: input.id }, select: { id: true } })) throw conflict();
       const bindings = await buildPlannerBindings(tx, access, input.selection, now, input.text);
+      // Mode « Proposer » : l'heure demandée est posée par le serveur, jamais choisie par le modèle.
+      if (input.selection.mode === "propose" && input.startTime) bindings.startTime = input.startTime;
       await tx.aiPlannerProposal.create({
         data: {
           id: input.id,
@@ -370,16 +460,19 @@ export async function clarifyPlannerProposal(
         row = await owned(userId, organizationId, proposalId, now, tx);
       const state = await effectiveState(row, now, tx);
       // Une réponse suit une question ; un ajustement suit une proposition. Les brouillons créés la figent.
+      // Chacun a son compteur : ajuster une séance ne consomme pas les précisions, et inversement.
       if (
         row.version !== input.expectedVersion ||
         (state !== "clarification" && state !== "proposal") ||
-        row.clarificationCount >= 5
+        (state === "proposal"
+          ? row.adjustmentCount >= PLANNER_MAX_ADJUSTMENTS
+          : row.clarificationCount >= PLANNER_MAX_CLARIFICATIONS)
       )
         throw conflict();
       const selection = plannerSelection.parse(row.selection),
         bindings = plannerBindings.parse(row.bindings);
       await recheckPlannerBindings(tx, access, selection, bindings);
-      const previous = plannerInterpretation.parse(row.interpretation);
+      const previous = plannerRichInterpretation.parse(row.interpretation);
       const pendingMessage =
         state === "proposal"
           ? `${m.aiPlanner.adjustmentPrefix}${input.text}`
@@ -411,92 +504,95 @@ export async function resolvePlannerExercise(
     requestedName: input.requestedName,
     choice: input.choice,
   });
-  await prisma.$transaction(async (tx) => {
-    await lock(tx, organizationId);
-    const access = await accessFor(userId, organizationId, tx);
-    // Choisir une fiche existante ne modifie pas la bibliothèque ; seule la création l'exige.
-    if (input.choice.kind === "create") await requireOrgMember(userId, organizationId, "editExercises", tx);
-    const row = await owned(userId, organizationId, proposalId, now, tx);
-    const bindings = plannerBindings.parse(row.bindings),
-      selection = plannerSelection.parse(row.selection);
-    await recheckPlannerBindings(tx, access, selection, bindings);
-    const previous = bindings.resolutions?.find(
-      (r) =>
-        r.operationId === input.operationId ||
-        (r.questionId === input.questionId && r.clarificationCount === row.clarificationCount),
-    );
-    if (previous) {
-      if (previous.fingerprint !== fingerprint) throw conflict();
-      return;
-    }
-    if (row.version !== input.expectedVersion || row.state !== "clarification") throw conflict();
-    const interpretation = plannerInterpretation.parse(row.interpretation);
-    const question = interpretation.questions.find((q) => q.id === input.questionId && q.field === "exercise");
-    if (!question || (question.exerciseName && question.exerciseName !== input.requestedName)) throw conflict();
-    const choice = input.choice;
-    if (selection.mode === "propose" && choice.kind === "create") throw invalid(m.aiPlanner.verifiedCatalogRequired);
-    const exercise =
-      choice.kind === "existing"
-        ? await tx.exercise.findFirst({
-            where: { id: choice.exerciseId, deletedAt: null, OR: [{ organizationId }, { organizationId: null }] },
-          })
-        : await tx.exercise.create({
-            data: {
-              organizationId,
-              createdBy: userId,
-              name: choice.exercise.name,
-              category: choice.exercise.category,
-              aliases: cleanExerciseAliases(choice.exercise.name, choice.exercise.aliases ?? []),
-              tags: choice.exercise.tags,
-              cues: choice.exercise.cues,
-              defaultPrescription: choice.exercise.defaultPrescription,
-              classification: choice.exercise.classification ?? undefined,
-              strengthLoadKind: choice.exercise.strengthLoadKind,
-              loadStepKg: choice.exercise.loadStepKg,
-            },
-          });
-    if (!exercise) throw notFound();
-    if (
-      selection.mode === "propose" &&
-      (!exercise.catalogKey ||
-        !exercise.guide ||
-        typeof exercise.guide !== "object" ||
-        Array.isArray(exercise.guide) ||
-        exercise.guide.technicalReview !== "approved")
-    )
-      throw invalid(m.aiPlanner.verifiedCatalogRequired);
-    const current = bindings.exercises.find((e) => e.id === exercise.id);
-    if (current) current.aliases = [...new Set([input.requestedName, ...(current.aliases ?? [])])].slice(0, 20);
-    else {
-      if (bindings.exercises.length >= 500) throw invalid(m.aiPlanner.libraryLimit);
-      bindings.exercises.push({
-        token: `exercise_${Math.max(0, ...bindings.exercises.map((e) => Number(e.token.split("_")[1]) || 0)) + 1}`,
-        id: exercise.id,
-        name: exercise.name,
-        category: exercise.category,
-        aliases: [...new Set([input.requestedName, ...exercise.aliases])].slice(0, 20),
-        classification: exerciseClassification.nullable().parse(exercise.classification ?? null),
-        updatedAt: exercise.updatedAt.toISOString(),
-        strengthLoadKind: exercise.strengthLoadKind as (typeof bindings.exercises)[number]["strengthLoadKind"],
+  await prisma.$transaction(
+    async (tx) => {
+      await lock(tx, organizationId);
+      const access = await accessFor(userId, organizationId, tx);
+      // Choisir une fiche existante ne modifie pas la bibliothèque ; seule la création l'exige.
+      if (input.choice.kind === "create") await requireOrgMember(userId, organizationId, "editExercises", tx);
+      const row = await owned(userId, organizationId, proposalId, now, tx);
+      const bindings = plannerBindings.parse(row.bindings),
+        selection = plannerSelection.parse(row.selection);
+      await recheckPlannerBindings(tx, access, selection, bindings);
+      const previous = bindings.resolutions?.find(
+        (r) =>
+          r.operationId === input.operationId ||
+          (r.questionId === input.questionId && r.clarificationCount === row.clarificationCount),
+      );
+      if (previous) {
+        if (previous.fingerprint !== fingerprint) throw conflict();
+        return;
+      }
+      if (row.version !== input.expectedVersion || row.state !== "clarification") throw conflict();
+      const interpretation = plannerRichInterpretation.parse(row.interpretation);
+      const question = interpretation.questions.find((q) => q.id === input.questionId && q.field === "exercise");
+      if (!question || (question.exerciseName && question.exerciseName !== input.requestedName)) throw conflict();
+      const choice = input.choice;
+      if (selection.mode === "propose" && choice.kind === "create") throw invalid(m.aiPlanner.verifiedCatalogRequired);
+      const exercise =
+        choice.kind === "existing"
+          ? await tx.exercise.findFirst({
+              where: { id: choice.exerciseId, deletedAt: null, OR: [{ organizationId }, { organizationId: null }] },
+            })
+          : await tx.exercise.create({
+              data: {
+                organizationId,
+                createdBy: userId,
+                name: choice.exercise.name,
+                category: choice.exercise.category,
+                aliases: cleanExerciseAliases(choice.exercise.name, choice.exercise.aliases ?? []),
+                tags: choice.exercise.tags,
+                cues: choice.exercise.cues,
+                defaultPrescription: choice.exercise.defaultPrescription,
+                classification: choice.exercise.classification ?? undefined,
+                strengthLoadKind: choice.exercise.strengthLoadKind,
+                loadStepKg: choice.exercise.loadStepKg,
+              },
+            });
+      if (!exercise) throw notFound();
+      if (
+        selection.mode === "propose" &&
+        (!exercise.catalogKey ||
+          !exercise.guide ||
+          typeof exercise.guide !== "object" ||
+          Array.isArray(exercise.guide) ||
+          exercise.guide.technicalReview !== "approved")
+      )
+        throw invalid(m.aiPlanner.verifiedCatalogRequired);
+      const current = bindings.exercises.find((e) => e.id === exercise.id);
+      if (current) current.aliases = [...new Set([input.requestedName, ...(current.aliases ?? [])])].slice(0, 20);
+      else {
+        if (bindings.exercises.length >= 500) throw invalid(m.aiPlanner.libraryLimit);
+        bindings.exercises.push({
+          token: `exercise_${Math.max(0, ...bindings.exercises.map((e) => Number(e.token.split("_")[1]) || 0)) + 1}`,
+          id: exercise.id,
+          name: exercise.name,
+          category: exercise.category,
+          aliases: [...new Set([input.requestedName, ...exercise.aliases])].slice(0, 20),
+          classification: exerciseClassification.nullable().parse(exercise.classification ?? null),
+          updatedAt: exercise.updatedAt.toISOString(),
+          strengthLoadKind: exercise.strengthLoadKind as (typeof bindings.exercises)[number]["strengthLoadKind"],
+        });
+      }
+      bindings.resolutions = [
+        ...(bindings.resolutions ?? []),
+        {
+          operationId: input.operationId,
+          questionId: input.questionId,
+          requestedName: input.requestedName,
+          clarificationCount: row.clarificationCount,
+          fingerprint,
+          exerciseId: exercise.id,
+          name: exercise.name,
+        },
+      ];
+      await tx.aiPlannerProposal.update({
+        where: { id: proposalId },
+        data: { bindings: bindings as Prisma.InputJsonValue, version: { increment: 1 } },
       });
-    }
-    bindings.resolutions = [
-      ...(bindings.resolutions ?? []),
-      {
-        operationId: input.operationId,
-        questionId: input.questionId,
-        requestedName: input.requestedName,
-        clarificationCount: row.clarificationCount,
-        fingerprint,
-        exerciseId: exercise.id,
-        name: exercise.name,
-      },
-    ];
-    await tx.aiPlannerProposal.update({
-      where: { id: proposalId },
-      data: { bindings: bindings as Prisma.InputJsonValue, version: { increment: 1 } },
-    });
-  }, { timeout: 30000, maxWait: 10000 });
+    },
+    { timeout: 30000, maxWait: 10000 },
+  );
   return getPlannerProposal(userId, organizationId, proposalId, now);
 }
 
@@ -517,9 +613,26 @@ export async function preparePlannerDrafts(
       const selection = plannerSelection.parse(row.selection),
         bindings = plannerBindings.parse(row.bindings);
       await recheckPlannerBindings(tx, access, selection, bindings);
-      const output = plannerInterpretation.parse(row.interpretation);
+      const output = plannerRichInterpretation.parse(row.interpretation);
       const sessions: PlannerReviewedDraft[] = [];
+      const warnings: {
+        code: PlannerWarning["code"];
+        field: PlannerWarning["field"];
+        itemRef: string | null;
+        detail: string | null;
+      }[][] = [];
       for (const [index, session] of output.sessions.entries()) {
+        const prefix = `ai-${proposalId}-${index}`;
+        // Chaque point « À vérifier » vise l'exercice du brouillon : sa référence suit la même règle que la conversion.
+        warnings.push(
+          (session.warnings ?? []).map((warning) => ({
+            code: warning.code,
+            field: warning.field,
+            itemRef:
+              warning.block !== null && warning.item !== null ? `${prefix}-b${warning.block}-i${warning.item}` : null,
+            detail: warning.detail === null ? null : plannerDisplayText(warning.detail, bindings),
+          })),
+        );
         const assignments = session.targetTokens.map((token) => {
           const target = bindings.targets.find((t) => t.token === token);
           if (!target) throw conflict();
@@ -546,7 +659,7 @@ export async function preparePlannerDrafts(
         }
         sessions.push({
           date: session.date,
-          startTime: session.startTime,
+          startTime: selection.mode === "propose" ? (bindings.startTime ?? session.startTime) : session.startTime,
           location: null,
           publishAt: null,
           assignments,
@@ -556,7 +669,7 @@ export async function preparePlannerDrafts(
             const draft = plannerSessionToDraft(
               session,
               new Map(bindings.exercises.map((entry) => [entry.token, { id: entry.id }])),
-              `ai-${proposalId}-${index}`,
+              prefix,
             );
             return {
               ...draft,
@@ -578,7 +691,7 @@ export async function preparePlannerDrafts(
           })(),
         });
       }
-      return { proposalId, version: row.version, sessions };
+      return { proposalId, version: row.version, sessions, warnings };
     },
     { timeout: 30000 },
   );

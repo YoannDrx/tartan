@@ -129,6 +129,62 @@ export const plannerProviderInterpretation = plannerInterpretation.extend({
 export type PlannerInterpretation = z.infer<typeof plannerInterpretation>;
 export type PlannerPrescription = z.infer<typeof plannerPrescription>;
 
+// Interprétation enrichie, gardée côté serveur : séries détaillées, remplacement en autonomie et points à vérifier.
+// L'API la projette sur `plannerInterpretation`, strict, que les applications déjà installées savent lire ; le web
+// reçoit le détail par les brouillons préparés.
+export const plannerPlannedSet = z
+  .object({
+    reps: nullableInt(1, 500),
+    load: plannerPrescription.shape.load,
+    warmup: z.boolean(),
+  })
+  .strict();
+export const plannerRichPrescription = plannerPrescription.extend({
+  setPlan: z.array(plannerPlannedSet).min(1).max(30).nullable().optional(),
+});
+export const plannerWarningField = z.enum(["exercise", "rest", "load", "rounds", "date", "other"]);
+export const plannerWarningCode = z.enum([
+  "approximate_exercise",
+  "rest_not_executed",
+  "rounds_not_stated",
+  "rounds_missing",
+  "habit_load",
+  "habit_rest",
+]);
+// Un point « À vérifier » : la proposition reste utilisable, le coach relit ce champ.
+export const plannerWarning = z
+  .object({
+    code: plannerWarningCode,
+    field: plannerWarningField,
+    // Position de l'exercice concerné dans la séance, ou null pour la séance entière.
+    block: z.number().int().min(0).max(11).nullable(),
+    item: z.number().int().min(0).max(59).nullable(),
+    detail: z.string().max(200).nullable(),
+  })
+  .strict();
+export type PlannerWarning = z.infer<typeof plannerWarning>;
+export const plannerRichItem = plannerItem.extend({
+  prescription: plannerRichPrescription,
+  autonomous: z
+    .object({ exerciseToken: plannerItem.shape.exerciseToken, prescription: plannerRichPrescription })
+    .strict()
+    .nullable()
+    .optional(),
+});
+export const plannerRichSession = plannerSession.extend({
+  blocks: z
+    .array(plannerSession.shape.blocks.element.extend({ items: z.array(plannerRichItem).max(60) }))
+    .min(1)
+    .max(12),
+  warnings: z.array(plannerWarning).max(30).optional(),
+});
+export const plannerRichInterpretation = plannerInterpretation.extend({
+  sessions: z.array(plannerRichSession).max(14),
+});
+export type PlannerRichInterpretation = z.infer<typeof plannerRichInterpretation>;
+export type PlannerRichSession = z.infer<typeof plannerRichSession>;
+export type PlannerRichPrescription = z.infer<typeof plannerRichPrescription>;
+
 export const resolvePlannerExerciseInput = z
   .object({
     operationId: uuid,
@@ -211,6 +267,8 @@ export const createPlannerProposalInput = z
     selection: plannerSelection,
     text: z.string().trim().min(1).max(12000),
     reviewed: z.literal(true),
+    // Additif, mode « Proposer » : l'heure demandée, posée par le serveur sur la séance (jamais choisie par l'IA).
+    startTime: clockTime.nullable().optional(),
   })
   .strict();
 export type CreatePlannerProposalInput = z.infer<typeof createPlannerProposalInput>;
@@ -272,6 +330,19 @@ export const plannerDraftsResponse = z.object({
   proposalId: uuid,
   version: z.number().int().positive(),
   sessions: z.array(plannerPreparedDraft).min(1).max(14),
+  // Additif : les points « À vérifier » de chaque séance, rattachés à l'exercice du brouillon quand il y en a un.
+  warnings: z
+    .array(
+      z.array(
+        z.object({
+          code: plannerWarningCode,
+          field: plannerWarningField,
+          itemRef: z.string().nullable(),
+          detail: z.string().nullable(),
+        }),
+      ),
+    )
+    .optional(),
 });
 export type PlannerDraftsResponse = z.infer<typeof plannerDraftsResponse>;
 export const previewPlannerLoadsInput = z
@@ -306,11 +377,26 @@ export const plannerLoadsPreview = z.object({
     .max(10),
 });
 export type PlannerLoadsPreview = z.infer<typeof plannerLoadsPreview>;
+// Pourquoi une génération a échoué : chaque cause dit au coach quoi faire. Aucune n'est décomptée du quota.
+export const plannerFailureCode = z.enum([
+  "configuration",
+  "saturated",
+  "unavailable",
+  "timeout",
+  "refused",
+  "incomplete",
+  "invalid_output",
+]);
+export type PlannerFailureCode = z.infer<typeof plannerFailureCode>;
 export const plannerProposalResponse = z.object({
+  // Additif : la cause du dernier échec, lisible après un rechargement. Les anciens clients l'ignorent.
+  failure: z.object({ code: plannerFailureCode, message: z.string() }).nullable().optional(),
   id: uuid,
   version: z.number().int().positive(),
   state: z.enum(["processing", "clarification", "proposal", "failed", "committed"]),
   clarificationCount: z.number().int().min(0).max(5),
+  // Additif : les ajustements d'une proposition ont leur propre compteur, distinct des précisions.
+  adjustmentCount: z.number().int().min(0).max(5).optional(),
   expiresAt: z.iso.datetime(),
   selection: plannerSelection,
   messages: z.array(z.string()).min(1).max(6),
@@ -325,6 +411,23 @@ export const plannerProposalResponse = z.object({
   draftIds: plannerCreatedSessions.nullable(),
 });
 export type PlannerProposalResponse = z.infer<typeof plannerProposalResponse>;
+
+// Réponse diffusée (web, `Accept: text/event-stream`) : les étapes, le plan de la séance pendant qu'il s'écrit,
+// puis la proposition, ou l'erreur lisible. Le JSON d'une seule pièce reste servi aux autres clients.
+export const plannerStreamStep = z.enum(["context", "model", "checks", "retry", "saved"]);
+export type PlannerStreamStep = z.infer<typeof plannerStreamStep>;
+export const plannerStreamPlanLine = z.object({ kind: z.enum(["block", "exercise"]), label: z.string().max(200) });
+export type PlannerStreamPlanLine = z.infer<typeof plannerStreamPlanLine>;
+export const plannerStreamEvent = z.discriminatedUnion("event", [
+  z.object({ event: z.literal("step"), data: z.object({ step: plannerStreamStep }) }),
+  z.object({ event: z.literal("plan"), data: z.object({ lines: z.array(plannerStreamPlanLine).max(200) }) }),
+  z.object({ event: z.literal("result"), data: plannerProposalResponse }),
+  z.object({
+    event: z.literal("error"),
+    data: z.object({ status: z.number().int(), code: z.string(), message: z.string() }),
+  }),
+]);
+export type PlannerStreamEvent = z.infer<typeof plannerStreamEvent>;
 export const plannerProposalListQuery = z.object({ before: uuid.optional() }).strict();
 export type PlannerProposalListQuery = z.infer<typeof plannerProposalListQuery>;
 export const plannerProposalList = z.object({

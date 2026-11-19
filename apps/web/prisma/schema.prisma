@@ -1792,6 +1792,7 @@ model AiPlannerProposal {
   state String @default("processing")
   version Int @default(1)
   clarificationCount Int @default(0) @map("clarification_count")
+  adjustmentCount Int @default(0) @map("adjustment_count")
   selection Json
   bindings Json
   messages Json
