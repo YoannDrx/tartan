@@ -7,7 +7,7 @@ import { Athlete } from "@/components/athlete";
 import { FinishLine } from "@/components/track";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { updateOnboardingAction } from "./onboarding-state.action";
+import { useOnboarding } from "./onboarding-context";
 
 const t = w.onboarding.celebration;
 
@@ -16,9 +16,10 @@ const t = w.onboarding.celebration;
 // le dialogue se referme d'un geste, l'écran dessous est déjà utilisable. En mouvement réduit, le groupe est déjà arrivé.
 export const Celebration = () => {
   const [open, setOpen] = useState(true);
+  const save = useOnboarding()?.save;
   useEffect(() => {
-    void updateOnboardingAction({ celebrated: true });
-  }, []);
+    save?.({ celebrated: true });
+  }, [save]);
   return (
     <Dialog open={open} onOpenChange={setOpen} title={t.title} description={t.body}>
       <div aria-hidden className="relative h-36 overflow-hidden rounded-card bg-page tablet:h-44">

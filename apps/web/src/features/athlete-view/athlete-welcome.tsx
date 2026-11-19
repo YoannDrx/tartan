@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { TrackTile } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { updateOnboardingAction } from "@/features/onboarding/onboarding-state.action";
+import { useOnboarding } from "@/features/onboarding/onboarding-context";
 import { markInstallOpportunity } from "@/features/shell/install-opportunity";
 import { cn } from "@/lib/cn";
 import { RUBRIC_ATHLETE } from "@/lib/rubric-athlete";
@@ -49,6 +49,7 @@ const Panels = ({ coach }: { coach: string }) => (
 // carte de séance, qui s'ouvre à la demande. L'état est gardé sur le compte (`welcomeSeenAt`) : refermée, elle ne
 // revient sur aucun appareil. L'installation et les notifications se proposent dès maintenant, même un jour de séance.
 export const AthleteWelcome = ({ mode, group, coach }: { mode: "panels" | "line"; group: string; coach: string }) => {
+  const onboarding = useOnboarding();
   const [closed, setClosed] = useState(false);
   const [expanded, setExpanded] = useState(mode === "panels");
   const titleId = useId();
@@ -61,7 +62,7 @@ export const AthleteWelcome = ({ mode, group, coach }: { mode: "panels" | "line"
   if (closed) return null;
   const close = () => {
     setClosed(true);
-    void updateOnboardingAction({ welcomeSeen: true });
+    onboarding?.save({ welcomeSeen: true });
   };
 
   if (mode === "line" && !expanded) {

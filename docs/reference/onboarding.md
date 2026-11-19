@@ -51,13 +51,13 @@ Les étapes obligatoires ne sont pas stockées : elles se déduisent des faits r
 
 Ce que les faits ne disent pas est gardé par membre et par espace, dans `onboarding_states` : tour vu, accueil vu, carte refermée, fin fêtée, étapes facultatives écartées, écrans dont le repère a été vu. La ligne naît avec le membre, dans la transaction qui le crée (création de l'espace, invitation acceptée). Un membre arrivé avant ce suivi n'a pas de ligne, ou une ligne `guided = false` s'il referme quelque chose : il n'est ni guidé ni accueilli. Les comptes de démonstration (`seed.ts`, `demo-preparation.ts`) sont posés ainsi.
 
-API, pour le web et le mobile : `GET` et `PATCH /api/v1/orgs/[orgId]/onboarding` (contrat dans `packages/contracts/src/onboarding.ts`), sous `requireOrgMember`. Chacun ne lit et n'écrit que les siens.
+API, pour le web et le mobile : `GET` et `PATCH /api/v1/orgs/[orgId]/onboarding` (contrat dans `packages/contracts/src/onboarding.ts`), sous `requireOrgMember`. Chacun ne lit et n'écrit que les siens. Le web y envoie les gestes sans retour à l'écran (tour vu, repère vu, accueil refermé, carte facultative refermée, fête jouée) en `keepalive` : l'écriture part même si la page change ou se recharge aussitôt. Un rechargement plus rapide que l'écriture côté serveur peut encore montrer l'élément une fois.
 
 ### Le tour de piste
 
 À la première arrivée sur `/suivi`, un dialogue présente les sept grandes fonctions (`coach-tour.tsx`, `tour-features.ts`) : suivi, calendrier et constructeur, exercices, vidéo, planificateur, progression et phases, annonces. Chaque étape porte son numéro de couloir, l'athlète de sa rubrique, ce qu'elle apporte en une phrase, et le produit tel qu'il est : une vraie capture sur données fictives (`src/features/landing/images`, `src/features/onboarding/captures`, provenance documentée et contrôlée par `tests/onboarding-captures.test.ts`), ou, pour les exercices, le vrai guide animé d'une fiche du catalogue.
 
-- Refermable à tout moment : Échap, la croix, « Commencer » à la dernière étape, ou « Y aller ». Il ne s'ouvre seul qu'une fois (`tourSeenAt`).
+- Refermable à tout moment : Échap, la croix, « Commencer » à la dernière étape, ou « Y aller ». Il ne s'ouvre seul qu'une fois (`tourSeenAt`), et attend qu'un message encore affiché (« 2 invitations envoyées ») soit parti : il ne le recouvre ni ne le coupe.
 - Rouvrable depuis l'aide de l'écran (« Revoir le tour de piste ») et depuis la page des premiers pas.
 - Au clavier : le focus reste dans le dialogue, les flèches passent d'une étape à l'autre, une barre de sept couloirs y mène directement. En mouvement réduit, rien ne glisse.
 

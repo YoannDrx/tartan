@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PasswordPrompt } from "@/features/auth/password-prompt";
-import { updateOnboardingAction } from "@/features/onboarding/onboarding-state.action";
+import { useOnboarding } from "@/features/onboarding/onboarding-context";
 import { InstallOfferRow } from "@/features/shell/install-banner";
 
 const t = m.athleteExtras;
@@ -20,6 +20,7 @@ export const AthleteExtras = ({
   photo: boolean;
   password: { email: string; canSetNow: boolean } | null;
 }) => {
+  const onboarding = useOnboarding();
   const [closed, setClosed] = useState(false);
   const [install, setInstall] = useState(false);
   const onInstall = useCallback((available: boolean) => setInstall(available), []);
@@ -60,7 +61,7 @@ export const AthleteExtras = ({
           variant="quiet"
           onClick={() => {
             setClosed(true);
-            void updateOnboardingAction({ dismissed: true });
+            onboarding?.save({ dismissed: true });
           }}
         >
           {t.close}

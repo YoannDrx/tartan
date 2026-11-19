@@ -27,6 +27,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <div data-theme={theme}>
       <OfflineProvider organizationId={space.organizationId} userId={actor.userId}>
         <OnboardingProvider
+          organizationId={space.organizationId}
           staff={staff}
           guided={onboarding.guided}
           tourDue={onboarding.tourDue}
