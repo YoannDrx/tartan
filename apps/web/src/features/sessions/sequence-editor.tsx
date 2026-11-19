@@ -353,7 +353,6 @@ function Level(props: LevelProps) {
           replacing ? labels.replaceTitle(nodeName({ kind: "exercise", itemRef: replacing }, block, byId)) : undefined
         }
         inGroup={inGroup}
-        exercises={exercises}
         onPick={pick}
       />
     </div>

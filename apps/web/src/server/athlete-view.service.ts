@@ -42,6 +42,7 @@ import { prisma } from "@/lib/prisma";
 import { audit, requireAthleteAccess, requireOrgMember, requireVisibleAthlete } from "./access";
 import { consentForAthletes } from "./consent.service";
 import { displayName, namesFor } from "./me.service";
+import { withConcise } from "./exercise-catalog.service";
 import { approvedMotionFamilies, withMotion } from "./motion-review.service";
 import { catalogVideos, withCatalogVideos } from "./catalog-media.service";
 import { notify } from "./notify.service";
@@ -478,7 +479,7 @@ const readAthleteSession = async (
           name: item.name,
           category: item.category,
           cues: item.cues,
-          guide: withCatalogVideos(withMotion(item.guide, motionFamilies), catalogVideoMap),
+          guide: withCatalogVideos(withConcise(withMotion(item.guide, motionFamilies)), catalogVideoMap),
           media: item.media,
           prescription,
           strengthLoadKind: item.strengthLoadKind,

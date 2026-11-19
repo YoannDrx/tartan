@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
+import { addFromLibrary, createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 
 const plan = m.builder.setPlan;
 
@@ -12,7 +12,7 @@ test("une pyramide avec échauffement se prescrit série par série et se retrou
   await createCoachSpace(page, "Pyramide");
   await page.goto("/seances/nouvelle", { waitUntil: "networkidle" });
   await page.getByLabel(m.builder.titleLabel, { exact: true }).fill("Force en pyramide");
-  await page.getByRole("button", { name: "Ajouter Développé couché à la séance", exact: true }).click();
+  await addFromLibrary(page, "Développé couché");
   const phase = page.getByRole("region", { name: m.builder.blocks.main, exact: true });
   await phase.getByRole("button", { name: /^Développé couché/ }).click();
   const dialog = page.getByRole("dialog");

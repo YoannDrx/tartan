@@ -26,6 +26,28 @@ export const catalogVideo = z.object({
   posterUrl: z.string().url().nullable(),
 });
 export type CatalogVideo = z.infer<typeof catalogVideo>;
+// Une variante plus facile ou plus difficile : son libellé, et la fiche du catalogue qui la décrit quand elle existe.
+export const exerciseGuideVariant = z.object({ text: instruction, catalogKey: catalogueKey.nullable() });
+
+// La version concise d'un guide du catalogue : celle qui s'affiche. Le texte complet, déjà relu, reste sous
+// « Détail » tant que le fondateur n'a pas validé la famille (`review`).
+export const exerciseConciseGuide = z.object({
+  objective: instruction,
+  setup: instruction,
+  steps: z.array(instruction).min(2).max(10),
+  mistakes: z.array(instruction).min(1).max(6),
+  easier: exerciseGuideVariant.nullable(),
+  harder: exerciseGuideVariant.nullable(),
+  review: z.enum(["review", "approved"]),
+});
+
+// Le guide qu'un coach écrit pour sa copie d'une fiche : mise en place, étapes, erreurs.
+export const exerciseGuideEdit = z.object({
+  objective: instruction,
+  setup: instruction,
+  steps: z.array(instruction).min(2).max(6),
+  mistakes: z.array(instruction).min(1).max(6),
+});
 
 export const exerciseGuide = z.object({
   catalogKey: catalogueKey,
@@ -59,7 +81,13 @@ export const exerciseGuide = z.object({
   }),
   // Une fiche complète n'est pas une preuve de validation humaine du geste.
   technicalReview: z.enum(["pending", "approved"]),
+  // Un coach a réécrit le guide de sa copie : ce n'est plus le texte relu par Tartan.
+  author: z.enum(["tartan", "coach"]).optional(),
+  // Posée à la lecture, jamais enregistrée : la version concise du guide du catalogue, quand le texte est le sien.
+  concise: exerciseConciseGuide.optional(),
 });
 
 export type ExerciseGuide = z.infer<typeof exerciseGuide>;
+export type ExerciseConciseGuide = z.infer<typeof exerciseConciseGuide>;
+export type ExerciseGuideEdit = z.infer<typeof exerciseGuideEdit>;
 export type ExerciseFamily = z.infer<typeof exerciseFamily>;

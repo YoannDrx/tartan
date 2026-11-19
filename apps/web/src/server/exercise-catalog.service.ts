@@ -1,18 +1,32 @@
 import { isDeepStrictEqual } from "node:util";
 import { STARTER_LIBRARY } from "@tartan/domain";
-import { EXERCISE_CATALOG, EXERCISE_CATALOG_VERSION } from "@tartan/domain/exercise-catalog";
-import { exerciseGuide } from "@tartan/contracts";
+import {
+  conciseGuideFor,
+  EXERCISE_CATALOG,
+  EXERCISE_CATALOG_VERSION,
+  guideMatchesCatalog,
+} from "@tartan/domain/exercise-catalog";
+import { exerciseGuide, type ExerciseGuide } from "@tartan/contracts";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "./access";
 
-// Le geste animé (`illustration.motion`) et les vidéos du catalogue (`illustration.videos`) se posent à la lecture :
-// ils ne sont jamais enregistrés, ni comparés.
+// Le geste animé (`illustration.motion`), les vidéos du catalogue (`illustration.videos`) et la version concise se
+// posent à la lecture : ils ne sont jamais enregistrés, ni comparés.
 export const readExerciseGuide = (value: unknown) => {
   const parsed = exerciseGuide.safeParse(value);
   if (!parsed.success) return null;
   const { motion: _motion, videos: _videos, ...illustration } = parsed.data.illustration;
-  return { ...parsed.data, illustration };
+  const { concise: _concise, ...guide } = parsed.data;
+  return { ...guide, illustration };
+};
+
+// La version concise suit le texte du catalogue : un guide réécrit par un coach s'affiche tel qu'il l'a écrit.
+// Comme le geste, elle se lit à l'affichage : une séance déjà publiée, au guide figé, la reçoit aussi.
+export const withConcise = <G extends ExerciseGuide | null | undefined>(guide: G): G => {
+  if (!guide || guide.author === "coach" || !guideMatchesCatalog(guide)) return guide;
+  const concise = conciseGuideFor(guide.catalogKey);
+  return concise ? ({ ...guide, concise } as G) : guide;
 };
 
 /** Add catalogue versions without changing a coach's prescriptions or historical IDs. */

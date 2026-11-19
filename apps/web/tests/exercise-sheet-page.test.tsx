@@ -11,6 +11,12 @@ vi.mock("@/features/shell/space", async (importOriginal) => ({
   requireStaffSpace: async () => space,
 }));
 
+// La fiche porte ses actions (étoile, listes, personnaliser) : rendue hors du routeur, elles n'en ont pas besoin.
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  useRouter: () => ({ push: () => undefined, refresh: () => undefined }),
+}));
+
 const render = async (id: string) => renderToStaticMarkup(await ExercisePage({ params: Promise.resolve({ id }) }));
 
 describe("page d'une fiche d'exercice", () => {

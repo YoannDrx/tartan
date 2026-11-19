@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/states";
 import { todayIso } from "@/lib/dates";
 import { getSessionForEdit } from "@/server/session.service";
-import { getSessionBuilderContext } from "@/server/session-builder.service";
+import { getSessionBuilderPage } from "@/server/session-builder.service";
 import { m } from "@tartan/i18n";
 import { SessionBuilder } from "./session-builder";
 
@@ -24,10 +24,9 @@ export const BuilderPage = async ({
   returnTo?: string;
   headerActions?: ReactNode;
 }) => {
-  const [initial, context] = await Promise.all([
-    sessionId ? getSessionForEdit(userId, organizationId, sessionId) : Promise.resolve(null),
-    getSessionBuilderContext(userId, organizationId, true),
-  ]);
+  const initial = sessionId ? await getSessionForEdit(userId, organizationId, sessionId) : null;
+  // Seules les fiches que la séance et les modèles citent voyagent avec la page : le sélecteur cherche le reste.
+  const context = await getSessionBuilderPage(userId, organizationId, initial?.draft ?? null);
   const groupUnavailable = defaultGroupId !== undefined && !context.groups.some((group) => group.id === defaultGroupId);
   return (
     <div className="flex flex-col gap-4">

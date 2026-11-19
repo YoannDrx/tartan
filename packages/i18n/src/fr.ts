@@ -2300,6 +2300,13 @@ export const fr = {
     },
     levels: { beginner: "Débutant", intermediate: "Intermédiaire", advanced: "Avancé" },
   },
+  // Les listes d'exercices du coach : le nom de la liste système et les refus que l'API renvoie aussi au mobile.
+  exerciseLists: {
+    favorites: "Favoris",
+    favoritesLocked:
+      "Les Favoris restent ta liste personnelle : ils ne se renomment, ne se partagent ni ne se suppriment.",
+    guideWithoutBase: "Seule une fiche personnalisée depuis la bibliothèque commune a un guide à modifier.",
+  },
   exercises: {
     uploadFailed: "L'envoi a échoué. L'exercice est enregistré : réessaie d'ajouter la vidéo.",
     cuesLinesHint: "2 ou 3 phrases courtes affichées à l'athlète. Une par ligne.",

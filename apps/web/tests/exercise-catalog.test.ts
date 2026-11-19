@@ -57,7 +57,10 @@ it("rattache chaque ancienne copie à sa fiche commune, sans doublon, en gardant
   const list = await listExercises(a.owner.userId, a.organizationId);
   expect(new Set(list.map((e) => e.name)).size).toBe(list.length);
   expect(list.filter((e) => e.guide)).toHaveLength(172);
-  expect(list.find((e) => e.id === changed.id)).toMatchObject({ cues: ["Consigne personnelle du coach"], shared: false });
+  expect(list.find((e) => e.id === changed.id)).toMatchObject({
+    cues: ["Consigne personnelle du coach"],
+    shared: false,
+  });
   expect(list.find((e) => e.id === changed.id)?.guide).not.toBeNull();
   const filled = await prisma.exercise.findUniqueOrThrow({ where: { id: older.id } });
   expect(filled.classification).not.toBeNull();
@@ -79,9 +82,10 @@ it("fige le guide dans la séance, le garde au renommage et le détache quand le
     coachNote: null,
     blocks: [{ name: "Force", variant: "club", items: [{ exerciseId: entry.id, prescription: { reps: 4 } }] }],
   });
-  // La liste annote le geste animé ; la séance garde le guide tel qu'enregistré.
+  // La liste annote le geste animé et la version concise ; la séance garde le guide tel qu'enregistré.
   const { motion: _motion, ...illustration } = entry.guide!.illustration;
-  expect(snapshot.blocks[0]!.items[0]!.guide).toEqual({ ...entry.guide, illustration });
+  const { concise: _concise, ...stored } = entry.guide!;
+  expect(snapshot.blocks[0]!.items[0]!.guide).toEqual({ ...stored, illustration });
   await saveExercise(
     a.owner.userId,
     a.organizationId,
@@ -119,8 +123,10 @@ it("diffuse l'approbation aux copies existantes sans modifier prescriptions, per
   const initial = await listExercises(a.owner.userId, a.organizationId);
   const entry = initial.find((e) => !e.shared && e.guide)!;
   const detached = initial.find((e) => !e.shared && e.guide && e.id !== entry.id)!;
+  // La liste annote aussi la version concise ; une copie enregistrée ne la porte jamais.
+  const { concise: _concise, ...stored } = entry.guide!;
   const oldGuide = {
-    ...entry.guide!,
+    ...stored,
     version: 1,
     technicalReview: "pending" as const,
     illustration: {
