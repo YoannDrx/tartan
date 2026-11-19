@@ -62,7 +62,7 @@ export const readCoachFacts = async (
     devices,
     installations,
   ] = await Promise.all([
-    prisma.profile.findUnique({ where: { id: userId }, select: { avatarUrl: true } }),
+    prisma.profile.findUnique({ where: { id: userId }, select: { avatarUrl: true, avatarPreset: true } }),
     prisma.organization.findUnique({ where: { id: organizationId }, select: { availableEquipment: true } }),
     prisma.invitation.count({ where: { organizationId, role: "athlete" } }),
     athleteIds ? Promise.resolve(athleteIds.length) : prisma.athlete.count({ where: { organizationId } }),
@@ -75,7 +75,8 @@ export const readCoachFacts = async (
     prisma.clientInstallation.count({ where: { userId } }),
   ]);
   return {
-    profileComplete: Boolean(profile?.avatarUrl),
+    // Une photo envoyée ou un avatar choisi dans la galerie.
+    profileComplete: Boolean(profile?.avatarUrl || profile?.avatarPreset),
     invitations,
     athletes,
     sessions,

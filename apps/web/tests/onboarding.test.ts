@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { AVATAR_PRESETS } from "@tartan/contracts";
 import { describe, expect, it } from "vitest";
 import { todayIso } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
@@ -149,7 +150,8 @@ describe("premiers pas du coach", () => {
     let state = await getOnboarding(userId, org.organizationId);
     expect(state.steps.filter((step) => !step.done).map((step) => step.key)).toEqual(["profile"]);
     expect(state.celebrationDue).toBe(false);
-    await prisma.profile.update({ where: { id: userId }, data: { avatarUrl: "https://exemple.test/photo.png" } });
+    // Un avatar choisi dans la galerie vaut une photo : le coach a un visage pour ses athlètes.
+    await prisma.profile.update({ where: { id: userId }, data: { avatarPreset: AVATAR_PRESETS[0] } });
     state = await getOnboarding(userId, org.organizationId);
     expect(state.celebrationDue).toBe(true);
     expect(state.guideVisible).toBe(false);
