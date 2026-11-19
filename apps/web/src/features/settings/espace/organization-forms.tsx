@@ -4,14 +4,13 @@ import type { TrainingProfile } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { useAction } from "next-safe-action/hooks";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CheckRow, Field, Input } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { TrainingProfileFields } from "@/features/onboarding/training-profile-fields";
-import { updateOrganizationAction, uploadLogoAction } from "../settings.action";
+import { LogoEditor } from "@/features/avatar/avatar-editor";
+import { updateOrganizationAction } from "../settings.action";
 import { onErr, type AnyErrors } from "../shared";
 
 const t = w.settings.espace;
@@ -58,33 +57,12 @@ export const OrganizationForm = ({
   );
 };
 
-export const LogoForm = ({ logoUrl, name }: { logoUrl: string | null; name: string }) => {
-  const router = useRouter();
-  const { execute, isPending } = useAction(uploadLogoAction, { onSuccess: () => router.refresh(), onError: onErr });
-  return (
-    <div className="flex items-center gap-3">
-      <span className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-thumb bg-card-raised font-semibold">
-        {logoUrl ? (
-          <Image src={logoUrl} alt={t.logoAlt(name)} fill sizes="64px" className="object-contain" unoptimized />
-        ) : (
-          name.slice(0, 2).toUpperCase()
-        )}
-      </span>
-      <Field label={m.settings.logo} hint={m.settings.logoHint} className="flex-1">
-        {(a) => (
-          <Input
-            {...a}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="py-2"
-            disabled={isPending}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) execute({ file });
-            }}
-          />
-        )}
-      </Field>
-    </div>
-  );
-};
+// Le logo passe par le même recadrage que la photo de profil.
+export const LogoForm = ({ logoUrl, name }: { logoUrl: string | null; name: string }) => (
+  <section aria-labelledby="logo-espace" className="flex flex-col gap-3">
+    <h3 id="logo-espace" className="t-caption text-inherit">
+      {m.settings.logo}
+    </h3>
+    <LogoEditor logoUrl={logoUrl} name={name} alt={t.logoAlt(name)} />
+  </section>
+);

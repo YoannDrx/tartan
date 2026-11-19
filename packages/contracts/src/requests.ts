@@ -22,6 +22,7 @@ import {
   strengthTestKind,
   takeoffFoot,
 } from "./enums";
+import { avatarPreset } from "./avatar";
 import { isoDate, prescriptionSchema, uuid } from "./session";
 import { trainingProfileSchema } from "./training-profile";
 
@@ -40,6 +41,8 @@ export const profileInput = z.object({
     .refine((url) => /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\//i.test(url))
     .nullable()
     .optional(),
+  // Un avatar prédéfini remplace la photo ; null revient aux initiales.
+  avatarPreset: avatarPreset.nullable().optional(),
 });
 export type ProfileInput = z.infer<typeof profileInput>;
 
@@ -421,7 +424,10 @@ export const annotationInput = z
     drawing: videoDrawing.nullable().optional(),
   })
   .refine((input) => input.text.length > 0 || !!input.drawing, { message: "Écris ta remarque", path: ["text"] })
-  .refine((input) => !input.parentId || !input.drawing, { message: "Une réponse ne porte pas de tracé", path: ["drawing"] });
+  .refine((input) => !input.parentId || !input.drawing, {
+    message: "Une réponse ne porte pas de tracé",
+    path: ["drawing"],
+  });
 export type AnnotationInput = z.infer<typeof annotationInput>;
 
 export const shareVideoInput = z.object({

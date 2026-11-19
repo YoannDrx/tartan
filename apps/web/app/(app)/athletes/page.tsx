@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { startOfWeek } from "@tartan/domain";
 import { formatDayMonth, m } from "@tartan/i18n";
+import { Avatar } from "@/components/avatar";
 import { Sheet } from "@/components/sheet";
 import { Chip, EmptyState, PageHeader } from "@/components/states";
 import { Button } from "@/components/ui/button";
@@ -116,12 +117,7 @@ export default async function AthletesPage() {
                       <tr key={a.id} className="group relative border-b border-card-line last:border-0 hover:bg-raise">
                         <td className="px-4 py-2">
                           <div className="flex items-center gap-3">
-                            <span
-                              aria-hidden
-                              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card-raised text-[12px] font-semibold max-tablet:hidden"
-                            >
-                              {`${a.firstName[0] ?? ""}${a.lastName[0] ?? ""}`.toUpperCase()}
-                            </span>
+                            <Avatar person={{ ...a, name: `${a.firstName} ${a.lastName}` }} size="sm" />
                             <div className="min-w-0 flex-1">
                               <Link
                                 href={`/athletes/${a.id}`}

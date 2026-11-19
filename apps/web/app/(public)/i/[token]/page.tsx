@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
+import { Avatar } from "@/components/avatar";
 import { PublicPage } from "@/features/shell/public-page";
 import { AppError } from "@/lib/errors";
 import { enabledSocialProviders } from "@/lib/auth";
@@ -45,11 +46,23 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
   const conflict = actor && !blocked ? await invitationConflictMessage(token, actor.userId) : null;
 
   return (
-    <PublicPage
-      title={title}
-      lead={!blocked && !(actor && me) ? w.auth.inviteLead : undefined}
-    >
-      <div className="on-card rounded-card bg-card p-5">
+    <PublicPage title={title} lead={!blocked && !(actor && me) ? w.auth.inviteLead : undefined}>
+      <div className="on-card flex flex-col gap-4 rounded-card bg-card p-5">
+        {/* Qui invite : sa photo ou son avatar, avec son nom, pour reconnaître l'invitation d'un coup d'œil. */}
+        <p className="flex items-center gap-3">
+          <Avatar
+            person={{
+              name: invitation.inviterName,
+              avatarUrl: invitation.inviterAvatarUrl,
+              avatarPreset: invitation.inviterAvatarPreset,
+            }}
+            size="lg"
+          />
+          <span className="flex flex-col leading-snug">
+            <span className="font-semibold">{invitation.inviterName}</span>
+            <span className="t-caption font-normal text-soft">{invitation.organizationName}</span>
+          </span>
+        </p>
         {blocked || conflict ? (
           <p role="alert">{blocked ?? conflict}</p>
         ) : actor && me ? (

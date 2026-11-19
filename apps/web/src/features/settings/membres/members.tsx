@@ -4,6 +4,7 @@ import { m } from "@tartan/i18n";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Avatar } from "@/components/avatar";
 import { Rows } from "@/components/sheet";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -16,6 +17,8 @@ type Member = {
   userId: string;
   name: string;
   email: string;
+  avatarUrl?: string | null;
+  avatarPreset?: string | null;
   role: "owner" | "coach" | "assistant" | "athlete" | "guardian";
   groupIds: string[];
 };
@@ -102,7 +105,8 @@ export const MemberList = ({ members, groups }: { members: Member[]; groups: Gro
   <Rows>
     {members.map((member) => (
       <li key={member.userId} className="flex flex-wrap items-center justify-between gap-2 py-2">
-        <div className="min-w-48 flex-1 leading-snug">
+        <Avatar person={{ ...member, name: member.name || member.email }} size="md" />
+        <div className="min-w-40 flex-1 leading-snug">
           <p className="break-all font-semibold">{member.name || member.email}</p>
           <p className="t-caption font-normal text-soft">
             {m.roles[member.role]}

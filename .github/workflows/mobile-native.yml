@@ -96,7 +96,9 @@ jobs:
     needs: changes
     if: always() && github.event_name != 'schedule' && (needs.changes.result == 'skipped' || needs.changes.outputs.mobile == 'true')
     runs-on: macos-15
-    timeout-minutes: 90
+    # Compilation (environ 18 min), parcours (environ 55 min), rejeux et suppression de compte : 90 minutes ne
+    # suffisaient plus (PR 166, job annulé à 92 minutes, toutes étapes vertes).
+    timeout-minutes: 120
     env:
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
@@ -225,15 +227,37 @@ jobs:
         env:
           # Le pilote iOS de Maestro démarre parfois lentement sur les runners partagés.
           MAESTRO_DRIVER_STARTUP_TIMEOUT: "600000"
+        # Un flux qui échoue est rejoué une fois, seul. Sur le simulateur partagé, un flux différent échouait à chaque
+        # passage (PR 166 : coach-builder-detail, puis coach-planner, puis settings-privacy, chacun vert ailleurs) ;
+        # une vraie régression échoue deux fois et fait toujours tomber le job.
         run: |
+          vars=(-e APP_ID=coach.tartan.app.dev
+            -e COACH_EMAIL=coach@demo.tartan.coach
+            -e ATHLETE_EMAIL=un@demo.tartan.coach
+            -e ATHLETE2_EMAIL=deux@demo.tartan.coach
+            -e API_URL=http://localhost:3000
+            -e NO_AGE_EMAIL="$NO_AGE_EMAIL"
+            -e PASSWORD="$DEMO_PASSWORD")
+          status=0
           maestro test .maestro --format junit --output "$RUNNER_TEMP/maestro.xml" --debug-output "$RUNNER_TEMP/maestro" --flatten-debug-output \
-            -e APP_ID=coach.tartan.app.dev \
-            -e COACH_EMAIL=coach@demo.tartan.coach \
-            -e ATHLETE_EMAIL=un@demo.tartan.coach \
-            -e ATHLETE2_EMAIL=deux@demo.tartan.coach \
-            -e API_URL=http://localhost:3000 \
-            -e NO_AGE_EMAIL="$NO_AGE_EMAIL" \
-            -e PASSWORD="$DEMO_PASSWORD"
+            "${vars[@]}" || status=$?
+          [ "$status" = 0 ] && exit 0
+          failed=$(python3 -c '
+          import sys, xml.etree.ElementTree as ET
+          for case in ET.parse(sys.argv[1]).iter("testcase"):
+              if case.find("failure") is not None or case.find("error") is not None:
+                  print(case.get("name"))
+          ' "$RUNNER_TEMP/maestro.xml" || true)
+          if [ -z "$failed" ]; then
+            echo "::error::Maestro a échoué sans flux en échec dans le rapport"
+            exit "$status"
+          fi
+          for flow in $failed; do
+            test -f ".maestro/$flow.yml" || { echo "::error::Flux introuvable : $flow"; exit 1; }
+            echo "::warning::Flux $flow en échec, rejoué une fois"
+            maestro test ".maestro/$flow.yml" --format junit --output "$RUNNER_TEMP/maestro-retry-$flow.xml" \
+              --debug-output "$RUNNER_TEMP/maestro-retry-$flow" --flatten-debug-output "${vars[@]}"
+          done
       - name: Suppression de compte (T07)
         # Après les autres : ce parcours détruit son compte jetable. Il tourne même si un flux a échoué avant lui.
         if: ${{ !cancelled() }}
@@ -265,6 +289,7 @@ jobs:
             ${{ runner.temp }}/maestro.xml
             ${{ runner.temp }}/maestro-destructive.xml
             ${{ runner.temp }}/maestro
+            ${{ runner.temp }}/maestro-retry-*
             ${{ runner.temp }}/web.log
             ${{ runner.temp }}/app.log
             ~/.maestro/tests

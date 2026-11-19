@@ -17,6 +17,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTransition, type ReactNode } from "react";
 import type { ReleaseView, SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { Logo } from "@/components/logo";
 import { Select } from "@/components/ui/field";
 import { RouteTransition } from "@/components/ui/route-transition";
@@ -27,7 +28,7 @@ import { NotificationBell } from "@/features/notifications/notification-bell";
 import { UpdateWatcher } from "./update-watcher";
 import { InstallBanner } from "./install-banner";
 import { SatisfactionQuestion } from "./satisfaction";
-import { SettingsMenu } from "./settings-menu";
+import { SettingsMenu, type Account } from "./settings-menu";
 import { switchSpaceAction } from "./shell.action";
 
 type Item = { href: string; label: string; icon: LucideIcon; mobile: boolean };
@@ -95,7 +96,7 @@ export const AppShell = ({
   staff: boolean;
   spaces: SpaceSummary[];
   space: SpaceSummary;
-  account: { name: string | null; email: string };
+  account: Account;
   admin: boolean;
   askSatisfaction?: boolean;
   unseenRelease?: ReleaseView | null;
@@ -121,10 +122,10 @@ export const AppShell = ({
     <div className={cn(worldFor(pathname), "min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0")}>
       <header className={cn("app-header sticky z-30", barClass)}>
         <div className="mx-auto flex min-h-14 max-w-[1440px] items-center gap-4 px-4 desktop:px-6">
-          <Link href="/accueil" aria-label="Tartan, accueil" className="inline-flex min-h-11 shrink-0 items-center">
+          <Link href="/accueil" aria-label={w.shell.home} className="inline-flex min-h-11 shrink-0 items-center">
             <Logo height={28} onDark />
           </Link>
-          <nav aria-label="Navigation principale" className="hidden flex-1 items-center gap-1 desktop:flex">
+          <nav aria-label={w.shell.mainNav} className="hidden flex-1 items-center gap-1 desktop:flex">
             {items.map((item) => (
               <Link
                 key={item.href}
@@ -191,7 +192,7 @@ export const AppShell = ({
       </main>
 
       <nav
-        aria-label="Navigation principale"
+        aria-label={w.shell.mainNav}
         className={cn(
           "fixed inset-x-0 bottom-0 z-30 flex justify-around gap-1 px-1 pb-[env(safe-area-inset-bottom)] pt-1 desktop:hidden",
           barClass,

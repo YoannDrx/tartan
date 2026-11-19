@@ -1,16 +1,19 @@
 import {
   calendarView,
+  type AvatarPreset,
   type CalendarView,
   type MeResponse,
   type PreferencesInput,
   type ProfileInput,
   type SpaceSummary,
 } from "@tartan/contracts";
-import { can, plannerServerEnabled } from "@tartan/domain";
+import { can, knownAvatarPreset, plannerServerEnabled } from "@tartan/domain";
 import { put } from "@vercel/blob";
 import { fromDbDateOrNull, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { invalid, notFound } from "@/lib/errors";
+import { checkedSquareImage, extensionOf } from "@/lib/image-check";
+import { w } from "@tartan/i18n/web";
 import { ageRestricted, ageStatusOfUser, assertAdultDate, confirmBirthDate, parentalFlowEnabled } from "./age.service";
 import { AppError } from "@/lib/errors";
 import { m } from "@tartan/i18n";
@@ -69,6 +72,7 @@ export const getMe = async (userId: string): Promise<MeResponse> => {
     lastName: user.profile?.lastName ?? null,
     birthDate: fromDbDateOrNull(user.profile?.birthDate),
     avatarUrl: user.profile?.avatarUrl ?? null,
+    avatarPreset: knownAvatarPreset(user.profile?.avatarPreset),
     units: user.profile?.units ?? "kg",
     locale: user.profile?.locale ?? "fr",
     spaces: await listSpaces(userId),
@@ -119,7 +123,11 @@ export const updatePreferences = async (userId: string, input: PreferencesInput)
   }
   if (input.aiConsent !== undefined) {
     const aiConsentAt = input.aiConsent ? new Date() : null;
-    await prisma.profile.upsert({ where: { id: userId }, create: { id: userId, aiConsentAt }, update: { aiConsentAt } });
+    await prisma.profile.upsert({
+      where: { id: userId },
+      create: { id: userId, aiConsentAt },
+      update: { aiConsentAt },
+    });
   }
   if (!input.calendarView) return;
   const at = input.calendarViewUpdatedAt ? new Date(input.calendarViewUpdatedAt) : new Date();
@@ -155,13 +163,19 @@ export const updateProfile = async (userId: string, input: ProfileInput): Promis
       : input.birthDate === null && parental
         ? null
         : undefined;
+  // Une photo et un avatar prédéfini ne coexistent pas : choisir l'un efface l'autre.
+  const avatar = input.avatarPreset
+    ? { avatarPreset: input.avatarPreset, avatarUrl: null }
+    : input.avatarUrl
+      ? { avatarUrl: input.avatarUrl, avatarPreset: null }
+      : { avatarUrl: input.avatarUrl, avatarPreset: input.avatarPreset };
   const data = {
     firstName: input.firstName,
     lastName: input.lastName,
     birthDate,
     units: input.units,
     locale: input.locale,
-    avatarUrl: input.avatarUrl,
+    ...avatar,
   };
   await prisma.$transaction([
     prisma.profile.upsert({ where: { id: userId }, create: { id: userId, ...data }, update: data }),
@@ -172,13 +186,41 @@ export const updateProfile = async (userId: string, input: ProfileInput): Promis
 export const displayName = (p: { firstName?: string | null; lastName?: string | null } | null | undefined): string =>
   [p?.firstName, p?.lastName].filter(Boolean).join(" ");
 
-export const namesFor = async (userIds: string[]): Promise<Map<string, string>> => {
+// Ce qu'il faut pour présenter quelqu'un : son nom et de quoi dessiner son avatar.
+// Lu par les services qui ont déjà vérifié l'accès à l'espace (`requireOrgMember`).
+export type Person = { name: string; avatarUrl: string | null; avatarPreset: AvatarPreset | null };
+
+export const peopleFor = async (userIds: string[]): Promise<Map<string, Person>> => {
+  const ids = [...new Set(userIds)];
+  if (ids.length === 0) return new Map();
   const rows = await prisma.user.findMany({
-    where: { id: { in: [...new Set(userIds)] } },
-    select: { id: true, name: true, profile: { select: { firstName: true, lastName: true } } },
+    where: { id: { in: ids } },
+    select: {
+      id: true,
+      name: true,
+      profile: { select: { firstName: true, lastName: true, avatarUrl: true, avatarPreset: true } },
+    },
   });
-  return new Map(rows.map((r) => [r.id, displayName(r.profile) || r.name]));
+  return new Map(
+    rows.map((r) => [
+      r.id,
+      {
+        name: displayName(r.profile) || r.name,
+        avatarUrl: r.profile?.avatarUrl ?? null,
+        avatarPreset: knownAvatarPreset(r.profile?.avatarPreset),
+      },
+    ]),
+  );
 };
+
+export const namesFor = async (userIds: string[]): Promise<Map<string, string>> =>
+  new Map([...(await peopleFor(userIds))].map(([id, person]) => [id, person.name]));
+
+// Les champs d'avatar d'un auteur, tels que les contrats les exposent.
+export const authorAvatar = (person: Person | undefined) => ({
+  authorAvatarUrl: person?.avatarUrl ?? null,
+  authorAvatarPreset: person?.avatarPreset ?? null,
+});
 
 export const firstNameOf = async (userId: string): Promise<string> => {
   const row = await prisma.user.findUnique({
@@ -188,16 +230,27 @@ export const firstNameOf = async (userId: string): Promise<string> => {
   return row?.profile?.firstName || row?.name.split(" ")[0] || "Ton coach";
 };
 
-const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_AVATAR_BYTES = 4 * 1024 * 1024;
-
+// La photo arrive recadrée par le navigateur ; le serveur revérifie type, poids et dimensions avant de la stocker.
 export const saveAvatar = async (userId: string, file: File): Promise<void> => {
-  if (!env().BLOB_READ_WRITE_TOKEN) throw invalid("L'envoi de photos n'est pas configuré sur ce serveur.");
-  if (!AVATAR_TYPES.includes(file.type)) throw invalid("Choisis une image JPEG, PNG ou WebP.");
-  if (file.size > MAX_AVATAR_BYTES) throw invalid("Cette image dépasse 4 Mo.");
-  const blob = await put(`avatars/${userId}/${crypto.randomUUID()}`, file, {
+  if (!env().BLOB_READ_WRITE_TOKEN) throw invalid(w.profile.errors.unconfigured);
+  const { bytes, info } = await checkedSquareImage(file);
+  const blob = await put(`avatars/${userId}/${crypto.randomUUID()}.${extensionOf(info.type)}`, Buffer.from(bytes), {
     access: "public",
-    contentType: file.type,
+    contentType: info.type,
   });
-  await prisma.profile.update({ where: { id: userId }, data: { avatarUrl: blob.url } });
+  // L'ancienne photo part en file de suppression par le déclencheur `profiles_enqueue_avatar`.
+  await prisma.profile.upsert({
+    where: { id: userId },
+    create: { id: userId, avatarUrl: blob.url },
+    update: { avatarUrl: blob.url, avatarPreset: null },
+  });
+};
+
+// Un avatar prédéfini, ou null pour revenir aux initiales. Dans les deux cas, la photo est retirée.
+export const setAvatarPreset = async (userId: string, preset: AvatarPreset | null): Promise<void> => {
+  await prisma.profile.upsert({
+    where: { id: userId },
+    create: { id: userId, avatarPreset: preset },
+    update: { avatarPreset: preset, avatarUrl: null },
+  });
 };
