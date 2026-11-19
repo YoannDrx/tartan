@@ -36,10 +36,12 @@ export const saveSessionAction = spaceAction
   .inputSchema(saveScheduledSessionInput.extend({ publish: z.boolean().default(false) }))
   .action(async ({ parsedInput: { publish, ...input }, ctx }) => {
     const saved = await saveScheduledSession(ctx.userId, ctx.organizationId, input);
-    if (publish) await publishSession(ctx.userId, ctx.organizationId, saved.id, undefined, saved.version);
+    const published = publish
+      ? await publishSession(ctx.userId, ctx.organizationId, saved.id, undefined, saved.version)
+      : null;
     revalidatePath("/calendrier");
     revalidatePath("/suivi");
-    return saved;
+    return { ...saved, recipients: published?.recipients ?? null };
   });
 
 export const deleteSessionAction = spaceAction

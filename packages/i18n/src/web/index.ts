@@ -6,11 +6,12 @@ import { comm } from "./comm";
 import { legal } from "./legal";
 import { planning } from "./planning";
 import { profile } from "./profile";
+import { sessions } from "./sessions";
 import { settings } from "./settings";
 import { shell } from "./shell";
 import { tracking } from "./tracking";
 import { video } from "./video";
 
-export const w = { auth, comm, legal, planning, profile, settings, shell, tracking, video } as const;
+export const w = { auth, comm, legal, planning, profile, sessions, settings, shell, tracking, video } as const;
 
 export type WebMessages = typeof w;
