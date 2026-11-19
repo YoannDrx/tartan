@@ -70,3 +70,4 @@ export * from "./session-progress";
 export * from "./video-drawing";
 export * from "./planner-mentions";
 export * from "./avatar";
+export * from "./demo-space";

@@ -27,6 +27,9 @@ export const spaceSummary = z.object({
   aiPlannerUpgrade: z.boolean().optional(),
   role: orgRole,
   athleteId: z.string().nullable(),
+  // Espace de démonstration du coach, avec la date de sa purge. Seule la web app le liste.
+  isDemo: z.boolean().optional(),
+  demoExpiresAt: z.string().nullable().optional(),
 });
 export type SpaceSummary = z.infer<typeof spaceSummary>;
 
