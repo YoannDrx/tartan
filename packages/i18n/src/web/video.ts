@@ -1,5 +1,12 @@
 // Analyse vidéo sur le web : plein écran, éditeur à portée, raccourcis et tracés au clavier.
 export const video = {
+  // La liste `/videos` sur téléphone : les filtres attendent dans une feuille, la vidéo vient d'abord (audit G2).
+  filters: {
+    open: "Filtres",
+    active: (n: number) => `${n} actif${n > 1 ? "s" : ""}`,
+    title: "Filtrer les vidéos",
+    clear: "Effacer les filtres",
+  },
   playbackImpossible: "Lecture impossible sur cet appareil.",
   timelinePosition: "Position dans la vidéo",
   goTo: (time: string, count: number) => `Aller à ${time}${count > 1 ? `, ${count} remarques` : ""}`,

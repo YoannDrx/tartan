@@ -33,6 +33,7 @@ export const listAthletes = async (userId: string, organizationId: string) => {
       lastName: true,
       userId: true,
       level: true,
+      disciplines: true,
       user: { select: { profile: { select: { avatarUrl: true, avatarPreset: true } } } },
       groups: { select: { group: { select: { id: true, name: true } } } },
     },
@@ -45,6 +46,7 @@ export const listAthletes = async (userId: string, organizationId: string) => {
     avatarPreset: a.user?.profile?.avatarPreset ?? null,
     hasAccount: a.userId !== null,
     level: a.level,
+    disciplines: a.disciplines,
     groups: a.groups.map((g) => g.group),
   }));
 };
