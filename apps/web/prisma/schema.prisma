@@ -207,6 +207,11 @@ model Organization {
   billingSyncAttemptedAt DateTime?        @map("billing_sync_attempted_at")
   // Relance douce d'une séance non validée, réglable par le coach (§ 7.7).
   overdueReminders       Boolean          @default(true) @map("overdue_reminders")
+  // Espace de démonstration : séparé de l'espace du coach, rempli d'athlètes fictifs sans compte, jetable.
+  // `demoOwnerId` porte le coach qui l'a ouvert (un seul par coach), `demoExpiresAt` la date de sa purge.
+  isDemo                 Boolean          @default(false) @map("is_demo")
+  demoOwnerId            String?          @unique @map("demo_owner_id") @db.Uuid
+  demoExpiresAt          DateTime?        @map("demo_expires_at")
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
 
@@ -235,6 +240,7 @@ model Organization {
   onboardingStates  OnboardingState[]
 
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "organizations_name_trgm_idx")
+  @@index([demoExpiresAt])
   @@map("organizations")
 }
 

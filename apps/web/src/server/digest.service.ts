@@ -8,6 +8,7 @@ import { env } from "@/lib/env";
 import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
+import { REAL_SPACES } from "./demo-space-guard";
 import { unsubscribePageUrl, unsubscribeUrl } from "./email-preferences.service";
 import { audienceAthleteIds } from "./session.service";
 
@@ -18,7 +19,9 @@ export const sendWeeklyDigests = async (now: Date = new Date()): Promise<number>
   // À partir de 18 h : un passage manqué se rattrape au suivant, l'audit évite tout doublon.
   if (!isSunday || hourInParis(now) < 18) return 0;
   const monday = startOfWeek(today);
+  // Aucun récapitulatif d'un espace de démonstration : ses athlètes sont fictifs.
   const orgs = await prisma.organization.findMany({
+    where: REAL_SPACES,
     select: {
       id: true,
       name: true,

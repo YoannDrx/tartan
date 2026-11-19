@@ -23,6 +23,8 @@ import { queueActivationEmails } from "./lifecycle-email.service";
 import { snapshotPlatformDay } from "./admin-console.service";
 import { activeAudienceIds, audienceAthleteIds, publishRow, type Publication } from "./session.service";
 import { runCronJobs } from "./cron-runner";
+import { REAL_SPACES } from "./demo-space-guard";
+import { purgeExpiredDemoSpaces } from "./demo-space.service";
 import { purgeRevokedConsentVideos } from "./consent.service";
 import { processExternalDeletions, reconcileExternalAssets } from "./external-deletion.service";
 import { sendHeartbeat } from "./heartbeat";
@@ -53,6 +55,8 @@ const alertMissedStreak = async (organizationId: string, athleteIds: string[]): 
 export const closeOverdueSessions = async (now: Date = new Date()): Promise<number> => {
   const sessions = await prisma.scheduledSession.findMany({
     where: {
+      // Les fiches de la démonstration n'ont pas de compte : ni séance manquée, ni relance, ni alerte.
+      organization: REAL_SPACES,
       publishedAt: { not: null },
       date: { gte: toDbDate(addDays(todayIso(now), -14)), lt: toDbDate(todayIso(now)) },
     },
@@ -111,7 +115,7 @@ export const closeOverdueSessions = async (now: Date = new Date()): Promise<numb
 
 export const publishScheduledSessions = async (now: Date = new Date()): Promise<number> => {
   const due = await prisma.scheduledSession.findMany({
-    where: { publishedAt: null, publishAt: { lte: now } },
+    where: { organization: REAL_SPACES, publishedAt: null, publishAt: { lte: now } },
     select: {
       id: true,
       createdBy: true,
@@ -164,7 +168,7 @@ export const publishScheduledSessions = async (now: Date = new Date()): Promise<
 export const sendEveQuestions = async (now: Date = new Date()): Promise<number> => {
   const tomorrow = addDays(todayIso(now), 1);
   const sessions = await prisma.scheduledSession.findMany({
-    where: { publishedAt: { not: null }, date: toDbDate(tomorrow) },
+    where: { organization: REAL_SPACES, publishedAt: { not: null }, date: toDbDate(tomorrow) },
     select: { id: true, organizationId: true },
   });
   let sent = 0;
@@ -236,6 +240,8 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     reconciled: async () => (hourInParis(now) === 4 ? reconcileExternalAssets(now) : null),
     // Le jeu : empreintes d'adresse IP effacées à 30 jours, jetons d'essai inutilisés à une journée.
     gameData: async () => (hourInParis(now) === 5 ? purgeGameData(now) : null),
+    // Les espaces de démonstration s'effacent 14 jours après leur ouverture.
+    demoSpaces: () => purgeExpiredDemoSpaces(now),
   });
   await sendHeartbeat("hourly", result.errors);
   return result;

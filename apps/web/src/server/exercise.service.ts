@@ -14,6 +14,7 @@ import { createDirectUpload, signedPlayback, videoEnabled } from "@/lib/mux";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "./access";
+import { assertNotDemoSpace } from "./demo-space-guard";
 import { ensureExerciseCatalog, readExerciseGuide, retainedExerciseGuide } from "./exercise-catalog.service";
 import { approvedMotionFamilies, withMotion } from "./motion-review.service";
 import { assertVideoReservation, withVideoReservation } from "./video-capacity.service";
@@ -93,7 +94,9 @@ export const listExercises = async (userId: string, organizationId: string): Pro
   );
   const families = await approvedMotionFamilies();
   return Promise.all(
-    rows.filter((row) => !row.catalogKey || !represented.has(row.catalogKey)).map((row) => exerciseSummary(row, families)),
+    rows
+      .filter((row) => !row.catalogKey || !represented.has(row.catalogKey))
+      .map((row) => exerciseSummary(row, families)),
   );
 };
 
@@ -195,6 +198,8 @@ export const deleteExercise = async (userId: string, organizationId: string, exe
 
 export const createExerciseVideoUpload = async (userId: string, organizationId: string, exerciseId: string) => {
   await requireOrgMember(userId, organizationId, "editExercises");
+  // Aucun fichier ne part chez Mux depuis l'espace de démonstration.
+  await assertNotDemoSpace(organizationId, "video");
   if (!videoEnabled()) throw new AppError(503, "video_disabled", m.errors.videoDisabled);
   const exercise = await prisma.exercise.findFirst({ where: { id: exerciseId, organizationId, deletedAt: null } });
   if (!exercise) throw notFound();

@@ -16,6 +16,7 @@ import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 import { emailForOutboxKind } from "./email-registry";
+import { isDemoSpace, REAL_SPACES } from "./demo-space-guard";
 import { EmailSuppressedError } from "./email-suppression.service";
 import { isInvitationEmailRelevant, isInvitationOutboxKind, renderInvitationEmail } from "./invitation-email";
 import { isActivationEmailRelevant, renderActivationEmail, renderNearLimitEmail } from "./lifecycle-email.service";
@@ -291,6 +292,11 @@ export const flushEmailOutbox = async (now: Date = new Date(), only?: { dedupeKe
       data: { nextAttemptAt: new Date(now.getTime() + LEASE_MS), attempts: { increment: 1 } },
     });
     if (!claimed.count) continue;
+    // Dernier filet : aucun e-mail ne part au nom d'un espace de démonstration, quel que soit son genre.
+    if (await isDemoSpace(row.organizationId)) {
+      await prisma.emailOutbox.update({ where: { id: row.id }, data: { failedAt: now, failureCode: "demo_space" } });
+      continue;
+    }
     const emailKey = emailForOutboxKind(row.kind);
     if (!emailKey) {
       await prisma.emailOutbox.update({ where: { id: row.id }, data: { failedAt: now, failureCode: "unknown_kind" } });
@@ -331,6 +337,7 @@ export const flushEmailOutbox = async (now: Date = new Date(), only?: { dedupeKe
 export const queueRenewalNotices = async (now: Date = new Date()): Promise<number> => {
   const subscriptions = await prisma.subscription.findMany({
     where: {
+      organization: REAL_SPACES,
       provider: "stripe",
       status: "active",
       cancelAt: null,
@@ -382,7 +389,13 @@ export const queueRenewalNotices = async (now: Date = new Date()): Promise<numbe
 export const queueTrialReminders = async (now: Date = new Date()): Promise<number> => {
   const soon = new Date(now.getTime() + 3 * 86_400_000);
   const subscriptions = await prisma.subscription.findMany({
-    where: { provider: "stripe", status: "trialing", cancelAt: null, trialEndsAt: { gt: now, lte: soon } },
+    where: {
+      organization: REAL_SPACES,
+      provider: "stripe",
+      status: "trialing",
+      cancelAt: null,
+      trialEndsAt: { gt: now, lte: soon },
+    },
     select: {
       providerRef: true,
       planKey: true,
