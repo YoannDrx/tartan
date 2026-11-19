@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-19, Claude Opus 5.5, CI : miroir Ubuntu lent et Maestro iOS instable
+Fait (dans la PR 166) : l'installation des navigateurs arrête l'apt-get que `timeout` laissait vivant, verrou de dpkg compris, puis retente cinq fois ; les paquets système des navigateurs sont gardés en cache (`~/apt-debs`). Maestro iOS rejoue une fois, seul, chaque flux en échec, et le job a 120 minutes.
+Vérifié : rejeu testé en local avec un faux `maestro` (rejeu vert, job vert ; rejeu rouge, job rouge) ; en CI, `athlete-circuit-guide` a échoué puis passé au rejeu ; la PR 166 est passée entièrement verte.
+À savoir : sur quatre passages, un flux iOS différent a échoué à chaque fois (`coach-builder-detail`, `coach-planner`, `settings-privacy`, `athlete-circuit-guide`), chacun vert ailleurs. Cause non trouvée. Un même flux rejoué sur plusieurs PR de suite est à rendre stable.
+Suite : gestes, puis listes d'exercices.
+
 ## 2026-11-17, Claude, alertes Dependabot et flux Maestro Android
 Fait : PR 154 et 155 (flux `coach-builder-detail` stable sur Android : la ligne en autonomie est cherchée vers le haut, et le flux attend que le sélecteur soit posé), PR 153 (Next 16.4.5), puis PR `fix/deps-vulnerabilites` : `overrides` pnpm (node-forge 1.4.3, glob 14, minimatch 11, zod 4.6.7 pour `@vercel/blob`) et correctif local de `decode-uri-component@0.2.2` (décodage en une passe repris de la 0.5.1, gardé en CommonJS pour `query-string` 7 d'expo-router).
 Vérifié : types, lint, tests, `design:check` ; `expo config` ; empreinte Expo iOS et Android identique avant et après (les `runtimeVersion` des builds installés ne changent pas) ; la 0.2.2 d'origine dépasse 60 s sur 2 000 octets invalides, la version corrigée traite 200 000 octets en 40 ms, sans écart sur 11 cas usuels.
@@ -45,6 +51,13 @@ Vérifié : toute la suite (web 2 022), types, lint, design, configuration Expo 
 Non vérifié : simulateur iOS, onglet de Chrome réel, rendu des e-mails dans une messagerie.
 À savoir : sur la piste, le carré rouge de l'icône se fond dans le fond et il reste la marque blanche et citron : c'est voulu (en-tête, e-mails). Le logotype garde sa largeur de 573 pour 160, que `components/logo.tsx` suppose. Les icônes natives changent l'empreinte : il faut un nouveau binaire, une mise à jour à distance ne suffit pas.
 Suite : la nouvelle morphologie du personnage régénérera les PNG des e-mails (`email:athletes`), pas le logo.
+
+## 2026-11-18, Claude Fable 5.2 puis Claude Opus 5.5, gestes : nouveau moteur et 173 fiches
+Fait (PR `feat/gestes-complet`) : moteur v2 dans `packages/mascot/src/v2/` (Fable : prototype validé par le fondateur, relèvement des 173 gestes `lift-v1.ts`, registre `registry.ts`, choix du moteur `engine.ts`, lecteurs web et mobile avec bascule de vue, atelier en deux vues). Écriture à la main par Opus : toute l'haltérophilie (briques partagées de tirée, réception et jeté), la musculation de base (`gym.ts` pour bancs, barres et appuis aux mains), les gestes autrefois à reprendre, la pliométrie (`flight.ts`, vol sous la gravité), les gestes autrefois dessinés de face, la course (`stride.ts`, sol défilant `treadmill`). Registre : 77 écrits, 96 relevés, `A_REPRENDRE` vide.
+Vérifié : 2 299 tests du paquet, toute la suite web, parcours `exercise-guides` sur build de production ; planches par famille relues sur image (haltérophilie, musculation, pliométrie).
+Non vérifié : aucun geste regardé en mouvement par un humain ; lecteur mobile sur appareil ; Maestro (la CI le rejoue).
+À savoir : le test générique des gestes distingue désormais haltérophilie et musculation (deux pieds tenus à chaque tenue) des sauts, courses et gestes au sol, avec des seuils de continuité plus larges pour les sauts et la course. Les écritures n'avaient relancé que les tests du paquet : quatre tests web (`motion-review`) et un pas du parcours des guides supposaient encore des gestes sur l'ancien moteur, corrigés ici. Beaucoup de gestes sont réglés à l'œil, faute de source ouverte : chaque en-tête de fichier le dit.
+Suite : cadrage des vignettes, nouvelle morphologie dans le film, le jeu et les e-mails, vidéo de catalogue.
 
 ## 2026-11-18, Claude, lot D : vidéo en plein écran
 Fait (PR `feat/video`) : plein écran de l'analyse (`use-immersive.ts`, `immersive-layout.ts`), sur la page entière et non sur le seul conteneur, pour garder les dialogues et les messages rendus dans des portails ; vrai plein écran avec souris et clavier, surcouche ailleurs ; panneau à droite (`video-editor-chrome.tsx`) ou feuille à trois hauteurs selon l'orientation ; contrôles sortis dans `video-transport.tsx` ; raccourcis et aide ; tracés au clavier dans `video-drawing.tsx`. Aucun changement côté serveur.
