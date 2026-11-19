@@ -39,6 +39,7 @@ import {
   plannerExerciseMentions,
   plannerExerciseIsNamed,
   plannerExplicitSingleSetRest,
+  plannerDropUncoveredPercent,
   plannerRequiredFields,
   plannerWarnings,
   unresolvedExerciseAlias,
@@ -489,28 +490,10 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
               ...session,
               ...request,
               durationMin: Math.min(session.durationMin ?? brief.durationMin, brief.durationMin),
-              // Un pourcentage sur un exercice sans référence pour tous ne serait résolu pour personne : retiré.
-              blocks: session.blocks.map((block) => ({
-                ...block,
-                items: block.items.map((item) => ({
-                  ...item,
-                  prescription: withoutUncoveredPercent(item.prescription, item.exerciseToken, percentTokens),
-                  ...(item.autonomous
-                    ? {
-                        autonomous: {
-                          ...item.autonomous,
-                          prescription: withoutUncoveredPercent(
-                            item.autonomous.prescription,
-                            item.autonomous.exerciseToken,
-                            percentTokens,
-                          ),
-                        },
-                      }
-                    : {}),
-                })),
-              })),
             })),
           };
+          // Un pourcentage sur un exercice sans référence pour tous ne serait résolu pour personne : retiré.
+          value = plannerDropUncoveredPercent(value, percentTokens);
         }
         value = plannerDropEmptyPercentages(value);
         if (!propose) value = plannerExplicitSingleSetRest(value);
@@ -658,22 +641,6 @@ const loadsIn = (nodes: Content): number[] =>
       ...(p.setPlan ?? []).flatMap((set) => (set.load ? [set.load.value] : [])),
     ]);
   });
-
-type RichPrescription =
-  PlannerRichInterpretation["sessions"][number]["blocks"][number]["items"][number]["prescription"];
-const withoutUncoveredPercent = (
-  prescription: RichPrescription,
-  token: string,
-  allowed: ReadonlySet<string>,
-): RichPrescription =>
-  allowed.has(token)
-    ? prescription
-    : {
-        ...prescription,
-        load: prescription.load?.type === "pct_1rm" ? null : prescription.load,
-        setPlan:
-          prescription.setPlan?.map((set) => (set.load?.type === "pct_1rm" ? { ...set, load: null } : set)) ?? null,
-      };
 
 type ProviderResult = {
   status?: string;

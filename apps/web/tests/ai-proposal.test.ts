@@ -1537,3 +1537,60 @@ it("diffuse les étapes et le plan pendant la génération, puis la proposition 
     { timeout: 10000 },
   );
 });
+it("en mode « Proposer », garde un % 1RM seulement si chaque destinataire a sa référence, quel que soit le prestataire", async () => {
+  const a = await setup();
+  await prisma.organization.update({ where: { id: a.organizationId }, data: { progressionEnabled: true } });
+  const exercise = await prisma.exercise.create({
+    data: {
+      name: "Squat approuvé chargé",
+      classification: { movement: "squat", equipment: [] },
+      category: "strength",
+      strengthLoadKind: "external_total",
+      catalogKey: `test-${randomUUID()}`,
+      guide: { technicalReview: "approved" },
+    },
+  });
+  try {
+    const athletes = [
+      await addAthlete(a.organizationId, a.groupId, "Pourcent Un"),
+      await addAthlete(a.organizationId, a.groupId, "Pourcent Deux"),
+    ];
+    await selectStrengthReference(a.owner.userId, a.organizationId, athletes[0]!.athleteId, exercise.id, {
+      source: "working",
+      valueKg: 100,
+    });
+    const percent = provider((context) => {
+      const result = proposal({ ...context, exercises: context.exercises.filter((e) => e.name === exercise.name) });
+      result.sessions[0]!.date = context.brief!.date;
+      result.sessions[0]!.durationMin = 30;
+      result.sessions[0]!.blocks[0]!.items[0]!.prescription.load = { type: "pct_1rm", value: 80 };
+      return result;
+    });
+    const input = (id: string) => ({
+      ...a.input,
+      id,
+      text: "Force",
+      selection: {
+        ...a.input.selection,
+        mode: "propose" as const,
+        exerciseIds: [],
+        brief: { objective: "Force", date: "2030-06-04", durationMin: 40, level: "advanced" as const, equipment: [] },
+      },
+    });
+    const partial = await a.create(percent, input(randomUUID()));
+    expect(partial.state).toBe("proposal");
+    expect(partial.interpretation!.sessions[0]!.blocks[0]!.items[0]!.prescription.load).toBeNull();
+    await selectStrengthReference(a.owner.userId, a.organizationId, athletes[1]!.athleteId, exercise.id, {
+      source: "working",
+      valueKg: 90,
+    });
+    const full = await a.create(percent, input(randomUUID()));
+    expect(full.interpretation!.sessions[0]!.blocks[0]!.items[0]!.prescription.load).toEqual({
+      type: "pct_1rm",
+      value: 80,
+    });
+  } finally {
+    await prisma.strengthReference.deleteMany({ where: { exerciseId: exercise.id } });
+    await prisma.exercise.delete({ where: { id: exercise.id } });
+  }
+});

@@ -49,9 +49,16 @@ async function fakeInterpretation(context: PlannerProviderContext) {
         },
       ],
     };
-  const exercise = (unknownFixture ? resolved : context.exercises[0])!;
+  // La fiche : celle que le coach a rattachée, sinon celle que la consigne nomme, sinon la première autorisée.
+  const text = context.instructions.join("\n").toLocaleLowerCase("fr");
+  const chosen = context.resolvedExercises?.length
+    ? context.exercises.find((e) => e.token === context.resolvedExercises![0]!.token)
+    : context.exercises.find((e) => text.includes(e.name.toLocaleLowerCase("fr")));
+  const exercise = (unknownFixture ? resolved : (chosen ?? context.exercises[0]))!;
   const target = context.targets[0]!;
   const instruction = context.instructions[0]!.slice(0, 2000);
+  // « 80 % » dans la consigne : une charge en pourcentage du maximum, que Tartan résout pour chacun.
+  const percent = Number(/(\d{2,3})\s?%/.exec(text)?.[1] ?? Number.NaN);
   // Un ajustement change le nombre de séries ; un circuit répète les deux premières fiches trois fois.
   const sets = context.previous ? 4 : 3;
   const prescription = (count: number) => ({
@@ -60,7 +67,7 @@ async function fakeInterpretation(context: PlannerProviderContext) {
     distanceM: null,
     durationS: null,
     restS: count > 1 ? 90 : null,
-    load: null,
+    load: Number.isFinite(percent) ? { type: "pct_1rm" as const, value: percent } : null,
     intensityTarget: null,
     tempo: null,
     contacts: null,

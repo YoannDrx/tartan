@@ -69,6 +69,8 @@ export function WebPlanner({
   equipment: string[];
 }) {
   const [proposal, setProposal] = useState(initial);
+  // La bibliothèque peut grandir pendant une clarification (fiche privée créée) : l'éditeur la relit.
+  const [library, setLibrary] = useState(context);
   const [request, setRequest] = useState<PlannerRequestValue>(() =>
     plannerRequestFrom(initial?.selection ?? initialSelection, equipment),
   );
@@ -120,7 +122,7 @@ export function WebPlanner({
         <>
           <PlannerRequest
             orgId={orgId}
-            context={context}
+            context={library}
             value={request}
             onChange={setRequest}
             busy={stream.state.running}
@@ -138,7 +140,7 @@ export function WebPlanner({
         <PlannerResult
           key={proposal.id}
           orgId={orgId}
-          context={context}
+          context={library}
           proposal={proposal}
           stream={stream.state}
           onClarify={(input) => {
@@ -147,6 +149,7 @@ export function WebPlanner({
           }}
           onProposal={receive}
           onError={fail}
+          onExercises={(exercises) => setLibrary((current) => ({ ...current, exercises }))}
           onRestart={() => {
             // La demande reste préremplie : une nouvelle proposition repart de ce que le coach avait écrit.
             setRequest({

@@ -771,6 +771,56 @@ export function plannerDropEmptyPercentages<T extends PlannerInterpretation | Pl
   } as T;
 }
 
+type RichPrescription =
+  PlannerRichInterpretation["sessions"][number]["blocks"][number]["items"][number]["prescription"];
+const withoutUncoveredPercent = (
+  prescription: RichPrescription,
+  token: string,
+  allowed: ReadonlySet<string>,
+): RichPrescription =>
+  allowed.has(token)
+    ? prescription
+    : {
+        ...prescription,
+        load: prescription.load?.type === "pct_1rm" ? null : prescription.load,
+        setPlan:
+          prescription.setPlan?.map((set) => (set.load?.type === "pct_1rm" ? { ...set, load: null } : set)) ?? null,
+      };
+/**
+ * Mode « Proposer » : un pourcentage du maximum ne reste que sur un exercice dont chaque destinataire a sa
+ * référence de force ; ailleurs il ne serait résolu pour personne et disparaît. Les kilos sont refusés à part.
+ */
+export function plannerDropUncoveredPercent(
+  value: PlannerRichInterpretation,
+  allowed: ReadonlySet<string>,
+): PlannerRichInterpretation {
+  return {
+    ...value,
+    sessions: value.sessions.map((session) => ({
+      ...session,
+      blocks: session.blocks.map((block) => ({
+        ...block,
+        items: block.items.map((item) => ({
+          ...item,
+          prescription: withoutUncoveredPercent(item.prescription, item.exerciseToken, allowed),
+          ...(item.autonomous
+            ? {
+                autonomous: {
+                  ...item.autonomous,
+                  prescription: withoutUncoveredPercent(
+                    item.autonomous.prescription,
+                    item.autonomous.exerciseToken,
+                    allowed,
+                  ),
+                },
+              }
+            : {}),
+        })),
+      })),
+    })),
+  };
+}
+
 // Une question par information : le modèle répète parfois la même demande reformulée.
 export function plannerDistinctQuestions<T extends { field: string; question: string }>(questions: readonly T[]): T[] {
   const seen = new Set<string>();

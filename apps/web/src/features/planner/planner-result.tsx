@@ -61,7 +61,10 @@ export function PlannerResult({
   onProposal,
   onRestart,
   onError,
+  onExercises,
 }: {
+  // Une fiche créée pendant la clarification rejoint la bibliothèque affichée par l'éditeur.
+  onExercises: (exercises: PlannerContext["exercises"]) => void;
   orgId: string;
   context: PlannerContext;
   proposal: PlannerProposalResponse;
@@ -277,6 +280,7 @@ export function PlannerResult({
                   onResolve={async (input) => {
                     const updated = await api.resolvePlannerExercise(orgId, proposal.id, input);
                     onProposal(updated);
+                    onExercises(await api.exercises(orgId));
                   }}
                 />
               ) : null}

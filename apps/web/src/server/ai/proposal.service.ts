@@ -41,6 +41,7 @@ import {
   isSessionAssigned,
   plannerLegacyInterpretation,
   plannerSessionToGeneration,
+  plannerDropUncoveredPercent,
   PLANNER_MAX_ADJUSTMENTS,
   PLANNER_MAX_CLARIFICATIONS,
 } from "@tartan/domain";
@@ -289,12 +290,20 @@ async function executeProposal(
     execution.onProgress?.({ step: "context" });
     const provider = execution.provider ?? (fakePlannerEnabled() ? fakePlannerProvider() : openAiPlannerProvider());
     // Un nom de mouvement absent de la bibliothèque devient une question nommée sans appel au modèle.
-    const raw =
+    // Mode « Proposer » : le pourcentage n'est permis que là où chaque destinataire a sa référence de force.
+    const percentTokens = new Set(
+      selection.mode === "propose"
+        ? (bindings.strength ?? []).filter((s) => s.coverage === "all").map((s) => s.exerciseToken)
+        : [],
+    );
+    const generated =
       plannerUnknownQuestions(context) ??
       (await provider.interpret(context, {
         onProgress: execution.onProgress,
         ...(execution.onPlan ? { onDelta: planFollower(bindings, execution.onPlan) } : {}),
       }));
+    // Le même retrait que l'adaptateur, quel que soit le prestataire : rien ne passe sans référence pour tous.
+    const raw = selection.mode === "propose" ? plannerDropUncoveredPercent(generated, percentTokens) : generated;
     const checked = validatePlannerInterpretation(raw, {
       mode: selection.mode,
       brief: selection.brief,
@@ -302,6 +311,7 @@ async function executeProposal(
       reviewedInstructions: context.instructions,
       exercises: new Map(bindings.exercises.map((e) => [e.token, { id: e.id, classification: e.classification }])),
       targetTokens: new Set(bindings.targets.map((t) => t.token)),
+      percentTokens,
     });
     if (!checked.ok) throw new PlannerProviderError("invalid_output");
     const completed = await completePlannerOperation(
