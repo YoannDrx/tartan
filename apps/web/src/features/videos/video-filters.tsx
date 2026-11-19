@@ -3,6 +3,7 @@ import { m } from "@tartan/i18n";
 import { Button } from "@/components/ui/button";
 import { Field, Select } from "@/components/ui/field";
 import type { VideoQuery } from "@/server/video.service";
+import { VideoFilterSheet } from "./video-filter-sheet";
 
 export type VideoSearch = {
   athlete?: string;
@@ -31,25 +32,53 @@ export const videoQuery = (search: VideoSearch): VideoQuery => ({
   needsReview: search.review === "pending",
 });
 
-export function VideoFilters({
-  search,
-  athletes = [],
-  groups = [],
-  sessions = [],
-  exercises = [],
-  staff = false,
-}: {
+const FILTER_KEYS = ["athlete", "groupe", "exercice", "session", "status", "review"] as const;
+
+// Le nombre de filtres posés, affiché sur le bouton de la feuille.
+export const activeVideoFilters = (search: VideoSearch) => FILTER_KEYS.filter((key) => Boolean(search[key])).length;
+
+type FilterProps = {
   search: VideoSearch;
   athletes?: { id: string; name: string }[];
   groups?: { id: string; name: string }[];
   sessions?: { id: string; label: string }[];
   exercises?: { id: string; name: string }[];
   staff?: boolean;
-}) {
+};
+
+// Sur ordinateur, les filtres tiennent sur une ligne au-dessus de la liste ; plus étroit, ils passent dans une feuille.
+export function VideoFilters({ basePath, ...props }: FilterProps & { basePath: string }) {
   return (
-    <form method="get" aria-label={m.videoCollaboration.filter} className="flex flex-wrap items-end gap-3">
+    <>
+      <VideoFilterSheet active={activeVideoFilters(props.search)} clearHref={basePath}>
+        <FilterForm {...props} sheet />
+      </VideoFilterSheet>
+      <div className="max-desktop:hidden">
+        <FilterForm {...props} />
+      </div>
+    </>
+  );
+}
+
+function FilterForm({
+  search,
+  athletes = [],
+  groups = [],
+  sessions = [],
+  exercises = [],
+  staff = false,
+  sheet = false,
+}: FilterProps & { sheet?: boolean }) {
+  // Dans la feuille, une colonne pleine largeur ; sur ordinateur, des champs de largeur fixe sur une ligne.
+  const field = sheet ? "min-w-0 w-full" : "min-w-0 w-48";
+  return (
+    <form
+      method="get"
+      aria-label={m.videoCollaboration.filter}
+      className={sheet ? "flex flex-col gap-3" : "flex flex-wrap items-end gap-3"}
+    >
       {athletes.length ? (
-        <Field className="min-w-0 w-full tablet:w-56" label={m.videoCollaboration.athlete}>
+        <Field className={field} label={m.videoCollaboration.athlete}>
           {(a) => (
             <Select {...a} name="athlete" defaultValue={search.athlete ?? ""}>
               <option value="">{m.videoCollaboration.allAthletes}</option>
@@ -63,7 +92,7 @@ export function VideoFilters({
         </Field>
       ) : null}
       {groups.length > 1 ? (
-        <Field className="min-w-0 w-full tablet:w-56" label={m.videoCollaboration.group}>
+        <Field className={field} label={m.videoCollaboration.group}>
           {(a) => (
             <Select {...a} name="groupe" defaultValue={search.groupe ?? ""}>
               <option value="">{m.videoCollaboration.allGroups}</option>
@@ -77,7 +106,7 @@ export function VideoFilters({
         </Field>
       ) : null}
       {sessions.length ? (
-        <Field className="min-w-0 w-full tablet:w-56" label={m.video.linkedSession}>
+        <Field className={field} label={m.video.linkedSession}>
           {(a) => (
             <Select {...a} name="session" defaultValue={search.session ?? ""}>
               <option value="">{m.videoCollaboration.allSessions}</option>
@@ -91,7 +120,7 @@ export function VideoFilters({
         </Field>
       ) : null}
       {exercises.length ? (
-        <Field className="min-w-0 w-full tablet:w-56" label={m.video.exerciseLink}>
+        <Field className={field} label={m.video.exerciseLink}>
           {(a) => (
             <Select {...a} name="exercice" defaultValue={search.exercice ?? ""}>
               <option value="">{m.videoCollaboration.allExercises}</option>
@@ -104,7 +133,7 @@ export function VideoFilters({
           )}
         </Field>
       ) : null}
-      <Field className="min-w-0 w-full tablet:w-56" label={m.videoCollaboration.allStates}>
+      <Field className={field} label={m.videoCollaboration.allStates}>
         {(a) => (
           <Select {...a} name="status" defaultValue={search.status ?? ""}>
             <option value="">{m.videoCollaboration.allStates}</option>
@@ -121,7 +150,8 @@ export function VideoFilters({
           {m.videoCollaboration.awaitingReview}
         </label>
       ) : null}
-      <Button type="submit" size="sm" variant="secondary">
+      {/* Dans la feuille, l'application des filtres est l'action principale. */}
+      <Button type="submit" size={sheet ? "md" : "sm"} variant={sheet ? "primary" : "secondary"}>
         {m.videoCollaboration.applyFilters}
       </Button>
     </form>
@@ -138,7 +168,7 @@ export function VideoPagination({
   basePath: string;
 }) {
   const params = new URLSearchParams();
-  for (const key of ["athlete", "groupe", "exercice", "session", "status", "review"] as const)
+  for (const key of FILTER_KEYS)
     if (search[key]) params.set(key, search[key]);
   const first = `${basePath}?${params}`;
   if (nextCursor) params.set("cursor", nextCursor);
