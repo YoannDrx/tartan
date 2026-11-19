@@ -51,7 +51,7 @@ Les étapes obligatoires ne sont pas stockées : elles se déduisent des faits r
 
 Ce que les faits ne disent pas est gardé par membre et par espace, dans `onboarding_states` : tour vu, accueil vu, carte refermée, fin fêtée, étapes facultatives écartées, écrans dont le repère a été vu. La ligne naît avec le membre, dans la transaction qui le crée (création de l'espace, invitation acceptée). Un membre arrivé avant ce suivi n'a pas de ligne, ou une ligne `guided = false` s'il referme quelque chose : il n'est ni guidé ni accueilli. Les comptes de démonstration (`seed.ts`, `demo-preparation.ts`) sont posés ainsi.
 
-API, pour le web et le mobile : `GET` et `PATCH /api/v1/orgs/[orgId]/onboarding` (contrat dans `packages/contracts/src/onboarding.ts`), sous `requireOrgMember`. Chacun ne lit et n'écrit que les siens. Le web y envoie les gestes sans retour à l'écran (tour vu, repère vu, accueil refermé, carte facultative refermée, fête jouée) en `keepalive` : l'écriture part même si la page change ou se recharge aussitôt. Un rechargement plus rapide que l'écriture côté serveur peut encore montrer l'élément une fois.
+API, pour le web et le mobile : `GET` et `PATCH /api/v1/orgs/[orgId]/onboarding` (contrat dans `packages/contracts/src/onboarding.ts`), sous `requireOrgMember`. Chacun ne lit et n'écrit que les siens. Le web y envoie les gestes sans retour à l'écran (tour refermé, accueil refermé, carte facultative refermée, fête jouée) en `keepalive`, réponse lue jusqu'au bout : l'écriture part même si la page change ou se recharge aussitôt. Un rechargement plus rapide que l'écriture côté serveur peut encore montrer l'élément une fois. Le repère vu, noté à l'arrivée sur l'écran, passe par l'action serveur.
 
 ### Le tour de piste
 
