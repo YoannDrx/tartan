@@ -3,14 +3,12 @@
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { useAction } from "next-safe-action/hooks";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { Field, Input, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
-import { updateProfileAction, uploadAvatarAction } from "../settings.action";
+import { updateProfileAction } from "../settings.action";
 import { onErr, type AnyErrors } from "../shared";
 
 const t = w.settings.profil;
@@ -83,36 +81,5 @@ export const ProfileForm = ({
         {m.common.save}
       </Button>
     </form>
-  );
-};
-
-export const AvatarForm = ({ avatarUrl, name }: { avatarUrl: string | null; name: string }) => {
-  const router = useRouter();
-  const { execute, isPending } = useAction(uploadAvatarAction, { onSuccess: () => router.refresh(), onError: onErr });
-  return (
-    <div className="flex items-center gap-3">
-      <span className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card-raised font-semibold">
-        {avatarUrl ? (
-          <Image src={avatarUrl} alt={t.avatarAlt(name)} fill sizes="64px" className="object-cover" unoptimized />
-        ) : (
-          name.slice(0, 2).toUpperCase()
-        )}
-      </span>
-      <Field label={m.settings.photo} hint={m.settings.photoHint} className="flex-1">
-        {(a) => (
-          <Input
-            {...a}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="py-2"
-            disabled={isPending}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) execute({ file });
-            }}
-          />
-        )}
-      </Field>
-    </div>
   );
 };

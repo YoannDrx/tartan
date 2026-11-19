@@ -3,6 +3,8 @@ import { TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import type { TrackingGrid } from "@tartan/contracts";
 import { formatWeekdayShort, m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
+import { Avatar } from "@/components/avatar";
 import { ActivityPicto } from "@/components/pictos";
 import { StatusIcon, StatusLegend } from "@/components/status-cell";
 import { cn } from "@/lib/cn";
@@ -98,18 +100,13 @@ export const TrackingTable = ({
                   href={`/athletes/${row.athleteId}`}
                   className="flex min-h-11 items-center gap-2.5 text-inherit no-underline"
                 >
-                  <span
-                    aria-hidden
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card-raised text-[12px] font-semibold max-desktop:hidden"
-                  >
-                    {row.initials}
-                  </span>
+                  <Avatar person={row} size="sm" className="max-desktop:hidden" />
                   <span className="flex min-w-0 flex-col leading-snug">
                     <span className="flex items-center gap-1 font-semibold desktop:whitespace-nowrap">
                       <span className="truncate">{row.name}</span>
                       {row.hasPain || row.activeInjury ? (
                         <TriangleAlert
-                          aria-label={row.hasPain ? "Douleur signalée" : m.coach.activeInjury}
+                          aria-label={row.hasPain ? m.athletes.painReported : m.coach.activeInjury}
                           className={cn("size-4 shrink-0", row.hasPain ? "text-st-missed" : "text-st-partial")}
                         />
                       ) : null}
@@ -133,7 +130,7 @@ export const TrackingTable = ({
                   ) : (
                     <>
                       <span aria-hidden className="mx-auto block h-0.5 w-2 rounded-full bg-card-raised" />
-                      <span className="sr-only">Non concerné</span>
+                      <span className="sr-only">{w.tracking.notConcerned}</span>
                     </>
                   )}
                 </td>

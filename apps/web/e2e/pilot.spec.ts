@@ -1,4 +1,5 @@
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll, uniqueEmail } from "./helpers";
 import { createExercise, groupLink, joinAsAthlete, publishSession, today } from "./journeys";
@@ -312,9 +313,10 @@ test.describe("toutes tailles d'écran", () => {
         violations.push(message.text());
     });
     for (const path of ["/", "/confidentialite", "/connexion"]) await page.goto(path, { waitUntil: "networkidle" });
-    await page.goto("/connexion");
-    await page.getByRole("button", { name: "Utiliser un mot de passe" }).click();
-    await expect(page.getByLabel("Mot de passe")).toBeVisible();
+    await page.goto("/connexion", { waitUntil: "networkidle" });
+    await page.getByLabel(m.auth.emailLabel).fill("csp@e2e.tartan.test");
+    await page.getByRole("button", { name: w.auth.signIn.withPassword, exact: true }).click();
+    await expect(page.getByLabel(w.auth.signIn.passwordLabel, { exact: true })).toBeVisible();
     expect(violations).toEqual([]);
   });
 
@@ -337,10 +339,11 @@ test.describe("toutes tailles d'écran", () => {
 
 test("connexion impossible avec un mauvais mot de passe", async ({ page }) => {
   const email = uniqueEmail("erreur");
-  await page.goto("/connexion");
-  await page.getByRole("button", { name: "Utiliser un mot de passe" }).click();
-  await page.getByLabel("Adresse e-mail").fill(email);
-  await page.getByLabel("Mot de passe").fill("mauvais-mot-de-passe");
-  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
-  await expect(page.getByText("E-mail ou mot de passe incorrect.")).toBeVisible();
+  await page.goto("/connexion", { waitUntil: "networkidle" });
+  await page.getByLabel(m.auth.emailLabel).fill(email);
+  await page.getByRole("button", { name: w.auth.signIn.withPassword, exact: true }).click();
+  await page.getByLabel(w.auth.signIn.passwordLabel, { exact: true }).fill("mauvais-mot-de-passe");
+  await page.getByRole("button", { name: w.auth.signIn.submit, exact: true }).click();
+  // Le message dit quoi faire, et rien sur l'existence d'un compte à cette adresse.
+  await expect(page.getByRole("alert").filter({ hasText: w.auth.invalidCredentials })).toBeVisible();
 });

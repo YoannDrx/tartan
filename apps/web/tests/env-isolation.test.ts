@@ -28,6 +28,8 @@ describe("garde d'environnement", () => {
     expect(() => assertEnvIsolation({ ...base, AI_PLANNER_FAKE_PROVIDER: "true" })).toThrow(/AI_PLANNER_FAKE_PROVIDER/);
     expect(() => assertEnvIsolation({ ...base, VIDEO_DEV_MP4_URL: "https://x" })).toThrow(/VIDEO_DEV_MP4_URL/);
     expect(() => assertEnvIsolation({ ...base, MUX_BASE_URL: "http://localhost:3103" })).toThrow(/MUX_BASE_URL/);
+    // Le dossier où les parcours relisent les e-mails contient des liens de connexion : jamais en production.
+    expect(() => assertEnvIsolation({ ...base, E2E_MAIL_DIR: "/tmp/e-mails" })).toThrow(/E2E_MAIL_DIR/);
   });
   it("le message d'erreur ne contient jamais le secret", () => {
     const url = `postgresql://role:motdepasse@${PRODUCTION_HOST}/tartan`;

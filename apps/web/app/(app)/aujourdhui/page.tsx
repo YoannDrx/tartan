@@ -17,7 +17,9 @@ import { AttendanceQuestion, TodayAbsence } from "@/features/athlete-view/attend
 import { sessionCardName } from "@/features/athlete-view/session-card";
 import { QuickValidate } from "@/features/athlete-view/validation";
 import { requireAthleteSpace } from "@/features/shell/space";
+import { PasswordPrompt } from "@/features/auth/password-prompt";
 import { getAthleteSession, getAthleteToday, getAthleteWelcome } from "@/server/athlete-view.service";
+import { getSignInMethods } from "@/server/credentials.service";
 
 export const metadata: Metadata = { title: m.nav.aujourdhui };
 
@@ -207,9 +209,10 @@ const Hero = ({
 export default async function AujourdhuiPage() {
   const { actor, organizationId } = await requireAthleteSpace();
   const today = todayIso();
-  const [data, welcome] = await Promise.all([
+  const [data, welcome, methods] = await Promise.all([
     getAthleteToday(actor.userId, organizationId),
     getAthleteWelcome(actor.userId, organizationId),
+    getSignInMethods(actor),
   ]);
   const details = await Promise.all(data.today.map((c) => getAthleteSession(actor.userId, organizationId, c.id)));
   return (
@@ -248,6 +251,8 @@ export default async function AujourdhuiPage() {
       {data.today.length === 0 ? (
         <EmptyState rubric="aujourdhui">{data.next ? m.today.empty : m.today.noneYet}</EmptyState>
       ) : null}
+      {/* Après la séance du jour, jamais avant : entré par un lien, l'athlète peut se donner un mot de passe. */}
+      {methods.passwordPrompt ? <PasswordPrompt email={methods.email} canSetNow={methods.canSetPasswordNow} /> : null}
       {data.next ? (
         <section className="flex flex-col gap-2">
           <h2 className="t-section">{m.today.next}</h2>

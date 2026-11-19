@@ -23,6 +23,7 @@ import {
   strengthTestKind,
   takeoffFoot,
 } from "./enums";
+import { avatarPreset } from "./avatar";
 import { isoDate, prescriptionSchema, uuid } from "./session";
 import { trainingProfileSchema } from "./training-profile";
 
@@ -41,6 +42,8 @@ export const profileInput = z.object({
     .refine((url) => /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\//i.test(url))
     .nullable()
     .optional(),
+  // Un avatar prédéfini remplace la photo ; null revient aux initiales.
+  avatarPreset: avatarPreset.nullable().optional(),
 });
 export type ProfileInput = z.infer<typeof profileInput>;
 

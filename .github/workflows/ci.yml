@@ -59,7 +59,7 @@ jobs:
   e2e:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:
@@ -112,19 +112,56 @@ jobs:
               echo "::warning::$host ne se résout par aucun serveur"
             fi
           done
+      # Paquets système des navigateurs gardés d'un passage à l'autre : le 18 novembre 2026, le miroir Ubuntu
+      # servait 50 Ko/s et trois tentatives de quatre minutes n'en venaient pas à bout (PR 166).
+      - name: Paquets système des navigateurs, depuis le cache
+        id: apt-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/apt-debs
+          key: apt-debs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: apt-debs-${{ runner.os }}-
+      - name: Paquets en cache remis à apt
+        run: |
+          if compgen -G "$HOME/apt-debs/*.deb" > /dev/null; then
+            sudo cp "$HOME"/apt-debs/*.deb /var/cache/apt/archives/
+            echo "$(ls "$HOME"/apt-debs/*.deb | wc -l) paquets repris du cache"
+          fi
       - name: Navigateurs des parcours
         # Une minute d'ordinaire. apt réessaie sans fin quand le réseau du serveur tombe : on coupe au bout de
         # quatre minutes et on retente, au lieu de perdre le job (trois échecs de ce genre le 18 novembre 2026).
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4 5; do
             if timeout 240 pnpm --filter @tartan/web exec playwright install --with-deps chromium webkit; then
               exit 0
             fi
             echo "::warning::Installation des navigateurs : tentative $attempt échouée ou trop longue"
-            sleep 10
+            # `timeout` n'atteint pas l'apt-get lancé par sudo : il survivait en gardant le verrou de dpkg, et les
+            # tentatives suivantes échouaient aussitôt sur ce verrou (PR 166). On l'arrête et on attend le verrou.
+            sudo pkill -TERM -x apt-get || true
+            for _ in $(seq 1 30); do
+              sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock >/dev/null 2>&1 || break
+              sleep 2
+            done
+            sudo dpkg --configure -a || true
+            sleep 5
           done
           exit 1
-        timeout-minutes: 14
+        # Cinq tentatives : apt reprend les paquets déjà téléchargés, chaque tentative avance.
+        timeout-minutes: 24
+      - name: Paquets système des navigateurs, mis en cache
+        if: steps.apt-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/apt-debs"
+          cp /var/cache/apt/archives/*.deb "$HOME/apt-debs/" 2>/dev/null || true
+          echo "$(ls "$HOME"/apt-debs/*.deb 2>/dev/null | wc -l) paquets gardés"
+      - name: Paquets système des navigateurs, enregistrés
+        if: steps.apt-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: ~/apt-debs
+          key: apt-debs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Parcours sur le build de production (CSP et en-têtes réels)
         if: ${{ !matrix.extras }}
         run: pnpm --filter @tartan/web exec playwright test --shard=${{ matrix.shard }}

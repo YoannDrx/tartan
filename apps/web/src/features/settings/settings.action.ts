@@ -4,7 +4,7 @@ import { organizationUpdateInput } from "@tartan/contracts";
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { athleteConsentInput, groupInput, profileInput, uuid } from "@tartan/contracts";
+import { athleteConsentInput, avatarPresetInput, groupInput, profileInput, uuid } from "@tartan/contracts";
 import { z } from "zod";
 import { authAction } from "@/lib/safe-action";
 import { invalid } from "@/lib/errors";
@@ -16,7 +16,7 @@ import { deleteAccount } from "@/server/account.service";
 import { resendParentalConsent, setAthleteConsent } from "@/server/consent.service";
 import { EMAIL_KINDS, setEmailPreference } from "@/server/email-preferences.service";
 import { revokeIcalLink } from "@/server/ical.service";
-import { saveAvatar, updateProfile } from "@/server/me.service";
+import { saveAvatar, setAvatarPreset, updateProfile } from "@/server/me.service";
 import { deleteGroup, saveGroup, saveOrganizationLogo, updateOrganization } from "@/server/org.service";
 import { leaveOrganization, removeAthlete, removeCoach, updateMember } from "@/server/members.service";
 
@@ -41,14 +41,20 @@ export const uploadAvatarAction = authAction
   .inputSchema(z.object({ file: z.instanceof(File) }))
   .action(async ({ parsedInput, ctx }) => {
     await saveAvatar(ctx.actor.userId, parsedInput.file);
-    revalidatePath("/reglages", "layout");
+    // L'avatar est dans l'en-tête de chaque écran.
+    revalidatePath("/", "layout");
   });
+
+export const setAvatarPresetAction = authAction.inputSchema(avatarPresetInput).action(async ({ parsedInput, ctx }) => {
+  await setAvatarPreset(ctx.actor.userId, parsedInput.preset);
+  revalidatePath("/", "layout");
+});
 
 export const uploadLogoAction = spaceAction
   .inputSchema(z.object({ file: z.instanceof(File) }))
   .action(async ({ parsedInput, ctx }) => {
     await saveOrganizationLogo(ctx.userId, ctx.organizationId, parsedInput.file);
-    revalidatePath("/reglages", "layout");
+    revalidatePath("/", "layout");
   });
 
 export const setConsentAction = spaceAction.inputSchema(athleteConsentInput).action(async ({ parsedInput, ctx }) => {
@@ -83,7 +89,8 @@ export const deleteGroupAction = spaceAction
 export const deleteAccountAction = authAction
   .inputSchema(z.object({ confirmation: z.string() }))
   .action(async ({ parsedInput, ctx }) => {
-    if (parsedInput.confirmation !== m.settings.deleteConfirmWord) throw invalid(w.settings.confidentialite.deleteInvalid);
+    if (parsedInput.confirmation !== m.settings.deleteConfirmWord)
+      throw invalid(w.settings.confidentialite.deleteInvalid);
     await deleteAccount(ctx.actor.userId);
     const jar = await cookies();
     jar.delete(SPACE_COOKIE);

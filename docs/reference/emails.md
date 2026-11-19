@@ -7,8 +7,8 @@ Tous les e-mails que Tartan envoie, leur déclencheur et la façon de s'en dési
 | Élément | Où |
 | --- | --- |
 | Gabarit commun, bandeau et pied de page | `apps/web/emails/layout.tsx` |
-| Gabarits | `apps/web/emails/auth.tsx`, `billing.tsx`, `digest.tsx` |
-| Textes | `packages/i18n/src/fr.ts`, sous `m.email` et `m.billing` |
+| Gabarits | `apps/web/emails/auth.tsx`, `credentials.tsx` (mot de passe), `billing.tsx`, `digest.tsx` |
+| Textes | `packages/i18n/src/fr.ts`, sous `m.email` et `m.billing` ; ceux du mot de passe dans `packages/i18n/src/web/auth.ts`, sous `w.auth.emails` |
 | Envoi | `apps/web/src/lib/mail.tsx` |
 | File avec nouvelles tentatives | `apps/web/src/server/email-outbox.service.ts`, vidée toutes les 15 minutes par `/api/cron/notifications` |
 | Transitions de facturation | `packages/domain/src/billing-emails.ts` |
@@ -17,16 +17,21 @@ Tous les e-mails que Tartan envoie, leur déclencheur et la façon de s'en dési
 | Préférences et désinscription | `email-preferences.service.ts`, page `/e-mails/[kind]/[token]` |
 | Envois d'essai | `/admin/configuration` → E-mails de test |
 
-Un incident de paiement ne donne qu'un e-mail : « paiement échoué » et « validation demandée » ne se cumulent pas dans la même heure. Sans clé Resend, les messages restent en mémoire, sauf en production où l'envoi échoue. Les adresses `@demo.tartan.coach` ne reçoivent rien. Un e-mail ne contient jamais de donnée de santé.
+Un incident de paiement ne donne qu'un e-mail : « paiement échoué » et « validation demandée » ne se cumulent pas dans la même heure. Sans clé Resend, les messages restent en mémoire, sauf en production où l'envoi échoue. Les adresses `@demo.tartan.coach` ne reçoivent rien. Un e-mail ne contient jamais de donnée de santé, ni de mot de passe.
 
-## Les 29 e-mails en place
+Pour les parcours Playwright, le serveur dépose en plus chaque message (destinataire, objet, lien d'action) dans le dossier `E2E_MAIL_DIR`, que le test relit pour suivre le vrai lien (`apps/web/e2e/mail.ts`). Cette variable est refusée en production par `assertEnvIsolation`, et la branche qui la lit ne s'exécute que sans clé Resend.
+
+## Les 32 e-mails en place
 
 | Clé du catalogue | Destinataire | Déclencheur | Envoi | Désinscription |
 | --- | --- | --- | --- | --- |
 | `verify` | Nouveau compte | Inscription, connexion d'une adresse non vérifiée | Direct | Non |
 | `magic_link` | Compte | Demande de lien de connexion | Direct | Non |
 | `reset_password` | Compte | Mot de passe oublié | Direct | Non |
-| `password_changed` | Compte | Mot de passe modifié | Direct | Non |
+| `password_changed` | Compte | Mot de passe réinitialisé par « mot de passe oublié », ou changé dans Réglages, Connexion | Direct | Non |
+| `password_set` | Compte | Mot de passe défini sur un compte qui n'en avait pas (accueil de l'athlète ou Réglages, Connexion) | Direct | Non |
+| `password_setup_confirm` | Compte | Demande de mot de passe depuis une session de plus d'une heure : le lien prouve la boîte mail et rouvre une session récente | Direct | Non |
+| `account_exists` | Compte existant | Création de compte par mot de passe demandée sur une adresse déjà inscrite | Direct | Non |
 | `invitation_athlete` | Athlète invité | Invitation nominative par le coach, ou renvoi | File, tentative immédiate | Non |
 | `invitation_staff` | Coach invité | Invitation dans un espace, ou renvoi | File, tentative immédiate | Non |
 | `invitation_reminder` | Athlète invité | Invitation nominative sans réponse depuis trois à cinq jours, une seule fois | File, tâche de 9 h | Oui, par adresse |
@@ -59,6 +64,7 @@ Un incident de paiement ne donne qu'un e-mail : « paiement échoué » et « va
 - **Liste de blocage.** Un rebond définitif bloque tout, et l'emporte sur une plainte déjà notée. Une plainte ou une désinscription bloque tout sauf la catégorie sécurité : personne ne perd l'accès à son compte pour avoir signalé un résumé.
 - **Adresse qui rebondit à la connexion.** Le formulaire le dit (« Cette adresse ne reçoit plus nos e-mails »). La demande de réinitialisation, elle, répond toujours la même chose, pour ne pas révéler qu'un compte existe.
 - **Liens de connexion.** Envoyés en direct, jamais par la file : un lien valide ne s'écrit pas dans une table.
+- **Mot de passe.** Chaque définition et chaque changement prévient le compte (`password_set`, `password_changed`), avec un lien pour en choisir un autre. Une alerte qui échoue n'annule pas le mot de passe enregistré. `password_setup_confirm` porte un lien de connexion ordinaire (une fois, 15 minutes) sous un autre texte. `account_exists` ne porte aucun lien de connexion : il renvoie à `/connexion`, et dit que le mot de passe saisi n'a pas été enregistré. L'écran, lui, répond comme pour une adresse neuve.
 - **Invitations.** Elles passent par la file, qui ne garde que l'identifiant de l'invitation ; le lien est dérivé au rendu. L'envoi est tenté tout de suite, puis repris pendant 24 heures. Une invitation acceptée, révoquée ou expirée entre-temps ne part plus. Limite : si l'adresse est en liste de blocage, le coach n'en est pas averti à l'écran.
 - **Genre inconnu.** Une ligne de la file dont le genre n'est pas au registre est marquée en échec `unknown_kind` et signalée, au lieu de partir sous un autre gabarit.
 - **Objets.** Dans `packages/i18n`, sous `m.email` ; le catalogue lit les mêmes.

@@ -2,6 +2,7 @@ import { exerciseClassification } from "./exercise-classification";
 import { exerciseFamily, exerciseGuide } from "./exercise-guide";
 import { confirmedStrengthRecord, sessionCelebration } from "./strength-records";
 import { z } from "zod";
+import { avatarFields } from "./avatar";
 import {
   attendanceStatus,
   cellStatus,
@@ -36,6 +37,8 @@ export const meResponse = z.object({
   lastName: z.string().nullable(),
   birthDate: z.string().nullable(),
   avatarUrl: z.string().nullable(),
+  // Avatar prédéfini (`athlete:…`, `animal:…`) ; une photo envoyée passe devant.
+  avatarPreset: z.string().nullable().optional(),
   units: z.string(),
   locale: z.string(),
   spaces: z.array(spaceSummary),
@@ -57,6 +60,7 @@ export const invitationPreview = z.object({
   organizationName: z.string(),
   inviterName: z.string(),
   inviterAvatarUrl: z.string().nullable(),
+  inviterAvatarPreset: z.string().nullable().optional(),
   groupNames: z.array(z.string()),
   role: z.enum(["athlete", "coach", "assistant"]),
   email: z.string().nullable(),
@@ -207,6 +211,7 @@ export const trackingGrid = z.object({
       athleteId: z.string(),
       name: z.string(),
       initials: z.string(),
+      ...avatarFields,
       groupNames: z.array(z.string()),
       activeInjury: z.string().nullable(),
       hasPain: z.boolean(),
@@ -275,6 +280,8 @@ export const videoDetail = videoSummary.extend({
       text: z.string().nullable(),
       drawing: videoDrawing.nullable().optional(),
       authorName: z.string().nullable(),
+      authorAvatarUrl: avatarFields.avatarUrl,
+      authorAvatarPreset: avatarFields.avatarPreset,
     }),
   ),
   comments: z.array(
@@ -282,6 +289,8 @@ export const videoDetail = videoSummary.extend({
       id: z.string(),
       body: z.string(),
       authorName: z.string().nullable(),
+      authorAvatarUrl: avatarFields.avatarUrl,
+      authorAvatarPreset: avatarFields.avatarPreset,
       authorId: z.string(),
       createdAt: z.string(),
     }),
@@ -303,6 +312,8 @@ export const announcementItem = z.object({
   pinned: z.boolean(),
   authorId: z.string(),
   authorName: z.string().nullable(),
+  authorAvatarUrl: avatarFields.avatarUrl,
+  authorAvatarPreset: avatarFields.avatarPreset,
   createdAt: z.string(),
 });
 export type AnnouncementItem = z.infer<typeof announcementItem>;
@@ -312,6 +323,8 @@ export const commentItem = z.object({
   body: z.string(),
   authorId: z.string(),
   authorName: z.string().nullable(),
+  authorAvatarUrl: avatarFields.avatarUrl,
+  authorAvatarPreset: avatarFields.avatarPreset,
   createdAt: z.string(),
 });
 export type CommentItem = z.infer<typeof commentItem>;

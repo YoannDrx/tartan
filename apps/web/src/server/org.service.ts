@@ -18,6 +18,8 @@ import { put } from "@vercel/blob";
 import { env } from "@/lib/env";
 import { fromDbDateOrNull } from "@/lib/dates";
 import { AppError, invalid, notFound } from "@/lib/errors";
+import { checkedSquareImage, extensionOf } from "@/lib/image-check";
+import { w } from "@tartan/i18n/web";
 import { assertAdultDate, confirmBirthDate } from "./age.service";
 import { coachGroupIds, requireOrgMember, requireGroupInScope, type Access } from "./access";
 import { firstNameOf } from "./me.service";
@@ -212,18 +214,16 @@ export const updateOrganization = async (userId: string, organizationId: string,
   await prisma.organization.update({ where: { id: organizationId }, data: parsed });
 };
 
-const LOGO_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_LOGO_BYTES = 4 * 1024 * 1024;
-
+// Le logo arrive recadré en carré par le navigateur, comme la photo de profil ; le serveur revérifie tout.
 export const saveOrganizationLogo = async (userId: string, organizationId: string, file: File): Promise<void> => {
   await requireOrgMember(userId, organizationId, "manageOrganization");
-  if (!env().BLOB_READ_WRITE_TOKEN) throw invalid("L'envoi d'images n'est pas configuré sur ce serveur.");
-  if (!LOGO_TYPES.includes(file.type)) throw invalid("Choisis une image JPEG, PNG ou WebP.");
-  if (file.size > MAX_LOGO_BYTES) throw invalid("Cette image dépasse 4 Mo.");
-  const blob = await put(`logos/${organizationId}/${crypto.randomUUID()}`, file, {
-    access: "public",
-    contentType: file.type,
-  });
+  if (!env().BLOB_READ_WRITE_TOKEN) throw invalid(w.profile.errors.unconfigured);
+  const { bytes, info } = await checkedSquareImage(file);
+  const blob = await put(
+    `logos/${organizationId}/${crypto.randomUUID()}.${extensionOf(info.type)}`,
+    Buffer.from(bytes),
+    { access: "public", contentType: info.type },
+  );
   await prisma.organization.update({ where: { id: organizationId }, data: { logoUrl: blob.url } });
 };
 

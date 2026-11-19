@@ -135,6 +135,8 @@ model Profile {
   lastName  String?   @map("last_name")
   birthDate DateTime? @map("birth_date") @db.Date
   avatarUrl String?   @map("avatar_url")
+  // Avatar prédéfini (`athlete:…`, `animal:…`) ; nul dès qu'une photo est envoyée, et inversement.
+  avatarPreset String? @map("avatar_preset")
   // Accord explicite avant tout envoi au planificateur IA (OpenAI).
   aiConsentAt DateTime? @map("ai_consent_at")
   locale    String    @default("fr")
@@ -155,6 +157,8 @@ model Profile {
   lastSeenReleaseId  String? @map("last_seen_release_id")
   lastActiveAt       DateTime? @map("last_active_at")
   inactivityNoticeAt DateTime? @map("inactivity_notice_at")
+  // La proposition « définir un mot de passe » de l'accueil, refermée : elle ne revient sur aucun appareil.
+  passwordPromptDismissedAt DateTime? @map("password_prompt_dismissed_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 

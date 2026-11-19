@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./athletes": "./src/athletes.ts"
+    "./athletes": "./src/athletes.ts",
+    "./avatars": "./src/avatars.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
