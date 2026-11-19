@@ -100,15 +100,18 @@ test("données remplies : 30 puis 40 athlètes, neuf séances, sans débordement
   await expect(gridRows(page)).toHaveCount(4);
   await search.fill("personne");
   await expect(page.getByText(w.tracking.noMatch("personne"))).toBeVisible();
+  // Une nouvelle recherche repart de la première tranche.
   await search.fill("");
+  await expect(gridRows(page)).toHaveCount(30);
 
-  // L'en-tête des séances reste en vue quand la grille défile.
-  const frame = page.getByRole("region", { name: m.coach.trackingTitle });
-  const header = page.locator("thead th").first();
-  const top = async () => (await header.boundingBox())!.y - (await frame.boundingBox())!.y;
-  expect(await top()).toBeLessThan(2);
-  await frame.evaluate((element) => element.scrollBy({ top: 900 }));
-  expect(await top()).toBeLessThan(2);
+  // L'en-tête des séances reste en vue quand la grille défile : mesuré d'un seul coup, dans la page.
+  const sticky = await page.getByRole("region", { name: m.coach.trackingTitle }).evaluate((frame) => {
+    frame.scrollBy({ top: 900, behavior: "instant" });
+    const header = frame.querySelector("thead th")!.getBoundingClientRect().top;
+    return { scrolled: frame.scrollTop, gap: header - frame.getBoundingClientRect().top };
+  });
+  expect(sticky.scrolled).toBeGreaterThan(0);
+  expect(Math.abs(sticky.gap)).toBeLessThan(2);
 
   // Même chose pour la liste des athlètes : recherche, tranches, et en-tête collé sous la barre de l'application.
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -117,10 +120,14 @@ test("données remplies : 30 puis 40 athlètes, neuf séances, sans débordement
   await page.getByRole("searchbox", { name: w.tracking.search }).fill("chloe");
   await expect(page.locator(`tbody a[href^="/athletes/"]`)).toHaveCount(4);
   await page.getByRole("searchbox", { name: w.tracking.search }).fill("");
-  await page.mouse.wheel(0, 1500);
-  await expect
-    .poll(async () => (await page.getByRole("columnheader", { name: m.coach.athleteCol }).boundingBox())!.y)
-    .toBeLessThan(80);
+  await expect(page.locator(`tbody a[href^="/athletes/"]`)).toHaveCount(30);
+  const header = await page.getByRole("columnheader", { name: m.coach.athleteCol }).evaluate((cell) => {
+    window.scrollBy({ top: 1500, behavior: "instant" });
+    const bar = document.querySelector("header.app-header")!.getBoundingClientRect().bottom;
+    return { scrolled: window.scrollY, gap: cell.getBoundingClientRect().top - bar };
+  });
+  expect(header.scrolled).toBeGreaterThan(0);
+  expect(Math.abs(header.gap)).toBeLessThan(2);
   await sweep(page, ["/suivi", "/athletes"]);
 });
 
