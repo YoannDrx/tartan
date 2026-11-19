@@ -78,7 +78,7 @@ export function ExercisePicker({
             aria-pressed={category === null}
             onClick={() => setCategory(null)}
             className={cn(
-              "min-h-9 rounded-pill px-3 text-sm font-semibold",
+              "min-h-11 rounded-pill px-4 text-sm font-semibold",
               category === null ? "bg-accent text-on-accent" : "bg-card-raised",
             )}
           >
@@ -91,7 +91,7 @@ export function ExercisePicker({
               aria-pressed={category === c}
               onClick={() => setCategory(category === c ? null : c)}
               className={cn(
-                "flex min-h-9 items-center gap-1.5 rounded-pill px-3 text-sm",
+                "flex min-h-11 items-center gap-1.5 rounded-pill px-4 text-sm",
                 category === c ? "outline outline-2 outline-offset-1 outline-accent" : "",
               )}
               style={{ backgroundColor: categoryColors(c).background, color: categoryColors(c).text }}

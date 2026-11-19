@@ -2,9 +2,11 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
+// Une pastille de filtre est une cible principale : 44 px de haut, la taille que demande `DESIGN.md`, dessinée et pas
+// seulement prolongée par une marge invisible.
 export const pillClass = (active: boolean) =>
   cn(
-    "inline-flex min-h-9 items-center whitespace-nowrap rounded-full px-3.5 text-[14px] no-underline before:absolute before:inset-x-0 before:-inset-y-1 relative",
+    "inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-4 text-[14px] no-underline",
     active
       ? "bg-accent font-semibold text-on-accent"
       : "border border-pill-line bg-pill-off font-medium text-inherit hover:bg-raise",
