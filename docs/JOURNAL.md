@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-19, Claude Opus 5.5, production vidée et morphologie partout
+Fait : production vidée sur décision du fondateur (« SQL après sauvegarde ») : sauvegarde chiffrée relue à l'identique et branche Neon `sauvegarde-avant-vidage-2026-11-19` vérifiée par comptes et empreinte, répétition sur une branche jetable, puis une transaction (séances, modèles, plans, espaces, comptes sauf l'administrateur, notifications, données de test). Restent l'administrateur (passkey, mot de passe), les 197 fiches du catalogue, le journal d'audit. PR `feat/morphologie` : un seul corps dans le film, le jeu, les cartes, les e-mails et le mobile (`pose-figure.ts`), mains et pieds sur leur objet, vidéo de catalogue (`CatalogMedia`, `/admin/exercices`).
+Vérifié : application et pages publiques en 200 après le vidage, aucune erreur Vercel ; morphologie : 2 903 tests du paquet, parcours `landing`, `game-page`, `mascot-board`, `screen-matrix` sans échec.
+À savoir : les déclencheurs `videos_enqueue_deletion`, `profiles_enqueue_avatar` et `organizations_enqueue_logo` mettent les fichiers Mux et Blob en file à la suppression : un vidage SQL ne laisse pas d'orphelin. Supprimer `scheduled_sessions` et `session_templates` avant les espaces (les lignes de séance retiennent les exercices). Les builds `.next` des worktrees d'agents ont rempli le disque le 19 novembre : les supprimer en fin d'agent.
+Suite : planificateur, lot K1, onboarding, puis comptes de test du fondateur.
+
 ## 2026-11-19, Claude Opus 5.5, CI : miroir Ubuntu lent et Maestro iOS instable
 Fait (dans la PR 166) : l'installation des navigateurs arrête l'apt-get que `timeout` laissait vivant, verrou de dpkg compris, puis retente cinq fois ; les paquets système des navigateurs sont gardés en cache (`~/apt-debs`). Maestro iOS rejoue une fois, seul, chaque flux en échec, et le job a 120 minutes.
 Vérifié : rejeu testé en local avec un faux `maestro` (rejeu vert, job vert ; rejeu rouge, job rouge) ; en CI, `athlete-circuit-guide` a échoué puis passé au rejeu ; la PR 166 est passée entièrement verte.
