@@ -1,4 +1,4 @@
-import { coachNextStep, type CoachOnboardingFacts, type CoachStepKey } from "./onboarding";
+import { coachActivationStep, type CoachOnboardingFacts, type CoachStepKey } from "./onboarding";
 
 // Les e-mails d'activation du coach : trois rappels au plus, chacun sur la prochaine étape manquante.
 // La décision est pure : la tâche planifiée fournit les faits, la file fait l'envoi.
@@ -23,7 +23,7 @@ export const activationEmailFor = (
   space: { id: string; createdAt: Date; facts: CoachOnboardingFacts },
   now: Date,
 ): ActivationEmail | null => {
-  const step = coachNextStep(space.facts);
+  const step = coachActivationStep(space.facts);
   if (!step) return null;
   const age = (now.getTime() - space.createdAt.getTime()) / DAY_MS;
   const window = WINDOWS.find((entry) => age >= entry.from && age < entry.to);

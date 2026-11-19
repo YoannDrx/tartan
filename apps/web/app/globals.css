@@ -743,17 +743,20 @@
       line-height: 36px;
     }
   }
-  /* Case à cocher dessinée : chaque moteur a la sienne, ronde sur iPhone, carrée ailleurs. */
+  /* Case à cocher dessinée : chaque moteur a la sienne, ronde sur iPhone, carrée ailleurs. La cible fait 24 × 24 px
+     (WCAG 2.5.8) ; la case visible garde 20 px, dessinée dans la marge transparente de 2 px. */
   .check {
     appearance: none;
     display: inline-grid;
     place-content: center;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     flex-shrink: 0;
-    border: 1px solid var(--color-control-line);
-    border-radius: 5px;
+    border: 2px solid transparent;
+    border-radius: 7px;
     background: var(--color-card-raised);
+    background-clip: padding-box;
+    box-shadow: inset 0 0 0 1px var(--color-control-line);
   }
   .check::before {
     content: "";
@@ -764,8 +767,9 @@
     transform: scale(0);
   }
   .check:checked {
-    border-color: var(--color-action-card);
     background: var(--color-action-card);
+    background-clip: padding-box;
+    box-shadow: inset 0 0 0 1px var(--color-action-card);
   }
   .check:checked::before {
     transform: scale(1);
@@ -1004,6 +1008,29 @@
 @media (prefers-reduced-motion: no-preference) {
   .validation-check {
     animation: tartan-check var(--duration-trace) var(--ease-reception) both;
+  }
+}
+
+/* Les premiers pas. Une étape du tour de piste arrive de la droite, comme on avance d'un couloir ; à la fin des
+   premiers pas, le groupe franchit la ligne d'arrivée, un athlète après l'autre. Sans mouvement : tout est en place. */
+@keyframes tour-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+@keyframes finish-cross {
+  from {
+    transform: translateX(-140%);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tour-step {
+    animation: tour-step-in var(--duration-enter) var(--ease-reception) both;
+  }
+  .finish-cross {
+    animation: finish-cross var(--duration-celebration) var(--ease-impulsion) both;
+    animation-delay: calc(var(--i, 0) * var(--stagger-step));
   }
 }
 
@@ -1520,10 +1547,13 @@
 /* La création de l'espace : l'athlète de la scène prend la pose du temps affiché par le formulaire. */
 .step-pose:not([data-step-pose="0"]),
 main:has(form[data-step="1"]) .step-pose[data-step-pose="0"],
-main:has(form[data-step="2"]) .step-pose[data-step-pose="0"] {
+main:has(form[data-step="2"]) .step-pose[data-step-pose="0"],
+main:has([data-step="3"]) .step-pose[data-step-pose="0"] {
   display: none;
 }
+/* Le dernier temps, l'invitation du groupe : elle est partie, elle court encore. */
 main:has(form[data-step="1"]) .step-pose[data-step-pose="1"],
-main:has(form[data-step="2"]) .step-pose[data-step-pose="2"] {
+main:has(form[data-step="2"]) .step-pose[data-step-pose="2"],
+main:has([data-step="3"]) .step-pose[data-step-pose="2"] {
   display: block;
 }

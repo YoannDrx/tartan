@@ -2,7 +2,7 @@ import { Play } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { AthleteSessionCard, AthleteSessionDetail, AthleteToday } from "@tartan/contracts";
-import { programItems } from "@tartan/domain";
+import { athleteWelcomeMode, programItems } from "@tartan/domain";
 import { capitalize, formatDateLong, formatWeekdayShort, m } from "@tartan/i18n";
 import { ActivityPicto, LaneArcs } from "@/components/pictos";
 import { EmptyState, PageHeader } from "@/components/states";
@@ -12,6 +12,7 @@ import { Stay } from "@/components/ui/view-transition";
 import { TrackLap } from "@/components/track";
 import { cn } from "@/lib/cn";
 import { todayIso } from "@/lib/dates";
+import { AthleteExtras } from "@/features/athlete-view/athlete-extras";
 import { AthleteWelcome } from "@/features/athlete-view/athlete-welcome";
 import { AttendanceQuestion, TodayAbsence } from "@/features/athlete-view/attendance-question";
 import { sessionCardName } from "@/features/athlete-view/session-card";
@@ -20,6 +21,8 @@ import { requireAthleteSpace } from "@/features/shell/space";
 import { PasswordPrompt } from "@/features/auth/password-prompt";
 import { getAthleteSession, getAthleteToday, getAthleteWelcome } from "@/server/athlete-view.service";
 import { getSignInMethods } from "@/server/credentials.service";
+import { getMe } from "@/server/me.service";
+import { getOnboarding } from "@/server/onboarding.service";
 
 export const metadata: Metadata = { title: m.nav.aujourdhui };
 
@@ -209,12 +212,21 @@ const Hero = ({
 export default async function AujourdhuiPage() {
   const { actor, organizationId } = await requireAthleteSpace();
   const today = todayIso();
-  const [data, welcome, methods] = await Promise.all([
+  const [data, welcome, methods, onboarding, me] = await Promise.all([
     getAthleteToday(actor.userId, organizationId),
     getAthleteWelcome(actor.userId, organizationId),
     getSignInMethods(actor),
+    getOnboarding(actor.userId, organizationId),
+    getMe(actor.userId),
   ]);
   const details = await Promise.all(data.today.map((c) => getAthleteSession(actor.userId, organizationId, c.id)));
+  // L'accueil ne retarde jamais la séance : un jour de séance, il tient en une ligne sous elle.
+  const welcomeMode = athleteWelcomeMode({
+    eligible: welcome !== null,
+    welcomeSeenAt: onboarding.welcomeSeenAt,
+    sessionToday: data.today.length > 0,
+  });
+  const passwordPrompt = methods.passwordPrompt ? { email: methods.email, canSetNow: methods.canSetPasswordNow } : null;
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <PageHeader
@@ -224,9 +236,9 @@ export default async function AujourdhuiPage() {
       {data.parentalConsentPending ? (
         <p className="on-card rounded-card bg-card p-3 text-st-partial">{m.parental.pendingBanner}</p>
       ) : null}
-      {/* Une séance du jour passe devant : l'athlète vient d'abord pour elle. */}
-      {welcome && data.today.length === 0 ? (
-        <AthleteWelcome organizationId={organizationId} group={welcome.group} coach={welcome.coach} />
+      {/* Sans séance du jour, l'accueil ouvre l'écran. */}
+      {welcome && welcomeMode === "panels" ? (
+        <AthleteWelcome mode="panels" group={welcome.group} coach={welcome.coach} />
       ) : null}
       <WeekDots week={data.week} today={today} />
       {data.pinnedAnnouncement ? (
@@ -247,12 +259,21 @@ export default async function AujourdhuiPage() {
           />
         ) : null;
       })}
+      {/* Un jour de séance, la séance passe devant : l'accueil n'est qu'une ligne, dessous. */}
+      {welcome && welcomeMode === "line" ? (
+        <AthleteWelcome mode="line" group={welcome.group} coach={welcome.coach} />
+      ) : null}
       {data.focus ? <FocusBlock focus={data.focus} /> : null}
       {data.today.length === 0 ? (
         <EmptyState rubric="aujourdhui">{data.next ? m.today.empty : m.today.noneYet}</EmptyState>
       ) : null}
-      {/* Après la séance du jour, jamais avant : entré par un lien, l'athlète peut se donner un mot de passe. */}
-      {methods.passwordPrompt ? <PasswordPrompt email={methods.email} canSetNow={methods.canSetPasswordNow} /> : null}
+      {/* Après la séance du jour, jamais avant. Après la première validation, une carte facultative regroupe photo,
+          mot de passe, installation et notifications ; avant, seule la proposition de mot de passe est là. */}
+      {onboarding.extrasVisible ? (
+        <AthleteExtras photo={!me.avatarUrl} password={passwordPrompt} />
+      ) : passwordPrompt ? (
+        <PasswordPrompt email={passwordPrompt.email} canSetNow={passwordPrompt.canSetNow} />
+      ) : null}
       {data.next ? (
         <section className="flex flex-col gap-2">
           <h2 className="t-section">{m.today.next}</h2>

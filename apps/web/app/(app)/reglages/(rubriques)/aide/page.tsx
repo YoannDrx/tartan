@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ReferralSection } from "@/features/settings/referral-section";
 import { loadReferral, requireRubric } from "@/features/settings/rubric-access";
 import { LinkRow } from "@/features/settings/setting-rows";
+import { FIRST_STEPS_PATH } from "@/lib/onboarding-paths";
 import { isAdmin } from "@/server/admin.service";
 import { getMe } from "@/server/me.service";
 
@@ -30,6 +31,10 @@ export default async function AideSettingsPage() {
     <Sheet className="divide-y divide-card-line">
       <SheetSection id="aide" title={t.section}>
         <Rows>
+          {/* Le coach retrouve ici ses premiers pas, après le tour de piste. */}
+          {!athlete ? (
+            <LinkRow href={FIRST_STEPS_PATH} title={w.onboarding.page.title} detail={w.onboarding.page.lead} />
+          ) : null}
           <LinkRow document href="/aide" title={m.help.center} detail={t.centerDetail} />
           <LinkRow document href="/contact" title={m.settings.helpContact} detail={m.settings.helpDetail} />
           <LinkRow href="/nouveautes" title={m.releases.title} detail={t.releasesDetail} />

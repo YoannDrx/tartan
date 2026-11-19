@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { createOrganizationInput, profileInput } from "@tartan/contracts";
 import { z } from "zod";
 import { authAction } from "@/lib/safe-action";
@@ -9,9 +10,18 @@ import { updateProfile } from "@/server/me.service";
 import { createOrganization } from "@/server/org.service";
 import { SPACE_COOKIE } from "@/features/shell/space";
 
+// L'offre choisie sur les tarifs suit jusqu'à l'abonnement, après le dernier temps.
+const offerInput = z.object({ offre: z.enum(["coach", "club"]), rythme: z.enum(["month", "year"]) });
+
 export const createSpaceAction = authAction
-  .inputSchema(createOrganizationInput.extend({ profile: profileInput, termsAccepted: z.literal(true) }))
-  .action(async ({ parsedInput: { profile, termsAccepted: _terms, ...org }, ctx }) => {
+  .inputSchema(
+    createOrganizationInput.extend({
+      profile: profileInput,
+      termsAccepted: z.literal(true),
+      offer: offerInput.optional(),
+    }),
+  )
+  .action(async ({ parsedInput: { profile, termsAccepted: _terms, offer, ...org }, ctx }) => {
     await updateProfile(ctx.actor.userId, profile);
     await setConsent(ctx.actor.userId, "terms", true);
     const jar = await cookies();
@@ -21,5 +31,6 @@ export const createSpaceAction = authAction
       referralCode: org.referralCode ?? referralCode,
     });
     jar.set(SPACE_COOKIE, created.id, { httpOnly: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 365, path: "/" });
-    return { organizationId: created.id };
+    // Le dernier temps, facultatif : inviter le premier groupe, sur sa propre page.
+    redirect(`/bienvenue/inviter${offer ? `?offre=${offer.offre}&rythme=${offer.rythme}` : ""}`);
   });

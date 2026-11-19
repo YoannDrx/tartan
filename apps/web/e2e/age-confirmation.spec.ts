@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { Client } from "pg";
 import { m } from "@tartan/i18n";
-import { expectAccessible, nextOnboardingStep, signUp, uniqueEmail } from "./helpers";
+import { w } from "@tartan/i18n/web";
+import { closeTour, expectAccessible, nextOnboardingStep, signUp, uniqueEmail } from "./helpers";
 
 test("l'onboarding permet de corriger la date avant de créer l'espace", async ({ page }) => {
   const email = uniqueEmail("date-onboarding");
@@ -37,6 +38,9 @@ test("l'onboarding permet de corriger la date avant de créer l'espace", async (
     await nextOnboardingStep(page);
     await page.getByRole("button", { name: m.onboarding.createSpace, exact: true }).click();
     await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
+    // L'espace est créé : le dernier temps, facultatif, propose d'inviter le groupe.
+    await page.getByRole("button", { name: w.onboarding.invite.finish, exact: true }).click();
+    await closeTour(page);
     await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();
   } finally {
     await sql.end();

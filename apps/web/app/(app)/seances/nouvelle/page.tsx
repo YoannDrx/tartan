@@ -1,5 +1,5 @@
 import { sessionReturnTo } from "@/lib/session-navigation";
-import { isoDate } from "@tartan/contracts";
+import { isoDate, uuid } from "@tartan/contracts";
 import type { Metadata } from "next";
 import { m } from "@tartan/i18n";
 import { BuilderPage } from "@/features/sessions/builder-page";
@@ -10,10 +10,10 @@ export const metadata: Metadata = { title: m.coach.newSession };
 export default async function NewSessionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; groupe?: string; retour?: string }>;
+  searchParams: Promise<{ date?: string; groupe?: string; retour?: string; modele?: string }>;
 }) {
   const { actor, organizationId } = await requireStaffSpace();
-  const { date, groupe, retour } = await searchParams;
+  const { date, groupe, retour, modele } = await searchParams;
   return (
     <BuilderPage
       userId={actor.userId}
@@ -21,6 +21,8 @@ export default async function NewSessionPage({
       defaultDate={isoDate.safeParse(date).success ? date : undefined}
       defaultGroupId={groupe}
       returnTo={sessionReturnTo(retour)}
+      // Un modèle choisi depuis les premiers pas : la séance part de lui.
+      templateId={uuid.safeParse(modele).success ? modele : undefined}
     />
   );
 }

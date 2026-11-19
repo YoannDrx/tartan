@@ -31,3 +31,5 @@ export * from "./ai-planner-generation";
 export * from "./credentials";
 
 export * from "./avatar";
+
+export * from "./onboarding";

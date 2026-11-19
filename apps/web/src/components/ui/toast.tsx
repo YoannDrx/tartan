@@ -32,6 +32,9 @@ const useToasts = create<{ items: Toast[]; push: (t: Omit<Toast, "id">) => void;
   }),
 );
 
+// Un message est-il affiché ? Le tour de piste attend qu'ils soient partis pour ne pas les recouvrir.
+export const useToastShown = () => useToasts((s) => s.items.length > 0);
+
 export const toast = {
   ok: (message: string) => useToasts.getState().push({ message, tone: "ok" }),
   error: (message: string) => useToasts.getState().push({ message, tone: "error" }),

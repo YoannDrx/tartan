@@ -1,6 +1,6 @@
 import { expect, test, type Browser } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { createCoachSpace, expectAccessible, signUp, uniqueEmail } from "./helpers";
+import { closeTour, createCoachSpace, expectAccessible, signUp, uniqueEmail } from "./helpers";
 import { setOffre, sql } from "./personas";
 
 // T12 : un coach invite un autre coach par e-mail. L'e-mail part par la file, le lien est celui de la liste des
@@ -61,6 +61,8 @@ test("invitation nominative d'un coach : envoyée, lien récupéré, droits vér
   await coach.getByRole("button", { name: m.invite.accept }).click();
   const confirmAge = coach.getByRole("button", { name: m.age.saveConfirmed, exact: true });
   if (await confirmAge.isVisible({ timeout: 3_000 }).catch(() => false)) await confirmAge.click();
+  // Un coach qui rejoint un espace est un nouveau venu : le tour de piste s'ouvre une fois, il le referme.
+  await closeTour(coach);
   await expect(coach.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible({ timeout: 30_000 });
 
   // Ses droits : il lit les athlètes de l'espace, mais n'invite pas de coach et ne touche pas à l'abonnement.
