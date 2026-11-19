@@ -191,5 +191,8 @@ describe("hors ligne", () => {
     const { urls } = await offlineUrls(a.lea.userId, a.organizationId);
     expect(urls).toContain(`/seance/${mine.id}`);
     expect(urls).not.toContain(`/seance/${other.id}`);
+    // Audit G5 : ses vidéos se rouvrent hors ligne, à leur adresse actuelle.
+    expect(urls).toContain("/mes-videos");
+    expect(urls.some((url) => url.startsWith("/mes-sauts"))).toBe(false);
   });
 });
