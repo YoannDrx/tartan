@@ -32,13 +32,13 @@ Niveaux : **codé**, **testé** automatiquement, **éprouvé** en production ou 
 | Logo « le T des couloirs » (brief 4.6), direction A choisie par le fondateur | 159 | En production pour le web ; les icônes natives arriveront avec le prochain binaire ; Maestro iOS a échoué deux fois sur des parcours différents avant de passer, attribué au simulateur | Codé par Fable ; Maestro diagnostiqué et fusionné par Opus |
 | C. Connexion par mot de passe (brief 4.1, constats B2, G1, G12) | 164 | En production, testé (8 parcours qui suivent les vrais e-mails) ; aucune connexion réelle jouée | Codé par Fable ; ouvert, alerte GitGuardian traitée et fusionné par Opus |
 | E. Photo de profil recadrée et avatars (groupe et animaux dessinés pour Tartan, constat G14) | 166 | En production, testé (parcours `avatar` contre un Blob simulé) ; ni Vercel Blob réel ni iPhone | Opus |
+| Gestes : moteur v2, 173 fiches sur le nouveau moteur (77 écrites à la main, 96 relevées), lecteurs web et mobile avec bascule Profil et Face, atelier en deux vues | 167 | En production, testé (2 299 tests du paquet, parcours des guides) ; prototype validé par le fondateur le 17 novembre ; aucun geste regardé en mouvement par un humain | Moteur, relèvement et lecteurs par Fable ; écriture à la main par Opus |
 
 ### En cours
 
 | Lot | Où | Niveau | Mené par |
 | --- | --- | --- | --- |
-| Gestes : moteur v2, 173 fiches sur le nouveau moteur (77 écrites à la main, 96 relevées), lecteurs web et mobile avec bascule Profil et Face, atelier en deux vues | PR `feat/gestes-complet` | Codé, testé (2 299 tests du paquet, parcours des guides) ; prototype validé par le fondateur le 17 novembre ; aucun geste regardé en mouvement par un humain | Moteur, relèvement et lecteurs par Fable ; écriture à la main par Opus |
-| F. Listes et favoris d'exercices, fiche concise, bibliothèque et sélecteur allégés (brief 4.3, constats G3, G11) | PR `feat/exercices`, après les gestes | Codé, testé (droits des listes, parcours `exercise-lists` et `exercise-guides`) ; guides concis non relus par le fondateur | Opus |
+| F. Listes et favoris d'exercices, fiche concise, bibliothèque et sélecteur allégés (brief 4.3, constats G3, G11) | PR `feat/exercices` | Codé, testé (droits des listes, parcours `exercise-lists` et `exercise-guides`) ; guides concis non relus par le fondateur | Opus |
 
 ### Restant à faire
 
