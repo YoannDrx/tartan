@@ -181,7 +181,9 @@ test("l'athlète ouvre ses rubriques, pas celles de l'espace, à trois largeurs"
       await expect(phone).toHaveURL(/\/reglages$/);
     }
     await phone.goto("/reglages#invitations", { waitUntil: "networkidle" });
-    await expect(phone).toHaveURL(/\/reglages#invitations$/);
+    // L'athlète reste sur son sommaire. L'ancre, sans rubrique pour lui, peut être retirée ou non selon le moment où la
+    // redirection des anciennes ancres s'exécute : seule la page compte (échec intermittent en CI, PR 169).
+    await expect(phone).toHaveURL(/\/reglages(#invitations)?$/);
     await expect(rubricsNav(phone)).toBeVisible();
 
     // Sur ordinateur, sa barre latérale ne porte que ses rubriques.

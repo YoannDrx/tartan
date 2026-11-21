@@ -9,6 +9,7 @@ import {
   type ExerciseSearchResult,
   type ExerciseSheet,
   type ExerciseSummary,
+  type CatalogVideo,
   prescriptionSchema,
 } from "@tartan/contracts";
 import {
@@ -42,6 +43,7 @@ import {
 } from "./exercise-list.service";
 import { approvedMotionFamilies, withMotion } from "./motion-review.service";
 import { assertVideoReservation, withVideoReservation } from "./video-capacity.service";
+import { catalogVideos, withCatalogVideos } from "./catalog-media.service";
 
 type MediaRow = {
   kind: "upload" | "youtube" | "instagram";
@@ -80,6 +82,8 @@ export const mediaSnapshot = (media: MediaRow | undefined) => {
 };
 
 type ExerciseRow = Prisma.ExerciseGetPayload<{ include: { media: true } }>;
+// La fiche commune d'un exercice : la sienne, ou celle dont la copie du coach est tirée.
+const catalogKeyOf = (row: ExerciseRow) => row.catalogKey ?? row.sourceCatalogKey ?? "";
 
 // Sans guide ni lecture signée : ce qu'une liste de résultats affiche (nom, famille, vignette du geste).
 const lightSummary = (e: ExerciseRow): ExerciseSummary => {
@@ -103,7 +107,11 @@ const lightSummary = (e: ExerciseRow): ExerciseSummary => {
   };
 };
 
-const exerciseSummary = async (e: ExerciseRow, families: readonly string[]): Promise<ExerciseSummary> => {
+const exerciseSummary = async (
+  e: ExerciseRow,
+  families: readonly string[],
+  videos: ReadonlyMap<string, CatalogVideo[]>,
+): Promise<ExerciseSummary> => {
   const media = mediaSnapshot(e.media[0]);
   // Vidéos du coach privées : lecture par jeton signé, comme dans une séance.
   const stream =
@@ -113,7 +121,7 @@ const exerciseSummary = async (e: ExerciseRow, families: readonly string[]): Pro
   return {
     ...lightSummary(e),
     media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
-    guide: withConcise(withMotion(readExerciseGuide(e.guide), families)),
+    guide: withCatalogVideos(withConcise(withMotion(readExerciseGuide(e.guide), families)), videos),
   };
 };
 
@@ -142,8 +150,8 @@ export const listExercises = async (userId: string, organizationId: string): Pro
   await requireOrgMember(userId, organizationId, "editExercises");
   await ensureExerciseCatalog(userId, organizationId);
   const rows = await libraryRows(organizationId);
-  const families = await approvedMotionFamilies();
-  return Promise.all(rows.map((row) => exerciseSummary(row, families)));
+  const [families, videos] = await Promise.all([approvedMotionFamilies(), catalogVideos(rows.map(catalogKeyOf))]);
+  return Promise.all(rows.map((row) => exerciseSummary(row, families, videos)));
 };
 
 /** La bibliothèque sans les guides : la page `/exercices` filtre et pagine ces lignes, chaque fiche a son adresse. */
@@ -212,7 +220,8 @@ export const getExercise = async (
     include: mediaInclude,
   });
   if (!row) throw notFound();
-  return exerciseSummary(row, await approvedMotionFamilies());
+  const [families, videos] = await Promise.all([approvedMotionFamilies(), catalogVideos([catalogKeyOf(row)])]);
+  return exerciseSummary(row, families, videos);
 };
 
 // La fiche d'une variante dans cet espace : sa copie si l'espace en a une, sinon la fiche commune.

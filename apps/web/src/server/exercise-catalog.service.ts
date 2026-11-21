@@ -11,12 +11,12 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "./access";
 
-// Le geste animé (`illustration.motion`) et la version concise se posent à la lecture : ils ne sont jamais
-// enregistrés, ni comparés.
+// Le geste animé (`illustration.motion`), les vidéos du catalogue (`illustration.videos`) et la version concise se
+// posent à la lecture : ils ne sont jamais enregistrés, ni comparés.
 export const readExerciseGuide = (value: unknown) => {
   const parsed = exerciseGuide.safeParse(value);
   if (!parsed.success) return null;
-  const { motion: _motion, ...illustration } = parsed.data.illustration;
+  const { motion: _motion, videos: _videos, ...illustration } = parsed.data.illustration;
   const { concise: _concise, ...guide } = parsed.data;
   return { ...guide, illustration };
 };

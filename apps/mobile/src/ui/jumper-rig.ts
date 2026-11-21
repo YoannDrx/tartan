@@ -1,9 +1,10 @@
 import { POSES, type PoseName } from "@tartan/mascot/poses";
 import type { Paint } from "@tartan/mascot/skeleton";
-import { svgFigure } from "@tartan/mascot/svg";
+import { svgJumperFigure } from "@tartan/mascot/v2/pose-figure";
 
-// Le même squelette que le site : la table d'os de @tartan/mascot, du fond vers le devant.
-// Assez large pour toutes les poses, y compris le corps renversé au-dessus de la barre.
-export const JUMPER_VIEW = "-190 -190 380 380";
+// Le même corps que le site : celui du moteur des gestes, dans les poses nommées de @tartan/mascot.
+// Assez large pour toutes les poses, y compris le corps renversé au-dessus de la barre ; le sol est à 146 sous le
+// bassin.
+export const JUMPER_VIEW = "-160 -165 320 320";
 
-export const jumperFigure = (pose: PoseName, paint: Paint) => svgFigure(POSES[pose], paint);
+export const jumperFigure = (pose: PoseName, paint: Paint) => svgJumperFigure(POSES[pose], paint);

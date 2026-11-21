@@ -13,12 +13,10 @@ env:
     timeout: 30000
 - tapOn: "Calendrier.*"
 - tapOn: "Planificateur IA.*"
-- extendedWaitUntil:
-    visible:
-      id: ai-consent-accept
-    timeout: 15000
+# L'accord n'est demandé qu'une fois : rejoué après un échec, le flux le trouve déjà donné.
 - tapOn:
     id: ai-consent-accept
+    optional: true
 # L'écran de sélection est long : le groupe et le bouton sont sous le bas de l'écran.
 - scrollUntilVisible:
     element: "Hauteur Démo.*"
@@ -42,9 +40,10 @@ env:
 - scrollUntilVisible:
     element: "Préparer une proposition"
 - tapOn: "Préparer une proposition"
+# Le simulateur partagé de la CI met parfois plus de 30 s à rendre la proposition.
 - extendedWaitUntil:
     visible: "Séances proposées"
-    timeout: 30000
+    timeout: 60000
 # La liste des exercices proposés précède le bouton : le faire venir à l'écran.
 - scrollUntilVisible:
     element:

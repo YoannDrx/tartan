@@ -1,10 +1,10 @@
 import { athletePaint, gearPaint, SURFACES } from "@tartan/design-tokens/athletes";
-import { athleteRig } from "@tartan/mascot/athletes";
 import type { ExerciseClip } from "@tartan/mascot/exercise";
 import { svgProp } from "@tartan/mascot/props";
-import { svgAthlete, svgShape, type SvgShape } from "@tartan/mascot/svg";
+import { svgShape, type SvgShape } from "@tartan/mascot/svg";
 import { drawClip, framing, staged, type Box, type ScenePaint } from "@tartan/mascot/v2/draw-svg";
 import type { MotionClip } from "@tartan/mascot/v2/gesture";
+import { svgPoseFigure } from "@tartan/mascot/v2/pose-figure";
 import type { GestureView } from "@tartan/mascot/v2/project";
 import { memo } from "react";
 import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
@@ -35,12 +35,7 @@ const Shape = ({ shape }: { shape: SvgShape }) => {
 export const ExerciseScene = ({ clip, t, width }: { clip: ExerciseClip; t: number; width: number }) => {
   const { pose, root } = clip.frame(t);
   const gear = clip.gear(t);
-  const figure = svgAthlete(
-    athleteRig(clip.athlete, clip.face(t), clip.facing),
-    pose,
-    athletePaint(clip.athlete, "ink"),
-    root,
-  );
+  const figure = svgPoseFigure(clip.athlete, clip.face(t), pose, athletePaint(clip.athlete, "ink"), root, clip.facing);
   const [x, y, w, h] = clip.view.split(" ").map(Number) as [number, number, number, number];
   const tilt = clip.tilt ? `rotate(${clip.tilt} ${x + w / 2} ${y + h / 2})` : undefined;
   const layer = (front: boolean) =>

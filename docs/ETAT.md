@@ -33,20 +33,22 @@ Niveaux : **codé**, **testé** automatiquement, **éprouvé** en production ou 
 | C. Connexion par mot de passe (brief 4.1, constats B2, G1, G12) | 164 | En production, testé (8 parcours qui suivent les vrais e-mails) ; aucune connexion réelle jouée | Codé par Fable ; ouvert, alerte GitGuardian traitée et fusionné par Opus |
 | E. Photo de profil recadrée et avatars (groupe et animaux dessinés pour Tartan, constat G14) | 166 | En production, testé (parcours `avatar` contre un Blob simulé) ; ni Vercel Blob réel ni iPhone | Opus |
 | Gestes : moteur v2, 173 fiches sur le nouveau moteur (77 écrites à la main, 96 relevées), lecteurs web et mobile avec bascule Profil et Face, atelier en deux vues | 167 | En production, testé (2 299 tests du paquet, parcours des guides) ; prototype validé par le fondateur le 17 novembre ; aucun geste regardé en mouvement par un humain | Moteur, relèvement et lecteurs par Fable ; écriture à la main par Opus |
+| F. Listes et favoris d'exercices, fiche concise, bibliothèque et sélecteur allégés (brief 4.3, constats G3, G11) | 168 | En production, testé (droits des listes, parcours `exercise-lists` et `exercise-guides`) ; guides concis non relus par le fondateur | Opus |
 
 ### En cours
 
 | Lot | Où | Niveau | Mené par |
 | --- | --- | --- | --- |
-| F. Listes et favoris d'exercices, fiche concise, bibliothèque et sélecteur allégés (brief 4.3, constats G3, G11) | PR `feat/exercices` | Codé, testé (droits des listes, parcours `exercise-lists` et `exercise-guides`) ; guides concis non relus par le fondateur | Opus |
+| Gestes, morphologie partout : un seul corps dans le film, le jeu, les cartes du groupe, les e-mails et le mobile ; mains et pieds sur leur objet ; vidéo de catalogue par fiche (`/admin/exercices`, bascule « Geste animé » et « Vidéo ») | PR `feat/morphologie` | Codé, testé (2 903 tests du paquet, mains sur la perche et le disque à moins d'une unité ; parcours `landing`, `game-page`, `mascot-board`, `screen-matrix` sans échec) ; aucune vidéo de catalogue déposée | Opus |
+| G. Onboarding, H. planificateur, lot K1 de l'audit | Branches `feat/onboarding-complet`, `feat/planificateur-ia`, `fix/audit-corrections`, prêtes, en file derrière la morphologie | Codés, testés | Opus |
 
 ### Restant à faire
 
-- **G. Onboarding complet** du coach et de l'athlète (constats B1, B3, G15) : codé et testé sur `feat/onboarding` (tour de piste, carte « Pour démarrer », `/premiers-pas`, repères, accueil de l'athlète, validation mesurée sous 0,8 s). Reste : contrôle d'accessibilité partagé remis à l'identique, toast qui masque le tour, suite Playwright entière. Puis l'espace de démonstration.
-- **H. Planificateur IA** (constat B4) : codé et testé sur `feat/planificateur` (erreurs lisibles, sortie alignée sur le constructeur, contexte de « Proposer », réponse diffusée, écran en deux temps) ; 75 sur 80 avec `gpt-4.1`, défaut retenu, seuil de 76 non atteint ; environ 7,4 € d'appels réels. Reste : reporter cinq parcours de l'ancien `ai-planner.spec.ts`, puis la qualification sur le corpus du fondateur.
-- **Gestes, suite** : nouveau corps dans le film, le jeu, les e-mails et les cartes du groupe, vidéo de catalogue par fiche (`feat/gestes-morphologie`, en reprise : mains et pieds sur leur objet, pose de groupe, taille dans les cartes), puis le retrait de l'ancien moteur.
-- **K. Corrections de l'audit** : débordement de `/suivi` à 390 px (B6) et balayage de la CI sur données remplies, filtres de `/videos` (G2), grands groupes (G4), service worker (G5), sélecteur d'espace (G6), cibles tactiles (G8), `/analyse` (G9), message de publication (G10), états vides (G13), finitions et textes gelés.
-- **Production** : la vider après sauvegarde, sauf le compte administrateur, avant les essais réels avec les deux adresses du fondateur. Pas commencé : la suppression propre d'un compte passe par la console d'administration, qui exige la passkey du fondateur.
+- **G. Onboarding complet** (constats B1, B3, G15) : prêt sur `feat/onboarding-complet` (suite Playwright entière : 257 passés, 0 échec). Puis l'espace de démonstration.
+- **H. Planificateur IA** (constat B4) : prêt sur `feat/planificateur-ia` ; 75 sur 80 avec `gpt-4.1`, seuil de 76 non atteint ; environ 7,4 € d'appels réels. Reste après la fusion : la qualification sur le corpus du fondateur.
+- **Gestes, suite** : retrait de l'ancien moteur, une fois la morphologie en production.
+- **K. Corrections de l'audit** : K1 prêt sur `fix/audit-corrections` (G2, G5, G6, G9, G10). K2 restant : débordement de `/suivi` à 390 px (B6) et balayage de la CI sur données remplies, grands groupes (G4), cibles tactiles (G8, dont six cases natives sous 24 px), états vides (G13), finitions et textes gelés ; message de publication sur le mobile.
+- **Production vidée le 19 novembre** (fait) : sauvegarde chiffrée relue (`sauvegarde.yml`) et branche Neon `sauvegarde-avant-vidage-2026-11-19`, puis suppression en une transaction de tous les comptes sauf l'administrateur (passkey et mot de passe gardés), des 3 espaces, des notifications et des données de test ; catalogue commun (197 fiches), journal d'audit et liste de blocage des e-mails gardés ; la vidéo Mux part par la file de suppression. Reste : créer les deux comptes de test du fondateur une fois l'onboarding en production.
 - **L. Recette web** sur les 14 parcours de la section 8.7 du brief, Preview remise à niveau.
 - **Parité mobile** en quatre PR, puis les bêtas iOS et Android.
 

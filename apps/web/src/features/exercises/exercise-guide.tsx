@@ -2,6 +2,7 @@ import type { ExerciseGuide } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { exerciseClip } from "@tartan/mascot/exercises";
+import { GuideMedia } from "./guide-media";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { GuideMotion } from "./guide-motion";
@@ -14,7 +15,10 @@ export type GuideVariants = {
 };
 
 const Illustration = ({ guide }: { guide: ExerciseGuide }) => {
-  if (exerciseClip(guide.catalogKey)) return <GuideMotion guide={guide} />;
+  const motion = Boolean(exerciseClip(guide.catalogKey));
+  // La fiche commune a sa vidéo : on choisit entre le geste animé et la vidéo.
+  if (guide.illustration.videos?.length) return <GuideMedia guide={guide} motion={motion} />;
+  if (motion) return <GuideMotion guide={guide} />;
   return guide.illustration.status === "ready" ? (
     <figure className="min-w-0">
       {/* Versioned local SVGs remain available with the downloaded session. */}

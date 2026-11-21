@@ -2279,6 +2279,14 @@ export const fr = {
       view: "Vue du geste",
       views: { side: "Profil", front: "Face", top: "Dessus" },
     },
+    // Une fiche commune peut avoir sa vidéo, déposée par Tartan : on choisit entre le geste animé et la vidéo.
+    media: {
+      choice: "Illustration du geste",
+      motion: "Geste animé",
+      video: "Vidéo",
+      videoOf: (name: string, view: string) => `Vidéo : ${name}, ${view.toLowerCase()}`,
+      videoUnavailable: "La vidéo n'est pas lisible pour le moment. Le geste animé reste consultable.",
+    },
     families: {
       strength: "Musculation",
       weightlifting: "Haltérophilie",
@@ -3097,6 +3105,7 @@ export const fr = {
       configuration: "Configuration",
       mascot: "Mascotte",
       movements: "Mouvements",
+      exercises: "Exercices",
       game: "Jeu",
     },
     // La planche de contrôle du groupe : ce que le fondateur relit avant que les athlètes entrent dans les écrans.
