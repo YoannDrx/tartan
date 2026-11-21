@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "library": {
+    "catalog": "common",
+    "private": [
+      {
+        "name": "Tirage élastique maison",
+        "category": "strength",
+        "aliases": ["tirage élastique"],
+        "family": "strength",
+        "movement": "pull",
+        "equipment": ["bands"]
+      }
+    ]
+  },
+  "pairs": [
+    { "id": "PX-01", "said": "squat arrière", "key": "back-squat" },
+    { "id": "PX-02", "said": "RDL", "key": "romanian-deadlift" },
+    { "id": "PX-03", "said": "planche", "key": "front-plank" },
+    { "id": "PX-04", "said": "squat barre sur le dos", "key": "back-squat" },
+    { "id": "PX-05", "said": "CMJ", "key": "countermovement-jump" },
+    { "id": "PX-06", "said": "tirage élastique maison", "private": "Tirage élastique maison" },
+    { "id": "PX-07", "said": "planche Copenhague", "absent": true },
+    { "id": "PX-08", "said": "tirage menton", "absent": true }
+  ]
+}
