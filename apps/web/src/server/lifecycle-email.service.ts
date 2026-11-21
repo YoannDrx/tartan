@@ -2,7 +2,7 @@ import { createElement } from "react";
 import {
   ACTIVATION_WINDOW_DAYS,
   activationEmailFor,
-  coachNextStep,
+  coachActivationStep,
   type ActivationDay,
   type CoachOnboardingFacts,
   type CoachStepKey,
@@ -11,8 +11,11 @@ import { m } from "@tartan/i18n";
 import { BillingNoticeEmail } from "@email/billing";
 import { TipEmail } from "@email/lifecycle";
 import { env } from "@/lib/env";
+import { COACH_STEP_PATH } from "@/lib/onboarding-paths";
 import { prisma } from "@/lib/prisma";
+import { REAL_SPACES } from "./demo-space-guard";
 import { unsubscribePageUrl, unsubscribeUrl } from "./email-preferences.service";
+import { readCoachFacts } from "./onboarding.service";
 
 // Les e-mails d'activation et de plafond : la règle est dans @tartan/domain, ce service fournit les faits,
 // met en file le jour dû, puis revérifie tout au moment de l'envoi.
@@ -20,17 +23,13 @@ import { unsubscribePageUrl, unsubscribeUrl } from "./email-preferences.service"
 const DAY_MS = 86_400_000;
 
 // Les faits des premiers pas pour tout l'espace, sans regard d'un membre : réservé aux tâches planifiées.
+// Les mêmes que ceux de la carte « Pour démarrer », lus pour le propriétaire.
 export const coachOnboardingFacts = async (organizationId: string): Promise<CoachOnboardingFacts> => {
-  const [invitations, athletes, sessions, publishedSessions, validations] = await Promise.all([
-    prisma.invitation.count({ where: { organizationId, role: "athlete" } }),
-    prisma.athlete.count({ where: { organizationId } }),
-    prisma.scheduledSession.count({ where: { organizationId } }),
-    prisma.scheduledSession.count({ where: { organizationId, publishedAt: { not: null } } }),
-    prisma.sessionLog.count({
-      where: { athlete: { organizationId }, status: { in: ["done", "partial"] } },
-    }),
-  ]);
-  return { invitations, athletes, sessions, publishedSessions, validations };
+  const { ownerId } = await prisma.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: { ownerId: true },
+  });
+  return readCoachFacts(organizationId, ownerId);
 };
 
 export type ActivationPayload = { space: string; day: ActivationDay; step: CoachStepKey };
@@ -39,6 +38,8 @@ export type ActivationPayload = { space: string; day: ActivationDay; step: Coach
 export const queueActivationEmails = async (now: Date = new Date()): Promise<number> => {
   const spaces = await prisma.organization.findMany({
     where: {
+      // L'espace de démonstration n'a pas de premiers pas : il naît rempli.
+      ...REAL_SPACES,
       createdAt: {
         gte: new Date(now.getTime() - ACTIVATION_WINDOW_DAYS * DAY_MS),
         lt: new Date(now.getTime() - DAY_MS),
@@ -76,13 +77,6 @@ export const queueActivationEmails = async (now: Date = new Date()): Promise<num
   return queued;
 };
 
-const STEP_PATH: Record<CoachStepKey, string> = {
-  invite: "/reglages/membres#inviter",
-  create: "/seances/nouvelle",
-  publish: "/calendrier",
-  validate: "/suivi",
-};
-
 // Le conseil ne part que s'il est encore vrai : même propriétaire, conseils voulus, même étape manquante.
 export const isActivationEmailRelevant = async (
   organizationId: string,
@@ -94,7 +88,7 @@ export const isActivationEmailRelevant = async (
     select: { owner: { select: { email: true, profile: { select: { emailTips: true } } } } },
   });
   if (!space || space.owner.email !== toEmail || space.owner.profile?.emailTips === false) return false;
-  return coachNextStep(await coachOnboardingFacts(organizationId)) === (payload as ActivationPayload).step;
+  return coachActivationStep(await coachOnboardingFacts(organizationId)) === (payload as ActivationPayload).step;
 };
 
 export const renderActivationEmail = async (organizationId: string, payload: unknown) => {
@@ -106,7 +100,7 @@ export const renderActivationEmail = async (organizationId: string, payload: unk
   const copy = m.email.activation.steps[step];
   const base = env().NEXT_PUBLIC_APP_URL;
   // Le lien ouvre le bon espace, même pour un coach qui en a plusieurs.
-  const [path, hash] = STEP_PATH[step].split("#");
+  const [path, hash] = COACH_STEP_PATH[step].split("#");
   return {
     subject: copy.subject,
     unsubscribeUrl: unsubscribeUrl(organization.ownerId, "tips"),

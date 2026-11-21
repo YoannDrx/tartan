@@ -37,7 +37,7 @@ import { w } from "@tartan/i18n/web";
 import { ChevronRight, Plus, Trash2, Undo2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { pillClass } from "@/components/filter-pill";
 import { EmptyState } from "@/components/states";
 import { Button, IconButton } from "@/components/ui/button";
@@ -52,6 +52,7 @@ import { ExercisePicker, ExerciseSource, LibraryBrowser } from "./exercise-picke
 import { DESKTOP, useMediaQuery } from "@/lib/use-media-query";
 import { attachItemKeys, overridesForSubmit, type KeyedOverride } from "./overrides";
 import { deleteSessionAction, deleteTemplateAction, saveSessionAction, saveTemplateAction } from "./session.action";
+import { publishedToast } from "./publication-notice";
 
 type BlockState = {
   key: string;
@@ -131,7 +132,7 @@ const SetPlanEditor = ({ value, onChange }: { value: Prescription; onChange: (p:
       <label className="flex min-h-11 items-center gap-2">
         <input
           type="checkbox"
-          className="size-5 accent-[var(--color-accent)]"
+          className="check"
           checked={Boolean(plan)}
           onChange={(e) => onChange(e.target.checked ? withSetPlan(value, startSetPlan(value)) : withoutSetPlan(value))}
         />
@@ -153,7 +154,7 @@ const SetPlanEditor = ({ value, onChange }: { value: Prescription; onChange: (p:
                     <label className="flex min-h-11 items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        className="size-5 accent-[var(--color-accent)]"
+                        className="check"
                         checked={Boolean(set.warmup)}
                         onChange={(e) => {
                           const { warmup: _warmup, ...rest } = set;
@@ -416,9 +417,11 @@ export const SessionBuilder = ({
   defaultDate,
   defaultGroupId,
   returnTo,
+  initialTemplateId,
 }: {
   userId: string;
   organizationId: string;
+  initialTemplateId?: string;
   phasesEnabled?: boolean;
   progressionEnabled?: boolean;
   initial: {
@@ -729,7 +732,7 @@ export const SessionBuilder = ({
           : input.publish
             ? initial?.publishedAt
               ? m.builder.updated
-              : m.builder.published
+              : publishedToast(data?.recipients)
             : m.builder.sequence.draftSaved,
       );
       if (input.publish && data) router.push(withSessionReturn(`/seances/${data.id}/suivi`, returnTo));
@@ -816,6 +819,19 @@ export const SessionBuilder = ({
     setClub(parts.club);
     setAutonomous(parts.autonomous);
   };
+
+  // Un modèle choisi depuis les premiers pas (`?modele=`) : la nouvelle séance part de lui, une seule fois.
+  useEffect(() => {
+    if (initial || !initialTemplateId) return;
+    if (!templates.some((template) => template.id === initialTemplateId)) return;
+    // Après le premier rendu : les clés neuves du modèle ne naissent que dans le navigateur.
+    const first = setTimeout(() => {
+      setChosenTemplate(initialTemplateId);
+      applyTemplate(initialTemplateId);
+    }, 0);
+    return () => clearTimeout(first);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- appliqué une fois, à l'ouverture
+  }, []);
 
   // Même identité à l'écran, à la publication et après un réordonnancement.
   const clubRefs = club
@@ -1215,7 +1231,11 @@ export const SessionBuilder = ({
             <LibraryBrowser
               draggable
               addLabel={m.builder.sequence.addToSession}
-              onPick={(e) => addExercise(e.id, undefined, e)}
+              onPick={(e, origin) => {
+                addExercise(e.id, undefined, e);
+                // Une fiche créée ici part aussitôt dans la séance : on le dit, la liste des résultats a changé.
+                if (origin === "created") toast.ok(w.exercises.picker.added(e.name));
+              }}
             />
           ) : (
             <>

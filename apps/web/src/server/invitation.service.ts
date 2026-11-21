@@ -17,11 +17,13 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { deriveToken, sha256, tokenMatches } from "@/lib/tokens";
 import { audit, requireGroupInScope, requireOrgMember, requireVisibleAthlete } from "./access";
 import { assertWithinPlan } from "./billing.service";
-import { setConsent, startParentalConsent } from "./consent.service";
+import { assertNotDemoSpace, isDemoSpace } from "./demo-space-guard";
+import { recordJoinConsents, startParentalConsent } from "./consent.service";
 import { flushEmailOutbox } from "./email-outbox.service";
 import { INVITATION_PURPOSE as PURPOSE, invitationLink, invitationOutboxKind } from "./invitation-email";
 import { displayName, namesFor } from "./me.service";
 import { notify } from "./notify.service";
+import { startOnboarding } from "./onboarding.service";
 import { ensureReferralCode } from "./org.service";
 import { attributeReferral } from "./referral.service";
 
@@ -33,6 +35,8 @@ export const createInvitation = async (userId: string, organizationId: string, r
   const input = createInvitationInput.parse(rawInput);
   const permission = input.role === "athlete" ? "inviteAthlete" : "inviteCoach";
   const access = await requireOrgMember(userId, organizationId, permission);
+  // Les athlètes de la démonstration sont fictifs : personne n'y est invité.
+  await assertNotDemoSpace(organizationId, "invitations");
   await enforceRateLimit(`invite:${userId}`, 60, 3600);
   if (input.role !== "athlete") await assertWithinPlan(organizationId, "maxCoaches");
   await requireGroupInScope(access, input.groupIds);
@@ -113,8 +117,28 @@ export const listInvitations = async (userId: string, organizationId: string) =>
   });
 };
 
+// Quelques adresses d'un coup : une invitation nominative par adresse, chacune contrôlée comme à l'unité.
+export const inviteByEmails = async (
+  userId: string,
+  organizationId: string,
+  groupId: string,
+  emails: string[],
+): Promise<{ sent: number }> => {
+  const unique = [...new Set(emails.map((email) => email.trim().toLowerCase()))];
+  for (const email of unique) {
+    await createInvitation(userId, organizationId, {
+      kind: "personal_email",
+      role: "athlete",
+      email,
+      groupIds: [groupId],
+    });
+  }
+  return { sent: unique.length };
+};
+
 export const groupInvitationLink = async (userId: string, organizationId: string, groupId: string) => {
   const access = await requireOrgMember(userId, organizationId, "inviteAthlete");
+  await assertNotDemoSpace(organizationId, "invitations");
   await requireGroupInScope(access, [groupId]);
   const existing = await prisma.invitation.findFirst({
     where: {
@@ -160,6 +184,7 @@ export const resendInvitation = async (userId: string, organizationId: string, i
   const inv = await prisma.invitation.findFirst({ where: { id: invitationId, organizationId } });
   if (!inv) throw notFound();
   if (access.role !== "owner" && inv.invitedBy !== userId) throw forbidden();
+  await assertNotDemoSpace(organizationId, "invitations");
   await enforceRateLimit(`invite:${userId}`, 60, 3600);
   await prisma.invitation.update({
     where: { id: inv.id },
@@ -235,6 +260,8 @@ export const acceptInvitation = async (
   await enforceRateLimit(`accept:${actor.userId}`, 20, 3600);
   const inv = await findByToken(token);
   if (!inv) throw notFound();
+  // Aucun athlète réel n'entre dans un espace de démonstration, même avec une invitation forgée.
+  if (await isDemoSpace(inv.organizationId)) throw notFound();
   const state = invitationStateOf(inv, new Date());
   if (state === "expired") throw invalid(m.invite.expired);
   if (state === "revoked") throw invalid(m.invite.revoked);
@@ -329,6 +356,8 @@ export const acceptInvitation = async (
       await tx.organizationMember.create({
         data: { organizationId: inv.organizationId, userId: actor.userId, role: inv.role, status: "active" },
       });
+      // Un nouveau membre est accueilli : son tour, ses repères, son accueil (`onboarding_states`).
+      await startOnboarding(tx, inv.organizationId, actor.userId);
     }
 
     if (!isAthlete) {
@@ -339,6 +368,13 @@ export const acceptInvitation = async (
           role: inv.role === "assistant" ? ("assistant" as const) : ("lead" as const),
         })),
         skipDuplicates: true,
+      });
+      await recordJoinConsents(tx, {
+        userId: actor.userId,
+        organizationId: inv.organizationId,
+        athleteId: null,
+        health: false,
+        video: false,
       });
       return null;
     }
@@ -361,6 +397,14 @@ export const acceptInvitation = async (
       skipDuplicates: true,
     });
     await freezeAssignedPrescriptions(tx, athlete.id);
+    // Les accords sont écrits avec le membre : si l'un échoue, personne n'a rejoint (G15).
+    await recordJoinConsents(tx, {
+      userId: actor.userId,
+      organizationId: inv.organizationId,
+      athleteId: athlete.id,
+      health: input.consents.health,
+      video: input.consents.video,
+    });
     // Première arrivée dans l'espace : la bienvenue est mise en file dans la même transaction, une seule fois.
     if (!existing) {
       await tx.emailOutbox.createMany({
@@ -385,12 +429,6 @@ export const acceptInvitation = async (
     );
   }
 
-  await setConsent(actor.userId, "terms", true, athleteId);
-  // Rejoindre un espace n'enlève jamais un accord donné à un autre, ni à celui-ci : cocher accorde, c'est tout.
-  if (isAthlete && athleteId) {
-    if (input.consents.health) await setConsent(actor.userId, "health", true, athleteId);
-    if (input.consents.video) await setConsent(actor.userId, "video", true, athleteId);
-  }
   if (minor && athleteId && input.guardianEmail) {
     const names = await namesFor([inv.invitedBy]);
     await startParentalConsent({

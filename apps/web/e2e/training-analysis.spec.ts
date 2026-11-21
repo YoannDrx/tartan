@@ -4,7 +4,9 @@ import { Client } from "pg";
 import { createApiClient } from "../../../packages/api-client/src/index";
 import { addDays } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
+import { openFullExerciseForm } from "./journeys";
 
 test("analyse web et transport natif : volumes distincts, filtres, couverture et accessibilité", async ({
   page,
@@ -17,10 +19,7 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
     headers: async () => ({ Cookie: (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join("; ") }),
   });
   const group = (await api.sessionBuilder(orgId)).groups[0]!;
-  await page.goto("/exercices");
-  await page.getByRole("button", { name: m.exercises.new, exact: true }).click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByLabel(m.exercises.name, { exact: true }).fill("Squat analyse");
+  const dialog = await openFullExerciseForm(page, "Squat analyse");
   await dialog.getByLabel(m.exercises.category, { exact: true }).selectOption("strength");
   await dialog.getByText(m.exerciseClassification.title, { exact: true }).click();
   await dialog.getByLabel(m.exerciseClassification.movement, { exact: true }).selectOption("squat");
@@ -172,6 +171,25 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
   await page.getByRole("link", { name: m.analysis.title, exact: true }).click();
   await expect(page.getByRole("heading", { name: m.analysis.title, exact: true })).toBeVisible();
   await expect(page.getByText("960", { exact: true })).toBeVisible();
+  // Audit G9 : la phrase clé d'abord, deux colonnes sur ordinateur, les manques regroupés en une invitation.
+  const viewport = page.viewportSize();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const volumes = page.getByRole("region", { name: m.analysis.volumes, exact: true });
+  const weekly = page.getByRole("region", { name: m.analysis.weekly, exact: true });
+  const keyLine = `3 ${w.analysis.key.completed(3)} ${w.analysis.key.on} 4 ${w.analysis.key.assigned(4)}`;
+  await expect(volumes.getByText(keyLine, { exact: true })).toBeVisible();
+  const [volumesBox, weeklyBox] = [(await volumes.boundingBox())!, (await weekly.boundingBox())!];
+  expect(Math.abs(volumesBox.y - weeklyBox.y)).toBeLessThan(4);
+  expect(volumesBox.width + weeklyBox.width).toBeGreaterThan(1100);
+  const gaps = page.getByRole("region", { name: w.analysis.gaps.title, exact: true });
+  await expect(gaps.getByText(w.analysis.gaps.responses(1, 4), { exact: true })).toBeVisible();
+  await expect(gaps.getByText(w.analysis.gaps.feeling(1, 3), { exact: true })).toBeVisible();
+  // « Non renseigné » ne se répète plus à l'écran : il reste lu par le lecteur d'écran, à la place du tiret.
+  const shownMissing = await page
+    .getByText(m.analysis.missing, { exact: true })
+    .evaluateAll((nodes) => nodes.filter((node) => node.getBoundingClientRect().width > 2).length);
+  expect(shownMissing).toBe(0);
+  if (viewport) await page.setViewportSize(viewport);
   const intensitySection = page.getByRole("region", { name: m.intensityAnalysis.title, exact: true });
   await expect(intensitySection.getByText(m.intensityAnalysis.observations(6, 6), { exact: true })).toBeVisible();
   await intensitySection.getByLabel(m.intensityAnalysis.chooseMetric, { exact: true }).selectOption("target_rir");

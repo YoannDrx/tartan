@@ -3,6 +3,8 @@ import type { DetailedSetInput, SnapshotItem } from "@tartan/contracts";
 import {
   analysisEntryTotals,
   analyzeExerciseClassification,
+  analysisGaps,
+  emptyAnalysisTotals,
   analysisPerceivedLoadPoints,
   scopeAnalysisEntries,
   plannedItemVolumes,
@@ -212,4 +214,31 @@ it("classe le mouvement une seule fois et chaque matériel séparément avec cou
   expect(
     analyzeExerciseClassification([{ ...entry, status: "skipped" }]).movements.every((r) => r.completedWorkSets === 0),
   ).toBe(true);
+});
+
+describe("ce qui manque à l'analyse (audit G9)", () => {
+  const totals = { ...emptyAnalysisTotals(), assignedSessions: 148, loggedSessions: 85, completedSessions: 85 };
+  it("regroupe les manques en une liste chiffrée, sans rien inventer", () => {
+    expect(
+      analysisGaps({
+        totals: { ...totals, detailedSessions: 0, healthEligibleSessions: 73, loadResponses: 71 },
+        healthVisible: true,
+        classification: { items: 180, movementKnownItems: 120, equipmentKnownItems: 180, movements: [], equipment: [] },
+      }),
+    ).toEqual([
+      { kind: "responses", missing: 63, total: 148 },
+      { kind: "sets", missing: 85, total: 85 },
+      { kind: "feeling", missing: 2, total: 73 },
+      { kind: "classification", missing: 60, total: 180 },
+    ]);
+  });
+  it("ne réclame rien quand tout est renseigné, ni le ressenti sans consentement santé", () => {
+    expect(
+      analysisGaps({
+        totals: { ...totals, loggedSessions: 148, detailedSessions: 85, healthEligibleSessions: 85, loadResponses: 0 },
+        healthVisible: false,
+      }),
+    ).toEqual([]);
+    expect(analysisGaps({ totals: emptyAnalysisTotals(), healthVisible: true })).toEqual([]);
+  });
 });

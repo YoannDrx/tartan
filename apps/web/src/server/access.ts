@@ -22,9 +22,16 @@ export const requireOrgMember = async (
 ): Promise<Access> => {
   const member = await db.organizationMember.findUnique({
     where: { organizationId_userId: { organizationId, userId } },
-    select: { role: true, status: true, user: { select: { profile: { select: { birthDate: true } } } } },
+    select: {
+      role: true,
+      status: true,
+      user: { select: { profile: { select: { birthDate: true } } } },
+      organization: { select: { isDemo: true } },
+    },
   });
   if (!member || member.status !== "active") throw forbidden();
+  // Un espace de démonstration n'a qu'un membre, le coach qui l'a ouvert : aucun athlète réel n'y entre jamais.
+  if (member.organization.isDemo && member.role !== "owner") throw forbidden();
   assertMemberAge(member.user.profile?.birthDate);
   if (permission && !can(member.role, permission)) throw forbidden();
   const athlete =
@@ -116,14 +123,17 @@ export const requireOwnedRefs = async (
   if (!session || !competition || !video) throw notFound();
 };
 
-export const audit = async (input: {
-  organizationId?: string | null;
-  actorId?: string | null;
-  action: string;
-  entity: string;
-  entityId?: string | null;
-}): Promise<void> => {
-  await prisma.auditLog.create({
+export const audit = async (
+  input: {
+    organizationId?: string | null;
+    actorId?: string | null;
+    action: string;
+    entity: string;
+    entityId?: string | null;
+  },
+  db: Prisma.TransactionClient = prisma,
+): Promise<void> => {
+  await db.auditLog.create({
     data: {
       organizationId: input.organizationId ?? null,
       actorId: input.actorId ?? null,

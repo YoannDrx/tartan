@@ -71,13 +71,22 @@ Pour les parcours Playwright, le serveur dépose en plus chaque message (destina
 
 ## Séquence d'activation
 
-Trois rappels au plus, décidés par une règle pure (`packages/domain/src/lifecycle-emails.ts`) à partir des faits des premiers pas (`packages/domain/src/onboarding.ts`). Service : `apps/web/src/server/lifecycle-email.service.ts`.
+Trois rappels au plus, décidés par une règle pure (`packages/domain/src/lifecycle-emails.ts`) à partir des faits des premiers pas (`packages/domain/src/onboarding.ts`). Ce sont les mêmes faits, lus par la même fonction (`readCoachFacts`, `apps/web/src/server/onboarding.service.ts`), que la carte « Pour démarrer » ; les liens sont les mêmes que ceux de la carte (`apps/web/src/lib/onboarding-paths.ts`). Service : `apps/web/src/server/lifecycle-email.service.ts`.
 
 | Échéance | Fenêtre depuis la création | Contenu |
 | --- | --- | --- |
-| J+1 | De 1 à 2 jours | La prochaine étape manquante : inviter, créer, publier, ou faire valider |
+| J+1 | De 1 à 2 jours | La prochaine étape manquante de la carte, dans son ordre : inviter, créer, publier, ou faire valider |
 | J+3 | De 3 à 5 jours | Idem |
 | J+7 | De 7 à 10 jours | Idem, avec une invitation à répondre pour être aidé |
+
+| Étape | Lien de l'e-mail |
+| --- | --- |
+| Inviter | `/premiers-pas#inviter` : le lien du groupe, le QR code et quelques adresses, sur place |
+| Créer | `/seances/nouvelle` |
+| Publier | `/calendrier` |
+| Faire valider | `/suivi` |
+
+- La photo du profil est une étape de la carte, mais elle ne vaut pas un e-mail (`coachActivationStep`) : les rappels visent la première validation.
 
 - Un message est mis en file le matin où il est dû, jamais à l'avance : la file expire tout message de plus de 24 heures.
 - Passé la fenêtre, rien ne part : après une panne de la tâche, un rappel en retard n'aurait plus de sens.

@@ -20,10 +20,12 @@ import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
 import { setEmailPreference } from "./email-preferences.service";
 
-export const listSpaces = async (userId: string): Promise<SpaceSummary[]> => {
+// L'espace de démonstration ne se liste que pour la web app, qui sait l'annoncer (bandeau, sélecteur) : l'API du
+// mobile et `/me` ne le montrent pas. Il vient toujours après les espaces réels.
+export const listSpaces = async (userId: string, options: { includeDemo?: boolean } = {}): Promise<SpaceSummary[]> => {
   const rows = await prisma.organizationMember.findMany({
-    where: { userId, status: "active" },
-    orderBy: { createdAt: "asc" },
+    where: { userId, status: "active", ...(options.includeDemo ? {} : { organization: { isDemo: false } }) },
+    orderBy: [{ organization: { isDemo: "asc" } }, { createdAt: "asc" }],
     select: {
       role: true,
       organization: {
@@ -34,29 +36,31 @@ export const listSpaces = async (userId: string): Promise<SpaceSummary[]> => {
           phasesEnabled: true,
           aiPlannerEnabled: true,
           plan: true,
+          isDemo: true,
+          demoExpiresAt: true,
         },
       },
     },
   });
   const athletes = await prisma.athlete.findMany({ where: { userId }, select: { id: true, organizationId: true } });
-  return rows.map((r) => ({
-    organizationId: r.organization.id,
-    organizationName: r.organization.name,
-    progressionEnabled: r.organization.progressionEnabled,
-    phasesEnabled: r.organization.phasesEnabled,
-    aiPlannerEnabled:
-      plannerServerEnabled(env()) &&
-      r.organization.aiPlannerEnabled &&
-      r.organization.plan !== "discovery" &&
-      can(r.role, "manageSessions"),
-    aiPlannerUpgrade:
-      plannerServerEnabled(env()) &&
-      r.organization.aiPlannerEnabled &&
-      r.organization.plan === "discovery" &&
-      can(r.role, "manageSessions"),
-    role: r.role,
-    athleteId: r.role === "athlete" ? (athletes.find((a) => a.organizationId === r.organization.id)?.id ?? null) : null,
-  }));
+  return rows.map((r) => {
+    // Le planificateur est coupé dans la démonstration, offre comprise : ni l'onglet, ni l'invitation à payer.
+    const planner = plannerServerEnabled(env()) && r.organization.aiPlannerEnabled && !r.organization.isDemo;
+    return {
+      organizationId: r.organization.id,
+      organizationName: r.organization.name,
+      progressionEnabled: r.organization.progressionEnabled,
+      phasesEnabled: r.organization.phasesEnabled,
+      aiPlannerEnabled: planner && r.organization.plan !== "discovery" && can(r.role, "manageSessions"),
+      aiPlannerUpgrade: planner && r.organization.plan === "discovery" && can(r.role, "manageSessions"),
+      role: r.role,
+      athleteId:
+        r.role === "athlete" ? (athletes.find((a) => a.organizationId === r.organization.id)?.id ?? null) : null,
+      ...(r.organization.isDemo
+        ? { isDemo: true, demoExpiresAt: r.organization.demoExpiresAt?.toISOString() ?? null }
+        : {}),
+    };
+  });
 };
 
 export const getMe = async (userId: string): Promise<MeResponse> => {

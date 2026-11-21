@@ -524,7 +524,7 @@ Audit mené sur `main` à `072eafd`, sur une base locale dédiée (graine, puis 
 | B3 | `/aujourdhui` d'un athlète neuf | Un jour de séance, l'athlète n'a aucun accueil et la proposition d'installation n'est jamais armée. L'accueil vit dans le navigateur : il revient sur un autre appareil | Parcours, étape 22 ; `athlete-welcome.tsx` | Lot G |
 | B4 | `/planificateur` | « Continuer avec ces destinataires » demande deux clics : le premier charge le contexte sans avancer. Vocabulaire technique (« Consommation et fuseau de l'espace », « Contexte prêt », « Exercices autorisés pour cette proposition »). Trois blocs d'avertissement et une case « relu » avant de pouvoir envoyer. Le mode se choisit dans une liste déroulante. S'y ajoutent les défauts lus dans le code : appel bloquant sans retour à l'écran, erreurs du prestataire écrasées en un message générique, mode « Proposer » sans contexte, « Ajuster » qui refait une autre séance | Parcours rejoué ; `web-planner.tsx`, `provider.ts`, `context.ts` | Lot H |
 | B5 | Fiche d'exercice | À l'arraché, le personnage est replié sur lui-même, tête démesurée, la barre réduite à un disque dans une main. Toutes les fiches portent « Illustration de travail » | Capture de la fiche | Lot J |
-| B6 | `/suivi` à 390 px | La page déborde de 165 px dès que la semaine compte neuf séances. Le balayage de la CI ne le voit pas : il tourne sur un espace vide | Mesure du balayage | Lot K, avec un balayage sur données remplies ajouté à la CI |
+| B6 | `/suivi` à 390 px | La page déborde de 165 px dès que la semaine compte neuf séances. Le balayage de la CI ne le voit pas : il tourne sur un espace vide | Mesure du balayage | Corrigé au lot K2 : la cause était un texte pour lecteur d'écran posé en absolu, sorti du cadre défilant de la grille. Balayage sur données remplies dans la CI (`filled-sweep.spec.ts`) |
 | B7 | `/reglages` | Une seule page de 4 586 px à 390 px, dix-sept sections, deux sections voisines « Groupes » et « Invitations » qui se confondent, aucune rubrique pour la connexion | Capture | Lot A |
 
 Les six demandes du fondateur (sections 4.1 à 4.6) restent des portes d'ouverture : les constats B2, B5 et B7 les confirment à l'écran.
@@ -534,18 +534,18 @@ Les six demandes du fondateur (sections 4.1 à 4.6) restent des portes d'ouvertu
 | N° | Écran | Constat | Correction |
 | --- | --- | --- | --- |
 | G1 | « Lien envoyé » | L'écran ne rappelle pas l'adresse saisie, n'offre ni renvoi ni aide si rien n'arrive | Corrigé au lot C |
-| G2 | `/videos` à 390 px | Cinq filtres empilés occupent tout le premier écran avant la première vidéo. « Feuille de barres », propre à la hauteur, est une action de premier rang pour tous les coachs | Lot K : filtres dans une feuille, action rangée dans le contexte hauteur |
+| G2 | `/videos` à 390 px | Cinq filtres empilés occupent tout le premier écran avant la première vidéo. « Feuille de barres », propre à la hauteur, est une action de premier rang pour tous les coachs | Corrigé au lot K1 : sous 1024 px, les filtres sont dans une feuille (bouton « Filtres » avec le nombre de filtres actifs, lien pour les effacer), la première vidéo tient dans le premier écran ; « Feuille de barres » n'apparaît que si les athlètes affichés sautent en hauteur (`barSheetInScope`), parcours `video-filters.spec.ts` |
 | G3 | `/exercices` | 16 408 px de haut à 390 px : les 311 fiches sont rendues d'un coup. Deux filtres concurrents (liste « Famille de mouvements » et pastilles de catégories). L'haltérophilie est rangée sous « Musculation ». Aucune vignette de geste. La fiche s'ouvre en dialogue, sans adresse à partager | Corrigé au lot F |
-| G4 | `/suivi`, `/athletes` à 121 athlètes | 7 310 px et 13 393 nœuds, 1,7 et 2,3 Mo de HTML, aucune recherche par nom, en-tête de colonnes qui ne reste pas en vue | Lot K : recherche, en-tête collant, rendu par tranches |
-| G5 | Service worker | Il tente de mettre en cache `/exercise-guides/*.svg`, des fichiers qui n'existent pas : une rafale de 404 à chaque page mise en cache. `OFFLINE_PATHS` cite `mes-sauts` et non `mes-videos` : les vidéos de l'athlète ne se rouvrent pas hors ligne | Lot K, avec test |
-| G6 | En-tête à 390 px | Le sélecteur d'espace se réduit à un chevron, sans nom (défaut 3 confirmé) | Lot K |
+| G4 | `/suivi`, `/athletes` à 121 athlètes | 7 310 px et 13 393 nœuds, 1,7 et 2,3 Mo de HTML, aucune recherche par nom, en-tête de colonnes qui ne reste pas en vue | Corrigé au lot K2 : recherche par nom, en-tête collant, rendu par tranches de 30 |
+| G5 | Service worker | Il tente de mettre en cache `/exercise-guides/*.svg`, des fichiers qui n'existent pas : une rafale de 404 à chaque page mise en cache. `OFFLINE_PATHS` cite `mes-sauts` et non `mes-videos` : les vidéos de l'athlète ne se rouvrent pas hors ligne | Corrigé au lot K1 : le worker ne demande plus que des fichiers qui existent, garde `/mes-videos` (pré-cachée pour l'athlète) ; `tests/service-worker.test.ts` vérifie chaque chemin gardé contre `app/` et `public/` |
+| G6 | En-tête à 390 px | Le sélecteur d'espace se réduit à un chevron, sans nom (défaut 3 confirmé) | Corrigé au lot K1 : sur téléphone, l'icône de la marque remplace le logotype et le sélecteur garde le nom de l'espace, tronqué, sur une cible de 44 px au moins ; parcours `space-switch.spec.ts` |
 | G7 | `/calendrier`, `/progres` | Le bloc « Phases de préparation » se répète (un résumé replié et un bouton du même nom) et pousse la semaine sous le premier écran. Le glisser-déposer reste sans retour (4.2) | Corrigé au lot B |
-| G8 | Cibles tactiles | Pastilles de filtre de 36 px de haut (calendrier, exercices, console) ; noms d'athlètes cliquables de 21 px de haut (`/athletes`, `/seances/[id]/suivi`). `DESIGN.md` demande 44 px | Lot K |
-| G9 | `/analyse` | Une colonne de 520 px au milieu d'un écran de 1440 px, des chiffres sans hiérarchie, beaucoup de « Non renseigné » | Lot K |
-| G10 | Publication | « Séance publiée. Tes athlètes reçoivent la notification. » s'affiche pour un groupe vide, juste avant « Aucun athlète dans ce groupe » | Lot K |
+| G8 | Cibles tactiles | Pastilles de filtre de 36 px de haut (calendrier, exercices, console) ; noms d'athlètes cliquables de 21 px de haut (`/athletes`, `/seances/[id]/suivi`). `DESIGN.md` demande 44 px | Corrigé au lot K2 : pastilles et noms à 44 px, cases natives à 24 px, sauf celle des filtres vidéo, laissée au lot vidéo |
+| G9 | `/analyse` | Une colonne de 520 px au milieu d'un écran de 1440 px, des chiffres sans hiérarchie, beaucoup de « Non renseigné » | Corrigé au lot K1 : la phrase clé (séances validées sur attribuées) ouvre l'écran, deux colonnes sur ordinateur, les manques regroupés dans « À compléter » (`analysisGaps`), un tiret lu « Non renseigné » à la place des valeurs absentes ; parcours `training-analysis.spec.ts` |
+| G10 | Publication | « Séance publiée. Tes athlètes reçoivent la notification. » s'affiche pour un groupe vide, juste avant « Aucun athlète dans ce groupe » | Corrigé au lot K1 sur le web : la publication renvoie le nombre d'athlètes visés et prévenus, `publicationNotice` en tire le message (invitation à inviter si personne) ; tests du domaine, du service et `coach-screens.spec.ts`. Le constructeur natif garde l'ancien texte jusqu'à la parité mobile |
 | G11 | `/seances/nouvelle` | 865 Ko de HTML : toute la bibliothèque et ses guides voyagent dans la page. À 390 px, la bibliothèque est tout en bas d'une page de 3 021 px | Corrigé au lot F |
 | G12 | Connexion | La redirection vers `/connexion` perd la page demandée (défaut 7 confirmé) | Corrigé au lot C |
-| G13 | États vides | `/phases` et `/progres` n'ont qu'une phrase, sans l'athlète de la rubrique que demande `DESIGN.md` | Lot K |
+| G13 | États vides | `/phases` et `/progres` n'ont qu'une phrase, sans l'athlète de la rubrique que demande `DESIGN.md` | Corrigé au lot K2 |
 | G14 | Avatar et logo | Envoyés dans les réglages, affichés nulle part ailleurs | Corrigé au lot E |
 | G15 | Invitation | Les consentements sont enregistrés après la transaction : un membre peut exister sans accord tracé | Lot G, avec test |
 | G16 | `/synchronisation` | Aucun lien n'y mène | Corrigé au lot A (rubrique Aide) |
@@ -553,13 +553,13 @@ Les six demandes du fondateur (sections 4.1 à 4.6) restent des portes d'ouvertu
 
 ### 8.5 Finitions
 
-- Aucun lien d'évitement « Aller au contenu » en tête de page.
-- 176 textes encore gelés dans `apps/web/eslint-suppressions.json`, répartis sur 37 fichiers (le brief en annonçait 267).
+- Aucun lien d'évitement « Aller au contenu » en tête de page. Corrigé au lot K2.
+- 176 textes encore gelés dans `apps/web/eslint-suppressions.json`, répartis sur 37 fichiers (le brief en annonçait 267). Le lot K2 a dégelé les fichiers qu'il touchait (progrès, détail d'une séance) ; le reste demande un lot à part.
 - `/planificateur`, avant l'accord : un bandeau étroit et centré, différent de tous les autres écrans.
 - La bibliothèque de départ contient des routines nommées comme des articles (« 4 exercices pour les genoux »), proposées en tête du constructeur parce que les chiffres passent avant les lettres.
 - `/seance/[id]/series` et sa jumelle côté coach : 5 200 px de haut à 390 px.
 - `/admin/mouvements` : 68 000 px de haut à 390 px.
-- `apps/web/public/icon-maskable-512.png` n'est plus produit par aucun script.
+- `apps/web/public/icon-maskable-512.png` n'est plus produit par aucun script. Corrigé par le lot du logo : `scripts/build-logo.mjs` le produit, un test le vérifie.
 - Documents périmés : commit de production dans `ETAT.md`, nombre de flux Maestro et job Android dans `docs/tests/README.md`, étapes I1 à I3 de `ios.md`, 74 pages annoncées pour 75.
 
 ### 8.6 Mesures de performance

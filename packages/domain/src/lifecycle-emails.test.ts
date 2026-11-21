@@ -2,7 +2,18 @@ import { describe, expect, it } from "vitest";
 import { activationEmailFor, isNearLimit } from "./lifecycle-emails";
 import type { CoachOnboardingFacts } from "./onboarding";
 
-const empty: CoachOnboardingFacts = { invitations: 0, athletes: 0, sessions: 0, publishedSessions: 0, validations: 0 };
+const empty: CoachOnboardingFacts = {
+  profileComplete: false,
+  invitations: 0,
+  athletes: 0,
+  sessions: 0,
+  publishedSessions: 0,
+  validations: 0,
+  equipment: 0,
+  videos: 0,
+  phases: 0,
+  installed: false,
+};
 const createdAt = new Date("2026-11-10T08:00:00Z");
 const after = (days: number) => new Date(createdAt.getTime() + days * 86_400_000);
 const space = (facts: CoachOnboardingFacts = empty) => ({ id: "espace", createdAt, facts });

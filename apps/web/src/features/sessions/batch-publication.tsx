@@ -67,7 +67,7 @@ export function BatchPublication({ sessions }: { sessions: CalendarSession[] }) 
               <li key={s.id} className="py-3">
                 <label className="flex min-h-11 items-start gap-3">
                   <input
-                    className="mt-1"
+                    className="check"
                     type="checkbox"
                     checked={selected.includes(s.id)}
                     disabled={publish.isPending || (selected.length >= 14 && !selected.includes(s.id))}

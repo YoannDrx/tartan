@@ -32,6 +32,7 @@ import { prisma } from "@/lib/prisma";
 import { platformSettings } from "./platform-settings.service";
 import { billingEnabled, priceIdFor, stripe } from "@/lib/stripe";
 import { audit, requireOrgMember } from "./access";
+import { assertNotDemoSpace, REAL_SPACES } from "./demo-space-guard";
 import { applySubscription } from "./subscription-state.service";
 export { applySubscription, syncEntitlements } from "./subscription-state.service";
 export { handleStripeEvent } from "./stripe-subscriptions.service";
@@ -134,7 +135,7 @@ export const assertWithinPlan = async (
 // Chaque matin : prévenir le payeur avant le refus, quand une limite de l'offre est presque atteinte.
 export const queuePlanLimitNotices = async (now: Date = new Date()): Promise<number> => {
   const spaces = await prisma.organization.findMany({
-    where: { plan: { in: ["discovery", "coach"] } },
+    where: { plan: { in: ["discovery", "coach"] }, ...REAL_SPACES },
     select: { id: true, name: true, ownerId: true, billingOwnerId: true, owner: { select: { email: true } } },
   });
   const month = now.toISOString().slice(0, 7);
@@ -208,6 +209,7 @@ export const listInvoices = async (userId: string, organizationId: string) => {
 export const getBillingOverview = async (userId: string, organizationId: string) => {
   const access = await requireOrgMember(userId, organizationId, "viewTracking");
   if (!isStaff(access.role)) throw forbidden();
+  await assertNotDemoSpace(organizationId, "billing");
   const [org, subscription, limits, usage, pendingCommands] = await Promise.all([
     prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
@@ -251,6 +253,7 @@ export const createCheckout = async (
   input: { plan: PlanKey; interval: BillingInterval },
 ): Promise<{ url: string }> => {
   await requireOrgMember(userId, organizationId, "manageSubscription");
+  await assertNotDemoSpace(organizationId, "billing");
   const price = priceIdFor(input.plan, input.interval);
   if (!billingEnabled() || !price || !(await platformSettings()).checkoutEnabled)
     throw new AppError(503, "billing_disabled", m.billing.disabled);
@@ -385,6 +388,7 @@ export const syncAfterCheckout = async (userId: string, organizationId: string):
 
 export const createPortal = async (userId: string, organizationId: string): Promise<{ url: string }> => {
   await requireOrgMember(userId, organizationId, "manageSubscription");
+  await assertNotDemoSpace(organizationId, "billing");
   const org = await prisma.organization.findUniqueOrThrow({
     where: { id: organizationId },
     select: { stripeCustomerId: true, billingOwnerId: true, billingIssue: true },
@@ -668,7 +672,7 @@ const sendPurgeNotice = async (
 // Conservation vidéo : coût maîtrisé (§ 17.1), jamais sans préavis réel d'au moins 14 jours.
 export const purgeExpiredVideos = async (now: Date = new Date()): Promise<number> => {
   const orgs = await prisma.organization.findMany({
-    where: { plan: { in: ["discovery", "coach", "club"] } },
+    where: { plan: { in: ["discovery", "coach", "club"] }, ...REAL_SPACES },
     select: { id: true, name: true, plan: true, owner: { select: { email: true } } },
   });
   let purged = 0;

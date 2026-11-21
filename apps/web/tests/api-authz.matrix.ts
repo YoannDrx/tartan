@@ -488,6 +488,27 @@ export const MATRICE: Row[] = [
   },
   { route: "GET /api/v1/orgs/[orgId]/offline-urls", ...membres },
   { route: "GET /api/v1/orgs/[orgId]/groups", ...membres },
+  // Premiers pas : chaque membre ne lit et n'écrit que les siens, dans cet espace.
+  { route: "GET /api/v1/orgs/[orgId]/onboarding", ...membres },
+  {
+    route: "PATCH /api/v1/orgs/[orgId]/onboarding",
+    ...membres,
+    call: () => ({ body: { seenScreen: "suivi" } }),
+    verifie: (texte) => expectPresent(texte, '"seenScreens":["suivi"]'),
+  },
+  // Espace de démonstration du coach connecté : réservé aux encadrants, jamais à un athlète. Il ne contient
+  // que des fiches fictives, et ne vise jamais l'espace principal.
+  {
+    route: "POST /api/v1/orgs/[orgId]/demo-space",
+    ...encadrants,
+    verifie: (texte, w) => {
+      const { organizationId } = JSON.parse(texte) as { organizationId: string };
+      if (!organizationId || organizationId === w.p.main.organizationId)
+        throw new Error("La démonstration doit être un espace à part.");
+    },
+  },
+  { route: "GET /api/v1/orgs/[orgId]/demo-space", ...encadrants },
+  { route: "DELETE /api/v1/orgs/[orgId]/demo-space", ...encadrants },
   {
     route: "POST /api/v1/orgs/[orgId]/groups/[groupId]/link",
     ...gestion,
@@ -670,6 +691,11 @@ export const MATRICE: Row[] = [
     call: (_w, qui) => ({ body: { name: `Exercice de la matrice ${qui}`, category: "strength" } }),
   },
   { route: "GET /api/v1/orgs/[orgId]/exercises/search", ...encadrants, call: () => ({ query: { q: "squat" } }) },
+  {
+    route: "POST /api/v1/orgs/[orgId]/exercises/quick",
+    ...encadrants,
+    call: (_w, qui) => ({ body: { name: `Création rapide de la matrice ${qui}` } }),
+  },
   {
     route: "GET /api/v1/orgs/[orgId]/exercises/[exerciseId]",
     ...encadrants,

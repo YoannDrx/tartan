@@ -1,0 +1,12 @@
+{
+  "dataset": "apps/web/prisma/demo-preparation.ts, base locale, personnes fictives",
+  "device": "Chromium de Playwright, 1440 × 900, image coupée à 720 px de haut ; serveur local lancé avec AI_PLANNER_ENABLED=true, sans appel au prestataire",
+  "capturedAt": "2026-11-18",
+  "commit": "87ea6a5",
+  "command": "CAPTURE_BASE_URL=http://localhost:3300 pnpm --filter @tartan/web exec playwright test e2e/captures.spec.ts --project=desktop -g \"tour de piste\"",
+  "captures": [
+    { "file": "web-planificateur.png", "source": "web", "screen": "Coach, Planificateur, avant la consigne" },
+    { "file": "web-phases.png", "source": "web", "screen": "Coach, Phases de préparation" },
+    { "file": "web-annonces.png", "source": "web", "screen": "Coach, Annonces" }
+  ]
+}

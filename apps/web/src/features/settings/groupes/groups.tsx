@@ -18,7 +18,7 @@ import { CopyButton, onErr, type AnyErrors } from "../shared";
 
 const t = w.settings.groupes;
 
-const QrPreview = ({ link, groupName }: { link: string; groupName: string }) => {
+export const QrPreview = ({ link, groupName }: { link: string; groupName: string }) => {
   const [svg, setSvg] = useState<string | null>(null);
   useEffect(() => {
     QRCode.toString(link, {

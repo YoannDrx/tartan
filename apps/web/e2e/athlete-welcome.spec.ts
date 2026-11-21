@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
+import { createCoachSpace, expectAccessible, expectNoHorizontalScroll, savedOnboarding } from "./helpers";
 import { groupLink, joinAsAthlete } from "./journeys";
 
 // L'arrivée d'un athlète : il sait dans quel groupe il est et qui le suit, puis referme l'accueil.
@@ -25,8 +25,11 @@ test("un athlète qui arrive est accueilli par son groupe, puis referme l'accuei
     }
     await athlete.page.setViewportSize({ width: 390, height: 844 });
 
+    // L'accueil refermé est gardé sur le compte : on attend son écriture avant de revenir.
+    const saved = savedOnboarding(athlete.page, "welcomeSeen");
     await welcome.getByRole("button", { name: m.athleteWelcome.dismiss, exact: true }).click();
     await expect(welcome).toHaveCount(0);
+    await saved;
     // Refermé une fois, il ne revient pas à la visite suivante.
     await athlete.page.reload();
     await expect(athlete.page.getByRole("heading", { name: "Salut Lina" })).toBeVisible();

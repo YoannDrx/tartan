@@ -35,6 +35,7 @@ model User {
   aiPlannerProposals AiPlannerProposal[]
   aiPlannerTranscriptions AiPlannerTranscription[]
   consents    Consent[]            @relation("ConsentUser")
+  onboardingStates OnboardingState[]
   exerciseLists ExerciseList[]
   exerciseTermAliases ExerciseTermAlias[]
 
@@ -208,6 +209,11 @@ model Organization {
   billingSyncAttemptedAt DateTime?        @map("billing_sync_attempted_at")
   // Relance douce d'une séance non validée, réglable par le coach (§ 7.7).
   overdueReminders       Boolean          @default(true) @map("overdue_reminders")
+  // Espace de démonstration : séparé de l'espace du coach, rempli d'athlètes fictifs sans compte, jetable.
+  // `demoOwnerId` porte le coach qui l'a ouvert (un seul par coach), `demoExpiresAt` la date de sa purge.
+  isDemo                 Boolean          @default(false) @map("is_demo")
+  demoOwnerId            String?          @unique @map("demo_owner_id") @db.Uuid
+  demoExpiresAt          DateTime?        @map("demo_expires_at")
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
 
@@ -235,8 +241,10 @@ model Organization {
   aiPlannerOperations AiPlannerOperation[]
   aiPlannerProposals AiPlannerProposal[]
   aiPlannerTranscriptions AiPlannerTranscription[]
+  onboardingStates  OnboardingState[]
 
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "organizations_name_trgm_idx")
+  @@index([demoExpiresAt])
   @@map("organizations")
 }
 
@@ -271,6 +279,32 @@ model OrganizationMember {
   @@id([organizationId, userId])
   @@index([userId])
   @@map("organization_members")
+}
+
+// Les premiers pas d'un membre dans un espace : ce que les faits de l'espace ne disent pas (tour vu, guide
+// refermé, étapes facultatives écartées, repères vus). Les étapes obligatoires restent déduites des faits réels
+// (`packages/domain/src/onboarding.ts`). La ligne naît avec le membre (création de l'espace, invitation acceptée) ;
+// un membre arrivé avant ce suivi n'a pas de ligne, ou une ligne `guided = false` : il n'est pas guidé.
+model OnboardingState {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  guided         Boolean      @default(true)
+  tourSeenAt     DateTime?    @map("tour_seen_at")
+  welcomeSeenAt  DateTime?    @map("welcome_seen_at")
+  dismissedAt    DateTime?    @map("dismissed_at")
+  // La fin des premiers pas se fête une fois.
+  celebratedAt   DateTime?    @map("celebrated_at")
+  skipped        String[]     @default([])
+  seenScreens    String[]     @default([]) @map("seen_screens")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("onboarding_states")
 }
 
 model Group {

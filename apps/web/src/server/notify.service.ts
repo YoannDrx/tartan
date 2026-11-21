@@ -11,6 +11,7 @@ import type { NotificationsPage } from "@tartan/contracts";
 import type { Prisma } from "@/generated/prisma/client";
 import { hourInParis, todayIso } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { isDemoSpace } from "./demo-space-guard";
 import { dispatchPending } from "./notification-delivery.service";
 export { dispatchPending, webLink } from "./notification-delivery.service";
 
@@ -34,6 +35,8 @@ export const queueNotifications = async (
 ): Promise<string[]> => {
   const targets = [...new Set(userIds)];
   if (targets.length === 0) return [];
+  // Rien ne part de l'espace de démonstration : ni historique, ni push, ni e-mail de notification.
+  if (await isDemoSpace(payload.organizationId, db)) return [];
   const quiet = isQuietHours(hourInParis(now)) && !bypassesQuietHours(type);
   const notifications = await db.notification.createManyAndReturn({
     data: targets.map((userId) => ({ userId, type, payload, deliverAfter: quiet ? nextMorning(now) : now })),

@@ -131,20 +131,24 @@ export const AcceptForm = ({
           checked={consents.terms}
           onChange={(e) => setConsents({ ...consents, terms: e.target.checked })}
         />
+        {/* Chaque accord dit, en une phrase, ce qu'il change : l'athlète décide sans lire une page. */}
         {isAthlete ? (
-          <>
+          <fieldset className="mt-3 flex flex-col">
+            <legend className="font-semibold">{m.invite.consentsTitle}</legend>
+            <p className="t-caption font-normal text-soft">{m.invite.consentOptional}</p>
             <CheckRow
               label={m.invite.consentHealth}
+              detail={m.invite.consentHealthWhy}
               checked={consents.health}
               onChange={(e) => setConsents({ ...consents, health: e.target.checked })}
             />
             <CheckRow
               label={m.invite.consentVideo}
+              detail={m.invite.consentVideoWhy}
               checked={consents.video}
               onChange={(e) => setConsents({ ...consents, video: e.target.checked })}
             />
-            <p className="t-caption mt-1 font-normal text-soft">{m.invite.consentOptional}</p>
-          </>
+          </fieldset>
         ) : null}
       </div>
       {formError ? (

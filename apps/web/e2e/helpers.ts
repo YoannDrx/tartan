@@ -133,9 +133,35 @@ export const completeCoachOnboarding = async (page: Page, name = "Thomas") => {
   await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
   await page.getByRole("button", { name: "Créer mon espace" }).click();
   await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible({ timeout: 60_000 });
+  // Le dernier temps, facultatif, propose d'inviter le groupe : on le passe.
+  await expect(page.getByRole("heading", { name: w.onboarding.invite.title })).toBeVisible({ timeout: 60_000 });
+  await page.getByRole("button", { name: w.onboarding.invite.finish, exact: true }).click();
+  // Un espace neuf ouvre le tour de piste une fois, par-dessus le suivi : on le referme, comme un coach pressé.
+  await closeTour(page);
+  await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();
   // Un espace neuf guide le coach, même avec sa bibliothèque de départ.
   await expect(page.getByRole("heading", { name: "Pour démarrer" })).toBeVisible();
+};
+
+// L'écriture d'un état des premiers pas (`tourSeen`, `welcomeSeen`, `dismissed`…). Elle part en `keepalive` (PATCH
+// sur l'API), donc survit à un rechargement ; le parcours l'attend quand même, pour lire la base d'un autre navigateur
+// sans course. Les gestes de la carte passent par une action serveur (POST) : les deux sont attendus.
+export const savedOnboarding = (page: Page, key: string) =>
+  page.waitForResponse(
+    (response) =>
+      ["POST", "PATCH"].includes(response.request().method()) && Boolean(response.request().postData()?.includes(key)),
+  );
+
+// Le tour de piste d'un nouveau coach se referme d'Échap, à tout moment.
+export const closeTour = async (page: Page) => {
+  const tour = page.getByRole("dialog", { name: w.onboarding.tour.title });
+  // En développement, la première compilation du suivi peut prendre longtemps.
+  await expect(tour).toBeVisible({ timeout: 60_000 });
+  const saved = savedOnboarding(page, "tourSeen");
+  await page.keyboard.press("Escape");
+  await expect(tour).toBeHidden();
+  // L'état est gardé en base : on attend son écriture avant de quitter l'écran.
+  await saved;
 };
 
 export const expectAccessible = async (page: Page) => {

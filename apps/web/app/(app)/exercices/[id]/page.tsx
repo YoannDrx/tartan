@@ -13,9 +13,16 @@ import { listVideos } from "@/server/video.service";
 
 export const metadata: Metadata = { title: m.exercises.title };
 
-export default async function ExercisePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ExercisePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ modifier?: string }>;
+}) {
   const { actor, organizationId } = await requireStaffSpace();
   const { id } = await params;
+  const { modifier } = await searchParams;
   const exercise = await orNotFound(() => getExerciseSheet(actor.userId, organizationId, id));
   // Le service applique le périmètre du membre, le consentement vidéo et les blocages : rien n'est refiltré ici.
   const [videos, lists] = await Promise.all([
@@ -38,7 +45,15 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
             {m.exercises.backToLibrary}
           </Link>
         }
-        actions={<SheetActions exercise={exercise} lists={lists} videoEnabled={videoEnabled()} />}
+        actions={
+          <SheetActions
+            exercise={exercise}
+            lists={lists}
+            videoEnabled={videoEnabled()}
+            // `?modifier=1` : « Compléter la fiche », au sortir d'une création rapide.
+            openEdit={modifier === "1"}
+          />
+        }
       />
       {exercise.shared && exercise.motionKey ? (
         <p className="text-[15px]">{w.exercises.sheet.personalizeHint}</p>

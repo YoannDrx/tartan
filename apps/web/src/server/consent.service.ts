@@ -22,9 +22,10 @@ const writeAccountConsent = async (
   kind: ConsentKind,
   granted: boolean,
   athleteId?: string | null,
+  db: Prisma.TransactionClient = prisma,
 ): Promise<void> => {
   const now = new Date();
-  await prisma.consent.upsert({
+  await db.consent.upsert({
     where: { userId_kind: { userId, kind } },
     create: {
       userId,
@@ -40,7 +41,43 @@ const writeAccountConsent = async (
       revokedAt: granted ? null : now,
     },
   });
-  await audit({ actorId: userId, action: granted ? "consent_granted" : "consent_revoked", entity: `consent_${kind}` });
+  await audit(
+    { actorId: userId, action: granted ? "consent_granted" : "consent_revoked", entity: `consent_${kind}` },
+    db,
+  );
+};
+
+// L'arrivée par une invitation : les accords cochés s'écrivent dans la transaction qui crée le membre, pour qu'un
+// membre n'existe jamais sans accord tracé. Rejoindre n'enlève jamais un accord : cocher accorde, c'est tout.
+export const recordJoinConsents = async (
+  tx: Prisma.TransactionClient,
+  input: { userId: string; organizationId: string; athleteId: string | null; health: boolean; video: boolean },
+): Promise<void> => {
+  await writeAccountConsent(input.userId, "terms", true, input.athleteId, tx);
+  if (!input.athleteId) return;
+  const kinds = (["health", "video"] as const).filter((kind) => input[kind]);
+  if (kinds.length === 0) return;
+  // L'ancienne table reste à jour pour un compte à fiche unique, comme `setConsent`.
+  const single = (await tx.athlete.count({ where: { userId: input.userId } })) === 1;
+  const now = new Date();
+  for (const kind of kinds) {
+    await tx.athleteConsent.upsert({
+      where: { athleteId_kind: { athleteId: input.athleteId, kind } },
+      create: { athleteId: input.athleteId, kind, version: CONSENT_VERSION, grantedAt: now, revokedAt: null },
+      update: { version: CONSENT_VERSION, grantedAt: now, revokedAt: null },
+    });
+    await audit(
+      {
+        organizationId: input.organizationId,
+        actorId: input.userId,
+        action: "consent_granted",
+        entity: `consent_${kind}`,
+        entityId: input.athleteId,
+      },
+      tx,
+    );
+    if (single) await writeAccountConsent(input.userId, kind, true, input.athleteId, tx);
+  }
 };
 
 // Retrait de l'accord santé : les données disparaissent aussitôt, dans une seule transaction.

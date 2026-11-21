@@ -1,6 +1,6 @@
 import { isAdmin } from "@/server/admin.service";
 import type { Metadata } from "next";
-import { addDays } from "@tartan/domain";
+import { addDays, barSheetInScope } from "@tartan/domain";
 import { formatDayMonth, m } from "@tartan/i18n";
 import { VideoFilters, VideoPagination, videoQuery, type VideoSearch } from "@/features/videos/video-filters";
 import { listExercises } from "@/server/exercise.service";
@@ -12,7 +12,7 @@ import { VideoList } from "@/features/videos/video-list";
 import { JumpEntryDialog, UploadVideoDialog } from "@/features/videos/video-tools";
 import { requireOrgMember } from "@/server/access";
 import { listAthletes } from "@/server/athlete.service";
-import { listGroups } from "@/server/org.service";
+import { getOrganization, listGroups } from "@/server/org.service";
 import { listCalendar } from "@/server/session.service";
 import { videoCapacity } from "@/server/video-capacity.service";
 import { listVideoPage } from "@/server/video.service";
@@ -25,14 +25,23 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
   const search = await searchParams;
   const { athlete } = search;
   const today = todayIso();
-  const [{ videos, nextCursor }, athletes, calendar, capacity, exercises, groups] = await Promise.all([
+  const [{ videos, nextCursor }, athletes, calendar, capacity, exercises, groups, organization] = await Promise.all([
     listVideoPage(actor.userId, organizationId, videoQuery(search)),
     listAthletes(actor.userId, organizationId),
     listCalendar(actor.userId, organizationId, { from: addDays(today, -14), to: addDays(today, 1) }),
     videoCapacity(),
     listExercises(actor.userId, organizationId),
     listGroups(access),
+    getOrganization(actor.userId, organizationId),
   ]);
+  // « Feuille de barres » n'appartient qu'au saut en hauteur : proposée seulement si les athlètes affichés en font.
+  const query = videoQuery(search);
+  const jumpContext = barSheetInScope({
+    spaceDisciplines: organization.disciplines,
+    athletes: athletes.map((a) => ({ id: a.id, disciplines: a.disciplines, groupIds: a.groups.map((g) => g.id) })),
+    athleteId: query.athleteId,
+    groupId: query.groupId,
+  });
   const sessions = calendar.sessions
     .filter((s) => s.publishedAt)
     .map((s) => ({ id: s.id, label: `${formatDayMonth(s.date)}, ${s.title}`, today: s.date === today }))
@@ -46,19 +55,20 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
         actions={
           athletes.length > 0 ? (
             <>
-              <JumpEntryDialog athletes={athletes} sessions={sessions} />
               <UploadVideoDialog
                 athletes={athletes}
                 sessions={sessions}
                 enabled={videoEnabled()}
                 exercises={exercises}
               />
+              {jumpContext ? <JumpEntryDialog athletes={athletes} sessions={sessions} /> : null}
             </>
           ) : null
         }
       />
       <VideoFilters
         search={search}
+        basePath="/videos"
         staff
         athletes={athletes.map((a) => ({ id: a.id, name: `${a.firstName} ${a.lastName}`.trim() }))}
         groups={groups.map((g) => ({ id: g.id, name: g.name }))}

@@ -6,6 +6,7 @@ import type { PoseName } from "@tartan/mascot/poses";
 import { Athlete } from "@/components/athlete";
 import { Marked } from "@/components/marked";
 import { Stay } from "@/components/ui/view-transition";
+import { ScreenHint } from "@/features/onboarding/screen-hint";
 import { cn } from "@/lib/cn";
 import { RUBRIC_ATHLETE, type Rubric } from "@/lib/rubric-athlete";
 
@@ -70,39 +71,43 @@ export const PageHeader = ({
   actions?: ReactNode;
   before?: ReactNode;
 }) => (
-  <Stay name="page-band">
-    <header className="page-band tartan-band flex flex-col gap-4 bg-transparent">
-      {before}
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0">
-          <h1 className="t-display text-balance">
-            {narrowTitle ? (
-              <>
-                <span className="desktop:hidden">
-                  <Marked text={narrowTitle} />
-                </span>
-                <span className="max-desktop:hidden">
-                  <Marked text={title} />
-                </span>
-              </>
-            ) : (
-              <Marked text={title} />
-            )}
-          </h1>
-          {detail ? (
-            <p className={cn("mt-1 text-[16px] font-medium", narrowTitle && "max-desktop:hidden")}>{detail}</p>
+  <>
+    <Stay name="page-band">
+      <header className="page-band tartan-band flex flex-col gap-4 bg-transparent">
+        {before}
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+          <div className="min-w-0">
+            <h1 className="t-display text-balance">
+              {narrowTitle ? (
+                <>
+                  <span className="desktop:hidden">
+                    <Marked text={narrowTitle} />
+                  </span>
+                  <span className="max-desktop:hidden">
+                    <Marked text={title} />
+                  </span>
+                </>
+              ) : (
+                <Marked text={title} />
+              )}
+            </h1>
+            {detail ? (
+              <p className={cn("mt-1 text-[16px] font-medium", narrowTitle && "max-desktop:hidden")}>{detail}</p>
+            ) : null}
+          </div>
+          {/* Sur téléphone, les actions tiennent sur une ligne qui défile de côté : le bandeau reste court. */}
+          {actions ? (
+            <div className="flex max-w-full items-center gap-2 py-1 max-tablet:-mr-4 max-tablet:overflow-x-auto max-tablet:pr-4 max-tablet:[&>*]:shrink-0 tablet:flex-wrap">
+              {actions}
+            </div>
           ) : null}
         </div>
-        {/* Sur téléphone, les actions tiennent sur une ligne qui défile de côté : le bandeau reste court. */}
-        {actions ? (
-          <div className="flex max-w-full items-center gap-2 py-1 max-tablet:-mr-4 max-tablet:overflow-x-auto max-tablet:pr-4 max-tablet:[&>*]:shrink-0 tablet:flex-wrap">
-            {actions}
-          </div>
-        ) : null}
-      </div>
-      <div aria-hidden className="lane" />
-    </header>
-  </Stay>
+        <div aria-hidden className="lane" />
+      </header>
+    </Stay>
+    {/* Le repère de première visite d'un nouveau coach, sous le bandeau : il ne recouvre jamais l'action principale. */}
+    <ScreenHint />
+  </>
 );
 
 const stepClass =

@@ -131,6 +131,16 @@ export const favoriteExerciseIds = async (access: Access): Promise<string[]> => 
   return list?.items.map((item) => item.exerciseId) ?? [];
 };
 
+/** Les fiches que ce coach a rangées : ses favoris d'abord, puis ses listes dans leur ordre, chacune une fois. */
+export const ownListedExerciseIds = async (access: Access): Promise<string[]> => {
+  const lists = await prisma.exerciseList.findMany({
+    where: { organizationId: access.organizationId, ownerId: access.userId },
+    orderBy: [{ isFavorites: "desc" }, { position: "asc" }, { createdAt: "asc" }],
+    include: { items: { orderBy: itemOrder, select: { exerciseId: true } } },
+  });
+  return [...new Set(lists.flatMap((list) => list.items.map((item) => item.exerciseId)))];
+};
+
 /** Où ce coach a rangé une fiche : ses Favoris, et ses propres listes. */
 export const exerciseMemberships = async (access: Access, exerciseId: string) => {
   const rows = await prisma.exerciseListItem.findMany({

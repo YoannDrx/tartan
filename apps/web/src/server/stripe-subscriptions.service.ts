@@ -4,6 +4,7 @@ import { billingEmailsFor, isPaidPlan, type PlanKey, type SubscriptionState } fr
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { billingEnabled, planForPriceId, stripe } from "@/lib/stripe";
+import { REAL_SPACES } from "./demo-space-guard";
 import { enqueueBillingEmail, flushEmailOutbox } from "./email-outbox.service";
 import { applySubscriptionInTransaction, syncEntitlementsInTransaction } from "./subscription-state.service";
 
@@ -199,6 +200,7 @@ export const reconcileStripeSubscriptions = async (now = new Date()): Promise<{ 
   if (!billingEnabled()) return { synced: 0, failed: 0 };
   const orgs = await prisma.organization.findMany({
     where: {
+      ...REAL_SPACES,
       stripeCustomerId: { not: null },
       OR: [{ billingSyncAttemptedAt: null }, { billingSyncAttemptedAt: { lt: new Date(now.getTime() - 3600_000) } }],
     },

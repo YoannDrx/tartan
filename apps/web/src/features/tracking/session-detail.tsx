@@ -3,6 +3,7 @@ import { CoachLog } from "@/features/tracking/coach-log";
 import { Pencil, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { formatDateLong, m, capitalize } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { Sheet } from "@/components/sheet";
 import { Chip, EmptyState, PageHeader } from "@/components/states";
 import { StatusIcon } from "@/components/status-cell";
@@ -16,7 +17,7 @@ import { getSessionDetailForCoach } from "@/server/tracking.service";
 const painLabel = (pain: { bodyArea: string; side: string; intensity: number }) => {
   const area = m.bodyArea[pain.bodyArea as keyof typeof m.bodyArea] ?? pain.bodyArea;
   const side = pain.side === "none" ? "" : ` ${m.bodySide[pain.side as keyof typeof m.bodySide].toLowerCase()}`;
-  return `Douleur : ${area}${side}, ${pain.intensity}/10`;
+  return w.tracking.pain(`${area}${side}`, pain.intensity);
 };
 
 export async function SessionFollowupContent({
@@ -42,7 +43,7 @@ export async function SessionFollowupContent({
       ) : null}
       <PageHeader
         title={session.title}
-        detail={`${capitalize(formatDateLong(session.date))}${session.startTime ? ` à ${session.startTime.replace(":", " h ")}` : ""}${session.location ? `, ${session.location}` : ""}`}
+        detail={`${capitalize(formatDateLong(session.date))}${session.startTime ? w.tracking.startsAt(session.startTime) : ""}${session.location ? `, ${session.location}` : ""}`}
         actions={
           <>
             {session.canEdit ? (
@@ -91,9 +92,10 @@ export async function SessionFollowupContent({
                     <StatusIcon status={a.status} className="mt-px" />
                     <div className="min-w-0 leading-snug">
                       <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        {/* La cible du nom fait 44 px de haut sans écarter les lignes : la marge négative rend la place. */}
                         <Link
                           href={`/athletes/${a.athleteId}`}
-                          className="break-words font-semibold text-inherit no-underline hover:underline"
+                          className="-my-3 break-words py-3 font-semibold text-inherit no-underline hover:underline"
                         >
                           {a.name}
                         </Link>
@@ -108,7 +110,10 @@ export async function SessionFollowupContent({
                       </p>
                       {a.rpe || a.durationMin ? (
                         <p className="t-num mt-0.5 text-[17px] leading-5">
-                          {[a.rpe ? `Effort ${a.rpe}/10` : null, a.durationMin ? `${a.durationMin} min` : null]
+                          {[
+                            a.rpe ? w.tracking.effort(a.rpe) : null,
+                            a.durationMin ? w.tracking.minutes(a.durationMin) : null,
+                          ]
                             .filter(Boolean)
                             .join(", ")}
                         </p>
@@ -137,9 +142,13 @@ export async function SessionFollowupContent({
                       ) : null}
                       {a.sets.length > 0 ? (
                         <p className="t-caption mt-1 font-normal text-soft">
-                          {a.sets.filter((s) => s.done).length} séries cochées
+                          {w.tracking.setsChecked(a.sets.filter((s) => s.done).length)}
                           {a.sets.some((s) => s.loadKg)
-                            ? `, charges réelles : ${[...new Set(a.sets.filter((s) => s.loadKg).map((s) => String(s.loadKg).replace(".", ",")))].join(" / ")} kg`
+                            ? w.tracking.realLoads([
+                                ...new Set(
+                                  a.sets.filter((s) => s.loadKg).map((s) => String(s.loadKg).replace(".", ",")),
+                                ),
+                              ])
                             : ""}
                         </p>
                       ) : null}

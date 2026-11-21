@@ -38,3 +38,11 @@ export const screenHelpFor = (pathname: string, staff: boolean): ScreenHelp => {
 };
 
 export const SCREEN_HELP_KEYS = RULES.map((rule) => rule.screen);
+
+// Le repère de première visite d'un écran : sa clé (gardée dans `seenScreens`) et sa première phrase d'aide.
+// Un écran sans repère propre n'en montre pas.
+export const screenHintFor = (pathname: string, staff: boolean): { screen: ScreenKey; tip: string } | null => {
+  const rule = RULES.find((entry) => entry.path.test(pathname) && (entry.staff === undefined || entry.staff === staff));
+  const tip = rule ? (rule.tips ?? m.help.screens[rule.screen])[0] : undefined;
+  return rule && tip ? { screen: rule.screen, tip } : null;
+};

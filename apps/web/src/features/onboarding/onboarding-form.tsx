@@ -12,12 +12,14 @@ import { ageAt } from "@tartan/domain";
 import { confirmAgeInput, trainingProfileSchema } from "@tartan/contracts";
 import { z } from "zod";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CheckRow, Field, Input, Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { TrainingProfileFields } from "./training-profile-fields";
+import { InvitePanel } from "./invite-panel";
 import { createSpaceAction } from "./onboarding.action";
 
 const schema = z.object({
@@ -41,19 +43,77 @@ const STEPS: { name: string; fields: (keyof Values)[] }[] = [
   { name: m.onboarding.steps.go, fields: ["termsAccepted"] },
 ];
 const LAST = STEPS.length - 1;
+// Un dernier temps, facultatif, une fois l'espace créé : inviter le premier groupe.
+const STEP_NAMES = [...STEPS.map((entry) => entry.name), w.onboarding.invite.stepName];
+
+const Stepper = ({ step }: { step: number }) => (
+  <ol aria-label={m.onboarding.stepsLabel} className="grid grid-cols-4 gap-2">
+    {STEP_NAMES.map((name, index) => (
+      <li
+        key={name}
+        aria-current={index === step ? "step" : undefined}
+        className={cn(
+          "flex min-w-0 flex-col gap-1 border-t-[3px] pt-2",
+          index <= step ? "border-accent" : "border-card-line text-soft",
+        )}
+      >
+        <span aria-hidden className="t-num flex h-7 items-center text-[24px]">
+          {index < step ? <Check className="size-6" /> : index + 1}
+        </span>
+        <span className={cn("t-caption", index === step ? "font-semibold" : "font-normal")}>{name}</span>
+      </li>
+    ))}
+  </ol>
+);
+
+// Le dernier temps, sur sa propre page (`/bienvenue/inviter`) : l'espace existe déjà, un rechargement n'y perd
+// rien. Rien n'y est obligatoire, rien ne retient le coach.
+export const InviteStep = ({ group, nextPath }: { group: { id: string; name: string }; nextPath: string }) => {
+  const router = useRouter();
+  const t = w.onboarding.invite;
+  const [leaving, setLeaving] = useState(false);
+  return (
+    <section data-step={LAST + 1} aria-labelledby="inviter-groupe" className="flex flex-col gap-6">
+      <Stepper step={LAST + 1} />
+      <p className="sr-only" role="status">
+        {m.onboarding.stepStatus(LAST + 2, STEP_NAMES.length, t.stepName)}
+      </p>
+      <div className="flex flex-col gap-2">
+        <h2 id="inviter-groupe" tabIndex={-1} ref={(node) => node?.focus()} className="t-h2 outline-none">
+          {t.title}
+        </h2>
+        <p className="max-w-prose">{t.lead(group.name)}</p>
+        <p className="t-caption font-normal text-soft">{t.optional}</p>
+      </div>
+      <InvitePanel groupId={group.id} groupName={group.name} />
+      <div className="flex flex-col gap-3 tablet:flex-row tablet:justify-end">
+        <Button
+          size="lg"
+          disabled={leaving}
+          onClick={() => {
+            setLeaving(true);
+            router.push(nextPath);
+            router.refresh();
+          }}
+        >
+          {t.finish}
+        </Button>
+      </div>
+    </section>
+  );
+};
 
 export const OnboardingForm = ({
   firstName,
   lastName,
   birthDate,
-  nextPath,
+  offer,
 }: {
   firstName: string;
   lastName: string;
   birthDate: string;
-  nextPath: string;
+  offer?: { offre: "coach" | "club"; rythme: "month" | "year" };
 }) => {
-  const router = useRouter();
   const [pending, setPending] = useState<Values | null>(null);
   const [step, setStep] = useState(0);
   const headings = useRef<(HTMLLegendElement | null)[]>([]);
@@ -75,10 +135,7 @@ export const OnboardingForm = ({
   });
   const { errors } = form.formState;
   const { execute, isPending } = useAction(createSpaceAction, {
-    onSuccess: () => {
-      router.push(nextPath);
-      router.refresh();
-    },
+    // L'espace existe : l'action mène au dernier temps, l'invitation du groupe.
     onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),
   });
   const prenom = form.watch("firstName") || "Thomas";
@@ -104,6 +161,7 @@ export const OnboardingForm = ({
       firstGroupGoal: v.firstGroupGoal,
       profile: { firstName: v.firstName, lastName: v.lastName, birthDate: v.birthDate },
       termsAccepted: true,
+      offer,
     });
 
   return (
@@ -128,25 +186,9 @@ export const OnboardingForm = ({
         )(event);
       }}
     >
-      <ol aria-label={m.onboarding.stepsLabel} className="grid grid-cols-3 gap-2">
-        {STEPS.map((entry, index) => (
-          <li
-            key={entry.name}
-            aria-current={index === step ? "step" : undefined}
-            className={cn(
-              "flex flex-col gap-1 border-t-[3px] pt-2",
-              index <= step ? "border-accent" : "border-card-line text-soft",
-            )}
-          >
-            <span aria-hidden className="t-num flex h-7 items-center text-[24px]">
-              {index < step ? <Check className="size-6" /> : index + 1}
-            </span>
-            <span className={cn("t-caption", index === step ? "font-semibold" : "font-normal")}>{entry.name}</span>
-          </li>
-        ))}
-      </ol>
+      <Stepper step={step} />
       <p className="sr-only" role="status">
-        {m.onboarding.stepStatus(step + 1, STEPS.length, STEPS[step]!.name)}
+        {m.onboarding.stepStatus(step + 1, STEP_NAMES.length, STEP_NAMES[step]!)}
       </p>
       <fieldset hidden={step !== 0} className="flex flex-col gap-4">
         <legend

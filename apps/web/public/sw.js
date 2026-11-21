@@ -7,12 +7,12 @@ const OFFLINE_PAGE = "/hors-ligne";
 const NETWORK_TIMEOUT_MS = 4000;
 
 // Pages rouvrables sans réseau. Les pages publiques et de connexion n'en font pas partie.
-const OFFLINE_PATHS = /^\/(accueil|aujourdhui|calendrier|annonces|progres|mes-sauts|suivi|videos|seance\/|seances\/)/;
+// Chaque entrée est une vraie page : `tests/service-worker.test.ts` le vérifie.
+const OFFLINE_PATHS = /^\/(accueil|aujourdhui|calendrier|annonces|progres|mes-videos|suivi|videos|seance\/|seances\/)/;
 
+// Seulement des fichiers qui existent : les guides d'exercice sont dessinés dans la page, sans fichier à garder.
 const isStatic = (url) =>
-  url.pathname.startsWith("/_next/static/") ||
-  /^\/(icon-|apple-touch|brand\/)/.test(url.pathname) ||
-  /^\/exercise-guides\/[a-z0-9-]+-v[1-9][0-9]*\.svg$/.test(url.pathname);
+  url.pathname.startsWith("/_next/static/") || /^\/(icon-|apple-touch|brand\/)/.test(url.pathname);
 
 // Une réponse redirigée ne peut pas servir une navigation : on la recopie.
 const storable = async (response) =>
@@ -20,12 +20,7 @@ const storable = async (response) =>
     ? new Response(await response.clone().blob(), { status: response.status, headers: response.headers })
     : response.clone();
 
-const assetsIn = (text) => [
-  ...new Set([
-    ...(text.match(/\/_next\/static\/[^"'\\\s)]+/g) ?? []),
-    ...(text.match(/\/exercise-guides\/[a-z0-9-]+-v[1-9][0-9]*\.svg/g) ?? []),
-  ]),
-];
+const assetsIn = (text) => [...new Set(text.match(/\/_next\/static\/[^"'\\\s)]+/g) ?? [])];
 
 const cacheAssets = async (text) => {
   const cache = await caches.open(STATIC_CACHE);

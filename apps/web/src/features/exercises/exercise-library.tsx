@@ -18,7 +18,7 @@ import { Field, Input } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { deleteListAction, reorderListsAction, updateListAction } from "./exercise.action";
 import { chipClass, FilterChips, filterRows } from "./exercise-filters";
-import { ExerciseForm } from "./exercise-form";
+import { CreatedNotice, ExerciseQuickCreate } from "./exercise-finder";
 import {
   FavoriteButton,
   FileButton,
@@ -97,7 +97,7 @@ const ListBar = ({
         <label className="flex min-h-11 items-start gap-3">
           <input
             type="checkbox"
-            className="mt-0.5 size-5 shrink-0"
+            className="check mt-0.5 shrink-0"
             defaultChecked={list.sharedWithCoaches}
             onChange={(event) => {
               const shared = event.target.checked;
@@ -172,14 +172,12 @@ export const ExerciseLibrary = ({
   lists: initialLists,
   initialFilter,
   openNew,
-  videoEnabled,
   progressionEnabled = false,
 }: {
   rows: LibraryRow[];
   lists: ExerciseList[];
   initialFilter: ExerciseFilter;
   openNew: boolean;
-  videoEnabled: boolean;
   progressionEnabled?: boolean;
 }) => {
   const router = useRouter();
@@ -188,7 +186,10 @@ export const ExerciseLibrary = ({
   const [filter, setFilter] = useState<ExerciseFilter>(initialFilter);
   const [search, setSearch] = useState("");
   const [shown, setShown] = useState(PAGE);
-  const [creating, setCreating] = useState<{ listId?: string } | null>(openNew ? {} : null);
+  const [creating, setCreating] = useState<{
+    listId?: string;
+    made?: { id: string; name: string; created: boolean; editable: boolean };
+  } | null>(openNew ? {} : null);
   const [newList, setNewList] = useState(false);
   const [ordering, setOrdering] = useState(false);
   const [filing, setFiling] = useState<{ id: string; name: string } | null>(null);
@@ -270,7 +271,17 @@ export const ExerciseLibrary = ({
         {t.results(found.length)}
       </p>
       {found.length === 0 ? (
-        <EmptyState rubric="exercices">
+        <EmptyState
+          rubric="exercices"
+          action={
+            search.trim() ? (
+              <Button size="sm" onClick={() => setCreating(list?.mine ? { listId: list.id } : {})}>
+                <Plus aria-hidden className="size-5" />
+                {t.finder.create(search.trim())}
+              </Button>
+            ) : undefined
+          }
+        >
           {filter.kind === "favorites" ? t.lists.favoritesEmpty : list && !search ? t.lists.empty : m.exercises.noMatch}
         </EmptyState>
       ) : (
@@ -343,18 +354,34 @@ export const ExerciseLibrary = ({
       <Dialog open={ordering} onOpenChange={setOrdering} title={t.lists.manageTitle}>
         <ListOrder state={state} />
       </Dialog>
-      <Dialog open={creating !== null} onOpenChange={(open) => !open && setCreating(null)} title={m.exercises.new} wide>
-        {creating ? (
-          <ExerciseForm
-            exercise={null}
+      {/* Créer une fiche par son nom ; le formulaire complet l'attend sur sa page, derrière « Compléter la fiche ». */}
+      <Dialog open={creating !== null} onOpenChange={(open) => !open && setCreating(null)} title={m.exercises.new}>
+        {creating?.made ? (
+          <div className="flex flex-col gap-4">
+            <CreatedNotice {...creating.made} />
+            <Button className="w-full tablet:w-auto tablet:self-start" onClick={() => setCreating(null)}>
+              {t.finder.quick.done}
+            </Button>
+          </div>
+        ) : creating ? (
+          <ExerciseQuickCreate
+            // Ce que le coach cherchait sans le trouver devient le nom proposé ; un filtre en cours, non.
+            term={found.length === 0 ? search.trim() : ""}
             listId={creating.listId}
-            videoEnabled={videoEnabled}
-            onDone={(id) => {
-              const inList = creating.listId;
-              setCreating(null);
-              // Créée dans une liste, la fiche y apparaît ; sinon, on ouvre sa fiche, qui a son adresse.
-              if (inList || !id) router.refresh();
-              else router.push(`/exercices/${id}`);
+            submitLabel={t.finder.quick.submitInLibrary}
+            existingLabel={creating.listId ? t.finder.quick.useExisting : t.finder.quick.openExisting}
+            onDone={(result) => {
+              // Une fiche qui existait déjà s'ouvre à son adresse ; rangée dans une liste, elle y apparaît.
+              if (!result.created && !creating.listId) return router.push(`/exercices/${result.id}`);
+              setCreating({
+                ...creating,
+                made: {
+                  id: result.id,
+                  name: result.exercise.name,
+                  created: result.created,
+                  editable: !result.exercise.shared,
+                },
+              });
             }}
           />
         ) : null}

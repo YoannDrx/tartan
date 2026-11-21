@@ -6,6 +6,7 @@ import { adminSpaceFeaturesInput, correctBirthDateInput } from "@tartan/contract
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
 import { externalDeletionHealth } from "./external-deletion.service";
+import { REAL_SPACES } from "./demo-space-guard";
 import { pilotMetrics } from "./metrics.service";
 import { notificationDeliveryHealth } from "./notification-delivery.service";
 import { isEmailRelevant } from "./email-outbox.service";
@@ -20,7 +21,9 @@ export const isRootAdmin = (email: string): boolean =>
 
 export const isAdmin = async (email: string): Promise<boolean> =>
   isRootAdmin(email) ||
-  Boolean(await prisma.platformAdmin.findUnique({ where: { email: email.trim().toLowerCase() }, select: { email: true } }));
+  Boolean(
+    await prisma.platformAdmin.findUnique({ where: { email: email.trim().toLowerCase() }, select: { email: true } }),
+  );
 
 export const requireAdmin = async (email: string): Promise<void> => {
   if (!(await isAdmin(email))) throw forbidden();
@@ -106,7 +109,9 @@ export const adminDisableAiEverywhere = async (actor: { email: string; userId: s
 export const adminOverview = async (actor: { email: string }, now: Date = new Date()) => {
   await requireAdmin(actor.email);
   const weekAgo = toDbDate(addDays(todayIso(now), -7));
+  // Les indicateurs de la plateforme ne comptent que les espaces réels.
   const orgs = await prisma.organization.findMany({
+    where: REAL_SPACES,
     orderBy: { createdAt: "desc" },
     // Les indicateurs du pilote se calculent espace par espace : seuls les plus récents ici, la liste complète a son écran.
     take: 30,
@@ -158,7 +163,11 @@ export const adminOverview = async (actor: { email: string }, now: Date = new Da
     }),
   ]);
   const count = (recommend: boolean) => answers.find((a) => a.recommend === recommend)?._count._all ?? 0;
-  const planGroups = await prisma.organization.groupBy({ by: ["plan"], _count: { _all: true } });
+  const planGroups = await prisma.organization.groupBy({
+    by: ["plan"],
+    where: REAL_SPACES,
+    _count: { _all: true },
+  });
   const plans = Object.fromEntries(planGroups.map((row) => [row.plan, row._count._all]));
   return {
     spaces,
