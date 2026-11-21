@@ -2,16 +2,17 @@
 
 Ce dossier mesure le planificateur comme un coach le rencontre : une consigne entre, des brouillons de séance sortent. Tu n'as besoin de connaître ni le prompt, ni les contrôles du serveur. Tu écris ce qu'un coach dirait, et ce qu'un coach attendrait en retour.
 
-Les commandes, les seuils et ce que l'outil mesure sont dans [docs/reference/planificateur-ia.md](../../../../docs/reference/planificateur-ia.md), section « Mesure de bout en bout ».
+Les commandes, les seuils et ce que l'outil mesure sont dans [docs/reference/planificateur-ia.md](../../../../docs/reference/planificateur-ia.md), section « Mesure de bout en bout ». La règle d'isolement des trois jeux (exemples, développement, corpus gelé) y est écrite : qui écrit ou règle le planificateur ne lit jamais le corpus gelé.
 
 ## Les fichiers
 
-| Fichier                                       | Contenu                                                                           |
-| --------------------------------------------- | --------------------------------------------------------------------------------- |
-| `corpus/cases.json`                           | Le corpus : `{ "version": 2, "cases": [...] }`. À écrire, puis à geler.           |
-| `pairs/pairs.json`                            | Le jeu de paires : terme dit → fiche attendue. À écrire, puis à geler.            |
-| `corpus/examples.json`, `pairs/examples.json` | Les exemples de cette page. Ils servent aux tests de l'outil, jamais à la mesure. |
-| `format.ts`, `pairs/format.ts`                | Les schémas. Ils font foi si cette page s'en écarte.                              |
+| Fichier                                       | Contenu                                                                                                 |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `corpus/cases.json`                           | Le corpus : `{ "version": 2, "cases": [...] }`. À écrire, puis à geler.                                 |
+| `pairs/pairs.json`                            | Le jeu de paires : terme dit → fiche attendue. À écrire, puis à geler.                                  |
+| `corpus/examples.json`, `pairs/examples.json` | Les exemples de cette page. Ils servent aux tests de l'outil, jamais à la mesure.                       |
+| `format.ts`, `pairs/format.ts`                | Les schémas. Ils font foi si cette page s'en écarte.                                                    |
+| `dev/cases.json`, `dev/pairs.json`            | Le jeu de développement de l'agent qui écrit le planificateur. Non gelé, il ne qualifie rien (`--dev`). |
 
 ```sh
 corepack pnpm --filter @tartan/web eval:planner:e2e --catalog   # les clés du catalogue commun

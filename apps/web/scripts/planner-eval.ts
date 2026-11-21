@@ -70,7 +70,7 @@ async function main() {
   const key =
     process.env.OPENAI_API_KEY || process.env.OPEN_AI_API_KEY || local.OPENAI_API_KEY || local.OPEN_AI_API_KEY;
   if (!key) throw new Error("missing_key");
-  const model = process.env.AI_PLANNER_MODEL || local.AI_PLANNER_MODEL || "gpt-4.1";
+  const model = process.env.AI_PLANNER_MODEL || local.AI_PLANNER_MODEL || "gpt-6.2-sol";
   process.env.OPENAI_API_KEY = key;
   process.env.AI_PLANNER_MODEL = model;
   process.env.AI_PLANNER_ENABLED = "true";

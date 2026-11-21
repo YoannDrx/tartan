@@ -1,53 +1,108 @@
 # Planificateur IA
 
-Le coach écrit ou dicte une consigne, ou renseigne un brief de proposition. Le serveur appelle OpenAI, contrôle la réponse et renvoie une clarification ou une séance à relire. Le coach corrige la séance dans l’éditeur du constructeur, puis crée des brouillons. Rien n’est publié automatiquement. L’état de qualification daté se lit dans [ETAT.md](../ETAT.md).
+Le coach écrit ou dicte ce qu’il veut, dans un seul champ. Le serveur comprend la demande, retrouve les fiches, compose la séance, la contrôle, puis rend une séance à relire. Le coach la corrige dans l’éditeur du constructeur et crée des brouillons. Rien n’est publié automatiquement. L’état de qualification daté se lit dans [ETAT.md](../ETAT.md).
 
-## L’écran, en deux temps (lot H, 18 novembre 2026)
+Depuis le 21 novembre 2026, le serveur travaille en **quatre étapes** (lot P2). L’ancien appel unique, ses deux modes et sa coupe à 150 fiches n’existent plus.
 
-1. **Demande** (`planner-request.tsx`) : destinataires en pastilles, jour (ou sept jours en mise en forme), mode choisi entre deux cartes, consigne écrite ou dictée ; en « Proposer », durée, niveau et matériel en pastilles préremplies depuis le profil de l’espace (`availableEquipment`), heure facultative. Un seul bouton, « Préparer la séance » : plus de « Continuer avec ces destinataires » ni de case « relu ». Les phases de préparation s’ouvrent seulement si un choix de groupe est nécessaire.
-2. **Séance** (`planner-result.tsx`) : les étapes et le plan de la séance s’affichent pendant la génération (`planner-progress.tsx`, `use-planner-stream.ts`), puis la séance arrive dans l’éditeur de séquence du constructeur, circuits visibles, avec les points « À vérifier » rattachés à l’exercice concerné. « Ajuster » envoie la séance actuelle et la modification demandée. Une seule confirmation, « Créer le brouillon » ; l’aperçu individuel des charges n’est exigé que si un pourcentage doit être converti.
+## Les quatre étapes
 
-## Deux modes
+Le code vit dans `apps/web/src/server/ai/pipeline/`. `runPlannerPipeline(context, provider, events)` les enchaîne sans toucher à la base ; `proposal.service.ts` construit le contexte, lit les termes appris, enregistre le résultat et adapte la réponse aux anciens clients. L’adaptateur OpenAI (`provider.ts`) ne fait que quatre appels typés : `understand`, `match`, `compose`, `repair`. Le prestataire simulé (`fake-provider.ts`) implémente les mêmes quatre fonctions et passe par les mêmes contrôles.
 
-- **Mettre en forme ma séance** conserve les mouvements, quantités, charges, dates et destinataires de la consigne relue. Une donnée importante ambiguë doit devenir une question. Chaque exercice conserve une citation de la demande ; une suggestion ne modifie pas silencieusement la prescription. La sortie porte les séries détaillées (`setPlan` : échauffement, pyramide, charge qui change) et le remplacement en autonomie (« ceux qui s’entraînent seuls font … à la place ») ; une séance qui en contient un devient commune au club et à l’autonomie.
-- **Proposer une séance** demande objectif, date, durée maximale, niveau, matériel et destinataires. Le serveur pose lui-même la date, l’heure, les destinataires et la durée de la demande : le schéma du modèle ne les contient pas. Il utilise les fiches communes dont le guide porte `technicalReview: approved`, et les fiches de l’espace qui en sont la copie. Le serveur filtre le matériel et rejette une fiche de matériel inconnu ou indisponible. Les noms français usuels et les clés de classification sont acceptés ; une appellation approximative ne donne pas accès à un autre appareil. Aucun kilo : un pourcentage du maximum n’est admis que sur un exercice dont **chaque** destinataire a une référence de force, Tartan le convertit pour chacun ; ailleurs il est retiré, par l'adaptateur comme par le service, quel que soit le prestataire. Les volumes et intensités proposés sont relus par le coach.
+| Étape         | Fichier         | Modèle                 | Ce qu’elle fait                                                                                                                                                                                                                                                                                     |
+| ------------- | --------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Comprendre | `understand.ts` | rapide                 | Lit la demande, **sans la bibliothèque**. Rend la nature de la demande, les séances (date, heure, destinataires cités, mouvements cités avec le terme exact et la prescription dite, structure, partie à proposer), les corrections orales, et le résumé « Ce que j’ai compris », diffusé à mesure. |
+| 2. Retrouver  | `match.ts`      | règles, puis rapide    | Associe chaque terme cité à une fiche. Règles d’abord : terme appris par l’espace, nom exact, alias exact. Les termes restants partent en **un seul appel** avec toute la bibliothèque (clé, nom, alias, famille, matériel).                                                                        |
+| 3. Composer   | `compose.ts`    | principal              | Écrit la séance, diffusée ligne à ligne. Reçoit la compréhension, les fiches retrouvées, 20 à 40 fiches candidates choisies par règles pour la partie à proposer, et le contexte.                                                                                                                   |
+| 4. Contrôler  | `check.ts`      | règles, puis principal | Applique les règles de `packages/domain/src/planner-guards.ts`. Un défaut déclenche une réparation ciblée, deux au plus : le modèle reçoit sa réponse fautive et la liste précise des défauts.                                                                                                      |
 
-## Contexte transmis en mode « Proposer » (et en mise en forme)
+### 1. Comprendre
+
+La sortie stricte est `plannerUnderstanding` (`packages/contracts/src/ai-planner-pipeline.ts`). Le modèle ne tranche rien seul : `plannerNormalizeUnderstanding` (`packages/domain/src/planner-understanding.ts`) relit sa réponse par règles.
+
+- **Nature.** `described` (tout est décrit), `objective` (tout est à composer) ou `mixed`. Elle se lit dans le contenu, pas dans un mode choisi à l’écran.
+- **Dates.** Une date écrite par le coach l’emporte sur celle du modèle. Un jour de semaine donne sa première occurrence. Une date du modèle n’est gardée que si elle s’appuie sur des mots du coach. « Du lundi au vendredi » et « tous les jours » donnent une séance par jour. Aucune date n’est inventée : sans date déductible, la séance porte un blocage nommé.
+- **Destinataires.** Les groupes et athlètes sont remplacés par des jetons. Un jeton n’est jamais un mouvement. Quand le coach n’a choisi personne à l’écran, tous les groupes et athlètes qu’il peut voir deviennent candidats : il faut qu’il en cite un, sinon c’est une question.
+- **Mouvements.** Chaque mouvement cité garde le terme tel que le coach l’a écrit (`said`) et sa prescription dite.
+
+### 2. Retrouver
+
+Sortie par terme : `exact` (règle), `sure` ou `probable` (modèle) avec trois autres fiches au plus, ou `absent`. Règles pures dans `packages/domain/src/planner-match.ts`.
+
+- Deux fiches qui portent le même nom ou le même alias donnent `probable`, jamais un choix silencieux.
+- Jusqu’à 600 fiches, le modèle reçoit la bibliothèque entière. Au-delà, un préfiltre garde les fiches utiles sans jamais écarter une fiche qui partage un mot avec un terme cherché. La bibliothèque lue est bornée à 5 000 fiches.
+- Pour un terme `absent`, l’étape rend de quoi préremplir une création de fiche : nom proposé (le terme du coach, sans prescription), catégorie, famille de mouvement et type de charge les plus probables.
+- L’étape est exposée seule : `matchPlannerTerms(userId, organizationId, terms)` dans `proposal.service.ts`. L’outil de mesure s’en sert pour les paires.
+
+### 3. Composer
+
+Règles dures, écrites dans la consigne et vérifiées à l’étape 4 :
+
+- Dans ce que le coach a décrit, rien n’est modifié ni ajouté. L’ordre est gardé.
+- Dans ce qui est proposé, **jamais de kilos**. Un pourcentage du maximum n’est admis que si tous les destinataires ont leur référence de force sur la fiche ; aucune valeur de maximum n’est transmise.
+- Aucune date : la date, l’heure et les destinataires viennent de la compréhension, le modèle ne les écrit pas.
+- Une fiche citée par le coach n’est pas proposée une seconde fois.
+
+Le modèle rend un seul arbre ordonné (`plannerComposition`) : exercice, récupération, ou groupe répété, deux niveaux de groupes au plus. Le serveur en dérive la séance (`plannerCompositionToInterpretation`). Les séries appartiennent à l’exercice, les tours au groupe.
+
+### 4. Contrôler
+
+`plannerCheckComposition` relève les défauts : mouvement cité manquant, exercice ajouté dans une partie décrite, ordre changé, charge jamais dite, séance manquante, structure ou tours faux. Après deux réparations, `plannerSettleComposition` règle ce qui reste sans appel : une charge jamais dite est retirée et marquée « À vérifier ».
+
+## Face au doute
+
+Le planificateur écrit la séance et marque ses doutes. Il ne pose une question que s’il ne peut rien écrire.
+
+| Situation                             | Ce que fait le serveur                                                                                                   |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Fiche `probable`                      | Posée, marquée « À vérifier », avec les autres fiches possibles (`alternatives`).                                        |
+| Fiche `absent`                        | Un **emplacement à compléter** à sa place, avec le terme du coach et sa prescription. Le reste de la séance est écrit.   |
+| Charge dite sans unité, ou ambiguë    | Champ vide, « À vérifier » (`load_unclear`). Une unité manifestement inversée est corrigée et signalée (`unit_assumed`). |
+| Aucune date déductible                | Question, qui nomme la séance concernée.                                                                                 |
+| Aucun destinataire, ni choisi ni cité | Question (ce n’est plus une erreur de saisie).                                                                           |
+| Demande hors sujet                    | Question.                                                                                                                |
+
+**Emplacement à compléter.** Dans la séance, l’exercice porte un jeton `slot_N` (`PLANNER_SLOT_PREFIX`), son terme (`said`) et une `suggestion` de fiche. La réponse liste les emplacements ouverts (`slots`). `resolvePlannerExercise` remplit un emplacement **sans appel au modèle et sans réponse écrite** : fiche existante, fiche créée (nom modifiable, valeurs préremplies, plus de case de vérification exigée par le serveur), ou emplacement retiré. `confirmPlannerProposal` refuse de créer un brouillon tant qu’un emplacement reste ouvert (409 `planner_slots_open`).
+
+**Termes appris.** Chaque fiche que le coach choisit pour un terme entre dans la table `exercise_term_aliases` (une ligne par espace et par terme, migration additive `20261121120000_exercise_term_aliases`). L’étape 2 la lit en premier ; le vocabulaire de dictée aussi, avec les fiches de l’espace puis les fiches communes à tour de rôle. Un terme appris ne quitte jamais son espace. `GET` et `DELETE /api/v1/orgs/:orgId/planner/aliases` les listent et les retirent, sous `requireOrgMember` (`alias.service.ts`, deux lignes dans la matrice d’accès).
+
+## Un seul champ, et les clients d’avant
+
+Le contrat (`packages/contracts/src/ai-planner.ts`) n’a changé que par ajouts.
+
+- `mode` et `brief` restent acceptés, comme **indices** : `mode: "propose"` suggère une demande à composer, le brief complète la durée, le niveau et le matériel que la demande ne dit pas. Ils ne décident plus de rien.
+- La période reste demandée, 28 jours au plus (`PLANNER_MAX_PERIOD_DAYS`). Un client qui envoie un seul jour reçoit une fenêtre de 28 jours à partir de ce jour : le jour de l’écran devient un indice, et la période enregistrée suit la date dite quand elle diffère.
+- Un client déclare ce qu’il sait lire dans `accepts` : `slots` (emplacements à compléter), `checks` (nouveaux points « À vérifier »). Le web actuel déclare `checks` ; l’app native en circulation ne déclare rien.
+- **Sans `slots`**, un emplacement ouvert redevient l’ancienne question nommée (`plannerLegacySlots`) : `id = slot_N`, `exerciseName` = le terme du coach. Le parcours « choisir, reformuler ou créer une fiche » des applications installées marche donc sans changement.
+- **Sans `checks`**, les nouveaux codes d’alerte ne sont pas servis.
+
+Limites, les mêmes pour toute demande : 12 000 caractères, 14 séances, 28 jours, 12 blocs et 60 exercices par bloc, 5 000 fiches lues. Le choix : une semaine de deux séances par jour tient en 14 séances ; au-delà, la relecture d’un seul tenant n’est plus tenable et la sortie de « Composer » dépasse son délai.
+
+## Contexte transmis
 
 - Profil de l’espace : disciplines, objectifs, matériel.
-- Séances de J−14 à J+7 de l’audience, en champs structurés seulement : date, type, exercices (jeton ou nom de fiche), séries, répétitions, distance, durée, charge prescrite. **Jamais** le titre, une note, la note du coach, une séance réalisée, un effort ressenti, une douleur ou une blessure. Un test vérifie qu’aucune de ces données ne part chez OpenAI.
-- Couverture des références de force par exercice (`all`, `some`) ; aucune valeur de maximum n’est transmise.
-- Le contexte est figé avec la demande (`bindings`), comme les fiches.
+- Séances de J−14 à J+7 de l’audience, seulement quand une partie est à composer ou qu’une reprise est citée, en champs structurés : date, type, exercices (jeton ou nom de fiche), séries, répétitions, distance, durée, charge prescrite. **Jamais** le titre, une note, la note du coach, une séance réalisée, un effort ressenti, une douleur ou une blessure. Un test vérifie qu’aucune de ces données ne part chez OpenAI.
+- Couverture des références de force par fiche ; aucune valeur de maximum.
+- Le contexte est figé avec la demande (`bindings`), comme les fiches. Le prestataire ne reçoit qu’une projection stricte (`plannerProviderContext`).
 
-## Contrôles du serveur : bloquants et « À vérifier »
+## Pannes lisibles, par étape
 
-- **Bloquants**, une correction puis une question : date fausse ou jour cité oublié, destinataire hors sélection, charge inventée (valeur non écrite, sans unité, contradictoire, paliers d’une montée non écrits), exercice inconnu ou substitué, unité absente (« trois fois vingt de gainage »), habitude sans séance connue, plus de quatorze séances.
-- **À vérifier**, la séance passe et le point s’affiche sur l’exercice : fiche choisie par rapprochement (le seul exercice qui partage le plus de mots avec la proposition de la consigne), tours absents de la consigne ou manquants, pause qui ne s’exécuterait pas, habitude lue avec l’historique. Une pause après une série unique au premier niveau devient d’elle-même une récupération explicite ; deux lignes successives du même exercice deviennent un détail série par série.
-- L’API garde l’interprétation stricte que lisent les applications installées ; le détail (séries, autonomie, points à vérifier) passe par les brouillons préparés, en champs additifs.
+Chaque panne garde sa cause (`ai_planner_operations.failure_code`) et son étape (`failure_step`), exposées en champ additif `failure { code, step }` : `configuration` (clé ou modèle refusé, 503), `saturated` (429, 503), `unavailable` (5xx ou réseau, 502), `timeout` (504), `refused` (422), `incomplete` (réponse coupée, 502), `invalid_output` (502). Le message dit l’étape, quoi faire, et « cette demande n’est pas décomptée » : une panne rend toujours la réservation au quota.
 
-## Erreurs lisibles
-
-Chaque panne du prestataire a sa cause, gardée dans `ai_planner_operations.failure_code` et exposée en champ additif `failure` : `configuration` (clé ou modèle refusé, 503), `saturated` (429 d’OpenAI, 503), `unavailable` (5xx ou réseau, 502), `timeout` (délai de 100 s, 504), `refused` (422), `incomplete` (réponse coupée, 502), `invalid_output` (502). Le message dit quoi faire et « cette demande n’est pas décomptée » : une panne rend toujours la réservation au quota.
+- Délais : 25 s pour comprendre, 25 s pour retrouver, 70 s pour composer, 45 s par réparation, 100 s pour la demande entière (`pipeline/step.ts`).
+- **Saturation.** Un 429 est rejoué deux fois après l’attente demandée par OpenAI (`retry-after-ms` ou `retry-after`, 8 s au plus), avant de devenir une panne lisible.
+- La sortie de chaque étape est validée par son schéma Zod. Une sortie hors schéma est une panne `invalid_output` de cette étape, jamais une séance.
 
 ## Réponse diffusée
 
-`POST /planner` et `POST /proposals/:id/clarify` répondent en `text/event-stream` quand le client envoie `Accept: text/event-stream` : événements `step` (`context`, `model`, `checks`, `retry`, `saved`), `plan` (noms de blocs et de fiches à mesure que le modèle écrit, appel OpenAI en `stream: true`), puis `result` ou `error`. Le JSON d’une seule pièce reste servi à l’app native. La génération ne dépend pas de la connexion (`after()`) : un onglet fermé n’interrompt ni l’appel ni l’enregistrement, et l’écran relit la proposition après une coupure.
+`POST /planner` et `POST /proposals/:id/clarify` répondent en `text/event-stream` quand le client envoie `Accept: text/event-stream`. Événements : `understanding { summary, done }`, `matching { movements, done }`, `composing { lines }`, `checking { repairs, done }`, puis `result` ou `error { …, step }`. Le JSON d’une seule pièce reste servi aux autres clients, dont l’app native. La génération ne dépend pas de la connexion (`after()`) : un onglet fermé n’interrompt ni les appels ni l’enregistrement, et l’écran relit la proposition après une coupure.
+
+## L’écran web
+
+Adapté au strict nécessaire le 21 novembre 2026 ; sa refonte est le lot suivant (P3). `planner-progress.tsx` montre les quatre étapes et « Ce que j’ai compris » pendant la génération ; `planner-result.tsx` garde le résumé au-dessus de la séance et nomme l’étape d’une panne ; `planner-review.tsx` propose les autres fiches possibles sous une fiche « À vérifier ». L’écran ne déclare pas encore `slots` : une fiche absente y passe par la question nommée, comme avant. Le formulaire de demande garde ses deux cartes de mode, envoyées comme indices.
 
 ## Ajuster
 
-« Ajuster » envoie au modèle la séance actuelle (`previous`, en jetons) et la modification à part (`adjustment`). Ses exercices et ses charges ne comptent ni comme inventés ni comme substitués. Les ajustements ont leur propre compteur (`adjustment_count`, cinq au plus), distinct des cinq précisions ; ni l’un ni l’autre ne consomme de quota. Les anciens clients lisent toujours six messages au plus : la consigne et les cinq derniers échanges.
-
-Un catalogue rédigé mais non validé n’ouvre pas le second mode. Le jeu synthétique utilisé pour évaluer le prestataire ne change pas cette règle dans l’application.
-
-## Exercices inconnus et circuits
-
-Une clarification peut contenir `exerciseName`, le nom inconnu conservé depuis la demande. Le coach choisit une fiche, reformule, ou ouvre une fiche privée préremplie. La création exige une relecture explicite. Elle est réservée aux utilisateurs autorisés à modifier la bibliothèque, reste dans l’espace et ne devient jamais une fiche commune automatiquement. En mode proposition, seules les fiches communes approuvées peuvent être choisies ; la création privée n’est pas disponible.
-
-`POST /api/v1/orgs/:orgId/planner/proposals/:proposalId/resolve-exercise` vérifie propriétaire, accès, version, question et périmètre. Une même opération, ou le même choix rejoué après perte de réponse pour le même tour de clarification, ne crée pas de deuxième exercice. Une correspondance choisie est conservée pour la reprise. L’enregistrement n’appelle pas OpenAI et ne consomme pas une nouvelle proposition.
-
-La bibliothèque entière peut servir à rechercher des candidats ; 150 candidats pertinents sont transmis par défaut. Une sélection explicite reste bornée à 500 fiches. La recherche ne décide jamais seule qu’un mouvement voisin est un synonyme.
-
-Le prestataire renvoie un seul arbre ordonné : chaque exercice contient sa prescription, une récupération ne contient que sa durée, et un groupe contient ses enfants. Le serveur en dérive les références stables et la structure partagée, avec deux niveaux de groupes maximum. Cela évite de demander au modèle de maintenir une liste d’exercices et une liste de références en parallèle. Les séries appartiennent à l’exercice ; les tours appartiennent au groupe. La projection vers les brouillons et leurs occurrences utilise `packages/domain`, notamment pour conserver A/B/A/B et les adaptations de charge de chaque tour. Les anciens clients ne peuvent pas enregistrer une version aplatie qui effacerait cette structure.
+« Ajuster » envoie la séance actuelle (`previous`, en jetons) et la modification à part (`adjustment`). Les exercices et les charges de la séance actuelle ne comptent ni comme inventés ni comme ajoutés. Les ajustements ont leur compteur (`adjustment_count`, cinq au plus), distinct des cinq précisions ; ni l’un ni l’autre ne consomme de quota.
 
 ## Accès
 
@@ -68,23 +123,127 @@ Audio : 3 Mio et 180 secondes au plus. Pas de dépassement payant. Règle pure :
 
 ## Données
 
-Envoyés : le texte, le nom des exercices de la bibliothèque, l'audio d'une dictée, et le contexte structuré décrit plus haut (profil de l'espace, séances voisines sans titre ni note, couverture des références de force, séance à ajuster). Les noms des groupes et athlètes sélectionnés sont remplacés par des jetons, mais un texte libre peut en contenir d'autres, d'où la consigne de ne citer ni athlète ni donnée de santé.
+Envoyés à OpenAI : le texte de la demande ; à l’étape « Retrouver », la bibliothèque de l’espace (clé, nom, alias, famille, matériel de chaque fiche, sans guide ni note) ; à l’étape « Composer », les fiches utiles et le contexte structuré décrit plus haut ; l’audio d’une dictée. Les noms des groupes et des athlètes sont remplacés par des jetons à toutes les étapes, mais un texte libre peut en contenir d’autres, d’où la consigne de ne citer ni athlète ni donnée de santé. Les termes appris d’un espace ne partent que dans les demandes de cet espace.
 
-Conservation : transcription 24 h ; proposition abandonnée sept jours ; après création des brouillons, le plus tôt entre 24 h après conversion et sept jours après création. Tartan ne conserve pas l'audio. `store:false` ne garantit pas une rétention nulle chez OpenAI : c'est une question du dossier juridique.
+Conservation : transcription 24 h ; proposition abandonnée sept jours ; après création des brouillons, le plus tôt entre 24 h après conversion et sept jours après création. Tartan ne conserve pas l’audio. `store:false` ne garantit pas une rétention nulle chez OpenAI : c’est une question du dossier juridique.
 
 ## Modèles
 
-`gpt-4.1` pour la planification depuis le lot H (18 novembre 2026), `gpt-transcribe` pour la dictée (`AI_PLANNER_MODEL`, `AI_TRANSCRIPTION_MODEL`). Comparaison sur le même code et le même corpus de 80 cas : `gpt-4.1-mini` 70 à 72 sur 80 selon le passage, latence médiane 6 à 8 s ; `gpt-4.1`, un passage, 75 sur 80 sans défaut critique, latence médiane 2,7 s. Coût d’un appel : environ 0,007 $ avec `gpt-4.1-mini`, 0,033 $ avec `gpt-4.1` (15 000 jetons d’entrée, 500 de sortie, tarifs publics de 0,40/1,60 $ et 2/8 $ le million). Si `AI_PLANNER_MODEL` est défini sur Vercel, il l’emporte sur ce défaut. Depuis le 12 novembre 2026, `gpt-transcribe` remplace `gpt-4o-mini-transcribe`, arrêté par OpenAI le 26 février 2027. Il reçoit la langue dans `languages[]`, le vocabulaire dans `keywords[]` et un contexte court dans `prompt`. Prix annoncé : 0,0045 $ la minute, contre 0,003 $ pour l'ancien. Si `AI_TRANSCRIPTION_MODEL` est défini sur Vercel avec l'ancien nom, il faut le retirer ou le mettre à jour. Non éprouvé sur une vraie dictée. Le fondateur conserve la clé actuelle (décision du 13 novembre) ; la qualification réelle reste à faire.
+Lu le 21 novembre 2026 dans la documentation d’OpenAI : pages « Models », « Deprecations », « Pricing », et guides « Latest model », « Reasoning », « Structured Outputs », « Prompt caching » (`platform.openai.com/docs`). `gpt-4.1` et `gpt-4.1-mini`, utilisés jusqu’au lot H, sont dépréciés et s’arrêtent le 14 janvier 2027.
 
-## Essais de l'app native
+| Étape      | Variable du modèle      | Défaut          | Effort de raisonnement                        | Délai |
+| ---------- | ----------------------- | --------------- | --------------------------------------------- | ----- |
+| Comprendre | `AI_PLANNER_FAST_MODEL` | `gpt-6.1-terra` | `AI_PLANNER_UNDERSTAND_EFFORT`, défaut `none` | 25 s  |
+| Retrouver  | `AI_PLANNER_FAST_MODEL` | `gpt-6.1-terra` | `AI_PLANNER_MATCH_EFFORT`, défaut `low`       | 25 s  |
+| Composer   | `AI_PLANNER_MODEL`      | `gpt-6.2-sol`   | `AI_PLANNER_COMPOSE_EFFORT`, défaut `low`     | 70 s  |
+| Réparer    | `AI_PLANNER_MODEL`      | `gpt-6.2-sol`   | `AI_PLANNER_REPAIR_EFFORT`, défaut `low`      | 45 s  |
 
-Le job `maestro` de la CI mobile joue le planificateur de l'app contre un serveur local : `AI_PLANNER_FAKE_PROVIDER=true` y remplace OpenAI par `src/server/ai/fake-provider.ts`, qui propose une séance à partir du contexte reçu. Ce réglage est sans effet sur Vercel et refusé en production par `assertEnvIsolation`.
+Tous les réglages sont dans `apps/web/src/lib/env.ts`. **Une variable `AI_PLANNER_MODEL` posée sur Vercel l’emporte sur le défaut : si elle vaut encore `gpt-4.1`, il faut la retirer ou la mettre à jour.**
 
-Le parcours web `e2e/ai-planner.spec.ts` s'exerce contre ce même prestataire factice (`E2E_AI_PLANNER_ENABLED=true`, comme l'étape « Planificateur activé avec prestataire simulé » de la CI) : demande en un clic et réponse diffusée, séance éditée dans le constructeur, ajustement, erreur lisible, aperçu individuel des charges avec adaptation, dictée (seule la transcription d'OpenAI est simulée), création privée, mode « Proposer » de bout en bout, `% 1RM` retiré puis gardé selon la couverture des références. Le prestataire factice suit le contexte : fiche rattachée ou nommée dans la consigne, « 80 % » lu comme un pourcentage du maximum, « #panne-saturated » pour simuler une panne.
+Chaque appel passe par l’API Responses : sortie stricte (`text.format`, schéma JSON), `store: false`, consignes en messages `developer`, demande du coach en message `user`. Particularités lues dans la documentation et vérifiées par appel réel :
+
+- Les modèles GPT-6 n’acceptent pas `temperature` : seul `reasoning.effort` règle l’appel. Sol et Astra refusent `none`, que l’adaptateur remplace par `low` ; Luna et Terra l’acceptent.
+- Depuis GPT-5.6, une écriture en cache se paie 1,25 fois le prix d’entrée. L’adaptateur demande un cache explicite et pose son repère à la fin de la partie stable (consignes, puis bibliothèque) : la demande du coach, qui ne se relit jamais, n’est pas écrite en cache.
+- Le schéma de « Composer » cite la prescription par référence (`$defs`) : environ 6 700 caractères au lieu de 20 000.
+
+Prix au million de jetons (tarif Standard) : `gpt-6.2-sol` 2 $ en entrée, 10 $ en sortie ; `gpt-6.1-terra` 1 $ et 5 $ ; `gpt-6-luna` 0,10 $ et 0,50 $ ; `gpt-6.2-astra` 8 $ et 40 $. Ils sont écrits à un seul endroit, `apps/web/evals/e2e/prices.ts`, à relire avant chaque mesure réelle.
+
+### Comparaison du 21 novembre 2026
+
+Jeu de développement (20 cas, 30 paires), appels réels, deux demandes simultanées. Ce jeu **ne qualifie rien** : voir « Isolement du corpus » plus bas.
+
+| Principal       | Rapide          | Cas justes, par passage | Séance complète, médiane | 95e centile | Coût par demande |
+| --------------- | --------------- | ----------------------- | ------------------------ | ----------- | ---------------: |
+| `gpt-6.2-sol`   | `gpt-6.1-terra` | 20, 20, 20 sur 20       | 8,7 à 9,4 s              | 16 s        |         0,0146 $ |
+| `gpt-6.2-sol`   | `gpt-6-luna`    | 19 sur 20               | 8,3 s                    | 15 s        |         0,0135 $ |
+| `gpt-6.1-terra` | `gpt-6.1-terra` | 20, 20, 20 sur 20       | 6,8 à 7,5 s              | 12 à 13 s   |         0,0069 $ |
+| `gpt-6.1-terra` | `gpt-6-luna`    | 20, 20 sur 20           | 5,9 à 6,0 s              | 12,5 s      |         0,0055 $ |
+
+Le cas manqué avec Sol et Luna (un squat proposé en échauffement alors qu’il était déjà cité) venait de l’étape « Composer » ; il a été corrigé par une règle de domaine avant les passages suivants.
+
+Paires, par l’étape « Retrouver » seule, deux passages par modèle : `gpt-6.1-terra` 30 sur 30 deux fois, 1,3 à 1,5 s par terme, 0,0005 $ ; `gpt-6-luna` 30 sur 30 deux fois, 1,0 à 1,2 s, 0,0001 $.
+
+Latence par étape, médianes : premier résumé lisible 0,9 à 1,2 s ; comprendre 2,6 s avec Terra, 1,8 s avec Luna ; retrouver 0 s quand les règles suffisent (17 demandes sur 20), 1,3 s sinon ; composer 5,5 s avec Sol, 3,8 s avec Terra. Aucune réparation n’a été nécessaire sur ce jeu.
+
+Jetons par demande, Sol et Terra : 6 900 en entrée et 600 en sortie en moyenne, contre 16 000 par appel avant la refonte. Par appel : comprendre 2 650 en entrée et 150 en sortie ; retrouver 4 800 et 85 (catalogue commun entier, seulement quand les règles ne suffisent pas) ; composer 4 200 et 520.
+
+**Défauts retenus, et pourquoi.** Les quatre couples font le même score sur ce jeu, qui a été écrit par l’agent qui a écrit le planificateur : il ne départage pas les modèles. Le choix reste donc prudent. Rapide : `gpt-6.1-terra`, parce qu’une erreur de date ou de destinataire à l’étape 1 est une faute grave et que l’écart de coût avec Luna est de 0,001 $ par demande. Principal : `gpt-6.2-sol`, parce que la qualité d’entraînement d’une séance proposée n’est mesurée par aucun jeu et que la demande coûte déjà deux fois moins qu’avec `gpt-4.1` (0,033 $). `gpt-6.1-terra` en principal est l’option économe (moitié du coût, 1,5 s de moins) : elle se décide sur le corpus gelé, avec `--model gpt-6.1-terra`.
+
+`gpt-transcribe` sert la dictée (`AI_TRANSCRIPTION_MODEL`) depuis le 12 novembre 2026, à la place de `gpt-4o-mini-transcribe`, arrêté par OpenAI le 26 février 2027. Il reçoit la langue dans `languages[]`, le vocabulaire dans `keywords[]` (termes appris, fiches de l’espace, fiches communes, 48 au plus) et un contexte court dans `prompt`. Prix annoncé : 0,0045 $ la minute. Non éprouvé sur une vraie dictée.
+
+## Essais avec le prestataire simulé
+
+`AI_PLANNER_FAKE_PROVIDER=true` remplace OpenAI par `src/server/ai/fake-provider.ts`, qui simule **chaque étape** à partir du contexte reçu et passe par les mêmes contrôles que le vrai. Ce réglage est sans effet sur Vercel et refusé en production par `assertEnvIsolation`. Il suit le contexte : fiche nommée dans la consigne, « 80 % » lu comme un pourcentage du maximum, toujours 3 séries de 8 et 90 s de repos. « #panne-saturated » simule une panne à la première étape, « #panne-compose-timeout » à l’étape nommée.
+
+- Le job `maestro` de la CI mobile joue le planificateur de l’app native contre un serveur local réglé ainsi. L’app ne déclare aucune capacité : elle reçoit l’ancienne forme.
+- Le parcours web `e2e/ai-planner.spec.ts` s’exerce contre ce même prestataire (`E2E_AI_PLANNER_ENABLED=true`) : demande et réponse diffusée, séance éditée dans le constructeur, ajustement, erreur lisible, aperçu individuel des charges, dictée (seule la transcription est simulée), création privée, demande à composer de bout en bout, `% 1RM` retiré puis gardé selon la couverture des références.
+
+Un test qui simule le prestataire ne prouve pas le prestataire : la preuve réelle est la mesure de bout en bout.
 
 ## Déploiement
 
-Migrer avant de déployer le code : le cron lit les tables IA même coupées. En retour arrière, conserver les tables.
+Migrer avant de déployer le code : `20261121120000_exercise_term_aliases` crée la table des termes appris et ajoute `ai_planner_operations.failure_step`, sans rien retirer. Le cron lit les tables IA même coupées. En retour arrière, conserver les tables.
+
+## Mesure de bout en bout
+
+C’est la mesure qui compte depuis les quatre étapes. Elle part de la consigne et s’arrête aux brouillons préparés, par le vrai service.
+
+```sh
+corepack pnpm --filter @tartan/web eval:planner:e2e --check      # format et gel, sans base ni réseau
+corepack pnpm --filter @tartan/web eval:planner:e2e --freeze     # écrit l'empreinte du corpus et des paires
+corepack pnpm --filter @tartan/web eval:planner:e2e --catalog    # les clés du catalogue commun, pour écrire des cas
+AI_PLANNER_FAKE_PROVIDER=true corepack pnpm --filter @tartan/web eval:planner:e2e --examples    # éprouver l'outil, sans appel
+corepack pnpm --filter @tartan/web eval:planner:e2e --dev --max-cost 1                          # mise au point, ne qualifie pas
+corepack pnpm --filter @tartan/web eval:planner:e2e --max-cost 10                               # la mesure réelle
+corepack pnpm --filter @tartan/web eval:planner:e2e --summary .local/planner-e2e-….json         # relire un rapport
+```
+
+Options : `--runs 3` (défaut), `--model` (principal), `--fast-model` (rapide), `--only <ids>`, `--suite all|cases|pairs`, `--concurrency 3`, `--max-cost <dollars>`, `--output`, `--corpus`, `--pairs`, `--database-url`, `--examples`, `--dev`. La base est jetable, locale, et son nom finit par `_eval` (`EVAL_DATABASE_URL`, défaut `tartan_planner_e2e_eval` sur le port 54329, à créer avec `createdb`). Le lanceur y applique les migrations sans rien effacer.
+
+**Prestataire.** Sans clé OpenAI, ou avec `AI_PLANNER_FAKE_PROVIDER=true`, le prestataire est simulé : rien ne sort du poste, et tout appel vers OpenAI est refusé. Avec une clé (environnement ou `.env.local`), la mesure est réelle et exige `--max-cost` : elle s’arrête net dès que le coût cumulé le dépasse, ou dès qu’un modèle appelé n’a pas de prix dans `apps/web/evals/e2e/prices.ts`.
+
+**Ce qu’il fait.** Pour chaque cas, il crée un espace (coach avec accord IA, groupes, athlètes fictifs, catalogue commun par `ensureExerciseCatalog`, fiches privées du cas), appelle `createPlannerProposal` avec la date du jour simulée, **sans mode ni brief**, en déclarant `accepts: ["slots", "checks"]`, écoute les événements diffusés, puis `preparePlannerDrafts`. Une paire passe par l’étape « Retrouver » seule (`matchPlannerTerms`), un terme par appel, dans un espace partagé par bibliothèque. Les attentes n’atteignent jamais le service. Le rapport JSON et son résumé lisible vont dans `.local/`, hors Git ; chaque ligne est gardée aussitôt dans un fichier `.lignes.jsonl`. Seul `apps/web/evals/e2e/driver.ts` touche au service.
+
+**Format.** Un cas porte la consigne (`spoken` pour le style dicté), la date du jour simulée, les destinataires, la bibliothèque, et des attentes par propriétés : nature, mouvements attendus avec leur prescription et leur structure, ou bornes d’un objectif, `mustNotAsk` ou `mustAsk` avec son motif, et les fautes graves. Le jeu de paires associe un terme dit à une fiche, ou à `absent`. Le mode d’emploi, avec six exemples, est dans `apps/web/evals/e2e/README.md` ; les schémas dans `format.ts` et `pairs/format.ts`.
+
+**Seuils**, écrits dans `apps/web/evals/e2e/thresholds.ts` avant toute réponse du nouveau planificateur, et appliqués à chacun des trois passages. Le lanceur sort en code 1 si un seul n’est pas tenu.
+
+| Critère                                                                                | Seuil         |
+| -------------------------------------------------------------------------------------- | ------------- |
+| Fautes graves (date fausse, charge inventée, exercice ajouté, remplacement silencieux) | Aucune        |
+| Cas justes                                                                             | 95 % au moins |
+| Questions inutiles, sur les cas `mustNotAsk`                                           | 2 % au plus   |
+| Paires justes en premier choix                                                         | 97 % au moins |
+| Fiche choisie pour un terme `absent`                                                   | 1 % au plus   |
+| Premier événement diffusé, médiane                                                     | Sous 2 s      |
+| Séance complète, brouillons préparés, médiane                                          | Sous 15 s     |
+
+Seule une mesure complète qualifie (`passed`) : tout le corpus gelé, toutes les paires, trois passages, sur le vrai fournisseur. Une mesure partielle (`--only`, `--suite`, moins de trois passages), les exemples, le jeu de développement et le prestataire simulé ne qualifient rien, même seuils tenus.
+
+### Isolement du corpus
+
+Trois jeux, trois rôles. Ils ne se mélangent jamais.
+
+| Jeu           | Fichiers                                                     | Écrit par                                                                                  | Sert à                                                                              |
+| ------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Exemples      | `corpus/examples.json`, `pairs/examples.json`                | l’auteur de l’outil                                                                        | Montrer le format et tester l’outil.                                                |
+| Développement | `dev/cases.json` (20 cas), `dev/pairs.json` (30 paires)      | l’agent qui écrit le planificateur                                                         | Mettre au point : voir un écart, corriger, relancer. Non gelé. **Ne qualifie pas.** |
+| Corpus gelé   | `corpus/cases.json`, `pairs/pairs.json`, avec leur empreinte | un agent isolé, qui n’a lu ni le code, ni les consignes du modèle, ni les deux autres jeux | Qualifier, et rien d’autre.                                                         |
+
+- **Celui qui écrit ou règle le planificateur ne lit jamais le corpus gelé.** Il n’est pas sur sa branche, il ne le cherche pas ailleurs, et il ne lit pas les lignes d’un rapport qui en reprennent les consignes. Il reçoit des comptes : cas justes, questions inutiles, fautes graves, latences, coût.
+- Les attentes s’écrivent avant toute exécution et ne changent plus. `--freeze` écrit l’empreinte sha256 à côté de chaque fichier ; le lanceur refuse un fichier sans empreinte ou modifié depuis. Regeler un fichier modifié est refusé aussi : on retire l’empreinte à la main, en le disant.
+- Un échec se corrige dans le planificateur, jamais dans le corpus.
+- Dès qu’une réponse du corpus gelé a été lue pour régler le planificateur, ce corpus devient une régression : il faut le dire dans le rapport et en écrire un autre pour qualifier.
+
+**Ce que l’outil mesure.** La justesse de la séance préparée, cas par cas ; les questions inutiles ; les fautes graves ; la recherche de fiches (premier choix, trois propositions, faux positifs) ; la latence du premier événement, du premier résumé lisible (`firstSummaryMs`), de la première ligne du plan et du résultat complet, et la durée de chaque étape ; les appels et les jetons d’entrée, lus en cache, écrits en cache et de sortie, par étape et par modèle ; le coût. Il compte les appels en observant `fetch` et rattache chacun à la dernière étape diffusée.
+
+**Ce qu’il ne mesure pas.** La dictée : `spoken` marque le style d’une consigne, aucun son n’est transcrit. L’écran, la route HTTP et sa validation. La création des brouillons (`confirmPlannerProposal`), la publication et la lecture par l’athlète. Les ajustements, les réponses aux questions et le remplissage d’un emplacement. Le remplacement en autonomie. L’ancienne forme servie aux clients sans `slots`. La qualité d’entraînement d’une séance proposée, qui reste une relecture de coach : les bornes disent seulement qu’elle tient dans le cadre demandé.
+
+**Limites écrites dans chaque rapport** (`pipelineLimits`). Le contrat demande encore une période : l’outil donne les 28 jours à partir de la date du jour simulée ; une date citée au-delà devient une question. Le premier événement diffusé est l’ouverture de l’étape « Comprendre », avant tout appel au modèle : ce seuil mesure un accusé de réception, le premier contenu lisible est le résumé. Seuls les athlètes du premier groupe de chaque espace jetable ont une référence de force, sur quatre fiches : un pourcentage proposé n’est permis que pour ce groupe seul. Une paire est mesurée terme par terme : une consigne entière peut retrouver autrement un terme que son contexte éclaire.
+
+## Mesures d’avant les quatre étapes
+
+Les sections qui suivent, jusqu’au corpus du fondateur, décrivent des jeux et des chiffres obtenus avec l’ancien appel unique (`gpt-4.1`, `gpt-4.1-mini`). Leurs scripts tournent encore : ils passent désormais par les quatre étapes (`interpretPlannerContext`) avec un contexte fabriqué, sans le service. Ils n’ont pas été rejoués en réel depuis la refonte : leurs chiffres restent ceux de l’ancien planificateur et ne disent rien du nouveau.
 
 ## Évaluer
 
@@ -175,54 +334,11 @@ Le contrôle n'affiche que des comptes, des empreintes et des problèmes nommés
 
 Atteindre ces seuils qualifie le planificateur pour la bêta (`betaQualified`), pas pour l'ouverture : la relecture d'un coach et les essais sur appareils restent des preuves distinctes. Un échec ne se corrige pas en touchant le corpus : on corrige le planificateur, puis on mesure de nouveau avec un autre fichier de rapport. Après ce passage, le corpus devient une régression.
 
-## Mesure de bout en bout
-
-Les corpus de 80 et de 20 cas ne mesurent que l'adaptateur (`provider.interpret`), sans la sélection des fiches ni le service, et le code a été réglé en les lisant. La mesure de bout en bout, écrite le 21 novembre 2026 avant la refonte en quatre étapes, part de la consigne et s'arrête aux brouillons préparés.
-
-```sh
-corepack pnpm --filter @tartan/web eval:planner:e2e --check      # format et gel, sans base ni réseau
-corepack pnpm --filter @tartan/web eval:planner:e2e --freeze     # écrit l'empreinte du corpus et des paires
-corepack pnpm --filter @tartan/web eval:planner:e2e --catalog    # les clés du catalogue commun, pour écrire des cas
-AI_PLANNER_FAKE_PROVIDER=true corepack pnpm --filter @tartan/web eval:planner:e2e --examples    # éprouver l'outil, sans appel
-corepack pnpm --filter @tartan/web eval:planner:e2e --max-cost 10                               # la mesure réelle
-corepack pnpm --filter @tartan/web eval:planner:e2e --summary .local/planner-e2e-….json         # relire un rapport
-```
-
-Options : `--runs 3` (défaut), `--model`, `--fast-model`, `--only <ids>`, `--suite all|cases|pairs`, `--concurrency 3`, `--max-cost <dollars>`, `--output`, `--corpus`, `--pairs`, `--database-url`. La base est jetable, locale, et son nom finit par `_eval` (`EVAL_DATABASE_URL`, défaut `tartan_planner_e2e_eval` sur le port 54329, à créer avec `createdb`). Le lanceur y applique les migrations sans rien effacer.
-
-**Prestataire.** Sans clé OpenAI, ou avec `AI_PLANNER_FAKE_PROVIDER=true`, le prestataire est simulé : rien ne sort du poste, et tout appel vers OpenAI est refusé. Avec une clé (environnement ou `.env.local`), la mesure est réelle et exige `--max-cost` : elle s'arrête net dès que le coût cumulé le dépasse, ou dès qu'un modèle appelé n'a pas de prix. Les prix par modèle sont dans un seul fichier, `apps/web/evals/e2e/prices.ts`, **à relire dans la documentation du fournisseur avant chaque mesure réelle**.
-
-**Ce qu'il fait.** Pour chaque cas, il crée un espace (coach avec accord IA, groupes, athlètes fictifs, catalogue commun par `ensureExerciseCatalog`, fiches privées du cas), appelle `createPlannerProposal` avec la date du jour simulée, écoute les événements diffusés, puis `preparePlannerDrafts`. Les attentes du cas n'atteignent jamais le service. Le rapport JSON et son résumé lisible vont dans `.local/`, hors Git ; chaque ligne est gardée aussitôt dans un fichier `.lignes.jsonl`.
-
-**Format.** Un cas porte la consigne (`spoken` pour le style dicté), la date du jour simulée, les destinataires, la bibliothèque (catalogue commun, plus fiches privées), et des attentes par propriétés : nature (`described`, `objective`, `mixed`), mouvements attendus avec leur prescription et leur structure, ou bornes d'un objectif, `mustNotAsk` ou `mustAsk` avec son motif, et les fautes graves. Le jeu de paires associe un terme dit à une fiche, ou à `absent`. Le mode d'emploi, avec six exemples, est dans `apps/web/evals/e2e/README.md` ; les schémas dans `format.ts` et `pairs/format.ts`.
-
-**Gel.** `--freeze` écrit l'empreinte sha256 à côté du corpus (`corpus/cases.json.sha256`) et du jeu de paires (`pairs/pairs.json.sha256`). Le lanceur refuse un fichier sans empreinte ou modifié depuis. Regeler un fichier modifié est refusé aussi : on retire l'empreinte à la main, en le disant.
-
-**Seuils**, écrits dans `apps/web/evals/e2e/thresholds.ts` et appliqués à chacun des trois passages. Le lanceur sort en code 1 si un seul n'est pas tenu.
-
-| Critère                                                                                | Seuil         |
-| -------------------------------------------------------------------------------------- | ------------- |
-| Fautes graves (date fausse, charge inventée, exercice ajouté, remplacement silencieux) | Aucune        |
-| Cas justes                                                                             | 95 % au moins |
-| Questions inutiles, sur les cas `mustNotAsk`                                           | 2 % au plus   |
-| Paires justes en premier choix                                                         | 97 % au moins |
-| Fiche choisie pour un terme `absent`                                                   | 1 % au plus   |
-| Premier événement diffusé, médiane                                                     | Sous 2 s      |
-| Séance complète, brouillons préparés, médiane                                          | Sous 15 s     |
-
-Seule une mesure complète qualifie (`passed`) : tout le corpus, toutes les paires, trois passages, sur le vrai fournisseur. Une mesure partielle (`--only`, `--suite`, moins de trois passages), les exemples et le prestataire simulé ne qualifient rien, même seuils tenus.
-
-**Ce que l'outil mesure.** La justesse de la séance préparée, cas par cas ; les questions inutiles ; les fautes graves ; la recherche de fiches (premier choix, trois propositions, faux positifs) ; la latence du premier événement diffusé, de la première ligne du plan et du résultat complet ; les appels et les jetons d'entrée, en cache et de sortie par étape et par modèle ; le coût. Il compte les appels en observant `fetch` et rattache chacun à la dernière étape diffusée : il reste valable quel que soit le nombre d'étapes du service. Seul `apps/web/evals/e2e/driver.ts` touche au service.
-
-**Ce qu'il ne mesure pas.** La dictée : `spoken` marque le style d'une consigne, aucun son n'est transcrit. L'écran, la route HTTP et sa validation. La création des brouillons (`confirmPlannerProposal`), la publication et la lecture par l'athlète. Les ajustements et les réponses aux questions. Le remplacement en autonomie. Les pourcentages du maximum : aucun athlète de l'espace jetable n'a de référence de force. La qualité d'entraînement d'une séance proposée, qui reste une relecture de coach : les bornes disent seulement qu'elle tient dans le cadre demandé.
-
-**Limites du pipeline en place**, que l'outil contourne et écrit dans chaque rapport (`pipelineLimits`). Le service exige un mode : il est déduit de la nature du cas (`described` et `mixed` → mise en forme, `objective` → proposer). Il exige une période : les sept jours à partir de la date du jour simulée. En « Proposer », il exige un brief que l'outil lit dans la consigne et le profil de l'espace, en notant ce qu'il suppose (`legacy.assumed`). Une fiche absente devient une question bloquante. Aucune recherche de fiches n'est exposée : une paire passe par une consigne minimale. Le premier événement diffusé est l'étape « context », avant tout appel au modèle : ce seuil mesure aujourd'hui un accusé de réception, le premier contenu lisible est donné à part (`firstPlanMs`).
-
-Après une mesure dont les réponses ont été lues pour régler le planificateur, ce corpus devient lui aussi une régression.
-
 ## Reprises et coût
 
-Une opération logique consomme une proposition du quota de l'espace, compté par mois et partagé entre ses coachs. Une citation sans attache, une date omise, une structure invalide ou une substitution détectée peut déclencher une seule reprise technique. Les deux appels partagent un délai de 100 secondes et le plafond est contrôlé globalement : plusieurs motifs d’erreur ne multiplient pas les reprises. Tartan supporte le coût du second appel. Le modèle configuré reste inchangé tant qu’une comparaison documentée n’a pas justifié son remplacement.
+Une demande consomme une proposition du quota de l’espace, compté par mois et partagé entre ses coachs, quel que soit le nombre d’appels au modèle. Une demande ordinaire fait deux ou trois appels : comprendre, retrouver quand les règles ne suffisent pas, composer. S’y ajoutent au plus deux réparations, et deux rejeux par appel en cas de saturation. Toutes les étapes partagent le délai de 100 secondes. Tartan supporte le coût des réparations ; une panne ne décompte rien. Une question bloquante ne coûte que l’étape « Comprendre ».
+
+Coût mesuré le 21 novembre 2026 avec les modèles par défaut : 0,015 $ par demande en moyenne sur le jeu de développement, soit 0,44 $ par mois pour un espace qui consomme ses 30 propositions, 2,20 $ pour 150. Les modèles par défaut ne changent qu’après une comparaison documentée ici.
 
 ## Recette navigateur avec OpenAI réel
 
