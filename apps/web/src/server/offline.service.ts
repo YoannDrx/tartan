@@ -35,6 +35,8 @@ export const offlineUrls = async (userId: string, organizationId: string, now: D
       "/aujourdhui",
       "/calendrier",
       "/annonces",
+      // Ses vidéos et les remarques du coach se relisent au bord de la piste.
+      "/mes-videos",
       ...sessions.flatMap((s) => [
         `/seance/${s.id}`,
         `/seance/${s.id}/mode`,

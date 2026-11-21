@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { describe, expect, it, vi } from "vitest";
@@ -52,7 +52,10 @@ const worker = (options: { windows?: Window[]; fetch?: (url: string, init?: Requ
     keys: async () => [...stores.keys()],
     delete: async (name: string) => stores.delete(name),
   };
-  vm.runInNewContext(SOURCE, { self, caches, fetch: network, Response, URL, setTimeout, Promise, JSON, Set });
+  const context = { self, caches, fetch: network, Response, URL, setTimeout, Promise, JSON, Set };
+  vm.runInNewContext(SOURCE, context);
+  // Les constantes du worker, lues dans son propre contexte.
+  const read = <T>(expression: string) => vm.runInContext(expression, context) as T;
 
   // Déclenche un événement et attend tout ce que le worker a confié à waitUntil ou respondWith.
   const dispatch = async (type: string, event: Record<string, unknown>) => {
@@ -66,8 +69,24 @@ const worker = (options: { windows?: Window[]; fetch?: (url: string, init?: Requ
     await Promise.all(pending);
     return responded;
   };
-  return { dispatch, shown, self, network, store };
+  return { dispatch, shown, self, network, store, read };
 };
+
+// Les adresses servies par l'application : chaque `page.tsx` ou `route.ts` de `app/`, groupes entre parenthèses retirés.
+const APP_DIR = path.join(__dirname, "..", "app");
+const PUBLIC_DIR = path.join(__dirname, "..", "public");
+const routes = (dir = APP_DIR, prefix = ""): string[] =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (entry.isFile()) return /^(page|route)\.tsx?$/.test(entry.name) ? [prefix || "/"] : [];
+    const segment = /^\(.+\)$/.test(entry.name) ? "" : `/${entry.name}`;
+    return routes(path.join(dir, entry.name), `${prefix}${segment}`);
+  });
+const publicFiles = (dir = PUBLIC_DIR, prefix = ""): string[] =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+    entry.isDirectory()
+      ? publicFiles(path.join(dir, entry.name), `${prefix}/${entry.name}`)
+      : [`${prefix}/${entry.name}`],
+  );
 
 const pushEvent = (data?: unknown) => ({ data: data === undefined ? null : { json: () => data } });
 const notification = (data: Record<string, unknown>) => ({ close: vi.fn(), data });
@@ -75,6 +94,57 @@ const request = (pathname: string, init: { mode?: string; method?: string; origi
   url: `${init.origin ?? ORIGIN}${pathname}`,
   mode: init.mode ?? "navigate",
   method: init.method ?? "GET",
+});
+
+describe("ce que le worker garde existe (audit G5)", () => {
+  const sw = worker();
+  const appRoutes = routes();
+  const files = publicFiles();
+
+  it("chaque page rouvrable hors ligne est une vraie page, vidéos de l'athlète comprises", () => {
+    const source = sw.read<RegExp>("OFFLINE_PATHS").source;
+    const entries = source
+      .replace(/^\^\\\/\(/, "")
+      .replace(/\)$/, "")
+      .split("|")
+      .map((entry) => `/${entry.replace(/\\\//g, "/")}`);
+    expect(entries.length).toBeGreaterThan(5);
+    for (const entry of entries) {
+      const exists = entry.endsWith("/")
+        ? appRoutes.some((route) => route.startsWith(entry))
+        : appRoutes.includes(entry);
+      expect(exists, `${entry} n'est pas une page de app/`).toBe(true);
+    }
+    const offline = sw.read<RegExp>("OFFLINE_PATHS");
+    expect(offline.test("/mes-videos")).toBe(true);
+    expect(offline.test("/mes-videos/0b6f2a0e-5c55-4f43-9c0e-6f7d4a8f2c11")).toBe(true);
+    expect(appRoutes).toContain(sw.read<string>("OFFLINE_PAGE"));
+  });
+
+  it("chaque fichier statique gardé existe dans public/ ou vient du build", async () => {
+    for (const prefix of ["/icon-", "/apple-touch", "/brand/"])
+      expect(files.some((file) => file.startsWith(prefix))).toBe(true);
+    expect(files).toContain("/icon-192.png");
+    // Un nom cité par une page qui ne correspond à aucun fichier n'est jamais demandé au réseau.
+    const isStatic = sw.read<(url: URL) => boolean>("isStatic");
+    expect(isStatic(new URL(`${ORIGIN}/exercise-guides/back-squat-v1.svg`))).toBe(false);
+    for (const file of files.filter((file) => isStatic(new URL(`${ORIGIN}${file}`))))
+      expect(existsSync(path.join(PUBLIC_DIR, file))).toBe(true);
+  });
+
+  it("une page qui cite un guide d'exercice ne déclenche aucune requête vers un fichier absent", async () => {
+    const page = `<link href="/_next/static/css/app.css"><img src="/exercise-guides/back-squat-v1.svg">`;
+    const net = worker({
+      fetch: async (url) =>
+        Object.defineProperty(new Response(url === "/aujourdhui" ? page : "body{}"), "url", {
+          value: `${ORIGIN}${url}`,
+        }),
+    });
+    await net.dispatch("message", { data: { type: "cache-pages", urls: ["/aujourdhui"] } });
+    const asked = net.network.mock.calls.map(([url]) => String(url));
+    expect(asked).toContain("/_next/static/css/app.css");
+    expect(asked.some((url) => url.includes("exercise-guides"))).toBe(false);
+  });
 });
 
 describe("worker du site (T21)", () => {

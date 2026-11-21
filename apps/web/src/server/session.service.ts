@@ -371,8 +371,13 @@ export const publishSession = async (
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   const session = await requireSessionWrite(access, sessionId);
   if (expectedVersion !== undefined && expectedVersion !== session.version) throw sessionConflict();
-  await publishRow(session.id, session.createdBy, now, { expectedVersion: session.version, actorId: userId });
-  return { id: session.id };
+  const publications = await publishRow(session.id, session.createdBy, now, {
+    expectedVersion: session.version,
+    actorId: userId,
+  });
+  // Ce que le coach doit savoir après la publication : combien d'athlètes la reçoivent, combien sont prévenus.
+  const athletes = (await activeAudienceIds(session.id)).length;
+  return { id: session.id, recipients: { athletes, notified: publications.length } };
 };
 
 // Fige la séance et ses prescriptions individuelles dans la même transaction, puis notifie.

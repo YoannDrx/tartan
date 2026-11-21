@@ -5,15 +5,18 @@ import { historyNumber, m } from "@tartan/i18n";
 import { useState } from "react";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { Field, Select } from "@/components/ui/field";
+import { Missing } from "./missing";
 const t = m.intensityAnalysis;
 function Observation({ label, data }: { label: string; data: IntensitySummary }) {
   return (
     <div>
       <p className="font-medium">{label}</p>
       <p>
-        {data.mean === null
-          ? m.analysis.missing
-          : t.values(historyNumber(data.mean), historyNumber(data.min!), historyNumber(data.max!))}
+        {data.mean === null ? (
+          <Missing />
+        ) : (
+          t.values(historyNumber(data.mean), historyNumber(data.min!), historyNumber(data.max!))
+        )}
       </p>
       <p className="text-soft">{t.observations(data.count, data.eligible)}</p>
     </div>
