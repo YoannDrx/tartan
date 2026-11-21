@@ -21,7 +21,10 @@ const NEUTRAL = new Set(
     "jambe jambes bras main mains serie groupe le groupe seance poids corps charge ajoutee travail exercice " +
     "lundi mardi mercredi jeudi vendredi samedi dimanche demain aujourd hui matin soir " +
     "janvier fevrier mars avril mai juin juillet aout septembre octobre novembre decembre " +
-    "deux trois quatre cinq six sept huit neuf dix douze quinze vingt trente"
+    "deux trois quatre cinq six sept huit neuf dix douze quinze vingt trente " +
+    // Remplacement en autonomie : « ceux qui s'entraînent seuls font … à la place », « en autonomie, remplacer par ».
+    "autonomie seul seuls ceux celles qui font fait faire remplacer remplace remplacent remplacee place " +
+    "devient deviennent entrainent entraine entrainement maison"
   )
     .split(/\s+/)
     .map(normalizeExerciseMention),
@@ -72,7 +75,10 @@ function spans(text: string, labels: Map<string, Set<string>>) {
     (hit) =>
       !hits.some(
         (other) =>
-          other !== hit && other.start <= hit.start && other.end >= hit.end && other.end - other.start > hit.end - hit.start,
+          other !== hit &&
+          other.start <= hit.start &&
+          other.end >= hit.end &&
+          other.end - other.start > hit.end - hit.start,
       ),
   );
 }
@@ -84,7 +90,9 @@ export function plannerExerciseMentions(
   resolutions: readonly Resolution[] = [],
 ): PlannerMention[] {
   const found = new Map<string, PlannerMention>();
-  const hits = spans(normalizeExerciseMention(text), labelsOf(exercises, resolutions)).sort((a, b) => a.start - b.start);
+  const hits = spans(normalizeExerciseMention(text), labelsOf(exercises, resolutions)).sort(
+    (a, b) => a.start - b.start,
+  );
   for (const hit of hits)
     if (hit.tokens.size === 1) found.set(hit.term, { term: hit.term, token: [...hit.tokens][0]! });
   return [...found.values()];
@@ -101,6 +109,9 @@ export function plannerUnknownExerciseTerms(
   resolutions: readonly Resolution[] = [],
 ): string[] {
   const labels = labelsOf(exercises, resolutions);
+  // Les mots d'au moins une fiche : « fentes » en fait partie, « dragon » non. Un nom dont tous les mots existent
+  // dans la bibliothèque reste au modèle, qui choisit ou demande ; un mot qu'aucune fiche ne contient le rend inconnu.
+  const vocabulary = new Set([...labels.keys()].flatMap((label) => label.split(/[^a-z0-9]+/).filter(Boolean)));
   const unknown = new Map<string, string>();
   for (const line of text.split("\n")) {
     // La couverture se calcule sur la ligne entière : un nom de fiche peut contenir
@@ -123,7 +134,7 @@ export function plannerUnknownExerciseTerms(
       const next = plain(clauses[index + 1] ?? "").trim();
       const raw = plain(clause).trim();
       if (!clause || at < 0 || !PRESCRIPTION.test(next) || PRESCRIPTION.test(raw) || NOT_A_MOVEMENT.test(raw)) return;
-      if (!uncovered(at, at + own.length).length) return;
+      if (!uncovered(at, at + own.length).some((word) => !vocabulary.has(word))) return;
       // « Fentes avant avec deux haltères de 20 » : le matériel ou la charge relèvent du modèle.
       const avec = clause.search(/\s+avec\s+/i);
       const head = avec > 0 ? normalizeExerciseMention(clause.slice(0, avec)) : "";

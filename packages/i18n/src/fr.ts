@@ -939,6 +939,8 @@ export const fr = {
       `« ${name} » n’est pas dans ta bibliothèque : quelle fiche lui correspond, ou faut-il la créer ?`,
     clarifyTarget: "Plusieurs destinataires sont sélectionnés. Lesquels doivent recevoir cette séance ?",
     clarifyRest: "Quelle récupération veux-tu, en secondes ou en minutes ? Tartan ne connaît pas ton habitude.",
+    clarifyUnit:
+      "Un nombre de ta consigne n’a pas d’unité. S’agit-il de secondes, de minutes, de mètres ou de répétitions ?",
     clarifyLoad: "Quelle charge veux-tu indiquer ? Sans valeur de ta part, Tartan peut la laisser à définir.",
     clarifySessionCount: "Une proposition compte au plus quatorze séances. Comment veux-tu réduire ta demande ?",
     clarifyEmpty:
@@ -1105,6 +1107,22 @@ export const fr = {
     proposalConflict: "Cette proposition a changé. Recharge-la avant de continuer.",
     proposalFailed:
       "La proposition n’a pas pu être préparée. Aucun quota supplémentaire n’est consommé sans résultat exploitable.",
+    // Une cause par échec du prestataire : ce qui s'est passé, puis quoi faire. Rien n'est décompté.
+    failures: {
+      configuration:
+        "Le planificateur IA est mal réglé sur le serveur. Préviens le support depuis l’aide ; cette demande n’est pas décomptée.",
+      saturated: "Le service d’IA est saturé. Réessaie dans une minute ; cette demande n’est pas décomptée.",
+      unavailable:
+        "Le service d’IA ne répond pas pour l’instant. Réessaie dans quelques minutes ; cette demande n’est pas décomptée.",
+      timeout:
+        "La réponse a pris trop de temps. Réessaie, ou raccourcis ta consigne ; cette demande n’est pas décomptée.",
+      refused:
+        "Le service d’IA a refusé cette consigne. Reformule-la en restant sur l’entraînement, sans donnée de santé ; cette demande n’est pas décomptée.",
+      incomplete:
+        "La réponse a été coupée avant la fin. Demande moins de séances à la fois ; cette demande n’est pas décomptée.",
+      invalid_output:
+        "La réponse de l’IA était inexploitable. Réessaie ou reformule ta consigne ; cette demande n’est pas décomptée.",
+    },
     disabled: "Le planificateur IA n’est pas activé pour cet espace.",
     paidOnly: "Le planificateur IA est réservé aux offres Coach et Club.",
     seeOffers: "Voir les offres",
