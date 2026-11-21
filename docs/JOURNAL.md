@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-21, Claude Fable 5.2, lot K1 de l'audit et mesure de départ du planificateur
+Fait : PR 170 (planificateur du lot H) fusionnée. PR `fix/audit-corrections` : lot K1 écrit par Opus le 19 novembre (G2, G5, G6, G9, G10), remis sur `main`. Refonte du planificateur : P1 terminé hors PR (outil `eval:planner:e2e` qui passe par le service, seuils codés, corpus de 80 consignes et 150 paires écrit par un agent isolé et gelé par empreinte), P2 en cours sur `feat/ia-etapes`.
+Vérifié : K1 après fusion de `main` : types, lint, design, web 2 276, domaine 369, mobile 264. Mesure de départ réelle (`gpt-4.1`, pipeline du lot H, un passage) : 13 cas justes sur 80, 54 questions inutiles sur 72 dont 63 sur un nom d'exercice, 69 paires justes sur 150, 1 date fausse, médiane 6,3 s, 5,49 $. Non vérifié : parcours de K1 non rejoués par moi sur build de production (17 réussis par Opus le 19 novembre), hors ligne réel.
+À savoir : à trois demandes simultanées, le compte OpenAI refuse des appels (limite de jetons par minute, 16 000 jetons d'entrée par appel) : la mesure se lance à `--concurrency 1` tant que le serveur envoie toute la bibliothèque. Sur Vercel, seule `OPENAI_API_KEY` est posée : les modèles viennent des défauts de `src/lib/env.ts`. Le navigateur de Playwright avait disparu du poste : `npx playwright install chromium`. Le constructeur mobile garde l'ancien message de publication (G10).
+Suite : onboarding, espace de démonstration, K2 ; P2 à P5.
+
 ## 2026-11-21, Claude Fable 5.2, reprise : morphologie fusionnée, planificateur du lot H, refonte décidée
 Fait : PR 169 (morphologie) fusionnée, production à `124f3e0`. PR `feat/planificateur-ia` ouverte : le lot H d'Opus (erreurs lisibles, sortie alignée sur le constructeur, contexte de « Proposer », réponse diffusée, écran en deux temps), mis à jour sur `main`. Refonte du planificateur validée par le fondateur (`PRODUCT.md`, décision du 21 novembre) : quatre étapes dans le service, champ unique, alias appris, fin de bêta sur preuve. P1 (mesure de bout en bout) lancé sur `feat/ia-mesure-bout-en-bout`.
 Vérifié : après fusion de `main`, types, lint, design, web 2 272, domaine 363, mobile 264, gestes 2 903 ; pages publiques en 200 après le déploiement. Non vérifié : aucun appel réel depuis le 18 novembre ; les parcours `ai-planner` n'ont pas été rejoués par moi, ils l'ont été par Opus le 19 novembre (14 sur 14).

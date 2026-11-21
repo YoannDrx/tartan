@@ -35,14 +35,15 @@ Niveaux : **codé**, **testé** automatiquement, **éprouvé** en production ou 
 | Gestes : moteur v2, 173 fiches sur le nouveau moteur (77 écrites à la main, 96 relevées), lecteurs web et mobile avec bascule Profil et Face, atelier en deux vues | 167 | En production, testé (2 299 tests du paquet, parcours des guides) ; prototype validé par le fondateur le 17 novembre ; aucun geste regardé en mouvement par un humain | Moteur, relèvement et lecteurs par Fable ; écriture à la main par Opus |
 | F. Listes et favoris d'exercices, fiche concise, bibliothèque et sélecteur allégés (brief 4.3, constats G3, G11) | 168 | En production, testé (droits des listes, parcours `exercise-lists` et `exercise-guides`) ; guides concis non relus par le fondateur | Opus |
 | Gestes, morphologie partout : un seul corps dans le film, le jeu, les cartes du groupe, les e-mails et le mobile ; mains et pieds sur leur objet ; vidéo de catalogue par fiche (`/admin/exercices`) | 169 | En production le 21 novembre, testé (2 903 tests du paquet, parcours `landing`, `game-page`, `mascot-board`, `catalog-video`) ; aucune vidéo de catalogue déposée | Opus ; fusionné par Fable |
+| H. Planificateur IA, version du lot H : erreurs lisibles, sortie alignée sur le constructeur, contexte de « Proposer », réponse diffusée, écran en deux temps | 170 | En production le 21 novembre, testé contre le prestataire simulé ; mesuré le 21 novembre sur un corpus neuf : 13 séances justes sur 80, d'où la refonte | Opus ; fusionné par Fable |
+| K1. Corrections de l'audit : filtres de `/videos` en feuille (G2), service worker limité aux fichiers qui existent (G5), nom de l'espace lisible dans l'en-tête à 390 px (G6), `/analyse` hiérarchisée (G9), message de publication qui dit qui reçoit la séance (G10) | PR `fix/audit-corrections` | Codé, testé (règles pures, service de publication, parcours `video-filters`, `training-analysis`, `shell`, `screen-matrix`) ; hors ligne réel non éprouvé | Opus ; ouvert par Fable |
 
 ### En cours
 
 | Lot | Où | Niveau | Mené par |
 | --- | --- | --- | --- |
-| H. Planificateur IA, version du lot H : erreurs lisibles, sortie alignée sur le constructeur, contexte de « Proposer », réponse diffusée, écran en deux temps | PR `feat/planificateur-ia` | Codé, testé (7 parcours `ai-planner` contre le prestataire simulé) ; 75 sur 80 avec `gpt-4.1`, seuil de 76 non atteint | Opus ; ouvert par Fable |
-| Refonte du planificateur validée le 21 novembre (quatre étapes, champ unique, fin de bêta sur preuve) | P1 `feat/ia-mesure-bout-en-bout` en cours ; P2 à P5 à suivre ([planificateur-ia](reference/planificateur-ia.md)) | P1 en cours | Fable |
-| G. Onboarding, espace de démonstration, lots K1 et K2 de l'audit | Branches `fix/audit-corrections`, `feat/onboarding-complet`, `feat/espace-demonstration`, `fix/audit-k2`, prêtes, en file | Codés, testés | Opus |
+| Refonte du planificateur validée le 21 novembre (quatre étapes, champ unique, fin de bêta sur preuve) | P1 fait sur `feat/ia-mesure-bout-en-bout` et `feat/ia-corpus` (outil de mesure sur le service, corpus gelé de 80 consignes et 150 paires) ; P2 `feat/ia-etapes` en cours ; P3 à P5 à suivre | Mesure de départ réelle du 21 novembre, `gpt-4.1`, un passage : 13 séances justes sur 80, 54 questions inutiles sur 72, 69 fiches retrouvées du premier coup sur 150, 1 date fausse ; 5,49 $ | Fable |
+| G. Onboarding, espace de démonstration, lot K2 de l'audit | Branches `feat/onboarding-complet`, `feat/espace-demonstration`, `fix/audit-k2`, prêtes, en file | Codés, testés | Opus |
 
 ### Restant à faire
 
@@ -93,7 +94,7 @@ Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur
 
 | Élément | État au 21 novembre |
 | --- | --- |
-| Production | `app.tartan.coach` et `tartan.coach` servent `124f3e0` (PR 169) le 21 novembre, pages publiques en 200. Base vidée le 19 novembre : il reste le compte administrateur et le catalogue commun. Inscriptions et classement du jeu fermés |
+| Production | `app.tartan.coach` et `tartan.coach` servent la PR 170 le 21 novembre, pages publiques en 200. Base vidée le 19 novembre : il reste le compte administrateur et le catalogue commun. Inscriptions et classement du jeu fermés |
 | Preview | `preview.tartan.coach`, branche Git `preview` gardée, en retard de plus de cent commits sur `main` : à remettre à niveau avant la recette. Base `preview` reconstruite le 14 novembre avec la seule graine de démonstration (4 comptes fictifs), sans donnée de production |
 | Neon | Offre Launch, restauration 7 jours, branche `production` protégée, calcul 0,25–2 CU ; branche `preview` 0,25–1 CU. Aucune branche de recette |
 | GitHub | Dépôt public, `LICENSE` propriétaire. Analyse des secrets, protection à l'envoi et Dependabot actifs. `main` exige des branches à jour, plus `quality` et `mobile-gate`. `mobile-gate` attend Maestro iOS et Android quand change ce que l'app native embarque (`apps/mobile`, ses paquets, le fichier de verrouillage), soit environ une heure par mise à jour ; une PR purement web le saute, textes de `packages/i18n/src/web/` compris (un test vérifie que le filtre suit les dépendances du mobile). Branches fusionnées supprimées le 16 novembre, `preview` gardée |
