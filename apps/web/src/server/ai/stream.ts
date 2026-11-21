@@ -1,13 +1,21 @@
 import "server-only";
-import type { PlannerProposalResponse, PlannerStreamEvent, PlannerStreamPlanLine } from "@tartan/contracts";
+import type {
+  PlannerProposalResponse,
+  PlannerStreamEvent,
+  PlannerStreamMatch,
+  PlannerStreamPlanLine,
+} from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { after } from "next/server";
 import { AppError } from "@/lib/errors";
-import type { PlannerProgress } from "./provider";
+import { PlannerFailureError } from "./failure";
 
+/** Ce que le service donne à voir, une fonction par étape : comprendre, retrouver, composer, contrôler. */
 export type PlannerStreamHooks = {
-  onProgress: (progress: PlannerProgress | { step: "saved" }) => void;
+  onUnderstanding: (summary: string | null, done: boolean) => void;
+  onMatching: (movements: PlannerStreamMatch[], done: boolean) => void;
   onPlan: (lines: PlannerStreamPlanLine[]) => void;
+  onChecking: (repairs: number, done: boolean) => void;
 };
 
 export const wantsPlannerStream = (request: Request) =>
@@ -40,8 +48,9 @@ const encode = (event: PlannerStreamEvent) =>
   new TextEncoder().encode(`event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`);
 
 /**
- * Réponse diffusée. La génération ne dépend pas de la connexion : un onglet fermé n'interrompt ni l'appel au
- * prestataire ni l'enregistrement ; le résultat se relit ensuite par la proposition.
+ * Réponse diffusée : un événement par étape, puis le résultat ou l'erreur lisible. La génération ne dépend pas de
+ * la connexion : un onglet fermé n'interrompt ni les appels au prestataire ni l'enregistrement ; le résultat se
+ * relit ensuite par la proposition.
  */
 export function plannerEventStream(work: (hooks: PlannerStreamHooks) => Promise<PlannerProposalResponse>): Response {
   let controller: ReadableStreamDefaultController<Uint8Array> | null = null;
@@ -60,15 +69,21 @@ export function plannerEventStream(work: (hooks: PlannerStreamHooks) => Promise<
       controller = null;
     },
   });
-  let lastPlan = "";
+  // Un même contenu n'est pas renvoyé deux fois de suite : le résumé et le plan grandissent par morceaux.
+  const last = new Map<string, string>();
+  const once = (event: PlannerStreamEvent) => {
+    const key = JSON.stringify(event.data);
+    if (last.get(event.event) === key) return;
+    last.set(event.event, key);
+    send(event);
+  };
   const done = work({
-    onProgress: ({ step }) => send({ event: "step", data: { step } }),
-    onPlan: (lines) => {
-      const key = JSON.stringify(lines);
-      if (key === lastPlan) return;
-      lastPlan = key;
-      send({ event: "plan", data: { lines } });
-    },
+    onUnderstanding: (summary, finished) => once({ event: "understanding", data: { summary, done: finished } }),
+    onMatching: (movements, finished) =>
+      once({ event: "matching", data: { movements: movements.slice(0, 120), done: finished } }),
+    onPlan: (lines) => once({ event: "composing", data: { lines } }),
+    onChecking: (repairs, finished) =>
+      once({ event: "checking", data: { repairs: Math.min(2, repairs), done: finished } }),
   })
     .then((result) => send({ event: "result", data: result }))
     .catch((error: unknown) =>
@@ -76,7 +91,12 @@ export function plannerEventStream(work: (hooks: PlannerStreamHooks) => Promise<
         event: "error",
         data:
           error instanceof AppError
-            ? { status: error.status, code: error.code, message: error.message }
+            ? {
+                status: error.status,
+                code: error.code,
+                message: error.message,
+                ...(error instanceof PlannerFailureError && error.step ? { step: error.step } : {}),
+              }
             : { status: 500, code: "internal", message: m.common.genericError },
       }),
     )

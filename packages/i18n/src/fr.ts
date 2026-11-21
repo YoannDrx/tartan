@@ -945,6 +945,27 @@ export const fr = {
     clarifySessionCount: "Une proposition compte au plus quatorze séances. Comment veux-tu réduire ta demande ?",
     clarifyEmpty:
       "Aucune séance n’a pu être préparée avec cette consigne. Précise la date, le destinataire et les exercices.",
+    // Les seules questions qui arrêtent le coach depuis le 21 novembre 2026. Chacune tient sur une ligne et finit
+    // par « ? » : la réponse du coach est enregistrée à la suite, et seul son texte est relu ensuite.
+    askDate: (said: string | null, from: string, to: string) =>
+      said
+        ? `Je n’ai pas su dater « ${said} » : quel jour veux-tu, entre le ${from} et le ${to} ?`
+        : `Ta demande ne dit pas quel jour : lequel veux-tu, entre le ${from} et le ${to} ?`,
+    askDateOutOfPeriod: (said: string | null, from: string, to: string) =>
+      said
+        ? `« ${said} » tombe hors de la période (du ${from} au ${to}) : quel jour de cette période veux-tu ?`
+        : `Le jour demandé tombe hors de la période (du ${from} au ${to}) : quel jour de cette période veux-tu ?`,
+    askRecipient: "Ta demande ne désigne aucun groupe ni athlète : pour qui est cette séance ?",
+    askOffTopic:
+      "Cette demande ne décrit pas une séance d’entraînement : que veux-tu préparer, pour quel jour et pour qui ?",
+    // Posés par le serveur quand il écrit lui-même un libellé : un exercice proposé sans raison, une séance décrite
+    // que le modèle n’a pas rendue.
+    proposedExercise: "Proposé pour l’objectif de la séance",
+    fallbackSessionTitle: "Séance",
+    slotsOpen:
+      "Un exercice de la séance n’a pas encore de fiche. Choisis une fiche, crée-la ou retire l’exercice avant de créer le brouillon.",
+    slotLastExercise:
+      "C’est le seul exercice de la séance : choisis une fiche ou crée-la, une séance vide ne se crée pas.",
     removedExercises: "Un exercice absent de ta consigne a été retiré de la proposition.",
     ambiguousAlias: (term: string) =>
       `« ${term} » désigne plusieurs fiches. Quel exercice souhaites-tu ? Précise son nom complet ou sa variante.`,
@@ -1103,7 +1124,7 @@ export const fr = {
     rateLimited: "Plusieurs demandes sont déjà en cours. Patiente un instant avant de réessayer.",
     contextChanged:
       "Les destinataires, exercices ou phases ont changé. Relis le contexte avant de préparer une nouvelle proposition.",
-    libraryLimit: "Choisis entre un et 500 exercices de ta bibliothèque pour cette demande.",
+    libraryLimit: "Ta bibliothèque ne contient aucun exercice utilisable, ou en compte plus de 5 000.",
     proposalConflict: "Cette proposition a changé. Recharge-la avant de continuer.",
     proposalFailed:
       "La proposition n’a pas pu être préparée. Aucun quota supplémentaire n’est consommé sans résultat exploitable.",

@@ -2,16 +2,22 @@ import "server-only";
 import { z } from "zod";
 import {
   addDays,
+  exerciseFamilyOf,
+  isPlannerSlotToken,
   trainingPhaseProgress,
   plannerPhaseChoicesForDate,
-  rankPlannerCandidates,
-  plannerEquipmentAvailable,
+  plannerSessionMovements,
+  plannerSessionToComposition,
 } from "@tartan/domain";
+import { conciseGuideFor } from "@tartan/domain/exercise-catalog";
 import {
+  plannerCapability,
   plannerSelection,
+  type PlannerRichInterpretation,
   type PlannerSelection,
   sessionPhaseReview,
   exerciseClassification,
+  exerciseFamily,
   snapshotItem,
   uuid,
   clockTime,
@@ -19,11 +25,11 @@ import {
 import { m } from "@tartan/i18n";
 import { AppError, notFound, invalid } from "@/lib/errors";
 import type { Prisma } from "@/generated/prisma/client";
-import { requireGroupInScope, visibleAthleteIds, type Access } from "../access";
+import { coachGroupIds, requireGroupInScope, visibleAthleteIds, type Access } from "../access";
 import { preparePhasePlanning } from "../training-phases.service";
 import { strengthResolutionInputsForAthletes } from "../strength.service";
 import { fromDbDate, toDbDate } from "@/lib/dates";
-import { plannerProviderContext, type PlannerProviderContext } from "./provider";
+import { PLANNER_LIBRARY_LIMIT, plannerProviderContext, type PlannerProviderContext } from "./pipeline/types";
 
 export const plannerBindings = z.object({
   resolutions: z
@@ -34,11 +40,12 @@ export const plannerBindings = z.object({
         requestedName: z.string().max(120).optional(),
         clarificationCount: z.number().int().min(0).default(0),
         fingerprint: z.string(),
-        exerciseId: uuid,
+        // Absent quand le coach a retiré un emplacement à compléter.
+        exerciseId: uuid.optional(),
         name: z.string(),
       }),
     )
-    .max(50)
+    .max(120)
     .optional(),
   today: z.iso.date(),
   timeZone: z.string(),
@@ -51,6 +58,9 @@ export const plannerBindings = z.object({
       aliases: z.array(z.string()),
     }),
   ),
+  // Faux : aucun destinataire n'a été choisi ; `targets` liste ceux que le coach peut viser, à citer dans la demande.
+  targetsChosen: z.boolean().optional(),
+  // Toute la bibliothèque de l'espace, figée à la demande : aucune coupe.
   exercises: z.array(
     z.object({
       token: z.string(),
@@ -61,12 +71,22 @@ export const plannerBindings = z.object({
       aliases: z.array(z.string()).optional(),
       classification: exerciseClassification.strict().nullable().optional(),
       strengthLoadKind: snapshotItem.shape.strengthLoadKind,
+      family: exerciseFamily.nullable().optional(),
+      level: z.enum(["beginner", "intermediate", "advanced"]).nullable().optional(),
+      unit: z.enum(["repetitions", "seconds", "meters", "contacts", "steps"]).nullable().optional(),
+      sides: z.enum(["total", "each_side", "alternating_total"]).nullable().optional(),
+      objective: z.string().nullable().optional(),
+      approved: z.boolean().optional(),
+      own: z.boolean().optional(),
+      preferred: z.number().int().min(0).nullable().optional(),
     }),
   ),
   phaseReviews: z.array(z.object({ date: z.iso.date(), review: sessionPhaseReview })),
   phaseCalendar: plannerProviderContext.shape.phaseCalendar,
-  // Mode « Proposer » : l'heure demandée, posée sur la séance par le serveur.
+  // L'heure demandée à l'écran, posée sur la séance par le serveur quand la demande n'en dit aucune.
   startTime: clockTime.nullable().optional(),
+  // Ce que le client qui a créé la demande sait afficher : emplacements à compléter, nouveaux points à vérifier.
+  accepts: z.array(plannerCapability).optional(),
   // Contexte figé à la demande : profil de l'espace, séances voisines (champs structurés seulement) et
   // couverture des références de force. Aucune note, aucun ressenti, aucune donnée de santé.
   space: plannerProviderContext.shape.space,
@@ -75,7 +95,11 @@ export const plannerBindings = z.object({
 });
 export type PlannerBindings = z.infer<typeof plannerBindings>;
 const changed = () => new AppError(409, "planner_context_changed", m.aiPlanner.contextChanged);
-export async function assertPlannerTargets(tx: Prisma.TransactionClient, access: Access, selection: PlannerSelection) {
+export async function assertPlannerTargets(
+  tx: Prisma.TransactionClient,
+  access: Access,
+  selection: Pick<PlannerSelection, "groupIds" | "athleteIds">,
+) {
   try {
     await requireGroupInScope(access, selection.groupIds, tx);
   } catch (error) {
@@ -88,12 +112,26 @@ export async function assertPlannerTargets(tx: Prisma.TransactionClient, access:
     throw new AppError(403, "planner_target_out_of_scope", m.aiPlanner.targetOutOfScope);
 }
 
+// Seuls les champs du guide utiles à l'étape « Composer » : famille, niveau, unité de comptage, côtés.
+const guideFacts = z.object({
+  family: exerciseFamily.optional(),
+  level: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+  objective: z.string().optional(),
+  counting: z
+    .object({
+      unit: z.enum(["repetitions", "seconds", "meters", "contacts", "steps"]).optional(),
+      sides: z.enum(["total", "each_side", "alternating_total"]).optional(),
+    })
+    .optional(),
+  technicalReview: z.string().optional(),
+});
+const MAX_TARGETS = 200;
+
 export async function buildPlannerBindings(
   tx: Prisma.TransactionClient,
   access: Access,
   raw: PlannerSelection,
   now: Date,
-  text = "",
 ): Promise<PlannerBindings> {
   const selection = plannerSelection.parse(raw);
   await assertPlannerTargets(tx, access, selection);
@@ -107,39 +145,42 @@ export async function buildPlannerBindings(
       availableEquipment: true,
     },
   });
-  const [groups, athletes, exercises] = await Promise.all([
+  // Aucun destinataire choisi : tous ceux que ce coach peut viser sont proposés à la lecture de la demande, qui
+  // doit en citer. Leurs noms ne partent jamais : la demande est mise en jetons avant tout appel.
+  const targetsChosen = selection.groupIds.length + selection.athleteIds.length > 0;
+  const scope = targetsChosen
+    ? { groupIds: selection.groupIds, athleteIds: selection.athleteIds }
+    : {
+        groupIds: (access.role === "owner"
+          ? (
+              await tx.group.findMany({
+                where: { organizationId: access.organizationId },
+                select: { id: true },
+                orderBy: { id: "asc" },
+                take: 100,
+              })
+            ).map((group) => group.id)
+          : (await coachGroupIds(access, tx)).slice(0, 100)
+        ).sort(),
+        athleteIds: (await visibleAthleteIds(access, tx)).sort().slice(0, MAX_TARGETS - 100),
+      };
+  const [groups, athletes, exercises, lists] = await Promise.all([
     tx.group.findMany({
-      where: { organizationId: access.organizationId, id: { in: selection.groupIds } },
+      where: { organizationId: access.organizationId, id: { in: scope.groupIds } },
       select: { id: true, name: true },
       orderBy: { id: "asc" },
     }),
     tx.athlete.findMany({
-      where: { organizationId: access.organizationId, id: { in: selection.athleteIds } },
+      where: { organizationId: access.organizationId, id: { in: scope.athleteIds } },
       select: { id: true, firstName: true, lastName: true },
       orderBy: { id: "asc" },
     }),
+    // Toute la bibliothèque : fiches de l'espace et fiches communes. Plus de tri par mots ni de coupe.
     tx.exercise.findMany({
       where: {
         OR: [{ organizationId: access.organizationId }, { organizationId: null }],
         deletedAt: null,
         ...(selection.exerciseIds.length ? { id: { in: selection.exerciseIds } } : {}),
-        // Mode « Proposer » : les fiches communes validées, et les fiches de l'espace qui en sont la copie.
-        ...(selection.mode === "propose"
-          ? {
-              AND: [
-                {
-                  OR: [
-                    {
-                      organizationId: null,
-                      catalogKey: { not: null },
-                      guide: { path: ["technicalReview"], equals: "approved" },
-                    },
-                    { organizationId: access.organizationId, sourceCatalogKey: { not: null } },
-                  ],
-                },
-              ],
-            }
-          : {}),
       },
       select: {
         id: true,
@@ -152,19 +193,21 @@ export async function buildPlannerBindings(
         catalogKey: true,
         sourceCatalogKey: true,
         organizationId: true,
+        guide: true,
       },
       orderBy: { id: "asc" },
+      take: PLANNER_LIBRARY_LIMIT + 1,
+    }),
+    // Favoris puis listes du coach, dans leur ordre : ces fiches passent d'abord dans ce qu'il laisse composer.
+    tx.exerciseList.findMany({
+      where: { organizationId: access.organizationId, ownerId: access.userId },
+      orderBy: [{ isFavorites: "desc" }, { position: "asc" }, { id: "asc" }],
+      select: { items: { orderBy: [{ position: "asc" }, { exerciseId: "asc" }], select: { exerciseId: true } } },
     }),
   ]);
-  if (groups.length !== selection.groupIds.length || athletes.length !== selection.athleteIds.length) throw notFound();
-  if (selection.mode === "propose") {
-    // Une copie de l'espace n'entre que si sa fiche d'origine est elle-même validée.
-    const approved = new Set(exercises.filter((e) => e.organizationId === null).map((e) => e.catalogKey));
-    const kept = exercises.filter((e) => e.organizationId === null || approved.has(e.sourceCatalogKey));
-    exercises.splice(0, exercises.length, ...kept);
-  }
-  if (!exercises.length)
-    throw invalid(selection.mode === "propose" ? m.aiPlanner.verifiedCatalogRequired : m.aiPlanner.libraryLimit);
+  if (targetsChosen && (groups.length !== scope.groupIds.length || athletes.length !== scope.athleteIds.length))
+    throw notFound();
+  if (!exercises.length || exercises.length > PLANNER_LIBRARY_LIMIT) throw invalid(m.aiPlanner.libraryLimit);
   if (selection.exerciseIds.length && exercises.length !== selection.exerciseIds.length) throw notFound();
   const targets: PlannerBindings["targets"] = [
     ...groups.map((group, i) => ({
@@ -190,7 +233,7 @@ export async function buildPlannerBindings(
   ];
   const phaseReviews: PlannerBindings["phaseReviews"] = [],
     phaseCalendar: NonNullable<PlannerBindings["phaseCalendar"]> = [];
-  if (org.phasesEnabled)
+  if (org.phasesEnabled && targetsChosen)
     for (let date = selection.period.from; date <= selection.period.to; date = addDays(date, 1)) {
       const choices = plannerPhaseChoicesForDate(selection, date);
       const phases = await preparePhasePlanning(
@@ -217,29 +260,57 @@ export async function buildPlannerBindings(
         });
       }
     }
+  // Une copie de l'espace représente sa fiche commune : une seule des deux entre dans la bibliothèque.
   const represented = new Set(
     exercises.filter((entry) => entry.organizationId === access.organizationId).map((entry) => entry.sourceCatalogKey),
   );
-  const eligible =
-    selection.mode === "propose"
-      ? exercises.filter((entry) => {
-          const classification = exerciseClassification.nullable().safeParse(entry.classification);
-          return (
-            classification.success && plannerEquipmentAvailable(classification.data, selection.brief?.equipment ?? [])
-          );
-        })
-      : exercises;
-  if (!eligible.length) throw invalid(m.aiPlanner.clarifyEquipment);
-  const available = eligible.filter((entry) => !entry.catalogKey || !represented.has(entry.catalogKey));
-  const bound = (selection.exerciseIds.length ? eligible : rankPlannerCandidates(available, text)).map((e, i) => ({
-    ...e,
-    token: `exercise_${i + 1}`,
-    updatedAt: e.updatedAt.toISOString(),
-  }));
+  const facts = new Map(exercises.map((entry) => [entry.id, guideFacts.safeParse(entry.guide ?? {})]));
+  const approvedKeys = new Set(
+    exercises
+      .filter((entry) => {
+        const guide = facts.get(entry.id);
+        return (
+          entry.organizationId === null && entry.catalogKey && guide?.success && guide.data.technicalReview === "approved"
+        );
+      })
+      .map((entry) => entry.catalogKey),
+  );
+  const available = selection.exerciseIds.length
+    ? exercises
+    : exercises.filter((entry) => !entry.catalogKey || !represented.has(entry.catalogKey));
+  const rank = new Map<string, number>();
+  for (const list of lists) for (const item of list.items) if (!rank.has(item.exerciseId)) rank.set(item.exerciseId, rank.size);
+  const bound = available.map((entry, i) => {
+    const parsed = facts.get(entry.id);
+    const guide = parsed?.success ? parsed.data : null;
+    const key = entry.catalogKey ?? entry.sourceCatalogKey;
+    const own = entry.organizationId === access.organizationId;
+    return {
+      token: `exercise_${i + 1}`,
+      id: entry.id,
+      name: entry.name,
+      category: entry.category,
+      updatedAt: entry.updatedAt.toISOString(),
+      aliases: entry.aliases,
+      classification: entry.classification,
+      strengthLoadKind: entry.strengthLoadKind,
+      family: guide?.family ?? exerciseFamilyOf(null, entry.category),
+      level: guide?.level ?? null,
+      unit: guide?.counting?.unit ?? null,
+      sides: guide?.counting?.sides ?? null,
+      // L'objectif court du guide concis, sinon celui du guide : une ligne, pour choisir un exercice.
+      objective: ((key ? conciseGuideFor(key)?.objective : null) ?? guide?.objective ?? null)?.slice(0, 160) ?? null,
+      // Proposable : fiche commune relue, copie d'une fiche relue, ou fiche créée par le coach.
+      approved: Boolean(key && approvedKeys.has(key)),
+      own: own && !entry.sourceCatalogKey,
+      preferred: rank.get(entry.id) ?? null,
+    };
+  });
   return plannerBindings.parse({
     today: new Intl.DateTimeFormat("en-CA", { timeZone: org.timeZone }).format(now),
     timeZone: org.timeZone,
     targets,
+    targetsChosen,
     exercises: bound,
     phaseReviews,
     phaseCalendar,
@@ -292,6 +363,8 @@ async function plannerSurroundings(
   targets: PlannerBindings["targets"],
   exercises: { id: string; token: string; strengthLoadKind?: string | null }[],
 ): Promise<Pick<PlannerBindings, "neighbours" | "strength">> {
+  // Sans destinataire choisi, rien n'est lu des séances ni des références : l'audience n'est pas connue.
+  if (!selection.groupIds.length && !selection.athleteIds.length) return { neighbours: [], strength: [] };
   const memberships = await tx.groupMember.findMany({
     where: {
       OR: [{ groupId: { in: selection.groupIds } }, { athleteId: { in: selection.athleteIds } }],
@@ -386,10 +459,12 @@ async function plannerSurroundings(
   const strength: NonNullable<PlannerBindings["strength"]> = [];
   if (audience.length && audience.length <= 300 && loadable.length) {
     const references = await strengthResolutionInputsForAthletes(tx, audience);
+    const keys = new Map<string, number>();
+    for (const athlete of audience)
+      for (const key of new Set((references.get(athlete) ?? []).map((reference) => reference.exerciseKey)))
+        keys.set(key, (keys.get(key) ?? 0) + 1);
     for (const exercise of loadable) {
-      const covered = audience.filter((athlete) =>
-        (references.get(athlete) ?? []).some((r) => r.exerciseKey === `exercise:${exercise.id}`),
-      ).length;
+      const covered = keys.get(`exercise:${exercise.id}`) ?? 0;
       if (covered)
         strength.push({ exerciseToken: exercise.token, coverage: covered === audience.length ? "all" : "some" });
     }
@@ -399,7 +474,7 @@ async function plannerSurroundings(
 
 // Les noms connus sont remplacés localement. Le texte libre peut toujours contenir
 // d’autres personnes : l’information à l’utilisateur ne promet pas une anonymisation.
-export function pseudonymizePlannerText(text: string, bindings: PlannerBindings) {
+export function pseudonymizePlannerText(text: string, bindings: Pick<PlannerBindings, "targets">) {
   const aliases = new Map<string, Set<string>>();
   for (const target of bindings.targets)
     for (const label of target.aliases) {
@@ -413,30 +488,77 @@ export function pseudonymizePlannerText(text: string, bindings: PlannerBindings)
   const regex = new RegExp(`(?<![\\p{L}\\p{N}_])(?:${escaped.join("|")})(?![\\p{L}\\p{N}_])`, "giu");
   return text.replace(regex, (name) => [...aliases.get(name.toLocaleLowerCase("fr"))!][0]!);
 }
+
+/**
+ * La fenêtre où une date peut tomber. Les clients d'avant le champ unique choisissent un jour à l'écran : quand la
+ * demande en cite un autre (« demain »), c'est la demande qui vaut. La fenêtre s'ouvre donc à quatre semaines, et le
+ * jour de l'écran ne sert plus que si la demande n'en dit aucun. Une période de plusieurs jours reste telle quelle.
+ */
+export function plannerDateWindow(period: PlannerSelection["period"], today: string) {
+  if (period.from !== period.to) return { period, day: null };
+  const from = period.from < today ? period.from : today;
+  const to = addDays(from, 27);
+  return period.from <= to ? { period: { from, to }, day: period.from } : { period, day: period.from };
+}
+
 export function providerContextFor(
   selection: PlannerSelection,
   bindings: PlannerBindings,
   messages: string[],
-  previous?: PlannerProviderContext["previous"],
+  options: {
+    // « Ajuster » : la séance actuelle, que le modèle modifie.
+    previous?: PlannerRichInterpretation;
+    // Alias appris de l'espace, lus au moment de l'appel : identifiant de fiche → termes.
+    learned?: readonly { term: string; exerciseId: string }[];
+  } = {},
 ): PlannerProviderContext {
+  const tokenOf = new Map(bindings.exercises.map((exercise) => [exercise.id, exercise.token]));
+  const window = plannerDateWindow(selection.period, bindings.today);
   return plannerProviderContext.parse({
-    mode: selection.mode ?? "format",
-    ...(selection.mode === "propose" ? { startTime: bindings.startTime ?? null } : {}),
+    ...(selection.mode ? { mode: selection.mode } : {}),
+    ...(selection.brief
+      ? { brief: { ...selection.brief, objective: pseudonymizePlannerText(selection.brief.objective, bindings) } }
+      : {}),
+    // Le jour choisi à l'écran : un indice, retenu seulement si la demande ne cite aucun jour.
+    ...(window.day ? { day: window.day } : {}),
+    ...(bindings.startTime ? { startTime: bindings.startTime } : {}),
     ...(bindings.space ? { space: bindings.space } : {}),
     ...(bindings.neighbours?.length ? { neighbours: bindings.neighbours } : {}),
     ...(bindings.strength?.length ? { strength: bindings.strength } : {}),
     // Titres et noms de blocs écrits par le modèle à partir de jetons : aucun nom de personne n'y revient.
-    ...(previous ? { previous } : {}),
+    ...(options.previous
+      ? {
+          previous: {
+            sessions: options.previous.sessions.map((session, index) => ({
+              date: session.date,
+              startTime: session.startTime,
+              targetTokens: session.targetTokens,
+              session: plannerSessionToComposition(session, index),
+              movements: plannerSessionMovements(session, index).map(
+                ({ id, said, exerciseToken, confidence, alternatives, suggestion }) => ({
+                  id,
+                  said,
+                  exerciseToken,
+                  confidence: isPlannerSlotToken(exerciseToken) ? "absent" : confidence,
+                  alternatives: [...alternatives],
+                  ...(suggestion ? { suggestion } : {}),
+                }),
+              ),
+            })),
+          },
+        }
+      : {}),
     resolvedExercises: (bindings.resolutions ?? []).flatMap((resolution) => {
-      const exercise = bindings.exercises.find((entry) => entry.id === resolution.exerciseId);
-      return resolution.requestedName && exercise ? [{ term: resolution.requestedName, token: exercise.token }] : [];
+      const token = resolution.exerciseId ? tokenOf.get(resolution.exerciseId) : undefined;
+      return resolution.requestedName && token ? [{ term: resolution.requestedName, token }] : [];
     }),
-    brief: selection.brief
-      ? { ...selection.brief, objective: pseudonymizePlannerText(selection.brief.objective, bindings) }
-      : undefined,
-    period: selection.period,
+    learnedAliases: (options.learned ?? [])
+      .flatMap((alias) => (tokenOf.has(alias.exerciseId) ? [{ term: alias.term, token: tokenOf.get(alias.exerciseId)! }] : []))
+      .slice(0, 2000),
+    period: window.period,
     today: bindings.today,
     timeZone: bindings.timeZone,
+    targetsChosen: bindings.targetsChosen !== false,
     targets: bindings.targets.map((t) => ({
       token: t.token,
       kind: t.type,
@@ -448,9 +570,17 @@ export function providerContextFor(
       token: e.token,
       name: e.name,
       category: e.category,
-      aliases: e.aliases ?? [],
+      aliases: (e.aliases ?? []).slice(0, 20),
       classification: e.classification ?? null,
       strengthLoadKind: e.strengthLoadKind ?? null,
+      family: e.family ?? null,
+      level: e.level ?? null,
+      unit: e.unit ?? null,
+      sides: e.sides ?? null,
+      objective: e.objective ?? null,
+      approved: e.approved ?? false,
+      own: e.own ?? false,
+      preferred: e.preferred ?? null,
     })),
     phaseCalendar: bindings.phaseCalendar,
     instructions: messages.map((text) => pseudonymizePlannerText(text, bindings)),
@@ -463,7 +593,17 @@ export async function recheckPlannerBindings(
   selection: PlannerSelection,
   bindings: PlannerBindings,
 ) {
-  await assertPlannerTargets(tx, access, selection);
+  // Destinataires choisis : ceux de la sélection. Sinon, tous ceux que la demande pouvait citer.
+  await assertPlannerTargets(
+    tx,
+    access,
+    bindings.targetsChosen === false
+      ? {
+          groupIds: bindings.targets.filter((target) => target.type === "group").map((target) => target.id),
+          athleteIds: bindings.targets.filter((target) => target.type === "athlete").map((target) => target.id),
+        }
+      : selection,
+  );
   const active = await tx.exercise.findMany({
     where: {
       id: { in: bindings.exercises.map((e) => e.id) },
@@ -472,16 +612,18 @@ export async function recheckPlannerBindings(
     },
     select: { id: true, updatedAt: true },
   });
-  if (
-    active.length !== bindings.exercises.length ||
-    bindings.exercises.some((e) => active.find((a) => a.id === e.id)?.updatedAt.toISOString() !== e.updatedAt)
-  )
+  const updated = new Map(active.map((exercise) => [exercise.id, exercise.updatedAt.toISOString()]));
+  if (active.length !== bindings.exercises.length || bindings.exercises.some((e) => updated.get(e.id) !== e.updatedAt))
     throw changed();
   const org = await tx.organization.findUniqueOrThrow({
     where: { id: access.organizationId },
     select: { phasesEnabled: true, timeZone: true },
   });
-  if (org.timeZone !== bindings.timeZone || org.phasesEnabled !== bindings.phaseReviews.length > 0) throw changed();
+  if (
+    org.timeZone !== bindings.timeZone ||
+    (bindings.targetsChosen !== false && org.phasesEnabled !== bindings.phaseReviews.length > 0)
+  )
+    throw changed();
   for (const entry of bindings.phaseReviews) {
     const current = await preparePhasePlanning(
       access,

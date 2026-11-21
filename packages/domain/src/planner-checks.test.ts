@@ -117,6 +117,17 @@ describe("ce que le coach a dit ne change pas", () => {
     expect(itemsOf(checked.value)).toHaveLength(1);
     expect(checked.defects).toEqual([]);
   });
+  it("dans une demande mixte, une fiche que le coach a citée n'est pas proposée une seconde fois", () => {
+    const proposal = { objective: "Échauffement", durationMin: 10, level: null, equipment: [], families: [] };
+    const checked = run(
+      composition([exercise(null, "exercise_7"), exercise(null, "exercise_1"), exercise("m1", "exercise_1", { reps: 5 })]),
+      context("Demain un échauffement à ta façon puis squat arrière 5 séries de 5.", [squat], { proposal }),
+    );
+    expect(itemsOf(checked.value)).toMatchObject([
+      { exerciseToken: "exercise_7", origin: "proposed" },
+      { exerciseToken: "exercise_1", origin: "said", prescription: { reps: 5 } },
+    ]);
+  });
   it("un mouvement cité qui manque, ou hors de l'ordre dit, est un défaut précis", () => {
     const rules = context("Demain squat arrière 3 séries de 8 puis développé couché 4 fois 6.", [squat, bench]);
     expect(run(composition([exercise("m2", "exercise_2")]), rules).defects).toMatchObject([

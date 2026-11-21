@@ -986,10 +986,18 @@ export function plannerCheckComposition(
     const index = indexes[at]!;
     const request = context.request.sessions[index];
     const described = Boolean(request?.movements.length) && !request?.proposal && !context.adjusting;
+    // Les fiches que le coach a citées pour cette séance : le modèle ne les propose pas une seconde fois.
+    const cited = new Set(
+      context.adjusting
+        ? []
+        : context.movements.filter((movement) => movement.session === index).map((movement) => movement.exerciseToken),
+    );
     // Une partie décrite ne reçoit aucun exercice que le coach n'a pas dit ; un emplacement n'est jamais proposé.
     let session = plannerDropItems(
       original,
-      (item) => item.origin !== "said" && (described || isPlannerSlotToken(item.exerciseToken)),
+      (item) =>
+        item.origin !== "said" &&
+        (described || isPlannerSlotToken(item.exerciseToken) || cited.has(item.exerciseToken)),
     );
     const warnings: PlannerWarning[] = [];
     const warn = (warning: PlannerWarning) => {

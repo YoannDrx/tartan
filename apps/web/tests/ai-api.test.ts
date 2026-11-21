@@ -29,6 +29,10 @@ vi.mock("@/lib/env", async (original) => {
   const actual = await original<typeof import("@/lib/env")>();
   return { ...actual, env: () => ({ ...actual.env(), AI_PLANNER_ENABLED: mocks.enabled }) };
 });
+// Le prestataire rend ici la séance d'une seule pièce : les quatre étapes ont leurs propres essais.
+vi.mock("@/server/ai/pipeline", async (original) =>
+  (await import("./planner-whole")).wholePipeline(await original<typeof import("@/server/ai/pipeline")>()),
+);
 vi.mock("@/server/ai/provider", async (original) => ({
   ...(await original<typeof import("@/server/ai/provider")>()),
   openAiPlannerProvider: () => ({ interpret: mocks.interpret }),
