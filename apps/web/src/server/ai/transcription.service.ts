@@ -14,6 +14,7 @@ import { env } from "@/lib/env";
 import { AppError, forbidden, notFound } from "@/lib/errors";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireOrgMember } from "../access";
+import { learnedExerciseAliases } from "./alias.service";
 import { inspectPlannerAudio } from "./audio";
 import { completePlannerOperation, failPlannerOperation, reservePlannerOperation } from "./usage.service";
 import { openAiTranscriptionProvider, type PlannerTranscriptionProvider } from "./transcription-provider";
@@ -65,18 +66,45 @@ export async function getPlannerTranscription(userId: string, organizationId: st
   });
 }
 
-// Noms de la bibliothèque de l'espace, fiches créées par le coach d'abord : ce sont
-// celles qu'un modèle de transcription a le moins de chances de connaître.
-async function plannerVocabulary(organizationId: string) {
-  const rows = await prisma.exercise.findMany({
-    where: { organizationId, deletedAt: null },
-    orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
-    select: { name: true, catalogKey: true },
-    take: 400,
-  });
-  return [...rows.filter((row) => !row.catalogKey), ...rows.filter((row) => row.catalogKey)]
-    .map((row) => row.name)
-    .slice(0, 40);
+/**
+ * Le vocabulaire donné à la dictée, du moins connu d'un modèle au plus connu : les termes que l'espace a appris
+ * (ce que ce coach dit vraiment), ses fiches créées, puis les fiches de sa bibliothèque et les fiches communes.
+ * Un terme appris ne sort jamais de son espace. L'appelant a déjà contrôlé l'appartenance.
+ */
+export async function plannerVocabulary(organizationId: string) {
+  const [learned, rows] = await Promise.all([
+    learnedExerciseAliases(organizationId),
+    prisma.exercise.findMany({
+      where: { OR: [{ organizationId }, { organizationId: null }], deletedAt: null },
+      orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+      select: { name: true, organizationId: true, sourceCatalogKey: true },
+      take: 1000,
+    }),
+  ]);
+  const own = rows.filter((row) => row.organizationId === organizationId);
+  const copies = own.filter((row) => row.sourceCatalogKey).map((row) => row.name);
+  const common = rows.filter((row) => row.organizationId === null).map((row) => row.name);
+  // Copies de l'espace et fiches communes à tour de rôle : ni les unes ni les autres n'occupent toute la place.
+  const shared = Array.from({ length: Math.max(copies.length, common.length) }, (_, index) => [
+    ...(index < common.length ? [common[index]!] : []),
+    ...(index < copies.length ? [copies[index]!] : []),
+  ]).flat();
+  const seen = new Set<string>();
+  return [
+    ...learned.slice(0, 16).map((alias) => alias.said),
+    ...own
+      .filter((row) => !row.sourceCatalogKey)
+      .map((row) => row.name)
+      .slice(0, 16),
+    ...shared,
+  ]
+    .filter((name) => {
+      const key = name.toLocaleLowerCase("fr");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 48);
 }
 
 export async function transcribePlannerAudio(

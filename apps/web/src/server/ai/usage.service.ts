@@ -310,6 +310,8 @@ export async function failPlannerOperation(
   id: string,
   leaseToken: string,
   code = "no_usable_result",
+  // L'étape du planificateur où la panne est survenue, quand elle est connue.
+  step: string | null = null,
 ) {
   await requireOrgMember(userId, organizationId, "manageSessions");
   return prisma.$transaction(async (tx) => {
@@ -321,6 +323,7 @@ export async function failPlannerOperation(
     if (row.state !== "pending") return stateOf(row);
     if (row.leaseToken !== leaseToken) throw conflict();
     await refund(tx, row, code);
+    if (step) await tx.aiPlannerOperation.update({ where: where(organizationId, id), data: { failureStep: step } });
     return { state: "refunded" } as const;
   });
 }
