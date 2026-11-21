@@ -82,7 +82,9 @@ describe("charges neutres", () => {
     await dispatchPain(null);
     const mail = mocks.email.mock.calls[0]?.[0];
     expect(mail?.subject).toContain("Nouvelle alerte");
-    expect(JSON.stringify(mail)).not.toMatch(/pain|douleur/i);
+    // Les jetons aléatoires (désinscription, identifiants) sont retirés : l'un d'eux peut contenir « pain » par hasard.
+    const text = JSON.stringify(mail).replace(/[A-Za-z0-9_-]{20,}/g, "");
+    expect(text).not.toMatch(/pain|douleur/i);
   });
 });
 
