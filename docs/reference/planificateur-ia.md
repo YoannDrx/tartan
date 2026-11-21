@@ -175,9 +175,54 @@ Le contrôle n'affiche que des comptes, des empreintes et des problèmes nommés
 
 Atteindre ces seuils qualifie le planificateur pour la bêta (`betaQualified`), pas pour l'ouverture : la relecture d'un coach et les essais sur appareils restent des preuves distinctes. Un échec ne se corrige pas en touchant le corpus : on corrige le planificateur, puis on mesure de nouveau avec un autre fichier de rapport. Après ce passage, le corpus devient une régression.
 
+## Mesure de bout en bout
+
+Les corpus de 80 et de 20 cas ne mesurent que l'adaptateur (`provider.interpret`), sans la sélection des fiches ni le service, et le code a été réglé en les lisant. La mesure de bout en bout, écrite le 21 novembre 2026 avant la refonte en quatre étapes, part de la consigne et s'arrête aux brouillons préparés.
+
+```sh
+corepack pnpm --filter @tartan/web eval:planner:e2e --check      # format et gel, sans base ni réseau
+corepack pnpm --filter @tartan/web eval:planner:e2e --freeze     # écrit l'empreinte du corpus et des paires
+corepack pnpm --filter @tartan/web eval:planner:e2e --catalog    # les clés du catalogue commun, pour écrire des cas
+AI_PLANNER_FAKE_PROVIDER=true corepack pnpm --filter @tartan/web eval:planner:e2e --examples    # éprouver l'outil, sans appel
+corepack pnpm --filter @tartan/web eval:planner:e2e --max-cost 10                               # la mesure réelle
+corepack pnpm --filter @tartan/web eval:planner:e2e --summary .local/planner-e2e-….json         # relire un rapport
+```
+
+Options : `--runs 3` (défaut), `--model`, `--fast-model`, `--only <ids>`, `--suite all|cases|pairs`, `--concurrency 3`, `--max-cost <dollars>`, `--output`, `--corpus`, `--pairs`, `--database-url`. La base est jetable, locale, et son nom finit par `_eval` (`EVAL_DATABASE_URL`, défaut `tartan_planner_e2e_eval` sur le port 54329, à créer avec `createdb`). Le lanceur y applique les migrations sans rien effacer.
+
+**Prestataire.** Sans clé OpenAI, ou avec `AI_PLANNER_FAKE_PROVIDER=true`, le prestataire est simulé : rien ne sort du poste, et tout appel vers OpenAI est refusé. Avec une clé (environnement ou `.env.local`), la mesure est réelle et exige `--max-cost` : elle s'arrête net dès que le coût cumulé le dépasse, ou dès qu'un modèle appelé n'a pas de prix. Les prix par modèle sont dans un seul fichier, `apps/web/evals/e2e/prices.ts`, **à relire dans la documentation du fournisseur avant chaque mesure réelle**.
+
+**Ce qu'il fait.** Pour chaque cas, il crée un espace (coach avec accord IA, groupes, athlètes fictifs, catalogue commun par `ensureExerciseCatalog`, fiches privées du cas), appelle `createPlannerProposal` avec la date du jour simulée, écoute les événements diffusés, puis `preparePlannerDrafts`. Les attentes du cas n'atteignent jamais le service. Le rapport JSON et son résumé lisible vont dans `.local/`, hors Git ; chaque ligne est gardée aussitôt dans un fichier `.lignes.jsonl`.
+
+**Format.** Un cas porte la consigne (`spoken` pour le style dicté), la date du jour simulée, les destinataires, la bibliothèque (catalogue commun, plus fiches privées), et des attentes par propriétés : nature (`described`, `objective`, `mixed`), mouvements attendus avec leur prescription et leur structure, ou bornes d'un objectif, `mustNotAsk` ou `mustAsk` avec son motif, et les fautes graves. Le jeu de paires associe un terme dit à une fiche, ou à `absent`. Le mode d'emploi, avec six exemples, est dans `apps/web/evals/e2e/README.md` ; les schémas dans `format.ts` et `pairs/format.ts`.
+
+**Gel.** `--freeze` écrit l'empreinte sha256 à côté du corpus (`corpus/cases.json.sha256`) et du jeu de paires (`pairs/pairs.json.sha256`). Le lanceur refuse un fichier sans empreinte ou modifié depuis. Regeler un fichier modifié est refusé aussi : on retire l'empreinte à la main, en le disant.
+
+**Seuils**, écrits dans `apps/web/evals/e2e/thresholds.ts` et appliqués à chacun des trois passages. Le lanceur sort en code 1 si un seul n'est pas tenu.
+
+| Critère                                                                                | Seuil         |
+| -------------------------------------------------------------------------------------- | ------------- |
+| Fautes graves (date fausse, charge inventée, exercice ajouté, remplacement silencieux) | Aucune        |
+| Cas justes                                                                             | 95 % au moins |
+| Questions inutiles, sur les cas `mustNotAsk`                                           | 2 % au plus   |
+| Paires justes en premier choix                                                         | 97 % au moins |
+| Fiche choisie pour un terme `absent`                                                   | 1 % au plus   |
+| Premier événement diffusé, médiane                                                     | Sous 2 s      |
+| Séance complète, brouillons préparés, médiane                                          | Sous 15 s     |
+
+Seule une mesure complète qualifie (`passed`) : tout le corpus, toutes les paires, trois passages, sur le vrai fournisseur. Une mesure partielle (`--only`, `--suite`, moins de trois passages), les exemples et le prestataire simulé ne qualifient rien, même seuils tenus.
+
+**Ce que l'outil mesure.** La justesse de la séance préparée, cas par cas ; les questions inutiles ; les fautes graves ; la recherche de fiches (premier choix, trois propositions, faux positifs) ; la latence du premier événement diffusé, de la première ligne du plan et du résultat complet ; les appels et les jetons d'entrée, en cache et de sortie par étape et par modèle ; le coût. Il compte les appels en observant `fetch` et rattache chacun à la dernière étape diffusée : il reste valable quel que soit le nombre d'étapes du service. Seul `apps/web/evals/e2e/driver.ts` touche au service.
+
+**Ce qu'il ne mesure pas.** La dictée : `spoken` marque le style d'une consigne, aucun son n'est transcrit. L'écran, la route HTTP et sa validation. La création des brouillons (`confirmPlannerProposal`), la publication et la lecture par l'athlète. Les ajustements et les réponses aux questions. Le remplacement en autonomie. Les pourcentages du maximum : aucun athlète de l'espace jetable n'a de référence de force. La qualité d'entraînement d'une séance proposée, qui reste une relecture de coach : les bornes disent seulement qu'elle tient dans le cadre demandé.
+
+**Limites du pipeline en place**, que l'outil contourne et écrit dans chaque rapport (`pipelineLimits`). Le service exige un mode : il est déduit de la nature du cas (`described` et `mixed` → mise en forme, `objective` → proposer). Il exige une période : les sept jours à partir de la date du jour simulée. En « Proposer », il exige un brief que l'outil lit dans la consigne et le profil de l'espace, en notant ce qu'il suppose (`legacy.assumed`). Une fiche absente devient une question bloquante. Aucune recherche de fiches n'est exposée : une paire passe par une consigne minimale. Le premier événement diffusé est l'étape « context », avant tout appel au modèle : ce seuil mesure aujourd'hui un accusé de réception, le premier contenu lisible est donné à part (`firstPlanMs`).
+
+Après une mesure dont les réponses ont été lues pour régler le planificateur, ce corpus devient lui aussi une régression.
+
 ## Reprises et coût
 
-Une opération logique consomme une proposition du quota utilisateur. Une citation sans attache, une date omise, une structure invalide ou une substitution détectée peut déclencher une seule reprise technique. Les deux appels partagent un délai de 100 secondes et le plafond est contrôlé globalement : plusieurs motifs d’erreur ne multiplient pas les reprises. Tartan supporte le coût du second appel. Le modèle configuré reste inchangé tant qu’une comparaison documentée n’a pas justifié son remplacement.
+Une opération logique consomme une proposition du quota de l'espace, compté par mois et partagé entre ses coachs. Une citation sans attache, une date omise, une structure invalide ou une substitution détectée peut déclencher une seule reprise technique. Les deux appels partagent un délai de 100 secondes et le plafond est contrôlé globalement : plusieurs motifs d’erreur ne multiplient pas les reprises. Tartan supporte le coût du second appel. Le modèle configuré reste inchangé tant qu’une comparaison documentée n’a pas justifié son remplacement.
 
 ## Recette navigateur avec OpenAI réel
 
