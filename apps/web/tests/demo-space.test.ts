@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { addDays, DEMO_ATHLETES, DEMO_CONSENT_VERSION, DEMO_SPACE_TTL_DAYS, startOfWeek } from "@tartan/domain";
+import { todayIso } from "@/lib/dates";
 import { outbox } from "@/lib/mail";
 import { deriveToken, sha256 } from "@/lib/tokens";
 import { INVITATION_PURPOSE } from "@/server/invitation-email";
@@ -92,7 +93,8 @@ describe("ouverture de l'espace de démonstration", () => {
 
   it("porte des séances passées et à venir, des validations, des ressentis et des phases", async () => {
     const { demo } = await setup("Contenu");
-    const today = new Date(new Date().toISOString().slice(0, 10));
+    // Le jour de Paris, comme le service : entre minuit et une heure du matin, le jour UTC est encore la veille.
+    const today = new Date(todayIso());
     const sessions = await prisma.scheduledSession.findMany({ where: { organizationId: demo.organizationId } });
     expect(sessions.every((session) => session.publishedAt)).toBe(true);
     expect(sessions.some((session) => session.date < today)).toBe(true);
@@ -316,7 +318,7 @@ describe("coupé dans l'espace de démonstration, service par service", () => {
     await queueActivationEmails(new Date());
     expect(await prisma.emailOutbox.count({ where: { organizationId: demo.organizationId } })).toBe(0);
     // Le dimanche de cette semaine, 19 h à Paris : la démonstration y a des séances, le récapitulatif n'en dit rien.
-    const sunday = addDays(startOfWeek(new Date().toISOString().slice(0, 10)), 6);
+    const sunday = addDays(startOfWeek(todayIso()), 6);
     await sendWeeklyDigests(new Date(`${sunday}T17:30:00Z`));
     expect(
       await prisma.auditLog.count({ where: { organizationId: demo.organizationId, action: "weekly_digest_sent" } }),
