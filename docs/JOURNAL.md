@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-21, Claude Fable 5.2, lot G : onboarding du coach et de l'athlète
+Fait : PR 171 (K1) fusionnée, production à `0e1fc70`. PR `feat/onboarding-complet` : le lot G écrit par Opus le 19 novembre, remis sur `main` (conflits dans le schéma Prisma, le constructeur et la liste des textes web). Un avatar choisi vaut une photo pour l'étape « profil ».
+Vérifié : types, lint, design, web 2 300, domaine 378, mobile 264 ; parcours `onboarding`, `screen-matrix`, `shell`, `space-switch`, `pilot`, `age-confirmation` rejoués sur build de production après la fusion. Non vérifié : aucun coach ni athlète réel n'a joué le parcours ; e-mails J1, J3 et J7 jamais reçus pour de vrai.
+À savoir : `tests/notification-delivery.test.ts` cherchait « pain » dans tout l'e-mail sérialisé, jetons aléatoires compris, et tombait par hasard : les jetons sont retirés de la comparaison. `packages/i18n/src/web/index.ts` entre en conflit à chaque branche qui ajoute un domaine : le régénérer à partir des fichiers présents. `DEMO_SPACE_ENABLED` reste à `false` jusqu'à la PR de l'espace de démonstration.
+Suite : espace de démonstration, K2, puis les deux comptes de test du fondateur.
+
 ## 2026-11-21, Claude Fable 5.2, lot K1 de l'audit et mesure de départ du planificateur
 Fait : PR 170 (planificateur du lot H) fusionnée. PR `fix/audit-corrections` : lot K1 écrit par Opus le 19 novembre (G2, G5, G6, G9, G10), remis sur `main`. Refonte du planificateur : P1 terminé hors PR (outil `eval:planner:e2e` qui passe par le service, seuils codés, corpus de 80 consignes et 150 paires écrit par un agent isolé et gelé par empreinte), P2 en cours sur `feat/ia-etapes`.
 Vérifié : K1 après fusion de `main` : types, lint, design, web 2 276, domaine 369, mobile 264. Mesure de départ réelle (`gpt-4.1`, pipeline du lot H, un passage) : 13 cas justes sur 80, 54 questions inutiles sur 72 dont 63 sur un nom d'exercice, 69 paires justes sur 150, 1 date fausse, médiane 6,3 s, 5,49 $. Non vérifié : parcours de K1 non rejoués par moi sur build de production (17 réussis par Opus le 19 novembre), hors ligne réel.
