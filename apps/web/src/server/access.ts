@@ -116,14 +116,17 @@ export const requireOwnedRefs = async (
   if (!session || !competition || !video) throw notFound();
 };
 
-export const audit = async (input: {
-  organizationId?: string | null;
-  actorId?: string | null;
-  action: string;
-  entity: string;
-  entityId?: string | null;
-}): Promise<void> => {
-  await prisma.auditLog.create({
+export const audit = async (
+  input: {
+    organizationId?: string | null;
+    actorId?: string | null;
+    action: string;
+    entity: string;
+    entityId?: string | null;
+  },
+  db: Prisma.TransactionClient = prisma,
+): Promise<void> => {
+  await db.auditLog.create({
     data: {
       organizationId: input.organizationId ?? null,
       actorId: input.actorId ?? null,

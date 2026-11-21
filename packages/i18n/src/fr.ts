@@ -1729,6 +1729,12 @@ export const fr = {
     consentVideo: "J'accepte que mes coachs me filment et conservent mes vidéos d'entraînement.",
     consentOptional:
       "Tu peux refuser : l'app marche quand même, ces fonctions restent masquées. Tu pourras changer d'avis dans les réglages.",
+    // Ce que chaque accord change, en une phrase : l'athlète décide en connaissance de cause, sans lire une page.
+    consentsTitle: "Deux accords facultatifs",
+    consentHealthWhy:
+      "Sert à signaler une douleur ou ton effort ressenti après la séance. Seuls tes coachs le voient. Sans cet accord, ces questions ne te sont pas posées.",
+    consentVideoWhy:
+      "Sert à revoir ton geste au ralenti avec ton coach. Tes vidéos restent entre toi et tes coachs, sauf si tu choisis de les partager au groupe.",
     termsRequired: "Accepte les conditions pour continuer.",
   },
   parental: {
@@ -1749,11 +1755,55 @@ export const fr = {
     resend: "Relancer mon parent",
     resent: "C'est renvoyé. Préviens ton parent de regarder ses e-mails.",
   },
+  // Les premiers pas du coach : titres partagés par le web et le mobile (`packages/domain/src/onboarding.ts`).
+  firstSteps: {
+    title: "Premiers pas",
+    steps: {
+      profile: "Compléter ton profil",
+      invite: "Inviter tes athlètes",
+      create: "Créer une première séance",
+      publish: "Publier la séance",
+      validate: "Recevoir une première validation",
+    },
+    optional: {
+      equipment: "Décrire le matériel de l'espace",
+      video: "Envoyer une première vidéo",
+      phase: "Poser une première phase",
+      install: "Installer l'app",
+    },
+  },
   athleteWelcome: {
     title: (group: string) => `Bienvenue dans ${group}`,
     body: (coach: string) =>
       `${coach} t'envoie tes séances ici. Tu vois ce qui t'attend, et tu valides d'un geste quand c'est fait.`,
     dismiss: "C'est parti",
+    // Un jour de séance, l'accueil tient en une ligne sous la séance.
+    discover: "Découvrir Tartan",
+    panelsLabel: "Trois choses à savoir",
+    panels: {
+      session: {
+        title: "Ta séance",
+        body: "Ton coach la publie ici. Fais-la, puis touche « J'ai fait la séance » : c'est validé en un geste.",
+      },
+      progress: {
+        title: "Tes progrès",
+        body: "Chaque séance validée compte. Ta semaine, ta série de régularité et tes records se remplissent seuls.",
+      },
+      videos: {
+        title: "Tes vidéos et ton coach",
+        body: (coach: string) =>
+          `Filme un geste : ${coach} le commente sur l'image. Ses consignes arrivent sous chaque séance.`,
+      },
+    },
+  },
+  // Après la première validation : ce qui rend l'app plus pratique, sans rien d'obligatoire.
+  athleteExtras: {
+    title: "Pour aller plus loin",
+    lead: "Rien d'obligatoire. Tout se retrouve ensuite dans les réglages.",
+    photoTitle: "Ta photo",
+    photoBody: "Ton coach te reconnaît d'un coup d'œil dans le suivi.",
+    photoAction: "Choisir une photo ou un avatar",
+    close: "Refermer cette carte",
   },
   today: {
     weekLabel: "Ta semaine",
@@ -2949,6 +2999,14 @@ export const fr = {
       footer: (space: string) => `Tu reçois ces conseils parce que tu viens de créer ${space}.`,
       help: "Un doute, une question ? Réponds simplement à cet e-mail.",
       steps: {
+        // Jamais envoyé seul : la photo ne vaut pas un rappel (`coachActivationStep`). Gardé pour que chaque étape
+        // de la carte ait son texte.
+        profile: {
+          subject: "Ajoute ta photo sur Tartan",
+          body: (space: string) =>
+            `Tes athlètes de ${space} verront ton visage en arrivant. Une photo ou un avatar du groupe suffit.`,
+          cta: "Compléter mon profil",
+        },
         invite: {
           subject: "Invite ton groupe sur Tartan",
           body: (space: string) =>

@@ -32,3 +32,5 @@ export * from "./exercise-lists";
 export * from "./credentials";
 
 export * from "./avatar";
+
+export * from "./onboarding";

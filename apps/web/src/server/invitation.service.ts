@@ -17,11 +17,12 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { deriveToken, sha256, tokenMatches } from "@/lib/tokens";
 import { audit, requireGroupInScope, requireOrgMember, requireVisibleAthlete } from "./access";
 import { assertWithinPlan } from "./billing.service";
-import { setConsent, startParentalConsent } from "./consent.service";
+import { recordJoinConsents, startParentalConsent } from "./consent.service";
 import { flushEmailOutbox } from "./email-outbox.service";
 import { INVITATION_PURPOSE as PURPOSE, invitationLink, invitationOutboxKind } from "./invitation-email";
 import { displayName, namesFor } from "./me.service";
 import { notify } from "./notify.service";
+import { startOnboarding } from "./onboarding.service";
 import { ensureReferralCode } from "./org.service";
 import { attributeReferral } from "./referral.service";
 
@@ -111,6 +112,25 @@ export const listInvitations = async (userId: string, organizationId: string) =>
       link: state === "valid" ? invitationLink(r.id) : null,
     };
   });
+};
+
+// Quelques adresses d'un coup : une invitation nominative par adresse, chacune contrôlée comme à l'unité.
+export const inviteByEmails = async (
+  userId: string,
+  organizationId: string,
+  groupId: string,
+  emails: string[],
+): Promise<{ sent: number }> => {
+  const unique = [...new Set(emails.map((email) => email.trim().toLowerCase()))];
+  for (const email of unique) {
+    await createInvitation(userId, organizationId, {
+      kind: "personal_email",
+      role: "athlete",
+      email,
+      groupIds: [groupId],
+    });
+  }
+  return { sent: unique.length };
 };
 
 export const groupInvitationLink = async (userId: string, organizationId: string, groupId: string) => {
@@ -329,6 +349,8 @@ export const acceptInvitation = async (
       await tx.organizationMember.create({
         data: { organizationId: inv.organizationId, userId: actor.userId, role: inv.role, status: "active" },
       });
+      // Un nouveau membre est accueilli : son tour, ses repères, son accueil (`onboarding_states`).
+      await startOnboarding(tx, inv.organizationId, actor.userId);
     }
 
     if (!isAthlete) {
@@ -339,6 +361,13 @@ export const acceptInvitation = async (
           role: inv.role === "assistant" ? ("assistant" as const) : ("lead" as const),
         })),
         skipDuplicates: true,
+      });
+      await recordJoinConsents(tx, {
+        userId: actor.userId,
+        organizationId: inv.organizationId,
+        athleteId: null,
+        health: false,
+        video: false,
       });
       return null;
     }
@@ -361,6 +390,14 @@ export const acceptInvitation = async (
       skipDuplicates: true,
     });
     await freezeAssignedPrescriptions(tx, athlete.id);
+    // Les accords sont écrits avec le membre : si l'un échoue, personne n'a rejoint (G15).
+    await recordJoinConsents(tx, {
+      userId: actor.userId,
+      organizationId: inv.organizationId,
+      athleteId: athlete.id,
+      health: input.consents.health,
+      video: input.consents.video,
+    });
     // Première arrivée dans l'espace : la bienvenue est mise en file dans la même transaction, une seule fois.
     if (!existing) {
       await tx.emailOutbox.createMany({
@@ -385,12 +422,6 @@ export const acceptInvitation = async (
     );
   }
 
-  await setConsent(actor.userId, "terms", true, athleteId);
-  // Rejoindre un espace n'enlève jamais un accord donné à un autre, ni à celui-ci : cocher accorde, c'est tout.
-  if (isAthlete && athleteId) {
-    if (input.consents.health) await setConsent(actor.userId, "health", true, athleteId);
-    if (input.consents.video) await setConsent(actor.userId, "video", true, athleteId);
-  }
   if (minor && athleteId && input.guardianEmail) {
     const names = await namesFor([inv.invitedBy]);
     await startParentalConsent({

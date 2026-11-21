@@ -25,6 +25,7 @@ import { coachGroupIds, requireOrgMember, requireGroupInScope, type Access } fro
 import { firstNameOf } from "./me.service";
 import { assertWithinPlan, ensurePlans, syncEntitlements } from "./billing.service";
 import { attributeReferral } from "./referral.service";
+import { startOnboarding } from "./onboarding.service";
 
 // Les adresses de la liste sont celles du pilote : tout gratuit. Les autres démarrent en Découverte.
 const initialPlan = (email: string): PlanKey => {
@@ -110,6 +111,8 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
       data: { organizationId: org.id, name: input.firstGroupName, goal: input.firstGroupGoal || null },
     });
     await tx.groupCoach.create({ data: { groupId: group.id, userId, role: "lead" } });
+    // Le coach qui crée son espace est un nouveau venu : tour de piste, carte des premiers pas, repères.
+    await startOnboarding(tx, org.id, userId);
     // Séances de départ, modifiables : le premier coach ne part pas d'une page blanche.
     const library = await tx.exercise.findMany({
       where: { organizationId: org.id },

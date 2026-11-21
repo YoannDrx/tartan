@@ -11,13 +11,23 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { PasswordInput } from "@/components/ui/password-input";
 import { toast } from "@/components/ui/toast";
+import { cn } from "@/lib/cn";
 import { definePasswordAction, dismissPasswordPromptAction } from "./credentials.action";
 
 const t = w.auth.prompt;
 
 // Pour qui est entré par un lien : une proposition facultative, sous les séances, qui ne retarde rien.
 // Refermée, elle l'est côté serveur : elle ne revient ni ici ni sur un autre appareil.
-export const PasswordPrompt = ({ email, canSetNow }: { email: string; canSetNow: boolean }) => {
+// `embedded` : posée dans la carte facultative de l'athlète, comme une ligne parmi d'autres, sans cadre propre.
+export const PasswordPrompt = ({
+  email,
+  canSetNow,
+  embedded = false,
+}: {
+  email: string;
+  canSetNow: boolean;
+  embedded?: boolean;
+}) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -45,13 +55,17 @@ export const PasswordPrompt = ({ email, canSetNow }: { email: string; canSetNow:
   });
 
   if (hidden) return null;
+  const Title = embedded ? "h3" : "h2";
   return (
-    <section aria-labelledby="mot-de-passe-propose" className="on-card flex flex-col gap-3 rounded-card bg-card p-4">
+    <section
+      aria-labelledby="mot-de-passe-propose"
+      className={cn("flex flex-col gap-3", !embedded && "on-card rounded-card bg-card p-4")}
+    >
       <div className="flex flex-col gap-1">
-        <h2 id="mot-de-passe-propose" className="t-h2 text-balance">
+        <Title id="mot-de-passe-propose" className={cn("text-balance", embedded ? "font-semibold" : "t-h2")}>
           {t.title}
-        </h2>
-        <p className="max-w-prose">{t.body}</p>
+        </Title>
+        <p className={cn("max-w-prose", embedded && "t-caption font-normal text-soft")}>{t.body}</p>
       </div>
       {open ? (
         <form

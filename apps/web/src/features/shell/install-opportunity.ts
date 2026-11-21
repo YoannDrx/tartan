@@ -14,6 +14,19 @@ export const hasInstallOpportunity = () => {
   }
 };
 
+// Une carte qui propose elle-même l'installation (la carte facultative de l'athlète) l'héberge : le bandeau
+// du bas de l'écran s'efface tant qu'elle est là, pour ne pas la proposer deux fois.
+let hosts = 0;
+export const installOfferHosted = () => hosts > 0;
+export const hostInstallOffer = () => {
+  hosts += 1;
+  window.dispatchEvent(new Event(INSTALL_OPPORTUNITY));
+  return () => {
+    hosts -= 1;
+    window.dispatchEvent(new Event(INSTALL_OPPORTUNITY));
+  };
+};
+
 export const markInstallOpportunity = () => {
   readyInThisTab = true;
   try {

@@ -68,7 +68,8 @@ export const CheckRow = ({
   ...props
 }: Omit<ComponentProps<"input">, "type"> & { label: string; detail?: string }) => (
   <label className={cn("flex min-h-11 items-start gap-3 py-2", className)}>
-    <input type="checkbox" className="check mt-px" {...props} />
+    {/* La cible fait 24 px, la case visible 20 : remontée d'un pixel, elle reste alignée sur la première ligne. */}
+    <input type="checkbox" className="check -mt-px" {...props} />
     <span className="flex flex-col">
       <span>{label}</span>
       {detail ? <span className="t-caption text-soft font-normal">{detail}</span> : null}

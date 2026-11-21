@@ -55,7 +55,7 @@ export default async function BienvenuePage({
           firstName={firstName}
           lastName={me.lastName ?? ""}
           birthDate={me.birthDate ?? ""}
-          nextPath={offerQuery ? `/abonnement${offerQuery}` : "/suivi"}
+          offer={offre ? { offre, rythme: rythme ?? "year" } : undefined}
         />
         <p className="text-soft">{m.onboarding.joinHint}</p>
       </div>

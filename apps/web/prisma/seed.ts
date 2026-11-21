@@ -51,6 +51,8 @@ const main = async () => {
     firstGroupName: "Hauteur Démo",
   });
   await ensureExerciseCatalog(coachId, org.id);
+  // L'espace de démonstration local est déjà rempli : son coach n'est pas guidé comme un nouveau venu.
+  await prisma.onboardingState.updateMany({ where: { organizationId: org.id }, data: { guided: false } });
 
   const athletes = [];
   for (const [first, last] of [
