@@ -670,6 +670,11 @@ export const MATRICE: Row[] = [
   },
   { route: "GET /api/v1/orgs/[orgId]/exercises/search", ...encadrants, call: () => ({ query: { q: "squat" } }) },
   {
+    route: "POST /api/v1/orgs/[orgId]/exercises/quick",
+    ...encadrants,
+    call: (_w, qui) => ({ body: { name: `Création rapide de la matrice ${qui}` } }),
+  },
+  {
     route: "GET /api/v1/orgs/[orgId]/exercises/[exerciseId]",
     ...encadrants,
     call: (w) => ({ params: { exerciseId: w.exerciseId } }),

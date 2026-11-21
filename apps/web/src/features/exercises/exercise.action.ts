@@ -7,6 +7,7 @@ import {
   exerciseListInput,
   exerciseListName,
   exerciseListOrder,
+  quickExerciseInput,
   uuid,
 } from "@tartan/contracts";
 import { z } from "zod";
@@ -14,8 +15,10 @@ import { spaceAction } from "@/features/shell/space-action";
 import {
   createExerciseVideoUpload,
   deleteExercise,
+  exerciseDefaultsFor,
   getExerciseSheet,
   personalizeExercise,
+  quickCreateExercise,
   saveExercise,
   searchExercises,
 } from "@/server/exercise.service";
@@ -59,9 +62,23 @@ export const searchExercisesAction = spaceAction
       filter: exerciseFilter,
       offset: z.number().int().min(0).max(10_000),
       limit: z.number().int().min(1).max(100),
+      ownFirst: z.boolean().optional(),
     }),
   )
   .action(({ parsedInput, ctx }) => searchExercises(ctx.userId, ctx.organizationId, parsedInput));
+
+// Création rapide : la famille et la charge proposées pour un nom, puis la fiche créée sans quitter l'écran.
+export const exerciseDefaultsAction = spaceAction
+  .inputSchema(z.object({ name: z.string().trim().max(120) }))
+  .action(({ parsedInput, ctx }) => exerciseDefaultsFor(ctx.userId, ctx.organizationId, parsedInput.name));
+
+export const quickCreateExerciseAction = spaceAction
+  .inputSchema(quickExerciseInput)
+  .action(async ({ parsedInput, ctx }) => {
+    const result = await quickCreateExercise(ctx.userId, ctx.organizationId, parsedInput);
+    if (result.created || parsedInput.listId) refresh(result.id);
+    return result;
+  });
 
 export const exerciseSheetAction = spaceAction
   .inputSchema(z.object({ id: uuid }))

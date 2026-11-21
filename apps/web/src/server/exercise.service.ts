@@ -3,6 +3,8 @@ import {
   exerciseClassification,
   exerciseInput,
   exerciseSearchQuery,
+  quickExerciseInput,
+  type ExerciseDefaultsResult,
   type ExerciseGuideEdit,
   type ExerciseInput,
   type ExerciseSearchQuery,
@@ -10,15 +12,20 @@ import {
   type ExerciseSheet,
   type ExerciseSummary,
   type CatalogVideo,
+  type QuickExerciseInput,
+  type QuickExerciseResult,
   prescriptionSchema,
 } from "@tartan/contracts";
 import {
   cleanExerciseAliases,
   exerciseFamilyOf,
+  findExerciseByName,
   matchesExerciseSearch,
+  normalizeExerciseTerm,
   parseInstagramUrl,
   parseYouTubeUrl,
   sortExercises,
+  suggestExerciseDefaults,
   validateClipRange,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
@@ -39,6 +46,7 @@ import {
   exerciseMemberships,
   favoriteExerciseIds,
   moveListItems,
+  ownListedExerciseIds,
   readableListExerciseIds,
 } from "./exercise-list.service";
 import { approvedMotionFamilies, withMotion } from "./motion-review.service";
@@ -197,7 +205,7 @@ export const searchExercises = async (
     organizationId,
     order ? { id: { in: order } } : filter.kind === "mine" ? { organizationId } : {},
   );
-  const found = sortExercises(
+  const sorted = sortExercises(
     rows
       .map(lightSummary)
       .filter((e) => filter.kind !== "family" || e.family === filter.family)
@@ -205,7 +213,102 @@ export const searchExercises = async (
     query.q,
     order,
   );
+  // Avant toute recherche, ce que le coach a rangé lui-même passe devant : ses favoris, puis ses listes.
+  const own = query.ownFirst && !query.q && filter.kind === "all" ? await ownListedExerciseIds(access) : [];
+  const rank = new Map(own.map((id, index) => [id, index]));
+  const position = (id: string) => rank.get(id) ?? own.length;
+  // Le tri est stable : le reste de la bibliothèque garde son ordre alphabétique.
+  const found = own.length === 0 ? sorted : [...sorted].sort((a, b) => position(a.id) - position(b.id));
   return { items: found.slice(query.offset, query.offset + query.limit), total: found.length };
+};
+
+// Les noms de la bibliothèque de l'espace, sans guide ni média : de quoi reconnaître un doublon et proposer une
+// famille. Les fiches de l'espace viennent d'abord ; une copie du catalogue tient la place de sa fiche d'origine.
+const libraryNames = async (organizationId: string, db: Prisma.TransactionClient = prisma) => {
+  const rows = await db.exercise.findMany({
+    where: { OR: [{ organizationId }, { organizationId: null }], deletedAt: null },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      aliases: true,
+      category: true,
+      strengthLoadKind: true,
+      organizationId: true,
+      catalogKey: true,
+      sourceCatalogKey: true,
+    },
+  });
+  const represented = new Set(rows.map((row) => row.sourceCatalogKey).filter(Boolean));
+  return rows
+    .filter((row) => !row.catalogKey || !represented.has(row.catalogKey))
+    .sort((a, b) => Number(a.organizationId === null) - Number(b.organizationId === null));
+};
+
+/**
+ * Ce que la création rapide préremplit pour un nom : la famille et la convention de charge proposées par la règle
+ * du domaine, et la fiche de la bibliothèque qui porte déjà ce nom, pour l'utiliser au lieu de la recréer.
+ */
+export const exerciseDefaultsFor = async (
+  userId: string,
+  organizationId: string,
+  name: string,
+): Promise<ExerciseDefaultsResult> => {
+  await requireOrgMember(userId, organizationId, "editExercises");
+  await ensureExerciseCatalog(userId, organizationId);
+  const library = await libraryNames(organizationId);
+  const same = findExerciseByName(name, library);
+  const existing = same ? await prisma.exercise.findUnique({ where: { id: same.id }, include: mediaInclude }) : null;
+  return { ...suggestExerciseDefaults(name, library), existing: existing ? lightSummary(existing) : null };
+};
+
+/**
+ * Créer une fiche par son seul nom, sans quitter l'écran : privée à l'espace, à compléter plus tard dans la
+ * bibliothèque. La famille et la convention de charge non précisées sont proposées par la règle du domaine. Une
+ * fiche qui porte déjà ce nom n'est pas recréée : c'est elle qui est rendue. Le terme cherché devient un autre nom
+ * de la fiche quand il aide à la retrouver.
+ */
+export const quickCreateExercise = async (
+  userId: string,
+  organizationId: string,
+  raw: QuickExerciseInput,
+): Promise<QuickExerciseResult> => {
+  const input = quickExerciseInput.parse(raw);
+  const access = await requireOrgMember(userId, organizationId, "editExercises");
+  await ensureExerciseCatalog(userId, organizationId);
+  return prisma.$transaction(async (tx) => {
+    // Le verrou de l'espace met en file deux créations du même nom : la seconde retrouve la première.
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    const library = await libraryNames(organizationId, tx);
+    const existing = findExerciseByName(input.name, library);
+    let id = existing?.id;
+    if (!id) {
+      const defaults = suggestExerciseDefaults(input.name, library);
+      const term = normalizeExerciseTerm(input.searchTerm ?? "");
+      // Le terme ne devient un autre nom que s'il ne trouvait rien : la recherche trouve déjà une fiche par un
+      // morceau de son nom, et un terme qui mène à d'autres fiches (un début de saisie, le nom d'une autre fiche)
+      // resterait ambigu pour qui dicte une séance.
+      const keepsTerm =
+        term !== "" &&
+        !normalizeExerciseTerm(input.name).includes(term) &&
+        !library.some((row) => [row.name, ...row.aliases].some((label) => normalizeExerciseTerm(label).includes(term)));
+      id = (
+        await tx.exercise.create({
+          data: {
+            organizationId,
+            createdBy: userId,
+            name: input.name,
+            category: input.category ?? defaults.category,
+            strengthLoadKind: input.strengthLoadKind === undefined ? defaults.strengthLoadKind : input.strengthLoadKind,
+            aliases: keepsTerm ? cleanExerciseAliases(input.name, [input.searchTerm!]) : [],
+          },
+        })
+      ).id;
+    }
+    if (input.listId) await addToOwnList(tx, access, input.listId, id);
+    const row = await tx.exercise.findUniqueOrThrow({ where: { id }, include: mediaInclude });
+    return { id, created: !existing, exercise: lightSummary(row) };
+  });
 };
 
 // Fiche d'un exercice : réservée à l'encadrement, comme la bibliothèque.
