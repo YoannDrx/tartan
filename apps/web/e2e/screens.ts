@@ -55,7 +55,7 @@ export const SCREENS: Screen[] = [
   { path: "/annonces", roles: both, proof: ["notification-center.spec.ts"] },
   { path: "/calendrier", roles: both, proof: ["calendar-views.spec.ts"] },
   { path: "/phases", roles: both, proof: ["training-phases.spec.ts"] },
-  { path: "/analyse", roles: both, proof: [] },
+  { path: "/analyse", roles: both, proof: ["training-analysis.spec.ts"] },
   { path: "/outils/charges", roles: both, proof: ["strength-calculator.spec.ts"] },
   { path: "/historique/[athleteId]", roles: both, proof: ["screen-matrix.spec.ts"] },
   { path: "/planificateur", roles: ["coach"], proof: ["ai-planner.spec.ts", "ai-disabled.spec.ts"] },
@@ -80,7 +80,7 @@ export const SCREENS: Screen[] = [
   },
   { path: "/athletes", roles: ["coach"], proof: ["athletic-performances.spec.ts"] },
   { path: "/athletes/[id]", roles: ["coach"], proof: ["athletic-performances.spec.ts"] },
-  { path: "/videos", roles: ["coach"], proof: ["video-collaboration.spec.ts"] },
+  { path: "/videos", roles: ["coach"], proof: ["video-collaboration.spec.ts", "video-filters.spec.ts"] },
   { path: "/videos/[id]", roles: ["coach"], proof: ["video-collaboration.spec.ts", "video-fullscreen.spec.ts"] },
   { path: "/abonnement", roles: ["coach"], proof: ["subscription.spec.ts"] },
   {

@@ -1,11 +1,41 @@
 # Planificateur IA
 
-Le coach écrit ou dicte une consigne, ou renseigne un brief de proposition. Le serveur appelle OpenAI, contrôle la réponse et renvoie une clarification ou une séance à relire. Le coach corrige, prévisualise l’ordre et les charges, puis crée des brouillons. Rien n’est publié automatiquement. L’état de qualification daté se lit dans [ETAT.md](../ETAT.md).
+Le coach écrit ou dicte une consigne, ou renseigne un brief de proposition. Le serveur appelle OpenAI, contrôle la réponse et renvoie une clarification ou une séance à relire. Le coach corrige la séance dans l’éditeur du constructeur, puis crée des brouillons. Rien n’est publié automatiquement. L’état de qualification daté se lit dans [ETAT.md](../ETAT.md).
+
+## L’écran, en deux temps (lot H, 18 novembre 2026)
+
+1. **Demande** (`planner-request.tsx`) : destinataires en pastilles, jour (ou sept jours en mise en forme), mode choisi entre deux cartes, consigne écrite ou dictée ; en « Proposer », durée, niveau et matériel en pastilles préremplies depuis le profil de l’espace (`availableEquipment`), heure facultative. Un seul bouton, « Préparer la séance » : plus de « Continuer avec ces destinataires » ni de case « relu ». Les phases de préparation s’ouvrent seulement si un choix de groupe est nécessaire.
+2. **Séance** (`planner-result.tsx`) : les étapes et le plan de la séance s’affichent pendant la génération (`planner-progress.tsx`, `use-planner-stream.ts`), puis la séance arrive dans l’éditeur de séquence du constructeur, circuits visibles, avec les points « À vérifier » rattachés à l’exercice concerné. « Ajuster » envoie la séance actuelle et la modification demandée. Une seule confirmation, « Créer le brouillon » ; l’aperçu individuel des charges n’est exigé que si un pourcentage doit être converti.
 
 ## Deux modes
 
-- **Mettre en forme ma séance** conserve les mouvements, quantités, charges, dates et destinataires de la consigne relue. Une donnée importante ambiguë doit devenir une question. Chaque exercice conserve une citation de la demande ; une suggestion ne modifie pas silencieusement la prescription.
-- **Proposer une séance** demande objectif, date, durée maximale, niveau, matériel et destinataires. Il utilise uniquement les fiches communes dont le guide porte `technicalReview: approved`. Le serveur filtre le matériel et rejette une fiche de matériel inconnu ou indisponible. Les noms français usuels et les clés de classification sont acceptés ; une appellation approximative ne donne pas accès à un autre appareil. Les charges sont nulles dans le schéma demandé au modèle et à nouveau contrôlées côté serveur. Les volumes et intensités proposés sont relus par le coach.
+- **Mettre en forme ma séance** conserve les mouvements, quantités, charges, dates et destinataires de la consigne relue. Une donnée importante ambiguë doit devenir une question. Chaque exercice conserve une citation de la demande ; une suggestion ne modifie pas silencieusement la prescription. La sortie porte les séries détaillées (`setPlan` : échauffement, pyramide, charge qui change) et le remplacement en autonomie (« ceux qui s’entraînent seuls font … à la place ») ; une séance qui en contient un devient commune au club et à l’autonomie.
+- **Proposer une séance** demande objectif, date, durée maximale, niveau, matériel et destinataires. Le serveur pose lui-même la date, l’heure, les destinataires et la durée de la demande : le schéma du modèle ne les contient pas. Il utilise les fiches communes dont le guide porte `technicalReview: approved`, et les fiches de l’espace qui en sont la copie. Le serveur filtre le matériel et rejette une fiche de matériel inconnu ou indisponible. Les noms français usuels et les clés de classification sont acceptés ; une appellation approximative ne donne pas accès à un autre appareil. Aucun kilo : un pourcentage du maximum n’est admis que sur un exercice dont **chaque** destinataire a une référence de force, Tartan le convertit pour chacun ; ailleurs il est retiré, par l'adaptateur comme par le service, quel que soit le prestataire. Les volumes et intensités proposés sont relus par le coach.
+
+## Contexte transmis en mode « Proposer » (et en mise en forme)
+
+- Profil de l’espace : disciplines, objectifs, matériel.
+- Séances de J−14 à J+7 de l’audience, en champs structurés seulement : date, type, exercices (jeton ou nom de fiche), séries, répétitions, distance, durée, charge prescrite. **Jamais** le titre, une note, la note du coach, une séance réalisée, un effort ressenti, une douleur ou une blessure. Un test vérifie qu’aucune de ces données ne part chez OpenAI.
+- Couverture des références de force par exercice (`all`, `some`) ; aucune valeur de maximum n’est transmise.
+- Le contexte est figé avec la demande (`bindings`), comme les fiches.
+
+## Contrôles du serveur : bloquants et « À vérifier »
+
+- **Bloquants**, une correction puis une question : date fausse ou jour cité oublié, destinataire hors sélection, charge inventée (valeur non écrite, sans unité, contradictoire, paliers d’une montée non écrits), exercice inconnu ou substitué, unité absente (« trois fois vingt de gainage »), habitude sans séance connue, plus de quatorze séances.
+- **À vérifier**, la séance passe et le point s’affiche sur l’exercice : fiche choisie par rapprochement (le seul exercice qui partage le plus de mots avec la proposition de la consigne), tours absents de la consigne ou manquants, pause qui ne s’exécuterait pas, habitude lue avec l’historique. Une pause après une série unique au premier niveau devient d’elle-même une récupération explicite ; deux lignes successives du même exercice deviennent un détail série par série.
+- L’API garde l’interprétation stricte que lisent les applications installées ; le détail (séries, autonomie, points à vérifier) passe par les brouillons préparés, en champs additifs.
+
+## Erreurs lisibles
+
+Chaque panne du prestataire a sa cause, gardée dans `ai_planner_operations.failure_code` et exposée en champ additif `failure` : `configuration` (clé ou modèle refusé, 503), `saturated` (429 d’OpenAI, 503), `unavailable` (5xx ou réseau, 502), `timeout` (délai de 100 s, 504), `refused` (422), `incomplete` (réponse coupée, 502), `invalid_output` (502). Le message dit quoi faire et « cette demande n’est pas décomptée » : une panne rend toujours la réservation au quota.
+
+## Réponse diffusée
+
+`POST /planner` et `POST /proposals/:id/clarify` répondent en `text/event-stream` quand le client envoie `Accept: text/event-stream` : événements `step` (`context`, `model`, `checks`, `retry`, `saved`), `plan` (noms de blocs et de fiches à mesure que le modèle écrit, appel OpenAI en `stream: true`), puis `result` ou `error`. Le JSON d’une seule pièce reste servi à l’app native. La génération ne dépend pas de la connexion (`after()`) : un onglet fermé n’interrompt ni l’appel ni l’enregistrement, et l’écran relit la proposition après une coupure.
+
+## Ajuster
+
+« Ajuster » envoie au modèle la séance actuelle (`previous`, en jetons) et la modification à part (`adjustment`). Ses exercices et ses charges ne comptent ni comme inventés ni comme substitués. Les ajustements ont leur propre compteur (`adjustment_count`, cinq au plus), distinct des cinq précisions ; ni l’un ni l’autre ne consomme de quota. Les anciens clients lisent toujours six messages au plus : la consigne et les cinq derniers échanges.
 
 Un catalogue rédigé mais non validé n’ouvre pas le second mode. Le jeu synthétique utilisé pour évaluer le prestataire ne change pas cette règle dans l’application.
 
@@ -28,27 +58,29 @@ Le prestataire renvoie un seul arbre ordonné : chaque exercice contient sa pres
 
 ## Quotas et limites
 
-| Offre | Propositions par mois | Dictée par mois |
-| --- | ---: | ---: |
-| Pilote, Coach | 30 | 60 min |
-| Club | 150 | 300 min |
-| Découverte | 0 | 0 |
+| Offre         | Propositions par mois | Dictée par mois |
+| ------------- | --------------------: | --------------: |
+| Pilote, Coach |                    30 |          60 min |
+| Club          |                   150 |         300 min |
+| Découverte    |                     0 |               0 |
 
 Audio : 3 Mio et 180 secondes au plus. Pas de dépassement payant. Règle pure : `packages/domain/src/ai-planner.ts`.
 
 ## Données
 
-Envoyés : le texte, le nom des exercices de la bibliothèque, l'audio d'une dictée. Les noms des groupes et athlètes sélectionnés sont remplacés par des jetons, mais un texte libre peut en contenir d'autres, d'où la consigne de ne citer ni athlète ni donnée de santé.
+Envoyés : le texte, le nom des exercices de la bibliothèque, l'audio d'une dictée, et le contexte structuré décrit plus haut (profil de l'espace, séances voisines sans titre ni note, couverture des références de force, séance à ajuster). Les noms des groupes et athlètes sélectionnés sont remplacés par des jetons, mais un texte libre peut en contenir d'autres, d'où la consigne de ne citer ni athlète ni donnée de santé.
 
 Conservation : transcription 24 h ; proposition abandonnée sept jours ; après création des brouillons, le plus tôt entre 24 h après conversion et sept jours après création. Tartan ne conserve pas l'audio. `store:false` ne garantit pas une rétention nulle chez OpenAI : c'est une question du dossier juridique.
 
 ## Modèles
 
-`gpt-4.1-mini` pour la planification, `gpt-transcribe` pour la dictée (`AI_PLANNER_MODEL`, `AI_TRANSCRIPTION_MODEL`). Depuis le 12 novembre 2026, `gpt-transcribe` remplace `gpt-4o-mini-transcribe`, arrêté par OpenAI le 26 février 2027. Il reçoit la langue dans `languages[]`, le vocabulaire dans `keywords[]` et un contexte court dans `prompt`. Prix annoncé : 0,0045 $ la minute, contre 0,003 $ pour l'ancien. Si `AI_TRANSCRIPTION_MODEL` est défini sur Vercel avec l'ancien nom, il faut le retirer ou le mettre à jour. Non éprouvé sur une vraie dictée. Le fondateur conserve la clé actuelle (décision du 13 novembre) ; la qualification réelle reste à faire.
+`gpt-4.1` pour la planification depuis le lot H (18 novembre 2026), `gpt-transcribe` pour la dictée (`AI_PLANNER_MODEL`, `AI_TRANSCRIPTION_MODEL`). Comparaison sur le même code et le même corpus de 80 cas : `gpt-4.1-mini` 70 à 72 sur 80 selon le passage, latence médiane 6 à 8 s ; `gpt-4.1`, un passage, 75 sur 80 sans défaut critique, latence médiane 2,7 s. Coût d’un appel : environ 0,007 $ avec `gpt-4.1-mini`, 0,033 $ avec `gpt-4.1` (15 000 jetons d’entrée, 500 de sortie, tarifs publics de 0,40/1,60 $ et 2/8 $ le million). Si `AI_PLANNER_MODEL` est défini sur Vercel, il l’emporte sur ce défaut. Depuis le 12 novembre 2026, `gpt-transcribe` remplace `gpt-4o-mini-transcribe`, arrêté par OpenAI le 26 février 2027. Il reçoit la langue dans `languages[]`, le vocabulaire dans `keywords[]` et un contexte court dans `prompt`. Prix annoncé : 0,0045 $ la minute, contre 0,003 $ pour l'ancien. Si `AI_TRANSCRIPTION_MODEL` est défini sur Vercel avec l'ancien nom, il faut le retirer ou le mettre à jour. Non éprouvé sur une vraie dictée. Le fondateur conserve la clé actuelle (décision du 13 novembre) ; la qualification réelle reste à faire.
 
 ## Essais de l'app native
 
 Le job `maestro` de la CI mobile joue le planificateur de l'app contre un serveur local : `AI_PLANNER_FAKE_PROVIDER=true` y remplace OpenAI par `src/server/ai/fake-provider.ts`, qui propose une séance à partir du contexte reçu. Ce réglage est sans effet sur Vercel et refusé en production par `assertEnvIsolation`.
+
+Le parcours web `e2e/ai-planner.spec.ts` s'exerce contre ce même prestataire factice (`E2E_AI_PLANNER_ENABLED=true`, comme l'étape « Planificateur activé avec prestataire simulé » de la CI) : demande en un clic et réponse diffusée, séance éditée dans le constructeur, ajustement, erreur lisible, aperçu individuel des charges avec adaptation, dictée (seule la transcription d'OpenAI est simulée), création privée, mode « Proposer » de bout en bout, `% 1RM` retiré puis gardé selon la couverture des références. Le prestataire factice suit le contexte : fiche rattachée ou nommée dans la consigne, « 80 % » lu comme un pourcentage du maximum, « #panne-saturated » pour simuler une panne.
 
 ## Déploiement
 
@@ -68,10 +100,10 @@ La première commande n'appelle pas le réseau. Un rapport contient commit, empr
 
 **Seuils :** au moins 57/60, 0 date fausse, 0 charge inventée.
 
-| Passage du 9 novembre 2026 | Réussis | Dates fausses | Charges inventées |
-| --- | ---: | ---: | ---: |
-| Base | 48/60 | Non mesuré | Non mesuré |
-| Final, garde-fous déterministes | 59/60 | 0 | 0 |
+| Passage du 9 novembre 2026      | Réussis | Dates fausses | Charges inventées |
+| ------------------------------- | ------: | ------------: | ----------------: |
+| Base                            |   48/60 |    Non mesuré |        Non mesuré |
+| Final, garde-fous déterministes |   59/60 |             0 |                 0 |
 
 **Limites de ce chiffre.** Les contrôles ont été écrits en regardant les échecs de ce corpus : il n'est plus un jeu indépendant. Le modèle reste variable d'un passage à l'autre, même à température 0 : un rejeu a produit 58/60 et une charge inventée, d'où un contrôle déterministe ajouté. Seize cas supplémentaires, écrits avant de voir les réponses, donnent 13/16, sans date fausse ni charge inventée. Échec restant : C22, athlète hors périmètre, où le coach reçoit une erreur au lieu d'une question.
 
@@ -95,15 +127,31 @@ Seuil attendu : au moins 76/80 à chacun des trois passages, aucune date fausse,
 
 Une réussite automatique ne clôt pas la qualification : 30 dictées humaines sur appareils, des essais bruités et la relecture des propositions par des coachs restent nécessaires. La génération de propositions est évaluée avec un catalogue synthétique au niveau prestataire ; cela ne prouve ni la validation éditoriale des fiches ni tout le parcours applicatif.
 
+## Mesures du lot H (18 novembre 2026)
+
+Appels réels, corpus de 80 cas devenu régression (il a été lu par des agents, et les contrôles ont été réglés en regardant ses échecs). Rapports hors dépôt, dans `.local/` du worktree du lot, relus par `--summary`.
+
+| Passage                 | Modèle       | Réussis sur 80 | Défaut critique              | Latence médiane |       Coût |
+| ----------------------- | ------------ | -------------- | ---------------------------- | --------------- | ---------: |
+| Départ (17 novembre)    | gpt-4.1-mini | 66, 61, 68     | aucun                        | 5,0 s           | non compté |
+| Après les étapes 1 et 2 | gpt-4.1-mini | 61, 62, 62     | 2 par passage (F5-48, F5-49) | 6,6 à 7,9 s     |     1,65 $ |
+| Après l'étape 3         | gpt-4.1-mini | 72, 71, 70     | F5-19 deux fois              | 6,1 à 7,8 s     |     1,70 $ |
+| Final                   | gpt-4.1-mini | 70, 69, 70     | aucun                        | 6,7 à 8,5 s     |     1,74 $ |
+| Final, un passage       | gpt-4.1      | 75             | aucun                        | 2,7 s           |     2,48 $ |
+
+Le seuil de 76 n'est atteint par aucun passage. Les échecs restants portent sur la profondeur d'un groupe (F5-33, F5-37), un destinataire absent de la sélection nommé dans le texte (F5-45), une demande hors mise en forme (F5-50), deux fiches voisines (F5-19, F5-20, F5-40) et une unité de charge (F5-43).
+
+**Jeu neuf de 20 cas** (`apps/web/evals/independent/planner-20-lot-h.json`, figé par empreinte avant la réécriture du prompt et avant toute réponse ; `--corpus lot-h`) : séries détaillées, autonomie, ajustement, contexte. Un seul passage, `gpt-4.1-mini` : **12 sur 20**, une charge inventée (H-05, montée « jusqu'à 60 kg » écrite en cinq séries à 60 kg). Le premier rapport compte 11 : le corpus nommait des familles d'exercices en mots courants (« running », « plyometrics ») au lieu des clés du catalogue ; la correspondance a été ajoutée au correcteur, le rapport d'origine conservé, le rapport recalculé est à part. Les échecs ont ensuite été corrigés (tournures d'autonomie lues comme des noms inconnus, pyramides, deux lignes d'un même exercice, ajustement du mode « Proposer ») : ce jeu n'est donc plus indépendant non plus.
+
 ## Corpus du fondateur (lot 6)
 
 Le dernier jeu indépendant : **40 consignes écrites et 30 dictées** par le fondateur ou un coach, jamais vues par l'agent. Il vit hors du dépôt, dans `.local/planner-founder/`, et n'y entre jamais : seules les consignes fictives y sont admises, sans nom ni résultat d'athlète réel.
 
-| Fichier | Contenu |
-| --- | --- |
-| `consignes.json` | 40 cas `C01` à `C40`, au format du corpus de 80 cas : `mode` (`format` ou `propose`), `text`, `brief` pour « Proposer », `expected` |
+| Fichier                 | Contenu                                                                                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `consignes.json`        | 40 cas `C01` à `C40`, au format du corpus de 80 cas : `mode` (`format` ou `propose`), `text`, `brief` pour « Proposer », `expected`                                        |
 | `dictees/manifest.json` | 30 cas `D01` à `D30` : `file` (m4a, webm ou wav, 3 Mo et 3 minutes au plus), `spoken` (ce que le coach a voulu dire), `setting` (calme, extérieur, vestiaire…), `expected` |
-| `dictees/D01.m4a` … | Les enregistrements, faits sur un téléphone, dont au moins dix dans le bruit |
+| `dictees/D01.m4a` …     | Les enregistrements, faits sur un téléphone, dont au moins dix dans le bruit                                                                                               |
 
 Modèle de format, à copier puis compléter : `apps/web/evals/founder/modele/`. Les champs de `expected` sont ceux du corpus de 80 cas (`apps/web/evals/planner-independent.ts`) : `status`, `date`, `exercise` (clé du catalogue), `sets`, `reps`, `loadKg`, `restS`, `field` pour une question attendue, `unknownName` pour un exercice absent, `order` pour un circuit. **Les attendus s'écrivent avant toute exécution, et ne changent plus ensuite.**
 
@@ -117,13 +165,13 @@ Le contrôle n'affiche que des comptes, des empreintes et des problèmes nommés
 
 **Critères, écrits le 16 novembre 2026 avant toute réponse** (`FOUNDER_THRESHOLDS` dans `apps/web/evals/planner-founder.ts`) :
 
-| Critère | Seuil |
-| --- | --- |
-| Consignes écrites réussies, à chacun des trois passages | 38 sur 40 au moins |
-| Dictées réussies | 27 sur 30 au moins |
-| Écart de transcription médian (mots) | 10 % au plus |
-| Date fausse, charge inventée, substitution silencieuse | Aucune, sur tous les passages |
-| Relecture humaine | Les propositions du mode « Proposer » relues par un coach, avec ses corrections notées |
+| Critère                                                 | Seuil                                                                                  |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Consignes écrites réussies, à chacun des trois passages | 38 sur 40 au moins                                                                     |
+| Dictées réussies                                        | 27 sur 30 au moins                                                                     |
+| Écart de transcription médian (mots)                    | 10 % au plus                                                                           |
+| Date fausse, charge inventée, substitution silencieuse  | Aucune, sur tous les passages                                                          |
+| Relecture humaine                                       | Les propositions du mode « Proposer » relues par un coach, avec ses corrections notées |
 
 Atteindre ces seuils qualifie le planificateur pour la bêta (`betaQualified`), pas pour l'ouverture : la relecture d'un coach et les essais sur appareils restent des preuves distinctes. Un échec ne se corrige pas en touchant le corpus : on corrige le planificateur, puis on mesure de nouveau avec un autre fichier de rapport. Après ce passage, le corpus devient une régression.
 

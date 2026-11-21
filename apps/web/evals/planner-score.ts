@@ -1,4 +1,4 @@
-import { plannerInterpretation } from "@tartan/contracts";
+import { plannerRichInterpretation as plannerInterpretation } from "@tartan/contracts";
 import type { PlannerEvalCase } from "./planner-corpus";
 
 export type PlannerScore = {

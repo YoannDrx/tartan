@@ -76,6 +76,17 @@ Après le plan d'exécution de l'audit, le fondateur ajoute au périmètre :
 
 Le fondateur donne carte blanche sur le design et l'expérience : `DESIGN.md` évolue avec la refonte. La base de production n'étant pas utilisée, elle est vidée après sauvegarde, sauf le compte administrateur, et les essais en production se font avec ses deux adresses. Les constats de l'audit et l'ordre des lots sont dans [docs/plans/audit-et-refonte.md](docs/plans/audit-et-refonte.md#8-constats-de-laudit-17-novembre-2026).
 
+## Décision du 21 novembre 2026
+
+Le fondateur juge le planificateur IA peu performant : il ne comprend pas assez bien ce que le coach demande. Il décide :
+
+- **Un seul champ.** Le coach écrit ou dicte ce qu'il veut. Le planificateur comprend seul s'il décrit sa séance, s'il donne un objectif, ou s'il mêle les deux, et dit ce qu'il a compris. Cela remplace les deux modes du 13 novembre.
+- **Exercices.** Chaque mouvement cité est cherché dans toute la bibliothèque. Un rapprochement incertain est posé et signalé, sans bloquer la séance. Un exercice absent se crée en un geste, depuis la séance proposée comme depuis le constructeur.
+- **Plus de « bêta ».** La mention est retirée sur preuve : un corpus neuf noté avec des seuils fixés d'avance (aucune date fausse, aucune charge inventée, 95 % de séances justes), puis un essai du fondateur sur la Preview.
+- **Budget.** 40 € d'appels réels en plus des 30 € du 17 novembre. Le modèle se choisit à la mesure, dans la gamme courante d'OpenAI.
+
+Ce qui ne change pas : le planificateur ne crée que des brouillons, n'invente ni date ni charge, et ne modifie jamais ce que le coach a dicté.
+
 ## Offres
 
 Découverte (gratuite), Coach et Club. Les prix et les plafonds ont une seule source, `packages/domain/src/plans.ts` ; le tableau lisible est dans `docs/plans/commercialisation.md`. Les athlètes ne paient jamais.

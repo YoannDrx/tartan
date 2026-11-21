@@ -52,6 +52,7 @@ import { ExercisePicker, ExerciseSource, LibraryBrowser } from "./exercise-picke
 import { DESKTOP, useMediaQuery } from "@/lib/use-media-query";
 import { attachItemKeys, overridesForSubmit, type KeyedOverride } from "./overrides";
 import { deleteSessionAction, deleteTemplateAction, saveSessionAction, saveTemplateAction } from "./session.action";
+import { publishedToast } from "./publication-notice";
 
 type BlockState = {
   key: string;
@@ -731,7 +732,7 @@ export const SessionBuilder = ({
           : input.publish
             ? initial?.publishedAt
               ? m.builder.updated
-              : m.builder.published
+              : publishedToast(data?.recipients)
             : m.builder.sequence.draftSaved,
       );
       if (input.publish && data) router.push(withSessionReturn(`/seances/${data.id}/suivi`, returnTo));

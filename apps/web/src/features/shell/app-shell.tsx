@@ -3,6 +3,7 @@
 import {
   CalendarDays,
   ChartNoAxesColumn,
+  ChevronDown,
   Dumbbell,
   House,
   Megaphone,
@@ -18,8 +19,7 @@ import { useTransition, type ReactNode } from "react";
 import type { ReleaseView, SpaceSummary } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
-import { Logo } from "@/components/logo";
-import { Select } from "@/components/ui/field";
+import { Logo, LogoMark } from "@/components/logo";
 import { RouteTransition } from "@/components/ui/route-transition";
 import { ACTIVE_TAB } from "@/components/ui/view-transition";
 import { cn } from "@/lib/cn";
@@ -57,12 +57,21 @@ const SpaceSwitcher = ({ spaces, current }: { spaces: SpaceSummary[]; current: S
   if (spaces.length < 2) {
     return <span className="hidden truncate text-[14px] text-fg-muted tablet:inline">{current.organizationName}</span>;
   }
+  // Le nom de l'espace reste lisible à 390 px : tronqué proprement, jamais réduit à un chevron (audit G6).
+  // La liste native garde le choix au clavier et au lecteur d'écran ; elle couvre la pastille, qui n'est qu'un reflet.
   return (
-    <label className="block w-40 min-w-0 text-[14px] tablet:w-56">
+    <label
+      title={current.organizationName}
+      className="relative flex min-h-11 min-w-[104px] max-w-40 flex-1 items-center gap-1 rounded-[10px] border border-control-line px-3 text-[14px] font-medium hover:border-fg-muted has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-offset-2 has-[select:focus-visible]:outline-(--ctx-focus) tablet:w-56 tablet:max-w-56 tablet:flex-none"
+    >
       <span className="sr-only">{m.settings.switchSpace}</span>
-      <Select
+      <span aria-hidden="true" data-testid="space-name" className="min-w-0 flex-1 truncate">
+        {current.organizationName}
+      </span>
+      <ChevronDown aria-hidden className="size-4 shrink-0" />
+      <select
         disabled={pending}
-        className="truncate text-[14px]"
+        className="absolute -inset-px cursor-pointer appearance-none opacity-0 disabled:cursor-wait"
         value={current.organizationId}
         onChange={(e) =>
           start(async () => {
@@ -77,7 +86,7 @@ const SpaceSwitcher = ({ spaces, current }: { spaces: SpaceSummary[]; current: S
             {s.organizationName} ({m.roles[s.role]})
           </option>
         ))}
-      </Select>
+      </select>
     </label>
   );
 };
@@ -121,9 +130,19 @@ export const AppShell = ({
   return (
     <div className={cn(worldFor(pathname), "min-h-dvh overflow-x-clip pb-[76px] desktop:pb-0")}>
       <header className={cn("app-header sticky z-30", barClass)}>
-        <div className="mx-auto flex min-h-14 max-w-[1440px] items-center gap-4 px-4 desktop:px-6">
-          <Link href="/accueil" aria-label={w.shell.home} className="inline-flex min-h-11 shrink-0 items-center">
-            <Logo height={28} onDark />
+        <div className="mx-auto flex min-h-14 max-w-[1440px] items-center gap-2 px-4 tablet:gap-4 desktop:px-6">
+          {/* Sur téléphone, l'icône seule : la place revient au nom de l'espace (audit G6). */}
+          <Link
+            href="/accueil"
+            aria-label={w.shell.home}
+            className="inline-flex min-h-11 min-w-11 shrink-0 items-center"
+          >
+            <span className="tablet:hidden">
+              <LogoMark size={32} />
+            </span>
+            <span className="max-tablet:hidden">
+              <Logo height={28} onDark />
+            </span>
           </Link>
           <nav aria-label={w.shell.mainNav} className="hidden flex-1 items-center gap-1 desktop:flex">
             {items.map((item) => (
@@ -140,7 +159,7 @@ export const AppShell = ({
               </Link>
             ))}
           </nav>
-          <div className="ml-auto flex min-w-0 items-center gap-2">
+          <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-1 tablet:flex-initial tablet:gap-2">
             <SpaceSwitcher spaces={spaces} current={space} />
             {/* Les rubriques hors de la barre d'onglets (§ 10.3) restent à portée de doigt. */}
             {items
