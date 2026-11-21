@@ -1,6 +1,6 @@
 import { m } from "@tartan/i18n";
 import { expect, type Browser, type Page } from "@playwright/test";
-import { signUp, uniqueEmail } from "./helpers";
+import { addFromLibrary, signUp, uniqueEmail } from "./helpers";
 
 export const today = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris" }).format(new Date());
 
@@ -14,8 +14,8 @@ export const createExercise = async (page: Page, name: string) => {
   await page.getByLabel("Nom affiché").fill("Démo courte");
   await page.getByLabel("Fin (s)").fill("90");
   await page.getByRole("button", { name: "Enregistrer" }).click();
-  // Le nom exact : la bibliothèque de départ contient des exercices aux noms voisins.
-  await expect(page.getByRole("listitem").filter({ has: page.getByText(name, { exact: true }) })).toBeVisible();
+  // La fiche créée s'ouvre à son adresse.
+  await expect(page.getByRole("heading", { level: 1, name, exact: true })).toBeVisible();
 };
 
 export const groupLink = async (page: Page): Promise<string> => {
@@ -61,7 +61,7 @@ export const publishSession = async (page: Page, title: string, exercise: string
   // Pendant le rendu en flux, React peut remplacer le formulaire : on attend la fin, puis on vise la copie affichée.
   await page.goto(`/seances/nouvelle?date=${today()}`, { waitUntil: "networkidle" });
   await page.getByLabel("Titre").locator("visible=true").fill(title);
-  await page.getByRole("button", { name: `Ajouter ${exercise} à la séance` }).click();
+  await addFromLibrary(page, exercise);
   await expect(page.getByRole("button", { name: new RegExp(exercise) }).first()).toBeVisible();
   await page.getByRole("tab", { name: "En autonomie" }).click();
   await page.getByRole("button", { name: "Générer depuis la version club" }).click();

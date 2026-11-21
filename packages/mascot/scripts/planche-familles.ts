@@ -8,7 +8,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { A_REPRENDRE } from "../src/v2/a-reprendre";
 import { inspect, type Report } from "../src/v2/constraints";
-import { framing, sceneSvg } from "../src/v2/draw-svg";
+import { HEIGHT } from "../src/v2/body";
+import { bodyExtent, framing, sceneSvg } from "../src/v2/draw-svg";
 import type { MotionClip } from "../src/v2/gesture";
 import { GESTURE_KEYS, gestureEntry, type GestureEntry } from "../src/v2/registry";
 import { distance } from "../src/v2/vec";
@@ -39,6 +40,8 @@ mkdirSync(out, { recursive: true });
 const SCALE = { scene: 0.62, still: 0.34, thumb: 0.42 };
 // Une vignette de l'image de synthèse : son titre, son état, puis ses deux vues posées sur le même sol.
 const THUMB = { width: 330, height: 220 };
+// L'échelle des vignettes : un athlète debout y mesure 150 points.
+const THUMB_SCALE = 150 / HEIGHT;
 
 type Row = { entry: GestureEntry; name: string; lines: string[]; report: Report; broken: (keyof Report)[] };
 const rows = new Map<string, Row[]>();
@@ -147,8 +150,19 @@ for (const family of FAMILIES) {
     const paint = scenePaint(clip.athlete);
     let x = 0;
     const images = views.slice(0, 2).map((view) => {
-      const box = framing(clip, view);
-      const scale = Math.min(SCALE.thumb, (THUMB.height - 44) / box.height, (THUMB.width - 10) / 2 / box.width);
+      // Une seule échelle pour toutes les vignettes : un athlète debout y a toujours la même taille. Un cadre
+      // trop grand pour la vignette se recadre autour du corps, dans la position montrée.
+      const scale = THUMB_SCALE;
+      const full = framing(clip, view);
+      const [room, roomHeight] = [(THUMB.width - 10) / 2 / scale, (THUMB.height - 44) / scale];
+      const body = bodyExtent(clip.pose(t), view);
+      const center = (body.left + body.right) / 2;
+      const boxWidth = Math.min(full.width, room);
+      const boxX = Math.min(Math.max(center - boxWidth / 2, full.x), full.x + full.width - boxWidth);
+      const boxHeight = Math.min(full.height, roomHeight);
+      // Posé sur le sol, sauf si le corps montré monte plus haut que la vignette : il reste alors entier.
+      const boxY = Math.max(full.y, Math.min(full.y + full.height - boxHeight, body.top - 12));
+      const box = { x: boxX, y: boxY, width: boxWidth, height: boxHeight };
       const [width, height] = [box.width * scale, box.height * scale];
       const image = sceneSvg(clip, t, view, paint, box).replace(
         "<svg ",

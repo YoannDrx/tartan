@@ -11,8 +11,7 @@ import {
   type HighJumpState,
 } from "@tartan/game/events/high-jump";
 import { m } from "@tartan/i18n";
-import { athleteRig } from "@tartan/mascot/athletes";
-import { drawMascot } from "@tartan/mascot/canvas";
+import { drawPoseFigure } from "@tartan/mascot/v2/pose-figure";
 import { HIGH_JUMP_PHASES, HIGH_JUMP_STAGE } from "@tartan/mascot/high-jump";
 import { HIGH_JUMP_BAR, HIGH_JUMP_CLIP } from "@tartan/mascot/high-jump-event";
 import { drawProp, type PropShape } from "@tartan/mascot/props";
@@ -24,11 +23,6 @@ import type { SceneSize } from "./hurdles-scene";
 
 const PAINT = athletePaint("highJump", "piste");
 const PROPS = stagePaint("piste");
-const BONES = {
-  neutral: athleteRig("highJump", "neutral"),
-  effort: athleteRig("highJump", "effort"),
-  joy: athleteRig("highJump", "joy"),
-};
 const P = HIGH_JUMP_PHASES;
 // Où se pose le dernier appui : un repère citron au sol, l'appel se règle dessus.
 const PLANT_X = HIGH_JUMP_CLIP.frame(P.takeoff[0]).root.x;
@@ -178,9 +172,8 @@ export const createHighJumpPainter = () => {
     ctx.fillStyle = tokens.band.action;
     ctx.fillRect(PLANT_X - 40, HIGH_JUMP_STAGE.ground + 16, 80, 12);
     const face = HIGH_JUMP_CLIP.face(t);
-    drawMascot(ctx, pose, {
+    drawPoseFigure(ctx, "highJump", fallen ? "neutral" : face, pose, {
       paint: PAINT,
-      bones: BONES[fallen ? "neutral" : face],
       at: { x: root.x, y: root.y - arcLift(t, lift) },
     });
     for (const shape of shapes) if (shape.front) drawProp(ctx, shape, PROPS[shape.paint]);

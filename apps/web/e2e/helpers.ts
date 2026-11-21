@@ -8,6 +8,35 @@ const DB = process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/
 
 export const PASSWORD = "mot-de-passe-de-test-e2e";
 
+/**
+ * Ajoute une fiche à la séance depuis la bibliothèque du constructeur : sa colonne sur ordinateur, sa feuille
+ * ailleurs. Le constructeur n'embarque plus la bibliothèque : on cherche la fiche, comme un coach.
+ */
+export const addFromLibrary = async (page: Page, name: string) => {
+  const opener = page.getByRole("button", { name: w.exercises.picker.open, exact: true });
+  const aside = page.getByRole("complementary", { name: m.builder.library });
+  const asideSearch = aside.getByPlaceholder(m.builder.sequence.searchExercise);
+  await expect(asideSearch.or(opener)).toBeVisible({ timeout: 30_000 });
+  const inSheet = await opener.isVisible();
+  if (inSheet) await opener.click();
+  const scope = inSheet ? page.getByRole("dialog") : aside;
+  // La recherche part au serveur : on attend sa réponse, pour qu'aucune requête ne reste en vol après l'ajout.
+  const field = scope.getByPlaceholder(m.builder.sequence.searchExercise);
+  if ((await field.inputValue()) === name) await field.fill("");
+  const searched = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      (response.request().postData() ?? "").includes(`"q":${JSON.stringify(name)}`),
+  );
+  await field.fill(name);
+  await searched;
+  await scope.getByRole("button", { name: m.builder.sequence.addToSession(name), exact: true }).click();
+  if (inSheet) {
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toBeHidden();
+  }
+};
+
 const slug = (name: string) =>
   name
     .normalize("NFD")
@@ -170,10 +199,15 @@ export const expectAccessible = async (page: Page) => {
       }
       return null;
     };
-    for (const target of document.querySelectorAll("a[href], button, input, select, textarea, summary, [role=button]")) {
+    for (const target of document.querySelectorAll(
+      "a[href], button, input, select, textarea, summary, [role=button]",
+    )) {
       const box = target.getBoundingClientRect();
       if (!box.width || !box.height || box.bottom <= 0 || box.top >= innerHeight) continue;
-      const cover = document.elementFromPoint(box.left + box.width / 2, Math.min(box.top + box.height / 2, innerHeight - 1));
+      const cover = document.elementFromPoint(
+        box.left + box.width / 2,
+        Math.min(box.top + box.height / 2, innerHeight - 1),
+      );
       if (!cover || cover === target || target.contains(cover) || cover.contains(target)) continue;
       const bar = chrome(cover);
       if (bar && !bar.contains(target)) target.setAttribute("data-axe-obscured", "");

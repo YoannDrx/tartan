@@ -8,6 +8,7 @@ import { withSessionReturn } from "@/lib/session-navigation";
 import {
   type AutonomousReplacement,
   exerciseCategory,
+  type ExerciseList,
   type ExerciseSummary,
   type PlannedSet,
   type Prescription,
@@ -21,7 +22,6 @@ import {
   formatPrescription,
   mergeVariantBlocks,
   prescriptionForGroup,
-  normalizeExerciseTerm,
   setPlanLoadUnit,
   startSetPlan,
   validSessionStructure,
@@ -33,12 +33,12 @@ import {
 import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
 import { PhasePlanningPanel } from "@/features/phases/phase-planning";
 import { m, strengthTestLabel, formatDateLong } from "@tartan/i18n";
-import { ChevronRight, GripVertical, Plus, Search, Trash2, Undo2 } from "lucide-react";
+import { w } from "@tartan/i18n/web";
+import { ChevronRight, Plus, Trash2, Undo2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { FilterPill, pillClass } from "@/components/filter-pill";
-import { ActivityPicto } from "@/components/pictos";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { pillClass } from "@/components/filter-pill";
 import { EmptyState } from "@/components/states";
 import { Button, IconButton } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -48,6 +48,8 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { useBuilderRecovery } from "./use-builder-recovery";
 import { SequenceEditor } from "./sequence-editor";
+import { ExercisePicker, ExerciseSource, LibraryBrowser } from "./exercise-picker";
+import { DESKTOP, useMediaQuery } from "@/lib/use-media-query";
 import { attachItemKeys, overridesForSubmit, type KeyedOverride } from "./overrides";
 import { deleteSessionAction, deleteTemplateAction, saveSessionAction, saveTemplateAction } from "./session.action";
 
@@ -406,6 +408,7 @@ export const SessionBuilder = ({
   progressionEnabled = false,
   initial,
   exercises,
+  lists = [],
   groups,
   athletes,
   templates,
@@ -435,6 +438,8 @@ export const SessionBuilder = ({
     phaseReview?: import("@tartan/contracts").SessionPhaseReview;
   } | null;
   exercises: ExerciseSummary[];
+  /** Les listes du coach, pour filtrer le sélecteur. */
+  lists?: ExerciseList[];
   groups: { id: string; name: string; athleteCount: number }[];
   athletes: { id: string; firstName: string; lastName: string }[];
   templates: (SessionDraft & { id: string; canDelete?: boolean })[];
@@ -488,8 +493,6 @@ export const SessionBuilder = ({
   const [chosenTemplate, setChosenTemplate] = useState("");
   const [previewing, setPreviewing] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<Version>("club");
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ blockKey: string; itemKey: string; autonomous?: boolean } | null>(null);
   // Le dernier « Ajouter ici » choisi : la bibliothèque y ajoute aussi, groupe compris.
   const [destination, setDestination] = useState<{ blockKey: string; parent: string | null; label: string } | null>(
@@ -525,17 +528,27 @@ export const SessionBuilder = ({
 
   const blocks = version === "club" ? club : autonomous;
   const setBlocks = version === "club" ? setClub : setAutonomous;
-  const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises]);
-  const library = exercises.filter(
-    (e) =>
-      (!category || e.category === category) &&
-      [e.name, ...(e.aliases ?? [])].some((term) =>
-        normalizeExerciseTerm(term).includes(normalizeExerciseTerm(search)),
-      ),
+  // Les fiches connues du constructeur : celles que la séance cite, puis chaque fiche chargée par le sélecteur.
+  const [known, setKnown] = useState(() => new Map(exercises.map((e) => [e.id, e])));
+  const rememberExercises = useCallback(
+    (items: ExerciseSummary[]) =>
+      setKnown((current) => {
+        if (items.every((item) => current.has(item.id))) return current;
+        const next = new Map(current);
+        for (const item of items) next.set(item.id, item);
+        return next;
+      }),
+    [],
   );
+  const byId = known;
+  const knownExercises = useMemo(() => [...known.values()], [known]);
+  const source = useMemo(() => ({ lists, remember: rememberExercises }), [lists, rememberExercises]);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  // Sur ordinateur, la bibliothèque tient dans sa colonne ; ailleurs, elle s'ouvre en feuille.
+  const wide = useMediaQuery(DESKTOP, null);
 
-  const addExercise = (exerciseId: string, blockKey?: string) => {
-    const exercise = byId.get(exerciseId);
+  const addExercise = (exerciseId: string, blockKey?: string, picked?: ExerciseSummary) => {
+    const exercise = picked ?? byId.get(exerciseId);
     if (!exercise) return;
     const aimed = !blockKey && destination && blocks.some((b) => b.key === destination.blockKey) ? destination : null;
     if (aimed?.parent) {
@@ -831,744 +844,710 @@ export const SessionBuilder = ({
   const editingTarget = editing?.autonomous ? editingItem?.autonomous : editingItem;
 
   return (
-    <fieldset
-      disabled={saving || uncertainSave}
-      aria-label={m.builder.body}
-      onChangeCapture={() => setDirty(true)}
-      className="grid min-w-0 gap-4 desktop:grid-cols-[300px_minmax(0,1fr)] desktop:gap-x-6"
-    >
-      {recovery.candidate ? (
-        <section
-          className="desktop:col-start-2 rounded-card on-card bg-card p-4"
-          aria-label={m.nativeBuilder.recoveredTitle}
-        >
-          <h2 className="t-h2">{m.nativeBuilder.recoveredTitle}</h2>
-          <p>
-            {recovery.candidate.pending && !initial
-              ? m.nativeBuilder.pendingReply
-              : recovery.candidate.form.expectedVersion !== initial?.version
-                ? m.nativeBuilder.restoreChanged
-                : m.nativeBuilder.restoreConfirm}
-          </p>
-          <p className="my-2 font-semibold">{recovery.candidate.form.draft.title || m.builder.sequence.untitled}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button disabled={recovery.candidate.pending && !initial} onClick={restoreDraft}>
-              {m.nativeBuilder.restore}
-            </Button>
-            <ConfirmDialog
-              title={m.nativeBuilder.discardLocalConfirm}
-              onConfirm={async () => {
-                try {
-                  await recovery.discard();
-                } catch {
-                  setFormError(m.nativeBuilder.localError);
-                }
-              }}
-              trigger={<Button variant="secondary">{m.nativeBuilder.discardLocal}</Button>}
-            />
-          </div>
-        </section>
-      ) : null}
-      <section
-        aria-label={m.builder.details}
-        className="desktop:col-start-2 min-w-0 flex flex-col gap-4 rounded-card on-card bg-card p-4"
+    <ExerciseSource.Provider value={source}>
+      <fieldset
+        disabled={saving || uncertainSave}
+        aria-label={m.builder.body}
+        onChangeCapture={() => setDirty(true)}
+        className="grid min-w-0 gap-4 desktop:grid-cols-[300px_minmax(0,1fr)] desktop:gap-x-6"
       >
-        <div className="flex flex-wrap items-end gap-3">
-          <Field label={m.builder.titleLabel} className="min-w-64 flex-1">
-            {(a) => <Input {...a} ref={titleField} value={title} onChange={(e) => setTitle(e.target.value)} />}
-          </Field>
-          {templates.length > 0 ? (
-            <div className="flex flex-col gap-1">
-              <Field label={m.builder.useTemplate}>
-                {(a) => (
-                  <Select
-                    {...a}
-                    defaultValue=""
-                    onChange={(e) => {
-                      setChosenTemplate(e.target.value);
-                      applyTemplate(e.target.value);
-                    }}
-                  >
-                    <option value="" disabled>
-                      {m.builder.sequence.choose}
-                    </option>
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.title}
-                      </option>
-                    ))}
-                  </Select>
-                )}
-              </Field>
-              {chosenTemplate && templates.find((t) => t.id === chosenTemplate)?.canDelete ? (
-                <ConfirmDialog
-                  title={m.builder.deleteTemplate}
-                  onConfirm={() => removeTemplate.execute({ id: chosenTemplate })}
-                  trigger={
-                    <Button size="sm" variant="quiet" disabled={removeTemplate.isPending}>
-                      {m.builder.deleteTemplate}
-                    </Button>
-                  }
-                />
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={m.builder.type}>
-            {(a) => (
-              <Select {...a} value={type} onChange={(e) => setType(e.target.value as SessionType)}>
-                {(Object.keys(m.sessionType) as SessionType[]).map((t) => (
-                  <option key={t} value={t}>
-                    {m.sessionType[t]}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-          <Field label={m.builder.date}>
-            {(a) => <DateInput {...a} value={date} onChange={(e) => setDate(e.target.value)} />}
-          </Field>
-        </div>
-        <details open={Boolean(initial?.startTime || initial?.location || initial?.draft.coachNote)}>
-          <summary className="min-h-11 cursor-pointer py-2 font-semibold">{m.builder.sequence.advanced}</summary>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={m.builder.time}>
-              {(a) => <Input {...a} type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />}
-            </Field>
-            <Field label={m.builder.location}>
-              {(a) => <Input {...a} value={location} onChange={(e) => setLocation(e.target.value)} />}
-            </Field>
-            <Field label={m.builder.duration}>
-              {(a) => (
-                <Input
-                  {...a}
-                  type="number"
-                  min={1}
-                  value={durationMin}
-                  onChange={(e) => setDurationMin(e.target.value)}
-                />
-              )}
-            </Field>
-          </div>
-          <Field label={m.builder.coachNote} className="mt-3">
-            {(a) => (
-              <Textarea
-                {...a}
-                className="min-h-11"
-                maxLength={280}
-                value={coachNote}
-                onChange={(e) => setCoachNote(e.target.value)}
-              />
-            )}
-          </Field>
-        </details>
-      </section>
-
-      <section className="desktop:col-start-2 min-w-0 flex flex-col gap-3 rounded-card on-card bg-card p-4">
-        <h2 className="t-h2">{m.builder.audience}</h2>
-        <div className="grid gap-4 tablet:grid-cols-2">
-          <fieldset>
-            <legend className="t-caption mb-1">{m.builder.entireGroup}</legend>
-            {groups.map((g) => (
-              <CheckRow
-                key={g.id}
-                label={g.name}
-                detail={m.builder.sequence.athleteCount(g.athleteCount)}
-                checked={selectedGroups.includes(g.id)}
-                onChange={(e) =>
-                  setSelectedGroups(
-                    e.target.checked ? [...selectedGroups, g.id] : selectedGroups.filter((x) => x !== g.id),
-                  )
-                }
-              />
-            ))}
-          </fieldset>
-          <fieldset>
-            <legend className="t-caption mb-1">{m.builder.pickAthletes}</legend>
-            <div className="max-h-56 overflow-y-auto">
-              {athletes.map((a) => (
-                <CheckRow
-                  key={a.id}
-                  label={`${a.firstName} ${a.lastName}`}
-                  checked={selectedAthletes.includes(a.id)}
-                  onChange={(e) =>
-                    setSelectedAthletes(
-                      e.target.checked ? [...selectedAthletes, a.id] : selectedAthletes.filter((x) => x !== a.id),
-                    )
-                  }
-                />
-              ))}
-            </div>
-          </fieldset>
-        </div>
-      </section>
-
-      {phasesEnabled ? (
-        <div className="desktop:col-start-2 min-w-0">
-          <PhasePlanningPanel
-            initialChoices={
-              initial &&
-              planningKey ===
-                phasePlanningKey(
-                  initial.date,
-                  initial.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId),
-                  initial.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId),
-                )
-                ? initial.phaseReview?.choices
-                : []
-            }
-            key={planningKey}
-            organizationId={organizationId}
-            date={date}
-            groupIds={selectedGroups}
-            athleteIds={selectedAthletes}
-            onReady={setPhaseReady}
-          />
-        </div>
-      ) : null}
-      <section aria-label={m.builder.body} className="desktop:col-start-2 min-w-0 flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            role="tablist"
-            aria-label={m.builder.sequence.versionLabel}
-            className="flex flex-wrap items-center gap-2"
-          >
-            {(["club", "autonomous"] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                role="tab"
-                aria-selected={version === v}
-                className={pillClass(version === v)}
-                onClick={() => setVersion(v)}
-              >
-                {v === "club" ? m.builder.versionClub : m.builder.versionAutonomous}
-              </button>
-            ))}
-          </div>
-          {version === "autonomous" ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={generateAutonomous}
-              disabled={club.every((b) => b.items.length === 0)}
-            >
-              {m.builder.generate}
-            </Button>
-          ) : null}
-          {version === "autonomous" && autonomous.length === 0 ? (
-            <Button size="sm" variant="quiet" onClick={() => setAutonomous(defaultBlocks(newKey()))}>
-              {m.builder.sequence.fromScratch}
-            </Button>
-          ) : null}
-        </div>
-
-        {version === "autonomous" && club.some((b) => b.shared) ? (
-          <p className="text-soft">
-            {m.builder.sharedBlocksHint}{" "}
-            {club
-              .filter((b) => b.shared)
-              .map((b) => b.name)
-              .join(", ")}
-          </p>
-        ) : null}
-        {version === "autonomous" && autonomous.length === 0 && !club.some((b) => b.shared) ? (
-          <EmptyState rubric="seances">{m.builder.sequence.noAutonomous}</EmptyState>
-        ) : null}
-
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p role="status" className="text-sm">
-            {saving ? m.builder.sequence.saving : dirty ? m.builder.sequence.unsaved : m.builder.sequence.saved}
-          </p>
-          {dirty ? (
-            <p role="status" className="w-full text-sm">
-              {recovery.state === "saved"
-                ? m.nativeBuilder.localSaved
-                : recovery.state === "error"
-                  ? m.nativeBuilder.localError
-                  : recovery.state === "saving"
-                    ? m.nativeBuilder.localSaving
-                    : m.builder.sequence.unsaved}
-            </p>
-          ) : null}
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={!history.length}
-            onClick={() => {
-              const previous = history.at(-1);
-              if (previous) {
-                setClub(previous.club);
-                setAutonomous(previous.autonomous);
-                setTitle(previous.title);
-                setType(previous.type);
-                setCoachNote(previous.coachNote);
-                setDurationMin(previous.durationMin);
-                setOverrides(previous.overrides);
-                setHistory(history.slice(0, -1));
-                setDirty(true);
-              }
-            }}
-          >
-            <Undo2 aria-hidden className="size-4" />
-            {m.builder.sequence.undo}
-          </Button>
-        </div>
-        {blocks.map((block) => (
+        {recovery.candidate ? (
           <section
-            key={block.key}
-            aria-label={block.name}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              const id = e.dataTransfer.getData("text/exercise-id");
-              if (id) addExercise(id, block.key);
-            }}
-            className="overflow-hidden rounded-card on-card bg-card"
+            className="desktop:col-start-2 rounded-card on-card bg-card p-4"
+            aria-label={m.nativeBuilder.recoveredTitle}
           >
-            <label className="sr-only" htmlFor={`block-${block.key}`}>
-              {m.builder.sequence.blockName}
-            </label>
-            <input
-              id={`block-${block.key}`}
-              value={block.name}
-              onChange={(e) =>
-                changeBlocks(blocks.map((b) => (b.key === block.key ? { ...b, name: e.target.value } : b)))
-              }
-              className="t-h2 min-h-11 w-full border-b border-card-line bg-card-raised px-4 hover:bg-raise"
-            />
-            {version === "club" ? (
-              <div className="px-3">
-                <CheckRow
-                  label={m.builder.sequence.sharedPhase}
-                  checked={Boolean(block.shared)}
-                  onChange={(e) =>
-                    changeBlocks(blocks.map((b) => (b.key === block.key ? { ...b, shared: e.target.checked } : b)))
+            <h2 className="t-h2">{m.nativeBuilder.recoveredTitle}</h2>
+            <p>
+              {recovery.candidate.pending && !initial
+                ? m.nativeBuilder.pendingReply
+                : recovery.candidate.form.expectedVersion !== initial?.version
+                  ? m.nativeBuilder.restoreChanged
+                  : m.nativeBuilder.restoreConfirm}
+            </p>
+            <p className="my-2 font-semibold">{recovery.candidate.form.draft.title || m.builder.sequence.untitled}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button disabled={recovery.candidate.pending && !initial} onClick={restoreDraft}>
+                {m.nativeBuilder.restore}
+              </Button>
+              <ConfirmDialog
+                title={m.nativeBuilder.discardLocalConfirm}
+                onConfirm={async () => {
+                  try {
+                    await recovery.discard();
+                  } catch {
+                    setFormError(m.nativeBuilder.localError);
                   }
-                />
+                }}
+                trigger={<Button variant="secondary">{m.nativeBuilder.discardLocal}</Button>}
+              />
+            </div>
+          </section>
+        ) : null}
+        <section
+          aria-label={m.builder.details}
+          className="desktop:col-start-2 min-w-0 flex flex-col gap-4 rounded-card on-card bg-card p-4"
+        >
+          <div className="flex flex-wrap items-end gap-3">
+            <Field label={m.builder.titleLabel} className="min-w-64 flex-1">
+              {(a) => <Input {...a} ref={titleField} value={title} onChange={(e) => setTitle(e.target.value)} />}
+            </Field>
+            {templates.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                <Field label={m.builder.useTemplate}>
+                  {(a) => (
+                    <Select
+                      {...a}
+                      defaultValue=""
+                      onChange={(e) => {
+                        setChosenTemplate(e.target.value);
+                        applyTemplate(e.target.value);
+                      }}
+                    >
+                      <option value="" disabled>
+                        {m.builder.sequence.choose}
+                      </option>
+                      {templates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.title}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </Field>
+                {chosenTemplate && templates.find((t) => t.id === chosenTemplate)?.canDelete ? (
+                  <ConfirmDialog
+                    title={m.builder.deleteTemplate}
+                    onConfirm={() => removeTemplate.execute({ id: chosenTemplate })}
+                    trigger={
+                      <Button size="sm" variant="quiet" disabled={removeTemplate.isPending}>
+                        {m.builder.deleteTemplate}
+                      </Button>
+                    }
+                  />
+                ) : null}
               </div>
             ) : null}
-            <SequenceEditor
-              block={{
-                ref: block.key,
-                name: block.name,
-                variant: block.shared ? "both" : version,
-                items: block.items.map((i) => ({
-                  ref: i.key,
-                  exerciseId: i.exerciseId,
-                  prescription: i.prescription,
-                  ...(i.autonomous ? { autonomous: i.autonomous } : {}),
-                })),
-                sequence: block.sequence,
-              }}
-              exercises={exercises}
-              onEdit={(itemKey) => setEditing({ blockKey: block.key, itemKey })}
-              onEditAutonomous={(itemKey) => setEditing({ blockKey: block.key, itemKey, autonomous: true })}
-              onDestination={(aimed) => setDestination({ blockKey: block.key, ...aimed })}
-              onChange={(next) =>
-                changeBlocks(
-                  blocks.map((b) =>
-                    b.key === block.key
-                      ? {
-                          ...b,
-                          sequence: next.sequence,
-                          items: next.items.map((i) => ({
-                            key: i.ref!,
-                            exerciseId: i.exerciseId,
-                            prescription: i.prescription,
-                            ...(i.autonomous ? { autonomous: i.autonomous } : {}),
-                          })),
-                        }
-                      : b,
-                  ),
-                )
-              }
-            />
-          </section>
-        ))}
-        {blocks.length > 0 ? (
-          <Button
-            size="sm"
-            variant="quiet"
-            className="self-start"
-            onClick={() => changeBlocks([...blocks, { key: newKey(), name: m.builder.sequence.newBlock, items: [] }])}
-          >
-            <Plus aria-hidden className="size-4" />
-            {m.builder.addBlock}
-          </Button>
-        ) : null}
-      </section>
-
-      <aside
-        aria-label={m.builder.library}
-        className="flex min-w-0 flex-col gap-3 rounded-card on-card bg-card p-4 desktop:sticky desktop:top-20 desktop:col-start-1 desktop:row-span-6 desktop:row-start-1 desktop:max-h-[calc(100dvh-100px)] desktop:self-start desktop:overflow-y-auto"
-      >
-        <h2 className="t-h2">{m.builder.library}</h2>
-        {destination ? (
-          <p className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-semibold">{m.builder.sequence.destination(destination.label)}</span>
-            <button type="button" className="min-h-11 underline" onClick={() => setDestination(null)}>
-              {m.builder.sequence.destinationReset}
-            </button>
-          </p>
-        ) : null}
-        <div className="relative">
-          <Search aria-hidden className="pointer-events-none absolute left-3 top-3 size-5 text-soft" />
-          <Field label={m.exercises.search} labelHidden>
-            {(a) => (
-              <Input
-                {...a}
-                type="search"
-                className="pl-10"
-                placeholder={m.exercises.search}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            )}
-          </Field>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            className={pillClass(category === null)}
-            aria-pressed={category === null}
-            onClick={() => setCategory(null)}
-          >
-            {m.builder.sequence.all}
-          </button>
-          {(Object.keys(m.exerciseCategory) as (keyof typeof m.exerciseCategory)[]).map((c) => (
-            <button
-              key={c}
-              type="button"
-              className={cn(pillClass(category === c), "px-2.5")}
-              aria-pressed={category === c}
-              aria-label={m.exerciseCategory[c]}
-              title={m.exerciseCategory[c]}
-              onClick={() => setCategory(c)}
-            >
-              <ActivityPicto kind={c} className="size-[18px]" />
-            </button>
-          ))}
-        </div>
-        {exercises.length === 0 ? (
-          <p className="text-soft">
-            {m.exercises.empty}{" "}
-            <FilterPill href="/exercices?nouveau=1" active={false} className="mt-2">
-              {m.exercises.new}
-            </FilterPill>
-          </p>
-        ) : null}
-        <ul className="-mx-1 flex max-h-80 flex-col divide-y divide-card-line overflow-y-auto desktop:max-h-none">
-          {library.map((e) => (
-            <li
-              key={e.id}
-              draggable
-              onDragStart={(ev) => ev.dataTransfer.setData("text/exercise-id", e.id)}
-              className="flex cursor-grab items-center gap-2 px-1 py-1 active:cursor-grabbing"
-            >
-              <GripVertical aria-hidden className="size-4 shrink-0 text-st-upcoming" />
-              <ActivityPicto kind={e.category} className="size-5 text-soft" />
-              <span className="flex min-w-0 flex-1 flex-col leading-snug">
-                <span className="break-words font-semibold">{e.name}</span>
-                <span className="t-caption font-normal text-soft">
-                  {m.exerciseCategory[e.category as keyof typeof m.exerciseCategory]}
-                </span>
-              </span>
-              <IconButton label={m.builder.sequence.addToSession(e.name)} onClick={() => addExercise(e.id)}>
-                <Plus aria-hidden className="size-5" />
-              </IconButton>
-            </li>
-          ))}
-        </ul>
-      </aside>
-
-      {clubRefs.length > 0 && athletes.length > 0 ? (
-        <details className="desktop:col-start-2 min-w-0 rounded-card on-card bg-card px-4 py-2">
-          <summary className="t-h2 flex min-h-11 items-center gap-2 [&::-webkit-details-marker]:hidden">
-            <ChevronRight aria-hidden className="size-5 transition-transform [[open]>summary>&]:rotate-90" />
-            {m.builder.adjustments}
-          </summary>
-          <div className="mb-2 mt-1 flex flex-col gap-3">
-            <Field label={m.builder.sequence.athlete}>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={m.builder.type}>
               {(a) => (
-                <Select {...a} value={overrideFor} onChange={(e) => setOverrideFor(e.target.value)}>
-                  <option value="">{m.builder.sequence.choose}</option>
-                  {athletes.map((x) => (
-                    <option key={x.id} value={x.id}>
-                      {x.firstName} {x.lastName}
+                <Select {...a} value={type} onChange={(e) => setType(e.target.value as SessionType)}>
+                  {(Object.keys(m.sessionType) as SessionType[]).map((t) => (
+                    <option key={t} value={t}>
+                      {m.sessionType[t]}
                     </option>
                   ))}
                 </Select>
               )}
             </Field>
-            {overrideFor
-              ? clubRefs.map(({ ref, item }) => {
-                  const current = overrides.find((o) => o.athleteId === overrideFor && o.itemKey === item.key);
-                  const sets = current?.prescription.sets ?? "";
-                  const reps = current?.prescription.reps ?? "";
-                  const load = current?.prescription.load;
-                  const update = (patch: Prescription) => {
-                    const merged = { ...current?.prescription, ...patch };
-                    const others = overrides.filter((o) => !(o.athleteId === overrideFor && o.itemKey === item.key));
-                    const empty = Object.values(merged).every((v) => v === undefined);
-                    setOverrides(
-                      empty ? others : [...others, { athleteId: overrideFor, itemKey: item.key, prescription: merged }],
-                    );
-                  };
-                  return (
-                    <div key={ref} className="border-t border-card-line pt-3">
-                      <p className="font-semibold">{byId.get(item.exerciseId)?.name}</p>
-                      <p className="t-caption mb-2 font-normal text-soft">
-                        {m.builder.sequence.commonPrescription(formatPrescription(item.prescription))}
-                      </p>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Field label={m.builder.sets}>
-                          {(a) => (
-                            <Input
-                              {...a}
-                              type="number"
-                              min={0}
-                              value={sets}
-                              onChange={(e) => update({ sets: numberOrUndefined(e.target.value) })}
-                            />
-                          )}
-                        </Field>
-                        <Field label={m.builder.reps}>
-                          {(a) => (
-                            <Input
-                              {...a}
-                              type="number"
-                              min={0}
-                              value={reps}
-                              onChange={(e) => update({ reps: numberOrUndefined(e.target.value) })}
-                            />
-                          )}
-                        </Field>
-                        <Field label={m.builder.sequence.loadKg}>
-                          {(a) => (
-                            <Input
-                              {...a}
-                              type="number"
-                              min={0}
-                              step="0.25"
-                              value={load?.type === "kg" ? load.value : ""}
-                              onChange={(e) =>
-                                update({
-                                  load:
-                                    e.target.value === "" ? undefined : { type: "kg", value: Number(e.target.value) },
-                                })
-                              }
-                            />
-                          )}
-                        </Field>
-                      </div>
-                    </div>
-                  );
-                })
-              : null}
+            <Field label={m.builder.date}>
+              {(a) => <DateInput {...a} value={date} onChange={(e) => setDate(e.target.value)} />}
+            </Field>
           </div>
-        </details>
-      ) : null}
-
-      {formError ? (
-        <p
-          role="alert"
-          className="on-card desktop:col-start-2 min-w-0 rounded-card bg-card p-3 font-semibold text-alert"
-        >
-          {formError}
-        </p>
-      ) : null}
-      {/* Sur ordinateur, une seule barre d'actions collée en bas. Sur téléphone, le formulaire est long : l'action
-          principale reste collée au-dessus de la barre de navigation, les autres attendent au bout du formulaire. */}
-      <div className="on-card z-10 min-w-0 flex-wrap items-center gap-2 rounded-card bg-card p-3 max-desktop:contents desktop:sticky desktop:bottom-4 desktop:col-start-2 desktop:flex desktop:border desktop:border-control-line desktop:shadow-float">
-        <div className="max-desktop:sticky max-desktop:bottom-[calc(84px+env(safe-area-inset-bottom))] max-desktop:z-10 max-desktop:rounded-card max-desktop:border max-desktop:border-control-line max-desktop:bg-card max-desktop:p-2 max-desktop:shadow-float desktop:contents">
-          <Button
-            className="max-desktop:w-full"
-            disabled={saving || Boolean(recovery.candidate)}
-            onClick={() => submit(true)}
-          >
-            {initial?.publishedAt ? m.builder.sequence.updatePublished : m.builder.publish}
-          </Button>
-        </div>
-        <div className="max-desktop:flex max-desktop:flex-wrap max-desktop:items-center max-desktop:gap-2 max-desktop:rounded-card max-desktop:bg-card max-desktop:p-3 desktop:contents">
-          {!initial?.publishedAt ? (
-            <Button variant="secondary" disabled={saving || Boolean(recovery.candidate)} onClick={() => submit(false)}>
-              {m.builder.saveDraft}
-            </Button>
-          ) : null}
-          {!initial?.publishedAt ? (
-            scheduling ? (
-              <div className="flex flex-wrap items-end gap-2">
-                <Field label={m.builder.scheduleAt} hint={m.builder.scheduleHint}>
-                  {(a) => <DateTimeInput {...a} value={publishAt} onChange={(e) => setPublishAt(e.target.value)} />}
-                </Field>
-                <Button variant="secondary" disabled={saving || !publishAt} onClick={() => submit(false, publishAt)}>
-                  {m.builder.schedule}
-                </Button>
-                {initial?.publishAt ? (
-                  <Button
-                    variant="quiet"
-                    disabled={saving || Boolean(recovery.candidate)}
-                    onClick={() => {
-                      setScheduling(false);
-                      setPublishAt("");
-                    }}
-                  >
-                    {m.builder.scheduleCancel}
-                  </Button>
-                ) : null}
-              </div>
-            ) : (
-              <Button variant="secondary" onClick={() => setScheduling(true)}>
-                {m.builder.schedule}
-              </Button>
-            )
-          ) : null}
-          <Button
-            variant="quiet"
-            disabled={template.isPending}
-            onClick={() => {
-              const draft = buildDraft();
-              if (draft.title && draft.blocks.length) template.execute(draft);
-              else setFormError(m.builder.sequence.templateRequiresContent);
-            }}
-          >
-            {m.builder.saveTemplate}
-          </Button>
-          <Button variant="secondary" onClick={() => (setPreviewVersion(version), setPreviewing(true))}>
-            {m.builder.preview}
-          </Button>
-          {initial ? (
-            <ConfirmDialog
-              title={m.builder.sequence.deleteSession}
-              description={initial.logCount > 0 ? m.builder.deleteLosesLogs(initial.logCount) : undefined}
-              onConfirm={() =>
-                remove.execute({
-                  id: initial.id,
-                  expectedVersion: expectedVersion ?? initial.version,
-                  expectedLogCount: initial.logCount,
-                })
-              }
-              trigger={
-                <Button variant="danger" className={cn("ml-auto")} disabled={remove.isPending}>
-                  {m.common.delete}
-                </Button>
-              }
-            />
-          ) : null}
-        </div>
-      </div>
-      {/* Ce que l'athlète verra, avant de publier : aucune surprise sur le terrain. */}
-      <Dialog open={previewing} onOpenChange={setPreviewing} title={title.trim() || m.builder.preview} wide>
-        <div className="flex flex-col gap-4">
-          <p className="t-caption font-normal text-soft">
-            {[
-              formatDateLong(date),
-              startTime,
-              location.trim(),
-              durationMin ? m.builder.sequence.minutes(durationMin) : "",
-            ]
-              .filter(Boolean)
-              .join(", ")}
-          </p>
-          {coachNote.trim() ? <p className="whitespace-pre-line">{coachNote.trim()}</p> : null}
-          {club.every((block) => block.items.length === 0) ? (
-            <p className="text-soft">{m.builder.previewEmpty}</p>
-          ) : null}
-          <p id="apercu-version" className="t-caption font-normal text-soft">
-            {m.builder.sequence.previewFor}
-          </p>
-          <div role="group" aria-labelledby="apercu-version" className="-mt-2 flex flex-wrap gap-1.5">
-            {(["club", "autonomous"] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={previewVersion === v}
-                onClick={() => setPreviewVersion(v)}
-                className={pillClass(previewVersion === v)}
-              >
-                {m.variant[v]}
-              </button>
-            ))}
-          </div>
-          {(() => {
-            // L'aperçu passe par le même dédoublement que la publication : exercices remplacés compris.
-            const draft = withAutonomousReplacements(buildDraft());
-            if (!validSessionStructure(draft)) return <p role="status">{m.builder.sequence.invalid}</p>;
-            const snapshot = expandSessionSnapshot(
-              draft,
-              {
-                ...draft,
-                blocks: draft.blocks.map((b) => ({
-                  ...b,
-                  ref: b.ref!,
-                  items: b.items.map((i) => {
-                    const e = byId.get(i.exerciseId);
-                    return {
-                      ...i,
-                      ref: i.ref!,
-                      name: e?.name ?? m.builder.sequence.deletedExercise,
-                      category: exerciseCategory.parse(e?.category ?? "strength"),
-                      cues: e?.cues ?? [],
-                      media: null,
-                    };
-                  }),
-                })),
-              },
-              m.builder.sequenceRecovery,
-            );
-            return snapshot.blocks
-              .filter((b) => b.variant === "both" || b.variant === previewVersion)
-              .map((block) => (
-                <section key={block.ref} className="flex flex-col gap-2">
-                  <h3 className="t-section">{block.name}</h3>
-                  <ol className="divide-y divide-card-line">
-                    {block.items.map((item) => (
-                      <li key={item.ref} className="py-2">
-                        {item.rounds?.length ? (
-                          <p className="text-sm text-soft">
-                            {item.rounds.map((r) => m.builder.sequence.round(r.name, r.round, r.rounds)).join(" · ")}
-                          </p>
-                        ) : null}
-                        <p className="font-semibold">{item.name}</p>
-                        <p className="t-num">{formatPrescription(item.prescription)}</p>
-                        {item.cues.length ? <p className="text-sm text-soft">{item.cues.join(", ")}</p> : null}
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-              ));
-          })()}
-        </div>
-      </Dialog>
-      <Dialog
-        open={editing !== null}
-        onOpenChange={(open) => !open && setEditing(null)}
-        title={
-          editingTarget
-            ? editing?.autonomous
-              ? m.builder.sequence.autonomousLine(byId.get(editingTarget.exerciseId)?.name ?? "")
-              : (byId.get(editingTarget.exerciseId)?.name ?? "")
-            : ""
-        }
-        description={m.builder.sequence.prescription}
-        wide
-      >
-        {editing && editingTarget ? (
-          <div className="flex flex-col gap-4">
-            <PrescriptionEditor
-              value={editingTarget.prescription}
-              exercise={byId.get(editingTarget.exerciseId)}
-              intensityEnabled={progressionEnabled}
-              testKeys={testKeys.filter(
-                (key) => !key.startsWith("exercise:") || key === `exercise:${editingTarget.exerciseId}`,
+          <details open={Boolean(initial?.startTime || initial?.location || initial?.draft.coachNote)}>
+            <summary className="min-h-11 cursor-pointer py-2 font-semibold">{m.builder.sequence.advanced}</summary>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={m.builder.time}>
+                {(a) => <Input {...a} type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />}
+              </Field>
+              <Field label={m.builder.location}>
+                {(a) => <Input {...a} value={location} onChange={(e) => setLocation(e.target.value)} />}
+              </Field>
+              <Field label={m.builder.duration}>
+                {(a) => (
+                  <Input
+                    {...a}
+                    type="number"
+                    min={1}
+                    value={durationMin}
+                    onChange={(e) => setDurationMin(e.target.value)}
+                  />
+                )}
+              </Field>
+            </div>
+            <Field label={m.builder.coachNote} className="mt-3">
+              {(a) => (
+                <Textarea
+                  {...a}
+                  className="min-h-11"
+                  maxLength={280}
+                  value={coachNote}
+                  onChange={(e) => setCoachNote(e.target.value)}
+                />
               )}
-              onChange={(p) => updateItem(editing.blockKey, editing.itemKey, p, editing.autonomous)}
+            </Field>
+          </details>
+        </section>
+
+        <section className="desktop:col-start-2 min-w-0 flex flex-col gap-3 rounded-card on-card bg-card p-4">
+          <h2 className="t-h2">{m.builder.audience}</h2>
+          <div className="grid gap-4 tablet:grid-cols-2">
+            <fieldset>
+              <legend className="t-caption mb-1">{m.builder.entireGroup}</legend>
+              {groups.map((g) => (
+                <CheckRow
+                  key={g.id}
+                  label={g.name}
+                  detail={m.builder.sequence.athleteCount(g.athleteCount)}
+                  checked={selectedGroups.includes(g.id)}
+                  onChange={(e) =>
+                    setSelectedGroups(
+                      e.target.checked ? [...selectedGroups, g.id] : selectedGroups.filter((x) => x !== g.id),
+                    )
+                  }
+                />
+              ))}
+            </fieldset>
+            <fieldset>
+              <legend className="t-caption mb-1">{m.builder.pickAthletes}</legend>
+              <div className="max-h-56 overflow-y-auto">
+                {athletes.map((a) => (
+                  <CheckRow
+                    key={a.id}
+                    label={`${a.firstName} ${a.lastName}`}
+                    checked={selectedAthletes.includes(a.id)}
+                    onChange={(e) =>
+                      setSelectedAthletes(
+                        e.target.checked ? [...selectedAthletes, a.id] : selectedAthletes.filter((x) => x !== a.id),
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            </fieldset>
+          </div>
+        </section>
+
+        {phasesEnabled ? (
+          <div className="desktop:col-start-2 min-w-0">
+            <PhasePlanningPanel
+              initialChoices={
+                initial &&
+                planningKey ===
+                  phasePlanningKey(
+                    initial.date,
+                    initial.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId),
+                    initial.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId),
+                  )
+                  ? initial.phaseReview?.choices
+                  : []
+              }
+              key={planningKey}
+              organizationId={organizationId}
+              date={date}
+              groupIds={selectedGroups}
+              athleteIds={selectedAthletes}
+              onReady={setPhaseReady}
             />
-            <Button onClick={() => setEditing(null)}>{m.common.close}</Button>
           </div>
         ) : null}
-      </Dialog>
-    </fieldset>
+        <section aria-label={m.builder.body} className="desktop:col-start-2 min-w-0 flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              role="tablist"
+              aria-label={m.builder.sequence.versionLabel}
+              className="flex flex-wrap items-center gap-2"
+            >
+              {(["club", "autonomous"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="tab"
+                  aria-selected={version === v}
+                  className={pillClass(version === v)}
+                  onClick={() => setVersion(v)}
+                >
+                  {v === "club" ? m.builder.versionClub : m.builder.versionAutonomous}
+                </button>
+              ))}
+            </div>
+            {version === "autonomous" ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={generateAutonomous}
+                disabled={club.every((b) => b.items.length === 0)}
+              >
+                {m.builder.generate}
+              </Button>
+            ) : null}
+            {version === "autonomous" && autonomous.length === 0 ? (
+              <Button size="sm" variant="quiet" onClick={() => setAutonomous(defaultBlocks(newKey()))}>
+                {m.builder.sequence.fromScratch}
+              </Button>
+            ) : null}
+          </div>
+
+          {version === "autonomous" && club.some((b) => b.shared) ? (
+            <p className="text-soft">
+              {m.builder.sharedBlocksHint}{" "}
+              {club
+                .filter((b) => b.shared)
+                .map((b) => b.name)
+                .join(", ")}
+            </p>
+          ) : null}
+          {version === "autonomous" && autonomous.length === 0 && !club.some((b) => b.shared) ? (
+            <EmptyState rubric="seances">{m.builder.sequence.noAutonomous}</EmptyState>
+          ) : null}
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p role="status" className="text-sm">
+              {saving ? m.builder.sequence.saving : dirty ? m.builder.sequence.unsaved : m.builder.sequence.saved}
+            </p>
+            {dirty ? (
+              <p role="status" className="w-full text-sm">
+                {recovery.state === "saved"
+                  ? m.nativeBuilder.localSaved
+                  : recovery.state === "error"
+                    ? m.nativeBuilder.localError
+                    : recovery.state === "saving"
+                      ? m.nativeBuilder.localSaving
+                      : m.builder.sequence.unsaved}
+              </p>
+            ) : null}
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!history.length}
+              onClick={() => {
+                const previous = history.at(-1);
+                if (previous) {
+                  setClub(previous.club);
+                  setAutonomous(previous.autonomous);
+                  setTitle(previous.title);
+                  setType(previous.type);
+                  setCoachNote(previous.coachNote);
+                  setDurationMin(previous.durationMin);
+                  setOverrides(previous.overrides);
+                  setHistory(history.slice(0, -1));
+                  setDirty(true);
+                }
+              }}
+            >
+              <Undo2 aria-hidden className="size-4" />
+              {m.builder.sequence.undo}
+            </Button>
+          </div>
+          {blocks.map((block) => (
+            <section
+              key={block.key}
+              aria-label={block.name}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                const id = e.dataTransfer.getData("text/exercise-id");
+                if (id) addExercise(id, block.key);
+              }}
+              className="overflow-hidden rounded-card on-card bg-card"
+            >
+              <label className="sr-only" htmlFor={`block-${block.key}`}>
+                {m.builder.sequence.blockName}
+              </label>
+              <input
+                id={`block-${block.key}`}
+                value={block.name}
+                onChange={(e) =>
+                  changeBlocks(blocks.map((b) => (b.key === block.key ? { ...b, name: e.target.value } : b)))
+                }
+                className="t-h2 min-h-11 w-full border-b border-card-line bg-card-raised px-4 hover:bg-raise"
+              />
+              {version === "club" ? (
+                <div className="px-3">
+                  <CheckRow
+                    label={m.builder.sequence.sharedPhase}
+                    checked={Boolean(block.shared)}
+                    onChange={(e) =>
+                      changeBlocks(blocks.map((b) => (b.key === block.key ? { ...b, shared: e.target.checked } : b)))
+                    }
+                  />
+                </div>
+              ) : null}
+              <SequenceEditor
+                block={{
+                  ref: block.key,
+                  name: block.name,
+                  variant: block.shared ? "both" : version,
+                  items: block.items.map((i) => ({
+                    ref: i.key,
+                    exerciseId: i.exerciseId,
+                    prescription: i.prescription,
+                    ...(i.autonomous ? { autonomous: i.autonomous } : {}),
+                  })),
+                  sequence: block.sequence,
+                }}
+                exercises={knownExercises}
+                onEdit={(itemKey) => setEditing({ blockKey: block.key, itemKey })}
+                onEditAutonomous={(itemKey) => setEditing({ blockKey: block.key, itemKey, autonomous: true })}
+                onDestination={(aimed) => setDestination({ blockKey: block.key, ...aimed })}
+                onChange={(next) =>
+                  changeBlocks(
+                    blocks.map((b) =>
+                      b.key === block.key
+                        ? {
+                            ...b,
+                            sequence: next.sequence,
+                            items: next.items.map((i) => ({
+                              key: i.ref!,
+                              exerciseId: i.exerciseId,
+                              prescription: i.prescription,
+                              ...(i.autonomous ? { autonomous: i.autonomous } : {}),
+                            })),
+                          }
+                        : b,
+                    ),
+                  )
+                }
+              />
+            </section>
+          ))}
+          {blocks.length > 0 ? (
+            <Button
+              size="sm"
+              variant="quiet"
+              className="self-start"
+              onClick={() => changeBlocks([...blocks, { key: newKey(), name: m.builder.sequence.newBlock, items: [] }])}
+            >
+              <Plus aria-hidden className="size-4" />
+              {m.builder.addBlock}
+            </Button>
+          ) : null}
+        </section>
+
+        <aside
+          aria-label={m.builder.library}
+          className="flex min-w-0 flex-col gap-3 rounded-card on-card bg-card p-4 desktop:sticky desktop:top-20 desktop:col-start-1 desktop:row-span-6 desktop:row-start-1 desktop:max-h-[calc(100dvh-100px)] desktop:self-start desktop:overflow-y-auto"
+        >
+          <h2 className="t-h2">{m.builder.library}</h2>
+          {destination ? (
+            <p className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-semibold">{m.builder.sequence.destination(destination.label)}</span>
+              <button type="button" className="min-h-11 underline" onClick={() => setDestination(null)}>
+                {m.builder.sequence.destinationReset}
+              </button>
+            </p>
+          ) : null}
+          {wide === null ? null : wide ? (
+            <LibraryBrowser
+              draggable
+              addLabel={m.builder.sequence.addToSession}
+              onPick={(e) => addExercise(e.id, undefined, e)}
+            />
+          ) : (
+            <>
+              <p className="text-[15px]">{w.exercises.picker.hint}</p>
+              <Button size="sm" className="self-start" onClick={() => setLibraryOpen(true)}>
+                <Plus aria-hidden className="size-5" />
+                {w.exercises.picker.open}
+              </Button>
+              <ExercisePicker
+                open={libraryOpen}
+                onOpenChange={setLibraryOpen}
+                destination={destination?.label ?? blocks.at(-1)?.name ?? m.builder.library}
+                inGroup={Boolean(destination?.parent)}
+                addLabel={m.builder.sequence.addToSession}
+                onPick={(e) => {
+                  addExercise(e.id, undefined, e);
+                  toast.ok(w.exercises.picker.added(e.name));
+                }}
+              />
+            </>
+          )}
+        </aside>
+
+        {clubRefs.length > 0 && athletes.length > 0 ? (
+          <details className="desktop:col-start-2 min-w-0 rounded-card on-card bg-card px-4 py-2">
+            <summary className="t-h2 flex min-h-11 items-center gap-2 [&::-webkit-details-marker]:hidden">
+              <ChevronRight aria-hidden className="size-5 transition-transform [[open]>summary>&]:rotate-90" />
+              {m.builder.adjustments}
+            </summary>
+            <div className="mb-2 mt-1 flex flex-col gap-3">
+              <Field label={m.builder.sequence.athlete}>
+                {(a) => (
+                  <Select {...a} value={overrideFor} onChange={(e) => setOverrideFor(e.target.value)}>
+                    <option value="">{m.builder.sequence.choose}</option>
+                    {athletes.map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {x.firstName} {x.lastName}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+              {overrideFor
+                ? clubRefs.map(({ ref, item }) => {
+                    const current = overrides.find((o) => o.athleteId === overrideFor && o.itemKey === item.key);
+                    const sets = current?.prescription.sets ?? "";
+                    const reps = current?.prescription.reps ?? "";
+                    const load = current?.prescription.load;
+                    const update = (patch: Prescription) => {
+                      const merged = { ...current?.prescription, ...patch };
+                      const others = overrides.filter((o) => !(o.athleteId === overrideFor && o.itemKey === item.key));
+                      const empty = Object.values(merged).every((v) => v === undefined);
+                      setOverrides(
+                        empty
+                          ? others
+                          : [...others, { athleteId: overrideFor, itemKey: item.key, prescription: merged }],
+                      );
+                    };
+                    return (
+                      <div key={ref} className="border-t border-card-line pt-3">
+                        <p className="font-semibold">{byId.get(item.exerciseId)?.name}</p>
+                        <p className="t-caption mb-2 font-normal text-soft">
+                          {m.builder.sequence.commonPrescription(formatPrescription(item.prescription))}
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Field label={m.builder.sets}>
+                            {(a) => (
+                              <Input
+                                {...a}
+                                type="number"
+                                min={0}
+                                value={sets}
+                                onChange={(e) => update({ sets: numberOrUndefined(e.target.value) })}
+                              />
+                            )}
+                          </Field>
+                          <Field label={m.builder.reps}>
+                            {(a) => (
+                              <Input
+                                {...a}
+                                type="number"
+                                min={0}
+                                value={reps}
+                                onChange={(e) => update({ reps: numberOrUndefined(e.target.value) })}
+                              />
+                            )}
+                          </Field>
+                          <Field label={m.builder.sequence.loadKg}>
+                            {(a) => (
+                              <Input
+                                {...a}
+                                type="number"
+                                min={0}
+                                step="0.25"
+                                value={load?.type === "kg" ? load.value : ""}
+                                onChange={(e) =>
+                                  update({
+                                    load:
+                                      e.target.value === "" ? undefined : { type: "kg", value: Number(e.target.value) },
+                                  })
+                                }
+                              />
+                            )}
+                          </Field>
+                        </div>
+                      </div>
+                    );
+                  })
+                : null}
+            </div>
+          </details>
+        ) : null}
+
+        {formError ? (
+          <p
+            role="alert"
+            className="on-card desktop:col-start-2 min-w-0 rounded-card bg-card p-3 font-semibold text-alert"
+          >
+            {formError}
+          </p>
+        ) : null}
+        {/* Sur ordinateur, une seule barre d'actions collée en bas. Sur téléphone, le formulaire est long : l'action
+          principale reste collée au-dessus de la barre de navigation, les autres attendent au bout du formulaire. */}
+        <div className="on-card z-10 min-w-0 flex-wrap items-center gap-2 rounded-card bg-card p-3 max-desktop:contents desktop:sticky desktop:bottom-4 desktop:col-start-2 desktop:flex desktop:border desktop:border-control-line desktop:shadow-float">
+          <div className="max-desktop:sticky max-desktop:bottom-[calc(84px+env(safe-area-inset-bottom))] max-desktop:z-10 max-desktop:rounded-card max-desktop:border max-desktop:border-control-line max-desktop:bg-card max-desktop:p-2 max-desktop:shadow-float desktop:contents">
+            <Button
+              className="max-desktop:w-full"
+              disabled={saving || Boolean(recovery.candidate)}
+              onClick={() => submit(true)}
+            >
+              {initial?.publishedAt ? m.builder.sequence.updatePublished : m.builder.publish}
+            </Button>
+          </div>
+          <div className="max-desktop:flex max-desktop:flex-wrap max-desktop:items-center max-desktop:gap-2 max-desktop:rounded-card max-desktop:bg-card max-desktop:p-3 desktop:contents">
+            {!initial?.publishedAt ? (
+              <Button
+                variant="secondary"
+                disabled={saving || Boolean(recovery.candidate)}
+                onClick={() => submit(false)}
+              >
+                {m.builder.saveDraft}
+              </Button>
+            ) : null}
+            {!initial?.publishedAt ? (
+              scheduling ? (
+                <div className="flex flex-wrap items-end gap-2">
+                  <Field label={m.builder.scheduleAt} hint={m.builder.scheduleHint}>
+                    {(a) => <DateTimeInput {...a} value={publishAt} onChange={(e) => setPublishAt(e.target.value)} />}
+                  </Field>
+                  <Button variant="secondary" disabled={saving || !publishAt} onClick={() => submit(false, publishAt)}>
+                    {m.builder.schedule}
+                  </Button>
+                  {initial?.publishAt ? (
+                    <Button
+                      variant="quiet"
+                      disabled={saving || Boolean(recovery.candidate)}
+                      onClick={() => {
+                        setScheduling(false);
+                        setPublishAt("");
+                      }}
+                    >
+                      {m.builder.scheduleCancel}
+                    </Button>
+                  ) : null}
+                </div>
+              ) : (
+                <Button variant="secondary" onClick={() => setScheduling(true)}>
+                  {m.builder.schedule}
+                </Button>
+              )
+            ) : null}
+            <Button
+              variant="quiet"
+              disabled={template.isPending}
+              onClick={() => {
+                const draft = buildDraft();
+                if (draft.title && draft.blocks.length) template.execute(draft);
+                else setFormError(m.builder.sequence.templateRequiresContent);
+              }}
+            >
+              {m.builder.saveTemplate}
+            </Button>
+            <Button variant="secondary" onClick={() => (setPreviewVersion(version), setPreviewing(true))}>
+              {m.builder.preview}
+            </Button>
+            {initial ? (
+              <ConfirmDialog
+                title={m.builder.sequence.deleteSession}
+                description={initial.logCount > 0 ? m.builder.deleteLosesLogs(initial.logCount) : undefined}
+                onConfirm={() =>
+                  remove.execute({
+                    id: initial.id,
+                    expectedVersion: expectedVersion ?? initial.version,
+                    expectedLogCount: initial.logCount,
+                  })
+                }
+                trigger={
+                  <Button variant="danger" className={cn("ml-auto")} disabled={remove.isPending}>
+                    {m.common.delete}
+                  </Button>
+                }
+              />
+            ) : null}
+          </div>
+        </div>
+        {/* Ce que l'athlète verra, avant de publier : aucune surprise sur le terrain. */}
+        <Dialog open={previewing} onOpenChange={setPreviewing} title={title.trim() || m.builder.preview} wide>
+          <div className="flex flex-col gap-4">
+            <p className="t-caption font-normal text-soft">
+              {[
+                formatDateLong(date),
+                startTime,
+                location.trim(),
+                durationMin ? m.builder.sequence.minutes(durationMin) : "",
+              ]
+                .filter(Boolean)
+                .join(", ")}
+            </p>
+            {coachNote.trim() ? <p className="whitespace-pre-line">{coachNote.trim()}</p> : null}
+            {club.every((block) => block.items.length === 0) ? (
+              <p className="text-soft">{m.builder.previewEmpty}</p>
+            ) : null}
+            <p id="apercu-version" className="t-caption font-normal text-soft">
+              {m.builder.sequence.previewFor}
+            </p>
+            <div role="group" aria-labelledby="apercu-version" className="-mt-2 flex flex-wrap gap-1.5">
+              {(["club", "autonomous"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={previewVersion === v}
+                  onClick={() => setPreviewVersion(v)}
+                  className={pillClass(previewVersion === v)}
+                >
+                  {m.variant[v]}
+                </button>
+              ))}
+            </div>
+            {(() => {
+              // L'aperçu passe par le même dédoublement que la publication : exercices remplacés compris.
+              const draft = withAutonomousReplacements(buildDraft());
+              if (!validSessionStructure(draft)) return <p role="status">{m.builder.sequence.invalid}</p>;
+              const snapshot = expandSessionSnapshot(
+                draft,
+                {
+                  ...draft,
+                  blocks: draft.blocks.map((b) => ({
+                    ...b,
+                    ref: b.ref!,
+                    items: b.items.map((i) => {
+                      const e = byId.get(i.exerciseId);
+                      return {
+                        ...i,
+                        ref: i.ref!,
+                        name: e?.name ?? m.builder.sequence.deletedExercise,
+                        category: exerciseCategory.parse(e?.category ?? "strength"),
+                        cues: e?.cues ?? [],
+                        media: null,
+                      };
+                    }),
+                  })),
+                },
+                m.builder.sequenceRecovery,
+              );
+              return snapshot.blocks
+                .filter((b) => b.variant === "both" || b.variant === previewVersion)
+                .map((block) => (
+                  <section key={block.ref} className="flex flex-col gap-2">
+                    <h3 className="t-section">{block.name}</h3>
+                    <ol className="divide-y divide-card-line">
+                      {block.items.map((item) => (
+                        <li key={item.ref} className="py-2">
+                          {item.rounds?.length ? (
+                            <p className="text-sm text-soft">
+                              {item.rounds.map((r) => m.builder.sequence.round(r.name, r.round, r.rounds)).join(" · ")}
+                            </p>
+                          ) : null}
+                          <p className="font-semibold">{item.name}</p>
+                          <p className="t-num">{formatPrescription(item.prescription)}</p>
+                          {item.cues.length ? <p className="text-sm text-soft">{item.cues.join(", ")}</p> : null}
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                ));
+            })()}
+          </div>
+        </Dialog>
+        <Dialog
+          open={editing !== null}
+          onOpenChange={(open) => !open && setEditing(null)}
+          title={
+            editingTarget
+              ? editing?.autonomous
+                ? m.builder.sequence.autonomousLine(byId.get(editingTarget.exerciseId)?.name ?? "")
+                : (byId.get(editingTarget.exerciseId)?.name ?? "")
+              : ""
+          }
+          description={m.builder.sequence.prescription}
+          wide
+        >
+          {editing && editingTarget ? (
+            <div className="flex flex-col gap-4">
+              <PrescriptionEditor
+                value={editingTarget.prescription}
+                exercise={byId.get(editingTarget.exerciseId)}
+                intensityEnabled={progressionEnabled}
+                testKeys={testKeys.filter(
+                  (key) => !key.startsWith("exercise:") || key === `exercise:${editingTarget.exerciseId}`,
+                )}
+                onChange={(p) => updateItem(editing.blockKey, editing.itemKey, p, editing.autonomous)}
+              />
+              <Button onClick={() => setEditing(null)}>{m.common.close}</Button>
+            </div>
+          ) : null}
+        </Dialog>
+      </fieldset>
+    </ExerciseSource.Provider>
   );
 };

@@ -883,3 +883,6 @@ export const liftClip = (clip: ExerciseClip): MotionClip => {
 
   return gesture({ key: clip.key, athlete: clip.athlete, rig, keys: drafts, props, floor: true });
 };
+
+// Les briques du relèvement, reprises image par image par l'adaptateur des anciennes poses (pose-figure.ts).
+export { anglesOf, footOf, limbOf, lifted, nativeOf, oldJoints, shapeOf, type OldJoints, type OldKey };

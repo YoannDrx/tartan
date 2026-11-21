@@ -42,7 +42,9 @@ import { prisma } from "@/lib/prisma";
 import { audit, requireAthleteAccess, requireOrgMember, requireVisibleAthlete } from "./access";
 import { consentForAthletes } from "./consent.service";
 import { displayName, namesFor } from "./me.service";
+import { withConcise } from "./exercise-catalog.service";
 import { approvedMotionFamilies, withMotion } from "./motion-review.service";
+import { catalogVideos, withCatalogVideos } from "./catalog-media.service";
 import { notify } from "./notify.service";
 import { regularityOf } from "./stats.service";
 import { coachesOfAthlete } from "./org.service";
@@ -432,6 +434,9 @@ const readAthleteSession = async (
       items: await Promise.all(block.items.map(async (item) => ({ ...item, media: await withStream(item.media) }))),
     })),
   );
+  const catalogVideoMap = await catalogVideos(
+    blocks.flatMap((block) => block.items.flatMap((item) => (item.guide ? [item.guide.catalogKey] : []))),
+  );
   const previousExerciseSets = session.organization.progressionEnabled
     ? await loadPreviousExerciseSets({
         organizationId,
@@ -474,7 +479,7 @@ const readAthleteSession = async (
           name: item.name,
           category: item.category,
           cues: item.cues,
-          guide: withMotion(item.guide, motionFamilies),
+          guide: withCatalogVideos(withConcise(withMotion(item.guide, motionFamilies)), catalogVideoMap),
           media: item.media,
           prescription,
           strengthLoadKind: item.strengthLoadKind,

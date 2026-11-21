@@ -1278,7 +1278,8 @@
     transform-origin: center;
     animation: film-pop-in var(--duration-expressive) both;
   }
-  .film-eyes {
+  /* Les yeux de l'athlète du film clignent : chaque forme peinte de la couleur des yeux, sur son propre centre. */
+  .film [data-film-body] [fill="var(--a-eye)"] {
     transform-box: fill-box;
     transform-origin: center;
     animation: film-blink var(--duration-ambient) infinite;

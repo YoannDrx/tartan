@@ -1,6 +1,7 @@
 import { POSES, type PoseName } from "@tartan/mascot/poses";
 import type { BoneId, Paint, Point, Pose } from "@tartan/mascot/skeleton";
-import { svgFigure, type SvgFigure } from "@tartan/mascot/svg";
+import type { SvgFigure } from "@tartan/mascot/svg";
+import { svgJumperFigure } from "@tartan/mascot/v2/pose-figure";
 import { createElement, type ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
@@ -38,7 +39,7 @@ export const FigureGroup = ({
   </g>
 );
 
-// La mascotte d'origine dans un SVG. `at` la place dans une scène.
+// La mascotte d'origine dans un SVG, avec le corps du groupe. `at` la place dans une scène.
 export const JumperFigure = ({
   pose,
   paint,
@@ -50,7 +51,7 @@ export const JumperFigure = ({
   at?: Point;
   classes?: Partial<Record<BoneId, string>>;
 } & Omit<ComponentProps<"g">, "transform" | "children">) => (
-  <FigureGroup figure={svgFigure(pose, paint, at)} {...group} />
+  <FigureGroup figure={svgJumperFigure(pose, paint, at)} {...group} />
 );
 
 // La mascotte, en aplats. Décorative : le texte voisin porte le sens.
@@ -59,7 +60,7 @@ export const Jumper = ({
   className,
   ...svg
 }: { pose?: PoseName } & Omit<ComponentProps<"svg">, "viewBox">) => (
-  <svg aria-hidden viewBox="-250 -270 500 500" className={cn("jumper", className)} {...svg}>
+  <svg aria-hidden viewBox="-200 -187 400 400" className={cn("jumper", className)} {...svg}>
     <JumperFigure pose={POSES[pose]} paint={PAINT} />
   </svg>
 );

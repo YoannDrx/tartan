@@ -2329,6 +2329,14 @@ export const fr = {
       view: "Vue du geste",
       views: { side: "Profil", front: "Face", top: "Dessus" },
     },
+    // Une fiche commune peut avoir sa vidéo, déposée par Tartan : on choisit entre le geste animé et la vidéo.
+    media: {
+      choice: "Illustration du geste",
+      motion: "Geste animé",
+      video: "Vidéo",
+      videoOf: (name: string, view: string) => `Vidéo : ${name}, ${view.toLowerCase()}`,
+      videoUnavailable: "La vidéo n'est pas lisible pour le moment. Le geste animé reste consultable.",
+    },
     families: {
       strength: "Musculation",
       weightlifting: "Haltérophilie",
@@ -2341,6 +2349,13 @@ export const fr = {
       warmup: "Échauffement",
     },
     levels: { beginner: "Débutant", intermediate: "Intermédiaire", advanced: "Avancé" },
+  },
+  // Les listes d'exercices du coach : le nom de la liste système et les refus que l'API renvoie aussi au mobile.
+  exerciseLists: {
+    favorites: "Favoris",
+    favoritesLocked:
+      "Les Favoris restent ta liste personnelle : ils ne se renomment, ne se partagent ni ne se suppriment.",
+    guideWithoutBase: "Seule une fiche personnalisée depuis la bibliothèque commune a un guide à modifier.",
   },
   exercises: {
     uploadFailed: "L'envoi a échoué. L'exercice est enregistré : réessaie d'ajouter la vidéo.",
@@ -3148,6 +3163,7 @@ export const fr = {
       configuration: "Configuration",
       mascot: "Mascotte",
       movements: "Mouvements",
+      exercises: "Exercices",
       game: "Jeu",
     },
     // La planche de contrôle du groupe : ce que le fondateur relit avant que les athlètes entrent dans les écrans.
