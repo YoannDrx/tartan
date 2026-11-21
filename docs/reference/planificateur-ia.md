@@ -82,6 +82,7 @@ Limites, les mêmes pour toute demande : 12 000 caractères, 14 séances, 28 jou
 - Profil de l’espace : disciplines, objectifs, matériel.
 - Séances de J−14 à J+7 de l’audience, seulement quand une partie est à composer ou qu’une reprise est citée, en champs structurés : date, type, exercices (jeton ou nom de fiche), séries, répétitions, distance, durée, charge prescrite. **Jamais** le titre, une note, la note du coach, une séance réalisée, un effort ressenti, une douleur ou une blessure. Un test vérifie qu’aucune de ces données ne part chez OpenAI.
 - Couverture des références de force par fiche ; aucune valeur de maximum.
+- Phase d’entraînement planifiée à la date de la séance, par destinataire, quand elle existe.
 - Le contexte est figé avec la demande (`bindings`), comme les fiches. Le prestataire ne reçoit qu’une projection stricte (`plannerProviderContext`).
 
 ## Pannes lisibles, par étape

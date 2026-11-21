@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { plannerOpenSlots } from "@tartan/domain";
+import { plannerOpenSlots, plannerSessionMovements, plannerSessionToComposition } from "@tartan/domain";
+import { m } from "@tartan/i18n";
 import { fakePlannerProvider } from "@/server/ai/fake-provider";
 import {
   checkSession,
@@ -136,6 +137,37 @@ describe("chaque étape, seule, contre le prestataire simulé", () => {
       [0, false],
       [0, true],
     ]);
+  });
+  it("ajuster : la modification change la séance écrite, elle n'est pas lue comme un mouvement", async () => {
+    const first = await runPlannerPipeline(context, fakePlannerProvider());
+    const [session] = first.interpretation.sessions;
+    const adjusted = await runPlannerPipeline(
+      pipelineContext(text, library, {
+        instructions: [text, `${m.aiPlanner.adjustmentPrefix}Passe à quatre séries.`],
+        previous: {
+          sessions: [
+            {
+              date: session!.date,
+              startTime: session!.startTime,
+              targetTokens: session!.targetTokens,
+              session: plannerSessionToComposition(session!, 0),
+              movements: plannerSessionMovements(session!, 0).map(({ id, said, exerciseToken, confidence }) => ({
+                id,
+                said,
+                exerciseToken,
+                confidence,
+                alternatives: [],
+              })),
+            },
+          ],
+        },
+      }),
+      fakePlannerProvider(),
+    );
+    // Ni question ni emplacement « Passe à » : la même fiche, à quatre séries.
+    expect(adjusted.interpretation.status).toBe("proposal");
+    expect(plannerOpenSlots(adjusted.interpretation)).toEqual([]);
+    expect(itemsOf(adjusted.interpretation)).toMatchObject([{ exerciseToken: "exercise_1", prescription: { sets: 4 } }]);
   });
 });
 

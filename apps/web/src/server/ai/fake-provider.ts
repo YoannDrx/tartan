@@ -76,8 +76,9 @@ function fakeMovements(request: string) {
 
 async function fakeUnderstanding(input: PlannerUnderstandInput): Promise<PlannerUnderstanding> {
   failAt("understand", [input.request, ...input.followUps].join("\n"));
-  // Indice des clients d'avant le champ unique : en mode « Proposer », tout est à composer.
-  const movements = input.hints.intent === "objective" ? [] : fakeMovements(input.request);
+  // Indice des clients d'avant le champ unique : en mode « Proposer », tout est à composer. Un ajustement
+  // (« Passe à quatre séries ») modifie la séance déjà écrite : il ne cite aucun nouveau mouvement.
+  const movements = input.hints.intent === "objective" || input.adjusting ? [] : fakeMovements(input.request);
   const recipients = input.recipients
     .map((recipient) => recipient.token)
     .filter((token) => [input.request, ...input.followUps].join("\n").includes(token));
