@@ -68,12 +68,16 @@ test("listes du coach : favori, liste partagée, création dans la liste, séanc
   await page.getByRole("button", { name: LIST, exact: true }).click();
   await expect(page.getByRole("link", { name: /^Goblet squat/ })).toBeVisible();
   await page.getByRole("button", { name: t.lists.createInList, exact: true }).click();
+  // La même création rapide que partout : un nom, la famille proposée, un bouton.
   const form = page.getByRole("dialog");
   await form.getByLabel(m.exercises.name, { exact: true }).fill(OWN);
-  await form.getByLabel(m.exercises.category, { exact: true }).selectOption("plyo");
-  await form.getByLabel(m.builder.sets, { exact: true }).fill("3");
-  await form.getByLabel(m.builder.reps, { exact: true }).fill("6");
-  await form.getByRole("button", { name: m.common.save, exact: true }).click();
+  await expect(form.getByRole("radio", { checked: true })).toHaveCount(2);
+  // La famille proposée se change d'un geste, sur sa pastille.
+  await form.getByText(m.exerciseCategory.plyo, { exact: true }).click();
+  await expect(form.getByRole("radio", { name: m.exerciseCategory.plyo, exact: true })).toBeChecked();
+  await form.getByRole("button", { name: t.finder.quick.submitInLibrary, exact: true }).click();
+  await expect(form.getByText(t.finder.created(OWN), { exact: true })).toBeVisible();
+  await form.getByRole("button", { name: t.finder.quick.done, exact: true }).click();
   await expect(form).toBeHidden();
   await expect(page.getByRole("link", { name: new RegExp(`^${OWN}`) })).toBeVisible();
   await expect(page.getByText(t.results(2), { exact: true })).toBeVisible();

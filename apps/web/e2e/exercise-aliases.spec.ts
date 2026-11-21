@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
+import { openFullExerciseForm } from "./journeys";
 
 test("les noms contrôlés sont modifiables et recherchables sans créer une autre fiche", async ({ page }, info) => {
   await page.setViewportSize(
@@ -9,11 +10,9 @@ test("les noms contrôlés sont modifiables et recherchables sans créer une aut
   await createCoachSpace(page, "Alias");
   const me = await (await page.request.get("/api/v1/me")).json();
   const endpoint = `/api/v1/orgs/${me.spaces[0].organizationId}/exercises`;
-  await page.goto("/exercices");
-  await page.getByRole("button", { name: m.exercises.new, exact: true }).click();
-  const dialog = page.getByRole("dialog");
   const name = "Soulevé roumain de recette";
-  await dialog.getByLabel(m.exercises.name, { exact: true }).fill(name);
+  // La fiche se crée par son nom, puis se complète dans le formulaire.
+  const dialog = await openFullExerciseForm(page, name);
   await dialog.getByLabel(m.exercises.category, { exact: true }).selectOption("strength");
   await dialog
     .getByLabel(m.exercises.aliases, { exact: true })
