@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { exerciseFamily, type ExerciseFamily, type ExerciseFilter } from "@tartan/contracts";
 import { formatPrescription } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { videoEnabled } from "@/lib/mux";
 import { ExerciseLibrary, type LibraryRow } from "@/features/exercises/exercise-library";
 import { requireStaffSpace } from "@/features/shell/space";
 import { listExerciseIndex } from "@/server/exercise.service";
@@ -52,7 +51,6 @@ export default async function ExercicesPage({
         lists.map((list) => list.id),
       )}
       openNew={params.nouveau === "1"}
-      videoEnabled={videoEnabled()}
       progressionEnabled={space.progressionEnabled}
     />
   );

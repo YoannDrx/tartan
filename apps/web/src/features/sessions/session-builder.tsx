@@ -1216,7 +1216,11 @@ export const SessionBuilder = ({
             <LibraryBrowser
               draggable
               addLabel={m.builder.sequence.addToSession}
-              onPick={(e) => addExercise(e.id, undefined, e)}
+              onPick={(e, origin) => {
+                addExercise(e.id, undefined, e);
+                // Une fiche créée ici part aussitôt dans la séance : on le dit, la liste des résultats a changé.
+                if (origin === "created") toast.ok(w.exercises.picker.added(e.name));
+              }}
             />
           ) : (
             <>
