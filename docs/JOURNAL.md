@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-22, Claude Fable 5.2, chercher ou créer un exercice
+Fait : PR `feat/exercice-finder`. Composant partagé `features/exercises/exercise-finder.tsx` : recherche serveur paginée sur toute la bibliothèque (favoris et listes du coach d'abord, flèches et Entrée), ligne « Créer « terme » » dès qu'un terme est saisi, création rapide (nom repris, famille et charge préremplies par la règle pure `suggestExerciseDefaults`, un seul bouton). Branché dans le constructeur (`exercise-picker.tsx`), `/exercices` et la création dans une liste ; le formulaire complet ne sert plus qu'à modifier (`/exercices/[id]?modifier=1`). Service `quickCreateExercise` et route `POST /api/v1/orgs/[orgId]/exercises/quick`, dans la matrice d'accès.
+Vérifié : types, lint, design, web 2 362, domaine 402, mobile 264 ; sur build de production : `exercise-finder`, `exercise-lists`, `exercise-guides`, `exercise-aliases`, `coach-screens`, `session-sequences`, `screen-matrix`, `onboarding`, `filled-sweep`, `strength-references` (29 réussis, 9 ignorés). Non vérifié : `terrain.spec.ts` (projets `terrain`), Preview, téléphone, lecteur d'écran.
+À savoir : un doublon exact (nom normalisé, espace et catalogue visible) rend la fiche existante au lieu d'en créer une. Le terme cherché n'est gardé comme alias que s'il ne trouvait rien. `tests/demo-space.test.ts` calculait le jour en UTC : il échouait entre minuit et une heure du matin à Paris ; il lit maintenant `todayIso()`. Le faux serveur de fichiers des parcours écoute sur 3104 : deux sessions en parallèle doivent régler `E2E_BLOB_PORT`.
+Suite : brancher le composant dans le planificateur (propriété `suggested`), méthode dans `packages/api-client` pour le mobile.
+
 ## 2026-11-21, Claude Fable 5.2, lot K2 de l'audit
 Fait : PR `fix/audit-k2-suite` : le lot K2 écrit par Opus le 19 novembre (B6, G4, G8, G13, lien d'évitement, `demo:fill --groupe`), remis sur `main` par-dessus l'espace de démonstration. La bibliothèque et le sélecteur d'exercices, réécrits par le lot F depuis, gardent leur version de `main` ; leurs trois cases natives passent à la case dessinée (`.check`).
 Vérifié : types, lint, design, web 2 340, domaine 387, mobile 264 ; sur build de production : `filled-sweep`, `screen-matrix`, `exercise-lists`, `exercise-guides`, `coach-screens`, `batch-publication`, `session-sequences`, `demo-space`, `calendar-views`, `athletic-performances` (27 réussis, 5 ignorés). Non vérifié : lecteurs d'écran, téléphones réels.
