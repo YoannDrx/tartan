@@ -38,11 +38,20 @@ export const planner = {
   quota: (left: number) => `${left} proposition${left > 1 ? "s" : ""} restante${left > 1 ? "s" : ""} ce mois-ci`,
   steps: {
     context: "Lecture de ta demande",
+    matching: "Recherche de tes exercices dans la bibliothèque",
     model: "Écriture de la séance",
     checks: "Contrôle des dates, charges et exercices",
     retry: "Correction d'un point",
-    saved: "Séance prête",
   },
+  understood: "Ce que j'ai compris",
+  // L'étape où une panne est survenue, dite à côté de sa cause.
+  failedAt: (step: "understand" | "match" | "compose" | "repair") =>
+    ({
+      understand: "Panne pendant la lecture de ta demande.",
+      match: "Panne pendant la recherche de tes exercices.",
+      compose: "Panne pendant l'écriture de la séance.",
+      repair: "Panne pendant la correction de la séance.",
+    })[step],
   planTitle: "La séance s'écrit",
   closedTab: "Tu peux quitter la page : la séance sera prête à ton retour.",
   questions: "Avant de continuer",
@@ -66,7 +75,15 @@ export const planner = {
       `Ta consigne parle de ${rounds ?? "plusieurs"} tours, absents de la séance. Vérifie le circuit.`,
     habit_load: () => "Charge habituelle : vérifie la valeur.",
     habit_rest: () => "Récupération habituelle : vérifie la durée.",
+    load_unclear: (value: string | null) =>
+      value
+        ? `Charge laissée vide : « ${value} » est dit sans unité, ou n'a pas été retrouvé dans ta demande. Indique des kilos ou un pourcentage.`
+        : "Charge laissée vide : indique des kilos ou un pourcentage.",
+    unit_assumed: (value: string | null) =>
+      `${value ?? "Un nombre"} est dit sans unité : rangé selon l'unité de la fiche. Vérifie la quantité.`,
+    to_complete: () => "Exercice posé sans sa prescription : complète les séries et les répétitions.",
   },
+  alternatives: (names: string[]) => `Autres fiches possibles : ${names.join(", ")}.`,
   adjust: "Ajuster",
   adjustLabel: "Ce qui change",
   adjustHint: "Une modification à la fois : un exercice, un volume, une récupération. Sans quota supplémentaire.",

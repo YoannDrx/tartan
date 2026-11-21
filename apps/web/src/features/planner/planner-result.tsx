@@ -229,6 +229,13 @@ export function PlannerResult({
             </p>
           ))}
         </details>
+        {/* Ce que le planificateur a compris de la demande, une fois la génération finie. */}
+        {proposal.understanding?.summary && !stream.running ? (
+          <p className="min-w-0 break-words">
+            <span className="font-semibold">{t.understood} : </span>
+            {proposal.understanding.summary}
+          </p>
+        ) : null}
       </section>
 
       {/* Les étapes et le plan restent visibles jusqu'à ce que la séance complète les remplace. */}
@@ -255,7 +262,10 @@ export function PlannerResult({
       ) : null}
 
       {proposal.state === "failed" && !stream.running ? (
-        <p role="alert">{proposal.failure?.message ?? old.proposalFailed}</p>
+        <p role="alert">
+          {proposal.failure?.step ? <span className="font-semibold">{t.failedAt(proposal.failure.step)} </span> : null}
+          <span>{proposal.failure?.message ?? old.proposalFailed}</span>
+        </p>
       ) : null}
 
       {proposal.state === "clarification" && !stream.running ? (

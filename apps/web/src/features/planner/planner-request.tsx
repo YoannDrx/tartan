@@ -192,6 +192,8 @@ export function PlannerRequest({
     selection,
     text: value.text.trim(),
     reviewed: true,
+    // Cet écran sait afficher les nouveaux points « À vérifier » ; pas encore les emplacements à compléter.
+    accepts: ["checks"],
     ...(propose && value.startTime ? { startTime: value.startTime } : {}),
   });
   const ready =

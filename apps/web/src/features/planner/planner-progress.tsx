@@ -1,28 +1,29 @@
 "use client";
 
-import type { PlannerStreamStep } from "@tartan/contracts";
 import { w } from "@tartan/i18n/web";
 import { Check, Dumbbell, Layers } from "lucide-react";
 import { TrackLine } from "@/components/track";
 import { cn } from "@/lib/cn";
-import type { PlannerStreamState } from "./use-planner-stream";
+import type { PlannerProgressStep, PlannerStreamState } from "./use-planner-stream";
 
 const t = w.planner;
-const ORDER: PlannerStreamStep[] = ["context", "model", "checks", "saved"];
+const ORDER: PlannerProgressStep[] = ["context", "matching", "model", "checks"];
 
 /**
- * La génération en direct : les étapes franchies, puis le plan de la séance à mesure que le modèle l'écrit.
- * Le plan ne montre que des noms de blocs et de fiches ; la séance complète arrive avec la proposition.
+ * La génération en direct, étape par étape : la lecture de la demande et ce qui en a été compris, la recherche des
+ * fiches, puis le plan de la séance à mesure que le modèle l'écrit, et les contrôles. Le plan ne montre que des
+ * noms de blocs et de fiches ; la séance complète arrive avec la proposition.
  */
 export function PlannerProgress({ state }: { state: PlannerStreamState }) {
   const reached = ORDER.filter((step) => state.steps.includes(step));
-  const current = state.running ? (ORDER.find((step) => !state.steps.includes(step)) ?? "saved") : null;
+  // L'étape en cours : la dernière atteinte tant que la génération tourne.
+  const current = state.running ? (reached.at(-1) ?? "context") : null;
   return (
     <section aria-label={t.preparing} aria-busy={state.running} className="flex min-w-0 flex-col gap-4">
       <ol className="flex flex-col gap-2" aria-live="polite">
         {ORDER.map((step) => {
-          const done = reached.includes(step) && step !== current;
           const active = step === current;
+          const done = reached.includes(step) && !active;
           if (!done && !active) return null;
           return (
             <li key={step} className="flex min-h-8 items-center gap-3">
@@ -42,6 +43,12 @@ export function PlannerProgress({ state }: { state: PlannerStreamState }) {
           );
         })}
       </ol>
+      {state.summary ? (
+        <p className="min-w-0 break-words">
+          <span className="font-semibold">{t.understood} : </span>
+          {state.summary}
+        </p>
+      ) : null}
       {state.plan.length ? (
         <div className="flex min-w-0 flex-col gap-2">
           <TrackLine trace />

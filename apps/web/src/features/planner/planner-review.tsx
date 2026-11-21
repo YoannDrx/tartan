@@ -36,7 +36,12 @@ import { PlannerLoads } from "./planner-loads";
 
 export type PlannerDraftWarning = NonNullable<PlannerDraftsResponse["warnings"]>[number][number];
 /** Le texte d'un point « À vérifier », dans les mots du coach. */
-export const plannerWarningText = (warning: PlannerDraftWarning) => w.planner.warnings[warning.code](warning.detail);
+export const plannerWarningText = (warning: PlannerDraftWarning) =>
+  [
+    w.planner.warnings[warning.code](warning.detail),
+    // Un rapprochement incertain dit aussi quelles autres fiches conviendraient.
+    ...(warning.alternatives?.length ? [w.planner.alternatives(warning.alternatives.map((entry) => entry.name))] : []),
+  ].join(" ");
 const WarningNote = ({ id, warning }: { id?: string; warning: PlannerDraftWarning }) => (
   <p id={id} className="flex items-start gap-2 rounded-button border border-st-partial px-3 py-2">
     <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-st-partial" />

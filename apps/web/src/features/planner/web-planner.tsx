@@ -113,7 +113,11 @@ export function WebPlanner({
       <Stages current={proposal ? 2 : 1} />
       {shown ? (
         <p ref={errorRef} tabIndex={-1} role="alert" className="rounded-button border border-st-missed px-3 py-2">
-          {shown}
+          {/* Une panne du planificateur dit aussi à quelle étape elle est survenue. */}
+          {!error && stream.state.error?.step ? (
+            <span className="font-semibold">{t.failedAt(stream.state.error.step)} </span>
+          ) : null}
+          <span>{shown}</span>
         </p>
       ) : null}
       {/* Pendant la génération, les étapes prennent la place de la demande : visibles sans défiler, au téléphone. */}

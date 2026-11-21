@@ -7,22 +7,26 @@ import {
   type ClarifyPlannerProposalInput,
   type CreatePlannerProposalInput,
   type PlannerProposalResponse,
+  type PlannerStepName,
   type PlannerStreamPlanLine,
-  type PlannerStreamStep,
 } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const api = createApiClient({ baseUrl: "" });
 
-export type PlannerStreamError = { status: number; code: string; message: string };
+// Les étapes que l'écran affiche : comprendre, retrouver les fiches, écrire, contrôler, et la réparation ciblée.
+export type PlannerProgressStep = "context" | "matching" | "model" | "checks" | "retry";
+export type PlannerStreamError = { status: number; code: string; message: string; step?: PlannerStepName | null };
 export type PlannerStreamState = {
   running: boolean;
-  steps: PlannerStreamStep[];
+  steps: PlannerProgressStep[];
+  // « Ce que j'ai compris », à mesure que le serveur l'écrit.
+  summary: string | null;
   plan: PlannerStreamPlanLine[];
   error: PlannerStreamError | null;
 };
-const idle: PlannerStreamState = { running: false, steps: [], plan: [], error: null };
+const idle: PlannerStreamState = { running: false, steps: [], summary: null, plan: [], error: null };
 
 /** Lit un flux `text/event-stream` : chaque événement complet, dans l'ordre. */
 async function* events(body: ReadableStream<Uint8Array>) {
@@ -80,7 +84,7 @@ export function usePlannerStream(orgId: string, onResult: (proposal: PlannerProp
       if (active.current) return;
       const controller = new AbortController();
       active.current = controller;
-      setState({ running: true, steps: [], plan: [], error: null });
+      setState({ running: true, steps: [], summary: null, plan: [], error: null });
       let finished = false;
       try {
         const response = await fetch(`/api/v1/orgs/${orgId}${path}`, {
@@ -110,10 +114,17 @@ export function usePlannerStream(orgId: string, onResult: (proposal: PlannerProp
           }
           const event = plannerStreamEvent.safeParse(raw);
           if (!event.success) continue;
-          if (event.data.event === "step") {
-            const step = event.data.data.step;
-            setState((old) => (old.steps.includes(step) ? old : { ...old, steps: [...old.steps, step] }));
-          } else if (event.data.event === "plan") update({ plan: event.data.data.lines });
+          const reach = (step: PlannerProgressStep, patch: Partial<PlannerStreamState> = {}) =>
+            setState((old) => ({
+              ...old,
+              ...patch,
+              steps: old.steps.includes(step) ? old.steps : [...old.steps, step],
+            }));
+          if (event.data.event === "understanding")
+            reach("context", event.data.data.summary ? { summary: event.data.data.summary } : {});
+          else if (event.data.event === "matching") reach("matching");
+          else if (event.data.event === "composing") reach("model", { plan: event.data.data.lines });
+          else if (event.data.event === "checking") reach(event.data.data.repairs ? "retry" : "checks");
           else if (event.data.event === "error") {
             update({ error: event.data.data });
             finished = true;
