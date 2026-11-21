@@ -35,6 +35,7 @@ model User {
   aiPlannerProposals AiPlannerProposal[]
   aiPlannerTranscriptions AiPlannerTranscription[]
   consents    Consent[]            @relation("ConsentUser")
+  exerciseLists ExerciseList[]
 
   suspendedAt DateTime? @map("suspended_at")
   clientInstallations ClientInstallation[]
@@ -216,6 +217,7 @@ model Organization {
   athletes          Athlete[]
   invitations       Invitation[]
   exercises         Exercise[]
+  exerciseLists     ExerciseList[]
   legacyStrengthMappings LegacyStrengthMapping[]
   templates         SessionTemplate[]
   scheduledSessions ScheduledSession[]
@@ -553,9 +555,47 @@ model Exercise {
   strengthTests StrengthTest[]
   strengthReferences StrengthReference[]
   legacyStrengthMappings LegacyStrengthMapping[]
+  listItems ExerciseListItem[]
 
   @@index([organizationId])
   @@map("exercises")
+}
+
+// Les listes d'un coach : ses banques d'exercices, privées par défaut. Une liste partagée se lit par les autres
+// coachs de l'espace, sans qu'ils la modifient. Un athlète n'en voit jamais. « Favoris » est la liste système
+// de chaque coach (`isFavorites`), créée à la première étoile : une seule par coach et par espace, gardée par
+// le service.
+model ExerciseList {
+  id                String   @id @default(uuid()) @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  ownerId           String   @map("owner_id") @db.Uuid
+  name              String
+  position          Int      @default(0)
+  isFavorites       Boolean  @default(false) @map("is_favorites")
+  sharedWithCoaches Boolean  @default(false) @map("shared_with_coaches")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner        User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  items        ExerciseListItem[]
+
+  @@index([organizationId, ownerId])
+  @@map("exercise_lists")
+}
+
+model ExerciseListItem {
+  listId     String   @map("list_id") @db.Uuid
+  exerciseId String   @map("exercise_id") @db.Uuid
+  position   Int      @default(0)
+  addedAt    DateTime @default(now()) @map("added_at")
+
+  list     ExerciseList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  exercise Exercise     @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@id([listId, exerciseId])
+  @@index([exerciseId])
+  @@map("exercise_list_items")
 }
 
 enum MediaKind {
@@ -671,6 +711,25 @@ model ExerciseMedia {
 
   @@index([exerciseId])
   @@map("exercise_media")
+}
+
+// La vidéo d'une fiche commune du catalogue, déposée par le fondateur : une par fiche et par vue (profil ou face).
+// Contenu commun, hors de tout espace. Un nouvel envoi remplace l'ancien une fois prêt.
+model CatalogMedia {
+  id            String   @id @default(uuid()) @db.Uuid
+  catalogKey    String   @map("catalog_key")
+  view          String
+  // uploading, ready ou error.
+  status        String   @default("uploading")
+  muxUploadId   String?  @map("mux_upload_id")
+  muxAssetId    String?  @map("mux_asset_id")
+  muxPlaybackId String?  @map("mux_playback_id")
+  createdBy     String?  @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([catalogKey, view])
+  @@map("catalog_media")
 }
 
 enum SessionType {

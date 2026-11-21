@@ -22,12 +22,16 @@ test("les noms contrôlés sont modifiables et recherchables sans créer une aut
   await expectNoHorizontalScroll(page);
   await dialog.getByRole("button", { name: m.common.save, exact: true }).click();
   await expect(dialog).toBeHidden();
+  // Enregistrée, la nouvelle fiche s'ouvre à son adresse.
+  await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
   const read = async () =>
     (await (await page.request.get(endpoint)).json()).filter((e: { name: string }) => e.name === name);
   expect(await read()).toMatchObject([{ aliases: ["RDL recette", "Romanian deadlift recette"] }]);
   expect(await read()).toHaveLength(1);
+  await page.goto("/exercices");
   await page.getByLabel(m.exercises.search, { exact: true }).fill("romanian deadlift recette");
-  await page.getByRole("button", { name: `${m.common.edit} ${name}`, exact: true }).click();
+  await page.getByRole("link", { name: new RegExp(`^${name}`) }).click();
+  await page.getByRole("button", { name: m.common.edit, exact: true }).click();
   await expect(dialog.getByLabel(m.exercises.aliases, { exact: true })).toHaveValue(
     "RDL recette\nRomanian deadlift recette",
   );
@@ -39,7 +43,7 @@ test("les noms contrôlés sont modifiables et recherchables sans créer une aut
   await dialog.getByRole("button", { name: m.common.save, exact: true }).click();
   await expect(dialog).toBeHidden();
   expect((await read())[0].aliases).toEqual([]);
-  await page.reload();
+  await page.goto("/exercices");
   await page.getByLabel(m.exercises.search, { exact: true }).fill("romanian deadlift recette");
-  await expect(page.getByRole("button", { name: `${m.common.edit} ${name}`, exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: new RegExp(`^${name}`) })).toHaveCount(0);
 });

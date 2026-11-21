@@ -12,6 +12,8 @@ import { logSession } from "@/server/athlete-view.service";
 import { addComment } from "@/server/comm.service";
 import { unsubscribeUrl } from "@/server/email-preferences.service";
 import { saveExercise } from "@/server/exercise.service";
+import { createExerciseList } from "@/server/exercise-list.service";
+import { ensureExerciseCatalog } from "@/server/exercise-catalog.service";
 import { icalLink } from "@/server/ical.service";
 import { groupInvitationLink } from "@/server/invitation.service";
 import { addPerformance } from "@/server/performance.service";
@@ -254,6 +256,10 @@ export type World = Awaited<ReturnType<typeof buildWorld>>;
 // L'auteur d'une ressource jetable : la persona elle-même si elle encadre, sinon le propriétaire.
 // Un adjoint ne gère que ses propres séances : il reçoit donc la sienne, dans son groupe.
 const authorOf = (w: World, qui: PersonaKey) => (STAFF.includes(qui) ? w.userIds[qui as "coach"] : w.owner);
+// Une liste jetable de l'auteur : celle d'un coach pour lui-même, celle du propriétaire pour les autres.
+const listOf = async (w: World, qui: PersonaKey) => ({
+  listId: (await createExerciseList(authorOf(w, qui), w.org, { name: `Liste ${qui}` })).id,
+});
 const groupOf = (w: World, qui: PersonaKey) => (qui === "adjoint" ? w.p.main.groups.second : w.p.main.groups.first);
 
 const sessionInput = (w: World, qui: PersonaKey) => ({
@@ -661,6 +667,69 @@ export const MATRICE: Row[] = [
     route: "POST /api/v1/orgs/[orgId]/exercises",
     ...encadrants,
     call: (_w, qui) => ({ body: { name: `Exercice de la matrice ${qui}`, category: "strength" } }),
+  },
+  { route: "GET /api/v1/orgs/[orgId]/exercises/search", ...encadrants, call: () => ({ query: { q: "squat" } }) },
+  {
+    route: "GET /api/v1/orgs/[orgId]/exercises/[exerciseId]",
+    ...encadrants,
+    call: (w) => ({ params: { exerciseId: w.exerciseId } }),
+  },
+  {
+    route: "PUT /api/v1/orgs/[orgId]/exercises/[exerciseId]/favorite",
+    ...encadrants,
+    call: (w) => ({ params: { exerciseId: w.exerciseId }, body: { favorite: true } }),
+  },
+  {
+    route: "POST /api/v1/orgs/[orgId]/exercises/[exerciseId]/personalize",
+    ...encadrants,
+    call: async (w) => {
+      await ensureExerciseCatalog(w.owner, w.org);
+      const common = await prisma.exercise.findFirstOrThrow({
+        where: { organizationId: null, catalogKey: "goblet-squat" },
+      });
+      return { params: { exerciseId: common.id } };
+    },
+  },
+  // Listes du coach : chaque persona d'encadrement agit sur la sienne ; personne d'autre n'y accède.
+  { route: "GET /api/v1/orgs/[orgId]/exercise-lists", ...encadrants },
+  {
+    route: "POST /api/v1/orgs/[orgId]/exercise-lists",
+    ...encadrants,
+    call: (_w, qui) => ({ body: { name: `Liste de la matrice ${qui}` } }),
+  },
+  {
+    route: "PUT /api/v1/orgs/[orgId]/exercise-lists/order",
+    ...encadrants,
+    call: async (w, qui) => {
+      const author = authorOf(w, qui);
+      await createExerciseList(author, w.org, { name: `Ordre ${qui}` });
+      const mine = await prisma.exerciseList.findMany({
+        where: { organizationId: w.org, ownerId: author },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      });
+      return { body: { listIds: mine.map((list) => list.id) } };
+    },
+  },
+  {
+    route: "PATCH /api/v1/orgs/[orgId]/exercise-lists/[listId]",
+    ...encadrants,
+    call: async (w, qui) => ({ params: await listOf(w, qui), body: { sharedWithCoaches: true } }),
+  },
+  {
+    route: "DELETE /api/v1/orgs/[orgId]/exercise-lists/[listId]",
+    ...encadrants,
+    call: async (w, qui) => ({ params: await listOf(w, qui) }),
+  },
+  {
+    route: "PUT /api/v1/orgs/[orgId]/exercise-lists/[listId]/items/[exerciseId]",
+    ...encadrants,
+    call: async (w, qui) => ({ params: { ...(await listOf(w, qui)), exerciseId: w.exerciseId } }),
+  },
+  {
+    route: "DELETE /api/v1/orgs/[orgId]/exercise-lists/[listId]/items/[exerciseId]",
+    ...encadrants,
+    call: async (w, qui) => ({ params: { ...(await listOf(w, qui)), exerciseId: w.exerciseId } }),
   },
   { route: "GET /api/v1/orgs/[orgId]/session-builder", ...encadrants },
   {

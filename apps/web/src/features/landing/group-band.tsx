@@ -43,7 +43,7 @@ const GroupCard = memo(function GroupCard({
 
   return (
     <li data-athlete={id} className="w-[62vw] max-w-[250px] shrink-0 snap-center desktop:w-auto desktop:max-w-none">
-      <EventScene aria-hidden id={id} t={playing ? time : clip.still} focus={290} className="w-full rounded-card" />
+      <EventScene aria-hidden id={id} t={playing ? time : clip.still} focus={240} className="w-full rounded-card" />
       <p className="mt-3 flex items-center gap-3">
         <LaneNumber n={ATHLETES[id].bib} className="text-[40px]" />
         <span className="leading-tight">

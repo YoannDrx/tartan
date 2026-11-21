@@ -66,8 +66,16 @@ export const SCREENS: Screen[] = [
   { path: "/seances/[id]/suivi", roles: ["coach"], proof: ["coach-performed-sets.spec.ts"] },
   { path: "/seances/[id]/charges", roles: ["coach"], proof: ["filled-pages.spec.ts"] },
   { path: "/seances/[id]/athletes/[athleteId]/series", roles: ["coach"], proof: ["coach-performed-sets.spec.ts"] },
-  { path: "/exercices", roles: ["coach"], proof: ["exercise-guides.spec.ts", "exercise-aliases.spec.ts"] },
-  { path: "/exercices/[id]", roles: ["coach"], proof: ["screen-matrix.spec.ts"] },
+  {
+    path: "/exercices",
+    roles: ["coach"],
+    proof: ["exercise-guides.spec.ts", "exercise-aliases.spec.ts", "exercise-lists.spec.ts"],
+  },
+  {
+    path: "/exercices/[id]",
+    roles: ["coach"],
+    proof: ["screen-matrix.spec.ts", "exercise-guides.spec.ts", "exercise-lists.spec.ts"],
+  },
   { path: "/athletes", roles: ["coach"], proof: ["athletic-performances.spec.ts"] },
   { path: "/athletes/[id]", roles: ["coach"], proof: ["athletic-performances.spec.ts"] },
   { path: "/videos", roles: ["coach"], proof: ["video-collaboration.spec.ts", "video-filters.spec.ts"] },
@@ -112,6 +120,7 @@ export const SCREENS: Screen[] = [
   { path: "/admin/configuration", roles: ["admin"], proof: ["admin-console.spec.ts"] },
   { path: "/admin/mascotte", roles: ["admin"], proof: ["mascot-board.spec.ts"] },
   { path: "/admin/mouvements", roles: ["admin"], proof: ["admin-console.spec.ts"] },
+  { path: "/admin/exercices", roles: ["admin"], proof: ["catalog-video.spec.ts", "tests/catalog-media.test.ts"] },
   { path: "/admin/jeu", roles: ["admin"], proof: ["admin-console.spec.ts"] },
 ];
 

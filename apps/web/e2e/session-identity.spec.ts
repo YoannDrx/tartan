@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { createCoachSpace, expectNoHorizontalScroll } from "./helpers";
+import { addFromLibrary, createCoachSpace, expectNoHorizontalScroll } from "./helpers";
 
 test("un brouillon garde son ordre et un onglet ancien ne peut pas écraser sa correction", async ({
   page,
@@ -9,8 +9,8 @@ test("un brouillon garde son ordre et un onglet ancien ne peut pas écraser sa c
   await createCoachSpace(page, "Identites");
   await page.goto("/seances/nouvelle", { waitUntil: "networkidle" });
   await page.getByLabel("Titre", { exact: true }).fill("Force stable");
-  await page.getByRole("button", { name: "Ajouter Accélérations à la séance", exact: true }).click();
-  await page.getByRole("button", { name: "Ajouter Foulées bondissantes à la séance", exact: true }).click();
+  await addFromLibrary(page, "Accélérations");
+  await addFromLibrary(page, "Foulées bondissantes");
   await page.getByRole("button", { name: m.builder.saveDraft, exact: true }).click();
   await expect(page).toHaveURL(/\/seances\/[a-f0-9-]+$/);
   await page.reload({ waitUntil: "networkidle" });
@@ -23,7 +23,9 @@ test("un brouillon garde son ordre et un onglet ancien ne peut pas écraser sa c
   const up = second.getByRole("button", { name: m.builder.sequence.up, exact: true });
   if (await up.isVisible()) await up.click();
   else {
-    await second.getByRole("button", { name: m.builder.sequence.moreActions("Foulées bondissantes"), exact: true }).click();
+    await second
+      .getByRole("button", { name: m.builder.sequence.moreActions("Foulées bondissantes"), exact: true })
+      .click();
     await page.getByRole("menuitem", { name: m.builder.sequence.up, exact: true }).click();
   }
   await page.getByLabel("Titre", { exact: true }).fill("Force corrigée");
