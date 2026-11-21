@@ -4,17 +4,16 @@ import path from "node:path";
 import { athletePaint } from "@tartan/design-tokens/athletes";
 import { tokens } from "@tartan/design-tokens";
 import { formatDayMonth, m } from "@tartan/i18n";
-import { athleteRig } from "@tartan/mascot/athletes";
 import { POSES } from "@tartan/mascot/poses";
-import { svgAthlete } from "@tartan/mascot/svg";
+import { svgPoseFigure } from "@tartan/mascot/v2/pose-figure";
 import { ImageResponse } from "next/og";
+import { ATHLETE_VIEW } from "@/components/athlete";
 import { disciplineAthlete } from "@/lib/discipline-athlete";
 import { dataUri, figureSvg } from "@/lib/figure-svg";
 
 // La carte de record : une image portrait, au format des stories et des messageries, que l'athlète partage depuis
 // son téléphone. Le prénom, la discipline, la marque, la date, et l'athlète de l'épreuve qui lève les bras.
 export const CARD = { width: 1080, height: 1350 } as const;
-
 
 export const formatMark = (mark: number, unit: string) => `${String(mark).replace(".", ",")} ${unit}`;
 
@@ -32,10 +31,7 @@ export const recordCardImage = async (card: {
     readFile(path.join(process.cwd(), "public/brand/logo-on-dark.svg")),
   ]);
   const id = disciplineAthlete(card.discipline);
-  const athlete = figureSvg(
-    svgAthlete(athleteRig(id, "joy"), POSES.cheer, athletePaint(id, "piste")),
-    "-140 -262 280 422",
-  );
+  const athlete = figureSvg(svgPoseFigure(id, "joy", POSES.cheer, athletePaint(id, "piste")), ATHLETE_VIEW.raised);
   const { band, color } = tokens;
   const lane = { display: "flex", width: "100%", height: 10, backgroundColor: band.lane };
   return new ImageResponse(

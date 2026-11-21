@@ -3,6 +3,7 @@
 import type { ExerciseGuide } from "@tartan/contracts";
 import { SURFACES } from "@tartan/design-tokens/athletes";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { positionAt, type ExerciseClip } from "@tartan/mascot/exercise";
 import { exerciseClip } from "@tartan/mascot/exercises";
 import { motionEngine } from "@tartan/mascot/v2/engine";
@@ -19,11 +20,20 @@ import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 const t = m.exerciseGuide.motion;
 
+const label = w.exercises.guide.position;
+
+// La ligne de chaque position : la version concise quand le guide en a une, sinon le texte enregistré.
+const linesOf = (guide: ExerciseGuide) =>
+  guide.concise ? [guide.concise.setup, ...guide.concise.steps] : guide.illustration.positions;
+
+// Une pastille dit sa position : « Mise en place », puis le numéro de l'étape qu'elle montre.
+const chipText = (index: number) => (index === 0 ? label(0) : String(index));
+
 const captionOf = (guide: ExerciseGuide) =>
   guide.illustration.motion === "approved" ? m.exerciseGuide.original : m.exerciseGuide.illustrationPending;
 
 // Une pastille ou un choix de vue : une cible de 44 px, pleine quand elle est choisie.
-const chip = (chosen: boolean) =>
+export const chip = (chosen: boolean) =>
   cn(
     "grid min-h-11 min-w-11 place-items-center rounded-button border border-card-line px-3 text-sm",
     chosen && "border-transparent bg-accent text-on-accent",
@@ -110,7 +120,7 @@ const Gesture = ({
   const main = useRef<MotionPlayer | null>(null);
   const groups = useRef(new Map<GestureView, SVGGElement>());
   const running = playing && !reduced;
-  const lines = guide.illustration.positions;
+  const lines = linesOf(guide);
   // En mouvement réduit, une seule vue à la fois : la frise prend toute la largeur.
   const shown = bothViews && !reduced ? entry.views.slice(0, 2) : [view];
   const layout = shown.join(" ");
@@ -179,7 +189,7 @@ const Gesture = ({
               >
                 <GestureStill gesture={clip} t={step.still} view={view} />
               </GestureStage>
-              <span className="t-caption text-soft">{t.position(step.guide)}</span>
+              <span className="t-caption text-soft">{label(step.guide)}</span>
             </li>
           ))}
         </ol>
@@ -226,15 +236,15 @@ const Gesture = ({
             <button
               key={option.guide}
               type="button"
-              aria-label={t.show(index + 1, t.position(option.guide))}
+              aria-label={option.guide === 0 ? undefined : label(option.guide)}
               aria-pressed={!running && current === index}
               onClick={() => {
                 setPlaying(false);
                 main.current?.seek(option.still);
               }}
-              className={cn(chip(current === index), "t-num px-0")}
+              className={cn(chip(current === index), option.guide === 0 ? "font-semibold" : "t-num px-0")}
             >
-              {index + 1}
+              {chipText(option.guide)}
             </button>
           ))}
         </div>
@@ -242,7 +252,7 @@ const Gesture = ({
       </div>
       {/* Lue seulement une fois le geste arrêté : en lecture, la ligne change toutes les secondes. */}
       <p aria-live={running ? "off" : "polite"} className="min-h-12">
-        <span className="font-semibold">{t.position(step.guide)} : </span>
+        <span className="font-semibold">{label(step.guide)} : </span>
         {lines[step.guide]}
       </p>
       <figcaption className="t-caption text-soft">{captionOf(guide)}</figcaption>
@@ -257,7 +267,7 @@ const Player = ({ guide, clip, autoPlay }: { guide: ExerciseGuide; clip: Exercis
   const [time, setTime] = useState(clip.stills[0]!);
   const [playing, setPlaying] = useState(autoPlay);
   const running = playing && !reduced;
-  const lines = guide.illustration.positions;
+  const lines = linesOf(guide);
 
   useEffect(() => {
     if (!running) return;
@@ -286,7 +296,7 @@ const Player = ({ guide, clip, autoPlay }: { guide: ExerciseGuide; clip: Exercis
                 aria-label={lines[index] ?? guide.illustration.alt}
                 className="w-full rounded-button"
               />
-              <span className="t-caption text-soft">{t.position(index)}</span>
+              <span className="t-caption text-soft">{label(index)}</span>
             </li>
           ))}
         </ol>
@@ -320,25 +330,22 @@ const Player = ({ guide, clip, autoPlay }: { guide: ExerciseGuide; clip: Exercis
             <button
               key={index}
               type="button"
-              aria-label={t.show(index + 1, t.position(index))}
+              aria-label={index === 0 ? undefined : label(index)}
               aria-pressed={!running && current === index}
               onClick={() => {
                 setPlaying(false);
                 setTime(still);
               }}
-              className={cn(
-                "t-num grid size-11 place-items-center rounded-button border border-card-line text-sm",
-                current === index && "border-transparent bg-accent text-on-accent",
-              )}
+              className={cn(chip(current === index), index === 0 ? "font-semibold" : "t-num px-0")}
             >
-              {index + 1}
+              {chipText(index)}
             </button>
           ))}
         </div>
       </div>
       {/* Lue seulement une fois le geste arrêté : en lecture, la ligne change toutes les secondes. */}
       <p aria-live={running ? "off" : "polite"} className="min-h-12">
-        <span className="font-semibold">{t.position(current)} : </span>
+        <span className="font-semibold">{label(current)} : </span>
         {lines[current]}
       </p>
       <figcaption className="t-caption text-soft">{caption}</figcaption>

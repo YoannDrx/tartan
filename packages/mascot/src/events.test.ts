@@ -8,6 +8,7 @@ import { LONG_JUMP, LONG_JUMP_TIMES } from "./long-jump";
 import { POLE_VAULT, POLE_VAULT_TIMES, poleAt, poleChord } from "./pole-vault";
 import { jointPositions, type Anchor, type Point, type Pose } from "./skeleton";
 import { TRIPLE_JUMP, TRIPLE_JUMP_TIMES } from "./triple-jump";
+import { poseHands } from "./v2/pose-figure";
 
 const STEPS = 2000;
 const times = (from = 0, to = 1) => Array.from({ length: STEPS + 1 }, (_, i) => from + ((to - from) * i) / STEPS);
@@ -232,7 +233,8 @@ describe("le disque", () => {
   const clip = CLIPS.discus;
   it("reste dans la main jusqu'au lâcher, puis monte et retombe dans le secteur", () => {
     for (const t of [0, 0.2, DISCUS_TIMES.power, DISCUS_TIMES.release]) {
-      expect(discusAt(t)).toEqual(joints(clip, t).handA);
+      // La main du corps dessiné : celle du moteur des gestes.
+      expect(discusAt(t)).toEqual(poseHands(clip.frame(t).pose, clip.frame(t).root).handA);
     }
     const released = discusAt(DISCUS_TIMES.release);
     const heights = times(DISCUS_TIMES.release, DISCUS_TIMES.land).map((t) => discusAt(t).y);

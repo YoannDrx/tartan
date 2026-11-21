@@ -1,8 +1,7 @@
 import { athletePaint, stagePaint } from "@tartan/design-tokens/athletes";
 import { tokens } from "@tartan/design-tokens";
 import { PHASE, SECTOR_HALF, TURN, type DiscusState } from "@tartan/game/events/discus";
-import { athleteRig } from "@tartan/mascot/athletes";
-import { drawMascot } from "@tartan/mascot/canvas";
+import { drawPoseFigure } from "@tartan/mascot/v2/pose-figure";
 import { DISCUS_CLIP, DISCUS_TIMES } from "@tartan/mascot/discus";
 import { drawProp } from "@tartan/mascot/props";
 import type { SceneSize } from "./hurdles-scene";
@@ -12,11 +11,6 @@ import type { SceneSize } from "./hurdles-scene";
 
 const PAINT = athletePaint("discus", "piste");
 const PROPS = stagePaint("piste");
-const BONES = {
-  neutral: athleteRig("discus", "neutral"),
-  effort: athleteRig("discus", "effort"),
-  joy: athleteRig("discus", "joy"),
-};
 const T = DISCUS_TIMES;
 // Le lâcher dure ce nombre de pas à l'image, puis le disque vole.
 const RELEASE_TICKS = 18;
@@ -80,7 +74,7 @@ export const drawDiscus = (ctx: CanvasRenderingContext2D, size: SceneSize, state
   ctx.scale(scale, scale);
   for (const shape of shapes) if (!shape.front) drawProp(ctx, shape, PROPS[shape.paint]);
   const face = state.foul || state.overturned ? "neutral" : DISCUS_CLIP.face(t);
-  drawMascot(ctx, pose, { paint: PAINT, bones: BONES[face], at: root });
+  drawPoseFigure(ctx, "discus", face, pose, { paint: PAINT, at: root });
   for (const shape of shapes) if (shape.front) drawProp(ctx, shape, PROPS[shape.paint]);
   ctx.restore();
   drawGauge(ctx, size, state);

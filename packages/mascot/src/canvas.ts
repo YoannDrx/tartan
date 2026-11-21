@@ -24,7 +24,7 @@ export type MascotCanvas = {
 const radians = (degrees: number) => (degrees * Math.PI) / 180;
 const QUARTER = Math.PI / 2;
 
-const draw = (ctx: MascotCanvas, shape: Shape, color: string) => {
+export const drawShape = (ctx: MascotCanvas, shape: Shape, color: string) => {
   ctx.beginPath();
   switch (shape.kind) {
     case "limb":
@@ -99,7 +99,7 @@ export const drawMascot = (
       else if ("turn" in step) ctx.rotate(radians(step.turn));
       else ctx.scale(-1, 1);
     }
-    for (const shape of bone.shapes) draw(ctx, shape, paint[shape.paint]!);
+    for (const shape of bone.shapes) drawShape(ctx, shape, paint[shape.paint]!);
     ctx.restore();
   }
   ctx.restore();

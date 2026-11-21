@@ -16,7 +16,8 @@ import {
 } from "./event";
 import { POSES } from "./poses";
 import type { PropShape } from "./props";
-import { jointPositions, type Point, type Pose } from "./skeleton";
+import type { Point, Pose } from "./skeleton";
+import { poseHands, type HeldPose } from "./v2/pose-figure";
 
 const STAGE = { width: 1400, height: 900, ground: 840 };
 const HIP = hipOn(STAGE.ground);
@@ -231,7 +232,7 @@ const VAULT = tracks(KEYS);
 
 const READY: Pose = { ...POSES.stand, ...carry(0), rot: 2 };
 
-const frame = (t: number): Frame => {
+const bodyFrame = (t: number): Frame => {
   if (t <= AT.run) {
     const first = run(AT.run);
     return { pose: READY, root: { x: START, y: mix(HIP, first.root.y, smooth(0.02, AT.run, t)) } };
@@ -255,8 +256,8 @@ const FALL = [
 export const poleAt = (t: number): { from: Point; control: Point; to: Point } => {
   const straight = (a: Point, b: Point) => ({ from: a, control: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, to: b });
   if (t > AT.release) return straight(box, from(sample(FALL, t).angle, grip));
-  const { pose, root } = frame(t);
-  const hands = jointPositions(pose, root);
+  const { pose, root } = bodyFrame(t);
+  const hands = poseHands(pose, root);
   if (t < AT.plant) {
     const along = Math.hypot(hands.handA.x - hands.handB.x, hands.handA.y - hands.handB.y) || 1;
     const tip = {
@@ -279,11 +280,58 @@ export const poleAt = (t: number): { from: Point; control: Point; to: Point } =>
 
 // La distance du butoir à la main du haut, tant que la perche est tenue : elle ne dépasse pas la perche.
 export const poleChord = (t: number) => {
-  const { pose, root } = frame(t);
-  const top = jointPositions(pose, root).handB;
+  const { pose, root } = bodyFrame(t);
+  const top = poseHands(pose, root).handB;
   return Math.hypot(top.x - box.x, top.y - box.y);
 };
 export const POLE_VAULT_TIMES = AT;
+
+// Le point de la perche le plus proche d'un point : la perche est un arc du second degré, parcouru finement.
+type Curve = ReturnType<typeof poleAt>;
+const on = (curve: Curve, u: number): Point => ({
+  x: (1 - u) ** 2 * curve.from.x + 2 * u * (1 - u) * curve.control.x + u * u * curve.to.x,
+  y: (1 - u) ** 2 * curve.from.y + 2 * u * (1 - u) * curve.control.y + u * u * curve.to.y,
+});
+export const closestOnPole = (curve: Curve, point: Point): Point => {
+  let best = { u: 0, gap: Infinity };
+  for (let i = 0; i <= 64; i += 1) {
+    const at = on(curve, i / 64);
+    const gap = Math.hypot(at.x - point.x, at.y - point.y);
+    if (gap < best.gap) best = { u: i / 64, gap };
+  }
+  let [low, high] = [Math.max(0, best.u - 1 / 64), Math.min(1, best.u + 1 / 64)];
+  for (let i = 0; i < 30; i += 1) {
+    const [a, b] = [low + (high - low) / 3, high - (high - low) / 3];
+    const gap = (u: number) => Math.hypot(on(curve, u).x - point.x, on(curve, u).y - point.y);
+    if (gap(a) < gap(b)) high = b;
+    else low = a;
+  }
+  return on(curve, (low + high) / 2);
+};
+
+// Le perchiste tient sa perche des deux mains : la main du haut la porte (poleAt), celle du bas la saisit là où
+// elle passe, au plus près de là où le bras la porterait, jusqu'au lâcher.
+const frame = (t: number): Frame => {
+  const base = bodyFrame(t);
+  if (t > AT.release) return base;
+  const arms = poseHands(base.pose, base.root);
+  const pole = poleAt(t);
+  let grip = closestOnPole(pole, arms.handA);
+  // Quand la perche bascule vers le butoir, ce point peut sortir de la portée du bras : la main glisse alors le long
+  // de la perche jusqu'au point le plus proche qu'elle atteint.
+  const room = 0.9 * arms.reach;
+  if (Math.hypot(grip.x - arms.shoulderA.x, grip.y - arms.shoulderA.y) > room) {
+    let best = { gap: Infinity, at: grip };
+    for (let i = 0; i <= 200; i += 1) {
+      const at = on(pole, i / 200);
+      const gap = Math.hypot(at.x - arms.handA.x, at.y - arms.handA.y);
+      if (Math.hypot(at.x - arms.shoulderA.x, at.y - arms.shoulderA.y) <= room && gap < best.gap) best = { gap, at };
+    }
+    grip = best.at;
+  }
+  const pose: HeldPose = { ...base.pose, grip: { handA: { x: grip.x - base.root.x, y: grip.y - base.root.y } } };
+  return { pose, root: base.root };
+};
 
 const PHASES: Phase[] = [
   { name: "ready", from: 0, to: AT.run },

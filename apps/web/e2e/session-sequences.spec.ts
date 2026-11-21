@@ -1,13 +1,19 @@
 import { expect, test, type Locator } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { createCoachSpace, expectAccessible, expectNoHorizontalScroll, expectNoMotion } from "./helpers";
+import {
+  addFromLibrary,
+  createCoachSpace,
+  expectAccessible,
+  expectNoHorizontalScroll,
+  expectNoMotion,
+} from "./helpers";
 
 test("un circuit imbriqué garde son ordre, ses récupérations et ses identités après sauvegarde", async ({ page }) => {
   await createCoachSpace(page, "Circuits");
   await page.goto("/seances/nouvelle", { waitUntil: "networkidle" });
   await page.getByLabel(m.builder.titleLabel, { exact: true }).fill("Force en circuit");
-  await page.getByRole("button", { name: "Ajouter Accélérations à la séance", exact: true }).click();
-  await page.getByRole("button", { name: "Ajouter Foulées bondissantes à la séance", exact: true }).click();
+  await addFromLibrary(page, "Accélérations");
+  await addFromLibrary(page, "Foulées bondissantes");
   const phase = page.getByRole("region", { name: m.builder.blocks.main, exact: true });
   await phase.getByRole("button", { name: m.builder.sequence.groupAll, exact: true }).click();
   await phase.getByLabel(m.builder.sequence.select("Accélérations"), { exact: true }).check();
@@ -22,7 +28,9 @@ test("un circuit imbriqué garde son ordre, ses récupérations et ses identité
   await phase.getByLabel(m.builder.sequence.groupName, { exact: true }).first().fill("Deux passages");
   await phase.getByLabel(m.builder.sequence.rounds, { exact: true }).first().fill("2");
   await expect(phase.getByLabel(m.builder.sequence.rounds, { exact: true })).toHaveCount(2);
-  await phase.getByRole("button", { name: m.builder.sequence.moreActions("Foulées bondissantes"), exact: true }).click();
+  await phase
+    .getByRole("button", { name: m.builder.sequence.moreActions("Foulées bondissantes"), exact: true })
+    .click();
   await page.getByRole("menuitem", { name: m.builder.sequence.remove("Foulées bondissantes"), exact: true }).click();
   await expect(phase.getByText("Foulées bondissantes", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: m.builder.sequence.undo, exact: true }).click();
@@ -72,14 +80,17 @@ test("glisser une carte dans un groupe, l'y réordonner puis l'en sortir", async
   await page.setViewportSize({ width, height: 1600 });
   await page.goto("/seances/nouvelle", { waitUntil: "networkidle" });
   await page.getByLabel(m.builder.titleLabel, { exact: true }).fill("Séance glissée");
-  await page.getByRole("button", { name: "Ajouter Accélérations à la séance", exact: true }).click();
-  await page.getByRole("button", { name: "Ajouter Foulées bondissantes à la séance", exact: true }).click();
+  await addFromLibrary(page, "Accélérations");
+  await addFromLibrary(page, "Foulées bondissantes");
   const phase = page.getByRole("region", { name: m.builder.blocks.main, exact: true });
   await phase.getByRole("button", { name: m.builder.sequence.addGroup, exact: true }).click();
   const group = phase.getByRole("group", { name: /^Superset/ });
   // La carte la plus intérieure qui porte ce nom, et sa propre poignée.
   const card = (name: string) =>
-    phase.locator("li[data-seq-node]").filter({ has: page.getByText(name, { exact: true }) }).last();
+    phase
+      .locator("li[data-seq-node]")
+      .filter({ has: page.getByText(name, { exact: true }) })
+      .last();
   const grip = (name: string) => card(name).locator('[data-testid^="grip-"]').first();
   const drag = async (from: Locator, to: Locator, at: "top" | "middle" = "middle") => {
     // La barre d'actions reste fixée en bas : la destination est amenée au centre de l'écran.
@@ -197,7 +208,7 @@ test("deux onglets ne remplacent pas silencieusement la copie locale du construc
   await createCoachSpace(page, "Copie");
   await page.goto("/seances/nouvelle", { waitUntil: "networkidle" });
   await page.getByLabel(m.builder.titleLabel, { exact: true }).fill("Séance commune");
-  await page.getByRole("button", { name: "Ajouter Accélérations à la séance", exact: true }).click();
+  await addFromLibrary(page, "Accélérations");
   await page.getByRole("button", { name: m.builder.saveDraft, exact: true }).click();
   await expect(page).toHaveURL(/\/seances\/[a-f0-9-]+$/);
   await page.reload({ waitUntil: "networkidle" });
@@ -221,7 +232,7 @@ test("une réponse perdue laisse la création en attente de vérification et blo
   await createCoachSpace(page, "Interruption");
   await page.goto("/seances/nouvelle", { waitUntil: "networkidle" });
   await page.getByLabel(m.builder.titleLabel, { exact: true }).fill("Séance envoyée une fois");
-  await page.getByRole("button", { name: "Ajouter Accélérations à la séance", exact: true }).click();
+  await addFromLibrary(page, "Accélérations");
   let sent = 0;
   let confirmLoss!: () => void;
   const lostResponse = new Promise<void>((resolve) => {

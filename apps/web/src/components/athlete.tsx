@@ -1,14 +1,15 @@
 import { athletePaint, type Surface } from "@tartan/design-tokens/athletes";
-import { athleteRig, type AthleteId } from "@tartan/mascot/athletes";
+import type { AthleteId } from "@tartan/mascot/athletes";
 import { POSES, type PoseName } from "@tartan/mascot/poses";
 import type { Face } from "@tartan/mascot/rig";
 import type { Point, Pose, View } from "@tartan/mascot/skeleton";
-import { svgAthlete } from "@tartan/mascot/svg";
+import { svgPoseFigure } from "@tartan/mascot/v2/pose-figure";
 import type { ComponentProps } from "react";
 import { FigureGroup } from "@/components/jumper";
 import { cn } from "@/lib/cn";
 
-// Un athlète du groupe dans un SVG : son corps, son visage du moment, et sa tenue réglée sur le fond.
+// Un athlète du groupe dans un SVG : le corps du moteur des gestes, dans l'ancienne pose, avec son visage du
+// moment et sa tenue réglée sur le fond.
 export const AthleteFigure = ({
   id,
   pose,
@@ -26,18 +27,19 @@ export const AthleteFigure = ({
   // De profil par défaut ; de face ou de dos pour un geste qui se lit ainsi.
   facing?: View;
 } & Omit<ComponentProps<"g">, "transform" | "children">) => (
-  <FigureGroup figure={svgAthlete(athleteRig(id, face, facing), pose, athletePaint(id, on), at)} {...group} />
+  <FigureGroup figure={svgPoseFigure(id, face, pose, athletePaint(id, on), at, facing)} {...group} />
 );
 
-// Le cadre : le corps entier quelle que soit la pose, le corps debout au plus près, la course posée au sol (même
-// échelle que debout, pieds sur le bord bas), debout bras levés, ou la tête seule.
-const VIEW = {
-  body: "-250 -270 500 500",
-  standing: "-105 -212 210 372",
-  stride: "-160 -212 320 380",
+// Le cadre, le bassin à l'origine et le sol 146 plus bas : le corps entier quelle que soit la pose (le sol à la même
+// hauteur du cadre qu'avant), le corps debout au plus près, la course posée au sol (même échelle que debout, pieds
+// sur le bord bas), debout bras levés, ou la tête seule.
+export const ATHLETE_VIEW = {
+  body: "-200 -187 400 400",
+  standing: "-85 -142 170 302",
+  stride: "-128 -140 256 300",
   // Debout, bras levés compris.
-  raised: "-140 -262 280 422",
-  head: "-78 -212 156 156",
+  raised: "-108 -165 216 325",
+  head: "-34 -142 76 76",
 };
 
 // Un athlète du groupe, en aplats. Décoratif par défaut : le texte voisin porte le sens.
@@ -54,9 +56,9 @@ export const Athlete = ({
   pose?: PoseName;
   face?: Face;
   on: Surface;
-  view?: keyof typeof VIEW;
+  view?: keyof typeof ATHLETE_VIEW;
 } & Omit<ComponentProps<"svg">, "viewBox">) => (
-  <svg aria-hidden viewBox={VIEW[view]} className={cn("athlete", className)} {...svg}>
+  <svg aria-hidden viewBox={ATHLETE_VIEW[view]} className={cn("athlete", className)} {...svg}>
     <AthleteFigure id={id} pose={POSES[pose]} face={face} on={on} />
   </svg>
 );

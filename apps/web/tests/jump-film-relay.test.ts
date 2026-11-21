@@ -1,6 +1,7 @@
 import { athletePaint, colorDistance, DISTINCT, SURFACES } from "@tartan/design-tokens/athletes";
 import { POLE_VAULT } from "@tartan/mascot/pole-vault";
 import { jointPositions } from "@tartan/mascot/skeleton";
+import { poseHands } from "@tartan/mascot/v2/pose-figure";
 import { describe, expect, it } from "vitest";
 import {
   BEAT_AT,
@@ -97,7 +98,8 @@ describe("le relais du film", () => {
       const pole = props.find((shape) => shape.kind === "curve");
       if (pole?.kind !== "curve") throw new Error("La perche manque à la scène.");
       const { pose } = frameAt(t);
-      const hand = jointPositions(pose, pose).handB;
+      // La main du corps dessiné, celui du moteur des gestes : la perche la suit.
+      const hand = poseHands(pose, pose).handB;
       // La perche reste en main jusqu'au lâcher, au-dessus de la barre.
       if (t < FILM.poleVault + (FILM.highJump - FILM.poleVault) * 0.5)
         expect(Math.hypot(pole.to.x - hand.x, pole.to.y - hand.y), `t = ${t}`).toBeLessThan(1e-6);

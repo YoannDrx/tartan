@@ -8,8 +8,7 @@ import {
   doneBefore,
   type TripleJumpState,
 } from "@tartan/game/events/triple-jump";
-import { athleteRig } from "@tartan/mascot/athletes";
-import { drawMascot } from "@tartan/mascot/canvas";
+import { drawPoseFigure } from "@tartan/mascot/v2/pose-figure";
 import { HURDLE_PX_PER_M, hurdlerHipAbove as hipAboveFoot, hurdlerPose } from "@tartan/mascot/hurdles";
 import { POSES } from "@tartan/mascot/poses";
 import { TRIPLE_JUMP_CLIP, TRIPLE_JUMP_TIMES } from "@tartan/mascot/triple-jump";
@@ -20,11 +19,6 @@ import { pixelsPerMetre, type SceneSize } from "./hurdles-scene";
 
 const PAINT = athletePaint("tripleJump", "piste");
 const PROPS = stagePaint("piste");
-const BONES = {
-  neutral: athleteRig("tripleJump", "neutral"),
-  effort: athleteRig("tripleJump", "effort"),
-  joy: athleteRig("tripleJump", "joy"),
-};
 const BOARD_M = BOARD_X / UNITS_PER_MM / 1000;
 const PIT = { from: BOARD_M + PIT_START_MM / 1000, to: BOARD_M + 18 };
 const T = TRIPLE_JUMP_TIMES;
@@ -112,9 +106,8 @@ export const drawTripleJump = (
         ? boundPose(state.phase, place.u)
         : hurdlerPose(place.x * HURDLE_PX_PER_M, null);
   const face = landed ? "joy" : flying || state.hold > 10 ? "effort" : "neutral";
-  drawMascot(ctx, pose, {
+  drawPoseFigure(ctx, "tripleJump", face, pose, {
     paint: PAINT,
-    bones: BONES[face],
     at: { x: toX(place.x), y: lane - hipAboveFoot(pose) * scale - place.lift * ppm },
     scale,
   });

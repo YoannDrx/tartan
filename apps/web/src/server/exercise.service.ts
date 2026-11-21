@@ -2,11 +2,25 @@ import { Prisma } from "@/generated/prisma/client";
 import {
   exerciseClassification,
   exerciseInput,
+  exerciseSearchQuery,
+  type ExerciseGuideEdit,
   type ExerciseInput,
+  type ExerciseSearchQuery,
+  type ExerciseSearchResult,
+  type ExerciseSheet,
   type ExerciseSummary,
+  type CatalogVideo,
   prescriptionSchema,
 } from "@tartan/contracts";
-import { cleanExerciseAliases, parseInstagramUrl, parseYouTubeUrl, validateClipRange } from "@tartan/domain";
+import {
+  cleanExerciseAliases,
+  exerciseFamilyOf,
+  matchesExerciseSearch,
+  parseInstagramUrl,
+  parseYouTubeUrl,
+  sortExercises,
+  validateClipRange,
+} from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { invalid, notFound } from "@/lib/errors";
 import { env } from "@/lib/env";
@@ -14,9 +28,22 @@ import { createDirectUpload, signedPlayback, videoEnabled } from "@/lib/mux";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "./access";
-import { ensureExerciseCatalog, readExerciseGuide, retainedExerciseGuide } from "./exercise-catalog.service";
+import {
+  ensureExerciseCatalog,
+  readExerciseGuide,
+  retainedExerciseGuide,
+  withConcise,
+} from "./exercise-catalog.service";
+import {
+  addToOwnList,
+  exerciseMemberships,
+  favoriteExerciseIds,
+  moveListItems,
+  readableListExerciseIds,
+} from "./exercise-list.service";
 import { approvedMotionFamilies, withMotion } from "./motion-review.service";
 import { assertVideoReservation, withVideoReservation } from "./video-capacity.service";
+import { catalogVideos, withCatalogVideos } from "./catalog-media.service";
 
 type MediaRow = {
   kind: "upload" | "youtube" | "instagram";
@@ -55,14 +82,12 @@ export const mediaSnapshot = (media: MediaRow | undefined) => {
 };
 
 type ExerciseRow = Prisma.ExerciseGetPayload<{ include: { media: true } }>;
+// La fiche commune d'un exercice : la sienne, ou celle dont la copie du coach est tirée.
+const catalogKeyOf = (row: ExerciseRow) => row.catalogKey ?? row.sourceCatalogKey ?? "";
 
-const exerciseSummary = async (e: ExerciseRow, families: readonly string[]): Promise<ExerciseSummary> => {
-  const media = mediaSnapshot(e.media[0]);
-  // Vidéos du coach privées : lecture par jeton signé, comme dans une séance.
-  const stream =
-    media?.kind === "upload" && media.muxPlaybackId && env().MUX_SIGNING_KEY_ID
-      ? await signedPlayback(media.muxPlaybackId)
-      : null;
+// Sans guide ni lecture signée : ce qu'une liste de résultats affiche (nom, famille, vignette du geste).
+const lightSummary = (e: ExerciseRow): ExerciseSummary => {
+  const guide = readExerciseGuide(e.guide);
   return {
     id: e.id,
     classification: e.classification ? exerciseClassification.parse(e.classification) : null,
@@ -74,27 +99,113 @@ const exerciseSummary = async (e: ExerciseRow, families: readonly string[]): Pro
     defaultPrescription: prescriptionSchema.parse(e.defaultPrescription),
     strengthLoadKind: e.strengthLoadKind as ExerciseSummary["strengthLoadKind"],
     loadStepKg: Number(e.loadStepKg),
-    media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
+    media: mediaSnapshot(e.media[0]),
     shared: e.organizationId === null,
-    guide: withMotion(readExerciseGuide(e.guide), families),
+    family: exerciseFamilyOf(guide?.family, e.category),
+    motionKey: guide?.catalogKey ?? null,
+    guide: null,
   };
+};
+
+const exerciseSummary = async (
+  e: ExerciseRow,
+  families: readonly string[],
+  videos: ReadonlyMap<string, CatalogVideo[]>,
+): Promise<ExerciseSummary> => {
+  const media = mediaSnapshot(e.media[0]);
+  // Vidéos du coach privées : lecture par jeton signé, comme dans une séance.
+  const stream =
+    media?.kind === "upload" && media.muxPlaybackId && env().MUX_SIGNING_KEY_ID
+      ? await signedPlayback(media.muxPlaybackId)
+      : null;
+  return {
+    ...lightSummary(e),
+    media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
+    guide: withCatalogVideos(withConcise(withMotion(readExerciseGuide(e.guide), families)), videos),
+  };
+};
+
+const mediaInclude = { media: { orderBy: { createdAt: "desc" as const }, take: 1 } };
+
+// La bibliothèque de l'espace : ses fiches et le catalogue commun. Une copie du catalogue tient la place de sa
+// fiche d'origine : le même geste n'apparaît jamais deux fois.
+const libraryRows = async (organizationId: string, where: Prisma.ExerciseWhereInput = {}) => {
+  const rows = await prisma.exercise.findMany({
+    where: { AND: [{ OR: [{ organizationId }, { organizationId: null }], deletedAt: null }, where] },
+    orderBy: { name: "asc" },
+    include: mediaInclude,
+  });
+  const represented = new Set(
+    (
+      await prisma.exercise.findMany({
+        where: { organizationId, deletedAt: null, sourceCatalogKey: { not: null } },
+        select: { sourceCatalogKey: true },
+      })
+    ).map((row) => row.sourceCatalogKey),
+  );
+  return rows.filter((row) => !row.catalogKey || !represented.has(row.catalogKey));
 };
 
 export const listExercises = async (userId: string, organizationId: string): Promise<ExerciseSummary[]> => {
   await requireOrgMember(userId, organizationId, "editExercises");
   await ensureExerciseCatalog(userId, organizationId);
+  const rows = await libraryRows(organizationId);
+  const [families, videos] = await Promise.all([approvedMotionFamilies(), catalogVideos(rows.map(catalogKeyOf))]);
+  return Promise.all(rows.map((row) => exerciseSummary(row, families, videos)));
+};
+
+/** La bibliothèque sans les guides : la page `/exercices` filtre et pagine ces lignes, chaque fiche a son adresse. */
+export const listExerciseIndex = async (userId: string, organizationId: string): Promise<ExerciseSummary[]> => {
+  await requireOrgMember(userId, organizationId, "editExercises");
+  await ensureExerciseCatalog(userId, organizationId);
+  return (await libraryRows(organizationId)).map(lightSummary);
+};
+
+/** Les fiches qu'une séance ou un modèle cite déjà, sans guide : le constructeur n'embarque plus la bibliothèque. */
+export const exerciseSummariesByIds = async (
+  userId: string,
+  organizationId: string,
+  ids: readonly string[],
+): Promise<ExerciseSummary[]> => {
+  await requireOrgMember(userId, organizationId, "editExercises");
+  if (ids.length === 0) return [];
   const rows = await prisma.exercise.findMany({
-    where: { OR: [{ organizationId }, { organizationId: null }], deletedAt: null },
-    orderBy: { name: "asc" },
-    include: { media: { orderBy: { createdAt: "desc" }, take: 1 } },
+    // Une séance garde l'exercice qu'elle cite, même retiré depuis de la bibliothèque.
+    where: { id: { in: [...new Set(ids)] }, OR: [{ organizationId }, { organizationId: null }] },
+    include: mediaInclude,
   });
-  const represented = new Set(
-    rows.filter((row) => row.organizationId === organizationId).map((row) => row.sourceCatalogKey),
+  return rows.map(lightSummary);
+};
+
+/** Une page de résultats, filtrée et cherchée côté serveur : le sélecteur du constructeur charge à la demande. */
+export const searchExercises = async (
+  userId: string,
+  organizationId: string,
+  raw: ExerciseSearchQuery,
+): Promise<ExerciseSearchResult> => {
+  const query = exerciseSearchQuery.parse(raw);
+  const access = await requireOrgMember(userId, organizationId, "editExercises");
+  await ensureExerciseCatalog(userId, organizationId);
+  const { filter } = query;
+  const order =
+    filter.kind === "list"
+      ? await readableListExerciseIds(access, filter.listId)
+      : filter.kind === "favorites"
+        ? await favoriteExerciseIds(access)
+        : undefined;
+  const rows = await libraryRows(
+    organizationId,
+    order ? { id: { in: order } } : filter.kind === "mine" ? { organizationId } : {},
   );
-  const families = await approvedMotionFamilies();
-  return Promise.all(
-    rows.filter((row) => !row.catalogKey || !represented.has(row.catalogKey)).map((row) => exerciseSummary(row, families)),
+  const found = sortExercises(
+    rows
+      .map(lightSummary)
+      .filter((e) => filter.kind !== "family" || e.family === filter.family)
+      .filter((e) => matchesExerciseSearch(e, query.q)),
+    query.q,
+    order,
   );
+  return { items: found.slice(query.offset, query.offset + query.limit), total: found.length };
 };
 
 // Fiche d'un exercice : réservée à l'encadrement, comme la bibliothèque.
@@ -106,15 +217,109 @@ export const getExercise = async (
   await requireOrgMember(userId, organizationId, "editExercises");
   const row = await prisma.exercise.findFirst({
     where: { id: exerciseId, deletedAt: null, OR: [{ organizationId }, { organizationId: null }] },
-    include: { media: { orderBy: { createdAt: "desc" }, take: 1 } },
+    include: mediaInclude,
   });
   if (!row) throw notFound();
-  return exerciseSummary(row, await approvedMotionFamilies());
+  const [families, videos] = await Promise.all([approvedMotionFamilies(), catalogVideos([catalogKeyOf(row)])]);
+  return exerciseSummary(row, families, videos);
+};
+
+// La fiche d'une variante dans cet espace : sa copie si l'espace en a une, sinon la fiche commune.
+const variantLink = async (organizationId: string, catalogKey: string | null | undefined) => {
+  if (!catalogKey) return null;
+  const row =
+    (await prisma.exercise.findFirst({
+      where: { organizationId, sourceCatalogKey: catalogKey, deletedAt: null },
+      select: { id: true, name: true },
+    })) ??
+    (await prisma.exercise.findFirst({
+      where: { organizationId: null, catalogKey, deletedAt: null },
+      select: { id: true, name: true },
+    }));
+  return row;
+};
+
+/** La fiche complète : guide concis, étoile et listes du coach, variantes en liens vers leur fiche. */
+export const getExerciseSheet = async (
+  userId: string,
+  organizationId: string,
+  exerciseId: string,
+): Promise<ExerciseSheet> => {
+  const access = await requireOrgMember(userId, organizationId, "editExercises");
+  const exercise = await getExercise(userId, organizationId, exerciseId);
+  const [memberships, easier, harder] = await Promise.all([
+    exerciseMemberships(access, exerciseId),
+    variantLink(organizationId, exercise.guide?.concise?.easier?.catalogKey),
+    variantLink(organizationId, exercise.guide?.concise?.harder?.catalogKey),
+  ]);
+  return { ...exercise, ...memberships, variants: { easier, harder } };
+};
+
+/**
+ * « Personnaliser » une fiche commune : une copie dans l'espace, qui garde le guide et le geste, puis s'édite.
+ * Elle prend la place de la fiche commune dans la bibliothèque et dans les listes de l'espace. Une seconde demande
+ * rend la copie existante.
+ */
+export const personalizeExercise = async (userId: string, organizationId: string, exerciseId: string) => {
+  await requireOrgMember(userId, organizationId, "editExercises");
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+    const source = await tx.exercise.findFirst({
+      where: { id: exerciseId, organizationId: null, deletedAt: null },
+      include: { media: { where: { kind: { in: ["youtube", "instagram"] } } } },
+    });
+    if (!source?.catalogKey) throw notFound();
+    const existing = await tx.exercise.findFirst({
+      where: { organizationId, sourceCatalogKey: source.catalogKey, deletedAt: null },
+      select: { id: true },
+    });
+    if (existing) return { id: existing.id, created: false };
+    const copy = await tx.exercise.create({
+      data: {
+        organizationId,
+        createdBy: userId,
+        sourceCatalogKey: source.catalogKey,
+        catalogVersion: source.catalogVersion,
+        guide: source.guide ?? Prisma.DbNull,
+        classification: source.classification ?? Prisma.DbNull,
+        name: source.name,
+        category: source.category,
+        tags: source.tags,
+        aliases: source.aliases,
+        cues: source.cues,
+        defaultPrescription: source.defaultPrescription ?? {},
+        strengthLoadKind: source.strengthLoadKind,
+        loadStepKg: source.loadStepKg,
+      },
+      select: { id: true },
+    });
+    for (const media of source.media) {
+      const { id: _id, exerciseId: _exerciseId, createdAt: _createdAt, ...rest } = media;
+      await tx.exerciseMedia.create({ data: { ...rest, exerciseId: copy.id } });
+    }
+    await moveListItems(tx, organizationId, source.id, copy.id);
+    return { id: copy.id, created: true };
+  });
+};
+
+// Le guide réécrit par le coach : le geste garde ses positions, la ligne de chacune suit le nouveau texte.
+const editedGuide = (stored: Prisma.JsonValue, edit: ExerciseGuideEdit) => {
+  const guide = readExerciseGuide(stored);
+  if (!guide) throw invalid(m.exerciseLists.guideWithoutBase);
+  return {
+    ...guide,
+    author: "coach" as const,
+    objective: edit.objective,
+    setup: [edit.setup],
+    steps: edit.steps,
+    mistakes: edit.mistakes,
+    illustration: { ...guide.illustration, positions: [edit.setup, ...edit.steps] },
+  };
 };
 
 export const saveExercise = async (userId: string, organizationId: string, raw: ExerciseInput) => {
   const input = exerciseInput.parse(raw);
-  await requireOrgMember(userId, organizationId, "editExercises");
+  const access = await requireOrgMember(userId, organizationId, "editExercises");
   let youtube: { youtubeId: string; startS: number | null; endS: number | null; customTitle: string | null } | null =
     null;
   if (input.media?.kind === "youtube") {
@@ -169,10 +374,15 @@ export const saveExercise = async (userId: string, organizationId: string, raw: 
         if (tests + references + sets > 0)
           throw new AppError(409, "exercise_convention_locked", m.strength.conventionLocked);
       }
-      await tx.exercise.update({ where: { id }, data: { ...data, guide: retainedExerciseGuide(existing, input) } });
+      const retained = retainedExerciseGuide(existing, input);
+      // Un guide réécrit ne vaut que pour le même geste : une copie qui change de mouvement le perd.
+      const guide = input.guideEdit && retained === undefined ? editedGuide(existing.guide, input.guideEdit) : retained;
+      await tx.exercise.update({ where: { id }, data: { ...data, guide } });
     } else {
+      if (input.guideEdit) throw invalid(m.exerciseLists.guideWithoutBase);
       id = (await tx.exercise.create({ data: { ...data, organizationId, createdBy: userId } })).id;
     }
+    if (input.listId) await addToOwnList(tx, access, input.listId, id);
     // Lien effacé ou remplacé : l'ancien part. Une vidéo filmée par le coach n'est jamais touchée ici.
     if (input.media === null || youtube || instagram) {
       await tx.exerciseMedia.deleteMany({ where: { exerciseId: id, kind: { in: ["youtube", "instagram"] } } });

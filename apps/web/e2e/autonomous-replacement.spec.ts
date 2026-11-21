@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
+import { addFromLibrary, createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 import { groupLink, joinAsAthlete, today } from "./journeys";
 
 const labels = m.builder.sequence;
@@ -14,12 +14,14 @@ test("un exercice d'un bloc commun se remplace en autonomie, et l'absent reçoit
   try {
     await page.goto(`/seances/nouvelle?date=${today()}`, { waitUntil: "networkidle" });
     await page.getByLabel(m.builder.titleLabel, { exact: true }).fill("Force partagée");
-    await page.getByRole("button", { name: "Ajouter Développé couché à la séance", exact: true }).click();
+    await addFromLibrary(page, "Développé couché");
     const phase = page.getByRole("region", { name: m.builder.blocks.main, exact: true });
     await phase.getByLabel(labels.sharedPhase, { exact: true }).check();
     await phase.getByRole("button", { name: labels.moreActions("Développé couché"), exact: true }).click();
     await page.getByRole("menuitem", { name: labels.replaceAutonomous, exact: true }).click();
     const picker = page.getByRole("dialog", { name: labels.replaceTitle("Développé couché") });
+    // Le sélecteur charge ses fiches à la demande : on cherche celle qu'on veut.
+    await picker.getByPlaceholder(labels.searchExercise).fill("Pompes");
     await picker.getByRole("button", { name: labels.add("Pompes"), exact: true }).click();
     const line = phase.getByRole("button", { name: new RegExp(labels.autonomousLine("Pompes")) });
     await expect(line).toBeVisible();
