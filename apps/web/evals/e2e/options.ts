@@ -12,6 +12,8 @@ export type E2eOptions = {
   concurrency: number;
   // Les six exemples du README à la place du corpus : ils ne servent jamais à la mesure.
   examples: boolean;
+  // Le jeu de développement (`dev/`), non gelé : il sert à mettre au point le planificateur et ne qualifie rien.
+  dev: boolean;
   corpus: string | null;
   pairs: string | null;
   output: string | null;
@@ -32,7 +34,7 @@ const VALUED = new Set([
   "--output",
   "--database-url",
 ]);
-const FLAGS = new Set(["--check", "--freeze", "--catalog", "--examples"]);
+const FLAGS = new Set(["--check", "--freeze", "--catalog", "--examples", "--dev"]);
 
 export class OptionError extends Error {}
 
@@ -87,6 +89,7 @@ export function parseOptions(argv: readonly string[]): E2eOptions {
     suite,
     concurrency: integer("--concurrency", 3, 1, 8),
     examples: flags.has("--examples"),
+    dev: flags.has("--dev"),
     corpus: values.get("--corpus") ?? null,
     pairs: values.get("--pairs") ?? null,
     output: values.get("--output") ?? null,

@@ -79,6 +79,7 @@ async function main() {
   });
   // Chargés après les variables : le prestataire lit l'environnement à l'import.
   const { openAiPlannerProvider, PlannerProviderError } = await import("../src/server/ai/provider");
+  const { interpretPlannerContext } = await import("../src/server/ai/pipeline");
   const { openAiTranscriptionProvider } = await import("../src/server/ai/transcription-provider");
   const { inspectPlannerAudio } = await import("../src/server/ai/audio");
 
@@ -106,7 +107,7 @@ async function main() {
       const started = Date.now();
       const row: Row = { kind: "instruction", id: test.id, run, passed: false, differences: [], critical: [], durationMs: 0 };
       try {
-        const score = scoreIndependentCase(test, await provider.interpret(independentContext(test, check.corpus)), check.corpus);
+        const score = scoreIndependentCase(test, await interpretPlannerContext(independentContext(test, check.corpus), provider), check.corpus);
         Object.assign(row, { passed: score.passed, differences: score.differences, critical: score.critical });
       } catch (cause) {
         row.error = errorCode(cause);
@@ -129,7 +130,7 @@ async function main() {
       row.wordErrorRate = Math.round(wordErrorRate(entry.spoken, transcript) * 1000) / 1000;
       const test = dictationAsCase(entry);
       const context = independentContext({ ...test, text: transcript }, manifestCorpus);
-      const score = scoreIndependentCase(test, await provider.interpret(context), manifestCorpus);
+      const score = scoreIndependentCase(test, await interpretPlannerContext(context, provider), manifestCorpus);
       Object.assign(row, { passed: score.passed, differences: score.differences, critical: score.critical });
     } catch (cause) {
       row.error = errorCode(cause);

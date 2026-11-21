@@ -8,10 +8,19 @@ import { runE2e } from "../evals/e2e/runner";
 
 // Avant tout import du service : une clé factice, jamais envoyée, et pas de prestataire simulé.
 const restoreEnv = vi.hoisted(() => {
-  const names = ["AI_PLANNER_ENABLED", "AI_PLANNER_MODEL", "OPENAI_API_KEY", "AI_PLANNER_FAKE_PROVIDER", "VERCEL"];
+  const names = [
+    "AI_PLANNER_ENABLED",
+    "AI_PLANNER_MODEL",
+    "AI_PLANNER_FAST_MODEL",
+    "OPENAI_API_KEY",
+    "AI_PLANNER_FAKE_PROVIDER",
+    "VERCEL",
+  ];
   const before = names.map((name) => [name, process.env[name]] as const);
   process.env.AI_PLANNER_ENABLED = "true";
   process.env.AI_PLANNER_MODEL = "gpt-4.1";
+  // La première étape, « Comprendre », appelle le modèle rapide : c'est elle que ce test compte.
+  process.env.AI_PLANNER_FAST_MODEL = "gpt-4.1";
   process.env.OPENAI_API_KEY = "cle-factice-de-test-jamais-envoyee";
   delete process.env.AI_PLANNER_FAKE_PROVIDER;
   delete process.env.VERCEL;
@@ -22,12 +31,13 @@ const restoreEnv = vi.hoisted(() => {
   };
 });
 
+// Une compréhension « hors sujet » : la demande s'arrête à la première étape, sur une question, après un seul appel.
 const answer = {
-  status: "clarification",
-  questions: [{ id: "repos", field: "rest", question: "Quelle récupération ?", exerciseName: null, options: [] }],
+  summary: "Cette demande ne décrit pas une séance.",
+  offTopic: true,
+  intent: "described",
   sessions: [],
-  assumptions: [],
-  suggestions: [],
+  corrections: [],
 };
 const completed = {
   model: "gpt-4.1-2025-04-14",
@@ -77,11 +87,11 @@ describe("compteur d'appels sur le chemin réel du service", () => {
     expect(outcome.observed).toMatchObject({
       status: "question",
       blocked: true,
-      questions: [{ reason: "rest", exerciseName: null }],
+      questions: [{ reason: "off_topic", exerciseName: null }],
     });
     expect(outcome.usage).toHaveLength(1);
     expect(outcome.usage[0]).toMatchObject({
-      step: "model",
+      step: "understand",
       model: "gpt-4.1-2025-04-14",
       calls: 1,
       inputTokens: 15000,
@@ -108,7 +118,7 @@ describe("compteur d'appels sur le chemin réel du service", () => {
     expect(report.stopped).toBe("max_cost");
     expect(report.costUsd).toBeCloseTo(COST * 2, 9);
     expect(report.runs[0]!.usage).toMatchObject({ calls: 2, inputTokens: 30000, cachedInputTokens: 10000 });
-    expect(report.runs[0]!.usage.steps).toMatchObject([{ step: "model", model: "gpt-4.1-2025-04-14", calls: 2 }]);
+    expect(report.runs[0]!.usage.steps).toMatchObject([{ step: "understand", model: "gpt-4.1-2025-04-14", calls: 2 }]);
     expect(report.thresholdsHeld).toBe(false);
   }, 60_000);
 });

@@ -1,0 +1,10 @@
+JEU DE DÉVELOPPEMENT : NE QUALIFIE PAS
+
+Ces 20 cas et ces 30 paires ont été écrits par l'agent qui a écrit le planificateur en quatre étapes, en
+connaissant le catalogue, les prompts et les contrôles. Ils servent à mettre au point : voir un écart, corriger,
+relancer. Ils ne sont pas gelés et peuvent changer d'un commit à l'autre. Un bon résultat ici ne dit rien de la
+qualité du planificateur : seul le corpus gelé (corpus/cases.json, pairs/pairs.json), écrit par un agent isolé
+qui n'a lu ni le code ni ces fichiers, le mesure.
+
+Lancer : corepack pnpm --filter @tartan/web eval:planner:e2e --dev [--only DEV-01,DP-02] --max-cost 1
+Le rapport porte la mention « DÉVELOPPEMENT » et n'est jamais complet (`complete: false`).

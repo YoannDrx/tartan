@@ -2,22 +2,24 @@
 // Pour chaque cas, il crée un espace jetable (coach avec accord IA, groupes, athlètes, catalogue commun, fiches
 // privées du cas), appelle le service comme le fait la route (`createPlannerProposal`, puis les brouillons
 // préparés), écoute les événements diffusés, compte les appels au fournisseur et traduit la réponse en `Observed`.
+// Une paire passe par l'étape « Retrouver » seule (`matchPlannerTerms`), sans consigne.
 // Il ne lit ni le prompt, ni les garde-fous, ni l'adaptateur : quand le service change, lui seul s'adapte.
 // Prisma direct, comme `prisma/seed.ts` et `tests/helpers.ts` : là seulement où aucun service ne crée la donnée.
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import type { PlannerBrief, PlannerProposalResponse } from "@tartan/contracts";
-import { addDays, plannerDateHints, plannerDateReferences } from "@tartan/domain";
+import { PLANNER_SLOT_EXERCISE_ID, type PlannerProposalResponse } from "@tartan/contracts";
+import { addDays } from "@tartan/domain";
 import { EXERCISE_CATALOG } from "@tartan/domain/exercise-catalog";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { fakePlannerEnabled } from "@/server/ai/fake-provider";
-import { createPlannerProposal, preparePlannerDrafts } from "@/server/ai/proposal.service";
+import { createPlannerProposal, matchPlannerTerms, preparePlannerDrafts } from "@/server/ai/proposal.service";
 import { syncEntitlements } from "@/server/billing.service";
 import { ensureExerciseCatalog } from "@/server/exercise-catalog.service";
 import { saveExercise } from "@/server/exercise.service";
 import { createOrganization } from "@/server/org.service";
+import { selectStrengthReference } from "@/server/strength.service";
 import { foldName, type E2eCaseInput, type E2eLibrary, type E2eRecipients, type E2eSpace } from "./format";
 import {
   observedError,
@@ -31,24 +33,33 @@ import { costOf } from "./prices";
 import { mergeUsage, type StepUsage, type Timing } from "./report";
 import type { CaseOutcome, E2eDriver, PairOutcome } from "./runner";
 
-/** Ce que l'outil a dû fournir ou contourner pour mesurer le pipeline en place. Écrit dans chaque rapport. */
+/** Ce que l'outil fournit au planificateur en quatre étapes sans que la consigne le dise. Écrit dans chaque rapport. */
 export const CURRENT_PIPELINE_LIMITS = [
-  "Le service exige un mode : il est déduit de `kind` (described et mixed → mise en forme, objective → proposer). Une consigne mixte n'a donc aucun moyen de faire composer la partie laissée libre.",
-  "Le service exige une période choisie à l'écran : l'outil donne les sept jours à partir de la date du jour simulée. Une date citée au-delà ne peut pas être servie.",
-  "En mode « Proposer », le service exige un brief (date, durée, niveau, matériel) que l'écran faisait remplir : l'outil le lit dans la consigne (date, durée, niveau) et dans le profil de l'espace (matériel), et note dans `legacy.assumed` ce qu'il a dû supposer.",
-  "Une fiche absente devient une question bloquante : le service ne sait pas laisser un emplacement à compléter. Les cas `absent` en `mustNotAsk` échouent donc par construction.",
-  "Aucune étape « retrouver les fiches » n'est exposée : une paire est mesurée par une consigne minimale (« Aujourd'hui : <terme>, 3 séries de 8 répétitions. »), la fiche de la séance vaut premier choix et les options d'une question valent propositions.",
-  "Une demande sans destinataire est refusée avant tout appel, comme une saisie invalide : aucune question n'est posée.",
-  "Un seul appel au modèle, plus une reprise au besoin : les jetons se répartissent entre les étapes « model » et « retry ». `--fast-model` n'a aucun effet.",
-  "Le premier événement diffusé est l'étape « context », émise avant tout appel au modèle : le seuil de premier retour mesure un accusé de réception. Le premier contenu lisible est donné à part (`firstPlanMs`).",
-  "Les pourcentages du maximum ne sont pas éprouvés : aucun athlète de l'espace jetable n'a de référence de force.",
+  "Le contrat demande encore une période : l'outil donne les vingt-huit jours à partir de la date du jour simulée, le maximum admis. Une date citée au-delà devient une question.",
+  "Le premier événement diffusé est l'ouverture de l'étape « Comprendre », émise avant tout appel au modèle : le seuil de premier retour mesure un accusé de réception. Le premier contenu lisible est le résumé de compréhension (`firstSummaryMs`), puis le plan (`firstPlanMs`).",
+  "Les athlètes du premier groupe de chaque espace jetable ont une référence de force sur quatre fiches du catalogue (squat arrière, développé couché, soulevé de terre, épaulé) ; les autres n'en ont pas. Un pourcentage proposé n'est donc permis que pour ce groupe seul.",
+  "Une paire est mesurée par l'étape « Retrouver » seule, un terme par appel : une consigne entière peut retrouver autrement un terme que son contexte éclaire.",
 ];
 
-// Lundi fictif : la date du jour simulée pour les paires, qui n'en portent pas.
-const PAIR_TODAY = "2026-11-23";
-const pairText = (said: string) => `Aujourd'hui : ${said}, 3 séries de 8 répétitions.`;
+// Ce que cet outil sait lire : les emplacements à compléter et les nouveaux points « À vérifier ».
+const ACCEPTS = ["slots", "checks"] as const;
+// Fiches du catalogue pour lesquelles les athlètes du premier groupe ont une référence de force, en kilos.
+const REFERENCES: Record<string, number> = {
+  "back-squat": 100,
+  "bench-press": 70,
+  deadlift: 120,
+  "power-clean": 60,
+};
 
-type Call = { step: string; model: string; inputTokens: number; cachedInputTokens: number; outputTokens: number };
+type Call = {
+  step: string;
+  model: string;
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  // Jetons d'entrée écrits en cache, facturés plus cher depuis GPT-5.6.
+  cacheWriteTokens?: number;
+};
 type Meter = { step: string; calls: Call[]; pending: Promise<void>[] };
 const meters = new AsyncLocalStorage<Meter>();
 
@@ -57,7 +68,9 @@ const usageShape = z.object({
   output_tokens: z.number().optional(),
   prompt_tokens: z.number().optional(),
   completion_tokens: z.number().optional(),
-  input_tokens_details: z.object({ cached_tokens: z.number().optional() }).optional(),
+  input_tokens_details: z
+    .object({ cached_tokens: z.number().optional(), cache_write_tokens: z.number().optional() })
+    .optional(),
   prompt_tokens_details: z.object({ cached_tokens: z.number().optional() }).optional(),
 });
 const bodyShape = z.object({ model: z.string().optional(), usage: usageShape.nullish() });
@@ -88,6 +101,7 @@ export function readProviderUsage(text: string): Omit<Call, "step"> | null {
     inputTokens: usage.input_tokens ?? usage.prompt_tokens ?? 0,
     cachedInputTokens: usage.input_tokens_details?.cached_tokens ?? usage.prompt_tokens_details?.cached_tokens ?? 0,
     outputTokens: usage.output_tokens ?? usage.completion_tokens ?? 0,
+    cacheWriteTokens: usage.input_tokens_details?.cache_write_tokens ?? 0,
   };
 }
 
@@ -264,8 +278,30 @@ async function createWorkspace(spec: {
   }
   const rows = await prisma.exercise.findMany({
     where: { OR: [{ organizationId: org.id }, { organizationId: null }], deletedAt: null },
-    select: { id: true, name: true, catalogKey: true, sourceCatalogKey: true, classification: true },
+    select: {
+      id: true,
+      name: true,
+      catalogKey: true,
+      sourceCatalogKey: true,
+      classification: true,
+      organizationId: true,
+    },
   });
+  // Références de force des athlètes du premier groupe, pour éprouver le pourcentage du maximum : la fiche de
+  // l'espace si elle existe, sinon la fiche commune.
+  const firstGroup = groupSpecs[0];
+  if (firstGroup)
+    for (const [key, valueKg] of Object.entries(REFERENCES)) {
+      const fiche =
+        rows.find((row) => row.organizationId === org.id && row.sourceCatalogKey === key) ??
+        rows.find((row) => row.catalogKey === key);
+      if (!fiche) continue;
+      for (const name of firstGroup.athletes)
+        await selectStrengthReference(coachId, org.id, athletes.get(foldName(name))!, fiche.id, {
+          source: "working",
+          valueKg,
+        });
+    }
   const library = new Map<string, LibraryEntry>();
   const byName = new Map<string, ObservedRef>();
   for (const row of rows) {
@@ -302,10 +338,12 @@ const QUESTION_REASON: Record<string, ObservedQuestion["reason"]> = {
 /** La réponse du service et ses brouillons préparés, dans la forme que lit la notation. */
 function observe(response: PlannerProposalResponse, drafts: Drafts | null, workspace: Workspace): Observed {
   const questions: ObservedQuestion[] = (response.interpretation?.questions ?? []).map((question) => ({
-    reason: QUESTION_REASON[question.field] ?? "other",
+    // La question « hors sujet » se reconnaît à son identifiant : son champ, `other`, sert aussi à d'autres.
+    reason: question.id === "off-topic" ? "off_topic" : (QUESTION_REASON[question.field] ?? "other"),
     exerciseName: question.exerciseName ?? null,
     options: question.options,
   }));
+  const slots = new Map((drafts?.slots ?? []).map((slot) => [slot.itemRef, slot]));
   if (response.state === "clarification")
     return { status: "question", blocked: true, questions, sessions: [], error: null };
   if (response.state !== "proposal" || !drafts) return observedError(`state_${response.state}`);
@@ -313,15 +351,16 @@ function observe(response: PlannerProposalResponse, drafts: Drafts | null, works
   const sessions = drafts.sessions.map((session, index) => {
     const warnings = drafts.warnings[index] ?? [];
     const movement = (item: DraftItem): ObservedMovement => {
-      // Un emplacement à compléter n'a pas de fiche : le service actuel n'en produit pas, le prochain le fera.
-      const loose = item as { exerciseId?: string | null; name?: string };
-      const entry = loose.exerciseId ? workspace.library.get(loose.exerciseId) : undefined;
+      // Un emplacement à compléter n'a pas de fiche : son exercice porte l'identifiant réservé et le terme dit.
+      const slot = slots.get(item.ref ?? "");
+      const entry =
+        slot || item.exerciseId === PLANNER_SLOT_EXERCISE_ID ? undefined : workspace.library.get(item.exerciseId);
       const flags = warnings.filter((warning) => warning.itemRef === item.ref).map((warning) => warning.code);
       const p = item.prescription;
       const load = (value: typeof p.load) => (value ? { value: value.value, unit: value.type } : null);
       return {
         type: "movement",
-        ref: entry?.ref ?? { kind: "placeholder", name: loose.name ?? "" },
+        ref: entry?.ref ?? { kind: "placeholder", name: slot?.said ?? "" },
         toVerify: flags.includes("approximate_exercise"),
         flags,
         sets: p.sets ?? 1,
@@ -376,59 +415,32 @@ function observe(response: PlannerProposalResponse, drafts: Drafts | null, works
   return { status: "sessions", blocked: false, questions, sessions, error: null };
 }
 
-/** Le brief que l'écran « Proposer » faisait remplir, lu dans la consigne et le profil de l'espace. Jamais dans les attentes. */
-export function legacyBrief(
-  input: Pick<E2eCaseInput, "text" | "today" | "space">,
-  period: { from: string; to: string },
-): { brief: PlannerBrief; assumed: string[] } {
-  const assumed: string[] = [];
-  const text = foldName(input.text);
-  const inPeriod = (date: string | undefined) => (date && date >= period.from && date <= period.to ? date : undefined);
-  const references = plannerDateReferences(input.text, { today: input.today, period });
-  const weekday = plannerDateHints(input.today, period).days.find((day) =>
-    new RegExp(`(?<![a-z])${foldName(day.weekday)}(?![a-z])`).test(text),
-  )?.date;
-  let date = inPeriod(references.explicit[0]?.iso) ?? inPeriod(references.relative[0]) ?? weekday;
-  if (!date) {
-    date = period.from;
-    assumed.push("date");
-  }
-  const hours = /(\d)\s*h(?:eures?)?\s*(\d{2})?(?![a-z])/.exec(text);
-  const minutes = /(\d{1,3})\s*(?:minutes?|min|mn)(?![a-z])/.exec(text);
-  let durationMin = hours ? Number(hours[1]) * 60 + Number(hours[2] ?? 0) : minutes ? Number(minutes[1]) : 0;
-  if (!durationMin) {
-    durationMin = 60;
-    assumed.push("durationMin");
-  }
-  const level = /debutant/.test(text) ? "beginner" : /confirme|avance|expert/.test(text) ? "advanced" : null;
-  if (!level) assumed.push("level");
-  return {
-    brief: {
-      objective: input.text.slice(0, 1000),
-      date,
-      durationMin: Math.min(180, Math.max(5, durationMin)),
-      level: level ?? "intermediate",
-      equipment: input.space?.equipment ?? [],
-    },
-    assumed,
-  };
-}
+// L'étape en cours, telle que le service la diffuse : c'est à elle que chaque appel au fournisseur est compté.
+type Stage = "understand" | "match" | "compose" | "repair";
 
 async function invoke(
   workspace: Workspace,
-  request: { text: string; today: string; kind: E2eCaseInput["kind"]; recipients: E2eRecipients; space?: E2eSpace },
+  request: { text: string; today: string; recipients: E2eRecipients },
 ): Promise<CaseOutcome> {
   // Milieu de matinée à Paris : « aujourd'hui » est bien la date du jour simulée.
   const now = new Date(`${request.today}T09:00:00.000Z`);
-  const period = { from: request.today, to: addDays(request.today, 6) };
-  const mode = request.kind === "objective" ? ("propose" as const) : ("format" as const);
-  const derived = mode === "propose" ? legacyBrief(request, period) : null;
-  const legacy = { mode, period, ...(derived ? { brief: derived.brief, assumed: derived.assumed } : {}) };
+  // La fenêtre la plus large du contrat : la consigne dit sa date, l'outil n'en choisit aucune.
+  const period = { from: request.today, to: addDays(request.today, 27) };
   const ids = (names: string[], known: Map<string, string>) =>
     names.flatMap((name) => (known.has(foldName(name)) ? [known.get(foldName(name))!] : []));
   const meter: Meter = { step: "start", calls: [], pending: [] };
-  const timing: Timing = { firstEventMs: null, firstPlanMs: null, completeMs: 0 };
+  const timing: Timing = { firstEventMs: null, firstPlanMs: null, completeMs: 0, firstSummaryMs: null, stepsMs: {} };
   const started = performance.now();
+  // Durée de chaque étape : de son ouverture à l'ouverture de la suivante.
+  let opened = started;
+  const enter = (stage: Stage) => {
+    const at = performance.now();
+    timing.firstEventMs ??= at - started;
+    if (meter.step === stage) return;
+    if (meter.step !== "start") timing.stepsMs![meter.step] = (timing.stepsMs![meter.step] ?? 0) + (at - opened);
+    opened = at;
+    meter.step = stage;
+  };
   let observed: Observed;
   try {
     const response = await meters.run(meter, () =>
@@ -440,30 +452,34 @@ async function invoke(
           requestedAt: now.toISOString(),
           reviewed: true,
           text: request.text,
+          accepts: [...ACCEPTS],
+          // Ni mode ni brief : le service comprend seul ce que la consigne demande.
           selection: {
-            mode,
-            ...(derived ? { brief: derived.brief } : {}),
             period,
             groupIds: ids(request.recipients.groups, workspace.groups),
             athleteIds: ids(request.recipients.athletes, workspace.athletes),
-            // Aucune fiche choisie à la main : toute la bibliothèque, triée par le service.
+            // Aucune fiche choisie à la main : toute la bibliothèque.
             exerciseIds: [],
             phaseChoices: [],
           },
         },
         {
           clock: () => now,
-          onProgress: (progress) => {
-            timing.firstEventMs ??= performance.now() - started;
-            meter.step = progress.step;
+          onUnderstanding: (summary) => {
+            enter("understand");
+            if (summary) timing.firstSummaryMs ??= performance.now() - started;
           },
+          onMatching: (_movements, done) => enter(done ? "compose" : "match"),
           onPlan: (lines) => {
-            timing.firstEventMs ??= performance.now() - started;
+            enter("compose");
             if (lines.length) timing.firstPlanMs ??= performance.now() - started;
           },
+          onChecking: (repairs) => enter(repairs ? "repair" : "compose"),
         },
       ),
     );
+    if (meter.step !== "start")
+      timing.stepsMs![meter.step] = (timing.stepsMs![meter.step] ?? 0) + (performance.now() - opened);
     const drafts =
       response.state === "proposal"
         ? await preparePlannerDrafts(workspace.coachId, workspace.organizationId, response.id, response.version, now)
@@ -478,13 +494,15 @@ async function invoke(
   }
   timing.completeMs = performance.now() - started;
   await Promise.all(meter.pending);
-  return { observed, timing, usage: usageOf(meter.calls), legacy };
+  return { observed, timing, usage: usageOf(meter.calls) };
 }
 
 /** Le pilote du service en place. `close` rend `fetch` tel qu'il était. */
 export function createServiceDriver(): E2eDriver & { close: () => void } {
   const fake = fakePlannerEnabled();
   const restore = installMeter(!fake);
+  // Toutes les paires visent la même bibliothèque de référence : un seul espace jetable pour elles.
+  const pairSpaces = new Map<string, Promise<Workspace>>();
   return {
     provider: fake ? "fake" : "openai",
     limits: CURRENT_PIPELINE_LIMITS,
@@ -494,34 +512,40 @@ export function createServiceDriver(): E2eDriver & { close: () => void } {
       return invoke(workspace, input);
     },
     async runPair(said, library): Promise<PairOutcome> {
-      const recipients = { groups: ["Groupe"], athletes: [] };
-      const workspace = await createWorkspace({ recipients, library });
-      const { observed, timing, usage } = await invoke(workspace, {
-        text: pairText(said),
-        today: PAIR_TODAY,
-        kind: "described",
-        recipients,
-      });
-      const fiche = (ref: ObservedRef) => ref.kind !== "placeholder";
-      const movements = observed.sessions.flatMap((session) => {
-        const flat = (steps: ObservedStep[]): ObservedMovement[] =>
-          steps.flatMap((step) => (step.type === "movement" ? [step] : step.type === "group" ? flat(step.steps) : []));
-        return flat(session.steps);
-      });
-      const first = movements[0] && fiche(movements[0].ref) ? movements[0] : null;
-      // Les propositions : les fiches de la séance, sinon les options de la question posée.
-      const options = observed.questions
-        .flatMap((question) => question.options)
-        .flatMap((name) => (workspace.byName.has(foldName(name)) ? [workspace.byName.get(foldName(name))!] : []));
+      const key = JSON.stringify(library);
+      if (!pairSpaces.has(key))
+        pairSpaces.set(key, createWorkspace({ recipients: { groups: ["Groupe"], athletes: [] }, library }));
+      const workspace = await pairSpaces.get(key)!;
+      const meter: Meter = { step: "match", calls: [], pending: [] };
+      const started = performance.now();
+      const refOf = (exercise: { exerciseId: string } | null) =>
+        (exercise ? workspace.library.get(exercise.exerciseId)?.ref : undefined) ?? null;
+      let resolution: PairOutcome["resolution"] = { first: null, proposals: [], toVerify: false };
+      let error: string | null = null;
+      try {
+        // L'étape « Retrouver » seule : le terme dit, la bibliothèque de l'espace, rien d'autre.
+        const [match] = await meters.run(meter, () =>
+          matchPlannerTerms(workspace.coachId, workspace.organizationId, [said]),
+        );
+        const first = match && match.confidence !== "absent" ? refOf(match.exercise) : null;
+        resolution = {
+          first,
+          proposals: [first, ...(match?.alternatives ?? []).map(refOf)]
+            .filter((ref): ref is ObservedRef => ref !== null)
+            .slice(0, 3),
+          toVerify: match?.confidence === "probable",
+        };
+      } catch (cause) {
+        error = cause instanceof AppError ? cause.code : cause instanceof z.ZodError ? "invalid_input" : "internal";
+        if (process.env.E2E_EVAL_DEBUG === "1" && !(cause instanceof AppError)) console.error(cause);
+      }
+      const completeMs = performance.now() - started;
+      await Promise.all(meter.pending);
       return {
-        resolution: {
-          first: first?.ref ?? null,
-          proposals: [...movements.map((movement) => movement.ref).filter(fiche), ...options].slice(0, 3),
-          toVerify: first?.toVerify ?? false,
-        },
-        timing,
-        usage,
-        error: observed.status === "error" ? observed.error : null,
+        resolution,
+        timing: { firstEventMs: null, firstPlanMs: null, completeMs, stepsMs: { match: completeMs } },
+        usage: usageOf(meter.calls),
+        error,
       };
     },
   };

@@ -1,0 +1,48 @@
+{
+  "version": 2,
+  "library": {
+    "catalog": "common",
+    "private": [
+      {
+        "name": "Tirage élastique maison",
+        "category": "strength",
+        "aliases": ["tirage élastique"],
+        "family": "strength",
+        "movement": "pull",
+        "equipment": ["bands"]
+      }
+    ]
+  },
+  "pairs": [
+    { "id": "DP-01", "said": "squat arrière", "key": "back-squat" },
+    { "id": "DP-02", "said": "RDL", "key": "romanian-deadlift" },
+    { "id": "DP-03", "said": "dév couché", "key": "bench-press" },
+    { "id": "DP-04", "said": "developpé militaire", "key": "overhead-press" },
+    { "id": "DP-05", "said": "squat barre devant", "key": "front-squat" },
+    { "id": "DP-06", "said": "hip thrust", "key": "hip-thrust" },
+    { "id": "DP-07", "said": "tractions pronation", "key": "pull-up" },
+    { "id": "DP-08", "said": "tractions supination", "key": "chin-up" },
+    { "id": "DP-09", "said": "CMJ", "key": "countermovement-jump" },
+    { "id": "DP-10", "said": "squat jump", "key": "squat-jump" },
+    { "id": "DP-11", "said": "box jumps", "key": "box-jump" },
+    { "id": "DP-12", "said": "gainage planche", "key": "front-plank" },
+    { "id": "DP-13", "said": "planche latérale", "key": "side-plank" },
+    { "id": "DP-14", "said": "montées de genoux", "key": "high-knees" },
+    { "id": "DP-15", "said": "talons fesses", "key": "butt-kicks" },
+    { "id": "DP-16", "said": "épaulé debout", "key": "power-clean" },
+    { "id": "DP-17", "said": "arraché complet", "key": "snatch" },
+    { "id": "DP-18", "said": "kettlebell swings", "key": "kettlebell-swing" },
+    { "id": "DP-19", "said": "fentes bulgares", "key": "bulgarian-squat" },
+    { "id": "DP-20", "said": "pompes", "key": "push-up" },
+    { "id": "DP-21", "said": "corde à sauter", "key": "easy-jump-rope" },
+    { "id": "DP-22", "said": "prowler", "key": "sled-push" },
+    { "id": "DP-23", "said": "nordic", "key": "nordic-hamstring" },
+    { "id": "DP-24", "said": "marche du fermier", "key": "farmer-carry" },
+    { "id": "DP-25", "said": "tirage élastique", "private": "Tirage élastique maison" },
+    { "id": "DP-26", "said": "planche Copenhague", "absent": true },
+    { "id": "DP-27", "said": "tirage menton", "absent": true },
+    { "id": "DP-28", "said": "burpees", "absent": true },
+    { "id": "DP-29", "said": "développé Arnold", "absent": true },
+    { "id": "DP-30", "said": "grimper de corde", "absent": true }
+  ]
+}

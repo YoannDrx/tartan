@@ -7,6 +7,7 @@ import { execFileSync } from "node:child_process";
 import dotenv from "dotenv";
 import { plannerCorpus, corpusContext } from "../evals/planner-corpus";
 import { scorePlannerCase, type PlannerScore } from "../evals/planner-score";
+import { interpretPlannerContext } from "../src/server/ai/pipeline";
 import { openAiPlannerProvider, plannerProviderContext, PlannerProviderError } from "../src/server/ai/provider";
 import type { PlannerInterpretation } from "@tartan/contracts";
 
@@ -155,11 +156,10 @@ async function main() {
       return response;
     });
     try {
-      row.result = await provider.interpret({
-        ...corpusContext,
-        targets: test.targets ?? corpusContext.targets,
-        instructions: test.instructions,
-      });
+      row.result = await interpretPlannerContext(
+        { ...corpusContext, targets: test.targets ?? corpusContext.targets, instructions: test.instructions },
+        provider,
+      );
       row.score = scorePlannerCase(test, row.result);
     } catch (cause) {
       row.error = cause instanceof PlannerProviderError ? cause.code : "local_error";

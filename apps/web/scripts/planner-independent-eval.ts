@@ -12,6 +12,7 @@ import {
 } from "../evals/planner-independent";
 import { costOf, summarizeRuns } from "../evals/planner-report";
 import { lotHContext, lotHCorpus, lotHHash, scoreLotHCase } from "../evals/planner-lot-h";
+import { interpretPlannerContext } from "../src/server/ai/pipeline";
 import { openAiPlannerProvider, plannerProviderContext, PlannerProviderError } from "../src/server/ai/provider";
 import type { PlannerInterpretation } from "@tartan/contracts";
 const option = (name: string) => {
@@ -240,7 +241,7 @@ async function main() {
             return response;
           });
           try {
-            row.result = await provider.interpret(suite.context(test as never) as never);
+            row.result = await interpretPlannerContext(suite.context(test as never) as never, provider);
             row.score = suite.score(test as never, row.result);
           } catch (cause) {
             row.error = cause instanceof PlannerProviderError ? cause.code : "local_error";

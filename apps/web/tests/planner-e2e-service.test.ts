@@ -22,7 +22,7 @@ const restoreEnv = vi.hoisted(() => {
   };
 });
 
-const { createServiceDriver, legacyBrief, readProviderUsage, usageOf } = await import("../evals/e2e/driver");
+const { createServiceDriver, readProviderUsage, usageOf } = await import("../evals/e2e/driver");
 const folder = path.resolve(import.meta.dirname, "../evals/e2e");
 const corpus = { file: "corpus/examples.json", ...loadFrozenCorpus(path.join(folder, "corpus/examples.json")) };
 const pairs = { file: "pairs/examples.json", ...loadFrozenPairs(path.join(folder, "pairs/examples.json")) };
@@ -69,8 +69,12 @@ describe("mesure de bout en bout par le service", () => {
       },
     ]);
     expect(first.score).toMatchObject({ passed: true, differences: [], critical: [] });
-    expect(first.legacy).toMatchObject({ mode: "format", period: { from: "2026-11-23", to: "2026-11-29" } });
-    // Les événements diffusés ont été écoutés : étape d'abord, plan ensuite, brouillons à la fin.
+    // Ni mode ni brief : le service comprend seul la consigne. Les événements diffusés ont été écoutés, étape par
+    // étape : le résumé de compréhension d'abord, le plan ensuite, les brouillons à la fin.
+    expect(first).not.toHaveProperty("legacy");
+    expect(first.timing.firstSummaryMs!).toBeGreaterThanOrEqual(first.timing.firstEventMs!);
+    expect(first.timing.firstPlanMs!).toBeGreaterThanOrEqual(first.timing.firstSummaryMs!);
+    expect(Object.keys(first.timing.stepsMs!).sort()).toEqual(["compose", "match", "understand"]);
     expect(first.timing.firstEventMs).toBeGreaterThanOrEqual(0);
     expect(first.timing.firstPlanMs!).toBeGreaterThanOrEqual(first.timing.firstEventMs!);
     expect(first.timing.completeMs).toBeGreaterThanOrEqual(first.timing.firstPlanMs!);
@@ -83,13 +87,16 @@ describe("mesure de bout en bout par le service", () => {
     });
     expect(row("EX-02").score.passed).toBe(false);
 
-    // EX-04 : le mode « Proposer » est déduit de la nature du cas, son brief de la consigne et de l'espace.
-    expect(row("EX-04").legacy).toMatchObject({
-      mode: "propose",
-      brief: { date: "2026-11-26", durationMin: 40, level: "intermediate", equipment: ["bodyweight"] },
-      assumed: ["level"],
+    // EX-04 : un objectif, sans mode ni brief ; le jour de semaine cité donne la date.
+    expect(row("EX-04").observed.sessions[0]).toMatchObject({ date: "2026-11-26" });
+    // EX-03 : la fiche absente reste un emplacement à compléter, à sa place, sans question.
+    expect(row("EX-03").observed).toMatchObject({ status: "sessions", blocked: false });
+    expect(row("EX-03").observed.sessions[0]!.steps[0]).toMatchObject({
+      type: "movement",
+      ref: { kind: "placeholder", name: "planche Copenhague" },
     });
-    expect(row("EX-04").observed.sessions[0]).toMatchObject({ date: "2026-11-26", durationMin: 40 });
+    // EX-06 : aucune date déductible, une question sur la date et rien d'autre.
+    expect(row("EX-06").observed).toMatchObject({ status: "question", blocked: true, questions: [{ reason: "date" }] });
     // EX-05 : un athlète seul, choisi hors de son groupe.
     expect(row("EX-05").observed.sessions[0]!.recipients).toEqual({ groups: [], athletes: ["Lina Morel"] });
 
@@ -135,7 +142,18 @@ describe("lecture des jetons du fournisseur", () => {
       inputTokens: 15230,
       cachedInputTokens: 12000,
       outputTokens: 480,
+      cacheWriteTokens: 0,
     });
+    // Depuis GPT-5.6, les jetons écrits en cache sont comptés à part : ils se paient plus cher.
+    const written = {
+      model: "gpt-6.2-sol",
+      usage: { input_tokens: 5000, output_tokens: 700, input_tokens_details: { cached_tokens: 0, cache_write_tokens: 2100 } },
+    };
+    expect(readProviderUsage(JSON.stringify(written))).toMatchObject({ inputTokens: 5000, cacheWriteTokens: 2100 });
+    expect(usageOf([{ step: "compose", ...readProviderUsage(JSON.stringify(written))! }])[0]!.costUsd).toBeCloseTo(
+      (2900 * 2 + 2100 * 2.5 + 700 * 10) / 1e6,
+      9,
+    );
   });
 
   it("lit la fin d'une réponse diffusée, et rien quand les jetons manquent", () => {
@@ -148,6 +166,7 @@ describe("lecture des jetons du fournisseur", () => {
       inputTokens: 900,
       cachedInputTokens: 0,
       outputTokens: 120,
+      cacheWriteTokens: 0,
     });
     expect(readProviderUsage('data: {"type":"response.output_text.delta","delta":"x"}')).toBeNull();
     expect(readProviderUsage("pas du JSON")).toBeNull();
@@ -167,37 +186,5 @@ describe("lecture des jetons du fournisseur", () => {
     expect(usage[0]!.costUsd).toBeCloseTo(2 * 0.028, 9);
     expect(usage[1]).toMatchObject({ step: "retry", calls: 1 });
     expect(usageOf([call("model", "modele-sans-prix")])[0]!.costUsd).toBeNull();
-  });
-});
-
-describe("brief déduit pour le pipeline actuel", () => {
-  const period = { from: "2026-11-23", to: "2026-11-29" };
-  const brief = (text: string, equipment?: ("barbell" | "bench")[]) =>
-    legacyBrief({ text, today: "2026-11-23", ...(equipment ? { space: { equipment } } : {}) }, period);
-
-  it("lit le jour, la durée et le niveau dans la consigne, le matériel dans l'espace", () => {
-    expect(brief("Vendredi, force du bas du corps, 1 h 15, athlètes confirmés.", ["barbell", "bench"])).toEqual({
-      brief: {
-        objective: "Vendredi, force du bas du corps, 1 h 15, athlètes confirmés.",
-        date: "2026-11-27",
-        durationMin: 75,
-        level: "advanced",
-        equipment: ["barbell", "bench"],
-      },
-      assumed: [],
-    });
-    expect(brief("demain une séance de gainage de 25 minutes pour débutants").brief).toMatchObject({
-      date: "2026-11-24",
-      durationMin: 25,
-      level: "beginner",
-      equipment: [],
-    });
-  });
-
-  it("note ce qu'il a dû supposer, sans rien prendre aux attentes", () => {
-    expect(brief("Une séance de vitesse pour le groupe.")).toMatchObject({
-      brief: { date: "2026-11-23", durationMin: 60, level: "intermediate" },
-      assumed: ["date", "durationMin", "level"],
-    });
   });
 });

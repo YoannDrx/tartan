@@ -131,25 +131,31 @@ const prescription = (item: z.infer<typeof exerciseRef>) => ({
 export function lotHContext(test: LotHCase, corpus = lotHCorpus): PlannerProviderContext {
   const originalText = test.previous?.text ?? test.brief?.objective ?? test.text;
   const instructions = test.previous ? [originalText, `Ajustement du coach : ${test.text}`] : [test.text];
-  const previous: PlannerGeneration["sessions"] | undefined = test.previous
+  // La séance à ajuster, dans la forme du planificateur en quatre étapes : la date et les destinataires à part.
+  const previous: NonNullable<PlannerProviderContext["previous"]>["sessions"] | undefined = test.previous
     ? [
         {
           date: test.previous.session.date,
           startTime: null,
-          title: test.previous.session.title,
-          type: test.previous.session.type as PlannerGeneration["sessions"][number]["type"],
-          durationMin: null,
           targetTokens: corpus.selectedTargets,
-          blocks: test.previous.session.blocks.map((block) => ({
-            name: block.name,
-            content: block.items.map((item) => ({
-              kind: "exercise" as const,
-              exerciseToken: tokenOf(item.exercise),
-              instruction: test.mode === "propose" ? "Choix proposé pour l'objectif." : originalText,
-              prescription: prescription(item),
-              autonomous: null,
+          movements: [],
+          session: {
+            index: 0,
+            title: test.previous.session.title,
+            type: test.previous.session.type as PlannerGeneration["sessions"][number]["type"],
+            durationMin: null,
+            blocks: test.previous.session.blocks.map((block) => ({
+              name: block.name,
+              content: block.items.map((item) => ({
+                kind: "exercise" as const,
+                movementId: null,
+                exerciseToken: tokenOf(item.exercise),
+                reason: null,
+                prescription: prescription(item),
+                autonomous: null,
+              })),
             })),
-          })),
+          },
         },
       ]
     : undefined;

@@ -43,7 +43,15 @@ export type RunnerInput = {
   driver: E2eDriver;
   options: RunnerOptions;
   // `examples` : les cas du README à la place du corpus. Ils éprouvent l'outil et ne qualifient jamais rien.
-  meta: { commit: string | null; model: string; fastModel: string | null; createdAt?: string; examples?: boolean };
+  // `dev` : le jeu de développement, non gelé, qui sert à mettre au point et ne qualifie jamais rien non plus.
+  meta: {
+    commit: string | null;
+    model: string;
+    fastModel: string | null;
+    createdAt?: string;
+    examples?: boolean;
+    dev?: boolean;
+  };
 };
 
 const noTiming: Timing = { firstEventMs: null, firstPlanMs: null, completeMs: 0 };
@@ -158,8 +166,10 @@ export async function runE2e({ corpus, pairs, driver, options, meta }: RunnerInp
     maxCostUsd: options.maxCostUsd,
     stopped,
     examples: Boolean(meta.examples),
+    ...(meta.dev ? { dev: true } : {}),
     complete:
       !meta.examples &&
+      !meta.dev &&
       driver.provider === "openai" &&
       !only &&
       options.suite === "all" &&

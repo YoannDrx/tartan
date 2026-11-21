@@ -34,10 +34,11 @@ const DEFAULT_DATABASE = "postgresql://tartan@localhost:54329/tartan_planner_e2e
 async function main() {
   const options = parseOptions(process.argv.slice(2));
   const folder = resolve(web, "evals/e2e");
-  const file = (given: string | null, examples: string, real: string) =>
-    given ? resolve(root, given) : resolve(folder, options.examples ? examples : real);
-  const corpusFile = file(options.corpus, "corpus/examples.json", "corpus/cases.json");
-  const pairsFile = file(options.pairs, "pairs/examples.json", "pairs/pairs.json");
+  // --dev : le jeu de développement, non gelé, qui sert à mettre au point et ne qualifie jamais rien.
+  const file = (given: string | null, examples: string, dev: string, real: string) =>
+    given ? resolve(root, given) : resolve(folder, options.dev ? dev : options.examples ? examples : real);
+  const corpusFile = file(options.corpus, "corpus/examples.json", "dev/cases.json", "corpus/cases.json");
+  const pairsFile = file(options.pairs, "pairs/examples.json", "dev/pairs.json", "pairs/pairs.json");
   const shown = (path: string) => relative(root, path);
 
   if (options.action === "catalog") {
@@ -102,8 +103,21 @@ async function main() {
   }
 
   // Un corpus sans empreinte, ou modifié depuis son gel, est refusé avant toute dépense.
-  const corpus = options.suite === "pairs" ? null : { file: shown(corpusFile), ...loadFrozenCorpus(corpusFile) };
-  const pairs = options.suite === "cases" ? null : { file: shown(pairsFile), ...loadFrozenPairs(pairsFile) };
+  // Le jeu de développement se charge sans gel : il change pendant la mise au point, et le rapport le dit.
+  const loadCorpus = (path: string) => {
+    if (!options.dev) return loadFrozenCorpus(path);
+    const { corpus: loaded, hash, problems } = validateCorpus(path);
+    if (problems.length) throw new FreezeError("invalid", path, problems.slice(0, 8).join(" ; "));
+    return { corpus: loaded, hash };
+  };
+  const loadPairs = (path: string) => {
+    if (!options.dev) return loadFrozenPairs(path);
+    const { pairs: loaded, hash, problems } = validatePairs(path);
+    if (problems.length) throw new FreezeError("invalid", path, problems.slice(0, 8).join(" ; "));
+    return { pairs: loaded, hash };
+  };
+  const corpus = options.suite === "pairs" ? null : { file: shown(corpusFile), ...loadCorpus(corpusFile) };
+  const pairs = options.suite === "cases" ? null : { file: shown(pairsFile), ...loadPairs(pairsFile) };
 
   const localPath = resolve(root, ".env.local");
   const local = existsSync(localPath) ? dotenv.parse(readFileSync(localPath)) : {};
@@ -114,7 +128,10 @@ async function main() {
     throw new OptionError(
       "Une clé OpenAI est présente : la mesure réelle exige --max-cost <dollars>. Pour le prestataire simulé : AI_PLANNER_FAKE_PROVIDER=true.",
     );
-  const model = options.model ?? process.env.AI_PLANNER_MODEL ?? local.AI_PLANNER_MODEL ?? "gpt-4.1";
+  // Les défauts du serveur (src/lib/env.ts) : le modèle principal compose et répare, le rapide comprend et retrouve.
+  const model = options.model ?? process.env.AI_PLANNER_MODEL ?? local.AI_PLANNER_MODEL ?? "gpt-6.2-sol";
+  const fastModel =
+    options.fastModel ?? process.env.AI_PLANNER_FAST_MODEL ?? local.AI_PLANNER_FAST_MODEL ?? "gpt-6.1-terra";
   const databaseUrl = assertEvalDatabase(options.databaseUrl ?? process.env.EVAL_DATABASE_URL ?? DEFAULT_DATABASE);
   delete process.env.OPENAI_API_KEY;
   delete process.env.OPEN_AI_API_KEY;
@@ -130,8 +147,7 @@ async function main() {
   Object.assign(process.env, {
     ...(fake ? { AI_PLANNER_FAKE_PROVIDER: "true" } : { OPENAI_API_KEY: key, AI_PLANNER_FAKE_PROVIDER: "false" }),
     AI_PLANNER_MODEL: model,
-    // Lu par le service quand il aura une étape rapide ; sans effet sur le pipeline à un seul appel.
-    ...(options.fastModel ? { AI_PLANNER_FAST_MODEL: options.fastModel } : {}),
+    AI_PLANNER_FAST_MODEL: fastModel,
     AI_PLANNER_ENABLED: "true",
     DATABASE_URL: databaseUrl,
     DATABASE_URL_UNPOOLED: databaseUrl,
@@ -202,8 +218,9 @@ async function main() {
       meta: {
         commit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
         model: fake ? "simulé" : model,
-        fastModel: options.fastModel,
+        fastModel: fake ? null : fastModel,
         examples: options.examples,
+        dev: options.dev,
       },
     });
   } finally {

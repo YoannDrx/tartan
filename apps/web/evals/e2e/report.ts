@@ -20,10 +20,14 @@ export type StepUsage = {
 export type Timing = {
   // Premier événement diffusé, quel qu'il soit. `null` : rien n'a été diffusé avant la fin.
   firstEventMs: number | null;
-  // Première ligne du plan de la séance : le premier contenu que le coach lit.
+  // Première ligne du plan de la séance.
   firstPlanMs: number | null;
   // Résultat complet : brouillons préparés, ou question rendue.
   completeMs: number;
+  // Premier texte du résumé « Ce que j'ai compris » : le premier contenu que le coach lit. Absent des anciens rapports.
+  firstSummaryMs?: number | null;
+  // Durée de chaque étape du planificateur (understand, match, compose, repair), en millisecondes.
+  stepsMs?: Record<string, number>;
 };
 type RowBase = { run: number; id: string; timing: Timing; usage: StepUsage[]; costUsd: number | null };
 export type CaseRow = RowBase & {
@@ -79,6 +83,8 @@ export type RunSummary = {
   latency: {
     firstEventMedianMs: number | null;
     firstPlanMedianMs: number | null;
+    firstSummaryMedianMs?: number | null;
+    stepsMedianMs?: Record<string, number | null>;
     completeMedianMs: number | null;
     completeP95Ms: number | null;
   };
@@ -187,6 +193,16 @@ export function summarize(rows: readonly Row[], thresholds = E2E_THRESHOLDS): Ru
           firstPlanMedianMs: median(
             answered.flatMap((row) => (row.timing.firstPlanMs === null ? [] : [row.timing.firstPlanMs])),
           ),
+          firstSummaryMedianMs: median(
+            answered.flatMap((row) => (row.timing.firstSummaryMs == null ? [] : [row.timing.firstSummaryMs])),
+          ),
+          // Médiane de chaque étape, sur les cas et les paires qui l'ont traversée.
+          stepsMedianMs: Object.fromEntries(
+            [...new Set(mine.flatMap((row) => Object.keys(row.timing.stepsMs ?? {})))].sort().map((step) => [
+              step,
+              median(mine.flatMap((row) => (row.timing.stepsMs?.[step] === undefined ? [] : [row.timing.stepsMs[step]]))),
+            ]),
+          ),
           completeMedianMs: median(answered.map((row) => row.timing.completeMs)),
           completeP95Ms: percentile(
             answered.map((row) => row.timing.completeMs),
@@ -237,6 +253,8 @@ export type E2eReport = {
   stopped: "max_cost" | "unknown_price" | null;
   // Les cas du README à la place du corpus : ils éprouvent l'outil, pas le planificateur.
   examples: boolean;
+  // Le jeu de développement, non gelé : il sert à mettre au point le planificateur et ne qualifie rien.
+  dev?: boolean;
   // Vrai seulement si tout le corpus et toutes les paires ont été mesurés, sur le vrai fournisseur, à trois passages.
   complete: boolean;
   // Ce que l'outil a dû contourner pour mesurer le pipeline en place.
@@ -304,7 +322,10 @@ export function renderSummary(report: E2eReport): string {
   lines.push(
     `Commit : ${report.commit ?? "inconnu"} · simultanéité ${report.concurrency} · prix ${report.pricesStatus}`,
   );
-  if (report.examples) lines.push("EXEMPLES : ces cas montrent le format. Ils éprouvent l'outil et ne mesurent rien.");
+  if (report.dev)
+    lines.push("DÉVELOPPEMENT : jeu non gelé, écrit pour mettre au point le planificateur. Il ne qualifie rien.");
+  else if (report.examples)
+    lines.push("EXEMPLES : ces cas montrent le format. Ils éprouvent l'outil et ne mesurent rien.");
   else if (report.provider === "fake")
     lines.push("PRESTATAIRE SIMULÉ : ce passage éprouve l'outil, pas le planificateur.");
   else if (!report.complete)
@@ -348,6 +369,11 @@ export function renderSummary(report: E2eReport): string {
     lines.push(
       `  Latence : premier événement ${seconds(run.latency.firstEventMedianMs)} · premier plan ${seconds(run.latency.firstPlanMedianMs)} · complet ${seconds(run.latency.completeMedianMs)} (95e centile ${seconds(run.latency.completeP95Ms)})`,
     );
+    const stepLatency = Object.entries(run.latency.stepsMedianMs ?? {});
+    if (run.latency.firstSummaryMedianMs != null || stepLatency.length)
+      lines.push(
+        `  Latence par étape : premier résumé ${seconds(run.latency.firstSummaryMedianMs ?? null)}${stepLatency.map(([step, value]) => ` · ${step} ${seconds(value)}`).join("")}`,
+      );
     lines.push(
       `  Appels : ${run.usage.calls} · jetons entrée ${run.usage.inputTokens} (dont cache ${run.usage.cachedInputTokens}) · sortie ${run.usage.outputTokens} · coût ${dollars(run.usage.costUsd)}`,
     );
