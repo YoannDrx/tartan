@@ -17,6 +17,7 @@ import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
 import { requireAdmin } from "./admin.service";
 import { blockedUserIds } from "./blocks.service";
+import { assertNotDemoSpace } from "./demo-space-guard";
 import { drainExternalDeletions } from "./external-deletion.service";
 import { forbidden, invalid, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
@@ -225,6 +226,8 @@ export const reportContent = async (
 ) => {
   await enforceRateLimit(`report:${userId}`, 30, 3600);
   const access = await requireOrgMember(userId, organizationId);
+  // Un signalement prévient l'éditeur par e-mail : rien ne part d'un contenu fictif.
+  await assertNotDemoSpace(organizationId, "emails");
   if (input.entityType === "video") await requireVideoAccess(access, input.entityId);
   await prisma.contentReport.create({
     data: {

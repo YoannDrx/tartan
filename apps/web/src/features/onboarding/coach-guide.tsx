@@ -15,7 +15,13 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { onErr } from "@/features/settings/shared";
 import { cn } from "@/lib/cn";
-import { COACH_OPTIONAL_PATH, COACH_STEP_PATH, FIRST_STEPS_PATH } from "@/lib/onboarding-paths";
+import {
+  COACH_OPTIONAL_PATH,
+  COACH_STEP_PATH,
+  DEMO_SPACE_ENABLED,
+  DEMO_SPACE_PATH,
+  FIRST_STEPS_PATH,
+} from "@/lib/onboarding-paths";
 import { InvitePanel } from "./invite-panel";
 import { updateOnboardingAction } from "./onboarding-state.action";
 
@@ -281,11 +287,17 @@ export const CoachGuide = ({ data, place }: { data: GuideData; place: "suivi" | 
       </ol>
       <OptionalSteps steps={data.optionalSteps} folded={place === "suivi"} />
       {place === "suivi" ? (
-        <p className="border-t border-card-line px-4 py-3">
+        <div className="flex flex-col border-t border-card-line px-4 py-3">
           <Link href={FIRST_STEPS_PATH} className={cn(linkClass, "inline-flex min-h-11 items-center")}>
             {t.all}
           </Link>
-        </p>
+          {/* Tant qu'aucun athlète n'a validé, voir Tartan rempli aide à savoir ce qu'on va proposer au groupe. */}
+          {DEMO_SPACE_ENABLED && !data.steps.find((step) => step.key === "validate")?.done ? (
+            <Link href={DEMO_SPACE_PATH} className={cn(linkClass, "inline-flex min-h-11 items-center")}>
+              {w.demoSpace.intro.cardLink}
+            </Link>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "./access";
+import { assertNotDemoSpace } from "./demo-space-guard";
 
 const DAY_MS = 86400 * 1000;
 const ASK_AFTER_DAYS = 14;
@@ -25,6 +26,8 @@ export const answerSatisfaction = async (
   input: { recommend: boolean; comment?: string | null },
 ): Promise<void> => {
   await requireOrgMember(userId, organizationId);
+  // Une réponse donnée depuis la démonstration ne dit rien de l'usage réel : elle n'entre pas dans les chiffres.
+  await assertNotDemoSpace(organizationId, "usageAnalytics");
   await prisma.satisfactionAnswer.create({
     data: { userId, organizationId, recommend: input.recommend, comment: input.comment?.trim() || null },
   });

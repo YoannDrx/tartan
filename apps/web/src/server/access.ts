@@ -22,9 +22,16 @@ export const requireOrgMember = async (
 ): Promise<Access> => {
   const member = await db.organizationMember.findUnique({
     where: { organizationId_userId: { organizationId, userId } },
-    select: { role: true, status: true, user: { select: { profile: { select: { birthDate: true } } } } },
+    select: {
+      role: true,
+      status: true,
+      user: { select: { profile: { select: { birthDate: true } } } },
+      organization: { select: { isDemo: true } },
+    },
   });
   if (!member || member.status !== "active") throw forbidden();
+  // Un espace de démonstration n'a qu'un membre, le coach qui l'a ouvert : aucun athlète réel n'y entre jamais.
+  if (member.organization.isDemo && member.role !== "owner") throw forbidden();
   assertMemberAge(member.user.profile?.birthDate);
   if (permission && !can(member.role, permission)) throw forbidden();
   const athlete =

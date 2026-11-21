@@ -167,8 +167,6 @@ export const onboarding = {
       announcements: (count: number) =>
         count === 0 ? "Aucune annonce" : count > 1 ? `${count} annonces` : "1 annonce",
     },
-    // Derrière un drapeau éteint : l'espace de démonstration viendra dans un lot suivant.
-    demo: "Voir un espace de démonstration",
   },
 
   // Le repère de première visite d'un écran : une phrase, refermable, une fois.

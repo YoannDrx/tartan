@@ -7,6 +7,7 @@ import { AppError, consentRequired, forbidden, invalid, notFound } from "@/lib/e
 import { createDirectUpload, readDirectUpload, videoEnabled } from "@/lib/mux";
 import { requireOrgMember, requireVisibleAthlete, type Access } from "./access";
 import { consentForAthletes } from "./consent.service";
+import { assertNotDemoSpace } from "./demo-space-guard";
 import { athleteAssignedWhere } from "./session-audience.service";
 import { assertUploadReservation, withVideoReservation } from "./video-capacity.service";
 import { enqueueExternalDeletion } from "./external-deletion.service";
@@ -98,6 +99,8 @@ const provision = async (userId: string, organizationId: string, videoId: string
 export const createVideoUpload = async (userId: string, organizationId: string, raw: CreateVideoInput) => {
   const input = createVideoInput.parse(raw);
   const access = await requireOrgMember(userId, organizationId, "uploadVideos");
+  // Aucun fichier ne part chez Mux depuis l'espace de démonstration.
+  await assertNotDemoSpace(organizationId, "video");
   const athleteId = access.role === "athlete" ? access.athleteId : input.athleteId;
   if (!athleteId) throw invalid(m.videoCollaboration.athleteRequired);
   if (access.role === "athlete") {
@@ -170,6 +173,7 @@ export const createVideoUpload = async (userId: string, organizationId: string, 
 
 export const renewVideoUpload = async (userId: string, organizationId: string, videoId: string) => {
   await requireOrgMember(userId, organizationId, "uploadVideos");
+  await assertNotDemoSpace(organizationId, "video");
   await withVideoReservation(async (db) => {
     const access = await requireOrgMember(userId, organizationId, "uploadVideos", db);
     const video = await db.video.findFirst({ where: { id: videoId, organizationId, uploadedBy: userId } });

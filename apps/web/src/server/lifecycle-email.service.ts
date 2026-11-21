@@ -13,6 +13,7 @@ import { TipEmail } from "@email/lifecycle";
 import { env } from "@/lib/env";
 import { COACH_STEP_PATH } from "@/lib/onboarding-paths";
 import { prisma } from "@/lib/prisma";
+import { REAL_SPACES } from "./demo-space-guard";
 import { unsubscribePageUrl, unsubscribeUrl } from "./email-preferences.service";
 import { readCoachFacts } from "./onboarding.service";
 
@@ -37,6 +38,8 @@ export type ActivationPayload = { space: string; day: ActivationDay; step: Coach
 export const queueActivationEmails = async (now: Date = new Date()): Promise<number> => {
   const spaces = await prisma.organization.findMany({
     where: {
+      // L'espace de démonstration n'a pas de premiers pas : il naît rempli.
+      ...REAL_SPACES,
       createdAt: {
         gte: new Date(now.getTime() - ACTIVATION_WINDOW_DAYS * DAY_MS),
         lt: new Date(now.getTime() - DAY_MS),

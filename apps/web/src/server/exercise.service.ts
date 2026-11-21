@@ -28,6 +28,7 @@ import { createDirectUpload, signedPlayback, videoEnabled } from "@/lib/mux";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember } from "./access";
+import { assertNotDemoSpace } from "./demo-space-guard";
 import {
   ensureExerciseCatalog,
   readExerciseGuide,
@@ -405,6 +406,8 @@ export const deleteExercise = async (userId: string, organizationId: string, exe
 
 export const createExerciseVideoUpload = async (userId: string, organizationId: string, exerciseId: string) => {
   await requireOrgMember(userId, organizationId, "editExercises");
+  // Aucun fichier ne part chez Mux depuis l'espace de démonstration.
+  await assertNotDemoSpace(organizationId, "video");
   if (!videoEnabled()) throw new AppError(503, "video_disabled", m.errors.videoDisabled);
   const exercise = await prisma.exercise.findFirst({ where: { id: exerciseId, organizationId, deletedAt: null } });
   if (!exercise) throw notFound();

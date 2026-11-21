@@ -5,6 +5,7 @@ import { admin } from "./admin";
 import { analysis } from "./analysis";
 import { auth } from "./auth";
 import { comm } from "./comm";
+import { demoSpace } from "./demo-space";
 import { exercises } from "./exercises";
 import { legal } from "./legal";
 import { onboarding } from "./onboarding";
@@ -22,6 +23,7 @@ export const w = {
   analysis,
   auth,
   comm,
+  demoSpace,
   exercises,
   legal,
   onboarding,

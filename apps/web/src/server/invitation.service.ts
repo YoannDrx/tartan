@@ -17,6 +17,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { deriveToken, sha256, tokenMatches } from "@/lib/tokens";
 import { audit, requireGroupInScope, requireOrgMember, requireVisibleAthlete } from "./access";
 import { assertWithinPlan } from "./billing.service";
+import { assertNotDemoSpace, isDemoSpace } from "./demo-space-guard";
 import { recordJoinConsents, startParentalConsent } from "./consent.service";
 import { flushEmailOutbox } from "./email-outbox.service";
 import { INVITATION_PURPOSE as PURPOSE, invitationLink, invitationOutboxKind } from "./invitation-email";
@@ -34,6 +35,8 @@ export const createInvitation = async (userId: string, organizationId: string, r
   const input = createInvitationInput.parse(rawInput);
   const permission = input.role === "athlete" ? "inviteAthlete" : "inviteCoach";
   const access = await requireOrgMember(userId, organizationId, permission);
+  // Les athlètes de la démonstration sont fictifs : personne n'y est invité.
+  await assertNotDemoSpace(organizationId, "invitations");
   await enforceRateLimit(`invite:${userId}`, 60, 3600);
   if (input.role !== "athlete") await assertWithinPlan(organizationId, "maxCoaches");
   await requireGroupInScope(access, input.groupIds);
@@ -135,6 +138,7 @@ export const inviteByEmails = async (
 
 export const groupInvitationLink = async (userId: string, organizationId: string, groupId: string) => {
   const access = await requireOrgMember(userId, organizationId, "inviteAthlete");
+  await assertNotDemoSpace(organizationId, "invitations");
   await requireGroupInScope(access, [groupId]);
   const existing = await prisma.invitation.findFirst({
     where: {
@@ -180,6 +184,7 @@ export const resendInvitation = async (userId: string, organizationId: string, i
   const inv = await prisma.invitation.findFirst({ where: { id: invitationId, organizationId } });
   if (!inv) throw notFound();
   if (access.role !== "owner" && inv.invitedBy !== userId) throw forbidden();
+  await assertNotDemoSpace(organizationId, "invitations");
   await enforceRateLimit(`invite:${userId}`, 60, 3600);
   await prisma.invitation.update({
     where: { id: inv.id },
@@ -255,6 +260,8 @@ export const acceptInvitation = async (
   await enforceRateLimit(`accept:${actor.userId}`, 20, 3600);
   const inv = await findByToken(token);
   if (!inv) throw notFound();
+  // Aucun athlète réel n'entre dans un espace de démonstration, même avec une invitation forgée.
+  if (await isDemoSpace(inv.organizationId)) throw notFound();
   const state = invitationStateOf(inv, new Date());
   if (state === "expired") throw invalid(m.invite.expired);
   if (state === "revoked") throw invalid(m.invite.revoked);

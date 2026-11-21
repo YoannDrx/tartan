@@ -3,6 +3,7 @@ import { m } from "@tartan/i18n";
 import { AthleteWelcomeEmail, InvitationReminderEmail } from "@email/lifecycle";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
+import { REAL_SPACES } from "./demo-space-guard";
 import { invitationOptOutPageUrl, invitationOptOutUrl } from "./email-preferences.service";
 import { invitationLink } from "./invitation-email";
 import { namesFor } from "./me.service";
@@ -65,6 +66,7 @@ export const renderAthleteWelcome = async (payload: unknown) => {
 export const queueInvitationReminders = async (now: Date = new Date()): Promise<number> => {
   const invitations = await prisma.invitation.findMany({
     where: {
+      organization: REAL_SPACES,
       kind: "personal_email",
       role: "athlete",
       status: { in: ["sent", "opened"] },
