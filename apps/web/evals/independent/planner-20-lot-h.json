@@ -1,0 +1,567 @@
+{
+  "version": 1,
+  "frozenBeforePlannerChanges": true,
+  "provenance": "Écrit le 18 novembre 2026 par l'agent du lot H, avant la réécriture du prompt et sans avoir vu une réponse du modèle à ces cas. Consignes fictives, aucun athlète réel.",
+  "period": {
+    "from": "2026-11-23",
+    "to": "2026-11-29"
+  },
+  "today": "2026-11-20",
+  "timeZone": "Europe/Paris",
+  "selectedTargets": ["group_1"],
+  "cases": [
+    {
+      "id": "H-01",
+      "mode": "format",
+      "text": "Mercredi, squat arrière : une série d'échauffement de 8 à 40 kg, puis 5 à 60 kg, 3 à 70 kg et 1 à 80 kg, repos 2 minutes.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-25",
+        "exercise": "back-squat",
+        "restS": 120,
+        "setPlan": [
+          {
+            "reps": 8,
+            "loadKg": 40,
+            "warmup": true
+          },
+          {
+            "reps": 5,
+            "loadKg": 60
+          },
+          {
+            "reps": 3,
+            "loadKg": 70
+          },
+          {
+            "reps": 1,
+            "loadKg": 80
+          }
+        ]
+      }
+    },
+    {
+      "id": "H-02",
+      "mode": "format",
+      "text": "Jeudi, développé couché en pyramide : 10, 8 puis 6 répétitions, à 40, 45 et 50 kg.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-26",
+        "exercise": "bench-press",
+        "setPlan": [
+          {
+            "reps": 10,
+            "loadKg": 40
+          },
+          {
+            "reps": 8,
+            "loadKg": 45
+          },
+          {
+            "reps": 6,
+            "loadKg": 50
+          }
+        ]
+      }
+    },
+    {
+      "id": "H-03",
+      "mode": "format",
+      "text": "Vendredi, soulevé de terre : 3 séries de 5 à 70 %, puis une série de 3 à 80 %.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-27",
+        "exercise": "deadlift",
+        "setPlan": [
+          {
+            "reps": 5,
+            "pct": 70
+          },
+          {
+            "reps": 5,
+            "pct": 70
+          },
+          {
+            "reps": 5,
+            "pct": 70
+          },
+          {
+            "reps": 3,
+            "pct": 80
+          }
+        ]
+      }
+    },
+    {
+      "id": "H-04",
+      "mode": "format",
+      "text": "Mardi, tractions : 3 séries de 6, sans charge ajoutée, repos 90 secondes.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-24",
+        "exercise": "pull-up",
+        "sets": 3,
+        "reps": 6,
+        "restS": 90,
+        "load": null,
+        "uniformSets": true
+      }
+    },
+    {
+      "id": "H-05",
+      "mode": "format",
+      "text": "Mercredi, épaulé : 5 séries de 2 en montant la charge jusqu'à 60 kg.",
+      "expected": {
+        "status": "clarification",
+        "field": "load"
+      }
+    },
+    {
+      "id": "H-06",
+      "mode": "format",
+      "text": "Jeudi, gainage ventral 3 × 30 secondes. Ceux qui s'entraînent seuls font du gainage latéral à la place, 3 × 20 secondes de chaque côté.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-26",
+        "exercise": "front-plank",
+        "sets": 3,
+        "durationS": 30,
+        "autonomous": {
+          "exercise": "side-plank",
+          "sets": 3,
+          "durationS": 20
+        }
+      }
+    },
+    {
+      "id": "H-07",
+      "mode": "format",
+      "text": "Lundi, sprints départ lancé : 6 × 30 m, repos 2 minutes. En autonomie, remplacer par des accélérations, 6 × 30 m, même repos.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-23",
+        "exercise": "flying-sprint",
+        "sets": 6,
+        "distanceM": 30,
+        "restS": 120,
+        "autonomous": {
+          "exercise": "progressive-acceleration",
+          "sets": 6,
+          "distanceM": 30
+        }
+      }
+    },
+    {
+      "id": "H-08",
+      "mode": "format",
+      "text": "Mardi, saut sur boîte 4 × 5, repos 90 secondes. En autonomie, remplacer par des sauts du kangourou, 4 × 5.",
+      "expected": {
+        "status": "clarification",
+        "field": "exercise",
+        "unknownName": "sauts du kangourou"
+      }
+    },
+    {
+      "id": "H-09",
+      "mode": "format",
+      "previous": {
+        "text": "Mercredi, squat arrière 3 × 5 à 60 kg, repos 2 minutes, puis pompes 3 × 10, repos 1 minute.",
+        "session": {
+          "date": "2026-11-25",
+          "title": "Force",
+          "type": "strength",
+          "blocks": [
+            {
+              "name": "Force",
+              "items": [
+                {
+                  "exercise": "back-squat",
+                  "sets": 3,
+                  "reps": 5,
+                  "loadKg": 60,
+                  "restS": 120
+                },
+                {
+                  "exercise": "push-up",
+                  "sets": 3,
+                  "reps": 10,
+                  "restS": 60
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "text": "Passe le squat arrière à 4 séries.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-25",
+        "includes": ["back-squat", "push-up"],
+        "items": {
+          "back-squat": {
+            "sets": 4,
+            "reps": 5,
+            "loadKg": 60
+          },
+          "push-up": {
+            "sets": 3,
+            "reps": 10
+          }
+        }
+      }
+    },
+    {
+      "id": "H-10",
+      "mode": "format",
+      "previous": {
+        "text": "Mercredi, squat arrière 3 × 5 à 60 kg, repos 2 minutes, puis pompes 3 × 10, repos 1 minute.",
+        "session": {
+          "date": "2026-11-25",
+          "title": "Force",
+          "type": "strength",
+          "blocks": [
+            {
+              "name": "Force",
+              "items": [
+                {
+                  "exercise": "back-squat",
+                  "sets": 3,
+                  "reps": 5,
+                  "loadKg": 60,
+                  "restS": 120
+                },
+                {
+                  "exercise": "push-up",
+                  "sets": 3,
+                  "reps": 10,
+                  "restS": 60
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "text": "Déplace la séance à vendredi.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-27",
+        "includes": ["back-squat", "push-up"],
+        "items": {
+          "back-squat": {
+            "sets": 3,
+            "reps": 5,
+            "loadKg": 60
+          }
+        }
+      }
+    },
+    {
+      "id": "H-11",
+      "mode": "format",
+      "previous": {
+        "text": "Mercredi, squat arrière 3 × 5 à 60 kg, repos 2 minutes, puis pompes 3 × 10, repos 1 minute.",
+        "session": {
+          "date": "2026-11-25",
+          "title": "Force",
+          "type": "strength",
+          "blocks": [
+            {
+              "name": "Force",
+              "items": [
+                {
+                  "exercise": "back-squat",
+                  "sets": 3,
+                  "reps": 5,
+                  "loadKg": 60,
+                  "restS": 120
+                },
+                {
+                  "exercise": "push-up",
+                  "sets": 3,
+                  "reps": 10,
+                  "restS": 60
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "text": "Mets plus lourd sur le squat.",
+      "expected": {
+        "status": "clarification",
+        "field": "load"
+      }
+    },
+    {
+      "id": "H-12",
+      "mode": "propose",
+      "brief": {
+        "objective": "Renforcement du haut du corps au poids du corps, niveau débutant.",
+        "date": "2026-11-24",
+        "durationMin": 40,
+        "level": "beginner",
+        "equipment": ["bodyweight"]
+      },
+      "previous": {
+        "session": {
+          "date": "2026-11-24",
+          "title": "Haut du corps",
+          "type": "strength",
+          "blocks": [
+            {
+              "name": "Principal",
+              "items": [
+                {
+                  "exercise": "push-up",
+                  "sets": 3,
+                  "reps": 8
+                },
+                {
+                  "exercise": "front-plank",
+                  "sets": 3,
+                  "durationS": 30
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "text": "Remplace les pompes par des pompes inclinées.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-24",
+        "includes": ["incline-push-up", "front-plank"],
+        "excludes": ["push-up"],
+        "loadPolicy": "null"
+      }
+    },
+    {
+      "id": "H-13",
+      "mode": "format",
+      "text": "Mercredi à 18 h 30, pompes 3 × 12, repos 1 minute.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-25",
+        "startTime": "18:30",
+        "exercise": "push-up",
+        "sets": 3,
+        "reps": 12,
+        "restS": 60
+      }
+    },
+    {
+      "id": "H-14",
+      "mode": "format",
+      "context": {
+        "neighbours": [
+          {
+            "date": "2026-11-17",
+            "type": "strength",
+            "exercises": [
+              {
+                "exercise": "goblet-squat",
+                "sets": 3,
+                "reps": 10,
+                "loadKg": 16
+              },
+              {
+                "exercise": "inverted-row",
+                "sets": 3,
+                "reps": 8
+              }
+            ]
+          }
+        ]
+      },
+      "text": "Jeudi, refais exactement les exercices de la séance du mardi 17 novembre, avec les mêmes séries et répétitions.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-26",
+        "exercises": ["goblet-squat", "inverted-row"],
+        "items": {
+          "goblet-squat": {
+            "sets": 3,
+            "reps": 10
+          },
+          "inverted-row": {
+            "sets": 3,
+            "reps": 8
+          }
+        }
+      }
+    },
+    {
+      "id": "H-15",
+      "mode": "propose",
+      "text": "Force du bas du corps, mais pas le même exercice principal que la séance d'hier.",
+      "brief": {
+        "objective": "Force du bas du corps, mais pas le même exercice principal que la séance d'hier.",
+        "date": "2026-11-25",
+        "durationMin": 50,
+        "level": "intermediate",
+        "equipment": ["barbell", "rack", "dumbbells", "bodyweight"]
+      },
+      "context": {
+        "neighbours": [
+          {
+            "date": "2026-11-24",
+            "type": "strength",
+            "exercises": [
+              {
+                "exercise": "back-squat",
+                "sets": 5,
+                "reps": 5,
+                "loadKg": 80
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-25",
+        "excludes": ["back-squat"],
+        "loadPolicy": "null"
+      }
+    },
+    {
+      "id": "H-16",
+      "mode": "propose",
+      "text": "Force : squat arrière lourd en pourcentage du maximum, puis un travail complémentaire au poids du corps.",
+      "brief": {
+        "objective": "Force : squat arrière lourd en pourcentage du maximum, puis un travail complémentaire au poids du corps.",
+        "date": "2026-11-26",
+        "durationMin": 60,
+        "level": "advanced",
+        "equipment": ["barbell", "rack", "bodyweight"]
+      },
+      "context": {
+        "strength": [
+          {
+            "exercise": "back-squat",
+            "coverage": "all"
+          }
+        ]
+      },
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-26",
+        "includes": ["back-squat"],
+        "loadPolicy": "pct_or_null"
+      }
+    },
+    {
+      "id": "H-17",
+      "mode": "propose",
+      "text": "Développé couché lourd, avec des charges.",
+      "brief": {
+        "objective": "Développé couché lourd, avec des charges.",
+        "date": "2026-11-26",
+        "durationMin": 45,
+        "level": "advanced",
+        "equipment": ["barbell", "bench", "rack", "bodyweight"]
+      },
+      "context": {
+        "strength": [
+          {
+            "exercise": "bench-press",
+            "coverage": "some"
+          }
+        ]
+      },
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-26",
+        "includes": ["bench-press"],
+        "loadPolicy": "null"
+      }
+    },
+    {
+      "id": "H-18",
+      "mode": "propose",
+      "text": "Une séance adaptée à la spécialité du groupe.",
+      "brief": {
+        "objective": "Une séance adaptée à la spécialité du groupe.",
+        "date": "2026-11-27",
+        "durationMin": 45,
+        "level": "intermediate",
+        "equipment": ["bodyweight", "cones", "track", "hurdles"]
+      },
+      "context": {
+        "space": {
+          "disciplines": ["sprint", "haies"],
+          "objectives": ["speed"],
+          "equipment": ["bodyweight", "cones", "track", "hurdles"]
+        }
+      },
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-27",
+        "categoryAny": ["running", "plyometrics", "coordination"],
+        "loadPolicy": "null"
+      }
+    },
+    {
+      "id": "H-19",
+      "mode": "propose",
+      "text": "Séance légère de récupération active, sans aucun saut, car le groupe fait de la pliométrie demain.",
+      "brief": {
+        "objective": "Séance légère de récupération active, sans aucun saut, car le groupe fait de la pliométrie demain.",
+        "date": "2026-11-27",
+        "durationMin": 30,
+        "level": "intermediate",
+        "equipment": ["bodyweight", "bands"]
+      },
+      "context": {
+        "neighbours": [
+          {
+            "date": "2026-11-28",
+            "type": "plyometrics",
+            "exercises": [
+              {
+                "exercise": "drop-jump",
+                "sets": 4,
+                "reps": 5
+              },
+              {
+                "exercise": "alternating-bounds",
+                "sets": 4,
+                "reps": 6
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-27",
+        "categoryNone": ["plyometrics"],
+        "loadPolicy": "null"
+      }
+    },
+    {
+      "id": "H-20",
+      "mode": "format",
+      "text": "Samedi, circuit trois tours : 10 swings kettlebell à 16 kg puis 8 fentes marchées par jambe, 30 secondes entre les exercices et 2 minutes entre les tours. Pour ceux en autonomie, les swings deviennent des ponts fessiers, 12 répétitions.",
+      "expected": {
+        "status": "proposal",
+        "date": "2026-11-28",
+        "order": [
+          "kettlebell-swing",
+          "walking-lunge",
+          "kettlebell-swing",
+          "walking-lunge",
+          "kettlebell-swing",
+          "walking-lunge"
+        ],
+        "betweenExercisesS": 30,
+        "betweenRoundsS": 120,
+        "autonomous": {
+          "exercise": "glute-bridge",
+          "replaces": "kettlebell-swing",
+          "reps": 12
+        }
+      }
+    }
+  ]
+}

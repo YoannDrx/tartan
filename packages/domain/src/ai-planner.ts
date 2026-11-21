@@ -1,7 +1,10 @@
 import {
-  plannerInterpretation,
+  plannerRichInterpretation,
   plannerPeriod,
   prescriptionSchema,
+  type PlannerRichInterpretation,
+  type PlannerRichPrescription,
+  type PlannerRichSession,
   type PlannerInterpretation,
   type PlannerPrescription,
   type Prescription,
@@ -18,6 +21,8 @@ import type { PlanKey } from "./plans";
 export const PLANNER_MAX_AUDIO_BYTES = 3 * 1024 * 1024;
 export const PLANNER_MAX_AUDIO_SECONDS = 180;
 export const PLANNER_MAX_CLARIFICATIONS = 5;
+// Les ajustements d'une proposition ont leur propre compteur : ils ne consomment ni précision ni quota.
+export const PLANNER_MAX_ADJUSTMENTS = 5;
 export const plannerPhaseChoicesForDate = (selection: PlannerSelection, date: string) =>
   selection.phaseChoicesByDate?.find((day) => day.date === date)?.choices ?? selection.phaseChoices;
 export const plannerLimits = (plan: PlanKey) =>
@@ -82,8 +87,30 @@ export function plannerRetentionDeadline(createdAt: Date, draftsCreatedAt: Date 
   return new Date(draftsCreatedAt ? Math.min(abandoned, draftsCreatedAt.getTime() + 86400000) : abandoned);
 }
 
-export function plannerPrescriptionToSession(input: PlannerPrescription, exerciseId: string): Prescription {
+const plannerLoad = (load: NonNullable<PlannerPrescription["load"]>, exerciseId: string) =>
+  load.type === "pct_1rm" ? { ...load, test: `exercise:${exerciseId}` } : load;
+
+export function plannerPrescriptionToSession(
+  input: PlannerPrescription | PlannerRichPrescription,
+  exerciseId: string,
+): Prescription {
+  const plan = "setPlan" in input ? input.setPlan : null;
+  if (plan?.length) {
+    // Le résumé suit toujours le détail : nombre de séries, répétitions et charge de la première série de travail.
+    const work = plan.find((set) => !set.warmup) ?? plan[0]!;
+    input = { ...input, sets: plan.length, reps: work.reps ?? input.reps, load: work.load ?? input.load };
+  }
   return prescriptionSchema.parse({
+    // Séries détaillées : chaque série garde ses répétitions et sa charge ; `sets`, `reps` et `load` restent alignés.
+    ...(plan?.length
+      ? {
+          setPlan: plan.map((set) => ({
+            ...(set.reps !== null ? { reps: set.reps } : {}),
+            ...(set.load !== null ? { load: plannerLoad(set.load, exerciseId) } : {}),
+            ...(set.warmup ? { warmup: true } : {}),
+          })),
+        }
+      : {}),
     ...(input.sets !== null ? { sets: input.sets } : {}),
     ...(input.reps !== null ? { reps: input.reps } : {}),
     ...(input.distanceM !== null ? { distance_m: input.distanceM } : {}),
@@ -93,11 +120,21 @@ export function plannerPrescriptionToSession(input: PlannerPrescription, exercis
     ...(input.contacts !== null ? { ground_contacts: input.contacts } : {}),
     ...(input.notes !== null ? { notes: input.notes } : {}),
     ...(input.intensityTarget !== null ? { intensityTarget: input.intensityTarget } : {}),
-    ...(input.load !== null
-      ? { load: input.load.type === "pct_1rm" ? { ...input.load, test: `exercise:${exerciseId}` } : input.load }
-      : {}),
+    ...(input.load !== null ? { load: plannerLoad(input.load, exerciseId) } : {}),
   });
 }
+
+/** Toutes les charges d'un exercice proposé : la prescription, chaque série détaillée et le remplacement en autonomie. */
+export const plannerItemLoads = (item: {
+  prescription: PlannerRichPrescription | PlannerPrescription;
+  autonomous?: { prescription: PlannerRichPrescription } | null;
+}) =>
+  [item.prescription, ...(item.autonomous ? [item.autonomous.prescription] : [])].flatMap(
+    (p: PlannerRichPrescription | PlannerPrescription) => [
+      ...(p.load ? [p.load] : []),
+      ...((p as PlannerRichPrescription).setPlan ?? []).flatMap((set) => (set.load ? [set.load] : [])),
+    ],
+  );
 
 export type PlannerValidationContext = {
   mode?: "format" | "propose";
@@ -107,14 +144,34 @@ export type PlannerValidationContext = {
   targetTokens: ReadonlySet<string>;
   // Seulement les consignes et réponses relues ; jamais de notes privées ou santé structurée.
   reviewedInstructions: readonly string[];
+  // Mode « Proposer » : exercices dont tous les destinataires ont une référence de force. Seul un pourcentage
+  // du maximum y est admis, résolu par Tartan pour chacun ; un kilo proposé reste toujours refusé.
+  percentTokens?: ReadonlySet<string>;
 };
+
+/** Mode « Proposer » : aucune charge, sauf un pourcentage là où chaque destinataire a sa référence de force. */
+export function plannerLoadsAllowed(
+  item: {
+    exerciseToken: string;
+    prescription: PlannerRichPrescription | PlannerPrescription;
+    autonomous?: { exerciseToken: string; prescription: PlannerRichPrescription } | null;
+  },
+  percentTokens: ReadonlySet<string> = new Set(),
+) {
+  const allowed = (token: string, prescription: PlannerRichPrescription | PlannerPrescription) =>
+    plannerItemLoads({ prescription }).every((load) => load.type === "pct_1rm" && percentTokens.has(token));
+  return (
+    allowed(item.exerciseToken, item.prescription) &&
+    (!item.autonomous || allowed(item.autonomous.exerciseToken, item.autonomous.prescription))
+  );
+}
 export type PlannerValidationIssue =
   "shape" | "state" | "date" | "target" | "exercise" | "prescription" | "instruction";
 export function validatePlannerInterpretation(
   raw: unknown,
   context: PlannerValidationContext,
-): { ok: true; value: PlannerInterpretation } | { ok: false; issues: PlannerValidationIssue[] } {
-  const parsed = plannerInterpretation.safeParse(raw);
+): { ok: true; value: PlannerRichInterpretation } | { ok: false; issues: PlannerValidationIssue[] } {
+  const parsed = plannerRichInterpretation.safeParse(raw);
   if (!parsed.success || !plannerPeriod.safeParse(context.period).success) return { ok: false, issues: ["shape"] };
   const value = parsed.data,
     issues = new Set<PlannerValidationIssue>();
@@ -154,19 +211,27 @@ export function validatePlannerInterpretation(
       }
     for (const block of session.blocks)
       for (const item of block.items) {
-        const exercise = context.exercises.get(item.exerciseToken);
-        if (
-          !exercise ||
-          (context.mode === "propose" &&
-            !plannerEquipmentAvailable(exercise.classification, context.brief?.equipment ?? []))
-        )
-          issues.add("exercise");
-        if (context.mode === "propose" && item.prescription.load !== null) issues.add("prescription");
+        const tokens = [item.exerciseToken, ...(item.autonomous ? [item.autonomous.exerciseToken] : [])];
+        for (const token of tokens) {
+          const exercise = context.exercises.get(token);
+          if (
+            !exercise ||
+            (context.mode === "propose" &&
+              !plannerEquipmentAvailable(exercise.classification, context.brief?.equipment ?? []))
+          )
+            issues.add("exercise");
+        }
+        if (context.mode === "propose" && !plannerLoadsAllowed(item, context.percentTokens)) issues.add("prescription");
         if (context.mode !== "propose" && !context.reviewedInstructions.some((text) => text.includes(item.instruction)))
           issues.add("instruction");
         try {
           // Validation du contrat métier existant : pas de valeur de force ni conversion RPE → kg.
-          plannerPrescriptionToSession(item.prescription, exercise?.id ?? "unresolved");
+          plannerPrescriptionToSession(item.prescription, context.exercises.get(item.exerciseToken)?.id ?? "unresolved");
+          if (item.autonomous)
+            plannerPrescriptionToSession(
+              item.autonomous.prescription,
+              context.exercises.get(item.autonomous.exerciseToken)?.id ?? "unresolved",
+            );
         } catch {
           issues.add("prescription");
         }
@@ -177,11 +242,15 @@ export function validatePlannerInterpretation(
 
 /** One conversion shared by validation and draft creation, preserving the real circuit order. */
 export function plannerSessionToDraft(
-  session: PlannerInterpretation["sessions"][number],
+  session: PlannerInterpretation["sessions"][number] | PlannerRichSession,
   exercises: ReadonlyMap<string, { id: string }>,
   prefix: string,
+  options: { structured?: boolean } = {},
 ): SessionDraft {
-  const structured = session.blocks.some((block) => block.sequence != null);
+  // `structured` : le web relit toujours la séance dans l'éditeur de séquence du constructeur.
+  const structured = options.structured || session.blocks.some((block) => block.sequence != null);
+  // Un remplacement en autonomie rend toute la séance commune : chacun la fait, l'autonomie avec ses remplacements.
+  const shared = session.blocks.some((block) => block.items.some((item) => "autonomous" in item && item.autonomous));
   return {
     title: session.title,
     type: session.type,
@@ -205,16 +274,27 @@ export function plannerSessionToDraft(
       const items = block.items.map((item, i) => {
         const exercise = exercises.get(item.exerciseToken);
         if (!exercise) throw new Error("planner_exercise_unresolved");
+        const away = "autonomous" in item && item.autonomous ? item.autonomous : null;
+        const replacement = away ? exercises.get(away.exerciseToken) : null;
+        if (away && !replacement) throw new Error("planner_exercise_unresolved");
         return {
           ref: `${prefix}-b${b}-i${i}`,
           exerciseId: exercise.id,
           prescription: plannerPrescriptionToSession(item.prescription, exercise.id),
+          ...(away && replacement
+            ? {
+                autonomous: {
+                  exerciseId: replacement.id,
+                  prescription: plannerPrescriptionToSession(away.prescription, replacement.id),
+                },
+              }
+            : {}),
         };
       });
       return {
         ref: `${prefix}-b${b}`,
         name: block.name,
-        variant: "club" as const,
+        variant: shared ? ("both" as const) : ("club" as const),
         items,
         ...(structured
           ? {

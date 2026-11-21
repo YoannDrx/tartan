@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PlannerInterpretation, PlannerPrescription } from "@tartan/contracts";
+import type { PlannerInterpretation, PlannerPrescription, PlannerRichInterpretation } from "@tartan/contracts";
 import { plannerProposalsExhausted, plannerServerEnabled } from "./ai-planner";
 import {
   groundPlannerCitations,
@@ -7,10 +7,13 @@ import {
   plannerDateReferences,
   plannerDistinctQuestions,
   plannerDropEmptyPercentages,
+  plannerExerciseIsApproximate,
   plannerExerciseIsNamed,
   plannerGuardIssues,
   plannerProposalIssues,
+  plannerRequiredFields,
   plannerTextNumbers,
+  plannerWarnings,
   type PlannerGuardContext,
 } from "./planner-guards";
 
@@ -187,19 +190,24 @@ describe("contrôles d'une proposition", () => {
       ),
     ).toEqual([]);
   });
-  it("une habitude sans valeur exige une question", () => {
-    expect(
-      plannerGuardIssues(
-        proposal(session("2030-06-03", { restS: null })),
-        context("Le 3 juin, squat arrière 40 kg, récup comme d'habitude."),
-      ),
-    ).toContain("rest");
+  it("une habitude sans séance connue est une question ; avec l'historique, un point à vérifier", () => {
+    const blind = context("Le 3 juin, squat arrière 40 kg, récup comme d'habitude.");
+    expect(plannerGuardIssues(proposal(session("2030-06-03", { restS: null })), blind)).toEqual(["rest"]);
     expect(
       plannerGuardIssues(
         proposal(session("2030-06-03", { load: null })),
         context("Le 3 juin, squat arrière, charge habituelle, repos 120 secondes."),
       ),
-    ).toContain("load");
+    ).toEqual(["load"]);
+    const rest = { ...blind, history: true };
+    expect(plannerGuardIssues(proposal(session("2030-06-03", { restS: null })), rest)).toEqual([]);
+    expect(plannerWarnings(proposal(session("2030-06-03", { restS: null })), rest)[0]).toContainEqual(
+      expect.objectContaining({ code: "habit_rest", field: "rest" }),
+    );
+    const load = { ...context("Le 3 juin, squat arrière, charge habituelle, repos 120 secondes."), history: true };
+    expect(plannerWarnings(proposal(session("2030-06-03", { load: null })), load)[0]).toContainEqual(
+      expect.objectContaining({ code: "habit_load", field: "load" }),
+    );
   });
   it("plus de quatorze séances demandées est une question", () => {
     expect(
@@ -363,76 +371,212 @@ it("le planificateur s'ouvre avec une clé et se coupe avec false", () => {
   expect(plannerServerEnabled({ AI_PLANNER_ENABLED: "true" })).toBe(true);
 });
 
-it("refuse des tours inventés, y compris dans un groupe imbriqué", () => {
-  const value = proposal(session(today));
-  const block = value.sessions[0]!.blocks[0]!;
-  block.items[0]!.ref = "squat";
-  block.sequence = [
-    {
-      kind: "repeat",
-      ref: "outer",
-      name: "Circuit",
-      rounds: 3,
-      restBetweenRoundsS: 0,
-      children: [
-        {
-          kind: "repeat",
-          ref: "inner",
-          name: "Ajout",
-          rounds: 10,
-          restBetweenRoundsS: 0,
-          children: [{ kind: "exercise", itemRef: "squat" }],
+describe("points à vérifier", () => {
+  const nested = () => {
+    const value = proposal(session(today));
+    const block = value.sessions[0]!.blocks[0]!;
+    block.items[0]!.ref = "squat";
+    block.sequence = [
+      {
+        kind: "repeat",
+        ref: "outer",
+        name: "Circuit",
+        rounds: 3,
+        restBetweenRoundsS: 0,
+        children: [
+          {
+            kind: "repeat",
+            ref: "inner",
+            name: "Ajout",
+            rounds: 10,
+            restBetweenRoundsS: 0,
+            children: [{ kind: "exercise", itemRef: "squat" }],
+          },
+        ],
+      },
+    ];
+    return value;
+  };
+  it("des tours absents de la consigne laissent passer la séance, signalés sur le bloc", () => {
+    expect(plannerGuardIssues(nested(), context(single))).toEqual([]);
+    expect(plannerWarnings(nested(), context(single))[0]).toContainEqual(
+      expect.objectContaining({ code: "rounds_not_stated", field: "rounds", block: 0, detail: "10" }),
+    );
+    expect(
+      plannerWarnings(nested(), context(`${single} Répéter dix fois chaque groupe.`))[0]!.map((w) => w.code),
+    ).not.toContain("rounds_not_stated");
+  });
+  it("un superset dont les tours disparaissent est signalé, sans être refusé", () => {
+    const value = proposal(session("2030-06-03"));
+    const text = "Le 3 juin, superset trois tours : squat arrière à 40 kg puis gainage ventral.";
+    expect(plannerGuardIssues(value, context(text))).toEqual([]);
+    expect(plannerWarnings(value, context(text))[0]).toContainEqual(
+      expect.objectContaining({ code: "rounds_missing", detail: "3" }),
+    );
+    expect(
+      plannerWarnings(value, context("Le 3 juin, circuit un tour : squat arrière à 40 kg."))[0]!.map((w) => w.code),
+    ).not.toContain("rounds_missing");
+  });
+  it("une pause après une série unique, qui serait perdue à l'exécution, est signalée sur l'exercice", () => {
+    const value = proposal(session(today));
+    const block = value.sessions[0]!.blocks[0]!;
+    block.items[0]!.ref = "squat";
+    block.items[0]!.prescription.sets = 1;
+    block.sequence = [{ kind: "exercise", itemRef: "squat" }];
+    const codes = () => plannerWarnings(value, context(single))[0]!.map((w) => w.code);
+    expect(plannerWarnings(value, context(single))[0]).toContainEqual(
+      expect.objectContaining({ code: "rest_not_executed", field: "rest", block: 0, item: 0 }),
+    );
+    block.items[0]!.prescription.sets = 3;
+    expect(codes()).not.toContain("rest_not_executed");
+    block.items[0]!.prescription.sets = 1;
+    block.items[0]!.prescription.restS = null;
+    block.sequence.push({ kind: "recovery", ref: "pause", durationS: 120 });
+    expect(codes()).not.toContain("rest_not_executed");
+  });
+  it("une fiche proche du nom cité passe avec un point à vérifier ; une fiche sans rapport reste bloquante", () => {
+    const catalog = [
+      { token: "lunge", name: "Fentes avant", aliases: ["Forward lunge"] },
+      { token: "goblet", name: "Goblet squat", aliases: ["Squat gobelet"] },
+      { token: "pull", name: "Tractions", aliases: [] },
+    ];
+    const text = "Le 3 juin, circuit : dix fentes par jambe puis huit squats goblet à 40 kg.";
+    const lunge = proposal(session("2030-06-03", {}, "lunge"));
+    expect(plannerGuardIssues(lunge, context(text, { exercises: catalog }))).toEqual([]);
+    expect(plannerWarnings(lunge, context(text, { exercises: catalog }))[0]).toContainEqual(
+      expect.objectContaining({ code: "approximate_exercise", field: "exercise", detail: "Fentes avant" }),
+    );
+    // Mêmes mots dans un autre ordre : la désignation est exacte, rien à vérifier.
+    expect(plannerExerciseIsNamed(text, "goblet", catalog)).toBe(true);
+    expect(plannerExerciseIsApproximate("Le 3 juin, squat gobelet.", "pull", catalog)).toBe(false);
+    expect(
+      plannerGuardIssues(proposal(session("2030-06-03", {}, "pull")), context(text, { exercises: catalog })),
+    ).toContain("exercise");
+  });
+  it("ce que le contexte désigne déjà n'est ni une substitution ni une charge inventée", () => {
+    const text = "Le 3 juin, refais la séance de mardi.";
+    const value = proposal(session("2030-06-03", { load: { type: "kg", value: 16 } }, "exercise_4"));
+    expect(plannerGuardIssues(value, context(text))).toEqual(expect.arrayContaining(["exercise", "load"]));
+    expect(plannerGuardIssues(value, context(text, { known: { tokens: ["exercise_4"], loads: [16] } }))).toEqual([]);
+  });
+});
+
+describe("séries détaillées et autonomie", () => {
+  const detailed = (loads: number[], away?: { token: string; load: number | null }) => {
+    const value = proposal(session("2030-06-03")) as PlannerRichInterpretation;
+    const item = value.sessions[0]!.blocks[0]!.items[0]!;
+    item.prescription = {
+      ...item.prescription,
+      setPlan: loads.map((value, index) => ({ reps: 5, load: { type: "kg", value }, warmup: index === 0 })),
+    };
+    if (away)
+      item.autonomous = {
+        exerciseToken: away.token,
+        prescription: {
+          ...prescription({ load: away.load === null ? null : { type: "kg", value: away.load } }),
+          setPlan: null,
         },
-      ],
-    },
-  ];
-  expect(plannerGuardIssues(value, context(single))).toContain("volume");
-  expect(plannerGuardIssues(value, context(`${single} Répéter dix fois chaque groupe.`))).not.toContain("volume");
-});
-
-it("refuse un superset dont les tours disparaissent dans des séries séparées", () => {
-  const value = proposal(session("2030-06-03"));
-  expect(
-    plannerGuardIssues(value, context("Le 3 juin, superset trois tours : squat arrière à 40 kg puis gainage ventral.")),
-  ).toContain("volume");
-  expect(plannerGuardIssues(value, context("Le 3 juin, circuit un tour : squat arrière à 40 kg."))).not.toContain(
-    "volume",
-  );
-});
-
-it("refuse une pause V2 placée après une série unique dans restS, qui serait perdue", () => {
-  const value = proposal(session(today));
-  const block = value.sessions[0]!.blocks[0]!;
-  block.items[0]!.ref = "squat";
-  block.items[0]!.prescription.sets = 1;
-  block.sequence = [{ kind: "exercise", itemRef: "squat" }];
-  expect(plannerGuardIssues(value, context(single))).toContain("rest");
-  block.items[0]!.prescription.sets = 3;
-  expect(plannerGuardIssues(value, context(single))).not.toContain("rest");
-  block.items[0]!.prescription.sets = 1;
-  block.items[0]!.prescription.restS = null;
-  block.sequence.push({ kind: "recovery", ref: "pause", durationS: 120 });
-  expect(plannerGuardIssues(value, context(single))).not.toContain("rest");
+      };
+    return value;
+  };
+  const text = "Le 3 juin, squat arrière : 5 à 40 kg pour s'échauffer, puis 5 à 60 kg et 5 à 70 kg.";
+  it("chaque charge d'une série détaillée doit figurer dans la consigne", () => {
+    expect(plannerGuardIssues(detailed([40, 60, 70]), context(text))).toEqual([]);
+    expect(plannerGuardIssues(detailed([40, 60, 65]), context(text))).toContain("load");
+  });
+  it("le remplacement en autonomie est contrôlé comme l'exercice principal", () => {
+    const away = `${text} En autonomie, tractions à la place, 3 séries de 4.`;
+    expect(plannerGuardIssues(detailed([40, 60, 70], { token: "exercise_4", load: null }), context(away))).toEqual([]);
+    expect(plannerGuardIssues(detailed([40, 60, 70], { token: "exercise_3", load: null }), context(away))).toContain(
+      "exercise",
+    );
+    expect(plannerGuardIssues(detailed([40, 60, 70], { token: "exercise_4", load: 30 }), context(away))).toContain(
+      "load",
+    );
+  });
 });
 
 describe("mode « Proposer une séance »", () => {
   const brief = { date: "2030-06-05", durationMin: 45 };
-  const targets = [{ token: "group_1" }];
-  const proposed = (date: string, durationMin: number | null, load: PlannerPrescription["load"] = null) =>
-    proposal({ ...session(date, { load }), durationMin } as unknown as ReturnType<typeof session>);
-  it("accepte une séance unique, à la date et dans la durée du brief, sans charge", () => {
-    expect(plannerProposalIssues(proposed("2030-06-05", 40), { brief, targets })).toEqual([]);
+  const proposed = (date: string, load: PlannerPrescription["load"] = null) =>
+    proposal({ ...session(date, { load }), durationMin: 40 } as unknown as ReturnType<typeof session>);
+  it("accepte une séance unique, à la date du brief, sans charge", () => {
+    expect(plannerProposalIssues(proposed("2030-06-05"), { brief })).toEqual([]);
   });
-  it("refuse une autre date, une durée dépassée, une charge inventée ou un destinataire oublié", () => {
-    expect(plannerProposalIssues(proposed("2030-06-04", 40), { brief, targets })).toContain("date");
-    expect(plannerProposalIssues(proposed("2030-06-05", 60), { brief, targets })).toContain("volume");
-    expect(
-      plannerProposalIssues(proposed("2030-06-05", 40, { type: "kg", value: 60 }), { brief, targets }),
-    ).toContain("load");
-    expect(
-      plannerProposalIssues(proposed("2030-06-05", 40), { brief, targets: [...targets, { token: "group_2" }] }),
-    ).toContain("target");
+  it("refuse une autre date, plusieurs séances ou un kilo proposé", () => {
+    expect(plannerProposalIssues(proposed("2030-06-04"), { brief })).toContain("date");
+    expect(plannerProposalIssues(proposed("2030-06-05", { type: "kg", value: 60 }), { brief })).toContain("load");
     const two = proposal(session("2030-06-05"), session("2030-06-05"));
-    expect(plannerProposalIssues(two, { brief, targets })).toContain("session_count");
+    expect(plannerProposalIssues(two, { brief })).toContain("session_count");
   });
+  it("un pourcentage n'est admis que si chaque destinataire a sa référence de force", () => {
+    const percent = proposed("2030-06-05", { type: "pct_1rm", value: 75 });
+    expect(plannerProposalIssues(percent, { brief })).toContain("load");
+    expect(plannerProposalIssues(percent, { brief, percentTokens: new Set(["exercise_2"]) })).toContain("load");
+    expect(plannerProposalIssues(percent, { brief, percentTokens: new Set(["exercise_1"]) })).toEqual([]);
+    expect(
+      plannerProposalIssues(proposed("2030-06-05", { type: "kg", value: 60 }), {
+        brief,
+        percentTokens: new Set(["exercise_1"]),
+      }),
+    ).toContain("load");
+  });
+});
+
+describe("unités et désignations proches", () => {
+  it("une durée lue dans un nombre sans unité est une question ; secondes ou minutes écrites passent", () => {
+    const plank = (durationS: number) =>
+      proposal(session("2030-06-03", { durationS, reps: null, load: null, restS: null }, "exercise_3"));
+    expect(plannerGuardIssues(plank(20), context("Le 3 juin, trois fois vingt de gainage ventral."))).toContain("unit");
+    expect(plannerGuardIssues(plank(20), context("Le 3 juin, gainage ventral 3 × 20 secondes."))).toEqual([]);
+    expect(plannerGuardIssues(plank(120), context("Le 3 juin, gainage ventral 3 × 2 minutes."))).toEqual([]);
+  });
+  it("un mot partagé par plusieurs fiches ne désigne aucune d'elles", () => {
+    const catalog = [
+      { token: "bench", name: "Développé couché", aliases: [] },
+      { token: "military", name: "Développé militaire", aliases: [] },
+      { token: "hang", name: "Épaulé suspension au-dessus des genoux", aliases: [] },
+      { token: "power", name: "Épaulé puissance", aliases: [] },
+      { token: "snatch", name: "Arraché suspension au-dessus des genoux", aliases: [] },
+    ];
+    expect(plannerExerciseIsApproximate("Mercredi, développé, trois séries de dix.", "bench", catalog)).toBe(false);
+    expect(plannerExerciseIsApproximate("Mercredi, épaulé suspension puis épaulé puissance.", "hang", catalog)).toBe(
+      true,
+    );
+  });
+});
+
+describe("pyramides et montées de charge", () => {
+  it("des charges différentes série après série ne se contredisent pas ; une montée sans paliers est une question", () => {
+    const text = "Le 3 juin, squat arrière en pyramide : 10, 8 puis 6 répétitions, à 40, 45 et 50 kg.";
+    const value = proposal(session("2030-06-03")) as PlannerRichInterpretation;
+    value.sessions[0]!.blocks[0]!.items[0]!.prescription = {
+      ...prescription(),
+      setPlan: [
+        { reps: 10, load: { type: "kg", value: 40 }, warmup: false },
+        { reps: 8, load: { type: "kg", value: 45 }, warmup: false },
+        { reps: 6, load: { type: "kg", value: 50 }, warmup: false },
+      ],
+    };
+    expect(plannerGuardIssues(value, context(text))).toEqual([]);
+    expect(
+      plannerRequiredFields(context("Le 3 juin, squat arrière : 5 séries de 2 en montant la charge jusqu'à 60 kg.")),
+    ).toEqual(["load"]);
+    expect(plannerRequiredFields(context(text))).toEqual([]);
+  });
+});
+
+it("un nom court suivi du qualificatif d'une autre fiche ne désigne pas la variante sans qualificatif", () => {
+  const catalog = [
+    { token: "clean", name: "Épaulé", aliases: ["Clean"] },
+    { token: "hang", name: "Épaulé suspension au-dessus des genoux", aliases: [] },
+    { token: "power", name: "Épaulé puissance", aliases: [] },
+    { token: "lunge", name: "Fentes avant", aliases: [] },
+    { token: "walking", name: "Fentes marchées", aliases: ["Fentes avant marchées"] },
+  ];
+  const text = "Mercredi, épaulé suspension puis épaulé puissance, 3 séries de 2.";
+  expect(plannerExerciseIsNamed(text, "clean", catalog)).toBe(false);
+  expect(plannerExerciseIsNamed(text, "power", catalog)).toBe(true);
+  expect(plannerExerciseIsNamed("Mercredi, épaulé, 3 séries de 2.", "clean", catalog)).toBe(true);
+  expect(plannerExerciseIsNamed("Mardi, fentes avant, 3 x 8.", "lunge", catalog)).toBe(true);
 });

@@ -4,7 +4,9 @@ import {
   plannerDraftsResponse,
   confirmPlannerProposalInput,
   previewPlannerLoadsInput,
+  plannerInterpretation,
   type PlannerInterpretation,
+  type PlannerRichInterpretation,
   type CreatePlannerProposalInput,
 } from "@tartan/contracts";
 import { prisma } from "@/lib/prisma";
@@ -21,11 +23,13 @@ import {
 } from "@/server/ai/proposal.service";
 import { pseudonymizePlannerText, type PlannerBindings } from "@/server/ai/context";
 import { fakePlannerEnabled, fakePlannerProvider } from "@/server/ai/fake-provider";
-import type { PlannerProvider, PlannerProviderContext } from "@/server/ai/provider";
+import { m } from "@tartan/i18n";
+import { PlannerProviderError, type PlannerProvider, type PlannerProviderContext } from "@/server/ai/provider";
 import { expirePlannerOperations } from "@/server/ai/usage.service";
 import { saveTrainingPhase } from "@/server/training-phases.service";
 import { selectStrengthReference } from "@/server/strength.service";
 import { saveExercise } from "@/server/exercise.service";
+import { plannerEventStream } from "@/server/ai/stream";
 import { addStaff, addAthlete, makeOrg } from "./helpers";
 const flags = vi.hoisted(() => ({ AI_PLANNER_ENABLED: "true" }));
 vi.mock("@/server/ai/consent.service", () => ({
@@ -333,6 +337,50 @@ it("inclut cinq clarifications, déduplique les réponses et bloque le sixième 
     }),
   ).toMatchObject({ usedProposals: 1, reservedProposals: 0 });
 });
+it.each([
+  ["configuration", 503],
+  ["saturated", 503],
+  ["unavailable", 502],
+  ["timeout", 504],
+  ["refused", 422],
+  ["incomplete", 502],
+  ["invalid_output", 502],
+] as const)("une panne %s rend un message lisible, garde sa cause et ne décompte rien", async (code, status) => {
+  const a = await setup();
+  const failing = {
+    interpret: vi.fn(async () => {
+      throw new PlannerProviderError(code);
+    }),
+  };
+  await expect(a.create(failing)).rejects.toMatchObject({
+    status,
+    code: `planner_${code}`,
+    message: m.aiPlanner.failures[code],
+  });
+  expect(m.aiPlanner.failures[code]).toContain("n’est pas décomptée");
+  const operation = await prisma.aiPlannerOperation.findUniqueOrThrow({
+    where: { organizationId_id: { organizationId: a.organizationId, id: a.input.id } },
+  });
+  expect(operation).toMatchObject({ state: "refunded", failureCode: code });
+  expect(
+    await prisma.aiPlannerQuota.findUniqueOrThrow({
+      where: { organizationId_month: { organizationId: a.organizationId, month: "2030-06" } },
+    }),
+  ).toMatchObject({ usedProposals: 0, reservedProposals: 0 });
+  const read = await getPlannerProposal(a.owner.userId, a.organizationId, a.input.id, now);
+  expect(read).toMatchObject({ state: "failed", failure: { code, message: m.aiPlanner.failures[code] } });
+});
+it("une panne inattendue reste une réponse inexploitable, sans détail technique", async () => {
+  const a = await setup();
+  const failing = {
+    interpret: vi.fn(async () => {
+      throw new Error("sensitive internal detail");
+    }),
+  };
+  const error = await a.create(failing).catch((cause: unknown) => cause);
+  expect(error).toMatchObject({ code: "planner_invalid_output" });
+  expect(JSON.stringify(error)).not.toContain("sensitive");
+});
 it("un échec de clarification garde le résultat précédent, sans perdre un échange ni augmenter le quota", async () => {
   const a = await setup();
   const initial = await a.create(provider(clarification));
@@ -349,7 +397,7 @@ it("un échec de clarification garde le résultat précédent, sans perdre un é
   };
   await expect(
     clarifyPlannerProposal(a.owner.userId, a.organizationId, a.input.id, answer, { provider: failing, clock }),
-  ).rejects.toMatchObject({ code: "planner_generation_failed" });
+  ).rejects.toMatchObject({ code: "planner_invalid_output", message: m.aiPlanner.failures.invalid_output });
   const read = await getPlannerProposal(a.owner.userId, a.organizationId, a.input.id, now);
   expect(read).toMatchObject({ state: "clarification", version: initial.version, clarificationCount: 0 });
   expect(read.pendingText).toContain("Deux minutes");
@@ -1149,7 +1197,7 @@ it("propose seulement à partir du catalogue approuvé et refuse les charges inv
     const created = await a.create(noLoad, { ...input, id: randomUUID() });
     expect(created.state).toBe("proposal");
     await expect(a.create(provider(), { ...input, id: randomUUID() })).rejects.toMatchObject({
-      code: "planner_generation_failed",
+      code: "planner_invalid_output",
     });
     expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
   } finally {
@@ -1214,13 +1262,230 @@ it("ajuste une proposition sans quota supplémentaire, avec la consigne du coach
     { operationId: randomUUID(), expectedVersion: created.version, text: "Repos de trois minutes.", reviewed: true },
     { provider: p, clock },
   );
-  expect(adjusted).toMatchObject({ state: "proposal", clarificationCount: 1 });
-  expect(p.interpret.mock.calls[1]![0].instructions.at(-1)).toBe("Ajustement du coach : Repos de trois minutes.");
+  // Les ajustements ont leur propre compteur : les précisions restent toutes disponibles.
+  expect(adjusted).toMatchObject({ state: "proposal", clarificationCount: 0, adjustmentCount: 1 });
+  const sent = p.interpret.mock.calls[1]![0];
+  expect(sent.instructions.at(-1)).toBe("Ajustement du coach : Repos de trois minutes.");
+  // La proposition précédente part avec la demande : le modèle la modifie, il n'en refait pas une autre.
+  expect(sent.previous?.sessions[0]).toMatchObject({
+    date: "2030-06-03",
+    blocks: [{ content: [{ kind: "exercise", exerciseToken: "exercise_1", prescription: { sets: 3, reps: 4 } }] }],
+  });
+  expect(JSON.stringify(sent.previous)).not.toContain("Vitesse (A)");
   expect(
     await prisma.aiPlannerQuota.findUniqueOrThrow({
       where: { organizationId_month: { organizationId: a.organizationId, month: "2030-06" } },
     }),
   ).toMatchObject({ usedProposals: 1, reservedProposals: 0 });
+});
+it("borne les ajustements à cinq, sans toucher aux précisions, et garde six messages lisibles par les anciens clients", async () => {
+  const a = await setup(),
+    p = provider();
+  let current = await a.create(p);
+  for (let index = 1; index <= 5; index++) {
+    current = await clarifyPlannerProposal(
+      a.owner.userId,
+      a.organizationId,
+      a.input.id,
+      { operationId: randomUUID(), expectedVersion: current.version, text: `Ajustement ${index}.`, reviewed: true },
+      { provider: p, clock },
+    );
+    expect(current).toMatchObject({ adjustmentCount: index, clarificationCount: 0 });
+  }
+  expect(current.messages).toHaveLength(6);
+  expect(current.messages[0]).toBe(a.input.text);
+  await expect(
+    clarifyPlannerProposal(
+      a.owner.userId,
+      a.organizationId,
+      a.input.id,
+      { operationId: randomUUID(), expectedVersion: current.version, text: "Encore un.", reviewed: true },
+      { provider: p, clock },
+    ),
+  ).rejects.toMatchObject({ status: 409 });
+});
+it("prépare des brouillons avec séries détaillées, autonomie et points à vérifier, sans les montrer aux anciens clients", async () => {
+  const a = await setup();
+  const second = await prisma.exercise.findFirstOrThrow({
+    where: { organizationId: a.organizationId, id: { not: a.exercise.id } },
+  });
+  const p = provider((context) => {
+    const result = proposal(context) as PlannerRichInterpretation;
+    const item = result.sessions[0]!.blocks[0]!.items[0]!;
+    item.prescription = {
+      ...item.prescription,
+      setPlan: [
+        { reps: 4, load: { type: "kg", value: 40 }, warmup: true },
+        { reps: 2, load: { type: "kg", value: 40 }, warmup: false },
+      ],
+    };
+    item.autonomous = {
+      exerciseToken: context.exercises.find((e) => e.token !== item.exerciseToken)!.token,
+      prescription: { ...item.prescription, setPlan: null, load: null },
+    };
+    result.sessions[0]!.warnings = [
+      { code: "approximate_exercise", field: "exercise", block: 0, item: 0, detail: "group_1" },
+      { code: "habit_rest", field: "rest", block: null, item: null, detail: null },
+    ];
+    return result;
+  });
+  const input = { ...a.input, selection: { ...a.input.selection, exerciseIds: [a.exercise.id, second.id] } };
+  const created = await a.create(p, input);
+  // La réponse de l'API reste lisible par une application installée : ni détail des séries, ni autonomie.
+  expect(plannerInterpretation.safeParse(created.interpretation).success).toBe(true);
+  expect(JSON.stringify(created.interpretation)).not.toContain("setPlan");
+  const prepared = plannerDraftsResponse.parse(
+    await preparePlannerDrafts(a.owner.userId, a.organizationId, a.input.id, created.version, now),
+  );
+  const block = prepared.sessions[0]!.draft.blocks[0]!;
+  expect(block.variant).toBe("both");
+  expect(block.items[0]!.prescription).toMatchObject({ sets: 2, reps: 2, setPlan: [{ warmup: true }, { reps: 2 }] });
+  expect(block.items[0]!.autonomous).toMatchObject({ exerciseId: expect.any(String) });
+  expect(prepared.warnings![0]).toEqual([
+    { code: "approximate_exercise", field: "exercise", itemRef: block.items[0]!.ref, detail: "Vitesse (A)" },
+    { code: "habit_rest", field: "rest", itemRef: null, detail: null },
+  ]);
+});
+it("en mode « Proposer », l'heure demandée arrive sur le brouillon sans passer par le modèle", async () => {
+  const a = await setup();
+  const exercise = await prisma.exercise.create({
+    data: {
+      name: "Mouvement approuvé horaire",
+      classification: { movement: "squat", equipment: [] },
+      category: "strength",
+      catalogKey: `test-${randomUUID()}`,
+      guide: { technicalReview: "approved" },
+    },
+  });
+  try {
+    const p = provider((context) => {
+      expect(context.startTime).toBe("07:15");
+      expect(JSON.stringify(context)).not.toContain(a.input.text);
+      const result = proposal({ ...context, exercises: context.exercises.filter((e) => e.name === exercise.name) });
+      result.sessions[0]!.blocks[0]!.items[0]!.prescription.load = null;
+      result.sessions[0]!.date = context.brief!.date;
+      result.sessions[0]!.durationMin = 30;
+      return result;
+    });
+    const created = await a.create(p, {
+      ...a.input,
+      id: randomUUID(),
+      text: "Force générale",
+      startTime: "07:15",
+      selection: {
+        ...a.input.selection,
+        mode: "propose",
+        exerciseIds: [],
+        brief: { objective: "Force générale", date: "2030-06-04", durationMin: 40, level: "beginner", equipment: [] },
+      },
+    });
+    expect(created.state).toBe("proposal");
+    const prepared = await preparePlannerDrafts(a.owner.userId, a.organizationId, created.id, created.version, now);
+    expect(prepared.sessions[0]).toMatchObject({ date: "2030-06-04", startTime: "07:15" });
+  } finally {
+    await prisma.exercise.delete({ where: { id: exercise.id } });
+  }
+});
+it("donne au modèle le profil de l'espace, les séances voisines et la couverture des références, jamais une donnée de santé", async () => {
+  const a = await setup();
+  await prisma.organization.update({
+    where: { id: a.organizationId },
+    data: {
+      progressionEnabled: true,
+      disciplines: ["sprint"],
+      trainingObjectives: ["speed"],
+      availableEquipment: ["cones", "track"],
+    },
+  });
+  await prisma.exercise.update({ where: { id: a.exercise.id }, data: { strengthLoadKind: "external_total" } });
+  const athletes = [
+    await addAthlete(a.organizationId, a.groupId, "Léa"),
+    await addAthlete(a.organizationId, a.groupId, "Malik"),
+  ];
+  for (const athlete of athletes)
+    await selectStrengthReference(a.owner.userId, a.organizationId, athlete.athleteId, a.exercise.id, {
+      source: "working",
+      valueKg: 100,
+    });
+  const neighbour = await prisma.scheduledSession.create({
+    data: {
+      organizationId: a.organizationId,
+      createdBy: a.owner.userId,
+      date: new Date("2030-06-01T00:00:00Z"),
+      title: "Séance privée de Léa",
+      type: "strength",
+      draft: {
+        title: "Séance privée de Léa",
+        type: "strength",
+        durationMin: 45,
+        coachNote: "Note privée du coach",
+        blocks: [
+          {
+            name: "Force",
+            variant: "club",
+            items: [
+              {
+                exerciseId: a.exercise.id,
+                prescription: { sets: 4, reps: 5, load: { type: "kg", value: 50 }, notes: "genou douloureux" },
+              },
+            ],
+          },
+        ],
+      },
+      assignments: { create: { targetType: "group", targetId: a.groupId } },
+    },
+  });
+  await prisma.sessionLog.create({
+    data: {
+      scheduledSessionId: neighbour.id,
+      athleteId: athletes[0]!.athleteId,
+      status: "done",
+      rpe: 9,
+      comment: "douleur derrière la cuisse",
+      pain: { zone: "ischio", level: 6 },
+    },
+  });
+  const p = provider();
+  await a.create(p);
+  const sent = p.interpret.mock.calls[0]![0];
+  expect(sent.space).toEqual({ disciplines: ["sprint"], objectives: ["speed"], equipment: ["cones", "track"] });
+  expect(sent.neighbours).toEqual([
+    {
+      date: "2030-06-01",
+      type: "strength",
+      targetTokens: ["group_1"],
+      exercises: [
+        {
+          exerciseToken: "exercise_1",
+          sets: 4,
+          reps: 5,
+          distanceM: null,
+          durationS: null,
+          load: { type: "kg", value: 50 },
+        },
+      ],
+    },
+  ]);
+  expect(sent.strength).toEqual([{ exerciseToken: "exercise_1", coverage: "all" }]);
+  // Ce qui part chez OpenAI : ni titre, ni note, ni ressenti, ni douleur, ni maximum, ni prénom.
+  const payload = JSON.stringify(sent);
+  for (const secret of [
+    "Séance privée",
+    "Note privée",
+    "genou douloureux",
+    "douleur",
+    "ischio",
+    "rpe",
+    "100",
+    "Léa",
+    "Malik",
+  ])
+    expect(payload).not.toContain(secret);
+  // Une référence manquante pour un seul destinataire ferme le pourcentage : couverture partielle.
+  await prisma.strengthReference.deleteMany({ where: { athleteId: athletes[1]!.athleteId } });
+  const partial = provider();
+  await a.create(partial, { ...a.input, id: randomUUID() });
+  expect(partial.interpret.mock.calls[0]![0].strength).toEqual([{ exerciseToken: "exercise_1", coverage: "some" }]);
 });
 it("pose directement une question nommée pour un mouvement inconnu, sans appeler le modèle", async () => {
   const a = await setup(),
@@ -1233,4 +1498,99 @@ it("pose directement une question nommée pour un mouvement inconnu, sans appele
   expect(p.interpret).not.toHaveBeenCalled();
   expect(asked.state).toBe("clarification");
   expect(asked.interpretation?.questions).toMatchObject([{ field: "exercise", exerciseName: "Squat du dragon" }]);
+});
+it("diffuse les étapes et le plan pendant la génération, puis la proposition enregistrée, même sans écran", async () => {
+  const a = await setup();
+  const response = plannerEventStream((hooks) =>
+    createPlannerProposal(a.owner.userId, a.organizationId, a.input, {
+      ...hooks,
+      provider: fakePlannerProvider(),
+      clock,
+    }),
+  );
+  const events = (await response.text())
+    .split("\n\n")
+    .filter(Boolean)
+    .map((chunk) => ({ event: /^event: (.+)$/m.exec(chunk)![1], data: JSON.parse(/^data: (.+)$/m.exec(chunk)![1]!) }));
+  const steps = events.filter((e) => e.event === "step").map((e) => e.data.step);
+  expect(steps).toEqual(["context", "model", "checks", "saved"]);
+  const plans = events.filter((e) => e.event === "plan");
+  expect(plans.length).toBeGreaterThan(0);
+  expect(plans.at(-1)!.data.lines).toContainEqual({ kind: "exercise", label: a.exercise.name });
+  expect(JSON.stringify(plans)).not.toContain("exercise_1");
+  expect(events.at(-1)).toMatchObject({ event: "result", data: { id: a.input.id, state: "proposal" } });
+  // Un écran fermé dès l'envoi : la génération va jusqu'au bout et se relit ensuite.
+  const second = { ...a.input, id: randomUUID() };
+  const closed = plannerEventStream((hooks) =>
+    createPlannerProposal(a.owner.userId, a.organizationId, second, {
+      ...hooks,
+      provider: fakePlannerProvider(),
+      clock,
+    }),
+  );
+  await closed.body!.cancel();
+  await vi.waitFor(
+    async () =>
+      expect(await getPlannerProposal(a.owner.userId, a.organizationId, second.id, now)).toMatchObject({
+        state: "proposal",
+      }),
+    { timeout: 10000 },
+  );
+});
+it("en mode « Proposer », garde un % 1RM seulement si chaque destinataire a sa référence, quel que soit le prestataire", async () => {
+  const a = await setup();
+  await prisma.organization.update({ where: { id: a.organizationId }, data: { progressionEnabled: true } });
+  const exercise = await prisma.exercise.create({
+    data: {
+      name: "Squat approuvé chargé",
+      classification: { movement: "squat", equipment: [] },
+      category: "strength",
+      strengthLoadKind: "external_total",
+      catalogKey: `test-${randomUUID()}`,
+      guide: { technicalReview: "approved" },
+    },
+  });
+  try {
+    const athletes = [
+      await addAthlete(a.organizationId, a.groupId, "Pourcent Un"),
+      await addAthlete(a.organizationId, a.groupId, "Pourcent Deux"),
+    ];
+    await selectStrengthReference(a.owner.userId, a.organizationId, athletes[0]!.athleteId, exercise.id, {
+      source: "working",
+      valueKg: 100,
+    });
+    const percent = provider((context) => {
+      const result = proposal({ ...context, exercises: context.exercises.filter((e) => e.name === exercise.name) });
+      result.sessions[0]!.date = context.brief!.date;
+      result.sessions[0]!.durationMin = 30;
+      result.sessions[0]!.blocks[0]!.items[0]!.prescription.load = { type: "pct_1rm", value: 80 };
+      return result;
+    });
+    const input = (id: string) => ({
+      ...a.input,
+      id,
+      text: "Force",
+      selection: {
+        ...a.input.selection,
+        mode: "propose" as const,
+        exerciseIds: [],
+        brief: { objective: "Force", date: "2030-06-04", durationMin: 40, level: "advanced" as const, equipment: [] },
+      },
+    });
+    const partial = await a.create(percent, input(randomUUID()));
+    expect(partial.state).toBe("proposal");
+    expect(partial.interpretation!.sessions[0]!.blocks[0]!.items[0]!.prescription.load).toBeNull();
+    await selectStrengthReference(a.owner.userId, a.organizationId, athletes[1]!.athleteId, exercise.id, {
+      source: "working",
+      valueKg: 90,
+    });
+    const full = await a.create(percent, input(randomUUID()));
+    expect(full.interpretation!.sessions[0]!.blocks[0]!.items[0]!.prescription.load).toEqual({
+      type: "pct_1rm",
+      value: 80,
+    });
+  } finally {
+    await prisma.strengthReference.deleteMany({ where: { exerciseId: exercise.id } });
+    await prisma.exercise.delete({ where: { id: exercise.id } });
+  }
 });

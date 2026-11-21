@@ -6,7 +6,7 @@ import { normalizeExerciseTerm, rankPlannerCandidates } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { Button } from "@/components/ui/button";
 import { CheckRow, Field, Input, Select, Textarea } from "@/components/ui/field";
-import type { PlannerContext } from "./planner-selection";
+import type { PlannerContext } from "./planner-request";
 
 const t = m.aiPlanner;
 export function PlannerExerciseResolution({

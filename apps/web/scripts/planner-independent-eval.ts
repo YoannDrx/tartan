@@ -11,6 +11,7 @@ import {
   scoreIndependentCase,
 } from "../evals/planner-independent";
 import { costOf, summarizeRuns } from "../evals/planner-report";
+import { lotHContext, lotHCorpus, lotHHash, scoreLotHCase } from "../evals/planner-lot-h";
 import { openAiPlannerProvider, plannerProviderContext, PlannerProviderError } from "../src/server/ai/provider";
 import type { PlannerInterpretation } from "@tartan/contracts";
 const option = (name: string) => {
@@ -31,10 +32,34 @@ type Row = {
   error?: string;
   providerTexts: string[];
 };
+// `--corpus lot-h` : le jeu neuf de 20 cas du lot H (séries détaillées, autonomie, ajustement, contexte).
+const lotH = option("--corpus") === "lot-h";
+type Suite = {
+  cases: { id: string }[];
+  hash: string;
+  context: (test: never) => unknown;
+  score: (test: never, value: unknown) => ReturnType<typeof scoreIndependentCase>;
+  scorerFile: string;
+};
+const suite: Suite = lotH
+  ? {
+      cases: lotHCorpus.cases,
+      hash: lotHHash,
+      context: lotHContext,
+      score: scoreLotHCase,
+      scorerFile: "apps/web/evals/planner-lot-h.ts",
+    }
+  : {
+      cases: independentCorpus.cases,
+      hash: independentHash,
+      context: independentContext,
+      score: scoreIndependentCase,
+      scorerFile: "apps/web/evals/planner-independent.ts",
+    };
 async function main() {
   const root = resolve(import.meta.dirname, "../../..");
-  for (const test of independentCorpus.cases) plannerProviderContext.parse(independentContext(test));
-  if (new Set(independentCorpus.cases.map((c) => c.id)).size !== 80) throw new Error("duplicate_case");
+  for (const test of suite.cases) plannerProviderContext.parse(suite.context(test as never));
+  if (new Set(suite.cases.map((c) => c.id)).size !== suite.cases.length) throw new Error("duplicate_case");
   // Relire un rapport existant, sans aucun appel : réussites, questions posées à tort, latence, jetons et coût.
   const summary = option("--summary");
   if (summary) {
@@ -52,11 +77,11 @@ async function main() {
     const output = option("--output");
     if (!output || existsSync(resolve(root, output))) throw new Error("new_output_required");
     const report = JSON.parse(readFileSync(resolve(root, source), "utf8")) as { corpusHash: string; rows: Row[] };
-    if (report.corpusHash !== independentHash) throw new Error("corpus_mismatch");
+    if (report.corpusHash !== suite.hash) throw new Error("corpus_mismatch");
     for (const row of report.rows) {
-      const test = independentCorpus.cases.find((test) => test.id === row.id);
+      const test = suite.cases.find((test) => test.id === row.id);
       if (!test) throw new Error("unknown_case");
-      if (row.result) row.score = scoreIndependentCase(test, row.result);
+      if (row.result) row.score = suite.score(test as never, row.result);
     }
     writeFileSync(
       resolve(root, output),
@@ -64,7 +89,7 @@ async function main() {
         {
           ...report,
           rescoredAt: new Date().toISOString(),
-          scorerHash: hash(readFileSync(resolve(root, "apps/web/evals/planner-independent.ts"), "utf8")),
+          scorerHash: hash(readFileSync(resolve(root, suite.scorerFile), "utf8")),
         },
         null,
         2,
@@ -85,14 +110,14 @@ async function main() {
     return;
   }
   const ids = option("--ids")?.split(",");
-  if (ids?.some((id) => !independentCorpus.cases.some((c) => c.id === id))) throw new Error("unknown_case");
-  const selected = independentCorpus.cases.filter((c) => !ids || ids.includes(c.id));
+  if (ids?.some((id) => !suite.cases.some((c) => c.id === id))) throw new Error("unknown_case");
+  const selected = suite.cases.filter((c) => !ids || ids.includes(c.id));
   if (!process.argv.includes("--live")) {
     console.log(
       JSON.stringify({
-        cases: 80,
+        cases: suite.cases.length,
         selected: selected.length,
-        corpusHash: independentHash,
+        corpusHash: suite.hash,
         providerCalls: 0,
         humanReview: "pending",
         scope: "provider-only; catalog approval gate not bypassed in the app",
@@ -105,7 +130,7 @@ async function main() {
   const key =
     process.env.OPENAI_API_KEY || process.env.OPEN_AI_API_KEY || local.OPENAI_API_KEY || local.OPEN_AI_API_KEY;
   if (!key) throw new Error("missing_key");
-  const model = process.env.AI_PLANNER_MODEL || local.AI_PLANNER_MODEL || "gpt-4.1-mini";
+  const model = process.env.AI_PLANNER_MODEL || local.AI_PLANNER_MODEL || "gpt-4.1";
   Object.assign(process.env, {
     OPENAI_API_KEY: key,
     AI_PLANNER_MODEL: model,
@@ -131,14 +156,14 @@ async function main() {
   )
     .trim()
     .split("\n");
-  files.push("apps/web/evals/planner-independent.ts", "apps/web/scripts/planner-independent-eval.ts");
+  files.push("apps/web/evals/planner-independent.ts", "apps/web/scripts/planner-independent-eval.ts", suite.scorerFile);
   const implementationHash = hash(
     files
       .sort()
       .map((p) => `${p}\n${readFileSync(resolve(root, p), "utf8")}`)
       .join("\n"),
   );
-  const signature = hash(`${independentHash}:${implementationHash}:${model}`);
+  const signature = hash(`${suite.hash}:${implementationHash}:${model}`);
   const path = resolve(
     root,
     option("--resume") ?? option("--output") ?? `.local/planner-independent-${Date.now()}.json`,
@@ -159,7 +184,7 @@ async function main() {
     : {
         signature,
         model,
-        corpusHash: independentHash,
+        corpusHash: suite.hash,
         implementationHash,
         commit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
         createdAt: new Date().toISOString(),
@@ -215,8 +240,8 @@ async function main() {
             return response;
           });
           try {
-            row.result = await provider.interpret(independentContext(test));
-            row.score = scoreIndependentCase(test, row.result);
+            row.result = await provider.interpret(suite.context(test as never) as never);
+            row.score = suite.score(test as never, row.result);
           } catch (cause) {
             row.error = cause instanceof PlannerProviderError ? cause.code : "local_error";
           }

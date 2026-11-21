@@ -13,6 +13,7 @@ import { hasAiConsent } from "@/server/ai/consent.service";
 import { getPlannerProposal } from "@/server/ai/proposal.service";
 import { getPlannerUsage } from "@/server/ai/usage.service";
 import { getSessionBuilderContext } from "@/server/session-builder.service";
+import { getOrganization } from "@/server/org.service";
 
 export const metadata = { title: m.aiPlanner.title };
 export default async function PlannerPage({
@@ -31,7 +32,10 @@ export default async function PlannerPage({
   )
     notFound();
   const usage = await orNotFound(() => getPlannerUsage(actor.userId, organizationId));
-  const context = await getSessionBuilderContext(actor.userId, organizationId);
+  const [context, organization] = await Promise.all([
+    getSessionBuilderContext(actor.userId, organizationId),
+    getOrganization(actor.userId, organizationId),
+  ]);
   if (params.groupe && !context.groups.some((g) => g.id === params.groupe)) notFound();
   let initial = null;
   if (params.proposition) {
@@ -70,6 +74,8 @@ export default async function PlannerPage({
         context={context}
         initial={initial}
         initialUsage={usage}
+        // Le matériel du profil de l'espace préremplit les pastilles du mode « Proposer ».
+        equipment={organization.availableEquipment}
         initialSelection={{
           period: { from: date, to: date },
           groupIds: params.groupe ? [params.groupe] : [],

@@ -7,6 +7,7 @@ import {
   isoDate,
   type PlannerReviewedDraft,
   type PlannerProposalResponse,
+  type PlannerDraftsResponse,
   type Prescription,
 } from "@tartan/contracts";
 import {
@@ -28,8 +29,23 @@ import { CheckRow, Field, Input, Select } from "@/components/ui/field";
 import { PhasePlanningPanel } from "@/features/phases/phase-planning";
 import { SequenceEditor } from "@/features/sessions/sequence-editor";
 import { PrescriptionEditor } from "@/features/sessions/session-builder";
-import type { PlannerContext } from "./planner-selection";
+import { w } from "@tartan/i18n/web";
+import { TriangleAlert } from "lucide-react";
+import type { PlannerContext } from "./planner-request";
 import { PlannerLoads } from "./planner-loads";
+
+export type PlannerDraftWarning = NonNullable<PlannerDraftsResponse["warnings"]>[number][number];
+/** Le texte d'un point « À vérifier », dans les mots du coach. */
+export const plannerWarningText = (warning: PlannerDraftWarning) => w.planner.warnings[warning.code](warning.detail);
+const WarningNote = ({ id, warning }: { id?: string; warning: PlannerDraftWarning }) => (
+  <p id={id} className="flex items-start gap-2 rounded-button border border-st-partial px-3 py-2">
+    <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-st-partial" />
+    <span>
+      <span className="font-semibold">{w.planner.toCheck} : </span>
+      {plannerWarningText(warning)}
+    </span>
+  </p>
+);
 
 export type PlannerDraftUpdate = (
   index: number,
@@ -46,7 +62,9 @@ export function PlannerDraftReview({
   onUpdate,
   onPhaseReady,
   onLoadsReady,
+  warnings = [],
 }: {
+  warnings?: PlannerDraftWarning[];
   index: number;
   session: PlannerReviewedDraft;
   context: PlannerContext;
@@ -58,6 +76,7 @@ export function PlannerDraftReview({
   onLoadsReady: (index: number, key: string, ready: boolean) => void;
 }) {
   const [editingRef, setEditingRef] = useState<string | null>(null);
+  const [editingAway, setEditingAway] = useState(false);
   const [previousDraft, setPreviousDraft] = useState<PlannerReviewedDraft | null>(null);
   const [replacement, setReplacement] = useState<string | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -92,17 +111,25 @@ export function PlannerDraftReview({
     session.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId),
     session.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId),
   );
-  const updatePrescription = (ref: string, prescription: Prescription) =>
+  const updatePrescription = (ref: string, prescription: Prescription, away = false) =>
     onUpdate(index, (old) => ({
       ...old,
       draft: {
         ...old.draft,
         blocks: old.draft.blocks.map((b) => ({
           ...b,
-          items: b.items.map((i) => (i.ref === ref ? { ...i, prescription } : i)),
+          items: b.items.map((i) =>
+            i.ref !== ref
+              ? i
+              : away && i.autonomous
+                ? { ...i, autonomous: { ...i.autonomous, prescription } }
+                : { ...i, prescription },
+          ),
         })),
       },
     }));
+  const sessionWarnings = warnings.filter((warning) => !warning.itemRef);
+  const itemWarnings = (ref: string | undefined) => warnings.filter((warning) => ref && warning.itemRef === ref);
   return (
     <section
       aria-label={session.draft.title}
@@ -211,6 +238,40 @@ export function PlannerDraftReview({
             })}
           </fieldset>
         </details>
+        {warnings.length ? (
+          <div className="mt-3 flex flex-col gap-2" role="group" aria-label={w.planner.toCheckCount(warnings.length)}>
+            {sessionWarnings.map((warning, i) => (
+              <WarningNote key={`session-${i}`} warning={warning} />
+            ))}
+            {warnings
+              .filter((warning) => warning.itemRef)
+              .map((warning, i) => {
+                const item = session.draft.blocks
+                  .flatMap((b) => b.items)
+                  .find((entry) => entry.ref === warning.itemRef);
+                const name =
+                  context.exercises.find((e) => e.id === item?.exerciseId)?.name ??
+                  proposal.exercises.find((e) => e.id === item?.exerciseId)?.name;
+                return (
+                  <Button
+                    key={`item-${i}`}
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="h-auto justify-start whitespace-normal py-2 text-left"
+                    onClick={() => {
+                      setEditingRef(warning.itemRef);
+                      setEditingAway(false);
+                    }}
+                  >
+                    <TriangleAlert aria-hidden className="size-4 shrink-0 text-st-partial" />
+                    {name ? `${name} · ` : ""}
+                    {w.planner.toCheck}
+                  </Button>
+                );
+              })}
+          </div>
+        ) : null}
         {previousDraft ? (
           <Button
             type="button"
@@ -254,7 +315,14 @@ export function PlannerDraftReview({
               <SequenceEditor
                 block={block}
                 exercises={context.exercises.filter((e) => proposal.exercises.some((p) => p.id === e.id))}
-                onEdit={setEditingRef}
+                onEdit={(ref) => {
+                  setEditingRef(ref);
+                  setEditingAway(false);
+                }}
+                onEditAutonomous={(ref) => {
+                  setEditingRef(ref);
+                  setEditingAway(true);
+                }}
                 onChange={(next) => {
                   setPreviousDraft(session);
                   const draft = {
@@ -308,15 +376,22 @@ export function PlannerDraftReview({
             {block.items
               .filter((item) => session.draft.structureVersion !== 2 || item.ref === editingRef)
               .map((item) => {
-                const exercise = context.exercises.find((e) => e.id === item.exerciseId);
+                const away = editingAway && item.autonomous ? item.autonomous : null;
+                const exerciseId = away?.exerciseId ?? item.exerciseId;
+                const prescription = away?.prescription ?? item.prescription;
+                const exercise = context.exercises.find((e) => e.id === exerciseId);
+                const notes = itemWarnings(item.ref);
                 return (
                   <div key={item.ref} className="flex min-w-0 flex-col gap-2 py-3">
                     <p className="font-semibold break-words">
-                      {exercise?.name ??
-                        proposal.exercises.find((e) => e.id === item.exerciseId)?.name ??
-                        m.common.notFound}
+                      {exercise?.name ?? proposal.exercises.find((e) => e.id === exerciseId)?.name ?? m.common.notFound}
                     </p>
-                    <p>{formatPrescription(item.prescription)}</p>
+                    {!away
+                      ? notes.map((warning, i) => (
+                          <WarningNote key={i} id={`${item.ref}-check-${i}`} warning={warning} />
+                        ))
+                      : null}
+                    <p>{formatPrescription(prescription)}</p>
                     {(item.prescription.notes?.length ?? 0) > sessionTextLimits.notes ? (
                       <p role="alert">
                         {m.builder.notes} : {t.textLimit(item.prescription.notes!.length, sessionTextLimits.notes)}
@@ -326,10 +401,10 @@ export function PlannerDraftReview({
                       <summary className="min-h-11 cursor-pointer py-2">{m.builder.setPrescription}</summary>
                       <PrescriptionEditor
                         intensityEnabled
-                        value={item.prescription}
+                        value={prescription}
                         exercise={exercise}
-                        testKeys={[`exercise:${item.exerciseId}`]}
-                        onChange={(value) => updatePrescription(item.ref!, value)}
+                        testKeys={[`exercise:${exerciseId}`]}
+                        onChange={(value) => updatePrescription(item.ref!, value, Boolean(away))}
                       />
                     </details>
                     <Button
@@ -432,7 +507,11 @@ export function PlannerDraftReview({
                 ...b,
                 items: b.items.map((i) =>
                   i.ref === replacement
-                    ? { ...i, exerciseId: exercise.id, prescription: replacedExercisePrescription(i.prescription, exercise.id) }
+                    ? {
+                        ...i,
+                        exerciseId: exercise.id,
+                        prescription: replacedExercisePrescription(i.prescription, exercise.id),
+                      }
                     : i,
                 ),
               })),
