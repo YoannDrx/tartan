@@ -81,15 +81,19 @@ export const SheetActions = ({
   exercise,
   lists: initialLists,
   videoEnabled,
+  openEdit = false,
 }: {
   exercise: ExerciseSheet;
   lists: ExerciseList[];
   videoEnabled: boolean;
+  /** « Compléter la fiche », après une création rapide : le formulaire complet s'ouvre à l'arrivée. */
+  openEdit?: boolean;
 }) => {
   const router = useRouter();
   const state = useExerciseLists(initialLists);
   const [filing, setFiling] = useState(false);
-  const [editing, setEditing] = useState(false);
+  // Seule une fiche de l'espace se modifie.
+  const [editing, setEditing] = useState(openEdit && !exercise.shared);
   const personalize = useAction(personalizeExerciseAction, {
     onSuccess: ({ data }) => {
       if (!data) return;
@@ -157,6 +161,8 @@ export const SheetActions = ({
             videoEnabled={videoEnabled}
             onDone={() => {
               setEditing(false);
+              // Arrivée par « Compléter la fiche », la page reprend son adresse : la recharger ne rouvre rien.
+              if (openEdit) router.replace(`/exercices/${exercise.id}`);
               router.refresh();
             }}
           />

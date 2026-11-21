@@ -17,7 +17,8 @@ vi.mock("next/navigation", async (importOriginal) => ({
   useRouter: () => ({ push: () => undefined, refresh: () => undefined }),
 }));
 
-const render = async (id: string) => renderToStaticMarkup(await ExercisePage({ params: Promise.resolve({ id }) }));
+const render = async (id: string) =>
+  renderToStaticMarkup(await ExercisePage({ params: Promise.resolve({ id }), searchParams: Promise.resolve({}) }));
 
 describe("page d'une fiche d'exercice", () => {
   it("montre le mouvement et les vidéos liées, sans vidéo d'un autre mouvement", async () => {

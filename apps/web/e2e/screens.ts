@@ -78,7 +78,11 @@ export const SCREENS: Screen[] = [
     ],
   },
   { path: "/premiers-pas", roles: ["coach"], proof: ["onboarding.spec.ts", "demo-space.spec.ts"] },
-  { path: "/seances/nouvelle", roles: ["coach"], proof: ["coach-screens.spec.ts", "session-sequences.spec.ts"] },
+  {
+    path: "/seances/nouvelle",
+    roles: ["coach"],
+    proof: ["coach-screens.spec.ts", "session-sequences.spec.ts", "exercise-finder.spec.ts"],
+  },
   { path: "/seances/[id]", roles: ["coach"], proof: ["coach-screens.spec.ts", "demo-space.spec.ts"] },
   { path: "/seances/[id]/suivi", roles: ["coach"], proof: ["coach-performed-sets.spec.ts", "filled-sweep.spec.ts"] },
   { path: "/seances/[id]/charges", roles: ["coach"], proof: ["filled-pages.spec.ts"] },
@@ -86,7 +90,7 @@ export const SCREENS: Screen[] = [
   {
     path: "/exercices",
     roles: ["coach"],
-    proof: ["exercise-guides.spec.ts", "exercise-aliases.spec.ts", "exercise-lists.spec.ts"],
+    proof: ["exercise-guides.spec.ts", "exercise-aliases.spec.ts", "exercise-lists.spec.ts", "exercise-finder.spec.ts"],
   },
   {
     path: "/exercices/[id]",

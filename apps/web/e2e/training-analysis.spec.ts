@@ -6,6 +6,7 @@ import { addDays } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
+import { openFullExerciseForm } from "./journeys";
 
 test("analyse web et transport natif : volumes distincts, filtres, couverture et accessibilité", async ({
   page,
@@ -18,10 +19,7 @@ test("analyse web et transport natif : volumes distincts, filtres, couverture et
     headers: async () => ({ Cookie: (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join("; ") }),
   });
   const group = (await api.sessionBuilder(orgId)).groups[0]!;
-  await page.goto("/exercices");
-  await page.getByRole("button", { name: m.exercises.new, exact: true }).click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByLabel(m.exercises.name, { exact: true }).fill("Squat analyse");
+  const dialog = await openFullExerciseForm(page, "Squat analyse");
   await dialog.getByLabel(m.exercises.category, { exact: true }).selectOption("strength");
   await dialog.getByText(m.exerciseClassification.title, { exact: true }).click();
   await dialog.getByLabel(m.exerciseClassification.movement, { exact: true }).selectOption("squat");
