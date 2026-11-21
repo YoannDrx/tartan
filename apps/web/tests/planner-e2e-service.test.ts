@@ -7,12 +7,19 @@ import { renderSummary, type CaseRow, type PairRow } from "../evals/e2e/report";
 import { runE2e } from "../evals/e2e/runner";
 
 // Avant tout import du service : il lit l'environnement une seule fois.
-vi.hoisted(() => {
+const restoreEnv = vi.hoisted(() => {
+  const names = ["AI_PLANNER_ENABLED", "AI_PLANNER_FAKE_PROVIDER", "OPENAI_API_KEY", "OPEN_AI_API_KEY", "VERCEL"];
+  const before = names.map((name) => [name, process.env[name]] as const);
   process.env.AI_PLANNER_ENABLED = "true";
   process.env.AI_PLANNER_FAKE_PROVIDER = "true";
   delete process.env.OPENAI_API_KEY;
   delete process.env.OPEN_AI_API_KEY;
   delete process.env.VERCEL;
+  return () => {
+    for (const [name, value] of before)
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+  };
 });
 
 const { createServiceDriver, legacyBrief, readProviderUsage, usageOf } = await import("../evals/e2e/driver");
@@ -20,7 +27,10 @@ const folder = path.resolve(import.meta.dirname, "../evals/e2e");
 const corpus = { file: "corpus/examples.json", ...loadFrozenCorpus(path.join(folder, "corpus/examples.json")) };
 const pairs = { file: "pairs/examples.json", ...loadFrozenPairs(path.join(folder, "pairs/examples.json")) };
 const driver = createServiceDriver();
-afterAll(() => driver.close());
+afterAll(() => {
+  driver.close();
+  restoreEnv();
+});
 
 describe("mesure de bout en bout par le service", () => {
   it("déroule les six exemples et les paires jusqu'aux brouillons préparés", async () => {
