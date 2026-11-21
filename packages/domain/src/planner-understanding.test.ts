@@ -67,6 +67,21 @@ describe("dates", () => {
     const request = normalize(understood(), "Le 3 janvier, squat arrière 3 séries de 8.");
     expect(request.blockers).toMatchObject([{ kind: "no_date", outOfPeriod: true }]);
   });
+  it("une suite de jours (« du lundi au vendredi ») donne une séance par jour, sans question", () => {
+    const week = ["2026-11-23", "2026-11-24", "2026-11-25", "2026-11-26", "2026-11-27"];
+    const request = normalize(
+      understood({ sessions: week.map((date) => session({ date, dateSaid: "du lundi au vendredi" })) }),
+      "Du lundi au vendredi pour group_1 : gainage ventral 3 fois 40 secondes.",
+    );
+    expect(request.sessions.map((entry) => entry.date)).toEqual(week);
+    expect(request.blockers).toEqual([]);
+    // Deux jours nommés seulement : un troisième jour, que rien ne cite, reste une question.
+    const two = normalize(
+      understood({ sessions: [session({ date: "2026-11-24" }), session({ date: "2026-11-25" })] }),
+      "Mardi et jeudi pour group_1 : gainage ventral 3 fois 40 secondes.",
+    );
+    expect(two.blockers).toEqual([{ kind: "no_date", session: 1, said: null, outOfPeriod: false }]);
+  });
   it("sans jour dans la demande, le jour choisi à l'écran vaut", () => {
     const request = normalize(understood(), "Squat arrière, 3 séries de 8.", { hints: { date: "2026-11-27" } });
     expect(request.sessions[0]!.date).toBe("2026-11-27");

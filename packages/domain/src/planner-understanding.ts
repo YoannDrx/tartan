@@ -67,6 +67,10 @@ const fold = (value: string) =>
     .replace(/\s+/g, " ")
     .trim();
 const TOKEN = /(?<![\p{L}\p{N}_])(?:group|athlete|exercise|slot)_[0-9]+(?![\p{L}\p{N}_])/gu;
+const WEEKDAY = "(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)";
+const EVERY_DAY = new RegExp(
+  `(?<![a-z])(?:d[ue] ${WEEKDAY} (?:au|a|jusqu au|jusqu a) ${WEEKDAY}|tous les jours|chaque jour)(?![a-z])`,
+);
 const TEMPORAL =
   /(?<![a-z])(?:\d+|jours?|semaines?|week ?end|mois|prochaine?s?|demain|lendemain|matin|midi|soir|huit|quinze|fin|debut)(?![a-z])/;
 
@@ -135,6 +139,8 @@ function resolveDate(
   if (days.length) {
     if (model !== null && days.includes(PLANNER_WEEKDAYS[plannerWeekdayOf(model)]!))
       return { date: model, outOfPeriod: false };
+    // Une suite de jours (« du lundi au vendredi », « tous les jours ») : chaque jour entre les deux est cité.
+    if (model !== null && !alone && EVERY_DAY.test(fold(context.text))) return { date: model, outOfPeriod: false };
     if (alone && days.length === 1) {
       // Un seul jour de semaine nommé : sa première occurrence à partir d'aujourd'hui, dans la période.
       for (let date = today > period.from ? today : period.from; date <= period.to; date = addDays(date, 1))
