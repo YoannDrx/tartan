@@ -11,7 +11,8 @@ import {
   sessionDraftBlock,
   sessionDraftItem,
 } from "./session";
-import { sessionType } from "./enums";
+import { exerciseCategory, sessionType } from "./enums";
+import { exerciseMovement } from "./exercise-classification";
 import { exerciseInput } from "./requests";
 import { sequenceRef, sessionSequence } from "./session-sequence";
 
@@ -150,7 +151,23 @@ export const plannerWarningCode = z.enum([
   "rounds_missing",
   "habit_load",
   "habit_rest",
+  // Additifs (21 novembre 2026), servis aux seuls clients qui déclarent `accepts: ["checks"]`.
+  // Charge ambiguë ou sans unité : laissée vide, jamais inventée.
+  "load_unclear",
+  // Nombre sans unité : rangé selon l'unité de comptage de la fiche (secondes, mètres, répétitions).
+  "unit_assumed",
+  // Mouvement cité dont la prescription n'a pas pu être écrite : la fiche est posée, à compléter.
+  "to_complete",
 ]);
+/** Les codes que lisent les applications déjà installées. Les autres ne partent que vers un client qui les déclare. */
+export const PLANNER_LEGACY_WARNING_CODES: readonly string[] = [
+  "approximate_exercise",
+  "rest_not_executed",
+  "rounds_not_stated",
+  "rounds_missing",
+  "habit_load",
+  "habit_rest",
+];
 // Un point « À vérifier » : la proposition reste utilisable, le coach relit ce champ.
 export const plannerWarning = z
   .object({
@@ -163,7 +180,36 @@ export const plannerWarning = z
   })
   .strict();
 export type PlannerWarning = z.infer<typeof plannerWarning>;
+// Confiance du rapprochement entre un terme dit et une fiche. `absent` : aucune fiche, un emplacement à compléter.
+export const plannerMatchConfidence = z.enum(["exact", "sure", "probable", "absent"]);
+export type PlannerMatchConfidence = z.infer<typeof plannerMatchConfidence>;
+// Un emplacement à compléter occupe la place d'un exercice : son jeton commence par ce préfixe et ne désigne
+// aucune fiche. Dans les brouillons préparés, son `exerciseId` est cet identifiant réservé, jamais une fiche.
+export const PLANNER_SLOT_PREFIX = "slot_";
+export const PLANNER_SLOT_EXERCISE_ID = "00000000-0000-4000-8000-0000000051a7";
+// De quoi préremplir la création rapide d'une fiche absente : un nom propre (le terme du coach nettoyé, sans
+// prescription), et la catégorie, la famille de mouvement et le type de charge les plus probables. Ce sont des
+// valeurs par défaut, que le coach modifie.
+export const plannerSlotSuggestion = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    category: exerciseCategory,
+    movement: exerciseMovement,
+    loadKind: z.enum(["external_total", "added_weight", "assistance", "bodyweight"]),
+  })
+  .strict();
+export type PlannerSlotSuggestion = z.infer<typeof plannerSlotSuggestion>;
 export const plannerRichItem = plannerItem.extend({
+  // Additifs, gardés côté serveur. `said` : le terme exact du coach ; absent pour un exercice proposé.
+  origin: z.enum(["said", "proposed"]).optional(),
+  // Le mouvement de la compréhension que cet exercice exécute (m1, m2…).
+  movementId: z.string().max(8).optional(),
+  said: z.string().min(1).max(120).optional(),
+  confidence: plannerMatchConfidence.optional(),
+  // Les autres fiches possibles d'un rapprochement `probable` ou d'un emplacement, en jetons.
+  alternatives: z.array(plannerItem.shape.exerciseToken).max(3).optional(),
+  // Emplacement à compléter seulement : de quoi préremplir la création de la fiche.
+  suggestion: plannerSlotSuggestion.optional(),
   prescription: plannerRichPrescription,
   autonomous: z
     .object({ exerciseToken: plannerItem.shape.exerciseToken, prescription: plannerRichPrescription })
@@ -178,8 +224,28 @@ export const plannerRichSession = plannerSession.extend({
     .max(12),
   warnings: z.array(plannerWarning).max(30).optional(),
 });
+export const plannerIntent = z.enum(["described", "objective", "mixed"]);
+export type PlannerIntent = z.infer<typeof plannerIntent>;
 export const plannerRichInterpretation = plannerInterpretation.extend({
   sessions: z.array(plannerRichSession).max(14),
+  // Additif : ce que l'étape « Comprendre » a lu, pour l'écran. Jetons de destinataires, jamais de nom.
+  understanding: z
+    .object({
+      intent: plannerIntent,
+      summary: z.string().max(2000),
+      movements: z
+        .array(
+          z.object({
+            said: z.string().max(120),
+            prescription: z.string().max(300).nullable(),
+            confidence: plannerMatchConfidence,
+            exerciseToken: z.string().max(60).nullable(),
+          }),
+        )
+        .max(120),
+      corrections: z.array(z.object({ said: z.string().max(200), kept: z.string().max(200) })).max(10),
+    })
+    .optional(),
 });
 export type PlannerRichInterpretation = z.infer<typeof plannerRichInterpretation>;
 export type PlannerRichSession = z.infer<typeof plannerRichSession>;
@@ -196,19 +262,37 @@ export const resolvePlannerExerciseInput = z
       z
         .object({
           kind: z.literal("create"),
-          exercise: exerciseInput.omit({ id: true, media: true }).strict(),
-          reviewed: z.literal(true),
+          // Depuis le 21 novembre 2026, tout champ est facultatif : pour un emplacement à compléter, ce qui manque
+          // vient des valeurs proposées (`suggestion`), le nom venant sinon du terme dit. Le coach modifie ce
+          // qu'il veut, nom compris. La case « relu » n'est plus exigée par le serveur ; les clients d'avant
+          // l'envoient encore.
+          exercise: exerciseInput.omit({ id: true, media: true }).partial().strict(),
+          reviewed: z.literal(true).optional(),
         })
         .strict(),
+      // Additif : retirer un emplacement à compléter de la séance. Refusé pour une question de l'ancienne forme.
+      z.object({ kind: z.literal("remove") }).strict(),
     ]),
   })
   .strict();
 export type ResolvePlannerExerciseInput = z.infer<typeof resolvePlannerExerciseInput>;
 
+// Quatre semaines au plus depuis le 21 novembre 2026 (sept jours avant) : le coach cite sa date dans la consigne,
+// la période n'est plus que la fenêtre où cette date peut tomber.
+export const PLANNER_MAX_PERIOD_DAYS = 28;
 export const plannerPeriod = z
   .object({ from: isoDate, to: isoDate })
   .strict()
-  .refine((p) => p.from <= p.to && Date.parse(`${p.to}T00:00:00Z`) - Date.parse(`${p.from}T00:00:00Z`) <= 6 * 86400000);
+  .refine(
+    (p) =>
+      p.from <= p.to &&
+      Date.parse(`${p.to}T00:00:00Z`) - Date.parse(`${p.from}T00:00:00Z`) <= (PLANNER_MAX_PERIOD_DAYS - 1) * 86400000,
+  );
+// Ce que le client sait afficher. `slots` : les emplacements à compléter dans la séance (sans lui, un exercice
+// absent revient sous l'ancienne forme, une question nommée). `checks` : les nouveaux points « À vérifier ».
+// Un client qui ne déclare rien reçoit exactement les formes d'avant.
+export const plannerCapability = z.enum(["slots", "checks"]);
+export type PlannerCapability = z.infer<typeof plannerCapability>;
 
 export const plannerBrief = z
   .object({
@@ -223,6 +307,8 @@ export type PlannerBrief = z.infer<typeof plannerBrief>;
 
 export const plannerSelection = z
   .object({
+    // Depuis le 21 novembre 2026, le serveur comprend seul la demande : `mode` et `brief` ne sont plus que des
+    // indices, envoyés par les clients d'avant.
     mode: z.enum(["format", "propose"]).optional(),
     brief: plannerBrief.optional(),
     period: plannerPeriod,
@@ -240,14 +326,15 @@ export const plannerSelection = z
           })
           .strict(),
       )
-      .max(7)
+      .max(PLANNER_MAX_PERIOD_DAYS)
       .optional(),
   })
   .strict()
   .refine(
     (s) =>
       (s.mode !== "propose" || (Boolean(s.brief) && s.brief!.date >= s.period.from && s.brief!.date <= s.period.to)) &&
-      s.groupIds.length + s.athleteIds.length > 0 &&
+      // Aucun destinataire choisi n'est plus une saisie invalide : le planificateur lit ceux que la consigne
+      // cite parmi les groupes et athlètes du coach, ou pose la question.
       s.groupIds.length + s.athleteIds.length <= 200 &&
       [s.groupIds, s.athleteIds, s.exerciseIds].every((ids) => new Set(ids).size === ids.length) &&
       new Set(s.phaseChoices.map((c) => c.athleteId)).size === s.phaseChoices.length &&
@@ -269,6 +356,8 @@ export const createPlannerProposalInput = z
     reviewed: z.literal(true),
     // Additif, mode « Proposer » : l'heure demandée, posée par le serveur sur la séance (jamais choisie par l'IA).
     startTime: clockTime.nullable().optional(),
+    // Additif : les formes nouvelles que ce client sait afficher (voir `plannerCapability`).
+    accepts: z.array(plannerCapability).max(4).optional(),
   })
   .strict();
 export type CreatePlannerProposalInput = z.infer<typeof createPlannerProposalInput>;
@@ -326,10 +415,25 @@ export const plannerPreparedDraft = plannerReviewedDraft.extend({
       .max(12),
   }),
 });
+// Un emplacement à compléter : le terme dit par le coach, sa place dans la séance, les fiches possibles.
+export const plannerSlotView = z.object({
+  id: z.string().min(1).max(60),
+  said: z.string().min(1).max(120),
+  // Rang de la séance, et référence de l'exercice dans le brouillon préparé.
+  session: z.number().int().min(0).max(13),
+  itemRef: z.string().min(1).max(120),
+  candidates: z.array(z.object({ exerciseId: uuid, name: z.string() })).max(3),
+  // De quoi préremplir la création rapide de la fiche, quand l'étape « Retrouver » a pu le proposer.
+  suggestion: plannerSlotSuggestion.optional(),
+});
+export type PlannerSlotView = z.infer<typeof plannerSlotView>;
 export const plannerDraftsResponse = z.object({
   proposalId: uuid,
   version: z.number().int().positive(),
   sessions: z.array(plannerPreparedDraft).min(1).max(14),
+  // Additif, clients `slots` seulement : les emplacements à compléter. L'exercice du brouillon porte alors
+  // `PLANNER_SLOT_EXERCISE_ID` à la place d'une fiche, avec la prescription dite par le coach.
+  slots: z.array(plannerSlotView).max(60).optional(),
   // Additif : les points « À vérifier » de chaque séance, rattachés à l'exercice du brouillon quand il y en a un.
   warnings: z
     .array(
@@ -339,6 +443,8 @@ export const plannerDraftsResponse = z.object({
           field: plannerWarningField,
           itemRef: z.string().nullable(),
           detail: z.string().nullable(),
+          // Additif : les autres fiches possibles d'un rapprochement incertain.
+          alternatives: z.array(z.object({ exerciseId: uuid, name: z.string() })).max(3).optional(),
         }),
       ),
     )
@@ -388,9 +494,37 @@ export const plannerFailureCode = z.enum([
   "invalid_output",
 ]);
 export type PlannerFailureCode = z.infer<typeof plannerFailureCode>;
+// Les quatre étapes du serveur ; `repair` est la réparation ciblée de la quatrième.
+export const plannerStepName = z.enum(["understand", "match", "compose", "repair"]);
+export type PlannerStepName = z.infer<typeof plannerStepName>;
+// Ce que le planificateur a compris, noms déjà résolus pour l'écran (« Ce que j'ai compris »).
+export const plannerUnderstandingView = z.object({
+  intent: plannerIntent,
+  summary: z.string().max(4000),
+  // Chaque mouvement cité, dans l'ordre : le terme dit, sa prescription telle que dite, et la fiche retrouvée.
+  movements: z
+    .array(
+      z.object({
+        said: z.string().max(120),
+        prescription: z.string().max(300).nullable(),
+        confidence: plannerMatchConfidence,
+        exercise: z.object({ exerciseId: uuid, name: z.string() }).nullable(),
+      }),
+    )
+    .max(120),
+  corrections: z.array(z.object({ said: z.string().max(200), kept: z.string().max(200) })).max(10),
+});
+export type PlannerUnderstandingView = z.infer<typeof plannerUnderstandingView>;
 export const plannerProposalResponse = z.object({
   // Additif : la cause du dernier échec, lisible après un rechargement. Les anciens clients l'ignorent.
-  failure: z.object({ code: plannerFailureCode, message: z.string() }).nullable().optional(),
+  failure: z
+    .object({ code: plannerFailureCode, message: z.string(), step: plannerStepName.nullable().optional() })
+    .nullable()
+    .optional(),
+  // Additif : ce que le planificateur a compris de la demande.
+  understanding: plannerUnderstandingView.nullable().optional(),
+  // Additif, clients `slots` seulement : les emplacements encore à compléter avant de créer le brouillon.
+  slots: z.array(plannerSlotView.omit({ itemRef: true })).max(60).optional(),
   id: uuid,
   version: z.number().int().positive(),
   state: z.enum(["processing", "clarification", "proposal", "failed", "committed"]),
@@ -412,19 +546,47 @@ export const plannerProposalResponse = z.object({
 });
 export type PlannerProposalResponse = z.infer<typeof plannerProposalResponse>;
 
-// Réponse diffusée (web, `Accept: text/event-stream`) : les étapes, le plan de la séance pendant qu'il s'écrit,
-// puis la proposition, ou l'erreur lisible. Le JSON d'une seule pièce reste servi aux autres clients.
-export const plannerStreamStep = z.enum(["context", "model", "checks", "retry", "saved"]);
-export type PlannerStreamStep = z.infer<typeof plannerStreamStep>;
+// Réponse diffusée (`Accept: text/event-stream`) : un événement par étape du serveur. `understanding` porte le
+// résumé « Ce que j'ai compris » à mesure qu'il s'écrit ; `matching` les fiches retrouvées ; `composing` le plan
+// de la séance pendant qu'elle s'écrit ; `checking` les contrôles et le nombre de réparations ciblées ; puis
+// `result`, ou `error`. Le JSON d'une seule pièce reste servi aux clients qui ne lisent pas le flux.
+export const plannerStreamStage = z.enum(["understanding", "matching", "composing", "checking"]);
+export type PlannerStreamStage = z.infer<typeof plannerStreamStage>;
 export const plannerStreamPlanLine = z.object({ kind: z.enum(["block", "exercise"]), label: z.string().max(200) });
 export type PlannerStreamPlanLine = z.infer<typeof plannerStreamPlanLine>;
+export const plannerStreamMatch = z.object({
+  said: z.string().max(120),
+  confidence: plannerMatchConfidence,
+  // Le nom de la fiche retrouvée ; null pour un emplacement à compléter.
+  name: z.string().max(200).nullable(),
+});
+export type PlannerStreamMatch = z.infer<typeof plannerStreamMatch>;
 export const plannerStreamEvent = z.discriminatedUnion("event", [
-  z.object({ event: z.literal("step"), data: z.object({ step: plannerStreamStep }) }),
-  z.object({ event: z.literal("plan"), data: z.object({ lines: z.array(plannerStreamPlanLine).max(200) }) }),
+  z.object({
+    event: z.literal("understanding"),
+    // `summary` grandit pendant que le modèle l'écrit ; `done` quand la compréhension est complète.
+    data: z.object({ summary: z.string().max(4000).nullable(), done: z.boolean() }),
+  }),
+  z.object({
+    event: z.literal("matching"),
+    data: z.object({ movements: z.array(plannerStreamMatch).max(120), done: z.boolean() }),
+  }),
+  z.object({ event: z.literal("composing"), data: z.object({ lines: z.array(plannerStreamPlanLine).max(200) }) }),
+  z.object({
+    event: z.literal("checking"),
+    // Nombre de réparations ciblées lancées (deux au plus).
+    data: z.object({ repairs: z.number().int().min(0).max(2), done: z.boolean() }),
+  }),
   z.object({ event: z.literal("result"), data: plannerProposalResponse }),
   z.object({
     event: z.literal("error"),
-    data: z.object({ status: z.number().int(), code: z.string(), message: z.string() }),
+    // `step` : l'étape où la panne est survenue, quand elle est connue.
+    data: z.object({
+      status: z.number().int(),
+      code: z.string(),
+      message: z.string(),
+      step: plannerStepName.nullable().optional(),
+    }),
   }),
 ]);
 export type PlannerStreamEvent = z.infer<typeof plannerStreamEvent>;

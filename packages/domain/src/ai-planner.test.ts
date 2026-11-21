@@ -165,7 +165,7 @@ describe("frontière de confiance du planificateur", () => {
     change(input);
     expect(validatePlannerInterpretation(input, context)).toEqual({ ok: false, issues: [issue] });
   });
-  it("sépare clarifications et propositions, impose questions uniques et limite sept jours/quatorze séances", () => {
+  it("sépare clarifications et propositions, impose questions uniques et limite vingt-huit jours/quatorze séances", () => {
     const question = { id: "q1", field: "rest" as const, question: "Quelle récupération ?", options: [] };
     expect(
       validatePlannerInterpretation(
@@ -188,7 +188,7 @@ describe("frontière de confiance du planificateur", () => {
       validatePlannerInterpretation({ ...proposal(), sessions: Array(15).fill(proposal().sessions[0]) }, context).ok,
     ).toBe(false);
     expect(
-      validatePlannerInterpretation(proposal(), { ...context, period: { from: "2026-11-08", to: "2026-11-15" } }).ok,
+      validatePlannerInterpretation(proposal(), { ...context, period: { from: "2026-11-08", to: "2026-12-06" } }).ok,
     ).toBe(false);
   });
   it("génère un schéma sans clé facultative ni objet ouvert pour le fournisseur", () => {

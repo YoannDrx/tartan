@@ -1,6 +1,15 @@
-import type { PlannerInterpretation, PlannerRichInterpretation, PlannerWarning } from "@tartan/contracts";
+import type {
+  PlannerDefect,
+  PlannerInterpretation,
+  PlannerRichInterpretation,
+  PlannerRichSession,
+  PlannerWarning,
+} from "@tartan/contracts";
 import { normalizeExerciseMention, normalizeExerciseTerm } from "./exercise-aliases";
 import { plannerItemLoads, plannerLoadsAllowed } from "./ai-planner";
+import type { PlannerComposeMovement } from "./planner-composition";
+import { isPlannerSlotToken, plannerDropItems } from "./planner-slots";
+import type { PlannerRequest } from "./planner-understanding";
 import { addDays } from "./status";
 
 // Contrôles déterministes appliqués à la réponse du modèle, côté serveur. Ils ne complètent jamais une séance.
@@ -194,6 +203,9 @@ const dayNumber = (raw: string) => {
 };
 const pad = (value: number) => String(value).padStart(2, "0");
 const weekdayOf = (iso: string) => new Date(`${iso}T12:00:00Z`).getUTCDay();
+/** Les jours de la semaine, sans accent, dimanche en tête comme `Date.getUTCDay`. */
+export const PLANNER_WEEKDAYS: readonly string[] = WEEKDAYS;
+export const plannerWeekdayOf = weekdayOf;
 const isRealDate = (iso: string) => {
   const parsed = new Date(`${iso}T12:00:00Z`);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === iso;
@@ -902,4 +914,388 @@ export function plannerExplicitSingleSetRest(value: PlannerRichInterpretation): 
       }),
     })),
   };
+}
+
+// ─── Étape « Contrôler » du planificateur en quatre étapes (21 novembre 2026) ──────────────────────────────────
+// La séance composée est confrontée à ce que le coach a dit. Ce qui se corrige sans rien inventer est corrigé ici
+// (exercice ajouté retiré, charge sans unité laissée vide, kilos proposés retirés). Ce qui exige de réécrire
+// devient un défaut précis, rendu au modèle pour une réparation ciblée. Un doute ne bloque plus : il laisse un
+// point « À vérifier ». Aucune de ces règles ne pose de question.
+
+export type PlannerCountingUnit = "repetitions" | "seconds" | "meters" | "contacts" | "steps";
+export type PlannerCheckContext = {
+  // Le texte du coach : la consigne, puis ses réponses et ajustements.
+  instructions: readonly string[];
+  request: Pick<PlannerRequest, "sessions">;
+  movements: readonly PlannerComposeMovement[];
+  // Exercices dont chaque destinataire a une référence de force : un pourcentage proposé y est permis.
+  percentTokens: ReadonlySet<string>;
+  // Unité de comptage de chaque fiche, quand elle est connue.
+  units: ReadonlyMap<string, PlannerCountingUnit>;
+  // Charges déjà portées par le contexte (séance à ajuster, séances voisines) : jamais inventées.
+  knownLoads?: readonly number[];
+  // « Ajuster » : la séance précédente est modifiée, la fidélité à la demande d'origine ne se rejoue pas.
+  adjusting?: boolean;
+  // Textes posés par le serveur sur une séance ou un exercice qu'il a dû écrire lui-même.
+  fallbackTitle: string;
+};
+export type PlannerCheckResult = {
+  value: PlannerRichInterpretation;
+  // Rang, dans la demande, de chaque séance de `value`.
+  indexes: number[];
+  defects: PlannerDefect[];
+};
+
+type RichBlock = PlannerRichSession["blocks"][number];
+type RichItem = RichBlock["items"][number];
+type RichLoad = NonNullable<RichItem["prescription"]["load"]>;
+const REPS_UNIT = /^\s*(?:rep|reps|repetitions?|fois|contacts?|marches?|appuis?|sauts?|bonds?)(?![a-z])/;
+const emptyPrescription = (notes: string | null): RichItem["prescription"] => ({
+  sets: null,
+  reps: null,
+  distanceM: null,
+  durationS: null,
+  restS: null,
+  load: null,
+  intensityTarget: null,
+  tempo: null,
+  contacts: null,
+  notes,
+  setPlan: null,
+});
+
+/**
+ * Les règles sûres, puis les défauts. `final` : après la dernière réparation, une charge que le coach n'a pas dite
+ * n'est plus un défaut à réparer, elle est retirée et signalée ; jamais une valeur inventée ne reste.
+ */
+export function plannerCheckComposition(
+  raw: PlannerRichInterpretation,
+  indexes: readonly number[],
+  context: PlannerCheckContext,
+  final = false,
+): PlannerCheckResult {
+  const coach = context.instructions.map(plannerCoachText);
+  const text = coach.join("\n");
+  const mentions = numberMentions(text);
+  const stated = plannerTextNumbers(text);
+  const known = new Set(context.knownLoads ?? []);
+  const defects: PlannerDefect[] = [];
+  const prepared = plannerExplicitSingleSetRest(plannerDropEmptyPercentages(raw));
+
+  const sessions = prepared.sessions.map((original, at) => {
+    const index = indexes[at]!;
+    const request = context.request.sessions[index];
+    const described = Boolean(request?.movements.length) && !request?.proposal && !context.adjusting;
+    // Une partie décrite ne reçoit aucun exercice que le coach n'a pas dit ; un emplacement n'est jamais proposé.
+    let session = plannerDropItems(
+      original,
+      (item) => item.origin !== "said" && (described || isPlannerSlotToken(item.exerciseToken)),
+    );
+    const warnings: PlannerWarning[] = [];
+    const warn = (warning: PlannerWarning) => {
+      if (!warnings.some((w) => w.code === warning.code && w.block === warning.block && w.item === warning.item))
+        warnings.push(warning);
+    };
+    const blocks = session.blocks.map((block, b) => ({
+      ...block,
+      items: block.items.map((item, i): RichItem => {
+        const said = item.origin === "said";
+        const where = { block: b, item: i };
+        const judge = (load: RichLoad | null, token: string): RichLoad | null => {
+          if (!load || known.has(load.value)) return load;
+          // Ce qui est proposé n'a jamais de kilos : un pourcentage seulement, là où chaque destinataire a sa
+          // référence de force. Ailleurs il ne serait résolu pour personne.
+          if (!said) return load.type === "pct_1rm" && context.percentTokens.has(token) ? load : null;
+          if (hasUnit(mentions, load.value, load.type === "kg" ? KG_UNIT : PERCENT_UNIT)) return load;
+          // La valeur est dite avec l'autre unité : c'est l'unité du coach qui vaut.
+          if (hasUnit(mentions, load.value, load.type === "kg" ? PERCENT_UNIT : KG_UNIT))
+            return { ...load, type: load.type === "kg" ? "pct_1rm" : "kg" };
+          if (stated.has(load.value) || final) {
+            // Dite sans unité, ou jamais dite après réparation : laissée vide, signalée, jamais devinée.
+            warn({ code: "load_unclear", field: "load", ...where, detail: String(load.value) });
+            return null;
+          }
+          defects.push({
+            code: "invented_load",
+            session: index,
+            movementId: item.movementId ?? null,
+            detail: `La charge ${load.value} ${load.type === "kg" ? "kg" : "%"} n'est pas dans la demande du coach. Écris la charge qu'il a dite pour ce mouvement, ou null s'il n'en a dit aucune.`,
+          });
+          return load;
+        };
+        const loads = (prescription: RichItem["prescription"], token: string): RichItem["prescription"] => ({
+          ...prescription,
+          load: judge(prescription.load, token),
+          ...(prescription.setPlan
+            ? { setPlan: prescription.setPlan.map((set) => ({ ...set, load: judge(set.load, token) })) }
+            : {}),
+        });
+        let prescription = loads(item.prescription, item.exerciseToken);
+        // Un nombre sans unité se range selon l'unité de comptage de la fiche, et se signale.
+        const unit = said ? context.units.get(item.exerciseToken) : undefined;
+        if (said) {
+          const { reps, durationS, distanceM } = prescription;
+          const bareTime = durationS !== null && durationS > 0 && !unitStated(mentions, durationS, "time");
+          const bareDistance = distanceM !== null && distanceM > 0 && !unitStated(mentions, distanceM, "distance");
+          const bareReps =
+            reps !== null &&
+            durationS === null &&
+            distanceM === null &&
+            mentions.some((m) => m.value === reps) &&
+            !mentions.some((m) => m.value === reps && REPS_UNIT.test(m.after));
+          const counted = unit === "seconds" || unit === "meters" ? unit : unit ? "repetitions" : undefined;
+          if (bareTime && counted && counted !== "seconds")
+            prescription =
+              counted === "meters"
+                ? { ...prescription, durationS: null, distanceM: durationS }
+                : { ...prescription, durationS: null, reps: reps ?? durationS };
+          else if (bareDistance && counted && counted !== "meters")
+            prescription =
+              counted === "seconds"
+                ? { ...prescription, distanceM: null, durationS: Math.round(distanceM!) }
+                : { ...prescription, distanceM: null, reps: reps ?? Math.round(distanceM!) };
+          else if (bareReps && counted === "seconds") prescription = { ...prescription, reps: null, durationS: reps };
+          else if (bareReps && counted === "meters") prescription = { ...prescription, reps: null, distanceM: reps };
+          if (bareTime || bareDistance || (bareReps && (counted === "seconds" || counted === "meters")))
+            warn({
+              code: "unit_assumed",
+              field: "other",
+              ...where,
+              detail: String(durationS ?? distanceM ?? reps),
+            });
+        }
+        return {
+          ...item,
+          prescription,
+          ...(item.autonomous
+            ? {
+                autonomous: {
+                  ...item.autonomous,
+                  prescription: loads(item.autonomous.prescription, item.autonomous.exerciseToken),
+                },
+              }
+            : {}),
+        };
+      }),
+    }));
+    session = { ...session, blocks, warnings };
+    if (request && !context.adjusting) {
+      // Chaque mouvement cité est dans la séance, dans l'ordre où le coach l'a dit.
+      const order = blocks.flatMap((block) => block.items.flatMap((item) => (item.movementId ? [item.movementId] : [])));
+      const expected = request.movements.filter((movement) => !movement.replaces);
+      for (const movement of expected)
+        if (!order.includes(movement.id))
+          defects.push({
+            code: "missing_movement",
+            session: index,
+            movementId: movement.id,
+            detail: `Le mouvement ${movement.id} (« ${movement.said} »${movement.prescription ? ` : ${movement.prescription}` : ""}) manque dans la séance. Ajoute-le à sa place, avec la prescription dite par le coach.`,
+          });
+      const first = expected.map((movement) => order.indexOf(movement.id)).filter((position) => position >= 0);
+      if (first.some((position, i) => i > 0 && position < first[i - 1]!))
+        defects.push({
+          code: "order",
+          session: index,
+          movementId: null,
+          detail: `Les mouvements ne sont pas dans l'ordre de la demande. Ordre attendu : ${expected.map((movement) => movement.id).join(", ")}.`,
+        });
+    }
+    return session;
+  });
+
+  const kept: PlannerRichSession[] = [];
+  const keptIndexes: number[] = [];
+  sessions.forEach((session, at) => {
+    if (session.blocks.length) {
+      kept.push(session);
+      keptIndexes.push(indexes[at]!);
+    }
+  });
+  context.request.sessions.forEach((_, index) => {
+    if (!keptIndexes.includes(index))
+      defects.push({
+        code: "missing_session",
+        session: index,
+        movementId: null,
+        detail: `La séance de rang ${index} n'a aucun exercice. Écris-la entièrement.`,
+      });
+  });
+  // Tours demandés mais absents, pause qui ne s'exécuterait pas : une réécriture de la structure.
+  const structural = plannerStructureWarnings(kept, text);
+  kept.forEach((session, at) => {
+    for (const warning of structural[at] ?? [])
+      if (warning.code === "rounds_missing" || warning.code === "rest_not_executed")
+        defects.push({
+          code: "rounds",
+          session: keptIndexes[at]!,
+          movementId: null,
+          detail:
+            warning.code === "rounds_missing"
+              ? `La demande parle de ${warning.detail} tours, absents de la séance. Un circuit ou un superset est un nœud repeat : rounds = nombre de tours, chaque enfant à sets 1.`
+              : "Une pause est placée dans restS d'un exercice à une seule série, dans un groupe : elle ne s'exécuterait pas. Une pause entre deux gestes est un nœud recovery ; restBetweenRoundsS sépare les tours.",
+        });
+  });
+  return { value: { ...prepared, sessions: kept }, indexes: keptIndexes, defects };
+}
+
+type SequenceNodes = NonNullable<RichBlock["sequence"]>;
+// Écarts de forme qui restent proposés au coach : des tours qu'il n'a pas dits, des tours dits et absents, une
+// pause qui disparaîtrait à l'exécution.
+function plannerStructureWarnings(sessions: readonly PlannerRichSession[], text: string): PlannerWarning[][] {
+  const stated = plannerTextNumbers(text);
+  const represented = new Set<number>();
+  const perSession = sessions.map((session) => {
+    const warnings: PlannerWarning[] = [];
+    session.blocks.forEach((block, b) => {
+      block.items.forEach((item, i) => {
+        if (block.sequence && (item.prescription.sets ?? 1) === 1 && (item.prescription.restS ?? 0) > 0)
+          warnings.push({ code: "rest_not_executed", field: "rest", block: b, item: i, detail: null });
+      });
+      const rounds = (nodes: SequenceNodes) => {
+        for (const node of nodes)
+          if (node.kind === "repeat") {
+            represented.add(node.rounds);
+            if (!stated.has(node.rounds) && block.items.some((item) => item.origin === "said"))
+              warnings.push({
+                code: "rounds_not_stated",
+                field: "rounds",
+                block: b,
+                item: null,
+                detail: String(node.rounds),
+              });
+            rounds(node.children as SequenceNodes);
+          }
+      };
+      if (block.sequence) rounds(block.sequence);
+    });
+    return warnings;
+  });
+  const first = perSession[0];
+  if (first && !CORRECTION.test(plain(text)) && /\b(?:circuit|superset)\b/.test(plain(text)))
+    for (const mention of numberMentions(text))
+      if (mention.value > 1 && /^\s*tours?\b/.test(mention.after) && !represented.has(mention.value))
+        first.push({ code: "rounds_missing", field: "rounds", block: null, item: null, detail: String(mention.value) });
+  return perSession;
+}
+
+/**
+ * Après la dernière réparation : la séance que le coach relira. Ce qui manque encore est posé sans rien inventer
+ * (un mouvement cité absent revient avec sa fiche et la prescription dite en note, à compléter), et chaque doute
+ * devient un point « À vérifier ». `null` : une séance sans exercice, que rien ne permet d'écrire.
+ */
+export function plannerSettleComposition(
+  checked: PlannerCheckResult,
+  context: PlannerCheckContext,
+): { value: PlannerRichInterpretation; indexes: number[] } | null {
+  const text = context.instructions.map(plannerCoachText).join("\n");
+  const byIndex = new Map(checked.indexes.map((index, at) => [index, checked.value.sessions[at]!]));
+  const sessions: PlannerRichSession[] = [];
+  const indexes: number[] = [];
+  for (const [index, request] of context.request.sessions.entries()) {
+    let session = byIndex.get(index);
+    const expected = context.adjusting
+      ? []
+      : context.movements.filter((movement) => movement.session === index && !movement.replaces);
+    if (!session) {
+      // Une séance d'objectif sans exercice ne s'invente pas ; une séance décrite se pose mouvement par mouvement.
+      if (!expected.length || !request.date) return null;
+      session = {
+        date: request.date,
+        startTime: request.startTime,
+        title: context.fallbackTitle,
+        type: "strength",
+        durationMin: null,
+        targetTokens: [...request.targetTokens],
+        blocks: [{ name: context.fallbackTitle, items: [], sequence: null }],
+        warnings: [],
+      };
+    }
+    const present = new Set(
+      session.blocks.flatMap((block) => block.items.flatMap((item) => (item.movementId ? [item.movementId] : []))),
+    );
+    const missing = expected.filter((movement) => !present.has(movement.id));
+    if (missing.length) {
+      const last = session.blocks.length - 1;
+      const block = session.blocks[last]!;
+      const added = missing.map(
+        (movement, i): RichItem => ({
+          ref: `late-${block.items.length + i}`,
+          exerciseToken: movement.exerciseToken,
+          prescription: emptyPrescription(movement.prescription?.slice(0, 500) ?? null),
+          instruction: [movement.said, movement.prescription].filter(Boolean).join(", ").slice(0, 2000),
+          origin: "said",
+          movementId: movement.id,
+          said: movement.said,
+          confidence: movement.confidence,
+          ...(movement.alternatives.length ? { alternatives: [...movement.alternatives].slice(0, 3) } : {}),
+          ...(movement.suggestion ? { suggestion: movement.suggestion } : {}),
+          autonomous: null,
+        }),
+      );
+      const warnings = [
+        ...(session.warnings ?? []),
+        ...added.map(
+          (_, i): PlannerWarning => ({
+            code: "to_complete",
+            field: "other",
+            block: last,
+            item: block.items.length + i,
+            detail: null,
+          }),
+        ),
+      ];
+      session = {
+        ...session,
+        warnings,
+        blocks: session.blocks.map((entry, b) =>
+          b === last
+            ? {
+                ...entry,
+                items: [...entry.items, ...added],
+                sequence: entry.sequence
+                  ? [...entry.sequence, ...added.map((item) => ({ kind: "exercise" as const, itemRef: item.ref! }))]
+                  : entry.sequence,
+              }
+            : entry,
+        ),
+      };
+    }
+    if (!session.blocks.some((block) => block.items.length)) return null;
+    // La durée demandée borne la séance proposée ; le modèle ne l'allonge jamais. Dans une demande mixte, elle ne
+    // vaut que pour la partie à composer : la durée de la séance entière reste celle que le modèle a lue.
+    const asked = request.proposal?.durationMin ?? null;
+    if (asked !== null && !request.movements.length)
+      session = { ...session, durationMin: Math.min(session.durationMin ?? asked, asked) };
+    sessions.push(session);
+    indexes.push(index);
+  }
+  const structural = plannerStructureWarnings(sessions, text);
+  const habits = context.instructions.length === 1 ? [...habitualIssues(text)] : [];
+  const settled = sessions.map((session, at) => {
+    const warnings: PlannerWarning[] = [...(session.warnings ?? [])];
+    const add = (warning: PlannerWarning) => {
+      if (!warnings.some((w) => w.code === warning.code && w.block === warning.block && w.item === warning.item))
+        warnings.push(warning);
+    };
+    session.blocks.forEach((block, b) =>
+      block.items.forEach((item, i) => {
+        // Fiche « probable » : posée, signalée, avec les autres fiches possibles. Le détail est son jeton.
+        if (item.confidence === "probable")
+          add({ code: "approximate_exercise", field: "exercise", block: b, item: i, detail: item.exerciseToken });
+      }),
+    );
+    for (const warning of structural[at] ?? []) add(warning);
+    // Une habitude (« comme d'habitude ») ne se devine pas : rien n'est écrit, le coach vérifie.
+    if (at === 0)
+      for (const issue of habits)
+        add({
+          code: issue === "load" ? "habit_load" : "habit_rest",
+          field: issue,
+          block: null,
+          item: null,
+          detail: null,
+        });
+    return { ...session, warnings: warnings.slice(0, 30) };
+  });
+  return { value: { ...checked.value, sessions: settled }, indexes };
 }

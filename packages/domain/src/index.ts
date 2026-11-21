@@ -70,4 +70,8 @@ export * from "./planner-generation";
 export * from "./session-progress";
 export * from "./video-drawing";
 export * from "./planner-mentions";
+export * from "./planner-match";
+export * from "./planner-understanding";
+export * from "./planner-composition";
+export * from "./planner-slots";
 export * from "./avatar";
