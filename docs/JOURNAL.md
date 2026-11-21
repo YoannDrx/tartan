@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-21, Claude Fable 5.2, lot K2 de l'audit
+Fait : PR `fix/audit-k2-suite` : le lot K2 écrit par Opus le 19 novembre (B6, G4, G8, G13, lien d'évitement, `demo:fill --groupe`), remis sur `main` par-dessus l'espace de démonstration. La bibliothèque et le sélecteur d'exercices, réécrits par le lot F depuis, gardent leur version de `main` ; leurs trois cases natives passent à la case dessinée (`.check`).
+Vérifié : types, lint, design, web 2 340, domaine 387, mobile 264 ; sur build de production : `filled-sweep`, `screen-matrix`, `exercise-lists`, `exercise-guides`, `coach-screens`, `batch-publication`, `session-sequences`, `demo-space`, `calendar-views`, `athletic-performances` (27 réussis, 5 ignorés). Non vérifié : lecteurs d'écran, téléphones réels.
+À savoir : le débordement de `/suivi` venait de textes `sr-only` posés en absolu hors du cadre qui défile, pas de la grille : tout cadre défilant qui contient du `sr-only` doit être `relative`. `/seances/[id]/suivi` à 120 athlètes reste très long (21 641 px à 390 px).
+Suite : comptes de test du fondateur, refonte du planificateur (P2 à P5), recette web.
+
 ## 2026-11-21, Claude Fable 5.2, espace de démonstration
 Fait : PR `feat/espace-demo` : l'espace de démonstration écrit par Opus le 19 novembre (`Organization.isDemo`, `demoOwnerId`, `demoExpiresAt` ; service `demo-space.service.ts` ; contenu et règles dans `packages/domain/src/demo-space.ts` ; bandeau, sélecteur d'espace, `DEMO_SPACE_ENABLED` allumé), remis sur `main` par-dessus l'onboarding.
 Vérifié : types, lint, design, web 2 340, domaine 387, mobile 264 ; parcours `demo-space`, `screen-matrix`, `onboarding`, `space-switch` sur build de production (8 réussis, 6 ignorés sur téléphone par construction). Non vérifié : rien sur la Preview ni en production ; le temps d'ouverture n'a pas été mesuré proprement.
