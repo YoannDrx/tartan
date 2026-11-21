@@ -244,6 +244,7 @@ export const ExerciseForm = ({
                 <label key={key} className="flex min-h-11 items-center gap-2">
                   <input
                     type="checkbox"
+                    className="check"
                     checked={classification.equipment?.includes(key) ?? false}
                     onChange={(e) =>
                       setClassification({

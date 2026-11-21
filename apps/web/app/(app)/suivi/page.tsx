@@ -13,10 +13,9 @@ import { todayIso } from "@/lib/dates";
 import { requireOrgMember } from "@/server/access";
 import { requireStaffSpace } from "@/features/shell/space";
 import { AlertList } from "@/features/tracking/alert-list";
-import { TrackingTable } from "@/features/tracking/tracking-grid";
+import { TrackingTable } from "@/features/tracking/tracking-table";
 import { listGroups } from "@/server/org.service";
 import { getAlerts, getTrackingGrid } from "@/server/tracking.service";
-import { listAthletes } from "@/server/athlete.service";
 import { CoachGuide } from "@/features/onboarding/coach-guide";
 import { Celebration } from "@/features/onboarding/celebration";
 import { COACH_STEP_PATH } from "@/lib/onboarding-paths";
@@ -33,11 +32,10 @@ export default async function SuiviPage({
   const { semaine, groupe } = await searchParams;
   const week = startOfWeek(isoDate.safeParse(semaine).success ? semaine! : todayIso());
   const access = await requireOrgMember(actor.userId, organizationId, "viewTracking");
-  const [grid, alerts, groups, athletes, onboarding, guide] = await Promise.all([
+  const [grid, alerts, groups, onboarding, guide] = await Promise.all([
     getTrackingGrid(actor.userId, organizationId, { week, groupId: groupe }),
     getAlerts(actor.userId, organizationId),
     listGroups(access),
-    listAthletes(actor.userId, organizationId),
     getOnboarding(actor.userId, organizationId),
     getGuideContext(actor.userId, organizationId),
   ]);
@@ -148,9 +146,7 @@ export default async function SuiviPage({
             </EmptyState>
           ) : null}
           {grid.rows.length > 0 && grid.sessions.length > 0 ? (
-            <>
-              <TrackingTable grid={grid} returnTo={query({ semaine: week, groupe })} />
-            </>
+            <TrackingTable grid={grid} today={todayIso()} returnTo={query({ semaine: week, groupe })} />
           ) : null}
         </div>
         {alerts.length > 0 ? (

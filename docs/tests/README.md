@@ -25,6 +25,7 @@ Les volumes et résultats datés vivent dans [ETAT.md](../ETAT.md), avec le comm
 | Navigateurs Playwright            | `pnpm --filter @tartan/web exec playwright install --with-deps chromium webkit`                    |
 | Parcours en développement         | `pnpm test:e2e`                                                                                    |
 | Parcours comme la CI              | `E2E_PROD=1 pnpm test:e2e`                                                                         |
+| Balayage sur données remplies     | `E2E_PROD=1 pnpm --filter @tartan/web exec playwright test filled-sweep --project=desktop`         |
 | Preuve vidéo                      | `pnpm --filter @tartan/web exec playwright test video-poc --project=desktop` (sans `E2E_PROD`)     |
 | Plein écran de l'analyse vidéo    | `pnpm --filter @tartan/web exec playwright test video-fullscreen` (sans `E2E_PROD`)                |
 | Collaboration vidéo, Mux simulé   | `E2E_PROD=1 E2E_VIDEO_ENABLED=true pnpm test:e2e e2e/video-collaboration.spec.ts`                  |
@@ -121,6 +122,8 @@ Sur iOS, un flux en échec est rejoué une fois, seul, à la fin du passage : su
 ## Matrice des écrans
 
 `apps/web/e2e/screens.ts` liste chaque page, les rôles qui l'ouvrent et les parcours ou tests qui la prouvent. `tests/screen-matrix.test.ts` échoue pour toute page absente de la liste, ou pour un écran à paramètre sans preuve qui l'ouvre : une nouvelle page s'ajoute à la matrice dans la même PR. `e2e/screen-matrix.spec.ts` visite chaque écran sans paramètre, en visiteur, coach puis athlète, à 390, 768 et 1440 px, en mouvement réduit : aucune erreur, aucun débordement, axe vert. La console d'administration reste prouvée par `admin-console.spec.ts` (passkey requise).
+
+La matrice tourne sur un espace vide. `e2e/filled-sweep.spec.ts` reprend le même contrôle sur un espace rempli par `demo:fill <e-mail> --groupe <n>` (30 puis 40 athlètes, une semaine de neuf séances publiées) : `/suivi`, `/athletes`, `/calendrier` et le détail d'une séance, aux trois largeurs, puis la recherche par nom, les tranches et l'en-tête collant. Avec `E2E_SHOTS_DIR`, il range ses captures hors du dépôt. En local, `demo:fill <e-mail> --groupe 120` prépare un grand groupe pour mesurer ; `--retirer` l'enlève.
 
 Pour la règle de taille des cibles, `expectAccessible` ignore une cible recouverte à cet instant par une barre fixe ou collante (navigation du bas, barre de publication) : elle n'est pas trop petite, elle est sous la barre. Toutes les autres règles la contrôlent.
 

@@ -2,8 +2,9 @@ import { getMyRegularity } from "@/server/athlete-view.service";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { formatDayMonth, m, strengthTestLabel } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { Mark, Rows, Sheet, SheetSection } from "@/components/sheet";
-import { Chip, PageHeader } from "@/components/states";
+import { Chip, EmptyState, PageHeader } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { InjuryDialog } from "@/features/athletes/athlete-forms";
 import { requireAthleteSpace } from "@/features/shell/space";
@@ -26,6 +27,7 @@ export default async function ProgresPage() {
     getMyFile(actor.userId, organizationId),
     getMyRegularity(actor.userId, organizationId),
   ]);
+  const nothingYet = file.performances.length === 0 && file.tests.length === 0;
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <PageHeader
@@ -62,119 +64,137 @@ export default async function ProgresPage() {
           <p className="whitespace-pre-line break-words">{file.goals}</p>
         </section>
       ) : null}
-      <Sheet className="divide-y divide-card-line">
-        <SheetSection title={m.performances.title}>
-          {file.performances.length === 0 ? (
-            <p className="text-soft">Tes records apparaîtront ici dès que ton coach les aura notés.</p>
-          ) : null}
-          <Rows>
-            {file.performances.map((p) => (
-              <li key={`${p.discipline}-${p.date}-${p.mark}`} className="flex items-center justify-between gap-3 py-2">
-                <span className="min-w-0 leading-snug">
-                  <span className="flex flex-wrap items-center gap-x-2 font-semibold">
-                    {p.discipline}
-                    {p.isBaseline ? (
-                      <Chip>{m.performances.baseline}</Chip>
-                    ) : p.isPb ? (
-                      <Chip tone="brand">{m.athletes.record}</Chip>
-                    ) : null}
-                  </span>
-                  <span className="t-caption block font-normal text-soft">
-                    {[
-                      date(p.date),
-                      p.comparisonContext,
-                      p.recordDirection === "lower"
-                        ? m.performances.lower
-                        : p.recordDirection === "higher"
-                          ? m.performances.higher
-                          : m.performances.unknown,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </span>
-                </span>
-                <span className="flex shrink-0 flex-col items-end gap-1">
-                  <Mark>
-                    {String(p.mark).replace(".", ",")} {p.unit}
-                  </Mark>
-                  {p.isPb && !p.isBaseline ? (
-                    <ShareRecord
-                      discipline={p.discipline}
-                      href={`/api/v1/orgs/${organizationId}/athletes/${file.id}/performances/${p.id}/carte`}
+      {/* Ni record ni test : l'athlète de la rubrique attend la suite, au lieu de deux phrases vides. */}
+      {nothingYet ? (
+        <EmptyState
+          rubric="progres"
+          action={
+            <Button asChild size="sm" variant="secondary">
+              <Link href="/calendrier">{w.progress.emptyAction}</Link>
+            </Button>
+          }
+        >
+          {w.progress.empty}
+        </EmptyState>
+      ) : null}
+      {nothingYet && !file.healthVisible ? null : (
+        <Sheet className="divide-y divide-card-line">
+          {nothingYet ? null : (
+            <SheetSection title={m.performances.title}>
+              {file.performances.length === 0 ? <p className="text-soft">{w.progress.noRecords}</p> : null}
+              <Rows>
+                {file.performances.map((p) => (
+                  <li
+                    key={`${p.discipline}-${p.date}-${p.mark}`}
+                    className="flex items-center justify-between gap-3 py-2"
+                  >
+                    <span className="min-w-0 leading-snug">
+                      <span className="flex flex-wrap items-center gap-x-2 font-semibold">
+                        {p.discipline}
+                        {p.isBaseline ? (
+                          <Chip>{m.performances.baseline}</Chip>
+                        ) : p.isPb ? (
+                          <Chip tone="brand">{m.athletes.record}</Chip>
+                        ) : null}
+                      </span>
+                      <span className="t-caption block font-normal text-soft">
+                        {[
+                          date(p.date),
+                          p.comparisonContext,
+                          p.recordDirection === "lower"
+                            ? m.performances.lower
+                            : p.recordDirection === "higher"
+                              ? m.performances.higher
+                              : m.performances.unknown,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end gap-1">
+                      <Mark>
+                        {String(p.mark).replace(".", ",")} {p.unit}
+                      </Mark>
+                      {p.isPb && !p.isBaseline ? (
+                        <ShareRecord
+                          discipline={p.discipline}
+                          href={`/api/v1/orgs/${organizationId}/athletes/${file.id}/performances/${p.id}/carte`}
+                        />
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </Rows>
+            </SheetSection>
+          )}
+          {nothingYet ? null : (
+            <SheetSection title={m.athletes.tests}>
+              {file.tests.length === 0 ? <p className="text-soft">{w.progress.noTests}</p> : null}
+              <Rows>
+                {file.tests.map((t) => (
+                  <li key={`${t.exerciseKey}-${t.date}`} className="flex items-center justify-between gap-3 py-2">
+                    <span className="min-w-0 leading-snug">
+                      <span className="block font-semibold">{strengthTestLabel(t.exerciseKey)}</span>
+                      <span className="t-caption block font-normal text-soft">
+                        {m.testKind[t.kind]}, {date(t.date)}
+                      </span>
+                    </span>
+                    <Mark>{w.progress.kilos(String(t.value).replace(".", ","))}</Mark>
+                  </li>
+                ))}
+              </Rows>
+            </SheetSection>
+          )}
+          {file.healthVisible ? (
+            <SheetSection
+              title={m.athletes.injuries}
+              action={
+                <InjuryDialog
+                  athleteId={file.id}
+                  trigger={
+                    <Button size="sm" variant="secondary">
+                      {m.common.add}
+                    </Button>
+                  }
+                />
+              }
+            >
+              {file.injuries.length === 0 ? <p className="text-soft">{m.athletes.noInjuries}</p> : null}
+              <Rows>
+                {file.injuries.map((i) => (
+                  <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <div className="min-w-0 flex-1 leading-snug">
+                      <p className="flex flex-wrap items-center gap-x-2 font-semibold">
+                        {m.bodyArea[i.bodyArea as keyof typeof m.bodyArea]}
+                        <Chip tone={i.status === "resolved" ? "neutral" : "warning"}>{m.injuryStatus[i.status]}</Chip>
+                      </p>
+                      {i.restrictions ? <p className="mt-1">{i.restrictions}</p> : null}
+                    </div>
+                    <InjuryDialog
+                      athleteId={file.id}
+                      trigger={
+                        <Button size="sm" variant="quiet">
+                          {m.common.edit}
+                        </Button>
+                      }
+                      initial={{
+                        id: i.id,
+                        bodyArea: i.bodyArea as keyof typeof m.bodyArea,
+                        side: i.side,
+                        description: i.description ?? "",
+                        startDate: i.startDate,
+                        endDate: i.endDate ?? "",
+                        status: i.status,
+                        restrictions: i.restrictions ?? "",
+                      }}
                     />
-                  ) : null}
-                </span>
-              </li>
-            ))}
-          </Rows>
-        </SheetSection>
-        <SheetSection title={m.athletes.tests}>
-          {file.tests.length === 0 ? (
-            <p className="text-soft">Tes tests de force apparaîtront ici dès que ton coach les aura notés.</p>
+                  </li>
+                ))}
+              </Rows>
+            </SheetSection>
           ) : null}
-          <Rows>
-            {file.tests.map((t) => (
-              <li key={`${t.exerciseKey}-${t.date}`} className="flex items-center justify-between gap-3 py-2">
-                <span className="min-w-0 leading-snug">
-                  <span className="block font-semibold">{strengthTestLabel(t.exerciseKey)}</span>
-                  <span className="t-caption block font-normal text-soft">
-                    {m.testKind[t.kind]}, {date(t.date)}
-                  </span>
-                </span>
-                <Mark>{String(t.value).replace(".", ",")} kg</Mark>
-              </li>
-            ))}
-          </Rows>
-        </SheetSection>
-        {file.healthVisible ? (
-          <SheetSection
-            title={m.athletes.injuries}
-            action={
-              <InjuryDialog
-                athleteId={file.id}
-                trigger={
-                  <Button size="sm" variant="secondary">
-                    {m.common.add}
-                  </Button>
-                }
-              />
-            }
-          >
-            {file.injuries.length === 0 ? <p className="text-soft">{m.athletes.noInjuries}</p> : null}
-            <Rows>
-              {file.injuries.map((i) => (
-                <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <div className="min-w-0 flex-1 leading-snug">
-                    <p className="flex flex-wrap items-center gap-x-2 font-semibold">
-                      {m.bodyArea[i.bodyArea as keyof typeof m.bodyArea]}
-                      <Chip tone={i.status === "resolved" ? "neutral" : "warning"}>{m.injuryStatus[i.status]}</Chip>
-                    </p>
-                    {i.restrictions ? <p className="mt-1">{i.restrictions}</p> : null}
-                  </div>
-                  <InjuryDialog
-                    athleteId={file.id}
-                    trigger={
-                      <Button size="sm" variant="quiet">
-                        {m.common.edit}
-                      </Button>
-                    }
-                    initial={{
-                      id: i.id,
-                      bodyArea: i.bodyArea as keyof typeof m.bodyArea,
-                      side: i.side,
-                      description: i.description ?? "",
-                      startDate: i.startDate,
-                      endDate: i.endDate ?? "",
-                      status: i.status,
-                      restrictions: i.restrictions ?? "",
-                    }}
-                  />
-                </li>
-              ))}
-            </Rows>
-          </SheetSection>
-        ) : null}
-      </Sheet>
+        </Sheet>
+      )}
     </div>
   );
 }

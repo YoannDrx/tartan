@@ -115,6 +115,7 @@ export const SpaceFeaturesForm = ({
           <label key={option.key} className="flex min-h-11 items-center gap-2">
             <input
               type="checkbox"
+              className="check"
               checked={shown[option.key]}
               disabled={update.isPending}
               onChange={(event) => {

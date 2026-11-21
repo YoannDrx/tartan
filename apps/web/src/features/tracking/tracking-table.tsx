@@ -1,0 +1,148 @@
+"use client";
+
+import { TriangleAlert } from "lucide-react";
+import Link from "next/link";
+import type { TrackingGrid } from "@tartan/contracts";
+import { formatWeekdayShort, m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
+import { Avatar } from "@/components/avatar";
+import { ActivityPicto } from "@/components/pictos";
+import { StatusIcon, StatusLegend } from "@/components/status-cell";
+import { cn } from "@/lib/cn";
+import { withSessionReturn } from "@/lib/session-navigation";
+import { RosterMore, RosterSearch, useRoster } from "./roster";
+
+// Au-delà d'une douzaine d'athlètes, la grille défile dans son cadre : l'en-tête des séances et la colonne des noms
+// restent en vue, au doigt comme à la souris. En dessous, elle se lit d'un coup, sans cadre.
+const SCROLL_FROM = 12;
+
+// La grille est l'écran de travail du coach : des lignes denses plutôt que des cartes.
+export const TrackingTable = ({ grid, today, returnTo }: { grid: TrackingGrid; today: string; returnTo?: string }) => {
+  const roster = useRoster(grid.rows, (row) => row.name);
+  const framed = grid.rows.length > SCROLL_FROM;
+  return (
+    <div className="on-card overflow-hidden rounded-card bg-card">
+      {framed ? (
+        <RosterSearch roster={roster} total={grid.rows.length} className="border-b border-card-line p-3" />
+      ) : null}
+      <div
+        // Le cadre défile : il se rejoint au clavier, et son nom dit ce qu'il contient.
+        tabIndex={framed ? 0 : undefined}
+        role={framed ? "region" : undefined}
+        aria-label={framed ? m.coach.trackingTitle : undefined}
+        // `relative` : les textes réservés aux lecteurs d'écran, posés en absolu, restent dans le cadre. Sans lui, ils
+        // allongeaient la page de toute la hauteur de la grille.
+        className={cn(
+          "relative overflow-x-auto focus-visible:outline-offset-[-2px]",
+          framed && "max-h-[min(70dvh,760px)] overflow-y-auto overscroll-contain",
+        )}
+      >
+        <table className="w-full min-w-max border-separate border-spacing-0">
+          <caption className="sr-only">{m.coach.trackingTitle}</caption>
+          <thead>
+            <tr>
+              <th
+                scope="col"
+                className="sticky left-0 top-0 z-30 border-b border-card-line on-card bg-card px-3 py-2 text-left t-section"
+              >
+                {m.coach.athleteCol}
+              </th>
+              {grid.sessions.map((s) => (
+                <th
+                  key={s.id}
+                  scope="col"
+                  className="sticky top-0 z-20 w-11 border-b border-card-line bg-card py-2 text-center align-bottom font-normal desktop:w-14 desktop:px-1"
+                >
+                  <Link
+                    href={withSessionReturn(`/seances/${s.id}/suivi`, returnTo)}
+                    title={s.title}
+                    className="inline-flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-button py-1 leading-snug text-inherit no-underline hover:bg-raise"
+                  >
+                    <ActivityPicto kind={s.type} className="size-[18px] text-soft" />
+                    <span className="flex items-baseline gap-1 t-caption font-semibold">
+                      {formatWeekdayShort(s.date)}
+                      <span
+                        className={cn(
+                          "t-num text-[15px] max-desktop:hidden",
+                          s.date === today && "rounded-full bg-accent px-1.5 text-on-accent",
+                        )}
+                      >
+                        {Number(s.date.slice(8))}
+                      </span>
+                    </span>
+                    <span className="text-[12px] font-medium text-soft max-desktop:hidden">
+                      {m.sessionType[s.type]}
+                    </span>
+                    <span className="sr-only">, {s.title}</span>
+                  </Link>
+                </th>
+              ))}
+              <th
+                scope="col"
+                className="sticky top-0 z-20 w-11 border-b border-card-line bg-card px-2 py-2 text-right t-caption text-soft desktop:w-14 desktop:px-3"
+              >
+                {m.coach.doneCol}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {roster.visible.map((row) => (
+              <tr key={row.athleteId} className="[&:not(:last-child)>*]:border-b [&>*]:border-card-line">
+                <th
+                  scope="row"
+                  className="sticky left-0 z-10 max-w-[124px] on-card bg-card py-1.5 pl-3 pr-1 text-left font-normal desktop:max-w-none desktop:px-3"
+                >
+                  <Link
+                    href={`/athletes/${row.athleteId}`}
+                    className="flex min-h-11 items-center gap-2.5 text-inherit no-underline"
+                  >
+                    <Avatar person={row} size="sm" className="max-desktop:hidden" />
+                    <span className="flex min-w-0 flex-col leading-snug">
+                      <span className="flex items-center gap-1 font-semibold desktop:whitespace-nowrap">
+                        <span className="truncate">{row.name}</span>
+                        {row.hasPain || row.activeInjury ? (
+                          <TriangleAlert
+                            aria-label={row.hasPain ? m.athletes.painReported : m.coach.activeInjury}
+                            className={cn("size-4 shrink-0", row.hasPain ? "text-st-missed" : "text-st-partial")}
+                          />
+                        ) : null}
+                      </span>
+                      <span className="t-caption whitespace-nowrap font-normal text-soft max-desktop:hidden">
+                        {row.groupNames.join(", ")}
+                      </span>
+                    </span>
+                  </Link>
+                </th>
+                {row.cells.map((cell) => (
+                  <td key={cell.sessionId} className="py-1.5 text-center desktop:px-1">
+                    {cell.status ? (
+                      <Link
+                        href={withSessionReturn(`/seances/${cell.sessionId}/suivi#${row.athleteId}`, returnTo)}
+                        aria-label={`${row.name}, ${m.status[cell.status]}`}
+                        className="inline-flex size-11 items-center justify-center rounded-button hover:bg-raise"
+                      >
+                        <StatusIcon status={cell.status} />
+                      </Link>
+                    ) : (
+                      <>
+                        <span aria-hidden className="mx-auto block h-0.5 w-2 rounded-full bg-card-raised" />
+                        <span className="sr-only">{w.tracking.notConcerned}</span>
+                      </>
+                    )}
+                  </td>
+                ))}
+                <td className="t-num whitespace-nowrap px-2 py-1.5 text-right text-[16px] desktop:px-3 desktop:text-[18px]">
+                  {row.completionPct === null ? "" : `${row.completionPct} %`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <RosterMore roster={roster} />
+      <div className="border-t border-card-line px-3 py-2 desktop:px-3">
+        <StatusLegend />
+      </div>
+    </div>
+  );
+};
