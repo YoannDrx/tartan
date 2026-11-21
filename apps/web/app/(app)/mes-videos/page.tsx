@@ -32,6 +32,7 @@ export default async function MesSautsPage({ searchParams }: { searchParams: Pro
       />
       <VideoFilters
         search={search}
+        basePath="/mes-videos"
         sessions={sessions}
         exercises={[...new Map(sessions.flatMap((s) => s.exercises.map((e) => [e.id, e] as const))).values()]}
       />

@@ -175,6 +175,39 @@ describe("signalements", () => {
   });
 });
 
+describe("publication (audit G10)", () => {
+  it("compte les athlètes visés et ceux qui reçoivent vraiment la notification", async () => {
+    const org = await makeOrg("Nina");
+    const exercise = await saveExercise(org.owner.userId, org.organizationId, { name: "Squat", category: "strength" });
+    const publish = async (title: string) => {
+      const saved = await saveScheduledSession(org.owner.userId, org.organizationId, {
+        date: "2030-06-15",
+        startTime: null,
+        location: null,
+        draft: draftWith(exercise.id, title),
+        assignments: [{ targetType: "group", targetId: org.groupId }],
+        overrides: [],
+        publishAt: null,
+      });
+      return publishSession(org.owner.userId, org.organizationId, saved.id);
+    };
+    // Le groupe créé avec l'espace est vide : personne n'est prévenu.
+    expect((await publish("Groupe vide")).recipients).toEqual({ athletes: 0, notified: 0 });
+    // Un athlète inscrit par le coach, sans compte : la séance est pour lui, aucune notification ne part.
+    await prisma.athlete.create({
+      data: {
+        organizationId: org.organizationId,
+        firstName: "Sans",
+        lastName: "Compte",
+        groups: { create: { groupId: org.groupId, createdAt: new Date("2020-01-01T10:00:00Z") } },
+      },
+    });
+    expect((await publish("Sans compte")).recipients).toEqual({ athletes: 1, notified: 0 });
+    await addAthlete(org.organizationId, org.groupId, "Léa");
+    expect((await publish("Avec Léa")).recipients).toEqual({ athletes: 2, notified: 1 });
+  });
+});
+
 describe("hors ligne", () => {
   it("garde les séances attribuées à l'athlète, sans celles du reste de l'espace", async () => {
     const a = await prepare();
@@ -191,5 +224,8 @@ describe("hors ligne", () => {
     const { urls } = await offlineUrls(a.lea.userId, a.organizationId);
     expect(urls).toContain(`/seance/${mine.id}`);
     expect(urls).not.toContain(`/seance/${other.id}`);
+    // Audit G5 : ses vidéos se rouvrent hors ligne, à leur adresse actuelle.
+    expect(urls).toContain("/mes-videos");
+    expect(urls.some((url) => url.startsWith("/mes-sauts"))).toBe(false);
   });
 });

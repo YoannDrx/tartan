@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 import { createExercise, publishSession } from "./journeys";
 
@@ -32,4 +33,7 @@ test("dans le constructeur, « Publier » reste à portée de pouce d'un bout à
   await expectAccessible(page);
   // Et il publie : la séance part depuis le haut du formulaire, sans aller chercher le bouton.
   await publishSession(page, "Vitesse et bonds", "Bonds horizontaux");
+  // Audit G10 : le groupe de l'espace neuf est vide. Le message le dit, sans promettre une notification à personne.
+  await expect(page.getByText(w.sessions.published.empty, { exact: true })).toBeVisible();
+  await expect(page.getByText(m.builder.published, { exact: true })).toHaveCount(0);
 });

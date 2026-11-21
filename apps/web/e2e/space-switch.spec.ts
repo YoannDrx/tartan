@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
-import { createCoachSpace } from "./helpers";
+import { createCoachSpace, expectNoHorizontalScroll } from "./helpers";
 import { groupLink } from "./journeys";
 
 // T13 : un même compte, coach dans son espace et athlète dans celui d'un autre coach. Le choix de l'espace vit dans
@@ -42,6 +42,21 @@ test("changer d'espace : rôle et données de chaque espace, aucune fuite, cooki
   await switcher.selectOption(own.organizationId);
   await expect(page.getByRole("heading", { name: "Suivi du groupe" })).toBeVisible();
   expect(await cookie()).toBe(own.organizationId);
+
+  // Audit G6 : à 390 px, le sélecteur garde le nom de l'espace lisible et une cible de 44 px, pas un chevron seul.
+  const viewport = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const name = page.getByTestId("space-name");
+  await expect(name).toBeVisible();
+  await expect(name).toHaveText(own.organizationName);
+  const nameBox = (await name.boundingBox())!;
+  expect(nameBox.width).toBeGreaterThanOrEqual(56);
+  const target = (await switcher.boundingBox())!;
+  expect(target.height).toBeGreaterThanOrEqual(44);
+  expect(target.width).toBeGreaterThanOrEqual(96);
+  expect(target.x + target.width).toBeLessThanOrEqual(390);
+  await expectNoHorizontalScroll(page);
+  if (viewport) await page.setViewportSize(viewport);
   await expect(page.getByText("Coaching Voisin", { exact: true })).toHaveCount(0);
 
   // Vers l'espace où il est athlète : l'accueil de l'athlète, et le suivi lui est fermé.
