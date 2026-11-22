@@ -70,10 +70,15 @@ const schema = z.object({
   // 14 janvier 2027 : les défauts sont dans la gamme GPT-6, choisis à la mesure du 21 novembre 2026.
   AI_PLANNER_MODEL: z.string().min(1).default("gpt-6.2-sol"),
   AI_PLANNER_FAST_MODEL: z.string().min(1).default("gpt-6.1-terra"),
+  // Modèle qui compose une demande seulement décrite (rien à proposer) : vide, le modèle rapide. Dès qu'une partie
+  // est à proposer, ou pour un ajustement, c'est le modèle principal. Le poser à la valeur de AI_PLANNER_MODEL
+  // rend la composition au modèle principal pour toute demande.
+  AI_PLANNER_DESCRIBED_MODEL: optional,
   // Effort de raisonnement de chaque étape. `none` n'existe que sur Luna et Terra : ailleurs il devient `low`.
   AI_PLANNER_UNDERSTAND_EFFORT: plannerEffort.default("none"),
   AI_PLANNER_MATCH_EFFORT: plannerEffort.default("low"),
-  AI_PLANNER_COMPOSE_EFFORT: plannerEffort.default("low"),
+  // Composer : `none` sur le modèle rapide (mesuré le 22 novembre 2026), `low` sur Sol, qui refuse `none`.
+  AI_PLANNER_COMPOSE_EFFORT: plannerEffort.default("none"),
   AI_PLANNER_REPAIR_EFFORT: plannerEffort.default("low"),
   AI_TRANSCRIPTION_MODEL: z.string().min(1).default("gpt-transcribe"),
   CRON_SECRET: optional,

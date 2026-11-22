@@ -1,4 +1,10 @@
-import type { PlannerMatch, PlannerMatchGeneration, PlannerSlotSuggestion } from "@tartan/contracts";
+import type {
+  PlannerMatch,
+  PlannerMatchGeneration,
+  PlannerMatchJudgement,
+  PlannerMatchRelation,
+  PlannerSlotSuggestion,
+} from "@tartan/contracts";
 import { normalizeExerciseMention } from "./exercise-aliases";
 
 // Étape « Retrouver » : à chaque mouvement cité par le coach, une fiche de la bibliothèque, ou aucune.
@@ -177,6 +183,44 @@ export function plannerSlotDefaults(said: string, proposed: PlannerSlotSuggestio
     category: proposed?.category ?? "strength",
     movement: proposed?.movement ?? "other",
     loadKind: proposed?.loadKind ?? "bodyweight",
+  };
+}
+
+const RELATION_RANK: Record<PlannerMatchRelation, number> = { same_name: 0, same_known: 1, variant: 2, neighbor: 3 };
+/**
+ * La confiance se décide par règle, pas par le modèle. Il dit, pour chaque fiche qu'il propose, sa relation au
+ * terme du coach ; la meilleure relation tranche :
+ * - `same_name`, sans autre fiche donnée pour le même mouvement : `sure`. Le nom, un alias ou leur traduction
+ *   directe portent l'équivalence.
+ * - `same_known` (seule la connaissance du modèle la porte), `variant` (même geste à une précision près), ou deux
+ *   fiches données pour le même mouvement : `probable`, donc posée avec la marque « À vérifier » et les autres
+ *   fiches possibles.
+ * - rien que des fiches voisines, ou rien : `absent`. Les voisines restent proposées au coach.
+ * Les règles sans modèle (terme appris, nom ou alias exact) passent avant : ce verdict ne vaut que pour le reste.
+ */
+export function plannerMatchVerdict(judgement: PlannerMatchJudgement): PlannerMatchGeneration {
+  return {
+    matches: judgement.matches.map(({ id, candidates, suggestion }) => {
+      const distinct = candidates.filter(
+        (candidate, index) => candidates.findIndex((other) => other.key === candidate.key) === index,
+      );
+      // À relation égale, l'ordre du modèle vaut : il met la fiche la plus simple et la plus courante d'abord.
+      const ordered = distinct
+        .map((candidate, index) => ({ ...candidate, index }))
+        .sort((a, b) => RELATION_RANK[a.relation] - RELATION_RANK[b.relation] || a.index - b.index);
+      const best = ordered[0];
+      if (!best || best.relation === "neighbor")
+        return { id, confidence: "absent", key: null, others: ordered.slice(0, 3).map((c) => c.key), suggestion };
+      const rival = ordered[1]?.relation === "same_name" || ordered[1]?.relation === "same_known";
+      const sure = best.relation === "same_name" && !rival;
+      return {
+        id,
+        confidence: sure ? "sure" : "probable",
+        key: best.key,
+        others: ordered.slice(1, 4).map((candidate) => candidate.key),
+        suggestion: null,
+      };
+    }),
   };
 }
 

@@ -102,6 +102,167 @@ export function plannerMovementTerm(said: string): string | null {
   return /\p{L}{2,}|\d/u.test(term) ? term.slice(0, 120) : null;
 }
 
+// ─── Mention annoncée par son nombre ─────────────────────────────────────────────────────────────────────────────
+// « … puis fentes 3 x 10 ; puis 8 lancers vers l'avant » : le dernier mouvement commence par son nombre, et le
+// modèle le lit parfois comme la suite de la prescription précédente. Une clause qui commence par un nombre suivi
+// d'un nom de mouvement devient un mouvement à part, avec ce nombre pour prescription.
+
+const COUNT_WORDS = new Set(
+  (
+    "deux trois quatre cinq six sept huit neuf dix onze douze treize quatorze quinze seize vingt vingts trente " +
+    "quarante cinquante soixante cent cents mille"
+  ).split(" "),
+);
+// « un » et « une » sont d'abord des articles (« puis un échauffement à ta façon ») : ils n'annoncent rien.
+const isCount = (folded: string) =>
+  /^\d+$/.test(folded) || (folded !== "" && folded.split(" ").every((part) => COUNT_WORDS.has(part)));
+// Ce qui suit un nombre sans nommer un mouvement : unité, quantité, structure, temps, liaison.
+const NOT_A_NAME = new Set(
+  (
+    "x fois serie series set sets rep reps repetition repetitions tour tours round rounds passage passages bloc blocs " +
+    "contact contacts maintien maintiens kg kilo kilos kilogramme kilogrammes g pourcent pour cent s sec seconde " +
+    "secondes min mn minute minutes h heure heures m metre metres km kilometre kilometres cm jour jours semaine " +
+    "semaines mois an ans a au aux de des du d par sur en et ou avec chaque le la les l athlete athletes groupe " +
+    "groupes personne personnes exercice exercices mouvement mouvements atelier ateliers recup recuperation repos " +
+    "lundi mardi mercredi jeudi vendredi samedi dimanche janvier fevrier mars avril mai juin juillet aout " +
+    "septembre octobre novembre decembre premier premiers premiere premieres dernier derniers derniere dernieres " +
+    "autre autres demi entre apres avant pendant dans sous vers jusqu r rec"
+  ).split(" "),
+);
+// Ce qui ferme le nom dans la clause : la quantité ou la consigne qui le suit (« 8 lancers à 3 kilos »).
+const NAME_END = new Set(
+  (
+    "x fois serie series rep reps repetition repetitions tour tours kg kilo kilos seconde secondes sec minute " +
+    "minutes min metre metres km recup recuperation repos chaque par pourcent entre apres pendant"
+  ).split(" "),
+);
+const TRAILING = new Set("a au aux de des du d en et avec sur par pour l la le les un une".split(" "));
+const COUNT_AHEAD = `(?:\\d|(?:${[...COUNT_WORDS].join("|")})(?![\\p{L}]))`;
+// Une clause s'arrête à une ponctuation (pas une virgule décimale), à « puis », « ensuite », « enfin », ou à
+// « et » devant un nombre.
+const CLAUSE_END = new RegExp(
+  `([;!?\\n]|[,.:](?!\\d)|(?<!\\d)[,.:]|(?<![\\p{L}\\p{N}])(?:puis|ensuite|enfin)(?![\\p{L}\\p{N}])|(?<![\\p{L}\\p{N}])et(?=\\s+${COUNT_AHEAD}))`,
+  "iu",
+);
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const edge = (token: string) => token.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+
+export type PlannerNumberLedMention = {
+  // Rang de la clause dans le texte : sert à placer le mouvement après celui qui le précède.
+  clause: number;
+  said: string;
+  // La clause entière, mot pour mot : le nombre et ce qui l'accompagne.
+  prescription: string;
+  // Le nombre seul, tel qu'il est dit (« 8 », « vingt-cinq »).
+  count: string;
+};
+const clausesOf = (text: string) => text.split(CLAUSE_END).filter((_, index) => index % 2 === 0);
+
+/** Les clauses qui commencent par un nombre suivi d'un nom de mouvement, dans l'ordre du texte. */
+export function plannerNumberLedMentions(text: string): PlannerNumberLedMention[] {
+  return clausesOf(text).flatMap((clause, index) => {
+    const raw = clause.trim().split(/\s+/).filter(Boolean);
+    // « 5' », « 30" », « 1'30 » : une durée, pas un nombre de répétitions.
+    if (/^\d+\s*['’"″′]/.test(raw[0] ?? "")) return [];
+    const tokens = raw.map(edge).filter(Boolean);
+    let at = 0;
+    while (at < tokens.length && (isCount(fold(tokens[at]!)) || (at > 0 && fold(tokens[at]!) === "et"))) at++;
+    if (at === 0 || fold(tokens[at - 1]!) === "et" || at >= tokens.length) return [];
+    if (NOT_A_NAME.has(fold(tokens[at]!).split(" ")[0]!)) return [];
+    const name: string[] = [];
+    for (let i = at; i < tokens.length; i++) {
+      const word = fold(tokens[i]!);
+      if (/^\d/.test(word) || isCount(word) || NAME_END.has(word.split(" ")[0]!)) break;
+      name.push(tokens[i]!);
+    }
+    while (name.length && TRAILING.has(fold(name.at(-1)!))) name.pop();
+    const said = plannerMovementTerm(name.join(" "));
+    if (!said || !/\p{L}{3,}/u.test(said)) return [];
+    return [
+      { clause: index, said, prescription: clause.trim().replace(/\s+/g, " "), count: tokens.slice(0, at).join(" ") },
+    ];
+  });
+}
+
+/** La prescription sans la clause qui nommait un autre mouvement, ni la liaison qui l'y attachait. */
+function withoutClause(prescription: string, clause: string): string | null {
+  const parts = prescription.split(CLAUSE_END);
+  const at = parts.findIndex((part, index) => index % 2 === 0 && fold(part).includes(fold(clause)));
+  if (at < 0) return prescription;
+  parts.splice(at > 0 ? at - 1 : at, 2);
+  const kept = parts
+    .join("")
+    .replace(/[\s,;:.–-]+$/u, "")
+    .replace(/(?:\s+(?:puis|ensuite|enfin|et))+$/iu, "")
+    .trim();
+  return kept || null;
+}
+
+/**
+ * Chaque mention annoncée par son nombre et absente de la compréhension y entre, juste après le mouvement qui la
+ * précède : celui dont la prescription l'a avalée, sinon le dernier mouvement cité avant elle dans le texte. Sans
+ * mouvement avant elle, rien n'est ajouté : une demande à composer n'est pas transformée en séance décrite.
+ */
+export function plannerKeepNumberLedMentions(
+  sessions: readonly PlannerRequestSession[],
+  text: string,
+): PlannerRequestSession[] {
+  const mentions = plannerNumberLedMentions(text);
+  if (!mentions.length) return [...sessions];
+  const clauses = clausesOf(text).map(fold);
+  const result = sessions.map((session) => ({ ...session, movements: [...session.movements] }));
+  let next = Math.max(0, ...sessions.flatMap((s) => s.movements.map((movement) => Number(movement.id.slice(1)) || 0)));
+  // Deux mentions avalées par la même prescription se suivent dans l'ordre dit, après leur hôte.
+  const lastAfter = new Map<string, string>();
+  for (const mention of mentions) {
+    const wanted = fold(mention.said);
+    const all = result.flatMap((session) => session.movements);
+    const covered = all.some((movement) => {
+      const said = fold(movement.said);
+      return said.includes(wanted) || (said.length > 2 && clauses[mention.clause]!.includes(said));
+    });
+    if (covered) continue;
+    // La prescription qui a avalé la clause entière, mot pour mot.
+    const swallowed = (movement: PlannerRequestMovement) =>
+      Boolean(movement.prescription && fold(movement.prescription).includes(fold(mention.prescription)));
+    let host = all.find(swallowed);
+    if (!host) {
+      // Le dernier mouvement cité avant cette clause, à la première clause qui porte son nom.
+      const place = (said: string) => clauses.findIndex((clause) => clause.includes(fold(said)));
+      host = all
+        .map((movement, order) => ({ movement, order, clause: place(movement.said) }))
+        .filter((entry) => entry.clause >= 0 && entry.clause < mention.clause)
+        .sort((a, b) => a.clause - b.clause || a.order - b.order)
+        .at(-1)?.movement;
+    }
+    if (!host) continue;
+    const session = result[host.session]!;
+    const at = session.movements.indexOf(host);
+    if (swallowed(host))
+      session.movements[at] = { ...host, prescription: withoutClause(host.prescription!, mention.prescription) };
+    else if (host.prescription) {
+      // « 3 x 10 ; puis 8 » : le nombre seul est resté au bout de la prescription précédente.
+      const dangling = new RegExp(
+        `(?:\\s*(?:[;,.]|(?<![\\p{L}\\p{N}])(?:puis|ensuite|enfin|et)(?![\\p{L}\\p{N}])))+\\s*${escapeRegExp(mention.count)}\\s*$`,
+        "iu",
+      );
+      if (dangling.test(host.prescription))
+        session.movements[at] = { ...host, prescription: host.prescription.replace(dangling, "").trim() || null };
+    }
+    const anchor = lastAfter.get(host.id) ?? host.id;
+    const id = `m${++next}`;
+    session.movements.splice(session.movements.findIndex((movement) => movement.id === anchor) + 1, 0, {
+      id,
+      said: mention.said,
+      prescription: mention.prescription.slice(0, 300),
+      replaces: null,
+      session: host.session,
+    });
+    lastAfter.set(host.id, id);
+  }
+  return result;
+}
+
 function resolveDate(
   session: { date: string | null; dateSaid: string | null },
   context: PlannerUnderstandingContext,
@@ -175,7 +336,7 @@ export function plannerNormalizeUnderstanding(
     .filter((token) => new RegExp(`(?<![a-z0-9_])${token}(?![a-z0-9_])`).test(text));
   const alone = raw.sessions.length === 1;
   let next = 0;
-  const sessions: PlannerRequestSession[] = raw.sessions.slice(0, PLANNER_MAX_SESSIONS).map((session, index) => {
+  const read: PlannerRequestSession[] = raw.sessions.slice(0, PLANNER_MAX_SESSIONS).map((session, index) => {
     // Les mouvements : jamais un jeton de destinataire, toujours le terme tel que le coach l'a dit.
     const renamed = new Map<string, string>();
     const kept = session.movements.flatMap((movement) => {
@@ -228,6 +389,8 @@ export function plannerNormalizeUnderstanding(
       proposal,
     };
   });
+  // Rien de dit ne disparaît : un mouvement annoncé par son nombre que le modèle a avalé ou oublié y revient.
+  const sessions = plannerKeepNumberLedMentions(read, context.text);
   if (raw.offTopic) blockers.unshift({ kind: "off_topic" });
   else if (raw.sessions.length > PLANNER_MAX_SESSIONS) blockers.unshift({ kind: "too_many_sessions" });
   else if (!sessions.length) blockers.unshift({ kind: "empty" });

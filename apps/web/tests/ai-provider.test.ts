@@ -12,6 +12,7 @@ const settings = vi.hoisted(() => ({
   OPEN_AI_API_KEY: undefined as string | undefined,
   AI_PLANNER_MODEL: "gpt-6.2-sol",
   AI_PLANNER_FAST_MODEL: "gpt-6.1-terra",
+  AI_PLANNER_DESCRIBED_MODEL: undefined as string | undefined,
   AI_PLANNER_UNDERSTAND_EFFORT: "none",
   AI_PLANNER_MATCH_EFFORT: "low",
   AI_PLANNER_COMPOSE_EFFORT: "none",
@@ -25,6 +26,7 @@ beforeEach(() => {
     OPEN_AI_API_KEY: undefined,
     AI_PLANNER_MODEL: "gpt-6.2-sol",
     AI_PLANNER_FAST_MODEL: "gpt-6.1-terra",
+    AI_PLANNER_DESCRIBED_MODEL: undefined,
   });
 });
 
@@ -156,8 +158,11 @@ describe("une fonction typée par étape", () => {
     expect(schema).not.toContain("oneOf");
   });
   it("retrouver : la bibliothèque en cinq champs par fiche, avant les termes", async () => {
+    const judgement = {
+      matches: [{ id: "m1", candidates: [{ key: "f1", relation: "same_name" }], suggestion: null }],
+    };
     const generation = { matches: [{ id: "m1", confidence: "sure" as const, key: "f1", others: [], suggestion: null }] };
-    const { fetcher, bodies } = recorder(answer(generation));
+    const { fetcher, bodies } = recorder(answer(judgement));
     const library = [
       { key: "f1", name: "Soulevé de terre roumain", aliases: ["RDL"], family: "strength", equipment: ["barbell"] },
       { key: "f2", name: "Gainage ventral", aliases: [], family: "core", equipment: [] },
@@ -181,8 +186,32 @@ describe("une fonction typée par étape", () => {
     expect(body.input[0]!.content).toEqual(expect.any(String));
     expect(body.input[1]!.content).toMatchObject([{ prompt_cache_breakpoint: { mode: "explicit" } }]);
     expect(JSON.parse(text(body.input[2]!))).toEqual({ movements: [{ id: "m1", said: "RDL", prescription: "3 x 8", near: [] }] });
+    // Le schéma demande une relation par fiche, jamais une confiance : elle est décidée par règle.
+    const schema = JSON.stringify(body.text.format.schema);
+    expect(schema).toContain("same_known");
+    expect(schema).not.toContain("confidence");
   });
-  it("composer et réparer : modèle principal, fiches et emplacements seuls permis, prescription écrite une fois", async () => {
+  it("retrouver : une équivalence que seul le modèle connaît, ou une précision de matériel, reste à vérifier", async () => {
+    const judgement = {
+      matches: [
+        { id: "m1", candidates: [{ key: "f1", relation: "same_known" }], suggestion: null },
+        { id: "m2", candidates: [{ key: "f2", relation: "variant" }, { key: "f3", relation: "neighbor" }], suggestion: null },
+      ],
+    };
+    const { fetcher } = recorder(answer(judgement));
+    const result = await openAiPlannerProvider(fetcher).match({
+      movements: [
+        { id: "m1", said: "chaise au mur", prescription: null, near: [] },
+        { id: "m2", said: "squat à la barre guidée", prescription: null, near: [] },
+      ],
+      library: [],
+    });
+    expect(result.matches).toEqual([
+      { id: "m1", confidence: "probable", key: "f1", others: [], suggestion: null },
+      { id: "m2", confidence: "probable", key: "f2", others: ["f3"], suggestion: null },
+    ]);
+  });
+  it("composer et réparer : fiches et emplacements seuls permis, prescription écrite une fois", async () => {
     const composition = composed([node("m1", "exercise_1"), node("m2", "slot_1")]);
     const { fetcher, bodies } = recorder(answer(composition), answer(composition));
     const provider = openAiPlannerProvider(fetcher);
@@ -190,10 +219,10 @@ describe("une fonction typée par étape", () => {
     const defects = [{ code: "missing_movement" as const, session: 0, movementId: "m2", detail: "Le mouvement m2 manque." }];
     expect(await provider.repair({ ...composeInput, previousAnswer: composition, defects })).toEqual(composition);
     const [compose, repair] = bodies;
-    // `none` n'existe pas sur Sol : l'effort devient `low`.
+    // Une demande seulement décrite se compose avec le modèle rapide ; la réparation reste au principal.
     expect(compose).toMatchObject({
-      model: "gpt-6.2-sol",
-      reasoning: { effort: "low" },
+      model: "gpt-6.1-terra",
+      reasoning: { effort: "none" },
       text: { format: { name: "tartan_session", strict: true } },
     });
     expect(repair).toMatchObject({ model: "gpt-6.2-sol", reasoning: { effort: "medium" } });
@@ -205,6 +234,40 @@ describe("une fonction typée par étape", () => {
     const sent = JSON.parse(text(repair!.input.at(-1)!)) as { previousAnswer: unknown; defects: unknown };
     expect(sent.previousAnswer).toEqual(composition);
     expect(sent.defects).toEqual(defects);
+  });
+  it("composer : le modèle principal dès qu'une partie est à proposer, ou pour un ajustement", async () => {
+    const proposal = { objective: "gainage", durationMin: 15, level: null, equipment: [], families: ["core" as const] };
+    const objective: PlannerComposeInput = {
+      ...composeInput,
+      understanding: {
+        ...composeInput.understanding,
+        intent: "objective",
+        sessions: composeInput.understanding.sessions.map((session) => ({ ...session, movements: [], proposal })),
+      },
+    };
+    const mixed: PlannerComposeInput = {
+      ...composeInput,
+      understanding: {
+        ...composeInput.understanding,
+        intent: "mixed",
+        sessions: composeInput.understanding.sessions.map((session) => ({ ...session, proposal })),
+      },
+    };
+    const adjusting: PlannerComposeInput = { ...composeInput, previous: { sessions: [] }, adjustment: "ajoute des fentes" };
+    const composition = composed([node("m1", "exercise_1")]);
+    const { fetcher, bodies } = recorder(answer(composition), answer(composition), answer(composition));
+    const provider = openAiPlannerProvider(fetcher);
+    for (const input of [objective, mixed, adjusting]) await provider.compose(input);
+    // `none` n'existe pas sur Sol : l'effort devient `low`.
+    expect(bodies).toHaveLength(3);
+    for (const body of bodies) expect(body).toMatchObject({ model: "gpt-6.2-sol", reasoning: { effort: "low" } });
+  });
+  it("composer : le modèle d'une demande seulement décrite se règle par AI_PLANNER_DESCRIBED_MODEL", async () => {
+    settings.AI_PLANNER_DESCRIBED_MODEL = "gpt-6.2-sol";
+    const composition = composed([node("m1", "exercise_1"), node("m2", "slot_1")]);
+    const { fetcher, bodies } = recorder(answer(composition));
+    await openAiPlannerProvider(fetcher).compose(composeInput);
+    expect(bodies[0]).toMatchObject({ model: "gpt-6.2-sol", reasoning: { effort: "low" } });
   });
   it("un modèle d'avant GPT-5 reçoit une température nulle, ni effort ni repère de cache", async () => {
     settings.AI_PLANNER_FAST_MODEL = "gpt-4.1-mini";

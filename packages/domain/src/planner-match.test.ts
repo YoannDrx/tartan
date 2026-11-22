@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   plannerMatchShortlist,
+  plannerMatchVerdict,
   plannerModelMatches,
   plannerRuleMatches,
   plannerSlotDefaults,
@@ -199,5 +200,74 @@ describe("réponse du modèle, vérifiée", () => {
   });
   it("le nom proposé est le terme du coach nettoyé", () => {
     expect(plannerSlotDefaults(" , réception depuis un caisson. ", null).name).toBe("Réception depuis un caisson");
+  });
+});
+
+describe("confiance décidée par règle, à partir de la relation dite par le modèle", () => {
+  const verdict = (candidates: { key: string; relation: "same_name" | "same_known" | "variant" | "neighbor" }[]) =>
+    plannerMatchVerdict({ matches: [{ id: "m1", candidates, suggestion: null }] }).matches[0]!;
+  const suggestion = { name: "Superman", category: "strength" as const, movement: "trunk" as const, loadKind: "bodyweight" as const };
+  it("le nom, un alias ou leur traduction directe portent l'équivalence : sure", () => {
+    expect(verdict([{ key: "f1", relation: "same_name" }, { key: "f2", relation: "neighbor" }])).toEqual({
+      id: "m1",
+      confidence: "sure",
+      key: "f1",
+      others: ["f2"],
+      suggestion: null,
+    });
+  });
+  it("seule la connaissance du modèle porte l'équivalence : jamais sure, toujours à vérifier", () => {
+    expect(verdict([{ key: "f3", relation: "same_known" }])).toMatchObject({ confidence: "probable", key: "f3" });
+  });
+  it("le même geste à une précision de matériel, d'agrès ou de position près : probable, pas absent", () => {
+    expect(verdict([{ key: "f4", relation: "variant" }, { key: "f5", relation: "neighbor" }])).toMatchObject({
+      confidence: "probable",
+      key: "f4",
+      others: ["f5"],
+      suggestion: null,
+    });
+  });
+  it("deux fiches données pour le même mouvement : probable, l'autre proposée", () => {
+    expect(verdict([{ key: "f1", relation: "same_name" }, { key: "f2", relation: "same_name" }])).toMatchObject({
+      confidence: "probable",
+      key: "f1",
+      others: ["f2"],
+    });
+    expect(verdict([{ key: "f1", relation: "same_name" }, { key: "f6", relation: "same_known" }])).toMatchObject({
+      confidence: "probable",
+      key: "f1",
+      others: ["f6"],
+    });
+  });
+  it("la meilleure relation tranche, quel que soit l'ordre ; à relation égale, l'ordre du modèle vaut", () => {
+    expect(
+      verdict([
+        { key: "f5", relation: "neighbor" },
+        { key: "f4", relation: "variant" },
+        { key: "f7", relation: "variant" },
+        { key: "f4", relation: "neighbor" },
+      ]),
+    ).toMatchObject({ confidence: "probable", key: "f4", others: ["f7", "f5"] });
+  });
+  it("rien que des voisines, ou rien : absent, les voisines proposées et la fiche à créer gardée", () => {
+    const answer = plannerMatchVerdict({
+      matches: [
+        { id: "m1", candidates: [{ key: "f5", relation: "neighbor" }], suggestion },
+        { id: "m2", candidates: [], suggestion },
+      ],
+    }).matches;
+    expect(answer[0]).toEqual({ id: "m1", confidence: "absent", key: null, others: ["f5"], suggestion });
+    expect(answer[1]).toEqual({ id: "m2", confidence: "absent", key: null, others: [], suggestion });
+  });
+  it("une fiche choisie ne garde pas de fiche à créer", () => {
+    const answer = plannerMatchVerdict({
+      matches: [{ id: "m1", candidates: [{ key: "f4", relation: "variant" }], suggestion }],
+    }).matches[0]!;
+    expect(answer.suggestion).toBeNull();
+  });
+  it("les règles sans modèle passent avant : un nom exact n'atteint jamais le verdict", () => {
+    const rules = plannerRuleMatches([{ id: "m1", said: "squat arrière" }], library);
+    expect(rules.remaining).toEqual([]);
+    expect(rules.matches[0]).toMatchObject({ confidence: "exact", source: "name" });
   });
 });

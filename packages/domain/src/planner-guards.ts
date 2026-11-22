@@ -61,20 +61,76 @@ const UNITS: Record<string, number> = {
 };
 const isNumberWord = (token: string) =>
   token in UNITS || token === "cent" || token === "cents" || token === "mille" || token === "vingts";
-function numberFromWords(words: readonly string[]): number {
-  let total = 0,
-    current = 0;
-  for (const word of words) {
-    if (word === "et") continue;
-    if (word === "mille") {
-      total += (current || 1) * 1000;
-      current = 0;
-    } else if (word === "cent" || word === "cents") current = (current % 100 || 1) * 100 + current - (current % 100);
-    else if ((word === "vingt" || word === "vingts") && current % 100 === 4) current += 76;
-    else if (word === "vingts") current += 20;
-    else current += UNITS[word] ?? 0;
+const TENS = new Set(["vingt", "trente", "quarante", "cinquante", "soixante"]);
+// Un nombre lu dans une suite de mots, et le rang du mot qui le suit. `split` : l'autre lecture possible d'une
+// dictée sans ponctuation (« cinquante deux » : cinquante-deux, ou cinquante puis deux).
+type SpokenNumber = { value: number; next: number; split?: { value: number; next: number } };
+/** De un à seize, puis dix-sept, dix-huit et dix-neuf : ce qui peut suivre une dizaine ou « quatre-vingt ». */
+function spokenUnit(tokens: readonly string[], at: number, max: number): SpokenNumber | null {
+  const word = tokens[at] ?? "";
+  const following = tokens[at + 1] ?? "";
+  if (word === "dix" && max >= 19 && (following === "sept" || following === "huit" || following === "neuf"))
+    return { value: 10 + UNITS[following]!, next: at + 2 };
+  const value = TENS.has(word) ? undefined : UNITS[word];
+  return value !== undefined && value >= 1 && value <= max ? { value, next: at + 1 } : null;
+}
+/**
+ * Un nombre de 0 à 99 selon la grammaire française : « soixante-dix », « soixante et onze », « quatre-vingts »,
+ * « quatre-vingt-cinq », « quatre-vingt-dix-sept ». Il s'arrête où le nombre s'arrête : dans « soixante-dix une à
+ * quatre-vingts », « une » commence un autre nombre, et « quatre-vingts » au pluriel ne se prolonge jamais.
+ */
+function spokenBelowHundred(tokens: readonly string[], at: number): SpokenNumber | null {
+  const word = tokens[at] ?? "";
+  if (word === "zero") return { value: 0, next: at + 1 };
+  if (TENS.has(word)) {
+    const base = UNITS[word]!;
+    if (tokens[at + 1] === "et") {
+      const unit = tokens[at + 2] ?? "";
+      return unit === "un" || unit === "une" || (word === "soixante" && unit === "onze")
+        ? { value: base + UNITS[unit]!, next: at + 3 }
+        : { value: base, next: at + 1 };
+    }
+    const unit = spokenUnit(tokens, at + 1, word === "soixante" ? 19 : 9);
+    return unit
+      ? { value: base + unit.value, next: unit.next, split: { value: base, next: at + 1 } }
+      : { value: base, next: at + 1 };
   }
-  return total + current;
+  if (word === "quatre" && (tokens[at + 1] === "vingt" || tokens[at + 1] === "vingts")) {
+    const unit = tokens[at + 1] === "vingt" ? spokenUnit(tokens, at + 2, 19) : null;
+    return unit ? { value: 80 + unit.value, next: unit.next } : { value: 80, next: at + 2 };
+  }
+  return spokenUnit(tokens, at, 19);
+}
+/** Jusqu'à 999 : « cent dix », « deux cents », « deux cent cinquante », « trois cent quatre-vingt-dix ». */
+function spokenBelowThousand(tokens: readonly string[], at: number): SpokenNumber | null {
+  const head = spokenUnit(tokens, at, 9);
+  const hundred = (word: string | undefined) => word === "cent" || word === "cents";
+  const [hundreds, after] =
+    tokens[at] === "cent"
+      ? [100, at + 1]
+      : head && head.value >= 2 && hundred(tokens[head.next])
+        ? [head.value * 100, head.next + 1]
+        : [0, at];
+  if (!hundreds) return spokenBelowHundred(tokens, at);
+  // « deux cents » au pluriel est un nombre rond : ce qui suit en commence un autre.
+  const rest = tokens[after - 1] === "cents" ? null : spokenBelowHundred(tokens, after);
+  return rest ? { value: hundreds + rest.value, next: rest.next } : { value: hundreds, next: after };
+}
+/** Un nombre déjà isolé, mot par mot (« trente et un », « quatre vingt dix ») ; 0 si ce n'en est pas un. */
+const numberFromWords = (words: readonly string[]) =>
+  spokenNumber(
+    words.flatMap((word) => word.split("-")),
+    0,
+  )?.value ?? 0;
+/** Un nombre en toutes lettres à partir de ce mot, jusqu'aux milliers, ou rien si ce mot n'en commence pas un. */
+function spokenNumber(tokens: readonly string[], at: number): SpokenNumber | null {
+  const lead = tokens[at] === "mille" ? { value: 1, next: at } : spokenBelowThousand(tokens, at);
+  if (!lead) return null;
+  if (tokens[lead.next] !== "mille") return lead;
+  const rest = spokenBelowThousand(tokens, lead.next + 1);
+  return rest
+    ? { value: lead.value * 1000 + rest.value, next: rest.next }
+    : { value: lead.value * 1000, next: lead.next + 1 };
 }
 
 // Chaque nombre d'un texte, en chiffres ou en toutes lettres, avec ce qui le suit.
@@ -92,23 +148,33 @@ function numberMentions(text: string): { value: number; after: string }[] {
   for (const segment of normalized.replace(/%/g, " pourcent ").split(/[,;:.!?()\n]+/)) {
     const tokens = segment.split(/[^a-z0-9]+/).filter(Boolean);
     for (let i = 0; i < tokens.length;) {
-      if (!isNumberWord(tokens[i]!)) {
+      const read = isNumberWord(tokens[i]!) ? spokenNumber(tokens, i) : null;
+      if (!read) {
         i++;
         continue;
       }
-      const words: string[] = [];
-      while (
-        i < tokens.length &&
-        (isNumberWord(tokens[i]!) || (tokens[i] === "et" && words.length > 0 && isNumberWord(tokens[i + 1] ?? "")))
-      )
-        words.push(tokens[i++]!);
-      const whole = numberFromWords(words);
+      // Les deux lectures d'une dizaine suivie d'une unité, sans ponctuation : le nombre composé, et la dizaine
+      // puis l'unité (« deux à cinquante deux à soixante »).
+      if (read.split) {
+        mentions.push({ value: read.split.value, after: tokens.slice(read.split.next).join(" ") });
+        mentions.push({ value: read.value - read.split.value, after: tokens.slice(read.next).join(" ") });
+      }
+      i = read.next;
+      const whole = read.value;
       mentions.push({ value: whole, after: tokens.slice(i).join(" ") });
-      if (tokens[i] === "virgule" && (isNumberWord(tokens[i + 1] ?? "") || /^\d+$/.test(tokens[i + 1] ?? ""))) {
-        const decimal = tokens[i + 1]!;
-        const digits = /^\d+$/.test(decimal) ? decimal : String(numberFromWords([decimal]));
-        mentions.push({ value: Number(`${whole}.${digits}`), after: tokens.slice(i + 2).join(" ") });
-        i += 2;
+      const decimal =
+        tokens[i] !== "virgule"
+          ? null
+          : /^\d+$/.test(tokens[i + 1] ?? "")
+            ? { value: Number(tokens[i + 1]), next: i + 2, digits: tokens[i + 1]! }
+            : isNumberWord(tokens[i + 1] ?? "")
+              ? spokenNumber(tokens, i + 1)
+              : null;
+      if (decimal) {
+        // « soixante virgule cinq », « quarante-deux virgule vingt-cinq » : la partie décimale entière.
+        const digits = "digits" in decimal ? decimal.digits : String(decimal.value);
+        mentions.push({ value: Number(`${whole}.${digits}`), after: tokens.slice(decimal.next).join(" ") });
+        i = decimal.next;
       }
       if (tokens[i] === "et" && tokens[i + 1] === "demi")
         mentions.push({ value: whole + 0.5, after: tokens.slice(i + 2).join(" ") });

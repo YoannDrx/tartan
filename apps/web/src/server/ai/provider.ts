@@ -2,16 +2,17 @@ import "server-only";
 import { z } from "zod";
 import {
   plannerComposition,
-  plannerMatchGeneration,
+  plannerMatchJudgement,
   plannerUnderstanding,
   type PlannerFailureCode,
   type PlannerStepName,
 } from "@tartan/contracts";
-import { plannerServerEnabled } from "@tartan/domain";
+import { plannerMatchVerdict, plannerServerEnabled } from "@tartan/domain";
 import { env, type Env } from "@/lib/env";
 import { composePrompt, matchPrompt, repairPrompt, understandPrompt } from "./pipeline/prompts";
 import {
   PlannerProviderError,
+  type PlannerComposeInput,
   type PlannerMatchInput,
   type PlannerProvider,
   type PlannerStepOptions,
@@ -50,10 +51,18 @@ const effortFor = (model: string, effort: string) =>
   effort === "none" && !/^gpt-6[.\d]*-(?:luna|terra)/.test(model) ? "low" : effort;
 // Les repères de cache explicites existent depuis GPT-5.6 ; les modèles d'avant mettent en cache d'eux-mêmes.
 const explicitCache = (model: string) => /^gpt-(?:5\.[6-9]|[6-9])/.test(model);
-/** Le modèle et l'effort de chaque étape : rapide pour comprendre et retrouver, principal pour composer et réparer. */
-export const plannerStepSettings = (settings: Env, step: PlannerStepName) => {
+/**
+ * Le modèle et l'effort de chaque étape : rapide pour comprendre et retrouver, principal pour réparer. Composer
+ * dépend de la demande : une demande seulement décrite (rien à proposer) n'est qu'une mise en forme, confiée au
+ * modèle de `AI_PLANNER_DESCRIBED_MODEL` (par défaut le rapide) ; dès qu'une partie est à proposer, le principal.
+ */
+export const plannerStepSettings = (settings: Env, step: PlannerStepName, described = false) => {
   const model =
-    step === "understand" || step === "match" ? settings.AI_PLANNER_FAST_MODEL : settings.AI_PLANNER_MODEL;
+    step === "understand" || step === "match"
+      ? settings.AI_PLANNER_FAST_MODEL
+      : step === "compose" && described
+        ? (settings.AI_PLANNER_DESCRIBED_MODEL ?? settings.AI_PLANNER_FAST_MODEL)
+        : settings.AI_PLANNER_MODEL;
   const effort = {
     understand: settings.AI_PLANNER_UNDERSTAND_EFFORT,
     match: settings.AI_PLANNER_MATCH_EFFORT,
@@ -62,6 +71,14 @@ export const plannerStepSettings = (settings: Env, step: PlannerStepName) => {
   }[step];
   return { model, effort: effortFor(model, effort) };
 };
+/**
+ * Rien à proposer : la demande est seulement décrite, aucune séance n'a de partie à composer, et ce n'est pas un
+ * ajustement (qui réécrit une séance déjà composée, propositions comprises).
+ */
+export const plannerOnlyDescribed = (input: PlannerComposeInput) =>
+  input.understanding.intent === "described" &&
+  input.understanding.sessions.every((session) => session.proposal === null) &&
+  input.previous === null;
 // Jetons de sortie, raisonnement compris : une compréhension ou un rapprochement restent courts.
 const MAX_OUTPUT: Record<PlannerStepName, number> = { understand: 6000, match: 4000, compose: 16000, repair: 16000 };
 // Une saturation (429) est rejouée deux fois, après l'attente demandée par le fournisseur, avant de devenir une
@@ -90,7 +107,7 @@ const strictSchema = (schema: z.ZodType, reused: "inline" | "ref" = "inline") =>
 // plus est vérifié par règles : date dans la période, destinataire connu (`plannerNormalizeUnderstanding`),
 // fiche donnée au modèle, séance comprise (`plannerCompositionToInterpretation`).
 const UNDERSTANDING_SCHEMA = strictSchema(plannerUnderstanding);
-const MATCH_SCHEMA = strictSchema(plannerMatchGeneration);
+const MATCH_SCHEMA = strictSchema(plannerMatchJudgement);
 const COMPOSITION_SCHEMA = strictSchema(plannerComposition, "ref");
 
 const wait = (ms: number, signal?: AbortSignal) =>
@@ -123,15 +140,17 @@ type Call = {
   input: unknown;
   schema: Record<string, unknown>;
   options: PlannerStepOptions;
+  // Composer : la demande est seulement décrite (`plannerOnlyDescribed`).
+  described?: boolean;
 };
 
 export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerProvider {
-  const call = async ({ step, name, prompt, reference, input, schema, options }: Call): Promise<unknown> => {
+  const call = async ({ step, name, prompt, reference, input, schema, options, described }: Call): Promise<unknown> => {
     const settings = env();
     if (!plannerServerEnabled(settings)) throw new PlannerProviderError("disabled", step);
     const key = settings.OPENAI_API_KEY ?? settings.OPEN_AI_API_KEY;
     if (!key) throw new PlannerProviderError("configuration", step);
-    const { model, effort } = plannerStepSettings(settings, step);
+    const { model, effort } = plannerStepSettings(settings, step, described);
     // Cache du fournisseur : seule la partie stable (consignes, puis bibliothèque) est mise en cache, par un
     // repère explicite à sa fin. Sans cela, GPT-5.6 et suivants écrivent en cache toute l'entrée de chaque demande,
     // facturée 1,25 fois, alors que la demande du coach ne se relit jamais (guide « Prompt caching »).
@@ -221,18 +240,21 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
       );
     },
     async match(input, options = {}) {
-      return typed(
-        plannerMatchGeneration,
-        "match",
-        await call({
-          step: "match",
-          name: "tartan_matches",
-          prompt: matchPrompt,
-          reference: libraryLines(input.library),
-          input: { movements: input.movements },
-          schema: MATCH_SCHEMA,
-          options,
-        }),
+      // Le modèle dit la relation de chaque fiche au terme ; la confiance en découle par règle, jamais de lui.
+      return plannerMatchVerdict(
+        typed(
+          plannerMatchJudgement,
+          "match",
+          await call({
+            step: "match",
+            name: "tartan_matches",
+            prompt: matchPrompt,
+            reference: libraryLines(input.library),
+            input: { movements: input.movements },
+            schema: MATCH_SCHEMA,
+            options,
+          }),
+        ),
       );
     },
     async compose(input, options = {}) {
@@ -246,6 +268,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
           input,
           schema: COMPOSITION_SCHEMA,
           options,
+          described: plannerOnlyDescribed(input),
         }),
       );
     },
