@@ -1,16 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { m } from "@tartan/i18n";
-import { Redirect } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
-import { TrainingProfileFields } from "../src/features/training-profile-fields";
-import { api } from "../src/lib/api";
-import { errorMessage } from "../src/lib/errors";
-import { useActiveSpace } from "../src/lib/queries";
-import { Button, Chip, Field, T } from "../src/ui/primitives";
-import { StackScreen } from "../src/ui/screen";
-import { ErrorState, LoadingState } from "../src/ui/states";
-import { space as spacing } from "../src/ui/theme";
+import { LinkRow } from "../../src/features/settings-rows";
+import { TrainingProfileFields } from "../../src/features/training-profile-fields";
+import { api } from "../../src/lib/api";
+import { errorMessage } from "../../src/lib/errors";
+import { useActiveSpace } from "../../src/lib/queries";
+import { canOpenRubric } from "../../src/lib/settings-rubrics";
+import { Button, Chip, Field, ListSurface, T } from "../../src/ui/primitives";
+import { StackScreen } from "../../src/ui/screen";
+import { ErrorState, LoadingState } from "../../src/ui/states";
+import { space as spacing } from "../../src/ui/theme";
 
 type Organization = Awaited<ReturnType<typeof api.organization>>;
 
@@ -29,6 +31,8 @@ const Editor = ({ initial }: { initial: Organization }) => {
     onSuccess: (updated) => {
       client.setQueryData(["organization", initial.id], updated);
       void client.invalidateQueries({ queryKey: ["me"] });
+      // Le matériel décrit fait avancer une étape des premiers pas.
+      void client.invalidateQueries({ queryKey: ["onboarding", initial.id] });
     },
   });
   const change = (patch: Partial<Organization>) => {
@@ -71,16 +75,20 @@ const Editor = ({ initial }: { initial: Organization }) => {
   );
 };
 
-export default function OrganizationSettings() {
+// Rubrique Espace : le nom, le profil d'entraînement et les relances ; les références de force si la progression
+// est ouverte.
+export default function SpaceSettings() {
   const { me, space, orgId } = useActiveSpace();
+  const router = useRouter();
+  const allowed = space ? canOpenRubric(space.role, "espace") : false;
   const query = useQuery({
     queryKey: ["organization", orgId],
     queryFn: () => api.organization(orgId),
-    enabled: Boolean(orgId && space?.role === "owner"),
+    enabled: Boolean(orgId && allowed),
   });
-  if (!me.isPending && space?.role !== "owner") return <Redirect href="/settings" />;
+  if (!me.isPending && !allowed) return <Redirect href="/settings" />;
   return (
-    <StackScreen title={m.trainingProfile.settings}>
+    <StackScreen title={m.account.settings.rubrics.espace.title}>
       {query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : query.data ? (
@@ -88,6 +96,11 @@ export default function OrganizationSettings() {
       ) : (
         <LoadingState />
       )}
+      {space?.progressionEnabled ? (
+        <ListSurface>
+          <LinkRow label={m.strengthMapping.title} onPress={() => router.push("/strength-mappings")} />
+        </ListSurface>
+      ) : null}
     </StackScreen>
   );
 }

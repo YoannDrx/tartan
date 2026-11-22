@@ -1,12 +1,20 @@
+import { PASSWORD_MIN_LENGTH } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
-import { Redirect, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { z } from "zod";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { InviteLinkSheet } from "../../src/features/invite-link-sheet";
+import { LinkSent, type SentKind } from "../../src/features/link-sent";
 import { authClient } from "../../src/lib/auth-client";
+import {
+  failureMessage,
+  linkRequestOutcome,
+  normalizedEmail,
+  passwordSignInOutcome,
+  type LinkOutcome,
+} from "../../src/lib/sign-in";
 import {
   appleAvailable,
   googleAvailable,
@@ -15,13 +23,19 @@ import {
   socialErrorMessage,
 } from "../../src/lib/social-auth";
 import { useSession } from "../../src/lib/session-store";
+import { KeyRound, Mail } from "../../src/ui/icons";
+import { PasswordField } from "../../src/ui/password-field";
 import { Button, Card, Divider, Field, LaneLine, ScreenTitle, T } from "../../src/ui/primitives";
 import { useSceneStatusBar } from "../../src/ui/screen";
 import { scene, space, usePagePad } from "../../src/ui/theme";
 
 const CALLBACK = "/callback";
-const emailSchema = z.email();
+const t = m.account.signIn;
 
+type Intent = "signin" | "create";
+
+// L'adresse d'abord, puis deux chemins de même rang : le mot de passe, ou un lien reçu par e-mail.
+// Le même formulaire sert à la connexion et à la création de compte ; seul le chemin par mot de passe diffère.
 export default function SignIn() {
   useSceneStatusBar();
   const status = useSession((s) => s.status);
@@ -30,87 +44,101 @@ export default function SignIn() {
   const insets = useSafeAreaInsets();
   const passwordRef = useRef<TextInput>(null);
   const pad = usePagePad();
+  // Une invitation ouvre la création de compte : la personne invitée n'en a souvent pas encore.
+  const params = useLocalSearchParams<{ intent?: string }>();
+  const [intent, setIntent] = useState<Intent>(params.intent === "create" ? "create" : "signin");
+  const [step, setStep] = useState<"paths" | "password">("paths");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [usePassword, setUsePassword] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [emailError, setEmailError] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
   // Une réussite qui demande une action, pas une erreur : elle ne s'affiche pas en rouge.
   const [formNotice, setFormNotice] = useState<string | null>(null);
+  const [sent, setSent] = useState<{ kind: SentKind; email: string; notice?: string } | null>(null);
   const [pasting, setPasting] = useState(false);
   const [busy, setBusy] = useState<null | "magic" | "password" | "apple" | "google">(null);
 
   if (status === "signed-in") return <Redirect href="/" />;
 
+  const creating = intent === "create";
+
   const checkEmail = (): string | null => {
-    const value = email.trim().toLowerCase();
-    if (!emailSchema.safeParse(value).success) {
-      setEmailError(m.mobile.auth.emailInvalid);
-      return null;
-    }
-    setEmailError(null);
+    const value = normalizedEmail(email);
+    if (!value) setErrors({ email: m.mobile.auth.emailInvalid });
     return value;
   };
 
-  const sendMagicLink = async () => {
+  const requestLink = async (to: string): Promise<LinkOutcome> =>
+    linkRequestOutcome(await authClient.signIn.magicLink({ email: to, callbackURL: CALLBACK }).catch(() => null));
+
+  const sendLink = async () => {
     const value = checkEmail();
     if (!value) return;
+    setErrors({});
+    setFormNotice(null);
     setBusy("magic");
-    setFormError(null);
-    const result = await authClient.signIn.magicLink({ email: value, callbackURL: CALLBACK }).catch(() => null);
+    const outcome = await requestLink(value);
     setBusy(null);
-    if (!result || result.error) {
-      setFormError(result?.error?.status === 429 ? m.errors.rateLimited : m.common.genericError);
-      return;
-    }
-    setSentTo(value);
+    if (outcome === "sent") setSent({ kind: "magic", email: value });
+    else
+      setErrors({
+        form:
+          outcome === "limited"
+            ? t.rateLimited
+            : outcome === "unreachable"
+              ? m.auth.emailUnreachable
+              : m.common.genericError,
+      });
+  };
+
+  const choosePassword = () => {
+    if (!checkEmail()) return;
+    setErrors({});
+    setFormNotice(null);
+    setStep("password");
+    setTimeout(() => passwordRef.current?.focus(), 50);
   };
 
   const submitPassword = async () => {
     const value = checkEmail();
     if (!value) return;
-    if (creating && password.length < 10) {
-      setPasswordError(m.mobile.auth.passwordTooShort);
+    if (creating && password.length < PASSWORD_MIN_LENGTH) {
+      setErrors({ password: t.passwordTooShort(PASSWORD_MIN_LENGTH) });
       return;
     }
     if (!password) {
-      setPasswordError(m.auth.invalidCredentials);
+      setErrors({ password: t.passwordRequired });
       return;
     }
-    setPasswordError(null);
-    setFormError(null);
+    setErrors({});
     setFormNotice(null);
     setBusy("password");
-    const result = await (
-      creating
-        ? authClient.signUp.email({ email: value, password, name: "" })
-        : authClient.signIn.email({ email: value, password })
-    ).catch(() => null);
+    if (creating) {
+      const result = await authClient.signUp
+        .email({ email: value, password, name: value.split("@")[0] ?? value, callbackURL: CALLBACK })
+        .catch(() => null);
+      setBusy(null);
+      // Même écran qu'un compte existe déjà ou non : c'est l'e-mail qui fait la différence.
+      if (!result || result.error) setErrors({ form: failureMessage(result?.error, m.common.genericError) });
+      else {
+        setPassword("");
+        setSent({ kind: "verify", email: value });
+      }
+      return;
+    }
+    const result = await authClient.signIn.email({ email: value, password, callbackURL: CALLBACK }).catch(() => null);
     setBusy(null);
     if (!result) {
-      setFormError(m.common.genericError);
+      setErrors({ form: m.common.genericError });
       return;
     }
-    if (result.error) {
-      setFormError(
-        result.error.status === 429
-          ? m.errors.rateLimited
-          : result.error.status === 403
-            ? m.auth.verifyFirst
-            : result.error.status === 401
-              ? m.auth.invalidCredentials
-              : (result.error.message ?? m.common.genericError),
-      );
+    const outcome = passwordSignInOutcome(result.error);
+    if (outcome.kind === "verify") {
+      // Bon mot de passe sur une adresse pas encore confirmée : le lien de confirmation vient de repartir.
+      setSent({ kind: "verify", email: value, notice: m.account.sent.verifyFirst });
       return;
     }
-    // Compte créé : la session n'existe qu'une fois l'adresse confirmée par e-mail.
-    if (creating) {
-      setFormNotice(m.auth.verifySent);
-      setCreating(false);
-      setPassword("");
+    if (outcome.kind === "error") {
+      setErrors({ form: outcome.message });
       return;
     }
     await refresh();
@@ -119,29 +147,32 @@ export default function SignIn() {
 
   const social = async (provider: "apple" | "google") => {
     setBusy(provider);
-    setFormError(null);
+    setErrors({});
     const result = await (provider === "apple" ? signInWithApple() : signInWithGoogle());
     setBusy(null);
     if (result === "cancelled") return;
     if (result === "failed") {
-      setFormError(socialErrorMessage);
+      setErrors({ form: socialErrorMessage });
       return;
     }
     await refresh();
     router.replace("/");
   };
 
-  const hasSocial = appleAvailable || googleAvailable;
-
   const askPasswordReset = async () => {
     const address = checkEmail();
     if (!address) return;
-    setFormError(null);
-    const res = await authClient.requestPasswordReset({ email: address, redirectTo: "/nouveau-mot-de-passe" });
+    setErrors({});
+    const res = await authClient
+      .requestPasswordReset({ email: address, redirectTo: "/nouveau-mot-de-passe" })
+      .catch(() => null);
     // Même réponse que l'adresse existe ou non : le formulaire ne révèle pas qui a un compte.
-    if (res.error?.status === 429) setFormError(m.errors.rateLimited);
+    if (res?.error?.status === 429) setErrors({ form: t.rateLimited });
     else setFormNotice(m.auth.resetSent);
   };
+
+  const hasSocial = appleAvailable || googleAvailable;
+  const pending = busy !== null;
 
   return (
     <KeyboardAvoidingView
@@ -163,28 +194,35 @@ export default function SignIn() {
             gap: space.xl,
           }}
         >
-          {/* Sur fond rouge, le logotype seul : l'icône s'y perdrait (§ 9.2). */}
+          {/* Sur fond rouge, le logotype seul : l'icône s'y perdrait. */}
           <T variant="title1" accessibilityLabel={m.brand.name}>
             {m.brand.name}
           </T>
-          <ScreenTitle title={m.auth.signInTitle} testID="sign-in-title" />
+          <ScreenTitle title={creating ? t.createTitle : m.auth.signInTitle} testID="sign-in-title" />
           <T variant="body" style={{ maxWidth: 320 }}>
-            {m.auth.signInLead}
+            {creating ? t.createLead : m.auth.signInLead}
           </T>
           <LaneLine />
-          {sentTo ? (
-            <Card>
-              <View style={{ gap: space.md }} accessibilityLiveRegion="polite">
-                <T variant="title1" heading>
-                  {m.mobile.auth.linkTitle}
-                </T>
-                <T>{m.mobile.auth.linkBody(sentTo)}</T>
-                <T tone="muted" variant="small">
-                  {m.mobile.auth.openOnPhone}
-                </T>
-                <Button label={m.mobile.auth.useOtherEmail} variant="secondary" onPress={() => setSentTo(null)} />
-              </View>
-            </Card>
+          {sent ? (
+            <LinkSent
+              kind={sent.kind}
+              email={sent.email}
+              notice={sent.notice}
+              onResend={async () =>
+                sent.kind === "magic"
+                  ? requestLink(sent.email)
+                  : linkRequestOutcome(
+                      await authClient
+                        .sendVerificationEmail({ email: sent.email, callbackURL: CALLBACK })
+                        .catch(() => null),
+                    )
+              }
+              onChangeEmail={() => {
+                setSent(null);
+                setStep("paths");
+                setPassword("");
+              }}
+            />
           ) : (
             <>
               <Card>
@@ -194,7 +232,7 @@ export default function SignIn() {
                   value={email}
                   onChangeText={(v) => {
                     setEmail(v);
-                    setEmailError(null);
+                    setErrors((e) => ({ ...e, email: undefined }));
                   }}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -202,88 +240,30 @@ export default function SignIn() {
                   keyboardType="email-address"
                   textContentType="username"
                   placeholder={m.auth.emailPlaceholder}
-                  returnKeyType={usePassword ? "next" : "send"}
-                  onSubmitEditing={() => (usePassword ? passwordRef.current?.focus() : void sendMagicLink())}
-                  error={emailError}
+                  returnKeyType={step === "password" ? "next" : "go"}
+                  onSubmitEditing={() => (step === "password" ? passwordRef.current?.focus() : choosePassword())}
+                  error={errors.email}
                 />
-                {usePassword ? (
-                  <>
-                    <Field
-                      ref={passwordRef}
-                      testID="sign-in-password"
-                      label={m.auth.passwordLabel}
-                      value={password}
-                      onChangeText={(v) => {
-                        setPassword(v);
-                        setPasswordError(null);
-                      }}
-                      secureTextEntry
-                      autoCapitalize="none"
-                      autoComplete={creating ? "new-password" : "current-password"}
-                      textContentType={creating ? "newPassword" : "password"}
-                      returnKeyType="go"
-                      onSubmitEditing={() => void submitPassword()}
-                      error={passwordError}
-                    />
-                    <Button
-                      testID="sign-in-submit"
-                      label={creating ? m.auth.signUpWithPassword : m.auth.signInWithPassword}
-                      loading={busy === "password"}
-                      onPress={() => void submitPassword()}
-                    />
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: space.xs, flexWrap: "wrap" }}>
-                      <T variant="small" tone="muted">
-                        {creating ? m.auth.hasAccount : m.auth.noAccount}
-                      </T>
-                      <Button
-                        label={creating ? m.auth.signInWithPassword : m.auth.signUpWithPassword}
-                        variant="ghost"
-                        compact
-                        style={{ paddingHorizontal: space.sm }}
-                        onPress={() => {
-                          setCreating(!creating);
-                          setFormError(null);
-                          setFormNotice(null);
-                        }}
-                      />
-                    </View>
-                    {!creating ? (
-                      <Button
-                        testID="sign-in-forgot"
-                        label={m.auth.forgotPassword}
-                        variant="ghost"
-                        compact
-                        style={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
-                        onPress={() => void askPasswordReset()}
-                      />
-                    ) : null}
-                    <Button
-                      label={m.auth.useMagicLink}
-                      variant="secondary"
-                      compact
-                      onPress={() => setUsePassword(false)}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      testID="sign-in-magic"
-                      label={m.auth.sendMagicLink}
-                      loading={busy === "magic"}
-                      onPress={() => void sendMagicLink()}
-                    />
-                    <Button
-                      testID="sign-in-use-password"
-                      label={m.auth.usePassword}
-                      variant="secondary"
-                      compact
-                      onPress={() => setUsePassword(true)}
-                    />
-                  </>
-                )}
-                {formError ? (
-                  <T variant="small" tone="danger" accessibilityLiveRegion="assertive">
-                    {formError}
+                {step === "password" ? (
+                  <PasswordField
+                    ref={passwordRef}
+                    testID="sign-in-password"
+                    purpose={creating ? "new" : "current"}
+                    label={creating ? t.createPasswordLabel : t.passwordLabel}
+                    hint={creating ? t.passwordHint(PASSWORD_MIN_LENGTH) : undefined}
+                    value={password}
+                    onChangeText={(v) => {
+                      setPassword(v);
+                      setErrors((e) => ({ ...e, password: undefined }));
+                    }}
+                    returnKeyType="go"
+                    onSubmitEditing={() => void submitPassword()}
+                    error={errors.password}
+                  />
+                ) : null}
+                {errors.form ? (
+                  <T testID="sign-in-error" variant="small" tone="danger" accessibilityLiveRegion="assertive">
+                    {errors.form}
                   </T>
                 ) : null}
                 {formNotice ? (
@@ -291,6 +271,55 @@ export default function SignIn() {
                     {formNotice}
                   </T>
                 ) : null}
+                {step === "paths" ? (
+                  <View accessibilityLabel={t.paths} style={{ gap: space.md }}>
+                    <Button
+                      testID="sign-in-use-password"
+                      label={creating ? t.createWithPassword : t.withPassword}
+                      icon={KeyRound}
+                      disabled={pending}
+                      onPress={choosePassword}
+                    />
+                    <Button
+                      testID="sign-in-magic"
+                      label={creating ? t.createWithLink : t.withLink}
+                      icon={Mail}
+                      variant="secondary"
+                      loading={busy === "magic"}
+                      disabled={pending}
+                      onPress={() => void sendLink()}
+                    />
+                  </View>
+                ) : (
+                  <View style={{ gap: space.md }}>
+                    <Button
+                      testID="sign-in-submit"
+                      label={creating ? t.createSubmit : t.submit}
+                      loading={busy === "password"}
+                      disabled={pending}
+                      onPress={() => void submitPassword()}
+                    />
+                    <Button
+                      testID="sign-in-magic"
+                      label={t.linkInstead}
+                      icon={Mail}
+                      variant="secondary"
+                      loading={busy === "magic"}
+                      disabled={pending}
+                      onPress={() => void sendLink()}
+                    />
+                    {!creating ? (
+                      <Button
+                        testID="sign-in-forgot"
+                        label={t.forgot}
+                        variant="ghost"
+                        compact
+                        style={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
+                        onPress={() => void askPasswordReset()}
+                      />
+                    ) : null}
+                  </View>
+                )}
                 {hasSocial ? (
                   <View style={{ gap: space.sm }}>
                     <View
@@ -334,6 +363,18 @@ export default function SignIn() {
                   </View>
                 ) : null}
               </Card>
+              <Button
+                testID="sign-in-switch-intent"
+                label={creating ? t.haveAccount : t.noAccountYet}
+                variant="ghost"
+                compact
+                style={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
+                onPress={() => {
+                  setIntent(creating ? "signin" : "create");
+                  setErrors({});
+                  setFormNotice(null);
+                }}
+              />
               <Button
                 testID="invite-link-open"
                 label={m.mobile.inviteLink.open}

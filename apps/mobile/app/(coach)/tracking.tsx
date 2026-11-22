@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useWeekNavigator, WeekNav } from "../../src/features/agenda";
+import { CoachFirstSteps } from "../../src/features/first-steps";
 import { groupAlerts, type AthleteAlertGroup } from "../../src/lib/alerts";
 import { api } from "../../src/lib/api";
 import { localIsoDate } from "../../src/lib/dates";
@@ -434,6 +435,7 @@ export default function Tracking() {
     void tracking.refetch();
     void alerts.refetch();
     void groups.refetch();
+    void client.invalidateQueries({ queryKey: ["onboarding", orgId] });
   };
 
   const athleteCount = grid?.rows.length ?? 0;
@@ -441,6 +443,7 @@ export default function Tracking() {
 
   return (
     <TabScreen world="work" title={m.coach.trackingTitle} refreshing={tracking.isRefetching} onRefresh={refresh}>
+      <CoachFirstSteps orgId={orgId} />
       {active?.progressionEnabled ? (
         <Button label={m.analysis.title} variant="secondary" onPress={() => router.push("/training-analysis")} />
       ) : null}

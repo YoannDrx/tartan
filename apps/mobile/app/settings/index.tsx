@@ -1,186 +1,33 @@
-import { themePreferences, useThemePreference } from "../src/ui/theme-preference";
-import { legalLinks } from "../src/lib/legal-links";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError } from "@tartan/api-client";
 import { m } from "@tartan/i18n";
-import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Alert, Linking, Pressable, Switch, View } from "react-native";
-import { api } from "../src/lib/api";
-import { config } from "../src/lib/config";
-import { errorMessage } from "../src/lib/errors";
-import { getPushPermission, registerPush } from "../src/lib/notifications";
-import { useActiveSpace } from "../src/lib/queries";
-import { useSession } from "../src/lib/session-store";
-import { homeFor, useSpaceStore } from "../src/lib/space-store";
-import { useOpQueue } from "../src/lib/sync/op-queue";
-import { useOwnUploads } from "../src/lib/upload/upload-queue";
-import { Check, ChevronRight } from "../src/ui/icons";
-import { Button, Card, Chip, Divider, Field, ListSurface, SectionTitle, T, MutedChevron } from "../src/ui/primitives";
-import { StackScreen } from "../src/ui/screen";
-import { Sheet } from "../src/ui/sheet";
-import { ErrorState, LoadingState } from "../src/ui/states";
-import { scene, space, palettes } from "../src/ui/theme";
+import { Alert, Pressable, View } from "react-native";
+import { LinkRow } from "../../src/features/settings-rows";
+import { config } from "../../src/lib/config";
+import { useActiveSpace } from "../../src/lib/queries";
+import { useSession } from "../../src/lib/session-store";
+import { rubricHref, settingsGroups, type SettingsRubric } from "../../src/lib/settings-rubrics";
+import { homeFor, useSpaceStore } from "../../src/lib/space-store";
+import { useOpQueue } from "../../src/lib/sync/op-queue";
+import { useOwnUploads } from "../../src/lib/upload/upload-queue";
+import { Avatar } from "../../src/ui/avatar";
+import { Check } from "../../src/ui/icons";
+import { Button, Divider, ListSurface, MutedChevron, SectionTitle, T } from "../../src/ui/primitives";
+import { StackScreen } from "../../src/ui/screen";
+import { ErrorState, LoadingState } from "../../src/ui/states";
+import { useThemePreference } from "../../src/ui/theme-preference";
+import { scene, space } from "../../src/ui/theme";
 
-// Toute la ligne bascule le réglage : cible large, et un seul élément pour le lecteur d'écran.
-const ConsentRow = ({
-  title,
-  detail,
-  value,
-  disabled,
-  testID,
-  onChange,
-}: {
-  title: string;
-  detail: string;
-  value: boolean;
-  disabled: boolean;
-  testID: string;
-  onChange: (v: boolean) => void;
-}) => (
-  <Pressable
-    testID={testID}
-    disabled={disabled}
-    onPress={() => onChange(!value)}
-    accessibilityRole="switch"
-    accessibilityLabel={`${title}. ${detail}`}
-    accessibilityState={{ checked: value, disabled }}
-    style={({ pressed }) => ({
-      flexDirection: "row",
-      alignItems: "center",
-      gap: space.md,
-      padding: space.md,
-      minHeight: 64,
-      opacity: pressed ? 0.75 : 1,
-    })}
-  >
-    <View style={{ flex: 1, gap: 2 }}>
-      <T variant="smallStrong">{title}</T>
-      <T variant="caption" tone="muted">
-        {detail}
-      </T>
-    </View>
-    <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <Switch
-        value={value}
-        disabled={disabled}
-        trackColor={{ true: scene.actionOnCard, false: scene.controlLine }}
-        thumbColor={value ? scene.onActionOnCard : scene.text}
-      />
-    </View>
-  </Pressable>
-);
+const t = m.account.settings;
 
-const LinkRow = ({ label, onPress }: { label: string; onPress: () => void }) => (
-  <Pressable
-    onPress={onPress}
-    accessibilityRole="link"
-    accessibilityLabel={label}
-    style={({ pressed }) => ({
-      flexDirection: "row",
-      alignItems: "center",
-      gap: space.md,
-      padding: space.md,
-      minHeight: 52,
-      opacity: pressed ? 0.7 : 1,
-    })}
-  >
-    <T variant="small" style={{ flex: 1 }}>
-      {label}
-    </T>
-    <MutedChevron />
-  </Pressable>
-);
-
+// Le sommaire des réglages : qui je suis, puis une rangée par rubrique, groupées comme sur la web app.
 export default function Settings() {
   const { me, space: active } = useActiveSpace();
-  const client = useQueryClient();
-  const categories = me.data?.preferences?.notifications;
-  const emails = me.data?.preferences?.email;
-  const saveCategories = useMutation({
-    mutationFn: api.updatePreferences,
-    onSuccess: (next) => client.setQueryData(["me"], next),
-  });
   const router = useRouter();
   const signOut = useSession((s) => s.signOut);
   const theme = useThemePreference((state) => state.preference);
-  const setTheme = useThemePreference((state) => state.setPreference);
-  const expire = useSession((s) => s.expire);
-  const activeSpaceId = useSpaceStore((s) => s.activeOrgId);
   const setActive = useSpaceStore((s) => s.setActive);
   const pendingOps = useOpQueue((s) => s.items.length);
   const pendingUploads = useOwnUploads().length;
-  const hasAthleteSpace = me.data?.spaces.some((s) => s.role === "athlete") ?? false;
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [saved, setSaved] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [push, setPush] = useState<"granted" | "denied" | "undetermined" | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [confirmWord, setConfirmWord] = useState("");
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (me.data) {
-      setFirstName(me.data.firstName ?? "");
-      setLastName(me.data.lastName ?? "");
-    }
-  }, [me.data]);
-
-  useEffect(() => {
-    void getPushPermission()
-      .then(setPush)
-      .catch(() => setPush("undetermined"));
-  }, []);
-
-  const consents = useQuery({ queryKey: ["consents"], queryFn: api.consents, enabled: hasAthleteSpace });
-
-  const saveProfile = useMutation({
-    mutationFn: () => api.updateProfile({ firstName: firstName.trim(), lastName: lastName.trim() }),
-    onSuccess: (data) => {
-      client.setQueryData(["me"], data);
-      setSaved(true);
-      setProfileError(null);
-    },
-    onError: (error) => setProfileError(errorMessage(error)),
-  });
-
-  const setConsent = useMutation({
-    mutationFn: ({ kind, granted }: { kind: "health" | "video"; granted: boolean }) =>
-      activeSpaceId ? api.setSpaceConsent(activeSpaceId, kind, granted) : api.setConsent(kind, granted),
-    onSuccess: (data) => {
-      client.setQueryData(["consents"], data);
-      void client.invalidateQueries({ queryKey: ["today"] });
-    },
-  });
-
-  const toggleConsent = (kind: "health" | "video", granted: boolean) => {
-    if (granted) {
-      setConsent.mutate({ kind, granted });
-      return;
-    }
-    Alert.alert(
-      m.mobile.settings.revokeTitle,
-      kind === "health" ? m.mobile.settings.revokeHealth : m.mobile.settings.revokeVideo,
-      [
-        { text: m.common.cancel, style: "cancel" },
-        { text: m.mobile.settings.revoke, style: "destructive", onPress: () => setConsent.mutate({ kind, granted }) },
-      ],
-    );
-  };
-
-  const deleteAccount = useMutation({
-    mutationFn: () => api.deleteAccount(),
-    onSuccess: async () => {
-      setDeleting(false);
-      await expire();
-    },
-    onError: (error) => {
-      setDeleteError(error instanceof ApiError && error.status < 500 ? error.message : m.mobile.settings.deleteFailed);
-    },
-  });
 
   const confirmSignOut = () => {
     const pending = pendingOps + pendingUploads;
@@ -196,95 +43,92 @@ export default function Settings() {
 
   if (me.isPending) {
     return (
-      <StackScreen world="work" title={m.settings.title}>
+      <StackScreen title={m.settings.title}>
         <LoadingState />
       </StackScreen>
     );
   }
   if (!me.data) {
     return (
-      <StackScreen world="work" title={m.settings.title}>
+      <StackScreen title={m.settings.title}>
         <ErrorState error={me.error} onRetry={() => void me.refetch()} />
       </StackScreen>
     );
   }
 
+  const data = me.data;
+  const name = [data.firstName, data.lastName].filter(Boolean).join(" ") || data.email;
+  const athleteOnly = data.spaces.length > 0 && data.spaces.every((s) => s.role === "athlete");
+  const summary = (rubric: SettingsRubric): string => {
+    const r = t.rubrics;
+    if (rubric === "apparence") return r.apparence.summary(m.appearance[theme]);
+    if (rubric === "confidentialite") return athleteOnly ? r.confidentialite.summaryAthlete : r.confidentialite.summary;
+    return r[rubric].summary;
+  };
+
   return (
-    <StackScreen world="work" title={m.settings.title}>
-      <View style={{ gap: space.sm }}>
-        <SectionTitle>{m.appearance.title}</SectionTitle>
-        <T variant="caption" tone="muted">
-          {m.appearance.hint}
-        </T>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
-          {themePreferences.map((option) => (
-            <Chip
-              key={option}
-              tall
-              label={m.appearance[option]}
-              active={theme === option}
-              onPress={() => setTheme(option)}
-            />
-          ))}
-        </View>
-      </View>
-      <View style={{ gap: space.sm }}>
-        <SectionTitle>{m.settings.profile}</SectionTitle>
-        <Card>
-          <Field
-            label={m.onboarding.firstName}
-            value={firstName}
-            onChangeText={(v) => {
-              setFirstName(v);
-              setSaved(false);
+    <StackScreen title={m.settings.title}>
+      <ListSurface>
+        <Pressable
+          testID="settings-profile"
+          onPress={() => router.push(rubricHref("profil"))}
+          accessibilityRole="link"
+          accessibilityLabel={t.openProfile(name)}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.md,
+            padding: space.md,
+            minHeight: 72,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Avatar
+            person={{
+              name,
+              firstName: data.firstName,
+              lastName: data.lastName,
+              avatarUrl: data.avatarUrl,
+              avatarPreset: data.avatarPreset,
             }}
-            autoComplete="given-name"
+            size="lg"
           />
-          <Field
-            label={m.onboarding.lastName}
-            value={lastName}
-            onChangeText={(v) => {
-              setLastName(v);
-              setSaved(false);
-            }}
-            autoComplete="family-name"
-          />
-          <View style={{ gap: 2 }}>
-            <T variant="smallStrong">{m.mobile.settings.email}</T>
-            <T variant="small" tone="muted">
-              {me.data.email}
+          <View style={{ flex: 1, gap: 2 }}>
+            <T variant="bodyStrong" numberOfLines={2}>
+              {name}
+            </T>
+            <T variant="caption" tone="muted" numberOfLines={1}>
+              {data.email}
             </T>
           </View>
-          <Button
-            testID="profile-save"
-            label={m.common.save}
-            variant="secondary"
-            loading={saveProfile.isPending}
-            disabled={
-              !firstName.trim() ||
-              !lastName.trim() ||
-              (firstName.trim() === (me.data.firstName ?? "") && lastName.trim() === (me.data.lastName ?? ""))
-            }
-            onPress={() => saveProfile.mutate()}
-          />
-          {saved ? (
-            <T variant="caption" tone="muted" accessibilityLiveRegion="polite">
-              {m.mobile.settings.saved}
-            </T>
-          ) : null}
-          {profileError ? (
-            <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
-              {profileError}
-            </T>
-          ) : null}
-        </Card>
-      </View>
+          <MutedChevron />
+        </Pressable>
+      </ListSurface>
 
-      {me.data.spaces.length > 1 ? (
-        <View style={{ gap: space.sm }}>
-          <SectionTitle>{m.mobile.settings.spaces}</SectionTitle>
+      {settingsGroups(active?.role ?? null).map((group) => (
+        <View key={group.id} style={{ gap: space.sm }}>
+          <SectionTitle>{t.groups[group.id]}</SectionTitle>
           <ListSurface>
-            {me.data.spaces.map((s, i) => (
+            {group.rubrics.map((rubric, index) => (
+              <View key={rubric}>
+                {index > 0 ? <Divider /> : null}
+                <LinkRow
+                  testID={`settings-rubric-${rubric}`}
+                  label={t.rubrics[rubric].title}
+                  detail={summary(rubric)}
+                  onPress={() => router.push(rubricHref(rubric))}
+                />
+              </View>
+            ))}
+          </ListSurface>
+        </View>
+      ))}
+
+      {data.spaces.length > 1 ? (
+        <View style={{ gap: space.sm }}>
+          <SectionTitle>{t.spacesTitle}</SectionTitle>
+          <ListSurface>
+            {data.spaces.map((s, i) => (
               <View key={s.organizationId}>
                 {i > 0 ? <Divider /> : null}
                 <Pressable
@@ -324,209 +168,12 @@ export default function Settings() {
         </View>
       ) : null}
 
-      {active?.role === "owner" ? (
-        <Button
-          label={m.trainingProfile.settings}
-          variant="secondary"
-          onPress={() => router.push("/organization-settings")}
-        />
-      ) : null}
-      {hasAthleteSpace ? (
-        <View style={{ gap: space.sm }}>
-          <SectionTitle>{m.settings.privacy}</SectionTitle>
-          {consents.isPending ? <LoadingState inline /> : null}
-          {consents.isError ? <ErrorState error={consents.error} onRetry={() => void consents.refetch()} /> : null}
-          {consents.data ? (
-            <ListSurface>
-              <ConsentRow
-                testID="consent-health"
-                title={m.settings.healthConsent}
-                detail={m.settings.healthConsentDetail}
-                value={consents.data.health}
-                disabled={setConsent.isPending}
-                onChange={(v) => toggleConsent("health", v)}
-              />
-              <Divider />
-              <ConsentRow
-                testID="consent-video"
-                title={m.settings.videoConsent}
-                detail={m.settings.videoConsentDetail}
-                value={consents.data.video}
-                disabled={setConsent.isPending}
-                onChange={(v) => toggleConsent("video", v)}
-              />
-            </ListSurface>
-          ) : null}
-          {setConsent.isError ? (
-            <T variant="caption" tone="danger">
-              {m.mobile.settings.consentFailed}
-            </T>
-          ) : null}
-        </View>
-      ) : null}
-
-      <View style={{ gap: space.sm }}>
-        <SectionTitle>{m.mobile.settings.notifications}</SectionTitle>
-        <T variant="small">
-          {push === "granted"
-            ? m.mobile.settings.notificationsOn
-            : push === "denied"
-              ? m.mobile.push.denied
-              : m.mobile.settings.notificationsOff}
-        </T>
-        {push === "denied" ? (
-          <Button
-            testID="push-open-settings"
-            label={m.mobile.settings.openSystemSettings}
-            variant="secondary"
-            compact
-            onPress={() => void Linking.openSettings()}
-          />
-        ) : null}
-        {push === "undetermined" ? (
-          <Button
-            label={m.mobile.settings.enableNotifications}
-            variant="secondary"
-            compact
-            onPress={() => void registerPush({ prompt: true }).then(setPush)}
-          />
-        ) : null}
-      </View>
-
-      <View style={{ gap: space.sm }}>
-        <SectionTitle>{m.inbox.categories}</SectionTitle>
-        <T variant="small">{m.inbox.categoriesDetail}</T>
-        <ListSurface>
-          {(["sessions", "feedback", "group", "product"] as const).map((key, index) => (
-            <View key={key}>
-              {index > 0 ? <Divider /> : null}
-              <ConsentRow
-                testID={`push-category-${key}`}
-                title={m.inbox[key]}
-                detail=""
-                value={categories?.[key] ?? true}
-                disabled={saveCategories.isPending}
-                onChange={(on) => saveCategories.mutate({ notifications: { [key]: on } })}
-              />
-            </View>
-          ))}
-        </ListSurface>
-        <SectionTitle>{m.settings.emails}</SectionTitle>
-        <ListSurface>
-          <ConsentRow
-            testID="email-notifications"
-            title={m.settings.emailNotifications}
-            detail=""
-            value={emails?.notifications ?? true}
-            disabled={saveCategories.isPending}
-            onChange={(on) => saveCategories.mutate({ email: { notifications: on } })}
-          />
-          {active?.role === "owner" ? (
-            <>
-              <Divider />
-              <ConsentRow
-                testID="email-digest"
-                title={m.settings.emailDigest}
-                detail=""
-                value={emails?.digest ?? true}
-                disabled={saveCategories.isPending}
-                onChange={(on) => saveCategories.mutate({ email: { digest: on } })}
-              />
-            </>
-          ) : null}
-          {active?.aiPlannerEnabled ? (
-            <>
-              <Divider />
-              <ConsentRow
-                testID="ai-consent"
-                title={m.aiPlanner.consentSetting}
-                detail={m.aiPlanner.consentSettingDetail}
-                value={me.data?.preferences?.aiConsent ?? false}
-                disabled={saveCategories.isPending}
-                onChange={(on) => saveCategories.mutate({ aiConsent: on })}
-              />
-            </>
-          ) : null}
-        </ListSurface>
-        <ListSurface>
-          <LinkRow label={m.inbox.title} onPress={() => router.push("/notifications")} />
-          <Divider />
-          <LinkRow label={m.releases.title} onPress={() => router.push("/nouveautes")} />
-        </ListSurface>
-      </View>
-
-      {active?.role === "owner" && active.progressionEnabled ? (
-        <ListSurface>
-          <LinkRow label={m.strengthMapping.title} onPress={() => router.push("/strength-mappings")} />
-        </ListSurface>
-      ) : null}
-      <ListSurface>
-        <LinkRow
-          label={m.legal.terms}
-          onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).terms)}
-        />
-        <Divider />
-        <LinkRow
-          label={m.legal.privacy}
-          onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).privacy)}
-        />
-        <Divider />
-        <LinkRow
-          label={m.help.title}
-          onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).help)}
-        />
-        <Divider />
-        <LinkRow
-          label={m.legal.contact}
-          onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).contact)}
-        />
-      </ListSurface>
-
       <View style={{ gap: space.sm }}>
         <Button testID="sign-out" label={m.common.signOut} variant="secondary" onPress={confirmSignOut} />
-        <Button
-          testID="delete-account"
-          label={m.settings.deleteAccount}
-          variant="danger"
-          onPress={() => {
-            setDeleteError(null);
-            setConfirmWord("");
-            setDeleting(true);
-          }}
-        />
         <T variant="caption" tone="muted" style={{ textAlign: "center" }}>
           {m.mobile.settings.version(config.appVersion)}
         </T>
       </View>
-
-      {deleting ? (
-        <Sheet
-          visible
-          title={m.mobile.settings.deleteConfirmTitle}
-          onClose={() => setDeleting(false)}
-          footer={
-            <Button
-              testID="delete-confirm"
-              label={m.mobile.settings.deleteAction}
-              variant="danger"
-              loading={deleteAccount.isPending}
-              disabled={confirmWord.trim() !== m.settings.deleteConfirmWord}
-              onPress={() => deleteAccount.mutate()}
-            />
-          }
-        >
-          <T>{m.settings.deleteDetail}</T>
-          <Field
-            testID="delete-confirm-word"
-            label={m.settings.deleteConfirmLabel}
-            value={confirmWord}
-            onChangeText={setConfirmWord}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            error={deleteError}
-          />
-        </Sheet>
-      ) : null}
     </StackScreen>
   );
 }
