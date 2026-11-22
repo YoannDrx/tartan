@@ -1539,6 +1539,248 @@
         ],
         "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
       }
+    },
+    {
+      "id": "DEV-34",
+      "kind": "described",
+      "text": "Demain, groupe Force : squat à la barre guidée 4 séries de 8, puis footing lent 10 minutes.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Force"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-24",
+            "steps": [
+              {
+                "key": "back-squat",
+                "sets": 4,
+                "reps": 8,
+                "load": null
+              },
+              {
+                "key": "easy-continuous-run",
+                "durationS": 600,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-35",
+      "kind": "described",
+      "text": "Mercredi, groupe Sprint : squat arrière 4 x 6 ; puis fentes avant 3 x 10 ; puis 8 lancers de médecine-ball vers l'avant.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-25",
+            "steps": [
+              {
+                "key": "back-squat",
+                "sets": 4,
+                "reps": 6,
+                "load": null
+              },
+              {
+                "key": "forward-lunge",
+                "sets": 3,
+                "reps": 10,
+                "load": null
+              },
+              {
+                "key": "medicine-ball-forward",
+                "sets": 1,
+                "reps": 8,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-36",
+      "kind": "described",
+      "text": "demain pour le groupe sprint gainage ventral trois fois trente secondes puis dix pompes puis vingt fentes sautées",
+      "spoken": true,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-24",
+            "steps": [
+              {
+                "key": "front-plank",
+                "sets": 3,
+                "durationS": 30,
+                "load": null
+              },
+              {
+                "key": "push-up",
+                "sets": 1,
+                "reps": 10,
+                "load": null
+              },
+              {
+                "key": "split-jumps",
+                "sets": 1,
+                "reps": 20,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-37",
+      "kind": "described",
+      "text": "jeudi pour le groupe force squat arrière deux reps à soixante kilos deux à soixante-dix une à quatre-vingts une à quatre-vingt-cinq",
+      "spoken": true,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Force"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-26",
+            "steps": [
+              {
+                "key": "back-squat",
+                "sets": 4,
+                "load": {
+                  "value": 60,
+                  "unit": "kg"
+                },
+                "setPlan": [
+                  {
+                    "reps": 2,
+                    "load": {
+                      "value": 60,
+                      "unit": "kg"
+                    }
+                  },
+                  {
+                    "reps": 2,
+                    "load": {
+                      "value": 70,
+                      "unit": "kg"
+                    }
+                  },
+                  {
+                    "reps": 1,
+                    "load": {
+                      "value": 80,
+                      "unit": "kg"
+                    }
+                  },
+                  {
+                    "reps": 1,
+                    "load": {
+                      "value": 85,
+                      "unit": "kg"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-38",
+      "kind": "described",
+      "text": "demain pour le groupe force développé couché quatre fois cinq à soixante-quinze kilos puis soulevé de terre trois fois trois à cent dix kilos puis squat avant cinq fois deux à quatre-vingt-dix pour cent",
+      "spoken": true,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Force"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-24",
+            "steps": [
+              {
+                "key": "bench-press",
+                "sets": 4,
+                "reps": 5,
+                "load": {
+                  "value": 75,
+                  "unit": "kg"
+                }
+              },
+              {
+                "key": "deadlift",
+                "sets": 3,
+                "reps": 3,
+                "load": {
+                  "value": 110,
+                  "unit": "kg"
+                }
+              },
+              {
+                "key": "front-squat",
+                "sets": 5,
+                "reps": 2,
+                "load": {
+                  "value": 90,
+                  "unit": "pct_1rm"
+                }
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
     }
   ]
 }

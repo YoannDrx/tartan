@@ -367,6 +367,46 @@
       "id": "DP-66",
       "said": "soulevé de terre déficit",
       "absent": true
+    },
+    {
+      "id": "DP-67",
+      "said": "squat à la barre guidée",
+      "key": "back-squat"
+    },
+    {
+      "id": "DP-68",
+      "said": "footing lent",
+      "key": "easy-continuous-run"
+    },
+    {
+      "id": "DP-69",
+      "said": "gainage ventral sur les avant-bras",
+      "key": "front-plank"
+    },
+    {
+      "id": "DP-70",
+      "said": "développé couché à la machine",
+      "key": "bench-press"
+    },
+    {
+      "id": "DP-71",
+      "said": "course lente",
+      "key": "easy-continuous-run"
+    },
+    {
+      "id": "DP-72",
+      "said": "superman",
+      "absent": true
+    },
+    {
+      "id": "DP-73",
+      "said": "soulevé de terre jambes tendues",
+      "absent": true
+    },
+    {
+      "id": "DP-74",
+      "said": "relevé de buste au banc à lombaires",
+      "absent": true
     }
   ]
 }
