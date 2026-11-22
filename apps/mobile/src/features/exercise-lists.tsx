@@ -302,10 +302,10 @@ export const FilePanel = ({
                     accessibilityElementsHidden
                     importantForAccessibility="no"
                   />
-                  <T variant="bodyStrong" style={{ flex: 1 }}>
+                  <T testID={`exercise-list-label-${list.name}`} variant="bodyStrong" style={{ flex: 1 }}>
                     {list.name}
                   </T>
-                  <T variant="small" tone="muted">
+                  <T testID={`exercise-list-count-${list.name}`} variant="small" tone="muted">
                     {t.lists.count(list.exerciseIds.length)}
                   </T>
                 </Pressable>

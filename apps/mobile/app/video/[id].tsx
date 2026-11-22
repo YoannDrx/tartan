@@ -526,7 +526,7 @@ const Player = ({
                 ) : null}
                 {a.text ? <T variant="small">{a.text}</T> : null}
                 {a.drawing ? (
-                  <T variant="caption" tone="muted">
+                  <T testID={`annotation-drawing-${a.id}`} variant="caption" tone="muted">
                     {describeDrawing(a.drawing)}
                   </T>
                 ) : null}

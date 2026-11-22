@@ -1,3 +1,5 @@
+# Parité mobile, lot M2 : la fiche concise, comme sur le web. Le geste d'abord, la mise en place, les étapes, les
+# erreurs à éviter ; le texte complet et les explications restent sous « Détail ».
 appId: ${APP_ID}
 env:
   EMAIL: ${COACH_EMAIL}
@@ -17,11 +19,36 @@ env:
 - inputText: "back squat"
 - hideKeyboard
 - tapOn: "Squat arrière.*"
+- extendedWaitUntil:
+    visible:
+      id: exercise-guide-concise
+    timeout: 15000
+# Le geste tourne en boucle : l'arrêter fige l'écran avant de défiler.
 - tapOn:
-    id: exercise-guide-open
-- assertVisible: "Consignes indicatives relues par Tartan.*"
+    id: exercise-guide-play
+    optional: true
 - scrollUntilVisible:
     element:
-      text: "Installation"
+      text: "Mise en place"
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      text: "À éviter"
+    direction: DOWN
+- assertNotVisible:
+    id: exercise-guide-detail-content
+- scrollUntilVisible:
+    element:
+      id: exercise-guide-detail
+    direction: DOWN
+- tapOn:
+    id: exercise-guide-detail
+- scrollUntilVisible:
+    element:
+      text: "Comment compter"
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      text: "Consignes indicatives relues par Tartan.*"
     direction: DOWN
 - takeScreenshot: coach-exercise-guide
