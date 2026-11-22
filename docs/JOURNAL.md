@@ -5,6 +5,12 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 Modèle :
 
 ```text
+## 2026-11-22, Claude Opus 5.5, fin de la file et Preview remise à niveau
+Fait : PR 172 (onboarding), 173 (espace de démonstration), 174 (K2), 175 (chercher ou créer un exercice) et 176 (planificateur refait, web et app native) fusionnées ; production à `0385044`. Branche `preview` avancée sur `main` sans réécriture (295 commits de retard, aucun d'avance) ; la Preview sert `0385044`.
+Vérifié : `/api/v1/version` en production et sur la Preview ; aucune erreur d'exécution Vercel sur 24 h ; CI verte sur chaque PR, Maestro iOS et Android compris (flux natifs du planificateur réécrits). Non vérifié : aucun parcours réel joué par une personne sur la Preview ou en production depuis le 15 novembre.
+À savoir : trois défauts trouvés en route. Un test du domaine de démonstration calculait le jour en UTC (échec entre minuit et une heure). La graine plaçait le dimanche la séance du jour en quatrième colonne de la grille native, hors de l'écran de Maestro Android (en CI mobile, deux séances seulement la précèdent). Le lien « Aller au contenu » (`#contenu`) se résolvait sur l'adresse du panneau de séance (`?seance=`) : le calendrier le prenait pour le lien de la séance et lui rendait le focus.
+Suite : essai du planificateur par le fondateur sur la Preview, puis retrait de « bêta » ; comptes de test du fondateur ; recette web ; parité mobile et bêtas.
+
 ## AAAA-MM-JJ, agent, sujet
 Fait : … (PR)
 Vérifié : … / Non vérifié : …
