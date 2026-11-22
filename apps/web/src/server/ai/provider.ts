@@ -2,12 +2,12 @@ import "server-only";
 import { z } from "zod";
 import {
   plannerComposition,
-  plannerMatchGeneration,
+  plannerMatchJudgement,
   plannerUnderstanding,
   type PlannerFailureCode,
   type PlannerStepName,
 } from "@tartan/contracts";
-import { plannerServerEnabled } from "@tartan/domain";
+import { plannerMatchVerdict, plannerServerEnabled } from "@tartan/domain";
 import { env, type Env } from "@/lib/env";
 import { composePrompt, matchPrompt, repairPrompt, understandPrompt } from "./pipeline/prompts";
 import {
@@ -90,7 +90,7 @@ const strictSchema = (schema: z.ZodType, reused: "inline" | "ref" = "inline") =>
 // plus est vérifié par règles : date dans la période, destinataire connu (`plannerNormalizeUnderstanding`),
 // fiche donnée au modèle, séance comprise (`plannerCompositionToInterpretation`).
 const UNDERSTANDING_SCHEMA = strictSchema(plannerUnderstanding);
-const MATCH_SCHEMA = strictSchema(plannerMatchGeneration);
+const MATCH_SCHEMA = strictSchema(plannerMatchJudgement);
 const COMPOSITION_SCHEMA = strictSchema(plannerComposition, "ref");
 
 const wait = (ms: number, signal?: AbortSignal) =>
@@ -221,18 +221,21 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
       );
     },
     async match(input, options = {}) {
-      return typed(
-        plannerMatchGeneration,
-        "match",
-        await call({
-          step: "match",
-          name: "tartan_matches",
-          prompt: matchPrompt,
-          reference: libraryLines(input.library),
-          input: { movements: input.movements },
-          schema: MATCH_SCHEMA,
-          options,
-        }),
+      // Le modèle dit la relation de chaque fiche au terme ; la confiance en découle par règle, jamais de lui.
+      return plannerMatchVerdict(
+        typed(
+          plannerMatchJudgement,
+          "match",
+          await call({
+            step: "match",
+            name: "tartan_matches",
+            prompt: matchPrompt,
+            reference: libraryLines(input.library),
+            input: { movements: input.movements },
+            schema: MATCH_SCHEMA,
+            options,
+          }),
+        ),
       );
     },
     async compose(input, options = {}) {

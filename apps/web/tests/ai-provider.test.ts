@@ -156,8 +156,11 @@ describe("une fonction typée par étape", () => {
     expect(schema).not.toContain("oneOf");
   });
   it("retrouver : la bibliothèque en cinq champs par fiche, avant les termes", async () => {
+    const judgement = {
+      matches: [{ id: "m1", candidates: [{ key: "f1", relation: "same_name" }], suggestion: null }],
+    };
     const generation = { matches: [{ id: "m1", confidence: "sure" as const, key: "f1", others: [], suggestion: null }] };
-    const { fetcher, bodies } = recorder(answer(generation));
+    const { fetcher, bodies } = recorder(answer(judgement));
     const library = [
       { key: "f1", name: "Soulevé de terre roumain", aliases: ["RDL"], family: "strength", equipment: ["barbell"] },
       { key: "f2", name: "Gainage ventral", aliases: [], family: "core", equipment: [] },
@@ -181,6 +184,30 @@ describe("une fonction typée par étape", () => {
     expect(body.input[0]!.content).toEqual(expect.any(String));
     expect(body.input[1]!.content).toMatchObject([{ prompt_cache_breakpoint: { mode: "explicit" } }]);
     expect(JSON.parse(text(body.input[2]!))).toEqual({ movements: [{ id: "m1", said: "RDL", prescription: "3 x 8", near: [] }] });
+    // Le schéma demande une relation par fiche, jamais une confiance : elle est décidée par règle.
+    const schema = JSON.stringify(body.text.format.schema);
+    expect(schema).toContain("same_known");
+    expect(schema).not.toContain("confidence");
+  });
+  it("retrouver : une équivalence que seul le modèle connaît, ou une précision de matériel, reste à vérifier", async () => {
+    const judgement = {
+      matches: [
+        { id: "m1", candidates: [{ key: "f1", relation: "same_known" }], suggestion: null },
+        { id: "m2", candidates: [{ key: "f2", relation: "variant" }, { key: "f3", relation: "neighbor" }], suggestion: null },
+      ],
+    };
+    const { fetcher } = recorder(answer(judgement));
+    const result = await openAiPlannerProvider(fetcher).match({
+      movements: [
+        { id: "m1", said: "chaise au mur", prescription: null, near: [] },
+        { id: "m2", said: "squat à la barre guidée", prescription: null, near: [] },
+      ],
+      library: [],
+    });
+    expect(result.matches).toEqual([
+      { id: "m1", confidence: "probable", key: "f1", others: [], suggestion: null },
+      { id: "m2", confidence: "probable", key: "f2", others: ["f3"], suggestion: null },
+    ]);
   });
   it("composer et réparer : modèle principal, fiches et emplacements seuls permis, prescription écrite une fois", async () => {
     const composition = composed([node("m1", "exercise_1"), node("m2", "slot_1")]);

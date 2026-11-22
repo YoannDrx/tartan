@@ -109,6 +109,32 @@ export const plannerMatchGeneration = z
   .strict();
 export type PlannerMatchGeneration = z.infer<typeof plannerMatchGeneration>;
 
+// Ajout du 22 novembre 2026. Le modèle ne dit plus sa confiance : pour chaque fiche qu'il propose, il dit sa
+// relation au terme du coach, et le serveur décide par règle (`plannerMatchVerdict`, dans `packages/domain`).
+// same_name : même mouvement, et le nom, un alias ou leur traduction directe le disent. same_known : même
+// mouvement, mais seule la connaissance du modèle le dit. variant : même geste, à une précision près (matériel,
+// agrès, position), ou terme plus général que la fiche. neighbor : un autre mouvement, simplement voisin.
+export const plannerMatchRelation = z.enum(["same_name", "same_known", "variant", "neighbor"]);
+export type PlannerMatchRelation = z.infer<typeof plannerMatchRelation>;
+export const plannerMatchJudgement = z
+  .object({
+    matches: z
+      .array(
+        z
+          .object({
+            id: plannerMovementId,
+            // Les fiches proposées, la meilleure d'abord : aucune si rien ne ressemble.
+            candidates: z.array(z.object({ key: z.string().max(12), relation: plannerMatchRelation }).strict()).max(4),
+            // De quoi créer la fiche quand aucune n'est ce mouvement ; sinon null.
+            suggestion: plannerSlotSuggestion.nullable(),
+          })
+          .strict(),
+      )
+      .max(60),
+  })
+  .strict();
+export type PlannerMatchJudgement = z.infer<typeof plannerMatchJudgement>;
+
 // Ce que l'étape rend pour chaque mouvement cité, dans l'ordre.
 export const plannerMatch = z
   .object({
