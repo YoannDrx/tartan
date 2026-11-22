@@ -53,14 +53,10 @@ export { default as Trash } from "lucide-react-native/icons/trash";
 export { default as X } from "lucide-react-native/icons/x";
 // Listes du coach, plein écran de l'analyse et outils de tracé (parité mobile, lots M2 et M3).
 export { default as ChevronUp } from "lucide-react-native/icons/chevron-up";
-export { default as CircleIcon } from "lucide-react-native/icons/circle";
 export { default as ListPlus } from "lucide-react-native/icons/list-plus";
 export { default as Maximize } from "lucide-react-native/icons/maximize";
-export { default as MoveUpRight } from "lucide-react-native/icons/move-up-right";
 export { default as PanelRightClose } from "lucide-react-native/icons/panel-right-close";
 export { default as PanelRightOpen } from "lucide-react-native/icons/panel-right-open";
-export { default as Slash } from "lucide-react-native/icons/slash";
-export { default as Spline } from "lucide-react-native/icons/spline";
 export { default as SquareCheck } from "lucide-react-native/icons/square-check";
 export { default as Star } from "lucide-react-native/icons/star";
 export { default as Undo } from "lucide-react-native/icons/undo-2";
