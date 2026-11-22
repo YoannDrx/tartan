@@ -164,9 +164,15 @@ const main = async () => {
     { date: addDays(monday, 2), title: "Pliométrie", type: "plyo" as const },
     { date: addDays(monday, 5), title: "Séance de saut", type: "jump" as const },
   ];
+  // Sur un téléphone étroit, la grille du suivi natif montre trois séances sans défiler. Le dimanche, la séance du
+  // jour serait la quatrième (après lundi, mercredi et samedi) et le parcours natif ne la trouverait pas : en CI
+  // mobile, on ne garde que deux séances de la semaine avant celle du jour.
+  const earlier = plan.filter((entry) => entry.date < today).map((entry) => entry.date);
+  const hidden = new Set(nextDay ? earlier.slice(2) : []);
   const seen = new Set<string>();
   const sessions: { id: string; date: string }[] = [];
   for (const entry of plan) {
+    if (hidden.has(entry.date)) continue;
     if (seen.has(entry.date)) continue;
     seen.add(entry.date);
     const session = await saveScheduledSession(coachId, org.id, {

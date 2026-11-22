@@ -40,8 +40,13 @@ export const CalendarDetailPanel = ({
           className="world-work on-card fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-card px-4 pb-[max(24px,env(safe-area-inset-bottom))] pt-[max(16px,env(safe-area-inset-top))] desktop:left-auto desktop:w-[min(720px,60vw)] desktop:border-l desktop:border-card-line desktop:px-6"
           onOpenAutoFocus={() => {
             const active = document.activeElement;
+            // Un lien vers une ancre de la page (`#contenu`, le lien d'évitement) se résout sur l'adresse courante, qui
+            // porte `?seance=` tant que le panneau est ouvert : il n'est pas le lien de la séance.
             const source = Array.from(document.querySelectorAll<HTMLAnchorElement>("a[href]")).find(
-              (link) => new URL(link.href).searchParams.get("seance") === sessionId && link.getClientRects().length > 0,
+              (link) =>
+                !link.getAttribute("href")?.startsWith("#") &&
+                new URL(link.href).searchParams.get("seance") === sessionId &&
+                link.getClientRects().length > 0,
             );
             opener.current = source ?? (active instanceof HTMLElement ? active : null);
           }}
