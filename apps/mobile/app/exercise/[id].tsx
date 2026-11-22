@@ -7,7 +7,7 @@ import { useState } from "react";
 import { View } from "react-native";
 import { parseMedia } from "../../src/features/media";
 import { VideoRow } from "../../src/features/video-bits";
-import { MovementGuide } from "../../src/features/exercise-guide";
+import { MovementGuideDisclosure } from "../../src/features/exercise-guide";
 import { saveExercise } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
 import { buildExerciseInput, type ExerciseDraft, NUMBER_FIELDS, type NumberField } from "../../src/lib/exercise-form";
@@ -344,7 +344,7 @@ const ExerciseForm = ({ orgId, exercise }: { orgId: string; exercise: ExerciseSu
         </Card>
       </View>
 
-      {exercise?.guide ? <MovementGuide guide={exercise.guide} /> : null}
+      {exercise?.guide ? <MovementGuideDisclosure guide={exercise.guide} /> : null}
       {exercise ? <LinkedVideos orgId={orgId} exerciseId={exercise.id} /> : null}
     </StackScreen>
   );

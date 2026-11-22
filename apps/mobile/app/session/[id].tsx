@@ -13,7 +13,7 @@ import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, BackHandler, Pressable, Vibration, View } from "react-native";
 import { ExerciseVideo, parseMedia, SPEEDS } from "../../src/features/media";
-import { MovementGuide } from "../../src/features/exercise-guide";
+import { MovementGuideDisclosure } from "../../src/features/exercise-guide";
 import { recordValidation, ValidationSheet, type ValidationTarget } from "../../src/features/validation-sheet";
 import { useActiveSpace, useSessionDetail, useToday } from "../../src/lib/queries";
 import { useSessionProgress } from "../../src/lib/session-progress";
@@ -385,7 +385,7 @@ export default function SessionMode() {
       </View>
 
       {parseMedia(item.media) ? <ExerciseVideo key={item.ref} media={parseMedia(item.media)} rate={rate} /> : null}
-      {item.guide && !recovery ? <MovementGuide key={item.ref} guide={item.guide} /> : null}
+      {item.guide && !recovery ? <MovementGuideDisclosure key={item.ref} guide={item.guide} /> : null}
       {!recovery ? (
         <Button
           label={m.videoCollaboration.upload}
