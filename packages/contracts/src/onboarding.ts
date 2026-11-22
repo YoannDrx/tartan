@@ -57,6 +57,13 @@ export const onboardingResponse = z.object({
 });
 export type OnboardingResponse = z.infer<typeof onboardingResponse>;
 
+// L'accueil de l'athlète arrivé depuis moins d'une semaine, sans séance validée (`GET /orgs/[orgId]/athlete/welcome`) :
+// le groupe qu'il rejoint et le prénom du coach qui l'accueille. `null` quand l'accueil n'a plus lieu d'être.
+export const athleteWelcomeResponse = z.object({
+  welcome: z.object({ group: z.string(), coach: z.string() }).nullable(),
+});
+export type AthleteWelcomeResponse = z.infer<typeof athleteWelcomeResponse>;
+
 // Quelques invitations nominatives d'un coup, pour un groupe : création de l'espace et carte des premiers pas.
 export const INVITE_EMAILS_MAX = 20;
 export const inviteEmailsInput = z.object({

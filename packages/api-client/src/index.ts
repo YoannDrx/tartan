@@ -91,6 +91,16 @@ import {
   videoDetail,
   videoSummary,
 } from "@tartan/contracts";
+import {
+  athleteWelcomeResponse,
+  avatarFields,
+  onboardingResponse,
+  setPasswordResponse,
+  signInMethodsResponse,
+  type ChangePasswordInput,
+  type OnboardingPatch,
+  type SetPasswordInput,
+} from "@tartan/contracts";
 import { z } from "zod";
 
 export class ApiError extends Error {
@@ -319,6 +329,19 @@ export const createApiClient = (options: ApiClientOptions) => {
     updateProfile: (body: ProfileInput) => request("PATCH", "/me", meResponse, body),
     updatePreferences: (body: PreferencesInput) => request("PATCH", "/me/preferences", meResponse, body),
     deleteAccount: () => request("DELETE", "/me", okResponse),
+    // La photo de profil, déjà recadrée en carré sur le téléphone, dans le champ `file`.
+    uploadAvatar: (body: FormData) => request("POST", "/me/avatar", meResponse, body),
+    // Moyens de connexion du compte : lien, mot de passe, Google, Apple.
+    signInMethods: () => request("GET", "/me/sign-in-methods", signInMethodsResponse),
+    setPassword: (body: SetPasswordInput) => request("POST", "/me/password", setPasswordResponse, body),
+    changePassword: (body: ChangePasswordInput) => request("PATCH", "/me/password", okResponse, body),
+    requestPasswordConfirmation: () => request("POST", "/me/password/confirmation", okResponse),
+    dismissPasswordPrompt: () => request("DELETE", "/me/password-prompt", okResponse),
+    // Les premiers pas du membre connecté dans cet espace, gardés côté serveur pour tous ses appareils.
+    onboarding: (orgId: string) => request("GET", `/orgs/${orgId}/onboarding`, onboardingResponse),
+    updateOnboarding: (orgId: string, body: OnboardingPatch) =>
+      request("PATCH", `/orgs/${orgId}/onboarding`, onboardingResponse, body),
+    athleteWelcome: (orgId: string) => request("GET", `/orgs/${orgId}/athlete/welcome`, athleteWelcomeResponse),
     unregisterDevice: (pushToken: string) => request("DELETE", "/devices", okResponse, { pushToken }),
     registerDevice: (
       pushToken: string,
@@ -488,6 +511,7 @@ export const createApiClient = (options: ApiClientOptions) => {
             hasAccount: z.boolean(),
             level: z.string().nullable(),
             groups: z.array(z.object({ id: z.string(), name: z.string() })),
+            ...avatarFields,
           }),
         ),
       ),
@@ -508,6 +532,23 @@ export const createApiClient = (options: ApiClientOptions) => {
       ),
     groupLink: (orgId: string, groupId: string) =>
       request("POST", `/orgs/${orgId}/groups/${groupId}/link`, z.object({ id: z.string(), link: z.string() })),
+    invitations: (orgId: string) =>
+      request(
+        "GET",
+        `/orgs/${orgId}/invitations`,
+        z.array(
+          z.object({
+            id: z.string(),
+            kind: z.string(),
+            role: z.enum(["athlete", "coach", "assistant"]),
+            email: z.string().nullable(),
+            phone: z.string().nullable(),
+            groupIds: z.array(z.string()),
+            useCount: z.number(),
+            status: z.string(),
+          }),
+        ),
+      ),
     createInvitation: (orgId: string, body: CreateInvitationInput) =>
       request("POST", `/orgs/${orgId}/invitations`, z.object({ id: z.string(), link: z.string() }), body),
     videos: (orgId: string, athleteId?: string, exerciseId?: string) =>
