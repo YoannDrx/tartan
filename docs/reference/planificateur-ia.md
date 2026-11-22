@@ -124,7 +124,9 @@ Refait le 22 novembre 2026 (lot P3). Le code vit dans `apps/web/src/features/pla
 | Rapproché | « À vérifier », avec le terme dit, sous la carte de l’exercice. | « C’est la bonne fiche », une autre fiche possible en un geste, ou « Chercher une autre fiche » dans toute la bibliothèque. |
 | À compléter | Une carte en pointillés, à sa place, avec le terme dit et sa prescription. | « Choisir une fiche » (la recherche part du terme dit), « Créer la fiche » (nom, famille et charge déjà proposés, puis « Créer et utiliser »), ou « Retirer ». |
 
-Aucune réponse écrite, aucune case, aucune relance : chaque geste appelle `resolve-exercise`, la séance se met à jour sur place, et le terme est retenu. Tant qu’un exercice attend sa fiche, le bouton du bas ne crée pas le brouillon : il dit lequel (« Compléter « … » ») et y mène ; l’aperçu des charges attend aussi.
+Aucune réponse écrite, aucune case, aucune relance : chaque geste appelle `resolve-exercise`, la séance se met à jour sur place, et le terme est retenu. Tant qu’un exercice attend sa fiche, le bouton du bas ne crée pas le brouillon : il dit lequel (« Compléter « … » ») et y mène ; l’aperçu des charges attend aussi. Au clavier, le focus revient après chaque geste sur l’exercice concerné, ou sur le titre de la séance après un retrait.
+
+Une fiche créée depuis la séance passe par une action du serveur, qui rend la page de nouveau : `WebPlanner` garde alors son travail, et ne repart de la page que si l’adresse désigne une autre proposition (`routeProposal`).
 
 - **Ajouter et remplacer** passent par `ExerciseFinder`, sur toute la bibliothèque, création comprise. `SequenceEditor` reçoit pour cela `extras` : un nom, une carte ou une note qu’un écran ajoute à un exercice, sans que l’éditeur en connaisse le sens.
 - **L’aperçu des charges** (`planner-loads.tsx`) reste ouvert : à chaque retouche il se met à jour sur place, l’athlète ouvert reste ouvert.
