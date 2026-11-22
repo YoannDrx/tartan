@@ -1,19 +1,21 @@
 import { ApiError, createApiClient } from "@tartan/api-client";
 import type { ExerciseInput } from "@tartan/contracts";
+import { fetch as expoFetch } from "expo/fetch";
 import { appVersion, nativePlatform } from "./app-version";
 import { authClient } from "./auth-client";
 import { config } from "./config";
 import { useSession } from "./session-store";
 
+// Seule la session qui a servi à la requête peut être déclarée expirée : une réponse tardive
+// ne doit pas effacer le cookie qu'une nouvelle connexion vient d'enregistrer.
+const expireIfCurrent = async (sent: string) => {
+  const current = await authClient.getCookie().catch(() => "");
+  if (sent && sent === current) void useSession.getState().expire();
+};
+
 const fetchWithSession: typeof fetch = async (input, init) => {
   const response = await fetch(input, { ...init, credentials: "omit" });
-  if (response.status === 401) {
-    // Seule la session qui a servi à la requête peut être déclarée expirée : une réponse tardive
-    // ne doit pas effacer le cookie qu'une nouvelle connexion vient d'enregistrer.
-    const sent = new Headers(init?.headers).get("Cookie") ?? "";
-    const current = await authClient.getCookie().catch(() => "");
-    if (sent && sent === current) void useSession.getState().expire();
-  }
+  if (response.status === 401) await expireIfCurrent(new Headers(init?.headers).get("Cookie") ?? "");
   return response;
 };
 
@@ -29,6 +31,23 @@ export const api = createApiClient({
   headers: sessionHeaders,
   fetch: fetchWithSession,
 });
+
+/**
+ * Une demande au planificateur en réponse diffusée (`text/event-stream`). Le `fetch` de React Native ne lit pas un
+ * corps de réponse au fil de l'eau : celui d'Expo le fait, sur iOS comme sur Android. Même session, même en-têtes.
+ */
+export const openPlannerStream = async (path: string, body: unknown, signal: AbortSignal) => {
+  const headers = await sessionHeaders();
+  const response = await expoFetch(`${config.apiUrl}/api/v1${path}`, {
+    method: "POST",
+    signal,
+    credentials: "omit",
+    headers: { ...headers, Accept: "text/event-stream", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (response.status === 401) await expireIfCurrent(headers.Cookie ?? "");
+  return response;
+};
 
 // Routes pas encore dans l'API client : même contrat d'erreur, même session.
 const callApi = async (method: "GET" | "POST", path: string, body?: unknown): Promise<unknown> => {

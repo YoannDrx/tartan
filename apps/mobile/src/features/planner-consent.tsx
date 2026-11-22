@@ -19,6 +19,8 @@ export function PlannerConsentNative() {
       <View style={{ gap: space.md }}>
         <T variant="smallStrong">{t.consentTitle}</T>
         <T>{t.consentBody}</T>
+        {/* La dictée n'a plus sa propre case : cet accord la couvre, comme sur le web. */}
+        <T>{t.consentDictation}</T>
         <T tone="muted">{t.consentHealth}</T>
         <Button
           testID="ai-consent-accept"
