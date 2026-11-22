@@ -35,6 +35,7 @@ var body = {
         name: "Corps de séance",
         variant: "club",
         items: [{ ref: "publication-a", exerciseId: exercises[0].id, prescription: { sets: 3, reps: 5 } }],
+        sequence: [{ kind: "exercise", itemRef: "publication-a" }],
       },
     ],
   },

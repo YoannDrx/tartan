@@ -137,7 +137,8 @@ export function ImmersiveAnalysis({
                   borderWidth: 1,
                   borderBottomWidth: 0,
                   borderColor: p.border,
-                  backgroundColor: p.surface,
+                  // Le fond de l'encre, comme la page : les pastilles et les remarques gardent leur surface.
+                  backgroundColor: p.bg,
                 }}
               >
                 <SheetHandle sheet={sheet} available={available} onSheet={onSheet} />

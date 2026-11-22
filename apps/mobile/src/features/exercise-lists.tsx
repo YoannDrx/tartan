@@ -204,9 +204,12 @@ export const LibraryFilters = ({
 export const NewListForm = ({
   state,
   onCreated,
+  primary = false,
 }: {
   state: ExerciseListsState;
   onCreated: (list: ExerciseList) => void;
+  /** Seule action de sa feuille : le bouton est l'action principale. */
+  primary?: boolean;
 }) => {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -238,7 +241,7 @@ export const NewListForm = ({
       />
       <Button
         testID="exercise-list-create"
-        variant="secondary"
+        variant={primary ? "primary" : "secondary"}
         label={t.lists.create}
         loading={sending}
         disabled={sending}

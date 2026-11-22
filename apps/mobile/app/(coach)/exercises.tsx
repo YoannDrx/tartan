@@ -341,6 +341,7 @@ export default function Exercises() {
       {newList ? (
         <Sheet visible title={t.lists.new} onClose={() => setNewList(false)}>
           <NewListForm
+            primary
             state={lists}
             onCreated={(created) => {
               setNewList(false);

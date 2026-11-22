@@ -352,6 +352,8 @@ const Player = ({
           player={player}
           nativeControls={false}
           contentFit="contain"
+          // Le bouton « Texte en direct » d'iOS se poserait sur l'image, là où le doigt trace.
+          allowsVideoFrameAnalysis={false}
           style={{ flex: 1 }}
           accessibilityLabel={m.mobile.a11y.videoStatus}
         />

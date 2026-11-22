@@ -299,7 +299,8 @@ export function ExerciseFinder({
             {!listing
               ? t.finder.typeToSearch
               : found.length
-                ? t.finder.results(Math.min(found.length, LIMIT))
+                ? // Sans recherche, le compte est celui de tout le filtre : la liste n'en montre que les premières.
+                  t.finder.results(term ? Math.min(found.length, LIMIT) : pool.length)
                 : term
                   ? t.finder.noMatch
                   : t.finder.results(0)}
