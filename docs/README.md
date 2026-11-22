@@ -23,7 +23,7 @@ Chaque sujet a un seul document. Si deux documents se contredisent, `ETAT.md` l'
 | [plans/android.md](plans/android.md)                           | Du compte Google à Google Play                                                                                                              |
 | [plans/commercialisation.md](plans/commercialisation.md)       | Portes d'ouverture, offres, lancement, premiers clients                                                                                     |
 | [plans/stripe.md](plans/stripe.md)                             | Abonnements, webhooks, sandbox, passage en réel, remboursements, fiscalité                                                                  |
-| [plans/direction-artistique.md](plans/direction-artistique.md) | Refonte « Le stade », groupe d'athlètes, jeu « Tartan Meeting »                                                                             |
+| [plans/direction-artistique.md](plans/direction-artistique.md) | Refonte « Le stade », groupe d'athlètes (le jeu « Tartan Meeting » est retiré depuis le 23 novembre 2026)                                   |
 
 ## Tests
 

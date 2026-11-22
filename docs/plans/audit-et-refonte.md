@@ -25,7 +25,7 @@ Toutes les règles d'`AGENTS.md` s'appliquent. Les plus importantes, rappelées 
 - **Jamais de finalisation d'une restauration Neon sur la branche de production.** La panne du 13 novembre en vient ([incident](../exploitation/incident.md)).
 - **Ne contourne pas `assertEnvIsolation`.** Hors production, la base de production et une clé Stripe réelle sont refusées au démarrage.
 - **Aucun essai sur la production avec des comptes créés pour l'occasion.** Les essais se font en local ou sur la Preview.
-- **Ne touche pas aux réglages du fondateur.** Il ouvre lui-même les inscriptions et le classement du jeu, gère les paiements réels et les engagements légaux, et soumet aux stores.
+- **Ne touche pas aux réglages du fondateur.** Il ouvre lui-même les inscriptions, gère les paiements réels et les engagements légaux, et soumet aux stores.
 - **Aucune requête Prisma hors de `apps/web/src/server/*` et `src/lib`.** Tout service appelle `requireOrgMember`. Les notes privées du coach ne sont jamais lues pour un athlète.
 - **Aucun texte en dur** (`packages/i18n`) ni aucune couleur en dur (`packages/design-tokens`), ni durée ou courbe d'animation en dur (`motion.ts`). Le lint le refuse. N'ajoute jamais d'entrée à `apps/web/eslint-suppressions.json`. Quand tu touches un fichier gelé, déplace ses textes puis lance `pnpm --filter @tartan/web lint:prune`.
 - **Aucune donnée de santé** dans les journaux, les notifications ou les analyses d'usage.
@@ -66,7 +66,7 @@ Toutes les règles d'`AGENTS.md` s'appliquent. Les plus importantes, rappelées 
 ### En production
 
 - **Déploiement.** `app.tartan.coach` et `tartan.coach` (Vercel, Neon Launch, Mux, Resend, Stripe, OpenAI, Sentry) servent `df446d0`. Aucune erreur d'exécution sur 24 h au 16 novembre.
-- **Inscriptions et jeu.** Les inscriptions publiques et le classement du jeu sont **fermés**. Seul le fondateur les ouvre.
+- **Inscriptions.** Les inscriptions publiques sont **fermées**. Seul le fondateur les ouvre. Le jeu du site est retiré depuis le 23 novembre 2026.
 - **Preview.** `preview.tartan.coach` tourne sur une base `preview` qui ne contient que la graine de démonstration.
 - **Lots du 15 novembre.** Les lots 1 à 4 sont fusionnés, ou en cours de fusion au moment de ce brief : PR 143 à 149, plus la 148 pour le constructeur mobile et Maestro Android. La PR 150 prépare les bêtas et le corpus IA, sans code produit.
 - **Sauvegardes.** Une sauvegarde chiffrée part chaque nuit vers un store privé. La restauration a été chronométrée.
@@ -356,7 +356,7 @@ Les descriptifs et les visuels des fiches doivent devenir très clairs et concis
 3. **Personnage.**
    - Propose une morphologie plus athlétique et plus fine : environ 6 à 7 têtes, membres affinés, mains et pieds dessinés, articulations lisibles.
    - **Garde l'identité du groupe** : six athlètes, teints, coiffures, tenues, dossard, aplats sans contour, règles Oklab de `packages/design-tokens/src/athletes.ts`.
-   - `DESIGN.md` impose **une seule morphologie** partagée par le site, le film d'accueil, le jeu, les e-mails et les guides. Une nouvelle morphologie s'applique donc partout. Vérifie tous les usages (`grep @tartan/mascot`, environ 40 fichiers, plus les PNG d'e-mail régénérés par `pnpm --filter @tartan/web email:athletes`).
+   - `DESIGN.md` impose **une seule morphologie** partagée par le site, le film d'accueil, les e-mails et les guides. Une nouvelle morphologie s'applique donc partout. Vérifie tous les usages (`grep @tartan/mascot`, environ 40 fichiers, plus les PNG d'e-mail régénérés par `pnpm --filter @tartan/web email:athletes`).
    - **Validation du fondateur avant de généraliser.** Montre-lui d'abord un prototype sur une planche :
      - trois gestes : arraché de profil, squat de profil, fente latérale de face ;
      - ancien et nouveau côte à côte, en mouvement et en frise ;
@@ -372,7 +372,7 @@ Les descriptifs et les visuels des fiches doivent devenir très clairs et concis
 - Le prototype est validé par le fondateur.
 - Toutes les familles sont refaites et présentées en relecture.
 - Le rendu est contrôlé à 390 px et en mouvement réduit.
-- Les PNG d'e-mail et le jeu sont vérifiés.
+- Les PNG d'e-mail sont vérifiés.
 
 ### 4.6 Logo Tartan : plus fort, reconnaissable en tout petit
 
@@ -429,7 +429,7 @@ Au-delà des demandes ci-dessus, le fondateur veut **améliorer toutes les fonct
   - `/progres`, `/mes-videos`, `/calendrier`, `/annonces`, `/notifications`, `/nouveautes`, `/reglages`, `/synchronisation`.
 - **Public** :
   - `/` (film), `/connexion`, `/bienvenue`, `/i/[token]` ;
-  - mot de passe oublié, tarifs, aide, contact, pages légales, `/jeu`, hors ligne.
+  - mot de passe oublié, tarifs, aide, contact, pages légales, hors ligne.
 
 Pour chaque écran, note :
 - les frictions du parcours réel, en comptant les gestes de la tâche principale ;
@@ -599,7 +599,7 @@ Cette liste n'existait nulle part. Elle sert au lot de recette (section 5, lot 9
 11. **Annonces et notifications** : annonce, centre de notifications, push web, e-mails, préférences, nouveautés.
 12. **Réglages** : profil et photo, connexion et mot de passe, espace, groupes, membres, confidentialité, export, suppression du compte.
 13. **Abonnement** : essai, paiement en bac à sable, retour vers Tartan, portail, changement d'offre, plafonds.
-14. **Console et site** : espaces, utilisateurs, configuration, mouvements ; accueil, tarifs, aide, contact, pages légales, jeu, installation de la PWA.
+14. **Console et site** : espaces, utilisateurs, configuration, mouvements ; accueil, tarifs, aide, contact, pages légales, installation de la PWA.
 
 ### 8.8 Décisions du fondateur du 17 novembre
 
