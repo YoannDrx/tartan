@@ -19,11 +19,6 @@
       "count": 1
     }
   },
-  "app/(app)/progres/page.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 3
-    }
-  },
   "app/(public)/mentions-legales/page.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 11
@@ -112,11 +107,6 @@
   "src/features/shell/site-chrome.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 1
-    }
-  },
-  "src/features/tracking/session-detail.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 2
     }
   },
   "src/features/tracking/session-followup.tsx": {

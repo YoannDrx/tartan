@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { Client } from "pg";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { addDays, startOfWeek } from "@tartan/domain";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 import { today } from "./journeys";
@@ -96,9 +97,11 @@ test("le bureau clair conserve les contrôles, les dialogues et les groupes de 3
       }
       await page.goto("/suivi", { waitUntil: "networkidle" });
       await expect(page.getByRole("heading", { name: m.coach.trackingTitle })).toBeVisible();
-      await expect(
-        page.getByText(`Athlète ${String(total).padStart(3, "0")} Fictif`, { exact: true }).first(),
-      ).toBeAttached();
+      // Le suivi affiche les athlètes par tranches de 30 : au-delà, le dernier se retrouve par la recherche par nom.
+      const last = `Athlète ${String(total).padStart(3, "0")} Fictif`;
+      if (total > 30) await page.getByLabel(w.tracking.search, { exact: true }).fill(last);
+      await expect(page.getByText(last, { exact: true }).first()).toBeAttached();
+      if (total > 30) await page.getByLabel(w.tracking.search, { exact: true }).fill("");
       await expectNoHorizontalScroll(page);
     }
     const heading = page.getByRole("heading", { name: m.coach.trackingTitle });

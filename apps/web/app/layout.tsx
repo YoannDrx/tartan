@@ -3,6 +3,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
 import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
+import { SkipLink } from "@/components/skip-link";
 import { ToastHost } from "@/components/ui/toast";
 import { UsageAnalytics } from "@/components/usage-analytics";
 import { fontVariables } from "./fonts";
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr" className={fontVariables}>
       <body>
+        <SkipLink />
         <NuqsAdapter>
           {children}
           <ToastHost />

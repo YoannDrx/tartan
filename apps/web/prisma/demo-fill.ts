@@ -2,6 +2,7 @@
 // Écrit sans passer par les notifications : aucun e-mail ni push ne part au remplissage.
 // Les comptes fictifs n'ont ni mot de passe ni adresse réelle. `--retirer` enlève tout ce que ce script a créé.
 //   pnpm --filter @tartan/web demo:fill <email>
+//   pnpm --filter @tartan/web demo:fill <email> --groupe 120   (un grand groupe et une semaine de neuf séances)
 //   pnpm --filter @tartan/web demo:fill <email> --retirer
 process.env.COACH_SIGNUP_MODE = "public";
 
@@ -671,12 +672,138 @@ const fill = async (email: string) => {
   console.log("Remplissage terminé, sans aucune notification.");
 };
 
+// Un grand groupe : `count` athlètes de plus dans le premier groupe du compte, et une semaine chargée de neuf séances
+// publiées, la semaine en cours. Sert au balayage sur données remplies et aux mesures de volume (30, 60, 120 athlètes).
+// Les adresses portent l'espace : plusieurs comptes d'une même base peuvent être remplis, sans le coach de démonstration.
+const VOLUME_PLACE = "Stade annexe";
+const FIRST_NAMES = ["Adam", "Alice", "Arthur", "Chloé", "Élise", "Gabriel", "Jade", "Jules", "Lina", "Louis"];
+const LAST_NAMES = ["Bernard", "Blanc", "Chevalier", "Fontaine", "Garnier", "Leroy", "Marchand", "Mercier", "Perrin"];
+const volumePrefix = (organizationId: string) => `${PREFIX}groupe.${organizationId.slice(0, 8)}.`;
+const volumeEmail = (organizationId: string, index: number) => `${volumePrefix(organizationId)}${index}${DOMAIN}`;
+
+const fillGroup = async (email: string, count: number) => {
+  const me = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (!me) throw new Error(`Aucun compte pour ${email}`);
+  const membership = await prisma.organizationMember.findFirst({
+    where: { userId: me.id, role: "owner", status: "active" },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!membership) throw new Error(`${email} ne possède aucun espace coach.`);
+  const { organizationId } = membership;
+  const group = await prisma.group.findFirstOrThrow({ where: { organizationId }, orderBy: { createdAt: "asc" } });
+  const already = await prisma.user.count({
+    where: { email: { startsWith: volumePrefix(organizationId), endsWith: DOMAIN } },
+  });
+  const roster: Roster[] = [];
+  for (let index = already; index < already + count; index += 1) {
+    const person: Person = {
+      first: FIRST_NAMES[index % FIRST_NAMES.length] as string,
+      // Un nom long sur dix : la colonne des noms doit tenir aussi avec eux.
+      last: `${LAST_NAMES[Math.floor(index / FIRST_NAMES.length) % LAST_NAMES.length]}${index % 10 === 9 ? "-Delacroix-Montesquieu" : ""}`,
+      born: `200${index % 6}-0${(index % 9) + 1}-1${index % 9}`,
+      discipline: index % 3 === 0 ? "sprint" : "high_jump",
+      best: index % 3 === 0 ? 7.2 : 175,
+      squat: 100,
+    };
+    const userId = await createPerson(volumeEmail(organizationId, index), person.first, person.last, person.born);
+    roster.push(await enrollAthlete(organizationId, group.id, person, userId));
+  }
+  const sheets = await trainingSheets(organizationId);
+  const today = todayIso();
+  const monday = startOfWeek(today);
+  // Neuf séances en sept jours : deux le lundi, le jeudi et le samedi, matin et soir.
+  const week: [number, string, SessionDraft][] = [
+    [0, "07:30", sheets.running],
+    [0, "18:00", sheets.strength],
+    [1, "18:00", sheets.plyo],
+    [2, "18:00", sheets.jump],
+    [3, "07:30", sheets.running],
+    [3, "18:00", sheets.strength],
+    [4, "18:00", sheets.plyo],
+    [5, "10:00", sheets.jump],
+    [5, "16:00", sheets.strength],
+  ];
+  // Un second remplissage agrandit le groupe sans doubler la semaine : les nouveaux venus reçoivent leurs comptes rendus.
+  const existing = await prisma.scheduledSession.findMany({
+    where: {
+      organizationId,
+      location: VOLUME_PLACE,
+      date: { gte: toDbDate(monday), lte: toDbDate(addDays(monday, 6)) },
+    },
+    select: { id: true, date: true },
+    orderBy: [{ date: "asc" }, { startTime: "asc" }],
+  });
+  const sessions = existing.map((s) => ({ id: s.id, date: s.date.toISOString().slice(0, 10), minutes: 60 }));
+  if (sessions.length === 0) {
+    for (const [offset, startTime, draft] of week) {
+      const date = addDays(monday, offset);
+      const session = await saveScheduledSession(me.id, organizationId, {
+        date,
+        startTime,
+        location: VOLUME_PLACE,
+        draft,
+        assignments: [{ targetType: "group", targetId: group.id }],
+        overrides: [],
+        publishAt: null,
+      });
+      await publishRow(session.id, me.id, new Date(), { silent: true });
+      sessions.push({ id: session.id, date, minutes: draft.durationMin ?? 60 });
+    }
+  }
+  for (const session of sessions) {
+    const { date } = session;
+    if (date >= today) continue;
+    const logs = roster.map((member) => {
+      const roll = random();
+      const status = roll < 0.74 ? "done" : roll < 0.87 ? "partial" : "missed";
+      return { member, status, missed: status === "missed" } as const;
+    });
+    await prisma.sessionLog.createMany({
+      data: logs.map(({ member, status, missed }) => ({
+        scheduledSessionId: session.id,
+        athleteId: member.id,
+        clientId: randomUUID(),
+        status,
+        variantDone: missed ? null : "club",
+        rpe: missed ? null : between(5, 9),
+        durationMin: missed ? null : session.minutes - between(0, 10),
+        completedAt: missed ? null : new Date(`${date}T19:30:00Z`),
+      })),
+    });
+    await prisma.attendance.createMany({
+      data: logs.map(({ member, missed }) => ({
+        scheduledSessionId: session.id,
+        athleteId: member.id,
+        status: missed ? "absent" : "present",
+        source: "coach",
+      })),
+    });
+  }
+  console.log(`Groupe rempli : ${roster.length} athlètes de plus, ${sessions.length} séances cette semaine.`);
+};
+
+const removeGroup = async (organizationId: string, ownerId: string) => {
+  await prisma.scheduledSession.deleteMany({ where: { organizationId, createdBy: ownerId, location: VOLUME_PLACE } });
+  const users = await prisma.user.findMany({
+    where: { email: { startsWith: volumePrefix(organizationId), endsWith: DOMAIN } },
+    select: { id: true },
+  });
+  const userIds = users.map((u) => u.id);
+  await prisma.athlete.deleteMany({ where: { organizationId, userId: { in: userIds } } });
+  await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+};
+
 const remove = async (email: string) => {
   const me = await prisma.user.findUnique({ where: { email }, select: { id: true } });
   if (!me) throw new Error(`Aucun compte pour ${email}`);
+  const owned = await prisma.organizationMember.findFirst({
+    where: { userId: me.id, role: "owner" },
+    orderBy: { createdAt: "asc" },
+  });
+  if (owned) await removeGroup(owned.organizationId, me.id);
   const coach = await prisma.user.findUnique({ where: { email: COACH_EMAIL }, select: { id: true } });
   if (!coach) {
-    console.log("Rien à retirer.");
+    console.log("Rien d'autre à retirer.");
     return;
   }
   const people = await prisma.user.findMany({
@@ -716,9 +843,18 @@ const remove = async (email: string) => {
   console.log("Données fictives retirées.");
 };
 
-const [email, flag] = process.argv.slice(2);
+const [email, flag, value] = process.argv.slice(2);
 if (!email) throw new Error("Indique l'adresse du compte à remplir.");
-(flag === "--retirer" ? remove(email) : fill(email))
+const run = () => {
+  if (flag === "--retirer") return remove(email);
+  if (flag === "--groupe") {
+    const count = Number(value);
+    if (!Number.isInteger(count) || count < 1 || count > 400) throw new Error("--groupe attend un nombre de 1 à 400.");
+    return fillGroup(email, count);
+  }
+  return fill(email);
+};
+run()
   .catch((error) => {
     console.error(error);
     process.exitCode = 1;

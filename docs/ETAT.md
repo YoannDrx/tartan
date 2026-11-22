@@ -39,13 +39,13 @@ Niveaux : **codé**, **testé** automatiquement, **éprouvé** en production ou 
 | K1. Corrections de l'audit : filtres de `/videos` en feuille (G2), service worker limité aux fichiers qui existent (G5), nom de l'espace lisible dans l'en-tête à 390 px (G6), `/analyse` hiérarchisée (G9), message de publication qui dit qui reçoit la séance (G10) | 171 | En production le 21 novembre, testé (règles pures, service de publication, parcours `video-filters`, `training-analysis`, `shell`, `screen-matrix`) ; hors ligne réel non éprouvé | Opus ; fusionné par Fable |
 | G. Onboarding complet du coach et de l'athlète (constats B1, B3, G15) : invitation dès la création de l'espace, « Ton tour de piste », carte « Pour démarrer », page `/premiers-pas`, repères de première visite, accueil de l'athlète qui ne retarde jamais sa séance, carte facultative après la première validation, état gardé en base (`OnboardingState`) | PR `feat/onboarding-complet` | Codé, testé (suite Playwright entière le 19 novembre : 257 réussis, 0 échec ; validation de l'athlète mesurée à 0,8 s ; parcours rejoués le 21 novembre après fusion de `main`) ; jamais joué par une vraie personne | Opus ; ouvert par Fable |
 | Espace de démonstration : un coach neuf ouvre depuis `/premiers-pas` un espace séparé et jetable, rempli de 8 athlètes fictifs sans compte, de séances passées et à venir, de validations et de phases ; bandeau permanent, suppression en un geste, purge à 14 jours | PR `feat/espace-demo` | Codé, testé (20 tests d'exclusion, un par service : planificateur, vidéo, invitations, notifications, e-mails, cron, facturation, statistiques, mesure d'audience ; parcours `demo-space` sur build de production) ; jamais ouvert par un vrai coach | Opus ; ouvert par Fable |
+| K2. Corrections de l'audit : `/suivi` ne déborde plus à 390 px (B6) et un balayage sur espace rempli entre en CI (`filled-sweep.spec.ts`, `demo:fill --groupe`) ; grands groupes par tranches de 30, avec recherche et en-têtes collants (G4) ; pastilles à 44 px et cases dessinées à 24 px (G8) ; athlète de la rubrique dans les états vides de `/phases` et `/progres` (G13) ; lien « Aller au contenu » | PR `fix/audit-k2-suite` | Codé, testé (parcours `filled-sweep` à 390, 768 et 1440 px, `screen-matrix`, 27 parcours touchés sur build de production) ; à 120 athlètes : `/suivi` 543 Ko au lieu de 1,7 Mo, `/athletes` 583 Ko au lieu de 2,3 Mo ; lecteurs d'écran et téléphones réels non essayés | Opus ; ouvert par Fable |
 
 ### En cours
 
 | Lot | Où | Niveau | Mené par |
 | --- | --- | --- | --- |
 | Refonte du planificateur validée le 21 novembre (quatre étapes, champ unique, fin de bêta sur preuve) | P1 fait sur `feat/ia-mesure-bout-en-bout` et `feat/ia-corpus` (outil de mesure sur le service, corpus gelé de 80 consignes et 150 paires) ; P2 `feat/ia-etapes` en cours ; P3 à P5 à suivre | Mesure de départ réelle du 21 novembre, `gpt-4.1`, un passage : 13 séances justes sur 80, 54 questions inutiles sur 72, 69 fiches retrouvées du premier coup sur 150, 1 date fausse ; 5,49 $ | Fable |
-| Lot K2 de l'audit | Branche `fix/audit-k2`, prête, en file | Codé, testé | Opus |
 
 ### Restant à faire
 
@@ -57,7 +57,7 @@ Niveaux : **codé**, **testé** automatiquement, **éprouvé** en production ou 
   - P4 : trois passages, essai du fondateur sur la Preview, retrait de « bêta » ;
   - P5 : parité de l'app native.
 - **Gestes, suite** : retrait de l'ancien moteur (la morphologie est en production).
-- **K. Corrections de l'audit** : K1 prêt sur `fix/audit-corrections` (G2, G5, G6, G9, G10), K2 prêt sur `fix/audit-k2` (B6 et balayage sur données remplies, G4, G8, G13, lien d'évitement). Restent : `/seances/[id]/suivi` à 120 athlètes (21 641 px à 390 px), 171 textes gelés, message de publication sur le mobile.
+- **Reste de l'audit** : `/seances/[id]/suivi` à 120 athlètes (21 641 px à 390 px, pas de rendu par tranches), 171 textes gelés, case native de `/videos`, message de publication sur le mobile, `/seance/[id]/series` et `/admin/mouvements` très longs.
 - **Production vidée le 19 novembre** (fait) : sauvegarde chiffrée relue (`sauvegarde.yml`) et branche Neon `sauvegarde-avant-vidage-2026-11-19`, puis suppression en une transaction de tous les comptes sauf l'administrateur (passkey et mot de passe gardés), des 3 espaces, des notifications et des données de test ; catalogue commun (197 fiches), journal d'audit et liste de blocage des e-mails gardés ; la vidéo Mux part par la file de suppression. Reste : créer les deux comptes de test du fondateur une fois l'onboarding en production.
 - **L. Recette web** sur les 14 parcours de la section 8.7 du brief, Preview remise à niveau.
 - **Parité mobile** en quatre PR, puis les bêtas iOS et Android.
@@ -196,7 +196,7 @@ Le mot de passe des comptes de démonstration de la Preview est dans `.local/pre
 - **Webhook Stripe** : factures, remboursements et litiges ne passent par la route que dans la recette sandbox, hors CI.
 - **Sentry gratuit** : une seule sonde de crons ; la sonde de disponibilité est assurée par `surveillance.yml`.
 - **Textes en dur hérités** : 176 textes gelés dans `apps/web/eslint-suppressions.json`, sur 37 fichiers.
-- **Balayage de la CI sur un espace vide** : la matrice des écrans ne voit pas un défaut qui n'apparaît qu'avec des données, comme le débordement de `/suivi` à 390 px.
+- **Balayage de la CI** : la matrice des écrans tourne sur un espace vide ; `filled-sweep.spec.ts` couvre depuis le lot K2 `/suivi`, `/athletes`, `/calendrier` et `/seances/[id]/suivi` sur un espace rempli. Les autres écrans ne sont vus qu'à vide.
 - **Jeu public** : le rejeu serveur ne prouve pas qu'un humain a joué ; le classement demande une modération.
 
 ## Hors périmètre de la V1

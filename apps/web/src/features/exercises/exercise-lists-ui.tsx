@@ -168,7 +168,7 @@ export const FileDialog = ({
                 <label className="flex min-h-12 items-center gap-3">
                   <input
                     type="checkbox"
-                    className="size-5"
+                    className="check"
                     checked={list.exerciseIds.includes(exercise.id)}
                     onChange={(event) => void state.setMember(list.id, exercise.id, event.target.checked)}
                   />

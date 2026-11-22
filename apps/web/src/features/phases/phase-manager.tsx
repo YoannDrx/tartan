@@ -10,8 +10,10 @@ import {
   type TrainingPhaseContext,
 } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { EmptyState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
@@ -248,7 +250,7 @@ export function PhaseManager({
   };
   return (
     <div className="flex flex-col gap-4">
-      {context ? (
+      {context && phases.length > 0 ? (
         <div>
           <Button disabled={busy} onClick={() => open()}>
             {t.add}
@@ -257,39 +259,55 @@ export function PhaseManager({
       ) : null}
       {message ? <p role="status">{message}</p> : null}
       {error && !form ? <p role="alert">{error}</p> : null}
-      <div className="on-card rounded-card bg-card p-4">
-        <PhaseTimeline
-          phases={phases}
-          from={from}
-          to={to}
-          today={today}
-          actions={
-            context
-              ? (phase) => (
-                  <>
-                    <Button variant="secondary" disabled={busy} onClick={() => open(phase)}>
-                      {m.common.edit}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      disabled={busy}
-                      onClick={() => setConfirmation({ phase, action: "visibility" })}
-                    >
-                      {phase.shared ? t.unpublish : t.publish}
-                    </Button>
-                    <Button
-                      variant="quiet"
-                      disabled={busy}
-                      onClick={() => setConfirmation({ phase, action: "delete" })}
-                    >
-                      {m.common.delete}
-                    </Button>
-                  </>
-                )
-              : undefined
+      {/* Sans phase sur la période : l'athlète de la rubrique, et l'ajout de la première pour le coach. */}
+      {phases.length === 0 ? (
+        <EmptyState
+          rubric="phases"
+          action={
+            context ? (
+              <Button size="sm" disabled={busy} onClick={() => open()}>
+                {t.add}
+              </Button>
+            ) : undefined
           }
-        />
-      </div>
+        >
+          {context ? w.planning.phasesEmptyCoach : w.planning.phasesEmptyAthlete}
+        </EmptyState>
+      ) : (
+        <div className="on-card rounded-card bg-card p-4">
+          <PhaseTimeline
+            phases={phases}
+            from={from}
+            to={to}
+            today={today}
+            actions={
+              context
+                ? (phase) => (
+                    <>
+                      <Button variant="secondary" disabled={busy} onClick={() => open(phase)}>
+                        {m.common.edit}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={busy}
+                        onClick={() => setConfirmation({ phase, action: "visibility" })}
+                      >
+                        {phase.shared ? t.unpublish : t.publish}
+                      </Button>
+                      <Button
+                        variant="quiet"
+                        disabled={busy}
+                        onClick={() => setConfirmation({ phase, action: "delete" })}
+                      >
+                        {m.common.delete}
+                      </Button>
+                    </>
+                  )
+                : undefined
+            }
+          />
+        </div>
+      )}
       <Dialog
         open={Boolean(form)}
         onOpenChange={(value) => {

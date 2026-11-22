@@ -5,6 +5,7 @@ import { admin } from "./admin";
 import { analysis } from "./analysis";
 import { auth } from "./auth";
 import { comm } from "./comm";
+import { common } from "./common";
 import { demoSpace } from "./demo-space";
 import { exercises } from "./exercises";
 import { legal } from "./legal";
@@ -12,6 +13,7 @@ import { onboarding } from "./onboarding";
 import { planner } from "./planner";
 import { planning } from "./planning";
 import { profile } from "./profile";
+import { progress } from "./progress";
 import { sessions } from "./sessions";
 import { settings } from "./settings";
 import { shell } from "./shell";
@@ -23,6 +25,7 @@ export const w = {
   analysis,
   auth,
   comm,
+  common,
   demoSpace,
   exercises,
   legal,
@@ -30,6 +33,7 @@ export const w = {
   planner,
   planning,
   profile,
+  progress,
   sessions,
   settings,
   shell,

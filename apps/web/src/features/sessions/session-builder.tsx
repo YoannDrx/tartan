@@ -132,7 +132,7 @@ const SetPlanEditor = ({ value, onChange }: { value: Prescription; onChange: (p:
       <label className="flex min-h-11 items-center gap-2">
         <input
           type="checkbox"
-          className="size-5 accent-[var(--color-accent)]"
+          className="check"
           checked={Boolean(plan)}
           onChange={(e) => onChange(e.target.checked ? withSetPlan(value, startSetPlan(value)) : withoutSetPlan(value))}
         />
@@ -154,7 +154,7 @@ const SetPlanEditor = ({ value, onChange }: { value: Prescription; onChange: (p:
                     <label className="flex min-h-11 items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        className="size-5 accent-[var(--color-accent)]"
+                        className="check"
                         checked={Boolean(set.warmup)}
                         onChange={(e) => {
                           const { warmup: _warmup, ...rest } = set;

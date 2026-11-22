@@ -97,7 +97,7 @@ const ListBar = ({
         <label className="flex min-h-11 items-start gap-3">
           <input
             type="checkbox"
-            className="mt-0.5 size-5 shrink-0"
+            className="check mt-0.5 shrink-0"
             defaultChecked={list.sharedWithCoaches}
             onChange={(event) => {
               const shared = event.target.checked;
