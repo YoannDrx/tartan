@@ -33,6 +33,9 @@ export type PlannerComposeFrame = {
   movements: readonly PlannerComposeMovement[];
   // Texte posé sur un exercice proposé sans raison écrite : les anciens clients exigent une citation non vide.
   proposedLabel: string;
+  // Les jetons que le modèle pouvait citer (fiches données, emplacements). Un exercice qui en cite un autre sans
+  // être un mouvement du coach n'existe pas : le schéma de sortie ne borne plus les jetons, le serveur le fait.
+  tokens?: ReadonlySet<string>;
 };
 
 type Exercise = Extract<PlannerComposedNode, { kind: "exercise" }>;
@@ -107,6 +110,22 @@ export function plannerCompositionToInterpretation(
       if (orphan) used.add(orphan.id);
       return orphan;
     };
+    // Une fiche inventée ne passe pas : l'exercice disparaît, et un groupe vidé avec lui.
+    const usable = (token: string, movementId: string | null) =>
+      !frame.tokens || frame.tokens.has(token) || Boolean(movementId && byId.has(movementId));
+    const known = (nodes: readonly PlannerComposedNode[]): PlannerComposedNode[] =>
+      nodes.flatMap((node): PlannerComposedNode[] => {
+        if (node.kind === "recovery") return [node];
+        if (node.kind === "repeat") {
+          const children = known(node.children as PlannerComposedNode[]);
+          return children.some((child) => child.kind !== "recovery")
+            ? [{ ...node, children } as PlannerComposedNode]
+            : [];
+        }
+        if (!usable(node.exerciseToken, node.movementId)) return [];
+        const away = node.autonomous;
+        return [away && !usable(away.exerciseToken, away.movementId) ? { ...node, autonomous: null } : node];
+      });
     const blocks = session.blocks.map((block) => {
       const items: PlannerRichSession["blocks"][number]["items"] = [];
       let nextRef = 0;
@@ -114,7 +133,8 @@ export function plannerCompositionToInterpretation(
         nodes.map((node) => {
           const ref = `node-${nextRef++}`;
           if (node.kind === "recovery") return { ...node, ref };
-          if (node.kind === "repeat") return { ...node, ref, children: convert(node.children as PlannerComposedNode[]) };
+          if (node.kind === "repeat")
+            return { ...node, ref, children: convert(node.children as PlannerComposedNode[]) };
           const movement = adopt(node);
           const away = node.autonomous;
           const awayMovement = away?.movementId ? byId.get(away.movementId) : undefined;
@@ -144,7 +164,7 @@ export function plannerCompositionToInterpretation(
           });
           return { kind: "exercise", itemRef: ref };
         });
-      const content = mergeRepeated(block.content);
+      const content = mergeRepeated(known(block.content));
       const sequence = sessionSequence.parse(convert(content));
       return {
         name: block.name,
@@ -159,7 +179,7 @@ export function plannerCompositionToInterpretation(
       type: session.type,
       durationMin: session.durationMin,
       targetTokens: [...request.targetTokens],
-      blocks,
+      blocks: blocks.filter((block) => block.items.length),
     });
   }
   return {

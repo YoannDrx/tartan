@@ -244,7 +244,9 @@ export function planComposition(
     ),
     ...neighbours.flatMap((neighbour) => neighbour.exercises.flatMap((e) => (e.load ? [e.load.value] : []))),
   ];
-  return { input, frame: { sessions, movements, proposedLabel: m.aiPlanner.proposedExercise }, knownLoads };
+  // Les seuls jetons que la séance peut citer : les fiches données au modèle et les emplacements.
+  const tokens = new Set([...input.exercises.map((exercise) => exercise.token), ...input.slots.map((slot) => slot.token)]);
+  return { input, frame: { sessions, movements, proposedLabel: m.aiPlanner.proposedExercise, tokens }, knownLoads };
 }
 
 type Content = PlannerComposition["sessions"][number]["blocks"][number]["content"];

@@ -149,10 +149,10 @@ describe("une fonction typée par étape", () => {
     expect(body.input.map((message) => message.role)).toEqual(["developer", "user"]);
     expect(body.input[0]!.content).toMatchObject([{ type: "input_text", prompt_cache_breakpoint: { mode: "explicit" } }]);
     expect(JSON.parse(text(body.input[1]!))).toEqual(understandInput);
-    // Une date hors du calendrier et un destinataire hors de la liste ne peuvent pas s'écrire.
+    // Le schéma est le même pour toutes les demandes : ni dates ni jetons de la demande, que les règles vérifient.
     const schema = JSON.stringify(body.text.format.schema);
-    expect(schema).toContain('"enum":["2026-11-23","2026-11-24"]');
-    expect(schema).toContain('"enum":["group_1","athlete_1"]');
+    expect(schema).not.toContain("2026-11-23");
+    expect(schema).not.toContain("group_1");
     expect(schema).not.toContain("oneOf");
   });
   it("retrouver : la bibliothèque en cinq champs par fiche, avant les termes", async () => {
@@ -198,7 +198,8 @@ describe("une fonction typée par étape", () => {
     });
     expect(repair).toMatchObject({ model: "gpt-6.2-sol", reasoning: { effort: "medium" } });
     const schema = JSON.stringify(compose!.text.format.schema);
-    expect(schema).toContain('"enum":["exercise_1","slot_1"]');
+    // Schéma fixe, pour rester en cache : les jetons permis sont vérifiés par le serveur, pas par le schéma.
+    expect(schema).not.toContain("exercise_1");
     expect(schema).toContain("$defs");
     // La réparation reçoit la réponse fautive et la liste précise des défauts.
     const sent = JSON.parse(text(repair!.input.at(-1)!)) as { previousAnswer: unknown; defects: unknown };

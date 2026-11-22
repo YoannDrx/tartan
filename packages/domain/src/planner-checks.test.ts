@@ -109,6 +109,27 @@ describe("ce que le coach a dit ne change pas", () => {
     const { value } = plannerCompositionToInterpretation(composition([exercise("m1", "exercise_1")]), frame([squat]));
     expect(value.sessions[0]).toMatchObject({ date: "2026-11-24", targetTokens: ["group_1"] });
   });
+  it("une fiche que le modèle n'a pas reçue n'existe pas : l'exercice disparaît, le groupe vidé aussi", () => {
+    const answer = composition([
+      exercise("m1", "exercise_404"),
+      exercise(null, "exercise_7"),
+      exercise(null, "exercise_404"),
+      {
+        kind: "repeat",
+        name: "Circuit",
+        rounds: 3,
+        restBetweenRoundsS: 60,
+        children: [exercise(null, "exercise_405"), { kind: "recovery", durationS: 30 }],
+      } as PlannerComposedNode,
+    ]);
+    const { value } = plannerCompositionToInterpretation(answer, {
+      ...frame([squat]),
+      tokens: new Set(["exercise_1", "exercise_7"]),
+    });
+    // Le mouvement cité garde la fiche retrouvée pour lui ; la fiche proposée connue reste ; le reste disparaît.
+    expect(itemsOf(value).map((item) => item.exerciseToken)).toEqual(["exercise_1", "exercise_7"]);
+    expect(value.sessions[0]!.blocks[0]!.sequence).toBeNull();
+  });
   it("un exercice ajouté dans une séance décrite est retiré, sans réparation", () => {
     const checked = run(
       composition([exercise("m1", "exercise_1"), exercise(null, "exercise_7")]),
