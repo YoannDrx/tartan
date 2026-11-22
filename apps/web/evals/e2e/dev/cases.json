@@ -7,16 +7,40 @@
       "text": "Demain pour le groupe Sprint : squat arrière 4 séries de 6 à 80 kg, récupération 2 minutes, puis soulevé de terre roumain 3 séries de 8 à 60 kg, récupération 90 secondes.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Sprint"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
           {
             "date": "2026-11-24",
             "steps": [
-              { "key": "back-squat", "sets": 4, "reps": 6, "load": { "value": 80, "unit": "kg" }, "restS": 120 },
-              { "key": "romanian-deadlift", "sets": 3, "reps": 8, "load": { "value": 60, "unit": "kg" }, "restS": 90 }
+              {
+                "key": "back-squat",
+                "sets": 4,
+                "reps": 6,
+                "load": {
+                  "value": 80,
+                  "unit": "kg"
+                },
+                "restS": 120
+              },
+              {
+                "key": "romanian-deadlift",
+                "sets": 3,
+                "reps": 8,
+                "load": {
+                  "value": 60,
+                  "unit": "kg"
+                },
+                "restS": 90
+              }
             ]
           }
         ],
@@ -29,16 +53,37 @@
       "text": "jeudi pour les lanceurs on fait du développé couché cinq séries de cinq à quatre-vingts pour cent avec trois minutes de récup et ensuite des tractions quatre séries de huit",
       "spoken": true,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Lanceurs"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Lanceurs"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
           {
             "date": "2026-11-26",
             "steps": [
-              { "key": "bench-press", "sets": 5, "reps": 5, "load": { "value": 80, "unit": "pct_1rm" }, "restS": 180 },
-              { "key": "pull-up", "accept": ["chin-up"], "sets": 4, "reps": 8, "load": null }
+              {
+                "key": "bench-press",
+                "sets": 5,
+                "reps": 5,
+                "load": {
+                  "value": 80,
+                  "unit": "pct_1rm"
+                },
+                "restS": 180
+              },
+              {
+                "key": "pull-up",
+                "accept": ["chin-up"],
+                "sets": 4,
+                "reps": 8,
+                "load": null
+              }
             ]
           }
         ],
@@ -51,16 +96,33 @@
       "text": "demain pour le groupe sprint goblet squat quatre séries non pardon cinq séries de dix et après gainage ventral trois fois quarante secondes trente secondes de repos",
       "spoken": true,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Sprint"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
           {
             "date": "2026-11-24",
             "steps": [
-              { "key": "goblet-squat", "sets": 5, "reps": 10, "load": null },
-              { "key": "front-plank", "sets": 3, "durationS": 40, "load": null, "restS": 30 }
+              {
+                "key": "goblet-squat",
+                "sets": 5,
+                "reps": 10,
+                "load": null
+              },
+              {
+                "key": "front-plank",
+                "sets": 3,
+                "durationS": 40,
+                "load": null,
+                "restS": 30
+              }
             ]
           }
         ],
@@ -73,8 +135,14 @@
       "text": "Mercredi, groupe Demi-fond : circuit 4 tours, 12 pompes, 15 squats sautés, 30 secondes de gainage latéral, 1 minute entre les tours.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Demi-fond"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Demi-fond"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
@@ -86,9 +154,21 @@
                 "rounds": 4,
                 "restBetweenRoundsS": 60,
                 "steps": [
-                  { "key": "push-up", "reps": 12, "load": null },
-                  { "key": "squat-jump", "reps": 15, "load": null },
-                  { "key": "side-plank", "durationS": 30, "load": null }
+                  {
+                    "key": "push-up",
+                    "reps": 12,
+                    "load": null
+                  },
+                  {
+                    "key": "squat-jump",
+                    "reps": 15,
+                    "load": null
+                  },
+                  {
+                    "key": "side-plank",
+                    "durationS": 30,
+                    "load": null
+                  }
                 ]
               }
             ]
@@ -103,8 +183,14 @@
       "text": "Vendredi pour Lina Morel : superset 3 tours, développé militaire 8 répétitions à 30 kg puis rowing barre 10 répétitions à 40 kg, 90 secondes entre les tours.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": [], "athletes": ["Lina Morel"] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": [],
+        "athletes": ["Lina Morel"]
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
@@ -116,8 +202,22 @@
                 "rounds": 3,
                 "restBetweenRoundsS": 90,
                 "steps": [
-                  { "key": "overhead-press", "reps": 8, "load": { "value": 30, "unit": "kg" } },
-                  { "key": "barbell-row", "reps": 10, "load": { "value": 40, "unit": "kg" } }
+                  {
+                    "key": "overhead-press",
+                    "reps": 8,
+                    "load": {
+                      "value": 30,
+                      "unit": "kg"
+                    }
+                  },
+                  {
+                    "key": "barbell-row",
+                    "reps": 10,
+                    "load": {
+                      "value": 40,
+                      "unit": "kg"
+                    }
+                  }
                 ]
               }
             ]
@@ -132,8 +232,14 @@
       "text": "Demain, groupe Force : squat arrière en pyramide, 5 répétitions à 60 kg, 4 à 70 kg, 3 à 80 kg, 2 à 90 kg, récupération 3 minutes.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Force"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Force"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
@@ -143,13 +249,40 @@
               {
                 "key": "back-squat",
                 "sets": 4,
-                "load": { "value": 60, "unit": "kg" },
+                "load": {
+                  "value": 60,
+                  "unit": "kg"
+                },
                 "restS": 180,
                 "setPlan": [
-                  { "reps": 5, "load": { "value": 60, "unit": "kg" } },
-                  { "reps": 4, "load": { "value": 70, "unit": "kg" } },
-                  { "reps": 3, "load": { "value": 80, "unit": "kg" } },
-                  { "reps": 2, "load": { "value": 90, "unit": "kg" } }
+                  {
+                    "reps": 5,
+                    "load": {
+                      "value": 60,
+                      "unit": "kg"
+                    }
+                  },
+                  {
+                    "reps": 4,
+                    "load": {
+                      "value": 70,
+                      "unit": "kg"
+                    }
+                  },
+                  {
+                    "reps": 3,
+                    "load": {
+                      "value": 80,
+                      "unit": "kg"
+                    }
+                  },
+                  {
+                    "reps": 2,
+                    "load": {
+                      "value": 90,
+                      "unit": "kg"
+                    }
+                  }
                 ]
               }
             ]
@@ -164,16 +297,34 @@
       "text": "Jeudi, groupe Sprint : marche du crabe latérale 3 séries de 10 mètres, puis fentes sautées 3 séries de 12, récupération 1 minute.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Sprint"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
           {
             "date": "2026-11-26",
             "steps": [
-              { "absent": true, "said": "marche du crabe latérale", "sets": 3, "distanceM": 10, "load": null },
-              { "key": "split-jumps", "sets": 3, "reps": 12, "load": null, "restS": 60 }
+              {
+                "absent": true,
+                "said": "marche du crabe latérale",
+                "sets": 3,
+                "distanceM": 10,
+                "load": null
+              },
+              {
+                "key": "split-jumps",
+                "sets": 3,
+                "reps": 12,
+                "load": null,
+                "restS": 60
+              }
             ]
           }
         ],
@@ -186,8 +337,13 @@
       "text": "Demain pour le groupe Sprint : RDL 3x8 à 50 kg, puis tirage élastique 3x15, 45 secondes de récup.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Sprint"], "athletes": [] },
-      "space": { "equipment": ["barbell", "bands"] },
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "space": {
+        "equipment": ["barbell", "bands"]
+      },
       "library": {
         "catalog": "common",
         "private": [
@@ -207,8 +363,22 @@
           {
             "date": "2026-11-24",
             "steps": [
-              { "key": "romanian-deadlift", "sets": 3, "reps": 8, "load": { "value": 50, "unit": "kg" } },
-              { "private": "Tirage élastique maison", "sets": 3, "reps": 15, "load": null, "restS": 45 }
+              {
+                "key": "romanian-deadlift",
+                "sets": 3,
+                "reps": 8,
+                "load": {
+                  "value": 50,
+                  "unit": "kg"
+                }
+              },
+              {
+                "private": "Tirage élastique maison",
+                "sets": 3,
+                "reps": 15,
+                "load": null,
+                "restS": 45
+              }
             ]
           }
         ],
@@ -221,8 +391,14 @@
       "text": "Mercredi, groupe Sprint : fentes 3 séries de 10 par jambe, puis mollets 3 séries de 15.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Sprint"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
@@ -236,7 +412,13 @@
                 "reps": 10,
                 "load": null
               },
-              { "key": "standing-calf-raise", "accept": ["seated-calf-raise"], "sets": 3, "reps": 15, "load": null }
+              {
+                "key": "standing-calf-raise",
+                "accept": ["seated-calf-raise"],
+                "sets": 3,
+                "reps": 15,
+                "load": null
+              }
             ]
           }
         ],
@@ -249,18 +431,44 @@
       "text": "Mardi et jeudi pour le groupe Sprint. Mardi : squat avant 5 séries de 3 à 70 kg. Jeudi : épaulé puissance 6 séries de 2 à 60 kg.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Sprint"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
           {
             "date": "2026-11-24",
-            "steps": [{ "key": "front-squat", "sets": 5, "reps": 3, "load": { "value": 70, "unit": "kg" } }]
+            "steps": [
+              {
+                "key": "front-squat",
+                "sets": 5,
+                "reps": 3,
+                "load": {
+                  "value": 70,
+                  "unit": "kg"
+                }
+              }
+            ]
           },
           {
             "date": "2026-11-26",
-            "steps": [{ "key": "power-clean", "sets": 6, "reps": 2, "load": { "value": 60, "unit": "kg" } }]
+            "steps": [
+              {
+                "key": "power-clean",
+                "sets": 6,
+                "reps": 2,
+                "load": {
+                  "value": 60,
+                  "unit": "kg"
+                }
+              }
+            ]
           }
         ],
         "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
@@ -272,11 +480,29 @@
       "text": "Demain, groupe Force : développé couché 4 séries de 6 à 70.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Force"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Force"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
-        "sessions": [{ "date": "2026-11-24", "steps": [{ "key": "bench-press", "sets": 4, "reps": 6, "load": null }] }],
+        "sessions": [
+          {
+            "date": "2026-11-24",
+            "steps": [
+              {
+                "key": "bench-press",
+                "sets": 4,
+                "reps": 6,
+                "load": null
+              }
+            ]
+          }
+        ],
         "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
       }
     },
@@ -286,19 +512,32 @@
       "text": "Vendredi, séance de pliométrie pour le groupe Sprint, 45 minutes, niveau intermédiaire, avec des haies et des caissons.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Sprint"], "athletes": [] },
-      "space": { "equipment": ["bodyweight", "hurdles", "boxes", "barbell"] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "space": {
+        "equipment": ["bodyweight", "hurdles", "boxes", "barbell"]
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
           {
             "date": "2026-11-27",
             "bounds": {
-              "durationMin": { "max": 45 },
+              "durationMin": {
+                "max": 45
+              },
               "equipment": ["bodyweight", "hurdles", "boxes"],
               "families": ["plyometrics"],
-              "exercises": { "min": 4, "max": 8 },
+              "exercises": {
+                "min": 4,
+                "max": 8
+              },
               "noKg": true
             }
           }
@@ -312,19 +551,32 @@
       "text": "Samedi, propose une séance de mobilité des hanches et du dos pour le groupe Demi-fond, 30 minutes, sans matériel.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Demi-fond"], "athletes": [] },
-      "space": { "equipment": ["bodyweight", "barbell", "bands"] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Demi-fond"],
+        "athletes": []
+      },
+      "space": {
+        "equipment": ["bodyweight", "barbell", "bands"]
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
           {
             "date": "2026-11-28",
             "bounds": {
-              "durationMin": { "max": 30 },
+              "durationMin": {
+                "max": 30
+              },
               "equipment": ["bodyweight"],
               "families": ["mobility"],
-              "exercises": { "min": 4, "max": 8 },
+              "exercises": {
+                "min": 4,
+                "max": 8
+              },
               "noKg": true
             }
           }
@@ -338,15 +590,35 @@
       "text": "samedi pour le groupe sprint on commence par six accélérations de soixante mètres récupération en marchant et ensuite tu me proposes un bloc de gainage de dix minutes",
       "spoken": true,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Sprint"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
           {
             "date": "2026-11-28",
-            "steps": [{ "key": "progressive-acceleration", "sets": 6, "distanceM": 60, "load": null }],
-            "bounds": { "families": ["core"], "exercises": { "min": 3, "max": 6 }, "noKg": true }
+            "steps": [
+              {
+                "key": "progressive-acceleration",
+                "sets": 6,
+                "distanceM": 60,
+                "load": null
+              }
+            ],
+            "bounds": {
+              "families": ["core"],
+              "exercises": {
+                "min": 3,
+                "max": 6
+              },
+              "noKg": true
+            }
           }
         ],
         "critical": ["wrong_date", "invented_load"]
@@ -358,18 +630,41 @@
       "text": "Mardi, groupe Force : un échauffement à ta façon de 10 minutes, puis squat arrière 5 séries de 5 à 100 kg, récupération 3 minutes.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Force"], "athletes": [] },
-      "space": { "equipment": ["bodyweight", "barbell", "rack"] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Force"],
+        "athletes": []
+      },
+      "space": {
+        "equipment": ["bodyweight", "barbell", "rack"]
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
           {
             "date": "2026-11-24",
             "steps": [
-              { "key": "back-squat", "sets": 5, "reps": 5, "load": { "value": 100, "unit": "kg" }, "restS": 180 }
+              {
+                "key": "back-squat",
+                "sets": 5,
+                "reps": 5,
+                "load": {
+                  "value": 100,
+                  "unit": "kg"
+                },
+                "restS": 180
+              }
             ],
-            "bounds": { "exercises": { "min": 3, "max": 7 }, "noKg": true }
+            "bounds": {
+              "exercises": {
+                "min": 3,
+                "max": 7
+              },
+              "noKg": true
+            }
           }
         ],
         "critical": ["wrong_date", "invented_load"]
@@ -381,9 +676,21 @@
       "text": "Séance de côtes pour le groupe Demi-fond dès que le terrain sera sec : 8 fois course en côte courte, retour en marchant.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Demi-fond"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
-      "expect": { "mustAsk": { "reason": "no_date" }, "sessions": [], "critical": ["wrong_date"] }
+      "recipients": {
+        "groups": ["Demi-fond"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustAsk": {
+          "reason": "no_date"
+        },
+        "sessions": [],
+        "critical": ["wrong_date"]
+      }
     },
     {
       "id": "DEV-17",
@@ -391,15 +698,33 @@
       "text": "Demain : squat arrière 3 séries de 8.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": [], "athletes": [] },
+      "recipients": {
+        "groups": [],
+        "athletes": []
+      },
       "space": {
         "groups": [
-          { "name": "Sprint", "athletes": ["Alix Fictif", "Bao Fictif"] },
-          { "name": "Demi-fond", "athletes": ["Chloé Fictif"] }
+          {
+            "name": "Sprint",
+            "athletes": ["Alix Fictif", "Bao Fictif"]
+          },
+          {
+            "name": "Demi-fond",
+            "athletes": ["Chloé Fictif"]
+          }
         ]
       },
-      "library": { "catalog": "common", "private": [] },
-      "expect": { "mustAsk": { "reason": "no_recipient" }, "sessions": [], "critical": ["wrong_date"] }
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustAsk": {
+          "reason": "no_recipient"
+        },
+        "sessions": [],
+        "critical": ["wrong_date"]
+      }
     },
     {
       "id": "DEV-18",
@@ -407,9 +732,21 @@
       "text": "Publie la séance de demain et préviens les athlètes par message.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Sprint"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
-      "expect": { "mustAsk": { "reason": "off_topic" }, "sessions": [], "critical": ["added_exercise"] }
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustAsk": {
+          "reason": "off_topic"
+        },
+        "sessions": [],
+        "critical": ["added_exercise"]
+      }
     },
     {
       "id": "DEV-19",
@@ -417,17 +754,37 @@
       "text": "Lundi prochain pour le groupe Demi-fond : footing d'échauffement 15 minutes, puis sprints départ lancé 6 fois 30 mètres, récupération 2 minutes, et pour finir course continue facile 10 minutes.",
       "spoken": false,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Demi-fond"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Demi-fond"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
           {
             "date": "2026-11-30",
             "steps": [
-              { "key": "warmup-jog", "durationS": 900, "load": null },
-              { "key": "flying-sprint", "sets": 6, "distanceM": 30, "load": null, "restS": 120 },
-              { "key": "easy-continuous-run", "durationS": 600, "load": null }
+              {
+                "key": "warmup-jog",
+                "durationS": 900,
+                "load": null
+              },
+              {
+                "key": "flying-sprint",
+                "sets": 6,
+                "distanceM": 30,
+                "load": null,
+                "restS": 120
+              },
+              {
+                "key": "easy-continuous-run",
+                "durationS": 600,
+                "load": null
+              }
             ]
           }
         ],
@@ -440,17 +797,744 @@
       "text": "demain pour le groupe force on fait hang power clean cinq fois deux à soixante-dix pour cent puis push press quatre fois cinq et pour finir nordic trois fois six",
       "spoken": true,
       "today": "2026-11-23",
-      "recipients": { "groups": ["Force"], "athletes": [] },
-      "library": { "catalog": "common", "private": [] },
+      "recipients": {
+        "groups": ["Force"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
       "expect": {
         "mustNotAsk": true,
         "sessions": [
           {
             "date": "2026-11-24",
             "steps": [
-              { "key": "hang-power-clean", "sets": 5, "reps": 2, "load": { "value": 70, "unit": "pct_1rm" } },
-              { "key": "push-press", "sets": 4, "reps": 5, "load": null },
-              { "key": "nordic-hamstring", "sets": 3, "reps": 6, "load": null }
+              {
+                "key": "hang-power-clean",
+                "sets": 5,
+                "reps": 2,
+                "load": {
+                  "value": 70,
+                  "unit": "pct_1rm"
+                }
+              },
+              {
+                "key": "push-press",
+                "sets": 4,
+                "reps": 5,
+                "load": null
+              },
+              {
+                "key": "nordic-hamstring",
+                "sets": 3,
+                "reps": 6,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-21",
+      "kind": "described",
+      "text": "Demain pour le groupe Sprint : sprints lancés 4 fois 30 mètres, récupération 3 minutes, puis saut sur caisse 4 séries de 5, puis fentes en marchant 3 séries de 12.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-24",
+            "steps": [
+              {
+                "key": "flying-sprint",
+                "sets": 4,
+                "distanceM": 30,
+                "restS": 180,
+                "load": null
+              },
+              {
+                "key": "box-jump",
+                "sets": 4,
+                "reps": 5,
+                "load": null
+              },
+              {
+                "key": "walking-lunge",
+                "sets": 3,
+                "reps": 12,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-22",
+      "kind": "described",
+      "text": "Jeudi, groupe Demi-fond : squat arrière 4 séries de 8, puis des abdos 3 séries de 20, puis un peu de cardio 10 minutes.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Demi-fond"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-26",
+            "steps": [
+              {
+                "key": "back-squat",
+                "sets": 4,
+                "reps": 8,
+                "load": null
+              },
+              {
+                "absent": true,
+                "said": "abdos",
+                "sets": 3,
+                "reps": 20,
+                "load": null
+              },
+              {
+                "absent": true,
+                "said": "cardio",
+                "durationS": 600,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-23",
+      "kind": "described",
+      "text": "Mercredi, groupe Sprint : pompes claquées 4 séries de 6, puis gainage dorsal 3 fois 30 secondes, récupération 1 minute.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-25",
+            "steps": [
+              {
+                "absent": true,
+                "said": "pompes claquées",
+                "sets": 4,
+                "reps": 6,
+                "load": null
+              },
+              {
+                "absent": true,
+                "said": "gainage dorsal",
+                "sets": 3,
+                "durationS": 30,
+                "restS": 60,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-24",
+      "kind": "described",
+      "text": "Vendredi pour le groupe Force : pont fessier au sol 3 séries de 15, puis swing à la kettlebell 4 séries de 12, puis du 90/90 de hanches 2 séries de 8.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Force"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": [
+          {
+            "name": "Pont fessier lesté au disque",
+            "category": "strength",
+            "family": "strength",
+            "movement": "hinge",
+            "equipment": ["other"],
+            "loadable": true
+          },
+          {
+            "name": "Swing kettlebell à une main",
+            "category": "strength",
+            "family": "strength",
+            "movement": "hinge",
+            "equipment": ["kettlebells"],
+            "loadable": true
+          }
+        ]
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-27",
+            "steps": [
+              {
+                "key": "glute-bridge",
+                "sets": 3,
+                "reps": 15,
+                "load": null
+              },
+              {
+                "key": "kettlebell-swing",
+                "sets": 4,
+                "reps": 12,
+                "load": null
+              },
+              {
+                "key": "hip-90-90",
+                "sets": 2,
+                "reps": 8,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-25",
+      "kind": "described",
+      "text": "mercredi pour les lanceurs des lancers de médecine-ball vers l'avant trois séries de six puis des lancers en rotation trois séries de six de chaque côté et pour finir gainage ventral trois fois trente secondes puis latéral trois fois vingt secondes",
+      "spoken": true,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Lanceurs"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-25",
+            "steps": [
+              {
+                "key": "medicine-ball-forward",
+                "sets": 3,
+                "reps": 6,
+                "load": null
+              },
+              {
+                "key": "medicine-ball-rotation",
+                "sets": 3,
+                "reps": 6,
+                "load": null
+              },
+              {
+                "key": "front-plank",
+                "sets": 3,
+                "durationS": 30,
+                "load": null
+              },
+              {
+                "key": "side-plank",
+                "sets": 3,
+                "durationS": 20,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-26",
+      "kind": "described",
+      "text": "Demain pour le groupe Force : ma routine épaules pour commencer, puis développé militaire 5 séries de 5 à 40 kg, récupération 2 minutes, puis tractions 4 séries de 6.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Force"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": [
+          {
+            "name": "Routine épaules du lundi",
+            "category": "mobility",
+            "aliases": ["routine épaules"],
+            "family": "mobility",
+            "movement": "mobility",
+            "equipment": []
+          }
+        ]
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-24",
+            "steps": [
+              {
+                "private": "Routine épaules du lundi",
+                "load": null
+              },
+              {
+                "key": "overhead-press",
+                "sets": 5,
+                "reps": 5,
+                "load": {
+                  "value": 40,
+                  "unit": "kg"
+                },
+                "restS": 120
+              },
+              {
+                "key": "pull-up",
+                "accept": ["chin-up"],
+                "sets": 4,
+                "reps": 6,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-27",
+      "kind": "described",
+      "text": "Jeudi, groupe Demi-fond : footing d'échauffement 15 minutes, puis 2 x (6 x 200 m) r 1'30 entre les 200 et 5' entre les séries, puis course continue facile 10 minutes.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Demi-fond"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-26",
+            "steps": [
+              {
+                "key": "warmup-jog",
+                "durationS": 900,
+                "load": null
+              },
+              {
+                "rounds": 2,
+                "restBetweenRoundsS": 300,
+                "steps": [
+                  {
+                    "absent": true,
+                    "said": "200 m",
+                    "sets": 6,
+                    "distanceM": 200,
+                    "restS": 90,
+                    "load": null
+                  }
+                ]
+              },
+              {
+                "key": "easy-continuous-run",
+                "durationS": 600,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-28",
+      "kind": "described",
+      "text": "demain pour le groupe sprint on fait squat arrière quatre fois six puis fentes avant trois fois dix par jambe puis soulevé de terre roumain trois fois huit puis pompes trois fois douze puis tractions quatre fois cinq puis gainage ventral trois fois quarante secondes puis gainage latéral deux fois trente secondes par côté et on termine par des étirements actifs du dos",
+      "spoken": true,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-24",
+            "steps": [
+              {
+                "key": "back-squat",
+                "sets": 4,
+                "reps": 6,
+                "load": null
+              },
+              {
+                "key": "forward-lunge",
+                "sets": 3,
+                "reps": 10,
+                "load": null
+              },
+              {
+                "key": "romanian-deadlift",
+                "sets": 3,
+                "reps": 8,
+                "load": null
+              },
+              {
+                "key": "push-up",
+                "sets": 3,
+                "reps": 12,
+                "load": null
+              },
+              {
+                "key": "pull-up",
+                "accept": ["chin-up"],
+                "sets": 4,
+                "reps": 5,
+                "load": null
+              },
+              {
+                "key": "front-plank",
+                "sets": 3,
+                "durationS": 40,
+                "load": null
+              },
+              {
+                "key": "side-plank",
+                "sets": 2,
+                "durationS": 30,
+                "load": null
+              },
+              {
+                "key": "cat-cow",
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-29",
+      "kind": "described",
+      "text": "Mardi pour le groupe Sprint : squat avant 5 séries de 3, fentes sautées 3 séries de 10, gainage ventral 3 fois 45 secondes. Jeudi pour le groupe Demi-fond : course en côte courte 8 fois 80 mètres, puis gainage latéral 3 fois 30 secondes et pompes 3 séries de 12.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Sprint", "Demi-fond"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-24",
+            "recipients": {
+              "groups": ["Sprint"],
+              "athletes": []
+            },
+            "steps": [
+              {
+                "key": "front-squat",
+                "sets": 5,
+                "reps": 3,
+                "load": null
+              },
+              {
+                "key": "split-jumps",
+                "sets": 3,
+                "reps": 10,
+                "load": null
+              },
+              {
+                "key": "front-plank",
+                "sets": 3,
+                "durationS": 45,
+                "load": null
+              }
+            ]
+          },
+          {
+            "date": "2026-11-26",
+            "recipients": {
+              "groups": ["Demi-fond"],
+              "athletes": []
+            },
+            "steps": [
+              {
+                "key": "short-hill-sprint",
+                "sets": 8,
+                "distanceM": 80,
+                "load": null
+              },
+              {
+                "key": "side-plank",
+                "sets": 3,
+                "durationS": 30,
+                "load": null
+              },
+              {
+                "key": "push-up",
+                "sets": 3,
+                "reps": 12,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-30",
+      "kind": "described",
+      "text": "jeudi pour le groupe force squat arrière cinq fois cinq puis rowing barre quatre fois huit et avant tout ça en tout premier dix minutes de footing d'échauffement",
+      "spoken": true,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Force"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-26",
+            "steps": [
+              {
+                "key": "warmup-jog",
+                "durationS": 600,
+                "load": null
+              },
+              {
+                "key": "back-squat",
+                "sets": 5,
+                "reps": 5,
+                "load": null
+              },
+              {
+                "key": "barbell-row",
+                "sets": 4,
+                "reps": 8,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-31",
+      "kind": "described",
+      "text": "Mercredi, groupe Sprint : pompes 3 séries de 12, tractions 3 séries de 6, fentes avant 3 séries de 10. Trente secondes de récupération entre chaque exercice.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-25",
+            "steps": [
+              {
+                "key": "push-up",
+                "sets": 3,
+                "reps": 12,
+                "restS": 30,
+                "load": null
+              },
+              {
+                "key": "pull-up",
+                "accept": ["chin-up"],
+                "sets": 3,
+                "reps": 6,
+                "restS": 30,
+                "load": null
+              },
+              {
+                "key": "forward-lunge",
+                "sets": 3,
+                "reps": 10,
+                "restS": 30,
+                "load": null
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-32",
+      "kind": "described",
+      "text": "Demain, groupe Force : soulevé de terre en montée, 3 répétitions à 40 kg, 3 à 50, 2 à 55, 1 à 60, récupération 2 minutes.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Force"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-24",
+            "steps": [
+              {
+                "key": "deadlift",
+                "sets": 4,
+                "load": {
+                  "value": 40,
+                  "unit": "kg"
+                },
+                "restS": 120,
+                "setPlan": [
+                  {
+                    "reps": 3,
+                    "load": {
+                      "value": 40,
+                      "unit": "kg"
+                    }
+                  },
+                  {
+                    "reps": 3,
+                    "load": {
+                      "value": 50,
+                      "unit": "kg"
+                    }
+                  },
+                  {
+                    "reps": 2,
+                    "load": {
+                      "value": 55,
+                      "unit": "kg"
+                    }
+                  },
+                  {
+                    "reps": 1,
+                    "load": {
+                      "value": 60,
+                      "unit": "kg"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "DEV-33",
+      "kind": "described",
+      "text": "demain pour le groupe sprint pompes douze répétitions tractions quatre séries de six gainage ventral quarante secondes fentes avant trois séries de dix",
+      "spoken": true,
+      "today": "2026-11-23",
+      "recipients": {
+        "groups": ["Sprint"],
+        "athletes": []
+      },
+      "library": {
+        "catalog": "common",
+        "private": []
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-24",
+            "steps": [
+              {
+                "key": "push-up",
+                "sets": 1,
+                "reps": 12,
+                "load": null
+              },
+              {
+                "key": "pull-up",
+                "accept": ["chin-up"],
+                "sets": 4,
+                "reps": 6,
+                "load": null
+              },
+              {
+                "key": "front-plank",
+                "sets": 1,
+                "durationS": 40,
+                "load": null
+              },
+              {
+                "key": "forward-lunge",
+                "sets": 3,
+                "reps": 10,
+                "load": null
+              }
             ]
           }
         ],
