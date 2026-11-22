@@ -1,6 +1,6 @@
 import type { PlannerUnderstanding } from "@tartan/contracts";
 import { describe, expect, it } from "vitest";
-import { plannerMovementTerm, plannerNormalizeUnderstanding } from "./planner-understanding";
+import { plannerMovementTerm, plannerNormalizeUnderstanding, plannerNumberLedMentions } from "./planner-understanding";
 
 // Lundi 23 novembre 2026.
 const today = "2026-11-23";
@@ -184,5 +184,132 @@ describe("blocages", () => {
     expect(
       normalize(understood({ sessions: Array.from({ length: 15 }, () => session()) }), "Quinze séances.").blockers,
     ).toEqual([{ kind: "too_many_sessions" }]);
+  });
+});
+
+describe("mention annoncée par son nombre", () => {
+  const text =
+    "Mercredi, group_1 : squat arrière 4 x 6 ; puis fentes avant 3 x 10 ; puis 8 lancers de médecine-ball vers l'avant.";
+  it("repère la clause qui commence par un nombre suivi d'un nom de mouvement, et rien d'autre", () => {
+    expect(plannerNumberLedMentions(text).map((mention) => [mention.said, mention.prescription])).toEqual([
+      ["lancers de médecine-ball vers l'avant", "8 lancers de médecine-ball vers l'avant"],
+    ]);
+    expect(
+      plannerNumberLedMentions(
+        "squat 3 séries de 8, puis 2 minutes de récup, puis 3 tours, puis un échauffement à ta façon, " +
+          "deux reps à soixante kilos deux à soixante-dix, puis 3 exercices de gainage, 42,5 kg, à 18:30",
+      ),
+    ).toEqual([]);
+    // Une récupération écrite en notation n'est pas un mouvement.
+    expect(
+      plannerNumberLedMentions(
+        "Jeudi, group_1 : footing d'échauffement 15 minutes, puis 2 x (6 x 200 m) r 1'30 entre les 200 et 5' entre les séries, puis course continue facile 10 minutes.",
+      ),
+    ).toEqual([]);
+  });
+  it("lit aussi une dictée : nombres en lettres, liaisons sans ponctuation", () => {
+    expect(
+      plannerNumberLedMentions(
+        "demain pour group_1 gainage ventral trois fois trente secondes puis dix pompes puis vingt fentes sautées à cinq kilos",
+      ).map((mention) => [mention.said, mention.prescription]),
+    ).toEqual([
+      ["pompes", "dix pompes"],
+      ["fentes sautées", "vingt fentes sautées à cinq kilos"],
+    ]);
+    // Le nom s'arrête à la consigne qui le suit.
+    expect(
+      plannerNumberLedMentions(
+        "alors demain pour group_1 on fait un circuit trois tours avec dix fentes sautées vingt secondes de gainage ventral et huit tirages élastique maison une minute entre les tours",
+      ).map((mention) => mention.said),
+    ).toEqual(["tirages élastique maison"]);
+  });
+  it("avalée par la prescription précédente, elle devient un mouvement à part, juste après", () => {
+    const request = normalize(
+      understood({
+        sessions: [
+          session({
+            dateSaid: "mercredi",
+            movements: [
+              movement("m1", "squat arrière", "4 x 6"),
+              movement("m2", "fentes avant", "3 x 10 ; puis 8 lancers de médecine-ball vers l'avant"),
+            ],
+          }),
+        ],
+      }),
+      text,
+    );
+    expect(request.sessions[0]!.movements.map((m) => [m.id, m.said, m.prescription])).toEqual([
+      ["m1", "squat arrière", "4 x 6"],
+      ["m2", "fentes avant", "3 x 10"],
+      ["m3", "lancers de médecine-ball vers l'avant", "8 lancers de médecine-ball vers l'avant"],
+    ]);
+  });
+  it("seul son nombre est resté au bout de la prescription précédente : il en est retiré", () => {
+    const request = normalize(
+      understood({
+        sessions: [
+          session({
+            movements: [movement("m1", "squat arrière", "4 x 6"), movement("m2", "fentes avant", "3 x 10 ; puis 8")],
+          }),
+        ],
+      }),
+      text,
+    );
+    expect(request.sessions[0]!.movements.map((m) => [m.said, m.prescription])).toEqual([
+      ["squat arrière", "4 x 6"],
+      ["fentes avant", "3 x 10"],
+      ["lancers de médecine-ball vers l'avant", "8 lancers de médecine-ball vers l'avant"],
+    ]);
+  });
+  it("oubliée, elle revient après le dernier mouvement cité avant elle", () => {
+    const request = normalize(
+      understood({
+        sessions: [session({ movements: [movement("m1", "gainage ventral", "trois fois trente secondes")] })],
+      }),
+      "demain pour group_1 gainage ventral trois fois trente secondes puis dix pompes puis vingt fentes sautées",
+    );
+    expect(request.sessions[0]!.movements.map((m) => [m.said, m.prescription])).toEqual([
+      ["gainage ventral", "trois fois trente secondes"],
+      ["pompes", "dix pompes"],
+      ["fentes sautées", "vingt fentes sautées"],
+    ]);
+  });
+  it("deux mentions avalées par la même prescription gardent leur ordre", () => {
+    const request = normalize(
+      understood({
+        sessions: [
+          session({ movements: [movement("m1", "squat arrière", "4 x 6 puis 10 pompes puis 20 fentes sautées")] }),
+        ],
+      }),
+      "Demain group_1 : squat arrière 4 x 6 puis 10 pompes puis 20 fentes sautées",
+    );
+    expect(request.sessions[0]!.movements.map((m) => [m.said, m.prescription])).toEqual([
+      ["squat arrière", "4 x 6"],
+      ["pompes", "10 pompes"],
+      ["fentes sautées", "20 fentes sautées"],
+    ]);
+  });
+  it("déjà comprise, elle n'est pas répétée ; sans mouvement avant elle, rien n'est ajouté", () => {
+    const kept = normalize(
+      understood({
+        sessions: [
+          session({
+            movements: [
+              movement("m1", "squat arrière", "4 x 6"),
+              movement("m2", "fentes avant", "3 x 10"),
+              movement("m3", "lancers de médecine-ball vers l'avant", "8"),
+            ],
+          }),
+        ],
+      }),
+      text,
+    );
+    expect(kept.sessions[0]!.movements).toHaveLength(3);
+    const objective = normalize(
+      understood({ intent: "objective", sessions: [session({ movements: [] })] }),
+      "Demain group_1 : 20 minutes de gainage, puis 6 exercices au choix, propose-moi la séance",
+    );
+    expect(objective.sessions[0]!.movements).toEqual([]);
+    expect(objective.intent).toBe("objective");
   });
 });
