@@ -1,7 +1,7 @@
-import { uuid, isoDate, type PlannerSelection } from "@tartan/contracts";
+import { uuid, isoDate } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { NativePlanner } from "../src/features/native-planner";
 import { PlannerConsentNative } from "../src/features/planner-consent";
@@ -17,29 +17,25 @@ function PlannerLoader({
   proposalId,
   date,
   groupId,
-  revision,
-  newSelection,
-  onNew,
 }: {
   orgId: string;
   userId: string;
   proposalId?: string;
   date?: string;
   groupId?: string;
-  revision: number;
-  newSelection?: PlannerSelection;
-  onNew: (selection: PlannerSelection) => void;
 }) {
   const data = useQuery({
-    queryKey: ["native-planner", orgId, userId, proposalId ?? "new", revision],
+    queryKey: ["native-planner", orgId, userId, proposalId ?? "new"],
     queryFn: async ({ signal }) => {
       // Vérification fraîche du flag/rôle/offre avant d'ouvrir le formulaire ou le micro.
       const usage = await api.plannerUsage(orgId, signal);
-      const [context, initial] = await Promise.all([
+      const [context, initial, space] = await Promise.all([
         api.sessionBuilder(orgId),
         proposalId ? api.plannerProposal(orgId, proposalId, signal) : null,
+        // Le matériel du profil de l'espace préremplit les précisions ; sans lui, rien n'est supposé.
+        api.organization(orgId).catch(() => null),
       ]);
-      return { usage, context, initial };
+      return { usage, context, initial, equipment: space?.availableEquipment ?? [] };
     },
     retry: false,
     networkMode: "always",
@@ -63,25 +59,30 @@ function PlannerLoader({
         )}
       </StackScreen>
     );
+  const { context, usage, initial, equipment } = data.data;
   const chosenDate = isoDate.safeParse(date).success
     ? date!
-    : new Intl.DateTimeFormat("en-CA", { timeZone: data.data.usage.timeZone }).format(new Date());
+    : new Intl.DateTimeFormat("en-CA", { timeZone: usage.timeZone }).format(new Date());
+  // Quand l'espace n'a qu'un groupe, il est déjà choisi : la demande part en un champ et un geste.
+  const groupIds = context.groups.some((g) => g.id === groupId)
+    ? [groupId!]
+    : context.groups.length === 1
+      ? [context.groups[0]!.id]
+      : [];
   return (
     <NativePlanner
       orgId={orgId}
-      context={data.data.context}
-      initial={data.data.initial}
-      initialUsage={data.data.usage}
-      onNew={onNew}
-      initialSelection={
-        newSelection ?? {
-          period: { from: chosenDate, to: chosenDate },
-          groupIds: data.data.context.groups.some((g) => g.id === groupId) ? [groupId!] : [],
-          athleteIds: [],
-          exerciseIds: [],
-          phaseChoices: [],
-        }
-      }
+      context={context}
+      initial={initial}
+      initialUsage={usage}
+      spaceEquipment={equipment}
+      initialSelection={{
+        period: { from: chosenDate, to: chosenDate },
+        groupIds,
+        athleteIds: [],
+        exerciseIds: [],
+        phaseChoices: [],
+      }}
     />
   );
 }
@@ -89,9 +90,8 @@ function PlannerLoader({
 export default function PlannerScreen() {
   const { me, space, orgId } = useActiveSpace();
   const params = useLocalSearchParams<{ proposalId?: string; date?: string; groupId?: string }>();
-  const router = useRouter();
-  const [revision, setRevision] = useState(0);
-  const [newSelection, setNewSelection] = useState<{ orgId: string; value: PlannerSelection } | null>(null);
+  // La proposition ouverte est celle de l'arrivée sur l'écran : l'écran garde ensuite son travail.
+  const [opened] = useState(params.proposalId || undefined);
   if (!me.data)
     return (
       <StackScreen title={m.aiPlanner.title}>
@@ -105,7 +105,7 @@ export default function PlannerScreen() {
       </StackScreen>
     );
   if (!me.data.preferences?.aiConsent) return <PlannerConsentNative />;
-  if (params.proposalId && !uuid.safeParse(params.proposalId).success)
+  if (opened && !uuid.safeParse(opened).success)
     return (
       <StackScreen title={m.aiPlanner.title}>
         <T>{m.common.notFound}</T>
@@ -113,19 +113,12 @@ export default function PlannerScreen() {
     );
   return (
     <PlannerLoader
-      key={`${me.data.id}:${orgId}:${params.proposalId ?? "new"}:${revision}`}
+      key={`${me.data.id}:${orgId}:${opened ?? "new"}`}
       userId={me.data.id}
       orgId={orgId}
-      proposalId={params.proposalId || undefined}
+      proposalId={opened}
       date={params.date}
       groupId={params.groupId}
-      revision={revision}
-      newSelection={newSelection?.orgId === orgId ? newSelection.value : undefined}
-      onNew={(selection) => {
-        setNewSelection({ orgId, value: selection });
-        router.setParams({ proposalId: "" });
-        setRevision((v) => v + 1);
-      }}
     />
   );
 }

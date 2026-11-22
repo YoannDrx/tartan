@@ -17,6 +17,7 @@ export function PlannerLoadPreview({
   version,
   session,
   disabled,
+  blocked,
   onReady,
   onLoad,
 }: {
@@ -25,6 +26,8 @@ export function PlannerLoadPreview({
   version: number;
   session: PlannerReviewedDraft;
   disabled: boolean;
+  // Ce qui empêche encore l'aperçu (un exercice sans fiche) : dit à la place du bouton.
+  blocked?: string;
   onReady: (key: string, ready: boolean) => void;
   onLoad: (athleteId: string, itemRef: string, load: Prescription["load"]) => void;
 }) {
@@ -51,7 +54,7 @@ export function PlannerLoadPreview({
     queryKey: ["planner-loads", orgId, proposalId, version, session, after],
     queryFn: ({ signal }) =>
       api.previewPlannerLoads(orgId, proposalId, { expectedVersion: version, session, afterAthleteId: after }, signal),
-    enabled: open && requestValid,
+    enabled: open && requestValid && !blocked,
     retry: false,
     networkMode: "always",
     staleTime: 0,
@@ -85,10 +88,17 @@ export function PlannerLoadPreview({
     setEditing(null);
   };
   const current = requestValid && !data.isError && !data.isFetching ? data.data : undefined;
+  if (blocked)
+    return (
+      <T variant="small" tone="muted">
+        {blocked}
+      </T>
+    );
   return (
     <View style={{ gap: space.sm }}>
       <Button
         variant="secondary"
+        testID="planner-loads"
         label={t.previewLoads}
         expanded={open}
         disabled={disabled || !requestValid}
