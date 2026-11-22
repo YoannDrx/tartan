@@ -214,7 +214,8 @@ export type PlannerUnderstandInput = {
 };
 /** Étape 2 : les termes que les règles n'ont pas reconnus, et la bibliothèque réduite à cinq champs par fiche. */
 export type PlannerMatchInput = {
-  movements: { id: string; said: string; prescription: string | null }[];
+  // `near` : les autres mouvements cités dans la même séance, dans l'ordre, pour comprendre une mention elliptique.
+  movements: { id: string; said: string; prescription: string | null; near: string[] }[];
   library: { key: string; name: string; aliases: string[]; family: string | null; equipment: string[] | null }[];
 };
 export type PlannerComposeExercise = {

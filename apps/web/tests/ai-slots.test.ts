@@ -147,9 +147,9 @@ describe("emplacement à compléter", () => {
         },
       })),
     });
-    await expect(confirmPlannerProposal(a.owner.userId, a.organizationId, created.id, forced, now)).rejects.toMatchObject(
-      { status: 409, code: "planner_slots_open", message: m.aiPlanner.slotsOpen },
-    );
+    await expect(
+      confirmPlannerProposal(a.owner.userId, a.organizationId, created.id, forced, now),
+    ).rejects.toMatchObject({ status: 409, code: "planner_slots_open", message: m.aiPlanner.slotsOpen });
     // Le coach choisit une fiche : aucun appel au modèle, aucune réponse écrite, la prescription dite reste.
     const before = [calls.understand, calls.match, calls.compose, calls.repair].map((spy) => spy.mock.calls.length);
     const filled = await resolve(a, created, { kind: "existing", exerciseId: a.rope.id });
@@ -183,21 +183,25 @@ describe("emplacement à compléter", () => {
     expect(calls.match.mock.calls.length).toBe(matchCalls);
     expect(again).toMatchObject({ state: "proposal", slots: [] });
     expect(nameOf(again, tokensOf(again)[0]!)).toBe(a.rope.name);
-    expect(again.understanding!.movements).toMatchObject([{ confidence: "exact", exercise: { exerciseId: a.rope.id } }]);
+    expect(again.understanding!.movements).toMatchObject([
+      { confidence: "exact", exercise: { exerciseId: a.rope.id } },
+    ]);
 
     // Un alias appris ne quitte jamais son espace : ailleurs, le même terme reste sans fiche.
     const other = await setup("AutreEspace");
     const elsewhere = await other.create("Saut du dragon, 3 séries de 5.", NEW);
     expect(elsewhere.slots).toMatchObject([{ said: "Saut du dragon" }]);
     expect((await listExerciseTermAliases(other.owner.userId, other.organizationId)).aliases).toEqual([]);
-    expect(await matchPlannerTerms(other.owner.userId, other.organizationId, ["Saut du dragon"], {
+    expect(
+      await matchPlannerTerms(other.owner.userId, other.organizationId, ["Saut du dragon"], {
         provider: fakePlannerProvider(),
-      })).toMatchObject([
-      { confidence: "absent", exercise: null },
-    ]);
-    expect(await matchPlannerTerms(a.owner.userId, a.organizationId, ["saut du dragon"], { provider: fakePlannerProvider() })).toMatchObject([
-      { confidence: "exact", exercise: { exerciseId: a.rope.id } },
-    ]);
+      }),
+    ).toMatchObject([{ confidence: "absent", exercise: null }]);
+    expect(
+      await matchPlannerTerms(a.owner.userId, a.organizationId, ["saut du dragon"], {
+        provider: fakePlannerProvider(),
+      }),
+    ).toMatchObject([{ confidence: "exact", exercise: { exerciseId: a.rope.id } }]);
   });
 
   it("crée la fiche depuis l'emplacement avec les valeurs proposées, que le coach peut changer, sans case à cocher", async () => {
@@ -243,7 +247,11 @@ describe("emplacement à compléter", () => {
         a.owner.userId,
         a.organizationId,
         created.id,
-        confirmPlannerProposalInput.parse({ expectedVersion: removed.version, confirmed: true, sessions: drafts.sessions }),
+        confirmPlannerProposalInput.parse({
+          expectedVersion: removed.version,
+          confirmed: true,
+          sessions: drafts.sessions,
+        }),
         now,
       ),
     ).resolves.toMatchObject({ sessions: [{}] });
@@ -265,7 +273,12 @@ describe("emplacement à compléter", () => {
     expect(pending.interpretation).toMatchObject({
       sessions: [],
       questions: [
-        { id: "slot_1", field: "exercise", exerciseName: "Saut du dragon", question: m.aiPlanner.unknownExercise("Saut du dragon") },
+        {
+          id: "slot_1",
+          field: "exercise",
+          exerciseName: "Saut du dragon",
+          question: m.aiPlanner.unknownExercise("Saut du dragon"),
+        },
       ],
     });
     // Retirer n'existe pas dans l'ancienne forme.
@@ -337,7 +350,9 @@ describe("fiche probable", () => {
     ]);
     // La fois suivante, le terme désigne la fiche choisie, sans doute.
     const again = await a.create("Zigzag fictif, 3 séries de 8.", NEW);
-    expect(again.understanding!.movements).toMatchObject([{ confidence: "exact", exercise: { exerciseId: offered.id } }]);
+    expect(again.understanding!.movements).toMatchObject([
+      { confidence: "exact", exercise: { exerciseId: offered.id } },
+    ]);
   });
 });
 
@@ -417,6 +432,36 @@ describe("bibliothèque de 700 fiches", () => {
   });
 });
 
+describe("copie d'une fiche commune", () => {
+  it("se retrouve par le nom et les alias de la fiche commune, même copiée sans alias ou renommée", async () => {
+    const a = await setup("Copie");
+    const key = `fictif-${randomUUID().slice(0, 8)}`;
+    const alias = `Bascule fictive ${key.slice(-8)}`;
+    await prisma.exercise.create({
+      data: { name: `Mobilité fictive ${key.slice(-8)}`, category: "mobility", catalogKey: key, aliases: [alias] },
+    });
+    const copy = await prisma.exercise.create({
+      data: {
+        organizationId: a.organizationId,
+        name: `Ma mobilité ${key.slice(-8)}`,
+        category: "mobility",
+        sourceCatalogKey: key,
+      },
+    });
+    // Par règles, sans modèle : l'alias et le nom de la fiche commune désignent la copie de l'espace.
+    const matches = await matchPlannerTerms(
+      a.owner.userId,
+      a.organizationId,
+      [alias.toLocaleLowerCase("fr"), `mobilité fictive ${key.slice(-8)}`],
+      { provider: fakePlannerProvider() },
+    );
+    expect(matches).toMatchObject([
+      { confidence: "exact", exercise: { exerciseId: copy.id } },
+      { confidence: "exact", exercise: { exerciseId: copy.id } },
+    ]);
+  });
+});
+
 describe("vocabulaire de la dictée", () => {
   it("contient les termes appris de l'espace et les fiches communes, jamais les termes d'un autre espace", async () => {
     const a = await setup("Dictee");
@@ -435,7 +480,10 @@ describe("vocabulaire de la dictée", () => {
       expect(words).toEqual(expect.arrayContaining([a.sled.name, a.rope.name]));
       // Les fiches communes y entrent aussi, à côté des fiches de l'espace.
       const shared = await prisma.exercise.findMany({ where: { organizationId: null }, select: { name: true } });
-      const own = await prisma.exercise.findMany({ where: { organizationId: a.organizationId }, select: { name: true } });
+      const own = await prisma.exercise.findMany({
+        where: { organizationId: a.organizationId },
+        select: { name: true },
+      });
       const onlyCommon = shared.map((row) => row.name).filter((name) => !own.some((row) => row.name === name));
       expect(words.some((word) => onlyCommon.includes(word))).toBe(true);
       expect(words).not.toContain("Bond du tigre");

@@ -164,7 +164,7 @@ describe("une fonction typée par étape", () => {
       { key: "f3", name: "Fiche privée", aliases: [], family: null, equipment: null },
     ];
     const result = await openAiPlannerProvider(fetcher).match({
-      movements: [{ id: "m1", said: "RDL", prescription: "3 x 8" }],
+      movements: [{ id: "m1", said: "RDL", prescription: "3 x 8", near: [] }],
       library,
     });
     expect(result).toEqual(generation);
@@ -180,7 +180,7 @@ describe("une fonction typée par étape", () => {
     // Le repère de cache est à la fin de la bibliothèque : elle se relit d'une demande à l'autre.
     expect(body.input[0]!.content).toEqual(expect.any(String));
     expect(body.input[1]!.content).toMatchObject([{ prompt_cache_breakpoint: { mode: "explicit" } }]);
-    expect(JSON.parse(text(body.input[2]!))).toEqual({ movements: [{ id: "m1", said: "RDL", prescription: "3 x 8" }] });
+    expect(JSON.parse(text(body.input[2]!))).toEqual({ movements: [{ id: "m1", said: "RDL", prescription: "3 x 8", near: [] }] });
   });
   it("composer et réparer : modèle principal, fiches et emplacements seuls permis, prescription écrite une fois", async () => {
     const composition = composed([node("m1", "exercise_1"), node("m2", "slot_1")]);

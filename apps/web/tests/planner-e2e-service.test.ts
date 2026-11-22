@@ -102,7 +102,7 @@ describe("mesure de bout en bout par le service", () => {
 
     // Paires : une fiche du catalogue, une fiche privée, et un terme absent laissé sans fiche.
     expect(pair("PX-01").resolution.first).toEqual({ kind: "catalog", key: "back-squat" });
-    expect(pair("PX-06").resolution.first).toEqual({ kind: "private", name: "Tirage élastique maison" });
+    expect(pair("PX-06").resolution.first).toMatchObject({ kind: "private", name: "Tirage élastique maison" });
     expect(pair("PX-06").score.top1).toBe(true);
     expect(pair("PX-07")).toMatchObject({ absent: true, score: { top1: true, falsePositive: false } });
 

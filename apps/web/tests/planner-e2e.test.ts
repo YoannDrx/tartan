@@ -446,6 +446,36 @@ describe("notation d'une paire", () => {
         .falsePositive,
     ).toBe(false);
   });
+
+  it("la fiche du coach qui porte exactement le nom dit est un choix juste, quelle que soit l'attente", () => {
+    const own = (name: string, aliases: string[] = []) => ({ kind: "private" as const, name, aliases });
+    const right = { top1: true, top3: true, falsePositive: false };
+    // Attendu `absent` (PX-07, « planche Copenhague ») : la fiche de l'espace porte ce nom, au pluriel près.
+    expect(scorePair(pair("PX-07"), { first: own("Planches Copenhague"), proposals: [], toVerify: false })).toEqual(
+      right,
+    );
+    // Attendu une clé du catalogue (PX-02, « RDL ») : une fiche du coach a « RDL » pour alias.
+    expect(
+      scorePair(pair("PX-02"), { first: own("Mon soulevé roumain", ["RDL"]), proposals: [], toVerify: false }),
+    ).toEqual(right);
+    // Un nom seulement voisin ne suffit pas : la fiche reste un mauvais choix.
+    expect(
+      scorePair(pair("PX-07"), { first: own("Planche Copenhague lestée"), proposals: [], toVerify: false })
+        .falsePositive,
+    ).toBe(true);
+    // Dans un cas : la fiche sans clé de catalogue qui porte le terme dit n'est ni un écart ni une faute grave.
+    const test = example("EX-01");
+    const exact = scoreCase(
+      test,
+      answered(session("2026-11-23", [squat({ ref: own("Squat arrière"), said: "squat arrière" })])),
+    );
+    expect(exact.passed).toBe(true);
+    const near = scoreCase(
+      test,
+      answered(session("2026-11-23", [squat({ ref: own("Squat arrière lesté"), said: "squat arrière" })])),
+    );
+    expect(near.critical).toEqual(["wrong_exercise"]);
+  });
 });
 
 describe("coût", () => {

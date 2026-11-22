@@ -1009,7 +1009,11 @@ export function plannerCheckComposition(
       items: block.items.map((item, i): RichItem => {
         const said = item.origin === "said";
         const where = { block: b, item: i };
-        const judge = (load: RichLoad | null, token: string): RichLoad | null => {
+        const judge = (
+          load: RichLoad | null,
+          token: string,
+          listUnit: RichLoad["type"] | null = null,
+        ): RichLoad | null => {
           if (!load || known.has(load.value)) return load;
           // Ce qui est proposé n'a jamais de kilos : un pourcentage seulement, là où chaque destinataire a sa
           // référence de force. Ailleurs il ne serait résolu pour personne.
@@ -1018,6 +1022,8 @@ export function plannerCheckComposition(
           // La valeur est dite avec l'autre unité : c'est l'unité du coach qui vaut.
           if (hasUnit(mentions, load.value, load.type === "kg" ? PERCENT_UNIT : KG_UNIT))
             return { ...load, type: load.type === "kg" ? "pct_1rm" : "kg" };
+          // « 3 à 40 kg, 3 à 50, 2 à 55 » : l'unité dite une fois vaut pour toute l'énumération des séries.
+          if (listUnit && stated.has(load.value)) return { ...load, type: listUnit };
           if (stated.has(load.value) || final) {
             // Dite sans unité, ou jamais dite après réparation : laissée vide, signalée, jamais devinée.
             warn({ code: "load_unclear", field: "load", ...where, detail: String(load.value) });
@@ -1031,13 +1037,24 @@ export function plannerCheckComposition(
           });
           return load;
         };
-        const loads = (prescription: RichItem["prescription"], token: string): RichItem["prescription"] => ({
-          ...prescription,
-          load: judge(prescription.load, token),
-          ...(prescription.setPlan
-            ? { setPlan: prescription.setPlan.map((set) => ({ ...set, load: judge(set.load, token) })) }
-            : {}),
-        });
+        const loads = (prescription: RichItem["prescription"], token: string): RichItem["prescription"] => {
+          // L'unité que le coach a dite pour au moins une série détaillée, quand il n'en a dit qu'une.
+          const units = new Set(
+            (said ? (prescription.setPlan ?? []) : []).flatMap((set) =>
+              set.load && hasUnit(mentions, set.load.value, set.load.type === "kg" ? KG_UNIT : PERCENT_UNIT)
+                ? [set.load.type]
+                : [],
+            ),
+          );
+          const listUnit = units.size === 1 ? [...units][0]! : null;
+          return {
+            ...prescription,
+            load: judge(prescription.load, token, listUnit),
+            ...(prescription.setPlan
+              ? { setPlan: prescription.setPlan.map((set) => ({ ...set, load: judge(set.load, token, listUnit) })) }
+              : {}),
+          };
+        };
         let prescription = loads(item.prescription, item.exerciseToken);
         // Un nombre sans unité se range selon l'unité de comptage de la fiche, et se signale.
         const unit = said ? context.units.get(item.exerciseToken) : undefined;
@@ -1089,7 +1106,9 @@ export function plannerCheckComposition(
     session = { ...session, blocks, warnings };
     if (request && !context.adjusting) {
       // Chaque mouvement cité est dans la séance, dans l'ordre où le coach l'a dit.
-      const order = blocks.flatMap((block) => block.items.flatMap((item) => (item.movementId ? [item.movementId] : [])));
+      const order = blocks.flatMap((block) =>
+        block.items.flatMap((item) => (item.movementId ? [item.movementId] : [])),
+      );
       const expected = request.movements.filter((movement) => !movement.replaces);
       for (const movement of expected)
         if (!order.includes(movement.id))
@@ -1222,50 +1241,65 @@ export function plannerSettleComposition(
       session.blocks.flatMap((block) => block.items.flatMap((item) => (item.movementId ? [item.movementId] : []))),
     );
     const missing = expected.filter((movement) => !present.has(movement.id));
-    if (missing.length) {
-      const last = session.blocks.length - 1;
-      const block = session.blocks[last]!;
-      const added = missing.map(
-        (movement, i): RichItem => ({
-          ref: `late-${block.items.length + i}`,
-          exerciseToken: movement.exerciseToken,
-          prescription: emptyPrescription(movement.prescription?.slice(0, 500) ?? null),
-          instruction: [movement.said, movement.prescription].filter(Boolean).join(", ").slice(0, 2000),
-          origin: "said",
-          movementId: movement.id,
-          said: movement.said,
-          confidence: movement.confidence,
-          ...(movement.alternatives.length ? { alternatives: [...movement.alternatives].slice(0, 3) } : {}),
-          ...(movement.suggestion ? { suggestion: movement.suggestion } : {}),
-          autonomous: null,
-        }),
-      );
-      const warnings = [
-        ...(session.warnings ?? []),
-        ...added.map(
-          (_, i): PlannerWarning => ({
-            code: "to_complete",
-            field: "other",
-            block: last,
-            item: block.items.length + i,
-            detail: null,
-          }),
-        ),
-      ];
+    // Chaque mouvement cité a sa place dans la séance, dans l'ordre dit : celui qui manque encore est posé juste
+    // avant le mouvement cité qui le suit, sinon à la fin. Jamais rien à la place d'un mouvement dit.
+    for (const movement of missing) {
+      const current: PlannerRichSession = session;
+      const rank = expected.indexOf(movement);
+      const after = new Set(expected.slice(rank + 1).map((entry) => entry.id));
+      let blockAt = current.blocks.length - 1;
+      let position = current.blocks[blockAt]!.items.length;
+      let before: string | null = null;
+      search: for (const [b, block] of current.blocks.entries())
+        for (const [i, item] of block.items.entries())
+          if (item.movementId && after.has(item.movementId)) {
+            blockAt = b;
+            position = i;
+            before = item.ref ?? null;
+            break search;
+          }
+      const added: RichItem = {
+        ref: `late-${movement.id}`.slice(0, 64),
+        exerciseToken: movement.exerciseToken,
+        prescription: emptyPrescription(movement.prescription?.slice(0, 500) ?? null),
+        instruction: [movement.said, movement.prescription].filter(Boolean).join(", ").slice(0, 2000),
+        origin: "said",
+        movementId: movement.id,
+        said: movement.said,
+        confidence: movement.confidence,
+        ...(movement.alternatives.length ? { alternatives: [...movement.alternatives].slice(0, 3) } : {}),
+        ...(movement.suggestion ? { suggestion: movement.suggestion } : {}),
+        autonomous: null,
+      };
+      const node = { kind: "exercise" as const, itemRef: added.ref! };
+      const holds = (entry: SequenceNodes[number]): boolean =>
+        entry.kind === "exercise"
+          ? entry.itemRef === before
+          : entry.kind === "repeat" && (entry.children as SequenceNodes).some(holds);
       session = {
-        ...session,
-        warnings,
-        blocks: session.blocks.map((entry, b) =>
-          b === last
-            ? {
-                ...entry,
-                items: [...entry.items, ...added],
-                sequence: entry.sequence
-                  ? [...entry.sequence, ...added.map((item) => ({ kind: "exercise" as const, itemRef: item.ref! }))]
-                  : entry.sequence,
-              }
-            : entry,
-        ),
+        ...current,
+        warnings: [
+          // Les points déjà posés sur les exercices suivants du bloc glissent d'un rang.
+          ...(current.warnings ?? []).map((warning) =>
+            warning.block === blockAt && warning.item !== null && warning.item >= position
+              ? { ...warning, item: warning.item + 1 }
+              : warning,
+          ),
+          { code: "to_complete", field: "other", block: blockAt, item: position, detail: null },
+        ],
+        blocks: current.blocks.map((entry, b) => {
+          if (b !== blockAt) return entry;
+          const at = before && entry.sequence ? entry.sequence.findIndex(holds) : -1;
+          return {
+            ...entry,
+            items: [...entry.items.slice(0, position), added, ...entry.items.slice(position)],
+            sequence: entry.sequence
+              ? at >= 0
+                ? [...entry.sequence.slice(0, at), node, ...entry.sequence.slice(at)]
+                : [...entry.sequence, node]
+              : entry.sequence,
+          };
+        }),
       };
     }
     if (!session.blocks.some((block) => block.items.length)) return null;
