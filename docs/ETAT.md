@@ -1,6 +1,6 @@
 # État du projet
 
-Mis à jour le 22 novembre 2026. Toute PR qui change un état met ce fichier à jour.
+Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
@@ -45,7 +45,10 @@ Niveaux : **codé**, **testé** automatiquement, **éprouvé** en production ou 
 
 ### En cours
 
-Rien : tous les lots du plan du 21 novembre sont en production. La suite attend l'essai du fondateur (voir ci-dessous).
+| Lot | Où | Niveau | Mené par |
+| --- | --- | --- | --- |
+| Parité mobile M1 à M3 : connexion par mot de passe, réglages en neuf rubriques sans abonnement, photo et avatars, premiers pas du coach et accueil de l'athlète ; listes et favoris, fiche concise, vidéo de catalogue, chercher ou créer dans le constructeur ; vidéo en plein écran avec tracés au doigt, rappel local de fin de récupération, `/mes-videos`, message de publication (G10) | PR `feat/mobile-compte-pr` | Codé, testé (mobile 350, web 2 473 ; M2 et M3 joués à la main sur simulateur iOS) ; flux Maestro neufs exécutés par la CI seulement ; aucun téléphone physique | Opus |
+| Finitions web : retrait de l'ancien moteur de gestes, `/seances/[id]/suivi` par tranches, textes gelés | Agent en cours | En cours | Opus |
 
 ### Restant à faire
 
