@@ -106,6 +106,7 @@ jobs:
       DEMO_PASSWORD: maestro-mot-de-passe-de-test
       NO_AGE_EMAIL: sans-age@e2e.tartan.test
       DISPOSABLE_EMAIL: jetable@e2e.tartan.test
+      NEWCOMER_EMAIL: nouvelle@e2e.tartan.test
       BETTER_AUTH_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       BETTER_AUTH_SECRET: secret-maestro-secret-maestro-secret-maestro
@@ -186,6 +187,31 @@ jobs:
           psql "$DATABASE_URL" -c "update \"user\" set email_verified = true where email = '$DISPOSABLE_EMAIL'"
           psql "$DATABASE_URL" -c "update profiles set birth_date = '1990-01-01' where id = (select id from \"user\" where email = '$DISPOSABLE_EMAIL')"
           psql "$DATABASE_URL" -c "insert into organization_members (organization_id, user_id, role, updated_at) select o.id, u.id, 'athlete', now() from organizations o, \"user\" u where o.owner_id = (select id from \"user\" where email = 'coach@demo.tartan.coach') and u.email = '$DISPOSABLE_EMAIL'"
+      - name: Athlète arrivé par le lien du groupe (accueil, lot M1)
+        # Le vrai chemin d'arrivée : le coach crée le lien de son premier groupe, l'athlète crée son compte et l'accepte.
+        run: |
+          api=http://localhost:3000
+          coach="$RUNNER_TEMP/coach.txt"
+          newcomer="$RUNNER_TEMP/newcomer.txt"
+          curl -sf -c "$coach" -X POST "$api/api/auth/sign-in/email" \
+            -H "Content-Type: application/json" -H "Origin: $api" \
+            -d "{\"email\":\"coach@demo.tartan.coach\",\"password\":\"$DEMO_PASSWORD\"}" > /dev/null
+          org=$(curl -sf -b "$coach" "$api/api/v1/me" | jq -r '[.spaces[] | select(.role == "owner")][0].organizationId')
+          group=$(curl -sf -b "$coach" "$api/api/v1/orgs/$org/groups" | jq -r '.[0].id')
+          link=$(curl -sf -b "$coach" -X POST -H "Origin: $api" "$api/api/v1/orgs/$org/groups/$group/link" | jq -r '.link')
+          curl -sf -X POST "$api/api/auth/sign-up/email" \
+            -H "Content-Type: application/json" -H "Origin: $api" \
+            -d "{\"email\":\"$NEWCOMER_EMAIL\",\"password\":\"$DEMO_PASSWORD\",\"name\":\"Nouvelle Venue\"}" > /dev/null
+          psql "$DATABASE_URL" -c "update \"user\" set email_verified = true where email = '$NEWCOMER_EMAIL'"
+          curl -sf -c "$newcomer" -X POST "$api/api/auth/sign-in/email" \
+            -H "Content-Type: application/json" -H "Origin: $api" \
+            -d "{\"email\":\"$NEWCOMER_EMAIL\",\"password\":\"$DEMO_PASSWORD\"}" > /dev/null
+          curl -sf -b "$newcomer" -X POST "$api/api/v1/invitations/${link##*/}/accept" \
+            -H "Content-Type: application/json" -H "Origin: $api" \
+            -d '{"firstName":"Nouvelle","lastName":"Venue","birthDate":"1995-05-05","consents":{"terms":true,"health":false,"video":false}}' > /dev/null
+          # L'accueil est dû : arrivée du jour, aucune séance validée.
+          curl -sf -b "$newcomer" "$api/api/v1/orgs/$org/athlete/welcome" | jq -e '.welcome != null' > /dev/null
+          rm -f "$coach" "$newcomer"
       - name: Xcode 26
         # Expo SDK 55 exige le Swift de Xcode 26 ; l'image du runner garde Xcode 16 par défaut.
         run: |
@@ -237,6 +263,7 @@ jobs:
             -e ATHLETE2_EMAIL=deux@demo.tartan.coach
             -e API_URL=http://localhost:3000
             -e NO_AGE_EMAIL="$NO_AGE_EMAIL"
+            -e NEWCOMER_EMAIL="$NEWCOMER_EMAIL"
             -e PASSWORD="$DEMO_PASSWORD")
           status=0
           maestro test .maestro --format junit --output "$RUNNER_TEMP/maestro.xml" --debug-output "$RUNNER_TEMP/maestro" --flatten-debug-output \
@@ -258,6 +285,14 @@ jobs:
             maestro test ".maestro/$flow.yml" --format junit --output "$RUNNER_TEMP/maestro-retry-$flow.xml" \
               --debug-output "$RUNNER_TEMP/maestro-retry-$flow" --flatten-debug-output "${vars[@]}"
           done
+      - name: Accueil refermé sur le simulateur, gardé par le serveur (lot M1)
+        # Le flux `athlete-welcome` accepte un accueil déjà vu pour se rejouer : la base prouve qu'il a été montré puis
+        # refermé sur le téléphone.
+        if: ${{ !cancelled() }}
+        run: |
+          seen=$(psql "$DATABASE_URL" -tAc "select count(*) from onboarding_states s join \"user\" u on u.id = s.user_id where u.email = '$NEWCOMER_EMAIL' and s.welcome_seen_at is not null")
+          echo "Accueil refermé : $seen"
+          test "$seen" = "1"
       - name: Suppression de compte (T07)
         # Après les autres : ce parcours détruit son compte jetable. Il tourne même si un flux a échoué avant lui.
         if: ${{ !cancelled() }}

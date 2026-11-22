@@ -1,0 +1,51 @@
+# Photo de profil et avatars (lot M1) : la galerie « Le groupe » et « Animaux », l'avatar choisi qui suit la personne
+# jusqu'au sommaire, puis le retour aux initiales. La photo du téléphone (pellicule, appareil) n'est pas jouée ici :
+# Maestro ne pilote pas le sélecteur du système. Le parcours se rejoue : il finit sur les initiales.
+appId: ${APP_ID}
+env:
+  EMAIL: ${ATHLETE2_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: open-settings
+    timeout: 30000
+- tapOn:
+    id: open-settings
+- extendedWaitUntil:
+    visible:
+      id: settings-profile
+    timeout: 15000
+- tapOn:
+    id: settings-profile
+- extendedWaitUntil:
+    visible:
+      id: avatar-current
+    timeout: 15000
+- assertVisible:
+    id: avatar-library
+- assertVisible:
+    id: avatar-camera
+- assertVisible: "Le groupe"
+- assertVisible:
+    id: avatar-preset-athlete-highJump
+- scrollUntilVisible:
+    element:
+      id: avatar-preset-animal-fox
+- assertVisible: "Animaux"
+- tapOn:
+    id: avatar-preset-animal-fox
+- extendedWaitUntil:
+    visible: "Avatar enregistré."
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: avatar-current
+    direction: UP
+- assertVisible: "Avatar de .*Renard"
+- tapOn:
+    id: avatar-initials
+- extendedWaitUntil:
+    visible: "Tes initiales s'affichent à nouveau."
+    timeout: 15000
+- assertVisible: "Initiales de .*"
