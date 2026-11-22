@@ -12,9 +12,11 @@ export const sessionRoute = (path: string | string[] | undefined): string => {
   return ID.test(id) ? `/session/${id}` : "/today";
 };
 
-export const jumpRoute = (id: string | string[] | undefined): string => {
+// « /mes-videos/<id> », et l'ancien « /mes-sauts/<id> », ouvrent l'analyse de la vidéo ; sans identifiant, la liste.
+export const MY_VIDEOS_ROUTE = "/mes-videos";
+export const videoRoute = (id: string | string[] | undefined): string => {
   const value = first(id);
-  return ID.test(value) ? `/video/${value}` : "/jumps";
+  return ID.test(value) ? `/video/${value}` : MY_VIDEOS_ROUTE;
 };
 
 // Même règle que la route web `/r/<code>`.
