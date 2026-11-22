@@ -227,7 +227,9 @@ export function PlannerResult({
         choice: { kind: "existing", exerciseId: exercise.id },
       });
       setPrepared((current) =>
-        current ? { version: updated.version, sessions: withExercise(current.sessions, itemRef, exercise.id) } : current,
+        current
+          ? { version: updated.version, sessions: withExercise(current.sessions, itemRef, exercise.id) }
+          : current,
       );
       pendingConfirmation.current = null;
       done();
@@ -273,9 +275,7 @@ export function PlannerResult({
     const said = warning.said ?? exercise.name;
     return settle(ref, said, ref, exercise, () => {
       setWarnings((current) =>
-        current.map((list) =>
-          list.filter((entry) => entry.itemRef !== ref || entry.code !== "approximate_exercise"),
-        ),
+        current.map((list) => list.filter((entry) => entry.itemRef !== ref || entry.code !== "approximate_exercise")),
       );
       toast.ok(t.probable.learned(said, exercise.name));
     });
@@ -285,9 +285,7 @@ export function PlannerResult({
     .filter(
       (target) =>
         !drafts ||
-        drafts.some((draft) =>
-          draft.assignments.some((a) => a.targetType === target.type && a.targetId === target.id),
-        ),
+        drafts.some((draft) => draft.assignments.some((a) => a.targetType === target.type && a.targetId === target.id)),
     )
     .map((target) => target.label)
     .join(", ");

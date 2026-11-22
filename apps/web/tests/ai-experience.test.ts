@@ -189,7 +189,10 @@ describe("remplacer et ajouter dans toute la bibliothèque", () => {
     await prisma.exercise.update({ where: { id: gone.id }, data: { deletedAt: now } });
     for (const exerciseId of [other.sled.id, gone.id, PLANNER_SLOT_EXERCISE_ID, randomUUID()])
       await expect(
-        a.confirm(created, edited(drafts.sessions, () => ({ exerciseId }))),
+        a.confirm(
+          created,
+          edited(drafts.sessions, () => ({ exerciseId })),
+        ),
       ).rejects.toMatchObject({ status: 409, code: "planner_proposal_conflict" });
     expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
     const confirmed = await a.confirm(created, replaced);
@@ -266,7 +269,12 @@ describe("ajuster garde les retouches faites à la main", () => {
     const drafts = await a.prepare(created);
     const calls = understand.mock.calls.length;
     await expect(
-      a.adjust(created, "Passe à quatre séries.", edited(drafts.sessions, () => ({ exerciseId: other.sled.id })), provider),
+      a.adjust(
+        created,
+        "Passe à quatre séries.",
+        edited(drafts.sessions, () => ({ exerciseId: other.sled.id })),
+        provider,
+      ),
     ).rejects.toMatchObject({ status: 409 });
     expect(understand.mock.calls.length).toBe(calls);
     const kept = await getPlannerProposal(a.owner.userId, a.organizationId, created.id, now);
@@ -301,9 +309,7 @@ describe("une fiche à vérifier se tranche d'un geste", () => {
     });
     expect(settled).toMatchObject({ state: "proposal", version: created.version + 1, clarificationCount: 0 });
     const after = await a.prepare(settled);
-    expect(itemsOf(after)).toMatchObject([
-      { exerciseId: alternative!.exerciseId, prescription: { sets: 3, reps: 8 } },
-    ]);
+    expect(itemsOf(after)).toMatchObject([{ exerciseId: alternative!.exerciseId, prescription: { sets: 3, reps: 8 } }]);
     expect(after.warnings![0]).toEqual([]);
     expect((await listExerciseTermAliases(a.owner.userId, a.organizationId)).aliases).toMatchObject([
       { said: "bascule dragon", exerciseId: alternative!.exerciseId },
@@ -322,7 +328,10 @@ describe("une fiche à vérifier se tranche d'un geste", () => {
   it("validée telle quelle, ou changée pour une fiche cherchée dans toute la bibliothèque", async () => {
     const { a, created, drafts, warning } = await probable("Valider", "dragon bascule");
     const posed = itemsOf(drafts)[0]!.exerciseId;
-    const validated = await a.resolve(created, warning.itemRef!, warning.said!, { kind: "existing", exerciseId: posed });
+    const validated = await a.resolve(created, warning.itemRef!, warning.said!, {
+      kind: "existing",
+      exerciseId: posed,
+    });
     expect((await a.prepare(validated)).warnings![0]).toEqual([]);
     expect((await listExerciseTermAliases(a.owner.userId, a.organizationId)).aliases).toMatchObject([
       { said: "dragon bascule", exerciseId: posed },
@@ -381,7 +390,13 @@ describe("un emplacement tranché sans perdre les retouches", () => {
     const screen = edited(drafts.sessions, (item) => ({ prescription: { ...item.prescription, reps: 6 } }), 1);
     expect(itemsOf({ sessions: screen as Drafts })[1]!.exerciseId).toBe(PLANNER_SLOT_EXERCISE_ID);
     const fiche = await a.exercise("Saut du dragon créé après");
-    const filled = await a.resolve(created, "slot_1", "Saut du dragon", { kind: "existing", exerciseId: fiche.id }, screen);
+    const filled = await a.resolve(
+      created,
+      "slot_1",
+      "Saut du dragon",
+      { kind: "existing", exerciseId: fiche.id },
+      screen,
+    );
     expect(filled.slots).toEqual([]);
     expect(itemsOf(await a.prepare(filled))).toMatchObject([
       { exerciseId: a.sled.id, prescription: { reps: 8 } },

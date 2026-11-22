@@ -292,7 +292,10 @@ it("une prescription de séance revient dans la forme du planificateur, séries 
       intensityTarget: { type: "rpe", value: 8 },
       ground_contacts: 40,
       notes: "Explosif",
-      setPlan: [{ reps: 8, warmup: true }, { reps: 5, load: { type: "kg", value: 100 } }],
+      setPlan: [
+        { reps: 8, warmup: true },
+        { reps: 5, load: { type: "kg", value: 100 } },
+      ],
     }),
   ).toEqual({
     sets: 2,

@@ -37,6 +37,18 @@ const shots = async (page: Page, name: string) => {
   await page.setViewportSize(size);
 };
 
+// L'écran tel qu'il est, regardé aux trois largeurs : aucun débordement, aucune erreur axe, rien qui bouge.
+const everyWidth = async (page: Page) => {
+  const size = page.viewportSize()!;
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expectNoHorizontalScroll(page);
+    await expectAccessible(page);
+    await expectNoMotion(page);
+  }
+  await page.setViewportSize(size);
+};
+
 async function setup(page: Page) {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await createCoachSpace(page, "Planification");
@@ -150,9 +162,7 @@ test("tout reconnu : un champ, un clic, ce qui a été compris, la séance dans 
     await expect(field(page)).toBeFocused();
     await shots(page, "demande-exemple");
     await field(page).fill("");
-    await expectAccessible(page);
-    await expectNoHorizontalScroll(page);
-    await expectNoMotion(page);
+    await everyWidth(page);
     await shots(page, "demande-vide");
     // Clavier seul : le champ, puis Entrée sur le bouton.
     await field(page).focus();
@@ -182,9 +192,7 @@ test("tout reconnu : un champ, un clic, ce qui a été compris, la séance dans 
     // Une fiche reconnue ne porte aucune marque.
     await expect(page.getByText(t.toCheck, { exact: false })).toHaveCount(0);
     await expect(page.getByText(t.slot.label, { exact: true })).toHaveCount(0);
-    await expectAccessible(page);
-    await expectNoHorizontalScroll(page);
-    await expectNoMotion(page);
+    await everyWidth(page);
     await shots(page, "seance-reconnue");
     // Une seule action crée le brouillon, sans le publier.
     await createDraft(page);
@@ -219,18 +227,19 @@ test("une fiche rapprochée se change en un geste, et le terme est retenu à la 
     await expect(page.getByText(t.probable.said(said), { exact: false })).toBeVisible();
     await expect(page.getByRole("button", { name: t.probable.confirm, exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: t.probable.search, exact: true })).toBeVisible();
-    await expectAccessible(page);
-    await expectNoHorizontalScroll(page);
+    await everyWidth(page);
     await shots(page, "seance-a-verifier");
     // Un geste : l'autre fiche possible prend la place, sans réponse écrite ni relance.
     await page.getByRole("button", { name: t.probable.use(other), exact: true }).click();
     await expect(page.getByText(t.probable.learned(said, other), { exact: true })).toBeVisible();
-    await expect(card(page, other)).toBeVisible();
+    // Le clavier reprend sur l'exercice, qui porte maintenant l'autre fiche.
+    await expect(card(page, other)).toBeFocused();
     await expect(page.getByText(t.probable.said(said), { exact: false })).toHaveCount(0);
     expect((await proposalOf(a, page)).clarificationCount).toBe(0);
     await createDraft(page);
-    const other_id = (await a.sql.query("SELECT id FROM exercises WHERE organization_id=$1 AND name=$2", [a.orgId, other]))
-      .rows[0].id as string;
+    const other_id = (
+      await a.sql.query("SELECT id FROM exercises WHERE organization_id=$1 AND name=$2", [a.orgId, other])
+    ).rows[0].id as string;
     expect(itemsOf((await sessionsOf(a))[0]!)).toMatchObject([{ exerciseId: other_id }]);
 
     // À la demande suivante, le même terme est reconnu : plus rien à vérifier.
@@ -247,7 +256,7 @@ test("une fiche rapprochée se change en un geste, et le terme est retenu à la 
     await page.getByText(t.aliases.title, { exact: true }).click();
     const row = page.getByRole("listitem").filter({ hasText: t.aliases.said(said) });
     await expect(row).toContainText(other);
-    await expectAccessible(page);
+    await everyWidth(page);
     await shots(page, "mes-termes");
     await row.getByRole("button", { name: t.aliases.removeFor(said), exact: true }).click();
     await expect(page.getByText(t.aliases.removed(said), { exact: true })).toBeVisible();
@@ -277,8 +286,7 @@ test("un emplacement à compléter : le brouillon attend, la fiche se crée en d
     await expect(page.getByText(t.slot.left(1), { exact: true })).toBeVisible();
     await page.getByRole("button", { name: t.complete(1, SLOT), exact: true }).click();
     await expect(page.getByRole("button", { name: t.slot.chooseFor(SLOT), exact: true })).toBeFocused();
-    await expectAccessible(page);
-    await expectNoHorizontalScroll(page);
+    await everyWidth(page);
     await shots(page, "seance-a-completer");
     // Le serveur refuse lui aussi, même si une fiche est mise à la main à la place de l'emplacement.
     const proposal = await proposalOf(a, page);
@@ -296,7 +304,11 @@ test("un emplacement à compléter : le brouillon attend, la fiche se crée en d
       },
     }));
     const refused = await a.api
-      .confirmPlannerProposal(a.orgId, proposal.id, { expectedVersion: proposal.version, confirmed: true, sessions: forced })
+      .confirmPlannerProposal(a.orgId, proposal.id, {
+        expectedVersion: proposal.version,
+        confirmed: true,
+        sessions: forced,
+      })
       .catch((cause: unknown) => cause);
     expect(refused).toBeInstanceOf(ApiError);
     expect(refused).toMatchObject({ status: 409, code: "planner_slots_open" });
@@ -308,15 +320,15 @@ test("un emplacement à compléter : le brouillon attend, la fiche se crée en d
     await expect(dialog.getByLabel(m.exercises.name, { exact: true })).toHaveValue(SLOT);
     await expect(dialog.getByRole("radio", { name: m.exerciseCategory.strength, exact: true })).toBeChecked();
     await expect(dialog.getByRole("radio", { name: f.quick.loadKinds.bodyweight, exact: true })).toBeChecked();
-    await expectAccessible(page);
-    await expectNoHorizontalScroll(page);
+    await everyWidth(page);
     await shots(page, "emplacement-creation");
     // Second geste : créer et utiliser. La séance se met à jour seule.
     await dialog.getByRole("button", { name: f.quick.submit, exact: true }).click();
     await expect(page.getByText(t.slot.filled(SLOT, SLOT), { exact: true })).toBeVisible();
     await expect(dialog).toHaveCount(0);
     await expect(slot).toHaveCount(0);
-    await expect(card(page, SLOT)).toBeVisible();
+    // Le clavier reprend sur l'exercice, à la place qu'occupait l'emplacement.
+    await expect(card(page, SLOT)).toBeFocused();
     expect((await proposalOf(a, page)).clarificationCount).toBe(0);
     await createDraft(page);
     const created = await a.sql.query(
@@ -350,7 +362,7 @@ test("un emplacement se complète par une fiche de la bibliothèque, ou se retir
     const dialog = page.getByRole("dialog", { name: t.slot.title(SLOT), exact: true });
     const search = dialog.getByPlaceholder(m.exercises.search);
     await expect(search).toHaveValue(SLOT);
-    await expectAccessible(page);
+    await everyWidth(page);
     await shots(page, "emplacement-choisir");
     await search.fill("Bond du dragon");
     await dialog.getByRole("button", { name: t.slot.pick(fiche.name), exact: true }).click();
@@ -443,8 +455,7 @@ test("un objectif seul, avec des précisions facultatives : la séance est compo
       "aria-pressed",
       "false",
     );
-    await expectAccessible(page);
-    await expectNoHorizontalScroll(page);
+    await everyWidth(page);
     await shots(page, "demande-precisions");
     await prepare(page);
     const proposal = await proposalOf(a, page);
@@ -535,7 +546,7 @@ test("les charges par athlète : l'aperçu reste ouvert et se met à jour à cha
     await expect(opener).toHaveAttribute("aria-expanded", "true");
     await expect(one).toHaveAttribute("aria-expanded", "true");
     await expect(rows.getByText(/5 × 8 rép.*80 kg/).first()).toBeVisible();
-    await expectAccessible(page);
+    await everyWidth(page);
     await shots(page, "charges-ouvertes");
     await two.click();
     await expect(rows.getByText(t.loads.undefined, { exact: false }).first()).toBeVisible();

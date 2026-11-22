@@ -27,7 +27,10 @@ export const PlannerConsent = () => {
         <p className="max-w-prose">{t.body}</p>
         <p className="max-w-prose">{t.dictation}</p>
         <p className="max-w-prose text-soft">{t.health}</p>
-        <Link href="/confidentialite" className="inline-flex min-h-11 items-center self-start underline underline-offset-4">
+        <Link
+          href="/confidentialite"
+          className="inline-flex min-h-11 items-center self-start underline underline-offset-4"
+        >
           {m.legal.privacy}
         </Link>
         <div>

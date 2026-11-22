@@ -24,7 +24,7 @@ import {
 import { historyDate, m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { CircleDashed, Search, TriangleAlert, X } from "lucide-react";
-import { useCallback, useContext, useState, type ReactNode } from "react";
+import { useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { Chip } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
@@ -98,6 +98,26 @@ export function PlannerDraftReview({
   onProbable: (warning: PlannerDraftWarning, exercise: Picked) => Promise<void>;
 }) {
   const { lists, remember } = useContext(ExerciseSource);
+  const root = useRef<HTMLElement>(null);
+  // Après un geste, le clavier reprend sur l'exercice concerné, à sa place dans la séance : la carte qui portait
+  // le bouton a changé, le focus ne doit pas tomber dans le vide. Deux images plus tard, la séance est de nouveau
+  // modifiable et la feuille refermée.
+  const focusLater = (find: (section: HTMLElement) => HTMLElement | null | undefined) =>
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (root.current) find(root.current)?.focus();
+      }),
+    );
+  const focusItem = (ref: string | null | undefined) =>
+    ref
+      ? focusLater((section) => section.querySelector<HTMLElement>(`[data-seq-node="${CSS.escape(ref)}"] button`))
+      : 0;
+  const fillSlot = (slot: PlannerDraftSlot, exercise: Picked) =>
+    void onSlot(slot, { kind: "use", exercise }).then(() => focusItem(slot.itemRef));
+  const removeSlot = (slot: PlannerDraftSlot) =>
+    void onSlot(slot, { kind: "remove" }).then(() => focusLater((section) => section.querySelector<HTMLElement>("h3")));
+  const settleProbable = (warning: PlannerDraftWarning, exercise: Picked) =>
+    void onProbable(warning, exercise).then(() => focusItem(warning.itemRef));
   const [editingRef, setEditingRef] = useState<string | null>(null);
   const [editingAway, setEditingAway] = useState(false);
   const [previousDraft, setPreviousDraft] = useState<PlannerReviewedDraft | null>(null);
@@ -197,11 +217,11 @@ export function PlannerDraftReview({
     setPicking(null);
     if (!target || busy) return;
     remember([exercise]);
-    if (target.kind === "slot") return void onSlot(target.slot, { kind: "use", exercise });
-    if (target.kind === "probable") return void onProbable(target.warning, exercise);
+    if (target.kind === "slot") return fillSlot(target.slot, exercise);
+    if (target.kind === "probable") return settleProbable(target.warning, exercise);
     // Remplacer une fiche à vérifier, c'est la trancher : le terme dit est retenu pour la nouvelle fiche.
     const doubt = probableOf(target.ref);
-    if (doubt) return void onProbable(doubt, exercise);
+    if (doubt) return settleProbable(doubt, exercise);
     replace(target.ref, exercise);
   };
   const sessionWarnings = warnings.filter((warning) => !warning.itemRef);
@@ -265,7 +285,7 @@ export function PlannerDraftReview({
                 size="sm"
                 variant="quiet"
                 aria-label={t.slot.removeFor(slot.said)}
-                onClick={() => void onSlot(slot, { kind: "remove" })}
+                onClick={() => removeSlot(slot)}
               >
                 <X aria-hidden className="size-4" />
                 {t.slot.remove}
@@ -288,7 +308,7 @@ export function PlannerDraftReview({
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => void onProbable(warning, { id: item.exerciseId, name: nameOf(item.exerciseId) })}
+                    onClick={() => settleProbable(warning, { id: item.exerciseId, name: nameOf(item.exerciseId) })}
                   >
                     {t.probable.confirm}
                   </Button>
@@ -305,7 +325,7 @@ export function PlannerDraftReview({
                       variant="secondary"
                       aria-label={t.probable.use(other.name)}
                       className="h-auto max-w-full whitespace-normal py-2 text-left"
-                      onClick={() => void onProbable(warning, { id: other.exerciseId, name: other.name })}
+                      onClick={() => settleProbable(warning, { id: other.exerciseId, name: other.name })}
                     >
                       {other.name}
                     </Button>
@@ -342,11 +362,14 @@ export function PlannerDraftReview({
 
   return (
     <section
+      ref={root}
       aria-label={session.draft.title}
       className="flex min-w-0 flex-col gap-4 rounded-card border border-card-line p-4"
     >
       <header className="flex min-w-0 flex-col gap-0.5">
-        <h3 className="t-h2 break-words">{session.draft.title}</h3>
+        <h3 tabIndex={-1} className="t-h2 break-words">
+          {session.draft.title}
+        </h3>
         <p>
           {isoDate.safeParse(session.date).success ? historyDate(session.date) : m.errors.invalid}
           {session.startTime ? ` · ${session.startTime}` : ""} · {m.sessionType[session.draft.type]}
@@ -676,10 +699,7 @@ export function PlannerDraftReview({
                     className="h-auto max-w-full whitespace-normal py-2 text-left"
                     onClick={() => {
                       setPicking(null);
-                      void onSlot(pickingSlot, {
-                        kind: "use",
-                        exercise: { id: candidate.exerciseId, name: candidate.name },
-                      });
+                      fillSlot(pickingSlot, { id: candidate.exerciseId, name: candidate.name });
                     }}
                   >
                     {candidate.name}

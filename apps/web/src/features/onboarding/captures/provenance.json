@@ -5,7 +5,14 @@
   "commit": "87ea6a5",
   "command": "CAPTURE_BASE_URL=http://localhost:3300 pnpm --filter @tartan/web exec playwright test e2e/captures.spec.ts --project=desktop -g \"tour de piste\"",
   "captures": [
-    { "file": "web-planificateur.png", "source": "web", "screen": "Coach, Planificateur, avant la consigne" },
+    {
+      "file": "web-planificateur.png",
+      "source": "web",
+      "screen": "Coach, Planificateur, la demande en un champ, avant la consigne",
+      "capturedAt": "2026-11-22",
+      "commit": "1b050d7",
+      "note": "Reprise seule après la refonte de l'écran (lot P3), même jeu de données et même commande ; l'image est cadrée sur la demande, sous l'en-tête."
+    },
     { "file": "web-phases.png", "source": "web", "screen": "Coach, Phases de préparation" },
     { "file": "web-annonces.png", "source": "web", "screen": "Coach, Annonces" }
   ]

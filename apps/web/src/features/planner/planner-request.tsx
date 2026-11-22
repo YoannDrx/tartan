@@ -89,7 +89,10 @@ export const Fold = ({
       <span className="min-w-0 break-words">{title}</span>
       <span className="flex shrink-0 items-center gap-2 t-caption font-normal text-soft">
         {detail}
-        <ChevronDown aria-hidden className="size-5 transition-transform duration-(--duration-quick) group-open:rotate-180" />
+        <ChevronDown
+          aria-hidden
+          className="size-5 transition-transform duration-(--duration-quick) group-open:rotate-180"
+        />
       </span>
     </summary>
     <div className="flex min-w-0 flex-col gap-4 pb-3">{children}</div>
@@ -219,7 +222,7 @@ export function PlannerRequest({
     !askPhases ||
     Boolean(
       phases[value.date]?.ready &&
-        phases[value.date]?.key === phasePlanningKey(value.date, value.groupIds, value.athleteIds),
+      phases[value.date]?.key === phasePlanningKey(value.date, value.groupIds, value.athleteIds),
     );
   const equipmentChanged = !sameSet(value.equipment, spaceEquipment);
   const hints = {

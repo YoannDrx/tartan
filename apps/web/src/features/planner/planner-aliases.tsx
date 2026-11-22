@@ -40,7 +40,9 @@ export function PlannerAliases({ orgId }: { orgId: string }) {
     setRemoving(alias.id);
     try {
       await api.forgetPlannerAlias(orgId, alias.id);
-      setState((old) => (old?.aliases ? { ...old, aliases: old.aliases.filter((entry) => entry.id !== alias.id) } : old));
+      setState((old) =>
+        old?.aliases ? { ...old, aliases: old.aliases.filter((entry) => entry.id !== alias.id) } : old,
+      );
       toast.ok(t.removed(alias.said));
     } catch (cause) {
       toast.error(cause instanceof ApiError ? cause.message : m.common.genericError);
@@ -66,8 +68,8 @@ export function PlannerAliases({ orgId }: { orgId: string }) {
           {aliases.map((alias) => (
             <li key={alias.id} className="flex min-w-0 items-center gap-3 py-1">
               <p className="min-w-0 flex-1 break-words py-2">
-                <span className="font-semibold">{t.said(alias.said)}</span>{" "}
-                <span className="text-soft">{t.means}</span> {alias.exerciseName}
+                <span className="font-semibold">{t.said(alias.said)}</span> <span className="text-soft">{t.means}</span>{" "}
+                {alias.exerciseName}
               </p>
               <Button
                 size="sm"

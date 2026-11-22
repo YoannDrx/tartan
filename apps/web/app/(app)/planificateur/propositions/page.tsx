@@ -42,11 +42,7 @@ export default async function PlannerProposalsPage({ searchParams }: { searchPar
                   prefetch={false}
                   className="flex min-h-11 items-center break-words font-semibold underline decoration-1 underline-offset-4"
                 >
-                  {t.proposals.open(
-                    historyDate(p.period.from),
-                    historyDate(p.period.to),
-                    t.proposals.states[p.state],
-                  )}
+                  {t.proposals.open(historyDate(p.period.from), historyDate(p.period.to), t.proposals.states[p.state])}
                 </Link>
                 <p className="t-caption font-normal text-soft">
                   {t.proposals.sent(new Date(p.createdAt).toLocaleString("fr-FR", { timeZone: usage.timeZone }))}

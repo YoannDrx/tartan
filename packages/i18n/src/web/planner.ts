@@ -125,7 +125,8 @@ export const planner = {
   answer: "Ta réponse",
   answerHint: "Réponds seulement à ce qui est demandé.",
   sendAnswer: "Envoyer ma réponse",
-  questionLimit: "Les cinq réponses sont utilisées. Reprends ta demande en la précisant : elle comptera comme une nouvelle.",
+  questionLimit:
+    "Les cinq réponses sont utilisées. Reprends ta demande en la précisant : elle comptera comme une nouvelle.",
   // Une question sur un exercice ne se pose plus à cet écran ; une proposition d'avant peut encore en porter une.
   exerciseQuestion: "Cite le nom exact de la fiche dans ta réponse, ou reprends ta demande.",
 
@@ -267,7 +268,8 @@ export const planner = {
     title: "Mes termes",
     count: (n: number) => (n === 0 ? "aucun" : `${n}`),
     hint: "Ce que tu dis, et la fiche que tu as choisie pour ce terme. Le planificateur et la dictée s'en servent, dans ton espace seulement.",
-    empty: "Aucun terme pour l'instant. Ils s'ajoutent quand tu choisis une fiche pour un exercice que le planificateur n'a pas reconnu.",
+    empty:
+      "Aucun terme pour l'instant. Ils s'ajoutent quand tu choisis une fiche pour un exercice que le planificateur n'a pas reconnu.",
     said: (said: string) => `« ${said} »`,
     means: "désigne",
     remove: "Retirer",
