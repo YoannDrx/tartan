@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { StrengthRecordValue } from "@tartan/contracts";
 import { historyDate, historyNumber, m, strengthRecordConvention, strengthRecordLabel } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { Field, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ export function StrengthRecords({ records }: { records: StrengthRecordValue[] | 
                     <span className="t-num text-xl">
                       {record.kind === "reps_at_load"
                         ? t.repsValue(historyNumber(record.value))
-                        : `${historyNumber(record.value)} kg`}
+                        : w.progress.kilos(historyNumber(record.value))}
                     </span>
                   </div>
                   <span>

@@ -2,6 +2,7 @@
 
 import { DateInput } from "@/components/ui/date-input";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import type { ExerciseSummary, PerformanceEntry } from "@tartan/contracts";
 import Link from "next/link";
 import { useAction } from "next-safe-action/hooks";
@@ -25,6 +26,7 @@ import {
 } from "./athlete.action";
 
 type AnyErrors = Record<string, { _errors?: string[] }> | undefined;
+const wa = w.athletes;
 const onErr = ({ error }: { error: { serverError?: string } }) => toast.error(error.serverError ?? m.errors.invalid);
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -108,7 +110,7 @@ export const AthleteDialog = ({
               />
             )}
           </Field>
-          <Field label="Niveau">
+          <Field label={wa.level}>
             {(a) => (
               <Input {...a} value={v.level ?? ""} onChange={(e) => setV({ ...v, level: e.target.value || null })} />
             )}
@@ -120,7 +122,7 @@ export const AthleteDialog = ({
                 value={v.takeoffFoot ?? ""}
                 onChange={(e) => setV({ ...v, takeoffFoot: (e.target.value || null) as AthleteValues["takeoffFoot"] })}
               >
-                <option value="">Non renseigné</option>
+                <option value="">{wa.notSpecified}</option>
                 <option value="left">{m.bodySide.left}</option>
                 <option value="right">{m.bodySide.right}</option>
               </Select>
@@ -321,7 +323,7 @@ export const TestDialog = ({
     <Dialog
       open={open}
       onOpenChange={setOpen}
-      title="Ajouter un test de force"
+      title={wa.strengthTest.add}
       trigger={
         <Button size="sm" variant="secondary">
           {m.common.add}
@@ -378,7 +380,7 @@ export const TestDialog = ({
           )}
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Charge (kg)">
+          <Field label={wa.strengthTest.load}>
             {(a) => (
               <Input
                 {...a}
@@ -392,7 +394,7 @@ export const TestDialog = ({
               />
             )}
           </Field>
-          <Field label="Type">
+          <Field label={wa.strengthTest.kind}>
             {(a) => (
               <Select {...a} value={v.kind} onChange={(e) => setV({ ...v, kind: e.target.value as typeof v.kind })}>
                 <option value="one_rm">{m.testKind.one_rm}</option>
@@ -550,11 +552,11 @@ export const PerformanceDialog = ({ athleteId, initial }: { athleteId: string; i
                   </option>
                 ) : null}
                 {v.unit === "s" ? (
-                  <option value="s">s</option>
+                  <option value="s">{wa.units.s}</option>
                 ) : (
                   <>
-                    <option value="m">m</option>
-                    <option value="cm">cm</option>
+                    <option value="m">{wa.units.m}</option>
+                    <option value="cm">{wa.units.cm}</option>
                   </>
                 )}
               </Select>
@@ -647,12 +649,7 @@ export const InjuryDialog = ({
     onError: onErr,
   });
   return (
-    <Dialog
-      open={open}
-      onOpenChange={setOpen}
-      title={initial ? "Modifier la blessure" : "Ouvrir une fiche blessure"}
-      trigger={trigger}
-    >
+    <Dialog open={open} onOpenChange={setOpen} title={initial ? wa.injury.edit : wa.injury.open} trigger={trigger}>
       <form
         className="flex flex-col gap-4"
         onSubmit={(e) => {
@@ -697,7 +694,7 @@ export const InjuryDialog = ({
               </Select>
             )}
           </Field>
-          <Field label="Début">
+          <Field label={wa.injury.start}>
             {(a) => (
               <DateInput
                 {...a}
@@ -707,11 +704,11 @@ export const InjuryDialog = ({
               />
             )}
           </Field>
-          <Field label="Fin">
+          <Field label={wa.injury.end}>
             {(a) => <DateInput {...a} value={v.endDate} onChange={(e) => setV({ ...v, endDate: e.target.value })} />}
           </Field>
         </div>
-        <Field label="Statut">
+        <Field label={wa.injury.status}>
           {(a) => (
             <Select
               {...a}
@@ -726,12 +723,12 @@ export const InjuryDialog = ({
             </Select>
           )}
         </Field>
-        <Field label="Restrictions">
+        <Field label={wa.injury.restrictions}>
           {(a) => (
             <Textarea {...a} value={v.restrictions} onChange={(e) => setV({ ...v, restrictions: e.target.value })} />
           )}
         </Field>
-        <Field label="Description">
+        <Field label={wa.injury.description}>
           {(a) => (
             <Textarea {...a} value={v.description} onChange={(e) => setV({ ...v, description: e.target.value })} />
           )}
@@ -762,7 +759,7 @@ export const NoteForm = ({ athleteId }: { athleteId: string }) => {
         if (body.trim()) execute({ athleteId, body });
       }}
     >
-      <Field label="Nouvelle note" hint={m.athletes.notesHint}>
+      <Field label={wa.newNote} hint={m.athletes.notesHint}>
         {(a) => <Textarea {...a} value={body} onChange={(e) => setBody(e.target.value)} />}
       </Field>
       <Button type="submit" size="sm" variant="secondary" className="self-start" disabled={isPending || !body.trim()}>
@@ -785,16 +782,16 @@ export const InviteAthleteDialog = ({ athleteId, groupIds }: { athleteId: string
     <Dialog
       open={open}
       onOpenChange={setOpen}
-      title="Inviter cet athlète"
+      title={wa.invite.title}
       description="L'invitation rattache son compte à cette fiche."
       trigger={<Button size="sm">{m.athletes.invite}</Button>}
     >
       {link ? (
         <div className="flex flex-col gap-2">
           <p role="status" className="font-semibold">
-            Invitation envoyée. Valable 7 jours, à usage unique.
+            {wa.invite.sent}
           </p>
-          <Input readOnly value={link} aria-label="Lien d'invitation" onFocus={(e) => e.target.select()} />
+          <Input readOnly value={link} aria-label={wa.invite.link} onFocus={(e) => e.target.select()} />
         </div>
       ) : (
         <form

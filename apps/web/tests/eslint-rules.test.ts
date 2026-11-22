@@ -80,22 +80,18 @@ tester.run("no-raw-motion", plugin.rules["no-raw-motion"], {
   ],
 });
 
-// Les textes en dur d'avant la règle sont gelés ; cette base ne peut que rétrécir.
+// Les textes en dur d'avant la règle étaient gelés ; depuis le 22 novembre 2026, la base est vide et le reste.
 describe("base des textes en dur", () => {
   const suppressions = JSON.parse(
     readFileSync(path.resolve(import.meta.dirname, "../eslint-suppressions.json"), "utf8"),
   ) as Record<string, Record<string, { count: number }>>;
 
-  it("ne gèle que les textes, jamais une couleur", () => {
-    const rules = new Set(Object.values(suppressions).flatMap((entry) => Object.keys(entry)));
-    expect([...rules]).toEqual(["tartan/no-hardcoded-text"]);
-  });
-
-  it("ne dépasse pas le volume du 11 novembre 2026", () => {
+  it("ne gèle plus rien : ni texte, ni couleur", () => {
+    expect(Object.keys(suppressions)).toEqual([]);
     const total = Object.values(suppressions).reduce(
-      (sum, entry) => sum + (entry["tartan/no-hardcoded-text"]?.count ?? 0),
+      (sum, entry) => sum + Object.values(entry).reduce((count, rule) => count + rule.count, 0),
       0,
     );
-    expect(total).toBeLessThanOrEqual(267);
+    expect(total).toBe(0);
   });
 });

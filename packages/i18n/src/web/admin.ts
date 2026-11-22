@@ -1,5 +1,13 @@
 // Atelier d'administration : relecture des gestes animés.
 export const admin = {
+  // Abonnements, factures et litiges de la console.
+  billing: {
+    statusFilter: "État",
+    all: "Tous",
+    downloadInvoice: "Télécharger la facture PDF",
+    refunds: "Remboursements",
+    openDispute: "Ouvrir",
+  },
   movements: {
     // Où en est chaque geste : écrit à la main, ou relevé de l'ancien moteur.
     levels: { ecrit: "Écrit à la main", releve: "Relevé" },

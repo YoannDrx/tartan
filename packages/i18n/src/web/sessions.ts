@@ -23,4 +23,18 @@ export const sessions = {
         ? `Séance publiée. ${athletes(notified)} ${notified > 1 ? "reçoivent" : "reçoit"} la notification.`
         : `Séance publiée pour ${athletes(total)}. ${notified} ${notified > 1 ? "reçoivent" : "reçoit"} la notification ; les autres n'ont pas encore de compte.`,
   },
+  // Les outils du calendrier : dupliquer une semaine, ajouter une compétition.
+  calendarTools: {
+    toWeek: "Vers la semaine du",
+    toWeekHint: "Choisis le lundi de la semaine.",
+    forGroup: "Pour le groupe",
+    sameRecipients: "Mêmes destinataires",
+    competitionName: "Nom",
+    engaged: "Athlètes engagés",
+  },
+  // La validation d'une séance par l'athlète.
+  validation: {
+    effort: (n: number) => `Effort ${n} sur 10`,
+    painScale: (label: string) => `${label} (1 à 10)`,
+  },
 } as const;

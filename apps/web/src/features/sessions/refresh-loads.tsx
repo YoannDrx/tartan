@@ -2,6 +2,7 @@
 
 import { prescriptionRefreshPreview, sessionSaveResult, type PrescriptionRefreshPreview } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ const LoadValue = ({ value, label }: { value: LoadState; label: string }) => {
     <div className="min-w-0">
       <p className="t-caption">{label}</p>
       <p className="t-num text-xl">
-        {value.kg === null ? m.prescriptionRefresh.missing : `${String(value.kg).replace(".", ",")} kg`}
+        {value.kg === null ? m.prescriptionRefresh.missing : w.progress.kilos(String(value.kg).replace(".", ","))}
       </p>
       {ref ? (
         <p className="t-caption mt-1">{m.prescriptionRefresh.source(ref.value, kind, ref.date, ref.stepKg ?? 1.25)}</p>

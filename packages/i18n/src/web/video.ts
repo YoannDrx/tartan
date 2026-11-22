@@ -1,5 +1,8 @@
 // Analyse vidéo sur le web : plein écran, éditeur à portée, raccourcis et tracés au clavier.
 export const video = {
+  // La hauteur de barre, affichée en mètres, saisie en centimètres.
+  meters: (value: string) => `${value} m`,
+  inCentimeters: (label: string) => `${label} (cm)`,
   // La liste `/videos` sur téléphone : les filtres attendent dans une feuille, la vidéo vient d'abord (audit G2).
   filters: {
     open: "Filtres",
