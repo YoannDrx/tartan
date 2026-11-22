@@ -58,8 +58,22 @@ describe("tracé au doigt", () => {
   });
 
   it("rend un tracé valide pour le contrat, avec les proportions de l'image", () => {
-    const drawing = drawingFrom("arrow", [{ x: 0.2, y: 0.8 }, { x: 0.6, y: 0.3 }], 9 / 16);
-    expect(drawing).toEqual({ kind: "arrow", points: [{ x: 0.2, y: 0.8 }, { x: 0.6, y: 0.3 }], aspect: 0.563 });
+    const drawing = drawingFrom(
+      "arrow",
+      [
+        { x: 0.2, y: 0.8 },
+        { x: 0.6, y: 0.3 },
+      ],
+      9 / 16,
+    );
+    expect(drawing).toEqual({
+      kind: "arrow",
+      points: [
+        { x: 0.2, y: 0.8 },
+        { x: 0.6, y: 0.3 },
+      ],
+      aspect: 0.563,
+    });
     expect(videoDrawing.safeParse(drawing).success).toBe(true);
     expect(drawingFrom("angle", [{ x: 0.2, y: 0.8 }], 1)).toBeNull();
     expect(drawingFrom(null, [], 1)).toBeNull();

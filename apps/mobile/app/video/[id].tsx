@@ -678,7 +678,6 @@ const Player = ({
   );
 };
 
-
 export default function VideoAnalysis() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { me, orgId, space: active } = useActiveSpace();

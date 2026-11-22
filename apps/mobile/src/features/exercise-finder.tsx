@@ -234,7 +234,11 @@ export function ExerciseFinder({
   ].slice(0, 5);
   const listing = Boolean(term) || browse || filter.kind !== "all";
   return (
-    <Sheet visible title={view.kind === "file" ? m.nativeExercises.lists.fileTitle(view.exercise.name) : title} onClose={onClose}>
+    <Sheet
+      visible
+      title={view.kind === "file" ? m.nativeExercises.lists.fileTitle(view.exercise.name) : title}
+      onClose={onClose}
+    >
       {view.kind === "create" ? (
         <QuickExerciseCreate
           orgId={orgId}
@@ -288,7 +292,9 @@ export function ExerciseFinder({
             returnKeyType="search"
             onChangeText={setQuery}
           />
-          {library ? <LibraryFilters filter={filter} lists={library.lists} onChange={setChosen} withMine={false} /> : null}
+          {library ? (
+            <LibraryFilters filter={filter} lists={library.lists} onChange={setChosen} withMine={false} />
+          ) : null}
           <T variant="small" tone="muted" accessibilityLiveRegion="polite">
             {!listing
               ? t.finder.typeToSearch

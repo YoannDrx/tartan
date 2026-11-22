@@ -54,7 +54,9 @@ export const persistBuilderSession = async (input: {
     if (!active()) return null;
     // La publication dit qui reçoit la séance : le message du coach en part (audit G10).
     const recipients =
-      publish && !published ? ((await transport.publishSession(orgId, saved.id, saved.version)).recipients ?? null) : null;
+      publish && !published
+        ? ((await transport.publishSession(orgId, saved.id, saved.version)).recipients ?? null)
+        : null;
     if (!active()) return null;
     const current: SessionEditResponse = await transport.editSession(orgId, saved.id);
     const refreshed: SaveScheduledSessionInput = {

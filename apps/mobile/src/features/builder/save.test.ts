@@ -38,9 +38,9 @@ const setup = () => {
   const transport = {
     createSession: vi.fn(async () => ({ id: "saved", version: 1 })),
     updateSession: vi.fn(async () => ({ id: "saved", version: 2 })),
-    publishSession: vi.fn(
-      async (): Promise<{ id: string; recipients?: { athletes: number; notified: number } }> => ({ id: "saved" }),
-    ),
+    publishSession: vi.fn(async (): Promise<{ id: string; recipients?: { athletes: number; notified: number } }> => ({
+      id: "saved",
+    })),
     editSession: vi.fn(async () => current),
   };
   let stored: BuilderDraft | null = null;

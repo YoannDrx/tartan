@@ -5,15 +5,13 @@ import type { ExerciseList } from "@tartan/contracts";
 // confirme ensuite, un refus remet l'état d'avant.
 
 export type LibraryFilter =
-  | { kind: "all" }
-  | { kind: "favorites" }
-  | { kind: "mine" }
-  | { kind: "list"; listId: string };
+  { kind: "all" } | { kind: "favorites" } | { kind: "mine" } | { kind: "list"; listId: string };
 
 // La liste Favoris n'existe qu'à la première étoile : avant la confirmation du serveur, elle porte cet identifiant.
 export const PENDING_FAVORITES_ID = "favorites";
 
-export const favoritesOf = (lists: readonly ExerciseList[]) => lists.find((list) => list.isFavorites && list.mine) ?? null;
+export const favoritesOf = (lists: readonly ExerciseList[]) =>
+  lists.find((list) => list.isFavorites && list.mine) ?? null;
 
 export const isFavorite = (lists: readonly ExerciseList[], exerciseId: string) =>
   favoritesOf(lists)?.exerciseIds.includes(exerciseId) ?? false;

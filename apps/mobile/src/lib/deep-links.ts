@@ -3,7 +3,8 @@
 const ID = /^[A-Za-z0-9-]{8,64}$/;
 const REFERRAL = /^[A-Za-z0-9-]{4,40}$/;
 
-const first = (value: string | string[] | undefined): string => (Array.isArray(value) ? (value[0] ?? "") : (value ?? ""));
+const first = (value: string | string[] | undefined): string =>
+  Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 
 // « /seance/<id> » et « /seance/<id>/mode » ouvrent la même séance : l'app n'a qu'un écran pour les deux.
 export const sessionRoute = (path: string | string[] | undefined): string => {

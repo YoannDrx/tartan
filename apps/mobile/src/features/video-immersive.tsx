@@ -203,9 +203,7 @@ function SheetHandle({
         }
         style={{ flex: 1, height: HANDLE, justifyContent: "center", gap: space.xs }}
       >
-        <View
-          style={{ alignSelf: "center", width: 40, height: 5, borderRadius: 3, backgroundColor: p.textMuted }}
-        />
+        <View style={{ alignSelf: "center", width: 40, height: 5, borderRadius: 3, backgroundColor: p.textMuted }} />
         <T variant="smallStrong" style={{ paddingLeft: space.sm }}>
           {t.editor}
         </T>

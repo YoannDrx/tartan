@@ -16,14 +16,18 @@ describe("message de publication", () => {
 
   it("compte les athlètes prévenus, au singulier comme au pluriel", () => {
     expect(publishedMessage({ athletes: 1, notified: 1 })).toBe("Séance publiée. 1 athlète reçoit la notification.");
-    expect(publishedMessage({ athletes: 4, notified: 4 })).toBe("Séance publiée. 4 athlètes reçoivent la notification.");
+    expect(publishedMessage({ athletes: 4, notified: 4 })).toBe(
+      "Séance publiée. 4 athlètes reçoivent la notification.",
+    );
     expect(publishedMessage({ athletes: 5, notified: 2 })).toBe(
       "Séance publiée pour 5 athlètes. 2 reçoivent la notification ; les autres n'ont pas encore de compte.",
     );
   });
 
   it("ne compte jamais plus de prévenus que de destinataires", () => {
-    expect(publishedMessage({ athletes: 2, notified: 7 })).toBe("Séance publiée. 2 athlètes reçoivent la notification.");
+    expect(publishedMessage({ athletes: 2, notified: 7 })).toBe(
+      "Séance publiée. 2 athlètes reçoivent la notification.",
+    );
   });
 
   it("reste neutre sans décompte du serveur", () => {

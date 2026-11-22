@@ -4,7 +4,14 @@ import { m } from "@tartan/i18n";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import Svg, { Circle, Defs, Line, Marker, Path, Polyline, Text as SvgText } from "react-native-svg";
-import { addPoint, DRAWING_KINDS, FALLBACK_ASPECT, pointOnImage, pointsLeft, videoFrame } from "../lib/video-drawing-draft";
+import {
+  addPoint,
+  DRAWING_KINDS,
+  FALLBACK_ASPECT,
+  pointOnImage,
+  pointsLeft,
+  videoFrame,
+} from "../lib/video-drawing-draft";
 import { Undo, X } from "../ui/icons";
 import { Chip, IconButton, T } from "../ui/primitives";
 import { space, usePalette } from "../ui/theme";
