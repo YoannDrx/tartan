@@ -2,6 +2,8 @@ import {
   exerciseList,
   exerciseSearchResult,
   exerciseSheet,
+  quickExerciseResult,
+  type QuickExerciseInput,
   notificationsPage,
   publishSessionsResult,
   releasesResponse,
@@ -449,6 +451,10 @@ export const createApiClient = (options: ApiClientOptions) => {
         offset: page.offset?.toString(),
         limit: page.limit?.toString(),
       }),
+    // Création rapide : un nom suffit, la famille et la charge non dites sont proposées par le serveur. Une fiche
+    // qui porte déjà ce nom est rendue telle quelle (`created: false`).
+    quickCreateExercise: (orgId: string, body: QuickExerciseInput, signal?: AbortSignal) =>
+      request("POST", `/orgs/${orgId}/exercises/quick`, quickExerciseResult, body, undefined, signal),
     exerciseSheet: (orgId: string, exerciseId: string) =>
       request("GET", `/orgs/${orgId}/exercises/${exerciseId}`, exerciseSheet),
     setFavorite: (orgId: string, exerciseId: string, favorite: boolean) =>
