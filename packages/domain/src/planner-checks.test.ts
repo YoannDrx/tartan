@@ -258,6 +258,32 @@ describe("charges", () => {
       null,
     ]);
   });
+  it("une montée dictée en toutes lettres garde chacune de ses charges", () => {
+    const set = (reps: number, value: number) => ({ reps, load: { type: "kg" as const, value }, warmup: false });
+    const rules = context(
+      "jeudi squat arrière deux reps à soixante kilos deux à soixante-dix une à quatre-vingts une à quatre-vingt-cinq",
+      [squat],
+    );
+    const checked = run(
+      composition([
+        exercise("m1", "exercise_1", {
+          sets: 4,
+          reps: null,
+          load: { type: "kg", value: 60 },
+          setPlan: [set(2, 60), set(2, 70), set(1, 80), set(1, 85)],
+        }),
+      ]),
+      rules,
+    );
+    expect(itemsOf(checked.value)[0]!.prescription.setPlan!.map((entry: { load: unknown }) => entry.load)).toEqual([
+      { type: "kg", value: 60 },
+      { type: "kg", value: 70 },
+      { type: "kg", value: 80 },
+      { type: "kg", value: 85 },
+    ]);
+    expect(checked.defects).toEqual([]);
+    expect(plannerSettleComposition(checked, rules)!.value.sessions[0]!.warnings).toEqual([]);
+  });
   it("une charge dite avec l'autre unité reprend l'unité du coach", () => {
     const checked = run(
       composition([exercise("m1", "exercise_1", { load: { type: "kg", value: 80 } })]),
