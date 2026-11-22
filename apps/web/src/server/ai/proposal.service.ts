@@ -55,6 +55,10 @@ import {
   plannerFillSlot,
   plannerOpenSlots,
   plannerRemoveSlot,
+  plannerDraftItemPlace,
+  plannerProbableItem,
+  plannerRebaseOnDrafts,
+  plannerSettleProbable,
   PLANNER_MAX_ADJUSTMENTS,
   PLANNER_MAX_CLARIFICATIONS,
 } from "@tartan/domain";
@@ -533,6 +537,7 @@ export async function createPlannerProposal(
   for (const day of input.selection.phaseChoicesByDate ?? [])
     day.choices.sort((a, b) => a.athleteId.localeCompare(b.athleteId));
   input.accepts?.sort();
+  input.hints?.equipment?.sort();
   const fingerprint = plannerFingerprint(input);
   const claim = await reservePlannerOperation(
     userId,
@@ -546,6 +551,8 @@ export async function createPlannerProposal(
       // L'heure demandée à l'écran : posée par le serveur quand la demande n'en dit aucune, jamais par le modèle.
       if (input.startTime) bindings.startTime = input.startTime;
       if (input.accepts?.length) bindings.accepts = [...new Set(input.accepts)];
+      // Durée, niveau, matériel précisés à l'écran : des indices, que la demande elle-même l'emporte toujours.
+      if (input.hints && Object.keys(input.hints).length) bindings.hints = input.hints;
       await tx.aiPlannerProposal.create({
         data: {
           id: input.id,
@@ -563,6 +570,85 @@ export async function createPlannerProposal(
     },
   );
   return executeProposal(userId, organizationId, input.id, input.id, claim, execution);
+}
+
+type BoundExercise = PlannerBindings["exercises"][number];
+type ExerciseRow = {
+  id: string;
+  name: string;
+  category: string;
+  aliases: string[];
+  classification: Prisma.JsonValue;
+  updatedAt: Date;
+  strengthLoadKind: string | null;
+  organizationId: string | null;
+};
+/**
+ * Une fiche que la demande n'avait pas figée entre dans la proposition : le coach l'a choisie ou créée depuis.
+ * Elle reçoit un jeton à la suite des autres. `said` : le terme du coach, gardé comme autre nom pour la suite.
+ */
+function bindExercise(bindings: PlannerBindings, exercise: ExerciseRow, organizationId: string, said?: string) {
+  let bound = bindings.exercises.find((entry) => entry.id === exercise.id);
+  if (bound) {
+    if (said) bound.aliases = [...new Set([said, ...(bound.aliases ?? [])])].slice(0, 20);
+    return bound;
+  }
+  bound = {
+    token: `exercise_${Math.max(0, ...bindings.exercises.map((e) => Number(e.token.split("_")[1]) || 0)) + 1}`,
+    id: exercise.id,
+    name: exercise.name,
+    category: exercise.category,
+    aliases: [...new Set([...(said ? [said] : []), ...exercise.aliases])].slice(0, 20),
+    classification: exerciseClassification.nullable().parse(exercise.classification ?? null),
+    updatedAt: exercise.updatedAt.toISOString(),
+    strengthLoadKind: exercise.strengthLoadKind as BoundExercise["strengthLoadKind"],
+    own: exercise.organizationId === organizationId,
+  };
+  bindings.exercises.push(bound);
+  return bound;
+}
+const draftExerciseIds = (drafts: readonly PlannerReviewedDraft[]) => [
+  ...new Set(
+    drafts.flatMap((draft) =>
+      draft.draft.blocks.flatMap((block) =>
+        block.items.flatMap((item) => [item.exerciseId, ...(item.autonomous ? [item.autonomous.exerciseId] : [])]),
+      ),
+    ),
+  ),
+];
+
+/**
+ * La séance à l'écran devient la séance gardée : avant un ajustement, ou avant de retirer un emplacement. Chaque
+ * fiche de l'écran est une fiche visible de l'espace, chaque destinataire un de ceux de la demande ; une fiche que
+ * la demande n'avait pas figée (ajoutée, remplaçante, créée depuis) entre alors dans la proposition.
+ */
+async function rebaseOnScreen(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  proposalId: string,
+  stored: PlannerRichInterpretation,
+  selection: PlannerSelection,
+  bindings: PlannerBindings,
+  sessions: readonly PlannerReviewedDraft[],
+) {
+  for (const draft of sessions) await assertReviewedScope(tx, organizationId, draft, selection, bindings, true);
+  const bound = new Set(bindings.exercises.map((exercise) => exercise.id));
+  const added = draftExerciseIds(sessions).filter((id) => !bound.has(id) && id !== PLANNER_SLOT_EXERCISE_ID);
+  if (added.length)
+    for (const exercise of await tx.exercise.findMany({
+      where: { id: { in: added }, deletedAt: null, OR: [{ organizationId }, { organizationId: null }] },
+      orderBy: { id: "asc" },
+    }))
+      bindExercise(bindings, exercise, organizationId);
+  const rebased = plannerRebaseOnDrafts(stored, sessions, {
+    refPrefix: `ai-${proposalId}`,
+    exerciseTokens: new Map(bindings.exercises.map((exercise) => [exercise.id, exercise.token])),
+    exerciseNames: new Map(bindings.exercises.map((exercise) => [exercise.token, exercise.name])),
+    targetTokens: new Map(bindings.targets.map((target) => [`${target.type}:${target.id}`, target.token])),
+    slotExerciseId: PLANNER_SLOT_EXERCISE_ID,
+  });
+  if (!rebased) throw conflict();
+  return rebased;
 }
 
 export async function clarifyPlannerProposal(
@@ -612,9 +698,19 @@ export async function clarifyPlannerProposal(
           : `${previous.questions.map((q) => q.question).join("\n")}\n${input.text}`;
       // Le contexte complet reste borné, y compris les questions conservées avec la réponse.
       if (pendingMessage.length > 12000) throw conflict();
+      // « Ajuster » part de la séance à l'écran : ce que le coach a retouché à la main est ce que le modèle modifie.
+      const screen =
+        state === "proposal" && input.sessions
+          ? await rebaseOnScreen(tx, organizationId, proposalId, previous, selection, bindings, input.sessions)
+          : null;
       await tx.aiPlannerProposal.update({
         where: { id: proposalId },
-        data: { state: "processing", activeOperationId: input.operationId, pendingMessage },
+        data: {
+          state: "processing",
+          activeOperationId: input.operationId,
+          pendingMessage,
+          ...(screen ? { interpretation: screen.value, bindings: bindings as Prisma.InputJsonValue } : {}),
+        },
       });
     },
   );
@@ -654,27 +750,46 @@ export async function resolvePlannerExercise(
       const bindings = plannerBindings.parse(row.bindings),
         selection = plannerSelection.parse(row.selection);
       await recheckPlannerBindings(tx, access, selection, bindings);
-      const interpretation = plannerRichInterpretation.parse(row.interpretation);
-      const slot =
-        row.state === "proposal" ? plannerOpenSlots(interpretation).find((entry) => entry.id === input.questionId) : undefined;
+      let interpretation = plannerRichInterpretation.parse(row.interpretation);
       const previous = bindings.resolutions?.find(
         (r) =>
           r.operationId === input.operationId ||
           // Ancienne forme : la même question ne se tranche qu'une fois par tour de précisions.
-          (!slot && row.state !== "proposal" && r.questionId === input.questionId && r.clarificationCount === row.clarificationCount),
+          (row.state !== "proposal" && r.questionId === input.questionId && r.clarificationCount === row.clarificationCount),
       );
       if (previous) {
         if (previous.fingerprint !== fingerprint) throw conflict();
         return;
       }
       if (row.version !== input.expectedVersion) throw conflict();
+      // La séance à l'écran accompagne le choix : elle devient la base, et rien de ce que le coach a retouché à la
+      // main n'est perdu quand la séance est préparée de nouveau.
+      const screen =
+        row.state === "proposal" && input.sessions
+          ? await rebaseOnScreen(tx, organizationId, proposalId, interpretation, selection, bindings, input.sessions)
+          : null;
+      if (screen) interpretation = screen.value;
+      const slot =
+        row.state === "proposal" ? plannerOpenSlots(interpretation).find((entry) => entry.id === input.questionId) : undefined;
+      // Une fiche « À vérifier », désignée par la référence de son exercice dans les brouillons préparés.
+      const place =
+        !slot && row.state === "proposal"
+          ? plannerDraftItemPlace(screen?.refs.get(input.questionId) ?? input.questionId, `ai-${proposalId}`)
+          : null;
+      const probable = place ? plannerProbableItem(interpretation, place) : null;
       const question =
         row.state === "clarification"
           ? interpretation.questions.find((q) => q.id === input.questionId && q.field === "exercise")
           : undefined;
-      if (!slot && (!question || (question.exerciseName && question.exerciseName !== input.requestedName)))
+      if (
+        !slot &&
+        !probable &&
+        (!question || (question.exerciseName && question.exerciseName !== input.requestedName))
+      )
         throw conflict();
       const choice = input.choice;
+      // Une fiche à vérifier se valide ou se change pour une fiche de la bibliothèque : ni création, ni retrait.
+      if (probable && choice.kind !== "existing") throw conflict();
       // Retirer ne vaut que pour un emplacement : une question de l'ancienne forme attend une fiche.
       if (choice.kind === "remove") {
         if (!slot) throw conflict();
@@ -702,7 +817,7 @@ export async function resolvePlannerExercise(
         return;
       }
       // Ancienne forme, mode « Proposer » : seules les fiches communes relues, sans création, comme avant.
-      const legacyPropose = !slot && selection.mode === "propose";
+      const legacyPropose = !slot && !probable && selection.mode === "propose";
       if (legacyPropose && choice.kind === "create") throw invalid(m.aiPlanner.verifiedCatalogRequired);
       let created: z.infer<typeof fullExercise> | null = null;
       if (choice.kind === "create") {
@@ -756,22 +871,9 @@ export async function resolvePlannerExercise(
           exercise.guide.technicalReview !== "approved")
       )
         throw invalid(m.aiPlanner.verifiedCatalogRequired);
-      let current = bindings.exercises.find((e) => e.id === exercise.id);
-      if (current) current.aliases = [...new Set([input.requestedName, ...(current.aliases ?? [])])].slice(0, 20);
-      else {
-        current = {
-          token: `exercise_${Math.max(0, ...bindings.exercises.map((e) => Number(e.token.split("_")[1]) || 0)) + 1}`,
-          id: exercise.id,
-          name: exercise.name,
-          category: exercise.category,
-          aliases: [...new Set([input.requestedName, ...exercise.aliases])].slice(0, 20),
-          classification: exerciseClassification.nullable().parse(exercise.classification ?? null),
-          updatedAt: exercise.updatedAt.toISOString(),
-          strengthLoadKind: exercise.strengthLoadKind as (typeof bindings.exercises)[number]["strengthLoadKind"],
-          own: exercise.organizationId === organizationId,
-        };
-        bindings.exercises.push(current);
-      }
+      // Le terme dit par le coach : celui de l'emplacement ou de la fiche à vérifier, sinon celui de la question.
+      const said = slot?.said ?? probable?.said ?? input.requestedName;
+      const current = bindExercise(bindings, exercise, organizationId, said);
       bindings.resolutions = [
         ...(bindings.resolutions ?? []),
         {
@@ -785,17 +887,19 @@ export async function resolvePlannerExercise(
         },
       ];
       // Le choix du coach est retenu pour la fois suivante, dans cet espace seulement.
-      await learnExerciseTermAlias(
-        userId,
-        organizationId,
-        { said: slot?.said ?? input.requestedName, exerciseId: exercise.id },
-        tx,
-      );
+      await learnExerciseTermAlias(userId, organizationId, { said, exerciseId: exercise.id }, tx);
       await tx.aiPlannerProposal.update({
         where: { id: proposalId },
         data: {
-          // L'emplacement est rempli sur place : la prescription dite ne bouge pas, rien n'est réécrit.
-          ...(slot ? { interpretation: plannerFillSlot(interpretation, slot.id, current.token) } : {}),
+          // L'emplacement est rempli sur place, la fiche à vérifier validée ou changée sur place : la prescription
+          // dite ne bouge pas, rien n'est réécrit.
+          ...(slot
+            ? { interpretation: plannerFillSlot(interpretation, slot.id, current.token) }
+            : probable && place
+              ? { interpretation: plannerSettleProbable(interpretation, place, current.token) }
+              : screen
+                ? { interpretation }
+                : {}),
           bindings: bindings as Prisma.InputJsonValue,
           version: { increment: 1 },
         },
@@ -832,6 +936,7 @@ export async function preparePlannerDrafts(
         itemRef: string | null;
         detail: string | null;
         alternatives?: { exerciseId: string; name: string }[];
+        said?: string;
       }[][] = [];
       const refOf = (session: number, block: number, item: number) => `ai-${proposalId}-${session}-b${block}-i${item}`;
       for (const [index, session] of output.sessions.entries()) {
@@ -857,6 +962,8 @@ export async function preparePlannerDrafts(
                   warning.block !== null && warning.item !== null ? refOf(index, warning.block, warning.item) : null,
                 detail: warning.detail === null ? null : plannerDisplayText(warning.detail, bindings),
                 ...(alternatives.length ? { alternatives } : {}),
+                // Le terme que le coach a dit, à côté de la fiche rapprochée pour lui.
+                ...(warning.code === "approximate_exercise" && item?.said ? { said: item.said } : {}),
               };
             }),
         );
@@ -934,15 +1041,35 @@ export async function preparePlannerDrafts(
   );
 }
 
-function assertReviewedScope(
+/**
+ * La séance relue reste dans le cadre de la proposition : sa période, ses destinataires, une structure valide.
+ * Ses fiches sont celles de la demande, ou toute autre fiche visible de l'espace (commune ou de l'espace, non
+ * supprimée) : le coach ajoute et remplace dans toute sa bibliothèque, pas seulement dans ce que la demande avait
+ * figé. Jamais la fiche d'un autre espace. `slots` : un emplacement à compléter y garde sa place (séance à l'écran
+ * envoyée comme base) ; il reste refusé pour un aperçu des charges et pour un brouillon.
+ */
+async function assertReviewedScope(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
   draft: PlannerReviewedDraft,
   selection: ReturnType<typeof plannerSelection.parse>,
   bindings: PlannerBindings,
+  slots = false,
 ) {
   const targets = new Set(bindings.targets.map((t) => `${t.type}:${t.id}`));
   const exercises = new Set(bindings.exercises.map((e) => e.id));
+  if (slots) exercises.add(PLANNER_SLOT_EXERCISE_ID);
   const allItems = draft.draft.blocks.flatMap((b) => b.items);
   if (!validSessionStructure(draft.draft)) throw conflict();
+  const outside = draftExerciseIds([draft]).filter((id) => !exercises.has(id));
+  if (outside.length) {
+    const visible = await tx.exercise.findMany({
+      where: { id: { in: outside }, deletedAt: null, OR: [{ organizationId }, { organizationId: null }] },
+      select: { id: true },
+    });
+    if (visible.length !== outside.length) throw conflict();
+    for (const exercise of visible) exercises.add(exercise.id);
+  }
   const items = sessionExerciseReferences(draft.draft);
   if (
     draft.date < selection.period.from ||
@@ -1008,7 +1135,7 @@ export async function previewPlannerLoads(
       const selection = plannerSelection.parse(row.selection),
         bindings = plannerBindings.parse(row.bindings);
       await recheckPlannerBindings(tx, access, selection, bindings);
-      assertReviewedScope(input.session, selection, bindings);
+      await assertReviewedScope(tx, organizationId, input.session, selection, bindings);
       const athletes = await reviewedAudience(tx, organizationId, input.session);
       const start = input.afterAthleteId ? athletes.findIndex((a) => a.id === input.afterAthleteId) + 1 : 0;
       if (input.afterAthleteId && !start) throw invalid();
@@ -1091,7 +1218,7 @@ export async function confirmPlannerProposal(
       if (plannerOpenSlots(stored).length) throw new AppError(409, "planner_slots_open", m.aiPlanner.slotsOpen);
       const sessions: { id: string; version: number }[] = [];
       for (const draft of input.sessions) {
-        assertReviewedScope(draft, selection, bindings);
+        await assertReviewedScope(tx, organizationId, draft, selection, bindings);
         await reviewedAudience(tx, organizationId, draft);
         sessions.push(await createReviewedPlannerDraft(tx, userId, organizationId, draft));
       }

@@ -12,6 +12,7 @@ import {
 import { conciseGuideFor } from "@tartan/domain/exercise-catalog";
 import {
   plannerCapability,
+  plannerRequestHints,
   plannerSelection,
   type PlannerRichInterpretation,
   type PlannerSelection,
@@ -87,6 +88,8 @@ export const plannerBindings = z.object({
   startTime: clockTime.nullable().optional(),
   // Ce que le client qui a créé la demande sait afficher : emplacements à compléter, nouveaux points à vérifier.
   accepts: z.array(plannerCapability).optional(),
+  // Les précisions facultatives de l'écran (durée, niveau, matériel) : des indices pour l'étape « Comprendre ».
+  hints: plannerRequestHints.optional(),
   // Contexte figé à la demande : profil de l'espace, séances voisines (champs structurés seulement) et
   // couverture des références de force. Aucune note, aucun ressenti, aucune donnée de santé.
   space: plannerProviderContext.shape.space,
@@ -522,6 +525,7 @@ export function providerContextFor(
     // Le jour choisi à l'écran : un indice, retenu seulement si la demande ne cite aucun jour.
     ...(window.day ? { day: window.day } : {}),
     ...(bindings.startTime ? { startTime: bindings.startTime } : {}),
+    ...(bindings.hints ? { hints: bindings.hints } : {}),
     ...(bindings.space ? { space: bindings.space } : {}),
     ...(bindings.neighbours?.length ? { neighbours: bindings.neighbours } : {}),
     ...(bindings.strength?.length ? { strength: bindings.strength } : {}),

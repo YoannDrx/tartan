@@ -24,14 +24,17 @@ export function plannerSummaryPreview(text: string): string | null {
   }
 }
 
-/** Les indices des clients d'avant le champ unique : leur mode et leur brief ne décident plus de rien. */
+/**
+ * Les indices : le mode et le brief des clients d'avant le champ unique, ou les précisions facultatives de
+ * l'écran. Ils ne décident de rien : la demande l'emporte.
+ */
 export const plannerHints = (context: PlannerProviderContext): PlannerRequestHints => ({
   intent: context.mode === "propose" ? "objective" : null,
   date: context.brief?.date ?? context.day ?? null,
   startTime: context.startTime ?? null,
-  durationMin: context.brief?.durationMin ?? null,
-  level: context.brief?.level ?? null,
-  equipment: context.brief ? context.brief.equipment : null,
+  durationMin: context.brief?.durationMin ?? context.hints?.durationMin ?? null,
+  level: context.brief?.level ?? context.hints?.level ?? null,
+  equipment: context.brief ? context.brief.equipment : (context.hints?.equipment ?? null),
 });
 
 /** Le texte du coach, sans les questions du planificateur : la consigne, puis ses réponses. */

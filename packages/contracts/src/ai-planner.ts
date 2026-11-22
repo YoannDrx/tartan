@@ -15,6 +15,7 @@ import { exerciseCategory, sessionType } from "./enums";
 import { exerciseMovement } from "./exercise-classification";
 import { exerciseInput } from "./requests";
 import { sequenceRef, sessionSequence } from "./session-sequence";
+import { trainingEquipment } from "./training-profile";
 
 // Schéma du prestataire : toutes les clés sont requises, les absences sont explicites.
 // Aucun identifiant de personne, maximum individuel ou outil d’écriture dans ce contrat.
@@ -251,12 +252,27 @@ export type PlannerRichInterpretation = z.infer<typeof plannerRichInterpretation
 export type PlannerRichSession = z.infer<typeof plannerRichSession>;
 export type PlannerRichPrescription = z.infer<typeof plannerRichPrescription>;
 
+// La séance relue à l'écran : ce que le coach confirme, et la base de tout ce qu'il demande ensuite.
+export const plannerReviewedDraft = saveScheduledSessionInput
+  .omit({ id: true, expectedVersion: true })
+  .extend({ publishAt: z.null() })
+  .strict();
+export type PlannerReviewedDraft = z.infer<typeof plannerReviewedDraft>;
+// Additif (22 novembre 2026) : les séances telles qu'elles sont à l'écran. Envoyées avec un ajustement ou avec le
+// choix d'une fiche, elles deviennent la base de la suite : aucune retouche faite à la main n'est perdue. Sans
+// elles, le serveur repart de la séance qu'il avait gardée, comme avant.
+const plannerScreenSessions = z.array(plannerReviewedDraft).min(1).max(14).optional();
+
 export const resolvePlannerExerciseInput = z
   .object({
     operationId: uuid,
     expectedVersion: z.number().int().positive(),
+    // Un emplacement à compléter (`slot_N`), une question nommée de l'ancienne forme, ou, depuis le 22 novembre
+    // 2026, la référence d'un exercice des brouillons préparés dont la fiche est « À vérifier » : le coach la
+    // valide ou en choisit une autre, et le terme est retenu.
     questionId: z.string().min(1).max(60),
     requestedName: z.string().trim().min(1).max(120),
+    sessions: plannerScreenSessions,
     choice: z.discriminatedUnion("kind", [
       z.object({ kind: z.literal("existing"), exerciseId: uuid }).strict(),
       z
@@ -304,6 +320,18 @@ export const plannerBrief = z
   })
   .strict();
 export type PlannerBrief = z.infer<typeof plannerBrief>;
+
+// Additif (22 novembre 2026) : les précisions facultatives du champ unique. Chacune est un indice, retenu
+// seulement quand la demande ne dit rien elle-même. Aucune n'est requise ; elles remplacent le `brief` complet
+// des clients d'avant, qui reste accepté.
+export const plannerRequestHints = z
+  .object({
+    durationMin: z.number().int().min(5).max(300).optional(),
+    level: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+    equipment: z.array(trainingEquipment).max(16).optional(),
+  })
+  .strict();
+export type PlannerRequestHintsInput = z.infer<typeof plannerRequestHints>;
 
 export const plannerSelection = z
   .object({
@@ -358,6 +386,8 @@ export const createPlannerProposalInput = z
     startTime: clockTime.nullable().optional(),
     // Additif : les formes nouvelles que ce client sait afficher (voir `plannerCapability`).
     accepts: z.array(plannerCapability).max(4).optional(),
+    // Additif : durée, niveau, matériel, quand le coach les précise à l'écran.
+    hints: plannerRequestHints.optional(),
   })
   .strict();
 export type CreatePlannerProposalInput = z.infer<typeof createPlannerProposalInput>;
@@ -367,15 +397,12 @@ export const clarifyPlannerProposalInput = z
     expectedVersion: z.number().int().positive(),
     text: z.string().trim().min(1).max(12000),
     reviewed: z.literal(true),
+    // « Ajuster » seulement : la séance à l'écran, que l'ajustement modifie.
+    sessions: plannerScreenSessions,
   })
   .strict();
 export type ClarifyPlannerProposalInput = z.infer<typeof clarifyPlannerProposalInput>;
 
-export const plannerReviewedDraft = saveScheduledSessionInput
-  .omit({ id: true, expectedVersion: true })
-  .extend({ publishAt: z.null() })
-  .strict();
-export type PlannerReviewedDraft = z.infer<typeof plannerReviewedDraft>;
 export const confirmPlannerProposalInput = z
   .object({
     expectedVersion: z.number().int().positive(),
@@ -445,6 +472,8 @@ export const plannerDraftsResponse = z.object({
           detail: z.string().nullable(),
           // Additif : les autres fiches possibles d'un rapprochement incertain.
           alternatives: z.array(z.object({ exerciseId: uuid, name: z.string() })).max(3).optional(),
+          // Additif : le terme que le coach a dit pour cet exercice, quand le point porte sur sa fiche.
+          said: z.string().max(120).optional(),
         }),
       ),
     )

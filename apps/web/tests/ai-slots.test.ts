@@ -313,6 +313,8 @@ describe("fiche probable", () => {
         itemRef: item.ref,
         detail: posed.name,
         alternatives: [{ exerciseId: offered.id, name: offered.name }],
+        // Le terme dit accompagne la fiche rapprochée, pour que l'écran le montre et le retienne.
+        said: "Zigzag fictif",
       },
     ]);
     const replaced = drafts.sessions.map((session) => ({

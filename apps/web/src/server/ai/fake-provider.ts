@@ -172,7 +172,7 @@ function fakeComposition(input: PlannerComposeInput): PlannerComposition {
   failAt("compose", text);
   // « 80 % » dans la demande : une charge en pourcentage du maximum, que Tartan résout pour chacun.
   const percent = Number(/(\d{2,3})\s?%/.exec(text)?.[1] ?? Number.NaN);
-  // Un ajustement change le nombre de séries ; un circuit répète deux fiches trois fois.
+  // Un ajustement passe à quatre séries ; un circuit répète deux fiches trois fois.
   const sets = input.previous ? 4 : 3;
   const prescription = (count: number) => ({
     sets: count,
@@ -188,6 +188,26 @@ function fakeComposition(input: PlannerComposeInput): PlannerComposition {
     setPlan: null,
   });
   const lower = text.toLocaleLowerCase("fr");
+  // Un ajustement modifie la séance reçue, il n'en écrit pas une autre : chaque exercice passe à quatre séries,
+  // et tout le reste (fiches, ordre, répétitions, charges, tours) reste tel que le coach l'avait à l'écran.
+  if (input.previous) {
+    type Content = PlannerComposition["sessions"][number]["blocks"][number]["content"];
+    // Dans un circuit, les tours sont ceux du groupe : ses exercices ne changent pas.
+    const adjust = (nodes: Content): Content =>
+      nodes.map((node) =>
+        node.kind === "exercise" && !node.prescription.setPlan
+          ? { ...node, prescription: { ...node.prescription, sets } }
+          : node,
+      );
+    return {
+      assumptions: [],
+      suggestions: [],
+      sessions: input.previous.sessions.map((session) => ({
+        ...session,
+        blocks: session.blocks.map((block) => ({ ...block, content: adjust(block.content) })),
+      })),
+    };
+  }
   return {
     assumptions: [],
     suggestions: [],

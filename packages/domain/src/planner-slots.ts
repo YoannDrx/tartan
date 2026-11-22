@@ -145,3 +145,65 @@ export function plannerRemoveSlot(value: PlannerRichInterpretation, slotId: stri
   });
   return sessions.some((session) => !session.blocks.length) ? null : { ...value, sessions };
 }
+
+export type PlannerItemPlace = { session: number; block: number; item: number };
+
+/** La place d'un exercice dans la séance gardée, d'après sa référence dans les brouillons préparés. */
+export function plannerDraftItemPlace(ref: string, prefix: string): PlannerItemPlace | null {
+  if (!ref.startsWith(`${prefix}-`)) return null;
+  const place = /^(\d+)-b(\d+)-i(\d+)$/.exec(ref.slice(prefix.length + 1));
+  return place ? { session: Number(place[1]), block: Number(place[2]), item: Number(place[3]) } : null;
+}
+
+/** L'exercice dont la fiche est « À vérifier » à cette place, s'il y en a un. */
+export function plannerProbableItem(value: Pick<PlannerRichInterpretation, "sessions">, place: PlannerItemPlace) {
+  const item = value.sessions[place.session]?.blocks[place.block]?.items[place.item];
+  return item && item.confidence === "probable" && !isPlannerSlotToken(item.exerciseToken) ? item : null;
+}
+
+/**
+ * Le coach a tranché sur une fiche « À vérifier » : il la valide, ou en choisit une autre. Elle n'est plus un
+ * doute ; la prescription ne bouge pas, et le point « À vérifier » sur sa fiche disparaît.
+ */
+export function plannerSettleProbable(
+  value: PlannerRichInterpretation,
+  place: PlannerItemPlace,
+  token: string,
+): PlannerRichInterpretation {
+  return {
+    ...value,
+    sessions: value.sessions.map((session, s) =>
+      s !== place.session
+        ? session
+        : {
+            ...session,
+            blocks: session.blocks.map((block, b) =>
+              b !== place.block
+                ? block
+                : {
+                    ...block,
+                    items: block.items.map((item, i) =>
+                      i !== place.item
+                        ? item
+                        : (({ alternatives: _alternatives, ...rest }) => ({
+                            ...rest,
+                            exerciseToken: token,
+                            confidence: "exact" as const,
+                          }))(item),
+                    ),
+                  },
+            ),
+            ...(session.warnings
+              ? {
+                  warnings: session.warnings.filter(
+                    (warning) =>
+                      warning.code !== "approximate_exercise" ||
+                      warning.block !== place.block ||
+                      warning.item !== place.item,
+                  ),
+                }
+              : {}),
+          },
+    ),
+  };
+}

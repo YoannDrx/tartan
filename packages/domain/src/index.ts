@@ -75,5 +75,6 @@ export * from "./planner-match";
 export * from "./planner-understanding";
 export * from "./planner-composition";
 export * from "./planner-slots";
+export * from "./planner-rebase";
 export * from "./avatar";
 export * from "./demo-space";

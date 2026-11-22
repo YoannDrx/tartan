@@ -9,6 +9,7 @@ import {
   plannerComposedSession,
   plannerPeriod,
   plannerPrescription,
+  plannerRequestHints,
   plannerSlotSuggestion,
   sessionType,
   snapshotItem,
@@ -46,6 +47,8 @@ export const plannerProviderContext = z
     mode: z.enum(["format", "propose"]).optional(),
     brief: plannerBrief.optional(),
     startTime: clockTime.nullable().optional(),
+    // Les précisions facultatives du champ unique : des indices, comme le brief.
+    hints: plannerRequestHints.optional(),
     // Le jour choisi à l'écran par un client d'avant : retenu seulement si la demande n'en cite aucun.
     day: z.iso.date().nullable().optional(),
     // Choix du coach pendant cette demande (ancienne forme) : terme dit → fiche.
