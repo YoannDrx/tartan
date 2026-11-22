@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { Client } from "pg";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 import { groupLink, joinAsAthlete, today } from "./journeys";
 
@@ -297,6 +298,87 @@ test("l'athlète confirme ses séries, retrouve son brouillon et conserve son re
     } finally {
       await other.close();
     }
+  } finally {
+    await context.close();
+  }
+});
+
+// Finition 8.5 : une séance de plusieurs exercices ne s'étale plus sur cinq mille pixels à 390 px. Chaque exercice
+// se replie sous son nom et ses séries cochées ; seul le premier à remplir est ouvert.
+test("une séance de plusieurs exercices replie chacun sous son nom", async ({ page, browser }, info) => {
+  await createCoachSpace(page, "Replie");
+  const me = await (await page.request.get("/api/v1/me")).json();
+  const orgId = me.spaces[0].organizationId as string;
+  const root = `/api/v1/orgs/${orgId}`;
+  const sql = new Client({
+    connectionString: process.env.E2E_DATABASE_URL ?? "postgresql://tartan@localhost:54329/tartan_e2e",
+  });
+  await sql.connect();
+  try {
+    await sql.query("UPDATE organizations SET progression_enabled = true WHERE id = $1", [orgId]);
+  } finally {
+    await sql.end();
+  }
+  const { page: athlete, context } = await joinAsAthlete(browser, await groupLink(page), "Lou");
+  try {
+    await athlete.setViewportSize({ width: info.project.name === "desktop" ? 1440 : 390, height: 900 });
+    const builder = await (await page.request.get(`${root}/session-builder`)).json();
+    const names = ["Squat replié", "Fente repliée", "Tirage replié"];
+    const ids: string[] = [];
+    for (const name of names) {
+      const exercise = await page.request.post(`${root}/exercises`, {
+        data: { name, category: "strength", strengthLoadKind: "external_total" },
+      });
+      expect(exercise.ok()).toBe(true);
+      ids.push((await exercise.json()).id);
+    }
+    const created = await page.request.post(`${root}/sessions`, {
+      data: {
+        date: today(),
+        startTime: null,
+        location: null,
+        publishAt: null,
+        assignments: [{ targetType: "group", targetId: builder.groups[0].id }],
+        overrides: [],
+        draft: {
+          title: "Trois exercices",
+          type: "strength",
+          durationMin: 45,
+          coachNote: null,
+          blocks: [
+            {
+              name: "Force",
+              variant: "club",
+              items: ids.map((exerciseId) => ({
+                exerciseId,
+                prescription: { sets: 4, reps: 5, load: { type: "kg", value: 40 } },
+              })),
+            },
+          ],
+        },
+      },
+    });
+    expect(created.ok()).toBe(true);
+    const session = await created.json();
+    expect(
+      (
+        await page.request.post(`${root}/sessions/${session.id}/publish`, {
+          data: { expectedVersion: session.version },
+        })
+      ).ok(),
+    ).toBe(true);
+    await athlete.goto(`/seance/${session.id}/series`, { waitUntil: "networkidle" });
+    const sets = athlete.getByRole("group", { name: m.progression.setNumber(1), exact: true });
+    await expect(athlete.getByRole("heading", { name: names[0], exact: true })).toBeVisible();
+    await expect(athlete.getByRole("heading", { name: names[2], exact: true })).toBeVisible();
+    await expect(sets).toHaveCount(1);
+    await expect(athlete.getByText(w.sessions.performedSets.progress(0, 4))).toHaveCount(3);
+    await sets.getByRole("checkbox").check();
+    await expect(athlete.getByText(w.sessions.performedSets.progress(1, 4))).toBeVisible();
+    await athlete.getByRole("heading", { name: names[1], exact: true }).click();
+    await expect(sets).toHaveCount(2);
+    await expectAccessible(athlete);
+    await expectNoHorizontalScroll(athlete);
   } finally {
     await context.close();
   }

@@ -32,6 +32,11 @@ export const sessions = {
     competitionName: "Nom",
     engaged: "Athlètes engagés",
   },
+  // Les séries réalisées : un exercice replié montre où il en est.
+  performedSets: {
+    progress: (done: number, total: number) =>
+      `${done} série${done > 1 ? "s" : ""} cochée${done > 1 ? "s" : ""} sur ${total}`,
+  },
   // La validation d'une séance par l'athlète.
   validation: {
     effort: (n: number) => `Effort ${n} sur 10`,
