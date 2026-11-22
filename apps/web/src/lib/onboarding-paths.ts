@@ -20,5 +20,6 @@ export const COACH_OPTIONAL_PATH: Record<CoachOptionalStepKey, string> = {
 
 export const FIRST_STEPS_PATH = "/premiers-pas";
 
-// L'espace de démonstration n'est pas encore livré : le lien de la page des premiers pas reste éteint.
-export const DEMO_SPACE_ENABLED = false as boolean;
+// L'espace de démonstration s'ouvre depuis la page des premiers pas ; la carte « Pour démarrer » y mène.
+export const DEMO_SPACE_ENABLED = true as boolean;
+export const DEMO_SPACE_PATH = `${FIRST_STEPS_PATH}#demonstration`;

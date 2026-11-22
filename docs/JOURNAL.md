@@ -13,6 +13,12 @@ En cours ou abandonné : branche, raison
 Suite conseillée : numéro de tâche
 ```
 
+## 2026-11-21, Claude Fable 5.2, espace de démonstration
+Fait : PR `feat/espace-demo` : l'espace de démonstration écrit par Opus le 19 novembre (`Organization.isDemo`, `demoOwnerId`, `demoExpiresAt` ; service `demo-space.service.ts` ; contenu et règles dans `packages/domain/src/demo-space.ts` ; bandeau, sélecteur d'espace, `DEMO_SPACE_ENABLED` allumé), remis sur `main` par-dessus l'onboarding.
+Vérifié : types, lint, design, web 2 340, domaine 387, mobile 264 ; parcours `demo-space`, `screen-matrix`, `onboarding`, `space-switch` sur build de production (8 réussis, 6 ignorés sur téléphone par construction). Non vérifié : rien sur la Preview ni en production ; le temps d'ouverture n'a pas été mesuré proprement.
+À savoir : tout service qui envoie quelque chose hors de la base (e-mail, notification, Stripe, Mux, OpenAI, statistiques) doit appeler `assertNotDemoSpace` ou filtrer `isDemo` : `tests/demo-space.test.ts` a un test par service et doit en recevoir un pour tout nouveau service. `requireOrgMember` refuse tout membre autre que le propriétaire. L'API `/me` du mobile ne liste pas l'espace de démonstration. Le bouton « Inviter » de la fiche athlète reste visible dans la démonstration ; le serveur le refuse avec sa raison.
+Suite : K2, puis les deux comptes de test du fondateur.
+
 ## 2026-11-21, Claude Fable 5.2, lot G : onboarding du coach et de l'athlète
 Fait : PR 171 (K1) fusionnée, production à `0e1fc70`. PR `feat/onboarding-complet` : le lot G écrit par Opus le 19 novembre, remis sur `main` (conflits dans le schéma Prisma, le constructeur et la liste des textes web). Un avatar choisi vaut une photo pour l'étape « profil ».
 Vérifié : types, lint, design, web 2 300, domaine 378, mobile 264 ; parcours `onboarding`, `screen-matrix`, `shell`, `space-switch`, `pilot`, `age-confirmation` rejoués sur build de production après la fusion. Non vérifié : aucun coach ni athlète réel n'a joué le parcours ; e-mails J1, J3 et J7 jamais reçus pour de vrai.

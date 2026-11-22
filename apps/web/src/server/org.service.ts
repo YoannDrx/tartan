@@ -1,5 +1,7 @@
 import { createElement } from "react";
 import { WelcomeEmail } from "@email/auth";
+import type { Prisma } from "@/generated/prisma/client";
+import { REAL_SPACES } from "./demo-space-guard";
 import { sendEmail } from "@/lib/mail";
 import { log } from "@/lib/logger";
 import {
@@ -74,7 +76,7 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
   const plan = initialPlan(user.email);
   // L'offre gratuite ne se multiplie pas : un préparateur qui suit plusieurs clubs paie pour en ouvrir d'autres.
   if (plan === "discovery") {
-    const free = await prisma.organization.count({ where: { ownerId: userId, plan: "discovery" } });
+    const free = await prisma.organization.count({ where: { ownerId: userId, plan: "discovery", ...REAL_SPACES } });
     if (free > 0) throw new AppError(409, "discovery_limit", m.onboarding.discoveryLimit);
   }
   const organization = await prisma.$transaction(async (tx) => {
@@ -89,22 +91,7 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
         plan,
         members: { create: { userId, role: "owner", status: "active" } },
         subscriptions: { create: { planKey: plan, status: "active", provider: "manual" } },
-        exercises: {
-          create: STARTER_LIBRARY.map((e) => ({
-            name: e.name,
-            sourceCatalogKey: EXERCISE_CATALOG.find((entry) => entry.name === e.name)?.catalogKey,
-            catalogVersion: EXERCISE_CATALOG.find((entry) => entry.name === e.name)?.catalogVersion,
-            guide: EXERCISE_CATALOG.find((entry) => entry.name === e.name)?.guide,
-            aliases: e.aliases ?? [],
-            classification: e.classification,
-            category: e.category,
-            tags: e.tags,
-            strengthLoadKind: e.strengthLoadKind,
-            cues: e.cues,
-            defaultPrescription: e.prescription,
-            createdBy: userId,
-          })),
-        },
+        exercises: { create: starterExercises(userId) },
       },
     });
     const group = await tx.group.create({
@@ -114,42 +101,14 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
     // Le coach qui crée son espace est un nouveau venu : tour de piste, carte des premiers pas, repères.
     await startOnboarding(tx, org.id, userId);
     // Séances de départ, modifiables : le premier coach ne part pas d'une page blanche.
-    const library = await tx.exercise.findMany({
-      where: { organizationId: org.id },
-      select: { id: true, name: true },
-    });
-    const exerciseIds = new Map(library.map((exercise) => [exercise.name, exercise.id]));
-    for (const template of STARTER_TEMPLATES) {
-      await tx.sessionTemplate.create({
-        data: {
-          organizationId: org.id,
-          createdBy: userId,
-          title: template.title,
-          type: template.type,
-          durationMin: template.durationMin,
-          blocks: {
-            create: template.blocks.map((block, position) => ({
-              name: block.name,
-              variant: "club",
-              position,
-              items: {
-                create: block.items.map((item, itemPosition) => ({
-                  exerciseId: exerciseIds.get(item.exercise)!,
-                  position: itemPosition,
-                  prescription: item.prescription,
-                })),
-              },
-            })),
-          },
-        },
-      });
-    }
+    await createStarterTemplates(tx, org.id, userId);
     return { ...org, firstGroupId: group.id };
   });
   await syncEntitlements(organization.id, plan);
   await ensureReferralCode(userId);
   // Une seule fois, et sans promotion : c'est un message de service. Un échec n'empêche pas de créer l'espace.
-  const owned = await prisma.organization.count({ where: { ownerId: userId } });
+  // L'espace de démonstration ne compte pas : il n'est pas l'espace du coach.
+  const owned = await prisma.organization.count({ where: { ownerId: userId, ...REAL_SPACES } });
   if (owned === 1) {
     await sendEmail({
       kind: "welcome",
@@ -165,6 +124,64 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
   if (input.referralCode)
     await attributeReferral({ userId, code: input.referralCode, organizationId: organization.id });
   return organization;
+};
+
+// La bibliothèque copiée dans chaque nouvel espace, réel ou de démonstration.
+export const starterExercises = (userId: string) =>
+  STARTER_LIBRARY.map((e) => {
+    const entry = EXERCISE_CATALOG.find((candidate) => candidate.name === e.name);
+    return {
+      name: e.name,
+      sourceCatalogKey: entry?.catalogKey,
+      catalogVersion: entry?.catalogVersion,
+      guide: entry?.guide,
+      aliases: e.aliases ?? [],
+      classification: e.classification,
+      category: e.category,
+      tags: e.tags,
+      strengthLoadKind: e.strengthLoadKind,
+      cues: e.cues,
+      defaultPrescription: e.prescription,
+      createdBy: userId,
+    };
+  });
+
+// Les séances de départ, modifiables, écrites après la bibliothèque dont elles citent les exercices.
+export const createStarterTemplates = async (
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  userId: string,
+): Promise<void> => {
+  const library = await tx.exercise.findMany({
+    where: { organizationId },
+    select: { id: true, name: true },
+  });
+  const exerciseIds = new Map(library.map((exercise) => [exercise.name, exercise.id]));
+  for (const template of STARTER_TEMPLATES) {
+    await tx.sessionTemplate.create({
+      data: {
+        organizationId,
+        createdBy: userId,
+        title: template.title,
+        type: template.type,
+        durationMin: template.durationMin,
+        blocks: {
+          create: template.blocks.map((block, position) => ({
+            name: block.name,
+            variant: "club",
+            position,
+            items: {
+              create: block.items.map((item, itemPosition) => ({
+                exerciseId: exerciseIds.get(item.exercise)!,
+                position: itemPosition,
+                prescription: item.prescription,
+              })),
+            },
+          })),
+        },
+      },
+    });
+  }
 };
 
 export const listGroups = async (access: Access) => {

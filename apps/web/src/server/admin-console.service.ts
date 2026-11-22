@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { billingEnabled, stripe } from "@/lib/stripe";
 import { deleteAccount } from "./account.service";
 import { requireAdmin } from "./admin.service";
+import { REAL_SPACES } from "./demo-space-guard";
 import { applySubscription } from "./subscription-state.service";
 import { confirmStoreAvailability, setMinimumVersion, stopRollout } from "./releases.service";
 
@@ -178,8 +179,9 @@ export const adminDeleteUser = async (actor: Admin, userId: string) => {
 export const listSpaces = async (actor: Admin, query: { q?: string; cursor?: string }) => {
   await requireAdmin(actor.email);
   const q = query.q?.trim();
+  // La console ne liste que les espaces réels : une démonstration n'a rien à administrer et s'efface seule.
   const rows = await prisma.organization.findMany({
-    where: q ? { name: { contains: q, mode: "insensitive" } } : {},
+    where: { ...REAL_SPACES, ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}) },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: PAGE + 1,
     ...cursorArgs(query.cursor),
@@ -392,15 +394,26 @@ export const usageOverview = async (actor: Admin, now: Date = new Date()) => {
     prisma.user.count(),
     prisma.profile.count({ where: { lastActiveAt: { gte: days(7) } } }),
     prisma.profile.count({ where: { lastActiveAt: { gte: days(30) } } }),
-    prisma.organization.count(),
-    prisma.organization.count({ where: { plan: { in: ["coach", "club"] } } }),
-    prisma.scheduledSession.count({ where: { publishedAt: { not: null }, date: { gte: weekAgoDate } } }),
-    prisma.sessionLog.count({ where: { status: { in: ["done", "partial"] }, createdAt: { gte: days(7) } } }),
-    prisma.video.count(),
+    // Usage réel seulement : l'espace de démonstration, rempli d'avance, fausserait chaque compteur.
+    prisma.organization.count({ where: REAL_SPACES }),
+    prisma.organization.count({ where: { ...REAL_SPACES, plan: { in: ["coach", "club"] } } }),
+    prisma.scheduledSession.count({
+      where: { organization: REAL_SPACES, publishedAt: { not: null }, date: { gte: weekAgoDate } },
+    }),
+    prisma.sessionLog.count({
+      where: {
+        session: { organization: REAL_SPACES },
+        status: { in: ["done", "partial"] },
+        createdAt: { gte: days(7) },
+      },
+    }),
+    prisma.video.count({ where: { organization: REAL_SPACES } }),
     prisma.aiPlannerOperation.count({ where: { createdAt: { gte: days(30) } } }),
-    prisma.organization.count({ where: { scheduledSessions: { some: { publishedAt: { not: null } } } } }),
-    prisma.organization.count({ where: { athletes: { some: {} } } }),
-    prisma.organization.count({ where: { scheduledSessions: { some: { logs: { some: {} } } } } }),
+    prisma.organization.count({
+      where: { ...REAL_SPACES, scheduledSessions: { some: { publishedAt: { not: null } } } },
+    }),
+    prisma.organization.count({ where: { ...REAL_SPACES, athletes: { some: {} } } }),
+    prisma.organization.count({ where: { ...REAL_SPACES, scheduledSessions: { some: { logs: { some: {} } } } } }),
     prisma.clientInstallation.groupBy({
       by: ["platform", "appVersion"],
       where: { lastSeenAt: { gte: days(30) } },
@@ -490,14 +503,15 @@ export const auditTrail = async (actor: Admin, query: { action?: string; cursor?
 export const snapshotPlatformDay = async (now: Date = new Date()): Promise<void> => {
   const day = toDbDate(todayIso(now));
   const [subscriptions, users, active7, canceled, newPaid, refunded] = await Promise.all([
+    // L'espace de démonstration n'entre dans aucun chiffre de la plateforme.
     prisma.subscription.findMany({
-      where: { provider: { in: ["stripe", "revenuecat"] }, status: { not: "canceled" } },
+      where: { organization: REAL_SPACES, provider: { in: ["stripe", "revenuecat"] }, status: { not: "canceled" } },
       select: { status: true, listMrrCents: true, discountedMrrCents: true, discountEndsAt: true },
     }),
     prisma.user.count(),
     prisma.profile.count({ where: { lastActiveAt: { gte: new Date(now.getTime() - 7 * 86_400_000) } } }),
-    prisma.subscription.count({ where: { status: "canceled" } }),
-    prisma.subscription.count({ where: { startedAt: { gte: day } } }),
+    prisma.subscription.count({ where: { organization: REAL_SPACES, status: "canceled" } }),
+    prisma.subscription.count({ where: { organization: REAL_SPACES, startedAt: { gte: day } } }),
     prisma.billingRefund.aggregate({
       where: { state: "succeeded", completedAt: { gte: day } },
       _sum: { amountCents: true },

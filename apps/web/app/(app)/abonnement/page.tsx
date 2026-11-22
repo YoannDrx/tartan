@@ -3,7 +3,8 @@ import { z } from "zod";
 import { formatPrice, isPaidPlan, type LimitKey } from "@tartan/domain";
 import { m, withFirstOfMonth } from "@tartan/i18n";
 import { Sheet, SheetSection } from "@/components/sheet";
-import { Chip, PageHeader } from "@/components/states";
+import { w } from "@tartan/i18n/web";
+import { Chip, EmptyState, PageHeader } from "@/components/states";
 import { ManageSubscriptionButton, PricingGrid } from "@/features/billing/pricing";
 import { requireStaffSpace } from "@/features/shell/space";
 import { getBillingOverview, listInvoices, syncAfterCheckout } from "@/server/billing.service";
@@ -33,7 +34,16 @@ export default async function AbonnementPage({
 }: {
   searchParams: Promise<{ merci?: string; offre?: string; rythme?: string }>;
 }) {
-  const { actor, organizationId } = await requireStaffSpace();
+  const { actor, organizationId, space } = await requireStaffSpace();
+  // La facturation est coupée dans la démonstration : ni offre, ni paiement, ni facture.
+  if (space.isDemo) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+        <PageHeader title={m.billing.title} />
+        <EmptyState rubric="suivi">{w.demoSpace.cut.billing}</EmptyState>
+      </div>
+    );
+  }
   const { merci, ...query } = await searchParams;
   const { offre, rythme } = offerSchema.parse(query);
   // Le retour de paiement peut précéder le webhook : on relit Stripe plutôt que de montrer une grille d'achat.

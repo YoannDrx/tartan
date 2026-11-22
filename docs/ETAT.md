@@ -38,17 +38,18 @@ Niveaux : **codé**, **testé** automatiquement, **éprouvé** en production ou 
 | H. Planificateur IA, version du lot H : erreurs lisibles, sortie alignée sur le constructeur, contexte de « Proposer », réponse diffusée, écran en deux temps | 170 | En production le 21 novembre, testé contre le prestataire simulé ; mesuré le 21 novembre sur un corpus neuf : 13 séances justes sur 80, d'où la refonte | Opus ; fusionné par Fable |
 | K1. Corrections de l'audit : filtres de `/videos` en feuille (G2), service worker limité aux fichiers qui existent (G5), nom de l'espace lisible dans l'en-tête à 390 px (G6), `/analyse` hiérarchisée (G9), message de publication qui dit qui reçoit la séance (G10) | 171 | En production le 21 novembre, testé (règles pures, service de publication, parcours `video-filters`, `training-analysis`, `shell`, `screen-matrix`) ; hors ligne réel non éprouvé | Opus ; fusionné par Fable |
 | G. Onboarding complet du coach et de l'athlète (constats B1, B3, G15) : invitation dès la création de l'espace, « Ton tour de piste », carte « Pour démarrer », page `/premiers-pas`, repères de première visite, accueil de l'athlète qui ne retarde jamais sa séance, carte facultative après la première validation, état gardé en base (`OnboardingState`) | PR `feat/onboarding-complet` | Codé, testé (suite Playwright entière le 19 novembre : 257 réussis, 0 échec ; validation de l'athlète mesurée à 0,8 s ; parcours rejoués le 21 novembre après fusion de `main`) ; jamais joué par une vraie personne | Opus ; ouvert par Fable |
+| Espace de démonstration : un coach neuf ouvre depuis `/premiers-pas` un espace séparé et jetable, rempli de 8 athlètes fictifs sans compte, de séances passées et à venir, de validations et de phases ; bandeau permanent, suppression en un geste, purge à 14 jours | PR `feat/espace-demo` | Codé, testé (20 tests d'exclusion, un par service : planificateur, vidéo, invitations, notifications, e-mails, cron, facturation, statistiques, mesure d'audience ; parcours `demo-space` sur build de production) ; jamais ouvert par un vrai coach | Opus ; ouvert par Fable |
 
 ### En cours
 
 | Lot | Où | Niveau | Mené par |
 | --- | --- | --- | --- |
 | Refonte du planificateur validée le 21 novembre (quatre étapes, champ unique, fin de bêta sur preuve) | P1 fait sur `feat/ia-mesure-bout-en-bout` et `feat/ia-corpus` (outil de mesure sur le service, corpus gelé de 80 consignes et 150 paires) ; P2 `feat/ia-etapes` en cours ; P3 à P5 à suivre | Mesure de départ réelle du 21 novembre, `gpt-4.1`, un passage : 13 séances justes sur 80, 54 questions inutiles sur 72, 69 fiches retrouvées du premier coup sur 150, 1 date fausse ; 5,49 $ | Fable |
-| Espace de démonstration, lot K2 de l'audit | Branches `feat/espace-demonstration`, `fix/audit-k2`, prêtes, en file | Codés, testés | Opus |
+| Lot K2 de l'audit | Branche `fix/audit-k2`, prête, en file | Codé, testé | Opus |
 
 ### Restant à faire
 
-- **Espace de démonstration** : prêt sur `feat/espace-demonstration`. Puis les deux comptes de test du fondateur, créés par le vrai parcours d'inscription.
+- **Comptes de test du fondateur** : à créer par le vrai parcours d'inscription, coach puis athlète, une fois l'onboarding en production.
 - **H. Planificateur IA, refonte du 21 novembre** (le fondateur juge qu'il « ne comprend pas ce qu'on veut ») :
   - P1 : mesure de bout en bout sur le service, corpus neuf de 80 consignes écrit par un agent isolé, 150 paires « terme dit, fiche attendue », seuils codés ;
   - P2 : quatre étapes dans le service (comprendre, retrouver sur toute la bibliothèque, composer, contrôler), alias appris par espace, doutes qui ne bloquent plus la séance, modèles GPT-6 ;

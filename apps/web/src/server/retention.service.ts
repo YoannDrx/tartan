@@ -6,6 +6,7 @@ import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 import { deleteAccount } from "./account.service";
+import { REAL_SPACES } from "./demo-space-guard";
 import { deleteAthleteAssignments } from "./session-audience.service";
 
 const DAY_MS = 86_400_000;
@@ -44,6 +45,8 @@ const purgeSheetsWithoutAccount = async (now: Date): Promise<number> => {
   const noRecent = { none: { updatedAt: { gte: before } } };
   const sheets = await prisma.athlete.findMany({
     where: {
+      // Les fiches fictives de la démonstration partent avec elle (`purgeExpiredDemoSpaces`).
+      organization: REAL_SPACES,
       userId: null,
       updatedAt: { lt: before },
       logs: noRecent,
@@ -105,7 +108,7 @@ const handleInactiveAccounts = async (now: Date): Promise<{ warned: number; dele
   for (const profile of toWarn) {
     try {
       const spaces = await prisma.organization.findMany({
-        where: { ownerId: profile.id },
+        where: { ownerId: profile.id, ...REAL_SPACES },
         select: {
           id: true,
           name: true,

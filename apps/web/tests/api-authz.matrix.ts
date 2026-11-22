@@ -495,6 +495,19 @@ export const MATRICE: Row[] = [
     call: () => ({ body: { seenScreen: "suivi" } }),
     verifie: (texte) => expectPresent(texte, '"seenScreens":["suivi"]'),
   },
+  // Espace de démonstration du coach connecté : réservé aux encadrants, jamais à un athlète. Il ne contient
+  // que des fiches fictives, et ne vise jamais l'espace principal.
+  {
+    route: "POST /api/v1/orgs/[orgId]/demo-space",
+    ...encadrants,
+    verifie: (texte, w) => {
+      const { organizationId } = JSON.parse(texte) as { organizationId: string };
+      if (!organizationId || organizationId === w.p.main.organizationId)
+        throw new Error("La démonstration doit être un espace à part.");
+    },
+  },
+  { route: "GET /api/v1/orgs/[orgId]/demo-space", ...encadrants },
+  { route: "DELETE /api/v1/orgs/[orgId]/demo-space", ...encadrants },
   {
     route: "POST /api/v1/orgs/[orgId]/groups/[groupId]/link",
     ...gestion,
