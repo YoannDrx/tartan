@@ -11,7 +11,7 @@ import {
   type E2eMovement,
   type E2eStep,
 } from "./format";
-import type { Observed, ObservedMovement, ObservedSession, ObservedStep } from "./observation";
+import { ownExact, type Observed, type ObservedMovement, type ObservedSession, type ObservedStep } from "./observation";
 
 export type CaseScore = {
   // Juste : aucun écart, aucune faute.
@@ -95,13 +95,15 @@ const singleAsSets = (steps: readonly ObservedStep[]): ObservedStep[] =>
       : { ...step, steps: inner };
   });
 
+// La fiche du coach qui porte exactement le nom qu'il dit est toujours un choix juste (`ownExact`).
 const matches = (expected: E2eMovement, actual: ObservedMovement) =>
-  expected.key !== undefined
+  ownExact(actual.ref, actual.said) ||
+  (expected.key !== undefined
     ? actual.ref.kind === "catalog" &&
       (actual.ref.key === expected.key || (expected.accept ?? []).includes(actual.ref.key))
     : expected.private !== undefined
       ? actual.ref.kind === "private" && sameName(actual.ref.name, expected.private)
-      : actual.ref.kind === "placeholder";
+      : actual.ref.kind === "placeholder");
 
 const sameLoad = (a: E2eLoad | null, b: E2eLoad | null) =>
   a === null ? b === null : b !== null && a.unit === b.unit && a.value === b.value;

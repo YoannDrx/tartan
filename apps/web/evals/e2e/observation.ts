@@ -2,13 +2,15 @@
 // Le pilote (`driver.ts`) traduit la réponse du service en cette forme ; la notation ne lit qu'elle. Quand le
 // service change (quatre étapes, emplacements à compléter), seul le pilote s'adapte : la notation reste la même.
 import { z } from "zod";
+import { plannerTermKey } from "@tartan/domain";
 import { e2eLoad } from "./format";
 
 export const observedRef = z.discriminatedUnion("kind", [
   // Fiche du catalogue commun, ou copie de l'espace qui la représente.
   z.object({ kind: z.literal("catalog"), key: z.string() }),
-  // Fiche propre à l'espace, désignée par son nom.
-  z.object({ kind: z.literal("private"), name: z.string() }),
+  // Fiche sans clé de catalogue (fiche du coach, fiche de départ), désignée par son nom ; ses alias quand le pilote
+  // les connaît.
+  z.object({ kind: z.literal("private"), name: z.string(), aliases: z.array(z.string()).optional() }),
   // Emplacement à compléter : aucune fiche, le nom dit par le coach.
   z.object({ kind: z.literal("placeholder"), name: z.string() }),
 ]);
@@ -22,6 +24,8 @@ export const observedMovement = z.object({
   toVerify: z.boolean(),
   // Tous les points « À vérifier » posés sur cet exercice, par leur code.
   flags: z.array(z.string()),
+  // Le terme que le coach a dit pour ce mouvement, quand le planificateur le rend.
+  said: z.string().nullable().optional(),
   sets: z.number(),
   reps: z.number().nullable(),
   durationS: z.number().nullable(),
@@ -92,7 +96,27 @@ export const observed = z.object({
   questions: z.array(observedQuestion),
   sessions: z.array(observedSession),
   error: z.string().nullable(),
+  // Pour relire un échec : chaque mouvement compris, sa prescription dite, et ce que l'étape « Retrouver » en a fait.
+  understood: z
+    .array(
+      z.object({
+        said: z.string(),
+        prescription: z.string().nullable(),
+        confidence: z.string(),
+        fiche: z.string().nullable(),
+      }),
+    )
+    .optional(),
 });
+
+/**
+ * La fiche du coach qui porte le nom qu'il dit l'emporte : une fiche sans clé de catalogue dont le nom ou un alias,
+ * normalisé, est exactement le terme dit est un choix juste, quelle que soit la fiche attendue.
+ */
+export const ownExact = (ref: ObservedRef | null, said: string | null | undefined): boolean =>
+  ref?.kind === "private" &&
+  Boolean(said) &&
+  [ref.name, ...(ref.aliases ?? [])].some((label) => plannerTermKey(label) === plannerTermKey(said!));
 export type Observed = z.infer<typeof observed>;
 
 export const observedError = (code: string): Observed => ({

@@ -3,7 +3,7 @@
 //
 //   eval:planner:e2e --check            contrôle le format et le gel, sans base ni réseau
 //   eval:planner:e2e --freeze           écrit l'empreinte du corpus et du jeu de paires
-//   eval:planner:e2e --catalog          liste les clés du catalogue commun, pour écrire des cas
+//   eval:planner:e2e --catalog          liste le catalogue commun et les fiches de départ d'un espace neuf
 //   eval:planner:e2e --summary <json>   relit un rapport, sans aucun appel
 //   eval:planner:e2e [--runs 3] [--model m] [--fast-model m] [--only a,b] [--max-cost 5] [--suite all|cases|pairs]
 //
@@ -13,6 +13,8 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import dotenv from "dotenv";
+import { Client } from "pg";
+import { STARTER_LIBRARY } from "@tartan/domain";
 import { EXERCISE_CATALOG } from "@tartan/domain/exercise-catalog";
 import {
   FreezeError,
@@ -53,6 +55,32 @@ async function main() {
           (entry.aliases ?? []).join(" | "),
         ].join("\t"),
       );
+    // Un espace neuf contient aussi ses fiches de départ : des copies de fiches du catalogue (même clé pour la
+    // mesure), et des fiches communes sans clé de catalogue, qu'une attente désigne par `private` et leur nom.
+    console.log("\n# Fiches de départ d'un espace neuf, copies du catalogue (clé, nom, alias)");
+    for (const entry of STARTER_LIBRARY)
+      console.log(
+        [
+          EXERCISE_CATALOG.find((fiche) => fiche.name === entry.name)?.catalogKey ?? "sans clé",
+          entry.name,
+          (entry.aliases ?? []).join(" | "),
+        ].join("\t"),
+      );
+    console.log("\n# Fiches communes sans clé de catalogue, présentes dans tout espace (nom, alias)");
+    const client = new Client({
+      connectionString: assertEvalDatabase(options.databaseUrl ?? process.env.EVAL_DATABASE_URL ?? DEFAULT_DATABASE),
+    });
+    try {
+      await client.connect();
+      const { rows } = await client.query<{ name: string; aliases: string[] }>(
+        "SELECT name, aliases FROM exercises WHERE organization_id IS NULL AND catalog_key IS NULL AND deleted_at IS NULL ORDER BY name",
+      );
+      for (const row of rows) console.log([row.name, row.aliases.join(" | ")].join("\t"));
+    } catch {
+      console.log("(base de mesure injoignable : crée-la et lance une mesure simulée pour y appliquer les migrations)");
+    } finally {
+      await client.end().catch(() => undefined);
+    }
     return;
   }
 

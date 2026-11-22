@@ -1166,8 +1166,7 @@
                 "restBetweenRoundsS": 300,
                 "steps": [
                   {
-                    "absent": true,
-                    "said": "200 m",
+                    "key": "short-running-intervals",
                     "sets": 6,
                     "distanceM": 200,
                     "restS": 90,

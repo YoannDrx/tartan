@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { catalogueKey } from "@tartan/contracts";
 import { e2eLibrary, foldName, isCatalogKey, sameName } from "../format";
-import type { ObservedRef } from "../observation";
+import { ownExact, type ObservedRef } from "../observation";
 
 export const e2ePair = z
   .object({
@@ -65,6 +65,8 @@ const isFiche = (ref: ObservedRef | null): ref is ObservedRef =>
 
 export function scorePair(pair: E2ePair, resolution: PairResolution): PairScore {
   const chosen = isFiche(resolution.first) ? resolution.first : null;
+  // La fiche du coach qui porte exactement le nom qu'il dit l'emporte, même sur un terme attendu `absent`.
+  if (ownExact(chosen, pair.said)) return { top1: true, top3: true, falsePositive: false };
   if (pair.absent) return { top1: chosen === null, top3: chosen === null, falsePositive: chosen !== null };
   const top1 = chosen !== null && isExpected(pair, chosen);
   const candidates = [...(chosen ? [chosen] : []), ...resolution.proposals].filter(isFiche);

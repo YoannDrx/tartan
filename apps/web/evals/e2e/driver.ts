@@ -281,6 +281,7 @@ async function createWorkspace(spec: {
     select: {
       id: true,
       name: true,
+      aliases: true,
       catalogKey: true,
       sourceCatalogKey: true,
       classification: true,
@@ -307,7 +308,9 @@ async function createWorkspace(spec: {
   for (const row of rows) {
     // Une copie de l'espace représente sa fiche du catalogue : c'est la même fiche pour la mesure.
     const key = row.catalogKey ?? row.sourceCatalogKey;
-    const ref: ObservedRef = key ? { kind: "catalog", key } : { kind: "private", name: row.name };
+    const ref: ObservedRef = key
+      ? { kind: "catalog", key }
+      : { kind: "private", name: row.name, ...(row.aliases.length ? { aliases: row.aliases } : {}) };
     const parsed = classification.safeParse(row.classification ?? null);
     library.set(row.id, {
       ref,
@@ -344,8 +347,19 @@ function observe(response: PlannerProposalResponse, drafts: Drafts | null, works
     options: question.options,
   }));
   const slots = new Map((drafts?.slots ?? []).map((slot) => [slot.itemRef, slot]));
+  // Le terme dit pour chaque fiche retrouvée, et la trace de la compréhension, pour relire un échec.
+  const movements = response.understanding?.movements ?? [];
+  const saidOf = new Map(
+    movements.flatMap((entry) => (entry.exercise ? [[entry.exercise.exerciseId, entry.said] as const] : [])),
+  );
+  const understood = movements.map((entry) => ({
+    said: entry.said,
+    prescription: entry.prescription,
+    confidence: entry.confidence,
+    fiche: entry.exercise?.name ?? null,
+  }));
   if (response.state === "clarification")
-    return { status: "question", blocked: true, questions, sessions: [], error: null };
+    return { status: "question", blocked: true, questions, sessions: [], error: null, understood };
   if (response.state !== "proposal" || !drafts) return observedError(`state_${response.state}`);
   const targets = new Map(response.targets.map((target) => [target.id, target]));
   const sessions = drafts.sessions.map((session, index) => {
@@ -363,6 +377,7 @@ function observe(response: PlannerProposalResponse, drafts: Drafts | null, works
         ref: entry?.ref ?? { kind: "placeholder", name: slot?.said ?? "" },
         toVerify: flags.includes("approximate_exercise"),
         flags,
+        said: slot?.said ?? saidOf.get(item.exerciseId) ?? null,
         sets: p.sets ?? 1,
         reps: p.reps ?? null,
         durationS: p.duration_s ?? null,
@@ -412,7 +427,7 @@ function observe(response: PlannerProposalResponse, drafts: Drafts | null, works
       steps,
     };
   });
-  return { status: "sessions", blocked: false, questions, sessions, error: null };
+  return { status: "sessions", blocked: false, questions, sessions, error: null, understood };
 }
 
 // L'étape en cours, telle que le service la diffuse : c'est à elle que chaque appel au fournisseur est compté.
