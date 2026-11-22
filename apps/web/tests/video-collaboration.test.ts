@@ -39,7 +39,6 @@ vi.mock("@/server/platform-settings.service", async (original) => ({
     muxVideoLimit: null,
     signupMode: "public",
     checkoutEnabled: true,
-    gameLeaderboardEnabled: false,
   }),
 }));
 

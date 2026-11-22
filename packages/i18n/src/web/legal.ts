@@ -21,7 +21,7 @@ export const legal = {
   },
   privacy: {
     title: "Politique de confidentialité",
-    updated: "12 novembre 2026",
+    updated: "23 novembre 2026",
     controller:
       "Responsable du traitement : Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130 Franconville. Contact : hello@tartan.coach.",
     adultsOnly:
@@ -47,7 +47,7 @@ export const legal = {
     retention: "Combien de temps",
     retentionDetail:
       "Tes données restent tant que ton compte est actif. Un athlète retiré d'un espace, ou qui le quitte, voit sa fiche et ses données d'entraînement de cet espace supprimées. Les vidéos suivent la durée de conservation de l'offre de l'espace.",
-    // Les durées, dans l'ordre de la page ; celles du planificateur et du jeu viennent de leur propre domaine.
+    // Les durées, dans l'ordre de la page ; celle du planificateur vient de son propre domaine.
     retentionAccounts: [
       "Compte inactif : supprimé après 24 mois sans connexion, avec un préavis de 30 jours. Si son propriétaire est inactif, un espace encore utilisé est confié à un autre coach actif. Sans repreneur, le support organise la succession avant la suppression du compte. L’activité de l’espace provient des séances, validations, appels et contributions, pas des tâches automatiques.",
       "Fiche préparée par un coach, sans compte : supprimée après 12 mois sans activité.",

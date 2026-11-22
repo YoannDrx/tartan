@@ -31,7 +31,6 @@ const sections = [
   { href: "/admin/mascotte", label: () => m.admin.nav.mascot },
   { href: "/admin/mouvements", label: () => m.admin.nav.movements },
   { href: "/admin/exercices", label: () => m.admin.nav.exercises },
-  { href: "/admin/jeu", label: () => m.admin.nav.game },
 ];
 
 export const AdminNav = ({ current }: { current: string }) => (

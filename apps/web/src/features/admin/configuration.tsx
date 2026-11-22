@@ -27,7 +27,6 @@ export const SettingsForm = ({ settings }: { settings: PlatformSettings }) => {
   const [signupMode, setSignupMode] = useState(settings.signupMode);
   const [checkout, setCheckout] = useState(settings.checkoutEnabled);
   const [limit, setLimit] = useState(settings.muxVideoLimit === null ? "" : String(settings.muxVideoLimit));
-  const [leaderboard, setLeaderboard] = useState(settings.gameLeaderboardEnabled);
   const save = useAction(updatePlatformSettingsAction, {
     onSuccess: () => {
       toast.ok(t.saved);
@@ -37,7 +36,7 @@ export const SettingsForm = ({ settings }: { settings: PlatformSettings }) => {
   });
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid gap-3 tablet:grid-cols-2 desktop:grid-cols-4">
+      <div className="grid gap-3 tablet:grid-cols-2 desktop:grid-cols-3">
         <Field label={t.signupMode}>
           {(a) => (
             <Select {...a} value={signupMode} onChange={(e) => setSignupMode(e.target.value as "closed" | "public")}>
@@ -57,14 +56,6 @@ export const SettingsForm = ({ settings }: { settings: PlatformSettings }) => {
         <Field label={t.videoLimit} hint={t.videoLimitHint}>
           {(a) => <Input {...a} inputMode="numeric" value={limit} onChange={(e) => setLimit(e.target.value)} />}
         </Field>
-        <Field label={t.gameLeaderboard} hint={t.gameLeaderboardHint}>
-          {(a) => (
-            <Select {...a} value={leaderboard ? "on" : "off"} onChange={(e) => setLeaderboard(e.target.value === "on")}>
-              <option value="off">{t.gameLeaderboardOff}</option>
-              <option value="on">{t.gameLeaderboardOn}</option>
-            </Select>
-          )}
-        </Field>
       </div>
       <div>
         <Confirm
@@ -76,7 +67,6 @@ export const SettingsForm = ({ settings }: { settings: PlatformSettings }) => {
               signupMode,
               checkoutEnabled: checkout,
               muxVideoLimit: limit === "" ? null : Number(limit),
-              gameLeaderboardEnabled: leaderboard,
             })
           }
         />

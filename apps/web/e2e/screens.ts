@@ -18,7 +18,6 @@ export const SCREENS: Screen[] = [
   { path: "/tarifs", roles: ["public"], proof: ["landing.spec.ts", "pilot.spec.ts"] },
   { path: "/aide", roles: ["public"], proof: ["help.spec.ts"] },
   { path: "/contact", roles: ["public"], proof: ["help.spec.ts"] },
-  { path: "/jeu", roles: ["public"], proof: ["game-page.spec.ts"] },
   { path: "/cgv", roles: ["public"], proof: ["mobile-legal.spec.ts"] },
   { path: "/conditions", roles: ["public"], proof: ["pilot.spec.ts"] },
   { path: "/confidentialite", roles: ["public"], proof: ["pilot.spec.ts"] },
@@ -146,7 +145,6 @@ export const SCREENS: Screen[] = [
   { path: "/admin/mascotte", roles: ["admin"], proof: ["mascot-board.spec.ts"] },
   { path: "/admin/mouvements", roles: ["admin"], proof: ["admin-console.spec.ts"] },
   { path: "/admin/exercices", roles: ["admin"], proof: ["catalog-video.spec.ts", "tests/catalog-media.test.ts"] },
-  { path: "/admin/jeu", roles: ["admin"], proof: ["admin-console.spec.ts"] },
 ];
 
 // Ce que le balayage visite : les écrans sans paramètre, pour chaque rôle qui les ouvre.

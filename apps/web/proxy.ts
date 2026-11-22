@@ -31,7 +31,6 @@ const SITE_PATHS = [
   "/mentions-legales",
   "/contact",
   "/aide",
-  "/jeu",
   "/suppression-compte",
   "/robots.txt",
   "/sitemap.xml",

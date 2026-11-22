@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hurdlerPose } from "./hurdles";
 
-describe("le coureur du jeu des haies", () => {
+describe("le coureur des haies, sans décor", () => {
   it("au sol, au début et à la fin d'un saut, c'est la foulée", () => {
     for (const distance of [0, 260, 1234]) {
       expect(hurdlerPose(distance, null)).toEqual(hurdlerPose(distance, 0));

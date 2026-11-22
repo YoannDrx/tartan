@@ -23,7 +23,6 @@ export * from "./training-intensity";
 export * from "./session-publication";
 export * from "./ai-planner";
 
-export * from "./game";
 export * from "./exercise-guide";
 
 export * from "./ai-planner-generation";

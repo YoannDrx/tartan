@@ -31,10 +31,7 @@ export const PrivacyContent = ({ embedded = false }: { embedded?: boolean }) => 
       {t.retentionRecords.map((item) => (
         <li key={item}>{item}</li>
       ))}
-      <li>{m.game.leaderboard.policyRetention}</li>
     </ul>
-    <h2>{m.game.leaderboard.policyTitle}</h2>
-    <p>{m.game.leaderboard.policyBody}</p>
     <h2>{t.rights}</h2>
     <p>{t.rightsDetail}</p>
   </LegalPage>

@@ -14,7 +14,6 @@ const fromEnv = (): PlatformSettings => {
     signupMode: e.COACH_SIGNUP_MODE,
     checkoutEnabled: e.BILLING_CHECKOUT_ENABLED === "true",
     muxVideoLimit: limit > 0 ? limit : null,
-    gameLeaderboardEnabled: false,
   };
 };
 

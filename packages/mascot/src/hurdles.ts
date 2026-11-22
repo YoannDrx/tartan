@@ -158,7 +158,7 @@ export const HURDLES_CLIP: EventClip = {
   face: faceBy(AT.run, AT.stand),
 };
 
-// Pour le jeu (packages/game) : le coureur sans décor. `distance` est le chemin parcouru en pixels de la scène, qui
+// Le coureur sans décor. `distance` est le chemin parcouru en pixels de la scène, qui
 // règle la foulée ; `flight` va de 0 à 1 pendant un saut, `null` au sol. Le saut reprend les clés du geste, avec un
 // fondu aux deux bords pour que l'appel et la réception partent de la foulée en cours.
 const GAME_KEYS = clearance(HURDLES[0]);
