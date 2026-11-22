@@ -28,6 +28,7 @@ import { Alert, AppState, View } from "react-native";
 import { api } from "../../lib/api";
 import { errorMessage } from "../../lib/errors";
 import { useIsOnline } from "../../lib/network";
+import { publishedMessage } from "../../lib/publication-message";
 import { Button, Card, Chip, Field, T } from "../../ui/primitives";
 import { StackScreen } from "../../ui/screen";
 import { Sheet } from "../../ui/sheet";
@@ -462,7 +463,8 @@ export const NativeSessionBuilder = ({
           publish || result.current.publishedAt
             ? publishedAt
               ? m.builder.updated
-              : m.builder.published
+              : // Qui reçoit vraiment la séance, d'après le serveur (audit G10).
+                publishedMessage(result.recipients)
             : m.nativeBuilder.saved,
         );
       for (const key of [
@@ -991,7 +993,11 @@ export const NativeSessionBuilder = ({
             {error}
           </T>
         ) : null}
-        {message ? <T accessibilityLiveRegion="polite">{message}</T> : null}
+        {message ? (
+          <T testID="builder-message" accessibilityLiveRegion="polite">
+            {message}
+          </T>
+        ) : null}
         {stale && !form.id ? (
           <Button variant="secondary" label={m.nav.calendrier} onPress={() => router.push("/(coach)/planning")} />
         ) : null}
