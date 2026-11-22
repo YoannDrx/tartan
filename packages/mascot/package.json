@@ -16,6 +16,7 @@
     "./event": "./src/event.ts",
     "./events": "./src/events.ts",
     "./athletes": "./src/athletes.ts",
+    "./animals": "./src/animals.ts",
     "./hurdles": "./src/hurdles.ts",
     "./pole-vault": "./src/pole-vault.ts",
     "./triple-jump": "./src/triple-jump.ts",
