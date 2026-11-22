@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@tartan/api-client";
 import {
   sessionType,
+  type ExerciseSummary,
   type Prescription,
   type SaveScheduledSessionInput,
   type SessionDraft,
@@ -23,11 +24,14 @@ import { NativePhasePlanning } from "../phase-planning";
 import { m } from "@tartan/i18n";
 import { randomUUID } from "expo-crypto";
 import { useNavigation, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, AppState, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AccessibilityInfo, Alert, AppState, View } from "react-native";
+import { ExerciseFinder } from "../exercise-finder";
+import { useExerciseLists } from "../exercise-lists";
 import { api } from "../../lib/api";
 import { errorMessage } from "../../lib/errors";
 import { useIsOnline } from "../../lib/network";
+import { publishedMessage } from "../../lib/publication-message";
 import { Button, Card, Chip, Field, T } from "../../ui/primitives";
 import { StackScreen } from "../../ui/screen";
 import { Sheet } from "../../ui/sheet";
@@ -93,7 +97,7 @@ export const NativeSessionBuilder = ({
   stored,
   verified,
   initial,
-  context,
+  context: serverContext,
   date,
   groupId,
   onReload,
@@ -108,6 +112,16 @@ export const NativeSessionBuilder = ({
   groupId?: string;
   onReload: (id?: string) => void;
 }) => {
+  // Les fiches créées depuis le sélecteur rejoignent la bibliothèque de la séance, et sa copie locale.
+  const [createdExercises, setCreatedExercises] = useState<ExerciseSummary[]>([]);
+  const context = useMemo(
+    () =>
+      createdExercises.length
+        ? { ...serverContext, exercises: [...serverContext.exercises, ...createdExercises] }
+        : serverContext,
+    [serverContext, createdExercises],
+  );
+  const lists = useExerciseLists(orgId);
   const [form, setForm] = useState(() => initialForm(initial, date, groupId));
   const phaseGroups = form.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId);
   const phaseAthletes = form.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId);
@@ -462,7 +476,8 @@ export const NativeSessionBuilder = ({
           publish || result.current.publishedAt
             ? publishedAt
               ? m.builder.updated
-              : m.builder.published
+              : // Qui reçoit vraiment la séance, d'après le serveur (audit G10).
+                publishedMessage(result.recipients)
             : m.nativeBuilder.saved,
         );
       for (const key of [
@@ -862,6 +877,32 @@ export const NativeSessionBuilder = ({
                 canMove={form.draft.blocks.length > 1}
                 onEditAutonomous={(itemRef) => openPrescription({ itemRef, autonomous: true })}
                 onError={setError}
+                picker={({ title, onPick, onClose }) => (
+                  <ExerciseFinder
+                    orgId={orgId}
+                    exercises={context.exercises}
+                    title={title}
+                    hint={m.nativeExercises.picker.hint}
+                    pickLabel={
+                      title === m.builder.library ? m.nativeExercises.picker.pick : m.nativeExercises.picker.replace
+                    }
+                    busy={busy}
+                    testPrefix="exercise"
+                    library={lists}
+                    browse
+                    onClose={onClose}
+                    onPick={(picked, created) => {
+                      if (created) {
+                        setCreatedExercises((current) => [...current, created]);
+                        void client.invalidateQueries({ queryKey: ["exercises", orgId] });
+                      }
+                      const exercise = created ?? context.exercises.find((e) => e.id === picked.id);
+                      if (!exercise) return onClose();
+                      onPick(exercise);
+                      AccessibilityInfo.announceForAccessibility(m.nativeExercises.picker.added(exercise.name));
+                    }}
+                  />
+                )}
               />
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
                 <Button
@@ -991,7 +1032,11 @@ export const NativeSessionBuilder = ({
             {error}
           </T>
         ) : null}
-        {message ? <T accessibilityLiveRegion="polite">{message}</T> : null}
+        {message ? (
+          <T testID="builder-message" accessibilityLiveRegion="polite">
+            {message}
+          </T>
+        ) : null}
         {stale && !form.id ? (
           <Button variant="secondary" label={m.nav.calendrier} onPress={() => router.push("/(coach)/planning")} />
         ) : null}

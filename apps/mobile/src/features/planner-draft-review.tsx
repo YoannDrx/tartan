@@ -30,7 +30,7 @@ import { prescriptionFields, type PrescriptionFields } from "./builder/form";
 import { PrescriptionEditor } from "./builder/prescription-editor";
 import { NativeSequenceEditor, type SequenceItemExtras } from "./builder/sequence-editor";
 import { NativePhasePlanning } from "./phase-planning";
-import { PlannerExerciseFinder } from "./planner-exercise-finder";
+import { PlannerExerciseFinder } from "./exercise-finder";
 import { PlannerLoadPreview } from "./planner-load-preview";
 import { CheckLine, Fold, Pill, PillRow } from "./planner-ui";
 

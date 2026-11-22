@@ -3,7 +3,8 @@
 const ID = /^[A-Za-z0-9-]{8,64}$/;
 const REFERRAL = /^[A-Za-z0-9-]{4,40}$/;
 
-const first = (value: string | string[] | undefined): string => (Array.isArray(value) ? (value[0] ?? "") : (value ?? ""));
+const first = (value: string | string[] | undefined): string =>
+  Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 
 // « /seance/<id> » et « /seance/<id>/mode » ouvrent la même séance : l'app n'a qu'un écran pour les deux.
 export const sessionRoute = (path: string | string[] | undefined): string => {
@@ -12,9 +13,11 @@ export const sessionRoute = (path: string | string[] | undefined): string => {
   return ID.test(id) ? `/session/${id}` : "/today";
 };
 
-export const jumpRoute = (id: string | string[] | undefined): string => {
+// « /mes-videos/<id> », et l'ancien « /mes-sauts/<id> », ouvrent l'analyse de la vidéo ; sans identifiant, la liste.
+export const MY_VIDEOS_ROUTE = "/mes-videos";
+export const videoRoute = (id: string | string[] | undefined): string => {
   const value = first(id);
-  return ID.test(value) ? `/video/${value}` : "/jumps";
+  return ID.test(value) ? `/video/${value}` : MY_VIDEOS_ROUTE;
 };
 
 // Même règle que la route web `/r/<code>`.

@@ -3,8 +3,24 @@ import {
   actionFromResponse,
   clientIdForAction,
   normalizeNotificationData,
+  REST_END_KIND,
   routeForNotification,
+  staysOnScreen,
 } from "./notification-routes";
+
+describe("rappel local de fin de récupération", () => {
+  it("laisse l'athlète sur son écran de séance quand il touche le rappel", () => {
+    expect(staysOnScreen({ kind: REST_END_KIND })).toBe(true);
+    expect(staysOnScreen(normalizeNotificationData({ dataString: JSON.stringify({ kind: REST_END_KIND }) }))).toBe(
+      true,
+    );
+  });
+
+  it("ne retient pas les notifications du serveur", () => {
+    expect(staysOnScreen({ link: "/seance/abc" })).toBe(false);
+    expect(staysOnScreen(null)).toBe(false);
+  });
+});
 
 const id = "3f2c1d7e-0000-4000-8000-000000000000";
 

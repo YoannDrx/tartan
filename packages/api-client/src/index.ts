@@ -6,6 +6,7 @@ import {
   type QuickExerciseInput,
   notificationsPage,
   publishSessionsResult,
+  publishSessionResult,
   releasesResponse,
   releaseStatus,
   type AbsenceReason,
@@ -425,9 +426,7 @@ export const createApiClient = (options: ApiClientOptions) => {
     publishSessions: (orgId: string, body: PublishSessionsInput) =>
       request("POST", `/orgs/${orgId}/sessions/publish-batch`, publishSessionsResult, body),
     publishSession: (orgId: string, sessionId: string, expectedVersion: number) =>
-      request("POST", `/orgs/${orgId}/sessions/${sessionId}/publish`, z.object({ id: z.string() }), {
-        expectedVersion,
-      }),
+      request("POST", `/orgs/${orgId}/sessions/${sessionId}/publish`, publishSessionResult, { expectedVersion }),
     previewPrescriptionRefresh: (orgId: string, sessionId: string) =>
       request("GET", `/orgs/${orgId}/sessions/${sessionId}/refresh-loads`, prescriptionRefreshPreview),
     refreshPublishedLoads: (orgId: string, sessionId: string, body: ConfirmPrescriptionRefresh) =>

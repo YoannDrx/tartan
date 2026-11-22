@@ -2870,6 +2870,112 @@ export const fr = {
     linkedVideos: "Vidéos liées",
     linkedVideosEmpty: "Aucune vidéo liée à ce mouvement. Rattache-la depuis l'analyse d'une vidéo.",
   },
+  // Parité mobile, lot M2 : la bibliothèque du coach sur l'app native (listes, favoris, fiche concise, sélecteur).
+  nativeExercises: {
+    filters: {
+      label: "Filtrer la bibliothèque",
+      all: "Tout",
+      favorites: "Favoris",
+      mine: "Mes fiches",
+      sharedBy: (list: string, owner: string) => `${list}, de ${owner}`,
+    },
+    results: (count: number) => (count === 0 ? "Aucune fiche" : count === 1 ? "1 fiche" : `${count} fiches`),
+    favorite: {
+      add: (name: string) => `Mettre ${name} en favori`,
+      remove: (name: string) => `Retirer ${name} des favoris`,
+      on: "Favori",
+      added: "Ajoutée aux favoris.",
+      removed: "Retirée des favoris.",
+    },
+    lists: {
+      new: "Nouvelle liste",
+      name: "Nom de la liste",
+      nameRequired: "Donne un nom à la liste.",
+      create: "Créer la liste",
+      created: (name: string) => `Liste « ${name} » créée.`,
+      readOnly: (owner: string) => `Liste de ${owner}, en lecture seule.`,
+      createInList: "Créer un exercice dans cette liste",
+      empty: "Cette liste est vide. Ajoute des fiches depuis la bibliothèque, ou crée un exercice directement ici.",
+      sharedEmpty: "Cette liste partagée est vide pour l'instant.",
+      favoritesEmpty: "Aucun favori pour l'instant. Touche l'étoile d'une fiche pour la retrouver ici.",
+      file: (name: string) => `Ranger ${name} dans une liste`,
+      fileTitle: (name: string) => `Ranger « ${name} »`,
+      fileHint: "Coche les listes où cette fiche doit apparaître.",
+      none: "Tu n'as pas encore de liste. Crée la première ci-dessous.",
+      count: (count: number) => (count === 0 ? "Vide" : count === 1 ? "1 fiche" : `${count} fiches`),
+      added: (name: string) => `Ajoutée à « ${name} ».`,
+      removed: (name: string) => `Retirée de « ${name} ».`,
+      failed: "Le changement n'a pas été enregistré. Vérifie la connexion, puis réessaie.",
+      back: "Retour aux résultats",
+      backToSheet: "Retour à la fiche",
+    },
+    sheet: {
+      source: { shared: "Bibliothèque commune", mine: "Fiche de ton espace" },
+      variant: (name: string) => `Ouvrir la fiche ${name}`,
+    },
+    // La fiche concise, la même que sur le web : le geste, l'objectif, la mise en place, les étapes, les erreurs.
+    guide: {
+      setup: "Mise en place",
+      steps: "Étapes",
+      mistakes: "À éviter",
+      easier: "Plus facile",
+      harder: "Plus difficile",
+      detail: "Détail",
+      detailHint: "Le texte complet déjà relu, gardé tant que la version courte attend sa validation.",
+      coach: "Guide écrit par le coach pour cet espace.",
+      step: (index: number) => `Étape ${index}`,
+    },
+    picker: {
+      hint: "Cherche une fiche, filtre par favoris ou par liste, puis ajoute-la à la séance. Si elle manque, crée-la sans quitter la séance.",
+      pick: (name: string) => `Ajouter ${name} à la séance`,
+      replace: (name: string) => `Choisir ${name}`,
+      added: (name: string) => `${name} ajouté à la séance.`,
+      more: "Les 40 premières fiches sont affichées. Écris un nom pour retrouver les autres.",
+    },
+    quick: {
+      submitInLibrary: "Créer la fiche",
+      createdInList: (name: string, list: string) => `Fiche « ${name} » créée dans « ${list} ».`,
+    },
+  },
+  // Parité mobile, lot M3 : l'analyse vidéo en plein écran, l'éditeur en feuille et les tracés au doigt.
+  nativeVideo: {
+    fullscreen: "Plein écran",
+    exitFullscreen: "Quitter le plein écran",
+    editor: "Remarques et tracés",
+    sheet: {
+      grow: "Agrandir l'éditeur",
+      shrink: "Réduire l'éditeur",
+      handle: "Poignée de l'éditeur : glisse pour l'agrandir ou le réduire",
+      heights: { rail: "Éditeur replié", half: "Éditeur à moitié", full: "Éditeur en entier" },
+      collapse: "Replier l'éditeur",
+      expand: "Déplier l'éditeur",
+    },
+    tools: "Outils de tracé",
+    tool: (kind: string) => `Tracer : ${kind}`,
+    area: (kind: string, left: number) =>
+      `Zone de tracé, ${kind.toLowerCase()}. Touche l'image pour poser ${left === 1 ? "le dernier point" : `${left} points`}.`,
+    placed: (count: number, total: number) => `Point ${count} sur ${total} posé.`,
+    undo: "Reprendre le dernier point",
+    cancel: "Annuler le tracé",
+    saved: "Tracé enregistré.",
+  },
+  // Parité mobile, lot M3 : le rappel de fin de récupération quand l'app passe en arrière-plan.
+  nativeSessionMode: {
+    restNotification: {
+      title: "Récupération terminée",
+      body: "C'est reparti : la série suivante t'attend.",
+    },
+  },
+  // Parité mobile, lot M3 (constat G10) : la publication dit qui reçoit vraiment la séance.
+  nativePublication: {
+    empty: "Séance publiée. Personne ne la reçoit encore : invite tes athlètes avec le lien du groupe.",
+    unreachable: (count: number) =>
+      `Séance publiée pour ${count} athlète${count > 1 ? "s" : ""}. Aucun n'a encore de compte, donc aucune notification n'est partie : invite-les avec le lien du groupe.`,
+    notified: (notified: number, total: number) =>
+      notified === total
+        ? `Séance publiée. ${notified} athlète${notified > 1 ? "s" : ""} ${notified > 1 ? "reçoivent" : "reçoit"} la notification.`
+        : `Séance publiée pour ${total} athlète${total > 1 ? "s" : ""}. ${notified} ${notified > 1 ? "reçoivent" : "reçoit"} la notification ; les autres n'ont pas encore de compte.`,
+  },
   athletes: {
     fileTitle: "Fiche athlète",
     barAttempt: (height: string, attempt: string) => `${height} m, ${attempt}`,

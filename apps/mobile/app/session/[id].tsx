@@ -13,10 +13,11 @@ import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, BackHandler, Pressable, Vibration, View } from "react-native";
 import { ExerciseVideo, parseMedia, SPEEDS } from "../../src/features/media";
-import { MovementGuide } from "../../src/features/exercise-guide";
+import { MovementGuideDisclosure } from "../../src/features/exercise-guide";
 import { recordValidation, ValidationSheet, type ValidationTarget } from "../../src/features/validation-sheet";
 import { useActiveSpace, useSessionDetail, useToday } from "../../src/lib/queries";
 import { useSessionProgress } from "../../src/lib/session-progress";
+import { useRestReminder } from "../../src/lib/use-rest-reminder";
 import { deniesCachedAccess } from "../../src/lib/errors";
 import { ArrowRight, Check, Timer } from "../../src/ui/icons";
 import { Button, Chip, T, Tag } from "../../src/ui/primitives";
@@ -32,6 +33,8 @@ const RestTimer = ({ seconds }: { seconds: number }) => {
   const p = usePalette();
   const [endAt, setEndAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  // L'app passe en arrière-plan pendant la récupération : une notification locale en annonce la fin.
+  useRestReminder(endAt);
   useEffect(() => {
     if (!endAt) return;
     const tick = setInterval(() => {
@@ -382,7 +385,7 @@ export default function SessionMode() {
       </View>
 
       {parseMedia(item.media) ? <ExerciseVideo key={item.ref} media={parseMedia(item.media)} rate={rate} /> : null}
-      {item.guide && !recovery ? <MovementGuide key={item.ref} guide={item.guide} /> : null}
+      {item.guide && !recovery ? <MovementGuideDisclosure key={item.ref} guide={item.guide} /> : null}
       {!recovery ? (
         <Button
           label={m.videoCollaboration.upload}
