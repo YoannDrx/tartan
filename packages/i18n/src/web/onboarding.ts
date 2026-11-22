@@ -108,7 +108,7 @@ export const onboarding = {
         detail: "Pars d'un modèle de ta bibliothèque, d'une page vierge ou du planificateur.",
         template: (title: string) => `Modèle : ${title}`,
         blank: "Page vierge",
-        planner: "Planificateur",
+        planner: "Avec le planificateur",
       },
       publish: {
         detail: "Tant qu'elle reste en brouillon, ton groupe ne la voit pas.",

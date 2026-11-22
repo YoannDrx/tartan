@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { isoDate, uuid } from "@tartan/contracts";
-import { m } from "@tartan/i18n";
+import { isoDate, trainingEquipment, uuid } from "@tartan/contracts";
+import { w } from "@tartan/i18n/web";
 import { PageHeader } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { PlannerConsent, PlannerConsentWithdraw } from "@/features/planner/planner-consent";
@@ -12,10 +12,12 @@ import { AppError } from "@/lib/errors";
 import { hasAiConsent } from "@/server/ai/consent.service";
 import { getPlannerProposal } from "@/server/ai/proposal.service";
 import { getPlannerUsage } from "@/server/ai/usage.service";
+import { listExerciseLists } from "@/server/exercise-list.service";
 import { getSessionBuilderContext } from "@/server/session-builder.service";
 import { getOrganization } from "@/server/org.service";
 
-export const metadata = { title: m.aiPlanner.title };
+const t = w.planner;
+export const metadata = { title: t.title };
 export default async function PlannerPage({
   searchParams,
 }: {
@@ -32,9 +34,11 @@ export default async function PlannerPage({
   )
     notFound();
   const usage = await orNotFound(() => getPlannerUsage(actor.userId, organizationId));
-  const [context, organization] = await Promise.all([
+  const [context, organization, lists] = await Promise.all([
     getSessionBuilderContext(actor.userId, organizationId),
     getOrganization(actor.userId, organizationId),
+    // Les listes du coach : ajouter, remplacer et compléter cherchent dans toute sa bibliothèque.
+    listExerciseLists(actor.userId, organizationId),
   ]);
   if (params.groupe && !context.groups.some((g) => g.id === params.groupe)) notFound();
   let initial = null;
@@ -45,40 +49,46 @@ export default async function PlannerPage({
       if (!(error instanceof AppError) || error.status !== 410) throw error;
       return (
         <div className="flex flex-col gap-4">
-          <PageHeader title={m.aiPlanner.title} />
-          <p>{m.aiPlanner.expiredRequest}</p>
-          <Button asChild>
-            <Link href="/planificateur">{m.aiPlanner.newProposal}</Link>
-          </Button>
+          <PageHeader title={t.title} />
+          <p>{t.expiredRequest}</p>
+          <div>
+            <Button asChild>
+              <Link href="/planificateur">{t.newProposal}</Link>
+            </Button>
+          </div>
         </div>
       );
     }
   }
   const date = params.date ?? new Intl.DateTimeFormat("en-CA", { timeZone: usage.timeZone }).format(new Date());
+  // Un seul groupe dans l'espace : il est déjà choisi, la demande part en un champ et un clic.
+  const groupIds = params.groupe ? [params.groupe] : context.groups.length === 1 ? [context.groups[0]!.id] : [];
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
       <PageHeader
-        title={m.aiPlanner.title}
-        detail={m.aiPlanner.lead}
+        title={t.title}
+        detail={t.lead}
         actions={
           <Button asChild variant="secondary">
             <Link href="/planificateur/propositions" prefetch={false}>
-              {m.aiPlanner.recent}
+              {t.recent}
             </Link>
           </Button>
         }
       />
       <WebPlanner
-        key={`${actor.userId}:${organizationId}:${params.proposition ?? "new"}`}
+        key={`${actor.userId}:${organizationId}`}
         orgId={organizationId}
         context={context}
+        lists={lists}
         initial={initial}
+        routeProposal={params.proposition ?? null}
         initialUsage={usage}
-        // Le matériel du profil de l'espace préremplit les pastilles du mode « Proposer ».
-        equipment={organization.availableEquipment}
+        // Le matériel du profil de l'espace : les précisions le reprennent, le coach le change pour une séance.
+        equipment={trainingEquipment.array().catch([]).parse(organization.availableEquipment)}
         initialSelection={{
           period: { from: date, to: date },
-          groupIds: params.groupe ? [params.groupe] : [],
+          groupIds,
           athleteIds: [],
           exerciseIds: [],
           phaseChoices: [],

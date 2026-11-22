@@ -2,32 +2,22 @@
 
 import { ApiError, createApiClient } from "@tartan/api-client";
 import type { PlannerTranscriptionResponse } from "@tartan/contracts";
-import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { CheckRow } from "@/components/ui/field";
 import { BrowserPlannerRecording, WEB_DICTATION_SECONDS, type BrowserRecordingState } from "./browser-recording";
 
 const api = createApiClient({ baseUrl: "" });
-const t = m.aiPlanner;
+const t = w.planner.dictation;
 
-// Monté dans le planificateur autorisé, avec une clé d'espace/utilisateur.
-// Les blobs et identifiants de reprise ne quittent pas la mémoire de cet écran.
-export function WebPlannerDictation({
-  orgId,
-  disabled,
-  onText,
-  onBusyChange,
-}: {
-  orgId: string;
-  disabled: boolean;
-  onText: (text: string) => void;
-  onBusyChange?: (busy: boolean) => void;
-}) {
-  const [accepted, setAccepted] = useState(false);
+/**
+ * La dictée du champ de demande : un bouton pour parler, un pour arrêter, le texte transcrit ajouté à la demande.
+ * L'accord a été donné une fois, avec celui du planificateur : aucune case n'est à cocher ici. Les enregistrements
+ * et les identifiants de reprise ne quittent pas la mémoire de cet écran.
+ */
+export function usePlannerDictation(orgId: string, onText: (text: string) => void) {
   const [state, setState] = useState<BrowserRecordingState>("idle");
   const [networkBusy, setNetworkBusy] = useState(false);
-  const [networkLabel, setNetworkLabel] = useState<string>(t.dictationTranscribing);
+  const [networkLabel, setNetworkLabel] = useState<string>(t.transcribing);
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -37,28 +27,26 @@ export function WebPlannerDictation({
   const activeRequest = useRef<AbortController | null>(null);
   const alive = useRef(false);
   const delivered = useRef<string | null>(null);
-  const callbacks = useRef({ onText, onBusyChange });
+  // Les événements du micro lisent la fonction du rendu courant : jamais une ancienne demande du formulaire.
+  const deliver = useRef(onText);
   useEffect(() => {
-    callbacks.current = { onText, onBusyChange };
-  }, [onText, onBusyChange]);
+    deliver.current = onText;
+  }, [onText]);
 
   const accept = (result: PlannerTranscriptionResponse) => {
     if (result.state === "ready" && result.text) {
       if (delivered.current !== result.id) {
         delivered.current = result.id;
-        callbacks.current.onText(result.text);
+        deliver.current(result.text);
       }
       setRequestId(null);
-      setNotice(t.dictationReady);
-    } else if (result.state === "processing") setNotice(t.dictationPending);
+      setNotice(t.ready);
+    } else if (result.state === "processing") setNotice(t.pending);
     else {
       setRequestId(null);
-      setError(t.transcriptionFailed);
+      setError(t.failed);
     }
   };
-
-  // Réf vers les fonctions du rendu courant, pour que les événements du micro ne
-  // capturent ni ancien espace ni ancienne consigne du formulaire parent.
   const acceptResult = useRef(accept);
   useEffect(() => {
     acceptResult.current = accept;
@@ -73,11 +61,11 @@ export function WebPlannerDictation({
       const code = cause instanceof Error ? cause.message : "";
       setError(
         name === "NotAllowedError"
-          ? t.browserMicrophoneDenied
+          ? t.denied
           : code === "dictation_unsupported"
-            ? t.browserAudioUnavailable
+            ? t.unsupported
             : code === "dictation_invalid_audio"
-              ? t.audioInvalid
+              ? t.invalid
               : t.recordingFailed,
       );
     };
@@ -93,7 +81,7 @@ export function WebPlannerDictation({
         const controller = new AbortController();
         activeRequest.current = controller;
         setNetworkBusy(true);
-        setNetworkLabel(t.dictationTranscribing);
+        setNetworkLabel(t.transcribing);
         const id = crypto.randomUUID();
         setRequestId(id);
         const timeout = setTimeout(() => controller.abort(), 120_000);
@@ -102,6 +90,7 @@ export function WebPlannerDictation({
             const body = new FormData();
             body.set(
               "metadata",
+              // L'accord de transcription est celui du planificateur, donné une fois : le serveur l'exige aussi.
               JSON.stringify({ id, requestedAt: new Date().toISOString(), audioProcessingAccepted: true }),
             );
             body.set("audio", audio, audio.type.startsWith("audio/mp4") ? "dictee.m4a" : "dictee.webm");
@@ -110,11 +99,7 @@ export function WebPlannerDictation({
           } catch (cause) {
             if (mounted)
               setError(
-                controller.signal.aborted
-                  ? t.dictationResponseUnknown
-                  : cause instanceof ApiError
-                    ? cause.message
-                    : t.transcriptionFailed,
+                controller.signal.aborted ? t.responseUnknown : cause instanceof ApiError ? cause.message : t.failed,
               );
           } finally {
             clearTimeout(timeout);
@@ -131,7 +116,7 @@ export function WebPlannerDictation({
       if (captureState.current !== "idle" || activeRequest.current) {
         activeRequest.current?.abort();
         current.cancel();
-        if (mounted) setNotice(t.dictationInterrupted);
+        if (mounted) setNotice(t.interrupted);
       }
     };
     const visibility = () => {
@@ -148,14 +133,9 @@ export function WebPlannerDictation({
       captureState.current = "idle";
       document.removeEventListener("visibilitychange", visibility);
       window.removeEventListener("pagehide", interrupt);
-      callbacks.current.onBusyChange?.(false);
     };
   }, [orgId]);
 
-  const busy = state !== "idle" || networkBusy;
-  useEffect(() => {
-    callbacks.current.onBusyChange?.(busy);
-  }, [busy]);
   useEffect(() => {
     if (state !== "recording") return;
     const began = Date.now();
@@ -167,17 +147,17 @@ export function WebPlannerDictation({
   }, [state]);
 
   const start = async () => {
-    if (disabled || !accepted || activeRequest.current || captureState.current !== "idle") return;
+    if (activeRequest.current || captureState.current !== "idle") return;
     const controller = new AbortController();
     activeRequest.current = controller;
     setNetworkBusy(true);
     setError("");
     setNotice("");
     setSeconds(0);
-    setNetworkLabel(t.dictationCheckingAccess);
+    setNetworkLabel(t.checkingAccess);
     const timeout = setTimeout(() => controller.abort(), 15_000);
     try {
-      // Vérifier le droit effectif avant toute demande de permission du micro.
+      // Le droit effectif est vérifié avant toute demande d'accès au micro.
       await api.plannerUsage(orgId, controller.signal);
       if (!alive.current || activeRequest.current !== controller || controller.signal.aborted || document.hidden)
         return;
@@ -201,7 +181,7 @@ export function WebPlannerDictation({
     setNetworkBusy(true);
     setError("");
     setNotice("");
-    setNetworkLabel(t.dictationCheckingResult);
+    setNetworkLabel(t.checkingResult);
     const timeout = setTimeout(() => controller.abort(), 30_000);
     try {
       const result = await api.plannerTranscription(orgId, requestId, controller.signal);
@@ -210,7 +190,7 @@ export function WebPlannerDictation({
     } catch (cause) {
       if (alive.current && activeRequest.current === controller) {
         if (cause instanceof ApiError && [404, 410].includes(cause.status)) setRequestId(null);
-        setError(cause instanceof ApiError ? cause.message : t.transcriptionFailed);
+        setError(cause instanceof ApiError ? cause.message : t.failed);
       }
     } finally {
       clearTimeout(timeout);
@@ -220,67 +200,31 @@ export function WebPlannerDictation({
       }
     }
   };
-  return (
-    <section aria-label={t.dictate} className="flex min-w-0 flex-col gap-3 rounded-card border border-card-line p-4">
-      <p>{t.browserDictationNotice}</p>
-      <p className="text-soft">{t.dictationLimit}</p>
-      <CheckRow
-        label={t.acceptAudio}
-        checked={accepted}
-        disabled={disabled || busy}
-        onChange={(event) => setAccepted(event.target.checked)}
-      />
-      {!busy ? (
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={disabled || !accepted}
-          onClick={() => {
-            void start();
-          }}
-        >
-          {t.dictate}
-        </Button>
-      ) : null}
-      {state === "recording" ? (
-        <>
-          <p>{t.dictationProgress(seconds)}</p>
-          <Button type="button" onClick={() => capture.current?.finish()}>
-            {t.stopDictation}
-          </Button>
-        </>
-      ) : null}
-      {busy && state !== "recording" ? (
-        <p role="status">
-          {networkBusy ? networkLabel : state === "starting" ? t.dictationStarting : t.dictationFinalizing}
-        </p>
-      ) : null}
-      {busy ? (
-        <Button
-          type="button"
-          variant="quiet"
-          onClick={() => {
-            activeRequest.current?.abort();
-            capture.current?.cancel();
-          }}
-        >
-          {t.cancelDictation}
-        </Button>
-      ) : null}
-      {requestId && !busy ? (
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={disabled}
-          onClick={() => {
-            void recover();
-          }}
-        >
-          {t.recover}
-        </Button>
-      ) : null}
-      {notice ? <p role="status">{notice}</p> : null}
-      {error ? <p role="alert">{error}</p> : null}
-    </section>
-  );
+
+  const recording = state === "recording";
+  const busy = state !== "idle" || networkBusy;
+  return {
+    busy,
+    recording,
+    // Ce qui se passe, en une ligne : l'enregistrement et sa durée, une étape, ou le résultat.
+    status: recording
+      ? t.progress(seconds)
+      : busy
+        ? networkBusy
+          ? networkLabel
+          : state === "starting"
+            ? t.starting
+            : t.finalizing
+        : notice,
+    error,
+    // Une transcription envoyée dont la réponse n'est pas arrivée : elle se relit sans redicter.
+    canRecover: Boolean(requestId) && !busy,
+    start: () => void start(),
+    stop: () => capture.current?.finish(),
+    cancel: () => {
+      activeRequest.current?.abort();
+      capture.current?.cancel();
+    },
+    recover: () => void recover(),
+  };
 }

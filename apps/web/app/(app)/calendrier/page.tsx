@@ -231,7 +231,8 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
             <CompetitionDialog athletes={athletes} today={today} />
             {!usesMonth ? <DuplicateWeekDialog week={week} groups={groups} /> : null}
             {ctx.space.aiPlannerEnabled || ctx.space.aiPlannerUpgrade ? (
-              <Button asChild variant="secondary" size="sm">
+              // Sur téléphone, juste après « Nouvelle séance » : les deux façons de créer se voient sans défiler.
+              <Button asChild variant="secondary" size="sm" className="max-desktop:-order-1">
                 <Link
                   href={`/planificateur?date=${usesMonth ? today : week}${params.groupe ? `&groupe=${encodeURIComponent(params.groupe)}` : ""}`}
                   prefetch={false}

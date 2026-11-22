@@ -19,6 +19,8 @@ import {
   plannerDraftsResponse,
   plannerConfirmationResult,
   plannerUsageResponse,
+  plannerAliasList,
+  plannerAliasRemoved,
   type CreatePlannerProposalInput,
   type ResolvePlannerExerciseInput,
   type ClarifyPlannerProposalInput,
@@ -231,6 +233,11 @@ export const createApiClient = (options: ApiClientOptions) => {
         undefined,
         signal,
       ),
+    // Les termes que l'espace a appris au planificateur, et le moyen d'en retirer un.
+    plannerAliases: (orgId: string, signal?: AbortSignal) =>
+      request("GET", `/orgs/${orgId}/planner/aliases`, plannerAliasList, undefined, undefined, signal),
+    forgetPlannerAlias: (orgId: string, aliasId: string) =>
+      request("DELETE", `/orgs/${orgId}/planner/aliases/${aliasId}`, plannerAliasRemoved),
     phasePlanning: (orgId: string, query: PhasePlanningQuery) =>
       request("POST", `/orgs/${orgId}/phases/planning`, phasePlanningResponse, query),
     trainingPhases: (orgId: string, query: TrainingPhaseQuery) =>

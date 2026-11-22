@@ -619,6 +619,22 @@ export const plannerStreamEvent = z.discriminatedUnion("event", [
   }),
 ]);
 export type PlannerStreamEvent = z.infer<typeof plannerStreamEvent>;
+// Les termes appris de l'espace : ce qu'un coach a dit, et la fiche qu'il a choisie pour ce terme.
+export const plannerAliasList = z.object({
+  aliases: z
+    .array(
+      z.object({
+        id: uuid,
+        said: z.string(),
+        exerciseId: uuid,
+        exerciseName: z.string(),
+        updatedAt: z.iso.datetime(),
+      }),
+    )
+    .max(2000),
+});
+export type PlannerAliasList = z.infer<typeof plannerAliasList>;
+export const plannerAliasRemoved = z.object({ removed: z.literal(true) });
 export const plannerProposalListQuery = z.object({ before: uuid.optional() }).strict();
 export type PlannerProposalListQuery = z.infer<typeof plannerProposalListQuery>;
 export const plannerProposalList = z.object({

@@ -2,34 +2,37 @@
 
 import {
   createPlannerProposalInput,
-  plannerBrief,
   trainingEquipment,
   type CreatePlannerProposalInput,
   type PlannerSelection,
 } from "@tartan/contracts";
-import { addDays, phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
+import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
-import { Check } from "lucide-react";
+import { Check, ChevronDown, Mic, Square, X } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Button, IconButton } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
-import { CheckRow, Field, Input, Textarea } from "@/components/ui/field";
+import { CheckRow, Field, Input } from "@/components/ui/field";
 import { PhasePlanningPanel } from "@/features/phases/phase-planning";
 import { cn } from "@/lib/cn";
 import type { getSessionBuilderContext } from "@/server/session-builder.service";
+import { usePlannerDictation } from "./web-dictation";
 
 export type PlannerContext = Awaited<ReturnType<typeof getSessionBuilderContext>>;
-import { WebPlannerDictation } from "./web-dictation";
 
 const t = w.planner;
-const old = m.aiPlanner;
-type Mode = "format" | "propose";
 type Level = "beginner" | "intermediate" | "advanced";
+export type PlannerEquipment = (typeof trainingEquipment.options)[number];
+type Equipment = PlannerEquipment;
 const DURATIONS = [20, 30, 45, 60, 75, 90, 120];
-const toggle = (values: string[], id: string) =>
+const LEVELS: Level[] = ["beginner", "intermediate", "advanced"];
+const TEXT_LIMIT = 12000;
+const toggle = <V extends string>(values: V[], id: V) =>
   values.includes(id) ? values.filter((v) => v !== id) : [...values, id];
+const sameSet = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && [...a].sort().join() === [...b].sort().join();
 
 /** Une pastille à bascule : 44 px de haut, l'état se lit au contour, à la coche et par `aria-pressed`. */
 export const Pill = ({
@@ -58,7 +61,42 @@ export const Pill = ({
   </button>
 );
 
-/** Choix du jour : la planification des phases doit être prête pour chaque date avant l'envoi. */
+const foldSummary =
+  "flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-2 font-semibold [&::-webkit-details-marker]:hidden";
+/** Un repli de l'écran : son titre, ce qu'il contient déjà, et le chevron qui dit qu'il s'ouvre. */
+export const Fold = ({
+  title,
+  detail,
+  open,
+  bare,
+  children,
+  onToggle,
+}: {
+  title: ReactNode;
+  detail?: ReactNode;
+  open?: boolean;
+  /** Sans contour : ce qu'il contient a déjà le sien. */
+  bare?: boolean;
+  children: ReactNode;
+  onToggle?: (open: boolean) => void;
+}) => (
+  <details
+    open={open}
+    onToggle={onToggle ? (event) => onToggle(event.currentTarget.open) : undefined}
+    className={cn("group min-w-0", !bare && "rounded-card border border-card-line px-3")}
+  >
+    <summary className={foldSummary}>
+      <span className="min-w-0 break-words">{title}</span>
+      <span className="flex shrink-0 items-center gap-2 t-caption font-normal text-soft">
+        {detail}
+        <ChevronDown aria-hidden className="size-5 transition-transform duration-(--duration-quick) group-open:rotate-180" />
+      </span>
+    </summary>
+    <div className="flex min-w-0 flex-col gap-4 pb-3">{children}</div>
+  </details>
+);
+
+/** La phase du jour choisi : demandée ici, une seule fois, et seulement quand un destinataire est choisi. */
 function DayPhase({
   date,
   orgId,
@@ -80,10 +118,15 @@ function DayPhase({
     },
     [date, onReady],
   );
-  const needed = Boolean(state && !state.ready);
+  // Un choix manque (un athlète suit deux phases) : le repli s'ouvre seul, sinon il reste fermé. Le temps de la
+  // lecture des phases n'est pas un choix à faire : le repli ne s'ouvre pas pour un simple chargement.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
   return (
-    <details open={needed || undefined} className="rounded-card border border-card-line px-3">
-      <summary className="min-h-11 cursor-pointer py-3 font-semibold">{t.phases}</summary>
+    <Fold bare title={t.phases} open={(settled && Boolean(state && !state.ready)) || undefined}>
       <PhasePlanningPanel
         organizationId={orgId}
         date={date}
@@ -92,7 +135,7 @@ function DayPhase({
         initialChoices={[]}
         onReady={accept}
       />
-    </details>
+    </Fold>
   );
 }
 
@@ -100,32 +143,34 @@ export type PlannerRequestValue = {
   groupIds: string[];
   athleteIds: string[];
   date: string;
-  span: "day" | "week";
-  mode: Mode;
   text: string;
-  durationMin: number;
-  level: Level;
-  equipment: string[];
+  // Précisions facultatives : rien n'est supposé tant que le coach ne les touche pas.
   startTime: string;
+  durationMin: number | null;
+  level: Level | null;
+  equipment: Equipment[];
 };
 
-export const plannerRequestFrom = (selection: PlannerSelection, equipment: string[]): PlannerRequestValue => ({
+export const plannerRequestFrom = (selection: PlannerSelection, equipment: Equipment[]): PlannerRequestValue => ({
   groupIds: selection.groupIds,
   athleteIds: selection.athleteIds,
-  date: selection.brief?.date ?? selection.period.from,
-  span: selection.period.from === selection.period.to ? "day" : "week",
-  mode: selection.mode ?? "format",
-  text: selection.brief?.objective ?? "",
-  durationMin: selection.brief?.durationMin ?? 45,
-  level: selection.brief?.level ?? "intermediate",
-  equipment: selection.brief?.equipment ?? equipment,
+  date: selection.period.from,
+  text: "",
   startTime: "",
+  durationMin: null,
+  level: null,
+  equipment,
 });
 
-/** La demande, en un seul écran et un seul envoi : destinataires, date, mode, consigne ou objectif. */
+/**
+ * La demande : pour qui, quand, puis un seul champ. Le coach y décrit sa séance, donne un objectif ou mêle les
+ * deux, à l'écrit ou à la voix ; le planificateur comprend seul. Durée, niveau, matériel et heure sont des
+ * précisions repliées, jamais requises.
+ */
 export function PlannerRequest({
   orgId,
   context,
+  spaceEquipment,
   value,
   onChange,
   busy,
@@ -134,6 +179,8 @@ export function PlannerRequest({
 }: {
   orgId: string;
   context: PlannerContext;
+  /** Le matériel du profil de l'espace : celui que le serveur retient quand rien n'est précisé. */
+  spaceEquipment: Equipment[];
   value: PlannerRequestValue;
   onChange: (value: PlannerRequestValue) => void;
   busy: boolean;
@@ -141,69 +188,72 @@ export function PlannerRequest({
   onSubmit: (input: CreatePlannerProposalInput) => void;
 }) {
   const [phases, setPhases] = useState<Record<string, PhasePlanningReadiness>>({});
-  const [dictating, setDictating] = useState(false);
   const [athleteSearch, setAthleteSearch] = useState("");
+  const field = useRef<HTMLTextAreaElement>(null);
+  const fieldId = useId();
+  const latest = useRef(value);
+  useEffect(() => {
+    latest.current = value;
+  });
   const set = (patch: Partial<PlannerRequestValue>) => onChange({ ...value, ...patch });
+  // La dictée s'ajoute à ce qui est déjà écrit : le coach relit et corrige avant d'envoyer.
+  const dictation = usePlannerDictation(
+    orgId,
+    useCallback(
+      (text: string) => {
+        const current = latest.current;
+        onChange({ ...current, text: current.text.trim() ? `${current.text.trimEnd()}\n${text}` : text });
+      },
+      [onChange],
+    ),
+  );
   const acceptPhase = useCallback((date: string, state: PhasePlanningReadiness) => {
     setPhases((current) =>
       JSON.stringify(current[date]) === JSON.stringify(state) ? current : { ...current, [date]: state },
     );
   }, []);
-  const propose = value.mode === "propose";
-  const to = value.span === "week" ? addDays(value.date, 6) : value.date;
-  const dates = value.date
-    ? Array.from({ length: value.span === "week" ? 7 : 1 }, (_, i) => addDays(value.date, i))
-    : [];
-  // Mode « Proposer » : une seule séance, ce jour-là.
-  const phaseDates = propose ? dates.slice(0, 1) : dates;
   const hasAudience = value.groupIds.length + value.athleteIds.length > 0;
+  const hasRecipients = context.groups.length + context.athletes.length > 0;
+  const askPhases = context.phasesEnabled && hasAudience && Boolean(value.date);
   const phasesReady =
-    !context.phasesEnabled ||
-    phaseDates.every(
-      (date) => phases[date]?.ready && phases[date]?.key === phasePlanningKey(date, value.groupIds, value.athleteIds),
+    !askPhases ||
+    Boolean(
+      phases[value.date]?.ready &&
+        phases[value.date]?.key === phasePlanningKey(value.date, value.groupIds, value.athleteIds),
     );
-  const verified = context.exercises.some((exercise) => exercise.guide?.technicalReview === "approved");
-  const limit = propose ? 1000 : 12000;
-  const selection: PlannerSelection = {
-    mode: value.mode,
-    period: { from: value.date, to: propose ? value.date : to },
-    groupIds: value.groupIds,
-    athleteIds: value.athleteIds,
-    exerciseIds: [],
-    phaseChoices: [],
-    phaseChoicesByDate: context.phasesEnabled
-      ? phaseDates.map((date) => ({ date, choices: phases[date]?.review?.choices ?? [] }))
-      : [],
-    ...(propose
-      ? {
-          brief: {
-            objective: value.text.trim(),
-            date: value.date,
-            durationMin: value.durationMin,
-            level: value.level,
-            equipment: value.equipment,
-          },
-        }
-      : {}),
+  const equipmentChanged = !sameSet(value.equipment, spaceEquipment);
+  const hints = {
+    ...(value.durationMin ? { durationMin: value.durationMin } : {}),
+    ...(value.level ? { level: value.level } : {}),
+    ...(equipmentChanged ? { equipment: value.equipment } : {}),
   };
+  const precisions = [
+    ...(value.startTime ? [value.startTime] : []),
+    ...(value.durationMin ? [t.durationValue(value.durationMin)] : []),
+    ...(value.level ? [t.levels[value.level]] : []),
+    ...(equipmentChanged ? [t.equipment] : []),
+  ];
   const draft = createPlannerProposalInput.safeParse({
     id: "00000000-0000-4000-8000-000000000000",
     requestedAt: new Date(0).toISOString(),
-    selection,
+    // Ni mode ni brief : le serveur comprend seul ce que la demande décrit et ce qu'elle laisse composer.
+    selection: {
+      period: { from: value.date, to: value.date },
+      groupIds: value.groupIds,
+      athleteIds: value.athleteIds,
+      exerciseIds: [],
+      phaseChoices: [],
+      phaseChoicesByDate: askPhases ? [{ date: value.date, choices: phases[value.date]?.review?.choices ?? [] }] : [],
+    } satisfies PlannerSelection,
     text: value.text.trim(),
     reviewed: true,
-    // Cet écran sait afficher les nouveaux points « À vérifier » ; pas encore les emplacements à compléter.
-    accepts: ["checks"],
-    ...(propose && value.startTime ? { startTime: value.startTime } : {}),
+    // Cet écran sait montrer les emplacements à compléter et les points « À vérifier ».
+    accepts: ["slots", "checks"],
+    ...(value.startTime ? { startTime: value.startTime } : {}),
+    ...(Object.keys(hints).length ? { hints } : {}),
   });
-  const ready =
-    draft.success &&
-    hasAudience &&
-    phasesReady &&
-    !exhausted &&
-    !dictating &&
-    value.text.length <= limit &&
-    (!propose || (verified && plannerBrief.safeParse(selection.brief).success));
+  const tooLong = value.text.length > TEXT_LIMIT;
+  const ready = draft.success && hasRecipients && phasesReady && !exhausted && !dictation.busy && !tooLong;
   const athletes = context.athletes.filter((a) =>
     `${a.firstName} ${a.lastName}`.toLocaleLowerCase("fr").includes(athleteSearch.trim().toLocaleLowerCase("fr")),
   );
@@ -219,37 +269,36 @@ export function PlannerRequest({
     >
       <fieldset disabled={busy} className="flex min-w-0 flex-col gap-3">
         <legend className="t-section mb-1">{t.who}</legend>
-        <p className="t-caption text-soft">{t.whoHint}</p>
-        {!context.groups.length && !context.athletes.length ? (
+        <p className="t-caption font-normal text-soft">{t.whoHint}</p>
+        {!hasRecipients ? (
           <p role="status">
-            {old.noRecipients}{" "}
-            <Link href="/athletes" className="underline underline-offset-4">
-              {old.addRecipients}
+            {t.noRecipients}{" "}
+            <Link href="/athletes" className="font-semibold underline underline-offset-4">
+              {t.addRecipients}
             </Link>
           </p>
         ) : null}
-        <div className="flex flex-wrap gap-2">
-          {context.groups.map((group) => (
-            <Pill
-              key={group.id}
-              pressed={value.groupIds.includes(group.id)}
-              onClick={() => set({ groupIds: toggle(value.groupIds, group.id) })}
-            >
-              {group.name}
-            </Pill>
-          ))}
-        </div>
+        {context.groups.length ? (
+          <div className="flex flex-wrap gap-2">
+            {context.groups.map((group) => (
+              <Pill
+                key={group.id}
+                pressed={value.groupIds.includes(group.id)}
+                onClick={() => set({ groupIds: toggle(value.groupIds, group.id) })}
+              >
+                {group.name}
+              </Pill>
+            ))}
+          </div>
+        ) : null}
         {context.athletes.length ? (
-          <details className="rounded-card border border-card-line px-3">
-            <summary className="min-h-11 cursor-pointer py-3 font-semibold">
-              {t.athletes(value.athleteIds.length)}
-            </summary>
-            <Field label={m.trainingPhases.searchTarget}>
+          <Fold title={t.athletes(value.athleteIds.length)}>
+            <Field label={t.searchAthlete}>
               {(a) => (
                 <Input {...a} type="search" value={athleteSearch} onChange={(e) => setAthleteSearch(e.target.value)} />
               )}
             </Field>
-            <div className="grid gap-x-4 pb-2 tablet:grid-cols-2">
+            <div className="grid gap-x-4 tablet:grid-cols-2">
               {athletes.slice(0, 50).map((athlete) => (
                 <CheckRow
                   key={athlete.id}
@@ -259,112 +308,157 @@ export function PlannerRequest({
                 />
               ))}
             </div>
-            {athletes.length > 50 ? <p className="t-caption pb-3 text-soft">{old.refineSearch}</p> : null}
-          </details>
+            {athletes.length > 50 ? <p className="t-caption font-normal text-soft">{t.moreAthletes}</p> : null}
+          </Fold>
         ) : null}
       </fieldset>
 
-      <fieldset disabled={busy} className="grid min-w-0 gap-3 tablet:grid-cols-2">
+      <fieldset disabled={busy} className="flex min-w-0 flex-col gap-3">
         <legend className="t-section mb-1">{t.when}</legend>
-        <Field label={t.day}>
+        <Field label={t.day} hint={t.dayHint} className="tablet:max-w-sm">
           {(a) => <DateInput {...a} required value={value.date} onChange={(e) => set({ date: e.target.value })} />}
         </Field>
-        {propose ? (
-          <Field label={t.time}>
+      </fieldset>
+
+      <fieldset disabled={busy} className="flex min-w-0 flex-col gap-2">
+        <label htmlFor={fieldId} className="t-section text-balance">
+          {t.field}
+        </label>
+        {/* Le champ et son micro ne font qu'un : le contour entoure les deux, le focus du texte l'éclaire. */}
+        <div
+          className={cn(
+            "flex min-w-0 flex-col rounded-[10px] border border-control-line hover:border-fg-muted has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-offset-2 has-[textarea:focus-visible]:outline-(--ctx-focus)",
+            (tooLong || dictation.error) && "border-st-missed",
+          )}
+        >
+          <textarea
+            id={fieldId}
+            ref={field}
+            rows={5}
+            value={value.text}
+            aria-describedby={`${fieldId}-hint ${fieldId}-state`}
+            aria-invalid={tooLong || undefined}
+            onChange={(e) => set({ text: e.target.value })}
+            className="block min-h-32 w-full resize-y bg-transparent px-3 pt-3 text-[16px] text-inherit outline-none placeholder:text-fg-muted disabled:opacity-60"
+          />
+          {/* Pendant l'enregistrement, sur téléphone, la durée a sa ligne : les deux boutons passent dessous. */}
+          <div className="flex min-h-13 flex-wrap items-center justify-end gap-x-2 gap-y-1 py-1 pl-3 pr-1">
+            <p
+              id={`${fieldId}-state`}
+              role="status"
+              className={cn(
+                "min-w-0 flex-1 break-words t-caption font-normal",
+                dictation.recording ? "max-tablet:basis-full" : "text-soft",
+              )}
+            >
+              {dictation.status}
+            </p>
+            {dictation.recording ? (
+              <Button size="sm" onClick={dictation.stop}>
+                <Square aria-hidden className="size-4" fill="currentColor" />
+                {t.dictation.stop}
+              </Button>
+            ) : null}
+            {dictation.canRecover ? (
+              <Button size="sm" variant="secondary" onClick={dictation.recover}>
+                {t.dictation.recover}
+              </Button>
+            ) : null}
+            {dictation.busy ? (
+              <IconButton label={t.dictation.cancel} onClick={dictation.cancel}>
+                <X aria-hidden className="size-5" />
+              </IconButton>
+            ) : (
+              <IconButton label={t.dictation.start} tone="darkRound" onClick={dictation.start}>
+                <Mic aria-hidden className="size-5" />
+              </IconButton>
+            )}
+          </div>
+        </div>
+        {dictation.error ? (
+          <p role="alert" className="t-caption text-alert">
+            {dictation.error}
+          </p>
+        ) : null}
+        {tooLong ? (
+          <p role="alert" className="t-caption text-alert">
+            {t.textLimit(value.text.length, TEXT_LIMIT)}
+          </p>
+        ) : null}
+        <p id={`${fieldId}-hint`} className="t-caption font-normal text-soft">
+          {t.fieldHint} {t.dictation.limit}
+        </p>
+        {/* Trois usages, visibles tant que le champ est vide : une séance décrite, un objectif, un mélange. */}
+        {!value.text.trim() && !dictation.busy ? (
+          <div className="flex min-w-0 flex-col gap-1 pt-1">
+            <p className="t-caption font-normal text-soft">{t.examplesTitle}</p>
+            <ul className="flex min-w-0 flex-col divide-y divide-card-line">
+              {t.examples.map((example) => (
+                <li key={example.kind}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      set({ text: example.text });
+                      field.current?.focus();
+                    }}
+                    className="flex min-h-11 w-full min-w-0 flex-col gap-0.5 rounded-button py-2 text-left hover:bg-raise"
+                  >
+                    <span className="t-caption">{example.kind}</span>
+                    <span className="break-words text-soft">{example.text}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </fieldset>
+
+      <fieldset disabled={busy} className="min-w-0">
+        <Fold
+          title={
+            <>
+              {t.precise} <span className="t-caption font-normal text-soft">({t.preciseOptional})</span>
+            </>
+          }
+          detail={precisions.length ? precisions.join(" · ") : undefined}
+        >
+          <p className="t-caption font-normal text-soft">{t.preciseHint}</p>
+          <Field label={t.time} className="tablet:max-w-40">
             {(a) => (
               <Input {...a} type="time" value={value.startTime} onChange={(e) => set({ startTime: e.target.value })} />
             )}
           </Field>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            <span className="t-caption">{t.span}</span>
-            <div className="flex flex-wrap gap-2">
-              {(["day", "week"] as const).map((span) => (
-                <Pill key={span} pressed={value.span === span} onClick={() => set({ span })}>
-                  {t.spans[span]}
-                </Pill>
-              ))}
-            </div>
-          </div>
-        )}
-      </fieldset>
-
-      <fieldset disabled={busy} className="flex min-w-0 flex-col gap-3">
-        <legend className="t-section mb-1">{t.how}</legend>
-        <div role="radiogroup" aria-label={t.how} className="grid gap-3 tablet:grid-cols-2">
-          {(["format", "propose"] as const).map((mode) => (
-            <label
-              key={mode}
-              className={cn(
-                "flex min-h-11 cursor-pointer flex-col gap-1 rounded-card border-2 p-4 transition-colors duration-(--duration-quick) has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent",
-                value.mode === mode ? "border-accent bg-card-raised" : "border-card-line hover:bg-raise",
-              )}
-            >
-              <input
-                type="radio"
-                name="planner-mode"
-                className="sr-only"
-                checked={value.mode === mode}
-                onChange={() => set({ mode })}
-              />
-              <span className="flex items-center justify-between gap-2 font-semibold">
-                {t.modes[mode].title}
-                {value.mode === mode ? <Check aria-hidden className="size-5 shrink-0 text-accent" /> : null}
-              </span>
-              <span className="t-caption text-soft">{t.modes[mode].detail}</span>
-            </label>
-          ))}
-        </div>
-        {propose && !verified ? <p role="status">{old.verifiedCatalogRequired}</p> : null}
-      </fieldset>
-
-      <fieldset disabled={busy} className="flex min-w-0 flex-col gap-3">
-        <legend className="sr-only">{propose ? t.objective : t.instructions}</legend>
-        <Field label={propose ? t.objective : t.instructions} hint={propose ? t.objectiveHint : t.instructionsHint}>
-          {(a) => (
-            <Textarea
-              {...a}
-              rows={propose ? 3 : 6}
-              value={value.text}
-              onChange={(e) => set({ text: e.target.value })}
-            />
-          )}
-        </Field>
-        {value.text.length > limit ? <p role="alert">{old.textLimit(value.text.length, limit)}</p> : null}
-        <WebPlannerDictation
-          orgId={orgId}
-          disabled={busy}
-          onBusyChange={setDictating}
-          onText={(text) => set({ text: value.text.trim() ? `${value.text}\n${text}` : text })}
-        />
-      </fieldset>
-
-      {propose ? (
-        <fieldset disabled={busy} className="flex min-w-0 flex-col gap-4">
-          <legend className="sr-only">{t.modes.propose.title}</legend>
-          <div className="flex flex-col gap-1.5">
+          <div role="group" aria-label={t.duration} className="flex flex-col gap-1.5">
             <span className="t-caption">{t.duration}</span>
             <div className="flex flex-wrap gap-2">
               {DURATIONS.map((min) => (
-                <Pill key={min} pressed={value.durationMin === min} onClick={() => set({ durationMin: min })}>
+                <Pill
+                  key={min}
+                  pressed={value.durationMin === min}
+                  onClick={() => set({ durationMin: value.durationMin === min ? null : min })}
+                >
                   {t.durationValue(min)}
                 </Pill>
               ))}
             </div>
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div role="group" aria-label={t.level} className="flex flex-col gap-1.5">
             <span className="t-caption">{t.level}</span>
             <div className="flex flex-wrap gap-2">
-              {(["beginner", "intermediate", "advanced"] as const).map((level) => (
-                <Pill key={level} pressed={value.level === level} onClick={() => set({ level })}>
-                  {old.proposalLevels[level]}
+              {LEVELS.map((level) => (
+                <Pill
+                  key={level}
+                  pressed={value.level === level}
+                  onClick={() => set({ level: value.level === level ? null : level })}
+                >
+                  {t.levels[level]}
                 </Pill>
               ))}
             </div>
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div role="group" aria-label={t.equipment} className="flex flex-col gap-1.5">
             <span className="t-caption">{t.equipment}</span>
-            <span className="t-caption text-soft">{t.equipmentHint}</span>
+            <span className="t-caption font-normal text-soft">{t.equipmentHint}</span>
             <div className="flex flex-wrap gap-2">
               {trainingEquipment.options.map((key) => (
                 <Pill
@@ -377,21 +471,21 @@ export function PlannerRequest({
               ))}
             </div>
           </div>
+        </Fold>
+      </fieldset>
+
+      {askPhases ? (
+        <fieldset disabled={busy} className="min-w-0">
+          <DayPhase
+            key={`${value.date}:${value.groupIds.join(",")}:${value.athleteIds.join(",")}`}
+            date={value.date}
+            orgId={orgId}
+            groupIds={value.groupIds}
+            athleteIds={value.athleteIds}
+            onReady={acceptPhase}
+          />
         </fieldset>
       ) : null}
-
-      {context.phasesEnabled && hasAudience
-        ? phaseDates.map((date) => (
-            <DayPhase
-              key={`${date}:${value.groupIds.join(",")}:${value.athleteIds.join(",")}`}
-              date={date}
-              orgId={orgId}
-              groupIds={value.groupIds}
-              athleteIds={value.athleteIds}
-              onReady={acceptPhase}
-            />
-          ))
-        : null}
 
       {/* Sur téléphone, l'action reste à portée de pouce : une seule, au bas de l'écran. */}
       <div className="sticky bottom-0 z-10 -mx-4 border-t border-card-line bg-card px-4 py-3 desktop:static desktop:mx-0 desktop:border-0 desktop:p-0">

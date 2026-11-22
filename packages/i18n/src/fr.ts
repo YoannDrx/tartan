@@ -911,7 +911,6 @@ export const fr = {
       "Ce que tu écris ou dictes et le nom des exercices de ta bibliothèque sont envoyés à OpenAI, aux États-Unis, pour préparer des brouillons de séance que tu relis. Les noms des groupes et athlètes sélectionnés sont remplacés par des jetons.",
     consentHealth: "N’écris ni nom d’athlète, ni blessure, ni douleur, ni autre donnée de santé.",
     consentAccept: "J’accepte et je continue",
-    consentWithdraw: "Retirer mon accord",
     consentRequired: "Accepte d’abord l’envoi de ta demande à OpenAI.",
     consentSetting: "Envoi au planificateur IA (OpenAI)",
     consentSettingDetail: "Sans cet accord, le planificateur reste fermé.",
@@ -970,7 +969,6 @@ export const fr = {
     ambiguousAlias: (term: string) =>
       `« ${term} » désigne plusieurs fiches. Quel exercice souhaites-tu ? Précise son nom complet ou sa variante.`,
     createdDraft: (index: number) => `Brouillon ${index}`,
-    editSchedule: "Modifier la date, les destinataires et le format",
     textLimit: (length: number, limit: number) =>
       `${length} caractères sur ${limit} autorisés. Raccourcis ce texte avant de confirmer ; son contenu a été conservé en entier.`,
     quotaDetails: "Consommation et fuseau de l’espace",
@@ -979,19 +977,6 @@ export const fr = {
     recent: "Mes propositions récentes",
     recentRefresh: "Actualiser la liste",
     pendingAnswer: "Précisions envoyées : résultat à vérifier",
-    browserAudioUnavailable:
-      "La dictée n’est pas disponible dans ce navigateur. Écris ta consigne, ou utilise un navigateur compatible sur une connexion sécurisée.",
-    dictationResponseUnknown:
-      "La réponse de transcription n’est pas confirmée. Vérifie le résultat de la demande avant de dicter à nouveau.",
-    dictationCheckingAccess: "Vérification de l’accès à la dictée…",
-    dictationCheckingResult: "Vérification de la transcription…",
-    dictationInterrupted:
-      "La dictée a été interrompue en quittant la page. Le micro est arrêté ; si l’envoi avait commencé, vérifie son résultat.",
-    browserDictationNotice:
-      "L’audio est transmis à OpenAI tel que tu le prononces. Ne cite ni nom d’athlète, ni blessure, douleur ou autre donnée de santé. Tartan ne sauvegarde pas cet enregistrement dans le navigateur et ne l’ajoute pas à tes vidéos.",
-    browserMicrophoneDenied:
-      "Le micro n’est pas autorisé pour ce site. Tu peux écrire ta consigne ou modifier l’autorisation du micro dans les réglages de ton navigateur.",
-    dictationFinalizing: "Finalisation de l’enregistrement…",
     recentHint:
       "Retrouve uniquement tes demandes envoyées. Ouvrir un résultat ne consomme pas de nouvelle proposition. Les saisies non envoyées ne sont pas conservées ici.",
     recentEmpty: "Aucune proposition accessible sur cette page.",
@@ -1030,7 +1015,6 @@ export const fr = {
         ...(customized ? [`${customized} adaptation${customized > 1 ? "s" : ""}`] : []),
       ].join(" · "),
     loadRowAction: (athlete: string) => `Charges de ${athlete}`,
-    loadRows: "Charges par athlète",
     loadRowsHint: "Ouvre un athlète pour lire ses prescriptions, vérifier les références et adapter ses charges.",
     loadUndefined: "Charge à définir : aucune référence compatible disponible.",
     adaptLoad: "Adapter la charge pour cet athlète",
@@ -1145,11 +1129,8 @@ export const fr = {
         "La réponse de l’IA était inexploitable. Réessaie ou reformule ta consigne ; cette demande n’est pas décomptée.",
     },
     disabled: "Le planificateur IA n’est pas activé pour cet espace.",
-    paidOnly: "Le planificateur IA est réservé aux offres Coach et Club.",
-    seeOffers: "Voir les offres",
     noRecipients:
       "Ajoute d’abord un groupe ou un athlète à cet espace : une proposition a besoin d’au moins un destinataire.",
-    addRecipients: "Gérer les athlètes",
     privacyUse:
       "Planificateur IA (offres Coach et Club) : le texte que tu écris ou dictes et le nom des exercices de ta bibliothèque sont transmis à OpenAI, aux États-Unis, pour préparer des brouillons de séance que tu relis. Avant l’envoi, les noms des groupes et athlètes sélectionnés sont remplacés par des jetons ; le texte libre peut toutefois en contenir d’autres. L’audio d’une dictée est transmis tel quel. N’y mets aucune donnée de santé. Base : le contrat.",
     privacyRetention:

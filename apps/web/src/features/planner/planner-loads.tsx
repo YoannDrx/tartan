@@ -10,19 +10,29 @@ import {
 } from "@tartan/contracts";
 import { formatPrescription, plannerLoadSummary } from "@tartan/domain";
 import { historyDate, m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/field";
+import { cn } from "@/lib/cn";
 
 const api = createApiClient({ baseUrl: "" });
-const t = m.aiPlanner;
+const t = w.planner.loads;
+
+/**
+ * Les charges de chaque athlète pour la séance à l'écran. Une fois ouvert, l'aperçu le reste : à chaque retouche
+ * de la séance il se met à jour sur place, l'athlète ouvert reste ouvert. `blocked` : pourquoi il ne peut pas
+ * encore s'ouvrir (un exercice attend sa fiche).
+ */
 export function PlannerLoads({
   orgId,
   proposalId,
   version,
   session,
   disabled,
+  blocked,
   onReady,
   onLoad,
 }: {
@@ -31,6 +41,7 @@ export function PlannerLoads({
   version: number;
   session: PlannerReviewedDraft;
   disabled: boolean;
+  blocked?: string;
   onReady: (key: string, ready: boolean) => void;
   onLoad: (athleteId: string, itemRef: string, load: Prescription["load"]) => void;
 }) {
@@ -40,6 +51,8 @@ export function PlannerLoads({
   const [cursors, setCursors] = useState<string[]>([]);
   const [retry, setRetry] = useState(0);
   const [response, setResponse] = useState<{ key: string; data?: PlannerLoadsPreview; error?: string } | null>(null);
+  // Le dernier aperçu reçu reste affiché pendant que le suivant se calcule : rien ne se referme.
+  const [shown, setShown] = useState<PlannerLoadsPreview | null>(null);
   const [editing, setEditing] = useState<{
     athleteId: string;
     itemRef: string;
@@ -49,7 +62,7 @@ export function PlannerLoads({
   const [value, setValue] = useState("");
   const [unit, setUnit] = useState<"kg" | "pct_1rm">("kg");
   const [error, setError] = useState("");
-  const requestValid = plannerReviewedDraft.safeParse(session).success;
+  const requestValid = !blocked && plannerReviewedDraft.safeParse(session).success;
   const sessionKey = JSON.stringify(session);
   // La pagination appartient à cette version de séance. Une correction repart
   // de la première page ; aucune réponse ancienne ne valide le nouvel aperçu.
@@ -67,7 +80,9 @@ export function PlannerLoads({
       void api
         .previewPlannerLoads(orgId, proposalId, JSON.parse(request), controller.signal)
         .then((data) => {
-          if (alive) setResponse({ key, data });
+          if (!alive) return;
+          setResponse({ key, data });
+          setShown(data);
         })
         .catch((cause) => {
           if (alive)
@@ -94,62 +109,82 @@ export function PlannerLoads({
     onReady(sessionKey, valid);
   }, [sessionKey, valid, onReady]);
   useEffect(() => () => onReady(sessionKey, false), [sessionKey, onReady]);
+  const updating = open && requestValid && !current;
+  const data = open && requestValid ? (current?.data ?? shown) : null;
   return (
     <section className="flex min-w-0 flex-col gap-3">
       <Button
         type="button"
         variant="secondary"
+        className="self-start"
         aria-expanded={open}
         disabled={disabled || !requestValid}
         onClick={() => setOpen(!open)}
       >
-        {t.previewLoads}
+        {t.open}
+        <ChevronDown
+          aria-hidden
+          className={cn("size-5 transition-transform duration-(--duration-quick)", open && "rotate-180")}
+        />
       </Button>
-      {open ? (
-        <>
-          <p className="text-soft">{t.previewProvisional}</p>
-          {!current ? <p role="status">{m.common.loading}</p> : null}
+      {blocked ? <p className="t-caption font-normal text-soft">{blocked}</p> : null}
+      {open && requestValid ? (
+        <div className="flex min-w-0 flex-col gap-3" aria-busy={updating}>
+          <p className="t-caption font-normal text-soft">{t.hint}</p>
+          {/* Toujours présent : l'annonce de la mise à jour ne déplace rien. */}
+          <p role="status" className="min-h-5 t-caption font-normal text-soft">
+            {updating ? (shown ? t.updating : m.common.loading) : ""}
+          </p>
           {current?.error ? (
-            <>
+            <div className="flex flex-wrap items-center gap-2">
               <p role="alert">{current.error}</p>
-              <Button type="button" variant="secondary" onClick={() => setRetry((v) => v + 1)}>
+              <Button type="button" size="sm" variant="secondary" onClick={() => setRetry((v) => v + 1)}>
                 {m.common.retry}
               </Button>
-            </>
+            </div>
           ) : null}
-          {current?.data ? (
+          {data ? (
             <>
-              <p role="status">
-                {t.previewCoverage(current.data.offset + current.data.athletes.length, current.data.athleteCount)}
-              </p>
-              <p className="text-soft">{t.loadRowsHint}</p>
-              <div role="group" aria-label={t.loadRows} className="divide-y divide-card-line border-y border-card-line">
-                {current.data.athletes.map((athlete) => {
+              <p>{t.coverage(data.offset + 1, data.offset + data.athletes.length, data.athleteCount)}</p>
+              {data.athletes.length ? <p className="t-caption font-normal text-soft">{t.rowsHint}</p> : null}
+              <div
+                role="group"
+                aria-label={t.rows}
+                className={cn(
+                  "divide-y divide-card-line border-y border-card-line transition-opacity duration-(--duration-quick)",
+                  updating && "opacity-60",
+                )}
+              >
+                {data.athletes.map((athlete) => {
                   const summary = plannerLoadSummary(athlete, session.overrides);
                   const expanded = expandedAthlete === athlete.id;
                   const detailsId = `${uid}-${athlete.id}`;
                   return (
                     <section key={athlete.id}>
-                      <h3>
+                      <h4>
                         <button
                           type="button"
                           aria-expanded={expanded}
                           aria-controls={detailsId}
                           disabled={disabled}
                           onClick={() => setExpandedAthlete(expanded ? null : athlete.id)}
-                          className="flex min-h-16 w-full items-center justify-between gap-3 py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                          className="flex min-h-16 w-full items-center justify-between gap-3 py-3 text-left"
                         >
                           <span className="min-w-0">
-                            <span className="block font-semibold break-words">{athlete.name}</span>{" "}
-                            <span id={`${detailsId}-summary`} className="block text-sm text-soft">
-                              {t.loadRowSummary(summary.exercises, summary.unresolvedPercentages, summary.customized)}
+                            <span className="block break-words font-semibold">{athlete.name}</span>{" "}
+                            <span className="block t-caption font-normal text-soft">
+                              {t.rowSummary(summary.exercises, summary.unresolvedPercentages, summary.customized)}
                             </span>
                           </span>
-                          <span aria-hidden="true" className="shrink-0">
-                            {expanded ? "−" : "+"}
-                          </span>
+                          <ChevronDown
+                            aria-hidden
+                            className={cn(
+                              "size-5 shrink-0 transition-transform duration-(--duration-quick)",
+                              expanded && "rotate-180",
+                            )}
+                          />
                         </button>
-                      </h3>
+                      </h4>
                       <div id={detailsId} hidden={!expanded} className="pb-4">
                         {expanded
                           ? athlete.items.map((item) => {
@@ -157,28 +192,29 @@ export function PlannerLoads({
                               const sourceLabel =
                                 kind && kind in m.strength.referenceKinds
                                   ? m.strength.referenceKinds[kind as keyof typeof m.strength.referenceKinds]
-                                  : t.referenceSource;
+                                  : t.reference;
                               return (
                                 <div
                                   key={item.ref}
                                   className="flex min-w-0 flex-col gap-2 border-t border-card-line pt-3"
                                 >
-                                  <h4 className="font-semibold break-words">{item.name}</h4>
+                                  <h5 className="break-words font-semibold">{item.name}</h5>
                                   <p>{formatPrescription(item.prescription, item.resolvedLoadKg)}</p>
                                   {item.prescription.load?.type === "pct_1rm" ? (
                                     <p className="text-soft">
-                                      {item.prescription.load.value} {m.builder.loadPct}
-                                      {item.resolvedLoadKg === null ? ` · ${t.loadUndefined}` : ""}
+                                      {t.percent(item.prescription.load.value, m.builder.loadPct)}
+                                      {item.resolvedLoadKg === null ? t.percentUndefined : ""}
                                     </p>
                                   ) : null}
                                   {item.source ? (
                                     <p className="text-soft">
-                                      {sourceLabel} : {item.source.value} kg · {historyDate(item.source.date)}
+                                      {t.source(sourceLabel, item.source.value, historyDate(item.source.date))}
                                     </p>
                                   ) : null}
-                                  <div className="flex flex-wrap gap-2">
+                                  <div className="flex flex-wrap gap-2 pb-3">
                                     <Button
                                       type="button"
+                                      size="sm"
                                       variant="secondary"
                                       disabled={disabled}
                                       onClick={() => {
@@ -193,7 +229,7 @@ export function PlannerLoads({
                                         setError("");
                                       }}
                                     >
-                                      {t.adaptLoad}
+                                      {t.adapt}
                                     </Button>
                                     {session.overrides.some(
                                       (o) =>
@@ -201,11 +237,12 @@ export function PlannerLoads({
                                     ) ? (
                                       <Button
                                         type="button"
+                                        size="sm"
                                         variant="quiet"
                                         disabled={disabled}
                                         onClick={() => onLoad(athlete.id, item.ref, undefined)}
                                       >
-                                        {t.resetLoad}
+                                        {t.reset}
                                       </Button>
                                     ) : null}
                                   </div>
@@ -218,45 +255,49 @@ export function PlannerLoads({
                   );
                 })}
               </div>
-              <div className="flex flex-wrap gap-2">
-                {after ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={disabled}
-                    onClick={() => {
-                      setExpandedAthlete(null);
-                      setCursors((old) => old.slice(0, -1));
-                    }}
-                  >
-                    {t.previousAthletes}
-                  </Button>
-                ) : null}
-                {current.data.nextCursor ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={disabled}
-                    onClick={() => {
-                      setExpandedAthlete(null);
-                      setCursorSession(sessionKey);
-                      setCursors((old) => [...(cursorSession === sessionKey ? old : []), current.data!.nextCursor!]);
-                    }}
-                  >
-                    {t.nextAthletes}
-                  </Button>
-                ) : null}
-              </div>
+              {after || data.nextCursor ? (
+                <div className="flex flex-wrap gap-2">
+                  {after ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      disabled={disabled}
+                      onClick={() => {
+                        setExpandedAthlete(null);
+                        setCursors((old) => old.slice(0, -1));
+                      }}
+                    >
+                      {t.previous}
+                    </Button>
+                  ) : null}
+                  {data.nextCursor ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      disabled={disabled || updating}
+                      onClick={() => {
+                        setExpandedAthlete(null);
+                        setCursorSession(sessionKey);
+                        setCursors((old) => [...(cursorSession === sessionKey ? old : []), data.nextCursor!]);
+                      }}
+                    >
+                      {t.next}
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
             </>
           ) : null}
-        </>
+        </div>
       ) : null}
       <Dialog
         open={Boolean(editing)}
         onOpenChange={(v) => {
           if (!v) setEditing(null);
         }}
-        title={t.adaptLoad}
+        title={t.adapt}
         description={editing?.title}
       >
         <form
@@ -277,7 +318,7 @@ export function PlannerLoads({
             setEditing(null);
           }}
         >
-          <p>{t.noAutomaticLoad}</p>
+          <p>{t.noAutomatic}</p>
           <Field label={m.nativeBuilder.unit}>
             {(a) => (
               <Select
