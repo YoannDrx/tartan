@@ -61,6 +61,13 @@ test.describe("bureau", () => {
     ] as const) {
       await page.goto(`${base}${url}`, { waitUntil: "networkidle" });
       await page.addStyleTag({ content: "nextjs-portal, [data-next-badge-root] { display: none !important; }" });
+      // Le planificateur se montre par sa demande : pour qui, quand et le champ unique, sous l'en-tête.
+      if (url === "/planificateur")
+        await page.evaluate(() => {
+          const form = document.querySelector("main form");
+          if (form)
+            window.scrollTo({ top: form.getBoundingClientRect().top + window.scrollY - 96, behavior: "instant" });
+        });
       await page.waitForTimeout(600);
       await page.screenshot({ path: path.join(tour, file), clip: { x: 0, y: 0, width: 1440, height: 720 } });
     }

@@ -8,3 +8,5 @@ export const videoParams = z.object({ orgId: uuid, videoId: uuid });
 export const plannerProposalParams = z.object({ orgId: uuid, proposalId: uuid });
 
 export const plannerTranscriptionParams = z.object({ orgId: uuid, transcriptionId: uuid });
+
+export const plannerAliasParams = z.object({ orgId: uuid, aliasId: uuid });

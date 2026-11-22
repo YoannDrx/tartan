@@ -5,6 +5,7 @@ import { addDays } from "@tartan/domain";
 import { latestRelease } from "@tartan/i18n";
 import { todayIso } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { learnExerciseTermAlias } from "@/server/ai/alias.service";
 import { createPlannerProposal, preparePlannerDrafts } from "@/server/ai/proposal.service";
 import { transcribePlannerAudio } from "@/server/ai/transcription.service";
 import { addCoachNote } from "@/server/athlete.service";
@@ -1020,6 +1021,29 @@ export const MATRICE: Row[] = [
 
   // Planificateur IA, prestataire simulé : seul le contrôle d'accès est éprouvé ici.
   { route: "GET /api/v1/orgs/[orgId]/planner/usage", ...encadrants },
+  // Alias appris : le terme dit par un coach et la fiche choisie. Ils ne quittent jamais leur espace.
+  {
+    route: "GET /api/v1/orgs/[orgId]/planner/aliases",
+    ...encadrants,
+    call: async (w) => {
+      await learnExerciseTermAlias(w.owner, w.org, { said: "terme de la matrice", exerciseId: w.exerciseId });
+      return {};
+    },
+    verifie: (texte) => {
+      if (!texte.includes("terme de la matrice")) throw new Error("alias de l'espace absent de la réponse");
+    },
+  },
+  {
+    route: "DELETE /api/v1/orgs/[orgId]/planner/aliases/[aliasId]",
+    ...encadrants,
+    call: async (w) => {
+      const alias = await learnExerciseTermAlias(w.owner, w.org, {
+        said: `terme ${randomUUID()}`,
+        exerciseId: w.exerciseId,
+      });
+      return { params: { aliasId: alias!.id } };
+    },
+  },
   {
     route: "POST /api/v1/orgs/[orgId]/planner",
     ...encadrants,

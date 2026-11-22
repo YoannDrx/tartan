@@ -870,39 +870,15 @@ export const fr = {
     targetOutOfScope:
       "Un destinataire n’est plus accessible dans ton périmètre. Reviens à la sélection des groupes et athlètes.",
     mode: "Que veux-tu préparer ?",
-    formatMode: "Mettre en forme ma séance",
-    proposeMode: "Proposer une séance",
-    proposalNotice: "L’IA propose des choix à relire : ce n’est pas une séance dictée ni une publication automatique.",
     objective: "Objectif de la séance",
-    objectiveHint:
-      "Décris ce que tu veux travailler. La durée, le niveau et le matériel renseignés encadrent la proposition.",
-    proposalDate: "Date de la proposition",
-    proposalDuration: "Durée disponible (minutes)",
-    proposalLevel: "Niveau du groupe",
     proposalLevels: { beginner: "Débutant", intermediate: "Intermédiaire", advanced: "Avancé" },
-    proposalEquipment: "Matériel disponible (séparé par des virgules ; vide pour aucun matériel)",
     verifiedCatalogRequired:
       "Le mode proposition attend la validation technique du catalogue par un coach. Tu peux déjà mettre en forme ta propre séance.",
 
-    resolveExerciseHelp:
-      "Choisis explicitement une fiche ou crée un exercice privé. Aucune correspondance proche ne sera choisie à ta place.",
-    requestedMovement: "Mouvement demandé",
-    possibleExercises: "Fiches possibles à vérifier",
     createPrivateExercise: "Créer un exercice privé",
-    rephraseExercise: "Tu peux aussi reformuler le mouvement dans ta réponse ci-dessous.",
-    privateExerciseReview: "Vérifie la fiche avant de l’ajouter à ta bibliothèque privée.",
     movementCues: "Consignes techniques, facultatives (une par ligne, cinq maximum)",
-    searchLibrary: "Chercher une autre fiche",
-    movementLoadConvention: "Convention de charge",
-    movementLoadKinds: {
-      external_total: "Charge externe totale",
-      added_weight: "Charge ajoutée au poids du corps",
-      assistance: "Charge d’assistance",
-      bodyweight: "Poids du corps",
-    },
     privateExerciseReviewed: "J’ai vérifié le mouvement, les consignes et la convention de charge.",
     savePrivateExercise: "Enregistrer et rattacher cet exercice",
-    retryExerciseResolution: "Reprendre le rattachement",
     exerciseResolved: (name: string) =>
       `Exercice rattaché : ${name}. Complète ta réponse puis relance l’interprétation.`,
 
@@ -911,7 +887,6 @@ export const fr = {
       "Ce que tu écris ou dictes et le nom des exercices de ta bibliothèque sont envoyés à OpenAI, aux États-Unis, pour préparer des brouillons de séance que tu relis. Les noms des groupes et athlètes sélectionnés sont remplacés par des jetons.",
     consentHealth: "N’écris ni nom d’athlète, ni blessure, ni douleur, ni autre donnée de santé.",
     consentAccept: "J’accepte et je continue",
-    consentWithdraw: "Retirer mon accord",
     consentRequired: "Accepte d’abord l’envoi de ta demande à OpenAI.",
     consentSetting: "Envoi au planificateur IA (OpenAI)",
     consentSettingDetail: "Sans cet accord, le planificateur reste fermé.",
@@ -928,9 +903,6 @@ export const fr = {
     clarifyExercise:
       "Cet exercice n’est pas identifié dans ta bibliothèque. Indique le nom exact de sa fiche, ou crée-la avant de relancer.",
     adjustmentPrefix: "Ajustement du coach : ",
-    proposedSessions: "Séances proposées",
-    quotedFrom: (quote: string) => `D’après : « ${quote} »`,
-    adjustTitle: "Ajuster la proposition",
     adjustHint:
       "Décris seulement ce qui change : un exercice, un volume, une récupération. L’ajustement ne consomme pas de quota.",
     adjustLabel: "Ce qui change",
@@ -945,11 +917,31 @@ export const fr = {
     clarifySessionCount: "Une proposition compte au plus quatorze séances. Comment veux-tu réduire ta demande ?",
     clarifyEmpty:
       "Aucune séance n’a pu être préparée avec cette consigne. Précise la date, le destinataire et les exercices.",
+    // Les seules questions qui arrêtent le coach depuis le 21 novembre 2026. Chacune tient sur une ligne et finit
+    // par « ? » : la réponse du coach est enregistrée à la suite, et seul son texte est relu ensuite.
+    askDate: (said: string | null, from: string, to: string) =>
+      said
+        ? `Je n’ai pas su dater « ${said} » : quel jour veux-tu, entre le ${from} et le ${to} ?`
+        : `Ta demande ne dit pas quel jour : lequel veux-tu, entre le ${from} et le ${to} ?`,
+    askDateOutOfPeriod: (said: string | null, from: string, to: string) =>
+      said
+        ? `« ${said} » tombe hors de la période (du ${from} au ${to}) : quel jour de cette période veux-tu ?`
+        : `Le jour demandé tombe hors de la période (du ${from} au ${to}) : quel jour de cette période veux-tu ?`,
+    askRecipient: "Ta demande ne désigne aucun groupe ni athlète : pour qui est cette séance ?",
+    askOffTopic:
+      "Cette demande ne décrit pas une séance d’entraînement : que veux-tu préparer, pour quel jour et pour qui ?",
+    // Posés par le serveur quand il écrit lui-même un libellé : un exercice proposé sans raison, une séance décrite
+    // que le modèle n’a pas rendue.
+    proposedExercise: "Proposé pour l’objectif de la séance",
+    fallbackSessionTitle: "Séance",
+    slotsOpen:
+      "Un exercice de la séance n’a pas encore de fiche. Choisis une fiche, crée-la ou retire l’exercice avant de créer le brouillon.",
+    slotLastExercise:
+      "C’est le seul exercice de la séance : choisis une fiche ou crée-la, une séance vide ne se crée pas.",
     removedExercises: "Un exercice absent de ta consigne a été retiré de la proposition.",
     ambiguousAlias: (term: string) =>
       `« ${term} » désigne plusieurs fiches. Quel exercice souhaites-tu ? Précise son nom complet ou sa variante.`,
     createdDraft: (index: number) => `Brouillon ${index}`,
-    editSchedule: "Modifier la date, les destinataires et le format",
     textLimit: (length: number, limit: number) =>
       `${length} caractères sur ${limit} autorisés. Raccourcis ce texte avant de confirmer ; son contenu a été conservé en entier.`,
     quotaDetails: "Consommation et fuseau de l’espace",
@@ -957,20 +949,6 @@ export const fr = {
       "Vérifie les titres, noms de blocs, notes, dates, destinataires et valeurs des prescriptions avant de confirmer.",
     recent: "Mes propositions récentes",
     recentRefresh: "Actualiser la liste",
-    pendingAnswer: "Précisions envoyées : résultat à vérifier",
-    browserAudioUnavailable:
-      "La dictée n’est pas disponible dans ce navigateur. Écris ta consigne, ou utilise un navigateur compatible sur une connexion sécurisée.",
-    dictationResponseUnknown:
-      "La réponse de transcription n’est pas confirmée. Vérifie le résultat de la demande avant de dicter à nouveau.",
-    dictationCheckingAccess: "Vérification de l’accès à la dictée…",
-    dictationCheckingResult: "Vérification de la transcription…",
-    dictationInterrupted:
-      "La dictée a été interrompue en quittant la page. Le micro est arrêté ; si l’envoi avait commencé, vérifie son résultat.",
-    browserDictationNotice:
-      "L’audio est transmis à OpenAI tel que tu le prononces. Ne cite ni nom d’athlète, ni blessure, douleur ou autre donnée de santé. Tartan ne sauvegarde pas cet enregistrement dans le navigateur et ne l’ajoute pas à tes vidéos.",
-    browserMicrophoneDenied:
-      "Le micro n’est pas autorisé pour ce site. Tu peux écrire ta consigne ou modifier l’autorisation du micro dans les réglages de ton navigateur.",
-    dictationFinalizing: "Finalisation de l’enregistrement…",
     recentHint:
       "Retrouve uniquement tes demandes envoyées. Ouvrir un résultat ne consomme pas de nouvelle proposition. Les saisies non envoyées ne sont pas conservées ici.",
     recentEmpty: "Aucune proposition accessible sur cette page.",
@@ -987,13 +965,8 @@ export const fr = {
       failed: "Demande échouée",
       committed: "Brouillons créés",
     },
-    replaceExercise: "Remplacer l’exercice",
-    replacementReset:
-      "Le remplacement garde les séries, les répétitions, le repos et la charge ; un pourcentage se rapporte au maximum du nouvel exercice. Les adaptations individuelles de cet item sont retirées : relis son aperçu individuel.",
     phaseReady: "Contexte prêt",
     phaseReview: "Phases à vérifier",
-    previewRequired:
-      "Ouvre l’aperçu des charges individuelles de chaque séance avant de confirmer. Vérifie les références manquantes et les adaptations ; les groupes se parcourent par pages.",
     referenceSource: "Référence de force",
     previousAthletes: "Athlètes précédents",
     nextAthletes: "Athlètes suivants",
@@ -1009,41 +982,23 @@ export const fr = {
         ...(customized ? [`${customized} adaptation${customized > 1 ? "s" : ""}`] : []),
       ].join(" · "),
     loadRowAction: (athlete: string) => `Charges de ${athlete}`,
-    loadRows: "Charges par athlète",
     loadRowsHint: "Ouvre un athlète pour lire ses prescriptions, vérifier les références et adapter ses charges.",
     loadUndefined: "Charge à définir : aucune référence compatible disponible.",
     adaptLoad: "Adapter la charge pour cet athlète",
     resetLoad: "Reprendre la charge commune",
-    reviewAgain:
-      "La création des brouillons n’est pas confirmée. Tes ajustements sont conservés : relis-les avant de réessayer.",
     leaveDraft: "Les modifications non envoyées seront perdues. Les brouillons déjà créés restent dans le calendrier.",
-    refineSearch: "Les 50 premiers résultats sont affichés. Précise ta recherche pour retrouver les autres.",
-    selectedExercises: (count: number) =>
-      `${count} exercices sélectionnés ; zéro utilise toute la bibliothèque autorisée.`,
     title: "Planificateur IA (bêta)",
     beta: "Bêta · brouillons à relire",
     lead: "Choisis les destinataires et la période, puis décris ta séance ou ta semaine. Aucune séance n’est publiée automatiquement.",
     period: "Période de planification",
-    periodHint:
-      "Une séance ou sept jours au maximum, dans le fuseau de l’espace. Jusqu’à quatorze séances par proposition.",
-    periodInvalid: "Choisis une période de un à sept jours et au moins un destinataire.",
-    chooseContext: "Continuer avec ces destinataires",
-    changeContext: "Modifier les destinataires ou la période",
     instructions: "Consigne à relire",
-    instructionsHint:
-      "Précise les jours, exercices, séries, répétitions, récupération et charges. Utilise les noms des groupes choisis ; ne saisis ni données de santé ni notes privées.",
     reviewed: "J’ai relu la consigne et ses valeurs",
     propose: "Préparer une proposition",
     recover: "Vérifier le résultat de ma demande",
-    immutableRequest:
-      "Une demande a été envoyée. Vérifie son résultat ou réessaie à l’identique avant de modifier la consigne. Aucun nouvel envoi automatique.",
     processing: "La demande est en cours. Tu peux actualiser son résultat sans consommer une nouvelle proposition.",
     refresh: "Actualiser la proposition",
-    clarifyTitle: "Précisions nécessaires",
     clarificationAnswer: "Ta réponse aux questions",
     clarify: "Envoyer ces précisions",
-    clarificationLimit:
-      "Les cinq échanges de clarification ont été utilisés. Prépare une nouvelle consigne plus précise ; elle comptera comme une nouvelle proposition.",
     clarificationCount: (n: number) => `${n} / 5 échanges de clarification utilisés`,
     prepareReview: "Relire et ajuster les brouillons",
     assumptions: "Hypothèses à vérifier",
@@ -1053,31 +1008,16 @@ export const fr = {
     draftsCreated:
       "Les brouillons sont créés. Ouvre-les pour vérifier les adaptations individuelles, puis publie séparément depuis le calendrier.",
     newProposal: "Préparer une nouvelle proposition",
-    newProposalHint:
-      "Une nouvelle proposition est décomptée séparément. La proposition précédente n’est pas supprimée immédiatement.",
     expiry: (date: string) =>
       `Contenu de la proposition conservé jusqu’au ${date} au plus tard ; après création, transcription et échanges sont purgés sous 24 heures.`,
     usage: (used: number, reserved: number, limit: number) =>
       `${used} propositions utilisées, ${reserved} en cours, sur ${limit} ce mois-ci.`,
-    audioUsage: (used: number, reserved: number, limit: number) =>
-      `${Math.floor(used / 60)} min ${used % 60} s de dictée utilisées, ${Math.floor(reserved / 60)} min ${reserved % 60} s en cours, sur ${limit / 60} minutes.`,
     timeZone: (zone: string) => `Dates et quota : ${zone}`,
-    textTooLong: "La consigne dépasse 12 000 caractères. Raccourcis-la avant de continuer.",
-    allLibrary: (count: number) =>
-      `${count} exercices disponibles dans la bibliothèque. L’IA doit te demander de préciser tout exercice inconnu ou ambigu.`,
-    librarySubset: "Exercices autorisés pour cette proposition",
-    librarySubsetHint:
-      "Choisis au maximum 500 exercices. Une sélection vide utilise toute la bibliothèque si elle ne dépasse pas cette limite.",
     noPublication:
       "Cette action crée uniquement des brouillons. Elle ne notifie pas les athlètes et ne publie aucune séance.",
     noAutomaticLoad:
       "Les pourcentages utilisent les références de chaque athlète au moment de la publication. Sans référence, la charge reste à définir. Les cibles RPE/RIR ne calculent pas de kilogrammes.",
     dictate: "Dicter la consigne",
-    dictationNotice:
-      "L’audio est transmis à OpenAI tel que tu le prononces. Ne cite ni nom d’athlète, ni blessure, douleur ou autre donnée de santé. Le fichier temporaire est supprimé après l’envoi, l’échec ou l’annulation ; il n’est pas ajouté à tes vidéos.",
-    dictationLimit:
-      "Moins de trois minutes, 3 Mio maximum. Relis et corrige la transcription avant de préparer les séances.",
-    acceptAudio: "J’ai lu ces informations et j’accepte la transcription de cette dictée",
     stopDictation: "Arrêter et transcrire",
     cancelDictation: "Annuler la dictée",
     dictationStarting: "Autorisation et préparation du micro…",
@@ -1103,10 +1043,8 @@ export const fr = {
     rateLimited: "Plusieurs demandes sont déjà en cours. Patiente un instant avant de réessayer.",
     contextChanged:
       "Les destinataires, exercices ou phases ont changé. Relis le contexte avant de préparer une nouvelle proposition.",
-    libraryLimit: "Choisis entre un et 500 exercices de ta bibliothèque pour cette demande.",
+    libraryLimit: "Ta bibliothèque ne contient aucun exercice utilisable, ou en compte plus de 5 000.",
     proposalConflict: "Cette proposition a changé. Recharge-la avant de continuer.",
-    proposalFailed:
-      "La proposition n’a pas pu être préparée. Aucun quota supplémentaire n’est consommé sans résultat exploitable.",
     // Une cause par échec du prestataire : ce qui s'est passé, puis quoi faire. Rien n'est décompté.
     failures: {
       configuration:
@@ -1124,11 +1062,8 @@ export const fr = {
         "La réponse de l’IA était inexploitable. Réessaie ou reformule ta consigne ; cette demande n’est pas décomptée.",
     },
     disabled: "Le planificateur IA n’est pas activé pour cet espace.",
-    paidOnly: "Le planificateur IA est réservé aux offres Coach et Club.",
-    seeOffers: "Voir les offres",
     noRecipients:
       "Ajoute d’abord un groupe ou un athlète à cet espace : une proposition a besoin d’au moins un destinataire.",
-    addRecipients: "Gérer les athlètes",
     privacyUse:
       "Planificateur IA (offres Coach et Club) : le texte que tu écris ou dictes et le nom des exercices de ta bibliothèque sont transmis à OpenAI, aux États-Unis, pour préparer des brouillons de séance que tu relis. Avant l’envoi, les noms des groupes et athlètes sélectionnés sont remplacés par des jetons ; le texte libre peut toutefois en contenir d’autres. L’audio d’une dictée est transmis tel quel. N’y mets aucune donnée de santé. Base : le contrat.",
     privacyRetention:
@@ -1137,6 +1072,217 @@ export const fr = {
     requestConflict:
       "Cette demande a déjà été utilisée avec un autre contenu. Recharge son résultat ou crée une nouvelle demande.",
     expiredRequest: "Cette demande a expiré. Crée une nouvelle demande pour reprendre.",
+    consentDictation:
+      "La dictée est transcrite par le même prestataire : l’enregistrement lui est transmis tel que tu le prononces, et Tartan ne le conserve pas. Cet accord vaut pour l’écrit comme pour la dictée.",
+    // L'écran de l'app native depuis le 22 novembre 2026 : la demande en un écran, puis la séance à relire, avec
+    // l'état de chaque exercice à sa place. Mêmes intitulés que l'écran web, que l'app n'embarque pas.
+    screen: {
+      lead: "Écris ou dicte ce que tu veux. Tu relis la séance, puis tu crées un brouillon : rien n’est publié seul.",
+      quota: (left: number) => `${left} proposition${left > 1 ? "s" : ""} restante${left > 1 ? "s" : ""} ce mois-ci`,
+      stage: (n: number) => `Étape ${n} sur 2 : ${n === 1 ? "demande" : "séance"}`,
+      who: "Pour qui ?",
+      whoHint: "Un ou plusieurs groupes, ou des athlètes. Tu peux aussi les nommer dans ta demande.",
+      athletes: (count: number) =>
+        count ? `Athlètes · ${count} choisi${count > 1 ? "s" : ""}` : "Choisir des athlètes",
+      searchAthlete: "Chercher un athlète",
+      moreAthletes: "Les 50 premiers athlètes sont affichés. Précise ta recherche pour retrouver les autres.",
+      noRecipients: "Cet espace n’a encore ni groupe ni athlète : une séance a besoin d’un destinataire.",
+      when: "Quand ?",
+      day: "Le",
+      dayHint: "Si ta demande cite un autre jour, c’est lui qui compte.",
+      field: "Décris ta séance, ou dis ce que tu veux travailler",
+      fieldHint: "Exercices, séries, charges, ou seulement un objectif. Ni nom d’athlète ni donnée de santé.",
+      examplesTitle: "Par exemple",
+      examples: [
+        {
+          kind: "Une séance décrite",
+          text: "Demain : squat arrière 4 séries de 6 à 80 %, fentes marchées 3 séries de 10, gainage 3 fois 45 secondes.",
+        },
+        {
+          kind: "Un objectif",
+          text: "Une séance de pliométrie de 45 minutes, sans matériel, pour préparer les appuis.",
+        },
+        {
+          kind: "Un mélange",
+          text: "Jeudi : un échauffement que je te laisse composer, puis 5 fois 30 mètres départ debout, récupération 3 minutes.",
+        },
+      ],
+      textLimit: (length: number, limit: number) =>
+        `${length} caractères sur ${limit}. Raccourcis ta demande : rien n’est coupé à ta place.`,
+      precise: "Préciser (facultatif)",
+      preciseHint: "Ce que ta demande dit déjà passe avant ces réglages.",
+      time: "Heure",
+      timeHint: "Au format HH:MM, par exemple 18:30.",
+      timeInvalid: "Écris l’heure au format HH:MM, par exemple 18:30.",
+      duration: "Durée",
+      durationValue: (min: number) => `${min} min`,
+      level: "Niveau",
+      equipment: "Matériel disponible",
+      equipmentHint: "Repris du profil de ton espace. Change-le pour cette séance seulement.",
+      equipmentChanged: "matériel choisi",
+      phases: "Phases de préparation",
+      phasesWaiting: "Choisis la phase de chaque athlète concerné avant d’envoyer.",
+      prepare: "Préparer la séance",
+      preparing: "Préparation en cours",
+      dictate: "Dicter",
+      dictateHint: "Ta voix s’ajoute à ce qui est écrit. Trois minutes au plus.",
+      steps: {
+        context: "Lecture de ta demande",
+        matching: "Recherche de tes exercices dans la bibliothèque",
+        model: "Écriture de la séance",
+        checks: "Contrôle des dates, charges et exercices",
+        retry: "Correction d’un point",
+      },
+      stepDone: (label: string) => `${label} : fait`,
+      stepCurrent: (label: string) => `${label} : en cours`,
+      understood: "Ce que j’ai compris",
+      planTitle: "La séance s’écrit",
+      closedApp: "Tu peux quitter l’écran : la séance sera prête à ton retour.",
+      failedAt: (step: "understand" | "match" | "compose" | "repair") =>
+        ({
+          understand: "Panne pendant la lecture de ta demande.",
+          match: "Panne pendant la recherche de tes exercices.",
+          compose: "Panne pendant l’écriture de la séance.",
+          repair: "Panne pendant la correction de la séance.",
+        })[step],
+      failed: "La séance n’a pas pu être préparée. Cette demande n’est pas décomptée.",
+      processing: "La préparation continue. Actualise pour voir la séance, sans consommer une autre proposition.",
+      refresh: "Actualiser",
+      questions: "Avant de continuer",
+      answer: "Ta réponse",
+      answerHint: "Réponds seulement à ce qui est demandé.",
+      sendAnswer: "Envoyer ma réponse",
+      questionLimit:
+        "Les cinq réponses sont utilisées. Reprends ta demande en la précisant : elle comptera comme une nouvelle.",
+      exerciseQuestion: "Cite le nom exact de la fiche dans ta réponse, ou reprends ta demande.",
+      request: "Ta demande",
+      sessionTitle: "Ta séance à relire",
+      sessionHint: "Modifie-la comme dans le constructeur. Rien n’est publié : un brouillon est créé.",
+      loadingSession: "Mise en place de la séance…",
+      assumptions: "Ce que j’ai supposé",
+      editSchedule: "Modifier la date, les destinataires et le format",
+      toCheck: "À vérifier",
+      warnings: {
+        approximate_exercise: (name: string | null) =>
+          name
+            ? `Fiche choisie par rapprochement : « ${name} ». Vérifie que c’est le bon mouvement.`
+            : "Fiche choisie par rapprochement : vérifie le mouvement.",
+        rest_not_executed: () =>
+          "La récupération indiquée après la dernière série ne s’appliquera pas. Ajoute une récupération dans la séquence si besoin.",
+        rounds_not_stated: (rounds: string | null) =>
+          `${rounds ?? "Ce"} tour${rounds && Number(rounds) > 1 ? "s" : ""} : ce nombre n’est pas dans ta demande. Vérifie le groupe répété.`,
+        rounds_missing: (rounds: string | null) =>
+          `Ta demande parle de ${rounds ?? "plusieurs"} tours, absents de la séance. Vérifie le circuit.`,
+        habit_load: () => "Charge habituelle : vérifie la valeur.",
+        habit_rest: () => "Récupération habituelle : vérifie la durée.",
+        load_unclear: (value: string | null) =>
+          value
+            ? `Charge laissée vide : « ${value} » est dit sans unité, ou n’a pas été retrouvé dans ta demande. Indique des kilos ou un pourcentage.`
+            : "Charge laissée vide : indique des kilos ou un pourcentage.",
+        unit_assumed: (value: string | null) =>
+          `${value ?? "Un nombre"} est dit sans unité : rangé selon l’unité de la fiche. Vérifie la quantité.`,
+        to_complete: () => "Exercice posé sans sa prescription : complète les séries et les répétitions.",
+      },
+      probable: {
+        said: (said: string) => `Tu as dit « ${said} ».`,
+        unsure: "Fiche rapprochée de ce que tu as dit.",
+        others: "Ou plutôt",
+        use: (name: string) => `Prendre ${name} à la place`,
+        confirm: "C’est la bonne fiche",
+        search: "Chercher une autre fiche",
+        searchTitle: (said: string) => `Quelle fiche pour « ${said} » ?`,
+        searchHint: "Toute ta bibliothèque. La fiche choisie garde les séries, les répétitions et la charge.",
+        pick: (name: string) => `Prendre ${name}`,
+        learned: (said: string, name: string) => `C’est noté : « ${said} » désigne ${name}.`,
+      },
+      slot: {
+        label: "À compléter",
+        name: (said: string) => `« ${said} »`,
+        noFiche: "Aucune fiche ne porte ce nom dans ta bibliothèque.",
+        noPrescription: "Prescription à compléter",
+        choose: "Choisir une fiche",
+        chooseFor: (said: string) => `Choisir une fiche pour « ${said} »`,
+        create: "Créer la fiche",
+        createFor: (said: string) => `Créer la fiche « ${said} »`,
+        remove: "Retirer",
+        removeFor: (said: string) => `Retirer « ${said} » de la séance`,
+        title: (said: string) => `Compléter « ${said} »`,
+        createTitle: (said: string) => `Créer la fiche « ${said} »`,
+        hint: "La fiche choisie prend cette place, avec la prescription que tu as dite.",
+        near: "Fiches proches",
+        pick: (name: string) => `Utiliser ${name}`,
+        backToSearch: "Chercher dans la bibliothèque",
+        filled: (said: string, name: string) => `« ${said} » utilise maintenant ${name}. Le terme est retenu.`,
+        removed: (said: string) => `« ${said} » est retiré de la séance.`,
+        left: (n: number) => (n === 1 ? "1 exercice attend sa fiche." : `${n} exercices attendent leur fiche.`),
+        loadsBlocked: "Complète d’abord les exercices sans fiche : les charges se calculent sur des fiches.",
+      },
+      replace: {
+        action: "Remplacer l’exercice",
+        title: (name: string) => `Remplacer ${name}`,
+        hint: "Toute ta bibliothèque. Les séries, les répétitions, le repos et la charge restent ; un pourcentage se rapporte au maximum du nouvel exercice, et les charges adaptées par athlète pour cet exercice sont retirées.",
+        pick: (name: string) => `Remplacer par ${name}`,
+        done: (name: string) => `Exercice remplacé par ${name}.`,
+      },
+      add: {
+        title: "Ajouter un exercice",
+        hint: "Toute ta bibliothèque. Si la fiche manque, crée-la sans quitter la séance.",
+        pick: (name: string) => `Ajouter ${name} à la séance`,
+        done: (name: string) => `${name} ajouté à la séance.`,
+      },
+      finder: {
+        search: "Chercher une fiche",
+        results: (n: number) => (n === 0 ? "Aucune fiche" : `${n} fiche${n > 1 ? "s" : ""}`),
+        typeToSearch: "Écris le nom d’un exercice pour chercher dans toute ta bibliothèque.",
+        noMatch: "Aucune fiche ne porte ce nom.",
+        more: "Les 40 premières fiches sont affichées. Précise ta recherche pour retrouver les autres.",
+        create: (term: string) => `Créer « ${term} »`,
+        createHint: "Nouvelle fiche dans ton espace",
+        created: (name: string) => `Fiche « ${name} » créée.`,
+        reused: (name: string) => `« ${name} » existait déjà : c’est cette fiche.`,
+        back: "Retour aux résultats",
+      },
+      quick: {
+        title: "Nouvel exercice",
+        name: "Nom de la fiche",
+        family: "Famille",
+        load: "Charge",
+        loadKinds: {
+          external_total: "Charge totale",
+          added_weight: "Lest ajouté",
+          assistance: "Assistance",
+          bodyweight: "Poids du corps",
+          none: "Sans charge",
+        },
+        basedOn: (name: string) => `Famille et charge proposées d’après « ${name} ».`,
+        submit: "Créer et utiliser",
+        later: "La fiche reste dans ton espace. Tu la complètes quand tu veux dans la bibliothèque.",
+        exists: (name: string) => `« ${name} » est déjà dans ta bibliothèque.`,
+        useExisting: "Utiliser cette fiche",
+        failed: "La fiche n’a pas été créée. Vérifie la connexion, puis réessaie.",
+        nameRequired: "Donne un nom à la fiche.",
+      },
+      loadsNeeded: "Ouvre les charges par athlète : des pourcentages seront convertis pour chacun.",
+      phasesNeeded: "Choisis la phase de chaque athlète de la séance avant de créer le brouillon.",
+      draftsInvalid: "Un titre, un nom de bloc, une note ou une valeur est à corriger avant de créer le brouillon.",
+      adjust: "Ajuster",
+      adjustLabel: "Ce qui change",
+      adjustHint: "Une modification à la fois. Ce que tu as retouché à la main est gardé. Sans quota supplémentaire.",
+      adjustSend: "Ajuster la séance",
+      adjustCount: (used: number, limit: number) => `${used} ajustement${used > 1 ? "s" : ""} sur ${limit}`,
+      adjustLimit: "Les cinq ajustements sont utilisés. Modifie la séance directement ci-dessus.",
+      edit: "Modifier la demande",
+      create: "Créer le brouillon",
+      createMany: (n: number) => `Créer ${n} brouillons`,
+      creating: "Création du brouillon",
+      complete: (n: number, said: string) => (n === 1 ? `Compléter « ${said} »` : `Compléter ${n} exercices`),
+      noPublication: "Seul un brouillon est créé : aucun athlète n’est prévenu, rien n’est publié.",
+      created: "Brouillon créé. Ouvre-le pour le publier quand il te convient.",
+      openDraft: (title: string) => `Ouvrir « ${title} »`,
+      again: "Nouvelle demande",
+      calendar: "Voir le calendrier",
+      unknownExercise: "Fiche introuvable",
+    },
   },
   batchPublication: {
     open: "Publier des brouillons",

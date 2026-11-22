@@ -31,6 +31,7 @@ Les volumes et résultats datés vivent dans [ETAT.md](../ETAT.md), avec le comm
 | Collaboration vidéo, Mux simulé   | `E2E_PROD=1 E2E_VIDEO_ENABLED=true pnpm test:e2e e2e/video-collaboration.spec.ts`                  |
 | Planificateur, prestataire simulé | `E2E_PROD=1 E2E_AI_PLANNER_ENABLED=true pnpm --filter @tartan/web exec playwright test ai-planner` |
 | Évaluation IA hors réseau         | `pnpm --filter @tartan/web eval:planner`                                                           |
+| Mesure IA de bout en bout, simulée | `AI_PLANNER_FAKE_PROVIDER=true pnpm --filter @tartan/web eval:planner:e2e --examples`              |
 | Sandbox Stripe                    | Voir [stripe.md](../plans/stripe.md)                                                               |
 
 ## Relecture technique du catalogue

@@ -145,15 +145,21 @@ const withoutPlan = ({ setPlan: _setPlan, ...prescription }: PlannerRichPrescrip
  * Projection lue par les applications déjà installées : elles ne connaissent ni le détail des séries, ni
  * l'autonomie, ni les points à vérifier. Le nombre de séries, les répétitions et la charge restent justes.
  */
-export function plannerLegacyInterpretation(value: PlannerRichInterpretation): PlannerInterpretation {
+export function plannerLegacyInterpretation({
+  understanding: _understanding,
+  ...value
+}: PlannerRichInterpretation): PlannerInterpretation {
   return {
     ...value,
     sessions: value.sessions.map(({ warnings: _warnings, ...session }) => ({
       ...session,
       blocks: session.blocks.map((block) => ({
         ...block,
-        items: block.items.map(({ autonomous: _autonomous, prescription, ...item }) => ({
-          ...item,
+        // Seuls les champs du contrat strict : ni autonomie, ni origine, ni confiance du rapprochement.
+        items: block.items.map(({ ref, exerciseToken, instruction, prescription }) => ({
+          ...(ref !== undefined ? { ref } : {}),
+          exerciseToken,
+          instruction,
           prescription: legacyPrescription(prescription),
         })),
       })),

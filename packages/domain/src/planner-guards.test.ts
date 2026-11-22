@@ -71,6 +71,72 @@ describe("nombres de la consigne", () => {
     );
     for (const value of [42.5, 37.5, 90, 120, 75, 75.5]) expect(numbers.has(value)).toBe(true);
   });
+  it("lit chaque nombre en lettres de 1 à 300, écrit avec ou sans traits d'union", () => {
+    const units = "zéro un deux trois quatre cinq six sept huit neuf dix onze douze treize quatorze quinze seize".split(" ");
+    const tens: Record<number, string> = { 20: "vingt", 30: "trente", 40: "quarante", 50: "cinquante", 60: "soixante" };
+    const below100 = (n: number): string => {
+      if (n <= 16) return units[n]!;
+      if (n < 20) return `dix-${units[n - 10]}`;
+      if (n === 80) return "quatre-vingts";
+      if (n > 80) return `quatre-vingt-${below100(n - 80)}`;
+      const ten = n >= 60 ? 60 : Math.floor(n / 10) * 10;
+      const rest = n - ten;
+      if (rest === 0) return tens[ten]!;
+      return rest === 1 || rest === 11 ? `${tens[ten]} et ${below100(rest)}` : `${tens[ten]}-${below100(rest)}`;
+    };
+    const words = (n: number): string => {
+      if (n < 100) return below100(n);
+      const hundreds = Math.floor(n / 100);
+      const rest = n % 100;
+      const head = hundreds === 1 ? "cent" : `${units[hundreds]} cent${rest ? "" : "s"}`;
+      return rest ? `${head} ${below100(rest)}` : head;
+    };
+    for (let n = 1; n <= 300; n++) {
+      expect(plannerTextNumbers(`à ${words(n)} kilos`).has(n), words(n)).toBe(true);
+      expect(plannerTextNumbers(`à ${words(n).replaceAll("-", " ")} kilos`).has(n), words(n)).toBe(true);
+    }
+  });
+  it("dans une dictée sans ponctuation, un nombre s'arrête où il s'arrête : le suivant n'y est pas collé", () => {
+    const numbers = plannerTextNumbers(
+      "deux reps à soixante kilos deux à soixante-dix une à quatre-vingts une à quatre-vingt-cinq",
+    );
+    for (const value of [60, 70, 80, 85]) expect(numbers.has(value), String(value)).toBe(true);
+    expect(numbers.has(71)).toBe(false);
+    expect(numbers.has(81)).toBe(false);
+    // Une dizaine suivie d'une unité garde ses deux lectures : cinquante-deux, ou cinquante puis deux.
+    const split = plannerTextNumbers("deux à cinquante deux à soixante");
+    for (const value of [50, 52, 60, 2]) expect(split.has(value), String(value)).toBe(true);
+  });
+});
+
+describe("nombres en lettres, formes nommées", () => {
+  it.each([
+    ["soixante-dix", 70],
+    ["soixante et onze", 71],
+    ["quatre-vingt", 80],
+    ["quatre-vingts", 80],
+    ["quatre-vingt-dix-neuf", 99],
+    ["cent dix", 110],
+    ["deux cent cinquante", 250],
+    ["deux cents", 200],
+    ["trois cent", 300],
+  ])("« %s » vaut %i", (words, value) => {
+    expect(plannerTextNumbers(`squat arrière à ${words} kilos`).has(value)).toBe(true);
+  });
+  it("une partie décimale dite en plusieurs mots est lue entière", () => {
+    const numbers = plannerTextNumbers("quarante-deux virgule vingt-cinq kilos puis deux à cinquante");
+    expect(numbers.has(42.25)).toBe(true);
+    expect(numbers.has(50)).toBe(true);
+  });
+});
+
+describe("charge dictée en toutes lettres", () => {
+  it("garde chaque charge d'une montée dite sans ponctuation, l'unité dite une fois", () => {
+    const said =
+      "jeudi squat arrière deux reps à soixante kilos deux à soixante-dix une à quatre-vingts une à quatre-vingt-cinq";
+    const numbers = plannerTextNumbers(said);
+    expect([60, 70, 80, 85].every((value) => numbers.has(value))).toBe(true);
+  });
 });
 
 describe("références de dates", () => {

@@ -5,6 +5,7 @@ import {
   confirmPlannerProposalInput,
   previewPlannerLoadsInput,
   plannerInterpretation,
+  plannerStreamEvent,
   type PlannerInterpretation,
   type PlannerRichInterpretation,
   type CreatePlannerProposalInput,
@@ -25,6 +26,7 @@ import { pseudonymizePlannerText, type PlannerBindings } from "@/server/ai/conte
 import { fakePlannerEnabled, fakePlannerProvider } from "@/server/ai/fake-provider";
 import { m } from "@tartan/i18n";
 import { PlannerProviderError, type PlannerProvider, type PlannerProviderContext } from "@/server/ai/provider";
+import { wholeProvider } from "./planner-whole";
 import { expirePlannerOperations } from "@/server/ai/usage.service";
 import { saveTrainingPhase } from "@/server/training-phases.service";
 import { selectStrengthReference } from "@/server/strength.service";
@@ -41,6 +43,11 @@ vi.mock("@/lib/env", async (original) => {
   const actual = await original<typeof import("@/lib/env")>();
   return { ...actual, env: () => ({ ...actual.env(), ...flags }) };
 });
+// Ces essais portent sur le service : le prestataire rend la séance d'une seule pièce. Les quatre étapes sont
+// éprouvées dans `ai-pipeline.test.ts` et `ai-slots.test.ts`.
+vi.mock("@/server/ai/pipeline", async (original) =>
+  (await import("./planner-whole")).wholePipeline(await original<typeof import("@/server/ai/pipeline")>()),
+);
 const now = new Date("2030-06-01T12:00:00Z"),
   clock = () => now;
 beforeEach(() => {
@@ -93,9 +100,12 @@ const proposal = (context: PlannerProviderContext): PlannerInterpretation => ({
   ],
 });
 const provider = (
-  result: (context: PlannerProviderContext) => PlannerInterpretation = proposal,
-): PlannerProvider & { interpret: ReturnType<typeof vi.fn<PlannerProvider["interpret"]>> } => ({
-  interpret: vi.fn(async (context) => result(context)),
+  result: (context: PlannerProviderContext) => PlannerInterpretation | PlannerRichInterpretation = proposal,
+) => wholeProvider(async (context) => result(context));
+// La même demande, pour le seul lundi 3 juin 2030 : le jour choisi à l'écran par un client d'avant.
+const oneDay = (input: CreatePlannerProposalInput): CreatePlannerProposalInput => ({
+  ...input,
+  selection: { ...input.selection, period: { from: "2030-06-03", to: "2030-06-03" } },
 });
 async function setup() {
   const a = await makeOrg("PropositionIA");
@@ -120,7 +130,7 @@ async function setup() {
     },
     text: `Vitesse (A) : ${exercise.name}, trois séries de quatre à quarante kilos, deux minutes de repos.`,
   };
-  const create = (p = provider(), value = input) =>
+  const create = (p: PlannerProvider = provider(), value = input) =>
     createPlannerProposal(a.owner.userId, a.organizationId, value, { provider: p, clock });
   return { ...a, input, exercise, create };
 }
@@ -158,7 +168,8 @@ it("transmet le matériel et la convention sans données privées et relit les a
   });
   const p = provider(clarification);
   const created = await a.create(p);
-  expect(p.interpret.mock.calls[0]![0].exercises).toEqual([
+  const sent = p.interpret.mock.calls[0]![0].exercises;
+  expect(sent).toMatchObject([
     {
       token: "exercise_1",
       name: a.exercise.name,
@@ -168,6 +179,25 @@ it("transmet le matériel et la convention sans données privées et relit les a
       strengthLoadKind: "external_total",
     },
   ]);
+  // Rien d'autre que ces champs : l'enrichissement de l'étape « Composer » ne porte que des faits sur la fiche.
+  expect(Object.keys(sent[0]!).sort()).toEqual(
+    [
+      "token",
+      "name",
+      "category",
+      "aliases",
+      "classification",
+      "strengthLoadKind",
+      "family",
+      "level",
+      "unit",
+      "sides",
+      "objective",
+      "approved",
+      "own",
+      "preferred",
+    ].sort(),
+  );
   const row = await prisma.aiPlannerProposal.findUniqueOrThrow({ where: { id: a.input.id } });
   const bindings = row.bindings as unknown as PlannerBindings;
   expect(bindings.exercises[0]).toMatchObject({
@@ -284,13 +314,11 @@ it("ne lance qu’une génération pour deux demandes simultanées", async () =>
   const blocked = new Promise<void>((resolve) => {
     finish = resolve;
   });
-  const p = {
-    interpret: vi.fn(async (context: PlannerProviderContext) => {
+  const p = wholeProvider(async (context: PlannerProviderContext) => {
       began();
       await blocked;
       return proposal(context);
-    }),
-  };
+    });
   const first = a.create(p);
   await started;
   try {
@@ -347,11 +375,9 @@ it.each([
   ["invalid_output", 502],
 ] as const)("une panne %s rend un message lisible, garde sa cause et ne décompte rien", async (code, status) => {
   const a = await setup();
-  const failing = {
-    interpret: vi.fn(async () => {
+  const failing = wholeProvider(async () => {
       throw new PlannerProviderError(code);
-    }),
-  };
+    });
   await expect(a.create(failing)).rejects.toMatchObject({
     status,
     code: `planner_${code}`,
@@ -372,11 +398,9 @@ it.each([
 });
 it("une panne inattendue reste une réponse inexploitable, sans détail technique", async () => {
   const a = await setup();
-  const failing = {
-    interpret: vi.fn(async () => {
+  const failing = wholeProvider(async () => {
       throw new Error("sensitive internal detail");
-    }),
-  };
+    });
   const error = await a.create(failing).catch((cause: unknown) => cause);
   expect(error).toMatchObject({ code: "planner_invalid_output" });
   expect(JSON.stringify(error)).not.toContain("sensitive");
@@ -384,11 +408,9 @@ it("une panne inattendue reste une réponse inexploitable, sans détail techniqu
 it("un échec de clarification garde le résultat précédent, sans perdre un échange ni augmenter le quota", async () => {
   const a = await setup();
   const initial = await a.create(provider(clarification));
-  const failing = {
-    interpret: vi.fn(async () => {
+  const failing = wholeProvider(async () => {
       throw new Error("private provider failure");
-    }),
-  };
+    });
   const answer = {
     operationId: randomUUID(),
     expectedVersion: initial.version,
@@ -430,15 +452,13 @@ it("refuse un autre auteur, un autre espace et une cible révoquée sans révél
 });
 it("une modification d’exercice pendant la génération refuse le résultat et restitue le quota", async () => {
   const a = await setup();
-  const p = {
-    interpret: vi.fn(async (context: PlannerProviderContext) => {
+  const p = wholeProvider(async (context: PlannerProviderContext) => {
       await prisma.exercise.update({
         where: { id: a.exercise.id },
         data: { name: "Variante modifiée", updatedAt: new Date("2030-06-01T12:01:00Z") },
       });
       return proposal(context);
-    }),
-  };
+    });
   await expect(a.create(p)).rejects.toMatchObject({ status: 409, code: "planner_context_changed" });
   expect((await getPlannerProposal(a.owner.userId, a.organizationId, a.input.id, now)).state).toBe("failed");
   expect(
@@ -909,11 +929,14 @@ it("le prestataire factice des parcours natifs n'existe jamais sur Vercel, et sa
   expect(fakePlannerEnabled({ AI_PLANNER_FAKE_PROVIDER: "true", VERCEL: "1" } as never)).toBe(false);
   expect(fakePlannerEnabled({} as never)).toBe(false);
   const a = await setup();
-  const result = await createPlannerProposal(a.owner.userId, a.organizationId, a.input, {
+  // Les contrôles du serveur valent aussi pour le prestataire simulé : sans jour dans la consigne, seule une
+  // période d'un jour donne la date.
+  const result = await createPlannerProposal(a.owner.userId, a.organizationId, oneDay(a.input), {
     provider: fakePlannerProvider(),
     clock,
   });
   expect(result).toMatchObject({ state: "proposal" });
+  expect(result.interpretation?.sessions).toMatchObject([{ date: "2030-06-03", targetTokens: ["group_1"] }]);
   // Une proposition reste privée : aucune séance n'est écrite avant la confirmation du coach.
   expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
 });
@@ -921,12 +944,12 @@ it("le prestataire factice des parcours natifs n'existe jamais sur Vercel, et sa
 it("le parcours natif factice attend la création puis réutilise exactement la fiche privée", async () => {
   const a = await setup();
   const movement = "Mouvement natif de recette 123456";
-  const input = { ...a.input, text: `${movement}, trois séries de huit, repos 90 secondes` };
+  const input = { ...oneDay(a.input), text: `${movement}, trois séries de huit, repos 90 secondes` };
   const dependencies = { provider: fakePlannerProvider(), clock };
   const pending = await createPlannerProposal(a.owner.userId, a.organizationId, input, dependencies);
   expect(pending.state).toBe("clarification");
-  // La passe déterministe nomme le mouvement inconnu avant tout appel au prestataire.
-  expect(pending.interpretation?.questions).toMatchObject([{ id: "named-exercise-1", exerciseName: movement }]);
+  // L'app installée ne déclare pas `slots` : l'emplacement à compléter lui revient en question nommée.
+  expect(pending.interpretation?.questions).toMatchObject([{ id: "slot_1", exerciseName: movement }]);
   const linked = await resolvePlannerExercise(
     a.owner.userId,
     a.organizationId,
@@ -934,7 +957,7 @@ it("le parcours natif factice attend la création puis réutilise exactement la 
     {
       operationId: randomUUID(),
       expectedVersion: pending.version,
-      questionId: "named-exercise-1",
+      questionId: "slot_1",
       requestedName: movement,
       choice: {
         kind: "create",
@@ -1074,7 +1097,7 @@ it("ne rattache jamais un exercice d’un autre espace ou une question qui n’e
   });
 });
 
-it("sélectionne des candidats pertinents dans une bibliothèque de plus de 500 exercices", async () => {
+it("donne aux étapes toute la bibliothèque, sans coupe, au-delà de 500 exercices", async () => {
   const a = await setup();
   await prisma.exercise.createMany({
     data: Array.from({ length: 550 }, (_, i) => ({
@@ -1097,8 +1120,12 @@ it("sélectionne des candidats pertinents dans une bibliothèque de plus de 500 
     selection: { ...a.input.selection, exerciseIds: [] },
     text: "Lundi mon hang clean, 4 séries de 5, 40 kg, repos 90 secondes.",
   });
-  expect(p.interpret.mock.calls[0]![0].exercises[0]!.name).toBe(special.name);
-  expect(p.interpret.mock.calls[0]![0].exercises.length).toBeLessThanOrEqual(150);
+  const library = p.interpret.mock.calls[0]![0].exercises;
+  // Les 550 fiches privées, la fiche citée et le catalogue commun : rien n'est écarté par un tri sur les mots.
+  expect(library.length).toBeGreaterThan(551);
+  expect(library.filter((exercise) => exercise.name.startsWith("Mouvement privé "))).toHaveLength(550);
+  expect(library.some((exercise) => exercise.name === special.name)).toBe(true);
+  expect(new Set(library.map((exercise) => exercise.token)).size).toBe(library.length);
 });
 
 it("réutilise un identifiant de question dans un nouveau tour sans réutiliser l'ancien choix", async () => {
@@ -1145,66 +1172,6 @@ it("réutilise un identifiant de question dans un nouveau tour sans réutiliser 
     now,
   );
   expect(resolved.exerciseResolutions).toHaveLength(1);
-});
-
-it("propose seulement à partir du catalogue approuvé et refuse les charges inventées", async () => {
-  const a = await setup();
-  const input: CreatePlannerProposalInput = {
-    ...a.input,
-    selection: {
-      ...a.input.selection,
-      exerciseIds: [],
-      mode: "propose",
-      brief: {
-        objective: "Force générale",
-        date: "2030-06-03",
-        durationMin: 45,
-        level: "beginner",
-        equipment: ["Poids du corps"],
-      },
-    },
-  };
-  // Other service files can already have installed the shared catalogue in this database.
-  // Make the missing-approval precondition explicit and restore it for subsequent tests.
-  const approvedCatalog = await prisma.exercise.findMany({
-    where: { organizationId: null, guide: { path: ["technicalReview"], equals: "approved" } },
-    select: { id: true, guide: true },
-  });
-  await prisma.exercise.updateMany({
-    where: { id: { in: approvedCatalog.map((row) => row.id) } },
-    data: { guide: { technicalReview: "pending" } },
-  });
-  try {
-    const p = provider();
-    await expect(a.create(p, input)).rejects.toMatchObject({ status: 400 });
-    expect(p.interpret).not.toHaveBeenCalled();
-    const exercise = await prisma.exercise.create({
-      data: {
-        name: "Mouvement approuvé fictif",
-        classification: { movement: "squat", equipment: [] },
-        category: "strength",
-        catalogKey: `test-${randomUUID()}`,
-        guide: { technicalReview: "approved" },
-      },
-    });
-    const noLoad = provider((context) => {
-      expect(context.mode).toBe("propose");
-      expect(context.exercises.map((e) => e.name)).toEqual([exercise.name]);
-      const result = proposal(context);
-      result.sessions[0]!.blocks[0]!.items[0]!.prescription.load = null;
-      return result;
-    });
-    const created = await a.create(noLoad, { ...input, id: randomUUID() });
-    expect(created.state).toBe("proposal");
-    await expect(a.create(provider(), { ...input, id: randomUUID() })).rejects.toMatchObject({
-      code: "planner_invalid_output",
-    });
-    expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(0);
-  } finally {
-    for (const row of approvedCatalog) {
-      await prisma.$executeRaw`UPDATE exercises SET guide = ${JSON.stringify(row.guide)}::jsonb WHERE id = ${row.id}::uuid`;
-    }
-  }
 });
 
 it("conserve les occurrences du circuit dans les charges et accepte une adaptation du deuxième tour seulement", async () => {
@@ -1269,7 +1236,10 @@ it("ajuste une proposition sans quota supplémentaire, avec la consigne du coach
   // La proposition précédente part avec la demande : le modèle la modifie, il n'en refait pas une autre.
   expect(sent.previous?.sessions[0]).toMatchObject({
     date: "2030-06-03",
-    blocks: [{ content: [{ kind: "exercise", exerciseToken: "exercise_1", prescription: { sets: 3, reps: 4 } }] }],
+    targetTokens: ["group_1"],
+    session: {
+      blocks: [{ content: [{ kind: "exercise", exerciseToken: "exercise_1", prescription: { sets: 3, reps: 4 } }] }],
+    },
   });
   expect(JSON.stringify(sent.previous)).not.toContain("Vitesse (A)");
   expect(
@@ -1487,22 +1457,10 @@ it("donne au modèle le profil de l'espace, les séances voisines et la couvertu
   await a.create(partial, { ...a.input, id: randomUUID() });
   expect(partial.interpret.mock.calls[0]![0].strength).toEqual([{ exerciseToken: "exercise_1", coverage: "some" }]);
 });
-it("pose directement une question nommée pour un mouvement inconnu, sans appeler le modèle", async () => {
-  const a = await setup(),
-    p = provider();
-  const asked = await a.create(p, {
-    ...a.input,
-    id: randomUUID(),
-    text: "Vitesse (A) : Squat du dragon, trois séries de six, récupération 45 secondes.",
-  });
-  expect(p.interpret).not.toHaveBeenCalled();
-  expect(asked.state).toBe("clarification");
-  expect(asked.interpretation?.questions).toMatchObject([{ field: "exercise", exerciseName: "Squat du dragon" }]);
-});
-it("diffuse les étapes et le plan pendant la génération, puis la proposition enregistrée, même sans écran", async () => {
+it("diffuse un événement par étape, le résumé puis le plan, puis la proposition enregistrée, même sans écran", async () => {
   const a = await setup();
   const response = plannerEventStream((hooks) =>
-    createPlannerProposal(a.owner.userId, a.organizationId, a.input, {
+    createPlannerProposal(a.owner.userId, a.organizationId, oneDay(a.input), {
       ...hooks,
       provider: fakePlannerProvider(),
       clock,
@@ -1511,16 +1469,26 @@ it("diffuse les étapes et le plan pendant la génération, puis la proposition 
   const events = (await response.text())
     .split("\n\n")
     .filter(Boolean)
-    .map((chunk) => ({ event: /^event: (.+)$/m.exec(chunk)![1], data: JSON.parse(/^data: (.+)$/m.exec(chunk)![1]!) }));
-  const steps = events.filter((e) => e.event === "step").map((e) => e.data.step);
-  expect(steps).toEqual(["context", "model", "checks", "saved"]);
-  const plans = events.filter((e) => e.event === "plan");
+    .map((chunk) => plannerStreamEvent.parse({ event: /^event: (.+)$/m.exec(chunk)![1], data: JSON.parse(/^data: (.+)$/m.exec(chunk)![1]!) }));
+  // Les quatre étapes dans l'ordre, puis le résultat.
+  const order = events.map((e) => e.event).filter((event, index, all) => all.indexOf(event) === index);
+  expect(order).toEqual(["understanding", "matching", "composing", "checking", "result"]);
+  // « Ce que j'ai compris » arrive pendant qu'il s'écrit, puis complet.
+  const understood = events.flatMap((e) => (e.event === "understanding" ? [e.data] : []));
+  expect(understood[0]).toEqual({ summary: null, done: false });
+  expect(understood.at(-1)).toMatchObject({ done: true, summary: "Tu décris une séance de 1 exercice." });
+  expect(events.flatMap((e) => (e.event === "matching" ? [e.data] : [])).at(-1)).toMatchObject({
+    done: true,
+    movements: [{ name: a.exercise.name }],
+  });
+  const plans = events.flatMap((e) => (e.event === "composing" ? [e.data] : []));
   expect(plans.length).toBeGreaterThan(0);
-  expect(plans.at(-1)!.data.lines).toContainEqual({ kind: "exercise", label: a.exercise.name });
+  expect(plans.at(-1)!.lines).toContainEqual({ kind: "exercise", label: a.exercise.name });
   expect(JSON.stringify(plans)).not.toContain("exercise_1");
+  expect(events.flatMap((e) => (e.event === "checking" ? [e.data] : [])).at(-1)).toEqual({ repairs: 0, done: true });
   expect(events.at(-1)).toMatchObject({ event: "result", data: { id: a.input.id, state: "proposal" } });
   // Un écran fermé dès l'envoi : la génération va jusqu'au bout et se relit ensuite.
-  const second = { ...a.input, id: randomUUID() };
+  const second = { ...oneDay(a.input), id: randomUUID() };
   const closed = plannerEventStream((hooks) =>
     createPlannerProposal(a.owner.userId, a.organizationId, second, {
       ...hooks,
@@ -1537,7 +1505,7 @@ it("diffuse les étapes et le plan pendant la génération, puis la proposition 
     { timeout: 10000 },
   );
 });
-it("en mode « Proposer », garde un % 1RM seulement si chaque destinataire a sa référence, quel que soit le prestataire", async () => {
+it("ce qui est proposé ne garde un % 1RM que si chaque destinataire a sa référence, quel que soit le prestataire", async () => {
   const a = await setup();
   await prisma.organization.update({ where: { id: a.organizationId }, data: { progressionEnabled: true } });
   const exercise = await prisma.exercise.create({
@@ -1559,22 +1527,25 @@ it("en mode « Proposer », garde un % 1RM seulement si chaque destinataire a sa
       source: "working",
       valueKg: 100,
     });
-    const percent = provider((context) => {
-      const result = proposal({ ...context, exercises: context.exercises.filter((e) => e.name === exercise.name) });
-      result.sessions[0]!.date = context.brief!.date;
-      result.sessions[0]!.durationMin = 30;
-      result.sessions[0]!.blocks[0]!.items[0]!.prescription.load = { type: "pct_1rm", value: 80 };
-      return result;
-    });
+    // Le prestataire simulé propose la fiche nommée avec le pourcentage dit ; ce sont les règles du serveur,
+    // les mêmes pour tout prestataire, qui le retirent ou le gardent.
+    const percent = fakePlannerProvider();
     const input = (id: string) => ({
       ...a.input,
       id,
-      text: "Force",
+      text: "Squat approuvé chargé à 80 % du maximum",
       selection: {
         ...a.input.selection,
+        period: { from: "2030-06-04", to: "2030-06-04" },
         mode: "propose" as const,
         exerciseIds: [],
-        brief: { objective: "Force", date: "2030-06-04", durationMin: 40, level: "advanced" as const, equipment: [] },
+        brief: {
+          objective: "Squat approuvé chargé à 80 % du maximum",
+          date: "2030-06-04",
+          durationMin: 40,
+          level: "advanced" as const,
+          equipment: [],
+        },
       },
     });
     const partial = await a.create(percent, input(randomUUID()));

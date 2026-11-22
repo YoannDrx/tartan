@@ -1,57 +1,73 @@
 "use client";
 
-import { DateInput } from "@/components/ui/date-input";
 import {
-  sessionType,
-  sessionTextLimits,
+  PLANNER_SLOT_EXERCISE_ID,
   isoDate,
-  type PlannerReviewedDraft,
-  type PlannerProposalResponse,
+  sessionTextLimits,
+  sessionType,
+  type ExerciseSummary,
   type PlannerDraftsResponse,
+  type PlannerProposalResponse,
+  type PlannerReviewedDraft,
   type Prescription,
 } from "@tartan/contracts";
 import {
-  sessionExerciseReferences,
-  sequenceOccurrences,
-  occurrenceRef,
-  validSessionStructure,
   formatPrescription,
+  occurrenceRef,
   phasePlanningKey,
   replacedExercisePrescription,
+  sequenceOccurrences,
+  sessionExerciseReferences,
+  validSessionStructure,
   type PhasePlanningReadiness,
 } from "@tartan/domain";
 import { historyDate, m } from "@tartan/i18n";
-import { useCallback, useState } from "react";
+import { w } from "@tartan/i18n/web";
+import { CircleDashed, Search, TriangleAlert, X } from "lucide-react";
+import { useCallback, useContext, useRef, useState, type ReactNode } from "react";
+import { Chip } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DateInput } from "@/components/ui/date-input";
 import { Dialog } from "@/components/ui/dialog";
 import { CheckRow, Field, Input, Select } from "@/components/ui/field";
+import { toast } from "@/components/ui/toast";
+import { ExerciseFinder, ExerciseQuickCreate } from "@/features/exercises/exercise-finder";
 import { PhasePlanningPanel } from "@/features/phases/phase-planning";
-import { SequenceEditor } from "@/features/sessions/sequence-editor";
+import { ExerciseSource } from "@/features/sessions/exercise-picker";
+import { SequenceEditor, type SequenceItemExtras } from "@/features/sessions/sequence-editor";
 import { PrescriptionEditor } from "@/features/sessions/session-builder";
-import { w } from "@tartan/i18n/web";
-import { TriangleAlert } from "lucide-react";
-import type { PlannerContext } from "./planner-request";
 import { PlannerLoads } from "./planner-loads";
+import { Fold, type PlannerContext } from "./planner-request";
 
+const t = w.planner;
 export type PlannerDraftWarning = NonNullable<PlannerDraftsResponse["warnings"]>[number][number];
-/** Le texte d'un point « À vérifier », dans les mots du coach. */
-export const plannerWarningText = (warning: PlannerDraftWarning) => w.planner.warnings[warning.code](warning.detail);
-const WarningNote = ({ id, warning }: { id?: string; warning: PlannerDraftWarning }) => (
-  <p id={id} className="flex items-start gap-2 rounded-button border border-st-partial px-3 py-2">
-    <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-st-partial" />
-    <span>
-      <span className="font-semibold">{w.planner.toCheck} : </span>
-      {plannerWarningText(warning)}
-    </span>
-  </p>
-);
-
+export type PlannerDraftSlot = NonNullable<PlannerDraftsResponse["slots"]>[number];
 export type PlannerDraftUpdate = (
   index: number,
   update: (session: PlannerReviewedDraft) => PlannerReviewedDraft,
 ) => void;
-const t = m.aiPlanner;
+type Item = PlannerReviewedDraft["draft"]["blocks"][number]["items"][number];
+type Picked = Pick<ExerciseSummary, "id" | "name">;
+
+/** L'identifiant, dans la page, de l'emplacement à compléter : le bouton du bas y mène. */
+export const plannerSlotAnchor = (slotId: string) => `emplacement-${slotId}`;
+
+const CheckLine = ({ children }: { children: ReactNode }) => (
+  <p className="flex min-w-0 items-start gap-2">
+    <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-st-partial" />
+    <span className="min-w-0 break-words">
+      <span className="font-semibold">{t.toCheck}. </span>
+      {children}
+    </span>
+  </p>
+);
+
+/**
+ * Une séance à relire, dans l'éditeur du constructeur. Chaque exercice dit son état là où il est : rien pour une
+ * fiche reconnue ; « À vérifier », avec les autres fiches en un geste, pour une fiche rapprochée ; un emplacement
+ * en pointillés, à sa place, pour un exercice qui n'a pas encore de fiche. Ajouter et remplacer cherchent dans
+ * toute la bibliothèque.
+ */
 export function PlannerDraftReview({
   index,
   session,
@@ -60,11 +76,14 @@ export function PlannerDraftReview({
   orgId,
   busy,
   onUpdate,
-  onPhaseReady,
   onLoadsReady,
+  onSlot,
+  onProbable,
   warnings = [],
+  slots = [],
 }: {
   warnings?: PlannerDraftWarning[];
+  slots?: PlannerDraftSlot[];
   index: number;
   session: PlannerReviewedDraft;
   context: PlannerContext;
@@ -72,22 +91,51 @@ export function PlannerDraftReview({
   orgId: string;
   busy: boolean;
   onUpdate: PlannerDraftUpdate;
-  onPhaseReady: (index: number, state: PhasePlanningReadiness) => void;
   onLoadsReady: (index: number, key: string, ready: boolean) => void;
+  /** Le coach donne sa fiche à un emplacement, ou le retire. */
+  onSlot: (slot: PlannerDraftSlot, choice: { kind: "use"; exercise: Picked } | { kind: "remove" }) => Promise<void>;
+  /** Le coach valide une fiche rapprochée, ou en choisit une autre : le terme est retenu. */
+  onProbable: (warning: PlannerDraftWarning, exercise: Picked) => Promise<void>;
 }) {
+  const { lists, remember } = useContext(ExerciseSource);
+  const root = useRef<HTMLElement>(null);
+  // Après un geste, le clavier reprend sur l'exercice concerné, à sa place dans la séance : la carte qui portait
+  // le bouton a changé, le focus ne doit pas tomber dans le vide. Deux images plus tard, la séance est de nouveau
+  // modifiable et la feuille refermée.
+  const focusLater = (find: (section: HTMLElement) => HTMLElement | null | undefined) =>
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (root.current) find(root.current)?.focus();
+      }),
+    );
+  const focusItem = (ref: string | null | undefined) =>
+    ref
+      ? focusLater((section) => section.querySelector<HTMLElement>(`[data-seq-node="${CSS.escape(ref)}"] button`))
+      : 0;
+  const fillSlot = (slot: PlannerDraftSlot, exercise: Picked) =>
+    void onSlot(slot, { kind: "use", exercise }).then(() => focusItem(slot.itemRef));
+  const removeSlot = (slot: PlannerDraftSlot) =>
+    void onSlot(slot, { kind: "remove" }).then(() => focusLater((section) => section.querySelector<HTMLElement>("h3")));
+  const settleProbable = (warning: PlannerDraftWarning, exercise: Picked) =>
+    void onProbable(warning, exercise).then(() => focusItem(warning.itemRef));
   const [editingRef, setEditingRef] = useState<string | null>(null);
   const [editingAway, setEditingAway] = useState(false);
   const [previousDraft, setPreviousDraft] = useState<PlannerReviewedDraft | null>(null);
-  const [replacement, setReplacement] = useState<string | null>(null);
-  const [chosen, setChosen] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  // Le sélecteur ouvert : pour remplacer un exercice, trancher une fiche à vérifier, ou compléter un emplacement.
+  const [picking, setPicking] = useState<
+    | { kind: "replace"; ref: string }
+    | { kind: "probable"; warning: PlannerDraftWarning }
+    | { kind: "slot"; slot: PlannerDraftSlot; create: boolean }
+    | null
+  >(null);
+  // La phase n'est redemandée que si le coach change la date ou les destinataires de la séance.
+  const [rescheduled, setRescheduled] = useState(false);
   const acceptLoads = useCallback(
     (key: string, ready: boolean) => onLoadsReady(index, key, ready),
     [index, onLoadsReady],
   );
   const acceptPhase = useCallback(
     (state: PhasePlanningReadiness) => {
-      onPhaseReady(index, state);
       if (state.ready && state.review)
         onUpdate(index, (old) => {
           const key = phasePlanningKey(
@@ -100,17 +148,30 @@ export function PlannerDraftReview({
             : { ...old, phaseReview: state.review };
         });
     },
-    [index, onUpdate, onPhaseReady],
+    [index, onUpdate],
   );
   const change = (patch: Partial<PlannerReviewedDraft>) => onUpdate(index, (old) => ({ ...old, ...patch }));
+  const reschedule = (patch: Partial<PlannerReviewedDraft>) => {
+    setRescheduled(true);
+    change({ ...patch, phaseReview: undefined });
+  };
+  const groupIds = session.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId);
+  const athleteIds = session.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId);
   const assignNames = proposal.targets
-    .filter((t) => session.assignments.some((a) => a.targetType === t.type && a.targetId === t.id))
-    .map((t) => t.label);
-  const phaseKey = phasePlanningKey(
-    session.date,
-    session.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId),
-    session.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId),
-  );
+    .filter((target) => session.assignments.some((a) => a.targetType === target.type && a.targetId === target.id))
+    .map((target) => target.label);
+  const items = session.draft.blocks.flatMap((block) => block.items);
+  const slotOf = (ref: string | undefined) => slots.find((slot) => slot.itemRef === ref);
+  const probableOf = (ref: string | undefined) =>
+    warnings.find((warning) => warning.itemRef === ref && warning.code === "approximate_exercise");
+  const nameOf = (exerciseId: string) =>
+    context.exercises.find((exercise) => exercise.id === exerciseId)?.name ??
+    proposal.exercises.find((exercise) => exercise.id === exerciseId)?.name ??
+    t.unknownExercise;
+  const itemName = (item: Item) => {
+    const slot = item.exerciseId === PLANNER_SLOT_EXERCISE_ID ? slotOf(item.ref) : undefined;
+    return slot ? t.slot.name(slot.said) : nameOf(item.exerciseId);
+  };
   const updatePrescription = (ref: string, prescription: Prescription, away = false) =>
     onUpdate(index, (old) => ({
       ...old,
@@ -128,28 +189,199 @@ export function PlannerDraftReview({
         })),
       },
     }));
+  // Remplacer garde ce que le coach a prescrit ; les charges adaptées par athlète pour cet exercice partent.
+  const replace = (ref: string, exercise: Picked) => {
+    onUpdate(index, (old) => ({
+      ...old,
+      overrides: old.overrides.filter((o) => sessionExerciseReferences(old.draft).get(o.itemRef)?.ref !== ref),
+      draft: {
+        ...old.draft,
+        blocks: old.draft.blocks.map((b) => ({
+          ...b,
+          items: b.items.map((i) =>
+            i.ref === ref
+              ? {
+                  ...i,
+                  exerciseId: exercise.id,
+                  prescription: replacedExercisePrescription(i.prescription, exercise.id),
+                }
+              : i,
+          ),
+        })),
+      },
+    }));
+    toast.ok(t.replace.done(exercise.name));
+  };
+  const pick = (exercise: ExerciseSummary) => {
+    const target = picking;
+    setPicking(null);
+    if (!target || busy) return;
+    remember([exercise]);
+    if (target.kind === "slot") return fillSlot(target.slot, exercise);
+    if (target.kind === "probable") return settleProbable(target.warning, exercise);
+    // Remplacer une fiche à vérifier, c'est la trancher : le terme dit est retenu pour la nouvelle fiche.
+    const doubt = probableOf(target.ref);
+    if (doubt) return settleProbable(doubt, exercise);
+    replace(target.ref, exercise);
+  };
   const sessionWarnings = warnings.filter((warning) => !warning.itemRef);
-  const itemWarnings = (ref: string | undefined) => warnings.filter((warning) => ref && warning.itemRef === ref);
+
+  const extras: SequenceItemExtras = {
+    name: (item) => (slotOf(item.ref) ? itemName(item) : undefined),
+    // Un exercice sans fiche : à sa place, avec le terme dit et sa prescription, et trois gestes possibles.
+    card: (item, grip) => {
+      const slot = item.exerciseId === PLANNER_SLOT_EXERCISE_ID ? slotOf(item.ref) : undefined;
+      if (!slot) return null;
+      return (
+        <div
+          id={plannerSlotAnchor(slot.id)}
+          className="min-w-0 scroll-mt-24 rounded-button border-2 border-dashed border-control-line"
+        >
+          <div className="flex min-w-0 items-center gap-1 py-1 pr-2">
+            {grip}
+            <button
+              type="button"
+              className="flex min-h-11 min-w-0 flex-1 items-center gap-2 py-1 text-left"
+              onClick={() => {
+                setEditingRef(item.ref!);
+                setEditingAway(false);
+              }}
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-button bg-card-raised">
+                <CircleDashed aria-hidden className="size-5" />
+              </span>
+              <span className="min-w-0 break-words leading-snug">
+                <span className="block font-semibold">{t.slot.name(slot.said)}</span>
+                <span className="t-caption block font-normal text-soft">
+                  {formatPrescription(item.prescription) || t.slot.noPrescription}
+                </span>
+              </span>
+            </button>
+          </div>
+          <div className="flex flex-col gap-2 border-t border-dashed border-control-line px-3 py-2.5">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 t-caption font-normal text-soft">
+              <Chip tone="warning">{t.slot.label}</Chip>
+              {t.slot.noFiche}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                aria-label={t.slot.chooseFor(slot.said)}
+                onClick={() => setPicking({ kind: "slot", slot, create: false })}
+              >
+                <Search aria-hidden className="size-4" />
+                {t.slot.choose}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                aria-label={t.slot.createFor(slot.said)}
+                onClick={() => setPicking({ kind: "slot", slot, create: true })}
+              >
+                {t.slot.create}
+              </Button>
+              <Button
+                size="sm"
+                variant="quiet"
+                aria-label={t.slot.removeFor(slot.said)}
+                onClick={() => removeSlot(slot)}
+              >
+                <X aria-hidden className="size-4" />
+                {t.slot.remove}
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    },
+    note: (item) => {
+      const notes = warnings.filter((warning) => warning.itemRef === item.ref);
+      if (!notes.length) return null;
+      return (
+        <div className="flex min-w-0 flex-col gap-2">
+          {notes.map((warning, i) =>
+            warning.code === "approximate_exercise" ? (
+              <div key={i} className="flex min-w-0 flex-col gap-2">
+                <CheckLine>{warning.said ? t.probable.said(warning.said) : t.probable.unsure}</CheckLine>
+                <div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => settleProbable(warning, { id: item.exerciseId, name: nameOf(item.exerciseId) })}
+                  >
+                    {t.probable.confirm}
+                  </Button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {warning.alternatives?.length ? (
+                    <span className="t-caption font-normal text-soft">{t.probable.others}</span>
+                  ) : null}
+                  {/* Une autre fiche possible : un geste, et la séance la prend. */}
+                  {warning.alternatives?.map((other) => (
+                    <Button
+                      key={other.exerciseId}
+                      size="sm"
+                      variant="secondary"
+                      aria-label={t.probable.use(other.name)}
+                      className="h-auto max-w-full whitespace-normal py-2 text-left"
+                      onClick={() => settleProbable(warning, { id: other.exerciseId, name: other.name })}
+                    >
+                      {other.name}
+                    </Button>
+                  ))}
+                  <Button size="sm" variant="quiet" onClick={() => setPicking({ kind: "probable", warning })}>
+                    <Search aria-hidden className="size-4" />
+                    {t.probable.search}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <CheckLine key={i}>{t.warnings[warning.code](warning.detail)}</CheckLine>
+            ),
+          )}
+        </div>
+      );
+    },
+  };
+
+  const editing = editingRef ? items.find((item) => item.ref === editingRef) : undefined;
+  const away = editing && editingAway && editing.autonomous ? editing.autonomous : null;
+  const editingSlot = editing ? slotOf(editing.ref) : undefined;
+  const editingId = away?.exerciseId ?? editing?.exerciseId;
+  const pickingSlot = picking?.kind === "slot" ? picking.slot : null;
+  const suggested = pickingSlot
+    ? {
+        name: pickingSlot.suggestion?.name ?? pickingSlot.said,
+        ...(pickingSlot.suggestion
+          ? { category: pickingSlot.suggestion.category, loadKind: pickingSlot.suggestion.loadKind }
+          : {}),
+      }
+    : undefined;
+  const replacing = picking?.kind === "replace" ? items.find((item) => item.ref === picking.ref) : undefined;
+
   return (
     <section
+      ref={root}
       aria-label={session.draft.title}
       className="flex min-w-0 flex-col gap-4 rounded-card border border-card-line p-4"
     >
-      <header>
-        <h2 className="t-section break-words">{session.draft.title}</h2>
+      <header className="flex min-w-0 flex-col gap-0.5">
+        <h3 tabIndex={-1} className="t-h2 break-words">
+          {session.draft.title}
+        </h3>
         <p>
           {isoDate.safeParse(session.date).success ? historyDate(session.date) : m.errors.invalid}
           {session.startTime ? ` · ${session.startTime}` : ""} · {m.sessionType[session.draft.type]}
         </p>
-        <p className="text-soft break-words">{assignNames.join(", ")}</p>
+        <p className="break-words text-soft">{assignNames.join(", ")}</p>
       </header>
-      <fieldset disabled={busy} className="min-w-0">
-        <details>
-          <summary className="min-h-11 cursor-pointer py-2 font-semibold">{t.editSchedule}</summary>
+      <fieldset disabled={busy} className="flex min-w-0 flex-col gap-4">
+        <Fold title={t.editSchedule}>
           <div className="grid gap-3 tablet:grid-cols-2">
             <Field
               label={m.builder.title}
-              hint={
+              error={
                 session.draft.title.trim().length > sessionTextLimits.title
                   ? t.textLimit(session.draft.title.trim().length, sessionTextLimits.title)
                   : undefined
@@ -163,14 +395,14 @@ export function PlannerDraftReview({
                 />
               )}
             </Field>
-            <Field label={m.trainingPhases.start}>
+            <Field label={m.builder.date}>
               {(a) => (
                 <DateInput
                   {...a}
                   min={proposal.selection.period.from}
                   max={proposal.selection.period.to}
                   value={session.date}
-                  onChange={(e) => change({ date: e.target.value, phaseReview: undefined })}
+                  onChange={(e) => reschedule({ date: e.target.value })}
                 />
               )}
             </Field>
@@ -214,7 +446,7 @@ export function PlannerDraftReview({
               )}
             </Field>
           </div>
-          <fieldset className="min-w-0 mt-3">
+          <fieldset className="min-w-0">
             <legend className="font-semibold">{m.builder.audience}</legend>
             {proposal.targets.map((target) => {
               const selected = session.assignments.some(
@@ -226,69 +458,43 @@ export function PlannerDraftReview({
                   label={target.label}
                   checked={selected}
                   onChange={() =>
-                    change({
+                    reschedule({
                       assignments: selected
                         ? session.assignments.filter((a) => a.targetType !== target.type || a.targetId !== target.id)
                         : [...session.assignments, { targetType: target.type, targetId: target.id }],
-                      phaseReview: undefined,
                     })
                   }
                 />
               );
             })}
           </fieldset>
-        </details>
-        {warnings.length ? (
-          <div className="mt-3 flex flex-col gap-2" role="group" aria-label={w.planner.toCheckCount(warnings.length)}>
+        </Fold>
+        {sessionWarnings.length ? (
+          <div className="flex flex-col gap-2" role="group" aria-label={t.toCheckCount(sessionWarnings.length)}>
             {sessionWarnings.map((warning, i) => (
-              <WarningNote key={`session-${i}`} warning={warning} />
+              <CheckLine key={i}>{t.warnings[warning.code](warning.detail)}</CheckLine>
             ))}
-            {warnings
-              .filter((warning) => warning.itemRef)
-              .map((warning, i) => {
-                const item = session.draft.blocks
-                  .flatMap((b) => b.items)
-                  .find((entry) => entry.ref === warning.itemRef);
-                const name =
-                  context.exercises.find((e) => e.id === item?.exerciseId)?.name ??
-                  proposal.exercises.find((e) => e.id === item?.exerciseId)?.name;
-                return (
-                  <Button
-                    key={`item-${i}`}
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="h-auto justify-start whitespace-normal py-2 text-left"
-                    onClick={() => {
-                      setEditingRef(warning.itemRef);
-                      setEditingAway(false);
-                    }}
-                  >
-                    <TriangleAlert aria-hidden className="size-4 shrink-0 text-st-partial" />
-                    {name ? `${name} · ` : ""}
-                    {w.planner.toCheck}
-                  </Button>
-                );
-              })}
           </div>
         ) : null}
         {previousDraft ? (
           <Button
             type="button"
+            size="sm"
             variant="secondary"
+            className="self-start"
             onClick={() => {
               onUpdate(index, () => previousDraft);
               setPreviousDraft(null);
             }}
           >
-            {m.builder.sequence.undo}
+            {t.undo}
           </Button>
         ) : null}
         {session.draft.blocks.map((block) => (
-          <section key={block.ref} className="mt-3 border-t border-card-line pt-3">
+          <section key={block.ref} className="flex min-w-0 flex-col gap-2 border-t border-card-line pt-4">
             <Field
-              label={m.nativeBuilder.blockName}
-              hint={
+              label={t.blockName}
+              error={
                 block.name.trim().length > sessionTextLimits.blockName
                   ? t.textLimit(block.name.trim().length, sessionTextLimits.blockName)
                   : undefined
@@ -311,10 +517,12 @@ export function PlannerDraftReview({
                 />
               )}
             </Field>
-            {session.draft.structureVersion === 2 ? (
+            {/* Les marges de l'éditeur sont celles du constructeur : ici il s'aligne sur la carte de la séance. */}
+            <div className="-mx-3 min-w-0">
               <SequenceEditor
                 block={block}
-                exercises={context.exercises.filter((e) => proposal.exercises.some((p) => p.id === e.id))}
+                exercises={context.exercises}
+                extras={extras}
                 onEdit={(ref) => {
                   setEditingRef(ref);
                   setEditingAway(false);
@@ -336,32 +544,63 @@ export function PlannerDraftReview({
                   });
                 }}
               />
+            </div>
+            {/* La prescription de l'exercice touché, juste sous son bloc. */}
+            {editing && editingId && block.items.some((item) => item.ref === editing.ref) ? (
+              <div className="flex min-w-0 flex-col gap-3 rounded-button bg-card-raised p-3">
+                <div className="flex min-w-0 items-start justify-between gap-2">
+                  <p className="min-w-0 break-words font-semibold">
+                    {away ? m.builder.sequence.autonomousLine(nameOf(away.exerciseId)) : itemName(editing)}
+                  </p>
+                  <Button size="sm" variant="quiet" className="-my-1.5 shrink-0" onClick={() => setEditingRef(null)}>
+                    {m.common.close}
+                  </Button>
+                </div>
+                {(editing.prescription.notes?.length ?? 0) > sessionTextLimits.notes ? (
+                  <p role="alert">
+                    {m.builder.notes} : {t.textLimit(editing.prescription.notes!.length, sessionTextLimits.notes)}
+                  </p>
+                ) : null}
+                <PrescriptionEditor
+                  intensityEnabled
+                  value={away?.prescription ?? editing.prescription}
+                  exercise={context.exercises.find((exercise) => exercise.id === editingId)}
+                  testKeys={editingSlot ? [] : [`exercise:${editingId}`]}
+                  onChange={(value) => updatePrescription(editing.ref!, value, Boolean(away))}
+                />
+                {!away && !editingSlot ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="self-start"
+                    onClick={() => setPicking({ kind: "replace", ref: editing.ref! })}
+                  >
+                    {t.replace.action}
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
-            {session.draft.structureVersion === 2 && validSessionStructure(session.draft) ? (
-              <details className="min-w-0">
-                <summary className="min-h-11 cursor-pointer py-2 font-semibold">{m.builder.preview}</summary>
-                <ol className="divide-y divide-card-line" aria-label={m.builder.preview}>
+            {validSessionStructure(session.draft) ? (
+              <Fold bare title={t.preview}>
+                <ol className="divide-y divide-card-line" aria-label={t.preview}>
                   {sequenceOccurrences(block.sequence ?? []).map(({ node, rounds }) => {
                     const item =
                       node.kind === "exercise" ? block.items.find((entry) => entry.ref === node.itemRef) : undefined;
-                    const name = item
-                      ? (context.exercises.find((entry) => entry.id === item.exerciseId)?.name ??
-                        proposal.exercises.find((entry) => entry.id === item.exerciseId)?.name ??
-                        m.common.notFound)
-                      : m.builder.sequenceRecovery;
                     return (
                       <li
                         key={occurrenceRef(node.kind === "exercise" ? node.itemRef : node.ref, rounds)}
                         className="py-2"
                       >
                         {rounds.length ? (
-                          <p className="text-sm text-soft">
+                          <p className="t-caption font-normal text-soft">
                             {rounds
                               .map((round) => m.builder.sequence.round(round.name, round.round, round.rounds))
                               .join(" · ")}
                           </p>
                         ) : null}
-                        <p className="font-semibold break-words">{name}</p>
+                        <p className="break-words font-semibold">
+                          {item ? itemName(item) : m.builder.sequenceRecovery}
+                        </p>
                         <p>
                           {formatPrescription(
                             node.kind === "recovery" ? { duration_s: node.durationS } : item!.prescription,
@@ -371,66 +610,19 @@ export function PlannerDraftReview({
                     );
                   })}
                 </ol>
-              </details>
+              </Fold>
             ) : null}
-            {block.items
-              .filter((item) => session.draft.structureVersion !== 2 || item.ref === editingRef)
-              .map((item) => {
-                const away = editingAway && item.autonomous ? item.autonomous : null;
-                const exerciseId = away?.exerciseId ?? item.exerciseId;
-                const prescription = away?.prescription ?? item.prescription;
-                const exercise = context.exercises.find((e) => e.id === exerciseId);
-                const notes = itemWarnings(item.ref);
-                return (
-                  <div key={item.ref} className="flex min-w-0 flex-col gap-2 py-3">
-                    <p className="font-semibold break-words">
-                      {exercise?.name ?? proposal.exercises.find((e) => e.id === exerciseId)?.name ?? m.common.notFound}
-                    </p>
-                    {!away
-                      ? notes.map((warning, i) => (
-                          <WarningNote key={i} id={`${item.ref}-check-${i}`} warning={warning} />
-                        ))
-                      : null}
-                    <p>{formatPrescription(prescription)}</p>
-                    {(item.prescription.notes?.length ?? 0) > sessionTextLimits.notes ? (
-                      <p role="alert">
-                        {m.builder.notes} : {t.textLimit(item.prescription.notes!.length, sessionTextLimits.notes)}
-                      </p>
-                    ) : null}
-                    <details open={session.draft.structureVersion === 2 || undefined}>
-                      <summary className="min-h-11 cursor-pointer py-2">{m.builder.setPrescription}</summary>
-                      <PrescriptionEditor
-                        intensityEnabled
-                        value={prescription}
-                        exercise={exercise}
-                        testKeys={[`exercise:${exerciseId}`]}
-                        onChange={(value) => updatePrescription(item.ref!, value, Boolean(away))}
-                      />
-                    </details>
-                    <Button
-                      type="button"
-                      variant="quiet"
-                      onClick={() => {
-                        setReplacement(item.ref!);
-                        setSearch("");
-                      }}
-                    >
-                      {t.replaceExercise}
-                    </Button>
-                  </div>
-                );
-              })}
           </section>
         ))}
       </fieldset>
-      {context.phasesEnabled ? (
+      {context.phasesEnabled && (rescheduled || !session.phaseReview) ? (
         <fieldset disabled={busy} className="min-w-0">
           <PhasePlanningPanel
-            key={phaseKey}
+            key={phasePlanningKey(session.date, groupIds, athleteIds)}
             organizationId={orgId}
             date={session.date}
-            groupIds={session.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId)}
-            athleteIds={session.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId)}
+            groupIds={groupIds}
+            athleteIds={athleteIds}
             initialChoices={session.phaseReview?.choices ?? []}
             onReady={acceptPhase}
           />
@@ -442,6 +634,7 @@ export function PlannerDraftReview({
         version={proposal.version}
         session={session}
         disabled={busy}
+        blocked={slots.length ? t.slot.loadsBlocked : undefined}
         onReady={acceptLoads}
         onLoad={(athleteId, itemRef, load) =>
           onUpdate(index, (old) => {
@@ -457,70 +650,74 @@ export function PlannerDraftReview({
           })
         }
       />
+      {/* Une seule feuille pour chercher une fiche : remplacer, trancher une fiche à vérifier, compléter. */}
       <Dialog
-        open={Boolean(replacement)}
+        wide
+        open={Boolean(picking)}
         onOpenChange={(open) => {
-          if (!open) setReplacement(null);
+          if (!open) setPicking(null);
         }}
-        title={t.replaceExercise}
-        description={t.replacementReset}
+        title={
+          pickingSlot
+            ? picking?.kind === "slot" && picking.create
+              ? t.slot.createTitle(pickingSlot.said)
+              : t.slot.title(pickingSlot.said)
+            : picking?.kind === "probable"
+              ? t.probable.searchTitle(picking.warning.said ?? "")
+              : t.replace.title(replacing ? itemName(replacing) : "")
+        }
+        description={pickingSlot ? t.slot.hint : picking?.kind === "probable" ? t.probable.searchHint : t.replace.hint}
       >
-        <Field label={m.common.search}>
-          {(a) => <Input {...a} type="search" value={search} onChange={(e) => setSearch(e.target.value)} />}
-        </Field>
-        <div className="mt-3 flex flex-col gap-2">
-          {context.exercises
-            .filter(
-              (e) =>
-                proposal.exercises.some((p) => p.id === e.id) &&
-                e.name.toLocaleLowerCase("fr").includes(search.trim().toLocaleLowerCase("fr")),
-            )
-            .slice(0, 50)
-            .map((e) => (
-              <Button key={e.id} type="button" variant="secondary" disabled={busy} onClick={() => setChosen(e.id)}>
-                {e.name}
-              </Button>
-            ))}
-        </div>
-        <p className="mt-3 text-soft">{t.refineSearch}</p>
+        {picking?.kind === "slot" && picking.create ? (
+          <div className="flex min-w-0 flex-col gap-4">
+            <ExerciseQuickCreate
+              term={suggested!.name}
+              suggested={suggested}
+              onDone={(result) => pick(result.exercise)}
+            />
+            <Button
+              size="sm"
+              variant="quiet"
+              className="self-start"
+              onClick={() => setPicking({ kind: "slot", slot: picking.slot, create: false })}
+            >
+              <Search aria-hidden className="size-4" />
+              {t.slot.backToSearch}
+            </Button>
+          </div>
+        ) : picking ? (
+          <div className="flex min-w-0 flex-col gap-3">
+            {pickingSlot?.candidates.length ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="t-caption font-normal text-soft">{t.slot.near}</span>
+                {pickingSlot.candidates.map((candidate) => (
+                  <Button
+                    key={candidate.exerciseId}
+                    size="sm"
+                    variant="secondary"
+                    aria-label={t.slot.pick(candidate.name)}
+                    className="h-auto max-w-full whitespace-normal py-2 text-left"
+                    onClick={() => {
+                      setPicking(null);
+                      fillSlot(pickingSlot, { id: candidate.exerciseId, name: candidate.name });
+                    }}
+                  >
+                    {candidate.name}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+            <ExerciseFinder
+              autoFocus
+              lists={lists}
+              suggested={suggested}
+              pickLabel={pickingSlot ? t.slot.pick : picking.kind === "probable" ? t.probable.pick : t.replace.pick}
+              onPick={pick}
+              onLoaded={remember}
+            />
+          </div>
+        ) : null}
       </Dialog>
-      <ConfirmDialog
-        open={Boolean(chosen)}
-        onOpenChange={(open) => {
-          if (!open) setChosen(null);
-        }}
-        title={t.replaceExercise}
-        description={t.replacementReset}
-        confirmLabel={m.nativeBuilder.apply}
-        tone="neutral"
-        onConfirm={() => {
-          const exercise = context.exercises.find((e) => e.id === chosen);
-          if (!exercise || !replacement || busy) return;
-          onUpdate(index, (old) => ({
-            ...old,
-            overrides: old.overrides.filter(
-              (o) => sessionExerciseReferences(old.draft).get(o.itemRef)?.ref !== replacement,
-            ),
-            draft: {
-              ...old.draft,
-              blocks: old.draft.blocks.map((b) => ({
-                ...b,
-                items: b.items.map((i) =>
-                  i.ref === replacement
-                    ? {
-                        ...i,
-                        exerciseId: exercise.id,
-                        prescription: replacedExercisePrescription(i.prescription, exercise.id),
-                      }
-                    : i,
-                ),
-              })),
-            },
-          }));
-          setChosen(null);
-          setReplacement(null);
-        }}
-      />
     </section>
   );
 }

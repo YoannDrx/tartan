@@ -2,30 +2,23 @@ import type { PlannerTranscriptionResponse } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { randomUUID } from "expo-crypto";
 import { useEffect, useRef, useState } from "react";
-import { AppState, Linking, View } from "react-native";
+import { AppState, Linking } from "react-native";
 import { api } from "../lib/api";
 import { errorMessage } from "../lib/errors";
 import { useSession } from "../lib/session-store";
 import { DictationController, PLANNER_RECORDING_SECONDS, type DictationState } from "../lib/planner-recording-core";
-import { Button, T } from "../ui/primitives";
-import { space } from "../ui/theme";
 
 const t = m.aiPlanner;
 
-// Monté uniquement dans le planificateur autorisé, avec key={orgId}. Ni audio ni
-// transcription dans AsyncStorage, la file de synchronisation ou le cache React Query.
-export function PlannerDictation({
-  orgId,
-  disabled,
-  onText,
-  onBusyChange,
-}: {
-  orgId: string;
-  disabled: boolean;
-  onText: (text: string) => void;
-  onBusyChange?: (busy: boolean) => void;
-}) {
-  const [accepted, setAccepted] = useState(false);
+/**
+ * La dictée du champ unique : le micro est dans le champ, sans case à cocher. L'accord du planificateur, donné une
+ * fois, couvre l'écrit comme la dictée ; le serveur l'exige avant toute transcription, et l'écran envoie toujours
+ * `audioProcessingAccepted`, que le contrat demande.
+ *
+ * Monté uniquement dans le planificateur autorisé. Ni audio ni transcription dans AsyncStorage, la file de
+ * synchronisation ou le cache React Query.
+ */
+export function usePlannerDictation(orgId: string, onText: (text: string) => void) {
   const [state, setState] = useState<DictationState>("idle");
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState("");
@@ -34,11 +27,11 @@ export function PlannerDictation({
   const [requestId, setRequestId] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const controller = useRef<DictationController<PlannerTranscriptionResponse> | null>(null);
-  const callbacks = useRef({ onText, onBusyChange });
+  const callback = useRef(onText);
   const checkRequest = useRef<AbortController | null>(null);
   useEffect(() => {
-    callbacks.current = { onText, onBusyChange };
-  }, [onText, onBusyChange]);
+    callback.current = onText;
+  }, [onText]);
 
   useEffect(() => {
     let alive = true;
@@ -59,6 +52,17 @@ export function PlannerDictation({
                 ? t.recordingFailed
                 : errorMessage(cause),
       );
+    };
+    const settle = (result: PlannerTranscriptionResponse) => {
+      if (result.state === "ready" && result.text) {
+        callback.current(result.text);
+        setRequestId(null);
+        setNotice(t.dictationReady);
+      } else if (result.state === "processing") setNotice(t.dictationPending);
+      else {
+        setRequestId(null);
+        setError(t.transcriptionFailed);
+      }
     };
     const current = new DictationController<PlannerTranscriptionResponse>({
       create: () => {
@@ -106,16 +110,7 @@ export function PlannerDictation({
       },
       onError: fail,
       onResult: (result) => {
-        if (!alive) return;
-        if (result.state === "ready" && result.text) {
-          callbacks.current.onText(result.text);
-          setRequestId(null);
-          setNotice(t.dictationReady);
-        } else if (result.state === "processing") setNotice(t.dictationPending);
-        else {
-          setRequestId(null);
-          setError(t.transcriptionFailed);
-        }
+        if (alive) settle(result);
       },
     });
     controller.current = current;
@@ -139,12 +134,10 @@ export function PlannerDictation({
       session();
       checkRequest.current?.abort();
       void current.cancel();
-      callbacks.current.onBusyChange?.(false);
     };
   }, [orgId]);
 
   useEffect(() => {
-    callbacks.current.onBusyChange?.(state !== "idle" || checking);
     if (state !== "recording") return;
     const began = Date.now();
     const timer = setInterval(() => {
@@ -153,7 +146,7 @@ export function PlannerDictation({
       if (elapsed >= PLANNER_RECORDING_SECONDS) void controller.current?.finish();
     }, 250);
     return () => clearInterval(timer);
-  }, [state, checking]);
+  }, [state]);
 
   const check = async () => {
     if (!requestId || checkRequest.current) return;
@@ -166,7 +159,7 @@ export function PlannerDictation({
       const result = await api.plannerTranscription(orgId, requestId, abort.signal);
       if (abort.signal.aborted) return;
       if (result.state === "ready" && result.text) {
-        callbacks.current.onText(result.text);
+        callback.current(result.text);
         setRequestId(null);
         setNotice(t.dictationReady);
       } else if (result.state === "processing") setNotice(t.dictationPending);
@@ -184,90 +177,47 @@ export function PlannerDictation({
   };
 
   const busy = state !== "idle" || checking;
-  return (
-    <View style={{ gap: space.sm }}>
-      <T>{t.dictationNotice}</T>
-      <T variant="small" tone="muted">
-        {t.dictationLimit}
-      </T>
-      <Button
-        variant="secondary"
-        label={t.acceptAudio}
-        selected={accepted}
-        disabled={disabled || busy}
-        onPress={() => setAccepted(!accepted)}
-      />
-      {state === "idle" ? (
-        <Button
-          variant="secondary"
-          label={t.dictate}
-          disabled={disabled || !accepted || checking}
-          onPress={() => {
-            setError("");
-            setNotice("");
-            setDenied(false);
-            setRequestId(null);
-            setSeconds(0);
-            void controller.current?.start();
-          }}
-        />
-      ) : null}
-      {state === "recording" ? (
-        <>
-          <T accessibilityLiveRegion="none">{t.dictationProgress(seconds)}</T>
-          <Button
-            label={t.stopDictation}
-            onPress={() => {
-              void controller.current?.finish();
-            }}
-          />
-        </>
-      ) : null}
-      {state !== "idle" && state !== "recording" ? (
-        <T accessibilityLiveRegion="polite">
-          {state === "starting"
-            ? t.dictationStarting
-            : state === "transcribing"
-              ? t.dictationTranscribing
-              : t.dictationCleaning}
-        </T>
-      ) : null}
-      {busy && state !== "cleaning" ? (
-        <Button
-          variant="ghost"
-          label={t.cancelDictation}
-          onPress={() => {
-            checkRequest.current?.abort();
-            setChecking(false);
-            void controller.current?.cancel();
-          }}
-        />
-      ) : null}
-      {error ? (
-        <T tone="danger" accessibilityLiveRegion="assertive">
-          {error}
-        </T>
-      ) : null}
-      {notice ? <T accessibilityLiveRegion="polite">{notice}</T> : null}
-      {denied ? (
-        <Button
-          variant="secondary"
-          label={t.microphoneSettings}
-          onPress={() => {
-            void Linking.openSettings().catch(() => setError(t.microphoneDenied));
-          }}
-        />
-      ) : null}
-      {requestId && !busy ? (
-        <Button
-          variant="secondary"
-          label={t.checkTranscription}
-          disabled={disabled}
-          onPress={() => {
-            void check();
-          }}
-        />
-      ) : null}
-    </View>
-  );
+  // Ce que la ligne d'état du champ dit : l'enregistrement, la transcription, puis le résultat.
+  const status =
+    state === "recording"
+      ? t.dictationProgress(seconds)
+      : state === "starting"
+        ? t.dictationStarting
+        : state === "transcribing"
+          ? t.dictationTranscribing
+          : state === "cleaning"
+            ? t.dictationCleaning
+            : notice;
+  return {
+    state,
+    busy,
+    recording: state === "recording",
+    status,
+    error,
+    denied,
+    canCheck: Boolean(requestId) && !busy,
+    canCancel: busy && state !== "cleaning",
+    start: () => {
+      setError("");
+      setNotice("");
+      setDenied(false);
+      setRequestId(null);
+      setSeconds(0);
+      void controller.current?.start();
+    },
+    stop: () => {
+      void controller.current?.finish();
+    },
+    cancel: () => {
+      checkRequest.current?.abort();
+      setChecking(false);
+      void controller.current?.cancel();
+    },
+    check: () => {
+      void check();
+    },
+    openSettings: () => {
+      void Linking.openSettings().catch(() => setError(t.microphoneDenied));
+    },
+  };
 }

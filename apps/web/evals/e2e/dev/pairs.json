@@ -1,0 +1,412 @@
+{
+  "version": 2,
+  "library": {
+    "catalog": "common",
+    "private": [
+      {
+        "name": "Tirage élastique maison",
+        "category": "strength",
+        "aliases": ["tirage élastique"],
+        "family": "strength",
+        "movement": "pull",
+        "equipment": ["bands"]
+      },
+      {
+        "name": "Routine épaules du lundi",
+        "category": "mobility",
+        "aliases": ["routine épaules"],
+        "family": "mobility",
+        "movement": "mobility",
+        "equipment": []
+      },
+      {
+        "name": "Pont fessier lesté au disque",
+        "category": "strength",
+        "family": "strength",
+        "movement": "hinge",
+        "equipment": ["other"],
+        "loadable": true
+      },
+      {
+        "name": "Swing kettlebell à une main",
+        "category": "strength",
+        "family": "strength",
+        "movement": "hinge",
+        "equipment": ["kettlebells"],
+        "loadable": true
+      }
+    ]
+  },
+  "pairs": [
+    {
+      "id": "DP-01",
+      "said": "squat arrière",
+      "key": "back-squat"
+    },
+    {
+      "id": "DP-02",
+      "said": "RDL",
+      "key": "romanian-deadlift"
+    },
+    {
+      "id": "DP-03",
+      "said": "dév couché",
+      "key": "bench-press"
+    },
+    {
+      "id": "DP-04",
+      "said": "militaire à la barre",
+      "key": "overhead-press"
+    },
+    {
+      "id": "DP-05",
+      "said": "squat barre devant",
+      "key": "front-squat"
+    },
+    {
+      "id": "DP-06",
+      "said": "relevés de bassin sur banc",
+      "key": "hip-thrust"
+    },
+    {
+      "id": "DP-07",
+      "said": "tractions à la barre fixe",
+      "key": "pull-up"
+    },
+    {
+      "id": "DP-08",
+      "said": "tractions supi",
+      "key": "chin-up"
+    },
+    {
+      "id": "DP-09",
+      "said": "contre-mouvement jump",
+      "key": "countermovement-jump"
+    },
+    {
+      "id": "DP-10",
+      "said": "sauts sur caisson",
+      "key": "box-jump"
+    },
+    {
+      "id": "DP-11",
+      "said": "gainage planche",
+      "key": "front-plank"
+    },
+    {
+      "id": "DP-12",
+      "said": "gainage côté",
+      "key": "side-plank"
+    },
+    {
+      "id": "DP-13",
+      "said": "genoux hauts",
+      "key": "high-knees"
+    },
+    {
+      "id": "DP-14",
+      "said": "talons fesses",
+      "key": "butt-kicks"
+    },
+    {
+      "id": "DP-15",
+      "said": "power clean depuis le sol",
+      "key": "power-clean"
+    },
+    {
+      "id": "DP-16",
+      "said": "arraché complet",
+      "key": "snatch"
+    },
+    {
+      "id": "DP-17",
+      "said": "balancé de kettlebell",
+      "key": "kettlebell-swing"
+    },
+    {
+      "id": "DP-18",
+      "said": "fentes bulgares",
+      "key": "bulgarian-squat"
+    },
+    {
+      "id": "DP-19",
+      "said": "push ups",
+      "key": "push-up"
+    },
+    {
+      "id": "DP-20",
+      "said": "corde à sauter",
+      "key": "easy-jump-rope"
+    },
+    {
+      "id": "DP-21",
+      "said": "poussée de chariot lesté",
+      "key": "sled-push"
+    },
+    {
+      "id": "DP-22",
+      "said": "ischios nordiques",
+      "key": "nordic-hamstring"
+    },
+    {
+      "id": "DP-23",
+      "said": "farmer walk avec haltères",
+      "key": "farmer-carry"
+    },
+    {
+      "id": "DP-24",
+      "said": "tirage avec l'élastique maison",
+      "private": "Tirage élastique maison"
+    },
+    {
+      "id": "DP-25",
+      "said": "soulevé de terre barre hexa",
+      "key": "trap-bar-deadlift"
+    },
+    {
+      "id": "DP-26",
+      "said": "planche Copenhague",
+      "absent": true
+    },
+    {
+      "id": "DP-27",
+      "said": "tirage menton",
+      "absent": true
+    },
+    {
+      "id": "DP-28",
+      "said": "burpees",
+      "absent": true
+    },
+    {
+      "id": "DP-29",
+      "said": "développé Arnold",
+      "absent": true
+    },
+    {
+      "id": "DP-30",
+      "said": "grimper de corde",
+      "absent": true
+    },
+    {
+      "id": "DP-31",
+      "said": "sprints lancés",
+      "key": "flying-sprint"
+    },
+    {
+      "id": "DP-32",
+      "said": "saut sur caisse",
+      "key": "box-jump"
+    },
+    {
+      "id": "DP-33",
+      "said": "tirage poulie haute",
+      "key": "lat-pulldown"
+    },
+    {
+      "id": "DP-34",
+      "said": "planche sur le côté",
+      "key": "side-plank"
+    },
+    {
+      "id": "DP-35",
+      "said": "fentes en marchant",
+      "key": "walking-lunge"
+    },
+    {
+      "id": "DP-36",
+      "said": "roue abdominale",
+      "key": "ab-wheel-rollout"
+    },
+    {
+      "id": "DP-37",
+      "said": "course en côte",
+      "key": "short-hill-sprint"
+    },
+    {
+      "id": "DP-38",
+      "said": "gainage sur les coudes",
+      "key": "front-plank"
+    },
+    {
+      "id": "DP-39",
+      "said": "saut en longueur pieds joints",
+      "key": "standing-broad-jump"
+    },
+    {
+      "id": "DP-40",
+      "said": "relevés de genoux à la barre fixe",
+      "key": "hanging-knee-raise"
+    },
+    {
+      "id": "DP-41",
+      "said": "squat sauté",
+      "key": "squat-jump"
+    },
+    {
+      "id": "DP-42",
+      "said": "pistol squat sur caisson",
+      "key": "box-pistol-squat"
+    },
+    {
+      "id": "DP-43",
+      "said": "lancers de médecine-ball en rotation",
+      "key": "medicine-ball-rotation"
+    },
+    {
+      "id": "DP-44",
+      "said": "marche du fermier avec kettlebells",
+      "key": "farmer-carry"
+    },
+    {
+      "id": "DP-45",
+      "said": "épaulé jeté",
+      "key": "clean-and-jerk"
+    },
+    {
+      "id": "DP-46",
+      "said": "transitions 90 90",
+      "key": "hip-90-90"
+    },
+    {
+      "id": "DP-47",
+      "said": "impulsions sur trois appuis",
+      "key": "three-step-takeoff"
+    },
+    {
+      "id": "DP-48",
+      "said": "sauts à la barre élan complet",
+      "key": "high-jump-full"
+    },
+    {
+      "id": "DP-49",
+      "said": "lancer de medecine ball vers l avant",
+      "key": "medicine-ball-forward"
+    },
+    {
+      "id": "DP-50",
+      "said": "pont fessier au sol",
+      "key": "glute-bridge"
+    },
+    {
+      "id": "DP-51",
+      "said": "swing à la kettlebell",
+      "key": "kettlebell-swing"
+    },
+    {
+      "id": "DP-52",
+      "said": "90/90 de hanches",
+      "key": "hip-90-90"
+    },
+    {
+      "id": "DP-53",
+      "said": "squat cosaque",
+      "key": "cossack-mobility"
+    },
+    {
+      "id": "DP-54",
+      "said": "ma routine épaules",
+      "private": "Routine épaules du lundi"
+    },
+    {
+      "id": "DP-55",
+      "said": "mon tirage élastique",
+      "private": "Tirage élastique maison"
+    },
+    {
+      "id": "DP-56",
+      "said": "du cardio",
+      "absent": true
+    },
+    {
+      "id": "DP-57",
+      "said": "des abdos",
+      "absent": true
+    },
+    {
+      "id": "DP-58",
+      "said": "un peu de souplesse",
+      "absent": true
+    },
+    {
+      "id": "DP-59",
+      "said": "du renfo du haut du corps",
+      "absent": true
+    },
+    {
+      "id": "DP-60",
+      "said": "des étirements",
+      "absent": true
+    },
+    {
+      "id": "DP-61",
+      "said": "pompes claquées",
+      "absent": true
+    },
+    {
+      "id": "DP-62",
+      "said": "course en côte longue",
+      "absent": true
+    },
+    {
+      "id": "DP-63",
+      "said": "gainage dorsal",
+      "absent": true
+    },
+    {
+      "id": "DP-64",
+      "said": "fentes croisées arrière",
+      "absent": true
+    },
+    {
+      "id": "DP-65",
+      "said": "griffés au mur",
+      "absent": true
+    },
+    {
+      "id": "DP-66",
+      "said": "soulevé de terre déficit",
+      "absent": true
+    },
+    {
+      "id": "DP-67",
+      "said": "squat à la barre guidée",
+      "key": "back-squat"
+    },
+    {
+      "id": "DP-68",
+      "said": "footing lent",
+      "key": "easy-continuous-run"
+    },
+    {
+      "id": "DP-69",
+      "said": "gainage ventral sur les avant-bras",
+      "key": "front-plank"
+    },
+    {
+      "id": "DP-70",
+      "said": "développé couché à la machine",
+      "key": "bench-press"
+    },
+    {
+      "id": "DP-71",
+      "said": "course lente",
+      "key": "easy-continuous-run"
+    },
+    {
+      "id": "DP-72",
+      "said": "superman",
+      "absent": true
+    },
+    {
+      "id": "DP-73",
+      "said": "soulevé de terre jambes tendues",
+      "absent": true
+    },
+    {
+      "id": "DP-74",
+      "said": "relevé de buste au banc à lombaires",
+      "absent": true
+    }
+  ]
+}

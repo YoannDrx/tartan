@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { Client } from "pg";
 import { createApiClient } from "../../../packages/api-client/src/index";
-import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { createCoachSpace } from "./helpers";
 
 test("le build de production refuse l'IA désactivée sans perturber le constructeur manuel", async ({ page }) => {
@@ -21,7 +21,7 @@ test("le build de production refuse l'IA désactivée sans perturber le construc
   await expect(page.locator('a[href^="/planificateur"]')).toHaveCount(0);
   for (const route of ["/planificateur", "/planificateur/propositions"]) {
     await page.goto(route);
-    await expect(page.getByText(m.aiPlanner.disabled, { exact: true })).toBeVisible();
+    await expect(page.getByText(w.planner.disabled, { exact: true })).toBeVisible();
     await expect(page.getByRole("textbox")).toHaveCount(0);
   }
   const api = createApiClient({

@@ -40,7 +40,7 @@ export default defineConfig({
       AI_PLANNER_FAKE_PROVIDER: "false",
       OPENAI_API_KEY: key,
       OPEN_AI_API_KEY: "",
-      AI_PLANNER_MODEL: process.env.AI_PLANNER_MODEL || "gpt-4.1",
+      AI_PLANNER_MODEL: process.env.AI_PLANNER_MODEL || "gpt-6.2-sol",
     },
   },
 });

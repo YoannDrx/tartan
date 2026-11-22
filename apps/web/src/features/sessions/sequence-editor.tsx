@@ -27,7 +27,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ActivityPicto } from "@/components/pictos";
 import { Button, IconButton } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -47,6 +47,21 @@ const menuItem =
 
 export type SequenceDestination = { parent: string | null; label: string };
 
+type Item = Block["items"][number];
+/**
+ * Ce qu'un écran ajoute à un exercice de la séquence, sans que l'éditeur en connaisse le sens. Le planificateur
+ * s'en sert pour un exercice dont la fiche est à vérifier (une note sous sa carte) et pour un exercice qui n'a pas
+ * encore de fiche (une carte à lui, à la même place, qui se glisse comme les autres).
+ */
+export type SequenceItemExtras = {
+  /** Le nom à dire quand l'exercice n'a pas de fiche. */
+  name?: (item: Item) => string | undefined;
+  /** Une carte à la place de celle de l'éditeur ; `grip` est la poignée, à poser dedans. */
+  card?: (item: Item, grip: ReactNode) => ReactNode;
+  /** Une note sous la carte de l'exercice. */
+  note?: (item: Item) => ReactNode;
+};
+
 export function SequenceEditor({
   block,
   exercises,
@@ -54,6 +69,7 @@ export function SequenceEditor({
   onEdit,
   onEditAutonomous,
   onDestination,
+  extras,
 }: {
   block: Block;
   exercises: ExerciseSummary[];
@@ -62,6 +78,7 @@ export function SequenceEditor({
   /** Ouvre la prescription de l'exercice fait à la place en autonomie. */
   onEditAutonomous?: (ref: string) => void;
   onDestination?: (destination: SequenceDestination) => void;
+  extras?: SequenceItemExtras;
 }) {
   const byId = new Map(exercises.map((exercise) => [exercise.id, exercise]));
   // Une opération qui dépasserait deux niveaux est refusée par le domaine : le coach le lit, rien n'est perdu.
@@ -92,6 +109,7 @@ export function SequenceEditor({
         onEditAutonomous={onEditAutonomous}
         onDestination={onDestination}
         dragging={dragging}
+        extras={extras}
       />
       {dragging.drag ? (
         <div
@@ -201,6 +219,7 @@ type LevelProps = {
   dragging: Dragging;
   /** Ouvre le sélecteur pour choisir l'exercice fait à la place en autonomie. */
   onReplace?: (ref: string) => void;
+  extras?: SequenceItemExtras;
 };
 
 function Level(props: LevelProps) {
@@ -264,7 +283,7 @@ function Level(props: LevelProps) {
                     checked={selected.includes(ref)}
                     onChange={() => toggle(ref)}
                   />
-                  {labels.select(nodeName(node, block, byId))}
+                  {labels.select(nodeName(node, block, byId, props.extras))}
                 </label>
               ) : null}
               <NodeCard {...props} node={node} index={index} onReplace={setReplacing} />
@@ -350,7 +369,9 @@ function Level(props: LevelProps) {
         onOpenChange={(open) => (open ? null : (setPicking(null), setReplacing(null)))}
         destination={parentName}
         title={
-          replacing ? labels.replaceTitle(nodeName({ kind: "exercise", itemRef: replacing }, block, byId)) : undefined
+          replacing
+            ? labels.replaceTitle(nodeName({ kind: "exercise", itemRef: replacing }, block, byId, props.extras))
+            : undefined
         }
         inGroup={inGroup}
         onPick={pick}
@@ -359,17 +380,22 @@ function Level(props: LevelProps) {
   );
 }
 
-const nodeName = (node: SequenceNode, block: Block, byId: Map<string, ExerciseSummary>) => {
+const nodeName = (
+  node: SequenceNode,
+  block: Block,
+  byId: Map<string, ExerciseSummary>,
+  extras?: SequenceItemExtras,
+) => {
   if (node.kind === "repeat") return node.name;
   if (node.kind === "recovery") return labels.recoveryLine(node.durationS);
   const item = block.items.find((entry) => entry.ref === node.itemRef);
-  return (item && byId.get(item.exerciseId)?.name) ?? labels.deletedExercise;
+  return (item && (byId.get(item.exerciseId)?.name ?? extras?.name?.(item))) ?? labels.deletedExercise;
 };
 
 function NodeCard(props: LevelProps & { node: SequenceNode; index: number }) {
   const { node, index, nodes, parent, block, byId, edit, apply, onEdit } = props;
   const ref = sequenceNodeRef(node);
-  const name = nodeName(node, block, byId);
+  const name = nodeName(node, block, byId, props.extras);
   // Sur téléphone, monter et descendre passent dans « Autres actions » : la poignée suffit à la carte.
   const actions = (
     <div className="ml-auto flex shrink-0 items-center">
@@ -427,6 +453,10 @@ function NodeCard(props: LevelProps & { node: SequenceNode; index: number }) {
     const tone = categoryColors(exercise?.category);
     const replacement = block.variant === "both" && item?.autonomous ? item.autonomous : null;
     const away = replacement ? byId.get(replacement.exerciseId) : undefined;
+    // Un écran peut poser sa propre carte à cette place (un exercice sans fiche encore), ou une note sous la carte.
+    const own = item ? props.extras?.card?.(item, grip) : null;
+    if (own) return <>{own}</>;
+    const note = item ? props.extras?.note?.(item) : null;
     return (
       <div className="min-w-0 rounded-button bg-card-raised">
         <div className="flex min-w-0 items-center gap-1 py-1 pr-1">
@@ -469,6 +499,7 @@ function NodeCard(props: LevelProps & { node: SequenceNode; index: number }) {
             </span>
           </button>
         ) : null}
+        {note ? <div className="border-t border-card-line px-3 py-2.5">{note}</div> : null}
       </div>
     );
   }

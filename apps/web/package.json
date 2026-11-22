@@ -25,6 +25,7 @@
     "eval:planner": "node --conditions=react-server --import tsx scripts/planner-eval.ts",
     "eval:planner:independent": "node --conditions=react-server --import tsx scripts/planner-independent-eval.ts",
     "eval:planner:founder": "node --conditions=react-server --import tsx scripts/planner-founder-eval.ts",
+    "eval:planner:e2e": "node --conditions=react-server --import tsx scripts/planner-e2e-eval.ts",
     "test:e2e:planner:live": "playwright test --config playwright.planner-live.config.ts"
   },
   "dependencies": {

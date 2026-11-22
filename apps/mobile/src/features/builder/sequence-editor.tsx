@@ -12,7 +12,7 @@ import {
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { randomUUID } from "expo-crypto";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ArrowRightLeft } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { Button, Field, T } from "../../ui/primitives";
@@ -22,20 +22,43 @@ import { radius, space, usePalette, useWorkTheme } from "../../ui/theme";
 type Block = SessionDraft["blocks"][number];
 const labels = m.builder.sequence;
 
+type Item = Block["items"][number];
+
+/**
+ * Ce qu'un écran ajoute à un exercice, sans que l'éditeur en connaisse le sens : le planificateur y pose l'état
+ * de chaque exercice (« À vérifier », emplacement à compléter). `card` remplace l'en-tête de l'exercice et ses
+ * options avancées ; `note` se lit sous l'en-tête.
+ */
+export type SequenceItemExtras = {
+  name?: (item: Item) => string | undefined;
+  card?: (item: Item) => ReactNode;
+  note?: (item: Item) => ReactNode;
+  // Des gestes de plus parmi les options avancées d'un exercice (remplacer la fiche, par exemple).
+  advanced?: (item: Item) => ReactNode;
+};
+
+/** Le sélecteur de fiche d'un écran qui cherche dans toute la bibliothèque, à la place de la liste intégrée. */
+export type SequencePicker = (props: {
+  title: string;
+  onPick: (exercise: ExerciseSummary) => void;
+  onClose: () => void;
+}) => ReactNode;
+
 type Props = {
   block: Block;
   exercises: ExerciseSummary[];
   onChange: (block: Block) => void;
   onEdit: (ref: string) => void;
-  onAdjust: (ref: string) => void;
+  // Réglages par athlète : absents, le bouton n'est pas montré.
+  onAdjust?: (ref: string) => void;
   onMove: (ref: string) => void;
   canMove: boolean;
   // La prescription de l'exercice fait en autonomie à la place de celui du club.
   onEditAutonomous: (ref: string) => void;
   onError: (message: string) => void;
+  extras?: SequenceItemExtras;
+  picker?: SequencePicker;
 };
-
-type Item = Block["items"][number];
 
 export function NativeSequenceEditor(props: Props) {
   const edit = (parent: string | null, command: SequenceEdit) =>
@@ -80,7 +103,8 @@ const AutonomousLine = ({
   const p = usePalette();
   const away = exercises.find((exercise) => exercise.id === item.autonomous?.exerciseId);
   const text = labels.autonomousLine(away?.name ?? labels.deletedExercise);
-  const prescription = (item.autonomous && formatPrescription(item.autonomous.prescription)) || m.builder.setPrescription;
+  const prescription =
+    (item.autonomous && formatPrescription(item.autonomous.prescription)) || m.builder.setPrescription;
   return (
     <Pressable
       testID={`autonomous-line-${item.ref}`}
@@ -142,7 +166,29 @@ function Level({
   };
   const nameOf = (ref: string) => {
     const item = props.block.items.find((entry) => entry.ref === ref);
-    return props.exercises.find((exercise) => exercise.id === item?.exerciseId)?.name ?? labels.deletedExercise;
+    return (
+      (item && props.extras?.name?.(item)) ??
+      props.exercises.find((exercise) => exercise.id === item?.exerciseId)?.name ??
+      labels.deletedExercise
+    );
+  };
+  const pick = (exercise: ExerciseSummary) => {
+    if (replacing) {
+      // Dans un groupe, le remplacement compte aussi une série par tour.
+      const prescription =
+        parent !== null ? prescriptionForGroup(exercise.defaultPrescription) : exercise.defaultPrescription;
+      setAutonomous(replacing, { exerciseId: exercise.id, prescription });
+      setReplacing(null);
+      setChoosing(false);
+      return;
+    }
+    const ref = randomUUID();
+    edit(parent, {
+      kind: "append",
+      node: { kind: "exercise", itemRef: ref },
+      item: { ref, exerciseId: exercise.id, prescription: exercise.defaultPrescription },
+    });
+    setChoosing(false);
   };
   const [expanded, setExpanded] = useState<string[]>([]);
   const [search, setSearch] = useState("");
@@ -169,8 +215,12 @@ function Level({
             ? node.name
             : node.kind === "recovery"
               ? m.builder.sequenceRecovery
-              : (exercise?.name ?? labels.deletedExercise);
+              : ((item && props.extras?.name?.(item)) ?? exercise?.name ?? labels.deletedExercise);
         const update = (next: SequenceNode) => edit(parent, { kind: "update", ref, node: next });
+        // L'écran prend la place de l'exercice : ses gestes sont les siens, l'éditeur n'y ajoute rien.
+        const card = item ? props.extras?.card?.(item) : null;
+        if (card) return <View key={ref}>{card}</View>;
+        const note = item ? props.extras?.note?.(item) : null;
         return (
           <View
             key={ref}
@@ -183,7 +233,10 @@ function Level({
               borderColor: tone.background,
             }}
           >
-            <View testID={`sequence-heading-${ref}`} style={{ padding: space.sm, borderRadius: radius.thumb, backgroundColor: tone.background }}>
+            <View
+              testID={`sequence-heading-${ref}`}
+              style={{ padding: space.sm, borderRadius: radius.thumb, backgroundColor: tone.background }}
+            >
               <T variant="bodyStrong" style={{ color: tone.text }}>
                 {name}
               </T>
@@ -193,6 +246,7 @@ function Level({
                 </T>
               ) : null}
             </View>
+            {note}
             {item ? (
               <>
                 <Button
@@ -240,14 +294,7 @@ function Level({
                 <T variant="caption" tone="muted">
                   {labels.noFinalRest}
                 </T>
-                <Level
-                  {...props}
-                  nodes={node.children}
-                  parent={node.ref}
-                  depth={depth + 1}
-                  edit={edit}
-                  apply={apply}
-                />
+                <Level {...props} nodes={node.children} parent={node.ref} depth={depth + 1} edit={edit} apply={apply} />
               </>
             ) : null}
             <Button
@@ -267,12 +314,15 @@ function Level({
                 {item ? (
                   <>
                     {" "}
-                    <Button
-                      compact
-                      variant="secondary"
-                      label={m.builder.adjustments}
-                      onPress={() => props.onAdjust(ref)}
-                    />
+                    {props.onAdjust ? (
+                      <Button
+                        compact
+                        variant="secondary"
+                        label={m.builder.adjustments}
+                        onPress={() => props.onAdjust?.(ref)}
+                      />
+                    ) : null}
+                    {props.extras?.advanced?.(item)}
                     {props.canMove ? (
                       <Button
                         compact
@@ -421,7 +471,13 @@ function Level({
           onPress={() => edit(parent, { kind: "repeatAll", ref: randomUUID(), name: labels.groupDefault })}
         />
       ) : null}
-      {choosing ? (
+      {choosing && props.picker ? (
+        props.picker({
+          title: replacing ? labels.replaceTitle(nameOf(replacing)) : m.builder.library,
+          onPick: pick,
+          onClose: () => setChoosing(false),
+        })
+      ) : choosing ? (
         <Sheet
           visible
           title={replacing ? labels.replaceTitle(nameOf(replacing)) : m.builder.library}
@@ -440,24 +496,7 @@ function Level({
                 variant="secondary"
                 testID={`exercise-option-${exercise.id}`}
                 label={exercise.name}
-                onPress={() => {
-                  if (replacing) {
-                    // Dans un groupe, le remplacement compte aussi une série par tour.
-                    const prescription =
-                      parent !== null ? prescriptionForGroup(exercise.defaultPrescription) : exercise.defaultPrescription;
-                    setAutonomous(replacing, { exerciseId: exercise.id, prescription });
-                    setReplacing(null);
-                    setChoosing(false);
-                    return;
-                  }
-                  const ref = randomUUID();
-                  edit(parent, {
-                    kind: "append",
-                    node: { kind: "exercise", itemRef: ref },
-                    item: { ref, exerciseId: exercise.id, prescription: exercise.defaultPrescription },
-                  });
-                  setChoosing(false);
-                }}
+                onPress={() => pick(exercise)}
               />
             ))}
         </Sheet>

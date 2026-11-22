@@ -64,11 +64,6 @@
       "count": 29
     }
   },
-  "src/features/planner/planner-loads.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 1
-    }
-  },
   "src/features/progression/confirmed-records.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 1

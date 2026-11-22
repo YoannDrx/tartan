@@ -1,0 +1,159 @@
+{
+  "version": 2,
+  "cases": [
+    {
+      "id": "EX-01",
+      "kind": "described",
+      "text": "Aujourd'hui pour le groupe Sprint : squat arrière, 3 séries de 8, récupération 1 min 30.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": { "groups": ["Sprint"], "athletes": [] },
+      "library": { "catalog": "common", "private": [] },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-23",
+            "steps": [{ "key": "back-squat", "sets": 3, "reps": 8, "load": null, "restS": 90 }]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "EX-02",
+      "kind": "described",
+      "text": "alors demain pour les sauteurs on fait un circuit trois tours avec dix fentes sautées vingt secondes de gainage ventral et huit tirages élastique maison une minute entre les tours et après ça développé couché quatre fois six à soixante kilos deux minutes de récup",
+      "spoken": true,
+      "today": "2026-11-23",
+      "recipients": { "groups": ["Sauteurs"], "athletes": [] },
+      "space": { "equipment": ["barbell", "bench", "rack", "bands"] },
+      "library": {
+        "catalog": "common",
+        "private": [
+          {
+            "name": "Tirage élastique maison",
+            "category": "strength",
+            "aliases": ["tirage élastique"],
+            "family": "strength",
+            "movement": "pull",
+            "equipment": ["bands"]
+          }
+        ]
+      },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-24",
+            "steps": [
+              {
+                "kind": "circuit",
+                "rounds": 3,
+                "restBetweenRoundsS": 60,
+                "steps": [
+                  { "key": "split-jumps", "reps": 10, "load": null },
+                  { "key": "front-plank", "durationS": 20, "load": null },
+                  { "private": "Tirage élastique maison", "reps": 8, "load": null }
+                ]
+              },
+              { "key": "bench-press", "sets": 4, "reps": 6, "load": { "value": 60, "unit": "kg" }, "restS": 120 }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "EX-03",
+      "kind": "described",
+      "text": "Mercredi, groupe Demi-fond : planche Copenhague 3 x 20 secondes par côté, puis gainage latéral 3 x 30 secondes, 45 secondes de récupération.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": { "groups": ["Demi-fond"], "athletes": [] },
+      "library": { "catalog": "common", "private": [] },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-25",
+            "steps": [
+              { "absent": true, "said": "planche Copenhague", "sets": 3, "durationS": 20, "load": null },
+              { "key": "side-plank", "sets": 3, "durationS": 30, "load": null, "restS": 45 }
+            ]
+          }
+        ],
+        "critical": ["wrong_date", "invented_load", "added_exercise", "wrong_exercise"]
+      }
+    },
+    {
+      "id": "EX-04",
+      "kind": "objective",
+      "text": "Jeudi, séance de renforcement du tronc et de pliométrie légère pour le groupe Sprint, 40 minutes, sans matériel.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": { "groups": ["Sprint"], "athletes": [] },
+      "space": { "equipment": ["bodyweight"], "objectives": ["speed", "power"] },
+      "library": { "catalog": "common", "private": [] },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-26",
+            "bounds": {
+              "durationMin": { "max": 40 },
+              "equipment": ["bodyweight"],
+              "families": ["core", "plyometrics"],
+              "exercises": { "min": 4, "max": 8 },
+              "noKg": true
+            }
+          }
+        ],
+        "critical": ["wrong_date", "invented_load"]
+      }
+    },
+    {
+      "id": "EX-05",
+      "kind": "mixed",
+      "text": "vendredi pour Lina on commence par vingt minutes de footing d'échauffement et ensuite tu me proposes un bloc de mobilité des hanches et des chevilles un quart d'heure pas plus",
+      "spoken": true,
+      "today": "2026-11-23",
+      "recipients": { "groups": [], "athletes": ["Lina Morel"] },
+      "space": {
+        "equipment": ["track"],
+        "groups": [{ "name": "Hauteur", "athletes": ["Lina Morel", "Hugo Petit"] }]
+      },
+      "library": { "catalog": "common", "private": [] },
+      "expect": {
+        "mustNotAsk": true,
+        "sessions": [
+          {
+            "date": "2026-11-27",
+            "steps": [{ "key": "warmup-jog", "durationS": 1200, "load": null }],
+            "bounds": {
+              "durationMin": { "max": 35 },
+              "families": ["mobility"],
+              "exercises": { "min": 3, "max": 7 },
+              "noKg": true
+            }
+          }
+        ],
+        "critical": ["wrong_date", "invented_load"]
+      }
+    },
+    {
+      "id": "EX-06",
+      "kind": "described",
+      "text": "Séance de côtes pour le groupe Demi-fond quand la météo le permettra : 8 fois course en côte courte, récupération en descente.",
+      "spoken": false,
+      "today": "2026-11-23",
+      "recipients": { "groups": ["Demi-fond"], "athletes": [] },
+      "library": { "catalog": "common", "private": [] },
+      "expect": {
+        "mustAsk": { "reason": "no_date" },
+        "sessions": [],
+        "critical": ["wrong_date"]
+      }
+    }
+  ]
+}

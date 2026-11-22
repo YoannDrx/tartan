@@ -1,5 +1,7 @@
-# T24, planificateur : le coach dicte une consigne, relit la proposition et crée le brouillon. En CI, le serveur
-# répond avec un prestataire factice (AI_PLANNER_FAKE_PROVIDER), qui n'existe jamais sur Vercel.
+# T24, planificateur : la demande en un écran, un seul champ, puis la séance à relire et le brouillon créé. Ni case
+# « J'ai relu », ni écran de mode, ni étape « Continuer ». En CI, le serveur répond avec un prestataire factice
+# (AI_PLANNER_FAKE_PROVIDER), qui n'existe jamais sur Vercel. Rejouable : l'accord et l'invite système sont
+# facultatifs, et chaque passage crée un nouveau brouillon.
 appId: ${APP_ID}
 env:
   EMAIL: ${COACH_EMAIL}
@@ -17,54 +19,41 @@ env:
 - tapOn:
     id: ai-consent-accept
     optional: true
-# L'écran de sélection est long : le groupe et le bouton sont sous le bas de l'écran.
-- scrollUntilVisible:
-    element: "Hauteur Démo.*"
-- tapOn: "Hauteur Démo.*"
-- scrollUntilVisible:
-    element: "Continuer avec ces destinataires"
-- tapOn: "Continuer avec ces destinataires"
-- scrollUntilVisible:
-    element:
+- extendedWaitUntil:
+    visible:
       id: planner-instructions
-    centerElement: true
+    timeout: 30000
+- assertVisible: "Étape 1 sur 2.*"
+- assertNotVisible: "J.ai relu.*"
+- assertNotVisible: "Continuer avec ces destinataires"
+# L'espace de démonstration n'a qu'un groupe : il est déjà choisi. S'il en a d'autres, le choisir.
+- tapOn:
+    text: "Hauteur Démo"
+    selected: false
+    optional: true
 - tapOn:
     id: planner-instructions
 - waitForAnimationToEnd
 - inputText: "Trois series de huit, deux minutes de repos"
 # Champ multiligne : toucher ailleurs ne ferme pas ce clavier, mais il a une commande pour se fermer.
 - hideKeyboard
-- scrollUntilVisible:
-    element: "J.ai relu la consigne et ses valeurs"
-- tapOn: "J.ai relu la consigne et ses valeurs"
-- scrollUntilVisible:
-    element: "Préparer une proposition"
-- tapOn: "Préparer une proposition"
+- takeScreenshot: planner-request
+# L'action d'envoi est collée au bas de l'écran : visible sans défiler.
+- tapOn:
+    id: planner-generate
 # Le simulateur partagé de la CI met parfois plus de 30 s à rendre la proposition.
 - extendedWaitUntil:
-    visible: "Séances proposées"
+    visible: "Ta séance à relire"
     timeout: 60000
-# La liste des exercices proposés précède le bouton : le faire venir à l'écran.
-- scrollUntilVisible:
-    element:
-      id: planner-prepare-review
-    centerElement: true
-- tapOn:
-    id: planner-prepare-review
-- scrollUntilVisible:
-    element: "Vérifier les charges individuelles"
-    centerElement: true
-- tapOn: "Vérifier les charges individuelles"
 - extendedWaitUntil:
-    visible: "Page jusqu.à l.athlète.*"
+    visible:
+      id: planner-create-drafts
+      enabled: true
     timeout: 30000
-- scrollUntilVisible:
-    element: "J.ai vérifié les dates.*"
-- tapOn: "J.ai vérifié les dates.*"
-- assertVisible:
-    text: "Créer 1 brouillon"
-    enabled: true
-- tapOn: "Créer 1 brouillon"
+- assertNotVisible: "J.ai vérifié.*"
+- takeScreenshot: planner-session
+- tapOn:
+    id: planner-create-drafts
 - extendedWaitUntil:
-    visible: "Les brouillons sont créés.*"
+    visible: "Brouillon créé.*"
     timeout: 30000

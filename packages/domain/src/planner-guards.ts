@@ -1,6 +1,15 @@
-import type { PlannerInterpretation, PlannerRichInterpretation, PlannerWarning } from "@tartan/contracts";
+import type {
+  PlannerDefect,
+  PlannerInterpretation,
+  PlannerRichInterpretation,
+  PlannerRichSession,
+  PlannerWarning,
+} from "@tartan/contracts";
 import { normalizeExerciseMention, normalizeExerciseTerm } from "./exercise-aliases";
 import { plannerItemLoads, plannerLoadsAllowed } from "./ai-planner";
+import type { PlannerComposeMovement } from "./planner-composition";
+import { isPlannerSlotToken, plannerDropItems } from "./planner-slots";
+import type { PlannerRequest } from "./planner-understanding";
 import { addDays } from "./status";
 
 // Contrôles déterministes appliqués à la réponse du modèle, côté serveur. Ils ne complètent jamais une séance.
@@ -52,20 +61,76 @@ const UNITS: Record<string, number> = {
 };
 const isNumberWord = (token: string) =>
   token in UNITS || token === "cent" || token === "cents" || token === "mille" || token === "vingts";
-function numberFromWords(words: readonly string[]): number {
-  let total = 0,
-    current = 0;
-  for (const word of words) {
-    if (word === "et") continue;
-    if (word === "mille") {
-      total += (current || 1) * 1000;
-      current = 0;
-    } else if (word === "cent" || word === "cents") current = (current % 100 || 1) * 100 + current - (current % 100);
-    else if ((word === "vingt" || word === "vingts") && current % 100 === 4) current += 76;
-    else if (word === "vingts") current += 20;
-    else current += UNITS[word] ?? 0;
+const TENS = new Set(["vingt", "trente", "quarante", "cinquante", "soixante"]);
+// Un nombre lu dans une suite de mots, et le rang du mot qui le suit. `split` : l'autre lecture possible d'une
+// dictée sans ponctuation (« cinquante deux » : cinquante-deux, ou cinquante puis deux).
+type SpokenNumber = { value: number; next: number; split?: { value: number; next: number } };
+/** De un à seize, puis dix-sept, dix-huit et dix-neuf : ce qui peut suivre une dizaine ou « quatre-vingt ». */
+function spokenUnit(tokens: readonly string[], at: number, max: number): SpokenNumber | null {
+  const word = tokens[at] ?? "";
+  const following = tokens[at + 1] ?? "";
+  if (word === "dix" && max >= 19 && (following === "sept" || following === "huit" || following === "neuf"))
+    return { value: 10 + UNITS[following]!, next: at + 2 };
+  const value = TENS.has(word) ? undefined : UNITS[word];
+  return value !== undefined && value >= 1 && value <= max ? { value, next: at + 1 } : null;
+}
+/**
+ * Un nombre de 0 à 99 selon la grammaire française : « soixante-dix », « soixante et onze », « quatre-vingts »,
+ * « quatre-vingt-cinq », « quatre-vingt-dix-sept ». Il s'arrête où le nombre s'arrête : dans « soixante-dix une à
+ * quatre-vingts », « une » commence un autre nombre, et « quatre-vingts » au pluriel ne se prolonge jamais.
+ */
+function spokenBelowHundred(tokens: readonly string[], at: number): SpokenNumber | null {
+  const word = tokens[at] ?? "";
+  if (word === "zero") return { value: 0, next: at + 1 };
+  if (TENS.has(word)) {
+    const base = UNITS[word]!;
+    if (tokens[at + 1] === "et") {
+      const unit = tokens[at + 2] ?? "";
+      return unit === "un" || unit === "une" || (word === "soixante" && unit === "onze")
+        ? { value: base + UNITS[unit]!, next: at + 3 }
+        : { value: base, next: at + 1 };
+    }
+    const unit = spokenUnit(tokens, at + 1, word === "soixante" ? 19 : 9);
+    return unit
+      ? { value: base + unit.value, next: unit.next, split: { value: base, next: at + 1 } }
+      : { value: base, next: at + 1 };
   }
-  return total + current;
+  if (word === "quatre" && (tokens[at + 1] === "vingt" || tokens[at + 1] === "vingts")) {
+    const unit = tokens[at + 1] === "vingt" ? spokenUnit(tokens, at + 2, 19) : null;
+    return unit ? { value: 80 + unit.value, next: unit.next } : { value: 80, next: at + 2 };
+  }
+  return spokenUnit(tokens, at, 19);
+}
+/** Jusqu'à 999 : « cent dix », « deux cents », « deux cent cinquante », « trois cent quatre-vingt-dix ». */
+function spokenBelowThousand(tokens: readonly string[], at: number): SpokenNumber | null {
+  const head = spokenUnit(tokens, at, 9);
+  const hundred = (word: string | undefined) => word === "cent" || word === "cents";
+  const [hundreds, after] =
+    tokens[at] === "cent"
+      ? [100, at + 1]
+      : head && head.value >= 2 && hundred(tokens[head.next])
+        ? [head.value * 100, head.next + 1]
+        : [0, at];
+  if (!hundreds) return spokenBelowHundred(tokens, at);
+  // « deux cents » au pluriel est un nombre rond : ce qui suit en commence un autre.
+  const rest = tokens[after - 1] === "cents" ? null : spokenBelowHundred(tokens, after);
+  return rest ? { value: hundreds + rest.value, next: rest.next } : { value: hundreds, next: after };
+}
+/** Un nombre déjà isolé, mot par mot (« trente et un », « quatre vingt dix ») ; 0 si ce n'en est pas un. */
+const numberFromWords = (words: readonly string[]) =>
+  spokenNumber(
+    words.flatMap((word) => word.split("-")),
+    0,
+  )?.value ?? 0;
+/** Un nombre en toutes lettres à partir de ce mot, jusqu'aux milliers, ou rien si ce mot n'en commence pas un. */
+function spokenNumber(tokens: readonly string[], at: number): SpokenNumber | null {
+  const lead = tokens[at] === "mille" ? { value: 1, next: at } : spokenBelowThousand(tokens, at);
+  if (!lead) return null;
+  if (tokens[lead.next] !== "mille") return lead;
+  const rest = spokenBelowThousand(tokens, lead.next + 1);
+  return rest
+    ? { value: lead.value * 1000 + rest.value, next: rest.next }
+    : { value: lead.value * 1000, next: lead.next + 1 };
 }
 
 // Chaque nombre d'un texte, en chiffres ou en toutes lettres, avec ce qui le suit.
@@ -83,23 +148,33 @@ function numberMentions(text: string): { value: number; after: string }[] {
   for (const segment of normalized.replace(/%/g, " pourcent ").split(/[,;:.!?()\n]+/)) {
     const tokens = segment.split(/[^a-z0-9]+/).filter(Boolean);
     for (let i = 0; i < tokens.length;) {
-      if (!isNumberWord(tokens[i]!)) {
+      const read = isNumberWord(tokens[i]!) ? spokenNumber(tokens, i) : null;
+      if (!read) {
         i++;
         continue;
       }
-      const words: string[] = [];
-      while (
-        i < tokens.length &&
-        (isNumberWord(tokens[i]!) || (tokens[i] === "et" && words.length > 0 && isNumberWord(tokens[i + 1] ?? "")))
-      )
-        words.push(tokens[i++]!);
-      const whole = numberFromWords(words);
+      // Les deux lectures d'une dizaine suivie d'une unité, sans ponctuation : le nombre composé, et la dizaine
+      // puis l'unité (« deux à cinquante deux à soixante »).
+      if (read.split) {
+        mentions.push({ value: read.split.value, after: tokens.slice(read.split.next).join(" ") });
+        mentions.push({ value: read.value - read.split.value, after: tokens.slice(read.next).join(" ") });
+      }
+      i = read.next;
+      const whole = read.value;
       mentions.push({ value: whole, after: tokens.slice(i).join(" ") });
-      if (tokens[i] === "virgule" && (isNumberWord(tokens[i + 1] ?? "") || /^\d+$/.test(tokens[i + 1] ?? ""))) {
-        const decimal = tokens[i + 1]!;
-        const digits = /^\d+$/.test(decimal) ? decimal : String(numberFromWords([decimal]));
-        mentions.push({ value: Number(`${whole}.${digits}`), after: tokens.slice(i + 2).join(" ") });
-        i += 2;
+      const decimal =
+        tokens[i] !== "virgule"
+          ? null
+          : /^\d+$/.test(tokens[i + 1] ?? "")
+            ? { value: Number(tokens[i + 1]), next: i + 2, digits: tokens[i + 1]! }
+            : isNumberWord(tokens[i + 1] ?? "")
+              ? spokenNumber(tokens, i + 1)
+              : null;
+      if (decimal) {
+        // « soixante virgule cinq », « quarante-deux virgule vingt-cinq » : la partie décimale entière.
+        const digits = "digits" in decimal ? decimal.digits : String(decimal.value);
+        mentions.push({ value: Number(`${whole}.${digits}`), after: tokens.slice(decimal.next).join(" ") });
+        i = decimal.next;
       }
       if (tokens[i] === "et" && tokens[i + 1] === "demi")
         mentions.push({ value: whole + 0.5, after: tokens.slice(i + 2).join(" ") });
@@ -194,6 +269,9 @@ const dayNumber = (raw: string) => {
 };
 const pad = (value: number) => String(value).padStart(2, "0");
 const weekdayOf = (iso: string) => new Date(`${iso}T12:00:00Z`).getUTCDay();
+/** Les jours de la semaine, sans accent, dimanche en tête comme `Date.getUTCDay`. */
+export const PLANNER_WEEKDAYS: readonly string[] = WEEKDAYS;
+export const plannerWeekdayOf = weekdayOf;
 const isRealDate = (iso: string) => {
   const parsed = new Date(`${iso}T12:00:00Z`);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === iso;
@@ -902,4 +980,430 @@ export function plannerExplicitSingleSetRest(value: PlannerRichInterpretation): 
       }),
     })),
   };
+}
+
+// ─── Étape « Contrôler » du planificateur en quatre étapes (21 novembre 2026) ──────────────────────────────────
+// La séance composée est confrontée à ce que le coach a dit. Ce qui se corrige sans rien inventer est corrigé ici
+// (exercice ajouté retiré, charge sans unité laissée vide, kilos proposés retirés). Ce qui exige de réécrire
+// devient un défaut précis, rendu au modèle pour une réparation ciblée. Un doute ne bloque plus : il laisse un
+// point « À vérifier ». Aucune de ces règles ne pose de question.
+
+export type PlannerCountingUnit = "repetitions" | "seconds" | "meters" | "contacts" | "steps";
+export type PlannerCheckContext = {
+  // Le texte du coach : la consigne, puis ses réponses et ajustements.
+  instructions: readonly string[];
+  request: Pick<PlannerRequest, "sessions">;
+  movements: readonly PlannerComposeMovement[];
+  // Exercices dont chaque destinataire a une référence de force : un pourcentage proposé y est permis.
+  percentTokens: ReadonlySet<string>;
+  // Unité de comptage de chaque fiche, quand elle est connue.
+  units: ReadonlyMap<string, PlannerCountingUnit>;
+  // Charges déjà portées par le contexte (séance à ajuster, séances voisines) : jamais inventées.
+  knownLoads?: readonly number[];
+  // « Ajuster » : la séance précédente est modifiée, la fidélité à la demande d'origine ne se rejoue pas.
+  adjusting?: boolean;
+  // Textes posés par le serveur sur une séance ou un exercice qu'il a dû écrire lui-même.
+  fallbackTitle: string;
+};
+export type PlannerCheckResult = {
+  value: PlannerRichInterpretation;
+  // Rang, dans la demande, de chaque séance de `value`.
+  indexes: number[];
+  defects: PlannerDefect[];
+};
+
+type RichBlock = PlannerRichSession["blocks"][number];
+type RichItem = RichBlock["items"][number];
+type RichLoad = NonNullable<RichItem["prescription"]["load"]>;
+const REPS_UNIT = /^\s*(?:rep|reps|repetitions?|fois|contacts?|marches?|appuis?|sauts?|bonds?)(?![a-z])/;
+const emptyPrescription = (notes: string | null): RichItem["prescription"] => ({
+  sets: null,
+  reps: null,
+  distanceM: null,
+  durationS: null,
+  restS: null,
+  load: null,
+  intensityTarget: null,
+  tempo: null,
+  contacts: null,
+  notes,
+  setPlan: null,
+});
+
+/**
+ * Les règles sûres, puis les défauts. `final` : après la dernière réparation, une charge que le coach n'a pas dite
+ * n'est plus un défaut à réparer, elle est retirée et signalée ; jamais une valeur inventée ne reste.
+ */
+export function plannerCheckComposition(
+  raw: PlannerRichInterpretation,
+  indexes: readonly number[],
+  context: PlannerCheckContext,
+  final = false,
+): PlannerCheckResult {
+  const coach = context.instructions.map(plannerCoachText);
+  const text = coach.join("\n");
+  const mentions = numberMentions(text);
+  const stated = plannerTextNumbers(text);
+  const known = new Set(context.knownLoads ?? []);
+  const defects: PlannerDefect[] = [];
+  const prepared = plannerExplicitSingleSetRest(plannerDropEmptyPercentages(raw));
+
+  const sessions = prepared.sessions.map((original, at) => {
+    const index = indexes[at]!;
+    const request = context.request.sessions[index];
+    const described = Boolean(request?.movements.length) && !request?.proposal && !context.adjusting;
+    // Les fiches que le coach a citées pour cette séance : le modèle ne les propose pas une seconde fois.
+    const cited = new Set(
+      context.adjusting
+        ? []
+        : context.movements.filter((movement) => movement.session === index).map((movement) => movement.exerciseToken),
+    );
+    // Une partie décrite ne reçoit aucun exercice que le coach n'a pas dit ; un emplacement n'est jamais proposé.
+    let session = plannerDropItems(
+      original,
+      (item) =>
+        item.origin !== "said" &&
+        (described || isPlannerSlotToken(item.exerciseToken) || cited.has(item.exerciseToken)),
+    );
+    const warnings: PlannerWarning[] = [];
+    const warn = (warning: PlannerWarning) => {
+      if (!warnings.some((w) => w.code === warning.code && w.block === warning.block && w.item === warning.item))
+        warnings.push(warning);
+    };
+    const blocks = session.blocks.map((block, b) => ({
+      ...block,
+      items: block.items.map((item, i): RichItem => {
+        const said = item.origin === "said";
+        const where = { block: b, item: i };
+        const judge = (
+          load: RichLoad | null,
+          token: string,
+          listUnit: RichLoad["type"] | null = null,
+        ): RichLoad | null => {
+          if (!load || known.has(load.value)) return load;
+          // Ce qui est proposé n'a jamais de kilos : un pourcentage seulement, là où chaque destinataire a sa
+          // référence de force. Ailleurs il ne serait résolu pour personne.
+          if (!said) return load.type === "pct_1rm" && context.percentTokens.has(token) ? load : null;
+          if (hasUnit(mentions, load.value, load.type === "kg" ? KG_UNIT : PERCENT_UNIT)) return load;
+          // La valeur est dite avec l'autre unité : c'est l'unité du coach qui vaut.
+          if (hasUnit(mentions, load.value, load.type === "kg" ? PERCENT_UNIT : KG_UNIT))
+            return { ...load, type: load.type === "kg" ? "pct_1rm" : "kg" };
+          // « 3 à 40 kg, 3 à 50, 2 à 55 » : l'unité dite une fois vaut pour toute l'énumération des séries.
+          if (listUnit && stated.has(load.value)) return { ...load, type: listUnit };
+          if (stated.has(load.value) || final) {
+            // Dite sans unité, ou jamais dite après réparation : laissée vide, signalée, jamais devinée.
+            warn({ code: "load_unclear", field: "load", ...where, detail: String(load.value) });
+            return null;
+          }
+          defects.push({
+            code: "invented_load",
+            session: index,
+            movementId: item.movementId ?? null,
+            detail: `La charge ${load.value} ${load.type === "kg" ? "kg" : "%"} n'est pas dans la demande du coach. Écris la charge qu'il a dite pour ce mouvement, ou null s'il n'en a dit aucune.`,
+          });
+          return load;
+        };
+        const loads = (prescription: RichItem["prescription"], token: string): RichItem["prescription"] => {
+          // L'unité que le coach a dite pour au moins une série détaillée, quand il n'en a dit qu'une.
+          const units = new Set(
+            (said ? (prescription.setPlan ?? []) : []).flatMap((set) =>
+              set.load && hasUnit(mentions, set.load.value, set.load.type === "kg" ? KG_UNIT : PERCENT_UNIT)
+                ? [set.load.type]
+                : [],
+            ),
+          );
+          const listUnit = units.size === 1 ? [...units][0]! : null;
+          return {
+            ...prescription,
+            load: judge(prescription.load, token, listUnit),
+            ...(prescription.setPlan
+              ? { setPlan: prescription.setPlan.map((set) => ({ ...set, load: judge(set.load, token, listUnit) })) }
+              : {}),
+          };
+        };
+        let prescription = loads(item.prescription, item.exerciseToken);
+        // Un nombre sans unité se range selon l'unité de comptage de la fiche, et se signale.
+        const unit = said ? context.units.get(item.exerciseToken) : undefined;
+        if (said) {
+          const { reps, durationS, distanceM } = prescription;
+          const bareTime = durationS !== null && durationS > 0 && !unitStated(mentions, durationS, "time");
+          const bareDistance = distanceM !== null && distanceM > 0 && !unitStated(mentions, distanceM, "distance");
+          const bareReps =
+            reps !== null &&
+            durationS === null &&
+            distanceM === null &&
+            mentions.some((m) => m.value === reps) &&
+            !mentions.some((m) => m.value === reps && REPS_UNIT.test(m.after));
+          const counted = unit === "seconds" || unit === "meters" ? unit : unit ? "repetitions" : undefined;
+          if (bareTime && counted && counted !== "seconds")
+            prescription =
+              counted === "meters"
+                ? { ...prescription, durationS: null, distanceM: durationS }
+                : { ...prescription, durationS: null, reps: reps ?? durationS };
+          else if (bareDistance && counted && counted !== "meters")
+            prescription =
+              counted === "seconds"
+                ? { ...prescription, distanceM: null, durationS: Math.round(distanceM!) }
+                : { ...prescription, distanceM: null, reps: reps ?? Math.round(distanceM!) };
+          else if (bareReps && counted === "seconds") prescription = { ...prescription, reps: null, durationS: reps };
+          else if (bareReps && counted === "meters") prescription = { ...prescription, reps: null, distanceM: reps };
+          if (bareTime || bareDistance || (bareReps && (counted === "seconds" || counted === "meters")))
+            warn({
+              code: "unit_assumed",
+              field: "other",
+              ...where,
+              detail: String(durationS ?? distanceM ?? reps),
+            });
+        }
+        return {
+          ...item,
+          prescription,
+          ...(item.autonomous
+            ? {
+                autonomous: {
+                  ...item.autonomous,
+                  prescription: loads(item.autonomous.prescription, item.autonomous.exerciseToken),
+                },
+              }
+            : {}),
+        };
+      }),
+    }));
+    session = { ...session, blocks, warnings };
+    if (request && !context.adjusting) {
+      // Chaque mouvement cité est dans la séance, dans l'ordre où le coach l'a dit.
+      const order = blocks.flatMap((block) =>
+        block.items.flatMap((item) => (item.movementId ? [item.movementId] : [])),
+      );
+      const expected = request.movements.filter((movement) => !movement.replaces);
+      for (const movement of expected)
+        if (!order.includes(movement.id))
+          defects.push({
+            code: "missing_movement",
+            session: index,
+            movementId: movement.id,
+            detail: `Le mouvement ${movement.id} (« ${movement.said} »${movement.prescription ? ` : ${movement.prescription}` : ""}) manque dans la séance. Ajoute-le à sa place, avec la prescription dite par le coach.`,
+          });
+      const first = expected.map((movement) => order.indexOf(movement.id)).filter((position) => position >= 0);
+      if (first.some((position, i) => i > 0 && position < first[i - 1]!))
+        defects.push({
+          code: "order",
+          session: index,
+          movementId: null,
+          detail: `Les mouvements ne sont pas dans l'ordre de la demande. Ordre attendu : ${expected.map((movement) => movement.id).join(", ")}.`,
+        });
+    }
+    return session;
+  });
+
+  const kept: PlannerRichSession[] = [];
+  const keptIndexes: number[] = [];
+  sessions.forEach((session, at) => {
+    if (session.blocks.length) {
+      kept.push(session);
+      keptIndexes.push(indexes[at]!);
+    }
+  });
+  context.request.sessions.forEach((_, index) => {
+    if (!keptIndexes.includes(index))
+      defects.push({
+        code: "missing_session",
+        session: index,
+        movementId: null,
+        detail: `La séance de rang ${index} n'a aucun exercice. Écris-la entièrement.`,
+      });
+  });
+  // Tours demandés mais absents, pause qui ne s'exécuterait pas : une réécriture de la structure.
+  const structural = plannerStructureWarnings(kept, text);
+  kept.forEach((session, at) => {
+    for (const warning of structural[at] ?? [])
+      if (warning.code === "rounds_missing" || warning.code === "rest_not_executed")
+        defects.push({
+          code: "rounds",
+          session: keptIndexes[at]!,
+          movementId: null,
+          detail:
+            warning.code === "rounds_missing"
+              ? `La demande parle de ${warning.detail} tours, absents de la séance. Un circuit ou un superset est un nœud repeat : rounds = nombre de tours, chaque enfant à sets 1.`
+              : "Une pause est placée dans restS d'un exercice à une seule série, dans un groupe : elle ne s'exécuterait pas. Une pause entre deux gestes est un nœud recovery ; restBetweenRoundsS sépare les tours.",
+        });
+  });
+  return { value: { ...prepared, sessions: kept }, indexes: keptIndexes, defects };
+}
+
+type SequenceNodes = NonNullable<RichBlock["sequence"]>;
+// Écarts de forme qui restent proposés au coach : des tours qu'il n'a pas dits, des tours dits et absents, une
+// pause qui disparaîtrait à l'exécution.
+function plannerStructureWarnings(sessions: readonly PlannerRichSession[], text: string): PlannerWarning[][] {
+  const stated = plannerTextNumbers(text);
+  const represented = new Set<number>();
+  const perSession = sessions.map((session) => {
+    const warnings: PlannerWarning[] = [];
+    session.blocks.forEach((block, b) => {
+      block.items.forEach((item, i) => {
+        if (block.sequence && (item.prescription.sets ?? 1) === 1 && (item.prescription.restS ?? 0) > 0)
+          warnings.push({ code: "rest_not_executed", field: "rest", block: b, item: i, detail: null });
+      });
+      const rounds = (nodes: SequenceNodes) => {
+        for (const node of nodes)
+          if (node.kind === "repeat") {
+            represented.add(node.rounds);
+            if (!stated.has(node.rounds) && block.items.some((item) => item.origin === "said"))
+              warnings.push({
+                code: "rounds_not_stated",
+                field: "rounds",
+                block: b,
+                item: null,
+                detail: String(node.rounds),
+              });
+            rounds(node.children as SequenceNodes);
+          }
+      };
+      if (block.sequence) rounds(block.sequence);
+    });
+    return warnings;
+  });
+  const first = perSession[0];
+  if (first && !CORRECTION.test(plain(text)) && /\b(?:circuit|superset)\b/.test(plain(text)))
+    for (const mention of numberMentions(text))
+      if (mention.value > 1 && /^\s*tours?\b/.test(mention.after) && !represented.has(mention.value))
+        first.push({ code: "rounds_missing", field: "rounds", block: null, item: null, detail: String(mention.value) });
+  return perSession;
+}
+
+/**
+ * Après la dernière réparation : la séance que le coach relira. Ce qui manque encore est posé sans rien inventer
+ * (un mouvement cité absent revient avec sa fiche et la prescription dite en note, à compléter), et chaque doute
+ * devient un point « À vérifier ». `null` : une séance sans exercice, que rien ne permet d'écrire.
+ */
+export function plannerSettleComposition(
+  checked: PlannerCheckResult,
+  context: PlannerCheckContext,
+): { value: PlannerRichInterpretation; indexes: number[] } | null {
+  const text = context.instructions.map(plannerCoachText).join("\n");
+  const byIndex = new Map(checked.indexes.map((index, at) => [index, checked.value.sessions[at]!]));
+  const sessions: PlannerRichSession[] = [];
+  const indexes: number[] = [];
+  for (const [index, request] of context.request.sessions.entries()) {
+    let session = byIndex.get(index);
+    const expected = context.adjusting
+      ? []
+      : context.movements.filter((movement) => movement.session === index && !movement.replaces);
+    if (!session) {
+      // Une séance d'objectif sans exercice ne s'invente pas ; une séance décrite se pose mouvement par mouvement.
+      if (!expected.length || !request.date) return null;
+      session = {
+        date: request.date,
+        startTime: request.startTime,
+        title: context.fallbackTitle,
+        type: "strength",
+        durationMin: null,
+        targetTokens: [...request.targetTokens],
+        blocks: [{ name: context.fallbackTitle, items: [], sequence: null }],
+        warnings: [],
+      };
+    }
+    const present = new Set(
+      session.blocks.flatMap((block) => block.items.flatMap((item) => (item.movementId ? [item.movementId] : []))),
+    );
+    const missing = expected.filter((movement) => !present.has(movement.id));
+    // Chaque mouvement cité a sa place dans la séance, dans l'ordre dit : celui qui manque encore est posé juste
+    // avant le mouvement cité qui le suit, sinon à la fin. Jamais rien à la place d'un mouvement dit.
+    for (const movement of missing) {
+      const current: PlannerRichSession = session;
+      const rank = expected.indexOf(movement);
+      const after = new Set(expected.slice(rank + 1).map((entry) => entry.id));
+      let blockAt = current.blocks.length - 1;
+      let position = current.blocks[blockAt]!.items.length;
+      let before: string | null = null;
+      search: for (const [b, block] of current.blocks.entries())
+        for (const [i, item] of block.items.entries())
+          if (item.movementId && after.has(item.movementId)) {
+            blockAt = b;
+            position = i;
+            before = item.ref ?? null;
+            break search;
+          }
+      const added: RichItem = {
+        ref: `late-${movement.id}`.slice(0, 64),
+        exerciseToken: movement.exerciseToken,
+        prescription: emptyPrescription(movement.prescription?.slice(0, 500) ?? null),
+        instruction: [movement.said, movement.prescription].filter(Boolean).join(", ").slice(0, 2000),
+        origin: "said",
+        movementId: movement.id,
+        said: movement.said,
+        confidence: movement.confidence,
+        ...(movement.alternatives.length ? { alternatives: [...movement.alternatives].slice(0, 3) } : {}),
+        ...(movement.suggestion ? { suggestion: movement.suggestion } : {}),
+        autonomous: null,
+      };
+      const node = { kind: "exercise" as const, itemRef: added.ref! };
+      const holds = (entry: SequenceNodes[number]): boolean =>
+        entry.kind === "exercise"
+          ? entry.itemRef === before
+          : entry.kind === "repeat" && (entry.children as SequenceNodes).some(holds);
+      session = {
+        ...current,
+        warnings: [
+          // Les points déjà posés sur les exercices suivants du bloc glissent d'un rang.
+          ...(current.warnings ?? []).map((warning) =>
+            warning.block === blockAt && warning.item !== null && warning.item >= position
+              ? { ...warning, item: warning.item + 1 }
+              : warning,
+          ),
+          { code: "to_complete", field: "other", block: blockAt, item: position, detail: null },
+        ],
+        blocks: current.blocks.map((entry, b) => {
+          if (b !== blockAt) return entry;
+          const at = before && entry.sequence ? entry.sequence.findIndex(holds) : -1;
+          return {
+            ...entry,
+            items: [...entry.items.slice(0, position), added, ...entry.items.slice(position)],
+            sequence: entry.sequence
+              ? at >= 0
+                ? [...entry.sequence.slice(0, at), node, ...entry.sequence.slice(at)]
+                : [...entry.sequence, node]
+              : entry.sequence,
+          };
+        }),
+      };
+    }
+    if (!session.blocks.some((block) => block.items.length)) return null;
+    // La durée demandée borne la séance proposée ; le modèle ne l'allonge jamais. Dans une demande mixte, elle ne
+    // vaut que pour la partie à composer : la durée de la séance entière reste celle que le modèle a lue.
+    const asked = request.proposal?.durationMin ?? null;
+    if (asked !== null && !request.movements.length)
+      session = { ...session, durationMin: Math.min(session.durationMin ?? asked, asked) };
+    sessions.push(session);
+    indexes.push(index);
+  }
+  const structural = plannerStructureWarnings(sessions, text);
+  const habits = context.instructions.length === 1 ? [...habitualIssues(text)] : [];
+  const settled = sessions.map((session, at) => {
+    const warnings: PlannerWarning[] = [...(session.warnings ?? [])];
+    const add = (warning: PlannerWarning) => {
+      if (!warnings.some((w) => w.code === warning.code && w.block === warning.block && w.item === warning.item))
+        warnings.push(warning);
+    };
+    session.blocks.forEach((block, b) =>
+      block.items.forEach((item, i) => {
+        // Fiche « probable » : posée, signalée, avec les autres fiches possibles. Le détail est son jeton.
+        if (item.confidence === "probable")
+          add({ code: "approximate_exercise", field: "exercise", block: b, item: i, detail: item.exerciseToken });
+      }),
+    );
+    for (const warning of structural[at] ?? []) add(warning);
+    // Une habitude (« comme d'habitude ») ne se devine pas : rien n'est écrit, le coach vérifie.
+    if (at === 0)
+      for (const issue of habits)
+        add({
+          code: issue === "load" ? "habit_load" : "habit_rest",
+          field: issue,
+          block: null,
+          item: null,
+          detail: null,
+        });
+    return { ...session, warnings: warnings.slice(0, 30) };
+  });
+  return { value: { ...checked.value, sessions: settled }, indexes };
 }

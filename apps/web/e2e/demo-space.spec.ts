@@ -103,8 +103,8 @@ test("un coach neuf ouvre la démonstration, la parcourt, revient à son espace 
   // Coupés : le planificateur (ni onglet, ni écran) et l'envoi de vidéo (refusé par le serveur, raison donnée).
   await expect(page.getByRole("link", { name: m.nav.planificateur })).toHaveCount(0);
   await page.goto("/planificateur");
-  await expect(page.getByText(m.aiPlanner.disabled)).toBeVisible();
-  await expect(page.getByRole("link", { name: m.aiPlanner.seeOffers })).toHaveCount(0);
+  await expect(page.getByText(w.planner.disabled)).toBeVisible();
+  await expect(page.getByRole("link", { name: w.planner.seeOffers })).toHaveCount(0);
   const upload = await page.request.post(`/api/v1/orgs/${demo!.id}/videos`, {
     data: {},
     headers: { origin: new URL(page.url()).origin },

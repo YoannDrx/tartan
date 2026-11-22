@@ -5,6 +5,7 @@ const optional = z
   .string()
   .optional()
   .transform((v) => (v && v.length > 0 ? v : undefined));
+const plannerEffort = z.enum(["none", "low", "medium", "high"]);
 
 const schema = z.object({
   DATABASE_URL: z.string().min(1),
@@ -64,8 +65,21 @@ const schema = z.object({
   OPEN_AI_API_KEY: optional,
   // Coupe-circuit : absent, le planificateur s'ouvre dès qu'une clé est configurée ; "false" le coupe.
   AI_PLANNER_ENABLED: z.enum(["true", "false"]).optional(),
-  // gpt-4.1 depuis le lot H : 75 sur 80 en un passage contre 70 à 72 pour gpt-4.1-mini, et plus rapide (docs/reference/planificateur-ia.md).
-  AI_PLANNER_MODEL: z.string().min(1).default("gpt-4.1"),
+  // Planificateur en quatre étapes (docs/reference/planificateur-ia.md). Le modèle principal compose et répare ;
+  // le modèle rapide comprend la demande et retrouve les fiches. gpt-4.1 et gpt-4.1-mini s'arrêtent le
+  // 14 janvier 2027 : les défauts sont dans la gamme GPT-6, choisis à la mesure du 21 novembre 2026.
+  AI_PLANNER_MODEL: z.string().min(1).default("gpt-6.2-sol"),
+  AI_PLANNER_FAST_MODEL: z.string().min(1).default("gpt-6.1-terra"),
+  // Modèle qui compose une demande seulement décrite (rien à proposer) : vide, le modèle rapide. Dès qu'une partie
+  // est à proposer, ou pour un ajustement, c'est le modèle principal. Le poser à la valeur de AI_PLANNER_MODEL
+  // rend la composition au modèle principal pour toute demande.
+  AI_PLANNER_DESCRIBED_MODEL: optional,
+  // Effort de raisonnement de chaque étape. `none` n'existe que sur Luna et Terra : ailleurs il devient `low`.
+  AI_PLANNER_UNDERSTAND_EFFORT: plannerEffort.default("none"),
+  AI_PLANNER_MATCH_EFFORT: plannerEffort.default("low"),
+  // Composer : `none` sur le modèle rapide (mesuré le 22 novembre 2026), `low` sur Sol, qui refuse `none`.
+  AI_PLANNER_COMPOSE_EFFORT: plannerEffort.default("none"),
+  AI_PLANNER_REPAIR_EFFORT: plannerEffort.default("low"),
   AI_TRANSCRIPTION_MODEL: z.string().min(1).default("gpt-transcribe"),
   CRON_SECRET: optional,
   CRON_HEARTBEAT_URL: optional,

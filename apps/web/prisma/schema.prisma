@@ -37,6 +37,7 @@ model User {
   consents    Consent[]            @relation("ConsentUser")
   onboardingStates OnboardingState[]
   exerciseLists ExerciseList[]
+  exerciseTermAliases ExerciseTermAlias[]
 
   suspendedAt DateTime? @map("suspended_at")
   clientInstallations ClientInstallation[]
@@ -224,6 +225,7 @@ model Organization {
   invitations       Invitation[]
   exercises         Exercise[]
   exerciseLists     ExerciseList[]
+  exerciseTermAliases ExerciseTermAlias[]
   legacyStrengthMappings LegacyStrengthMapping[]
   templates         SessionTemplate[]
   scheduledSessions ScheduledSession[]
@@ -590,9 +592,32 @@ model Exercise {
   strengthReferences StrengthReference[]
   legacyStrengthMappings LegacyStrengthMapping[]
   listItems ExerciseListItem[]
+  termAliases ExerciseTermAlias[]
 
   @@index([organizationId])
   @@map("exercises")
+}
+
+// Alias appris : le terme qu'un coach a dit au planificateur, et la fiche qu'il a choisie pour lui. Un seul choix
+// par espace et par terme, le dernier ; il ne quitte jamais son espace, même quand la fiche est commune.
+// `term` est la clé normalisée (`plannerTermKey`), `said` le terme tel qu'il a été dit.
+model ExerciseTermAlias {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  term           String
+  said           String
+  exerciseId     String   @map("exercise_id") @db.Uuid
+  authorId       String?  @map("author_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  exercise     Exercise     @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  author       User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, term])
+  @@index([exerciseId])
+  @@map("exercise_term_aliases")
 }
 
 // Les listes d'un coach : ses banques d'exercices, privées par défaut. Une liste partagée se lit par les autres
@@ -1863,6 +1888,8 @@ model AiPlannerOperation {
   // Référence de résultat seulement, jamais de transcription ni texte du coach.
   result Json?
   failureCode String? @map("failure_code")
+  // L'étape du planificateur où la panne est survenue (understand, match, compose, repair).
+  failureStep String? @map("failure_step")
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

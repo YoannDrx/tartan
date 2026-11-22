@@ -144,6 +144,9 @@ export type PlannerValidationContext = {
   targetTokens: ReadonlySet<string>;
   // Seulement les consignes et réponses relues ; jamais de notes privées ou santé structurée.
   reviewedInstructions: readonly string[];
+  // Faux depuis le planificateur en quatre étapes : un exercice n'est plus rattaché à la demande par une citation
+  // exacte, mais par le mouvement cité qu'il exécute (`movementId`), contrôlé par `plannerCheckComposition`.
+  citations?: boolean;
   // Mode « Proposer » : exercices dont tous les destinataires ont une référence de force. Seul un pourcentage
   // du maximum y est admis, résolu par Tartan pour chacun ; un kilo proposé reste toujours refusé.
   percentTokens?: ReadonlySet<string>;
@@ -222,7 +225,11 @@ export function validatePlannerInterpretation(
             issues.add("exercise");
         }
         if (context.mode === "propose" && !plannerLoadsAllowed(item, context.percentTokens)) issues.add("prescription");
-        if (context.mode !== "propose" && !context.reviewedInstructions.some((text) => text.includes(item.instruction)))
+        if (
+          context.citations !== false &&
+          context.mode !== "propose" &&
+          !context.reviewedInstructions.some((text) => text.includes(item.instruction))
+        )
           issues.add("instruction");
         try {
           // Validation du contrat métier existant : pas de valeur de force ni conversion RPE → kg.
