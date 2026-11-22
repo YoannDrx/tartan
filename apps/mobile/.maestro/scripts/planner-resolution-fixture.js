@@ -12,6 +12,7 @@ var me = json(http.get(base + "/api/v1/me", auth).body);
 var org = me.spaces[0].organizationId;
 var context = json(http.get(base + "/api/v1/orgs/" + org + "/session-builder", auth).body);
 if (!context.groups.length) throw new Error("groupe de recette requis");
+// Un nom neuf à chaque passage : aucune fiche ne le porte en entier, il devient un emplacement à compléter.
 output.plannerMovement = "Mouvement natif de recette " + Date.now();
 output.plannerInstruction = output.plannerMovement + ", trois series de huit, repos 90 secondes";
 output.plannerUrl = "tartan-dev:///planner?groupId=" + context.groups[0].id;

@@ -1,5 +1,7 @@
-# Deux modes visibles ; le catalogue approuvé ouvre le brief de proposition.
-# Exercice inconnu → fiche privée relue → reprise → brouillon, prestataire factice local.
+# Planificateur : un exercice que la bibliothèque n'a pas devient un emplacement à compléter, à sa place dans la
+# séance. « Créer la fiche » ouvre la création rapide, nom, famille et charge déjà proposés ; « Créer et utiliser »
+# la pose dans la séance, sans réponse écrite ni relance ; le brouillon se crée ensuite. Prestataire factice local.
+# Rejouable : le mouvement porte un nom neuf à chaque passage, l'accord est facultatif.
 appId: ${APP_ID}
 env:
   EMAIL: ${COACH_EMAIL}
@@ -17,131 +19,57 @@ env:
 - tapOn:
     id: ai-consent-accept
     optional: true
-- scrollUntilVisible:
-    element: "Continuer avec ces destinataires"
-# Dernier bouton : entièrement visible, mais impossible à centrer davantage en bas de page.
-- tapOn: "Continuer avec ces destinataires"
-- scrollUntilVisible:
-    element:
-      id: planner-mode-propose
-    centerElement: true
-- tapOn:
-    id: planner-mode-propose
-- assertVisible: "L.IA propose des choix.*"
-- assertNotVisible: "Le mode proposition attend.*"
-- assertVisible: "Durée disponible.*"
-- takeScreenshot: planner-proposal-brief
-- scrollUntilVisible:
-    element:
-      id: planner-mode-format
-    direction: UP
-    centerElement: true
-- tapOn:
-    id: planner-mode-format
-- assertNotVisible: "Le mode proposition attend.*"
-- scrollUntilVisible:
-    element:
+- extendedWaitUntil:
+    visible:
       id: planner-instructions
-    centerElement: true
+    timeout: 30000
 - tapOn:
     id: planner-instructions
+- waitForAnimationToEnd
 - inputText: ${output.plannerInstruction}
 - hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: planner-reviewed
-    centerElement: true
-- tapOn:
-    id: planner-reviewed
 - tapOn:
     id: planner-generate
 - extendedWaitUntil:
-    visible: "Précisions nécessaires"
+    visible: "Ta séance à relire"
+    timeout: 60000
+# Tant qu'un exercice attend sa fiche, le bouton du bas dit lequel, et ne crée pas le brouillon.
+- extendedWaitUntil:
+    visible:
+      id: planner-complete
     timeout: 30000
+- assertVisible: "Compléter « Mouvement natif de recette.*"
+- assertNotVisible:
+    id: planner-create-drafts
 - scrollUntilVisible:
     element:
-      id: planner-create-exercise
+      id: planner-slot-create
     centerElement: true
+- takeScreenshot: planner-slot-open
 - tapOn:
-    id: planner-create-exercise
-- scrollUntilVisible:
-    element:
-      id: planner-exercise-cues
-    centerElement: true
-# Le champ multiligne peut intercepter le centrage du pilote sous le bandeau.
-# Glisser depuis la marge extérieure pour replacer le champ dans le contenu.
-- swipe:
-    start: "98%, 25%"
-    end: "98%, 60%"
-    duration: 500
-# Selon la hauteur du formulaire, le glissement peut faire sortir le champ : le ramener.
-- scrollUntilVisible:
-    element:
-      id: planner-exercise-cues
-- tapOn:
-    id: planner-exercise-cues
-- inputText: "Garder les appuis stables."
+    id: planner-slot-create
+# Le nom est celui que le coach a dit ; la famille et la charge sont déjà choisies : un seul bouton.
+- extendedWaitUntil:
+    visible:
+      id: planner-quick-submit
+    timeout: 10000
 - copyTextFrom:
-    id: planner-exercise-cues
-- assertTrue: ${maestro.copiedText === "Garder les appuis stables."}
-- tapOn: "Consignes techniques.*"
-- scrollUntilVisible:
-    element:
-      id: planner-exercise-reviewed
-    centerElement: true
+    id: planner-quick-name
+- assertTrue: ${maestro.copiedText === output.plannerMovement}
+- takeScreenshot: planner-quick-create
 - tapOn:
-    id: planner-exercise-reviewed
-- assertVisible:
-    id: planner-exercise-save
-    enabled: true
-- tapOn:
-    id: planner-exercise-save
+    id: planner-quick-submit
 - extendedWaitUntil:
-    visible: "Exercice rattaché.*"
+    visible:
+      id: planner-create-drafts
+      enabled: true
     timeout: 30000
-- takeScreenshot: planner-private-exercise-linked
-- scrollUntilVisible:
-    element:
-      id: planner-reply
-    centerElement: true
+- assertNotVisible:
+    id: planner-slot-create
+- takeScreenshot: planner-slot-filled
 - tapOn:
-    id: planner-reply
-- inputText: "Trois series de huit, repos 90 secondes."
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: planner-reply-reviewed
-    centerElement: true
-- tapOn:
-    id: planner-reply-reviewed
-- tapOn:
-    id: planner-clarify
+    id: planner-create-drafts
 - extendedWaitUntil:
-    visible: "Séances proposées"
+    visible: "Brouillon créé.*"
     timeout: 30000
-# La liste des exercices proposés précède le bouton : le faire venir à l'écran.
-- scrollUntilVisible:
-    element:
-      id: planner-prepare-review
-    centerElement: true
-- tapOn:
-    id: planner-prepare-review
-- scrollUntilVisible:
-    element: "Vérifier les charges individuelles"
-    centerElement: true
-- tapOn: "Vérifier les charges individuelles"
-- extendedWaitUntil:
-    visible: "Page jusqu.à l.athlète.*"
-    timeout: 30000
-- scrollUntilVisible:
-    element: "J.ai vérifié les dates.*"
-# Avant-dernier bouton du pied de page : visible en entier, mais impossible à centrer en bas de page.
-- tapOn: "J.ai vérifié les dates.*"
-- assertVisible:
-    text: "Créer 1 brouillon"
-    enabled: true
-- tapOn: "Créer 1 brouillon"
-- extendedWaitUntil:
-    visible: "Les brouillons sont créés.*"
-    timeout: 30000
-- takeScreenshot: planner-private-exercise-draft
+- takeScreenshot: planner-quick-exercise-draft
