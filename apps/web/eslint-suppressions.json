@@ -104,11 +104,6 @@
       "count": 1
     }
   },
-  "src/features/tracking/session-followup.tsx": {
-    "tartan/no-hardcoded-text": {
-      "count": 3
-    }
-  },
   "src/features/videos/video-list.tsx": {
     "tartan/no-hardcoded-text": {
       "count": 1

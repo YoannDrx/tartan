@@ -16,4 +16,10 @@ export const tracking = {
   setsChecked: (count: number) => `${count} série${count > 1 ? "s" : ""} cochée${count > 1 ? "s" : ""}`,
   realLoads: (loads: string[]) => `, charges réelles : ${loads.join(" / ")} kg`,
   startsAt: (time: string) => ` à ${time.replace(":", " h ")}`,
+  // L'appel d'une séance.
+  rollCallSearch: "Rechercher un athlète dans l'appel",
+  attendanceOf: (name: string) => `Présence de ${name}`,
+  present: "Présent",
+  absent: "Absent",
+  autonomousGenerated: "Version autonomie générée. Ajuste-la depuis la séance.",
 } as const;

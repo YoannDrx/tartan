@@ -128,7 +128,28 @@ test("données remplies : 30 puis 40 athlètes, neuf séances, sans débordement
   });
   expect(header.scrolled).toBeGreaterThan(0);
   expect(Math.abs(header.gap)).toBeLessThan(2);
-  await sweep(page, ["/suivi", "/athletes"]);
+
+  // Le détail d'une séance (finition 8.5) : les retours et l'appel se lisent par tranches, chacun avec sa recherche,
+  // et un lien vers un athlète au-delà de la première tranche l'ouvre quand même.
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(`/seances/${sessionId}/suivi`, { waitUntil: "networkidle" });
+  const returns = page.getByRole("region", { name: m.coach.athleteReturns });
+  const returnRows = returns.locator("li[id]");
+  await expect(returnRows).toHaveCount(30);
+  await expect(returns.getByText(w.tracking.shown(30, 40))).toBeVisible();
+  await returns.getByRole("button", { name: w.tracking.showMore(10) }).click();
+  await expect(returnRows).toHaveCount(40);
+  const last = (await returnRows.last().getAttribute("id"))!;
+  await returns.getByRole("searchbox", { name: w.tracking.search }).fill("elise");
+  await expect(returnRows).toHaveCount(4);
+  const rollCall = page.getByRole("region", { name: m.coach.rollCall });
+  await expect(rollCall.getByRole("group")).toHaveCount(30);
+  await rollCall.getByRole("searchbox", { name: w.tracking.rollCallSearch }).fill("delacroix louis");
+  await expect(rollCall.getByRole("group")).toHaveCount(4);
+  await page.goto("/suivi", { waitUntil: "networkidle" });
+  await page.goto(`/seances/${sessionId}/suivi#${last}`, { waitUntil: "networkidle" });
+  await expect(page.locator(`[id="${last}"]`)).toBeInViewport();
+  await sweep(page, ["/suivi", "/athletes", `/seances/${sessionId}/suivi`]);
 });
 
 test("états vides : les phases et les progrès portent l'athlète de leur rubrique", async ({ page, browser }, info) => {
