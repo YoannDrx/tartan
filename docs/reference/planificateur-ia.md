@@ -22,12 +22,16 @@ La sortie stricte est `plannerUnderstanding` (`packages/contracts/src/ai-planner
 - **Nature.** `described` (tout est décrit), `objective` (tout est à composer) ou `mixed`. Elle se lit dans le contenu, pas dans un mode choisi à l’écran.
 - **Dates.** Une date écrite par le coach l’emporte sur celle du modèle. Un jour de semaine donne sa première occurrence. Une date du modèle n’est gardée que si elle s’appuie sur des mots du coach. « Du lundi au vendredi » et « tous les jours » donnent une séance par jour. Aucune date n’est inventée : sans date déductible, la séance porte un blocage nommé.
 - **Destinataires.** Les groupes et athlètes sont remplacés par des jetons. Un jeton n’est jamais un mouvement. Quand le coach n’a choisi personne à l’écran, tous les groupes et athlètes qu’il peut voir deviennent candidats : il faut qu’il en cite un, sinon c’est une question.
-- **Mouvements.** Chaque mouvement cité garde le terme tel que le coach l’a écrit (`said`) et sa prescription dite.
+- **Mouvements.** Chaque mouvement cité garde le terme du coach (`said`) et sa prescription dite, dans l’ordre où la séance se déroule : un exercice annoncé après coup (« et avant tout ça, dix minutes de footing ») prend la place que le coach lui donne. Une mention elliptique est complétée pour être comprise seule (« puis des lancers en rotation » après des lancers de médecine-ball). Sont aussi des mouvements : une routine que le coach appelle par son nom, une course écrite en notation (« 2 x (6 x 200 m) »), un travail vague auquel il donne une quantité (« des abdos 3 séries de 20 »). Une consigne dite pour toute la séance (« trente secondes entre chaque exercice ») est recopiée dans la prescription de chaque mouvement concerné.
 
 ### 2. Retrouver
 
 Sortie par terme : `exact` (règle), `sure` ou `probable` (modèle) avec trois autres fiches au plus, ou `absent`. Règles pures dans `packages/domain/src/planner-match.ts`.
 
+- **Clé d’un terme** (`plannerTermKey`) : sans accent, casse, pluriel, ponctuation ni trait d’union, sans déterminant ni possessif de tête, petits nombres en chiffres. « talons fesses », « 90 90 », « trois appuis » et « ma routine épaules » retrouvent « talons-fesses », « 90/90 », « 3 appuis » et l’alias « routine épaules ». Ce qui suit les deux-points d’un nom (« Gammes : talons-fesses ») vaut un alias.
+- **Copie de l’espace.** Une fiche copiée du catalogue se retrouve aussi sous le nom et les alias de la fiche commune qu’elle représente : les fiches de départ sont copiées sans leurs alias (`context.ts`).
+- **Le modèle tranche sur le geste, pas sur le nom**, dans cet ordre. Un mot de catégorie ou de zone (« du cardio », « des abdos ») n’est pas une fiche : `absent`, avec des propositions. Le même mouvement sous un autre nom (traduction, jargon, ordre des mots, position de départ, agrès, nom partiel non ambigu) est choisi : `sure`, ou `probable` s’il reste un doute. Entre plusieurs fiches du même mouvement, la plus simple : pas la variante qui ajoute un matériel que le coach n’a pas dit. Un mouvement précis que la bibliothèque n’a pas ne se rabat jamais sur son voisin, même marqué.
+- Le modèle reçoit, avec chaque terme, les mentions voisines de la même séance (`near`).
 - Deux fiches qui portent le même nom ou le même alias donnent `probable`, jamais un choix silencieux.
 - Jusqu’à 600 fiches, le modèle reçoit la bibliothèque entière. Au-delà, un préfiltre garde les fiches utiles sans jamais écarter une fiche qui partage un mot avec un terme cherché. La bibliothèque lue est bornée à 5 000 fiches.
 - Pour un terme `absent`, l’étape rend de quoi préremplir une création de fiche : nom proposé (le terme du coach, sans prescription), catégorie, famille de mouvement et type de charge les plus probables.
@@ -47,6 +51,10 @@ Le modèle rend un seul arbre ordonné (`plannerComposition`) : exercice, récup
 ### 4. Contrôler
 
 `plannerCheckComposition` relève les défauts : mouvement cité manquant, exercice ajouté dans une partie décrite, ordre changé, charge jamais dite, séance manquante, structure ou tours faux. Après deux réparations, `plannerSettleComposition` règle ce qui reste sans appel : une charge jamais dite est retirée et marquée « À vérifier ».
+
+- **Rien de dit ne disparaît.** Chaque mouvement de la compréhension a un élément dans sa séance, fiche ou emplacement à compléter, dans l’ordre dit. Celui qui manque encore après les réparations est posé à sa place, avant le mouvement cité qui le suit, avec sa prescription dite en note et le point « À vérifier » `to_complete`.
+- **Séries détaillées.** Une unité dite une fois vaut pour toute l’énumération : « 3 reps à 40 kg, 3 à 50, 2 à 55 » garde ses trois charges en kilos. Sans aucune unité dite, rien n’est deviné.
+- **Fiches permises.** Le schéma de sortie ne liste plus les jetons de la demande (voir « Modèles ») : un exercice proposé qui cite une fiche que le modèle n’a pas reçue disparaît (`plannerCompositionToInterpretation`).
 
 ## Face au doute
 
@@ -146,6 +154,7 @@ Chaque appel passe par l’API Responses : sortie stricte (`text.format`, schém
 - Les modèles GPT-6 n’acceptent pas `temperature` : seul `reasoning.effort` règle l’appel. Sol et Astra refusent `none`, que l’adaptateur remplace par `low` ; Luna et Terra l’acceptent.
 - Depuis GPT-5.6, une écriture en cache se paie 1,25 fois le prix d’entrée. L’adaptateur demande un cache explicite et pose son repère à la fin de la partie stable (consignes, puis bibliothèque) : la demande du coach, qui ne se relit jamais, n’est pas écrite en cache.
 - Le schéma de « Composer » cite la prescription par référence (`$defs`) : environ 6 700 caractères au lieu de 20 000.
+- **Un schéma fixe par étape** (depuis le 22 novembre 2026). Un schéma qui change d’une demande à l’autre (liste de dates, de jetons de fiches) sort l’entrée du cache du fournisseur : « Composer » ne lisait aucun jeton en cache. Les schémas ne portent plus rien de la demande ; ce qu’ils bornaient est vérifié par règles (date dans la période, destinataire connu, fiche donnée au modèle). Mesuré : le coût de « Composer » baisse de moitié, sa latence ne change pas.
 
 Prix au million de jetons (tarif Standard) : `gpt-6.2-sol` 2 $ en entrée, 10 $ en sortie ; `gpt-6.1-terra` 1 $ et 5 $ ; `gpt-6-luna` 0,10 $ et 0,50 $ ; `gpt-6.2-astra` 8 $ et 40 $. Ils sont écrits à un seul endroit, `apps/web/evals/e2e/prices.ts`, à relire avant chaque mesure réelle.
 
@@ -170,6 +179,20 @@ Jetons par demande, Sol et Terra : 6 900 en entrée et 600 en sortie en moyenne,
 
 **Défauts retenus, et pourquoi.** Les quatre couples font le même score sur ce jeu, qui a été écrit par l’agent qui a écrit le planificateur : il ne départage pas les modèles. Le choix reste donc prudent. Rapide : `gpt-6.1-terra`, parce qu’une erreur de date ou de destinataire à l’étape 1 est une faute grave et que l’écart de coût avec Luna est de 0,001 $ par demande. Principal : `gpt-6.2-sol`, parce que la qualité d’entraînement d’une séance proposée n’est mesurée par aucun jeu et que la demande coûte déjà deux fois moins qu’avec `gpt-4.1` (0,033 $). `gpt-6.1-terra` en principal est l’option économe (moitié du coût, 1,5 s de moins) : elle se décide sur le corpus gelé, avec `--model gpt-6.1-terra`.
 
+### Second tour, 22 novembre 2026
+
+La première mesure sur le corpus gelé (Sol et Terra, trois passages) n’a pas tenu les seuils : 59, 59 et 56 cas justes sur 80, 132 à 134 paires sur 150, 3 à 4 fiches choisies à tort sur 21 termes absents, médiane 13,5 s. Les causes ont été rendues par catégorie, sans aucune consigne du corpus, puis reproduites dans le jeu de développement, étendu à 33 cas et 66 paires. Avant correction, sur les 13 cas et 36 paires ajoutés : 5 cas justes, 31 paires, une fiche choisie à tort sur 11 termes absents.
+
+| Principal                      | Rapide          | Cas justes sur 33 | Paires sur 66 | Fiche à tort, sur 16 absents | Médiane complète | « Composer » | Coût par demande |
+| ------------------------------ | --------------- | ----------------- | ------------- | ---------------------------- | ---------------- | ------------ | ---------------: |
+| `gpt-6.2-sol`                  | `gpt-6.1-terra` | 33, 33            | 66, 66        | 0, 0                         | 9,4 à 9,5 s      | 6,1 s        |          0,009 $ |
+| `gpt-6.1-terra`, effort `low`  | `gpt-6.1-terra` | 32                | non rejouées  | non rejouées                 | 7,8 s            | 4,0 s        |          0,004 $ |
+| `gpt-6.1-terra`, effort `none` | `gpt-6.1-terra` | 33                | non rejouées  | non rejouées                 | 7,4 s            | 4,0 s        |          0,004 $ |
+
+Ce jeu reste celui de l’auteur : il dit que les catégories signalées sont corrigées ici, pas que le corpus gelé passera.
+
+**Latence de « Composer ».** Elle suit le volume écrit : environ 1 s, plus 12 ms par jeton de sortie. Sol écrit 540 jetons par séance, raisonnement compris ; Terra 350, avec ou sans effort. Le schéma fixe a divisé par deux le coût de l’étape (0,016 $ à 0,007 $ par appel avec Sol) sans changer sa durée. Raccourcir les raisons et les hypothèses d’une séance proposée n’a rien gagné de mesurable. Le seul levier qui reste est le modèle : Terra en principal gagne 2 s par demande et coûte moitié moins. Les défauts ne changent pas tant que le corpus gelé n’a pas dit si la justesse tient.
+
 `gpt-transcribe` sert la dictée (`AI_TRANSCRIPTION_MODEL`) depuis le 12 novembre 2026, à la place de `gpt-4o-mini-transcribe`, arrêté par OpenAI le 26 février 2027. Il reçoit la langue dans `languages[]`, le vocabulaire dans `keywords[]` (termes appris, fiches de l’espace, fiches communes, 48 au plus) et un contexte court dans `prompt`. Prix annoncé : 0,0045 $ la minute. Non éprouvé sur une vraie dictée.
 
 ## Essais avec le prestataire simulé
@@ -192,7 +215,7 @@ C’est la mesure qui compte depuis les quatre étapes. Elle part de la consigne
 ```sh
 corepack pnpm --filter @tartan/web eval:planner:e2e --check      # format et gel, sans base ni réseau
 corepack pnpm --filter @tartan/web eval:planner:e2e --freeze     # écrit l'empreinte du corpus et des paires
-corepack pnpm --filter @tartan/web eval:planner:e2e --catalog    # les clés du catalogue commun, pour écrire des cas
+corepack pnpm --filter @tartan/web eval:planner:e2e --catalog    # le catalogue commun et les fiches de départ d'un espace neuf
 AI_PLANNER_FAKE_PROVIDER=true corepack pnpm --filter @tartan/web eval:planner:e2e --examples    # éprouver l'outil, sans appel
 corepack pnpm --filter @tartan/web eval:planner:e2e --dev --max-cost 1                          # mise au point, ne qualifie pas
 corepack pnpm --filter @tartan/web eval:planner:e2e --max-cost 10                               # la mesure réelle
@@ -235,6 +258,8 @@ Trois jeux, trois rôles. Ils ne se mélangent jamais.
 - Les attentes s’écrivent avant toute exécution et ne changent plus. `--freeze` écrit l’empreinte sha256 à côté de chaque fichier ; le lanceur refuse un fichier sans empreinte ou modifié depuis. Regeler un fichier modifié est refusé aussi : on retire l’empreinte à la main, en le disant.
 - Un échec se corrige dans le planificateur, jamais dans le corpus.
 - Dès qu’une réponse du corpus gelé a été lue pour régler le planificateur, ce corpus devient une régression : il faut le dire dans le rapport et en écrire un autre pour qualifier.
+
+**La fiche du coach l’emporte.** Quand la fiche choisie n’a pas de clé de catalogue (fiche du coach, fiche de départ) et que son nom ou un alias, normalisé comme le fait l’étape « Retrouver », est exactement le terme dit, le choix est juste, pour un cas comme pour une paire, quelle que soit la fiche attendue (`ownExact` dans `observation.ts`). `--catalog` liste ces fiches à part du catalogue commun. Chaque ligne d’un rapport garde aussi ce qui a été compris (`understood` : terme, prescription dite, confiance, fiche), pour relire un échec sans rejouer.
 
 **Ce que l’outil mesure.** La justesse de la séance préparée, cas par cas ; les questions inutiles ; les fautes graves ; la recherche de fiches (premier choix, trois propositions, faux positifs) ; la latence du premier événement, du premier résumé lisible (`firstSummaryMs`), de la première ligne du plan et du résultat complet, et la durée de chaque étape ; les appels et les jetons d’entrée, lus en cache, écrits en cache et de sortie, par étape et par modèle ; le coût. Il compte les appels en observant `fetch` et rattache chacun à la dernière étape diffusée.
 
