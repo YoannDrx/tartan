@@ -63,6 +63,10 @@ Le planificateur écrit la séance et marque ses doutes. Il ne pose une question
 
 **Emplacement à compléter.** Dans la séance, l’exercice porte un jeton `slot_N` (`PLANNER_SLOT_PREFIX`), son terme (`said`) et une `suggestion` de fiche. La réponse liste les emplacements ouverts (`slots`). `resolvePlannerExercise` remplit un emplacement **sans appel au modèle et sans réponse écrite** : fiche existante, fiche créée (nom modifiable, valeurs préremplies, plus de case de vérification exigée par le serveur), ou emplacement retiré. `confirmPlannerProposal` refuse de créer un brouillon tant qu’un emplacement reste ouvert (409 `planner_slots_open`).
 
+**Fiche « À vérifier ».** `resolvePlannerExercise` tranche aussi une fiche `probable` : `questionId` est alors la référence de l’exercice dans les brouillons préparés, et le choix une fiche existante, la même pour valider, une autre pour changer. La fiche prend la place sans rien réécrire, le point « À vérifier » disparaît, le terme est retenu. Ni création ni retrait par ce chemin.
+
+**Toute la bibliothèque à la relecture.** L’aperçu des charges et la confirmation acceptent toute fiche visible de l’espace (commune ou de l’espace, non supprimée), pas seulement celles que la demande avait figées : le coach ajoute et remplace dans toute sa bibliothèque, y compris par une fiche créée depuis. La fiche d’un autre espace, une fiche supprimée et l’identifiant réservé d’un emplacement restent refusés.
+
 **Termes appris.** Chaque fiche que le coach choisit pour un terme entre dans la table `exercise_term_aliases` (une ligne par espace et par terme, migration additive `20261121120000_exercise_term_aliases`). L’étape 2 la lit en premier ; le vocabulaire de dictée aussi, avec les fiches de l’espace puis les fiches communes à tour de rôle. Un terme appris ne quitte jamais son espace. `GET` et `DELETE /api/v1/orgs/:orgId/planner/aliases` les listent et les retirent, sous `requireOrgMember` (`alias.service.ts`, deux lignes dans la matrice d’accès).
 
 ## Un seul champ, et les clients d’avant
@@ -71,7 +75,9 @@ Le contrat (`packages/contracts/src/ai-planner.ts`) n’a changé que par ajouts
 
 - `mode` et `brief` restent acceptés, comme **indices** : `mode: "propose"` suggère une demande à composer, le brief complète la durée, le niveau et le matériel que la demande ne dit pas. Ils ne décident plus de rien.
 - La période reste demandée, 28 jours au plus (`PLANNER_MAX_PERIOD_DAYS`). Un client qui envoie un seul jour reçoit une fenêtre de 28 jours à partir de ce jour : le jour de l’écran devient un indice, et la période enregistrée suit la date dite quand elle diffère.
-- Un client déclare ce qu’il sait lire dans `accepts` : `slots` (emplacements à compléter), `checks` (nouveaux points « À vérifier »). Le web actuel déclare `checks` ; l’app native en circulation ne déclare rien.
+- Un client déclare ce qu’il sait lire dans `accepts` : `slots` (emplacements à compléter), `checks` (nouveaux points « À vérifier »). Le web déclare les deux ; l’app native en circulation ne déclare rien.
+- `hints` (additif) porte les précisions facultatives du champ unique : durée, niveau, matériel. Ce sont des indices, comme le brief qu’ils remplacent pour le web : la demande passe avant.
+- `sessions` (additif), sur `clarify` et `resolve-exercise` : les séances telles qu’elles sont à l’écran, qui deviennent la base de la suite (voir « Ajuster »).
 - **Sans `slots`**, un emplacement ouvert redevient l’ancienne question nommée (`plannerLegacySlots`) : `id = slot_N`, `exerciseName` = le terme du coach. Le parcours « choisir, reformuler ou créer une fiche » des applications installées marche donc sans changement.
 - **Sans `checks`**, les nouveaux codes d’alerte ne sont pas servis.
 
@@ -99,11 +105,38 @@ Chaque panne garde sa cause (`ai_planner_operations.failure_code`) et son étape
 
 ## L’écran web
 
-Adapté au strict nécessaire le 21 novembre 2026 ; sa refonte est le lot suivant (P3). `planner-progress.tsx` montre les quatre étapes et « Ce que j’ai compris » pendant la génération ; `planner-result.tsx` garde le résumé au-dessus de la séance et nomme l’étape d’une panne ; `planner-review.tsx` propose les autres fiches possibles sous une fiche « À vérifier ». L’écran ne déclare pas encore `slots` : une fiche absente y passe par la question nommée, comme avant. Le formulaire de demande garde ses deux cartes de mode, envoyées comme indices.
+Refait le 22 novembre 2026 (lot P3). Le code vit dans `apps/web/src/features/planner/`, les textes dans `packages/i18n/src/web/planner.ts` ; `fr.ts` ne garde que ce que l’app native et le serveur affichent. L’écran déclare `accepts: ["slots", "checks"]`. La mention « bêta » reste, dans le titre et la pastille, jusqu’à la qualification.
+
+**La demande** (`planner-request.tsx`). « Pour qui ? », « Quand ? », puis **un seul champ** : « Décris ta séance, ou dis ce que tu veux travailler ». Trois exemples, visibles tant que le champ est vide, montrent les trois usages (une séance décrite, un objectif, un mélange) et le remplissent d’un geste. L’écran n’envoie ni `mode` ni `brief`.
+
+- Quand l’espace n’a qu’un groupe, il est déjà choisi : la demande part en un champ et un clic. Aucun destinataire choisi n’empêche pas l’envoi : le planificateur lit ceux que la demande cite, ou pose la question.
+- Le jour de l’écran est un indice : si la demande en cite un autre, c’est lui qui vaut.
+- **Préciser**, replié et facultatif : heure, durée, niveau, matériel. Ils partent dans `hints` (durée, niveau, matériel seulement s’il diffère du profil de l’espace) et `startTime` ; ce que la demande dit passe avant.
+- **Le micro est dans le champ** (`web-dictation.tsx`, un crochet). Aucune case à cocher : l’accord du planificateur, donné une fois, dit que la dictée est transcrite par le même prestataire (`planner-consent.tsx`). Aucune colonne n’a été ajoutée : l’accord existant (`profiles.ai_consent_at`) couvrait déjà « ce que tu écris ou dictes », le serveur l’exige avant toute transcription, et l’écran envoie toujours `audioProcessingAccepted`, que le contrat demande.
+- La phase de préparation n’est demandée qu’ici, pour le jour choisi, et seulement si un destinataire est choisi. Dans la séance, elle n’est redemandée que si le coach change la date ou les destinataires.
+- Une seule limite de longueur : 12 000 caractères.
+
+**La séance** (`planner-result.tsx`, `planner-review.tsx`). En tête, « Ce que j’ai compris » (le résumé du serveur), puis la séance dans l’éditeur de séquence du constructeur. Chaque exercice dit son état à sa place :
+
+| État | Ce que montre l’écran | Ce que fait le coach |
+| --- | --- | --- |
+| Reconnu | Rien de plus. | Rien. |
+| Rapproché | « À vérifier », avec le terme dit, sous la carte de l’exercice. | « C’est la bonne fiche », une autre fiche possible en un geste, ou « Chercher une autre fiche » dans toute la bibliothèque. |
+| À compléter | Une carte en pointillés, à sa place, avec le terme dit et sa prescription. | « Choisir une fiche » (la recherche part du terme dit), « Créer la fiche » (nom, famille et charge déjà proposés, puis « Créer et utiliser »), ou « Retirer ». |
+
+Aucune réponse écrite, aucune case, aucune relance : chaque geste appelle `resolve-exercise`, la séance se met à jour sur place, et le terme est retenu. Tant qu’un exercice attend sa fiche, le bouton du bas ne crée pas le brouillon : il dit lequel (« Compléter « … » ») et y mène ; l’aperçu des charges attend aussi.
+
+- **Ajouter et remplacer** passent par `ExerciseFinder`, sur toute la bibliothèque, création comprise. `SequenceEditor` reçoit pour cela `extras` : un nom, une carte ou une note qu’un écran ajoute à un exercice, sans que l’éditeur en connaisse le sens.
+- **L’aperçu des charges** (`planner-loads.tsx`) reste ouvert : à chaque retouche il se met à jour sur place, l’athlète ouvert reste ouvert.
+- **Mes termes** (`planner-aliases.tsx`), replié sous la demande : ce que l’espace a appris, et le moyen d’en retirer un.
+
+**Accès.** Un bouton « Avec le planificateur » sur `/seances/nouvelle` (il garde le jour et le groupe), le lien du même nom dans l’étape « Créer une séance » de « Pour démarrer » et de `/premiers-pas`, et, sur téléphone, le bouton du calendrier placé juste après « Nouvelle séance ». L’icône de l’en-tête reste.
 
 ## Ajuster
 
 « Ajuster » envoie la séance actuelle (`previous`, en jetons) et la modification à part (`adjustment`). Les exercices et les charges de la séance actuelle ne comptent ni comme inventés ni comme ajoutés. Les ajustements ont leur compteur (`adjustment_count`, cinq au plus), distinct des cinq précisions ; ni l’un ni l’autre ne consomme de quota.
+
+**La séance à l’écran est la base.** Le web envoie avec l’ajustement les séances telles qu’elles sont à l’écran (`sessions`, additif). Le serveur les contrôle (période, destinataires de la demande, fiches visibles de l’espace), puis `plannerRebaseOnDrafts` (`packages/domain/src/planner-rebase.ts`) en fait la séance gardée : chaque exercice retrouve par sa référence ce que le planificateur savait de lui (terme dit, mouvement cité, doute) ; une fiche que le coach a changée n’est plus un doute ; un exercice ajouté à la main devient un mouvement du coach, sous le nom de sa fiche. Le modèle modifie donc ce que le coach voit, retouches comprises. Sans `sessions` (app native, anciens clients), l’ajustement repart de la séance gardée, comme avant. Le même envoi accompagne le retrait d’un emplacement, qui déplace le reste de la séance. Limite : les charges adaptées par athlète ne survivent pas à un ajustement, la séance étant réécrite.
 
 ## Accès
 
@@ -174,10 +207,10 @@ Jetons par demande, Sol et Terra : 6 900 en entrée et 600 en sortie en moyenne,
 
 ## Essais avec le prestataire simulé
 
-`AI_PLANNER_FAKE_PROVIDER=true` remplace OpenAI par `src/server/ai/fake-provider.ts`, qui simule **chaque étape** à partir du contexte reçu et passe par les mêmes contrôles que le vrai. Ce réglage est sans effet sur Vercel et refusé en production par `assertEnvIsolation`. Il suit le contexte : fiche nommée dans la consigne, « 80 % » lu comme un pourcentage du maximum, toujours 3 séries de 8 et 90 s de repos. « #panne-saturated » simule une panne à la première étape, « #panne-compose-timeout » à l’étape nommée.
+`AI_PLANNER_FAKE_PROVIDER=true` remplace OpenAI par `src/server/ai/fake-provider.ts`, qui simule **chaque étape** à partir du contexte reçu et passe par les mêmes contrôles que le vrai. Ce réglage est sans effet sur Vercel et refusé en production par `assertEnvIsolation`. Il suit le contexte : fiche nommée dans la consigne, « 80 % » lu comme un pourcentage du maximum, toujours 3 séries de 8 et 90 s de repos. Un terme dont deux fiches portent tous les mots donne une fiche `probable` ; un terme qu’aucune fiche ne porte en entier, un emplacement à compléter. Un ajustement modifie la séance reçue : chaque exercice hors circuit passe à quatre séries, le reste ne bouge pas. « #panne-saturated » simule une panne à la première étape, « #panne-compose-timeout » à l’étape nommée.
 
 - Le job `maestro` de la CI mobile joue le planificateur de l’app native contre un serveur local réglé ainsi. L’app ne déclare aucune capacité : elle reçoit l’ancienne forme.
-- Le parcours web `e2e/ai-planner.spec.ts` s’exerce contre ce même prestataire (`E2E_AI_PLANNER_ENABLED=true`) : demande et réponse diffusée, séance éditée dans le constructeur, ajustement, erreur lisible, aperçu individuel des charges, dictée (seule la transcription est simulée), création privée, demande à composer de bout en bout, `% 1RM` retiré puis gardé selon la couverture des références.
+- Le parcours web `e2e/ai-planner.spec.ts` s’exerce contre ce même prestataire (`E2E_AI_PLANNER_ENABLED=true`), sur ordinateur et sur téléphone : demande en un champ et un clic, au clavier ; compréhension affichée ; fiche rapprochée changée en un geste, terme retenu à la demande suivante, puis retiré de « Mes termes » ; emplacement rempli par une création en deux gestes, par une fiche de la bibliothèque, ou retiré ; brouillon refusé tant qu’un emplacement reste ; remplacement par une fiche hors de la proposition ; ajustement qui garde une retouche manuelle ; aperçu des charges qui reste ouvert ; dictée par le bouton du champ (seule la transcription est simulée) ; objectif seul avec précisions ; panne lisible ; `% 1RM` retiré puis gardé selon la couverture des références ; accès depuis une nouvelle séance, le calendrier et les premiers pas. Avec `E2E_SHOTS_DIR`, il range ses captures à 390, 768 et 1440 px hors du dépôt.
 
 Un test qui simule le prestataire ne prouve pas le prestataire : la preuve réelle est la mesure de bout en bout.
 
