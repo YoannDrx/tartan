@@ -27,7 +27,8 @@ const db = () =>
 // `E2E_SHOTS_DIR=/chemin E2E_PROD=1 E2E_AI_PLANNER_ENABLED=true corepack pnpm test:e2e e2e/ai-planner.spec.ts --project=desktop`.
 const SHOTS = process.env.E2E_SHOTS_DIR;
 const shots = async (page: Page, name: string) => {
-  if (!SHOTS) return;
+  // Une série de captures suffit : celles du projet « desktop », aux trois largeurs.
+  if (!SHOTS || test.info().project.name !== "desktop") return;
   const size = page.viewportSize()!;
   for (const width of [390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
