@@ -1,13 +1,9 @@
 import "server-only";
 import { z } from "zod";
 import {
-  isoDate,
-  plannerComposedSession,
   plannerComposition,
-  plannerItem,
   plannerMatchGeneration,
   plannerUnderstanding,
-  plannerUnderstoodSession,
   type PlannerFailureCode,
   type PlannerStepName,
 } from "@tartan/contracts";
@@ -16,7 +12,6 @@ import { env, type Env } from "@/lib/env";
 import { composePrompt, matchPrompt, repairPrompt, understandPrompt } from "./pipeline/prompts";
 import {
   PlannerProviderError,
-  type PlannerComposeInput,
   type PlannerMatchInput,
   type PlannerProvider,
   type PlannerStepOptions,
@@ -74,14 +69,12 @@ const MAX_OUTPUT: Record<PlannerStepName, number> = { understand: 6000, match: 4
 const SATURATION_RETRIES = 2;
 const MAX_WAIT_MS = 8000;
 
-type Custom = (zodSchema: unknown, jsonSchema: Record<string, unknown>) => void;
-const strictSchema = (schema: z.ZodType, custom: Custom, reused: "inline" | "ref" = "inline") => {
+const strictSchema = (schema: z.ZodType, reused: "inline" | "ref" = "inline") => {
   const { $schema: _schema, ...rest } = schema.toJSONSchema({
     // Une séance répète la même prescription à chaque niveau de l'arbre : écrite une fois et citée par référence,
     // elle pèse trois fois moins de jetons d'entrée.
     reused,
     override: ({ zodSchema, jsonSchema }) => {
-      custom(zodSchema, jsonSchema as Record<string, unknown>);
       // Les discriminants littéraux gardent les branches disjointes. OpenAI lit anyOf, pas oneOf.
       if (zodSchema instanceof z.ZodDiscriminatedUnion && jsonSchema.oneOf) {
         jsonSchema.anyOf = jsonSchema.oneOf;
@@ -91,6 +84,14 @@ const strictSchema = (schema: z.ZodType, custom: Custom, reused: "inline" | "ref
   });
   return rest;
 };
+// Un schéma par étape, le même pour toutes les demandes. Un schéma qui change d'une demande à l'autre (une liste
+// de dates, de jetons de fiches) est recompilé par le fournisseur à chaque appel et sort l'entrée du cache : la
+// mesure du 22 novembre 2026 ne lisait aucun jeton en cache à l'étape « Composer ». Ce que le schéma ne borne
+// plus est vérifié par règles : date dans la période, destinataire connu (`plannerNormalizeUnderstanding`),
+// fiche donnée au modèle, séance comprise (`plannerCompositionToInterpretation`).
+const UNDERSTANDING_SCHEMA = strictSchema(plannerUnderstanding);
+const MATCH_SCHEMA = strictSchema(plannerMatchGeneration);
+const COMPOSITION_SCHEMA = strictSchema(plannerComposition, "ref");
 
 const wait = (ms: number, signal?: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
@@ -204,33 +205,19 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
     if (!parsed.success) throw new PlannerProviderError("invalid_output", step);
     return parsed.data;
   };
-  // La séance ne peut citer que les fiches et les emplacements donnés, et que les séances de la compréhension.
-  const compositionSchema = (input: PlannerComposeInput) =>
-    strictSchema(
-      plannerComposition,
-      (zodSchema, jsonSchema) => {
-        if (zodSchema === plannerItem.shape.exerciseToken)
-          jsonSchema.enum = [
-            ...input.exercises.map((exercise) => exercise.token),
-            ...input.slots.map((s) => s.token),
-          ];
-        if (zodSchema === plannerComposedSession.shape.index)
-          jsonSchema.enum = input.understanding.sessions.map((session) => session.index);
-      },
-      "ref",
-    );
   return {
     async understand(input, options = {}) {
-      const schema = strictSchema(plannerUnderstanding, (zodSchema, jsonSchema) => {
-        // Une date hors du calendrier ne peut pas s'écrire : aucune date n'est inventée dès cette étape.
-        if (zodSchema === isoDate) jsonSchema.enum = input.calendar.map((day) => day.date);
-        if (zodSchema === plannerUnderstoodSession.shape.targetTokens.element && input.recipients.length)
-          jsonSchema.enum = input.recipients.map((recipient) => recipient.token);
-      });
       return typed(
         plannerUnderstanding,
         "understand",
-        await call({ step: "understand", name: "tartan_understanding", prompt: understandPrompt, input, schema, options }),
+        await call({
+          step: "understand",
+          name: "tartan_understanding",
+          prompt: understandPrompt,
+          input,
+          schema: UNDERSTANDING_SCHEMA,
+          options,
+        }),
       );
     },
     async match(input, options = {}) {
@@ -243,7 +230,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
           prompt: matchPrompt,
           reference: libraryLines(input.library),
           input: { movements: input.movements },
-          schema: strictSchema(plannerMatchGeneration, () => undefined),
+          schema: MATCH_SCHEMA,
           options,
         }),
       );
@@ -257,7 +244,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
           name: "tartan_session",
           prompt: composePrompt,
           input,
-          schema: compositionSchema(input),
+          schema: COMPOSITION_SCHEMA,
           options,
         }),
       );
@@ -271,7 +258,7 @@ export function openAiPlannerProvider(fetcher: typeof fetch = fetch): PlannerPro
           name: "tartan_session",
           prompt: repairPrompt,
           input,
-          schema: compositionSchema(input),
+          schema: COMPOSITION_SCHEMA,
           options,
         }),
       );

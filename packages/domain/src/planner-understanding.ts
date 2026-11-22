@@ -61,11 +61,7 @@ export type PlannerRequest = {
   blockers: PlannerBlocker[];
 };
 
-const fold = (value: string) =>
-  normalizeExerciseTerm(value)
-    .replace(/['-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+const fold = (value: string) => normalizeExerciseTerm(value).replace(/['-]/g, " ").replace(/\s+/g, " ").trim();
 const TOKEN = /(?<![\p{L}\p{N}_])(?:group|athlete|exercise|slot)_[0-9]+(?![\p{L}\p{N}_])/gu;
 const WEEKDAY = "(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)";
 const EVERY_DAY = new RegExp(
@@ -102,7 +98,8 @@ export function plannerMovementTerm(said: string): string | null {
     .replace(/\s+/g, " ")
     .replace(/^[\s,;:.–-]+|[\s,;:.–-]+$/g, "")
     .trim();
-  return /\p{L}{2,}/u.test(term) ? term.slice(0, 120) : null;
+  // Un nom, ou une course écrite en notation (« 200 m », « 30-30 ») : au moins deux lettres, ou un nombre.
+  return /\p{L}{2,}|\d/u.test(term) ? term.slice(0, 120) : null;
 }
 
 function resolveDate(

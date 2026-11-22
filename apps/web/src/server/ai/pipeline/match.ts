@@ -4,7 +4,7 @@ import { plannerMatchShortlist, plannerModelMatches, plannerRuleMatches } from "
 import { plannerStep } from "./step";
 import type { PlannerMatchInput, PlannerProvider, PlannerProviderContext } from "./types";
 
-export type PlannerMatchMovement = { id: string; said: string; prescription: string | null };
+export type PlannerMatchMovement = { id: string; said: string; prescription: string | null; session?: number };
 
 /**
  * Étape 2, « Retrouver » : à chaque mouvement cité, une fiche. Dans l'ordre : alias appris de l'espace, nom
@@ -33,11 +33,21 @@ export async function matchMovements(
     );
     const keys = new Map(ordered.map((exercise, index) => [`f${index + 1}`, exercise.token]));
     const prescriptions = new Map(movements.map((movement) => [movement.id, movement.prescription]));
+    // Les mentions voisines, dans la même séance : une mention elliptique (« en rotation ») s'y complète.
+    const near = (id: string) => {
+      const at = movements.findIndex((movement) => movement.id === id);
+      const session = movements[at]?.session;
+      return movements
+        .slice(Math.max(0, at - 3), at + 3)
+        .filter((movement) => movement.id !== id && movement.session === session)
+        .map((movement) => movement.said);
+    };
     const input: PlannerMatchInput = {
       movements: rules.remaining.map((movement) => ({
         id: movement.id,
         said: movement.said,
         prescription: prescriptions.get(movement.id) ?? null,
+        near: near(movement.id),
       })),
       library: ordered.map((exercise, index) => ({
         key: `f${index + 1}`,

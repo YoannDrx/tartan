@@ -22,6 +22,62 @@ describe("clé d'un terme dit", () => {
     expect(plannerTermKey("du squat arrière")).toBe(plannerTermKey("Squat arriere"));
     expect(plannerTermKey("  ")).toBe("");
   });
+  it("ignore la ponctuation, les traits d'union, les barres obliques, et lit les petits nombres en lettres", () => {
+    expect(plannerTermKey("talons fesses")).toBe(plannerTermKey("Talons-fesses"));
+    expect(plannerTermKey("transitions 90 90")).toBe(plannerTermKey("Transitions 90/90"));
+    expect(plannerTermKey("impulsions sur trois appuis")).toBe(plannerTermKey("Impulsions sur 3 appuis"));
+    expect(plannerTermKey("sauts à la barre élan complet")).toBe(plannerTermKey("Sauts à la barre, élan complet"));
+    expect(plannerTermKey("lancer de medecine ball vers l avant")).toBe(
+      plannerTermKey("Lancer de médecine-ball vers l’avant"),
+    );
+  });
+  it("retire un possessif ou une quantité de tête, mais garde un nom qui commence par deux nombres", () => {
+    expect(plannerTermKey("ma routine épaules")).toBe(plannerTermKey("routine épaules"));
+    expect(plannerTermKey("un peu de gainage")).toBe(plannerTermKey("gainage"));
+    expect(plannerTermKey("10 pompes")).toBe(plannerTermKey("pompes"));
+    expect(plannerTermKey("90/90 hip switches")).toBe("90 90 hip switche");
+  });
+});
+
+describe("règles : noms composés et possessifs", () => {
+  const fiches = [
+    { token: "exercise_1", name: "Gammes : talons-fesses", aliases: [], family: "running" },
+    { token: "exercise_2", name: "Mobilité des hanches", aliases: ["Transitions 90/90"], family: "mobility" },
+    {
+      token: "exercise_3",
+      name: "Routine épaules du lundi",
+      aliases: ["routine épaules"],
+      family: "mobility",
+      own: true,
+    },
+    { token: "exercise_4", name: "Bascule de hanches 90/90 à la kettlebell", aliases: [], family: "mobility" },
+  ];
+  it("retrouve le nom après les deux-points, l'alias sans barre oblique, l'alias cité avec un possessif", () => {
+    const { matches, remaining } = plannerRuleMatches(
+      [
+        { id: "m1", said: "talons fesses" },
+        { id: "m2", said: "transitions 90 90" },
+        { id: "m3", said: "ma routine épaules" },
+      ],
+      fiches,
+    );
+    expect(remaining).toEqual([]);
+    expect(matches).toMatchObject([
+      { id: "m1", confidence: "exact", exerciseToken: "exercise_1" },
+      { id: "m2", confidence: "exact", exerciseToken: "exercise_2" },
+      { id: "m3", confidence: "exact", exerciseToken: "exercise_3" },
+    ]);
+  });
+  it("le préfiltre garde une fiche qui ne partage qu'un nombre avec le terme", () => {
+    const many = Array.from({ length: 30 }, (_, index) => ({
+      token: `exercise_${index + 10}`,
+      name: `Fiche ${index}`,
+      aliases: [],
+      family: "strength",
+    }));
+    const kept = plannerMatchShortlist(["90/90"], [...many, ...fiches], 5);
+    expect(kept.map((exercise) => exercise.token)).toEqual(expect.arrayContaining(["exercise_2", "exercise_4"]));
+  });
 });
 
 describe("règles, avant tout modèle", () => {
@@ -80,7 +136,11 @@ describe("préfiltre d'une grande bibliothèque", () => {
       name: `Squat variante ${i}`,
       aliases: [] as string[],
     }));
-    const others = Array.from({ length: 50 }, (_, i) => ({ token: `exercise_${700 + i}`, name: `Course ${i}`, aliases: [] }));
+    const others = Array.from({ length: 50 }, (_, i) => ({
+      token: `exercise_${700 + i}`,
+      name: `Course ${i}`,
+      aliases: [],
+    }));
     expect(plannerMatchShortlist(["squat"], [...sharing, ...others])).toHaveLength(650);
   });
 });

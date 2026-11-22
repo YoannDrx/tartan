@@ -15,7 +15,7 @@ Les commandes, les seuils et ce que l'outil mesure sont dans [docs/reference/pla
 | `dev/cases.json`, `dev/pairs.json`            | Le jeu de développement de l'agent qui écrit le planificateur. Non gelé, il ne qualifie rien (`--dev`). |
 
 ```sh
-corepack pnpm --filter @tartan/web eval:planner:e2e --catalog   # les clés du catalogue commun
+corepack pnpm --filter @tartan/web eval:planner:e2e --catalog   # le catalogue commun, puis les fiches de départ d'un espace neuf
 corepack pnpm --filter @tartan/web eval:planner:e2e --check     # format et gel, sans base ni réseau
 corepack pnpm --filter @tartan/web eval:planner:e2e --freeze    # écrit l'empreinte : le corpus ne change plus
 ```
@@ -206,5 +206,7 @@ Il mesure une seule chose : retrouver la bonne fiche à partir de ce que dit le 
 `said` est le terme tel qu'il est dit : abréviation, anglicisme, faute, nom d'usage. Chaque paire attend une clé du catalogue, une fiche privée de la bibliothèque, ou `absent` quand aucune fiche ne doit être choisie. Trois notes par paire : juste en premier choix, présente dans les trois propositions, fiche choisie à tort pour un terme `absent`.
 
 ## Comment un cas est noté
+
+Une règle vaut pour les cas comme pour les paires : la fiche du coach qui porte le nom qu'il dit l'emporte. Si la fiche choisie n'a pas de clé de catalogue (fiche privée du cas, fiche de départ d'un espace neuf que `--catalog` liste à part) et que son nom ou un alias est exactement le terme dit, à la casse, aux accents, au pluriel et à la ponctuation près, le choix est juste, même si tu attendais une autre fiche ou `absent`.
 
 Un cas est **juste** quand aucun écart n'est relevé : mêmes dates, mêmes destinataires, mêmes mouvements dans le même ordre, mêmes valeurs pour chaque champ écrit, mêmes tours, bornes tenues. Une question sur un cas `mustNotAsk` est une **question inutile**. Une faute de la liste `critical` est une **faute grave** : une seule fait échouer la mesure entière.

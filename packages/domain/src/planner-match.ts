@@ -16,12 +16,38 @@ export type PlannerMatchExercise = {
 export type PlannerLearnedAlias = { term: string; token: string };
 type Movement = { id: string; said: string };
 
-const LEADING = /^(?:(?:le|la|les|l|un|une|des|du|de|d|mes|nos|tes|vos|ses|quelques|\d+)\s+)+/;
+// Déterminants et possessifs de tête : « ma routine épaules », « un peu de gainage », « nos fentes ».
+const LEADING =
+  /^(?:(?:le|la|les|l|un|une|des|du|de|d|mes|nos|tes|vos|ses|ma|mon|ta|ton|sa|son|notre|votre|leur|leurs|ce|cet|cette|ces|quelques|peu)\s+)+/;
+// Une quantité dite devant le nom (« 10 pompes ») n'en fait pas partie ; un nom qui commence par deux nombres
+// (« 90/90 ») les garde.
+const LEADING_COUNT = /^\d+\s+(?=[a-z])/;
+const NUMBER_WORDS: Record<string, string> = {
+  deux: "2",
+  trois: "3",
+  quatre: "4",
+  cinq: "5",
+  six: "6",
+  sept: "7",
+  huit: "8",
+  neuf: "9",
+  dix: "10",
+  // « trois » a déjà perdu son « s » de pluriel apparent.
+  troi: "3",
+};
 /**
- * La clé d'un terme dit : sans accent, sans casse, sans pluriel ni déterminant de tête. C'est sous cette clé qu'un
- * alias appris est rangé et relu. « Les fentes sautées » et « fente sautée » donnent la même.
+ * La clé d'un terme dit : sans accent, sans casse, sans pluriel, sans ponctuation ni déterminant de tête, les
+ * petits nombres en chiffres. C'est sous cette clé qu'un alias appris est rangé et relu. « Les fentes sautées » et
+ * « fente sautée » donnent la même ; « talons fesses » et « talons-fesses », « 90 90 » et « 90/90 », « trois
+ * appuis » et « 3 appuis » aussi.
  */
-export const plannerTermKey = (said: string) => normalizeExerciseMention(said).replace(LEADING, "").trim();
+export const plannerTermKey = (said: string) =>
+  normalizeExerciseMention(said.replace(/[:;,.!?()«»"“”/\\+&]/g, " "))
+    .replace(/[a-z]+/g, (word) => NUMBER_WORDS[word] ?? word)
+    .replace(LEADING, "")
+    .replace(LEADING_COUNT, "")
+    .replace(LEADING, "")
+    .trim();
 
 const order = (a: PlannerMatchExercise, b: PlannerMatchExercise) =>
   Number(Boolean(b.own)) - Number(Boolean(a.own)) || a.token.localeCompare(b.token, "en", { numeric: true });
@@ -50,6 +76,9 @@ export function plannerRuleMatches(
   for (const exercise of exercises) {
     add(names, exercise.name, exercise);
     for (const alias of exercise.aliases) add(aliases, alias, exercise);
+    // « Gammes : talons-fesses » se dit aussi « talons-fesses » : ce qui suit les deux-points vaut un alias.
+    const tail = exercise.name.includes(":") ? exercise.name.slice(exercise.name.indexOf(":") + 1) : "";
+    if (tail.trim()) add(aliases, tail, exercise);
   }
   const matches: PlannerMatch[] = [];
   const remaining: Movement[] = [];
@@ -86,10 +115,11 @@ const NEUTRAL = new Set(
     " ",
   ),
 );
+// Un nombre de deux chiffres ou plus fait partie d'un nom (« 90/90 », « 30-30 ») : il compte comme un mot.
 const wordsOf = (label: string) =>
   normalizeExerciseMention(label)
     .split(/[^a-z0-9]+/)
-    .filter((word) => word.length > 2 && !NEUTRAL.has(word) && !/^\d+$/.test(word));
+    .filter((word) => (/^\d+$/.test(word) ? word.length > 1 : word.length > 2 && !NEUTRAL.has(word)));
 
 /** Au-delà de cette taille, la bibliothèque est préfiltrée avant de partir au modèle. */
 export const PLANNER_MATCH_FULL_LIBRARY = 600;

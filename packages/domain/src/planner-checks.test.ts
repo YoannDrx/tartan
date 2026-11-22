@@ -109,6 +109,27 @@ describe("ce que le coach a dit ne change pas", () => {
     const { value } = plannerCompositionToInterpretation(composition([exercise("m1", "exercise_1")]), frame([squat]));
     expect(value.sessions[0]).toMatchObject({ date: "2026-11-24", targetTokens: ["group_1"] });
   });
+  it("une fiche que le modèle n'a pas reçue n'existe pas : l'exercice disparaît, le groupe vidé aussi", () => {
+    const answer = composition([
+      exercise("m1", "exercise_404"),
+      exercise(null, "exercise_7"),
+      exercise(null, "exercise_404"),
+      {
+        kind: "repeat",
+        name: "Circuit",
+        rounds: 3,
+        restBetweenRoundsS: 60,
+        children: [exercise(null, "exercise_405"), { kind: "recovery", durationS: 30 }],
+      } as PlannerComposedNode,
+    ]);
+    const { value } = plannerCompositionToInterpretation(answer, {
+      ...frame([squat]),
+      tokens: new Set(["exercise_1", "exercise_7"]),
+    });
+    // Le mouvement cité garde la fiche retrouvée pour lui ; la fiche proposée connue reste ; le reste disparaît.
+    expect(itemsOf(value).map((item) => item.exerciseToken)).toEqual(["exercise_1", "exercise_7"]);
+    expect(value.sessions[0]!.blocks[0]!.sequence).toBeNull();
+  });
   it("un exercice ajouté dans une séance décrite est retiré, sans réparation", () => {
     const checked = run(
       composition([exercise("m1", "exercise_1"), exercise(null, "exercise_7")]),
@@ -120,7 +141,11 @@ describe("ce que le coach a dit ne change pas", () => {
   it("dans une demande mixte, une fiche que le coach a citée n'est pas proposée une seconde fois", () => {
     const proposal = { objective: "Échauffement", durationMin: 10, level: null, equipment: [], families: [] };
     const checked = run(
-      composition([exercise(null, "exercise_7"), exercise(null, "exercise_1"), exercise("m1", "exercise_1", { reps: 5 })]),
+      composition([
+        exercise(null, "exercise_7"),
+        exercise(null, "exercise_1"),
+        exercise("m1", "exercise_1", { reps: 5 }),
+      ]),
       context("Demain un échauffement à ta façon puis squat arrière 5 séries de 5.", [squat], { proposal }),
     );
     expect(itemsOf(checked.value)).toMatchObject([
@@ -151,6 +176,34 @@ describe("ce que le coach a dit ne change pas", () => {
       expect.objectContaining({ code: "to_complete", block: 0, item: 1 }),
     );
   });
+  it("un mouvement resté manquant est posé à sa place dans l'ordre dit, pas à la fin, et les points suivent", () => {
+    const rows = movement("m3", "rowing barre", "exercise_3");
+    const rules = context(
+      "Demain squat arrière 3 séries de 8, développé couché 4 fois 6 à 70, rowing barre 3 fois 10.",
+      [squat, { ...bench, prescription: "4 fois 6 à 70" }, rows],
+    );
+    // Le modèle a oublié le premier mouvement ; le second porte une charge dite sans unité, donc un point à lui.
+    const checked = run(
+      composition([
+        exercise("m2", "exercise_2", { load: { type: "kg", value: 70 } }),
+        exercise("m3", "exercise_3", { reps: 10 }),
+      ]),
+      rules,
+      true,
+    );
+    const settled = plannerSettleComposition(checked, rules)!;
+    expect(itemsOf(settled.value).map((item) => item.exerciseToken)).toEqual([
+      "exercise_1",
+      "exercise_2",
+      "exercise_3",
+    ]);
+    expect(settled.value.sessions[0]!.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "to_complete", block: 0, item: 0 }),
+        expect.objectContaining({ code: "load_unclear", block: 0, item: 1 }),
+      ]),
+    );
+  });
 });
 
 describe("charges", () => {
@@ -170,6 +223,40 @@ describe("charges", () => {
     expect(plannerSettleComposition(checked, rules)!.value.sessions[0]!.warnings).toContainEqual(
       expect.objectContaining({ code: "load_unclear", field: "load", block: 0, item: 0, detail: "70" }),
     );
+  });
+  it("l'unité dite une fois vaut pour toute l'énumération des séries détaillées", () => {
+    const set = (reps: number, value: number) => ({
+      reps,
+      load: { type: "kg" as const, value },
+      warmup: false,
+    });
+    const checked = run(
+      composition([
+        exercise("m1", "exercise_1", {
+          sets: 4,
+          reps: null,
+          load: { type: "kg", value: 40 },
+          setPlan: [set(3, 40), set(3, 50), set(2, 55), set(1, 60)],
+        }),
+      ]),
+      context("Demain squat arrière en montée, 3 répétitions à 40 kg, 3 à 50, 2 à 55, 1 à 60.", [squat]),
+    );
+    expect(itemsOf(checked.value)[0]!.prescription.setPlan!.map((entry: { load: unknown }) => entry.load)).toEqual([
+      { type: "kg", value: 40 },
+      { type: "kg", value: 50 },
+      { type: "kg", value: 55 },
+      { type: "kg", value: 60 },
+    ]);
+    expect(checked.defects).toEqual([]);
+    // Sans aucune unité dite, rien n'est deviné : chaque charge reste vide et signalée.
+    const bare = run(
+      composition([exercise("m1", "exercise_1", { sets: 2, setPlan: [set(3, 40), set(3, 50)] })]),
+      context("Demain squat arrière, 3 répétitions à 40, 3 à 50.", [squat]),
+    );
+    expect(itemsOf(bare.value)[0]!.prescription.setPlan!.map((entry: { load: unknown }) => entry.load)).toEqual([
+      null,
+      null,
+    ]);
   });
   it("une charge dite avec l'autre unité reprend l'unité du coach", () => {
     const checked = run(
@@ -268,7 +355,10 @@ describe("fiche probable et emplacement à compléter", () => {
   ]);
   const settled = plannerSettleComposition(
     run(
-      composition([exercise("m1", "exercise_5", { reps: 10 }), exercise("m2", "slot_1", { reps: null, durationS: 20 })]),
+      composition([
+        exercise("m1", "exercise_5", { reps: 10 }),
+        exercise("m2", "slot_1", { reps: null, durationS: 20 }),
+      ]),
       rules,
     ),
     rules,

@@ -273,7 +273,10 @@ export async function buildPlannerBindings(
       .filter((entry) => {
         const guide = facts.get(entry.id);
         return (
-          entry.organizationId === null && entry.catalogKey && guide?.success && guide.data.technicalReview === "approved"
+          entry.organizationId === null &&
+          entry.catalogKey &&
+          guide?.success &&
+          guide.data.technicalReview === "approved"
         );
       })
       .map((entry) => entry.catalogKey),
@@ -282,7 +285,24 @@ export async function buildPlannerBindings(
     ? exercises
     : exercises.filter((entry) => !entry.catalogKey || !represented.has(entry.catalogKey));
   const rank = new Map<string, number>();
-  for (const list of lists) for (const item of list.items) if (!rank.has(item.exerciseId)) rank.set(item.exerciseId, rank.size);
+  for (const list of lists)
+    for (const item of list.items) if (!rank.has(item.exerciseId)) rank.set(item.exerciseId, rank.size);
+  // Une copie de l'espace se retrouve aussi sous les noms de la fiche commune qu'elle représente : les fiches de
+  // départ sont copiées sans leurs alias, et le coach peut avoir renommé la sienne.
+  const common = new Map(
+    exercises.flatMap((entry) =>
+      entry.organizationId === null && entry.catalogKey ? [[entry.catalogKey, entry] as const] : [],
+    ),
+  );
+  const labels = (entry: (typeof exercises)[number]) => {
+    const source = entry.organizationId !== null && entry.sourceCatalogKey ? common.get(entry.sourceCatalogKey) : null;
+    if (!source) return entry.aliases;
+    const seen = new Set([entry.name, ...entry.aliases].map((label) => label.toLocaleLowerCase("fr")));
+    return [
+      ...entry.aliases,
+      ...[source.name, ...source.aliases].filter((label) => !seen.has(label.toLocaleLowerCase("fr"))),
+    ];
+  };
   const bound = available.map((entry, i) => {
     const parsed = facts.get(entry.id);
     const guide = parsed?.success ? parsed.data : null;
@@ -294,7 +314,7 @@ export async function buildPlannerBindings(
       name: entry.name,
       category: entry.category,
       updatedAt: entry.updatedAt.toISOString(),
-      aliases: entry.aliases,
+      aliases: labels(entry),
       classification: entry.classification,
       strengthLoadKind: entry.strengthLoadKind,
       family: guide?.family ?? exerciseFamilyOf(null, entry.category),
@@ -557,7 +577,9 @@ export function providerContextFor(
       return resolution.requestedName && token ? [{ term: resolution.requestedName, token }] : [];
     }),
     learnedAliases: (options.learned ?? [])
-      .flatMap((alias) => (tokenOf.has(alias.exerciseId) ? [{ term: alias.term, token: tokenOf.get(alias.exerciseId)! }] : []))
+      .flatMap((alias) =>
+        tokenOf.has(alias.exerciseId) ? [{ term: alias.term, token: tokenOf.get(alias.exerciseId)! }] : [],
+      )
       .slice(0, 2000),
     period: window.period,
     today: bindings.today,
