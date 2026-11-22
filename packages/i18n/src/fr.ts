@@ -2590,6 +2590,7 @@ export const fr = {
     lists: {
       new: "Nouvelle liste",
       name: "Nom de la liste",
+      nameRequired: "Donne un nom à la liste.",
       create: "Créer la liste",
       created: (name: string) => `Liste « ${name} » créée.`,
       readOnly: (owner: string) => `Liste de ${owner}, en lecture seule.`,
@@ -2606,6 +2607,7 @@ export const fr = {
       removed: (name: string) => `Retirée de « ${name} ».`,
       failed: "Le changement n'a pas été enregistré. Vérifie la connexion, puis réessaie.",
       back: "Retour aux résultats",
+      backToSheet: "Retour à la fiche",
     },
     sheet: {
       source: { shared: "Bibliothèque commune", mine: "Fiche de ton espace" },
