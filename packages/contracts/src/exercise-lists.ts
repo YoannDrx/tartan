@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { exerciseCategory } from "./enums";
 import { exerciseFamily } from "./exercise-guide";
 import { exerciseSummary } from "./responses";
 import { uuid } from "./session";
@@ -50,8 +51,42 @@ export const exerciseSearchQuery = z.object({
   filter: exerciseFilter.default({ kind: "all" }),
   offset: z.number().int().min(0).max(10_000).default(0),
   limit: z.number().int().min(1).max(100).default(40),
+  // Sans recherche ni filtre : les favoris du coach, puis les fiches de ses listes, avant le reste.
+  ownFirst: z.boolean().default(false),
 });
 export type ExerciseSearchQuery = z.input<typeof exerciseSearchQuery>;
+
+// Création rapide : le nom suffit. Sans famille ni convention de charge, le service les propose lui-même.
+export const exerciseLoadKind = z.enum(["external_total", "added_weight", "assistance", "bodyweight"]);
+export type ExerciseLoadKind = z.infer<typeof exerciseLoadKind>;
+
+export const quickExerciseInput = z.object({
+  name: z.string().trim().min(1, "Donne un nom à l'exercice").max(120),
+  // Ce que le coach cherchait : gardé comme autre nom de la fiche quand il diffère du nom retenu.
+  searchTerm: z.string().trim().max(120).optional(),
+  category: exerciseCategory.optional(),
+  strengthLoadKind: exerciseLoadKind.nullable().optional(),
+  // Création directe dans une liste du coach.
+  listId: uuid.optional(),
+});
+export type QuickExerciseInput = z.input<typeof quickExerciseInput>;
+
+// `created` est faux quand une fiche de ce nom existait déjà : c'est elle qui est rendue.
+export const quickExerciseResult = z.object({ id: uuid, created: z.boolean(), exercise: exerciseSummary });
+export type QuickExerciseResult = z.infer<typeof quickExerciseResult>;
+
+// Ce que la création rapide préremplit pour un nom, et la fiche qui porte déjà ce nom s'il y en a une.
+export const exerciseDefaultsResult = z.object({
+  category: exerciseCategory,
+  strengthLoadKind: exerciseLoadKind.nullable(),
+  basis: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("exercise"), name: z.string() }),
+    z.object({ kind: z.literal("keyword"), word: z.string() }),
+    z.object({ kind: z.literal("default") }),
+  ]),
+  existing: exerciseSummary.nullable(),
+});
+export type ExerciseDefaultsResult = z.infer<typeof exerciseDefaultsResult>;
 
 // Une page de résultats, sans les guides : la fiche se lit à part.
 export const exerciseSearchResult = z.object({ items: z.array(exerciseSummary), total: z.number().int().min(0) });

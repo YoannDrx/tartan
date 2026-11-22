@@ -56,6 +56,7 @@ export * from "./session-publication";
 export * from "./ai-planner";
 export * from "./exercise-aliases";
 export * from "./exercise-library";
+export * from "./exercise-defaults";
 export * from "./planner-guards";
 export * from "./planner-display";
 export * from "./planner-load-summary";

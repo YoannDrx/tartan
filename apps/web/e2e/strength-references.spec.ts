@@ -3,6 +3,7 @@ import { Client } from "pg";
 import { m } from "@tartan/i18n";
 import { strengthReferenceResponse } from "@tartan/contracts";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
+import { openFullExerciseForm } from "./journeys";
 
 test("le coach choisit une référence liée ; un nouveau test ne la remplace pas", async ({ page }, info) => {
   await page.setViewportSize(
@@ -21,10 +22,7 @@ test("le coach choisit une référence liée ; un nouveau test ne la remplace pa
   } finally {
     await sql.end();
   }
-  await page.goto("/exercices", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: m.exercises.new, exact: true }).click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByLabel(m.exercises.name, { exact: true }).fill("Squat barre de référence");
+  const dialog = await openFullExerciseForm(page, "Squat barre de référence");
   await dialog.getByLabel(m.exercises.category, { exact: true }).selectOption("strength");
   await dialog.getByLabel(m.strength.convention, { exact: true }).selectOption("external_total");
   await dialog.getByLabel(m.strength.step, { exact: true }).fill("2.5");

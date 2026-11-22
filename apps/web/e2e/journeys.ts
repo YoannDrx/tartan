@@ -1,12 +1,28 @@
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { expect, type Browser, type Page } from "@playwright/test";
 import { addFromLibrary, signUp, uniqueEmail } from "./helpers";
 
 export const today = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris" }).format(new Date());
 
-export const createExercise = async (page: Page, name: string) => {
+/**
+ * Le formulaire complet d'une fiche neuve, comme un coach y arrive : la création rapide par son nom, puis
+ * « Compléter la fiche ». Rend le dialogue du formulaire, ouvert sur la page de la fiche.
+ */
+export const openFullExerciseForm = async (page: Page, name: string) => {
   await page.goto("/exercices?nouveau=1");
-  await page.getByLabel("Nom", { exact: true }).fill(name);
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel(m.exercises.name, { exact: true }).fill(name);
+  await dialog.getByRole("button", { name: w.exercises.finder.quick.submitInLibrary, exact: true }).click();
+  await dialog.getByRole("link", { name: w.exercises.finder.complete, exact: true }).click();
+  await expect(page).toHaveURL(/\/exercices\/[0-9a-f-]{36}\?modifier=1$/);
+  await expect(dialog.getByLabel(m.exercises.aliases, { exact: true })).toBeVisible();
+  await expect(dialog.getByLabel(m.exercises.name, { exact: true })).toHaveValue(name);
+  return dialog;
+};
+
+export const createExercise = async (page: Page, name: string) => {
+  await openFullExerciseForm(page, name);
   await page.getByLabel("Consignes clés").fill("Pieds actifs\nBras synchronisés");
   await page.getByLabel("Séries").fill("4");
   await page.getByLabel("Rép.").fill("5");
@@ -14,7 +30,9 @@ export const createExercise = async (page: Page, name: string) => {
   await page.getByLabel("Nom affiché").fill("Démo courte");
   await page.getByLabel("Fin (s)").fill("90");
   await page.getByRole("button", { name: "Enregistrer" }).click();
-  // La fiche créée s'ouvre à son adresse.
+  // La fiche complétée reste ouverte, à son adresse.
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(page).toHaveURL(/\/exercices\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { level: 1, name, exact: true })).toBeVisible();
 };
 
