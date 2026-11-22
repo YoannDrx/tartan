@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { ATHLETE_IDS, athleteRig, ATHLETES } from "./athletes";
-import { POSES } from "./poses";
+import { ATHLETE_IDS, ATHLETES } from "./athletes";
 import { BIB, FACES, HAIRS, rig } from "./rig";
 import { BODY, SKELETON, type AthletePaint } from "./skeleton";
-import { svgAthlete } from "./svg";
 
 const PAINT: AthletePaint = {
   skin: "skin",
@@ -78,17 +76,6 @@ describe("le corps d'un athlète", () => {
     expect(() => rig({ hair: "crop", face: "neutral", bib: 9 })).toThrow(/1 à 8/);
   });
 
-  it("garde le numéro lisible quand le corps se retourne", () => {
-    const bones = rig({ hair: "crop", face: "neutral", bib: 6 });
-    const transform = (flip: number) =>
-      svgAthlete(bones, { ...POSES.stand, flip }, PAINT).bones.find((item) => item.id === "bib")!.transform;
-    expect(transform(1)).not.toContain("scale(-1 1)");
-    expect(transform(-1).endsWith("scale(-1 1)")).toBe(true);
-    // Seul le dossard se retourne : le visage, lui, suit le corps.
-    const eyes = svgAthlete(bones, { ...POSES.stand, flip: -1 }, PAINT).bones.find((item) => item.id === "eyes")!;
-    expect(eyes.transform).not.toContain("scale(-1 1)");
-  });
-
   it("ne reconstruit pas deux fois le même corps", () => {
     expect(rig({ hair: "afro", face: "effort", bib: 3 })).toBe(rig({ hair: "afro", face: "effort", bib: 3 }));
   });
@@ -103,12 +90,7 @@ describe("le groupe", () => {
 
   it("donne à chacun son corps, coloré de bout en bout", () => {
     for (const id of ATHLETE_IDS) {
-      const figure = svgAthlete(athleteRig(id, "joy"), POSES.cheer, PAINT);
-      const colors = figure.bones.flatMap((item) =>
-        item.shapes.map((shape) =>
-          "stroke" in shape && shape.stroke ? shape.stroke : "fill" in shape ? shape.fill : "",
-        ),
-      );
+      const colors = rig({ ...ATHLETES[id], face: "joy" }).flatMap((item) => item.shapes.map((shape) => shape.paint));
       expect(colors.every((color) => color in PAINT)).toBe(true);
       expect(new Set(colors)).toEqual(new Set(Object.keys(PAINT)));
     }

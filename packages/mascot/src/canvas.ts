@@ -1,5 +1,6 @@
-// Le rendu canvas 2D : une fonction pure, qui dessine la pose demandée dans le contexte qu'on lui donne.
-import { chain, STACK, type AthletePaint, type Bone, type Point, type Pose, type Shape } from "./skeleton";
+// Le rendu canvas 2D : une forme du personnage, dessinée dans le contexte qu'on lui donne. Le corps du moteur des
+// gestes s'en sert pour la tête, les mains et le dossard (v2/pose-figure.ts).
+import type { Shape } from "./skeleton";
 
 // Ce dont le dessin a besoin. Un CanvasRenderingContext2D convient, un contexte hors écran aussi.
 export type MascotCanvas = {
@@ -72,35 +73,4 @@ export const drawShape = (ctx: MascotCanvas, shape: Shape, color: string) => {
   ctx.closePath();
   ctx.fillStyle = color;
   ctx.fill();
-};
-
-// Dessine la mascotte. `at` place le bassin, `scale` change la taille du personnage sans toucher à la pose.
-// `bones` : les os d'un athlète du groupe (rig.ts), déjà triés. Sans eux, le corps de base.
-export const drawMascot = (
-  ctx: MascotCanvas,
-  pose: Pose,
-  {
-    paint,
-    at,
-    scale = 1,
-    bones = STACK,
-  }: { paint: Partial<AthletePaint>; at?: Point; scale?: number; bones?: readonly Bone[] },
-) => {
-  const among = new Map(bones.map((bone) => [bone.id, bone]));
-  ctx.save();
-  if (at) ctx.translate(at.x, at.y);
-  if (scale !== 1) ctx.scale(scale, scale);
-  ctx.rotate(radians(pose.rot));
-  ctx.scale(pose.flip * pose.sx, pose.sy);
-  for (const bone of bones) {
-    ctx.save();
-    for (const step of chain(bone, pose, among)) {
-      if ("move" in step) ctx.translate(step.move.x, step.move.y);
-      else if ("turn" in step) ctx.rotate(radians(step.turn));
-      else ctx.scale(-1, 1);
-    }
-    for (const shape of bone.shapes) drawShape(ctx, shape, paint[shape.paint]!);
-    ctx.restore();
-  }
-  ctx.restore();
 };

@@ -3334,16 +3334,7 @@ export const fr = {
     movements: {
       lead: "Les gestes animés des guides d'exercice, famille par famille. Une famille validée affiche « Illustration originale Tartan » ; sinon, l'athlète voit le geste avec la mention « Illustration de travail ».",
       progress: (done: number, total: number) => `${done} gestes sur ${total}`,
-      approved: "Famille validée",
       pending: "En attente de ta relecture",
-      approve: (family: string) => `Valider les gestes : ${family}`,
-      reopen: (family: string) => `Retirer la validation : ${family}`,
-      missing: "Geste à venir",
-      // Les gestes vus de face, arrivés après la première relecture : validés à part.
-      faceBatch: "Nouveaux gestes, vus de face",
-      faceApproved: "Gestes de face validés",
-      approveFace: (family: string) => `Valider les gestes de face : ${family}`,
-      reopenFace: (family: string) => `Retirer la validation des gestes de face : ${family}`,
     },
     mascot: {
       lead: "Les six athlètes du groupe, leurs visages, leurs gestes et les motifs de la piste. Rien de ce qui est ici n'est encore posé dans un écran : c'est le moment de dire ce qui doit changer.",

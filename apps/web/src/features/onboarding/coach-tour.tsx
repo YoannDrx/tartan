@@ -1,11 +1,12 @@
 "use client";
 
 import { w } from "@tartan/i18n/web";
-import { exerciseClip } from "@tartan/mascot/exercises";
+import { createMotionPlayer, svgSink } from "@tartan/mascot/v2/player";
+import { gestureEntry } from "@tartan/mascot/v2/registry";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, type KeyboardEvent } from "react";
-import { ExerciseScene } from "@/components/exercise-scene";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { gesturePaint, GestureStage, GestureStill } from "@/components/exercise-scene";
 import { LaneNumber } from "@/components/lane-number";
 import { TrackTile } from "@/components/states";
 import { Button } from "@/components/ui/button";
@@ -17,24 +18,31 @@ import { FEATURES, type Feature } from "./tour-features";
 
 const t = w.onboarding.tour;
 
-// Le vrai guide animé d'une fiche du catalogue. En mouvement réduit : la position la plus parlante, immobile.
+// Le vrai guide animé d'une fiche du catalogue, tel que la fiche le montre. En mouvement réduit : la position la
+// plus parlante, immobile. La lecture pose les tracés elle-même, sans rendu React.
 const GuidePreview = ({ catalogKey, label }: { catalogKey: string; label: string }) => {
-  const clip = exerciseClip(catalogKey);
+  const entry = useMemo(() => gestureEntry(catalogKey), [catalogKey]);
   const reduced = useReducedMotion();
-  const [time, setTime] = useState(clip?.stills[1] ?? 0);
+  const group = useRef<SVGGElement>(null);
+  const still = entry ? (entry.clip.positions[1] ?? entry.clip.positions[0]!).still : 0;
   useEffect(() => {
-    if (!clip || reduced) return;
-    let last = performance.now();
-    let frame = requestAnimationFrame(function tick(now) {
-      const elapsed = now - last;
-      last = now;
-      setTime((current) => (current + elapsed / clip.duration) % 1);
-      frame = requestAnimationFrame(tick);
+    const target = group.current;
+    if (!entry || reduced || !target) return;
+    const player = createMotionPlayer(entry.clip, entry.native, svgSink(document, target, gesturePaint(entry.clip)), {
+      start: still,
     });
-    return () => cancelAnimationFrame(frame);
-  }, [clip, reduced]);
-  if (!clip) return null;
-  return <ExerciseScene gesture={clip} t={time} role="img" aria-label={label} className="h-full w-auto" />;
+    player.play();
+    return () => {
+      player.dispose();
+      target.replaceChildren();
+    };
+  }, [entry, reduced, still]);
+  if (!entry) return null;
+  return (
+    <GestureStage gesture={entry.clip} view={entry.native} role="img" aria-label={label} className="h-full w-auto">
+      {reduced ? <GestureStill gesture={entry.clip} t={still} view={entry.native} /> : <g ref={group} />}
+    </GestureStage>
+  );
 };
 
 const Visual = ({ feature }: { feature: Feature }) => {

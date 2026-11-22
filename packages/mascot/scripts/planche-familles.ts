@@ -6,7 +6,6 @@
 //   corepack pnpm --filter @tartan/web exec tsx ../../packages/mascot/scripts/planche-familles.ts <dossier de sortie>
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { A_REPRENDRE } from "../src/v2/a-reprendre";
 import { inspect, type Report } from "../src/v2/constraints";
 import { HEIGHT } from "../src/v2/body";
 import { bodyExtent, framing, sceneSvg } from "../src/v2/draw-svg";
@@ -193,10 +192,9 @@ for (const family of FAMILIES) {
   await png(resolve(out, `synthese-${family.file}.png`), sheetOf(cells, 16));
 }
 
-// Le registre et la table des gestes à reprendre disent la même chose : le test du paquet le vérifie aussi.
-const listed = Object.keys(A_REPRENDRE).length;
+// Aucun geste ne doit être à reprendre : le test du registre le vérifie aussi.
 const found = [...rows.values()].flat().filter((row) => row.broken.length > 0).length;
-if (listed !== found) console.warn(`Attention : ${found} gestes à reprendre ici, ${listed} dans la table A_REPRENDRE.`);
+if (found > 0) console.warn(`Attention : ${found} gestes ne respectent pas toutes les contraintes.`);
 
 const index = `
   <h1>Gestes du nouveau moteur : planches par famille</h1>

@@ -23,7 +23,7 @@ const AWA = "tripleJump" as const;
 const LILA = "longJump" as const;
 
 const front = (athlete: ExerciseDraft["athlete"], draft: Omit<ExerciseDraft, "athlete" | "facing">): ExerciseClip =>
-  exercise({ athlete, facing: "front", batch: "face", ...draft });
+  exercise({ athlete, facing: "front", ...draft });
 const effort = (pose: PosePatch, extra: Omit<Position, "pose"> = {}): Position => ({ pose, face: "effort", ...extra });
 const calm = (pose: PosePatch, extra: Omit<Position, "pose"> = {}): Position => ({ pose, ...extra });
 const on = (anchor: Anchor, x = 0): Pick<Position, "on" | "at"> => ({ on: anchor, at: ground(anchor, x) });
@@ -378,7 +378,6 @@ const prone = (swing: number): PosePatch => ({
   kneeB: 0,
 });
 const proneHipRotation = exercise({
-  batch: "face",
   athlete: LILA,
   key: "prone-hip-rotation",
   facing: "back",
@@ -441,7 +440,6 @@ const hands = (n: number): Pick<Position, "on" | "at"> => ({
   at: { x: FIRST + (n - 1) * RUN + RUN / 2, y: GYM.ground - n * RISE - 15 },
 });
 const bearCrawl = exercise({
-  batch: "face",
   athlete: AWA,
   key: "stair-bear-crawl",
   duration: 4800,

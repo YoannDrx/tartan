@@ -1,22 +1,20 @@
 import type { ExerciseFamily, ExerciseGuide } from "@tartan/contracts";
 import { exerciseClip } from "@tartan/mascot/exercises";
-import { reviewBatch, type ReviewBatch } from "@tartan/mascot/v2/engine";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "./admin.service";
 
 // Les familles dont le fondateur a relu les gestes animés. Une clé à part : le formulaire de configuration,
-// qui réécrit ses propres réglages, ne peut pas l'effacer. Une série arrivée après coup (les gestes vus de face,
-// puis les gestes du nouveau moteur) se valide à part, sous « famille:série » : la validation d'une famille ne
-// couvre que les gestes qu'il a vus.
+// qui réécrit ses propres réglages, ne peut pas l'effacer. Les gestes du moteur actuel forment une série à part,
+// « famille:v2 » : une famille validée sur le premier moteur (« famille », « famille:face ») ne la couvre pas,
+// puisque le fondateur n'a pas vu ces gestes-là.
 const KEY = "motionFamilies";
 const CACHE_MS = 30_000;
 const families = z.array(z.string().max(60));
 let cached: { at: number; value: string[] } | null = null;
 
-export type MotionReviewGroup = ExerciseFamily | `${ExerciseFamily}:${ReviewBatch}`;
-export const motionReviewGroup = (family: ExerciseFamily, batch?: ReviewBatch): MotionReviewGroup =>
-  batch ? `${family}:${batch}` : family;
+export type MotionReviewGroup = `${ExerciseFamily}:v2`;
+export const motionReviewGroup = (family: ExerciseFamily): MotionReviewGroup => `${family}:v2`;
 
 export const approvedMotionFamilies = async (): Promise<string[]> => {
   const now = Date.now();
@@ -32,10 +30,9 @@ export const setMotionFamilyApproval = async (
   actor: { email: string; userId: string },
   family: ExerciseFamily,
   approved: boolean,
-  batch?: ReviewBatch,
 ) => {
   await requireAdmin(actor.email);
-  const group = motionReviewGroup(family, batch);
+  const group = motionReviewGroup(family);
   const current = await approvedMotionFamilies();
   const next = approved ? [...new Set([...current, group])] : current.filter((value) => value !== group);
   await prisma.$transaction([
@@ -49,7 +46,7 @@ export const setMotionFamilyApproval = async (
         actorId: actor.userId,
         action: approved ? "motion_family_approved" : "motion_family_reopened",
         entity: "platform_settings",
-        metadata: { family, ...(batch ? { batch } : {}) },
+        metadata: { family, batch: "v2" },
       },
     }),
   ]);
@@ -57,8 +54,7 @@ export const setMotionFamilyApproval = async (
 };
 
 // Le geste animé se lit au moment de l'affichage, d'après la clé du catalogue : une séance déjà publiée,
-// dont le guide est figé, reçoit aussi les gestes arrivés depuis. Sa série de relecture suit le moteur qui
-// l'anime : un geste passé au nouveau moteur redevient « de travail » jusqu'à la relecture de sa série.
+// dont le guide est figé, reçoit aussi les gestes arrivés depuis.
 export const withMotion = <G extends ExerciseGuide | null | undefined>(guide: G, approved: readonly string[]): G => {
   const clip = guide ? exerciseClip(guide.catalogKey) : null;
   return guide && clip
@@ -66,9 +62,7 @@ export const withMotion = <G extends ExerciseGuide | null | undefined>(guide: G,
         ...guide,
         illustration: {
           ...guide.illustration,
-          motion: approved.includes(motionReviewGroup(guide.family, reviewBatch(guide.catalogKey)))
-            ? "approved"
-            : "review",
+          motion: approved.includes(motionReviewGroup(guide.family)) ? "approved" : "review",
         },
       } as G)
     : guide;
