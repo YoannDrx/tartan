@@ -75,6 +75,32 @@ export const joinAsAthlete = async (
   return { context, page };
 };
 
+// L'athlète qui s'entraîne seul, de son inscription à sa journée : l'aiguillage, puis « Je m'entraîne seul » en trois
+// temps. La page arrive sur `/aujourdhui`, dans son espace personnel.
+export const startSolo = async (page: Page, firstName: string, email = uniqueEmail(firstName.toLowerCase())) => {
+  await signUp(page, email, "/connexion?next=%2Fbienvenue");
+  await expect(page.getByRole("heading", { name: w.welcome.title })).toBeVisible({ timeout: 60_000 });
+  await page.getByRole("link", { name: new RegExp(w.welcome.solo.title) }).click();
+  await expect(page.getByRole("heading", { name: w.welcome.soloForm.title })).toBeVisible({ timeout: 60_000 });
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel("Prénom").fill(firstName);
+  await page.getByLabel("Nom", { exact: true }).fill("Seule");
+  await page.getByLabel("Date de naissance").fill("1996-04-20");
+  await page.getByRole("button", { name: m.onboarding.next, exact: true }).click();
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Disciplines/ })
+    .click();
+  await page.getByRole("checkbox", { name: "Sprint", exact: true }).check();
+  await page.getByRole("button", { name: m.onboarding.next, exact: true }).click();
+  await page.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
+  await page.getByRole("checkbox", { name: /informations de santé/ }).check();
+  await page.getByRole("button", { name: w.welcome.soloForm.create, exact: true }).click();
+  await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
+  await expect(page.getByRole("heading", { name: m.today.greeting(firstName) })).toBeVisible({ timeout: 60_000 });
+  return { email };
+};
+
 export const publishSession = async (page: Page, title: string, exercise: string) => {
   // Pendant le rendu en flux, React peut remplacer le formulaire : on attend la fin, puis on vise la copie affichée.
   await page.goto(`/seances/nouvelle?date=${today()}`, { waitUntil: "networkidle" });

@@ -82,7 +82,7 @@ export const addPerformance = async (userId: string, organizationId: string, raw
   const parsed = performanceInput.safeParse(raw);
   if (!parsed.success) throw invalid(m.performances.invalid);
   const input = parsed.data;
-  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
+  const access = await requireOrgMember(userId, organizationId, "recordPerformance");
   await requireVisibleAthlete(access, input.athleteId);
   await requireOwnedRefs(organizationId, { competitionId: input.competitionId });
   return prisma.$transaction(async (tx) => {
@@ -122,7 +122,7 @@ export const updatePerformance = async (userId: string, organizationId: string, 
   const parsed = updatePerformanceInput.safeParse(raw);
   if (!parsed.success) throw invalid(m.performances.invalid);
   const input = parsed.data;
-  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
+  const access = await requireOrgMember(userId, organizationId, "recordPerformance");
   await requireVisibleAthlete(access, input.athleteId);
   await requireOwnedRefs(organizationId, { competitionId: input.competitionId });
   return prisma.$transaction(async (tx) => {
@@ -147,7 +147,7 @@ export const deletePerformance = async (
   expectedVersion?: number,
   athleteId?: string,
 ) => {
-  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
+  const access = await requireOrgMember(userId, organizationId, "recordPerformance");
   const row = await prisma.performance.findFirst({
     where: { id, organizationId, ...(athleteId ? { athleteId } : {}) },
   });

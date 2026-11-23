@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { billingEnabled, stripe } from "@/lib/stripe";
 import { deleteAccount } from "./account.service";
 import { requireAdmin } from "./admin.service";
-import { REAL_SPACES } from "./demo-space-guard";
+import { COACH_SPACES, REAL_SPACES } from "./demo-space-guard";
 import { applySubscription } from "./subscription-state.service";
 import { confirmStoreAvailability, setMinimumVersion, stopRollout } from "./releases.service";
 
@@ -394,9 +394,10 @@ export const usageOverview = async (actor: Admin, now: Date = new Date()) => {
     prisma.user.count(),
     prisma.profile.count({ where: { lastActiveAt: { gte: days(7) } } }),
     prisma.profile.count({ where: { lastActiveAt: { gte: days(30) } } }),
-    // Usage réel seulement : l'espace de démonstration, rempli d'avance, fausserait chaque compteur.
-    prisma.organization.count({ where: REAL_SPACES }),
-    prisma.organization.count({ where: { ...REAL_SPACES, plan: { in: ["coach", "club"] } } }),
+    // Usage réel seulement : la démonstration, remplie d'avance, fausserait chaque compteur. Les compteurs d'espaces ne lisent
+    // que ceux des coachs : l'espace personnel d'un athlète autonome n'est ni un client ni un groupe.
+    prisma.organization.count({ where: COACH_SPACES }),
+    prisma.organization.count({ where: { ...COACH_SPACES, plan: { in: ["coach", "club"] } } }),
     prisma.scheduledSession.count({
       where: { organization: REAL_SPACES, publishedAt: { not: null }, date: { gte: weekAgoDate } },
     }),
@@ -410,10 +411,10 @@ export const usageOverview = async (actor: Admin, now: Date = new Date()) => {
     prisma.video.count({ where: { organization: REAL_SPACES } }),
     prisma.aiPlannerOperation.count({ where: { createdAt: { gte: days(30) } } }),
     prisma.organization.count({
-      where: { ...REAL_SPACES, scheduledSessions: { some: { publishedAt: { not: null } } } },
+      where: { ...COACH_SPACES, scheduledSessions: { some: { publishedAt: { not: null } } } },
     }),
-    prisma.organization.count({ where: { ...REAL_SPACES, athletes: { some: {} } } }),
-    prisma.organization.count({ where: { ...REAL_SPACES, scheduledSessions: { some: { logs: { some: {} } } } } }),
+    prisma.organization.count({ where: { ...COACH_SPACES, athletes: { some: {} } } }),
+    prisma.organization.count({ where: { ...COACH_SPACES, scheduledSessions: { some: { logs: { some: {} } } } } }),
     prisma.clientInstallation.groupBy({
       by: ["platform", "appVersion"],
       where: { lastSeenAt: { gte: days(30) } },

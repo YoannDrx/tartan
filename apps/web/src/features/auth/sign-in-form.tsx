@@ -99,12 +99,11 @@ export const SignInForm = ({
     setErrors({});
     setPending("password");
     if (intent === "create") {
-      const res = await authClient.signUp.email({
-        email: address,
-        password,
-        name: address.split("@")[0] ?? address,
-        callbackURL,
-      });
+      const res = await authClient.signUp.email(
+        { email: address, password, name: address.split("@")[0] ?? address, callbackURL },
+        // Si l'adresse a déjà un compte, l'e-mail qui le dit ramène à la page d'où l'on vient (une invitation).
+        { headers: { "x-tartan-return": callbackURL } },
+      );
       setPending(null);
       // Même écran qu'un compte existe déjà ou non : c'est l'e-mail qui fait la différence.
       if (res.error) setErrors({ form: failure(res.error, m.common.genericError) });

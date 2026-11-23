@@ -15,6 +15,9 @@ export const auth = {
   create: {
     lead: (athletes: number) =>
       `Gratuit jusqu'à ${athletes} athlètes, sans carte bancaire. Choisis un mot de passe, ou reçois un lien dans ta boîte mail.`,
+    // Inscriptions des coachs fermées, athlètes autonomes ouvertes : le compte se crée, l'aiguillage suit.
+    leadSolo:
+      "Gratuit pour t'entraîner seul. Choisis un mot de passe, ou reçois un lien dans ta boîte mail : tu diras ensuite comment tu utilises Tartan.",
     withPassword: "Créer avec un mot de passe",
     withLink: "Créer avec un lien par e-mail",
     passwordLabel: "Choisis ton mot de passe",
@@ -41,6 +44,11 @@ export const auth = {
   },
   inviteLead: "Crée ton compte ou connecte-toi pour rejoindre. Tu reviendras ici juste après.",
   inviteTitle: "Invitation",
+  // Invitation nominative : l'adresse visée se lit avant le formulaire, pour ne pas l'apprendre à l'envoi.
+  inviteFor: "Cette invitation est destinée à",
+  inviteSignedInAs: "Tu es connecté avec",
+  inviteWrongAccount: "Pour la rejoindre, connecte-toi avec l'adresse de l'invitation.",
+  switchAccount: "Changer de compte",
   // L'écran d'attente, après l'envoi d'un lien de connexion ou de confirmation.
   sent: {
     magicTitle: "Regarde ta boîte mail",
@@ -150,6 +158,10 @@ export const auth = {
       detail:
         "Le mot de passe saisi à l'instant n'a pas été enregistré. Pour en définir un, ouvre Réglages, rubrique Connexion.",
       cta: "Me connecter",
+      // L'inscription venait d'une invitation : le bouton connecte puis rouvre l'invitation.
+      bodyInvitation:
+        "Quelqu'un, sans doute toi, vient de vouloir créer un compte avec cette adresse pour répondre à une invitation. Tu en as déjà un : connecte-toi, l'invitation se rouvre aussitôt.",
+      ctaInvitation: "Me connecter et rejoindre",
       ignore: "Ce n'était pas toi ? Ignore ce message, rien n'a changé.",
     },
   },

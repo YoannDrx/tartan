@@ -7,16 +7,20 @@ import Link from "next/link";
 import { withSessionReturn } from "@/lib/session-navigation";
 import { useRouter } from "next/navigation";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 
 // Le panneau appartient au calendrier : ses données restent présentes après une actualisation.
 export const CalendarDetailPanel = ({
   children,
   sessionId,
   returnTo,
+  personal = false,
 }: {
   children: ReactNode;
   sessionId?: string;
   returnTo: string;
+  // Espace personnel : la page de la séance est son constructeur, il n'y a pas de suivi de groupe.
+  personal?: boolean;
 }) => {
   const router = useRouter();
   const opener = useRef<HTMLElement | null>(null);
@@ -73,9 +77,9 @@ export const CalendarDetailPanel = ({
           {sessionId ? (
             <Link
               className="mb-2 inline-flex min-h-11 items-center font-semibold"
-              href={withSessionReturn(`/seances/${sessionId}/suivi`, returnTo)}
+              href={withSessionReturn(`/seances/${sessionId}${personal ? "" : "/suivi"}`, returnTo)}
             >
-              {m.calendar.openSessionPage}
+              {personal ? w.personal.calendar.edit : m.calendar.openSessionPage}
             </Link>
           ) : null}
           {children}

@@ -192,6 +192,8 @@ export const getAthleteWelcome = async (
   now: Date = new Date(),
 ): Promise<{ group: string; coach: string } | null> => {
   const access = await requireAthleteAccess(userId, organizationId);
+  // L'athlète autonome n'a ni groupe ni coach à présenter : ses premiers pas en tiennent lieu.
+  if (access.personal) return null;
   const member = await prisma.organizationMember.findUnique({
     where: { organizationId_userId: { organizationId, userId } },
     select: { createdAt: true, organization: { select: { name: true, ownerId: true } } },

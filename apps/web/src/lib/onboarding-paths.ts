@@ -1,4 +1,4 @@
-import type { CoachOptionalStepKey, CoachStepKey } from "@tartan/domain";
+import type { CoachOptionalStepKey, CoachStepKey, PersonalStepKey } from "@tartan/domain";
 
 // Où se fait chaque étape des premiers pas. La carte « Pour démarrer », la page des premiers pas et les e-mails
 // d'activation mènent aux mêmes endroits.
@@ -19,6 +19,14 @@ export const COACH_OPTIONAL_PATH: Record<CoachOptionalStepKey, string> = {
 };
 
 export const FIRST_STEPS_PATH = "/premiers-pas";
+
+// Les premiers pas de l'athlète autonome : la carte de sa journée, sa page et ses e-mails mènent aux mêmes endroits.
+export const PERSONAL_STEP_PATH: Record<PersonalStepKey, string> = {
+  plan: "/seances/nouvelle",
+  validate: "/aujourdhui",
+  measure: "/progres#test-de-force",
+  install: "/premiers-pas#installer",
+};
 
 // L'espace de démonstration s'ouvre depuis la page des premiers pas ; la carte « Pour démarrer » y mène.
 export const DEMO_SPACE_ENABLED = true as boolean;

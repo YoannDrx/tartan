@@ -1,6 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import type { OrgRole } from "@tartan/contracts";
-import { can, type Permission, scopeOf } from "@tartan/domain";
+import { canIn, type Permission } from "@tartan/domain";
 import { forbidden, notFound } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { assertMemberAge } from "./age.service";
@@ -11,6 +11,8 @@ export type Access = {
   role: OrgRole;
   // Fiche de l'utilisateur quand il est athlète dans cette organisation.
   athleteId: string | null;
+  // Espace personnel d'un athlète autonome : il en est l'unique membre et planifie pour sa seule fiche.
+  personal: boolean;
 };
 
 // Toute lecture ou écriture passe par ici : appartenance et rôle (§ 11.4).
@@ -26,14 +28,17 @@ export const requireOrgMember = async (
       role: true,
       status: true,
       user: { select: { profile: { select: { birthDate: true } } } },
-      organization: { select: { isDemo: true } },
+      organization: { select: { isDemo: true, kind: true, personalOwnerId: true } },
     },
   });
   if (!member || member.status !== "active") throw forbidden();
   // Un espace de démonstration n'a qu'un membre, le coach qui l'a ouvert : aucun athlète réel n'y entre jamais.
   if (member.organization.isDemo && member.role !== "owner") throw forbidden();
+  // Un espace personnel n'a qu'un membre, son titulaire, athlète de sa propre fiche : personne d'autre n'y entre.
+  const personal = member.organization.kind === "personal";
+  if (personal && (member.role !== "athlete" || member.organization.personalOwnerId !== userId)) throw forbidden();
   assertMemberAge(member.user.profile?.birthDate);
-  if (permission && !can(member.role, permission)) throw forbidden();
+  if (permission && !canIn(member.organization.kind, member.role, permission)) throw forbidden();
   const athlete =
     member.role === "athlete"
       ? await db.athlete.findUnique({
@@ -41,8 +46,16 @@ export const requireOrgMember = async (
           select: { id: true },
         })
       : null;
-  return { userId, organizationId, role: member.role, athleteId: athlete?.id ?? null };
+  return { userId, organizationId, role: member.role, athleteId: athlete?.id ?? null, personal };
 };
+
+// La règle de l'espace pour un accès déjà vérifié : la matrice, ou celle du titulaire d'un espace personnel.
+export const accessCan = (access: Access, permission: Permission): boolean =>
+  canIn(access.personal ? "personal" : "coach", access.role, permission);
+
+// Le titulaire d'un espace personnel, quand il planifie : la cible est toujours sa propre fiche.
+export const personalAthleteOf = (access: Access): string | null =>
+  access.personal && access.role === "athlete" ? access.athleteId : null;
 
 export const requireAthleteAccess = async (
   userId: string,

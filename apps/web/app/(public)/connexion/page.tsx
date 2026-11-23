@@ -23,14 +23,23 @@ export default async function ConnexionPage({
   const { next, creer, lien } = await searchParams;
   const callbackURL = safeReturnPath(next);
   if (await getActor()) redirect(callbackURL);
-  const signupOpen = (await platformSettings()).signupMode === "public";
+  const settings = await platformSettings();
+  // Un compte se crée pour coacher ou pour s'entraîner seul : l'aiguillage vient après la confirmation de l'adresse.
+  const coachOpen = settings.signupMode === "public";
+  const signupOpen = coachOpen || settings.athleteSignupMode === "public";
   // On arrive ici depuis « Créer mon espace » : même formulaire, mais la page dit ce qu'on est venu faire.
   const creating = signupOpen && creer !== undefined;
   const otherHref = `/connexion${creating ? "" : "?creer=1"}${next ? `${creating ? "?" : "&"}next=${encodeURIComponent(next)}` : ""}`;
   return (
     <PublicPage
       title={creating ? m.auth.createTitle : m.auth.signInTitle}
-      lead={creating ? w.auth.create.lead(PLANS.discovery.limits.maxAthletes ?? 0) : m.auth.signInLead}
+      lead={
+        creating
+          ? coachOpen
+            ? w.auth.create.lead(PLANS.discovery.limits.maxAthletes ?? 0)
+            : w.auth.create.leadSolo
+          : m.auth.signInLead
+      }
       scene={<SignInScene />}
     >
       <div className="on-card flex flex-col gap-4 rounded-card bg-card p-5">

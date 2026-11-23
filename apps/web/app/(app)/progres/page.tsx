@@ -6,7 +6,8 @@ import { w } from "@tartan/i18n/web";
 import { Mark, Rows, Sheet, SheetSection } from "@/components/sheet";
 import { Chip, EmptyState, PageHeader } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { InjuryDialog } from "@/features/athletes/athlete-forms";
+import { InjuryDialog, PerformanceDialog, TestDialog } from "@/features/athletes/athlete-forms";
+import { listExerciseIndex } from "@/server/exercise.service";
 import { requireAthleteSpace } from "@/features/shell/space";
 import { getMyFile } from "@/server/athlete.service";
 import { ShareRecord } from "@/features/progress/share-record";
@@ -21,11 +22,13 @@ const date = (iso: string) => `${formatDayMonth(iso)} ${iso.slice(0, 4)}`;
 // Les courbes par exercice sont disponibles lorsque la progression est activée.
 export default async function ProgresPage() {
   const ctx = await requireAthleteSpace();
-  const { actor, organizationId, space } = ctx;
+  const { actor, organizationId, space, personal } = ctx;
   const today = todayIso();
-  const [file, regularity] = await Promise.all([
+  const [file, regularity, exercises] = await Promise.all([
     getMyFile(actor.userId, organizationId),
     getMyRegularity(actor.userId, organizationId),
+    // L'athlète autonome note lui-même ses tests : la bibliothèque de son espace sert au choix de l'exercice.
+    personal ? listExerciseIndex(actor.userId, organizationId) : null,
   ]);
   const nothingYet = file.performances.length === 0 && file.tests.length === 0;
   return (
@@ -48,6 +51,29 @@ export default async function ProgresPage() {
           ) : null
         }
       />
+      {exercises ? (
+        <section
+          id="test-de-force"
+          aria-labelledby="mesures-perso"
+          className="on-card flex scroll-mt-24 flex-col gap-3 rounded-card bg-card p-4"
+        >
+          <div className="flex flex-col gap-1">
+            <h2 id="mesures-perso" className="t-h2">
+              {w.personal.progress.testTitle}
+            </h2>
+            <p className="max-w-prose text-soft">{w.personal.progress.testLead}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <TestDialog
+              athleteId={file.id}
+              exercises={exercises}
+              progressionEnabled={space.progressionEnabled ?? true}
+              label={w.personal.progress.addTest}
+            />
+            <PerformanceDialog athleteId={file.id} label={m.performances.add} />
+          </div>
+        </section>
+      ) : null}
       <CalendarPhases ctx={ctx} from={today} to={addDays(today, 83)} today={today} open />
       {regularity.total > 0 ? (
         <Sheet>

@@ -21,6 +21,14 @@ import { EmailSuppressedError } from "./email-suppression.service";
 import { isInvitationEmailRelevant, isInvitationOutboxKind, renderInvitationEmail } from "./invitation-email";
 import { isActivationEmailRelevant, renderActivationEmail, renderNearLimitEmail } from "./lifecycle-email.service";
 import { isAthleteWelcomeRelevant, renderAthleteWelcome, renderInvitationReminder } from "./athlete-email";
+import {
+  isFinishSignupRelevant,
+  isPersonalActivationRelevant,
+  isPersonalWelcomeRelevant,
+  renderFinishSignup,
+  renderPersonalActivation,
+  renderPersonalWelcome,
+} from "./personal-email";
 
 const RETRY_WINDOW_MS = 24 * 60 * 60 * 1000;
 const LEASE_MS = 5 * 60 * 1000;
@@ -149,6 +157,9 @@ const render = async (kind: string, payload: unknown, organizationId: string | n
   if (isInvitationOutboxKind(kind)) return renderInvitationEmail(payload);
   if (kind === "invitation_reminder") return renderInvitationReminder(payload);
   if (kind === "athlete_welcome") return renderAthleteWelcome(payload);
+  if (kind === "personal_welcome") return renderPersonalWelcome(payload);
+  if (kind === "personal_activation" && organizationId) return renderPersonalActivation(organizationId, payload);
+  if (kind === "finish_signup") return renderFinishSignup();
   if (kind === "activation" && organizationId) return renderActivationEmail(organizationId, payload);
   if (kind === "plan_near_limit" && organizationId) return renderNearLimitEmail(organizationId, payload);
   if (kind === "account_deleted") {
@@ -442,6 +453,10 @@ export const isEmailRelevant = async (
   if (isInvitationOutboxKind(row.kind) || row.kind === "invitation_reminder")
     return isInvitationEmailRelevant(row.payload, row.toEmail, now);
   if (row.kind === "athlete_welcome") return isAthleteWelcomeRelevant(row.payload, row.toEmail);
+  if (row.kind === "personal_welcome") return isPersonalWelcomeRelevant(row.payload, row.toEmail);
+  if (row.kind === "finish_signup") return isFinishSignupRelevant(row.payload, row.toEmail, now);
+  if (row.kind === "personal_activation")
+    return Boolean(row.organizationId) && isPersonalActivationRelevant(row.organizationId!, row.payload, row.toEmail);
   if (row.kind === "account_deleted") {
     const payload = row.payload as AccountPayload;
     // Une réinscription rendrait cette ancienne confirmation trompeuse.

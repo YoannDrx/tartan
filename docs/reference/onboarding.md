@@ -6,11 +6,11 @@ Ce que vit un nouvel utilisateur, de l'inscription à sa première action utile.
 
 Le même formulaire sert à la connexion, à la création de compte et à l'invitation (`apps/web/src/features/auth/sign-in-form.tsx`). L'adresse d'abord, puis deux chemins visibles, de même taille : le mot de passe, ou un lien reçu par e-mail. Google et Apple s'ajoutent dessous quand ils sont configurés.
 
-| Écran | Chemin par mot de passe | Chemin par lien |
-| --- | --- | --- |
-| `/connexion` | « Continuer avec mon mot de passe », puis le mot de passe et « Se connecter » | « Recevoir un lien de connexion » |
-| `/connexion?creer=1` (inscriptions ouvertes) | « Créer avec un mot de passe », puis le mot de passe et « Créer mon compte » | « Créer avec un lien par e-mail » |
-| `/i/[token]` | Création par défaut ; « J'ai déjà un compte Tartan » passe à la connexion | Identique dans les deux cas |
+| Écran                                        | Chemin par mot de passe                                                       | Chemin par lien                   |
+| -------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------- |
+| `/connexion`                                 | « Continuer avec mon mot de passe », puis le mot de passe et « Se connecter » | « Recevoir un lien de connexion » |
+| `/connexion?creer=1` (inscriptions ouvertes) | « Créer avec un mot de passe », puis le mot de passe et « Créer mon compte »  | « Créer avec un lien par e-mail » |
+| `/i/[token]`                                 | Création par défaut ; « J'ai déjà un compte Tartan » passe à la connexion     | Identique dans les deux cas       |
 
 - **Adresse à confirmer.** Un compte créé par mot de passe n'ouvre rien tant que son adresse n'est pas confirmée. L'écran d'attente rappelle l'adresse, propose de renvoyer le lien et de changer d'adresse, et dit quoi faire si rien n'arrive (`link-sent.tsx`). Le lien de confirmation connecte et ramène à la page demandée. Une connexion par mot de passe sur une adresse non confirmée ramène à cet écran, et le lien repart.
 - **Lien envoyé.** Même écran d'attente. Le renvoi est possible après 30 secondes ; un refus du serveur (limite de débit) fait attendre une minute et le dit.
@@ -27,18 +27,33 @@ Réglages, rubrique Connexion (`/reglages/connexion`) : les moyens du compte (li
 - **Changer** : le mot de passe actuel est demandé ; une case déconnecte les autres appareils, celui qui fait la demande reste connecté.
 - Un e-mail prévient à chaque définition et à chaque changement.
 
+## L'aiguillage d'un compte sans espace
+
+Un compte connecté qui n'a encore aucun espace arrive sur `/bienvenue` (`welcome-choices.tsx`) : trois chemins de même rang, en une liste numérotée comme des couloirs.
+
+| Choix                            | Mène à                                                                           | Fermé quand                                                                         |
+| -------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 1. « Je suis coach »             | `/bienvenue/coach`, la création de l'espace ci-dessous                           | Inscriptions des coachs fermées : le choix reste visible, avec l'adresse de contact |
+| 2. « Je m'entraîne seul »        | `/bienvenue/seul`, l'espace personnel                                            | Inscriptions des athlètes autonomes fermées (console, ouvertes par défaut)          |
+| 3. « J'ai un lien d'invitation » | Un champ qui accepte le lien entier ou le code qui suit `/i/`, puis l'invitation | Jamais                                                                              |
+
+- Sous l'aiguillage, « Ton compte » : l'adresse connectée, « Se déconnecter » et « Supprimer mon compte » (`account-exit.tsx`). Un compte sans espace n'est jamais dans une impasse.
+- Une offre choisie sur les tarifs (`?offre=`) mène directement à `/bienvenue/coach`.
+- Les deux réglages (`signupMode`, `athleteSignupMode`) sont lus sans session par `GET /api/v1/signup-options`, pour l'app native. La création de compte de `/connexion?creer=1` s'ouvre dès que l'un des deux l'est.
+- Un compte confirmé resté sans espace ni invitation reçoit une fois « Termine ton inscription », 24 heures après sa création ([emails.md](emails.md#athlète-autonome)).
+
 ## Le coach
 
 1. `/connexion?creer=1` : inscription par mot de passe ou par lien, puis confirmation de l'adresse par e-mail.
-2. `/bienvenue` : contrôle de l'âge et de l'ouverture des inscriptions. Inscriptions fermées : écran d'attente.
+2. `/bienvenue`, puis « Je suis coach » (`/bienvenue/coach`) : contrôle de l'âge et de l'ouverture des inscriptions.
 3. Création de l'espace en trois temps, puis un quatrième, facultatif (`apps/web/src/features/onboarding/onboarding-form.tsx`). Les trois premiers tiennent sur une seule action serveur ; l'espace existe dès « Créer mon espace », et l'action mène au quatrième temps, sur sa propre page (`/bienvenue/inviter`, l'offre choisie sur les tarifs suit) : un rechargement n'y perd rien.
 
-| Temps | Contenu | Requis |
-| --- | --- | --- |
-| 1. À vos marques | Prénom, nom, date de naissance | Oui |
-| 2. Prêts | Club ou indépendant, nom de l'espace, premier groupe, objectif du groupe | Nom et groupe |
-| 3. Partez | Disciplines, objectifs et matériel ; conditions d'utilisation | Conditions |
-| 4. Ton groupe | Le lien du premier groupe à copier, son QR code, quelques adresses e-mail (20 au plus) | Rien : « Ouvrir mon espace » part à tout moment |
+| Temps            | Contenu                                                                                | Requis                                          |
+| ---------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| 1. À vos marques | Prénom, nom, date de naissance                                                         | Oui                                             |
+| 2. Prêts         | Club ou indépendant, nom de l'espace, premier groupe, objectif du groupe               | Nom et groupe                                   |
+| 3. Partez        | Disciplines, objectifs et matériel ; conditions d'utilisation                          | Conditions                                      |
+| 4. Ton groupe    | Le lien du premier groupe à copier, son QR code, quelques adresses e-mail (20 au plus) | Rien : « Ouvrir mon espace » part à tout moment |
 
 Chaque « Continuer » valide le temps affiché et porte le focus sur le titre du suivant. Entrée fait avancer d'un temps. Une erreur dans un temps précédent y ramène, comme « Corriger » sur la confirmation de la date. L'espace naît en offre Découverte, avec la bibliothèque d'exercices, des modèles de séance (`packages/domain/src/starter-library.ts`, `starter-templates.ts`) et son premier groupe. Un compte ne possède qu'un espace gratuit. L'invitation sur place (`invite-panel.tsx`) sert aussi à la carte et à la page des premiers pas.
 
@@ -65,13 +80,13 @@ API, pour le web et le mobile : `GET` et `PATCH /api/v1/orgs/[orgId]/onboarding`
 
 Sur `/suivi` et sur `/premiers-pas` (`coach-guide.tsx`). Le tour de piste (`TrackLap`) montre la part courue, que la carte dit aussi en toutes lettres (« 2 étapes faites sur 5 »). La prochaine étape est marquée.
 
-| Étape | Faite quand | Sur place |
-| --- | --- | --- |
-| Compléter ton profil | Le profil a une photo ou un avatar | Lien vers Réglages, Profil |
-| Inviter tes athlètes | Une invitation existe ou un athlète a rejoint | Lien du groupe, QR code, adresses, dans la carte |
-| Créer une première séance | Une séance existe | Deux modèles de départ (`/seances/nouvelle?modele=…`), une page vierge, le planificateur s'il est ouvert |
-| Publier la séance | Une séance est publiée | Calendrier |
-| Recevoir une première validation | Un athlète a validé | « Essaie avec ton propre téléphone » : le lien et le QR code du groupe, à ouvrir avec une autre adresse |
+| Étape                            | Faite quand                                   | Sur place                                                                                                |
+| -------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Compléter ton profil             | Le profil a une photo ou un avatar            | Lien vers Réglages, Profil                                                                               |
+| Inviter tes athlètes             | Une invitation existe ou un athlète a rejoint | Lien du groupe, QR code, adresses, dans la carte                                                         |
+| Créer une première séance        | Une séance existe                             | Deux modèles de départ (`/seances/nouvelle?modele=…`), une page vierge, le planificateur s'il est ouvert |
+| Publier la séance                | Une séance est publiée                        | Calendrier                                                                                               |
+| Recevoir une première validation | Un athlète a validé                           | « Essaie avec ton propre téléphone » : le lien et le QR code du groupe, à ouvrir avec une autre adresse  |
 
 Étapes facultatives, sous « Pour aller plus loin », faites d'après les faits ou écartées d'un geste (« Écarter », « Reprendre ») : matériel de l'espace, première vidéo, première phase, installation de l'app (un appareil enregistré).
 
@@ -144,6 +159,40 @@ Le même parcours, avec les mêmes API et les mêmes contrats (lot M1). Aucun pr
 - **L'athlète** (`src/features/athlete-onboarding.tsx`) : l'accueil lu par `GET /api/v1/orgs/[orgId]/athlete/welcome` (le groupe et le coach, ou rien après une semaine ou une validation) et par `welcomeSeenAt`, pour un membre guidé seulement (`guided`, faux pour les comptes de démonstration de la graine), avec la même règle `athleteWelcomeMode` : un jour de séance, la ligne « Découvrir Tartan » sous la séance ; sinon l'accueil en tête. « C'est parti » le referme pour tous les appareils. La proposition de mot de passe vient après la séance ; après la première validation, la carte « Pour aller plus loin » (photo ou avatar, mot de passe, notifications) se referme pour de bon.
 - **État** : chaque geste part en `PATCH /api/v1/orgs/[orgId]/onboarding` et s'affiche avant la réponse (`applyOnboardingPatch`, `src/lib/onboarding.ts`) ; un refus du serveur rend l'état d'avant.
 - **Preuves** : tests unitaires du mobile (`sign-in`, `settings-rubrics`, `onboarding`, `avatar-photo`, `auth-callback`) ; flux Maestro `sign-in-smoke`, `account-password`, `settings-sections`, `account-avatar`, `athlete-welcome` (un athlète créé par la CI via le lien de son groupe ; la base vérifie ensuite que l'accueil a été refermé sur le simulateur).
+
+### Invitation d'un compte existant
+
+- Une invitation nominative montre l'adresse qu'elle vise avant tout formulaire. Ouverte avec un autre compte, elle le dit, avec l'adresse connectée et « Changer de compte », qui déconnecte et rouvre l'invitation, l'adresse visée déjà saisie (`switch-account.tsx`). Le texte du refus est dans `packages/i18n` (`m.invite.wrongAccount`).
+- Une inscription par mot de passe lancée depuis une invitation, sur une adresse qui a déjà un compte : l'e-mail `account_exists` mène à `/connexion?next=/i/…`, qui rouvre l'invitation après la connexion.
+- Accepter une invitation ne réécrit plus le nom du compte s'il en a déjà un : seule la fiche de cet espace prend le nom saisi.
+
+## L'athlète autonome
+
+Décision du 23 novembre 2026, plan dans [../plans/athlete-autonome.md](../plans/athlete-autonome.md).
+
+1. `/connexion?creer=1`, confirmation de l'adresse, puis l'aiguillage de `/bienvenue` et « Je m'entraîne seul ».
+2. `/bienvenue/seul`, en trois temps (`personal-signup-form.tsx`) : prénom, nom et date de naissance (adultes seulement, mêmes règles que le coach) ; disciplines et objectifs (facultatifs) ; conditions, et les deux accords facultatifs santé et vidéo.
+3. Création de l'espace personnel (`createPersonalSpace`, `apps/web/src/server/personal-space.service.ts`, ou `POST /api/v1/me/personal-space`) : `organizations.kind = personal`, `personal_owner_id` unique (un seul par compte), offre `personal`, le compte comme unique membre avec le rôle athlète et sa fiche, la bibliothèque et les séances de départ, sa ligne `onboarding_states`, la bienvenue `personal_welcome` en file.
+4. Arrivée sur `/aujourdhui`.
+
+### Ce qu'il peut faire
+
+- **Droits** (`personalScopeOf`, `packages/domain/src/permissions.ts`) : tous ceux d'un athlète, plus la planification pour sa seule fiche — séances et modèles (`manageSessions`), bibliothèque et listes (`editExercises`), tests de force, références, performances et phases (`recordPerformance`). Rien d'autre : ni invitation, ni gestion de fiches ou de groupes, ni notes privées, ni annonces, ni abonnement, ni réglage de l'espace. `requireOrgMember` refuse tout autre membre ; une invitation vers un espace personnel n'ouvre rien.
+- **Navigation** : Aujourd'hui, Calendrier, Exercices, Progrès, Vidéos, et « Planifier ». Le constructeur, le calendrier, les modèles et le planificateur sont ceux du coach, dans un mode sans destinataires : le serveur remplace tout public par sa fiche (`forPersonalSpace`), et ne le notifie pas de ses propres séances. Publiée, une séance l'attend dans sa journée.
+- **Progrès** : il note lui-même un test de force ou une performance (`#test-de-force`).
+- **Exclu** : e-mails du coach, facturation et plafonds d'espace, question de la veille, compteurs d'espaces et de revenus de la console (`COACH_SPACES`). Tests : `tests/personal-space.test.ts`.
+
+### Ses premiers pas
+
+Règle pure `personalChecklist` (`packages/domain/src/onboarding.ts`), faits lus par `readPersonalFacts` : planifier une séance (un modèle, une page vierge ou le planificateur), la valider, noter une référence de force, installer l'app. Même mécanique que le coach : la carte « Pour démarrer » sur `/aujourdhui` (après la séance du jour, refermable), la page `/premiers-pas`, et les conseils `personal_activation` à J1, J3 et J7.
+
+### Rejoindre un coach et partager son historique
+
+- Il ouvre le lien de son coach, connecté : il devient athlète du groupe (fiche propre à cet espace) et garde son espace personnel. Le sélecteur d'espace montre « Mon entraînement » et le groupe du coach.
+- Écran suivant, facultatif : `/partager-historique`, « Partager mon historique avec … », par cases (records, références de force, historique des séances) ; « Pas maintenant » ne partage rien. La santé n'est jamais une case.
+- Le partage vit dans `history_shares` (`apps/web/src/server/history-share.service.ts`) : rien n'est copié, le coach lit l'espace personnel à travers lui. Chaque lecture revérifie le partage et les droits de l'espace du coach (`viewTracking`, fiche visible), et s'écrit au journal (`history_share_read`). Le coach le lit sur la fiche de l'athlète, section « Historique personnel partagé », en lecture seule ; il en est prévenu par l'e-mail `history_shared`.
+- Retrait à tout moment dans Réglages, Confidentialité, « Historique partagé » : effet immédiat. Quitter l'espace du coach, ou supprimer son compte, emporte le partage.
+- API pour l'app native : `GET` et `POST /api/v1/me/history-shares`, `DELETE /api/v1/me/history-shares/[orgId]`, `GET /api/v1/orgs/[orgId]/athletes/[athleteId]/shared-history`.
 
 ## Ce qui se mesure
 

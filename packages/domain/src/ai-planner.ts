@@ -16,7 +16,7 @@ import {
 } from "@tartan/contracts";
 import { validSessionStructure } from "./session-sequence";
 import { plannerEquipmentAvailable } from "./planner-equipment";
-import type { PlanKey } from "./plans";
+import { PERSONAL_QUOTAS, type PlanKey } from "./plans";
 
 export const PLANNER_MAX_AUDIO_BYTES = 3 * 1024 * 1024;
 export const PLANNER_MAX_AUDIO_SECONDS = 180;
@@ -28,9 +28,11 @@ export const plannerPhaseChoicesForDate = (selection: PlannerSelection, date: st
 export const plannerLimits = (plan: PlanKey) =>
   plan === "discovery"
     ? { proposals: 0, audioSeconds: 0 }
-    : plan === "club"
-      ? { proposals: 150, audioSeconds: 300 * 60 }
-      : { proposals: 30, audioSeconds: 60 * 60 };
+    : plan === "personal"
+      ? { proposals: PERSONAL_QUOTAS.plannerProposals, audioSeconds: PERSONAL_QUOTAS.plannerAudioSeconds }
+      : plan === "club"
+        ? { proposals: 150, audioSeconds: 300 * 60 }
+        : { proposals: 30, audioSeconds: 60 * 60 };
 
 // Les compteurs sont à lire/réserver atomiquement dans le service ; cette fonction
 // pure ne prétend pas verrouiller ni dédupliquer une consommation.
@@ -233,7 +235,10 @@ export function validatePlannerInterpretation(
           issues.add("instruction");
         try {
           // Validation du contrat métier existant : pas de valeur de force ni conversion RPE → kg.
-          plannerPrescriptionToSession(item.prescription, context.exercises.get(item.exerciseToken)?.id ?? "unresolved");
+          plannerPrescriptionToSession(
+            item.prescription,
+            context.exercises.get(item.exerciseToken)?.id ?? "unresolved",
+          );
           if (item.autonomous)
             plannerPrescriptionToSession(
               item.autonomous.prescription,

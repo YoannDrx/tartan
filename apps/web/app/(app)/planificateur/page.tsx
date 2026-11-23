@@ -23,7 +23,7 @@ export default async function PlannerPage({
 }: {
   searchParams: Promise<{ proposition?: string; date?: string; groupe?: string }>;
 }) {
-  const { actor, organizationId, space } = await requireSpace();
+  const { actor, organizationId, space, personal } = await requireSpace();
   if (!space.aiPlannerEnabled) return <PlannerUnavailable space={space} />;
   if (!(await hasAiConsent(actor.userId))) return <PlannerConsent />;
   const params = await searchParams;
@@ -63,6 +63,8 @@ export default async function PlannerPage({
   const date = params.date ?? new Intl.DateTimeFormat("en-CA", { timeZone: usage.timeZone }).format(new Date());
   // Un seul groupe dans l'espace : il est déjà choisi, la demande part en un champ et un clic.
   const groupIds = params.groupe ? [params.groupe] : context.groups.length === 1 ? [context.groups[0]!.id] : [];
+  // Espace personnel : la séance est pour son titulaire, sans autre destinataire.
+  const athleteIds = personal && space.athleteId ? [space.athleteId] : [];
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
       <PageHeader
@@ -86,10 +88,11 @@ export default async function PlannerPage({
         initialUsage={usage}
         // Le matériel du profil de l'espace : les précisions le reprennent, le coach le change pour une séance.
         equipment={trainingEquipment.array().catch([]).parse(organization.availableEquipment)}
+        solo={personal}
         initialSelection={{
           period: { from: date, to: date },
           groupIds,
-          athleteIds: [],
+          athleteIds,
           exerciseIds: [],
           phaseChoices: [],
         }}

@@ -2,6 +2,7 @@
 
 import type { PlatformSettings } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -25,6 +26,7 @@ const t = m.admin.config;
 export const SettingsForm = ({ settings }: { settings: PlatformSettings }) => {
   const router = useRouter();
   const [signupMode, setSignupMode] = useState(settings.signupMode);
+  const [athleteSignupMode, setAthleteSignupMode] = useState(settings.athleteSignupMode);
   const [checkout, setCheckout] = useState(settings.checkoutEnabled);
   const [limit, setLimit] = useState(settings.muxVideoLimit === null ? "" : String(settings.muxVideoLimit));
   const save = useAction(updatePlatformSettingsAction, {
@@ -42,6 +44,18 @@ export const SettingsForm = ({ settings }: { settings: PlatformSettings }) => {
             <Select {...a} value={signupMode} onChange={(e) => setSignupMode(e.target.value as "closed" | "public")}>
               <option value="closed">{t.signupClosed}</option>
               <option value="public">{t.signupPublic}</option>
+            </Select>
+          )}
+        </Field>
+        <Field label={w.admin.athleteSignup.label} hint={w.admin.athleteSignup.hint}>
+          {(a) => (
+            <Select
+              {...a}
+              value={athleteSignupMode}
+              onChange={(e) => setAthleteSignupMode(e.target.value as "closed" | "public")}
+            >
+              <option value="public">{w.admin.athleteSignup.open}</option>
+              <option value="closed">{w.admin.athleteSignup.closed}</option>
             </Select>
           )}
         </Field>
@@ -65,6 +79,7 @@ export const SettingsForm = ({ settings }: { settings: PlatformSettings }) => {
           onConfirm={() =>
             save.execute({
               signupMode,
+              athleteSignupMode,
               checkoutEnabled: checkout,
               muxVideoLimit: limit === "" ? null : Number(limit),
             })

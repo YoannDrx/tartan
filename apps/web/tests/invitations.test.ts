@@ -101,7 +101,7 @@ describe("lien de groupe", () => {
       code: "already_staff",
     });
     expect(await prisma.athlete.count({ where: { userId: org.owner.userId } })).toBe(0);
-    await expect(invitationConflictMessage(tokenOf(link.link), org.owner.userId)).resolves.toBe(m.invite.alreadyStaff);
+    await expect(invitationConflictMessage(tokenOf(link.link), org.owner)).resolves.toBe(m.invite.alreadyStaff);
     const row = await prisma.invitation.findUniqueOrThrow({ where: { id: link.id } });
     expect(row.useCount).toBe(0);
   });

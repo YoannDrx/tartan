@@ -121,3 +121,51 @@ export const athleteWelcomeMode = (input: {
 // Un athlète d'avant ce suivi ne la voit pas : il connaît déjà l'app.
 export const athleteExtrasVisible = (input: { validations: number; memory: OnboardingMemory | null }): boolean =>
   input.validations > 0 && Boolean(input.memory && !input.memory.dismissedAt);
+
+// ── Athlète autonome ─────────────────────────────────────────────────────────
+// Les premiers pas de l'athlète qui s'entraîne seul, dans son espace personnel : même mécanique que le coach
+// (faits réels, carte, page des premiers pas, e-mails), étapes d'athlète.
+export type PersonalOnboardingFacts = {
+  sessions: number;
+  validations: number;
+  // Un test de force ou une performance notée.
+  measures: number;
+  installed: boolean;
+};
+
+export type PersonalStepKey = "plan" | "validate" | "measure" | "install";
+export type PersonalStep = { key: PersonalStepKey; done: boolean };
+
+export const PERSONAL_STEPS: readonly PersonalStepKey[] = ["plan", "validate", "measure", "install"];
+
+// Une séance validée prouve qu'elle a été planifiée.
+export const personalChecklist = (facts: PersonalOnboardingFacts): PersonalStep[] => {
+  const validated = facts.validations > 0;
+  return [
+    { key: "plan", done: validated || facts.sessions > 0 },
+    { key: "validate", done: validated },
+    { key: "measure", done: facts.measures > 0 },
+    { key: "install", done: facts.installed },
+  ];
+};
+
+export const personalNextStep = (facts: PersonalOnboardingFacts): PersonalStepKey | null =>
+  personalChecklist(facts).find((step) => !step.done)?.key ?? null;
+
+export const personalOnboardingDone = (facts: PersonalOnboardingFacts): boolean => personalNextStep(facts) === null;
+
+export const personalProgress = (facts: PersonalOnboardingFacts): { done: number; total: number } => {
+  const steps = personalChecklist(facts);
+  return { done: steps.filter((step) => step.done).length, total: steps.length };
+};
+
+// Les e-mails visent l'entraînement : planifier, valider, mesurer. L'installation ne vaut pas un e-mail.
+export const personalActivationStep = (facts: PersonalOnboardingFacts): PersonalStepKey | null =>
+  personalChecklist(facts).find((step) => !step.done && step.key !== "install")?.key ?? null;
+
+// La carte reste jusqu'à la fin des premiers pas, sauf si l'athlète l'a refermée.
+export const personalGuideVisible = (facts: PersonalOnboardingFacts, memory: OnboardingMemory | null): boolean =>
+  Boolean(memory) && !personalOnboardingDone(facts) && !memory?.dismissedAt;
+
+export const personalCelebrationDue = (facts: PersonalOnboardingFacts, memory: OnboardingMemory | null): boolean =>
+  Boolean(memory && !memory.celebratedAt && personalOnboardingDone(facts));

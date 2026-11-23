@@ -1,5 +1,7 @@
 import { TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
+import { SharedHistorySection } from "@/features/history-share/shared-history-section";
+import { getSharedHistory } from "@/server/history-share.service";
 import Link from "next/link";
 import { ageAt, formatHeight } from "@tartan/domain";
 import { formatDayMonth, m, strengthTestLabel } from "@tartan/i18n";
@@ -37,13 +39,15 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
   const { id } = await params;
   const file = await orNotFound(() => getAthleteFile(actor.userId, organizationId, id));
   const access = await requireOrgMember(actor.userId, organizationId, "viewTracking");
-  const [groups, videos, sheet, stats, exercises, streak] = await Promise.all([
+  const [groups, videos, sheet, stats, exercises, streak, shared] = await Promise.all([
     listGroups(access),
     listVideos(actor.userId, organizationId, { athleteId: id }),
     getBarSheet(actor.userId, organizationId, { athleteId: id }),
     athleteWeeklyStats(actor.userId, organizationId, id),
     listExercises(actor.userId, organizationId),
     athleteRegularity(actor.userId, organizationId, id),
+    // L'historique personnel que l'athlète partage : contrôlé et tracé à chaque lecture.
+    getSharedHistory(actor.userId, organizationId, id),
   ]);
   const activeWeeks = stats.weeks.filter((w) => w.sessions > 0).reverse();
   const activeInjury = file.injuries.find((i) => i.status !== "resolved");
@@ -442,6 +446,7 @@ export default async function AthleteFilePage({ params }: { params: Promise<{ id
           </div>
         </div>
       </Sheet>
+      {shared ? <SharedHistorySection history={shared} /> : null}
     </div>
   );
 }

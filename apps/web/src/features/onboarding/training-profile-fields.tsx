@@ -14,14 +14,19 @@ export const TrainingProfileFields = ({
   value,
   onChange,
   disabled = false,
+  keys = Object.keys(choices) as (keyof TrainingProfile)[],
+  hint = m.trainingProfile.hint,
 }: {
   value: TrainingProfile;
   onChange: (value: TrainingProfile) => void;
   disabled?: boolean;
+  // L'athlète autonome ne déclare que ses disciplines et ses objectifs : le matériel est celui d'un groupe.
+  keys?: (keyof TrainingProfile)[];
+  hint?: string;
 }) => (
   <div className="flex flex-col gap-3">
-    <p className="t-caption text-soft">{m.trainingProfile.hint}</p>
-    {(Object.keys(choices) as (keyof TrainingProfile)[]).map((key) => (
+    <p className="t-caption text-soft">{hint}</p>
+    {keys.map((key) => (
       <details key={key} className="rounded-button border border-card-line px-3">
         <summary className="min-h-11 cursor-pointer py-3 font-semibold">
           {m.trainingProfile[key]}

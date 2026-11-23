@@ -15,6 +15,10 @@ export const PrivacyContent = ({ embedded = false }: { embedded?: boolean }) => 
       ))}
       <li>{m.aiPlanner.privacyUse}</li>
     </ul>
+    <h2>{t.personalSpace}</h2>
+    <p>{t.personalSpaceDetail}</p>
+    <h2>{t.sharing}</h2>
+    <p>{t.sharingDetail}</p>
     <h2>{t.coachRecord}</h2>
     <p>{t.coachRecordDetail}</p>
     <h2>{t.withdrawal}</h2>

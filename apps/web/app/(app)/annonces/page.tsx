@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { m } from "@tartan/i18n";
 import { PageHeader } from "@/components/states";
 import { AnnouncementComposer, AnnouncementList } from "@/features/announcements/announcements";
@@ -10,7 +11,9 @@ import { listGroups } from "@/server/org.service";
 export const metadata: Metadata = { title: m.announcements.title };
 
 export default async function AnnoncesPage() {
-  const { actor, organizationId, staff } = await requireSpace();
+  const { actor, organizationId, staff, personal } = await requireSpace();
+  // L'espace personnel n'a pas de groupe : aucune annonce n'y circule.
+  if (personal) redirect("/aujourdhui");
   const items = await listAnnouncements(actor.userId, organizationId);
   const groups = staff
     ? await listGroups(await requireOrgMember(actor.userId, organizationId, "publishAnnouncement"))

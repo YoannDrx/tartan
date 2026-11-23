@@ -11,6 +11,7 @@ import { demoSpace } from "./demo-space";
 import { exercises } from "./exercises";
 import { legal } from "./legal";
 import { onboarding } from "./onboarding";
+import { personal } from "./personal";
 import { planner } from "./planner";
 import { planning } from "./planning";
 import { profile } from "./profile";
@@ -20,6 +21,7 @@ import { settings } from "./settings";
 import { shell } from "./shell";
 import { tracking } from "./tracking";
 import { video } from "./video";
+import { welcome } from "./welcome";
 
 export const w = {
   admin,
@@ -32,6 +34,7 @@ export const w = {
   exercises,
   legal,
   onboarding,
+  personal,
   planner,
   planning,
   profile,
@@ -41,6 +44,7 @@ export const w = {
   shell,
   tracking,
   video,
+  welcome,
 } as const;
 
 export type WebMessages = typeof w;

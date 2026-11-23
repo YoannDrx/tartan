@@ -7,7 +7,7 @@ import {
   type ProfileInput,
   type SpaceSummary,
 } from "@tartan/contracts";
-import { can, knownAvatarPreset, plannerServerEnabled } from "@tartan/domain";
+import { canIn, knownAvatarPreset, plannerServerEnabled } from "@tartan/domain";
 import { put } from "@vercel/blob";
 import { fromDbDateOrNull, toDbDate } from "@/lib/dates";
 import { env } from "@/lib/env";
@@ -38,6 +38,7 @@ export const listSpaces = async (userId: string, options: { includeDemo?: boolea
           plan: true,
           isDemo: true,
           demoExpiresAt: true,
+          kind: true,
         },
       },
     },
@@ -51,13 +52,19 @@ export const listSpaces = async (userId: string, options: { includeDemo?: boolea
       organizationName: r.organization.name,
       progressionEnabled: r.organization.progressionEnabled,
       phasesEnabled: r.organization.phasesEnabled,
-      aiPlannerEnabled: planner && r.organization.plan !== "discovery" && can(r.role, "manageSessions"),
-      aiPlannerUpgrade: planner && r.organization.plan === "discovery" && can(r.role, "manageSessions"),
+      aiPlannerEnabled:
+        planner && r.organization.plan !== "discovery" && canIn(r.organization.kind, r.role, "manageSessions"),
+      aiPlannerUpgrade:
+        planner && r.organization.plan === "discovery" && canIn(r.organization.kind, r.role, "manageSessions"),
       role: r.role,
       athleteId:
         r.role === "athlete" ? (athletes.find((a) => a.organizationId === r.organization.id)?.id ?? null) : null,
       ...(r.organization.isDemo
         ? { isDemo: true, demoExpiresAt: r.organization.demoExpiresAt?.toISOString() ?? null }
+        : {}),
+      // L'app native en circulation l'ignore et y voit un espace d'athlète : elle valide ses séances sans le reste.
+      ...(r.organization.kind === "personal"
+        ? { kind: "personal" as const, organizationName: m.personalSpace.name }
         : {}),
     };
   });

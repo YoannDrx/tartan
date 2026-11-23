@@ -1,9 +1,10 @@
-import { Play } from "lucide-react";
+import { Play, SquarePen } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { AthleteSessionCard, AthleteSessionDetail, AthleteToday } from "@tartan/contracts";
 import { athleteWelcomeMode, programItems } from "@tartan/domain";
 import { capitalize, formatDateLong, formatWeekdayShort, m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { ActivityPicto, LaneArcs } from "@/components/pictos";
 import { EmptyState, PageHeader } from "@/components/states";
 import { StatusIcon } from "@/components/status-cell";
@@ -22,7 +23,8 @@ import { PasswordPrompt } from "@/features/auth/password-prompt";
 import { getAthleteSession, getAthleteToday, getAthleteWelcome } from "@/server/athlete-view.service";
 import { getSignInMethods } from "@/server/credentials.service";
 import { getMe } from "@/server/me.service";
-import { getOnboarding } from "@/server/onboarding.service";
+import { getGuideContext, getOnboarding } from "@/server/onboarding.service";
+import { PersonalGuide } from "@/features/onboarding/personal-guide";
 
 export const metadata: Metadata = { title: m.nav.aujourdhui };
 
@@ -109,11 +111,14 @@ const Hero = ({
   detail,
   organizationId,
   healthConsent,
+  personal,
 }: {
   card: AthleteSessionCard;
   detail: AthleteSessionDetail;
   organizationId: string;
   healthConsent: boolean;
+  // Espace personnel : ni coach à nommer, ni présence à annoncer.
+  personal: boolean;
 }) => {
   const validated = card.status === "done" || card.status === "partial";
   // Un circuit repasse par les mêmes exercices : le programme les montre une fois, avec leurs passages.
@@ -141,7 +146,7 @@ const Hero = ({
                   card.startTime?.replace(":", " h "),
                   card.durationMin ? `${card.durationMin} min` : null,
                   m.today.exerciseCount(card.exerciseCount),
-                  card.coachName ? m.today.sentBy(card.coachName.split(" ")[0] ?? card.coachName) : null,
+                  card.coachName && !personal ? m.today.sentBy(card.coachName.split(" ")[0] ?? card.coachName) : null,
                 ]
                   .filter(Boolean)
                   .join(", ")}
@@ -178,7 +183,9 @@ const Hero = ({
           {card.coachNote}
         </p>
       ) : null}
-      {!validated && card.hasAutonomous ? <TodayAbsence sessionId={card.id} current={card.attendance} /> : null}
+      {!validated && card.hasAutonomous && !personal ? (
+        <TodayAbsence sessionId={card.id} current={card.attendance} />
+      ) : null}
       <section className="flex flex-col gap-2">
         <h2 className="t-section">{m.today.program}</h2>
         <ul className="divide-y divide-card-line rounded-card on-card bg-card px-3">
@@ -210,15 +217,26 @@ const Hero = ({
 };
 
 export default async function AujourdhuiPage() {
-  const { actor, organizationId } = await requireAthleteSpace();
+  const { actor, organizationId, personal, space } = await requireAthleteSpace();
   const today = todayIso();
-  const [data, welcome, methods, onboarding, me] = await Promise.all([
+  const [data, welcome, methods, onboarding, me, guide] = await Promise.all([
     getAthleteToday(actor.userId, organizationId),
     getAthleteWelcome(actor.userId, organizationId),
     getSignInMethods(actor),
     getOnboarding(actor.userId, organizationId),
     getMe(actor.userId),
+    // L'athlète autonome a ses premiers pas : deux modèles de départ pour planifier sa première séance.
+    personal ? getGuideContext(actor.userId, organizationId) : null,
   ]);
+  const personalGuide =
+    personal && guide && onboarding.personal?.guideVisible
+      ? {
+          ...onboarding.personal,
+          dismissedAt: onboarding.dismissedAt,
+          templates: guide.templates,
+          plannerAvailable: Boolean(space.aiPlannerEnabled),
+        }
+      : null;
   const details = await Promise.all(data.today.map((c) => getAthleteSession(actor.userId, organizationId, c.id)));
   // L'accueil ne retarde jamais la séance : un jour de séance, il tient en une ligne sous elle.
   const welcomeMode = athleteWelcomeMode({
@@ -232,6 +250,16 @@ export default async function AujourdhuiPage() {
       <PageHeader
         title={data.firstName ? m.today.greeting(data.firstName) : m.nav.aujourdhui}
         detail={capitalize(formatDateLong(today))}
+        actions={
+          personal ? (
+            <Button asChild size="sm">
+              <Link href="/seances/nouvelle?retour=%2Faujourdhui">
+                <SquarePen aria-hidden className="size-4" />
+                {w.personal.planSession}
+              </Link>
+            </Button>
+          ) : undefined
+        }
       />
       {data.parentalConsentPending ? (
         <p className="on-card rounded-card bg-card p-3 text-st-partial">{m.parental.pendingBanner}</p>
@@ -256,6 +284,7 @@ export default async function AujourdhuiPage() {
             detail={detail}
             organizationId={organizationId}
             healthConsent={data.healthConsent}
+            personal={personal}
           />
         ) : null;
       })}
@@ -265,8 +294,21 @@ export default async function AujourdhuiPage() {
       ) : null}
       {data.focus ? <FocusBlock focus={data.focus} /> : null}
       {data.today.length === 0 ? (
-        <EmptyState rubric="aujourdhui">{data.next ? m.today.empty : m.today.noneYet}</EmptyState>
+        <EmptyState
+          rubric="aujourdhui"
+          action={
+            personal ? (
+              <Button asChild size="sm" variant="secondary">
+                <Link href="/seances/nouvelle?retour=%2Faujourdhui">{w.personal.planSession}</Link>
+              </Button>
+            ) : undefined
+          }
+        >
+          {personal ? w.personal.todayEmpty : data.next ? m.today.empty : m.today.noneYet}
+        </EmptyState>
       ) : null}
+      {/* Ses premiers pas, après la séance du jour : rien ne passe devant elle. */}
+      {personalGuide ? <PersonalGuide data={personalGuide} place="today" /> : null}
       {/* Après la séance du jour, jamais avant. Après la première validation, une carte facultative regroupe photo,
           mot de passe, installation et notifications ; avant, seule la proposition de mot de passe est là. */}
       {onboarding.extrasVisible ? (
@@ -291,7 +333,7 @@ export default async function AujourdhuiPage() {
               </span>
             </Link>
           </Stay>
-          <AttendanceQuestion sessionId={data.next.id} current={data.next.attendance} />
+          {personal ? null : <AttendanceQuestion sessionId={data.next.id} current={data.next.attendance} />}
         </section>
       ) : null}
       {/* La série vient après les séances : l'athlète vient d'abord pour elles. */}

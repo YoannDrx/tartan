@@ -418,10 +418,13 @@ export const SessionBuilder = ({
   defaultGroupId,
   returnTo,
   initialTemplateId,
+  personalAthleteId,
 }: {
   userId: string;
   organizationId: string;
   initialTemplateId?: string;
+  // Espace personnel : la séance est pour son titulaire, sans choix de destinataires ni réglage par athlète.
+  personalAthleteId?: string;
   phasesEnabled?: boolean;
   progressionEnabled?: boolean;
   initial: {
@@ -475,16 +478,19 @@ export const SessionBuilder = ({
   const [version, setVersion] = useState<Version>("club");
   const [selectedGroups, setSelectedGroups] = useState(
     initial?.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId) ??
-      (defaultGroupId !== undefined
-        ? groups.some((group) => group.id === defaultGroupId)
-          ? [defaultGroupId]
-          : []
-        : groups.length === 1 && groups[0]
-          ? [groups[0].id]
-          : []),
+      (personalAthleteId
+        ? []
+        : defaultGroupId !== undefined
+          ? groups.some((group) => group.id === defaultGroupId)
+            ? [defaultGroupId]
+            : []
+          : groups.length === 1 && groups[0]
+            ? [groups[0].id]
+            : []),
   );
   const [selectedAthletes, setSelectedAthletes] = useState(
-    initial?.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId) ?? [],
+    initial?.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId) ??
+      (personalAthleteId ? [personalAthleteId] : []),
   );
   const planningKey = phasePlanningKey(date, selectedGroups, selectedAthletes);
   const [phaseReady, setPhaseReady] = useState<PhasePlanningReadiness>({ key: "", ready: false });
@@ -735,7 +741,9 @@ export const SessionBuilder = ({
               : publishedToast(data?.recipients)
             : m.builder.sequence.draftSaved,
       );
-      if (input.publish && data) router.push(withSessionReturn(`/seances/${data.id}/suivi`, returnTo));
+      // L'athlète autonome n'a pas de suivi de groupe : sa séance publiée l'attend dans sa journée.
+      if (input.publish && data && personalAthleteId) router.push(returnTo ?? "/aujourdhui");
+      else if (input.publish && data) router.push(withSessionReturn(`/seances/${data.id}/suivi`, returnTo));
       else if (data && !initial) router.replace(withSessionReturn(`/seances/${data.id}`, returnTo));
       router.refresh();
     },
@@ -980,44 +988,47 @@ export const SessionBuilder = ({
           </details>
         </section>
 
-        <section className="desktop:col-start-2 min-w-0 flex flex-col gap-3 rounded-card on-card bg-card p-4">
-          <h2 className="t-h2">{m.builder.audience}</h2>
-          <div className="grid gap-4 tablet:grid-cols-2">
-            <fieldset>
-              <legend className="t-caption mb-1">{m.builder.entireGroup}</legend>
-              {groups.map((g) => (
-                <CheckRow
-                  key={g.id}
-                  label={g.name}
-                  detail={m.builder.sequence.athleteCount(g.athleteCount)}
-                  checked={selectedGroups.includes(g.id)}
-                  onChange={(e) =>
-                    setSelectedGroups(
-                      e.target.checked ? [...selectedGroups, g.id] : selectedGroups.filter((x) => x !== g.id),
-                    )
-                  }
-                />
-              ))}
-            </fieldset>
-            <fieldset>
-              <legend className="t-caption mb-1">{m.builder.pickAthletes}</legend>
-              <div className="max-h-56 overflow-y-auto">
-                {athletes.map((a) => (
+        {/* Espace personnel : la séance est pour son titulaire, il n'y a personne d'autre à choisir. */}
+        {personalAthleteId ? null : (
+          <section className="desktop:col-start-2 min-w-0 flex flex-col gap-3 rounded-card on-card bg-card p-4">
+            <h2 className="t-h2">{m.builder.audience}</h2>
+            <div className="grid gap-4 tablet:grid-cols-2">
+              <fieldset>
+                <legend className="t-caption mb-1">{m.builder.entireGroup}</legend>
+                {groups.map((g) => (
                   <CheckRow
-                    key={a.id}
-                    label={`${a.firstName} ${a.lastName}`}
-                    checked={selectedAthletes.includes(a.id)}
+                    key={g.id}
+                    label={g.name}
+                    detail={m.builder.sequence.athleteCount(g.athleteCount)}
+                    checked={selectedGroups.includes(g.id)}
                     onChange={(e) =>
-                      setSelectedAthletes(
-                        e.target.checked ? [...selectedAthletes, a.id] : selectedAthletes.filter((x) => x !== a.id),
+                      setSelectedGroups(
+                        e.target.checked ? [...selectedGroups, g.id] : selectedGroups.filter((x) => x !== g.id),
                       )
                     }
                   />
                 ))}
-              </div>
-            </fieldset>
-          </div>
-        </section>
+              </fieldset>
+              <fieldset>
+                <legend className="t-caption mb-1">{m.builder.pickAthletes}</legend>
+                <div className="max-h-56 overflow-y-auto">
+                  {athletes.map((a) => (
+                    <CheckRow
+                      key={a.id}
+                      label={`${a.firstName} ${a.lastName}`}
+                      checked={selectedAthletes.includes(a.id)}
+                      onChange={(e) =>
+                        setSelectedAthletes(
+                          e.target.checked ? [...selectedAthletes, a.id] : selectedAthletes.filter((x) => x !== a.id),
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+          </section>
+        )}
 
         {phasesEnabled ? (
           <div className="desktop:col-start-2 min-w-0">
@@ -1259,7 +1270,7 @@ export const SessionBuilder = ({
           )}
         </aside>
 
-        {clubRefs.length > 0 && athletes.length > 0 ? (
+        {clubRefs.length > 0 && athletes.length > 0 && !personalAthleteId ? (
           <details className="desktop:col-start-2 min-w-0 rounded-card on-card bg-card px-4 py-2">
             <summary className="t-h2 flex min-h-11 items-center gap-2 [&::-webkit-details-marker]:hidden">
               <ChevronRight aria-hidden className="size-5 transition-transform [[open]>summary>&]:rotate-90" />

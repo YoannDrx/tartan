@@ -7,6 +7,7 @@ import { action, authAction } from "@/lib/safe-action";
 import { spaceAction } from "@/features/shell/space-action";
 import { SPACE_COOKIE } from "@/features/shell/space";
 import { answerParentalConsent } from "@/server/consent.service";
+import { historyShareOffered } from "@/server/history-share.service";
 import {
   acceptInvitation,
   createInvitation,
@@ -30,7 +31,9 @@ export const acceptInvitationAction = authAction
       maxAge: 60 * 60 * 24 * 365,
       path: "/",
     });
-    return res;
+    // Un athlète qui a son espace personnel se voit proposer, juste après, le partage de son historique.
+    const offerShare = res.athleteId ? await historyShareOffered(ctx.actor.userId, res.organizationId) : false;
+    return { ...res, offerShare };
   });
 
 export const answerParentalAction = action.inputSchema(parentalConsentInput).action(async ({ parsedInput }) => {

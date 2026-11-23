@@ -6,7 +6,7 @@ import { adminSpaceFeaturesInput, correctBirthDateInput } from "@tartan/contract
 import { m } from "@tartan/i18n";
 import { prisma } from "@/lib/prisma";
 import { externalDeletionHealth } from "./external-deletion.service";
-import { REAL_SPACES } from "./demo-space-guard";
+import { COACH_SPACES } from "./demo-space-guard";
 import { pilotMetrics } from "./metrics.service";
 import { notificationDeliveryHealth } from "./notification-delivery.service";
 import { isEmailRelevant } from "./email-outbox.service";
@@ -111,7 +111,7 @@ export const adminOverview = async (actor: { email: string }, now: Date = new Da
   const weekAgo = toDbDate(addDays(todayIso(now), -7));
   // Les indicateurs de la plateforme ne comptent que les espaces réels.
   const orgs = await prisma.organization.findMany({
-    where: REAL_SPACES,
+    where: COACH_SPACES,
     orderBy: { createdAt: "desc" },
     // Les indicateurs du pilote se calculent espace par espace : seuls les plus récents ici, la liste complète a son écran.
     take: 30,
@@ -165,7 +165,7 @@ export const adminOverview = async (actor: { email: string }, now: Date = new Da
   const count = (recommend: boolean) => answers.find((a) => a.recommend === recommend)?._count._all ?? 0;
   const planGroups = await prisma.organization.groupBy({
     by: ["plan"],
-    where: REAL_SPACES,
+    where: COACH_SPACES,
     _count: { _all: true },
   });
   const plans = Object.fromEntries(planGroups.map((row) => [row.plan, row._count._all]));

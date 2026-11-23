@@ -8,7 +8,7 @@ import { env } from "@/lib/env";
 import { log } from "@/lib/logger";
 import { sendEmail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
-import { REAL_SPACES } from "./demo-space-guard";
+import { COACH_SPACES } from "./demo-space-guard";
 import { unsubscribePageUrl, unsubscribeUrl } from "./email-preferences.service";
 import { audienceAthleteIds } from "./session.service";
 
@@ -21,7 +21,7 @@ export const sendWeeklyDigests = async (now: Date = new Date()): Promise<number>
   const monday = startOfWeek(today);
   // Aucun récapitulatif d'un espace de démonstration : ses athlètes sont fictifs.
   const orgs = await prisma.organization.findMany({
-    where: REAL_SPACES,
+    where: COACH_SPACES,
     select: {
       id: true,
       name: true,

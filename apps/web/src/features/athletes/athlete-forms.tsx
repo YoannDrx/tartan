@@ -294,10 +294,13 @@ export const TestDialog = ({
   athleteId,
   exercises,
   progressionEnabled,
+  label = m.common.add,
 }: {
   athleteId: string;
   exercises: ExerciseSummary[];
   progressionEnabled: boolean;
+  // Sur les progrès de l'athlète autonome, le bouton dit ce qu'il ajoute.
+  label?: string;
 }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -326,7 +329,7 @@ export const TestDialog = ({
       title={wa.strengthTest.add}
       trigger={
         <Button size="sm" variant="secondary">
-          {m.common.add}
+          {label}
         </Button>
       }
     >
@@ -422,7 +425,15 @@ export const TestDialog = ({
   );
 };
 
-export const PerformanceDialog = ({ athleteId, initial }: { athleteId: string; initial?: PerformanceEntry }) => {
+export const PerformanceDialog = ({
+  athleteId,
+  initial,
+  label = m.common.add,
+}: {
+  athleteId: string;
+  initial?: PerformanceEntry;
+  label?: string;
+}) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [formError, setFormError] = useState("");
@@ -464,7 +475,7 @@ export const PerformanceDialog = ({ athleteId, initial }: { athleteId: string; i
           </IconButton>
         ) : (
           <Button size="sm" variant="secondary">
-            {m.common.add}
+            {label}
           </Button>
         )
       }

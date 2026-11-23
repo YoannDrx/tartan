@@ -17,6 +17,10 @@ export type SpaceContext = {
   space: SpaceSummary;
   organizationId: string;
   staff: boolean;
+  // Espace personnel d'un athlète autonome : athlète de sa fiche, il y planifie pour lui seul.
+  personal: boolean;
+  // Ouvre le calendrier de planification, le constructeur, les modèles et le planificateur.
+  planner: boolean;
 };
 
 const pick = (spaces: SpaceSummary[], wanted: string | undefined): SpaceSummary | undefined =>
@@ -33,12 +37,21 @@ export const requireSpace = async (): Promise<SpaceContext> => {
   // Sans espace, la création d'espace demande elle-même la date et traite un compte mineur.
   if (!space) redirect("/bienvenue");
   if ((await ageStatusOfUser(actor.userId)) !== "adult") redirect("/confirmer-age");
-  return { actor, spaces, space, organizationId: space.organizationId, staff: isStaff(space.role) };
+  const personal = space.kind === "personal";
+  const staff = isStaff(space.role);
+  return { actor, spaces, space, organizationId: space.organizationId, staff, personal, planner: staff || personal };
 };
 
 export const requireStaffSpace = async (): Promise<SpaceContext> => {
   const ctx = await requireSpace();
   if (!ctx.staff) redirect("/aujourdhui");
+  return ctx;
+};
+
+// Les écrans de planification : l'équipe d'un espace de coach, ou l'athlète autonome dans son espace personnel.
+export const requirePlannerSpace = async (): Promise<SpaceContext> => {
+  const ctx = await requireSpace();
+  if (!ctx.planner) redirect("/aujourdhui");
   return ctx;
 };
 

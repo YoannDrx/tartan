@@ -77,6 +77,8 @@ export const createOrganizationInput = z.object({
   firstGroupGoal: trimmed(280).nullable().optional(),
   referralCode: z.string().trim().max(40).optional(),
   birthDate: isoDate.optional(),
+  // Conditions acceptées à l'écran : enregistrées avec l'espace, comme sur le web. Facultatif pour l'app en circulation.
+  termsAccepted: z.boolean().optional(),
 });
 export type CreateOrganizationInput = z.input<typeof createOrganizationInput>;
 
@@ -525,6 +527,8 @@ export const logStatusFilter = logStatus.optional();
 
 export const platformSettingsInput = z.object({
   signupMode: z.enum(["closed", "public"]),
+  // Inscriptions des athlètes autonomes (espace personnel), ouvertes par défaut : réglage distinct de celui des coachs.
+  athleteSignupMode: z.enum(["closed", "public"]).default("public"),
   checkoutEnabled: z.boolean(),
   muxVideoLimit: z.number().int().positive().nullable(),
 });
