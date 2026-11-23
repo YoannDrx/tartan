@@ -199,12 +199,9 @@ test.describe("page d'accueil", () => {
     // La semaine passée, remplie par les validations du groupe.
     await shot(page, `/suivi?semaine=${monday(1)}`, "coach-suivi.png");
     await shot(page, "/analyse", "coach-analyse.png");
-    await shot(page, "/outils/charges", "coach-calculateur.png", async (p) => {
-      await p.getByLabel("Charge externe totale (kg)").fill("102,5");
-      await p.getByLabel("Répétitions réalisées").fill("5");
-      await p.getByRole("button", { name: "Utiliser dans le tableau" }).click();
-      await p.waitForTimeout(300);
-    });
+    // Les références de force d'un autre athlète que celui de la fiche : ses maximums, d'où partent ses charges.
+    const tom = await one("SELECT id FROM athletes WHERE first_name = 'Tom' LIMIT 1");
+    await shot(page, `/athletes/${tom}`, "coach-references.png", (p) => scrollTo(p, "Références de travail"));
     await shot(page, `/athletes/${alex}`, "coach-athlete.png");
 
     // Le planificateur, par sa demande : une séance décrite en une phrase, prête à partir. La capture s'arrête avant
@@ -264,16 +261,25 @@ test.describe("téléphone", () => {
       await p.waitForTimeout(600);
     };
     // La séance de force du jour : le squat à 80 % devient sa charge en kilos ; deux séries déjà cochées.
+    // Ses séries de la séance de force : la charge prévue de chaque série, calculée sur ses références, et ce qu'il a
+    // réellement soulevé à saisir dessous.
+    await shot(page, `/seance/${today}/series`, "athlete-musculation.png", async (p) => {
+      await p.locator("main").getByText("Squat arrière", { exact: true }).last().click();
+      await p.waitForTimeout(300);
+      await scrollTo(p, "Squat arrière");
+    });
+    // La pliométrie en cours : trois séries faites, le geste ouvert au-dessus des séries.
     await shot(
       page,
-      `/seance/${today}/mode`,
-      "athlete-musculation.png",
+      `/seance/${plyo}/mode`,
+      "athlete-pliometrie.png",
       step(1, async (p) => {
-        for (const set of [1, 2]) await p.getByRole("button", { name: `Série ${set} à faire` }).click();
+        for (const set of [1, 2, 3]) await p.getByRole("button", { name: `Série ${set} à faire` }).click();
+        await p.getByText("Voir le guide du mouvement").click();
       }),
     );
-    await shot(page, `/seance/${plyo}/mode`, "athlete-pliometrie.png", step(1));
-    await shot(page, `/seance/${running}/mode`, "athlete-course.png", step(2));
+    // La séance de course entière, avant de la démarrer : ses blocs, ses distances et ses récupérations.
+    await shot(page, `/seance/${running}`, "athlete-course.png");
     // La fiche d'un exercice, ouverte depuis la séance : le geste animé et ses étapes.
     await shot(
       page,

@@ -19,7 +19,7 @@ import athleteVideo from "@/features/landing/images/athlete-video.png";
 import coachAnalysis from "@/features/landing/images/coach-analyse.png";
 import coachAthlete from "@/features/landing/images/coach-athlete.png";
 import coachLibrary from "@/features/landing/images/coach-bibliotheque.png";
-import coachCalculator from "@/features/landing/images/coach-calculateur.png";
+import coachReferences from "@/features/landing/images/coach-references.png";
 import coachBuilder from "@/features/landing/images/coach-constructeur.png";
 import coachExercise from "@/features/landing/images/coach-fiche-exercice.png";
 import coachMonth from "@/features/landing/images/coach-mois.png";
@@ -62,7 +62,7 @@ const coachScreens: ShowcaseItem[] = (
     ["fiche", coachExercise],
     ["suivi", coachTracking],
     ["analyse", coachAnalysis],
-    ["calculateur", coachCalculator],
+    ["references", coachReferences],
     ["athlete", coachAthlete],
     ["video", coachVideo],
   ] as const

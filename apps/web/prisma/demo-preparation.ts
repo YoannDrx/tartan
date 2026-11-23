@@ -14,8 +14,8 @@ import { setConsent } from "@/server/consent.service";
 import { publishAnnouncement } from "@/server/comm.service";
 import { createOrganization } from "@/server/org.service";
 import { addPerformance } from "@/server/performance.service";
-import { addStrengthTest } from "@/server/strength.service";
-import { publishRow, saveScheduledSession } from "@/server/session.service";
+import { addStrengthTest, selectStrengthReference } from "@/server/strength.service";
+import { publishRow, saveCompetition, saveScheduledSession } from "@/server/session.service";
 
 const databaseUrl = process.env.DATABASE_URL ?? "";
 if (!/@(localhost|127\.0\.0\.1)[:/]/.test(databaseUrl)) {
@@ -122,6 +122,18 @@ const main = async () => {
   });
   const roster = [mainAthlete];
   for (const [first, last] of ATHLETES) roster.push(await enroll(await person(first, last), first, last));
+  // Un second groupe, les sprinteurs, qui s'entraînent aussi à midi : Alex en fait partie.
+  const sprintGroup = await prisma.group.create({
+    data: { organizationId, name: "Groupe sprint", goal: "Vitesse et départs, saison en salle" },
+  });
+  const sprinters = [0, 1, 2, 3, 5, 6, 10].map((index) => roster[index]!);
+  await prisma.groupMember.createMany({
+    data: sprinters.map((athleteId) => ({
+      groupId: sprintGroup.id,
+      athleteId,
+      createdAt: new Date("2026-01-05T10:00:00Z"),
+    })),
+  });
 
   const library = await prisma.exercise.findMany({ where: { organizationId }, select: { id: true, name: true } });
   const exercise = (name: string) => {
@@ -142,14 +154,19 @@ const main = async () => {
       ["deadlift", Math.round((index === 0 ? 120 : base) * 1.2)],
       ["hip_thrust", Math.round((index === 0 ? 120 : base) * 1.35)],
     ];
+    // Chaque test sert les pourcentages des séances (clé du test) ; squat et épaulé ont aussi leur référence de travail,
+    // rattachée à leur fiche, que la fiche de l'athlète affiche.
+    const linked: Record<string, string> = { back_squat: "Squat arrière", clean: "Épaulé" };
     for (const [exerciseKey, value] of tests) {
-      await addStrengthTest(coachId, organizationId, {
-        athleteId,
-        exerciseKey,
-        value,
-        kind: "one_rm",
-        date: addDays(today0, -21 - (index % 4) * 3),
-      });
+      const date = addDays(today0, -21 - (index % 4) * 3);
+      await addStrengthTest(coachId, organizationId, { athleteId, exerciseKey, value, kind: "one_rm", date });
+      const name = linked[exerciseKey];
+      if (name) {
+        await selectStrengthReference(coachId, organizationId, athleteId, exercise(name), {
+          source: "working",
+          valueKg: value,
+        });
+      }
     }
   }
   for (const [days, value] of [
@@ -264,28 +281,64 @@ const main = async () => {
         ]),
       ],
     },
+    reveil: {
+      type: "mobility",
+      title: "Réveil gainage et mobilité",
+      duration: 25,
+      note: "Avant les cours : on réveille le tronc et les hanches, sans se presser.",
+      blocks: [
+        block("Réveil", [
+          item("Mobilité de cheville", { sets: 2, reps: 10, rest_s: 20 }),
+          item("Mobilité des hanches", { sets: 2, reps: 10, rest_s: 20 }),
+          item("Gainage ventral", { sets: 3, duration_s: 45, rest_s: 30 }),
+        ]),
+      ],
+    },
+    vitesse: {
+      type: "running",
+      title: "Vitesse, départs",
+      duration: 50,
+      note: "Départs réactifs : premiers appuis courts et puissants.",
+      blocks: [
+        block("Activation", [item("Gammes : montées de genoux", { sets: 2, distance_m: 20, rest_s: 45 })]),
+        block("Vitesse", [
+          item("Accélérations", { sets: 5, distance_m: 30, rest_s: 150 }),
+          item("Sprints départ lancé", { sets: 4, distance_m: 30, rest_s: 240 }),
+        ]),
+      ],
+    },
   };
 
-  // Semaine type, de quatre semaines avant à quatre semaines après : le mois affiché est plein.
-  const pattern: [number, keyof typeof sessionsByType][] = [
-    [0, "force"],
-    [1, "technique"],
-    [2, "plyo"],
-    [3, "plots"],
-    [4, "force"],
-    [5, "mobilite"],
+  // Semaine type, de quatre semaines avant à quatre semaines après : le mois affiché est plein. Le groupe prépa le
+  // soir, son réveil musculaire trois matins, et le groupe sprint deux midis : jusqu'à trois séances par jour.
+  type Slot = [offset: number, key: keyof typeof sessionsByType, time: string, group: "prepa" | "sprint"];
+  const pattern: Slot[] = [
+    [0, "reveil", "07:30", "prepa"],
+    [0, "force", "18:30", "prepa"],
+    [1, "vitesse", "12:15", "sprint"],
+    [1, "technique", "18:30", "prepa"],
+    [2, "reveil", "07:30", "prepa"],
+    [2, "vitesse", "12:15", "sprint"],
+    [2, "plyo", "18:30", "prepa"],
+    [3, "escaliers", "12:15", "sprint"],
+    [3, "plots", "18:30", "prepa"],
+    [4, "reveil", "07:30", "prepa"],
+    [4, "force", "18:30", "prepa"],
+    [5, "mobilite", "10:00", "prepa"],
   ];
+  const groups = { prepa: { id: org.firstGroupId, members: roster }, sprint: { id: sprintGroup.id, members: sprinters } };
   const today = todayIso();
   const monday = startOfWeek(today);
   const publishedAt = new Date(`${addDays(monday, -35)}T10:00:00Z`);
   for (let week = -4; week <= 4; week++) {
-    for (const [offset, key] of pattern) {
+    for (const [offset, key, startTime, groupKey] of pattern) {
       const date = addDays(monday, week * 7 + offset);
-      const spec = week === 1 && key === "plots" ? sessionsByType.escaliers! : sessionsByType[key]!;
+      const spec = sessionsByType[key]!;
+      const group = groups[groupKey];
       const session = await saveScheduledSession(coachId, organizationId, {
         date,
-        startTime: "18:30",
-        location: spec.type === "strength" ? "Salle de force" : "Stade",
+        startTime,
+        location: spec.type === "strength" ? "Salle de force" : spec.type === "stairs" ? "Tribune du stade" : "Stade",
         publishAt: null,
         draft: {
           title: spec.title,
@@ -294,12 +347,15 @@ const main = async () => {
           coachNote: spec.note,
           blocks: spec.blocks,
         },
-        assignments: [{ targetType: "group", targetId: org.firstGroupId }],
+        assignments: [{ targetType: "group", targetId: group.id }],
         overrides: [],
       });
       await publishRow(session.id, coachId, publishedAt, { silent: true });
-      if (date >= today) continue;
-      for (const athleteId of roster) {
+      // Le réveil de ce matin est déjà fait par une partie du groupe : la journée a commencé.
+      const doneThisMorning = date === today && startTime < "09:00";
+      if (date >= today && !doneThisMorning) continue;
+      for (const athleteId of group.members) {
+        if (doneThisMorning && random() < 0.3) continue;
         const roll = random();
         const status = roll < 0.78 ? "done" : roll < 0.9 ? "partial" : "missed";
         const log = await prisma.sessionLog.create({
@@ -325,14 +381,26 @@ const main = async () => {
               ...set,
               sessionLogId: log.id,
               done: true,
+              // Les valeurs du contrat des séries détaillées : sans elles, l'analyse ignore la série.
               setKind: "work",
-              loadKind: "external_total",
+              loadKind: "external",
+              repetitionScope: "total",
+              sideCount: 1,
             })),
           });
         }
       }
     }
   }
+
+  // Le meeting du samedi, pour le groupe sprint : il paraît dans le calendrier du coach et de ses athlètes.
+  await saveCompetition(coachId, organizationId, {
+    name: "Meeting régional en salle",
+    date: addDays(monday, 5),
+    location: "Halle d'athlétisme",
+    level: "Régional",
+    athleteIds: sprinters,
+  });
 
   // La capture de l'accueil montre toujours une séance du jour, même un jour de repos du cycle.
   const offsetToday = (new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7;
