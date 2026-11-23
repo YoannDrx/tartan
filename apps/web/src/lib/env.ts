@@ -28,6 +28,8 @@ const schema = z.object({
   // Ouverture commerciale : « closed » réserve la création d'espace coach à la liste ci-dessous.
   COACH_SIGNUP_MODE: z.enum(["closed", "public"]).default("closed"),
   COACH_SIGNUP_EMAILS: z.string().default(""),
+  // Athlètes autonomes (espace personnel) : fermé par défaut ; l'ouverture appartient au fondateur, depuis la console.
+  ATHLETE_SIGNUP_MODE: z.enum(["closed", "public"]).default("closed"),
   // Accès à la console de l'éditeur.
   ADMIN_EMAILS: z.string().default(""),
   // Enrôlement de la première passkey du compte administrateur ; à retirer une fois la clé créée.

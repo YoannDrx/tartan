@@ -32,7 +32,7 @@ Décision du fondateur, 23 novembre 2026. Un athlète peut s'inscrire sur Tartan
 
 ### Inscription et aiguillage (web et natif)
 1. `/bienvenue` (et l'aiguillage natif) propose trois choix de même rang : **« Je suis coach »** (parcours actuel), **« Je m'entraîne seul »** (espace personnel), **« J'ai un lien d'invitation »** (champ pour coller le lien ou le code). Plus : se déconnecter, et accès à la suppression du compte.
-2. Le réglage `/admin/configuration` gagne « Inscriptions des athlètes autonomes » (ouvertes par défaut), à côté de celui des coachs ; l'app native lit les deux et n'affiche que les choix permis.
+2. Le réglage `/admin/configuration` gagne « Inscriptions des athlètes autonomes » (fermées par défaut, `ATHLETE_SIGNUP_MODE`, ouvertes par le fondateur depuis la console), à côté de celui des coachs ; l'app native lit les deux et n'affiche que les choix permis.
 3. Parcours « Je m'entraîne seul » : prénom, nom, date de naissance (adultes seulement, comme aujourd'hui), disciplines et objectifs, conditions ; création de l'espace personnel, puis l'accueil.
 
 ### Accueil de l'athlète autonome
