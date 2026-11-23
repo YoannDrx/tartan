@@ -2717,7 +2717,7 @@ export const fr = {
     cgvPage: {
       metaTitle: "Conditions de vente",
       title: "Conditions de vente",
-      updated: "14 novembre 2026",
+      updated: "23 novembre 2026",
       sellerTitle: "Vendeur",
       seller:
         "Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130 Franconville. Contact : hello@tartan.coach.",
@@ -2770,6 +2770,12 @@ export const fr = {
           ],
         },
         {
+          title: "Espace personnel de l'athlète",
+          paragraphs: [
+            "L'athlète qui s'entraîne seul dispose d'un espace personnel gratuit : il n'est jamais facturé, ne donne lieu à aucun abonnement et ne se convertit pas en offre payante. Il comprend chaque mois 5 propositions du planificateur, 10 minutes de dictée et 4 vidéos. Ces quotas peuvent évoluer ; un changement est annoncé dans l'application avant de s'appliquer.",
+          ],
+        },
+        {
           title: "Parrainage",
           paragraphs: [
             "Un mois offert au parrain et au filleul, une fois le filleul abonné depuis 30 jours après son essai. Pas d'auto-parrainage, 12 récompenses par an au maximum.",
@@ -2785,13 +2791,17 @@ export const fr = {
     },
     termsPage: {
       title: "Conditions d'utilisation",
-      updated: "14 novembre 2026",
+      updated: "23 novembre 2026",
       publisher:
         "Éditeur : Yodev, Yoann Andrieux, entrepreneur individuel, SIREN 803 272 590, 7 allée des Jonquilles, 95130 Franconville.",
       sections: [
         {
           title: "Le service",
-          body: "Tartan aide un coach d'athlétisme et ses athlètes à planifier, suivre et analyser l'entraînement. Les offres payantes relèvent des conditions de vente.",
+          body: "Tartan aide un coach d'athlétisme et ses athlètes à planifier, suivre et analyser l'entraînement. Un athlète peut aussi s'entraîner seul, dans son espace personnel. Les offres payantes relèvent des conditions de vente.",
+        },
+        {
+          title: "L'athlète qui s'entraîne seul",
+          body: "Ton espace personnel est gratuit et n'a que toi comme membre : tu y planifies, tu y valides tes séances et tu y notes tes mesures, sous ta seule responsabilité. Personne d'autre ne le voit. Il comporte de petits quotas mensuels (propositions du planificateur, minutes de dictée, vidéos), indiqués à l'inscription. Si tu rejoins un coach, tu gardes ton espace personnel ; tu choisis, case par case, de lui partager en lecture seule tes records, tes références de force ou l'historique de tes séances, et tu retires ce partage quand tu veux. Tes données de santé n'en font jamais partie.",
         },
         {
           title: "Qui peut l'utiliser",
@@ -2811,7 +2821,7 @@ export const fr = {
         },
         {
           title: "Ton compte",
-          body: "Tu peux supprimer ton compte à tout moment depuis les réglages. Si tu es le seul coach de ton espace, l'espace et ses données sont supprimés avec lui ; sinon, il revient au coach suivant.",
+          body: "Tu peux supprimer ton compte à tout moment depuis les réglages, ou depuis l'accueil d'un compte qui n'a pas encore d'espace. Si tu es le seul coach de ton espace, l'espace et ses données sont supprimés avec lui ; sinon, il revient au coach suivant. Ton espace personnel est supprimé avec ton compte, et les partages qui en partaient cessent.",
         },
         { title: "Droit applicable", body: "Droit français." },
       ],
