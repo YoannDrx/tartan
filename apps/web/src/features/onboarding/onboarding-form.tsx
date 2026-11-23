@@ -46,9 +46,18 @@ const LAST = STEPS.length - 1;
 // Un dernier temps, facultatif, une fois l'espace créé : inviter le premier groupe.
 const STEP_NAMES = [...STEPS.map((entry) => entry.name), w.onboarding.invite.stepName];
 
-const Stepper = ({ step }: { step: number }) => (
-  <ol aria-label={m.onboarding.stepsLabel} className="grid grid-cols-4 gap-2">
-    {STEP_NAMES.map((name, index) => (
+// Les temps d'une création d'espace, coach ou athlète autonome : un trait par temps, le temps courant marqué.
+export const Stepper = ({
+  step,
+  names = STEP_NAMES,
+  label = m.onboarding.stepsLabel,
+}: {
+  step: number;
+  names?: readonly string[];
+  label?: string;
+}) => (
+  <ol aria-label={label} className={cn("grid gap-2", names.length === 3 ? "grid-cols-3" : "grid-cols-4")}>
+    {names.map((name, index) => (
       <li
         key={name}
         aria-current={index === step ? "step" : undefined}
