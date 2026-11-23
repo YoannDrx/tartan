@@ -29,6 +29,47 @@ export const personal = {
     save: "Enregistrer le test",
     saved: "Test enregistré.",
   },
+  // Le partage de son historique avec le coach qu'il rejoint : par cases, en lecture seule, révocable, jamais la santé.
+  share: {
+    metaTitle: "Partager mon historique",
+    title: (coach: string) => `Partager mon historique avec ${coach}`,
+    lead: "Tu gardes ton espace personnel. Tu peux montrer à ton coach ce que tu y as fait : il le lira sur ta fiche, sans pouvoir le modifier, tant que tu le partages.",
+    scopesLabel: "Ce que je partage",
+    scopes: {
+      records: "Mes records",
+      strength: "Mes références de force",
+      sessions: "L'historique de mes séances",
+    },
+    scopeDetail: {
+      records: "Tes performances et records notés dans ton espace.",
+      strength: "Tes tests de force, qui servent de référence aux charges.",
+      sessions: "La date, le titre et l'état de chaque séance validée. Sans effort ressenti ni commentaire.",
+    },
+    health: "Tes données de santé (effort ressenti, douleurs, blessures) ne sont jamais partagées.",
+    revocable: "Tu pourras retirer ce partage à tout moment dans Réglages, Confidentialité.",
+    submit: "Partager",
+    skip: "Pas maintenant",
+    pickOne: "Coche au moins une case, ou choisis « Pas maintenant ».",
+    shared: "C'est partagé.",
+    someone: "Un athlète",
+    noPersonalSpace: "Tu n'as pas d'espace personnel à partager.",
+    // Réglages, Confidentialité.
+    settingsTitle: "Historique partagé",
+    settingsEmpty: "Tu ne partages ton historique personnel avec aucun coach.",
+    settingsSince: (date: string) => `Partagé depuis le ${date}`,
+    revoke: "Arrêter le partage",
+    revokeTitle: (space: string) => `Arrêter le partage avec ${space} ?`,
+    revokeDetail:
+      "Ton coach ne verra plus ton historique personnel, dès maintenant. Ton espace personnel ne change pas.",
+    revoked: "Partage arrêté.",
+    // Sur la fiche de l'athlète, côté coach.
+    coachTitle: "Historique personnel partagé",
+    coachScopes: { records: "Records", strength: "Références de force", sessions: "Historique des séances" },
+    coachLead: (date: string) =>
+      `Ce que l'athlète a fait seul, dans son espace personnel. Lecture seule, partagé le ${date} ; il peut le retirer à tout moment.`,
+    coachEmpty: "Rien à montrer dans cette partie pour l'instant.",
+    status: { done: "Faite", partial: "En partie", missed: "Manquée", skipped: "Pas faite" } as Record<string, string>,
+  },
   // Les e-mails de l'athlète autonome, et celui que reçoit un coach quand un athlète lui partage son historique.
   // Aucun ne porte de donnée de santé.
   emails: {
@@ -63,7 +104,8 @@ export const personal = {
       subject: "Termine ton inscription sur Tartan",
       body: "Ton compte est créé, il ne manque qu'une étape : dis-nous si tu coaches un groupe, si tu t'entraînes seul, ou ouvre le lien d'invitation de ton coach.",
       cta: "Terminer mon inscription",
-      ignore: "Tu as changé d'avis ? Ignore ce message : il n'y en aura pas d'autre. Tu peux aussi supprimer ton compte depuis cette page.",
+      ignore:
+        "Tu as changé d'avis ? Ignore ce message : il n'y en aura pas d'autre. Tu peux aussi supprimer ton compte depuis cette page.",
     },
     historyShared: {
       subject: (athlete: string) => `${athlete} te partage son historique`,

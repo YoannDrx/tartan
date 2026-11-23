@@ -49,3 +49,26 @@ export const historyShareSummary = z.object({
   grantedAt: z.string(),
 });
 export type HistoryShareSummary = z.infer<typeof historyShareSummary>;
+
+// Ce que lit le coach sur la fiche de l'athlète : les seules cases partagées, sans effort ressenti, douleur ni
+// blessure. `null` : aucun partage actif.
+export const sharedHistoryResponse = z
+  .object({
+    scopes: z.array(historyShareScope),
+    grantedAt: z.string(),
+    records: z
+      .array(
+        z.object({ discipline: z.string(), mark: z.number(), unit: z.string(), date: z.string(), isPb: z.boolean() }),
+      )
+      .optional(),
+    strength: z
+      .array(
+        z.object({ exercise: z.string(), value: z.number(), unit: z.string(), kind: z.string(), date: z.string() }),
+      )
+      .optional(),
+    sessions: z
+      .array(z.object({ date: z.string(), title: z.string(), type: z.string(), status: z.string() }))
+      .optional(),
+  })
+  .nullable();
+export type SharedHistory = z.infer<typeof sharedHistoryResponse>;

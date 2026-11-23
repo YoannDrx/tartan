@@ -29,7 +29,7 @@ import {
 import { AccountExistsEmail, ConfirmPasswordSetupEmail, PasswordSetEmail } from "./credentials";
 import { WeeklyDigestEmail } from "./digest";
 import { AthleteWelcomeEmail, InvitationReminderEmail, TipEmail } from "./lifecycle";
-import { FinishSignupEmail, PersonalTipEmail, PersonalWelcomeEmail } from "./personal";
+import { FinishSignupEmail, HistorySharedEmail, PersonalTipEmail, PersonalWelcomeEmail } from "./personal";
 
 const personal = w.personal.emails;
 
@@ -246,5 +246,10 @@ export const emailCatalog = (appUrl: string): EmailSample[] => {
       ),
     },
     { key: "finish_signup", subject: personal.finishSignup.subject, react: <FinishSignupEmail url={url} /> },
+    {
+      key: "history_shared",
+      subject: personal.historyShared.subject(ATHLETE),
+      react: <HistorySharedEmail athlete={ATHLETE} scopes="mes records, mes références de force" url={url} />,
+    },
   ];
 };

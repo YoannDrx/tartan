@@ -11,7 +11,7 @@ import {
   sqlQuery,
   uniqueEmail,
 } from "./helpers";
-import { startSolo } from "./journeys";
+import { groupLink, startSolo } from "./journeys";
 
 // L'athlète qui s'entraîne seul (docs/plans/athlete-autonome.md) : l'aiguillage d'un compte neuf, son espace personnel,
 // sa première séance planifiée puis validée ; et les impasses d'un compte sans espace, refermées.
@@ -181,6 +181,66 @@ test("invitation nominative ouverte avec un autre compte : l'adresse visée, pui
     // Déconnecté, l'invitation se rouvre, l'adresse visée déjà saisie.
     await expect(other.getByLabel(m.auth.emailLabel)).toHaveValue(invited, { timeout: 30_000 });
     await expect(other.getByText(otherEmail)).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
+test("l'athlète autonome rejoint un coach, partage son historique puis le retire : vu des deux côtés", async ({
+  page,
+  browser,
+}, info) => {
+  test.setTimeout(240_000);
+  const suffix = info.project.name === "desktop" ? "Bureau" : "Mobile";
+  await createCoachSpace(page, `Partage${suffix}`);
+  const link = await groupLink(page);
+
+  const context = await browser.newContext({ locale: "fr-FR", timezoneId: "Europe/Paris" });
+  const solo = await context.newPage();
+  try {
+    const { email } = await startSolo(solo, `Sacha${suffix}`);
+    // Un record noté dans son espace personnel, avant de rejoindre le coach.
+    await sqlQuery(
+      `insert into performances (id, organization_id, athlete_id, discipline, mark, unit, date, is_pb, updated_at)
+       select gen_random_uuid(), a.organization_id, a.id, '100 m haies', 14.2, 's', current_date, true, now()
+       from athletes a join organizations o on o.id = a.organization_id join "user" u on u.id = a.user_id
+       where o.kind = 'personal' and u.email = $1`,
+      [email],
+    );
+
+    // L'invitation, acceptée avec son compte : l'écran suivant propose, sans l'imposer, le partage de son historique.
+    await solo.goto(new URL(link).pathname, { waitUntil: "networkidle" });
+    await solo.getByRole("checkbox", { name: /conditions d'utilisation/ }).check();
+    await solo.getByRole("button", { name: m.invite.accept }).click();
+    await expect(solo).toHaveURL(/\/partager-historique/, { timeout: 60_000 });
+    await expect(solo.getByText(w.personal.share.health)).toBeVisible();
+    await atWidths(solo, info, "partage");
+    await solo.getByRole("checkbox", { name: new RegExp(w.personal.share.scopes.records) }).check();
+    await solo.getByRole("button", { name: w.personal.share.submit, exact: true }).click();
+    await expect(solo).toHaveURL(/\/aujourdhui/, { timeout: 60_000 });
+
+    // Côté coach : la section en lecture seule, sur la fiche de l'athlète.
+    const me = await (await page.request.get("/api/v1/me")).json();
+    const orgId = me.spaces[0].organizationId as string;
+    const athletes = (await (await page.request.get(`/api/v1/orgs/${orgId}/athletes`)).json()) as {
+      id: string;
+      firstName: string;
+    }[];
+    const athlete = athletes.find((entry) => entry.firstName === `Sacha${suffix}`)!;
+    await page.goto(`/athletes/${athlete.id}`, { waitUntil: "networkidle" });
+    const section = page.getByRole("region", { name: w.personal.share.coachTitle });
+    await expect(section).toBeVisible();
+    await expect(section.getByText("100 m haies")).toBeVisible();
+    await expect(section.getByRole("button")).toHaveCount(0);
+    await atWidths(page, info, "partage-coach");
+
+    // Il retire le partage dans Réglages, Confidentialité : le coach ne voit plus rien, aussitôt.
+    await solo.goto("/reglages/confidentialite", { waitUntil: "networkidle" });
+    await solo.getByRole("button", { name: w.personal.share.revoke, exact: true }).click();
+    await solo.getByRole("dialog").getByRole("button", { name: w.personal.share.revoke, exact: true }).click();
+    await expect(solo.getByText(w.personal.share.settingsEmpty)).toBeVisible();
+    await page.reload({ waitUntil: "networkidle" });
+    await expect(page.getByRole("region", { name: w.personal.share.coachTitle })).toHaveCount(0);
   } finally {
     await context.close();
   }

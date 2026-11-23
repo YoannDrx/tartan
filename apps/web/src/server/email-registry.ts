@@ -62,6 +62,8 @@ export const EMAILS = {
   personal_activation: { category: "tips", outbox: "personal_activation" },
   // Compte créé sans espace ni invitation : une fois, 24 heures après.
   finish_signup: { category: "account", outbox: "finish_signup" },
+  // Au coach : un athlète de son groupe lui partage son historique personnel.
+  history_shared: { category: "account" },
 } as const satisfies Record<string, EmailDefinition>;
 
 export type EmailKey = keyof typeof EMAILS;
