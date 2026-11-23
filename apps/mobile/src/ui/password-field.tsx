@@ -19,7 +19,8 @@ export const PasswordField = forwardRef<TextInput, PasswordFieldProps>(({ purpos
       {...rest}
       secureTextEntry={!visible}
       autoCapitalize="none"
-      autoCorrect={false}
+      // Mêmes propriétés que l'ancien champ de connexion, sans `autoCorrect={false}` : avec lui, sur l'émulateur
+      // Android de la CI (PR 178), le mot de passe saisi arrivait avec un caractère de trop.
       autoComplete={purpose === "new" ? "new-password" : "current-password"}
       textContentType={purpose === "new" ? "newPassword" : "password"}
       accessory={

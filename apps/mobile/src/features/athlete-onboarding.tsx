@@ -65,11 +65,15 @@ export const AthleteWelcome = ({
   placement: "top" | "after";
 }) => {
   const onboarding = useOnboarding(orgId);
-  const welcome = useAthleteWelcome(orgId, Boolean(onboarding.data && !onboarding.data.welcomeSeenAt));
+  const welcome = useAthleteWelcome(
+    orgId,
+    Boolean(onboarding.data?.guided && !onboarding.data.staff && !onboarding.data.welcomeSeenAt),
+  );
   const update = useUpdateOnboarding(orgId);
   const palette = usePalette();
   const [open, setOpen] = useState(false);
   const mode = athleteWelcomeView({
+    guided: onboarding.data?.guided,
     welcome: welcome.data?.welcome,
     welcomeSeenAt: onboarding.data?.welcomeSeenAt,
     sessionToday,

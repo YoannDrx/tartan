@@ -443,7 +443,6 @@ export default function Tracking() {
 
   return (
     <TabScreen world="work" title={m.coach.trackingTitle} refreshing={tracking.isRefetching} onRefresh={refresh}>
-      <CoachFirstSteps orgId={orgId} />
       {active?.progressionEnabled ? (
         <Button label={m.analysis.title} variant="secondary" onPress={() => router.push("/training-analysis")} />
       ) : null}
@@ -566,6 +565,9 @@ export default function Tracking() {
           {message}
         </T>
       ) : null}
+
+      {/* Les premiers pas viennent après le suivi : ils ne le repoussent jamais hors de l'écran. */}
+      <CoachFirstSteps orgId={orgId} />
 
       {focus && grid ? (
         <AthleteSheet
