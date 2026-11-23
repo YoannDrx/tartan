@@ -1,66 +1,48 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { PublicPage } from "@/features/shell/public-page";
-import { OnboardingScene } from "@/features/shell/start-scene";
+import { SignInScene } from "@/features/shell/start-scene";
 import { getActor } from "@/lib/session";
 import { AccountExit } from "@/features/onboarding/account-exit";
-import { OnboardingForm } from "@/features/onboarding/onboarding-form";
+import { WelcomeChoices } from "@/features/onboarding/welcome-choices";
 import { env } from "@/lib/env";
 import { ageStatusOfUser } from "@/server/age.service";
 import { getMe } from "@/server/me.service";
 import { canCreateCoachSpace } from "@/server/org.service";
+import { canCreatePersonalSpace } from "@/server/personal-space.service";
 
-export const metadata: Metadata = { title: "Bienvenue" };
+export const metadata: Metadata = { title: w.welcome.title };
 
 const offerSchema = z.object({
   offre: z.enum(["coach", "club"]).optional().catch(undefined),
   rythme: z.enum(["month", "year"]).optional().catch(undefined),
 });
 
+// L'aiguillage d'un compte connecté : coach, athlète qui s'entraîne seul, ou invitation reçue. Trois chemins de même
+// rang, puis le compte lui-même (déconnexion, suppression) : un compte sans espace n'est jamais dans une impasse.
 export default async function BienvenuePage({
   searchParams,
 }: {
   searchParams: Promise<{ offre?: string; rythme?: string }>;
 }) {
   const { offre, rythme } = offerSchema.parse(await searchParams);
-  const offerQuery = offre ? `?offre=${offre}&rythme=${rythme ?? "year"}` : "";
+  // Une offre choisie sur les tarifs est un choix de coach : on va droit à la création de son espace.
+  if (offre) redirect(`/bienvenue/coach?offre=${offre}&rythme=${rythme ?? "year"}`);
   const actor = await getActor();
-  if (!actor) redirect(`/connexion?next=${encodeURIComponent(`/bienvenue${offerQuery}`)}`);
+  if (!actor) redirect(`/connexion?next=${encodeURIComponent("/bienvenue")}`);
   const me = await getMe(actor.userId);
-  // Un athlète peut ouvrir son espace de coach : seul un espace possédé ramène à l'abonnement ou à l'accueil.
-  if (me.spaces.some((space) => space.role === "owner")) {
-    redirect(offerQuery ? `/abonnement${offerQuery}` : "/accueil");
-  }
+  if (me.spaces.some((space) => space.role === "owner")) redirect("/accueil");
   if ((await ageStatusOfUser(actor.userId)) === "minor") redirect("/confirmer-age");
-  if (!(await canCreateCoachSpace(actor.email))) {
-    return (
-      <PublicPage title={m.onboarding.closedTitle}>
-        <div className="on-card flex flex-col gap-3 rounded-card bg-card p-5">
-          <p>{m.onboarding.closed}</p>
-          <a href={`mailto:${env().EMAIL_CONTACT}`} className="font-semibold">
-            {env().EMAIL_CONTACT}
-          </a>
-          <p className="text-soft">{m.onboarding.joinHint}</p>
-        </div>
-        <AccountExit email={actor.email} />
-      </PublicPage>
-    );
-  }
-  // Les comptes créés avant le correctif de `splitName` ont le début de leur adresse comme prénom.
-  const firstName = me.firstName && me.firstName !== actor.email.split("@")[0] ? me.firstName : "";
+  const [coachOpen, athleteOpen] = await Promise.all([canCreateCoachSpace(actor.email), canCreatePersonalSpace()]);
   return (
-    <PublicPage title={m.onboarding.title} scene={<OnboardingScene />} scenePhone={false}>
-      <div className="on-card flex flex-col gap-5 rounded-card bg-card p-5">
-        <OnboardingForm
-          firstName={firstName}
-          lastName={me.lastName ?? ""}
-          birthDate={me.birthDate ?? ""}
-          offer={offre ? { offre, rythme: rythme ?? "year" } : undefined}
-        />
-        <p className="text-soft">{m.onboarding.joinHint}</p>
-      </div>
+    <PublicPage title={w.welcome.title} lead={w.welcome.lead} scene={<SignInScene />} scenePhone={false}>
+      <WelcomeChoices
+        coachOpen={coachOpen}
+        athleteOpen={athleteOpen || me.spaces.some((space) => space.kind === "personal")}
+        contact={env().EMAIL_CONTACT}
+      />
       <AccountExit email={actor.email} />
     </PublicPage>
   );

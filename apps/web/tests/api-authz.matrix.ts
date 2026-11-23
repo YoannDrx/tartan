@@ -457,6 +457,12 @@ export const MATRICE: Row[] = [
     ...compte(),
     call: () => ({ body: { name: "Espace de la matrice", type: "independent", firstGroupName: "Groupe" } }),
   },
+  // Inscriptions des athlètes autonomes ouvertes : tout compte majeur ouvre son espace personnel, un seul, à lui.
+  {
+    route: "POST /api/v1/me/personal-space",
+    ...compte(),
+    call: () => ({ body: { firstName: "Matrice", lastName: "Autonome", termsAccepted: true } }),
+  },
   // Le lien de groupe d'un troisième espace : il ne donne jamais accès à l'espace principal.
   {
     route: "POST /api/v1/invitations/[token]/accept",
@@ -1168,6 +1174,12 @@ export const ROUTES_PUBLIQUES: PublicRow[] = [
   { route: "GET /api/live", pourquoi: "Sonde de disponibilité, sans donnée ni lecture de base.", anonyme: 200 },
   { route: "GET /api/health", pourquoi: "Sonde de la base : un statut, aucune donnée.", anonyme: 200 },
   { route: "GET /api/v1/version", pourquoi: "Identifiant du build, lu par tout onglet ouvert.", anonyme: 200 },
+  {
+    route: "GET /api/v1/signup-options",
+    pourquoi:
+      "Deux réglages d'inscription de la console, lus par l'aiguillage avant tout espace ; aucune donnée de personne.",
+    anonyme: 200,
+  },
   {
     route: "GET /api/v1/releases/status",
     pourquoi: "Version minimale de l'application, lue avant la connexion.",

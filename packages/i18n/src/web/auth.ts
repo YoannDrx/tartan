@@ -15,6 +15,9 @@ export const auth = {
   create: {
     lead: (athletes: number) =>
       `Gratuit jusqu'à ${athletes} athlètes, sans carte bancaire. Choisis un mot de passe, ou reçois un lien dans ta boîte mail.`,
+    // Inscriptions des coachs fermées, athlètes autonomes ouvertes : le compte se crée, l'aiguillage suit.
+    leadSolo:
+      "Gratuit pour t'entraîner seul. Choisis un mot de passe, ou reçois un lien dans ta boîte mail : tu diras ensuite comment tu utilises Tartan.",
     withPassword: "Créer avec un mot de passe",
     withLink: "Créer avec un lien par e-mail",
     passwordLabel: "Choisis ton mot de passe",

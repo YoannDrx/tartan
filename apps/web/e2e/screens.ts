@@ -34,6 +34,7 @@ export const SCREENS: Screen[] = [
   { path: "/nouveau-mot-de-passe", roles: ["public"], proof: ["pilot.spec.ts"] },
   { path: "/confirmer-age", roles: ["public"], proof: ["terrain.spec.ts"] },
   { path: "/bienvenue", roles: ["athlete"], proof: ["age-confirmation.spec.ts", "tests/athlete-arrival.test.ts"] },
+  { path: "/bienvenue/coach", roles: ["athlete"], proof: ["onboarding.spec.ts", "age-confirmation.spec.ts"] },
   { path: "/bienvenue/inviter", roles: ["coach"], proof: ["onboarding.spec.ts"] },
   { path: "/i/[token]", roles: ["public"], proof: ["pilot.spec.ts", "password.spec.ts", "avatar.spec.ts"] },
   { path: "/accord-parental/[token]", roles: ["public"], proof: ["tests/access.test.ts"] },

@@ -90,7 +90,11 @@ export const signInWithPassword = async (page: Page, email: string, next = "/con
   await page.waitForLoadState("networkidle");
 };
 
-export const signUp = async (page: Page, email: string, next = "/connexion") => {
+// Après la confirmation, un compte sans espace arrive sur l'aiguillage de `/bienvenue`. Les parcours de coach vont droit
+// à « Je suis coach » ; l'aiguillage lui-même est éprouvé par `athlete-autonome.spec.ts`.
+export const COACH_START = "/connexion?next=%2Fbienvenue%2Fcoach";
+
+export const signUp = async (page: Page, email: string, next = COACH_START) => {
   await fillSignUp(page, email, next);
   // Le lien de confirmation part par e-mail : ici, le test le remplace par une écriture en base. Le vrai lien est
   // suivi dans password.spec.ts.
