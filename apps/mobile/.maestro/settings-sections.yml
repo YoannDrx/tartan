@@ -53,6 +53,8 @@ env:
     element:
       id: settings-rubric-groupes
     direction: UP
+    # Sur iOS, une rangée encore sous l'en-tête compte comme visible : la centrer avant de la toucher.
+    centerElement: true
 - tapOn:
     id: settings-rubric-groupes
 - extendedWaitUntil:
@@ -74,6 +76,8 @@ env:
     element:
       id: settings-rubric-notifications
     direction: UP
+    # Sur iOS, une rangée encore sous l'en-tête compte comme visible : la centrer avant de la toucher.
+    centerElement: true
 - tapOn:
     id: settings-rubric-notifications
 - extendedWaitUntil:
@@ -95,6 +99,8 @@ env:
     element:
       id: settings-rubric-connexion
     direction: UP
+    # Sur iOS, une rangée encore sous l'en-tête compte comme visible : la centrer avant de la toucher.
+    centerElement: true
 - tapOn:
     id: settings-rubric-connexion
 - extendedWaitUntil:

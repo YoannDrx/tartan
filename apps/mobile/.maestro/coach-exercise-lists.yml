@@ -48,8 +48,9 @@ env:
 - tapOn:
     id: exercise-list-quick-submit
 # La fiche créée arrive en bas de la liste, sous la barre d'onglets : la faire venir à l'écran.
+# La rangée se lit d'un bloc (« Gainage natif 838585, Échauffement ») : le nom seul ne la trouve pas.
 - scrollUntilVisible:
-    element: "${output.exerciseName}"
+    element: "${output.exerciseName}, .*"
     centerElement: true
     timeout: 20000
 - takeScreenshot: coach-list-created-exercise
