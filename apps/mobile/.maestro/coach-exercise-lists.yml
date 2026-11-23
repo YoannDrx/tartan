@@ -36,8 +36,15 @@ env:
 - tapOn:
     id: exercise-list-quick-name
 - inputText: ${output.exerciseName}
+# Sur iOS, le clavier reste ouvert et couvre « Créer la fiche » : un toucher sur le bouton frappait une lettre du
+# clavier (« Gainage natif …g »). La touche Terminé du champ le ferme.
+- pressKey: Enter
 - runFlow:
     file: flows/_hide-keyboard.yml
+- extendedWaitUntil:
+    visible:
+      id: exercise-list-quick-submit
+    timeout: 10000
 - tapOn:
     id: exercise-list-quick-submit
 - extendedWaitUntil:
