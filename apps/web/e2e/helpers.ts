@@ -122,8 +122,13 @@ export const createCoachSpace = async (page: Page, name = "Thomas", email = uniq
 
 // Du compte tout juste connecté à l'espace créé : profil, espace et premier groupe, conditions.
 export const completeCoachOnboarding = async (page: Page, name = "Thomas") => {
+  // Un lien reçu par e-mail ramène à l'aiguillage de `/bienvenue` : le coach y choisit « Je suis coach ».
   // En développement, la première compilation d'une page peut prendre longtemps.
-  await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible({ timeout: 60_000 });
+  const switchboard = page.getByRole("heading", { name: w.welcome.title });
+  const form = page.getByRole("heading", { name: "Crée ton espace coach" });
+  await expect(switchboard.or(form)).toBeVisible({ timeout: 60_000 });
+  if (await switchboard.isVisible()) await page.getByRole("link", { name: new RegExp(w.welcome.coach.title) }).click();
+  await expect(form).toBeVisible({ timeout: 60_000 });
   await page.waitForLoadState("networkidle");
   // Le début de l'adresse n'est pas un prénom : le champ attend le vrai.
   await expect(page.getByLabel("Prénom")).toHaveValue("");
