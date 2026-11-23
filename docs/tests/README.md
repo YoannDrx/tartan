@@ -116,6 +116,8 @@ Le dossier `.maestro/destructive/` n'est pas lu par cette commande. Il contient 
 maestro test -e APP_ID=coach.tartan.app.dev -e DISPOSABLE_EMAIL=… -e PASSWORD=… .maestro/destructive/account-delete.yml
 ```
 
+Le dossier `.maestro/once/` n'est pas lu non plus : ses parcours d'athlète autonome (`personal-signup`, `history-share`) ouvrent un espace personnel ou acceptent une invitation, et ne se rejouent pas sur le même compte. La CI crée leurs comptes (`SOLO_EMAIL`, `SHARER_EMAIL`, et `NOSPACE_EMAIL` pour `no-space-account`), les lance seuls, puis vérifie la base.
+
 Le script `maestro:test` ne transmet pas ces variables. Les parcours exigent des séances issues de la graine ; l'absence de données ne doit pas les faire passer. Le job iOS exécute les flux de `.maestro/config.yaml`, le job Android ceux de `.maestro/config-android.yaml`, puis la suppression d'un compte jetable, vérifiée en base.
 
 Sur iOS, un flux en échec est rejoué une fois, seul, à la fin du passage : sur le simulateur partagé, un flux différent tombait à chaque passage alors qu'il passait aux autres. Le job ne reste vert que si chaque rejeu passe ; ses rapports sont dans `maestro-retry-<flux>` de l'artefact `maestro`. Un rejeu signalé en avertissement sur plusieurs PR de suite désigne un flux à rendre stable, pas un aléa.
