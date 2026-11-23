@@ -34,7 +34,7 @@ Un compte connecté qui n'a encore aucun espace arrive sur `/bienvenue` (`welcom
 | Choix                            | Mène à                                                                           | Fermé quand                                                                         |
 | -------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | 1. « Je suis coach »             | `/bienvenue/coach`, la création de l'espace ci-dessous                           | Inscriptions des coachs fermées : le choix reste visible, avec l'adresse de contact |
-| 2. « Je m'entraîne seul »        | `/bienvenue/seul`, l'espace personnel                                            | Inscriptions des athlètes autonomes fermées (console, ouvertes par défaut)          |
+| 2. « Je m'entraîne seul »        | `/bienvenue/seul`, l'espace personnel                                            | Inscriptions des athlètes autonomes fermées : c'est le défaut, le fondateur les ouvre dans la console |
 | 3. « J'ai un lien d'invitation » | Un champ qui accepte le lien entier ou le code qui suit `/i/`, puis l'invitation | Jamais                                                                              |
 
 - Sous l'aiguillage, « Ton compte » : l'adresse connectée, « Se déconnecter » et « Supprimer mon compte » (`account-exit.tsx`). Un compte sans espace n'est jamais dans une impasse.

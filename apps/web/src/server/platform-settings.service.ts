@@ -12,8 +12,7 @@ const fromEnv = (): PlatformSettings => {
   const limit = Number(e.MUX_VIDEO_LIMIT);
   return {
     signupMode: e.COACH_SIGNUP_MODE,
-    // Les athlètes autonomes s'inscrivent librement, sauf décision contraire dans la console.
-    athleteSignupMode: "public",
+    athleteSignupMode: e.ATHLETE_SIGNUP_MODE,
     checkoutEnabled: e.BILLING_CHECKOUT_ENABLED === "true",
     muxVideoLimit: limit > 0 ? limit : null,
   };
@@ -26,8 +25,11 @@ export const platformSettings = async (): Promise<PlatformSettings> => {
   const defaults = fromEnv();
   const rows = await prisma.platformSetting.findMany().catch(() => null);
   if (!rows) return defaults;
-  const stored = platformSettingsInput.partial().safeParse(Object.fromEntries(rows.map((r) => [r.key, r.value])));
-  const value = { ...defaults, ...(stored.success ? stored.data : {}) };
+  const raw = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const stored = platformSettingsInput.partial().safeParse(raw);
+  // Seules les clés enregistrées remplacent l'environnement : un défaut du contrat ne doit pas rouvrir une inscription.
+  const saved = stored.success ? Object.fromEntries(Object.entries(stored.data).filter(([key]) => key in raw)) : {};
+  const value = { ...defaults, ...saved };
   cached = { at: now, value };
   return value;
 };

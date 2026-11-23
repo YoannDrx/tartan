@@ -37,7 +37,8 @@ describe("console de la plateforme", () => {
       await updatePlatformSettings(admin, { signupMode: "closed", checkoutEnabled: false, muxVideoLimit: 12 });
       expect(await platformSettings()).toEqual({
         signupMode: "closed",
-        athleteSignupMode: "public",
+        // Absent de l'envoi, le réglage des athlètes autonomes prend le défaut du contrat : fermé.
+        athleteSignupMode: "closed",
         checkoutEnabled: false,
         muxVideoLimit: 12,
       });
@@ -45,6 +46,16 @@ describe("console de la plateforme", () => {
     } finally {
       await prisma.platformSetting.deleteMany();
       await prisma.platformAdmin.deleteMany({ where: { email: admin.email } });
+    }
+  });
+
+  it("un réglage enregistré pour les seuls coachs laisse aux athlètes autonomes la valeur de l'environnement", async () => {
+    // Les tests ouvrent les deux inscriptions par l'environnement ; le défaut du contrat, lui, est fermé.
+    await prisma.platformSetting.create({ data: { key: "signupMode", value: "closed" } });
+    try {
+      expect(await platformSettings()).toMatchObject({ signupMode: "closed", athleteSignupMode: "public" });
+    } finally {
+      await prisma.platformSetting.deleteMany();
     }
   });
 
