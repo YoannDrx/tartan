@@ -1,17 +1,16 @@
+import { ConsentRow, LegalLinks } from "../../src/features/consent-row";
+import { HistoryShareStep } from "../../src/features/history-share";
 import { PushStep, Shell } from "../../src/features/push-step";
-import { legalLinks } from "../../src/lib/legal-links";
+import { offersHistoryShare, hasPersonalSpace } from "../../src/lib/personal-space";
 import { BirthDateField, toIsoBirthDate, type BirthParts } from "../../src/features/birth-date-field";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ApiError } from "@tartan/api-client";
 import { m } from "@tartan/i18n";
 import { ageAt } from "@tartan/domain";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Alert, View } from "react-native";
 import { api } from "../../src/lib/api";
-import { config } from "../../src/lib/config";
 import { errorMessage } from "../../src/lib/errors";
 import { registerPush } from "../../src/lib/notifications";
 import { currentReferral, usePendingReferral } from "../../src/lib/pending-referral";
@@ -24,51 +23,7 @@ import { Avatar } from "../../src/ui/avatar";
 import { Button, Card, Field, LaneLine, ScreenTitle, T } from "../../src/ui/primitives";
 import { useSceneStatusBar } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
-import { radius, scene, space, usePagePad, usePalette } from "../../src/ui/theme";
-
-const ConsentRow = ({
-  label,
-  value,
-  onChange,
-  testID,
-}: {
-  label: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
-  testID?: string;
-}) => {
-  const p = usePalette();
-  return (
-    <Pressable
-      testID={testID}
-      onPress={() => onChange(!value)}
-      accessibilityRole="switch"
-      accessibilityLabel={label}
-      accessibilityState={{ checked: value }}
-      style={{
-        flexDirection: "row",
-        gap: space.md,
-        alignItems: "center",
-        padding: space.md,
-        backgroundColor: p.surface,
-        borderRadius: radius.card,
-        minHeight: 64,
-      }}
-    >
-      <T variant="small" style={{ flex: 1 }}>
-        {label}
-      </T>
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ true: scene.actionOnCard, false: scene.controlLine }}
-        thumbColor={value ? scene.onActionOnCard : scene.text}
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-      />
-    </Pressable>
-  );
-};
+import { space } from "../../src/ui/theme";
 
 export default function InvitationScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
@@ -95,7 +50,8 @@ export default function InvitationScreen() {
   const [video, setVideo] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [accepted, setAccepted] = useState(false);
+  // Après l'acceptation : le partage de l'historique (s'il avait son espace personnel), puis les notifications.
+  const [accepted, setAccepted] = useState<{ organizationId: string; share: boolean } | null>(null);
 
   // Le jeton est gardé jusqu'à l'acceptation : se connecter ne perd pas l'invitation.
   useEffect(() => {
@@ -127,8 +83,10 @@ export default function InvitationScreen() {
       clear();
       usePendingReferral.getState().clear();
       setActive(result.organizationId);
+      // Lu avant l'invalidation : l'espace personnel existait avant d'arriver dans ce groupe.
+      const share = offersHistoryShare({ hadPersonal: hasPersonalSpace(me.data), role: preview.data?.role });
       await queryClient.invalidateQueries({ queryKey: ["me"] });
-      setAccepted(true);
+      setAccepted({ organizationId: result.organizationId, share });
     },
     onError: (error) => setFormError(errorMessage(error)),
   });
@@ -165,6 +123,14 @@ export default function InvitationScreen() {
     );
   };
 
+  if (accepted?.share)
+    return (
+      <HistoryShareStep
+        orgId={accepted.organizationId}
+        coach={preview.data?.inviterName ?? ""}
+        onDone={() => setAccepted({ ...accepted, share: false })}
+      />
+    );
   if (accepted) return <PushStep coach={!isAthlete} onDone={() => router.replace("/")} />;
 
   if (preview.isPending) {
@@ -264,22 +230,7 @@ export default function InvitationScreen() {
                 {errors.terms}
               </T>
             ) : null}
-            <View style={{ flexDirection: "row", gap: space.sm, flexWrap: "wrap" }}>
-              <Button
-                label={m.mobile.invite.termsLink}
-                variant="ghost"
-                compact
-                style={{ paddingHorizontal: 0 }}
-                onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).terms)}
-              />
-              <Button
-                label={m.mobile.invite.privacyLink}
-                variant="ghost"
-                compact
-                style={{ paddingHorizontal: 0 }}
-                onPress={() => void WebBrowser.openBrowserAsync(legalLinks(config.webUrl).privacy)}
-              />
-            </View>
+            <LegalLinks />
             {isAthlete ? (
               <>
                 <ConsentRow
