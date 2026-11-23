@@ -248,7 +248,8 @@ const build = ({ hair, face, bib }: Look, view: View): Bone[] => {
 
 const cache = new Map<string, readonly Bone[]>();
 
-// Les os d'un athlète, du fond vers le devant : prêts pour `svgAthlete` et `drawMascot`.
+// Les os d'un athlète, du fond vers le devant : la tête, la coiffure, le visage et le dossard que le corps du
+// moteur des gestes reprend (v2/draw-svg.ts).
 export const rig = (look: Look, view: View = "side"): readonly Bone[] => {
   const key = `${look.hair}/${look.face}/${look.bib}/${view}`;
   let bones = cache.get(key);

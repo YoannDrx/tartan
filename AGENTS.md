@@ -43,7 +43,7 @@ Le détail, les comptes de test et les pièges sont dans [docs/tests/README.md](
 
 ## Règles du code
 
-- Aucune requête Prisma hors de `apps/web/src/server/*` et `src/lib`. Tout passe par un service qui appelle `requireOrgMember`. Seule exception : un service public qui ne lit aucune donnée d'espace (jeu, aide), limité à ses propres tables, avec une ligne explicite dans la matrice d'accès.
+- Aucune requête Prisma hors de `apps/web/src/server/*` et `src/lib`. Tout passe par un service qui appelle `requireOrgMember`. Seule exception : un service public qui ne lit aucune donnée d'espace (aide), limité à ses propres tables, avec une ligne explicite dans la matrice d'accès.
 - Les notes privées du coach ne sont jamais sélectionnées pour un athlète.
 - Les règles métier pures vont dans `packages/domain`, avec tests. Les contrats vont dans `packages/contracts`.
 - Aucun texte en dur : `packages/i18n`. Aucune couleur en dur : `packages/design-tokens`. Le lint le refuse (`apps/web/eslint-rules`). Les textes d'avant la règle sont gelés dans `apps/web/eslint-suppressions.json` : quand tu touches un de ces fichiers, déplace ses textes, puis lance `pnpm --filter @tartan/web lint:prune`. N'ajoute jamais une entrée à cette base.
@@ -67,7 +67,7 @@ Dans le code, les commentaires « § 11.4 » renvoient à l'ancien cahier des ch
 - Hors production, la base de production et une clé Stripe réelle sont refusées au démarrage (`assertEnvIsolation`). Ne contourne pas cette garde.
 - Pas d'essai sur la production avec des comptes créés pour l'occasion. Les essais se font en local ou sur la Preview.
 - Depuis le 13 novembre 2026, le fondateur autorise l'agent à agir sur ses comptes Vercel, GitHub, EAS et Neon pour mener un lot : créer une ressource (store, variable, build, branche de base), lancer un atelier, un build ou une sauvegarde. L'agent dit ce qu'il a fait et où.
-- Restent au fondateur : tout paiement ou changement d'offre payante, tout engagement légal (juriste, médiateur, CGV signées), l'ouverture des inscriptions et du classement du jeu, et les essais sur ses téléphones. Voir le tableau « Fondateur » de `docs/ETAT.md`.
+- Restent au fondateur : tout paiement ou changement d'offre payante, tout engagement légal (juriste, médiateur, CGV signées), l'ouverture des inscriptions, et les essais sur ses téléphones. Voir le tableau « Fondateur » de `docs/ETAT.md`.
 
 ## Méthode de travail
 

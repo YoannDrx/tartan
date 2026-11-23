@@ -37,8 +37,8 @@ jobs:
         uses: dorny/paths-filter@v3
         with:
           filters: |
-            # Seulement ce que l'app native embarque : ses paquets, un par un. `packages/game` et les textes
-            # propres au web (`packages/i18n/src/web/`) n'en font pas partie ; `tests/mobile-filter.test.ts`
+            # Seulement ce que l'app native embarque : ses paquets, un par un. Les textes propres au web
+            # (`packages/i18n/src/web/`) n'en font pas partie ; `tests/mobile-filter.test.ts`
             # vérifie que cette liste suit les dépendances de `apps/mobile`.
             mobile:
               - "apps/mobile/**"

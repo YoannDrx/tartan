@@ -4,16 +4,14 @@ import type { ExerciseGuide } from "@tartan/contracts";
 import { SURFACES } from "@tartan/design-tokens/athletes";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
-import { positionAt, type ExerciseClip } from "@tartan/mascot/exercise";
 import { exerciseClip } from "@tartan/mascot/exercises";
-import { motionEngine } from "@tartan/mascot/v2/engine";
 import { guidePositionAt } from "@tartan/mascot/v2/gesture";
 import { createMotionPlayer, svgSink, type MotionPlayer, type PlayerOptions } from "@tartan/mascot/v2/player";
 import type { GestureView } from "@tartan/mascot/v2/project";
 import { gestureEntry } from "@tartan/mascot/v2/registry";
 import { Pause, Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ExerciseScene, gesturePaint, GestureStage, GestureStill } from "@/components/exercise-scene";
+import { gesturePaint, GestureStage, GestureStill } from "@/components/exercise-scene";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
@@ -42,8 +40,8 @@ export const chip = (chosen: boolean) =>
 // Le geste du guide : il tourne en boucle, une pastille par ligne du guide montre où il en est, et la ligne
 // en cours s'affiche dessous. Arrêté, on choisit la position à regarder. En mouvement réduit : la frise des positions.
 // Le geste se retrouve ici, côté client, d'après la clé du catalogue : une page serveur ne transmet que le guide.
-// Le nouveau moteur prend le geste dès qu'il le peut (`motionEngine`) : deux vues, et une lecture qui ne passe
-// pas par React. `bothViews` montre les deux vues côte à côte, pour l'atelier de relecture.
+// Deux vues, et une lecture qui ne passe pas par React. `bothViews` montre les deux vues côte à côte, pour
+// l'atelier de relecture.
 export const GuideMotion = ({
   guide,
   autoPlay = true,
@@ -52,14 +50,8 @@ export const GuideMotion = ({
   guide: ExerciseGuide;
   autoPlay?: boolean;
   bothViews?: boolean;
-}) => {
-  if (motionEngine(guide.catalogKey) === "v2")
-    return <GestureFrame guide={guide} autoPlay={autoPlay} bothViews={bothViews} />;
-  const clip = exerciseClip(guide.catalogKey);
-  return clip ? <Player guide={guide} clip={clip} autoPlay={autoPlay} /> : null;
-};
-
-// --- Nouveau moteur ---------------------------------------------------------------------------------
+}) =>
+  exerciseClip(guide.catalogKey) ? <GestureFrame guide={guide} autoPlay={autoPlay} bothViews={bothViews} /> : null;
 
 // Le geste n'est préparé qu'à l'approche de l'écran (un geste relevé se construit à ce moment), et sa lecture
 // s'arrête dès qu'il en sort.
@@ -257,98 +249,5 @@ const Gesture = ({
       </p>
       <figcaption className="t-caption text-soft">{captionOf(guide)}</figcaption>
     </>
-  );
-};
-
-// --- Premier moteur : les gestes à reprendre, tant qu'ils ne sont pas réécrits ------------------------------
-
-const Player = ({ guide, clip, autoPlay }: { guide: ExerciseGuide; clip: ExerciseClip; autoPlay: boolean }) => {
-  const reduced = useReducedMotion();
-  const [time, setTime] = useState(clip.stills[0]!);
-  const [playing, setPlaying] = useState(autoPlay);
-  const running = playing && !reduced;
-  const lines = linesOf(guide);
-
-  useEffect(() => {
-    if (!running) return;
-    let last = performance.now();
-    let frame = requestAnimationFrame(function tick(now) {
-      const elapsed = now - last;
-      last = now;
-      setTime((current) => (current + elapsed / clip.duration) % 1);
-      frame = requestAnimationFrame(tick);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [running, clip.duration]);
-
-  const caption = captionOf(guide);
-
-  if (reduced)
-    return (
-      <figure className="flex min-w-0 flex-col gap-2">
-        <ol aria-label={t.positions} className="grid grid-cols-2 gap-2 desktop:grid-cols-4">
-          {clip.stills.map((still, index) => (
-            <li key={index} className="flex min-w-0 flex-col gap-1">
-              <ExerciseScene
-                gesture={clip}
-                t={still}
-                role="img"
-                aria-label={lines[index] ?? guide.illustration.alt}
-                className="w-full rounded-button"
-              />
-              <span className="t-caption text-soft">{label(index)}</span>
-            </li>
-          ))}
-        </ol>
-        <figcaption className="t-caption text-soft">
-          {t.reduced} {caption}
-        </figcaption>
-      </figure>
-    );
-
-  const current = positionAt(clip, time);
-  return (
-    <figure className="flex min-w-0 flex-col gap-2">
-      <ExerciseScene
-        gesture={clip}
-        t={time}
-        role="img"
-        aria-label={guide.illustration.alt}
-        className="w-full rounded-button"
-      />
-      <div className="flex min-h-11 flex-wrap items-center gap-2">
-        <Button
-          size="sm"
-          variant="secondary"
-          aria-label={running ? t.pause : t.play}
-          onClick={() => setPlaying(!running)}
-        >
-          {running ? <Pause aria-hidden className="size-4" /> : <Play aria-hidden className="size-4" />}
-        </Button>
-        <div role="group" aria-label={t.positions} className="flex gap-1">
-          {clip.stills.map((still, index) => (
-            <button
-              key={index}
-              type="button"
-              aria-label={index === 0 ? undefined : label(index)}
-              aria-pressed={!running && current === index}
-              onClick={() => {
-                setPlaying(false);
-                setTime(still);
-              }}
-              className={cn(chip(current === index), index === 0 ? "font-semibold" : "t-num px-0")}
-            >
-              {chipText(index)}
-            </button>
-          ))}
-        </div>
-      </div>
-      {/* Lue seulement une fois le geste arrêté : en lecture, la ligne change toutes les secondes. */}
-      <p aria-live={running ? "off" : "polite"} className="min-h-12">
-        <span className="font-semibold">{label(current)} : </span>
-        {lines[current]}
-      </p>
-      <figcaption className="t-caption text-soft">{caption}</figcaption>
-    </figure>
   );
 };

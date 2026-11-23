@@ -1,4 +1,5 @@
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { FooterLink, Layout, Paragraph, PrimaryLink, Title } from "./layout";
 
 export const WeeklyDigestEmail = ({
@@ -17,19 +18,15 @@ export const WeeklyDigestEmail = ({
   unsubscribe: string;
 }) => (
   <Layout
-    preview={`Ta semaine du ${weekLabel}`}
+    preview={w.comm.digest.preview(weekLabel)}
     footerNote={
       <>
         {m.email.digestFooter(organization)} <FooterLink href={unsubscribe}>{m.email.unsubscribeLink}</FooterLink>
       </>
     }
   >
-    <Title>{`Semaine du ${weekLabel}`}</Title>
-    <Paragraph>
-      {`${organization} : ${sessions} séance${sessions > 1 ? "s" : ""} publiée${sessions > 1 ? "s" : ""}${
-        completionPct === null ? "." : `, ${completionPct}\u00a0% de réalisation.`
-      }`}
-    </Paragraph>
-    <PrimaryLink href={url}>Voir le suivi</PrimaryLink>
+    <Title>{w.comm.digest.title(weekLabel)}</Title>
+    <Paragraph>{w.comm.digest.summary(organization, sessions, completionPct)}</Paragraph>
+    <PrimaryLink href={url}>{w.comm.digest.cta}</PrimaryLink>
   </Layout>
 );

@@ -39,7 +39,6 @@ describe("console de la plateforme", () => {
         signupMode: "closed",
         checkoutEnabled: false,
         muxVideoLimit: 12,
-        gameLeaderboardEnabled: false,
       });
       expect(await prisma.auditLog.count({ where: { action: "platform_settings_updated" } })).toBeGreaterThan(0);
     } finally {

@@ -18,7 +18,6 @@ import webTracking from "@/features/landing/images/web-suivi.png";
 import { landingQuestions } from "@/features/help/content";
 import { HelpQuestions } from "@/features/help/questions";
 import { GroupBand } from "@/features/landing/group-band";
-import { WarmUp } from "@/features/landing/warm-up";
 import { JumpFilm } from "@/features/landing/jump-film";
 import { LapBend } from "@/features/landing/lap";
 import { SiteFooter, SiteHeader } from "@/features/shell/site-chrome";
@@ -235,8 +234,6 @@ export default async function LandingPage() {
           className="absolute bottom-[-3px] left-[11%] h-[calc(var(--lap-gap)*3+24px)] w-[7px] bg-lane"
         />
       </LapBend>
-
-      <WarmUp titleClassName={smallTitle} bodyClassName={body} />
 
       <section
         aria-labelledby="questions"

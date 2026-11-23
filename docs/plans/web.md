@@ -154,7 +154,7 @@ Chaque jour : Sentry, livraisons des webhooks Stripe, Resend (rebonds, plaintes)
 | C2 | `feat/regularite` | Série de régularité : règle pure dans `packages/domain`, affichée en tour de piste sur l'accueil de l'athlète et sur sa fiche côté coach |
 | C3 | `feat/carte-record` | Image générée côté serveur avec l'athlète de l'épreuve, partagée par le menu du téléphone, sans donnée de santé |
 
-La refonte visuelle et le jeu sont dans [direction-artistique.md](direction-artistique.md).
+La refonte visuelle est dans [direction-artistique.md](direction-artistique.md). Le jeu du site est retiré depuis le 23 novembre 2026.
 
 ## Retour arrière
 

@@ -1,24 +1,16 @@
 import { sessionReturnTo, withSessionReturn } from "@/lib/session-navigation";
-import { CoachLog } from "@/features/tracking/coach-log";
-import { Pencil, TriangleAlert } from "lucide-react";
+import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { formatDateLong, m, capitalize } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
-import { Sheet } from "@/components/sheet";
-import { Chip, EmptyState, PageHeader } from "@/components/states";
-import { StatusIcon } from "@/components/status-cell";
+import { EmptyState, PageHeader } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { CommentThread } from "@/features/comments/thread";
 import { orNotFound, requireStaffSpace } from "@/features/shell/space";
 import { RemindButton, RollCall } from "@/features/tracking/session-followup";
+import { SessionReturns } from "@/features/tracking/session-returns";
 import { listComments } from "@/server/comm.service";
 import { getSessionDetailForCoach } from "@/server/tracking.service";
-
-const painLabel = (pain: { bodyArea: string; side: string; intensity: number }) => {
-  const area = m.bodyArea[pain.bodyArea as keyof typeof m.bodyArea] ?? pain.bodyArea;
-  const side = pain.side === "none" ? "" : ` ${m.bodySide[pain.side as keyof typeof m.bodySide].toLowerCase()}`;
-  return w.tracking.pain(`${area}${side}`, pain.intensity);
-};
 
 export async function SessionFollowupContent({
   params,
@@ -68,101 +60,13 @@ export async function SessionFollowupContent({
         <div
           className={compact ? "flex flex-col gap-6" : "grid items-start gap-6 desktop:grid-cols-[minmax(0,1fr)_380px]"}
         >
-          <Sheet>
-            <section aria-label={m.coach.athleteReturns}>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-card-line bg-card-raised px-4 py-2">
-                {(["done", "partial", "missed", "upcoming", "no_return"] as const).map((status) => {
-                  const count = session.athletes.filter((a) => a.status === status).length;
-                  return count > 0 ? (
-                    <span key={status} className="flex items-center gap-1.5">
-                      <StatusIcon status={status} size={18} />
-                      <span className="t-num text-[17px] leading-5">{count}</span>
-                      <span className="t-caption font-normal text-soft">{m.status[status]}</span>
-                    </span>
-                  ) : null;
-                })}
-              </div>
-              <ul className="divide-y divide-card-line">
-                {session.athletes.map((a) => (
-                  <li
-                    key={a.athleteId}
-                    id={a.athleteId}
-                    className="grid scroll-mt-20 grid-cols-[26px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 px-4 py-2"
-                  >
-                    <StatusIcon status={a.status} className="mt-px" />
-                    <div className="min-w-0 leading-snug">
-                      <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        {/* La cible du nom fait 44 px de haut sans écarter les lignes : la marge négative rend la place. */}
-                        <Link
-                          href={`/athletes/${a.athleteId}`}
-                          className="-my-3 break-words py-3 font-semibold text-inherit no-underline hover:underline"
-                        >
-                          {a.name}
-                        </Link>
-                        {a.variant ? <Chip>{m.variant[a.variant]}</Chip> : null}
-                        {a.attendance === "absent" ? (
-                          <Chip tone="warning">
-                            {a.absenceReason
-                              ? m.coach.absentBecause(m.today.absenceReasons[a.absenceReason])
-                              : m.coach.absent}
-                          </Chip>
-                        ) : null}
-                      </p>
-                      {a.rpe || a.durationMin ? (
-                        <p className="t-num mt-0.5 text-[17px] leading-5">
-                          {[
-                            a.rpe ? w.tracking.effort(a.rpe) : null,
-                            a.durationMin ? w.tracking.minutes(a.durationMin) : null,
-                          ]
-                            .filter(Boolean)
-                            .join(", ")}
-                        </p>
-                      ) : null}
-                      {a.pain ? (
-                        <p className="mt-1 flex items-center gap-1.5 font-semibold text-st-missed">
-                          <TriangleAlert aria-hidden className="size-4 shrink-0" />
-                          {painLabel(a.pain)}
-                        </p>
-                      ) : null}
-                      {a.comment ? <p className="mt-1 break-words">{a.comment}</p> : null}
-                      {!a.hasAccount && a.status !== "done" && session.canEdit ? (
-                        <div className="mt-2">
-                          <CoachLog sessionId={id} athleteId={a.athleteId} />
-                        </div>
-                      ) : null}
-                      {space.progressionEnabled && session.canEdit ? (
-                        <Button asChild variant="secondary" size="sm" className="mt-2">
-                          <Link
-                            href={withSessionReturn(`/seances/${id}/athletes/${a.athleteId}/series`, returnTo)}
-                            aria-label={`${m.progression.coachSetsTitle} · ${a.name}`}
-                          >
-                            {m.progression.coachSetsTitle}
-                          </Link>
-                        </Button>
-                      ) : null}
-                      {a.sets.length > 0 ? (
-                        <p className="t-caption mt-1 font-normal text-soft">
-                          {w.tracking.setsChecked(a.sets.filter((s) => s.done).length)}
-                          {a.sets.some((s) => s.loadKg)
-                            ? w.tracking.realLoads([
-                                ...new Set(
-                                  a.sets.filter((s) => s.loadKg).map((s) => String(s.loadKg).replace(".", ",")),
-                                ),
-                              ])
-                            : ""}
-                        </p>
-                      ) : null}
-                    </div>
-                    {a.status === "missed" || a.status === "upcoming" ? (
-                      <RemindButton sessionId={id} athleteIds={[a.athleteId]} label={m.coach.remind} />
-                    ) : (
-                      <span />
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </Sheet>
+          <SessionReturns
+            sessionId={id}
+            athletes={session.athletes}
+            canEdit={session.canEdit}
+            progressionEnabled={space.progressionEnabled === true}
+            returnTo={returnTo}
+          />
           <div className="flex flex-col gap-6">
             <RollCall
               sessionId={id}

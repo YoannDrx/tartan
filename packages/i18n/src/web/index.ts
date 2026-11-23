@@ -3,6 +3,7 @@
 // Maestro. Un texte que le mobile affiche aussi reste dans `../fr.ts`. Un fichier par domaine, assemblé ici.
 import { admin } from "./admin";
 import { analysis } from "./analysis";
+import { athletes } from "./athletes";
 import { auth } from "./auth";
 import { comm } from "./comm";
 import { common } from "./common";
@@ -23,6 +24,7 @@ import { video } from "./video";
 export const w = {
   admin,
   analysis,
+  athletes,
   auth,
   comm,
   common,

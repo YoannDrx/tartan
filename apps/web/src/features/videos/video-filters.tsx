@@ -144,9 +144,16 @@ function FilterForm({
           </Select>
         )}
       </Field>
+      {/* La case dessinée des autres écrans : 24 px de cible, dans une ligne de 44 px. */}
       {staff ? (
-        <label className="flex min-h-11 items-center gap-2">
-          <input type="checkbox" name="review" value="pending" defaultChecked={search.review === "pending"} />
+        <label className="flex min-h-11 items-center gap-3">
+          <input
+            type="checkbox"
+            className="check"
+            name="review"
+            value="pending"
+            defaultChecked={search.review === "pending"}
+          />
           {m.videoCollaboration.awaitingReview}
         </label>
       ) : null}

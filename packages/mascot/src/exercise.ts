@@ -63,15 +63,9 @@ export type ExerciseClip = {
   // L'inclinaison de toute la scène, en degrés : une côte. Le rendu la tourne autour du centre du cadre.
   tilt: number;
   // Le point de vue : de profil, de face (pas chassés, élévations latérales), de dos (allongé sur le ventre).
-  // Le rendu prend le squelette et le visage qui lui correspondent (`athleteRig(id, face, facing)`).
+  // Le relèvement en tire la vue où le geste se lit d'abord (v2/registry.ts).
   facing: View;
-  // La série de relecture : les gestes vus de face arrivés après la validation des familles se valident à part,
-  // pour qu'aucun ne soit présenté comme relu avant que le fondateur l'ait vu. Absent : la première série.
-  batch?: MotionBatch;
 };
-
-export const MOTION_BATCHES = ["face"] as const;
-export type MotionBatch = (typeof MOTION_BATCHES)[number];
 
 const place = (position: Omit<Position, "via" | "hold">, t: number, fallback: Face, view: View): Placed => {
   const pose: Pose = { ...POSES.stand, ...position.pose };
@@ -106,7 +100,6 @@ export type ExerciseDraft = {
   face?: Face;
   // Le point de vue, de profil par défaut.
   facing?: View;
-  batch?: MotionBatch;
 };
 
 export const exercise = (draft: ExerciseDraft): ExerciseClip => {
@@ -176,7 +169,6 @@ export const exercise = (draft: ExerciseDraft): ExerciseClip => {
     frame,
     view: framing(frame, gearAt, view),
     facing: view,
-    ...(draft.batch ? { batch: draft.batch } : {}),
     loop: true,
     tilt: 0,
     gear: gearAt,

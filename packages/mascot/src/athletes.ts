@@ -1,8 +1,7 @@
 // Le groupe : six athlètes, un par épreuve. Ici, ce qui tient au corps : le dossard et la coiffure.
 // Les prénoms sont dans @tartan/i18n, les teints et les tenues dans @tartan/design-tokens.
 import { EVENT_IDS, type EventId } from "./event";
-import { rig, type Face, type Hair } from "./rig";
-import type { View } from "./skeleton";
+import type { Hair } from "./rig";
 
 // Le dossard reprend le numéro de couloir : l'ordre des épreuves dans DESIGN.md.
 export const ATHLETES = {
@@ -16,7 +15,3 @@ export const ATHLETES = {
 
 export const ATHLETE_IDS = EVENT_IDS;
 export type AthleteId = EventId;
-
-// Les os d'un athlète, pour le visage demandé.
-export const athleteRig = (id: AthleteId, face: Face = "neutral", view: View = "side") =>
-  rig({ ...ATHLETES[id], face }, view);

@@ -1,4 +1,5 @@
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { PageHeader } from "@/components/states";
 import { AdminNav, DataTable, day, euros } from "@/features/admin/console-ui";
 import { requireSpace } from "@/features/shell/space";
@@ -26,7 +27,7 @@ export default async function AdminDisputesPage() {
             rel="noreferrer"
             target="_blank"
           >
-            Ouvrir
+            {w.admin.billing.openDispute}
           </a>,
         ])}
       />

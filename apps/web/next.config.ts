@@ -17,7 +17,6 @@ const nextConfig: NextConfig = {
     "@tartan/contracts",
     "@tartan/design-tokens",
     "@tartan/domain",
-    "@tartan/game",
     "@tartan/i18n",
     "@tartan/mascot",
   ],
@@ -36,8 +35,10 @@ const nextConfig: NextConfig = {
     ],
   },
   // `/mes-sauts` est devenu `/mes-videos` : les anciens liens (notifications, e-mails, favoris) y mènent toujours.
+  // Le jeu du site est retiré depuis le 23 novembre 2026 : son ancienne adresse mène à l'accueil.
   async redirects() {
     return [
+      { source: "/jeu", destination: "/", permanent: true },
       { source: "/mes-sauts", destination: "/mes-videos", permanent: true },
       { source: "/mes-sauts/:id", destination: "/mes-videos/:id", permanent: true },
     ];

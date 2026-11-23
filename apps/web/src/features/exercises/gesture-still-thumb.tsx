@@ -1,11 +1,9 @@
 "use client";
 
 import { SURFACES } from "@tartan/design-tokens/athletes";
-import { exerciseClip } from "@tartan/mascot/exercises";
-import { motionEngine } from "@tartan/mascot/v2/engine";
 import { gestureEntry } from "@tartan/mascot/v2/registry";
 import { memo, type ReactNode } from "react";
-import { ExerciseScene, gestureStage, GestureStill } from "@/components/exercise-scene";
+import { gestureStage, GestureStill } from "@/components/exercise-scene";
 
 // La position la plus parlante d'un geste : la deuxième étape, le cœur du mouvement (la flexion d'un squat, la
 // suspension d'un bond, la réception d'un épaulé). Un geste plus court montre sa dernière position.
@@ -26,27 +24,15 @@ const Frame = ({ viewBox, children }: { viewBox: string; children: ReactNode }) 
 
 // Chargée à part : la bibliothèque s'affiche avant que les gestes ne soient construits.
 const GestureStillThumb = memo(function GestureStillThumb({ motionKey }: { motionKey: string }) {
-  if (motionEngine(motionKey) === "v2") {
-    const entry = gestureEntry(motionKey);
-    if (!entry) return null;
-    const { clip } = entry;
-    const box = gestureStage(clip, entry.native);
-    const still = clip.positions[Math.min(KEY_POSITION, clip.positions.length - 1)]!.still;
-    return (
-      <Frame viewBox={square(box.x, box.y, box.width, box.height)}>
-        <GestureStill gesture={clip} t={still} view={entry.native} />
-      </Frame>
-    );
-  }
-  const clip = exerciseClip(motionKey);
-  if (!clip) return null;
+  const entry = gestureEntry(motionKey);
+  if (!entry) return null;
+  const { clip } = entry;
+  const box = gestureStage(clip, entry.native);
+  const still = clip.positions[Math.min(KEY_POSITION, clip.positions.length - 1)]!.still;
   return (
-    <ExerciseScene
-      gesture={clip}
-      t={clip.stills[Math.min(KEY_POSITION, clip.stills.length - 1)]!}
-      preserveAspectRatio="xMidYMax slice"
-      className="size-full"
-    />
+    <Frame viewBox={square(box.x, box.y, box.width, box.height)}>
+      <GestureStill gesture={clip} t={still} view={entry.native} />
+    </Frame>
   );
 });
 

@@ -1,4 +1,5 @@
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import Link from "next/link";
 import { PageHeader } from "@/components/states";
 import { requireSpace } from "@/features/shell/space";
@@ -30,9 +31,9 @@ export default async function AdminInvoicesPage({ searchParams }: { searchParams
         ])}
       />
       <NextPage href={data.nextCursor ? `/admin/factures?apres=${data.nextCursor}` : null} />
-      <h2 className="t-h2">Remboursements</h2>
+      <h2 className="t-h2">{w.admin.billing.refunds}</h2>
       <DataTable
-        caption="Remboursements"
+        caption={w.admin.billing.refunds}
         columns={["Facture", "Montant", "Motif", "État", "Date"]}
         rows={refunds.map((row) => [
           row.invoiceId,

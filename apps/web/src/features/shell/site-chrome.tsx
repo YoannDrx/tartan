@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { Wordmark } from "@/components/logo";
 import { Stay } from "@/components/ui/view-transition";
 
@@ -10,11 +11,7 @@ export const SITE_HOME = process.env.VERCEL_ENV === "production" ? "https://tart
 export const SiteHeader = () => (
   <Stay name="site-header">
     <header className="flex items-center justify-between">
-      <a
-        href={SITE_HOME}
-        aria-label="Tartan, retour au site"
-        className="inline-flex min-h-11 items-center no-underline"
-      >
+      <a href={SITE_HOME} aria-label={w.shell.backToSite} className="inline-flex min-h-11 items-center no-underline">
         <Wordmark />
       </a>
       <div className="flex items-center gap-4">

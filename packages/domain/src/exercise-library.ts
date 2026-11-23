@@ -26,7 +26,9 @@ export const matchesExerciseSearch = (exercise: { name: string; aliases?: readon
 
 /**
  * L'ordre d'affichage : celui de la liste quand on en regarde une, sinon l'ordre alphabétique. Un nom qui commence
- * par la recherche passe devant un nom qui la contient.
+ * par la recherche passe devant un nom qui la contient. Un nom qui commence par un chiffre (une routine nommée comme
+ * un article, « 4 exercices pour les genoux ») vient après les noms de mouvements : les chiffres ne passent plus
+ * devant les lettres, en tête de la bibliothèque et du constructeur.
  */
 export const sortExercises = <E extends { id: string; name: string; aliases?: readonly string[] }>(
   exercises: readonly E[],
@@ -40,7 +42,10 @@ export const sortExercises = <E extends { id: string; name: string; aliases?: re
   const term = normalizeExerciseTerm(search);
   const starts = (e: E) =>
     term && [e.name, ...(e.aliases ?? [])].some((name) => normalizeExerciseTerm(name).startsWith(term)) ? 0 : 1;
-  return [...exercises].sort((a, b) => starts(a) - starts(b) || a.name.localeCompare(b.name, "fr"));
+  const numbered = (e: E) => (/^\d/.test(e.name.trim()) ? 1 : 0);
+  return [...exercises].sort(
+    (a, b) => starts(a) - starts(b) || numbered(a) - numbered(b) || a.name.localeCompare(b.name, "fr"),
+  );
 };
 
 /** Le nouvel ordre après avoir monté ou descendu un élément d'un rang ; inchangé au bord. */

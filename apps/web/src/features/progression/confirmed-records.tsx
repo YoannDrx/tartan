@@ -1,5 +1,6 @@
 import type { StrengthRecordValue } from "@tartan/contracts";
 import { historyNumber, m, strengthRecordConvention, strengthRecordLabel } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 
 export function ConfirmedRecords({ records }: { records: StrengthRecordValue[] }) {
   if (!records.length) return null;
@@ -14,7 +15,7 @@ export function ConfirmedRecords({ records }: { records: StrengthRecordValue[] }
               <strong>{record.exerciseName}</strong> · {strengthRecordLabel(record)} :{" "}
               {record.kind === "reps_at_load"
                 ? m.strengthRecords.repsValue(historyNumber(record.value))
-                : `${historyNumber(record.value)} kg`}
+                : w.progress.kilos(historyNumber(record.value))}
             </p>
             <p className="text-soft">{strengthRecordConvention(record)}</p>
           </li>

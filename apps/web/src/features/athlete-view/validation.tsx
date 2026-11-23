@@ -6,6 +6,7 @@ import { celebrationFromResponse } from "@tartan/domain";
 import { ConfirmedRecords } from "../progression/confirmed-records";
 import type { AthleteSessionDetail, PainInput, StrengthRecordValue } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ const RpeScale = ({ value, onChange }: { value: number | null; onChange: (v: num
           key={n}
           type="button"
           aria-pressed={value === n}
-          aria-label={`Effort ${n} sur 10`}
+          aria-label={w.sessions.validation.effort(n)}
           onClick={() => onChange(value === n ? null : n)}
           className={cn(
             "t-num min-h-11 rounded-button text-[18px]",
@@ -260,7 +261,7 @@ export const QuickValidate = ({
                       </Select>
                     )}
                   </Field>
-                  <Field label={`${m.validation.painIntensity} (1 à 10)`} className="col-span-2">
+                  <Field label={w.sessions.validation.painScale(m.validation.painIntensity)} className="col-span-2">
                     {(a) => (
                       <Input
                         {...a}
