@@ -1,6 +1,7 @@
 // Le registre des gestes du nouveau moteur : pour chaque clé du catalogue, le geste, d'où il vient et sous quels
-// angles il se lit. Un geste écrit à la main a sa technique et sa dynamique ; un geste relevé reprend l'ancien
-// tel quel (lift-v1.ts) en attendant d'être écrit. Le premier moteur et ses consommateurs ne changent pas.
+// angles il se lit. Un geste écrit à la main a sa technique et sa dynamique ; un geste relevé reprend les angles
+// et le rythme d'un geste du premier moteur (exercises/, lift-v1.ts) en attendant d'être écrit. Ces données
+// restent tant qu'un geste en est relevé : le premier moteur ne dessine plus rien lui-même.
 import type { ExerciseClip } from "../exercise";
 import { EXERCISE_CLIPS } from "../exercises";
 import type { MotionClip } from "./gesture";

@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { EXERCISE_CATALOG } from "@tartan/domain/exercise-catalog";
 import { exerciseClip } from "@tartan/mascot/exercises";
-import { motionEngine, reviewBatch } from "@tartan/mascot/v2/engine";
 import { gestureEntry } from "@tartan/mascot/v2/registry";
 import { describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
@@ -18,11 +17,8 @@ describe("gestes animés des guides", () => {
       expect(exerciseClip(entry.catalogKey)!.positions).toHaveLength(entry.guide.illustration.positions.length);
   });
 
-  it("un geste du nouveau moteur illustre lui aussi chaque ligne du guide, dans l'ordre", () => {
-    // Depuis le 18 novembre, plus aucun geste ne reste sur l'ancien moteur.
-    const next = EXERCISE_CATALOG.filter((entry) => motionEngine(entry.catalogKey) === "v2");
-    expect(next).toHaveLength(EXERCISE_CATALOG.length);
-    for (const entry of next) {
+  it("le geste de chaque fiche illustre chaque ligne du guide, dans l'ordre", () => {
+    for (const entry of EXERCISE_CATALOG) {
       const { clip } = gestureEntry(entry.catalogKey)!;
       expect(
         clip.positions.map((position) => position.guide),
@@ -38,16 +34,18 @@ describe("gestes animés des guides", () => {
     expect(withMotion(null, ["strength:v2"])).toBeNull();
   });
 
-  it("un geste du nouveau moteur est une nouvelle série : la validation d'avant ne le couvre pas", () => {
+  it("les gestes du moteur actuel sont une série à part : une validation du premier moteur ne les couvre pas", () => {
     const squat = guideOf("back-squat");
-    expect(motionEngine("back-squat")).toBe("v2");
     expect(withMotion(squat, ["strength", "strength:face"]).illustration.motion).toBe("review");
     expect(withMotion(squat, ["strength:v2"]).illustration.motion).toBe("approved");
     // Un geste relevé, hier dans la série « face », suit la même règle.
     const lateral = guideOf("lateral-raise");
-    expect(reviewBatch("lateral-raise")).toBe("v2");
     expect(withMotion(lateral, ["strength", "strength:face"]).illustration.motion).toBe("review");
     expect(withMotion(lateral, ["strength:v2"]).illustration.motion).toBe("approved");
+    // Gainage latéral : dessiné de face par l'ancien moteur, réécrit en trois dimensions le 18 novembre.
+    const plank = guideOf("side-plank");
+    expect(withMotion(plank, ["core", "core:face"]).illustration.motion).toBe("review");
+    expect(withMotion(plank, ["core:v2"]).illustration.motion).toBe("approved");
   });
 
   it("chaque fiche du catalogue a son geste", () => {
@@ -56,17 +54,8 @@ describe("gestes animés des guides", () => {
     ).toEqual([]);
   });
 
-  it("un geste dessiné de face par l'ancien moteur, réécrit, n'est couvert que par la série du nouveau moteur", () => {
-    // Gainage latéral : dessiné de face par l'ancien moteur, réécrit en trois dimensions le 18 novembre.
-    const plank = guideOf("side-plank");
-    expect(exerciseClip("side-plank")!.batch).toBe("face");
-    expect(reviewBatch("side-plank")).toBe("v2");
-    expect(withMotion(plank, ["core", "core:face"]).illustration.motion).toBe("review");
-    expect(withMotion(plank, ["core:v2"]).illustration.motion).toBe("approved");
-  });
-
   it("n'enregistre jamais l'annonce : la lecture d'un guide stocké la retire", () => {
-    const annotated = withMotion(guideOf("deadlift"), ["strength"]);
+    const annotated = withMotion(guideOf("deadlift"), ["strength:v2"]);
     expect(readExerciseGuide(annotated)!.illustration).not.toHaveProperty("motion");
   });
 
@@ -79,11 +68,10 @@ describe("gestes animés des guides", () => {
       await setMotionFamilyApproval(admin, "strength", true);
       await setMotionFamilyApproval(admin, "plyometrics", true);
       await setMotionFamilyApproval(admin, "strength", false);
-      await setMotionFamilyApproval(admin, "core", true, "face");
-      await setMotionFamilyApproval(admin, "weightlifting", true, "v2");
-      expect(await approvedMotionFamilies()).toEqual(["plyometrics", "core:face", "weightlifting:v2"]);
+      await setMotionFamilyApproval(admin, "weightlifting", true);
+      expect(await approvedMotionFamilies()).toEqual(["plyometrics:v2", "weightlifting:v2"]);
       expect(await prisma.auditLog.count({ where: { action: "motion_family_approved", actorId: admin.userId } })).toBe(
-        4,
+        3,
       );
     } finally {
       await prisma.platformSetting.deleteMany({ where: { key: "motionFamilies" } });

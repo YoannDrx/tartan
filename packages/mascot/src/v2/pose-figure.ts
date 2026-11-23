@@ -1,4 +1,4 @@
-// Une seule morphologie partout : les anciennes poses (les épreuves, le film d'accueil, le jeu, les cartes, les
+// Une seule morphologie partout : les anciennes poses (les épreuves, le film d'accueil, les cartes, les
 // e-mails) habillent désormais le corps du nouveau moteur, de 6,8 têtes. L'ancienne pose donne les directions du
 // buste, de la tête et des membres ; les pieds et les mains se posent aux points de l'ancien squelette quand le
 // nouveau membre les atteint, pour que les appuis restent à leur place. Un membre trop court ne se tend pas dans le

@@ -13,6 +13,7 @@ import {
   type VolumeMetric,
 } from "@tartan/domain";
 import { m, historyDate, historyNumber, realizedSetLabel } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { Field, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
@@ -106,8 +107,10 @@ export function ExerciseHistoryView({
               {history.reference ? (
                 <>
                   <p>
-                    <strong className="t-num text-2xl">{historyNumber(history.reference.valueKg)} kg</strong> ·{" "}
-                    {m.strength.referenceKinds[history.reference.kind]}
+                    <strong className="t-num text-2xl">
+                      {w.progress.kilos(historyNumber(history.reference.valueKg))}
+                    </strong>{" "}
+                    · {m.strength.referenceKinds[history.reference.kind]}
                   </p>
                   <p className="text-soft">{t.selectedOn(historyDate(history.reference.selectedAt))}</p>
                 </>
@@ -130,7 +133,7 @@ export function ExerciseHistoryView({
                       <li key={test.id} className="flex flex-wrap justify-between gap-2 py-2">
                         <span>{historyDate(test.date)}</span>
                         <span>
-                          {historyNumber(test.value)} kg ·{" "}
+                          {w.progress.kilos(historyNumber(test.value))} ·{" "}
                           {m.testKind[test.kind as keyof typeof m.testKind] ?? test.kind}
                         </span>
                       </li>

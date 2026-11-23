@@ -3,6 +3,7 @@
 import { markInstallOpportunity } from "@/features/shell/install-opportunity";
 
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -11,10 +12,17 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { useSpaceId } from "@/features/offline/offline-provider";
 import { submitOp } from "@/features/offline/op-queue";
+import { RosterMore, RosterSearch, useRoster } from "./roster";
 import { generateAutonomousAction, remindAction } from "./tracking.action";
 
 export type AttendanceRow = { athleteId: string; name: string; attendance: "present" | "absent" | "unknown" };
 
+// Au-delà d'une douzaine d'athlètes, on retrouve quelqu'un par son nom, comme dans la grille du suivi.
+export const SEARCH_FROM = 12;
+const nameOf = (row: AttendanceRow) => row.name;
+
+// L'appel d'un grand groupe se fait par tranches de trente, ou par nom : la présence de chacun reste gardée
+// pendant la recherche, et l'enregistrement porte sur tout le groupe.
 export const RollCall = ({
   sessionId,
   rows,
@@ -29,8 +37,9 @@ export const RollCall = ({
   const [state, setState] = useState<Record<string, "present" | "absent" | undefined>>(() =>
     Object.fromEntries(rows.map((r) => [r.athleteId, r.attendance === "unknown" ? undefined : r.attendance])),
   );
+  const roster = useRoster(rows, nameOf);
   const generate = useAction(generateAutonomousAction, {
-    onSuccess: () => toast.ok("Version autonomie générée. Ajuste-la depuis la séance."),
+    onSuccess: () => toast.ok(w.tracking.autonomousGenerated),
     onError: ({ error }) => toast.error(error.serverError ?? m.common.genericError),
   });
   const organizationId = useSpaceId();
@@ -64,11 +73,14 @@ export const RollCall = ({
       <h2 id="appel" className="t-h2 mb-1">
         {m.coach.rollCall}
       </h2>
+      {rows.length > SEARCH_FROM ? (
+        <RosterSearch roster={roster} total={rows.length} label={w.tracking.rollCallSearch} className="mb-2" />
+      ) : null}
       <ul className="divide-y divide-card-line">
-        {rows.map((row) => (
+        {roster.visible.map((row) => (
           <li key={row.athleteId} className="flex items-center justify-between gap-3 py-1.5">
             <span className="min-w-0 break-words font-semibold leading-snug">{row.name}</span>
-            <div role="group" aria-label={`Présence de ${row.name}`} className="flex gap-1">
+            <div role="group" aria-label={w.tracking.attendanceOf(row.name)} className="flex gap-1">
               {(["present", "absent"] as const).map((value) => (
                 <button
                   key={value}
@@ -82,13 +94,14 @@ export const RollCall = ({
                       : "border border-card-line bg-card-raised hover:bg-card-line",
                   )}
                 >
-                  {value === "present" ? "Présent" : "Absent"}
+                  {value === "present" ? w.tracking.present : w.tracking.absent}
                 </button>
               ))}
             </div>
           </li>
         ))}
       </ul>
+      <RosterMore roster={roster} />
       {absent > 0 && !hasAutonomous ? (
         <div className="mt-3 flex flex-wrap items-center gap-3 rounded-thumb bg-card-raised p-3">
           <p className="flex-1 text-st-partial">{m.coach.noAutonomous}</p>

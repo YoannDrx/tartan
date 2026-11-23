@@ -3,6 +3,7 @@
 import { DateInput } from "@/components/ui/date-input";
 import { addDays } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -43,13 +44,13 @@ export const DuplicateWeekDialog = ({ week, groups }: { week: string; groups: { 
           execute({ fromWeek: week, toWeek, targetGroupId: groupId || undefined });
         }}
       >
-        <Field label="Vers la semaine du" hint="Choisis le lundi de la semaine.">
+        <Field label={w.sessions.calendarTools.toWeek} hint={w.sessions.calendarTools.toWeekHint}>
           {(a) => <DateInput {...a} required value={toWeek} onChange={(e) => setToWeek(e.target.value)} />}
         </Field>
-        <Field label="Pour le groupe">
+        <Field label={w.sessions.calendarTools.forGroup}>
           {(a) => (
             <Select {...a} value={groupId} onChange={(e) => setGroupId(e.target.value)}>
-              <option value="">Mêmes destinataires</option>
+              <option value="">{w.sessions.calendarTools.sameRecipients}</option>
               {groups.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.name}
@@ -104,7 +105,7 @@ export const CompetitionDialog = ({
           execute({ name: values.name, date: values.date, location: values.location || null, athleteIds: selected });
         }}
       >
-        <Field label="Nom" error={errors?.name?._errors?.[0]}>
+        <Field label={w.sessions.calendarTools.competitionName} error={errors?.name?._errors?.[0]}>
           {(a) => <Input {...a} value={values.name} onChange={(e) => setValues({ ...values, name: e.target.value })} />}
         </Field>
         <Field label={m.builder.date}>
@@ -128,7 +129,7 @@ export const CompetitionDialog = ({
         </Field>
         {athletes.length > 0 ? (
           <fieldset>
-            <legend className="t-caption mb-1">Athlètes engagés</legend>
+            <legend className="t-caption mb-1">{w.sessions.calendarTools.engaged}</legend>
             <div className="max-h-48 overflow-y-auto">
               {athletes.map((a) => (
                 <CheckRow

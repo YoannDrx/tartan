@@ -168,6 +168,8 @@ const TabInner = ({
         style={{ flex: 1, backgroundColor: p.bg }}
         contentInsetAdjustmentBehavior="never"
         keyboardShouldPersistTaps="handled"
+        // Un champ multiligne n'a pas de touche pour fermer le clavier : faire défiler l'écran le ferme.
+        keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets
         contentContainerStyle={{
           paddingTop: p.work ? 0 : space.sm,
@@ -288,6 +290,7 @@ const StackInner = ({
           style={{ flex: 1, backgroundColor: p.bg }}
           contentInsetAdjustmentBehavior="never"
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           automaticallyAdjustKeyboardInsets
           contentContainerStyle={content}
         >

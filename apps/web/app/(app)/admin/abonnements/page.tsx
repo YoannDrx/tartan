@@ -1,4 +1,5 @@
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import Link from "next/link";
 import { PageHeader } from "@/components/states";
 import { requireSpace } from "@/features/shell/space";
@@ -25,9 +26,9 @@ export default async function AdminSubscriptionsPage({
     <div className="flex flex-col gap-4">
       <PageHeader title={m.admin.nav.subscriptions} />
       <AdminNav current="/admin/abonnements" />
-      <nav aria-label="État" className="flex flex-wrap gap-2">
+      <nav aria-label={w.admin.billing.statusFilter} className="flex flex-wrap gap-2">
         <FilterPill href="/admin/abonnements" active={!status}>
-          Tous
+          {w.admin.billing.all}
         </FilterPill>
         {STATUSES.map((value) => (
           <FilterPill key={value} href={`/admin/abonnements?etat=${value}`} active={status === value}>

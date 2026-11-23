@@ -51,6 +51,11 @@ test("vidéos du coach : la liste d'abord, les filtres en feuille, la feuille de
   const sheet = page.getByRole("dialog", { name: w.video.filters.title });
   await expect(sheet).toBeVisible();
   await sheet.getByLabel(m.videoCollaboration.allStates, { exact: true }).selectOption("ready");
+  // La case « à relire » est la case dessinée des autres écrans : 24 px de cible (lot K2, constat G8).
+  const review = sheet.getByRole("checkbox", { name: m.videoCollaboration.awaitingReview });
+  await expect(review).toHaveClass(/\bcheck\b/);
+  const box = (await review.boundingBox())!;
+  expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(24);
   await expectAccessible(page);
   await sheet.getByRole("button", { name: m.videoCollaboration.applyFilters, exact: true }).click();
   await expect(page).toHaveURL(/status=ready/);

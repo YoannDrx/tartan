@@ -1,6 +1,7 @@
 import type { VideoSummary } from "@tartan/contracts";
 import { formatHeight, formatTimecode } from "@tartan/domain";
 import { capitalize, m, withFirstOfMonth } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { Play, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -83,7 +84,9 @@ export const VideoList = ({
                     <span className="flex min-w-0 flex-wrap items-center gap-x-2 max-tablet:col-start-2 tablet:justify-end">
                       {v.barHeightCm ? (
                         <>
-                          <span className="t-num text-[22px] leading-7">{formatHeight(v.barHeightCm)} m</span>
+                          <span className="t-num text-[22px] leading-7">
+                            {w.video.meters(formatHeight(v.barHeightCm))}
+                          </span>
                           {v.result ? <JumpMark result={v.result} /> : null}
                           {v.attemptNo && showAthlete ? (
                             <span className="t-caption font-normal text-soft">

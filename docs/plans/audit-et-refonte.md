@@ -25,7 +25,7 @@ Toutes les règles d'`AGENTS.md` s'appliquent. Les plus importantes, rappelées 
 - **Jamais de finalisation d'une restauration Neon sur la branche de production.** La panne du 13 novembre en vient ([incident](../exploitation/incident.md)).
 - **Ne contourne pas `assertEnvIsolation`.** Hors production, la base de production et une clé Stripe réelle sont refusées au démarrage.
 - **Aucun essai sur la production avec des comptes créés pour l'occasion.** Les essais se font en local ou sur la Preview.
-- **Ne touche pas aux réglages du fondateur.** Il ouvre lui-même les inscriptions et le classement du jeu, gère les paiements réels et les engagements légaux, et soumet aux stores.
+- **Ne touche pas aux réglages du fondateur.** Il ouvre lui-même les inscriptions, gère les paiements réels et les engagements légaux, et soumet aux stores.
 - **Aucune requête Prisma hors de `apps/web/src/server/*` et `src/lib`.** Tout service appelle `requireOrgMember`. Les notes privées du coach ne sont jamais lues pour un athlète.
 - **Aucun texte en dur** (`packages/i18n`) ni aucune couleur en dur (`packages/design-tokens`), ni durée ou courbe d'animation en dur (`motion.ts`). Le lint le refuse. N'ajoute jamais d'entrée à `apps/web/eslint-suppressions.json`. Quand tu touches un fichier gelé, déplace ses textes puis lance `pnpm --filter @tartan/web lint:prune`.
 - **Aucune donnée de santé** dans les journaux, les notifications ou les analyses d'usage.
@@ -66,7 +66,7 @@ Toutes les règles d'`AGENTS.md` s'appliquent. Les plus importantes, rappelées 
 ### En production
 
 - **Déploiement.** `app.tartan.coach` et `tartan.coach` (Vercel, Neon Launch, Mux, Resend, Stripe, OpenAI, Sentry) servent `df446d0`. Aucune erreur d'exécution sur 24 h au 16 novembre.
-- **Inscriptions et jeu.** Les inscriptions publiques et le classement du jeu sont **fermés**. Seul le fondateur les ouvre.
+- **Inscriptions.** Les inscriptions publiques sont **fermées**. Seul le fondateur les ouvre. Le jeu du site est retiré depuis le 23 novembre 2026.
 - **Preview.** `preview.tartan.coach` tourne sur une base `preview` qui ne contient que la graine de démonstration.
 - **Lots du 15 novembre.** Les lots 1 à 4 sont fusionnés, ou en cours de fusion au moment de ce brief : PR 143 à 149, plus la 148 pour le constructeur mobile et Maestro Android. La PR 150 prépare les bêtas et le corpus IA, sans code produit.
 - **Sauvegardes.** Une sauvegarde chiffrée part chaque nuit vers un store privé. La restauration a été chronométrée.
@@ -356,7 +356,7 @@ Les descriptifs et les visuels des fiches doivent devenir très clairs et concis
 3. **Personnage.**
    - Propose une morphologie plus athlétique et plus fine : environ 6 à 7 têtes, membres affinés, mains et pieds dessinés, articulations lisibles.
    - **Garde l'identité du groupe** : six athlètes, teints, coiffures, tenues, dossard, aplats sans contour, règles Oklab de `packages/design-tokens/src/athletes.ts`.
-   - `DESIGN.md` impose **une seule morphologie** partagée par le site, le film d'accueil, le jeu, les e-mails et les guides. Une nouvelle morphologie s'applique donc partout. Vérifie tous les usages (`grep @tartan/mascot`, environ 40 fichiers, plus les PNG d'e-mail régénérés par `pnpm --filter @tartan/web email:athletes`).
+   - `DESIGN.md` impose **une seule morphologie** partagée par le site, le film d'accueil, les e-mails et les guides. Une nouvelle morphologie s'applique donc partout. Vérifie tous les usages (`grep @tartan/mascot`, environ 40 fichiers, plus les PNG d'e-mail régénérés par `pnpm --filter @tartan/web email:athletes`).
    - **Validation du fondateur avant de généraliser.** Montre-lui d'abord un prototype sur une planche :
      - trois gestes : arraché de profil, squat de profil, fente latérale de face ;
      - ancien et nouveau côte à côte, en mouvement et en frise ;
@@ -372,7 +372,7 @@ Les descriptifs et les visuels des fiches doivent devenir très clairs et concis
 - Le prototype est validé par le fondateur.
 - Toutes les familles sont refaites et présentées en relecture.
 - Le rendu est contrôlé à 390 px et en mouvement réduit.
-- Les PNG d'e-mail et le jeu sont vérifiés.
+- Les PNG d'e-mail sont vérifiés.
 
 ### 4.6 Logo Tartan : plus fort, reconnaissable en tout petit
 
@@ -429,7 +429,7 @@ Au-delà des demandes ci-dessus, le fondateur veut **améliorer toutes les fonct
   - `/progres`, `/mes-videos`, `/calendrier`, `/annonces`, `/notifications`, `/nouveautes`, `/reglages`, `/synchronisation`.
 - **Public** :
   - `/` (film), `/connexion`, `/bienvenue`, `/i/[token]` ;
-  - mot de passe oublié, tarifs, aide, contact, pages légales, `/jeu`, hors ligne.
+  - mot de passe oublié, tarifs, aide, contact, pages légales, hors ligne.
 
 Pour chaque écran, note :
 - les frictions du parcours réel, en comptant les gestes de la tâche principale ;
@@ -540,7 +540,7 @@ Les six demandes du fondateur (sections 4.1 à 4.6) restent des portes d'ouvertu
 | G5 | Service worker | Il tente de mettre en cache `/exercise-guides/*.svg`, des fichiers qui n'existent pas : une rafale de 404 à chaque page mise en cache. `OFFLINE_PATHS` cite `mes-sauts` et non `mes-videos` : les vidéos de l'athlète ne se rouvrent pas hors ligne | Corrigé au lot K1 : le worker ne demande plus que des fichiers qui existent, garde `/mes-videos` (pré-cachée pour l'athlète) ; `tests/service-worker.test.ts` vérifie chaque chemin gardé contre `app/` et `public/` |
 | G6 | En-tête à 390 px | Le sélecteur d'espace se réduit à un chevron, sans nom (défaut 3 confirmé) | Corrigé au lot K1 : sur téléphone, l'icône de la marque remplace le logotype et le sélecteur garde le nom de l'espace, tronqué, sur une cible de 44 px au moins ; parcours `space-switch.spec.ts` |
 | G7 | `/calendrier`, `/progres` | Le bloc « Phases de préparation » se répète (un résumé replié et un bouton du même nom) et pousse la semaine sous le premier écran. Le glisser-déposer reste sans retour (4.2) | Corrigé au lot B |
-| G8 | Cibles tactiles | Pastilles de filtre de 36 px de haut (calendrier, exercices, console) ; noms d'athlètes cliquables de 21 px de haut (`/athletes`, `/seances/[id]/suivi`). `DESIGN.md` demande 44 px | Corrigé au lot K2 : pastilles et noms à 44 px, cases natives à 24 px, sauf celle des filtres vidéo, laissée au lot vidéo |
+| G8 | Cibles tactiles | Pastilles de filtre de 36 px de haut (calendrier, exercices, console) ; noms d'athlètes cliquables de 21 px de haut (`/athletes`, `/seances/[id]/suivi`). `DESIGN.md` demande 44 px | Corrigé au lot K2 : pastilles et noms à 44 px, cases natives à 24 px ; la dernière, celle des filtres vidéo, est la case dessinée `.check` depuis les finitions web du 22 novembre (`video-filters.spec.ts`) |
 | G9 | `/analyse` | Une colonne de 520 px au milieu d'un écran de 1440 px, des chiffres sans hiérarchie, beaucoup de « Non renseigné » | Corrigé au lot K1 : la phrase clé (séances validées sur attribuées) ouvre l'écran, deux colonnes sur ordinateur, les manques regroupés dans « À compléter » (`analysisGaps`), un tiret lu « Non renseigné » à la place des valeurs absentes ; parcours `training-analysis.spec.ts` |
 | G10 | Publication | « Séance publiée. Tes athlètes reçoivent la notification. » s'affiche pour un groupe vide, juste avant « Aucun athlète dans ce groupe » | Corrigé au lot K1 sur le web : la publication renvoie le nombre d'athlètes visés et prévenus, `publicationNotice` en tire le message (invitation à inviter si personne) ; tests du domaine, du service et `coach-screens.spec.ts`. Le constructeur natif garde l'ancien texte jusqu'à la parité mobile |
 | G11 | `/seances/nouvelle` | 865 Ko de HTML : toute la bibliothèque et ses guides voyagent dans la page. À 390 px, la bibliothèque est tout en bas d'une page de 3 021 px | Corrigé au lot F |
@@ -554,11 +554,13 @@ Les six demandes du fondateur (sections 4.1 à 4.6) restent des portes d'ouvertu
 ### 8.5 Finitions
 
 - Aucun lien d'évitement « Aller au contenu » en tête de page. Corrigé au lot K2.
-- 176 textes encore gelés dans `apps/web/eslint-suppressions.json`, répartis sur 37 fichiers (le brief en annonçait 267). Le lot K2 a dégelé les fichiers qu'il touchait (progrès, détail d'une séance) ; le reste demande un lot à part.
+- 176 textes encore gelés dans `apps/web/eslint-suppressions.json`, répartis sur 37 fichiers (le brief en annonçait 267). Le lot K2 a dégelé les fichiers qu'il touchait (progrès, détail d'une séance) ; le reste demande un lot à part. Corrigé aux finitions web du 22 novembre : les 113 textes restants (23 fichiers : pages légales, e-mails de connexion et du bilan, fiche athlète, outils du calendrier, console de facturation, unités) sont dans `packages/i18n/src/web`, sans texte visible changé ; la base est vide et son test la tient à zéro.
 - `/planificateur`, avant l'accord : un bandeau étroit et centré, différent de tous les autres écrans.
-- La bibliothèque de départ contient des routines nommées comme des articles (« 4 exercices pour les genoux »), proposées en tête du constructeur parce que les chiffres passent avant les lettres.
-- `/seance/[id]/series` et sa jumelle côté coach : 5 200 px de haut à 390 px.
-- `/admin/mouvements` : 68 000 px de haut à 390 px.
+- La bibliothèque de départ contient des routines nommées comme des articles (« 4 exercices pour les genoux »), proposées en tête du constructeur parce que les chiffres passent avant les lettres. Corrigé en partie aux finitions web : un nom qui commence par un chiffre se range après les noms de mouvements (`sortExercises`, avec test). Les deux noms eux-mêmes (« 4 exercices pour les genoux », « 5 essentiels pour la mobilité de hanche ») restent : les renommer est un choix éditorial du fondateur.
+- `/seance/[id]/series` et sa jumelle côté coach : 5 200 px de haut à 390 px. Corrigé aux finitions web : dans une séance de plusieurs exercices, chacun se replie sous son nom et ses séries cochées, le premier à remplir ouvert, une erreur rouvrant le sien (`performed-sets.spec.ts`).
+- `/admin/mouvements` : 68 000 px de haut à 390 px. Corrigé aux finitions web : chaque famille se replie sous son nom et son état de relecture, et ses gestes ne se construisent qu'à l'ouverture.
+- `/seances/[id]/suivi` à 120 athlètes : 21 641 px à 390 px, tous les retours et tout l'appel rendus d'un coup. Corrigé aux finitions web : retours et appel par tranches de 30 avec recherche (le composant du lot K2), un lien vers un athlète au-delà de la première tranche l'ouvre quand même ; page ajoutée au balayage `filled-sweep.spec.ts`.
+- Ancien moteur de gestes : retiré aux finitions web du 22 novembre (lecture des gestes du premier moteur, table des gestes à reprendre, séries de relecture « famille » et « famille:face », dessins 2D du premier corps). Les données des gestes du premier moteur restent, parce que 96 gestes en sont relevés au moment de l'affichage et que l'app native les importe encore.
 - `apps/web/public/icon-maskable-512.png` n'est plus produit par aucun script. Corrigé par le lot du logo : `scripts/build-logo.mjs` le produit, un test le vérifie.
 - Documents périmés : commit de production dans `ETAT.md`, nombre de flux Maestro et job Android dans `docs/tests/README.md`, étapes I1 à I3 de `ios.md`, 74 pages annoncées pour 75.
 
@@ -597,7 +599,7 @@ Cette liste n'existait nulle part. Elle sert au lot de recette (section 5, lot 9
 11. **Annonces et notifications** : annonce, centre de notifications, push web, e-mails, préférences, nouveautés.
 12. **Réglages** : profil et photo, connexion et mot de passe, espace, groupes, membres, confidentialité, export, suppression du compte.
 13. **Abonnement** : essai, paiement en bac à sable, retour vers Tartan, portail, changement d'offre, plafonds.
-14. **Console et site** : espaces, utilisateurs, configuration, mouvements ; accueil, tarifs, aide, contact, pages légales, jeu, installation de la PWA.
+14. **Console et site** : espaces, utilisateurs, configuration, mouvements ; accueil, tarifs, aide, contact, pages légales, installation de la PWA.
 
 ### 8.8 Décisions du fondateur du 17 novembre
 

@@ -2,6 +2,7 @@
 
 import type { JumpResult } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ const JumpFields = ({
   onChange: (v: { height: string; attemptNo: number; result: JumpResult; steps: string }) => void;
 }) => (
   <div className="grid grid-cols-2 gap-3">
-    <Field label={`${m.video.bar} (cm)`}>
+    <Field label={w.video.inCentimeters(m.video.bar)}>
       {(a) => (
         <Input
           {...a}

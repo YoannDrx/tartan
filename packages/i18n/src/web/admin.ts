@@ -1,17 +1,16 @@
 // Atelier d'administration : relecture des gestes animés.
 export const admin = {
+  // Abonnements, factures et litiges de la console.
+  billing: {
+    statusFilter: "État",
+    all: "Tous",
+    downloadInvoice: "Télécharger la facture PDF",
+    refunds: "Remboursements",
+    openDispute: "Ouvrir",
+  },
   movements: {
-    // Où en est chaque geste : écrit à la main, relevé de l'ancien moteur, ou relevé mais à reprendre.
-    levels: { ecrit: "Écrit à la main", releve: "Relevé", "a-reprendre": "À reprendre" },
-    constraints: {
-      limits: "amplitudes articulaires",
-      ground: "sol",
-      feet: "appuis des pieds",
-      bar: "barre",
-      holds: "tenues",
-      loop: "boucle",
-    },
-    toRedo: (constraints: string) => `À reprendre : ${constraints}. Ce geste garde l'ancien moteur.`,
+    // Où en est chaque geste : écrit à la main, ou relevé de l'ancien moteur.
+    levels: { ecrit: "Écrit à la main", releve: "Relevé" },
     // Les gestes du nouveau moteur forment une série de relecture à part : une famille déjà validée ne les couvre pas.
     newBatch: "Nouveau moteur : deux vues par geste",
     newBatchLead:
@@ -19,7 +18,6 @@ export const admin = {
     newApproved: "Gestes du nouveau moteur validés",
     approveNew: (family: string) => `Valider les gestes du nouveau moteur : ${family}`,
     reopenNew: (family: string) => `Retirer la validation des gestes du nouveau moteur : ${family}`,
-    oldBatch: "Ancien moteur : gestes à reprendre",
   },
   // Les vidéos des fiches communes du catalogue, déposées par le fondateur.
   catalogVideos: {

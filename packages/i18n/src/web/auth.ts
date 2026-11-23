@@ -85,6 +85,52 @@ export const auth = {
     tooManyAttempts: "Trop d'essais en peu de temps. Attends dix minutes, puis réessaie.",
   },
   emails: {
+    // Connexion, vérification, invitations : les e-mails qui portent un lien d'action.
+    magicLink: {
+      preview: "Ton lien de connexion à Tartan",
+      title: "Connecte-toi à Tartan",
+      body: "Ce lien fonctionne une fois et expire dans 15 minutes.",
+      cta: "Me connecter",
+      ignore: "Tu n'as rien demandé ? Ignore ce message, rien ne changera.",
+    },
+    verify: {
+      preview: "Confirme ton adresse pour Tartan",
+      title: "Confirme ton adresse",
+      body: "Un clic suffit pour activer ton compte Tartan. Ce lien reste valable 1 heure.",
+      cta: "Confirmer mon adresse",
+      ignore: "Tu n'as rien demandé ? Ignore ce message, le compte restera inactif.",
+    },
+    notification: { cta: "Ouvrir Tartan" },
+    reset: {
+      preview: "Réinitialise ton mot de passe Tartan",
+      title: "Nouveau mot de passe",
+      body: "Ce lien te permet de choisir un nouveau mot de passe. Il reste valable 1 heure.",
+      cta: "Choisir un mot de passe",
+      ignore: "Tu n'as rien demandé ? Ignore ce message, ton mot de passe reste le même.",
+    },
+    personalLink: "Ce lien est personnel, sert une seule fois et reste valable 7 jours.",
+    invitation: {
+      title: (inviter: string, target: string) => `${inviter} t'invite à rejoindre ${target}`,
+      body: "Tes séances arriveront directement dans Tartan.",
+      cta: "Rejoindre le groupe",
+    },
+    staffInvitation: {
+      title: (inviter: string, organization: string) => `${inviter} t'invite dans l'espace ${organization}`,
+      role: {
+        coach: "Tu pourras préparer les séances, suivre les retours des athlètes et analyser leurs sauts.",
+        assistant: "Tu pourras gérer tes séances et voir les retours des athlètes de tes groupes.",
+      },
+      cta: "Rejoindre l'espace",
+      unknown: (inviter: string) => `Tu ne connais pas ${inviter} ? Ignore ce message, rien ne sera créé.`,
+    },
+    parentalConsent: {
+      preview: (athlete: string) => `Ton accord est demandé pour ${athlete}`,
+      title: (athlete: string) => `${athlete} a besoin de ton accord`,
+      body: (athlete: string, coach: string) =>
+        `${athlete} rejoint le groupe d'entraînement de ${coach} sur Tartan. Comme il ou elle a moins de 15 ans, ton accord est nécessaire pour traiter ses informations de santé et conserver ses vidéos de saut.`,
+      cta: "Lire et répondre",
+      noAnswer: "Sans réponse de ta part, ces deux usages restent désactivés.",
+    },
     passwordSet: {
       subject: "Un mot de passe a été défini sur ton compte Tartan",
       body: "Tu peux maintenant te connecter avec ton adresse et ce mot de passe. Le lien reçu par e-mail marche toujours.",

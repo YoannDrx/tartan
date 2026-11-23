@@ -2058,7 +2058,8 @@ model PlatformDailyStat {
   @@map("platform_daily_stats")
 }
 
-// Le jeu du site (Tartan Meeting). Aucune donnée d'espace : ni compte, ni adresse, seulement des empreintes.
+// L'ancien jeu du site (Tartan Meeting), retiré le 23 novembre 2026 : plus aucun code ne lit ces tables. Modèles et
+// tables restent, les migrations étant additives. Aucune donnée d'espace : ni compte, ni adresse, seulement des empreintes.
 // Un essai : le jeton à usage unique que le navigateur reçoit au départ, et la graine de la partie.
 model GameRun {
   id        String    @id @default(uuid()) @db.Uuid

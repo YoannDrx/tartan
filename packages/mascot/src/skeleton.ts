@@ -1,4 +1,4 @@
-// Le squelette de la mascotte, en données : une seule table pour le site, l'application et le jeu.
+// Le squelette de la mascotte, en données : une seule table pour le site et l'application.
 
 export const BODY = { torso: 96, shoulder: 88, neck: 132, arm: 48, forearm: 46, thigh: 62, shin: 62 };
 

@@ -262,7 +262,7 @@ describe("miroir du mouvement", () => {
 });
 
 describe("pas de CSS mort", () => {
-  const sources = ["app", "src", "emails", "../../packages/mascot/src", "../../packages/game/src"]
+  const sources = ["app", "src", "emails", "../../packages/mascot/src"]
     .flatMap((directory) =>
       readdirSync(path.join(ROOT, directory), { recursive: true, encoding: "utf8" })
         .filter((file) => /\.tsx?$/.test(file))

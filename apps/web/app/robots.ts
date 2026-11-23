@@ -10,7 +10,6 @@ export default function robots(): MetadataRoute.Robots {
         "/tarifs",
         "/contact",
         "/aide",
-        "/jeu",
         "/confidentialite",
         "/conditions",
         "/cgv",

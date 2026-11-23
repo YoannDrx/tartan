@@ -28,7 +28,9 @@ import {
   chooseLoadKind,
 } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { useEffect, useState } from "react";
+import { w } from "@tartan/i18n/web";
+import { ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field, Input, Select, CheckRow } from "@/components/ui/field";
@@ -36,6 +38,49 @@ import { sendValidation, newClientId } from "./validation-queue";
 import { PerformedDraftReview } from "./performed-draft-review";
 import { PreviousSets } from "./previous-sets";
 import { getQueueOwner, pendingOps, reviewRequiredOps } from "@/features/offline/op-queue";
+
+// Un exercice et ses séries. Dans une séance de plusieurs exercices, chacun se replie sous son nom et le compte de
+// ses séries cochées : seul le premier à remplir est ouvert, et la page reste courte sur téléphone. Une erreur à
+// l'enregistrement rouvre l'exercice qu'elle vise.
+const ItemFrame = ({
+  name,
+  progress,
+  foldable,
+  open,
+  alert,
+  children,
+}: {
+  name: string;
+  progress: string;
+  foldable: boolean;
+  open: boolean;
+  alert: boolean;
+  children: ReactNode;
+}) => {
+  const frame = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (alert && frame.current) frame.current.open = true;
+  }, [alert]);
+  if (!foldable)
+    return (
+      <section className="on-card rounded-card bg-card p-4">
+        <h2 className="t-h2">{name}</h2>
+        {children}
+      </section>
+    );
+  return (
+    <details ref={frame} open={open} className="group on-card rounded-card bg-card p-4">
+      <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+        <h2 className="t-h2 min-w-0 break-words">{name}</h2>
+        <span className="flex shrink-0 items-center gap-1 t-caption font-normal text-soft">
+          {progress}
+          <ChevronDown aria-hidden className="size-5 group-open:rotate-180" />
+        </span>
+      </summary>
+      {children}
+    </details>
+  );
+};
 
 export const PerformedSetsEditor = ({
   session: initialSession,
@@ -64,6 +109,13 @@ export const PerformedSetsEditor = ({
   const [locked, setLocked] = useState(false);
   const [unreadableDraft, setUnreadableDraft] = useState(false);
   const [clearConfirm, setClearConfirm] = useState(false);
+  const items = loggableItems(session);
+  // Le premier exercice à remplir s'ouvre ; une fois choisi, il ne change plus pendant la saisie.
+  const [firstOpen] = useState(() => {
+    const rows = draftFromSession(initialSession).rows;
+    const pending = items.find((item) => rows.some((row) => row.itemRef === item.ref && !row.done));
+    return (pending ?? items[0])?.ref;
+  });
   useEffect(() => {
     let active = true;
     void (async () => {
@@ -226,205 +278,210 @@ export const PerformedSetsEditor = ({
         }
         className="flex min-w-0 flex-col gap-4"
       >
-        {loggableItems(session).map((item) => (
-            <section key={item.ref} className="on-card rounded-card bg-card p-4">
-              <h2 className="t-h2">{item.name}</h2>
-              {item.rounds?.length ? (
-                <p className="t-caption text-soft">
-                  {item.rounds.map((r) => m.builder.sequence.round(r.name, r.round, r.rounds)).join(" · ")}
-                </p>
-              ) : null}
-              <p className="t-caption mb-3 text-soft">{item.summary}</p>
-              <PreviousSets
-                item={item}
-                rows={draft.rows}
-                previous={session.previousExerciseSets}
-                athleteId={session.historyAthleteId}
-              />
-              <div className="divide-y divide-card-line">
-                {draft.rows.map((row, index) =>
-                  row.itemRef !== item.ref ? null : (
-                    <fieldset key={`${row.itemRef}-${row.setIndex}`} className="grid min-w-0 grid-cols-2 gap-3 py-3">
-                      <legend className="t-section">{m.progression.setNumber(row.setIndex + 1)}</legend>
-                      <CheckRow
-                        className="col-span-2"
-                        label={m.progression.confirmSet}
-                        checked={row.done}
-                        onChange={(event) => patch(index, { done: event.target.checked })}
-                      />
-                      {performedNumberFields.slice(0, 2).map((field) => (
-                        <Field
-                          key={field}
-                          label={m.progression.fields[field]}
-                          error={
-                            issues.find(
-                              (issue) =>
-                                issue.itemRef === row.itemRef &&
-                                issue.setIndex === row.setIndex &&
-                                issue.field === field,
-                            )
-                              ? m.progression.issue.invalid
-                              : undefined
-                          }
-                        >
-                          {(props) => (
-                            <Input
-                              {...props}
-                              inputMode="decimal"
-                              value={row[field]}
-                              onChange={(event) => patch(index, { [field]: event.target.value })}
-                            />
-                          )}
-                        </Field>
-                      ))}
+        {items.map((item) => (
+          <ItemFrame
+            key={item.ref}
+            name={item.name}
+            foldable={items.length > 1}
+            open={item.ref === firstOpen}
+            alert={issues.some((issue) => issue.itemRef === item.ref)}
+            progress={w.sessions.performedSets.progress(
+              draft.rows.filter((row) => row.itemRef === item.ref && row.done).length,
+              draft.rows.filter((row) => row.itemRef === item.ref).length,
+            )}
+          >
+            {item.rounds?.length ? (
+              <p className="t-caption text-soft">
+                {item.rounds.map((r) => m.builder.sequence.round(r.name, r.round, r.rounds)).join(" · ")}
+              </p>
+            ) : null}
+            <p className="t-caption mb-3 text-soft">{item.summary}</p>
+            <PreviousSets
+              item={item}
+              rows={draft.rows}
+              previous={session.previousExerciseSets}
+              athleteId={session.historyAthleteId}
+            />
+            <div className="divide-y divide-card-line">
+              {draft.rows.map((row, index) =>
+                row.itemRef !== item.ref ? null : (
+                  <fieldset key={`${row.itemRef}-${row.setIndex}`} className="grid min-w-0 grid-cols-2 gap-3 py-3">
+                    <legend className="t-section">{m.progression.setNumber(row.setIndex + 1)}</legend>
+                    <CheckRow
+                      className="col-span-2"
+                      label={m.progression.confirmSet}
+                      checked={row.done}
+                      onChange={(event) => patch(index, { done: event.target.checked })}
+                    />
+                    {performedNumberFields.slice(0, 2).map((field) => (
                       <Field
-                        className="col-span-2"
-                        label={m.progression.loadKind}
+                        key={field}
+                        label={m.progression.fields[field]}
                         error={
                           issues.find(
                             (issue) =>
-                              issue.itemRef === row.itemRef &&
-                              issue.setIndex === row.setIndex &&
-                              issue.field === "loadKind",
+                              issue.itemRef === row.itemRef && issue.setIndex === row.setIndex && issue.field === field,
                           )
-                            ? m.progression.issue.convention
+                            ? m.progression.issue.invalid
                             : undefined
                         }
                       >
                         {(props) => (
-                          <Select
+                          <Input
                             {...props}
-                            value={row.loadKind}
-                            onChange={(event) =>
-                              updateDraft({
-                                ...draft,
-                                rows: chooseLoadKind(
-                                  draft.rows,
-                                  index,
-                                  event.target.value as PerformedSetDraftRow["loadKind"],
-                                ),
-                              })
-                            }
-                          >
-                            <option value="">{m.progression.chooseConvention}</option>
-                            <option value="external">{m.progression.external}</option>
-                            <option value="bodyweight">{m.progression.bodyweight}</option>
-                            <option value="assisted">{m.progression.assisted}</option>
-                          </Select>
+                            inputMode="decimal"
+                            value={row[field]}
+                            onChange={(event) => patch(index, { [field]: event.target.value })}
+                          />
                         )}
                       </Field>
-                      <details
-                        className="col-span-2"
-                        open={
-                          item.prescription.distance_m !== undefined ||
-                          item.prescription.duration_s !== undefined ||
-                          item.prescription.ground_contacts !== undefined ||
-                          issues.some(
-                            (issue) =>
-                              issue.itemRef === row.itemRef &&
-                              issue.setIndex === row.setIndex &&
-                              !["loadKind", "reps", "loadKg"].includes(issue.field),
-                          ) ||
-                          undefined
-                        }
-                      >
-                        <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
-                          {m.progression.advancedSet}
-                        </summary>
-                        <div className="grid grid-cols-2 gap-3">
-                          {performedNumberFields.slice(2).map((field) => (
-                            <Field key={field} label={m.progression.fields[field]}>
-                              {(props) => (
-                                <Input
-                                  {...props}
-                                  inputMode="decimal"
-                                  value={row[field]}
-                                  onChange={(event) => patch(index, { [field]: event.target.value })}
-                                />
-                              )}
-                            </Field>
-                          ))}
-                          <Field label={m.progression.setKind}>
+                    ))}
+                    <Field
+                      className="col-span-2"
+                      label={m.progression.loadKind}
+                      error={
+                        issues.find(
+                          (issue) =>
+                            issue.itemRef === row.itemRef &&
+                            issue.setIndex === row.setIndex &&
+                            issue.field === "loadKind",
+                        )
+                          ? m.progression.issue.convention
+                          : undefined
+                      }
+                    >
+                      {(props) => (
+                        <Select
+                          {...props}
+                          value={row.loadKind}
+                          onChange={(event) =>
+                            updateDraft({
+                              ...draft,
+                              rows: chooseLoadKind(
+                                draft.rows,
+                                index,
+                                event.target.value as PerformedSetDraftRow["loadKind"],
+                              ),
+                            })
+                          }
+                        >
+                          <option value="">{m.progression.chooseConvention}</option>
+                          <option value="external">{m.progression.external}</option>
+                          <option value="bodyweight">{m.progression.bodyweight}</option>
+                          <option value="assisted">{m.progression.assisted}</option>
+                        </Select>
+                      )}
+                    </Field>
+                    <details
+                      className="col-span-2"
+                      open={
+                        item.prescription.distance_m !== undefined ||
+                        item.prescription.duration_s !== undefined ||
+                        item.prescription.ground_contacts !== undefined ||
+                        issues.some(
+                          (issue) =>
+                            issue.itemRef === row.itemRef &&
+                            issue.setIndex === row.setIndex &&
+                            !["loadKind", "reps", "loadKg"].includes(issue.field),
+                        ) ||
+                        undefined
+                      }
+                    >
+                      <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
+                        {m.progression.advancedSet}
+                      </summary>
+                      <div className="grid grid-cols-2 gap-3">
+                        {performedNumberFields.slice(2).map((field) => (
+                          <Field key={field} label={m.progression.fields[field]}>
                             {(props) => (
-                              <Select
+                              <Input
                                 {...props}
-                                value={row.setKind}
-                                onChange={(event) =>
-                                  patch(index, { setKind: event.target.value as PerformedSetDraftRow["setKind"] })
-                                }
-                              >
-                                <option value="work">{m.progression.work}</option>
-                                <option value="warmup">{m.progression.warmup}</option>
-                              </Select>
+                                inputMode="decimal"
+                                value={row[field]}
+                                onChange={(event) => patch(index, { [field]: event.target.value })}
+                              />
                             )}
                           </Field>
-                          <Field label={m.progression.repetitionScope}>
-                            {(props) => (
-                              <Select
-                                {...props}
-                                value={row.repetitionScope}
-                                onChange={(event) =>
-                                  patch(index, {
-                                    repetitionScope: event.target.value as PerformedSetDraftRow["repetitionScope"],
-                                    sideCount: event.target.value === "total" ? 1 : 2,
-                                  })
-                                }
-                              >
-                                <option value="total">{m.progression.totalReps}</option>
-                                <option value="per_side">{m.progression.perSide}</option>
-                              </Select>
-                            )}
-                          </Field>
-                          {row.repetitionScope === "per_side" ? (
-                            <Field label={m.progression.sideCount}>
-                              {(props) => (
-                                <Select
-                                  {...props}
-                                  value={row.sideCount}
-                                  onChange={(event) => patch(index, { sideCount: Number(event.target.value) as 1 | 2 })}
-                                >
-                                  <option value="1">{m.progression.oneSide}</option>
-                                  <option value="2">{m.progression.twoSides}</option>
-                                </Select>
-                              )}
-                            </Field>
-                          ) : null}
-                        </div>
-                      </details>
-                      {issues
-                        .filter((issue) => issue.itemRef === row.itemRef && issue.setIndex === row.setIndex)
-                        .map((issue, i) => (
-                          <p key={i} role="alert" className="col-span-2 t-caption">
-                            {m.progression.issue[issue.code]}
-                          </p>
                         ))}
-                    </fieldset>
-                  ),
-                )}
-              </div>
-              <Button
-                variant="darkSecondary"
-                disabled={draft.rows.length >= 500 || draft.rows.filter((row) => row.itemRef === item.ref).length > 100}
-                onClick={() =>
-                  updateDraft({
-                    ...draft,
-                    rows: [
-                      ...draft.rows,
-                      proposedSet(
-                        item,
-                        Math.max(
-                          -1,
-                          ...draft.rows.filter((row) => row.itemRef === item.ref).map((row) => row.setIndex),
-                        ) + 1,
-                      ),
-                    ],
-                  })
-                }
-              >
-                {m.progression.addSet}
-              </Button>
-            </section>
-          ))}
+                        <Field label={m.progression.setKind}>
+                          {(props) => (
+                            <Select
+                              {...props}
+                              value={row.setKind}
+                              onChange={(event) =>
+                                patch(index, { setKind: event.target.value as PerformedSetDraftRow["setKind"] })
+                              }
+                            >
+                              <option value="work">{m.progression.work}</option>
+                              <option value="warmup">{m.progression.warmup}</option>
+                            </Select>
+                          )}
+                        </Field>
+                        <Field label={m.progression.repetitionScope}>
+                          {(props) => (
+                            <Select
+                              {...props}
+                              value={row.repetitionScope}
+                              onChange={(event) =>
+                                patch(index, {
+                                  repetitionScope: event.target.value as PerformedSetDraftRow["repetitionScope"],
+                                  sideCount: event.target.value === "total" ? 1 : 2,
+                                })
+                              }
+                            >
+                              <option value="total">{m.progression.totalReps}</option>
+                              <option value="per_side">{m.progression.perSide}</option>
+                            </Select>
+                          )}
+                        </Field>
+                        {row.repetitionScope === "per_side" ? (
+                          <Field label={m.progression.sideCount}>
+                            {(props) => (
+                              <Select
+                                {...props}
+                                value={row.sideCount}
+                                onChange={(event) => patch(index, { sideCount: Number(event.target.value) as 1 | 2 })}
+                              >
+                                <option value="1">{m.progression.oneSide}</option>
+                                <option value="2">{m.progression.twoSides}</option>
+                              </Select>
+                            )}
+                          </Field>
+                        ) : null}
+                      </div>
+                    </details>
+                    {issues
+                      .filter((issue) => issue.itemRef === row.itemRef && issue.setIndex === row.setIndex)
+                      .map((issue, i) => (
+                        <p key={i} role="alert" className="col-span-2 t-caption">
+                          {m.progression.issue[issue.code]}
+                        </p>
+                      ))}
+                  </fieldset>
+                ),
+              )}
+            </div>
+            <Button
+              variant="darkSecondary"
+              disabled={draft.rows.length >= 500 || draft.rows.filter((row) => row.itemRef === item.ref).length > 100}
+              onClick={() =>
+                updateDraft({
+                  ...draft,
+                  rows: [
+                    ...draft.rows,
+                    proposedSet(
+                      item,
+                      Math.max(-1, ...draft.rows.filter((row) => row.itemRef === item.ref).map((row) => row.setIndex)) +
+                        1,
+                    ),
+                  ],
+                })
+              }
+            >
+              {m.progression.addSet}
+            </Button>
+          </ItemFrame>
+        ))}
         <Field label={m.progression.sessionStatus}>
           {(props) => (
             <Select

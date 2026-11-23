@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EXERCISE_CLIPS } from "../exercises";
-import { A_REPRENDRE, type Constraint } from "./a-reprendre";
-import { inspect } from "./constraints";
+import { inspect, type Report } from "./constraints";
 import { HEIGHT } from "./body";
 import { BODY_WINDOW, drawClip, framing, staged } from "./draw-svg";
 import { GESTURES } from "./gestures";
@@ -10,12 +9,12 @@ import { GESTURE_KEYS, gestureClip, gestureEntry } from "./registry";
 import { SIDES } from "./solve";
 
 const entries = GESTURE_KEYS.map((key) => gestureEntry(key)!);
-// 120 images par boucle : le crible de tout le registre, et celui qui fonde la table des gestes à reprendre.
+// 120 images par boucle : le crible de tout le registre.
 const SAMPLES = 120;
 const broken = new Map(
   entries.map((entry) => {
     const report = inspect(entry.clip, SAMPLES);
-    return [entry.key, (Object.keys(report) as Constraint[]).filter((name) => report[name].length > 0)] as const;
+    return [entry.key, (Object.keys(report) as (keyof Report)[]).filter((name) => report[name].length > 0)] as const;
   }),
 );
 
@@ -61,30 +60,14 @@ describe("registre des gestes", () => {
 });
 
 describe("contraintes sur tout le registre", () => {
-  it.each(entries.map((entry) => [entry.key, entry] as const))(
-    "%s : respecte les contraintes, ou figure dans la table des gestes à reprendre",
-    (key) => {
-      // La table dit exactement ce que le geste ne respecte pas : ni plus, ni moins. Un geste corrigé doit en sortir.
-      expect([...broken.get(key)!].sort()).toEqual([...(A_REPRENDRE[key] ?? [])].sort());
-    },
-  );
-
-  it("la table ne liste que des gestes relevés, chacun avec au moins une contrainte", () => {
-    for (const [key, constraints] of Object.entries(A_REPRENDRE)) {
-      expect(gestureEntry(key)?.level, key).toBe("releve");
-      expect(constraints.length, key).toBeGreaterThan(0);
-    }
+  // Depuis que les derniers gestes à reprendre sont écrits à la main, aucun geste n'a d'exception : un geste
+  // relevé qui violerait une contrainte se réécrit à la main, il ne repasse pas sur l'ancien moteur.
+  it.each(entries.map((entry) => [entry.key, entry] as const))("%s : respecte toutes les contraintes", (key) => {
+    expect(broken.get(key)).toEqual([]);
   });
 
-  it("aucun geste ne glisse sur un appui, ne bouge pendant une tenue, ni ne rate sa boucle", () => {
-    for (const [key, constraints] of broken)
-      for (const name of ["feet", "holds", "loop"] as const) expect(constraints, key).not.toContain(name);
-  });
-
-  it("le compte est connu : les gestes qui respectent tout, et ceux à reprendre", () => {
-    const again = [...broken.values()].filter((constraints) => constraints.length > 0).length;
-    expect(again).toBe(Object.keys(A_REPRENDRE).length);
-    expect(173 - again).toBe(173);
+  it("le compte est connu : les 173 gestes respectent tout", () => {
+    expect([...broken.values()].filter((constraints) => constraints.length === 0)).toHaveLength(173);
   });
 
   it.each(entries.map((entry) => [entry.key, entry] as const))("%s : chaque vue se dessine", (_, entry) => {

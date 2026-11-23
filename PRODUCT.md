@@ -20,7 +20,7 @@ Tartan est l'app de préparation physique du coach et de son groupe, ancrée dan
 - l'absence signalée par l'athlète, en un geste, sans donnée de santé ;
 - la carte de record à partager ;
 - la série de régularité de l'athlète ;
-- un jeu d'athlétisme sur le site, « Tartan Meeting » : aperçu jouable sur la page d'accueil, jeu complet sur `/jeu`, classement public avec pseudo et sans compte. Le disque y figure comme épreuve de jeu et comme illustration ; cela n'ouvre pas les lancers dans le produit.
+- ~~un jeu d'athlétisme sur le site, « Tartan Meeting »~~ : retiré le 23 novembre 2026 (voir plus bas). Le disque reste une illustration du groupe ; cela n'ouvre pas les lancers dans le produit.
 
 Les animations sont autorisées partout, écrans de travail compris, sous les règles de `DESIGN.md`. Le bonhomme devient un groupe de six athlètes, un par épreuve. Le déroulé est dans `docs/plans/web.md` et `docs/plans/direction-artistique.md`.
 
@@ -86,6 +86,10 @@ Le fondateur juge le planificateur IA peu performant : il ne comprend pas assez 
 - **Budget.** 40 € d'appels réels en plus des 30 € du 17 novembre. Le modèle se choisit à la mesure, dans la gamme courante d'OpenAI.
 
 Ce qui ne change pas : le planificateur ne crée que des brouillons, n'invente ni date ni charge, et ne modifie jamais ce que le coach a dicté.
+
+## Décision du 23 novembre 2026
+
+À la demande du fondateur, le jeu d'athlétisme du site (« Tartan Meeting » : aperçu sur la page d'accueil, page du jeu, classement public et sa modération) est retiré du périmètre. Son ancienne adresse mène à l'accueil. Le groupe d'athlètes et ses épreuves animées restent (film d'accueil, cartes, e-mails, gestes des exercices).
 
 ## Offres
 

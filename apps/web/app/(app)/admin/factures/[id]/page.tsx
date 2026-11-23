@@ -1,5 +1,6 @@
 import { refundableCents, withdrawalWindow } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { PageHeader } from "@/components/states";
 import { RefundForm } from "@/features/admin/console-actions";
 import { AdminNav, day, euros, Metrics } from "@/features/admin/console-ui";
@@ -28,7 +29,7 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
       />
       {pdfUrl ? (
         <p>
-          <a href={pdfUrl}>Télécharger la facture PDF</a>
+          <a href={pdfUrl}>{w.admin.billing.downloadInvoice}</a>
         </p>
       ) : null}
       {window ? (

@@ -1,6 +1,6 @@
 # État du projet
 
-Mis à jour le 22 novembre 2026. Toute PR qui change un état met ce fichier à jour.
+Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à jour.
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
@@ -34,7 +34,7 @@ Niveaux : **codé**, **testé** automatiquement, **éprouvé** en production ou 
 | E. Photo de profil recadrée et avatars (groupe et animaux dessinés pour Tartan, constat G14) | 166 | En production, testé (parcours `avatar` contre un Blob simulé) ; ni Vercel Blob réel ni iPhone | Opus |
 | Gestes : moteur v2, 173 fiches sur le nouveau moteur (77 écrites à la main, 96 relevées), lecteurs web et mobile avec bascule Profil et Face, atelier en deux vues | 167 | En production, testé (2 299 tests du paquet, parcours des guides) ; prototype validé par le fondateur le 17 novembre ; aucun geste regardé en mouvement par un humain | Moteur, relèvement et lecteurs par Fable ; écriture à la main par Opus |
 | F. Listes et favoris d'exercices, fiche concise, bibliothèque et sélecteur allégés (brief 4.3, constats G3, G11) | 168 | En production, testé (droits des listes, parcours `exercise-lists` et `exercise-guides`) ; guides concis non relus par le fondateur | Opus |
-| Gestes, morphologie partout : un seul corps dans le film, le jeu, les cartes du groupe, les e-mails et le mobile ; mains et pieds sur leur objet ; vidéo de catalogue par fiche (`/admin/exercices`) | 169 | En production le 21 novembre, testé (2 903 tests du paquet, parcours `landing`, `game-page`, `mascot-board`, `catalog-video`) ; aucune vidéo de catalogue déposée | Opus ; fusionné par Fable |
+| Gestes, morphologie partout : un seul corps dans le film, les cartes du groupe, les e-mails et le mobile ; mains et pieds sur leur objet ; vidéo de catalogue par fiche (`/admin/exercices`) | 169 | En production le 21 novembre, testé (2 903 tests du paquet, parcours `landing`, `mascot-board`, `catalog-video`) ; aucune vidéo de catalogue déposée | Opus ; fusionné par Fable |
 | H. Planificateur IA, version du lot H : erreurs lisibles, sortie alignée sur le constructeur, contexte de « Proposer », réponse diffusée, écran en deux temps | 170 | En production le 21 novembre, testé contre le prestataire simulé ; mesuré le 21 novembre sur un corpus neuf : 13 séances justes sur 80, d'où la refonte | Opus ; fusionné par Fable |
 | K1. Corrections de l'audit : filtres de `/videos` en feuille (G2), service worker limité aux fichiers qui existent (G5), nom de l'espace lisible dans l'en-tête à 390 px (G6), `/analyse` hiérarchisée (G9), message de publication qui dit qui reçoit la séance (G10) | 171 | En production le 21 novembre, testé (règles pures, service de publication, parcours `video-filters`, `training-analysis`, `shell`, `screen-matrix`) ; hors ligne réel non éprouvé | Opus ; fusionné par Fable |
 | G. Onboarding complet du coach et de l'athlète (constats B1, B3, G15) : invitation dès la création de l'espace, « Ton tour de piste », carte « Pour démarrer », page `/premiers-pas`, repères de première visite, accueil de l'athlète qui ne retarde jamais sa séance, carte facultative après la première validation, état gardé en base (`OnboardingState`) | 172 | En production le 22 novembre, testé (suite Playwright entière le 19 novembre : 257 réussis, 0 échec ; validation de l'athlète mesurée à 0,8 s ; parcours rejoués le 21 novembre après fusion de `main`) ; jamais joué par une vraie personne | Opus ; ouvert par Fable |
@@ -42,6 +42,8 @@ Niveaux : **codé**, **testé** automatiquement, **éprouvé** en production ou 
 | K2. Corrections de l'audit : `/suivi` ne déborde plus à 390 px (B6) et un balayage sur espace rempli entre en CI (`filled-sweep.spec.ts`, `demo:fill --groupe`) ; grands groupes par tranches de 30, avec recherche et en-têtes collants (G4) ; pastilles à 44 px et cases dessinées à 24 px (G8) ; athlète de la rubrique dans les états vides de `/phases` et `/progres` (G13) ; lien « Aller au contenu » | 174 | En production le 22 novembre, testé (parcours `filled-sweep` à 390, 768 et 1440 px, `screen-matrix`, 27 parcours touchés sur build de production) ; à 120 athlètes : `/suivi` 543 Ko au lieu de 1,7 Mo, `/athletes` 583 Ko au lieu de 2,3 Mo ; lecteurs d'écran et téléphones réels non essayés | Opus ; ouvert par Fable |
 | Chercher ou créer un exercice (décision du 21 novembre) : un composant partagé `exercise-finder.tsx` cherche dans toute la bibliothèque (serveur, paginé, favoris et listes d'abord, au clavier) et crée une fiche en un geste (nom repris, famille et charge proposées par la règle `suggestExerciseDefaults`, un bouton) ; le constructeur ne renvoie plus vers `/exercices` ; service `quickCreateExercise` et route `POST /exercises/quick` | 175 | En production le 22 novembre, testé (15 tests de la règle, 15 du service dont droits et doublons, parcours `exercise-finder` au clavier seul à 390 et 1440 px, 29 parcours touchés sur build de production) ; de 9 ou 10 gestes et 3 pages à 2 gestes sans quitter la séance ; pas éprouvé en réel | Fable |
 | Planificateur refait (décision du 21 novembre) : quatre étapes dans le service (comprendre, retrouver dans toute la bibliothèque, composer, contrôler), modèles GPT-6 choisis à la mesure, termes appris par espace, doutes qui ne bloquent plus (fiche « À vérifier », exercice « à compléter ») ; un seul champ sur le web et sur l'app native, création d'exercice en un geste | 176 | Testé (web 2 454, mobile 283, domaine 496 ; 24 parcours `ai-planner` ; parcours natif joué à la main sur simulateur iOS) ; mesuré en réel sur un corpus gelé de 80 consignes et 150 paires : 75 à 76 séances justes (13 avant la refonte), 0 question inutile (54 avant), 0 faute grave, 145 à 146 fiches retrouvées (69 avant), 11,5 s en médiane, 0,008 $ par demande ; seuils presque tous tenus, mention « bêta » gardée jusqu'à l'essai du fondateur | Fable puis Opus |
+| Finitions web : dessin et bascule de l'ancien moteur de gestes retirés (8 454 images prouvées identiques) ; `/seances/[id]/suivi` par tranches de 30 avec recherche (21 641 → 5 593 px à 390 px pour 120 athlètes) ; case dessinée sur `/videos` ; 113 derniers textes en dur rangés, base gelée vide et tenue à zéro ; séries repliées par exercice, `/admin/mouvements` replié par famille | PR `chore/finitions-et-jeu` | Testé (suite Playwright entière : 268 réussis, 0 échec hors WebKit absent du poste et hors jeu retiré) | Opus |
+| Jeu public retiré (demande du fondateur, 23 novembre) : `/jeu` redirige vers l'accueil, `packages/game`, son classement, sa modération et son réglage supprimés (107 fichiers, 6 193 lignes) ; tables `game_*` gardées, vides | PR `chore/finitions-et-jeu` | Testé (`landing`, `mascot-board`, `screen-matrix`, `admin-console`, redirection 308) | Opus |
 
 ### En cours
 
@@ -91,7 +93,7 @@ Les inscriptions restent fermées jusqu'à la décision d'ouverture du fondateur
 
 | Élément | État au 21 novembre |
 | --- | --- |
-| Production | `app.tartan.coach` et `tartan.coach` servent `0385044` (PR 176) le 22 novembre, aucune erreur d'exécution sur 24 h. Base vidée le 19 novembre : il reste le compte administrateur et le catalogue commun. Inscriptions et classement du jeu fermés |
+| Production | `app.tartan.coach` et `tartan.coach` servent `0385044` (PR 176) le 22 novembre, aucune erreur d'exécution sur 24 h. Base vidée le 19 novembre : il reste le compte administrateur et le catalogue commun. Inscriptions fermées |
 | Preview | `preview.tartan.coach`, branche Git `preview` avancée sur `main` le 22 novembre (`0385044`, migrations appliquées par le déploiement) : prête pour l'essai du planificateur et la recette. Base `preview` reconstruite le 14 novembre avec la seule graine de démonstration (4 comptes fictifs), sans donnée de production |
 | Neon | Offre Launch, restauration 7 jours, branche `production` protégée, calcul 0,25–2 CU ; branche `preview` 0,25–1 CU. Aucune branche de recette |
 | GitHub | Dépôt public, `LICENSE` propriétaire. Analyse des secrets, protection à l'envoi et Dependabot actifs. `main` exige des branches à jour, plus `quality` et `mobile-gate`. `mobile-gate` attend Maestro iOS et Android quand change ce que l'app native embarque (`apps/mobile`, ses paquets, le fichier de verrouillage), soit environ une heure par mise à jour ; une PR purement web le saute, textes de `packages/i18n/src/web/` compris (un test vérifie que le filtre suit les dépendances du mobile). Branches fusionnées supprimées le 16 novembre, `preview` gardée |
@@ -179,20 +181,18 @@ Le mot de passe des comptes de démonstration de la Preview est dans `.local/pre
 | IA à la première revue Apple | Ouverte, compte de revue en offre Coach (2.5.19) |
 | Choix du modèle IA | Fait le 22 novembre, à la mesure : `gpt-6.1-terra` pour comprendre, retrouver et composer une séance décrite ; `gpt-6.2-sol` pour composer ce qui est à proposer et pour réparer ; 0,008 $ par demande en moyenne |
 | Mise en veille du calcul Neon de production | Gardée (5 min) ; la désactiver coûte environ 25 $ par mois |
-| Classement du jeu ouvert à tous | Le fondateur l'ouvre quand il le souhaite |
 
 ## Risques à garder en tête
 
 - **Modèles OpenAI en fin de vie** : `gpt-4.1` et `gpt-4.1-mini` s'arrêtent le 14 janvier 2027, `whisper-1` et `gpt-4o-transcribe` le 26 février 2027 (page Deprecations d'OpenAI, lue le 21 novembre). Le planificateur doit passer à la gamme GPT-6 avant janvier ; la dictée utilise déjà `gpt-transcribe`.
 - **Clé OpenAI anciennement exposée**, conservée par décision : sans plafond de dépense, un abus se paierait.
 - **Opérations Neon** : la panne du 13 novembre vient d'une restauration finalisée sur la production ([incident](exploitation/incident.md#incidents-passés)). Jamais de finalisation hors sinistre.
-- **Refonte du personnage** : il est partagé par le site, le film, le jeu, les e-mails et les guides, soit environ 40 fichiers. Une morphologie nouvelle touche tout, et relance Maestro à chaque mise à jour de PR.
+- **Refonte du personnage** : il est partagé par le site, le film, les e-mails et les guides, soit environ 40 fichiers. Une morphologie nouvelle touche tout, et relance Maestro à chaque mise à jour de PR.
 - **Refus Apple 3.1.1** : l'exception 3.1.3(f) ne vise pas un outil de coaching.
 - **Webhook Stripe** : factures, remboursements et litiges ne passent par la route que dans la recette sandbox, hors CI.
 - **Sentry gratuit** : une seule sonde de crons ; la sonde de disponibilité est assurée par `surveillance.yml`.
 - **Textes en dur hérités** : 176 textes gelés dans `apps/web/eslint-suppressions.json`, sur 37 fichiers.
 - **Balayage de la CI** : la matrice des écrans tourne sur un espace vide ; `filled-sweep.spec.ts` couvre depuis le lot K2 `/suivi`, `/athletes`, `/calendrier` et `/seances/[id]/suivi` sur un espace rempli. Les autres écrans ne sont vus qu'à vide.
-- **Jeu public** : le rejeu serveur ne prouve pas qu'un humain a joué ; le classement demande une modération.
 
 ## Hors périmètre de la V1
 

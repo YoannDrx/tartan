@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { strengthCalculator } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { Sheet, SheetSection } from "@/components/sheet";
 import { Field, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,7 @@ export const StrengthCalculator = ({ referenceKg, stepKg = 1.25 }: { referenceKg
             ) : (
               <p>
                 {result.measured ? m.calculator.measured : m.calculator.estimate} :{" "}
-                <strong className="t-num text-2xl">{number(result.estimate, 2)} kg</strong>
+                <strong className="t-num text-2xl">{w.progress.kilos(number(result.estimate, 2))}</strong>
               </p>
             )}
           </div>

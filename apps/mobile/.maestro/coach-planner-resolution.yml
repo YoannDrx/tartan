@@ -27,7 +27,8 @@ env:
     id: planner-instructions
 - waitForAnimationToEnd
 - inputText: ${output.plannerInstruction}
-- hideKeyboard
+# Champ multiligne : la touche Retour ajoute une ligne ; faire défiler l'écran ferme le clavier.
+- scroll
 - tapOn:
     id: planner-generate
 - extendedWaitUntil:

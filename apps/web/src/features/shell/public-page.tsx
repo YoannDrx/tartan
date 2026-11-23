@@ -1,3 +1,4 @@
+import { w } from "@tartan/i18n/web";
 import type { ReactNode } from "react";
 import { Wordmark } from "@/components/logo";
 import { SITE_HOME, SiteFooter, SiteHeader } from "@/features/shell/site-chrome";
@@ -47,7 +48,7 @@ export const PublicPage = ({
       ) : (
         <a
           href={SITE_HOME}
-          aria-label="Tartan, retour au site"
+          aria-label={w.shell.backToSite}
           className="inline-flex min-h-11 items-center self-start no-underline"
         >
           <Wordmark />

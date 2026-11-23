@@ -14,6 +14,7 @@ import {
 } from "@react-email/components";
 import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import type { ReactNode } from "react";
 import { EMAIL_ATHLETE_HEIGHT, emailAthletePath, type EmailAthlete } from "./athletes";
 
@@ -75,7 +76,7 @@ export const Layout = ({
               <Link href={SITE}>
                 <Img
                   src={`${SITE}/brand/logo-email.png`}
-                  alt="Tartan"
+                  alt={w.shell.brand}
                   height={36}
                   style={{ display: "block", border: 0 }}
                 />

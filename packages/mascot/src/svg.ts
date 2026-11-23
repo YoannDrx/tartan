@@ -1,33 +1,7 @@
 // Le rendu SVG, sans bibliothèque : des attributs prêts à poser, que React sur le web et react-native-svg sur mobile habillent.
-import {
-  chain,
-  STACK,
-  type AthletePaint,
-  type Bone,
-  type BoneId,
-  type Paint,
-  type Point,
-  type Pose,
-  type Shape,
-} from "./skeleton";
+import type { BoneId, Shape } from "./skeleton";
 
 const round = (value: number) => Math.round(value * 100) / 100;
-
-// Le corps entier : sa position dans la scène si elle est donnée, puis son orientation.
-export const rootTransform = (pose: Pose, at?: Point) =>
-  `${at ? `translate(${round(at.x)} ${round(at.y)}) ` : ""}rotate(${round(pose.rot)}) scale(${round(pose.flip * pose.sx)} ${round(pose.sy)})`;
-
-// Un os : tout son chemin depuis le bassin. Les os se dessinent à plat, dans l'ordre d'empilement.
-export const boneTransform = (bone: Bone, pose: Pose, among?: ReadonlyMap<BoneId, Bone>) =>
-  chain(bone, pose, among)
-    .map((step) =>
-      "move" in step
-        ? `translate(${step.move.x} ${step.move.y})`
-        : "turn" in step
-          ? `rotate(${round(step.turn)})`
-          : "scale(-1 1)",
-    )
-    .join(" ");
 
 export type SvgShape =
   | {
@@ -105,25 +79,8 @@ export const svgShape = (shape: Shape, color: string): SvgShape => {
   }
 };
 
+// Une figure prête à poser : la transformation du corps, puis ses parties du fond vers le devant. Le corps du
+// moteur des gestes la remplit (v2/pose-figure.ts).
 export type SvgBone = { id: BoneId; transform: string; shapes: SvgShape[] };
 
 export type SvgFigure = { root: string; bones: SvgBone[] };
-
-const figure = (bones: readonly Bone[], pose: Pose, paint: Partial<AthletePaint>, at?: Point): SvgFigure => {
-  const among = new Map(bones.map((bone) => [bone.id, bone]));
-  return {
-    root: rootTransform(pose, at),
-    bones: bones.map((bone) => ({
-      id: bone.id,
-      transform: boneTransform(bone, pose, among),
-      shapes: bone.shapes.map((shape) => svgShape(shape, paint[shape.paint]!)),
-    })),
-  };
-};
-
-// Le personnage complet : la transformation du corps, puis chaque os du fond vers le devant.
-export const svgFigure = (pose: Pose, paint: Paint, at?: Point): SvgFigure => figure(STACK, pose, paint, at);
-
-// Un athlète du groupe : ses propres os (rig.ts), déjà triés du fond vers le devant, et son dossard à colorer.
-export const svgAthlete = (bones: readonly Bone[], pose: Pose, paint: AthletePaint, at?: Point): SvgFigure =>
-  figure(bones, pose, paint, at);
