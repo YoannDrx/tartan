@@ -527,8 +527,8 @@ export const logStatusFilter = logStatus.optional();
 
 export const platformSettingsInput = z.object({
   signupMode: z.enum(["closed", "public"]),
-  // Inscriptions des athlètes autonomes (espace personnel), ouvertes par défaut : réglage distinct de celui des coachs.
-  athleteSignupMode: z.enum(["closed", "public"]).default("public"),
+  // Inscriptions des athlètes autonomes (espace personnel), fermées par défaut : réglage distinct de celui des coachs.
+  athleteSignupMode: z.enum(["closed", "public"]).default("closed"),
   checkoutEnabled: z.boolean(),
   muxVideoLimit: z.number().int().positive().nullable(),
 });
