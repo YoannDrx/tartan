@@ -1,14 +1,8 @@
-// Le script du film : un relais de trois athlètes, ses seuils, ses repères, sa traînée, ses confettis et ses mondes.
-// Les gestes eux-mêmes (squelette, poses, trajectoires, accessoires) viennent de @tartan/mascot.
+// Le script du film : le saut en hauteur de Noé, ses seuils, ses repères, sa traînée, ses confettis et ses mondes.
+// Le geste lui-même (squelette, poses, trajectoire) vient de @tartan/mascot.
 import type { Surface } from "@tartan/design-tokens/athletes";
-import type { AthleteId } from "@tartan/mascot/athletes";
-import { clamp, mix, smooth } from "@tartan/mascot/clip";
-import { phaseAt } from "@tartan/mascot/event";
-import { CLIPS } from "@tartan/mascot/events";
+import { mix, smooth } from "@tartan/mascot/clip";
 import { HIGH_JUMP_STAGE, highJumpAt, type HighJumpPhase } from "@tartan/mascot/high-jump";
-import { HURDLES_TIMES } from "@tartan/mascot/hurdles";
-import { POLE_VAULT_TIMES } from "@tartan/mascot/pole-vault";
-import type { PropShape } from "@tartan/mascot/props";
 import type { Face } from "@tartan/mascot/rig";
 import type { Point, Pose } from "@tartan/mascot/skeleton";
 
@@ -111,107 +105,60 @@ export const confettiAt = (piece: (typeof CONFETTI)[number], t: number) => {
   };
 };
 
-// Le film entier, de 0 à 1 sur le défilement. Trois athlètes se relaient, un par promesse : Inès aux haies
-// (« Tu vois ce qui arrive »), Malo à la perche (« Tu sais ce que tu travailles »), Noé à la hauteur
-// (« Tu sais sur quoi t'appliquer »), jusqu'à la validation.
+// Le film entier, de 0 à 1 sur le défilement : un seul athlète, Noé, et un seul geste, le saut en hauteur. Chaque
+// promesse accompagne une phase du saut : l'élan (« Tu vois ce qui arrive »), l'appel (« Tu sais ce que tu
+// travailles »), le franchissement (« Tu sais sur quoi t'appliquer »), puis la réception, la validation.
 export const FILM = {
   // Le titre de la page, l'athlète sur sa ligne.
-  hurdles: 0.06,
-  poleVault: 0.27,
-  highJump: 0.52,
+  start: 0.06,
+  // L'appel, puis le franchissement.
+  plant: 0.3,
+  flight: 0.5,
   // La réception dans le tapis : la séance est validée.
   impact: 0.8,
   finish: 0.9,
 };
 
-// Le saut en hauteur entre dans le film en pleine course, et y garde ses propres seuils.
-const HIGH_JUMP_ENTRY = 0.2;
+// Les repères du défilement et l'instant du saut qui leur correspond : le saut garde ses propres seuils.
+const KNOTS: ReadonlyArray<readonly [film: number, jump: number]> = [
+  [FILM.start, 0],
+  [FILM.plant, T.runEnd],
+  [FILM.flight, T.takeoff],
+  [FILM.impact, T.impact],
+  [FILM.finish, T.finish],
+  [1, 1],
+];
 export const highJumpTime = (t: number) => {
-  if (t <= FILM.impact) {
-    return mix(HIGH_JUMP_ENTRY, T.impact, clamp((t - FILM.highJump) / (FILM.impact - FILM.highJump)));
+  if (t <= FILM.start) return 0;
+  for (let i = 1; i < KNOTS.length; i++) {
+    const [from, at] = KNOTS[i - 1]!;
+    const [to, next] = KNOTS[i]!;
+    if (t <= to) return mix(at, next, (t - from) / (to - from));
   }
-  if (t <= FILM.finish) return mix(T.impact, T.finish, (t - FILM.impact) / (FILM.finish - FILM.impact));
-  return mix(T.finish, 1, clamp((t - FILM.finish) / (1 - FILM.finish)));
+  return 1;
 };
 
-const HURDLES = CLIPS.hurdles;
-const POLE_VAULT = CLIPS.poleVault;
-// Les haies : du départ jusqu'au bout de la course, au bord de la scène.
-const HURDLES_END = HURDLES_TIMES.stop;
-// La perche : de la course perche en main jusqu'à la retombée sur le tapis, et le perchiste qui s'y relève.
-const POLE_VAULT_RANGE = [0.2, POLE_VAULT_TIMES.up] as const;
-// Le sol de la perche est plus bas que celui du film : la scène remonte d'autant.
-const POLE_VAULT_LIFT = GROUND - POLE_VAULT.stage.ground;
-
-export type SceneId = "hurdles" | "poleVault" | "highJump";
-export const SCENES: ReadonlyArray<{ id: SceneId; athlete: AthleteId }> = [
-  { id: "hurdles", athlete: "hurdles" },
-  { id: "poleVault", athlete: "poleVault" },
-  { id: "highJump", athlete: "highJump" },
-];
-export const sceneAt = (t: number): SceneId =>
-  t < FILM.poleVault ? "hurdles" : t < FILM.highJump ? "poleVault" : "highJump";
-
-const lifted = (shape: PropShape, dy: number): PropShape =>
-  shape.kind === "line"
-    ? { ...shape, from: { x: shape.from.x, y: shape.from.y + dy }, to: { x: shape.to.x, y: shape.to.y + dy } }
-    : shape.kind === "curve"
-      ? {
-          ...shape,
-          from: { x: shape.from.x, y: shape.from.y + dy },
-          control: { x: shape.control.x, y: shape.control.y + dy },
-          to: { x: shape.to.x, y: shape.to.y + dy },
-        }
-      : { ...shape, y: shape.y + dy };
-
-// L'instant du geste joué à une position du film, pour les deux premières scènes.
-const hurdlesTime = (t: number) => clamp((t - FILM.hurdles) / (FILM.poleVault - FILM.hurdles)) * HURDLES_END;
-const poleVaultTime = (t: number) =>
-  mix(POLE_VAULT_RANGE[0], POLE_VAULT_RANGE[1], clamp((t - FILM.poleVault) / (FILM.highJump - FILM.poleVault)));
-
-// Les accessoires d'une scène, dans le repère du film. La perche change à chaque image, le reste ne bouge pas.
-export const sceneProps = (id: Exclude<SceneId, "highJump">, t: number): PropShape[] =>
-  id === "hurdles"
-    ? HURDLES.props(hurdlesTime(t)).filter((shape) => shape.paint !== "lane")
-    : POLE_VAULT.props(poleVaultTime(t))
-        .filter((shape) => shape.paint !== "lane")
-        .map((shape) => lifted(shape, POLE_VAULT_LIFT));
-
-export type FilmFrame = { scene: SceneId; pose: FilmPose; face: Face; running: boolean };
+export type FilmFrame = { pose: FilmPose; face: Face; running: boolean };
 
 // t (de 0 à 1, la position du défilement) donne une image unique, à l'aller comme au retour.
 export const frameAt = (t: number): FilmFrame => {
-  const scene = sceneAt(t);
-  if (scene === "highJump") {
-    const time = highJumpTime(t);
-    return {
-      scene,
-      pose: poseAt(time),
-      face: time < T.finish ? "effort" : "joy",
-      running: time < T.plant,
-    };
-  }
-  const clip = scene === "hurdles" ? HURDLES : POLE_VAULT;
-  const time = scene === "hurdles" ? hurdlesTime(t) : poleVaultTime(t);
-  const { pose, root } = clip.frame(time);
+  const time = highJumpTime(t);
   return {
-    scene,
-    pose: { ...pose, x: root.x, y: root.y + (scene === "poleVault" ? POLE_VAULT_LIFT : 0) },
-    face: clip.face(time),
-    running: phaseAt(clip, time).name === "approach" && t > FILM.hurdles + 0.02,
+    pose: poseAt(time),
+    face: time < T.run ? "neutral" : time < T.finish ? "effort" : "joy",
+    running: time > T.run && time < T.plant,
   };
 };
 
 // Le monde et le texte à l'écran pour une position donnée. Les changements sont francs, jamais en fondu.
 export type FilmWorld = "piste" | "couloir" | "craie" | "nuit" | "coche";
-export const WORLD_AT = (t: number): FilmWorld => {
-  if (t < FILM.hurdles) return "piste";
-  if (t < FILM.poleVault) return "couloir";
-  if (t < FILM.highJump) return "craie";
-  if (t < FILM.impact) return "nuit";
-  if (t < FILM.finish) return "coche";
-  return "piste";
+const BEATS = [FILM.start, FILM.plant, FILM.flight, FILM.impact, FILM.finish];
+const WORLDS: readonly FilmWorld[] = ["piste", "couloir", "craie", "nuit", "coche", "piste"];
+export const BEAT_AT = (t: number) => {
+  const next = BEATS.findIndex((at) => t < at);
+  return next === -1 ? BEATS.length : next;
 };
+export const WORLD_AT = (t: number): FilmWorld => WORLDS[BEAT_AT(t)]!;
 // Le fond de chaque monde, pour habiller l'athlète qui le traverse.
 export const WORLD_SURFACE: Record<FilmWorld, Surface> = {
   piste: "piste",
@@ -220,13 +167,5 @@ export const WORLD_SURFACE: Record<FilmWorld, Surface> = {
   nuit: "ink",
   coche: "lime",
 };
-export const BEAT_AT = (t: number) => {
-  if (t < FILM.hurdles) return 0;
-  if (t < FILM.poleVault) return 1;
-  if (t < FILM.highJump) return 2;
-  if (t < FILM.impact) return 3;
-  if (t < FILM.finish) return 4;
-  return 5;
-};
 // L'image fixe du film, sans mouvement : Noé au-dessus de la barre.
-export const FILM_STILL = mix(FILM.highJump, FILM.impact, (T.apex - HIGH_JUMP_ENTRY) / (T.impact - HIGH_JUMP_ENTRY));
+export const FILM_STILL = mix(FILM.flight, FILM.impact, (T.apex - T.takeoff) / (T.impact - T.takeoff));

@@ -13,6 +13,8 @@ import { syncEntitlements } from "@/server/billing.service";
 import { setConsent } from "@/server/consent.service";
 import { publishAnnouncement } from "@/server/comm.service";
 import { createOrganization } from "@/server/org.service";
+import { addPerformance } from "@/server/performance.service";
+import { addStrengthTest } from "@/server/strength.service";
 import { publishRow, saveScheduledSession } from "@/server/session.service";
 
 const databaseUrl = process.env.DATABASE_URL ?? "";
@@ -88,6 +90,8 @@ const main = async () => {
   const organizationId = org.id;
   // Un espace rempli pour les captures n'est pas un nouveau venu : ni tour, ni carte des premiers pas, ni repères.
   await prisma.onboardingState.updateMany({ where: { organizationId }, data: { guided: false } });
+  // Le planificateur s'ouvre sur sa demande : l'accord du coach est déjà donné (aucun appel n'en découle ici).
+  await prisma.profile.update({ where: { id: coachId }, data: { aiConsentAt: new Date() } });
   await prisma.organization.update({ where: { id: organizationId }, data: { plan: "club" } });
   await syncEntitlements(organizationId, "club");
 
@@ -125,6 +129,45 @@ const main = async () => {
     if (!found) throw new Error(`Exercice absent : ${name}`);
     return found.id;
   };
+  // Les références de force de chaque athlète : maximum au squat, à l'épaulé, au soulevé de terre et au hip thrust,
+  // différents d'une personne à l'autre. Alex, l'athlète des captures, progresse au squat depuis l'automne.
+  const today0 = todayIso();
+  const squatMax = new Map<string, number>();
+  for (const [index, athleteId] of roster.entries()) {
+    const base = 90 + ((index * 37) % 60);
+    squatMax.set(athleteId, index === 0 ? 120 : base);
+    const tests: [string, number][] = [
+      ["back_squat", index === 0 ? 120 : base],
+      ["clean", Math.round((index === 0 ? 120 : base) * 0.72)],
+      ["deadlift", Math.round((index === 0 ? 120 : base) * 1.2)],
+      ["hip_thrust", Math.round((index === 0 ? 120 : base) * 1.35)],
+    ];
+    for (const [exerciseKey, value] of tests) {
+      await addStrengthTest(coachId, organizationId, {
+        athleteId,
+        exerciseKey,
+        value,
+        kind: "one_rm",
+        date: addDays(today0, -21 - (index % 4) * 3),
+      });
+    }
+  }
+  for (const [days, value] of [
+    [-84, 105],
+    [-56, 112.5],
+  ] as const) {
+    await prisma.strengthTest.create({
+      data: {
+        organizationId,
+        athleteId: mainAthlete,
+        exerciseKey: "back_squat",
+        kind: "one_rm",
+        value,
+        date: toDbDate(addDays(today0, days)),
+      },
+    });
+  }
+
   const item = (name: string, prescription: Prescription) => ({ exerciseId: exercise(name), prescription });
   const block = (name: string, items: ReturnType<typeof item>[]) => ({ name, variant: "club" as const, items });
 
@@ -139,8 +182,15 @@ const main = async () => {
       note: "Descente contrôlée, on pousse fort dans le sol.",
       blocks: [
         block("Échauffement", [item("Mobilité de cheville", { sets: 2, reps: 10, rest_s: 30 })]),
+        // Charges en pourcentage du maximum : chaque athlète reçoit les siennes, calculées sur ses références.
         block("Force", [
-          item("Squat arrière", { sets: 4, reps: 5, load: { type: "kg", value: 90 }, rest_s: 180 }),
+          item("Squat arrière", {
+            sets: 4,
+            reps: 5,
+            load: { type: "pct_1rm", value: 80, test: "back_squat" },
+            rest_s: 180,
+          }),
+          item("Épaulé", { sets: 5, reps: 3, load: { type: "pct_1rm", value: 75, test: "clean" }, rest_s: 180 }),
           item("Soulevé de terre roumain", { sets: 3, reps: 8, load: { type: "kg", value: 70 }, rest_s: 120 }),
           item("Squat bulgare", { sets: 3, reps: 8, load: { type: "kg", value: 16 }, rest_s: 90 }),
         ]),
@@ -263,15 +313,20 @@ const main = async () => {
           },
         });
         if (spec.type === "strength" && status === "done") {
-          const load = 85 + week * 1.25 + Math.floor(random() * 3) * 2.5;
+          const max = squatMax.get(athleteId) ?? 100;
+          const load = Math.round((max * 0.78 + week * 1.25) / 2.5) * 2.5 + Math.floor(random() * 2) * 2.5;
+          // Les séries de travail du squat (b1-i0) et de l'épaulé (b1-i1), saisies par l'athlète.
+          const clean = Math.round((max * 0.72 * 0.75) / 2.5) * 2.5;
           await prisma.setLog.createMany({
-            data: Array.from({ length: 4 }, (_, setIndex) => ({
+            data: [
+              ...Array.from({ length: 4 }, (_, setIndex) => ({ itemRef: "b1-i0", setIndex, reps: 5, loadKg: load })),
+              ...Array.from({ length: 5 }, (_, setIndex) => ({ itemRef: "b1-i1", setIndex, reps: 3, loadKg: clean })),
+            ].map((set) => ({
+              ...set,
               sessionLogId: log.id,
-              itemRef: "b1-i0",
-              setIndex,
-              reps: 5,
-              loadKg: load,
               done: true,
+              setKind: "work",
+              loadKind: "external_total",
             })),
           });
         }
@@ -318,17 +373,45 @@ const main = async () => {
     },
   });
 
-  await prisma.strengthTest.create({
-    data: {
-      organizationId,
-      athleteId: mainAthlete,
-      exerciseId: exercise("Squat arrière"),
-      exerciseKey: "back_squat",
-      kind: "one_rm",
-      value: 120,
-      date: toDbDate(addDays(monday, -21)),
-    },
+  // Les marques en compétition, pour les records et les progrès (personnes et résultats fictifs).
+  const marks: [number, string, number, "s" | "m", number][] = [
+    [0, "100 m", 11.42, "s", -150],
+    [0, "100 m", 11.21, "s", -95],
+    [0, "100 m", 11.08, "s", -32],
+    [0, "Saut en longueur", 6.62, "m", -120],
+    [0, "Saut en longueur", 6.91, "m", -40],
+    [0, "60 m", 7.12, "s", -12],
+    [1, "Saut en longueur", 6.48, "m", -60],
+    [2, "100 m haies", 14.31, "s", -45],
+    [3, "Saut en hauteur", 1.96, "m", -30],
+    [4, "200 m", 25.12, "s", -50],
+    [5, "Triple saut", 13.84, "m", -38],
+  ];
+  for (const [index, discipline, mark, unit, days] of marks) {
+    await addPerformance(coachId, organizationId, {
+      athleteId: roster[index]!,
+      discipline,
+      mark,
+      unit,
+      date: addDays(today, days),
+      location: index % 2 ? "Stade municipal" : "Halle d'athlétisme",
+      wind: unit === "s" && !discipline.startsWith("60") ? 0.8 : null,
+    });
+  }
+
+  // Les favoris du coach, en tête de la bibliothèque.
+  const favorites = await prisma.exerciseList.create({
+    data: { organizationId, ownerId: coachId, name: "Favoris", isFavorites: true },
   });
+  for (const [position, name] of [
+    "Squat arrière",
+    "Épaulé",
+    "Sauts de haies basses",
+    "Accélérations",
+    "Bonds unipodaux",
+  ].entries()) {
+    await prisma.exerciseListItem.create({ data: { listId: favorites.id, exerciseId: exercise(name), position } });
+  }
 
   const sessionForVideo = await prisma.scheduledSession.findFirstOrThrow({
     where: { organizationId, title: "Technique de course", date: { lt: toDbDate(today) } },
@@ -354,6 +437,37 @@ const main = async () => {
       },
     },
   });
+  // D'autres vidéos du groupe, pour la liste du coach : une par athlète et par geste.
+  const sessionForPlyo = await prisma.scheduledSession.findFirstOrThrow({
+    where: { organizationId, title: "Pliométrie, contacts courts", date: { lt: toDbDate(today) } },
+    orderBy: { date: "desc" },
+  });
+  const sessionForStrength = await prisma.scheduledSession.findFirstOrThrow({
+    where: { organizationId, title: "Force bas du corps", date: { lt: toDbDate(today) } },
+    orderBy: { date: "desc" },
+  });
+  for (const [athleteId, session, name, note] of [
+    [roster[1]!, sessionForPlyo, "Sauts de haies basses", "Contact court : le talon ne touche pas."],
+    [roster[3]!, sessionForStrength, "Squat arrière", "Genoux dans l'axe des pieds en remontant."],
+    [roster[2]!, sessionForPlyo, "Bonds unipodaux", "Bras actifs, bassin haut à chaque bond."],
+  ] as const) {
+    await prisma.video.create({
+      data: {
+        organizationId,
+        athleteId,
+        uploadedBy: coachId,
+        scheduledSessionId: session.id,
+        exerciseId: exercise(name),
+        status: "ready",
+        fps: 120,
+        durationMs: 9000,
+        recordedAt: session.date,
+        sharedWithAthlete: true,
+        annotations: { create: [{ authorId: coachId, tMs: 2400, text: note }] },
+      },
+    });
+  }
+
   // Deux annonces du coach, pour la capture des annonces du tour de piste (personnes et contenus fictifs).
   await publishAnnouncement(coachId, organizationId, {
     groupId: org.firstGroupId,

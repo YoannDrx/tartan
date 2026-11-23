@@ -1,27 +1,35 @@
 import type { Metadata } from "next";
-import Image, { type StaticImageData } from "next/image";
 import { PLANS, TRIAL_DAYS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import Link from "next/link";
 import { Marked } from "@/components/marked";
-import iosHome from "@/features/landing/images/ios-accueil.png";
-import iosMonth from "@/features/landing/images/ios-mois.png";
-import iosPlyo from "@/features/landing/images/ios-plio.png";
-import iosCones from "@/features/landing/images/ios-plots.png";
-import iosProgress from "@/features/landing/images/ios-progres.png";
-import iosVideo from "@/features/landing/images/ios-video.png";
-import iosStrength from "@/features/landing/images/ios-muscu.png";
-import iosRunning from "@/features/landing/images/ios-technique.png";
-import webBuilder from "@/features/landing/images/web-constructeur.png";
-import webMonth from "@/features/landing/images/web-mois.png";
-import webTracking from "@/features/landing/images/web-suivi.png";
+import { PricingGrid } from "@/features/billing/pricing";
 import { landingQuestions } from "@/features/help/content";
 import { HelpQuestions } from "@/features/help/questions";
-import { GroupBand } from "@/features/landing/group-band";
+import { FeatureShowcase, type ShowcaseItem } from "@/features/landing/feature-showcase";
+import athleteCalculator from "@/features/landing/images/athlete-calculateur.png";
+import athleteRunning from "@/features/landing/images/athlete-course.png";
+import athleteExercise from "@/features/landing/images/athlete-fiche.png";
+import athleteToday from "@/features/landing/images/athlete-journee.png";
+import athleteStrength from "@/features/landing/images/athlete-musculation.png";
+import athletePlyo from "@/features/landing/images/athlete-pliometrie.png";
+import athleteProgress from "@/features/landing/images/athlete-progres.png";
+import athleteWeek from "@/features/landing/images/athlete-semaine.png";
+import athleteVideo from "@/features/landing/images/athlete-video.png";
+import coachAnalysis from "@/features/landing/images/coach-analyse.png";
+import coachAthlete from "@/features/landing/images/coach-athlete.png";
+import coachLibrary from "@/features/landing/images/coach-bibliotheque.png";
+import coachCalculator from "@/features/landing/images/coach-calculateur.png";
+import coachBuilder from "@/features/landing/images/coach-constructeur.png";
+import coachExercise from "@/features/landing/images/coach-fiche-exercice.png";
+import coachMonth from "@/features/landing/images/coach-mois.png";
+import coachPlanner from "@/features/landing/images/coach-planificateur.png";
+import coachWeek from "@/features/landing/images/coach-semaine.png";
+import coachTracking from "@/features/landing/images/coach-suivi.png";
+import coachVideo from "@/features/landing/images/coach-video.png";
 import { JumpFilm } from "@/features/landing/jump-film";
 import { LapBend } from "@/features/landing/lap";
 import { SiteFooter, SiteHeader } from "@/features/shell/site-chrome";
-import { PricingGrid } from "@/features/billing/pricing";
 import { billingEnabled } from "@/lib/stripe";
 import { platformSettings } from "@/server/platform-settings.service";
 
@@ -42,26 +50,37 @@ const smallTitle =
   "text-balance font-display text-[36px] font-bold leading-[38px] desktop:text-[52px] desktop:leading-[54px]";
 const body = "max-w-[46ch] text-[17px] leading-[25px]";
 
-// Une vraie capture dans sa carte encre : la seule surface sombre posée sur la piste.
-const Capture = ({
-  src,
-  alt,
-  sizes,
-  className,
-  priority,
-}: {
-  src: StaticImageData;
-  alt: string;
-  sizes: string;
-  className?: string;
-  priority?: boolean;
-}) => (
-  <div className={`capture-glide on-card rounded-block bg-card p-2 desktop:p-3 ${className ?? ""}`}>
-    <Image src={src} alt={alt} sizes={sizes} priority={priority} className="h-auto w-full rounded-card" />
-  </div>
-);
+// Chaque onglet, son texte et sa vraie capture (images/provenance.json), dans l'ordre du parcours : préparer,
+// individualiser, réaliser, progresser.
+const coachScreens: ShowcaseItem[] = (
+  [
+    ["semaine", coachWeek],
+    ["mois", coachMonth],
+    ["constructeur", coachBuilder],
+    ["planificateur", coachPlanner],
+    ["bibliotheque", coachLibrary],
+    ["fiche", coachExercise],
+    ["suivi", coachTracking],
+    ["analyse", coachAnalysis],
+    ["calculateur", coachCalculator],
+    ["athlete", coachAthlete],
+    ["video", coachVideo],
+  ] as const
+).map(([key, image]) => ({ key, image, ...t.coach.features[key] }));
 
-const strength = [iosStrength, iosPlyo, iosRunning, iosCones];
+const athleteScreens: ShowcaseItem[] = (
+  [
+    ["journee", athleteToday],
+    ["semaine", athleteWeek],
+    ["musculation", athleteStrength],
+    ["pliometrie", athletePlyo],
+    ["course", athleteRunning],
+    ["fiche", athleteExercise],
+    ["calculateur", athleteCalculator],
+    ["progres", athleteProgress],
+    ["video", athleteVideo],
+  ] as const
+).map(([key, image]) => ({ key, image, ...t.athlete.features[key] }));
 
 // Réglable depuis la console : la page se recalcule au plus tard chaque minute.
 export const revalidate = 60;
@@ -75,7 +94,7 @@ export default async function LandingPage() {
       href={signupOpen ? "/connexion?creer=1" : "/contact"}
       className="inline-flex min-h-[52px] items-center rounded-full bg-accent px-7 text-base font-semibold text-on-accent no-underline hover:bg-accent-hover"
     >
-      {signupOpen ? t.ctaOpen : t.ctaClosed}
+      {signupOpen ? t.ctaOpen : m.billing.contactUs}
     </a>
   );
 
@@ -89,109 +108,28 @@ export default async function LandingPage() {
 
       {/* Les virages se touchent : une seule piste, du film à la ligne d'arrivée. */}
       <LapBend side="right" start="bleed">
-        <div className={rightBend}>
-          <h2 className={sectionTitle}>
+        <section aria-labelledby="coach" className={rightBend}>
+          <h2 id="coach" className={sectionTitle}>
             <Marked text={t.coach.title} />
           </h2>
           <p className={`mt-4 ${body}`}>{t.coach.body}</p>
-          <div className="relative mt-8 desktop:mt-12 desktop:pr-[150px]">
-            <Capture src={webMonth} alt={t.heroAltDesktop} sizes="(min-width: 1200px) 900px, 100vw" />
-            <figure className="mx-auto mt-4 w-[62%] max-w-[260px] desktop:absolute desktop:-bottom-12 desktop:right-0 desktop:mt-0 desktop:w-[240px]">
-              <Capture src={iosHome} alt={t.heroAltPhone} sizes="(min-width: 1024px) 240px, 62vw" />
-            </figure>
-          </div>
-          <p className="mt-4 text-sm desktop:mt-16">{t.captureNote}</p>
-        </div>
+          <FeatureShowcase label={t.coach.tabs} items={coachScreens} device="laptop" />
+        </section>
       </LapBend>
 
       <LapBend side="left">
-        <div className={leftBend}>
-          <div className="grid gap-8 desktop:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] desktop:items-center desktop:gap-14">
-            <Capture src={webBuilder} alt={t.coach.builderAlt} sizes="(min-width: 1024px) 620px, 100vw" />
-            <div>
-              <h2 className={smallTitle}>
-                <Marked text={t.coach.builderTitle} />
-              </h2>
-              <p className={`mt-4 ${body}`}>{t.coach.builderBody}</p>
-            </div>
-          </div>
-          <div className="mt-14 grid gap-8 desktop:mt-24 desktop:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] desktop:items-center desktop:gap-14">
-            {/* Sur téléphone, la capture d'abord, puis ce qu'elle montre. */}
-            <div className="max-desktop:order-2">
-              <h2 className={smallTitle}>
-                <Marked text={t.coach.trackingTitle} />
-              </h2>
-              <p className={`mt-4 ${body}`}>{t.coach.trackingBody}</p>
-            </div>
-            <Capture src={webTracking} alt={t.coach.trackingAlt} sizes="(min-width: 1024px) 620px, 100vw" />
-          </div>
-        </div>
-      </LapBend>
-
-      <LapBend side="right">
-        <div className={rightBend}>
-          <h2 className={sectionTitle}>
-            <Marked text={t.content.title} />
+        <section aria-labelledby="athlete" className={leftBend}>
+          <h2 id="athlete" className={sectionTitle}>
+            <Marked text={t.athlete.title} />
           </h2>
-          <p className={`mt-4 ${body}`}>{t.content.body}</p>
-          <ul className="mt-8 grid grid-cols-2 gap-3 desktop:mt-12 desktop:grid-cols-4 desktop:gap-5">
-            {t.content.items.map((item, index) => (
-              <li key={item.label}>
-                <Capture src={strength[index]!} alt={item.alt} sizes="(min-width: 1024px) 260px, 42vw" />
-                <p className="mt-3 font-display text-[22px] font-semibold leading-[26px] desktop:text-[28px] desktop:leading-8">
-                  {item.label}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </LapBend>
-
-      <LapBend side="left">
-        <div className={leftBend}>
-          <div className="grid gap-14 desktop:grid-cols-2 desktop:gap-14">
-            {[
-              { src: iosMonth, ...t.views },
-              { src: iosProgress, ...t.progress },
-            ].map((block) => (
-              <div
-                key={block.title}
-                className="grid gap-5 tablet:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] tablet:items-center"
-              >
-                <Capture
-                  src={block.src}
-                  alt={block.alt}
-                  sizes="(min-width: 1024px) 240px, (min-width: 768px) 38vw, 70vw"
-                  className="mx-auto w-[70%] max-w-[280px] tablet:w-full"
-                />
-                <div>
-                  <h2 className={smallTitle}>
-                    <Marked text={block.title} />
-                  </h2>
-                  <p className="mt-3 text-[17px] leading-[25px]">{block.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+          <p className={`mt-4 ${body}`}>{t.athlete.body}</p>
+          <FeatureShowcase label={t.athlete.tabs} items={athleteScreens} device="phone" />
+        </section>
       </LapBend>
 
       <LapBend side="right" end="bleed">
         <div className={rightBend}>
-          <div className="grid gap-8 desktop:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] desktop:items-center desktop:gap-14">
-            <div>
-              <h2 className={sectionTitle}>
-                <Marked text={t.video.title} />
-              </h2>
-              <p className={`mt-4 ${body}`}>{t.video.body}</p>
-            </div>
-            <figure className="mx-auto w-full max-w-[320px]">
-              <Capture src={iosVideo} alt={t.video.alt} sizes="(min-width: 1024px) 320px, 80vw" />
-              <figcaption className="mt-3 text-sm">{t.video.caption}</figcaption>
-            </figure>
-          </div>
-
-          <h2 className={`${sectionTitle} mt-16 max-w-[14ch] desktop:mt-28`}>
+          <h2 className={`${sectionTitle} max-w-[14ch]`}>
             <Marked text={t.field.title} />
           </h2>
           <dl className="mt-8 desktop:mt-12">
@@ -207,14 +145,6 @@ export default async function LandingPage() {
               </div>
             ))}
           </dl>
-
-          <section aria-labelledby="groupe" className="mt-16 desktop:mt-28">
-            <h2 id="groupe" className={sectionTitle}>
-              <Marked text={t.group.title} />
-            </h2>
-            <p className={`mb-8 mt-4 ${body}`}>{t.group.body}</p>
-            <GroupBand />
-          </section>
 
           <section id="tarifs" className="mt-16 scroll-mt-6 desktop:mt-28">
             <h2 className={sectionTitle}>

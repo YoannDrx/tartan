@@ -1,8 +1,8 @@
 import type { StaticImageData } from "next/image";
 import type { w } from "@tartan/i18n/web";
-import videoCapture from "@/features/landing/images/ios-video.png";
-import builderCapture from "@/features/landing/images/web-constructeur.png";
-import trackingCapture from "@/features/landing/images/web-suivi.png";
+import videoCapture from "@/features/landing/images/athlete-video.png";
+import builderCapture from "@/features/landing/images/coach-constructeur.png";
+import trackingCapture from "@/features/landing/images/coach-suivi.png";
 import type { Rubric } from "@/lib/rubric-athlete";
 import announcementsCapture from "./captures/web-annonces.png";
 import phasesCapture from "./captures/web-phases.png";

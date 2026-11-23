@@ -794,8 +794,7 @@ export const fr = {
     adaptLoad: "Adapter la charge pour cet athlète",
     resetLoad: "Reprendre la charge commune",
     leaveDraft: "Les modifications non envoyées seront perdues. Les brouillons déjà créés restent dans le calendrier.",
-    title: "Planificateur IA (bêta)",
-    beta: "Bêta · brouillons à relire",
+    title: "Planificateur IA",
     lead: "Choisis les destinataires et la période, puis décris ta séance ou ta semaine. Aucune séance n’est publiée automatiquement.",
     period: "Période de planification",
     instructions: "Consigne à relire",
@@ -1523,14 +1522,7 @@ export const fr = {
     lead: "Tu construis les séances. Ton groupe sait ce qui arrive et sur quoi s’appliquer. Tu vois ce qui a vraiment été fait. Pensé pour l’athlétisme, du bureau au bord de la piste.",
     description:
       "Tartan, l’app de préparation physique du coach et de son groupe : planification au mois, musculation, pliométrie, technique de course, suivi des séances et analyse vidéo, pour l’athlétisme.",
-    types: "Musculation · Pliométrie · Technique de course · Plots · Escaliers · Mobilité",
-    heroAltPhone:
-      "Application iPhone, accueil de l’athlète : semaine en cours, séance de force du jour et mot du coach.",
-    heroAltDesktop:
-      "Bureau du coach : calendrier du mois avec les séances de musculation, pliométrie, technique de course et plots, chacune avec sa couleur.",
-    captureNote: "Captures réelles de Tartan, sur un groupe fictif.",
     ctaOpen: "Créer mon espace coach",
-    ctaClosed: "Rejoindre le pilote",
     signIn: "Se connecter",
     footer: { sales: "Conditions de vente", notice: "Mentions légales" },
     offer: (athletes: number, trialDays: number) =>
@@ -1563,52 +1555,141 @@ export const fr = {
       },
       timeline: ["Programme", "Travail", "Geste", "Validé"],
     },
+    // Les deux sections de captures : du côté du coach (ordinateur), puis de l'athlète (téléphone). Chaque écran a son
+    // onglet, ce qu'il apporte et le texte qui décrit la capture (images/provenance.json).
     coach: {
-      title: "Ton mois, séance par séance.",
-      body: "Chaque type de séance a sa couleur. Tu déplaces, tu dupliques, tu publies quand c’est prêt. La vue semaine, le mois complet ou la liste : le choix te suit d’un appareil à l’autre.",
-      builderTitle: "Une séance, chacun ses charges.",
-      builderBody:
-        "Tu crées la séance une fois, depuis ta bibliothèque d’exercices ou un modèle. Chaque athlète reçoit ses charges, calculées sur ses propres références. L’absent reçoit sa version en autonomie.",
-      builderAlt: "Constructeur de séance sur ordinateur : blocs, exercices et prescriptions.",
-      trackingTitle: "Qui a fait quoi, sans SMS.",
-      trackingBody:
-        "La grille du groupe se remplit à mesure que les athlètes valident. Tu repères d’un coup d’œil les absents et les séances partielles.",
-      trackingAlt: "Grille de suivi du coach : athlètes en lignes, séances en colonnes, état de chaque séance.",
-    },
-    content: {
-      title: "Ce que ton groupe ouvre vraiment.",
-      body: "Pas une liste de mots : la séance du jour, avec les exercices, les charges et les consignes de son coach.",
-      items: [
-        {
-          label: "Musculation",
-          alt: "Séance de musculation sur iPhone : squat arrière, soulevé de terre roumain, charges et repos.",
+      title: "Côté coach, tout se prépare d'ici.",
+      body: "Du calendrier à l'analyse vidéo : tu prépares, tu individualises, tu suis, et tu ajustes la semaine suivante.",
+      tabs: "Les écrans du coach",
+      features: {
+        semaine: {
+          tab: "Semaine",
+          title: "Ta semaine d'un coup d'œil.",
+          body: "Chaque jour, ses séances : le type, l'heure, le groupe, et combien d'athlètes l'ont déjà faite. Tu déplaces une séance d'un geste, tu dupliques la semaine.",
+          alt: "Calendrier du coach sur ordinateur, semaine du 23 novembre : une séance par jour, musculation, course et technique, pliométrie, plots, musculation et mobilité, chacune avec son heure et son groupe.",
         },
-        {
-          label: "Pliométrie",
-          alt: "Séance de pliométrie sur iPhone : sauts de haies basses, bonds et contacts au sol.",
+        mois: {
+          tab: "Mois",
+          title: "Le mois entier, en couleurs.",
+          body: "Musculation, pliométrie, course, plots, mobilité : chaque type de séance a sa couleur, et la phase de préparation en cours encadre les semaines.",
+          alt: "Calendrier du mois de novembre sur ordinateur : chaque jour porte ses séances en couleur avec le nombre d'athlètes qui les ont faites, sous la phase de préparation « Charge », semaine 3 sur 6.",
         },
-        {
-          label: "Technique de course",
-          alt: "Séance de technique de course sur iPhone : gammes, accélérations et consignes.",
+        constructeur: {
+          tab: "Constructeur",
+          title: "Une séance, chacun ses charges.",
+          body: "Tu poses les blocs et les exercices depuis ta bibliothèque. Une charge en pourcentage du maximum devient celle de chaque athlète, calculée sur ses propres références.",
+          alt: "Constructeur de séance sur ordinateur : la bibliothèque à gauche, à droite les blocs Échauffement, Force et Gainage ; squat arrière à 80 % du maximum, épaulé à 75 %, soulevé de terre roumain et squat bulgare en kilos.",
         },
-        { label: "Plots", alt: "Séance d’appuis sur plots sur iPhone : slalom et changements d’appuis." },
-      ],
+        planificateur: {
+          tab: "Planificateur IA",
+          title: "Tu la décris, elle s'écrit.",
+          body: "Écris ou dicte la séance comme tu la dirais au bord de la piste. Le planificateur retrouve tes exercices, la compose et te la donne à relire : rien n'est publié sans toi.",
+          alt: "Planificateur IA sur ordinateur : le groupe prépa choisi, la date, et la séance décrite en une phrase, de l'échauffement de cheville au gainage, prête à être préparée.",
+        },
+        bibliotheque: {
+          tab: "Bibliothèque",
+          title: "Des fiches prêtes, et les tiennes.",
+          body: "Musculation, haltérophilie, pliométrie, course, plots, mobilité : tu cherches, tu filtres, tu ranges tes favoris et tes listes, et tu crées une fiche en un geste.",
+          alt: "Bibliothèque d'exercices sur ordinateur : recherche, filtres par famille, favoris et listes, puis les fiches avec leur geste en vignette et leur prescription par défaut.",
+        },
+        fiche: {
+          tab: "Fiche d'exercice",
+          title: "Chaque geste, montré pas à pas.",
+          body: "Un athlète du groupe dessiné pour Tartan exécute le mouvement, position par position, de profil ou de face, avec les consignes, les erreurs à éviter et les variantes.",
+          alt: "Fiche du squat arrière sur ordinateur : un athlète dessiné, arrêté en bas du squat à l'étape 2, avec la mise en place, les étapes, les erreurs à éviter et les variantes.",
+        },
+        suivi: {
+          tab: "Suivi",
+          title: "Qui a fait quoi, sans SMS.",
+          body: "La grille de la semaine se remplit à mesure que les athlètes valident : faite, partielle ou manquée. Tu repères d'un coup d'œil qui décroche.",
+          alt: "Suivi du groupe sur ordinateur, semaine du 16 novembre : les athlètes en lignes, six séances en colonnes, chaque séance faite, partielle ou manquée, et la part faite par chacun.",
+        },
+        analyse: {
+          tab: "Analyse",
+          title: "Ce qui a vraiment été fait.",
+          body: "Séances validées, séries réalisées, tonnage, distance, contacts au sol : le prévu et le réalisé restent séparés, et une donnée absente n'est jamais inventée.",
+          alt: "Analyse de l'entraînement sur ordinateur, sur quatre semaines : 256 séances validées sur 288 attribuées, les séries prescrites et l'évolution hebdomadaire du tonnage prévu.",
+        },
+        calculateur: {
+          tab: "Calculateur",
+          title: "Les pourcentages, sans calculette.",
+          body: "Une charge et ses répétitions donnent un maximum estimé, puis toutes les charges de 40 à 100 %, arrondies au pas de ta barre.",
+          alt: "Calculateur de charges sur ordinateur : 102,5 kg soulevés 5 fois donnent un maximum estimé de 119,58 kg, puis le tableau des charges exactes et arrondies, à partir de 40 %.",
+        },
+        athlete: {
+          tab: "Fiche athlète",
+          title: "Un athlète, sur une seule page.",
+          body: "Régularité, séances faites par semaine, performances et records, historique : tout ce qu'il faut pour la discussion d'après séance.",
+          alt: "Fiche de l'athlète Alex Bernard sur ordinateur : 73 % de séances faites, les séances faites par semaine, ses performances avec deux records, au 100 m et au saut en longueur, et son historique.",
+        },
+        video: {
+          tab: "Analyse vidéo",
+          title: "Revoir le geste au ralenti.",
+          body: "Tu passes au ralenti, tu poses ta remarque au bon instant, tu traces une ligne ou un angle. L'athlète la retrouve avec sa vidéo.",
+          alt: "Analyse vidéo sur ordinateur : une course arrêtée à 0:04,2, au quart de la vitesse, avec les outils de tracé et les deux remarques du coach sur le genou et l'appui.",
+        },
+      },
     },
-    views: {
-      title: "En liste ou sur le mois.",
-      body: "Coach comme athlète, chacun choisit sa vue et voit venir les semaines. Les jours se lisent d’un coup d’œil, le détail s’ouvre d’un appui.",
-      alt: "Calendrier du mois sur iPhone, avec une pastille de couleur par séance et la liste du jour sélectionné.",
-    },
-    video: {
-      title: "Revoir le geste. Préciser la consigne.",
-      body: "Une course, un exercice de force, un saut : filme, passe au ralenti, place ta remarque au bon instant. Elle remonte dans « À travailler » chez l’athlète.",
-      alt: "Analyse vidéo sur iPhone : un athlète en course, repères sur la frise et remarques du coach.",
-      caption: "Capture réelle de l’app. Clip d’illustration libre de droits, remarques fictives.",
-    },
-    progress: {
-      title: "Comprendre ce qui a été réalisé.",
-      body: "Séries saisies, historique par exercice, phases de préparation : le prévu et le réalisé restent distincts, et une donnée absente n’est jamais inventée.",
-      alt: "Progrès de l’athlète sur iPhone : analyse, historique par exercice, phase en cours et test de force.",
+    athlete: {
+      title: "Côté athlète, tout tient dans la poche.",
+      body: "Ce qui arrive, ce qu'il travaille, sur quoi s'appliquer : le groupe ouvre l'app avant la séance, et valide à la fin.",
+      tabs: "Les écrans de l'athlète",
+      features: {
+        journee: {
+          tab: "Aujourd'hui",
+          title: "Sa journée, dès l'ouverture.",
+          body: "La séance du jour en tête, le mot du coach, et la suite de la semaine juste dessous.",
+          alt: "Accueil de l'athlète sur téléphone : « Salut Alex », la semaine en pastilles, l'annonce du coach, la séance de force du jour avec ses boutons de validation, et le mot du coach.",
+        },
+        semaine: {
+          tab: "À venir",
+          title: "Il voit ce qui arrive.",
+          body: "La phase de préparation en cours, puis les séances des jours à venir, en liste ou sur le mois : chacun s'organise, sans message de rappel.",
+          alt: "Calendrier de l'athlète sur téléphone, en liste : la phase « Charge », semaine 3 sur 6, puis les séances à venir, du lundi au jeudi.",
+        },
+        musculation: {
+          tab: "Musculation",
+          title: "Ses charges, déjà calculées.",
+          body: "Le pourcentage du coach devient une charge en kilos, d'après ses propres références. Il coche chaque série et note ce qu'il a vraiment soulevé.",
+          alt: "Mode séance sur téléphone : squat arrière, 4 × 5 répétitions à 96,25 kg, récupération 3 minutes ; deux séries cochées sur quatre et le minuteur de récupération lancé.",
+        },
+        pliometrie: {
+          tab: "Pliométrie",
+          title: "Les contacts comptés.",
+          body: "Séries, répétitions, contacts au sol et récupération : la séance de pliométrie se suit exercice par exercice.",
+          alt: "Mode séance sur téléphone : sauts de haies basses, 5 × 6 haies, 30 contacts au sol, récupération 2 minutes, avec les consignes et les cinq séries à cocher.",
+        },
+        course: {
+          tab: "Course",
+          title: "Distances et récupérations.",
+          body: "Gammes, accélérations, sprints : chaque exercice avec sa distance, sa récupération et la consigne du coach.",
+          alt: "Mode séance sur téléphone : accélérations, 6 × 30 mètres, récupération 2 minutes, avec les consignes du coach et les six séries à cocher.",
+        },
+        calculateur: {
+          tab: "Calculateur",
+          title: "Son maximum, estimé.",
+          body: "Une charge et ses répétitions donnent un maximum estimé, et le tableau des pourcentages pour la prochaine séance.",
+          alt: "Calculateur de charges sur téléphone : 95 kg soulevés 6 fois donnent un maximum estimé de 114 kg, et le tableau des pourcentages commence dessous.",
+        },
+        progres: {
+          tab: "Progrès",
+          title: "Ses records, sa progression.",
+          body: "Performances en compétition, références de force et séries réalisées : il voit d'où il part et où il en est.",
+          alt: "Progrès de l'athlète sur téléphone : la phase de préparation en cours, 19 séances faites sur 23 ces quatre dernières semaines, puis ses performances.",
+        },
+        video: {
+          tab: "Vidéo",
+          title: "La remarque, au bon instant.",
+          body: "Il revoit son geste au ralenti, image par image, avec les remarques du coach posées au bon instant.",
+          alt: "Vidéo de l'athlète sur téléphone : sa course arrêtée à 0:04,2, au quart de la vitesse, sur la remarque du coach, avec le partage à ses groupes.",
+        },
+        fiche: {
+          tab: "Fiche d'exercice",
+          title: "Le geste à reproduire.",
+          body: "Chaque exercice de la séance a sa fiche : le mouvement animé, les étapes et les erreurs à éviter.",
+          alt: "Guide du mouvement de l'épaulé ouvert dans la séance, sur téléphone : l'athlète dessiné à la mise en place, les étapes, la vue de profil ou de face, et les consignes.",
+        },
+      },
     },
     field: {
       title: "Pensé pour le bord de la piste.",
@@ -1630,11 +1711,6 @@ export const fr = {
     pricing: {
       title: "Une offre pour chaque groupe.",
       body: "Les athlètes ne paient jamais. Tu changes d'offre ou tu résilies quand tu veux.",
-    },
-    group: {
-      title: "Six athlètes, six épreuves.",
-      body: "Haies, perche, triple saut, disque, longueur, hauteur : la préparation physique sert toutes les épreuves, pas une seule.",
-      label: "Les six athlètes du groupe, chacun dans son épreuve",
     },
     faq: {
       title: "Avant de te lancer.",
@@ -2657,7 +2733,6 @@ export const fr = {
     revokeOtherSessions: "Déconnecter mes autres appareils",
     revokeOtherSessionsDone: "Tes autres appareils sont déconnectés.",
     plan: "Offre",
-    planPilot: "Pilote : tout est inclus, gratuitement.",
     planOpen: "Voir mon offre",
     members: "Coachs de l'espace",
     reports: "Signalements",
@@ -2766,7 +2841,7 @@ export const fr = {
         {
           title: "Planificateur IA",
           paragraphs: [
-            "Les offres Coach et Club comprennent un planificateur en version bêta, avec un quota mensuel. Il prépare des brouillons de séance à partir de ta demande, transmise à OpenAI après ton accord. Ces brouillons peuvent contenir des erreurs : tu les relis et tu restes responsable des séances publiées.",
+            "Les offres Coach et Club comprennent un planificateur, avec un quota mensuel. Il prépare des brouillons de séance à partir de ta demande, transmise à OpenAI après ton accord. Ces brouillons peuvent contenir des erreurs : tu les relis et tu restes responsable des séances publiées.",
           ],
         },
         {

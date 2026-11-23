@@ -180,11 +180,20 @@ test.describe("toutes tailles d'écran", () => {
   test("la landing présente de vraies captures et le récit du groupe", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(m.landing.title);
-    for (const alt of [m.landing.heroAltPhone, m.landing.heroAltDesktop, m.landing.views.alt, m.landing.video.alt]) {
+    // Le premier écran de chaque côté, puis un autre, choisi par son onglet : chaque capture se charge à son tour.
+    const loaded = async (alt: string) => {
       const image = page.getByRole("img", { name: alt, exact: true });
       await image.scrollIntoViewIfNeeded();
       await expect.poll(() => image.evaluate((el) => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
-    }
+    };
+    const { coach, athlete } = m.landing;
+    await loaded(coach.features.semaine.alt);
+    await loaded(athlete.features.journee.alt);
+    await page.getByRole("tab", { name: coach.features.video.tab, exact: true }).click();
+    await loaded(coach.features.video.alt);
+    await page.getByRole("tab", { name: athlete.features.musculation.tab, exact: true }).click();
+    await loaded(athlete.features.musculation.alt);
+    await page.evaluate(() => window.scrollTo(0, 0));
     for (const title of [m.landing.film.run.title, m.landing.film.plant.title, m.landing.film.flight.title]) {
       await expect(page.locator(".film-title").filter({ hasText: title })).toHaveCount(1);
     }
