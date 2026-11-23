@@ -29,6 +29,9 @@ import {
 import { AccountExistsEmail, ConfirmPasswordSetupEmail, PasswordSetEmail } from "./credentials";
 import { WeeklyDigestEmail } from "./digest";
 import { AthleteWelcomeEmail, InvitationReminderEmail, TipEmail } from "./lifecycle";
+import { FinishSignupEmail, PersonalTipEmail, PersonalWelcomeEmail } from "./personal";
+
+const personal = w.personal.emails;
 
 export type EmailSample = { key: EmailKey; subject: string; react: ReactElement };
 
@@ -227,5 +230,21 @@ export const emailCatalog = (appUrl: string): EmailSample[] => {
       subject: m.email.spaceTransferred.subject(SPACE),
       react: <SpaceTransferredEmail previous={INVITER} space={SPACE} subscriptionEnds="23 novembre 2026" url={url} />,
     },
+    { key: "personal_welcome", subject: personal.welcome.subject, react: <PersonalWelcomeEmail url={url} /> },
+    {
+      key: "personal_activation",
+      subject: personal.activation.steps.plan.subject,
+      react: (
+        <PersonalTipEmail
+          title={personal.activation.steps.plan.subject}
+          body={personal.activation.steps.plan.body}
+          cta={personal.activation.steps.plan.cta}
+          url={url}
+          unsubscribe={url}
+          unsubscribeLabel={m.email.unsubscribeLink}
+        />
+      ),
+    },
+    { key: "finish_signup", subject: personal.finishSignup.subject, react: <FinishSignupEmail url={url} /> },
   ];
 };

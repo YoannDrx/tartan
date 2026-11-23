@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addDays, startOfWeek } from "@tartan/domain";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { todayIso } from "@/lib/dates";
 import { outbox } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
@@ -328,7 +329,10 @@ describe("exclusions de l'espace personnel", () => {
       await prisma.emailOutbox.findMany({ where: { organizationId: me.organizationId }, select: { kind: true } })
     ).map((row) => row.kind);
     expect(kinds.filter((kind) => ["activation", "weekly_digest", "plan_near_limit"].includes(kind))).toEqual([]);
-    expect(outbox.filter((mail) => mail.to === me.email)).toEqual([]);
+    // Seule sa propre bienvenue lui est parvenue.
+    expect(outbox.filter((mail) => mail.to === me.email).map((mail) => mail.subject)).toEqual([
+      w.personal.emails.welcome.subject,
+    ]);
   });
 
   it("ni question de la veille, ni chiffre d'espace ou de revenus dans la console", async () => {

@@ -17,6 +17,8 @@ import { recordJoinConsents } from "./consent.service";
 import { startOnboarding } from "./onboarding.service";
 import { createStarterTemplates, starterExercises } from "./org.service";
 import { platformSettings } from "./platform-settings.service";
+import { flushEmailOutbox } from "./email-outbox.service";
+import { personalWelcomeKey, queuePersonalWelcome } from "./personal-email";
 
 // L'espace personnel d'un athlète qui s'entraîne seul (décision du 23 novembre 2026, docs/plans/athlete-autonome.md).
 // Sur le modèle de l'espace d'un coach (bibliothèque, modèles, premiers pas) et de la démonstration (un espace à
@@ -104,8 +106,15 @@ export const createPersonalSpace = async (
     await startOnboarding(tx, org.id, userId);
     // Les séances de départ, modifiables : il ne part pas d'une page blanche.
     await createStarterTemplates(tx, org.id, userId);
+    // La bienvenue de l'athlète autonome, mise en file avec l'espace : jamais celle du coach.
+    const { email } = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
+    await queuePersonalWelcome(tx, { organizationId: org.id, userId, email });
     return { organizationId: org.id, athleteId: athlete.id };
   });
   log.info("personal_space_created", { organizationId: created.organizationId });
+  // Envoi tout de suite, limité à cette ligne ; en cas de panne, la tâche de notifications reprend.
+  await flushEmailOutbox(new Date(), { dedupeKey: personalWelcomeKey(userId) }).catch(() =>
+    log.warn("email_outbox_flush_failed"),
+  );
   return created;
 };

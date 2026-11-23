@@ -21,7 +21,7 @@ Un incident de paiement ne donne qu'un e-mail : « paiement échoué » et « va
 
 Pour les parcours Playwright, le serveur dépose en plus chaque message (destinataire, objet, lien d'action) dans le dossier `E2E_MAIL_DIR`, que le test relit pour suivre le vrai lien (`apps/web/e2e/mail.ts`). Cette variable est refusée en production par `assertEnvIsolation`, et la branche qui la lit ne s'exécute que sans clé Resend.
 
-## Les 32 e-mails en place
+## Les 35 e-mails en place
 
 | Clé du catalogue | Destinataire | Déclencheur | Envoi | Désinscription |
 | --- | --- | --- | --- | --- |
@@ -57,6 +57,9 @@ Pour les parcours Playwright, le serveur dépose en plus chaque message (destina
 | `plan_near_limit` | Propriétaire | Athlètes ou vidéos du mois à 80 % de la limite de l'offre | File, tâche de 9 h | Non |
 | `account_deleted` | Ancien compte | Compte supprimé | File | Non |
 | `space_transferred` | Nouveau propriétaire | Espace transmis | File | Non |
+| `personal_welcome` | Athlète autonome | Ouverture de son espace personnel, mise en file dans la même transaction | File, tentative immédiate | Non |
+| `personal_activation` | Athlète autonome | Un, trois et sept jours après l'ouverture de son espace, sur la prochaine étape manquante de ses premiers pas | File, tâche de 9 h | Oui, « conseils » |
+| `finish_signup` | Compte sans espace | Compte confirmé, sans espace ni invitation ouverte, 24 à 72 heures après sa création, une seule fois | File, tâche horaire | Non |
 
 ## Règles d'envoi
 
@@ -64,7 +67,7 @@ Pour les parcours Playwright, le serveur dépose en plus chaque message (destina
 - **Liste de blocage.** Un rebond définitif bloque tout, et l'emporte sur une plainte déjà notée. Une plainte ou une désinscription bloque tout sauf la catégorie sécurité : personne ne perd l'accès à son compte pour avoir signalé un résumé.
 - **Adresse qui rebondit à la connexion.** Le formulaire le dit (« Cette adresse ne reçoit plus nos e-mails »). La demande de réinitialisation, elle, répond toujours la même chose, pour ne pas révéler qu'un compte existe.
 - **Liens de connexion.** Envoyés en direct, jamais par la file : un lien valide ne s'écrit pas dans une table.
-- **Mot de passe.** Chaque définition et chaque changement prévient le compte (`password_set`, `password_changed`), avec un lien pour en choisir un autre. Une alerte qui échoue n'annule pas le mot de passe enregistré. `password_setup_confirm` porte un lien de connexion ordinaire (une fois, 15 minutes) sous un autre texte. `account_exists` ne porte aucun lien de connexion : il renvoie à `/connexion`, et dit que le mot de passe saisi n'a pas été enregistré. L'écran, lui, répond comme pour une adresse neuve.
+- **Mot de passe.** Chaque définition et chaque changement prévient le compte (`password_set`, `password_changed`), avec un lien pour en choisir un autre. Une alerte qui échoue n'annule pas le mot de passe enregistré. `password_setup_confirm` porte un lien de connexion ordinaire (une fois, 15 minutes) sous un autre texte. `account_exists` ne porte aucun lien de connexion : il renvoie à `/connexion`, et dit que le mot de passe saisi n'a pas été enregistré. Quand l'inscription partait d'une invitation (en-tête `x-tartan-return` posé par le formulaire de `/i/[token]`, ou à défaut une invitation nominative encore ouverte à cette adresse), le lien est `/connexion?next=/i/…` : la connexion rouvre l'invitation. L'écran, lui, répond comme pour une adresse neuve.
 - **Invitations.** Elles passent par la file, qui ne garde que l'identifiant de l'invitation ; le lien est dérivé au rendu. L'envoi est tenté tout de suite, puis repris pendant 24 heures. Une invitation acceptée, révoquée ou expirée entre-temps ne part plus. Limite : si l'adresse est en liste de blocage, le coach n'en est pas averti à l'écran.
 - **Genre inconnu.** Une ligne de la file dont le genre n'est pas au registre est marquée en échec `unknown_kind` et signalée, au lieu de partir sous un autre gabarit.
 - **Objets.** Dans `packages/i18n`, sous `m.email` ; le catalogue lit les mêmes.
@@ -93,6 +96,15 @@ Trois rappels au plus, décidés par une règle pure (`packages/domain/src/lifec
 - La pertinence est revérifiée à l'envoi : le coach qui vient de faire l'étape, ou qui a coupé les conseils, ne reçoit rien.
 - Un coach qui a reçu sa première validation ne reçoit plus rien.
 - Il n'y a pas d'e-mail distinct pour un essai sans activation : la séquence le couvre déjà, et le rappel de fin d'essai suit.
+
+## Athlète autonome
+
+Service : `apps/web/src/server/personal-email.ts`. Règles pures : `personalActivationEmailFor` et `finishSignupDue` (`packages/domain/src/lifecycle-emails.ts`). Textes : `w.personal.emails` (`packages/i18n/src/web/personal.ts`), gabarits dans `apps/web/emails/personal.tsx`.
+
+- **Exclusions.** Un espace personnel ne reçoit aucun e-mail du coach : ni `welcome`, ni `activation`, ni `weekly_digest`, ni `plan_near_limit`. Les requêtes de ces tâches ne lisent que les espaces de coach (`COACH_SPACES`, `demo-space-guard.ts`).
+- **Bienvenue.** Une seule fois par compte (clé `personal_welcome:<compte>`), revérifiée à l'envoi : l'espace existe toujours et appartient à ce compte.
+- **Conseils.** Mêmes fenêtres que ceux du coach (J+1, J+3, J+7). L'étape suit la carte de ses premiers pas : planifier une séance, la valider, noter une référence de force. L'installation ne vaut pas un e-mail. Coupés par `emailTips`, comme ceux du coach.
+- **Termine ton inscription.** Un compte confirmé, sans aucun espace ni invitation nominative ouverte à son adresse, reçoit un seul message entre 24 et 72 heures après sa création (clé `finish_signup:<compte>`), qui mène à l'aiguillage de `/bienvenue`. Un espace rejoint ou ouvert entre-temps l'annule.
 
 ## Plafond presque atteint
 
