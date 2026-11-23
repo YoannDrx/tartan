@@ -14,18 +14,26 @@ export const TrainingProfileFields = ({
   value,
   onChange,
   disabled = false,
+  keys = Object.keys(choices) as (keyof TrainingProfile)[],
+  hint = true,
 }: {
   value: TrainingProfile;
   onChange: (value: TrainingProfile) => void;
   disabled?: boolean;
+  // L'athlète autonome ne décrit que ses disciplines et ses objectifs : le matériel est celui d'un espace de coach.
+  keys?: (keyof TrainingProfile)[];
+  // La phrase d'aide parle des réglages de l'espace d'un coach : l'écran qui a la sienne la retire.
+  hint?: boolean;
 }) => {
   const [open, setOpen] = useState<keyof TrainingProfile | null>(null);
   return (
     <View style={{ gap: space.md }}>
-      <T variant="caption" tone="muted">
-        {m.trainingProfile.hint}
-      </T>
-      {(Object.keys(choices) as (keyof TrainingProfile)[]).map((key) => (
+      {hint ? (
+        <T variant="caption" tone="muted">
+          {m.trainingProfile.hint}
+        </T>
+      ) : null}
+      {keys.map((key) => (
         <View key={key} style={{ gap: space.sm }}>
           <Button
             label={m.trainingProfile[key]}
