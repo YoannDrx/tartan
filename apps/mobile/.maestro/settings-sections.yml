@@ -90,6 +90,11 @@ env:
     timeout: 10000
 - tapOn:
     id: screen-back
+# Le sommaire garde sa position au retour d'une rubrique : la rangée Connexion peut être au-dessus de l'écran.
+- scrollUntilVisible:
+    element:
+      id: settings-rubric-connexion
+    direction: UP
 - tapOn:
     id: settings-rubric-connexion
 - extendedWaitUntil:

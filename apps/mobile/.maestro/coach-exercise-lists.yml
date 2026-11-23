@@ -47,8 +47,10 @@ env:
     timeout: 10000
 - tapOn:
     id: exercise-list-quick-submit
-- extendedWaitUntil:
-    visible: "${output.exerciseName}"
+# La fiche créée arrive en bas de la liste, sous la barre d'onglets : la faire venir à l'écran.
+- scrollUntilVisible:
+    element: "${output.exerciseName}"
+    centerElement: true
     timeout: 20000
 - takeScreenshot: coach-list-created-exercise
 # L'étoile se pose depuis la liste des fiches, sans ouvrir la fiche ; le filtre Favoris la retrouve.
