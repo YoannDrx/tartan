@@ -1,25 +1,119 @@
 {
-  "dataset": "apps/web/prisma/demo-preparation.ts, base locale, personnes fictives",
-  "device": "iPhone 17 Pro, iOS 26.3, simulateur, build Release de la branche ; barre d'état normalisée",
-  "capturedAt": "2026-11-09",
-  "commit": "0afa61b",
+  "dataset": "apps/web/prisma/demo-preparation.ts, base locale jetable (tartan_landing), personnes et résultats fictifs : coach Cédric, athlète Alex Bernard et onze athlètes, en deux groupes (« Groupe prépa », « Groupe sprint »), jusqu'à trois séances par jour, un meeting le samedi",
+  "device": "Coach : Chromium de Playwright à 1440 × 900 (échelle 1). Athlète : l'app native sur le simulateur iPhone 17 Pro (iOS 26.3), build de développement servi par Metro depuis la branche, connectée à un serveur web local ; barre d'état normalisée (9:41) ; PNG réduits à 804 px de large. Seule la vidéo de l'athlète vient de la web app à 390 px : sur l'app native, la vidéo de démonstration ne se lit pas sans Mux.",
+  "capturedAt": "2026-11-23",
+  "commit": "e40e5d1",
+  "command": "CAPTURE_BASE_URL=http://localhost:3190 CAPTURE_DATABASE_URL=… pnpm --filter @tartan/web exec playwright test e2e/landing-captures.spec.ts --project=desktop -g \"clip|bureau|téléphone athlète|vidéo\" (mode d'emploi en tête du fichier)",
+  "server": "Build de production local (next build, next start) pour tous les écrans sauf les deux vidéos, prises sur le serveur de développement, seul à lire VIDEO_DEV_MP4_URL. Planificateur ouvert (AI_PLANNER_ENABLED=true), capturé avant l'envoi : aucun appel au prestataire.",
   "clip": {
-    "use": "ios-video.png, lecture du clip dans l'analyse",
-    "source": "https://www.pexels.com/video/athlete-sprinting-on-outdoor-track-37264421/",
-    "author": "Official Amit",
-    "license": "Licence Pexels, usage gratuit sans attribution obligatoire"
+    "use": "coach-video.png et athlete-video.png : le clip lu dans l'analyse vidéo",
+    "source": "Le geste animé de la fiche « Accélérations » (Inès, athlète du groupe dessiné pour Tartan), filmé par le test « clip » du même fichier ; aucune vidéo de tiers",
+    "license": "Illustration originale Tartan"
   },
+  "png": "Capture brute de Playwright, recompressée en PNG à palette (sharp, qualité 92) ; le cadre d'appareil est dessiné par la page (device-frame.tsx), jamais incrusté",
   "captures": [
-    { "file": "ios-accueil.png", "source": "ios", "screen": "Athlète, Aujourd'hui" },
-    { "file": "ios-mois.png", "source": "ios", "screen": "Athlète, Calendrier, vue Mois" },
-    { "file": "ios-muscu.png", "source": "ios", "screen": "Athlète, mode séance, Squat arrière" },
-    { "file": "ios-plio.png", "source": "ios", "screen": "Athlète, mode séance, Sauts de haies basses" },
-    { "file": "ios-technique.png", "source": "ios", "screen": "Athlète, mode séance, Gammes" },
-    { "file": "ios-plots.png", "source": "ios", "screen": "Athlète, mode séance, Slalom entre les plots" },
-    { "file": "ios-video.png", "source": "ios", "screen": "Athlète, analyse vidéo" },
-    { "file": "ios-progres.png", "source": "ios", "screen": "Athlète, Progrès" },
-    { "file": "web-mois.png", "source": "web", "screen": "Coach, Calendrier, vue Mois" },
-    { "file": "web-constructeur.png", "source": "web", "screen": "Coach, constructeur de séance" },
-    { "file": "web-suivi.png", "source": "web", "screen": "Coach, Suivi du groupe" }
-  ]
+    {
+      "file": "coach-semaine.png",
+      "source": "web",
+      "screen": "Coach, Calendrier, vue Semaine du 23 novembre, deux groupes et un meeting"
+    },
+    {
+      "file": "coach-mois.png",
+      "source": "web",
+      "screen": "Coach, Calendrier, vue Mois de novembre"
+    },
+    {
+      "file": "coach-constructeur.png",
+      "source": "web",
+      "screen": "Coach, constructeur de la séance « Force bas du corps », ses blocs"
+    },
+    {
+      "file": "coach-planificateur.png",
+      "source": "web",
+      "screen": "Coach, Planificateur IA, la demande écrite, avant l'envoi"
+    },
+    {
+      "file": "coach-bibliotheque.png",
+      "source": "web",
+      "screen": "Coach, Exercices, la bibliothèque et ses filtres"
+    },
+    {
+      "file": "coach-fiche-exercice.png",
+      "source": "web",
+      "screen": "Coach, fiche « Squat arrière », geste arrêté sur l'étape 2, vidéo liée"
+    },
+    {
+      "file": "coach-suivi.png",
+      "source": "web",
+      "screen": "Coach, Suivi du groupe, semaine du 16 novembre, tous les groupes"
+    },
+    {
+      "file": "coach-analyse.png",
+      "source": "web",
+      "screen": "Coach, Analyse de l'entraînement, quatre semaines"
+    },
+    {
+      "file": "coach-references.png",
+      "source": "web",
+      "screen": "Coach, fiche de l'athlète Tom Girard, références de travail et tests de force"
+    },
+    {
+      "file": "coach-athlete.png",
+      "source": "web",
+      "screen": "Coach, fiche de l'athlète Alex Bernard"
+    },
+    {
+      "file": "coach-video.png",
+      "source": "web",
+      "screen": "Coach, analyse vidéo, lecture arrêtée sur la remarque de 0:04,2",
+      "server": "développement"
+    },
+    {
+      "file": "athlete-journee.png",
+      "source": "ios-simulateur",
+      "screen": "Athlète, app native, Aujourd'hui : la séance « Force bas du corps » et le réveil de 7 h 30"
+    },
+    {
+      "file": "athlete-semaine.png",
+      "source": "ios-simulateur",
+      "screen": "Athlète, app native, Calendrier, vue Mois de novembre"
+    },
+    {
+      "file": "athlete-musculation.png",
+      "source": "ios-simulateur",
+      "screen": "Athlète, app native, mode séance, Squat arrière à 96,25 kg, deux séries cochées, récupération lancée"
+    },
+    {
+      "file": "athlete-pliometrie.png",
+      "source": "ios-simulateur",
+      "screen": "Athlète, app native, mode séance, Sauts de haies basses, guide ouvert"
+    },
+    {
+      "file": "athlete-course.png",
+      "source": "ios-simulateur",
+      "screen": "Athlète, app native, mode séance, Gammes : montées de genoux, guide ouvert"
+    },
+    {
+      "file": "athlete-fiche.png",
+      "source": "ios-simulateur",
+      "screen": "Athlète, app native, mode séance, guide du mouvement du Squat arrière"
+    },
+    {
+      "file": "athlete-calculateur.png",
+      "source": "ios-simulateur",
+      "screen": "Athlète, app native, Calculateur de charges, 95 kg × 6, tableau des pourcentages"
+    },
+    {
+      "file": "athlete-progres.png",
+      "source": "ios-simulateur",
+      "screen": "Athlète, app native, Progrès, performances et records"
+    },
+    {
+      "file": "athlete-video.png",
+      "source": "web-390",
+      "screen": "Athlète, Mes vidéos, lecture arrêtée sur la remarque de 0:04,2",
+      "server": "développement"
+    }
+  ],
+  "nativeDataset": "Base locale jetable tartan_capture_natif, remplie par pnpm db:seed puis pnpm --filter @tartan/web demo:preparation ; connexion par mot de passe au compte athlete@capture.tartan.test"
 }

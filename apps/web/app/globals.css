@@ -979,21 +979,55 @@
     transition: stroke-dasharray var(--duration-trace) var(--ease-reception);
   }
 }
-/* Site public : une capture glisse à sa place en entrant dans l'écran. Sans prise en charge, elle y est déjà. */
-@keyframes capture-glide {
+/* Site public : l'appareil d'un onglet de captures entre en montant de quelques pixels quand on le choisit
+   (src/features/landing/feature-showcase.tsx). Sans mouvement, il est simplement là. */
+@keyframes showcase-in {
   from {
-    transform: translateY(40px);
+    opacity: 0;
+    transform: translateY(12px);
   }
 }
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .capture-glide {
-      animation: capture-glide linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 70%;
-    }
+@media (prefers-reduced-motion: no-preference) {
+  .showcase-screen {
+    animation: showcase-in var(--duration-enter) var(--ease-reception) both;
   }
 }
+/* Le mot « Tartan » de l'en-tête du site, son T remplacé par la marque (src/components/logo.tsx). Deux masques
+   tirés de scripts/build-logo.mjs, peints dans la couleur du texte ; la ligne d'arrivée reste citron sur la piste,
+   le couloir et l'encre, et prend la couleur du texte sur un fond clair, où le citron ne se lirait pas. */
+.wordmark {
+  --wordmark-line: var(--color-film-lime);
+  position: relative;
+  display: inline-block;
+  height: 26px;
+  aspect-ratio: 408 / 107;
+}
+.wordmark::before,
+.wordmark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  mask: url("/brand/wordmark-letters.svg") center / contain no-repeat;
+}
+.wordmark::after {
+  background-color: var(--wordmark-line);
+  mask-image: url("/brand/wordmark-line.svg");
+}
+.world-craie .wordmark,
+.world-soleil .wordmark,
+.film[data-world="craie"] .wordmark,
+.film[data-world="coche"] .wordmark {
+  --wordmark-line: currentColor;
+}
+@media (forced-colors: active) {
+  .wordmark::before,
+  .wordmark::after {
+    forced-color-adjust: none;
+    background-color: CanvasText;
+  }
+}
+
 /* La coche de validation se trace : sans mouvement, elle est simplement là. */
 @keyframes tartan-check {
   from {

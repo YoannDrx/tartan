@@ -12,7 +12,6 @@ import type {
 import { plannerProposalsExhausted } from "@tartan/domain";
 import { w } from "@tartan/i18n/web";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Chip } from "@/components/states";
 import { LaneNumber } from "@/components/lane-number";
 import { TrackLine } from "@/components/track";
 import { ExerciseSource } from "@/features/sessions/exercise-picker";
@@ -152,10 +151,7 @@ export function WebPlanner({
     <PlannerSolo.Provider value={solo}>
       <ExerciseSource.Provider value={source}>
         <div className="on-card flex min-w-0 flex-col gap-6 rounded-card bg-card p-4 desktop:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Chip>{t.beta}</Chip>
-            <p className="t-caption font-normal text-soft">{exhausted ? t.quotaExceeded : t.quota(left)}</p>
-          </div>
+          <p className="t-caption font-normal text-soft">{exhausted ? t.quotaExceeded : t.quota(left)}</p>
           <Stages current={proposal ? 2 : 1} />
           {shown ? (
             <p ref={errorRef} tabIndex={-1} role="alert" className="rounded-button border border-st-missed px-3 py-2">

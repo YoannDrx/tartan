@@ -5,8 +5,7 @@ type LoadKind = "external_total" | "added_weight" | "assistance" | "bodyweight";
 const plural = (n: number) => (n > 1 ? "s" : "");
 
 export const planner = {
-  title: "Planificateur IA (bêta)",
-  beta: "Bêta · brouillons à relire",
+  title: "Planificateur IA",
   lead: "Écris ou dicte ce que tu veux. Tu relis la séance, puis tu crées un brouillon : rien n'est publié seul.",
   recent: "Mes propositions récentes",
   newProposal: "Préparer une nouvelle proposition",

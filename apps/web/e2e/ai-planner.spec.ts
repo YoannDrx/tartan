@@ -154,7 +154,8 @@ test("tout reconnu : un champ, un clic, ce qui a été compris, la séance dans 
     // Un seul champ : ni carte de mode, ni case à cocher, ni durée ou niveau à choisir d'abord.
     await expect(page.getByRole("radio")).toHaveCount(0);
     await expect(page.getByRole("checkbox")).toHaveCount(0);
-    await expect(page.getByText(t.beta, { exact: true })).toBeVisible();
+    // Le planificateur est ouvert à tous depuis le 23 novembre 2026 : plus de mention « bêta ».
+    await expect(page.getByText(/bêta/i)).toHaveCount(0);
     // Trois exemples montrent les trois usages ; en prendre un remplit le champ.
     for (const example of t.examples) await expect(page.getByText(example.text, { exact: true })).toBeVisible();
     await page.getByRole("button", { name: `${t.examples[1].kind} ${t.examples[1].text}`, exact: true }).click();
