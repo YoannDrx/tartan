@@ -1,0 +1,95 @@
+# Athlète autonome, lot AA3 : un compte qui a déjà son espace personnel (`SHARER_EMAIL`, créé par la CI, avec un test
+# de force noté) ouvre le lien du groupe du coach de démonstration. Après l'acceptation, l'écran facultatif de partage :
+# il partage ses références de force et l'historique de ses séances (la santé n'est jamais une case), puis retire le
+# partage dans Réglages, Confidentialité. La CI vérifie ensuite en base que le partage a existé et qu'il est retiré.
+# À usage unique : l'invitation acceptée ne se rejoue pas.
+#   maestro test -e APP_ID=coach.tartan.app.dev -e SHARER_EMAIL=… -e COACH_EMAIL=… -e PASSWORD=… \
+#     -e API_URL=http://localhost:3000 .maestro/once/history-share.yml
+appId: ${APP_ID}
+env:
+  EMAIL: ${SHARER_EMAIL}
+---
+- runScript: ../scripts/history-share-fixture.js
+- runFlow: ../flows/_sign-in.yml
+# Son espace personnel l'accueille : sa journée.
+- extendedWaitUntil:
+    visible:
+      id: tab-plan
+    timeout: 30000
+- openLink: ${output.inviteUrl}
+- runFlow: ../flows/_accept-deep-link.yml
+- extendedWaitUntil:
+    visible:
+      id: invite-title
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: consent-terms
+    centerElement: true
+    timeout: 15000
+- tapOn:
+    id: consent-terms
+- scrollUntilVisible:
+    element:
+      id: invite-accept
+    centerElement: true
+    timeout: 15000
+- tapOn:
+    id: invite-accept
+# Juste après l'arrivée dans le groupe : partager, ou pas, par cases.
+- extendedWaitUntil:
+    visible:
+      id: history-share-title
+    timeout: 30000
+- assertVisible: "Tes données de santé .* ne sont jamais partagées\\."
+- tapOn:
+    id: history-share-strength
+- tapOn:
+    id: history-share-sessions
+- scrollUntilVisible:
+    element:
+      id: history-share-submit
+    centerElement: true
+    timeout: 10000
+- takeScreenshot: history-share-step
+- tapOn:
+    id: history-share-submit
+- extendedWaitUntil:
+    visible:
+      id: push-later
+    timeout: 20000
+- tapOn:
+    id: push-later
+# Le retrait, dans Réglages, Confidentialité : effet immédiat.
+- extendedWaitUntil:
+    visible:
+      id: open-settings
+    timeout: 30000
+- tapOn:
+    id: open-settings
+- extendedWaitUntil:
+    visible:
+      id: settings-rubric-confidentialite
+    timeout: 15000
+- tapOn:
+    id: settings-rubric-confidentialite
+- scrollUntilVisible:
+    element:
+      id: history-shares
+    centerElement: true
+    timeout: 20000
+- assertVisible: ${output.organizationName}
+- tapOn:
+    id: history-share-revoke-${output.organizationId}
+# La confirmation du système : son titre nomme l'espace, son bouton retire le partage.
+- extendedWaitUntil:
+    visible: "Arrêter le partage avec .*\\?"
+    timeout: 10000
+- tapOn:
+    text: "Arrêter le partage"
+    index: 1
+- extendedWaitUntil:
+    visible: "Partage arrêté\\."
+    timeout: 15000
+- assertVisible: "Tu ne partages ton historique personnel avec aucun coach\\."
+- takeScreenshot: history-share-revoked

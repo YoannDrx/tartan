@@ -107,6 +107,11 @@ jobs:
       NO_AGE_EMAIL: sans-age@e2e.tartan.test
       DISPOSABLE_EMAIL: jetable@e2e.tartan.test
       NEWCOMER_EMAIL: nouvelle@e2e.tartan.test
+      # Athlète autonome (lot AA3) : un compte sans espace, un compte qui ouvre son espace personnel sur le simulateur,
+      # un compte qui a déjà le sien et rejoint le coach de démonstration.
+      NOSPACE_EMAIL: sans-espace@e2e.tartan.test
+      SOLO_EMAIL: autonome@e2e.tartan.test
+      SHARER_EMAIL: partage@e2e.tartan.test
       BETTER_AUTH_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       BETTER_AUTH_SECRET: secret-maestro-secret-maestro-secret-maestro
@@ -212,6 +217,33 @@ jobs:
           # L'accueil est dû : arrivée du jour, aucune séance validée.
           curl -sf -b "$newcomer" "$api/api/v1/orgs/$org/athlete/welcome" | jq -e '.welcome != null' > /dev/null
           rm -f "$coach" "$newcomer"
+      - name: Athlète autonome (lot AA3)
+        # Trois comptes confirmés, date de naissance connue : sans espace (aiguillage et suppression), sans espace pour
+        # ouvrir son espace personnel sur le simulateur, et un athlète autonome déjà installé, avec un test de force,
+        # qui rejoindra le coach de démonstration et partagera son historique.
+        run: |
+          api=http://localhost:3000
+          for email in "$NOSPACE_EMAIL" "$SOLO_EMAIL" "$SHARER_EMAIL"; do
+            curl -sf -X POST "$api/api/auth/sign-up/email" \
+              -H "Content-Type: application/json" -H "Origin: $api" \
+              -d "{\"email\":\"$email\",\"password\":\"$DEMO_PASSWORD\",\"name\":\"Athlète Autonome\"}" > /dev/null
+            psql "$DATABASE_URL" -c "update \"user\" set email_verified = true where email = '$email'"
+            psql "$DATABASE_URL" -c "update profiles set birth_date = '1994-04-04' where id = (select id from \"user\" where email = '$email')"
+          done
+          sharer="$RUNNER_TEMP/sharer.txt"
+          curl -sf -c "$sharer" -X POST "$api/api/auth/sign-in/email" \
+            -H "Content-Type: application/json" -H "Origin: $api" \
+            -d "{\"email\":\"$SHARER_EMAIL\",\"password\":\"$DEMO_PASSWORD\"}" > /dev/null
+          space=$(curl -sf -b "$sharer" -X POST "$api/api/v1/me/personal-space" \
+            -H "Content-Type: application/json" -H "Origin: $api" \
+            -d '{"firstName":"Camille","lastName":"Partage","termsAccepted":true,"consents":{"health":true,"video":false}}')
+          org=$(echo "$space" | jq -r '.organizationId')
+          athlete=$(echo "$space" | jq -r '.athleteId')
+          exercise=$(curl -sf -b "$sharer" "$api/api/v1/orgs/$org/exercises" | jq -r '[.[] | select(.name | startswith("Squat arrière"))][0].id')
+          curl -sf -b "$sharer" -X POST "$api/api/v1/orgs/$org/athletes/$athlete/strength-tests" \
+            -H "Content-Type: application/json" -H "Origin: $api" \
+            -d "{\"exerciseId\":\"$exercise\",\"exerciseKey\":\"exercise:$exercise\",\"value\":80,\"kind\":\"one_rm\",\"date\":\"2026-11-01\"}" > /dev/null
+          rm -f "$sharer"
       - name: Xcode 26
         # Expo SDK 55 exige le Swift de Xcode 26 ; l'image du runner garde Xcode 16 par défaut.
         run: |
@@ -264,6 +296,7 @@ jobs:
             -e API_URL=http://localhost:3000
             -e NO_AGE_EMAIL="$NO_AGE_EMAIL"
             -e NEWCOMER_EMAIL="$NEWCOMER_EMAIL"
+            -e NOSPACE_EMAIL="$NOSPACE_EMAIL"
             -e PASSWORD="$DEMO_PASSWORD")
           status=0
           maestro test .maestro --format junit --output "$RUNNER_TEMP/maestro.xml" --debug-output "$RUNNER_TEMP/maestro" --flatten-debug-output \
@@ -293,6 +326,28 @@ jobs:
           seen=$(psql "$DATABASE_URL" -tAc "select count(*) from onboarding_states s join \"user\" u on u.id = s.user_id where u.email = '$NEWCOMER_EMAIL' and s.welcome_seen_at is not null")
           echo "Accueil refermé : $seen"
           test "$seen" = "1"
+      - name: Athlète autonome, de l'inscription à la séance validée, puis le partage (lot AA3)
+        # Parcours à usage unique, hors du lot habituel. La base prouve ce que l'écran a fait : l'espace personnel,
+        # la séance publiée et validée, le partage ouvert puis retiré.
+        if: ${{ !cancelled() }}
+        working-directory: apps/mobile
+        env:
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: "600000"
+        run: |
+          vars=(-e APP_ID=coach.tartan.app.dev -e PASSWORD="$DEMO_PASSWORD" -e API_URL=http://localhost:3000
+            -e COACH_EMAIL=coach@demo.tartan.coach -e SOLO_EMAIL="$SOLO_EMAIL" -e SHARER_EMAIL="$SHARER_EMAIL")
+          status=0
+          for flow in personal-signup history-share; do
+            maestro test ".maestro/once/$flow.yml" --format junit --output "$RUNNER_TEMP/maestro-$flow.xml" \
+              --debug-output "$RUNNER_TEMP/maestro-$flow" --flatten-debug-output "${vars[@]}" || status=1
+          done
+          done_logs=$(psql "$DATABASE_URL" -tAc "select count(*) from session_logs l join athletes a on a.id = l.athlete_id join organizations o on o.id = a.organization_id join \"user\" u on u.id = a.user_id where o.kind = 'personal' and u.email = '$SOLO_EMAIL' and l.status = 'done'")
+          echo "Séances validées dans l'espace personnel : $done_logs"
+          test "$done_logs" -ge 1
+          revoked=$(psql "$DATABASE_URL" -tAc "select count(*) from history_shares h join \"user\" u on u.id = h.user_id where u.email = '$SHARER_EMAIL' and h.revoked_at is not null")
+          echo "Partages retirés : $revoked"
+          test "$revoked" = "1"
+          exit "$status"
       - name: Suppression de compte (T07)
         # Après les autres : ce parcours détruit son compte jetable. Il tourne même si un flux a échoué avant lui.
         if: ${{ !cancelled() }}
