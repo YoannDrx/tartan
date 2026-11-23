@@ -55,6 +55,7 @@ Le fondateur fixe la priorité : **la web app d'abord, entièrement fonctionnell
   - y ranger des fiches communes ou des fiches qu'il crée.
 
   Ce ne sont pas des bibliothèques communautaires publiques, qui restent en V3. Les fiches deviennent plus claires et plus concises.
+
 - **Vidéo en plein écran** avec l'éditeur de remarques, de tracés et de commentaires toujours à portée, sur ordinateur comme sur téléphone.
 - **Planning.** Le glisser-déposer donne un retour visuel et animé : colonne survolée, emplacement, dépôt.
 - **Gestes des exercices.** Placements justes et vraie dynamique, par exemple l'accélération en haltérophilie, avec un personnage plus fin. Une même morphologie reste partagée par tout le produit.
@@ -91,15 +92,22 @@ Ce qui ne change pas : le planificateur ne crée que des brouillons, n'invente n
 
 À la demande du fondateur, le jeu d'athlétisme du site (« Tartan Meeting » : aperçu sur la page d'accueil, page du jeu, classement public et sa modération) est retiré du périmètre. Son ancienne adresse mène à l'accueil. Le groupe d'athlètes et ses épreuves animées restent (film d'accueil, cartes, e-mails, gestes des exercices).
 
+Le même jour, le fondateur ajoute l'**athlète autonome** au périmètre (plan : [docs/plans/athlete-autonome.md](docs/plans/athlete-autonome.md)) :
+
+- **S'inscrire sans coach.** Après la création du compte, un aiguillage propose trois chemins de même rang : « Je suis coach », « Je m'entraîne seul », « J'ai un lien d'invitation ». L'athlète qui s'entraîne seul ouvre un **espace personnel** dont il est l'unique membre : il y planifie et valide ses propres séances, avec le constructeur, le calendrier, les modèles et le planificateur, sans destinataires ; progrès, records, références de force, phases, vidéos, bibliothèque et listes y sont disponibles. Ni groupe, ni athlètes, ni annonces, ni abonnement.
+- **Rejoindre un coach.** Il garde son espace personnel et rejoint le groupe du coach comme tout athlète. Il peut **partager s'il le veut** son historique (records, références de force, historique des séances), case par case, en lecture seule et révocable ; ses données de santé ne sont jamais partagées par ce chemin.
+- **Gratuité avec quotas.** L'espace personnel est gratuit et jamais facturé, avec de petits quotas mensuels : 5 propositions du planificateur, 10 minutes de dictée, 4 vidéos. Aucun prix n'apparaît sur iOS et Android. Ses inscriptions ont leur propre réglage dans la console, ouvert par défaut, distinct de celui des coachs.
+
 ## Offres
 
-Découverte (gratuite), Coach et Club. Les prix et les plafonds ont une seule source, `packages/domain/src/plans.ts` ; le tableau lisible est dans `docs/plans/commercialisation.md`. Les athlètes ne paient jamais.
+Découverte (gratuite), Coach et Club. Les prix et les plafonds ont une seule source, `packages/domain/src/plans.ts` ; le tableau lisible est dans `docs/plans/commercialisation.md`. Les athlètes ne paient jamais : l'espace personnel de l'athlète autonome (offre « Personnel ») est gratuit, hors facturation.
 
 ## Utilisateurs
 
 - Coach principal : terrain et ordinateur. Créer vite, attribuer finement, voir qui a fait quoi, analyser les gestes techniques.
 - Coach adjoint / préparateur physique : gère ses séances, voit les retours.
 - Athlète adulte : vient au club ou s'entraîne seul. Savoir quoi faire, valider sans effort.
+- Athlète autonome : s'entraîne sans coach, dans son espace personnel. Planifier pour lui-même, valider, voir sa progression ; rejoindre un coach un jour sans rien perdre.
 - V1 réservée aux majeurs, en France, sportifs compris (décision du 4 novembre 2026). Le parcours d'accord parental reste dans le code, dormant (`PARENTAL_FLOW_ENABLED`).
 
 ## Plateformes
