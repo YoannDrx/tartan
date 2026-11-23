@@ -9,6 +9,8 @@ const space = vi.hoisted(() => ({ actor: { userId: "", email: "" }, organization
 vi.mock("@/features/shell/space", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/shell/space")>()),
   requireStaffSpace: async () => space,
+  // La fiche s'ouvre aussi à l'athlète autonome, qui planifie dans son espace personnel.
+  requirePlannerSpace: async () => space,
 }));
 
 // La fiche porte ses actions (étoile, listes, personnaliser) : rendue hors du routeur, elles n'en ont pas besoin.
