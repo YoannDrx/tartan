@@ -169,7 +169,7 @@ Détail : [commercialisation](plans/commercialisation.md).
    - Les guides réécrits plus courts.
 8. **Choix visuel.** Le prototype du nouveau personnage (le logo est choisi).
 9. **Essai du planificateur.** Quand l'agent le signale : une vingtaine de vraies consignes, dictées comprises, sur la Preview (environ 20 minutes). C'est la dernière preuve avant le retrait de « bêta » (décision du 21 novembre). Le corpus de 40 consignes et 30 dictées reste possible, sans être bloquant. Le format, le gel et la commande sont dans [planificateur-ia](reference/planificateur-ia.md#corpus-du-fondateur-lot-6) ; l'agent ne lance aucun appel payant.
-10. **Ouverture des inscriptions.** En production, la création d'un espace coach et celle d'un espace d'athlète autonome sont fermées (`COACH_SIGNUP_MODE` et `ATHLETE_SIGNUP_MODE` à `closed`, aucun réglage contraire en base). Tu les ouvres, ensemble ou séparément, dans `/admin/configuration`.
+10. **Inscriptions.** Ouvertes en production le 23 novembre à ta demande, pour les coachs et pour les athlètes autonomes (réglages `signupMode` et `athleteSignupMode` à `public` dans `platform_settings`). Sans ces réglages, les deux variables d'environnement les tiennent fermées. Tu les refermes, ensemble ou séparément, dans `/admin/configuration`.
 11. **Recettes et ouverture.** Paiement réel accompagné, e-mails sur Outlook et iCloud, recette sur tes téléphones, pilote sans guidage, puis décision d'ouverture.
 
 Le mot de passe des comptes de démonstration de la Preview est dans `.local/preview-demo-password`, sur le poste de l'agent qui l'a créé, jamais dans le dépôt.
