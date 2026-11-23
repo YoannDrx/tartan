@@ -42,7 +42,8 @@ env:
 - tapOn:
     id: settings-rubric-aide
 - extendedWaitUntil:
-    visible: "Centre d'aide"
+    # La rangée se lit d'un bloc : « Centre d'aide. Les réponses aux questions fréquentes, par thème. »
+    visible: "Centre d'aide\\..*"
     timeout: 10000
 - assertVisible:
     id: open-first-steps
