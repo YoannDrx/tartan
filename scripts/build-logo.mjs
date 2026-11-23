@@ -62,6 +62,39 @@ const lockup = ({ background = BRICK, text = INK } = {}) => {
   );
 };
 
+// Le mot « Tartan » dont le T est la marque (en-tête du site, décision du fondateur du 23 novembre 2026). La marque
+// prend la hauteur des capitales de Barlow Condensed Bold, pied de la ligne d'arrivée sur la ligne de base, et
+// « artan » la suit à la même distance que ses lettres entre elles : les bras carrés de la marque ne laissent pas le
+// « a » se glisser dessous comme derrière le T de la police. Deux masques d'un même cadre, que le site peint en CSS
+// dans la couleur du texte : la lettre et « artan », puis la ligne d'arrivée.
+const wordmark = () => {
+  const size = 150;
+  const [t, a, r] = font.stringToGlyphs("Tar");
+  const scale = size / font.unitsPerEm;
+  const tBox = t.getPath(0, 0, size).getBoundingBox();
+  const cap = -tBox.y1;
+  const g = cap / 102.4;
+  const glyphRight = tBox.x1 + 108.8 * g;
+  const aBox = a.getBoundingBox();
+  // L'écart visible entre « a » et « r » dans le mot, repris entre la marque et « a ».
+  const gap = (a.advanceWidth + font.getKerningValue(a, r) + r.getBoundingBox().x1 - aBox.x2) * scale;
+  const after = glyphRight + gap - aBox.x1 * scale;
+  const rest = font.getPath("artan", after, 0, size);
+  const restBox = rest.getBoundingBox();
+  const x = Math.floor(tBox.x1);
+  const width = Math.ceil(restBox.x2) - x;
+  const bottom = Math.max(0, Math.ceil(restBox.y2));
+  const height = Math.ceil(cap) + bottom;
+  const at = `translate(${(tBox.x1 - 25.6 * g).toFixed(3)} ${(-cap - 32 * g).toFixed(3)}) scale(${g.toFixed(5)})`;
+  const viewBox = `${x} ${-Math.ceil(cap)} ${width} ${height}`;
+  const letters = svg(
+    viewBox,
+    `<g transform="${at}">${glyph({ accent: "none" })}</g>\n<path fill="${WHITE}" d="${rest.toPathData(2)}"/>`,
+  );
+  const line = svg(viewBox, `<g transform="${at}">${rect(57.6, 121.6, 44.8, 12.8, LEMON)}</g>`);
+  return { letters, line, width, height };
+};
+
 // L'image de partage : le logotype et la promesse sur la piste, entre deux lignes de couloir.
 const share = () => {
   const name = font.getPath("Tartan", 392, 318, 230);
@@ -91,6 +124,10 @@ writeFileSync(path.join(brand, "logo.svg"), lockup());
 writeFileSync(path.join(brand, "logo-mono.svg"), lockup({ background: INK }));
 writeFileSync(path.join(brand, "logo-on-dark.svg"), lockup({ text: WHITE }));
 writeFileSync(path.join(web, "favicon.svg"), icon({ small: true }));
+const word = wordmark();
+writeFileSync(path.join(brand, "wordmark-letters.svg"), word.letters);
+writeFileSync(path.join(brand, "wordmark-line.svg"), word.line);
+console.log(`Mot « Tartan » : ${word.width} × ${word.height}.`);
 
 // Web : onglet, écran d'accueil, PWA.
 await png(icon({ small: true }), 32, path.join(web, "favicon-32.png"));

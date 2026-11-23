@@ -1,7 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { PLANS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
-import { ATHLETE_IDS } from "@tartan/mascot/athletes";
 import { expectAccessible, expectNoHorizontalScroll, expectNoMotion } from "./helpers";
 
 const t = m.landing;
@@ -27,52 +26,74 @@ test("la page d'accueil montre le titre et le bouton d'emblée, puis un film qui
   const screens = await filmScreens(page);
   expect(screens).toBeCloseTo(viewport.width < 1024 ? 7.5 : 10, 1);
 
-  // Le film est un relais : le premier athlète est en scène, les deux autres attendent leur tour.
-  const athletes = page.locator("[data-film-athlete]");
-  await expect(athletes).toHaveCount(3);
-  await expect(page.locator('[data-film-athlete="hurdles"]')).toBeVisible();
-  await expect(page.locator('[data-film-athlete="highJump"]')).toBeHidden();
+  // Un seul geste répond au défilement : le saut en hauteur de Noé, du titre jusqu'à la validation.
+  await expect(page.locator("[data-film-athlete]")).toHaveCount(1);
+  await expect(page.locator('[data-film-athlete="highJump"]')).toBeVisible();
 
-  // Au bout du film, c'est le troisième qui a pris le relais.
+  // Au franchissement, le monde a changé ; le sauteur est toujours là.
   await page.evaluate(() => {
     const film = document.querySelector(".film")!.getBoundingClientRect();
     window.scrollTo(0, film.top + window.scrollY + 0.7 * (film.height - window.innerHeight));
   });
-  await expect(page.locator('[data-film-athlete="highJump"]')).toBeVisible();
-  await expect(page.locator('[data-film-athlete="hurdles"]')).toBeHidden();
   await expect(page.locator(".film")).toHaveAttribute("data-world", "nuit");
+  await expect(page.locator('[data-film-athlete="highJump"]')).toBeVisible();
 });
 
-test("le groupe se présente, un seul athlète joue son geste à la fois", async ({ page }) => {
+test("l'en-tête écrit Tartan avec la marque pour T, lu « Tartan »", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
-  const band = page.getByRole("list", { name: t.group.label });
-  await band.scrollIntoViewIfNeeded();
-  await expect(band.locator("[data-athlete]")).toHaveCount(ATHLETE_IDS.length);
-  for (const id of ATHLETE_IDS) {
-    await expect(band.getByText(m.group.events[id], { exact: true })).toBeAttached();
+  const word = page.locator(".film-chrome .wordmark");
+  await expect(word).toHaveAttribute("role", "img");
+  await expect(word).toHaveAttribute("aria-label", "Tartan");
+  // La hauteur d'un logotype lisible (DESIGN.md : 24 px au moins), et ses deux masques servis.
+  expect((await word.boundingBox())!.height).toBeGreaterThanOrEqual(24);
+  for (const file of ["wordmark-letters.svg", "wordmark-line.svg"]) {
+    expect((await page.request.get(`/brand/${file}`)).ok()).toBe(true);
   }
+});
 
-  // Un geste qui joue redessine sa scène d'image en image ; les autres ne bougent pas.
-  const moving = async () => {
-    const before = await band.locator("svg").evaluateAll((scenes) => scenes.map((scene) => scene.innerHTML));
-    await page.waitForTimeout(250);
-    const after = await band.locator("svg").evaluateAll((scenes) => scenes.map((scene) => scene.innerHTML));
-    return before.map((scene, index) => scene !== after[index]).filter(Boolean).length;
-  };
-  await expect.poll(moving).toBe(1);
-
-  // La bande défile de côté sur téléphone, et se parcourt au clavier.
-  if (phone(page)) {
-    expect(await band.evaluate((list) => list.scrollWidth > list.clientWidth)).toBe(true);
-    await expect(band).toHaveAttribute("tabindex", "0");
+test("les écrans du coach et de l'athlète se parcourent par onglets, au clavier comme au doigt", async ({ page }) => {
+  await page.goto("/", { waitUntil: "networkidle" });
+  for (const side of [t.coach, t.athlete]) {
+    const tabs = page.getByRole("tablist", { name: side.tabs, exact: true });
+    await tabs.scrollIntoViewIfNeeded();
+    await expect(tabs.getByRole("tab")).toHaveCount(Object.keys(side.features).length);
+    // Un seul écran à la fois, chacun avec son texte de remplacement.
+    const first = tabs.getByRole("tab").first();
+    await expect(first).toHaveAttribute("aria-selected", "true");
+    await first.focus();
+    await page.keyboard.press("ArrowRight");
+    const second = tabs.getByRole("tab").nth(1);
+    await expect(second).toBeFocused();
+    await expect(second).toHaveAttribute("aria-selected", "true");
+    const panel = page.getByRole("tabpanel", { name: await second.innerText(), exact: true });
+    const image = panel.getByRole("img");
+    await expect(image).toHaveCount(1);
+    await expect.poll(() => image.evaluate((el) => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    if (phone(page)) {
+      // Sur téléphone, la capture précède le texte qui la commente.
+      const [shot, title] = await Promise.all([image.boundingBox(), panel.getByRole("heading").boundingBox()]);
+      expect(shot!.y).toBeLessThan(title!.y);
+    }
+    await page.keyboard.press("End");
+    await expect(tabs.getByRole("tab").last()).toHaveAttribute("aria-selected", "true");
+  }
+  for (const feature of [...Object.values(t.coach.features), ...Object.values(t.athlete.features)]) {
+    expect(feature.alt.length, feature.tab).toBeGreaterThan(40);
   }
   await expectNoHorizontalScroll(page);
+  await expectAccessible(page);
+
+  // L'application est ouverte à tous : ni pilote, ni bêta, ni légende de capture.
+  const text = (await page.locator("body").innerText()).toLowerCase();
+  for (const word of ["pilote", "bêta", "fictive", "fictif"]) expect(text).not.toContain(word);
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload({ waitUntil: "networkidle" });
-  await page.getByRole("list", { name: t.group.label }).scrollIntoViewIfNeeded();
-  expect(await moving()).toBe(0);
+  await page.getByRole("tablist", { name: t.coach.tabs, exact: true }).scrollIntoViewIfNeeded();
+  await page.getByRole("tab", { name: t.coach.features.planificateur.tab, exact: true }).click();
   await expectNoMotion(page);
+  // Sans mouvement, le film reste sur le sauteur au-dessus de la barre.
+  await expect(page.locator('[data-film-athlete="highJump"]')).toBeVisible();
 });
 
 test("les tarifs se lisent en cartes sur téléphone, en tableau au-delà", async ({ page }) => {

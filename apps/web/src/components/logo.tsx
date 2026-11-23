@@ -17,7 +17,10 @@ export const Logo = ({ height = 32, onDark = false }: { height?: number; onDark?
   />
 );
 
-// Sur le rouge, le logotype blanc seul : l'icône rouge s'y perdrait (DESIGN.md).
+// Le mot « Tartan » dont le T est la marque (décision du fondateur du 23 novembre 2026). Ses deux masques viennent de
+// `scripts/build-logo.mjs` ; `.wordmark` (globals.css) les peint dans la couleur du texte de la page, la ligne
+// d'arrivée en citron sur la piste et l'encre, d'une seule couleur sur un fond clair (DESIGN.md, Logo). Un seul nom
+// pour les lecteurs d'écran : « Tartan ».
 export const Wordmark = ({ className }: { className?: string }) => (
-  <span className={cn("font-display text-[34px] font-bold leading-none text-on-page", className)}>{w.shell.brand}</span>
+  <span role="img" aria-label={w.shell.brand} className={cn("wordmark text-on-page", className)} />
 );

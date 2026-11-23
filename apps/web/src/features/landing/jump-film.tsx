@@ -4,12 +4,10 @@ import { athletePaint } from "@tartan/design-tokens/athletes";
 import { m } from "@tartan/i18n";
 import type { AthleteId } from "@tartan/mascot/athletes";
 import { smooth } from "@tartan/mascot/clip";
-import { svgProp, type PropPaint, type PropShape } from "@tartan/mascot/props";
 import type { AthletePaint } from "@tartan/mascot/skeleton";
-import type { MotionSink } from "@tartan/mascot/v2/player";
 import { poseNodes, poseRoot, poseSink, svgPoseFigure } from "@tartan/mascot/v2/pose-figure";
 import { Check } from "lucide-react";
-import { createElement, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { FigureGroup } from "@/components/jumper";
 import {
   BAR,
@@ -24,8 +22,6 @@ import {
   highJumpTime,
   IMPACT,
   MAT_TOP,
-  sceneProps,
-  SCENES,
   T,
   TRAIL_LENGTH,
   TRAIL_PATH,
@@ -33,7 +29,6 @@ import {
   WORLD_AT,
   WORLD_SURFACE,
   type FilmWorld,
-  type SceneId,
 } from "./jump-film-pose";
 
 const f = m.landing.film;
@@ -42,68 +37,36 @@ const STAGE_HEIGHT = 900;
 // Hauteur occupée par le titre et sa remarque, et hauteur du saut au-dessus du bas de la scène.
 const TEXT_ROOM = 290;
 const ACTION_HEIGHT = 860;
+// Le sauteur : Noé, l'athlète de la hauteur.
+const JUMPER: AthleteId = "highJump";
 
-// La frise : une promesse par athlète, puis la validation.
+// La frise : une promesse par phase du saut, puis la validation.
 const PHASES = [
-  { key: "programme", from: FILM.hurdles, to: FILM.poleVault },
-  { key: "travail", from: FILM.poleVault, to: FILM.highJump },
-  { key: "geste", from: FILM.highJump, to: FILM.impact },
+  { key: "programme", from: FILM.start, to: FILM.plant },
+  { key: "travail", from: FILM.plant, to: FILM.flight },
+  { key: "geste", from: FILM.flight, to: FILM.impact },
   { key: "valide", from: FILM.impact, to: FILM.finish },
 ] as const;
-// Jusqu'où le cadre suit un coureur sur un écran étroit : la largeur d'une scène, et un peu de marge.
+// Jusqu'où le cadre suit le sauteur sur un écran étroit : la largeur de la scène, et un peu de marge.
 const SCENE_REACH = 1460;
-// La piste sous le coureur des deux premières scènes : une ligne au sol, qui se trace avec lui.
-const GROUND_TRAIL = `M -60 ${GROUND + 6} H 1700`;
 
 const round = (value: number) => Math.round(value * 100) / 100;
 
-// Chaque athlète porte ses couleurs dans des variables : elles changent avec le monde traversé, sans rendu React.
+// Le sauteur porte ses couleurs dans des variables : elles changent avec le monde traversé, sans rendu React.
 const PAINT_ROLES = ["skin", "tee", "shorts", "shoe", "hair", "eye", "bib", "mark"] as const;
 const VARS = Object.fromEntries(PAINT_ROLES.map((role) => [role, `var(--a-${role})`])) as AthletePaint;
-const paintVars = (id: AthleteId, world: FilmWorld) => {
-  const paint = athletePaint(id, WORLD_SURFACE[world]);
+const paintVars = (world: FilmWorld) => {
+  const paint = athletePaint(JUMPER, WORLD_SURFACE[world]);
   return PAINT_ROLES.map((role) => [`--a-${role}`, paint[role]] as const);
-};
-
-// Les accessoires prennent les couleurs du film, qui suivent elles aussi le monde traversé (globals.css).
-const PROP: PropPaint = {
-  lane: "var(--film-line)",
-  bar: "var(--film-bar)",
-  post: "var(--film-post)",
-  mat: "var(--color-film-mat-blue)",
-  matTop: "var(--color-film-mat-red)",
-  sand: "var(--color-film-sun-light)",
-  board: "var(--film-line)",
-  foul: "var(--film-mark)",
-  pole: "var(--film-mark)",
-  hurdle: "var(--film-line)",
-  discus: "var(--film-mark)",
-};
-const Props = ({ shapes }: { shapes: PropShape[] }) =>
-  shapes.map((shape, index) => {
-    const { tag, ...attributes } = svgProp(shape, PROP[shape.paint]);
-    return createElement(tag, { key: index, ...attributes });
-  });
-// Ce qui ne bouge pas dans chaque scène. La perche, elle, se redessine à chaque image.
-const HURDLES_PROPS = sceneProps("hurdles", FILM.hurdles);
-const VAULT_PROPS = sceneProps("poleVault", FILM.poleVault).filter((shape) => shape.kind !== "curve");
-const poleOf = (time: number) => {
-  const pole = sceneProps("poleVault", time).find((shape) => shape.kind === "curve");
-  const path = pole ? svgProp(pole, PROP.pole) : null;
-  return path?.tag === "path" ? path.d : "";
 };
 
 const START = frameAt(0);
 
-// Un athlète du relais : le corps du moteur des gestes, au départ de sa scène. Une fois le film monté, le lecteur
-// redessine ce corps à chaque image, visage compris.
-const FilmAthlete = ({ id, shown }: { id: AthleteId; shown: boolean }) => (
-  <g
-    data-film-athlete={id}
-    display={shown ? undefined : "none"}
-    style={Object.fromEntries(paintVars(id, "piste")) as CSSProperties}
-  >
-    <FigureGroup data-film-body="" figure={svgPoseFigure(id, START.face, START.pose, VARS, START.pose)} />
+// Le corps du moteur des gestes, à son départ. Une fois le film monté, le lecteur le redessine à chaque image,
+// visage compris.
+const FilmAthlete = () => (
+  <g data-film-athlete={JUMPER} style={Object.fromEntries(paintVars("piste")) as CSSProperties}>
+    <FigureGroup data-film-body="" figure={svgPoseFigure(JUMPER, START.face, START.pose, VARS, START.pose)} />
   </g>
 );
 
@@ -153,19 +116,10 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
     // Les éléments animés sont repérés au montage : le rendu React ne les touche plus ensuite.
     const find = <E extends Element>(name: string) => root.querySelector<E>(`[data-film="${name}"]`);
     // Le corps rendu par le serveur laisse la place au lecteur, qui le redessine image par image.
-    const athletes = Object.fromEntries(
-      SCENES.map(({ id, athlete }) => {
-        const node = root.querySelector<SVGGElement>(`[data-film-athlete="${athlete}"]`);
-        const body = node?.querySelector<SVGGElement>("[data-film-body]") ?? null;
-        body?.replaceChildren();
-        return [id, { id: athlete, node, body, sink: body ? poseSink(document, body, VARS) : null }];
-      }),
-    ) as Record<
-      SceneId,
-      { id: AthleteId; node: SVGGElement | null; body: SVGGElement | null; sink: MotionSink | null }
-    >;
-    const sets = Array.from(root.querySelectorAll<SVGGElement>("[data-scene]"));
-    const pole = find<SVGPathElement>("pole");
+    const athlete = root.querySelector<SVGGElement>(`[data-film-athlete="${JUMPER}"]`);
+    const body = athlete?.querySelector<SVGGElement>("[data-film-body]") ?? null;
+    body?.replaceChildren();
+    const sink = body ? poseSink(document, body, VARS) : null;
     const trail = find<SVGPathElement>("trail");
     const bar = find<SVGGElement>("bar");
     const stripes = find<SVGGElement>("stripes");
@@ -175,13 +129,12 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
     const confetti = Array.from(root.querySelectorAll<SVGGElement>("[data-confetti]"));
     const beats = Array.from(root.querySelectorAll<HTMLElement>(".film-beat"));
 
-    let lastScene: SceneId | "" = "";
     let lastBeat = -1;
     let lastWorld = "";
     let viewWidth = STAGE_WIDTH;
     let viewHeight = STAGE_HEIGHT;
 
-    // Scène fixe sur grand écran. Sur un écran étroit, le cadre suit le coureur et le ciel s'agrandit.
+    // Scène fixe sur grand écran. Sur un écran étroit, le cadre suit le sauteur et le ciel s'agrandit.
     const frameView = (x: number) => {
       const left = viewWidth >= STAGE_WIDTH ? 0 : Math.min(Math.max(x - viewWidth * 0.36, 0), SCENE_REACH - viewWidth);
       svg.setAttribute(
@@ -205,39 +158,26 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
       node?.setAttribute("display", on ? "inline" : "none");
 
     const render = (time: number) => {
-      const { scene, pose, face, running } = frameAt(time);
-      const athlete = athletes[scene];
+      const { pose, face, running } = frameAt(time);
       const world = WORLD_AT(time);
-
-      // Le passage de relais : un athlète quitte la scène, le suivant y entre avec son décor.
-      if (scene !== lastScene) {
-        for (const id of Object.keys(athletes) as SceneId[]) show(athletes[id].node, id === scene);
-        for (const set of sets) show(set, set.dataset.scene === scene);
-        trail?.setAttribute("d", scene === "highJump" ? TRAIL_PATH : GROUND_TRAIL);
-        lastScene = scene;
-        lastWorld = "";
-      }
       if (world !== lastWorld) {
         root.dataset.world = world;
-        for (const [name, value] of paintVars(athlete.id, world)) athlete.node?.style.setProperty(name, value);
+        for (const [name, value] of paintVars(world)) athlete?.style.setProperty(name, value);
         lastWorld = world;
       }
 
       // La pose du film porte aussi la position du bassin : elle place le corps, que le lecteur redessine.
-      athlete.body?.setAttribute("transform", poseRoot(pose));
-      athlete.sink?.render(poseNodes(athlete.id, face, pose));
+      body?.setAttribute("transform", poseRoot(pose));
+      sink?.render(poseNodes(JUMPER, face, pose));
       frameView(pose.x);
-      if (scene === "poleVault") pole?.setAttribute("d", poleOf(time));
 
-      // Le saut en hauteur garde ses propres seuils : ses effets se règlent sur sa durée à lui.
-      const jump = scene === "highJump" ? highJumpTime(time) : -1;
-      const ground = scene === "highJump" ? trailAt(jump) : time < FILM.hurdles ? 0 : pose.x + 60;
-      trail?.setAttribute("stroke-dasharray", `${round(ground)} ${TRAIL_LENGTH + 2000}`);
-      bar?.setAttribute("transform", `rotate(${round(jump < 0 ? 0 : barWobble(jump))} ${BAR.farX} ${BAR.farY})`);
+      const jump = highJumpTime(time);
+      trail?.setAttribute("stroke-dasharray", `${round(trailAt(jump))} ${TRAIL_LENGTH + 2000}`);
+      bar?.setAttribute("transform", `rotate(${round(barWobble(jump))} ${BAR.farX} ${BAR.farY})`);
 
       show(stripes, running);
       if (running) {
-        const stretch = scene === "highJump" ? 0.5 + smooth(T.run, T.runEnd, jump) : 1.2;
+        const stretch = 0.5 + smooth(T.run, T.runEnd, jump);
         stripes?.setAttribute(
           "transform",
           `translate(${round(pose.x - 74)} ${round(pose.y)}) scale(${round(stretch)} 1)`,
@@ -276,7 +216,7 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
         lastBeat = beatNow;
       }
 
-      const progress = Math.min(Math.max((time - FILM.hurdles) / (FILM.finish - FILM.hurdles), 0), 1);
+      const progress = Math.min(Math.max((time - FILM.start) / (FILM.finish - FILM.start), 0), 1);
       cursor?.style.setProperty("left", `${round(progress * 100)}%`);
     };
 
@@ -292,8 +232,7 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
       measure();
       render(FILM_STILL);
       root.dataset.world = "piste";
-      const still = athletes.highJump;
-      for (const [name, value] of paintVars(still.id, "piste")) still.node?.style.setProperty(name, value);
+      for (const [name, value] of paintVars("piste")) athlete?.style.setProperty(name, value);
       return;
     }
 
@@ -349,41 +288,25 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
             strokeWidth="5"
           />
 
-          <g data-scene="hurdles">
-            <Props shapes={HURDLES_PROPS} />
-          </g>
-          <g data-scene="poleVault" display="none">
-            <Props shapes={VAULT_PROPS.filter((shape) => !shape.front)} />
-            <path
-              data-film="pole"
-              d={poleOf(FILM.poleVault)}
-              fill="none"
-              stroke={PROP.pole}
-              strokeWidth="9"
-              strokeLinecap="round"
-            />
-          </g>
-          <g data-scene="highJump" display="none">
-            <line
-              x1={BAR.farX}
-              y1={MAT_TOP + 10}
-              x2={BAR.farX}
-              y2={BAR.farY - 22}
-              stroke="var(--film-post)"
-              strokeWidth="12"
-              strokeLinecap="round"
-            />
-            <polygon
-              points={`800,${MAT_TOP + 38} 836,${MAT_TOP} 1800,${MAT_TOP} 1800,${MAT_TOP + 38}`}
-              fill="var(--color-film-mat-red)"
-            />
-            <line x1="836" y1={MAT_TOP + 2} x2="1800" y2={MAT_TOP + 2} stroke="var(--color-lane)" strokeWidth="5" />
-            <rect x="800" y={MAT_TOP + 38} width="1000" height="172" fill="var(--color-film-mat-blue)" />
-          </g>
+          <line
+            x1={BAR.farX}
+            y1={MAT_TOP + 10}
+            x2={BAR.farX}
+            y2={BAR.farY - 22}
+            stroke="var(--film-post)"
+            strokeWidth="12"
+            strokeLinecap="round"
+          />
+          <polygon
+            points={`800,${MAT_TOP + 38} 836,${MAT_TOP} 1800,${MAT_TOP} 1800,${MAT_TOP + 38}`}
+            fill="var(--color-film-mat-red)"
+          />
+          <line x1="836" y1={MAT_TOP + 2} x2="1800" y2={MAT_TOP + 2} stroke="var(--color-lane)" strokeWidth="5" />
+          <rect x="800" y={MAT_TOP + 38} width="1000" height="172" fill="var(--color-film-mat-blue)" />
 
           <path
             data-film="trail"
-            d={GROUND_TRAIL}
+            d={TRAIL_PATH}
             fill="none"
             stroke="var(--film-line)"
             strokeWidth="7"
@@ -399,29 +322,27 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
             strokeWidth="8"
           />
 
-          <g data-scene="highJump" display="none">
-            <g data-film="bar">
-              <line
-                x1={BAR.farX}
-                y1={BAR.farY}
-                x2={BAR.nearX}
-                y2={BAR.nearY}
-                stroke="var(--film-bar)"
-                strokeWidth="10"
-                strokeLinecap="round"
-              />
-            </g>
+          <g data-film="bar">
             <line
-              x1={BAR.nearX}
-              y1={GROUND + 72}
+              x1={BAR.farX}
+              y1={BAR.farY}
               x2={BAR.nearX}
-              y2={BAR.nearY - 28}
-              stroke="var(--film-post)"
-              strokeWidth="18"
+              y2={BAR.nearY}
+              stroke="var(--film-bar)"
+              strokeWidth="10"
               strokeLinecap="round"
             />
-            <rect x={BAR.nearX - 50} y={GROUND + 66} width="100" height="16" rx="8" fill="var(--film-post)" />
           </g>
+          <line
+            x1={BAR.nearX}
+            y1={GROUND + 72}
+            x2={BAR.nearX}
+            y2={BAR.nearY - 28}
+            stroke="var(--film-post)"
+            strokeWidth="18"
+            strokeLinecap="round"
+          />
+          <rect x={BAR.nearX - 50} y={GROUND + 66} width="100" height="16" rx="8" fill="var(--film-post)" />
 
           <circle data-film="bloom" display="none" cx={IMPACT.x} cy={IMPACT.y + 40} fill="var(--color-film-lime)" />
 
@@ -434,13 +355,7 @@ export const JumpFilm = ({ header, cta, offer }: { header: ReactNode; cta: React
             />
           </g>
 
-          {SCENES.map(({ id, athlete }) => (
-            <FilmAthlete key={id} id={athlete} shown={id === START.scene} />
-          ))}
-          {/* Le poteau proche de la perche passe devant le perchiste. */}
-          <g data-scene="poleVault" display="none">
-            <Props shapes={VAULT_PROPS.filter((shape) => shape.front)} />
-          </g>
+          <FilmAthlete />
 
           {CONFETTI.map((piece, index) => (
             <g key={index} display="none" data-confetti="" fill={`var(--film-confetti-${piece.color})`}>
