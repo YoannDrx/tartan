@@ -25,7 +25,12 @@ export default async function SoloWelcomePage() {
   // Les comptes créés avant le correctif de `splitName` ont le début de leur adresse comme prénom.
   const firstName = me.firstName && me.firstName !== actor.email.split("@")[0] ? me.firstName : "";
   return (
-    <PublicPage title={w.welcome.soloForm.title} lead={w.welcome.soloForm.lead} scene={<OnboardingScene />} scenePhone={false}>
+    <PublicPage
+      title={w.welcome.soloForm.title}
+      lead={w.welcome.soloForm.lead}
+      scene={<OnboardingScene />}
+      scenePhone={false}
+    >
       {me.spaces.length === 0 ? (
         <Link href="/bienvenue" className="flex min-h-11 items-center self-start font-semibold">
           {w.welcome.back}

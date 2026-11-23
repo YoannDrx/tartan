@@ -11,7 +11,11 @@ const mark = (value: number) => String(value).replace(".", ",");
 // Sur la fiche de l'athlète, côté coach : ce qu'il a fait seul, dans son espace personnel, s'il le partage. Lecture
 // seule, cases choisies par l'athlète ; ni effort ressenti, ni douleur, ni blessure.
 export const SharedHistorySection = ({ history }: { history: NonNullable<SharedHistory> }) => (
-  <section id="historique-partage" aria-labelledby="historique-partage-titre" className="flex scroll-mt-24 flex-col gap-2">
+  <section
+    id="historique-partage"
+    aria-labelledby="historique-partage-titre"
+    className="flex scroll-mt-24 flex-col gap-2"
+  >
     <h2 id="historique-partage-titre" className="t-section">
       {t.coachTitle}
     </h2>
@@ -22,7 +26,10 @@ export const SharedHistorySection = ({ history }: { history: NonNullable<SharedH
           {history.records.length === 0 ? <p className="text-soft">{t.coachEmpty}</p> : null}
           <Rows>
             {history.records.map((record, index) => (
-              <li key={`${record.discipline}-${record.date}-${index}`} className="flex items-center justify-between gap-3 py-2">
+              <li
+                key={`${record.discipline}-${record.date}-${index}`}
+                className="flex items-center justify-between gap-3 py-2"
+              >
                 <span className="min-w-0 leading-snug">
                   <span className="flex flex-wrap items-center gap-2 font-semibold">
                     {record.discipline}
@@ -43,7 +50,10 @@ export const SharedHistorySection = ({ history }: { history: NonNullable<SharedH
           {history.strength.length === 0 ? <p className="text-soft">{t.coachEmpty}</p> : null}
           <Rows>
             {history.strength.map((test, index) => (
-              <li key={`${test.exercise}-${test.date}-${index}`} className="flex items-center justify-between gap-3 py-2">
+              <li
+                key={`${test.exercise}-${test.date}-${index}`}
+                className="flex items-center justify-between gap-3 py-2"
+              >
                 <span className="min-w-0 leading-snug">
                   <span className="block font-semibold">{test.exercise}</span>
                   <span className="t-caption block font-normal text-soft">
