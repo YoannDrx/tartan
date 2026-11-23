@@ -4,7 +4,7 @@ import { w } from "@tartan/i18n/web";
 import Link from "next/link";
 import { EmptyState, PageHeader } from "@/components/states";
 import { ExerciseDetail, SheetActions } from "@/features/exercises/exercise-sheet";
-import { orNotFound, requireStaffSpace } from "@/features/shell/space";
+import { orNotFound, requirePlannerSpace } from "@/features/shell/space";
 import { VideoList } from "@/features/videos/video-list";
 import { videoEnabled } from "@/lib/mux";
 import { getExerciseSheet } from "@/server/exercise.service";
@@ -20,7 +20,7 @@ export default async function ExercisePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ modifier?: string }>;
 }) {
-  const { actor, organizationId } = await requireStaffSpace();
+  const { actor, organizationId } = await requirePlannerSpace();
   const { id } = await params;
   const { modifier } = await searchParams;
   const exercise = await orNotFound(() => getExerciseSheet(actor.userId, organizationId, id));

@@ -1,5 +1,12 @@
 // Atelier d'administration : relecture des gestes animés.
 export const admin = {
+  // Réglage distinct de celui des coachs : l'athlète autonome ouvre seul son espace personnel, gratuit.
+  athleteSignup: {
+    label: "Inscriptions des athlètes autonomes",
+    closed: "Fermées",
+    open: "Ouvertes à tous",
+    hint: "Espace personnel gratuit, sans coach. L'invitation d'un coach reste toujours possible.",
+  },
   // Abonnements, factures et litiges de la console.
   billing: {
     statusFilter: "État",

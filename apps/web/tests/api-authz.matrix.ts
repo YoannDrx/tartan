@@ -18,6 +18,8 @@ import { ensureExerciseCatalog } from "@/server/exercise-catalog.service";
 import { icalLink } from "@/server/ical.service";
 import { groupInvitationLink } from "@/server/invitation.service";
 import { addPerformance } from "@/server/performance.service";
+import { shareHistory } from "@/server/history-share.service";
+import { createPersonalSpace } from "@/server/personal-space.service";
 import {
   getSessionForEdit,
   previewPrescriptionRefresh,
@@ -26,6 +28,7 @@ import {
   saveTemplate,
 } from "@/server/session.service";
 import { saveTrainingPhase } from "@/server/training-phases.service";
+import { addAthlete } from "./helpers";
 import { buildPersonas, sessionCookie, type Personas } from "./personas";
 
 // Matrice d'accès HTTP (T04 de docs/tests/automatisation.md).
@@ -131,6 +134,10 @@ export const buildWorld = async (planner: PlannerMode) => {
     data: { lastName: SENTINELLES.autreEspace },
   });
   await addCoachNote(owner, org, p.athlete.athleteId, SENTINELLES.notePrivee);
+  // Un athlète du premier groupe qui s'entraîne aussi seul, et partage son historique personnel avec l'espace principal.
+  const autonome = await addAthlete(org, p.main.groups.first, "Autonome");
+  await createPersonalSpace(autonome.userId, { firstName: "Athlète", lastName: "Autonome", termsAccepted: true });
+  await shareHistory(autonome.userId, { organizationId: org, scopes: ["records", "strength", "sessions"] });
   const injury = { organizationId: org, bodyArea: "knee", startDate: new Date(`${TODAY}T00:00:00Z`) };
   await prisma.injury.createMany({
     data: [
@@ -243,6 +250,7 @@ export const buildWorld = async (planner: PlannerMode) => {
     videoId: video.id,
     pendingVideoId: pendingVideo.id,
     athleteId: p.athlete.athleteId,
+    autonomeId: autonome.athleteId,
     invitationToken: invitation.link.split("/").pop()!,
     icalPath: new URL(await icalLink(p.athleteAutreGroupe.userId, org)).pathname.split("/").slice(-2),
     unsubscribeToken: unsubscribeUrl(p.athleteAutreGroupe.userId, "digest").split("/").pop()!,
@@ -457,6 +465,21 @@ export const MATRICE: Row[] = [
     ...compte(),
     call: () => ({ body: { name: "Espace de la matrice", type: "independent", firstGroupName: "Groupe" } }),
   },
+  // Inscriptions des athlètes autonomes ouvertes : tout compte majeur ouvre son espace personnel, un seul, à lui.
+  {
+    route: "POST /api/v1/me/personal-space",
+    ...compte(),
+    call: () => ({ body: { firstName: "Matrice", lastName: "Autonome", termsAccepted: true } }),
+  },
+  // Partage de l'historique personnel : seul l'athlète de l'espace partage ; chacun liste et retire les siens.
+  { route: "GET /api/v1/me/history-shares", ...compte() },
+  {
+    route: "POST /api/v1/me/history-shares",
+    // L'athlète de la matrice a ouvert son espace personnel à la ligne « personal-space » : il partage. Les encadrants non.
+    ...athleteSeul,
+    call: (w) => ({ body: { organizationId: w.org, scopes: ["records", "strength", "sessions"] } }),
+  },
+  { route: "DELETE /api/v1/me/history-shares/[orgId]", ...compte() },
   // Le lien de groupe d'un troisième espace : il ne donne jamais accès à l'espace principal.
   {
     route: "POST /api/v1/invitations/[token]/accept",
@@ -553,6 +576,16 @@ export const MATRICE: Row[] = [
     ...membres,
     // Le propriétaire voit les deux groupes ; l'absence du second ailleurs prouve donc quelque chose.
     verifie: (texte, _w, qui) => qui === "proprietaire" && expectPresent(texte, S.autreGroupe),
+  },
+  // L'historique personnel partagé par l'athlète : ses coachs le lisent, lui le lit chez lui, jamais la santé.
+  {
+    route: "GET /api/v1/orgs/[orgId]/athletes/[athleteId]/shared-history",
+    ...gestion,
+    call: (w) => ({ params: { athleteId: w.autonomeId } }),
+    verifie: (texte) => {
+      expectAbsent(texte, S.sante);
+      expectPresent(texte, '"scopes":["records","strength","sessions"]');
+    },
   },
   {
     route: "GET /api/v1/orgs/[orgId]/athletes/[athleteId]",
@@ -1168,6 +1201,12 @@ export const ROUTES_PUBLIQUES: PublicRow[] = [
   { route: "GET /api/live", pourquoi: "Sonde de disponibilité, sans donnée ni lecture de base.", anonyme: 200 },
   { route: "GET /api/health", pourquoi: "Sonde de la base : un statut, aucune donnée.", anonyme: 200 },
   { route: "GET /api/v1/version", pourquoi: "Identifiant du build, lu par tout onglet ouvert.", anonyme: 200 },
+  {
+    route: "GET /api/v1/signup-options",
+    pourquoi:
+      "Deux réglages d'inscription de la console, lus par l'aiguillage avant tout espace ; aucune donnée de personne.",
+    anonyme: 200,
+  },
   {
     route: "GET /api/v1/releases/status",
     pourquoi: "Version minimale de l'application, lue avant la connexion.",

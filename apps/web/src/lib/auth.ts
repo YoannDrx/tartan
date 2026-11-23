@@ -82,6 +82,18 @@ const sendAuthEmail = async (input: Parameters<typeof sendEmail>[0]): Promise<vo
 
 export { rateLimitEnabled };
 
+// Le formulaire d'une invitation pose la page d'où part l'inscription : l'e-mail `account_exists` y ramène.
+export const RETURN_HEADER = "x-tartan-return";
+const INVITATION_PATH = /^\/i\/[A-Za-z0-9._-]{16,200}$/;
+
+// Seul un chemin d'invitation est repris de l'en-tête. Sans lui, une invitation nominative encore ouverte à cette
+// adresse en tient lieu : c'est elle que la personne cherchait à accepter.
+const invitationReturnPath = async (email: string, header: string | null): Promise<string | null> => {
+  if (header && INVITATION_PATH.test(header)) return header;
+  const { openInvitationPathFor } = await import("@/server/invitation-email");
+  return openInvitationPathFor(email);
+};
+
 export const auth = betterAuth({
   baseURL: e.BETTER_AUTH_URL,
   secret: e.BETTER_AUTH_SECRET,
@@ -128,12 +140,17 @@ export const auth = betterAuth({
     // Création demandée sur une adresse déjà inscrite : l'écran répond comme pour un nouveau compte, pour ne pas
     // révéler qu'il existe. Cet e-mail dit la vérité à la seule personne qui lit la boîte ; le mot de passe saisi
     // n'est pas enregistré.
-    onExistingUserSignUp: async ({ user }) => {
+    // Une inscription lancée depuis une invitation y ramène : le lien se connecte puis rouvre l'invitation.
+    onExistingUserSignUp: async ({ user }, request) => {
+      const invitation = await invitationReturnPath(user.email, request?.headers.get(RETURN_HEADER) ?? null);
+      const url = invitation
+        ? `${e.NEXT_PUBLIC_APP_URL}/connexion?next=${encodeURIComponent(invitation)}`
+        : `${e.NEXT_PUBLIC_APP_URL}/connexion`;
       await sendEmail({
         kind: "account_exists",
         to: user.email,
         subject: w.auth.emails.accountExists.subject,
-        react: createElement(AccountExistsEmail, { url: `${e.NEXT_PUBLIC_APP_URL}/connexion` }),
+        react: createElement(AccountExistsEmail, { url, invitation: Boolean(invitation) }),
       }).catch(() => log.warn("account_exists_email_failed"));
     },
     onPasswordReset: async ({ user }) => {

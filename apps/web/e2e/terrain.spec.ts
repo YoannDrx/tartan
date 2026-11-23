@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { m } from "@tartan/i18n";
+import { w } from "@tartan/i18n/web";
 import { createCoachSpace, signUp, uniqueEmail } from "./helpers";
 import { createExercise, groupLink, joinAsAthlete, publishSession } from "./journeys";
 
@@ -112,7 +113,8 @@ test("un compte sans date confirme son âge avant d'entrer", async ({ page }) =>
   await page.getByLabel("Date de naissance").fill("1985-03-14");
   await page.getByRole("button", { name: m.age.confirm }).click();
   await page.getByRole("button", { name: m.age.saveConfirmed, exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Crée ton espace coach" })).toBeVisible({ timeout: 30_000 });
+  // Un compte sans espace arrive sur l'aiguillage : coach, athlète autonome ou invitation.
+  await expect(page.getByRole("heading", { name: w.welcome.title })).toBeVisible({ timeout: 30_000 });
 });
 
 test("un titre tapé dès l'affichage du formulaire n'est pas perdu", async ({ page }) => {

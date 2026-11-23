@@ -19,10 +19,11 @@ import { retryPendingRefunds } from "./billing-refund.service";
 import { queueRenewalNotices, queueTrialReminders } from "./email-outbox.service";
 import { queueInvitationReminders } from "./athlete-email";
 import { queueActivationEmails } from "./lifecycle-email.service";
+import { queueFinishSignupEmails, queuePersonalActivationEmails } from "./personal-email";
 import { snapshotPlatformDay } from "./admin-console.service";
 import { activeAudienceIds, audienceAthleteIds, publishRow, type Publication } from "./session.service";
 import { runCronJobs } from "./cron-runner";
-import { REAL_SPACES } from "./demo-space-guard";
+import { COACH_SPACES, REAL_SPACES } from "./demo-space-guard";
 import { purgeExpiredDemoSpaces } from "./demo-space.service";
 import { purgeRevokedConsentVideos } from "./consent.service";
 import { processExternalDeletions, reconcileExternalAssets } from "./external-deletion.service";
@@ -167,7 +168,7 @@ export const publishScheduledSessions = async (now: Date = new Date()): Promise<
 export const sendEveQuestions = async (now: Date = new Date()): Promise<number> => {
   const tomorrow = addDays(todayIso(now), 1);
   const sessions = await prisma.scheduledSession.findMany({
-    where: { organization: REAL_SPACES, publishedAt: { not: null }, date: toDbDate(tomorrow) },
+    where: { organization: COACH_SPACES, publishedAt: { not: null }, date: toDbDate(tomorrow) },
     select: { id: true, organizationId: true },
   });
   let sent = 0;
@@ -216,6 +217,9 @@ export const runHourlyJobs = async (now: Date = new Date()) => {
     trialReminders: async () => (hourInParis(now) === 9 ? queueTrialReminders(now) : null),
     renewalNotices: async () => (hourInParis(now) === 9 ? queueRenewalNotices(now) : null),
     activationEmails: async () => (hourInParis(now) === 9 ? queueActivationEmails(now) : null),
+    personalActivationEmails: async () => (hourInParis(now) === 9 ? queuePersonalActivationEmails(now) : null),
+    // Chaque heure : « Termine ton inscription » part 24 heures après la création du compte, pas au matin suivant.
+    finishSignupEmails: () => queueFinishSignupEmails(now),
     invitationReminders: async () => (hourInParis(now) === 9 ? queueInvitationReminders(now) : null),
     planLimitNotices: async () => (hourInParis(now) === 9 ? queuePlanLimitNotices(now) : null),
     // 1 h, pas 2 h : 2 h n'existe pas le jour du passage à l'heure d'été.

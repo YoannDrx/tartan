@@ -30,6 +30,8 @@ export const spaceSummary = z.object({
   // Espace de démonstration du coach, avec la date de sa purge. Seule la web app le liste.
   isDemo: z.boolean().optional(),
   demoExpiresAt: z.string().nullable().optional(),
+  // Espace personnel d'un athlète autonome : il en est l'unique membre et y planifie pour lui-même.
+  kind: z.enum(["coach", "personal"]).optional(),
 });
 export type SpaceSummary = z.infer<typeof spaceSummary>;
 

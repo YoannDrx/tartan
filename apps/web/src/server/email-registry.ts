@@ -57,6 +57,13 @@ export const EMAILS = {
   plan_near_limit: { category: "billing", outbox: "plan_near_limit" },
   account_deleted: { category: "account", outbox: "account_deleted" },
   space_transferred: { category: "account", outbox: "space_transferred" },
+  // Athlète autonome : bienvenue à l'ouverture de son espace personnel, conseils sur ses premiers pas.
+  personal_welcome: { category: "account", outbox: "personal_welcome" },
+  personal_activation: { category: "tips", outbox: "personal_activation" },
+  // Compte créé sans espace ni invitation : une fois, 24 heures après.
+  finish_signup: { category: "account", outbox: "finish_signup" },
+  // Au coach : un athlète de son groupe lui partage son historique personnel.
+  history_shared: { category: "account" },
 } as const satisfies Record<string, EmailDefinition>;
 
 export type EmailKey = keyof typeof EMAILS;

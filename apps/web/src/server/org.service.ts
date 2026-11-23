@@ -28,6 +28,7 @@ import { firstNameOf } from "./me.service";
 import { assertWithinPlan, ensurePlans, syncEntitlements } from "./billing.service";
 import { attributeReferral } from "./referral.service";
 import { startOnboarding } from "./onboarding.service";
+import { setConsent } from "./consent.service";
 
 // Les adresses de la liste sont celles du pilote : tout gratuit. Les autres démarrent en Découverte.
 const initialPlan = (email: string): PlanKey => {
@@ -79,6 +80,8 @@ export const createOrganization = async (userId: string, input: CreateOrganizati
     const free = await prisma.organization.count({ where: { ownerId: userId, plan: "discovery", ...REAL_SPACES } });
     if (free > 0) throw new AppError(409, "discovery_limit", m.onboarding.discoveryLimit);
   }
+  // Les conditions acceptées à l'écran sont tracées, par le web comme par `POST /api/v1/orgs`.
+  if (input.termsAccepted) await setConsent(userId, "terms", true);
   const organization = await prisma.$transaction(async (tx) => {
     const org = await tx.organization.create({
       data: {

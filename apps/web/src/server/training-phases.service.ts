@@ -38,9 +38,12 @@ const lockWriter = async (tx: Prisma.TransactionClient, userId: string, organiza
   if (!org?.phases_enabled) throw disabled();
   const member = await tx.organizationMember.findUnique({
     where: { organizationId_userId: { organizationId, userId } },
-    select: { role: true, status: true },
+    select: { role: true, status: true, organization: { select: { personalOwnerId: true } } },
   });
-  if (!member || member.status !== "active" || (member.role !== "owner" && member.role !== "coach")) throw forbidden();
+  if (!member || member.status !== "active") throw forbidden();
+  // L'athlète autonome écrit les phases de son espace personnel, pour sa seule fiche (`requireTarget`).
+  if (member.role === "athlete" && member.organization.personalOwnerId === userId) return "personal";
+  if (member.role !== "owner" && member.role !== "coach") throw forbidden();
   return member.role;
 };
 const requireTarget = async (
@@ -50,6 +53,11 @@ const requireTarget = async (
   role: string,
   target: Target,
 ) => {
+  if (role === "personal") {
+    if (target.type !== "athlete") throw forbidden();
+    if (!(await tx.athlete.count({ where: { id: target.id, organizationId, userId } }))) throw forbidden();
+    return;
+  }
   if (target.type === "group") {
     if (!(await tx.group.count({ where: { id: target.id, organizationId } }))) throw notFound();
     if (role !== "owner" && !(await tx.groupCoach.count({ where: { userId, groupId: target.id } }))) throw forbidden();
@@ -172,7 +180,8 @@ export const listTrainingPhases = async (userId: string, organizationId: string,
   const query = parsed.data;
   const access = await requireOrgMember(userId, organizationId, "viewTracking");
   await ensureEnabled(organizationId);
-  const canManage = access.role === "owner" || access.role === "coach";
+  // L'athlète autonome gère les phases de son espace : il en voit aussi les brouillons.
+  const canManage = access.role === "owner" || access.role === "coach" || access.personal;
   const where = {
     organizationId,
     deletedAt: null,
@@ -192,7 +201,7 @@ export const listTrainingPhases = async (userId: string, organizationId: string,
   return { canManage, phases: rows.map(dto) };
 };
 export const getTrainingPhaseContext = async (userId: string, organizationId: string) => {
-  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
+  const access = await requireOrgMember(userId, organizationId, "recordPerformance");
   await ensureEnabled(organizationId);
   return loadPhaseTargets(access);
 };
@@ -303,7 +312,7 @@ export const saveTrainingPhase = async (userId: string, organizationId: string, 
   const parsed = saveTrainingPhaseInput.safeParse(raw);
   if (!parsed.success) throw invalid(m.trainingPhases.invalid);
   const input = parsed.data;
-  await requireOrgMember(userId, organizationId, "manageAthletes");
+  await requireOrgMember(userId, organizationId, "recordPerformance");
   const data = {
     groupId: input.target.type === "group" ? input.target.id : null,
     athleteId: input.target.type === "athlete" ? input.target.id : null,
@@ -357,7 +366,7 @@ export const setTrainingPhaseVisibility = async (
   raw: { expectedVersion: number; shared: boolean },
 ) => {
   const input = trainingPhaseVisibilityInput.parse(raw);
-  await requireOrgMember(userId, organizationId, "manageAthletes");
+  await requireOrgMember(userId, organizationId, "recordPerformance");
   return prisma.$transaction(async (tx) => {
     const role = await lockWriter(tx, userId, organizationId);
     const row = await tx.trainingPhase.findFirst({ where: { id, organizationId, deletedAt: null } });
@@ -379,7 +388,7 @@ export const deleteTrainingPhase = async (
   raw: { expectedVersion: number },
 ) => {
   const input = trainingPhaseVersion.parse(raw);
-  await requireOrgMember(userId, organizationId, "manageAthletes");
+  await requireOrgMember(userId, organizationId, "recordPerformance");
   return prisma.$transaction(async (tx) => {
     const role = await lockWriter(tx, userId, organizationId);
     const row = await tx.trainingPhase.findFirst({ where: { id, organizationId } });

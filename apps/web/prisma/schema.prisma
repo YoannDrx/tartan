@@ -38,6 +38,7 @@ model User {
   onboardingStates OnboardingState[]
   exerciseLists ExerciseList[]
   exerciseTermAliases ExerciseTermAlias[]
+  historyShares HistoryShare[]
 
   suspendedAt DateTime? @map("suspended_at")
   clientInstallations ClientInstallation[]
@@ -179,8 +180,18 @@ enum OrganizationPlan {
   discovery
   coach
   club
+  // Espace personnel de l'athlète autonome : gratuit, jamais facturé.
+  personal
 
   @@map("organization_plan")
+}
+
+// L'espace d'un coach et de son groupe, ou l'espace personnel d'un athlète qui s'entraîne seul.
+enum OrganizationKind {
+  coach
+  personal
+
+  @@map("organization_kind")
 }
 
 model Organization {
@@ -214,6 +225,9 @@ model Organization {
   isDemo                 Boolean          @default(false) @map("is_demo")
   demoOwnerId            String?          @unique @map("demo_owner_id") @db.Uuid
   demoExpiresAt          DateTime?        @map("demo_expires_at")
+  // Espace personnel : son titulaire en est l'unique membre, athlète de sa propre fiche. Un seul par compte.
+  kind                   OrganizationKind @default(coach)
+  personalOwnerId        String?          @unique @map("personal_owner_id") @db.Uuid
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
 
@@ -242,6 +256,8 @@ model Organization {
   aiPlannerProposals AiPlannerProposal[]
   aiPlannerTranscriptions AiPlannerTranscription[]
   onboardingStates  OnboardingState[]
+  historySharesFrom HistoryShare[]    @relation("HistorySharesFrom")
+  historySharesTo   HistoryShare[]    @relation("HistorySharesTo")
 
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "organizations_name_trgm_idx")
   @@index([demoExpiresAt])
@@ -406,10 +422,46 @@ model Athlete {
   videos       Video[]
   consents     Consent[]
   competitions CompetitionAthlete[]
+  historyShare HistoryShare?
 
   @@unique([organizationId, userId])
   @@index([userId])
   @@map("athletes")
+}
+
+enum HistoryShareScope {
+  records
+  strength
+  sessions
+
+  @@map("history_share_scope")
+}
+
+// Un athlète autonome partage, s'il le veut, l'historique de son espace personnel avec l'espace d'un coach qu'il a
+// rejoint : par cases (records, références de force, historique des séances), jamais la santé, en lecture seule,
+// révocable. Rien n'est copié : le coach lit l'espace personnel à travers ce partage, contrôlé à chaque lecture.
+model HistoryShare {
+  id                     String              @id @default(uuid()) @db.Uuid
+  // L'espace personnel d'où part l'historique, et son titulaire.
+  personalOrganizationId String              @map("personal_organization_id") @db.Uuid
+  userId                 String              @map("user_id") @db.Uuid
+  // L'espace du coach, et la fiche de l'athlète dans cet espace.
+  organizationId         String              @map("organization_id") @db.Uuid
+  athleteId              String              @map("athlete_id") @db.Uuid
+  scopes                 HistoryShareScope[] @default([])
+  grantedAt              DateTime            @map("granted_at")
+  revokedAt              DateTime?           @map("revoked_at")
+  createdAt              DateTime            @default(now()) @map("created_at")
+  updatedAt              DateTime            @updatedAt @map("updated_at")
+  personalOrganization   Organization        @relation("HistorySharesFrom", fields: [personalOrganizationId], references: [id], onDelete: Cascade)
+  organization           Organization        @relation("HistorySharesTo", fields: [organizationId], references: [id], onDelete: Cascade)
+  athlete                Athlete             @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  user                   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([athleteId])
+  @@index([userId])
+  @@index([organizationId])
+  @@map("history_shares")
 }
 
 // Table séparée : jamais sélectionnée pour un athlète (test dédié, § 11.4).

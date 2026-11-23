@@ -12,6 +12,8 @@ const fromEnv = (): PlatformSettings => {
   const limit = Number(e.MUX_VIDEO_LIMIT);
   return {
     signupMode: e.COACH_SIGNUP_MODE,
+    // Les athlètes autonomes s'inscrivent librement, sauf décision contraire dans la console.
+    athleteSignupMode: "public",
     checkoutEnabled: e.BILLING_CHECKOUT_ENABLED === "true",
     muxVideoLimit: limit > 0 ? limit : null,
   };
@@ -49,6 +51,7 @@ export const updatePlatformSettings = async (actor: { email: string; userId: str
         entity: "platform_settings",
         metadata: {
           signupMode: parsed.data.signupMode,
+          athleteSignupMode: parsed.data.athleteSignupMode,
           checkoutEnabled: parsed.data.checkoutEnabled,
           muxVideoLimit: parsed.data.muxVideoLimit ?? "none",
         },

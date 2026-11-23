@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { m } from "@tartan/i18n";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
-import { groupLink, joinAsAthlete } from "./journeys";
+import { groupLink, joinAsAthlete, startSolo } from "./journeys";
 import { sweptScreens } from "./screens";
 
 // Le balayage de la matrice : chaque écran, pour chaque rôle qui l'ouvre, à 390, 768 et 1440 px, en mouvement réduit.
@@ -28,7 +28,10 @@ test("matrice des écrans : public, coach et athlète, à trois largeurs", async
   test.skip(info.project.name !== "desktop", "balayage unique, largeurs explicites");
   test.setTimeout(900_000);
 
-  await sweep(page, sweptScreens("public").map((screen) => screen.path));
+  await sweep(
+    page,
+    sweptScreens("public").map((screen) => screen.path),
+  );
 
   await createCoachSpace(page, "Matrice");
   const me = await (await page.request.get("/api/v1/me")).json();
@@ -46,8 +49,24 @@ test("matrice des écrans : public, coach et athlète, à trois largeurs", async
       `/exercices/${exercise.id}`,
       `/historique/${athleteId}`,
     ]);
-    await sweep(athlete.page, sweptScreens("athlete").map((screen) => screen.path));
+    await sweep(
+      athlete.page,
+      sweptScreens("athlete").map((screen) => screen.path),
+    );
   } finally {
     await athlete.context.close();
+  }
+
+  // L'athlète autonome, dans son espace personnel : ses écrans d'athlète et ceux où il planifie pour lui seul.
+  const context = await browser.newContext({ locale: "fr-FR", timezoneId: "Europe/Paris" });
+  try {
+    const solo = await context.newPage();
+    await startSolo(solo, "Balayée");
+    await sweep(
+      solo,
+      sweptScreens("personal").map((screen) => screen.path),
+    );
+  } finally {
+    await context.close();
   }
 });

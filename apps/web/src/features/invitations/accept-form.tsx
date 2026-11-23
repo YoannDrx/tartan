@@ -36,8 +36,8 @@ export const AcceptForm = ({
   const minor =
     parentalFlow && isAthlete && values.birthDate ? requiresParentalConsent(values.birthDate, new Date()) : false;
   const { execute, isPending, result } = useAction(acceptInvitationAction, {
-    onSuccess: () => {
-      router.push("/accueil");
+    onSuccess: ({ data }) => {
+      router.push(data?.offerShare ? "/partager-historique" : "/accueil");
       router.refresh();
     },
     // Un champ refusé affiche son erreur à côté de lui : inutile d'accuser la connexion.

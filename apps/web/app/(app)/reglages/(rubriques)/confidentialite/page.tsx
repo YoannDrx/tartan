@@ -8,6 +8,8 @@ import { ConsentSwitches, DeleteAccount, LeaveSpace } from "@/features/settings/
 import { requireRubric } from "@/features/settings/rubric-access";
 import { SettingRow } from "@/features/settings/setting-rows";
 import { listBlockedUsers } from "@/server/comm.service";
+import { listMyHistoryShares } from "@/server/history-share.service";
+import { HistorySharesSettings } from "@/features/history-share/history-shares-settings";
 import { athleteConsentState, consentForAthletes, getUserConsents } from "@/server/consent.service";
 
 export const metadata: Metadata = { title: w.settings.rubrics.confidentialite.title };
@@ -20,11 +22,12 @@ const athleteConsents = async (userId: string, athleteId: string | null) => {
 };
 
 export default async function ConfidentialitePage() {
-  const { actor, organizationId, space, access } = await requireRubric("confidentialite");
+  const { actor, organizationId, space, spaces, access } = await requireRubric("confidentialite");
   const owner = access.role === "owner";
-  const [consents, blockedUsers] = await Promise.all([
+  const [consents, blockedUsers, shares] = await Promise.all([
     access.role === "athlete" ? athleteConsents(actor.userId, access.athleteId) : null,
     listBlockedUsers(actor.userId),
+    listMyHistoryShares(actor.userId),
   ]);
   const t = w.settings.confidentialite;
   return (
@@ -32,6 +35,12 @@ export default async function ConfidentialitePage() {
       {consents ? (
         <SheetSection id="confidentialite" title={t.consents}>
           <ConsentSwitches health={consents.health} video={consents.video} parentalPending={consents.parentalPending} />
+        </SheetSection>
+      ) : null}
+      {/* Les partages de son historique personnel avec un coach : visibles d'où qu'il soit, retirés d'un geste. */}
+      {shares.length > 0 || spaces.some((entry) => entry.kind === "personal") ? (
+        <SheetSection id="historique-partage" title={w.personal.share.settingsTitle}>
+          <HistorySharesSettings shares={shares} />
         </SheetSection>
       ) : null}
       <SheetSection id="bloques" title={m.settings.blocked}>
@@ -65,7 +74,8 @@ export default async function ConfidentialitePage() {
           ) : null}
         </Rows>
       </SheetSection>
-      {owner ? null : (
+      {/* Son espace personnel ne se quitte pas : il part avec le compte. */}
+      {owner || space.kind === "personal" ? null : (
         <SheetSection id="espaces" title={t.spaces}>
           <Rows>
             <SettingRow action={<LeaveSpace name={space.organizationName} />}>

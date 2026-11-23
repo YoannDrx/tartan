@@ -35,6 +35,13 @@ export const legal = {
       "Données techniques (jetons de notification, journaux d'erreurs sans donnée de santé) : pour faire fonctionner et sécuriser le service. Base : notre intérêt légitime.",
       "Mesure d'audience (pages vues sans jeton ni identifiant, provenance, pays, appareil, navigateur) : statistiques agrégées pour améliorer le service, sans cookie tiers ni donnée de santé. Base : notre intérêt légitime.",
     ],
+    // L'athlète autonome et le partage de son historique (décision du 23 novembre 2026), à faire relire.
+    personalSpace: "Si tu t'entraînes seul",
+    personalSpaceDetail:
+      "Ton espace personnel n'a que toi comme membre : personne d'autre, ni coach ni autre athlète, ne voit tes séances, tes validations, tes tests, tes records ni tes vidéos. Tu es seul responsable de ce que tu y notes. Il est gratuit et n'est jamais facturé. Tes données y restent tant que ton compte est actif ; elles sont supprimées avec ton compte, selon les durées ci-dessous.",
+    sharing: "Si tu partages ton historique avec un coach",
+    sharingDetail:
+      "En rejoignant le groupe d'un coach, tu peux lui partager, case par case, tes records, tes références de force et l'historique de tes séances personnelles. Il les lit en lecture seule, sur ta fiche, tant que tu les partages : rien n'est copié dans son espace. Tu retires ce partage à tout moment dans Réglages, Confidentialité, et il cesse aussitôt. Tes données de santé (effort ressenti, douleurs, blessures) de ton espace personnel n'en font jamais partie. Chaque lecture par un coach est tracée, comme les autres accès aux données sensibles.",
     coachRecord: "Si ton coach a créé ta fiche",
     coachRecordDetail:
       "Un coach peut préparer ta fiche (nom, date de naissance, groupe) avant que tu aies un compte, pour te suivre et t'inviter. C'est lui qui t'en informe. Tu peux demander sa correction ou sa suppression à ton coach, ou en nous écrivant.",

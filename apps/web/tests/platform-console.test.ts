@@ -37,6 +37,7 @@ describe("console de la plateforme", () => {
       await updatePlatformSettings(admin, { signupMode: "closed", checkoutEnabled: false, muxVideoLimit: 12 });
       expect(await platformSettings()).toEqual({
         signupMode: "closed",
+        athleteSignupMode: "public",
         checkoutEnabled: false,
         muxVideoLimit: 12,
       });

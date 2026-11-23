@@ -130,7 +130,7 @@ const chooseReference = async (
 
 export const addStrengthTest = async (userId: string, organizationId: string, raw: StrengthTestInput) => {
   const input = strengthTestInput.parse(raw);
-  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
+  const access = await requireOrgMember(userId, organizationId, "recordPerformance");
   await requireVisibleAthlete(access, input.athleteId);
   return prisma.$transaction(async (tx) => {
     await lockOrganization(tx, organizationId, Boolean(input.exerciseId || input.selectAsReference));
@@ -171,7 +171,7 @@ export const selectStrengthReference = async (
   raw: ChooseStrengthReference,
 ) => {
   const input = chooseStrengthReference.parse(raw);
-  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
+  const access = await requireOrgMember(userId, organizationId, "recordPerformance");
   await requireVisibleAthlete(access, athleteId);
   await prisma.$transaction(async (tx) => {
     await lockOrganization(tx, organizationId, true);

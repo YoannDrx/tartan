@@ -42,6 +42,8 @@ import {
   requireGroupInScope,
   visibleAthleteIds,
   coachGroupIds,
+  accessCan,
+  personalAthleteOf,
   type Access,
 } from "./access";
 import { activeAudienceIds, athleteAssignedWhere, audienceBySession } from "./session-audience.service";
@@ -162,12 +164,38 @@ export const buildSnapshot = async (
 };
 
 const audienceUsers = async (sessionId: string, db: Prisma.TransactionClient = prisma): Promise<string[]> => {
+  // Dans un espace personnel, le seul destinataire est l'auteur : on ne se prévient pas de ce qu'on vient de faire.
+  const space = await db.scheduledSession.findUnique({
+    where: { id: sessionId },
+    select: { organization: { select: { kind: true } } },
+  });
+  if (space?.organization.kind === "personal") return [];
   const ids = await activeAudienceIds(sessionId, db);
   const rows = await db.athlete.findMany({
     where: { id: { in: ids }, userId: { not: null } },
     select: { userId: true },
   });
   return rows.map((r) => r.userId as string);
+};
+
+// Espace personnel : la séance est toujours pour son titulaire, sans autre destinataire. Ce que le client envoie
+// comme public est remplacé, jamais lu : le constructeur n'y montre d'ailleurs aucun choix de destinataires.
+export const forPersonalSpace = <
+  T extends {
+    assignments: { targetType: "group" | "athlete"; targetId: string }[];
+    overrides: { athleteId: string }[];
+  },
+>(
+  access: Access,
+  input: T,
+): T => {
+  const self = personalAthleteOf(access);
+  if (!self) return input;
+  return {
+    ...input,
+    assignments: [{ targetType: "athlete" as const, targetId: self }],
+    overrides: input.overrides.filter((override) => override.athleteId === self),
+  };
 };
 
 const checkAudience = async (
@@ -190,9 +218,10 @@ export async function createReviewedPlannerDraft(
   organizationId: string,
   raw: Omit<SaveScheduledSessionInput, "id" | "expectedVersion">,
 ) {
-  const input = saveScheduledSessionInput.omit({ id: true, expectedVersion: true }).strict().parse(raw);
-  if (input.publishAt !== null) throw invalid();
+  const parsed = saveScheduledSessionInput.omit({ id: true, expectedVersion: true }).strict().parse(raw);
+  if (parsed.publishAt !== null) throw invalid();
   const access = await requireOrgMember(userId, organizationId, "manageSessions", tx);
+  const input = forPersonalSpace(access, parsed);
   await checkAudience(access, input, tx);
   const snapshot = await buildSnapshot(organizationId, input.draft, tx);
   checkExecutionBudgets(snapshot, input.overrides);
@@ -245,9 +274,10 @@ export async function createReviewedPlannerDraft(
 export const saveScheduledSession = async (
   userId: string,
   organizationId: string,
-  input: SaveScheduledSessionInput,
+  rawInput: SaveScheduledSessionInput,
 ) => {
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
+  const input = forPersonalSpace(access, rawInput);
   await checkAudience(access, input);
   const snapshot = await buildSnapshot(organizationId, input.draft);
   checkExecutionBudgets(snapshot, input.overrides);
@@ -290,65 +320,68 @@ export const saveScheduledSession = async (
     ...(existing?.publishedAt ? { snapshot } : {}),
   };
   // La révision fige aussi les prescriptions sous verrou, comme une publication groupée.
-  const saved = await prisma.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
-    const currentAccess = await requireOrgMember(userId, organizationId, "manageSessions", tx);
-    await checkAudience(currentAccess, input, tx);
-    if (existing) await requireSessionWrite(currentAccess, existing.id, tx);
-    const phaseContext = await reviewSessionPhases(
-      tx,
-      currentAccess,
-      input,
-      existing?.phaseContext,
-      Boolean(existing?.publishedAt || input.publishAt),
-    );
-    const reviewedData = { ...data, phaseContext: phaseContext ?? Prisma.DbNull };
-    if (existing) {
-      // Le verrou est partagé avec les saisies athlètes : une validation ne peut pas
-      // apparaître entre le contrôle de compatibilité et la modification de séance.
-      await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${existing.id}::uuid FOR UPDATE`;
-      const storedDraft = sessionDraft.parse(existing.draft);
-      if (storedDraft.structureVersion === 2 && input.draft.structureVersion !== 2)
-        throw new AppError(409, "session_structure_upgrade_required", m.builder.structureUpgrade);
-      const hasPersistentRefs = storedDraft.blocks.some((b) => b.ref || b.items.some((i) => i.ref));
-      const hasLogs = await tx.sessionLog.count({ where: { scheduledSessionId: existing.id } });
-      if ((hasPersistentRefs || hasLogs > 0 || existing.prescriptionFrozenAt) && input.expectedVersion === undefined)
-        throw new AppError(409, "legacy_session_conflict", m.builder.legacyConflict);
-      if (input.expectedVersion !== undefined) {
-        if (input.draft.blocks.some((b) => !b.ref || b.items.some((i) => !i.ref))) throw invalid();
-        if (currentItems.some((i) => itemIds.has(i.ref!) && itemIds.get(i.ref!) !== i.exerciseId))
-          throw new AppError(409, "session_identity_conflict", m.builder.identityConflict);
+  const saved = await prisma.$transaction(
+    async (tx) => {
+      await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+      const currentAccess = await requireOrgMember(userId, organizationId, "manageSessions", tx);
+      await checkAudience(currentAccess, input, tx);
+      if (existing) await requireSessionWrite(currentAccess, existing.id, tx);
+      const phaseContext = await reviewSessionPhases(
+        tx,
+        currentAccess,
+        input,
+        existing?.phaseContext,
+        Boolean(existing?.publishedAt || input.publishAt),
+      );
+      const reviewedData = { ...data, phaseContext: phaseContext ?? Prisma.DbNull };
+      if (existing) {
+        // Le verrou est partagé avec les saisies athlètes : une validation ne peut pas
+        // apparaître entre le contrôle de compatibilité et la modification de séance.
+        await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${existing.id}::uuid FOR UPDATE`;
+        const storedDraft = sessionDraft.parse(existing.draft);
+        if (storedDraft.structureVersion === 2 && input.draft.structureVersion !== 2)
+          throw new AppError(409, "session_structure_upgrade_required", m.builder.structureUpgrade);
+        const hasPersistentRefs = storedDraft.blocks.some((b) => b.ref || b.items.some((i) => i.ref));
+        const hasLogs = await tx.sessionLog.count({ where: { scheduledSessionId: existing.id } });
+        if ((hasPersistentRefs || hasLogs > 0 || existing.prescriptionFrozenAt) && input.expectedVersion === undefined)
+          throw new AppError(409, "legacy_session_conflict", m.builder.legacyConflict);
+        if (input.expectedVersion !== undefined) {
+          if (input.draft.blocks.some((b) => !b.ref || b.items.some((i) => !i.ref))) throw invalid();
+          if (currentItems.some((i) => itemIds.has(i.ref!) && itemIds.get(i.ref!) !== i.exerciseId))
+            throw new AppError(409, "session_identity_conflict", m.builder.identityConflict);
+        }
+        const updated = await tx.scheduledSession.updateMany({
+          where: { id: existing.id, version: input.expectedVersion ?? existing.version },
+          data: { ...reviewedData, version: { increment: 1 } },
+        });
+        if (updated.count !== 1) throw sessionConflict();
       }
-      const updated = await tx.scheduledSession.updateMany({
-        where: { id: existing.id, version: input.expectedVersion ?? existing.version },
-        data: { ...reviewedData, version: { increment: 1 } },
+      const row = existing
+        ? await tx.scheduledSession.findUniqueOrThrow({ where: { id: existing.id } })
+        : await tx.scheduledSession.create({ data: { ...reviewedData, organizationId, createdBy: userId } });
+      await tx.assignment.deleteMany({ where: { scheduledSessionId: row.id } });
+      await tx.assignment.createMany({
+        data: input.assignments.map((a) => ({
+          scheduledSessionId: row.id,
+          targetType: a.targetType,
+          targetId: a.targetId,
+        })),
+        skipDuplicates: true,
       });
-      if (updated.count !== 1) throw sessionConflict();
-    }
-    const row = existing
-      ? await tx.scheduledSession.findUniqueOrThrow({ where: { id: existing.id } })
-      : await tx.scheduledSession.create({ data: { ...reviewedData, organizationId, createdBy: userId } });
-    await tx.assignment.deleteMany({ where: { scheduledSessionId: row.id } });
-    await tx.assignment.createMany({
-      data: input.assignments.map((a) => ({
-        scheduledSessionId: row.id,
-        targetType: a.targetType,
-        targetId: a.targetId,
-      })),
-      skipDuplicates: true,
-    });
-    await tx.athleteOverride.deleteMany({ where: { scheduledSessionId: row.id } });
-    await tx.athleteOverride.createMany({
-      data: input.overrides.map((o) => ({
-        scheduledSessionId: row.id,
-        athleteId: o.athleteId,
-        itemRef: o.itemRef,
-        prescription: o.prescription,
-      })),
-    });
-    if (row.publishedAt) await freezeSessionPrescriptions(tx, row.id, "revision");
-    return row;
-  }, { timeout: 30000 });
+      await tx.athleteOverride.deleteMany({ where: { scheduledSessionId: row.id } });
+      await tx.athleteOverride.createMany({
+        data: input.overrides.map((o) => ({
+          scheduledSessionId: row.id,
+          athleteId: o.athleteId,
+          itemRef: o.itemRef,
+          prescription: o.prescription,
+        })),
+      });
+      if (row.publishedAt) await freezeSessionPrescriptions(tx, row.id, "revision");
+      return row;
+    },
+    { timeout: 30000 },
+  );
   // Modifier une séance déjà publiée notifie les athlètes concernés (§ 7.5).
   if (existing?.publishedAt) {
     await notify(await audienceUsers(saved.id), "session_updated", {
@@ -857,7 +890,8 @@ const readCalendar = async (
   const scopeGroups = access.role === "owner" ? null : await coachGroupIds(access);
   const scopeAthletes = access.role === "owner" ? null : await visibleAthleteIds(access);
   // Un athlète ne voit jamais un brouillon, ni les compétitions auxquelles il n'est pas inscrit.
-  const athleteId = access.role === "athlete" ? access.athleteId : null;
+  // L'athlète autonome planifie dans son espace : il y voit ses brouillons, comme un coach les siens.
+  const athleteId = access.role === "athlete" && !access.personal ? access.athleteId : null;
   // Un filtre de groupe garde aussi les séances attribuées individuellement à ses membres.
   const groupMemberIds = query.groupId
     ? (
@@ -927,7 +961,7 @@ const readCalendar = async (
   const completionBySession =
     wantsSummary && !athleteId ? await calendarCompletions(organizationId, inScope, scopeAthletes) : null;
   const writable = (s: (typeof inScope)[number]) =>
-    can(access.role, "manageSessions") &&
+    accessCan(access, "manageSessions") &&
     (access.role !== "assistant" || s.createdBy === userId) &&
     (!scopeGroups ||
       (s.assignments.every((a) =>
@@ -1044,7 +1078,7 @@ export const listTemplates = async (
 
 // Une compétition partagée avec un athlète hors périmètre ne se retire pas à sa place.
 export const deleteCompetition = async (userId: string, organizationId: string, competitionId: string) => {
-  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
+  const access = await requireOrgMember(userId, organizationId, "recordPerformance");
   const competition = await prisma.competition.findFirst({
     where: { id: competitionId, organizationId },
     select: { id: true, athletes: { select: { athleteId: true } } },
@@ -1066,7 +1100,7 @@ export const saveCompetition = async (
     athleteIds: string[];
   },
 ) => {
-  const access = await requireOrgMember(userId, organizationId, "manageAthletes");
+  const access = await requireOrgMember(userId, organizationId, "recordPerformance");
   for (const id of input.athleteIds) await requireVisibleAthlete(access, id);
   const data = {
     name: input.name,

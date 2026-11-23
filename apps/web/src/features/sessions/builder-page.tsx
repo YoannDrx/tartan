@@ -16,8 +16,11 @@ export const BuilderPage = async ({
   returnTo,
   headerActions,
   templateId,
+  personalAthleteId,
 }: {
   templateId?: string;
+  // Espace personnel : la cible est toujours le titulaire, le constructeur ne montre aucun destinataire.
+  personalAthleteId?: string;
   userId: string;
   organizationId: string;
   sessionId?: string;
@@ -53,6 +56,7 @@ export const BuilderPage = async ({
         defaultGroupId={groupUnavailable ? "" : defaultGroupId}
         returnTo={returnTo}
         initialTemplateId={templateId}
+        personalAthleteId={personalAthleteId}
       />
     </div>
   );
