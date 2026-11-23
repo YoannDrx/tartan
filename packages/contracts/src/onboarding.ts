@@ -7,6 +7,8 @@ import { uuid } from "./session";
 
 export const coachStepKey = z.enum(["profile", "invite", "create", "publish", "validate"]);
 export const coachOptionalStepKey = z.enum(["equipment", "video", "phase", "install"]);
+// Les premiers pas de l'athlète autonome : planifier, valider, mesurer, installer.
+export const personalStepKey = z.enum(["plan", "validate", "measure", "install"]);
 export type CoachStepKeyValue = z.infer<typeof coachStepKey>;
 export type CoachOptionalStepKeyValue = z.infer<typeof coachOptionalStepKey>;
 
@@ -54,6 +56,15 @@ export const onboardingResponse = z.object({
   celebrationDue: z.boolean(),
   // Athlète : la carte facultative d'après la première validation.
   extrasVisible: z.boolean(),
+  // Athlète autonome, dans son espace personnel : ses propres premiers pas. Absent ailleurs.
+  personal: z
+    .object({
+      steps: z.array(z.object({ key: personalStepKey, done: z.boolean() })),
+      progress: z.object({ done: z.number().int(), total: z.number().int() }),
+      guideVisible: z.boolean(),
+      celebrationDue: z.boolean(),
+    })
+    .optional(),
 });
 export type OnboardingResponse = z.infer<typeof onboardingResponse>;
 

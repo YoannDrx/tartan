@@ -8,6 +8,11 @@ import {
   coachProgress,
   coachTourDue,
   isCoachOptionalStep,
+  personalCelebrationDue,
+  personalChecklist,
+  personalGuideVisible,
+  personalProgress,
+  type PersonalOnboardingFacts,
   type CoachOnboardingFacts,
   type CoachOptionalStepKey,
   type OnboardingMemory,
@@ -89,6 +94,23 @@ export const readCoachFacts = async (
   };
 };
 
+// Les faits des premiers pas de l'athlète autonome, dans son espace personnel : lus par la carte et par les e-mails.
+export const readPersonalFacts = async (
+  organizationId: string,
+  userId: string,
+  athleteId: string,
+): Promise<PersonalOnboardingFacts> => {
+  const [sessions, validations, tests, performances, devices, installations] = await Promise.all([
+    prisma.scheduledSession.count({ where: { organizationId } }),
+    prisma.sessionLog.count({ where: { athleteId, status: { in: ["done", "partial"] } } }),
+    prisma.strengthTest.count({ where: { athleteId } }),
+    prisma.performance.count({ where: { athleteId } }),
+    prisma.device.count({ where: { userId } }),
+    prisma.clientInstallation.count({ where: { userId } }),
+  ]);
+  return { sessions, validations, measures: tests + performances, installed: devices + installations > 0 };
+};
+
 const iso = (date: Date | null): string | null => date?.toISOString() ?? null;
 
 // Ce qu'un écran a besoin de savoir, sans les faits : tour dû, repères vus. Lu par le gabarit à chaque page.
@@ -117,6 +139,25 @@ export const getOnboarding = async (userId: string, organizationId: string): Pro
     skipped: (row?.skipped ?? []).filter(isCoachOptionalStep),
     seenScreens: row?.seenScreens ?? [],
   };
+  if (access.personal && access.athleteId) {
+    const facts = await readPersonalFacts(organizationId, userId, access.athleteId);
+    return {
+      ...base,
+      steps: [],
+      optionalSteps: [],
+      progress: { done: 0, total: 0 },
+      guideVisible: false,
+      tourDue: false,
+      celebrationDue: false,
+      extrasVisible: false,
+      personal: {
+        steps: personalChecklist(facts),
+        progress: personalProgress(facts),
+        guideVisible: personalGuideVisible(facts, memory),
+        celebrationDue: personalCelebrationDue(facts, memory),
+      },
+    };
+  }
   if (access.role === "athlete") {
     const validations = access.athleteId
       ? await prisma.sessionLog.count({

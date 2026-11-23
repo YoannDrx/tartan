@@ -17,7 +17,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { deriveToken, sha256, tokenMatches } from "@/lib/tokens";
 import { audit, requireGroupInScope, requireOrgMember, requireVisibleAthlete } from "./access";
 import { assertWithinPlan } from "./billing.service";
-import { assertNotDemoSpace, isDemoSpace } from "./demo-space-guard";
+import { assertNotDemoSpace, isDemoSpace, isPersonalSpace } from "./demo-space-guard";
 import { recordJoinConsents, startParentalConsent } from "./consent.service";
 import { flushEmailOutbox } from "./email-outbox.service";
 import { INVITATION_PURPOSE as PURPOSE, invitationLink, invitationOutboxKind } from "./invitation-email";
@@ -270,6 +270,8 @@ export const acceptInvitation = async (
   if (!inv) throw notFound();
   // Aucun athlète réel n'entre dans un espace de démonstration, même avec une invitation forgée.
   if (await isDemoSpace(inv.organizationId)) throw notFound();
+  // Un espace personnel n'a qu'un membre, son titulaire : aucune invitation n'y fait entrer quelqu'un.
+  if (await isPersonalSpace(inv.organizationId)) throw notFound();
   const state = invitationStateOf(inv, new Date());
   if (state === "expired") throw invalid(m.invite.expired);
   if (state === "revoked") throw invalid(m.invite.revoked);

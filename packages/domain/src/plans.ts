@@ -1,4 +1,5 @@
-export type PlanKey = "pilot" | "discovery" | "coach" | "club";
+// `personal` : l'espace d'un athlète qui s'entraîne seul. Gratuit, jamais vendu ni facturé (décision du 23 novembre 2026).
+export type PlanKey = "pilot" | "discovery" | "coach" | "club" | "personal";
 export type BillingInterval = "month" | "year";
 
 export type PlanLimits = {
@@ -41,7 +42,20 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     limits: { maxAthletes: null, maxGroups: null, maxCoaches: null, maxVideosPerMonth: 500, videoRetentionDays: 1095 },
     prices: { month: 5900, year: 59000 },
   },
+  personal: {
+    key: "personal",
+    // Un athlète, aucun groupe à gérer, aucun coach : ses vidéos sont les siennes, au quota ci-dessous.
+    limits: { maxAthletes: 1, maxGroups: 0, maxCoaches: 0, maxVideosPerMonth: 4, videoRetentionDays: 365 },
+    prices: null,
+  },
 };
+
+// Les petits quotas de l'athlète autonome, par mois : 5 propositions du planificateur, 10 minutes de dictée, 4 vidéos.
+export const PERSONAL_QUOTAS = { plannerProposals: 5, plannerAudioSeconds: 10 * 60, videosPerMonth: 4 } as const;
+
+// Les offres d'un espace de coach, les seules que la facturation, les plafonds et les revenus connaissent.
+export const COACH_PLANS: readonly PlanKey[] = ["pilot", "discovery", "coach", "club"];
+export const isPersonalPlan = (plan: PlanKey | string): boolean => plan === "personal";
 
 // Vidéos qu'un athlète envoie lui-même, par mois, en plus du quota de l'espace (décision du 14 novembre 2026).
 // Elles ne comptent pas dans le quota de l'espace : un athlète ne peut pas bloquer son coach.
@@ -50,6 +64,7 @@ export const ATHLETE_VIDEOS_PER_MONTH: Record<PlanKey, number | null> = {
   discovery: 8,
   coach: 20,
   club: 20,
+  personal: PERSONAL_QUOTAS.videosPerMonth,
 };
 
 export type LimitKey = keyof Omit<PlanLimits, "videoRetentionDays">;
@@ -68,7 +83,7 @@ export type SubscriptionState = "trialing" | "active" | "past_due" | "canceled";
 
 // Après un impayé, l'accès est conservé pendant les relances du prestataire : couper ferait perdre le suivi.
 export const planForSubscription = (plan: PlanKey, status: SubscriptionState): PlanKey =>
-  status === "canceled" ? "discovery" : plan;
+  plan === "personal" ? plan : status === "canceled" ? "discovery" : plan;
 
 export const REFERRAL_QUALIFYING_DAYS = 30;
 export const MAX_REWARDS_PER_YEAR = 12;

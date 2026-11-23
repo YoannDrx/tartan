@@ -179,8 +179,18 @@ enum OrganizationPlan {
   discovery
   coach
   club
+  // Espace personnel de l'athlète autonome : gratuit, jamais facturé.
+  personal
 
   @@map("organization_plan")
+}
+
+// L'espace d'un coach et de son groupe, ou l'espace personnel d'un athlète qui s'entraîne seul.
+enum OrganizationKind {
+  coach
+  personal
+
+  @@map("organization_kind")
 }
 
 model Organization {
@@ -214,6 +224,9 @@ model Organization {
   isDemo                 Boolean          @default(false) @map("is_demo")
   demoOwnerId            String?          @unique @map("demo_owner_id") @db.Uuid
   demoExpiresAt          DateTime?        @map("demo_expires_at")
+  // Espace personnel : son titulaire en est l'unique membre, athlète de sa propre fiche. Un seul par compte.
+  kind                   OrganizationKind @default(coach)
+  personalOwnerId        String?          @unique @map("personal_owner_id") @db.Uuid
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
 

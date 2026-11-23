@@ -32,13 +32,19 @@ import { prisma } from "@/lib/prisma";
 import { platformSettings } from "./platform-settings.service";
 import { billingEnabled, priceIdFor, stripe } from "@/lib/stripe";
 import { audit, requireOrgMember } from "./access";
-import { assertNotDemoSpace, REAL_SPACES } from "./demo-space-guard";
+import { assertNotDemoSpace, COACH_SPACES, REAL_SPACES } from "./demo-space-guard";
 import { applySubscription } from "./subscription-state.service";
 export { applySubscription, syncEntitlements } from "./subscription-state.service";
 export { handleStripeEvent } from "./stripe-subscriptions.service";
 
 export const ensurePlans = async (): Promise<void> => {
-  const names: Record<PlanKey, string> = { pilot: "Pilote", discovery: "Découverte", coach: "Coach", club: "Club" };
+  const names: Record<PlanKey, string> = {
+    pilot: "Pilote",
+    discovery: "Découverte",
+    coach: "Coach",
+    club: "Club",
+    personal: "Personnel",
+  };
   await prisma.plan.createMany({
     data: (Object.keys(PLANS) as PlanKey[]).map((key) => ({ key, name: names[key], limits: PLANS[key].limits })),
     skipDuplicates: true,
@@ -135,7 +141,7 @@ export const assertWithinPlan = async (
 // Chaque matin : prévenir le payeur avant le refus, quand une limite de l'offre est presque atteinte.
 export const queuePlanLimitNotices = async (now: Date = new Date()): Promise<number> => {
   const spaces = await prisma.organization.findMany({
-    where: { plan: { in: ["discovery", "coach"] }, ...REAL_SPACES },
+    where: { plan: { in: ["discovery", "coach"] }, ...COACH_SPACES },
     select: { id: true, name: true, ownerId: true, billingOwnerId: true, owner: { select: { email: true } } },
   });
   const month = now.toISOString().slice(0, 7);
@@ -672,7 +678,7 @@ const sendPurgeNotice = async (
 // Conservation vidéo : coût maîtrisé (§ 17.1), jamais sans préavis réel d'au moins 14 jours.
 export const purgeExpiredVideos = async (now: Date = new Date()): Promise<number> => {
   const orgs = await prisma.organization.findMany({
-    where: { plan: { in: ["discovery", "coach", "club"] }, ...REAL_SPACES },
+    where: { plan: { in: ["discovery", "coach", "club", "personal"] }, ...REAL_SPACES },
     select: { id: true, name: true, plan: true, owner: { select: { email: true } } },
   });
   let purged = 0;

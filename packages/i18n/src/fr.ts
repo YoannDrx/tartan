@@ -1230,6 +1230,10 @@ export const fr = {
     closedTitle: "Tartan ouvre bientôt aux coachs",
     joinHint: "Tu es athlète ? Ouvre le lien d'invitation de ton coach pour rejoindre ton groupe.",
   },
+  // L'espace personnel de l'athlète qui s'entraîne seul, tel que le sélecteur d'espace le nomme.
+  personalSpace: {
+    name: "Mon entraînement",
+  },
   help: {
     title: "Aide",
     description:
@@ -3543,12 +3547,13 @@ export const fr = {
     startFree: "Commencer gratuitement",
     contactUs: "Nous écrire",
     taxNote: "Prix en euros. TVA non applicable, article 293 B du Code général des impôts.",
-    plans: { pilot: "Pilote", discovery: "Découverte", coach: "Coach", club: "Club" },
+    plans: { pilot: "Pilote", discovery: "Découverte", coach: "Coach", club: "Club", personal: "Personnel" },
     planLead: {
       pilot: "Tout est inclus, gratuitement, pendant le pilote.",
       discovery: "Pour essayer avec un petit groupe.",
       coach: "Pour le coach indépendant ou de club.",
       club: "Pour un club avec plusieurs coachs.",
+      personal: "Pour l'athlète qui s'entraîne seul, gratuitement.",
     },
     perMonth: "par mois",
     perYear: "par an",

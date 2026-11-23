@@ -69,7 +69,7 @@ import { env } from "@/lib/env";
 import { AppError, forbidden, notFound, invalid } from "@/lib/errors";
 import { todayIso } from "@/lib/dates";
 import type { AiPlannerProposal, Prisma } from "@/generated/prisma/client";
-import { requireOrgMember } from "../access";
+import { personalAthleteOf, requireOrgMember } from "../access";
 import { preparePhasePlanning } from "../training-phases.service";
 import { createReviewedPlannerDraft, buildSnapshot } from "../session.service";
 import { strengthResolutionInputsForAthletes } from "../strength.service";
@@ -399,7 +399,9 @@ async function executeProposal(
                   isPlannerSlotToken(token)
                     ? (slotNames[Number(token.slice(PLANNER_SLOT_PREFIX.length)) - 1] ?? null)
                     : (names.get(token) ?? null),
-                ).map((line) => (line.kind === "block" ? { ...line, label: plannerDisplayText(line.label, bindings) } : line)),
+                ).map((line) =>
+                  line.kind === "block" ? { ...line, label: plannerDisplayText(line.label, bindings) } : line,
+                ),
               );
             },
           }
@@ -523,7 +525,12 @@ export async function createPlannerProposal(
   const input = createPlannerProposalInput.parse(raw),
     clock = execution.clock ?? (() => new Date());
   const now = clock();
-  await accessFor(userId, organizationId);
+  const self = personalAthleteOf(await accessFor(userId, organizationId));
+  // Espace personnel : la proposition est pour son titulaire, sans autre destinataire possible.
+  if (self) {
+    input.selection.groupIds = [];
+    input.selection.athleteIds = [self];
+  }
   await requireAiConsent(userId);
   const requestedAt = new Date(input.requestedAt);
   if (requestedAt.getTime() > now.getTime() + 5 * 60000 || requestedAt.getTime() + 7 * 86400000 <= now.getTime())
@@ -755,7 +762,9 @@ export async function resolvePlannerExercise(
         (r) =>
           r.operationId === input.operationId ||
           // Ancienne forme : la même question ne se tranche qu'une fois par tour de précisions.
-          (row.state !== "proposal" && r.questionId === input.questionId && r.clarificationCount === row.clarificationCount),
+          (row.state !== "proposal" &&
+            r.questionId === input.questionId &&
+            r.clarificationCount === row.clarificationCount),
       );
       if (previous) {
         if (previous.fingerprint !== fingerprint) throw conflict();
@@ -770,7 +779,9 @@ export async function resolvePlannerExercise(
           : null;
       if (screen) interpretation = screen.value;
       const slot =
-        row.state === "proposal" ? plannerOpenSlots(interpretation).find((entry) => entry.id === input.questionId) : undefined;
+        row.state === "proposal"
+          ? plannerOpenSlots(interpretation).find((entry) => entry.id === input.questionId)
+          : undefined;
       // Une fiche « À vérifier », désignée par la référence de son exercice dans les brouillons préparés.
       const place =
         !slot && row.state === "proposal"
@@ -781,11 +792,7 @@ export async function resolvePlannerExercise(
         row.state === "clarification"
           ? interpretation.questions.find((q) => q.id === input.questionId && q.field === "exercise")
           : undefined;
-      if (
-        !slot &&
-        !probable &&
-        (!question || (question.exerciseName && question.exerciseName !== input.requestedName))
-      )
+      if (!slot && !probable && (!question || (question.exerciseName && question.exerciseName !== input.requestedName)))
         throw conflict();
       const choice = input.choice;
       // Une fiche à vérifier se valide ou se change pour une fiche de la bibliothèque : ni création, ni retrait.
@@ -1232,7 +1239,12 @@ export async function confirmPlannerProposal(
           for (const [i, item] of block.items.entries()) {
             const kept = reviewed.get(`ai-${proposalId}-${s}-b${b}-i${i}`);
             if (item.confidence === "probable" && item.said && kept && kept.exerciseId !== idOf.get(item.exerciseToken))
-              await learnExerciseTermAlias(userId, organizationId, { said: item.said, exerciseId: kept.exerciseId }, tx);
+              await learnExerciseTermAlias(
+                userId,
+                organizationId,
+                { said: item.said, exerciseId: kept.exerciseId },
+                tx,
+              );
           }
       await tx.aiPlannerProposal.update({
         where: { id: proposalId },

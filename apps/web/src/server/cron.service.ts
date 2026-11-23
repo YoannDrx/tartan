@@ -22,7 +22,7 @@ import { queueActivationEmails } from "./lifecycle-email.service";
 import { snapshotPlatformDay } from "./admin-console.service";
 import { activeAudienceIds, audienceAthleteIds, publishRow, type Publication } from "./session.service";
 import { runCronJobs } from "./cron-runner";
-import { REAL_SPACES } from "./demo-space-guard";
+import { COACH_SPACES, REAL_SPACES } from "./demo-space-guard";
 import { purgeExpiredDemoSpaces } from "./demo-space.service";
 import { purgeRevokedConsentVideos } from "./consent.service";
 import { processExternalDeletions, reconcileExternalAssets } from "./external-deletion.service";
@@ -167,7 +167,7 @@ export const publishScheduledSessions = async (now: Date = new Date()): Promise<
 export const sendEveQuestions = async (now: Date = new Date()): Promise<number> => {
   const tomorrow = addDays(todayIso(now), 1);
   const sessions = await prisma.scheduledSession.findMany({
-    where: { organization: REAL_SPACES, publishedAt: { not: null }, date: toDbDate(tomorrow) },
+    where: { organization: COACH_SPACES, publishedAt: { not: null }, date: toDbDate(tomorrow) },
     select: { id: true, organizationId: true },
   });
   let sent = 0;

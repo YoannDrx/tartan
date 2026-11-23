@@ -11,6 +11,7 @@ import { demoSpace } from "./demo-space";
 import { exercises } from "./exercises";
 import { legal } from "./legal";
 import { onboarding } from "./onboarding";
+import { personal } from "./personal";
 import { planner } from "./planner";
 import { planning } from "./planning";
 import { profile } from "./profile";
@@ -33,6 +34,7 @@ export const w = {
   exercises,
   legal,
   onboarding,
+  personal,
   planner,
   planning,
   profile,
