@@ -85,6 +85,8 @@ type Props = {
   existing?: ExistingLog | null;
   healthConsent: boolean;
   dark?: boolean;
+  // Espace personnel : la note est pour l'athlète lui-même, pas pour un coach.
+  personal?: boolean;
   onClose: () => void;
 };
 
@@ -96,6 +98,7 @@ export const ValidationSheet = ({
   existing,
   healthConsent,
   dark,
+  personal = false,
   onClose,
 }: Props) => {
   const [initialFeedback] = useState(() => {
@@ -280,7 +283,7 @@ export const ValidationSheet = ({
       />
 
       <Field
-        label={m.validation.comment}
+        label={personal ? m.mobile.solo.comment : m.validation.comment}
         value={comment}
         onChangeText={setComment}
         multiline

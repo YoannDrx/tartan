@@ -142,11 +142,14 @@ export const BuilderSummary = ({
   duration,
   context,
   pendingPrescription,
+  personal = false,
 }: {
   form: SaveScheduledSessionInput;
   duration: string;
   context: Context;
   pendingPrescription?: BuilderDraft["prescription"];
+  // Espace personnel : la séance est pour son titulaire, sans ligne de destinataires.
+  personal?: boolean;
 }) => {
   const athleteName = (id: string) => {
     const a = context.athletes.find((x) => x.id === id);
@@ -173,16 +176,18 @@ export const BuilderSummary = ({
           {m.builder.coachNote} : {form.draft.coachNote}
         </T>
       ) : null}
-      <T>
-        {m.builder.audience} :{" "}
-        {form.assignments
-          .map((a) =>
-            a.targetType === "athlete"
-              ? athleteName(a.targetId)
-              : (context.groups.find((g) => g.id === a.targetId)?.name ?? m.common.notFound),
-          )
-          .join(", ") || m.builder.noAudience}
-      </T>
+      {personal ? null : (
+        <T>
+          {m.builder.audience} :{" "}
+          {form.assignments
+            .map((a) =>
+              a.targetType === "athlete"
+                ? athleteName(a.targetId)
+                : (context.groups.find((g) => g.id === a.targetId)?.name ?? m.common.notFound),
+            )
+            .join(", ") || m.builder.noAudience}
+        </T>
+      )}
       {form.publishAt ? (
         <T>
           {m.builder.scheduleAt} : {form.publishAt.replace("T", " · ")}

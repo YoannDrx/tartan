@@ -6,6 +6,7 @@ import { useState } from "react";
 import { NativePlanner } from "../src/features/native-planner";
 import { PlannerConsentNative } from "../src/features/planner-consent";
 import { api } from "../src/lib/api";
+import { personalAthleteOf } from "../src/lib/personal-space";
 import { useActiveSpace } from "../src/lib/queries";
 import { StackScreen } from "../src/ui/screen";
 import { T } from "../src/ui/primitives";
@@ -17,12 +18,15 @@ function PlannerLoader({
   proposalId,
   date,
   groupId,
+  self,
 }: {
   orgId: string;
   userId: string;
   proposalId?: string;
   date?: string;
   groupId?: string;
+  // Espace personnel : la fiche du titulaire, seul destinataire possible.
+  self: string | null;
 }) {
   const data = useQuery({
     queryKey: ["native-planner", orgId, userId, proposalId ?? "new"],
@@ -78,8 +82,8 @@ function PlannerLoader({
       spaceEquipment={equipment}
       initialSelection={{
         period: { from: chosenDate, to: chosenDate },
-        groupIds,
-        athleteIds: [],
+        groupIds: self ? [] : groupIds,
+        athleteIds: self ? [self] : [],
         exerciseIds: [],
         phaseChoices: [],
       }}
@@ -119,6 +123,7 @@ export default function PlannerScreen() {
       proposalId={opened}
       date={params.date}
       groupId={params.groupId}
+      self={personalAthleteOf(space)}
     />
   );
 }

@@ -24,16 +24,20 @@ export const applyOnboardingPatch = (
   if (patch.celebrated) {
     next.celebratedAt = state.celebratedAt ?? now;
     next.celebrationDue = false;
+    if (state.personal) next.personal = { ...state.personal, celebrationDue: false };
   }
   if (patch.dismissed === true) {
     next.dismissedAt = state.dismissedAt ?? now;
     next.guideVisible = false;
     next.extrasVisible = false;
+    if (state.personal) next.personal = { ...state.personal, guideVisible: false };
   }
   if (patch.dismissed === false) {
     next.dismissedAt = null;
     // Le serveur recalcule ; une carte rouverte se montre tant que des étapes restent à faire.
     next.guideVisible = state.staff && state.steps.some((step) => !step.done);
+    if (state.personal)
+      next.personal = { ...state.personal, guideVisible: state.personal.steps.some((step) => !step.done) };
   }
   const skipped = new Set(state.skipped);
   if (patch.skip) skipped.add(patch.skip);
@@ -77,6 +81,24 @@ export const COACH_OPTIONAL_ROUTES: Record<CoachOptionalStepKeyValue, AppRoute> 
   // Sur le téléphone, l'app est déjà installée : il lui reste les notifications.
   install: "/settings/notifications",
 };
+
+// L'athlète autonome : la prochaine de ses étapes, et où mène chacune. Planifier ouvre le constructeur sans
+// destinataires ; noter une référence ouvre ses tests de force ; valider reste sur sa journée, où est la séance.
+export type PersonalStepKey = NonNullable<OnboardingResponse["personal"]>["steps"][number]["key"];
+export const nextPersonalStep = (personal: Pick<NonNullable<OnboardingResponse["personal"]>, "steps">) =>
+  personal.steps.find((step) => !step.done)?.key ?? null;
+
+export const personalStepRoute = (
+  key: PersonalStepKey,
+  athleteId: string,
+): "new-session" | "today" | "/settings/notifications" | `/athlete-strength/${string}` =>
+  key === "plan"
+    ? "new-session"
+    : key === "measure"
+      ? `/athlete-strength/${athleteId}`
+      : key === "install"
+        ? "/settings/notifications"
+        : "today";
 
 // Les sept fonctions du tour de piste, dans l'ordre du web.
 export const TOUR_FEATURES = [

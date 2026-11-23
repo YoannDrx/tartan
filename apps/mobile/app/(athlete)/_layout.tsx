@@ -1,9 +1,10 @@
 import { m } from "@tartan/i18n";
 import { Redirect, Tabs } from "expo-router";
+import { isPersonalSpace } from "../../src/lib/personal-space";
 import { useActiveSpace } from "../../src/lib/queries";
 import { useSession } from "../../src/lib/session-store";
 import { BarGlyph } from "../../src/ui/glyphs";
-import { Calendar, Home, Megaphone, TrendingUp } from "../../src/ui/icons";
+import { Calendar, Home, Megaphone, Pencil, TrendingUp } from "../../src/ui/icons";
 import { useTabBarOptions, useWorldScene } from "../../src/ui/tabs";
 
 export default function AthleteLayout() {
@@ -13,6 +14,8 @@ export default function AthleteLayout() {
   const { me, space } = useActiveSpace();
   if (status !== "signed-in") return <Redirect href="/sign-in" />;
   if (me.data && space?.role !== "athlete") return <Redirect href="/" />;
+  // L'athlète autonome, dans son espace personnel : ses rubriques d'athlète, plus « Planifier ». Pas d'annonces.
+  const personal = isPersonalSpace(space);
   return (
     <Tabs screenOptions={options}>
       <Tabs.Screen
@@ -29,6 +32,16 @@ export default function AthleteLayout() {
           ...worldScene("work"),
           title: m.nav.calendrier,
           tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="plan"
+        options={{
+          ...worldScene("work"),
+          href: personal ? undefined : null,
+          title: m.mobile.solo.plan,
+          tabBarButtonTestID: "tab-plan",
+          tabBarIcon: ({ color, size }) => <Pencil color={color} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -51,6 +64,7 @@ export default function AthleteLayout() {
         name="news"
         options={{
           ...worldScene("work"),
+          href: personal ? null : undefined,
           title: m.nav.annonces,
           tabBarIcon: ({ color, size }) => <Megaphone color={color} size={size} />,
         }}

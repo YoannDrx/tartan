@@ -1,10 +1,11 @@
-import { NativeBatchPublication } from "../../src/features/batch-publication";
+import { NativeBatchPublication } from "./batch-publication";
+import { isPersonalSpace } from "../lib/personal-space";
 import { defaultDateForWeek } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ScrollView } from "react-native";
-import { AgendaList, useWeekNavigator, WeekNav } from "../../src/features/agenda";
+import { AgendaList, useWeekNavigator, WeekNav } from "./agenda";
 import {
   CalendarViewSwitch,
   defaultSelectedDay,
@@ -12,26 +13,29 @@ import {
   MonthNav,
   useMonthNavigator,
   type MonthAgendaEntry,
-} from "../../src/features/month-calendar";
-import { useCalendarView } from "../../src/lib/calendar-view";
-import { localIsoDate } from "../../src/lib/dates";
-import { useActiveSpace, useCoachCalendar, useGroups, usePrefetchMonths } from "../../src/lib/queries";
-import { Button, Chip, Tag, ActivityTag } from "../../src/ui/primitives";
-import { TabScreen } from "../../src/ui/screen";
-import { EmptyState, ErrorState, LoadingState } from "../../src/ui/states";
-import { space } from "../../src/ui/theme";
-import { NativeCalendarPhases } from "../../src/features/training-phases";
+} from "./month-calendar";
+import { useCalendarView } from "../lib/calendar-view";
+import { localIsoDate } from "../lib/dates";
+import { useActiveSpace, useCoachCalendar, useGroups, usePrefetchMonths } from "../lib/queries";
+import { Button, Chip, Tag, ActivityTag } from "../ui/primitives";
+import { TabScreen } from "../ui/screen";
+import { EmptyState, ErrorState, LoadingState } from "../ui/states";
+import { space } from "../ui/theme";
+import { NativeCalendarPhases } from "./training-phases";
 
-// Le groupe et la semaine courante accompagnent la création native.
-export default function Planning() {
+// Le calendrier de planification. Le groupe et la semaine courante accompagnent la création native. Dans l'espace
+// personnel de l'athlète autonome (« Planifier ») : ni groupe ni destinataires, ses brouillons et ses séances
+// publiées ; une séance publiée s'ouvre comme il la fera, un brouillon dans le constructeur.
+export function PlanningScreen() {
   const { orgId, space: activeSpace } = useActiveSpace();
+  const personal = isPersonalSpace(activeSpace);
   const { view, setView } = useCalendarView();
   const isMonth = view === "month";
   const nav = useWeekNavigator();
   const monthNav = useMonthNavigator();
   const [picked, setPicked] = useState<string | null>(null);
   const [groupId, setGroupId] = useState<string | undefined>();
-  const groups = useGroups(orgId);
+  const groups = useGroups(personal ? "" : orgId);
   const from = isMonth ? monthNav.from : nav.week;
   const to = isMonth ? monthNav.to : nav.to;
   const calendar = useCoachCalendar(orgId, from, to, groupId, isMonth);
@@ -52,7 +56,14 @@ export default function Planning() {
       const progress = s.completion?.total
         ? m.calendar.progress(s.completion.done + s.completion.partial, s.completion.total)
         : null;
-      const detail = [s.startTime?.replace(":", " h "), s.audience, s.location, progress].filter(Boolean).join(" · ");
+      const detail = [
+        s.startTime?.replace(":", " h "),
+        personal ? null : s.audience,
+        s.location,
+        personal ? null : progress,
+      ]
+        .filter(Boolean)
+        .join(" · ");
       return {
         key: s.id,
         date: s.date,
@@ -66,19 +77,22 @@ export default function Planning() {
             {s.publishedAt ? null : <Tag label={m.mobile.agenda.draft} tone="brand" />}
           </>
         ),
-        onPress: () => router.push(s.publishedAt ? `/coach-session/${s.id}` : `/session-builder/${s.id}`),
+        onPress: () =>
+          router.push(
+            s.publishedAt ? (personal ? `/session/${s.id}` : `/coach-session/${s.id}`) : `/session-builder/${s.id}`,
+          ),
         accessibilityLabel: `${s.title}, ${detail}`,
       };
     });
     return [...competitions, ...sessions];
-  }, [calendar.data, router]);
+  }, [calendar.data, router, personal]);
 
   const selectedDay = picked?.startsWith(monthNav.month) ? picked : defaultSelectedDay(monthNav.month, entries);
   const creationDate = isMonth ? selectedDay : defaultDateForWeek(nav.week, localIsoDate());
   return (
     <TabScreen
       world="work"
-      title={m.nav.calendrier}
+      title={personal ? m.mobile.solo.plan : m.nav.calendrier}
       refreshing={calendar.isRefetching}
       onRefresh={() => void calendar.refetch()}
     >
@@ -97,7 +111,8 @@ export default function Planning() {
         />
       ) : null}
       <Button
-        label={m.coach.newSession}
+        testID="plan-new-session"
+        label={personal ? m.mobile.solo.planSession : m.coach.newSession}
         onPress={() =>
           router.push({
             pathname: "/session-builder/[id]",

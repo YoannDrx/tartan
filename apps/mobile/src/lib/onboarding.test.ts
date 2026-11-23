@@ -6,6 +6,8 @@ import {
   COACH_OPTIONAL_ROUTES,
   COACH_STEP_ROUTES,
   nextCoachStep,
+  nextPersonalStep,
+  personalStepRoute,
   TOUR_FEATURES,
 } from "./onboarding";
 
@@ -112,5 +114,49 @@ describe("l'accueil de l'athlète", () => {
   it("ne s'adresse pas à un membre que le suivi ne guide pas, comme les comptes de démonstration", () => {
     expect(athleteWelcomeView({ guided: false, welcome, welcomeSeenAt: null, sessionToday: false })).toBeNull();
     expect(athleteWelcomeView({ guided: undefined, welcome, welcomeSeenAt: null, sessionToday: true })).toBeNull();
+  });
+});
+
+describe("les premiers pas de l'athlète autonome", () => {
+  const personal = (over: Partial<OnboardingResponse> = {}): OnboardingResponse => ({
+    ...coach({ staff: false, steps: [], optionalSteps: [], guideVisible: false, progress: { done: 0, total: 0 } }),
+    personal: {
+      steps: [
+        { key: "plan", done: true },
+        { key: "validate", done: false },
+        { key: "measure", done: false },
+        { key: "install", done: false },
+      ],
+      progress: { done: 1, total: 4 },
+      guideVisible: true,
+      celebrationDue: false,
+    },
+    ...over,
+  });
+
+  it("referment et rouvrent sa propre carte, avant la réponse du serveur", () => {
+    const closed = applyOnboardingPatch(personal(), { dismissed: true }, NOW);
+    expect(closed.personal?.guideVisible).toBe(false);
+    expect(closed.dismissedAt).toBe(NOW);
+    const reopened = applyOnboardingPatch(closed, { dismissed: false }, NOW);
+    expect(reopened.personal?.guideVisible).toBe(true);
+    expect(reopened.guideVisible).toBe(false);
+  });
+
+  it("fêtent la fin une seule fois", () => {
+    const due = personal({ personal: { ...personal().personal!, celebrationDue: true } });
+    expect(applyOnboardingPatch(due, { celebrated: true }, NOW).personal?.celebrationDue).toBe(false);
+  });
+
+  it("laissent intacte la carte d'un coach, qui n'a pas d'étapes d'athlète autonome", () => {
+    expect(applyOnboardingPatch(coach(), { dismissed: true }, NOW).personal).toBeUndefined();
+  });
+
+  it("marquent la prochaine étape et mènent chacune à son écran", () => {
+    expect(nextPersonalStep(personal().personal!)).toBe("validate");
+    expect(personalStepRoute("plan", "fiche")).toBe("new-session");
+    expect(personalStepRoute("validate", "fiche")).toBe("today");
+    expect(personalStepRoute("measure", "fiche")).toBe("/athlete-strength/fiche");
+    expect(personalStepRoute("install", "fiche")).toBe("/settings/notifications");
   });
 });

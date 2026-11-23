@@ -10,6 +10,7 @@ import { Alert, View } from "react-native";
 import { api } from "../../src/lib/api";
 import { localIsoDate } from "../../src/lib/dates";
 import { errorMessage } from "../../src/lib/errors";
+import { personalAthleteOf } from "../../src/lib/personal-space";
 import { useActiveSpace, useCoachAthleteFile } from "../../src/lib/queries";
 import { Button, Card, Field, SectionTitle, T, Tag } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
@@ -311,7 +312,8 @@ const Panel = ({ orgId, athleteId }: { orgId: string; athleteId: string }) => {
 export default function AthletePerformances() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { orgId, me, space: active } = useActiveSpace();
-  const allowed = active?.role === "owner" || active?.role === "coach";
+  // Le coach d'un espace, ou l'athlète autonome pour sa seule fiche.
+  const allowed = active?.role === "owner" || active?.role === "coach" || personalAthleteOf(active) === id;
   return (
     <StackScreen world="work" title={m.performances.title}>
       {orgId && id && allowed ? (

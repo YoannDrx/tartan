@@ -3,6 +3,8 @@ import { m } from "@tartan/i18n";
 import { Redirect, useRouter } from "expo-router";
 import { View } from "react-native";
 import { FirstStepsCard } from "../src/features/first-steps";
+import { PersonalFirstSteps } from "../src/features/personal-first-steps";
+import { personalAthleteOf } from "../src/lib/personal-space";
 import { useOnboarding } from "../src/lib/account-queries";
 import { useActiveSpace } from "../src/lib/queries";
 import { Button, Card, SectionTitle, T } from "../src/ui/primitives";
@@ -18,6 +20,21 @@ export default function FirstStepsPage() {
   const { me, space: active, orgId } = useActiveSpace();
   const router = useRouter();
   const onboarding = useOnboarding(orgId);
+  const self = personalAthleteOf(active);
+  // L'athlète autonome : ses propres étapes, et de quoi remettre la carte sur sa journée.
+  if (self)
+    return (
+      <StackScreen title={m.firstSteps.title}>
+        <T variant="small">{m.mobile.solo.guide.pageLead}</T>
+        {onboarding.data ? (
+          <PersonalFirstSteps orgId={orgId} athleteId={self} variant="page" />
+        ) : onboarding.isPending ? (
+          <LoadingState />
+        ) : (
+          <ErrorState error={onboarding.error} onRetry={() => void onboarding.refetch()} />
+        )}
+      </StackScreen>
+    );
   if (!me.isPending && !(active && isStaff(active.role))) return <Redirect href="/settings" />;
   return (
     <StackScreen title={m.firstSteps.title}>

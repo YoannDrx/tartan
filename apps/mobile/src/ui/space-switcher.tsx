@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useActiveSpace } from "../lib/queries";
+import { spaceCaption } from "../lib/personal-space";
 import { homeFor, useSpaceStore } from "../lib/space-store";
 import { Check, ChevronsUpDown } from "./icons";
 import { T } from "./primitives";
@@ -25,7 +26,7 @@ export const SpaceSwitcher = () => {
         testID="space-switcher"
         onPress={() => setOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel={`${m.settings.switchSpace} : ${active.organizationName}, ${m.roles[active.role]}`}
+        accessibilityLabel={`${m.settings.switchSpace} : ${active.organizationName}, ${spaceCaption(active)}`}
         style={({ pressed }) => ({
           minHeight: 44,
           alignSelf: "flex-start",
@@ -43,7 +44,7 @@ export const SpaceSwitcher = () => {
             {active.organizationName}
           </T>
           <T variant="caption" tone="muted">
-            {m.roles[active.role]}
+            {spaceCaption(active)}
           </T>
           <ChevronsUpDown size={16} color={card.text} accessibilityElementsHidden importantForAccessibility="no" />
         </Scene>
@@ -57,7 +58,7 @@ export const SpaceSwitcher = () => {
                 key={s.organizationId}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
-                accessibilityLabel={`${s.organizationName}, ${m.roles[s.role]}`}
+                accessibilityLabel={`${s.organizationName}, ${spaceCaption(s)}`}
                 onPress={() => {
                   setActive(s.organizationId);
                   setOpen(false);
@@ -80,7 +81,7 @@ export const SpaceSwitcher = () => {
                 <View style={{ flex: 1 }}>
                   <T variant="bodyStrong">{s.organizationName}</T>
                   <T variant="caption" tone="muted">
-                    {m.roles[s.role]}
+                    {spaceCaption(s)}
                   </T>
                 </View>
                 {selected ? (
