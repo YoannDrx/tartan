@@ -102,6 +102,14 @@ import {
   type OnboardingPatch,
   type SetPasswordInput,
 } from "@tartan/contracts";
+import {
+  historyShareSummary,
+  personalSpaceResponse,
+  sharedHistoryResponse,
+  signupOptionsResponse,
+  type CreatePersonalSpaceInput,
+  type HistoryShareInput,
+} from "@tartan/contracts";
 import { z } from "zod";
 
 export class ApiError extends Error {
@@ -375,6 +383,20 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("PATCH", `/orgs/${orgId}`, organizationResponse, body),
     createOrganization: (body: CreateOrganizationInput) =>
       request("POST", "/orgs", z.object({ organizationId: z.string(), firstGroupId: z.string() }), body),
+    // L'athlète autonome (lot AA3) : l'aiguillage lu sans session, son espace personnel, le partage de son historique.
+    signupOptions: () => request("GET", "/signup-options", signupOptionsResponse),
+    createPersonalSpace: (body: CreatePersonalSpaceInput) =>
+      request("POST", "/me/personal-space", personalSpaceResponse, body),
+    historyShares: () => request("GET", "/me/history-shares", z.array(historyShareSummary)),
+    shareHistory: (body: HistoryShareInput) =>
+      request("POST", "/me/history-shares", z.object({ share: historyShareSummary.nullable() }), body),
+    revokeHistoryShare: (orgId: string) => request("DELETE", `/me/history-shares/${orgId}`, okResponse),
+    sharedHistory: (orgId: string, athleteId: string) =>
+      request(
+        "GET",
+        `/orgs/${orgId}/athletes/${athleteId}/shared-history`,
+        z.object({ history: sharedHistoryResponse }),
+      ),
     today: (orgId: string) => request("GET", `/orgs/${orgId}/athlete/today`, athleteToday),
     athleteCalendar: (orgId: string, from: string, to: string) =>
       request(
