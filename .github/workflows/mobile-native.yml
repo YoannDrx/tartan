@@ -111,6 +111,7 @@ jobs:
       BETTER_AUTH_SECRET: secret-maestro-secret-maestro-secret-maestro
       CRON_SECRET: maestro-cron
       COACH_SIGNUP_MODE: public
+      ATHLETE_SIGNUP_MODE: public
       E2E_DISABLE_RATE_LIMIT: "true"
       RESEND_API_KEY: ""
       MUX_TOKEN_ID: ""
@@ -323,6 +324,7 @@ jobs:
       BETTER_AUTH_SECRET: secret-maestro-secret-maestro-secret-maestro
       CRON_SECRET: maestro-cron
       COACH_SIGNUP_MODE: public
+      ATHLETE_SIGNUP_MODE: public
       E2E_DISABLE_RATE_LIMIT: "true"
       RESEND_API_KEY: ""
       MUX_TOKEN_ID: ""
