@@ -68,19 +68,20 @@ const coachScreens: ShowcaseItem[] = (
   ] as const
 ).map(([key, image]) => ({ key, image, ...t.coach.features[key] }));
 
+// Captures de l'app native, barre d'état comprise ; la vidéo vient de la web app (`images/provenance.json`).
 const athleteScreens: ShowcaseItem[] = (
   [
-    ["journee", athleteToday],
-    ["semaine", athleteWeek],
-    ["musculation", athleteStrength],
-    ["pliometrie", athletePlyo],
-    ["course", athleteRunning],
-    ["fiche", athleteExercise],
-    ["calculateur", athleteCalculator],
-    ["progres", athleteProgress],
-    ["video", athleteVideo],
+    ["journee", athleteToday, true],
+    ["semaine", athleteWeek, true],
+    ["musculation", athleteStrength, true],
+    ["pliometrie", athletePlyo, true],
+    ["course", athleteRunning, true],
+    ["fiche", athleteExercise, true],
+    ["calculateur", athleteCalculator, true],
+    ["progres", athleteProgress, true],
+    ["video", athleteVideo, false],
   ] as const
-).map(([key, image]) => ({ key, image, ...t.athlete.features[key] }));
+).map(([key, image, native]) => ({ key, image, native, ...t.athlete.features[key] }));
 
 // Réglable depuis la console : la page se recalcule au plus tard chaque minute.
 export const revalidate = 60;

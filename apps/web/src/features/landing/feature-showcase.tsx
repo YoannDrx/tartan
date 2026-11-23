@@ -12,6 +12,8 @@ export type ShowcaseItem = {
   body: string;
   alt: string;
   image: StaticImageData;
+  // Capture du simulateur : elle porte déjà sa barre d'état, le téléphone n'en dessine pas.
+  native?: boolean;
 };
 
 // Les écrans d'un côté de l'app, un onglet par écran : la capture dans son appareil, puis ce qu'elle apporte. Sur
@@ -96,6 +98,7 @@ export const FeatureShowcase = ({
         >
           <Device
             className={cn("showcase-screen", device === "phone" && "mx-auto w-[86%] max-w-[340px] tablet:w-full")}
+            {...(device === "phone" ? { statusBar: !item.native } : {})}
           >
             <Image
               src={item.image}
