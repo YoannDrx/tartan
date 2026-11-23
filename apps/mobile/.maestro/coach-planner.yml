@@ -45,6 +45,11 @@ env:
 - extendedWaitUntil:
     visible: "Ta séance à relire"
     timeout: 60000
+# Le titre arrive avant que la séance soit préparée (« La séance s'écrit » reste affiché jusque-là) ; tant qu'elle ne
+# l'est pas, le bouton reste inactif, et l'attente sur un bouton présent mais inactif échoue sans attendre sur iOS.
+- extendedWaitUntil:
+    notVisible: "La séance s.écrit"
+    timeout: 60000
 - extendedWaitUntil:
     visible:
       id: planner-create-drafts

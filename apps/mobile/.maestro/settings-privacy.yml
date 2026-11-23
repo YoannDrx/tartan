@@ -1,4 +1,5 @@
 # Réglages : consentements et suppression du compte présents et accessibles, sans rien supprimer.
+# Ils vivent dans la rubrique Confidentialité du sommaire.
 appId: ${APP_ID}
 env:
   EMAIL: ${ATHLETE_EMAIL}
@@ -10,7 +11,15 @@ env:
     timeout: 30000
 - tapOn:
     id: open-settings
-- assertVisible: "Données de santé.*"
+- extendedWaitUntil:
+    visible:
+      id: settings-rubric-confidentialite
+    timeout: 15000
+- tapOn:
+    id: settings-rubric-confidentialite
+- extendedWaitUntil:
+    visible: "Données de santé.*"
+    timeout: 15000
 - scrollUntilVisible:
     element:
       id: delete-account

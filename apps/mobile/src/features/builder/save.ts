@@ -52,7 +52,11 @@ export const persistBuilderSession = async (input: {
     if (active()) onSaved(next);
     await writer.write({ ...draft, form: next, pending: publish && !published ? "publish" : "save" });
     if (!active()) return null;
-    if (publish && !published) await transport.publishSession(orgId, saved.id, saved.version);
+    // La publication dit qui reçoit la séance : le message du coach en part (audit G10).
+    const recipients =
+      publish && !published
+        ? ((await transport.publishSession(orgId, saved.id, saved.version)).recipients ?? null)
+        : null;
     if (!active()) return null;
     const current: SessionEditResponse = await transport.editSession(orgId, saved.id);
     const refreshed: SaveScheduledSessionInput = {
@@ -74,7 +78,7 @@ export const persistBuilderSession = async (input: {
     } catch {
       cleanupFailed = true;
     }
-    return { current, form: refreshed, cleanupFailed };
+    return { current, form: refreshed, cleanupFailed, recipients };
   } catch (cause) {
     throw new BuilderSaveFailure(cause, networkStarted, saved);
   }

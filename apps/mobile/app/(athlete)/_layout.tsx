@@ -40,7 +40,7 @@ export default function AthleteLayout() {
         }}
       />
       <Tabs.Screen
-        name="jumps"
+        name="mes-videos"
         options={{
           ...worldScene("work"),
           title: m.nav.mesSauts,

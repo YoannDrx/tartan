@@ -150,7 +150,7 @@ export default function RootLayout() {
           <Stack.Screen name="capture" options={{ contentStyle: { backgroundColor: scene.card } }} />
           <Stack.Screen name="session-builder/[id]" options={worldContent("work")} />
           <Stack.Screen name="coach-session/[id]" options={worldContent("work")} />
-          <Stack.Screen name="settings" options={worldContent("work")} />
+          <Stack.Screen name="settings/index" options={worldContent("work")} />
           <Stack.Screen name="invite" />
           <Stack.Screen name="athletes/index" options={worldContent("work")} />
           <Stack.Screen name="athletes/[id]" options={worldContent("work")} />

@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useActiveSpace, useAthletes } from "../../src/lib/queries";
+import { Avatar } from "../../src/ui/avatar";
 import { ChevronRight, UserPlus } from "../../src/ui/icons";
 import { Button, Divider, Field, ListSurface, T, MutedChevron } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
@@ -82,6 +83,16 @@ export default function Athletes() {
                     opacity: pressed ? 0.75 : 1,
                   })}
                 >
+                  <Avatar
+                    person={{
+                      name,
+                      firstName: a.firstName,
+                      lastName: a.lastName,
+                      avatarUrl: a.avatarUrl,
+                      avatarPreset: a.avatarPreset,
+                    }}
+                    size="md"
+                  />
                   <View style={{ flex: 1, gap: 2 }}>
                     <T variant="smallStrong">{name}</T>
                     {detail ? (

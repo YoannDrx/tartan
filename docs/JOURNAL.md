@@ -5,6 +5,12 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 Modèle :
 
 ```text
+## 2026-11-23, Claude Opus 5.5, parité mobile M1 à M3
+Fait : PR `feat/mobile-compte-pr`, qui réunit `feat/mobile-compte` (M1) et `feat/mobile-seances` (M2, M3). Compte : connexion par mot de passe ou lien à rang égal, écran d'attente du lien, réglages en neuf rubriques (aucune rubrique d'abonnement), photo recadrée par l'éditeur natif d'`expo-image-picker` puis réduite par `react-native-nitro-image` (déjà embarqué), avatars dont les dessins d'animaux sont désormais partagés (`packages/mascot/src/animals.ts`), premiers pas du coach et accueil de l'athlète gardés par l'API. Exercices : listes, favoris, fiche concise, vidéo de catalogue, `exercise-finder` natif partagé avec le planificateur. Séances : plein écran vidéo avec feuille et tracés au doigt, rappel local de fin de récupération (`expo-notifications`, sans demande d'autorisation), `/mes-videos` avec redirection des anciens liens, message de publication G10. Routes ajoutées côté web : `POST /api/v1/me/avatar` (borné, 20 par heure) et `GET /api/v1/orgs/[orgId]/athlete/welcome`, avec tests et matrice d'accès.
+Vérifié : types, lint, design, mobile 350, web 2 473, domaine 496, mascotte 2 905 ; M2 et M3 joués à la main sur simulateur iOS. Non vérifié : M1 sur simulateur (accès au panneau refusé à l'agent) ; flux Maestro neufs exécutés seulement par la CI ; Android, VoiceOver, TalkBack, téléphones physiques.
+À savoir : les nouveaux textes d'autorisation caméra et pellicule (`app.config.ts`) exigent un nouveau binaire ; le reste passe par une mise à jour à distance. Le flux vidéo plein écran est hors CI (`.maestro/local/`), faute de vidéo lisible sans Mux. Le build de développement local ne contient pas `expo-sharing`. « Personnaliser une fiche commune » n'est pas porté sur le mobile.
+Suite : nouveau binaire (M4) avec les icônes du logo, builds bêta.
+
 ## 2026-11-23, Claude Opus 5.5, inscriptions des athlètes autonomes fermées par défaut
 Fait : PR `fix/inscriptions-athletes-fermees`. Nouvelle variable `ATHLETE_SIGNUP_MODE` (défaut `closed`) ; le défaut du contrat `platformSettingsInput.athleteSignupMode` passe à `closed` ; `platformSettings()` ne laisse plus un défaut du contrat remplacer l'environnement (seules les clés présentes dans `platform_settings` comptent). Vitest, Playwright et la CI mobile ouvrent les deux inscriptions par l'environnement.
 Vérifié : `platform-console`, `personal-space`, `env-isolation`. Non vérifié : rien en réel.

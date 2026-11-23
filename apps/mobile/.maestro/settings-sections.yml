@@ -1,0 +1,124 @@
+# Réglages en rubriques (lot M1) : un sommaire, puis une page par rubrique, comme sur la web app.
+# Aucune rubrique d'abonnement ni de prix sur iOS et Android. Rien n'est modifié : le parcours se rejoue.
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: open-settings
+    timeout: 30000
+- tapOn:
+    id: open-settings
+- extendedWaitUntil:
+    visible:
+      id: settings-profile
+    timeout: 15000
+- assertVisible: "Mon compte"
+- assertVisible:
+    id: settings-rubric-profil
+- assertVisible:
+    id: settings-rubric-connexion
+- assertVisible:
+    id: settings-rubric-notifications
+- assertVisible:
+    id: settings-rubric-apparence
+- assertVisible:
+    id: settings-rubric-confidentialite
+- scrollUntilVisible:
+    element:
+      id: settings-rubric-aide
+- assertVisible:
+    id: settings-rubric-espace
+- assertVisible:
+    id: settings-rubric-groupes
+- assertVisible:
+    id: settings-rubric-membres
+- assertNotVisible: "Abonnement"
+- assertNotVisible: ".*€.*"
+
+# Chaque rubrique s'ouvre sur sa page, puis on revient au sommaire.
+- tapOn:
+    id: settings-rubric-aide
+- extendedWaitUntil:
+    # La rangée se lit d'un bloc : « Centre d'aide. Les réponses aux questions fréquentes, par thème. »
+    visible: "Centre d'aide\\..*"
+    timeout: 10000
+- assertVisible:
+    id: open-first-steps
+- tapOn:
+    id: screen-back
+- scrollUntilVisible:
+    element:
+      id: settings-rubric-groupes
+    direction: UP
+    # Sur iOS, une rangée encore sous l'en-tête compte comme visible : la centrer avant de la toucher.
+    centerElement: true
+- tapOn:
+    id: settings-rubric-groupes
+- extendedWaitUntil:
+    visible:
+      id: settings-group-0
+    timeout: 15000
+- tapOn:
+    id: screen-back
+- tapOn:
+    id: settings-rubric-membres
+- extendedWaitUntil:
+    visible:
+      id: member-invite-email
+    timeout: 15000
+- assertVisible: "Invitations envoyées"
+- tapOn:
+    id: screen-back
+- scrollUntilVisible:
+    element:
+      id: settings-rubric-notifications
+    direction: UP
+    # Sur iOS, une rangée encore sous l'en-tête compte comme visible : la centrer avant de la toucher.
+    centerElement: true
+- tapOn:
+    id: settings-rubric-notifications
+- extendedWaitUntil:
+    visible:
+      id: push-category-sessions
+    timeout: 15000
+- tapOn:
+    id: screen-back
+- tapOn:
+    id: settings-rubric-apparence
+- extendedWaitUntil:
+    visible:
+      id: theme-tartan
+    timeout: 10000
+- tapOn:
+    id: screen-back
+# Le sommaire garde sa position au retour d'une rubrique : la rangée Connexion peut être au-dessus de l'écran.
+- scrollUntilVisible:
+    element:
+      id: settings-rubric-connexion
+    direction: UP
+    # Sur iOS, une rangée encore sous l'en-tête compte comme visible : la centrer avant de la toucher.
+    centerElement: true
+- tapOn:
+    id: settings-rubric-connexion
+- extendedWaitUntil:
+    visible:
+      id: sign-in-method-link
+    timeout: 15000
+- assertVisible:
+    id: sign-in-method-password
+- tapOn:
+    id: screen-back
+- tapOn:
+    id: settings-rubric-espace
+- extendedWaitUntil:
+    visible: "Nom du club ou de ton coaching"
+    timeout: 15000
+- tapOn:
+    id: screen-back
+- extendedWaitUntil:
+    visible:
+      id: settings-profile
+    timeout: 10000

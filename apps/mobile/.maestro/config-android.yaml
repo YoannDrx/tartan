@@ -7,6 +7,7 @@ flows:
   - coach-tracking.yml
   - coach-builder.yml
   - coach-builder-detail.yml
+  - coach-publication-message.yml
   - sync-review.yml
 executionOrder:
   continueOnFailure: true
@@ -17,4 +18,5 @@ executionOrder:
     - coach-tracking
     - coach-builder
     - coach-builder-detail
+    - coach-publication-message
     - sync-review

@@ -6,7 +6,12 @@ import { config } from "./config";
 import { launchRoute } from "./notification-launch";
 import { forgetDevicePush, stopDevicePush } from "./push-lifecycle";
 import { reportTechnical } from "./report";
-import { actionFromResponse, normalizeNotificationData, routeForNotification } from "./notification-routes";
+import {
+  actionFromResponse,
+  normalizeNotificationData,
+  routeForNotification,
+  staysOnScreen,
+} from "./notification-routes";
 import { useSpaceStore } from "./space-store";
 import { m } from "@tartan/i18n";
 
@@ -127,7 +132,7 @@ export const reportClientVersion = async (): Promise<void> => {
 // Les boutons d'action sont traités sans ouvrir l'app (voir notification-actions.ts). Ici, seul le toucher simple navigue.
 const handleTap = (response: Notifications.NotificationResponse, navigate: (route: string) => void) => {
   const data = normalizeNotificationData(response.notification.request.content.data);
-  if (actionFromResponse(response.actionIdentifier, data)) return;
+  if (actionFromResponse(response.actionIdentifier, data) || staysOnScreen(data)) return;
   if (typeof data?.organizationId === "string") useSpaceStore.getState().setActive(data.organizationId);
   launchRoute.offer(routeForNotification(data), navigate);
 };

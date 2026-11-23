@@ -9,8 +9,9 @@ import { useIsOnline } from "../lib/network";
 import { useOpQueue } from "../lib/sync/op-queue";
 import { reviewRequiredOps } from "../lib/sync/queue-core";
 import { useOwnUploads } from "../lib/upload/upload-queue";
-import { ArrowLeft, CloudOff, CloudUpload, Repeat, Settings, X } from "./icons";
+import { ArrowLeft, CloudOff, CloudUpload, Repeat, X } from "./icons";
 import { Button, IconButton, LaneLine, ListSurface, ScreenTitle, T } from "./primitives";
+import { SettingsButton } from "./settings-button";
 import { SpaceSwitcher } from "./space-switcher";
 import { Scene, scene, space, usePagePad, usePalette, type WorldName } from "./theme";
 
@@ -131,13 +132,7 @@ const TabInner = ({
           {subtitle ? <T variant="small">{subtitle}</T> : null}
         </View>
         {right}
-        <IconButton
-          testID="open-settings"
-          icon={Settings}
-          label={m.mobile.a11y.openSettings}
-          tone="filled"
-          onPress={() => router.push("/settings")}
-        />
+        <SettingsButton />
       </View>
     </>
   );
@@ -257,6 +252,7 @@ const StackInner = ({
           }}
         >
           <IconButton
+            testID="screen-back"
             icon={backIcon === "close" ? X : ArrowLeft}
             label={backLabel ?? (backIcon === "close" ? m.common.close : m.common.back)}
             tone="filled"

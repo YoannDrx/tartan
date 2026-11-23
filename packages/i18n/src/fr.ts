@@ -1283,7 +1283,7 @@ export const fr = {
         questions: {
           inviter: {
             q: "Comment inviter un athlète ?",
-            a: "Dans Réglages, sous Invitations : par e-mail pour une personne, ou avec le lien ou le QR code du groupe. L'athlète crée son compte en ouvrant l'invitation.",
+            a: "Dans Réglages : rubrique Groupes pour le lien ou le QR code du groupe, rubrique Membres pour une invitation par e-mail à une personne. L'athlète crée son compte en ouvrant l'invitation.",
           },
           invitationPerdue: {
             q: "Mon athlète n'a pas reçu l'invitation",
@@ -1387,7 +1387,7 @@ export const fr = {
           },
           moinsEmails: {
             q: "Comment recevoir moins d'e-mails ?",
-            a: "Dans Réglages, sous E-mails : le récapitulatif de la semaine, les conseils et les e-mails de notification se coupent un par un. Les messages liés à ton compte continuent d'arriver.",
+            a: "Dans Réglages, rubrique Notifications : le récapitulatif de la semaine, les conseils et les e-mails de notification se coupent un par un. Les messages liés à ton compte continuent d'arriver.",
           },
           supprimer: {
             q: "Comment supprimer mon compte ?",
@@ -1756,6 +1756,306 @@ export const fr = {
     photoBody: "Ton coach te reconnaît d'un coup d'œil dans le suivi.",
     photoAction: "Choisir une photo ou un avatar",
     close: "Refermer cette carte",
+  },
+  // Le compte dans l'app native (lot M1) : connexion, réglages en rubriques, photo et avatars, premiers pas.
+  // Mêmes intitulés et même ordre que la web app ; aucun prix ni offre payante sur iOS et Android.
+  account: {
+    signIn: {
+      // Les deux chemins, de même rang, sous l'adresse.
+      paths: "Moyen de connexion",
+      withPassword: "Continuer avec mon mot de passe",
+      withLink: "Recevoir un lien de connexion",
+      passwordLabel: "Mot de passe",
+      submit: "Se connecter",
+      forgot: "Mot de passe oublié ?",
+      createTitle: "Crée ton compte",
+      createLead: "Choisis un mot de passe, ou reçois un lien dans ta boîte mail.",
+      createWithPassword: "Créer avec un mot de passe",
+      createWithLink: "Créer avec un lien par e-mail",
+      createPasswordLabel: "Choisis ton mot de passe",
+      createSubmit: "Créer mon compte",
+      linkInstead: "Recevoir un lien à la place",
+      passwordHint: (min: number) => `${min} caractères au minimum.`,
+      passwordTooShort: (min: number) => `Choisis un mot de passe d'au moins ${min} caractères.`,
+      passwordRequired: "Saisis ton mot de passe.",
+      showPassword: "Afficher le mot de passe",
+      hidePassword: "Masquer le mot de passe",
+      // Le même message qu'un compte existe ou non : il dit quoi faire, pas ce qui manque.
+      invalidCredentials:
+        "Adresse ou mot de passe incorrect. Vérifie ta saisie, ou reçois un lien de connexion : il marche même sans mot de passe.",
+      rateLimited: "Trop d'essais en peu de temps. Attends une minute, puis réessaie.",
+      haveAccount: "J'ai déjà un compte Tartan",
+      noAccountYet: "Je n'ai pas encore de compte",
+    },
+    // L'écran d'attente, après l'envoi d'un lien de connexion ou de confirmation.
+    sent: {
+      magicTitle: "Regarde ta boîte mail",
+      magicLead: "Un lien de connexion vient de partir vers :",
+      magicDetail: "Ouvre-le sur ce téléphone. Il marche une fois et reste valable 15 minutes.",
+      verifyTitle: "Confirme ton adresse",
+      verifyLead: "Un message vient de partir vers :",
+      verifyDetail: "Ouvre le lien qu'il contient sur ce téléphone : tu arriveras connecté. Il reste valable 1 heure.",
+      verifyFirst: "Ton adresse n'est pas encore confirmée : le lien vient de repartir.",
+      resend: "Renvoyer le lien",
+      resendIn: (seconds: number) => `Renvoyer le lien dans ${seconds} s`,
+      resent: "C'est reparti. Regarde ta boîte mail.",
+      resendLimited: "Trop d'envois en peu de temps. Attends une minute, puis renvoie le lien.",
+      changeEmail: "Changer d'adresse",
+      helpTitle: "Rien reçu ?",
+      help: [
+        "Regarde dans les indésirables et dans l'onglet Promotions.",
+        "Vérifie que l'adresse ci-dessus est la bonne. Sinon, change-la.",
+        "Toujours rien après deux minutes : renvoie le lien, ou écris-nous à hello@tartan.coach.",
+      ],
+    },
+    // Les réglages : un sommaire, puis une page par rubrique. Aucune rubrique d'abonnement sur iOS et Android.
+    settings: {
+      groups: { compte: "Mon compte", espace: "Mon espace", aide: "Aide" },
+      openProfile: (name: string) => `Ton profil : ${name}`,
+      rubrics: {
+        profil: { title: "Profil", summary: "Photo, nom, adresse" },
+        connexion: { title: "Connexion", summary: "Mot de passe, appareils, déconnexion" },
+        notifications: { title: "Notifications", summary: "Push, catégories, e-mails" },
+        apparence: { title: "Apparence", summary: (theme: string) => `Thème : ${theme}` },
+        confidentialite: {
+          title: "Confidentialité",
+          summary: "Données, documents, suppression du compte",
+          summaryAthlete: "Accords, données, suppression du compte",
+        },
+        espace: { title: "Espace", summary: "Nom, profil d'entraînement" },
+        groupes: { title: "Groupes", summary: "Liens et QR codes d'invitation" },
+        membres: { title: "Membres", summary: "Inviter un coach, invitations envoyées" },
+        aide: { title: "Aide", summary: "Centre d'aide, contact, nouveautés" },
+      },
+      spacesTitle: "Mes espaces",
+      legalTitle: "Documents",
+      dataTitle: "Mes données",
+      accountTitle: "Mon compte",
+      deleteDetail: "Efface ton compte et tes données, pour de bon.",
+      groupsDetail: "Partage le lien ou le QR code d'un groupe : l'athlète qui l'ouvre rejoint ce groupe.",
+      groupsEmpty: "Aucun groupe pour l'instant. Crée-le depuis la web app, dans Réglages, rubrique Groupes.",
+      groupAthletes: (count: number) => (count > 1 ? `${count} athlètes` : `${count} athlète`),
+      openGroup: (name: string) => `Inviter dans ${name}`,
+      membersInvite: "Inviter un coach",
+      membersInviteDetail: "Il reçoit un lien par e-mail et rejoint l'espace comme coach.",
+      membersInviteSend: "Envoyer l'invitation",
+      membersInvited: (email: string) => `Invitation envoyée à ${email}.`,
+      membersSent: "Invitations envoyées",
+      membersEmpty: "Aucune invitation pour l'instant.",
+      membersRole: { athlete: "Athlète", coach: "Coach", assistant: "Coach adjoint" },
+      membersStatus: (status: string) =>
+        ({ pending: "En attente", accepted: "Acceptée", expired: "Expirée", revoked: "Révoquée" })[status] ?? status,
+      membersGroupLink: "Lien de groupe",
+      membersJoined: (count: number) => (count > 1 ? `${count} inscrits` : `${count} inscrit`),
+      helpCenterDetail: "Les réponses aux questions fréquentes, par thème.",
+      releasesDetail: "Ce qui a changé dans Tartan, version après version.",
+      syncDetail: "Les saisies faites sans réseau qui demandent ton choix.",
+      firstSteps: "Premiers pas",
+      firstStepsDetail: "Tes étapes, et le tour des fonctions de Tartan.",
+    },
+    // Rubrique Connexion : les moyens du compte, puis le mot de passe.
+    connexion: {
+      methods: "Mes moyens de connexion",
+      link: "Lien par e-mail",
+      linkState: "Toujours disponible",
+      password: "Mot de passe",
+      passwordOn: "Défini",
+      passwordOff: "Aucun",
+      google: "Google",
+      apple: "Apple",
+      linked: "Relié à ce compte",
+      notLinked: "Pas encore utilisé",
+      method: (name: string, state: string) => `${name} : ${state}`,
+      define: {
+        title: "Définir un mot de passe",
+        detail:
+          "Avec un mot de passe, tu te connectes tout de suite, sans passer par ta boîte mail. Le lien par e-mail reste disponible.",
+        field: "Nouveau mot de passe",
+        submit: "Définir mon mot de passe",
+        done: "Mot de passe défini.",
+        // La session n'est pas assez récente : un lien de connexion rouvre l'app ici, avec une session neuve.
+        confirmLead:
+          "Tu es connecté depuis un moment. Pour ta sécurité, confirme d'abord que c'est bien toi avec un lien reçu par e-mail : il rouvre l'app ici, et tu choisis ton mot de passe.",
+        confirmCta: "Recevoir le lien de confirmation",
+        confirmSent: (email: string) =>
+          `Le lien vient de partir vers ${email}. Ouvre-le sur ce téléphone. Il reste valable 15 minutes.`,
+      },
+      change: {
+        title: "Changer le mot de passe",
+        current: "Mot de passe actuel",
+        next: "Nouveau mot de passe",
+        revoke: "Déconnecter mes autres appareils",
+        revokeDetail: "Ce téléphone reste connecté.",
+        submit: "Changer mon mot de passe",
+        done: "Mot de passe changé.",
+        doneRevoked: "Mot de passe changé. Tes autres appareils sont déconnectés.",
+        currentRequired: "Saisis ton mot de passe actuel.",
+      },
+      devices: "Mes appareils",
+      devicesDetail:
+        "Tartan reste ouvert sur chaque téléphone et chaque ordinateur où tu t'es connecté. Un appareil perdu ou prêté ? Déconnecte tous les autres : ce téléphone reste connecté.",
+      hereDetail: (email: string) => `Connecté avec ${email}.`,
+    },
+    // La proposition facultative, pour l'athlète entré par un lien.
+    prompt: {
+      title: "Un mot de passe pour revenir plus vite",
+      body: "Tu es entré avec un lien reçu par e-mail. Avec un mot de passe, tu te reconnectes tout de suite, sans passer par ta boîte mail. C'est facultatif : le lien marchera toujours.",
+      open: "Définir un mot de passe",
+      dismiss: "Non merci",
+      dismissed: "C'est noté. Tu pourras en définir un dans Réglages, rubrique Connexion.",
+      field: "Ton mot de passe",
+      submit: "Définir mon mot de passe",
+      cancel: "Annuler",
+      done: "Mot de passe défini. Tu peux t'en servir à ta prochaine connexion.",
+      later:
+        "Ta connexion date d'un moment : la rubrique Connexion des réglages t'envoie d'abord un lien de confirmation.",
+    },
+    // La photo de profil et les avatars.
+    avatar: {
+      section: "Ta photo",
+      detail: "Ton coach et ton groupe te reconnaissent d'un coup d'œil.",
+      fromLibrary: "Choisir dans mes photos",
+      fromCamera: "Prendre une photo",
+      cropHint: "Tu recadres ensuite en carré : déplace et zoome avant de valider.",
+      toInitials: "Revenir aux initiales",
+      saving: "Enregistrement de ta photo…",
+      saved: "Photo enregistrée.",
+      presetSaved: "Avatar enregistré.",
+      initialsSaved: "Tes initiales s'affichent à nouveau.",
+      galleryTitle: "Ou choisis un avatar",
+      galleryDetail: "Un athlète du groupe ou un animal. Il remplace ta photo si tu en avais une.",
+      group: "Le groupe",
+      animals: "Animaux",
+      athlete: (name: string, event: string) => `${name}, ${event.toLowerCase()}`,
+      animal: {
+        fox: "Renard",
+        cat: "Chat",
+        dog: "Chien",
+        bear: "Ours",
+        rabbit: "Lapin",
+        owl: "Chouette",
+        panda: "Panda",
+        lion: "Lion",
+        frog: "Grenouille",
+        penguin: "Manchot",
+        koala: "Koala",
+        hedgehog: "Hérisson",
+      },
+      permissionCamera: "Tartan n'a pas accès à l'appareil photo. Autorise-le dans les réglages du téléphone.",
+      unreadable: "Cette image ne s'ouvre pas. Essaie une autre photo.",
+      uploadFailed: "La photo n'est pas partie. Vérifie ta connexion et réessaie.",
+      alt: {
+        photo: (name: string) => `Photo de ${name}`,
+        preset: (name: string, label: string) => `Avatar de ${name} : ${label}`,
+        initials: (name: string) => `Initiales de ${name}`,
+      },
+    },
+    // Les premiers pas du coach.
+    firstSteps: {
+      cardTitle: "Pour démarrer",
+      lap: (done: number, total: number) =>
+        done > 1 ? `${done} étapes faites sur ${total}` : `${done} étape faite sur ${total}`,
+      next: "Prochaine étape",
+      done: "Fait",
+      todo: "À faire",
+      close: "Refermer",
+      closeLabel: "Refermer la carte des premiers pas",
+      closed: "Carte refermée. Tes premiers pas restent dans Réglages, rubrique Aide.",
+      reopen: "Remettre la carte sur le suivi",
+      reopened: "La carte est de retour sur le suivi.",
+      all: "Tous les premiers pas",
+      steps: {
+        profile: {
+          detail: "Une photo ou un avatar : tes athlètes te reconnaissent dès leur arrivée.",
+          action: "Ajouter ma photo",
+        },
+        invite: {
+          detail: "Le lien du groupe, un QR code à la piste ou une adresse e-mail.",
+          action: "Inviter mes athlètes",
+        },
+        create: { detail: "Pars d'un modèle, d'une séance vierge ou du planificateur.", action: "Créer une séance" },
+        publish: {
+          detail: "Tant qu'elle reste en brouillon, ton groupe ne la voit pas.",
+          action: "Ouvrir le planning",
+        },
+        validate: {
+          detail:
+            "Essaie avec un autre téléphone : ouvre le lien du groupe avec une autre adresse e-mail, valide la séance du jour, et regarde la case se cocher ici.",
+          action: "Afficher le lien et le QR code",
+        },
+      },
+      optionalTitle: "Pour aller plus loin",
+      optionalCount: (done: number, total: number) => `Facultatif, ${done} sur ${total}`,
+      optional: {
+        equipment: "Les modèles et le planificateur partent du matériel que tu as vraiment.",
+        video: "Une vidéo d'athlète, revue au ralenti et commentée sur l'image.",
+        phase: "Une phase de préparation situe chaque séance dans la saison.",
+        install: "L'app installée, avec les notifications : ce téléphone compte dès qu'il les reçoit.",
+      },
+      go: "Y aller",
+      goTo: (title: string) => `Y aller : ${title}`,
+      skip: "Écarter",
+      skipLabel: (title: string) => `Écarter l'étape : ${title}`,
+      unskip: "Reprendre",
+      unskipLabel: (title: string) => `Reprendre l'étape : ${title}`,
+      skipped: "Écartée",
+      stepState: (title: string, state: string) => `${title} : ${state}`,
+      pageLead: "Ce que Tartan sait faire, et où en est ton espace.",
+      stepsTitle: "Tes étapes",
+      stepsDone: "Tes premiers pas sont bouclés.",
+      tourOpen: "Faire le tour de piste",
+      tourTitle: "Le tour de piste",
+      tourLead: "Sept fonctions, une phrase chacune. Tu peux le refermer et le revoir depuis tes premiers pas.",
+      tourProgress: (step: number, total: number) => `Étape ${step} sur ${total}`,
+      tourPrevious: "Précédent",
+      tourNext: "Suivant",
+      tourFinish: "Commencer",
+      tourFeatures: {
+        suivi: {
+          title: "Le suivi",
+          body: "Une grille athlètes × séances : tu vois d'un coup d'œil qui a fait quoi, et tu relances les retardataires d'un geste.",
+        },
+        calendrier: {
+          title: "Le planning et le constructeur",
+          body: "Tu construis une séance une fois, avec circuits et supersets, et tu la publies pour le groupe ou pour quelques athlètes.",
+        },
+        exercices: {
+          title: "Les exercices",
+          body: "Une bibliothèque prête, un guide animé par fiche, et tes propres exercices rangés dans tes listes.",
+        },
+        videos: {
+          title: "La vidéo",
+          body: "Tu revois un geste au ralenti et tu le commentes sur l'image, avec des tracés que l'athlète retrouve chez lui.",
+        },
+        planificateur: {
+          title: "Le planificateur",
+          body: "Tu décris ou tu dictes ta séance, il prépare un brouillon que tu relis. Il ne publie jamais seul.",
+        },
+        progression: {
+          title: "La progression et les phases",
+          body: "Charges réalisées, records et phases de la saison se lisent au même endroit, avec leur provenance.",
+        },
+        annonces: {
+          title: "Les annonces",
+          body: "Un message pour tout le groupe, épinglé en haut de leur écran, sans ouvrir de discussion.",
+        },
+      },
+      demoTitle: "Voir Tartan rempli",
+      demoBody:
+        "Sur la web app, depuis un ordinateur, tes premiers pas ouvrent un espace de démonstration : huit athlètes fictifs, des séances et des validations, à part de ton espace.",
+      celebrationTitle: "Premiers pas bouclés",
+      celebrationBody:
+        "Ton groupe a validé sa première séance et ton espace est prêt. La suite se passe dans le suivi.",
+      celebrationAction: "Continuer",
+    },
+    // L'athlète : l'accueil et la carte facultative d'après la première validation.
+    athlete: {
+      welcomeLineHint: "Ouvre l'accueil : trois choses à savoir sur Tartan.",
+      extrasPassword: "Un mot de passe",
+      extrasNotifications: "Les notifications",
+      extrasNotificationsBody: "Ta séance arrive sur ce téléphone dès que ton coach la publie.",
+      closed: "Carte refermée. Tout se retrouve dans les réglages.",
+    },
   },
   today: {
     weekLabel: "Ta semaine",
@@ -2375,6 +2675,112 @@ export const fr = {
     backToLibrary: "Retour aux exercices",
     linkedVideos: "Vidéos liées",
     linkedVideosEmpty: "Aucune vidéo liée à ce mouvement. Rattache-la depuis l'analyse d'une vidéo.",
+  },
+  // Parité mobile, lot M2 : la bibliothèque du coach sur l'app native (listes, favoris, fiche concise, sélecteur).
+  nativeExercises: {
+    filters: {
+      label: "Filtrer la bibliothèque",
+      all: "Tout",
+      favorites: "Favoris",
+      mine: "Mes fiches",
+      sharedBy: (list: string, owner: string) => `${list}, de ${owner}`,
+    },
+    results: (count: number) => (count === 0 ? "Aucune fiche" : count === 1 ? "1 fiche" : `${count} fiches`),
+    favorite: {
+      add: (name: string) => `Mettre ${name} en favori`,
+      remove: (name: string) => `Retirer ${name} des favoris`,
+      on: "Favori",
+      added: "Ajoutée aux favoris.",
+      removed: "Retirée des favoris.",
+    },
+    lists: {
+      new: "Nouvelle liste",
+      name: "Nom de la liste",
+      nameRequired: "Donne un nom à la liste.",
+      create: "Créer la liste",
+      created: (name: string) => `Liste « ${name} » créée.`,
+      readOnly: (owner: string) => `Liste de ${owner}, en lecture seule.`,
+      createInList: "Créer un exercice dans cette liste",
+      empty: "Cette liste est vide. Ajoute des fiches depuis la bibliothèque, ou crée un exercice directement ici.",
+      sharedEmpty: "Cette liste partagée est vide pour l'instant.",
+      favoritesEmpty: "Aucun favori pour l'instant. Touche l'étoile d'une fiche pour la retrouver ici.",
+      file: (name: string) => `Ranger ${name} dans une liste`,
+      fileTitle: (name: string) => `Ranger « ${name} »`,
+      fileHint: "Coche les listes où cette fiche doit apparaître.",
+      none: "Tu n'as pas encore de liste. Crée la première ci-dessous.",
+      count: (count: number) => (count === 0 ? "Vide" : count === 1 ? "1 fiche" : `${count} fiches`),
+      added: (name: string) => `Ajoutée à « ${name} ».`,
+      removed: (name: string) => `Retirée de « ${name} ».`,
+      failed: "Le changement n'a pas été enregistré. Vérifie la connexion, puis réessaie.",
+      back: "Retour aux résultats",
+      backToSheet: "Retour à la fiche",
+    },
+    sheet: {
+      source: { shared: "Bibliothèque commune", mine: "Fiche de ton espace" },
+      variant: (name: string) => `Ouvrir la fiche ${name}`,
+    },
+    // La fiche concise, la même que sur le web : le geste, l'objectif, la mise en place, les étapes, les erreurs.
+    guide: {
+      setup: "Mise en place",
+      steps: "Étapes",
+      mistakes: "À éviter",
+      easier: "Plus facile",
+      harder: "Plus difficile",
+      detail: "Détail",
+      detailHint: "Le texte complet déjà relu, gardé tant que la version courte attend sa validation.",
+      coach: "Guide écrit par le coach pour cet espace.",
+      step: (index: number) => `Étape ${index}`,
+    },
+    picker: {
+      hint: "Cherche une fiche, filtre par favoris ou par liste, puis ajoute-la à la séance. Si elle manque, crée-la sans quitter la séance.",
+      pick: (name: string) => `Ajouter ${name} à la séance`,
+      replace: (name: string) => `Choisir ${name}`,
+      added: (name: string) => `${name} ajouté à la séance.`,
+      more: "Les 40 premières fiches sont affichées. Écris un nom pour retrouver les autres.",
+    },
+    quick: {
+      submitInLibrary: "Créer la fiche",
+      createdInList: (name: string, list: string) => `Fiche « ${name} » créée dans « ${list} ».`,
+    },
+  },
+  // Parité mobile, lot M3 : l'analyse vidéo en plein écran, l'éditeur en feuille et les tracés au doigt.
+  nativeVideo: {
+    fullscreen: "Plein écran",
+    exitFullscreen: "Quitter le plein écran",
+    editor: "Remarques et tracés",
+    sheet: {
+      grow: "Agrandir l'éditeur",
+      shrink: "Réduire l'éditeur",
+      handle: "Poignée de l'éditeur : glisse pour l'agrandir ou le réduire",
+      heights: { rail: "Éditeur replié", half: "Éditeur à moitié", full: "Éditeur en entier" },
+      collapse: "Replier l'éditeur",
+      expand: "Déplier l'éditeur",
+    },
+    tools: "Outils de tracé",
+    tool: (kind: string) => `Tracer : ${kind}`,
+    area: (kind: string, left: number) =>
+      `Zone de tracé, ${kind.toLowerCase()}. Touche l'image pour poser ${left === 1 ? "le dernier point" : `${left} points`}.`,
+    placed: (count: number, total: number) => `Point ${count} sur ${total} posé.`,
+    undo: "Reprendre le dernier point",
+    cancel: "Annuler le tracé",
+    saved: "Tracé enregistré.",
+  },
+  // Parité mobile, lot M3 : le rappel de fin de récupération quand l'app passe en arrière-plan.
+  nativeSessionMode: {
+    restNotification: {
+      title: "Récupération terminée",
+      body: "C'est reparti : la série suivante t'attend.",
+    },
+  },
+  // Parité mobile, lot M3 (constat G10) : la publication dit qui reçoit vraiment la séance.
+  nativePublication: {
+    empty: "Séance publiée. Personne ne la reçoit encore : invite tes athlètes avec le lien du groupe.",
+    unreachable: (count: number) =>
+      `Séance publiée pour ${count} athlète${count > 1 ? "s" : ""}. Aucun n'a encore de compte, donc aucune notification n'est partie : invite-les avec le lien du groupe.`,
+    notified: (notified: number, total: number) =>
+      notified === total
+        ? `Séance publiée. ${notified} athlète${notified > 1 ? "s" : ""} ${notified > 1 ? "reçoivent" : "reçoit"} la notification.`
+        : `Séance publiée pour ${total} athlète${total > 1 ? "s" : ""}. ${notified} ${notified > 1 ? "reçoivent" : "reçoit"} la notification ; les autres n'ont pas encore de compte.`,
   },
   athletes: {
     fileTitle: "Fiche athlète",

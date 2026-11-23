@@ -1,0 +1,86 @@
+# Parité mobile, lot M2 : dans le constructeur, le sélecteur filtre par favoris, range une fiche dans une liste sans
+# fermer la feuille, puis crée une fiche absente de la bibliothèque et la pose dans la séance. Rien n'est publié.
+# Rejouable : l'étoile est posée d'avance par la fixture, la liste et la fiche portent des noms neufs.
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+  FAVORITE: "on"
+---
+- runScript: scripts/exercise-lists-fixture.js
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- openLink: ${output.builderUrl}
+- runFlow: flows/_accept-deep-link.yml
+- extendedWaitUntil:
+    visible:
+      id: builder-title
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      text: "Ajouter un exercice"
+    centerElement: true
+    timeout: 30000
+- tapOn: "Ajouter un exercice"
+- extendedWaitUntil:
+    visible:
+      id: exercise-search
+    timeout: 15000
+# Favoris : la fiche étoilée, et le bouton qui la range dans une liste.
+- tapOn:
+    id: library-filter-favorites
+- extendedWaitUntil:
+    visible:
+      id: exercise-option-${output.squatId}
+    timeout: 15000
+- tapOn:
+    id: exercise-file-${output.squatId}
+- extendedWaitUntil:
+    visible:
+      id: exercise-list-toggle-${output.listId}
+    timeout: 15000
+- tapOn:
+    id: exercise-list-toggle-${output.listId}
+- extendedWaitUntil:
+    visible:
+      id: exercise-list-count-${output.listName}
+      text: "1 fiche"
+    timeout: 15000
+- takeScreenshot: builder-picker-file
+- tapOn:
+    id: exercise-file-back
+# Chercher, ne rien trouver, créer : la fiche part dans la séance.
+- tapOn:
+    id: library-filter-all
+- tapOn:
+    id: exercise-search
+- inputText: ${output.exerciseName}
+- runFlow:
+    file: flows/_hide-keyboard.yml
+- extendedWaitUntil:
+    visible:
+      id: exercise-create
+    timeout: 10000
+- tapOn:
+    id: exercise-create
+- extendedWaitUntil:
+    visible:
+      id: exercise-quick-submit
+    timeout: 10000
+- copyTextFrom:
+    id: exercise-quick-name
+- assertTrue: ${maestro.copiedText === output.exerciseName}
+- takeScreenshot: builder-quick-create
+- tapOn:
+    id: exercise-quick-submit
+- extendedWaitUntil:
+    notVisible:
+      id: exercise-quick-submit
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "${output.exerciseName}"
+    centerElement: true
+    timeout: 20000
+- takeScreenshot: builder-quick-created

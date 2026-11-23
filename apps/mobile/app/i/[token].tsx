@@ -20,6 +20,7 @@ import { useMe } from "../../src/lib/queries";
 import { queryClient } from "../../src/lib/query-client";
 import { useSession } from "../../src/lib/session-store";
 import { useSpaceStore } from "../../src/lib/space-store";
+import { Avatar } from "../../src/ui/avatar";
 import { Button, Card, Field, LaneLine, ScreenTitle, T } from "../../src/ui/primitives";
 import { useSceneStatusBar } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
@@ -200,6 +201,14 @@ export default function InvitationScreen() {
   return (
     <Shell>
       <View style={{ gap: space.sm }}>
+        <Avatar
+          person={{
+            name: invitation.inviterName,
+            avatarUrl: invitation.inviterAvatarUrl,
+            avatarPreset: invitation.inviterAvatarPreset,
+          }}
+          size="lg"
+        />
         <ScreenTitle title={title} variant="display" testID="invite-title" />
         <T variant="small">{invitation.organizationName}</T>
       </View>
@@ -213,7 +222,11 @@ export default function InvitationScreen() {
       ) : status !== "signed-in" ? (
         <>
           <T>{m.mobile.invite.signInLead}</T>
-          <Button testID="invite-sign-in" label={m.mobile.invite.signIn} onPress={() => router.replace("/sign-in")} />
+          <Button
+            testID="invite-sign-in"
+            label={m.mobile.invite.signIn}
+            onPress={() => router.replace({ pathname: "/sign-in", params: { intent: "create" } })}
+          />
         </>
       ) : (
         <>

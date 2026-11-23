@@ -1,0 +1,45 @@
+# Parité mobile, lot M3 (constat G10) : publier depuis le constructeur natif dit qui reçoit vraiment la séance, d'après
+# le décompte du serveur, et non plus « Tes athlètes reçoivent la notification » dans tous les cas.
+# Rejouable : la fixture crée un brouillon neuf pour demain, destiné à un athlète qui a un compte.
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+---
+- runScript: scripts/publication-fixture.js
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- openLink: ${output.publicationUrl}
+- runFlow: flows/_accept-deep-link.yml
+- extendedWaitUntil:
+    visible:
+      id: builder-title
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: builder-review
+    direction: DOWN
+    timeout: 30000
+- waitForAnimationToEnd
+- tapOn:
+    id: builder-review
+- extendedWaitUntil:
+    visible: "Relire avant publication"
+    timeout: 10000
+- tapOn:
+    id: builder-confirm
+- extendedWaitUntil:
+    notVisible:
+      id: builder-confirm
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: builder-message
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: builder-message
+    text: "Séance publiée\\. 1 athlète reçoit la notification\\."
+- assertNotVisible: "Séance publiée\\. Tes athlètes reçoivent la notification\\."
+- takeScreenshot: coach-publication-message

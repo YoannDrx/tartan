@@ -1,0 +1,47 @@
+# Accueil de l'athlète (lot M1) : un athlète qui vient de rejoindre son groupe par le lien d'invitation (créé par la
+# CI juste avant, `NEWCOMER_EMAIL`) voit l'accueil sans qu'il passe devant sa séance, le referme d'un geste, et ne le
+# revoit pas après une nouvelle connexion : l'état est gardé par le serveur, pas par le téléphone.
+# Écrans déjà vus en `optional` : le parcours se rejoue.
+appId: ${APP_ID}
+env:
+  EMAIL: ${NEWCOMER_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: open-settings
+    timeout: 30000
+- waitForAnimationToEnd
+# Un jour de séance, l'accueil tient en une ligne sous la séance ; elle l'ouvre.
+- scrollUntilVisible:
+    element:
+      id: athlete-welcome-line
+    timeout: 10000
+    optional: true
+- tapOn:
+    id: athlete-welcome-line
+    optional: true
+- scrollUntilVisible:
+    element:
+      id: athlete-welcome-dismiss
+    timeout: 10000
+    optional: true
+- assertVisible:
+    text: "Bienvenue dans .*"
+    optional: true
+- tapOn:
+    id: athlete-welcome-dismiss
+    optional: true
+- assertNotVisible:
+    id: athlete-welcome
+# Une autre connexion, comme sur un autre appareil : l'accueil ne revient pas.
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: open-settings
+    timeout: 30000
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: athlete-welcome
+- assertNotVisible:
+    id: athlete-welcome-line

@@ -90,7 +90,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...(appleSignIn ? { usesAppleSignIn: true } : {}),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-        NSCameraUsageDescription: "Tartan utilise la caméra pour filmer les entraînements de tes athlètes.",
+        NSCameraUsageDescription: "Tartan utilise la caméra pour filmer les entraînements de tes athlètes et pour prendre ta photo de profil.",
         NSMicrophoneUsageDescription: fr.aiPlanner.microphonePermission,
       },
     },
@@ -164,8 +164,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         "expo-image-picker",
         {
-          photosPermission: "Tartan ouvre ta pellicule pour importer une vidéo que tu choisis.",
-          cameraPermission: "Tartan utilise la caméra pour filmer les entraînements de tes athlètes.",
+          photosPermission: "Tartan ouvre ta pellicule pour importer une vidéo ou une photo de profil que tu choisis.",
+          cameraPermission: "Tartan utilise la caméra pour filmer les entraînements de tes athlètes et pour prendre ta photo de profil.",
           microphonePermission: fr.aiPlanner.microphonePermission,
         },
       ],

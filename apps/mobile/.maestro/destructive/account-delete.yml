@@ -14,6 +14,13 @@ env:
     timeout: 30000
 - tapOn:
     id: open-settings
+# La suppression vit dans la rubrique Confidentialité du sommaire.
+- extendedWaitUntil:
+    visible:
+      id: settings-rubric-confidentialite
+    timeout: 15000
+- tapOn:
+    id: settings-rubric-confidentialite
 - scrollUntilVisible:
     element:
       id: delete-account

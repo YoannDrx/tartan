@@ -4,7 +4,7 @@ import { instagramEmbedUrl } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { z } from "zod";
@@ -196,14 +196,38 @@ type ExerciseRowProps = {
   hasVideo: boolean;
   onPress?: () => void;
   accessibilityHint?: string;
+  testID?: string;
+  // Un geste de plus au bout de la ligne (l'étoile du coach), hors de la cible qui ouvre la fiche.
+  accessory?: ReactNode;
 };
 
 // Vignette 44 px, nom, prescription en texte secondaire, étiquette de catégorie.
-export const ExerciseRow = ({ name, category, summary, hasVideo, onPress, accessibilityHint }: ExerciseRowProps) => {
+export const ExerciseRow = ({ accessory, ...props }: ExerciseRowProps) =>
+  accessory ? (
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <View style={{ flex: 1 }}>
+        <ExerciseRowBody {...props} />
+      </View>
+      <View style={{ paddingRight: space.xs }}>{accessory}</View>
+    </View>
+  ) : (
+    <ExerciseRowBody {...props} />
+  );
+
+const ExerciseRowBody = ({
+  name,
+  category,
+  summary,
+  hasVideo,
+  onPress,
+  accessibilityHint,
+  testID,
+}: Omit<ExerciseRowProps, "accessory">) => {
   const p = usePalette();
   const categoryLabel = (m.exerciseCategory as Record<string, string>)[category] ?? category;
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole={onPress ? "button" : undefined}

@@ -5,6 +5,7 @@ import { Switch, View } from "react-native";
 import { api } from "../lib/api";
 import { errorMessage } from "../lib/errors";
 import { useActiveSpace, useAnnouncements, useGroups } from "../lib/queries";
+import { Avatar } from "../ui/avatar";
 import { MoreHorizontal, Pin, Plus } from "../ui/icons";
 import { Button, Chip, Divider, Field, IconButton, ListSurface, T, Tag } from "../ui/primitives";
 import { TabScreen } from "../ui/screen";
@@ -131,6 +132,16 @@ export const AnnouncementsScreen = ({ canPublish }: { canPublish: boolean }) => 
               >
                 <View style={{ flex: 1, gap: space.xs }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" }}>
+                    {a.authorName ? (
+                      <Avatar
+                        person={{
+                          name: a.authorName,
+                          avatarUrl: a.authorAvatarUrl,
+                          avatarPreset: a.authorAvatarPreset,
+                        }}
+                        size="xs"
+                      />
+                    ) : null}
                     <T variant="caption" tone="muted">
                       {[a.authorName, a.groupName, capitalize(formatDayMonth(a.createdAt.slice(0, 10)))]
                         .filter(Boolean)

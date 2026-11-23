@@ -1,0 +1,98 @@
+# Parité mobile, lot M2 : une liste créée depuis la bibliothèque, un exercice créé directement dedans, l'étoile d'une
+# fiche et le filtre Favoris, puis la fiche rangée dans la liste depuis sa feuille.
+# Rejouable : l'étoile repart éteinte, la liste et l'exercice portent des noms neufs à chaque passage.
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+---
+- runScript: scripts/exercise-lists-fixture.js
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- tapOn: "Exercices.*"
+- extendedWaitUntil:
+    visible:
+      id: exercise-list-new
+    timeout: 15000
+# Une liste neuve : la bibliothèque passe aussitôt sur elle, vide.
+- tapOn:
+    id: exercise-list-new
+- tapOn:
+    id: exercise-list-name
+- inputText: ${output.listName}
+- runFlow:
+    file: flows/_hide-keyboard.yml
+- tapOn:
+    id: exercise-list-create
+- extendedWaitUntil:
+    visible:
+      id: exercise-list-create-exercise
+    timeout: 15000
+- assertVisible: "Cette liste est vide.*"
+# Créer un exercice dans la liste : un nom, la famille et la charge déjà proposées, un bouton.
+- tapOn:
+    id: exercise-list-create-exercise
+- tapOn:
+    id: exercise-list-quick-name
+- inputText: ${output.exerciseName}
+# Sur iOS, le clavier reste ouvert et couvre « Créer la fiche » : un toucher sur le bouton frappait une lettre du
+# clavier (« Gainage natif …g »). La touche Terminé du champ le ferme.
+- pressKey: Enter
+- runFlow:
+    file: flows/_hide-keyboard.yml
+- extendedWaitUntil:
+    visible:
+      id: exercise-list-quick-submit
+    timeout: 10000
+- tapOn:
+    id: exercise-list-quick-submit
+# La fiche créée arrive en bas de la liste, sous la barre d'onglets : la faire venir à l'écran.
+# La rangée se lit d'un bloc (« Gainage natif 838585, Échauffement ») : le nom seul ne la trouve pas.
+- scrollUntilVisible:
+    element: "${output.exerciseName}, .*"
+    centerElement: true
+    timeout: 20000
+- takeScreenshot: coach-list-created-exercise
+# L'étoile se pose depuis la liste des fiches, sans ouvrir la fiche ; le filtre Favoris la retrouve.
+- tapOn:
+    id: library-filter-all
+- tapOn: "Rechercher un exercice"
+- inputText: "back squat"
+- hideKeyboard
+- tapOn:
+    id: exercise-star-${output.squatId}
+- tapOn:
+    id: library-filter-favorites
+- extendedWaitUntil:
+    visible:
+      id: exercise-row-${output.squatId}
+    timeout: 15000
+- takeScreenshot: coach-favorites
+# La fiche concise s'ouvre ; « Ranger » coche la liste neuve, qui compte alors deux fiches.
+- tapOn:
+    id: exercise-row-${output.squatId}
+- extendedWaitUntil:
+    visible:
+      id: exercise-sheet-file
+    timeout: 15000
+- assertVisible:
+    id: exercise-guide-concise
+- tapOn:
+    id: exercise-sheet-file
+- extendedWaitUntil:
+    visible:
+      id: exercise-list-label-${output.listName}
+    timeout: 15000
+- tapOn:
+    id: exercise-list-label-${output.listName}
+- extendedWaitUntil:
+    visible:
+      id: exercise-list-count-${output.listName}
+      text: "2 fiches"
+    timeout: 15000
+- takeScreenshot: coach-file-sheet
+- tapOn:
+    id: exercise-file-done
+- assertVisible:
+    id: exercise-sheet-file
