@@ -11,14 +11,17 @@ import {
   isStaff,
   toFileSeconds,
   toRealMs,
+  type DrawingKind,
+  type DrawingPoint,
 } from "@tartan/domain";
 import { capitalize, formatDayMonth, m } from "@tartan/i18n";
 import { useEvent, useEventListener } from "expo";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import {
   AccessibilityActionEvent,
+  AccessibilityInfo,
   Alert,
   PanResponder,
   Pressable,
@@ -29,6 +32,7 @@ import {
 import { CommentsSection } from "../../src/features/comments";
 import { BarSheetRow, resultLabel } from "../../src/features/video-bits";
 import { VideoExerciseLink } from "../../src/features/video-exercise-link";
+import { ImmersiveAnalysis } from "../../src/features/video-immersive";
 import { VideoSharing } from "../../src/features/video-sharing";
 import { api } from "../../src/lib/api";
 import { deniesCachedAccess, errorMessage } from "../../src/lib/errors";
@@ -36,9 +40,28 @@ import { PHASE_ORDER, phaseSegments, preciseTimecode, segmentAt, type PhaseSegme
 import { defaultSpeed, playerRate, speedsFor } from "../../src/lib/playback";
 import { playbackSource, shouldFallBackToHls } from "../../src/lib/playback-source";
 import { useActiveSpace, useVideo } from "../../src/lib/queries";
-import { ArrowUp, Flag, MessageSquare, Pause, Play, Repeat, SkipBack, SkipForward, Trash } from "../../src/ui/icons";
+import { drawingFrom, videoAspect } from "../../src/lib/video-drawing-draft";
+import { sheetForRemark, type SheetHeight } from "../../src/lib/video-immersive";
+import {
+  ArrowUp,
+  Flag,
+  Maximize,
+  MessageSquare,
+  Pause,
+  Play,
+  Repeat,
+  SkipBack,
+  SkipForward,
+  Trash,
+} from "../../src/ui/icons";
 import { Button, Chip, Field, IconButton, SectionTitle, T } from "../../src/ui/primitives";
-import { DRAWING_WINDOW_MS, VideoDrawings, describeDrawing } from "../../src/features/video-drawings";
+import {
+  DRAWING_WINDOW_MS,
+  DrawingSurface,
+  DrawingTools,
+  VideoDrawings,
+  describeDrawing,
+} from "../../src/features/video-drawings";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 import { color, radius, scene, space } from "../../src/ui/theme";
@@ -227,9 +250,21 @@ const Player = ({
   const [showJumpTools, setShowJumpTools] = useState(highJump);
   const [phase, setPhase] = useState<JumpPhase | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  // Le tracé au doigt : l'outil choisi et les points déjà posés, relatifs à l'image.
+  const [tool, setTool] = useState<DrawingKind | null>(null);
+  const [draft, setDraft] = useState<DrawingPoint[]>([]);
+  const [trackSize, setTrackSize] = useState<{ width: number; height: number } | null>(null);
+  // Le plein écran : la vidéo occupe la scène, l'éditeur passe dans une feuille (ou un panneau).
+  const [fullscreen, setFullscreen] = useState(false);
+  const [sheet, setSheet] = useState<SheetHeight>("half");
 
-  useEventListener(player, "sourceLoad", ({ duration }) => {
+  useEventListener(player, "sourceLoad", ({ duration, availableVideoTracks }) => {
     if (duration > 0) setDurationMs(Math.round(toRealMs(duration, timeScale)));
+    const size = availableVideoTracks[0]?.size;
+    if (size?.width && size.height) setTrackSize(size);
+  });
+  useEventListener(player, "videoTrackChange", ({ videoTrack }) => {
+    if (videoTrack?.size.width && videoTrack.size.height) setTrackSize(videoTrack.size);
   });
   useEventListener(player, "timeUpdate", ({ currentTime }) => {
     const ms = toRealMs(currentTime, timeScale);
@@ -251,6 +286,11 @@ const Player = ({
   const drawingsAt = annotations.flatMap((a) =>
     a.drawing && Math.abs(a.tMs - positionMs) <= DRAWING_WINDOW_MS ? [a.drawing] : [],
   );
+  const aspect = videoAspect(
+    trackSize,
+    annotations.flatMap((a) => (a.drawing ? [a.drawing] : [])),
+  );
+  const drawing = replyTo ? null : drawingFrom(tool, draft, aspect);
   const threads = useMemo(
     () =>
       annotations
@@ -267,11 +307,16 @@ const Player = ({
         phase: replyTo ? null : phase,
         text: text.trim(),
         ...(replyTo ? { parentId: replyTo.id } : {}),
+        // Le tracé part avec la remarque ; le texte devient facultatif. Une réponse n'en porte pas.
+        ...(drawing ? { drawing } : {}),
       }),
     onSuccess: () => {
+      if (drawing) AccessibilityInfo.announceForAccessibility(m.nativeVideo.saved);
       setText("");
       setReplyTo(null);
       setFormError(null);
+      setTool(null);
+      setDraft([]);
       void client.invalidateQueries({ queryKey: ["videos", orgId, videoId] });
     },
     onError: (error) => setFormError(errorMessage(error)),
@@ -291,272 +336,345 @@ const Player = ({
       { text: m.common.delete, style: "destructive", onPress: () => remove.mutate(annotationId) },
     ]);
 
-  return (
-    <>
-      <View style={{ height: 260, borderRadius: radius.block, overflow: "hidden", backgroundColor: color.ink2 }}>
-        {status === "error" ? (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: space.xl, gap: space.md }}>
-            <T variant="small" tone="muted" style={{ textAlign: "center" }}>
-              {m.mobile.video.playError}
-            </T>
-            <Button label={m.mobile.video.retryPlayback} variant="secondary" compact onPress={onRetry} />
-          </View>
-        ) : (
-          <>
-            <VideoView
-              player={player}
-              nativeControls={false}
-              contentFit="contain"
-              style={{ flex: 1 }}
-              accessibilityLabel={m.mobile.a11y.videoStatus}
-            />
-            <VideoDrawings drawings={drawingsAt} />
-          </>
-        )}
+  // L'image, ses tracés et, outil choisi, la zone où le doigt pose les points. Une seule vue de lecture à la fois :
+  // en plein écran, la page garde un cadre vide derrière.
+  const stage = (immersive: boolean): ReactNode =>
+    status === "error" ? (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: space.xl, gap: space.md }}>
+        <T variant="small" tone="muted" style={{ textAlign: "center" }}>
+          {m.mobile.video.playError}
+        </T>
+        <Button label={m.mobile.video.retryPlayback} variant="secondary" compact onPress={onRetry} />
       </View>
+    ) : immersive === fullscreen ? (
+      <>
+        <VideoView
+          player={player}
+          nativeControls={false}
+          contentFit="contain"
+          // Le bouton « Texte en direct » d'iOS se poserait sur l'image, là où le doigt trace.
+          allowsVideoFrameAnalysis={false}
+          style={{ flex: 1 }}
+          accessibilityLabel={m.mobile.a11y.videoStatus}
+        />
+        <VideoDrawings drawings={drawingsAt} aspect={aspect} draft={tool ? { kind: tool, points: draft } : null} />
+        {tool ? <DrawingSurface tool={tool} draft={draft} aspect={aspect} onDraft={setDraft} /> : null}
+      </>
+    ) : null;
 
-      {playable ? (
-        <>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+  const transport = (immersive: boolean) =>
+    playable ? (
+      <>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+          <IconButton
+            testID="frame-back"
+            icon={SkipBack}
+            label={m.video.previousFrame}
+            tone="filled"
+            shape="square"
+            onPress={() => stepFrame(-1)}
+          />
+          <IconButton
+            testID="play-toggle"
+            icon={isPlaying ? Pause : Play}
+            label={isPlaying ? m.video.pause : m.video.play}
+            tone="inverse"
+            size={52}
+            onPress={() => (isPlaying ? player.pause() : player.play())}
+          />
+          <IconButton
+            testID="frame-forward"
+            icon={SkipForward}
+            label={m.video.nextFrame}
+            tone="filled"
+            shape="square"
+            onPress={() => stepFrame(1)}
+          />
+          <T
+            variant="figure"
+            style={{ flex: 1, textAlign: "right" }}
+            accessibilityLabel={m.mobile.a11y.playback(formatTimecode(positionMs))}
+          >
+            {preciseTimecode(positionMs)}
+          </T>
+          {currentSegment ? (
             <IconButton
-              testID="frame-back"
-              icon={SkipBack}
-              label={m.video.previousFrame}
+              icon={Repeat}
+              label={loop ? m.mobile.video.unloop : m.mobile.video.loopPhase}
+              tone={loop ? "inverse" : "filled"}
+              shape="square"
+              selected={Boolean(loop)}
+              onPress={() => {
+                if (loop) setLoop(null);
+                else {
+                  setLoop(currentSegment);
+                  seek(currentSegment.startMs);
+                  player.play();
+                }
+              }}
+            />
+          ) : null}
+          {immersive ? null : (
+            <IconButton
+              testID="video-fullscreen"
+              icon={Maximize}
+              label={m.nativeVideo.fullscreen}
               tone="filled"
               shape="square"
-              onPress={() => stepFrame(-1)}
+              onPress={() => setFullscreen(true)}
             />
-            <IconButton
-              testID="play-toggle"
-              icon={isPlaying ? Pause : Play}
-              label={isPlaying ? m.video.pause : m.video.play}
-              tone="inverse"
-              size={52}
-              onPress={() => (isPlaying ? player.pause() : player.play())}
+          )}
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: space.sm, alignItems: "center" }}
+        >
+          <T variant="caption" tone="muted">
+            {m.mobile.video.speed}
+          </T>
+          {speeds.map((r) => (
+            <Chip
+              key={r.value}
+              tall
+              minWidth={64}
+              label={r.label}
+              active={rate === r.value}
+              onPress={() => {
+                setRate(r.value);
+                // Sur iOS, changer la vitesse relance la lecture : une image figée doit le rester.
+                const wasPlaying = player.playing;
+                player.playbackRate = playerRate(r.value, timeScale);
+                if (!wasPlaying) player.pause();
+              }}
             />
-            <IconButton
-              testID="frame-forward"
-              icon={SkipForward}
-              label={m.video.nextFrame}
-              tone="filled"
-              shape="square"
-              onPress={() => stepFrame(1)}
-            />
-            <T
-              variant="figure"
-              style={{ flex: 1, textAlign: "right" }}
-              accessibilityLabel={m.mobile.a11y.playback(formatTimecode(positionMs))}
+          ))}
+        </ScrollView>
+      </>
+    ) : null;
+
+  const timeline = (
+    <Timeline
+      positionMs={positionMs}
+      durationMs={durationMs}
+      segments={segments}
+      markers={[...new Set(annotations.map((a) => a.tMs))]}
+      onSeek={seek}
+    />
+  );
+
+  const annotationList =
+    annotations.length > 0 ? (
+      <View style={{ gap: space.sm }}>
+        {threads.map((a) => (
+          <View
+            key={a.id}
+            style={{
+              flexDirection: "row",
+              alignItems: "stretch",
+              borderRadius: radius.card,
+              backgroundColor: color.ink2,
+            }}
+          >
+            <Pressable
+              onPress={() => {
+                player.pause();
+                seek(a.tMs);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`${formatTimecode(a.tMs)}, ${a.phase ? m.jumpPhase[a.phase] : ""}, ${a.text ?? ""}`}
+              style={({ pressed }) => ({
+                flex: 1,
+                flexDirection: "row",
+                gap: space.md,
+                padding: space.md,
+                minHeight: 56,
+                opacity: pressed ? 0.8 : 1,
+              })}
             >
-              {preciseTimecode(positionMs)}
-            </T>
-            {currentSegment ? (
+              <View
+                style={{
+                  height: 24,
+                  paddingHorizontal: space.sm,
+                  borderRadius: radius.button,
+                  backgroundColor: scene.actionOnCard,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <T
+                  variant="caption"
+                  style={{
+                    color: scene.onActionOnCard,
+                    fontFamily: tokens.font.bodyStrong,
+                    fontVariant: ["tabular-nums"],
+                  }}
+                  maxFontSizeMultiplier={1.1}
+                >
+                  {formatTimecode(a.tMs)}
+                </T>
+              </View>
+              <View style={{ flex: 1, gap: 1 }}>
+                {a.parentId ? (
+                  <T variant="caption" tone="muted">
+                    {m.videoCollaboration.replyTo}
+                  </T>
+                ) : null}
+                {a.phase ? (
+                  <T variant="caption" tone="muted">
+                    {m.jumpPhase[a.phase]}
+                  </T>
+                ) : null}
+                {a.text ? <T variant="small">{a.text}</T> : null}
+                {a.drawing ? (
+                  <T testID={`annotation-drawing-${a.id}`} variant="caption" tone="muted">
+                    {describeDrawing(a.drawing)}
+                  </T>
+                ) : null}
+              </View>
+            </Pressable>
+            {canAnnotate && !a.parentId ? (
               <IconButton
-                icon={Repeat}
-                label={loop ? m.mobile.video.unloop : m.mobile.video.loopPhase}
-                tone={loop ? "inverse" : "filled"}
-                shape="square"
-                selected={Boolean(loop)}
+                icon={MessageSquare}
+                label={m.videoCollaboration.reply}
                 onPress={() => {
-                  if (loop) setLoop(null);
-                  else {
-                    setLoop(currentSegment);
-                    seek(currentSegment.startMs);
-                    player.play();
-                  }
+                  player.pause();
+                  setTool(null);
+                  setDraft([]);
+                  setReplyTo({ id: a.id, tMs: a.tMs });
+                  annotationField.current?.focus();
                 }}
               />
             ) : null}
+            {staff || a.authorId === actorId ? (
+              <IconButton
+                testID={`annotation-delete-${a.id}`}
+                icon={Trash}
+                label={m.mobile.video.deleteAnnotationNamed(formatTimecode(a.tMs))}
+                disabled={remove.isPending}
+                onPress={() => confirmRemove(a.id)}
+              />
+            ) : null}
           </View>
+        ))}
+      </View>
+    ) : (
+      <T variant="small" tone="muted">
+        {m.mobile.video.noAnnotations}
+      </T>
+    );
 
+  const remarkForm =
+    canAnnotate && playable ? (
+      <View style={{ gap: space.sm }}>
+        {replyTo ? (
+          <View style={{ gap: space.sm }}>
+            <T variant="small">
+              {m.videoCollaboration.replyTo} · {formatTimecode(replyTo.tMs)}
+            </T>
+            <Button label={m.common.cancel} compact variant="secondary" onPress={() => setReplyTo(null)} />
+          </View>
+        ) : (
+          // Un outil choisi met l'image en pause : le tracé porte sur l'instant affiché.
+          <DrawingTools
+            tool={tool}
+            draft={draft}
+            onTool={(next) => {
+              if (next) {
+                player.pause();
+                if (fullscreen) setSheet((current) => sheetForRemark(current));
+              }
+              setTool(next);
+            }}
+            onDraft={setDraft}
+          />
+        )}
+        <Chip
+          label={m.video.highJumpTools}
+          active={showJumpTools}
+          onPress={() => {
+            setShowJumpTools(!showJumpTools);
+            setPhase(null);
+          }}
+        />
+        {showJumpTools ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: space.sm, alignItems: "center" }}
+            contentContainerStyle={{ gap: space.sm }}
+            accessibilityLabel={m.video.jumpPhase}
           >
-            <T variant="caption" tone="muted">
-              {m.mobile.video.speed}
-            </T>
-            {speeds.map((r) => (
-              <Chip
-                key={r.value}
-                tall
-                minWidth={64}
-                label={r.label}
-                active={rate === r.value}
-                onPress={() => {
-                  setRate(r.value);
-                  // Sur iOS, changer la vitesse relance la lecture : une image figée doit le rester.
-                  const wasPlaying = player.playing;
-                  player.playbackRate = playerRate(r.value, timeScale);
-                  if (!wasPlaying) player.pause();
-                }}
-              />
+            <Chip label={m.mobile.video.noPhase} active={phase === null} onPress={() => setPhase(null)} />
+            {PHASE_ORDER.map((ph) => (
+              <Chip key={ph} label={m.jumpPhase[ph]} active={phase === ph} onPress={() => setPhase(ph)} />
             ))}
           </ScrollView>
-        </>
-      ) : null}
-
-      <Timeline
-        positionMs={positionMs}
-        durationMs={durationMs}
-        segments={segments}
-        markers={[...new Set(annotations.map((a) => a.tMs))]}
-        onSeek={seek}
-      />
-
-      {annotations.length > 0 ? (
-        <View style={{ gap: space.sm }}>
-          {threads.map((a) => (
-            <View
-              key={a.id}
-              style={{
-                flexDirection: "row",
-                alignItems: "stretch",
-                borderRadius: radius.card,
-                backgroundColor: color.ink2,
-              }}
-            >
-              <Pressable
-                onPress={() => {
-                  player.pause();
-                  seek(a.tMs);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`${formatTimecode(a.tMs)}, ${a.phase ? m.jumpPhase[a.phase] : ""}, ${a.text ?? ""}`}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  flexDirection: "row",
-                  gap: space.md,
-                  padding: space.md,
-                  minHeight: 56,
-                  opacity: pressed ? 0.8 : 1,
-                })}
-              >
-                <View
-                  style={{
-                    height: 24,
-                    paddingHorizontal: space.sm,
-                    borderRadius: radius.button,
-                    backgroundColor: scene.actionOnCard,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <T
-                    variant="caption"
-                    style={{
-                      color: scene.onActionOnCard,
-                      fontFamily: tokens.font.bodyStrong,
-                      fontVariant: ["tabular-nums"],
-                    }}
-                    maxFontSizeMultiplier={1.1}
-                  >
-                    {formatTimecode(a.tMs)}
-                  </T>
-                </View>
-                <View style={{ flex: 1, gap: 1 }}>
-                  {a.parentId ? (
-                    <T variant="caption" tone="muted">
-                      {m.videoCollaboration.replyTo}
-                    </T>
-                  ) : null}
-                  {a.phase ? (
-                    <T variant="caption" tone="muted">
-                      {m.jumpPhase[a.phase]}
-                    </T>
-                  ) : null}
-                  {a.text ? <T variant="small">{a.text}</T> : null}
-                  {a.drawing ? (
-                    <T variant="caption" tone="muted">
-                      {describeDrawing(a.drawing)}
-                    </T>
-                  ) : null}
-                </View>
-              </Pressable>
-              {canAnnotate && !a.parentId ? (
-                <IconButton
-                  icon={MessageSquare}
-                  label={m.videoCollaboration.reply}
-                  onPress={() => {
-                    player.pause();
-                    setReplyTo({ id: a.id, tMs: a.tMs });
-                    annotationField.current?.focus();
-                  }}
-                />
-              ) : null}
-              {staff || a.authorId === actorId ? (
-                <IconButton
-                  testID={`annotation-delete-${a.id}`}
-                  icon={Trash}
-                  label={m.mobile.video.deleteAnnotationNamed(formatTimecode(a.tMs))}
-                  disabled={remove.isPending}
-                  onPress={() => confirmRemove(a.id)}
-                />
-              ) : null}
-            </View>
-          ))}
-        </View>
-      ) : (
-        <T variant="small" tone="muted">
-          {m.mobile.video.noAnnotations}
-        </T>
-      )}
-
-      {canAnnotate && playable ? (
-        <View style={{ gap: space.sm }}>
-          {replyTo ? (
-            <View style={{ gap: space.sm }}>
-              <T variant="small">
-                {m.videoCollaboration.replyTo} · {formatTimecode(replyTo.tMs)}
-              </T>
-              <Button label={m.common.cancel} compact variant="secondary" onPress={() => setReplyTo(null)} />
-            </View>
-          ) : null}
-          <Chip
-            label={m.video.highJumpTools}
-            active={showJumpTools}
-            onPress={() => {
-              setShowJumpTools(!showJumpTools);
-              setPhase(null);
+        ) : null}
+        <View style={{ flexDirection: "row", gap: space.sm, alignItems: "flex-end" }}>
+          <Field
+            ref={annotationField}
+            testID="annotation-input"
+            onFocus={() => {
+              player.pause();
+              // Écrire une remarque ramène la feuille à moitié : l'image commentée reste visible.
+              if (fullscreen) setSheet((current) => sheetForRemark(current));
             }}
+            label={m.video.remarkAt(formatTimecode(replyTo?.tMs ?? positionMs))}
+            hideLabel
+            placeholder={m.video.remarkAt(formatTimecode(replyTo?.tMs ?? positionMs))}
+            value={text}
+            onChangeText={setText}
+            maxLength={500}
+            containerStyle={{ flex: 1 }}
+            error={formError}
           />
-          {showJumpTools ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: space.sm }}
-              accessibilityLabel={m.video.jumpPhase}
-            >
-              <Chip label={m.mobile.video.noPhase} active={phase === null} onPress={() => setPhase(null)} />
-              {PHASE_ORDER.map((ph) => (
-                <Chip key={ph} label={m.jumpPhase[ph]} active={phase === ph} onPress={() => setPhase(ph)} />
-              ))}
-            </ScrollView>
-          ) : null}
-          <View style={{ flexDirection: "row", gap: space.sm, alignItems: "flex-end" }}>
-            <Field
-              ref={annotationField}
-              testID="annotation-input"
-              onFocus={() => player.pause()}
-              label={m.video.remarkAt(formatTimecode(replyTo?.tMs ?? positionMs))}
-              hideLabel
-              placeholder={m.video.remarkAt(formatTimecode(replyTo?.tMs ?? positionMs))}
-              value={text}
-              onChangeText={setText}
-              maxLength={500}
-              containerStyle={{ flex: 1 }}
-              error={formError}
-            />
-            <IconButton
-              testID="annotation-send"
-              icon={ArrowUp}
-              label={m.video.addComment}
-              tone="accent"
-              disabled={!text.trim() || add.isPending}
-              onPress={() => add.mutate()}
-            />
-          </View>
+          <IconButton
+            testID="annotation-send"
+            icon={ArrowUp}
+            label={m.video.addComment}
+            tone="accent"
+            disabled={(!text.trim() && !drawing) || add.isPending}
+            onPress={() => add.mutate()}
+          />
         </View>
+      </View>
+    ) : null;
+
+  const editor = (
+    <>
+      {remarkForm}
+      {annotationList}
+    </>
+  );
+
+  return (
+    <>
+      <View style={{ height: 260, borderRadius: radius.block, overflow: "hidden", backgroundColor: color.ink2 }}>
+        {stage(false)}
+      </View>
+      {fullscreen ? null : (
+        <>
+          {transport(false)}
+          {timeline}
+          {annotationList}
+          {remarkForm}
+        </>
+      )}
+      {fullscreen ? (
+        <ImmersiveAnalysis
+          onExit={() => setFullscreen(false)}
+          sheet={sheet}
+          onSheet={setSheet}
+          stage={<View style={{ flex: 1, backgroundColor: color.ink }}>{stage(true)}</View>}
+          controls={
+            <>
+              {transport(true)}
+              {timeline}
+            </>
+          }
+          editor={editor}
+        />
       ) : null}
     </>
   );

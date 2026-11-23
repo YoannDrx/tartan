@@ -4,7 +4,7 @@ import { useNavigationContainerRef, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { switchAccount } from "../../src/lib/account-switch";
-import { paramFromUrl } from "../../src/lib/auth-callback";
+import { paramFromUrl, returnPathOf } from "../../src/lib/auth-callback";
 import { clearSessionCookie, storeSessionCookie } from "../../src/lib/auth-client";
 import { clearPersistedData, queryClient } from "../../src/lib/query-client";
 import { useSession } from "../../src/lib/session-store";
@@ -18,6 +18,8 @@ export default function AuthCallback() {
   const url = Linking.useLinkingURL();
   const cookie = paramFromUrl(url, "cookie");
   const error = paramFromUrl(url, "error");
+  // Un lien demandé depuis un écran précis (la rubrique Connexion) y ramène, par-dessus l'accueil.
+  const next = returnPathOf(paramFromUrl(url, "next"));
   const refresh = useSession((s) => s.refresh);
   const router = useRouter();
   const navigation = useNavigationContainerRef();
@@ -38,7 +40,12 @@ export default function AuthCallback() {
       clearData: clearPersistedData,
       forgetActiveSpace: () => useSpaceStore.setState({ activeOrgId: null }),
       refreshSession: refresh,
-      resetNavigation: () => navigation.reset({ index: 0, routes: [{ name: "index" }] }),
+      resetNavigation: () =>
+        navigation.reset(
+          next
+            ? { index: 1, routes: [{ name: "index" }, { name: next.slice(1) }] }
+            : { index: 0, routes: [{ name: "index" }] },
+        ),
     }).catch(() => setFailed(true));
     // Une seule exécution par lien reçu.
     // eslint-disable-next-line react-hooks/exhaustive-deps

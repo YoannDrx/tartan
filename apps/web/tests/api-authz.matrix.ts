@@ -28,6 +28,7 @@ import {
   saveTemplate,
 } from "@/server/session.service";
 import { saveTrainingPhase } from "@/server/training-phases.service";
+import { webpOf } from "./image-fixtures";
 import { addAthlete } from "./helpers";
 import { buildPersonas, sessionCookie, type Personas } from "./personas";
 
@@ -394,6 +395,17 @@ export const MATRICE: Row[] = [
   // Sans connexion Apple configurée (cas des tests), la route n'existe pas ; le cas configuré est dans auth-social.
   { route: "POST /api/v1/me/apple-authorization", ...compte(404), call: () => ({ body: { code: "code-factice" } }) },
   { route: "PATCH /api/v1/me/preferences", ...compte(), call: () => ({ body: { calendarView: "week" } }) },
+  // Photo envoyée par l'app native. Sans stockage configuré (cas des tests), l'envoi est refusé pour tout compte ;
+  // le cas accepté, les refus et la file de suppression sont dans tests/avatar-route.test.ts.
+  {
+    route: "POST /api/v1/me/avatar",
+    ...compte(400),
+    call: () => {
+      const form = new FormData();
+      form.set("file", new Blob([Buffer.from(webpOf(512, 512))], { type: "image/webp" }), "photo.webp");
+      return { form };
+    },
+  },
   // Moyens de connexion : chacun ne lit et ne change que les siens. Les lignes se suivent dans l'ordre d'un vrai
   // parcours : le compte, entré par un lien, définit un mot de passe, le change, puis n'a plus rien à confirmer.
   {
@@ -546,6 +558,7 @@ export const MATRICE: Row[] = [
 
   // Vue de l'athlète : réservée à l'athlète, sur lui-même.
   { route: "GET /api/v1/orgs/[orgId]/athlete/today", ...athleteSeul },
+  { route: "GET /api/v1/orgs/[orgId]/athlete/welcome", ...athleteSeul },
   { route: "GET /api/v1/orgs/[orgId]/athlete/calendar", ...athleteSeul, call: () => ({ query: WEEK }) },
   { route: "GET /api/v1/orgs/[orgId]/athlete/file", ...athleteSeul },
   {

@@ -7,9 +7,15 @@ export type NotificationData = {
   organizationId?: unknown;
   sessionId?: unknown;
   videoId?: unknown;
+  // Une notification locale de l'app elle-même (fin de récupération du mode séance).
+  kind?: unknown;
 };
 
 const ID = /^[A-Za-z0-9-]{8,64}$/;
+
+// La fin de récupération ramène l'athlète à l'écran où il était : son toucher ne change pas de page.
+export const REST_END_KIND = "rest_end";
+export const staysOnScreen = (data: NotificationData | null | undefined): boolean => data?.kind === REST_END_KIND;
 
 export const routeForNotification = (data: NotificationData | null | undefined): string => {
   const link = typeof data?.link === "string" ? data.link : "";

@@ -43,6 +43,10 @@ Risque réel : l'exception 3.1.3(f) vise la VoIP, le stockage, l'e-mail et l'hé
 2. Si le refus tient, ajouter l'achat intégré. Le webhook RevenueCat existe côté serveur (`apps/web/app/api/webhooks/revenuecat`) ; le SDK reste à intégrer à `apps/mobile`, avec tests de la route (T02).
 3. Alternative : ne laisser dans l'app que les usages athlète et ouverture d'un compte existant, selon la réponse d'Apple.
 
+## Parité du compte (lot M1)
+
+Connexion par mot de passe ou par lien à rang égal, réglages en neuf rubriques, photo de profil et avatars, premiers pas du coach et accueil de l'athlète : détail dans [onboarding](../reference/onboarding.md#dans-lapp-native-ios-et-android) et [avatars](../reference/avatars.md#dans-lapp-native). Aucune rubrique d'abonnement ni lien vers une offre. Les textes d'autorisation de la caméra et de la pellicule nomment désormais la photo de profil (`app.config.ts`) : ils n'arrivent qu'avec le prochain binaire, et l'empreinte native change, donc une mise à jour à distance ne vise pas le build 14.
+
 ## Pièges
 
 - `EXPO_PUBLIC_OAUTH_GOOGLE_ENABLED` ne se pose jamais sans l'option Apple (règle 4.8).

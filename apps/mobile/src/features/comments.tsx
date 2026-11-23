@@ -6,6 +6,7 @@ import { Alert, View } from "react-native";
 import { api } from "../lib/api";
 import { errorMessage } from "../lib/errors";
 import { useComments, useMe } from "../lib/queries";
+import { Avatar } from "../ui/avatar";
 import { ArrowUp, MoreHorizontal } from "../ui/icons";
 import { Button, Field, IconButton, ListSurface, T } from "../ui/primitives";
 import { Sheet } from "../ui/sheet";
@@ -170,6 +171,16 @@ export const CommentsSection = ({
             paddingVertical: space.sm,
           }}
         >
+          <View style={{ paddingVertical: space.xs }}>
+            <Avatar
+              person={{
+                name: c.authorName ?? m.mobile.comments.author,
+                avatarUrl: c.authorAvatarUrl,
+                avatarPreset: c.authorAvatarPreset,
+              }}
+              size="sm"
+            />
+          </View>
           <View style={{ flex: 1, gap: 2, paddingVertical: space.xs }}>
             <T variant="caption" tone="muted">
               {[c.authorName ?? m.mobile.comments.author, capitalize(formatDayMonth(c.createdAt.slice(0, 10)))].join(

@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useWeekNavigator, WeekNav } from "../../src/features/agenda";
+import { CoachFirstSteps } from "../../src/features/first-steps";
 import { groupAlerts, type AthleteAlertGroup } from "../../src/lib/alerts";
 import { api } from "../../src/lib/api";
 import { localIsoDate } from "../../src/lib/dates";
@@ -434,6 +435,7 @@ export default function Tracking() {
     void tracking.refetch();
     void alerts.refetch();
     void groups.refetch();
+    void client.invalidateQueries({ queryKey: ["onboarding", orgId] });
   };
 
   const athleteCount = grid?.rows.length ?? 0;
@@ -563,6 +565,9 @@ export default function Tracking() {
           {message}
         </T>
       ) : null}
+
+      {/* Les premiers pas viennent après le suivi : ils ne le repoussent jamais hors de l'écran. */}
+      <CoachFirstSteps orgId={orgId} />
 
       {focus && grid ? (
         <AthleteSheet

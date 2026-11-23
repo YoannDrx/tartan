@@ -20,7 +20,9 @@ env:
     timeout: 30000
 - tapOn:
     id: exercise-guide-open
-- assertVisible: "Consignes indicatives relues par Tartan.*"
+# La fiche concise, comme sur le web : le geste d'abord, puis la mise en place, les étapes et les erreurs.
+- assertVisible:
+    id: exercise-guide-concise
 # Le geste tourne en boucle : l'arrêter fige l'écran avant de défiler, et prouve le bouton.
 - scrollUntilVisible:
     element:
@@ -31,9 +33,21 @@ env:
 - assertVisible: "Lire le geste"
 - scrollUntilVisible:
     element:
-      text: "Installation"
+      text: "Mise en place"
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      text: "Consignes indicatives relues par Tartan.*"
     direction: DOWN
 - takeScreenshot: circuit-guide
+# Le texte complet reste sous « Détail », replié.
+- assertNotVisible:
+    id: exercise-guide-detail-content
+- scrollUntilVisible:
+    element:
+      id: session-next
+    direction: UP
+    optional: true
 - tapOn:
     id: session-next
 - assertVisible: "Étape 2 sur 7"

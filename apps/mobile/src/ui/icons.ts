@@ -20,6 +20,13 @@ export { default as CloudOff } from "lucide-react-native/icons/cloud-off";
 export { default as CloudUpload } from "lucide-react-native/icons/cloud-upload";
 export { default as Copy } from "lucide-react-native/icons/copy";
 export { default as Dumbbell } from "lucide-react-native/icons/dumbbell";
+// Le compte : connexion, mot de passe, lien reçu par e-mail.
+export { default as Eye } from "lucide-react-native/icons/eye";
+export { default as EyeOff } from "lucide-react-native/icons/eye-off";
+export { default as KeyRound } from "lucide-react-native/icons/key-round";
+export { default as Mail } from "lucide-react-native/icons/mail";
+export { default as MailCheck } from "lucide-react-native/icons/mail-check";
+export { default as CircleCheck } from "lucide-react-native/icons/circle-check";
 export { default as Flag } from "lucide-react-native/icons/flag";
 export { default as Flame } from "lucide-react-native/icons/flame";
 export { default as Footprints } from "lucide-react-native/icons/footprints";
@@ -51,3 +58,12 @@ export { default as Users } from "lucide-react-native/icons/users";
 export { default as Video } from "lucide-react-native/icons/video";
 export { default as Trash } from "lucide-react-native/icons/trash";
 export { default as X } from "lucide-react-native/icons/x";
+// Listes du coach, plein écran de l'analyse et outils de tracé (parité mobile, lots M2 et M3).
+export { default as ChevronUp } from "lucide-react-native/icons/chevron-up";
+export { default as ListPlus } from "lucide-react-native/icons/list-plus";
+export { default as Maximize } from "lucide-react-native/icons/maximize";
+export { default as PanelRightClose } from "lucide-react-native/icons/panel-right-close";
+export { default as PanelRightOpen } from "lucide-react-native/icons/panel-right-open";
+export { default as SquareCheck } from "lucide-react-native/icons/square-check";
+export { default as Star } from "lucide-react-native/icons/star";
+export { default as Undo } from "lucide-react-native/icons/undo-2";

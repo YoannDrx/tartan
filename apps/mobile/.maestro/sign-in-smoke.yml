@@ -9,11 +9,16 @@ appId: ${APP_ID}
     timeout: 20000
 - assertVisible:
     id: sign-in-email
+# Deux chemins de même rang sous l'adresse, sans mode caché : le mot de passe, puis le lien par e-mail.
+- assertVisible:
+    id: sign-in-use-password
+- assertVisible: "Continuer avec mon mot de passe"
 - assertVisible:
     id: sign-in-magic
+- assertVisible: "Recevoir un lien de connexion"
 - assertVisible:
     id: invite-link-open
-# Une adresse invalide est refusée avant tout appel réseau.
+# Une adresse invalide est refusée avant tout appel réseau, par les deux chemins.
 - tapOn:
     id: sign-in-email
 - inputText: "pas-un-email"
@@ -22,3 +27,16 @@ appId: ${APP_ID}
 - tapOn:
     id: sign-in-magic
 - assertVisible: "Indique une adresse e-mail valide.*"
+- tapOn:
+    id: sign-in-use-password
+- assertVisible: "Indique une adresse e-mail valide.*"
+- assertNotVisible:
+    id: sign-in-password
+# La création de compte garde le même ordre ; on revient ensuite à la connexion.
+- tapOn:
+    id: sign-in-switch-intent
+- assertVisible: "Créer avec un mot de passe"
+- assertVisible: "Créer avec un lien par e-mail"
+- tapOn:
+    id: sign-in-switch-intent
+- assertVisible: "Continuer avec mon mot de passe"

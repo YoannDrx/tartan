@@ -1,0 +1,68 @@
+# Parité mobile, lot M3 : l'analyse vidéo en plein écran, l'éditeur en feuille à trois hauteurs, et une ligne tracée au
+# doigt qui part avec une remarque. Hors CI : le serveur de la CI (`next start`, sans Mux) ne sert aucune vidéo lisible.
+# À lancer seul, sur un serveur local qui en sert une (`next dev` avec VIDEO_DEV_MP4_URL, une vidéo prête en base) :
+#   maestro test -e APP_ID=coach.tartan.app.dev -e COACH_EMAIL=… -e PASSWORD=… -e API_URL=http://localhost:3000 \
+#     .maestro/local/video-fullscreen-drawing.yml
+appId: ${APP_ID}
+env:
+  EMAIL: ${COACH_EMAIL}
+---
+- runScript: ../scripts/video-fixture.js
+- runFlow: ../flows/_sign-in.yml
+- extendedWaitUntil:
+    visible: "Suivi du groupe"
+    timeout: 30000
+- openLink: ${output.videoUrl}
+- runFlow: ../flows/_accept-deep-link.yml
+- extendedWaitUntil:
+    visible:
+      id: video-fullscreen
+    timeout: 30000
+- tapOn:
+    id: video-fullscreen
+- extendedWaitUntil:
+    visible:
+      id: video-editor-sheet
+    timeout: 10000
+- assertVisible:
+    id: video-exit-fullscreen
+# La feuille monte et descend par ses deux boutons.
+- tapOn:
+    id: video-sheet-grow
+- tapOn:
+    id: video-sheet-shrink
+- tapOn:
+    id: video-sheet-shrink
+- assertNotVisible:
+    id: drawing-tool-line
+- tapOn:
+    id: video-sheet-grow
+# Une ligne : deux touchers sur l'image, puis la remarque part avec le tracé, sans texte obligatoire.
+- tapOn:
+    id: drawing-tool-line
+- extendedWaitUntil:
+    visible:
+      id: drawing-surface
+    timeout: 5000
+- tapOn:
+    point: "35%,22%"
+- tapOn:
+    point: "65%,30%"
+- assertVisible: "Tracé prêt.*"
+- takeScreenshot: video-fullscreen-drawing
+- tapOn:
+    id: annotation-send
+# Le tracé enregistré : l'outil se referme, la remarque tracée rejoint la liste.
+- extendedWaitUntil:
+    notVisible:
+      id: drawing-surface
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "annotation-drawing-.*"
+    timeout: 15000
+- takeScreenshot: video-fullscreen-drawing-saved
+- tapOn:
+    id: video-exit-fullscreen
+- assertVisible:
+    id: video-fullscreen

@@ -38,7 +38,9 @@ const setup = () => {
   const transport = {
     createSession: vi.fn(async () => ({ id: "saved", version: 1 })),
     updateSession: vi.fn(async () => ({ id: "saved", version: 2 })),
-    publishSession: vi.fn(async () => ({ id: "saved" })),
+    publishSession: vi.fn(async (): Promise<{ id: string; recipients?: { athletes: number; notified: number } }> => ({
+      id: "saved",
+    })),
     editSession: vi.fn(async () => current),
   };
   let stored: BuilderDraft | null = null;
@@ -141,4 +143,14 @@ it("une prescription encore en cours de saisie n'est pas ignorée lors de la pub
     }),
   ).rejects.toMatchObject({ networkStarted: false });
   expect(a.transport.createSession).not.toHaveBeenCalled();
+});
+
+it("rend le décompte des destinataires que renvoie la publication, pour le message du coach", async () => {
+  const a = setup();
+  a.transport.publishSession.mockResolvedValueOnce({ id: "saved", recipients: { athletes: 3, notified: 2 } });
+  expect(await persistBuilderSession(a.input)).toMatchObject({ recipients: { athletes: 3, notified: 2 } });
+  // Un enregistrement sans publication n'a pas de décompte : le message reste celui de l'enregistrement.
+  const b = setup();
+  expect(await persistBuilderSession({ ...b.input, publish: false })).toMatchObject({ recipients: null });
+  expect(b.transport.publishSession).not.toHaveBeenCalled();
 });

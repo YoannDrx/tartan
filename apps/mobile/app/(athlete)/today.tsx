@@ -1,9 +1,11 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { celebrationFromResponse, programItems as programOf } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
 import { capitalize, formatDateLong, m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
+import { AthleteAfterSession, AthleteWelcome } from "../../src/features/athlete-onboarding";
 import { CommentsSection } from "../../src/features/comments";
 import { ExerciseRow, parseMedia } from "../../src/features/media";
 import { Regularity } from "../../src/features/regularity";
@@ -30,6 +32,7 @@ const nextLine = (card: AthleteSessionCard) =>
 export default function Today() {
   const { orgId } = useActiveSpace();
   const today = useToday(orgId);
+  const client = useQueryClient();
   usePrefetchUpcomingSessions(orgId);
   const items = useOpQueue((s) => s.items);
   const router = useRouter();
@@ -69,6 +72,9 @@ export default function Today() {
       return;
     }
     setSaveError(null);
+    // Une première validation referme l'accueil et ouvre la carte facultative, ici comme sur les autres appareils.
+    void client.invalidateQueries({ queryKey: ["onboarding", orgId] });
+    void client.invalidateQueries({ queryKey: ["athlete-welcome", orgId] });
     setSheet({
       card,
       status,
@@ -107,7 +113,11 @@ export default function Today() {
       title={greeting}
       subtitle={capitalize(formatDateLong(date))}
       refreshing={today.isRefetching}
-      onRefresh={() => void today.refetch()}
+      onRefresh={() => {
+        void today.refetch();
+        void client.invalidateQueries({ queryKey: ["onboarding", orgId] });
+        void client.invalidateQueries({ queryKey: ["sign-in-methods"] });
+      }}
     >
       {saveError ? (
         <T tone="danger" accessibilityRole="alert">
@@ -118,6 +128,8 @@ export default function Today() {
       {today.isError && !view ? <ErrorState error={today.error} onRetry={() => void today.refetch()} /> : null}
       {view ? (
         <>
+          {/* Un jour sans séance, l'accueil de l'athlète ouvre l'écran ; un jour de séance, il passe dessous. */}
+          <AthleteWelcome orgId={orgId} sessionToday={view.today.length > 0} placement="top" />
           <WeekStrip week={view.week} today={date} />
 
           {main ? (
@@ -154,6 +166,9 @@ export default function Today() {
               onStart={() => router.push(`/session/${card.id}`)}
             />
           ))}
+
+          <AthleteWelcome orgId={orgId} sessionToday={view.today.length > 0} placement="after" />
+          <AthleteAfterSession orgId={orgId} />
 
           {main?.coachNote ? (
             <Card>
