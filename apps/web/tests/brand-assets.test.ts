@@ -42,6 +42,9 @@ const SVGS: [file: string, viewBox: string][] = [
   [`${web}/brand/logo.svg`, "0 0 573 160"],
   [`${web}/brand/logo-mono.svg`, "0 0 573 160"],
   [`${web}/brand/logo-on-dark.svg`, "0 0 573 160"],
+  // Le mot « Tartan » de l'en-tête du site : `.wordmark` (globals.css) reprend ce rapport, 408 sur 107.
+  [`${web}/brand/wordmark-letters.svg`, "3 -105 408 107"],
+  [`${web}/brand/wordmark-line.svg`, "3 -105 408 107"],
 ];
 
 describe("fichiers du logo", () => {
