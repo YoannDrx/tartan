@@ -1,6 +1,6 @@
 import { CalendarDetailPanel } from "@/features/sessions/calendar-detail-panel";
 import { SessionFollowupContent } from "@/features/tracking/session-detail";
-import { isoDate, uuid } from "@tartan/contracts";
+import { isoDate, uuid, type CalendarSession } from "@tartan/contracts";
 import { newSessionHref } from "@/lib/session-navigation";
 import { BatchPublication } from "@/features/sessions/batch-publication";
 import { Medal, Plus } from "lucide-react";
@@ -73,6 +73,26 @@ const AthleteMonth = async ({ ctx, month, today }: { ctx: SpaceContext; month: s
     </>
   );
 };
+
+// Espace personnel : une séance du calendrier, sans suivi de groupe. Brouillon, elle se modifie ; publiée, elle
+// s'ouvre pour être faite et validée.
+const PersonalSessionPanel = ({ session }: { session?: CalendarSession }) =>
+  session ? (
+    <section aria-labelledby="seance-perso" className="flex flex-col gap-3">
+      <h2 id="seance-perso" className="t-h1 text-balance">
+        {session.title}
+      </h2>
+      <p>{capitalize(formatDateLong(session.date))}</p>
+      <p className="t-caption font-normal text-soft">
+        {session.publishedAt ? w.personal.calendar.published : w.personal.calendar.draft}
+      </p>
+      {session.publishedAt ? (
+        <Button asChild size="lg" className="tablet:self-start">
+          <Link href={`/seance/${session.id}`}>{w.personal.calendar.open}</Link>
+        </Button>
+      ) : null}
+    </section>
+  ) : null;
 
 const AthleteCalendar = async ({ ctx, params }: { ctx: SpaceContext; params: Search }) => {
   const today = todayIso();
@@ -175,7 +195,8 @@ const AthleteCalendar = async ({ ctx, params }: { ctx: SpaceContext; params: Sea
 export default async function CalendrierPage({ searchParams }: { searchParams: Promise<Search> }) {
   const ctx = await requireSpace();
   const params = await searchParams;
-  if (!ctx.staff) return <AthleteCalendar ctx={ctx} params={params} />;
+  // L'athlète d'un groupe lit ses séances ; l'athlète autonome planifie les siennes, comme un coach.
+  if (!ctx.planner) return <AthleteCalendar ctx={ctx} params={params} />;
   const today = todayIso();
   const selectedWeek = isoDate.safeParse(params.semaine).success ? params.semaine : undefined;
   const selectedMonth = validMonth(params.mois);
@@ -229,7 +250,7 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
               sessions={data.sessions.filter((s) => (usesMonth ? s.date.startsWith(month) : true))}
             />
             <CompetitionDialog athletes={athletes} today={today} />
-            {!usesMonth ? <DuplicateWeekDialog week={week} groups={groups} /> : null}
+            {!usesMonth && !ctx.personal ? <DuplicateWeekDialog week={week} groups={groups} /> : null}
             {ctx.space.aiPlannerEnabled || ctx.space.aiPlannerUpgrade ? (
               // Sur téléphone, juste après « Nouvelle séance » : les deux façons de créer se voient sans défiler.
               <Button asChild variant="secondary" size="sm" className="max-desktop:-order-1">
@@ -306,8 +327,11 @@ export default async function CalendrierPage({ searchParams }: { searchParams: P
       <CalendarDetailPanel
         sessionId={uuid.safeParse(params.seance).success ? params.seance : undefined}
         returnTo={href({})}
+        personal={ctx.personal}
       >
-        {uuid.safeParse(params.seance).success ? (
+        {ctx.personal ? (
+          <PersonalSessionPanel session={data.sessions.find((s) => s.id === params.seance)} />
+        ) : uuid.safeParse(params.seance).success ? (
           <SessionFollowupContent
             params={Promise.resolve({ id: params.seance! })}
             searchParams={Promise.resolve({ retour: href({}) })}

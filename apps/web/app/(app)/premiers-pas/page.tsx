@@ -9,7 +9,8 @@ import { CoachGuide } from "@/features/onboarding/coach-guide";
 import { InvitePanel } from "@/features/onboarding/invite-panel";
 import { ReopenTour } from "@/features/onboarding/reopen-tour";
 import { FEATURES, type FeatureKey } from "@/features/onboarding/tour-features";
-import { requireStaffSpace } from "@/features/shell/space";
+import { requirePlannerSpace } from "@/features/shell/space";
+import { PersonalGuide } from "@/features/onboarding/personal-guide";
 import { DEMO_SPACE_ENABLED } from "@/lib/onboarding-paths";
 import { RUBRIC_ATHLETE } from "@/lib/rubric-athlete";
 import { getDemoSpace } from "@/server/demo-space.service";
@@ -22,7 +23,40 @@ export const metadata: Metadata = { title: t.page.title };
 // Les premiers pas, toujours accessibles (menu de l'engrenage, aide) : les étapes de l'espace, puis chaque grande
 // fonction avec son état ici. C'est la référence après le tour de piste.
 export default async function PremiersPasPage() {
-  const { actor, organizationId, space } = await requireStaffSpace();
+  const { actor, organizationId, space, personal } = await requirePlannerSpace();
+  // L'athlète autonome : ses propres premiers pas, puis l'installation. Ni groupe à inviter, ni démonstration.
+  if (personal) {
+    const [onboarding, guide] = await Promise.all([
+      getOnboarding(actor.userId, organizationId),
+      getGuideContext(actor.userId, organizationId),
+    ]);
+    const steps = onboarding.personal;
+    const installed = steps?.steps.find((step) => step.key === "install")?.done ?? false;
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+        <PageHeader title={w.personal.guide.pageTitle} detail={w.personal.guide.pageLead} />
+        {steps ? (
+          <PersonalGuide
+            place="page"
+            data={{
+              ...steps,
+              dismissedAt: onboarding.dismissedAt,
+              templates: guide.templates,
+              plannerAvailable: Boolean(space.aiPlannerEnabled),
+            }}
+          />
+        ) : null}
+        <section id="installer" aria-labelledby="installer-titre" className="flex scroll-mt-24 flex-col gap-3">
+          <h2 id="installer-titre" className="t-section">
+            {t.page.installTitle}
+          </h2>
+          <p className="on-card max-w-prose rounded-card bg-card p-4">
+            {installed ? t.page.installDone : t.page.installBody}
+          </p>
+        </section>
+      </div>
+    );
+  }
   const demo = DEMO_SPACE_ENABLED ? await getDemoSpace(actor.userId, organizationId) : null;
   // Depuis la démonstration, les premiers pas sont ceux de l'espace réel : seule la démonstration se gère ici.
   if (space.isDemo) {

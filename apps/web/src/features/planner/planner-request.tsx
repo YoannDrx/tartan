@@ -11,7 +11,8 @@ import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { Check, ChevronDown, Mic, Square, X } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { PlannerSolo } from "./planner-solo";
 import { Button, IconButton } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { CheckRow, Field, Input } from "@/components/ui/field";
@@ -192,6 +193,7 @@ export function PlannerRequest({
 }) {
   const [phases, setPhases] = useState<Record<string, PhasePlanningReadiness>>({});
   const [athleteSearch, setAthleteSearch] = useState("");
+  const solo = useContext(PlannerSolo);
   const field = useRef<HTMLTextAreaElement>(null);
   const fieldId = useId();
   const latest = useRef(value);
@@ -270,7 +272,7 @@ export function PlannerRequest({
         onSubmit({ ...draft.data, id: crypto.randomUUID(), requestedAt: new Date().toISOString() });
       }}
     >
-      <fieldset disabled={busy} className="flex min-w-0 flex-col gap-3">
+      <fieldset disabled={busy} hidden={solo} className="flex min-w-0 flex-col gap-3">
         <legend className="t-section mb-1">{t.who}</legend>
         <p className="t-caption font-normal text-soft">{t.whoHint}</p>
         {!hasRecipients ? (

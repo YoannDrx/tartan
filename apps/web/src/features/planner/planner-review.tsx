@@ -25,6 +25,7 @@ import { historyDate, m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { CircleDashed, Search, TriangleAlert, X } from "lucide-react";
 import { useCallback, useContext, useRef, useState, type ReactNode } from "react";
+import { PlannerSolo } from "./planner-solo";
 import { Chip } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
@@ -98,6 +99,7 @@ export function PlannerDraftReview({
   onProbable: (warning: PlannerDraftWarning, exercise: Picked) => Promise<void>;
 }) {
   const { lists, remember } = useContext(ExerciseSource);
+  const solo = useContext(PlannerSolo);
   const root = useRef<HTMLElement>(null);
   // Après un geste, le clavier reprend sur l'exercice concerné, à sa place dans la séance : la carte qui portait
   // le bouton a changé, le focus ne doit pas tomber dans le vide. Deux images plus tard, la séance est de nouveau
@@ -446,7 +448,7 @@ export function PlannerDraftReview({
               )}
             </Field>
           </div>
-          <fieldset className="min-w-0">
+          <fieldset className="min-w-0" hidden={solo}>
             <legend className="font-semibold">{m.builder.audience}</legend>
             {proposal.targets.map((target) => {
               const selected = session.assignments.some(

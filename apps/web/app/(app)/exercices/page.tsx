@@ -3,7 +3,7 @@ import { exerciseFamily, type ExerciseFamily, type ExerciseFilter } from "@tarta
 import { formatPrescription } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { ExerciseLibrary, type LibraryRow } from "@/features/exercises/exercise-library";
-import { requireStaffSpace } from "@/features/shell/space";
+import { requirePlannerSpace } from "@/features/shell/space";
 import { listExerciseIndex } from "@/server/exercise.service";
 import { listExerciseLists } from "@/server/exercise-list.service";
 
@@ -25,7 +25,7 @@ export default async function ExercicesPage({
 }: {
   searchParams: Promise<{ nouveau?: string; liste?: string; famille?: string; favoris?: string }>;
 }) {
-  const { actor, organizationId, space } = await requireStaffSpace();
+  const { actor, organizationId, space } = await requirePlannerSpace();
   const params = await searchParams;
   const [exercises, lists] = await Promise.all([
     listExerciseIndex(actor.userId, organizationId),

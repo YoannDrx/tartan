@@ -1,7 +1,8 @@
 // La matrice des écrans : chaque page de l'application, qui l'ouvre, et les parcours qui la prouvent.
 // `tests/screen-matrix.test.ts` échoue pour toute page absente d'ici ; `screen-matrix.spec.ts` visite chaque écran
 // sans paramètre, pour chaque rôle, à 390, 768 et 1440 px.
-export type ScreenRole = "public" | "coach" | "athlete" | "admin";
+// `personal` : l'athlète autonome, dans son espace personnel (athlète de sa fiche, il y planifie pour lui seul).
+export type ScreenRole = "public" | "coach" | "athlete" | "personal" | "admin";
 export type Screen = {
   path: string;
   roles: ScreenRole[];
@@ -10,7 +11,7 @@ export type Screen = {
   proof: string[];
 };
 
-const both: ScreenRole[] = ["coach", "athlete"];
+const both: ScreenRole[] = ["coach", "athlete", "personal"];
 
 export const SCREENS: Screen[] = [
   // Site public et pages légales
@@ -33,7 +34,12 @@ export const SCREENS: Screen[] = [
   { path: "/mot-de-passe-oublie", roles: ["public"], proof: ["pilot.spec.ts"] },
   { path: "/nouveau-mot-de-passe", roles: ["public"], proof: ["pilot.spec.ts"] },
   { path: "/confirmer-age", roles: ["public"], proof: ["terrain.spec.ts"] },
-  { path: "/bienvenue", roles: ["athlete"], proof: ["age-confirmation.spec.ts", "tests/athlete-arrival.test.ts"] },
+  {
+    path: "/bienvenue",
+    roles: ["athlete"],
+    proof: ["age-confirmation.spec.ts", "athlete-autonome.spec.ts", "tests/athlete-arrival.test.ts"],
+  },
+  { path: "/bienvenue/seul", roles: ["athlete"], proof: ["athlete-autonome.spec.ts"] },
   { path: "/bienvenue/coach", roles: ["athlete"], proof: ["onboarding.spec.ts", "age-confirmation.spec.ts"] },
   { path: "/bienvenue/inviter", roles: ["coach"], proof: ["onboarding.spec.ts"] },
   { path: "/i/[token]", roles: ["public"], proof: ["pilot.spec.ts", "password.spec.ts", "avatar.spec.ts"] },
@@ -52,7 +58,7 @@ export const SCREENS: Screen[] = [
   { path: "/reglages/confidentialite", roles: both, proof: ["settings-sections.spec.ts", "pilot.spec.ts"] },
   { path: "/reglages/aide", roles: both, proof: ["settings-sections.spec.ts", "help.spec.ts"] },
   { path: "/synchronisation", roles: both, proof: [] },
-  { path: "/annonces", roles: both, proof: ["notification-center.spec.ts"] },
+  { path: "/annonces", roles: ["coach", "athlete"], proof: ["notification-center.spec.ts"] },
   { path: "/calendrier", roles: both, proof: ["calendar-views.spec.ts", "demo-space.spec.ts", "filled-sweep.spec.ts"] },
   { path: "/phases", roles: both, proof: ["training-phases.spec.ts", "filled-sweep.spec.ts"] },
   { path: "/analyse", roles: both, proof: ["training-analysis.spec.ts"] },
@@ -60,7 +66,7 @@ export const SCREENS: Screen[] = [
   { path: "/historique/[athleteId]", roles: both, proof: ["screen-matrix.spec.ts"] },
   {
     path: "/planificateur",
-    roles: ["coach"],
+    roles: ["coach", "personal"],
     proof: ["ai-planner.spec.ts", "ai-disabled.spec.ts", "demo-space.spec.ts"],
   },
   { path: "/planificateur/propositions", roles: ["coach"], proof: ["ai-disabled.spec.ts"] },
@@ -77,10 +83,14 @@ export const SCREENS: Screen[] = [
       "filled-sweep.spec.ts",
     ],
   },
-  { path: "/premiers-pas", roles: ["coach"], proof: ["onboarding.spec.ts", "demo-space.spec.ts"] },
+  {
+    path: "/premiers-pas",
+    roles: ["coach", "personal"],
+    proof: ["onboarding.spec.ts", "demo-space.spec.ts", "athlete-autonome.spec.ts"],
+  },
   {
     path: "/seances/nouvelle",
-    roles: ["coach"],
+    roles: ["coach", "personal"],
     proof: ["coach-screens.spec.ts", "session-sequences.spec.ts", "exercise-finder.spec.ts"],
   },
   { path: "/seances/[id]", roles: ["coach"], proof: ["coach-screens.spec.ts", "demo-space.spec.ts"] },
@@ -89,7 +99,7 @@ export const SCREENS: Screen[] = [
   { path: "/seances/[id]/athletes/[athleteId]/series", roles: ["coach"], proof: ["coach-performed-sets.spec.ts"] },
   {
     path: "/exercices",
-    roles: ["coach"],
+    roles: ["coach", "personal"],
     proof: ["exercise-guides.spec.ts", "exercise-aliases.spec.ts", "exercise-lists.spec.ts", "exercise-finder.spec.ts"],
   },
   {
@@ -118,11 +128,11 @@ export const SCREENS: Screen[] = [
   // Athlète
   {
     path: "/aujourdhui",
-    roles: ["athlete"],
+    roles: ["athlete", "personal"],
     proof: ["session-open.spec.ts", "regularity.spec.ts", "password.spec.ts"],
   },
-  { path: "/progres", roles: ["athlete"], proof: ["record-card.spec.ts", "filled-sweep.spec.ts"] },
-  { path: "/mes-videos", roles: ["athlete"], proof: ["video-collaboration.spec.ts"] },
+  { path: "/progres", roles: ["athlete", "personal"], proof: ["record-card.spec.ts", "filled-sweep.spec.ts"] },
+  { path: "/mes-videos", roles: ["athlete", "personal"], proof: ["video-collaboration.spec.ts"] },
   { path: "/mes-videos/[id]", roles: ["athlete"], proof: ["video-collaboration.spec.ts", "video-fullscreen.spec.ts"] },
   { path: "/seance/[id]", roles: ["athlete"], proof: ["session-open.spec.ts", "exercise-guides.spec.ts"] },
   { path: "/seance/[id]/mode", roles: ["athlete"], proof: ["session-sequences.spec.ts", "exercise-guides.spec.ts"] },

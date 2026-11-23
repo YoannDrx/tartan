@@ -8,6 +8,7 @@ import {
   House,
   Megaphone,
   Sparkles,
+  SquarePen,
   TrendingUp,
   UsersRound,
   Video,
@@ -51,6 +52,24 @@ const athleteItems: Item[] = [
   { href: "/annonces", label: m.nav.annonces, icon: Megaphone, mobile: true },
 ];
 
+// L'athlète autonome, dans son espace personnel : ses rubriques d'athlète, la bibliothèque, et « Planifier », qui ouvre
+// le constructeur sans destinataires. Ni suivi de groupe, ni athlètes, ni annonces.
+const personalItems: Item[] = [
+  { href: "/aujourdhui", label: m.nav.aujourdhui, icon: House, mobile: true },
+  { href: "/calendrier", label: m.nav.calendrier, icon: CalendarDays, mobile: true },
+  { href: "/exercices", label: m.nav.exercices, icon: Dumbbell, mobile: true },
+  { href: "/progres", label: m.nav.progres, icon: TrendingUp, mobile: true },
+  { href: "/mes-videos", label: m.nav.videos, icon: Video, mobile: true },
+  { href: "/seances/nouvelle", label: w.personal.nav.plan, icon: SquarePen, mobile: false },
+];
+
+const spaceLabel = (s: SpaceSummary): string =>
+  s.isDemo
+    ? w.demoSpace.switcherLabel(s.organizationName)
+    : s.kind === "personal"
+      ? s.organizationName
+      : `${s.organizationName} (${m.roles[s.role]})`;
+
 const SpaceSwitcher = ({ spaces, current }: { spaces: SpaceSummary[]; current: SpaceSummary }) => {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -84,7 +103,7 @@ const SpaceSwitcher = ({ spaces, current }: { spaces: SpaceSummary[]; current: S
       >
         {spaces.map((s) => (
           <option key={s.organizationId} value={s.organizationId}>
-            {s.isDemo ? w.demoSpace.switcherLabel(s.organizationName) : `${s.organizationName} (${m.roles[s.role]})`}
+            {spaceLabel(s)}
           </option>
         ))}
       </select>
@@ -122,7 +141,11 @@ export const AppShell = ({
     ? space.aiPlannerEnabled || space.aiPlannerUpgrade
       ? [...coachItems.slice(0, 2), plannerItem, ...coachItems.slice(2)]
       : coachItems
-    : athleteItems;
+    : space.kind === "personal"
+      ? space.aiPlannerEnabled
+        ? [...personalItems, plannerItem]
+        : personalItems
+      : athleteItems;
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   // Le mode séance et l'analyse vidéo prennent tout l'écran, en sombre.
   const immersive = /^\/(seance\/[^/]+\/mode|videos\/[^/]+|mes-videos\/[^/]+)/.test(pathname);
