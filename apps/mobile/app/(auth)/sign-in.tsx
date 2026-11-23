@@ -94,8 +94,8 @@ export default function SignIn() {
     if (!checkEmail()) return;
     setErrors({});
     setFormNotice(null);
+    // Pas de focus automatique : le clavier ouvert d'office recouvrait « Mot de passe oublié ? ».
     setStep("password");
-    setTimeout(() => passwordRef.current?.focus(), 50);
   };
 
   const submitPassword = async () => {
@@ -125,7 +125,9 @@ export default function SignIn() {
       }
       return;
     }
-    const result = await authClient.signIn.email({ email: value, password, callbackURL: CALLBACK }).catch(() => null);
+    // Jamais de `callbackURL` ici : avec elle, le serveur répond `redirect: true` et le client Expo ouvre une session
+    // de navigateur (« TartanDev veut utiliser localhost pour se connecter ») au lieu de garder le cookie reçu.
+    const result = await authClient.signIn.email({ email: value, password }).catch(() => null);
     setBusy(null);
     if (!result) {
       setErrors({ form: m.common.genericError });

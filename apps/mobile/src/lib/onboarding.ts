@@ -91,14 +91,16 @@ export const TOUR_FEATURES = [
 export type TourFeature = (typeof TOUR_FEATURES)[number];
 
 // L'athlète qui arrive : l'accueil ne retarde jamais la séance. Un jour de séance, une ligne sous elle ; sinon il
-// ouvre l'écran. Rien quand l'accueil est passé (une semaine, une validation) ou refermé sur un autre appareil.
+// ouvre l'écran. Rien quand l'accueil est passé (une semaine, une validation) ou refermé sur un autre appareil, ni pour
+// un membre que le suivi ne guide pas (`guided = false` : arrivé avant lui, ou compte de démonstration de la graine).
 export const athleteWelcomeView = (input: {
+  guided: boolean | undefined;
   welcome: { group: string; coach: string } | null | undefined;
   welcomeSeenAt: string | null | undefined;
   sessionToday: boolean;
 }): AthleteWelcomeMode =>
   athleteWelcomeMode({
-    eligible: Boolean(input.welcome),
+    eligible: Boolean(input.guided && input.welcome),
     welcomeSeenAt: input.welcomeSeenAt ?? null,
     sessionToday: input.sessionToday,
   });

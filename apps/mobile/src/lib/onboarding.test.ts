@@ -97,13 +97,20 @@ describe("les étapes du coach", () => {
 describe("l'accueil de l'athlète", () => {
   const welcome = { group: "Hauteur Élite", coach: "Thomas" };
   it("ne passe jamais devant la séance du jour", () => {
-    expect(athleteWelcomeView({ welcome, welcomeSeenAt: null, sessionToday: true })).toBe("line");
-    expect(athleteWelcomeView({ welcome, welcomeSeenAt: null, sessionToday: false })).toBe("panels");
+    expect(athleteWelcomeView({ guided: true, welcome, welcomeSeenAt: null, sessionToday: true })).toBe("line");
+    expect(athleteWelcomeView({ guided: true, welcome, welcomeSeenAt: null, sessionToday: false })).toBe("panels");
   });
 
   it("disparaît une fois refermé sur un appareil, ou quand l'accueil n'a plus lieu d'être", () => {
-    expect(athleteWelcomeView({ welcome, welcomeSeenAt: NOW, sessionToday: false })).toBeNull();
-    expect(athleteWelcomeView({ welcome: null, welcomeSeenAt: null, sessionToday: false })).toBeNull();
-    expect(athleteWelcomeView({ welcome: undefined, welcomeSeenAt: undefined, sessionToday: true })).toBeNull();
+    expect(athleteWelcomeView({ guided: true, welcome, welcomeSeenAt: NOW, sessionToday: false })).toBeNull();
+    expect(athleteWelcomeView({ guided: true, welcome: null, welcomeSeenAt: null, sessionToday: false })).toBeNull();
+    expect(
+      athleteWelcomeView({ guided: true, welcome: undefined, welcomeSeenAt: undefined, sessionToday: true }),
+    ).toBeNull();
+  });
+
+  it("ne s'adresse pas à un membre que le suivi ne guide pas, comme les comptes de démonstration", () => {
+    expect(athleteWelcomeView({ guided: false, welcome, welcomeSeenAt: null, sessionToday: false })).toBeNull();
+    expect(athleteWelcomeView({ guided: undefined, welcome, welcomeSeenAt: null, sessionToday: true })).toBeNull();
   });
 });

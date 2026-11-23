@@ -2,7 +2,7 @@ import type { CoachOptionalStepKeyValue, CoachStepKeyValue, OnboardingResponse }
 import { tokens } from "@tartan/design-tokens";
 import { m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { View } from "react-native";
 import { useOnboarding, useUpdateOnboarding } from "../lib/account-queries";
 import { COACH_OPTIONAL_ROUTES, COACH_STEP_ROUTES, nextCoachStep } from "../lib/onboarding";
@@ -180,6 +180,10 @@ export const FirstStepsCard = ({
       <OptionalSteps state={state} orgId={orgId} />
       {variant === "suivi" ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm, minHeight: TOUCH }}>
+          {/* Le tour de piste ne s'ouvre jamais seul : il ne recouvre ni le suivi ni ses flux de test. */}
+          {state.tourDue ? (
+            <Button testID="first-steps-tour" label={f.tourOpen} compact onPress={() => router.push("/tour")} />
+          ) : null}
           <Button
             testID="first-steps-all"
             label={f.all}
@@ -220,20 +224,13 @@ export const FirstStepsCard = ({
   );
 };
 
-// Sur le suivi du coach : le tour de piste à la première arrivée, la fin fêtée une fois, sinon la carte tant
-// qu'elle n'est pas refermée. Un coach d'avant ce suivi (`guided = false`) ne voit rien de tout cela.
+// Sous le suivi du coach : la fin fêtée une fois, sinon la carte tant qu'elle n'est pas refermée, avec le tour de piste
+// à portée tant qu'il n'a pas été vu. Rien ne s'ouvre seul par-dessus le suivi. Un coach que le suivi ne guide pas
+// (`guided = false` : arrivé avant lui, comptes de la graine) ne voit la carte que selon l'ancienne règle du serveur.
 export const CoachFirstSteps = ({ orgId }: { orgId: string }) => {
   const onboarding = useOnboarding(orgId);
-  const router = useRouter();
-  const opened = useRef(false);
   const [closed, setClosed] = useState(false);
   const state = onboarding.data;
-  const tourDue = Boolean(state?.staff && state.tourDue);
-  useEffect(() => {
-    if (!tourDue || opened.current) return;
-    opened.current = true;
-    router.push("/tour");
-  }, [router, tourDue]);
   if (!state?.staff) return null;
   if (state.celebrationDue) return <FirstStepsCelebration orgId={orgId} />;
   if (state.guideVisible)
