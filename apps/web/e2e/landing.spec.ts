@@ -69,13 +69,13 @@ test("les écrans du coach et de l'athlète se parcourent par onglets, au clavie
     const image = panel.getByRole("img");
     await expect(image).toHaveCount(1);
     await expect.poll(() => image.evaluate((el) => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
-    await page.keyboard.press("End");
-    await expect(tabs.getByRole("tab").last()).toHaveAttribute("aria-selected", "true");
     if (phone(page)) {
       // Sur téléphone, la capture précède le texte qui la commente.
       const [shot, title] = await Promise.all([image.boundingBox(), panel.getByRole("heading").boundingBox()]);
       expect(shot!.y).toBeLessThan(title!.y);
     }
+    await page.keyboard.press("End");
+    await expect(tabs.getByRole("tab").last()).toHaveAttribute("aria-selected", "true");
   }
   for (const feature of [...Object.values(t.coach.features), ...Object.values(t.athlete.features)]) {
     expect(feature.alt.length, feature.tab).toBeGreaterThan(40);
