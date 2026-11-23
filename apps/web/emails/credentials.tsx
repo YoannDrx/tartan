@@ -32,14 +32,14 @@ export const ConfirmPasswordSetupEmail = ({ url }: { url: string }) => {
 
 // Création de compte demandée sur une adresse déjà inscrite : l'écran répond comme pour un nouveau compte,
 // c'est cet e-mail qui dit la vérité à la personne qui lit la boîte.
-export const AccountExistsEmail = ({ url }: { url: string }) => {
+export const AccountExistsEmail = ({ url, invitation = false }: { url: string; invitation?: boolean }) => {
   const t = w.auth.emails.accountExists;
   return (
     <Layout preview={t.subject}>
       <Title>{t.subject}</Title>
-      <Paragraph>{t.body}</Paragraph>
+      <Paragraph>{invitation ? t.bodyInvitation : t.body}</Paragraph>
       <Paragraph>{t.detail}</Paragraph>
-      <PrimaryLink href={url}>{t.cta}</PrimaryLink>
+      <PrimaryLink href={url}>{invitation ? t.ctaInvitation : t.cta}</PrimaryLink>
       <Paragraph muted>{t.ignore}</Paragraph>
     </Layout>
   );

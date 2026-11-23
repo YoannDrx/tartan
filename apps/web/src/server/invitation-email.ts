@@ -14,6 +14,21 @@ export const INVITATION_PURPOSE = "invitation";
 export const invitationLink = (invitationId: string): string =>
   `${env().NEXT_PUBLIC_APP_URL}/i/${deriveToken(INVITATION_PURPOSE, invitationId)}`;
 
+// Chemin de la dernière invitation nominative encore ouverte à cette adresse, pour y ramener la personne.
+export const openInvitationPathFor = async (email: string, now = new Date()): Promise<string | null> => {
+  const invitation = await prisma.invitation.findFirst({
+    where: {
+      email: email.trim().toLowerCase(),
+      status: { in: ["sent", "opened"] },
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      organization: { isDemo: false },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+  return invitation ? `/i/${deriveToken(INVITATION_PURPOSE, invitation.id)}` : null;
+};
+
 export const invitationOutboxKind = (role: string): "invitation_athlete" | "invitation_staff" =>
   role === "athlete" ? "invitation_athlete" : "invitation_staff";
 

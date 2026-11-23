@@ -77,6 +77,8 @@ export const createOrganizationInput = z.object({
   firstGroupGoal: trimmed(280).nullable().optional(),
   referralCode: z.string().trim().max(40).optional(),
   birthDate: isoDate.optional(),
+  // Conditions acceptées à l'écran : enregistrées avec l'espace, comme sur le web. Facultatif pour l'app en circulation.
+  termsAccepted: z.boolean().optional(),
 });
 export type CreateOrganizationInput = z.input<typeof createOrganizationInput>;
 

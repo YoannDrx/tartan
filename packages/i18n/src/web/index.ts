@@ -20,6 +20,7 @@ import { settings } from "./settings";
 import { shell } from "./shell";
 import { tracking } from "./tracking";
 import { video } from "./video";
+import { welcome } from "./welcome";
 
 export const w = {
   admin,
@@ -41,6 +42,7 @@ export const w = {
   shell,
   tracking,
   video,
+  welcome,
 } as const;
 
 export type WebMessages = typeof w;

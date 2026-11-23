@@ -216,10 +216,18 @@ const roleConflict = async (
   return member.role === "athlete" ? "role_conflict" : null;
 };
 
-export const invitationConflictMessage = async (token: string, userId: string): Promise<string | null> => {
+// Une invitation nominative ne s'ouvre qu'avec son adresse : le refus se lit avant le formulaire, pas à l'envoi.
+const wrongAccount = (inv: { email: string | null }, email: string): boolean =>
+  Boolean(inv.email) && inv.email !== email.trim().toLowerCase();
+
+export const invitationConflictMessage = async (
+  token: string,
+  actor: { userId: string; email: string },
+): Promise<string | null> => {
   const inv = await findByToken(token);
   if (!inv) return null;
-  const conflict = await roleConflict(userId, inv);
+  if (wrongAccount(inv, actor.email)) return m.invite.wrongAccount;
+  const conflict = await roleConflict(actor.userId, inv);
   if (conflict === "already_staff") return m.invite.alreadyStaff;
   return conflict === "role_conflict" ? m.invite.roleConflict : null;
 };
@@ -266,9 +274,7 @@ export const acceptInvitation = async (
   if (state === "expired") throw invalid(m.invite.expired);
   if (state === "revoked") throw invalid(m.invite.revoked);
   if (state === "used") throw invalid(m.invite.used);
-  if (inv.email && inv.email !== actor.email.toLowerCase()) {
-    throw new AppError(403, "wrong_account", "Cette invitation est destinée à une autre adresse e-mail.");
-  }
+  if (wrongAccount(inv, actor.email)) throw new AppError(403, "wrong_account", m.invite.wrongAccount);
   if (!input.consents.terms) throw invalid(m.invite.termsRequired);
   const conflict = await roleConflict(actor.userId, inv);
   if (conflict === "already_staff") throw new AppError(409, conflict, m.invite.alreadyStaff);
@@ -339,15 +345,26 @@ export const acceptInvitation = async (
     });
     if (claimed.count === 0) throw invalid(m.invite.used);
 
+    // Le nom du compte vaut pour tous ses espaces : une invitation ne l'écrit que s'il manque. La fiche de
+    // l'athlète, propre à cet espace, prend ce qu'il a saisi.
+    const named = await tx.profile.findUnique({
+      where: { id: actor.userId },
+      select: { firstName: true, lastName: true },
+    });
+    const hasName = Boolean(named?.firstName?.trim() && named?.lastName?.trim());
     await tx.profile.upsert({
       where: { id: actor.userId },
       create: { id: actor.userId, firstName: input.firstName, lastName: input.lastName, birthDate },
-      update: { firstName: input.firstName, lastName: input.lastName, ...(parental ? { birthDate } : {}) },
+      update: {
+        ...(hasName ? {} : { firstName: input.firstName, lastName: input.lastName }),
+        ...(parental ? { birthDate } : {}),
+      },
     });
-    await tx.user.update({
-      where: { id: actor.userId },
-      data: { name: `${input.firstName} ${input.lastName}`.trim() },
-    });
+    if (!hasName)
+      await tx.user.update({
+        where: { id: actor.userId },
+        data: { name: `${input.firstName} ${input.lastName}`.trim() },
+      });
 
     const member = await tx.organizationMember.findUnique({
       where: { organizationId_userId: { organizationId: inv.organizationId, userId: actor.userId } },

@@ -5,6 +5,7 @@ import { m } from "@tartan/i18n";
 import { PublicPage } from "@/features/shell/public-page";
 import { OnboardingScene } from "@/features/shell/start-scene";
 import { getActor } from "@/lib/session";
+import { AccountExit } from "@/features/onboarding/account-exit";
 import { OnboardingForm } from "@/features/onboarding/onboarding-form";
 import { env } from "@/lib/env";
 import { ageStatusOfUser } from "@/server/age.service";
@@ -43,6 +44,7 @@ export default async function BienvenuePage({
           </a>
           <p className="text-soft">{m.onboarding.joinHint}</p>
         </div>
+        <AccountExit email={actor.email} />
       </PublicPage>
     );
   }
@@ -59,6 +61,7 @@ export default async function BienvenuePage({
         />
         <p className="text-soft">{m.onboarding.joinHint}</p>
       </div>
+      <AccountExit email={actor.email} />
     </PublicPage>
   );
 }

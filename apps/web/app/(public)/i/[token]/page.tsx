@@ -9,6 +9,7 @@ import { enabledSocialProviders } from "@/lib/auth";
 import { getActor } from "@/lib/session";
 import { SignInForm } from "@/features/auth/sign-in-form";
 import { AcceptForm } from "@/features/invitations/accept-form";
+import { SwitchAccountButton } from "@/features/invitations/switch-account";
 import { parentalFlowEnabled } from "@/server/age.service";
 import { invitationConflictMessage, previewInvitation } from "@/server/invitation.service";
 import { getMe } from "@/server/me.service";
@@ -42,8 +43,18 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
           : null;
   const actor = await getActor();
   const me = actor ? await getMe(actor.userId) : null;
+  // Invitation nominative ouverte avec un autre compte : l'adresse visée et le moyen d'en changer, avant tout.
+  const wrongAccount = Boolean(
+    actor && !blocked && invitation.email && invitation.email !== actor.email.trim().toLowerCase(),
+  );
   // Le refus s'affiche avant le formulaire : inutile de le remplir pour l'apprendre ensuite.
-  const conflict = actor && !blocked ? await invitationConflictMessage(token, actor.userId) : null;
+  const conflict = actor && !blocked && !wrongAccount ? await invitationConflictMessage(token, actor) : null;
+  const invitedAddress = invitation.email ? (
+    <p className="flex flex-col leading-snug">
+      <span className="t-caption font-normal text-soft">{w.auth.inviteFor}</span>
+      <span className="break-all font-semibold">{invitation.email}</span>
+    </p>
+  ) : null;
 
   return (
     <PublicPage title={title} lead={!blocked && !(actor && me) ? w.auth.inviteLead : undefined}>
@@ -63,8 +74,18 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
             <span className="t-caption font-normal text-soft">{invitation.organizationName}</span>
           </span>
         </p>
+        {!blocked ? invitedAddress : null}
         {blocked || conflict ? (
           <p role="alert">{blocked ?? conflict}</p>
+        ) : wrongAccount && actor ? (
+          <div className="flex flex-col gap-4 border-t border-card-line pt-4">
+            <p className="flex flex-col leading-snug">
+              <span className="t-caption font-normal text-soft">{w.auth.inviteSignedInAs}</span>
+              <span className="break-all font-semibold">{actor.email}</span>
+            </p>
+            <p role="alert">{w.auth.inviteWrongAccount}</p>
+            <SwitchAccountButton returnTo={`/i/${token}`} />
+          </div>
         ) : actor && me ? (
           <AcceptForm
             token={token}
