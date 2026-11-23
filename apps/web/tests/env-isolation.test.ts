@@ -55,6 +55,7 @@ describe("lecture de l'environnement", () => {
     });
     expect(parsed.BETTER_AUTH_URL).toBe("http://localhost:3000");
     expect(parsed.COACH_SIGNUP_MODE).toBe("closed");
+    expect(parsed.ATHLETE_SIGNUP_MODE).toBe("closed");
     expect(parsed.EMAIL_FROM).toBe("Tartan <tartan@mail.tartan.coach>");
     expect(parsed.MUX_TOKEN_ID).toBeUndefined();
     expect(parsed.AI_PLANNER_ENABLED).toBeUndefined();
