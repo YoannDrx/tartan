@@ -84,9 +84,10 @@ env:
 - extendedWaitUntil:
     visible: "Arrêter le partage avec .*\\?"
     timeout: 10000
+# L'alerte masque l'écran dessous : son bouton est le seul « Arrêter le partage » sous son titre.
 - tapOn:
     text: "Arrêter le partage"
-    index: 1
+    below: "Arrêter le partage avec .*\\?"
 - extendedWaitUntil:
     visible: "Partage arrêté\\."
     timeout: 15000
