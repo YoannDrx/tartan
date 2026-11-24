@@ -217,6 +217,7 @@ export type DeleteSessionInput = z.infer<typeof deleteSessionInput>;
 export const deleteSessionQuery = z
   .object({
     expectedVersion: z.coerce.number().int().min(1).optional(),
+    draftOnly: z.literal("true").optional(),
     expectedLogCount: z.coerce.number().int().min(0).optional(),
   })
   .strict()

@@ -11,6 +11,7 @@ import {
   exerciseInput,
   plannerSelection,
   confirmPlannerProposalInput,
+  savePlannerReviewInput,
   plannerProposalResponse,
   plannerProposalList,
   plannerProposalListQuery,
@@ -68,10 +69,10 @@ import { requireAiConsent } from "./consent.service";
 import { env } from "@/lib/env";
 import { AppError, forbidden, notFound, invalid } from "@/lib/errors";
 import { todayIso } from "@/lib/dates";
-import type { AiPlannerProposal, Prisma } from "@/generated/prisma/client";
+import { type AiPlannerProposal, Prisma } from "@/generated/prisma/client";
 import { personalAthleteOf, requireOrgMember } from "../access";
 import { preparePhasePlanning } from "../training-phases.service";
-import { createReviewedPlannerDraft, buildSnapshot } from "../session.service";
+import { createReviewedPlannerDraft, buildSnapshot, plannerLinkedSession } from "../session.service";
 import { strengthResolutionInputsForAthletes } from "../strength.service";
 import { learnExerciseTermAlias, learnedExerciseAliases } from "./alias.service";
 import {
@@ -255,6 +256,16 @@ export async function getPlannerProposal(userId: string, organizationId: string,
       ?.filter((r) => r.clarificationCount === row.clarificationCount && r.exerciseId)
       .map(({ questionId, exerciseId, name }) => ({ questionId, exerciseId, name })),
     phaseReviews: bindings.phaseReviews,
+    ...(row.draftIds
+      ? {
+          linkedSessions: await Promise.all(
+            plannerProposalResponse.shape.draftIds
+              .unwrap()
+              .parse(row.draftIds)
+              .map((session) => plannerLinkedSession(access, session.id)),
+          ),
+        }
+      : {}),
     draftIds: row.draftIds,
   });
 }
@@ -268,27 +279,35 @@ export async function listPlannerProposals(
   now = new Date(),
 ) {
   const access = await accessFor(userId, organizationId);
-  const { before } = plannerProposalListQuery.parse(input);
-  const cursor = before
-    ? await prisma.aiPlannerProposal.findFirst({
-        where: { id: before, organizationId, actorId: userId },
-        select: { id: true, createdAt: true },
-      })
-    : null;
-  if (before && !cursor) throw notFound();
-  const rows = await prisma.aiPlannerProposal.findMany({
-    where: {
-      organizationId,
-      actorId: userId,
-      expiresAt: { gt: now },
-      ...(cursor
-        ? { OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: cursor.id } }] }
-        : {}),
-    },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: 21,
-    select: { id: true, state: true, selection: true, createdAt: true, expiresAt: true },
-  });
+  const { before, filter = "all" } = plannerProposalListQuery.parse(input);
+  if (before && !(await prisma.aiPlannerProposal.count({ where: { id: before, actorId: userId, organizationId } })))
+    throw notFound();
+  // Trier avant pagination, y compris les opérations dont le bail a expiré.
+  // Seul le statut de l’interprétation sort de la base pour cet index privé.
+  const rows = await prisma.$queryRaw<
+    Pick<AiPlannerProposal, "id" | "version" | "state" | "selection" | "createdAt" | "expiresAt">[]
+  >`
+    WITH effective AS (
+      SELECT p.id, p.version, p.selection, p.created_at, p.expires_at,
+        CASE WHEN p.state <> 'processing' THEN p.state
+             WHEN op.state = 'pending' AND op.lease_until > ${now} THEN 'processing'
+             ELSE COALESCE(p.interpretation->>'status', 'failed') END AS state
+      FROM ai_planner_proposals p
+      LEFT JOIN ai_planner_operations op ON op.organization_id = p.organization_id AND op.id = p.active_operation_id
+      WHERE p.organization_id = ${organizationId}::uuid AND p.actor_id = ${userId}::uuid
+    ), ranked AS (
+      SELECT *, CASE WHEN ${filter} = 'pending' AND state = 'clarification' THEN 1 ELSE 0 END AS priority
+      FROM effective
+    )
+    SELECT id, version, state, selection, created_at AS "createdAt", expires_at AS "expiresAt"
+    FROM ranked
+    WHERE expires_at > ${now}
+      AND (${filter} = 'all' OR (${filter} = 'created' AND state = 'committed')
+        OR (${filter} = 'pending' AND state <> 'committed'))
+      AND (${before ?? null}::uuid IS NULL OR (priority, created_at, id) <
+        (SELECT priority, created_at, id FROM ranked WHERE id = ${before ?? null}::uuid))
+    ORDER BY priority DESC, created_at DESC, id DESC LIMIT 21
+  `;
   const items = [];
   for (const row of rows.slice(0, 20)) {
     const selection = plannerSelection.parse(row.selection);
@@ -303,6 +322,7 @@ export async function listPlannerProposals(
     items.push({
       id: row.id,
       state: row.state,
+      version: row.version,
       period: selection.period,
       createdAt: row.createdAt.toISOString(),
       expiresAt: row.expiresAt.toISOString(),
@@ -917,6 +937,57 @@ export async function resolvePlannerExercise(
   return getPlannerProposal(userId, organizationId, proposalId, now);
 }
 
+export async function removePlannerProposal(
+  userId: string,
+  organizationId: string,
+  proposalId: string,
+  version: number,
+  now = new Date(),
+) {
+  await prisma.$transaction(async (tx) => {
+    await lock(tx, organizationId);
+    const access = await accessFor(userId, organizationId, tx);
+    const row = await owned(userId, organizationId, proposalId, now, tx);
+    await assertPlannerTargets(tx, access, plannerSelection.parse(row.selection));
+    if (row.version !== version || (await effectiveState(row, now, tx)) === "processing") throw conflict();
+    await tx.aiPlannerProposal.delete({ where: { id: row.id } });
+  });
+  return { ok: true };
+}
+
+export async function savePlannerReview(
+  userId: string,
+  organizationId: string,
+  proposalId: string,
+  raw: z.infer<typeof savePlannerReviewInput>,
+  now = new Date(),
+) {
+  const input = savePlannerReviewInput.parse(raw);
+  await prisma.$transaction(async (tx) => {
+    await lock(tx, organizationId);
+    const access = await accessFor(userId, organizationId, tx);
+    const row = await owned(userId, organizationId, proposalId, now, tx);
+    if (row.version !== input.expectedVersion || (await effectiveState(row, now, tx)) !== "proposal") throw conflict();
+    const selection = plannerSelection.parse(row.selection);
+    const bindings = plannerBindings.parse(row.bindings);
+    await recheckPlannerBindings(tx, access, selection, bindings);
+    if (input.sessions.length !== plannerRichInterpretation.parse(row.interpretation).sessions.length) throw conflict();
+    for (const session of input.sessions) {
+      await assertReviewedScope(tx, organizationId, session, selection, bindings, true);
+      await reviewedAudience(tx, organizationId, session);
+    }
+    await tx.aiPlannerProposal.update({
+      where: { id: row.id },
+      data: {
+        state: "proposal",
+        version: { increment: 1 },
+        savedReview: { version: row.version + 1, sessions: input.sessions },
+      },
+    });
+  });
+  return { version: input.expectedVersion + 1 };
+}
+
 export async function preparePlannerDrafts(
   userId: string,
   organizationId: string,
@@ -930,7 +1001,7 @@ export async function preparePlannerDrafts(
       await lock(tx, organizationId);
       const access = await accessFor(userId, organizationId, tx),
         row = await owned(userId, organizationId, proposalId, now, tx);
-      if (row.version !== expectedVersion || row.state !== "proposal") throw conflict();
+      if (row.version !== expectedVersion || (await effectiveState(row, now, tx)) !== "proposal") throw conflict();
       const selection = plannerSelection.parse(row.selection),
         bindings = plannerBindings.parse(row.bindings);
       await recheckPlannerBindings(tx, access, selection, bindings);
@@ -1042,7 +1113,17 @@ export async function preparePlannerDrafts(
         ...slot,
         itemRef: refOf(slot.session, block, item),
       }));
-      return { proposalId, version: row.version, sessions, warnings, ...(accepts.has("slots") ? { slots } : {}) };
+      const saved = z
+        .object({ version: z.number(), sessions: savePlannerReviewInput.shape.sessions })
+        .safeParse(row.savedReview);
+      const reviewed = saved.success && saved.data.version === row.version ? saved.data.sessions : sessions;
+      return {
+        proposalId,
+        version: row.version,
+        sessions: reviewed,
+        warnings,
+        ...(accepts.has("slots") ? { slots } : {}),
+      };
     },
     { timeout: 30000 },
   );
@@ -1138,7 +1219,7 @@ export async function previewPlannerLoads(
       await lock(tx, organizationId);
       const access = await accessFor(userId, organizationId, tx),
         row = await owned(userId, organizationId, proposalId, now, tx);
-      if (row.version !== input.expectedVersion || row.state !== "proposal") throw conflict();
+      if (row.version !== input.expectedVersion || (await effectiveState(row, now, tx)) !== "proposal") throw conflict();
       const selection = plannerSelection.parse(row.selection),
         bindings = plannerBindings.parse(row.bindings);
       await recheckPlannerBindings(tx, access, selection, bindings);
@@ -1218,7 +1299,7 @@ export async function confirmPlannerProposal(
           sessions: z.array(z.object({ id: z.uuid(), version: z.number().int().positive() })).parse(row.draftIds),
         };
       }
-      if (row.version !== input.expectedVersion || row.state !== "proposal") throw conflict();
+      if (row.version !== input.expectedVersion || (await effectiveState(row, now, tx)) !== "proposal") throw conflict();
       await recheckPlannerBindings(tx, access, selection, bindings);
       const stored = plannerRichInterpretation.parse(row.interpretation);
       // Le brouillon ne se crée qu'une fois chaque emplacement tranché : fiche choisie, fiche créée, ou retiré.

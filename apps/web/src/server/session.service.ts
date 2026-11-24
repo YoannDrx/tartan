@@ -625,19 +625,37 @@ export const getSessionForEdit = async (userId: string, organizationId: string, 
   };
 };
 
+export async function plannerLinkedSession(access: Access, id: string) {
+  try {
+    const session = await requireSessionWrite(access, id);
+    return {
+      id,
+      date: fromDbDate(session.date),
+      title: session.title,
+      version: session.version,
+      state: session.publishedAt || session.publishAt ? ("published" as const) : ("draft" as const),
+    };
+  } catch (error) {
+    if (error instanceof AppError && [403, 404].includes(error.status)) return { id, state: "unavailable" as const };
+    throw error;
+  }
+}
+
 export const deleteSession = async (
   userId: string,
   organizationId: string,
   sessionId: string,
   confirmation?: DeleteSessionInput,
+  draftOnly = false,
 ) => {
   const access = await requireOrgMember(userId, organizationId, "manageSessions");
   const session = await requireSessionWrite(access, sessionId);
   const notificationIds = await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
     await tx.$queryRaw`SELECT id FROM scheduled_sessions WHERE id = ${sessionId}::uuid FOR UPDATE`;
-    const current = await tx.scheduledSession.findUnique({ where: { id: sessionId } });
-    if (!current) throw notFound();
+    const currentAccess = await requireOrgMember(userId, organizationId, "manageSessions", tx);
+    const current = await requireSessionWrite(currentAccess, sessionId, tx);
+    if (draftOnly && (current.publishedAt || current.publishAt)) throw sessionConflict();
     const logCount = await tx.sessionLog.count({ where: { scheduledSessionId: sessionId } });
     if (
       current.version !== session.version ||

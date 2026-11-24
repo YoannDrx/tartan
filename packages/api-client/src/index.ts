@@ -197,6 +197,17 @@ export const createApiClient = (options: ApiClientOptions) => {
         undefined,
         signal,
       ),
+    removePlannerProposal: (orgId: string, proposalId: string, expectedVersion: number) =>
+      request("DELETE", `/orgs/${orgId}/planner/proposals/${proposalId}`, okResponse, undefined, {
+        expectedVersion: String(expectedVersion),
+      }),
+    savePlannerReview: (orgId: string, proposalId: string, body: Omit<ConfirmPlannerProposalInput, "confirmed">) =>
+      request(
+        "PATCH",
+        `/orgs/${orgId}/planner/proposals/${proposalId}`,
+        z.object({ version: z.number().int().positive() }),
+        body,
+      ),
     plannerProposal: (orgId: string, proposalId: string, signal?: AbortSignal) =>
       request(
         "GET",
@@ -453,10 +464,11 @@ export const createApiClient = (options: ApiClientOptions) => {
       request("GET", `/orgs/${orgId}/sessions/${sessionId}/refresh-loads`, prescriptionRefreshPreview),
     refreshPublishedLoads: (orgId: string, sessionId: string, body: ConfirmPrescriptionRefresh) =>
       request("POST", `/orgs/${orgId}/sessions/${sessionId}/refresh-loads`, sessionSaveResult, body),
-    deleteSession: (orgId: string, sessionId: string, confirmation: DeleteSessionInput) =>
+    deleteSession: (orgId: string, sessionId: string, confirmation: DeleteSessionInput, draftOnly = false) =>
       request("DELETE", `/orgs/${orgId}/sessions/${sessionId}`, okResponse, undefined, {
         expectedVersion: String(confirmation.expectedVersion),
         expectedLogCount: String(confirmation.expectedLogCount),
+        ...(draftOnly ? { draftOnly: "true" } : {}),
       }),
     deleteSessionTemplate: (orgId: string, templateId: string) =>
       request("DELETE", `/orgs/${orgId}/session-templates/${templateId}`, okResponse),
