@@ -5,6 +5,11 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 Modèle :
 
 ```text
+## 2026-11-24, Claude Opus 5.5, lenteurs du serveur en CI
+Fait : PR `fix/lenteurs-serveur`. `apps/web/src/lib/prisma.ts` pose `transactionOptions` (`maxWait` 10 s, `timeout` 15 s) pour tout le client ; une transaction qui passe ses délais les garde. Test `tests/prisma-transactions.test.ts` : une transaction de 6 s, et 12 transactions simultanées pour un pool de 10 connexions ; les deux échouent avec les défauts de Prisma.
+Vérifié : mesure locale de `saveScheduledSession` sur une séance publiée, 30 à 90 ms, avec ou sans appareils push ; types, lint, suite web. Non vérifié : la cause exacte du test Android `coach-builder-detail` (bouton « Enregistrer » qui tourne plus de 45 s) : le serveur n'écrit rien pendant ce temps, la piste restante est un runner saturé (émulateur, serveur et Postgres sur la même machine).
+À savoir : les notifications ne sont pas en cause (aucun push immédiat pendant les heures calmes, ni en local, ni lors de l'échec en CI à 5 h 34). La production n'a enregistré aucune erreur `route_failed` sur 7 jours.
+
 ## 2026-11-24, Claude Opus 5.5, builds bêta et empreinte native
 Fait : builds bêta sur EAS depuis `main` (`f1c9151`) : iOS 15 (`coach.tartan.app`, 1.1.0) terminé ; Android 4 en échec à « Configure expo-updates » (empreinte locale et EAS différentes : le fichier Firebase, secret de type fichier hors du projet, et le dossier `android` généré), puis Android 5 terminé après `apps/mobile/.fingerprintignore` (PR `fix/empreinte-android`).
 Vérifié : empreinte locale identique avec et sans le fichier secret (`57c9b0d…`). Non vérifié : aucun binaire installé sur un téléphone.
