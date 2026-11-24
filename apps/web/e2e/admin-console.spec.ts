@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { w } from "@tartan/i18n/web";
 import { m } from "@tartan/i18n";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 import { sql } from "./personas";
 
 const pages = [
+  ["/admin/testeurs", w.admin.testers.title],
   ["/admin/revenus", m.admin.nav.revenue],
   ["/admin/utilisateurs", m.admin.nav.users],
   ["/admin/espaces", m.admin.nav.spaces],
@@ -27,6 +29,18 @@ test("la console s'ouvre à l'éditeur, lisible sur chaque écran, et reste ferm
     await expectNoHorizontalScroll(page);
     await expectAccessible(page);
   }
+  await page.goto("/admin/testeurs");
+  const address = `terrain-${info.project.name}@e2e.tartan.test`;
+  const t = w.admin.testers;
+  await page.getByLabel(t.email).fill(address);
+  await page.getByLabel(t.platform).selectOption("android");
+  await page.getByRole("button", { name: t.invite, exact: true }).click();
+  const tester = page.getByRole("listitem").filter({ hasText: address });
+  await expect(tester).toContainText(t.pending);
+  await tester.locator("summary").click();
+  await tester.getByRole("button", { name: t.revoke, exact: true }).click();
+  await expect(tester).toContainText(t.revoked);
+  expect((await page.request.get("/installation/apk")).status()).toBe(403);
   // L'export comptable n'est demandé qu'au clic, et part en téléchargement.
   const exports: string[] = [];
   page.on("request", (request) => {
