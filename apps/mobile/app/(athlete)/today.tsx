@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { celebrationFromResponse, programItems as programOf } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
-import { capitalize, formatDateLong, m } from "@tartan/i18n";
+import { dailyMantra, capitalize, formatDateLong, m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -32,7 +32,7 @@ const nextLine = (card: AthleteSessionCard) =>
     .join(" · ");
 
 export default function Today() {
-  const { orgId, space: active } = useActiveSpace();
+  const { orgId, space: active, me } = useActiveSpace();
   // L'athlète autonome, dans son espace personnel : il planifie lui-même, sans coach ni groupe à qui répondre.
   const self = personalAthleteOf(active);
   const personal = Boolean(self);
@@ -136,6 +136,9 @@ export default function Today() {
       {today.isError && !view ? <ErrorState error={today.error} onRetry={() => void today.refetch()} /> : null}
       {view ? (
         <>
+          {me.data?.preferences?.homeTone !== "off" && (
+            <T tone="muted">{dailyMantra(me.data?.preferences?.homeTone)}</T>
+          )}
           {/* Un jour sans séance, l'accueil de l'athlète ouvre l'écran ; un jour de séance, il passe dessous. */}
           <AthleteWelcome orgId={orgId} sessionToday={view.today.length > 0} placement="top" />
           <WeekStrip week={view.week} today={date} />

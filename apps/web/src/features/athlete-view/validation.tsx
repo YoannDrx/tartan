@@ -2,6 +2,7 @@
 
 import { markInstallOpportunity } from "@/features/shell/install-opportunity";
 
+import { encouragement, type EncouragementTone } from "@tartan/i18n";
 import { celebrationFromResponse } from "@tartan/domain";
 import { ConfirmedRecords } from "../progression/confirmed-records";
 import type { AthleteSessionDetail, PainInput, StrengthRecordValue } from "@tartan/contracts";
@@ -51,12 +52,14 @@ export const QuickValidate = ({
   session,
   organizationId,
   healthConsent,
+  tone,
   sets = [],
   onDark,
 }: {
   session: Pick<AthleteSessionDetail, "id" | "variant" | "durationMin" | "sessionVersion" | "logVersion" | "log">;
   organizationId: string;
   healthConsent: boolean;
+  tone?: EncouragementTone;
   sets?: { itemRef: string; setIndex: number; done: boolean }[];
   onDark?: boolean;
 }) => {
@@ -170,7 +173,12 @@ export const QuickValidate = ({
         open={details}
         onOpenChange={closeDetails}
         title={status === "partial" ? m.today.validatedPartial : m.today.validated}
-        description={m.validation.detailsLead}
+        description={[
+          tone && status && encouragement(tone, status === "partial" ? "partial" : "done", session.id),
+          m.validation.detailsLead,
+        ]
+          .filter(Boolean)
+          .join(" ")}
       >
         <div className="flex flex-col gap-4">
           {status === "partial" ? (

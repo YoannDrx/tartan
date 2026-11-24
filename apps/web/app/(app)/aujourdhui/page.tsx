@@ -1,3 +1,4 @@
+import { dailyMantra } from "@tartan/i18n";
 import { Play, SquarePen } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -261,6 +262,7 @@ export default async function AujourdhuiPage() {
           ) : undefined
         }
       />
+      {me.preferences?.homeTone !== "off" && <p className="text-soft">{dailyMantra(me.preferences?.homeTone)}</p>}
       {data.parentalConsentPending ? (
         <p className="on-card rounded-card bg-card p-3 text-st-partial">{m.parental.pendingBanner}</p>
       ) : null}
