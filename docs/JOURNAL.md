@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, Planifier pour soi depuis le club
+
+Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
+
 Modèle :
 
 ```text

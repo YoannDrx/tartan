@@ -75,6 +75,7 @@ function PlannerLoader({
       : [];
   return (
     <NativePlanner
+      personal={Boolean(self)}
       orgId={orgId}
       context={context}
       initial={initial}
