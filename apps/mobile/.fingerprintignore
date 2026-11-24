@@ -1,0 +1,8 @@
+# L'empreinte native doit être la même en local et sur EAS : sinon le build Android échoue, et les mises à jour à
+# distance ne trouvent plus leur binaire.
+# Le fichier Firebase d'Android est un secret de type fichier posé par EAS hors du projet : il ne change pas
+# l'interface native.
+../../../eas-environment-secrets/**
+# Dossiers natifs générés à chaque build (pas de dossier natif dans le dépôt).
+android/**
+ios/**

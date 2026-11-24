@@ -161,7 +161,7 @@ Détail : [commercialisation](plans/commercialisation.md).
 
 ## Ce qui revient au fondateur
 
-1. **TestFlight.** Installer la bêta sur ton iPhone (build 14), puis rejouer une séance d'athlète, notification comprise.
+1. **TestFlight.** Le build iOS 15 (1.1.0, 24 novembre : parité mobile, athlète autonome, textes d'autorisation et icônes du logo) est fait sur EAS mais pas envoyé : l'envoi demande une clé API App Store Connect, qu'EAS ne crée qu'en mode interactif. Lance `cd apps/mobile && APP_VARIANT=production npx eas-cli submit --platform ios --profile beta --id 4d504351-199c-4e88-8f04-4e34d1217912`, puis installe la bêta sur ton iPhone et rejoue une séance d'athlète, notification comprise. Le build Android 5 (`.aab`) est prêt sur EAS, en attente du compte Google Play.
 2. **Bêtas.** Les textes sont prêts dans [betas](reference/betas.md). Il te reste à saisir le compte de revue, à soumettre la bêta à Apple et à créer le compte Play après le D-U-N-S. Ces étapes reprennent après la web app.
 3. **Sentry.** Créer un jeton Sentry (portée `project:releases`) et le poser sur EAS (`eas env:create --name SENTRY_AUTH_TOKEN --visibility secret`). L'agent retirera ensuite `SENTRY_DISABLE_AUTO_UPLOAD`.
 4. **OpenAI.** Poser un plafond de dépense mensuel sur le projet : 70 € pendant la refonte du planificateur.
