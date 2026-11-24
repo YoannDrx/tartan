@@ -79,6 +79,10 @@ Le plan du 15 novembre s'arrête au lot 4 :
 
 Le fondateur a ouvert l'application au public le 23 novembre 2026 ; la page d'accueil ne parle plus ni de pilote ni de bêta.
 
+## Édition stade du 25 novembre
+
+60 fiches supplémentaires sont préparées pour la relecture dans la console des exercices. Les 173 fiches diffusées restent disponibles. Chaque nouvelle fiche indique les appuis, le matériel, le comptage et une variante. La diffusion aux athlètes attend les visuels et la relecture technique.
+
 ## Décisions du fondateur en vigueur
 
 | Date | Décision |

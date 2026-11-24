@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, édition stade en relecture
+
+Les 60 nouvelles fiches disposent de clés de catalogue stables dans `exercise-catalog/stadium.ts`. La console des exercices permet de relire leurs textes. Les tests vérifient les 233 clés et noms distincts, les contrats et les statuts de relecture. Les visuels et la validation par le fondateur sont à faire avant la diffusion de cette édition.
+
 Modèle :
 
 ```text
