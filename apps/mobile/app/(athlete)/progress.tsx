@@ -10,6 +10,7 @@ import { space } from "../../src/ui/theme";
 import { ShareRecord } from "../../src/features/share-record";
 import { NativeCalendarPhases } from "../../src/features/training-phases";
 import { localIsoDate } from "../../src/lib/dates";
+import { personalAthleteOf } from "../../src/lib/personal-space";
 
 const markLabel = (mark: number, unit: string) => {
   if (unit === "cm") return `${formatHeight(mark)} m`;
@@ -26,6 +27,8 @@ export default function Progress() {
   const today = localIsoDate();
   const file = useAthleteFile(orgId);
   const empty = file.data && file.data.performances.length === 0 && file.data.tests.length === 0;
+  // L'athlète autonome note lui-même ses tests de force et ses performances, sur sa seule fiche.
+  const self = personalAthleteOf(active);
   return (
     <TabScreen
       world="work"
@@ -33,6 +36,21 @@ export default function Progress() {
       refreshing={file.isRefetching}
       onRefresh={() => void file.refetch()}
     >
+      {self ? (
+        <>
+          <Button
+            testID="progress-add-test"
+            label={m.mobile.solo.progress.addTest}
+            onPress={() => router.push(`/athlete-strength/${self}`)}
+          />
+          <Button
+            testID="progress-add-performance"
+            label={m.mobile.solo.progress.addPerformance}
+            variant="secondary"
+            onPress={() => router.push(`/athlete-performances/${self}`)}
+          />
+        </>
+      ) : null}
       {file.isPending ? <LoadingState /> : null}
       {file.isError && !file.data ? <ErrorState error={file.error} onRetry={() => void file.refetch()} /> : null}
       {active?.progressionEnabled ? (
@@ -49,7 +67,7 @@ export default function Progress() {
         </>
       ) : null}
       <NativeCalendarPhases from={today} to={addDays(today, 83)} />
-      {empty ? <EmptyState body={m.mobile.progress.empty} /> : null}
+      {empty ? <EmptyState body={self ? m.mobile.solo.progress.empty : m.mobile.progress.empty} /> : null}
       {file.data && file.data.performances.length > 0 ? (
         <View style={{ gap: space.sm }}>
           <SectionTitle>{m.performances.title}</SectionTitle>

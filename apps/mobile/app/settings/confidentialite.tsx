@@ -1,17 +1,18 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@tartan/api-client";
 import { m } from "@tartan/i18n";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { Alert, View } from "react-native";
+import { HistorySharesSettings } from "../../src/features/history-share";
 import { LinkRow, ToggleRow } from "../../src/features/settings-rows";
 import { api } from "../../src/lib/api";
 import { config } from "../../src/lib/config";
 import { shareMyData } from "../../src/lib/export-data";
 import { legalLinks } from "../../src/lib/legal-links";
-import { useActiveSpace } from "../../src/lib/queries";
+import { hasPersonalSpace } from "../../src/lib/personal-space";
+import { useActiveSpace, useToday } from "../../src/lib/queries";
 import { useSession } from "../../src/lib/session-store";
-import { useSpaceStore } from "../../src/lib/space-store";
 import { Button, Divider, Field, ListSurface, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { Sheet } from "../../src/ui/sheet";
@@ -20,24 +21,26 @@ import { space } from "../../src/ui/theme";
 
 const t = m.account.settings;
 
-// Rubrique Confidentialité : mes accords (athlète), mes données, les documents, puis la suppression du compte.
+// Rubrique Confidentialité : mes accords dans l'espace ouvert (athlète), le partage de mon historique personnel, mes
+// données, les documents, puis la suppression du compte. Les accords sont ceux de la fiche de cet espace : un athlète
+// qui a aussi son espace personnel a deux fiches, et chacune garde les siens (plus de `consent_scope_required`).
 export default function PrivacySettings() {
-  const { me } = useActiveSpace();
+  const { me, space: active, orgId } = useActiveSpace();
   const client = useQueryClient();
   const expire = useSession((s) => s.expire);
-  const activeSpaceId = useSpaceStore((s) => s.activeOrgId);
-  const hasAthleteSpace = me.data?.spaces.some((s) => s.role === "athlete") ?? false;
-  const consents = useQuery({ queryKey: ["consents"], queryFn: api.consents, enabled: hasAthleteSpace });
+  const athleteHere = active?.role === "athlete";
+  // Les accords de la fiche de cet espace, tels que les lit sa journée.
+  const consents = useToday(athleteHere ? orgId : "");
   const [deleting, setDeleting] = useState(false);
   const [confirmWord, setConfirmWord] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const setConsent = useMutation({
     mutationFn: ({ kind, granted }: { kind: "health" | "video"; granted: boolean }) =>
-      activeSpaceId ? api.setSpaceConsent(activeSpaceId, kind, granted) : api.setConsent(kind, granted),
-    onSuccess: (data) => {
-      client.setQueryData(["consents"], data);
-      void client.invalidateQueries({ queryKey: ["today"] });
+      api.setSpaceConsent(orgId, kind, granted),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ["today", orgId] });
+      void client.invalidateQueries({ queryKey: ["consents"] });
     },
   });
 
@@ -81,7 +84,7 @@ export default function PrivacySettings() {
 
   return (
     <StackScreen title={title}>
-      {hasAthleteSpace ? (
+      {athleteHere ? (
         <View style={{ gap: space.sm }}>
           <SectionTitle>{m.settings.privacy}</SectionTitle>
           {consents.isPending ? <LoadingState inline /> : null}
@@ -92,7 +95,7 @@ export default function PrivacySettings() {
                 testID="consent-health"
                 title={m.settings.healthConsent}
                 detail={m.settings.healthConsentDetail}
-                value={consents.data.health}
+                value={consents.data.healthConsent}
                 disabled={setConsent.isPending}
                 onChange={(v) => toggleConsent("health", v)}
               />
@@ -101,7 +104,7 @@ export default function PrivacySettings() {
                 testID="consent-video"
                 title={m.settings.videoConsent}
                 detail={m.settings.videoConsentDetail}
-                value={consents.data.video}
+                value={consents.data.videoConsent}
                 disabled={setConsent.isPending}
                 onChange={(v) => toggleConsent("video", v)}
               />
@@ -114,6 +117,9 @@ export default function PrivacySettings() {
           ) : null}
         </View>
       ) : null}
+
+      {/* Les partages de son historique personnel avec un coach : visibles d'où qu'il soit, retirés d'un geste. */}
+      {hasPersonalSpace(me.data) ? <HistorySharesSettings /> : null}
 
       <View style={{ gap: space.sm }}>
         <SectionTitle>{t.dataTitle}</SectionTitle>

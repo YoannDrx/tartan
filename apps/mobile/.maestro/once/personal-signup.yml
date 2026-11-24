@@ -1,0 +1,166 @@
+# Athlète autonome, lot AA3 : de l'inscription à sa première séance planifiée et validée, sur l'app native.
+# Le compte (`SOLO_EMAIL`) est créé par la CI, adresse confirmée et date de naissance connue, sans aucun espace.
+# À usage unique : il ouvre l'espace personnel du compte. Hors du lot habituel (`maestro test .maestro` ne lit pas ce
+# dossier) ; la CI le lance seul, puis vérifie en base l'espace personnel, la séance publiée et sa validation.
+#   maestro test -e APP_ID=coach.tartan.app.dev -e SOLO_EMAIL=… -e PASSWORD=… .maestro/once/personal-signup.yml
+appId: ${APP_ID}
+env:
+  EMAIL: ${SOLO_EMAIL}
+---
+- runFlow: ../flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: welcome-title
+    timeout: 30000
+# L'aiguillage : « Je m'entraîne seul ». Les choix sont des boutons entiers : on les vise par leur identifiant.
+- tapOn:
+    id: welcome-solo
+- extendedWaitUntil:
+    visible:
+      id: solo-title
+    timeout: 15000
+# À vos marques : prénom et nom ; la date de naissance est déjà connue du compte.
+- tapOn:
+    id: solo-first-name
+- eraseText: 40
+- inputText: "Solène"
+- pressKey: Enter
+- tapOn:
+    id: solo-last-name
+- eraseText: 40
+- inputText: "Autonome"
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      id: solo-next
+    timeout: 10000
+- tapOn:
+    id: solo-next
+- extendedWaitUntil:
+    visible:
+      id: solo-step
+      text: "Étape 2 sur 3.*"
+    timeout: 10000
+# Prêts : disciplines et objectifs, facultatifs.
+- scrollUntilVisible:
+    element:
+      id: solo-next
+    timeout: 10000
+- tapOn:
+    id: solo-next
+- extendedWaitUntil:
+    visible:
+      id: solo-step
+      text: "Étape 3 sur 3.*"
+    timeout: 10000
+# Partez : les conditions, l'accord santé (facultatif) ; pas de vidéo. Aucun prix : les quotas se disent par mois.
+- tapOn:
+    id: solo-terms
+- scrollUntilVisible:
+    element:
+      id: solo-health
+    timeout: 10000
+- tapOn:
+    id: solo-health
+# Le bouton est au bas de l'écran : il ne peut pas venir au centre.
+- scrollUntilVisible:
+    element:
+      id: solo-create
+    timeout: 15000
+- assertVisible: "Chaque mois : 5 propositions.*"
+- assertNotVisible: ".*€.*"
+- takeScreenshot: personal-signup-terms
+- tapOn:
+    id: solo-create
+# Les notifications se demandent par un bouton, jamais à l'ouverture ; « Plus tard » mène à la journée.
+- extendedWaitUntil:
+    visible:
+      id: push-later
+    timeout: 30000
+- tapOn:
+    id: push-later
+- extendedWaitUntil:
+    visible:
+      id: today-plan-session
+    timeout: 30000
+# Son espace : « Planifier » dans la barre, pas d'annonces.
+- assertVisible:
+    id: tab-plan
+- assertNotVisible: "Annonces"
+# Ses premiers pas, sous la journée, jamais par-dessus.
+- scrollUntilVisible:
+    element:
+      id: personal-step-plan-go
+    centerElement: true
+    timeout: 15000
+- takeScreenshot: personal-today-empty
+# Planifier une séance pour aujourd'hui : le constructeur, sans choix de destinataires.
+- scrollUntilVisible:
+    element:
+      id: today-plan-session
+    direction: UP
+    timeout: 10000
+- tapOn:
+    id: today-plan-session
+- extendedWaitUntil:
+    visible:
+      id: builder-title
+    timeout: 30000
+- assertNotVisible: "Pour qui ?"
+# Partir d'une séance de départ : elle porte son titre et ses exercices.
+- scrollUntilVisible:
+    element:
+      text: "Partir d'un modèle"
+    centerElement: true
+    timeout: 20000
+- tapOn: "Partir d'un modèle"
+- extendedWaitUntil:
+    visible: "Force bas du corps"
+    timeout: 15000
+- tapOn: "Force bas du corps"
+- tapOn: "Appliquer"
+- scrollUntilVisible:
+    element:
+      id: builder-review
+    timeout: 30000
+- waitForAnimationToEnd
+- tapOn:
+    id: builder-review
+- extendedWaitUntil:
+    visible: "Relire avant publication"
+    timeout: 10000
+- assertVisible: "La séance t'attendra dans ta journée.*"
+- tapOn:
+    id: builder-confirm
+- extendedWaitUntil:
+    notVisible:
+      id: builder-confirm
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: builder-message
+    timeout: 20000
+- assertVisible:
+    id: builder-message
+    text: "Publiée : elle t'attend dans ta journée\\."
+- takeScreenshot: personal-builder-published
+# Retour à la journée : la séance publiée est là, validée d'un geste.
+- tapOn:
+    id: screen-back
+- extendedWaitUntil:
+    visible:
+      id: session-hero
+    timeout: 30000
+- assertNotVisible: "envoyée par.*"
+- tapOn:
+    id: validate-done
+- extendedWaitUntil:
+    visible:
+      id: validation-finish
+    timeout: 15000
+- assertVisible: "Une note pour toi"
+- tapOn:
+    id: validation-finish
+- assertNotVisible:
+    id: validate-done
+- takeScreenshot: personal-validated

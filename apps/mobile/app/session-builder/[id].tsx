@@ -10,6 +10,7 @@ import { useState } from "react";
 import { NativeSessionBuilder } from "../../src/features/builder/editor";
 import { api } from "../../src/lib/api";
 import { localIsoDate } from "../../src/lib/dates";
+import { canPlanIn, personalAthleteOf } from "../../src/lib/personal-space";
 import { useActiveSpace } from "../../src/lib/queries";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
@@ -20,12 +21,14 @@ const BuilderLoader = ({
   id,
   date,
   groupId,
+  self,
 }: {
   orgId: string;
   userId: string;
   id: string;
   date?: string;
   groupId?: string;
+  self: string | null;
 }) => {
   const online = useIsOnline();
   const storageKey = builderDraftKey(userId, orgId, id);
@@ -78,6 +81,7 @@ const BuilderLoader = ({
       context={data.data.context}
       date={date ?? localIsoDate()}
       groupId={data.data.context.groups.some((g) => g.id === groupId) ? groupId : undefined}
+      self={self}
       onReload={() => setRevision((r) => r + 1)}
     />
   );
@@ -92,7 +96,8 @@ export default function SessionBuilderScreen() {
         <LoadingState />
       </StackScreen>
     );
-  if (!orgId || !space || space.role === "athlete") return <Redirect href="/" />;
+  // L'équipe d'un espace de coach, ou le titulaire d'un espace personnel, qui planifie pour lui seul.
+  if (!orgId || !space || !canPlanIn(space)) return <Redirect href="/" />;
   return (
     <BuilderLoader
       key={`${me.data.id}:${orgId}:${id}`}
@@ -101,6 +106,7 @@ export default function SessionBuilderScreen() {
       id={id}
       date={date}
       groupId={groupId}
+      self={personalAthleteOf(space)}
     />
   );
 }

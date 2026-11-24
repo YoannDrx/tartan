@@ -1,0 +1,64 @@
+# Athlète autonome, lot AA3 : un compte sans espace (`NOSPACE_EMAIL`, créé par la CI) arrive sur l'aiguillage, voit
+# les choix que la console laisse ouverts, et n'est jamais dans une impasse : il se déconnecte, puis ouvre les réglages
+# de suppression de son compte (exigence d'Apple), sans rien supprimer. Rejouable : rien n'est écrit.
+appId: ${APP_ID}
+env:
+  EMAIL: ${NOSPACE_EMAIL}
+---
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: welcome-title
+    timeout: 30000
+# Les trois chemins de même rang (la CI ouvre les deux inscriptions) ; le lien d'invitation est toujours là.
+- assertVisible:
+    id: welcome-coach
+- assertVisible:
+    id: welcome-solo
+- assertVisible:
+    id: welcome-invite
+- scrollUntilVisible:
+    element:
+      id: welcome-email
+    timeout: 15000
+- assertVisible:
+    id: welcome-email
+    text: ${NOSPACE_EMAIL}
+# Se déconnecter ramène à la connexion.
+- scrollUntilVisible:
+    element:
+      id: welcome-sign-out
+    timeout: 15000
+- tapOn:
+    id: welcome-sign-out
+- extendedWaitUntil:
+    visible:
+      id: sign-in-email
+    timeout: 20000
+# De retour : la suppression du compte se trouve d'un geste, dans Réglages, Confidentialité.
+- runFlow: flows/_sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: welcome-title
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: welcome-delete
+    timeout: 15000
+- tapOn:
+    id: welcome-delete
+- scrollUntilVisible:
+    element:
+      id: delete-account
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: delete-account
+- extendedWaitUntil:
+    visible:
+      id: delete-confirm-word
+    timeout: 10000
+- assertVisible: "Écris SUPPRIMER pour confirmer"
+- assertVisible:
+    id: delete-confirm
+- takeScreenshot: no-space-delete

@@ -4,6 +4,8 @@ import { m } from "@tartan/i18n";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Pressable, type TextInput, View } from "react-native";
 import type { api } from "../lib/api";
+import { isPersonalSpace } from "../lib/personal-space";
+import { useActiveSpace } from "../lib/queries";
 import {
   PLANNER_DURATIONS,
   PLANNER_LEVELS,
@@ -83,10 +85,12 @@ export function NativePlannerRequest({
     `${a.firstName} ${a.lastName}`.toLocaleLowerCase("fr").includes(athleteSearch.trim().toLocaleLowerCase("fr")),
   );
   const frozen = disabled || dictation.busy;
+  // Espace personnel : la séance est pour son titulaire, déjà choisi ; aucun choix de destinataires.
+  const personal = isPersonalSpace(useActiveSpace().space);
 
   return (
     <View style={{ gap: space.xl }}>
-      <View style={{ gap: space.sm }}>
+      <View style={{ gap: space.sm, display: personal ? "none" : "flex" }}>
         <SectionTitle>{t.who}</SectionTitle>
         <T variant="small" tone="muted">
           {t.whoHint}

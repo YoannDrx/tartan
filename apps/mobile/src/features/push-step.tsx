@@ -33,13 +33,14 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
 };
 
 // Après l'acceptation : pourquoi les notifications, puis arrivée sur Aujourd'hui.
-export const PushStep = ({ coach, onDone }: { coach: boolean; onDone: () => void }) => {
+// `solo` : l'athlète autonome, qui n'attend pas encore de séance d'un coach.
+export const PushStep = ({ coach, solo, onDone }: { coach: boolean; solo?: boolean; onDone: () => void }) => {
   const [denied, setDenied] = useState(false);
   const [busy, setBusy] = useState(false);
   return (
     <Shell>
       <ScreenTitle title={coach ? m.mobile.push.coachTitle : m.push.permissionTitle} />
-      <T>{coach ? m.mobile.push.coachBody : m.push.permissionBody}</T>
+      <T>{coach ? m.mobile.push.coachBody : solo ? m.mobile.solo.pushBody : m.push.permissionBody}</T>
       {denied ? (
         <T variant="small" accessibilityLiveRegion="polite">
           {m.mobile.push.denied}

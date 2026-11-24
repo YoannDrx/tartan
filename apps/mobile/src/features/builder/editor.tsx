@@ -52,7 +52,19 @@ import { NativeSequenceEditor } from "./sequence-editor";
 type Context = Awaited<ReturnType<typeof api.sessionBuilder>>;
 type Item = SessionDraft["blocks"][number]["items"][number];
 type Editing = NonNullable<BuilderDraft["prescription"]>;
+// `self` : la fiche du titulaire d'un espace personnel. Sa séance est toujours pour lui, sans autre destinataire ; le
+// serveur l'impose de toute façon (`forPersonalSpace`).
 export const initialForm = (
+  initial: SessionEditResponse | null,
+  date: string,
+  groupId?: string,
+  self?: string | null,
+): SaveScheduledSessionInput => {
+  const form = initialFormOf(initial, date, groupId);
+  return self ? { ...form, assignments: [{ targetType: "athlete", targetId: self }] } : form;
+};
+
+const initialFormOf = (
   initial: SessionEditResponse | null,
   date: string,
   groupId?: string,
@@ -100,6 +112,7 @@ export const NativeSessionBuilder = ({
   context: serverContext,
   date,
   groupId,
+  self = null,
   onReload,
 }: {
   orgId: string;
@@ -110,6 +123,8 @@ export const NativeSessionBuilder = ({
   context: Context;
   date: string;
   groupId?: string;
+  // Espace personnel : la fiche du titulaire. Aucun choix de destinataires ni d'ajustement par athlète.
+  self?: string | null;
   onReload: (id?: string) => void;
 }) => {
   // Les fiches créées depuis le sélecteur rejoignent la bibliothèque de la séance, et sa copie locale.
@@ -122,7 +137,7 @@ export const NativeSessionBuilder = ({
     [serverContext, createdExercises],
   );
   const lists = useExerciseLists(orgId);
-  const [form, setForm] = useState(() => initialForm(initial, date, groupId));
+  const [form, setForm] = useState(() => initialForm(initial, date, groupId, self));
   const phaseGroups = form.assignments.filter((a) => a.targetType === "group").map((a) => a.targetId);
   const phaseAthletes = form.assignments.filter((a) => a.targetType === "athlete").map((a) => a.targetId);
   const planningKey = phasePlanningKey(form.date, phaseGroups, phaseAthletes);
@@ -364,8 +379,8 @@ export const NativeSessionBuilder = ({
     const value = target.autonomous
       ? item.autonomous?.prescription
       : target.athleteId
-        ? (form.overrides.find((o) => o.athleteId === target.athleteId && o.itemRef === target.itemRef)
-            ?.prescription ?? item.prescription)
+        ? (form.overrides.find((o) => o.athleteId === target.athleteId && o.itemRef === target.itemRef)?.prescription ??
+          item.prescription)
         : item.prescription;
     if (!value) return;
     setEditing({ ...target, fields: prescriptionFields(value) });
@@ -477,7 +492,7 @@ export const NativeSessionBuilder = ({
             ? publishedAt
               ? m.builder.updated
               : // Qui reçoit vraiment la séance, d'après le serveur (audit G10).
-                publishedMessage(result.recipients)
+                publishedMessage(result.recipients, Boolean(self))
             : m.nativeBuilder.saved,
         );
       for (const key of [
@@ -488,6 +503,10 @@ export const NativeSessionBuilder = ({
         "session-edit",
         "exercise-history",
         "exercise-history-context",
+        // L'athlète autonome retrouve sa séance publiée dans sa journée et son agenda.
+        "today",
+        "athlete-calendar",
+        "onboarding",
       ])
         void client.invalidateQueries({ queryKey: [key, orgId] });
     } catch (failure) {
@@ -776,35 +795,40 @@ export const NativeSessionBuilder = ({
             />
           ))}
         </View>
-        <T variant="title2" heading>
-          {m.builder.audience}
-        </T>
-        {context.groups.map((g) => (
-          <Chip
-            key={g.id}
-            label={`${g.name} · ${g.athleteCount}`}
-            active={form.assignments.some((a) => a.targetType === "group" && a.targetId === g.id)}
-            onPress={() => toggleAudience("group", g.id)}
-          />
-        ))}
-        <Field label={m.builder.pickAthletes} value={athleteSearch} onChangeText={setAthleteSearch} />
-        {context.athletes
-          .filter(
-            (a) =>
-              (athleteSearch &&
-                `${a.firstName} ${a.lastName}`
-                  .toLocaleLowerCase("fr")
-                  .includes(athleteSearch.toLocaleLowerCase("fr"))) ||
-              form.assignments.some((t) => t.targetType === "athlete" && t.targetId === a.id),
-          )
-          .map((a) => (
-            <Chip
-              key={a.id}
-              label={`${a.firstName} ${a.lastName}`}
-              active={form.assignments.some((t) => t.targetType === "athlete" && t.targetId === a.id)}
-              onPress={() => toggleAudience("athlete", a.id)}
-            />
-          ))}
+        {/* Espace personnel : la séance est pour son titulaire, aucun choix de destinataires. */}
+        {self ? null : (
+          <>
+            <T variant="title2" heading>
+              {m.builder.audience}
+            </T>
+            {context.groups.map((g) => (
+              <Chip
+                key={g.id}
+                label={`${g.name} · ${g.athleteCount}`}
+                active={form.assignments.some((a) => a.targetType === "group" && a.targetId === g.id)}
+                onPress={() => toggleAudience("group", g.id)}
+              />
+            ))}
+            <Field label={m.builder.pickAthletes} value={athleteSearch} onChangeText={setAthleteSearch} />
+            {context.athletes
+              .filter(
+                (a) =>
+                  (athleteSearch &&
+                    `${a.firstName} ${a.lastName}`
+                      .toLocaleLowerCase("fr")
+                      .includes(athleteSearch.toLocaleLowerCase("fr"))) ||
+                  form.assignments.some((t) => t.targetType === "athlete" && t.targetId === a.id),
+              )
+              .map((a) => (
+                <Chip
+                  key={a.id}
+                  label={`${a.firstName} ${a.lastName}`}
+                  active={form.assignments.some((t) => t.targetType === "athlete" && t.targetId === a.id)}
+                  onPress={() => toggleAudience("athlete", a.id)}
+                />
+              ))}
+          </>
+        )}
         <Button
           variant="secondary"
           label={m.builder.useTemplate}
@@ -869,10 +893,14 @@ export const NativeSessionBuilder = ({
                   blocks(form.draft.blocks.map((current) => (current.ref === block.ref ? next : current)))
                 }
                 onEdit={(itemRef) => openPrescription({ itemRef })}
-                onAdjust={(itemRef) => {
-                  setAthleteSearch("");
-                  setAdjusting(itemRef);
-                }}
+                onAdjust={
+                  self
+                    ? undefined
+                    : (itemRef) => {
+                        setAthleteSearch("");
+                        setAdjusting(itemRef);
+                      }
+                }
                 onMove={setMoving}
                 canMove={form.draft.blocks.length > 1}
                 onEditAutonomous={(itemRef) => openPrescription({ itemRef, autonomous: true })}
@@ -1219,13 +1247,21 @@ export const NativeSessionBuilder = ({
             />
           }
         >
-          <T>{publishedAt ? m.nativeBuilder.updateConfirm : m.nativeBuilder.publishConfirm}</T>
+          <T>
+            {self
+              ? publishedAt
+                ? m.mobile.solo.updateConfirm
+                : m.mobile.solo.publishConfirm
+              : publishedAt
+                ? m.nativeBuilder.updateConfirm
+                : m.nativeBuilder.publishConfirm}
+          </T>
           {error ? (
             <T tone="danger" accessibilityRole="alert">
               {error}
             </T>
           ) : null}
-          <BuilderSummary form={form} duration={duration} context={context} />
+          <BuilderSummary form={form} duration={duration} context={context} personal={Boolean(self)} />
         </Sheet>
       ) : null}
     </StackScreen>

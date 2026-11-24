@@ -6,6 +6,7 @@ import { View } from "react-native";
 import { LinkRow } from "../../src/features/settings-rows";
 import { config } from "../../src/lib/config";
 import { legalLinks } from "../../src/lib/legal-links";
+import { isPersonalSpace } from "../../src/lib/personal-space";
 import { useActiveSpace } from "../../src/lib/queries";
 import { Divider, ListSurface, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
@@ -20,12 +21,12 @@ export default function HelpSettings() {
   const links = legalLinks(config.webUrl);
   return (
     <StackScreen title={t.rubrics.aide.title}>
-      {active && isStaff(active.role) ? (
+      {active && (isStaff(active.role) || isPersonalSpace(active)) ? (
         <ListSurface>
           <LinkRow
             testID="open-first-steps"
             label={t.firstSteps}
-            detail={t.firstStepsDetail}
+            detail={isPersonalSpace(active) ? m.mobile.solo.guide.settingsDetail : t.firstStepsDetail}
             onPress={() => router.push("/premiers-pas")}
           />
         </ListSurface>

@@ -14,7 +14,7 @@ import { TrackLap } from "../ui/track-lap";
 const f = m.account.firstSteps;
 
 // Le numéro de couloir d'une étape, en Barlow Condensed, sur une pastille.
-const Lane = ({ n, done, next }: { n: number; done: boolean; next: boolean }) => {
+export const Lane = ({ n, done, next }: { n: number; done: boolean; next: boolean }) => {
   const p = usePalette();
   return (
     <View

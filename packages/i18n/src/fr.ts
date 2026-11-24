@@ -4547,6 +4547,161 @@ export const fr = {
       failed: "Ton commentaire n'est pas parti. Vérifie ta connexion et réessaie.",
       empty: "Écris ton commentaire avant de l'envoyer.",
     },
+    // L'aiguillage d'un compte sans espace dans l'app native : les choix que la console laisse ouverts, puis le compte.
+    welcome: {
+      title: "Bienvenue sur Tartan",
+      lead: "Dis-nous comment tu t'entraînes : on prépare ce qu'il te faut.",
+      choicesLabel: "Comment utilises-tu Tartan ?",
+      coach: {
+        title: "Je suis coach",
+        detail: "Je prépare les séances d'un groupe, je suis ce qui a été fait et j'analyse les gestes.",
+      },
+      solo: {
+        title: "Je m'entraîne seul",
+        detail: "Je planifie et je valide mes propres séances. Je pourrai rejoindre un coach plus tard.",
+      },
+      invite: {
+        title: "J'ai un lien d'invitation",
+        detail: "Mon coach m'a envoyé un lien pour rejoindre son groupe.",
+      },
+      choice: (lane: number, title: string, detail: string) => `${lane}. ${title}. ${detail}`,
+      optionsError: "Les choix n'ont pas pu se charger. Vérifie ta connexion.",
+      account: {
+        title: "Ton compte",
+        signedInAs: "Connecté avec",
+        settings: "Réglages du compte",
+        delete: "Supprimer mon compte",
+        deleteHint:
+          "Tu n'as encore rejoint aucun espace : seul ton compte est supprimé. La suppression se confirme dans Réglages, Confidentialité.",
+      },
+      back: "Revenir aux choix",
+    },
+    // L'athlète qui s'entraîne seul, dans l'app native. Aucun prix : les quotas se disent par mois.
+    solo: {
+      title: "Ton espace d'entraînement",
+      lead: "Sans coach : tu planifies et tu valides tes propres séances.",
+      steps: { start: "À vos marques", ready: "Prêts", go: "Partez" },
+      stepStatus: (step: number, total: number, name: string) => `Étape ${step} sur ${total} : ${name}`,
+      profileTitle: "Toi",
+      trainingTitle: "Ton entraînement",
+      trainingHint: "Facultatif : tes disciplines et tes objectifs aident le planificateur à te proposer des séances.",
+      termsTitle: "Les conditions",
+      termsLead:
+        "Ton espace n'est visible que par toi. Si tu rejoins un coach un jour, tu choisiras ce que tu partages avec lui.",
+      terms: "J'accepte les conditions d'utilisation et la politique de confidentialité.",
+      health: "Noter mon effort ressenti et mes douleurs",
+      healthWhy:
+        "Sert à noter ton effort ressenti et une douleur après la séance. Personne d'autre ne le voit dans ton espace.",
+      video: "Filmer et revoir mes gestes",
+      videoWhy: "Sert à filmer et revoir tes gestes. Tes vidéos restent dans ton espace.",
+      optional: "Ces deux accords sont facultatifs : tu pourras changer d'avis dans les réglages.",
+      quotas: "Chaque mois : 5 propositions du planificateur, 10 minutes de dictée et 4 vidéos.",
+      create: "Ouvrir mon espace",
+      closed:
+        "Tartan n'ouvre pas encore d'espace personnel aux athlètes. Si ton coach t'a envoyé un lien, ouvre-le pour rejoindre son groupe.",
+      // Le sélecteur d'espace et les réglages : l'espace personnel n'a pas de rôle à dire.
+      spaceKind: "Espace personnel",
+      plan: "Planifier",
+      planSession: "Planifier une séance",
+      todayEmpty:
+        "Rien de prévu aujourd'hui. Planifie ta prochaine séance : un modèle, une page vierge ou le planificateur.",
+      published: "Publiée : elle t'attend dans ta journée.",
+      publishConfirm:
+        "La séance t'attendra dans ta journée, à sa date. Les prescriptions en pourcentage partent de tes références.",
+      updateConfirm:
+        "Cette séance est déjà publiée. Enregistrer met à jour ta séance ; ce que tu as déjà fait est conservé.",
+      pushBody:
+        "Active-les pour ne rien manquer le jour où tu rejoindras un coach : ses séances et ses réponses arrivent ici. Tu peux les couper à tout moment.",
+      comment: "Une note pour toi",
+      progress: {
+        addTest: "Noter un test de force",
+        addPerformance: "Noter une performance",
+        empty: "Tes records et tes tests apparaîtront ici dès que tu les auras notés.",
+      },
+      guide: {
+        title: "Pour démarrer",
+        lap: (done: number, total: number) => `${done} ${done > 1 ? "étapes faites" : "étape faite"} sur ${total}`,
+        next: "Prochaine étape",
+        done: "Fait",
+        todo: "À faire",
+        stepState: (title: string, state: string) => `${title} : ${state}`,
+        dismiss: "Refermer",
+        dismissLabel: "Refermer la carte des premiers pas",
+        closed: "Carte refermée. Tu la retrouves dans Réglages, Aide, Premiers pas.",
+        steps: {
+          plan: {
+            title: "Planifier une séance",
+            body: "Pars d'un modèle, d'une page vierge, ou décris-la au planificateur.",
+            action: "Planifier",
+          },
+          validate: {
+            title: "Valider ta séance",
+            body: "Une fois faite, valide-la d'un geste : ta régularité et tes progrès en partent.",
+            action: "Voir ma journée",
+          },
+          measure: {
+            title: "Noter une référence de force",
+            body: "Un test de force sert de référence aux charges de tes séances.",
+            action: "Noter un test",
+          },
+          install: {
+            title: "Activer les notifications",
+            body: "Ta séance te rappelle à toi le jour venu, même si tu n'ouvres pas l'app.",
+            action: "Notifications",
+          },
+        },
+        celebrationTitle: "Premiers pas faits",
+        celebrationBody: "Tu planifies, tu valides, tu mesures : ton entraînement est en place.",
+        celebrationAction: "Continuer",
+        pageLead: "Ton espace d'entraînement, pas à pas. Tout reste à toi : personne d'autre ne le voit.",
+        settingsDetail: "Tes étapes pour démarrer, et la carte à remettre sur ta journée.",
+        reopen: "Remettre la carte sur ta journée",
+        reopened: "La carte est revenue sur ta journée.",
+      },
+      // Après l'arrivée dans le groupe d'un coach : partager, par cases, ce qu'il a fait seul. Jamais la santé.
+      share: {
+        title: (coach: string) => `Partager mon historique avec ${coach}`,
+        lead: "Tu gardes ton espace personnel. Tu peux montrer à ton coach ce que tu y as fait : il le lira sur ta fiche, sans pouvoir le modifier, tant que tu le partages.",
+        scopesLabel: "Ce que je partage",
+        scopes: {
+          records: "Mes records",
+          strength: "Mes références de force",
+          sessions: "L'historique de mes séances",
+        },
+        scopeDetail: {
+          records: "Tes performances et records notés dans ton espace.",
+          strength: "Tes tests de force, qui servent de référence aux charges.",
+          sessions: "La date, le titre et l'état de chaque séance validée. Sans effort ressenti ni commentaire.",
+        },
+        health: "Tes données de santé (effort ressenti, douleurs, blessures) ne sont jamais partagées.",
+        revocable: "Tu pourras retirer ce partage à tout moment dans Réglages, Confidentialité.",
+        submit: "Partager",
+        skip: "Pas maintenant",
+        pickOne: "Coche au moins une case, ou choisis « Pas maintenant ».",
+        failed: "Le partage n'est pas parti. Vérifie ta connexion et réessaie.",
+        // Réglages, Confidentialité.
+        settingsTitle: "Historique partagé",
+        settingsEmpty: "Tu ne partages ton historique personnel avec aucun coach.",
+        settingsSince: (date: string) => `Partagé depuis le ${date}`,
+        revoke: "Arrêter le partage",
+        revokeLabel: (space: string) => `Arrêter le partage avec ${space}`,
+        revokeTitle: (space: string) => `Arrêter le partage avec ${space} ?`,
+        revokeDetail:
+          "Ton coach ne verra plus ton historique personnel, dès maintenant. Ton espace personnel ne change pas.",
+        revoked: "Partage arrêté.",
+        revokeFailed: "Le partage n'a pas été arrêté. Vérifie ta connexion et réessaie.",
+        // Sur la fiche de l'athlète, côté coach.
+        coachTitle: "Historique personnel partagé",
+        coachScopes: { records: "Records", strength: "Références de force", sessions: "Historique des séances" },
+        coachLead: (date: string) =>
+          `Ce que l'athlète a fait seul, dans son espace personnel. Lecture seule, partagé le ${date} ; il peut le retirer à tout moment.`,
+        coachEmpty: "Rien à montrer dans cette partie pour l'instant.",
+        status: { done: "Faite", partial: "En partie", missed: "Manquée", skipped: "Pas faite" } as Record<
+          string,
+          string
+        >,
+      },
+    },
   },
 } as const;
 

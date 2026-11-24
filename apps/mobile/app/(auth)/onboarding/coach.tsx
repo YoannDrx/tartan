@@ -6,28 +6,28 @@ import { Redirect, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BirthDateField, toIsoBirthDate, type BirthParts } from "../../src/features/birth-date-field";
-import { TrainingProfileFields } from "../../src/features/training-profile-fields";
-import { InviteLinkSheet } from "../../src/features/invite-link-sheet";
-import { PushStep } from "../../src/features/push-step";
-import { api } from "../../src/lib/api";
-import { errorMessage } from "../../src/lib/errors";
-import { currentReferral, usePendingReferral } from "../../src/lib/pending-referral";
-import { useMe } from "../../src/lib/queries";
-import { queryClient } from "../../src/lib/query-client";
-import { useSession } from "../../src/lib/session-store";
-import { useSpaceStore } from "../../src/lib/space-store";
-import { Button, Card, Chip, Field, LaneLine, ScreenTitle, T } from "../../src/ui/primitives";
-import { useSceneStatusBar } from "../../src/ui/screen";
-import { LoadingState } from "../../src/ui/states";
-import { scene, space, usePagePad } from "../../src/ui/theme";
+import { BirthDateField, toIsoBirthDate, type BirthParts } from "../../../src/features/birth-date-field";
+import { TrainingProfileFields } from "../../../src/features/training-profile-fields";
+import { ConsentRow, LegalLinks } from "../../../src/features/consent-row";
+import { PushStep } from "../../../src/features/push-step";
+import { api } from "../../../src/lib/api";
+import { errorMessage } from "../../../src/lib/errors";
+import { currentReferral, usePendingReferral } from "../../../src/lib/pending-referral";
+import { useMe } from "../../../src/lib/queries";
+import { queryClient } from "../../../src/lib/query-client";
+import { useSession } from "../../../src/lib/session-store";
+import { useSpaceStore } from "../../../src/lib/space-store";
+import { Button, Card, Chip, Field, LaneLine, ScreenTitle, T } from "../../../src/ui/primitives";
+import { useSceneStatusBar } from "../../../src/ui/screen";
+import { LoadingState } from "../../../src/ui/states";
+import { scene, space, usePagePad } from "../../../src/ui/theme";
 
-type Errors = Partial<Record<"firstName" | "lastName" | "birthDate" | "orgName" | "groupName", string>>;
+type Errors = Partial<Record<"firstName" | "lastName" | "birthDate" | "orgName" | "groupName" | "terms", string>>;
 
-export default function Onboarding() {
+// « Je suis coach », depuis l'aiguillage : le profil, puis l'espace, son premier groupe et les conditions.
+export default function CoachOnboarding() {
   useSceneStatusBar();
   const status = useSession((s) => s.status);
-  const signOut = useSession((s) => s.signOut);
   const me = useMe(status === "signed-in");
   const setActive = useSpaceStore((s) => s.setActive);
   const router = useRouter();
@@ -47,7 +47,7 @@ export default function Onboarding() {
     trainingObjectives: [],
     availableEquipment: [],
   });
-  const [pasting, setPasting] = useState(false);
+  const [terms, setTerms] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -67,6 +67,8 @@ export default function Onboarding() {
         firstGroupGoal: groupGoal.trim(),
         referralCode: currentReferral(),
         birthDate: toIsoBirthDate(birth) ?? undefined,
+        // Les conditions acceptées à l'écran sont enregistrées avec l'espace, comme sur le web.
+        termsAccepted: true,
       });
     },
     onSuccess: async (result) => {
@@ -97,6 +99,7 @@ export default function Onboarding() {
     const next: Errors = {};
     if (!orgName.trim()) next.orgName = m.mobile.forms.orgNameRequired;
     if (!groupName.trim()) next.groupName = m.mobile.forms.groupNameRequired;
+    if (!terms) next.terms = m.invite.termsRequired;
     setErrors(next);
     setFormError(null);
     if (Object.keys(next).length) return;
@@ -161,20 +164,11 @@ export default function Onboarding() {
               )}
               <Button label={m.mobile.onboarding.next} onPress={nextStep} />
             </Card>
-            <T variant="small">{m.onboarding.joinHint}</T>
             <Button
-              testID="invite-link-open"
-              label={m.mobile.inviteLink.open}
+              label={m.mobile.welcome.back}
               variant="secondary"
               compact
-              onPress={() => setPasting(true)}
-            />
-            <Button
-              label={m.common.signOut}
-              variant="ghost"
-              compact
-              onPress={() => void signOut()}
-              style={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
+              onPress={() => router.replace("/onboarding")}
             />
           </>
         ) : (
@@ -225,18 +219,37 @@ export default function Onboarding() {
                 onChange={setTrainingProfile}
                 disabled={create.isPending}
               />
+              <ConsentRow
+                testID="coach-terms"
+                label={m.invite.consentTerms}
+                value={terms}
+                onChange={(value) => {
+                  setTerms(value);
+                  setErrors((current) => ({ ...current, terms: undefined }));
+                }}
+              />
+              {errors.terms ? (
+                <T variant="caption" tone="danger" accessibilityLiveRegion="polite">
+                  {errors.terms}
+                </T>
+              ) : null}
+              <LegalLinks />
               {formError ? (
                 <T variant="small" tone="danger" accessibilityLiveRegion="assertive">
                   {formError}
                 </T>
               ) : null}
-              <Button label={m.onboarding.createSpace} loading={create.isPending} onPress={submit} />
+              <Button
+                testID="coach-create"
+                label={m.onboarding.createSpace}
+                loading={create.isPending}
+                onPress={submit}
+              />
             </Card>
             <Button label={m.mobile.onboarding.back} variant="secondary" compact onPress={() => setStep("profile")} />
           </>
         )}
       </ScrollView>
-      {pasting ? <InviteLinkSheet onClose={() => setPasting(false)} /> : null}
     </KeyboardAvoidingView>
   );
 }

@@ -3,6 +3,7 @@ import { capitalize, formatDayMonth, m, strengthTestLabel } from "@tartan/i18n";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
+import { SharedHistorySection } from "../../src/features/history-share";
 import { BarSheetRow, VideoRow } from "../../src/features/video-bits";
 import {
   useActiveSpace,
@@ -405,6 +406,9 @@ export default function AthleteFile() {
           </ListSurface>
         </Section>
       </>
+
+      {/* Ce qu'il a fait seul, dans son espace personnel, s'il le partage : lecture seule. */}
+      <SharedHistorySection orgId={orgId} athleteId={id} />
 
       {videos.data && videos.data.length > 0 ? (
         <Section title={m.mobile.athletePage.videos(videos.data.length)}>

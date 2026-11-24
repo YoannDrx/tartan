@@ -8,8 +8,9 @@ import { Alert, View } from "react-native";
 import { api } from "../../src/lib/api";
 import { localIsoDate } from "../../src/lib/dates";
 import { errorMessage } from "../../src/lib/errors";
+import { personalAthleteOf } from "../../src/lib/personal-space";
 import { useActiveSpace, useCoachAthleteFile, useExercises } from "../../src/lib/queries";
-import { buildStrengthTest, buildWorkingReference } from "../../src/lib/strength-form";
+import { buildStrengthTest, buildWorkingReference, strengthTestBody } from "../../src/lib/strength-form";
 import { Button, Card, Field, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
@@ -53,6 +54,8 @@ const StrengthPanel = ({
       await Promise.all([
         client.invalidateQueries({ queryKey: ["exercise-strength", orgId, athleteId, exercise.id] }),
         client.invalidateQueries({ queryKey: ["coach-athlete", orgId, athleteId] }),
+        client.invalidateQueries({ queryKey: ["athlete-file", orgId] }),
+        client.invalidateQueries({ queryKey: ["onboarding", orgId] }),
       ]);
     },
     onError: (error) => setMessage(errorMessage(error)),
@@ -156,7 +159,7 @@ const StrengthPanel = ({
                 return;
               }
               setMessage("");
-              write.mutate({ kind: "test", body: parsed.data });
+              write.mutate({ kind: "test", body: strengthTestBody(parsed.data) });
             }}
           />
         </View>
@@ -293,7 +296,9 @@ export default function AthleteStrength() {
         <LoadingState />
       </StackScreen>
     );
-  if (!active?.progressionEnabled || (active.role !== "owner" && active.role !== "coach"))
+  // Le coach d'un espace, ou l'athlète autonome pour sa seule fiche (`recordPerformance`, portée « self »).
+  const allowed = active?.role === "owner" || active?.role === "coach" || personalAthleteOf(active) === id;
+  if (!active?.progressionEnabled || !allowed)
     return (
       <StackScreen title={m.strength.manage}>
         <T>{active?.progressionEnabled ? m.common.forbidden : m.progression.disabled}</T>

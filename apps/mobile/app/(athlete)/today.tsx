@@ -8,11 +8,13 @@ import { Pressable, View } from "react-native";
 import { AthleteAfterSession, AthleteWelcome } from "../../src/features/athlete-onboarding";
 import { CommentsSection } from "../../src/features/comments";
 import { ExerciseRow, parseMedia } from "../../src/features/media";
+import { PersonalFirstSteps } from "../../src/features/personal-first-steps";
 import { Regularity } from "../../src/features/regularity";
 import { AttendanceLink, AttendanceRow, SessionHero } from "../../src/features/session-hero";
 import { recordValidation, ValidationSheet, type ValidationTarget } from "../../src/features/validation-sheet";
 import { WeekStrip } from "../../src/features/week-strip";
 import { localIsoDate } from "../../src/lib/dates";
+import { personalAthleteOf } from "../../src/lib/personal-space";
 import { useActiveSpace, usePrefetchUpcomingSessions, useSessionDetail, useToday } from "../../src/lib/queries";
 import { submitAttendance, useOpQueue } from "../../src/lib/sync/op-queue";
 import { applyPendingToCard, applyPendingToToday, pendingLogFor } from "../../src/lib/sync/queue-core";
@@ -30,7 +32,10 @@ const nextLine = (card: AthleteSessionCard) =>
     .join(" · ");
 
 export default function Today() {
-  const { orgId } = useActiveSpace();
+  const { orgId, space: active } = useActiveSpace();
+  // L'athlète autonome, dans son espace personnel : il planifie lui-même, sans coach ni groupe à qui répondre.
+  const self = personalAthleteOf(active);
+  const personal = Boolean(self);
   const today = useToday(orgId);
   const client = useQueryClient();
   usePrefetchUpcomingSessions(orgId);
@@ -91,10 +96,13 @@ export default function Today() {
       target: targetOf(card),
     });
 
-  const view = useMemo(
-    () => (today.data ? applyPendingToToday(today.data, items, date) : null),
-    [today.data, items, date],
-  );
+  const view = useMemo(() => {
+    const merged = today.data ? applyPendingToToday(today.data, items, date) : null;
+    // Dans son espace personnel, la séance vient de lui : aucune mention « envoyée par ».
+    return merged && personal
+      ? { ...merged, today: merged.today.map((card) => ({ ...card, coachName: null })) }
+      : merged;
+  }, [today.data, items, date, personal]);
   const main = view?.today.find((c) => c.status === "upcoming" || c.status === "missed") ?? view?.today[0] ?? null;
   const others = view?.today.filter((c) => c.id !== main?.id) ?? [];
   const programCard = main ?? view?.next ?? null;
@@ -140,6 +148,8 @@ export default function Today() {
               onEdit={() => edit(main)}
               onStart={() => router.push(`/session/${main.id}`)}
             />
+          ) : personal ? (
+            <EmptyState body={m.mobile.solo.todayEmpty} />
           ) : (
             <EmptyState
               body={view.next ? m.mobile.today.restDay : m.today.noneYet}
@@ -147,7 +157,17 @@ export default function Today() {
             />
           )}
 
-          {main && main.status === "upcoming" ? (
+          {!main && personal ? (
+            <Button
+              testID="today-plan-session"
+              label={m.mobile.solo.planSession}
+              onPress={() =>
+                router.push({ pathname: "/session-builder/[id]", params: { id: "new", date: localIsoDate() } })
+              }
+            />
+          ) : null}
+
+          {main && main.status === "upcoming" && !personal ? (
             <AttendanceLink
               card={main}
               onAnswer={(status) => void submitAttendance(orgId, main.id, status)}
@@ -168,9 +188,11 @@ export default function Today() {
           ))}
 
           <AthleteWelcome orgId={orgId} sessionToday={view.today.length > 0} placement="after" />
+          {/* Ses premiers pas, après la séance du jour : jamais devant elle, jamais par-dessus. */}
+          {self ? <PersonalFirstSteps orgId={orgId} athleteId={self} /> : null}
           <AthleteAfterSession orgId={orgId} />
 
-          {main?.coachNote ? (
+          {main?.coachNote && !personal ? (
             <Card>
               <View style={{ gap: space.xs + 2 }}>
                 <SectionTitle>{m.today.coachWord}</SectionTitle>
@@ -196,11 +218,15 @@ export default function Today() {
                   {`${m.today.next} : ${nextLine(view.next)}`}
                 </T>
               </View>
-              <AttendanceRow
-                card={applyPendingToCard(view.next, items)}
-                onAnswer={(status) => void submitAttendance(orgId, (view.next as AthleteSessionCard).id, status)}
-                onReason={(reason) => void submitAttendance(orgId, (view.next as AthleteSessionCard).id, "absent", reason)}
-              />
+              {personal ? null : (
+                <AttendanceRow
+                  card={applyPendingToCard(view.next, items)}
+                  onAnswer={(status) => void submitAttendance(orgId, (view.next as AthleteSessionCard).id, status)}
+                  onReason={(reason) =>
+                    void submitAttendance(orgId, (view.next as AthleteSessionCard).id, "absent", reason)
+                  }
+                />
+              )}
             </Card>
           ) : null}
 
@@ -249,20 +275,25 @@ export default function Today() {
                         hasVideo={Boolean(parseMedia(item.media))}
                         accessibilityHint={m.today.start}
                         onPress={() =>
-                          router.push({ pathname: "/session/[id]", params: { id: programCard.id, i: String(item.step) } })
+                          router.push({
+                            pathname: "/session/[id]",
+                            params: { id: programCard.id, i: String(item.step) },
+                          })
                         }
                       />
                     </View>
                   ))}
                 </ListSurface>
               ) : null}
-              <Button
-                label={m.mobile.today.commentsOpen}
-                icon={MessageSquare}
-                variant="secondary"
-                compact
-                onPress={() => setCommentsOpen(true)}
-              />
+              {personal ? null : (
+                <Button
+                  label={m.mobile.today.commentsOpen}
+                  icon={MessageSquare}
+                  variant="secondary"
+                  compact
+                  onPress={() => setCommentsOpen(true)}
+                />
+              )}
             </View>
           ) : null}
 
@@ -298,6 +329,7 @@ export default function Today() {
           celebration={sheet.celebration}
           existing={sheetDetail.data.log}
           healthConsent={view?.healthConsent ?? false}
+          personal={personal}
           onClose={() => setSheet(null)}
         />
       ) : null}

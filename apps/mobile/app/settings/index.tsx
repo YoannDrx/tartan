@@ -6,6 +6,7 @@ import { config } from "../../src/lib/config";
 import { useActiveSpace } from "../../src/lib/queries";
 import { useSession } from "../../src/lib/session-store";
 import { rubricHref, settingsGroups, type SettingsRubric } from "../../src/lib/settings-rubrics";
+import { spaceCaption } from "../../src/lib/personal-space";
 import { homeFor, useSpaceStore } from "../../src/lib/space-store";
 import { useOpQueue } from "../../src/lib/sync/op-queue";
 import { useOwnUploads } from "../../src/lib/upload/upload-queue";
@@ -134,7 +135,7 @@ export default function Settings() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityState={{ selected: s.organizationId === active?.organizationId }}
-                  accessibilityLabel={`${s.organizationName}, ${m.roles[s.role]}`}
+                  accessibilityLabel={`${s.organizationName}, ${spaceCaption(s)}`}
                   onPress={() => {
                     setActive(s.organizationId);
                     router.replace(homeFor(s) ?? "/");
@@ -150,7 +151,7 @@ export default function Settings() {
                   <View style={{ flex: 1 }}>
                     <T variant="smallStrong">{s.organizationName}</T>
                     <T variant="caption" tone="muted">
-                      {m.roles[s.role]}
+                      {spaceCaption(s)}
                     </T>
                   </View>
                   {s.organizationId === active?.organizationId ? (
