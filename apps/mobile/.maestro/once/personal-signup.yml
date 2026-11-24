@@ -122,7 +122,6 @@ env:
 - scrollUntilVisible:
     element:
       id: builder-review
-    centerElement: true
     timeout: 30000
 - waitForAnimationToEnd
 - tapOn:
@@ -140,7 +139,6 @@ env:
 - scrollUntilVisible:
     element:
       id: builder-message
-    centerElement: true
     timeout: 20000
 - assertVisible:
     id: builder-message

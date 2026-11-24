@@ -75,7 +75,9 @@ env:
       id: history-shares
     centerElement: true
     timeout: 20000
-- assertVisible: ${output.organizationName}
+# La ligne se lit d'un bloc (nom, périmètre, date) : on vise le bouton de retrait propre à cet espace.
+- assertVisible:
+    id: history-share-revoke-${output.organizationId}
 - tapOn:
     id: history-share-revoke-${output.organizationId}
 # La confirmation du système : son titre nomme l'espace, son bouton retire le partage.
