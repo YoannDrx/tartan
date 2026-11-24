@@ -18,7 +18,11 @@ var owned = me.spaces.filter(function (space) {
 if (!owned) throw new Error("espace du coach de démonstration requis");
 var groups = json(http.get(base + "/api/v1/orgs/" + owned.organizationId + "/groups", auth).body);
 if (!groups.length) throw new Error("un groupe requis pour la recette");
-var link = http.post(base + "/api/v1/orgs/" + owned.organizationId + "/groups/" + groups[0].id + "/link", auth);
+// Un POST déclaré en JSON porte un corps, même vide.
+var link = http.post(base + "/api/v1/orgs/" + owned.organizationId + "/groups/" + groups[0].id + "/link", {
+  headers: auth.headers,
+  body: "{}",
+});
 if (!link.ok) throw new Error("lien du groupe refusé : " + link.status);
 var token = json(link.body).link.split("/i/")[1];
 output.organizationId = owned.organizationId;

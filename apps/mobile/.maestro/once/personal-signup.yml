@@ -65,11 +65,11 @@ env:
     timeout: 10000
 - tapOn:
     id: solo-health
+# Le bouton est au bas de l'écran : il ne peut pas venir au centre.
 - scrollUntilVisible:
     element:
       id: solo-create
-    centerElement: true
-    timeout: 10000
+    timeout: 15000
 - assertVisible: "Chaque mois : 5 propositions.*"
 - assertNotVisible: ".*€.*"
 - takeScreenshot: personal-signup-terms

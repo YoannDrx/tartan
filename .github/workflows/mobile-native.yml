@@ -381,6 +381,8 @@ jobs:
             ${{ runner.temp }}/maestro-destructive.xml
             ${{ runner.temp }}/maestro
             ${{ runner.temp }}/maestro-retry-*
+            ${{ runner.temp }}/maestro-personal-signup*
+            ${{ runner.temp }}/maestro-history-share*
             ${{ runner.temp }}/web.log
             ${{ runner.temp }}/app.log
             ~/.maestro/tests
