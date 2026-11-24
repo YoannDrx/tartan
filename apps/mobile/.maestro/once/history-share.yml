@@ -25,14 +25,12 @@ env:
 - scrollUntilVisible:
     element:
       id: consent-terms
-    centerElement: true
     timeout: 15000
 - tapOn:
     id: consent-terms
 - scrollUntilVisible:
     element:
       id: invite-accept
-    centerElement: true
     timeout: 15000
 - tapOn:
     id: invite-accept
@@ -49,7 +47,6 @@ env:
 - scrollUntilVisible:
     element:
       id: history-share-submit
-    centerElement: true
     timeout: 10000
 - takeScreenshot: history-share-step
 - tapOn:

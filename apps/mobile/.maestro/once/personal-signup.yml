@@ -33,7 +33,6 @@ env:
 - scrollUntilVisible:
     element:
       id: solo-next
-    centerElement: true
     timeout: 10000
 - tapOn:
     id: solo-next
@@ -46,7 +45,6 @@ env:
 - scrollUntilVisible:
     element:
       id: solo-next
-    centerElement: true
     timeout: 10000
 - tapOn:
     id: solo-next
@@ -61,7 +59,6 @@ env:
 - scrollUntilVisible:
     element:
       id: solo-health
-    centerElement: true
     timeout: 10000
 - tapOn:
     id: solo-health

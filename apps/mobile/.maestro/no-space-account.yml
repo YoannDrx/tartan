@@ -20,7 +20,6 @@ env:
 - scrollUntilVisible:
     element:
       id: welcome-email
-    centerElement: true
     timeout: 15000
 - assertVisible:
     id: welcome-email
@@ -29,7 +28,6 @@ env:
 - scrollUntilVisible:
     element:
       id: welcome-sign-out
-    centerElement: true
     timeout: 15000
 - tapOn:
     id: welcome-sign-out
@@ -46,7 +44,6 @@ env:
 - scrollUntilVisible:
     element:
       id: welcome-delete
-    centerElement: true
     timeout: 15000
 - tapOn:
     id: welcome-delete
