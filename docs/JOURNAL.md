@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, relecture du parcours natif d’une fiche
+
+Reprise de la branche des quatre illustrations après le signalement Maestro iOS. Les deux hiérarchies de l’échec montrent la fiche du squat avec « Détail » encore fermé. Le parcours centre le bouton, attend la fin du défilement et retente la pression si la hiérarchie ne change pas. Les deux vérifications du comptage et de la mention de relecture restent dans le parcours.
+
 ## 2026-11-25, Codex, retour en deuxième session
 
 Le test d’accueil coach lançait une deuxième navigation pendant la redirection de connexion, avec deux interruptions observées en CI. Le coach et l’athlète utilisent désormais la destination demandée dès la connexion. Les assertions de l’écran, de la visite guidée et de l’accueil déjà vu sont conservées.
