@@ -50,6 +50,7 @@ const RpeScale = ({ value, onChange }: { value: number | null; onChange: (v: num
 
 // Un toucher sur « Fait » suffit : tout le reste est facultatif (§ 2.4).
 export const QuickValidate = ({
+  personal,
   session,
   organizationId,
   healthConsent,
@@ -58,6 +59,7 @@ export const QuickValidate = ({
   onDark,
 }: {
   session: Pick<AthleteSessionDetail, "id" | "variant" | "durationMin" | "sessionVersion" | "logVersion" | "log">;
+  personal: boolean;
   organizationId: string;
   healthConsent: boolean;
   tone?: EncouragementTone;
@@ -218,6 +220,7 @@ export const QuickValidate = ({
               <p className="t-caption font-normal text-soft">{m.sessionVoice.offline}</p>
             ) : healthConsent ? (
               <SessionDebrief
+                personal={personal}
                 organizationId={organizationId}
                 sessionId={session.id}
                 initial={Boolean(session.log?.hasVoiceDebrief)}

@@ -81,18 +81,22 @@ export const recordJoinConsents = async (
 };
 
 // Retrait de l'accord santé : les données disparaissent aussitôt, dans une seule transaction.
-const eraseHealthData = async (athleteId: string, organizationId: string, actorId: string): Promise<void> => {
-  await prisma.$transaction(async (tx) => {
-    await tx.sessionLog.updateMany({ where: { athleteId }, data: { rpe: null, pain: Prisma.DbNull } });
-    await tx.sessionVoiceDebrief.deleteMany({ where: { log: { athleteId } } });
-    await tx.injury.deleteMany({ where: { athleteId } });
-    await tx.wellnessCheckin.deleteMany({ where: { athleteId } });
-    await tx.notification.deleteMany({
-      where: { type: "pain_alert", payload: { path: ["link"], equals: `/athletes/${athleteId}` } },
-    });
-    await tx.auditLog.create({
-      data: { organizationId, actorId, action: "health_erased", entity: "athlete", entityId: athleteId },
-    });
+const eraseHealthData = async (
+  tx: Prisma.TransactionClient,
+  athleteId: string,
+  organizationId: string,
+  actorId: string,
+): Promise<void> => {
+  await tx.sessionLog.updateMany({ where: { athleteId }, data: { rpe: null, pain: Prisma.DbNull } });
+  await tx.sessionThreadMessage.deleteMany({ where: { athleteId, itemRef: null } });
+  await tx.sessionVoiceDebrief.deleteMany({ where: { log: { athleteId } } });
+  await tx.injury.deleteMany({ where: { athleteId } });
+  await tx.wellnessCheckin.deleteMany({ where: { athleteId } });
+  await tx.notification.deleteMany({
+    where: { type: "pain_alert", payload: { path: ["link"], equals: `/athletes/${athleteId}` } },
+  });
+  await tx.auditLog.create({
+    data: { organizationId, actorId, action: "health_erased", entity: "athlete", entityId: athleteId },
   });
 };
 
@@ -102,31 +106,39 @@ const applyAthleteConsent = async (
   kind: "health" | "video",
   granted: boolean,
 ): Promise<void> => {
-  const now = new Date();
-  const previous = await prisma.athleteConsent.findUnique({
-    where: { athleteId_kind: { athleteId: athlete.id, kind } },
-    select: { grantedAt: true, revokedAt: true },
+  await prisma.$transaction(async (tx) => {
+    // Sérialiser retrait et nouvel accord, y compris avant la création de la première ligne de consentement.
+    await tx.$queryRaw`SELECT id FROM athletes WHERE id = ${athlete.id}::uuid FOR NO KEY UPDATE`;
+    const now = new Date();
+    const previous = await tx.athleteConsent.findUnique({
+      where: { athleteId_kind: { athleteId: athlete.id, kind } },
+      select: { grantedAt: true, revokedAt: true },
+    });
+    const wasGranted = Boolean(previous?.grantedAt && !previous.revokedAt);
+    await tx.athleteConsent.upsert({
+      where: { athleteId_kind: { athleteId: athlete.id, kind } },
+      create: {
+        athleteId: athlete.id,
+        kind,
+        version: CONSENT_VERSION,
+        grantedAt: granted ? now : null,
+        revokedAt: granted ? null : now,
+      },
+      update: { version: CONSENT_VERSION, grantedAt: granted ? now : undefined, revokedAt: granted ? null : now },
+    });
+    await audit(
+      {
+        organizationId: athlete.organizationId,
+        actorId: userId,
+        action: granted ? "consent_granted" : "consent_revoked",
+        entity: `consent_${kind}`,
+        entityId: athlete.id,
+      },
+      tx,
+    );
+    if (!granted && wasGranted && kind === "health")
+      await eraseHealthData(tx, athlete.id, athlete.organizationId, userId);
   });
-  const wasGranted = Boolean(previous?.grantedAt && !previous.revokedAt);
-  await prisma.athleteConsent.upsert({
-    where: { athleteId_kind: { athleteId: athlete.id, kind } },
-    create: {
-      athleteId: athlete.id,
-      kind,
-      version: CONSENT_VERSION,
-      grantedAt: granted ? now : null,
-      revokedAt: granted ? null : now,
-    },
-    update: { version: CONSENT_VERSION, grantedAt: granted ? now : undefined, revokedAt: granted ? null : now },
-  });
-  await audit({
-    organizationId: athlete.organizationId,
-    actorId: userId,
-    action: granted ? "consent_granted" : "consent_revoked",
-    entity: `consent_${kind}`,
-    entityId: athlete.id,
-  });
-  if (!granted && wasGranted && kind === "health") await eraseHealthData(athlete.id, athlete.organizationId, userId);
 };
 
 const fichesOf = (userId: string) =>

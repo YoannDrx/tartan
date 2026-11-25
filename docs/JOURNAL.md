@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## Codex, fils d’exercice et de débrief · 25 novembre 2026
+
+Les routes du fil conservent une discussion par athlète et par exercice effectif, ou par débrief après validation de la séance. Les réponses textuelles et audio supportent la répétition d’un envoi. Le retrait du consentement santé efface les échanges du débrief. Le fournisseur de transcription reçoit un seul vocal sur accord explicite de son auteur. La version et un verrou temporaire évitent les traitements concurrents. La matrice HTTP, les tests de concurrence et un essai du prestataire réel avec une voix de synthèse passent. Le parcours d’échange entre deux comptes passe dans le navigateur, sur un iPhone simulé et sur un émulateur Android.
+
 ## Codex, consignes et fin de séance · 25 novembre 2026
 
 Les deux nouvelles mesures sont facultatives dans la prescription JSON, y compris pour les anciens brouillons. Le texte des notifications utilise la date de la séance et tient compte d’un envoi différé. L’audio reste dans des tables privées de la migration additive `20261125161000_session_voice`. Les consignes sont rattachées à la séance ou au modèle. Le débrief est lié à une validation terminée et au consentement santé de l’athlète.

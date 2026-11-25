@@ -36,3 +36,4 @@ export * from "./avatar";
 export * from "./onboarding";
 
 export * from "./personal-space";
+export * from "./session-thread";

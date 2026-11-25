@@ -1,37 +1,11 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { record, listen } from "./session-voice-recording";
+import { expect, test } from "@playwright/test";
 import { m } from "@tartan/i18n";
 import { addFromLibrary, createCoachSpace, expectAccessible, expectNoHorizontalScroll } from "./helpers";
 import { groupLink, joinAsAthlete, today } from "./journeys";
 
 const voice = m.sessionVoice;
 test.use({ launchOptions: { args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] } });
-
-async function record(page: Page, section: Locator) {
-  // Attendre le premier fragment du vrai MediaRecorder, y compris sur un navigateur lent.
-  await page.evaluate(() => {
-    const original = MediaRecorder.prototype.start;
-    MediaRecorder.prototype.start = function (...args) {
-      document.documentElement.removeAttribute("data-audio-captured");
-      this.addEventListener("dataavailable", (event) => {
-        if (event.data.size) document.documentElement.setAttribute("data-audio-captured", "");
-      });
-      MediaRecorder.prototype.start = original;
-      return original.apply(this, args);
-    };
-  });
-  await section.getByRole("button", { name: voice.record, exact: true }).click();
-  await expect(section.getByText(voice.recording)).toBeVisible();
-  await expect(page.locator("html")).toHaveAttribute("data-audio-captured", "");
-  await section.getByRole("button", { name: voice.stop, exact: true }).click();
-  await expect(section.getByLabel(voice.preview)).toBeVisible();
-}
-
-async function listen(player: Locator) {
-  await player.evaluate(async (audio: HTMLAudioElement) => {
-    await audio.play();
-  });
-  await expect.poll(() => player.evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeGreaterThan(0);
-}
 
 test("le coach dicte la consigne de l’exercice et écoute le débrief envoyé après la séance", async ({
   page,
@@ -66,7 +40,12 @@ test("le coach dicte la consigne de l’exercice et écoute le débrief envoyé 
     expect(id).toBeTruthy();
     await athlete.page.goto(`/seance/${id}`);
     await expect(athlete.page.getByText(/8 foulées · 4,5 pieds entre deux plots/)).toBeVisible();
-    await listen(athlete.page.getByLabel(voice.instruction, { exact: true }));
+    await listen(athlete.page, voice.instruction);
+    const exchange = athlete.page.getByRole("button", { name: m.sessionThread.exercise, exact: true });
+    await exchange.click();
+    await expect(athlete.page.getByLabel(m.sessionThread.write)).toBeVisible();
+    await expect(athlete.page.getByRole("button", { name: m.sessionThread.transcribe })).toHaveCount(0);
+    await exchange.click();
     await athlete.page.getByRole("button", { name: m.today.quickDone, exact: true }).click();
     const dialog = athlete.page.getByRole("dialog");
     const debrief = dialog.getByRole("group", { name: voice.debrief });
@@ -74,10 +53,14 @@ test("le coach dicte la consigne de l’exercice et écoute le débrief envoyé 
     await expect(dialog.getByRole("button", { name: m.validation.finish, exact: true })).toBeDisabled();
     await debrief.getByRole("button", { name: voice.send }).click();
     await expect(debrief.getByText(voice.sent)).toBeVisible();
+    await dialog.getByRole("button", { name: m.sessionThread.debrief, exact: true }).click();
+    await dialog.getByRole("button", { name: m.sessionThread.transcribe, exact: true }).click();
+    await expect(dialog.getByRole("button", { name: m.sessionThread.authorizeTranscription })).toBeDisabled();
+    await dialog.getByRole("button", { name: m.common.cancel, exact: true }).click();
     await dialog.getByRole("button", { name: m.validation.finish, exact: true }).click();
     await expect(athlete.page).toHaveURL(/\/aujourdhui$/);
     await page.goto(`/seances/${id}/suivi`);
-    await listen(page.getByLabel(voice.debrief, { exact: true }));
+    await listen(page, voice.debrief);
     await expectAccessible(page);
     await expectNoHorizontalScroll(page);
 
@@ -85,7 +68,7 @@ test("le coach dicte la consigne de l’exercice et écoute le débrief envoyé 
     await athlete.page.getByRole("button", { name: voice.remove, exact: true }).click();
     await expect(athlete.page.getByText(voice.removed)).toBeVisible();
     await page.reload();
-    await expect(page.getByLabel(voice.debrief, { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: `${m.sessionThread.play} · ${voice.debrief}` })).toHaveCount(0);
   } finally {
     await athlete.context.close();
   }

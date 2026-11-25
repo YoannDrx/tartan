@@ -107,6 +107,17 @@ export const SessionReturns = ({
                 {a.hasVoiceDebrief ? (
                   <CoachDebrief organizationId={organizationId} sessionId={sessionId} athleteId={a.athleteId} />
                 ) : null}
+                {a.hasAccount ? (
+                  <Button asChild variant="secondary" size="sm" className="mt-2">
+                    <Link
+                      prefetch={false}
+                      href={withSessionReturn(`/seances/${sessionId}/athletes/${a.athleteId}/echanges`, returnTo)}
+                    >
+                      {m.sessionThread.coachThreads}
+                      <span className="sr-only"> · {a.name}</span>
+                    </Link>
+                  </Button>
+                ) : null}
                 {a.comment ? <p className="mt-1 break-words">{a.comment}</p> : null}
                 {!a.hasAccount && a.status !== "done" && canEdit ? (
                   <div className="mt-2">

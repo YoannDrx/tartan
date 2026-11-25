@@ -1,5 +1,6 @@
-import { ApiError, createApiClient } from "@tartan/api-client";
+import { ApiError, createApiClient, sessionThreadPath, type SessionThreadTarget } from "@tartan/api-client";
 import type { ExerciseInput } from "@tartan/contracts";
+import { File } from "expo-file-system";
 import { fetch as expoFetch } from "expo/fetch";
 import { appVersion, nativePlatform } from "./app-version";
 import { authClient } from "./auth-client";
@@ -31,6 +32,27 @@ export const api = createApiClient({
   headers: sessionHeaders,
   fetch: fetchWithSession,
 });
+
+export const sessionThreadAudioUrl = (target: SessionThreadTarget, messageId: string) =>
+  `${config.apiUrl}/api/v1${sessionThreadPath(target, { messageId, action: "audio" })}`;
+
+export async function sendSessionThreadAudio(
+  target: SessionThreadTarget,
+  uri: string,
+  clientId: string,
+  signal: AbortSignal,
+) {
+  const headers = await sessionHeaders();
+  const response = await expoFetch(`${config.apiUrl}/api/v1${sessionThreadPath(target)}`, {
+    method: "POST",
+    credentials: "omit",
+    headers: { ...headers, "Content-Type": "audio/mp4", "Idempotency-Key": clientId },
+    body: new File(uri),
+    signal,
+  });
+  if (response.status === 401) await expireIfCurrent(headers.Cookie ?? "");
+  if (!response.ok) throw new ApiError(response.status, undefined, "voice_upload_failed");
+}
 
 /**
  * Une demande au planificateur en réponse diffusée (`text/event-stream`). Le `fetch` de React Native ne lit pas un

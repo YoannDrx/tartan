@@ -9,6 +9,7 @@ flows:
   - coach-builder-detail.yml
   - coach-planner.yml
   - coach-publication-message.yml
+  - session-thread.yml
   - sync-review.yml
 executionOrder:
   continueOnFailure: true
@@ -21,4 +22,5 @@ executionOrder:
     - coach-builder-detail
     - coach-planner
     - coach-publication-message
+    - session-thread
     - sync-review

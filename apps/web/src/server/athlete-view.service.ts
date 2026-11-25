@@ -1,3 +1,4 @@
+import { effectiveSessionSnapshot } from "./effective-session-snapshot";
 import { loadStrengthRecords } from "./strength-records";
 import { confirmedStrengthImprovements } from "@tartan/domain";
 import { Prisma } from "@/generated/prisma/client";
@@ -384,36 +385,7 @@ const readAthleteSession = async (
   const log = session.logs[0] ?? null;
   const healthConsent = (await consentForAthletes([athleteId])).get(athleteId)?.health ?? false;
   const visiblePain = healthConsent ? painInput.safeParse(log?.pain) : null;
-  // Borne la copie à la version lue : une révision concurrente ne peut pas
-  // associer une prescription plus récente à l'ancien jeton de version.
-  const storedPrescription =
-    !log?.prescriptionSnapshot && session.prescriptionFrozenAt
-      ? (
-          await prisma.sessionPrescription.findFirst({
-            where: {
-              scheduledSessionId: sessionId,
-              athleteId,
-              sessionVersion: { lte: log?.sessionVersion ?? session.version },
-            },
-            orderBy: { sessionVersion: "desc" },
-          })
-        )?.snapshot
-      : undefined;
-  const individualized = Boolean(log?.prescriptionSnapshot || storedPrescription || session.prescriptionFrozenAt);
-  const snapshot = sessionSnapshot.parse(
-    log?.prescriptionSnapshot ??
-      storedPrescription ??
-      (session.prescriptionFrozenAt
-        ? freezePrescription(
-            sessionSnapshot.parse(session.snapshot),
-            [],
-            session.overrides.map((o) => ({
-              itemRef: o.itemRef,
-              prescription: prescriptionSchema.parse(o.prescription),
-            })),
-          )
-        : session.snapshot),
-  );
+  const { snapshot, individualized } = await effectiveSessionSnapshot(prisma, session, athleteId, log);
   const [coaches, motionFamilies, reviewed] = await Promise.all([
     namesFor([session.createdBy]),
     approvedMotionFamilies(),

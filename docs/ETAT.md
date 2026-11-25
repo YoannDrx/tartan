@@ -4,6 +4,10 @@ Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
+## Fils privés autour de la séance · 25 novembre 2026
+
+Le coach et l’athlète peuvent échanger plusieurs réponses écrites ou vocales autour d’un exercice ou du débrief final. Le serveur contrôle le groupe, l’attribution de la séance et la version de l’exercice. La transcription est déclenchée par l’auteur, sur accord explicite, puis consultable par le public du vocal. Une consigne synthétique de trois secondes envoyée au prestataire réel a restitué le placement, les huit foulées et les plots. La recette sur deux téléphones physiques reste ouverte.
+
 ## Séance athlète, vocaux et repères de piste · 25 novembre 2026
 
 Dans le constructeur, foulées et pieds entre les plots complètent les séries et les répétitions. L’athlète retrouve les valeurs dans le programme et le mode séance. Ces écrans distinguent les consignes, le travail et les récupérations. Le coach peut joindre une consigne audio à un exercice. L’athlète peut enregistrer un débrief après validation ; le coach l’écoute dans le suivi. La fin de séance renvoie à l’accueil en ligne. Pour les notifications de séance, les jours relatifs sont calculés à l’heure de Paris, au moment de la livraison et à l’ouverture de l’historique. Les tests de service couvrent notamment la livraison différée et l’accès du coach au débrief de son groupe. L’écoute entre deux téléphones reste à éprouver.

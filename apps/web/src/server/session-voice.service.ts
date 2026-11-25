@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import { m } from "@tartan/i18n";
 import { AppError, consentRequired, forbidden, notFound } from "@/lib/errors";
@@ -14,11 +15,11 @@ import { requireEditableVoiceInstructions } from "./session.service";
 export async function uploadVoiceInstruction(userId: string, orgId: string, request: Request) {
   await requireOrgMember(userId, orgId, "manageSessions");
   await enforceRateLimit(`session-voice/${userId}`, 60, 600);
-  const { bytes, mimeType } = await readVoiceUpload(request);
+  const { bytes, mimeType, durationSeconds } = await readVoiceUpload(request);
   return prisma.$transaction(async (tx) => {
     await requireOrgMember(userId, orgId, "manageSessions", tx);
     return tx.coachVoiceInstruction.create({
-      data: { organizationId: orgId, createdBy: userId, mimeType, bytes },
+      data: { organizationId: orgId, createdBy: userId, mimeType, bytes, durationSeconds },
       select: { id: true },
     });
   });
@@ -85,7 +86,7 @@ async function checkDebriefWrite(
 export async function putVoiceDebrief(userId: string, orgId: string, sessionId: string, request: Request) {
   const log = await checkDebriefWrite(userId, orgId, sessionId);
   await enforceRateLimit(`session-voice/${userId}`, 60, 600);
-  const { mimeType, bytes } = await readVoiceUpload(request);
+  const { mimeType, bytes, durationSeconds } = await readVoiceUpload(request);
   await prisma.$transaction(async (tx) => {
     // Un retrait du consentement ou une correction du statut concurrent doit toujours l’emporter.
     await tx.$queryRaw`SELECT id FROM athlete_consents WHERE athlete_id = ${log.athleteId}::uuid AND kind = 'health' FOR SHARE`;
@@ -93,8 +94,8 @@ export async function putVoiceDebrief(userId: string, orgId: string, sessionId: 
     const current = await checkDebriefWrite(userId, orgId, sessionId, tx);
     await tx.sessionVoiceDebrief.upsert({
       where: { sessionLogId: current.id },
-      create: { sessionLogId: current.id, mimeType, bytes },
-      update: { mimeType, bytes },
+      create: { sessionLogId: current.id, authorId: userId, mimeType, bytes, durationSeconds },
+      update: { authorId: userId, mimeType, bytes, durationSeconds, voiceVersion: randomUUID(), transcript: null },
       select: { sessionLogId: true },
     });
   });

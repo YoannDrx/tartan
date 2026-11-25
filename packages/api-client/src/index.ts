@@ -53,6 +53,7 @@ import {
   type AnnotationInput,
   announcementItem,
   type AnnouncementInput,
+  sessionThreadView,
   athleteSessionDetail,
   athleteToday,
   calendarResponse,
@@ -129,6 +130,19 @@ export type ApiClientOptions = {
   headers?: () => Record<string, string> | Promise<Record<string, string>>;
   fetch?: typeof fetch;
 };
+
+export type SessionThreadTarget = { orgId: string; sessionId: string; athleteId?: string; itemRef?: string };
+
+export function sessionThreadPath(
+  target: SessionThreadTarget,
+  resource?: { messageId: string; action: "audio" | "transcript" },
+) {
+  const query = new URLSearchParams();
+  if (target.itemRef !== undefined) query.set("itemRef", target.itemRef);
+  if (target.athleteId !== undefined) query.set("athleteId", target.athleteId);
+  const suffix = resource ? `/${encodeURIComponent(resource.messageId)}/${resource.action}` : "";
+  return `/orgs/${encodeURIComponent(target.orgId)}/sessions/${encodeURIComponent(target.sessionId)}/thread${suffix}${query.size ? `?${query}` : ""}`;
+}
 
 const okResponse = z.object({ ok: z.literal(true) });
 
@@ -435,6 +449,17 @@ export const createApiClient = (options: ApiClientOptions) => {
     athleteFile: (orgId: string) => request("GET", `/orgs/${orgId}/athlete/file`, z.any()),
     session: (orgId: string, sessionId: string) =>
       request("GET", `/orgs/${orgId}/sessions/${sessionId}/me`, athleteSessionDetail),
+    sessionThread: (target: SessionThreadTarget, signal?: AbortSignal) =>
+      request("GET", sessionThreadPath(target), sessionThreadView, undefined, undefined, signal),
+    replyToSessionThread: (target: SessionThreadTarget, body: { clientId: string; text: string }) =>
+      request("POST", sessionThreadPath(target), z.object({ id: z.uuid() }), body),
+    transcribeSessionMessage: (target: SessionThreadTarget, messageId: string, version: string, consent: true) =>
+      request(
+        "POST",
+        sessionThreadPath(target, { messageId, action: "transcript" }),
+        z.object({ transcript: z.string() }),
+        { version, consent },
+      ),
     logSession: (orgId: string, sessionId: string, body: SessionLogInput) =>
       request("POST", `/orgs/${orgId}/sessions/${sessionId}/log`, sessionLogResult, body),
     athleteSessionForCoach: (orgId: string, sessionId: string, athleteId: string) =>
