@@ -17,6 +17,14 @@ Les mises à jour du premier candidat ont été publiées sur le canal bêta pui
 
 Le 25 novembre à 19 h 23, Apple a traité le build 21 et la fiche de préparation de la version 1.1.0 le sélectionne. Les deux icônes marketing sont disponibles en 1 024 px. Le rendu Apple du nouveau logo clair a été comparé à la source. Le build 20 reste en revue bêta externe. L’IPA 21, l’APK 12 et l’AAB 13 contiennent chacun les 254 illustrations et l’empreinte attendue pour le candidat avant intégration du QR code et du constructeur. Les deux binaires Android ont le même certificat. Chromium a téléchargé les 145 652 799 octets de l’APK 12 depuis un lien individuel de recette avec stockage privé réel, puis a reçu 403 après révocation. Le passage de 10 à 12 conserve le fichier témoin, l’identité et la date de première installation sur émulateur. Les deux parcours complets Maestro Android du candidat avec le correctif de sauvegarde du constructeur sont verts.
 
+## Publication du catalogue en production
+
+Le 25 novembre à 21 h 28, les PR 199, 203 et 204 sont fusionnées et le web sert `4142cec5`. Le domaine de recette stable sert le même commit. La santé de production répond 200, la console privée redirige vers la connexion et l’APK anonyme répond 403. Les 508 images et vignettes servies par la production ont exactement les empreintes des fichiers relus.
+
+La base de production contient 257 fiches communes, dont les 60 nouvelles et les 24 historiques, les 257 validations d’image et les 166 validations de texte et de mouvement. Au premier contrôle, 232 des 233 guides versionnés avaient le statut approuvé. Le swing kettlebell conservait une ancienne consigne de charge, également présente sur le goblet squat déjà approuvé. Le correctif reconnaît ces deux anciennes fiches et leurs décisions éditoriales.
+
+La livraison intégrée passe 7 308 tests unitaires et d’intégration et 262 parcours Playwright en 47,7 minutes. Les 86 cas ignorés dépendent de la plateforme ou de la configuration. Les 26 parcours dédiés du planificateur et Maestro sur Android et iOS passent également. La publication groupée du canal bêta a réussi pour les deux plateformes. Chaque manifeste servi par Expo référence les 254 images distinctes et le contenu JavaScript téléchargé possède l’empreinte annoncée. Les binaires correspondant à ces empreintes sont l’IPA 24, l’APK 16 et l’AAB 17, demandés sur le commit de production.
+
 ## Non-régression
 
 Les 7 298 tests du dépôt passent sur le candidat `faaa44e9`, avec une base locale isolée. Le candidat avec l’identité des stores passe 7 299 tests, dont les 33 vérifications ciblées des assets et de l’atelier. Ses 26 parcours du planificateur passent avec le moteur simulé et la fonctionnalité activée. Les contrôles de types et de design passent. Le lint signale sept avertissements web et dix avertissements mobiles, sans erreur.

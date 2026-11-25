@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, consigne de charge des kettlebells historiques
+
+Après la fusion des PR 199, 203 et 204, la production comptait 232 guides approuvés sur 233. L’ancien swing et le goblet squat affichaient la convention de charge générique des machines. La migration reconnaît leurs contenus complets et applique le texte relu. Le test sur des tables temporaires couvre le rejeu, le refus de publication, les copies et les éditions ultérieures.
+
 ## Codex, QR code du groupe · 25 novembre 2026
 
 Le SVG de 320 px était rogné dans le cadre de 240 px. Le composant partagé utilise le viewBox du QR et une marge de quatre modules. Le parcours vérifie les dimensions du SVG et du cadre aux trois largeurs.
