@@ -99,7 +99,9 @@ env:
     element:
       id: today-plan-session
     direction: UP
+    centerElement: true
     timeout: 10000
+- waitForAnimationToEnd
 - tapOn:
     id: today-plan-session
 - extendedWaitUntil:
@@ -113,6 +115,7 @@ env:
       text: "Partir d'un modèle"
     centerElement: true
     timeout: 20000
+- waitForAnimationToEnd
 - tapOn: "Partir d'un modèle"
 - extendedWaitUntil:
     visible: "Force bas du corps"

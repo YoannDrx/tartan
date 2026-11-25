@@ -1,0 +1,19 @@
+// Miroir public de Maven Central fourni par Google Cloud. Les autres dépôts conservent leur URL.
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+
+def useCentralMirror = { repo ->
+    if (repo instanceof MavenArtifactRepository &&
+        repo.url.host in ['repo.maven.apache.org', 'repo1.maven.org'] &&
+        repo.url.path.replaceAll('/+$', '') == '/maven2') {
+        repo.url = URI.create('https://maven-central.storage-download.googleapis.com/maven2/')
+    }
+}
+
+gradle.beforeSettings { settings ->
+    settings.pluginManagement.repositories.all(useCentralMirror)
+    settings.dependencyResolutionManagement.repositories.all(useCentralMirror)
+}
+gradle.beforeProject { project ->
+    project.buildscript.repositories.all(useCentralMirror)
+    project.repositories.all(useCentralMirror)
+}
