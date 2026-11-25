@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, illustrations de tout le catalogue commun
+
+Les 211 illustrations supplémentaires rejoignent les 22 déjà préparées. L’éversion, l’inversion, la bascule de cheville, la réception haute de l’arraché et l’enroulement du bassin ont fait l’objet d’une reprise. Les 24 fiches vidéo historiques ont une couverture relisible indépendamment dans l’atelier. Deux migrations enregistrent la validation des douze pilotes puis de toute la planche. Les réouvertures explicites dans l’atelier sont préservées. Le geste animé Tartan reste le média initial, avec accès à l’image fixe et à la vidéo disponible. Les empreintes de runtime correspondent aux builds iOS 19 et Android 9.
+
 ## 2026-11-25, Codex, candidat de livraison des stores
 
 Ce candidat réunit les lots du terrain, les 22 images d’atelier, la correction du dépôt Maven et le logo des deux stores. Les exports de recette iOS et Android contiennent les 22 images attendues, contrôlées par empreinte. Les binaires de bêta précédents contiennent les 18 premières. Le budget de production et la taille éditoriale sont extrapolés dans la procédure des illustrations.

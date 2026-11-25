@@ -9,7 +9,7 @@ import ts from "typescript";
 // dépendance) : un import par chemin évite une dépendance en boucle, et ne sert qu'à ces scripts.
 import { athletePaint, gearPaint } from "../../../design-tokens/src/athletes";
 import { tokens } from "../../../design-tokens/src/index";
-import { EXERCISE_CATALOG } from "../../../domain/src/exercise-catalog";
+import { EXERCISE_CATALOG, STADIUM_EDITION } from "../../../domain/src/exercise-catalog";
 import type { AthleteId } from "../../src/athletes";
 import { framing, sceneSvg, type Box, type ScenePaint } from "../../src/v2/draw-svg";
 import type { MotionClip } from "../../src/v2/gesture";
@@ -38,7 +38,7 @@ export const FAMILIES = [
 
 export type Card = { key: string; name: string; family: string; lines: string[] };
 export const CARDS = new Map<string, Card>(
-  EXERCISE_CATALOG.map((exercise) => [
+  [...EXERCISE_CATALOG, ...STADIUM_EDITION].map((exercise) => [
     exercise.catalogKey,
     {
       key: exercise.catalogKey,

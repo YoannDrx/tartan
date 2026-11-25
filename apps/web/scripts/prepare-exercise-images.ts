@@ -14,6 +14,8 @@ import path from "node:path";
 import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
 import { catalogImages } from "../src/server/catalog-illustrations";
 
+import { legacyCovers } from "../src/server/legacy-catalog-covers";
+
 const web = path.resolve(import.meta.dirname, "..");
 const output = path.join(web, "public/exercise-photos");
 const registry = path.resolve(web, "../mobile/src/features/pilot-images.ts");
@@ -28,6 +30,11 @@ for (const image of catalogImages) {
   )
     throw Error("Illustration ou édition invalide : " + stem);
   declared.add(stem);
+}
+
+for (const cover of legacyCovers.values()) {
+  if (!cover.alt.trim()) throw Error("Texte alternatif manquant : " + cover.key);
+  declared.add(cover.key + "-v" + cover.imageVersion);
 }
 
 function installVersion(file: string, destination: string) {

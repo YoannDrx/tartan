@@ -2733,6 +2733,7 @@ export const fr = {
     media: {
       choice: "Illustration du geste",
       motion: "Geste animé",
+      photo: "Image fixe",
       video: "Vidéo",
       videoOf: (name: string, view: string) => `Vidéo : ${name}, ${view.toLowerCase()}`,
       videoUnavailable: "La vidéo n'est pas lisible pour le moment. Le geste animé reste consultable.",

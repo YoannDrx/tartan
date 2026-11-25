@@ -14,14 +14,18 @@ export const metadata: Metadata = { title: m.admin.nav.exercises, robots: { inde
 
 // Les vidéos des fiches communes du catalogue. L'accès est celui de toute la console : administrateur, passkey
 // vérifiée (layout) ; le service le revérifie.
-export default async function AdminExercisesPage({ searchParams }: { searchParams: Promise<{ fiche?: string }> }) {
+export default async function AdminExercisesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ fiche?: string; famille?: string; page?: string }>;
+}) {
   const { actor } = await requireSpace();
-  const media = await listCatalogMedia(actor.email);
+  const [media, filters] = await Promise.all([listCatalogMedia(actor.email), searchParams]);
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={m.admin.nav.exercises} detail={w.admin.catalogVideos.lead} />
       <AdminNav current="/admin/exercices" />
-      <EditorialBoard selected={(await searchParams).fiche} />
+      <EditorialBoard selected={filters.fiche} family={filters.famille} page={filters.page} />
       <details className="rounded-card bg-card p-4 on-card">
         <summary className="min-h-11 cursor-pointer font-semibold">
           {w.admin.stadiumEdition.title(STADIUM_EDITION.length)}

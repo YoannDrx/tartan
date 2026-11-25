@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
 import { imagePath, catalogImages } from "@/server/catalog-illustrations";
+import { legacyCovers, legacyCoverStamp } from "@/server/legacy-catalog-covers";
 import { prisma } from "@/lib/prisma";
 import { getActorFrom } from "@/lib/session";
 import { recordStepUp } from "@/server/admin-step-up.service";
@@ -11,7 +12,7 @@ import { linkLegacyGuide, reviewEditorial, stamp, withApprovedImage } from "@/se
 const catalog = [...EXERCISE_CATALOG, ...STADIUM_EDITION];
 describe("Illustrations du catalogue", () => {
   it("associe chaque couple de fichiers WebP à une seule fiche et à la bonne édition", () => {
-    expect(catalogImages.length).toBeGreaterThanOrEqual(12);
+    expect(catalogImages).toHaveLength(catalog.length);
     expect(new Set(catalogImages.map((p) => p.key)).size).toBe(catalogImages.length);
     for (const pilot of catalogImages) {
       expect(catalog.filter((e) => e.catalogKey === pilot.key).map((e) => e.catalogVersion)).toEqual([
@@ -21,6 +22,15 @@ describe("Illustrations du catalogue", () => {
         const bytes = readFileSync(new URL("../public" + imagePath(pilot, thumb), import.meta.url));
         expect(bytes.toString("ascii", 8, 12)).toBe("WEBP");
       }
+    }
+  });
+  it("conserve une couverture versionnée par fiche historique, y compris quand deux fiches partagent une image", () => {
+    expect(legacyCovers.size).toBe(24);
+    expect(new Set([...legacyCovers.values()].map(legacyCoverStamp)).size).toBe(24);
+    for (const cover of legacyCovers.values()) {
+      expect(readFileSync(new URL("../public" + cover.path, import.meta.url)).toString("ascii", 8, 12)).toBe("WEBP");
+      expect(cover.alt.trim().length).toBeGreaterThan(10);
+      expect(legacyCoverStamp(cover)).not.toBe(legacyCoverStamp({ ...cover, imageVersion: cover.imageVersion + 1 }));
     }
   });
   it("respecte les validations indépendantes, la version et les textes personnalisés", () => {

@@ -84,7 +84,7 @@ const section = ({ entry, name, lines, report, broken }: Row) => {
   const { clip, views, level } = entry;
   const shown = views.slice(0, 2);
   return `
-<section>
+<section id="${escape(clip.key)}">
   <header>
     <h2>${escape(name)}</h2>
     <p class="who"><span class="badge ${level}">${LEVEL_LABEL[level]}</span> · ${escape(clip.key)} · boucle de ${(clip.duration / 1000).toFixed(1).replace(".", ",")} s</p>

@@ -30,9 +30,4 @@ export const guideAuthorship = (guide: ExerciseGuide): "coach" | "approved" | "p
   guide.author === "coach" ? "coach" : guide.technicalReview === "approved" ? "approved" : "pending";
 
 // La fiche commune a sa vidéo : on choisit entre le geste animé et la vidéo ; sans geste, la vidéo seule.
-export const guideMediaModes = (guide: ExerciseGuide, hasMotion: boolean): ("motion" | "video")[] => {
-  const video = (guide.illustration.videos?.length ?? 0) > 0;
-  if (video && hasMotion) return ["motion", "video"];
-  if (video) return ["video"];
-  return hasMotion ? ["motion"] : [];
-};
+export { guideMediaModes } from "@tartan/domain";

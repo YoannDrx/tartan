@@ -1,10 +1,19 @@
 // Atelier d'administration : relecture des gestes animés.
 export const admin = {
   editorial: {
+    family: "Famille à relire",
+    allFamilies: "Toutes les familles",
+    show: "Afficher",
+    pages: "Pages de l’atelier",
+    previous: "Page précédente",
+    next: "Page suivante",
+    pageOf: (page: number, count: number) => `Page ${page} sur ${count}`,
+    back: "Retour à la liste des illustrations",
     title: "Atelier des illustrations",
     publication:
       "Une nouvelle fiche entre dans le catalogue commun dès que son texte, son image et son geste ont été validés.",
     unversioned: (n: number) => `Fiches communes visibles à rapprocher du catalogue (${n})`,
+    reviewCover: "Illustration de la fiche historique",
     legacyHelp:
       "Choisis un guide uniquement si le geste, le matériel et les appuis sont identiques. Les vidéos, le nom et les séances de la fiche historique sont conservés.",
     legacyGuide: "Guide correspondant",

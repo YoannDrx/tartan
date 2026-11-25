@@ -23,6 +23,19 @@ env:
     visible:
       id: exercise-guide-concise
     timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: exercise-guide-media-photo
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: exercise-guide-media-photo
+- assertVisible:
+    id: exercise-guide-photo
+- tapOn:
+    id: exercise-guide-media-motion
+- assertVisible:
+    id: exercise-guide-motion
 # Le geste tourne en boucle : l'arrêter fige l'écran avant de défiler.
 - tapOn:
     id: exercise-guide-play

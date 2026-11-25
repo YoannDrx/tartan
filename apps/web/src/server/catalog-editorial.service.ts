@@ -8,6 +8,8 @@ import type { Actor } from "@/lib/session";
 import { requireStepUp, STEP_UP_READ_MS } from "./admin-step-up.service";
 import { catalogImages, imagePath } from "./catalog-illustrations";
 
+import { legacyCovers, legacyCoverStamp } from "./legacy-catalog-covers";
+
 const prefix = "exerciseReview:";
 export const mediaKinds = ["text", "image", "motion"] as const;
 type Kind = (typeof mediaKinds)[number];
@@ -57,6 +59,22 @@ export async function linkLegacyGuide(actor: Actor, id: string, updatedAt: Date,
     if (result.count !== 1) throw invalid();
   });
 }
+export async function reviewLegacyCover(actor: Actor, id: string, expectedStamp: string, approved: boolean) {
+  await requireStepUp(actor, STEP_UP_READ_MS);
+  const cover = legacyCovers.get(id);
+  if (!cover || legacyCoverStamp(cover) !== expectedStamp) throw invalid();
+  const existing = await prisma.exercise.findFirst({
+    where: { id, organizationId: null, deletedAt: null, catalogKey: null },
+    select: { id: true },
+  });
+  if (!existing) throw invalid();
+  await prisma.platformSetting.upsert({
+    where: { key: expectedStamp },
+    create: { key: expectedStamp, value: approved, updatedById: actor.userId },
+    update: { value: approved, updatedById: actor.userId },
+  });
+}
+
 export async function approvedEditorial() {
   const rows = await prisma.platformSetting.findMany({
     where: { key: { startsWith: prefix } },
