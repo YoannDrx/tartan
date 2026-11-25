@@ -26,11 +26,6 @@ env:
 - assertVisible: "Étape 1 sur 2.*"
 - assertNotVisible: "J.ai relu.*"
 - assertNotVisible: "Continuer avec ces destinataires"
-# L'espace de démonstration n'a qu'un groupe : il est déjà choisi. S'il en a d'autres, le choisir.
-- tapOn:
-    text: "Hauteur Démo"
-    selected: false
-    optional: true
 - scrollUntilVisible:
     element:
       id: planner-instructions
@@ -40,7 +35,7 @@ env:
 - tapOn:
     id: planner-instructions
 - waitForAnimationToEnd
-- inputText: "Trois series de huit, deux minutes de repos"
+- inputText: "Pour le groupe Hauteur Demo, trois series de huit, deux minutes de repos"
 # Champ multiligne : toucher ailleurs ne ferme pas ce clavier, mais il a une commande pour se fermer.
 - hideKeyboard
 - takeScreenshot: planner-request
@@ -52,6 +47,22 @@ env:
     timeout: 15000
 - tapOn:
     id: planner-generate
+# La composition peut demander de confirmer le groupe. Le coach répond avant de poursuivre.
+- extendedWaitUntil:
+    visible: "Ta séance à relire|Avant de continuer"
+    timeout: 60000
+- runFlow:
+    when:
+      visible: "Avant de continuer"
+    commands:
+      - assertVisible: "Ta demande ne désigne aucun groupe ni athlète.*"
+      - tapOn: "Hauteur Démo"
+      - scrollUntilVisible:
+          element:
+            id: planner-reply-send
+          centerElement: true
+      - tapOn:
+          id: planner-reply-send
 # Le simulateur partagé de la CI met parfois plus de 30 s à rendre la proposition.
 - extendedWaitUntil:
     visible: "Ta séance à relire"
