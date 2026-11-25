@@ -12,6 +12,7 @@ import {
   unversionedCommonExercises,
   approvedEditorial,
   reviewEditorial,
+  linkLegacyGuide,
   stamp,
   mediaKinds,
 } from "@/server/catalog-editorial.service";
@@ -29,9 +30,22 @@ async function review(form: FormData) {
   );
   revalidatePath("/admin/exercices");
 }
+async function linkGuide(form: FormData) {
+  "use server";
+  await linkLegacyGuide(
+    await requireActor(),
+    z.uuid().parse(form.get("id")),
+    z.coerce.date().parse(form.get("updatedAt")),
+    z.string().max(100).parse(form.get("target")) || null,
+  );
+  revalidatePath("/admin/exercices");
+}
 export async function EditorialBoard({ selected }: { selected?: string }) {
   const actor = await requireActor();
   const [approved, outside] = await Promise.all([approvedEditorial(), unversionedCommonExercises(actor)]);
+  const linkable = entries.filter((e) =>
+    mediaKinds.every((kind) => approved.has(stamp(e.catalogKey, e.catalogVersion, kind))),
+  );
   const rows = selected
     ? entries.filter((e) => e.catalogKey === selected)
     : catalogImages.map((p) => entries.find((e) => e.catalogKey === p.key)!);
@@ -48,9 +62,35 @@ export async function EditorialBoard({ selected }: { selected?: string }) {
       {outside.length > 0 && (
         <details>
           <summary className="min-h-11 cursor-pointer">{t.unversioned(outside.length)}</summary>
+          <p>{t.legacyHelp}</p>
+          {!linkable.length && <p>{t.needsReview}</p>}
           <ul>
             {outside.map((entry) => (
-              <li key={entry.id}>{entry.name}</li>
+              <li key={entry.id} className="border-t border-card-line py-2">
+                {entry.name}
+                {entry.catalogKey === null && (linkable.length > 0 || entry.sourceCatalogKey) && (
+                  <form action={linkGuide} className="flex flex-wrap items-end gap-2">
+                    <input type="hidden" name="id" value={entry.id} />
+                    <input type="hidden" name="updatedAt" value={entry.updatedAt.toISOString()} />
+                    <label className="grid min-w-0 gap-1">
+                      {t.legacyGuide}
+                      <select className="min-h-11 max-w-full" name="target" defaultValue={entry.sourceCatalogKey ?? ""}>
+                        <option value="">{t.noLegacyGuide}</option>
+                        {entries
+                          .filter((e) => e.catalogKey === entry.sourceCatalogKey || linkable.includes(e))
+                          .map((e) => (
+                            <option key={e.catalogKey} value={e.catalogKey}>
+                              {e.name}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <Button type="submit" variant="secondary">
+                      {t.linkGuide}
+                    </Button>
+                  </form>
+                )}
+              </li>
             ))}
           </ul>
         </details>

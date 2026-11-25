@@ -1,6 +1,7 @@
 import type { ExerciseGuide } from "@tartan/contracts";
 import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
 import { gestureClip } from "@tartan/mascot/v2/registry";
+import { Prisma } from "@/generated/prisma/client";
 import { invalid } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import type { Actor } from "@/lib/session";
@@ -21,7 +22,39 @@ export async function unversionedCommonExercises(actor: Actor) {
   return prisma.exercise.findMany({
     where: { organizationId: null, deletedAt: null, OR: [{ catalogKey: null }, { catalogKey: { notIn: known } }] },
     orderBy: [{ name: "asc" }, { id: "asc" }],
-    select: { id: true, name: true },
+    select: { id: true, name: true, catalogKey: true, sourceCatalogKey: true, updatedAt: true },
+  });
+}
+// Le guide relu rejoint la fiche historique en place. Les vidéos, favoris et références de séance gardent son identifiant.
+export async function linkLegacyGuide(actor: Actor, id: string, updatedAt: Date, target: string | null) {
+  await requireStepUp(actor, STEP_UP_READ_MS);
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(176843, 150)::text`;
+    const row = await tx.exercise.findFirst({
+      where: { id, organizationId: null, catalogKey: null, deletedAt: null },
+      select: { guide: true, sourceCatalogKey: true, updatedAt: true },
+    });
+    if (!row || (!row.sourceCatalogKey && row.guide !== null)) throw invalid();
+    if (row.sourceCatalogKey === target) return;
+    if (row.updatedAt.getTime() !== updatedAt.getTime()) throw invalid();
+    const entry = [...EXERCISE_CATALOG, ...STADIUM_EDITION].find((e) => e.catalogKey === target);
+    if (target) {
+      if (!entry) throw invalid();
+      const reviews = await tx.platformSetting.findMany({
+        where: { key: { in: mediaKinds.map((kind) => stamp(entry.catalogKey, entry.catalogVersion, kind)) } },
+        select: { value: true },
+      });
+      if (reviews.filter((r) => r.value === true).length !== mediaKinds.length) throw invalid();
+    }
+    const result = await tx.exercise.updateMany({
+      where: { id, organizationId: null, catalogKey: null, deletedAt: null, updatedAt },
+      data: {
+        sourceCatalogKey: target,
+        catalogVersion: entry?.catalogVersion ?? null,
+        guide: entry ? { ...entry.guide, technicalReview: "approved" } : Prisma.DbNull,
+      },
+    });
+    if (result.count !== 1) throw invalid();
   });
 }
 export async function approvedEditorial() {
@@ -58,6 +91,12 @@ export async function reviewEditorial(
       create: { key: stampKey, value: approved, updatedById: actor.userId },
       update: { value: approved, updatedById: actor.userId },
     });
+    if (kind === "text") {
+      await tx.exercise.updateMany({
+        where: { organizationId: null, catalogKey: null, sourceCatalogKey: key, catalogVersion: version },
+        data: { guide: { ...entry.guide, technicalReview: approved ? "approved" : "pending" } },
+      });
+    }
     if (!STADIUM_EDITION.some((e) => e.catalogKey === key)) return;
     if (!approved) {
       if (kind === "text")

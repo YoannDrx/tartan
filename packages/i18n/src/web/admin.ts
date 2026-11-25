@@ -5,6 +5,12 @@ export const admin = {
     publication:
       "Une nouvelle fiche entre dans le catalogue commun dès que son texte, son image et son geste ont été validés.",
     unversioned: (n: number) => `Fiches communes visibles à rapprocher du catalogue (${n})`,
+    legacyHelp:
+      "Choisis un guide uniquement si le geste, le matériel et les appuis sont identiques. Les vidéos, le nom et les séances de la fiche historique sont conservés.",
+    legacyGuide: "Guide correspondant",
+    noLegacyGuide: "Guide propre à préparer",
+    linkGuide: "Enregistrer le rapprochement",
+    needsReview: "Les guides apparaissent après validation du texte, de l’image et du geste.",
     coverage: (approved: number, total: number) => `${approved} images relues sur ${total} fiches versionnées`,
     text: "Texte",
     image: "Image",
