@@ -6,6 +6,7 @@ import {
   isPlannerSlotToken,
   trainingPhaseProgress,
   plannerPhaseChoicesForDate,
+  plannerRequiredEquipment,
   plannerSessionMovements,
   plannerSessionToComposition,
 } from "@tartan/domain";
@@ -600,7 +601,9 @@ export function providerContextFor(
       category: e.category,
       aliases: (e.aliases ?? []).slice(0, 20),
       classification: e.classification ?? null,
-      catalogKey: e.catalogKey ?? null,
+      ...(e.catalogKey && plannerRequiredEquipment(e.catalogKey, e.classification?.equipment)?.includes("jump_rope")
+        ? { catalogKey: e.catalogKey }
+        : {}),
       strengthLoadKind: e.strengthLoadKind ?? null,
       family: e.family ?? null,
       level: e.level ?? null,
