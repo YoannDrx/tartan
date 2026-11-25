@@ -108,6 +108,7 @@ export function independentContext(
       aliases: e.aliases ?? [],
       classification: e.classification,
       strengthLoadKind: e.strengthLoadKind,
+      approved: e.guide.technicalReview === "approved",
     })),
     instructions: [test.text],
   };

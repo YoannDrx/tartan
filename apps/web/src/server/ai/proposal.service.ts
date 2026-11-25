@@ -348,11 +348,12 @@ export async function getPlannerProposal(userId: string, organizationId: string,
       ? (
           await listPlanning(userId, organizationId, {
             ...selection.period,
+            durationOnly: true,
             ...(selection.groupIds.length === 1 && !selection.athleteIds.length
               ? { groupId: selection.groupIds[0] }
               : {}),
           })
-        ).sessions.map(({ id, title, date, startTime }) => ({ id, title, date, startTime }))
+        ).sessions.map(({ id, title, date, startTime, durationMin }) => ({ id, title, date, startTime, durationMin }))
       : undefined;
   const rich = row.interpretation ? plannerRichInterpretation.parse(row.interpretation) : null;
   const staged = row.adjustmentPreview ? stagedAdjustment.parse(row.adjustmentPreview) : null;

@@ -1,6 +1,21 @@
 import type { ExerciseSummary, PlannerProposalResponse, PlannerReviewedDraft } from "@tartan/contracts";
 import { isoDate } from "@tartan/contracts";
+import { plannerEquipmentAvailable } from "./planner-equipment";
 import { addDays } from "./status";
+
+export function plannerTimesOverlap(
+  a: string | null | undefined,
+  minutesA: number | null | undefined,
+  b: string | null,
+  minutesB?: number | null,
+) {
+  if (!a || !b) return false;
+  const minuteOfDay = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+  const first = minuteOfDay(a);
+  const second = minuteOfDay(b);
+  // Une durée absente permet de vérifier le début connu seulement.
+  return first < second + (minutesB ?? 1) && second < first + (minutesA ?? 1);
+}
 
 // Le calendrier est relu par le serveur avec les droits de l’espace. Ce résumé reste dans l’interface.
 export function plannerAgenda(
@@ -36,8 +51,12 @@ export function plannerAgenda(
             (i) =>
               (i.prescription.setPlan?.length ?? i.prescription.sets ?? 1) > 1 && i.prescription.rest_s === undefined,
           ),
-          missingEquipment: available?.length ? equipment.filter((e) => !available.includes(e)) : [],
-          collision: Boolean(d.startTime && calendar.some((s) => s.startTime === d.startTime)),
+          missingEquipment: available
+            ? equipment.filter((e) => !plannerEquipmentAvailable({ movement: null, equipment: [e] }, available))
+            : [],
+          collision: calendar.some((s) =>
+            plannerTimesOverlap(d.startTime, d.draft.durationMin, s.startTime, s.durationMin),
+          ),
         };
       });
     return { date, calendar, sessions };

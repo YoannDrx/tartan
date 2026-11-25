@@ -598,7 +598,15 @@ export const plannerProposalResponse = z.object({
   exerciseResolutions: z.array(z.object({ questionId: z.string(), exerciseId: uuid, name: z.string() })).optional(),
   phaseReviews: z.array(z.object({ date: isoDate, review: sessionPhaseReview })),
   calendar: z
-    .array(z.object({ id: uuid, date: isoDate, title: z.string(), startTime: clockTime.nullable() }))
+    .array(
+      z.object({
+        id: uuid,
+        date: isoDate,
+        title: z.string(),
+        startTime: clockTime.nullable(),
+        durationMin: z.number().int().positive().nullish(),
+      }),
+    )
     .optional(),
   availableEquipment: z.array(z.string()).optional(),
   adjustmentPreview: z.array(z.object({ before: z.array(z.string()), after: z.array(z.string()) })).optional(),
