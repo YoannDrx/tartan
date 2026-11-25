@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## Codex, QR code du groupe · 25 novembre 2026
+
+Le SVG de 320 px était rogné dans le cadre de 240 px. Le composant partagé utilise le viewBox du QR et une marge de quatre modules. Le parcours vérifie les dimensions du SVG et du cadre aux trois largeurs.
+
 ## 2026-11-25, Codex, reprise de la recette native
 
 Sur les captures de CI, le constructeur attendait encore la réponse de publication, et le parcours personnel touchait le modèle pendant le défilement. Le test attend la fin de l’animation et laisse la sauvegarde se terminer avant de relire le résultat du serveur. Le délai global du simulateur inclut les rejeux. Deux réponses HTTP 429 consécutives sur la même dépendance ont confirmé que le délai de reprise seul ne suffit pas. Une seconde compilation peut passer par le miroir public de Maven Central hébergé par Google Cloud.

@@ -4,6 +4,10 @@ Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
+## QR code d’invitation · 25 novembre 2026
+
+Le QR code du groupe s’adapte au cadre de l’inscription et des réglages. Le lien a été décodé sur les captures du parcours web à 390, 768 et 1440 px. Le scan entre deux téléphones reste à éprouver.
+
 ## APK Android de bêta · 25 novembre 2026
 
 Le profil EAS beta-apk hérite du canal beta et de l’identité de production. EAS a résolu localement le profil en APK, canal beta, environnement production. La continuité de signature, le téléchargement privé et la mise à jour sur téléphone restent à éprouver.

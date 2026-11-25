@@ -80,7 +80,16 @@ test("un coach neuf crée son espace, invite, fait le tour et suit ses premiers 
   const link = page.getByLabel(o.invite.linkLabel);
   await expect(link).toHaveValue(/\/i\//);
   await page.getByRole("button", { name: o.invite.showQr }).click();
-  await expect(page.getByRole("img", { name: w.settings.groupes.qrLabel("Hauteur Élite") })).toBeVisible();
+  const qr = page.getByRole("img", { name: w.settings.groupes.qrLabel("Hauteur Élite") });
+  await expect(qr).toBeVisible();
+  for (const width of WIDTHS) {
+    await page.setViewportSize({ width, height: 900 });
+    const frame = await qr.boundingBox();
+    const image = await qr.locator("svg").boundingBox();
+    expect(image).toEqual(frame);
+    expect(image!.width).toBe(image!.height);
+    await qr.screenshot({ path: shotPath(info, `qr-${width}`) });
+  }
   await page.getByLabel(o.invite.emailsLabel).fill("pas-une-adresse");
   await page.getByRole("button", { name: o.invite.send }).click();
   await expect(page.getByText(o.invite.invalid("pas-une-adresse"))).toBeVisible();
