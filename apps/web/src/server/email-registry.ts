@@ -31,6 +31,7 @@ export const EMAILS = {
   password_set: { category: "security" },
   password_setup_confirm: { category: "security" },
   account_exists: { category: "security" },
+  beta_install: { category: "invitation", outbox: "beta_install" },
   invitation_athlete: { category: "invitation", outbox: "invitation_athlete" },
   invitation_staff: { category: "invitation", outbox: "invitation_staff" },
   invitation_reminder: { category: "invitation", outbox: "invitation_reminder" },

@@ -150,10 +150,7 @@ export function PlannerLoads({
               <div
                 role="group"
                 aria-label={t.rows}
-                className={cn(
-                  "divide-y divide-card-line border-y border-card-line transition-opacity duration-(--duration-quick)",
-                  updating && "opacity-60",
-                )}
+                className="divide-y divide-card-line border-y border-card-line"
               >
                 {data.athletes.map((athlete) => {
                   const summary = plannerLoadSummary(athlete, session.overrides);

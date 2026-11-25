@@ -11,6 +11,9 @@ it("charge les 80 cas figés et ne transmet aucun attendu au prestataire", () =>
   expect(independentCorpus.cases).toHaveLength(80);
   for (const test of independentCorpus.cases) {
     const context = plannerProviderContext.parse(independentContext(test));
+    expect(context.exercises.filter((e) => e.approved).map((e) => e.token)).toEqual(
+      independentCatalog.filter((e) => e.guide.technicalReview === "approved").map((e) => e.token),
+    );
     expect(context.instructions).toEqual([test.text]);
     expect(context).not.toHaveProperty("expected");
     expect(independentContext({ ...test, expected: { status: "clarification", field: "other" } })).toEqual(context);

@@ -60,6 +60,11 @@ export const createPersonalSpace = async (
   await ensurePlans();
   const created = await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM "user" WHERE id = ${userId}::uuid FOR UPDATE`;
+    const concurrent = await tx.organization.findUnique({
+      where: { personalOwnerId: userId },
+      select: { id: true, athletes: { where: { userId }, select: { id: true } } },
+    });
+    if (concurrent?.athletes[0]) return { organizationId: concurrent.id, athleteId: concurrent.athletes[0].id };
     const named = await tx.profile.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true } });
     // Le nom saisi devient celui du compte quand il n'en a pas : c'est ici qu'il se présente.
     if (!named?.firstName?.trim() || !named?.lastName?.trim()) {
@@ -80,6 +85,7 @@ export const createPersonalSpace = async (
         plan: "personal",
         disciplines: input.disciplines,
         trainingObjectives: input.trainingObjectives,
+        availableEquipment: input.availableEquipment ?? [],
         members: { create: { userId, role: "athlete", status: "active" } },
         exercises: { create: starterExercises(userId) },
       },

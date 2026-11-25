@@ -101,7 +101,7 @@ export function PlanningScreen() {
       {activeSpace?.aiPlannerEnabled ? (
         <Button
           variant="secondary"
-          label={m.aiPlanner.title}
+          label={personal ? m.aiPlanner.personalCreate : m.aiPlanner.title}
           onPress={() =>
             router.push({
               pathname: "/planner",

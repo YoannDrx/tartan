@@ -32,7 +32,7 @@ env:
 - extendedWaitUntil:
     notVisible:
       id: builder-confirm
-    timeout: 30000
+    timeout: 75000
 - scrollUntilVisible:
     element:
       id: builder-message

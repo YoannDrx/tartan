@@ -21,7 +21,7 @@ import {
   type PlannerEquipment,
   type PlannerRequestValue,
 } from "../lib/planner-flow";
-import { Button } from "../ui/primitives";
+import { Button, T } from "../ui/primitives";
 import { StackScreen } from "../ui/screen";
 import { space } from "../ui/theme";
 import { PlannerHeader } from "./planner-header";
@@ -39,6 +39,7 @@ const t = m.aiPlanner.screen;
  * chaque exercice à sa place, et une seule action pour créer le brouillon.
  */
 export function NativePlanner({
+  personal,
   orgId,
   context: initialContext,
   initial,
@@ -46,6 +47,7 @@ export function NativePlanner({
   initialSelection,
   spaceEquipment,
 }: {
+  personal: boolean;
   orgId: string;
   context: Context;
   initial: PlannerProposalResponse | null;
@@ -139,6 +141,7 @@ export function NativePlanner({
     return (
       <NativePlannerResult
         key={proposal.id}
+        personal={personal}
         orgId={orgId}
         context={context}
         proposal={proposal}
@@ -185,6 +188,7 @@ export function NativePlanner({
         )
       }
     >
+      {personal ? <T variant="smallStrong">{m.aiPlanner.personalRecipient}</T> : null}
       <PlannerHeader
         usage={usage}
         stage={1}
