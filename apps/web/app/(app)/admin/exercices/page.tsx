@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { EXERCISE_CATALOG } from "@tartan/domain/exercise-catalog";
+import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { PageHeader } from "@/components/states";
@@ -20,6 +20,37 @@ export default async function AdminExercisesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={m.admin.nav.exercises} detail={w.admin.catalogVideos.lead} />
       <AdminNav current="/admin/exercices" />
+      <details className="rounded-card bg-card p-4 on-card">
+        <summary className="min-h-11 cursor-pointer font-semibold">
+          {w.admin.stadiumEdition.title(STADIUM_EDITION.length)}
+        </summary>
+        {STADIUM_EDITION.map(({ catalogKey, name, aliases, guide }) => (
+          <details key={catalogKey} className="border-t border-card-line py-2">
+            <summary className="min-h-11 cursor-pointer">{name}</summary>
+            <p className="font-semibold">{guide.objective}</p>
+            <p>{guide.setup.join(" ")}</p>
+            <ol className="list-decimal pl-5">
+              {guide.steps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+            <dl className="grid gap-1">
+              <dt>{w.admin.stadiumEdition.mistakes}</dt>
+              <dd>{guide.mistakes.join(" ")}</dd>
+              <dt>{w.admin.stadiumEdition.count}</dt>
+              <dd>{guide.counting.explanation}</dd>
+              <dt>{w.admin.stadiumEdition.load}</dt>
+              <dd>{guide.loadExplanation}</dd>
+              <dt>{w.admin.stadiumEdition.easier}</dt>
+              <dd>{guide.easier}</dd>
+              <dt>{w.admin.stadiumEdition.harder}</dt>
+              <dd>{guide.progression}</dd>
+              <dt>{w.admin.stadiumEdition.aliases}</dt>
+              <dd>{(aliases ?? []).join(", ")}</dd>
+            </dl>
+          </details>
+        ))}
+      </details>
       <CatalogVideoBoard
         entries={EXERCISE_CATALOG.map((entry) => ({
           key: entry.catalogKey,

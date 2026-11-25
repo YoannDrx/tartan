@@ -63,6 +63,15 @@ export const admin = {
     reopenNew: (family: string) => `Retirer la validation des gestes du nouveau moteur : ${family}`,
   },
   // Les vidéos des fiches communes du catalogue, déposées par le fondateur.
+  stadiumEdition: {
+    title: (count: number) => `Édition stade · ${count} fiches à relire`,
+    count: "Comptage",
+    load: "Charge et matériel",
+    aliases: "Autres noms",
+    mistakes: "À observer",
+    easier: "Simplifier",
+    harder: "Progresser",
+  },
   catalogVideos: {
     lead: "Une vidéo par fiche commune et par vue, profil ou face. Une fois prête, la fiche propose le geste animé ou la vidéo, à tous les espaces. Un nouvel envoi remplace l'ancien.",
     search: "Chercher une fiche",
