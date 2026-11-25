@@ -6,6 +6,8 @@ Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p
 
 ## Console privée des testeurs · 25 novembre 2026
 
+Mise en production vérifiée sur `85d0a428`. Santé HTTP 200 et redirection de l’accès anonyme vers la connexion. Le [tableau de recette](tests/recette-lancement-testeurs.md) rassemble les mesures IA, les parcours et les essais qui nécessitent encore un appareil.
+
 La page /admin/testeurs, protégée par passkey, enregistre les plateformes, le renvoi et le retrait. L’accès privé est contrôlé à chaque téléchargement. Les appels au groupe externe Apple et la file de messages sont branchés. Les 14 tests ciblés et 4 parcours navigateur passent localement. Aucun canal de production activé ; TestFlight, APK et adhésion Play restent à éprouver.
 
 **En une phrase.**
