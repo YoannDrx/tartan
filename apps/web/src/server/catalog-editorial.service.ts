@@ -1,6 +1,6 @@
 import type { ExerciseGuide } from "@tartan/contracts";
 import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
-import { exerciseClip } from "@tartan/mascot/exercises";
+import { gestureClip } from "@tartan/mascot/v2/registry";
 import { invalid } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import type { Actor } from "@/lib/session";
@@ -48,22 +48,68 @@ export async function reviewEditorial(
     !entry ||
     expectedStamp !== stampKey ||
     (kind === "image" && byKey.get(key)?.guideVersion !== version) ||
-    (kind === "motion" && !exerciseClip(key))
+    (kind === "motion" && !gestureClip(key))
   )
     throw invalid();
-  await prisma.platformSetting.upsert({
-    where: { key: stampKey },
-    create: { key: stampKey, value: approved, updatedById: actor.userId },
-    update: { value: approved, updatedById: actor.userId },
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(176843, 150)::text`;
+    await tx.platformSetting.upsert({
+      where: { key: stampKey },
+      create: { key: stampKey, value: approved, updatedById: actor.userId },
+      update: { value: approved, updatedById: actor.userId },
+    });
+    if (!STADIUM_EDITION.some((e) => e.catalogKey === key)) return;
+    if (!approved) {
+      if (kind === "text")
+        await tx.exercise.updateMany({
+          where: { catalogKey: key, catalogVersion: version, organizationId: null },
+          data: { guide: entry.guide },
+        });
+      return;
+    }
+    const approvals = await tx.platformSetting.findMany({
+      where: { key: { in: mediaKinds.map((k) => stamp(key, version, k)) } },
+      select: { value: true },
+    });
+    if (approvals.filter((r) => r.value === true).length !== mediaKinds.length) return;
+    const data = {
+      name: entry.name,
+      category: entry.category,
+      aliases: entry.aliases ?? [],
+      tags: entry.tags,
+      classification: entry.classification,
+      cues: entry.cues,
+      defaultPrescription: entry.prescription,
+      strengthLoadKind: entry.strengthLoadKind,
+      catalogVersion: version,
+      guide: { ...entry.guide, technicalReview: "approved" },
+    };
+    await tx.exercise.upsert({ where: { catalogKey: key }, create: { ...data, catalogKey: key }, update: data });
   });
 }
 export function withApprovedImage<G extends ExerciseGuide | null | undefined>(
   guide: G,
   reviewed: ReadonlySet<string>,
 ): G {
-  if (!guide || guide.author === "coach") return guide;
+  if (!guide) return guide;
   const pilot = byKey.get(guide.catalogKey);
-  if (!pilot || pilot.guideVersion !== guide.version || !reviewed.has(stamp(pilot.key, pilot.guideVersion, "image")))
-    return guide;
+  if (
+    guide.author !== "coach" &&
+    pilot?.guideVersion === guide.version &&
+    STADIUM_EDITION.some((e) => e.catalogKey === pilot.key)
+  ) {
+    const motion = reviewed.has(stamp(pilot.key, guide.version, "motion")) ? "approved" : "review";
+    if (guide.illustration.motion !== motion) guide = { ...guide, illustration: { ...guide.illustration, motion } };
+  }
+  if (
+    guide.author === "coach" ||
+    !pilot ||
+    pilot.guideVersion !== guide.version ||
+    !reviewed.has(stamp(pilot.key, pilot.guideVersion, "image"))
+  ) {
+    if (!guide.illustration.photo) return guide;
+    const { photo: _photo, ...illustration } = guide.illustration;
+    return { ...guide, illustration };
+  }
   return { ...guide, illustration: { ...guide.illustration, photo: { path: imagePath(pilot), alt: pilot.alt } } };
 }

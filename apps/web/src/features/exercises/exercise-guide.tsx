@@ -1,7 +1,7 @@
 import type { ExerciseGuide } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
-import { exerciseClip } from "@tartan/mascot/exercises";
+import { gestureClip } from "@tartan/mascot/v2/registry";
 import { GuideMedia } from "./guide-media";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -15,7 +15,7 @@ export type GuideVariants = {
 };
 
 const Illustration = ({ guide }: { guide: ExerciseGuide }) => {
-  const motion = Boolean(exerciseClip(guide.catalogKey));
+  const motion = Boolean(gestureClip(guide.catalogKey));
   // La fiche commune a sa vidéo : on choisit entre le geste animé et la vidéo.
   if (guide.illustration.videos?.length) return <GuideMedia guide={guide} motion={motion} />;
   if (motion) return <GuideMotion guide={guide} />;

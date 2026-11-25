@@ -2,6 +2,8 @@
 export const admin = {
   editorial: {
     title: "Atelier des illustrations",
+    publication:
+      "Une nouvelle fiche entre dans le catalogue commun dès que son texte, son image et son geste ont été validés.",
     unversioned: (n: number) => `Fiches communes visibles à rapprocher du catalogue (${n})`,
     coverage: (approved: number, total: number) => `${approved} images relues sur ${total} fiches versionnées`,
     text: "Texte",

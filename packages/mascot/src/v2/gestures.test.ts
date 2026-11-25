@@ -17,6 +17,7 @@ import {
   STRENGTH_GESTURES,
   WEIGHTLIFTING_GESTURES,
 } from "./gestures";
+import { STADIUM_GESTURES } from "./gestures/stadium";
 import { rackPoint } from "./gestures/clean";
 import { GESTURE_VIEWS, project } from "./project";
 import { volumes } from "./skin";
@@ -27,7 +28,7 @@ const clips = Object.values(GESTURES).map((clip) => [clip.key, clip] as const);
 // Les gestes d'haltérophilie et de musculation se tiennent sur leurs deux pieds à chaque tenue.
 const TWO_FEET = new Set([...WEIGHTLIFTING_GESTURES, ...STRENGTH_GESTURES].map((clip) => clip.key));
 const JUMPS = new Set([...PLYOMETRIC_GESTURES, ...STRIDE_GESTURES].map((clip) => clip.key));
-const STRIDES = new Set(STRIDE_GESTURES.map((clip) => clip.key));
+const STRIDES = new Set([...STRIDE_GESTURES.map((clip) => clip.key), "cone-high-knees"]);
 // Au moins 120 images par boucle ; 240 pour ne pas manquer une phase de moins de 150 ms.
 const SAMPLES = 240;
 const reports = new Map(clips.map(([key, clip]) => [key, inspect(clip, SAMPLES)]));
@@ -57,11 +58,13 @@ describe("gestes écrits à la main", () => {
         STRENGTH_GESTURES.length +
         OTHER_GESTURES.length +
         PLYOMETRIC_GESTURES.length +
-        STRIDE_GESTURES.length,
+        STRIDE_GESTURES.length +
+        STADIUM_GESTURES.length,
     );
     for (const key of ["snatch", "clean", "clean-and-jerk", "back-squat", "lateral-lunge"])
       expect(GESTURES[key], key).toBeDefined();
-    for (const key of Object.keys(GESTURES)) expect(EXERCISE_CLIPS[key], key).toBeDefined();
+    for (const key of Object.keys(GESTURES))
+      expect(EXERCISE_CLIPS[key] ?? STADIUM_GESTURES.find((clip) => clip.key === key), key).toBeDefined();
   });
 
   it("garde les athlètes de chaque famille : Malo en haltérophilie, Mehdi en musculation", () => {
@@ -74,7 +77,7 @@ describe("gestes écrits à la main", () => {
       for (const phase of clip.phases) expect(phase.id).toMatch(/^[a-z][a-z0-9-]*$/);
       for (const still of clip.stills) expect(still.id).toMatch(/^[a-z][a-z0-9-]*$/);
       const lines = clip.stills.flatMap((still) => (still.guide === undefined ? [] : [still.guide]));
-      expect(lines).toEqual([0, 1, 2, 3]);
+      expect(lines).toEqual(STADIUM_GESTURES.includes(clip) ? [0, 1, 2] : [0, 1, 2, 3]);
       expect(clip.positions.map((position) => position.guide)).toEqual(lines);
       expect(clip.positions[0]!.from).toBe(0);
       expect(clip.positions.at(-1)!.to).toBe(1);
@@ -175,7 +178,7 @@ describe.each(clips)("%s : contraintes sur chaque image", (key, clip) => {
   });
 
   it("la frise montre les positions, dans l'ordre de la boucle", () => {
-    expect(clip.stills.length).toBeGreaterThanOrEqual(4);
+    expect(clip.stills.length).toBeGreaterThanOrEqual(clip.positions.length);
     const times = clip.stills.map((still) => still.t);
     expect(times).toEqual([...times].sort((a, b) => a - b));
   });

@@ -16,7 +16,7 @@ import { requireOrgMember } from "./access";
 export const readExerciseGuide = (value: unknown) => {
   const parsed = exerciseGuide.safeParse(value);
   if (!parsed.success) return null;
-  const { motion: _motion, videos: _videos, ...illustration } = parsed.data.illustration;
+  const { motion: _motion, videos: _videos, photo: _photo, ...illustration } = parsed.data.illustration;
   const { concise: _concise, ...guide } = parsed.data;
   return { ...guide, illustration };
 };

@@ -87,6 +87,8 @@ Le fondateur a ouvert l'application au public le 23 novembre 2026 ; la page d'ac
 
 60 fiches supplémentaires sont préparées pour la relecture dans la console des exercices. Les 173 fiches diffusées restent disponibles. Chaque nouvelle fiche indique les appuis, le matériel, le comptage et une variante. La diffusion aux athlètes attend les visuels et la relecture technique.
 
+Le pilote comporte douze illustrations détaillées et huit nouveaux gestes animés. Les trois validations par fiche ouvrent sa publication. L’inventaire de la base de production retrouve les 173 clés éditoriales initiales et 24 fiches communes supplémentaires sans clé à rapprocher.
+
 ## Décisions du fondateur en vigueur
 
 | Date | Décision |

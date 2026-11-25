@@ -36,7 +36,7 @@ export type Stride = {
   // La pose du pied, devant le bassin, en unités ; la jambe d'appui à la pose, en degrés de flexion du genou.
   reach?: number;
   // Les lignes du guide : pose du pied droit, appui, poussée, vol (les positions illustrées, dans cet ordre).
-  guides?: readonly [number, number, number, number];
+  guides?: readonly [number, number | undefined, number, number];
 };
 
 // Une jambe libre : la cuisse à `thigh` degrés devant la verticale, le genou fléchi de `knee` degrés ; le pied

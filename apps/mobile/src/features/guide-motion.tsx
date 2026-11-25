@@ -1,7 +1,7 @@
 import type { ExerciseGuide } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { positionAt, type ExerciseClip } from "@tartan/mascot/exercise";
-import { motionEngine } from "@tartan/mascot/v2/engine";
+import { exerciseClip } from "@tartan/mascot/exercises";
 import { guidePositionAt } from "@tartan/mascot/v2/gesture";
 import type { GestureView } from "@tartan/mascot/v2/project";
 import { gestureEntry } from "@tartan/mascot/v2/registry";
@@ -80,12 +80,10 @@ const Chip = ({
 // s'affiche dessous. En mouvement réduit : la frise des positions, dans l'ordre.
 // Le nouveau moteur prend le geste dès qu'il le peut (`motionEngine`), avec ses deux vues ; un geste à reprendre
 // garde l'ancien moteur.
-export function GuideMotion({ guide, clip }: { guide: ExerciseGuide; clip: ExerciseClip }) {
-  return motionEngine(guide.catalogKey) === "v2" ? (
-    <GestureMotion guide={guide} />
-  ) : (
-    <ClipMotion guide={guide} clip={clip} />
-  );
+export function GuideMotion({ guide }: { guide: ExerciseGuide }) {
+  if (gestureEntry(guide.catalogKey)) return <GestureMotion guide={guide} />;
+  const fallback = exerciseClip(guide.catalogKey);
+  return fallback ? <ClipMotion guide={guide} clip={fallback} /> : null;
 }
 
 // --- Nouveau moteur ---------------------------------------------------------------------------------
