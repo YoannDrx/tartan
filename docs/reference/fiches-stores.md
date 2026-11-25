@@ -23,6 +23,10 @@ La description longue est dans « Textes prêts à coller », plus bas.
 | Assistance                                    | https://tartan.coach/mobile/contact     |
 | Suppression de compte (web, exigé par Google) | https://tartan.coach/suppression-compte |
 
+### Logo des stores
+
+Le « T des couloirs » est embarqué dans le catalogue d’icônes iOS, avec les déclinaisons claire, sombre et teintée. Apple reçoit l’icône marketing avec le build. Dans la fiche Google Play, importer [l’icône carrée 512 px](../../apps/mobile/assets/brand/play-store-512.png) et [la bannière 1024 × 500](../../apps/mobile/store/android/feature-graphic.png). Les icônes adaptatives du lanceur Android sont configurées dans Expo. Les sources se régénèrent avec `node scripts/build-logo.mjs` et `node scripts/store-feature-graphic.mjs`.
+
 ### Compte de démonstration
 
 Comptes dédiés à la revue, créés par toi sur la production, avec `DEMO_PASSWORD` : un coach et un athlète, tous deux fictifs et majeurs, avec des données fictives. Procédure :
