@@ -11,7 +11,7 @@ test("la séance du club et la proposition personnelle se valident chacune à le
   test.setTimeout(240_000);
   await createCoachSpace(page, "Club");
   const joined = await joinAsAthlete(browser, await groupLink(page), "Camille");
-  const athlete = joined.page;
+  let athlete = joined.page;
   try {
     await publishSession(page, "Programme du coach", "Squat arrière");
     const me = await (await athlete.request.get("/api/v1/me")).json();
@@ -73,8 +73,10 @@ test("la séance du club et la proposition personnelle se valident chacune à le
       )
       .toBe(true);
 
-    await athlete.goto("/accueil");
-    await athlete.reload();
+    await athlete.close();
+    athlete = await joined.context.newPage();
+    await athlete.goto(new URL("/accueil", page.url()).href);
+    await expect(athlete).toHaveURL(/\/aujourdhui$/);
     await expect(athlete.getByRole("link", { name: m.brand.athlete })).toBeVisible();
     await athlete.emulateMedia({ reducedMotion: "reduce" });
     for (const width of [390, 768, 1440]) {
