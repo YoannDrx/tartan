@@ -15,6 +15,7 @@ import {
   resolvePlannerExercise,
   createPlannerProposal,
   clarifyPlannerProposal,
+  decidePlannerAdjustment,
   getPlannerProposal,
   listPlannerProposals,
   savePlannerReview,
@@ -242,6 +243,8 @@ it("retrouve les propositions privées par pages stables, sans texte, quota ni a
       messages: [a.input.text],
       interpretation: row.interpretation!,
       draftIds: undefined,
+      weekConfirmations: undefined,
+      adjustmentPreview: undefined,
       savedReview: undefined,
     })),
   });
@@ -717,6 +720,42 @@ it("un contexte de phase ambigu exige un choix et aucune note privée ne part au
   expect(draft.publishedAt).toBeNull();
 });
 
+it("crée une semaine en deux fois et retrouve la première confirmation après la seconde", async () => {
+  const a = await setup();
+  const p = provider((context) => {
+    const r = proposal(context);
+    return { ...r, sessions: [r.sessions[0]!, { ...r.sessions[0]!, date: "2030-06-04" }] };
+  });
+  const initial = await a.create(p);
+  const args = [a.owner.userId, a.organizationId, a.input.id] as const;
+  const review = await preparePlannerDrafts(...args, initial.version, now);
+  const first = {
+    expectedVersion: initial.version,
+    sessions: review.sessions,
+    confirmed: true as const,
+    selectedIndices: [1],
+  };
+  const chosen = await confirmPlannerProposal(...args, first, now);
+  expect(chosen.partial).toBe(true);
+  const refreshed = await getPlannerProposal(...args, now);
+  expect(refreshed).toMatchObject({ state: "proposal", createdSessionIndices: [1], draftIds: null });
+  expect(refreshed.linkedSessions?.[0]).toMatchObject({ id: chosen.sessions[0]!.id, state: "draft" });
+  expect(await confirmPlannerProposal(...args, { ...first, expectedVersion: refreshed.version }, now)).toEqual(chosen);
+  const remaining = await preparePlannerDrafts(...args, refreshed.version, now);
+  remaining.sessions[0]!.draft.title = "Jour restant";
+  const final = await confirmPlannerProposal(
+    ...args,
+    { expectedVersion: refreshed.version, sessions: remaining.sessions, confirmed: true, selectedIndices: [0] },
+    now,
+  );
+  expect(final.partial).toBe(false);
+  expect(await confirmPlannerProposal(...args, first, now)).toEqual(chosen);
+  expect((await getPlannerProposal(...args, now)).draftIds?.map((r) => r.id)).toEqual([
+    final.sessions[0]!.id,
+    chosen.sessions[0]!.id,
+  ]);
+  expect(await prisma.scheduledSession.count({ where: { organizationId: a.organizationId } })).toBe(2);
+});
 it("une semaine conserve un choix par date quand un cycle de groupe se termine en cours de période", async () => {
   const a = await setup();
   await prisma.organization.update({ where: { id: a.organizationId }, data: { phasesEnabled: true } });
@@ -1253,6 +1292,71 @@ it("conserve les occurrences du circuit dans les charges et accepte une adaptati
     now,
   );
   expect(result.sessions).toHaveLength(1);
+});
+it.each([true, false])(
+  "soumet les nouvelles doses à une décision versionnée entre appareils, appliquer %s",
+  async (apply) => {
+    const a = await setup(),
+      args = [a.owner.userId, a.organizationId, a.input.id] as const;
+    const initial = await a.create(provider());
+    const modified = provider((ctx) => {
+      const value = proposal(ctx);
+      value.sessions[0]!.blocks[0]!.items[0]!.prescription.reps = 11;
+      return value;
+    });
+    const pending = await clarifyPlannerProposal(
+      ...args,
+      {
+        expectedVersion: initial.version,
+        operationId: randomUUID(),
+        text: "Onze répétitions",
+        reviewed: true,
+        adjustmentReview: { keep: [] },
+      },
+      { provider: modified, clock },
+    );
+    const fresh = await getPlannerProposal(...args, now);
+    expect(fresh.adjustmentPreview?.[0]?.after.join(" ")).toContain("11 rép.");
+    expect(fresh.interpretation?.sessions[0]?.blocks[0]?.items[0]?.prescription.reps).toBe(4);
+    const review = await preparePlannerDrafts(...args, pending.version, now);
+    await expect(
+      confirmPlannerProposal(
+        ...args,
+        { expectedVersion: pending.version, confirmed: true, sessions: review.sessions },
+        now,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    const chosen = await decidePlannerAdjustment(...args, { expectedVersion: pending.version, apply }, now);
+    expect(chosen.adjustmentPreview).toBeUndefined();
+    expect(chosen.interpretation?.sessions[0]?.blocks[0]?.items[0]?.prescription.reps).toBe(apply ? 11 : 4);
+    await expect(
+      decidePlannerAdjustment(...args, { expectedVersion: pending.version, apply: !apply }, now),
+    ).rejects.toMatchObject({ status: 409 });
+  },
+);
+it("conserve le bloc protégé quand le prestataire le modifie", async () => {
+  const a = await setup(),
+    args = [a.owner.userId, a.organizationId, a.input.id] as const,
+    initial = await a.create(provider());
+  const modified = provider((ctx) => {
+    const value = proposal(ctx);
+    value.sessions[0]!.blocks[0]!.items[0]!.prescription.reps = 17;
+    return value;
+  });
+  const pending = await clarifyPlannerProposal(
+    ...args,
+    {
+      expectedVersion: initial.version,
+      operationId: randomUUID(),
+      text: "Garde ce bloc",
+      reviewed: true,
+      adjustmentReview: { keep: [{ session: 0, block: 0 }] },
+    },
+    { provider: modified, clock },
+  );
+  expect(pending.adjustmentPreview).toEqual([]);
+  const applied = await decidePlannerAdjustment(...args, { expectedVersion: pending.version, apply: true }, now);
+  expect(applied.interpretation?.sessions[0]?.blocks[0]?.items[0]?.prescription.reps).toBe(4);
 });
 it("ajuste une proposition sans quota supplémentaire, avec la consigne du coach en tête", async () => {
   const a = await setup(),

@@ -197,6 +197,11 @@ export const createApiClient = (options: ApiClientOptions) => {
         undefined,
         signal,
       ),
+    decidePlannerAdjustment: (orgId: string, proposalId: string, expectedVersion: number, apply: boolean) =>
+      request("POST", `/orgs/${orgId}/planner/proposals/${proposalId}/adjustment`, plannerProposalResponse, {
+        expectedVersion,
+        apply,
+      }),
     removePlannerProposal: (orgId: string, proposalId: string, expectedVersion: number) =>
       request("DELETE", `/orgs/${orgId}/planner/proposals/${proposalId}`, okResponse, undefined, {
         expectedVersion: String(expectedVersion),

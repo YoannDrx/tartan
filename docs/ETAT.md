@@ -8,6 +8,10 @@ Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p
 
 La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.
 
+## Planificateur, revue des ajustements et semaine · 25 novembre 2026
+
+La demande propose séance ou sept jours, disciplines et disponibilités. Le coach peut comparer son ajustement, verrouiller des blocs et accepter ou annuler depuis un second appareil. Le calendrier garde les jours libres et les séances accessibles. La sélection partielle des jours est transactionnelle et rejouable, les clients installés peuvent toujours confirmer toute la proposition. Les 48 tests des propositions et 26 parcours Playwright avec prestataire simulé sont passés. La mesure sur consignes inédites et la dictée au stade restent ouvertes.
+
 **En une phrase.**
 - Fait : le plan du 15 novembre est mené jusqu'au lot 4. Le constructeur est terminé sur le web et sur le mobile, Maestro tourne sur iOS et Android, et les 173 fiches ont un geste animé, de profil ou de face.
 - Pas encore prouvé : l'IA n'est pas qualifiée, aucun vrai paiement n'a été fait et aucun téléphone physique n'a servi.

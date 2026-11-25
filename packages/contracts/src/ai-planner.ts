@@ -389,6 +389,16 @@ export const createPlannerProposalInput = z
   })
   .strict();
 export type CreatePlannerProposalInput = z.infer<typeof createPlannerProposalInput>;
+export const decidePlannerAdjustmentInput = z
+  .object({ expectedVersion: z.number().int().positive(), apply: z.boolean() })
+  .strict();
+export const adjustmentReviewRequest = z
+  .object({
+    keep: z
+      .array(z.object({ session: z.number().int().min(0).max(13), block: z.number().int().min(0).max(11) }))
+      .max(168),
+  })
+  .strict();
 export const clarifyPlannerProposalInput = z
   .object({
     operationId: uuid,
@@ -396,6 +406,7 @@ export const clarifyPlannerProposalInput = z
     text: z.string().trim().min(1).max(12000),
     reviewed: z.literal(true),
     // « Ajuster » seulement : la séance à l'écran, que l'ajustement modifie.
+    adjustmentReview: adjustmentReviewRequest.optional(),
     sessions: plannerScreenSessions,
   })
   .strict();
@@ -405,19 +416,23 @@ export const confirmPlannerProposalInput = z
   .object({
     expectedVersion: z.number().int().positive(),
     confirmed: z.literal(true),
+    selectedIndices: z.array(z.number().int().min(0).max(13)).min(1).max(14).optional(),
     sessions: z.array(plannerReviewedDraft).min(1).max(14),
   })
   .strict();
 export type ConfirmPlannerProposalInput = z.infer<typeof confirmPlannerProposalInput>;
 
-export const savePlannerReviewInput = confirmPlannerProposalInput.omit({ confirmed: true });
+export const savePlannerReviewInput = confirmPlannerProposalInput.omit({ confirmed: true, selectedIndices: true });
 export const removePlannerProposalQuery = z.object({ expectedVersion: z.coerce.number().int().positive() }).strict();
 export const preparePlannerDraftsInput = z.object({ expectedVersion: z.number().int().positive() }).strict();
 const plannerCreatedSessions = z
   .array(z.object({ id: uuid, version: z.number().int().positive() }))
   .min(1)
   .max(14);
-export const plannerConfirmationResult = z.object({ sessions: plannerCreatedSessions });
+export const plannerConfirmationResult = z.object({
+  sessions: plannerCreatedSessions,
+  partial: z.boolean().optional(),
+});
 // Réponse de relecture seulement : l'expansion locale des noms peut dépasser
 // les limites d'écriture. Le coach corrige le texte entier, jamais tronqué.
 // Confirmation et aperçu de charges conservent plannerReviewedDraft strict.
@@ -577,6 +592,12 @@ export const plannerProposalResponse = z.object({
   ),
   exerciseResolutions: z.array(z.object({ questionId: z.string(), exerciseId: uuid, name: z.string() })).optional(),
   phaseReviews: z.array(z.object({ date: isoDate, review: sessionPhaseReview })),
+  calendar: z
+    .array(z.object({ id: uuid, date: isoDate, title: z.string(), startTime: clockTime.nullable() }))
+    .optional(),
+  availableEquipment: z.array(z.string()).optional(),
+  adjustmentPreview: z.array(z.object({ before: z.array(z.string()), after: z.array(z.string()) })).optional(),
+  createdSessionIndices: z.array(z.number().int().nonnegative()).optional(),
   linkedSessions: z
     .array(
       z.discriminatedUnion("state", [

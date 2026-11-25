@@ -5,6 +5,7 @@ import {
   resolvePlannerExerciseInput,
   type ResolvePlannerExerciseInput,
   clarifyPlannerProposalInput,
+  decidePlannerAdjustmentInput,
   createPlannerProposalInput,
   plannerRichInterpretation,
   exerciseClassification,
@@ -35,6 +36,7 @@ import {
   type PlannerStreamMatch,
   type PlannerStreamPlanLine,
   type PlannerWarning,
+  type SequenceNode,
   PLANNER_LEGACY_WARNING_CODES,
   PLANNER_SLOT_EXERCISE_ID,
   PLANNER_SLOT_PREFIX,
@@ -45,6 +47,8 @@ import {
   sessionExerciseReferences,
   validSessionStructure,
   plannerSessionToDraft,
+  plannerPrescriptionToSession,
+  formatPrescription,
   plannerDisplayText,
   plannerRetentionDeadline,
   plannerPhaseChoicesForDate,
@@ -72,7 +76,7 @@ import { todayIso } from "@/lib/dates";
 import { type AiPlannerProposal, Prisma } from "@/generated/prisma/client";
 import { personalAthleteOf, requireOrgMember } from "../access";
 import { preparePhasePlanning } from "../training-phases.service";
-import { createReviewedPlannerDraft, buildSnapshot, plannerLinkedSession } from "../session.service";
+import { listPlanning, createReviewedPlannerDraft, buildSnapshot, plannerLinkedSession } from "../session.service";
 import { strengthResolutionInputsForAthletes } from "../strength.service";
 import { learnExerciseTermAlias, learnedExerciseAliases } from "./alias.service";
 import {
@@ -206,14 +210,92 @@ export function plannerLegacySlots(value: PlannerRichInterpretation, accepts: Re
   };
 }
 
+const stagedAdjustment = z.object({ candidate: plannerRichInterpretation, selection: plannerSelection });
+function adjustmentLines(value: PlannerRichInterpretation, bindings: PlannerBindings) {
+  const name = (token: string) => exerciseView(bindings, token)?.name ?? token;
+  return value.sessions.map((session) => [
+    [
+      historyDate(session.date),
+      session.startTime,
+      plannerDisplayText(session.title, bindings),
+      session.durationMin ? m.aiPlanner.estimatedMinutes(session.durationMin) : null,
+      ...session.targetTokens.map((token) => bindings.targets.find((t) => t.token === token)?.label),
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    ...session.blocks.flatMap((block) => {
+      const itemLines = (item: (typeof block.items)[number]) => {
+        const describe = (token: string, p: typeof item.prescription) =>
+          [
+            isPlannerSlotToken(token) ? (item.said ?? m.aiPlanner.screen.slot.label) : name(token),
+            formatPrescription(plannerPrescriptionToSession(p, token)),
+            p.notes && plannerDisplayText(p.notes, bindings),
+          ]
+            .filter(Boolean)
+            .join(" · ");
+        return [
+          describe(item.exerciseToken, item.prescription),
+          ...(item.autonomous
+            ? [m.builder.sequence.autonomousLine(describe(item.autonomous.exerciseToken, item.autonomous.prescription))]
+            : []),
+        ];
+      };
+      const nodes = (sequence: SequenceNode[]): string[] =>
+        sequence.flatMap((node) => {
+          if (node.kind === "recovery") return [m.builder.sequence.recoveryLine(node.durationS)];
+          if (node.kind === "repeat")
+            return [
+              [
+                plannerDisplayText(node.name, bindings),
+                m.builder.sequence.roundsLabel(node.rounds),
+                m.builder.sequence.recoveryLine(node.restBetweenRoundsS),
+              ].join(" · "),
+              ...nodes(node.children),
+            ];
+          const item = block.items.find((i) => i.ref === node.itemRef);
+          return item ? itemLines(item) : [];
+        });
+      return [
+        plannerDisplayText(block.name, bindings),
+        ...(block.sequence ? nodes(block.sequence) : block.items.flatMap(itemLines)),
+      ];
+    }),
+  ]);
+}
 export async function getPlannerProposal(userId: string, organizationId: string, id: string, now = new Date()) {
   const access = await accessFor(userId, organizationId);
   const row = await owned(userId, organizationId, id, now);
   const selection = plannerSelection.parse(row.selection),
     bindings = plannerBindings.parse(row.bindings);
   await assertPlannerTargets(prisma, access, selection);
+  const calendar =
+    selection.period.from !== selection.period.to && row.interpretation
+      ? (
+          await listPlanning(userId, organizationId, {
+            ...selection.period,
+            ...(selection.groupIds.length === 1 && !selection.athleteIds.length
+              ? { groupId: selection.groupIds[0] }
+              : {}),
+          })
+        ).sessions.map(({ id, title, date, startTime }) => ({ id, title, date, startTime }))
+      : undefined;
   const rich = row.interpretation ? plannerRichInterpretation.parse(row.interpretation) : null;
+  const staged = row.adjustmentPreview ? stagedAdjustment.parse(row.adjustmentPreview) : null;
+  const before = staged && rich ? adjustmentLines(rich, bindings) : [],
+    after = staged ? adjustmentLines(staged.candidate, bindings) : [];
+  const confirmed = readSelections(row).flatMap((receipt) => receipt.items);
+  const linkedIds = row.draftIds ? plannerProposalResponse.shape.draftIds.unwrap().parse(row.draftIds) : confirmed;
   return plannerProposalResponse.parse({
+    calendar,
+    ...(staged
+      ? {
+          adjustmentPreview: Array.from({ length: Math.max(before.length, after.length) }, (_, i) => ({
+            before: before[i] ?? [],
+            after: after[i] ?? [],
+          })).filter((pair) => JSON.stringify(pair.before) !== JSON.stringify(pair.after)),
+        }
+      : {}),
+    availableEquipment: bindings.hints?.equipment ?? bindings.space?.equipment,
     failure: await lastFailure(row),
     id: row.id,
     version: row.version,
@@ -256,15 +338,9 @@ export async function getPlannerProposal(userId: string, organizationId: string,
       ?.filter((r) => r.clarificationCount === row.clarificationCount && r.exerciseId)
       .map(({ questionId, exerciseId, name }) => ({ questionId, exerciseId, name })),
     phaseReviews: bindings.phaseReviews,
-    ...(row.draftIds
-      ? {
-          linkedSessions: await Promise.all(
-            plannerProposalResponse.shape.draftIds
-              .unwrap()
-              .parse(row.draftIds)
-              .map((session) => plannerLinkedSession(access, session.id)),
-          ),
-        }
+    ...(confirmed.length ? { createdSessionIndices: confirmed.map((item) => item.index) } : {}),
+    ...(linkedIds.length
+      ? { linkedSessions: await Promise.all(linkedIds.map((item) => plannerLinkedSession(access, item.id))) }
       : {}),
     draftIds: row.draftIds,
   });
@@ -373,6 +449,7 @@ async function executeProposal(
   operationId: string,
   claim: PlannerOperationClaim,
   execution: PlannerExecution,
+  review?: ClarifyPlannerProposalInput["adjustmentReview"],
 ) {
   const clock = execution.clock ?? (() => new Date());
   if (claim.state !== "claimed") return getPlannerProposal(userId, organizationId, proposalId, clock());
@@ -456,6 +533,40 @@ async function executeProposal(
         };
       else stored = shifted;
     }
+    if (review && previous) {
+      if (value.status !== "proposal") throw new PlannerProviderError("invalid_output", "compose");
+      const normalized = (text: string) =>
+        text
+          .normalize("NFD")
+          .replace(/\p{M}/gu, "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, " ")
+          .trim();
+      const request = normalized(row.pendingMessage ?? "");
+      const explicitlyKept = previous.sessions.flatMap((session, si) =>
+        session.blocks.flatMap((block, bi) => {
+          const name = normalized(plannerDisplayText(block.name, bindings));
+          return name &&
+            new RegExp(`(?:^| )(?:garde|conserve|preserve) (?:le |la |les |l )?${name}(?: |$)`).test(request)
+            ? [{ session: si, block: bi }]
+            : [];
+        }),
+      );
+      for (const kept of [...review.keep, ...explicitlyKept]) {
+        const original = previous.sessions[kept.session],
+          block = original?.blocks[kept.block],
+          target = value.sessions[kept.session];
+        if (
+          !original ||
+          !block ||
+          !target ||
+          original.date !== target.date ||
+          target.blocks[kept.block]?.name !== block.name
+        )
+          throw new AppError(409, "planner_proposal_conflict", m.aiPlanner.lockedBlock);
+        target.blocks[kept.block] = block;
+      }
+    }
     const checked = validatePlannerInterpretation(value, {
       period: stored.period,
       reviewedInstructions: context.instructions,
@@ -487,9 +598,24 @@ async function executeProposal(
         const saved = await tx.aiPlannerProposal.update({
           where: { id: proposalId },
           data: {
-            state: interpretation.status,
-            interpretation,
-            ...(stored !== selection ? { selection: stored } : {}),
+            ...(review && previous
+              ? {
+                  state: "proposal",
+                  adjustmentPreview: { candidate: interpretation, selection: stored },
+                  ...(row.savedReview
+                    ? {
+                        savedReview: {
+                          ...z.object({ sessions: savePlannerReviewInput.shape.sessions }).parse(row.savedReview),
+                          version: row.version + 1,
+                        },
+                      }
+                    : {}),
+                }
+              : {
+                  state: interpretation.status,
+                  interpretation,
+                  ...(stored !== selection ? { selection: stored } : {}),
+                }),
             messages,
             pendingMessage: null,
             version: { increment: 1 },
@@ -705,6 +831,8 @@ export async function clarifyPlannerProposal(
       const access = await accessFor(userId, organizationId, tx),
         row = await owned(userId, organizationId, proposalId, now, tx);
       const state = await effectiveState(row, now, tx);
+      if (row.weekConfirmations || row.adjustmentPreview || (input.adjustmentReview && state !== "proposal"))
+        throw conflict();
       // Une réponse suit une question ; un ajustement suit une proposition. Les brouillons créés la figent.
       // Chacun a son compteur : ajuster une séance ne consomme pas les précisions, et inversement.
       if (
@@ -730,9 +858,18 @@ export async function clarifyPlannerProposal(
         state === "proposal" && input.sessions
           ? await rebaseOnScreen(tx, organizationId, proposalId, previous, selection, bindings, input.sessions)
           : null;
+      if (
+        input.adjustmentReview?.keep.some(
+          ({ session, block }) => !(screen?.value ?? previous).sessions[session]?.blocks[block],
+        )
+      )
+        throw invalid();
       await tx.aiPlannerProposal.update({
         where: { id: proposalId },
         data: {
+          ...(input.adjustmentReview && input.sessions
+            ? { savedReview: { sessions: input.sessions, version: row.version } }
+            : {}),
           state: "processing",
           activeOperationId: input.operationId,
           pendingMessage,
@@ -741,7 +878,15 @@ export async function clarifyPlannerProposal(
       });
     },
   );
-  return executeProposal(userId, organizationId, proposalId, input.operationId, claim, execution);
+  return executeProposal(
+    userId,
+    organizationId,
+    proposalId,
+    input.operationId,
+    claim,
+    execution,
+    input.adjustmentReview,
+  );
 }
 
 const fullExercise = exerciseInput.omit({ id: true, media: true }).strict();
@@ -790,7 +935,7 @@ export async function resolvePlannerExercise(
         if (previous.fingerprint !== fingerprint) throw conflict();
         return;
       }
-      if (row.version !== input.expectedVersion) throw conflict();
+      if (row.adjustmentPreview || row.version !== input.expectedVersion) throw conflict();
       // La séance à l'écran accompagne le choix : elle devient la base, et rien de ce que le coach a retouché à la
       // main n'est perdu quand la séance est préparée de nouveau.
       const screen =
@@ -955,6 +1100,48 @@ export async function removePlannerProposal(
   return { ok: true };
 }
 
+export async function decidePlannerAdjustment(
+  userId: string,
+  organizationId: string,
+  proposalId: string,
+  input: z.infer<typeof decidePlannerAdjustmentInput>,
+  now = new Date(),
+) {
+  const { apply, expectedVersion } = decidePlannerAdjustmentInput.parse(input);
+  await prisma.$transaction(async (tx) => {
+    await lock(tx, organizationId);
+    const access = await accessFor(userId, organizationId, tx),
+      row = await owned(userId, organizationId, proposalId, now, tx);
+    if (row.state !== "proposal" || row.version !== expectedVersion || !row.adjustmentPreview) throw conflict();
+    const staged = stagedAdjustment.parse(row.adjustmentPreview);
+    await recheckPlannerBindings(
+      tx,
+      access,
+      apply ? staged.selection : plannerSelection.parse(row.selection),
+      plannerBindings.parse(row.bindings),
+    );
+    await tx.aiPlannerProposal.update({
+      where: { id: row.id },
+      data: {
+        adjustmentPreview: Prisma.DbNull,
+        version: { increment: 1 },
+        ...(apply
+          ? { selection: staged.selection, interpretation: staged.candidate, savedReview: Prisma.DbNull }
+          : row.savedReview
+            ? {
+                savedReview: {
+                  sessions: savePlannerReviewInput.shape.sessions.parse(
+                    z.object({ sessions: z.unknown() }).parse(row.savedReview).sessions,
+                  ),
+                  version: row.version + 1,
+                },
+              }
+            : {}),
+      },
+    });
+  });
+  return getPlannerProposal(userId, organizationId, proposalId, now);
+}
 export async function savePlannerReview(
   userId: string,
   organizationId: string,
@@ -967,7 +1154,12 @@ export async function savePlannerReview(
     await lock(tx, organizationId);
     const access = await accessFor(userId, organizationId, tx);
     const row = await owned(userId, organizationId, proposalId, now, tx);
-    if (row.version !== input.expectedVersion || (await effectiveState(row, now, tx)) !== "proposal") throw conflict();
+    if (
+      row.adjustmentPreview ||
+      row.version !== input.expectedVersion ||
+      (await effectiveState(row, now, tx)) !== "proposal"
+    )
+      throw conflict();
     const selection = plannerSelection.parse(row.selection);
     const bindings = plannerBindings.parse(row.bindings);
     await recheckPlannerBindings(tx, access, selection, bindings);
@@ -1219,7 +1411,12 @@ export async function previewPlannerLoads(
       await lock(tx, organizationId);
       const access = await accessFor(userId, organizationId, tx),
         row = await owned(userId, organizationId, proposalId, now, tx);
-      if (row.version !== input.expectedVersion || (await effectiveState(row, now, tx)) !== "proposal") throw conflict();
+      if (
+        row.adjustmentPreview ||
+        row.version !== input.expectedVersion ||
+        (await effectiveState(row, now, tx)) !== "proposal"
+      )
+        throw conflict();
       const selection = plannerSelection.parse(row.selection),
         bindings = plannerBindings.parse(row.bindings);
       await recheckPlannerBindings(tx, access, selection, bindings);
@@ -1275,6 +1472,17 @@ export async function previewPlannerLoads(
   );
 }
 
+const confirmedSelections = z.array(
+  z.object({
+    fingerprint: z.string(),
+    partial: z.boolean(),
+    items: z.array(
+      z.object({ index: z.number().int().nonnegative(), id: z.uuid(), version: z.number().int().positive() }),
+    ),
+  }),
+);
+const readSelections = (row: AiPlannerProposal) => confirmedSelections.parse(row.weekConfirmations ?? []);
+
 export async function confirmPlannerProposal(
   userId: string,
   organizationId: string,
@@ -1293,26 +1501,60 @@ export async function confirmPlannerProposal(
       const selection = plannerSelection.parse(row.selection),
         bindings = plannerBindings.parse(row.bindings);
       await assertPlannerTargets(tx, access, selection);
+      const receipts = readSelections(row);
+      const receipt = receipts.find((r) => r.fingerprint === fingerprint);
+      if (receipt)
+        return { sessions: receipt.items.map(({ id, version }) => ({ id, version })), partial: receipt.partial };
       if (row.state === "committed") {
         if (row.commitFingerprint !== fingerprint) throw conflict();
         return {
           sessions: z.array(z.object({ id: z.uuid(), version: z.number().int().positive() })).parse(row.draftIds),
         };
       }
-      if (row.version !== input.expectedVersion || (await effectiveState(row, now, tx)) !== "proposal") throw conflict();
+      if (
+        row.adjustmentPreview ||
+        row.version !== input.expectedVersion ||
+        (await effectiveState(row, now, tx)) !== "proposal"
+      )
+        throw conflict();
       await recheckPlannerBindings(tx, access, selection, bindings);
       const stored = plannerRichInterpretation.parse(row.interpretation);
       // Le brouillon ne se crée qu'une fois chaque emplacement tranché : fiche choisie, fiche créée, ou retiré.
-      if (plannerOpenSlots(stored).length) throw new AppError(409, "planner_slots_open", m.aiPlanner.slotsOpen);
+      const chosen = input.selectedIndices ?? input.sessions.map((_, i) => i);
+      const existing = receipts.flatMap((r) => r.items);
+      const already = new Set(existing.map((s) => s.index));
+      if (
+        (input.selectedIndices || receipts.length) &&
+        (input.sessions.length !== stored.sessions.length ||
+          chosen.some((i) => !input.sessions[i]) ||
+          new Set(chosen).size !== chosen.length)
+      )
+        throw conflict();
+      const indices = chosen.filter((i) => !already.has(i));
+      if (!indices.length)
+        return {
+          sessions: chosen.map((index) => {
+            const { id, version } = existing.find((item) => item.index === index)!;
+            return { id, version };
+          }),
+          partial: true,
+        };
+      const toCheck =
+        input.selectedIndices || receipts.length ? indices.map((i) => stored.sessions[i]!) : stored.sessions;
+      if (plannerOpenSlots({ sessions: toCheck }).length)
+        throw new AppError(409, "planner_slots_open", m.aiPlanner.slotsOpen);
       const sessions: { id: string; version: number }[] = [];
-      for (const draft of input.sessions) {
+      for (const index of indices) {
+        const draft = input.sessions[index]!;
         await assertReviewedScope(tx, organizationId, draft, selection, bindings);
         await reviewedAudience(tx, organizationId, draft);
         sessions.push(await createReviewedPlannerDraft(tx, userId, organizationId, draft));
       }
       // Une fiche « probable » que le coach a remplacée avant de créer le brouillon : son choix est retenu.
       const reviewed = new Map(
-        input.sessions.flatMap((draft) => draft.draft.blocks.flatMap((block) => block.items.map((i) => [i.ref, i]))),
+        indices
+          .map((i) => input.sessions[i]!)
+          .flatMap((draft) => draft.draft.blocks.flatMap((block) => block.items.map((i) => [i.ref, i]))),
       );
       const idOf = new Map(bindings.exercises.map((exercise) => [exercise.token, exercise.id]));
       for (const [s, session] of stored.sessions.entries())
@@ -1327,21 +1569,35 @@ export async function confirmPlannerProposal(
                 tx,
               );
           }
+      const added = sessions.map((s, i) => ({ ...s, index: indices[i]! }));
+      const all = [...existing, ...added].sort((a, b) => a.index - b.index);
+      const partial = Boolean(input.selectedIndices && all.length < stored.sessions.length);
+      if (partial) {
+        for (const [i, draft] of input.sessions.entries()) {
+          if (indices.includes(i) || already.has(i)) continue;
+          await assertReviewedScope(tx, organizationId, draft, selection, bindings, true);
+          await reviewedAudience(tx, organizationId, draft);
+        }
+      }
       await tx.aiPlannerProposal.update({
         where: { id: proposalId },
         data: {
-          state: "committed",
+          state: partial ? "proposal" : "committed",
+          ...(input.selectedIndices || receipts.length
+            ? { weekConfirmations: [...receipts, { fingerprint, items: added, partial }] }
+            : {}),
+          ...(partial ? { savedReview: { version: row.version + 1, sessions: input.sessions } } : {}),
           version: { increment: 1 },
-          committedAt: now,
-          commitFingerprint: fingerprint,
-          draftIds: sessions,
+          committedAt: partial ? null : now,
+          commitFingerprint: partial ? null : fingerprint,
+          ...(partial ? {} : { draftIds: all.map(({ id, version }) => ({ id, version })) }),
           expiresAt: new Date(
             Math.min(row.expiresAt.getTime(), plannerRetentionDeadline(row.createdAt, now).getTime()),
           ),
         },
       });
       await tx.organization.update({ where: { id: organizationId }, data: { lastBusinessActivityAt: now } });
-      return { sessions };
+      return input.selectedIndices || receipts.length ? { sessions, partial } : { sessions };
     },
     { timeout: 30000 },
   );

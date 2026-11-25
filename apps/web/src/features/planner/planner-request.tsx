@@ -6,8 +6,8 @@ import {
   type CreatePlannerProposalInput,
   type PlannerSelection,
 } from "@tartan/contracts";
-import { phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
-import { m } from "@tartan/i18n";
+import { plannerWeekDays, phasePlanningKey, type PhasePlanningReadiness } from "@tartan/domain";
+import { historyDate, m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { Check, ChevronDown, Mic, Square, X } from "lucide-react";
 import Link from "next/link";
@@ -147,6 +147,9 @@ export type PlannerRequestValue = {
   groupIds: string[];
   athleteIds: string[];
   date: string;
+  week?: boolean;
+  days?: string[];
+  discipline?: string;
   text: string;
   // Précisions facultatives : rien n'est supposé tant que le coach ne les touche pas.
   startTime: string;
@@ -159,6 +162,7 @@ export const plannerRequestFrom = (selection: PlannerSelection, equipment: Equip
   groupIds: selection.groupIds,
   athleteIds: selection.athleteIds,
   date: selection.period.from,
+  ...(selection.period.from !== selection.period.to ? { week: true } : {}),
   text: "",
   startTime: "",
   durationMin: null,
@@ -243,14 +247,23 @@ export function PlannerRequest({
     requestedAt: new Date(0).toISOString(),
     // Ni mode ni brief : le serveur comprend seul ce que la demande décrit et ce qu'elle laisse composer.
     selection: {
-      period: { from: value.date, to: value.date },
+      period: { from: value.date, to: value.week ? (plannerWeekDays(value.date).at(-1) ?? value.date) : value.date },
       groupIds: value.groupIds,
       athleteIds: value.athleteIds,
       exerciseIds: [],
       phaseChoices: [],
       phaseChoicesByDate: askPhases ? [{ date: value.date, choices: phases[value.date]?.review?.choices ?? [] }] : [],
     } satisfies PlannerSelection,
-    text: value.text.trim(),
+    text:
+      value.text.trim() &&
+      [
+        ...new Set([
+          value.text.trim(),
+          ...(value.week ? [m.aiPlanner.weeklyInstruction] : []),
+          ...(value.week && value.days?.length ? [m.aiPlanner.daysInstruction([...value.days].sort())] : []),
+          ...(value.discipline ? [m.aiPlanner.disciplineInstruction(value.discipline)] : []),
+        ]),
+      ].join("\n"),
     reviewed: true,
     // Cet écran sait montrer les emplacements à compléter et les points « À vérifier ».
     accepts: ["slots", "checks"],
@@ -320,8 +333,32 @@ export function PlannerRequest({
 
       <fieldset disabled={busy} className="flex min-w-0 flex-col gap-3">
         <legend className="t-section mb-1">{t.when}</legend>
+        <div className="flex flex-wrap gap-2">
+          {[false, true].map((week) => (
+            <Pill key={Number(week)} pressed={week === Boolean(value.week)} onClick={() => set({ week, days: [] })}>
+              {week ? m.aiPlanner.sevenDays : m.aiPlanner.oneSession}
+            </Pill>
+          ))}
+        </div>
+        {value.week && (
+          <Fold title={m.aiPlanner.availableDays} detail={value.days?.map(historyDate).join(" · ")}>
+            <div className="flex flex-wrap gap-2">
+              {plannerWeekDays(value.date).map((day) => (
+                <Pill
+                  key={day}
+                  pressed={value.days?.includes(day) ?? false}
+                  onClick={() => set({ days: toggle(value.days ?? [], day) })}
+                >
+                  {historyDate(day)}
+                </Pill>
+              ))}
+            </div>
+          </Fold>
+        )}
         <Field label={t.day} hint={t.dayHint} className="tablet:max-w-sm">
-          {(a) => <DateInput {...a} required value={value.date} onChange={(e) => set({ date: e.target.value })} />}
+          {(a) => (
+            <DateInput {...a} required value={value.date} onChange={(e) => set({ date: e.target.value, days: [] })} />
+          )}
         </Field>
       </fieldset>
 
@@ -431,6 +468,21 @@ export function PlannerRequest({
           <Field label={t.time} className="tablet:max-w-40">
             {(a) => (
               <Input {...a} type="time" value={value.startTime} onChange={(e) => set({ startTime: e.target.value })} />
+            )}
+          </Field>
+          <Field label={m.aiPlanner.discipline}>
+            {(a) => (
+              <select
+                {...a}
+                value={value.discipline ?? ""}
+                className="min-h-11 rounded border border-control-line bg-card px-2"
+                onChange={(e) => set({ discipline: e.target.value })}
+              >
+                <option value="">{m.exerciseClassification.unknown}</option>
+                {Object.values(m.disciplines).map((d) => (
+                  <option key={d}>{d}</option>
+                ))}
+              </select>
             )}
           </Field>
           <div role="group" aria-label={t.duration} className="flex flex-col gap-1.5">

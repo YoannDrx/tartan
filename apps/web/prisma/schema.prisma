@@ -1957,6 +1957,8 @@ model AiPlannerOperation {
 // Contenu privé de travail, purgé au plus tard après sept jours ou sous 24 h
 // après conversion. Le registre de quota ne conserve que sa référence.
 model AiPlannerProposal {
+  adjustmentPreview Json? @map("adjustment_preview")
+  weekConfirmations Json? @map("week_confirmations")
   savedReview Json? @map("saved_review")
   id String @id @db.Uuid
   organizationId String @map("organization_id") @db.Uuid
