@@ -50,6 +50,10 @@ Après l'audit du 14 novembre, le fondateur confirme :
 - **Quota vidéo par athlète** : chaque athlète envoie jusqu'à 8 vidéos par mois en Découverte et 20 en Coach et Club ; ces envois ne comptent pas dans le quota de l'espace (`ATHLETE_VIDEOS_PER_MONTH`, `packages/domain/src/plans.ts`).
 - **Constructeur** : la maquette du 14 novembre (cartes imbriquées colorées par famille, ajout à l'emplacement exact, ordre de l'athlète) est validée.
 
+## Décision du 25 novembre 2026 · consignes et fin de séance
+
+Le coach peut joindre une consigne vocale à chaque exercice de la séance et indiquer le nombre de foulées et l’espacement entre deux plots en pieds. Une fois sa séance validée, l’athlète peut laisser un débrief vocal que le coach écoute dans le suivi.
+
 ## Décision du 16 novembre 2026
 
 Le fondateur fixe la priorité : **la web app d'abord, entièrement fonctionnelle**, avant de reprendre les bêtas iOS et Android. Il ajoute au périmètre :
@@ -134,4 +138,4 @@ Côté athlète : tutoiement, phrases courtes, encourageant sans infantiliser (�
 Tout ajout passe par une décision explicite du fondateur, consignée ici.
 
 - V2 : parents et mineurs, comparaison de deux vidéos, statistiques de saut, planification de saison, bilan du matin, biométrie, PDF, tablettes, anglais.
-- V3 : messagerie, lancers, demi-fond, montres, bibliothèque communautaire, commentaire vocal.
+- V3 : messagerie, lancers, demi-fond, montres, bibliothèque communautaire, commentaires vocaux hors consignes et débrief de séance.

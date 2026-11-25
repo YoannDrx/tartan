@@ -24,10 +24,12 @@ env:
 - waitForAnimationToEnd
 - tapOn:
     id: sequence-edit-detail-a
+# Le centrage de Maestro sur iOS ajoute un grand balayage même après avoir trouvé le bouton.
+# Dans la feuille, il peut alors le faire passer sous le titre fixe avant le toucher.
 - scrollUntilVisible:
     element:
       id: set-plan-toggle
-    centerElement: true
+    visibilityPercentage: 100
     timeout: 20000
 - waitForAnimationToEnd
 - tapOn:
@@ -35,7 +37,7 @@ env:
 - scrollUntilVisible:
     element:
       id: set-plan-load-0
-    centerElement: true
+    visibilityPercentage: 100
     timeout: 20000
 - waitForAnimationToEnd
 - tapOn:
@@ -44,6 +46,18 @@ env:
     id: set-plan-reps-0
 - eraseText
 - inputText: "8"
+# Sur Android à 320 dp, le clavier couvre la deuxième saisie après les répétitions.
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - hideKeyboard
+      - waitForAnimationToEnd
+      - scrollUntilVisible:
+          element:
+            id: set-plan-load-0
+          visibilityPercentage: 100
+          timeout: 20000
 - tapOn:
     id: set-plan-load-0
 - eraseText
@@ -72,11 +86,15 @@ env:
 - scrollUntilVisible:
     element:
       id: sequence-move-out-detail-b
-    centerElement: true
+    visibilityPercentage: 100
     timeout: 20000
 - waitForAnimationToEnd
 - tapOn:
     id: sequence-move-out-detail-b
+- extendedWaitUntil:
+    notVisible:
+      id: sequence-move-out-detail-b
+    timeout: 10000
 # Remplacement en autonomie, dans le groupe : C est resté au-dessus, B est parti à la fin de la phase.
 - scrollUntilVisible:
     element:

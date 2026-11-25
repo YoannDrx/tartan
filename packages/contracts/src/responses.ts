@@ -180,6 +180,7 @@ export const athleteSessionDetail = athleteSessionCard.extend({
       comment: z.string().nullable(),
       version: z.number().int().optional(),
       clientId: z.string().nullable().optional(),
+      hasVoiceDebrief: z.boolean().optional(),
       detailedSets: z.array(detailedSetInput).optional(),
     })
     .nullable(),

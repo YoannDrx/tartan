@@ -123,13 +123,14 @@ export const listNotifications = async (
     prisma.notification.count({ where: { userId, readAt: null } }),
   ]);
   const page = rows.slice(0, limit);
+  const readAt = new Date();
   return {
     items: page.map((n) => {
       const payload = n.payload as Payload;
       return {
         id: n.id,
         type: n.type,
-        text: renderNotification(n.type as NotificationType, payload).body,
+        text: renderNotification(n.type as NotificationType, payload, readAt).body,
         link: payload.link ?? null,
         organizationId: payload.organizationId ?? null,
         readAt: n.readAt?.toISOString() ?? null,

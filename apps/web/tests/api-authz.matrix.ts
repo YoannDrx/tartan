@@ -52,6 +52,7 @@ export type Call = {
   query?: Record<string, string>;
   body?: unknown;
   form?: FormData;
+  rawAudio?: Uint8Array<ArrayBuffer>;
   headers?: Record<string, string>;
 };
 type Expected = Record<PersonaKey, number>;
@@ -152,6 +153,38 @@ export const buildWorld = async (planner: PlannerMode) => {
     category: "strength",
     cues: [],
     strengthLoadKind: "external_total",
+  });
+  const audio = new Uint8Array(await readFile(new URL("./fixtures/planner-audio/silence.m4a", import.meta.url)));
+  const clip = await prisma.coachVoiceInstruction.create({
+    data: { organizationId: org, createdBy: owner, bytes: audio, mimeType: "audio/mp4" },
+    select: { id: true },
+  });
+  const voiceSession = await saveScheduledSession(owner, org, {
+    date: addDays(TODAY, 15),
+    startTime: null,
+    location: null,
+    publishAt: null,
+    draft: {
+      ...sessionDraftFor(exercise.id),
+      blocks: [
+        {
+          name: "Test vocal",
+          variant: "both",
+          items: [{ exerciseId: exercise.id, prescription: { coachVoiceId: clip.id } }],
+        },
+      ],
+    },
+    assignments: [{ targetType: "athlete", targetId: p.athlete.athleteId }],
+    overrides: [],
+  });
+  await publishSession(owner, org, voiceSession.id);
+  const validation = await logSession(p.athlete.userId, org, voiceSession.id, {
+    clientId: "matrice-vocal",
+    status: "done",
+    variantDone: "club",
+  });
+  await prisma.sessionVoiceDebrief.create({
+    data: { sessionLogId: validation.id, mimeType: "audio/mp4", bytes: audio },
   });
   const session = await saveScheduledSession(owner, org, {
     date: TODAY,
@@ -255,7 +288,9 @@ export const buildWorld = async (planner: PlannerMode) => {
     invitationToken: invitation.link.split("/").pop()!,
     icalPath: new URL(await icalLink(p.athleteAutreGroupe.userId, org)).pathname.split("/").slice(-2),
     unsubscribeToken: unsubscribeUrl(p.athleteAutreGroupe.userId, "digest").split("/").pop()!,
-    audio: new Uint8Array(await readFile(new URL("./fixtures/planner-audio/silence.m4a", import.meta.url))),
+    audio,
+    voiceClipId: clip.id,
+    voiceSessionId: voiceSession.id,
     proposals: new Map<string, ReadyProposal>(),
     transcriptions: new Map<string, string>(),
     phaseWeek: 0,
@@ -581,6 +616,39 @@ export const MATRICE: Row[] = [
       ...sessionParams(w),
       body: { clientId: "matrice-validation", status: "done", variantDone: "club" },
     }),
+  },
+
+  {
+    route: "POST /api/v1/orgs/[orgId]/voice-instructions",
+    ...encadrants,
+    adjoint: 201,
+    coach: 201,
+    proprietaire: 201,
+    call: (w) => ({ rawAudio: w.audio }),
+  },
+  {
+    route: "GET /api/v1/orgs/[orgId]/voice-instructions/[clipId]",
+    ...membres,
+    adjoint: 404,
+    call: (w) => ({ params: { clipId: w.voiceClipId }, query: { sessionId: w.voiceSessionId } }),
+  },
+  {
+    route: "GET /api/v1/orgs/[orgId]/sessions/[sessionId]/voice-debrief",
+    ...membres,
+    adjoint: 403,
+    call: (w) => ({ params: { sessionId: w.voiceSessionId }, query: { athleteId: w.athleteId } }),
+  },
+  {
+    route: "PUT /api/v1/orgs/[orgId]/sessions/[sessionId]/voice-debrief",
+    ...athleteSeul,
+    athlete: 204,
+    call: (w) => ({ params: { sessionId: w.voiceSessionId }, rawAudio: w.audio }),
+  },
+  {
+    route: "DELETE /api/v1/orgs/[orgId]/sessions/[sessionId]/voice-debrief",
+    ...athleteSeul,
+    athlete: 204,
+    call: (w) => ({ params: { sessionId: w.voiceSessionId } }),
   },
 
   // Fiches des athlètes : l'athlète lit la sienne, l'encadrant celles de ses groupes.

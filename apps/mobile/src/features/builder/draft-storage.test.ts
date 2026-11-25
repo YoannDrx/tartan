@@ -1,5 +1,5 @@
 import { EXERCISE_CATALOG } from "@tartan/domain/exercise-catalog";
-import { prescriptionFields } from "./form";
+import { parsePrescriptionFields, prescriptionFields } from "./form";
 import { expect, it } from "vitest";
 import {
   builderDraftKey,
@@ -145,17 +145,23 @@ it("un deuxième écran ne peut effacer le dernier brouillon du premier", async 
   expect((await store.read("a"))?.value.duration).toBe("60");
 });
 
-it("conserve une prescription non appliquée avec une décimale inachevée", async () => {
+it("conserve la consigne vocale et une décimale inachevée à la reprise de la prescription", async () => {
   const { store } = setup();
+  const coachVoiceId = "75a4ab76-e862-4588-87ff-a533709cc933";
   const value = {
     ...draft(),
     prescription: {
       itemRef: "b-item",
-      fields: { ...prescriptionFields({ reps: 4 }), loadType: "kg" as const, loadValue: "45," },
+      fields: { ...prescriptionFields({ reps: 4, coachVoiceId }), loadType: "kg" as const, loadValue: "45," },
     },
   };
   await store.write("a", value, null);
-  expect((await store.read("a"))?.value.prescription?.fields.loadValue).toBe("45,");
+  const restored = (await store.read("a"))!.value.prescription!.fields;
+  expect(restored).toMatchObject({ coachVoiceId, loadValue: "45," });
+  expect(parsePrescriptionFields({ ...restored, loadValue: "45,5" })).toMatchObject({
+    success: true,
+    data: { coachVoiceId, reps: 4, load: { type: "kg", value: 45.5 } },
+  });
 });
 
 it("une reprise hors ligne ne remet pas à zéro le marqueur d'envoi et ne change pas la version", () => {

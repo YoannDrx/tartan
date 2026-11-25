@@ -12,6 +12,8 @@ const PrescriptionSummary = ({ value, context }: { value: Prescription; context:
   const labels = {
     sets: m.builder.sets,
     reps: m.builder.reps,
+    strides: m.builder.strides,
+    cone_spacing_ft: m.builder.coneSpacing,
     unit: m.nativeBuilder.unit,
     count: m.nativeBuilder.count,
     height_cm: m.nativeBuilder.height,
@@ -224,6 +226,8 @@ export const BuilderSummary = ({
           {Object.entries({
             sets: m.builder.sets,
             reps: m.builder.reps,
+            strides: m.builder.strides,
+            cone_spacing_ft: m.builder.coneSpacing,
             distance_m: m.builder.distance,
             duration_s: m.builder.durationS,
             rest_s: m.builder.rest,

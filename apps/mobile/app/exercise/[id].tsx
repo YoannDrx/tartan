@@ -21,6 +21,8 @@ import { space } from "../../src/ui/theme";
 const NUMBER_LABELS: Record<NumberField, string> = {
   sets: m.builder.sets,
   reps: m.builder.reps,
+  strides: m.builder.strides,
+  cone_spacing_ft: m.builder.coneSpacing,
   distance_m: m.builder.distance,
   duration_s: m.builder.durationS,
   rest_s: m.builder.rest,
@@ -48,6 +50,8 @@ const draftFrom = (exercise: ExerciseSummary | null): ExerciseDraft => {
     numbers: {
       sets: text(p.sets),
       reps: text(p.reps),
+      strides: text(p.strides),
+      cone_spacing_ft: text(p.cone_spacing_ft),
       distance_m: text(p.distance_m),
       duration_s: text(p.duration_s),
       rest_s: text(p.rest_s),

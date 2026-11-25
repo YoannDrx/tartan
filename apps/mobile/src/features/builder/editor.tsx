@@ -1236,6 +1236,7 @@ export const NativeSessionBuilder = ({
       ) : null}
       {editing && editedItem && editedExercise && editedValue ? (
         <PrescriptionEditor
+          orgId={orgId}
           key={`${editing.itemRef}-${editing.autonomous ? "autonomous" : (editing.athleteId ?? "all")}`}
           title={
             editing.autonomous

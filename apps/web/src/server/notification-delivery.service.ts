@@ -141,11 +141,11 @@ const initialize = async (notification: Notification, now: Date) => {
   });
 };
 
-const send = async (delivery: Delivery): Promise<DeliveryResult | { state: "skipped"; code: string }> => {
+const send = async (delivery: Delivery, now: Date): Promise<DeliveryResult | { state: "skipped"; code: string }> => {
   const n = delivery.notification;
   const payload = n.payload as Payload;
   const type = n.type as NotificationType;
-  const text = renderNotification(type, payload);
+  const text = renderNotification(type, payload, now);
   if (delivery.channel === "email") {
     const user = await prisma.user.findUnique({
       where: { id: n.userId },
@@ -241,7 +241,7 @@ const attempt = async (delivery: Delivery, now: Date) => {
   const result =
     now.getTime() >= expires
       ? { state: "failed" as const, code: delivery.errorCode ?? "delivery_expired" }
-      : await send(delivery);
+      : await send(delivery, now);
   const retry = result.state === "retry";
   const receipt = result.state === "receipt" || (retry && result.poll);
   const nextDelay = receipt ? 15 * MINUTE : Math.min(60, 2 ** Math.min(delivery.attempts, 6)) * MINUTE;

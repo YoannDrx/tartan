@@ -193,7 +193,7 @@ export const sendEveQuestions = async (now: Date = new Date()): Promise<number> 
       await notify(
         remaining,
         "session_eve",
-        { organizationId: session.organizationId, sessionId: session.id, link: `/seance/${session.id}` },
+        { date: tomorrow, organizationId: session.organizationId, sessionId: session.id, link: `/seance/${session.id}` },
         now,
       );
       sent += remaining.length;

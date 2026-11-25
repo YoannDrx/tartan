@@ -16,9 +16,19 @@ export const freezeSessionPrescriptions = async (
 ) => {
   const session = await tx.scheduledSession.findUniqueOrThrow({
     where: { id: sessionId },
-    include: { organization: { select: { progressionEnabled: true } }, overrides: true },
+    include: {
+      organization: { select: { progressionEnabled: true } },
+      overrides: true,
+      voiceInstructions: { select: { id: true }, take: 1 },
+    },
   });
-  if (!session.publishedAt || (!session.organization.progressionEnabled && !session.prescriptionFrozenAt)) return;
+  // La consigne écoutée par un athlète qui a validé reste celle de sa version,
+  // y compris dans un espace qui n'utilise pas les statistiques de progression.
+  if (
+    !session.publishedAt ||
+    (!session.organization.progressionEnabled && !session.prescriptionFrozenAt && !session.voiceInstructions.length)
+  )
+    return;
   const frozenAt = new Date();
   if (!session.prescriptionFrozenAt)
     await tx.scheduledSession.update({ where: { id: sessionId }, data: { prescriptionFrozenAt: frozenAt } });

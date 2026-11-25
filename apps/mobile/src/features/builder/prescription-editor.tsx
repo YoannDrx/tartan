@@ -3,6 +3,7 @@ import { m, strengthTestLabel } from "@tartan/i18n";
 import { Plus, Trash2 } from "lucide-react-native";
 import { useId, useState } from "react";
 import { Alert, View } from "react-native";
+import { VoiceEditor } from "../session-voice";
 import { Button, Chip, Field, IconButton, T } from "../../ui/primitives";
 import { Sheet } from "../../ui/sheet";
 import { radius, space, usePalette } from "../../ui/theme";
@@ -130,6 +131,7 @@ const SetPlanFields = ({
 };
 
 export const PrescriptionEditor = ({
+  orgId,
   title,
   exercise,
   value,
@@ -140,6 +142,7 @@ export const PrescriptionEditor = ({
   fields,
   onFieldsChange,
 }: {
+  orgId?: string;
   title: string;
   exercise: { id: string; name: string };
   value: Prescription;
@@ -150,12 +153,15 @@ export const PrescriptionEditor = ({
   fields: PrescriptionFields;
   onFieldsChange: (fields: PrescriptionFields) => void;
 }) => {
+  const [voiceBusy, setVoiceBusy] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [error, setError] = useState("");
   const uid = useId();
   const labels = {
     sets: m.builder.sets,
     reps: m.builder.reps,
+    strides: m.builder.strides,
+    cone_spacing_ft: m.builder.coneSpacing,
     distance_m: m.builder.distance,
     duration_s: m.builder.durationS,
     rest_s: m.builder.rest,
@@ -176,6 +182,7 @@ export const PrescriptionEditor = ({
     onApply(result.data);
   };
   const close = () => {
+    if (voiceBusy) return;
     if (JSON.stringify(fields) === JSON.stringify(prescriptionFields(value))) {
       onClose();
       return;
@@ -186,7 +193,12 @@ export const PrescriptionEditor = ({
     ]);
   };
   return (
-    <Sheet visible title={title} onClose={close} footer={<Button label={m.nativeBuilder.apply} testID="prescription-apply" onPress={apply} />}>
+    <Sheet
+      visible
+      title={title}
+      onClose={close}
+      footer={<Button label={m.nativeBuilder.apply} testID="prescription-apply" disabled={voiceBusy} onPress={apply} />}
+    >
       <T variant="bodyStrong">{exercise.name}</T>
       {error ? (
         <T tone="danger" accessibilityRole="alert">
@@ -296,6 +308,14 @@ export const PrescriptionEditor = ({
         multiline
         onChangeText={(notes) => update({ notes })}
       />
+      {orgId ? (
+        <VoiceEditor
+          orgId={orgId}
+          clipId={fields.coachVoiceId}
+          onBusyChange={setVoiceBusy}
+          onChange={(coachVoiceId) => update({ coachVoiceId })}
+        />
+      ) : null}
     </Sheet>
   );
 };

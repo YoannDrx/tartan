@@ -1,13 +1,61 @@
 // Textes français de Tartan. Côté athlète : tutoiement, phrases courtes.
 // Côté coach : sobre et précis, vocabulaire du métier (§ 4.5).
 export const fr = {
+  sessionVoice: {
+    instruction: "Consigne vocale du coach",
+    debrief: "Débrief vocal de la séance",
+    record: "Enregistrer un vocal",
+    stop: "Arrêter le micro",
+    send: "Envoyer au coach",
+    attach: "Joindre à l’exercice",
+    remove: "Retirer le vocal",
+    replace: "Réenregistrer",
+    discard: "Abandonner cet enregistrement",
+    starting: "En attente du micro…",
+    recording: "Enregistrement en cours (3 min maximum).",
+    finishing: "Préparation du vocal…",
+    sending: "Envoi du vocal…",
+    ready: "Tu peux réécouter le vocal avant de l’envoyer.",
+    denied: "Autorise le micro dans les réglages de ton appareil, puis réessaie.",
+    unsupported: "Ce navigateur ne permet pas d’enregistrer un vocal. Ouvre la séance dans un navigateur récent.",
+    failed: "L’enregistrement a été interrompu. Tu peux recommencer.",
+    sendFailed: "Le vocal n’a pas pu être envoyé. Vérifie ta connexion et réessaie.",
+    removeFailed: "Le vocal n’a pas pu être retiré. Réessaie.",
+    listenFailed: "La lecture a échoué. Vérifie ta connexion et réessaie.",
+    offline: "Tu pourras ajouter ton vocal depuis la séance après sa synchronisation.",
+    consentHint: "Pour partager un débrief vocal, active le consentement aux données de santé dans tes réglages.",
+    sent: "Débrief envoyé au coach.",
+    attached: "Consigne jointe à l’exercice.",
+    removed: "Vocal retiré.",
+    preview: "Réécouter l’enregistrement",
+  },
   // Les unités affichées après une valeur déjà mise en forme.
   units: {
     kg: (value: string | number) => `${value} kg`,
     seconds: "s",
+    strides: (value: number) => `${value} foulée${value > 1 ? "s" : ""}`,
+    coneSpacing: (value: number) => `${String(value).replace(".", ",")} pied${value >= 2 ? "s" : ""} entre deux plots`,
     // Les marques d'un essai de saut, comme sur une feuille de concours.
     cleared: "O",
     failed: "X",
+  },
+  notificationDays: {
+    today: "aujourd’hui",
+    tomorrow: "demain",
+    yesterday: "hier",
+    published: (coach: string, day: string) => day ? `${coach} t'a envoyé une séance pour ${day}` : `${coach} t'a envoyé une séance`,
+    dated: (date: string) => `le ${date}`,
+    session: (day: string) => {
+      if (day === "aujourd’hui" || day === "hier") return `Ta séance d’${day}`;
+      if (day.startsWith("le ")) return `Ta séance du ${day.slice(3)}`;
+      return day ? `Ta séance de ${day}` : "Ta séance";
+    },
+    updated: (session: string) => `${session} a été modifiée`,
+    cancelled: (session: string) => `${session} est annulée`,
+    autonomous: (session: string) => `${session} en autonomie est prête`,
+    attendance: (day: string, past: boolean) => past || !day ? `Présence au club${day ? ` ${day}` : ""} ?` : `Seras-tu au club ${day} ?`,
+    blocked: (day: string) => `La séance programmée${day ? ` pour ${day}` : ""} attend ta relecture : son auteur n'a plus accès`,
+    absence: (athlete: string, day: string, past: boolean) => past ? `Absence signalée par ${athlete} pour ${day}` : `${athlete} ne viendra pas${day ? ` ${day}` : ""}`,
   },
   brand: {
     name: "Tartan",
@@ -899,7 +947,7 @@ export const fr = {
     checkTranscription: "Vérifier la transcription",
     microphoneSettings: "Ouvrir les réglages du micro",
     microphonePermission:
-      "Tartan utilise le micro pour dicter tes consignes de séance et enregistrer le son des vidéos.",
+      "Tartan utilise le micro pour les consignes et les débriefs vocaux, la dictée du planificateur et le son des vidéos.",
     microphoneDenied:
       "Le micro n’est pas autorisé. Tu peux écrire ta consigne ou autoriser le micro dans les réglages du téléphone.",
     recordingFailed: "La dictée a été interrompue. Tu peux écrire ta consigne ou recommencer.",
@@ -1498,7 +1546,7 @@ export const fr = {
           },
           sante: {
             q: "Et mes données de santé ?",
-            a: "Effort ressenti, douleurs et blessures ne sont enregistrés qu'avec ton accord, facultatif. Tu le retires quand tu veux depuis Réglages : ces données sont alors effacées.",
+            a: "L’effort ressenti, les douleurs, les blessures et le débrief vocal demandent ton accord, facultatif. Tu le retires quand tu veux depuis Réglages : ces données sont alors effacées.",
           },
           exporter: {
             q: "Comment récupérer mes données ?",
@@ -1819,7 +1867,7 @@ export const fr = {
       "Tu as moins de 15 ans : un parent doit donner son accord pour les informations de santé et les vidéos.",
     consentTerms: "J'accepte les conditions d'utilisation et la politique de confidentialité.",
     consentHealth:
-      "J'accepte que mes informations de santé (blessures, douleurs, effort ressenti) soient traitées et visibles par mes coachs.",
+      "J'accepte que mes informations de santé (blessures, douleurs, effort ressenti, débriefs vocaux) soient traitées et visibles par mes coachs.",
     consentVideo: "J'accepte que mes coachs me filment et conservent mes vidéos d'entraînement.",
     consentOptional:
       "Tu peux refuser : l'app marche quand même, ces fonctions restent masquées. Tu pourras changer d'avis dans les réglages.",
@@ -1836,7 +1884,7 @@ export const fr = {
     lead: (athlete: string, coach: string) =>
       `${athlete} rejoint le groupe de ${coach}. Comme il ou elle a moins de 15 ans, ton accord est nécessaire pour deux usages :`,
     health:
-      "Traiter ses informations de santé (blessures, douleurs, effort ressenti), visibles uniquement par ses coachs.",
+      "Traiter ses informations de santé (blessures, douleurs, effort ressenti, débriefs vocaux), visibles uniquement par ses coachs.",
     video: "Filmer ses gestes sportifs et conserver ces vidéos, visibles uniquement par ses coachs et par lui ou elle.",
     otherParent: "L'autre parent est présumé d'accord et peut s'y opposer à tout moment en nous écrivant.",
     grant: "Donner mon accord",
@@ -2562,6 +2610,8 @@ export const fr = {
     loadPct: "% du max",
     test: "Test de référence",
     contacts: "Contacts au sol",
+    strides: "Nombre de foulées",
+    coneSpacing: "Espacement entre deux plots (pieds)",
     notes: "Consigne",
   },
   nativeBuilder: {
@@ -3177,7 +3227,7 @@ export const fr = {
     inviteCoach: "Inviter un coach",
     privacy: "Confidentialité",
     healthConsent: "Données de santé",
-    healthConsentDetail: "Blessures, douleurs, effort ressenti.",
+    healthConsentDetail: "Blessures, douleurs, effort ressenti et débriefs vocaux de séance.",
     videoConsent: "Vidéos",
     videoConsentDetail: "Être filmé et conserver mes vidéos.",
     deleteAccount: "Supprimer mon compte",
@@ -3197,7 +3247,7 @@ export const fr = {
     consentPerSpace: "Tu suis plusieurs espaces : donne ton accord depuis les réglages de chacun d'eux.",
     healthRevokeTitle: "Retirer ton accord pour la santé ?",
     healthRevokeDetail:
-      "Ton effort ressenti, tes douleurs et tes blessures de cet espace seront effacés aussitôt, et ça ne se rattrape pas. Les exports déjà faits et les copies de sauvegarde peuvent en garder une trace pendant 30 jours au plus.",
+      "Ton effort ressenti, tes douleurs, tes blessures et tes débriefs vocaux de cet espace seront effacés aussitôt, et ça ne se rattrape pas. Les exports déjà faits et les copies de sauvegarde peuvent en garder une trace pendant 30 jours au plus.",
     videoRevokeTitle: "Retirer ton accord pour les vidéos ?",
     videoRevokeDetail:
       "Tes vidéos de cet espace seront masquées à tes coachs aussitôt, puis supprimées dans 30 jours, sauf si tu redonnes ton accord d'ici là.",
@@ -4226,6 +4276,8 @@ export const fr = {
     videoDisabled: "L'envoi vidéo n'est pas encore configuré sur ce serveur.",
     videoStorageFull: "L'espace vidéo est plein. Supprime une ancienne vidéo, ou demande à ton coach de le faire.",
     consentRequired: "L'accord de l'athlète est nécessaire pour cette action.",
+    voiceInvalid: "Ce vocal est illisible ou dépasse trois minutes ou 3 Mio.",
+    voiceRequiresCompletion: "Termine ta séance avant d’envoyer ton débrief vocal.",
     appleNotLinked: "Ce compte n'est pas relié à Apple.",
     appleUnavailable: "Apple ne répond pas pour l'instant. Réessaie plus tard.",
   },
@@ -4664,7 +4716,7 @@ export const fr = {
       terms: "J'accepte les conditions d'utilisation et la politique de confidentialité.",
       health: "Noter mon effort ressenti et mes douleurs",
       healthWhy:
-        "Sert à noter ton effort ressenti et une douleur après la séance. Personne d'autre ne le voit dans ton espace.",
+        "Sert à noter ton effort ressenti, une douleur ou un débrief vocal après la séance. Personne d'autre ne le voit dans ton espace.",
       video: "Filmer et revoir mes gestes",
       videoWhy: "Sert à filmer et revoir tes gestes. Tes vidéos restent dans ton espace.",
       optional: "Ces deux accords sont facultatifs : tu pourras changer d'avis dans les réglages.",

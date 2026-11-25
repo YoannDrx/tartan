@@ -1,5 +1,6 @@
 "use client";
 
+import { CoachDebrief } from "@/features/sessions/session-voice";
 import { TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { m } from "@tartan/i18n";
@@ -30,12 +31,14 @@ const nameOf = (athlete: SessionAthlete) => athlete.name;
 // Les retours des athlètes d'une séance. Un grand groupe se lit par tranches de trente : le compte par état porte
 // sur tout le groupe, la recherche retrouve un nom, et un lien vers un athlète précis l'ouvre où qu'il soit.
 export const SessionReturns = ({
+  organizationId,
   sessionId,
   athletes,
   canEdit,
   progressionEnabled,
   returnTo,
 }: {
+  organizationId: string;
   sessionId: string;
   athletes: SessionAthlete[];
   canEdit: boolean;
@@ -100,6 +103,9 @@ export const SessionReturns = ({
                     <TriangleAlert aria-hidden className="size-4 shrink-0" />
                     {painLabel(a.pain)}
                   </p>
+                ) : null}
+                {a.hasVoiceDebrief ? (
+                  <CoachDebrief organizationId={organizationId} sessionId={sessionId} athleteId={a.athleteId} />
                 ) : null}
                 {a.comment ? <p className="mt-1 break-words">{a.comment}</p> : null}
                 {!a.hasAccount && a.status !== "done" && canEdit ? (

@@ -123,7 +123,7 @@ test("glisser une carte dans un groupe, l'y réordonner puis l'en sortir", async
   await expectNoHorizontalScroll(page);
 });
 
-test("l'athlète suit A/B/A/B et lance la récupération sans créer de série fictive", async ({ page, browser }) => {
+test("l'athlète suit A/B/A/B et lance la récupération sans créer de série fictive", async ({ page, browser }, info) => {
   const { groupLink, joinAsAthlete, today } = await import("./journeys");
   await createCoachSpace(page, "Ordre");
   const me = await (await page.request.get("/api/v1/me")).json();
@@ -131,7 +131,11 @@ test("l'athlète suit A/B/A/B et lance la récupération sans créer de série f
   const { page: athlete, context } = await joinAsAthlete(browser, await groupLink(page), "Lina");
   try {
     const builder = await (await page.request.get(`${root}/session-builder`)).json();
-    const exercises = builder.exercises.slice(0, 2);
+    // L’accessibilité du lecteur vidéo tiers est indépendante du parcours de circuit.
+    const exercises = builder.exercises.filter((exercise: { media: unknown }) => !exercise.media).slice(0, 2);
+    expect(exercises).toHaveLength(2);
+    const note = "Pose le pied sous le bassin avant de repartir.";
+    const widths = info.project.name === "desktop" ? [768, 1440] : [390];
     const response = await page.request.post(`${root}/sessions`, {
       data: {
         date: today(),
@@ -154,7 +158,7 @@ test("l'athlète suit A/B/A/B et lance la récupération sans créer de série f
               items: exercises.map((e: { id: string }, i: number) => ({
                 ref: `item-${i}`,
                 exerciseId: e.id,
-                prescription: { sets: 1, reps: 5, rest_s: 30 },
+                prescription: { sets: 1, reps: 5, rest_s: 30, ...(i === 0 ? { notes: note } : {}) },
               })),
               sequence: [
                 {
@@ -181,7 +185,27 @@ test("l'athlète suit A/B/A/B et lance la récupération sans créer de série f
         await page.request.post(`${root}/sessions/${saved.id}/publish`, { data: { expectedVersion: saved.version } })
       ).ok(),
     ).toBe(true);
+    await athlete.emulateMedia({ reducedMotion: "reduce" });
+    await athlete.goto(`/seance/${saved.id}`, { waitUntil: "networkidle" });
+    await expect(athlete.getByText(note, { exact: true }).first()).toBeVisible();
+    for (const width of widths) {
+      await athlete.setViewportSize({ width, height: 900 });
+      await expectNoHorizontalScroll(athlete);
+      await expectAccessible(athlete);
+      if (process.env.TARTAN_SESSION_CAPTURES)
+        await athlete.screenshot({ path: `/tmp/tartan-session-detail-${width}.png`, fullPage: true });
+    }
     await athlete.goto(`/seance/${saved.id}/mode`, { waitUntil: "networkidle" });
+    await expect(athlete.getByRole("heading", { name: m.sessionMode.cues, exact: true })).toBeVisible();
+    await expect(athlete.getByText(note, { exact: true })).toBeVisible();
+    for (const width of widths) {
+      await athlete.setViewportSize({ width, height: 900 });
+      await expectNoHorizontalScroll(athlete);
+      await expectAccessible(athlete);
+      await expectNoMotion(athlete);
+      if (process.env.TARTAN_SESSION_CAPTURES)
+        await athlete.screenshot({ path: `/tmp/tartan-session-mode-${width}.png`, fullPage: true });
+    }
     await expect(athlete.getByRole("heading", { level: 1 })).toHaveText(exercises[0].name);
     // Dernière série d'un tour sans repos : l'étape suivante arrive d'elle-même.
     await athlete.getByRole("button", { name: m.sessionMode.setTodo(1), exact: true }).click();

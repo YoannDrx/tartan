@@ -30,6 +30,7 @@ export const coachSessionDetail = z.object({
       rpe: z.number().nullable(),
       durationMin: z.number().nullable(),
       comment: z.string().nullable(),
+      hasVoiceDebrief: z.boolean().optional(),
       pain: z.object({ bodyArea: z.string(), side: z.string(), intensity: z.number() }).nullable(),
       sets: z.array(
         z.object({

@@ -9,6 +9,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, IconButton } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ExternalVideo } from "@/features/exercises/exercise-video";
+import { ActivityPicto } from "@/components/pictos";
+import { categoryColors } from "@/lib/activity-colors";
+import { ExerciseVoice } from "@/features/sessions/session-voice";
 import { cn } from "@/lib/cn";
 import { MovementGuideDisclosure } from "@/features/exercises/exercise-guide";
 import { QuickValidate } from "./validation";
@@ -176,10 +179,12 @@ export const SessionMode = ({
   const setCount = prescribedSetCount(item.prescription);
   const plan = item.prescription.setPlan;
   const doneCount = Array.from({ length: setCount }, (_, i) => checked[`${item.ref}#${i}`]).filter(Boolean).length;
+  const block = session.blocks.find((block) => block.items.some((step) => step.ref === item.ref));
+  const tint = categoryColors(recovery ? "mobility" : item.category);
   const last = index === items.length - 1;
   return (
     <main className="scene-dark min-h-dvh bg-ink text-fg">
-      <div className="mx-auto flex min-h-dvh max-w-xl flex-col gap-4 p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+      <div className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-5 p-4 tablet:gap-6 tablet:p-8 pb-[max(16px,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-3">
           <ConfirmDialog
             title={m.sessionMode.quitTitle}
@@ -209,14 +214,31 @@ export const SessionMode = ({
           </div>
         </div>
 
-        {item.rounds?.length ? (
-          <p className="text-soft">
-            {item.rounds.map((r) => m.builder.sequence.round(r.name, r.round, r.rounds)).join(" · ")}
-          </p>
-        ) : null}
-        <h1 ref={heading} tabIndex={-1} className="t-display outline-none">
-          {item.name}
-        </h1>
+        <header
+          className="flex flex-col gap-2 rounded-card border px-4 py-4 tablet:px-6 tablet:py-5"
+          style={{ backgroundColor: tint.background, borderColor: tint.text, color: tint.text }}
+        >
+          {block?.name ? (
+            <p className="flex items-center gap-2 font-semibold">
+              {recovery ? (
+                <Timer aria-hidden className="size-5" />
+              ) : (
+                <ActivityPicto kind={item.category} className="size-5" />
+              )}
+              {block.name}
+            </p>
+          ) : null}
+          <h1 ref={heading} tabIndex={-1} className="t-display break-words outline-none">
+            {item.name}
+          </h1>
+          {item.rounds?.length ? (
+            <p>{item.rounds.map((r) => m.builder.sequence.round(r.name, r.round, r.rounds)).join(" · ")}</p>
+          ) : null}
+          {item.summary ? <p className="t-num text-[22px] leading-snug">{item.summary}</p> : null}
+          {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg === null ? (
+            <p>{m.today.loadMissing}</p>
+          ) : null}
+        </header>
 
         <Demo item={item} speed={speed} />
         {(item.media as Media | null)?.kind === "upload" ? (
@@ -239,24 +261,30 @@ export const SessionMode = ({
           </div>
         ) : null}
 
-        <p className="t-num text-[22px] leading-snug">{item.summary}</p>
-        {item.prescription.load?.type === "pct_1rm" && item.resolvedLoadKg === null ? (
-          <p className="text-link">{m.today.loadMissing}</p>
+        {item.prescription.notes || item.cues.length || item.prescription.coachVoiceId || item.guide ? (
+          <section className="flex flex-col gap-3 rounded-card border border-card-line bg-card-raised p-4 tablet:px-6">
+            <h2 className="t-section">{m.sessionMode.cues}</h2>
+            {item.prescription.notes ? (
+              <p className="whitespace-pre-line break-words">{item.prescription.notes}</p>
+            ) : null}
+            <ExerciseVoice
+              organizationId={organizationId}
+              sessionId={session.id}
+              clipId={item.prescription.coachVoiceId}
+            />
+            {item.cues.length ? (
+              <ul className="flex list-disc flex-col gap-2 pl-5">
+                {item.cues.map((cue, i) => (
+                  <li key={i}>{cue}</li>
+                ))}
+              </ul>
+            ) : null}
+            {item.guide ? <MovementGuideDisclosure guide={item.guide} /> : null}
+          </section>
         ) : null}
-        {item.prescription.notes ? <p>{item.prescription.notes}</p> : null}
-
-        {item.cues.length ? (
-          <ul className="flex list-disc flex-col gap-1.5 rounded-card bg-card-raised py-3 pl-8 pr-4">
-            {item.cues.map((cue) => (
-              <li key={cue}>{cue}</li>
-            ))}
-          </ul>
-        ) : null}
-
-        {item.guide ? <MovementGuideDisclosure guide={item.guide} /> : null}
 
         {!recovery ? (
-          <section className="flex flex-col gap-2">
+          <section className="flex flex-col gap-3 rounded-card border border-card-line p-4 tablet:px-6">
             <div className="flex items-baseline justify-between">
               <h2 className="t-section text-soft">{m.sessionMode.sets}</h2>
               <span className="t-num text-[20px]">
@@ -347,7 +375,7 @@ export const SessionMode = ({
         ) : null}
 
         {restDuration ? (
-          <div className="flex items-center gap-3 rounded-card bg-card-raised py-2.5 pl-4 pr-2.5">
+          <div className="flex items-center gap-2 rounded-card border border-control-line bg-card-raised py-2.5 pl-4 pr-2.5">
             <Timer aria-hidden className="size-5 shrink-0 text-link" />
             <span className="flex-1">{recovery ? m.builder.sequenceRecovery : m.sessionMode.rest}</span>
             <span role="timer" className="t-num text-[22px]">
@@ -380,7 +408,7 @@ export const SessionMode = ({
             )}
           </p>
         ) : null}
-        <div className="mt-auto flex flex-col gap-2 pt-2">
+        <div className="mt-auto flex flex-col gap-3 border-t border-card-line pt-4">
           {last ? (
             <>
               <h2 className="t-h2">{m.validation.title}</h2>

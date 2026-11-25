@@ -4,6 +4,7 @@ import { capitalize, formatDateLong, m } from "@tartan/i18n";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
+import { debriefUrl, VoicePlayer } from "../../src/features/session-voice";
 import { CommentsSection } from "../../src/features/comments";
 import { api } from "../../src/lib/api";
 import { errorMessage } from "../../src/lib/errors";
@@ -20,11 +21,15 @@ type Athlete = CoachSessionDetail["athletes"][number];
 
 const AthleteRow = ({
   athlete,
+  orgId,
+  sessionId,
   onRemind,
   reminding,
   onSets,
 }: {
   athlete: Athlete;
+  orgId: string;
+  sessionId: string;
   onRemind: () => void;
   reminding: boolean;
   onSets?: () => void;
@@ -70,6 +75,9 @@ const AthleteRow = ({
           </T>
         ) : null}
         {athlete.comment ? <T variant="small">{athlete.comment}</T> : null}
+        {athlete.hasVoiceDebrief ? (
+          <VoicePlayer url={debriefUrl(orgId, sessionId, athlete.athleteId)} label={m.sessionVoice.debrief} />
+        ) : null}
         {onSets ? (
           <Button
             compact
@@ -324,6 +332,8 @@ export default function CoachSession() {
                 {i > 0 ? <Divider /> : null}
                 <AthleteRow
                   athlete={a}
+                  orgId={orgId}
+                  sessionId={id}
                   reminding={remind.isPending}
                   onRemind={() => remind.mutate([a.athleteId])}
                   onSets={
