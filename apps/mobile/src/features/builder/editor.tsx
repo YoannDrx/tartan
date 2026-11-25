@@ -212,17 +212,20 @@ export const NativeSessionBuilder = ({
     // Regroupe une rafale de frappes ; quitter ou envoyer force la dernière copie.
     const timer = setTimeout(() => {
       void writer
-        .write({
-          schemaVersion: 1,
-          form,
-          duration,
-          base,
-          context,
-          pending: uncertain,
-          prescription: editing ?? undefined,
-        })
-        .then(() => {
-          if (mounted.current && sequence === storageSequence.current) {
+        .autosave(
+          {
+            schemaVersion: 1,
+            form,
+            duration,
+            base,
+            context,
+            pending: uncertain,
+            prescription: editing ?? undefined,
+          },
+          () => mounted.current && sequence === storageSequence.current && !pending.current && !closing.current,
+        )
+        .then((saved) => {
+          if (saved && mounted.current && sequence === storageSequence.current) {
             setLocalState("saved");
             setError((previous) => (previous === m.nativeBuilder.localError ? "" : previous));
           }
