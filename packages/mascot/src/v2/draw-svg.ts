@@ -131,11 +131,14 @@ export type DrawOptions = {
 // Une image : les nœuds à dessiner, du fond vers le devant.
 export const drawBody = (body: Solved, look: Look, view: GestureView, options: DrawOptions = {}): DrawNode[] => {
   const { parts, head, bib } = skin(body);
+  const footDetail = Boolean(body.controls.barefootR);
   const platesBehind = (options.platesBehind ?? true) && view === "side";
   const depths = new Map<string, number>();
   const items: { node: DrawNode; depth: number }[] = [];
 
   for (const part of parts) {
+    if (footDetail && !["shinR", "heelR", "archR", "forefootR"].includes(part.id) && !part.id.startsWith("toeR-"))
+      continue;
     const circles = part.spheres.map(({ c, r }) => ({ ...project(c, view), r }));
     let depth = circles.reduce((sum, circle) => sum + circle.depth, 0) / circles.length + (part.lift ?? 0);
     if (part.over) depth = depths.get(part.over)! + 1e-3;
@@ -149,26 +152,27 @@ export const drawBody = (body: Solved, look: Look, view: GestureView, options: D
     items.push({ node: { id: part.id, kind: "path", paint: part.paint, d }, depth });
   }
 
-  if (look.bib !== null && view !== "top") {
+  if (!footDetail && look.bib !== null && view !== "top") {
     const { transform } = placed(bib, view, SCALE.bib);
     items.push({
       node: { id: "bib", kind: "group", transform, content: `bib/${look.bib}`, shapes: bibShapes(look.bib) },
       depth: depths.get("chest")! + 2e-3,
     });
   }
-  const { depth, transform } = placed(head, view, SCALE.head);
-  items.push({
-    node: {
-      id: "head",
-      kind: "group",
-      transform,
-      content: `head/${look.hair}/${look.face}/${view}`,
-      shapes: headShapes(look, view),
-    },
-    // De profil, le visage reste lisible : la tête passe devant le bras qui la croise.
-    depth: depth + (view === "side" ? 150 : 0),
-  });
-
+  if (!footDetail) {
+    const { depth, transform } = placed(head, view, SCALE.head);
+    items.push({
+      node: {
+        id: "head",
+        kind: "group",
+        transform,
+        content: `head/${look.hair}/${look.face}/${view}`,
+        shapes: headShapes(look, view),
+      },
+      // De profil, le visage reste lisible : la tête passe devant le bras qui la croise.
+      depth: depth + (view === "side" ? 150 : 0),
+    });
+  }
   (options.props ?? []).forEach((prop, index) => {
     const geometry = seenFrom(prop, view);
     if (geometry)
@@ -259,6 +263,11 @@ export const bodyExtent = (body: Solved, view: GestureView): Extent => {
 };
 
 export const framing = (clip: MotionClip, view: GestureView, margin = 14, samples = 96): Box => {
+  const start = clip.pose(0);
+  if (start.controls.barefootR) {
+    const center = project(start.legs.R.ankle, view);
+    return { x: center.x - 31, y: center.y - (view === "top" ? 22 : 32), width: 78, height: 60 };
+  }
   const frames: Extent[] = [];
   const gear: Extent[] = [];
   for (let i = 0; i < samples; i += 1) {

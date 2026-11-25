@@ -7,6 +7,13 @@ import { racked, CLEAN_GRIP } from "./clean";
 import { highJumpDrills } from "./high-jump-drills";
 import { curveDrills } from "./curve-drills";
 import { tripleJumps } from "./triple-jump";
+import { hamstringSlider } from "./hamstring-slider";
+import { footIntrinsics } from "./foot-intrinsics";
+import { jerkFootwork } from "./jerk-footwork";
+import { stadiumFootwork } from "./stadium-footwork";
+import { stadiumStrength } from "./stadium-strength";
+import { stadiumRebounds } from "./stadium-rebounds";
+import { stadiumKettlebells } from "./stadium-kettlebells";
 import { stadiumLifts } from "./stadium-lifts";
 import { strideClip } from "./stride";
 import { airborne } from "./flight";
@@ -277,6 +284,13 @@ export const STADIUM_GESTURES: MotionClip[] = [
   cones,
   snap,
   ...stadiumLifts,
+  jerkFootwork,
+  hamstringSlider,
+  ...footIntrinsics,
+  ...stadiumKettlebells,
+  ...stadiumRebounds,
+  ...stadiumStrength,
+  ...stadiumFootwork,
   ...tripleJumps,
   ...curveDrills,
   ...highJumpDrills,

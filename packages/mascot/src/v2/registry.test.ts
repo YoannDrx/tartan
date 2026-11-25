@@ -77,7 +77,9 @@ describe("contraintes sur tout le registre", () => {
     for (const view of entry.views) {
       for (let i = 0; i < 24; i += 1) {
         const nodes = drawClip(entry.clip, i / 24, view);
-        expect(nodes.length).toBeGreaterThan(20);
+        if (entry.clip.pose(i / 24).controls.barefootR) {
+          expect(nodes.map((node) => node.id)).toEqual(expect.arrayContaining(["archR", "heelR", "toeR-0", "toeR-4"]));
+        } else expect(nodes.length).toBeGreaterThan(20);
         for (const node of nodes) {
           const text =
             node.kind === "path" ? node.d : node.kind === "group" ? node.transform : JSON.stringify(node.geometry);
