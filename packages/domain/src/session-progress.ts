@@ -31,3 +31,18 @@ export const executionProgress = (items: readonly ExecutionItem[], progress: Ses
     ),
   };
 };
+
+// Les occurrences d’un même mouvement dans les tours d’un circuit partagent sourceRef.
+export function exerciseTransition(
+  items: readonly (ExecutionItem & { sourceRef?: string | null })[],
+  current: ExecutionItem & { sourceRef?: string | null },
+  done: (ref: string, index: number) => boolean,
+): "last" | "exercise" | null {
+  let remaining = 0;
+  const source = current.sourceRef ?? current.ref;
+  for (const item of items) {
+    if (item.kind === "recovery" || (item.sourceRef ?? item.ref) !== source) continue;
+    for (let set = 0; set < countSets(item); set++) if (!done(item.ref, set)) remaining++;
+  }
+  return remaining === 0 ? "exercise" : remaining === 1 ? "last" : null;
+}

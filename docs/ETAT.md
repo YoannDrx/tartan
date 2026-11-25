@@ -4,6 +4,10 @@ Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
+## Encouragements du stade · 25 novembre 2026
+
+Deux préférences de compte règlent le ton de l’accueil et celui de la séance. Le catalogue local contient 30 mantras et 12 retours par ton. Le calcul tient compte des séries de toutes les occurrences du même mouvement dans un circuit. Vérifications du domaine, types, lint et design effectuées. La recette hors connexion et les lecteurs d’écran sur téléphone restent à faire.
+
 ## Planifier pour soi depuis le club · 25 novembre 2026
 
 Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.

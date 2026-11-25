@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, Encouragements du stade
+
+Deux préférences de compte règlent le ton de l’accueil et celui de la séance. Le catalogue local contient 30 mantras et 12 retours par ton. Le calcul tient compte des séries de toutes les occurrences du même mouvement dans un circuit. Vérifications du domaine, types, lint et design effectuées. La recette hors connexion et les lecteurs d’écran sur téléphone restent à faire.
+
 ## 2026-11-25, Codex, accueil athlète sur le simulateur iOS
 
 La hiérarchie Maestro place « Découvrir Tartan » derrière la barre des onglets après l’ajout de « Créer ma séance ». Le test centre le bouton et attend l’arrêt du défilement, puis exige l’ouverture des panneaux après le toucher. Le contrôle de la fermeture enregistrée en base et la seconde connexion sont conservés.
