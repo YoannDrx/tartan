@@ -74,11 +74,15 @@ env:
 - scrollUntilVisible:
     element:
       id: sequence-move-out-detail-b
-    centerElement: true
+    visibilityPercentage: 100
     timeout: 20000
 - waitForAnimationToEnd
 - tapOn:
     id: sequence-move-out-detail-b
+- extendedWaitUntil:
+    notVisible:
+      id: sequence-move-out-detail-b
+    timeout: 10000
 # Remplacement en autonomie, dans le groupe : C est resté au-dessus, B est parti à la fin de la phase.
 - scrollUntilVisible:
     element:
