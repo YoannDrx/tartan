@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, téléchargement Gradle de la CI Android
+
+Le journal de compilation identifie des refus HTTP 429 de Maven Central pendant la résolution de dépendances. Les deux jobs Android réessaient cette étape une fois sur 429 ou indisponibilité temporaire du serveur. Une erreur de compilation remonte immédiatement. Le délai de Maestro et le temps de téléchargement des dépendances se mesurent séparément.
+
 ## 2026-11-25, Codex, APK Android de bêta
 
 Le profil EAS beta-apk hérite du canal beta et de l’identité de production. EAS a résolu localement le profil en APK, canal beta, environnement production. La continuité de signature, le téléchargement privé et la mise à jour sur téléphone restent à éprouver.
