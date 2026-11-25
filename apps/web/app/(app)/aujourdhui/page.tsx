@@ -1,3 +1,4 @@
+import { DailyMantra } from "@/features/athlete-view/daily-mantra";
 import { dailyMantra } from "@tartan/i18n";
 import { Play, SquarePen } from "lucide-react";
 import type { Metadata } from "next";
@@ -262,7 +263,6 @@ export default async function AujourdhuiPage() {
           ) : undefined
         }
       />
-      {me.preferences?.homeTone !== "off" && <p className="text-soft">{dailyMantra(me.preferences?.homeTone)}</p>}
       {data.parentalConsentPending ? (
         <p className="on-card rounded-card bg-card p-3 text-st-partial">{m.parental.pendingBanner}</p>
       ) : null}
@@ -290,6 +290,9 @@ export default async function AujourdhuiPage() {
           />
         ) : null;
       })}
+      {me.preferences?.homeTone !== "off" && (
+        <DailyMantra tone={me.preferences?.homeTone} initial={dailyMantra(me.preferences?.homeTone)} />
+      )}
       {/* Un jour de séance, la séance passe devant : l'accueil n'est qu'une ligne, dessous. */}
       {welcome && welcomeMode === "line" ? (
         <AthleteWelcome mode="line" group={welcome.group} coach={welcome.coach} />

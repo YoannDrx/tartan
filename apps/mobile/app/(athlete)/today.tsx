@@ -1,10 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { celebrationFromResponse, programItems as programOf } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
-import { dailyMantra, capitalize, formatDateLong, m } from "@tartan/i18n";
+import { dailyMantra, type EncouragementTone, capitalize, formatDateLong, m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
-import { useMemo, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AppState, Pressable, View } from "react-native";
 import { AthleteAfterSession, AthleteWelcome } from "../../src/features/athlete-onboarding";
 import { CommentsSection } from "../../src/features/comments";
 import { ExerciseRow, parseMedia } from "../../src/features/media";
@@ -30,6 +30,23 @@ const nextLine = (card: AthleteSessionCard) =>
   [capitalize(formatDateLong(card.date)), card.startTime?.replace(":", " h "), card.location]
     .filter(Boolean)
     .join(" · ");
+
+function DailyMantra({ tone }: { tone?: EncouragementTone }) {
+  const [message, setMessage] = useState(() => dailyMantra(tone));
+  useEffect(() => {
+    const refresh = () => setMessage(dailyMantra(tone));
+    refresh();
+    const timer = setInterval(refresh, 60_000);
+    const listener = AppState.addEventListener("change", (state) => {
+      if (state === "active") refresh();
+    });
+    return () => {
+      clearInterval(timer);
+      listener.remove();
+    };
+  }, [tone]);
+  return <T tone="muted">{message}</T>;
+}
 
 export default function Today() {
   const { orgId, space: active, me } = useActiveSpace();
@@ -136,9 +153,6 @@ export default function Today() {
       {today.isError && !view ? <ErrorState error={today.error} onRetry={() => void today.refetch()} /> : null}
       {view ? (
         <>
-          {me.data?.preferences?.homeTone !== "off" && (
-            <T tone="muted">{dailyMantra(me.data?.preferences?.homeTone)}</T>
-          )}
           {/* Un jour sans séance, l'accueil de l'athlète ouvre l'écran ; un jour de séance, il passe dessous. */}
           <AthleteWelcome orgId={orgId} sessionToday={view.today.length > 0} placement="top" />
           <WeekStrip week={view.week} today={date} />
@@ -178,6 +192,7 @@ export default function Today() {
             />
           ) : null}
 
+          {me.data?.preferences?.homeTone !== "off" && <DailyMantra tone={me.data?.preferences?.homeTone} />}
           {others.map((card) => (
             <SessionHero
               key={card.id}
