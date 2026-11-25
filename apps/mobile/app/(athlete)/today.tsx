@@ -1,4 +1,6 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { api } from "../../src/lib/api";
+import { useSpaceStore } from "../../src/lib/space-store";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { celebrationFromResponse, programItems as programOf } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
 import { capitalize, formatDateLong, m } from "@tartan/i18n";
@@ -32,10 +34,17 @@ const nextLine = (card: AthleteSessionCard) =>
     .join(" · ");
 
 export default function Today() {
-  const { orgId, space: active } = useActiveSpace();
+  const { me, orgId, space: active } = useActiveSpace();
   // L'athlète autonome, dans son espace personnel : il planifie lui-même, sans coach ni groupe à qui répondre.
   const self = personalAthleteOf(active);
   const personal = Boolean(self);
+  const notebook = me.data?.spaces.find((s) => s.kind === "personal");
+  const setActive = useSpaceStore((s) => s.setActive);
+  const signup = useQuery({
+    queryKey: ["signup-options"],
+    queryFn: api.signupOptions,
+    enabled: Boolean(me.data && !notebook),
+  });
   const today = useToday(orgId);
   const client = useQueryClient();
   usePrefetchUpcomingSessions(orgId);
@@ -187,6 +196,18 @@ export default function Today() {
             />
           ))}
 
+          {notebook?.aiPlannerEnabled || (!notebook && signup.data?.athlete) ? (
+            <Button
+              label={m.aiPlanner.personalCreate}
+              variant="secondary"
+              onPress={() => {
+                if (notebook) {
+                  setActive(notebook.organizationId);
+                  router.push("/planner");
+                } else router.push({ pathname: "/(auth)/onboarding/solo", params: { ensuite: "planificateur" } });
+              }}
+            />
+          ) : null}
           <AthleteWelcome orgId={orgId} sessionToday={view.today.length > 0} placement="after" />
           {/* Ses premiers pas, après la séance du jour : jamais devant elle, jamais par-dessus. */}
           {self ? <PersonalFirstSteps orgId={orgId} athleteId={self} /> : null}

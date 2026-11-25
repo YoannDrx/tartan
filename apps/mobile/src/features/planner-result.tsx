@@ -48,6 +48,7 @@ const announce = (message: string) => AccessibilityInfo.announceForAccessibility
  * bas de l'écran, crée le brouillon, et dit ce qui reste à compléter tant qu'il en reste.
  */
 export function NativePlannerResult({
+  personal,
   orgId,
   context,
   proposal,
@@ -62,6 +63,7 @@ export function NativePlannerResult({
   onRemember,
   onDirty,
 }: {
+  personal: boolean;
   orgId: string;
   context: Context;
   proposal: PlannerProposalResponse;
@@ -497,6 +499,7 @@ export function NativePlannerResult({
 
   return (
     <StackScreen title={m.aiPlanner.title} footer={footer}>
+      {personal ? <T variant="smallStrong">{m.aiPlanner.personalRecipient}</T> : null}
       <PlannerHeader
         usage={usage}
         stage={2}

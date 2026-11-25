@@ -754,6 +754,8 @@ export const fr = {
     quotaDetails: "Consommation et fuseau de l’espace",
     draftsInvalid:
       "Vérifie les titres, noms de blocs, notes, dates, destinataires et valeurs des prescriptions avant de confirmer.",
+    personalCreate: "Créer ma séance",
+    personalRecipient: "Pour moi · Carnet personnel",
     recent: "Mes propositions récentes",
     recentRefresh: "Actualiser la liste",
     recentHint:

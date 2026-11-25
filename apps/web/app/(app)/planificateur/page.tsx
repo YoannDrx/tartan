@@ -70,7 +70,7 @@ export default async function PlannerPage({
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
       <PageHeader
         title={t.title}
-        detail={t.lead}
+        detail={personal ? m.aiPlanner.personalRecipient : t.lead}
         actions={
           <Button asChild variant="secondary">
             <Link href="/planificateur/propositions" prefetch={false}>

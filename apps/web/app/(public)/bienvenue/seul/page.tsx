@@ -14,12 +14,16 @@ import { canCreatePersonalSpace } from "@/server/personal-space.service";
 export const metadata: Metadata = { title: w.welcome.soloForm.title };
 
 // « Je m'entraîne seul » : l'espace personnel, gratuit, sans coach. Un compte qui l'a déjà y retourne.
-export default async function SoloWelcomePage() {
+export default async function SoloWelcomePage({ searchParams }: { searchParams: Promise<{ ensuite?: string }> }) {
+  const planner = (await searchParams).ensuite === "planificateur";
   const actor = await getActor();
-  if (!actor) redirect(`/connexion?next=${encodeURIComponent("/bienvenue/seul")}`);
+  if (!actor)
+    redirect(
+      `/connexion?next=${encodeURIComponent(planner ? "/bienvenue/seul?ensuite=planificateur" : "/bienvenue/seul")}`,
+    );
   const me = await getMe(actor.userId);
   const personal = me.spaces.find((space) => space.kind === "personal");
-  if (personal) redirect(`/aujourdhui?espace=${personal.organizationId}`);
+  if (personal) redirect(`${planner ? "/planificateur" : "/aujourdhui"}?espace=${personal.organizationId}`);
   if ((await ageStatusOfUser(actor.userId)) === "minor") redirect("/confirmer-age");
   if (!(await canCreatePersonalSpace())) redirect("/bienvenue");
   // Les comptes créés avant le correctif de `splitName` ont le début de leur adresse comme prénom.
@@ -37,7 +41,12 @@ export default async function SoloWelcomePage() {
         </Link>
       ) : null}
       <div className="on-card flex flex-col gap-5 rounded-card bg-card p-5">
-        <PersonalSignupForm firstName={firstName} lastName={me.lastName ?? ""} birthDate={me.birthDate ?? ""} />
+        <PersonalSignupForm
+          planner={planner}
+          firstName={firstName}
+          lastName={me.lastName ?? ""}
+          birthDate={me.birthDate ?? ""}
+        />
       </div>
       {me.spaces.length === 0 ? <AccountExit email={actor.email} /> : null}
     </PublicPage>

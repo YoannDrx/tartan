@@ -24,6 +24,7 @@ import { getAthleteSession, getAthleteToday, getAthleteWelcome } from "@/server/
 import { getSignInMethods } from "@/server/credentials.service";
 import { getMe } from "@/server/me.service";
 import { getGuideContext, getOnboarding } from "@/server/onboarding.service";
+import { canCreatePersonalSpace } from "@/server/personal-space.service";
 import { PersonalGuide } from "@/features/onboarding/personal-guide";
 
 export const metadata: Metadata = { title: m.nav.aujourdhui };
@@ -219,7 +220,7 @@ const Hero = ({
 export default async function AujourdhuiPage() {
   const { actor, organizationId, personal, space } = await requireAthleteSpace();
   const today = todayIso();
-  const [data, welcome, methods, onboarding, me, guide] = await Promise.all([
+  const [data, welcome, methods, onboarding, me, guide, signupOpen] = await Promise.all([
     getAthleteToday(actor.userId, organizationId),
     getAthleteWelcome(actor.userId, organizationId),
     getSignInMethods(actor),
@@ -227,7 +228,16 @@ export default async function AujourdhuiPage() {
     getMe(actor.userId),
     // L'athlète autonome a ses premiers pas : deux modèles de départ pour planifier sa première séance.
     personal ? getGuideContext(actor.userId, organizationId) : null,
+    personal ? false : canCreatePersonalSpace(),
   ]);
+  const notebook = me.spaces.find((s) => s.kind === "personal");
+  const plannerHref = notebook?.aiPlannerEnabled
+    ? personal
+      ? "/planificateur"
+      : `/planificateur?espace=${notebook.organizationId}`
+    : !notebook && signupOpen
+      ? "/bienvenue/seul?ensuite=planificateur"
+      : null;
   const personalGuide =
     personal && guide && onboarding.personal?.guideVisible
       ? {
@@ -251,14 +261,23 @@ export default async function AujourdhuiPage() {
         title={data.firstName ? m.today.greeting(data.firstName) : m.nav.aujourdhui}
         detail={capitalize(formatDateLong(today))}
         actions={
-          personal ? (
-            <Button asChild size="sm">
-              <Link href="/seances/nouvelle?retour=%2Faujourdhui">
-                <SquarePen aria-hidden className="size-4" />
-                {w.personal.planSession}
-              </Link>
-            </Button>
-          ) : undefined
+          <div className="flex flex-wrap gap-2">
+            {plannerHref ? (
+              <Button asChild size="sm">
+                <Link prefetch={false} href={plannerHref}>
+                  {m.aiPlanner.personalCreate}
+                </Link>
+              </Button>
+            ) : null}
+            {personal ? (
+              <Button asChild size="sm">
+                <Link href="/seances/nouvelle?retour=%2Faujourdhui">
+                  <SquarePen aria-hidden className="size-4" />
+                  {w.personal.planSession}
+                </Link>
+              </Button>
+            ) : null}
+          </div>
         }
       />
       {data.parentalConsentPending ? (
