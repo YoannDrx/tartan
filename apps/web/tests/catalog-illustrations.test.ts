@@ -5,9 +5,9 @@ import { imagePath, catalogImages } from "@/server/catalog-illustrations";
 import { prisma } from "@/lib/prisma";
 import { getActorFrom } from "@/lib/session";
 import { recordStepUp } from "@/server/admin-step-up.service";
-import { makeUser } from "./helpers";
+import { makeOrg, makeUser } from "./helpers";
 import { sessionCookie } from "./personas";
-import { reviewEditorial, stamp, withApprovedImage } from "@/server/catalog-editorial.service";
+import { linkLegacyGuide, reviewEditorial, stamp, withApprovedImage } from "@/server/catalog-editorial.service";
 const catalog = [...EXERCISE_CATALOG, ...STADIUM_EDITION];
 describe("Illustrations du catalogue", () => {
   it("associe chaque couple de fichiers WebP à une seule fiche et à la bonne édition", () => {
@@ -36,6 +36,45 @@ describe("Illustrations du catalogue", () => {
       { ...guide, author: "coach" as const },
     ])
       expect(withApprovedImage(original, approvals)).toBe(original);
+  });
+  it("rattache et retire un guide validé sans changer la fiche historique ni une fiche de club", async () => {
+    const user = await makeUser("Relecture");
+    await prisma.platformAdmin.create({ data: { email: user.email } });
+    const actor = (await getActorFrom(new Headers({ cookie: await sessionCookie(user.email) })))!;
+    await recordStepUp(actor.sessionId!, "passkey");
+    const p = catalogImages.find((p) => p.key === "bird-dog")!;
+    const common = await prisma.exercise.create({ data: { name: "Fiche à rapprocher", category: "strength" } });
+    const { organizationId } = await makeOrg();
+    const own = await prisma.exercise.create({
+      data: { name: "Fiche privée", category: "strength", organizationId },
+    });
+    try {
+      await expect(linkLegacyGuide(actor, common.id, common.updatedAt, p.key)).rejects.toThrow();
+      for (const kind of ["text", "image", "motion"] as const)
+        await reviewEditorial(actor, p.key, p.guideVersion, kind, true, stamp(p.key, p.guideVersion, kind));
+      await expect(linkLegacyGuide(actor, own.id, own.updatedAt, p.key)).rejects.toThrow();
+      await linkLegacyGuide(actor, common.id, common.updatedAt, p.key);
+      const linked = await prisma.exercise.findUniqueOrThrow({ where: { id: common.id } });
+      expect(linked).toMatchObject({
+        name: common.name,
+        catalogKey: null,
+        sourceCatalogKey: p.key,
+        guide: { catalogKey: p.key },
+      });
+      await expect(linkLegacyGuide(actor, common.id, common.updatedAt, null)).rejects.toThrow();
+      await reviewEditorial(actor, p.key, p.guideVersion, "text", false, stamp(p.key, p.guideVersion, "text"));
+      const reopened = await prisma.exercise.findUniqueOrThrow({ where: { id: common.id } });
+      expect(reopened.guide).toMatchObject({ technicalReview: "pending" });
+      await linkLegacyGuide(actor, common.id, reopened.updatedAt, null);
+      expect(await prisma.exercise.findUniqueOrThrow({ where: { id: common.id } })).toMatchObject({
+        name: common.name,
+        sourceCatalogKey: null,
+        guide: null,
+      });
+    } finally {
+      await prisma.exercise.deleteMany({ where: { id: { in: [own.id, common.id] } } });
+      await prisma.platformSetting.deleteMany({ where: { key: { startsWith: "exerciseReview:" + p.key + ":" } } });
+    }
   });
   it("publie une fiche relue une seule fois et retire un texte rouvert du catalogue approuvé pour l’IA", async () => {
     const p = catalogImages[0];
