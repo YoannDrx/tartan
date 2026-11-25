@@ -17,6 +17,8 @@ import {
 } from "@tartan/contracts";
 import {
   copyDraftWithNewRefs,
+  draftExerciseIds,
+  editSessionBlock,
   editSessionSequence,
   expandSessionSnapshot,
   formatPrescription,
@@ -51,7 +53,13 @@ import { SequenceEditor } from "./sequence-editor";
 import { ExercisePicker, ExerciseSource, LibraryBrowser } from "./exercise-picker";
 import { DESKTOP, useMediaQuery } from "@/lib/use-media-query";
 import { attachItemKeys, overridesForSubmit, type KeyedOverride } from "./overrides";
-import { deleteSessionAction, deleteTemplateAction, saveSessionAction, saveTemplateAction } from "./session.action";
+import {
+  deleteSessionAction,
+  deleteTemplateAction,
+  recoverExercisesAction,
+  saveSessionAction,
+  saveTemplateAction,
+} from "./session.action";
 import { publishedToast } from "./publication-notice";
 
 type BlockState = {
@@ -599,10 +607,13 @@ export const SessionBuilder = ({
         setDestination(null);
       }
     }
-    const targetKey = blockKey ?? aimed?.blockKey ?? blocks[Math.min(1, blocks.length - 1)]?.key;
+    const availableBlocks: BlockState[] = blocks.length
+      ? blocks
+      : [{ key: newKey(), name: m.builder.blocks.main, items: [] }];
+    const targetKey = blockKey ?? aimed?.blockKey ?? availableBlocks[Math.min(1, availableBlocks.length - 1)]!.key;
     const key = newKey();
     changeBlocks(
-      blocks.map((b) =>
+      availableBlocks.map((b) =>
         b.key === targetKey
           ? {
               ...b,
@@ -676,12 +687,32 @@ export const SessionBuilder = ({
     };
   };
 
+  const editBlock = (key: string, action: "duplicate" | "remove") => {
+    const next = editSessionBlock(
+      { draft: buildDraft(true), overrides: overridesForSubmit(overrides, [...club, ...autonomous]) },
+      key,
+      action,
+      newKey,
+    );
+    const parts = split(next.draft);
+    remember();
+    setClub(parts.club);
+    setAutonomous(parts.autonomous);
+    setOverrides(attachItemKeys(next.overrides, [...parts.club, ...parts.autonomous]));
+    if (action === "remove" && destination?.blockKey === key) setDestination(null);
+  };
+
+  const localDraft = buildDraft(true);
   const recovery = useBuilderRecovery(
     userId,
     organizationId,
     initial?.id,
     {
-      draft: buildDraft(true),
+      draft: localDraft,
+      exercises: [...new Set(draftExerciseIds(localDraft))].flatMap((id) => {
+        const exercise = known.get(id);
+        return exercise ? [{ ...exercise, guide: undefined, media: null }] : [];
+      }),
       date,
       startTime,
       location,
@@ -699,10 +730,29 @@ export const SessionBuilder = ({
     },
     dirty,
   );
-  const restoreDraft = () => {
+  const [restoring, setRestoring] = useState(false);
+  const restoreDraft = async () => {
     const stored = recovery.candidate;
     if (!stored || (stored.pending && !initial)) return;
     const f = stored.form;
+    const cached = f.exercises ?? [];
+    const available = new Set([...known.keys(), ...cached.map((exercise) => exercise.id)]);
+    const missing = [...new Set(draftExerciseIds(f.draft))].filter((id) => !available.has(id));
+    let fetched: ExerciseSummary[] = [];
+    if (missing.length) {
+      setRestoring(true);
+      try {
+        const result = await recoverExercisesAction(missing);
+        if (!result?.data) throw new Error("recovery_lookup_failed");
+        fetched = result.data;
+      } catch {
+        toast.error(m.builder.sequence.recoveryLookupFailed);
+        return;
+      } finally {
+        setRestoring(false);
+      }
+    }
+    rememberExercises([...cached, ...fetched]);
     const parts = split(f.draft);
     setTitle(f.draft.title);
     setType(f.draft.type);
@@ -855,7 +905,7 @@ export const SessionBuilder = ({
   return (
     <ExerciseSource.Provider value={source}>
       <fieldset
-        disabled={saving || uncertainSave}
+        disabled={saving || uncertainSave || restoring}
         aria-label={m.builder.body}
         onChangeCapture={() => setDirty(true)}
         className="grid min-w-0 gap-4 desktop:grid-cols-[300px_minmax(0,1fr)] desktop:gap-x-6"
@@ -1163,6 +1213,25 @@ export const SessionBuilder = ({
                 }
                 className="t-h2 min-h-11 w-full border-b border-card-line bg-card-raised px-4 hover:bg-raise"
               />
+              <div className="flex flex-wrap gap-2 px-4">
+                <Button
+                  size="sm"
+                  variant="quiet"
+                  disabled={club.length + autonomous.length >= 12}
+                  onClick={() => editBlock(block.key, "duplicate")}
+                >
+                  {m.builder.duplicateBlock}
+                </Button>
+                <ConfirmDialog
+                  title={m.nativeBuilder.removeBlock}
+                  onConfirm={() => editBlock(block.key, "remove")}
+                  trigger={
+                    <Button size="sm" variant="quiet">
+                      {m.builder.deleteBlock}
+                    </Button>
+                  }
+                />
+              </div>
               {version === "club" ? (
                 <div className="px-3">
                   <CheckRow
@@ -1212,11 +1281,12 @@ export const SessionBuilder = ({
               />
             </section>
           ))}
-          {blocks.length > 0 ? (
+          {blocks.length > 0 || version === "club" ? (
             <Button
               size="sm"
               variant="quiet"
               className="self-start"
+              disabled={club.length + autonomous.length >= 12}
               onClick={() => changeBlocks([...blocks, { key: newKey(), name: m.builder.sequence.newBlock, items: [] }])}
             >
               <Plus aria-hidden className="size-4" />

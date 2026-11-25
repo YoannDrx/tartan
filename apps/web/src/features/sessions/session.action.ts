@@ -13,6 +13,7 @@ import {
 } from "@tartan/contracts";
 import { z } from "zod";
 import { spaceAction } from "@/features/shell/space-action";
+import { exerciseSummariesByIds } from "@/server/exercise.service";
 import { updatePreferences } from "@/server/me.service";
 import {
   deleteCompetition,
@@ -27,6 +28,10 @@ import {
   saveScheduledSession,
   saveTemplate,
 } from "@/server/session.service";
+
+export const recoverExercisesAction = spaceAction
+  .inputSchema(z.array(uuid).max(12 * 60 * 2))
+  .action(({ parsedInput, ctx }) => exerciseSummariesByIds(ctx.userId, ctx.organizationId, parsedInput));
 
 export const saveCalendarViewAction = spaceAction
   .inputSchema(preferencesInput)

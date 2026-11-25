@@ -4,6 +4,10 @@ Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
+## QR code d’invitation · 25 novembre 2026
+
+Le QR code du groupe s’adapte au cadre de l’inscription et des réglages. Le lien a été décodé sur les captures du parcours web à 390, 768 et 1440 px. Le scan entre deux téléphones reste à éprouver.
+
 ## Vocabulaire du planificateur au stade · 25 novembre 2026
 
 Le moteur conserve les prescriptions lorsque le matériel ou la mécanique du mouvement est explicite. Une flexion des jambes sur ballon conserve son support. Les patins glissants peuvent être proposés quand le coach en dispose. Les trois passages réels du corpus historique atteignent 78, 77 et 79 séances justes sur 80, zéro faute grave et zéro fiche choisie pour les termes absents. La [recette](tests/recette-lancement-testeurs.md) précise les temps, le coût et les essais terrain à réaliser.
@@ -32,9 +36,17 @@ Deux préférences de compte règlent le ton de l’accueil et celui de la séan
 
 Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
 
+## Blocs de séance et reprise du brouillon · 25 novembre 2026
+
+Le constructeur et la relecture IA proposent de dupliquer un bloc ou de le supprimer après confirmation. La copie reçoit ses propres références pour les exercices, les circuits et les ajustements. La reprise web conserve les fiches citées et recharge les références des brouillons anciens. Les parcours du constructeur et de la relecture IA ont réussi à 390 et 1440 px.
+
 ## Reprendre une proposition IA · 25 novembre 2026
 
 La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.
+
+## Exemption mensuelle du planificateur · 25 novembre 2026
+
+Un droit administratif sur un espace Pilote permet les propositions et la dictée sans quota mensuel. Les réservations restent comptabilisées et la limitation des requêtes simultanées reste active. Le serveur consulte ce droit à chaque demande.
 
 ## Planificateur, revue des ajustements et semaine · 25 novembre 2026
 

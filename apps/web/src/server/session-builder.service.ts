@@ -1,3 +1,4 @@
+import { draftExerciseIds } from "@tartan/domain";
 import { sessionBuilderContext, type ExerciseSummary, type SessionDraft } from "@tartan/contracts";
 import { prisma } from "@/lib/prisma";
 import { m } from "@tartan/i18n";
@@ -7,12 +8,6 @@ import { exerciseSummariesByIds, listExerciseIndex, listExercises } from "./exer
 import { listExerciseLists } from "./exercise-list.service";
 import { listGroups } from "./org.service";
 import { listTemplates, listTestKeys } from "./session.service";
-
-// Les fiches qu'un brouillon cite, remplacements en autonomie compris.
-const draftExerciseIds = (draft: Pick<SessionDraft, "blocks">) =>
-  draft.blocks.flatMap((block) =>
-    block.items.flatMap((item) => [item.exerciseId, ...(item.autonomous ? [item.autonomous.exerciseId] : [])]),
-  );
 
 const strengthTestKeys = (exercises: Pick<ExerciseSummary, "id" | "strengthLoadKind">[]) =>
   exercises

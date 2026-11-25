@@ -23,8 +23,7 @@ export const QrPreview = ({ link, groupName }: { link: string; groupName: string
   useEffect(() => {
     QRCode.toString(link, {
       type: "svg",
-      margin: 1,
-      width: 320,
+      margin: 4,
       color: { dark: tokens.color.ink, light: tokens.color.surface },
     }).then(setSvg, () => setSvg(null));
   }, [link]);
@@ -32,7 +31,7 @@ export const QrPreview = ({ link, groupName }: { link: string; groupName: string
     <div
       role="img"
       aria-label={t.qrLabel(groupName)}
-      className="mx-auto w-full max-w-80 overflow-hidden rounded-thumb"
+      className="mx-auto w-full max-w-80 [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   ) : null;

@@ -1,4 +1,4 @@
-import type { SessionDraft } from "@tartan/contracts";
+import type { SaveScheduledSessionInput, SessionDraft } from "@tartan/contracts";
 import { remapSequence } from "./session-sequence";
 
 // Les anciennes références sont conservées exactement. Une lecture ne réécrit pas la base.
@@ -32,3 +32,39 @@ export const copyDraftWithNewRefs = (draft: SessionDraft, newRef: () => string):
     };
   }),
 });
+
+// Les fiches qu'un brouillon cite, remplacements en autonomie compris.
+export const draftExerciseIds = (draft: Pick<SessionDraft, "blocks">) =>
+  draft.blocks.flatMap((block) =>
+    block.items.flatMap((item) => [item.exerciseId, ...(item.autonomous ? [item.autonomous.exerciseId] : [])]),
+  );
+
+type SessionContent = Pick<SaveScheduledSessionInput, "draft" | "overrides">;
+
+// Les ajustements portent sur la définition de l'exercice ou sur un tour précis du circuit.
+export function editSessionBlock(
+  content: SessionContent,
+  blockRef: string,
+  action: "duplicate" | "remove",
+  newRef: () => string,
+): SessionContent {
+  const draft = withSessionRefs(content.draft);
+  const at = draft.blocks.findIndex((block) => block.ref === blockRef);
+  const block = draft.blocks[at];
+  if (!block || (action === "duplicate" && draft.blocks.length >= 12)) return content;
+  const blocks = [...draft.blocks];
+  const copy =
+    action === "duplicate" ? copyDraftWithNewRefs({ ...draft, blocks: [block] }, newRef).blocks[0] : undefined;
+  if (copy) blocks.splice(at + 1, 0, copy);
+  else blocks.splice(at, 1);
+  const refs = new Map(block.items.map((item, i) => [item.ref!, copy?.items[i]?.ref]));
+  const overrides = content.overrides.flatMap((override) => {
+    const occurrence = /^seq:([^:]+):(.+)$/.exec(override.itemRef);
+    const ref = occurrence?.[1] ?? override.itemRef;
+    if (!refs.has(ref)) return [override];
+    const replacement = refs.get(ref);
+    if (!replacement) return [];
+    return [override, { ...override, itemRef: occurrence ? `seq:${replacement}:${occurrence[2]}` : replacement }];
+  });
+  return { draft: { ...draft, blocks }, overrides };
+}

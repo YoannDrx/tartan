@@ -1,6 +1,12 @@
 "use client";
 
-import { sessionDraft, sessionDraftBlock, editableSessionSequence, athleteOverrideInput } from "@tartan/contracts";
+import {
+  exerciseSummary,
+  sessionDraft,
+  sessionDraftBlock,
+  editableSessionSequence,
+  athleteOverrideInput,
+} from "@tartan/contracts";
 import { z } from "zod";
 import { useEffect, useRef, useState } from "react";
 
@@ -11,6 +17,7 @@ export const recoveryForm = z.object({
       .array(sessionDraftBlock.extend({ name: z.string().max(80), sequence: editableSessionSequence.optional() }))
       .max(12),
   }),
+  exercises: z.array(exerciseSummary).optional(),
   date: z.string().max(40),
   startTime: z.string().max(20),
   location: z.string().max(120),
@@ -26,12 +33,13 @@ export type RecoveryForm = z.infer<typeof recoveryForm>;
 const envelope = z.object({ revision: z.string(), expiresAt: z.number(), pending: z.boolean(), form: recoveryForm });
 type Stored = z.infer<typeof envelope>;
 export const BUILDER_RECOVERY_PREFIX = "tartan.builder.web.";
+const MAX_STORED_LENGTH = 500_000;
 const TTL = 7 * 24 * 3600 * 1000;
 
 const read = (key: string): Stored | null => {
   const raw = localStorage.getItem(key);
   if (!raw) return null;
-  if (raw.length > 500_000) throw new Error("draft_too_large");
+  if (raw.length > MAX_STORED_LENGTH) throw new Error("draft_too_large");
   const saved = envelope.parse(JSON.parse(raw));
   if (saved.expiresAt <= Date.now()) {
     localStorage.removeItem(key);
@@ -93,7 +101,14 @@ export function useBuilderRecovery(
             pending,
             form: value,
           });
-          localStorage.setItem(key, JSON.stringify(saved));
+          let serialized = JSON.stringify(saved);
+          if (serialized.length > MAX_STORED_LENGTH && saved.form.exercises?.length) {
+            // Les fiches sont rechargeables ; garder la séance en priorité.
+            delete saved.form.exercises;
+            serialized = JSON.stringify(saved);
+          }
+          if (serialized.length > MAX_STORED_LENGTH) throw new Error("draft_too_large");
+          localStorage.setItem(key, serialized);
           revision.current = saved.revision;
         });
       });

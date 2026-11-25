@@ -718,6 +718,7 @@ const plannerUsageCounts = z.object({
 export const plannerUsageResponse = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/),
   timeZone: z.string(),
+  unlimited: z.boolean().optional(),
   limit: plannerUsageCounts,
   used: plannerUsageCounts,
   reserved: plannerUsageCounts,
