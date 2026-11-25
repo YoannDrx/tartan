@@ -204,6 +204,28 @@ for (const size of [
     }
     await expect(page.getByLabel(m.builder.titleLabel, { exact: true }).locator("visible=true")).toHaveValue(title);
     for (const exercise of [MISSING, RENAMED, "Goblet squat"]) await expect(inSession(exercise)).toBeVisible();
+    await expect(page.getByText(m.nativeBuilder.localSaved, { exact: true })).toBeVisible();
+    await page.goto("/exercices");
+    if (size.width === 390) {
+      // Ancienne copie locale, écrite avant que le constructeur conserve les noms.
+      await page.evaluate(() => {
+        const key = Object.keys(localStorage).find((entry) => entry.startsWith("tartan.builder.web."))!;
+        const stored = JSON.parse(localStorage.getItem(key)!);
+        delete stored.form.exercises;
+        localStorage.setItem(key, JSON.stringify(stored));
+      });
+    }
+    await page.goBack();
+    await page.getByRole("button", { name: m.nativeBuilder.restore, exact: true }).click();
+    for (const exercise of [MISSING, RENAMED, "Goblet squat"]) await expect(inSession(exercise)).toBeVisible();
+    await expect(page.getByText(m.builder.sequence.deletedExercise, { exact: true })).toHaveCount(0);
+    const block = page.getByRole("region", { name: m.builder.blocks.main, exact: true });
+    await block.getByRole("button", { name: m.builder.duplicateBlock }).click();
+    await expect(block).toHaveCount(2);
+    await expect(block.nth(1).getByText(RENAMED, { exact: true }).first()).toBeVisible();
+    await block.nth(1).getByRole("button", { name: m.builder.deleteBlock }).click();
+    await page.getByRole("dialog").getByRole("button", { name: m.common.delete, exact: true }).click();
+    await expect(block).toHaveCount(1);
     await expectNoHorizontalScroll(page);
     await page.getByRole("tab", { name: "En autonomie" }).click();
     await page.getByRole("button", { name: "Générer depuis la version club" }).click();

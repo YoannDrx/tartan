@@ -78,6 +78,10 @@ Le champ de dictée précède le choix de période. Les parcours centrent le cha
 
 La revue de semaine compare aussi les durées des séances du calendrier pour avertir d’un chevauchement. Le banc historique de 80 consignes qui isole le prestataire transmet désormais le véritable statut de relecture des exercices fictifs. Les attendus du corpus restent figés. Les raccourcis de matériel, la sélection des fiches et la revue de semaine reconnaissent aussi la corde à sauter sur le web et le natif.
 
+## Blocs de séance et reprise du brouillon · 25 novembre 2026
+
+Le constructeur web ne charge au départ que les fiches du serveur et des modèles. Les brouillons locaux conservent maintenant les fiches utilisées. les anciens les retrouvent par leurs identifiants dans leur espace. Le domaine teste la duplication et le retrait d’un circuit avec charge individuelle au deuxième tour.
+
 ## 2026-11-25, Codex, Reprendre une proposition IA
 
 La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.

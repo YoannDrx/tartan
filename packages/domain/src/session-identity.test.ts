@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { SessionDraft } from "@tartan/contracts";
-import { copyDraftWithNewRefs, hasUniqueSessionRefs, withSessionRefs } from "./session-identity";
+import { copyDraftWithNewRefs, editSessionBlock, hasUniqueSessionRefs, withSessionRefs } from "./session-identity";
 
 const draft: SessionDraft = {
   title: "Force",
@@ -40,4 +40,35 @@ it("détecte aussi une collision entre référence explicite et référence hist
   const invalid = structuredClone(draft);
   invalid.blocks[0]!.items[0]!.ref = "b0-i1";
   expect(hasUniqueSessionRefs(invalid)).toBe(false);
+});
+
+it("duplique le circuit et les charges de chaque tour, puis retire leur copie indépendamment", () => {
+  let i = 0;
+  const fresh = () => `new-${++i}`;
+  const source = withSessionRefs(draft);
+  const block = source.blocks[0]!;
+  block.sequence = [
+    {
+      kind: "repeat",
+      ref: "c",
+      restBetweenRoundsS: 0,
+      name: "Circuit",
+      rounds: 2,
+      children: block.items.map((item) => ({ kind: "exercise", itemRef: item.ref! })),
+    },
+  ];
+  const original = {
+    draft: { ...source, structureVersion: 2 as const },
+    overrides: [{ athleteId: "a", itemRef: "seq:b0-i0:2", prescription: { reps: 6 } }],
+  };
+  const doubled = editSessionBlock(original, block.ref!, "duplicate", fresh);
+  const copy = doubled.draft.blocks[1]!;
+  expect(copy.variant).toBe("both");
+  expect(copy.sequence?.[0]).toMatchObject({
+    kind: "repeat",
+    ref: expect.not.stringMatching(/^c$/),
+    children: copy.items.map((item) => ({ kind: "exercise", itemRef: item.ref })),
+  });
+  expect(doubled.overrides[1]).toMatchObject({ itemRef: `seq:${copy.items[0]!.ref}:2`, prescription: { reps: 6 } });
+  expect(editSessionBlock(doubled, copy.ref!, "remove", fresh)).toEqual(original);
 });

@@ -2435,6 +2435,8 @@ export const fr = {
       chooseExercise: "Choisir un exercice",
       duplicate: (name: string) => `Dupliquer ${name}`,
       remove: (name: string) => `Retirer ${name}`,
+      recoveryLookupFailed:
+        "Les fiches n’ont pas pu être chargées. Ton brouillon est conservé. Réessaie de le reprendre.",
       deletedExercise: "Exercice supprimé",
       undo: "Annuler la dernière modification du contenu",
       invalid: "Vérifie les tours, récupérations et exercices : deux niveaux de groupes et 500 étapes au maximum.",
@@ -2513,6 +2515,10 @@ export const fr = {
     coachNote: "Mot du coach",
     blocks: { warmup: "Échauffement", main: "Corps de séance", cooldown: "Retour au calme" },
     addBlock: "Ajouter un bloc",
+    duplicateBlock: "Dupliquer le bloc",
+    deleteBlock: "Supprimer le bloc",
+    resolveBlockSlots:
+      "Choisis une fiche ou retire les emplacements à compléter avant de dupliquer ou de supprimer ce bloc.",
     library: "Bibliothèque",
     dropHere: "Glisse un exercice ici",
     versionClub: "Au club",

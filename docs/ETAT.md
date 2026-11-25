@@ -16,6 +16,10 @@ Deux préférences de compte règlent le ton de l’accueil et celui de la séan
 
 Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
 
+## Blocs de séance et reprise du brouillon · 25 novembre 2026
+
+Le constructeur et la relecture IA proposent de dupliquer un bloc ou de le supprimer après confirmation. La copie reçoit ses propres références pour les exercices, les circuits et les ajustements. La reprise web conserve les fiches citées et recharge les références des brouillons anciens.
+
 ## Reprendre une proposition IA · 25 novembre 2026
 
 La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.
