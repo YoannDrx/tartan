@@ -3,7 +3,7 @@ import { m } from "@tartan/i18n";
 import { useFocusEffect, usePathname, useRouter } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { RefreshControl, ScrollView, View, type ScrollViewProps } from "react-native";
+import { Image, Pressable, RefreshControl, ScrollView, View, type ScrollViewProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIsOnline } from "../lib/network";
 import { useOpQueue } from "../lib/sync/op-queue";
@@ -12,7 +12,8 @@ import { useOwnUploads } from "../lib/upload/upload-queue";
 import { ArrowLeft, CloudOff, CloudUpload, Repeat, X } from "./icons";
 import { Button, IconButton, LaneLine, ListSurface, ScreenTitle, T } from "./primitives";
 import { SettingsButton } from "./settings-button";
-import { SpaceSwitcher } from "./space-switcher";
+import { useActiveSpace } from "../lib/queries";
+import { homeFor, useSpaceStore } from "../lib/space-store";
 import { Scene, scene, space, usePagePad, usePalette, type WorldName } from "./theme";
 
 // La barre d'état suit le fond de l'écran au premier plan : encre sur la craie et le soleil, claire ailleurs.
@@ -103,7 +104,7 @@ type TabScreenProps = {
   scrollProps?: ScrollViewProps;
 };
 
-// Écran d'onglet : sélecteur d'espace, titre, contenu défilant, tirer pour actualiser.
+// Écran d'onglet : accueil habituel, titre, contenu défilant, tirer pour actualiser.
 const TabInner = ({
   title,
   subtitle,
@@ -123,9 +124,33 @@ const TabInner = ({
   useEffect(() => {
     if (!refreshing) setPulled(false);
   }, [refreshing]);
+  const { me, space: active } = useActiveSpace();
+  const home = me.data?.spaces[0];
+  const setActive = useSpaceStore((s) => s.setActive);
   const titleRow = (
     <>
-      <SpaceSwitcher />
+      {active && home && (
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => {
+            setActive(home.organizationId);
+            router.replace(homeFor(home) ?? "/");
+          }}
+          style={{ minHeight: 44, flexDirection: "row", gap: space.sm, alignItems: "center" }}
+        >
+          <Image
+            accessibilityIgnoresInvertColors
+            source={require("../../assets/brand/icon-ios.png")}
+            style={{ width: 32, height: 32 }}
+          />
+          <View style={{ flex: 1 }}>
+            <T variant="smallStrong">{active.role === "athlete" ? m.brand.athlete : m.brand.coach}</T>
+            <T variant="caption" numberOfLines={1}>
+              {active.organizationName}
+            </T>
+          </View>
+        </Pressable>
+      )}
       <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
         <View style={{ flex: 1, gap: 2 }}>
           <ScreenTitle title={title} plain={p.work} />

@@ -78,7 +78,15 @@ const Lines = ({ title, lines, ordered }: { title: string; lines: readonly strin
  * d'abord, une phrase d'objectif, la mise en place en une ligne, les étapes numérotées comme les pastilles du
  * geste, les erreurs à éviter, puis les variantes. Le texte complet reste sous « Détail ».
  */
-export const MovementGuide = ({ guide, variants }: { guide: ExerciseGuide; variants?: GuideVariants }) => {
+export const MovementGuide = ({
+  guide,
+  variants,
+  basePath = "/exercices",
+}: {
+  guide: ExerciseGuide;
+  variants?: GuideVariants;
+  basePath?: string;
+}) => {
   const text = shownText(guide);
   const concise = guide.concise;
   const variantRows = (
@@ -111,7 +119,7 @@ export const MovementGuide = ({ guide, variants }: { guide: ExerciseGuide; varia
                   <dd className="min-w-0 flex-1">
                     {link ? (
                       <Link
-                        href={`/exercices/${link.id}`}
+                        href={`${basePath}/${link.id}`}
                         className="inline-flex min-h-11 items-center gap-1 font-semibold underline"
                       >
                         {link.name}

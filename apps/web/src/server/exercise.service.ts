@@ -34,7 +34,7 @@ import { env } from "@/lib/env";
 import { createDirectUpload, signedPlayback, videoEnabled } from "@/lib/mux";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
-import { requireOrgMember } from "./access";
+import { accessCan, requireOrgMember, type Access } from "./access";
 import { assertNotDemoSpace } from "./demo-space-guard";
 import {
   ensureExerciseCatalog,
@@ -142,6 +142,13 @@ const exerciseSummary = async (
   };
 };
 
+// Les vidéos de démonstration privées du coach ne sont pas des vidéos partagées avec le groupe.
+function readableExercise(row: ExerciseRow, access: Access): ExerciseRow {
+  return !accessCan(access, "editExercises") && row.organizationId && row.media[0]?.kind === "upload"
+    ? { ...row, media: [] }
+    : row;
+}
+
 const mediaInclude = { media: { orderBy: { createdAt: "desc" as const }, take: 1 } };
 
 // La bibliothèque de l'espace : ses fiches et le catalogue commun. Une copie du catalogue tient la place de sa
@@ -164,22 +171,22 @@ const libraryRows = async (organizationId: string, where: Prisma.ExerciseWhereIn
 };
 
 export const listExercises = async (userId: string, organizationId: string): Promise<ExerciseSummary[]> => {
-  await requireOrgMember(userId, organizationId, "editExercises");
-  await ensureExerciseCatalog(userId, organizationId);
+  const access = await requireOrgMember(userId, organizationId, "viewExercises");
+  if (access.role !== "athlete" || access.personal) await ensureExerciseCatalog(userId, organizationId);
   const rows = await libraryRows(organizationId);
   const [families, reviewed, videos] = await Promise.all([
     approvedMotionFamilies(),
     approvedEditorial(),
     catalogVideos(rows.map(catalogKeyOf)),
   ]);
-  return Promise.all(rows.map((row) => exerciseSummary(row, families, reviewed, videos)));
+  return Promise.all(rows.map((row) => exerciseSummary(readableExercise(row, access), families, reviewed, videos)));
 };
 
 /** La bibliothèque sans les guides : la page `/exercices` filtre et pagine ces lignes, chaque fiche a son adresse. */
 export const listExerciseIndex = async (userId: string, organizationId: string): Promise<ExerciseSummary[]> => {
-  await requireOrgMember(userId, organizationId, "editExercises");
-  await ensureExerciseCatalog(userId, organizationId);
-  return (await libraryRows(organizationId)).map(lightSummary);
+  const access = await requireOrgMember(userId, organizationId, "viewExercises");
+  if (access.role !== "athlete" || access.personal) await ensureExerciseCatalog(userId, organizationId);
+  return (await libraryRows(organizationId)).map((row) => lightSummary(readableExercise(row, access)));
 };
 
 /** Les fiches qu'une séance ou un modèle cite déjà, sans guide : le constructeur n'embarque plus la bibliothèque. */
@@ -330,7 +337,7 @@ export const getExercise = async (
   organizationId: string,
   exerciseId: string,
 ): Promise<ExerciseSummary> => {
-  await requireOrgMember(userId, organizationId, "editExercises");
+  const access = await requireOrgMember(userId, organizationId, "viewExercises");
   const row = await prisma.exercise.findFirst({
     where: { id: exerciseId, deletedAt: null, OR: [{ organizationId }, { organizationId: null }] },
     include: mediaInclude,
@@ -341,7 +348,7 @@ export const getExercise = async (
     approvedEditorial(),
     catalogVideos([catalogKeyOf(row)]),
   ]);
-  return exerciseSummary(row, families, reviewed, videos);
+  return exerciseSummary(readableExercise(row, access), families, reviewed, videos);
 };
 
 // La fiche d'une variante dans cet espace : sa copie si l'espace en a une, sinon la fiche commune.
@@ -365,7 +372,7 @@ export const getExerciseSheet = async (
   organizationId: string,
   exerciseId: string,
 ): Promise<ExerciseSheet> => {
-  const access = await requireOrgMember(userId, organizationId, "editExercises");
+  const access = await requireOrgMember(userId, organizationId, "viewExercises");
   const exercise = await getExercise(userId, organizationId, exerciseId);
   const [memberships, easier, harder] = await Promise.all([
     exerciseMemberships(access, exerciseId),

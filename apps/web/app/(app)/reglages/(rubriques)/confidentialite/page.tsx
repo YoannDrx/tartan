@@ -24,19 +24,33 @@ const athleteConsents = async (userId: string, athleteId: string | null) => {
 export default async function ConfidentialitePage() {
   const { actor, organizationId, space, spaces, access } = await requireRubric("confidentialite");
   const owner = access.role === "owner";
-  const [consents, blockedUsers, shares] = await Promise.all([
+  const notebook = spaces.find(
+    (s) => s.kind === "personal" && s.organizationId !== organizationId && access.role === "athlete",
+  );
+  const [consents, blockedUsers, shares, notebookConsents] = await Promise.all([
     access.role === "athlete" ? athleteConsents(actor.userId, access.athleteId) : null,
     listBlockedUsers(actor.userId),
     listMyHistoryShares(actor.userId),
+    notebook?.athleteId ? athleteConsents(actor.userId, notebook.athleteId) : null,
   ]);
   const t = w.settings.confidentialite;
   return (
     <Sheet className="divide-y divide-card-line">
       {consents ? (
         <SheetSection id="confidentialite" title={t.consents}>
-          <ConsentSwitches health={consents.health} video={consents.video} parentalPending={consents.parentalPending} />
+          <ConsentSwitches
+            organizationId={organizationId}
+            health={consents.health}
+            video={consents.video}
+            parentalPending={consents.parentalPending}
+          />
         </SheetSection>
       ) : null}
+      {notebook && notebookConsents && (
+        <SheetSection id="accords-carnet" title={m.brand.notebook}>
+          <ConsentSwitches organizationId={notebook.organizationId} {...notebookConsents} />
+        </SheetSection>
+      )}
       {/* Les partages de son historique personnel avec un coach : visibles d'où qu'il soit, retirés d'un geste. */}
       {shares.length > 0 || spaces.some((entry) => entry.kind === "personal") ? (
         <SheetSection id="historique-partage" title={w.personal.share.settingsTitle}>
@@ -80,15 +94,6 @@ export default async function ConfidentialitePage() {
           <Rows>
             <SettingRow action={<LeaveSpace name={space.organizationName} />}>
               {t.leaveDetail(space.organizationName)}
-            </SettingRow>
-            <SettingRow
-              action={
-                <Button asChild size="sm" variant="secondary">
-                  <a href="/bienvenue">{m.onboarding.createOwnSpace}</a>
-                </Button>
-              }
-            >
-              {t.ownSpaceDetail}
             </SettingRow>
           </Rows>
         </SheetSection>

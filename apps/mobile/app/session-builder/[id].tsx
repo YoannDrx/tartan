@@ -11,7 +11,7 @@ import { NativeSessionBuilder } from "../../src/features/builder/editor";
 import { api } from "../../src/lib/api";
 import { localIsoDate } from "../../src/lib/dates";
 import { canPlanIn, personalAthleteOf } from "../../src/lib/personal-space";
-import { useActiveSpace } from "../../src/lib/queries";
+import { useTrainingSpace } from "../../src/lib/queries";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
 
@@ -89,7 +89,7 @@ const BuilderLoader = ({
 
 export default function SessionBuilderScreen() {
   const { id, date, groupId } = useLocalSearchParams<{ id: string; date?: string; groupId?: string }>();
-  const { me, orgId, space } = useActiveSpace();
+  const { me, orgId, space } = useTrainingSpace(true);
   if (!me.data)
     return (
       <StackScreen>

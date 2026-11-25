@@ -5,14 +5,17 @@ import { redirect } from "next/navigation";
 import { createPersonalSpaceInput } from "@tartan/contracts";
 import { authAction } from "@/lib/safe-action";
 import { writeSpaceCookie } from "@/features/shell/space";
+import { listSpaces } from "@/server/me.service";
 import { createPersonalSpace } from "@/server/personal-space.service";
 
-// « Je m'entraîne seul » : l'espace personnel naît, devient l'espace en cours, et l'athlète arrive sur sa journée.
+// Une première inscription ouvre le carnet. Depuis le planificateur d’un club, le bandeau reste celui du club.
 export const createPersonalSpaceAction = authAction
   .inputSchema(createPersonalSpaceInput.extend({ planner: z.boolean().optional() }))
   .action(async ({ parsedInput, ctx }) => {
     const { planner, ...input } = parsedInput;
     const created = await createPersonalSpace(ctx.actor.userId, input);
-    await writeSpaceCookie(created.organizationId);
+    const clubs = await listSpaces(ctx.actor.userId);
+    if (!planner || !clubs.some((s) => s.kind !== "personal" && s.role === "athlete"))
+      await writeSpaceCookie(created.organizationId);
     redirect(planner ? "/planificateur" : "/aujourdhui");
   });

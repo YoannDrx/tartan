@@ -230,7 +230,9 @@ const SessionCardBody = ({ card, pending, onValidate, onStart, onEdit }: HeroPro
               {m.mobile.today.missed}
             </T>
           ) : null}
-          <Button testID="validate-done" label={m.today.quickDone} icon={Check} onPress={() => onValidate("done")} />
+          <View testID={`validate-session-${card.id}`} collapsable={false}>
+            <Button testID="validate-done" label={m.today.quickDone} icon={Check} onPress={() => onValidate("done")} />
+          </View>
           <Button
             testID="validate-partial"
             label={m.today.quickPartial}

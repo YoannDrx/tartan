@@ -23,6 +23,7 @@ const date = (iso: string) => `${formatDayMonth(iso)} ${iso.slice(0, 4)}`;
 export default async function ProgresPage() {
   const ctx = await requireAthleteSpace();
   const { actor, organizationId, space, personal } = ctx;
+  const source = personal && ctx.clubSpace.kind !== "personal" ? "?carnet=1" : "";
   const today = todayIso();
   const [file, regularity, exercises] = await Promise.all([
     getMyFile(actor.userId, organizationId),
@@ -39,18 +40,21 @@ export default async function ProgresPage() {
           space.progressionEnabled ? (
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="secondary">
-                <Link href="/analyse">{m.analysis.title}</Link>
+                <Link href={`/analyse${source}`}>{m.analysis.title}</Link>
               </Button>
               <Button asChild variant="secondary">
                 <Link href={`/historique/${file.id}`}>{m.exerciseHistory.title}</Link>
               </Button>
               <Button asChild variant="secondary">
-                <Link href="/outils/charges">{m.calculator.title}</Link>
+                <Link href={`/outils/charges${source}`}>{m.calculator.title}</Link>
               </Button>
             </div>
           ) : null
         }
       />
+      {!personal && ctx.spaces.some((s) => s.kind === "personal") && (
+        <Link href="/carnet/progres">{m.brand.notebook}</Link>
+      )}
       {exercises ? (
         <section
           id="test-de-force"

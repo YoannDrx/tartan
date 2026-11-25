@@ -849,6 +849,7 @@ export const SessionBuilder = ({
     setSaving(true);
     await recovery.beforeSubmit();
     save.execute({
+      personal: Boolean(personalAthleteId),
       id: initial?.id,
       expectedVersion,
       phaseReview: phaseReady.key === planningKey && phaseReady.ready ? phaseReady.review : undefined,
@@ -1493,7 +1494,8 @@ export const SessionBuilder = ({
               disabled={template.isPending}
               onClick={() => {
                 const draft = buildDraft();
-                if (draft.title && draft.blocks.length) template.execute(draft);
+                if (draft.title && draft.blocks.length)
+                  template.execute({ ...draft, personal: Boolean(personalAthleteId) });
                 else setFormError(m.builder.sequence.templateRequiresContent);
               }}
             >

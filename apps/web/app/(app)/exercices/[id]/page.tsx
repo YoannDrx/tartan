@@ -4,7 +4,7 @@ import { w } from "@tartan/i18n/web";
 import Link from "next/link";
 import { EmptyState, PageHeader } from "@/components/states";
 import { ExerciseDetail, SheetActions } from "@/features/exercises/exercise-sheet";
-import { orNotFound, requirePlannerSpace } from "@/features/shell/space";
+import { orNotFound, requireResourceSpace } from "@/features/shell/space";
 import { VideoList } from "@/features/videos/video-list";
 import { videoEnabled } from "@/lib/mux";
 import { getExerciseSheet } from "@/server/exercise.service";
@@ -20,14 +20,14 @@ export default async function ExercisePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ modifier?: string }>;
 }) {
-  const { actor, organizationId } = await requirePlannerSpace();
+  const { actor, organizationId, planner, staff } = await requireResourceSpace();
   const { id } = await params;
   const { modifier } = await searchParams;
   const exercise = await orNotFound(() => getExerciseSheet(actor.userId, organizationId, id));
   // Le service applique le périmètre du membre, le consentement vidéo et les blocages : rien n'est refiltré ici.
   const [videos, lists] = await Promise.all([
     listVideos(actor.userId, organizationId, { exerciseId: exercise.id }),
-    listExerciseLists(actor.userId, organizationId),
+    planner ? listExerciseLists(actor.userId, organizationId) : [],
   ]);
   const family = exercise.family ? m.exerciseGuide.families[exercise.family] : null;
   return (
@@ -41,33 +41,42 @@ export default async function ExercisePage({
           .filter(Boolean)
           .join(", ")}
         before={
-          <Link href="/exercices" className="inline-flex min-h-11 items-center font-semibold">
+          <Link
+            href={planner ? "/exercices" : "/club/exercices"}
+            className="inline-flex min-h-11 items-center font-semibold"
+          >
             {m.exercises.backToLibrary}
           </Link>
         }
         actions={
-          <SheetActions
-            exercise={exercise}
-            lists={lists}
-            videoEnabled={videoEnabled()}
-            // `?modifier=1` : « Compléter la fiche », au sortir d'une création rapide.
-            openEdit={modifier === "1"}
-          />
+          planner && (
+            <SheetActions
+              exercise={exercise}
+              lists={lists}
+              videoEnabled={videoEnabled()}
+              // `?modifier=1` : « Compléter la fiche », au sortir d'une création rapide.
+              openEdit={modifier === "1"}
+            />
+          )
         }
       />
-      {exercise.shared && exercise.motionKey ? (
+      {planner && exercise.shared && exercise.motionKey ? (
         <p className="text-[15px]">{w.exercises.sheet.personalizeHint}</p>
       ) : null}
       <div className="grid gap-4 desktop:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] desktop:items-start">
         <section className="on-card min-w-0 rounded-card bg-card p-4 tablet:p-6">
-          <ExerciseDetail exercise={exercise} variants={exercise.variants} />
+          <ExerciseDetail
+            basePath={planner ? "/exercices" : "/club/exercices"}
+            exercise={exercise}
+            variants={exercise.variants}
+          />
         </section>
         <section className="flex flex-col gap-2">
           <h2 className="t-section">{m.exercises.linkedVideos}</h2>
           {videos.length === 0 ? (
             <EmptyState rubric="exercices">{m.exercises.linkedVideosEmpty}</EmptyState>
           ) : (
-            <VideoList videos={videos} basePath="/videos" showAthlete />
+            <VideoList videos={videos} basePath={staff ? "/videos" : "/mes-videos"} showAthlete />
           )}
         </section>
       </div>

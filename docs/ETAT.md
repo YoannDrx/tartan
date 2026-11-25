@@ -4,6 +4,10 @@ Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
+## Accueil coach ou athlète · 26 novembre 2026
+
+L’accueil ouvre le suivi du coach ou la journée de l’athlète. Le club habituel se choisit dans les réglages. La journée et le calendrier réunissent les séances prescrites et personnelles avec leur provenance. L’athlète consulte la bibliothèque du club et retrouve son planificateur, ses modèles, ses records et ses vidéos dans son carnet personnel. Le parcours de double validation utilise un prestataire IA simulé. La recette sur les téléphones du fondateur reste à faire.
+
 ## Publication des deux fiches kettlebell historiques · 25 novembre 2026
 
 La livraison `4142cec5` sert les 508 images et vignettes. La base de production contient les 257 validations d’image et les 166 validations de texte et de mouvement. La comparaison avec les contenus relus a repéré deux anciennes conventions de charge. Le correctif rapproche uniquement les fiches communes historiques identiques, conserve les réouvertures et les versions personnalisées.

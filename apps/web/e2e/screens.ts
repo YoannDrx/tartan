@@ -107,7 +107,7 @@ export const SCREENS: Screen[] = [
   { path: "/seances/[id]/athletes/[athleteId]/series", roles: ["coach"], proof: ["coach-performed-sets.spec.ts"] },
   {
     path: "/exercices",
-    roles: ["coach", "personal"],
+    roles: both,
     proof: ["exercise-guides.spec.ts", "exercise-aliases.spec.ts", "exercise-lists.spec.ts", "exercise-finder.spec.ts"],
   },
   {
@@ -139,6 +139,10 @@ export const SCREENS: Screen[] = [
     roles: ["athlete", "personal"],
     proof: ["session-open.spec.ts", "regularity.spec.ts", "password.spec.ts"],
   },
+  { path: "/club/exercices", roles: ["athlete"], proof: ["ai-planner-athlete.spec.ts"] },
+  { path: "/club/exercices/[id]", roles: ["athlete"], proof: ["ai-planner-athlete.spec.ts"] },
+  { path: "/carnet/progres", roles: ["personal"], proof: ["ai-planner-athlete.spec.ts"] },
+  { path: "/carnet/mes-videos", roles: ["personal"], proof: ["ai-planner-athlete.spec.ts"] },
   { path: "/progres", roles: ["athlete", "personal"], proof: ["record-card.spec.ts", "filled-sweep.spec.ts"] },
   { path: "/mes-videos", roles: ["athlete", "personal"], proof: ["video-collaboration.spec.ts"] },
   { path: "/mes-videos/[id]", roles: ["athlete"], proof: ["video-collaboration.spec.ts", "video-fullscreen.spec.ts"] },

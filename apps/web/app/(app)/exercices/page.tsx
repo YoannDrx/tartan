@@ -1,9 +1,10 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { exerciseFamily, type ExerciseFamily, type ExerciseFilter } from "@tartan/contracts";
 import { formatPrescription } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { ExerciseLibrary, type LibraryRow } from "@/features/exercises/exercise-library";
-import { requirePlannerSpace } from "@/features/shell/space";
+import { requireResourceSpace } from "@/features/shell/space";
 import { listExerciseIndex } from "@/server/exercise.service";
 import { listExerciseLists } from "@/server/exercise-list.service";
 
@@ -25,11 +26,11 @@ export default async function ExercicesPage({
 }: {
   searchParams: Promise<{ nouveau?: string; liste?: string; famille?: string; favoris?: string }>;
 }) {
-  const { actor, organizationId, space } = await requirePlannerSpace();
+  const { actor, organizationId, space, planner, clubSpace, personal } = await requireResourceSpace();
   const params = await searchParams;
   const [exercises, lists] = await Promise.all([
     listExerciseIndex(actor.userId, organizationId),
-    listExerciseLists(actor.userId, organizationId),
+    planner ? listExerciseLists(actor.userId, organizationId) : [],
   ]);
   // La page n'embarque que ce qu'il faut pour filtrer et afficher : chaque fiche se lit à son adresse.
   const rows: LibraryRow[] = exercises.map((exercise) => ({
@@ -43,15 +44,24 @@ export default async function ExercicesPage({
     prescription: formatPrescription(exercise.defaultPrescription),
   }));
   return (
-    <ExerciseLibrary
-      rows={rows}
-      lists={lists}
-      initialFilter={filterOf(
-        params,
-        lists.map((list) => list.id),
+    <>
+      {personal && clubSpace.kind !== "personal" && (
+        <Link className="inline-flex min-h-11 items-center" href="/club/exercices">
+          {m.brand.clubLibrary}
+        </Link>
       )}
-      openNew={params.nouveau === "1"}
-      progressionEnabled={space.progressionEnabled}
-    />
+      <ExerciseLibrary
+        basePath={planner ? "/exercices" : "/club/exercices"}
+        editable={planner}
+        rows={rows}
+        lists={lists}
+        initialFilter={filterOf(
+          params,
+          lists.map((list) => list.id),
+        )}
+        openNew={planner && params.nouveau === "1"}
+        progressionEnabled={space.progressionEnabled}
+      />
+    </>
   );
 }

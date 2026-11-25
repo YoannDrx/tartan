@@ -42,9 +42,27 @@ const monthLabel = (month: string) =>
     ),
   );
 
+async function athleteAgenda(ctx: SpaceContext, range: { from: string; to: string }) {
+  const notebook = ctx.spaces.find((s) => s.kind === "personal" && s.organizationId !== ctx.organizationId);
+  const [club, personal, planning] = await Promise.all([
+    getAthleteCalendar(ctx.actor.userId, ctx.organizationId, range),
+    notebook ? getAthleteCalendar(ctx.actor.userId, notebook.organizationId, range) : null,
+    notebook ? listPlanning(ctx.actor.userId, notebook.organizationId, { ...range, summary: true }) : null,
+  ]);
+  const sessions = [
+    ...club.sessions.map((s) => ({ ...s, source: m.brand.clubSession })),
+    ...(personal?.sessions ?? []).map((s) => ({ ...s, source: m.brand.personalSession })),
+    ...(planning?.sessions ?? [])
+      .filter((s) => !s.publishedAt)
+      .map((s) => ({ ...s, variant: null, status: undefined, source: m.brand.personalSession })),
+  ];
+  sessions.sort((a, b) => a.date.localeCompare(b.date) || (a.startTime ?? "").localeCompare(b.startTime ?? ""));
+  return { sessions, competitions: club.competitions };
+}
+
 const AthleteMonth = async ({ ctx, month, today }: { ctx: SpaceContext; month: string; today: string }) => {
   const range = monthRange(month);
-  const { sessions, competitions } = await getAthleteCalendar(ctx.actor.userId, ctx.organizationId, range);
+  const { sessions, competitions } = await athleteAgenda(ctx, range);
   return (
     <>
       <PeriodStepper
@@ -64,9 +82,16 @@ const AthleteMonth = async ({ ctx, month, today }: { ctx: SpaceContext; month: s
           date: s.date,
           title: s.title,
           type: s.type,
-          href: `/seance/${s.id}`,
+          href: s.status ? `/seance/${s.id}` : `/seances/${s.id}`,
+          draft: !s.status,
           status: s.status,
-          detail: [s.startTime?.replace(":", " h "), m.variant[s.variant].toLowerCase()].filter(Boolean).join(", "),
+          detail: [
+            s.source,
+            s.startTime?.replace(":", " h "),
+            s.variant ? m.variant[s.variant].toLowerCase() : w.personal.calendar.draft,
+          ]
+            .filter(Boolean)
+            .join(", "),
         }))}
         competitions={competitions}
       />
@@ -99,8 +124,19 @@ const AthleteCalendar = async ({ ctx, params }: { ctx: SpaceContext; params: Sea
   const preference = await getCalendarView(ctx.actor.userId);
   const isMonth = params.vue === "mois" || (params.vue !== "liste" && preference === "month");
   const month = validMonth(params.mois) ?? today.slice(0, 7);
+  const notebook = ctx.spaces.find((s) => s.kind === "personal");
   const switcher = (
-    <nav aria-label={m.calendar.viewAndGroup} className="flex gap-2 py-1">
+    <nav aria-label={m.calendar.viewAndGroup} className="flex flex-wrap gap-2 py-1">
+      {notebook && (
+        <Button asChild variant="secondary">
+          <Link href="/seances/nouvelle">{w.personal.planSession}</Link>
+        </Button>
+      )}
+      {notebook?.aiPlannerEnabled && (
+        <Button asChild>
+          <Link href="/planificateur">{m.aiPlanner.personalCreate}</Link>
+        </Button>
+      )}
       <CalendarViewPill view="list" href="/calendrier?vue=liste" active={!isMonth} label={m.calendar.list} />
       <CalendarViewPill
         view="month"
@@ -119,7 +155,7 @@ const AthleteCalendar = async ({ ctx, params }: { ctx: SpaceContext; params: Sea
       </div>
     );
   }
-  const { sessions, competitions } = await getAthleteCalendar(ctx.actor.userId, ctx.organizationId, {
+  const { sessions, competitions } = await athleteAgenda(ctx, {
     from: addDays(today, -28),
     to: addDays(today, 42),
   });
@@ -128,14 +164,15 @@ const AthleteCalendar = async ({ ctx, params }: { ctx: SpaceContext; params: Sea
   const row = (s: (typeof sessions)[number]) => (
     <li key={s.id}>
       <Link
-        href={`/seance/${s.id}`}
+        href={s.status ? `/seance/${s.id}` : `/seances/${s.id}`}
         className="grid min-h-11 grid-cols-[26px_minmax(0,1fr)] items-center gap-x-3 px-4 py-2 text-inherit no-underline hover:bg-raise"
       >
-        <StatusIcon status={s.status} />
+        {s.status ? <StatusIcon status={s.status} /> : <span aria-hidden />}
         <span className="flex min-w-0 flex-col leading-snug">
           <span className="break-words font-semibold">{s.title}</span>
           <span className="t-caption font-normal text-soft">
-            {capitalize(formatDateLong(s.date))}, {m.variant[s.variant].toLowerCase()}
+            {s.source} · {capitalize(formatDateLong(s.date))},{" "}
+            {s.variant ? m.variant[s.variant].toLowerCase() : w.personal.calendar.draft}
           </span>
         </span>
       </Link>

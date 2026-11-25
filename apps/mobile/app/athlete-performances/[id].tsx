@@ -11,7 +11,7 @@ import { api } from "../../src/lib/api";
 import { localIsoDate } from "../../src/lib/dates";
 import { errorMessage } from "../../src/lib/errors";
 import { personalAthleteOf } from "../../src/lib/personal-space";
-import { useActiveSpace, useCoachAthleteFile } from "../../src/lib/queries";
+import { useTrainingSpace, useCoachAthleteFile } from "../../src/lib/queries";
 import { Button, Card, Field, SectionTitle, T, Tag } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
@@ -311,7 +311,7 @@ const Panel = ({ orgId, athleteId }: { orgId: string; athleteId: string }) => {
 };
 export default function AthletePerformances() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { orgId, me, space: active } = useActiveSpace();
+  const { orgId, me, space: active } = useTrainingSpace();
   // Le coach d'un espace, ou l'athlète autonome pour sa seule fiche.
   const allowed = active?.role === "owner" || active?.role === "coach" || personalAthleteOf(active) === id;
   return (

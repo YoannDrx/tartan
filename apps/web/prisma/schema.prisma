@@ -141,6 +141,7 @@ model Profile {
   // Avatar prédéfini (`athlete:…`, `animal:…`) ; nul dès qu'une photo est envoyée, et inversement.
   avatarPreset String? @map("avatar_preset")
   // Accord explicite avant tout envoi au planificateur IA (OpenAI).
+  homeOrganizationId String? @map("home_organization_id") @db.Uuid
   homeTone String @default("calm") @map("home_tone")
   sessionTone String @default("calm") @map("session_tone")
   aiConsentAt DateTime? @map("ai_consent_at")

@@ -11,6 +11,7 @@ import { AppError } from "@/lib/errors";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { requireAthleteAccess } from "./access";
 import { assertAdultDate, confirmBirthDate } from "./age.service";
 import { ensurePlans } from "./billing.service";
 import { recordJoinConsents } from "./consent.service";
@@ -36,6 +37,22 @@ export const canCreatePersonalSpace = async (): Promise<boolean> => (await signu
 
 export const findPersonalSpace = (userId: string) =>
   prisma.organization.findUnique({ where: { personalOwnerId: userId }, select: { id: true } });
+
+export async function notebookContains(
+  userId: string,
+  organizationId: string,
+  resource: "session" | "video",
+  id: string,
+) {
+  const access = await requireAthleteAccess(userId, organizationId);
+  if (!access.personal) return false;
+  const where = { organizationId, id };
+  return Boolean(
+    resource === "session"
+      ? await prisma.scheduledSession.findFirst({ where, select: { id: true } })
+      : await prisma.video.findFirst({ where, select: { id: true } }),
+  );
+}
 
 export const createPersonalSpace = async (
   userId: string,

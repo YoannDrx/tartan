@@ -4,7 +4,7 @@ import { Play, SquarePen } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { AthleteSessionCard, AthleteSessionDetail, AthleteToday } from "@tartan/contracts";
-import { athleteWelcomeMode, programItems } from "@tartan/domain";
+import { athleteWelcomeMode, combinedWeek, programItems } from "@tartan/domain";
 import { capitalize, formatDateLong, formatWeekdayShort, m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { ActivityPicto, LaneArcs } from "@/components/pictos";
@@ -220,9 +220,10 @@ const Hero = ({
 };
 
 export default async function AujourdhuiPage() {
-  const { actor, organizationId, personal, space } = await requireAthleteSpace();
+  const { actor, organizationId, personal, space, spaces } = await requireAthleteSpace();
   const today = todayIso();
-  const [data, welcome, methods, onboarding, me, guide, signupOpen] = await Promise.all([
+  const notebook = spaces.find((s) => s.kind === "personal");
+  const [data, welcome, methods, onboarding, me, guide, signupOpen, extra] = await Promise.all([
     getAthleteToday(actor.userId, organizationId),
     getAthleteWelcome(actor.userId, organizationId),
     getSignInMethods(actor),
@@ -231,12 +232,10 @@ export default async function AujourdhuiPage() {
     // L'athlète autonome a ses premiers pas : deux modèles de départ pour planifier sa première séance.
     personal ? getGuideContext(actor.userId, organizationId) : null,
     personal ? false : canCreatePersonalSpace(),
+    !personal && notebook ? getAthleteToday(actor.userId, notebook.organizationId) : null,
   ]);
-  const notebook = me.spaces.find((s) => s.kind === "personal");
   const plannerHref = notebook?.aiPlannerEnabled
-    ? personal
-      ? "/planificateur"
-      : `/planificateur?espace=${notebook.organizationId}`
+    ? "/planificateur"
     : !notebook && signupOpen
       ? "/bienvenue/seul?ensuite=planificateur"
       : null;
@@ -249,12 +248,20 @@ export default async function AujourdhuiPage() {
           plannerAvailable: Boolean(space.aiPlannerEnabled),
         }
       : null;
-  const details = await Promise.all(data.today.map((c) => getAthleteSession(actor.userId, organizationId, c.id)));
+  const cards = [
+    ...data.today.map((card) => ({ card, org: organizationId, self: personal, consent: data.healthConsent })),
+    ...(extra && notebook
+      ? extra.today.map((card) => ({ card, org: notebook.organizationId, self: true, consent: extra.healthConsent }))
+      : []),
+  ];
+  const next = [data.next, extra?.next].filter((card) => card != null).sort((a, b) => a.date.localeCompare(b.date))[0];
+  const nextPersonal = personal || (next && extra?.next?.id === next.id);
+  const details = await Promise.all(cards.map(({ card, org }) => getAthleteSession(actor.userId, org, card.id)));
   // L'accueil ne retarde jamais la séance : un jour de séance, il tient en une ligne sous elle.
   const welcomeMode = athleteWelcomeMode({
     eligible: welcome !== null,
     welcomeSeenAt: onboarding.welcomeSeenAt,
-    sessionToday: data.today.length > 0,
+    sessionToday: cards.length > 0,
   });
   const passwordPrompt = methods.passwordPrompt ? { email: methods.email, canSetNow: methods.canSetPasswordNow } : null;
   return (
@@ -289,24 +296,20 @@ export default async function AujourdhuiPage() {
       {welcome && welcomeMode === "panels" ? (
         <AthleteWelcome mode="panels" group={welcome.group} coach={welcome.coach} />
       ) : null}
-      <WeekDots week={data.week} today={today} />
+      <WeekDots week={combinedWeek(data.week, extra?.week)} today={today} />
       {data.pinnedAnnouncement ? (
         <Link href="/annonces" className="rounded-card on-card bg-card p-3 text-inherit no-underline hover:bg-raise">
           <span className="font-semibold">{data.pinnedAnnouncement.authorName} : </span>
           {data.pinnedAnnouncement.body}
         </Link>
       ) : null}
-      {data.today.map((card, i) => {
+      {cards.map(({ card, org, self, consent }, i) => {
         const detail = details[i];
         return detail ? (
-          <Hero
-            key={card.id}
-            card={card}
-            detail={detail}
-            organizationId={organizationId}
-            healthConsent={data.healthConsent}
-            personal={personal}
-          />
+          <div key={card.id} className="flex flex-col gap-3">
+            <span className="t-section">{self ? m.brand.personalSession : m.brand.clubSession}</span>
+            <Hero card={card} detail={detail} organizationId={org} healthConsent={consent} personal={self} />
+          </div>
         ) : null;
       })}
       {me.preferences?.homeTone !== "off" && (
@@ -317,7 +320,7 @@ export default async function AujourdhuiPage() {
         <AthleteWelcome mode="line" group={welcome.group} coach={welcome.coach} />
       ) : null}
       {data.focus ? <FocusBlock focus={data.focus} /> : null}
-      {data.today.length === 0 ? (
+      {cards.length === 0 ? (
         <EmptyState
           rubric="aujourdhui"
           action={
@@ -328,7 +331,7 @@ export default async function AujourdhuiPage() {
             ) : undefined
           }
         >
-          {personal ? w.personal.todayEmpty : data.next ? m.today.empty : m.today.noneYet}
+          {personal ? w.personal.todayEmpty : next ? m.today.empty : m.today.noneYet}
         </EmptyState>
       ) : null}
       {/* Ses premiers pas, après la séance du jour : rien ne passe devant elle. */}
@@ -340,24 +343,25 @@ export default async function AujourdhuiPage() {
       ) : passwordPrompt ? (
         <PasswordPrompt email={passwordPrompt.email} canSetNow={passwordPrompt.canSetNow} />
       ) : null}
-      {data.next ? (
+      {next ? (
         <section className="flex flex-col gap-2">
           <h2 className="t-section">{m.today.next}</h2>
-          <Stay name={sessionCardName(data.next.id)}>
+          <Stay name={sessionCardName(next.id)}>
             <Link
-              href={`/seance/${data.next.id}`}
+              href={`/seance/${next.id}`}
               className="on-card flex items-center gap-3 rounded-card bg-card p-3 no-underline hover:bg-card-raised"
             >
-              <ActivityPicto kind={data.next.type} className="size-5 text-fg-muted" />
+              <ActivityPicto kind={next.type} className="size-5 text-fg-muted" />
               <span className="flex min-w-0 flex-col gap-0.5 text-fg">
-                <span className="font-semibold">{data.next.title}</span>
+                <span className="font-semibold">{next.title}</span>
                 <span className="t-caption font-normal text-fg-muted">
-                  {capitalize(formatDateLong(data.next.date))}, {m.variant[data.next.variant].toLowerCase()}
+                  {nextPersonal ? m.brand.personalSession : m.brand.clubSession} ·{" "}
+                  {capitalize(formatDateLong(next.date))}, {m.variant[next.variant].toLowerCase()}
                 </span>
               </span>
             </Link>
           </Stay>
-          {personal ? null : <AttendanceQuestion sessionId={data.next.id} current={data.next.attendance} />}
+          {nextPersonal ? null : <AttendanceQuestion sessionId={next.id} current={next.attendance} />}
         </section>
       ) : null}
       {/* La série vient après les séances : l'athlète vient d'abord pour elles. */}

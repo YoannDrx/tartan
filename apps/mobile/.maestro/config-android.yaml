@@ -10,6 +10,7 @@ flows:
   - coach-planner.yml
   - coach-publication-message.yml
   - sync-review.yml
+  - athlete-notebook.yml
 executionOrder:
   continueOnFailure: true
   flowsOrder:
@@ -22,3 +23,4 @@ executionOrder:
     - coach-planner
     - coach-publication-message
     - sync-review
+    - athlete-notebook

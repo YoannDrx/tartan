@@ -1,7 +1,6 @@
 import { api } from "../../src/lib/api";
-import { useSpaceStore } from "../../src/lib/space-store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { celebrationFromResponse, programItems as programOf } from "@tartan/domain";
+import { celebrationFromResponse, combinedWeek, programItems as programOf } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
 import { dailyMantra, type EncouragementTone, capitalize, formatDateLong, m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
@@ -56,7 +55,8 @@ export default function Today() {
   const self = personalAthleteOf(active);
   const personal = Boolean(self);
   const notebook = me.data?.spaces.find((s) => s.kind === "personal");
-  const setActive = useSpaceStore((s) => s.setActive);
+  const extraOrg = !personal ? (notebook?.organizationId ?? "") : "";
+  const extra = useToday(extraOrg);
   const signup = useQuery({
     queryKey: ["signup-options"],
     queryFn: api.signupOptions,
@@ -80,8 +80,9 @@ export default function Today() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const personalCard = (id: string) => personal || Boolean(extra.data?.today.some((c) => c.id === id));
   const targetOf = (card: AthleteSessionCard): ValidationTarget => ({
-    orgId,
+    orgId: !personal && personalCard(card.id) ? extraOrg : orgId,
     sessionId: card.id,
     variant: card.variant,
     plannedMinutes: card.durationMin,
@@ -131,9 +132,17 @@ export default function Today() {
   }, [today.data, items, date, personal]);
   const main = view?.today.find((c) => c.status === "upcoming" || c.status === "missed") ?? view?.today[0] ?? null;
   const others = view?.today.filter((c) => c.id !== main?.id) ?? [];
-  const programCard = main ?? view?.next ?? null;
-  const program = useSessionDetail(orgId, programCard?.id);
-  const sheetDetail = useSessionDetail(orgId, sheet?.card.id);
+  const next = [view?.next, extra.data?.next]
+    .filter((card) => card != null)
+    .sort((a, b) => a.date.localeCompare(b.date))[0];
+  const nextPersonal = personal || Boolean(next && next.id === extra.data?.next?.id);
+  const programCard = main ?? extra.data?.today[0] ?? next;
+  const programPersonal = Boolean(
+    programCard && (personalCard(programCard.id) || (programCard.id === next?.id && nextPersonal)),
+  );
+  const programOrg = !personal && programPersonal ? extraOrg : orgId;
+  const program = useSessionDetail(programOrg, programCard?.id);
+  const sheetDetail = useSessionDetail(sheet?.target.orgId ?? orgId, sheet?.card.id);
   // Un circuit repasse par les mêmes exercices : chacun une fois, avec ses passages, ouvert à son premier passage.
   const programItems = useMemo(() => {
     const steps = program.data?.blocks.flatMap((b) => b.items) ?? [];
@@ -149,6 +158,7 @@ export default function Today() {
       refreshing={today.isRefetching}
       onRefresh={() => {
         void today.refetch();
+        if (extraOrg) void extra.refetch();
         void client.invalidateQueries({ queryKey: ["onboarding", orgId] });
         void client.invalidateQueries({ queryKey: ["sign-in-methods"] });
       }}
@@ -163,9 +173,17 @@ export default function Today() {
       {view ? (
         <>
           {/* Un jour sans séance, l'accueil de l'athlète ouvre l'écran ; un jour de séance, il passe dessous. */}
-          <AthleteWelcome orgId={orgId} sessionToday={view.today.length > 0} placement="top" />
-          <WeekStrip week={view.week} today={date} />
+          <AthleteWelcome
+            orgId={orgId}
+            sessionToday={view.today.length > 0 || Boolean(extra.data?.today.length)}
+            placement="top"
+          />
+          <WeekStrip
+            week={combinedWeek(view.week, extra.data ? applyPendingToToday(extra.data, items, date).week : undefined)}
+            today={date}
+          />
 
+          {main && <SectionTitle>{personal ? m.brand.personalSession : m.brand.clubSession}</SectionTitle>}
           {main ? (
             <SessionHero
               card={main}
@@ -174,7 +192,7 @@ export default function Today() {
               onEdit={() => edit(main)}
               onStart={() => router.push(`/session/${main.id}`)}
             />
-          ) : personal ? (
+          ) : extra.data?.today.length ? null : personal ? (
             <EmptyState body={m.mobile.solo.todayEmpty} />
           ) : (
             <EmptyState
@@ -214,22 +232,43 @@ export default function Today() {
             />
           ))}
 
+          {extra.data?.today.map((raw) => {
+            const card = applyPendingToCard(raw, items);
+            return (
+              <View key={card.id}>
+                <SectionTitle>{m.brand.personalSession}</SectionTitle>
+                <SessionHero
+                  card={{ ...card, coachName: null }}
+                  secondary
+                  pending={saving || Boolean(pendingLogFor(items, card.id))}
+                  onValidate={(status) => validate(card, status)}
+                  onEdit={() => edit(card)}
+                  onStart={() => router.push({ pathname: "/session/[id]", params: { id: card.id, carnet: "1" } })}
+                />
+              </View>
+            );
+          })}
           {notebook?.aiPlannerEnabled || (!notebook && signup.data?.athlete) ? (
             <Button
+              testID="personal-planner"
               label={m.aiPlanner.personalCreate}
               variant="secondary"
               onPress={() => {
                 if (notebook) {
-                  setActive(notebook.organizationId);
                   router.push("/planner");
                 } else router.push({ pathname: "/(auth)/onboarding/solo", params: { ensuite: "planificateur" } });
               }}
             />
           ) : null}
-          <AthleteWelcome orgId={orgId} sessionToday={view.today.length > 0} placement="after" />
+          <AthleteWelcome
+            orgId={orgId}
+            sessionToday={view.today.length > 0 || Boolean(extra.data?.today.length)}
+            placement="after"
+          />
           {/* Ses premiers pas, après la séance du jour : jamais devant elle, jamais par-dessus. */}
           {self ? <PersonalFirstSteps orgId={orgId} athleteId={self} /> : null}
           <AthleteAfterSession orgId={orgId} />
+          {!personal && <Button label={m.nav.annonces} variant="ghost" onPress={() => router.push("/news")} />}
 
           {main?.coachNote && !personal ? (
             <Card>
@@ -247,23 +286,21 @@ export default function Today() {
 
           {view.regularity ? <Regularity {...view.regularity} /> : null}
 
-          {!main && view.next ? (
+          {!main && !extra.data?.today.length && next ? (
             <Card>
               <View style={{ gap: 2 }}>
                 <T variant="title2" heading>
-                  {view.next.title}
+                  {next.title}
                 </T>
                 <T variant="small" tone="muted">
-                  {`${m.today.next} : ${nextLine(view.next)}`}
+                  {`${m.today.next} : ${nextLine(next)}`}
                 </T>
               </View>
-              {personal ? null : (
+              {nextPersonal ? null : (
                 <AttendanceRow
-                  card={applyPendingToCard(view.next, items)}
-                  onAnswer={(status) => void submitAttendance(orgId, (view.next as AthleteSessionCard).id, status)}
-                  onReason={(reason) =>
-                    void submitAttendance(orgId, (view.next as AthleteSessionCard).id, "absent", reason)
-                  }
+                  card={applyPendingToCard(next, items)}
+                  onAnswer={(status) => void submitAttendance(orgId, next.id, status)}
+                  onReason={(reason) => void submitAttendance(orgId, next.id, "absent", reason)}
                 />
               )}
             </Card>
@@ -316,7 +353,11 @@ export default function Today() {
                         onPress={() =>
                           router.push({
                             pathname: "/session/[id]",
-                            params: { id: programCard.id, i: String(item.step) },
+                            params: {
+                              id: programCard.id,
+                              i: String(item.step),
+                              carnet: programPersonal ? "1" : undefined,
+                            },
                           })
                         }
                       />
@@ -324,7 +365,7 @@ export default function Today() {
                   ))}
                 </ListSurface>
               ) : null}
-              {personal ? null : (
+              {programPersonal ? null : (
                 <Button
                   label={m.mobile.today.commentsOpen}
                   icon={MessageSquare}
@@ -367,8 +408,8 @@ export default function Today() {
           justRecorded={sheet.justRecorded}
           celebration={sheet.celebration}
           existing={sheetDetail.data.log}
-          healthConsent={view?.healthConsent ?? false}
-          personal={personal}
+          healthConsent={(sheet.target.orgId === extraOrg ? extra.data?.healthConsent : view?.healthConsent) ?? false}
+          personal={personalCard(sheet.card.id)}
           onClose={() => setSheet(null)}
         />
       ) : null}
@@ -385,7 +426,7 @@ export default function Today() {
 
       {commentsOpen && programCard ? (
         <Sheet visible title={m.comments.title} onClose={() => setCommentsOpen(false)}>
-          <CommentsSection orgId={orgId} entityType="session" entityId={programCard.id} />
+          <CommentsSection orgId={programOrg} entityType="session" entityId={programCard.id} />
         </Sheet>
       ) : null}
     </TabScreen>

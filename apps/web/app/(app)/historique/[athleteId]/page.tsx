@@ -4,7 +4,7 @@ import { historyRange, type HistoryPeriod } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { PageHeader } from "@/components/states";
 import { ExerciseHistoryView } from "@/features/progression/exercise-history";
-import { requireSpace, orNotFound } from "@/features/shell/space";
+import { requireResourceSpace, orNotFound } from "@/features/shell/space";
 import { getAthleteExerciseHistory, getAthleteHistoryContext } from "@/server/exercise-history.service";
 
 export const metadata = { title: m.exerciseHistory.title };
@@ -15,7 +15,7 @@ export default async function HistoryPage({
   params: Promise<{ athleteId: string }>;
   searchParams: Promise<{ exercise?: string; days?: string; to?: string }>;
 }) {
-  const { actor, organizationId, space } = await requireSpace();
+  const { actor, organizationId, space } = await requireResourceSpace();
   const [{ athleteId }, query] = await Promise.all([params, searchParams]);
   if (!uuid.safeParse(athleteId).success) notFound();
   if (!space.progressionEnabled) return <p>{m.progression.disabled}</p>;

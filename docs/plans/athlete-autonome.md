@@ -43,7 +43,7 @@ Décision du fondateur, 23 novembre 2026. Un athlète peut s'inscrire sur Tartan
 - Depuis un lien d'invitation, connecté ou non. Avant d'accepter : l'adresse visée par une invitation nominative est montrée, avec « Changer de compte » ; l'e-mail `account_exists` ramène à l'invitation.
 - À l'acceptation : il devient athlète de l'espace du coach (fiche propre à cet espace) et garde son espace personnel ; le nom du compte n'est plus réécrit s'il est déjà renseigné.
 - Écran suivant, facultatif : « Partager mon historique avec <coach> » par cases (records, références de force, historique des séances) ; santé exclue. Révocable dans Réglages, rubrique Confidentialité. Le coach voit une section « Historique personnel partagé » sur la fiche de l'athlète.
-- Le sélecteur d'espace montre « Mon entraînement » et le groupe du coach.
+- La journée et le calendrier réunissent les séances du club et du carnet. Les vraies appartenances à plusieurs clubs se retrouvent dans Réglages, Mes clubs.
 
 ### Comptes sans espace (filet)
 - E-mail « Termine ton inscription » 24 h après la création d'un compte sans espace ni invitation, puis rien.

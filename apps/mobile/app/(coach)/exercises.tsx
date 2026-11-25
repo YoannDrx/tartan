@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ExerciseSummary, ExerciseFamily } from "@tartan/contracts";
-import { can, formatPrescription } from "@tartan/domain";
+import { canIn, formatPrescription } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -17,7 +17,7 @@ import {
 } from "../../src/features/exercise-lists";
 import { api } from "../../src/lib/api";
 import { canCreateIn, exercisesInFilter, listOf, validFilter, type LibraryFilter } from "../../src/lib/exercise-lists";
-import { useActiveSpace, useExercises } from "../../src/lib/queries";
+import { useTrainingSpace, useExercises } from "../../src/lib/queries";
 import { ListPlus, Pencil, Plus } from "../../src/ui/icons";
 import { Button, Chip, Divider, Field, IconButton, ListSurface, T } from "../../src/ui/primitives";
 import { TabScreen } from "../../src/ui/screen";
@@ -32,19 +32,17 @@ const folded = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLower
 const ExerciseSheetBody = ({
   orgId,
   exercise,
-  staff,
   onOpen,
 }: {
   orgId: string;
   exercise: ExerciseSummary;
-  staff: boolean;
   onOpen: (id: string) => void;
 }) => {
   // La fiche complète résout les variantes dans l'espace ; la bibliothèque déjà chargée suffit pour le reste.
   const sheet = useQuery({
     queryKey: ["exercise-sheet", orgId, exercise.id],
     queryFn: () => api.exerciseSheet(orgId, exercise.id),
-    enabled: staff,
+    enabled: Boolean(orgId),
   });
   const media = parseMedia(exercise.media);
   return (
@@ -84,11 +82,11 @@ const ExerciseSheetBody = ({
 };
 
 export default function Exercises() {
-  const { orgId, space: active } = useActiveSpace();
+  const { orgId, space: active, me } = useTrainingSpace(true);
   const exercises = useExercises(orgId);
   const client = useQueryClient();
   const router = useRouter();
-  const canEdit = active ? can(active.role, "editExercises") : false;
+  const canEdit = active ? canIn(active.kind ?? "coach", active.role, "editExercises") : false;
   const lists = useExerciseLists(orgId, canEdit);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
@@ -138,6 +136,15 @@ export default function Exercises() {
         if (canEdit) void lists.refresh();
       }}
     >
+      {active?.role === "athlete" &&
+        me.data?.spaces.some((s) => s.kind === "personal") &&
+        me.data.spaces.some((s) => s.kind !== "personal" && s.role === "athlete") && (
+          <Button
+            variant="secondary"
+            label={active.kind === "personal" ? m.brand.clubLibrary : m.brand.notebook}
+            onPress={() => router.setParams({ carnet: active.kind === "personal" ? "0" : "1" })}
+          />
+        )}
       {canEdit && exercises.data ? (
         <Button
           testID="exercise-new"
@@ -311,7 +318,7 @@ export default function Exercises() {
           {panel === "file" ? (
             <FilePanel exercise={open} state={lists} />
           ) : (
-            <ExerciseSheetBody orgId={orgId} exercise={open} staff={canEdit} onOpen={(id) => setOpenId(id)} />
+            <ExerciseSheetBody orgId={orgId} exercise={open} onOpen={(id) => setOpenId(id)} />
           )}
         </Sheet>
       ) : null}

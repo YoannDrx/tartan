@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { m } from "@tartan/i18n";
 import { EmptyState, PageHeader } from "@/components/states";
@@ -13,7 +14,11 @@ import { VideoFilters, VideoPagination, videoQuery, type VideoSearch } from "@/f
 export const metadata: Metadata = { title: m.video.mine };
 
 export default async function MesSautsPage({ searchParams }: { searchParams: Promise<VideoSearch> }) {
-  const { actor, organizationId } = await requireAthleteSpace();
+  const { actor, organizationId, personal, spaces } = await requireAthleteSpace();
+  const basePath =
+    personal && spaces.some((s) => s.kind !== "personal" && s.role === "athlete")
+      ? "/carnet/mes-videos"
+      : "/mes-videos";
   const search = await searchParams;
   const [{ videos, nextCursor }, today, sessions] = await Promise.all([
     listVideoPage(actor.userId, organizationId, videoQuery(search)),
@@ -30,9 +35,12 @@ export default async function MesSautsPage({ searchParams }: { searchParams: Pro
           ) : undefined
         }
       />
+      {!personal && spaces.some((s) => s.kind === "personal") && (
+        <Link href="/carnet/mes-videos">{m.brand.notebook}</Link>
+      )}
       <VideoFilters
         search={search}
-        basePath="/mes-videos"
+        basePath={basePath}
         sessions={sessions}
         exercises={[...new Map(sessions.flatMap((s) => s.exercises.map((e) => [e.id, e] as const))).values()]}
       />
@@ -44,7 +52,7 @@ export default async function MesSautsPage({ searchParams }: { searchParams: Pro
       ) : (
         <VideoList videos={videos} basePath="/mes-videos" showAthlete />
       )}
-      <VideoPagination search={search} nextCursor={nextCursor} basePath="/mes-videos" />
+      <VideoPagination search={search} nextCursor={nextCursor} basePath={basePath} />
     </div>
   );
 }

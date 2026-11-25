@@ -1,12 +1,12 @@
 import { m } from "@tartan/i18n";
 import { StrengthCalculator } from "../src/features/strength-calculator";
-import { useActiveSpace } from "../src/lib/queries";
+import { useTrainingSpace } from "../src/lib/queries";
 import { StackScreen } from "../src/ui/screen";
 import { T } from "../src/ui/primitives";
 import { LoadingState } from "../src/ui/states";
 
 export default function LoadCalculator() {
-  const { me, space } = useActiveSpace();
+  const { me, space } = useTrainingSpace();
   return (
     <StackScreen title={m.calculator.title}>
       {me.isPending ? (

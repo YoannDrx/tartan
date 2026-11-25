@@ -172,12 +172,16 @@ export const ExerciseLibrary = ({
   lists: initialLists,
   initialFilter,
   openNew,
+  basePath = "/exercices",
+  editable = true,
   progressionEnabled = false,
 }: {
   rows: LibraryRow[];
   lists: ExerciseList[];
   initialFilter: ExerciseFilter;
   openNew: boolean;
+  basePath?: string;
+  editable?: boolean;
   progressionEnabled?: boolean;
 }) => {
   const router = useRouter();
@@ -210,17 +214,19 @@ export const ExerciseLibrary = ({
       <PageHeader
         title={m.exercises.title}
         actions={
-          <>
-            <Button size="sm" onClick={() => setCreating(list?.mine ? { listId: list.id } : {})}>
-              <Plus aria-hidden className="size-5" />
-              {m.exercises.new}
-            </Button>
-            {progressionEnabled ? (
-              <Button asChild size="sm" variant="secondary">
-                <Link href="/outils/charges">{m.calculator.title}</Link>
+          editable && (
+            <>
+              <Button size="sm" onClick={() => setCreating(list?.mine ? { listId: list.id } : {})}>
+                <Plus aria-hidden className="size-5" />
+                {m.exercises.new}
               </Button>
-            ) : null}
-          </>
+              {progressionEnabled ? (
+                <Button asChild size="sm" variant="secondary">
+                  <Link href="/outils/charges">{m.calculator.title}</Link>
+                </Button>
+              ) : null}
+            </>
+          )
         }
       />
       <div className="relative w-full desktop:max-w-md">
@@ -245,18 +251,21 @@ export const ExerciseLibrary = ({
         filter={filter}
         lists={lists}
         onChange={choose}
+        showLists={editable}
         after={
-          <>
-            <button type="button" className={chipClass(false)} onClick={() => setNewList(true)}>
-              <Plus aria-hidden className="size-4" />
-              {t.lists.new}
-            </button>
-            {lists.filter((item) => item.mine).length > 1 ? (
-              <IconButton label={t.lists.manage} onClick={() => setOrdering(true)}>
-                <ListOrdered aria-hidden className="size-5" />
-              </IconButton>
-            ) : null}
-          </>
+          editable && (
+            <>
+              <button type="button" className={chipClass(false)} onClick={() => setNewList(true)}>
+                <Plus aria-hidden className="size-4" />
+                {t.lists.new}
+              </button>
+              {lists.filter((item) => item.mine).length > 1 ? (
+                <IconButton label={t.lists.manage} onClick={() => setOrdering(true)}>
+                  <ListOrdered aria-hidden className="size-5" />
+                </IconButton>
+              ) : null}
+            </>
+          )
         }
       />
       {list ? (
@@ -274,7 +283,7 @@ export const ExerciseLibrary = ({
         <EmptyState
           rubric="exercices"
           action={
-            search.trim() ? (
+            editable && search.trim() ? (
               <Button size="sm" onClick={() => setCreating(list?.mine ? { listId: list.id } : {})}>
                 <Plus aria-hidden className="size-5" />
                 {t.finder.create(search.trim())}
@@ -290,7 +299,7 @@ export const ExerciseLibrary = ({
             {visible.map((row) => (
               <li key={row.id} className="flex items-center gap-1 py-1.5 pl-3 pr-1 tablet:pl-4">
                 <Link
-                  href={`/exercices/${row.id}`}
+                  href={`${basePath}/${row.id}`}
                   className="-my-1 flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-thumb py-1 text-inherit no-underline hover:bg-raise"
                 >
                   <GestureThumb motionKey={row.motionKey} category={row.category} />
@@ -303,22 +312,26 @@ export const ExerciseLibrary = ({
                   </span>
                 </Link>
                 <span className="t-num w-40 shrink-0 text-[17px] max-desktop:hidden">{row.prescription}</span>
-                <FavoriteButton
-                  name={row.name}
-                  active={state.isFavorite(row.id)}
-                  onToggle={() => void state.toggleFavorite(row.id)}
-                />
-                {ownList ? (
-                  <IconButton
-                    label={t.lists.remove(row.name)}
-                    onClick={async () => {
-                      if (await state.setMember(ownList.id, row.id, false)) toast.ok(t.lists.removed);
-                    }}
-                  >
-                    <X aria-hidden className="size-5" />
-                  </IconButton>
-                ) : (
-                  <FileButton name={row.name} onClick={() => setFiling({ id: row.id, name: row.name })} />
+                {editable && (
+                  <>
+                    <FavoriteButton
+                      name={row.name}
+                      active={state.isFavorite(row.id)}
+                      onToggle={() => void state.toggleFavorite(row.id)}
+                    />
+                    {ownList ? (
+                      <IconButton
+                        label={t.lists.remove(row.name)}
+                        onClick={async () => {
+                          if (await state.setMember(ownList.id, row.id, false)) toast.ok(t.lists.removed);
+                        }}
+                      >
+                        <X aria-hidden className="size-5" />
+                      </IconButton>
+                    ) : (
+                      <FileButton name={row.name} onClick={() => setFiling({ id: row.id, name: row.name })} />
+                    )}
+                  </>
                 )}
               </li>
             ))}

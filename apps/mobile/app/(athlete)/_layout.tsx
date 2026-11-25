@@ -4,7 +4,7 @@ import { isPersonalSpace } from "../../src/lib/personal-space";
 import { useActiveSpace } from "../../src/lib/queries";
 import { useSession } from "../../src/lib/session-store";
 import { BarGlyph } from "../../src/ui/glyphs";
-import { Calendar, Home, Megaphone, Pencil, TrendingUp } from "../../src/ui/icons";
+import { Calendar, Dumbbell, Home, Megaphone, Pencil, TrendingUp } from "../../src/ui/icons";
 import { useTabBarOptions, useWorldScene } from "../../src/ui/tabs";
 
 export default function AthleteLayout() {
@@ -61,10 +61,18 @@ export default function AthleteLayout() {
         }}
       />
       <Tabs.Screen
+        name="bibliotheque"
+        options={{
+          ...worldScene("work"),
+          title: m.nav.exercices,
+          tabBarIcon: ({ color, size }) => <Dumbbell color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
         name="news"
         options={{
           ...worldScene("work"),
-          href: personal ? null : undefined,
+          href: null,
           title: m.nav.annonces,
           tabBarIcon: ({ color, size }) => <Megaphone color={color} size={size} />,
         }}

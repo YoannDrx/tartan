@@ -437,7 +437,8 @@ export function NativePlannerResult({
       </StackScreen>
     );
   let footer: ReactNode = null;
-  if (created) footer = <Button label={t.calendar} onPress={() => router.push("/(coach)/planning")} />;
+  if (created)
+    footer = <Button label={t.calendar} onPress={() => router.push(personal ? "/agenda" : "/(coach)/planning")} />;
   else if (proposal.state === "proposal")
     footer = (
       <View style={{ gap: space.xs }}>
@@ -521,6 +522,7 @@ export function NativePlannerResult({
               <View key={session.id}>
                 <Button
                   variant="secondary"
+                  testID={`planner-open-session-${index}`}
                   label={item?.state === "published" ? m.aiPlanner.openPublished(name) : t.openDraft(name)}
                   onPress={() => router.push(`/session-builder/${session.id}`)}
                 />

@@ -57,10 +57,12 @@ export const uploadLogoAction = spaceAction
     revalidatePath("/", "layout");
   });
 
-export const setConsentAction = spaceAction.inputSchema(athleteConsentInput).action(async ({ parsedInput, ctx }) => {
-  await setAthleteConsent(ctx.userId, ctx.organizationId, parsedInput.kind, parsedInput.granted);
-  revalidatePath("/", "layout");
-});
+export const setConsentAction = authAction
+  .inputSchema(athleteConsentInput.extend({ organizationId: uuid }))
+  .action(async ({ parsedInput, ctx }) => {
+    await setAthleteConsent(ctx.actor.userId, parsedInput.organizationId, parsedInput.kind, parsedInput.granted);
+    revalidatePath("/", "layout");
+  });
 
 export const resendParentalAction = spaceAction.action(async ({ ctx }) => {
   await resendParentalConsent(ctx.userId, ctx.organizationId);

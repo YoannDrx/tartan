@@ -7,7 +7,7 @@ import { NativePlanner } from "../src/features/native-planner";
 import { PlannerConsentNative } from "../src/features/planner-consent";
 import { api } from "../src/lib/api";
 import { personalAthleteOf } from "../src/lib/personal-space";
-import { useActiveSpace } from "../src/lib/queries";
+import { useTrainingSpace } from "../src/lib/queries";
 import { StackScreen } from "../src/ui/screen";
 import { T } from "../src/ui/primitives";
 import { ErrorState, LoadingState } from "../src/ui/states";
@@ -93,7 +93,7 @@ function PlannerLoader({
 }
 
 export default function PlannerScreen() {
-  const { me, space, orgId } = useActiveSpace();
+  const { me, space, orgId } = useTrainingSpace(true);
   const params = useLocalSearchParams<{ proposalId?: string; date?: string; groupId?: string }>();
   // La proposition ouverte est celle de l'arrivée sur l'écran : l'écran garde ensuite son travail.
   const [opened] = useState(params.proposalId || undefined);

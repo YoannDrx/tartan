@@ -6,6 +6,7 @@ export type Scope = "all" | "own_groups" | "own_sessions" | "self" | "read";
 const matrix = {
   inviteAthlete: { owner: "all", coach: "own_groups" },
   inviteCoach: { owner: "all" },
+  viewExercises: { owner: "all", coach: "all", assistant: "all", athlete: "read" },
   editExercises: { owner: "all", coach: "all", assistant: "all" },
   manageSessions: { owner: "all", coach: "all", assistant: "own_sessions" },
   viewTracking: { owner: "all", coach: "own_groups", assistant: "own_groups", athlete: "self" },

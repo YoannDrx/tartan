@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## Codex, accueil par rôle et carnets personnels · 26 novembre 2026
+
+Branche `feat/accueil-coach-athlete`. La migration additive ajoute la préférence de club au profil. Une notification ouvre temporairement son club. Les services existants vérifient chaque accès au club ou au carnet, y compris la validation et les consentements. Le scénario Playwright `ai-planner-athlete` et le flux Maestro `athlete-notebook` couvrent le retour dans l’application avec deux séances le même jour. Les anciennes API mobiles restent disponibles.
+
 ## 2026-11-25, Codex, consigne de charge des kettlebells historiques
 
 Après la fusion des PR 199, 203 et 204, la production comptait 232 guides approuvés sur 233. L’ancien swing et le goblet squat affichaient la convention de charge générique des machines. La migration reconnaît leurs contenus complets et applique le texte relu. Le test sur des tables temporaires couvre le rejeu, le refus de publication, les copies et les éditions ultérieures.

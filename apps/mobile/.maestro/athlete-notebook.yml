@@ -1,0 +1,78 @@
+appId: ${APP_ID}
+env:
+  EMAIL: ${ATHLETE2_EMAIL}
+---
+- runScript: scripts/notebook-fixture.js
+- runFlow: flows/_sign-in.yml
+- scrollUntilVisible:
+    element:
+      id: personal-planner
+    timeout: 30000
+- tapOn:
+    id: personal-planner
+- tapOn:
+    id: ai-consent-accept
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: planner-instructions
+    timeout: 30000
+- tapOn:
+    id: planner-instructions
+- inputText: "Squat arriere, trois series de quatre aujourd'hui."
+- hideKeyboard
+- tapOn:
+    id: planner-generate
+- extendedWaitUntil:
+    visible:
+      id: planner-create-drafts
+      enabled: true
+    timeout: 60000
+- tapOn:
+    id: planner-create-drafts
+- scrollUntilVisible:
+    element:
+      id: planner-open-session-0
+    timeout: 30000
+- tapOn:
+    id: planner-open-session-0
+- tapOn:
+    id: builder-review
+- tapOn:
+    id: builder-confirm
+- extendedWaitUntil:
+    visible:
+      id: builder-message
+    timeout: 30000
+- runScript: scripts/notebook-validation.js
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: ".*Tartan Athlète.*"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: validate-session-${output.clubId}
+- tapOn:
+    id: validate-session-${output.clubId}
+- extendedWaitUntil:
+    visible:
+      id: validation-finish
+    timeout: 15000
+- tapOn:
+    id: validation-finish
+- scrollUntilVisible:
+    element:
+      id: validate-session-${output.personalId}
+- tapOn:
+    id: validate-session-${output.personalId}
+- extendedWaitUntil:
+    visible:
+      id: validation-finish
+    timeout: 15000
+- tapOn:
+    id: validation-finish
+- runScript:
+    file: scripts/notebook-validation.js
+    env:
+      VERIFY_LOGS: "yes"

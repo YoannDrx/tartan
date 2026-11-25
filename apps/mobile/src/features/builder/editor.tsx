@@ -694,7 +694,7 @@ export const NativeSessionBuilder = ({
     return (
       <StackScreen world="work" title={m.nativeBuilder.deleted}>
         {error ? <T accessibilityRole="alert">{error}</T> : null}
-        <Button label={m.nav.calendrier} onPress={() => router.replace("/(coach)/planning")} />
+        <Button label={m.nav.calendrier} onPress={() => router.replace(self ? "/agenda" : "/(coach)/planning")} />
       </StackScreen>
     );
   if (!ready && stored)
@@ -734,7 +734,11 @@ export const NativeSessionBuilder = ({
         {stored.value.pending && !stored.value.form.id ? (
           <>
             <T>{m.nativeBuilder.unknownCreation}</T>
-            <Button variant="secondary" label={m.nav.calendrier} onPress={() => router.push("/(coach)/planning")} />
+            <Button
+              variant="secondary"
+              label={m.nav.calendrier}
+              onPress={() => router.push(self ? "/agenda" : "/(coach)/planning")}
+            />
           </>
         ) : (
           <Button
@@ -1079,7 +1083,11 @@ export const NativeSessionBuilder = ({
           </T>
         ) : null}
         {stale && !form.id ? (
-          <Button variant="secondary" label={m.nav.calendrier} onPress={() => router.push("/(coach)/planning")} />
+          <Button
+            variant="secondary"
+            label={m.nav.calendrier}
+            onPress={() => router.push(self ? "/agenda" : "/(coach)/planning")}
+          />
         ) : null}
         {stale && form.id ? (
           <Button variant="secondary" label={m.nativeBuilder.reload} onPress={() => void reloadCurrent()} />

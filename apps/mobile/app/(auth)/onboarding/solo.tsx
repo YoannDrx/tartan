@@ -69,7 +69,8 @@ export default function SoloOnboarding() {
         consents: { health, video },
       }),
     onSuccess: async (result) => {
-      setActive(result.organizationId);
+      if (!planner || !me.data?.spaces.some((s) => s.role === "athlete" && s.kind !== "personal"))
+        setActive(result.organizationId);
       await queryClient.invalidateQueries({ queryKey: ["me"] });
       setCreated(true);
     },

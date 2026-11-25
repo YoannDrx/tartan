@@ -7,7 +7,7 @@ import { ScrollView, View } from "react-native";
 import { api } from "../lib/api";
 import { deniesCachedAccess } from "../lib/errors";
 import { useIsOnline } from "../lib/network";
-import { useActiveSpace, useAthletes, useToday } from "../lib/queries";
+import { useTrainingSpace, useAthletes, useToday } from "../lib/queries";
 import { useOwnUploads } from "../lib/upload/upload-queue";
 import { Button, Chip, Divider, ListSurface, SectionTitle, T } from "../ui/primitives";
 import { TabScreen } from "../ui/screen";
@@ -24,7 +24,7 @@ const states: [VideoSummary["status"] | undefined, string][] = [
 ];
 
 export function VideoLibrary({ staff }: { staff: boolean }) {
-  const { orgId } = useActiveSpace();
+  const { orgId, space: active, me } = useTrainingSpace();
   const today = useToday(staff ? "" : orgId);
   const athletes = useAthletes(orgId, staff);
   const [athleteId, setAthleteId] = useState<string>();
@@ -68,11 +68,20 @@ export function VideoLibrary({ staff }: { staff: boolean }) {
       refreshing={videos.isRefetching}
       onRefresh={() => void videos.refetch()}
     >
+      {!staff && active?.kind !== "personal" && me.data?.spaces.some((s) => s.kind === "personal") && (
+        <Button
+          label={m.brand.notebook}
+          variant="secondary"
+          onPress={() => router.push({ pathname: "/(athlete)/mes-videos", params: { carnet: "1" } })}
+        />
+      )}
       <Button
         testID={staff ? "open-capture" : "athlete-video-upload"}
         label={m.videoCollaboration.upload}
         disabled={consentOff || denied}
-        onPress={() => router.push("/capture")}
+        onPress={() =>
+          router.push({ pathname: "/capture", params: { carnet: active?.kind === "personal" ? "1" : undefined } })
+        }
       />
       {!staff ? (
         <T variant="small" tone="muted">
@@ -148,7 +157,16 @@ export function VideoLibrary({ staff }: { staff: boolean }) {
           {rows.map((video, index) => (
             <View key={video.id}>
               {index > 0 ? <Divider /> : null}
-              <VideoRow video={video} showAthlete={staff} onPress={() => router.push(`/video/${video.id}`)} />
+              <VideoRow
+                video={video}
+                showAthlete={staff}
+                onPress={() =>
+                  router.push({
+                    pathname: "/video/[id]",
+                    params: { id: video.id, carnet: active?.kind === "personal" ? "1" : undefined },
+                  })
+                }
+              />
               {staff ? (
                 <T variant="caption" tone="muted">
                   {video.reviewedAt ? m.videoCollaboration.reviewed : m.videoCollaboration.awaitingReview}

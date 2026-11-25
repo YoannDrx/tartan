@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@tartan/api-client";
+import { useRouter } from "expo-router";
 import { m } from "@tartan/i18n";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
@@ -11,7 +12,7 @@ import { config } from "../../src/lib/config";
 import { shareMyData } from "../../src/lib/export-data";
 import { legalLinks } from "../../src/lib/legal-links";
 import { hasPersonalSpace } from "../../src/lib/personal-space";
-import { useActiveSpace, useToday } from "../../src/lib/queries";
+import { useTrainingSpace, useToday } from "../../src/lib/queries";
 import { useSession } from "../../src/lib/session-store";
 import { Button, Divider, Field, ListSurface, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
@@ -25,7 +26,8 @@ const t = m.account.settings;
 // données, les documents, puis la suppression du compte. Les accords sont ceux de la fiche de cet espace : un athlète
 // qui a aussi son espace personnel a deux fiches, et chacune garde les siens (plus de `consent_scope_required`).
 export default function PrivacySettings() {
-  const { me, space: active, orgId } = useActiveSpace();
+  const { me, space: active, orgId } = useTrainingSpace();
+  const router = useRouter();
   const client = useQueryClient();
   const expire = useSession((s) => s.expire);
   const athleteHere = active?.role === "athlete";
@@ -84,9 +86,16 @@ export default function PrivacySettings() {
 
   return (
     <StackScreen title={title}>
+      {athleteHere && active?.kind !== "personal" && hasPersonalSpace(me.data) && (
+        <Button
+          variant="secondary"
+          label={m.brand.notebook}
+          onPress={() => router.push({ pathname: "/settings/confidentialite", params: { carnet: "1" } })}
+        />
+      )}
       {athleteHere ? (
         <View style={{ gap: space.sm }}>
-          <SectionTitle>{m.settings.privacy}</SectionTitle>
+          <SectionTitle>{active?.kind === "personal" ? m.brand.notebook : m.settings.privacy}</SectionTitle>
           {consents.isPending ? <LoadingState inline /> : null}
           {consents.isError ? <ErrorState error={consents.error} onRetry={() => void consents.refetch()} /> : null}
           {consents.data ? (

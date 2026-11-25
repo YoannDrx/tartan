@@ -16,7 +16,7 @@ import {
 } from "@tartan/domain";
 import { historyDate, historyNumber, m, realizedSetLabel } from "@tartan/i18n";
 import { api } from "../../src/lib/api";
-import { useActiveSpace } from "../../src/lib/queries";
+import { useTrainingSpace } from "../../src/lib/queries";
 import { Button, Card, Field, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
 import { ErrorState, LoadingState } from "../../src/ui/states";
@@ -338,7 +338,7 @@ export default function ExerciseHistoryScreen() {
     days?: string;
     to?: string;
   }>();
-  const { orgId, space: active, me } = useActiveSpace();
+  const { orgId, space: active, me } = useTrainingSpace();
   if (me.isPending)
     return (
       <StackScreen title={t.title}>
