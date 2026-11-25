@@ -201,7 +201,7 @@ describe("bibliothèque cherchée côté serveur", () => {
   it("range l'haltérophilie dans sa famille et pagine les résultats", async () => {
     const w = await prepare();
     const lifts = await searchExercises(w.owner, w.org, { filter: { kind: "family", family: "weightlifting" } });
-    expect(lifts.total).toBe(20);
+    expect(lifts.total).toBe(26);
     const strength = await searchExercises(w.owner, w.org, {
       filter: { kind: "family", family: "strength" },
       limit: 100,

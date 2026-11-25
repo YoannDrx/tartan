@@ -62,6 +62,13 @@ describe("Illustrations du catalogue", () => {
       "pending",
     );
   });
+  it("répercute une réouverture sur la copie intacte d’une fiche de stade", () => {
+    const { catalogKey, catalogVersion, guide } = STADIUM_EDITION[0]!;
+    const text = stamp(catalogKey, catalogVersion, "text");
+    const copy = { ...guide, technicalReview: "approved" as const };
+    expect(withApprovedImage(copy, new Set([`reopened:${text}`])).technicalReview).toBe("pending");
+    expect(withApprovedImage({ ...guide, author: "coach" as const }, new Set([text])).technicalReview).toBe("pending");
+  });
   it("rattache et retire un guide validé sans changer la fiche historique ni une fiche de club", async () => {
     const user = await makeUser("Relecture");
     await prisma.platformAdmin.create({ data: { email: user.email } });

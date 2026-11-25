@@ -23,7 +23,9 @@ export const platformSettings = async (): Promise<PlatformSettings> => {
   const now = Date.now();
   if (process.env.NODE_ENV !== "test" && cached && now - cached.at < CACHE_MS) return cached.value;
   const defaults = fromEnv();
-  const rows = await prisma.platformSetting.findMany().catch(() => null);
+  const rows = await prisma.platformSetting
+    .findMany({ where: { key: { in: platformSettingsInput.keyof().options } } })
+    .catch(() => null);
   if (!rows) return defaults;
   const raw = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   const stored = platformSettingsInput.partial().safeParse(raw);
