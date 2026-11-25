@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, isolation de la recette du catalogue
+
+La recette de l’atelier retire sa fiche de stade et ses avis à la fin du scénario. La consultation vérifie chacune des clés historiques même après l’ajout de nouvelles fiches. Les deux scénarios successifs passent sur ordinateur et téléphone.
+
 ## 2026-11-25, Codex, appuis du triple saut
 
 Les huit nouvelles fiches de triple saut ont un geste. La foulée vers le sable se termine sur deux pieds, le double cloche reste sur la même jambe et le triple marché garde toujours un appui. Les 3 202 tests du paquet de gestes passent, dont le contrôle des successions de pieds, des réceptions et des repères. La relecture sportive reste à faire.
