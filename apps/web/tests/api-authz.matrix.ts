@@ -1211,6 +1211,11 @@ export const MATRICE: Row[] = [
 
 // Routes sans session, par construction. Toute entrée dit ce qui la protège à la place.
 export const ROUTES_PUBLIQUES: PublicRow[] = [
+  {
+    route: "GET /installation/apk",
+    pourquoi: "Téléchargement privé sur jeton individuel de bêta ; sans invitation active il est refusé.",
+    anonyme: 403,
+  },
   { route: "GET /api/live", pourquoi: "Sonde de disponibilité, sans donnée ni lecture de base.", anonyme: 200 },
   { route: "GET /api/health", pourquoi: "Sonde de la base : un statut, aucune donnée.", anonyme: 200 },
   { route: "GET /api/v1/version", pourquoi: "Identifiant du build, lu par tout onglet ouvert.", anonyme: 200 },

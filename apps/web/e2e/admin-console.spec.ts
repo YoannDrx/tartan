@@ -41,6 +41,9 @@ test("la console s'ouvre à l'éditeur, lisible sur chaque écran, et reste ferm
   await tester.getByRole("button", { name: t.revoke, exact: true }).click();
   await expect(tester).toContainText(t.revoked);
   expect((await page.request.get("/installation/apk")).status()).toBe(403);
+  await page.goto("/installation/acces");
+  await expectNoHorizontalScroll(page);
+  await expectAccessible(page);
   // L'export comptable n'est demandé qu'au clic, et part en téléchargement.
   const exports: string[] = [];
   page.on("request", (request) => {

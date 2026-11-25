@@ -1,9 +1,9 @@
 import { get } from "@vercel/blob";
-import { cookies } from "next/headers";
+import type { NextRequest } from "next/server";
 import { env } from "@/lib/env";
 import { betaAccess } from "@/server/beta-testers.service";
-export async function GET(request: Request) {
-  const allowed = await betaAccess((await cookies()).get("tartan_beta")?.value ?? "");
+export async function GET(request: NextRequest) {
+  const allowed = await betaAccess(request.cookies.get("tartan_beta")?.value ?? "");
   const headers = {
     "Cache-Control": "private, no-store",
     "Referrer-Policy": "no-referrer",
