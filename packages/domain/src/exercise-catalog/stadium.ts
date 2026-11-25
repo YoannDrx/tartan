@@ -4,6 +4,7 @@ import type { CatalogueDraft } from "./types";
 export const STADIUM_CATALOG: CatalogueDraft[] = [
   {
     key: "j-approach-check",
+    checkpoint: "Le dernier pied se pose près de la même marque d’un passage à l’autre.",
     name: "Contrôle des marques sur élan en J",
     aliases: ["Marquage de course en J"],
     family: "plyometrics",
@@ -12,6 +13,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "cones"],
     level: "intermediate",
     loadKind: null,
+    countingCue: "Compte un élan au dernier appui marqué. Compare l’emplacement du même pied à chaque passage.",
     unit: "repetitions",
     sides: "total",
     objective: "Répéter un élan en retrouvant le même appel.",
@@ -24,6 +26,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "curve-entry-gate",
+    checkpoint: "La trace des appuis dessine un virage continu après la porte.",
     name: "Entrée en courbe par une porte de plots",
     aliases: ["Porte de courbe"],
     family: "plyometrics",
@@ -32,6 +35,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "cones"],
     level: "intermediate",
     loadKind: null,
+    countingCue:
+      "Un passage comprend la ligne droite, la porte puis les premiers appuis en courbe. Le retour au départ est libre.",
     unit: "repetitions",
     sides: "total",
     objective: "Relier la ligne droite à la courbe.",
@@ -44,6 +49,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "circle-lean-run",
+    checkpoint: "De face, la ceinture reste dans l’axe des épaules.",
     name: "Course inclinée sur cercle balisé",
     aliases: ["Course en cercle"],
     family: "plyometrics",
@@ -52,6 +58,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "cones"],
     level: "intermediate",
     loadKind: null,
+    countingCue: "Un tour est terminé au retour au plot de départ dans le même sens. Note le sens de rotation.",
     unit: "repetitions",
     sides: "total",
     objective: "Sentir l’inclinaison depuis les chevilles.",
@@ -64,6 +71,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "penultimate-walk",
+    checkpoint: "Sur le dernier appui, la tête remonte sans que le pied aille chercher la marque devant toi.",
     name: "Marche du pénultième appui",
     aliases: ["Marche avant-dernier appui"],
     family: "plyometrics",
@@ -72,6 +80,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "cones"],
     level: "intermediate",
     loadKind: null,
+    countingCue: "Une répétition comprend l’avant-dernier appui, la pose du pied d’appel et le redressement sans saut.",
     unit: "repetitions",
     sides: "total",
     objective: "Préparer l’appel avec les deux derniers appuis.",
@@ -87,6 +96,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "curve-pop-up",
+    checkpoint: "La première foulée après l’appel prolonge la sortie de courbe.",
     name: "Appel en courbe avec retour sur pied libre",
     aliases: ["Pop-up en courbe"],
     family: "plyometrics",
@@ -95,6 +105,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "cones"],
     level: "intermediate",
     loadKind: null,
+    countingCue:
+      "Compte un appel suivi d’une reprise de course sur le pied libre. Le nombre de foulées d’élan est distinct.",
     unit: "repetitions",
     sides: "total",
     objective: "Transformer la vitesse de courbe en impulsion.",
@@ -110,6 +122,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "scissor-jump",
+    checkpoint: "Les jambes passent l’élastique l’une après l’autre.",
     name: "Ciseaux sur élastique bas",
     aliases: ["Ciseaux en hauteur"],
     family: "plyometrics",
@@ -118,6 +131,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["jump_mat", "bands", "track"],
     level: "intermediate",
     loadKind: null,
+    countingCue:
+      "Compte un passage quand les deux jambes ont franchi l’élastique et que la réception est maîtrisée sur le tapis.",
     unit: "repetitions",
     sides: "total",
     objective: "Franchir en ciseaux en gardant le buste haut.",
@@ -133,6 +148,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "scissor-walkover",
+    checkpoint: "Le pied d’appel franchit la ligne après le pied libre.",
     name: "Ciseaux marchés au-dessus d’une ligne",
     aliases: ["Ciseaux au sol"],
     family: "plyometrics",
@@ -141,6 +157,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "cones"],
     level: "intermediate",
     loadKind: null,
+    countingCue: "Un passage correspond au franchissement de la ligne par les deux jambes dans l’ordre prévu.",
     unit: "repetitions",
     sides: "total",
     objective: "Apprendre l’ordre des jambes aux ciseaux.",
@@ -156,6 +173,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "curve-arm-drive",
+    checkpoint: "Les mains passent vers le haut pendant que le pied d’appel pousse encore au sol.",
     name: "Appel en courbe avec montée des deux bras",
     aliases: ["Double bras en courbe"],
     family: "plyometrics",
@@ -164,6 +182,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "cones"],
     level: "intermediate",
     loadKind: null,
+    countingCue: "Compte une liaison complète entre le dernier appui, la montée des bras et la réception équilibrée.",
     unit: "repetitions",
     sides: "total",
     objective: "Coordonner les bras avec l’impulsion.",
@@ -179,6 +198,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "approach-checkpoint",
+    checkpoint: "Le coach retrouve le même pied au repère sur des passages successifs.",
     name: "Élan de hauteur avec marque intermédiaire",
     aliases: ["Marque intermédiaire hauteur"],
     family: "plyometrics",
@@ -187,6 +207,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "cones"],
     level: "intermediate",
     loadKind: null,
+    countingCue: "Un élan complet vaut une répétition. Le coach observe le même pied à la marque intermédiaire.",
     unit: "repetitions",
     sides: "total",
     objective: "Contrôler la régularité du début de l’élan.",
@@ -202,6 +223,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "jump-drive-target",
+    checkpoint: "La main atteint le ruban sans que le tronc bascule en avant.",
     name: "Appel vertical vers un repère suspendu",
     aliases: ["Appel vers une cible"],
     family: "plyometrics",
@@ -210,6 +232,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "other"],
     level: "intermediate",
     loadKind: null,
+    countingCue:
+      "Compte une impulsion suivie d’une réception stabilisée. La hauteur du ruban reste celle choisie avec le coach.",
     unit: "repetitions",
     sides: "total",
     objective: "Orienter la poussée vers le haut.",
@@ -225,6 +249,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "hop-step-stick",
+    checkpoint: "Tu peux garder l’équilibre sur le dernier pied sans poser l’autre.",
     name: "Cloche-pied puis foulée stabilisée",
     aliases: ["Hop step"],
     family: "plyometrics",
@@ -233,6 +258,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track"],
     level: "intermediate",
     loadKind: null,
+    countingCue:
+      "Une répétition à départ gauche comprend gauche–gauche–droite, avec arrêt sur le dernier pied. Additionne les passages des deux côtés.",
     unit: "repetitions",
     sides: "total",
     objective: "Relier le cloche-pied au changement de jambe.",
@@ -248,6 +275,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "step-jump-sand",
+    checkpoint: "Les deux pieds terminent côte à côte dans le sable.",
     name: "Liaison foulée-saut dans le sable",
     aliases: ["Step jump"],
     family: "plyometrics",
@@ -256,6 +284,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "other"],
     level: "intermediate",
     loadKind: null,
+    countingCue:
+      "Pour un départ gauche, compte une liaison gauche–droite–deux pieds dans le sable. La réception à deux pieds termine une seule liaison.",
     unit: "repetitions",
     sides: "total",
     objective: "Passer de la foulée au saut final.",
@@ -271,6 +301,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "triple-walk",
+    checkpoint: "Le premier pied apparaît deux fois de suite avant le changement de côté.",
     name: "Triple saut marché sur empreintes",
     aliases: ["Gauche gauche droite"],
     family: "plyometrics",
@@ -279,6 +310,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track"],
     level: "intermediate",
     loadKind: null,
+    countingCue:
+      "Compte une séquence entière de marques. Gauche–gauche–droite–deux pieds, ou l’ordre inverse au départ droit.",
     unit: "repetitions",
     sides: "total",
     objective: "Mémoriser les appuis du triple saut.",
@@ -294,6 +327,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "short-triple",
+    checkpoint: "Entre le cloche-pied et le bond, aucun petit pas ne s’intercale.",
     name: "Triple saut sur élan réduit",
     aliases: ["Triple départ court"],
     family: "plyometrics",
@@ -302,6 +336,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "other"],
     level: "intermediate",
     loadKind: null,
+    countingCue:
+      "Un enchaînement complet vaut un essai. Départ gauche, même pied au cloche-pied, droite au bond puis deux pieds dans le sable.",
     unit: "repetitions",
     sides: "total",
     objective: "Conserver les trois phases avec un élan court.",
@@ -317,6 +353,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "double-hop-step",
+    checkpoint: "Les deux premiers rebonds laissent leurs traces du même côté.",
     name: "Double cloche-pied puis changement de jambe",
     aliases: ["Hop hop step"],
     family: "plyometrics",
@@ -325,6 +362,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track"],
     level: "intermediate",
     loadKind: null,
+    countingCue:
+      "Un passage à départ gauche est terminé après gauche–gauche–gauche–droite. Inverse l’ordre au départ droit.",
     unit: "repetitions",
     sides: "total",
     objective: "Garder la poussée sur deux cloches avant le changement.",
@@ -337,6 +376,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "triple-rhythm-zones",
+    checkpoint: "Le coach peut nommer la zone de chaque réception en suivant tes trois appuis.",
     name: "Triple bond dans trois zones souples",
     aliases: ["Triple saut sur zones"],
     family: "plyometrics",
@@ -345,6 +385,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "other"],
     level: "intermediate",
     loadKind: null,
+    countingCue:
+      "Compte un enchaînement des trois phases, même si un appui manque sa zone. Note séparément la zone à ajuster.",
     unit: "repetitions",
     sides: "total",
     objective: "Répartir les trois bonds selon son propre rythme.",
@@ -360,6 +402,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "step-switch-stick",
+    checkpoint: "Le bassin reste au-dessus du pied de réception pendant l’arrêt.",
     name: "Échange des cuisses en foulée bondissante arrêtée",
     aliases: ["Foulée bloquée"],
     family: "plyometrics",
@@ -368,6 +411,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track"],
     level: "intermediate",
     loadKind: null,
+    countingCue: "Une répétition va de l’impulsion à l’équilibre sur le pied opposé. Additionne les deux côtés.",
     unit: "repetitions",
     sides: "total",
     objective: "Organiser le changement de cuisse en suspension.",
@@ -383,6 +427,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "hop-runout",
+    checkpoint: "Le pied d’appel est aussi le premier pied qui retouche le sol.",
     name: "Cloche-pied suivi de course",
     aliases: ["Cloche reprise course"],
     family: "plyometrics",
@@ -391,6 +436,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track"],
     level: "intermediate",
     loadKind: null,
+    countingCue:
+      "Compte un cloche-pied terminé par une reprise de course. Les pas de sortie ne sont pas des répétitions supplémentaires.",
     unit: "repetitions",
     sides: "total",
     objective: "Relancer la course après un cloche-pied.",
@@ -406,6 +453,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "foot-tripod",
+    checkpoint: "Les orteils restent allongés et les trois points porteurs restent en contact.",
     name: "Appui en trépied du pied",
     aliases: ["Pied court"],
     family: "mobility",
@@ -414,6 +462,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: [],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Compte un raccourcissement puis un relâchement du pied, les trois points de contact toujours au sol. Compte chaque pied séparément.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Sentir les trois points de contact du pied.",
@@ -429,6 +479,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "toe-yoga",
+    checkpoint: "Le talon reste à la même place lors du changement d’orteils.",
     name: "Dissociation du gros orteil",
     aliases: ["Yoga des orteils"],
     family: "mobility",
@@ -437,6 +488,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: [],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Une répétition associe les deux positions, gros orteil levé puis quatre autres orteils levés. Compte chaque pied séparément.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Faire bouger le gros orteil indépendamment des autres.",
@@ -452,6 +505,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "single-pogo-line",
+    checkpoint: "La ligne reste entre deux réceptions successives du même pied.",
     name: "Rebonds unipodaux de part et d’autre d’une ligne",
     aliases: ["Pogo latéral une jambe"],
     family: "plyometrics",
@@ -460,6 +514,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: [],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Chaque retour au sol du pied qui travaille vaut un contact, dans les deux sens. Repars de zéro en changeant de pied.",
     unit: "contacts",
     sides: "each_side",
     objective: "Maîtriser les rebonds latéraux sur une jambe.",
@@ -475,6 +531,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "pogo-forward-back",
+    checkpoint: "Les deux pieds gardent le même écart de part et d’autre de la ligne.",
     name: "Rebonds avant-arrière sur ligne",
     aliases: ["Pogo avant arrière"],
     family: "plyometrics",
@@ -483,6 +540,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: [],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Compte une réception à deux pieds comme un contact. Un aller-retour complet au-dessus de la ligne vaut deux contacts.",
     unit: "contacts",
     sides: "total",
     objective: "Rebondir dans deux directions sans perdre le rythme.",
@@ -498,6 +557,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "snap-down",
+    checkpoint: "À l’arrêt, les talons sont posés et les genoux suivent la direction des pieds.",
     name: "Réception éclair depuis la pointe des pieds",
     aliases: ["Snap down"],
     family: "plyometrics",
@@ -506,6 +566,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: [],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Compte une mise en appui stable sur les deux pieds. La descente et la tenue qui suit constituent un seul contact.",
     unit: "contacts",
     sides: "total",
     objective: "Préparer une réception stable sur deux jambes.",
@@ -518,6 +580,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "quarter-turn-stick",
+    checkpoint: "Les deux pointes finissent dans la direction de la nouvelle ligne.",
     name: "Quart de tour sauté avec arrêt",
     aliases: ["Saut avec quart de tour"],
     family: "plyometrics",
@@ -526,6 +589,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: [],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Compte un contact lorsque les deux pieds reçoivent le quart de tour. Le temps d’équilibre ne rajoute aucun contact.",
     unit: "contacts",
     sides: "total",
     objective: "Stabiliser la réception après une petite rotation.",
@@ -541,6 +606,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "split-contact-switch",
+    checkpoint: "Le pied avant change à chaque réception et le tronc reste au-dessus du bassin.",
     name: "Rebonds en ciseaux sur une ligne",
     aliases: ["Ciseaux petits rebonds"],
     family: "plyometrics",
@@ -549,6 +615,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: [],
     level: "beginner",
     loadKind: null,
+    countingCue: "Chaque réception après l’échange des jambes vaut un contact total. Les deux pieds touchent ensemble.",
     unit: "contacts",
     sides: "total",
     objective: "Inverser des appuis décalés en gardant le bassin stable.",
@@ -561,6 +628,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "ankle-rock-step",
+    checkpoint: "Le genou se déplace dans l’axe des orteils et le talon monte à la fin du mouvement.",
     name: "Bascule de cheville puis montée sur pointe",
     aliases: ["Déroulé sur marche"],
     family: "mobility",
@@ -569,6 +637,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["steps"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Une répétition comprend l’avancée du genou et la montée sur l’avant-pied, puis le retour au départ. Compte par côté.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Relier flexion et extension de cheville en appui.",
@@ -584,6 +654,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "cone-high-knees",
+    checkpoint: "Les appuis tombent dans les intervalles, les plots restent à côté de la course.",
     name: "Montées de genoux entre plots",
     aliases: ["Genoux hauts entre plots"],
     family: "running",
@@ -592,6 +663,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["cones", "track"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Note les mètres entre la première et la dernière porte. Les plots balisent la distance et restent à côté des appuis.",
     unit: "meters",
     sides: "total",
     objective: "Conserver des appuis rapides entre des repères.",
@@ -607,6 +680,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "cone-butt-kicks",
+    checkpoint: "Vu de profil, le talon revient sous la fesse pendant que la cuisse avance.",
     name: "Talons-fesses en portes de plots",
     aliases: ["Talons fesses sur plots"],
     family: "running",
@@ -615,6 +689,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["cones", "track"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Compte la longueur du couloir parcourue en talons-fesses, en mètres. La marche de retour sert à récupérer et se compte séparément.",
     unit: "meters",
     sides: "total",
     objective: "Coordonner le retour du talon avec le déplacement.",
@@ -630,6 +706,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "wicket-run",
+    checkpoint: "Chaque appui tombe dans un intervalle sans toucher de latte.",
     name: "Course entre lattes au sol",
     aliases: ["Wickets au sol"],
     family: "running",
@@ -638,6 +715,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "other"],
     level: "beginner",
     loadKind: null,
+    countingCue: "Compte la distance entre la première et la dernière latte. La prise d’élan se mesure séparément.",
     unit: "meters",
     sides: "total",
     objective: "Placer les appuis sous le bassin à vitesse régulière.",
@@ -653,6 +731,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "wicket-exit",
+    checkpoint: "Le premier pas libre se fait dans le prolongement du couloir.",
     name: "Course placée puis accélération libre",
     aliases: ["Sortie de lattes"],
     family: "running",
@@ -661,6 +740,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "other"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Mesure de la première latte au repère de fin d’accélération. Note la longueur de la sortie si elle est prescrite séparément.",
     unit: "meters",
     sides: "total",
     objective: "Transférer le placement des lattes à la course libre.",
@@ -676,6 +757,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "cone-rhythm-change",
+    checkpoint: "Le changement de cadence s’entend au repère convenu.",
     name: "Changement de cadence entre deux portes",
     aliases: ["Portes de fréquence"],
     family: "running",
@@ -684,6 +766,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["cones", "track"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Note les mètres du premier au dernier repère de rythme. Un changement de cadence ne commence pas un nouveau passage.",
     unit: "meters",
     sides: "total",
     objective: "Changer de fréquence sans modifier la posture.",
@@ -699,6 +783,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "step-over-cone",
+    checkpoint: "Chaque pied dépasse le haut du plot sans le déplacer.",
     name: "Marche par-dessus des plots bas",
     aliases: ["Enjambement de plots"],
     family: "running",
@@ -707,6 +792,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["cones", "track"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Compte les mètres parcourus le long des plots. Le pied libre passe au-dessus du repère et se pose après celui-ci.",
     unit: "meters",
     sides: "total",
     objective: "Contrôler le passage du pied au-dessus du repère.",
@@ -722,6 +809,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "lateral-wickets",
+    checkpoint: "Les épaules restent tournées du même côté pendant toute la traversée.",
     name: "Passages latéraux entre lattes",
     aliases: ["Lattes de profil"],
     family: "running",
@@ -730,6 +818,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["track", "other"],
     level: "beginner",
     loadKind: null,
+    countingCue: "Note la distance latérale entre les deux extrémités. Chaque traversée parcourue s’ajoute au total.",
     unit: "meters",
     sides: "total",
     objective: "Coordonner les appuis lors d’un déplacement de côté.",
@@ -745,6 +834,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "cone-fast-in-out",
+    checkpoint: "À la sortie, le dernier appui permet de repartir droit.",
     name: "Appuis dedans-dehors dans un couloir de plots",
     aliases: ["Deux dedans deux dehors"],
     family: "running",
@@ -753,6 +843,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["cones", "track"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Mesure la distance le long de la ligne de plots entre l’entrée et la sortie. Les petits déplacements transversaux ne s’additionnent pas.",
     unit: "meters",
     sides: "total",
     objective: "Alterner appuis serrés et écartés en avançant.",
@@ -768,6 +860,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "lateral-step-down",
+    checkpoint: "Le talon libre effleure le sol sans y prendre appui.",
     name: "Descente latérale de marche",
     aliases: ["Step down latéral"],
     family: "strength",
@@ -776,6 +869,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["steps"],
     level: "intermediate",
     loadKind: "bodyweight",
+    countingCue:
+      "Effleurer le sol du talon libre puis remonter sur le support vaut une répétition. Compte par jambe porteuse.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Contrôler la descente sur une jambe.",
@@ -791,6 +886,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "soleus-wall-hold",
+    checkpoint: "Le talon garde la même hauteur pendant le maintien.",
     name: "Maintien du mollet genou fléchi au mur",
     aliases: ["Soléaire isométrique"],
     family: "strength",
@@ -799,6 +895,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: [],
     level: "intermediate",
     loadKind: "bodyweight",
+    countingCue:
+      "Déclenche le temps quand le talon est levé et le genou fléchi. Arrête au relâchement, puis note la durée de chaque côté.",
     unit: "seconds",
     sides: "each_side",
     objective: "Maintenir la poussée du mollet genou plié.",
@@ -811,6 +909,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "hamstring-slider",
+    checkpoint: "Le bassin reste soulevé lorsque les talons reviennent vers toi.",
     name: "Flexion des genoux sur patins glissants",
     aliases: ["Leg curl glissé"],
     family: "strength",
@@ -819,6 +918,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["other"],
     level: "intermediate",
     loadKind: null,
+    countingCue: "Un aller-retour des deux talons avec le bassin maintenu vaut une répétition totale.",
     unit: "repetitions",
     sides: "total",
     objective: "Fléchir les genoux en gardant le bassin soulevé.",
@@ -834,6 +934,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "hip-hike-step",
+    checkpoint: "Le mouvement vient du bassin et le pied libre reste en l’air.",
     name: "Élévation du bassin en appui sur marche",
     aliases: ["Hip hike"],
     family: "strength",
@@ -842,6 +943,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["steps"],
     level: "intermediate",
     loadKind: "bodyweight",
+    countingCue:
+      "Compte un abaissement suivi d’une remontée du bassin sur la même jambe porteuse. Compte séparément de chaque côté.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Contrôler le bassin en appui unilatéral.",
@@ -854,6 +957,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "kickstand-rdl",
+    checkpoint: "Vue de face, la ligne de ceinture reste orientée devant toi.",
     name: "Soulevé de terre en béquille",
     aliases: ["B stance RDL"],
     family: "strength",
@@ -862,6 +966,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["dumbbells"],
     level: "intermediate",
     loadKind: "external_total",
+    countingCue:
+      "Compte une charnière suivie du retour debout par jambe avant. La jambe arrière sert de béquille pendant tout le cycle.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Travailler la charnière de hanche en appui décalé.",
@@ -877,6 +983,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "split-squat-iso",
+    checkpoint: "Le talon avant demeure posé pendant toute la tenue.",
     name: "Maintien en fente à mi-hauteur",
     aliases: ["Split squat isométrique"],
     family: "strength",
@@ -885,6 +992,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: [],
     level: "intermediate",
     loadKind: "bodyweight",
+    countingCue:
+      "Compte les secondes à la hauteur choisie une fois la position tenue. Recommence le chronométrage en changeant de jambe avant.",
     unit: "seconds",
     sides: "each_side",
     objective: "Tenir une position de fente stable.",
@@ -897,6 +1006,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "clean-blocks",
+    checkpoint: "La barre décolle des deux supports ensemble puis repose sur les épaules à la réception.",
     name: "Épaulé depuis plots",
     aliases: ["Block clean"],
     family: "weightlifting",
@@ -905,6 +1015,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["barbell", "boxes"],
     level: "advanced",
     loadKind: "external_total",
+    countingCue:
+      "Une répétition commence barre immobile sur les deux plots et finit debout, barre stabilisée sur les épaules.",
     unit: "repetitions",
     sides: "total",
     objective: "Accélérer depuis un départ immobile en hauteur.",
@@ -920,6 +1032,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "snatch-blocks",
+    checkpoint: "Les deux extrémités de la barre quittent les plots en même temps.",
     name: "Arraché depuis plots",
     aliases: ["Block snatch"],
     family: "weightlifting",
@@ -928,6 +1041,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["barbell", "boxes"],
     level: "advanced",
     loadKind: "external_total",
+    countingCue: "Compte une levée depuis les plots jusqu’à la stabilisation debout, barre fixée au-dessus de la tête.",
     unit: "repetitions",
     sides: "total",
     objective: "Relier un départ surélevé à la réception en arraché.",
@@ -943,6 +1057,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "clean-pause-knee",
+    checkpoint: "Au genou, la barre reste immobile avant de repartir près des cuisses.",
     name: "Épaulé avec pause au genou",
     aliases: ["Pause clean"],
     family: "weightlifting",
@@ -951,6 +1066,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["barbell"],
     level: "advanced",
     loadKind: "external_total",
+    countingCue:
+      "La pause au genou fait partie de la levée. Compte une répétition après la réception et le redressement.",
     unit: "repetitions",
     sides: "total",
     objective: "Contrôler le passage du genou à l’épaulé.",
@@ -966,6 +1083,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "snatch-pause-knee",
+    checkpoint: "La pause est visible de profil et la réception se termine bras fixés.",
     name: "Arraché avec pause au genou",
     aliases: ["Pause snatch"],
     family: "weightlifting",
@@ -974,6 +1092,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["barbell"],
     level: "advanced",
     loadKind: "external_total",
+    countingCue:
+      "Sol, pause au genou et réception bras tendus forment une seule levée. Compte-la une fois la position debout stabilisée.",
     unit: "repetitions",
     sides: "total",
     objective: "Conserver la position au passage du genou à l’arraché.",
@@ -989,6 +1109,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "jerk-footwork",
+    checkpoint: "Chaque pied arrive sur sa propre marque, de part et d’autre de l’axe.",
     name: "Passage en fente de jeté sur marques",
     aliases: ["Footwork du jeté"],
     family: "weightlifting",
@@ -997,6 +1118,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: [],
     level: "advanced",
     loadKind: null,
+    countingCue:
+      "Compte un placement en fente suivi du retour des pieds à la position de départ. Repère le pied avant choisi.",
     unit: "repetitions",
     sides: "total",
     objective: "Retrouver deux appuis stables en réception de jeté.",
@@ -1012,6 +1135,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "clean-front-rack",
+    checkpoint: "Les coudes restent dirigés vers l’avant au fond de la position.",
     name: "Maintien en réception d’épaulé",
     aliases: ["Pause front rack"],
     family: "weightlifting",
@@ -1020,6 +1144,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["barbell", "rack"],
     level: "advanced",
     loadKind: "external_total",
+    countingCue:
+      "Compte une descente, une tenue puis une remontée, barre sur les épaules. Sortir la barre du support se fait avant la série.",
     unit: "repetitions",
     sides: "total",
     objective: "Stabiliser la position basse de réception.",
@@ -1035,6 +1161,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "kb-suitcase",
+    checkpoint: "Les deux épaules restent à la même hauteur pendant la marche.",
     name: "Marche valise avec kettlebell",
     aliases: ["Suitcase carry"],
     family: "strength",
@@ -1043,6 +1170,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["kettlebells"],
     level: "intermediate",
     loadKind: "external_total",
+    countingCue:
+      "Note les mètres avec le kettlebell dans la main droite, puis les mètres dans la main gauche. La distance prescrite s’applique à chaque main.",
     unit: "meters",
     sides: "each_side",
     objective: "Résister à l’inclinaison du tronc en marchant.",
@@ -1058,6 +1187,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "kb-rack-march",
+    checkpoint: "La boule garde son contact avec l’avant-bras quand le pied quitte le sol.",
     name: "Marche sur place en rack unilatéral",
     aliases: ["Marche rack kettlebell"],
     family: "strength",
@@ -1066,6 +1196,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["kettlebells"],
     level: "intermediate",
     loadKind: "external_total",
+    countingCue:
+      "Une montée de genou suivie de la repose vaut une répétition. Note le total avec le kettlebell de chaque côté du rack.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Garder le tronc stable en rack sur un seul côté.",
@@ -1081,6 +1213,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "kb-dead-clean",
+    checkpoint: "À la réception, la boule vient se poser sur l’avant-bras sans le frapper.",
     name: "Épaulé kettlebell depuis le sol",
     aliases: ["Dead clean KB"],
     family: "strength",
@@ -1089,6 +1222,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["kettlebells"],
     level: "intermediate",
     loadKind: "external_total",
+    countingCue:
+      "Une répétition part du kettlebell posé et finit en rack stable. Compte séparément pour la main droite et la main gauche.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Amener un kettlebell du sol en position de rack.",
@@ -1104,6 +1239,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "kb-halo",
+    checkpoint: "La tête reste en place pendant que la poignée en fait le tour.",
     name: "Halo avec kettlebell",
     aliases: ["Halo KB"],
     family: "strength",
@@ -1112,6 +1248,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["kettlebells"],
     level: "intermediate",
     loadKind: "external_total",
+    countingCue:
+      "Un tour complet autour de la tête vaut une répétition. La quantité s’applique dans chaque sens de rotation.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Contrôler la trajectoire du poids autour de la tête.",
@@ -1127,6 +1265,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "kb-front-rack-squat",
+    checkpoint: "Les deux kettlebells gardent le contact avec les avant-bras pendant la remontée.",
     name: "Squat avec deux kettlebells en rack",
     aliases: ["Double rack squat"],
     family: "strength",
@@ -1135,6 +1274,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["kettlebells"],
     level: "intermediate",
     loadKind: "external_total",
+    countingCue:
+      "Compte une flexion suivie du redressement complet. Les deux kettlebells accompagnent ensemble une seule répétition.",
     unit: "repetitions",
     sides: "total",
     objective: "Garder les deux charges proches pendant la flexion.",
@@ -1150,6 +1291,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "band-dorsiflexion",
+    checkpoint: "Le talon reste posé et l’avant-pied revient dans l’axe du tibia.",
     name: "Flexion dorsale de cheville à l’élastique",
     aliases: ["Dorsiflexion avec bande"],
     family: "strength",
@@ -1158,6 +1300,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["bands"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Une traction du dessus du pied vers le tibia et un retour contrôlé valent une répétition. Compte chaque cheville séparément.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Relever le pied contre une résistance régulière.",
@@ -1170,6 +1314,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "band-eversion",
+    checkpoint: "Le genou reste en place pendant que l’avant-pied s’écarte.",
     name: "Éversion de cheville avec bande",
     aliases: ["Éversion élastique"],
     family: "strength",
@@ -1178,6 +1323,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["bands"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Compte un mouvement de l’avant-pied vers l’extérieur puis son retour au centre, pour chaque cheville.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Contrôler la rotation du pied vers l’extérieur.",
@@ -1193,6 +1340,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "band-inversion",
+    checkpoint: "Le talon garde son emplacement pendant que l’avant-pied se rapproche de l’autre pied.",
     name: "Inversion de cheville avec bande",
     aliases: ["Inversion élastique"],
     family: "strength",
@@ -1201,6 +1349,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["bands"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Compte un mouvement de l’avant-pied vers l’intérieur puis son retour dans l’axe, pour chaque cheville.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Contrôler la rotation du pied vers l’intérieur.",
@@ -1216,6 +1366,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "band-resisted-march",
+    checkpoint: "La bande reste tendue dans la même direction d’un pas au suivant.",
     name: "Marche de sprint avec élastique à la taille",
     aliases: ["A march résistée"],
     family: "strength",
@@ -1224,6 +1375,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["bands"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Note les mètres de marche effectués sous tension entre les repères. Le déplacement pour se replacer est exclu.",
     unit: "meters",
     sides: "total",
     objective: "Conserver le placement en marche résistée.",
@@ -1239,6 +1392,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "band-pallof-step",
+    checkpoint: "Les mains restent en face du sternum pendant le pas latéral.",
     name: "Pas latéral antirotation à l’élastique",
     aliases: ["Pallof avec pas latéral"],
     family: "strength",
@@ -1247,6 +1401,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["bands"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Compte un pas d’éloignement suivi du retour en gardant le tronc orienté devant toi. Fais la quantité indiquée avec l’ancrage de chaque côté.",
     unit: "repetitions",
     sides: "each_side",
     objective: "Garder le tronc face à l’avant malgré la traction.",
@@ -1262,6 +1418,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "rope-boxer-step",
+    checkpoint: "La corde passe sous les pieds à chaque transfert d’appui.",
     name: "Corde à sauter en pas de boxeur",
     aliases: ["Boxer skip"],
     family: "warmup",
@@ -1270,6 +1427,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["other"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Compte les secondes de corde en alternant le transfert du poids. Suspends le chronométrage si la corde s’arrête.",
     unit: "seconds",
     sides: "total",
     objective: "Alterner la charge d’appui sous une corde régulière.",
@@ -1285,6 +1444,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "rope-skier",
+    checkpoint: "Les deux pieds franchissent la ligne et retouchent le sol ensemble.",
     name: "Corde à sauter en slalom latéral",
     aliases: ["Skier jump rope"],
     family: "warmup",
@@ -1293,6 +1453,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["other"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Note les secondes de bonds latéraux en continu. Le passage à droite puis à gauche reste dans le même intervalle.",
     unit: "seconds",
     sides: "total",
     objective: "Franchir une ligne latérale au rythme de la corde.",
@@ -1308,6 +1470,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "rope-running-step",
+    checkpoint: "Un seul pied reprend appui à chaque passage de corde.",
     name: "Corde à sauter en pas de course",
     aliases: ["Running skip"],
     family: "warmup",
@@ -1316,6 +1479,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: ["other"],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Note la durée des appuis alternés sous la corde. Garde distincts le temps de travail et la récupération.",
     unit: "seconds",
     sides: "total",
     objective: "Alterner les pieds au passage de la corde.",
@@ -1331,6 +1496,7 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
   },
   {
     key: "step-jack",
+    checkpoint: "Quand un pied part sur le côté, l’autre garde le contact avec le sol.",
     name: "Step jack alterné sans saut",
     aliases: ["Jumping jack sans saut"],
     family: "warmup",
@@ -1339,6 +1505,8 @@ export const STADIUM_CATALOG: CatalogueDraft[] = [
     equipment: [],
     level: "beginner",
     loadKind: null,
+    countingCue:
+      "Compte les secondes de pas alternés avec au moins un pied au sol. L’intervalle commence au premier pas d’ouverture.",
     unit: "seconds",
     sides: "total",
     objective: "Élever progressivement le rythme sans phase de vol.",

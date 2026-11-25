@@ -68,6 +68,9 @@ const loadExplanation = (entry: CatalogueDraft, loadKind: StarterExercise["stren
 const buildEntry = (entry: CatalogueDraft, version: number): CatalogExercise => {
   const previous = STARTER_LIBRARY.find((old) => old.name === entry.name);
   const strengthLoadKind = previous ? previous.strengthLoadKind : entry.loadKind;
+  const steps = entry.steps.map((step, index) =>
+    entry.checkpoint && index === entry.steps.length - 1 ? step + " " + entry.checkpoint : step,
+  );
   const guide = exerciseGuide.parse({
     catalogKey: entry.key,
     version,
@@ -75,7 +78,7 @@ const buildEntry = (entry: CatalogueDraft, version: number): CatalogExercise => 
     level: entry.level,
     objective: entry.objective,
     setup: [entry.setup],
-    steps: entry.steps,
+    steps,
     breathing:
       entry.breathing ??
       (entry.family === "strength"
@@ -87,14 +90,14 @@ const buildEntry = (entry: CatalogueDraft, version: number): CatalogExercise => 
     counting: {
       unit: entry.unit ?? "repetitions",
       sides: entry.sides ?? "total",
-      explanation: countingExplanation(entry),
+      explanation: entry.countingCue ?? countingExplanation(entry),
     },
     loadExplanation: loadExplanation(entry, strengthLoadKind),
     illustration: {
       status: "draft",
       path: `/exercise-guides/${entry.key}-v${version}.svg`,
       alt: `${entry.name} : positions clés du mouvement, de l'installation à la fin du geste.`,
-      positions: [entry.setup, ...entry.steps],
+      positions: [entry.setup, ...steps],
       source: "tartan-original",
       rights: "Tartan",
     },
@@ -108,7 +111,7 @@ const buildEntry = (entry: CatalogueDraft, version: number): CatalogExercise => 
     category: previous?.category ?? entry.category,
     classification: { movement: entry.movement, equipment: entry.equipment },
     tags: [...new Set([...(previous?.tags ?? []), ...familyTags[entry.family]])],
-    cues: previous?.cues ?? entry.steps.slice(0, 2),
+    cues: previous?.cues ?? [...entry.steps.slice(0, 2), ...(entry.checkpoint ? [entry.checkpoint] : [])],
     strengthLoadKind,
     prescription: previous?.prescription ?? {},
     guide,
