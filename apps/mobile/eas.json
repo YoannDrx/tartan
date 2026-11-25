@@ -70,6 +70,12 @@
     "beta": {
       "extends": "production",
       "channel": "beta"
+    },
+    "beta-apk": {
+      "extends": "beta",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {

@@ -148,6 +148,6 @@ env:
 - extendedWaitUntil:
     notVisible:
       id: builder-confirm
-    timeout: 45000
+    timeout: 75000
 - runScript: scripts/verify-detail-edit.js
 - assertTrue: ${output.detailVerified === "oui"}

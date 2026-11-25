@@ -156,6 +156,14 @@ Tartan is not a medical device.
 
 Partage : non, les prestataires (dont Sentry et OpenAI) agissent sur instruction. Traitement éphémère : non. Chiffrement en transit : oui. Suppression : oui, https://tartan.coach/suppression-compte. Obligatoires : nom, e-mail, identifiants, date de naissance, activité sportive, identifiants d'appareil, plantages et diagnostics. Facultatifs : santé, vidéos, audio, messages, consignes pour l'IA. Finalité : fonctionnement de l'app. Public : 18 ans et plus uniquement, Restrict Minor Access. Publicité : non. Déclaration santé : Activity and Fitness. Accès : comptes de démonstration. `dataSync` : cas envoi et téléchargement, interruption = envoi perdu. Vidéo sur vrai téléphone : choix d'une vidéo, envoi, notification de progression, écran éteint.
 
+## Bêta Android hors Play
+
+Le profil EAS `beta-apk` produit un APK de release avec l’identité de production, l’API de production, le canal `beta` et l’incrément de version distant. Le profil `beta` produit l’AAB destiné à la piste fermée. Depuis `apps/mobile`, construire le candidat relu avec `eas build --platform android --profile beta-apk`.
+
+Avant la première distribution, relever hors dépôt le SHA-256 du certificat de l’APK avec `apksigner verify --print-certs candidat.apk`. Pour conserver l’installation et les saisies en attente lors du passage à Play, fournir cette même clé de signature d’application au moment de l’inscription à Play App Signing, puis utiliser une clé d’importation distincte pour les AAB. Comparer le certificat de signature d’application dans Play Console avec celui de l’APK. Installer la version Play avec un code de version supérieur sur un appareil contenant déjà l’APK et une saisie locale en attente. [Signature Android](https://developer.android.com/studio/publish/app-signing)
+
+L’artefact EAS est destiné à l’équipe de publication. Le testeur télécharge sa copie via le lien individuel révocable de la console Tartan une fois cette distribution en service.
+
 ## Mise en service de la console de bêta
 
 Dans la console, une adresse peut attendre son canal. Les nouveaux envois sont suspendus tant que `BETA_INVITES_ENABLED` vaut `false`. La tâche de notifications réessaie les autorisations et transmet les e-mails à la file existante. La page d’installation échange le fragment du lien contre un cookie HTTP seul, limité à cette page. L’accès expire après 30 jours et le retrait le coupe immédiatement. L’envoi indiqué dans la console correspond à l’acceptation du message par le prestataire.
