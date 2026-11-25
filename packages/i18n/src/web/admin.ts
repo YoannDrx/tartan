@@ -1,5 +1,20 @@
 // Atelier d'administration : relecture des gestes animés.
 export const admin = {
+  editorial: {
+    title: "Atelier des illustrations",
+    unversioned: (n: number) => `Fiches communes visibles à rapprocher du catalogue (${n})`,
+    coverage: (approved: number, total: number) => `${approved} images relues sur ${total} fiches versionnées`,
+    text: "Texte",
+    image: "Image",
+    motion: "Geste animé",
+    approve: "Valider",
+    reopen: "Rouvrir",
+    missing: "À produire",
+    pending: "À relire",
+    approved: "Relu",
+    backlog: "Fiches sans illustration",
+  },
+
   // Réglage distinct de celui des coachs : l'athlète autonome ouvre seul son espace personnel, gratuit.
   athleteSignup: {
     label: "Inscriptions des athlètes autonomes",

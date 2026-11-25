@@ -12,6 +12,7 @@ const OFFLINE_PATHS = /^\/(accueil|aujourdhui|calendrier|annonces|progres|mes-vi
 
 // Seulement des fichiers qui existent : les guides d'exercice sont dessinés dans la page, sans fichier à garder.
 const isStatic = (url) =>
+  /^\/exercise-photos\/[a-z0-9-]+-v[1-9][0-9]*\.webp$/.test(url.pathname) ||
   url.pathname.startsWith("/_next/static/") || /^\/(icon-|apple-touch|brand\/)/.test(url.pathname);
 
 // Une réponse redirigée ne peut pas servir une navigation : on la recopie.
@@ -20,7 +21,7 @@ const storable = async (response) =>
     ? new Response(await response.clone().blob(), { status: response.status, headers: response.headers })
     : response.clone();
 
-const assetsIn = (text) => [...new Set(text.match(/\/_next\/static\/[^"'\\\s)]+/g) ?? [])];
+const assetsIn = (text) => [...new Set([...(text.match(/\/exercise-photos\/[a-z0-9-]+-v[1-9][0-9]*\.webp/g)??[]),...(text.match(/\/_next\/static\/[^"'\\\s)]+/g) ?? [])])];
 
 const cacheAssets = async (text) => {
   const cache = await caches.open(STATIC_CACHE);
