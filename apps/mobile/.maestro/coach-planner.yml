@@ -31,6 +31,12 @@ env:
     text: "Hauteur Démo"
     selected: false
     optional: true
+- scrollUntilVisible:
+    element:
+      id: planner-instructions
+    centerElement: true
+    timeout: 15000
+- waitForAnimationToEnd
 - tapOn:
     id: planner-instructions
 - waitForAnimationToEnd
@@ -39,6 +45,11 @@ env:
 - hideKeyboard
 - takeScreenshot: planner-request
 # L'action d'envoi est collée au bas de l'écran : visible sans défiler.
+- extendedWaitUntil:
+    visible:
+      id: planner-generate
+      enabled: true
+    timeout: 15000
 - tapOn:
     id: planner-generate
 # Le simulateur partagé de la CI met parfois plus de 30 s à rendre la proposition.
@@ -61,4 +72,28 @@ env:
     id: planner-create-drafts
 - extendedWaitUntil:
     visible: "Brouillon créé.*"
+    timeout: 30000
+# Ce brouillon appartient au passage en cours. La proposition conserve la trace du brouillon supprimé.
+- scrollUntilVisible:
+    element: "Supprimer le brouillon"
+    timeout: 20000
+- tapOn: "Supprimer le brouillon"
+- tapOn: "Annuler"
+- assertVisible: "Supprimer le brouillon"
+- tapOn: "Supprimer le brouillon"
+- tapOn: "Supprimer"
+- extendedWaitUntil:
+    visible: "Brouillon supprimé ou devenu inaccessible.*"
+    timeout: 30000
+- openLink: "tartan-dev:///planner-proposals"
+- runFlow: flows/_accept-deep-link.yml
+- tapOn: "Brouillons créés"
+- extendedWaitUntil:
+    visible: "Voir les séances créées.*"
+    timeout: 30000
+- tapOn:
+    text: "Voir les séances créées.*"
+    index: 0
+- extendedWaitUntil:
+    visible: "Brouillon supprimé ou devenu inaccessible.*"
     timeout: 30000

@@ -45,7 +45,7 @@ export const sendEmail = async (input: {
     // Sans clé (local et tests), on garde le message pour l'inspecter au lieu de l'envoyer.
     outbox.push({ to: input.to, subject: input.subject, html, text, headers });
     const link = actionLink(html);
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development" && input.kind !== "beta_install") {
       console.info(`[e-mail local] ${input.subject}${link ? ` → ${link}` : ""}`);
     }
     // Parcours Playwright sur build de production : le message est déposé dans un dossier que le test relit, pour

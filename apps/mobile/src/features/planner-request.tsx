@@ -1,6 +1,6 @@
-import { clockTime, trainingEquipment } from "@tartan/contracts";
-import { type PhasePlanningReadiness } from "@tartan/domain";
-import { m } from "@tartan/i18n";
+import { clockTime, plannerEquipment } from "@tartan/contracts";
+import { plannerWeekDays, type PhasePlanningReadiness } from "@tartan/domain";
+import { historyDate, m } from "@tartan/i18n";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Pressable, type TextInput, View } from "react-native";
 import type { api } from "../lib/api";
@@ -146,17 +146,6 @@ export function NativePlannerRequest({
       </View>
 
       <View style={{ gap: space.sm }}>
-        <SectionTitle>{t.when}</SectionTitle>
-        <DateField
-          label={t.day}
-          hint={t.dayHint}
-          value={value.date}
-          editable={!frozen}
-          onChangeText={(date) => set({ date })}
-        />
-      </View>
-
-      <View style={{ gap: space.sm }}>
         {/* Le champ et son micro ne font qu'un : le bouton est posé dans le champ, en haut à droite. */}
         <Field
           ref={field}
@@ -241,6 +230,43 @@ export function NativePlannerRequest({
         ) : null}
       </View>
 
+      <View style={{ gap: space.sm }}>
+        <SectionTitle>{t.when}</SectionTitle>
+        <PillRow>
+          {[false, true].map((week) => (
+            <Pill
+              key={Number(week)}
+              label={week ? m.aiPlanner.sevenDays : m.aiPlanner.oneSession}
+              pressed={Boolean(value.week) === week}
+              disabled={frozen}
+              onPress={() => set({ week, days: [] })}
+            />
+          ))}
+        </PillRow>
+        {value.week && (
+          <Fold title={m.aiPlanner.availableDays}>
+            <PillRow>
+              {plannerWeekDays(value.date).map((day) => (
+                <Pill
+                  key={day}
+                  label={historyDate(day)}
+                  pressed={value.days?.includes(day) ?? false}
+                  disabled={frozen}
+                  onPress={() => set({ days: toggle(value.days ?? [], day) })}
+                />
+              ))}
+            </PillRow>
+          </Fold>
+        )}
+        <DateField
+          label={t.day}
+          hint={t.dayHint}
+          value={value.date}
+          editable={!frozen}
+          onChangeText={(date) => set({ date, days: [] })}
+        />
+      </View>
+
       <Fold title={t.precise} detail={summary || null} testID="planner-precise">
         <T variant="small" tone="muted">
           {t.preciseHint}
@@ -256,6 +282,19 @@ export function NativePlannerRequest({
           onChangeText={(startTime) => set({ startTime: startTime.trim() })}
         />
         <View style={{ gap: space.xs }}>
+          <Fold title={m.aiPlanner.discipline} detail={value.discipline}>
+            <PillRow>
+              {Object.values(m.disciplines).map((d) => (
+                <Pill
+                  key={d}
+                  label={d}
+                  pressed={value.discipline === d}
+                  disabled={frozen}
+                  onPress={() => set({ discipline: value.discipline === d ? undefined : d })}
+                />
+              ))}
+            </PillRow>
+          </Fold>
           <T variant="smallStrong">{t.duration}</T>
           <PillRow>
             {PLANNER_DURATIONS.map((min) => (
@@ -290,7 +329,7 @@ export function NativePlannerRequest({
             {t.equipmentHint}
           </T>
           <PillRow>
-            {trainingEquipment.options.map((key) => (
+            {plannerEquipment.options.map((key) => (
               <Pill
                 key={key}
                 label={m.trainingProfile.equipment[key]}

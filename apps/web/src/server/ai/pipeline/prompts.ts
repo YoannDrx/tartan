@@ -55,6 +55,8 @@ candidates : les fiches à considérer, la meilleure d'abord, quatre au plus ; a
 
 Pour trancher entre variant et neighbor : un athlète qui lit la fiche fera-t-il le geste que le coach demande, avec seulement un autre matériel, agrès ou position de départ ? Oui : variant. Non, il ferait un autre exercice : neighbor.
 
+Dans les gammes d’athlétisme, une action de pied ou une phase de foulée peut être commune à plusieurs éducatifs. Si le nom et les alias de la fiche imposent un autre cycle de jambe, une autre succession des appuis ou une position de genou que le terme ne précise pas, classe la fiche neighbor. Le fait qu’on enseigne cette action pendant cet éducatif ne les rend pas interchangeables.
+
 Procède dans cet ordre.
 1. Un mot de catégorie, de qualité physique ou de zone du corps (« du cardio », « des abdos », « de la souplesse », « du renfo », « des étirements », « le haut du corps ») ne désigne aucun mouvement précis : seulement des neighbor, jusqu'à trois fiches de cette catégorie que le coach pourra choisir. Exception : quand des fiches portent ce mot comme nom (« mollets »), elles sont variant.
 2. Un terme elliptique se complète avec near. Après « lancers de médecine-ball vers l'avant », le terme « en rotation » veut dire « lancers de médecine-ball en rotation » ; après « gainage ventral », « latéral » veut dire « gainage latéral ».

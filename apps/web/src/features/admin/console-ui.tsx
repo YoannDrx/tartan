@@ -1,3 +1,4 @@
+import { w } from "@tartan/i18n/web";
 import { m } from "@tartan/i18n";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -25,6 +26,7 @@ const sections = [
   { href: "/admin/factures", label: () => m.admin.nav.invoices },
   { href: "/admin/litiges", label: () => m.admin.nav.disputes },
   { href: "/admin/usage", label: () => m.admin.nav.usage },
+  { href: "/admin/testeurs", label: () => w.admin.testers.title },
   { href: "/admin/versions", label: () => m.admin.nav.versions },
   { href: "/admin/journal", label: () => m.admin.nav.audit },
   { href: "/admin/configuration", label: () => m.admin.nav.configuration },

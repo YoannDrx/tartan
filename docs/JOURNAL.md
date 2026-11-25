@@ -14,6 +14,9 @@ Six fiches dont le texte était déjà relu ont reçu une illustration candidate
 
 Les huit nouveaux gestes pilotes ont chacun leurs appuis et leurs phases. Le port de kettlebell et la marche sur plots gardent un pied au sol. Pour la cheville, l’ancrage est fixe et l’avant-pied mobile. La troisième validation publie la fiche de stade avec sa clé stable. Rouvrir son texte la retire des exercices que l’IA peut prescrire automatiquement. La relecture sportive appartient au fondateur.
 
+## 2026-11-25, Codex, consignes de comptage du stade
+
+Les 60 nouvelles fiches donnent chacune un repère observable et une convention de comptage propre au geste. Le guide et les consignes courtes gardent les mêmes deux phases techniques. Une réception à deux pieds, une liaison de triple et une paire de kettlebells ont désormais des explications dédiées. Les 515 tests du domaine passent sur le lot catalogue.
 
 ## 2026-11-25, Codex, édition stade en relecture
 
@@ -22,6 +25,54 @@ Les 60 nouvelles fiches disposent de clés de catalogue stables dans `exercise-c
 ## 2026-11-25, Codex, Illustrations, série pilote et atelier de relecture
 
 Douze silhouettes détaillées ont une image et une vignette WebP versionnées, 272 Kio sur disque au total, environ 5,2 Mio pour 233 au même poids. Le coût monétaire par reprise reste à chiffrer. Texte, image et geste ont des validations séparées. Aucune validation humaine simulée. Deux tests de service et les parcours Playwright ordinateur et téléphone ont passé la validation puis la réouverture d’une image. Inventaire agrégé en lecture seule le 25 novembre : 197 fiches communes visibles, dont les 173 clés versionnées et 24 sans clé ni guide. Ces 24 figurent séparément dans l’atelier. Le pilote et les 60 nouvelles fiches attendent leur relecture sportive. Les 221 autres illustrations restent à produire.
+
+## 2026-11-25, Codex, Encouragements du stade
+
+Deux préférences de compte règlent le ton de l’accueil et celui de la séance. Le catalogue local contient 30 mantras et 12 retours par ton. Le calcul tient compte des séries de toutes les occurrences du même mouvement dans un circuit. Vérifications du domaine, types, lint et design effectuées. La recette hors connexion et les lecteurs d’écran sur téléphone restent à faire.
+
+## 2026-11-25, Codex, Planifier pour soi depuis le club
+
+Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
+
+## 2026-11-25, Codex, saisie du planificateur sur téléphone
+
+Le champ de dictée précède le choix de période. Les parcours centrent le champ avant la saisie et vérifient que l’envoi est disponible. L’espace Android de recette reçoit les mêmes droits au planificateur que celui du simulateur iOS.
+
+## 2026-11-25, Codex, contrôle des créneaux du planificateur
+
+La revue de semaine compare aussi les durées des séances du calendrier pour avertir d’un chevauchement. Le banc historique de 80 consignes qui isole le prestataire transmet désormais le véritable statut de relecture des exercices fictifs. Les attendus du corpus restent figés. Les raccourcis de matériel, la sélection des fiches et la revue de semaine reconnaissent aussi la corde à sauter sur le web et le natif.
+
+## 2026-11-25, Codex, Reprendre une proposition IA
+
+La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.
+
+## 2026-11-25, Codex, Planificateur, revue des ajustements et semaine
+
+La demande propose séance ou sept jours, disciplines et disponibilités. Le coach peut comparer son ajustement, verrouiller des blocs et accepter ou annuler depuis un second appareil. Le calendrier garde les jours libres et les séances accessibles. La sélection partielle des jours est transactionnelle et rejouable, les clients installés peuvent toujours confirmer toute la proposition. Les 48 tests des propositions et 26 parcours Playwright avec prestataire simulé sont passés. La mesure sur consignes inédites et la dictée au stade restent ouvertes.
+
+## 2026-11-25, Codex, reprise de la recette native
+
+Sur les captures de CI, le constructeur attendait encore la réponse de publication, et le parcours personnel touchait le modèle pendant le défilement. Le test attend la fin de l’animation et laisse la sauvegarde se terminer avant de relire le résultat du serveur. Le délai global du simulateur inclut les rejeux.
+
+## 2026-11-25, Codex, téléchargement Gradle de la CI Android
+
+Le journal de compilation identifie des refus HTTP 429 de Maven Central pendant la résolution de dépendances. Les deux jobs Android réessaient cette étape une fois sur 429 ou indisponibilité temporaire du serveur. Une erreur de compilation remonte immédiatement. Le délai de Maestro et le temps de téléchargement des dépendances se mesurent séparément.
+
+## 2026-11-25, Codex, APK Android de bêta
+
+Le profil EAS beta-apk hérite du canal beta et de l’identité de production. EAS a résolu localement le profil en APK, canal beta, environnement production. La continuité de signature, le téléchargement privé et la mise à jour sur téléphone restent à éprouver.
+
+## 2026-11-25, Codex, invitations indépendantes par plateforme
+
+Une interruption du service Apple conserve l’envoi Android disponible pour une même personne. Le prochain traitement reprend iOS et déduplique l’e-mail APK déjà envoyé. Les deux états sont vérifiés en base avec une panne puis un rétablissement simulés.
+
+## 2026-11-25, Codex, stockage privé des APK
+
+Le store Blob privé du lancement a été créé en région fra1 et connecté à la production avec le préfixe BETA_APK. Le téléchargement contrôlé utilise la variable dédiée posée par Vercel. Les nouvelles invitations restent suspendues par défaut.
+
+## 2026-11-25, Codex, Console privée des testeurs
+
+La page /admin/testeurs, protégée par passkey, enregistre les plateformes, le renvoi et le retrait. L’accès privé est contrôlé à chaque téléchargement. Les appels au groupe externe Apple et la file de messages sont branchés. Les 14 tests ciblés et 4 parcours navigateur passent localement. Aucun canal de production activé ; TestFlight, APK et adhésion Play restent à éprouver.
 
 Modèle :
 

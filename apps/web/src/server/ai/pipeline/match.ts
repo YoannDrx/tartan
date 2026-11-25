@@ -1,6 +1,11 @@
 import "server-only";
 import { plannerMatchGeneration, type PlannerMatch } from "@tartan/contracts";
-import { plannerMatchShortlist, plannerModelMatches, plannerRuleMatches } from "@tartan/domain";
+import {
+  plannerMatchShortlist,
+  plannerModelMatches,
+  plannerRequiredEquipment,
+  plannerRuleMatches,
+} from "@tartan/domain";
 import { plannerStep } from "./step";
 import type { PlannerMatchInput, PlannerProvider, PlannerProviderContext } from "./types";
 
@@ -54,7 +59,7 @@ export async function matchMovements(
         name: exercise.name,
         aliases: exercise.aliases.slice(0, 8),
         family: exercise.family ?? null,
-        equipment: exercise.classification?.equipment ?? null,
+        equipment: plannerRequiredEquipment(exercise.catalogKey, exercise.classification?.equipment),
       })),
     };
     const answer = await plannerStep("match", deadline, plannerMatchGeneration, (signal) =>

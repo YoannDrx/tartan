@@ -4,6 +4,7 @@ import {
   PLANNER_WEEKDAYS,
   plannerExerciseMentions,
   plannerEquipmentAvailable,
+  plannerRequiredEquipment,
   plannerSlotDefaults,
   plannerWeekdayOf,
   selectPlannerCandidates,
@@ -19,7 +20,8 @@ import { plannerCoachTexts } from "./understand";
 // Au plus 60 fiches proposables quand plusieurs séances laissent chacune une partie à composer.
 const CANDIDATES_TOTAL = 60;
 // Une séance voisine n'est utile que si le coach laisse composer, ou s'il en cite une (« refais la séance de mardi »).
-const REUSE = /refai|repren|redonn|meme seance|comme (?:la|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|hier)|habitu|derniere fois/;
+const REUSE =
+  /refai|repren|redonn|meme seance|comme (?:la|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|hier)|habitu|derniere fois/;
 const plain = (value: string) =>
   value
     .normalize("NFKD")
@@ -120,7 +122,10 @@ export function planComposition(
       if (
         exercise &&
         (exercise.approved || exercise.own) &&
-        plannerEquipmentAvailable(exercise.classification, session.proposal.equipment)
+        plannerEquipmentAvailable(
+          { equipment: plannerRequiredEquipment(exercise.catalogKey, exercise.classification?.equipment) },
+          session.proposal.equipment,
+        )
       )
         candidates.add(mention.token);
     }
@@ -129,7 +134,7 @@ export function planComposition(
         token: exercise.token,
         family: exercise.family ?? null,
         level: exercise.level ?? null,
-        equipment: exercise.classification?.equipment ?? null,
+        equipment: plannerRequiredEquipment(exercise.catalogKey, exercise.classification?.equipment),
         approved: exercise.approved,
         own: exercise.own,
         preferred: exercise.preferred ?? null,
@@ -166,7 +171,7 @@ export function planComposition(
             unit: exercise.unit ?? null,
             sides: exercise.sides ?? null,
             loadKind: exercise.strengthLoadKind ?? null,
-            equipment: exercise.classification?.equipment ?? null,
+            equipment: plannerRequiredEquipment(exercise.catalogKey, exercise.classification?.equipment),
             objective: exercise.objective?.slice(0, 160) ?? null,
           },
         ]
@@ -245,7 +250,10 @@ export function planComposition(
     ...neighbours.flatMap((neighbour) => neighbour.exercises.flatMap((e) => (e.load ? [e.load.value] : []))),
   ];
   // Les seuls jetons que la séance peut citer : les fiches données au modèle et les emplacements.
-  const tokens = new Set([...input.exercises.map((exercise) => exercise.token), ...input.slots.map((slot) => slot.token)]);
+  const tokens = new Set([
+    ...input.exercises.map((exercise) => exercise.token),
+    ...input.slots.map((slot) => slot.token),
+  ]);
   return { input, frame: { sessions, movements, proposedLabel: m.aiPlanner.proposedExercise, tokens }, knownLoads };
 }
 

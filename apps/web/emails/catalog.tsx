@@ -1,3 +1,4 @@
+import { BetaEmail } from "./beta";
 import { PLANS } from "@tartan/domain";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
@@ -50,6 +51,7 @@ export const emailCatalog = (appUrl: string): EmailSample[] => {
     ["trial_ending", m.email.trialEnding],
   ] as const;
   return [
+    { key: "beta_install", subject: w.admin.testers.subject, react: <BetaEmail url={url} /> },
     { key: "verify", subject: m.email.subjects.verify, react: <VerifyEmail url={url} /> },
     { key: "magic_link", subject: m.email.subjects.magicLink, react: <MagicLinkEmail url={url} /> },
     { key: "reset_password", subject: m.email.subjects.resetPassword, react: <ResetPasswordEmail url={url} /> },

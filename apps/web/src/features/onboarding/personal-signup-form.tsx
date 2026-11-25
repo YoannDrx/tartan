@@ -25,10 +25,12 @@ type Errors = Partial<Record<"firstName" | "lastName" | "birthDate" | "terms", s
 // « Je m'entraîne seul » : trois temps, comme la création de l'espace d'un coach. Toi, ton entraînement, les
 // conditions ; puis l'espace personnel naît et l'athlète arrive sur sa journée.
 export const PersonalSignupForm = ({
+  planner = false,
   firstName,
   lastName,
   birthDate,
 }: {
+  planner?: boolean;
   firstName: string;
   lastName: string;
   birthDate: string;
@@ -68,6 +70,8 @@ export const PersonalSignupForm = ({
   };
   const save = () =>
     execute({
+      planner,
+      availableEquipment: profile.availableEquipment,
       firstName: values.firstName.trim(),
       lastName: values.lastName.trim(),
       ...(birthDate ? {} : { birthDate: values.birthDate }),
@@ -156,7 +160,7 @@ export const PersonalSignupForm = ({
         {legend(1, t.trainingTitle)}
         <TrainingProfileFields
           value={profile}
-          keys={["disciplines", "trainingObjectives"]}
+          keys={planner ? undefined : ["disciplines", "trainingObjectives"]}
           hint={t.trainingHint}
           disabled={isPending}
           onChange={setProfile}

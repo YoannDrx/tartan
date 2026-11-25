@@ -1,4 +1,7 @@
-import { m } from "@tartan/i18n";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useActiveSpace } from "../../src/lib/queries";
+import { api } from "../../src/lib/api";
+import { encouragementLabels as labels, encouragementTones, m } from "@tartan/i18n";
 import { View } from "react-native";
 import { Chip, SectionTitle, T } from "../../src/ui/primitives";
 import { StackScreen } from "../../src/ui/screen";
@@ -7,6 +10,12 @@ import { themePreferences, useThemePreference } from "../../src/ui/theme-prefere
 
 // Rubrique Apparence : le thème des écrans de travail, sur ce téléphone.
 export default function AppearanceSettings() {
+  const { me } = useActiveSpace();
+  const client = useQueryClient();
+  const save = useMutation({
+    mutationFn: api.updatePreferences,
+    onSuccess: (data) => client.setQueryData(["me"], data),
+  });
   const theme = useThemePreference((state) => state.preference);
   const setTheme = useThemePreference((state) => state.setPreference);
   return (
@@ -29,6 +38,30 @@ export default function AppearanceSettings() {
           ))}
         </View>
       </View>
+      <SectionTitle>{labels.title}</SectionTitle>
+      {(["homeTone", "sessionTone"] as const).map((key) => (
+        <View key={key} style={{ gap: space.sm }}>
+          <T>{key === "homeTone" ? labels.home : labels.session}</T>
+          <View
+            accessibilityRole="radiogroup"
+            accessibilityLabel={key === "homeTone" ? labels.home : labels.session}
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}
+          >
+            {encouragementTones.map((tone) => (
+              <Chip
+                key={tone}
+                tall
+                label={labels[tone]}
+                active={(me.data?.preferences?.[key] ?? "calm") === tone}
+                onPress={() => {
+                  if (!save.isPending) save.mutate({ [key]: tone });
+                }}
+              />
+            ))}
+          </View>
+        </View>
+      ))}
+      {save.isError && <T tone="danger">{m.common.genericError}</T>}
     </StackScreen>
   );
 }
