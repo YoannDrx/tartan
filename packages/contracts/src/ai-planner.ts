@@ -322,11 +322,12 @@ export type PlannerBrief = z.infer<typeof plannerBrief>;
 // Additif (22 novembre 2026) : les précisions facultatives du champ unique. Chacune est un indice, retenu
 // seulement quand la demande ne dit rien elle-même. Aucune n'est requise ; elles remplacent le `brief` complet
 // des clients d'avant, qui reste accepté.
+export const plannerEquipment = z.enum([...trainingEquipment.options, "jump_rope"]);
 export const plannerRequestHints = z
   .object({
     durationMin: z.number().int().min(5).max(300).optional(),
     level: z.enum(["beginner", "intermediate", "advanced"]).optional(),
-    equipment: z.array(trainingEquipment).max(16).optional(),
+    equipment: z.array(plannerEquipment).max(plannerEquipment.options.length).optional(),
   })
   .strict();
 export type PlannerRequestHintsInput = z.infer<typeof plannerRequestHints>;

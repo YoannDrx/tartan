@@ -1,4 +1,4 @@
-import { clockTime, trainingEquipment } from "@tartan/contracts";
+import { clockTime, plannerEquipment } from "@tartan/contracts";
 import { plannerWeekDays, type PhasePlanningReadiness } from "@tartan/domain";
 import { historyDate, m } from "@tartan/i18n";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -329,7 +329,7 @@ export function NativePlannerRequest({
             {t.equipmentHint}
           </T>
           <PillRow>
-            {trainingEquipment.options.map((key) => (
+            {plannerEquipment.options.map((key) => (
               <Pill
                 key={key}
                 label={m.trainingProfile.equipment[key]}

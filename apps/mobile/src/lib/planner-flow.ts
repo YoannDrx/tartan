@@ -4,7 +4,7 @@ import {
   clarifyPlannerProposalInput,
   createPlannerProposalInput,
   plannerReviewedDraft,
-  trainingEquipment,
+  plannerEquipment,
   type ExerciseCategory,
   type ExerciseLoadKind,
   type PlannerCapability,
@@ -31,7 +31,7 @@ import {
 // Mêmes règles que l'écran web (`apps/web/src/features/planner`).
 
 export type PlannerLevel = "beginner" | "intermediate" | "advanced";
-export type PlannerEquipment = (typeof trainingEquipment.options)[number];
+export type PlannerEquipment = (typeof plannerEquipment.options)[number];
 export const PLANNER_DURATIONS = [20, 30, 45, 60, 75, 90, 120] as const;
 export const PLANNER_LEVELS: readonly PlannerLevel[] = ["beginner", "intermediate", "advanced"];
 export const PLANNER_TEXT_LIMIT = 12000;

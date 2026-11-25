@@ -2,7 +2,7 @@
 
 import {
   createPlannerProposalInput,
-  trainingEquipment,
+  plannerEquipment,
   type CreatePlannerProposalInput,
   type PlannerSelection,
 } from "@tartan/contracts";
@@ -25,7 +25,7 @@ export type PlannerContext = Awaited<ReturnType<typeof getSessionBuilderContext>
 
 const t = w.planner;
 type Level = "beginner" | "intermediate" | "advanced";
-export type PlannerEquipment = (typeof trainingEquipment.options)[number];
+export type PlannerEquipment = (typeof plannerEquipment.options)[number];
 type Equipment = PlannerEquipment;
 const DURATIONS = [20, 30, 45, 60, 75, 90, 120];
 const LEVELS: Level[] = ["beginner", "intermediate", "advanced"];
@@ -517,7 +517,7 @@ export function PlannerRequest({
             <span className="t-caption">{t.equipment}</span>
             <span className="t-caption font-normal text-soft">{t.equipmentHint}</span>
             <div className="flex flex-wrap gap-2">
-              {trainingEquipment.options.map((key) => (
+              {plannerEquipment.options.map((key) => (
                 <Pill
                   key={key}
                   pressed={value.equipment.includes(key)}
