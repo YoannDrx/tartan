@@ -139,6 +139,8 @@ for (const size of [
 
     // Un autre terme, un nom corrigé avant de créer : Entrée dans le champ suffit, le terme reste un autre nom.
     await typeSearch(page, SEARCHED);
+    await expect(scope.getByText(f.noMatch, { exact: true })).toBeVisible();
+    await expect(scope.getByRole("button", { name: new RegExp(`^${f.create(SEARCHED)}`) })).toBeEnabled();
     await page.keyboard.press("Enter");
     await expect(name).toHaveValue(SEARCHED);
     await page.keyboard.press("ControlOrMeta+a");

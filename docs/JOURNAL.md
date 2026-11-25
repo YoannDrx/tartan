@@ -88,7 +88,7 @@ La revue de semaine compare aussi les durées des séances du calendrier pour av
 
 ## Blocs de séance et reprise du brouillon · 25 novembre 2026
 
-Le constructeur web ne charge au départ que les fiches du serveur et des modèles. Les brouillons locaux conservent maintenant les fiches utilisées. les anciens les retrouvent par leurs identifiants dans leur espace. Le domaine teste la duplication et le retrait d’un circuit avec charge individuelle au deuxième tour.
+Le constructeur web ne charge au départ que les fiches du serveur et des modèles. Les brouillons locaux conservent maintenant les fiches utilisées. Les anciens les retrouvent par leurs identifiants dans leur espace. Le domaine teste la duplication et le retrait d’un circuit avec charge individuelle au deuxième tour.
 
 ## 2026-11-25, Codex, Reprendre une proposition IA
 

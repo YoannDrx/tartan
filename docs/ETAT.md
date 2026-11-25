@@ -22,7 +22,7 @@ Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée e
 
 ## Blocs de séance et reprise du brouillon · 25 novembre 2026
 
-Le constructeur et la relecture IA proposent de dupliquer un bloc ou de le supprimer après confirmation. La copie reçoit ses propres références pour les exercices, les circuits et les ajustements. La reprise web conserve les fiches citées et recharge les références des brouillons anciens.
+Le constructeur et la relecture IA proposent de dupliquer un bloc ou de le supprimer après confirmation. La copie reçoit ses propres références pour les exercices, les circuits et les ajustements. La reprise web conserve les fiches citées et recharge les références des brouillons anciens. Les parcours du constructeur et de la relecture IA ont réussi à 390 et 1440 px.
 
 ## Reprendre une proposition IA · 25 novembre 2026
 
