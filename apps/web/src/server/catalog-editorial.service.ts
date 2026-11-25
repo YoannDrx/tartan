@@ -5,12 +5,12 @@ import { invalid } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import type { Actor } from "@/lib/session";
 import { requireStepUp, STEP_UP_READ_MS } from "./admin-step-up.service";
-import { pilots, imagePath } from "./catalog-illustrations";
+import { catalogImages, imagePath } from "./catalog-illustrations";
 
 const prefix = "exerciseReview:";
 export const mediaKinds = ["text", "image", "motion"] as const;
 type Kind = (typeof mediaKinds)[number];
-const byKey = new Map<string, (typeof pilots)[number]>(pilots.map((p) => [p.key, p]));
+const byKey = new Map<string, (typeof catalogImages)[number]>(catalogImages.map((p) => [p.key, p]));
 export const stamp = (key: string, guideVersion: number, kind: Kind) => {
   const assetVersion = kind === "image" ? (byKey.get(key)?.imageVersion ?? 0) : kind === "motion" ? 2 : guideVersion;
   return `${prefix}${key}:v${guideVersion}:${kind}:v${assetVersion}`;

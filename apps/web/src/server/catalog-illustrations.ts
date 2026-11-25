@@ -1,4 +1,4 @@
-export const pilots = [
+export const catalogImages = [
   {
     key: "curve-pop-up",
     guideVersion: 6,
@@ -71,7 +71,43 @@ export const pilots = [
     imageVersion: 1,
     alt: "Le pied avant est posé en entier sur le banc et le pied arrière touche encore le sol.",
   },
+  {
+    key: "glute-bridge",
+    guideVersion: 5,
+    imageVersion: 1,
+    alt: "Le bassin est soulevé, les épaules et les deux pieds restent posés au sol.",
+  },
+  {
+    key: "push-up",
+    guideVersion: 5,
+    imageVersion: 1,
+    alt: "Les coudes fléchis, l’athlète maintient le thorax près du sol et le bassin aligné avec les épaules.",
+  },
+  {
+    key: "front-plank",
+    guideVersion: 5,
+    imageVersion: 1,
+    alt: "Les deux avant-bras et les pointes des pieds portent le corps. Les coudes sont sous les épaules.",
+  },
+  {
+    key: "side-plank",
+    guideVersion: 5,
+    imageVersion: 1,
+    alt: "En appui sur un avant-bras et le côté des pieds, l’athlète soulève le bassin.",
+  },
+  {
+    key: "dead-bug",
+    guideVersion: 5,
+    imageVersion: 1,
+    alt: "Sur le dos, un bras et la jambe opposée s’allongent. L’autre genou reste plié.",
+  },
+  {
+    key: "bird-dog",
+    guideVersion: 5,
+    imageVersion: 1,
+    alt: "Une main et le genou opposé portent le corps. Les deux membres libres sont alignés avec le tronc.",
+  },
 ] as const;
 
-export const imagePath = (pilot: (typeof pilots)[number], thumb = false) =>
+export const imagePath = (pilot: (typeof catalogImages)[number], thumb = false) =>
   `/exercise-photos/${pilot.key}-v${pilot.imageVersion}${thumb ? "-thumb" : ""}.webp`;

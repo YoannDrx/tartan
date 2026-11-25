@@ -12,4 +12,10 @@ export const pilotImages: Record<string, ImageSourcePropType> = {
   "/exercise-photos/reverse-lunge-v1.webp": require("../../../web/public/exercise-photos/reverse-lunge-v1.webp"),
   "/exercise-photos/step-over-cone-v1.webp": require("../../../web/public/exercise-photos/step-over-cone-v1.webp"),
   "/exercise-photos/step-up-v1.webp": require("../../../web/public/exercise-photos/step-up-v1.webp"),
+  "/exercise-photos/glute-bridge-v1.webp": require("../../../web/public/exercise-photos/glute-bridge-v1.webp"),
+  "/exercise-photos/push-up-v1.webp": require("../../../web/public/exercise-photos/push-up-v1.webp"),
+  "/exercise-photos/front-plank-v1.webp": require("../../../web/public/exercise-photos/front-plank-v1.webp"),
+  "/exercise-photos/side-plank-v1.webp": require("../../../web/public/exercise-photos/side-plank-v1.webp"),
+  "/exercise-photos/dead-bug-v1.webp": require("../../../web/public/exercise-photos/dead-bug-v1.webp"),
+  "/exercise-photos/bird-dog-v1.webp": require("../../../web/public/exercise-photos/bird-dog-v1.webp"),
 };

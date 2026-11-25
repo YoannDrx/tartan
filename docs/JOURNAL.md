@@ -18,6 +18,10 @@ La demande propose séance ou sept jours, disciplines et disponibilités. Le coa
 
 Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
 
+## 2026-11-25, Codex, série des exercices au sol
+
+Six fiches dont le texte était déjà relu ont reçu une illustration candidate. Le dead bug a été repris séparément pour garder la tête au sol. L’atelier présente désormais 18 images sur les 233 clés. Chaque validation reste individuelle.
+
 ## 2026-11-25, Codex, gestes de la planche pilote
 
 Les huit nouveaux gestes pilotes ont chacun leurs appuis et leurs phases. Le port de kettlebell et la marche sur plots gardent un pied au sol. Pour la cheville, l’ancrage est fixe et l’avant-pied mobile. La troisième validation publie la fiche de stade avec sa clé stable. Rouvrir son texte la retire des exercices que l’IA peut prescrire automatiquement. La relecture sportive appartient au fondateur.

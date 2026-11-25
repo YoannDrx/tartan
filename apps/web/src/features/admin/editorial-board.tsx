@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { Button } from "@/components/ui/button";
 import { GuideMotion } from "@/features/exercises/guide-motion";
 import { requireActor } from "@/lib/session";
-import { pilots, imagePath } from "@/server/catalog-illustrations";
+import { catalogImages, imagePath } from "@/server/catalog-illustrations";
 import {
   unversionedCommonExercises,
   approvedEditorial,
@@ -34,13 +34,16 @@ export async function EditorialBoard({ selected }: { selected?: string }) {
   const [approved, outside] = await Promise.all([approvedEditorial(), unversionedCommonExercises(actor)]);
   const rows = selected
     ? entries.filter((e) => e.catalogKey === selected)
-    : pilots.map((p) => entries.find((e) => e.catalogKey === p.key)!);
+    : catalogImages.map((p) => entries.find((e) => e.catalogKey === p.key)!);
   return (
     <section id="atelier" className="rounded-card bg-card p-4 on-card">
       <h2 className="t-h2">{t.title}</h2>
       <p>{t.publication}</p>
       <p>
-        {t.coverage(pilots.filter((p) => approved.has(stamp(p.key, p.guideVersion, "image"))).length, entries.length)}
+        {t.coverage(
+          catalogImages.filter((p) => approved.has(stamp(p.key, p.guideVersion, "image"))).length,
+          entries.length,
+        )}
       </p>
       {outside.length > 0 && (
         <details>
@@ -55,7 +58,7 @@ export async function EditorialBoard({ selected }: { selected?: string }) {
       {rows.map((entry) => {
         const key = entry.catalogKey,
           version = entry.catalogVersion,
-          p = pilots.find((p) => p.key === key);
+          p = catalogImages.find((p) => p.key === key);
         return (
           <details open={selected === key} className="border-t border-card-line py-2" key={key}>
             <summary className="flex min-h-12 cursor-pointer items-center gap-3">
@@ -117,7 +120,7 @@ export async function EditorialBoard({ selected }: { selected?: string }) {
         <summary className="min-h-11 cursor-pointer">{t.backlog}</summary>
         <ul>
           {entries
-            .filter((e) => !pilots.some((p) => p.key === e.catalogKey))
+            .filter((e) => !catalogImages.some((p) => p.key === e.catalogKey))
             .map((e) => (
               <li key={e.catalogKey}>
                 <Link
