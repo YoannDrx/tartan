@@ -148,13 +148,16 @@ export function VoiceCapture({
   const action = useRef<AbortController | null>(null);
   useEffect(() => {
     let alive = true;
-    let phase: DictationState = "idle";
+    let permissionDialog = false;
     const owner = micId.current;
     const releaseMic = () => {
       if (useVoiceMic.getState().owner === owner) useVoiceMic.setState({ owner: null, recording: false });
     };
     const current = new DictationController<void>({
-      create: createNativeDictationRecorder,
+      create: () =>
+        createNativeDictationRecorder((open) => {
+          permissionDialog = open;
+        }),
       // Le fichier reste dans le cache privé du micro jusqu'à l'envoi explicite ou l'annulation.
       transcribe: (file, signal) =>
         new Promise<void>((resolve, reject) => {
@@ -173,7 +176,6 @@ export function VoiceCapture({
           });
         }),
       onState: (next) => {
-        phase = next;
         if (next === "idle") releaseMic();
         if (alive) {
           setState(next);
@@ -193,7 +195,7 @@ export function VoiceCapture({
       void current.cancel();
     };
     const background = AppState.addEventListener("change", (next) => {
-      if (next === "background" || (next === "inactive" && phase !== "starting")) cancel();
+      if ((next === "background" || next === "inactive") && !permissionDialog) cancel();
     });
     const session = useSession.subscribe((s) => {
       if (s.status !== "signed-in") cancel();
