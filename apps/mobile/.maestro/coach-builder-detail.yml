@@ -46,6 +46,18 @@ env:
     id: set-plan-reps-0
 - eraseText
 - inputText: "8"
+# Sur Android à 320 dp, le clavier couvre la deuxième saisie après les répétitions.
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - hideKeyboard
+      - waitForAnimationToEnd
+      - scrollUntilVisible:
+          element:
+            id: set-plan-load-0
+          visibilityPercentage: 100
+          timeout: 20000
 - tapOn:
     id: set-plan-load-0
 - eraseText
