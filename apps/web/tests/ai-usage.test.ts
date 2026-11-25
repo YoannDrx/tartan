@@ -5,6 +5,7 @@ import {
   completePlannerOperation,
   expirePlannerOperations,
   failPlannerOperation,
+  getPlannerUsage,
   reservePlannerOperation,
 } from "@/server/ai/usage.service";
 import { addStaff, makeOrg } from "./helpers";
@@ -69,6 +70,25 @@ it("n’accorde qu’une seule dernière proposition disponible à deux requête
     reservedProposals: 1,
     usedProposals: 29,
   });
+});
+it("dispense uniquement le pilote autorisé des deux quotas mensuels", async () => {
+  const { owner, organizationId, reserve } = await setup();
+  await prisma.organization.update({ where: { id: organizationId }, data: { plan: "pilot" } });
+  await prisma.aiPlannerQuota.create({ data: { organizationId, month: "2030-06", usedProposals: 30, usedAudioSeconds: 3600 } });
+  const usage = () => getPlannerUsage(owner.userId, organizationId, now);
+  await expect(reserve()).rejects.toMatchObject({ code: "planner_quota_exceeded" });
+  const grant = await prisma.entitlement.create({
+    data: { organizationId, key: "plannerUnlimited", source: "admin", value: true },
+  });
+  await expect(usage()).resolves.toMatchObject({ unlimited: true });
+  await expect(reserve()).resolves.toMatchObject({ state: "claimed" });
+  await expect(reservePlannerOperation(owner.userId, organizationId, {
+    id: randomUUID(), kind: "transcription", fingerprint: "b".repeat(64), audioSeconds: 30,
+  }, now)).resolves.toMatchObject({ state: "claimed" });
+  await expect(usage()).resolves.toMatchObject({ reserved: { proposals: 1, audioSeconds: 30 } });
+  await prisma.entitlement.delete({ where: { id: grant.id } });
+  await expect(usage()).resolves.toMatchObject({ limit: { proposals: 30, audioSeconds: 3600 } });
+  await expect(reserve()).rejects.toMatchObject({ code: "planner_quota_exceeded" });
 });
 it("réserve les secondes audio séparément et refuse de changer la durée au rejeu", async () => {
   const a = await setup();

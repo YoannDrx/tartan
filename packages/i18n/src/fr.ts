@@ -937,6 +937,7 @@ export const fr = {
     // l'état de chaque exercice à sa place. Mêmes intitulés que l'écran web, que l'app n'embarque pas.
     screen: {
       lead: "Écris ou dicte ce que tu veux. Tu relis la séance, puis tu crées un brouillon : rien n’est publié seul.",
+      unlimitedQuota: "Planificateur sans quota mensuel",
       quota: (left: number) => `${left} proposition${left > 1 ? "s" : ""} restante${left > 1 ? "s" : ""} ce mois-ci`,
       stage: (n: number) => `Étape ${n} sur 2 : ${n === 1 ? "demande" : "séance"}`,
       who: "Pour qui ?",

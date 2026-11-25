@@ -78,6 +78,10 @@ Sur Android, sélectionner le texte du groupe pouvait décocher son bouton déj�
 
 Le champ de dictée précède le choix de période. Les parcours centrent le champ avant la saisie et vérifient que l’envoi est disponible. L’espace Android de recette reçoit les mêmes droits au planificateur que celui du simulateur iOS.
 
+## Exemption mensuelle du planificateur · 25 novembre 2026
+
+Un droit administratif sur un espace Pilote permet les propositions et la dictée sans quota mensuel. Les réservations restent comptabilisées et la limitation des requêtes simultanées reste active. Le serveur consulte ce droit à chaque demande.
+
 ## 2026-11-25, Codex, contrôle des créneaux du planificateur
 
 La revue de semaine compare aussi les durées des séances du calendrier pour avertir d’un chevauchement. Le banc historique de 80 consignes qui isole le prestataire transmet désormais le véritable statut de relecture des exercices fictifs. Les attendus du corpus restent figés. Les raccourcis de matériel, la sélection des fiches et la revue de semaine reconnaissent aussi la corde à sauter sur le web et le natif.
