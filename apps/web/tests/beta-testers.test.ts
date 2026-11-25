@@ -27,7 +27,7 @@ afterEach(() => {
   Object.assign(env(), {
     BETA_INVITES_ENABLED: "false",
     BETA_APK_PATH: undefined,
-    BETA_BLOB_TOKEN: undefined,
+    BETA_APK_READ_WRITE_TOKEN: undefined,
     BETA_APK_VERSION: undefined,
   });
 });
@@ -56,7 +56,7 @@ describe("invitations de bêta", () => {
     Object.assign(env(), {
       BETA_INVITES_ENABLED: "true",
       BETA_APK_PATH: "tests/terrain.apk",
-      BETA_BLOB_TOKEN: "test",
+      BETA_APK_READ_WRITE_TOKEN: "test",
       BETA_APK_VERSION: "1.0",
     });
     const later = new Date(+now + 3600010);

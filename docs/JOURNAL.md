@@ -39,6 +39,10 @@ Deux préférences de compte règlent le ton de l’accueil et celui de la séan
 
 Le profil EAS beta-apk hérite du canal beta et de l’identité de production. EAS a résolu localement le profil en APK, canal beta, environnement production. La continuité de signature, le téléchargement privé et la mise à jour sur téléphone restent à éprouver.
 
+## 2026-11-25, Codex, stockage privé des APK
+
+Le store Blob privé du lancement a été créé en région fra1 et connecté à la production avec le préfixe BETA_APK. Le téléchargement contrôlé utilise la variable dédiée posée par Vercel. Les nouvelles invitations restent suspendues par défaut.
+
 ## 2026-11-25, Codex, Console privée des testeurs
 
 La page /admin/testeurs, protégée par passkey, enregistre les plateformes, le renvoi et le retrait. L’accès privé est contrôlé à chaque téléchargement. Les appels au groupe externe Apple et la file de messages sont branchés. Les 14 tests ciblés et 4 parcours navigateur passent localement. Aucun canal de production activé ; TestFlight, APK et adhésion Play restent à éprouver.

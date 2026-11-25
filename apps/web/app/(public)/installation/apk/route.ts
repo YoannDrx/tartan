@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const config = env();
   const result = await get(config.BETA_APK_PATH!, {
     access: "private",
-    token: config.BETA_BLOB_TOKEN,
+    token: config.BETA_APK_READ_WRITE_TOKEN,
     abortSignal: request.signal,
   });
   if (result?.statusCode !== 200) return new Response(null, { status: 404, headers });

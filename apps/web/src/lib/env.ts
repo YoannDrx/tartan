@@ -64,7 +64,7 @@ const schema = z.object({
   BETA_INVITES_ENABLED: z.enum(["true", "false"]).default("false"),
   BETA_APK_PATH: optional,
   BETA_APK_VERSION: optional,
-  BETA_BLOB_TOKEN: optional,
+  BETA_APK_READ_WRITE_TOKEN: optional,
   BETA_ASC_ISSUER: optional,
   BETA_ASC_KEY_ID: optional,
   BETA_ASC_PRIVATE_KEY: optional,
