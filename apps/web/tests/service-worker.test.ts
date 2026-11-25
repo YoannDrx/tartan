@@ -133,7 +133,9 @@ describe("ce que le worker garde existe (audit G5)", () => {
   });
 
   it("une page qui cite un guide d'exercice ne déclenche aucune requête vers un fichier absent", async () => {
-    const page = `<link href="/_next/static/css/app.css"><img src="/exercise-guides/back-squat-v1.svg">`;
+    const photo = "/exercise-photos/snap-down-v1.webp";
+    const thumb = "/exercise-photos/snap-down-v1-thumb.webp";
+    const page = `<link href="/_next/static/css/app.css"><img src="${photo}"><img src="${thumb}"><img src="/exercise-guides/back-squat-v1.svg">`;
     const net = worker({
       fetch: async (url) =>
         Object.defineProperty(new Response(url === "/aujourdhui" ? page : "body{}"), "url", {
@@ -142,7 +144,8 @@ describe("ce que le worker garde existe (audit G5)", () => {
     });
     await net.dispatch("message", { data: { type: "cache-pages", urls: ["/aujourdhui"] } });
     const asked = net.network.mock.calls.map(([url]) => String(url));
-    expect(asked).toContain("/_next/static/css/app.css");
+    expect(asked).toEqual(expect.arrayContaining(["/_next/static/css/app.css", photo, thumb]));
+    for (const asset of [photo, thumb]) expect(net.store("tartan-static-essai").has(asset)).toBe(true);
     expect(asked.some((url) => url.includes("exercise-guides"))).toBe(false);
   });
 });

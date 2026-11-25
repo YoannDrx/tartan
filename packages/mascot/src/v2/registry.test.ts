@@ -20,8 +20,8 @@ const broken = new Map(
 );
 
 describe("registre des gestes", () => {
-  it("donne un geste à chacune des clés historiques et aux huit gestes du stade", () => {
-    expect(GESTURE_KEYS).toHaveLength(173 + 8);
+  it("donne un geste à chacune des clés historiques et à tous les gestes ajoutés de l’édition stade", () => {
+    expect(GESTURE_KEYS).toHaveLength(173 + STADIUM_GESTURES.length);
     expect(new Set(GESTURE_KEYS)).toEqual(
       new Set([...Object.keys(EXERCISE_CLIPS), ...STADIUM_GESTURES.map((c) => c.key)]),
     );

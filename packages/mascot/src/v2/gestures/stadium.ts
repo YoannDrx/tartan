@@ -4,6 +4,7 @@ import { hands, heels, stance, type ControlPatch } from "../pose";
 import type { Prop } from "../props";
 import { FIGURE } from "../body";
 import { racked, CLEAN_GRIP } from "./clean";
+import { stadiumLifts } from "./stadium-lifts";
 import { strideClip } from "./stride";
 import { airborne } from "./flight";
 
@@ -131,6 +132,32 @@ const cones: MotionClip = {
     ...[-2, -1, 0, 1, 2].map((i) => ({ ...cone(i * 100 - t * 100, -48), scroll: true })),
   ],
 };
+const heelReturn = strideClip({
+  key: "cone-butt-kicks",
+  athlete: "hurdles",
+  cadence: 180,
+  step: 56,
+  flight: 0.3,
+  knee: 16,
+  heel: 138,
+  lean: 3,
+  arms: 0.6,
+  sink: 4,
+  reach: 10,
+  guides: [0, undefined, 1, 2],
+});
+const heelGates: MotionClip = {
+  ...heelReturn,
+  props: (t, body) => [
+    ...heelReturn.props(t, body),
+    ...[-1, 0, 1, 2].flatMap((i) =>
+      [-60, 60].map((z) => ({
+        ...cone((i - t) * 112, z),
+        scroll: true,
+      })),
+    ),
+  ],
+};
 // Chaque pas passe par un double appui. Le pied porteur conserve ses coordonnées au sol.
 const walking = (key: string, raised: number, loaded: boolean) => {
   const pose = (right: number, left: number, liftR = 0, liftL = 0): ControlPatch => ({
@@ -246,6 +273,8 @@ export const STADIUM_GESTURES: MotionClip[] = [
   jumpLink("hop-step-stick", true),
   cones,
   snap,
+  ...stadiumLifts,
+  heelGates,
   cleanHold,
   carry,
   band,

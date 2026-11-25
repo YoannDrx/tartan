@@ -18,6 +18,10 @@ La demande propose séance ou sept jours, disciplines et disponibilités. Le coa
 
 Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
 
+## 2026-11-25, Codex, gestes de barre et fiches hors ligne
+
+L’épaulé et l’arraché distinguent départ sur plots, pause au genou et réception. Les talons-fesses passent entre des portes de plots. Les 3 090 contrôles du moteur de gestes et les huit tests du service worker passent. La PWA conserve aussi les vignettes versionnées des séances préparées hors ligne. La relecture technique de chaque clip reste ouverte.
+
 ## 2026-11-25, Codex, série des exercices au sol
 
 Six fiches dont le texte était déjà relu ont reçu une illustration candidate. Le dead bug a été repris séparément pour garder la tête au sol. L’atelier présente désormais 18 images sur les 233 clés. Chaque validation reste individuelle.
