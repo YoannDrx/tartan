@@ -77,6 +77,15 @@ beforeEach(() => {
 });
 
 describe("création de l'espace personnel", () => {
+  it("deux appareils ouvrent le même carnet avec le matériel personnel choisi", async () => {
+    const user = await makeUser("Piste");
+    const input = { ...signup, availableEquipment: ["kettlebells" as const] };
+    const first = await Promise.all([createPersonalSpace(user.userId, input), createPersonalSpace(user.userId, input)]);
+    expect(first[0]).toEqual(first[1]);
+    const org = await prisma.organization.findUniqueOrThrow({ where: { id: first[0]!.organizationId } });
+    expect(org.availableEquipment).toEqual(input.availableEquipment);
+  });
+
   it("un espace à part dont il est l'unique membre, athlète de sa propre fiche, en offre personnelle", async () => {
     const me = await solo("Création");
     const org = await prisma.organization.findUniqueOrThrow({ where: { id: me.organizationId } });

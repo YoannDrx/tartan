@@ -12,6 +12,10 @@ La liste privée utilise l’état effectif et propose des filtres. Web et mobil
 
 La demande propose séance ou sept jours, disciplines et disponibilités. Le coach peut comparer son ajustement, verrouiller des blocs et accepter ou annuler depuis un second appareil. Le calendrier garde les jours libres et les séances accessibles. La sélection partielle des jours est transactionnelle et rejouable, les clients installés peuvent toujours confirmer toute la proposition. Les 48 tests des propositions et 26 parcours Playwright avec prestataire simulé sont passés. La mesure sur consignes inédites et la dictée au stade restent ouvertes.
 
+## Planifier pour soi depuis le club · 25 novembre 2026
+
+Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
+
 **En une phrase.**
 - Fait : le plan du 15 novembre est mené jusqu'au lot 4. Le constructeur est terminé sur le web et sur le mobile, Maestro tourne sur iOS et Android, et les 173 fiches ont un geste animé, de profil ou de face.
 - Pas encore prouvé : l'IA n'est pas qualifiée, aucun vrai paiement n'a été fait et aucun téléphone physique n'a servi.

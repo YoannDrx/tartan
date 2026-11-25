@@ -10,6 +10,10 @@ La liste privée utilise l’état effectif et propose des filtres. Web et mobil
 
 La demande propose séance ou sept jours, disciplines et disponibilités. Le coach peut comparer son ajustement, verrouiller des blocs et accepter ou annuler depuis un second appareil. Le calendrier garde les jours libres et les séances accessibles. La sélection partielle des jours est transactionnelle et rejouable, les clients installés peuvent toujours confirmer toute la proposition. Les 48 tests des propositions et 26 parcours Playwright avec prestataire simulé sont passés. La mesure sur consignes inédites et la dictée au stade restent ouvertes.
 
+## 2026-11-25, Codex, Planifier pour soi depuis le club
+
+Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
+
 Modèle :
 
 ```text
