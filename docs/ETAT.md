@@ -20,6 +20,10 @@ Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée e
 
 La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.
 
+## Exemption mensuelle du planificateur · 25 novembre 2026
+
+Un droit administratif sur un espace Pilote permet les propositions et la dictée sans quota mensuel. Les réservations restent comptabilisées et la limitation des requêtes simultanées reste active. Le serveur consulte ce droit à chaque demande.
+
 ## Planificateur, revue des ajustements et semaine · 25 novembre 2026
 
 La demande propose séance ou sept jours, disciplines et disponibilités. Le coach peut comparer son ajustement, verrouiller des blocs et accepter ou annuler depuis un second appareil. Le calendrier garde les jours libres et les séances accessibles. La sélection partielle des jours est transactionnelle et rejouable, les clients installés peuvent toujours confirmer toute la proposition. Les 48 tests des propositions et 26 parcours Playwright avec prestataire simulé sont passés. La mesure sur consignes inédites et la dictée au stade restent ouvertes.

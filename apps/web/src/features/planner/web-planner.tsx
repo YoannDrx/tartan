@@ -10,6 +10,7 @@ import type {
   PlannerUsageResponse,
 } from "@tartan/contracts";
 import { plannerProposalsExhausted } from "@tartan/domain";
+import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LaneNumber } from "@/components/lane-number";
@@ -151,7 +152,9 @@ export function WebPlanner({
     <PlannerSolo.Provider value={solo}>
       <ExerciseSource.Provider value={source}>
         <div className="on-card flex min-w-0 flex-col gap-6 rounded-card bg-card p-4 desktop:p-6">
-          <p className="t-caption font-normal text-soft">{exhausted ? t.quotaExceeded : t.quota(left)}</p>
+          <p className="t-caption font-normal text-soft">
+            {usage.unlimited ? m.aiPlanner.screen.unlimitedQuota : exhausted ? t.quotaExceeded : t.quota(left)}
+          </p>
           <Stages current={proposal ? 2 : 1} />
           {shown ? (
             <p ref={errorRef} tabIndex={-1} role="alert" className="rounded-button border border-st-missed px-3 py-2">
