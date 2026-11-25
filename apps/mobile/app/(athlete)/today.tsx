@@ -150,18 +150,6 @@ export default function Today() {
           )}
           {/* Un jour sans séance, l'accueil de l'athlète ouvre l'écran ; un jour de séance, il passe dessous. */}
           <AthleteWelcome orgId={orgId} sessionToday={view.today.length > 0} placement="top" />
-          {notebook?.aiPlannerEnabled || (!notebook && signup.data?.athlete) ? (
-            <Button
-              label={m.aiPlanner.personalCreate}
-              variant="secondary"
-              onPress={() => {
-                if (notebook) {
-                  setActive(notebook.organizationId);
-                  router.push("/planner");
-                } else router.push({ pathname: "/(auth)/onboarding/solo", params: { ensuite: "planificateur" } });
-              }}
-            />
-          ) : null}
           <WeekStrip week={view.week} today={date} />
 
           {main ? (
@@ -211,6 +199,18 @@ export default function Today() {
             />
           ))}
 
+          {notebook?.aiPlannerEnabled || (!notebook && signup.data?.athlete) ? (
+            <Button
+              label={m.aiPlanner.personalCreate}
+              variant="secondary"
+              onPress={() => {
+                if (notebook) {
+                  setActive(notebook.organizationId);
+                  router.push("/planner");
+                } else router.push({ pathname: "/(auth)/onboarding/solo", params: { ensuite: "planificateur" } });
+              }}
+            />
+          ) : null}
           <AthleteWelcome orgId={orgId} sessionToday={view.today.length > 0} placement="after" />
           {/* Ses premiers pas, après la séance du jour : jamais devant elle, jamais par-dessus. */}
           {self ? <PersonalFirstSteps orgId={orgId} athleteId={self} /> : null}
