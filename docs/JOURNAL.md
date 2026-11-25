@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, destinataire du scénario natif
+
+Sur Android, sélectionner le texte du groupe pouvait décocher son bouton déjà actif. La consigne cite le groupe et la recette sait répondre à la question de destinataire avant de contrôler la création du brouillon.
+
 ## 2026-11-25, Codex, saisie du planificateur sur téléphone
 
 Le champ de dictée précède le choix de période. Les parcours centrent le champ avant la saisie et vérifient que l’envoi est disponible. L’espace Android de recette reçoit les mêmes droits au planificateur que celui du simulateur iOS.
