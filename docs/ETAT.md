@@ -4,6 +4,10 @@ Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
+## Publication bêta sur les deux plateformes · 25 novembre 2026
+
+Le planificateur et les parcours de terrain sont en production au commit `cdb6a0c4`. Le déploiement Vercel est prêt et le point de santé répond 200. Le premier envoi groupé sur le canal bêta a échoué pendant l’export Expo, qui demandait les dépendances du navigateur. Les envois distincts iOS et Android sur le canal bêta ont réussi. Le workflow reprend ces deux publications pour toute mise à jour à distance des deux plateformes.
+
 ## Illustrations par famille et fiches historiques · 25 novembre 2026
 
 Les 233 fiches versionnées ont un geste associé et une illustration fixe avec texte alternatif. L’inventaire de production compte aussi 24 fiches communes historiques issues de la migration de la bibliothèque vidéo. Chacune conserve sa vidéo, son identité et sa prescription. Trois partagent un visuel du catalogue. Les 21 autres ont une illustration dédiée. L’atelier de relecture permet de filtrer par famille et de passer d’une page de douze fiches à la suivante.

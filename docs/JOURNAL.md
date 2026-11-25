@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, publication des mises à jour natives
+
+La mise en production du candidat terrain est vérifiée. Pour une mise à jour des deux plateformes, le workflow fournit explicitement iOS et Android à EAS. Chaque plateforme dispose d’un résultat et d’une reprise propres. Le mode de construction des binaires conserve le choix de plateforme transmis au workflow.
+
 ## 2026-11-25, Codex, illustrations de tout le catalogue commun
 
 Les 211 illustrations supplémentaires rejoignent les 22 déjà préparées. L’éversion, l’inversion, la bascule de cheville, la réception haute de l’arraché et l’enroulement du bassin ont fait l’objet d’une reprise. Les 24 fiches vidéo historiques ont une couverture relisible indépendamment dans l’atelier. Deux migrations enregistrent la validation des douze pilotes puis de toute la planche. Les réouvertures explicites dans l’atelier sont préservées. Le geste animé Tartan reste le média initial, avec accès à l’image fixe et à la vidéo disponible. Les exports complets et le sélecteur correspondent aux nouveaux candidats iOS 20 et Android 10. Le fondateur a ensuite validé les textes et mouvements des 83 guides restants. La migration de publication utilise l’instantané des contenus relus, garde les identifiants existants et laisse les copies privées intactes.
