@@ -34,6 +34,10 @@ Mise en production vérifiée sur `85d0a428`. Santé HTTP 200 et redirection de 
 
 La page /admin/testeurs, protégée par passkey, enregistre les plateformes, le renvoi et le retrait. L’accès privé est contrôlé à chaque téléchargement. Les appels au groupe externe Apple et la file de messages sont branchés. Les 14 tests ciblés et 4 parcours navigateur passent localement. Aucun canal de production activé ; TestFlight, APK et adhésion Play restent à éprouver.
 
+## Logo des stores · 25 novembre 2026
+
+La fiche Google Play a une icône carrée 512 px et une bannière tirée du même logotype que le site. Apple retourne deux icônes de type APP_STORE en 1024 px pour le build 18. La version sans masque reproduit le T du dépôt. Le dépôt sur Play attend le compte organisation.
+
 **En une phrase.**
 - Fait : le plan du 15 novembre est mené jusqu'au lot 4. Le constructeur est terminé sur le web et sur le mobile, Maestro tourne sur iOS et Android, et les 173 fiches ont un geste animé, de profil ou de face.
 - Pas encore prouvé : l'IA n'est pas qualifiée, aucun vrai paiement n'a été fait et aucun téléphone physique n'a servi.
