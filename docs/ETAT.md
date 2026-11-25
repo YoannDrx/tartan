@@ -6,7 +6,7 @@ Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p
 
 ## Publication bêta sur les deux plateformes · 25 novembre 2026
 
-Le planificateur et les parcours de terrain sont en production au commit `cdb6a0c4`. Le déploiement Vercel est prêt et le point de santé répond 200. Le premier envoi groupé sur le canal bêta a échoué pendant l’export Expo, qui demandait les dépendances du navigateur. Les envois distincts iOS et Android sur le canal bêta ont réussi. Le workflow reprend ces deux publications pour toute mise à jour à distance des deux plateformes.
+Le planificateur et les parcours de terrain sont en production au commit `cdb6a0c4`. Le déploiement Vercel est prêt et le point de santé répond 200. Le premier envoi groupé sur le canal bêta a échoué pendant l’export Expo, qui demandait les dépendances du navigateur. Les envois distincts iOS et Android sur le canal bêta ont réussi. Le workflow reprend ces deux publications pour toute mise à jour à distance des deux plateformes. Apple a reçu le build 20 pour revue bêta externe. L’APK privé 10 et l’AAB 11 portent le même certificat. La mise à jour 9 vers 10 a conservé le fichier témoin sur émulateur.
 
 ## Illustrations par famille et fiches historiques · 25 novembre 2026
 
