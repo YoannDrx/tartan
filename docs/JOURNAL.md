@@ -6,6 +6,10 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 
 La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.
 
+## 2026-11-25, Codex, reprise de la recette native
+
+Sur les captures de CI, le constructeur attendait encore la réponse de publication, et le parcours personnel touchait le modèle pendant le défilement. Le test attend la fin de l’animation et laisse la sauvegarde se terminer avant de relire le résultat du serveur. Le délai global du simulateur inclut les rejeux.
+
 ## 2026-11-25, Codex, téléchargement Gradle de la CI Android
 
 Le journal de compilation identifie des refus HTTP 429 de Maven Central pendant la résolution de dépendances. Les deux jobs Android réessaient cette étape une fois sur 429 ou indisponibilité temporaire du serveur. Une erreur de compilation remonte immédiatement. Le délai de Maestro et le temps de téléchargement des dépendances se mesurent séparément.
