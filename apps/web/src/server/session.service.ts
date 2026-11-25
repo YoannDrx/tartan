@@ -46,6 +46,7 @@ import {
   personalAthleteOf,
   type Access,
 } from "./access";
+import { draftPrescriptions, dropDeletedInstructions, voiceIds } from "./voice-references";
 import { activeAudienceIds, athleteAssignedWhere, audienceBySession } from "./session-audience.service";
 export { activeAudienceIds, audienceAthleteIds } from "./session-audience.service";
 import { reviewSessionPhases, storedPhaseContext } from "./session-phase-context";
@@ -112,6 +113,46 @@ const requireSessionWrite = async (access: Access, sessionId: string, db: Prisma
   }
   return session;
 };
+
+// Les modèles sont partagés dans l’espace. Une consigne de séance suit les mêmes
+// droits d’édition que la séance dont elle provient ; un vocal en brouillon reste à son auteur.
+export async function requireEditableVoiceInstructions(
+  access: Access,
+  ids: string[],
+  db: Prisma.TransactionClient = prisma,
+) {
+  if (!ids.length) return [];
+  const clips = await db.coachVoiceInstruction.findMany({
+    where: { organizationId: access.organizationId, id: { in: ids } },
+    select: {
+      id: true,
+      createdBy: true,
+      templates: { select: { id: true }, take: 1 },
+      sessions: { select: { id: true } },
+    },
+  });
+  if (clips.length !== ids.length) throw notFound();
+  const authorized = new Set<string>();
+  for (const clip of clips) {
+    if (clip.createdBy === access.userId || clip.templates.length) continue;
+    let visible = false;
+    for (const session of clip.sessions) {
+      if (!authorized.has(session.id)) {
+        try {
+          await requireSessionWrite(access, session.id, db);
+          authorized.add(session.id);
+        } catch (error) {
+          if (error instanceof AppError && (error.status === 403 || error.status === 404)) continue;
+          throw error;
+        }
+      }
+      visible = true;
+      break;
+    }
+    if (!visible) throw notFound();
+  }
+  return clips.map(({ id }) => ({ id }));
+}
 
 // Copie exercices et médias : supprimer un exercice ne change pas les séances déjà planifiées.
 export const buildSnapshot = async (
@@ -249,10 +290,16 @@ export async function createReviewedPlannerDraft(
       throw invalid(m.strength.prescriptionMismatch);
   }
   const phaseContext = await reviewSessionPhases(tx, access, input, null, true);
+  const clips = await requireEditableVoiceInstructions(
+    access,
+    voiceIds(draftPrescriptions(input.draft, input.overrides)),
+    tx,
+  );
   const row = await tx.scheduledSession.create({
     data: {
       organizationId,
       createdBy: userId,
+      voiceInstructions: { connect: clips },
       date: toDbDate(input.date),
       startTime: input.startTime,
       location: input.location,
@@ -333,6 +380,11 @@ export const saveScheduledSession = async (
         existing?.phaseContext,
         Boolean(existing?.publishedAt || input.publishAt),
       );
+      const clips = await requireEditableVoiceInstructions(
+        currentAccess,
+        voiceIds(draftPrescriptions(input.draft, input.overrides)),
+        tx,
+      );
       const reviewedData = { ...data, phaseContext: phaseContext ?? Prisma.DbNull };
       if (existing) {
         // Le verrou est partagé avec les saisies athlètes : une validation ne peut pas
@@ -359,6 +411,13 @@ export const saveScheduledSession = async (
       const row = existing
         ? await tx.scheduledSession.findUniqueOrThrow({ where: { id: existing.id } })
         : await tx.scheduledSession.create({ data: { ...reviewedData, organizationId, createdBy: userId } });
+      // Une version publiée peut rester dans la prescription figée d’un athlète.
+      if (clips.length || (existing && !existing.publishedAt))
+        await tx.scheduledSession.update({
+          where: { id: row.id },
+          data: { voiceInstructions: existing?.publishedAt ? { connect: clips } : { set: clips } },
+          select: { id: true },
+        });
       await tx.assignment.deleteMany({ where: { scheduledSessionId: row.id } });
       await tx.assignment.createMany({
         data: input.assignments.map((a) => ({
@@ -604,7 +663,7 @@ export const getSessionForEdit = async (userId: string, organizationId: string, 
     )
       ? phaseContext.data.review
       : undefined;
-  return {
+  const editable = {
     ...(phaseReview ? { phaseReview } : {}),
     id: session.id,
     version: session.version,
@@ -623,6 +682,8 @@ export const getSessionForEdit = async (userId: string, organizationId: string, 
       prescription: prescriptionSchema.parse(o.prescription),
     })),
   };
+  await dropDeletedInstructions(organizationId, draftPrescriptions(editable.draft, editable.overrides));
+  return editable;
 };
 
 export async function plannerLinkedSession(access: Access, id: string) {
@@ -751,8 +812,9 @@ const copySession = async (
   db: Prisma.TransactionClient = prisma,
   copyId?: string,
 ) => {
-  const [assignments, overrides] = await Promise.all([
+  const [assignments, clips, overrides] = await Promise.all([
     db.assignment.findMany({ where: { scheduledSessionId: session.id } }),
+    db.coachVoiceInstruction.findMany({ where: { sessions: { some: { id: session.id } } }, select: { id: true } }),
     // Vers un autre groupe, les adaptations individuelles n'ont plus de sens.
     groupId ? [] : db.athleteOverride.findMany({ where: { scheduledSessionId: session.id } }),
   ]);
@@ -761,6 +823,7 @@ const copySession = async (
       ...(copyId ? { id: copyId } : {}),
       organizationId: session.organizationId,
       createdBy: userId,
+      voiceInstructions: { connect: clips },
       date: toDbDate(date),
       startTime: session.startTime,
       location: session.location,
@@ -910,7 +973,13 @@ const calendarCompletions = async (
   );
 };
 
-type CalendarQuery = { from: string; to: string; groupId?: string; durationOnly?: boolean; summary?: "true" | "false" | boolean };
+type CalendarQuery = {
+  from: string;
+  to: string;
+  groupId?: string;
+  durationOnly?: boolean;
+  summary?: "true" | "false" | boolean;
+};
 
 export const listCalendar = async (
   userId: string,
@@ -1055,7 +1124,7 @@ const readCalendar = async (
 };
 
 export const saveTemplate = async (userId: string, organizationId: string, draft: SessionDraft) => {
-  await requireOrgMember(userId, organizationId, "manageSessions");
+  const access = await requireOrgMember(userId, organizationId, "manageSessions");
   if (!validSessionStructure(draft)) throw invalid();
   // Un exercice d'un autre espace ne doit pas entrer par un modèle.
   const exerciseIds = [...new Set(draft.blocks.flatMap((block) => block.items.map((item) => item.exerciseId)))];
@@ -1063,10 +1132,12 @@ export const saveTemplate = async (userId: string, organizationId: string, draft
     where: { id: { in: exerciseIds }, OR: [{ organizationId }, { organizationId: null }] },
   });
   if (known !== exerciseIds.length) throw notFound();
+  const clips = await requireEditableVoiceInstructions(access, voiceIds(draftPrescriptions(draft)));
   const template = await prisma.sessionTemplate.create({
     data: {
       organizationId,
       createdBy: userId,
+      voiceInstructions: { connect: clips },
       title: draft.title,
       type: draft.type,
       durationMin: draft.durationMin,
@@ -1107,7 +1178,7 @@ export const listTemplates = async (
       },
     },
   });
-  return rows.map((t) => ({
+  const templates = rows.map((t) => ({
     id: t.id,
     canDelete: access.role === "owner" || t.createdBy === userId,
     title: t.title,
@@ -1126,6 +1197,11 @@ export const listTemplates = async (
           })),
         })),
   }));
+  await dropDeletedInstructions(
+    organizationId,
+    templates.flatMap((t) => draftPrescriptions(t)),
+  );
+  return templates;
 };
 
 // Une compétition partagée avec un athlète hors périmètre ne se retire pas à sa place.

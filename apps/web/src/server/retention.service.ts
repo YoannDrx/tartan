@@ -206,10 +206,16 @@ export const runRetention = async (now: Date = new Date()) => {
   const { count: deletions } = await prisma.externalDeletion.deleteMany({
     where: { state: "done", completedAt: { lt: ago(now, RETENTION_DAYS.finishedDeletion) } },
   });
+  // Le brouillon local peut être repris. Après trente jours, seuls les clips
+  // qui ne servent à aucune séance ou modèle peuvent disparaître.
+  const { count: abandonedInstructions } = await prisma.coachVoiceInstruction.deleteMany({
+    where: { createdAt: { lt: ago(now, 30) }, sessions: { none: {} }, templates: { none: {} } },
+  });
   const sheets = await purgeSheetsWithoutAccount(now);
   const accounts = await handleInactiveAccounts(now);
   const result = {
     auditLogs,
+    abandonedInstructions,
     notifications,
     emailOutbox,
     invitations,

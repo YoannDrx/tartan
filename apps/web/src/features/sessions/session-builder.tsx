@@ -1,5 +1,6 @@
 "use client";
 
+import { InstructionRecorder } from "./session-voice";
 import { DateInput, DateTimeInput } from "@/components/ui/date-input";
 import { markInstallOpportunity } from "@/features/shell/install-opportunity";
 
@@ -233,12 +234,16 @@ const SetPlanEditor = ({ value, onChange }: { value: Prescription; onChange: (p:
 };
 
 export const PrescriptionEditor = ({
+  organizationId,
+  onVoicePendingChange,
   value,
   onChange,
   testKeys,
   exercise,
   intensityEnabled,
 }: {
+  organizationId?: string;
+  onVoicePendingChange?: (pending: boolean) => void;
   exercise?: { id: string; name: string };
   value: Prescription;
   onChange: (p: Prescription) => void;
@@ -246,7 +251,7 @@ export const PrescriptionEditor = ({
   intensityEnabled: boolean;
 }) => {
   const numberField = (
-    key: "sets" | "reps" | "distance_m" | "duration_s" | "rest_s" | "ground_contacts",
+    key: "sets" | "reps" | "distance_m" | "duration_s" | "rest_s" | "ground_contacts" | "strides" | "cone_spacing_ft",
     label: string,
   ) => (
     <Field label={label}>
@@ -254,8 +259,9 @@ export const PrescriptionEditor = ({
         <Input
           {...a}
           type="number"
-          min={0}
-          inputMode="decimal"
+          min={key === "strides" ? 1 : 0}
+          step={key === "cone_spacing_ft" ? "any" : undefined}
+          inputMode={key === "strides" ? "numeric" : "decimal"}
           value={value[key] ?? ""}
           onChange={(e) => onChange({ ...value, [key]: numberOrUndefined(e.target.value) })}
         />
@@ -271,6 +277,8 @@ export const PrescriptionEditor = ({
     <div className="grid grid-cols-2 gap-3 tablet:grid-cols-3">
       {plan ? null : numberField("sets", m.builder.sets)}
       {plan ? null : numberField("reps", m.builder.reps)}
+      {numberField("strides", m.builder.strides)}
+      {numberField("cone_spacing_ft", m.builder.coneSpacing)}
       {numberField("distance_m", m.builder.distance)}
       {numberField("duration_s", m.builder.durationS)}
       {numberField("rest_s", m.builder.sequence.betweenSets)}
@@ -406,6 +414,14 @@ export const PrescriptionEditor = ({
           />
         )}
       </Field>
+      {organizationId ? (
+        <InstructionRecorder
+          organizationId={organizationId}
+          clipId={value.coachVoiceId}
+          onChange={(id) => onChange({ ...value, coachVoiceId: id })}
+          onPendingChange={onVoicePendingChange}
+        />
+      ) : null}
     </div>
   );
 };
@@ -508,6 +524,7 @@ export const SessionBuilder = ({
   const [chosenTemplate, setChosenTemplate] = useState("");
   const [previewing, setPreviewing] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<Version>("club");
+  const [voicePending, setVoicePending] = useState(false);
   const [editing, setEditing] = useState<{ blockKey: string; itemKey: string; autonomous?: boolean } | null>(null);
   // Le dernier « Ajouter ici » choisi : la bibliothèque y ajoute aussi, groupe compris.
   const [destination, setDestination] = useState<{ blockKey: string; parent: string | null; label: string } | null>(
@@ -1404,6 +1421,23 @@ export const SessionBuilder = ({
                               />
                             )}
                           </Field>
+                          {([
+                            ["strides", m.builder.strides],
+                            ["cone_spacing_ft", m.builder.coneSpacing],
+                          ] as const).map(([key, label]) => (
+                            <Field key={key} label={label}>
+                              {(attrs) => (
+                                <Input
+                                  {...attrs}
+                                  type="number"
+                                  min={key === "strides" ? 1 : 0}
+                                  step={key === "strides" ? 1 : "any"}
+                                  value={current?.prescription[key] ?? ""}
+                                  onChange={(event) => update({ [key]: numberOrUndefined(event.target.value) })}
+                                />
+                              )}
+                            </Field>
+                          ))}
                           <Field label={m.builder.sequence.loadKg}>
                             {(a) => (
                               <Input
@@ -1607,7 +1641,7 @@ export const SessionBuilder = ({
         </Dialog>
         <Dialog
           open={editing !== null}
-          onOpenChange={(open) => !open && setEditing(null)}
+          onOpenChange={(open) => !open && !voicePending && setEditing(null)}
           title={
             editingTarget
               ? editing?.autonomous
@@ -1621,6 +1655,8 @@ export const SessionBuilder = ({
           {editing && editingTarget ? (
             <div className="flex flex-col gap-4">
               <PrescriptionEditor
+                organizationId={organizationId}
+                onVoicePendingChange={setVoicePending}
                 value={editingTarget.prescription}
                 exercise={byId.get(editingTarget.exerciseId)}
                 intensityEnabled={progressionEnabled}
@@ -1629,7 +1665,9 @@ export const SessionBuilder = ({
                 )}
                 onChange={(p) => updateItem(editing.blockKey, editing.itemKey, p, editing.autonomous)}
               />
-              <Button onClick={() => setEditing(null)}>{m.common.close}</Button>
+              <Button disabled={voicePending} onClick={() => setEditing(null)}>
+                {m.common.close}
+              </Button>
             </div>
           ) : null}
         </Dialog>

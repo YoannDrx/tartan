@@ -39,6 +39,7 @@ export const sessions = {
   },
   // La validation d'une séance par l'athlète.
   validation: {
+    detailsSent: "Précisions envoyées à ton coach.",
     effort: (n: number) => `Effort ${n} sur 10`,
     painScale: (label: string) => `${label} (1 à 10)`,
   },

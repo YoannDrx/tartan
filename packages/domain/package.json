@@ -12,7 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@tartan/contracts": "workspace:*"
+    "@tartan/contracts": "workspace:*",
+    "@tartan/i18n": "workspace:*"
   },
   "devDependencies": {
     "typescript": "5.9.3",

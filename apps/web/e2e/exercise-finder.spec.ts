@@ -188,6 +188,8 @@ for (const size of [
     await form.getByLabel(m.exercises.cues, { exact: true }).fill("Coudes hauts\nBuste gainé");
     await form.getByLabel(m.builder.sets, { exact: true }).fill("3");
     await form.getByLabel(m.builder.reps, { exact: true }).fill("10");
+    await form.getByLabel(m.builder.strides, { exact: true }).fill("8");
+    await form.getByLabel(m.builder.coneSpacing, { exact: true }).fill("4.5");
     await expectAccessible(sheetPage);
     await expectNoHorizontalScroll(sheetPage);
     await shot(sheetPage, `apres-${size.width}-6-completer-la-fiche`);
@@ -196,6 +198,7 @@ for (const size of [
     await expect(sheetPage).toHaveURL(/\/exercices\/[0-9a-f-]{36}$/);
     await expect(sheetPage.getByRole("heading", { level: 1, name: MISSING, exact: true })).toBeVisible();
     await expect(sheetPage.getByText("Coudes hauts", { exact: true })).toBeVisible();
+    await expect(sheetPage.getByText(/8 foulées · 4,5 pieds entre deux plots/)).toBeVisible();
     await sheetPage.close();
     await page.bringToFront();
 

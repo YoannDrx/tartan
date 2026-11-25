@@ -1,5 +1,6 @@
 "use client";
 
+import { SessionDebrief } from "@/features/sessions/session-voice";
 import { markInstallOpportunity } from "@/features/shell/install-opportunity";
 
 import { encouragement, type EncouragementTone } from "@tartan/i18n";
@@ -8,7 +9,7 @@ import { ConfirmedRecords } from "../progression/confirmed-records";
 import type { AthleteSessionDetail, PainInput, StrengthRecordValue } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -64,6 +65,9 @@ export const QuickValidate = ({
   onDark?: boolean;
 }) => {
   const router = useRouter();
+  const path = usePathname();
+  const [queued, setQueued] = useState(false);
+  const [voicePending, setVoicePending] = useState(false);
   const [status, setStatus] = useState<Status | null>(null);
   // Page rouverte hors ligne : ce qui attend d'être envoyé compte déjà comme validé.
   const [waiting, setWaiting] = useState(false);
@@ -133,16 +137,24 @@ export const QuickValidate = ({
     // Ne jamais remplacer cette version par celle d'un autre appareil après un conflit.
     version.current = expectedVersion + 1;
     // La feuille de détails confirme déjà : le message ne sert qu'à signaler l'attente de réseau.
-    if (res.state === "queued") toast.ok(m.validation.queued);
-    else if (extra.withDetails) toast.ok("Précisions envoyées à ton coach.");
+    if (res.state === "queued") {
+      setQueued(true);
+      toast.ok(m.validation.queued);
+    } else if (extra.withDetails) toast.ok(w.sessions.validation.detailsSent);
     return true;
   };
 
   // La carte se met à jour à la fermeture : rafraîchir plus tôt la démonterait avec ses détails.
   const closeDetails = (open: boolean) => {
+    if (!open && voicePending) return;
     setDetails(open);
-    // Hors ligne, rafraîchir renverrait vers une page d'erreur : la carte reste à jour localement.
-    if (!open && navigator.onLine) router.refresh();
+    if (open) return;
+    if (queued || !navigator.onLine) {
+      setWaiting(true);
+      return;
+    }
+    if (path !== "/aujourdhui") router.replace("/aujourdhui");
+    router.refresh();
   };
 
   const validate = async (value: Status) => {
@@ -152,7 +164,7 @@ export const QuickValidate = ({
     }
   };
 
-  if (waiting) {
+  if (waiting && !details) {
     return (
       <p role="status" className="font-semibold">
         {m.validation.waitingSend}
@@ -197,10 +209,24 @@ export const QuickValidate = ({
               />
             </svg>
           )}
-          <Button size="lg" onClick={() => closeDetails(false)}>
+          <Button size="lg" disabled={voicePending || sending} onClick={() => closeDetails(false)}>
             {m.validation.finish}
           </Button>
           <ConfirmedRecords records={records} />
+          {status === "done" ? (
+            queued ? (
+              <p className="t-caption font-normal text-soft">{m.sessionVoice.offline}</p>
+            ) : healthConsent ? (
+              <SessionDebrief
+                organizationId={organizationId}
+                sessionId={session.id}
+                initial={Boolean(session.log?.hasVoiceDebrief)}
+                onPendingChange={setVoicePending}
+              />
+            ) : (
+              <p className="t-caption font-normal text-soft">{m.sessionVoice.consentHint}</p>
+            )
+          ) : null}
           {healthConsent ? <RpeScale value={rpe} onChange={setRpe} /> : null}
           <Field label={m.validation.duration}>
             {(a) => (
@@ -291,7 +317,7 @@ export const QuickValidate = ({
             variant="secondary"
             size="sm"
             className="self-start"
-            disabled={sending}
+            disabled={sending || voicePending}
             onClick={async () => {
               if (await send(status ?? "done", { withDetails: true })) closeDetails(false);
             }}

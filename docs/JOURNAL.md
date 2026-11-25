@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## Codex, consignes et fin de séance · 25 novembre 2026
+
+Les deux nouvelles mesures sont facultatives dans la prescription JSON, y compris pour les anciens brouillons. Le texte des notifications utilise la date de la séance et tient compte d’un envoi différé. L’audio reste dans des tables privées de la migration additive `20261125161000_session_voice`. Les consignes sont rattachées à la séance ou au modèle. Le débrief est lié à une validation terminée et au consentement santé de l’athlète.
+
 ## Codex, QR code du groupe · 25 novembre 2026
 
 Le SVG de 320 px était rogné dans le cadre de 240 px. Le composant partagé utilise le viewBox du QR et une marge de quatre modules. Le parcours vérifie les dimensions du SVG et du cadre aux trois largeurs.

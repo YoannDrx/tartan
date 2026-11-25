@@ -40,6 +40,7 @@ import { signedPlayback } from "@/lib/mux";
 import { log } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { audit, requireAthleteAccess, requireOrgMember, requireVisibleAthlete } from "./access";
+import { dropDeletedInstructions } from "./voice-references";
 import { consentForAthletes } from "./consent.service";
 import { displayName, namesFor } from "./me.service";
 import { withConcise } from "./exercise-catalog.service";
@@ -370,6 +371,7 @@ const readAthleteSession = async (
           comment: true,
           version: true,
           clientId: true,
+          voiceDebrief: { select: { sessionLogId: true } },
           sets: true,
           prescriptionSnapshot: true,
           sessionVersion: true,
@@ -454,7 +456,7 @@ const readAthleteSession = async (
         items: blocks.flatMap((block) => block.items),
       })
     : undefined;
-  return {
+  const detail: AthleteSessionDetail = {
     ...card,
     ...(previousExerciseSets ? { previousExerciseSets, historyAthleteId: athleteId } : {}),
     sessionVersion: session.version,
@@ -503,6 +505,7 @@ const readAthleteSession = async (
     log: log
       ? {
           status: log.status,
+          hasVoiceDebrief: healthConsent && log.status === "done" && Boolean(log.voiceDebrief),
           rpe: healthConsent ? log.rpe : null,
           pain: visiblePain?.success ? visiblePain.data : null,
           durationMin: log.durationMin,
@@ -521,6 +524,11 @@ const readAthleteSession = async (
         }
       : null,
   };
+  await dropDeletedInstructions(
+    organizationId,
+    detail.blocks.flatMap((b) => b.items.map((i) => i.prescription)),
+  );
+  return detail;
 };
 
 // Quatre semaines de régularité : un encouragement simple, sans donnée de santé et sans notification en plus.
@@ -776,6 +784,8 @@ const persistSessionLog = async (
       create: { ...versioned, scheduledSessionId: sessionId, athleteId: access.athleteId },
       update: versioned,
     });
+    if (existing?.status === "done" && row.status !== "done")
+      await tx.sessionVoiceDebrief.deleteMany({ where: { sessionLogId: row.id } });
     // Anciennes applications / action rapide : [] veut dire « aucun détail envoyé », pas « tout effacer ».
     // Le contrat détaillé versionné permet, lui, une suppression explicite avec detailedSets: [].
     if (input.detailedSets !== undefined || (sets.length > 0 && !existing?.prescriptionSnapshot)) {

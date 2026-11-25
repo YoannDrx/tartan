@@ -5,7 +5,7 @@ import {
   type PlannerRichPrescription,
 } from "@tartan/contracts";
 import { describe, expect, it } from "vitest";
-import { plannerSessionToDraft } from "./ai-planner";
+import { plannerPrescriptionToSession, plannerSessionToDraft } from "./ai-planner";
 import { plannerSessionMovements, plannerSessionToComposition } from "./planner-composition";
 import { plannerPrescriptionFromSession, plannerRebaseOnDrafts, type PlannerRebaseContext } from "./planner-rebase";
 import { plannerDraftItemPlace, plannerOpenSlots, plannerProbableItem, plannerSettleProbable } from "./planner-slots";
@@ -313,4 +313,9 @@ it("une prescription de séance revient dans la forme du planificateur, séries 
       { reps: 5, load: { type: "kg", value: 100 }, warmup: false },
     ],
   });
+});
+
+it("garde les foulées et l’espacement des plots à la reprise d’une prescription retouchée", () => {
+  const input = { sets: 4, reps: 2, strides: 8, cone_spacing_ft: 4.5 };
+  expect(plannerPrescriptionToSession(plannerPrescriptionFromSession(input), SQUAT)).toEqual(input);
 });

@@ -26,6 +26,7 @@ import {
   type Access,
 } from "./access";
 import { activeInjuriesByAthlete } from "./athlete.service";
+import { dropDeletedInstructions } from "./voice-references";
 import { consentForAthletes } from "./consent.service";
 import { firstNameOf } from "./me.service";
 import { notify } from "./notify.service";
@@ -291,7 +292,7 @@ export const getSessionDetailForCoach = async (
     }),
     prisma.sessionLog.findMany({
       where: { scheduledSessionId: sessionId, athleteId: { in: audience } },
-      include: { sets: true },
+      include: { sets: true, voiceDebrief: { select: { sessionLogId: true } } },
     }),
     prisma.attendance.findMany({ where: { scheduledSessionId: sessionId, athleteId: { in: audience } } }),
   ]);
@@ -311,6 +312,11 @@ export const getSessionDetailForCoach = async (
   }
   const date = fromDbDate(session.date);
   const snapshot = session.snapshot ? sessionSnapshot.parse(session.snapshot) : null;
+  if (snapshot)
+    await dropDeletedInstructions(
+      organizationId,
+      snapshot.blocks.flatMap((b) => b.items.map((i) => i.prescription)),
+    );
   return {
     id: session.id,
     title: session.title,
@@ -335,6 +341,7 @@ export const getSessionDetailForCoach = async (
           absenceReason: attendance.find((t) => t.athleteId === a.id)?.absenceReason ?? null,
           variant: entry?.variantDone ?? null,
           rpe: health ? (entry?.rpe ?? null) : null,
+          hasVoiceDebrief: health && entry?.status === "done" && Boolean(entry.voiceDebrief),
           durationMin: entry?.durationMin ?? null,
           comment: entry?.comment ?? null,
           pain: health ? ((entry?.pain as { bodyArea: string; side: string; intensity: number } | null) ?? null) : null,
@@ -380,7 +387,7 @@ export const takeRollCall = async (userId: string, organizationId: string, sessi
     await notify(
       users.map((u) => u.userId as string),
       "session_autonomous",
-      { organizationId, sessionId, link: `/seance/${sessionId}` },
+      { date: fromDbDate(session.date), organizationId, sessionId, link: `/seance/${sessionId}` },
     );
   }
   return { absentCount: absentIds.length, hasAutonomous };

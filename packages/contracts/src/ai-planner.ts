@@ -140,6 +140,8 @@ export const plannerPlannedSet = z
   })
   .strict();
 export const plannerRichPrescription = plannerPrescription.extend({
+  strides: prescriptionSchema.shape.strides,
+  coneSpacingFt: prescriptionSchema.shape.cone_spacing_ft,
   setPlan: z.array(plannerPlannedSet).min(1).max(30).nullable().optional(),
 });
 export const plannerWarningField = z.enum(["exercise", "rest", "load", "rounds", "date", "other"]);

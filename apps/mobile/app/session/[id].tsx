@@ -1,3 +1,5 @@
+import { tokens } from "@tartan/design-tokens";
+import { instructionUrl, VoicePlayer } from "../../src/features/session-voice";
 import { exerciseTransition, celebrationFromResponse } from "@tartan/domain";
 import type { SessionCelebration } from "@tartan/contracts";
 import type { PlannedSet, ResolvedItem } from "@tartan/contracts";
@@ -171,7 +173,7 @@ const flatten = (blocks: { items: ResolvedItem[] }[]): ResolvedItem[] => blocks.
 export default function SessionMode() {
   const { id, i } = useLocalSearchParams<{ id: string; i?: string }>();
   const router = useRouter();
-  const { me, orgId } = useActiveSpace();
+  const { me, orgId, space: active } = useActiveSpace();
   const detail = useSessionDetail(orgId, id);
   const today = useToday(orgId);
   const items = useMemo(() => flatten(detail.data?.blocks ?? []), [detail.data?.blocks]);
@@ -253,6 +255,8 @@ export default function SessionMode() {
   }
 
   const recovery = item.kind === "recovery";
+  const tint = tokens.activityDark[recovery ? "mobility" : session.type];
+  const block = session.blocks.find((block) => block.items.some((step) => step.ref === item.ref));
   const sets = executionSetProgress(item, progress);
   const total = sets.length;
   const planned = plannedLines(item);
@@ -361,13 +365,27 @@ export default function SessionMode() {
         ))}
       </View>
 
-      <View style={{ gap: space.sm }}>
+      <View
+        style={{
+          gap: space.sm,
+          borderWidth: 1,
+          borderColor: tint.text,
+          backgroundColor: tint.background,
+          padding: space.lg,
+          borderRadius: radius.card,
+        }}
+      >
+        {block?.name ? (
+          <T variant="smallStrong" style={{ color: tint.text }}>
+            {block.name}
+          </T>
+        ) : null}
         {item.rounds?.length ? (
           <T variant="small" tone="muted">
             {item.rounds.map((round) => m.builder.sequence.round(round.name, round.round, round.rounds)).join(" · ")}
           </T>
         ) : null}
-        <T variant="display" heading>
+        <T variant="display" heading style={{ color: tint.text }}>
           {item.name}
         </T>
         <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: space.sm }}>
@@ -375,7 +393,7 @@ export default function SessionMode() {
             <Tag label={(m.exerciseCategory as Record<string, string>)[item.category] ?? item.category} />
           ) : null}
           {item.summary ? (
-            <T variant="small" tone="muted" style={{ flexShrink: 1 }}>
+            <T variant="bodyStrong" style={{ flexShrink: 1, color: tint.text }}>
               {item.summary}
             </T>
           ) : null}
@@ -429,12 +447,21 @@ export default function SessionMode() {
         </View>
       ) : null}
 
-      {item.cues.length > 0 || item.prescription.notes ? (
+      {item.cues.length > 0 || item.prescription.notes || item.prescription.coachVoiceId ? (
         <View
           style={{ padding: space.lg, borderRadius: radius.card, backgroundColor: scene.cardRaised, gap: space.sm }}
           accessibilityLabel={m.sessionMode.cues}
-          accessible
         >
+          <T variant="section" heading>
+            {m.sessionMode.cues}
+          </T>
+          {item.prescription.coachVoiceId ? (
+            <VoicePlayer
+              key={item.prescription.coachVoiceId}
+              url={instructionUrl(orgId, item.prescription.coachVoiceId, session.id)}
+              label={m.sessionVoice.instruction}
+            />
+          ) : null}
           {[...item.cues, ...(item.prescription.notes ? [item.prescription.notes] : [])].map((cue) => (
             <T key={cue} variant="small">
               {cue}
@@ -444,7 +471,15 @@ export default function SessionMode() {
       ) : null}
 
       {!recovery ? (
-        <View style={{ gap: space.sm }}>
+        <View
+          style={{
+            gap: space.md,
+            borderWidth: 1,
+            borderColor: color.ink3,
+            borderRadius: radius.card,
+            padding: space.lg,
+          }}
+        >
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
             <T variant="section" heading>
               {m.sessionMode.sets}
@@ -491,6 +526,7 @@ export default function SessionMode() {
           tone={tone}
           justRecorded
           celebration={finished.celebration}
+          personal={active?.kind === "personal"}
           healthConsent={today.data?.healthConsent ?? false}
           onClose={() => router.replace("/today")}
         />

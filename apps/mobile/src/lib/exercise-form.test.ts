@@ -8,7 +8,16 @@ const draft = (over: Partial<ExerciseDraft> = {}): ExerciseDraft => ({
   cues: "Buste droit\n\n  Pose active ",
   tags: ["bas du corps"],
   base: { load: { type: "kg", value: 20 }, notes: "Sur herbe" },
-  numbers: { sets: "3", reps: "10", distance_m: "", duration_s: "", rest_s: "90", ground_contacts: "" },
+  numbers: {
+    sets: "3",
+    reps: "10",
+    distance_m: "",
+    duration_s: "",
+    rest_s: "90",
+    ground_contacts: "",
+    strides: "",
+    cone_spacing_ft: "",
+  },
   url: "",
   title: "",
   startS: "",
@@ -49,7 +58,16 @@ describe("formulaire d'exercice", () => {
     const result = buildExerciseInput(
       draft({
         base: { sets: 4, reps: 8 },
-        numbers: { sets: "", reps: "8", distance_m: "", duration_s: "", rest_s: "", ground_contacts: "" },
+        numbers: {
+          sets: "",
+          reps: "8",
+          distance_m: "",
+          duration_s: "",
+          rest_s: "",
+          ground_contacts: "",
+          strides: "",
+          cone_spacing_ft: "",
+        },
       }),
     );
     expect(result.ok && result.input.defaultPrescription).toEqual({ reps: 8 });
@@ -68,7 +86,18 @@ describe("formulaire d'exercice", () => {
     });
     expect(
       buildExerciseInput(
-        draft({ numbers: { sets: "0", reps: "", distance_m: "", duration_s: "", rest_s: "", ground_contacts: "" } }),
+        draft({
+          numbers: {
+            sets: "0",
+            reps: "",
+            distance_m: "",
+            duration_s: "",
+            rest_s: "",
+            ground_contacts: "",
+            strides: "",
+            cone_spacing_ft: "",
+          },
+        }),
       ),
     ).toMatchObject({ ok: false, field: "form" });
   });

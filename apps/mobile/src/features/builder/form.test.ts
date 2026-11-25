@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import {
   parsePrescriptionFields,
   prescriptionFields,
+  prescriptionFieldsSchema,
   parseSessionForm,
   localSchedule,
   scheduleToUtc,
@@ -36,6 +37,17 @@ it("conserve les décimales françaises, les zéros permis et la cible distincte
 });
 it.each(["3oops", "1e2", "-2", "1,2,3", "Infinity"])("refuse %s sans troncature", (value) => {
   expect(parsePrescriptionFields({ ...prescriptionFields({}), loadType: "kg", loadValue: value }).success).toBe(false);
+});
+it("conserve foulées et espacement décimal, y compris à la reprise d’un ancien brouillon", () => {
+  const fields = prescriptionFields({ reps: 3, strides: 8, cone_spacing_ft: 4.5 });
+  expect(parsePrescriptionFields({ ...fields, cone_spacing_ft: "4,5" })).toMatchObject({
+    success: true,
+    data: { reps: 3, strides: 8, cone_spacing_ft: 4.5 },
+  });
+  expect(parsePrescriptionFields({ ...fields, strides: "2,5" }).success).toBe(false);
+  expect(parsePrescriptionFields({ ...fields, cone_spacing_ft: "0" }).success).toBe(false);
+  const { strides, cone_spacing_ft, ...old } = fields;
+  expect(prescriptionFieldsSchema.parse(old)).toMatchObject({ strides: "", cone_spacing_ft: "" });
 });
 it("ne fabrique ni référence de force ni kilogrammes depuis le RPE", () => {
   expect(

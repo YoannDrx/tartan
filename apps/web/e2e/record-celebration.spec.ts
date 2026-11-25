@@ -118,7 +118,8 @@ for (const reduced of [false, true]) {
         path: `/tmp/tartan-celebration-${info.project.name}-${reduced ? "reduced" : "normal"}.png`,
       });
       await dialog.getByRole("button", { name: m.validation.finish, exact: true }).click();
-      await athlete.reload({ waitUntil: "networkidle" });
+      await expect(athlete).toHaveURL(/\/aujourdhui$/);
+      await athlete.goto(`/seance/${id}/mode`, { waitUntil: "networkidle" });
       await athlete.getByRole("button", { name: m.today.quickDone, exact: true }).click();
       await expect(dialog).toBeVisible();
       await expect(dialog.getByRole("heading", { name: m.strengthRecords.confirmed, exact: true })).toHaveCount(0);
@@ -143,6 +144,7 @@ for (const reduced of [false, true]) {
       await expect(athlete.getByText(m.validation.queued, { exact: true })).toBeVisible();
       expect(await count()).toBe(0);
       await dialog.getByRole("button", { name: m.validation.finish, exact: true }).click();
+      await expect(athlete.getByText(m.validation.waitingSend, { exact: true })).toBeVisible();
       await context.setOffline(false);
       await expect
         .poll(async () => (await (await athlete.request.get(`${root}/sessions/${offline}/me`)).json()).log.status)

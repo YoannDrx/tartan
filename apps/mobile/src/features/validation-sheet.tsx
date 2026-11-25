@@ -1,5 +1,6 @@
 import { encouragement, type EncouragementTone } from "@tartan/i18n";
 import { celebrationFromResponse } from "@tartan/domain";
+import { VoiceEditor } from "./session-voice";
 import { ConfirmedRecords } from "./confirmed-records";
 import type { SessionCelebration, BodyArea, BodySide, PainInput, SessionLogInput } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
@@ -30,6 +31,7 @@ export type ExistingLog = {
   durationMin: number | null;
   comment: string | null;
   pain?: PainInput | null;
+  hasVoiceDebrief?: boolean;
   version?: number;
 };
 
@@ -120,6 +122,14 @@ export const ValidationSheet = ({
     comment: initialFeedback.comment ?? "",
     pain: initialFeedback.pain ?? null,
   });
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [hasDebrief, setHasDebrief] = useState(!!existing?.hasVoiceDebrief);
+  const pendingStatus = useOpQueue((queue) =>
+    queue.items.some(
+      (item) =>
+        item.kind === "log" && item.orgId === target.orgId && item.sessionId === target.sessionId && !item.athleteId,
+    ),
+  );
   const [status, setStatus] = useState(initialStatus);
   const [startingVersion] = useState(() =>
     target.sessionVersion !== undefined && target.logVersion !== undefined
@@ -216,7 +226,7 @@ export const ValidationSheet = ({
 
   // Rien de saisi ne se perd, quel que soit le bouton touché.
   const finish = async () => {
-    if (busy.current) return;
+    if (busy.current || voiceBusy) return;
     if (!dirty) {
       onClose();
       return;
@@ -249,7 +259,12 @@ export const ValidationSheet = ({
       overlay={burst > 0 ? <ValidationBurst key={burst} recordCount={receipt?.records.length ?? 0} /> : null}
       onClose={finish}
       headerAction={
-        <Button disabled={sending} testID="validation-finish" label={m.validation.finish} onPress={finish} />
+        <Button
+          disabled={sending || voiceBusy}
+          testID="validation-finish"
+          label={m.validation.finish}
+          onPress={finish}
+        />
       }
     >
       {justRecorded && tone && tone !== "off" && (
@@ -261,6 +276,19 @@ export const ValidationSheet = ({
         </T>
       ) : null}
       <ConfirmedRecords records={receipt?.records ?? []} />
+      {status === "done" && !personal && healthConsent ? (
+        pendingStatus ? (
+          <T variant="caption">{m.sessionVoice.offline}</T>
+        ) : (
+          <VoiceEditor
+            orgId={target.orgId}
+            sessionId={target.sessionId}
+            hasDebrief={hasDebrief}
+            onBusyChange={setVoiceBusy}
+            onChange={(saved) => setHasDebrief(!!saved)}
+          />
+        )
+      ) : null}
       {healthConsent ? (
         <View style={{ gap: space.sm }}>
           <View
@@ -356,14 +384,14 @@ export const ValidationSheet = ({
       )}
 
       <Button
-        disabled={sending}
+        disabled={sending || voiceBusy}
         testID="validation-details"
         label={m.validation.addDetails}
         variant="secondary"
         onPress={finish}
       />
       <Button
-        disabled={sending}
+        disabled={sending || voiceBusy}
         testID="validation-switch"
         label={status === "done" ? m.today.quickPartial : m.today.quickDone}
         variant="ghost"
