@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, vocabulaire et supports de terrain
+
+Le rapprochement IA respecte le type d’appui, le mouvement et l’accessoire dictés. La recherche peut retenir une variante compatible quand le coach laisse le qualificatif ouvert. L’arbitrage manuel d’un coach et ses alias restent prioritaires. Avec le catalogue enrichi, les trois mesures complètes atteignent les seuils historiques. Les attentes du corpus sont inchangées.
+
 ## 2026-11-25, Codex, illustrations de tout le catalogue commun
 
 Les 211 illustrations supplémentaires rejoignent les 22 déjà préparées. L’éversion, l’inversion, la bascule de cheville, la réception haute de l’arraché et l’enroulement du bassin ont fait l’objet d’une reprise. Les 24 fiches vidéo historiques ont une couverture relisible indépendamment dans l’atelier. Deux migrations enregistrent la validation des douze pilotes puis de toute la planche. Les réouvertures explicites dans l’atelier sont préservées. Le geste animé Tartan reste le média initial, avec accès à l’image fixe et à la vidéo disponible. Les exports complets et le sélecteur correspondent aux nouveaux candidats iOS 20 et Android 10. Le fondateur a ensuite validé les textes et mouvements des 83 guides restants. La migration de publication utilise l’instantané des contenus relus, garde les identifiants existants et laisse les copies privées intactes.

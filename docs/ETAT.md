@@ -4,6 +4,10 @@ Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
+## Vocabulaire du planificateur au stade · 25 novembre 2026
+
+Le moteur conserve les prescriptions lorsque le matériel ou la mécanique du mouvement est explicite. Une flexion des jambes sur ballon conserve son support. Les patins glissants peuvent être proposés quand le coach en dispose. Les trois passages réels du corpus historique atteignent 78, 77 et 79 séances justes sur 80, zéro faute grave et zéro fiche choisie pour les termes absents. La [recette](tests/recette-lancement-testeurs.md) précise les temps, le coût et les essais terrain à réaliser.
+
 ## Illustrations par famille et fiches historiques · 25 novembre 2026
 
 Les 233 fiches versionnées ont un geste associé et une illustration fixe avec texte alternatif. L’inventaire de production compte aussi 24 fiches communes historiques issues de la migration de la bibliothèque vidéo. Chacune conserve sa vidéo, son identité et sa prescription. Trois partagent un visuel du catalogue. Les 21 autres ont une illustration dédiée. L’atelier de relecture permet de filtrer par famille et de passer d’une page de douze fiches à la suivante.
