@@ -807,7 +807,7 @@ export const fr = {
     agenda: "Vue de la semaine",
     restDay: "Jour libre",
     planned: "Au calendrier",
-    collision: "Même heure qu’une séance au calendrier. Vérifie les destinataires.",
+    collision: "Ce créneau chevauche une séance au calendrier. Vérifie les destinataires.",
     missingRest: "Récupération à préciser.",
     estimatedMinutes: (n: number) => `${n} min estimées`,
     unknownDuration: "Durée à préciser",

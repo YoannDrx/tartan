@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, contrôle des créneaux du planificateur
+
+La revue de semaine compare aussi les durées des séances du calendrier pour avertir d’un chevauchement. Le banc historique de 80 consignes qui isole le prestataire transmet désormais le véritable statut de relecture des exercices fictifs. Les attendus du corpus restent figés.
+
 ## 2026-11-25, Codex, Reprendre une proposition IA
 
 La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.
