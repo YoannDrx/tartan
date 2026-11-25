@@ -62,3 +62,27 @@ env:
 - extendedWaitUntil:
     visible: "Brouillon créé.*"
     timeout: 30000
+# Ce brouillon appartient au passage en cours. La proposition conserve la trace du brouillon supprimé.
+- scrollUntilVisible:
+    element: "Supprimer le brouillon"
+    timeout: 20000
+- tapOn: "Supprimer le brouillon"
+- tapOn: "Annuler"
+- assertVisible: "Supprimer le brouillon"
+- tapOn: "Supprimer le brouillon"
+- tapOn: "Supprimer"
+- extendedWaitUntil:
+    visible: "Brouillon supprimé ou devenu inaccessible.*"
+    timeout: 30000
+- openLink: "tartan-dev:///planner-proposals"
+- runFlow: flows/_accept-deep-link.yml
+- tapOn: "Brouillons créés"
+- extendedWaitUntil:
+    visible: "Voir les séances créées.*"
+    timeout: 30000
+- tapOn:
+    text: "Voir les séances créées.*"
+    index: 0
+- extendedWaitUntil:
+    visible: "Brouillon supprimé ou devenu inaccessible.*"
+    timeout: 30000

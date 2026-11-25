@@ -7,6 +7,7 @@ flows:
   - coach-tracking.yml
   - coach-builder.yml
   - coach-builder-detail.yml
+  - coach-planner.yml
   - coach-publication-message.yml
   - sync-review.yml
 executionOrder:
@@ -18,5 +19,6 @@ executionOrder:
     - coach-tracking
     - coach-builder
     - coach-builder-detail
+    - coach-planner
     - coach-publication-message
     - sync-review
