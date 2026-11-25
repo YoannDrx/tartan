@@ -6,6 +6,10 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 
 Ce candidat réunit les lots du terrain, les 22 images d’atelier, la correction du dépôt Maven et le logo des deux stores. Les exports de recette iOS et Android contiennent les 22 images attendues, contrôlées par empreinte. Les binaires de bêta précédents contiennent les 18 premières. Le budget de production et la taille éditoriale sont extrapolés dans la procédure des illustrations.
 
+## 2026-11-25, Codex, retour en deuxième session
+
+Le test d’accueil coach lançait une deuxième navigation pendant la redirection de connexion, avec deux interruptions observées en CI. Le coach et l’athlète utilisent désormais la destination demandée dès la connexion. Les assertions de l’écran, de la visite guidée et de l’accueil déjà vu sont conservées.
+
 ## 2026-11-25, Codex, illustrations des sauts et des appuis
 
 Quatre nouvelles images et leurs vignettes rejoignent l’atelier. Pour le saut en hauteur, le franchissement a été repris à partir de la phase correspondante de l’animation, avec le bassin au-dessus de la barre et la tête du côté du tapis. Les images attendent leur validation dans l’atelier avant affichage aux athlètes.
