@@ -14,6 +14,10 @@ Les 60 nouvelles fiches disposent de clés de catalogue stables dans `exercise-c
 
 Deux préférences de compte règlent le ton de l’accueil et celui de la séance. Le catalogue local contient 30 mantras et 12 retours par ton. Le calcul tient compte des séries de toutes les occurrences du même mouvement dans un circuit. Vérifications du domaine, types, lint et design effectuées. La recette hors connexion et les lecteurs d’écran sur téléphone restent à faire.
 
+## 2026-11-25, Codex, accueil athlète sur le simulateur iOS
+
+La hiérarchie Maestro place « Découvrir Tartan » derrière la barre des onglets après l’ajout de « Créer ma séance ». Le test centre le bouton et attend l’arrêt du défilement, puis exige l’ouverture des panneaux après le toucher. Le contrôle de la fermeture enregistrée en base et la seconde connexion sont conservés.
+
 ## 2026-11-25, Codex, Planifier pour soi depuis le club
 
 Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
