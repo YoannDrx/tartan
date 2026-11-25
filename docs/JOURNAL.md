@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, appuis du triple saut
+
+Les huit nouvelles fiches de triple saut ont un geste. La foulée vers le sable se termine sur deux pieds, le double cloche reste sur la même jambe et le triple marché garde toujours un appui. Les 3 202 tests du paquet de gestes passent, dont le contrôle des successions de pieds, des réceptions et des repères. La relecture sportive reste à faire.
+
 ## 2026-11-25, Codex, gestes de barre et fiches hors ligne
 
 L’épaulé et l’arraché distinguent départ sur plots, pause au genou et réception. Les talons-fesses passent entre des portes de plots. Les 3 090 contrôles du moteur de gestes et les huit tests du service worker passent. La PWA conserve aussi les vignettes versionnées des séances préparées hors ligne. La relecture technique de chaque clip reste ouverte. La commande `catalog:images` prépare une série de PNG ou la reprise d’une seule clé, génère les vignettes et conserve les versions déjà embarquées. L’atelier permet aussi de rattacher ou de retirer un guide relu sur une fiche commune historique, en gardant ses références. Ce parcours passe sur Playwright ordinateur et mobile, avec contrôle axe à 390, 768 et 1440 px.

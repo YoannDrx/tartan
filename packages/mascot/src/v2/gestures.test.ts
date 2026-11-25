@@ -524,3 +524,26 @@ describe("fente latérale", () => {
     expect(push[0]!.planted).toEqual(["R", "L"]);
   });
 });
+
+describe("appuis du triple saut", () => {
+  it.each([
+    ["step-jump-sand", ["R", "RL"]],
+    ["short-triple", ["L", "L", "R", "RL"]],
+    ["double-hop-step", ["L", "L", "R"]],
+    ["triple-rhythm-zones", ["L", "R", "RL"]],
+    ["step-switch-stick", ["R"]],
+    ["hop-runout", ["L", "L", "R", "L", "R"]],
+  ] as const)("%s pose chaque pied dans l’ordre des marques", (key, contacts) => {
+    const clip = GESTURES[key]!;
+    const landings = clip.phases.filter((phase) => phase.hold && phase.id.startsWith("contact-"));
+    expect(landings.map((phase) => phase.planted.join(""))).toEqual(contacts);
+  });
+
+  it("garde un appui pendant tout le triple marché et termine sur la quatrième marque", () => {
+    const clip = GESTURES["triple-walk"]!;
+    expect(clip.phases.filter((phase) => !phase.cut).every((phase) => phase.planted.length > 0)).toBe(true);
+    const finish = held(clip, "feet-together");
+    expect(finish.legs.L.ball.x).toBeCloseTo(finish.legs.R.ball.x);
+    expect(clip.props(0, finish)).toHaveLength(4);
+  });
+});

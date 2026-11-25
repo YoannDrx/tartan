@@ -4,6 +4,7 @@ import { hands, heels, stance, type ControlPatch } from "../pose";
 import type { Prop } from "../props";
 import { FIGURE } from "../body";
 import { racked, CLEAN_GRIP } from "./clean";
+import { tripleJumps } from "./triple-jump";
 import { stadiumLifts } from "./stadium-lifts";
 import { strideClip } from "./stride";
 import { airborne } from "./flight";
@@ -274,6 +275,7 @@ export const STADIUM_GESTURES: MotionClip[] = [
   cones,
   snap,
   ...stadiumLifts,
+  ...tripleJumps,
   heelGates,
   cleanHold,
   carry,
