@@ -15,7 +15,7 @@ import { syncAppleBeta } from "./beta-apple";
 const PURPOSE = "beta-install-v1";
 const days = (n: number) => n * 86400000;
 const live = (row: BetaTester, now: Date) => !row.revokedAt && row.expiresAt > now;
-const apkReady = () => Boolean(env().BETA_APK_PATH && env().BETA_BLOB_TOKEN && env().BETA_APK_VERSION);
+const apkReady = () => Boolean(env().BETA_APK_PATH && env().BETA_APK_READ_WRITE_TOKEN && env().BETA_APK_VERSION);
 const payload = z.object({ id: z.uuid(), version: z.number().int(), channel: z.enum(["ios", "android", "play"]) });
 type Channel = z.infer<typeof payload>["channel"];
 const ready = (r: BetaTester, c: Channel) =>
