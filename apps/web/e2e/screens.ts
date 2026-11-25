@@ -112,7 +112,7 @@ export const SCREENS: Screen[] = [
   },
   {
     path: "/exercices/[id]",
-    roles: ["coach"],
+    roles: both,
     proof: ["screen-matrix.spec.ts", "exercise-guides.spec.ts", "exercise-lists.spec.ts"],
   },
   {

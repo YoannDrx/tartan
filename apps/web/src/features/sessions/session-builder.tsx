@@ -502,6 +502,9 @@ export const SessionBuilder = ({
   );
   const planningKey = phasePlanningKey(date, selectedGroups, selectedAthletes);
   const [phaseReady, setPhaseReady] = useState<PhasePlanningReadiness>({ key: "", ready: false });
+  const personalReviewPending = Boolean(
+    personalAthleteId && phasesEnabled && (phaseReady.key !== planningKey || !phaseReady.ready),
+  );
   const [overrides, setOverrides] = useState<Override[]>(() =>
     attachItemKeys(initial?.overrides ?? [], [...start.club, ...start.autonomous]),
   );
@@ -1445,7 +1448,7 @@ export const SessionBuilder = ({
           <div className="max-desktop:sticky max-desktop:bottom-[calc(84px+env(safe-area-inset-bottom))] max-desktop:z-10 max-desktop:rounded-card max-desktop:border max-desktop:border-control-line max-desktop:bg-card max-desktop:p-2 max-desktop:shadow-float desktop:contents">
             <Button
               className="max-desktop:w-full"
-              disabled={saving || Boolean(recovery.candidate)}
+              disabled={saving || Boolean(recovery.candidate) || personalReviewPending}
               onClick={() => submit(true)}
             >
               {initial?.publishedAt ? m.builder.sequence.updatePublished : m.builder.publish}
@@ -1467,7 +1470,11 @@ export const SessionBuilder = ({
                   <Field label={m.builder.scheduleAt} hint={m.builder.scheduleHint}>
                     {(a) => <DateTimeInput {...a} value={publishAt} onChange={(e) => setPublishAt(e.target.value)} />}
                   </Field>
-                  <Button variant="secondary" disabled={saving || !publishAt} onClick={() => submit(false, publishAt)}>
+                  <Button
+                    variant="secondary"
+                    disabled={saving || !publishAt || personalReviewPending}
+                    onClick={() => submit(false, publishAt)}
+                  >
                     {m.builder.schedule}
                   </Button>
                   {initial?.publishAt ? (

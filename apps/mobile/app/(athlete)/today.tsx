@@ -169,6 +169,9 @@ export default function Today() {
         </T>
       ) : null}
       {today.isPending ? <LoadingState /> : null}
+      {extraOrg && extra.isError && !extra.data ? (
+        <ErrorState error={extra.error} onRetry={() => void extra.refetch()} />
+      ) : null}
       {today.isError && !view ? <ErrorState error={today.error} onRetry={() => void today.refetch()} /> : null}
       {view ? (
         <>

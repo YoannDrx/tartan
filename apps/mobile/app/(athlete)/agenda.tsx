@@ -95,6 +95,9 @@ export default function AthleteAgenda() {
       {isMonth ? <MonthNav {...monthNav} /> : <WeekNav {...nav} />}
       {isMonth ? null : <NativeCalendarPhases from={nav.week} to={nav.to} />}
       {calendar.isPending ? <LoadingState /> : null}
+      {notebook && extra.isError && !extra.data ? (
+        <ErrorState error={extra.error} onRetry={() => void extra.refetch()} />
+      ) : null}
       {calendar.isError && !calendar.data ? (
         <ErrorState error={calendar.error} onRetry={() => void calendar.refetch()} />
       ) : null}

@@ -81,7 +81,7 @@ export const AppShell = ({
   billingAlert?: "past_due" | null;
   children: ReactNode;
 }) => {
-  const pathname = usePathname();
+  const pathname = usePathname().replace(/^\/(carnet|club)(?=\/)/, "");
   const work = worldFor(pathname) === "world-work";
   const selectedClass = "bg-accent text-on-accent";
   const barClass = work ? "tartan-band" : "on-card bg-card";

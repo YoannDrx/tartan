@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { trackingGrid } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import { createCoachSpace, expectAccessible, expectNoHorizontalScroll, expectNoMotion } from "./helpers";
@@ -82,12 +83,17 @@ test("la séance du club et la proposition personnelle se valident chacune à le
       await expectAccessible(athlete);
       await expectNoMotion(athlete);
     }
-    for (const title of ["Programme du coach", "Ma séance du jeudi"]) {
-      await athlete.goto("/calendrier?vue=liste");
-      await athlete.getByRole("link", { name: new RegExp(title) }).click();
-      await athlete.getByRole("button", { name: "J'ai fait la séance", exact: true }).click();
-      await expect(athlete.getByRole("dialog", { name: m.today.validated })).toBeVisible();
-    }
+    await expect(athlete.getByRole("heading", { name: "Programme du coach" })).toBeVisible();
+    await athlete
+      .getByRole("region", { name: "Ma séance du jeudi" })
+      .getByRole("button", { name: m.today.quickDone })
+      .click();
+    await expect(athlete.getByRole("dialog", { name: m.today.validated })).toBeVisible();
+    await athlete.goto("/calendrier?vue=liste");
+    await expect(athlete.getByRole("link", { name: /Ma séance du jeudi/ })).toBeVisible();
+    await athlete.getByRole("link", { name: /Programme du coach/ }).click();
+    await athlete.getByRole("button", { name: m.today.quickDone, exact: true }).click();
+    await expect(athlete.getByRole("dialog", { name: m.today.validated })).toBeVisible();
     const logs = await sql(
       async (db) =>
         (
@@ -104,6 +110,12 @@ test("la séance du club et la proposition personnelle se valident chacune à le
       ]),
     );
     expect((await page.request.get(`/api/v1/orgs/${organizationId}/athlete/today`)).status()).toBe(403);
+    const tracking = trackingGrid.parse(await (await page.request.get(`/api/v1/orgs/${club}/tracking`)).json());
+    const prescribed = tracking.sessions.find((session) => session.title === "Programme du coach");
+    expect(tracking.rows.find((row) => row.athleteId === me.spaces[0].athleteId)?.cells).toContainEqual(
+      expect.objectContaining({ sessionId: prescribed?.id, status: "done" }),
+    );
+    expect(tracking.sessions.some((session) => session.id === draft.id)).toBe(false);
     await page.goto("/suivi");
     await expect(page.getByText("Ma séance du jeudi", { exact: true })).toHaveCount(0);
   } finally {
