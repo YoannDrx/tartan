@@ -1,3 +1,4 @@
+import { renderBetaMail, isBetaMailRelevant } from "./beta-testers.service";
 import { createElement } from "react";
 import type { BillingEmail } from "@tartan/domain";
 import { PLANS, isPaidPlan, type PlanKey } from "@tartan/domain";
@@ -154,6 +155,7 @@ export const enqueuePaymentActionRequired = async (organizationId: string, invoi
 const INCIDENT_WINDOW_MS = 60 * 60 * 1000;
 
 const render = async (kind: string, payload: unknown, organizationId: string | null, now: Date) => {
+  if (kind === "beta_install") return renderBetaMail(payload);
   if (isInvitationOutboxKind(kind)) return renderInvitationEmail(payload);
   if (kind === "invitation_reminder") return renderInvitationReminder(payload);
   if (kind === "athlete_welcome") return renderAthleteWelcome(payload);
@@ -289,6 +291,7 @@ export const flushEmailOutbox = async (now: Date = new Date(), only?: { dedupeKe
   const due = await prisma.emailOutbox.findMany({
     where: {
       ...(only ? { dedupeKey: only.dedupeKey } : {}),
+      ...(env().BETA_INVITES_ENABLED === "true" ? {} : { kind: { not: "beta_install" } }),
       sentAt: null,
       failedAt: null,
       nextAttemptAt: { lte: now },
@@ -450,6 +453,7 @@ export const isEmailRelevant = async (
   now = new Date(),
 ) => {
   // Le rappel suit la même règle que l'invitation : acceptée, révoquée ou expirée, il ne part plus.
+  if (row.kind === "beta_install") return isBetaMailRelevant(row.payload, row.toEmail, now);
   if (isInvitationOutboxKind(row.kind) || row.kind === "invitation_reminder")
     return isInvitationEmailRelevant(row.payload, row.toEmail, now);
   if (row.kind === "athlete_welcome") return isAthleteWelcomeRelevant(row.payload, row.toEmail);
