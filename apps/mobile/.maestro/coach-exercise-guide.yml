@@ -54,8 +54,11 @@ env:
     element:
       id: exercise-guide-detail
     direction: DOWN
+    centerElement: true
+- waitForAnimationToEnd
 - tapOn:
     id: exercise-guide-detail
+    retryTapIfNoChange: true
 - scrollUntilVisible:
     element:
       text: "Comment compter"

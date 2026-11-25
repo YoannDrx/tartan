@@ -8,11 +8,17 @@ Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p
 
 Le moteur conserve les prescriptions lorsque le matériel ou la mécanique du mouvement est explicite. Une flexion des jambes sur ballon conserve son support. Les patins glissants peuvent être proposés quand le coach en dispose. Les trois passages réels du corpus historique atteignent 78, 77 et 79 séances justes sur 80, zéro faute grave et zéro fiche choisie pour les termes absents. La [recette](tests/recette-lancement-testeurs.md) précise les temps, le coût et les essais terrain à réaliser.
 
+## Publication bêta sur les deux plateformes · 25 novembre 2026
+
+Le planificateur et les parcours de terrain sont en production au commit `cdb6a0c4`. Le déploiement Vercel est prêt et le point de santé répond 200. Le premier envoi groupé sur le canal bêta a échoué pendant l’export Expo, qui demandait les dépendances du navigateur. Les envois distincts iOS et Android sur le canal bêta ont réussi. Le workflow reprend ces deux publications pour toute mise à jour à distance des deux plateformes. Apple a reçu le build 20 pour revue bêta externe. L’APK privé 10 et l’AAB 11 portent le même certificat. La mise à jour 9 vers 10 a conservé le fichier témoin sur émulateur.
+
 ## Illustrations par famille et fiches historiques · 25 novembre 2026
 
 Les 233 fiches versionnées ont un geste associé et une illustration fixe avec texte alternatif. L’inventaire de production compte aussi 24 fiches communes historiques issues de la migration de la bibliothèque vidéo. Chacune conserve sa vidéo, son identité et sa prescription. Trois partagent un visuel du catalogue. Les 21 autres ont une illustration dédiée. L’atelier de relecture permet de filtrer par famille et de passer d’une page de douze fiches à la suivante.
 
 Le fondateur a validé les 257 illustrations fixes après consultation de la planche. Sur les guides équipés, le geste animé Tartan s’ouvre en premier. L’athlète peut afficher l’image fixe et revenir au mouvement. Le fondateur a aussi relu et validé les textes et mouvements des 60 nouvelles fiches et des 23 guides de l’édition précédente. La migration inscrit ces 166 décisions par version et publie les fiches communes. Chaque décision peut être rouverte individuellement dans l’atelier. Les 254 illustrations et leurs vignettes occupent 5 276 234 octets au total. Les exports bêta Android et iOS contiennent chacun les 254 images de fiche, vérifiées par empreinte.
+
+Le constructeur natif conservait les guides longs dans chaque sauvegarde du brouillon. Sur un espace local de recette de 258 exercices et 233 guides, une copie de saisie occupait 725 085 octets et 403 fragments chiffrés. Le nouvel index de reprise conserve les 258 exercices et 233 gestes en 187 203 octets et 105 fragments. Les écritures de saisie dépassées cèdent leur place à la dernière modification. Les étapes de confirmation restent enregistrées sur le téléphone. Le scénario iOS centre aussi le bouton « Détail » avant de vérifier le comptage de l’exercice.
 
 ## Illustrations, série pilote et atelier de relecture · 25 novembre 2026
 
