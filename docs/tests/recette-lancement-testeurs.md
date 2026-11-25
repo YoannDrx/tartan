@@ -1,6 +1,6 @@
 # Recette de lancement du planificateur Tartan
 
-Recette du 25 novembre 2026. Les PR 187 à 194 portent les huit lots. La branche `test/livraison-terrain` réunit les lots vérifiés et les visuels des stores. La console privée de la PR 192 est servie en production depuis le commit `85d0a428`. Le point de santé répond 200 et la console redirige le visiteur anonyme vers la connexion. Une invitation externe engage le parcours complet, depuis l’e-mail jusqu’à la séance enregistrée sur le téléphone.
+Recette du 25 novembre 2026. Les PR 187 à 194 portent les huit lots. La branche `test/livraison-terrain` réunit les lots vérifiés et les visuels des stores. La console privée de la PR 192 est servie en production depuis le commit `85d0a428`. Après la fusion du profil APK, la version servie est `178e5b29`. Le point de santé répond 200, la console redirige le visiteur anonyme vers la connexion et le téléchargement anonyme de l’APK répond 403. Une invitation externe engage le parcours complet, depuis l’e-mail jusqu’à la séance enregistrée sur le téléphone.
 
 | Parcours | Codé | Testé automatiquement | Éprouvé en réel et suite à donner |
 | --- | --- | --- | --- |
