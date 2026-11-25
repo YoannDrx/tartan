@@ -158,7 +158,9 @@ describe("création de l'espace personnel", () => {
       const user = await makeUser("Fermée");
       await expect(createPersonalSpace(user.userId, signup)).rejects.toMatchObject({ code: "signup_closed" });
     } finally {
-      await prisma.platformSetting.deleteMany();
+      await prisma.platformSetting.deleteMany({
+        where: { key: { in: ["signupMode", "athleteSignupMode", "checkoutEnabled", "muxVideoLimit"] } },
+      });
     }
   });
 

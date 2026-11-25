@@ -6,6 +6,18 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 
 Le SVG de 320 px était rogné dans le cadre de 240 px. Le composant partagé utilise le viewBox du QR et une marge de quatre modules. Le parcours vérifie les dimensions du SVG et du cadre aux trois largeurs.
 
+## 2026-11-25, Codex, vocabulaire et supports de terrain
+
+Le rapprochement IA respecte le type d’appui, le mouvement et l’accessoire dictés. La recherche peut retenir une variante compatible quand le coach laisse le qualificatif ouvert. L’arbitrage manuel d’un coach et ses alias restent prioritaires. Avec le catalogue enrichi, les trois mesures complètes atteignent les seuils historiques. Les attentes du corpus sont inchangées.
+
+## 2026-11-25, Codex, publication des mises à jour natives
+
+La mise en production du candidat terrain est vérifiée. Pour une mise à jour des deux plateformes, le workflow fournit explicitement iOS et Android à EAS. Chaque plateforme dispose d’un résultat et d’une reprise propres. Le mode de construction des binaires conserve le choix de plateforme transmis au workflow. Le tableau de recette suit la soumission TestFlight du build 20, le téléchargement privé de l’APK 10 et la signature de l’AAB 11. Le test du cron vérifie les deux relais et ses compteurs avec une file déterministe. La suite des invitations exerce la reprise réelle sur la base jetable.
+
+## 2026-11-25, Codex, illustrations de tout le catalogue commun
+
+Les 211 illustrations supplémentaires rejoignent les 22 déjà préparées. L’éversion, l’inversion, la bascule de cheville, la réception haute de l’arraché et l’enroulement du bassin ont fait l’objet d’une reprise. Les 24 fiches vidéo historiques ont une couverture relisible indépendamment dans l’atelier. Deux migrations enregistrent la validation des douze pilotes puis de toute la planche. Les réouvertures explicites dans l’atelier sont préservées. Le geste animé Tartan reste le média initial, avec accès à l’image fixe et à la vidéo disponible. Les exports complets et le sélecteur correspondent aux nouveaux candidats iOS 20 et Android 10. La relecture des traces Android a isolé une confirmation encore occupée après 75 secondes. Les copies locales du constructeur conservent les prescriptions, les destinataires et l’index entier du matériel et des gestes. Elles évitent la réécriture des descriptions longues et les sauvegardes de frappe déjà dépassées. Le fondateur a ensuite validé les textes et mouvements des 83 guides restants. La migration de publication utilise l’instantané des contenus relus, garde les identifiants existants et laisse les copies privées intactes.
+
 ## 2026-11-25, Codex, candidat de livraison des stores
 
 Ce candidat réunit les lots du terrain, les 22 images d’atelier, la correction du dépôt Maven et le logo des deux stores. Les exports de recette iOS et Android contiennent les 22 images attendues, contrôlées par empreinte. Les binaires de bêta précédents contiennent les 18 premières. Le budget de production et la taille éditoriale sont extrapolés dans la procédure des illustrations.

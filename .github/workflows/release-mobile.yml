@@ -26,6 +26,11 @@ on:
 
 jobs:
   publish:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Expo interprète « all » comme incluant le web. La PWA est livrée par Next.
+        platform: ${{ fromJSON(inputs.mode == 'ota' && inputs.platform == 'all' && '["ios","android"]' || format('["{0}"]', inputs.platform)) }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -46,7 +51,7 @@ jobs:
         if: inputs.mode == 'ota'
         env:
           MESSAGE: ${{ inputs.message }}
-          PLATFORM: ${{ inputs.platform }}
+          PLATFORM: ${{ matrix.platform }}
           PROFILE: ${{ inputs.profile }}
         # La mise à jour embarque la configuration du binaire qu'elle vise : variante, adresse de l'API, canal.
         # Sans elles, elle retomberait sur la variante de développement et viserait http://localhost:3000.
@@ -56,6 +61,6 @@ jobs:
       - name: Binaire et soumission
         if: inputs.mode == 'store'
         env:
-          PLATFORM: ${{ inputs.platform }}
+          PLATFORM: ${{ matrix.platform }}
           PROFILE: ${{ inputs.profile }}
         run: eas build --profile "$PROFILE" --platform "$PLATFORM" --auto-submit --non-interactive

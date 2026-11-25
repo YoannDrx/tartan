@@ -337,6 +337,7 @@ export const commentItem = z.object({
 export type CommentItem = z.infer<typeof commentItem>;
 
 export const exerciseSummary = z.object({
+  cover: exerciseGuide.shape.illustration.shape.photo,
   guide: exerciseGuide.nullable().optional(),
   aliases: z.array(z.string()).optional(),
   classification: exerciseClassification.nullable().optional(),

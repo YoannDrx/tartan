@@ -50,6 +50,7 @@ import {
   ownListedExerciseIds,
   readableListExerciseIds,
 } from "./exercise-list.service";
+import { legacyCovers, legacyCoverStamp } from "./legacy-catalog-covers";
 import { approvedEditorial, withApprovedImage } from "./catalog-editorial.service";
 import { approvedMotionFamilies, withMotion } from "./motion-review.service";
 import { assertVideoReservation, withVideoReservation } from "./video-capacity.service";
@@ -129,8 +130,10 @@ const exerciseSummary = async (
     media?.kind === "upload" && media.muxPlaybackId && env().MUX_SIGNING_KEY_ID
       ? await signedPlayback(media.muxPlaybackId)
       : null;
+  const cover = e.organizationId === null && e.catalogKey === null ? legacyCovers.get(e.id) : undefined;
   return {
     ...lightSummary(e),
+    ...(cover && reviewed.has(legacyCoverStamp(cover)) ? { cover: { path: cover.path, alt: cover.alt } } : {}),
     media: stream && media ? { ...media, streamUrl: stream.mp4Url, hlsUrl: stream.hlsUrl } : media,
     guide: withApprovedImage(
       withCatalogVideos(withConcise(withMotion(readExerciseGuide(e.guide), families)), videos),

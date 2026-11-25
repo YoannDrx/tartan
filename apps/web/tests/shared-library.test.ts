@@ -9,7 +9,7 @@ describe("bibliothèque commune", () => {
     const { owner, organizationId } = await makeOrg();
     const shared = (await listExercises(owner.userId, organizationId)).filter((e) => e.shared);
     expect(shared.filter((e) => e.media)).toHaveLength(24);
-    expect(shared.filter((e) => e.guide)).toHaveLength(118);
+    expect(shared.filter((e) => e.guide)).toHaveLength(178);
     expect(shared.find((e) => e.name === "Routine cheville en 10 minutes")?.media).toMatchObject({
       kind: "instagram",
       instagramCode: "Dbq862ptfM6",

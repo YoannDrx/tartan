@@ -1,5 +1,5 @@
 import type { CatalogVideo, ExerciseGuide } from "@tartan/contracts";
-import { EXERCISE_CATALOG } from "@tartan/domain/exercise-catalog";
+import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
 import { m } from "@tartan/i18n";
 import { AppError, notFound } from "@/lib/errors";
 import { env } from "@/lib/env";
@@ -16,7 +16,7 @@ import { enqueueExternalDeletion } from "./external-deletion.service";
 export const CATALOG_VIEWS = ["side", "front"] as const;
 export type CatalogView = (typeof CATALOG_VIEWS)[number];
 
-const known = (catalogKey: string) => EXERCISE_CATALOG.some((entry) => entry.catalogKey === catalogKey);
+const known = new Set([...EXERCISE_CATALOG, ...STADIUM_EDITION].map((entry) => entry.catalogKey));
 
 // L'état des vidéos, pour la console : la dernière par fiche et par vue.
 export const listCatalogMedia = async (email: string) => {
@@ -39,7 +39,7 @@ export const createCatalogVideoUpload = async (
 ) => {
   await requireAdmin(actor.email);
   if (!videoEnabled()) throw new AppError(503, "video_disabled", m.errors.videoDisabled);
-  if (!known(catalogKey)) throw notFound();
+  if (!known.has(catalogKey)) throw notFound();
   const media = await prisma.$transaction(async (tx) => {
     const row = await tx.catalogMedia.create({ data: { catalogKey, view, createdBy: actor.userId } });
     await tx.auditLog.create({

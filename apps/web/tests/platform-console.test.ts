@@ -44,7 +44,9 @@ describe("console de la plateforme", () => {
       });
       expect(await prisma.auditLog.count({ where: { action: "platform_settings_updated" } })).toBeGreaterThan(0);
     } finally {
-      await prisma.platformSetting.deleteMany();
+      await prisma.platformSetting.deleteMany({
+        where: { key: { in: ["signupMode", "athleteSignupMode", "checkoutEnabled", "muxVideoLimit"] } },
+      });
       await prisma.platformAdmin.deleteMany({ where: { email: admin.email } });
     }
   });
@@ -55,7 +57,7 @@ describe("console de la plateforme", () => {
     try {
       expect(await platformSettings()).toMatchObject({ signupMode: "closed", athleteSignupMode: "public" });
     } finally {
-      await prisma.platformSetting.deleteMany();
+      await prisma.platformSetting.deleteMany({ where: { key: "signupMode" } });
     }
   });
 

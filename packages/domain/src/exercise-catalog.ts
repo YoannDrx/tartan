@@ -134,7 +134,8 @@ export const EXERCISE_CATALOG: CatalogExercise[] = [
 // Les fiches de l’édition suivante sont relues dans l’atelier avant leur diffusion.
 export const STADIUM_EDITION = STADIUM_CATALOG.map((entry) => buildEntry(entry, 6));
 
-export const catalogExerciseByKey = (key: string) => EXERCISE_CATALOG.find((exercise) => exercise.catalogKey === key);
+const catalogByKey = new Map([...EXERCISE_CATALOG, ...STADIUM_EDITION].map((entry) => [entry.catalogKey, entry]));
+export const catalogExerciseByKey = (key: string) => catalogByKey.get(key);
 
 /** La version concise du guide d'une fiche du catalogue, prête à afficher ; `null` pour une clé inconnue. */
 export const conciseGuideFor = (key: string): ExerciseConciseGuide | null => {

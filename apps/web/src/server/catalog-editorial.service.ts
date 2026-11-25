@@ -1,5 +1,5 @@
 import type { ExerciseGuide } from "@tartan/contracts";
-import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
+import { EXERCISE_CATALOG, STADIUM_EDITION, guideMatchesCatalog } from "@tartan/domain/exercise-catalog";
 import { gestureClip } from "@tartan/mascot/v2/registry";
 import { Prisma } from "@/generated/prisma/client";
 import { invalid } from "@/lib/errors";
@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import type { Actor } from "@/lib/session";
 import { requireStepUp, STEP_UP_READ_MS } from "./admin-step-up.service";
 import { catalogImages, imagePath } from "./catalog-illustrations";
+
+import { legacyCovers, legacyCoverStamp } from "./legacy-catalog-covers";
 
 const prefix = "exerciseReview:";
 export const mediaKinds = ["text", "image", "motion"] as const;
@@ -57,12 +59,30 @@ export async function linkLegacyGuide(actor: Actor, id: string, updatedAt: Date,
     if (result.count !== 1) throw invalid();
   });
 }
+export async function reviewLegacyCover(actor: Actor, id: string, expectedStamp: string, approved: boolean) {
+  await requireStepUp(actor, STEP_UP_READ_MS);
+  const cover = legacyCovers.get(id);
+  if (!cover || legacyCoverStamp(cover) !== expectedStamp) throw invalid();
+  const existing = await prisma.exercise.findFirst({
+    where: { id, organizationId: null, deletedAt: null, catalogKey: null },
+    select: { id: true },
+  });
+  if (!existing) throw invalid();
+  await prisma.platformSetting.upsert({
+    where: { key: expectedStamp },
+    create: { key: expectedStamp, value: approved, updatedById: actor.userId },
+    update: { value: approved, updatedById: actor.userId },
+  });
+}
+
 export async function approvedEditorial() {
   const rows = await prisma.platformSetting.findMany({
     where: { key: { startsWith: prefix } },
     select: { key: true, value: true },
   });
-  return new Set(rows.filter((r) => r.value === true).map((r) => r.key));
+  return new Set(
+    rows.flatMap(({ key, value }) => (value === true ? [key] : value === false ? [`reopened:${key}`] : [])),
+  );
 }
 export async function reviewEditorial(
   actor: Actor,
@@ -97,7 +117,22 @@ export async function reviewEditorial(
         data: { guide: { ...entry.guide, technicalReview: approved ? "approved" : "pending" } },
       });
     }
-    if (!STADIUM_EDITION.some((e) => e.catalogKey === key)) return;
+    if (!STADIUM_EDITION.some((e) => e.catalogKey === key)) {
+      if (kind === "text") {
+        const previous = { ...entry.guide, technicalReview: approved ? "pending" : "approved" };
+        await tx.exercise.updateMany({
+          where: {
+            catalogKey: key,
+            catalogVersion: version,
+            organizationId: null,
+            deletedAt: null,
+            guide: { equals: previous },
+          },
+          data: { guide: { ...entry.guide, technicalReview: approved ? "approved" : "pending" } },
+        });
+      }
+      return;
+    }
     if (!approved) {
       if (kind === "text")
         await tx.exercise.updateMany({
@@ -132,13 +167,24 @@ export function withApprovedImage<G extends ExerciseGuide | null | undefined>(
 ): G {
   if (!guide) return guide;
   const pilot = byKey.get(guide.catalogKey);
-  if (
-    guide.author !== "coach" &&
-    pilot?.guideVersion === guide.version &&
-    STADIUM_EDITION.some((e) => e.catalogKey === pilot.key)
-  ) {
-    const motion = reviewed.has(stamp(pilot.key, guide.version, "motion")) ? "approved" : "review";
+  if (guide.author !== "coach" && pilot?.guideVersion === guide.version) {
+    const motionKey = stamp(pilot.key, guide.version, "motion");
+    const textKey = stamp(pilot.key, guide.version, "text");
+    const stadium = STADIUM_EDITION.some((e) => e.catalogKey === pilot.key);
+    const motion = reviewed.has(motionKey)
+      ? "approved"
+      : stadium || reviewed.has(`reopened:${motionKey}`)
+        ? "review"
+        : guide.illustration.motion;
     if (guide.illustration.motion !== motion) guide = { ...guide, illustration: { ...guide.illustration, motion } };
+    if (guideMatchesCatalog(guide)) {
+      const text = reviewed.has(textKey)
+        ? "approved"
+        : reviewed.has(`reopened:${textKey}`)
+          ? "pending"
+          : guide.technicalReview;
+      if (guide.technicalReview !== text) guide = { ...guide, technicalReview: text };
+    }
   }
   if (
     guide.author === "coach" ||
