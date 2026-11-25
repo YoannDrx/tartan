@@ -1,5 +1,20 @@
 // Atelier d'administration : relecture des gestes animés.
 export const admin = {
+  editorial: {
+    title: "Atelier des illustrations",
+    unversioned: (n: number) => `Fiches communes visibles à rapprocher du catalogue (${n})`,
+    coverage: (approved: number, total: number) => `${approved} images relues sur ${total} fiches versionnées`,
+    text: "Texte",
+    image: "Image",
+    motion: "Geste animé",
+    approve: "Valider",
+    reopen: "Rouvrir",
+    missing: "À produire",
+    pending: "À relire",
+    approved: "Relu",
+    backlog: "Fiches sans illustration",
+  },
+
   // Réglage distinct de celui des coachs : l'athlète autonome ouvre seul son espace personnel, gratuit.
   athleteSignup: {
     label: "Inscriptions des athlètes autonomes",
@@ -27,6 +42,15 @@ export const admin = {
     reopenNew: (family: string) => `Retirer la validation des gestes du nouveau moteur : ${family}`,
   },
   // Les vidéos des fiches communes du catalogue, déposées par le fondateur.
+  stadiumEdition: {
+    title: (count: number) => `Édition stade · ${count} fiches à relire`,
+    count: "Comptage",
+    load: "Charge et matériel",
+    aliases: "Autres noms",
+    mistakes: "À observer",
+    easier: "Simplifier",
+    harder: "Progresser",
+  },
   catalogVideos: {
     lead: "Une vidéo par fiche commune et par vue, profil ou face. Une fois prête, la fiche propose le geste animé ou la vidéo, à tous les espaces. Un nouvel envoi remplace l'ancien.",
     search: "Chercher une fiche",

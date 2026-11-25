@@ -31,6 +31,25 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
   await page.goto("/admin/exercices", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: m.admin.nav.exercises, exact: true })).toBeVisible();
   await expect(page.locator(`a[href="/admin/exercices"]`)).toHaveAttribute("aria-current", "true");
+  const pilot = info.project.name === "desktop" ? "curve-pop-up" : "band-dorsiflexion";
+  await page.goto("/admin/exercices?fiche=" + pilot);
+  const workshop = page.locator("#atelier");
+  const approve = workshop.getByRole("button", {
+    name: w.admin.editorial.image + " · " + w.admin.editorial.approve,
+    exact: true,
+  });
+  const reopen = workshop.getByRole("button", {
+    name: w.admin.editorial.image + " · " + w.admin.editorial.reopen,
+    exact: true,
+  });
+  if (await reopen.count()) await reopen.click();
+  await expect(approve).toBeVisible();
+  await approve.click();
+  await expect(reopen).toBeVisible();
+  await page.reload();
+  await expect(reopen).toBeVisible();
+  await reopen.click();
+  await expect(approve).toBeVisible();
   await page.getByRole("searchbox", { name: t.search }).fill("squat arriere");
   const card = page.locator(`[data-catalog-key="${KEY}"]`);
   await expect(card.getByRole("heading", { name: NAME, exact: true })).toBeVisible();
@@ -95,7 +114,10 @@ test("le fondateur dépose la vidéo d'une fiche commune, que la fiche propose �
   await page.goto("/exercices", { waitUntil: "networkidle" });
   await page.getByLabel(m.exercises.search, { exact: true }).fill(NAME);
   // La fiche a sa propre adresse : le lien de la bibliothèque porte le nom puis la famille.
-  await page.getByRole("link", { name: new RegExp(`^${NAME} `) }).first().click();
+  await page
+    .getByRole("link", { name: new RegExp(`^${NAME} `) })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/exercices\/[0-9a-f-]+$/);
   const dialog = page.getByRole("region", { name: m.exerciseGuide.title });
   const choice = dialog.getByRole("group", { name: media.choice });

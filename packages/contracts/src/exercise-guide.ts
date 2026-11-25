@@ -75,6 +75,9 @@ export const exerciseGuide = z.object({
     source: z.literal("tartan-original"),
     rights: z.literal("Tartan"),
     // Posé à la lecture, jamais enregistré : le geste animé de la fiche existe, relu ou non par le fondateur.
+    photo: z
+      .object({ path: z.string().regex(/^\/exercise-photos\/[a-z0-9-]+-v[1-9][0-9]*\.webp$/), alt: instruction })
+      .optional(),
     motion: z.enum(["review", "approved"]).optional(),
     // Posées à la lecture elles aussi : les vidéos de la fiche commune, déposées par le fondateur, une par vue.
     videos: z.array(catalogVideo).max(2).optional(),

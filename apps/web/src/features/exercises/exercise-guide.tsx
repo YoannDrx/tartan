@@ -92,6 +92,16 @@ export const MovementGuide = ({ guide, variants }: { guide: ExerciseGuide; varia
     <section aria-label={m.exerciseGuide.title} className="@container min-w-0">
       <div className="grid gap-5 @3xl:grid-cols-2 @3xl:items-start @3xl:gap-8">
         <div className="min-w-0 @3xl:sticky @3xl:top-24">
+          {guide.illustration.photo && (
+            <img
+              loading="lazy"
+              width={488}
+              height={488}
+              className="h-auto max-w-full rounded-card"
+              src={guide.illustration.photo.path}
+              alt={guide.illustration.photo.alt}
+            />
+          )}
           <Illustration guide={guide} />
         </div>
         <div className="flex min-w-0 flex-col gap-5">

@@ -16,6 +16,10 @@ La demande propose séance ou sept jours, disciplines et disponibilités. Le coa
 
 Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
 
+## Illustrations, série pilote et atelier de relecture · 25 novembre 2026
+
+Douze silhouettes détaillées ont une image et une vignette WebP versionnées, 272 Kio sur disque au total, environ 5,2 Mio pour 233 au même poids. Le coût monétaire par reprise reste à chiffrer. Texte, image et geste ont des validations séparées. Aucune validation humaine simulée. Deux tests de service et les parcours Playwright ordinateur et téléphone ont passé la validation puis la réouverture d’une image. Inventaire agrégé en lecture seule le 25 novembre : 197 fiches communes visibles, dont les 173 clés versionnées et 24 sans clé ni guide. Ces 24 figurent séparément dans l’atelier. Le pilote et les 60 nouvelles fiches attendent leur relecture sportive. Les 221 autres illustrations restent à produire.
+
 **En une phrase.**
 - Fait : le plan du 15 novembre est mené jusqu'au lot 4. Le constructeur est terminé sur le web et sur le mobile, Maestro tourne sur iOS et Android, et les 173 fiches ont un geste animé, de profil ou de face.
 - Pas encore prouvé : l'IA n'est pas qualifiée, aucun vrai paiement n'a été fait et aucun téléphone physique n'a servi.
@@ -90,6 +94,10 @@ Le plan du 15 novembre s'arrête au lot 4 :
 - le lot 6 (IA qualifiée) est remplacé par la refonte du 21 novembre et l'essai du fondateur sur la Preview.
 
 Le fondateur a ouvert l'application au public le 23 novembre 2026 ; la page d'accueil ne parle plus ni de pilote ni de bêta.
+
+## Édition stade du 25 novembre
+
+60 fiches supplémentaires sont préparées pour la relecture dans la console des exercices. Les 173 fiches diffusées restent disponibles. Chaque nouvelle fiche indique les appuis, le matériel, le comptage et une variante. La diffusion aux athlètes attend les visuels et la relecture technique.
 
 ## Décisions du fondateur en vigueur
 

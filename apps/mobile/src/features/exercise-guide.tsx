@@ -1,7 +1,8 @@
 import type { CatalogVideo, ExerciseGuide } from "@tartan/contracts";
 import { m } from "@tartan/i18n";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { pilotImages } from "./pilot-images";
+import { Image, Pressable, View } from "react-native";
 import { SvgXml } from "react-native-svg";
 import { useQuery } from "@tanstack/react-query";
 import { exerciseClip } from "@tartan/mascot/exercises";
@@ -215,6 +216,15 @@ export function MovementGuide({
   const authorship = guideAuthorship(guide);
   return (
     <View testID="exercise-guide-concise" accessibilityLabel={m.exerciseGuide.title} style={{ gap: space.lg }}>
+      {guide.illustration.photo && pilotImages[guide.illustration.photo.path] && (
+        <Image
+          accessible
+          accessibilityLabel={guide.illustration.photo.alt}
+          source={pilotImages[guide.illustration.photo.path]}
+          resizeMode="contain"
+          style={{ width: "100%", aspectRatio: 1 }}
+        />
+      )}
       <GuideMedia guide={guide} />
       <T variant="bodyStrong">{text.objective}</T>
       <View style={{ gap: space.xs }}>

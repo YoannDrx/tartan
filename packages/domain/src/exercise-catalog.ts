@@ -11,6 +11,7 @@ import { CORE_CATALOG } from "./exercise-catalog/core";
 import { COORDINATION_CATALOG } from "./exercise-catalog/coordination";
 import { STAIRS_CATALOG } from "./exercise-catalog/stairs";
 import { VARIANTS_CATALOG } from "./exercise-catalog/variants";
+import { STADIUM_CATALOG } from "./exercise-catalog/stadium";
 import { WARMUP_CATALOG } from "./exercise-catalog/warmup";
 
 export const EXERCISE_CATALOG_VERSION = 5;
@@ -52,6 +53,10 @@ const loadExplanation = (entry: CatalogueDraft, loadKind: StarterExercise["stren
       return "Charge totale en kg : barre et disques inclus, sans la masse corporelle.";
     if (entry.equipment.includes("dumbbells"))
       return "Charge externe totale en kg : additionne les haltères utilisés simultanément. Avec un seul haltère, indique sa masse.";
+    if (entry.equipment.includes("kettlebells"))
+      return entry.key === "kb-front-rack-squat"
+        ? "Charge totale : additionne les masses des deux kettlebells en kg."
+        : "Charge externe : indique la masse du kettlebell utilisé en kg.";
     if (entry.equipment.includes("medicine_ball")) return "Indique la masse du ballon en kg, sans la masse corporelle.";
     return "Indique la charge externe affichée en kg ; les valeurs de machines différentes ne sont pas directement comparables.";
   }
@@ -60,12 +65,12 @@ const loadExplanation = (entry: CatalogueDraft, loadKind: StarterExercise["stren
     : "Aucune charge externe n'est définie pour cette fiche ; ne renseigne pas la masse corporelle en kg.";
 };
 
-const buildEntry = (entry: CatalogueDraft): CatalogExercise => {
+const buildEntry = (entry: CatalogueDraft, version: number): CatalogExercise => {
   const previous = STARTER_LIBRARY.find((old) => old.name === entry.name);
   const strengthLoadKind = previous ? previous.strengthLoadKind : entry.loadKind;
   const guide = exerciseGuide.parse({
     catalogKey: entry.key,
-    version: EXERCISE_CATALOG_VERSION,
+    version,
     family: entry.family,
     level: entry.level,
     objective: entry.objective,
@@ -87,7 +92,7 @@ const buildEntry = (entry: CatalogueDraft): CatalogExercise => {
     loadExplanation: loadExplanation(entry, strengthLoadKind),
     illustration: {
       status: "draft",
-      path: `/exercise-guides/${entry.key}-v${EXERCISE_CATALOG_VERSION}.svg`,
+      path: `/exercise-guides/${entry.key}-v${version}.svg`,
       alt: `${entry.name} : positions clés du mouvement, de l'installation à la fin du geste.`,
       positions: [entry.setup, ...entry.steps],
       source: "tartan-original",
@@ -97,7 +102,7 @@ const buildEntry = (entry: CatalogueDraft): CatalogExercise => {
   });
   return {
     catalogKey: entry.key,
-    catalogVersion: EXERCISE_CATALOG_VERSION,
+    catalogVersion: version,
     name: entry.name,
     aliases: [...new Set([...(previous?.aliases ?? []), ...entry.aliases])],
     category: previous?.category ?? entry.category,
@@ -121,7 +126,10 @@ export const EXERCISE_CATALOG: CatalogExercise[] = [
   ...STAIRS_CATALOG,
   ...WARMUP_CATALOG,
   ...VARIANTS_CATALOG,
-].map(buildEntry);
+].map((entry) => buildEntry(entry, EXERCISE_CATALOG_VERSION));
+
+// Les fiches de l’édition suivante sont relues dans l’atelier avant leur diffusion.
+export const STADIUM_EDITION = STADIUM_CATALOG.map((entry) => buildEntry(entry, 6));
 
 export const catalogExerciseByKey = (key: string) => EXERCISE_CATALOG.find((exercise) => exercise.catalogKey === key);
 

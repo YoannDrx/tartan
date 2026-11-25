@@ -14,6 +14,14 @@ La demande propose séance ou sept jours, disciplines et disponibilités. Le coa
 
 Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
 
+## 2026-11-25, Codex, édition stade en relecture
+
+Les 60 nouvelles fiches disposent de clés de catalogue stables dans `exercise-catalog/stadium.ts`. La console des exercices permet de relire leurs textes. Les tests vérifient les 233 clés et noms distincts, les contrats et les statuts de relecture. Les visuels et la validation par le fondateur sont à faire avant la diffusion de cette édition.
+
+## 2026-11-25, Codex, Illustrations, série pilote et atelier de relecture
+
+Douze silhouettes détaillées ont une image et une vignette WebP versionnées, 272 Kio sur disque au total, environ 5,2 Mio pour 233 au même poids. Le coût monétaire par reprise reste à chiffrer. Texte, image et geste ont des validations séparées. Aucune validation humaine simulée. Deux tests de service et les parcours Playwright ordinateur et téléphone ont passé la validation puis la réouverture d’une image. Inventaire agrégé en lecture seule le 25 novembre : 197 fiches communes visibles, dont les 173 clés versionnées et 24 sans clé ni guide. Ces 24 figurent séparément dans l’atelier. Le pilote et les 60 nouvelles fiches attendent leur relecture sportive. Les 221 autres illustrations restent à produire.
+
 Modèle :
 
 ```text
