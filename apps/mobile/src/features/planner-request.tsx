@@ -146,43 +146,6 @@ export function NativePlannerRequest({
       </View>
 
       <View style={{ gap: space.sm }}>
-        <SectionTitle>{t.when}</SectionTitle>
-        <PillRow>
-          {[false, true].map((week) => (
-            <Pill
-              key={Number(week)}
-              label={week ? m.aiPlanner.sevenDays : m.aiPlanner.oneSession}
-              pressed={Boolean(value.week) === week}
-              disabled={frozen}
-              onPress={() => set({ week, days: [] })}
-            />
-          ))}
-        </PillRow>
-        {value.week && (
-          <Fold title={m.aiPlanner.availableDays}>
-            <PillRow>
-              {plannerWeekDays(value.date).map((day) => (
-                <Pill
-                  key={day}
-                  label={historyDate(day)}
-                  pressed={value.days?.includes(day) ?? false}
-                  disabled={frozen}
-                  onPress={() => set({ days: toggle(value.days ?? [], day) })}
-                />
-              ))}
-            </PillRow>
-          </Fold>
-        )}
-        <DateField
-          label={t.day}
-          hint={t.dayHint}
-          value={value.date}
-          editable={!frozen}
-          onChangeText={(date) => set({ date, days: [] })}
-        />
-      </View>
-
-      <View style={{ gap: space.sm }}>
         {/* Le champ et son micro ne font qu'un : le bouton est posé dans le champ, en haut à droite. */}
         <Field
           ref={field}
@@ -265,6 +228,43 @@ export function NativePlannerRequest({
             ))}
           </View>
         ) : null}
+      </View>
+
+      <View style={{ gap: space.sm }}>
+        <SectionTitle>{t.when}</SectionTitle>
+        <PillRow>
+          {[false, true].map((week) => (
+            <Pill
+              key={Number(week)}
+              label={week ? m.aiPlanner.sevenDays : m.aiPlanner.oneSession}
+              pressed={Boolean(value.week) === week}
+              disabled={frozen}
+              onPress={() => set({ week, days: [] })}
+            />
+          ))}
+        </PillRow>
+        {value.week && (
+          <Fold title={m.aiPlanner.availableDays}>
+            <PillRow>
+              {plannerWeekDays(value.date).map((day) => (
+                <Pill
+                  key={day}
+                  label={historyDate(day)}
+                  pressed={value.days?.includes(day) ?? false}
+                  disabled={frozen}
+                  onPress={() => set({ days: toggle(value.days ?? [], day) })}
+                />
+              ))}
+            </PillRow>
+          </Fold>
+        )}
+        <DateField
+          label={t.day}
+          hint={t.dayHint}
+          value={value.date}
+          editable={!frozen}
+          onChangeText={(date) => set({ date, days: [] })}
+        />
       </View>
 
       <Fold title={t.precise} detail={summary || null} testID="planner-precise">
