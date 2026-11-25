@@ -24,10 +24,12 @@ env:
 - waitForAnimationToEnd
 - tapOn:
     id: sequence-edit-detail-a
+# Le centrage de Maestro sur iOS ajoute un grand balayage même après avoir trouvé le bouton.
+# Dans la feuille, il peut alors le faire passer sous le titre fixe avant le toucher.
 - scrollUntilVisible:
     element:
       id: set-plan-toggle
-    centerElement: true
+    visibilityPercentage: 100
     timeout: 20000
 - waitForAnimationToEnd
 - tapOn:
@@ -35,7 +37,7 @@ env:
 - scrollUntilVisible:
     element:
       id: set-plan-load-0
-    centerElement: true
+    visibilityPercentage: 100
     timeout: 20000
 - waitForAnimationToEnd
 - tapOn:
