@@ -47,6 +47,10 @@ Douze silhouettes détaillées ont une image et une vignette WebP versionnées, 
 
 Deux préférences de compte règlent le ton de l’accueil et celui de la séance. Le catalogue local contient 30 mantras et 12 retours par ton. Le calcul tient compte des séries de toutes les occurrences du même mouvement dans un circuit. Vérifications du domaine, types, lint et design effectuées. La recette hors connexion et les lecteurs d’écran sur téléphone restent à faire.
 
+## 2026-11-25, Codex, téléchargement Gradle de la CI Android
+
+Le journal de compilation identifie des refus HTTP 429 de Maven Central pendant la résolution de dépendances. Les deux jobs Android réessaient cette étape une fois sur 429 ou indisponibilité temporaire du serveur. Une erreur de compilation remonte immédiatement. Le délai de Maestro et le temps de téléchargement des dépendances se mesurent séparément.
+
 ## 2026-11-25, Codex, APK Android de bêta
 
 Le profil EAS beta-apk hérite du canal beta et de l’identité de production. EAS a résolu localement le profil en APK, canal beta, environnement production. La continuité de signature, le téléchargement privé et la mise à jour sur téléphone restent à éprouver.
