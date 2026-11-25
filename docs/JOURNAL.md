@@ -10,6 +10,10 @@ Deux préférences de compte règlent le ton de l’accueil et celui de la séan
 
 Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée et le calendrier personnel. Un carnet neuf accepte le matériel choisi et ramène au planificateur. Les 14 tests du service personnel passent, dont deux demandes simultanées pour le même carnet. Le parcours reste à éprouver sur téléphone.
 
+## 2026-11-25, Codex, destinataire du scénario natif
+
+Sur Android, sélectionner le texte du groupe pouvait décocher son bouton déjà actif. La consigne cite le groupe et la recette sait répondre à la question de destinataire avant de contrôler la création du brouillon.
+
 ## 2026-11-25, Codex, saisie du planificateur sur téléphone
 
 Le champ de dictée précède le choix de période. Les parcours centrent le champ avant la saisie et vérifient que l’envoi est disponible. L’espace Android de recette reçoit les mêmes droits au planificateur que celui du simulateur iOS.
