@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { EXERCISE_CATALOG, STADIUM_EDITION } from "@tartan/domain/exercise-catalog";
 import { imagePath, catalogImages } from "@/server/catalog-illustrations";
 import { legacyCovers, legacyCoverStamp } from "@/server/legacy-catalog-covers";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getActorFrom } from "@/lib/session";
 import { recordStepUp } from "@/server/admin-step-up.service";
@@ -83,6 +84,14 @@ describe("Illustrations du catalogue", () => {
     const own = await prisma.exercise.create({
       data: { name: "Fiche privée", category: "strength", organizationId },
     });
+    const existingGuides = await prisma.exercise.findMany({
+      where: {
+        organizationId: null,
+        catalogVersion: p.guideVersion,
+        OR: [{ catalogKey: p.key }, { sourceCatalogKey: p.key }],
+      },
+      select: { id: true, guide: true, updatedAt: true },
+    });
     try {
       await expect(linkLegacyGuide(actor, common.id, common.updatedAt, p.key)).rejects.toThrow();
       for (const kind of ["text", "image", "motion"] as const)
@@ -108,6 +117,11 @@ describe("Illustrations du catalogue", () => {
       });
     } finally {
       await prisma.exercise.deleteMany({ where: { id: { in: [own.id, common.id] } } });
+      await prisma.$transaction(
+        existingGuides.map(({ id, guide, updatedAt }) =>
+          prisma.exercise.update({ where: { id }, data: { guide: guide ?? Prisma.DbNull, updatedAt } }),
+        ),
+      );
       await prisma.platformSetting.deleteMany({ where: { key: { startsWith: "exerciseReview:" + p.key + ":" } } });
       await prisma.platformSetting.createMany({ data: saved.map((row) => ({ ...row, value: row.value === true })) });
     }
