@@ -10,6 +10,7 @@ import {
   type PlannerReviewedDraft,
 } from "@tartan/contracts";
 import {
+  plannerAgenda,
   PLANNER_MAX_ADJUSTMENTS,
   PLANNER_MAX_CLARIFICATIONS,
   plannerDisplayText,
@@ -127,6 +128,26 @@ export function PlannerResult({
     }
   };
   const [reply, setReply] = useState("");
+  const [keep, setKeep] = useState<{ session: number; block: number }[]>([]);
+  const isKept = (session: number, block: number) => keep.some((e) => e.session === session && e.block === block);
+  const toggleKeep = (session: number, block: number) =>
+    setKeep((old) =>
+      old.some((e) => e.session === session && e.block === block)
+        ? old.filter((e) => e.session !== session || e.block !== block)
+        : [...old, { session, block }],
+    );
+  const decide = async (apply: boolean) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      onProposal(await api.decidePlannerAdjustment(orgId, proposal.id, proposal.version, apply));
+      setKeep([]);
+    } catch (cause) {
+      onError(messageOf(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
   const mic = usePlannerDictation(orgId, (text) => setReply((current) => [current, text].filter(Boolean).join(" ")));
   const [linked, setLinked] = useState(proposal.linkedSessions);
   const refreshLinked = async () => setLinked((await api.plannerProposal(orgId, proposal.id)).linkedSessions);
@@ -150,6 +171,19 @@ export function PlannerResult({
   const pendingConfirmation = useRef<ReturnType<typeof confirmPlannerProposalInput.parse> | null>(null);
   const display = (value: string) => plannerDisplayText(value, proposal);
   const drafts = prepared?.sessions ?? null;
+  const [skipped, setSkipped] = useState<number[]>([]);
+  const complete = proposal.createdSessionIndices ?? [];
+  const selected = (drafts ?? []).map((_, i) => i).filter((i) => !complete.includes(i) && !skipped.includes(i));
+  const agenda =
+    drafts && proposal.selection.period.from !== proposal.selection.period.to
+      ? plannerAgenda(proposal, drafts, context.exercises)
+      : [];
+  const equipmentLabels = { ...m.trainingProfile.equipment, ...m.exerciseClassification.extraEquipment };
+  const selectedSlots = slots.filter((slot) => selected.includes(slot.session));
+  const toggleSession = (i: number) => {
+    setSkipped((old) => (old.includes(i) ? old.filter((n) => n !== i) : [...old, i]));
+    pendingConfirmation.current = null;
+  };
   const stale = Boolean(prepared && prepared.version !== proposal.version);
   const running = stream.running || busy || stale;
 
@@ -174,19 +208,22 @@ export function PlannerResult({
     return () => controller.abort();
   }, [orgId, proposal.id, proposal.version, proposal.state, preparedVersion, onError]);
 
-  const updateDraft = useCallback((index: number, update: (draft: PlannerReviewedDraft) => PlannerReviewedDraft) => {
-    setSaveStopped(false);
-    setSaveMessage("");
-    setPrepared((current) => {
-      const session = current?.sessions[index];
-      if (!current || !session) return current;
-      const next = update(session);
-      return next === session
-        ? current
-        : { ...current, edited: true, sessions: current.sessions.map((s, i) => (i === index ? next : s)) };
-    });
-    pendingConfirmation.current = null;
-  }, []);
+  const updateDraft = useCallback(
+    (index: number, update: (draft: PlannerReviewedDraft) => PlannerReviewedDraft) => {
+      setSaveStopped(false);
+      setSaveMessage("");
+      setPrepared((current) => {
+        const session = current?.sessions[index];
+        if (!current || !session) return current;
+        const next = update(session);
+        return next === session
+          ? current
+          : { ...current, edited: true, sessions: current.sessions.map((s, i) => (i === index ? next : s)) };
+      });
+      pendingConfirmation.current = null;
+    },
+    [setPrepared, setSaveMessage, setSaveStopped],
+  );
   const acceptLoads = useCallback(
     (index: number, key: string, ready: boolean) =>
       setLoads((current) =>
@@ -194,15 +231,19 @@ export function PlannerResult({
           ? current
           : { ...current, [index]: { key, ready } },
       ),
-    [],
+    [setLoads],
   );
   // La phase vient avec la séance préparée ; elle n'est redemandée que si le coach change la date ou les
   // destinataires, dans la séance.
-  const phasesReady = !context.phasesEnabled || Boolean(drafts?.every((draft) => draft.phaseReview));
+  const phasesReady =
+    !context.phasesEnabled || Boolean(drafts?.every((draft, i) => !selected.includes(i) || draft.phaseReview));
   // L'aperçu individuel n'est exigé que si un pourcentage doit être converti pour chacun.
   const loadsReady = Boolean(
     drafts?.every(
-      (draft, index) => !hasPercent(draft) || (loads[index]?.ready && loads[index]?.key === JSON.stringify(draft)),
+      (draft, index) =>
+        !selected.includes(index) ||
+        !hasPercent(draft) ||
+        (loads[index]?.ready && loads[index]?.key === JSON.stringify(draft)),
     ),
   );
   const valid =
@@ -273,16 +314,27 @@ export function PlannerResult({
   };
 
   const confirm = async () => {
-    if (!drafts || !valid || !phasesReady || !loadsReady || running || slots.length) return;
+    if (!drafts || !valid || !phasesReady || !loadsReady || running || selectedSlots.length || !selected.length) return;
     setBusy(true);
     try {
       const input =
         pendingConfirmation.current ??
-        confirmPlannerProposalInput.parse({ expectedVersion: proposal.version, sessions: drafts, confirmed: true });
+        confirmPlannerProposalInput.parse({
+          expectedVersion: proposal.version,
+          sessions: drafts,
+          confirmed: true,
+          ...(drafts.length > 1 ? { selectedIndices: selected } : {}),
+        });
       pendingConfirmation.current = input;
       const result = await api.confirmPlannerProposal(orgId, proposal.id, input);
-      setCreated(result.sessions);
-      await refreshLinked();
+      const fresh = await api.plannerProposal(orgId, proposal.id);
+      setLinked(fresh.linkedSessions);
+      onProposal(fresh);
+      pendingConfirmation.current = null;
+      if (result.partial) {
+        setSkipped([]);
+        setSaveMessage(m.aiPlanner.remainingDays);
+      } else setCreated(fresh.draftIds ?? result.sessions);
     } catch (cause) {
       onError(messageOf(cause));
     } finally {
@@ -296,7 +348,7 @@ export function PlannerResult({
       text: reply,
       reviewed: true,
       // « Ajuster » part de la séance à l'écran : les retouches faites à la main sont gardées.
-      ...(proposal.state === "proposal" && screen ? { sessions: screen } : {}),
+      ...(proposal.state === "proposal" ? { ...(screen ? { sessions: screen } : {}), adjustmentReview: { keep } } : {}),
     });
     if (!input.success || running) return;
     onClarify(input.data);
@@ -390,8 +442,39 @@ export function PlannerResult({
       ? historyDate(proposal.selection.period.from)
       : `${historyDate(proposal.selection.period.from)} – ${historyDate(proposal.selection.period.to)}`;
   const adjustments = proposal.adjustmentCount ?? 0;
-  const firstSlot = slots[0];
+  const firstSlot = selectedSlots[0];
 
+  if (proposal.adjustmentPreview)
+    return (
+      <section className="flex flex-col gap-4" aria-label={m.aiPlanner.adjustmentReview}>
+        <h2 className="t-section">{m.aiPlanner.adjustmentReview}</h2>
+        {proposal.adjustmentPreview.length === 0 && <p>{m.aiPlanner.noAdjustments}</p>}
+        {proposal.adjustmentPreview.map((pair, i) => (
+          <div className="grid gap-4 tablet:grid-cols-2" key={i}>
+            {(["before", "after"] as const).map((side) => (
+              <div key={side}>
+                <h3 className="font-semibold">{side === "before" ? m.aiPlanner.prior : m.aiPlanner.proposed}</h3>
+                <ul>
+                  {pair[side].map((line, j) => (
+                    <li className="break-words" key={j}>
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={busy} onClick={() => void decide(true)}>
+            {m.aiPlanner.applyAdjustment}
+          </Button>
+          <Button variant="secondary" disabled={busy} onClick={() => void decide(false)}>
+            {m.aiPlanner.discardAdjustment}
+          </Button>
+        </div>
+      </section>
+    );
   if (created)
     return (
       <section className="flex flex-col items-start gap-3">
@@ -590,6 +673,72 @@ export function PlannerResult({
             </div>
           ) : null}
           {!drafts ? <p role="status">{t.loadingSession}</p> : null}
+          {agenda.length > 0 && (
+            <section aria-label={m.aiPlanner.agenda}>
+              <h3 className="t-section">{m.aiPlanner.agenda}</h3>
+              <ol className="divide-y divide-card-line">
+                {agenda.map((day) => (
+                  <li key={day.date} className="py-2">
+                    <strong>{historyDate(day.date)}</strong>
+                    {day.sessions.length === 0 && day.calendar.length === 0 && <p>{m.aiPlanner.restDay}</p>}
+                    {day.calendar.map((entry) => (
+                      <p key={entry.id}>
+                        {m.aiPlanner.planned} · {entry.title}
+                      </p>
+                    ))}
+                    {day.sessions.map((s, i) => (
+                      <div key={i}>
+                        <p>
+                          {s.title} ·{" "}
+                          {s.estimated ? m.aiPlanner.estimatedMinutes(s.estimated) : m.aiPlanner.unknownDuration}
+                        </p>
+                        <p>{s.blocks.join(" · ")}</p>
+                        {s.equipment.length > 0 && <p>{s.equipment.map((e) => equipmentLabels[e]).join(", ")}</p>}
+                        {s.missingRest && <p>{m.aiPlanner.missingRest}</p>}
+                        {s.missingEquipment.length > 0 && (
+                          <p>
+                            {m.aiPlanner.equipmentCheck} ·{" "}
+                            {s.missingEquipment.map((e) => equipmentLabels[e]).join(", ")}
+                          </p>
+                        )}
+                        {s.consecutiveJumps && <p>{m.aiPlanner.consecutiveJumps}</p>}
+                        {s.collision && <p>{m.aiPlanner.collision}</p>}
+                      </div>
+                    ))}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+          {complete.length > 0 &&
+            linked?.map((item) =>
+              item.state === "unavailable" ? (
+                <p key={item.id}>{m.aiPlanner.missingDraft}</p>
+              ) : (
+                <Link key={item.id} className="underline" href={`/seances/${item.id}`}>
+                  {item.state === "published" ? m.aiPlanner.openPublished(item.title) : t.openDraft(item.title)} ·{" "}
+                  {historyDate(item.date)}
+                </Link>
+              ),
+            )}
+          {drafts && drafts.length > 1 && (
+            <fieldset className="flex flex-col gap-2">
+              <legend>{m.aiPlanner.selectDays}</legend>
+              {drafts.map((d, i) => (
+                <label key={i} className="flex min-h-11 items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(i)}
+                    disabled={running || complete.includes(i)}
+                    onChange={() => toggleSession(i)}
+                  />
+                  {[historyDate(d.date), d.draft.title, complete.includes(i) ? m.aiPlanner.alreadyCreated : null]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </label>
+              ))}
+            </fieldset>
+          )}
           {drafts?.map((session, index) => (
             <PlannerDraftReview
               key={index}
@@ -598,7 +747,7 @@ export function PlannerResult({
               context={context}
               proposal={proposal}
               orgId={orgId}
-              busy={running}
+              busy={running || complete.includes(index)}
               warnings={warnings[index] ?? []}
               slots={slots.filter((slot) => slot.session === index)}
               onUpdate={updateDraft}
@@ -607,7 +756,7 @@ export function PlannerResult({
               onProbable={resolveProbable}
             />
           ))}
-          {drafts ? (
+          {drafts && !complete.length ? (
             <Fold title={t.adjust} detail={t.adjustCount(adjustments, PLANNER_MAX_ADJUSTMENTS)}>
               {adjustments < PLANNER_MAX_ADJUSTMENTS ? (
                 <form
@@ -617,6 +766,22 @@ export function PlannerResult({
                     send();
                   }}
                 >
+                  <fieldset>
+                    <legend>{m.aiPlanner.keepBlocks}</legend>
+                    {drafts.map((d, session) =>
+                      d.draft.blocks.map((b, block) => (
+                        <label key={b.ref} className="flex min-h-11 items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isKept(session, block)}
+                            onChange={() => toggleKeep(session, block)}
+                            disabled={running}
+                          />
+                          {[historyDate(d.date), b.name].join(" · ")}
+                        </label>
+                      )),
+                    )}
+                  </fieldset>
                   <Field label={t.adjustLabel} hint={t.adjustHint} className="w-full">
                     {(a) => (
                       <Textarea
@@ -640,7 +805,7 @@ export function PlannerResult({
           <div className="sticky bottom-0 z-10 -mx-4 flex flex-col gap-2 border-t border-card-line bg-card px-4 py-3 desktop:static desktop:mx-0 desktop:border-0 desktop:p-0">
             {/* Ce qui retient encore le brouillon, dit à côté du bouton. */}
             {drafts && firstSlot ? (
-              <p role="status">{t.slot.left(slots.length)}</p>
+              <p role="status">{t.slot.left(selectedSlots.length)}</p>
             ) : drafts && !valid ? (
               <p role="status">{t.draftsInvalid}</p>
             ) : drafts && !loadsReady ? (
@@ -658,16 +823,16 @@ export function PlannerResult({
                   card?.querySelector<HTMLButtonElement>("button[aria-label]")?.focus({ preventScroll: true });
                 }}
               >
-                {t.complete(slots.length, firstSlot.said)}
+                {t.complete(selectedSlots.length, firstSlot.said)}
               </Button>
             ) : (
               <Button
                 type="button"
                 className="w-full tablet:w-auto tablet:self-start"
-                disabled={!drafts || !valid || !phasesReady || !loadsReady || running}
+                disabled={!drafts || !valid || !phasesReady || !loadsReady || running || !selected.length}
                 onClick={() => void confirm()}
               >
-                {busy ? t.creating : drafts && drafts.length > 1 ? t.createMany(drafts.length) : t.create}
+                {busy ? t.creating : selected.length > 1 ? t.createMany(selected.length) : t.create}
               </Button>
             )}
             {prepared?.edited ? (

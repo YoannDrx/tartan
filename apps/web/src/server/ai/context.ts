@@ -6,6 +6,7 @@ import {
   isPlannerSlotToken,
   trainingPhaseProgress,
   plannerPhaseChoicesForDate,
+  plannerRequiredEquipment,
   plannerSessionMovements,
   plannerSessionToComposition,
 } from "@tartan/domain";
@@ -70,6 +71,7 @@ export const plannerBindings = z.object({
       category: z.string(),
       updatedAt: z.string(),
       aliases: z.array(z.string()).optional(),
+      catalogKey: z.string().max(120).nullable().optional(),
       classification: exerciseClassification.strict().nullable().optional(),
       strengthLoadKind: snapshotItem.shape.strengthLoadKind,
       family: exerciseFamily.nullable().optional(),
@@ -315,6 +317,7 @@ export async function buildPlannerBindings(
       category: entry.category,
       updatedAt: entry.updatedAt.toISOString(),
       aliases: labels(entry),
+      catalogKey: key,
       classification: entry.classification,
       strengthLoadKind: entry.strengthLoadKind,
       family: guide?.family ?? exerciseFamilyOf(null, entry.category),
@@ -598,6 +601,9 @@ export function providerContextFor(
       category: e.category,
       aliases: (e.aliases ?? []).slice(0, 20),
       classification: e.classification ?? null,
+      ...(e.catalogKey && plannerRequiredEquipment(e.catalogKey, e.classification?.equipment)?.includes("jump_rope")
+        ? { catalogKey: e.catalogKey }
+        : {}),
       strengthLoadKind: e.strengthLoadKind ?? null,
       family: e.family ?? null,
       level: e.level ?? null,

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   plannerIntent,
+  plannerEquipment,
   plannerItem,
   plannerMatchConfidence,
   plannerPlannedSet,
@@ -10,7 +11,6 @@ import {
 } from "./ai-planner";
 import { exerciseFamily } from "./exercise-guide";
 import { clockTime, isoDate } from "./session";
-import { trainingEquipment } from "./training-profile";
 
 // Sorties structurées des étapes du planificateur (21 novembre 2026). Chaque schéma est strict : toutes les clés
 // sont requises, une absence vaut null. Aucun identifiant de personne, aucune donnée de santé.
@@ -44,7 +44,7 @@ export const plannerUnderstoodProposal = z
     durationMin: z.number().int().min(5).max(300).nullable(),
     level: z.enum(["beginner", "intermediate", "advanced"]).nullable(),
     equipment: z
-      .array(trainingEquipment)
+      .array(plannerEquipment)
       .max(16)
       .nullable()
       .describe("Le matériel dit par le coach ; « sans matériel » : [\"bodyweight\"] ; rien de dit : null."),

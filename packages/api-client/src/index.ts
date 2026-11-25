@@ -197,6 +197,11 @@ export const createApiClient = (options: ApiClientOptions) => {
         undefined,
         signal,
       ),
+    decidePlannerAdjustment: (orgId: string, proposalId: string, expectedVersion: number, apply: boolean) =>
+      request("POST", `/orgs/${orgId}/planner/proposals/${proposalId}/adjustment`, plannerProposalResponse, {
+        expectedVersion,
+        apply,
+      }),
     duplicatePlannerProposal: (orgId: string, sourceId: string, id: string, expectedVersion: number) =>
       request("POST", `/orgs/${orgId}/planner/proposals/${sourceId}/duplicate`, z.object({ id: z.uuid() }), {
         id,

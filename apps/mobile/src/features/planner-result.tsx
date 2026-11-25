@@ -8,7 +8,7 @@ import {
   type PlannerReviewedDraft,
   type PlannerUsageResponse,
 } from "@tartan/contracts";
-import { PLANNER_MAX_ADJUSTMENTS, PLANNER_MAX_CLARIFICATIONS, plannerDisplayText } from "@tartan/domain";
+import { plannerAgenda, PLANNER_MAX_ADJUSTMENTS, PLANNER_MAX_CLARIFICATIONS, plannerDisplayText } from "@tartan/domain";
 import { historyDate, m } from "@tartan/i18n";
 import { useQueryClient } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
@@ -96,6 +96,26 @@ export function NativePlannerResult({
     }
   };
   const [reply, setReply] = useState("");
+  const [keep, setKeep] = useState<{ session: number; block: number }[]>([]);
+  const isKept = (session: number, block: number) => keep.some((e) => e.session === session && e.block === block);
+  const toggleKeep = (session: number, block: number) =>
+    setKeep((old) =>
+      old.some((e) => e.session === session && e.block === block)
+        ? old.filter((e) => e.session !== session || e.block !== block)
+        : [...old, { session, block }],
+    );
+  const decide = async (apply: boolean) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      onProposal(await api.decidePlannerAdjustment(orgId, proposal.id, proposal.version, apply));
+      setKeep([]);
+    } catch (cause) {
+      onError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
   const mic = usePlannerDictation(orgId, (text) => setReply((current) => [current, text].filter(Boolean).join(" ")));
   const [linked, setLinked] = useState(proposal.linkedSessions);
   const refreshLinked = async () => setLinked((await api.plannerProposal(orgId, proposal.id)).linkedSessions);
@@ -120,6 +140,19 @@ export function NativePlannerResult({
   const pendingConfirmation = useRef<ConfirmPlannerProposalInput | null>(null);
   const display = (value: string) => plannerDisplayText(value, proposal);
   const drafts = prepared?.sessions ?? null;
+  const [skipped, setSkipped] = useState<number[]>([]);
+  const complete = proposal.createdSessionIndices ?? [];
+  const selected = (drafts ?? []).map((_, i) => i).filter((i) => !complete.includes(i) && !skipped.includes(i));
+  const agenda =
+    drafts && proposal.selection.period.from !== proposal.selection.period.to
+      ? plannerAgenda(proposal, drafts, context.exercises)
+      : [];
+  const equipmentLabels = { ...m.trainingProfile.equipment, ...m.exerciseClassification.extraEquipment };
+  const selectedSlots = slots.filter((slot) => selected.includes(slot.session));
+  const toggleSession = (i: number) => {
+    setSkipped((old) => (old.includes(i) ? old.filter((n) => n !== i) : [...old, i]));
+    pendingConfirmation.current = null;
+  };
   const stale = Boolean(prepared && prepared.version !== proposal.version);
   const running = stream.running || busy || stale || !online;
   useEffect(() => onDirty(Boolean(prepared?.edited) && !created), [prepared?.edited, created, onDirty]);
@@ -169,13 +202,20 @@ export function NativePlannerResult({
   );
   // La phase vient avec la séance préparée ; elle n'est redemandée que si le coach change la date ou les
   // destinataires, dans la séance.
-  const phasesReady = !context.phasesEnabled || Boolean(drafts?.every((draft) => draft.phaseReview));
+  const phasesReady =
+    !context.phasesEnabled || Boolean(drafts?.every((draft, i) => !selected.includes(i) || draft.phaseReview));
   const valid = Boolean(
     drafts &&
     confirmPlannerProposalInput.safeParse({ expectedVersion: proposal.version, sessions: drafts, confirmed: true })
       .success,
   );
-  const next = plannerNextAction({ drafts, slots, valid, phasesReady, loads });
+  const next = plannerNextAction({
+    drafts: drafts ? selected.map((i) => drafts[i]!) : null,
+    slots: selectedSlots,
+    valid: valid && selected.length > 0,
+    phasesReady,
+    loads: Object.fromEntries(selected.map((origin, i) => [i, loads[origin]])),
+  });
   // La séance de l'écran, quand elle peut partir telle quelle : c'est la base d'un ajustement ou d'un retrait.
   const screen = plannerScreenSessions(drafts);
 
@@ -245,11 +285,22 @@ export function NativePlannerResult({
     try {
       const input =
         pendingConfirmation.current ??
-        confirmPlannerProposalInput.parse({ expectedVersion: proposal.version, sessions: drafts, confirmed: true });
+        confirmPlannerProposalInput.parse({
+          expectedVersion: proposal.version,
+          sessions: drafts,
+          confirmed: true,
+          ...(drafts.length > 1 ? { selectedIndices: selected } : {}),
+        });
       pendingConfirmation.current = input;
       const result = await api.confirmPlannerProposal(orgId, proposal.id, input);
-      setCreated(result.sessions);
-      await refreshLinked();
+      const fresh = await api.plannerProposal(orgId, proposal.id);
+      setLinked(fresh.linkedSessions);
+      onProposal(fresh);
+      pendingConfirmation.current = null;
+      if (result.partial) {
+        setSkipped([]);
+        setSaveMessage(m.aiPlanner.remainingDays);
+      } else setCreated(fresh.draftIds ?? result.sessions);
       announce(t.created);
       await client.invalidateQueries({ queryKey: ["coach-calendar", orgId] });
     } catch (cause) {
@@ -268,6 +319,7 @@ export function NativePlannerResult({
       text: reply,
       // « Ajuster » part de la séance à l'écran : les retouches faites à la main sont gardées.
       sessions: proposal.state === "proposal" ? screen : null,
+      ...(proposal.state === "proposal" ? { adjustmentReview: { keep } } : {}),
     });
     if (!input.success || running) return;
     onClarify(input.data);
@@ -356,6 +408,32 @@ export function NativePlannerResult({
       : `${historyDate(proposal.selection.period.from)} – ${historyDate(proposal.selection.period.to)}`;
   const adjustments = proposal.adjustmentCount ?? 0;
 
+  if (proposal.adjustmentPreview)
+    return (
+      <StackScreen title={m.aiPlanner.adjustmentReview}>
+        {error && <T accessibilityLiveRegion="polite">{error}</T>}
+        {!proposal.adjustmentPreview.length && <T>{m.aiPlanner.noAdjustments}</T>}
+        {proposal.adjustmentPreview.map((pair, i) => (
+          <View style={{ gap: space.sm }} key={i}>
+            {(["before", "after"] as const).map((side) => (
+              <View key={side}>
+                <SectionTitle>{side === "before" ? m.aiPlanner.prior : m.aiPlanner.proposed}</SectionTitle>
+                {pair[side].map((line, j) => (
+                  <T key={j}>{line}</T>
+                ))}
+              </View>
+            ))}
+          </View>
+        ))}
+        <Button disabled={busy || !online} label={m.aiPlanner.applyAdjustment} onPress={() => void decide(true)} />
+        <Button
+          variant="secondary"
+          disabled={busy || !online}
+          label={m.aiPlanner.discardAdjustment}
+          onPress={() => void decide(false)}
+        />
+      </StackScreen>
+    );
   let footer: ReactNode = null;
   if (created) footer = <Button label={t.calendar} onPress={() => router.push("/(coach)/planning")} />;
   else if (proposal.state === "proposal")
@@ -623,6 +701,76 @@ export function NativePlannerResult({
                 </View>
               ) : null}
               {!drafts ? <T accessibilityLiveRegion="polite">{t.loadingSession}</T> : null}
+              {agenda.length > 0 && (
+                <Fold title={m.aiPlanner.agenda}>
+                  {agenda.map((day) => (
+                    <View key={day.date} style={{ gap: space.xs }}>
+                      <T variant="bodyStrong">{historyDate(day.date)}</T>
+                      {day.sessions.length === 0 && day.calendar.length === 0 && <T>{m.aiPlanner.restDay}</T>}
+                      {day.calendar.map((entry) => (
+                        <T key={entry.id}>
+                          {m.aiPlanner.planned} · {entry.title}
+                        </T>
+                      ))}
+                      {day.sessions.map((s, i) => (
+                        <View key={i}>
+                          <T>
+                            {s.title} ·{" "}
+                            {s.estimated ? m.aiPlanner.estimatedMinutes(s.estimated) : m.aiPlanner.unknownDuration}
+                          </T>
+                          <T>{s.blocks.join(" · ")}</T>
+                          {s.equipment.length > 0 && <T>{s.equipment.map((e) => equipmentLabels[e]).join(", ")}</T>}
+                          {s.missingRest && <T>{m.aiPlanner.missingRest}</T>}
+                          {s.missingEquipment.length > 0 && (
+                            <T>
+                              {m.aiPlanner.equipmentCheck} ·{" "}
+                              {s.missingEquipment.map((e) => equipmentLabels[e]).join(", ")}
+                            </T>
+                          )}
+                          {s.consecutiveJumps && <T>{m.aiPlanner.consecutiveJumps}</T>}
+                          {s.collision && <T>{m.aiPlanner.collision}</T>}
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                </Fold>
+              )}
+              {complete.length > 0 &&
+                linked?.map((item) =>
+                  item.state === "unavailable" ? (
+                    <T key={item.id}>{m.aiPlanner.missingDraft}</T>
+                  ) : (
+                    <Button
+                      key={item.id}
+                      variant="secondary"
+                      label={[
+                        item.state === "published" ? m.aiPlanner.openPublished(item.title) : t.openDraft(item.title),
+                        historyDate(item.date),
+                      ].join(" · ")}
+                      onPress={() => router.push(`/session-builder/${item.id}`)}
+                    />
+                  ),
+                )}
+              {drafts && drafts.length > 1 && (
+                <View style={{ gap: space.sm }}>
+                  <SectionTitle>{m.aiPlanner.selectDays}</SectionTitle>
+                  {drafts.map((d, i) => (
+                    <Pill
+                      key={i}
+                      pressed={selected.includes(i)}
+                      disabled={running || complete.includes(i)}
+                      onPress={() => toggleSession(i)}
+                      label={[
+                        historyDate(d.date),
+                        d.draft.title,
+                        complete.includes(i) ? m.aiPlanner.alreadyCreated : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    />
+                  ))}
+                </View>
+              )}
               {drafts?.map((session, index) => (
                 <PlannerDraftReview
                   key={index}
@@ -631,7 +779,7 @@ export function NativePlannerResult({
                   context={context}
                   proposal={proposal}
                   orgId={orgId}
-                  busy={running}
+                  busy={running || complete.includes(index)}
                   warnings={warnings[index] ?? []}
                   slots={slots.filter((slot) => slot.session === index)}
                   picking={picking?.index === index ? picking.picking : null}
@@ -643,7 +791,7 @@ export function NativePlannerResult({
                   onRemember={onRemember}
                 />
               ))}
-              {drafts ? (
+              {drafts && !complete.length ? (
                 <Fold
                   title={t.adjust}
                   detail={t.adjustCount(adjustments, PLANNER_MAX_ADJUSTMENTS)}
@@ -651,6 +799,18 @@ export function NativePlannerResult({
                 >
                   {adjustments < PLANNER_MAX_ADJUSTMENTS ? (
                     <>
+                      <T variant="bodyStrong">{m.aiPlanner.keepBlocks}</T>
+                      {drafts.map((d, session) =>
+                        d.draft.blocks.map((b, block) => (
+                          <Pill
+                            key={b.ref}
+                            label={[historyDate(d.date), b.name].join(" · ")}
+                            pressed={isKept(session, block)}
+                            onPress={() => toggleKeep(session, block)}
+                            disabled={running}
+                          />
+                        )),
+                      )}
                       <Field
                         testID="planner-adjust"
                         label={t.adjustLabel}

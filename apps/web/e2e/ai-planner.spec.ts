@@ -424,6 +424,9 @@ test("remplacer par une fiche hors de la proposition, puis ajuster sans perdre u
     await page.getByRole("textbox", { name: t.adjustLabel, exact: true }).fill("Passe à quatre séries.");
     await expectAccessible(page);
     await page.getByRole("button", { name: t.adjustSend, exact: true }).click();
+    await expect(page.getByRole("heading", { name: m.aiPlanner.adjustmentReview })).toBeVisible();
+    await expect(page.getByText(/4 × 12/).first()).toBeVisible();
+    await page.getByRole("button", { name: m.aiPlanner.applyAdjustment }).click();
     await expect(page.getByText(t.adjustCount(1, 5), { exact: true })).toBeVisible({ timeout: 30_000 });
     // Quatre séries, comme demandé ; la fiche choisie et les douze répétitions sont restées.
     await expect(card(page, later.name)).toContainText("4 × 12");

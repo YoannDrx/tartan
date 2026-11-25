@@ -23,12 +23,23 @@ env:
     visible:
       id: planner-instructions
     timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: planner-instructions
+    centerElement: true
+    timeout: 15000
+- waitForAnimationToEnd
 - tapOn:
     id: planner-instructions
 - waitForAnimationToEnd
 - inputText: ${output.plannerInstruction}
 # Champ multiligne : la touche Retour ajoute une ligne ; faire défiler l'écran ferme le clavier.
 - scroll
+- extendedWaitUntil:
+    visible:
+      id: planner-generate
+      enabled: true
+    timeout: 15000
 - tapOn:
     id: planner-generate
 - extendedWaitUntil:

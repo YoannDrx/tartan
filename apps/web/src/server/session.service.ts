@@ -910,7 +910,7 @@ const calendarCompletions = async (
   );
 };
 
-type CalendarQuery = { from: string; to: string; groupId?: string; summary?: "true" | "false" | boolean };
+type CalendarQuery = { from: string; to: string; groupId?: string; durationOnly?: boolean; summary?: "true" | "false" | boolean };
 
 export const listCalendar = async (
   userId: string,
@@ -1039,6 +1039,7 @@ const readCalendar = async (
         publishedAt: s.publishedAt?.toISOString() ?? null,
         audience,
         hasAutonomous: draft.success ? hasAutonomousVersion(draft.data) : false,
+        ...(query.durationOnly && plan.success ? { durationMin: plan.data.durationMin } : {}),
         ...(wantsSummary && plan.success
           ? {
               durationMin: plan.data.durationMin,
