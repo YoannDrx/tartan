@@ -20,7 +20,7 @@ Le bouton « Créer ma séance » ouvre le carnet personnel depuis la journée e
 
 ## 2026-11-25, Codex, gestes de barre et fiches hors ligne
 
-L’épaulé et l’arraché distinguent départ sur plots, pause au genou et réception. Les talons-fesses passent entre des portes de plots. Les 3 090 contrôles du moteur de gestes et les huit tests du service worker passent. La PWA conserve aussi les vignettes versionnées des séances préparées hors ligne. La relecture technique de chaque clip reste ouverte. L’atelier permet aussi de rattacher ou de retirer un guide relu sur une fiche commune historique, en gardant ses références. Ce parcours passe sur Playwright ordinateur et mobile, avec contrôle axe à 390, 768 et 1440 px.
+L’épaulé et l’arraché distinguent départ sur plots, pause au genou et réception. Les talons-fesses passent entre des portes de plots. Les 3 090 contrôles du moteur de gestes et les huit tests du service worker passent. La PWA conserve aussi les vignettes versionnées des séances préparées hors ligne. La relecture technique de chaque clip reste ouverte. La commande `catalog:images` prépare une série de PNG ou la reprise d’une seule clé, génère les vignettes et conserve les versions déjà embarquées. L’atelier permet aussi de rattacher ou de retirer un guide relu sur une fiche commune historique, en gardant ses références. Ce parcours passe sur Playwright ordinateur et mobile, avec contrôle axe à 390, 768 et 1440 px.
 
 ## 2026-11-25, Codex, série des exercices au sol
 
