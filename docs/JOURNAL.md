@@ -4,7 +4,7 @@ Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes s
 
 ## 2026-11-25, Codex, publication des mises à jour natives
 
-La mise en production du candidat terrain est vérifiée. Pour une mise à jour des deux plateformes, le workflow fournit explicitement iOS et Android à EAS. Chaque plateforme dispose d’un résultat et d’une reprise propres. Le mode de construction des binaires conserve le choix de plateforme transmis au workflow. Le tableau de recette suit la soumission TestFlight du build 20, le téléchargement privé de l’APK 10 et la signature de l’AAB 11.
+La mise en production du candidat terrain est vérifiée. Pour une mise à jour des deux plateformes, le workflow fournit explicitement iOS et Android à EAS. Chaque plateforme dispose d’un résultat et d’une reprise propres. Le mode de construction des binaires conserve le choix de plateforme transmis au workflow. Le tableau de recette suit la soumission TestFlight du build 20, le téléchargement privé de l’APK 10 et la signature de l’AAB 11. Le test du cron vérifie les deux relais et ses compteurs avec une file déterministe. La suite des invitations exerce la reprise réelle sur la base jetable.
 
 ## 2026-11-25, Codex, illustrations de tout le catalogue commun
 
