@@ -2,6 +2,10 @@
 
 Chaque agent ajoute une entrée en haut, à la fin de son travail. Cinq lignes suffisent. L'état d'avancement reste dans [ETAT.md](ETAT.md) : ici, seulement ce qu'un autre agent doit savoir pour reprendre.
 
+## 2026-11-25, Codex, invitations indépendantes par plateforme
+
+Une interruption du service Apple conserve l’envoi Android disponible pour une même personne. Le prochain traitement reprend iOS et déduplique l’e-mail APK déjà envoyé. Les deux états sont vérifiés en base avec une panne puis un rétablissement simulés.
+
 ## 2026-11-25, Codex, stockage privé des APK
 
 Le store Blob privé du lancement a été créé en région fra1 et connecté à la production avec le préfixe BETA_APK. Le téléchargement contrôlé utilise la variable dédiée posée par Vercel. Les nouvelles invitations restent suspendues par défaut.

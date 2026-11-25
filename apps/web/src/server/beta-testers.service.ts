@@ -153,8 +153,12 @@ export async function dispatchBeta(now = new Date()) {
         const enabled = env().BETA_INVITES_ENABLED === "true",
           active = live(r, now);
         const wantsIOS = active && r.ios;
+        let appleFailed = false;
         if (r.ios && ((enabled && wantsIOS && !r.iosAuthorized) || (!active && r.iosNeedsCleanup))) {
-          const synced = await syncAppleBeta(r.email, wantsIOS);
+          const synced = await syncAppleBeta(r.email, wantsIOS).catch(() => {
+            appleFailed = true;
+            return false;
+          });
           if (synced)
             r = await tx.betaTester.update({
               where: { id },
@@ -180,7 +184,10 @@ export async function dispatchBeta(now = new Date()) {
         }
         await tx.betaTester.update({
           where: { id },
-          data: { providerFailed: false, nextAttemptAt: new Date(+now + (active ? 3600000 : days(1))) },
+          data: {
+            providerFailed: appleFailed,
+            nextAttemptAt: new Date(+now + (appleFailed ? 300000 : active ? 3600000 : days(1))),
+          },
         });
       }, txOptions);
     } catch {
