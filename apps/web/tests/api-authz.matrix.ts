@@ -331,10 +331,10 @@ const plannerInput = (w: World, qui: PersonaKey): CreatePlannerProposalInput => 
   text: "Trois séries de cinq répétitions à quarante kilos.",
 });
 // Une proposition appartient à son auteur. Chaque encadrant reçoit la sienne, prête à devenir brouillon.
-const readyProposal = async (w: World, qui: PersonaKey): Promise<ReadyProposal> => {
+const readyProposal = async (w: World, qui: PersonaKey, fresh = false): Promise<ReadyProposal> => {
   const author = authorOf(w, qui);
   const known = w.proposals.get(author);
-  if (known) return known;
+  if (known && !fresh) return known;
   w.planner.reponse = "proposition";
   const proposal = await createPlannerProposal(
     author,
@@ -343,7 +343,7 @@ const readyProposal = async (w: World, qui: PersonaKey): Promise<ReadyProposal> 
   );
   const drafts = await preparePlannerDrafts(author, w.org, proposal.id, proposal.version);
   const ready = { id: proposal.id, version: proposal.version, sessions: drafts.sessions };
-  w.proposals.set(author, ready);
+  if (!fresh) w.proposals.set(author, ready);
   return ready;
 };
 
@@ -1103,6 +1103,41 @@ export const MATRICE: Row[] = [
     route: "GET /api/v1/orgs/[orgId]/planner/proposals/[proposalId]",
     ...encadrants,
     call: async (w, qui) => ({ params: { proposalId: (await readyProposal(w, qui)).id } }),
+  },
+  {
+    route: "PATCH /api/v1/orgs/[orgId]/planner/proposals/[proposalId]",
+    ...encadrants,
+    call: async (w, qui) => {
+      const proposal = await readyProposal(w, qui, STAFF.includes(qui));
+      return {
+        params: { proposalId: proposal.id },
+        body: { expectedVersion: proposal.version, sessions: proposal.sessions },
+      };
+    },
+  },
+  {
+    route: "DELETE /api/v1/orgs/[orgId]/planner/proposals/[proposalId]",
+    ...encadrants,
+    call: async (w, qui) => {
+      const proposal = await readyProposal(w, qui, STAFF.includes(qui));
+      return { params: { proposalId: proposal.id }, query: { expectedVersion: String(proposal.version) } };
+    },
+  },
+  {
+    route: "POST /api/v1/orgs/[orgId]/planner/proposals/[proposalId]/duplicate",
+    ...encadrants,
+    call: async (w, qui) => {
+      const proposal = await readyProposal(w, qui);
+      return { params: { proposalId: proposal.id }, body: { expectedVersion: proposal.version, id: randomUUID() } };
+    },
+  },
+  {
+    route: "POST /api/v1/orgs/[orgId]/sessions/[sessionId]/duplicate-draft",
+    ...encadrants,
+    call: async (w, qui) => {
+      const draft = await freshDraft(w, qui);
+      return { params: { sessionId: draft.id }, body: { expectedVersion: draft.version, operationId: randomUUID() } };
+    },
   },
   {
     route: "POST /api/v1/orgs/[orgId]/planner/proposals/[proposalId]/clarify",

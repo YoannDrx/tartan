@@ -714,3 +714,32 @@ test("le planificateur s'ouvre là où une séance se crée, avec le jour et le 
     await a.sql.end();
   }
 });
+
+test("une proposition retouchée se reprend dans un autre onglet et peut quitter l’historique", async ({ page }) => {
+  const a = await setup(page);
+  try {
+    await request(page, SQUAT);
+    await prepare(page);
+    await page.getByText(t.editSchedule, { exact: true }).first().click();
+    await page.getByLabel(m.builder.title, { exact: true }).fill("Appuis sur la courbe");
+    await expect(page.getByText(m.aiPlanner.savedReview, { exact: true })).toBeVisible();
+    const other = await page.context().newPage();
+    await other.emulateMedia({ reducedMotion: "reduce" });
+    await other.goto("/planificateur/propositions?filtre=pending");
+    await everyWidth(other);
+    await other
+      .getByRole("link", { name: new RegExp(m.aiPlanner.historyActions.proposal) })
+      .first()
+      .click();
+    await expect(other.getByRole("heading", { name: "Appuis sur la courbe" })).toBeVisible();
+    await createDraft(other);
+    await other.goto("/planificateur/propositions?filtre=created");
+    await other.getByText(m.aiPlanner.moreProposalActions, { exact: true }).first().click();
+    await other.getByRole("button", { name: m.aiPlanner.removeProposal }).click();
+    await other.getByRole("dialog").getByRole("button", { name: m.aiPlanner.removeProposal }).click();
+    await expect(other.getByText(t.proposals.empty)).toBeVisible();
+    expect(await sessionsOf(a)).toHaveLength(1);
+  } finally {
+    await a.sql.end();
+  }
+});

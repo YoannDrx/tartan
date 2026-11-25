@@ -19,11 +19,14 @@ import {
 import { historyDate, m } from "@tartan/i18n";
 import { w } from "@tartan/i18n/web";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TrackLine } from "@/components/track";
 import { Button } from "@/components/ui/button";
 import { Field, Textarea } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
+import { usePlannerDictation } from "./web-dictation";
+import { Dialog } from "@/components/ui/dialog";
 import { PlannerProgress } from "./planner-progress";
 import { Fold, type PlannerContext } from "./planner-request";
 import {
@@ -106,10 +109,39 @@ export function PlannerResult({
   onRestart: () => void;
   onError: (message: string) => void;
 }) {
+  const router = useRouter();
+  const duplicateIds = useRef(new Map<string, string>());
+  const copyDraft = async (id: string, version: number) => {
+    if (busy) return;
+    setBusy(true);
+    const key = id + version,
+      op = duplicateIds.current.get(key) ?? crypto.randomUUID();
+    duplicateIds.current.set(key, op);
+    try {
+      const copied = await api.duplicatePlannerDraft(orgId, id, op, version);
+      router.push(`/seances/${copied.id}`);
+    } catch (cause) {
+      onError(messageOf(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
   const [reply, setReply] = useState("");
+  const mic = usePlannerDictation(orgId, (text) => setReply((current) => [current, text].filter(Boolean).join(" ")));
+  const [linked, setLinked] = useState(proposal.linkedSessions);
+  const refreshLinked = async () => setLinked((await api.plannerProposal(orgId, proposal.id)).linkedSessions);
   // La séance à l'écran, avec la version de la proposition qu'elle reflète. Un ajustement ou le retrait d'un
   // emplacement en apporte une nouvelle ; d'ici là, l'ancienne reste affichée, figée.
-  const [prepared, setPrepared] = useState<{ version: number; sessions: PlannerReviewedDraft[] } | null>(null);
+  const [prepared, setPrepared] = useState<{
+    version: number;
+    sessions: PlannerReviewedDraft[];
+    edited?: boolean;
+  } | null>(null);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [saveStopped, setSaveStopped] = useState(false);
+  const [conflict, setConflict] = useState(false);
+  const [localCopy, setLocalCopy] = useState<PlannerReviewedDraft[] | null>(null);
+  const saving = useRef(false);
   const [warnings, setWarnings] = useState<PlannerDraftWarning[][]>([]);
   const [slots, setSlots] = useState<PlannerDraftSlot[]>([]);
   const [loads, setLoads] = useState<Record<number, { key: string; ready: boolean }>>({});
@@ -143,13 +175,15 @@ export function PlannerResult({
   }, [orgId, proposal.id, proposal.version, proposal.state, preparedVersion, onError]);
 
   const updateDraft = useCallback((index: number, update: (draft: PlannerReviewedDraft) => PlannerReviewedDraft) => {
+    setSaveStopped(false);
+    setSaveMessage("");
     setPrepared((current) => {
       const session = current?.sessions[index];
       if (!current || !session) return current;
       const next = update(session);
       return next === session
         ? current
-        : { ...current, sessions: current.sessions.map((s, i) => (i === index ? next : s)) };
+        : { ...current, edited: true, sessions: current.sessions.map((s, i) => (i === index ? next : s)) };
     });
     pendingConfirmation.current = null;
   }, []);
@@ -178,6 +212,66 @@ export function PlannerResult({
   // La séance de l'écran, quand elle peut partir telle quelle : c'est la base d'un ajustement ou d'un retrait.
   const screen = drafts && plannerReviewedDraft.array().min(1).safeParse(drafts).success ? drafts : undefined;
 
+  const save = useCallback(async () => {
+    if (!prepared?.edited || !valid || running || saving.current || created) return;
+    saving.current = true;
+    setBusy(true);
+    try {
+      const saved = await api.savePlannerReview(orgId, proposal.id, {
+        expectedVersion: prepared.version,
+        sessions: prepared.sessions,
+      });
+      setPrepared((current) =>
+        current && current.version === prepared.version
+          ? { ...current, version: saved.version, edited: current.sessions !== prepared.sessions }
+          : current,
+      );
+      onProposal({ ...proposal, version: saved.version });
+      setConflict(false);
+      setLocalCopy(null);
+      setSaveMessage(m.aiPlanner.savedReview);
+    } catch (cause) {
+      setSaveStopped(true);
+      setConflict(cause instanceof ApiError && cause.code === "planner_proposal_conflict");
+      onError(messageOf(cause));
+    } finally {
+      saving.current = false;
+      setBusy(false);
+    }
+  }, [created, onError, onProposal, orgId, prepared, proposal, running, valid]);
+  useEffect(() => {
+    if (!prepared?.edited || !valid || running || saveStopped || created) return;
+    const timer = setTimeout(() => void save(), 1000);
+    return () => clearTimeout(timer);
+  }, [created, prepared, running, save, saveStopped, valid]);
+
+  const reloadReview = async () => {
+    if (!prepared || busy) return;
+    setBusy(true);
+    try {
+      const fresh = await api.plannerProposal(orgId, proposal.id);
+      setLocalCopy(prepared.sessions);
+      setConflict(false);
+      setSaveMessage("");
+      setPrepared(null);
+      setCreated(fresh.draftIds);
+      setLinked(fresh.linkedSessions);
+      onProposal(fresh);
+      onError("");
+    } catch (cause) {
+      onError(messageOf(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const restoreReview = () => {
+    if (!localCopy || !prepared) return;
+    setPrepared({ ...prepared, sessions: localCopy, edited: true });
+    setSaveStopped(true);
+    setSaveMessage(m.aiPlanner.restoredReview);
+    pendingConfirmation.current = null;
+  };
+
   const confirm = async () => {
     if (!drafts || !valid || !phasesReady || !loadsReady || running || slots.length) return;
     setBusy(true);
@@ -188,6 +282,7 @@ export function PlannerResult({
       pendingConfirmation.current = input;
       const result = await api.confirmPlannerProposal(orgId, proposal.id, input);
       setCreated(result.sessions);
+      await refreshLinked();
     } catch (cause) {
       onError(messageOf(cause));
     } finally {
@@ -225,6 +320,7 @@ export function PlannerResult({
         questionId,
         requestedName: said,
         choice: { kind: "existing", exerciseId: exercise.id },
+        ...(screen ? { sessions: screen } : {}),
       });
       setPrepared((current) =>
         current
@@ -300,13 +396,56 @@ export function PlannerResult({
     return (
       <section className="flex flex-col items-start gap-3">
         <p role="status">{t.created}</p>
-        {created.map((session, index) => (
-          <Button key={session.id} asChild>
-            <Link href={`/seances/${session.id}`}>
-              {t.openDraft(drafts?.[index]?.draft.title ?? t.createdDraft(index + 1))}
-            </Link>
-          </Button>
-        ))}
+        {created.map((session, index) => {
+          const item = linked?.find((s) => s.id === session.id);
+          if (item?.state === "unavailable") return <p key={session.id}>{m.aiPlanner.missingDraft}</p>;
+          const name = item
+            ? item.title + " · " + historyDate(item.date)
+            : (drafts?.[index]?.draft.title ?? t.createdDraft(index + 1));
+          return (
+            <div key={session.id} className="flex flex-wrap gap-2">
+              <Button asChild>
+                <Link href={`/seances/${session.id}`}>
+                  {item?.state === "published" ? m.aiPlanner.openPublished(name) : t.openDraft(name)}
+                </Link>
+              </Button>
+              {item?.state === "draft" && (
+                <Button variant="secondary" disabled={busy} onClick={() => void copyDraft(item.id, item.version)}>
+                  {m.aiPlanner.duplicateDraft}
+                </Button>
+              )}
+              {item?.state === "draft" ? (
+                <Dialog
+                  title={m.aiPlanner.removeDraft}
+                  description={m.aiPlanner.removeDraftDetail(item.title, historyDate(item.date))}
+                  trigger={<Button variant="quiet">{m.aiPlanner.removeDraft}</Button>}
+                >
+                  <Button
+                    disabled={busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      try {
+                        await api.deleteSession(
+                          orgId,
+                          item.id,
+                          { expectedVersion: item.version, expectedLogCount: 0 },
+                          true,
+                        );
+                        await refreshLinked();
+                      } catch (e) {
+                        toast.error(messageOf(e));
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    {m.common.delete}
+                  </Button>
+                </Dialog>
+              ) : null}
+            </div>
+          );
+        })}
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="secondary">
             <Link href="/calendrier">{t.calendar}</Link>
@@ -407,7 +546,21 @@ export function PlannerResult({
               <Field label={t.answer} hint={t.answerHint} className="w-full">
                 {(a) => <Textarea {...a} value={reply} disabled={running} onChange={(e) => setReply(e.target.value)} />}
               </Field>
-              <Button type="submit" disabled={running || !reply.trim() || reply.length > 12000}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!mic.recording && mic.busy}
+                onClick={mic.recording ? mic.stop : mic.start}
+              >
+                {mic.recording ? t.dictation.stop : m.aiPlanner.dictateReply}
+              </Button>
+              {mic.canRecover ? (
+                <Button type="button" onClick={mic.recover}>
+                  {t.dictation.recover}
+                </Button>
+              ) : null}
+              {mic.status || mic.error ? <p role="status">{mic.error || mic.status}</p> : null}
+              <Button type="submit" disabled={running || mic.busy || !reply.trim() || reply.length > 12000}>
                 {t.sendAnswer}
               </Button>
             </form>
@@ -517,6 +670,22 @@ export function PlannerResult({
                 {busy ? t.creating : drafts && drafts.length > 1 ? t.createMany(drafts.length) : t.create}
               </Button>
             )}
+            {prepared?.edited ? (
+              <Button variant="secondary" disabled={!valid || running} onClick={() => void save()}>
+                {m.aiPlanner.saveReview}
+              </Button>
+            ) : null}
+            {conflict ? (
+              <Button variant="secondary" disabled={busy} onClick={() => void reloadReview()}>
+                {m.aiPlanner.reloadReview}
+              </Button>
+            ) : null}
+            {localCopy && !prepared?.edited ? (
+              <Button variant="secondary" disabled={running} onClick={restoreReview}>
+                {m.aiPlanner.restoreReview}
+              </Button>
+            ) : null}
+            {saveMessage ? <p role="status">{saveMessage}</p> : null}
             <p className="t-caption font-normal text-soft">{t.noPublication}</p>
           </div>
         </section>

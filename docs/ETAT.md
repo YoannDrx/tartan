@@ -4,6 +4,14 @@ Mis à jour le 23 novembre 2026. Toute PR qui change un état met ce fichier à 
 
 Ce fichier est une photographie. L'historique des lots vit dans Git (`git log -p docs/ETAT.md`) et les passations dans [JOURNAL.md](JOURNAL.md).
 
+## Reprendre une proposition IA · 25 novembre 2026
+
+La liste privée utilise l’état effectif et propose des filtres. Web et mobile enregistrent les retouches à version contrôlée, permettent de répondre et distinguent retrait de proposition et suppression de séance en brouillon. Les 2 547 tests web passent. Playwright vérifie la reprise dans un deuxième onglet, la création puis le retrait de la proposition, sur petit et grand écrans. La recette sur deux appareils physiques reste à faire.
+
+## APK Android de bêta · 25 novembre 2026
+
+Le profil EAS beta-apk hérite du canal beta et de l’identité de production. EAS a résolu localement le profil en APK, canal beta, environnement production. La continuité de signature, le téléchargement privé et la mise à jour sur téléphone restent à éprouver.
+
 ## Console privée des testeurs · 25 novembre 2026
 
 Mise en production vérifiée sur `85d0a428`. Santé HTTP 200 et redirection de l’accès anonyme vers la connexion. Le [tableau de recette](tests/recette-lancement-testeurs.md) rassemble les mesures IA, les parcours et les essais qui nécessitent encore un appareil.

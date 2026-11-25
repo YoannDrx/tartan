@@ -115,9 +115,7 @@ export const plannerProviderInterpretation = plannerInterpretation.extend({
           .array(
             plannerSession.shape.blocks.element.extend({
               sequence: sessionSequence.nullable(),
-              items: z
-                .array(plannerItem.extend({ ref: plannerItem.shape.ref.unwrap() }))
-                .max(60),
+              items: z.array(plannerItem.extend({ ref: plannerItem.shape.ref.unwrap() })).max(60),
             }),
           )
           .min(1)
@@ -412,6 +410,8 @@ export const confirmPlannerProposalInput = z
   .strict();
 export type ConfirmPlannerProposalInput = z.infer<typeof confirmPlannerProposalInput>;
 
+export const savePlannerReviewInput = confirmPlannerProposalInput.omit({ confirmed: true });
+export const removePlannerProposalQuery = z.object({ expectedVersion: z.coerce.number().int().positive() }).strict();
 export const preparePlannerDraftsInput = z.object({ expectedVersion: z.number().int().positive() }).strict();
 const plannerCreatedSessions = z
   .array(z.object({ id: uuid, version: z.number().int().positive() }))
@@ -471,7 +471,10 @@ export const plannerDraftsResponse = z.object({
           itemRef: z.string().nullable(),
           detail: z.string().nullable(),
           // Additif : les autres fiches possibles d'un rapprochement incertain.
-          alternatives: z.array(z.object({ exerciseId: uuid, name: z.string() })).max(3).optional(),
+          alternatives: z
+            .array(z.object({ exerciseId: uuid, name: z.string() }))
+            .max(3)
+            .optional(),
           // Additif : le terme que le coach a dit pour cet exercice, quand le point porte sur sa fiche.
           said: z.string().max(120).optional(),
         }),
@@ -544,7 +547,12 @@ export const plannerUnderstandingView = z.object({
   corrections: z.array(z.object({ said: z.string().max(200), kept: z.string().max(200) })).max(10),
 });
 export type PlannerUnderstandingView = z.infer<typeof plannerUnderstandingView>;
+export const duplicatePlannerProposalInput = z
+  .object({ id: uuid, expectedVersion: z.number().int().positive() })
+  .strict();
+const plannerActions = z.array(z.enum(["progress", "answer", "edit", "retry", "sessions", "duplicate", "remove"]));
 export const plannerProposalResponse = z.object({
+  actions: plannerActions.optional(),
   // Additif : la cause du dernier échec, lisible après un rechargement. Les anciens clients l'ignorent.
   failure: z
     .object({ code: plannerFailureCode, message: z.string(), step: plannerStepName.nullable().optional() })
@@ -553,7 +561,10 @@ export const plannerProposalResponse = z.object({
   // Additif : ce que le planificateur a compris de la demande.
   understanding: plannerUnderstandingView.nullable().optional(),
   // Additif, clients `slots` seulement : les emplacements encore à compléter avant de créer le brouillon.
-  slots: z.array(plannerSlotView.omit({ itemRef: true })).max(60).optional(),
+  slots: z
+    .array(plannerSlotView.omit({ itemRef: true }))
+    .max(60)
+    .optional(),
   id: uuid,
   version: z.number().int().positive(),
   state: z.enum(["processing", "clarification", "proposal", "failed", "committed"]),
@@ -571,6 +582,20 @@ export const plannerProposalResponse = z.object({
   ),
   exerciseResolutions: z.array(z.object({ questionId: z.string(), exerciseId: uuid, name: z.string() })).optional(),
   phaseReviews: z.array(z.object({ date: isoDate, review: sessionPhaseReview })),
+  linkedSessions: z
+    .array(
+      z.discriminatedUnion("state", [
+        z.object({ id: uuid, state: z.literal("unavailable") }),
+        z.object({
+          id: uuid,
+          state: z.enum(["published", "draft"]),
+          date: isoDate,
+          title: z.string(),
+          version: z.number().int().positive(),
+        }),
+      ]),
+    )
+    .optional(),
   draftIds: plannerCreatedSessions.nullable(),
 });
 export type PlannerProposalResponse = z.infer<typeof plannerProposalResponse>;
@@ -635,7 +660,9 @@ export const plannerAliasList = z.object({
 });
 export type PlannerAliasList = z.infer<typeof plannerAliasList>;
 export const plannerAliasRemoved = z.object({ removed: z.literal(true) });
-export const plannerProposalListQuery = z.object({ before: uuid.optional() }).strict();
+export const plannerProposalListQuery = z
+  .object({ before: uuid.optional(), filter: z.enum(["all", "pending", "created"]).optional() })
+  .strict();
 export type PlannerProposalListQuery = z.infer<typeof plannerProposalListQuery>;
 export const plannerProposalList = z.object({
   items: z
@@ -643,6 +670,8 @@ export const plannerProposalList = z.object({
       z.object({
         id: uuid,
         state: plannerProposalResponse.shape.state,
+        actions: plannerActions.optional(),
+        version: z.number().int().positive().optional(),
         period: plannerSelection.shape.period,
         createdAt: z.iso.datetime(),
         expiresAt: z.iso.datetime(),
