@@ -30,7 +30,7 @@ const equipmentKeys = new Map(
 );
 
 // La classification des anciens clients range ces accessoires dans « autre ».
-const specificEquipment: ReadonlyMap<string, string> = new Map([
+const specificEquipment: ReadonlyMap<string, "jump_rope" | "sliders"> = new Map([
   ["easy-jump-rope", "jump_rope"],
   ["rope-boxer-step", "jump_rope"],
   ["rope-skier", "jump_rope"],
